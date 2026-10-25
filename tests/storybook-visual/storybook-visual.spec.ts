@@ -10,13 +10,18 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const indexJsonPath = join(repoRoot, "ui", "storybook-static", "index.json");
 
 if (!existsSync(indexJsonPath)) {
-  throw new Error(`Missing ${indexJsonPath}; run \`pnpm build-storybook\` first.`);
+  throw new Error(
+    `Missing ${indexJsonPath}; run \`pnpm build-storybook\` first.`,
+  );
 }
 
 type IndexEntry = { id: string; type: string; title: string; name: string };
 const entries = Object.values(
-  (JSON.parse(readFileSync(indexJsonPath, "utf8")) as { entries: Record<string, IndexEntry> })
-    .entries,
+  (
+    JSON.parse(readFileSync(indexJsonPath, "utf8")) as {
+      entries: Record<string, IndexEntry>;
+    }
+  ).entries,
 ).filter((entry) => entry.type === "story");
 
 // Freeze wall-clock time so relative timestamps, spinners driven by
@@ -44,7 +49,11 @@ const MASKED_SELECTORS: Record<string, string> = {
     'p:has-text("Use a sidecar anchor made from")',
 };
 
-async function renderStory(page: Page, storyId: string, theme: (typeof THEMES)[number]) {
+async function renderStory(
+  page: Page,
+  storyId: string,
+  theme: (typeof THEMES)[number],
+) {
   // Freeze Date only (not timers): page.clock.setFixedTime breaks React
   // rendering in several stories (intermittent "must be used within Provider"
   // errors), so shim the Date constructor instead.

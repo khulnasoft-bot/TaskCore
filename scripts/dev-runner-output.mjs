@@ -5,7 +5,9 @@ function normalizeByteLimit(maxBytes) {
   return Math.max(1, Math.trunc(maxBytes));
 }
 
-export function createCapturedOutputBuffer(maxBytes = DEFAULT_CAPTURED_OUTPUT_BYTES) {
+export function createCapturedOutputBuffer(
+  maxBytes = DEFAULT_CAPTURED_OUTPUT_BYTES,
+) {
   const limit = normalizeByteLimit(maxBytes);
   const chunks = [];
   let bufferedBytes = 0;
@@ -57,9 +59,15 @@ export function createCapturedOutputBuffer(maxBytes = DEFAULT_CAPTURED_OUTPUT_BY
   };
 }
 
-export async function parseJsonResponseWithLimit(response, maxBytes = DEFAULT_JSON_RESPONSE_BYTES) {
+export async function parseJsonResponseWithLimit(
+  response,
+  maxBytes = DEFAULT_JSON_RESPONSE_BYTES,
+) {
   const limit = normalizeByteLimit(maxBytes);
-  const contentLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
+  const contentLength = Number.parseInt(
+    response.headers.get("content-length") ?? "",
+    10,
+  );
   if (Number.isFinite(contentLength) && contentLength > limit) {
     throw new Error(`Response exceeds ${limit} bytes`);
   }

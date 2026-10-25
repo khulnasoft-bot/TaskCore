@@ -36,7 +36,8 @@ describe("agent local JWT", () => {
     vi.useRealTimers();
     if (originalEnv.secret === undefined) delete process.env[secretEnv];
     else process.env[secretEnv] = originalEnv.secret;
-    if (originalEnv.betterAuthSecret === undefined) delete process.env[betterAuthSecretEnv];
+    if (originalEnv.betterAuthSecret === undefined)
+      delete process.env[betterAuthSecretEnv];
     else process.env[betterAuthSecretEnv] = originalEnv.betterAuthSecret;
     if (originalEnv.ttl === undefined) delete process.env[ttlEnv];
     else process.env[ttlEnv] = originalEnv.ttl;
@@ -44,15 +45,23 @@ describe("agent local JWT", () => {
     else process.env[issuerEnv] = originalEnv.issuer;
     if (originalEnv.audience === undefined) delete process.env[audienceEnv];
     else process.env[audienceEnv] = originalEnv.audience;
-    if (originalEnv.disableLegacyFallback === undefined) delete process.env[disableLegacyFallbackEnv];
-    else process.env[disableLegacyFallbackEnv] = originalEnv.disableLegacyFallback;
+    if (originalEnv.disableLegacyFallback === undefined)
+      delete process.env[disableLegacyFallbackEnv];
+    else
+      process.env[disableLegacyFallbackEnv] = originalEnv.disableLegacyFallback;
     if (originalEnv.instanceId === undefined) delete process.env[instanceIdEnv];
     else process.env[instanceIdEnv] = originalEnv.instanceId;
   });
 
   it("creates and verifies a token", () => {
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1", "user-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+      "user-1",
+    );
     expect(typeof token).toBe("string");
 
     const claims = verifyLocalAgentJwt(token!);
@@ -70,10 +79,17 @@ describe("agent local JWT", () => {
   it("round-trips a skill_test run scope", () => {
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
     const issueId = "11111111-1111-4111-8111-111111111111";
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1", "user-1", {
-      kind: "skill_test",
-      issueId,
-    });
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+      "user-1",
+      {
+        kind: "skill_test",
+        issueId,
+      },
+    );
 
     const claims = verifyLocalAgentJwt(token!);
     expect(claims?.key_scope).toEqual({ kind: "skill_test", issueId });
@@ -81,7 +97,12 @@ describe("agent local JWT", () => {
 
   it("returns null when secret is missing", () => {
     process.env[secretEnv] = "";
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+    );
     expect(token).toBeNull();
     expect(verifyLocalAgentJwt("abc.def.ghi")).toBeNull();
   });
@@ -90,7 +111,12 @@ describe("agent local JWT", () => {
     delete process.env[secretEnv];
     process.env[betterAuthSecretEnv] = "fallback-secret";
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+    );
     expect(typeof token).toBe("string");
 
     const claims = verifyLocalAgentJwt(token!);
@@ -105,7 +131,12 @@ describe("agent local JWT", () => {
   it("rejects expired tokens", () => {
     process.env[ttlEnv] = "1";
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+    );
 
     vi.setSystemTime(new Date("2026-01-01T00:00:05.000Z"));
     expect(verifyLocalAgentJwt(token!)).toBeNull();
@@ -115,7 +146,12 @@ describe("agent local JWT", () => {
     process.env[issuerEnv] = "custom-issuer";
     process.env[audienceEnv] = "custom-audience";
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-    const token = createLocalAgentJwt("agent-1", "company-1", "codex_local", "run-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "codex_local",
+      "run-1",
+    );
 
     process.env[issuerEnv] = "taskcore";
     process.env[audienceEnv] = "taskcore-api";
@@ -124,7 +160,12 @@ describe("agent local JWT", () => {
 
   it("does not verify a token across companies (per-company isolation)", () => {
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-    const tokenA = createLocalAgentJwt("agent-1", "company-A", "claude_local", "run-1");
+    const tokenA = createLocalAgentJwt(
+      "agent-1",
+      "company-A",
+      "claude_local",
+      "run-1",
+    );
     expect(tokenA).not.toBeNull();
 
     // A token whose body claims company-A must verify successfully under its
@@ -137,9 +178,14 @@ describe("agent local JWT", () => {
     // different company_id (or rebind to company-B's key) verification must
     // fail because the signature is over the original signing input.
     const [headerB64, claimsB64, signature] = tokenA!.split(".");
-    const claims = JSON.parse(Buffer.from(claimsB64, "base64url").toString("utf8"));
+    const claims = JSON.parse(
+      Buffer.from(claimsB64, "base64url").toString("utf8"),
+    );
     claims.company_id = "company-B";
-    const tamperedClaimsB64 = Buffer.from(JSON.stringify(claims), "utf8").toString("base64url");
+    const tamperedClaimsB64 = Buffer.from(
+      JSON.stringify(claims),
+      "utf8",
+    ).toString("base64url");
     const tampered = `${headerB64}.${tamperedClaimsB64}.${signature}`;
     expect(verifyLocalAgentJwt(tampered)).toBeNull();
   });
@@ -162,10 +208,16 @@ describe("agent local JWT", () => {
       iss: "taskcore",
       aud: "taskcore-api",
     };
-    const headerB64 = Buffer.from(JSON.stringify(header), "utf8").toString("base64url");
-    const claimsB64 = Buffer.from(JSON.stringify(claims), "utf8").toString("base64url");
+    const headerB64 = Buffer.from(JSON.stringify(header), "utf8").toString(
+      "base64url",
+    );
+    const claimsB64 = Buffer.from(JSON.stringify(claims), "utf8").toString(
+      "base64url",
+    );
     const signingInput = `${headerB64}.${claimsB64}`;
-    const legacySig = createHmac("sha256", masterSecret).update(signingInput).digest("base64url");
+    const legacySig = createHmac("sha256", masterSecret)
+      .update(signingInput)
+      .digest("base64url");
     const legacyToken = `${signingInput}.${legacySig}`;
 
     const verified = verifyLocalAgentJwt(legacyToken);
@@ -188,7 +240,12 @@ describe("agent local JWT", () => {
   it("stamps the minting instance id into the token claims", () => {
     process.env[instanceIdEnv] = "default";
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+    );
     const claims = verifyLocalAgentJwt(token!);
     expect(claims?.instance_id).toBe("default");
   });
@@ -198,7 +255,12 @@ describe("agent local JWT", () => {
 
     // Mint on a worktree/fork instance (distinct instance id, SAME secret).
     process.env[instanceIdEnv] = "pap-12899-worktree";
-    const forkToken = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1");
+    const forkToken = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+    );
     expect(forkToken).not.toBeNull();
     // Sanity: it verifies on the instance that minted it.
     expect(verifyLocalAgentJwt(forkToken!)?.company_id).toBe("company-1");
@@ -214,7 +276,13 @@ describe("agent local JWT", () => {
   it("keeps live-plane heartbeat tokens authenticating across mint/verify", () => {
     process.env[instanceIdEnv] = "default";
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1", "user-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+      "user-1",
+    );
     const claims = verifyLocalAgentJwt(token!);
     expect(claims).toMatchObject({
       sub: "agent-1",
@@ -232,11 +300,21 @@ describe("agent local JWT", () => {
     // derived key, so re-encoding the claim cannot make it validate on the
     // live plane — the claim check is defense-in-depth, the key is the boundary.
     process.env[instanceIdEnv] = "pap-12899-worktree";
-    const forkToken = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1");
+    const forkToken = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+    );
     const [headerB64, claimsB64, signature] = forkToken!.split(".");
-    const claims = JSON.parse(Buffer.from(claimsB64, "base64url").toString("utf8"));
+    const claims = JSON.parse(
+      Buffer.from(claimsB64, "base64url").toString("utf8"),
+    );
     claims.instance_id = "default";
-    const tamperedClaimsB64 = Buffer.from(JSON.stringify(claims), "utf8").toString("base64url");
+    const tamperedClaimsB64 = Buffer.from(
+      JSON.stringify(claims),
+      "utf8",
+    ).toString("base64url");
     const tampered = `${headerB64}.${tamperedClaimsB64}.${signature}`;
 
     process.env[instanceIdEnv] = "default";
@@ -249,7 +327,10 @@ describe("agent local JWT", () => {
     process.env[instanceIdEnv] = "default";
     // The legacy fallback signs with the raw shared secret and is therefore
     // instance-agnostic; disabling it closes that residual cross-instance hole.
-    const legacyToken = craftLegacyMasterSecretToken(process.env[secretEnv]!, "company-1");
+    const legacyToken = craftLegacyMasterSecretToken(
+      process.env[secretEnv]!,
+      "company-1",
+    );
     expect(verifyLocalAgentJwt(legacyToken)).toBeNull();
   });
 
@@ -260,14 +341,22 @@ describe("agent local JWT", () => {
     // TASKCORE_API_KEY dead on arrival.
     delete process.env[ttlEnv];
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+    );
     const claims = verifyLocalAgentJwt(token!);
     expect(claims).not.toBeNull();
     expect(claims!.exp - claims!.iat).toBe(60 * 60 * 48);
   });
 
   // Helper: hand-craft a token signed with the raw master secret (legacy path).
-  function craftLegacyMasterSecretToken(masterSecret: string, companyId: string) {
+  function craftLegacyMasterSecretToken(
+    masterSecret: string,
+    companyId: string,
+  ) {
     const now = Math.floor(Date.now() / 1000);
     const header = { alg: "HS256", typ: "JWT" };
     const claims = {
@@ -280,17 +369,26 @@ describe("agent local JWT", () => {
       iss: "taskcore",
       aud: "taskcore-api",
     };
-    const headerB64 = Buffer.from(JSON.stringify(header), "utf8").toString("base64url");
-    const claimsB64 = Buffer.from(JSON.stringify(claims), "utf8").toString("base64url");
+    const headerB64 = Buffer.from(JSON.stringify(header), "utf8").toString(
+      "base64url",
+    );
+    const claimsB64 = Buffer.from(JSON.stringify(claims), "utf8").toString(
+      "base64url",
+    );
     const signingInput = `${headerB64}.${claimsB64}`;
-    const legacySig = createHmac("sha256", masterSecret).update(signingInput).digest("base64url");
+    const legacySig = createHmac("sha256", masterSecret)
+      .update(signingInput)
+      .digest("base64url");
     return `${signingInput}.${legacySig}`;
   }
 
   it("accepts master-secret-signed tokens when TASKCORE_AGENT_JWT_DISABLE_LEGACY_FALLBACK is unset", () => {
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
     delete process.env[disableLegacyFallbackEnv];
-    const legacyToken = craftLegacyMasterSecretToken(process.env[secretEnv]!, "company-legacy");
+    const legacyToken = craftLegacyMasterSecretToken(
+      process.env[secretEnv]!,
+      "company-legacy",
+    );
     const verified = verifyLocalAgentJwt(legacyToken);
     expect(verified).not.toBeNull();
     expect(verified!.company_id).toBe("company-legacy");
@@ -299,14 +397,22 @@ describe("agent local JWT", () => {
   it("rejects master-secret-signed tokens when TASKCORE_AGENT_JWT_DISABLE_LEGACY_FALLBACK is enabled", () => {
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
     process.env[disableLegacyFallbackEnv] = "true";
-    const legacyToken = craftLegacyMasterSecretToken(process.env[secretEnv]!, "company-legacy");
+    const legacyToken = craftLegacyMasterSecretToken(
+      process.env[secretEnv]!,
+      "company-legacy",
+    );
     expect(verifyLocalAgentJwt(legacyToken)).toBeNull();
   });
 
   it("still verifies per-company-signed tokens when TASKCORE_AGENT_JWT_DISABLE_LEGACY_FALLBACK is enabled", () => {
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
     process.env[disableLegacyFallbackEnv] = "true";
-    const token = createLocalAgentJwt("agent-1", "company-1", "claude_local", "run-1");
+    const token = createLocalAgentJwt(
+      "agent-1",
+      "company-1",
+      "claude_local",
+      "run-1",
+    );
     expect(token).not.toBeNull();
     const verified = verifyLocalAgentJwt(token!);
     expect(verified).toMatchObject({

@@ -10,13 +10,19 @@ import {
 describe("resolvePollingInterval", () => {
   it("polls at the visible cadence when focused", () => {
     expect(
-      resolvePollingInterval({ visible: true, focused: true }, { visibleMs: 5000 }),
+      resolvePollingInterval(
+        { visible: true, focused: true },
+        { visibleMs: 5000 },
+      ),
     ).toBe(5000);
   });
 
   it("falls back to visibleMs when visible but unfocused and no unfocusedMs given", () => {
     expect(
-      resolvePollingInterval({ visible: true, focused: false }, { visibleMs: 5000 }),
+      resolvePollingInterval(
+        { visible: true, focused: false },
+        { visibleMs: 5000 },
+      ),
     ).toBe(5000);
   });
 
@@ -31,7 +37,10 @@ describe("resolvePollingInterval", () => {
 
   it("stops polling when hidden by default", () => {
     expect(
-      resolvePollingInterval({ visible: false, focused: false }, { visibleMs: 5000 }),
+      resolvePollingInterval(
+        { visible: false, focused: false },
+        { visibleMs: 5000 },
+      ),
     ).toBe(false);
   });
 

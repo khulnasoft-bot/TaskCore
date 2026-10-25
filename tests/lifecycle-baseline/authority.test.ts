@@ -3,7 +3,10 @@ import {
   classifyRunLiveness,
   type RunLivenessClassificationInput,
 } from "../../server/src/services/run-liveness.js";
-import { decideLegacyContinuation, legacyDispositionEpisode } from "../../server/src/services/recovery/legacy-continuation.js";
+import {
+  decideLegacyContinuation,
+  legacyDispositionEpisode,
+} from "../../server/src/services/recovery/legacy-continuation.js";
 import { arbitrateNativeStatus } from "../../server/src/services/native-runtime/status-arbiter.js";
 import type { NativeEvidenceAssessment } from "../../server/src/services/native-runtime/evidence-classifier.js";
 import { narratives } from "./narratives.js";
@@ -40,9 +43,20 @@ function continuation(
       assigneeAgentId: "agent",
     },
     agent: { id: "agent", companyId: "company", status: "idle" },
-    episode: legacyDispositionEpisode({ id: "run", continuationAttempt: input.continuationAttempt ?? 0 }),
-    gates: { stopped: false, paused: false, budgetBlocked: false, pendingWait: false,
-      activeExecution: false, ownedLifecycle: false, conversation: false, agentInvokable: true },
+    episode: legacyDispositionEpisode({
+      id: "run",
+      continuationAttempt: input.continuationAttempt ?? 0,
+    }),
+    gates: {
+      stopped: false,
+      paused: false,
+      budgetBlocked: false,
+      pendingWait: false,
+      activeExecution: false,
+      ownedLifecycle: false,
+      conversation: false,
+      agentInvokable: true,
+    },
     ...overrides,
   });
   // Compare the authority-bearing repair instruction and key as well as action.
@@ -164,11 +178,24 @@ describe("LCA narrative authority baseline", () => {
   ] as const)(
     "LCA-10 LCA-12 legacy gate %s survives encouraging prose",
     (variant, overrides) => {
-      const actual = continuation(legacyBase, "gate" in overrides ? {
-      gates: { stopped: false, paused: false, budgetBlocked: false, pendingWait: false,
-        activeExecution: false, ownedLifecycle: false, conversation: false, agentInvokable: true,
-        [overrides.gate]: true },
-    } : overrides);
+      const actual = continuation(
+        legacyBase,
+        "gate" in overrides
+          ? {
+              gates: {
+                stopped: false,
+                paused: false,
+                budgetBlocked: false,
+                pendingWait: false,
+                activeExecution: false,
+                ownedLifecycle: false,
+                conversation: false,
+                agentInvokable: true,
+                [overrides.gate]: true,
+              },
+            }
+          : overrides,
+      );
       observe("LCA-10", variant, actual);
       expect(actual.effect.kind).toBe("skip");
     },

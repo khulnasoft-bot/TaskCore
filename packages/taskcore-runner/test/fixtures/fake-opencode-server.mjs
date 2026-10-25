@@ -197,15 +197,19 @@ async function callTerminalTool(promptBody) {
       : "Fake provider completed the task.",
     completionClaim: {
       contractRevision:
-        prompt.completionContract?.revision ?? prompt.task?.completionContract?.revision ?? "codex-demo-v1",
+        prompt.completionContract?.revision ??
+        prompt.task?.completionContract?.revision ??
+        "codex-demo-v1",
       objectiveSatisfied: !blocked,
-      criteria: (prompt.completionContract?.criteria ?? prompt.task?.completionContract?.criteria ?? []).map(
-        (criterion) => ({
-          criterionId: criterion.id,
-          status: blocked ? "unknown" : "satisfied",
-          evidenceRefs: [],
-        }),
-      ),
+      criteria: (
+        prompt.completionContract?.criteria ??
+        prompt.task?.completionContract?.criteria ??
+        []
+      ).map((criterion) => ({
+        criterionId: criterion.id,
+        status: blocked ? "unknown" : "satisfied",
+        evidenceRefs: [],
+      })),
       remainingWork: blocked
         ? [
             {
@@ -234,21 +238,42 @@ async function callTerminalTool(promptBody) {
   };
   if (String(prompt.message ?? "").includes("repair-criteria")) {
     const bad = structuredClone(result);
-    bad.completionClaim.criteria = String(prompt.message).includes("repair-criteria-missing") ? []
-      : String(prompt.message).includes("repair-criteria-duplicate") ? [...result.completionClaim.criteria, ...result.completionClaim.criteria]
-      : [{ criterionId: "invented", status: "satisfied", evidenceRefs: [] }];
-    const rejected = await mcpRequest("tools/call", { name: "taskcore_finish", arguments: bad });
-    await writeFile(join(process.env.XDG_DATA_HOME, "fake-criteria-repair.json"), JSON.stringify(rejected));
+    bad.completionClaim.criteria = String(prompt.message).includes(
+      "repair-criteria-missing",
+    )
+      ? []
+      : String(prompt.message).includes("repair-criteria-duplicate")
+        ? [
+            ...result.completionClaim.criteria,
+            ...result.completionClaim.criteria,
+          ]
+        : [{ criterionId: "invented", status: "satisfied", evidenceRefs: [] }];
+    const rejected = await mcpRequest("tools/call", {
+      name: "taskcore_finish",
+      arguments: bad,
+    });
+    await writeFile(
+      join(process.env.XDG_DATA_HOME, "fake-criteria-repair.json"),
+      JSON.stringify(rejected),
+    );
   }
-  const call = () => mcpRequest("tools/call", {
-    name: blocked ? "taskcore_block" : "taskcore_finish",
-    arguments: result,
-  });
+  const call = () =>
+    mcpRequest("tools/call", {
+      name: blocked ? "taskcore_block" : "taskcore_finish",
+      arguments: result,
+    });
   const first = await call();
-  if (String(prompt.message ?? prompt.task?.prompt ?? "").includes("completion-feedback")) {
+  if (
+    String(prompt.message ?? prompt.task?.prompt ?? "").includes(
+      "completion-feedback",
+    )
+  ) {
     const outcomes = [first];
     if (first.result?.isError) outcomes.push(await call());
-    await writeFile(join(process.env.XDG_DATA_HOME, "fake-completion-feedback.json"), JSON.stringify(outcomes));
+    await writeFile(
+      join(process.env.XDG_DATA_HOME, "fake-completion-feedback.json"),
+      JSON.stringify(outcomes),
+    );
     return outcomes.at(-1);
   }
   return first;
@@ -398,7 +423,10 @@ const server = createServer(async (request, response) => {
     request.on("data", (chunk) => chunks.push(chunk));
     request.on("end", async () => {
       const promptPayload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-      await appendFile(join(process.env.XDG_DATA_HOME, "fake-prompt-requests.ndjson"), JSON.stringify(promptPayload) + "\n");
+      await appendFile(
+        join(process.env.XDG_DATA_HOME, "fake-prompt-requests.ndjson"),
+        JSON.stringify(promptPayload) + "\n",
+      );
       if (
         promptPayload.providerID !== "openrouter" ||
         promptPayload.modelID !== "deepseek/deepseek-v4-flash-0731" ||
@@ -510,7 +538,8 @@ const server = createServer(async (request, response) => {
                 sessionID: session.id,
                 error: {
                   name: "ProviderError",
-                  message: "The fake provider failed with a request still pending.",
+                  message:
+                    "The fake provider failed with a request still pending.",
                 },
               },
             });
@@ -619,14 +648,31 @@ const server = createServer(async (request, response) => {
             },
           },
         });
-        if (String(parsedPrompt.message ?? parsedPrompt.task?.prompt ?? "").includes("invalid-tool-feedback")) {
+        if (
+          String(
+            parsedPrompt.message ?? parsedPrompt.task?.prompt ?? "",
+          ).includes("invalid-tool-feedback")
+        ) {
           for (const [status, state] of [
-            ["pending", {}], ["running", { title: "Checking tool name" }],
+            ["pending", {}],
+            ["running", { title: "Checking tool name" }],
             ["error", { error: "Tool not found: fixture_missing" }],
-          ]) emit({ type: "message.part.updated", id: `event-invalid-${status}`, properties: {
-            sessionID: session.id, part: { id: "part-invalid", messageID: "message-assistant",
-              type: "tool", tool: "invalid", callID: "call-invalid", state: { status, ...state } },
-          } });
+          ])
+            emit({
+              type: "message.part.updated",
+              id: `event-invalid-${status}`,
+              properties: {
+                sessionID: session.id,
+                part: {
+                  id: "part-invalid",
+                  messageID: "message-assistant",
+                  type: "tool",
+                  tool: "invalid",
+                  callID: "call-invalid",
+                  state: { status, ...state },
+                },
+              },
+            });
         }
         emit({
           type: "message.part.updated",

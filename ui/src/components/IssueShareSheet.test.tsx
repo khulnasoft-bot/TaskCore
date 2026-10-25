@@ -31,7 +31,9 @@ vi.mock("@/api/issues", () => ({
   },
 }));
 vi.mock("@/api/access", () => ({
-  accessApi: { listUserDirectory: (...args: unknown[]) => listUserDirectory(...args) },
+  accessApi: {
+    listUserDirectory: (...args: unknown[]) => listUserDirectory(...args),
+  },
 }));
 vi.mock("@/api/agents", () => ({
   agentsApi: { list: vi.fn().mockResolvedValue([]) },
@@ -78,7 +80,14 @@ describe("IssueShareSheet", () => {
   let root: Root | null;
 
   beforeEach(() => {
-    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
     Element.prototype.scrollIntoView = () => {};
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -97,8 +106,13 @@ describe("IssueShareSheet", () => {
     Element.prototype.scrollIntoView = originalScrollIntoView;
   });
 
-  async function renderSheet(canManage = true, implicitPrincipals: import("./IssueShareSheet").ShareSheetImplicitPrincipal[] = []) {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  async function renderSheet(
+    canManage = true,
+    implicitPrincipals: import("./IssueShareSheet").ShareSheetImplicitPrincipal[] = [],
+  ) {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     client.setQueryData(queryKeys.issues.accessGrants("descendant"), []);
     root = createRoot(container);
     act(() => {
@@ -122,19 +136,31 @@ describe("IssueShareSheet", () => {
   it("renders a source badge per grant and gates Revoke by source", async () => {
     listAccessGrants.mockResolvedValue([
       grant({ id: "g1", source: "explicit", subjectDisplayName: "Ada" }),
-      grant({ id: "g2", source: "assignment", subjectType: "agent", subjectId: "a1", subjectDisplayName: "Helper" }),
+      grant({
+        id: "g2",
+        source: "assignment",
+        subjectType: "agent",
+        subjectId: "a1",
+        subjectDisplayName: "Helper",
+      }),
       grant({ id: "g3", source: "project", subjectDisplayName: "Proj User" }),
     ]);
     await renderSheet(true);
 
     // Body is portalled to document.body by Radix Dialog.
     const scope = document.body;
-    expect(scope.querySelector('[data-testid="grant-source-badge-explicit"]')).not.toBeNull();
-    expect(scope.querySelector('[data-testid="grant-source-badge-assignment"]')).not.toBeNull();
-    expect(scope.querySelector('[data-testid="grant-source-badge-project"]')).not.toBeNull();
+    expect(
+      scope.querySelector('[data-testid="grant-source-badge-explicit"]'),
+    ).not.toBeNull();
+    expect(
+      scope.querySelector('[data-testid="grant-source-badge-assignment"]'),
+    ).not.toBeNull();
+    expect(
+      scope.querySelector('[data-testid="grant-source-badge-project"]'),
+    ).not.toBeNull();
 
-    const revokeButtons = [...scope.querySelectorAll("button")].filter((b) =>
-      b.textContent?.trim() === "Revoke",
+    const revokeButtons = [...scope.querySelectorAll("button")].filter(
+      (b) => b.textContent?.trim() === "Revoke",
     );
     // explicit + assignment are revocable; project is not.
     expect(revokeButtons).toHaveLength(2);
@@ -142,62 +168,132 @@ describe("IssueShareSheet", () => {
   });
 
   it("removes a saved grant while explaining that assignment access remains", async () => {
-    listAccessGrants.mockResolvedValue([grant({ id: "g1", source: "assignment", subjectType: "agent", subjectId: "a1" })]);
-    const client = await renderSheet(true, [{ id: "agent:a1", displayName: "Helper", roleLabel: "Current assignee" }]);
-    expect([...document.body.querySelectorAll("button")].filter(button => button.textContent?.trim() === "Revoke")).toHaveLength(0);
-    expect(document.body.textContent).toContain("access remains while this role applies");
-    const removeSaved = [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === "Remove saved grant");
+    listAccessGrants.mockResolvedValue([
+      grant({
+        id: "g1",
+        source: "assignment",
+        subjectType: "agent",
+        subjectId: "a1",
+      }),
+    ]);
+    const client = await renderSheet(true, [
+      { id: "agent:a1", displayName: "Helper", roleLabel: "Current assignee" },
+    ]);
+    expect(
+      [...document.body.querySelectorAll("button")].filter(
+        (button) => button.textContent?.trim() === "Revoke",
+      ),
+    ).toHaveLength(0);
+    expect(document.body.textContent).toContain(
+      "access remains while this role applies",
+    );
+    const removeSaved = [...document.body.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "Remove saved grant",
+    );
     expect(removeSaved).toBeDefined();
     act(() => removeSaved!.click());
     await settle();
     expect(document.body.textContent).toContain("saved grant?");
     revokeAccessGrant.mockResolvedValue({});
-    const confirm = [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === "Remove grant");
+    const confirm = [...document.body.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "Remove grant",
+    );
     act(() => confirm!.click());
     await settle();
     expect(revokeAccessGrant).toHaveBeenCalledWith("i1", "g1");
-    expect(client.getQueryState(queryKeys.issues.accessGrants("descendant"))?.isInvalidated).toBe(true);
+    expect(
+      client.getQueryState(queryKeys.issues.accessGrants("descendant"))
+        ?.isInvalidated,
+    ).toBe(true);
   });
 
   it.each([
     { source: "project" as const, inherited: true },
     { source: "explicit" as const, inherited: true },
-  ])("allows an independent direct grant alongside $source access", async (access) => {
-    listAccessGrants.mockResolvedValue([grant({ id: "broader", ...access })]);
-    listUserDirectory.mockResolvedValue({ users: [{ user: { id: "u1", name: "Ada", email: "ada@example.test", image: null } }] });
-    createAccessGrant.mockResolvedValue(grant({ id: "direct" }));
-    const client = await renderSheet();
-    act(() => [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === "Add someone")!.click());
-    await settle();
-    act(() => (document.body.querySelector('[role="combobox"]') as HTMLElement).click());
-    await settle();
-    const option = [...document.body.querySelectorAll('[role="option"]')].find(option => option.textContent?.includes("Ada"));
-    expect(option).toBeDefined();
-    act(() => (option as HTMLElement).click());
-    await settle();
-    act(() => [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === "Add")!.click());
-    await settle();
-    expect(createAccessGrant).toHaveBeenCalledWith("i1", { subjectType: "user", subjectId: "u1" });
-    expect(client.getQueryState(queryKeys.issues.accessGrants("descendant"))?.isInvalidated).toBe(true);
-  });
+  ])(
+    "allows an independent direct grant alongside $source access",
+    async (access) => {
+      listAccessGrants.mockResolvedValue([grant({ id: "broader", ...access })]);
+      listUserDirectory.mockResolvedValue({
+        users: [
+          {
+            user: {
+              id: "u1",
+              name: "Ada",
+              email: "ada@example.test",
+              image: null,
+            },
+          },
+        ],
+      });
+      createAccessGrant.mockResolvedValue(grant({ id: "direct" }));
+      const client = await renderSheet();
+      act(() =>
+        [...document.body.querySelectorAll("button")]
+          .find((button) => button.textContent?.trim() === "Add someone")!
+          .click(),
+      );
+      await settle();
+      act(() =>
+        (
+          document.body.querySelector('[role="combobox"]') as HTMLElement
+        ).click(),
+      );
+      await settle();
+      const option = [
+        ...document.body.querySelectorAll('[role="option"]'),
+      ].find((option) => option.textContent?.includes("Ada"));
+      expect(option).toBeDefined();
+      act(() => (option as HTMLElement).click());
+      await settle();
+      act(() =>
+        [...document.body.querySelectorAll("button")]
+          .find((button) => button.textContent?.trim() === "Add")!
+          .click(),
+      );
+      await settle();
+      expect(createAccessGrant).toHaveBeenCalledWith("i1", {
+        subjectType: "user",
+        subjectId: "u1",
+      });
+      expect(
+        client.getQueryState(queryKeys.issues.accessGrants("descendant"))
+          ?.isInvalidated,
+      ).toBe(true);
+    },
+  );
 
   it("does not offer a second grant for an existing direct assignment grant", async () => {
     listAccessGrants.mockResolvedValue([grant({ source: "assignment" })]);
-    listUserDirectory.mockResolvedValue({ users: [{ user: { id: "u1", name: "Ada", image: null } }] });
+    listUserDirectory.mockResolvedValue({
+      users: [{ user: { id: "u1", name: "Ada", image: null } }],
+    });
     await renderSheet();
-    act(() => [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === "Add someone")!.click());
+    act(() =>
+      [...document.body.querySelectorAll("button")]
+        .find((button) => button.textContent?.trim() === "Add someone")!
+        .click(),
+    );
     await settle();
-    act(() => (document.body.querySelector('[role="combobox"]') as HTMLElement).click());
+    act(() =>
+      (document.body.querySelector('[role="combobox"]') as HTMLElement).click(),
+    );
     await settle();
-    expect([...document.body.querySelectorAll('[role="option"]')].some(option => option.textContent?.includes("Ada"))).toBe(false);
+    expect(
+      [...document.body.querySelectorAll('[role="option"]')].some((option) =>
+        option.textContent?.includes("Ada"),
+      ),
+    ).toBe(false);
     expect(createAccessGrant).not.toHaveBeenCalled();
   });
 
   it("hides Revoke entirely for non-setters", async () => {
-    listAccessGrants.mockResolvedValue([grant({ id: "g1", source: "explicit" })]);
+    listAccessGrants.mockResolvedValue([
+      grant({ id: "g1", source: "explicit" }),
+    ]);
     await renderSheet(false);
-    const revokeButtons = [...document.body.querySelectorAll("button")].filter((b) =>
-      b.textContent?.trim() === "Revoke",
+    const revokeButtons = [...document.body.querySelectorAll("button")].filter(
+      (b) => b.textContent?.trim() === "Revoke",
     );
     expect(revokeButtons).toHaveLength(0);
   });
@@ -205,16 +301,23 @@ describe("IssueShareSheet", () => {
   it("shows the empty state when there are no grants", async () => {
     listAccessGrants.mockResolvedValue([]);
     await renderSheet(true);
-    expect(document.body.querySelector('[data-testid="share-sheet-empty"]')?.textContent).toContain(
-      "Only you can see this task",
-    );
+    expect(
+      document.body.querySelector('[data-testid="share-sheet-empty"]')
+        ?.textContent,
+    ).toContain("Only you can see this task");
   });
 
   it("ignores revoked grants", async () => {
     listAccessGrants.mockResolvedValue([
-      grant({ id: "g1", source: "explicit", revokedAt: new Date("2026-08-01T01:00:00Z") }),
+      grant({
+        id: "g1",
+        source: "explicit",
+        revokedAt: new Date("2026-08-01T01:00:00Z"),
+      }),
     ]);
     await renderSheet(true);
-    expect(document.body.querySelector('[data-testid="share-sheet-empty"]')).not.toBeNull();
+    expect(
+      document.body.querySelector('[data-testid="share-sheet-empty"]'),
+    ).not.toBeNull();
   });
 });

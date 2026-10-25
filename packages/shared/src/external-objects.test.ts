@@ -7,7 +7,10 @@ import {
   extractExternalObjectCanonicalUrls,
   findExternalObjectUrlMatches,
 } from "./external-objects-server.js";
-import { externalObjectProviderKeySchema, externalObjectTypeSchema } from "./validators/external-object.js";
+import {
+  externalObjectProviderKeySchema,
+  externalObjectTypeSchema,
+} from "./validators/external-object.js";
 
 describe("external object references", () => {
   it("extracts external urls without changing internal issue reference behavior", () => {
@@ -15,7 +18,13 @@ describe("external object references", () => {
       findExternalObjectUrlMatches(
         "See PAP-1, /issues/PAP-2, https://taskcore.ing/PAP/issues/PAP-3, and https://github.com/acme/app/pull/4.",
       ),
-    ).toEqual([{ index: 70, length: 34, matchedText: "https://github.com/acme/app/pull/4" }]);
+    ).toEqual([
+      {
+        index: 70,
+        length: 34,
+        matchedText: "https://github.com/acme/app/pull/4",
+      },
+    ]);
   });
 
   it("ignores urls inside inline and fenced code", () => {
@@ -27,13 +36,17 @@ describe("external object references", () => {
       "```",
     ].join("\n");
 
-    expect(findExternalObjectUrlMatches(markdown).map((match) => match.matchedText)).toEqual([
-      "https://github.com/acme/app/pull/1",
-    ]);
+    expect(
+      findExternalObjectUrlMatches(markdown).map((match) => match.matchedText),
+    ).toEqual(["https://github.com/acme/app/pull/1"]);
   });
 
   it("canonicalizes urls by stripping query and fragment by default", () => {
-    expect(canonicalizeExternalObjectUrl("HTTPS://GitHub.com/acme/app/pull/1?token=secret#discussion")).toMatchObject({
+    expect(
+      canonicalizeExternalObjectUrl(
+        "HTTPS://GitHub.com/acme/app/pull/1?token=secret#discussion",
+      ),
+    ).toMatchObject({
       sanitizedCanonicalUrl: "https://github.com/acme/app/pull/1",
       sanitizedDisplayUrl: "https://github.com/acme/app/pull/1",
       redactedMatchedText: "https://github.com/acme/app/pull/1",
@@ -46,20 +59,32 @@ describe("external object references", () => {
   });
 
   it("rejects urls with userinfo", () => {
-    expect(canonicalizeExternalObjectUrl("https://token:secret@github.com/acme/app/pull/1")).toBeNull();
+    expect(
+      canonicalizeExternalObjectUrl(
+        "https://token:secret@github.com/acme/app/pull/1",
+      ),
+    ).toBeNull();
   });
 
   it("hashes provider-required query identity values without storing plaintext", () => {
-    const first = canonicalizeExternalObjectUrl("https://deploy.test/run?id=secret-run&token=drop", {
-      identityQueryParams: ["id"],
-    });
-    const second = canonicalizeExternalObjectUrl("https://deploy.test/run?id=secret-run&token=other", {
-      identityQueryParams: ["id"],
-    });
+    const first = canonicalizeExternalObjectUrl(
+      "https://deploy.test/run?id=secret-run&token=drop",
+      {
+        identityQueryParams: ["id"],
+      },
+    );
+    const second = canonicalizeExternalObjectUrl(
+      "https://deploy.test/run?id=secret-run&token=other",
+      {
+        identityQueryParams: ["id"],
+      },
+    );
 
     expect(first?.sanitizedCanonicalUrl).toBe("https://deploy.test/run");
     expect(first?.canonicalIdentity.queryParamHashes?.id).toHaveLength(64);
-    expect(first?.canonicalIdentity.queryParamHashes?.id).not.toContain("secret-run");
+    expect(first?.canonicalIdentity.queryParamHashes?.id).not.toContain(
+      "secret-run",
+    );
     expect(second?.canonicalIdentityHash).toBe(first?.canonicalIdentityHash);
   });
 
@@ -78,7 +103,9 @@ describe("external object references", () => {
       canonicalIdentityHash: "hash",
     };
 
-    expect(buildExternalObjectScopedIdentityKey({ companyId: "company-a", ...base })).not.toBe(
+    expect(
+      buildExternalObjectScopedIdentityKey({ companyId: "company-a", ...base }),
+    ).not.toBe(
       buildExternalObjectScopedIdentityKey({ companyId: "company-b", ...base }),
     );
   });
@@ -108,19 +135,33 @@ describe("external object references", () => {
   });
 
   it("formats stable source labels", () => {
-    expect(formatExternalObjectMentionSourceLabel({ sourceKind: "title" })).toBe("Title");
-    expect(formatExternalObjectMentionSourceLabel({ sourceKind: "document", documentKey: "plan" })).toBe(
-      "Document: plan",
-    );
-    expect(formatExternalObjectMentionSourceLabel({ sourceKind: "property", propertyKey: "pr" })).toBe(
-      "Property: pr",
-    );
+    expect(
+      formatExternalObjectMentionSourceLabel({ sourceKind: "title" }),
+    ).toBe("Title");
+    expect(
+      formatExternalObjectMentionSourceLabel({
+        sourceKind: "document",
+        documentKey: "plan",
+      }),
+    ).toBe("Document: plan");
+    expect(
+      formatExternalObjectMentionSourceLabel({
+        sourceKind: "property",
+        propertyKey: "pr",
+      }),
+    ).toBe("Property: pr");
   });
 
   it("validates provider keys and object types", () => {
-    expect(externalObjectProviderKeySchema.parse("github.enterprise")).toBe("github.enterprise");
+    expect(externalObjectProviderKeySchema.parse("github.enterprise")).toBe(
+      "github.enterprise",
+    );
     expect(externalObjectTypeSchema.parse("pull_request")).toBe("pull_request");
-    expect(externalObjectProviderKeySchema.safeParse("GitHub").success).toBe(false);
-    expect(externalObjectTypeSchema.safeParse("pull-request").success).toBe(false);
+    expect(externalObjectProviderKeySchema.safeParse("GitHub").success).toBe(
+      false,
+    );
+    expect(externalObjectTypeSchema.safeParse("pull-request").success).toBe(
+      false,
+    );
   });
 });

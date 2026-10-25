@@ -1,4 +1,7 @@
-import type { IssueRelatedWorkItem, IssueRelatedWorkSummary } from "@taskcore/shared";
+import type {
+  IssueRelatedWorkItem,
+  IssueRelatedWorkSummary,
+} from "@taskcore/shared";
 import { IssueReferencePill } from "./IssueReferencePill";
 import { ExternalObjectPill } from "./ExternalObjectPill";
 import type { IssueExternalObjectGroup } from "../hooks/useIssueExternalObjects";
@@ -11,7 +14,9 @@ type GroupedSource = {
   sampleMatchedText: string | null;
 };
 
-function groupSourcesByLabel(sources: IssueRelatedWorkItem["sources"]): GroupedSource[] {
+function groupSourcesByLabel(
+  sources: IssueRelatedWorkItem["sources"],
+): GroupedSource[] {
   const groups = new Map<string, GroupedSource>();
   for (const source of sources) {
     const existing = groups.get(source.label);
@@ -66,14 +71,17 @@ function Section({
                 ) : null}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {groupedSources.map((group) => (
-                    <Badge variant="outline"
+                    <Badge
+                      variant="outline"
                       key={`${item.issue.id}:${group.label}`}
                       className="border-border bg-muted/40 text-muted-foreground"
                       title={group.sampleMatchedText ?? undefined}
                     >
                       <span>{group.label}</span>
                       {group.count > 1 ? (
-                        <span className="tabular-nums text-(length:--text-nano) font-medium opacity-80">×{group.count}</span>
+                        <span className="tabular-nums text-(length:--text-nano) font-medium opacity-80">
+                          ×{group.count}
+                        </span>
                       ) : null}
                     </Badge>
                   ))}
@@ -100,11 +108,17 @@ function ExternalObjectsSection({
 }) {
   // Severity-first sort with most-recently-changed as the secondary sort.
   const sorted = [...groups].sort((a, b) => {
-    const aTone = externalObjectToneSeverity(a.pill.statusCategory ? a.group.object?.statusTone ?? null : null);
-    const bTone = externalObjectToneSeverity(b.pill.statusCategory ? b.group.object?.statusTone ?? null : null);
+    const aTone = externalObjectToneSeverity(
+      a.pill.statusCategory ? (a.group.object?.statusTone ?? null) : null,
+    );
+    const bTone = externalObjectToneSeverity(
+      b.pill.statusCategory ? (b.group.object?.statusTone ?? null) : null,
+    );
     if (aTone !== bTone) return bTone - aTone;
-    const aChanged = a.group.object?.lastChangedAt ?? a.group.object?.lastResolvedAt ?? "";
-    const bChanged = b.group.object?.lastChangedAt ?? b.group.object?.lastResolvedAt ?? "";
+    const aChanged =
+      a.group.object?.lastChangedAt ?? a.group.object?.lastResolvedAt ?? "";
+    const bChanged =
+      b.group.object?.lastChangedAt ?? b.group.object?.lastResolvedAt ?? "";
     return aChanged < bChanged ? 1 : aChanged > bChanged ? -1 : 0;
   });
 
@@ -113,7 +127,8 @@ function ExternalObjectsSection({
       <div className="space-y-1">
         <h3 className="text-sm font-semibold">External objects</h3>
         <p className="text-xs text-muted-foreground">
-          Remote work referenced from this issue — pull requests, deployments, tickets in other systems, and more.
+          Remote work referenced from this issue — pull requests, deployments,
+          tickets in other systems, and more.
         </p>
       </div>
 
@@ -131,7 +146,9 @@ function ExternalObjectsSection({
           ) : null}
         </p>
       ) : isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading external objects…</p>
+        <p className="text-xs text-muted-foreground">
+          Loading external objects…
+        </p>
       ) : sorted.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           This issue does not reference any external objects yet.
@@ -142,10 +159,17 @@ function ExternalObjectsSection({
             const object = group.object;
             return (
               <li
-                key={object?.id ?? `${pill.providerKey}:${pill.objectType}:${pill.url ?? "anon"}`}
+                key={
+                  object?.id ??
+                  `${pill.providerKey}:${pill.objectType}:${pill.url ?? "anon"}`
+                }
                 className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md px-1 py-1.5 hover:bg-accent/40"
               >
-                <ExternalObjectPill object={pill} sourceCount={mentionCount} sourceSummary={sourceLabels.join(", ")} />
+                <ExternalObjectPill
+                  object={pill}
+                  sourceCount={mentionCount}
+                  sourceSummary={sourceLabels.join(", ")}
+                />
                 {pill.displayTitle ? (
                   <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
                     {pill.displayTitle}
@@ -153,7 +177,8 @@ function ExternalObjectsSection({
                 ) : null}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {sourceLabels.map((label) => (
-                    <Badge variant="outline"
+                    <Badge
+                      variant="outline"
                       key={`${object?.id ?? pill.url ?? label}:${label}`}
                       className="border-border bg-muted/40 text-muted-foreground"
                     >

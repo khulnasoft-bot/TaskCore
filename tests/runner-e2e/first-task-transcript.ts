@@ -19,7 +19,8 @@ const html = (value: unknown) =>
   );
 export interface TranscriptEntry {
   id: string;
-  kind: "comment" | "interaction" | "answer" | "document" | "attachment" | "run";
+  kind:
+    "comment" | "interaction" | "answer" | "document" | "attachment" | "run";
   at: string;
   checkpoint: string;
   row: Row;
@@ -83,21 +84,49 @@ export function firstTaskUserRequest(e: FirstTaskEvidence): string {
   for (const entry of firstTaskTranscript(e)) {
     const row = entry.row;
     if (row.issueId !== e.onboardingIssueId) continue;
-    if (entry.kind === "comment" && row.authorUserId && typeof row.body === "string" && row.body.trim()) {
+    if (
+      entry.kind === "comment" &&
+      row.authorUserId &&
+      typeof row.body === "string" &&
+      row.body.trim()
+    ) {
       input.push(`[${entry.id}] ${row.body}`);
-    } else if (entry.kind === "answer" && row.kind === "ask_user_questions" && row.status === "answered" &&
-      row.resolvedByUserId && !row.resolvedByAgentId) {
-      const questions = row.payload?.questionSet?.questions ?? row.payload?.questions ?? [];
-      const texts = questionReportAnswers(row).flatMap(answer => {
-        const question = questions.find((q: Row) => q.id === answer.questionId);
-        const selected = answer.optionIds ?? answer.selectedOptionIds ?? [];
-        return [...selected.map((id: string) => question?.options?.find((option: Row) => option.id === id)?.label),
-          answer.otherText ?? answer.customText ?? answer.text];
-      }).filter((text): text is string => typeof text === "string" && Boolean(text.trim()));
-      if (texts.length) input.push(`[${entry.id}] ${[...new Set(texts)].join("\n")}`);
+    } else if (
+      entry.kind === "answer" &&
+      row.kind === "ask_user_questions" &&
+      row.status === "answered" &&
+      row.resolvedByUserId &&
+      !row.resolvedByAgentId
+    ) {
+      const questions =
+        row.payload?.questionSet?.questions ?? row.payload?.questions ?? [];
+      const texts = questionReportAnswers(row)
+        .flatMap((answer) => {
+          const question = questions.find(
+            (q: Row) => q.id === answer.questionId,
+          );
+          const selected = answer.optionIds ?? answer.selectedOptionIds ?? [];
+          return [
+            ...selected.map(
+              (id: string) =>
+                question?.options?.find((option: Row) => option.id === id)
+                  ?.label,
+            ),
+            answer.otherText ?? answer.customText ?? answer.text,
+          ];
+        })
+        .filter(
+          (text): text is string =>
+            typeof text === "string" && Boolean(text.trim()),
+        );
+      if (texts.length)
+        input.push(`[${entry.id}] ${[...new Set(texts)].join("\n")}`);
     }
   }
-  if (!input.length) throw new Error("Missing recorded user request for completion qualification");
+  if (!input.length)
+    throw new Error(
+      "Missing recorded user request for completion qualification",
+    );
   return input.join("\n\n");
 }
 const body = (value: unknown) =>
@@ -172,7 +201,9 @@ export function renderFirstTaskTranscript(
             content += raw(row.result, "Recorded answer");
           } else if (entry.kind === "attachment") {
             title = `Attachment · ${row.title ?? row.originalFilename ?? row.filename ?? row.id}`;
-            content = row.contentVerified ? body(row.body) : "<p>Attachment recorded; text content unavailable.</p>";
+            content = row.contentVerified
+              ? body(row.body)
+              : "<p>Attachment recorded; text content unavailable.</p>";
             content += raw(row, "Saved attachment evidence");
           } else if (entry.kind === "document") {
             title = `Document · ${row.title ?? row.key} · revision ${row.latestRevisionNumber ?? row.revisionNumber ?? "unreported"}`;

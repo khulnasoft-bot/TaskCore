@@ -18,7 +18,9 @@ type WorkspaceOverviewFilters = {
   offset?: number;
 };
 
-function normalizeWorkspaceOverview(response: WorkspaceOverviewResponse): WorkspaceOverviewResponse {
+function normalizeWorkspaceOverview(
+  response: WorkspaceOverviewResponse,
+): WorkspaceOverviewResponse {
   return {
     ...response,
     items: response.items.map((item) => ({
@@ -39,12 +41,17 @@ function normalizeWorkspaceOverview(response: WorkspaceOverviewResponse): Worksp
 }
 
 export const executionWorkspacesApi = {
-  listOverview: async (companyId: string, filters?: WorkspaceOverviewFilters) => {
+  listOverview: async (
+    companyId: string,
+    filters?: WorkspaceOverviewFilters,
+  ) => {
     const params = new URLSearchParams();
     if (filters?.projectId) params.set("projectId", filters.projectId);
     if (filters?.status?.length) params.set("status", filters.status.join(","));
-    if (filters?.limit !== undefined) params.set("limit", String(filters.limit));
-    if (filters?.offset !== undefined) params.set("offset", String(filters.offset));
+    if (filters?.limit !== undefined)
+      params.set("limit", String(filters.limit));
+    if (filters?.offset !== undefined)
+      params.set("offset", String(filters.offset));
     const qs = params.toString();
     const response = await api.get<WorkspaceOverviewResponse>(
       `/companies/${companyId}/workspace-overview${qs ? `?${qs}` : ""}`,
@@ -63,7 +70,8 @@ export const executionWorkspacesApi = {
   ) => {
     const params = new URLSearchParams();
     if (filters?.projectId) params.set("projectId", filters.projectId);
-    if (filters?.projectWorkspaceId) params.set("projectWorkspaceId", filters.projectWorkspaceId);
+    if (filters?.projectWorkspaceId)
+      params.set("projectWorkspaceId", filters.projectWorkspaceId);
     if (filters?.issueId) params.set("issueId", filters.issueId);
     if (filters?.status) params.set("status", filters.status);
     if (filters?.reuseEligible) params.set("reuseEligible", "true");
@@ -85,18 +93,26 @@ export const executionWorkspacesApi = {
   ) => {
     const params = new URLSearchParams();
     if (filters?.projectId) params.set("projectId", filters.projectId);
-    if (filters?.projectWorkspaceId) params.set("projectWorkspaceId", filters.projectWorkspaceId);
+    if (filters?.projectWorkspaceId)
+      params.set("projectWorkspaceId", filters.projectWorkspaceId);
     if (filters?.issueId) params.set("issueId", filters.issueId);
     if (filters?.status) params.set("status", filters.status);
     if (filters?.reuseEligible) params.set("reuseEligible", "true");
     const qs = params.toString();
-    return api.get<ExecutionWorkspace[]>(`/companies/${companyId}/execution-workspaces${qs ? `?${qs}` : ""}`);
+    return api.get<ExecutionWorkspace[]>(
+      `/companies/${companyId}/execution-workspaces${qs ? `?${qs}` : ""}`,
+    );
   },
-  get: (id: string) => api.get<ExecutionWorkspace>(`/execution-workspaces/${id}`),
+  get: (id: string) =>
+    api.get<ExecutionWorkspace>(`/execution-workspaces/${id}`),
   getCloseReadiness: (id: string) =>
-    api.get<ExecutionWorkspaceCloseReadiness>(`/execution-workspaces/${id}/close-readiness`),
+    api.get<ExecutionWorkspaceCloseReadiness>(
+      `/execution-workspaces/${id}/close-readiness`,
+    ),
   listWorkspaceOperations: (id: string) =>
-    api.get<WorkspaceOperation[]>(`/execution-workspaces/${id}/workspace-operations`),
+    api.get<WorkspaceOperation[]>(
+      `/execution-workspaces/${id}/workspace-operations`,
+    ),
   controlRuntimeServices: (
     id: string,
     action: "start" | "stop" | "restart",
@@ -132,7 +148,8 @@ export const executionWorkspacesApi = {
       `/execution-workspaces/${id}/login-handoff`,
       next ? { next } : {},
     ),
-  update: (id: string, data: Record<string, unknown>) => api.patch<ExecutionWorkspace>(`/execution-workspaces/${id}`, data),
+  update: (id: string, data: Record<string, unknown>) =>
+    api.patch<ExecutionWorkspace>(`/execution-workspaces/${id}`, data),
   /**
    * Reconcile a git-worktree branch divergence via the S4 (`PAP-1586`) op.
    *
@@ -152,6 +169,13 @@ export const executionWorkspacesApi = {
    */
   reconcile: (
     id: string,
-    body: { mode: "forward" } | { mode: "override"; reason: string } | { mode: "quarantine_restore" },
-  ) => api.post<ExecutionWorkspace>(`/execution-workspaces/${id}/reconcile-branch`, body),
+    body:
+      | { mode: "forward" }
+      | { mode: "override"; reason: string }
+      | { mode: "quarantine_restore" },
+  ) =>
+    api.post<ExecutionWorkspace>(
+      `/execution-workspaces/${id}/reconcile-branch`,
+      body,
+    ),
 };

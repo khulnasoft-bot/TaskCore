@@ -24,8 +24,12 @@ const mockCompanySkillService = vi.hoisted(() => ({
 }));
 
 const mockSecretService = vi.hoisted(() => ({
-  normalizeAdapterConfigForPersistence: vi.fn(async (_companyId: string, config: Record<string, unknown>) => config),
-  resolveAdapterConfigForRuntime: vi.fn(async (_companyId: string, config: Record<string, unknown>) => ({ config })),
+  normalizeAdapterConfigForPersistence: vi.fn(
+    async (_companyId: string, config: Record<string, unknown>) => config,
+  ),
+  resolveAdapterConfigForRuntime: vi.fn(
+    async (_companyId: string, config: Record<string, unknown>) => ({ config }),
+  ),
 }));
 const mockEnvironmentService = vi.hoisted(() => ({
   getById: vi.fn(),
@@ -68,7 +72,9 @@ const mockLogActivity = vi.hoisted(() => vi.fn());
 
 function registerModuleMocks() {
   vi.doMock("@taskcore/adapter-opencode-local/server", async () => {
-    const actual = await vi.importActual<typeof import("@taskcore/adapter-opencode-local/server")>("@taskcore/adapter-opencode-local/server");
+    const actual = await vi.importActual<
+      typeof import("@taskcore/adapter-opencode-local/server")
+    >("@taskcore/adapter-opencode-local/server");
     return {
       ...actual,
       listOpenCodeModels: mockListOpenCodeModels,
@@ -105,8 +111,12 @@ const refreshableAdapterType = "refreshable_adapter_route_test";
 
 async function createApp() {
   const [{ agentRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/agents.js")>("../routes/agents.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/agents.js")>(
+      "../routes/agents.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -129,7 +139,8 @@ async function requestApp(
   app: express.Express,
   buildRequest: (baseUrl: string) => request.Test,
 ) {
-  const { createServer } = await vi.importActual<typeof import("node:http")>("node:http");
+  const { createServer } =
+    await vi.importActual<typeof import("node:http")>("node:http");
   const server = createServer(app);
   try {
     await new Promise<void>((resolve) => {
@@ -175,7 +186,9 @@ describe("adapter model refresh route", () => {
     mockEnvironmentService.getById.mockReset();
     mockEnvironmentService.getById.mockResolvedValue(null);
     mockListOpenCodeModels.mockReset();
-    mockListOpenCodeModels.mockResolvedValue([{ id: "dynamic-opencode-model", label: "dynamic-opencode-model" }]);
+    mockListOpenCodeModels.mockResolvedValue([
+      { id: "dynamic-opencode-model", label: "dynamic-opencode-model" },
+    ]);
     await unregisterTestAdapter(refreshableAdapterType);
   });
 
@@ -184,8 +197,12 @@ describe("adapter model refresh route", () => {
   });
 
   it("uses refreshModels when refresh=1 is requested", async () => {
-    const listModels = vi.fn(async () => [{ id: "stale-model", label: "stale-model" }]);
-    const refreshModels = vi.fn(async () => [{ id: "fresh-model", label: "fresh-model" }]);
+    const listModels = vi.fn(async () => [
+      { id: "stale-model", label: "stale-model" },
+    ]);
+    const refreshModels = vi.fn(async () => [
+      { id: "fresh-model", label: "fresh-model" },
+    ]);
     const { registerServerAdapter } = await import("../adapters/index.js");
     const adapter: ServerAdapterModule = {
       type: refreshableAdapterType,
@@ -203,7 +220,9 @@ describe("adapter model refresh route", () => {
 
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
-      request(baseUrl).get(`/api/companies/company-1/adapters/${refreshableAdapterType}/models?refresh=1`),
+      request(baseUrl).get(
+        `/api/companies/company-1/adapters/${refreshableAdapterType}/models?refresh=1`,
+      ),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -223,7 +242,9 @@ describe("adapter model refresh route", () => {
 
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
-      request(baseUrl).get("/api/companies/company-1/adapters/opencode_local/models?environmentId=env-1"),
+      request(baseUrl).get(
+        "/api/companies/company-1/adapters/opencode_local/models?environmentId=env-1",
+      ),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
@@ -242,11 +263,15 @@ describe("adapter model refresh route", () => {
 
     const app = await createApp();
     const res = await requestApp(app, (baseUrl) =>
-      request(baseUrl).get("/api/companies/company-1/adapters/opencode_local/models?environmentId=env-1"),
+      request(baseUrl).get(
+        "/api/companies/company-1/adapters/opencode_local/models?environmentId=env-1",
+      ),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body).toEqual([{ id: "dynamic-opencode-model", label: "dynamic-opencode-model" }]);
+    expect(res.body).toEqual([
+      { id: "dynamic-opencode-model", label: "dynamic-opencode-model" },
+    ]);
     expect(mockListOpenCodeModels).toHaveBeenCalledTimes(1);
   });
 });

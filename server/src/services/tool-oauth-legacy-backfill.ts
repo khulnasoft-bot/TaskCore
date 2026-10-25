@@ -7,7 +7,11 @@ import {
   companySecretVersions,
   toolConnections,
 } from "@taskcore/db";
-import type { McpConnectionCredentialRef, SecretProvider, ToolCredentialSecretRef } from "@taskcore/shared";
+import type {
+  McpConnectionCredentialRef,
+  SecretProvider,
+  ToolCredentialSecretRef,
+} from "@taskcore/shared";
 import { getSecretProvider } from "../secrets/provider-registry.js";
 import type { SecretProviderVaultRuntimeConfig } from "../secrets/types.js";
 
@@ -30,7 +34,12 @@ export type ToolOAuthLegacyBackfillResult = {
   refreshTokensBackfilled: number;
 };
 
-const RAW_OAUTH_TOKEN_KEYS = ["access_token", "refresh_token", "accessToken", "refreshToken"] as const;
+const RAW_OAUTH_TOKEN_KEYS = [
+  "access_token",
+  "refresh_token",
+  "accessToken",
+  "refreshToken",
+] as const;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -48,18 +57,24 @@ function rawOauthObject(config: unknown): Record<string, unknown> | null {
 function rawTokens(config: unknown): LegacyOAuthToken[] {
   const oauth = rawOauthObject(config);
   if (!oauth) return [];
-  const accessToken = tokenValue(oauth.access_token) ?? tokenValue(oauth.accessToken);
-  const refreshToken = tokenValue(oauth.refresh_token) ?? tokenValue(oauth.refreshToken);
+  const accessToken =
+    tokenValue(oauth.access_token) ?? tokenValue(oauth.accessToken);
+  const refreshToken =
+    tokenValue(oauth.refresh_token) ?? tokenValue(oauth.refreshToken);
   return [
     accessToken ? { kind: "access_token" as const, value: accessToken } : null,
-    refreshToken ? { kind: "refresh_token" as const, value: refreshToken } : null,
+    refreshToken
+      ? { kind: "refresh_token" as const, value: refreshToken }
+      : null,
   ].filter((token): token is LegacyOAuthToken => token !== null);
 }
 
 function hasRawOauthTokenKeys(config: unknown): boolean {
   const oauth = rawOauthObject(config);
   if (!oauth) return false;
-  return RAW_OAUTH_TOKEN_KEYS.some((key) => Object.prototype.hasOwnProperty.call(oauth, key));
+  return RAW_OAUTH_TOKEN_KEYS.some((key) =>
+    Object.prototype.hasOwnProperty.call(oauth, key),
+  );
 }
 
 function stripRawOauthTokenKeys(config: unknown): Record<string, unknown> {
@@ -75,9 +90,14 @@ function stripRawOauthTokenKeys(config: unknown): Record<string, unknown> {
   };
 }
 
-function uniqueLegacyTokens(connection: typeof toolConnections.$inferSelect): LegacyOAuthToken[] {
+function uniqueLegacyTokens(
+  connection: typeof toolConnections.$inferSelect,
+): LegacyOAuthToken[] {
   const tokens = new Map<OAuthTokenKind, LegacyOAuthToken>();
-  for (const token of [...rawTokens(connection.config), ...rawTokens(connection.transportConfig)]) {
+  for (const token of [
+    ...rawTokens(connection.config),
+    ...rawTokens(connection.transportConfig),
+  ]) {
     if (!tokens.has(token.kind)) tokens.set(token.kind, token);
   }
   return [...tokens.values()];
@@ -95,7 +115,9 @@ function secretLabel(kind: OAuthTokenKind) {
   return kind === "access_token" ? "OAuth access token" : "OAuth refresh token";
 }
 
-function configPath(kind: OAuthTokenKind): "oauth.access_token" | "oauth.refresh_token" {
+function configPath(
+  kind: OAuthTokenKind,
+): "oauth.access_token" | "oauth.refresh_token" {
   return kind === "access_token" ? "oauth.access_token" : "oauth.refresh_token";
 }
 
@@ -110,13 +132,26 @@ async function runtimeProviderConfigForExistingSecret(
     .where(eq(companySecretProviderConfigs.id, secret.providerConfigId))
     .then((rows) => rows[0] ?? null);
   if (!providerConfig) {
-    throw new Error("Provider vault not found for existing OAuth token secret " + secret.id);
+    throw new Error(
+      "Provider vault not found for existing OAuth token secret " + secret.id,
+    );
   }
-  if (providerConfig.companyId !== secret.companyId || providerConfig.provider !== secret.provider) {
-    throw new Error("Provider vault does not match existing OAuth token secret " + secret.id);
+  if (
+    providerConfig.companyId !== secret.companyId ||
+    providerConfig.provider !== secret.provider
+  ) {
+    throw new Error(
+      "Provider vault does not match existing OAuth token secret " + secret.id,
+    );
   }
-  if (providerConfig.status === "disabled" || providerConfig.status === "coming_soon") {
-    throw new Error("Provider vault is not selectable for existing OAuth token secret " + secret.id);
+  if (
+    providerConfig.status === "disabled" ||
+    providerConfig.status === "coming_soon"
+  ) {
+    throw new Error(
+      "Provider vault is not selectable for existing OAuth token secret " +
+        secret.id,
+    );
   }
   return {
     id: providerConfig.id,
@@ -165,54 +200,66 @@ async function upsertTokenSecret(
   const existing = await tx
     .select()
     .from(companySecrets)
-    .where(and(
-      eq(companySecrets.companyId, connection.companyId),
-      eq(companySecrets.key, key),
-    ))
+    .where(
+      and(
+        eq(companySecrets.companyId, connection.companyId),
+        eq(companySecrets.key, key),
+      ),
+    )
     .then((rows) => rows[0] ?? null);
   const nextVersion = existing ? existing.latestVersion + 1 : 1;
-  const providerId = (existing?.provider ?? "local_encrypted") as SecretProvider;
+  const providerId = (existing?.provider ??
+    "local_encrypted") as SecretProvider;
   const provider = getSecretProvider(providerId);
-  const providerConfig = existing ? await runtimeProviderConfigForExistingSecret(tx, existing) : null;
+  const providerConfig = existing
+    ? await runtimeProviderConfigForExistingSecret(tx, existing)
+    : null;
   const providerWriteContext = {
     companyId: connection.companyId,
     secretKey: key,
     secretName: existing?.name ?? name,
     version: nextVersion,
   };
-  const prepared = existing ? await provider.createVersion({
-    value: token.value,
-    externalRef: existing.externalRef ?? null,
-    providerConfig,
-    context: providerWriteContext,
-  }) : await provider.createSecret({
-    value: token.value,
-    externalRef: null,
-    providerConfig: null,
-    context: providerWriteContext,
-  });
+  const prepared = existing
+    ? await provider.createVersion({
+        value: token.value,
+        externalRef: existing.externalRef ?? null,
+        providerConfig,
+        context: providerWriteContext,
+      })
+    : await provider.createSecret({
+        value: token.value,
+        externalRef: null,
+        providerConfig: null,
+        context: providerWriteContext,
+      });
 
   const now = new Date();
-  const secret = existing ?? await tx
-    .insert(companySecrets)
-    .values({
-      companyId: connection.companyId,
-      key,
-      name,
-      provider: "local_encrypted",
-      providerConfigId: null,
-      status: "active",
-      managedMode: "taskcore_managed",
-      externalRef: null,
-      providerMetadata: { source: "tool_oauth_legacy_backfill", namespace: secretNamespace(connection.id) },
-      latestVersion: 1,
-      description: `Migrated ${secretLabel(token.kind).toLowerCase()} for tool connection ${connection.id}.`,
-      createdByUserId: "migration",
-      lastRotatedAt: now,
-      updatedAt: now,
-    })
-    .returning()
-    .then((rows) => rows[0]!);
+  const secret =
+    existing ??
+    (await tx
+      .insert(companySecrets)
+      .values({
+        companyId: connection.companyId,
+        key,
+        name,
+        provider: "local_encrypted",
+        providerConfigId: null,
+        status: "active",
+        managedMode: "taskcore_managed",
+        externalRef: null,
+        providerMetadata: {
+          source: "tool_oauth_legacy_backfill",
+          namespace: secretNamespace(connection.id),
+        },
+        latestVersion: 1,
+        description: `Migrated ${secretLabel(token.kind).toLowerCase()} for tool connection ${connection.id}.`,
+        createdByUserId: "migration",
+        lastRotatedAt: now,
+        updatedAt: now,
+      })
+      .returning()
+      .then((rows) => rows[0]!));
 
   await tx.insert(companySecretVersions).values({
     secretId: secret.id,
@@ -229,17 +276,21 @@ async function upsertTokenSecret(
     await tx
       .update(companySecretVersions)
       .set({ status: "previous" })
-      .where(and(
-        eq(companySecretVersions.secretId, existing.id),
-        ne(companySecretVersions.version, nextVersion),
-      ));
+      .where(
+        and(
+          eq(companySecretVersions.secretId, existing.id),
+          ne(companySecretVersions.version, nextVersion),
+        ),
+      );
     await tx
       .update(companySecretVersions)
       .set({ status: "current" })
-      .where(and(
-        eq(companySecretVersions.secretId, existing.id),
-        eq(companySecretVersions.version, nextVersion),
-      ));
+      .where(
+        and(
+          eq(companySecretVersions.secretId, existing.id),
+          eq(companySecretVersions.version, nextVersion),
+        ),
+      );
     await tx
       .update(companySecrets)
       .set({
@@ -290,7 +341,9 @@ async function upsertTokenSecret(
   return { ref, created: !existing };
 }
 
-export async function backfillLegacyToolOAuthTokens(db: Db): Promise<ToolOAuthLegacyBackfillResult> {
+export async function backfillLegacyToolOAuthTokens(
+  db: Db,
+): Promise<ToolOAuthLegacyBackfillResult> {
   const result: ToolOAuthLegacyBackfillResult = {
     scannedConnections: 0,
     migratedConnections: 0,
@@ -300,10 +353,7 @@ export async function backfillLegacyToolOAuthTokens(db: Db): Promise<ToolOAuthLe
     accessTokensBackfilled: 0,
     refreshTokensBackfilled: 0,
   };
-  const rows = await db
-    .select()
-    .from(toolConnections)
-    .where(sql`
+  const rows = await db.select().from(toolConnections).where(sql`
       (
         jsonb_typeof(${toolConnections.config} -> 'oauth') = 'object'
         AND (
@@ -327,7 +377,9 @@ export async function backfillLegacyToolOAuthTokens(db: Db): Promise<ToolOAuthLe
 
   for (const connection of rows) {
     const tokens = uniqueLegacyTokens(connection);
-    const shouldSanitize = hasRawOauthTokenKeys(connection.config) || hasRawOauthTokenKeys(connection.transportConfig);
+    const shouldSanitize =
+      hasRawOauthTokenKeys(connection.config) ||
+      hasRawOauthTokenKeys(connection.transportConfig);
     if (!shouldSanitize) continue;
     await db.transaction(async (tx) => {
       const refs: ToolCredentialSecretRef[] = [];
@@ -349,8 +401,14 @@ export async function backfillLegacyToolOAuthTokens(db: Db): Promise<ToolOAuthLe
         .set({
           config: stripRawOauthTokenKeys(connection.config),
           transportConfig: stripRawOauthTokenKeys(connection.transportConfig),
-          credentialSecretRefs: replaceCredentialSecretRefs(connection.credentialSecretRefs, refs),
-          credentialRefs: replaceOAuthAccessCredentialRef(connection.credentialRefs, accessRef),
+          credentialSecretRefs: replaceCredentialSecretRefs(
+            connection.credentialSecretRefs,
+            refs,
+          ),
+          credentialRefs: replaceOAuthAccessCredentialRef(
+            connection.credentialRefs,
+            accessRef,
+          ),
           updatedAt: new Date(),
         })
         .where(eq(toolConnections.id, connection.id));

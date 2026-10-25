@@ -1,7 +1,13 @@
 import { useMemo, type MouseEvent } from "react";
-import { readFileViewerStateFromSearch, useFileViewer } from "@/context/FileViewerContext";
+import {
+  readFileViewerStateFromSearch,
+  useFileViewer,
+} from "@/context/FileViewerContext";
 import { parseWorkspaceFileRef } from "@/lib/workspace-file-parser";
-import { buildWorkspaceFileHref, type WorkspaceFileRefResolver } from "@/lib/remark-workspace-file-refs";
+import {
+  buildWorkspaceFileHref,
+  type WorkspaceFileRefResolver,
+} from "@/lib/remark-workspace-file-refs";
 import { workspaceFileAvailabilityRef } from "@/lib/workspace-file-availability";
 import { MarkdownBody } from "./MarkdownBody";
 
@@ -13,7 +19,12 @@ function escapeMarkdownLinkLabel(value: string) {
   return value.replace(/([\\\]])/g, "\\$1");
 }
 
-export function linkWorkspaceFileInlineCode(markdown: string, _currentPathname: string, _currentSearch: string, _currentHash: string) {
+export function linkWorkspaceFileInlineCode(
+  markdown: string,
+  _currentPathname: string,
+  _currentSearch: string,
+  _currentHash: string,
+) {
   return markdown.replace(INLINE_CODE_RE, (token, rawCode: string) => {
     const ref = parseWorkspaceFileRef(rawCode);
     if (!ref) return token;
@@ -30,7 +41,9 @@ export function WorkspaceFileMarkdownBody({
 
   // Identity changes with the registry version, so completed batches re-parse
   // the markdown and promote the references that came back openable.
-  const resolveWorkspaceFileRef = useMemo<WorkspaceFileRefResolver | undefined>(() => {
+  const resolveWorkspaceFileRef = useMemo<
+    WorkspaceFileRefResolver | undefined
+  >(() => {
     if (!availability) return undefined;
     return (ref) => {
       const result = availability.check(workspaceFileAvailabilityRef(ref));
@@ -40,12 +53,17 @@ export function WorkspaceFileMarkdownBody({
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     if (!viewer) return;
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
     const anchor = (event.target as HTMLElement | null)?.closest("a");
     if (!anchor) return;
 
     const url = new URL(anchor.href, window.location.href);
-    if (url.origin !== window.location.origin || url.pathname !== window.location.pathname) return;
+    if (
+      url.origin !== window.location.origin ||
+      url.pathname !== window.location.pathname
+    )
+      return;
     const next = readFileViewerStateFromSearch(url.search);
     if (!next) return;
 
@@ -55,7 +73,12 @@ export function WorkspaceFileMarkdownBody({
 
   return (
     <div onClick={handleClick}>
-      <MarkdownBody {...props} resolveWorkspaceFileRef={resolveWorkspaceFileRef}>{children}</MarkdownBody>
+      <MarkdownBody
+        {...props}
+        resolveWorkspaceFileRef={resolveWorkspaceFileRef}
+      >
+        {children}
+      </MarkdownBody>
     </div>
   );
 }

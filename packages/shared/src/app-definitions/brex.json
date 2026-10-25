@@ -3,17 +3,13 @@
   "slug": "brex",
   "name": "Brex",
   "description": "Connect Brex's provider-hosted MCP server.",
-  "categories": [
-    "commerce"
-  ],
+  "categories": ["commerce"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/brex.svg",
     "darkLogoUrl": "/brands/apps/brex-dark.svg"
   },
-  "urlPatterns": [
-    "https://api.brex.com/*"
-  ],
+  "urlPatterns": ["https://api.brex.com/*"],
   "docsUrl": "https://www.brex.com/support/using-brex-in-ai-apps",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,9 +17,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://api.brex.com/mcp",

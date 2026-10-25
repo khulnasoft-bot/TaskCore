@@ -53,9 +53,17 @@ const queryClient = new QueryClient({
   },
 });
 
-function CompanyAwareBreadcrumbProvider({ children }: { children: React.ReactNode }) {
+function CompanyAwareBreadcrumbProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { selectedCompany } = useCompany();
-  return <BreadcrumbProvider companyName={selectedCompany?.name ?? null}>{children}</BreadcrumbProvider>;
+  return (
+    <BreadcrumbProvider companyName={selectedCompany?.name ?? null}>
+      {children}
+    </BreadcrumbProvider>
+  );
 }
 
 const rootElement = document.getElementById("root");
@@ -72,21 +80,21 @@ getOrCreateTaskcoreReactRoot(window, rootElement).render(
               <EditorAutocompleteProvider>
                 <ToastProvider>
                   <PrimaryAgentProvider>
-                  <LiveUpdatesProvider>
-                    <TooltipProvider>
-                      <CompanyAwareBreadcrumbProvider>
-                        <SidebarProvider>
-                          <PanelProvider>
-                            <PluginLauncherProvider>
-                              <DialogProvider>
-                                <App />
-                              </DialogProvider>
-                            </PluginLauncherProvider>
-                          </PanelProvider>
-                        </SidebarProvider>
-                      </CompanyAwareBreadcrumbProvider>
-                    </TooltipProvider>
-                  </LiveUpdatesProvider>
+                    <LiveUpdatesProvider>
+                      <TooltipProvider>
+                        <CompanyAwareBreadcrumbProvider>
+                          <SidebarProvider>
+                            <PanelProvider>
+                              <PluginLauncherProvider>
+                                <DialogProvider>
+                                  <App />
+                                </DialogProvider>
+                              </PluginLauncherProvider>
+                            </PanelProvider>
+                          </SidebarProvider>
+                        </CompanyAwareBreadcrumbProvider>
+                      </TooltipProvider>
+                    </LiveUpdatesProvider>
                   </PrimaryAgentProvider>
                 </ToastProvider>
               </EditorAutocompleteProvider>
@@ -95,5 +103,5 @@ getOrCreateTaskcoreReactRoot(window, rootElement).render(
         </ThemeProvider>
       </QueryClientProvider>
     </AppErrorBoundary>
-  </StrictMode>
+  </StrictMode>,
 );

@@ -28,7 +28,9 @@ describe("CloudManagedPageGate", () => {
 
   async function renderGate(health?: Record<string, unknown>) {
     root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     if (health !== undefined) {
       queryClient.setQueryData(queryKeys.health, health);
     }
@@ -57,16 +59,20 @@ describe("CloudManagedPageGate", () => {
   it("redirects to the settings root on a Cloud-managed instance", async () => {
     await renderGate({ status: "ok", cloud: { managed: true } });
 
-    expect(container.querySelector('[data-testid="navigate"]')?.getAttribute("data-to")).toBe(
-      "/company/settings",
-    );
+    expect(
+      container
+        .querySelector('[data-testid="navigate"]')
+        ?.getAttribute("data-to"),
+    ).toBe("/company/settings");
     expect(container.querySelector('[data-testid="page-content"]')).toBeNull();
   });
 
   it("renders the page on a self-hosted instance", async () => {
     await renderGate({ status: "ok" });
 
-    expect(container.querySelector('[data-testid="page-content"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="page-content"]'),
+    ).not.toBeNull();
     expect(container.querySelector('[data-testid="navigate"]')).toBeNull();
   });
 });

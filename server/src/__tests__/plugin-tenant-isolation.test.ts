@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   companies,
   createDb,
@@ -11,7 +19,10 @@ import {
   pluginWebhookDeliveries,
   plugins,
 } from "@taskcore/db";
-import { buildHostServices, flushPluginLogBuffer } from "../services/plugin-host-services.js";
+import {
+  buildHostServices,
+  flushPluginLogBuffer,
+} from "../services/plugin-host-services.js";
 import { pluginRegistryService } from "../services/plugin-registry.js";
 import {
   getEmbeddedPostgresTestSupport,
@@ -31,7 +42,9 @@ function createEventBusStub() {
 }
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 function issuePrefix(id: string) {
   return `T${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
@@ -45,10 +58,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-plugin-tenant-isolation-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-plugin-tenant-isolation-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -110,7 +127,10 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
       level: "info",
       message: "instance-scope log",
     });
-    const rows = await db.select().from(pluginLogs).where(eq(pluginLogs.pluginId, pluginId));
+    const rows = await db
+      .select()
+      .from(pluginLogs)
+      .where(eq(pluginLogs.pluginId, pluginId));
     expect(rows).toHaveLength(1);
     expect(rows[0]?.companyId).toBeNull();
   });
@@ -160,8 +180,18 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
     ]);
 
     await db.insert(pluginWebhookDeliveries).values([
-      { pluginId, companyId: companyA, webhookKey: "wh", payload: { who: "A" } },
-      { pluginId, companyId: companyB, webhookKey: "wh", payload: { who: "B" } },
+      {
+        pluginId,
+        companyId: companyA,
+        webhookKey: "wh",
+        payload: { who: "A" },
+      },
+      {
+        pluginId,
+        companyId: companyB,
+        webhookKey: "wh",
+        payload: { who: "B" },
+      },
       { pluginId, webhookKey: "wh", payload: { who: "instance" } },
     ]);
 
@@ -169,7 +199,11 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
     await db.delete(companies).where(eq(companies.id, companyA));
 
     const logs = await db.select().from(pluginLogs);
-    expect(logs.map((r) => r.companyId).sort((a, b) => String(a).localeCompare(String(b)))).toEqual(
+    expect(
+      logs
+        .map((r) => r.companyId)
+        .sort((a, b) => String(a).localeCompare(String(b))),
+    ).toEqual(
       [companyB, null].sort((a, b) => String(a).localeCompare(String(b))),
     );
 
@@ -178,12 +212,20 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
     expect(entities[0]?.companyId).toBe(companyB);
 
     const runs = await db.select().from(pluginJobRuns);
-    expect(runs.map((r) => r.companyId).sort((a, b) => String(a).localeCompare(String(b)))).toEqual(
+    expect(
+      runs
+        .map((r) => r.companyId)
+        .sort((a, b) => String(a).localeCompare(String(b))),
+    ).toEqual(
       [companyB, null].sort((a, b) => String(a).localeCompare(String(b))),
     );
 
     const deliveries = await db.select().from(pluginWebhookDeliveries);
-    expect(deliveries.map((r) => r.companyId).sort((a, b) => String(a).localeCompare(String(b)))).toEqual(
+    expect(
+      deliveries
+        .map((r) => r.companyId)
+        .sort((a, b) => String(a).localeCompare(String(b))),
+    ).toEqual(
       [companyB, null].sort((a, b) => String(a).localeCompare(String(b))),
     );
   });
@@ -360,15 +402,30 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
       data: {},
     });
 
-    const fromA = await registry.getEntityByExternalId(pluginId, "issue", "ext-shared", companyA);
+    const fromA = await registry.getEntityByExternalId(
+      pluginId,
+      "issue",
+      "ext-shared",
+      companyA,
+    );
     expect(fromA?.companyId).toBe(companyA);
     expect(fromA?.title).toBe("A");
 
-    const fromB = await registry.getEntityByExternalId(pluginId, "issue", "ext-shared", companyB);
+    const fromB = await registry.getEntityByExternalId(
+      pluginId,
+      "issue",
+      "ext-shared",
+      companyB,
+    );
     expect(fromB?.companyId).toBe(companyB);
     expect(fromB?.title).toBe("B");
 
-    const fromInstance = await registry.getEntityByExternalId(pluginId, "issue", "ext-shared", null);
+    const fromInstance = await registry.getEntityByExternalId(
+      pluginId,
+      "issue",
+      "ext-shared",
+      null,
+    );
     expect(fromInstance?.companyId).toBeNull();
     expect(fromInstance?.title).toBe("instance");
 
@@ -396,9 +453,24 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
       schedule: "* * * * *",
     });
 
-    const runA = await registry.createJobRun(pluginId, jobId, "manual", companyA);
-    const runB = await registry.createJobRun(pluginId, jobId, "manual", companyB);
-    const runInstance = await registry.createJobRun(pluginId, jobId, "scheduled", null);
+    const runA = await registry.createJobRun(
+      pluginId,
+      jobId,
+      "manual",
+      companyA,
+    );
+    const runB = await registry.createJobRun(
+      pluginId,
+      jobId,
+      "manual",
+      companyB,
+    );
+    const runInstance = await registry.createJobRun(
+      pluginId,
+      jobId,
+      "scheduled",
+      null,
+    );
 
     expect(runA?.companyId).toBe(companyA);
     expect(runB?.companyId).toBe(companyB);
@@ -410,9 +482,14 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
     const whB = await registry.createWebhookDelivery(pluginId, "wh", companyB, {
       payload: { who: "B" },
     });
-    const whInstance = await registry.createWebhookDelivery(pluginId, "wh", null, {
-      payload: { who: "instance" },
-    });
+    const whInstance = await registry.createWebhookDelivery(
+      pluginId,
+      "wh",
+      null,
+      {
+        payload: { who: "instance" },
+      },
+    );
 
     expect(whA?.companyId).toBe(companyA);
     expect(whB?.companyId).toBe(companyB);
@@ -422,14 +499,22 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
     await db.delete(companies).where(eq(companies.id, companyA));
 
     const runs = await db.select().from(pluginJobRuns);
-    expect(runs.map((r) => r.companyId).sort((a, b) => String(a).localeCompare(String(b)))).toEqual(
+    expect(
+      runs
+        .map((r) => r.companyId)
+        .sort((a, b) => String(a).localeCompare(String(b))),
+    ).toEqual(
       [companyB, null].sort((a, b) => String(a).localeCompare(String(b))),
     );
 
     const deliveries = await db.select().from(pluginWebhookDeliveries);
     expect(
-      deliveries.map((r) => r.companyId).sort((a, b) => String(a).localeCompare(String(b))),
-    ).toEqual([companyB, null].sort((a, b) => String(a).localeCompare(String(b))));
+      deliveries
+        .map((r) => r.companyId)
+        .sort((a, b) => String(a).localeCompare(String(b))),
+    ).toEqual(
+      [companyB, null].sort((a, b) => String(a).localeCompare(String(b))),
+    );
   });
 
   it("buildHostServices.logger.log + flushPluginLogBuffer persist companyId so cascade delete reaps log rows", async () => {
@@ -441,7 +526,12 @@ describeEmbeddedPostgres("plugin tenant isolation (company_id FK)", () => {
     await flushPluginLogBuffer();
     await db.delete(pluginLogs);
 
-    const services = buildHostServices(db, pluginId, "tenant-isolation-test", createEventBusStub());
+    const services = buildHostServices(
+      db,
+      pluginId,
+      "tenant-isolation-test",
+      createEventBusStub(),
+    );
     try {
       await services.logger.log({
         level: "info",

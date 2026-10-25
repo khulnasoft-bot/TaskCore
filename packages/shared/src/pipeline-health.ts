@@ -112,7 +112,9 @@ type StageConfig = {
   [key: string]: unknown;
 };
 
-export function isPipelineTerminalStageKind(kind: string | null | undefined): boolean {
+export function isPipelineTerminalStageKind(
+  kind: string | null | undefined,
+): boolean {
   return kind === "done" || kind === "cancelled";
 }
 
@@ -128,31 +130,48 @@ function agentLabel(agent: PipelineHealthAgentRef | undefined): string {
 
 function hasOnEnterRoutineAutomation(config: StageConfig): boolean {
   const onEnter = config.onEnter;
-  if (!onEnter || typeof onEnter !== "object" || Array.isArray(onEnter)) return false;
+  if (!onEnter || typeof onEnter !== "object" || Array.isArray(onEnter))
+    return false;
   const record = onEnter as Record<string, unknown>;
-  return record.type === "run_routine" && typeof record.routineId === "string" && record.routineId.trim().length > 0;
+  return (
+    record.type === "run_routine" &&
+    typeof record.routineId === "string" &&
+    record.routineId.trim().length > 0
+  );
 }
 
 function hasChildrenGateAutoAdvance(config: StageConfig): boolean {
   const breakdown = readBreakdownConfig(config);
-  if (breakdown) return breakdown.waitForPieces && breakdown.whenFinishedMoveTo !== null;
-  return config.requireChildrenTerminal === true &&
+  if (breakdown)
+    return breakdown.waitForPieces && breakdown.whenFinishedMoveTo !== null;
+  return (
+    config.requireChildrenTerminal === true &&
     typeof config.autoAdvanceOnChildrenTerminal === "string" &&
-    config.autoAdvanceOnChildrenTerminal.trim().length > 0;
+    config.autoAdvanceOnChildrenTerminal.trim().length > 0
+  );
 }
 
 /** True when a stage has saved automation that can move work forward. */
 function hasRunnableStageAutomation(config: StageConfig): boolean {
-  return readBreakdownConfig(config) !== null || hasOnEnterRoutineAutomation(config) || hasChildrenGateAutoAdvance(config);
+  return (
+    readBreakdownConfig(config) !== null ||
+    hasOnEnterRoutineAutomation(config) ||
+    hasChildrenGateAutoAdvance(config)
+  );
 }
 
 function automationAssigneeAgentId(config: StageConfig): string | null {
   const automation = config.automation;
-  if (automation && typeof automation === "object" && !Array.isArray(automation)) {
+  if (
+    automation &&
+    typeof automation === "object" &&
+    !Array.isArray(automation)
+  ) {
     const value = (automation as Record<string, unknown>).assigneeAgentId;
     if (typeof value === "string" && value.trim()) return value.trim();
   }
-  return typeof config.assigneeAgentId === "string" && config.assigneeAgentId.trim()
+  return typeof config.assigneeAgentId === "string" &&
+    config.assigneeAgentId.trim()
     ? config.assigneeAgentId.trim()
     : null;
 }
@@ -161,40 +180,61 @@ function readBreakdownConfig(config: StageConfig) {
   const raw = config.breakdown;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const record = raw as Record<string, unknown>;
-  const targetPipelineId = typeof record.targetPipelineId === "string" && record.targetPipelineId.trim()
-    ? record.targetPipelineId.trim()
-    : null;
-  const targetStageKey = typeof record.targetStageKey === "string" && record.targetStageKey.trim()
-    ? record.targetStageKey.trim()
-    : null;
-  const pieceNoun = typeof record.pieceNoun === "string" && record.pieceNoun.trim()
-    ? record.pieceNoun.trim()
-    : "piece";
-  const inheritFields = Array.isArray(record.inheritFields)
-    ? record.inheritFields.filter((field): field is string => typeof field === "string" && field.trim().length > 0).map((field) => field.trim())
-    : [];
-  const whenFinishedMoveTo = typeof record.whenFinishedMoveTo === "string" && record.whenFinishedMoveTo.trim()
-    ? record.whenFinishedMoveTo.trim()
-    : typeof config.autoAdvanceOnChildrenTerminal === "string" && config.autoAdvanceOnChildrenTerminal.trim()
-      ? config.autoAdvanceOnChildrenTerminal.trim()
+  const targetPipelineId =
+    typeof record.targetPipelineId === "string" &&
+    record.targetPipelineId.trim()
+      ? record.targetPipelineId.trim()
       : null;
+  const targetStageKey =
+    typeof record.targetStageKey === "string" && record.targetStageKey.trim()
+      ? record.targetStageKey.trim()
+      : null;
+  const pieceNoun =
+    typeof record.pieceNoun === "string" && record.pieceNoun.trim()
+      ? record.pieceNoun.trim()
+      : "piece";
+  const inheritFields = Array.isArray(record.inheritFields)
+    ? record.inheritFields
+        .filter(
+          (field): field is string =>
+            typeof field === "string" && field.trim().length > 0,
+        )
+        .map((field) => field.trim())
+    : [];
+  const whenFinishedMoveTo =
+    typeof record.whenFinishedMoveTo === "string" &&
+    record.whenFinishedMoveTo.trim()
+      ? record.whenFinishedMoveTo.trim()
+      : typeof config.autoAdvanceOnChildrenTerminal === "string" &&
+          config.autoAdvanceOnChildrenTerminal.trim()
+        ? config.autoAdvanceOnChildrenTerminal.trim()
+        : null;
   return {
     targetPipelineId,
     targetStageKey,
     pieceNoun,
     inheritFields,
-    waitForPieces: record.waitForPieces === undefined ? config.requireChildrenTerminal === true : record.waitForPieces === true,
+    waitForPieces:
+      record.waitForPieces === undefined
+        ? config.requireChildrenTerminal === true
+        : record.waitForPieces === true,
     whenFinishedMoveTo,
   };
 }
 
-export function computePipelineHealth(input: PipelineHealthInput): PipelineHealthReport {
+export function computePipelineHealth(
+  input: PipelineHealthInput,
+): PipelineHealthReport {
   const warnings: PipelineHealthWarning[] = [];
 
   for (const stage of input.stages) {
     const config = asConfig(stage.config);
     const instructionsBody = (stage.instructionsBody ?? "").trim();
-    const anchor = { stageId: stage.id, stageKey: stage.key, stageName: stage.name };
+    const anchor = {
+      stageId: stage.id,
+      stageKey: stage.key,
+      stageName: stage.name,
+    };
 
     const assigneeAgentId = automationAssigneeAgentId(config);
     const hasStageAutomation = hasRunnableStageAutomation(config);
@@ -229,7 +269,13 @@ export function computePipelineHealth(input: PipelineHealthInput): PipelineHealt
     }
 
     // 3. Instructions exist, but no teammate is assigned to run them.
-    if (!assigneeAgentId && instructionsBody && !hasStageAutomation && stage.kind !== "review" && !isTerminalStage) {
+    if (
+      !assigneeAgentId &&
+      instructionsBody &&
+      !hasStageAutomation &&
+      stage.kind !== "review" &&
+      !isTerminalStage
+    ) {
       warnings.push({
         ...anchor,
         code: "automation_no_agent",
@@ -238,7 +284,13 @@ export function computePipelineHealth(input: PipelineHealthInput): PipelineHealt
     }
 
     // 4. Nothing runs here automatically. This is legal, but must be loud.
-    if (!assigneeAgentId && !instructionsBody && !hasStageAutomation && stage.kind !== "review" && !isTerminalStage) {
+    if (
+      !assigneeAgentId &&
+      !instructionsBody &&
+      !hasStageAutomation &&
+      stage.kind !== "review" &&
+      !isTerminalStage
+    ) {
       warnings.push({
         ...anchor,
         code: "stage_no_automation",
@@ -248,10 +300,18 @@ export function computePipelineHealth(input: PipelineHealthInput): PipelineHealt
 
     // 5. A review step with no one who can actually approve.
     if (stage.kind === "review" || config.requireApproval === true) {
-      const approver = config.approver && typeof config.approver === "object" ? config.approver : null;
-      const kind = approver && typeof approver.kind === "string" ? approver.kind : "any_human";
+      const approver =
+        config.approver && typeof config.approver === "object"
+          ? config.approver
+          : null;
+      const kind =
+        approver && typeof approver.kind === "string"
+          ? approver.kind
+          : "any_human";
       const approverId =
-        approver && typeof approver.id === "string" && approver.id.trim() ? approver.id.trim() : null;
+        approver && typeof approver.id === "string" && approver.id.trim()
+          ? approver.id.trim()
+          : null;
       if (kind === "agent") {
         const agent = approverId ? input.agentsById[approverId] : undefined;
         if (!approverId || !agent) {
@@ -279,7 +339,9 @@ export function computePipelineHealth(input: PipelineHealthInput): PipelineHealt
     // 6. First-class breakdown references. These replace prose scanning on
     // breakdown stages because the target workflow is now config, not copy.
     if (breakdown) {
-      const target = breakdown.targetPipelineId ? input.pipelinesById[breakdown.targetPipelineId] : undefined;
+      const target = breakdown.targetPipelineId
+        ? input.pipelinesById[breakdown.targetPipelineId]
+        : undefined;
       const targetStage = breakdown.targetStageKey
         ? target?.stages.find((s) => s.key === breakdown.targetStageKey)
         : undefined;
@@ -324,7 +386,10 @@ export function computePipelineHealth(input: PipelineHealthInput): PipelineHealt
           });
           continue;
         }
-        if (mention.stageKey && !target.stages.some((s) => s.key === mention.stageKey)) {
+        if (
+          mention.stageKey &&
+          !target.stages.some((s) => s.key === mention.stageKey)
+        ) {
           warnings.push({
             ...anchor,
             code: "missing_stage_reference",

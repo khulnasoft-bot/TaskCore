@@ -11,7 +11,9 @@ function normalizeByteLimit(maxBytes: number) {
   return Math.max(1, Math.trunc(maxBytes));
 }
 
-export function createCapturedOutputBuffer(maxBytes = DEFAULT_CAPTURED_OUTPUT_BYTES) {
+export function createCapturedOutputBuffer(
+  maxBytes = DEFAULT_CAPTURED_OUTPUT_BYTES,
+) {
   const limit = normalizeByteLimit(maxBytes);
   const chunks: Buffer[] = [];
   let bufferedBytes = 0;
@@ -68,7 +70,10 @@ export async function parseJsonResponseWithLimit<T>(
   maxBytes = DEFAULT_JSON_RESPONSE_BYTES,
 ): Promise<T> {
   const limit = normalizeByteLimit(maxBytes);
-  const contentLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
+  const contentLength = Number.parseInt(
+    response.headers.get("content-length") ?? "",
+    10,
+  );
   if (Number.isFinite(contentLength) && contentLength > limit) {
     throw new Error(`Response exceeds ${limit} bytes`);
   }

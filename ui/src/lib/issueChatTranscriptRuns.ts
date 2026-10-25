@@ -16,7 +16,8 @@ export const MAX_ISSUE_CHAT_TRANSCRIPT_RUNS = 20;
 
 function toTimestamp(value: Date | string | null | undefined): number {
   if (!value) return 0;
-  const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  const ms =
+    value instanceof Date ? value.getTime() : new Date(value).getTime();
   return Number.isFinite(ms) ? ms : 0;
 }
 
@@ -26,7 +27,12 @@ export function resolveIssueChatTranscriptRuns(args: {
   activeRun?: ActiveRunForIssue | null;
   limit?: number;
 }): RunTranscriptSource[] {
-  const { linkedRuns = [], liveRuns = [], activeRun = null, limit = MAX_ISSUE_CHAT_TRANSCRIPT_RUNS } = args;
+  const {
+    linkedRuns = [],
+    liveRuns = [],
+    activeRun = null,
+    limit = MAX_ISSUE_CHAT_TRANSCRIPT_RUNS,
+  } = args;
   const combined = new Map<string, RunTranscriptSource>();
 
   for (const run of liveRuns) {

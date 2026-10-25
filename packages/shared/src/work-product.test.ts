@@ -20,7 +20,9 @@ describe("work product metadata with resource ref", () => {
     });
 
     expect(result.resourceRef?.kind).toBe("workspace_file");
-    expect(result.resourceRef?.issueId).toBe("123e4567-e89b-12d3-a456-426614174000");
+    expect(result.resourceRef?.issueId).toBe(
+      "123e4567-e89b-12d3-a456-426614174000",
+    );
     expect(result.resourceRef?.relativePath).toBe("src/components/App.tsx");
   });
 

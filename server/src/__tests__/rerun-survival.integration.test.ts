@@ -8,8 +8,14 @@ import {
   updateEnvFileContents,
   writeEnvFileAtomicallyIfChanged,
 } from "@taskcore/shared/env-file";
-import { resourceStatus, stockHash } from "../services/managed-resource-drift.js";
-import { agentInstructionsService, resolveManagedInstructionsRoot } from "../services/agent-instructions.js";
+import {
+  resourceStatus,
+  stockHash,
+} from "../services/managed-resource-drift.js";
+import {
+  agentInstructionsService,
+  resolveManagedInstructionsRoot,
+} from "../services/agent-instructions.js";
 
 /**
  * Cross-cutting setup/sync rerun survival test.
@@ -54,7 +60,11 @@ afterEach(async () => {
 });
 
 const BASE_CONFIG = {
-  $meta: { version: 1, updatedAt: "2026-08-07T00:00:00.000Z", source: "configure" },
+  $meta: {
+    version: 1,
+    updatedAt: "2026-08-07T00:00:00.000Z",
+    source: "configure",
+  },
   database: { mode: "embedded-postgres" },
   logging: { mode: "file" },
   server: {},
@@ -66,7 +76,9 @@ function writerRoundTrip(configPath: string, update: unknown): void {
   const source = taskcoreConfigSchema.parse(
     JSON.parse(fsSync.readFileSync(configPath, "utf8")),
   );
-  const next = taskcoreConfigSchema.parse(mergeTaskcoreConfig(source, parsedUpdate));
+  const next = taskcoreConfigSchema.parse(
+    mergeTaskcoreConfig(source, parsedUpdate),
+  );
   fsSync.writeFileSync(configPath, JSON.stringify(next, null, 2) + "\n");
 }
 
@@ -86,7 +98,10 @@ describe("setup/sync rerun survival — cross-cutting", () => {
     // Rerun setup/sync with an unrelated known-field update (flip logging mode).
     writerRoundTrip(configPath, { ...BASE_CONFIG, logging: { mode: "cloud" } });
 
-    const after = JSON.parse(fsSync.readFileSync(configPath, "utf8")) as Record<string, any>;
+    const after = JSON.parse(fsSync.readFileSync(configPath, "utf8")) as Record<
+      string,
+      any
+    >;
     expect(after.customTopLevel).toEqual({ keepMe: true, nested: [1, 2, 3] });
     expect(after.server.customServerKey).toBe("operator-owned");
     expect(after.logging.mode).toBe("cloud"); // the intended update still applied
@@ -108,7 +123,11 @@ describe("setup/sync rerun survival — cross-cutting", () => {
     fsSync.writeFileSync(envPath, original);
 
     // Rerun that only changes SECOND; everything else must be byte-preserved.
-    const next = updateEnvFileContents(original, { SECOND: "changed" }, { valueEncoding: "minimal" });
+    const next = updateEnvFileContents(
+      original,
+      { SECOND: "changed" },
+      { valueEncoding: "minimal" },
+    );
     const wrote = writeEnvFileAtomicallyIfChanged(envPath, original, next);
     expect(wrote).toBe(true);
 
@@ -118,10 +137,22 @@ describe("setup/sync rerun survival — cross-cutting", () => {
     expect(after).toContain('QUOTED="already json"'); // encoding untouched
     expect(after).toContain("SECOND=changed # trailing note"); // value changed, comment kept
     expect(after.indexOf("FIRST=one")).toBeLessThan(after.indexOf("SECOND=")); // ordering kept
-    expect(after.split("\n").filter((l) => l === "").length).toBe(original.split("\n").filter((l) => l === "").length);
+    expect(after.split("\n").filter((l) => l === "").length).toBe(
+      original.split("\n").filter((l) => l === "").length,
+    );
 
     // A no-op rerun writes nothing.
-    expect(writeEnvFileAtomicallyIfChanged(envPath, after, updateEnvFileContents(after, { SECOND: "changed" }, { valueEncoding: "minimal" }))).toBe(false);
+    expect(
+      writeEnvFileAtomicallyIfChanged(
+        envPath,
+        after,
+        updateEnvFileContents(
+          after,
+          { SECOND: "changed" },
+          { valueEncoding: "minimal" },
+        ),
+      ),
+    ).toBe(false);
   });
 
   it("skips an operator-modified managed sandbox row but advances an untouched stale one", () => {
@@ -131,19 +162,37 @@ describe("setup/sync rerun survival — cross-cutting", () => {
     const v2Hash = stockHash(stockV2);
 
     // Operator hand-edited the row away from stock -> rerun must NOT clobber it.
-    const operatorHash = stockHash({ image: "node:20", packages: ["git", "operator-tool"] });
+    const operatorHash = stockHash({
+      image: "node:20",
+      packages: ["git", "operator-tool"],
+    });
     expect(
-      resourceStatus({ resourceId: "env-1", currentHash: operatorHash, bindingStockHash: v1Hash, latestStockHash: v2Hash }),
+      resourceStatus({
+        resourceId: "env-1",
+        currentHash: operatorHash,
+        bindingStockHash: v1Hash,
+        latestStockHash: v2Hash,
+      }),
     ).toBe("operator_modified");
 
     // Untouched row still at last-synced stock, newer stock available -> update is exposed.
     expect(
-      resourceStatus({ resourceId: "env-1", currentHash: v1Hash, bindingStockHash: v1Hash, latestStockHash: v2Hash }),
+      resourceStatus({
+        resourceId: "env-1",
+        currentHash: v1Hash,
+        bindingStockHash: v1Hash,
+        latestStockHash: v2Hash,
+      }),
     ).toBe("stock_update_available");
 
     // Already current -> no-op.
     expect(
-      resourceStatus({ resourceId: "env-1", currentHash: v2Hash, bindingStockHash: v1Hash, latestStockHash: v2Hash }),
+      resourceStatus({
+        resourceId: "env-1",
+        currentHash: v2Hash,
+        bindingStockHash: v1Hash,
+        latestStockHash: v2Hash,
+      }),
     ).toBe("stock_current");
   });
 
@@ -153,8 +202,16 @@ describe("setup/sync rerun survival — cross-cutting", () => {
     process.env.TASKCORE_INSTANCE_ID = "test-instance";
 
     const svc = agentInstructionsService();
-    const agent = { id: "agent-1", companyId: "company-1", name: "Agent 1", adapterConfig: {} };
-    const stockFiles = { "AGENTS.md": "# stock\n", "docs/TOOLS.md": "## stock tools\n" };
+    const agent = {
+      id: "agent-1",
+      companyId: "company-1",
+      name: "Agent 1",
+      adapterConfig: {},
+    };
+    const stockFiles = {
+      "AGENTS.md": "# stock\n",
+      "docs/TOOLS.md": "## stock tools\n",
+    };
 
     // Initial files are fixture setup. Bundle materialization now requires a
     // real database so that it cannot bypass a canonical instruction revision.
@@ -163,14 +220,27 @@ describe("setup/sync rerun survival — cross-cutting", () => {
       await fs.mkdir(path.dirname(path.join(root, name)), { recursive: true });
       await fs.writeFile(path.join(root, name), content, "utf8");
     }
-    const managedAgent = { ...agent, adapterConfig: {
-      instructionsBundleMode: "managed", instructionsRootPath: root,
-      instructionsEntryFile: "AGENTS.md", instructionsFilePath: path.join(root, "AGENTS.md"),
-    } };
+    const managedAgent = {
+      ...agent,
+      adapterConfig: {
+        instructionsBundleMode: "managed",
+        instructionsRootPath: root,
+        instructionsEntryFile: "AGENTS.md",
+        instructionsFilePath: path.join(root, "AGENTS.md"),
+      },
+    };
 
     // Operator hand-edits a managed file and adds a brand-new operator-only file.
-    await fs.writeFile(path.join(root, "AGENTS.md"), "# stock\n\noperator note\n", "utf8");
-    await fs.writeFile(path.join(root, "OPERATOR.md"), "operator-added\n", "utf8");
+    await fs.writeFile(
+      path.join(root, "AGENTS.md"),
+      "# stock\n\noperator note\n",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(root, "OPERATOR.md"),
+      "operator-added\n",
+      "utf8",
+    );
 
     // The drift gate the built-in/plugin/portability rebuilds share: classify the tree.
     const currentFiles = (await svc.exportFiles(managedAgent)).files;
@@ -184,7 +254,11 @@ describe("setup/sync rerun survival — cross-cutting", () => {
     expect(status).toBe("operator_modified"); // -> reconcile shouldWrite=false, tree left intact
 
     // Prove the on-disk edits and additions still exist after the sync decision.
-    await expect(fs.readFile(path.join(root, "AGENTS.md"), "utf8")).resolves.toContain("operator note");
-    await expect(fs.readFile(path.join(root, "OPERATOR.md"), "utf8")).resolves.toBe("operator-added\n");
+    await expect(
+      fs.readFile(path.join(root, "AGENTS.md"), "utf8"),
+    ).resolves.toContain("operator note");
+    await expect(
+      fs.readFile(path.join(root, "OPERATOR.md"), "utf8"),
+    ).resolves.toBe("operator-added\n");
   });
 });

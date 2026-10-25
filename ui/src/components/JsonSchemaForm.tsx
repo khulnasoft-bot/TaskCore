@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -21,7 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SecretBindingPicker, type SecretBindingValue } from "./SecretBindingPicker";
+import {
+  SecretBindingPicker,
+  type SecretBindingValue,
+} from "./SecretBindingPicker";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -197,7 +206,10 @@ export function validateField(
   if (type === "secret-ref" && typeof value === "object") {
     return "Invalid secret reference";
   }
-  if (type === "object" && (typeof value !== "object" || Array.isArray(value))) {
+  if (
+    type === "object" &&
+    (typeof value !== "object" || Array.isArray(value))
+  ) {
     return "Enter a valid JSON object";
   }
 
@@ -286,10 +298,19 @@ export function validateJsonSchemaForm(
     }
 
     // Recurse into objects
-    if (type === "object" && propSchema.properties && typeof value === "object" && value !== null) {
+    if (
+      type === "object" &&
+      propSchema.properties &&
+      typeof value === "object" &&
+      value !== null
+    ) {
       Object.assign(
         errors,
-        validateJsonSchemaForm(propSchema, value as Record<string, unknown>, fieldPath),
+        validateJsonSchemaForm(
+          propSchema,
+          value as Record<string, unknown>,
+          fieldPath,
+        ),
       );
     }
 
@@ -325,7 +346,9 @@ export function validateJsonSchemaForm(
 }
 
 /** Public API for default values */
-export function getDefaultValues(schema: JsonSchemaNode): Record<string, unknown> {
+export function getDefaultValues(
+  schema: JsonSchemaNode,
+): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   const properties = schema.properties ?? {};
 
@@ -355,36 +378,38 @@ interface FieldWrapperProps {
 /**
  * Common wrapper for form fields that handles labels, descriptions, and error messages.
  */
-const FieldWrapper = React.memo(({
-  label,
-  description,
-  required,
-  error,
-  disabled,
-  children,
-}: FieldWrapperProps) => {
-  return (
-    <div className={cn("space-y-2", disabled && "opacity-60")}>
-      <div className="flex items-center justify-between">
-        {label && (
-          <Label className="text-sm font-medium">
-            {label}
-            {required && <span className="ml-1 text-destructive">*</span>}
-          </Label>
+const FieldWrapper = React.memo(
+  ({
+    label,
+    description,
+    required,
+    error,
+    disabled,
+    children,
+  }: FieldWrapperProps) => {
+    return (
+      <div className={cn("space-y-2", disabled && "opacity-60")}>
+        <div className="flex items-center justify-between">
+          {label && (
+            <Label className="text-sm font-medium">
+              {label}
+              {required && <span className="ml-1 text-destructive">*</span>}
+            </Label>
+          )}
+        </div>
+        {children}
+        {description && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {description}
+          </p>
+        )}
+        {error && (
+          <p className="text-xs font-medium text-destructive">{error}</p>
         )}
       </div>
-      {children}
-      {description && (
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          {description}
-        </p>
-      )}
-      {error && (
-        <p className="text-xs font-medium text-destructive">{error}</p>
-      )}
-    </div>
-  );
-});
+    );
+  },
+);
 
 FieldWrapper.displayName = "FieldWrapper";
 
@@ -403,51 +428,53 @@ interface FormFieldProps {
 /**
  * Specialized field for boolean (checkbox) values.
  */
-const BooleanField = React.memo(({
-  id,
-  value,
-  onChange,
-  disabled,
-  label,
-  isRequired,
-  description,
-  error,
-}: {
-  id: string;
-  value: unknown;
-  onChange: (val: unknown) => void;
-  disabled: boolean;
-  label: string;
-  isRequired?: boolean;
-  description?: string;
-  error?: string;
-}) => (
-  <div className="flex items-start space-x-3 space-y-0">
-    <Checkbox
-      id={id}
-      checked={!!value}
-      onCheckedChange={onChange}
-      disabled={disabled}
-    />
-    <div className="grid gap-1.5 leading-none">
-      {label && (
-        <Label
-          htmlFor={id}
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          {label}
-          {isRequired && <span className="ml-1 text-destructive">*</span>}
-        </Label>
-      )}
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
-      {error && (
-        <p className="text-xs font-medium text-destructive">{error}</p>
-      )}
+const BooleanField = React.memo(
+  ({
+    id,
+    value,
+    onChange,
+    disabled,
+    label,
+    isRequired,
+    description,
+    error,
+  }: {
+    id: string;
+    value: unknown;
+    onChange: (val: unknown) => void;
+    disabled: boolean;
+    label: string;
+    isRequired?: boolean;
+    description?: string;
+    error?: string;
+  }) => (
+    <div className="flex items-start space-x-3 space-y-0">
+      <Checkbox
+        id={id}
+        checked={!!value}
+        onCheckedChange={onChange}
+        disabled={disabled}
+      />
+      <div className="grid gap-1.5 leading-none">
+        {label && (
+          <Label
+            htmlFor={id}
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            {label}
+            {isRequired && <span className="ml-1 text-destructive">*</span>}
+          </Label>
+        )}
+        {description && (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        )}
+        {error && (
+          <p className="text-xs font-medium text-destructive">{error}</p>
+        )}
+      </div>
     </div>
-  </div>
-));
+  ),
+);
 
 BooleanField.displayName = "BooleanField";
 
@@ -471,81 +498,88 @@ function isSecretRefBinding(value: unknown): value is EnvSecretRefBinding {
 /**
  * Specialized field for enum (select) values.
  */
-const EnumField = React.memo(({
-  value,
-  onChange,
-  disabled,
-  label,
-  isRequired,
-  description,
-  error,
-  options,
-}: {
-  value: unknown;
-  onChange: (val: unknown) => void;
-  disabled: boolean;
-  label: string;
-  isRequired?: boolean;
-  description?: string;
-  error?: string;
-  options: unknown[];
-}) => {
-  // Optional enums get a leading blank row so the user can express "not
-  // configured"; it is also the selected row when no value is set.
-  const showUnsetOption = !isRequired;
-  // When every option is numeric, coerce the selected string back to a number
-  // so the payload keeps the schema's integer/number type — a stringified "2"
-  // would otherwise fail server-side integer validation.
-  const numericOptions =
-    options.length > 0 && options.every((option) => typeof option === "number");
+const EnumField = React.memo(
+  ({
+    value,
+    onChange,
+    disabled,
+    label,
+    isRequired,
+    description,
+    error,
+    options,
+  }: {
+    value: unknown;
+    onChange: (val: unknown) => void;
+    disabled: boolean;
+    label: string;
+    isRequired?: boolean;
+    description?: string;
+    error?: string;
+    options: unknown[];
+  }) => {
+    // Optional enums get a leading blank row so the user can express "not
+    // configured"; it is also the selected row when no value is set.
+    const showUnsetOption = !isRequired;
+    // When every option is numeric, coerce the selected string back to a number
+    // so the payload keeps the schema's integer/number type — a stringified "2"
+    // would otherwise fail server-side integer validation.
+    const numericOptions =
+      options.length > 0 &&
+      options.every((option) => typeof option === "number");
 
-  const isUnset = value === undefined || value === null || value === "";
-  const selectValue = isUnset
-    ? showUnsetOption
-      ? ENUM_UNSET_VALUE
-      : ""
-    : String(value);
+    const isUnset = value === undefined || value === null || value === "";
+    const selectValue = isUnset
+      ? showUnsetOption
+        ? ENUM_UNSET_VALUE
+        : ""
+      : String(value);
 
-  const handleChange = (next: string) => {
-    if (next === ENUM_UNSET_VALUE) {
-      onChange(undefined);
-      return;
-    }
-    onChange(numericOptions ? Number(next) : next);
-  };
+    const handleChange = (next: string) => {
+      if (next === ENUM_UNSET_VALUE) {
+        onChange(undefined);
+        return;
+      }
+      onChange(numericOptions ? Number(next) : next);
+    };
 
-  return (
-    <FieldWrapper
-      label={label}
-      description={description}
-      required={isRequired}
-      error={error}
-      disabled={disabled}
-    >
-      <Select
-        value={selectValue}
-        onValueChange={handleChange}
+    return (
+      <FieldWrapper
+        label={label}
+        description={description}
+        required={isRequired}
+        error={error}
         disabled={disabled}
       >
-        <SelectTrigger className="w-full" aria-label={label} aria-required={isRequired}>
-          <SelectValue placeholder="Select an option" />
-        </SelectTrigger>
-        <SelectContent>
-          {showUnsetOption && (
-            <SelectItem value={ENUM_UNSET_VALUE} textValue="None">
-              <span className="text-muted-foreground">None</span>
-            </SelectItem>
-          )}
-          {options.map((option) => (
-            <SelectItem key={String(option)} value={String(option)}>
-              {String(option)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </FieldWrapper>
-  );
-});
+        <Select
+          value={selectValue}
+          onValueChange={handleChange}
+          disabled={disabled}
+        >
+          <SelectTrigger
+            className="w-full"
+            aria-label={label}
+            aria-required={isRequired}
+          >
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+          <SelectContent>
+            {showUnsetOption && (
+              <SelectItem value={ENUM_UNSET_VALUE} textValue="None">
+                <span className="text-muted-foreground">None</span>
+              </SelectItem>
+            )}
+            {options.map((option) => (
+              <SelectItem key={String(option)} value={String(option)}>
+                {String(option)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FieldWrapper>
+    );
+  },
+);
 
 EnumField.displayName = "EnumField";
 
@@ -555,470 +589,493 @@ EnumField.displayName = "EnumField";
  * as a bound secret reference; anything else is a raw value that the server
  * converts to a stored secret on save.
  */
-const SecretField = React.memo(({
-  value,
-  onChange,
-  disabled,
-  label,
-  isRequired,
-  description,
-  error,
-  defaultValue,
-  maxLength,
-}: {
-  value: unknown;
-  onChange: (val: unknown) => void;
-  disabled: boolean;
-  label: string;
-  isRequired?: boolean;
-  description?: string;
-  error?: string;
-  defaultValue?: unknown;
-  maxLength?: number;
-}) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const isTextArea = maxLength != null && maxLength > TEXTAREA_THRESHOLD;
+const SecretField = React.memo(
+  ({
+    value,
+    onChange,
+    disabled,
+    label,
+    isRequired,
+    description,
+    error,
+    defaultValue,
+    maxLength,
+  }: {
+    value: unknown;
+    onChange: (val: unknown) => void;
+    disabled: boolean;
+    label: string;
+    isRequired?: boolean;
+    description?: string;
+    error?: string;
+    defaultValue?: unknown;
+    maxLength?: number;
+  }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const isTextArea = maxLength != null && maxLength > TEXTAREA_THRESHOLD;
 
-  const secretRefValue = isSecretRefBinding(value) ? value : null;
-  const stringValue = typeof value === "string" ? value : "";
-  const trimmed = stringValue.trim();
-  const legacySecretId = trimmed.length > 0 && isUuidLike(trimmed) ? trimmed : null;
-  const isBoundToSecret = secretRefValue !== null || legacySecretId !== null;
-  const hasRawValue = stringValue.length > 0 && !isBoundToSecret;
+    const secretRefValue = isSecretRefBinding(value) ? value : null;
+    const stringValue = typeof value === "string" ? value : "";
+    const trimmed = stringValue.trim();
+    const legacySecretId =
+      trimmed.length > 0 && isUuidLike(trimmed) ? trimmed : null;
+    const isBoundToSecret = secretRefValue !== null || legacySecretId !== null;
+    const hasRawValue = stringValue.length > 0 && !isBoundToSecret;
 
-  const [showRawInput, setShowRawInput] = useState(hasRawValue);
+    const [showRawInput, setShowRawInput] = useState(hasRawValue);
 
-  // Keep the raw-input panel open when the parent loads a raw value after
-  // mount (e.g. an environment-config form rendering with empty defaults
-  // before its API response arrives). We only promote to `true` here; manual
-  // toggles off are still preserved as long as `hasRawValue` is false.
-  useEffect(() => {
-    if (hasRawValue) setShowRawInput(true);
-  }, [hasRawValue]);
+    // Keep the raw-input panel open when the parent loads a raw value after
+    // mount (e.g. an environment-config form rendering with empty defaults
+    // before its API response arrives). We only promote to `true` here; manual
+    // toggles off are still preserved as long as `hasRawValue` is false.
+    useEffect(() => {
+      if (hasRawValue) setShowRawInput(true);
+    }, [hasRawValue]);
 
-  const bindingValue: SecretBindingValue | null = secretRefValue
-    ? { secretId: secretRefValue.secretId, version: secretRefValue.version }
-    : legacySecretId
-      ? { secretId: legacySecretId }
-      : null;
+    const bindingValue: SecretBindingValue | null = secretRefValue
+      ? { secretId: secretRefValue.secretId, version: secretRefValue.version }
+      : legacySecretId
+        ? { secretId: legacySecretId }
+        : null;
 
-  const handlePickerChange = useCallback(
-    (next: SecretBindingValue | null) => {
-      if (next) {
-        onChange({
-          type: "secret_ref",
-          secretId: next.secretId,
-          version: next.version ?? "latest",
-        });
-        setShowRawInput(false);
-        setIsVisible(false);
-      } else {
-        onChange("");
-      }
-    },
-    [onChange],
-  );
+    const handlePickerChange = useCallback(
+      (next: SecretBindingValue | null) => {
+        if (next) {
+          onChange({
+            type: "secret_ref",
+            secretId: next.secretId,
+            version: next.version ?? "latest",
+          });
+          setShowRawInput(false);
+          setIsVisible(false);
+        } else {
+          onChange("");
+        }
+      },
+      [onChange],
+    );
 
-  const rawInput = isTextArea ? (
-    <div className="relative">
-      {isVisible ? (
-        <Textarea
+    const rawInput = isTextArea ? (
+      <div className="relative">
+        {isVisible ? (
+          <Textarea
+            aria-label={label}
+            aria-required={isRequired}
+            value={stringValue}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={String(defaultValue ?? "")}
+            disabled={disabled}
+            className="min-h-(--sz-140px) pr-10 font-mono text-xs"
+            aria-invalid={!!error}
+          />
+        ) : (
+          <Textarea
+            aria-label={label}
+            aria-required={isRequired}
+            // Render a placeholder summary instead of the secret content while
+            // hidden. This avoids exposing multi-line secrets (e.g. SSH
+            // private keys) on screen-shares; clicking the eye toggle reveals
+            // the editable textarea above.
+            value={
+              stringValue.length === 0
+                ? ""
+                : `Sensitive — ${stringValue.length} characters hidden. Click the eye to reveal.`
+            }
+            readOnly
+            placeholder={String(defaultValue ?? "")}
+            disabled={disabled}
+            className="min-h-(--sz-140px) pr-10 font-mono text-xs italic text-muted-foreground"
+            aria-invalid={!!error}
+          />
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="absolute right-0 top-0 px-3 py-2 hover:bg-transparent"
+          onClick={() => setIsVisible(!isVisible)}
+          disabled={disabled}
+        >
+          {isVisible ? (
+            <EyeOff className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          )}
+          <span className="sr-only">
+            {isVisible ? "Hide secret" : "Show secret"}
+          </span>
+        </Button>
+      </div>
+    ) : (
+      <div className="relative">
+        <Input
           aria-label={label}
           aria-required={isRequired}
+          type={isVisible ? "text" : "password"}
           value={stringValue}
           onChange={(e) => onChange(e.target.value)}
           placeholder={String(defaultValue ?? "")}
           disabled={disabled}
-          className="min-h-(--sz-140px) pr-10 font-mono text-xs"
+          className="pr-10"
           aria-invalid={!!error}
         />
-      ) : (
-        <Textarea
-          aria-label={label}
-          aria-required={isRequired}
-          // Render a placeholder summary instead of the secret content while
-          // hidden. This avoids exposing multi-line secrets (e.g. SSH
-          // private keys) on screen-shares; clicking the eye toggle reveals
-          // the editable textarea above.
-          value={
-            stringValue.length === 0
-              ? ""
-              : `Sensitive — ${stringValue.length} characters hidden. Click the eye to reveal.`
-          }
-          readOnly
-          placeholder={String(defaultValue ?? "")}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+          onClick={() => setIsVisible(!isVisible)}
           disabled={disabled}
-          className="min-h-(--sz-140px) pr-10 font-mono text-xs italic text-muted-foreground"
-          aria-invalid={!!error}
-        />
-      )}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="absolute right-0 top-0 px-3 py-2 hover:bg-transparent"
-        onClick={() => setIsVisible(!isVisible)}
-        disabled={disabled}
-      >
-        {isVisible ? (
-          <EyeOff className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <Eye className="h-4 w-4 text-muted-foreground" />
-        )}
-        <span className="sr-only">
-          {isVisible ? "Hide secret" : "Show secret"}
-        </span>
-      </Button>
-    </div>
-  ) : (
-    <div className="relative">
-      <Input
-        aria-label={label}
-        aria-required={isRequired}
-        type={isVisible ? "text" : "password"}
-        value={stringValue}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={String(defaultValue ?? "")}
-        disabled={disabled}
-        className="pr-10"
-        aria-invalid={!!error}
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-        onClick={() => setIsVisible(!isVisible)}
-        disabled={disabled}
-      >
-        {isVisible ? (
-          <EyeOff className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <Eye className="h-4 w-4 text-muted-foreground" />
-        )}
-        <span className="sr-only">
-          {isVisible ? "Hide secret" : "Show secret"}
-        </span>
-      </Button>
-    </div>
-  );
-
-  return (
-    <FieldWrapper
-      label={label}
-      description={
-        description ||
-        "Pick an existing organization secret, or paste a raw value (Taskcore will store it as a secret on save)."
-      }
-      required={isRequired}
-      error={error}
-      disabled={disabled}
-    >
-      <div className="space-y-2">
-        <SecretBindingPicker
-          value={bindingValue}
-          onChange={handlePickerChange}
-          label=""
-          placeholder="Select an existing secret"
-          allowVersionSelector={false}
-          emptyHint="No active secrets yet. Create one or paste a raw value below."
-          disabled={disabled}
-        />
-        {!isBoundToSecret ? (
-          showRawInput ? (
-            <div className="space-y-1">
-              {rawInput}
-              {!hasRawValue ? (
-                <button
-                  type="button"
-                  className="text-(length:--text-micro) text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    setShowRawInput(false);
-                    setIsVisible(false);
-                  }}
-                  disabled={disabled}
-                >
-                  Hide raw value input
-                </button>
-              ) : null}
-            </div>
+        >
+          {isVisible ? (
+            <EyeOff className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <button
-              type="button"
-              className="text-(length:--text-micro) text-muted-foreground hover:text-foreground"
-              onClick={() => setShowRawInput(true)}
-              disabled={disabled}
-            >
-              Or paste a raw value
-            </button>
-          )
-        ) : null}
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          )}
+          <span className="sr-only">
+            {isVisible ? "Hide secret" : "Show secret"}
+          </span>
+        </Button>
       </div>
-    </FieldWrapper>
-  );
-});
+    );
+
+    return (
+      <FieldWrapper
+        label={label}
+        description={
+          description ||
+          "Pick an existing organization secret, or paste a raw value (Taskcore will store it as a secret on save)."
+        }
+        required={isRequired}
+        error={error}
+        disabled={disabled}
+      >
+        <div className="space-y-2">
+          <SecretBindingPicker
+            value={bindingValue}
+            onChange={handlePickerChange}
+            label=""
+            placeholder="Select an existing secret"
+            allowVersionSelector={false}
+            emptyHint="No active secrets yet. Create one or paste a raw value below."
+            disabled={disabled}
+          />
+          {!isBoundToSecret ? (
+            showRawInput ? (
+              <div className="space-y-1">
+                {rawInput}
+                {!hasRawValue ? (
+                  <button
+                    type="button"
+                    className="text-(length:--text-micro) text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setShowRawInput(false);
+                      setIsVisible(false);
+                    }}
+                    disabled={disabled}
+                  >
+                    Hide raw value input
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="text-(length:--text-micro) text-muted-foreground hover:text-foreground"
+                onClick={() => setShowRawInput(true)}
+                disabled={disabled}
+              >
+                Or paste a raw value
+              </button>
+            )
+          ) : null}
+        </div>
+      </FieldWrapper>
+    );
+  },
+);
 
 SecretField.displayName = "SecretField";
 
 /**
  * Specialized field for numeric (number/integer) values.
  */
-const NumberField = React.memo(({
-  id,
-  value,
-  onChange,
-  disabled,
-  label,
-  isRequired,
-  description,
-  error,
-  defaultValue,
-  type,
-  minimum,
-  maximum,
-  suggestions,
-}: {
-  id: string;
-  value: unknown;
-  onChange: (val: unknown) => void;
-  disabled: boolean;
-  label: string;
-  isRequired?: boolean;
-  description?: string;
-  error?: string;
-  defaultValue?: unknown;
-  type: "number" | "integer";
-  minimum?: number;
-  maximum?: number;
-  suggestions?: unknown[];
-}) => {
-  const hasSuggestions = Array.isArray(suggestions) && suggestions.length > 0;
-  // Sanitize the path-based id so it is a valid CSS/HTML identifier (paths can contain "/").
-  const listId = hasSuggestions ? `${id.replace(/[^a-zA-Z0-9_-]/g, "-")}-suggestions` : undefined;
-  return (
-    <FieldWrapper
-      label={label}
-      description={description}
-      required={isRequired}
-      error={error}
-      disabled={disabled}
-    >
-      <Input
-        aria-label={label}
-        aria-required={isRequired}
-        type="number"
-        step={type === "integer" ? "1" : "any"}
-        min={minimum}
-        max={maximum}
-        list={listId}
-        value={value !== undefined ? String(value) : ""}
-        onChange={(e) => {
-          const val = e.target.value;
-          const trimmed = val.trim();
-          onChange(trimmed === "" ? undefined : Number(trimmed));
-        }}
-        placeholder={String(defaultValue ?? "")}
+const NumberField = React.memo(
+  ({
+    id,
+    value,
+    onChange,
+    disabled,
+    label,
+    isRequired,
+    description,
+    error,
+    defaultValue,
+    type,
+    minimum,
+    maximum,
+    suggestions,
+  }: {
+    id: string;
+    value: unknown;
+    onChange: (val: unknown) => void;
+    disabled: boolean;
+    label: string;
+    isRequired?: boolean;
+    description?: string;
+    error?: string;
+    defaultValue?: unknown;
+    type: "number" | "integer";
+    minimum?: number;
+    maximum?: number;
+    suggestions?: unknown[];
+  }) => {
+    const hasSuggestions = Array.isArray(suggestions) && suggestions.length > 0;
+    // Sanitize the path-based id so it is a valid CSS/HTML identifier (paths can contain "/").
+    const listId = hasSuggestions
+      ? `${id.replace(/[^a-zA-Z0-9_-]/g, "-")}-suggestions`
+      : undefined;
+    return (
+      <FieldWrapper
+        label={label}
+        description={description}
+        required={isRequired}
+        error={error}
         disabled={disabled}
-        aria-invalid={!!error}
-      />
-      {listId ? (
-        <datalist id={listId}>
-          {suggestions!.map((suggestion) => (
-            <option key={String(suggestion)} value={String(suggestion)} />
-          ))}
-        </datalist>
-      ) : null}
-    </FieldWrapper>
-  );
-});
+      >
+        <Input
+          aria-label={label}
+          aria-required={isRequired}
+          type="number"
+          step={type === "integer" ? "1" : "any"}
+          min={minimum}
+          max={maximum}
+          list={listId}
+          value={value !== undefined ? String(value) : ""}
+          onChange={(e) => {
+            const val = e.target.value;
+            const trimmed = val.trim();
+            onChange(trimmed === "" ? undefined : Number(trimmed));
+          }}
+          placeholder={String(defaultValue ?? "")}
+          disabled={disabled}
+          aria-invalid={!!error}
+        />
+        {listId ? (
+          <datalist id={listId}>
+            {suggestions!.map((suggestion) => (
+              <option key={String(suggestion)} value={String(suggestion)} />
+            ))}
+          </datalist>
+        ) : null}
+      </FieldWrapper>
+    );
+  },
+);
 
 NumberField.displayName = "NumberField";
 
 /**
  * Specialized field for string values, rendering either an Input or Textarea based on length or format.
  */
-const StringField = React.memo(({
-  value,
-  onChange,
-  disabled,
-  label,
-  isRequired,
-  description,
-  error,
-  defaultValue,
-  format,
-  maxLength,
-}: {
-  value: unknown;
-  onChange: (val: unknown) => void;
-  disabled: boolean;
-  label: string;
-  isRequired?: boolean;
-  description?: string;
-  error?: string;
-  defaultValue?: unknown;
-  format?: string;
-  maxLength?: number;
-}) => {
-  const isTextArea = format === "textarea" || (maxLength && maxLength > TEXTAREA_THRESHOLD);
-  return (
-    <FieldWrapper
-      label={label}
-      description={description}
-      required={isRequired}
-      error={error}
-      disabled={disabled}
-    >
-      {isTextArea ? (
-        <Textarea
-          aria-label={label}
-          aria-required={isRequired}
-          value={String(value ?? "")}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={String(defaultValue ?? "")}
-          disabled={disabled}
-          className="min-h-(--sz-100px)"
-          aria-invalid={!!error}
-        />
-      ) : (
-        <Input
-          aria-label={label}
-          aria-required={isRequired}
-          type="text"
-          value={String(value ?? "")}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={String(defaultValue ?? "")}
-          disabled={disabled}
-          aria-invalid={!!error}
-        />
-      )}
-    </FieldWrapper>
-  );
-});
+const StringField = React.memo(
+  ({
+    value,
+    onChange,
+    disabled,
+    label,
+    isRequired,
+    description,
+    error,
+    defaultValue,
+    format,
+    maxLength,
+  }: {
+    value: unknown;
+    onChange: (val: unknown) => void;
+    disabled: boolean;
+    label: string;
+    isRequired?: boolean;
+    description?: string;
+    error?: string;
+    defaultValue?: unknown;
+    format?: string;
+    maxLength?: number;
+  }) => {
+    const isTextArea =
+      format === "textarea" || (maxLength && maxLength > TEXTAREA_THRESHOLD);
+    return (
+      <FieldWrapper
+        label={label}
+        description={description}
+        required={isRequired}
+        error={error}
+        disabled={disabled}
+      >
+        {isTextArea ? (
+          <Textarea
+            aria-label={label}
+            aria-required={isRequired}
+            value={String(value ?? "")}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={String(defaultValue ?? "")}
+            disabled={disabled}
+            className="min-h-(--sz-100px)"
+            aria-invalid={!!error}
+          />
+        ) : (
+          <Input
+            aria-label={label}
+            aria-required={isRequired}
+            type="text"
+            value={String(value ?? "")}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={String(defaultValue ?? "")}
+            disabled={disabled}
+            aria-invalid={!!error}
+          />
+        )}
+      </FieldWrapper>
+    );
+  },
+);
 
 StringField.displayName = "StringField";
 
 /**
  * Specialized field for array values, handling dynamic addition and removal of items.
  */
-const ArrayField = React.memo(({
-  propSchema,
-  value,
-  onChange,
-  error,
-  disabled,
-  label,
-  errors,
-  path,
-}: {
-  propSchema: JsonSchemaNode;
-  value: unknown;
-  onChange: (val: unknown) => void;
-  error?: string;
-  disabled: boolean;
-  label: string;
-  errors: Record<string, string>;
-  path: string;
-}) => {
-  const items = Array.isArray(value) ? value : [];
-  const itemSchema = propSchema.items as JsonSchemaNode;
-  const isComplex = resolveType(itemSchema) === "object";
+const ArrayField = React.memo(
+  ({
+    propSchema,
+    value,
+    onChange,
+    error,
+    disabled,
+    label,
+    errors,
+    path,
+  }: {
+    propSchema: JsonSchemaNode;
+    value: unknown;
+    onChange: (val: unknown) => void;
+    error?: string;
+    disabled: boolean;
+    label: string;
+    errors: Record<string, string>;
+    path: string;
+  }) => {
+    const items = Array.isArray(value) ? value : [];
+    const itemSchema = propSchema.items as JsonSchemaNode;
+    const isComplex = resolveType(itemSchema) === "object";
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <Label className="text-sm font-medium">{label}</Label>
-          {propSchema.description && (
-            <p className="text-xs text-muted-foreground">
-              {propSchema.description}
-            </p>
-          )}
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={
-            disabled ||
-            (propSchema.maxItems !== undefined &&
-              items.length >= (propSchema.maxItems as number))
-          }
-          onClick={() => {
-            const newItem = getDefaultForSchema(itemSchema);
-            onChange([...items, newItem]);
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {isComplex ? "Add item" : "Add"}
-        </Button>
-      </div>
-
-      <div className="space-y-3">
-        {items.map((item, index) => (
-          <div
-            key={index}
-            className="group relative flex items-start space-x-2 rounded-lg border p-3"
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm font-medium">{label}</Label>
+            {propSchema.description && (
+              <p className="text-xs text-muted-foreground">
+                {propSchema.description}
+              </p>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={
+              disabled ||
+              (propSchema.maxItems !== undefined &&
+                items.length >= (propSchema.maxItems as number))
+            }
+            onClick={() => {
+              const newItem = getDefaultForSchema(itemSchema);
+              onChange([...items, newItem]);
+            }}
           >
-            <div className="flex-1">
-              <div className="mb-2 text-xs font-medium text-muted-foreground">
-                Item {index + 1}
+            <Plus className="mr-2 h-4 w-4" />
+            {isComplex ? "Add item" : "Add"}
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          {items.map((item, index) => (
+            <div
+              key={index}
+              className="group relative flex items-start space-x-2 rounded-lg border p-3"
+            >
+              <div className="flex-1">
+                <div className="mb-2 text-xs font-medium text-muted-foreground">
+                  Item {index + 1}
+                </div>
+                <FormField
+                  propSchema={itemSchema}
+                  value={item}
+                  label=""
+                  path={`${path}/${index}`}
+                  onChange={(newVal) => {
+                    const newItems = [...items];
+                    newItems[index] = newVal;
+                    onChange(newItems);
+                  }}
+                  disabled={disabled}
+                  errors={errors}
+                />
               </div>
-              <FormField
-                propSchema={itemSchema}
-                value={item}
-                label=""
-                path={`${path}/${index}`}
-                onChange={(newVal) => {
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                disabled={
+                  disabled ||
+                  (propSchema.minItems !== undefined &&
+                    items.length <= (propSchema.minItems as number))
+                }
+                onClick={() => {
                   const newItems = [...items];
-                  newItems[index] = newVal;
+                  newItems.splice(index, 1);
                   onChange(newItems);
                 }}
-                disabled={disabled}
-                errors={errors}
-              />
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Remove item</span>
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              disabled={
-                disabled ||
-                (propSchema.minItems !== undefined &&
-                  items.length <= (propSchema.minItems as number))
-              }
-              onClick={() => {
-                const newItems = [...items];
-                newItems.splice(index, 1);
-                onChange(newItems);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Remove item</span>
-            </Button>
-          </div>
-        ))}
-        {items.length === 0 && (
-          <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
-            No items added yet.
-          </div>
+          ))}
+          {items.length === 0 && (
+            <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+              No items added yet.
+            </div>
+          )}
+        </div>
+        {error && (
+          <p className="text-xs font-medium text-destructive">{error}</p>
         )}
       </div>
-      {error && (
-        <p className="text-xs font-medium text-destructive">{error}</p>
-      )}
-    </div>
-  );
-});
+    );
+  },
+);
 
 ArrayField.displayName = "ArrayField";
 
 /** MCP execution tools often accept an arbitrary object rather than fixed fields. */
-function JsonObjectField({ value, onChange, disabled, label, error }: {
-  value: unknown; onChange: (value: unknown) => void; disabled: boolean; label: string; error?: string;
+function JsonObjectField({
+  value,
+  onChange,
+  disabled,
+  label,
+  error,
+}: {
+  value: unknown;
+  onChange: (value: unknown) => void;
+  disabled: boolean;
+  label: string;
+  error?: string;
 }) {
-  const format = (next: unknown) => typeof next === "string" ? next : JSON.stringify(next ?? {}, null, 2);
+  const format = (next: unknown) =>
+    typeof next === "string" ? next : JSON.stringify(next ?? {}, null, 2);
   const [text, setText] = useState(() => format(value));
   const emitted = useRef(value);
   useEffect(() => {
@@ -1030,215 +1087,267 @@ function JsonObjectField({ value, onChange, disabled, label, error }: {
     let next: unknown = text.trim() ? text : undefined;
     try {
       const parsed: unknown = JSON.parse(text);
-      if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) next = parsed;
-    } catch { /* Preserve invalid input so validation prevents submitting stale arguments. */ }
+      if (
+        parsed !== null &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed)
+      )
+        next = parsed;
+    } catch {
+      /* Preserve invalid input so validation prevents submitting stale arguments. */
+    }
     emitted.current = next;
     onChange(next);
   };
-  return <div className="space-y-2">
-    <Textarea aria-label={`${label} JSON`} aria-invalid={!!error} value={text} onChange={(event) => change(event.target.value)} disabled={disabled} rows={5} className="font-mono text-sm" />
-    <p className="text-xs text-muted-foreground">Enter a JSON object using the action's argument names.</p>
-    {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
-  </div>;
+  return (
+    <div className="space-y-2">
+      <Textarea
+        aria-label={`${label} JSON`}
+        aria-invalid={!!error}
+        value={text}
+        onChange={(event) => change(event.target.value)}
+        disabled={disabled}
+        rows={5}
+        className="font-mono text-sm"
+      />
+      <p className="text-xs text-muted-foreground">
+        Enter a JSON object using the action's argument names.
+      </p>
+      {error && (
+        <p role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
 }
 
 /**
  * Specialized field for object values, handling recursive rendering of nested properties.
  */
-const ObjectField = React.memo(({
-  propSchema,
-  value,
-  onChange,
-  disabled,
-  label,
-  errors,
-  path,
-}: {
-  propSchema: JsonSchemaNode;
-  value: unknown;
-  onChange: (val: unknown) => void;
-  disabled: boolean;
-  label: string;
-  errors: Record<string, string>;
-  path: string;
-}) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const handleObjectChange = (newVal: Record<string, unknown>) => {
-    onChange(newVal);
-  };
+const ObjectField = React.memo(
+  ({
+    propSchema,
+    value,
+    onChange,
+    disabled,
+    label,
+    errors,
+    path,
+  }: {
+    propSchema: JsonSchemaNode;
+    value: unknown;
+    onChange: (val: unknown) => void;
+    disabled: boolean;
+    label: string;
+    errors: Record<string, string>;
+    path: string;
+  }) => {
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const handleObjectChange = (newVal: Record<string, unknown>) => {
+      onChange(newVal);
+    };
 
-  return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="text-left">
-          <Label className="cursor-pointer text-sm font-semibold">
-            {label}
-          </Label>
-          {propSchema.description && (
-            <p className="text-xs text-muted-foreground">
-              {propSchema.description}
-            </p>
-          )}
-        </div>
-        {isCollapsed ? (
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        )}
-      </button>
-
-      {!isCollapsed && (
-        <div className="pt-2">
-          {Object.keys(propSchema.properties ?? {}).length === 0 && propSchema.additionalProperties !== false
-            ? <JsonObjectField value={value} onChange={onChange} disabled={disabled} label={label} error={errors[path]} />
-            : <JsonSchemaForm
-            schema={propSchema}
-            values={(value as Record<string, unknown>) ?? {}}
-            onChange={handleObjectChange}
-            disabled={disabled}
-            errors={Object.fromEntries(
-              Object.entries(errors)
-                .filter(([errPath]) => errPath.startsWith(`${path}/`))
-                .map(([errPath, err]) => [errPath.replace(path, ""), err]),
+    return (
+      <div className="space-y-3 rounded-lg border p-4">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          <div className="text-left">
+            <Label className="cursor-pointer text-sm font-semibold">
+              {label}
+            </Label>
+            {propSchema.description && (
+              <p className="text-xs text-muted-foreground">
+                {propSchema.description}
+              </p>
             )}
-          />}
-        </div>
-      )}
-    </div>
-  );
-});
+          </div>
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+
+        {!isCollapsed && (
+          <div className="pt-2">
+            {Object.keys(propSchema.properties ?? {}).length === 0 &&
+            propSchema.additionalProperties !== false ? (
+              <JsonObjectField
+                value={value}
+                onChange={onChange}
+                disabled={disabled}
+                label={label}
+                error={errors[path]}
+              />
+            ) : (
+              <JsonSchemaForm
+                schema={propSchema}
+                values={(value as Record<string, unknown>) ?? {}}
+                onChange={handleObjectChange}
+                disabled={disabled}
+                errors={Object.fromEntries(
+                  Object.entries(errors)
+                    .filter(([errPath]) => errPath.startsWith(`${path}/`))
+                    .map(([errPath, err]) => [errPath.replace(path, ""), err]),
+                )}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  },
+);
 
 ObjectField.displayName = "ObjectField";
 
 /**
  * Orchestrator component that selects and renders the appropriate field type based on the schema node.
  */
-const FormField = React.memo(({
-  propSchema,
-  value,
-  onChange,
-  error,
-  disabled,
-  label,
-  isRequired,
-  errors,
-  path,
-}: FormFieldProps) => {
-  const type = resolveType(propSchema);
-  const isReadOnly = disabled || propSchema.readOnly === true;
+const FormField = React.memo(
+  ({
+    propSchema,
+    value,
+    onChange,
+    error,
+    disabled,
+    label,
+    isRequired,
+    errors,
+    path,
+  }: FormFieldProps) => {
+    const type = resolveType(propSchema);
+    const isReadOnly = disabled || propSchema.readOnly === true;
 
-  switch (type) {
-    case "boolean":
-      return (
-        <BooleanField
-          id={path}
-          value={value}
-          onChange={onChange}
-          disabled={isReadOnly}
-          label={label}
-          isRequired={isRequired}
-          description={propSchema.description}
-          error={error}
-        />
-      );
+    switch (type) {
+      case "boolean":
+        return (
+          <BooleanField
+            id={path}
+            value={value}
+            onChange={onChange}
+            disabled={isReadOnly}
+            label={label}
+            isRequired={isRequired}
+            description={propSchema.description}
+            error={error}
+          />
+        );
 
-    case "enum":
-      return (
-        <EnumField
-          value={value}
-          onChange={onChange}
-          disabled={isReadOnly}
-          label={label}
-          isRequired={isRequired}
-          description={propSchema.description}
-          error={error}
-          options={propSchema.enum ?? []}
-        />
-      );
+      case "enum":
+        return (
+          <EnumField
+            value={value}
+            onChange={onChange}
+            disabled={isReadOnly}
+            label={label}
+            isRequired={isRequired}
+            description={propSchema.description}
+            error={error}
+            options={propSchema.enum ?? []}
+          />
+        );
 
-    case "secret-ref":
-      return (
-        <SecretField
-          value={value}
-          onChange={onChange}
-          disabled={isReadOnly}
-          label={label}
-          isRequired={isRequired}
-          description={propSchema.description}
-          error={error}
-          defaultValue={propSchema.default}
-          maxLength={typeof propSchema.maxLength === "number" ? propSchema.maxLength : undefined}
-        />
-      );
+      case "secret-ref":
+        return (
+          <SecretField
+            value={value}
+            onChange={onChange}
+            disabled={isReadOnly}
+            label={label}
+            isRequired={isRequired}
+            description={propSchema.description}
+            error={error}
+            defaultValue={propSchema.default}
+            maxLength={
+              typeof propSchema.maxLength === "number"
+                ? propSchema.maxLength
+                : undefined
+            }
+          />
+        );
 
-    case "number":
-    case "integer":
-      return (
-        <NumberField
-          id={path}
-          value={value}
-          onChange={onChange}
-          disabled={isReadOnly}
-          label={label}
-          isRequired={isRequired}
-          description={propSchema.description}
-          error={error}
-          defaultValue={propSchema.default}
-          type={type as "number" | "integer"}
-          minimum={typeof propSchema.minimum === "number" ? propSchema.minimum : undefined}
-          maximum={typeof propSchema.maximum === "number" ? propSchema.maximum : undefined}
-          suggestions={Array.isArray(propSchema.examples) ? propSchema.examples : undefined}
-        />
-      );
+      case "number":
+      case "integer":
+        return (
+          <NumberField
+            id={path}
+            value={value}
+            onChange={onChange}
+            disabled={isReadOnly}
+            label={label}
+            isRequired={isRequired}
+            description={propSchema.description}
+            error={error}
+            defaultValue={propSchema.default}
+            type={type as "number" | "integer"}
+            minimum={
+              typeof propSchema.minimum === "number"
+                ? propSchema.minimum
+                : undefined
+            }
+            maximum={
+              typeof propSchema.maximum === "number"
+                ? propSchema.maximum
+                : undefined
+            }
+            suggestions={
+              Array.isArray(propSchema.examples)
+                ? propSchema.examples
+                : undefined
+            }
+          />
+        );
 
-    case "array":
-      return (
-        <ArrayField
-          propSchema={propSchema}
-          value={value}
-          onChange={onChange}
-          error={error}
-          disabled={isReadOnly}
-          label={label}
-          errors={errors}
-          path={path}
-        />
-      );
+      case "array":
+        return (
+          <ArrayField
+            propSchema={propSchema}
+            value={value}
+            onChange={onChange}
+            error={error}
+            disabled={isReadOnly}
+            label={label}
+            errors={errors}
+            path={path}
+          />
+        );
 
-    case "object":
-      return (
-        <ObjectField
-          propSchema={propSchema}
-          value={value}
-          onChange={onChange}
-          disabled={isReadOnly}
-          label={label}
-          errors={errors}
-          path={path}
-        />
-      );
+      case "object":
+        return (
+          <ObjectField
+            propSchema={propSchema}
+            value={value}
+            onChange={onChange}
+            disabled={isReadOnly}
+            label={label}
+            errors={errors}
+            path={path}
+          />
+        );
 
-    default: // string
-      return (
-        <StringField
-          value={value}
-          onChange={onChange}
-          disabled={isReadOnly}
-          label={label}
-          isRequired={isRequired}
-          description={propSchema.description}
-          error={error}
-          defaultValue={propSchema.default}
-          format={propSchema.format}
-          maxLength={propSchema.maxLength}
-        />
-      );
-  }
-});
+      default: // string
+        return (
+          <StringField
+            value={value}
+            onChange={onChange}
+            disabled={isReadOnly}
+            label={label}
+            isRequired={isRequired}
+            description={propSchema.description}
+            error={error}
+            defaultValue={propSchema.default}
+            format={propSchema.format}
+            maxLength={propSchema.maxLength}
+          />
+        );
+    }
+  },
+);
 
 FormField.displayName = "FormField";
 
@@ -1262,10 +1371,13 @@ export function JsonSchemaForm({
 }: JsonSchemaFormProps) {
   const type = resolveType(schema);
 
-  const handleRootScalarChange = useCallback((newVal: unknown) => {
-    // If root is a scalar, values IS the value
-    onChange(newVal as Record<string, unknown>);
-  }, [onChange]);
+  const handleRootScalarChange = useCallback(
+    (newVal: unknown) => {
+      // If root is a scalar, values IS the value
+      onChange(newVal as Record<string, unknown>);
+    },
+    [onChange],
+  );
 
   // If it's a scalar at root, render a single FormField
   if (type !== "object") {
@@ -1285,7 +1397,10 @@ export function JsonSchemaForm({
   }
 
   // Memoize to avoid re-renders when parent provides new object references
-  const properties = useMemo(() => schema.properties ?? {}, [schema.properties]);
+  const properties = useMemo(
+    () => schema.properties ?? {},
+    [schema.properties],
+  );
   const requiredFields = useMemo(
     () => new Set(schema.required ?? []),
     [schema.required],
@@ -1311,9 +1426,10 @@ export function JsonSchemaForm({
       if (propSchema["x-taskcore-advanced"] === true) {
         advancedKeys.add(key);
         const rawGroup = propSchema["x-taskcore-group"];
-        const group = typeof rawGroup === "string" && rawGroup.length > 0
-          ? rawGroup
-          : DEFAULT_GROUP;
+        const group =
+          typeof rawGroup === "string" && rawGroup.length > 0
+            ? rawGroup
+            : DEFAULT_GROUP;
         if (!groups.has(group)) {
           groups.set(group, []);
           groupOrder.push(group);
@@ -1419,9 +1535,7 @@ export function JsonSchemaForm({
                   <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {group}
                   </div>
-                  <div className="space-y-6">
-                    {fields.map(renderField)}
-                  </div>
+                  <div className="space-y-6">{fields.map(renderField)}</div>
                 </div>
               ))}
             </div>

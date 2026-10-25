@@ -36,7 +36,10 @@ export function addFileToSnapshot(snapshot, absolutePath, options) {
   if (options.ignoredRelativePaths?.has(relativePath)) return;
   if (!shouldTrackDevServerPath(relativePath)) return;
 
-  const signature = readSignature(absolutePath, options.fileSystem ?? defaultFileSystem);
+  const signature = readSignature(
+    absolutePath,
+    options.fileSystem ?? defaultFileSystem,
+  );
   if (signature === null) return;
   snapshot.set(relativePath, signature);
 }
@@ -47,7 +50,9 @@ export function walkDirectory(snapshot, absoluteDirectory, options) {
 
   let entries;
   try {
-    entries = fileSystem.readdirSync(absoluteDirectory, { withFileTypes: true });
+    entries = fileSystem.readdirSync(absoluteDirectory, {
+      withFileTypes: true,
+    });
   } catch (error) {
     if (isMissingPathError(error)) return;
     throw error;

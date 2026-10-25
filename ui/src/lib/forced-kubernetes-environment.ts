@@ -14,7 +14,9 @@ export const KUBERNETES_PROVIDER_KEY = "kubernetes" as const;
  * server-side `isKubernetesSandboxEnvironment` guard so the UI selects exactly
  * the environment the server forces execution onto.
  */
-export function isKubernetesSandboxEnvironment(environment: Environment): boolean {
+export function isKubernetesSandboxEnvironment(
+  environment: Environment,
+): boolean {
   if (environment.driver !== "sandbox") return false;
   const provider = environment.config?.provider;
   return provider === KUBERNETES_PROVIDER_KEY;
@@ -51,6 +53,8 @@ export function resolveForcedKubernetesEnvironment(
     return { forced: false, kubernetesEnvironment: null };
   }
   const kubernetesEnvironment =
-    environments.find((environment) => isKubernetesSandboxEnvironment(environment)) ?? null;
+    environments.find((environment) =>
+      isKubernetesSandboxEnvironment(environment),
+    ) ?? null;
   return { forced: true, kubernetesEnvironment };
 }

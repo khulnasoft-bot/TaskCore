@@ -4,9 +4,17 @@ import { describe, expect, it } from "vitest";
 import { TASKCORE_COLLABORATION_PROTOCOL_ACTIONS } from "./collaboration.js";
 
 describe("collaboration Taskcore protocol action contracts", () => {
-  const ajv = new Ajv2020({ allErrors: true, allowUnionTypes: true, strict: false });
+  const ajv = new Ajv2020({
+    allErrors: true,
+    allowUnionTypes: true,
+    strict: false,
+  });
 
-  it.each(TASKCORE_COLLABORATION_PROTOCOL_ACTIONS.map((action) => [action.id, action] as const))(
+  it.each(
+    TASKCORE_COLLABORATION_PROTOCOL_ACTIONS.map(
+      (action) => [action.id, action] as const,
+    ),
+  )(
     "%s has immutable metadata and schema-valid examples",
     (operationId, action) => {
       expect(action.canonical.operationId).toBe(operationId);
@@ -20,17 +28,24 @@ describe("collaboration Taskcore protocol action contracts", () => {
 
       if (action.live !== null) {
         expect(
-          ajv.validate(action.live.descriptor.inputSchema, action.examples.call.input),
+          ajv.validate(
+            action.live.descriptor.inputSchema,
+            action.examples.call.input,
+          ),
           JSON.stringify(ajv.errors),
         ).toBe(true);
         expect(
-          ajv.validate(action.live.descriptor.outputSchema, action.examples.success.result),
+          ajv.validate(
+            action.live.descriptor.outputSchema,
+            action.examples.success.result,
+          ),
           JSON.stringify(ajv.errors),
         ).toBe(true);
       }
 
       if (action.scenario !== null) {
-        const scenarioProperties = action.scenario.descriptor.inputSchema.properties ?? {};
+        const scenarioProperties =
+          action.scenario.descriptor.inputSchema.properties ?? {};
         const callEntries = Object.entries(action.examples.call.input);
         const outOfBandKeys = callEntries
           .map(([key]) => key)
@@ -38,22 +53,25 @@ describe("collaboration Taskcore protocol action contracts", () => {
         // Scenario mutation idempotency is carried by the invocation envelope,
         // not the operation input. No other example field may be omitted.
         expect(outOfBandKeys).toEqual(
-          "idempotencyKey" in action.examples.call.input ? ["idempotencyKey"] : [],
+          "idempotencyKey" in action.examples.call.input
+            ? ["idempotencyKey"]
+            : [],
         );
         const scenarioInput = Object.fromEntries(
           callEntries.filter(([key]) => key !== "idempotencyKey"),
         );
-        const scenarioOutput = action.live === null
-          ? action.examples.success.result
-          : {
-            schema: "taskcore.capability.tool-result.v1",
-            ok: true,
-            operationId,
-            operationResultId: "example-result",
-            value: action.examples.success.result,
-            commandResult: null,
-            authorization: {},
-          };
+        const scenarioOutput =
+          action.live === null
+            ? action.examples.success.result
+            : {
+                schema: "taskcore.capability.tool-result.v1",
+                ok: true,
+                operationId,
+                operationResultId: "example-result",
+                value: action.examples.success.result,
+                commandResult: null,
+                authorization: {},
+              };
         expect(scenarioOutput.operationId).toBe(operationId);
 
         expect(

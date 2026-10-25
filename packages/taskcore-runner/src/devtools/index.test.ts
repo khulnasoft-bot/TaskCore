@@ -6,13 +6,15 @@ import { projectCapabilityDevtools } from "./index.js";
 
 function snapshot(): CapabilityLiveSessionSnapshot {
   const seed = createCapabilityFixtureState({
-    comments: [{
-      id: "comment-1",
-      taskId: "task-1",
-      authorActorId: "actor-1",
-      body: "credential pcp_1234567890 should not cross the browser boundary",
-      createdAt: "2026-08-09T00:00:00.000Z",
-    }],
+    comments: [
+      {
+        id: "comment-1",
+        taskId: "task-1",
+        authorActorId: "actor-1",
+        body: "credential pcp_1234567890 should not cross the browser boundary",
+        createdAt: "2026-08-09T00:00:00.000Z",
+      },
+    ],
   });
   const current = structuredClone(seed);
   current.revision = 2;
@@ -52,29 +54,33 @@ function snapshot(): CapabilityLiveSessionSnapshot {
       sessionId: "session-1",
     },
     transcript: [],
-    evidence: [{
-      id: "evidence-1",
-      at: "2026-08-09T00:00:01.000Z",
-      turnId: null,
-      kind: "session",
-      data: {
-        authorization: "Bearer secret-token-value",
-        api_key: "plain-secret-that-is-only-sensitive-because-of-its-key",
-        apiKey: "camel-case-secret",
+    evidence: [
+      {
+        id: "evidence-1",
+        at: "2026-08-09T00:00:01.000Z",
+        turnId: null,
+        kind: "session",
+        data: {
+          authorization: "Bearer secret-token-value",
+          api_key: "plain-secret-that-is-only-sensitive-because-of-its-key",
+          apiKey: "camel-case-secret",
+        },
       },
-    }],
+    ],
     mockState: JSON.stringify(current),
     process: null,
     networkEvidence: [],
     createdAt: "2026-08-09T00:00:00.000Z",
     updatedAt: "2026-08-09T00:00:01.000Z",
-    stateHistory: [{
-      revision: current.revision,
-      at: "2026-08-09T00:00:01.000Z",
-      turnId: null,
-      operationId: "session.open",
-      state: JSON.stringify(current),
-    }],
+    stateHistory: [
+      {
+        revision: current.revision,
+        at: "2026-08-09T00:00:01.000Z",
+        turnId: null,
+        operationId: "session.open",
+        state: JSON.stringify(current),
+      },
+    ],
   };
 }
 
@@ -87,11 +93,28 @@ describe("projectCapabilityDevtools", () => {
       "fixture.seed",
       "session.open",
     ]);
-    expect(Object.keys(state)).toEqual(expect.arrayContaining([
-      "company", "actors", "tasks", "comments", "documents", "interactions",
-      "approvals", "artifacts", "workProducts", "blockers", "workspaceServices",
-      "budgets", "runs", "wakes", "audit", "decisions", "idempotency", "faults",
-    ]));
+    expect(Object.keys(state)).toEqual(
+      expect.arrayContaining([
+        "company",
+        "actors",
+        "tasks",
+        "comments",
+        "documents",
+        "interactions",
+        "approvals",
+        "artifacts",
+        "workProducts",
+        "blockers",
+        "workspaceServices",
+        "budgets",
+        "runs",
+        "wakes",
+        "audit",
+        "decisions",
+        "idempotency",
+        "faults",
+      ]),
+    );
   });
 
   it("withholds browser-forbidden state and redacts secret-shaped strings", () => {
@@ -99,7 +122,9 @@ describe("projectCapabilityDevtools", () => {
 
     expect(serialized).not.toContain("pcp_1234567890");
     expect(serialized).not.toContain("secret-token-value");
-    expect(serialized).not.toContain("plain-secret-that-is-only-sensitive-because-of-its-key");
+    expect(serialized).not.toContain(
+      "plain-secret-that-is-only-sensitive-because-of-its-key",
+    );
     expect(serialized).not.toContain("camel-case-secret");
     expect(serialized).not.toContain("file:///private/result.txt");
     expect(serialized).not.toContain("/private/worktree");

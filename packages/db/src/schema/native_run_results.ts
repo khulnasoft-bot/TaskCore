@@ -17,7 +17,9 @@ export const nativeRunResults = pgTable(
   "native_run_results",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
     issueId: uuid("issue_id").notNull(),
     runId: uuid("run_id").notNull(),
     turnId: text("turn_id"),
@@ -29,15 +31,14 @@ export const nativeRunResults = pgTable(
     rejectionCode: text("rejection_code"),
     resultJson: jsonb("result_json").$type<Record<string, unknown>>().notNull(),
     canonicalSha256: text("canonical_sha256").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    companyIssueRunIdUq: unique("native_run_results_company_issue_run_id_uq").on(
-      table.companyId,
-      table.issueId,
-      table.runId,
-      table.id,
-    ),
+    companyIssueRunIdUq: unique(
+      "native_run_results_company_issue_run_id_uq",
+    ).on(table.companyId, table.issueId, table.runId, table.id),
     issueCompanyFk: foreignKey({
       columns: [table.companyId, table.issueId],
       foreignColumns: [issues.companyId, issues.id],
@@ -71,13 +72,11 @@ export const nativeRunResults = pgTable(
       table.runId,
       table.serverFingerprint,
     ),
-    runCallerResultUq: uniqueIndex("native_run_results_run_caller_result_uq").on(
-      table.runId,
-      table.callerResultId,
-    ),
-    runCallerDedupeUq: uniqueIndex("native_run_results_run_caller_dedupe_uq").on(
-      table.runId,
-      table.callerDedupeKey,
-    ),
+    runCallerResultUq: uniqueIndex(
+      "native_run_results_run_caller_result_uq",
+    ).on(table.runId, table.callerResultId),
+    runCallerDedupeUq: uniqueIndex(
+      "native_run_results_run_caller_dedupe_uq",
+    ).on(table.runId, table.callerDedupeKey),
   }),
 );

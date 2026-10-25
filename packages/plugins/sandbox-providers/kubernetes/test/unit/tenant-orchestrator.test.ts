@@ -2,11 +2,25 @@ import { describe, it, expect, vi } from "vitest";
 import { ensureTenant } from "../../src/tenant-orchestrator.js";
 
 function makeMockClients() {
-  const calls: { kind: string; name: string; namespace?: string; body?: unknown }[] = [];
+  const calls: {
+    kind: string;
+    name: string;
+    namespace?: string;
+    body?: unknown;
+  }[] = [];
   function track(kind: string) {
     return vi.fn(async (...args: unknown[]) => {
-      const arg = (args[0] ?? {}) as { name?: string; namespace?: string; body?: unknown };
-      calls.push({ kind, name: arg.name ?? "", namespace: arg.namespace, body: arg.body });
+      const arg = (args[0] ?? {}) as {
+        name?: string;
+        namespace?: string;
+        body?: unknown;
+      };
+      calls.push({
+        kind,
+        name: arg.name ?? "",
+        namespace: arg.namespace,
+        body: arg.body,
+      });
       return { body: arg.body };
     });
   }
@@ -48,7 +62,13 @@ describe("ensureTenant", () => {
     egressMode: "standard" as const,
     egressAllowFqdns: ["api.anthropic.com"],
     egressAllowCidrs: [] as string[],
-    resourceQuota: { pods: "20", requestsCpu: "5", requestsMemory: "20Gi", limitsCpu: "20", limitsMemory: "80Gi" },
+    resourceQuota: {
+      pods: "20",
+      requestsCpu: "5",
+      requestsMemory: "20Gi",
+      limitsCpu: "20",
+      limitsMemory: "80Gi",
+    },
   };
 
   it("creates all required resources in the correct order on a fresh tenant", async () => {
@@ -69,28 +89,41 @@ describe("ensureTenant", () => {
 
   it("creates a CiliumNetworkPolicy instead of standard egress when egressMode=cilium", async () => {
     const clients = makeMockClients();
-    await ensureTenant(clients as never, { ...baseInput, egressMode: "cilium" });
+    await ensureTenant(clients as never, {
+      ...baseInput,
+      egressMode: "cilium",
+    });
     const cnpCall = clients.calls.find((c) => c.kind === "CiliumNetworkPolicy");
     expect(cnpCall).toBeDefined();
     const npCalls = clients.calls.filter((c) => c.kind === "NetworkPolicy");
     expect(npCalls).toHaveLength(1);
-    expect((npCalls[0].body as { metadata: { name: string } }).metadata.name).toBe("taskcore-deny-all");
+    expect(
+      (npCalls[0].body as { metadata: { name: string } }).metadata.name,
+    ).toBe("taskcore-deny-all");
   });
 
   it("applies serviceAccountAnnotations to the ServiceAccount", async () => {
     const clients = makeMockClients();
     await ensureTenant(clients as never, {
       ...baseInput,
-      serviceAccountAnnotations: { "eks.amazonaws.com/role-arn": "arn:aws:iam::123:role/taskcore" },
+      serviceAccountAnnotations: {
+        "eks.amazonaws.com/role-arn": "arn:aws:iam::123:role/taskcore",
+      },
     });
     const saCall = clients.calls.find((c) => c.kind === "ServiceAccount");
-    const sa = saCall!.body as { metadata: { annotations: Record<string, string> } };
-    expect(sa.metadata.annotations["eks.amazonaws.com/role-arn"]).toBe("arn:aws:iam::123:role/taskcore");
+    const sa = saCall!.body as {
+      metadata: { annotations: Record<string, string> };
+    };
+    expect(sa.metadata.annotations["eks.amazonaws.com/role-arn"]).toBe(
+      "arn:aws:iam::123:role/taskcore",
+    );
   });
 
   it("skips creates that already exist (idempotency)", async () => {
     const clients = makeMockClients();
-    clients.core.readNamespace.mockResolvedValue({ body: { metadata: { name: baseInput.namespace } } });
+    clients.core.readNamespace.mockResolvedValue({
+      body: { metadata: { name: baseInput.namespace } },
+    });
     await ensureTenant(clients as never, baseInput);
     expect(clients.core.createNamespace).not.toHaveBeenCalled();
   });
@@ -100,7 +133,11 @@ describe("ensureTenant", () => {
     // Both racers saw the 404 read; the loser's create returns 409, which means
     // the desired state exists and must not fail the lease acquisition.
     clients.core.createNamespace.mockRejectedValue({ statusCode: 409 });
-    clients.core.createNamespacedServiceAccount.mockRejectedValue({ code: 409 });
-    await expect(ensureTenant(clients as never, baseInput)).resolves.not.toThrow();
+    clients.core.createNamespacedServiceAccount.mockRejectedValue({
+      code: 409,
+    });
+    await expect(
+      ensureTenant(clients as never, baseInput),
+    ).resolves.not.toThrow();
   });
 });

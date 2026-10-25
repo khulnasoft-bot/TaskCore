@@ -42,16 +42,22 @@ export async function incrementToolRuntimeMetricCounter(
     });
 }
 
-export async function recordToolRuntimeAuditWriteFailure(db: Db, companyId: string) {
+export async function recordToolRuntimeAuditWriteFailure(
+  db: Db,
+  companyId: string,
+) {
   try {
     await incrementToolRuntimeMetricCounter(db, {
       companyId,
       metric: TOOL_RUNTIME_AUDIT_WRITE_FAILURE_METRIC,
     });
   } catch (error) {
-    console.error("[tool-runtime-metrics] Failed to record audit write failure counter", {
-      companyId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    console.error(
+      "[tool-runtime-metrics] Failed to record audit write failure counter",
+      {
+        companyId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
   }
 }

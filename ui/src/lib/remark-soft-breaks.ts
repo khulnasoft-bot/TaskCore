@@ -17,13 +17,22 @@ type MarkdownParentNode = {
   children: MarkdownTreeNode[];
 };
 
-type MarkdownTreeNode = MarkdownTextNode | MarkdownBreakNode | (MarkdownNode & { children?: MarkdownTreeNode[] });
+type MarkdownTreeNode =
+  | MarkdownTextNode
+  | MarkdownBreakNode
+  | (MarkdownNode & { children?: MarkdownTreeNode[] });
 
 function isParentNode(value: unknown): value is MarkdownParentNode {
-  return typeof value === "object" && value !== null && Array.isArray((value as MarkdownNode).children);
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as MarkdownNode).children)
+  );
 }
 
-function buildSoftBreakReplacement(value: string): Array<MarkdownTextNode | MarkdownBreakNode> {
+function buildSoftBreakReplacement(
+  value: string,
+): Array<MarkdownTextNode | MarkdownBreakNode> {
   const parts = value.split("\n");
   const replacement: Array<MarkdownTextNode | MarkdownBreakNode> = [];
 
@@ -45,7 +54,11 @@ function transformNode(node: MarkdownTreeNode) {
 
   for (let index = 0; index < node.children.length; index += 1) {
     const child = node.children[index];
-    if (child?.type === "text" && typeof child.value === "string" && child.value.includes("\n")) {
+    if (
+      child?.type === "text" &&
+      typeof child.value === "string" &&
+      child.value.includes("\n")
+    ) {
       const replacement = buildSoftBreakReplacement(child.value);
       node.children.splice(index, 1, ...replacement);
       index += replacement.length - 1;

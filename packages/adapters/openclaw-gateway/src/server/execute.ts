@@ -104,12 +104,15 @@ const SENSITIVE_LOG_KEY_PATTERN =
 const ED25519_SPKI_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
 function nonEmpty(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function parseOptionalPositiveInteger(value: unknown): number | null {
@@ -139,7 +142,10 @@ function normalizeSessionKeyStrategy(value: unknown): SessionKeyStrategy {
   return "issue";
 }
 
-function prefixSessionKeyForAgent(sessionKey: string, agentId: string | null): string {
+function prefixSessionKeyForAgent(
+  sessionKey: string,
+  agentId: string | null,
+): string {
   if (!agentId || sessionKey.startsWith("agent:")) return sessionKey;
   return `agent:${agentId}:${sessionKey}`;
 }
@@ -153,10 +159,16 @@ export function resolveSessionKey(input: {
 }): string {
   const fallback = input.configuredSessionKey ?? "taskcore";
   if (input.strategy === "run") {
-    return prefixSessionKeyForAgent(`taskcore:run:${input.runId}`, input.agentId);
+    return prefixSessionKeyForAgent(
+      `taskcore:run:${input.runId}`,
+      input.agentId,
+    );
   }
   if (input.strategy === "issue" && input.issueId) {
-    return prefixSessionKeyForAgent(`taskcore:issue:${input.issueId}`, input.agentId);
+    return prefixSessionKeyForAgent(
+      `taskcore:issue:${input.issueId}`,
+      input.agentId,
+    );
   }
   return prefixSessionKeyForAgent(fallback, input.agentId);
 }
@@ -197,16 +209,28 @@ function normalizeScopes(value: unknown): string[] {
 }
 
 function uniqueScopes(scopes: string[]): string[] {
-  return Array.from(new Set(scopes.map((scope) => scope.trim()).filter(Boolean)));
+  return Array.from(
+    new Set(scopes.map((scope) => scope.trim()).filter(Boolean)),
+  );
 }
 
-function headerMapGetIgnoreCase(headers: Record<string, string>, key: string): string | null {
-  const match = Object.entries(headers).find(([entryKey]) => entryKey.toLowerCase() === key.toLowerCase());
+function headerMapGetIgnoreCase(
+  headers: Record<string, string>,
+  key: string,
+): string | null {
+  const match = Object.entries(headers).find(
+    ([entryKey]) => entryKey.toLowerCase() === key.toLowerCase(),
+  );
   return match ? match[1] : null;
 }
 
-function headerMapHasIgnoreCase(headers: Record<string, string>, key: string): boolean {
-  return Object.keys(headers).some((entryKey) => entryKey.toLowerCase() === key.toLowerCase());
+function headerMapHasIgnoreCase(
+  headers: Record<string, string>,
+  key: string,
+): boolean {
+  return Object.keys(headers).some(
+    (entryKey) => entryKey.toLowerCase() === key.toLowerCase(),
+  );
 }
 
 function getGatewayErrorDetails(err: unknown): Record<string, unknown> | null {
@@ -238,7 +262,10 @@ function tokenFromAuthHeader(rawHeader: string | null): string | null {
   return match ? nonEmpty(match[1]) : trimmed;
 }
 
-function resolveAuthToken(config: Record<string, unknown>, headers: Record<string, string>): string | null {
+function resolveAuthToken(
+  config: Record<string, unknown>,
+  headers: Record<string, string>,
+): string | null {
   const explicit = nonEmpty(config.authToken) ?? nonEmpty(config.token);
   if (explicit) return explicit;
 
@@ -272,18 +299,30 @@ function truncateForLog(value: string, maxChars = 320): string {
   return `${value.slice(0, maxChars)}... [truncated ${value.length - maxChars} chars]`;
 }
 
-function redactForLog(value: unknown, keyPath: string[] = [], depth = 0): unknown {
+function redactForLog(
+  value: unknown,
+  keyPath: string[] = [],
+  depth = 0,
+): unknown {
   const currentKey = keyPath[keyPath.length - 1] ?? "";
   if (typeof value === "string") {
     if (isSensitiveLogKey(currentKey)) return redactSecretForLog(value);
     return truncateForLog(value);
   }
-  if (typeof value === "number" || typeof value === "boolean" || value == null) {
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value == null
+  ) {
     return value;
   }
   if (Array.isArray(value)) {
     if (depth >= 6) return "[array-truncated]";
-    const out = value.slice(0, 20).map((entry, index) => redactForLog(entry, [...keyPath, `${index}`], depth + 1));
+    const out = value
+      .slice(0, 20)
+      .map((entry, index) =>
+        redactForLog(entry, [...keyPath, `${index}`], depth + 1),
+      );
     if (value.length > 20) out.push(`[+${value.length - 20} more items]`);
     return out;
   }
@@ -317,12 +356,14 @@ function buildWakePayload(ctx: AdapterExecutionContext): WakePayload {
     taskId: nonEmpty(context.taskId) ?? nonEmpty(context.issueId),
     issueId: nonEmpty(context.issueId),
     wakeReason: nonEmpty(context.wakeReason),
-    wakeCommentId: nonEmpty(context.wakeCommentId) ?? nonEmpty(context.commentId),
+    wakeCommentId:
+      nonEmpty(context.wakeCommentId) ?? nonEmpty(context.commentId),
     approvalId: nonEmpty(context.approvalId),
     approvalStatus: nonEmpty(context.approvalStatus),
     issueIds: Array.isArray(context.issueIds)
       ? context.issueIds.filter(
-          (value): value is string => typeof value === "string" && value.trim().length > 0,
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
         )
       : [],
   };
@@ -333,21 +374,28 @@ function resolveTaskcoreApiUrlOverride(value: unknown): string | null {
   if (!raw) return null;
   try {
     const parsed = new URL(raw);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      return null;
     return parsed.toString();
   } catch {
     return null;
   }
 }
 
-const DEFAULT_CLAIMED_API_KEY_PATH = "~/.openclaw/workspace/taskcore-claimed-api-key.json";
+const DEFAULT_CLAIMED_API_KEY_PATH =
+  "~/.openclaw/workspace/taskcore-claimed-api-key.json";
 
 export function resolveClaimedApiKeyPath(value: unknown): string {
   return nonEmpty(value) ?? DEFAULT_CLAIMED_API_KEY_PATH;
 }
 
-function buildTaskcoreEnvForWake(ctx: AdapterExecutionContext, wakePayload: WakePayload): Record<string, string> {
-  const taskcoreApiUrlOverride = resolveTaskcoreApiUrlOverride(ctx.config.taskcoreApiUrl);
+function buildTaskcoreEnvForWake(
+  ctx: AdapterExecutionContext,
+  wakePayload: WakePayload,
+): Record<string, string> {
+  const taskcoreApiUrlOverride = resolveTaskcoreApiUrlOverride(
+    ctx.config.taskcoreApiUrl,
+  );
   const taskcoreEnv: Record<string, string> = {
     ...buildTaskcoreEnv(ctx.agent),
     ...buildRuntimeToolsEnv(ctx.runtimeTools),
@@ -360,10 +408,14 @@ function buildTaskcoreEnvForWake(ctx: AdapterExecutionContext, wakePayload: Wake
   if (wakePayload.taskId) taskcoreEnv.TASKCORE_TASK_ID = wakePayload.taskId;
   const issueWorkMode = readTaskcoreIssueWorkModeFromContext(ctx.context);
   if (issueWorkMode) taskcoreEnv.TASKCORE_ISSUE_WORK_MODE = issueWorkMode;
-  if (wakePayload.wakeReason) taskcoreEnv.TASKCORE_WAKE_REASON = wakePayload.wakeReason;
-  if (wakePayload.wakeCommentId) taskcoreEnv.TASKCORE_WAKE_COMMENT_ID = wakePayload.wakeCommentId;
-  if (wakePayload.approvalId) taskcoreEnv.TASKCORE_APPROVAL_ID = wakePayload.approvalId;
-  if (wakePayload.approvalStatus) taskcoreEnv.TASKCORE_APPROVAL_STATUS = wakePayload.approvalStatus;
+  if (wakePayload.wakeReason)
+    taskcoreEnv.TASKCORE_WAKE_REASON = wakePayload.wakeReason;
+  if (wakePayload.wakeCommentId)
+    taskcoreEnv.TASKCORE_WAKE_COMMENT_ID = wakePayload.wakeCommentId;
+  if (wakePayload.approvalId)
+    taskcoreEnv.TASKCORE_APPROVAL_ID = wakePayload.approvalId;
+  if (wakePayload.approvalStatus)
+    taskcoreEnv.TASKCORE_APPROVAL_STATUS = wakePayload.approvalStatus;
   if (wakePayload.issueIds.length > 0) {
     taskcoreEnv.TASKCORE_LINKED_ISSUE_IDS = wakePayload.issueIds.join(",");
   }
@@ -445,16 +497,16 @@ function buildWakeText(
     `2) Determine issueId: TASKCORE_TASK_ID if present, otherwise issue_id (${issueIdHint}).`,
     '   Replace {issueId} in every endpoint below with that determined id. Never send the literal text "{issueId}" in a URL.',
     "3) If issueId exists:",
-    "   - POST /api/issues/{issueId}/checkout with {\"agentId\":\"$TASKCORE_AGENT_ID\",\"expectedStatuses\":[\"todo\",\"backlog\",\"blocked\",\"in_review\"]}",
+    '   - POST /api/issues/{issueId}/checkout with {"agentId":"$TASKCORE_AGENT_ID","expectedStatuses":["todo","backlog","blocked","in_review"]}',
     "   - GET /api/issues/{issueId}",
     "   - GET /api/issues/{issueId}/comments",
     "   - Execute the issue instructions exactly. If the issue is actionable, take concrete action in this run; do not stop at a plan unless planning was requested.",
     "   - Leave durable progress with a clear next action. Use child issues for long or parallel delegated work instead of polling agents, sessions, or processes.",
     "   - Create child issues directly when you know what needs to be done; use POST /api/issues/{issueId}/interactions with kind suggest_tasks, ask_user_questions, or request_confirmation when the board/user must choose, answer, or confirm before you can continue.",
     "   - For plan approval, update the plan document first, then create request_confirmation targeting the latest plan revision with idempotencyKey confirmation:{issueId}:plan:{revisionId}; wait for acceptance before creating implementation subtasks.",
-    "   - If blocked, PATCH /api/issues/{issueId} with {\"status\":\"blocked\",\"comment\":\"what is blocked, who owns the unblock, and the next action\"}.",
-    "   - If instructions require a comment, POST /api/issues/{issueId}/comments with {\"body\":\"...\"}.",
-    "   - PATCH /api/issues/{issueId} with {\"status\":\"done\",\"comment\":\"what changed and why\"}.",
+    '   - If blocked, PATCH /api/issues/{issueId} with {"status":"blocked","comment":"what is blocked, who owns the unblock, and the next action"}.',
+    '   - If instructions require a comment, POST /api/issues/{issueId}/comments with {"body":"..."}.',
+    '   - PATCH /api/issues/{issueId} with {"status":"done","comment":"what changed and why"}.',
     "4) If issueId does not exist:",
     "   - GET /api/companies/$TASKCORE_COMPANY_ID/issues?assigneeAgentId=$TASKCORE_AGENT_ID&status=todo,in_progress,in_review,blocked",
     "   - Pick in_progress first, then in_review when you were woken by a comment, then todo, then blocked, then execute step 3.",
@@ -463,12 +515,7 @@ function buildWakeText(
     "- POST /api/issues/{issueId}/comments",
     "- PATCH /api/issues/{issueId}",
     "- POST /api/companies/{companyId}/issues (when asked to create a new issue)",
-    ...(structuredWakePrompt
-      ? [
-          "",
-          structuredWakePrompt,
-        ]
-      : []),
+    ...(structuredWakePrompt ? ["", structuredWakePrompt] : []),
     "",
     "Complete the workflow in this run.",
   ];
@@ -480,7 +527,10 @@ function appendWakeText(baseText: string, wakeText: string): string {
   return trimmedBase.length > 0 ? `${trimmedBase}\n\n${wakeText}` : wakeText;
 }
 
-function joinWakePayloadSections(structuredWakePrompt: string, structuredWakeJson: string): string {
+function joinWakePayloadSections(
+  structuredWakePrompt: string,
+  structuredWakeJson: string,
+): string {
   const sections = [
     structuredWakePrompt.trim(),
     "Structured wake payload JSON:",
@@ -533,13 +583,19 @@ function rawDataToString(data: unknown): string {
   if (data instanceof ArrayBuffer) return Buffer.from(data).toString("utf8");
   if (Array.isArray(data)) {
     return Buffer.concat(
-      data.map((entry) => (Buffer.isBuffer(entry) ? entry : Buffer.from(String(entry), "utf8"))),
+      data.map((entry) =>
+        Buffer.isBuffer(entry) ? entry : Buffer.from(String(entry), "utf8"),
+      ),
     ).toString("utf8");
   }
   return String(data ?? "");
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return promise;
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
@@ -568,7 +624,11 @@ function derivePublicKeyRaw(publicKeyPem: string): Buffer {
 }
 
 function base64UrlEncode(buf: Buffer): string {
-  return buf.toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/g, "");
+  return buf
+    .toString("base64")
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/g, "");
 }
 
 function signDevicePayload(privateKeyPem: string, payload: string): string {
@@ -608,12 +668,16 @@ function buildDeviceAuthPayloadV3(params: {
   ].join("|");
 }
 
-function resolveDeviceIdentity(config: Record<string, unknown>): GatewayDeviceIdentity {
+function resolveDeviceIdentity(
+  config: Record<string, unknown>,
+): GatewayDeviceIdentity {
   const configuredPrivateKey = nonEmpty(config.devicePrivateKeyPem);
   if (configuredPrivateKey) {
     const privateKey = crypto.createPrivateKey(configuredPrivateKey);
     const publicKey = crypto.createPublicKey(privateKey);
-    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
+    const publicKeyPem = publicKey
+      .export({ type: "spki", format: "pem" })
+      .toString();
     const raw = derivePublicKeyRaw(publicKeyPem);
     return {
       deviceId: crypto.createHash("sha256").update(raw).digest("hex"),
@@ -624,8 +688,12 @@ function resolveDeviceIdentity(config: Record<string, unknown>): GatewayDeviceId
   }
 
   const generated = crypto.generateKeyPairSync("ed25519");
-  const publicKeyPem = generated.publicKey.export({ type: "spki", format: "pem" }).toString();
-  const privateKeyPem = generated.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+  const publicKeyPem = generated.publicKey
+    .export({ type: "spki", format: "pem" })
+    .toString();
+  const privateKeyPem = generated.privateKey
+    .export({ type: "pkcs8", format: "pem" })
+    .toString();
   const raw = derivePublicKeyRaw(publicKeyPem);
   return {
     deviceId: crypto.createHash("sha256").update(raw).digest("hex"),
@@ -637,12 +705,19 @@ function resolveDeviceIdentity(config: Record<string, unknown>): GatewayDeviceId
 
 function isResponseFrame(value: unknown): value is GatewayResponseFrame {
   const record = asRecord(value);
-  return Boolean(record && record.type === "res" && typeof record.id === "string" && typeof record.ok === "boolean");
+  return Boolean(
+    record &&
+    record.type === "res" &&
+    typeof record.id === "string" &&
+    typeof record.ok === "boolean",
+  );
 }
 
 function isEventFrame(value: unknown): value is GatewayEventFrame {
   const record = asRecord(value);
-  return Boolean(record && record.type === "event" && typeof record.event === "string");
+  return Boolean(
+    record && record.type === "event" && typeof record.event === "string",
+  );
 }
 
 class GatewayWsClient {
@@ -684,7 +759,10 @@ class GatewayWsClient {
 
     ws.on("error", (err) => {
       const message = err instanceof Error ? err.message : String(err);
-      void this.opts.onLog("stderr", `[openclaw-gateway] websocket error: ${message}\n`);
+      void this.opts.onLog(
+        "stderr",
+        `[openclaw-gateway] websocket error: ${message}\n`,
+      );
     });
 
     await withTimeout(
@@ -699,7 +777,11 @@ class GatewayWsClient {
         };
         const onClose = (code: number, reason: Buffer) => {
           cleanup();
-          reject(new Error(`gateway closed before open (${code}): ${rawDataToString(reason)}`));
+          reject(
+            new Error(
+              `gateway closed before open (${code}): ${rawDataToString(reason)}`,
+            ),
+          );
         };
         const cleanup = () => {
           ws.off("open", onOpen);
@@ -714,12 +796,20 @@ class GatewayWsClient {
       "gateway websocket open timeout",
     );
 
-    const nonce = await withTimeout(this.challengePromise, timeoutMs, "gateway connect challenge timeout");
+    const nonce = await withTimeout(
+      this.challengePromise,
+      timeoutMs,
+      "gateway connect challenge timeout",
+    );
     const signedConnectParams = buildConnectParams(nonce);
 
-    const hello = await this.request<Record<string, unknown> | null>("connect", signedConnectParams, {
-      timeoutMs,
-    });
+    const hello = await this.request<Record<string, unknown> | null>(
+      "connect",
+      signedConnectParams,
+      {
+        timeoutMs,
+      },
+    );
 
     return hello;
   }
@@ -888,16 +978,24 @@ async function autoApproveDevicePairing(params: {
 
     let requestId = params.requestId;
     if (!requestId) {
-      const listPayload = await client.request<Record<string, unknown>>("device.pair.list", {}, {
-        timeoutMs: params.connectTimeoutMs,
-      });
-      const pending = Array.isArray(listPayload.pending) ? listPayload.pending : [];
+      const listPayload = await client.request<Record<string, unknown>>(
+        "device.pair.list",
+        {},
+        {
+          timeoutMs: params.connectTimeoutMs,
+        },
+      );
+      const pending = Array.isArray(listPayload.pending)
+        ? listPayload.pending
+        : [];
       const pendingRecords = pending
         .map((entry) => asRecord(entry))
         .filter((entry): entry is Record<string, unknown> => Boolean(entry));
       const matching =
         (params.deviceId
-          ? pendingRecords.find((entry) => nonEmpty(entry.deviceId) === params.deviceId)
+          ? pendingRecords.find(
+              (entry) => nonEmpty(entry.deviceId) === params.deviceId,
+            )
           : null) ?? pendingRecords[pendingRecords.length - 1];
       requestId = nonEmpty(matching?.requestId);
     }
@@ -916,20 +1014,28 @@ async function autoApproveDevicePairing(params: {
 
     return { ok: true, requestId };
   } catch (err) {
-    return { ok: false, reason: err instanceof Error ? err.message : String(err) };
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : String(err),
+    };
   } finally {
     client.close();
   }
 }
 
-function parseUsage(value: unknown): AdapterExecutionResult["usage"] | undefined {
+function parseUsage(
+  value: unknown,
+): AdapterExecutionResult["usage"] | undefined {
   const record = asRecord(value);
   if (!record) return undefined;
 
   const inputTokens = asNumber(record.inputTokens ?? record.input, 0);
   const outputTokens = asNumber(record.outputTokens ?? record.output, 0);
   const cachedInputTokens = asNumber(
-    record.cachedInputTokens ?? record.cached_input_tokens ?? record.cacheRead ?? record.cache_read,
+    record.cachedInputTokens ??
+      record.cached_input_tokens ??
+      record.cacheRead ??
+      record.cache_read,
     0,
   );
 
@@ -944,19 +1050,26 @@ function parseUsage(value: unknown): AdapterExecutionResult["usage"] | undefined
   };
 }
 
-function extractRuntimeServicesFromMeta(meta: Record<string, unknown> | null): AdapterRuntimeServiceReport[] {
+function extractRuntimeServicesFromMeta(
+  meta: Record<string, unknown> | null,
+): AdapterRuntimeServiceReport[] {
   if (!meta) return [];
   const reports: AdapterRuntimeServiceReport[] = [];
 
   const runtimeServices = Array.isArray(meta.runtimeServices)
-    ? meta.runtimeServices.filter((entry): entry is Record<string, unknown> => Boolean(asRecord(entry)))
+    ? meta.runtimeServices.filter((entry): entry is Record<string, unknown> =>
+        Boolean(asRecord(entry)),
+      )
     : [];
   for (const entry of runtimeServices) {
     const serviceName = nonEmpty(entry.serviceName) ?? nonEmpty(entry.name);
     if (!serviceName) continue;
     const rawStatus = nonEmpty(entry.status)?.toLowerCase();
     const status =
-      rawStatus === "starting" || rawStatus === "running" || rawStatus === "stopped" || rawStatus === "failed"
+      rawStatus === "starting" ||
+      rawStatus === "running" ||
+      rawStatus === "stopped" ||
+      rawStatus === "failed"
         ? rawStatus
         : "running";
     const rawLifecycle = nonEmpty(entry.lifecycle)?.toLowerCase();
@@ -970,7 +1083,9 @@ function extractRuntimeServicesFromMeta(meta: Record<string, unknown> | null): A
         : "run";
     const rawHealth = nonEmpty(entry.healthStatus)?.toLowerCase();
     const healthStatus =
-      rawHealth === "healthy" || rawHealth === "unhealthy" || rawHealth === "unknown"
+      rawHealth === "healthy" ||
+      rawHealth === "unhealthy" ||
+      rawHealth === "unknown"
         ? rawHealth
         : status === "running"
           ? "healthy"
@@ -1012,7 +1127,10 @@ function extractRuntimeServicesFromMeta(meta: Record<string, unknown> | null): A
   }
 
   const previewUrls = Array.isArray(meta.previewUrls)
-    ? meta.previewUrls.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+    ? meta.previewUrls.filter(
+        (entry): entry is string =>
+          typeof entry === "string" && entry.trim().length > 0,
+      )
     : [];
   previewUrls.forEach((url, index) => {
     reports.push({
@@ -1045,7 +1163,9 @@ function extractResultText(value: unknown): string | null {
   return nonEmpty(record.text) ?? nonEmpty(record.summary) ?? null;
 }
 
-export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
+export async function execute(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
   const urlValue = asString(ctx.config.url, "").trim();
   if (!urlValue) {
     return {
@@ -1078,13 +1198,19 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     };
   }
 
-  const timeoutSec = Math.max(0, Math.floor(asNumber(ctx.config.timeoutSec, 120)));
+  const timeoutSec = Math.max(
+    0,
+    Math.floor(asNumber(ctx.config.timeoutSec, 120)),
+  );
   const timeoutMs = timeoutSec > 0 ? timeoutSec * 1000 : 0;
   const connectTimeoutMs = timeoutMs > 0 ? Math.min(timeoutMs, 15_000) : 10_000;
-  const waitTimeoutMs = parseOptionalPositiveInteger(ctx.config.waitTimeoutMs) ?? (timeoutMs > 0 ? timeoutMs : 30_000);
+  const waitTimeoutMs =
+    parseOptionalPositiveInteger(ctx.config.waitTimeoutMs) ??
+    (timeoutMs > 0 ? timeoutMs : 30_000);
 
   const payloadTemplate = parseObject(ctx.config.payloadTemplate);
-  const transportHint = nonEmpty(ctx.config.streamTransport) ?? nonEmpty(ctx.config.transport);
+  const transportHint =
+    nonEmpty(ctx.config.streamTransport) ?? nonEmpty(ctx.config.transport);
 
   const headers = toStringRecord(ctx.config.headers);
   const authToken = resolveAuthToken(parseObject(ctx.config), headers);
@@ -1097,7 +1223,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const clientId = nonEmpty(ctx.config.clientId) ?? DEFAULT_CLIENT_ID;
   const clientMode = nonEmpty(ctx.config.clientMode) ?? DEFAULT_CLIENT_MODE;
-  const clientVersion = nonEmpty(ctx.config.clientVersion) ?? DEFAULT_CLIENT_VERSION;
+  const clientVersion =
+    nonEmpty(ctx.config.clientVersion) ?? DEFAULT_CLIENT_VERSION;
   const role = nonEmpty(ctx.config.role) ?? DEFAULT_ROLE;
   const scopes = normalizeScopes(ctx.config.scopes);
   const deviceFamily = nonEmpty(ctx.config.deviceFamily);
@@ -1107,12 +1234,15 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const taskcoreEnv = buildTaskcoreEnvForWake(ctx, wakePayload);
   // No heartbeat prompt template is sent over the gateway, so the wake prompt
   // must carry the execution contract itself.
-  await hydrateFreshSessionHandoff(ctx, { resumedSession: Boolean(ctx.runtime?.sessionId) });
-  const { taskContextNote, wakePrompt: structuredWakePrompt } = selectTaskcorePromptSections(ctx.context, {
+  await hydrateFreshSessionHandoff(ctx, {
     resumedSession: Boolean(ctx.runtime?.sessionId),
-    includeExecutionContract: true,
-    includeCommunicationGuidance: false,
   });
+  const { taskContextNote, wakePrompt: structuredWakePrompt } =
+    selectTaskcorePromptSections(ctx.context, {
+      resumedSession: Boolean(ctx.runtime?.sessionId),
+      includeExecutionContract: true,
+      includeCommunicationGuidance: false,
+    });
   const structuredWakeJson = taskcoreWakeCommentsArePromptOwned(ctx.context)
     ? null
     : stringifyTaskcoreWakePayload(ctx.context.taskcoreWake, {
@@ -1128,7 +1258,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     taskContextNote || undefined,
   );
 
-  const sessionKeyStrategy = normalizeSessionKeyStrategy(ctx.config.sessionKeyStrategy);
+  const sessionKeyStrategy = normalizeSessionKeyStrategy(
+    ctx.config.sessionKeyStrategy,
+  );
   const configuredSessionKey = nonEmpty(ctx.config.sessionKey);
   const configuredAgentId = nonEmpty(ctx.config.agentId);
   const sessionKey = resolveSessionKey({
@@ -1139,9 +1271,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     issueId: wakePayload.issueId,
   });
 
-  const templateMessage = nonEmpty(payloadTemplate.message) ?? nonEmpty(payloadTemplate.text);
+  const templateMessage =
+    nonEmpty(payloadTemplate.message) ?? nonEmpty(payloadTemplate.text);
   const message = joinPromptSections([
-    selectInitialCommunicationGuidance(ctx.context, { resumedSession: Boolean(ctx.runtime?.sessionId) }),
+    selectInitialCommunicationGuidance(ctx.context, {
+      resumedSession: Boolean(ctx.runtime?.sessionId),
+    }),
     templateMessage ? appendWakeText(templateMessage, wakeText) : wakeText,
   ]);
 
@@ -1172,7 +1307,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     "stdout",
     `[openclaw-gateway] outbound payload (redacted): ${stringifyForLog(redactForLog(agentParams), 12_000)}\n`,
   );
-  await ctx.onLog("stdout", `[openclaw-gateway] outbound header keys: ${outboundHeaderKeys.join(", ")}\n`);
+  await ctx.onLog(
+    "stdout",
+    `[openclaw-gateway] outbound header keys: ${outboundHeaderKeys.join(", ")}\n`,
+  );
   if (transportHint) {
     await ctx.onLog(
       "stdout",
@@ -1186,7 +1324,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     );
   }
 
-  const autoPairOnFirstConnect = parseBoolean(ctx.config.autoPairOnFirstConnect, true);
+  const autoPairOnFirstConnect = parseBoolean(
+    ctx.config.autoPairOnFirstConnect,
+    true,
+  );
   let autoPairAttempted = false;
   let latestResultPayload: unknown = null;
   let retryCount = 0;
@@ -1241,14 +1382,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       }
 
       if (stream === "error") {
-        lifecycleError = nonEmpty(data.error) ?? nonEmpty(data.message) ?? lifecycleError;
+        lifecycleError =
+          nonEmpty(data.error) ?? nonEmpty(data.message) ?? lifecycleError;
         return;
       }
 
       if (stream === "lifecycle") {
         const phase = nonEmpty(data.phase)?.toLowerCase();
         if (phase === "error" || phase === "failed" || phase === "cancelled") {
-          lifecycleError = nonEmpty(data.error) ?? nonEmpty(data.message) ?? lifecycleError;
+          lifecycleError =
+            nonEmpty(data.error) ?? nonEmpty(data.message) ?? lifecycleError;
         }
       }
     };
@@ -1261,7 +1404,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     });
 
     try {
-      deviceIdentity = disableDeviceAuth ? null : resolveDeviceIdentity(parseObject(ctx.config));
+      deviceIdentity = disableDeviceAuth
+        ? null
+        : resolveDeviceIdentity(parseObject(ctx.config));
       if (deviceIdentity) {
         await ctx.onLog(
           "stdout",
@@ -1271,7 +1416,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         await ctx.onLog("stdout", "[openclaw-gateway] device auth disabled\n");
       }
 
-      await ctx.onLog("stdout", `[openclaw-gateway] connecting to ${parsedUrl.toString()}\n`);
+      await ctx.onLog(
+        "stdout",
+        `[openclaw-gateway] connecting to ${parsedUrl.toString()}\n`,
+      );
 
       const hello = await client.connect((nonce) => {
         const signedAtMs = Date.now();
@@ -1331,13 +1479,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       // once it is sent, retrying would be unsafe because the gateway may have
       // accepted work even if the response is lost.
       reportDispatch();
-      const acceptedPayload = await client.request<Record<string, unknown>>("agent", agentParams, {
-        timeoutMs: connectTimeoutMs,
-      });
+      const acceptedPayload = await client.request<Record<string, unknown>>(
+        "agent",
+        agentParams,
+        {
+          timeoutMs: connectTimeoutMs,
+        },
+      );
 
       latestResultPayload = acceptedPayload;
 
-      const acceptedStatus = nonEmpty(acceptedPayload?.status)?.toLowerCase() ?? "";
+      const acceptedStatus =
+        nonEmpty(acceptedPayload?.status)?.toLowerCase() ?? "";
       const acceptedRunId = nonEmpty(acceptedPayload?.runId) ?? ctx.runId;
       trackedRunIds.add(acceptedRunId);
 
@@ -1348,7 +1501,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
       if (acceptedStatus === "error") {
         const errorMessage =
-          nonEmpty(acceptedPayload?.summary) ?? lifecycleError ?? "OpenClaw gateway agent request failed";
+          nonEmpty(acceptedPayload?.summary) ??
+          lifecycleError ??
+          "OpenClaw gateway agent request failed";
         return {
           exitCode: 1,
           signal: null,
@@ -1417,8 +1572,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       const acceptedResult = asRecord(acceptedPayload?.result);
       const latestPayload = asRecord(latestResultPayload);
       const latestResult = asRecord(latestPayload?.result);
-      const acceptedMeta = asRecord(acceptedResult?.meta) ?? asRecord(acceptedPayload?.meta);
-      const latestMeta = asRecord(latestResult?.meta) ?? asRecord(latestPayload?.meta);
+      const acceptedMeta =
+        asRecord(acceptedResult?.meta) ?? asRecord(acceptedPayload?.meta);
+      const latestMeta =
+        asRecord(latestResult?.meta) ?? asRecord(latestPayload?.meta);
       const mergedMeta = {
         ...(acceptedMeta ?? {}),
         ...(latestMeta ?? {}),
@@ -1428,9 +1585,15 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         asRecord(acceptedMeta?.agentMeta) ??
         asRecord(latestMeta?.agentMeta);
       const usage = parseUsage(agentMeta?.usage ?? mergedMeta.usage);
-      const runtimeServices = extractRuntimeServicesFromMeta(agentMeta ?? mergedMeta);
-      const provider = nonEmpty(agentMeta?.provider) ?? nonEmpty(mergedMeta.provider) ?? "openclaw";
-      const model = nonEmpty(agentMeta?.model) ?? nonEmpty(mergedMeta.model) ?? null;
+      const runtimeServices = extractRuntimeServicesFromMeta(
+        agentMeta ?? mergedMeta,
+      );
+      const provider =
+        nonEmpty(agentMeta?.provider) ??
+        nonEmpty(mergedMeta.provider) ??
+        "openclaw";
+      const model =
+        nonEmpty(agentMeta?.model) ?? nonEmpty(mergedMeta.model) ?? null;
       const costUsd = asNumber(agentMeta?.costUsd ?? mergedMeta.costUsd, 0);
 
       await ctx.onLog(
@@ -1515,7 +1678,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         ? `${message}. Approve the pending device in OpenClaw (for example: openclaw devices approve --latest --url <gateway-ws-url> --token <gateway-token>) and retry. Ensure this agent has a persisted adapterConfig.devicePrivateKeyPem so approvals are reused.`
         : message;
 
-      await ctx.onLog("stderr", `[openclaw-gateway] request failed: ${detailedMessage}\n`);
+      await ctx.onLog(
+        "stderr",
+        `[openclaw-gateway] request failed: ${detailedMessage}\n`,
+      );
 
       return {
         exitCode: 1,

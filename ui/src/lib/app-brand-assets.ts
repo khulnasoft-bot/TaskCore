@@ -30,26 +30,45 @@ function normalizedProviderKey(value: string): string {
 function isManifest(value: unknown): value is AppBrandManifest {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<AppBrandManifest>;
-  return candidate.schemaVersion === 1 && Array.isArray(candidate.providers)
-    && candidate.providers.every((provider) => provider && typeof provider === "object"
-      && typeof provider.slug === "string" && typeof provider.provider === "string"
-      && isLocalAssetPath(provider.localAsset)
-      && (provider.darkAsset === undefined || isLocalAssetPath(provider.darkAsset))
-      && (provider.aliases === undefined || (Array.isArray(provider.aliases)
-        && provider.aliases.every((alias) => typeof alias === "string"))));
+  return (
+    candidate.schemaVersion === 1 &&
+    Array.isArray(candidate.providers) &&
+    candidate.providers.every(
+      (provider) =>
+        provider &&
+        typeof provider === "object" &&
+        typeof provider.slug === "string" &&
+        typeof provider.provider === "string" &&
+        isLocalAssetPath(provider.localAsset) &&
+        (provider.darkAsset === undefined ||
+          isLocalAssetPath(provider.darkAsset)) &&
+        (provider.aliases === undefined ||
+          (Array.isArray(provider.aliases) &&
+            provider.aliases.every((alias) => typeof alias === "string"))),
+    )
+  );
 }
 
 function isLocalAssetPath(value: unknown): value is string {
-  return typeof value === "string" && /^\/brands\/apps\/[a-z0-9-]+\.(svg|png)$/.test(value);
+  return (
+    typeof value === "string" &&
+    /^\/brands\/apps\/[a-z0-9-]+\.(svg|png)$/.test(value)
+  );
 }
 
 async function loadManifest(): Promise<AppBrandManifest> {
   if (!manifestPromise) {
-    manifestPromise = fetch("/brands/apps/manifest.json", { credentials: "same-origin" })
+    manifestPromise = fetch("/brands/apps/manifest.json", {
+      credentials: "same-origin",
+    })
       .then(async (response) => {
-        if (!response.ok) throw new Error(`App brand manifest request failed (${response.status})`);
+        if (!response.ok)
+          throw new Error(
+            `App brand manifest request failed (${response.status})`,
+          );
         const value: unknown = await response.json();
-        if (!isManifest(value)) throw new Error("App brand manifest is invalid");
+        if (!isManifest(value))
+          throw new Error("App brand manifest is invalid");
         return value;
       })
       .catch((error) => {
@@ -66,18 +85,24 @@ export function resolveLocalAppBrandAssets(
 ): LocalAppBrandAssets | null {
   const key = normalizedProviderKey(providerName);
   if (!key) return null;
-  const provider = manifest.providers.find((candidate) =>
-    candidate.slug === key || normalizedProviderKey(candidate.provider) === key
-      || candidate.aliases?.some((alias) => normalizedProviderKey(alias) === key),
+  const provider = manifest.providers.find(
+    (candidate) =>
+      candidate.slug === key ||
+      normalizedProviderKey(candidate.provider) === key ||
+      candidate.aliases?.some((alias) => normalizedProviderKey(alias) === key),
   );
   if (!provider || !isLocalAssetPath(provider.localAsset)) return null;
   return {
     light: provider.localAsset,
-    dark: isLocalAssetPath(provider.darkAsset) ? provider.darkAsset : provider.localAsset,
+    dark: isLocalAssetPath(provider.darkAsset)
+      ? provider.darkAsset
+      : provider.localAsset,
   };
 }
 
-export async function loadLocalAppBrandAssets(providerName: string): Promise<LocalAppBrandAssets | null> {
+export async function loadLocalAppBrandAssets(
+  providerName: string,
+): Promise<LocalAppBrandAssets | null> {
   return resolveLocalAppBrandAssets(await loadManifest(), providerName);
 }
 

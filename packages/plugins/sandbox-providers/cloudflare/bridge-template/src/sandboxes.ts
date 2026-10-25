@@ -1,6 +1,10 @@
 import type { Sandbox as CloudflareSandbox } from "@cloudflare/sandbox";
 import { getSandbox } from "@cloudflare/sandbox";
-import { buildLeaseSandboxId, buildSentinelPath, isTimeoutError } from "./helpers.js";
+import {
+  buildLeaseSandboxId,
+  buildSentinelPath,
+  isTimeoutError,
+} from "./helpers.js";
 
 export interface BridgeEnv {
   Sandbox: DurableObjectNamespace<CloudflareSandbox>;
@@ -27,7 +31,12 @@ export function toJsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-export function toErrorResponse(status: number, error: string, message: string, details?: unknown): Response {
+export function toErrorResponse(
+  status: number,
+  error: string,
+  message: string,
+  details?: unknown,
+): Response {
   return toJsonResponse({ error, message, details }, status);
 }
 

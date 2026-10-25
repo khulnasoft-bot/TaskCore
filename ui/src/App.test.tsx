@@ -40,12 +40,18 @@ vi.mock("./api/access", () => ({
 }));
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ to, children }: { to: string; children?: ReactNode }) => <a href={to}>{children}</a>,
+  Link: ({ to, children }: { to: string; children?: ReactNode }) => (
+    <a href={to}>{children}</a>
+  ),
   Navigate: ({ to }: { to: string }) => <div>Navigate:{to}</div>,
   Outlet: () => <div>Outlet content</div>,
   Route: ({ children }: { children?: ReactNode }) => <>{children}</>,
   Routes: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  useLocation: () => ({ pathname: "/instance/settings/general", search: "", hash: "" }),
+  useLocation: () => ({
+    pathname: "/instance/settings/general",
+    search: "",
+    hash: "",
+  }),
   useParams: () => ({}),
 }));
 
@@ -63,11 +69,17 @@ async function waitForText(container: HTMLElement, text: string) {
   await vi.waitFor(() => expect(container.textContent).toContain(text));
 }
 
-function renderGate(container: HTMLElement, allowMembershipRequest = false, client?: QueryClient) {
+function renderGate(
+  container: HTMLElement,
+  allowMembershipRequest = false,
+  client?: QueryClient,
+) {
   const root = createRoot(container);
-  const queryClient = client ?? new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
+  const queryClient =
+    client ??
+    new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
 
   flushSync(() => {
     root.render(
@@ -107,19 +119,33 @@ describe("CloudAccessGate", () => {
   });
 
   it("renews a missing Cloud instance session without opening local auth", async () => {
-    mockHealthApi.get.mockResolvedValue({ deploymentMode: "authenticated", cloud: { managed: true, managedBy: "taskcore-cloud", cloudBaseUrl: "https://my-staging.taskcore.app", stackSlug: "team" } });
+    mockHealthApi.get.mockResolvedValue({
+      deploymentMode: "authenticated",
+      cloud: {
+        managed: true,
+        managedBy: "taskcore-cloud",
+        cloudBaseUrl: "https://my-staging.taskcore.app",
+        stackSlug: "team",
+      },
+    });
     mockAuthApi.getSession.mockResolvedValue(null);
     beginCloudSignInMock.mockReturnValue(true);
     const root = renderGate(container);
-    await vi.waitFor(() => expect(beginCloudSignInMock).toHaveBeenCalledTimes(1));
-    expect(beginCloudSignInMock).toHaveBeenCalledWith("https://my-staging.taskcore.app/v1/stacks/team/entry-redirect?returnTo=%2Finstance%2Fsettings%2Fgeneral");
+    await vi.waitFor(() =>
+      expect(beginCloudSignInMock).toHaveBeenCalledTimes(1),
+    );
+    expect(beginCloudSignInMock).toHaveBeenCalledWith(
+      "https://my-staging.taskcore.app/v1/stacks/team/entry-redirect?returnTo=%2Finstance%2Fsettings%2Fgeneral",
+    );
     expect(container.textContent).not.toContain("Navigate:/auth");
     expect(container.textContent).not.toContain("Outlet content");
     unmountRoot(root);
   });
 
   it("does not mistake a session service failure for a signed-out user", async () => {
-    mockAuthApi.getSession.mockRejectedValue(new Error("Session service unavailable"));
+    mockAuthApi.getSession.mockRejectedValue(
+      new Error("Session service unavailable"),
+    );
     const root = renderGate(container);
     await waitForText(container, "Unable to load Taskcore");
     expect(container.querySelector("button")?.textContent).toBe("Try again");
@@ -129,27 +155,55 @@ describe("CloudAccessGate", () => {
     unmountRoot(root);
   });
 
-  it.each([undefined, { managed: true, managedBy: "taskcore-cloud", cloudBaseUrl: "https://my.taskcore.app", stackSlug: "team" }])(
-    "does not require a session in local trusted mode, including with Cloud metadata %j", async (cloud) => {
-    mockHealthApi.get.mockResolvedValue({ deploymentMode: "local_trusted", cloud });
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    await client.fetchQuery({
-      queryKey: queryKeys.auth.session,
-      queryFn: () => Promise.reject(new Error("Session service unavailable")),
-    }).catch(() => {});
-    const root = renderGate(container, false, client);
-    await waitForText(container, "Outlet content");
-    expect(beginCloudSignInMock).not.toHaveBeenCalled();
-    unmountRoot(root);
-  });
+  it.each([
+    undefined,
+    {
+      managed: true,
+      managedBy: "taskcore-cloud",
+      cloudBaseUrl: "https://my.taskcore.app",
+      stackSlug: "team",
+    },
+  ])(
+    "does not require a session in local trusted mode, including with Cloud metadata %j",
+    async (cloud) => {
+      mockHealthApi.get.mockResolvedValue({
+        deploymentMode: "local_trusted",
+        cloud,
+      });
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      await client
+        .fetchQuery({
+          queryKey: queryKeys.auth.session,
+          queryFn: () =>
+            Promise.reject(new Error("Session service unavailable")),
+        })
+        .catch(() => {});
+      const root = renderGate(container, false, client);
+      await waitForText(container, "Outlet content");
+      expect(beginCloudSignInMock).not.toHaveBeenCalled();
+      unmountRoot(root);
+    },
+  );
 
   it("shows a no-access message for signed-in users without org access", async () => {
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-1", userId: "user-1" },
-      user: { id: "user-1", email: "user@example.com", name: "User", image: null },
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+        name: "User",
+        image: null,
+      },
     });
     mockAccessApi.getCurrentBoardAccess.mockResolvedValue({
-      user: { id: "user-1", email: "user@example.com", name: "User", image: null },
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+        name: "User",
+        image: null,
+      },
       userId: "user-1",
       isInstanceAdmin: false,
       companyIds: [],
@@ -168,7 +222,10 @@ describe("CloudAccessGate", () => {
 
   it("admits signed-in nonmembers only for the private invitation landing page", async () => {
     mockAuthApi.getSession.mockResolvedValue({ user: { id: "invitee" } });
-    mockAccessApi.getCurrentBoardAccess.mockResolvedValue({ isInstanceAdmin: false, companyIds: [] });
+    mockAccessApi.getCurrentBoardAccess.mockResolvedValue({
+      isInstanceAdmin: false,
+      companyIds: [],
+    });
     const root = renderGate(container, true);
     await waitForText(container, "Outlet content");
     unmountRoot(root);
@@ -183,7 +240,11 @@ describe("CloudAccessGate", () => {
   });
 
   it("still blocks invitation pages while cloud bootstrap is pending", async () => {
-    mockHealthApi.get.mockResolvedValue({ deploymentMode: "authenticated", deploymentExposure: "public", bootstrapStatus: "bootstrap_pending" });
+    mockHealthApi.get.mockResolvedValue({
+      deploymentMode: "authenticated",
+      deploymentExposure: "public",
+      bootstrapStatus: "bootstrap_pending",
+    });
     mockAuthApi.getSession.mockResolvedValue({ user: { id: "invitee" } });
     const root = renderGate(container, true);
     await waitForText(container, "This Taskcore is waiting on its first admin");
@@ -193,7 +254,9 @@ describe("CloudAccessGate", () => {
 
   it("keeps invitation pages closed when cloud access checks fail", async () => {
     mockAuthApi.getSession.mockResolvedValue({ user: { id: "invitee" } });
-    mockAccessApi.getCurrentBoardAccess.mockRejectedValueOnce(new Error("Access check unavailable"));
+    mockAccessApi.getCurrentBoardAccess.mockRejectedValueOnce(
+      new Error("Access check unavailable"),
+    );
     const root = renderGate(container, true);
     await waitForText(container, "Unable to load Taskcore");
     expect(container.querySelector("button")?.textContent).toBe("Try again");
@@ -204,10 +267,20 @@ describe("CloudAccessGate", () => {
   it("allows authenticated users with company access through to the board", async () => {
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-1", userId: "user-1" },
-      user: { id: "user-1", email: "user@example.com", name: "User", image: null },
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+        name: "User",
+        image: null,
+      },
     });
     mockAccessApi.getCurrentBoardAccess.mockResolvedValue({
-      user: { id: "user-1", email: "user@example.com", name: "User", image: null },
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+        name: "User",
+        image: null,
+      },
       userId: "user-1",
       isInstanceAdmin: false,
       companyIds: ["company-1"],
@@ -255,9 +328,17 @@ describe("CloudAccessGate", () => {
     });
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-1", userId: "user-1" },
-      user: { id: "user-1", email: "user@example.com", name: "User", image: null },
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+        name: "User",
+        image: null,
+      },
     });
-    mockAccessApi.claimBootstrapAdmin.mockResolvedValue({ claimed: true, userId: "user-1" });
+    mockAccessApi.claimBootstrapAdmin.mockResolvedValue({
+      claimed: true,
+      userId: "user-1",
+    });
 
     const root = renderGate(container);
     await waitForText(container, "Claim this instance");
@@ -266,8 +347,8 @@ describe("CloudAccessGate", () => {
     expect(container.textContent).toContain("Signed in as user@example.com");
     expect(mockAccessApi.getCurrentBoardAccess).not.toHaveBeenCalled();
 
-    const button = Array.from(container.querySelectorAll("button")).find((candidate) =>
-      candidate.textContent?.includes("Claim this instance"),
+    const button = Array.from(container.querySelectorAll("button")).find(
+      (candidate) => candidate.textContent?.includes("Claim this instance"),
     );
     expect(button).toBeTruthy();
     flushSync(() => {
@@ -292,13 +373,20 @@ describe("CloudAccessGate", () => {
     });
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-1", userId: "user-1" },
-      user: { id: "user-1", email: "user@example.com", name: "User", image: null },
+      user: {
+        id: "user-1",
+        email: "user@example.com",
+        name: "User",
+        image: null,
+      },
     });
 
     const root = renderGate(container);
     await waitForText(container, "This Taskcore is waiting on its first admin");
 
-    expect(container.textContent).toContain("This Taskcore is waiting on its first admin");
+    expect(container.textContent).toContain(
+      "This Taskcore is waiting on its first admin",
+    );
     expect(container.textContent).toContain("invite-only mode");
     expect(container.textContent).not.toContain("Claim this instance");
     expect(container.textContent).not.toContain("Sign in / Create account");
@@ -312,8 +400,12 @@ describe("Skill Studio routes", () => {
   it("registers create mode before the skillId route in prefixed and unprefixed routing", () => {
     const createRoute = 'path="skills/studio/new"';
     const detailRoute = 'path="skills/studio/:skillId"';
-    const createIndexes = [...appSource.matchAll(new RegExp(createRoute, "g"))].map((match) => match.index ?? -1);
-    const detailIndexes = [...appSource.matchAll(new RegExp(detailRoute, "g"))].map((match) => match.index ?? -1);
+    const createIndexes = [
+      ...appSource.matchAll(new RegExp(createRoute, "g")),
+    ].map((match) => match.index ?? -1);
+    const detailIndexes = [
+      ...appSource.matchAll(new RegExp(detailRoute, "g")),
+    ].map((match) => match.index ?? -1);
 
     expect(createIndexes).toHaveLength(2);
     expect(detailIndexes).toHaveLength(2);
@@ -325,23 +417,47 @@ describe("Skill Studio routes", () => {
 describe("Apps routes", () => {
   it("uses one connector landing page and redirects retired browse, connections, and audit URLs", () => {
     expect(appSource).toContain('<Route path="apps" element={<Browse />} />');
-    expect(appSource).toContain('<Route path="apps/browse" element={<Navigate to="/apps" replace />} />');
-    expect(appSource).toContain('<Route path="apps/connections" element={<Navigate to="/apps" replace />} />');
-    expect(appSource).toContain('<Route path="apps/advanced/audit" element={<Navigate to="/apps" replace />} />');
-    expect(appSource).toContain('<Route path="apps/advanced/run-your-own" element={<Navigate to="/apps" replace />} />');
-    expect(appSource).not.toContain('import { Connections }');
-    expect(appSource).toContain('<Route path="apps/byo" element={<AppsConnect byoOnly />} />');
+    expect(appSource).toContain(
+      '<Route path="apps/browse" element={<Navigate to="/apps" replace />} />',
+    );
+    expect(appSource).toContain(
+      '<Route path="apps/connections" element={<Navigate to="/apps" replace />} />',
+    );
+    expect(appSource).toContain(
+      '<Route path="apps/advanced/audit" element={<Navigate to="/apps" replace />} />',
+    );
+    expect(appSource).toContain(
+      '<Route path="apps/advanced/run-your-own" element={<Navigate to="/apps" replace />} />',
+    );
+    expect(appSource).not.toContain("import { Connections }");
+    expect(appSource).toContain(
+      '<Route path="apps/byo" element={<AppsConnect byoOnly />} />',
+    );
     expect(appSource).toContain('path="apps/vercel-connect"');
-    expect(appSource).toContain('<AppsConnectEntryRoute credentialSource="vercel_connect" />');
-    expect(appSource).toContain('<AppsConnect credentialSource={credentialSource} />');
-    expect(appSource).toContain('<Route path="apps/connect/:appKey" element={<Navigate to="/apps" replace />} />');
-    expect(appSource).toContain('<Route path="apps/connect/:appKey/:stage" element={<Navigate to="/apps" replace />} />');
-    expect(appSource).toContain('<Route path="apps/advanced/gateways" element={<GatewaysList />} />');
+    expect(appSource).toContain(
+      '<AppsConnectEntryRoute credentialSource="vercel_connect" />',
+    );
+    expect(appSource).toContain(
+      "<AppsConnect credentialSource={credentialSource} />",
+    );
+    expect(appSource).toContain(
+      '<Route path="apps/connect/:appKey" element={<Navigate to="/apps" replace />} />',
+    );
+    expect(appSource).toContain(
+      '<Route path="apps/connect/:appKey/:stage" element={<Navigate to="/apps" replace />} />',
+    );
+    expect(appSource).toContain(
+      '<Route path="apps/advanced/gateways" element={<GatewaysList />} />',
+    );
   });
 
   it("redirects legacy Rules and Health links to the remaining developer surfaces", () => {
-    expect(appSource).toContain('if (tab === "runtime" || tab === "audit") return "/apps";');
-    expect(appSource).toContain('if (tab === "policies") return "/apps/advanced/profiles";');
+    expect(appSource).toContain(
+      'if (tab === "runtime" || tab === "audit") return "/apps";',
+    );
+    expect(appSource).toContain(
+      'if (tab === "policies") return "/apps/advanced/profiles";',
+    );
   });
 });
 

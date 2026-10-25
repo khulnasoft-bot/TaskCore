@@ -24,11 +24,13 @@ export function createCodexDeniedHostPaths({
   codexCredentialFiles,
   unrelatedSecretPath,
 }) {
-  return [...new Set([
-    resolve(hostHome),
-    ...codexCredentialFiles.map((path) => resolve(path)),
-    resolve(unrelatedSecretPath),
-  ])];
+  return [
+    ...new Set([
+      resolve(hostHome),
+      ...codexCredentialFiles.map((path) => resolve(path)),
+      resolve(unrelatedSecretPath),
+    ]),
+  ];
 }
 
 export function assertCodexTraceReadyForOutputs(trace) {
@@ -38,8 +40,8 @@ export function assertCodexTraceReadyForOutputs(trace) {
     const summary = codexTraceSummary(trace);
     throw new Error(
       "Codex recorder requires an accepted `done` result before reading workspace outputs; " +
-      `received decision=${decision ?? "missing"}, disposition=${disposition ?? "missing"}` +
-      `${summary ? ` (${summary})` : ""}. Expected workspace outputs were not read.`,
+        `received decision=${decision ?? "missing"}, disposition=${disposition ?? "missing"}` +
+        `${summary ? ` (${summary})` : ""}. Expected workspace outputs were not read.`,
     );
   }
 
@@ -68,13 +70,18 @@ export async function readRequiredCodexOutput(path, displayName) {
 }
 
 function codexTraceSummary(trace) {
-  if (typeof trace?.result?.summary === "string" && trace.result.summary.trim().length > 0) {
+  if (
+    typeof trace?.result?.summary === "string" &&
+    trace.result.summary.trim().length > 0
+  ) {
     return trace.result.summary.trim();
   }
   const issues = trace?.resultDecision?.issues;
   if (!Array.isArray(issues)) return "";
   return issues
     .map((issue) => issue?.message)
-    .filter((message) => typeof message === "string" && message.trim().length > 0)
+    .filter(
+      (message) => typeof message === "string" && message.trim().length > 0,
+    )
     .join("; ");
 }

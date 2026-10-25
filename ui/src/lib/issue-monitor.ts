@@ -36,12 +36,7 @@ export interface MonitorIssueLike {
 }
 
 export type MonitorDisplayState =
-  | "scheduled"
-  | "retrying"
-  | "due-now"
-  | "overdue"
-  | "cleared"
-  | "none";
+  "scheduled" | "retrying" | "due-now" | "overdue" | "cleared" | "none";
 
 export interface DerivedMonitorState {
   state: MonitorDisplayState;
@@ -80,14 +75,20 @@ function formatDuration(durationMs: number): string {
   return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
 }
 
-export function formatMonitorEta(nextCheckAt: MonitorDate, now: MonitorDate = new Date()): string {
+export function formatMonitorEta(
+  nextCheckAt: MonitorDate,
+  now: MonitorDate = new Date(),
+): string {
   const deltaMs = toTimestamp(nextCheckAt) - toTimestamp(now);
   if (deltaMs > 0) return `in ${formatDuration(deltaMs)}`;
   if (deltaMs > -DUE_NOW_GRACE_MS) return "due now";
   return `overdue by ${formatDuration(Math.abs(deltaMs))}`;
 }
 
-export function formatMonitorEtaLabel(nextCheckAt: MonitorDate, now: MonitorDate = new Date()): string {
+export function formatMonitorEtaLabel(
+  nextCheckAt: MonitorDate,
+  now: MonitorDate = new Date(),
+): string {
   const eta = formatMonitorEta(nextCheckAt, now);
   return `${eta.charAt(0).toUpperCase()}${eta.slice(1)}`;
 }
@@ -173,9 +174,18 @@ export function formatMonitorAbsoluteFull(
   return `${datePart}, ${timePart}`;
 }
 
-export function deriveMonitorState(issue: MonitorIssueLike, now: MonitorDate = new Date()): DerivedMonitorState {
+export function deriveMonitorState(
+  issue: MonitorIssueLike,
+  now: MonitorDate = new Date(),
+): DerivedMonitorState {
   if (issue.status === "done" || issue.status === "cancelled") {
-    return { state: "none", source: "none", nextCheckAt: null, attemptCount: 0, serviceName: null };
+    return {
+      state: "none",
+      source: "none",
+      nextCheckAt: null,
+      attemptCount: 0,
+      serviceName: null,
+    };
   }
 
   const runtimeMonitor = issue.executionState?.monitor ?? null;
@@ -190,24 +200,44 @@ export function deriveMonitorState(issue: MonitorIssueLike, now: MonitorDate = n
     policyMonitor?.nextCheckAt ??
     (retryIsScheduled ? scheduledRetry?.scheduledRetryAt : null) ??
     null;
-  const hasMonitor = runtimeMonitor !== null || policyMonitor !== null || issue.monitorNextCheckAt != null;
-  const source = hasMonitor ? "monitor" : retryIsScheduled ? "scheduled-retry" : "none";
+  const hasMonitor =
+    runtimeMonitor !== null ||
+    policyMonitor !== null ||
+    issue.monitorNextCheckAt != null;
+  const source = hasMonitor
+    ? "monitor"
+    : retryIsScheduled
+      ? "scheduled-retry"
+      : "none";
   const attemptCount =
     runtimeMonitor?.attemptCount ??
     (hasMonitor ? issue.monitorAttemptCount : null) ??
     (retryIsScheduled ? scheduledRetry?.scheduledRetryAttempt : null) ??
     0;
-  const serviceName = runtimeMonitor?.serviceName ?? policyMonitor?.serviceName ?? null;
+  const serviceName =
+    runtimeMonitor?.serviceName ?? policyMonitor?.serviceName ?? null;
 
   if (runtimeMonitor?.status === "cleared") {
     return { state: "cleared", source, nextCheckAt, attemptCount, serviceName };
   }
 
   if (!hasMonitor && !retryIsScheduled) {
-    return { state: "none", source, nextCheckAt: null, attemptCount: 0, serviceName: null };
+    return {
+      state: "none",
+      source,
+      nextCheckAt: null,
+      attemptCount: 0,
+      serviceName: null,
+    };
   }
   if (!nextCheckAt) {
-    return { state: retryIsScheduled || attemptCount > 1 ? "retrying" : "scheduled", source, nextCheckAt, attemptCount, serviceName };
+    return {
+      state: retryIsScheduled || attemptCount > 1 ? "retrying" : "scheduled",
+      source,
+      nextCheckAt,
+      attemptCount,
+      serviceName,
+    };
   }
 
   const deltaMs = toTimestamp(nextCheckAt) - toTimestamp(now);
@@ -228,12 +258,17 @@ export function deriveMonitorState(issue: MonitorIssueLike, now: MonitorDate = n
 
 function countdownCadence(nextCheckAt: MonitorDate): number {
   const deltaMs = toTimestamp(nextCheckAt) - Date.now();
-  return deltaMs > -DUE_NOW_GRACE_MS && deltaMs < DUE_NOW_GRACE_MS ? SECOND_MS : 30 * SECOND_MS;
+  return deltaMs > -DUE_NOW_GRACE_MS && deltaMs < DUE_NOW_GRACE_MS
+    ? SECOND_MS
+    : 30 * SECOND_MS;
 }
 
-export function useMonitorCountdown(nextCheckAt: MonitorDate | null | undefined): Date {
+export function useMonitorCountdown(
+  nextCheckAt: MonitorDate | null | undefined,
+): Date {
   const [now, setNow] = useState(() => new Date(Date.now()));
-  const nextCheckTimestamp = nextCheckAt == null ? null : toTimestamp(nextCheckAt);
+  const nextCheckTimestamp =
+    nextCheckAt == null ? null : toTimestamp(nextCheckAt);
 
   useEffect(() => {
     setNow(new Date(Date.now()));
@@ -242,11 +277,14 @@ export function useMonitorCountdown(nextCheckAt: MonitorDate | null | undefined)
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
     const scheduleNextTick = () => {
-      timeoutId = setTimeout(() => {
-        if (cancelled) return;
-        setNow(new Date(Date.now()));
-        scheduleNextTick();
-      }, countdownCadence(new Date(nextCheckTimestamp)));
+      timeoutId = setTimeout(
+        () => {
+          if (cancelled) return;
+          setNow(new Date(Date.now()));
+          scheduleNextTick();
+        },
+        countdownCadence(new Date(nextCheckTimestamp)),
+      );
     };
 
     scheduleNextTick();
@@ -265,6 +303,7 @@ export function formatMonitorOffset(nextCheckAt: MonitorDate): string {
   if (Math.round(Math.abs(deltaMs) / MINUTE_MS) === 0) return "now";
   const eta = formatMonitorEta(nextCheckAt, now);
   if (eta === "due now") return "now";
-  if (eta.startsWith("overdue by ")) return `${eta.slice("overdue by ".length)} ago`;
+  if (eta.startsWith("overdue by "))
+    return `${eta.slice("overdue by ".length)} ago`;
   return eta;
 }

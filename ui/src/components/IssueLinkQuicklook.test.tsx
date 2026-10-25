@@ -6,7 +6,11 @@ import { MemoryRouter } from "react-router-dom";
 import type { Issue } from "@taskcore/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { IssueLinkQuicklook, QUICKLOOK_CONTENT_CLASS, quicklookAlignOffset } from "./IssueLinkQuicklook";
+import {
+  IssueLinkQuicklook,
+  QUICKLOOK_CONTENT_CLASS,
+  quicklookAlignOffset,
+} from "./IssueLinkQuicklook";
 
 const mockIssuesApiGet = vi.hoisted(() => vi.fn());
 
@@ -162,7 +166,13 @@ describe("IssueLinkQuicklook", () => {
 
   function movePointerTo(x: number, y: number) {
     act(() => {
-      document.dispatchEvent(new MouseEvent("pointermove", { clientX: x, clientY: y, bubbles: true }));
+      document.dispatchEvent(
+        new MouseEvent("pointermove", {
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+        }),
+      );
     });
   }
 
@@ -197,7 +207,12 @@ describe("IssueLinkQuicklook", () => {
     expect(document.body.textContent).toContain("Quicklook title");
 
     act(() => {
-      trigger.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body }));
+      trigger.dispatchEvent(
+        new MouseEvent("mouseout", {
+          bubbles: true,
+          relatedTarget: document.body,
+        }),
+      );
       vi.runOnlyPendingTimers();
     });
 
@@ -235,7 +250,10 @@ describe("IssueLinkQuicklook", () => {
         status: "in_review",
         // The card reads only `name` off the project; the rest of `Project` is
         // irrelevant here, so this stands in for a full record.
-        project: { id: "project-1", name: "Taskcore App" } as unknown as Issue["project"],
+        project: {
+          id: "project-1",
+          name: "Taskcore App",
+        } as unknown as Issue["project"],
       }),
     );
     const text = card?.textContent ?? "";
@@ -245,7 +263,9 @@ describe("IssueLinkQuicklook", () => {
     expect(text).toContain("Quicklook title");
     expect(text).toContain("Quicklook description");
     expect(text.indexOf("PAP-1")).toBeLessThan(text.indexOf("Quicklook title"));
-    expect(text.indexOf("Quicklook title")).toBeLessThan(text.indexOf("Quicklook description"));
+    expect(text.indexOf("Quicklook title")).toBeLessThan(
+      text.indexOf("Quicklook description"),
+    );
   });
 
   // Status is the glyph, with no word of its own — so it must survive as the
@@ -287,17 +307,24 @@ describe("IssueLinkQuicklook", () => {
   it("truncates a long project name but never the task key or the timestamp", () => {
     const card = openCard(
       renderQuicklook({
-        project: { id: "p1", name: "Really loooong project name" } as unknown as Issue["project"],
+        project: {
+          id: "p1",
+          name: "Really loooong project name",
+        } as unknown as Issue["project"],
       }),
     );
 
     const project = card?.querySelector('[data-testid="quicklook-project"]');
     expect(project?.getAttribute("title")).toBe("Really loooong project name");
     // The name is the only part allowed to give up width.
-    expect(project?.querySelector(".truncate")?.textContent).toBe("Really loooong project name");
+    expect(project?.querySelector(".truncate")?.textContent).toBe(
+      "Really loooong project name",
+    );
     expect(project?.getAttribute("class")).toContain("min-w-0");
 
-    const key = Array.from(card?.querySelectorAll("span") ?? []).find((s) => s.textContent === "PAP-1");
+    const key = Array.from(card?.querySelectorAll("span") ?? []).find(
+      (s) => s.textContent === "PAP-1",
+    );
     expect(key?.getAttribute("class")).toContain("shrink-0");
   });
 });

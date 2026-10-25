@@ -456,9 +456,16 @@ export async function publishProtocolEvalHistory({
     viewerRoot,
   });
   const viewer = await trustedViewerFiles(viewerRoot);
-  const stylesheet = viewer.index.match(/<link rel="stylesheet" crossorigin href="\.\/(assets\/[A-Za-z0-9._-]+\.css)">/)?.[1];
-  if (!stylesheet || !viewer.files.get(`viewer/${stylesheet}`)?.includes(".evalbook-site"))
-    throw new Error("Published history requires the same-run Runner Lab site theme");
+  const stylesheet = viewer.index.match(
+    /<link rel="stylesheet" crossorigin href="\.\/(assets\/[A-Za-z0-9._-]+\.css)">/,
+  )?.[1];
+  if (
+    !stylesheet ||
+    !viewer.files.get(`viewer/${stylesheet}`)?.includes(".evalbook-site")
+  )
+    throw new Error(
+      "Published history requires the same-run Runner Lab site theme",
+    );
   const stylesheetHref = `campaigns/${campaign.campaignId}/viewer/${stylesheet}`;
   const manifest = await createProtocolEvalBundleManifest(
     reportRoot,
@@ -483,10 +490,13 @@ export async function publishProtocolEvalHistory({
   const history = await enrichProtocolEvalHistory(mergedHistory, {
     currentCampaign: campaign,
     loadCampaign: async (id) => {
-      if (!SAFE_CAMPAIGN.test(id)) throw new Error("Unsafe historical campaign ID");
-      return downloadJson(validatedDestination.bucket,
+      if (!SAFE_CAMPAIGN.test(id))
+        throw new Error("Unsafe historical campaign ID");
+      return downloadJson(
+        validatedDestination.bucket,
         `${validatedDestination.prefix}/campaigns/${id}/campaign.json`,
-        join(temporary, `${id}.json`));
+        join(temporary, `${id}.json`),
+      );
     },
   });
   const campaignPrefix = `${validatedDestination.prefix}/campaigns/${campaign.campaignId}`;
@@ -533,7 +543,10 @@ export async function publishProtocolEvalHistory({
     );
   }
   const index = join(temporary, "index.html");
-  await writeFile(index, renderProtocolEvalHistoryIndex(history, stylesheetHref));
+  await writeFile(
+    index,
+    renderProtocolEvalHistoryIndex(history, stylesheetHref),
+  );
   await uploadFile(
     validatedDestination.bucket,
     `${validatedDestination.prefix}/index.html`,
@@ -549,21 +562,36 @@ export async function publishProtocolEvalHistory({
   };
 }
 
-export async function writeProtocolEvalPublicationLinks(result, environment = process.env) {
+export async function writeProtocolEvalPublicationLinks(
+  result,
+  environment = process.env,
+) {
   const { campaignId, reportUrl, historyUrl } = result;
-  if (!SAFE_CAMPAIGN.test(campaignId)) throw new Error("Invalid published campaign ID");
+  if (!SAFE_CAMPAIGN.test(campaignId))
+    throw new Error("Invalid published campaign ID");
   const safeUrl = (value) => {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password || /[\r\n<>]/.test(value))
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      /[\r\n<>]/.test(value)
+    )
       throw new Error("Invalid published report URL");
     return url.href;
   };
   const report = safeUrl(reportUrl);
   const history = safeUrl(historyUrl);
   if (environment.GITHUB_OUTPUT)
-    await appendFile(environment.GITHUB_OUTPUT, `report_url=${report}\nhistory_url=${history}\n`);
+    await appendFile(
+      environment.GITHUB_OUTPUT,
+      `report_url=${report}\nhistory_url=${history}\n`,
+    );
   if (environment.GITHUB_STEP_SUMMARY)
-    await appendFile(environment.GITHUB_STEP_SUMMARY, `## Published Runner Evalbook\n\n[Open this run's Evalbook](<${report}>) · [All eval runs](<${history}>)\n\nCampaign: \`${campaignId}\`\n\nPublic replay uses the Runner Lab theme; full evidence is in the workflow artifact.\n`);
+    await appendFile(
+      environment.GITHUB_STEP_SUMMARY,
+      `## Published Runner Evalbook\n\n[Open this run's Evalbook](<${report}>) · [All eval runs](<${history}>)\n\nCampaign: \`${campaignId}\`\n\nPublic replay uses the Runner Lab theme; full evidence is in the workflow artifact.\n`,
+    );
 }
 
 async function main() {
@@ -586,7 +614,9 @@ async function main() {
   console.log(
     `Published immutable protocol eval campaign ${result.campaignId} (${result.bundleDigest}) and ${result.historySize} history record(s)`,
   );
-  console.log(`Evalbook: ${result.reportUrl}\nRun history: ${result.historyUrl}`);
+  console.log(
+    `Evalbook: ${result.reportUrl}\nRun history: ${result.historyUrl}`,
+  );
 }
 
 if (

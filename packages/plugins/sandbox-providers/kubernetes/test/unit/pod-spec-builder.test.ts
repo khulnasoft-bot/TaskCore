@@ -9,7 +9,10 @@ const baseInput = {
   envSecretName: "r-01h00000000000000000000000-env",
   serviceAccountName: "taskcore-tenant-sa",
   labels: { "taskcore.io/run-id": "r1" },
-  resources: { requests: { cpu: "250m", memory: "512Mi" }, limits: { cpu: "2", memory: "4Gi" } },
+  resources: {
+    requests: { cpu: "250m", memory: "512Mi" },
+    limits: { cpu: "2", memory: "4Gi" },
+  },
   runtimeClassName: undefined,
   activeDeadlineSec: 3600,
   ttlSecondsAfterFinished: 900,
@@ -23,7 +26,11 @@ describe("buildJobManifest", () => {
   });
 
   it("sets Job-level lifecycle controls: backoffLimit=0, ttlSecondsAfterFinished, activeDeadlineSeconds", () => {
-    const job = buildJobManifest({ ...baseInput, activeDeadlineSec: 1800, ttlSecondsAfterFinished: 600 });
+    const job = buildJobManifest({
+      ...baseInput,
+      activeDeadlineSec: 1800,
+      ttlSecondsAfterFinished: 600,
+    });
     expect(job.spec.backoffLimit).toBe(0);
     expect(job.spec.ttlSecondsAfterFinished).toBe(600);
     expect(job.spec.activeDeadlineSeconds).toBe(1800);
@@ -47,17 +54,30 @@ describe("buildJobManifest", () => {
   it("wraps the entrypoint in tini for PID 1", () => {
     const job = buildJobManifest(baseInput);
     const container = job.spec.template.spec.containers[0];
-    expect(container.command).toEqual(["/usr/bin/tini", "--", "/usr/local/bin/taskcore-agent-shim"]);
+    expect(container.command).toEqual([
+      "/usr/bin/tini",
+      "--",
+      "/usr/local/bin/taskcore-agent-shim",
+    ]);
   });
 
   it("declares explicit writable emptyDir mounts for the standard agent paths", () => {
     const job = buildJobManifest(baseInput);
     const mounts = job.spec.template.spec.containers[0].volumeMounts;
-    const mountPaths = mounts.map((m: { mountPath: string }) => m.mountPath).sort();
-    expect(mountPaths).toEqual(["/home/taskcore", "/home/taskcore/.cache", "/tmp", "/workspace"]);
+    const mountPaths = mounts
+      .map((m: { mountPath: string }) => m.mountPath)
+      .sort();
+    expect(mountPaths).toEqual([
+      "/home/taskcore",
+      "/home/taskcore/.cache",
+      "/tmp",
+      "/workspace",
+    ]);
 
     const volumes = job.spec.template.spec.volumes;
-    expect(volumes.every((v: { emptyDir?: unknown }) => v.emptyDir !== undefined)).toBe(true);
+    expect(
+      volumes.every((v: { emptyDir?: unknown }) => v.emptyDir !== undefined),
+    ).toBe(true);
   });
 
   it("envFrom references the per-run secret", () => {

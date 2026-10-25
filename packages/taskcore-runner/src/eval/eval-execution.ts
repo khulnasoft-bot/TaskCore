@@ -1,7 +1,5 @@
 import { capabilityFixtureRunCapabilities } from "../scenarios/fixture-run-capabilities.js";
-import {
-  CapabilityMockControlPlaneAdapter,
-} from "../mock-core/capability-mock-control-plane-adapter.js";
+import { CapabilityMockControlPlaneAdapter } from "../mock-core/capability-mock-control-plane-adapter.js";
 import type {
   CapabilityFixtureActor,
   CapabilityFixtureInteraction,
@@ -22,7 +20,11 @@ import {
   type EvalBundleFaultInjection,
   type EvalFaultClass,
 } from "./eval-bundle.js";
-import { scoreEval, type AuthorizationState, type EvalObservation } from "./eval-scoring.js";
+import {
+  scoreEval,
+  type AuthorizationState,
+  type EvalObservation,
+} from "./eval-scoring.js";
 import type { PrpEvent } from "../protocol/replay-contract.js";
 import {
   createPrpSemanticToolInputEnvelope,
@@ -42,7 +44,7 @@ export const EVAL_BEHAVIOR_IDS = [
   "terminal_arbitration",
 ] as const;
 
-export type EvalBehaviorId = typeof EVAL_BEHAVIOR_IDS[number];
+export type EvalBehaviorId = (typeof EVAL_BEHAVIOR_IDS)[number];
 export type EvalCounterpart = "green" | "red";
 
 export interface EvalBehaviorExecutionResult {
@@ -91,7 +93,9 @@ function actor(grants: readonly string[]): CapabilityFixtureActor {
   };
 }
 
-function task(overrides: Partial<CapabilityFixtureTask> = {}): CapabilityFixtureTask {
+function task(
+  overrides: Partial<CapabilityFixtureTask> = {},
+): CapabilityFixtureTask {
   return {
     id: ACTIVE_TASK_ID,
     companyId: "company-1",
@@ -111,7 +115,10 @@ function task(overrides: Partial<CapabilityFixtureTask> = {}): CapabilityFixture
   };
 }
 
-function seedFor(bundle: EvalBundle, extra: CapabilityFixtureSeed = {}): CapabilityFixtureSeed {
+function seedFor(
+  bundle: EvalBundle,
+  extra: CapabilityFixtureSeed = {},
+): CapabilityFixtureSeed {
   return {
     ...extra,
     actors: extra.actors ?? [actor(bundle.grants)],
@@ -119,10 +126,17 @@ function seedFor(bundle: EvalBundle, extra: CapabilityFixtureSeed = {}): Capabil
   };
 }
 
-function faultFor(bundle: EvalBundle, faultClass: EvalFaultClass): EvalBundleFaultInjection {
-  const matches = bundle.faultInjection.filter((fault) => fault.class === faultClass);
+function faultFor(
+  bundle: EvalBundle,
+  faultClass: EvalFaultClass,
+): EvalBundleFaultInjection {
+  const matches = bundle.faultInjection.filter(
+    (fault) => fault.class === faultClass,
+  );
   if (matches.length !== 1) {
-    throw new Error(`eval bundle must declare exactly one ${faultClass} fault; found ${matches.length}`);
+    throw new Error(
+      `eval bundle must declare exactly one ${faultClass} fault; found ${matches.length}`,
+    );
   }
   return matches[0]!;
 }
@@ -141,19 +155,21 @@ function approvalSeed(bundle: EvalBundle): CapabilityFixtureSeed {
         capabilityGrants: [],
       },
     ],
-    approvals: [{
-      id: "approval-1",
-      companyId: "company-1",
-      taskIds: [ACTIVE_TASK_ID],
-      type: "eval",
-      status: "pending",
-      requestedByActorId: "actor-2",
-      payload: { purpose: "eval" },
-      decisionNote: null,
-      comments: [],
-      createdAt: "2026-08-11T00:00:00.000Z",
-      decidedAt: null,
-    }],
+    approvals: [
+      {
+        id: "approval-1",
+        companyId: "company-1",
+        taskIds: [ACTIVE_TASK_ID],
+        type: "eval",
+        status: "pending",
+        requestedByActorId: "actor-2",
+        payload: { purpose: "eval" },
+        decisionNote: null,
+        comments: [],
+        createdAt: "2026-08-11T00:00:00.000Z",
+        decidedAt: null,
+      },
+    ],
   });
 }
 
@@ -177,22 +193,26 @@ function interactionSeed(bundle: EvalBundle): CapabilityFixtureSeed {
 
 function planSeed(bundle: EvalBundle): CapabilityFixtureSeed {
   return seedFor(bundle, {
-    documents: [{
-      id: "document-plan",
-      taskId: ACTIVE_TASK_ID,
-      key: "plan",
-      title: "Plan",
-      format: "markdown",
-      latestRevisionId: "revision-plan-1",
-      revisions: [{
-        id: "revision-plan-1",
-        documentId: "document-plan",
-        revision: 1,
-        body: "# Plan\n\nInitial.",
-        changeSummary: null,
-        createdAt: "2026-08-11T00:00:00.000Z",
-      }],
-    }],
+    documents: [
+      {
+        id: "document-plan",
+        taskId: ACTIVE_TASK_ID,
+        key: "plan",
+        title: "Plan",
+        format: "markdown",
+        latestRevisionId: "revision-plan-1",
+        revisions: [
+          {
+            id: "revision-plan-1",
+            documentId: "document-plan",
+            revision: 1,
+            body: "# Plan\n\nInitial.",
+            changeSummary: null,
+            createdAt: "2026-08-11T00:00:00.000Z",
+          },
+        ],
+      },
+    ],
   });
 }
 
@@ -260,8 +280,13 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       expectedAuthorization: "allowed",
       assertState: (adapter) => {
         const context = adapter.context(RUN_ID);
-        if (context.activeTask.status !== "in_progress" || context.activeTask.checkoutRunId !== RUN_ID) {
-          throw new Error("checkout/context green case did not retain the atomic checkout context");
+        if (
+          context.activeTask.status !== "in_progress" ||
+          context.activeTask.checkoutRunId !== RUN_ID
+        ) {
+          throw new Error(
+            "checkout/context green case did not retain the atomic checkout context",
+          );
         }
       },
     },
@@ -279,20 +304,27 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       behavior: "revision_safe_plan_editing",
       counterpart: "green",
       seed: planSeed(bundle),
-      invocations: [{ operationId: "write_document", input: planInput("revision-plan-1") }],
+      invocations: [
+        { operationId: "write_document", input: planInput("revision-plan-1") },
+      ],
       expectedCalls: ["write_document"],
       expectedFinalState: "mutated",
       expectedAuthorization: "allowed",
       assertState: (adapter) => {
-        const document = adapter.snapshot().documents.find((candidate) => candidate.key === "plan");
-        if (document?.revisions.length !== 2) throw new Error("plan green case did not append revision 2");
+        const document = adapter
+          .snapshot()
+          .documents.find((candidate) => candidate.key === "plan");
+        if (document?.revisions.length !== 2)
+          throw new Error("plan green case did not append revision 2");
       },
     },
     {
       behavior: "revision_safe_plan_editing",
       counterpart: "red",
       seed: planSeed(bundle),
-      invocations: [{ operationId: "write_document", input: planInput("revision-stale") }],
+      invocations: [
+        { operationId: "write_document", input: planInput("revision-stale") },
+      ],
       expectedCalls: ["write_document"],
       expectedFinalState: "mutated",
       expectedAuthorization: "allowed",
@@ -309,7 +341,9 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       expectedAuthorization: "allowed",
       assertState: (adapter) => {
         if (adapter.snapshot().approvals[0]?.status !== "rejected") {
-          throw new Error("approval-denial green case did not reject the approval");
+          throw new Error(
+            "approval-denial green case did not reject the approval",
+          );
         }
       },
     },
@@ -317,7 +351,10 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       behavior: "approval_denial",
       counterpart: "red",
       seed: approvalSeed(bundle),
-      scenario: { id: `eval-${authorization.id}`, denyOperations: ["decide_approval"] },
+      scenario: {
+        id: `eval-${authorization.id}`,
+        denyOperations: ["decide_approval"],
+      },
       invocations: [],
       expectedCalls: ["decide_approval"],
       expectedFinalState: "mutated",
@@ -340,7 +377,9 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       assertState: (adapter) => {
         const results = adapter.context(RUN_ID).interactionResults;
         if (results[0]?.status !== "accepted") {
-          throw new Error("interaction continuation did not expose the resolved typed result");
+          throw new Error(
+            "interaction continuation did not expose the resolved typed result",
+          );
         }
       },
     },
@@ -348,16 +387,18 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       behavior: "interaction_continuation",
       counterpart: "red",
       seed: interactionSeed(bundle),
-      invocations: [{
-        operationId: "request_human_input",
-        input: {
-          idempotencyKey: "eval-interaction-repeat",
-          interactionKind: "confirmation",
-          title: "Repeat the decision",
-          prompt: "Ask again instead of continuing.",
-          continuationPolicy: "wake_assignee",
+      invocations: [
+        {
+          operationId: "request_human_input",
+          input: {
+            idempotencyKey: "eval-interaction-repeat",
+            interactionKind: "confirmation",
+            title: "Repeat the decision",
+            prompt: "Ask again instead of continuing.",
+            continuationPolicy: "wake_assignee",
+          },
         },
-      }],
+      ],
       expectedCalls: ["get_task_context"],
       expectedFinalState: "unchanged",
       expectedAuthorization: "allowed",
@@ -376,8 +417,14 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       maxAttempts: 2,
       assertState: (adapter) => {
         const state = adapter.snapshot();
-        if (state.tasks[0]?.status !== "blocked" || state.wakes.length !== 1 || state.blockers.length !== 1) {
-          throw new Error("blocker/monitor green case did not persist blocker plus bounded wake");
+        if (
+          state.tasks[0]?.status !== "blocked" ||
+          state.wakes.length !== 1 ||
+          state.blockers.length !== 1
+        ) {
+          throw new Error(
+            "blocker/monitor green case did not persist blocker plus bounded wake",
+          );
         }
       },
     },
@@ -385,7 +432,10 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       behavior: "blocker_monitor",
       counterpart: "red",
       seed: blockerSeed(bundle),
-      scenario: { id: `eval-${providerCapability.id}`, denyOperations: ["schedule_wake"] },
+      scenario: {
+        id: `eval-${providerCapability.id}`,
+        denyOperations: ["schedule_wake"],
+      },
       invocations: [{ operationId: "block_task", input: blockInput }],
       expectedCalls: ["schedule_wake", "block_task"],
       expectedFinalState: "mutated",
@@ -397,14 +447,21 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
     {
       behavior: "artifact_registration",
       counterpart: "green",
-      invocations: [{ operationId: "register_deliverable", input: artifactInput }],
+      invocations: [
+        { operationId: "register_deliverable", input: artifactInput },
+      ],
       expectedCalls: ["register_deliverable"],
       expectedFinalState: "mutated",
       expectedAuthorization: "allowed",
       assertState: (adapter) => {
         const state = adapter.snapshot();
-        if (state.artifacts.length !== 1 || state.workProducts[0]?.artifactId !== state.artifacts[0]?.id) {
-          throw new Error("artifact green case did not link artifact and work product");
+        if (
+          state.artifacts.length !== 1 ||
+          state.workProducts[0]?.artifactId !== state.artifacts[0]?.id
+        ) {
+          throw new Error(
+            "artifact green case did not link artifact and work product",
+          );
         }
       },
     },
@@ -412,18 +469,28 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       behavior: "artifact_registration",
       counterpart: "red",
       seed: seedFor(bundle, {
-        faults: [{
-          id: retry.id,
-          operation: "apply_command",
-          commandKind: "register_deliverable",
-          effect: "retryable_error",
-          remaining: 1,
-          code: "eval_retry_injected",
-        }],
+        faults: [
+          {
+            id: retry.id,
+            operation: "apply_command",
+            commandKind: "register_deliverable",
+            effect: "retryable_error",
+            remaining: 1,
+            code: "eval_retry_injected",
+          },
+        ],
       }),
       invocations: [
-        { operationId: "register_deliverable", input: artifactInput, callId: "call-artifact-attempt-1" },
-        { operationId: "register_deliverable", input: artifactInput, callId: "call-artifact-attempt-2" },
+        {
+          operationId: "register_deliverable",
+          input: artifactInput,
+          callId: "call-artifact-attempt-1",
+        },
+        {
+          operationId: "register_deliverable",
+          input: artifactInput,
+          callId: "call-artifact-attempt-2",
+        },
       ],
       expectedCalls: ["register_deliverable"],
       expectedFinalState: "mutated",
@@ -444,10 +511,15 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
     {
       behavior: "restraint_no_call",
       counterpart: "red",
-      invocations: [{
-        operationId: "report_progress",
-        input: { idempotencyKey: "eval-restraint-red", body: "Unnecessary mutation." },
-      }],
+      invocations: [
+        {
+          operationId: "report_progress",
+          input: {
+            idempotencyKey: "eval-restraint-red",
+            body: "Unnecessary mutation.",
+          },
+        },
+      ],
       expectedCalls: [],
       forbiddenCalls: ["report_progress"],
       expectedFinalState: "unchanged",
@@ -457,10 +529,12 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
     {
       behavior: "terminal_arbitration",
       counterpart: "green",
-      invocations: [{
-        operationId: "finish_task",
-        input: { idempotencyKey: "eval-finish", summary: "Completed once." },
-      }],
+      invocations: [
+        {
+          operationId: "finish_task",
+          input: { idempotencyKey: "eval-finish", summary: "Completed once." },
+        },
+      ],
       expectedCalls: ["finish_task"],
       expectedFinalState: "mutated",
       expectedAuthorization: "allowed",
@@ -476,11 +550,17 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       invocations: [
         {
           operationId: "finish_task",
-          input: { idempotencyKey: "eval-finish-red", summary: "First terminal." },
+          input: {
+            idempotencyKey: "eval-finish-red",
+            summary: "First terminal.",
+          },
         },
         {
           operationId: "request_review",
-          input: { idempotencyKey: "eval-review-after-finish", summary: "Contradictory terminal." },
+          input: {
+            idempotencyKey: "eval-review-after-finish",
+            summary: "Contradictory terminal.",
+          },
         },
       ],
       expectedCalls: ["finish_task"],
@@ -490,23 +570,34 @@ function behaviorCases(bundle: EvalBundle): BehaviorCase[] {
       maxAttempts: 1,
       assertState: (adapter) => {
         if (adapter.snapshot().tasks[0]?.status !== "done") {
-          throw new Error("terminal arbitration did not preserve the first terminal state");
+          throw new Error(
+            "terminal arbitration did not preserve the first terminal state",
+          );
         }
       },
     },
   ];
 }
 
-function observedAuthorization(results: readonly CapabilitySemanticToolResult[]): AuthorizationState {
+function observedAuthorization(
+  results: readonly CapabilitySemanticToolResult[],
+): AuthorizationState {
   if (results.length === 0) return "absent";
   if (results.some((result) => result.ok)) return "allowed";
-  return results.every((result) => !result.ok && result.denial.code === "tool_not_exposed")
+  return results.every(
+    (result) => !result.ok && result.denial.code === "tool_not_exposed",
+  )
     ? "absent"
     : "denied";
 }
 
-async function runBehaviorCase(bundle: EvalBundle, spec: BehaviorCase): Promise<EvalBehaviorExecutionResult> {
-  const adapter = new CapabilityMockControlPlaneAdapter(spec.seed ?? seedFor(bundle));
+async function runBehaviorCase(
+  bundle: EvalBundle,
+  spec: BehaviorCase,
+): Promise<EvalBehaviorExecutionResult> {
+  const adapter = new CapabilityMockControlPlaneAdapter(
+    spec.seed ?? seedFor(bundle),
+  );
   await adapter.start();
   await adapter.openFixtureRun({
     identity: {
@@ -523,26 +614,35 @@ async function runBehaviorCase(bundle: EvalBundle, spec: BehaviorCase): Promise<
   });
   const beforeRevision = adapter.snapshot().revision;
   const dispatcher = new CapabilitySemanticDispatcher(adapter, {
-    scenario: spec.scenario ?? { id: `eval-${spec.behavior}-${spec.counterpart}` },
+    scenario: spec.scenario ?? {
+      id: `eval-${spec.behavior}-${spec.counterpart}`,
+    },
     explicitClaims: bundle.grants,
   });
   dispatcher.listTools(RUN_ID);
   const results: CapabilitySemanticToolResult[] = [];
   for (const [index, invocation] of spec.invocations.entries()) {
-    results.push(await dispatcher.dispatch({
-      runId: RUN_ID,
-      callId: invocation.callId ?? `call-${spec.behavior}-${spec.counterpart}-${index + 1}`,
-      operationId: invocation.operationId,
-      input: invocation.input,
-    }));
+    results.push(
+      await dispatcher.dispatch({
+        runId: RUN_ID,
+        callId:
+          invocation.callId ??
+          `call-${spec.behavior}-${spec.counterpart}-${index + 1}`,
+        operationId: invocation.operationId,
+        input: invocation.input,
+      }),
+    );
   }
   spec.assertState?.(adapter);
   const afterRevision = adapter.snapshot().revision;
-  const observedCalls = spec.invocations.map((invocation) => invocation.operationId);
+  const observedCalls = spec.invocations.map(
+    (invocation) => invocation.operationId,
+  );
   const caseId = `${spec.behavior}:${spec.counterpart}`;
   const authorizationRecords = dispatcher.authorizationRecords();
   const decisionRecords = adapter.decisionRecords();
-  let injectedFault: { id: string; class: EvalFaultClass; evidenceIds: string[] } | undefined;
+  let injectedFault:
+    { id: string; class: EvalFaultClass; evidenceIds: string[] } | undefined;
   if (spec.faultClass !== undefined) {
     const declaration = faultFor(bundle, spec.faultClass);
     const evidenceIds = [
@@ -552,14 +652,21 @@ async function runBehaviorCase(bundle: EvalBundle, spec: BehaviorCase): Promise<
       ...authorizationRecords
         .filter(
           (record) =>
-            record.operationId === spec.faultEvidenceOperation && !record.allowed,
+            record.operationId === spec.faultEvidenceOperation &&
+            !record.allowed,
         )
         .map((record) => record.id),
     ];
     if (evidenceIds.length === 0) {
-      throw new Error(`${caseId} did not emit evidence for ${spec.faultClass} injection`);
+      throw new Error(
+        `${caseId} did not emit evidence for ${spec.faultClass} injection`,
+      );
     }
-    injectedFault = { id: declaration.id, class: declaration.class, evidenceIds };
+    injectedFault = {
+      id: declaration.id,
+      class: declaration.class,
+      evidenceIds,
+    };
   }
   const observation: EvalObservation = {
     caseId,
@@ -596,17 +703,25 @@ async function runBehaviorCase(bundle: EvalBundle, spec: BehaviorCase): Promise<
       }),
     },
     efficiency: { attempts: observedCalls.length },
-    budget: { maxAttempts: spec.maxAttempts ?? Math.max(1, spec.expectedCalls.length) },
+    budget: {
+      maxAttempts: spec.maxAttempts ?? Math.max(1, spec.expectedCalls.length),
+    },
   };
   await adapter.stop();
-  return { behavior: spec.behavior, counterpart: spec.counterpart, observation };
+  return {
+    behavior: spec.behavior,
+    counterpart: spec.counterpart,
+    observation,
+  };
 }
 
 function evalWireEvents(input: {
   caseId: string;
   invocations: readonly Invocation[];
   results: readonly CapabilitySemanticToolResult[];
-  authorizationRecords: ReturnType<CapabilitySemanticDispatcher["authorizationRecords"]>;
+  authorizationRecords: ReturnType<
+    CapabilitySemanticDispatcher["authorizationRecords"]
+  >;
 }): PrpEvent[] {
   const events: PrpEvent[] = [];
   const turnId = `turn:${input.caseId}`;
@@ -638,49 +753,74 @@ function evalWireEvents(input: {
   input.results.forEach((result, index) => {
     const invocation = input.invocations[index]!;
     const itemId = `item:${result.callId}`;
-    const correlation = { runId: RUN_ID, normalizedSessionId: SESSION_ID, turnId, itemId };
+    const correlation = {
+      runId: RUN_ID,
+      normalizedSessionId: SESSION_ID,
+      turnId,
+      itemId,
+    };
     const idempotencyKey = semanticIdempotencyKey(invocation.input);
-    append("mcp_app.tool_input", {
-      semantic_tool: createPrpSemanticToolInputEnvelope({
-        operationId: result.operationId,
-        callId: result.callId,
-        correlation,
-        idempotencyKey,
-        content: invocation.input,
-      }),
-    }, itemId);
-    const code = result.ok ? semanticSuccessCode(result.result) : result.denial.controlPlaneCode ?? result.denial.code;
-    const authorizationRecord = input.authorizationRecords.find(
-      (record) => record.phase === "invocation" && record.callId === result.callId,
-    );
-    append("mcp_app.tool_result", {
-      semantic_tool: createPrpSemanticToolResultEnvelope({
-        operationId: result.operationId,
-        callId: result.callId,
-        correlation,
-        idempotencyKey,
-        content: result,
-        outcome: semanticOutcomeForCode({
-          ok: result.ok,
-          code,
-          disposition: result.ok && isRecord(result.result) ? result.result.disposition : undefined,
+    append(
+      "mcp_app.tool_input",
+      {
+        semantic_tool: createPrpSemanticToolInputEnvelope({
+          operationId: result.operationId,
+          callId: result.callId,
+          correlation,
+          idempotencyKey,
+          content: invocation.input,
         }),
-        code,
-        retryable: result.ok ? false : result.denial.retryable,
-        authorizationBoundary: semanticAuthorizationBoundaryForCode(code),
-        ...(authorizationRecord === undefined ? {} : { auditReceiptId: authorizationRecord.id }),
-        currentRevision: result.stateRevision,
-        artifactRefs: result.ok ? semanticArtifactRefs(result.result) : [],
-        causalRefs: result.ok ? semanticCausalRefs(result.result) : [],
-      }),
-    }, itemId);
+      },
+      itemId,
+    );
+    const code = result.ok
+      ? semanticSuccessCode(result.result)
+      : (result.denial.controlPlaneCode ?? result.denial.code);
+    const authorizationRecord = input.authorizationRecords.find(
+      (record) =>
+        record.phase === "invocation" && record.callId === result.callId,
+    );
+    append(
+      "mcp_app.tool_result",
+      {
+        semantic_tool: createPrpSemanticToolResultEnvelope({
+          operationId: result.operationId,
+          callId: result.callId,
+          correlation,
+          idempotencyKey,
+          content: result,
+          outcome: semanticOutcomeForCode({
+            ok: result.ok,
+            code,
+            disposition:
+              result.ok && isRecord(result.result)
+                ? result.result.disposition
+                : undefined,
+          }),
+          code,
+          retryable: result.ok ? false : result.denial.retryable,
+          authorizationBoundary: semanticAuthorizationBoundaryForCode(code),
+          ...(authorizationRecord === undefined
+            ? {}
+            : { auditReceiptId: authorizationRecord.id }),
+          currentRevision: result.stateRevision,
+          artifactRefs: result.ok ? semanticArtifactRefs(result.result) : [],
+          causalRefs: result.ok ? semanticCausalRefs(result.result) : [],
+        }),
+      },
+      itemId,
+    );
   });
-  append("run.terminal", {
-    schema: "taskcore.prp.terminal.v1",
-    turnTerminalState: "completed",
-    runTerminalState: "succeeded",
-    reportedWorkDisposition: "done",
-  }, `item:${input.caseId}`);
+  append(
+    "run.terminal",
+    {
+      schema: "taskcore.prp.terminal.v1",
+      turnTerminalState: "completed",
+      runTerminalState: "succeeded",
+      reportedWorkDisposition: "done",
+    },
+    `item:${input.caseId}`,
+  );
   return events;
 }
 
@@ -691,23 +831,44 @@ function semanticIdempotencyKey(value: unknown): string | null {
 }
 
 function semanticSuccessCode(value: unknown): string {
-  return isRecord(value) && value.disposition === "duplicate" ? "duplicate" : "ok";
+  return isRecord(value) && value.disposition === "duplicate"
+    ? "duplicate"
+    : "ok";
 }
 
 function semanticArtifactRefs(value: unknown) {
-  return semanticRefs(value).filter((reference) =>
-    reference.kind === "artifact" || reference.kind === "work_product",
+  return semanticRefs(value).filter(
+    (reference) =>
+      reference.kind === "artifact" || reference.kind === "work_product",
   );
 }
 
 function semanticCausalRefs(value: unknown) {
   return semanticRefs(value).filter((reference) =>
-    ["document_revision", "interaction", "approval", "decision", "wake", "monitor"].includes(reference.kind),
+    [
+      "document_revision",
+      "interaction",
+      "approval",
+      "decision",
+      "wake",
+      "monitor",
+    ].includes(reference.kind),
   );
 }
 
 function semanticRefs(value: unknown): Array<{
-  kind: "task" | "document_revision" | "interaction" | "approval" | "decision" | "artifact" | "work_product" | "wake" | "monitor" | "audit" | "operation";
+  kind:
+    | "task"
+    | "document_revision"
+    | "interaction"
+    | "approval"
+    | "decision"
+    | "artifact"
+    | "work_product"
+    | "wake"
+    | "monitor"
+    | "audit"
+    | "operation";
   id: string;
 }> {
   if (!isRecord(value) || !Array.isArray(value.entityRefs)) return [];
@@ -748,11 +909,17 @@ export async function runEvalBehaviorFaultMatrix(
   bundle: EvalBundle,
 ): Promise<EvalBehaviorExecutionResult[]> {
   assertBundleSecretFree(bundle);
-  for (const faultClass of ["authorization", "conflict", "retry", "provider_capability"] as const) {
+  for (const faultClass of [
+    "authorization",
+    "conflict",
+    "retry",
+    "provider_capability",
+  ] as const) {
     faultFor(bundle, faultClass);
   }
   const results: EvalBehaviorExecutionResult[] = [];
-  for (const spec of behaviorCases(bundle)) results.push(await runBehaviorCase(bundle, spec));
+  for (const spec of behaviorCases(bundle))
+    results.push(await runBehaviorCase(bundle, spec));
   assertEvalBehaviorFaultMatrix(bundle, results);
   return results;
 }
@@ -764,14 +931,19 @@ export function assertEvalBehaviorFaultMatrix(
 ): void {
   const id = bundleId(bundle);
   if (results.length !== EVAL_BEHAVIOR_IDS.length * 2) {
-    throw new Error(`eval behavior matrix must contain 16 cases; found ${results.length}`);
+    throw new Error(
+      `eval behavior matrix must contain 16 cases; found ${results.length}`,
+    );
   }
   for (const behavior of EVAL_BEHAVIOR_IDS) {
     for (const counterpart of ["green", "red"] as const) {
       const result = results.find(
-        (candidate) => candidate.behavior === behavior && candidate.counterpart === counterpart,
+        (candidate) =>
+          candidate.behavior === behavior &&
+          candidate.counterpart === counterpart,
       );
-      if (result === undefined) throw new Error(`missing ${behavior}:${counterpart}`);
+      if (result === undefined)
+        throw new Error(`missing ${behavior}:${counterpart}`);
       const scorecard = scoreEval(result.observation, { bundleId: id });
       if (counterpart === "green" && !scorecard.overall.passed) {
         throw new Error(`${behavior}:green did not score green`);
@@ -787,7 +959,13 @@ export function assertEvalBehaviorFaultMatrix(
       return fault === undefined ? [] : [fault.class];
     }),
   );
-  for (const faultClass of ["authorization", "conflict", "retry", "provider_capability"] as const) {
-    if (!injected.has(faultClass)) throw new Error(`fault class ${faultClass} was not executed`);
+  for (const faultClass of [
+    "authorization",
+    "conflict",
+    "retry",
+    "provider_capability",
+  ] as const) {
+    if (!injected.has(faultClass))
+      throw new Error(`fault class ${faultClass} was not executed`);
   }
 }

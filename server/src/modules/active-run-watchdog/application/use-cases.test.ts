@@ -5,7 +5,11 @@ import {
   createRecordWatchdogDecision,
   createScanSilentActiveRuns,
 } from "./use-cases.js";
-import type { RunProcessController, WatchdogRunReader, WatchdogWriter } from "./ports.js";
+import type {
+  RunProcessController,
+  WatchdogRunReader,
+  WatchdogWriter,
+} from "./ports.js";
 import type { RunSnapshot } from "./types.js";
 
 describe("application", () => {
@@ -34,11 +38,16 @@ describe("application", () => {
     };
   }
 
-  function makeReader(overrides: Partial<WatchdogRunReader> = {}): WatchdogRunReader {
+  function makeReader(
+    overrides: Partial<WatchdogRunReader> = {},
+  ): WatchdogRunReader {
     return {
       findCandidateSilentRuns: async () => [],
       findRunForCompany: async () => null,
-      findLatestDecision: async () => ({ quietUntilDecision: null, dismissedFalsePositive: false }),
+      findLatestDecision: async () => ({
+        quietUntilDecision: null,
+        dismissedFalsePositive: false,
+      }),
       findOpenStaleRunEvaluation: async () => null,
       findLatestSameRunTerminalEvidence: async () => null,
       findSourceIssue: async () => null,
@@ -115,7 +124,10 @@ describe("application", () => {
 
       const summary = await buildRunOutputSilence(run, now);
 
-      expect(summary).toMatchObject({ level: "not_applicable", silenceAgeMs: null });
+      expect(summary).toMatchObject({
+        level: "not_applicable",
+        silenceAgeMs: null,
+      });
     });
   });
 
@@ -139,8 +151,18 @@ describe("application", () => {
       const processController: RunProcessController = {
         cleanupRunProcess: async (input) => {
           calls.push("cleanup");
-          expect(input).toMatchObject({ runId: "run-1", adapterType: "codex_local", fallbackPid: 4242 });
-          return { attempted: true, outcome: "terminated", adapterType: "codex_local", pid: 4242, processGroupId: null };
+          expect(input).toMatchObject({
+            runId: "run-1",
+            adapterType: "codex_local",
+            fallbackPid: 4242,
+          });
+          return {
+            attempted: true,
+            outcome: "terminated",
+            adapterType: "codex_local",
+            pid: 4242,
+            processGroupId: null,
+          };
         },
       };
       const writer: WatchdogWriter = {
@@ -154,7 +176,10 @@ describe("application", () => {
           return { kind: "folded", evaluationIssueId: null };
         },
       };
-      const foldSourceResolvedRun = createFoldSourceResolvedRun({ writer, processController });
+      const foldSourceResolvedRun = createFoldSourceResolvedRun({
+        writer,
+        processController,
+      });
 
       const outcome = await foldSourceResolvedRun({
         run: makeRun({ processPid: 4242 }),
@@ -187,7 +212,10 @@ describe("application", () => {
         },
         foldSourceResolvedRun: async () => ({ kind: "stale" }),
       };
-      const foldSourceResolvedRun = createFoldSourceResolvedRun({ writer, processController });
+      const foldSourceResolvedRun = createFoldSourceResolvedRun({
+        writer,
+        processController,
+      });
 
       const outcome = await foldSourceResolvedRun({
         run: makeRun({ processPid: 4242 }),
@@ -204,7 +232,9 @@ describe("application", () => {
     });
   });
 
-  function makeDecisionWriter(overrides: Partial<WatchdogWriter> = {}): WatchdogWriter {
+  function makeDecisionWriter(
+    overrides: Partial<WatchdogWriter> = {},
+  ): WatchdogWriter {
     return {
       recordDecision: async (companyId, input) => ({
         id: "decision-1",
@@ -244,7 +274,12 @@ describe("application", () => {
         snoozedUntil,
         now,
       });
-      expect(snooze).toMatchObject({ companyId: "company-1", runId: "run-1", decision: "snooze", snoozedUntil });
+      expect(snooze).toMatchObject({
+        companyId: "company-1",
+        runId: "run-1",
+        decision: "snooze",
+        snoozedUntil,
+      });
 
       const continueDecision = await recordWatchdogDecision({
         companyId: "company-1",
@@ -253,7 +288,9 @@ describe("application", () => {
         decision: "continue",
         now,
       });
-      expect(continueDecision.snoozedUntil?.toISOString()).toBe(new Date(now.getTime() + CONTINUE_REARM_MS).toISOString());
+      expect(continueDecision.snoozedUntil?.toISOString()).toBe(
+        new Date(now.getTime() + CONTINUE_REARM_MS).toISOString(),
+      );
 
       const dismissed = await recordWatchdogDecision({
         companyId: "company-1",
@@ -262,7 +299,10 @@ describe("application", () => {
         decision: "dismissed_false_positive",
         now,
       });
-      expect(dismissed).toMatchObject({ decision: "dismissed_false_positive", snoozedUntil: null });
+      expect(dismissed).toMatchObject({
+        decision: "dismissed_false_positive",
+        snoozedUntil: null,
+      });
     });
 
     it("rejects an agent decision with no target evaluation issue", async () => {
@@ -272,13 +312,15 @@ describe("application", () => {
         continueRearmMs: CONTINUE_REARM_MS,
       });
 
-      await expect(recordWatchdogDecision({
-        companyId: "company-1",
-        runId: "run-1",
-        actor: { type: "agent", agentId: "agent-9" },
-        decision: "continue",
-        now: new Date("2026-01-01T05:00:00.000Z"),
-      })).rejects.toMatchObject({ code: "evaluation_issue_required" });
+      await expect(
+        recordWatchdogDecision({
+          companyId: "company-1",
+          runId: "run-1",
+          actor: { type: "agent", agentId: "agent-9" },
+          decision: "continue",
+          now: new Date("2026-01-01T05:00:00.000Z"),
+        }),
+      ).rejects.toMatchObject({ code: "evaluation_issue_required" });
     });
 
     it("rejects an agent decision when the agent is not the evaluation issue's assignee", async () => {
@@ -301,14 +343,16 @@ describe("application", () => {
         continueRearmMs: CONTINUE_REARM_MS,
       });
 
-      await expect(recordWatchdogDecision({
-        companyId: "company-1",
-        runId: "run-1",
-        actor: { type: "agent", agentId: "agent-9" },
-        decision: "continue",
-        evaluationIssueId: "eval-1",
-        now: new Date("2026-01-01T05:00:00.000Z"),
-      })).rejects.toMatchObject({ code: "not_authorized" });
+      await expect(
+        recordWatchdogDecision({
+          companyId: "company-1",
+          runId: "run-1",
+          actor: { type: "agent", agentId: "agent-9" },
+          decision: "continue",
+          evaluationIssueId: "eval-1",
+          now: new Date("2026-01-01T05:00:00.000Z"),
+        }),
+      ).rejects.toMatchObject({ code: "not_authorized" });
     });
 
     it("accepts an agent decision when the agent is the assigned recovery owner", async () => {
@@ -340,7 +384,10 @@ describe("application", () => {
         now: new Date("2026-01-01T05:00:00.000Z"),
       });
 
-      expect(decision).toMatchObject({ evaluationIssueId: "eval-1", createdByAgentId: "agent-1" });
+      expect(decision).toMatchObject({
+        evaluationIssueId: "eval-1",
+        createdByAgentId: "agent-1",
+      });
     });
 
     it("reports run_not_found when the run does not exist in the company", async () => {
@@ -350,14 +397,16 @@ describe("application", () => {
         continueRearmMs: CONTINUE_REARM_MS,
       });
 
-      await expect(recordWatchdogDecision({
-        companyId: "company-1",
-        runId: "missing-run",
-        actor: { type: "board" },
-        decision: "snooze",
-        snoozedUntil: new Date("2026-01-01T06:00:00.000Z"),
-        now: new Date("2026-01-01T05:00:00.000Z"),
-      })).rejects.toMatchObject({ code: "run_not_found" });
+      await expect(
+        recordWatchdogDecision({
+          companyId: "company-1",
+          runId: "missing-run",
+          actor: { type: "board" },
+          decision: "snooze",
+          snoozedUntil: new Date("2026-01-01T06:00:00.000Z"),
+          now: new Date("2026-01-01T05:00:00.000Z"),
+        }),
+      ).rejects.toMatchObject({ code: "run_not_found" });
     });
 
     it("reports evaluation_issue_not_found without encoding an HTTP status", async () => {
@@ -393,7 +442,10 @@ describe("application", () => {
       recordDecision: async () => {
         throw new Error("not used in this test");
       },
-      foldSourceResolvedRun: async () => ({ kind: "folded", evaluationIssueId: null }),
+      foldSourceResolvedRun: async () => ({
+        kind: "folded",
+        evaluationIssueId: null,
+      }),
       ...writerOverrides,
     };
     return createFoldSourceResolvedRun({ writer, processController });
@@ -405,7 +457,10 @@ describe("application", () => {
       const reader = makeReader({
         findCandidateSilentRuns: async () => [run],
         findLatestDecision: async () => ({
-          quietUntilDecision: { decision: "snooze", snoozedUntil: new Date("2026-01-01T06:00:00.000Z") },
+          quietUntilDecision: {
+            decision: "snooze",
+            snoozedUntil: new Date("2026-01-01T06:00:00.000Z"),
+          },
           dismissedFalsePositive: false,
         }),
       });
@@ -415,9 +470,17 @@ describe("application", () => {
         suspicionThresholdMs: SUSPICION_THRESHOLD_MS,
       });
 
-      const result = await scanSilentActiveRuns({ now: new Date("2026-01-01T05:00:00.000Z") });
+      const result = await scanSilentActiveRuns({
+        now: new Date("2026-01-01T05:00:00.000Z"),
+      });
 
-      expect(result).toMatchObject({ scanned: 1, snoozed: 1, created: 0, escalated: 0, skipped: 0 });
+      expect(result).toMatchObject({
+        scanned: 1,
+        snoozed: 1,
+        created: 0,
+        escalated: 0,
+        skipped: 0,
+      });
     });
 
     it("applies the optional company scope and the issue-date cutoff to the candidate query", async () => {
@@ -436,7 +499,11 @@ describe("application", () => {
         suspicionThresholdMs: SUSPICION_THRESHOLD_MS,
       });
 
-      await scanSilentActiveRuns({ now, companyId: "company-9", issueCreatedAtGte: cutoff });
+      await scanSilentActiveRuns({
+        now,
+        companyId: "company-9",
+        issueCreatedAtGte: cutoff,
+      });
 
       expect(seenInput).toMatchObject({
         companyId: "company-9",
@@ -449,7 +516,11 @@ describe("application", () => {
       const run = makeRun({ sourceIssueId: "issue-1" });
       const reader = makeReader({
         findCandidateSilentRuns: async () => [run],
-        findRunningAgent: async () => ({ id: "agent-1", companyId: "other-company", adapterType: "codex_local" }),
+        findRunningAgent: async () => ({
+          id: "agent-1",
+          companyId: "other-company",
+          adapterType: "codex_local",
+        }),
       });
       const scanSilentActiveRuns = createScanSilentActiveRuns({
         reader,
@@ -457,7 +528,9 @@ describe("application", () => {
         suspicionThresholdMs: SUSPICION_THRESHOLD_MS,
       });
 
-      const result = await scanSilentActiveRuns({ now: new Date("2026-01-01T05:00:00.000Z") });
+      const result = await scanSilentActiveRuns({
+        now: new Date("2026-01-01T05:00:00.000Z"),
+      });
 
       expect(result).toMatchObject({ scanned: 1, skipped: 1 });
     });
@@ -466,7 +539,11 @@ describe("application", () => {
       const run = makeRun({ sourceIssueId: "issue-1" });
       const reader = makeReader({
         findCandidateSilentRuns: async () => [run],
-        findRunningAgent: async () => ({ id: "agent-1", companyId: "company-1", adapterType: "codex_local" }),
+        findRunningAgent: async () => ({
+          id: "agent-1",
+          companyId: "company-1",
+          adapterType: "codex_local",
+        }),
         findSourceIssue: async () => ({
           id: "issue-1",
           identifier: "PAP-1",
@@ -484,12 +561,17 @@ describe("application", () => {
       const scanSilentActiveRuns = createScanSilentActiveRuns({
         reader,
         foldSourceResolvedRun: makeScanFoldUseCase({
-          foldSourceResolvedRun: async () => ({ kind: "folded", evaluationIssueId: null }),
+          foldSourceResolvedRun: async () => ({
+            kind: "folded",
+            evaluationIssueId: null,
+          }),
         }),
         suspicionThresholdMs: SUSPICION_THRESHOLD_MS,
       });
 
-      const result = await scanSilentActiveRuns({ now: new Date("2026-01-01T05:00:00.000Z") });
+      const result = await scanSilentActiveRuns({
+        now: new Date("2026-01-01T05:00:00.000Z"),
+      });
 
       expect(result).toMatchObject({ scanned: 1, folded: 1, skipped: 0 });
     });

@@ -14,11 +14,13 @@ const context = {
     { id: "agent-2", name: "QA" },
   ],
   projects: [
-    { id: "11111111-1111-4111-8111-111111111111", name: "Taskcore App", urlKey: "taskcore-app" },
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "Taskcore App",
+      urlKey: "taskcore-app",
+    },
   ],
-  labels: [
-    { id: "22222222-2222-4222-8222-222222222222", name: "bug" },
-  ],
+  labels: [{ id: "22222222-2222-4222-8222-222222222222", name: "bug" }],
 };
 
 describe("parseSearchQuery", () => {
@@ -37,10 +39,18 @@ describe("parseSearchQuery", () => {
   });
 
   it("parses assignee names including quoted multi-word names", () => {
-    expect(parseSearchQuery("assignee:\"Codex Coder\" crash", context)).toMatchObject({
+    expect(
+      parseSearchQuery('assignee:"Codex Coder" crash', context),
+    ).toMatchObject({
       query: "crash",
       filters: { assigneeAgentId: "agent-1" },
-      pills: [{ key: "assignee", value: "Codex Coder", label: "assignee:Codex Coder" }],
+      pills: [
+        {
+          key: "assignee",
+          value: "Codex Coder",
+          label: "assignee:Codex Coder",
+        },
+      ],
     });
   });
 
@@ -75,14 +85,21 @@ describe("parseSearchQuery", () => {
   });
 
   it("preserves quoted phrases in free text", () => {
-    expect(parseSearchQuery("\"auth flake\" status:blocked", context)).toMatchObject({
-      query: "\"auth flake\"",
+    expect(
+      parseSearchQuery('"auth flake" status:blocked', context),
+    ).toMatchObject({
+      query: '"auth flake"',
       filters: { status: ["blocked"] },
     });
   });
 
   it("parses mixed free text and multiple operators", () => {
-    expect(parseSearchQuery("auth status:in_progress priority:critical project:taskcore-app", context)).toMatchObject({
+    expect(
+      parseSearchQuery(
+        "auth status:in_progress priority:critical project:taskcore-app",
+        context,
+      ),
+    ).toMatchObject({
       query: "auth",
       filters: {
         status: ["in_progress"],
@@ -101,7 +118,9 @@ describe("parseSearchQuery", () => {
   });
 
   it("falls malformed values through to plain text", () => {
-    expect(parseSearchQuery("status:notreal updated:>soon priority:urgent", context)).toMatchObject({
+    expect(
+      parseSearchQuery("status:notreal updated:>soon priority:urgent", context),
+    ).toMatchObject({
       query: "status:notreal updated:>soon priority:urgent",
       filters: {},
       pills: [],
@@ -111,14 +130,16 @@ describe("parseSearchQuery", () => {
 
 describe("search query URLs", () => {
   it("builds /search paths with parsed filters", () => {
-    expect(buildSearchPathFromQuery("auth status:todo updated:>7d", context)).toBe(
-      "/search?q=auth&status=todo&updatedWithin=7d",
-    );
+    expect(
+      buildSearchPathFromQuery("auth status:todo updated:>7d", context),
+    ).toBe("/search?q=auth&status=todo&updatedWithin=7d");
   });
 
   it("reads filter params back from URLSearchParams", () => {
     const filters = readSearchFiltersFromParams(
-      new URLSearchParams("q=auth&status=todo&status=blocked&priority=high&updatedWithin=7d"),
+      new URLSearchParams(
+        "q=auth&status=todo&status=blocked&priority=high&updatedWithin=7d",
+      ),
     );
     expect(filters).toEqual({
       status: ["todo", "blocked"],
@@ -130,14 +151,19 @@ describe("search query URLs", () => {
 
 describe("search operator suggestions", () => {
   it("suggests syntax for the current partial token", () => {
-    expect(searchOperatorSuggestions("auth sta").map((suggestion) => suggestion.token)).toEqual([
-      "status:todo",
-      "status:blocked",
-    ]);
+    expect(
+      searchOperatorSuggestions("auth sta").map(
+        (suggestion) => suggestion.token,
+      ),
+    ).toEqual(["status:todo", "status:blocked"]);
   });
 
   it("replaces only the current token when applying a suggestion", () => {
-    expect(applySearchOperatorSuggestion("auth sta", "status:todo")).toBe("auth status:todo");
-    expect(applySearchOperatorSuggestion("", "assignee:me")).toBe("assignee:me");
+    expect(applySearchOperatorSuggestion("auth sta", "status:todo")).toBe(
+      "auth status:todo",
+    );
+    expect(applySearchOperatorSuggestion("", "assignee:me")).toBe(
+      "assignee:me",
+    );
   });
 });

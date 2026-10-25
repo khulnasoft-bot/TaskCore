@@ -8,7 +8,9 @@ import {
 
 describe("isSandboxProviderSupportedForAdapter", () => {
   it("treats Taskcore Runner as a remote-managed adapter", () => {
-    expect(adapterSupportsRemoteManagedEnvironments("taskcore_runner")).toBe(true);
+    expect(adapterSupportsRemoteManagedEnvironments("taskcore_runner")).toBe(
+      true,
+    );
     expect(supportedEnvironmentDriversForAdapter("taskcore_runner")).toEqual([
       "local",
       "ssh",
@@ -18,21 +20,31 @@ describe("isSandboxProviderSupportedForAdapter", () => {
 
   it("accepts additional sandbox providers for remote-managed adapters", () => {
     expect(
-      isSandboxProviderSupportedForAdapter("codex_local", "fake-plugin", ["fake-plugin"]),
+      isSandboxProviderSupportedForAdapter("codex_local", "fake-plugin", [
+        "fake-plugin",
+      ]),
     ).toBe(true);
   });
 
   it("rejects providers for adapters without remote-managed environment support", () => {
     expect(
-      isSandboxProviderSupportedForAdapter("openclaw", "fake-plugin", ["fake-plugin"]),
+      isSandboxProviderSupportedForAdapter("openclaw", "fake-plugin", [
+        "fake-plugin",
+      ]),
     ).toBe(false);
   });
 
   it("treats grok_local as a remote-managed local adapter", () => {
     expect(adapterSupportsRemoteManagedEnvironments("grok_local")).toBe(true);
-    expect(supportedEnvironmentDriversForAdapter("grok_local")).toEqual(["local", "ssh", "sandbox"]);
+    expect(supportedEnvironmentDriversForAdapter("grok_local")).toEqual([
+      "local",
+      "ssh",
+      "sandbox",
+    ]);
     expect(
-      isSandboxProviderSupportedForAdapter("grok_local", "fake-plugin", ["fake-plugin"]),
+      isSandboxProviderSupportedForAdapter("grok_local", "fake-plugin", [
+        "fake-plugin",
+      ]),
     ).toBe(true);
   });
 
@@ -46,17 +58,28 @@ describe("isSandboxProviderSupportedForAdapter", () => {
     expect(capabilities.adapters).toEqual([
       expect.objectContaining({
         adapterType: "grok_local",
-        drivers: expect.objectContaining({ sandbox: "supported", ssh: "supported" }),
-        sandboxProviders: expect.objectContaining({ "fake-plugin": "supported" }),
+        drivers: expect.objectContaining({
+          sandbox: "supported",
+          ssh: "supported",
+        }),
+        sandboxProviders: expect.objectContaining({
+          "fake-plugin": "supported",
+        }),
       }),
     ]);
   });
 
   it("treats kimi_local as a remote-managed local adapter", () => {
     expect(adapterSupportsRemoteManagedEnvironments("kimi_local")).toBe(true);
-    expect(supportedEnvironmentDriversForAdapter("kimi_local")).toEqual(["local", "ssh", "sandbox"]);
+    expect(supportedEnvironmentDriversForAdapter("kimi_local")).toEqual([
+      "local",
+      "ssh",
+      "sandbox",
+    ]);
     expect(
-      isSandboxProviderSupportedForAdapter("kimi_local", "fake-plugin", ["fake-plugin"]),
+      isSandboxProviderSupportedForAdapter("kimi_local", "fake-plugin", [
+        "fake-plugin",
+      ]),
     ).toBe(true);
   });
 
@@ -70,8 +93,13 @@ describe("isSandboxProviderSupportedForAdapter", () => {
     expect(capabilities.adapters).toEqual([
       expect.objectContaining({
         adapterType: "kimi_local",
-        drivers: expect.objectContaining({ sandbox: "supported", ssh: "supported" }),
-        sandboxProviders: expect.objectContaining({ "fake-plugin": "supported" }),
+        drivers: expect.objectContaining({
+          sandbox: "supported",
+          ssh: "supported",
+        }),
+        sandboxProviders: expect.objectContaining({
+          "fake-plugin": "supported",
+        }),
       }),
     ]);
   });
@@ -85,17 +113,26 @@ describe("getEnvironmentCapabilities reusable leases default", () => {
         "fake-plugin": { displayName: "Fake Plugin" },
       },
     });
-    expect(capabilities.sandboxProviders["fake-plugin"].supportsReusableLeases).toBe(false);
+    expect(
+      capabilities.sandboxProviders["fake-plugin"].supportsReusableLeases,
+    ).toBe(false);
 
     // A manifest that declares true still presents as true.
     const declared = getEnvironmentCapabilities(["codex_local"], {
       sandboxProviders: {
-        "reuse-plugin": { displayName: "Reuse Plugin", supportsReusableLeases: true },
+        "reuse-plugin": {
+          displayName: "Reuse Plugin",
+          supportsReusableLeases: true,
+        },
       },
     });
-    expect(declared.sandboxProviders["reuse-plugin"].supportsReusableLeases).toBe(true);
+    expect(
+      declared.sandboxProviders["reuse-plugin"].supportsReusableLeases,
+    ).toBe(true);
 
     // The built-in fake provider presents as false.
-    expect(capabilities.sandboxProviders.fake.supportsReusableLeases).toBe(false);
+    expect(capabilities.sandboxProviders.fake.supportsReusableLeases).toBe(
+      false,
+    );
   });
 });

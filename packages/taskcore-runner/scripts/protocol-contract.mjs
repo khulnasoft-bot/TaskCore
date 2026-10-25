@@ -5,7 +5,8 @@ import { relative, resolve, sep } from "node:path";
 
 import Ajv2020 from "ajv/dist/2020.js";
 
-export const JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema";
+export const JSON_SCHEMA_DIALECT =
+  "https://json-schema.org/draft/2020-12/schema";
 export const PRP_SCHEMA_ID_PREFIX = "https://taskcore.dev/schemas/prp/";
 export const PRP_V1_SCHEMA_ID_PREFIX = `${PRP_SCHEMA_ID_PREFIX}v1/`;
 export const SUPPORTED_FIXTURE_VERSION = 1;
@@ -70,18 +71,30 @@ function resolveJsonPointer(value, fragment) {
 
 export async function loadSchemaCatalog(schemaDirectory) {
   const files = await listJsonFiles(schemaDirectory);
-  const records = await Promise.all(files.map(async (path) => ({ path, ...(await readJson(path)) })));
+  const records = await Promise.all(
+    files.map(async (path) => ({ path, ...(await readJson(path)) })),
+  );
   const ids = new Map();
 
   for (const record of records) {
     const schema = record.value;
     if (schema.$schema !== JSON_SCHEMA_DIALECT) {
-      throw contractError("unsupported_schema_dialect", portableRelative(schemaDirectory, record.path));
+      throw contractError(
+        "unsupported_schema_dialect",
+        portableRelative(schemaDirectory, record.path),
+      );
     }
-    if (typeof schema.$id !== "string" || !schema.$id.startsWith(PRP_SCHEMA_ID_PREFIX)) {
-      throw contractError("invalid_schema_id", portableRelative(schemaDirectory, record.path));
+    if (
+      typeof schema.$id !== "string" ||
+      !schema.$id.startsWith(PRP_SCHEMA_ID_PREFIX)
+    ) {
+      throw contractError(
+        "invalid_schema_id",
+        portableRelative(schemaDirectory, record.path),
+      );
     }
-    if (ids.has(schema.$id)) throw contractError("duplicate_schema_id", schema.$id);
+    if (ids.has(schema.$id))
+      throw contractError("duplicate_schema_id", schema.$id);
     if (typeof schema.title !== "string" || schema.title.length === 0) {
       throw contractError("missing_schema_title", schema.$id);
     }
@@ -93,10 +106,16 @@ export async function loadSchemaCatalog(schemaDirectory) {
       const [targetId, fragment = ""] = reference.split("#", 2);
       const target = targetId === "" ? record : ids.get(targetId);
       if (target === undefined) {
-        throw contractError("unresolved_schema_reference", `${record.value.$id} -> ${reference}`);
+        throw contractError(
+          "unresolved_schema_reference",
+          `${record.value.$id} -> ${reference}`,
+        );
       }
       if (resolveJsonPointer(target.value, fragment) === undefined) {
-        throw contractError("unresolved_schema_fragment", `${record.value.$id} -> ${reference}`);
+        throw contractError(
+          "unresolved_schema_fragment",
+          `${record.value.$id} -> ${reference}`,
+        );
       }
     }
   }
@@ -118,13 +137,15 @@ export function compileProtocolValidators(schemaRecords) {
   const get = (name) => {
     const id = `${PRP_V1_SCHEMA_ID_PREFIX}${name}.schema.json`;
     const validator = ajv.getSchema(id);
-    if (validator === undefined) throw contractError("missing_schema_validator", id);
+    if (validator === undefined)
+      throw contractError("missing_schema_validator", id);
     return validator;
   };
   const getVersioned = (version, name) => {
     const id = `${PRP_SCHEMA_ID_PREFIX}v${version}/${name}.schema.json`;
     const validator = ajv.getSchema(id);
-    if (validator === undefined) throw contractError("missing_schema_validator", id);
+    if (validator === undefined)
+      throw contractError("missing_schema_validator", id);
     return validator;
   };
   return {
@@ -142,7 +163,12 @@ export function compileProtocolValidators(schemaRecords) {
   };
 }
 
-export function assertSchemaInstance(validator, value, location, expectedValid = true) {
+export function assertSchemaInstance(
+  validator,
+  value,
+  location,
+  expectedValid = true,
+) {
   const valid = validator(value);
   if (valid !== expectedValid) {
     const detail = (validator.errors ?? [])
@@ -150,25 +176,38 @@ export function assertSchemaInstance(validator, value, location, expectedValid =
       .map((error) => `${error.instancePath || "/"} ${error.message}`)
       .join("; ");
     const expectation = expectedValid ? "accepted" : "rejected";
-    throw contractError("schema_validation_failed", `${location} must be ${expectation}: ${detail || "no AJV error"}`);
+    throw contractError(
+      "schema_validation_failed",
+      `${location} must be ${expectation}: ${detail || "no AJV error"}`,
+    );
   }
   return value;
 }
 
 function requireSchema(value, expected, location) {
   if (value?.schema !== expected) {
-    throw contractError("unsupported_required_schema", `${location} requires ${String(value?.schema)}`);
+    throw contractError(
+      "unsupported_required_schema",
+      `${location} requires ${String(value?.schema)}`,
+    );
   }
 }
 
 function requireVersion(value, expected, name) {
   if (value !== expected) {
-    throw contractError("unsupported_required_version", `${name}=${String(value)}; supported=${expected}`);
+    throw contractError(
+      "unsupported_required_version",
+      `${name}=${String(value)}; supported=${expected}`,
+    );
   }
 }
 
 function requireSupportedProtocolVersion(value) {
-  if (!Number.isInteger(value) || value < MIN_SUPPORTED_PROTOCOL_VERSION || value > SUPPORTED_PROTOCOL_VERSION) {
+  if (
+    !Number.isInteger(value) ||
+    value < MIN_SUPPORTED_PROTOCOL_VERSION ||
+    value > SUPPORTED_PROTOCOL_VERSION
+  ) {
     throw contractError(
       "unsupported_required_version",
       `protocolVersion=${String(value)}; supported=${MIN_SUPPORTED_PROTOCOL_VERSION}-${SUPPORTED_PROTOCOL_VERSION}`,
@@ -178,15 +217,30 @@ function requireSupportedProtocolVersion(value) {
 
 export function assertReplayFixtureCompatibility(fixture) {
   requireSchema(fixture, "taskcore.prp.fixture.v1", "fixture");
-  requireVersion(fixture.fixtureVersion, SUPPORTED_FIXTURE_VERSION, "fixtureVersion");
+  requireVersion(
+    fixture.fixtureVersion,
+    SUPPORTED_FIXTURE_VERSION,
+    "fixtureVersion",
+  );
   requireSupportedProtocolVersion(fixture.protocolVersion);
   requireSchema(fixture.identity, "taskcore.prp.identity.v1", "identity");
-  if (!/^taskcore\.prp\.capabilities\.v[1-3]$/.test(fixture.capabilities?.schema)) throw contractError("unsupported_required_schema", "capabilities");
+  if (
+    !/^taskcore\.prp\.capabilities\.v[1-3]$/.test(fixture.capabilities?.schema)
+  )
+    throw contractError("unsupported_required_schema", "capabilities");
 
-  if (!Array.isArray(fixture.commands)) throw contractError("invalid_fixture", "commands must be an array");
+  if (!Array.isArray(fixture.commands))
+    throw contractError("invalid_fixture", "commands must be an array");
   for (const [index, command] of fixture.commands.entries()) {
-    if (command?.schema !== "taskcore.prp.command.v1" && command?.schema !== "taskcore.prp.command.v2" && command?.schema !== "taskcore.prp.command.v3") {
-      throw contractError("unsupported_required_schema", `commands[${index}] requires ${String(command?.schema)}`);
+    if (
+      command?.schema !== "taskcore.prp.command.v1" &&
+      command?.schema !== "taskcore.prp.command.v2" &&
+      command?.schema !== "taskcore.prp.command.v3"
+    ) {
+      throw contractError(
+        "unsupported_required_schema",
+        `commands[${index}] requires ${String(command?.schema)}`,
+      );
     }
   }
 
@@ -194,11 +248,26 @@ export function assertReplayFixtureCompatibility(fixture) {
     throw contractError("invalid_fixture", "events must be a non-empty array");
   }
   for (const [index, event] of fixture.events.entries()) {
-    if (![1, 2, 3].includes(event.schemaVersion) || event.schemaVersion > fixture.protocolVersion) throw contractError("unsupported_required_version", `events[${index}].schemaVersion`);
-    requireSchema(event, `taskcore.prp.event.v${event.schemaVersion}`, `events[${index}]`);
+    if (
+      ![1, 2, 3].includes(event.schemaVersion) ||
+      event.schemaVersion > fixture.protocolVersion
+    )
+      throw contractError(
+        "unsupported_required_version",
+        `events[${index}].schemaVersion`,
+      );
+    requireSchema(
+      event,
+      `taskcore.prp.event.v${event.schemaVersion}`,
+      `events[${index}]`,
+    );
     const semanticToolVersion = event.payload?.semantic_tool?.schemaVersion;
     if (semanticToolVersion !== undefined) {
-      requireVersion(semanticToolVersion, 1, `events[${index}].payload.semantic_tool.schemaVersion`);
+      requireVersion(
+        semanticToolVersion,
+        1,
+        `events[${index}].payload.semantic_tool.schemaVersion`,
+      );
     }
   }
 
@@ -207,70 +276,130 @@ export function assertReplayFixtureCompatibility(fixture) {
 }
 
 export function assertQuestionAdapterFixture(fixture) {
-  requireSchema(fixture, "taskcore.question_adapter_fixture.v1", "question fixture");
-  requireSchema(fixture.canonicalQuestionSet, "taskcore.question_set.v1", "canonicalQuestionSet");
-  requireSchema(fixture.canonicalResponse, "taskcore.question_response.v1", "canonicalResponse");
+  requireSchema(
+    fixture,
+    "taskcore.question_adapter_fixture.v1",
+    "question fixture",
+  );
+  requireSchema(
+    fixture.canonicalQuestionSet,
+    "taskcore.question_set.v1",
+    "canonicalQuestionSet",
+  );
+  requireSchema(
+    fixture.canonicalResponse,
+    "taskcore.question_response.v1",
+    "canonicalResponse",
+  );
 
   const questions = fixture.canonicalQuestionSet.questions;
   if (!Array.isArray(questions) || questions.length === 0) {
-    throw contractError("invalid_question_adapter_fixture", "questions must be non-empty");
+    throw contractError(
+      "invalid_question_adapter_fixture",
+      "questions must be non-empty",
+    );
   }
   const questionsById = new Map();
   const optionIdsByQuestion = new Map();
   for (const question of questions) {
-    if (typeof question.id !== "string" || question.id.length === 0 || questionsById.has(question.id)) {
-      throw contractError("invalid_question_adapter_fixture", "question IDs must be unique");
+    if (
+      typeof question.id !== "string" ||
+      question.id.length === 0 ||
+      questionsById.has(question.id)
+    ) {
+      throw contractError(
+        "invalid_question_adapter_fixture",
+        "question IDs must be unique",
+      );
     }
     questionsById.set(question.id, question);
     const optionIds = new Set();
     for (const option of question.options ?? []) {
-      if (typeof option.id !== "string" || option.id.length === 0 || optionIds.has(option.id)) {
-        throw contractError("invalid_question_adapter_fixture", `option IDs for ${question.id} must be unique`);
+      if (
+        typeof option.id !== "string" ||
+        option.id.length === 0 ||
+        optionIds.has(option.id)
+      ) {
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `option IDs for ${question.id} must be unique`,
+        );
       }
       optionIds.add(option.id);
     }
     optionIdsByQuestion.set(question.id, optionIds);
     const validation = question.textValidation;
     if (
-      validation?.minLength !== undefined
-      && validation.maxLength !== undefined
-      && validation.minLength > validation.maxLength
+      validation?.minLength !== undefined &&
+      validation.maxLength !== undefined &&
+      validation.minLength > validation.maxLength
     ) {
-      throw contractError("invalid_question_adapter_fixture", `text validation for ${question.id} has minLength greater than maxLength`);
+      throw contractError(
+        "invalid_question_adapter_fixture",
+        `text validation for ${question.id} has minLength greater than maxLength`,
+      );
     }
     if (
-      validation?.minimum !== undefined
-      && validation.maximum !== undefined
-      && validation.minimum > validation.maximum
+      validation?.minimum !== undefined &&
+      validation.maximum !== undefined &&
+      validation.minimum > validation.maximum
     ) {
-      throw contractError("invalid_question_adapter_fixture", `text validation for ${question.id} has minimum greater than maximum`);
+      throw contractError(
+        "invalid_question_adapter_fixture",
+        `text validation for ${question.id} has minimum greater than maximum`,
+      );
     }
     if (validation?.pattern !== undefined) {
       try {
         new RegExp(validation.pattern);
       } catch {
-        throw contractError("invalid_question_adapter_fixture", `text validation pattern for ${question.id} is invalid`);
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `text validation pattern for ${question.id} is invalid`,
+        );
       }
     }
   }
   const answers = fixture.canonicalResponse.answers ?? {};
   for (const [answerId, answer] of Object.entries(answers)) {
     if (!questionsById.has(answerId)) {
-      throw contractError("invalid_question_adapter_fixture", `answer has unknown question ID ${answerId}`);
+      throw contractError(
+        "invalid_question_adapter_fixture",
+        `answer has unknown question ID ${answerId}`,
+      );
     }
-    if (answer === null || typeof answer !== "object" || Array.isArray(answer)) {
-      throw contractError("invalid_question_adapter_fixture", `answer for ${answerId} must be an object`);
+    if (
+      answer === null ||
+      typeof answer !== "object" ||
+      Array.isArray(answer)
+    ) {
+      throw contractError(
+        "invalid_question_adapter_fixture",
+        `answer for ${answerId} must be an object`,
+      );
     }
     const selectedOptionIds = answer.selectedOptionIds ?? [];
-    if (!Array.isArray(selectedOptionIds) || selectedOptionIds.some((id) => typeof id !== "string")) {
-      throw contractError("invalid_question_adapter_fixture", `answer for ${answerId} has invalid option IDs`);
+    if (
+      !Array.isArray(selectedOptionIds) ||
+      selectedOptionIds.some((id) => typeof id !== "string")
+    ) {
+      throw contractError(
+        "invalid_question_adapter_fixture",
+        `answer for ${answerId} has invalid option IDs`,
+      );
     }
     if (new Set(selectedOptionIds).size !== selectedOptionIds.length) {
-      throw contractError("invalid_question_adapter_fixture", `answer for ${answerId} repeats an option ID`);
+      throw contractError(
+        "invalid_question_adapter_fixture",
+        `answer for ${answerId} repeats an option ID`,
+      );
     }
     for (const optionId of selectedOptionIds) {
       if (!optionIdsByQuestion.get(answerId)?.has(optionId)) {
-        throw contractError("invalid_question_adapter_fixture", `answer has unknown option ID ${optionId}`);
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `answer has unknown option ID ${optionId}`,
+        );
       }
     }
   }
@@ -278,7 +407,10 @@ export function assertQuestionAdapterFixture(fixture) {
     const answer = answers[question.id];
     if (answer === undefined) {
       if (question.required) {
-        throw contractError("invalid_question_adapter_fixture", `answer for required question ${question.id} is missing`);
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `answer for required question ${question.id} is missing`,
+        );
       }
       continue;
     }
@@ -287,61 +419,121 @@ export function assertQuestionAdapterFixture(fixture) {
     const customText = answer.customText;
     if (question.answerMode === "text") {
       if (selectedOptionIds.length > 0 || customText !== undefined) {
-        throw contractError("invalid_question_adapter_fixture", `text answer for ${question.id} carries select-only fields`);
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `text answer for ${question.id} carries select-only fields`,
+        );
       }
     } else {
       if (text !== undefined) {
-        throw contractError("invalid_question_adapter_fixture", `select answer for ${question.id} carries text`);
-      }
-      if (question.answerMode === "single_select" && selectedOptionIds.length > 1) {
-        throw contractError("invalid_question_adapter_fixture", `single-select answer for ${question.id} chooses more than one option`);
-      }
-      if (customText !== undefined && question.customAnswer?.enabled !== true) {
-        throw contractError("invalid_question_adapter_fixture", `custom answer for ${question.id} is not enabled`);
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `select answer for ${question.id} carries text`,
+        );
       }
       if (
-        question.answerMode === "single_select"
-        && typeof customText === "string"
-        && customText.trim().length > 0
-        && selectedOptionIds.length > 0
+        question.answerMode === "single_select" &&
+        selectedOptionIds.length > 1
       ) {
-        throw contractError("invalid_question_adapter_fixture", `single-select answer for ${question.id} mixes option and custom values`);
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `single-select answer for ${question.id} chooses more than one option`,
+        );
+      }
+      if (customText !== undefined && question.customAnswer?.enabled !== true) {
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `custom answer for ${question.id} is not enabled`,
+        );
+      }
+      if (
+        question.answerMode === "single_select" &&
+        typeof customText === "string" &&
+        customText.trim().length > 0 &&
+        selectedOptionIds.length > 0
+      ) {
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `single-select answer for ${question.id} mixes option and custom values`,
+        );
       }
     }
     const hasValue = fixtureAnswerHasValue(answer);
     if (question.required && !hasValue) {
-      throw contractError("invalid_question_adapter_fixture", `answer for required question ${question.id} is empty`);
+      throw contractError(
+        "invalid_question_adapter_fixture",
+        `answer for required question ${question.id} is empty`,
+      );
     }
     const boundedText = question.answerMode === "text" ? text : customText;
     if (boundedText !== undefined) {
       const validation = question.textValidation;
-      if (validation?.minLength !== undefined && boundedText.length < validation.minLength) {
-        throw contractError("invalid_question_adapter_fixture", `answer for ${question.id} must contain at least ${validation.minLength} characters`);
+      if (
+        validation?.minLength !== undefined &&
+        boundedText.length < validation.minLength
+      ) {
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `answer for ${question.id} must contain at least ${validation.minLength} characters`,
+        );
       }
-      if (validation?.maxLength !== undefined && boundedText.length > validation.maxLength) {
-        throw contractError("invalid_question_adapter_fixture", `answer for ${question.id} must contain at most ${validation.maxLength} characters`);
+      if (
+        validation?.maxLength !== undefined &&
+        boundedText.length > validation.maxLength
+      ) {
+        throw contractError(
+          "invalid_question_adapter_fixture",
+          `answer for ${question.id} must contain at most ${validation.maxLength} characters`,
+        );
       }
       if (validation?.pattern !== undefined) {
         let pattern;
         try {
           pattern = new RegExp(validation.pattern);
         } catch {
-          throw contractError("invalid_question_adapter_fixture", `text validation pattern for ${question.id} is invalid`);
+          throw contractError(
+            "invalid_question_adapter_fixture",
+            `text validation pattern for ${question.id} is invalid`,
+          );
         }
-        if (!testFixturePatternWithDeadline(pattern.source, boundedText, question.id)) {
-          throw contractError("invalid_question_adapter_fixture", `answer for ${question.id} does not match the required format`);
+        if (
+          !testFixturePatternWithDeadline(
+            pattern.source,
+            boundedText,
+            question.id,
+          )
+        ) {
+          throw contractError(
+            "invalid_question_adapter_fixture",
+            `answer for ${question.id} does not match the required format`,
+          );
         }
       }
-      if (validation?.inputType === "number" || validation?.inputType === "integer") {
+      if (
+        validation?.inputType === "number" ||
+        validation?.inputType === "integer"
+      ) {
         const numeric = Number(boundedText);
-        if (!Number.isFinite(numeric) || (validation.inputType === "integer" && !Number.isInteger(numeric))) {
-          throw contractError("invalid_question_adapter_fixture", `answer for ${question.id} must be a valid ${validation.inputType}`);
+        if (
+          !Number.isFinite(numeric) ||
+          (validation.inputType === "integer" && !Number.isInteger(numeric))
+        ) {
+          throw contractError(
+            "invalid_question_adapter_fixture",
+            `answer for ${question.id} must be a valid ${validation.inputType}`,
+          );
         }
         if (validation.minimum !== undefined && numeric < validation.minimum) {
-          throw contractError("invalid_question_adapter_fixture", `answer for ${question.id} must be at least ${validation.minimum}`);
+          throw contractError(
+            "invalid_question_adapter_fixture",
+            `answer for ${question.id} must be at least ${validation.minimum}`,
+          );
         }
         if (validation.maximum !== undefined && numeric > validation.maximum) {
-          throw contractError("invalid_question_adapter_fixture", `answer for ${question.id} must be at most ${validation.maximum}`);
+          throw contractError(
+            "invalid_question_adapter_fixture",
+            `answer for ${question.id} must be at most ${validation.maximum}`,
+          );
         }
       }
     }
@@ -351,9 +543,13 @@ export function assertQuestionAdapterFixture(fixture) {
 
 export function assertCodexQuestionFixture(fixture) {
   assertQuestionAdapterFixture(fixture);
-  if (fixture.adapter !== "codex") throw contractError("unsupported_provider", String(fixture.adapter));
+  if (fixture.adapter !== "codex")
+    throw contractError("unsupported_provider", String(fixture.adapter));
   if (fixture.nativeRequest?.method !== "item/tool/requestUserInput") {
-    throw contractError("invalid_codex_question_fixture", "native request method");
+    throw contractError(
+      "invalid_codex_question_fixture",
+      "native request method",
+    );
   }
   return fixture;
 }
@@ -365,30 +561,36 @@ export function assertAcpxQuestionFixture(fixture) {
   }
   const request = fixture.nativeRequest;
   if (!isPlainRecord(request) || request.method !== "elicitation/create") {
-    throw contractError("invalid_acpx_question_fixture", "native request method");
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      "native request method",
+    );
   }
   const params = request.params;
   const requestedSchema = isPlainRecord(params) ? params.requestedSchema : null;
   if (
-    !isPlainRecord(params)
-    || params.mode !== "form"
-    || !isPlainRecord(requestedSchema)
-    || !isPlainRecord(requestedSchema.properties)
+    !isPlainRecord(params) ||
+    params.mode !== "form" ||
+    !isPlainRecord(requestedSchema) ||
+    !isPlainRecord(requestedSchema.properties)
   ) {
     throw contractError("invalid_acpx_question_fixture", "native form request");
   }
   const properties = Object.entries(requestedSchema.properties);
   if (properties.length === 0 || properties.length > 64) {
-    throw contractError("invalid_acpx_question_fixture", "native form property count");
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      "native form property count",
+    );
   }
   const required = normalizedAcpxRequired(requestedSchema);
   for (const [name, property] of properties) {
     assertAcpxProperty(name, property);
     if (
-      isPlainRecord(property)
-      && property.type === "string"
-      && acpxEnumValues(property, "oneOf").length === 0
-      && optionalFixtureText(property.pattern) !== undefined
+      isPlainRecord(property) &&
+      property.type === "string" &&
+      acpxEnumValues(property, "oneOf").length === 0 &&
+      optionalFixtureText(property.pattern) !== undefined
     ) {
       throw contractError(
         "invalid_acpx_question_fixture",
@@ -399,30 +601,51 @@ export function assertAcpxQuestionFixture(fixture) {
 
   const response = fixture.nativeResponse;
   if (
-    !isPlainRecord(response)
-    || response.action !== "accept"
-    || !isPlainRecord(response.content)
+    !isPlainRecord(response) ||
+    response.action !== "accept" ||
+    !isPlainRecord(response.content)
   ) {
-    throw contractError("invalid_acpx_question_fixture", "native accept response");
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      "native accept response",
+    );
   }
   for (const [name] of properties) {
     if (required.has(name) && !Object.hasOwn(response.content, name)) {
-      throw contractError("invalid_acpx_question_fixture", `native response omits required property ${name}`);
+      throw contractError(
+        "invalid_acpx_question_fixture",
+        `native response omits required property ${name}`,
+      );
     }
   }
   for (const [name, value] of Object.entries(response.content)) {
     const property = requestedSchema.properties[name];
     if (!isPlainRecord(property)) {
-      throw contractError("invalid_acpx_question_fixture", `native response has unknown property ${name}`);
+      throw contractError(
+        "invalid_acpx_question_fixture",
+        `native response has unknown property ${name}`,
+      );
     }
     assertAcpxPropertyValue(name, property, value);
   }
   const projected = projectAcpxFixture(params, fixture.canonicalResponse);
-  if (canonicalFixtureJson(projected.questionSet) !== canonicalFixtureJson(fixture.canonicalQuestionSet)) {
-    throw contractError("invalid_acpx_question_fixture", "native and canonical question sets differ");
+  if (
+    canonicalFixtureJson(projected.questionSet) !==
+    canonicalFixtureJson(fixture.canonicalQuestionSet)
+  ) {
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      "native and canonical question sets differ",
+    );
   }
-  if (canonicalFixtureJson(projected.nativeResponse) !== canonicalFixtureJson(fixture.nativeResponse)) {
-    throw contractError("invalid_acpx_question_fixture", "canonical and native responses differ");
+  if (
+    canonicalFixtureJson(projected.nativeResponse) !==
+    canonicalFixtureJson(fixture.nativeResponse)
+  ) {
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      "canonical and native responses differ",
+    );
   }
   return fixture;
 }
@@ -430,18 +653,25 @@ export function assertAcpxQuestionFixture(fixture) {
 function projectAcpxFixture(params, canonicalResponse) {
   const schema = params.requestedSchema;
   const required = normalizedAcpxRequired(schema);
-  const bindings = Object.entries(schema.properties).map(([name, property], index) =>
-    projectAcpxProperty(name, property, index, required.has(name))
+  const bindings = Object.entries(schema.properties).map(
+    ([name, property], index) =>
+      projectAcpxProperty(name, property, index, required.has(name)),
   );
-  const title = optionalFixtureText(schema.title) ?? "Additional information needed";
+  const title =
+    optionalFixtureText(schema.title) ?? "Additional information needed";
   const descriptions = [
     optionalFixtureText(params.message),
     optionalFixtureText(schema.description),
-  ].filter((value, index, all) => value !== undefined && value !== title && all.indexOf(value) === index);
+  ].filter(
+    (value, index, all) =>
+      value !== undefined && value !== title && all.indexOf(value) === index,
+  );
   const questionSet = {
     schema: "taskcore.question_set.v1",
     title,
-    ...(descriptions.length > 0 ? { description: descriptions.join("\n\n") } : {}),
+    ...(descriptions.length > 0
+      ? { description: descriptions.join("\n\n") }
+      : {}),
     submitLabel: "Submit answers",
     questions: bindings.map((binding) => binding.question),
   };
@@ -453,7 +683,8 @@ function projectAcpxFixture(params, canonicalResponse) {
     // content so the fixture gate certifies the same wire behavior.
     if (!answer || !fixtureAnswerHasValue(answer)) continue;
     if (binding.type === "string" && binding.question.answerMode === "text") {
-      if (answer.text !== undefined) defineAcpxResponseProperty(content, binding.name, answer.text);
+      if (answer.text !== undefined)
+        defineAcpxResponseProperty(content, binding.name, answer.text);
     } else if (binding.type === "number" || binding.type === "integer") {
       if (answer.text !== undefined) {
         defineAcpxResponseProperty(content, binding.name, Number(answer.text));
@@ -468,7 +699,9 @@ function projectAcpxFixture(params, canonicalResponse) {
         );
       }
     } else {
-      const selected = (answer.selectedOptionIds ?? []).map((id) => binding.optionValues.get(id));
+      const selected = (answer.selectedOptionIds ?? []).map((id) =>
+        binding.optionValues.get(id),
+      );
       if (binding.type === "array") {
         defineAcpxResponseProperty(content, binding.name, selected);
       } else if (selected[0] !== undefined) {
@@ -481,9 +714,11 @@ function projectAcpxFixture(params, canonicalResponse) {
 
 function fixtureAnswerHasValue(answer) {
   return (
-    (typeof answer.text === "string" && answer.text.trim().length > 0)
-    || (typeof answer.customText === "string" && answer.customText.trim().length > 0)
-    || (Array.isArray(answer.selectedOptionIds) && answer.selectedOptionIds.length > 0)
+    (typeof answer.text === "string" && answer.text.trim().length > 0) ||
+    (typeof answer.customText === "string" &&
+      answer.customText.trim().length > 0) ||
+    (Array.isArray(answer.selectedOptionIds) &&
+      answer.selectedOptionIds.length > 0)
   );
 }
 
@@ -502,11 +737,10 @@ function normalizedAcpxRequired(schema) {
   );
   return new Set(
     Array.isArray(schema.required)
-      ? schema.required
-          .filter(
-            (value) => typeof value === "string" && propertyNames.has(value),
-          )
-      : []
+      ? schema.required.filter(
+          (value) => typeof value === "string" && propertyNames.has(value),
+        )
+      : [],
   );
 }
 
@@ -521,7 +755,14 @@ function projectAcpxProperty(name, property, index, required) {
   };
   if (property.type === "string") {
     const options = acpxNativeOptions(property, "oneOf");
-    if (options.length > 0) return projectedAcpxOptions(name, property.type, base, options, "single_select");
+    if (options.length > 0)
+      return projectedAcpxOptions(
+        name,
+        property.type,
+        base,
+        options,
+        "single_select",
+      );
     const pattern = optionalFixtureText(property.pattern);
     return {
       name,
@@ -553,17 +794,27 @@ function projectAcpxProperty(name, property, index, required) {
         answerMode: "text",
         textValidation: {
           inputType: property.type,
-          ...(Number.isFinite(property.minimum) ? { minimum: property.minimum } : {}),
-          ...(Number.isFinite(property.maximum) ? { maximum: property.maximum } : {}),
+          ...(Number.isFinite(property.minimum)
+            ? { minimum: property.minimum }
+            : {}),
+          ...(Number.isFinite(property.maximum)
+            ? { maximum: property.maximum }
+            : {}),
         },
       },
     };
   }
   if (property.type === "boolean") {
-    return projectedAcpxOptions(name, property.type, base, [
-      { value: "true", label: "Yes" },
-      { value: "false", label: "No" },
-    ], "single_select");
+    return projectedAcpxOptions(
+      name,
+      property.type,
+      base,
+      [
+        { value: "true", label: "Yes" },
+        { value: "false", label: "No" },
+      ],
+      "single_select",
+    );
   }
   return projectedAcpxOptions(
     name,
@@ -607,16 +858,22 @@ function projectedAcpxOptions(name, type, base, nativeOptions, answerMode) {
     return {
       id,
       label: option.label,
-      ...(option.description !== undefined ? { description: option.description } : {}),
+      ...(option.description !== undefined
+        ? { description: option.description }
+        : {}),
     };
   });
-  return { name, type, optionValues, question: { ...base, answerMode, options } };
+  return {
+    name,
+    type,
+    optionValues,
+    question: { ...base, answerMode, options },
+  };
 }
 
 function acpxNativeOptions(property, preferredTitledKey) {
   const alternateTitledKey = preferredTitledKey === "anyOf" ? "oneOf" : "anyOf";
-  const titled = property[preferredTitledKey]
-    ?? property[alternateTitledKey];
+  const titled = property[preferredTitledKey] ?? property[alternateTitledKey];
   if (Array.isArray(titled)) {
     return titled.map((entry) => ({
       value: entry.const,
@@ -626,8 +883,10 @@ function acpxNativeOptions(property, preferredTitledKey) {
         : {}),
     }));
   }
-  return (Array.isArray(property.enum) ? property.enum : [])
-    .map((value) => ({ value, label: value }));
+  return (Array.isArray(property.enum) ? property.enum : []).map((value) => ({
+    value,
+    label: value,
+  }));
 }
 
 function stableAcpxFieldId(value, index) {
@@ -648,25 +907,43 @@ function finiteNonNegativeFixtureInteger(value) {
 }
 
 function canonicalFixtureJson(value) {
-  if (Array.isArray(value)) return `[${value.map(canonicalFixtureJson).join(",")}]`;
+  if (Array.isArray(value))
+    return `[${value.map(canonicalFixtureJson).join(",")}]`;
   if (isPlainRecord(value)) {
-    return `{${Object.keys(value).sort().map((key) =>
-      `${JSON.stringify(key)}:${canonicalFixtureJson(value[key])}`
-    ).join(",")}}`;
+    return `{${Object.keys(value)
+      .sort()
+      .map(
+        (key) => `${JSON.stringify(key)}:${canonicalFixtureJson(value[key])}`,
+      )
+      .join(",")}}`;
   }
   return JSON.stringify(value);
 }
 
 function assertAcpxProperty(name, value) {
   if (!isPlainRecord(value)) {
-    throw contractError("invalid_acpx_question_fixture", `native property ${name}`);
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      `native property ${name}`,
+    );
   }
-  if (!["string", "number", "integer", "boolean", "array"].includes(value.type)) {
-    throw contractError("invalid_acpx_question_fixture", `unsupported native property ${name}`);
+  if (
+    !["string", "number", "integer", "boolean", "array"].includes(value.type)
+  ) {
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      `unsupported native property ${name}`,
+    );
   }
   if (value.type === "array") {
-    if (!isPlainRecord(value.items) || acpxEnumValues(value.items, "anyOf").length === 0) {
-      throw contractError("invalid_acpx_question_fixture", `native array property ${name} requires options`);
+    if (
+      !isPlainRecord(value.items) ||
+      acpxEnumValues(value.items, "anyOf").length === 0
+    ) {
+      throw contractError(
+        "invalid_acpx_question_fixture",
+        `native array property ${name} requires options`,
+      );
     }
   } else if (value.type === "string") {
     acpxEnumValues(value, "oneOf");
@@ -674,45 +951,59 @@ function assertAcpxProperty(name, value) {
 }
 
 function assertAcpxPropertyValue(name, property, value) {
-  const typeMatches = property.type === "string"
-    ? typeof value === "string"
-    : property.type === "number"
-      ? typeof value === "number" && Number.isFinite(value)
-      : property.type === "integer"
-        ? Number.isInteger(value)
-        : property.type === "boolean"
-          ? typeof value === "boolean"
-          : Array.isArray(value) && value.every((item) => typeof item === "string");
+  const typeMatches =
+    property.type === "string"
+      ? typeof value === "string"
+      : property.type === "number"
+        ? typeof value === "number" && Number.isFinite(value)
+        : property.type === "integer"
+          ? Number.isInteger(value)
+          : property.type === "boolean"
+            ? typeof value === "boolean"
+            : Array.isArray(value) &&
+              value.every((item) => typeof item === "string");
   if (!typeMatches) {
-    throw contractError("invalid_acpx_question_fixture", `native response type for ${name}`);
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      `native response type for ${name}`,
+    );
   }
-  const enumValues = property.type === "array"
-    ? acpxEnumValues(property.items, "anyOf")
-    : property.type === "string"
-      ? acpxEnumValues(property, "oneOf")
-      : [];
+  const enumValues =
+    property.type === "array"
+      ? acpxEnumValues(property.items, "anyOf")
+      : property.type === "string"
+        ? acpxEnumValues(property, "oneOf")
+        : [];
   const responseValues = Array.isArray(value) ? value : [value];
-  if (enumValues.length > 0 && responseValues.some((item) => !enumValues.includes(item))) {
-    throw contractError("invalid_acpx_question_fixture", `native response option for ${name}`);
+  if (
+    enumValues.length > 0 &&
+    responseValues.some((item) => !enumValues.includes(item))
+  ) {
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      `native response option for ${name}`,
+    );
   }
 }
 
 function acpxEnumValues(property, preferredTitledKey) {
   if (!isPlainRecord(property)) return [];
   const alternateTitledKey = preferredTitledKey === "anyOf" ? "oneOf" : "anyOf";
-  const titled = property[preferredTitledKey]
-    ?? property[alternateTitledKey];
+  const titled = property[preferredTitledKey] ?? property[alternateTitledKey];
   const values = Array.isArray(titled)
-    ? titled.map((entry) => isPlainRecord(entry) ? entry.const : undefined)
+    ? titled.map((entry) => (isPlainRecord(entry) ? entry.const : undefined))
     : Array.isArray(property.enum)
       ? property.enum
       : [];
   if (
-    !Array.isArray(values)
-    || values.length > 128
-    || values.some((value) => typeof value !== "string" || value.length === 0)
+    !Array.isArray(values) ||
+    values.length > 128 ||
+    values.some((value) => typeof value !== "string" || value.length === 0)
   ) {
-    throw contractError("invalid_acpx_question_fixture", "native options must be non-empty bounded strings");
+    throw contractError(
+      "invalid_acpx_question_fixture",
+      "native options must be non-empty bounded strings",
+    );
   }
   return values;
 }
@@ -723,25 +1014,43 @@ function isPlainRecord(value) {
 
 export function assertConformanceFixturePair(fixture, output) {
   if (fixture?.schemaVersion !== "taskcore.runner.conformance.fixture.v1") {
-    throw contractError("unsupported_required_schema", `conformance fixture requires ${String(fixture?.schemaVersion)}`);
+    throw contractError(
+      "unsupported_required_schema",
+      `conformance fixture requires ${String(fixture?.schemaVersion)}`,
+    );
   }
   if (output?.schemaVersion !== "taskcore.runner.conformance.output.v1") {
-    throw contractError("unsupported_required_schema", `conformance output requires ${String(output?.schemaVersion)}`);
+    throw contractError(
+      "unsupported_required_schema",
+      `conformance output requires ${String(output?.schemaVersion)}`,
+    );
   }
-  if (fixture.run?.runId !== output.runIdentity?.runId || fixture.run?.sessionId !== output.runIdentity?.sessionId) {
-    throw contractError("conformance_identity_mismatch", "run or session identity differs");
+  if (
+    fixture.run?.runId !== output.runIdentity?.runId ||
+    fixture.run?.sessionId !== output.runIdentity?.sessionId
+  ) {
+    throw contractError(
+      "conformance_identity_mismatch",
+      "run or session identity differs",
+    );
   }
   for (const [index, event] of (fixture.events ?? []).entries()) {
     if (event.runId !== fixture.run.runId || event.sequence !== index + 1) {
-      throw contractError("invalid_conformance_event", `events[${index}] does not match the run sequence`);
+      throw contractError(
+        "invalid_conformance_event",
+        `events[${index}] does not match the run sequence`,
+      );
     }
   }
   if (
-    fixture.result?.status !== output.result?.status
-    || fixture.result?.summary !== output.result?.summary
-    || fixture.result?.runId !== fixture.run.runId
+    fixture.result?.status !== output.result?.status ||
+    fixture.result?.summary !== output.result?.summary ||
+    fixture.result?.runId !== fixture.run.runId
   ) {
-    throw contractError("conformance_result_mismatch", "expected output does not match the fixture result");
+    throw contractError(
+      "conformance_result_mismatch",
+      "expected output does not match the fixture result",
+    );
   }
   return { fixture, output };
 }

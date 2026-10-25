@@ -10,13 +10,23 @@ describe("restoreOnboardingState", () => {
   });
 
   it("discards state whose company the user does not own", () => {
-    const saved = { step: 4, companyName: "Old Co", createdCompanyId: "company-old" };
+    const saved = {
+      step: 4,
+      companyName: "Old Co",
+      createdCompanyId: "company-old",
+    };
     expect(restoreOnboardingState(saved, companies)).toBeNull();
   });
 
   it("keeps state for a company the user does own", () => {
-    const saved = { step: 4, companyName: "New Co", createdCompanyId: "company-new" };
-    expect(restoreOnboardingState(saved, companies)?.companyName).toBe("New Co");
+    const saved = {
+      step: 4,
+      companyName: "New Co",
+      createdCompanyId: "company-new",
+    };
+    expect(restoreOnboardingState(saved, companies)?.companyName).toBe(
+      "New Co",
+    );
   });
 
   it("keeps in-progress state that has no company yet", () => {

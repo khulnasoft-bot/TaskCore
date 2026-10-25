@@ -33,9 +33,12 @@ export function createTailscaleRunner(options: { timeoutMs?: number } = {}) {
       },
       cwd: "/",
     });
-    const timedOut = result.error !== undefined && (result.error as NodeJS.ErrnoException).code === "ETIMEDOUT";
+    const timedOut =
+      result.error !== undefined &&
+      (result.error as NodeJS.ErrnoException).code === "ETIMEDOUT";
     return {
-      code: typeof result.status === "number" ? result.status : timedOut ? 124 : 1,
+      code:
+        typeof result.status === "number" ? result.status : timedOut ? 124 : 1,
       stdout: (result.stdout ?? "").toString("utf8").slice(0, MAX_OUTPUT_BYTES),
       stderr: (result.stderr ?? "").toString("utf8").slice(0, MAX_OUTPUT_BYTES),
       timedOut,
@@ -44,7 +47,9 @@ export function createTailscaleRunner(options: { timeoutMs?: number } = {}) {
 }
 
 /** Parse the numeric `major.minor` prefix of `tailscale version` output. */
-export function parseTailscaleVersion(versionOutput: string): { major: number; minor: number } | null {
+export function parseTailscaleVersion(
+  versionOutput: string,
+): { major: number; minor: number } | null {
   const match = /^\s*(\d+)\.(\d+)/.exec(versionOutput);
   return match ? { major: Number(match[1]), minor: Number(match[2]) } : null;
 }
@@ -52,6 +57,7 @@ export function parseTailscaleVersion(versionOutput: string): { major: number; m
 export function isSupportedTailscaleVersion(versionOutput: string): boolean {
   const version = parseTailscaleVersion(versionOutput);
   if (version === null) return false;
-  if (version.major !== MIN_TAILSCALE_VERSION.major) return version.major > MIN_TAILSCALE_VERSION.major;
+  if (version.major !== MIN_TAILSCALE_VERSION.major)
+    return version.major > MIN_TAILSCALE_VERSION.major;
   return version.minor >= MIN_TAILSCALE_VERSION.minor;
 }

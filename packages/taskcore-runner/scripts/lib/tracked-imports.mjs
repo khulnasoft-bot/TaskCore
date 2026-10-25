@@ -10,7 +10,14 @@ export { defaultPackageRoot };
 
 const execFileAsync = promisify(execFile);
 
-const SCANNED_EXTENSIONS = new Set([".cjs", ".js", ".jsx", ".mjs", ".ts", ".tsx"]);
+const SCANNED_EXTENSIONS = new Set([
+  ".cjs",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".ts",
+  ".tsx",
+]);
 // TypeScript resolves an ESM ".js" specifier against its ".ts" source sibling,
 // so a tracked import may legitimately name a file that never exists on disk.
 const JS_TO_SOURCE_EXTENSIONS = new Map([
@@ -57,13 +64,22 @@ function resolutionCandidates(file, specifier) {
   const specifierExtension = extension(specifier);
   const sourceExtensions = JS_TO_SOURCE_EXTENSIONS.get(specifierExtension);
   if (sourceExtensions !== undefined) {
-    const withoutExtension = base.slice(0, base.length - specifierExtension.length);
-    return [base, ...sourceExtensions.map((suffix) => `${withoutExtension}${suffix}`)];
+    const withoutExtension = base.slice(
+      0,
+      base.length - specifierExtension.length,
+    );
+    return [
+      base,
+      ...sourceExtensions.map((suffix) => `${withoutExtension}${suffix}`),
+    ];
   }
   if (specifierExtension !== "") {
     return [base];
   }
-  return [base, ...EXTENSIONLESS_CANDIDATES.map((suffix) => `${base}${suffix}`)];
+  return [
+    base,
+    ...EXTENSIONLESS_CANDIDATES.map((suffix) => `${base}${suffix}`),
+  ];
 }
 
 /**
@@ -125,7 +141,9 @@ export async function checkTrackedImports({
   const trackedSet = new Set(tracked);
   const roots = scanRoots.map((root) => resolve(packageRoot, root));
   const files = tracked
-    .filter((file) => isScannable(file) && roots.some((root) => isInside(root, file)))
+    .filter(
+      (file) => isScannable(file) && roots.some((root) => isInside(root, file)),
+    )
     .sort();
 
   const suspects = [];
@@ -148,12 +166,14 @@ export async function checkTrackedImports({
     }
   }
 
-  const ignored = await listIgnoredPaths(
-    packageRoot,
-    [...new Set(suspects.flatMap((suspect) => suspect.candidates))],
-  );
+  const ignored = await listIgnoredPaths(packageRoot, [
+    ...new Set(suspects.flatMap((suspect) => suspect.candidates)),
+  ]);
   return suspects
-    .filter((suspect) => !suspect.candidates.some((candidate) => ignored.has(candidate)))
+    .filter(
+      (suspect) =>
+        !suspect.candidates.some((candidate) => ignored.has(candidate)),
+    )
     .map(({ file, line, specifier, candidates }) => ({
       file,
       line,
@@ -164,7 +184,8 @@ export async function checkTrackedImports({
     }));
 }
 
-const ENTRY_POINT_TOKEN = /^[A-Za-z0-9._@/-]+\.(?:mjs|cjs|js|jsx|ts|tsx|sh|toml)$/;
+const ENTRY_POINT_TOKEN =
+  /^[A-Za-z0-9._@/-]+\.(?:mjs|cjs|js|jsx|ts|tsx|sh|toml)$/;
 
 /**
  * `package.json` scripts are the other way a commit can depend on a file git
@@ -177,7 +198,9 @@ export async function checkTrackedScriptEntryPoints({
 } = {}) {
   const manifestPath = resolve(packageRoot, "package.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  const trackedSet = new Set(trackedFiles ?? (await listTrackedFiles(packageRoot)));
+  const trackedSet = new Set(
+    trackedFiles ?? (await listTrackedFiles(packageRoot)),
+  );
 
   const suspects = [];
   for (const [name, body] of Object.entries(manifest.scripts ?? {})) {
@@ -189,7 +212,12 @@ export async function checkTrackedScriptEntryPoints({
       if (trackedSet.has(path) || !isInside(packageRoot, path)) {
         continue;
       }
-      suspects.push({ file: manifestPath, script: name, specifier: token, candidates: [path] });
+      suspects.push({
+        file: manifestPath,
+        script: name,
+        specifier: token,
+        candidates: [path],
+      });
     }
   }
 
@@ -207,7 +235,10 @@ export async function checkTrackedScriptEntryPoints({
     }));
 }
 
-export function formatTrackedImportViolation(violation, packageRoot = defaultPackageRoot) {
+export function formatTrackedImportViolation(
+  violation,
+  packageRoot = defaultPackageRoot,
+) {
   return `${relative(packageRoot, violation.file)}:${violation.line} imports ${JSON.stringify(
     violation.specifier,
   )}: ${violation.reason}`;

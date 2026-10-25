@@ -4,10 +4,16 @@ import type { RunAuthority } from "@taskcore/shared";
 import { verifyLocalAgentJwt } from "../agent-auth-jwt.js";
 import { agentRunWritesRevoked } from "../agent-run-cancellation.js";
 import { forbidden } from "../errors.js";
-import { agentIdentityService, supportsManagedAgentIdentity } from "./agent-identity.js";
+import {
+  agentIdentityService,
+  supportsManagedAgentIdentity,
+} from "./agent-identity.js";
 
 /** No actor/session resolution, key provisioning, or run identity capture. */
-export async function customerSuccessRunAuthority(db: Db, bearer: string): Promise<RunAuthority> {
+export async function customerSuccessRunAuthority(
+  db: Db,
+  bearer: string,
+): Promise<RunAuthority> {
   const claims = verifyLocalAgentJwt(bearer, { strictRunAuthority: true });
   if (!claims) throw forbidden("A current managed-run credential is required");
   return db.transaction(
@@ -15,7 +21,12 @@ export async function customerSuccessRunAuthority(db: Db, bearer: string): Promi
       const [agent] = await tx
         .select()
         .from(agents)
-        .where(and(eq(agents.id, claims.sub), eq(agents.companyId, claims.company_id)));
+        .where(
+          and(
+            eq(agents.id, claims.sub),
+            eq(agents.companyId, claims.company_id),
+          ),
+        );
       const [run] = await tx
         .select()
         .from(heartbeatRuns)
@@ -28,7 +39,11 @@ export async function customerSuccessRunAuthority(db: Db, bearer: string): Promi
         );
       if (
         !agent ||
-        !supportsManagedAgentIdentity(agent.adapterType, agent.adapterConfig, run?.driverKind) ||
+        !supportsManagedAgentIdentity(
+          agent.adapterType,
+          agent.adapterConfig,
+          run?.driverKind,
+        ) ||
         !["idle", "running", "active"].includes(agent.status) ||
         !run ||
         run.status !== "running" ||
@@ -36,10 +51,9 @@ export async function customerSuccessRunAuthority(db: Db, bearer: string): Promi
         agentRunWritesRevoked(run)
       )
         throw forbidden("The managed run is not active");
-      const identity = await agentIdentityService(tx as unknown as Db).getPublicIdentity(
-        agent.companyId,
-        agent.id,
-      );
+      const identity = await agentIdentityService(
+        tx as unknown as Db,
+      ).getPublicIdentity(agent.companyId, agent.id);
       if (!identity) throw forbidden("The agent identity is unprovisioned");
       return {
         version: 1,

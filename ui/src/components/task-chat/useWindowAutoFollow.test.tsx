@@ -6,7 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWindowAutoFollow } from "./useWindowAutoFollow";
 import { TaskChatScrollNavigation } from "./scroll-navigation";
 
-function Host({ contentKey, enabled }: { contentKey: unknown; enabled: boolean }) {
+function Host({
+  contentKey,
+  enabled,
+}: {
+  contentKey: unknown;
+  enabled: boolean;
+}) {
   useWindowAutoFollow(contentKey, enabled);
   return <div data-testid="task-chat-thread">thread</div>;
 }
@@ -27,7 +33,10 @@ describe("useWindowAutoFollow", () => {
       get: () => currentScrollHeight,
       configurable: true,
     });
-    Object.defineProperty(window, "innerHeight", { value: innerHeight, configurable: true });
+    Object.defineProperty(window, "innerHeight", {
+      value: innerHeight,
+      configurable: true,
+    });
     return {
       setScrollHeight(value: number) {
         currentScrollHeight = value;
@@ -83,18 +92,42 @@ describe("useWindowAutoFollow", () => {
   });
 
   it("reapplies same-task targets and POP positions on mobile without remounting", async () => {
-    vi.stubGlobal("scrollTo", (options: ScrollToOptions) => setWindowScrollY(Math.min(1200, options.top ?? 0)));
+    vi.stubGlobal("scrollTo", (options: ScrollToOptions) =>
+      setWindowScrollY(Math.min(1200, options.top ?? 0)),
+    );
     function MobileThread() {
       useWindowAutoFollow("unchanged", true);
-      return <div data-testid="task-chat-thread">{[100, 500].map((top, index) => (
-        <div key={index} id={`mobile-comment-${index}`} data-thread-anchor={`mobile-comment-${index}`} ref={(node) => {
-          if (node) node.getBoundingClientRect = () => ({ top: top - window.scrollY, bottom: top + 100 - window.scrollY, height: 100 } as DOMRect);
-        }}>Comment {index}</div>
-      ))}</div>;
+      return (
+        <div data-testid="task-chat-thread">
+          {[100, 500].map((top, index) => (
+            <div
+              key={index}
+              id={`mobile-comment-${index}`}
+              data-thread-anchor={`mobile-comment-${index}`}
+              ref={(node) => {
+                if (node)
+                  node.getBoundingClientRect = () =>
+                    ({
+                      top: top - window.scrollY,
+                      bottom: top + 100 - window.scrollY,
+                      height: 100,
+                    }) as DOMRect;
+              }}
+            >
+              Comment {index}
+            </div>
+          ))}
+        </div>
+      );
     }
-    const navigate = (key: string, hash: string, restore = false) => flushSync(() => root.render(
-      <TaskChatScrollNavigation.Provider value={{ key, hash, restore }}><MobileThread /></TaskChatScrollNavigation.Provider>,
-    ));
+    const navigate = (key: string, hash: string, restore = false) =>
+      flushSync(() =>
+        root.render(
+          <TaskChatScrollNavigation.Provider value={{ key, hash, restore }}>
+            <MobileThread />
+          </TaskChatScrollNavigation.Provider>,
+        ),
+      );
     navigate("mobile-entry-one", "#mobile-comment-0");
     const thread = container.firstElementChild;
     expect(window.scrollY).toBe(100);
@@ -145,8 +178,7 @@ describe("useWindowAutoFollow", () => {
       "ResizeObserver",
       class {
         constructor(callback: ResizeObserverCallback) {
-          triggerResize = () =>
-            callback([], this as unknown as ResizeObserver);
+          triggerResize = () => callback([], this as unknown as ResizeObserver);
         }
         observe() {}
         disconnect() {}
@@ -170,8 +202,7 @@ describe("useWindowAutoFollow", () => {
       "ResizeObserver",
       class {
         constructor(callback: ResizeObserverCallback) {
-          triggerResize = () =>
-            callback([], this as unknown as ResizeObserver);
+          triggerResize = () => callback([], this as unknown as ResizeObserver);
         }
         observe() {}
         disconnect() {}
@@ -192,16 +223,29 @@ describe("useWindowAutoFollow", () => {
   it("follows a late thread resize without a React content update or body resize", async () => {
     const observed = new Set<Element>();
     let resizeThread = () => {};
-    vi.stubGlobal("ResizeObserver", class {
-      constructor(callback: ResizeObserverCallback) {
-        resizeThread = () => {
-          const thread = container.querySelector('[data-testid="task-chat-thread"]')!;
-          if (observed.has(thread)) callback([{ target: thread } as ResizeObserverEntry], this as unknown as ResizeObserver);
-        };
-      }
-      observe(element: Element) { observed.add(element); }
-      disconnect() { observed.clear(); }
-    });
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          resizeThread = () => {
+            const thread = container.querySelector(
+              '[data-testid="task-chat-thread"]',
+            )!;
+            if (observed.has(thread))
+              callback(
+                [{ target: thread } as ResizeObserverEntry],
+                this as unknown as ResizeObserver,
+              );
+          };
+        }
+        observe(element: Element) {
+          observed.add(element);
+        }
+        disconnect() {
+          observed.clear();
+        }
+      },
+    );
     const geometry = fakeWindowGeometry();
     render(0);
     scrollToCalls = [];
@@ -243,13 +287,19 @@ describe("useWindowAutoFollow", () => {
 
   it("follows viewport resizing while pinned and holds it while reading older output", async () => {
     render(0);
-    Object.defineProperty(window, "innerHeight", { value: 600, configurable: true });
+    Object.defineProperty(window, "innerHeight", {
+      value: 600,
+      configurable: true,
+    });
     window.dispatchEvent(new Event("resize"));
     expect(window.scrollY).toBe(1400);
 
     await scrollWindowTo(500);
     scrollToCalls = [];
-    Object.defineProperty(window, "innerHeight", { value: 700, configurable: true });
+    Object.defineProperty(window, "innerHeight", {
+      value: 700,
+      configurable: true,
+    });
     window.dispatchEvent(new Event("resize"));
     expect(scrollToCalls).toHaveLength(0);
   });

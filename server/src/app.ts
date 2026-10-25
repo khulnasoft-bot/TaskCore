@@ -1,19 +1,37 @@
-import { idleAdmissionMiddleware, trackIdleRequestHandlers } from "./middleware/idle-admission.js";
-import { isIdleTaskDrainActive, trackIdleWork } from "./services/task-admission.js";
+import {
+  idleAdmissionMiddleware,
+  trackIdleRequestHandlers,
+} from "./middleware/idle-admission.js";
+import {
+  isIdleTaskDrainActive,
+  trackIdleWork,
+} from "./services/task-admission.js";
 import { customerSuccessRoutes } from "./routes/customer-success.js";
 import { cloudWarmStandbyMiddleware } from "./middleware/cloud-warm-standby.js";
 import type { CloudWarmStandby } from "./services/cloud-warm-standby.js";
 import { browserUseRoutes } from "./routes/browser-use.js";
 import { browserUseService } from "./services/browser-use.js";
 import { slackToolRoutes } from "./routes/slack-tools.js";
-import { createPublicMcpOAuth, publicMcpConfig } from "./services/public-mcp/oauth.js";
+import {
+  createPublicMcpOAuth,
+  publicMcpConfig,
+} from "./services/public-mcp/oauth.js";
 import { createDotRunnerMcpTools } from "./services/dot-runner-broker.js";
 import { agentProfileAvatarRoutes } from "./routes/agent-profile-avatar.js";
 import { dotRunnerRoutes } from "./routes/dot-runner.js";
 import { createPublicMcpTransfers } from "./services/public-mcp/file-transfers.js";
-import { createMcpApiDispatch, createPublicMcpExecutor } from "./services/public-mcp/capabilities.js";
-import { createPublicMcpEvents, type PublicMcpEvents } from "./services/public-mcp/events.js";
-import { publicMcpIngressRoutes, publicMcpManagementRoutes } from "./routes/public-mcp.js";
+import {
+  createMcpApiDispatch,
+  createPublicMcpExecutor,
+} from "./services/public-mcp/capabilities.js";
+import {
+  createPublicMcpEvents,
+  type PublicMcpEvents,
+} from "./services/public-mcp/events.js";
+import {
+  publicMcpIngressRoutes,
+  publicMcpManagementRoutes,
+} from "./routes/public-mcp.js";
 import { agentAvatarRoutes } from "./routes/agent-avatars.js";
 import { decisionModelRoutes } from "./routes/decision-models.js";
 import { aiConnectionRoutes } from "./routes/ai-connections.js";
@@ -157,7 +175,10 @@ import {
   resolveBundledCatalogRoot,
   resolveBundledPluginInstalls,
 } from "./services/bundled-plugins.js";
-import { readDistributionPluginCatalog, distributionPluginActivationGuard } from "./services/distribution-plugin-catalog.js";
+import {
+  readDistributionPluginCatalog,
+  distributionPluginActivationGuard,
+} from "./services/distribution-plugin-catalog.js";
 import {
   createPluginWorkerManager,
   type PluginWorkerManager,
@@ -564,9 +585,14 @@ export async function createApp(
     createChatWebhookDiagnostics(),
     chatWebhookBodyParser,
   );
-  const jsonBodyParser = express.json({ limit: DEFAULT_JSON_BODY_LIMIT, verify: captureRawBody });
+  const jsonBodyParser = express.json({
+    limit: DEFAULT_JSON_BODY_LIMIT,
+    verify: captureRawBody,
+  });
   // File tickets authenticate before parsing bytes; JSON attachments must remain bytes too.
-  app.use((req, res, next) => req.path === "/mcp/files/upload" ? next() : jsonBodyParser(req, res, next));
+  app.use((req, res, next) =>
+    req.path === "/mcp/files/upload" ? next() : jsonBodyParser(req, res, next),
+  );
   app.use("/api", apiCompression());
   app.use(httpLogger);
   const privateHostnameGateEnabled = shouldEnablePrivateHostnameGuard({
@@ -585,8 +611,13 @@ export async function createApp(
     }),
   );
   let mcpConfig: ReturnType<typeof publicMcpConfig> = null;
-  try { mcpConfig = publicMcpConfig(process.env, opts.authPublicBaseUrl); }
-  catch { logger.warn("Assistant connections require an HTTPS public URL (HTTP loopback is allowed for development)."); }
+  try {
+    mcpConfig = publicMcpConfig(process.env, opts.authPublicBaseUrl);
+  } catch {
+    logger.warn(
+      "Assistant connections require an HTTPS public URL (HTTP loopback is allowed for development).",
+    );
+  }
   const publicMcpOAuth = mcpConfig ? createPublicMcpOAuth(db, mcpConfig) : null;
   const publicMcpIngress = Router();
 
@@ -594,7 +625,10 @@ export async function createApp(
   // A signed claim above commits identity before any normal request can seed
   // company data. Unclaimed probes bypass session resolution as well as SQL.
   app.use(cloudWarmStandbyMiddleware(isWarmStandby, health, staticUi));
-  app.use("/api/customer-success/v1", customerSuccessRoutes(db, opts.storageService));
+  app.use(
+    "/api/customer-success/v1",
+    customerSuccessRoutes(db, opts.storageService),
+  );
   app.use(publicMcpIngress);
   // Connection-intent tools carry their own short-lived, run-bound bearer and
   // must be reachable by remote adapters that intentionally do not receive an
@@ -646,13 +680,19 @@ export async function createApp(
   app.get("/api/chat-github/manifest/callback", async (req, res) => {
     res.set("Cache-Control", "no-store");
     res.set("Referrer-Policy", "no-referrer");
-    const redirect = await chatChannels.completeGitHubRegistration(String(req.query.state ?? ""), String(req.query.code ?? ""));
+    const redirect = await chatChannels.completeGitHubRegistration(
+      String(req.query.state ?? ""),
+      String(req.query.code ?? ""),
+    );
     res.redirect(303, redirect);
   });
   const managedAutoInstallKeys = opts.managedPluginAutoInstall ?? null;
   const bundledCatalogRoot =
     opts.bundledPluginCatalogRoot ?? resolveBundledCatalogRoot(process.env);
-  const distributionPlugins = readDistributionPluginCatalog(bundledCatalogRoot, BUNDLED_PLUGIN_CATALOG);
+  const distributionPlugins = readDistributionPluginCatalog(
+    bundledCatalogRoot,
+    BUNDLED_PLUGIN_CATALOG,
+  );
   const bundledPluginInstalls = resolveBundledPluginInstalls(
     managedAutoInstallKeys ?? SELF_HOSTED_AUTO_INSTALL_KEYS,
     {
@@ -833,11 +873,18 @@ export async function createApp(
   api.use(userProfileRoutes(db));
   api.use(sidebarBadgeRoutes(db));
   api.use(sidebarPreferenceRoutes(db));
-  api.use(announcementRoutes(db, { ...opts.announcements, version: opts.hostVersion ?? serverVersion }));
+  api.use(
+    announcementRoutes(db, {
+      ...opts.announcements,
+      version: opts.hostVersion ?? serverVersion,
+    }),
+  );
   api.use(resourceMembershipRoutes(db));
   api.use(primaryAgentRoutes(db));
   api.use(inboxDismissalRoutes(db));
-  api.use(instanceSettingsRoutes(db, workerManager, opts.prepareIdleDatabaseBackup));
+  api.use(
+    instanceSettingsRoutes(db, workerManager, opts.prepareIdleDatabaseBackup),
+  );
   if (opts.databaseBackupService) {
     api.use(instanceDatabaseBackupRoutes(opts.databaseBackupService));
   }
@@ -862,7 +909,10 @@ export async function createApp(
     deploymentExposure: opts.deploymentExposure,
     trustedLocalStdioRuntimeHost,
   });
-  const toolActionDeliveries = toolActionDeliveryService(db, heartbeatService(db, { pluginWorkerManager: workerManager }));
+  const toolActionDeliveries = toolActionDeliveryService(
+    db,
+    heartbeatService(db, { pluginWorkerManager: workerManager }),
+  );
   const toolGateway = createToolGatewayService(db, {
     onToolActionSettled: (id) => toolActionDeliveries.deliver(id),
     pluginToolDispatcher: toolDispatcher,
@@ -875,20 +925,30 @@ export async function createApp(
   // Issue routes are intentionally mounted after the gateway is constructed because
   // issue approval endpoints delegate to it. The intervening routers use distinct
   // route prefixes, so this dependency does not change issue-route precedence.
-  api.use(issueRoutes(db, opts.storageService, {
-    chatRunRetries: chatChannels,
-    feedbackExportService: opts.feedbackExportService,
-    pluginWorkerManager: workerManager,
-    approveToolActionRequest: (input) => toolGateway.approveActionRequest(input),
-    declineToolActionRequest: (input) => toolGateway.declineActionRequest(input),
-  }));
+  api.use(
+    issueRoutes(db, opts.storageService, {
+      chatRunRetries: chatChannels,
+      feedbackExportService: opts.feedbackExportService,
+      pluginWorkerManager: workerManager,
+      approveToolActionRequest: (input) =>
+        toolGateway.approveActionRequest(input),
+      declineToolActionRequest: (input) =>
+        toolGateway.declineActionRequest(input),
+    }),
+  );
   api.use(slackToolRoutes(db, opts.authPublicBaseUrl));
   app.locals.toolGateway = toolGateway;
   registerAssignedMcpGateway(db, toolGateway);
   app.locals.toolActionDeliveries = toolActionDeliveries;
   app.use(mcpGatewayProtocolRoutes(toolGateway));
   api.use(decisionModelRoutes(db));
-  api.use(aiConnectionRoutes(db, { deploymentMode: opts.deploymentMode, deploymentExposure: opts.deploymentExposure, trustedLocalStdioRuntimeHost }));
+  api.use(
+    aiConnectionRoutes(db, {
+      deploymentMode: opts.deploymentMode,
+      deploymentExposure: opts.deploymentExposure,
+      trustedLocalStdioRuntimeHost,
+    }),
+  );
   api.use(
     toolAccessRoutes(db, {
       deploymentMode: opts.deploymentMode,
@@ -925,7 +985,11 @@ export async function createApp(
     {
       localPluginDir: opts.localPluginDir ?? DEFAULT_LOCAL_PLUGIN_DIR,
       migrationDb: opts.pluginMigrationDb,
-      assertPackageActivation: distributionPluginActivationGuard(bundledCatalogRoot, distributionPlugins, managedAutoInstallKeys),
+      assertPackageActivation: distributionPluginActivationGuard(
+        bundledCatalogRoot,
+        distributionPlugins,
+        managedAutoInstallKeys,
+      ),
     },
     {
       workerManager,
@@ -966,9 +1030,21 @@ export async function createApp(
     },
   );
   runtimePluginLoader = loader;
-  const browserUse = browserUseService(db, undefined,
-    { cancelWorkForScope: heartbeatService(db, { pluginWorkerManager: workerManager }).cancelBudgetScopeWork },
-    (session, run) => toolGateway.browserUseSessionAuthorized({ ...session, runId: run.heartbeatRunId, invocationId: run.invocationId }));
+  const browserUse = browserUseService(
+    db,
+    undefined,
+    {
+      cancelWorkForScope: heartbeatService(db, {
+        pluginWorkerManager: workerManager,
+      }).cancelBudgetScopeWork,
+    },
+    (session, run) =>
+      toolGateway.browserUseSessionAuthorized({
+        ...session,
+        runId: run.heartbeatRunId,
+        invocationId: run.invocationId,
+      }),
+  );
   api.use(browserUseRoutes(db, browserUse));
   api.use(toolGatewayRoutes(db, toolGateway));
   api.use(
@@ -1006,16 +1082,42 @@ export async function createApp(
   if (publicMcpOAuth) {
     const dispatch = createMcpApiDispatch(api);
     publicMcpEvents = createPublicMcpEvents(db, publicMcpOAuth, dispatch, {
-      isBackgroundWorkEnabled: () => !isWarmStandby() && !isIdleTaskDrainActive(),
+      isBackgroundWorkEnabled: () =>
+        !isWarmStandby() && !isIdleTaskDrainActive(),
     });
     publicMcpEvents.start();
-    const transfers = createPublicMcpTransfers(db, publicMcpOAuth, dispatch, opts.storageService);
+    const transfers = createPublicMcpTransfers(
+      db,
+      publicMcpOAuth,
+      dispatch,
+      opts.storageService,
+    );
     publicMcpIngress.use(transfers.router);
-    publicMcpIngress.use(publicMcpIngressRoutes(publicMcpOAuth, createPublicMcpExecutor(db, publicMcpOAuth, dispatch, transfers), publicMcpEvents));
-    const dotOAuth = createPublicMcpOAuth(db, { ...publicMcpOAuth.config, resource: publicMcpOAuth.config.origin + "/mcp/runner" });
-    dotMcpEvents = createPublicMcpEvents(db, dotOAuth, dispatch, { enableDotRunner: true, isBackgroundWorkEnabled: () => !isWarmStandby() && !isIdleTaskDrainActive() });
+    publicMcpIngress.use(
+      publicMcpIngressRoutes(
+        publicMcpOAuth,
+        createPublicMcpExecutor(db, publicMcpOAuth, dispatch, transfers),
+        publicMcpEvents,
+      ),
+    );
+    const dotOAuth = createPublicMcpOAuth(db, {
+      ...publicMcpOAuth.config,
+      resource: publicMcpOAuth.config.origin + "/mcp/runner",
+    });
+    dotMcpEvents = createPublicMcpEvents(db, dotOAuth, dispatch, {
+      enableDotRunner: true,
+      isBackgroundWorkEnabled: () =>
+        !isWarmStandby() && !isIdleTaskDrainActive(),
+    });
     dotMcpEvents.start();
-    publicMcpIngress.use(publicMcpIngressRoutes(dotOAuth, createPublicMcpExecutor(db, dotOAuth, dispatch), dotMcpEvents, createDotRunnerMcpTools(db)));
+    publicMcpIngress.use(
+      publicMcpIngressRoutes(
+        dotOAuth,
+        createPublicMcpExecutor(db, dotOAuth, dispatch),
+        dotMcpEvents,
+        createDotRunnerMcpTools(db),
+      ),
+    );
     api.use(publicMcpManagementRoutes(publicMcpOAuth, dotOAuth));
     api.use(dotRunnerRoutes(db, publicMcpOAuth.config.origin + "/mcp/runner"));
   }
@@ -1053,7 +1155,10 @@ export async function createApp(
       );
       // Serve root/index through the same runtime HTML transform as SPA routes.
       staticUi.get(["/", "/index.html"], (_req, res) => {
-        res.type("html").set("Cache-Control", "no-cache").send(readBrandedStaticIndexHtml(uiDist));
+        res
+          .type("html")
+          .set("Cache-Control", "no-cache")
+          .send(readBrandedStaticIndexHtml(uiDist));
       });
       // Non-hashed static files (favicon.ico, manifest, robots.txt, etc.):
       // short cache so operators who swap them out see the new version
@@ -1200,7 +1305,12 @@ export async function createApp(
     }
   };
   const flushPendingFeedbackExports = async () => {
-    if (feedbackExportShuttingDown || isWarmStandby() || isIdleTaskDrainActive()) return;
+    if (
+      feedbackExportShuttingDown ||
+      isWarmStandby() ||
+      isIdleTaskDrainActive()
+    )
+      return;
     try {
       await opts.feedbackExportService?.flushPendingFeedbackTraces();
     } catch (err) {
@@ -1249,18 +1359,24 @@ export async function createApp(
   });
   const unsubscribeChatPublicationSignals = subscribeAllCompanyLiveEvents(
     (event) => {
-      if (!isWarmStandby() && !isIdleTaskDrainActive() && isChatPublicationCommitSignal(event))
+      if (
+        !isWarmStandby() &&
+        !isIdleTaskDrainActive() &&
+        isChatPublicationCommitSignal(event)
+      )
         chatReconciliation.notifyPublications();
     },
   );
   let chatPublicationTimer: ReturnType<typeof setInterval> | null = setInterval(
     () => {
-      if (!isWarmStandby() && !isIdleTaskDrainActive()) chatReconciliation.reconcile();
+      if (!isWarmStandby() && !isIdleTaskDrainActive())
+        chatReconciliation.reconcile();
     },
     CHAT_PUBLICATION_FLUSH_INTERVAL_MS,
   );
   chatPublicationTimer.unref?.();
-  if (!isWarmStandby() && !isIdleTaskDrainActive()) chatReconciliation.reconcile();
+  if (!isWarmStandby() && !isIdleTaskDrainActive())
+    chatReconciliation.reconcile();
   // Abandoned chunked-import spool sweep: hourly (plus once at startup),
   // deleting spool dirs whose transfer saw no activity for 24h and cancelling
   // their still-open ledger runs. Same setInterval + unref + shutdown-clear
@@ -1283,10 +1399,17 @@ export async function createApp(
   };
   const browserUseTimer = setInterval(() => {
     if (isWarmStandby() || isIdleTaskDrainActive()) return;
-    void browserUse.sweep().catch(() => logger.warn("Browser Use reconciliation failed; retrying."));
+    void browserUse
+      .sweep()
+      .catch(() => logger.warn("Browser Use reconciliation failed; retrying."));
   }, 3000);
   browserUseTimer.unref?.();
-  if (!isWarmStandby() && !isIdleTaskDrainActive()) void browserUse.sweep().catch(() => logger.warn("Browser Use startup reconciliation failed; retrying."));
+  if (!isWarmStandby() && !isIdleTaskDrainActive())
+    void browserUse
+      .sweep()
+      .catch(() =>
+        logger.warn("Browser Use startup reconciliation failed; retrying."),
+      );
   let importTransferSweepTimer: ReturnType<typeof setInterval> | null =
     setInterval(
       sweepImportTransferSpools,

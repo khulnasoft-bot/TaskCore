@@ -1,7 +1,12 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import type { AdapterExecutionContext } from "@taskcore/adapter-utils";
 import { createPromptContextFixture } from "@taskcore/adapter-utils/test-fixtures/prompt-context";
-import { execute, mapFinalResultForTest, parseSseFramesForTest, resolveSessionKey } from "./execute.js";
+import {
+  execute,
+  mapFinalResultForTest,
+  parseSseFramesForTest,
+  resolveSessionKey,
+} from "./execute.js";
 import { testEnvironment } from "./test.js";
 
 function makeCtx(config: Record<string, unknown>): AdapterExecutionContext {
@@ -74,21 +79,30 @@ describe("resolveSessionKey", () => {
 
 describe("parseSseFramesForTest", () => {
   it("parses event and data lines while preserving partial frames", () => {
-    const parsed = parseSseFramesForTest("event: message.delta\ndata: {\"delta\":\"hi\"}\n\n:data\ndata: later");
-    expect(parsed.frames).toEqual([{ event: "message.delta", data: "{\"delta\":\"hi\"}" }]);
+    const parsed = parseSseFramesForTest(
+      'event: message.delta\ndata: {"delta":"hi"}\n\n:data\ndata: later',
+    );
+    expect(parsed.frames).toEqual([
+      { event: "message.delta", data: '{"delta":"hi"}' },
+    ]);
     expect(parsed.rest).toBe(":data\ndata: later");
   });
 });
 
 describe("execute", () => {
   it("rejects remote plain HTTP unless the unsafe dev escape hatch is enabled", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ run_id: "unexpected" }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ run_id: "unexpected" }), { status: 200 }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await execute(makeCtx({
-      apiBaseUrl: "http://192.168.1.25:8642",
-      apiKey: "secret-key",
-    }));
+    const result = await execute(
+      makeCtx({
+        apiBaseUrl: "http://192.168.1.25:8642",
+        apiKey: "secret-key",
+      }),
+    );
 
     expect(result.exitCode).toBe(1);
     expect(result.errorCode).toBe("hermes_gateway_plain_http_remote_denied");
@@ -107,15 +121,27 @@ describe("execute", () => {
       const url = String(input);
       if (url.endsWith("/v1/runs")) {
         expect(onDispatch).toHaveBeenCalledTimes(1);
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-1", status: "started" }),
+          { status: 200 },
+        );
       }
       if (url.endsWith("/events")) {
         return new Response(
-          sseStream(["event: run.completed", "data: {\"status\":\"completed\",\"output\":\"done\"}", ""].join("\n")),
+          sseStream(
+            [
+              "event: run.completed",
+              'data: {"status":"completed","output":"done"}',
+              "",
+            ].join("\n"),
+          ),
           { status: 200, headers: { "content-type": "text/event-stream" } },
         );
       }
-      return new Response(JSON.stringify({ status: "completed", output: "done" }), { status: 200 });
+      return new Response(
+        JSON.stringify({ status: "completed", output: "done" }),
+        { status: 200 },
+      );
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -129,88 +155,120 @@ describe("execute", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/v1/runs")) {
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-1", status: "started" }),
+          { status: 200 },
+        );
       }
       if (url.endsWith("/events")) {
         return new Response(
           sseStream(
             [
               "event: message.delta",
-              "data: {\"delta\":\"done\"}",
+              'data: {"delta":"done"}',
               "",
               "event: run.completed",
-              "data: {\"status\":\"completed\",\"output\":\"done\",\"session_id\":\"session-1\",\"usage\":{\"input_tokens\":3,\"output_tokens\":2},\"model\":\"hermes-agent\"}",
+              'data: {"status":"completed","output":"done","session_id":"session-1","usage":{"input_tokens":3,"output_tokens":2},"model":"hermes-agent"}',
               "",
             ].join("\n"),
           ),
           { status: 200, headers: { "content-type": "text/event-stream" } },
         );
       }
-      return new Response(JSON.stringify({ status: "completed", output: "done" }), { status: 200 });
+      return new Response(
+        JSON.stringify({ status: "completed", output: "done" }),
+        { status: 200 },
+      );
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await execute(makeCtx({
-      apiBaseUrl: "http://127.0.0.1:8642",
-      apiKey: "secret-key",
-      timeoutSec: 5,
-    }));
+    const result = await execute(
+      makeCtx({
+        apiBaseUrl: "http://127.0.0.1:8642",
+        apiKey: "secret-key",
+        timeoutSec: 5,
+      }),
+    );
 
     expect(result.exitCode).toBe(0);
     expect(result.summary).toBe("done");
     expect(result.usage).toEqual({ inputTokens: 3, outputTokens: 2 });
 
-    const calls = fetchMock.mock.calls as Array<[RequestInfo | URL, RequestInit?]>;
-    const createCall = calls.find(([input]) => String(input).endsWith("/v1/runs"));
+    const calls = fetchMock.mock.calls as Array<
+      [RequestInfo | URL, RequestInit?]
+    >;
+    const createCall = calls.find(([input]) =>
+      String(input).endsWith("/v1/runs"),
+    );
     expect(createCall).toBeTruthy();
     const init = createCall?.[1] as RequestInit;
     expect(init.headers).toMatchObject({
       Authorization: "Bearer secret-key",
       "Content-Type": "application/json",
       "Idempotency-Key": "pc-run-1",
-      "X-Hermes-Session-Key": "taskcore:company:company-1:agent:agent-1:issue:issue-1",
+      "X-Hermes-Session-Key":
+        "taskcore:company:company-1:agent:agent-1:issue:issue-1",
     });
     const body = JSON.parse(String(init.body));
     expect(body.input).toContain("Do the thing");
-    expect(body.session_id).toBe("taskcore:company:company-1:agent:agent-1:issue:issue-1");
+    expect(body.session_id).toBe(
+      "taskcore:company:company-1:agent:agent-1:issue:issue-1",
+    );
   });
 
-  it.each([false, true])("preserves chat handoff policy on gateway turns (resumed=%s)", async (resumed) => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => new Response(JSON.stringify(
-      String(input).endsWith("/v1/runs")
-        ? { run_id: "run-hermes-1", status: "started" }
-        : { status: "completed", output: "done" },
-    ), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-    const ctx = makeCtx({ apiBaseUrl: "http://127.0.0.1:8642", apiKey: "secret-key", timeoutSec: 5 });
-    ctx.config.payloadTemplate = { input: "Custom gateway instruction." };
-    const directive = "Chat directive: clarify goals and hand plans off to project tasks.";
-    ctx.context = {
-      conversationMode: true,
-      issueId: "issue-1",
-      taskcoreTaskMarkdown: directive,
-      taskcoreTaskMarkdownCompact: directive,
-      taskcoreWake: {
-        reason: "issue_commented",
-        issue: { id: "issue-1", workMode: "planning", status: "in_progress" },
-        interactionKind: "request_confirmation",
-        interactionStatus: "accepted",
-      },
-    };
-    if (resumed) ctx.runtime.sessionId = "prior-session";
-    await execute(ctx);
-    const calls = fetchMock.mock.calls as Array<[RequestInfo | URL, RequestInit?]>;
-    const call = calls.find(([input]) => String(input).endsWith("/v1/runs"));
-    const prompt = JSON.parse(String(call?.[1]?.body)).input as string;
-    expect(prompt).toContain("Custom gateway instruction.");
-    expect(prompt).toContain(directive);
-    expect(prompt).not.toContain("Execution contract:");
-    expect(prompt).not.toContain("clear final disposition");
-    expect(prompt).not.toContain("Create child issues");
-  });
+  it.each([false, true])(
+    "preserves chat handoff policy on gateway turns (resumed=%s)",
+    async (resumed) => {
+      const fetchMock = vi.fn(
+        async (input: RequestInfo | URL) =>
+          new Response(
+            JSON.stringify(
+              String(input).endsWith("/v1/runs")
+                ? { run_id: "run-hermes-1", status: "started" }
+                : { status: "completed", output: "done" },
+            ),
+            { status: 200 },
+          ),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      const ctx = makeCtx({
+        apiBaseUrl: "http://127.0.0.1:8642",
+        apiKey: "secret-key",
+        timeoutSec: 5,
+      });
+      ctx.config.payloadTemplate = { input: "Custom gateway instruction." };
+      const directive =
+        "Chat directive: clarify goals and hand plans off to project tasks.";
+      ctx.context = {
+        conversationMode: true,
+        issueId: "issue-1",
+        taskcoreTaskMarkdown: directive,
+        taskcoreTaskMarkdownCompact: directive,
+        taskcoreWake: {
+          reason: "issue_commented",
+          issue: { id: "issue-1", workMode: "planning", status: "in_progress" },
+          interactionKind: "request_confirmation",
+          interactionStatus: "accepted",
+        },
+      };
+      if (resumed) ctx.runtime.sessionId = "prior-session";
+      await execute(ctx);
+      const calls = fetchMock.mock.calls as Array<
+        [RequestInfo | URL, RequestInit?]
+      >;
+      const call = calls.find(([input]) => String(input).endsWith("/v1/runs"));
+      const prompt = JSON.parse(String(call?.[1]?.body)).input as string;
+      expect(prompt).toContain("Custom gateway instruction.");
+      expect(prompt).toContain(directive);
+      expect(prompt).not.toContain("Execution contract:");
+      expect(prompt).not.toContain("clear final disposition");
+      expect(prompt).not.toContain("Create child issues");
+    },
+  );
 
   it("sends the task brief once on fresh runs and compacts it on stable-session resumes", async () => {
-    const description = "Update launch-card.svg and change the CTA to Try Team free.";
+    const description =
+      "Update launch-card.svg and change the CTA to Try Team free.";
     const fullTaskMarkdown = [
       "Taskcore task context:",
       '- Issue: "PAP-1"',
@@ -220,13 +278,22 @@ describe("execute", () => {
       description,
       "```",
     ].join("\n");
-    const compactTaskMarkdown = ["Taskcore task context:", '- Issue: "PAP-1"'].join("\n");
+    const compactTaskMarkdown = [
+      "Taskcore task context:",
+      '- Issue: "PAP-1"',
+    ].join("\n");
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/v1/runs")) {
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-1", status: "started" }),
+          { status: 200 },
+        );
       }
-      return new Response(JSON.stringify({ status: "completed", output: "done" }), { status: 200 });
+      return new Response(
+        JSON.stringify({ status: "completed", output: "done" }),
+        { status: 200 },
+      );
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -251,11 +318,19 @@ describe("execute", () => {
       },
     });
 
-    const freshCtx = makeCtx({ apiBaseUrl: "http://127.0.0.1:8642", apiKey: "secret-key", timeoutSec: 5 });
+    const freshCtx = makeCtx({
+      apiBaseUrl: "http://127.0.0.1:8642",
+      apiKey: "secret-key",
+      timeoutSec: 5,
+    });
     freshCtx.context = wakeContext("issue_assigned");
     await execute(freshCtx);
 
-    const resumeCtx = makeCtx({ apiBaseUrl: "http://127.0.0.1:8642", apiKey: "secret-key", timeoutSec: 5 });
+    const resumeCtx = makeCtx({
+      apiBaseUrl: "http://127.0.0.1:8642",
+      apiKey: "secret-key",
+      timeoutSec: 5,
+    });
     resumeCtx.context = wakeContext("issue_commented");
     resumeCtx.runtime = {
       sessionId: "session-1",
@@ -265,7 +340,9 @@ describe("execute", () => {
     };
     await execute(resumeCtx);
 
-    const calls = fetchMock.mock.calls as Array<[RequestInfo | URL, RequestInit?]>;
+    const calls = fetchMock.mock.calls as Array<
+      [RequestInfo | URL, RequestInit?]
+    >;
     const runBodies = calls
       .filter(([input]) => String(input).endsWith("/v1/runs"))
       .map(([, init]) => JSON.parse(String(init?.body)) as { input: string });
@@ -277,76 +354,113 @@ describe("execute", () => {
     expect(runBodies[1]!.input).not.toContain(description);
   });
 
-  it.each([false, true])("delivers the shared assignment and ordered comments at the HTTP boundary (resumed=%s)", async (resumed) => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.endsWith("/v1/runs")) {
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "completed", output: "done" }), { status: 200 });
+  it.each([false, true])(
+    "delivers the shared assignment and ordered comments at the HTTP boundary (resumed=%s)",
+    async (resumed) => {
+      const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/v1/runs")) {
+          return new Response(
+            JSON.stringify({
+              run_id: "run-hermes-1",
+              status: "completed",
+              output: "done",
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(
+          JSON.stringify({ status: "completed", output: "done" }),
+          { status: 200 },
+        );
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      const ctx = makeCtx({
+        apiBaseUrl: "http://127.0.0.1:8642",
+        apiKey: "secret-key",
+        timeoutSec: 5,
+        payloadTemplate: { input: "Custom gateway instruction." },
+      });
+      const promptContext = createPromptContextFixture();
+      ctx.context = { ...promptContext, conversationMode: true };
+      if (resumed) ctx.runtime.sessionId = "prior-session";
+
+      const result = await execute(ctx);
+
+      expect(result.exitCode).toBe(0);
+      const calls = fetchMock.mock.calls as Array<
+        [RequestInfo | URL, RequestInit?]
+      >;
+      const runCall = calls.find(([input]) =>
+        String(input).endsWith("/v1/runs"),
+      );
+      const input = JSON.parse(String(runCall?.[1]?.body)).input as string;
+      expect(input).toContain("Custom gateway instruction.");
+      expect(
+        input.indexOf("Append the same ledger entry."),
+      ).toBeGreaterThanOrEqual(0);
+      expect(input.indexOf("Append the same ledger entry.")).toBeLessThan(
+        input.indexOf("Change the final scope to the launch checklist."),
+      );
+      expect(input.split("Append the same ledger entry.")).toHaveLength(3);
+      expect(input).not.toContain("Structured wake payload JSON:");
+      expect(
+        input.split(
+          "Keep this deliberate repetition. Keep this deliberate repetition.",
+        ),
+      ).toHaveLength(2);
+      const continuationHeading = "## Current request and continuation context";
+      const continuationStart = input.indexOf(continuationHeading);
+      const fencedStart = input.indexOf("```text\n", continuationStart);
+      const fencedEnd = input.indexOf(
+        "\n```",
+        fencedStart + "```text\n".length,
+      );
+      expect(continuationStart).toBeGreaterThanOrEqual(0);
+      expect(fencedStart).toBeGreaterThan(continuationStart);
+      expect(fencedEnd).toBeGreaterThan(fencedStart);
+      const continuation = JSON.parse(
+        input.slice(fencedStart + "```text\n".length, fencedEnd),
+      ) as Record<string, unknown>;
+      expect(continuation.objectiveSource).toEqual(
+        promptContext.executionContinuation.objectiveSource,
+      );
+      if (resumed) {
+        expect(input).toContain("## Compact assignment");
+        expect(continuation.objective).toBe(
+          "Keep this deliberate repetition. Keep this deliberate repetition.",
+        );
+      } else {
+        expect(continuation).not.toHaveProperty("objective");
       }
-      return new Response(JSON.stringify({ status: "completed", output: "done" }), { status: 200 });
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    const ctx = makeCtx({
-      apiBaseUrl: "http://127.0.0.1:8642",
-      apiKey: "secret-key",
-      timeoutSec: 5,
-      payloadTemplate: { input: "Custom gateway instruction." },
-    });
-    const promptContext = createPromptContextFixture();
-    ctx.context = { ...promptContext, conversationMode: true };
-    if (resumed) ctx.runtime.sessionId = "prior-session";
-
-    const result = await execute(ctx);
-
-    expect(result.exitCode).toBe(0);
-    const calls = fetchMock.mock.calls as Array<[RequestInfo | URL, RequestInit?]>;
-    const runCall = calls.find(([input]) => String(input).endsWith("/v1/runs"));
-    const input = JSON.parse(String(runCall?.[1]?.body)).input as string;
-    expect(input).toContain("Custom gateway instruction.");
-    expect(input.indexOf("Append the same ledger entry.")).toBeGreaterThanOrEqual(0);
-    expect(input.indexOf("Append the same ledger entry.")).toBeLessThan(input.indexOf("Change the final scope to the launch checklist."));
-    expect(input.split("Append the same ledger entry.")).toHaveLength(3);
-    expect(input).not.toContain("Structured wake payload JSON:");
-    expect(input.split("Keep this deliberate repetition. Keep this deliberate repetition.")).toHaveLength(2);
-    const continuationHeading = "## Current request and continuation context";
-    const continuationStart = input.indexOf(continuationHeading);
-    const fencedStart = input.indexOf("```text\n", continuationStart);
-    const fencedEnd = input.indexOf("\n```", fencedStart + "```text\n".length);
-    expect(continuationStart).toBeGreaterThanOrEqual(0);
-    expect(fencedStart).toBeGreaterThan(continuationStart);
-    expect(fencedEnd).toBeGreaterThan(fencedStart);
-    const continuation = JSON.parse(input.slice(
-      fencedStart + "```text\n".length,
-      fencedEnd,
-    )) as Record<string, unknown>;
-    expect(continuation.objectiveSource).toEqual(promptContext.executionContinuation.objectiveSource);
-    if (resumed) {
-      expect(input).toContain("## Compact assignment");
-      expect(continuation.objective).toBe("Keep this deliberate repetition. Keep this deliberate repetition.");
-    } else {
-      expect(continuation).not.toHaveProperty("objective");
-    }
-  });
+    },
+  );
 
   it("routes a bare Hermes dashboard URL on port 9119 through the API prefix", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "http://127.0.0.1:9119/api/v1/runs") {
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-1", status: "started" }),
+          { status: 200 },
+        );
       }
       if (url === "http://127.0.0.1:9119/api/v1/runs/run-hermes-1/events") {
         return new Response(
           sseStream(
             [
               "event: run.completed",
-              "data: {\"status\":\"completed\",\"output\":\"done\"}",
+              'data: {"status":"completed","output":"done"}',
               "",
             ].join("\n"),
           ),
           { status: 200, headers: { "content-type": "text/event-stream" } },
         );
       }
-      return new Response(JSON.stringify({ status: "completed", output: "done" }), { status: 200 });
+      return new Response(
+        JSON.stringify({ status: "completed", output: "done" }),
+        { status: 200 },
+      );
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -363,8 +477,11 @@ describe("execute", () => {
         commandArgs: ["http://127.0.0.1:9119/api/v1/runs"],
       }),
     );
-    expect((ctx.onLog as ReturnType<typeof vi.fn>).mock.calls.map(([, line]) => String(line)).join("\n"))
-      .toContain("creating run at http://127.0.0.1:9119/api/v1/runs");
+    expect(
+      (ctx.onLog as ReturnType<typeof vi.fn>).mock.calls
+        .map(([, line]) => String(line))
+        .join("\n"),
+    ).toContain("creating run at http://127.0.0.1:9119/api/v1/runs");
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual(
       expect.arrayContaining([
         "http://127.0.0.1:9119/api/v1/runs",
@@ -378,27 +495,43 @@ describe("execute", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/v1/runs")) {
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-1", status: "started" }),
+          { status: 200 },
+        );
       }
-      return new Response(JSON.stringify({ status: "completed", output: "done" }), { status: 200 });
+      return new Response(
+        JSON.stringify({ status: "completed", output: "done" }),
+        { status: 200 },
+      );
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const ctx = makeCtx({ apiBaseUrl: "http://127.0.0.1:8642", apiKey: "secret-key" });
+    const ctx = makeCtx({
+      apiBaseUrl: "http://127.0.0.1:8642",
+      apiKey: "secret-key",
+    });
     ctx.context = {
       issueId: "issue-1",
-      taskcoreTaskMarkdown: [
-        "Taskcore task context:",
-        '- Issue: "PAP-1"',
-      ].join("\n"),
+      taskcoreTaskMarkdown: ["Taskcore task context:", '- Issue: "PAP-1"'].join(
+        "\n",
+      ),
       taskcoreTurnContext: {
         version: 1,
         assignment: { owner: "task_markdown" },
-        events: { owner: "wake_prompt", comments: [{ id: "comment-1", revision: "rev-1" }] },
+        events: {
+          owner: "wake_prompt",
+          comments: [{ id: "comment-1", revision: "rev-1" }],
+        },
       },
       taskcoreWake: {
         reason: "issue_commented",
-        issue: { id: "issue-1", identifier: "PAP-1", title: "Do the thing", status: "in_progress" },
+        issue: {
+          id: "issue-1",
+          identifier: "PAP-1",
+          title: "Do the thing",
+          status: "in_progress",
+        },
         commentWindow: { requestedCount: 1, includedCount: 1, missingCount: 0 },
         comments: [{ id: "comment-1", body: commentBody }],
         fallbackFetchNeeded: false,
@@ -406,7 +539,9 @@ describe("execute", () => {
     };
 
     await execute(ctx);
-    const calls = fetchMock.mock.calls as Array<[RequestInfo | URL, RequestInit?]>;
+    const calls = fetchMock.mock.calls as Array<
+      [RequestInfo | URL, RequestInit?]
+    >;
     const runCall = calls.find(([input]) => String(input).endsWith("/v1/runs"));
     const prompt = JSON.parse(String(runCall?.[1]?.body)).input as string;
     expect(prompt.split(commentBody)).toHaveLength(2);
@@ -416,21 +551,27 @@ describe("execute", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "http://127.0.0.1:9119/api/v1/runs") {
-        return new Response(JSON.stringify({ run_id: "run-hermes-chat", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-chat", status: "started" }),
+          { status: 200 },
+        );
       }
       if (url === "http://127.0.0.1:9119/api/v1/runs/run-hermes-chat/events") {
         return new Response(
           sseStream(
             [
               "event: run.completed",
-              "data: {\"status\":\"completed\",\"output\":\"done\"}",
+              'data: {"status":"completed","output":"done"}',
               "",
             ].join("\n"),
           ),
           { status: 200, headers: { "content-type": "text/event-stream" } },
         );
       }
-      return new Response(JSON.stringify({ status: "completed", output: "done" }), { status: 200 });
+      return new Response(
+        JSON.stringify({ status: "completed", output: "done" }),
+        { status: 200 },
+      );
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -464,41 +605,52 @@ describe("execute", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/v1/runs")) {
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-1", status: "started" }),
+          { status: 200 },
+        );
       }
       if (url.endsWith("/events")) {
         return new Response(
           sseStream(
             [
               "event: message.delta",
-              "data: {\"delta\":\"Authorization: Bearer secret-key\\nX-Hermes-Session-Key: taskcore:company:company-1:agent:agent-1:issue:issue-1\"}",
+              'data: {"delta":"Authorization: Bearer secret-key\\nX-Hermes-Session-Key: taskcore:company:company-1:agent:agent-1:issue:issue-1"}',
               "",
               "event: run.completed",
-              "data: {\"status\":\"completed\",\"output\":\"Authorization: Bearer secret-key\\nraw key secret-key\\nX-Hermes-Session-Key: taskcore:company:company-1:agent:agent-1:issue:issue-1\"}",
+              'data: {"status":"completed","output":"Authorization: Bearer secret-key\\nraw key secret-key\\nX-Hermes-Session-Key: taskcore:company:company-1:agent:agent-1:issue:issue-1"}',
               "",
             ].join("\n"),
           ),
           { status: 200, headers: { "content-type": "text/event-stream" } },
         );
       }
-      return new Response(JSON.stringify({ status: "completed" }), { status: 200 });
+      return new Response(JSON.stringify({ status: "completed" }), {
+        status: 200,
+      });
     });
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await execute(ctx);
-    const logText = (ctx.onLog as ReturnType<typeof vi.fn>).mock.calls.map(([, line]) => String(line)).join("\n");
+    const logText = (ctx.onLog as ReturnType<typeof vi.fn>).mock.calls
+      .map(([, line]) => String(line))
+      .join("\n");
 
     expect(result.exitCode).toBe(0);
     expect(result.summary).toContain("Bearer [redacted]");
     expect(result.summary).toContain("raw key [redacted len=10]");
     expect(result.summary).toContain("X-Hermes-Session-Key: [redacted]");
     expect(result.summary).not.toContain("secret-key");
-    expect(result.summary).not.toContain("taskcore:company:company-1:agent:agent-1:issue:issue-1");
+    expect(result.summary).not.toContain(
+      "taskcore:company:company-1:agent:agent-1:issue:issue-1",
+    );
     expect(result.resultJson?.output).toBe(result.summary);
     expect(logText).toContain("Bearer [redacted]");
     expect(logText).toContain("X-Hermes-Session-Key: [redacted]");
     expect(logText).not.toContain("secret-key");
-    expect(logText).not.toContain("taskcore:company:company-1:agent:agent-1:issue:issue-1");
+    expect(logText).not.toContain(
+      "taskcore:company:company-1:agent:agent-1:issue:issue-1",
+    );
   });
 
   it("redacts agent-scoped Taskcore session keys from logs and public result metadata", async () => {
@@ -512,7 +664,10 @@ describe("execute", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/v1/runs")) {
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-1", status: "started" }),
+          { status: 200 },
+        );
       }
       if (url.endsWith("/events")) {
         return new Response(
@@ -529,12 +684,16 @@ describe("execute", () => {
           { status: 200, headers: { "content-type": "text/event-stream" } },
         );
       }
-      return new Response(JSON.stringify({ status: "completed" }), { status: 200 });
+      return new Response(JSON.stringify({ status: "completed" }), {
+        status: 200,
+      });
     });
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await execute(ctx);
-    const logText = (ctx.onLog as ReturnType<typeof vi.fn>).mock.calls.map(([, line]) => String(line)).join("\n");
+    const logText = (ctx.onLog as ReturnType<typeof vi.fn>).mock.calls
+      .map(([, line]) => String(line))
+      .join("\n");
 
     expect(result.exitCode).toBe(0);
     expect(result.summary).toBe("session [redacted-session-key]");
@@ -553,53 +712,83 @@ describe("execute", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/v1/runs")) {
-        return new Response(JSON.stringify({ run_id: "run-hermes-1", status: "started" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ run_id: "run-hermes-1", status: "started" }),
+          { status: 200 },
+        );
       }
       if (url.endsWith("/events")) {
         return new Response("no stream", { status: 503 });
       }
-      return new Response(JSON.stringify({
-        status: "completed",
-        output: "polled done",
-        session_id: "session-polled",
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          status: "completed",
+          output: "polled done",
+          session_id: "session-polled",
+        }),
+        { status: 200 },
+      );
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await execute(makeCtx({
-      apiBaseUrl: "http://127.0.0.1:8642",
-      apiKey: "secret-key",
-      timeoutSec: 5,
-      pollIntervalMs: 250,
-    }));
+    const result = await execute(
+      makeCtx({
+        apiBaseUrl: "http://127.0.0.1:8642",
+        apiKey: "secret-key",
+        timeoutSec: 5,
+        pollIntervalMs: 250,
+      }),
+    );
 
     expect(result.exitCode).toBe(0);
     expect(result.summary).toBe("polled done");
-    expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith("/v1/runs/run-hermes-1"))).toBe(true);
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith("/v1/runs/run-hermes-1"),
+      ),
+    ).toBe(true);
   });
 
   it("maps HTTP auth failures", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "bad key" }), { status: 401 })));
-    const result = await execute(makeCtx({
-      apiBaseUrl: "http://127.0.0.1:8642",
-      apiKey: "secret-key",
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: "bad key" }), { status: 401 }),
+      ),
+    );
+    const result = await execute(
+      makeCtx({
+        apiBaseUrl: "http://127.0.0.1:8642",
+        apiKey: "secret-key",
+      }),
+    );
     expect(result.exitCode).toBe(1);
     expect(result.errorCode).toBe("hermes_gateway_auth_failed");
-    expect(result.errorMessage).toContain("Check adapterConfig.apiKey matches the Hermes API_SERVER_KEY");
+    expect(result.errorMessage).toContain(
+      "Check adapterConfig.apiKey matches the Hermes API_SERVER_KEY",
+    );
   });
 
   it("includes network causes in connection failure messages", async () => {
-    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND host.docker.internal"), { code: "ENOTFOUND" });
-    vi.stubGlobal("fetch", vi.fn(async () => {
-      throw Object.assign(new Error("fetch failed"), { cause });
-    }));
+    const cause = Object.assign(
+      new Error("getaddrinfo ENOTFOUND host.docker.internal"),
+      { code: "ENOTFOUND" },
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw Object.assign(new Error("fetch failed"), { cause });
+      }),
+    );
 
-    const result = await execute(makeCtx({
-      apiBaseUrl: "http://host.docker.internal:8642",
-      apiKey: "secret-key",
-      dangerouslyAllowInsecureRemoteHttp: true,
-    }));
+    const result = await execute(
+      makeCtx({
+        apiBaseUrl: "http://host.docker.internal:8642",
+        apiKey: "secret-key",
+        dangerouslyAllowInsecureRemoteHttp: true,
+      }),
+    );
 
     expect(result.exitCode).toBe(1);
     expect(result.errorCode).toBe("hermes_gateway_connect_failed");
@@ -608,67 +797,222 @@ describe("execute", () => {
   });
 
   it.each([
-    ["http://127.0.0.1:8642", { code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 8642 }],
-    ["http://[::1]:8642", { code: "ECONNREFUSED", syscall: "connect", address: "::1", port: 8642 }],
-    ["http://localhost:8642", { code: "ECONNREFUSED", errors: [
+    [
+      "http://127.0.0.1:8642",
+      {
+        code: "ECONNREFUSED",
+        syscall: "connect",
+        address: "127.0.0.1",
+        port: 8642,
+      },
+    ],
+    [
+      "http://[::1]:8642",
       { code: "ECONNREFUSED", syscall: "connect", address: "::1", port: 8642 },
-      { code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 8642 },
-    ] }],
-    ["https://localhost", { code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 443 }],
-    ["http://localhost", { code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 80 }],
-  ])("explains the server-side loopback gateway at %s without claiming non-dispatch", async (apiBaseUrl, cause) => {
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      throw Object.assign(new Error("fetch failed"), { cause });
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    const ctx = makeCtx({ apiBaseUrl, apiKey: "gateway-private-key" });
-    ctx.onDispatch = vi.fn();
-    const result = await execute(ctx);
+    ],
+    [
+      "http://localhost:8642",
+      {
+        code: "ECONNREFUSED",
+        errors: [
+          {
+            code: "ECONNREFUSED",
+            syscall: "connect",
+            address: "::1",
+            port: 8642,
+          },
+          {
+            code: "ECONNREFUSED",
+            syscall: "connect",
+            address: "127.0.0.1",
+            port: 8642,
+          },
+        ],
+      },
+    ],
+    [
+      "https://localhost",
+      {
+        code: "ECONNREFUSED",
+        syscall: "connect",
+        address: "127.0.0.1",
+        port: 443,
+      },
+    ],
+    [
+      "http://localhost",
+      {
+        code: "ECONNREFUSED",
+        syscall: "connect",
+        address: "127.0.0.1",
+        port: 80,
+      },
+    ],
+  ])(
+    "explains the server-side loopback gateway at %s without claiming non-dispatch",
+    async (apiBaseUrl, cause) => {
+      const fetchMock = vi.fn(
+        async (_input: RequestInfo | URL, _init?: RequestInit) => {
+          throw Object.assign(new Error("fetch failed"), { cause });
+        },
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      const ctx = makeCtx({ apiBaseUrl, apiKey: "gateway-private-key" });
+      ctx.onDispatch = vi.fn();
+      const result = await execute(ctx);
 
-    expect(result.errorMessage).toContain("refers to the Taskcore server, not an agent sandbox");
-    expect(result.errorMessage).toContain("adapterConfig.apiBaseUrl");
-    expect(result.errorMessage).toContain("hermes_local");
-    expect(result.errorMessage).not.toContain("gateway-private-key");
-    expect(result.errorMeta).toEqual({ category: "gateway_loopback_connection_refused", phase: "create_run" });
-    expect(result).toMatchObject({ exitCode: 1, signal: null, timedOut: false,
-      errorCode: "hermes_gateway_connect_failed", errorFamily: "transient_upstream", retryNotBefore: null });
-    expect(result.executionRecovery).toBeUndefined();
-    expect(result.resultJson).toEqual({ connectionFailure: {
-      schemaVersion: 1, provider: "hermes_gateway", operation: "create_run", reason: "connection_refused",
-    } });
-    expect(ctx.onDispatch).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(fetchMock.mock.calls[0]?.[1]?.redirect).toBeUndefined();
-  });
+      expect(result.errorMessage).toContain(
+        "refers to the Taskcore server, not an agent sandbox",
+      );
+      expect(result.errorMessage).toContain("adapterConfig.apiBaseUrl");
+      expect(result.errorMessage).toContain("hermes_local");
+      expect(result.errorMessage).not.toContain("gateway-private-key");
+      expect(result.errorMeta).toEqual({
+        category: "gateway_loopback_connection_refused",
+        phase: "create_run",
+      });
+      expect(result).toMatchObject({
+        exitCode: 1,
+        signal: null,
+        timedOut: false,
+        errorCode: "hermes_gateway_connect_failed",
+        errorFamily: "transient_upstream",
+        retryNotBefore: null,
+      });
+      expect(result.executionRecovery).toBeUndefined();
+      expect(result.resultJson).toEqual({
+        connectionFailure: {
+          schemaVersion: 1,
+          provider: "hermes_gateway",
+          operation: "create_run",
+          reason: "connection_refused",
+        },
+      });
+      expect(ctx.onDispatch).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(fetchMock.mock.calls[0]?.[1]?.redirect).toBeUndefined();
+    },
+  );
 
   it.each([
-    ["https://gateway.example.test:8642", { code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 8642 }],
-    ["http://localhost:8642", { code: "ECONNREFUSED", syscall: "connect", address: "192.0.2.1", port: 8642 }],
-    ["http://localhost:8642", { code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 9000 }],
-    ["http://127.0.0.2:8642", { code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 8642 }],
-    ["http://localhost:8642", { code: "ETIMEDOUT", syscall: "connect", address: "127.0.0.1", port: 8642 }],
-    ["http://localhost:8642", { code: "EHOSTUNREACH", syscall: "connect", address: "127.0.0.1", port: 8642 }],
-    ["http://localhost:8642", { code: "ECONNREFUSED", address: "127.0.0.1", port: 8642 }],
-    ["http://localhost:8642", { message: "ECONNREFUSED connect 127.0.0.1:8642" }],
+    [
+      "https://gateway.example.test:8642",
+      {
+        code: "ECONNREFUSED",
+        syscall: "connect",
+        address: "127.0.0.1",
+        port: 8642,
+      },
+    ],
+    [
+      "http://localhost:8642",
+      {
+        code: "ECONNREFUSED",
+        syscall: "connect",
+        address: "192.0.2.1",
+        port: 8642,
+      },
+    ],
+    [
+      "http://localhost:8642",
+      {
+        code: "ECONNREFUSED",
+        syscall: "connect",
+        address: "127.0.0.1",
+        port: 9000,
+      },
+    ],
+    [
+      "http://127.0.0.2:8642",
+      {
+        code: "ECONNREFUSED",
+        syscall: "connect",
+        address: "127.0.0.1",
+        port: 8642,
+      },
+    ],
+    [
+      "http://localhost:8642",
+      {
+        code: "ETIMEDOUT",
+        syscall: "connect",
+        address: "127.0.0.1",
+        port: 8642,
+      },
+    ],
+    [
+      "http://localhost:8642",
+      {
+        code: "EHOSTUNREACH",
+        syscall: "connect",
+        address: "127.0.0.1",
+        port: 8642,
+      },
+    ],
+    [
+      "http://localhost:8642",
+      { code: "ECONNREFUSED", address: "127.0.0.1", port: 8642 },
+    ],
+    [
+      "http://localhost:8642",
+      { message: "ECONNREFUSED connect 127.0.0.1:8642" },
+    ],
     ["http://localhost:8642", { code: "ECONNREFUSED", errors: [] }],
-    ["http://localhost:8642", { code: "ECONNREFUSED", errors: [
-      { code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 8642 },
-      { code: "ETIMEDOUT", syscall: "connect", address: "::1", port: 8642 },
-    ] }],
-  ])("keeps ambiguous or nonmatching transport errors generic at %s", async (apiBaseUrl, cause) => {
-    vi.stubGlobal("fetch", vi.fn(async () => { throw Object.assign(new Error("fetch failed"), { cause }); }));
-    const result = await execute(makeCtx({ apiBaseUrl, apiKey: "secret-key" }));
-    expect(result.errorCode).toBe("hermes_gateway_connect_failed");
-    expect(result.errorMessage).not.toContain("refers to the Taskcore server");
-    expect(result.errorMeta).toEqual({});
-    expect(result.executionRecovery).toBeUndefined();
-  });
+    [
+      "http://localhost:8642",
+      {
+        code: "ECONNREFUSED",
+        errors: [
+          {
+            code: "ECONNREFUSED",
+            syscall: "connect",
+            address: "127.0.0.1",
+            port: 8642,
+          },
+          { code: "ETIMEDOUT", syscall: "connect", address: "::1", port: 8642 },
+        ],
+      },
+    ],
+  ])(
+    "keeps ambiguous or nonmatching transport errors generic at %s",
+    async (apiBaseUrl, cause) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => {
+          throw Object.assign(new Error("fetch failed"), { cause });
+        }),
+      );
+      const result = await execute(
+        makeCtx({ apiBaseUrl, apiKey: "secret-key" }),
+      );
+      expect(result.errorCode).toBe("hermes_gateway_connect_failed");
+      expect(result.errorMessage).not.toContain(
+        "refers to the Taskcore server",
+      );
+      expect(result.errorMeta).toEqual({});
+      expect(result.executionRecovery).toBeUndefined();
+    },
+  );
 
   it("does not infer loopback refusal from an HTTP provider response", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      code: "ECONNREFUSED", syscall: "connect", address: "127.0.0.1", port: 8642,
-    }), { status: 503 })));
-    const result = await execute(makeCtx({ apiBaseUrl: "http://127.0.0.1:8642", apiKey: "secret-key" }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              code: "ECONNREFUSED",
+              syscall: "connect",
+              address: "127.0.0.1",
+              port: 8642,
+            }),
+            { status: 503 },
+          ),
+      ),
+    );
+    const result = await execute(
+      makeCtx({ apiBaseUrl: "http://127.0.0.1:8642", apiKey: "secret-key" }),
+    );
     expect(result.errorCode).toBe("hermes_gateway_upstream_error");
     expect(result.errorMeta?.category).toBeUndefined();
     expect(result.errorMessage).not.toContain("refers to the Taskcore server");
@@ -678,92 +1022,146 @@ describe("execute", () => {
   it("redacts echoed auth material from HTTP error payloads", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            message: "Authorization rejected: Bearer secret-key raw secret-key",
-            detail: "X-Hermes-Session-Key: taskcore:company:company-1:agent:agent-1:issue:issue-1",
-            nested: {
-              note: "session taskcore:company:company-1:agent:agent-1",
-            },
-          }),
-          { status: 401 },
-        )),
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              message:
+                "Authorization rejected: Bearer secret-key raw secret-key",
+              detail:
+                "X-Hermes-Session-Key: taskcore:company:company-1:agent:agent-1:issue:issue-1",
+              nested: {
+                note: "session taskcore:company:company-1:agent:agent-1",
+              },
+            }),
+            { status: 401 },
+          ),
+      ),
     );
 
-    const result = await execute(makeCtx({
-      apiBaseUrl: "http://127.0.0.1:8642",
-      apiKey: "secret-key",
-    }));
+    const result = await execute(
+      makeCtx({
+        apiBaseUrl: "http://127.0.0.1:8642",
+        apiKey: "secret-key",
+      }),
+    );
 
     expect(result.exitCode).toBe(1);
     expect(result.errorCode).toBe("hermes_gateway_auth_failed");
     expect(result.errorMeta?.body).toEqual({
-      message: "Authorization rejected: Bearer [redacted] raw [redacted len=10]",
+      message:
+        "Authorization rejected: Bearer [redacted] raw [redacted len=10]",
       detail: "X-Hermes-Session-Key: [redacted]",
       nested: {
         note: "session [redacted-session-key]",
       },
     });
     expect(result.errorMessage).not.toContain("secret-key");
-    expect(result.errorMessage).not.toContain("taskcore:company:company-1:agent:agent-1:issue:issue-1");
+    expect(result.errorMessage).not.toContain(
+      "taskcore:company:company-1:agent:agent-1:issue:issue-1",
+    );
   });
 
   it("calls stop on timeout", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.endsWith("/v1/runs")) {
-        return new Response(JSON.stringify({ run_id: "run-slow", status: "started" }), { status: 200 });
-      }
-      if (url.endsWith("/events")) {
-        return new Promise<Response>(() => {});
-      }
-      if (url.endsWith("/stop")) {
-        return new Response(JSON.stringify({ status: "stopping" }), { status: 200 });
-      }
-      if (init?.method === "GET") {
-        return new Response(JSON.stringify({ status: "cancelled", last_event: "run.cancelled" }), { status: 200 });
-      }
-      return new Response(JSON.stringify({ status: "running" }), { status: 200 });
-    });
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/v1/runs")) {
+          return new Response(
+            JSON.stringify({ run_id: "run-slow", status: "started" }),
+            { status: 200 },
+          );
+        }
+        if (url.endsWith("/events")) {
+          return new Promise<Response>(() => {});
+        }
+        if (url.endsWith("/stop")) {
+          return new Response(JSON.stringify({ status: "stopping" }), {
+            status: 200,
+          });
+        }
+        if (init?.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              status: "cancelled",
+              last_event: "run.cancelled",
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(JSON.stringify({ status: "running" }), {
+          status: 200,
+        });
+      },
+    );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await execute(makeCtx({
-      apiBaseUrl: "http://127.0.0.1:8642",
-      apiKey: "secret-key",
-      timeoutSec: 0.001,
-    }));
+    const result = await execute(
+      makeCtx({
+        apiBaseUrl: "http://127.0.0.1:8642",
+        apiKey: "secret-key",
+        timeoutSec: 0.001,
+      }),
+    );
 
     expect(result.timedOut).toBe(true);
     expect(result.errorCode).toBe("hermes_gateway_timeout");
-    expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith("/stop"))).toBe(true);
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith("/stop")),
+    ).toBe(true);
   });
 });
 
 describe("gateway connection failure reporting", () => {
-  const config = { apiBaseUrl: "https://gateway.example.test", apiKey: "gateway-private-key" };
+  const config = {
+    apiBaseUrl: "https://gateway.example.test",
+    apiKey: "gateway-private-key",
+  };
   const marker = (operation: string, reason: string) => ({
-    schemaVersion: 1, provider: "hermes_gateway", operation, reason,
+    schemaVersion: 1,
+    provider: "hermes_gateway",
+    operation,
+    reason,
   });
 
   it.each([
     [{}, "api_base_url_missing", "endpoint_missing"],
     [{ apiBaseUrl: "not a URL" }, "api_base_url_invalid", "endpoint_invalid"],
-    [{ apiBaseUrl: "ftp://gateway.example.test" }, "api_base_url_invalid", "endpoint_invalid"],
-    [{ apiBaseUrl: "http://gateway.example.test" }, "plain_http_remote_denied", "insecure_transport"],
-    [{ apiBaseUrl: config.apiBaseUrl }, "api_key_missing", "credentials_missing"],
-  ])("classifies configuration failure %s without dispatch", async (settings, code, reason) => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    const ctx = makeCtx(settings);
-    ctx.onDispatch = vi.fn();
-    const result = await execute(ctx);
-    expect(result).toMatchObject({ exitCode: 1, signal: null, timedOut: false,
-      errorCode: `hermes_gateway_${code}`, resultJson: { connectionFailure: marker("configuration", reason) } });
-    expect(result.errorMessage).toBeTruthy();
-    expect(ctx.onDispatch).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
+    [
+      { apiBaseUrl: "ftp://gateway.example.test" },
+      "api_base_url_invalid",
+      "endpoint_invalid",
+    ],
+    [
+      { apiBaseUrl: "http://gateway.example.test" },
+      "plain_http_remote_denied",
+      "insecure_transport",
+    ],
+    [
+      { apiBaseUrl: config.apiBaseUrl },
+      "api_key_missing",
+      "credentials_missing",
+    ],
+  ])(
+    "classifies configuration failure %s without dispatch",
+    async (settings, code, reason) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const ctx = makeCtx(settings);
+      ctx.onDispatch = vi.fn();
+      const result = await execute(ctx);
+      expect(result).toMatchObject({
+        exitCode: 1,
+        signal: null,
+        timedOut: false,
+        errorCode: `hermes_gateway_${code}`,
+        resultJson: { connectionFailure: marker("configuration", reason) },
+      });
+      expect(result.errorMessage).toBeTruthy();
+      expect(ctx.onDispatch).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     [401, "auth_failed", "authentication_failed", null],
@@ -773,111 +1171,226 @@ describe("gateway connection failure reporting", () => {
     [500, "upstream_error", "remote_unavailable", "transient_upstream"],
     [503, "upstream_error", "remote_unavailable", "transient_upstream"],
     [599, "upstream_error", "remote_unavailable", "transient_upstream"],
-  ])("classifies HTTP %i without changing retry or dispatch behavior", async (status, code, reason, errorFamily) => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ detail: "remote failure" }), {
-      status, headers: { "retry-after": "7" },
-    }));
-    vi.stubGlobal("fetch", fetchMock);
-    const ctx = makeCtx(config);
-    ctx.onDispatch = vi.fn();
-    const result = await execute(ctx);
-    expect(result).toMatchObject({ exitCode: 1, signal: null, timedOut: false,
-      errorCode: `hermes_gateway_${code}`, errorFamily, retryNotBefore: "7",
-      errorMeta: { status, body: { detail: "remote failure" } },
-      resultJson: { connectionFailure: marker("create_run", reason) } });
-    expect(result.errorMessage).toContain(`Hermes gateway HTTP ${status}`);
-    expect(result.executionRecovery).toBeUndefined();
-    expect(ctx.onDispatch).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(Object.keys(result.resultJson ?? {})).toEqual(["connectionFailure"]);
-  });
+  ])(
+    "classifies HTTP %i without changing retry or dispatch behavior",
+    async (status, code, reason, errorFamily) => {
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(JSON.stringify({ detail: "remote failure" }), {
+            status,
+            headers: { "retry-after": "7" },
+          }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      const ctx = makeCtx(config);
+      ctx.onDispatch = vi.fn();
+      const result = await execute(ctx);
+      expect(result).toMatchObject({
+        exitCode: 1,
+        signal: null,
+        timedOut: false,
+        errorCode: `hermes_gateway_${code}`,
+        errorFamily,
+        retryNotBefore: "7",
+        errorMeta: { status, body: { detail: "remote failure" } },
+        resultJson: { connectionFailure: marker("create_run", reason) },
+      });
+      expect(result.errorMessage).toContain(`Hermes gateway HTTP ${status}`);
+      expect(result.executionRecovery).toBeUndefined();
+      expect(ctx.onDispatch).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(Object.keys(result.resultJson ?? {})).toEqual([
+        "connectionFailure",
+      ]);
+    },
+  );
 
   it.each([
-    ["ECONNREFUSED", "connection_refused"], ["ENOTFOUND", "dns_failure"], ["EAI_AGAIN", "dns_failure"],
-    ["EHOSTUNREACH", "network_unreachable"], ["ENETUNREACH", "network_unreachable"],
-    ["ECONNRESET", "connection_reset"], ["EPIPE", "connection_reset"], ["UND_ERR_SOCKET", "connection_reset"],
-    ["ETIMEDOUT", "connection_timeout"], ["UND_ERR_CONNECT_TIMEOUT", "connection_timeout"],
-    ["UND_ERR_HEADERS_TIMEOUT", "connection_timeout"], ["UND_ERR_BODY_TIMEOUT", "connection_timeout"],
-    ["CERT_HAS_EXPIRED", "tls_failure"], ["CERT_NOT_YET_VALID", "tls_failure"],
-    ["DEPTH_ZERO_SELF_SIGNED_CERT", "tls_failure"], ["SELF_SIGNED_CERT_IN_CHAIN", "tls_failure"],
-    ["UNABLE_TO_VERIFY_LEAF_SIGNATURE", "tls_failure"], ["UNABLE_TO_GET_ISSUER_CERT_LOCALLY", "tls_failure"],
+    ["ECONNREFUSED", "connection_refused"],
+    ["ENOTFOUND", "dns_failure"],
+    ["EAI_AGAIN", "dns_failure"],
+    ["EHOSTUNREACH", "network_unreachable"],
+    ["ENETUNREACH", "network_unreachable"],
+    ["ECONNRESET", "connection_reset"],
+    ["EPIPE", "connection_reset"],
+    ["UND_ERR_SOCKET", "connection_reset"],
+    ["ETIMEDOUT", "connection_timeout"],
+    ["UND_ERR_CONNECT_TIMEOUT", "connection_timeout"],
+    ["UND_ERR_HEADERS_TIMEOUT", "connection_timeout"],
+    ["UND_ERR_BODY_TIMEOUT", "connection_timeout"],
+    ["CERT_HAS_EXPIRED", "tls_failure"],
+    ["CERT_NOT_YET_VALID", "tls_failure"],
+    ["DEPTH_ZERO_SELF_SIGNED_CERT", "tls_failure"],
+    ["SELF_SIGNED_CERT_IN_CHAIN", "tls_failure"],
+    ["UNABLE_TO_VERIFY_LEAF_SIGNATURE", "tls_failure"],
+    ["UNABLE_TO_GET_ISSUER_CERT_LOCALLY", "tls_failure"],
     ["ERR_TLS_CERT_ALTNAME_INVALID", "tls_failure"],
   ])("classifies structured fetch cause %s", async (code, reason) => {
-    vi.stubGlobal("fetch", vi.fn(async () => {
-      throw new TypeError("fetch failed", { cause: Object.assign(new Error("external transport failed"), { code }) });
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("fetch failed", {
+          cause: Object.assign(new Error("external transport failed"), {
+            code,
+          }),
+        });
+      }),
+    );
     const result = await execute(makeCtx(config));
-    expect(result).toMatchObject({ exitCode: 1, signal: null, timedOut: false,
-      errorCode: "hermes_gateway_connect_failed", errorFamily: "transient_upstream", retryNotBefore: null,
-      resultJson: { connectionFailure: marker("create_run", reason) } });
+    expect(result).toMatchObject({
+      exitCode: 1,
+      signal: null,
+      timedOut: false,
+      errorCode: "hermes_gateway_connect_failed",
+      errorFamily: "transient_upstream",
+      retryNotBefore: null,
+      resultJson: { connectionFailure: marker("create_run", reason) },
+    });
     expect(result.errorMessage).toContain(code);
     expect(result.executionRecovery).toBeUndefined();
   });
 
   it("classifies a network failure reading the create response without rewriting its error", async () => {
     const response = new Response("unread");
-    vi.spyOn(response, "text").mockRejectedValue(new TypeError("terminated", { cause: { code: "UND_ERR_SOCKET" } }));
-    vi.stubGlobal("fetch", vi.fn(async () => response));
+    vi.spyOn(response, "text").mockRejectedValue(
+      new TypeError("terminated", { cause: { code: "UND_ERR_SOCKET" } }),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => response),
+    );
     const result = await execute(makeCtx(config));
-    expect(result).toMatchObject({ exitCode: 1, signal: null, timedOut: false,
-      errorCode: "hermes_gateway_protocol_error", errorFamily: null, errorMessage: "terminated",
-      resultJson: { connectionFailure: marker("create_run", "connection_reset") } });
+    expect(result).toMatchObject({
+      exitCode: 1,
+      signal: null,
+      timedOut: false,
+      errorCode: "hermes_gateway_protocol_error",
+      errorFamily: null,
+      errorMessage: "terminated",
+      resultJson: {
+        connectionFailure: marker("create_run", "connection_reset"),
+      },
+    });
     expect(result.executionRecovery).toBeUndefined();
   });
 
   it("requires every aggregate member to prove the same external failure", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed", { cause: {
-      code: "ECONNREFUSED", errors: [{ code: "ECONNREFUSED" }, { code: "ECONNREFUSED" }],
-    } }); }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("fetch failed", {
+          cause: {
+            code: "ECONNREFUSED",
+            errors: [{ code: "ECONNREFUSED" }, { code: "ECONNREFUSED" }],
+          },
+        });
+      }),
+    );
     const result = await execute(makeCtx(config));
-    expect(result.resultJson).toEqual({ connectionFailure: marker("create_run", "connection_refused") });
+    expect(result.resultJson).toEqual({
+      connectionFailure: marker("create_run", "connection_refused"),
+    });
   });
 
   it.each([
-    undefined, { message: "ECONNREFUSED" }, { code: "ERR_INTERNAL_ASSERTION" }, { code: "toString" },
-    { code: "ECONNREFUSED", errors: [] }, { code: "ECONNREFUSED", errors: "invalid" },
-    { code: "ECONNREFUSED", errors: Array.from({ length: 9 }, () => ({ code: "ECONNREFUSED" })) },
-    { code: "ECONNREFUSED", errors: [{ code: "ECONNREFUSED" }, { code: "ETIMEDOUT" }] },
-    { code: "ECONNREFUSED", errors: [{ code: "ECONNREFUSED" }, new TypeError("internal bug")] },
+    undefined,
+    { message: "ECONNREFUSED" },
+    { code: "ERR_INTERNAL_ASSERTION" },
+    { code: "toString" },
+    { code: "ECONNREFUSED", errors: [] },
+    { code: "ECONNREFUSED", errors: "invalid" },
+    {
+      code: "ECONNREFUSED",
+      errors: Array.from({ length: 9 }, () => ({ code: "ECONNREFUSED" })),
+    },
+    {
+      code: "ECONNREFUSED",
+      errors: [{ code: "ECONNREFUSED" }, { code: "ETIMEDOUT" }],
+    },
+    {
+      code: "ECONNREFUSED",
+      errors: [{ code: "ECONNREFUSED" }, new TypeError("internal bug")],
+    },
     { code: "ERR_INTERNAL_ASSERTION", errors: [{ code: "ECONNREFUSED" }] },
     { code: "ECONNRESET", name: "AbortError" },
-  ])("keeps unknown, mixed, or internal transport causes reportable: %j", async (cause) => {
-    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("ECONNREFUSED", { cause }); }));
-    const result = await execute(makeCtx(config));
-    expect(result.errorCode).toBe("hermes_gateway_connect_failed");
-    expect(result.resultJson).toBeUndefined();
-  });
+  ])(
+    "keeps unknown, mixed, or internal transport causes reportable: %j",
+    async (cause) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => {
+          throw new TypeError("ECONNREFUSED", { cause });
+        }),
+      );
+      const result = await execute(makeCtx(config));
+      expect(result.errorCode).toBe("hermes_gateway_connect_failed");
+      expect(result.resultJson).toBeUndefined();
+    },
+  );
 
   it("keeps abort failures reportable even if their cause looks like a transport error", async () => {
-    const aborted = Object.assign(new Error("cancelled", { cause: { code: "ECONNRESET" } }), { name: "AbortError" });
-    vi.stubGlobal("fetch", vi.fn(async () => { throw aborted; }));
+    const aborted = Object.assign(
+      new Error("cancelled", { cause: { code: "ECONNRESET" } }),
+      { name: "AbortError" },
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw aborted;
+      }),
+    );
     const result = await execute(makeCtx(config));
     expect(result.resultJson).toBeUndefined();
     expect(result.errorCode).toBe("hermes_gateway_connect_failed");
   });
 
-  it.each([400, 409, 422])("does not trust HTTP %i body claims about connection failures", async (status) => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: "ECONNREFUSED", connectionFailure: marker("create_run", "connection_refused"),
-    }), { status })));
-    const result = await execute(makeCtx(config));
-    expect(result.errorCode).toBe("hermes_gateway_protocol_error");
-    expect(result.resultJson).toBeUndefined();
-  });
-
-  it.each(["not json", JSON.stringify({ status: "running", connectionFailure: marker("create_run", "connection_refused") })])(
-    "keeps malformed successful create responses reportable", async (body) => {
-      vi.stubGlobal("fetch", vi.fn(async () => new Response(body)));
+  it.each([400, 409, 422])(
+    "does not trust HTTP %i body claims about connection failures",
+    async (status) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                error: "ECONNREFUSED",
+                connectionFailure: marker("create_run", "connection_refused"),
+              }),
+              { status },
+            ),
+        ),
+      );
       const result = await execute(makeCtx(config));
       expect(result.errorCode).toBe("hermes_gateway_protocol_error");
       expect(result.resultJson).toBeUndefined();
     },
   );
 
+  it.each([
+    "not json",
+    JSON.stringify({
+      status: "running",
+      connectionFailure: marker("create_run", "connection_refused"),
+    }),
+  ])("keeps malformed successful create responses reportable", async (body) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(body)),
+    );
+    const result = await execute(makeCtx(config));
+    expect(result.errorCode).toBe("hermes_gateway_protocol_error");
+    expect(result.resultJson).toBeUndefined();
+  });
+
   it("does not classify a local response reader TypeError", async () => {
     const response = new Response("unread");
-    vi.spyOn(response, "text").mockRejectedValue(new TypeError("cannot read property of undefined"));
-    vi.stubGlobal("fetch", vi.fn(async () => response));
+    vi.spyOn(response, "text").mockRejectedValue(
+      new TypeError("cannot read property of undefined"),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => response),
+    );
     const result = await execute(makeCtx(config));
     expect(result.errorCode).toBe("hermes_gateway_protocol_error");
     expect(result.resultJson).toBeUndefined();
@@ -887,39 +1400,74 @@ describe("gateway connection failure reporting", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const ctx = makeCtx(config);
-    ctx.onDispatch = () => { throw Object.assign(new Error("callback bug"), {
-      code: "hermes_gateway_auth_failed", status: 401, cause: { code: "ECONNREFUSED" },
-      connectionFailure: marker("create_run", "authentication_failed"),
-    }); };
+    ctx.onDispatch = () => {
+      throw Object.assign(new Error("callback bug"), {
+        code: "hermes_gateway_auth_failed",
+        status: 401,
+        cause: { code: "ECONNREFUSED" },
+        connectionFailure: marker("create_run", "authentication_failed"),
+      });
+    };
     const result = await execute(ctx);
     expect(result.resultJson).toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it.each(["completed", "failed", "cancelled"])("does not classify remote terminal %s from text or a forged marker", (status) => {
-    const result = mapFinalResultForTest({
-      terminal: { runId: "run-remote", status, payload: {
-        error: "ECONNREFUSED", code: "ECONNREFUSED",
-        connectionFailure: marker("create_run", "connection_refused"),
-      } }, outputChunks: [], sessionKey: null, strategy: "none",
-    });
-    expect(result.resultJson?.connectionFailure).toBeUndefined();
-    expect(result.errorCode).toBe(status === "completed" ? undefined : status === "failed" ? "hermes_gateway_run_failed" : "hermes_gateway_cancelled");
-  });
+  it.each(["completed", "failed", "cancelled"])(
+    "does not classify remote terminal %s from text or a forged marker",
+    (status) => {
+      const result = mapFinalResultForTest({
+        terminal: {
+          runId: "run-remote",
+          status,
+          payload: {
+            error: "ECONNREFUSED",
+            code: "ECONNREFUSED",
+            connectionFailure: marker("create_run", "connection_refused"),
+          },
+        },
+        outputChunks: [],
+        sessionKey: null,
+        strategy: "none",
+      });
+      expect(result.resultJson?.connectionFailure).toBeUndefined();
+      expect(result.errorCode).toBe(
+        status === "completed"
+          ? undefined
+          : status === "failed"
+            ? "hermes_gateway_run_failed"
+            : "hermes_gateway_cancelled",
+      );
+    },
+  );
 
   it("retains an ambiguous accepted-run timeout after stream, poll, and stop connection failures", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      if (String(input).endsWith("/v1/runs")) return new Response(JSON.stringify({ run_id: "run-accepted" }));
+      if (String(input).endsWith("/v1/runs"))
+        return new Response(JSON.stringify({ run_id: "run-accepted" }));
       throw new TypeError("fetch failed", { cause: { code: "ECONNRESET" } });
     });
     vi.stubGlobal("fetch", fetchMock);
-    const ctx = makeCtx({ ...config, timeoutSec: 0.3, pollIntervalMs: 250, eventReconnectMs: 250 });
+    const ctx = makeCtx({
+      ...config,
+      timeoutSec: 0.3,
+      pollIntervalMs: 250,
+      eventReconnectMs: 250,
+    });
     const result = await execute(ctx);
-    expect(result).toMatchObject({ timedOut: true, errorCode: "hermes_gateway_timeout" });
+    expect(result).toMatchObject({
+      timedOut: true,
+      errorCode: "hermes_gateway_timeout",
+    });
     expect(result.resultJson?.connectionFailure).toBeUndefined();
     expect(result.resultJson?.run_id).toBe("run-accepted");
-    expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith("/stop"))).toBe(true);
-    expect(ctx.onLog).toHaveBeenCalledWith("stderr", expect.stringContaining("status poll failed"));
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith("/stop")),
+    ).toBe(true);
+    expect(ctx.onLog).toHaveBeenCalledWith(
+      "stderr",
+      expect.stringContaining("status poll failed"),
+    );
   });
 });
 
@@ -979,10 +1527,16 @@ describe("testEnvironment", () => {
   });
 
   it("fails test environment checks when Hermes health is unreachable", async () => {
-    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND host.docker.internal"), { code: "ENOTFOUND" });
-    vi.stubGlobal("fetch", vi.fn(async () => {
-      throw Object.assign(new Error("fetch failed"), { cause });
-    }));
+    const cause = Object.assign(
+      new Error("getaddrinfo ENOTFOUND host.docker.internal"),
+      { code: "ENOTFOUND" },
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw Object.assign(new Error("fetch failed"), { cause });
+      }),
+    );
 
     const result = await testEnvironment({
       companyId: "company-1",
@@ -1007,7 +1561,10 @@ describe("testEnvironment", () => {
   });
 
   it("fails test environment checks when Hermes health returns a non-ok status", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("bad key", { status: 401 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("bad key", { status: 401 })),
+    );
 
     const result = await testEnvironment({
       companyId: "company-1",
@@ -1049,7 +1606,8 @@ describe("testEnvironment", () => {
         expect.objectContaining({
           code: "hermes_gateway_dashboard_root_mapped",
           level: "info",
-          message: "Default Hermes dashboard root mapped to API base http://127.0.0.1:9119/api.",
+          message:
+            "Default Hermes dashboard root mapped to API base http://127.0.0.1:9119/api.",
           hint: expect.stringContaining("/api/v1/runs"),
         }),
       ]),
@@ -1079,7 +1637,8 @@ describe("testEnvironment", () => {
         expect.objectContaining({
           code: "hermes_gateway_dashboard_root_mapped",
           level: "info",
-          message: "Default Hermes dashboard root mapped to API base http://127.0.0.1:9119/api.",
+          message:
+            "Default Hermes dashboard root mapped to API base http://127.0.0.1:9119/api.",
         }),
       ]),
     );

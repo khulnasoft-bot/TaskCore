@@ -7,7 +7,15 @@ import {
   parseFrontmatterFields,
   stringifyFrontmatter,
 } from "@taskcore/shared";
-import { AlertTriangle, ChevronDown, ChevronRight, Info, Plus, Trash2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Info,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +23,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 /**
@@ -86,10 +99,10 @@ interface FormModel {
 
 function isScalar(value: unknown): value is ScalarValue {
   return (
-    value === null
-    || typeof value === "string"
-    || typeof value === "number"
-    || typeof value === "boolean"
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
   );
 }
 
@@ -109,8 +122,12 @@ function coerceScalar(text: string): ScalarValue {
   return text;
 }
 
-function isFlatScalarRecord(value: unknown): value is Record<string, ScalarValue> {
-  return isFrontmatterPlainRecord(value) && Object.values(value).every(isScalar);
+function isFlatScalarRecord(
+  value: unknown,
+): value is Record<string, ScalarValue> {
+  return (
+    isFrontmatterPlainRecord(value) && Object.values(value).every(isScalar)
+  );
 }
 
 function buildFormModel(obj: Record<string, unknown>): FormModel {
@@ -120,37 +137,47 @@ function buildFormModel(obj: Record<string, unknown>): FormModel {
   const metadataEditable = metadataPresent && isFlatScalarRecord(metadataValue);
 
   const metaRows: ScalarRow[] = metadataEditable
-    ? Object.entries(metadataValue as Record<string, ScalarValue>).map(([key, value], index) => ({
-        id: `meta-${index}-${key}`,
+    ? Object.entries(metadataValue as Record<string, ScalarValue>).map(
+        ([key, value], index) => ({
+          id: `meta-${index}-${key}`,
+          key,
+          rawValue: value,
+          text: scalarToText(value),
+          edited: false,
+        }),
+      )
+    : [];
+
+  const unknown: UnknownRow[] = getSkillFrontmatterUnknownKeys(obj).map(
+    (key, index) => {
+      const value = obj[key];
+      const editable = isScalar(value);
+      return {
+        id: `unknown-${index}-${key}`,
         key,
         rawValue: value,
         text: scalarToText(value),
         edited: false,
-      }))
-    : [];
-
-  const unknown: UnknownRow[] = getSkillFrontmatterUnknownKeys(obj).map((key, index) => {
-    const value = obj[key];
-    const editable = isScalar(value);
-    return {
-      id: `unknown-${index}-${key}`,
-      key,
-      rawValue: value,
-      text: scalarToText(value),
-      edited: false,
-      editable,
-    };
-  });
+        editable,
+      };
+    },
+  );
 
   return {
     hasName: "name" in obj,
     name: typeof obj.name === "string" ? obj.name : scalarToText(obj.name),
     hasDescription: "description" in obj,
-    description: typeof obj.description === "string" ? obj.description : scalarToText(obj.description),
+    description:
+      typeof obj.description === "string"
+        ? obj.description
+        : scalarToText(obj.description),
     allowedToolsPresent,
-    allowedTools: allowedToolsPresent ? asStringArray(obj["allowed-tools"]) : [],
+    allowedTools: allowedToolsPresent
+      ? asStringArray(obj["allowed-tools"])
+      : [],
     metadataPresent,
-    metadataComplex: metadataPresent && !metadataEditable ? metadataValue : null,
+    metadataComplex:
+      metadataPresent && !metadataEditable ? metadataValue : null,
     metaRows,
     unknown,
   };
@@ -178,12 +205,16 @@ function serializeForm(form: FormModel): string {
   if (form.hasDescription) out.description = form.description;
   if (form.allowedToolsPresent) out["allowed-tools"] = form.allowedTools ?? [];
   if (form.metadataPresent) {
-    out.metadata = form.metadataComplex !== null ? form.metadataComplex : scalarRowsToObject(form.metaRows);
+    out.metadata =
+      form.metadataComplex !== null
+        ? form.metadataComplex
+        : scalarRowsToObject(form.metaRows);
   }
   for (const row of form.unknown) {
     const key = row.key.trim();
     if (!key) continue;
-    out[key] = row.editable && row.edited ? coerceScalar(row.text) : row.rawValue;
+    out[key] =
+      row.editable && row.edited ? coerceScalar(row.text) : row.rawValue;
   }
   return stringifyFrontmatter(out);
 }
@@ -195,19 +226,32 @@ interface ValidationIssue {
   message: string;
 }
 
-function collectValidation(form: FormModel, isSkillFile: boolean): ValidationIssue[] {
+function collectValidation(
+  form: FormModel,
+  isSkillFile: boolean,
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const name = form.name.trim();
   const description = form.description.trim();
-  if (isSkillFile && !name) issues.push({ field: "name", message: "SKILL.md needs a name." });
+  if (isSkillFile && !name)
+    issues.push({ field: "name", message: "SKILL.md needs a name." });
   if (name && !SLUG_RE.test(name)) {
-    issues.push({ field: "name", message: "Use lowercase letters, numbers and hyphens." });
+    issues.push({
+      field: "name",
+      message: "Use lowercase letters, numbers and hyphens.",
+    });
   }
   if (isSkillFile && !description) {
-    issues.push({ field: "description", message: "SKILL.md needs a description." });
+    issues.push({
+      field: "description",
+      message: "SKILL.md needs a description.",
+    });
   }
   if (form.allowedToolsPresent && form.allowedTools === null) {
-    issues.push({ field: "allowed-tools", message: "Expected a list — edit in YAML." });
+    issues.push({
+      field: "allowed-tools",
+      message: "Expected a list — edit in YAML.",
+    });
   }
   return issues;
 }
@@ -232,8 +276,13 @@ export function FrontmatterPanel({
   // while in Fields mode. Both initialize from props; the caller keys us per file.
   const [present, setPresent] = useState(hasFrontmatter);
   const [yamlText, setYamlText] = useState(frontmatterText);
-  const initialAnalysis = useMemo(() => analyzeFrontmatterBlock(frontmatterText), [frontmatterText]);
-  const [form, setForm] = useState<FormModel>(() => buildFormModel(initialAnalysis.parsed));
+  const initialAnalysis = useMemo(
+    () => analyzeFrontmatterBlock(frontmatterText),
+    [frontmatterText],
+  );
+  const [form, setForm] = useState<FormModel>(() =>
+    buildFormModel(initialAnalysis.parsed),
+  );
   const [mode, setMode] = useState<FrontmatterMode>(
     hasFrontmatter && initialAnalysis.canRoundTrip ? "fields" : "yaml",
   );
@@ -241,10 +290,12 @@ export function FrontmatterPanel({
 
   const analysis = useMemo(() => analyzeFrontmatterBlock(yamlText), [yamlText]);
   const canUseFields = present && analysis.canRoundTrip;
-  const effectiveMode: FrontmatterMode = mode === "fields" && !canUseFields ? "yaml" : mode;
+  const effectiveMode: FrontmatterMode =
+    mode === "fields" && !canUseFields ? "yaml" : mode;
 
   const validation = useMemo(
-    () => (effectiveMode === "fields" ? collectValidation(form, isSkillFile) : []),
+    () =>
+      effectiveMode === "fields" ? collectValidation(form, isSkillFile) : [],
     [effectiveMode, form, isSkillFile],
   );
 
@@ -313,13 +364,22 @@ export function FrontmatterPanel({
     emit(nextRaw, true);
   }, [emit, isSkillFile, skillSlug]);
 
-  const summary = useMemo(() => buildSummary(analysis.parsed), [analysis.parsed]);
+  const summary = useMemo(
+    () => buildSummary(analysis.parsed),
+    [analysis.parsed],
+  );
   const warningCount = validation.length;
 
   const chevron = open ? (
-    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    <ChevronDown
+      className="h-4 w-4 shrink-0 text-muted-foreground"
+      aria-hidden="true"
+    />
   ) : (
-    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    <ChevronRight
+      className="h-4 w-4 shrink-0 text-muted-foreground"
+      aria-hidden="true"
+    />
   );
 
   return (
@@ -341,7 +401,9 @@ export function FrontmatterPanel({
             {chevron}
             <span className="text-sm font-medium">Frontmatter</span>
             {!open && present ? (
-              <span className="truncate text-xs text-muted-foreground">{summary}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {summary}
+              </span>
             ) : null}
             {!open && !present ? (
               <span className="text-xs text-muted-foreground">None</span>
@@ -373,8 +435,9 @@ export function FrontmatterPanel({
                       </span>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-60">
-                      Switch to YAML to edit. This frontmatter uses YAML features the form can't safely
-                      round-trip (e.g. comments, anchors, or custom ordering). Editing here keeps it
+                      Switch to YAML to edit. This frontmatter uses YAML
+                      features the form can't safely round-trip (e.g. comments,
+                      anchors, or custom ordering). Editing here keeps it
                       byte-for-byte.
                     </TooltipContent>
                   </Tooltip>
@@ -385,14 +448,23 @@ export function FrontmatterPanel({
               </TabsList>
             </Tabs>
           ) : !readOnly ? (
-            <Button variant="ghost" size="sm" onClick={addFrontmatter} data-testid="add-frontmatter">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={addFrontmatter}
+              data-testid="add-frontmatter"
+            >
               <Plus className="mr-1 h-3.5 w-3.5" />
               Add frontmatter
             </Button>
           ) : null}
 
           {present && effectiveMode === "fields" && warningCount > 0 ? (
-            <Badge variant="outline" className="gap-1 text-amber-500" data-testid="frontmatter-warning-chip">
+            <Badge
+              variant="outline"
+              className="gap-1 text-amber-500"
+              data-testid="frontmatter-warning-chip"
+            >
               <AlertTriangle className="h-3.5 w-3.5" />
               {warningCount} {warningCount === 1 ? "issue" : "issues"}
             </Badge>
@@ -414,7 +486,11 @@ export function FrontmatterPanel({
                   value={yamlText}
                   readOnly={readOnly}
                   canReturnToFields={canUseFields}
-                  parseError={present && !analysis.canRoundTrip && analysis.issues.length === 0}
+                  parseError={
+                    present &&
+                    !analysis.canRoundTrip &&
+                    analysis.issues.length === 0
+                  }
                   onChange={handleYamlChange}
                 />
               )}
@@ -432,9 +508,11 @@ export function FrontmatterPanel({
 
 function buildSummary(parsed: Record<string, unknown>): string {
   const parts: string[] = [];
-  if (typeof parsed.name === "string" && parsed.name.trim()) parts.push(parsed.name.trim());
+  if (typeof parsed.name === "string" && parsed.name.trim())
+    parts.push(parsed.name.trim());
   const tools = asStringArray(parsed["allowed-tools"]);
-  if (tools && tools.length > 0) parts.push(`${tools.length} ${tools.length === 1 ? "tool" : "tools"}`);
+  if (tools && tools.length > 0)
+    parts.push(`${tools.length} ${tools.length === 1 ? "tool" : "tools"}`);
   if (isFrontmatterPlainRecord(parsed.metadata)) {
     const count = Object.keys(parsed.metadata).length;
     if (count > 0) parts.push(`${count} metadata`);
@@ -442,7 +520,10 @@ function buildSummary(parsed: Record<string, unknown>): string {
   return parts.join(" · ");
 }
 
-function fieldWarning(validation: ValidationIssue[], field: string): string | null {
+function fieldWarning(
+  validation: ValidationIssue[],
+  field: string,
+): string | null {
   return validation.find((issue) => issue.field === field)?.message ?? null;
 }
 
@@ -482,7 +563,9 @@ function FieldsForm({
             value={form.name}
             readOnly={readOnly}
             aria-invalid={Boolean(nameWarning)}
-            onChange={(event) => onCommit({ ...form, name: event.target.value })}
+            onChange={(event) =>
+              onCommit({ ...form, name: event.target.value })
+            }
             className="mt-1"
           />
           {nameWarning ? <FieldWarning message={nameWarning} /> : null}
@@ -491,7 +574,10 @@ function FieldsForm({
 
       {form.hasDescription ? (
         <div>
-          <Label htmlFor="fm-description" className="text-xs text-muted-foreground">
+          <Label
+            htmlFor="fm-description"
+            className="text-xs text-muted-foreground"
+          >
             description
           </Label>
           <Textarea
@@ -499,10 +585,14 @@ function FieldsForm({
             value={form.description}
             readOnly={readOnly}
             rows={3}
-            onChange={(event) => onCommit({ ...form, description: event.target.value })}
+            onChange={(event) =>
+              onCommit({ ...form, description: event.target.value })
+            }
             className="mt-1"
           />
-          {descriptionWarning ? <FieldWarning message={descriptionWarning} /> : null}
+          {descriptionWarning ? (
+            <FieldWarning message={descriptionWarning} />
+          ) : null}
         </div>
       ) : null}
 
@@ -528,7 +618,9 @@ function FieldsForm({
         <div>
           <Label className="text-xs text-muted-foreground">metadata</Label>
           {form.metadataComplex !== null ? (
-            <p className="mt-1 text-xs text-muted-foreground">Complex value — edit in YAML.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Complex value — edit in YAML.
+            </p>
           ) : (
             <MetadataRows
               rows={form.metaRows}
@@ -542,7 +634,10 @@ function FieldsForm({
       {form.unknown.map((row, index) =>
         row.editable ? (
           <div key={row.id}>
-            <Label htmlFor={`fm-unknown-${row.id}`} className="text-xs text-muted-foreground">
+            <Label
+              htmlFor={`fm-unknown-${row.id}`}
+              className="text-xs text-muted-foreground"
+            >
               {row.key}
             </Label>
             <Input
@@ -551,7 +646,11 @@ function FieldsForm({
               readOnly={readOnly}
               onChange={(event) => {
                 const unknown = form.unknown.slice();
-                unknown[index] = { ...row, text: event.target.value, edited: true };
+                unknown[index] = {
+                  ...row,
+                  text: event.target.value,
+                  edited: true,
+                };
                 onCommit({ ...form, unknown });
               }}
               className="mt-1"
@@ -560,7 +659,9 @@ function FieldsForm({
         ) : (
           <div key={row.id}>
             <Label className="text-xs text-muted-foreground">{row.key}</Label>
-            <p className="mt-1 text-xs text-muted-foreground">Complex value — edit in YAML.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Complex value — edit in YAML.
+            </p>
           </div>
         ),
       )}
@@ -588,7 +689,13 @@ function MetadataRows({
   const add = () => {
     onChange([
       ...rows,
-      { id: `meta-new-${rows.length}-${Date.now()}`, key: "", rawValue: "", text: "", edited: true },
+      {
+        id: `meta-new-${rows.length}-${Date.now()}`,
+        key: "",
+        rawValue: "",
+        text: "",
+        edited: true,
+      },
     ]);
   };
 
@@ -681,7 +788,11 @@ function ChipInput({
             if (event.key === "Enter" || event.key === ",") {
               event.preventDefault();
               commit();
-            } else if (event.key === "Backspace" && draft === "" && values.length > 0) {
+            } else if (
+              event.key === "Backspace" &&
+              draft === "" &&
+              values.length > 0
+            ) {
               onChange(values.slice(0, -1));
             }
           }}
@@ -712,7 +823,9 @@ function YamlEditor({
       {!canReturnToFields && !parseError ? (
         <div className="mb-1.5 flex items-start gap-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>Editing raw YAML to preserve formatting the form can't reconstruct.</span>
+          <span>
+            Editing raw YAML to preserve formatting the form can't reconstruct.
+          </span>
         </div>
       ) : null}
       <Textarea

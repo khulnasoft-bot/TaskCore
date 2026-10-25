@@ -6,7 +6,7 @@ const TS = "2026-06-29T12:00:00.000Z";
 describe("parseHermesStdoutLine — ANSI stripping", () => {
   it("strips 24-bit foreground + background color CSI sequences", () => {
     const result = parseHermesStdoutLine(
-      "\x1b[38;2;255;255;255;48;2;19;87;20m+r = curl(\"POST\", \"/api/issues/d7b08cc5/comments\",\x1b[0m",
+      '\x1b[38;2;255;255;255;48;2;19;87;20m+r = curl("POST", "/api/issues/d7b08cc5/comments",\x1b[0m',
       TS,
     );
     expect(result.length).toBeGreaterThan(0);
@@ -20,7 +20,10 @@ describe("parseHermesStdoutLine — ANSI stripping", () => {
   });
 
   it("strips bold yellow CSI sequence from Hermes header", () => {
-    const result = parseHermesStdoutLine("\x1b[1;38;2;255;215;0m- Hermes\x1b[0m", TS);
+    const result = parseHermesStdoutLine(
+      "\x1b[1;38;2;255;215;0m- Hermes\x1b[0m",
+      TS,
+    );
     expect(result).toHaveLength(1);
     expect(result[0]).toHaveProperty("text", "- Hermes");
   });
@@ -42,7 +45,7 @@ describe("parseHermesStdoutLine — ANSI stripping", () => {
 
   it("strips multiple CSI sequences on a single line", () => {
     const result = parseHermesStdoutLine(
-      "\x1b[38;2;255;255;255;48;2;19;87;20m+ \"priority\": \"highest\",\x1b[0m \x1b[38;2;255;255;255;48;2;19;87;20m+r = curl(\"PATCH\", ...\x1b[0m",
+      '\x1b[38;2;255;255;255;48;2;19;87;20m+ "priority": "highest",\x1b[0m \x1b[38;2;255;255;255;48;2;19;87;20m+r = curl("PATCH", ...\x1b[0m',
       TS,
     );
     expect(result.length).toBeGreaterThan(0);
@@ -56,7 +59,10 @@ describe("parseHermesStdoutLine — ANSI stripping", () => {
   });
 
   it("still parses tool completion lines correctly after stripping", () => {
-    const result = parseHermesStdoutLine("\u250a \u{1f50d} search \"pattern\" 0.5s", TS);
+    const result = parseHermesStdoutLine(
+      '\u250a \u{1f50d} search "pattern" 0.5s',
+      TS,
+    );
     expect(result.length).toBeGreaterThanOrEqual(2);
     const toolCall = result.find((e) => e.kind === "tool_call");
     expect(toolCall?.name).toBe("search");
@@ -69,7 +75,10 @@ describe("parseHermesStdoutLine — ANSI stripping", () => {
   });
 
   it("strips OSC title sequences", () => {
-    const result = parseHermesStdoutLine("\x1b]0;Terminal Title\x07Actual content", TS);
+    const result = parseHermesStdoutLine(
+      "\x1b]0;Terminal Title\x07Actual content",
+      TS,
+    );
     expect(result).toHaveLength(1);
     expect(result[0]).toHaveProperty("text", "Actual content");
   });

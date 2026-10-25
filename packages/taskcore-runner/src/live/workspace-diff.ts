@@ -2,15 +2,13 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 
-export const TASKCORE_WORKSPACE_DIFF_SCHEMA = "taskcore.workspace.diff.v1" as const;
+export const TASKCORE_WORKSPACE_DIFF_SCHEMA =
+  "taskcore.workspace.diff.v1" as const;
 
-export type TaskcoreWorkspaceChangeSource = "harness_reported" | "runner_verified";
+export type TaskcoreWorkspaceChangeSource =
+  "harness_reported" | "runner_verified";
 export type TaskcoreWorkspaceFileOperation =
-  | "create"
-  | "modify"
-  | "delete"
-  | "rename"
-  | "mode_change";
+  "create" | "modify" | "delete" | "rename" | "mode_change";
 
 export interface TaskcoreWorkspaceFileChange {
   path: string;
@@ -83,7 +81,12 @@ export async function captureTaskcoreWorkspace(
 
   async function visit(directory: string): Promise<void> {
     throwIfAborted();
-    if (result.size >= MAX_FILES || retainedBytes >= MAX_TOTAL_BYTES || visitedDirectories >= MAX_DIRECTORIES) return;
+    if (
+      result.size >= MAX_FILES ||
+      retainedBytes >= MAX_TOTAL_BYTES ||
+      visitedDirectories >= MAX_DIRECTORIES
+    )
+      return;
     visitedDirectories += 1;
     let entries;
     try {
@@ -112,7 +115,9 @@ export async function captureTaskcoreWorkspace(
         continue;
       }
       const binary = appearsBinary(bytes);
-      const retain = bytes.length <= MAX_FILE_BYTES && retainedBytes + bytes.length <= MAX_TOTAL_BYTES;
+      const retain =
+        bytes.length <= MAX_FILE_BYTES &&
+        retainedBytes + bytes.length <= MAX_TOTAL_BYTES;
       const content = retain ? bytes : null;
       if (content !== null) retainedBytes += content.length;
       result.set(normalizedRelativePath(root, absolutePath), {
@@ -135,7 +140,11 @@ function lines(content: Buffer | null): string[] {
   return result;
 }
 
-function unifiedDiff(path: string, before: Buffer | null, after: Buffer | null): {
+function unifiedDiff(
+  path: string,
+  before: Buffer | null,
+  after: Buffer | null,
+): {
   diff: string;
   additions: number;
   deletions: number;
@@ -143,13 +152,20 @@ function unifiedDiff(path: string, before: Buffer | null, after: Buffer | null):
   const oldLines = lines(before);
   const newLines = lines(after);
   let prefix = 0;
-  while (prefix < oldLines.length && prefix < newLines.length && oldLines[prefix] === newLines[prefix]) prefix += 1;
+  while (
+    prefix < oldLines.length &&
+    prefix < newLines.length &&
+    oldLines[prefix] === newLines[prefix]
+  )
+    prefix += 1;
   let suffix = 0;
   while (
     suffix < oldLines.length - prefix &&
     suffix < newLines.length - prefix &&
-    oldLines[oldLines.length - 1 - suffix] === newLines[newLines.length - 1 - suffix]
-  ) suffix += 1;
+    oldLines[oldLines.length - 1 - suffix] ===
+      newLines[newLines.length - 1 - suffix]
+  )
+    suffix += 1;
   const removed = oldLines.slice(prefix, oldLines.length - suffix);
   const added = newLines.slice(prefix, newLines.length - suffix);
   const oldStart = Math.min(prefix + 1, Math.max(1, oldLines.length));
@@ -160,11 +176,16 @@ function unifiedDiff(path: string, before: Buffer | null, after: Buffer | null):
     `+++ ${after === null ? "/dev/null" : `b/${path}`}`,
     `@@ -${oldStart},${removed.length} +${newStart},${added.length} @@`,
   ];
-  const patch = [...header, ...removed.map((line) => `-${line}`), ...added.map((line) => `+${line}`)].join("\n");
+  const patch = [
+    ...header,
+    ...removed.map((line) => `-${line}`),
+    ...added.map((line) => `+${line}`),
+  ].join("\n");
   return {
-    diff: patch.length <= MAX_DIFF_CHARS_PER_FILE
-      ? `${patch}\n`
-      : `${patch.slice(0, MAX_DIFF_CHARS_PER_FILE)}\n… diff truncated by runner …\n`,
+    diff:
+      patch.length <= MAX_DIFF_CHARS_PER_FILE
+        ? `${patch}\n`
+        : `${patch.slice(0, MAX_DIFF_CHARS_PER_FILE)}\n… diff truncated by runner …\n`,
     additions: added.length,
     deletions: removed.length,
   };
@@ -181,7 +202,12 @@ export function diffTaskcoreWorkspace(
     const prior = before.get(path);
     const current = after.get(path);
     if (prior?.hash === current?.hash) continue;
-    const operation = prior === undefined ? "create" : current === undefined ? "delete" : "modify";
+    const operation =
+      prior === undefined
+        ? "create"
+        : current === undefined
+          ? "delete"
+          : "modify";
     const binary = prior?.binary === true || current?.binary === true;
     const stats = binary
       ? { diff: null, additions: null, deletions: null }
@@ -194,7 +220,8 @@ export function diffTaskcoreWorkspace(
   // the protocol semantic even when the harness only used shell commands.
   const deletedByHash = new Map<string, TaskcoreWorkspaceFileChange>();
   for (const file of files) {
-    if (file.operation === "delete") deletedByHash.set(before.get(file.path)!.hash, file);
+    if (file.operation === "delete")
+      deletedByHash.set(before.get(file.path)!.hash, file);
   }
   for (const file of [...files]) {
     if (file.operation !== "create") continue;
@@ -210,7 +237,9 @@ export function diffTaskcoreWorkspace(
     deletedByHash.delete(after.get(file.path)!.hash);
   }
 
-  const hasUnknownStats = files.some((file) => file.additions === null || file.deletions === null);
+  const hasUnknownStats = files.some(
+    (file) => file.additions === null || file.deletions === null,
+  );
   return {
     schema: TASKCORE_WORKSPACE_DIFF_SCHEMA,
     changeSetId,
@@ -220,8 +249,12 @@ export function diffTaskcoreWorkspace(
     files,
     totals: {
       files: files.length,
-      additions: hasUnknownStats ? null : files.reduce((sum, file) => sum + (file.additions ?? 0), 0),
-      deletions: hasUnknownStats ? null : files.reduce((sum, file) => sum + (file.deletions ?? 0), 0),
+      additions: hasUnknownStats
+        ? null
+        : files.reduce((sum, file) => sum + (file.additions ?? 0), 0),
+      deletions: hasUnknownStats
+        ? null
+        : files.reduce((sum, file) => sum + (file.deletions ?? 0), 0),
     },
     patchArtifactRef: null,
   };

@@ -16,7 +16,11 @@ describe("kimi local skill sync", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -39,10 +43,18 @@ describe("kimi local skill sync", () => {
     expect(before.adapterType).toBe("kimi_local");
     expect(before.mode).toBe("persistent");
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("missing");
+    expect(
+      before.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("missing");
 
     const after = await syncKimiSkills(ctx, [taskcoreKey]);
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(kimiCodeHome, "skills", "taskcore"))).isSymbolicLink()).toBe(true);
+    expect(
+      after.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("installed");
+    expect(
+      (
+        await fs.lstat(path.join(kimiCodeHome, "skills", "taskcore"))
+      ).isSymbolicLink(),
+    ).toBe(true);
   });
 });

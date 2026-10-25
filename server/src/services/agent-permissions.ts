@@ -22,7 +22,8 @@ export function newStandardAgentGrantScope(
   permissionKey: PermissionKey,
   agentId: string,
 ): Record<string, unknown> | null {
-  if (permissionKey === "tasks:assign_scope") return { subtreeRootAgentId: agentId };
+  if (permissionKey === "tasks:assign_scope")
+    return { subtreeRootAgentId: agentId };
   if (permissionKey === "inbox:manage") return { responsibleUserOnly: true };
   return null;
 }
@@ -52,7 +53,8 @@ export function permissionsImplyLowTrust(permissions: unknown): boolean {
     record.trustPreset === LOW_TRUST_REVIEW_PRESET ||
     authorizationPolicy?.trustPreset === LOW_TRUST_REVIEW_PRESET ||
     asRecord(record.reviewPreset)?.id === LOW_TRUST_REVIEW_PRESET ||
-    asRecord(authorizationPolicy?.reviewPreset)?.id === LOW_TRUST_REVIEW_PRESET ||
+    asRecord(authorizationPolicy?.reviewPreset)?.id ===
+      LOW_TRUST_REVIEW_PRESET ||
     asRecord(authorizationPolicy?.trustBoundary) !== null
   );
 }
@@ -66,11 +68,13 @@ export function permissionsImplyLowTrust(permissions: unknown): boolean {
  */
 export type AgentPermissionsContext = "create" | "stored";
 
-export function defaultAgentPermissions(
-  options?: { lowTrust?: boolean; context?: AgentPermissionsContext },
-): NormalizedAgentPermissions {
+export function defaultAgentPermissions(options?: {
+  lowTrust?: boolean;
+  context?: AgentPermissionsContext;
+}): NormalizedAgentPermissions {
   return {
-    canCreateAgents: options?.context === "create" && options?.lowTrust !== true,
+    canCreateAgents:
+      options?.context === "create" && options?.lowTrust !== true,
     canCreateSkills: true,
   };
 }

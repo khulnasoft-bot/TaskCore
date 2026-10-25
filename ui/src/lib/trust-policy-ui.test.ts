@@ -25,8 +25,13 @@ describe("trust-policy-ui low-trust boundary helpers", () => {
   });
 
   it("clears containment across a JSON permissions patch when restoring standard trust", () => {
-    const lowTrust = setSingleLowTrustBoundaryTarget(null, "company-1", { type: "root_issue", id: "issue-1" });
-    const patch = JSON.parse(JSON.stringify(buildPermissionsForTrustPreset(lowTrust, "standard")));
+    const lowTrust = setSingleLowTrustBoundaryTarget(null, "company-1", {
+      type: "root_issue",
+      id: "issue-1",
+    });
+    const patch = JSON.parse(
+      JSON.stringify(buildPermissionsForTrustPreset(lowTrust, "standard")),
+    );
     const persisted = { ...lowTrust, ...patch };
     expect(persisted.trustPreset).toBe("standard");
     expect(persisted.authorizationPolicy).toEqual({});
@@ -86,8 +91,12 @@ describe("trust-policy-ui low-trust boundary helpers", () => {
         allowedToolClasses: ["git.read"],
       },
     });
-    expect(permissions.authorizationPolicy?.trustBoundary?.projectIds).toBeUndefined();
-    expect(permissions.authorizationPolicy?.trustBoundary?.rootIssueId).toBeUndefined();
+    expect(
+      permissions.authorizationPolicy?.trustBoundary?.projectIds,
+    ).toBeUndefined();
+    expect(
+      permissions.authorizationPolicy?.trustBoundary?.rootIssueId,
+    ).toBeUndefined();
   });
 
   it("hydrates one existing root issue boundary", () => {
@@ -102,8 +111,13 @@ describe("trust-policy-ui low-trust boundary helpers", () => {
       },
     });
 
-    expect(getSingleLowTrustBoundaryTarget(boundary)).toEqual({ type: "root_issue", id: "issue-root" });
-    expect(summarizeLowTrustBoundaryTarget(boundary)).toBe("Root issue issue-ro");
+    expect(getSingleLowTrustBoundaryTarget(boundary)).toEqual({
+      type: "root_issue",
+      id: "issue-root",
+    });
+    expect(summarizeLowTrustBoundaryTarget(boundary)).toBe(
+      "Root issue issue-ro",
+    );
   });
 
   it("marks multi-boundary policies read-only for CE", () => {

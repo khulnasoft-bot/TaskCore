@@ -33,7 +33,9 @@ const rawUrl = args[0];
 const outPath = args[1] || "/tmp/taskcore-screenshot.png";
 
 if (!rawUrl) {
-  console.error("Usage: node scripts/screenshot.cjs <url-or-path> [output.png]");
+  console.error(
+    "Usage: node scripts/screenshot.cjs <url-or-path> [output.png]",
+  );
   process.exit(1);
 }
 
@@ -44,7 +46,8 @@ function loadBoardToken() {
     const auth = JSON.parse(fs.readFileSync(authPath, "utf-8"));
     const creds = auth.credentials || {};
     const entry = Object.values(creds)[0];
-    if (entry && entry.token && entry.apiBase) return { token: entry.token, apiBase: entry.apiBase };
+    if (entry && entry.token && entry.apiBase)
+      return { token: entry.token, apiBase: entry.apiBase };
   } catch (_) {
     // ignore
   }
@@ -76,7 +79,10 @@ const origin = new URL(url).origin;
     // Scope the auth header to the Taskcore origin only
     await page.route(`${origin}/**`, async (route) => {
       await route.continue({
-        headers: { ...route.request().headers(), Authorization: `Bearer ${cred.token}` },
+        headers: {
+          ...route.request().headers(),
+          Authorization: `Bearer ${cred.token}`,
+        },
       });
     });
     await page.goto(url, { waitUntil: "networkidle", timeout: 20000 });

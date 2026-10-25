@@ -18,13 +18,17 @@ import { isDeepStrictEqual } from "node:util";
  * comment or multiline string can never qualify as the target assignment. */
 function editTrust(source: string, root: string, expected: TomlTable): string {
   const matches = (candidate: string) => {
-    try { return isDeepStrictEqual(parse(candidate), expected); }
-    catch { return false; }
+    try {
+      return isDeepStrictEqual(parse(candidate), expected);
+    } catch {
+      return false;
+    }
   };
   if (matches(source)) return source;
   const appended = `${source}\n[projects.${JSON.stringify(root)}]\ntrust_level = "trusted"\n`;
   if (matches(appended)) return appended;
-  const values = /(?:"trust_level"|'trust_level'|\btrust_level)\s*=\s*("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'[^']*')/g;
+  const values =
+    /(?:"trust_level"|'trust_level'|\btrust_level)\s*=\s*("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'[^']*')/g;
   for (const match of source.matchAll(values)) {
     const end = match.index! + match[0].length;
     const start = end - match[1]!.length;
@@ -32,19 +36,26 @@ function editTrust(source: string, root: string, expected: TomlTable): string {
     if (matches(candidate)) return candidate;
   }
   // An existing project table may not yet have a trust field.
-  for (const match of source.matchAll(/^[ \t]*\[(?!\[)[^\r\n]*\][^\r\n]*(?:\r?\n|$)/gm)) {
+  for (const match of source.matchAll(
+    /^[ \t]*\[(?!\[)[^\r\n]*\][^\r\n]*(?:\r?\n|$)/gm,
+  )) {
     const end = match.index! + match[0].length;
-    const candidate = source.slice(0, end) + '\ntrust_level = "trusted"\n' + source.slice(end);
+    const candidate =
+      source.slice(0, end) + '\ntrust_level = "trusted"\n' + source.slice(end);
     if (matches(candidate)) return candidate;
   }
   // Inline project tables are closed to appended table headers. Insert only
   // when reparsing proves this is the intended object, not a brace in text.
-  const fields = ['trust_level = "trusted"', `${JSON.stringify(root)} = { trust_level = "trusted" }`];
+  const fields = [
+    'trust_level = "trusted"',
+    `${JSON.stringify(root)} = { trust_level = "trusted" }`,
+  ];
   for (const match of source.matchAll(/\{/g)) {
     const end = match.index! + 1;
     for (const field of fields) {
-      for (const separator of [', ', '']) {
-        const candidate = source.slice(0, end) + field + separator + source.slice(end);
+      for (const separator of [", ", ""]) {
+        const candidate =
+          source.slice(0, end) + field + separator + source.slice(end);
         if (matches(candidate)) return candidate;
       }
     }

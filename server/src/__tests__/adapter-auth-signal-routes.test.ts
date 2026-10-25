@@ -26,15 +26,23 @@ const mockAccessService = vi.hoisted(() => ({
 }));
 
 const mockSecretService = vi.hoisted(() => ({
-  normalizeAdapterConfigForPersistence: vi.fn(async (_companyId: string, config: Record<string, unknown>) => config),
-  resolveAdapterConfigForRuntime: vi.fn(async (_companyId: string, config: Record<string, unknown>) => ({ config })),
-  collectMissingRuntimeBindings: vi.fn(async () => [] as Array<Record<string, unknown>>),
+  normalizeAdapterConfigForPersistence: vi.fn(
+    async (_companyId: string, config: Record<string, unknown>) => config,
+  ),
+  resolveAdapterConfigForRuntime: vi.fn(
+    async (_companyId: string, config: Record<string, unknown>) => ({ config }),
+  ),
+  collectMissingRuntimeBindings: vi.fn(
+    async () => [] as Array<Record<string, unknown>>,
+  ),
   resolveEnvBindings: vi.fn(async () => ({
     env: {} as Record<string, string>,
     secretKeys: new Set<string>(),
     manifest: [],
   })),
-  readClaudeOAuthUserSecretStatus: vi.fn(async () => null as { secretId: string; latestVersion: number } | null),
+  readClaudeOAuthUserSecretStatus: vi.fn(
+    async () => null as { secretId: string; latestVersion: number } | null,
+  ),
 }));
 
 const mockEnvironmentService = vi.hoisted(() => ({
@@ -105,7 +113,10 @@ vi.mock("../services/instance-settings.js", () => ({
 }));
 
 vi.mock("@taskcore/adapter-codex-local/server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@taskcore/adapter-codex-local/server")>();
+  const actual =
+    await importOriginal<
+      typeof import("@taskcore/adapter-codex-local/server")
+    >();
   return {
     ...actual,
     evaluateCodexCredentialReadiness: mockEvaluateCodexCredentialReadiness,
@@ -114,7 +125,10 @@ vi.mock("@taskcore/adapter-codex-local/server", async (importOriginal) => {
 
 let currentActor: Record<string, unknown>;
 
-function boardActor(userId: string, companyIds: string[] = [COMPANY_1, OTHER_COMPANY]): Record<string, unknown> {
+function boardActor(
+  userId: string,
+  companyIds: string[] = [COMPANY_1, OTHER_COMPANY],
+): Record<string, unknown> {
   return {
     type: "board",
     userId,
@@ -126,8 +140,12 @@ function boardActor(userId: string, companyIds: string[] = [COMPANY_1, OTHER_COM
 
 async function createApp() {
   const [{ agentRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/agents.js")>("../routes/agents.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/agents.js")>(
+      "../routes/agents.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -140,7 +158,11 @@ async function createApp() {
   return app;
 }
 
-const authSignalPath = (companyId: string, type: string, environmentId?: string) =>
+const authSignalPath = (
+  companyId: string,
+  type: string,
+  environmentId?: string,
+) =>
   `/api/companies/${companyId}/adapters/${type}/auth-signal${environmentId ? `?environmentId=${environmentId}` : ""}`;
 
 describe("adapter auth-signal route", () => {
@@ -192,7 +214,9 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "codex_local"));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "codex_local"),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "present" });
@@ -211,17 +235,23 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "codex_local"));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "codex_local"),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "absent" });
   });
 
   it("returns unknown for codex_local when the readiness predictor throws", async () => {
-    mockEvaluateCodexCredentialReadiness.mockRejectedValueOnce(new Error("boom"));
+    mockEvaluateCodexCredentialReadiness.mockRejectedValueOnce(
+      new Error("boom"),
+    );
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "codex_local"));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "codex_local"),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "unknown" });
@@ -240,7 +270,9 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "codex_local", ENVIRONMENT_1));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "codex_local", ENVIRONMENT_1),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "unknown" });
@@ -266,7 +298,9 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "codex_local", ENVIRONMENT_1));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "codex_local", ENVIRONMENT_1),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "present" });
@@ -292,7 +326,9 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "codex_local", ENVIRONMENT_1));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "codex_local", ENVIRONMENT_1),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "present" });
@@ -320,11 +356,15 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "claude_local", ENVIRONMENT_1));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "claude_local", ENVIRONMENT_1),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "present" });
-    expect(mockSecretService.readClaudeOAuthUserSecretStatus).not.toHaveBeenCalled();
+    expect(
+      mockSecretService.readClaudeOAuthUserSecretStatus,
+    ).not.toHaveBeenCalled();
   });
 
   it("returns present for claude_local when the owner holds a stored login and the environment holds no key", async () => {
@@ -334,17 +374,23 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "claude_local", ENVIRONMENT_1));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "claude_local", ENVIRONMENT_1),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "present" });
-    expect(mockSecretService.readClaudeOAuthUserSecretStatus).toHaveBeenCalledWith(COMPANY_1, OWNER_A);
+    expect(
+      mockSecretService.readClaudeOAuthUserSecretStatus,
+    ).toHaveBeenCalledWith(COMPANY_1, OWNER_A);
   });
 
   it("returns absent for claude_local when neither source holds a value", async () => {
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "claude_local"));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "claude_local"),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "absent" });
@@ -353,23 +399,33 @@ describe("adapter auth-signal route", () => {
   it("returns unknown for an adapter type that has no cheap signal", async () => {
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "cursor_local"));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "cursor_local"),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toEqual({ status: "unknown" });
     expect(mockEvaluateCodexCredentialReadiness).not.toHaveBeenCalled();
-    expect(mockSecretService.readClaudeOAuthUserSecretStatus).not.toHaveBeenCalled();
+    expect(
+      mockSecretService.readClaudeOAuthUserSecretStatus,
+    ).not.toHaveBeenCalled();
   });
 
   it("rejects an environment that belongs to another company", async () => {
-    mockEnvironmentService.listBoundCompanyIds.mockResolvedValueOnce([OTHER_COMPANY]);
+    mockEnvironmentService.listBoundCompanyIds.mockResolvedValueOnce([
+      OTHER_COMPANY,
+    ]);
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "claude_local", ENVIRONMENT_1));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "claude_local", ENVIRONMENT_1),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);
     expect(mockSecretService.resolveEnvBindings).not.toHaveBeenCalled();
-    expect(mockSecretService.readClaudeOAuthUserSecretStatus).not.toHaveBeenCalled();
+    expect(
+      mockSecretService.readClaudeOAuthUserSecretStatus,
+    ).not.toHaveBeenCalled();
   });
 
   it("rejects a caller who cannot create agents for the company", async () => {
@@ -380,11 +436,15 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "claude_local"));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "claude_local"),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);
     expect(mockEnvironmentService.getById).not.toHaveBeenCalled();
-    expect(mockSecretService.readClaudeOAuthUserSecretStatus).not.toHaveBeenCalled();
+    expect(
+      mockSecretService.readClaudeOAuthUserSecretStatus,
+    ).not.toHaveBeenCalled();
   });
 
   it("returns a response body that holds only the status field", async () => {
@@ -397,7 +457,9 @@ describe("adapter auth-signal route", () => {
     });
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "codex_local"));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "codex_local"),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(Object.keys(res.body)).toEqual(["status"]);
@@ -406,7 +468,9 @@ describe("adapter auth-signal route", () => {
   it("takes no sandbox lease and starts no model process", async () => {
     const app = await createApp();
 
-    const res = await request(app).get(authSignalPath(COMPANY_1, "codex_local", ENVIRONMENT_1));
+    const res = await request(app).get(
+      authSignalPath(COMPANY_1, "codex_local", ENVIRONMENT_1),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(mockEnvironmentRuntime.acquireRunLease).not.toHaveBeenCalled();

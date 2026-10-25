@@ -50,14 +50,28 @@ for (const id of stories) {
       )
       .toBe(true);
     expect(errors, `Story/play errors for ${id}`).toEqual([]);
-    await expect(page.getByTestId("ai-review-frame")).toContainText("Already in the app");
-    await expect(page.getByTestId("ai-review-frame")).toContainText("Storybook simulation");
+    await expect(page.getByTestId("ai-review-frame")).toContainText(
+      "Already in the app",
+    );
+    await expect(page.getByTestId("ai-review-frame")).toContainText(
+      "Storybook simulation",
+    );
     if (id.endsWith("responsible-user")) {
-      await expect(page.getByTestId("ai-review-preview")).toContainText("Example page context · Storybook only");
-      await expect(page.getByTestId("ai-component-boundary")).toContainText("App component: AiConnectionPicker");
-      await expect(page.getByText("Your personal accounts", { exact: true })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: /Make default|Authorize for/ })).toHaveCount(0);
-      await expect(page.getByText("For you: My Claude subscription", { exact: true })).toBeVisible();
+      await expect(page.getByTestId("ai-review-preview")).toContainText(
+        "Example page context · Storybook only",
+      );
+      await expect(page.getByTestId("ai-component-boundary")).toContainText(
+        "App component: AiConnectionPicker",
+      );
+      await expect(
+        page.getByText("Your personal accounts", { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: /Make default|Authorize for/ }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("For you: My Claude subscription", { exact: true }),
+      ).toBeVisible();
     }
     if (id.endsWith("review-index")) {
       const links = await page
@@ -99,8 +113,12 @@ for (const theme of ["light", "dark"]) {
             ),
           )
           .toBe(true);
-        if (story === "management") await expect(page.getByLabel("AI account settings")).toBeVisible();
-        if (story === "identity-matrix") await expect(page.getByRole("button", { name: "Add account Anthropic" })).toBeVisible();
+        if (story === "management")
+          await expect(page.getByLabel("AI account settings")).toBeVisible();
+        if (story === "identity-matrix")
+          await expect(
+            page.getByRole("button", { name: "Add account Anthropic" }),
+          ).toBeVisible();
         await page.evaluate(() => document.fonts.ready);
         await expect
           .poll(() =>
@@ -119,11 +137,16 @@ for (const theme of ["light", "dark"]) {
   }
 }
 
-test("shared connection chooser keyboard navigation preserves runtime", async ({ page }) => {
+test("shared connection chooser keyboard navigation preserves runtime", async ({
+  page,
+}) => {
   await page.goto(
     "/iframe.html?id=ai-connections-review--responsible-user&viewMode=story",
   );
-  const first = page.getByRole("button", { name: "Responsible user’s connection", exact: true });
+  const first = page.getByRole("button", {
+    name: "Responsible user’s connection",
+    exact: true,
+  });
   await first.focus();
   await page.keyboard.press("Tab");
   await page.keyboard.press("Enter");
@@ -141,17 +164,34 @@ test("shared connection chooser keyboard navigation preserves runtime", async ({
 
 // Keep upstream's real saved-account and login workflow in this integration's
 // review gate as well as the AI-specific component stories above.
-for (const id of Object.keys(index.entries).filter((entry) => entry.startsWith("onboarding-saved-connections--"))) {
+for (const id of Object.keys(index.entries).filter((entry) =>
+  entry.startsWith("onboarding-saved-connections--"),
+)) {
   test(`upstream ${id}`, async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", error => errors.push(error.message));
+    page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`/iframe.html?id=${id}&viewMode=story`);
     await page.waitForFunction(() => {
-      const preview = (window as unknown as { __STORYBOOK_PREVIEW__?: { currentRender?: { phase: string } } }).__STORYBOOK_PREVIEW__;
-      return ["completed", "finished", "errored"].includes(preview?.currentRender?.phase ?? "");
+      const preview = (
+        window as unknown as {
+          __STORYBOOK_PREVIEW__?: { currentRender?: { phase: string } };
+        }
+      ).__STORYBOOK_PREVIEW__;
+      return ["completed", "finished", "errored"].includes(
+        preview?.currentRender?.phase ?? "",
+      );
     });
     await expect(page.locator("#storybook-root")).not.toBeEmpty();
     expect(errors).toEqual([]);
-    expect(await page.evaluate(() => (window as unknown as { __STORYBOOK_PREVIEW__?: { currentRender?: { phase: string } } }).__STORYBOOK_PREVIEW__?.currentRender?.phase)).not.toBe("errored");
+    expect(
+      await page.evaluate(
+        () =>
+          (
+            window as unknown as {
+              __STORYBOOK_PREVIEW__?: { currentRender?: { phase: string } };
+            }
+          ).__STORYBOOK_PREVIEW__?.currentRender?.phase,
+      ),
+    ).not.toBe("errored");
   });
 }

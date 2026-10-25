@@ -4,7 +4,10 @@ import { Badge } from "./badge";
 
 export type ToolStatus = "running" | "completed" | "failed" | "interrupted";
 
-const STATUS_TONE: Record<ToolStatus, "neutral" | "accent" | "success" | "danger" | "warning"> = {
+const STATUS_TONE: Record<
+  ToolStatus,
+  "neutral" | "accent" | "success" | "danger" | "warning"
+> = {
   running: "accent",
   completed: "success",
   failed: "danger",
@@ -65,14 +68,18 @@ export function ToolItem({
       {failure === null ? null : (
         <>
           <p className="ui-disclosure-label">Diagnostic</p>
-          <pre className="ui-payload ui-payload--danger" data-testid="tool-failure">
+          <pre
+            className="ui-payload ui-payload--danger"
+            data-testid="tool-failure"
+          >
             {failure}
           </pre>
         </>
       )}
       {status === "interrupted" ? (
         <p className="ui-message-divider" data-testid="interrupted-divider">
-          Interrupted — the last known status is shown and no result was fabricated.
+          Interrupted — the last known status is shown and no result was
+          fabricated.
         </p>
       ) : null}
     </details>

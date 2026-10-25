@@ -3,9 +3,22 @@ import { z } from "zod";
 import type { Db } from "@taskcore/db";
 import { normalizeIssueIdentifier } from "@taskcore/shared";
 import { validate } from "../middleware/validate.js";
-import { activityService, normalizeActivityLimit } from "../services/activity.js";
-import { assertAuthenticated, assertBoard, assertCompanyAccess, getAccessibleResource, hasCompanyAccess } from "./authz.js";
-import { accessService, heartbeatService, issueService } from "../services/index.js";
+import {
+  activityService,
+  normalizeActivityLimit,
+} from "../services/activity.js";
+import {
+  assertAuthenticated,
+  assertBoard,
+  assertCompanyAccess,
+  getAccessibleResource,
+  hasCompanyAccess,
+} from "./authz.js";
+import {
+  accessService,
+  heartbeatService,
+  issueService,
+} from "../services/index.js";
 import { sanitizeRecord } from "../redaction.js";
 import { badRequest, forbidden } from "../errors.js";
 import { agentActionAuditService } from "../services/agent-action-audit.js";
@@ -71,28 +84,33 @@ type AuditCsvRow = {
 function auditRowsToCsv(rows: AuditCsvRow[]): string {
   const lines = [AUDIT_CSV_COLUMNS.join(",")];
   for (const row of rows) {
-    lines.push([
-      csvCell(row.createdAt),
-      csvCell(row.action),
-      csvCell(row.actorType),
-      csvCell(row.actorId),
-      csvCell(row.agentId),
-      csvCell(row.runId),
-      csvCell(row.responsibleUserId),
-      csvCell(row.entityType),
-      csvCell(row.entityId),
-      csvCell(readNested(row.entity, "issue", "identifier")),
-      csvCell(readNested(row.entity, "issue", "title")),
-      csvCell(readNested(row.entity, "comment", "excerpt")),
-      csvCell(readNested(row.entity, "document", "key")),
-    ].join(","));
+    lines.push(
+      [
+        csvCell(row.createdAt),
+        csvCell(row.action),
+        csvCell(row.actorType),
+        csvCell(row.actorId),
+        csvCell(row.agentId),
+        csvCell(row.runId),
+        csvCell(row.responsibleUserId),
+        csvCell(row.entityType),
+        csvCell(row.entityId),
+        csvCell(readNested(row.entity, "issue", "identifier")),
+        csvCell(readNested(row.entity, "issue", "title")),
+        csvCell(readNested(row.entity, "comment", "excerpt")),
+        csvCell(readNested(row.entity, "document", "key")),
+      ].join(","),
+    );
   }
   // Trailing newline keeps POSIX tools + spreadsheet importers happy.
   return `${lines.join("\r\n")}\r\n`;
 }
 
 const createActivitySchema = z.object({
-  actorType: z.enum(["agent", "user", "system", "plugin"]).optional().default("system"),
+  actorType: z
+    .enum(["agent", "user", "system", "plugin"])
+    .optional()
+    .default("system"),
   actorId: z.string().min(1),
   action: z.string().min(1),
   entityType: z.string().min(1),
@@ -126,42 +144,59 @@ export function activityRoutes(db: Db) {
   const issueSvc = issueService(db);
   const agentAudit = agentActionAuditService(db);
 
-  async function hasAgentAuditPermission(req: import("express").Request, companyId: string) {
+  async function hasAgentAuditPermission(
+    req: import("express").Request,
+    companyId: string,
+  ) {
     if (req.actor.type !== "board") return false;
-    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return true;
+    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+      return true;
     return Boolean(
-      req.actor.userId
-      && await access.canUser(companyId, req.actor.userId, "audit:view_agent_actions"),
+      req.actor.userId &&
+      (await access.canUser(
+        companyId,
+        req.actor.userId,
+        "audit:view_agent_actions",
+      )),
     );
   }
 
-  async function assertAgentAuditPermission(req: import("express").Request, companyId: string) {
+  async function assertAgentAuditPermission(
+    req: import("express").Request,
+    companyId: string,
+  ) {
     assertBoard(req);
     assertCompanyAccess(req, companyId);
     if (await hasAgentAuditPermission(req, companyId)) return;
     throw forbidden("Missing permission: audit:view_agent_actions");
   }
 
-  function hasAttributionFilters(query: z.infer<typeof agentActionAuditQuerySchema>) {
-    return query.agentId !== undefined
-      || query.responsibleUserId !== undefined
-      || query.runId !== undefined
-      || query.entityType !== undefined
-      || query.entityId !== undefined
-      || query.action !== undefined
-      || query.actorType !== undefined
-      || query.from !== undefined
-      || query.to !== undefined;
+  function hasAttributionFilters(
+    query: z.infer<typeof agentActionAuditQuerySchema>,
+  ) {
+    return (
+      query.agentId !== undefined ||
+      query.responsibleUserId !== undefined ||
+      query.runId !== undefined ||
+      query.entityType !== undefined ||
+      query.entityId !== undefined ||
+      query.action !== undefined ||
+      query.actorType !== undefined ||
+      query.from !== undefined ||
+      query.to !== undefined
+    );
   }
 
-  function stripAuditAttribution<T extends {
-    items: Array<{
-      agentId: string | null;
-      runId: string | null;
-      responsibleUserId: string | null;
-      details: unknown;
-    }>;
-  }>(result: T): T {
+  function stripAuditAttribution<
+    T extends {
+      items: Array<{
+        agentId: string | null;
+        runId: string | null;
+        responsibleUserId: string | null;
+        details: unknown;
+      }>;
+    },
+  >(result: T): T {
     return {
       ...result,
       items: result.items.map((item) => ({
@@ -174,26 +209,38 @@ export function activityRoutes(db: Db) {
     };
   }
 
-  async function assertCompanyScopeReadAllowed(req: Parameters<typeof assertCompanyAccess>[0], res: any, companyId: string) {
+  async function assertCompanyScopeReadAllowed(
+    req: Parameters<typeof assertCompanyAccess>[0],
+    res: any,
+    companyId: string,
+  ) {
     const decision = await access.decide({
       actor: req.actor,
       action: "company_scope:read",
       resource: { type: "company", companyId },
     });
     if (decision.allowed) return true;
-    res.status(403).json({ error: "Activity is outside this actor's authorization boundary" });
+    res
+      .status(403)
+      .json({
+        error: "Activity is outside this actor's authorization boundary",
+      });
     return false;
   }
 
-  async function assertIssueReadAllowed(req: Parameters<typeof assertCompanyAccess>[0], res: any, issue: {
-    id: string;
-    companyId: string;
-    projectId: string | null;
-    parentId: string | null;
-    assigneeAgentId: string | null;
-    assigneeUserId: string | null;
-    status: string;
-  }) {
+  async function assertIssueReadAllowed(
+    req: Parameters<typeof assertCompanyAccess>[0],
+    res: any,
+    issue: {
+      id: string;
+      companyId: string;
+      projectId: string | null;
+      parentId: string | null;
+      assigneeAgentId: string | null;
+      assigneeUserId: string | null;
+      status: string;
+    },
+  ) {
     const decision = await access.decide({
       actor: req.actor,
       action: "issue:read",
@@ -209,7 +256,11 @@ export function activityRoutes(db: Db) {
       },
     });
     if (decision.allowed) return true;
-    res.status(403).json({ error: "Issue activity is outside this actor's authorization boundary" });
+    res
+      .status(403)
+      .json({
+        error: "Issue activity is outside this actor's authorization boundary",
+      });
     return false;
   }
 
@@ -240,9 +291,14 @@ export function activityRoutes(db: Db) {
 
   router.get("/companies/:companyId/audit/agent-actions", async (req, res) => {
     const companyId = req.params.companyId as string;
-    const parsedActorScope = agentActionAuditActorScopeSchema.safeParse(req.query.actorScope ?? "agents");
+    const parsedActorScope = agentActionAuditActorScopeSchema.safeParse(
+      req.query.actorScope ?? "agents",
+    );
     if (!parsedActorScope.success) {
-      throw badRequest("Invalid agent action audit query", parsedActorScope.error.issues);
+      throw badRequest(
+        "Invalid agent action audit query",
+        parsedActorScope.error.issues,
+      );
     }
     if (parsedActorScope.data === "agents") {
       // Keep the legacy authorization-before-validation behavior for callers
@@ -255,7 +311,10 @@ export function activityRoutes(db: Db) {
 
     const parsedQuery = agentActionAuditQuerySchema.safeParse(req.query);
     if (!parsedQuery.success) {
-      throw badRequest("Invalid agent action audit query", parsedQuery.error.issues);
+      throw badRequest(
+        "Invalid agent action audit query",
+        parsedQuery.error.issues,
+      );
     }
     if (parsedQuery.data.actorScope === "agents") {
       const result = await agentAudit.list({ companyId, ...parsedQuery.data });
@@ -265,7 +324,9 @@ export function activityRoutes(db: Db) {
 
     const canViewAttribution = await hasAgentAuditPermission(req, companyId);
     if (!canViewAttribution && hasAttributionFilters(parsedQuery.data)) {
-      throw forbidden("Audit filters require permission: audit:view_agent_actions");
+      throw forbidden(
+        "Audit filters require permission: audit:view_agent_actions",
+      );
     }
     const result = await agentAudit.list({ companyId, ...parsedQuery.data });
     res.json({
@@ -274,76 +335,101 @@ export function activityRoutes(db: Db) {
     });
   });
 
-  router.get("/companies/:companyId/audit/agent-actions.csv", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    await assertAgentAuditPermission(req, companyId);
-    const parsedQuery = agentActionAuditQuerySchema.safeParse(req.query);
-    if (!parsedQuery.success) {
-      throw badRequest("Invalid agent action audit query", parsedQuery.error.issues);
-    }
-    // Drive our own pagination for the export; a client-supplied cursor/limit
-    // would silently truncate the export, so ignore them.
-    const { cursor: _cursor, limit: _limit, ...filters } = parsedQuery.data;
-    const rows: Awaited<ReturnType<typeof agentAudit.list>>["items"] = [];
-    let cursor: string | undefined;
-    do {
-      const page = await agentAudit.list({ companyId, ...filters, cursor, limit: AUDIT_CSV_PAGE_SIZE });
-      for (const item of page.items) {
-        if (rows.length >= AUDIT_CSV_EXPORT_MAX_ROWS) break;
-        rows.push(item);
+  router.get(
+    "/companies/:companyId/audit/agent-actions.csv",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      await assertAgentAuditPermission(req, companyId);
+      const parsedQuery = agentActionAuditQuerySchema.safeParse(req.query);
+      if (!parsedQuery.success) {
+        throw badRequest(
+          "Invalid agent action audit query",
+          parsedQuery.error.issues,
+        );
       }
-      cursor = page.nextCursor ?? undefined;
-    } while (cursor && rows.length < AUDIT_CSV_EXPORT_MAX_ROWS);
+      // Drive our own pagination for the export; a client-supplied cursor/limit
+      // would silently truncate the export, so ignore them.
+      const { cursor: _cursor, limit: _limit, ...filters } = parsedQuery.data;
+      const rows: Awaited<ReturnType<typeof agentAudit.list>>["items"] = [];
+      let cursor: string | undefined;
+      do {
+        const page = await agentAudit.list({
+          companyId,
+          ...filters,
+          cursor,
+          limit: AUDIT_CSV_PAGE_SIZE,
+        });
+        for (const item of page.items) {
+          if (rows.length >= AUDIT_CSV_EXPORT_MAX_ROWS) break;
+          rows.push(item);
+        }
+        cursor = page.nextCursor ?? undefined;
+      } while (cursor && rows.length < AUDIT_CSV_EXPORT_MAX_ROWS);
 
-    // The export is itself an auditable act (training-data export precedent):
-    // record who exported what filter set and how many rows left the system.
-    const actorUserId = req.actor.type === "board" ? req.actor.userId ?? null : null;
-    await logActivity(db, {
-      companyId,
-      actorType: actorUserId ? "user" : "system",
-      actorId: actorUserId ?? "local-board",
-      action: "audit.exported",
-      entityType: "company",
-      entityId: companyId,
-      details: {
-        format: "csv",
-        rowCount: rows.length,
-        truncated: rows.length >= AUDIT_CSV_EXPORT_MAX_ROWS && Boolean(cursor),
-        filters: {
-          actorScope: filters.actorScope,
-          agentId: filters.agentId ?? null,
-          responsibleUserId: filters.responsibleUserId ?? null,
-          runId: filters.runId ?? null,
-          entityType: filters.entityType ?? null,
-          entityId: filters.entityId ?? null,
-          action: filters.action ?? null,
-          actorType: filters.actorType ?? null,
-          from: filters.from ? filters.from.toISOString() : null,
-          to: filters.to ? filters.to.toISOString() : null,
+      // The export is itself an auditable act (training-data export precedent):
+      // record who exported what filter set and how many rows left the system.
+      const actorUserId =
+        req.actor.type === "board" ? (req.actor.userId ?? null) : null;
+      await logActivity(db, {
+        companyId,
+        actorType: actorUserId ? "user" : "system",
+        actorId: actorUserId ?? "local-board",
+        action: "audit.exported",
+        entityType: "company",
+        entityId: companyId,
+        details: {
+          format: "csv",
+          rowCount: rows.length,
+          truncated:
+            rows.length >= AUDIT_CSV_EXPORT_MAX_ROWS && Boolean(cursor),
+          filters: {
+            actorScope: filters.actorScope,
+            agentId: filters.agentId ?? null,
+            responsibleUserId: filters.responsibleUserId ?? null,
+            runId: filters.runId ?? null,
+            entityType: filters.entityType ?? null,
+            entityId: filters.entityId ?? null,
+            action: filters.action ?? null,
+            actorType: filters.actorType ?? null,
+            from: filters.from ? filters.from.toISOString() : null,
+            to: filters.to ? filters.to.toISOString() : null,
+          },
         },
-      },
-    });
+      });
 
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="agent-audit-${companyId}.csv"`);
-    res.send(auditRowsToCsv(rows));
-  });
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="agent-audit-${companyId}.csv"`,
+      );
+      res.send(auditRowsToCsv(rows));
+    },
+  );
 
-  router.post("/companies/:companyId/activity", validate(createActivitySchema), async (req, res) => {
-    assertBoard(req);
-    const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
-    const event = await svc.create({
-      companyId,
-      ...req.body,
-      details: req.body.details ? sanitizeRecord(req.body.details) : null,
-    });
-    res.status(201).json(event);
-  });
+  router.post(
+    "/companies/:companyId/activity",
+    validate(createActivitySchema),
+    async (req, res) => {
+      assertBoard(req);
+      const companyId = req.params.companyId as string;
+      assertCompanyAccess(req, companyId);
+      const event = await svc.create({
+        companyId,
+        ...req.body,
+        details: req.body.details ? sanitizeRecord(req.body.details) : null,
+      });
+      res.status(201).json(event);
+    },
+  );
 
   router.get("/issues/:id/activity", async (req, res) => {
     const rawId = req.params.id as string;
-    const issue = await getAccessibleResource(req, res, resolveIssueByRef(rawId), "Issue not found");
+    const issue = await getAccessibleResource(
+      req,
+      res,
+      resolveIssueByRef(rawId),
+      "Issue not found",
+    );
     if (!issue) return;
     if (!(await assertIssueReadAllowed(req, res, issue))) return;
     const result = await svc.forIssue(issue.id);
@@ -352,7 +438,12 @@ export function activityRoutes(db: Db) {
 
   router.get("/issues/:id/runs", async (req, res) => {
     const rawId = req.params.id as string;
-    const issue = await getAccessibleResource(req, res, resolveIssueByRef(rawId), "Issue not found");
+    const issue = await getAccessibleResource(
+      req,
+      res,
+      resolveIssueByRef(rawId),
+      "Issue not found",
+    );
     if (!issue) return;
     if (!(await assertIssueReadAllowed(req, res, issue))) return;
     const result = await svc.runsForIssue(issue.companyId, issue.id);

@@ -232,7 +232,8 @@ export interface PluginEnvironmentDriverDeclaration {
   /** Provider can capture a reusable template from a live setup sandbox. */
   supportsTemplateCapture?: boolean;
   /** Kind of template reference returned by the provider's capture hook. */
-  templateRefKind?: "snapshot" | "image" | "provider_template" | "unknown" | (string & {});
+  templateRefKind?:
+    "snapshot" | "image" | "provider_template" | "unknown" | (string & {});
   /**
    * How Taskcore should apply a captured template ref back into this provider's
    * runtime config. Omit to use the standard key for `templateRefKind`.
@@ -377,7 +378,8 @@ export interface PluginManagedSkillDeclaration {
   files?: PluginManagedSkillFileDeclaration[];
 }
 
-export type PluginManagedResourceKind = "agent" | "project" | "routine" | "skill";
+export type PluginManagedResourceKind =
+  "agent" | "project" | "routine" | "skill";
 
 export interface PluginManagedResourceRef {
   pluginKey?: string;
@@ -413,7 +415,18 @@ export interface PluginManagedRoutineDeclaration {
   /** Suggested routine variables. */
   variables?: RoutineVariable[];
   /** Suggested triggers created when the routine is first reconciled. */
-  triggers?: Array<Pick<RoutineTrigger, "kind" | "label" | "enabled" | "cronExpression" | "timezone" | "signingMode" | "replayWindowSec">>;
+  triggers?: Array<
+    Pick<
+      RoutineTrigger,
+      | "kind"
+      | "label"
+      | "enabled"
+      | "cronExpression"
+      | "timezone"
+      | "signingMode"
+      | "replayWindowSec"
+    >
+  >;
   /** Defaults for issues created by this routine. */
   issueTemplate?: {
     surfaceVisibility?: IssueSurfaceVisibility;
@@ -454,7 +467,8 @@ export interface PluginManagedRoutineResolution {
   companyId: string;
   routineId: string | null;
   routine: Routine | null;
-  status: "missing" | "missing_refs" | "resolved" | "created" | "relinked" | "reset";
+  status:
+    "missing" | "missing_refs" | "resolved" | "created" | "relinked" | "reset";
   missingRefs?: PluginManagedResourceRef[];
 }
 
@@ -964,7 +978,8 @@ export interface PluginJobRunRecord {
   /** What triggered this run. */
   trigger: "schedule" | "manual" | "retry";
   /** Current run status. */
-  status: "pending" | "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  status:
+    "pending" | "queued" | "running" | "succeeded" | "failed" | "cancelled";
   /** Run duration in milliseconds. */
   durationMs: number | null;
   /** Error message if the run failed. */

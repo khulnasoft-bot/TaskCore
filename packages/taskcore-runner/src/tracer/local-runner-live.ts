@@ -32,7 +32,9 @@ export function applyLocalRunnerLiveEvent(
       ok: false,
       snapshot: current,
       event: null,
-      issues: validation.issues.map((issue) => `${issue.path} ${issue.message}`),
+      issues: validation.issues.map(
+        (issue) => `${issue.path} ${issue.message}`,
+      ),
     };
   }
   if (validation.event.runId !== current.identity.runId) {
@@ -45,7 +47,8 @@ export function applyLocalRunnerLiveEvent(
   }
   if (
     validation.event.normalizedSessionId !== undefined &&
-    validation.event.normalizedSessionId !== current.identity.normalizedSessionId
+    validation.event.normalizedSessionId !==
+      current.identity.normalizedSessionId
   ) {
     return {
       ok: false,

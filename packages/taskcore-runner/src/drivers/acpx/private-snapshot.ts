@@ -19,7 +19,8 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 // Match the admission limit and reserve separate space for qualified modules.
 export const MAX_ACPX_RUNTIME_EXECUTABLE_BYTES = 384 * 1024 * 1024;
 const MAX_PACKAGE_SNAPSHOT_BYTES = 128 * 1024 * 1024;
-const MAX_SNAPSHOT_BYTES = MAX_PACKAGE_SNAPSHOT_BYTES + MAX_ACPX_RUNTIME_EXECUTABLE_BYTES;
+const MAX_SNAPSHOT_BYTES =
+  MAX_PACKAGE_SNAPSHOT_BYTES + MAX_ACPX_RUNTIME_EXECUTABLE_BYTES;
 
 export const ACPX_PRIVATE_SNAPSHOT_ENV = "TASKCORE_ACPX_PRIVATE_SNAPSHOT";
 export interface AcpxPrivateSnapshot {
@@ -38,11 +39,19 @@ const within = (root: string, file: string) => {
   );
 };
 
-async function readSnapshotBytes(handle: FileHandle, byteLength: number): Promise<Buffer> {
+async function readSnapshotBytes(
+  handle: FileHandle,
+  byteLength: number,
+): Promise<Buffer> {
   const bytes = Buffer.alloc(byteLength);
   let offset = 0;
   while (offset < bytes.length) {
-    const read = await handle.read(bytes, offset, bytes.length - offset, offset);
+    const read = await handle.read(
+      bytes,
+      offset,
+      bytes.length - offset,
+      offset,
+    );
     if (!read.bytesRead) throw new Error("ACPX file ended during snapshot");
     offset += read.bytesRead;
   }
@@ -55,7 +64,9 @@ export async function createAcpxPrivateSnapshot(
   executable: FileHandle | null,
 ): Promise<AcpxPrivateSnapshot> {
   sourceRoots = await Promise.all(sourceRoots.map((root) => realpath(root)));
-  const executableIdentity = executable ? await executable.stat({ bigint: true }) : null;
+  const executableIdentity = executable
+    ? await executable.stat({ bigint: true })
+    : null;
   const sourceIdentities = await Promise.all(
     sourceRoots.map((root) => lstat(root, { bigint: true })),
   );
@@ -118,7 +129,13 @@ export async function createAcpxPrivateSnapshot(
       return;
     }
     // The separately pinned native binary is copied below with its own bound.
-    if (before.isFile() && executableIdentity && before.dev === executableIdentity.dev && before.ino === executableIdentity.ino) return;
+    if (
+      before.isFile() &&
+      executableIdentity &&
+      before.dev === executableIdentity.dev &&
+      before.ino === executableIdentity.ino
+    )
+      return;
     if (!before.isFile() || before.size > 16n * 1024n * 1024n)
       throw new Error("ACPX module must be a bounded regular file");
     bytesCopied += Number(before.size);
@@ -188,8 +205,14 @@ export async function createAcpxPrivateSnapshot(
     let executablePath: string | null = null;
     if (executable) {
       const before = await executable.stat({ bigint: true });
-      if (!before.isFile() || before.size < 1n || before.size > BigInt(MAX_ACPX_RUNTIME_EXECUTABLE_BYTES)) {
-        throw new Error("ACPX runtime executable must be a bounded executable file");
+      if (
+        !before.isFile() ||
+        before.size < 1n ||
+        before.size > BigInt(MAX_ACPX_RUNTIME_EXECUTABLE_BYTES)
+      ) {
+        throw new Error(
+          "ACPX runtime executable must be a bounded executable file",
+        );
       }
       // The bigint bound above makes this conversion exact before allocation.
       const executableBytes = Number(before.size);

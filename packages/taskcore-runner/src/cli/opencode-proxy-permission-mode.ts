@@ -5,11 +5,7 @@ export function parseOpenCodeProxyPermissionMode(
 ): OpenCodeProxyPermissionMode {
   const configured = value?.trim();
   if (!configured) return "allow";
-  if (
-    configured === "allow"
-    || configured === "ask"
-    || configured === "deny"
-  ) {
+  if (configured === "allow" || configured === "ask" || configured === "deny") {
     return configured;
   }
   throw new Error("TASKCORE_OPENCODE_PERMISSION_MODE is invalid");

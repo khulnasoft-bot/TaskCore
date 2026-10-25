@@ -7,9 +7,11 @@ describe("attachmentArtifactWorkProductMetadataSchema", () => {
       attachmentId: "11111111-1111-4111-8111-111111111111",
       contentType: "video/mp4",
       byteSize: 1234,
-      contentPath: "/api/attachments/11111111-1111-4111-8111-111111111111/content",
+      contentPath:
+        "/api/attachments/11111111-1111-4111-8111-111111111111/content",
       openPath: "/api/attachments/11111111-1111-4111-8111-111111111111/content",
-      downloadPath: "/api/attachments/11111111-1111-4111-8111-111111111111/content?download=1",
+      downloadPath:
+        "/api/attachments/11111111-1111-4111-8111-111111111111/content?download=1",
       originalFilename: "demo.mp4",
     });
 
@@ -24,7 +26,8 @@ describe("attachmentArtifactWorkProductMetadataSchema", () => {
       byteSize: 1234,
       contentPath: "https://evil.example/video.mp4",
       openPath: "javascript:alert(1)",
-      downloadPath: "/api/attachments/11111111-1111-4111-8111-111111111111/content",
+      downloadPath:
+        "/api/attachments/11111111-1111-4111-8111-111111111111/content",
       originalFilename: "demo.mp4",
     });
 

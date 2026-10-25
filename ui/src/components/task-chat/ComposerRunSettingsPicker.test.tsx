@@ -8,13 +8,19 @@ import type { Agent } from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { agentsApi } from "@/api/agents";
 import { ComposerRunSettingsPicker } from "./ComposerRunSettingsPicker";
-import { getLastComposerEffort, rememberComposerEffort } from "@/lib/recent-composer-effort";
+import {
+  getLastComposerEffort,
+  rememberComposerEffort,
+} from "@/lib/recent-composer-effort";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const agent = {
-  id: "a1", companyId: "company-1", name: "Clippy",
+  id: "a1",
+  companyId: "company-1",
+  name: "Clippy",
   role: "Engineering Lead",
-  adapterType: "codex_local", adapterConfig: { model: "gpt-6-sol" },
+  adapterType: "codex_local",
+  adapterConfig: { model: "gpt-6-sol" },
 } as unknown as Agent;
 const options = [{ id: "agent:a1", label: "Clippy" }];
 const agents = new Map([[agent.id, agent]]);
@@ -25,28 +31,68 @@ globalThis.ResizeObserver = class {
   disconnect() {}
   unobserve() {}
 };
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 async function click(label: string) {
-  const button = document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)
-    ?? [...document.querySelectorAll<HTMLButtonElement>('button[role="option"]')].find((item) => item.textContent?.trim().startsWith(label));
+  const button =
+    document.querySelector<HTMLButtonElement>(
+      `button[aria-label="${label}"]`,
+    ) ??
+    [
+      ...document.querySelectorAll<HTMLButtonElement>('button[role="option"]'),
+    ].find((item) => item.textContent?.trim().startsWith(label));
   expect(button).toBeDefined();
   flushSync(() => button!.click());
-  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 }
 
-function render(onAssigneeChange: (value: string) => void, onSettingsChange: () => void, useCatalog = false, props: Partial<ComponentProps<typeof ComposerRunSettingsPicker>> = {}, insideDialog = false) {
+function render(
+  onAssigneeChange: (value: string) => void,
+  onSettingsChange: () => void,
+  useCatalog = false,
+  props: Partial<ComponentProps<typeof ComposerRunSettingsPicker>> = {},
+  insideDialog = false,
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const picker = <QueryClientProvider client={queryClient}>
-    <ComposerRunSettingsPicker companyId="company-1" assigneeValue="agent:a1" currentAssigneeValue="agent:a1"
-      options={options} agents={agents} settings={{ model: "gpt-6-sol", effort: "high", fast: true }}
-      onAssigneeChange={onAssigneeChange} onSettingsChange={onSettingsChange}
-      modelOptionsOverride={useCatalog ? undefined : []} {...props} />
-  </QueryClientProvider>;
-  flushSync(() => root!.render(insideDialog ? <Dialog defaultOpen><DialogContent aria-describedby={undefined}><DialogTitle>New task</DialogTitle>{picker}</DialogContent></Dialog> : picker));
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const picker = (
+    <QueryClientProvider client={queryClient}>
+      <ComposerRunSettingsPicker
+        companyId="company-1"
+        assigneeValue="agent:a1"
+        currentAssigneeValue="agent:a1"
+        options={options}
+        agents={agents}
+        settings={{ model: "gpt-6-sol", effort: "high", fast: true }}
+        onAssigneeChange={onAssigneeChange}
+        onSettingsChange={onSettingsChange}
+        modelOptionsOverride={useCatalog ? undefined : []}
+        {...props}
+      />
+    </QueryClientProvider>
+  );
+  flushSync(() =>
+    root!.render(
+      insideDialog ? (
+        <Dialog defaultOpen>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>New task</DialogTitle>
+            {picker}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        picker
+      ),
+    ),
+  );
 }
 
 beforeEach(() => localStorage.clear());
@@ -59,49 +105,95 @@ afterEach(() => {
 });
 
 describe("composer assignee picker", () => {
-  it.each([false, true])("keeps the trigger stable until the picker closes (mobile: %s)", async (mobile) => {
-    function ControlledPicker() {
-      const [settings, setSettings] = useState({ model: "gpt-6-sol", effort: "high", fast: false });
-      return <ComposerRunSettingsPicker companyId="company-1" assigneeValue="agent:a1" currentAssigneeValue="agent:a1"
-        options={options} agents={agents} settings={settings} onSettingsChange={(next) => setSettings(next! as typeof settings)}
-        onAssigneeChange={vi.fn()} mobile={mobile} modelOptionsOverride={[{ id: "gpt-6-sol", label: "GPT-6 Sol" }, { id: "gpt-6-astra", label: "GPT-6 Astra" }]} />;
-    }
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-    const queryClient = new QueryClient();
-    flushSync(() => root!.render(<QueryClientProvider client={queryClient}><ControlledPicker /></QueryClientProvider>));
-    const label = () => container!.querySelector('[data-testid="task-chat-composer-model-label"]')!.textContent;
-    expect(label()).toBe("GPT-6 Sol");
-    await click("Select model and effort");
-    expect(label()).toBe("Select model");
-    const range = document.querySelector<HTMLInputElement>('input[aria-label="Effort"]')!;
-    flushSync(() => {
-      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!.call(range, "1");
-      range.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    expect(range.getAttribute("aria-valuetext")).toBe("Low");
-    expect(label()).toBe("Select model");
-    expect(container!.querySelector('[aria-label="Select model and effort"]')!.textContent).not.toContain("Low");
-    await click("Choose assignee");
-    expect(label()).toBe("Select model");
-    await click("Clippy");
-    expect(label()).toBe("GPT-6 Sol");
-    expect(container!.querySelector('[aria-label="Select model and effort"]')!.textContent).toContain("Low");
-    await click("Select model and effort");
-    await click("Choose exact model");
-    await click("GPT-6 Astra");
-    expect(label()).toBe("Select model");
-    if (mobile) await click("Close picker");
-    else {
-      await act(async () => {
-        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-        await new Promise((resolve) => setTimeout(resolve, 0));
+  it.each([false, true])(
+    "keeps the trigger stable until the picker closes (mobile: %s)",
+    async (mobile) => {
+      function ControlledPicker() {
+        const [settings, setSettings] = useState({
+          model: "gpt-6-sol",
+          effort: "high",
+          fast: false,
+        });
+        return (
+          <ComposerRunSettingsPicker
+            companyId="company-1"
+            assigneeValue="agent:a1"
+            currentAssigneeValue="agent:a1"
+            options={options}
+            agents={agents}
+            settings={settings}
+            onSettingsChange={(next) => setSettings(next! as typeof settings)}
+            onAssigneeChange={vi.fn()}
+            mobile={mobile}
+            modelOptionsOverride={[
+              { id: "gpt-6-sol", label: "GPT-6 Sol" },
+              { id: "gpt-6-astra", label: "GPT-6 Astra" },
+            ]}
+          />
+        );
+      }
+      container = document.createElement("div");
+      document.body.appendChild(container);
+      root = createRoot(container);
+      const queryClient = new QueryClient();
+      flushSync(() =>
+        root!.render(
+          <QueryClientProvider client={queryClient}>
+            <ControlledPicker />
+          </QueryClientProvider>,
+        ),
+      );
+      const label = () =>
+        container!.querySelector(
+          '[data-testid="task-chat-composer-model-label"]',
+        )!.textContent;
+      expect(label()).toBe("GPT-6 Sol");
+      await click("Select model and effort");
+      expect(label()).toBe("Select model");
+      const range = document.querySelector<HTMLInputElement>(
+        'input[aria-label="Effort"]',
+      )!;
+      flushSync(() => {
+        Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value",
+        )!.set!.call(range, "1");
+        range.dispatchEvent(new Event("input", { bubbles: true }));
       });
-    }
-    expect(label()).toBe("GPT-6 Astra");
-    expect(container!.querySelector('[aria-label="Select model and effort"]')!.textContent).toContain("Low");
-  });
+      expect(range.getAttribute("aria-valuetext")).toBe("Low");
+      expect(label()).toBe("Select model");
+      expect(
+        container!.querySelector('[aria-label="Select model and effort"]')!
+          .textContent,
+      ).not.toContain("Low");
+      await click("Choose assignee");
+      expect(label()).toBe("Select model");
+      await click("Clippy");
+      expect(label()).toBe("GPT-6 Sol");
+      expect(
+        container!.querySelector('[aria-label="Select model and effort"]')!
+          .textContent,
+      ).toContain("Low");
+      await click("Select model and effort");
+      await click("Choose exact model");
+      await click("GPT-6 Astra");
+      expect(label()).toBe("Select model");
+      if (mobile) await click("Close picker");
+      else {
+        await act(async () => {
+          document.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+      }
+      expect(label()).toBe("GPT-6 Astra");
+      expect(
+        container!.querySelector('[aria-label="Select model and effort"]')!
+          .textContent,
+      ).toContain("Low");
+    },
+  );
 
   it.each([
     { mobile: false, view: "settings" as const },
@@ -110,54 +202,104 @@ describe("composer assignee picker", () => {
     { mobile: true, view: "settings" as const },
     { mobile: true, view: "models" as const },
     { mobile: true, view: "agents" as const },
-  ])("allows wheel and touch scrolling in a nested $view picker (mobile: $mobile)", async ({ mobile, view }) => {
-    render(vi.fn(), vi.fn(), false, { mobile, initialOpen: true, initialView: view }, true);
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
-    const list = document.querySelector<HTMLElement>(view === "settings"
-      ? '[data-testid="composer-run-settings-view"]'
-      : `[role="listbox"][aria-label="${view === "models" ? "Models" : "Assignees"}"]`)!;
-    expect(list).not.toBeNull();
-    list.style.overflowY = "auto";
-    Object.defineProperties(list, {
-      scrollHeight: { configurable: true, value: 1000 },
-      clientHeight: { configurable: true, value: 200 },
-    });
-    const option = list.querySelector("button")!;
-    const wheel = new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 100 });
-    option.dispatchEvent(wheel);
-    expect(wheel.defaultPrevented).toBe(false);
-    const touch = (type: string, y: number) => {
-      const event = new Event(type, { bubbles: true, cancelable: true });
-      Object.defineProperties(event, {
-        touches: { value: [{ clientX: 100, clientY: y }] },
-        changedTouches: { value: [{ clientX: 100, clientY: y }] },
+  ])(
+    "allows wheel and touch scrolling in a nested $view picker (mobile: $mobile)",
+    async ({ mobile, view }) => {
+      render(
+        vi.fn(),
+        vi.fn(),
+        false,
+        { mobile, initialOpen: true, initialView: view },
+        true,
+      );
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
-      option.dispatchEvent(event);
-      return event;
-    };
-    touch("touchstart", 150);
-    expect(touch("touchmove", 100).defaultPrevented).toBe(false);
-    const outsideWheel = new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 100 });
-    document.body.dispatchEvent(outsideWheel);
-    expect(outsideWheel.defaultPrevented).toBe(true);
-  });
+      const list = document.querySelector<HTMLElement>(
+        view === "settings"
+          ? '[data-testid="composer-run-settings-view"]'
+          : `[role="listbox"][aria-label="${view === "models" ? "Models" : "Assignees"}"]`,
+      )!;
+      expect(list).not.toBeNull();
+      list.style.overflowY = "auto";
+      Object.defineProperties(list, {
+        scrollHeight: { configurable: true, value: 1000 },
+        clientHeight: { configurable: true, value: 200 },
+      });
+      const option = list.querySelector("button")!;
+      const wheel = new WheelEvent("wheel", {
+        bubbles: true,
+        cancelable: true,
+        deltaY: 100,
+      });
+      option.dispatchEvent(wheel);
+      expect(wheel.defaultPrevented).toBe(false);
+      const touch = (type: string, y: number) => {
+        const event = new Event(type, { bubbles: true, cancelable: true });
+        Object.defineProperties(event, {
+          touches: { value: [{ clientX: 100, clientY: y }] },
+          changedTouches: { value: [{ clientX: 100, clientY: y }] },
+        });
+        option.dispatchEvent(event);
+        return event;
+      };
+      touch("touchstart", 150);
+      expect(touch("touchmove", 100).defaultPrevented).toBe(false);
+      const outsideWheel = new WheelEvent("wheel", {
+        bubbles: true,
+        cancelable: true,
+        deltaY: 100,
+      });
+      document.body.dispatchEvent(outsideWheel);
+      expect(outsideWheel.defaultPrevented).toBe(true);
+    },
+  );
 
   it.each([
     { adapterType: "claude_local", config: {}, label: "Default" },
-    { adapterType: "claude_local", config: { model: "claude-opus-5" }, label: "Claude Opus 5" },
-    { adapterType: "claude_local", config: { env: { ANTHROPIC_MODEL: "claude-opus-5" } }, label: "Claude Opus 5" },
+    {
+      adapterType: "claude_local",
+      config: { model: "claude-opus-5" },
+      label: "Claude Opus 5",
+    },
+    {
+      adapterType: "claude_local",
+      config: { env: { ANTHROPIC_MODEL: "claude-opus-5" } },
+      label: "Claude Opus 5",
+    },
     { adapterType: "codex_local", config: {}, label: "Default" },
-  ])("labels the $adapterType default honestly", ({ adapterType, config, label }) => {
-    const defaultAgent = { ...agent, adapterType, adapterConfig: config } as Agent;
-    render(vi.fn(), vi.fn(), false, { settings: null, agents: new Map([[agent.id, defaultAgent]]),
-      modelOptionsOverride: [{ id: "claude-opus-5", label: "Claude Opus 5" }] });
-    expect(container!.querySelector('[data-testid="task-chat-composer-model-label"]')?.textContent).toBe(label);
-  });
+  ])(
+    "labels the $adapterType default honestly",
+    ({ adapterType, config, label }) => {
+      const defaultAgent = {
+        ...agent,
+        adapterType,
+        adapterConfig: config,
+      } as Agent;
+      render(vi.fn(), vi.fn(), false, {
+        settings: null,
+        agents: new Map([[agent.id, defaultAgent]]),
+        modelOptionsOverride: [{ id: "claude-opus-5", label: "Claude Opus 5" }],
+      });
+      expect(
+        container!.querySelector(
+          '[data-testid="task-chat-composer-model-label"]',
+        )?.textContent,
+      ).toBe(label);
+    },
+  );
 
   it("does not offer effort levels for an unknown Claude default", async () => {
-    const defaultAgent = { ...agent, adapterType: "claude_local", adapterConfig: {} } as Agent;
-    render(vi.fn(), vi.fn(), false, { settings: null, agents: new Map([[agent.id, defaultAgent]]),
-      modelOptionsOverride: [{ id: "claude-opus-5", label: "Claude Opus 5" }] });
+    const defaultAgent = {
+      ...agent,
+      adapterType: "claude_local",
+      adapterConfig: {},
+    } as Agent;
+    render(vi.fn(), vi.fn(), false, {
+      settings: null,
+      agents: new Map([[agent.id, defaultAgent]]),
+      modelOptionsOverride: [{ id: "claude-opus-5", label: "Claude Opus 5" }],
+    });
     await click("Select model and effort");
     expect(document.querySelector('[aria-label="Effort"]')).toBeNull();
   });
@@ -165,38 +307,73 @@ describe("composer assignee picker", () => {
   it.each([
     { remembered: "high", settings: null, overrides: null, restored: "high" },
     { remembered: "off", settings: null, overrides: null, restored: null },
-    { remembered: "high", settings: { model: null, effort: "low", fast: false }, overrides: null, restored: null },
-    { remembered: "high", settings: null, overrides: { adapterConfig: { modelReasoningEffort: "low" } }, restored: null },
-  ])("restores compatible history ($remembered) without replacing explicit settings", ({ remembered, settings, overrides, restored }) => {
-    rememberComposerEffort("company-1", remembered);
-    const onSettingsChange = vi.fn();
-    render(vi.fn(), onSettingsChange, false, { settings, overrides });
-    if (restored) expect(onSettingsChange).toHaveBeenCalledWith({ model: null, effort: restored, fast: false });
-    else expect(onSettingsChange).not.toHaveBeenCalled();
-  });
+    {
+      remembered: "high",
+      settings: { model: null, effort: "low", fast: false },
+      overrides: null,
+      restored: null,
+    },
+    {
+      remembered: "high",
+      settings: null,
+      overrides: { adapterConfig: { modelReasoningEffort: "low" } },
+      restored: null,
+    },
+  ])(
+    "restores compatible history ($remembered) without replacing explicit settings",
+    ({ remembered, settings, overrides, restored }) => {
+      rememberComposerEffort("company-1", remembered);
+      const onSettingsChange = vi.fn();
+      render(vi.fn(), onSettingsChange, false, { settings, overrides });
+      if (restored)
+        expect(onSettingsChange).toHaveBeenCalledWith({
+          model: null,
+          effort: restored,
+          fast: false,
+        });
+      else expect(onSettingsChange).not.toHaveBeenCalled();
+    },
+  );
 
   it("records effort changes and preserves effort when changing to a compatible model", async () => {
     const onSettingsChange = vi.fn();
-    render(vi.fn(), onSettingsChange, false, { modelOptionsOverride: [{ id: "gpt-6-astra", label: "GPT-6 Astra" }] });
+    render(vi.fn(), onSettingsChange, false, {
+      modelOptionsOverride: [{ id: "gpt-6-astra", label: "GPT-6 Astra" }],
+    });
     await click("Select model and effort");
-    const range = document.querySelector<HTMLInputElement>('input[aria-label="Effort"]')!;
+    const range = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Effort"]',
+    )!;
     flushSync(() => {
-      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!.call(range, "1");
+      Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )!.set!.call(range, "1");
       range.dispatchEvent(new Event("change", { bubbles: true }));
       range.dispatchEvent(new Event("input", { bubbles: true }));
     });
     expect(getLastComposerEffort("company-1")).toBe("low");
     await click("Choose exact model");
     await click("GPT-6 Astra");
-    expect(onSettingsChange).toHaveBeenLastCalledWith({ model: "gpt-6-astra", effort: "high", fast: false });
+    expect(onSettingsChange).toHaveBeenLastCalledWith({
+      model: "gpt-6-astra",
+      effort: "high",
+      fast: false,
+    });
     await click("Reset to agent default");
     expect(getLastComposerEffort("company-1")).toBeNull();
   });
   it("lets the assignee and model use the available composer width", () => {
     render(vi.fn(), vi.fn());
-    const trigger = container!.querySelector<HTMLButtonElement>('[data-testid="task-chat-composer-assignee"]');
-    const assignee = trigger!.querySelector('[data-testid="task-chat-composer-assignee-label"]');
-    const model = container!.querySelector('[data-testid="task-chat-composer-model-label"]');
+    const trigger = container!.querySelector<HTMLButtonElement>(
+      '[data-testid="task-chat-composer-assignee"]',
+    );
+    const assignee = trigger!.querySelector(
+      '[data-testid="task-chat-composer-assignee-label"]',
+    );
+    const model = container!.querySelector(
+      '[data-testid="task-chat-composer-model-label"]',
+    );
 
     expect(trigger?.className).toContain("max-w-full");
     expect(trigger?.className).not.toContain("max-w-64");
@@ -210,16 +387,26 @@ describe("composer assignee picker", () => {
   it("finds assignees by their displayed role and harness", async () => {
     render(vi.fn(), vi.fn());
     await click("Select assignee");
-    const input = document.querySelector<HTMLInputElement>('input[aria-label="Search assignees"]');
+    const input = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Search assignees"]',
+    );
     expect(input).not.toBeNull();
-    const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+    const setValue = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     for (const query of ["Engineering Lead", "Codex"]) {
       flushSync(() => {
         setValue.call(input, query);
         input!.dispatchEvent(new Event("input", { bubbles: true }));
       });
-      expect([...document.querySelectorAll<HTMLButtonElement>('button[role="option"]')]
-        .some((option) => option.textContent?.includes("Clippy"))).toBe(true);
+      expect(
+        [
+          ...document.querySelectorAll<HTMLButtonElement>(
+            'button[role="option"]',
+          ),
+        ].some((option) => option.textContent?.includes("Clippy")),
+      ).toBe(true);
     }
   });
 
@@ -229,11 +416,14 @@ describe("composer assignee picker", () => {
       { id: "gpt-5.5", label: "GPT-5.5" },
     ]);
     render(vi.fn(), vi.fn(), true);
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     await click("Select model and effort");
     await click("Choose exact model");
-    const options = [...document.querySelectorAll<HTMLButtonElement>('button[role="option"]')]
-      .map((item) => item.textContent ?? "");
+    const options = [
+      ...document.querySelectorAll<HTMLButtonElement>('button[role="option"]'),
+    ].map((item) => item.textContent ?? "");
     expect(options.some((item) => item.includes("gpt-5.5"))).toBe(true);
     expect(options.some((item) => item.includes("gpt-6-sol"))).toBe(true);
     expect(options.some((item) => item.includes("gpt-image"))).toBe(false);
@@ -242,19 +432,22 @@ describe("composer assignee picker", () => {
   });
 
   it("shows an instance-declared Codex model list instead of bundled alternatives", async () => {
-    const loadModels = vi.spyOn(agentsApi, "adapterModels").mockResolvedValueOnce([
-      { id: "private-codex", label: "Private Codex" },
-    ]);
+    const loadModels = vi
+      .spyOn(agentsApi, "adapterModels")
+      .mockResolvedValueOnce([{ id: "private-codex", label: "Private Codex" }]);
     render(vi.fn(), vi.fn(), true);
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     expect(loadModels).toHaveBeenCalledWith("company-1", "codex_local", {
       environmentId: null,
       provider: undefined,
     });
     await click("Select model and effort");
     await click("Choose exact model");
-    const choices = [...document.querySelectorAll<HTMLButtonElement>('button[role="option"]')]
-      .map((item) => item.textContent ?? "");
+    const choices = [
+      ...document.querySelectorAll<HTMLButtonElement>('button[role="option"]'),
+    ].map((item) => item.textContent ?? "");
     expect(choices.some((item) => item.includes("Private Codex"))).toBe(true);
     expect(choices.some((item) => item.includes("GPT-6 Sol"))).toBe(false);
   });
@@ -281,30 +474,49 @@ describe("composer assignee picker", () => {
     expect(document.querySelector('[role="listbox"]')).toBeNull();
   });
 
-  it.each(["", "user:me"])("hides model and effort for %s and opens assignees in one click", async (assigneeValue) => {
-    const loadModels = vi.spyOn(agentsApi, "adapterModels");
-    render(vi.fn(), vi.fn(), true, {
-      assigneeValue,
-      currentAssigneeValue: assigneeValue,
-      options: [...options, { id: "user:me", label: "Me" }],
-    });
-    expect(container!.querySelector('[data-testid="task-chat-composer-model-label"]')).toBeNull();
-    expect(container!.querySelector('[aria-label="Select model and effort"]')).toBeNull();
-    expect(container!.textContent).not.toContain("Harness default");
-    expect(container!.textContent).not.toContain("High");
-    await click("Select assignee");
-    expect(document.querySelector('[aria-label="Search assignees"]')).not.toBeNull();
-    expect(document.querySelector('[aria-label="Effort"]')).toBeNull();
-    expect(document.querySelector('[aria-label="Choose exact model"]')).toBeNull();
-    expect(document.body.textContent).not.toContain("Choose an agent");
-    expect(loadModels).not.toHaveBeenCalled();
-  });
+  it.each(["", "user:me"])(
+    "hides model and effort for %s and opens assignees in one click",
+    async (assigneeValue) => {
+      const loadModels = vi.spyOn(agentsApi, "adapterModels");
+      render(vi.fn(), vi.fn(), true, {
+        assigneeValue,
+        currentAssigneeValue: assigneeValue,
+        options: [...options, { id: "user:me", label: "Me" }],
+      });
+      expect(
+        container!.querySelector(
+          '[data-testid="task-chat-composer-model-label"]',
+        ),
+      ).toBeNull();
+      expect(
+        container!.querySelector('[aria-label="Select model and effort"]'),
+      ).toBeNull();
+      expect(container!.textContent).not.toContain("Harness default");
+      expect(container!.textContent).not.toContain("High");
+      await click("Select assignee");
+      expect(
+        document.querySelector('[aria-label="Search assignees"]'),
+      ).not.toBeNull();
+      expect(document.querySelector('[aria-label="Effort"]')).toBeNull();
+      expect(
+        document.querySelector('[aria-label="Choose exact model"]'),
+      ).toBeNull();
+      expect(document.body.textContent).not.toContain("Choose an agent");
+      expect(loadModels).not.toHaveBeenCalled();
+    },
+  );
 
   it("opens the assignee list directly on mobile", async () => {
     render(vi.fn(), vi.fn(), false, { mobile: true });
     await click("Select assignee");
-    expect(document.querySelector('[data-testid="composer-mobile-dialog"]')).not.toBeNull();
-    expect(document.querySelector('[aria-label="Search assignees"]')).not.toBeNull();
-    expect(document.querySelector('[aria-label="Choose exact model"]')).toBeNull();
+    expect(
+      document.querySelector('[data-testid="composer-mobile-dialog"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('[aria-label="Search assignees"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('[aria-label="Choose exact model"]'),
+    ).toBeNull();
   });
 });

@@ -56,9 +56,12 @@ function extractAssistantText(line: string): string {
  *   TTY:  ┊ 💻 $         curl -s "..."  0.1s
  *   Pipe: [done] ┊ 💻 $   curl -s "..."  0.1s (0.5s)
  */
-function parseToolCompletionLine(
-  line: string,
-): { name: string; detail: string; duration: string; hasError: boolean } | null {
+function parseToolCompletionLine(line: string): {
+  name: string;
+  detail: string;
+  duration: string;
+  hasError: boolean;
+} | null {
   // Strip leading whitespace and [done] prefix
   let cleaned = line.trim().replace(/^\[done\]\s*/, "");
 
@@ -85,7 +88,8 @@ function parseToolCompletionLine(
   verbAndDetail = verbAndDetail.replace(/^\p{Emoji_Presentation}\s*/u, "");
 
   // Check for error suffixes
-  const hasError = /\[(?:exit \d+|error|full)\]/.test(verbAndDetail) ||
+  const hasError =
+    /\[(?:exit \d+|error|full)\]/.test(verbAndDetail) ||
     /\[error\]\s*$/.test(cleaned);
 
   // The first token (after emoji) is the verb, rest is detail
@@ -100,54 +104,54 @@ function parseToolCompletionLine(
 
   // Map Hermes verbs to readable tool names
   const nameMap: Record<string, string> = {
-    "$": "shell",
-    "exec": "shell",
-    "terminal": "shell",
-    "search": "search",
-    "fetch": "fetch",
-    "crawl": "crawl",
-    "navigate": "browser",
-    "snapshot": "browser",
-    "click": "browser",
-    "type": "browser",
-    "scroll": "browser",
-    "back": "browser",
-    "press": "browser",
-    "close": "browser",
-    "images": "browser",
-    "vision": "browser",
-    "read": "read",
-    "write": "write",
-    "patch": "patch",
-    "grep": "search",
-    "find": "search",
-    "plan": "plan",
-    "recall": "recall",
-    "proc": "process",
-    "delegate": "delegate",
-    "todo": "todo",
-    "memory": "memory",
-    "clarify": "clarify",
-    "session_search": "recall",
-    "code": "execute",
-    "execute": "execute",
-    "web_search": "search",
-    "web_extract": "fetch",
-    "browser_navigate": "browser",
-    "browser_click": "browser",
-    "browser_type": "browser",
-    "browser_snapshot": "browser",
-    "browser_vision": "browser",
-    "browser_scroll": "browser",
-    "browser_press": "browser",
-    "browser_back": "browser",
-    "browser_close": "browser",
-    "browser_get_images": "browser",
-    "read_file": "read",
-    "write_file": "write_file",
-    "search_files": "search",
-    "patch_file": "patch",
-    "execute_code": "execute",
+    $: "shell",
+    exec: "shell",
+    terminal: "shell",
+    search: "search",
+    fetch: "fetch",
+    crawl: "crawl",
+    navigate: "browser",
+    snapshot: "browser",
+    click: "browser",
+    type: "browser",
+    scroll: "browser",
+    back: "browser",
+    press: "browser",
+    close: "browser",
+    images: "browser",
+    vision: "browser",
+    read: "read",
+    write: "write",
+    patch: "patch",
+    grep: "search",
+    find: "search",
+    plan: "plan",
+    recall: "recall",
+    proc: "process",
+    delegate: "delegate",
+    todo: "todo",
+    memory: "memory",
+    clarify: "clarify",
+    session_search: "recall",
+    code: "execute",
+    execute: "execute",
+    web_search: "search",
+    web_extract: "fetch",
+    browser_navigate: "browser",
+    browser_click: "browser",
+    browser_type: "browser",
+    browser_snapshot: "browser",
+    browser_vision: "browser",
+    browser_scroll: "browser",
+    browser_press: "browser",
+    browser_back: "browser",
+    browser_close: "browser",
+    browser_get_images: "browser",
+    read_file: "read",
+    write_file: "write_file",
+    search_files: "search",
+    patch_file: "patch",
+    execute_code: "execute",
   };
 
   const name = nameMap[verb.toLowerCase()] || verb;
@@ -218,7 +222,9 @@ export function parseHermesStdoutLine(
 
   // ── Standalone spinner remnants: "💻 Completed", "💻\nCompleted", etc. ─
   // These are non-quiet mode spinner frame leftovers — skip them.
-  if (/^\p{Emoji_Presentation}\s*(Completed|Running|Error)?\s*$/u.test(trimmed)) {
+  if (
+    /^\p{Emoji_Presentation}\s*(Completed|Running|Error)?\s*$/u.test(trimmed)
+  ) {
     return [];
   }
 
@@ -263,7 +269,12 @@ export function parseHermesStdoutLine(
     // Fallback: raw ┊ line that doesn't match tool format
     const stripped = trimmed
       .replace(/^\[done\]\s*/, "")
-      .replace(new RegExp(`^${TOOL_OUTPUT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`), "")
+      .replace(
+        new RegExp(
+          `^${TOOL_OUTPUT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`,
+        ),
+        "",
+      )
       .trim();
     return [{ kind: "stdout", ts, text: stripped }];
   }

@@ -12,9 +12,16 @@ export function agentCommentaryRoutes(db: Db) {
     if (req.actor.type !== "agent" || !req.actor.agentId || !req.actor.runId) {
       throw forbidden("Feedback requires an authenticated agent run");
     }
-    const result = await submitAgentCommentary(db, {
-      companyId, agentId: req.actor.agentId, runId: req.actor.runId, agentApiKeyId: req.actor.keyId,
-    }, req.body);
+    const result = await submitAgentCommentary(
+      db,
+      {
+        companyId,
+        agentId: req.actor.agentId,
+        runId: req.actor.runId,
+        agentApiKeyId: req.actor.keyId,
+      },
+      req.body,
+    );
     res.status(result.replayed ? 200 : 201).json(result);
   });
   return router;

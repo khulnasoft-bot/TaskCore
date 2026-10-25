@@ -1,11 +1,25 @@
-import { redactHomePathUserSegments, redactTranscriptEntryPaths } from "@taskcore/adapter-utils";
-import type { TranscriptEntry, StdoutLineParser, TranscriptParserSource } from "./types";
+import {
+  redactHomePathUserSegments,
+  redactTranscriptEntryPaths,
+} from "@taskcore/adapter-utils";
+import type {
+  TranscriptEntry,
+  StdoutLineParser,
+  TranscriptParserSource,
+} from "./types";
 
-export type RunLogChunk = { ts: string; stream: "stdout" | "stderr" | "system"; chunk: string; seq?: number };
+export type RunLogChunk = {
+  ts: string;
+  stream: "stdout" | "stderr" | "system";
+  chunk: string;
+  seq?: number;
+};
 type TranscriptBuildOptions = { censorUsernameInLogs?: boolean };
 type RedactionOptions = { enabled: boolean };
 
-function resolveStdoutParser(source: StdoutLineParser | TranscriptParserSource) {
+function resolveStdoutParser(
+  source: StdoutLineParser | TranscriptParserSource,
+) {
   if (typeof source === "function") {
     return { parseLine: source, reset: null as (() => void) | null };
   }
@@ -13,11 +27,20 @@ function resolveStdoutParser(source: StdoutLineParser | TranscriptParserSource) 
     const parser = source.createStdoutParser();
     return { parseLine: parser.parseLine, reset: parser.reset };
   }
-  return { parseLine: source.parseStdoutLine, reset: null as (() => void) | null };
+  return {
+    parseLine: source.parseStdoutLine,
+    reset: null as (() => void) | null,
+  };
 }
 
-export function appendTranscriptEntry(entries: TranscriptEntry[], entry: TranscriptEntry) {
-  if ((entry.kind === "thinking" || entry.kind === "assistant") && entry.delta) {
+export function appendTranscriptEntry(
+  entries: TranscriptEntry[],
+  entry: TranscriptEntry,
+) {
+  if (
+    (entry.kind === "thinking" || entry.kind === "assistant") &&
+    entry.delta
+  ) {
     const last = entries[entries.length - 1];
     if (
       last &&
@@ -33,7 +56,10 @@ export function appendTranscriptEntry(entries: TranscriptEntry[], entry: Transcr
   entries.push(entry);
 }
 
-export function appendTranscriptEntries(entries: TranscriptEntry[], incoming: TranscriptEntry[]) {
+export function appendTranscriptEntries(
+  entries: TranscriptEntry[],
+  incoming: TranscriptEntry[],
+) {
   for (const entry of incoming) {
     appendTranscriptEntry(entries, entry);
   }
@@ -60,7 +86,8 @@ function createTranscriptParseErrorEntry(
   error: unknown,
   redactionOptions: RedactionOptions,
 ): TranscriptEntry {
-  const errorText = formatTranscriptParserError(error) || "unknown parser error";
+  const errorText =
+    formatTranscriptParserError(error) || "unknown parser error";
   const preview = truncateTranscriptLine(line);
   return {
     kind: "result",
@@ -91,11 +118,16 @@ function appendParsedTranscriptLine(args: {
   try {
     appendTranscriptEntries(
       entries,
-      parseLine(line, ts).map((entry) => redactTranscriptEntryPaths(entry, redactionOptions)),
+      parseLine(line, ts).map((entry) =>
+        redactTranscriptEntryPaths(entry, redactionOptions),
+      ),
     );
   } catch (error) {
     reset?.();
-    appendTranscriptEntry(entries, createTranscriptParseErrorEntry(line, ts, error, redactionOptions));
+    appendTranscriptEntry(
+      entries,
+      createTranscriptParseErrorEntry(line, ts, error, redactionOptions),
+    );
   }
 }
 
@@ -111,11 +143,19 @@ export function buildTranscript(
 
   for (const chunk of chunks) {
     if (chunk.stream === "stderr") {
-      entries.push({ kind: "stderr", ts: chunk.ts, text: redactHomePathUserSegments(chunk.chunk, redactionOptions) });
+      entries.push({
+        kind: "stderr",
+        ts: chunk.ts,
+        text: redactHomePathUserSegments(chunk.chunk, redactionOptions),
+      });
       continue;
     }
     if (chunk.stream === "system") {
-      entries.push({ kind: "system", ts: chunk.ts, text: redactHomePathUserSegments(chunk.chunk, redactionOptions) });
+      entries.push({
+        kind: "system",
+        ts: chunk.ts,
+        text: redactHomePathUserSegments(chunk.chunk, redactionOptions),
+      });
       continue;
     }
 
@@ -138,7 +178,10 @@ export function buildTranscript(
 
   const trailing = stdoutBuffer.trim();
   if (trailing) {
-    const ts = chunks.length > 0 ? chunks[chunks.length - 1]!.ts : new Date().toISOString();
+    const ts =
+      chunks.length > 0
+        ? chunks[chunks.length - 1]!.ts
+        : new Date().toISOString();
     appendParsedTranscriptLine({
       entries,
       line: trailing,

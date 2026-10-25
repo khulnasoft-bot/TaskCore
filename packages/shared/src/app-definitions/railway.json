@@ -3,34 +3,23 @@
   "slug": "railway",
   "name": "Railway",
   "description": "Inspect services and logs, deploy applications, and run commands in your Railway containers.",
-  "categories": [
-    "developer"
-  ],
+  "categories": ["developer"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/railway.svg",
     "darkLogoUrl": "/brands/apps/railway-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.railway.com/"
-  ],
+  "urlPatterns": ["https://mcp.railway.com/"],
   "methods": [
     {
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr",
-        "customer"
-      ],
+      "ownershipModes": ["dcr", "customer"],
       "whenToUse": "Authorize your Railway account in the browser.",
       "defaults": {
         "serverUrl": "https://mcp.railway.com",
-        "scopesHint": [
-          "openid",
-          "offline_access",
-          "workspace:member"
-        ],
+        "scopesHint": ["openid", "offline_access", "workspace:member"],
         "oauthAuthorizationParams": {
           "prompt": "consent"
         }

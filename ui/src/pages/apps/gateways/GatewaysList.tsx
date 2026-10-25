@@ -77,15 +77,25 @@ export function GatewaysList() {
   });
 
   const profileById = useMemo(
-    () => new Map((profilesQuery.data?.profiles ?? []).map((profile) => [profile.id, profile])),
+    () =>
+      new Map(
+        (profilesQuery.data?.profiles ?? []).map((profile) => [
+          profile.id,
+          profile,
+        ]),
+      ),
     [profilesQuery.data],
   );
   const agentNames = useMemo(
-    () => new Map((agentsQuery.data ?? []).map((agent) => [agent.id, agent.name])),
+    () =>
+      new Map((agentsQuery.data ?? []).map((agent) => [agent.id, agent.name])),
     [agentsQuery.data],
   );
   const projectNames = useMemo(
-    () => new Map((projectsQuery.data ?? []).map((project) => [project.id, project.name])),
+    () =>
+      new Map(
+        (projectsQuery.data ?? []).map((project) => [project.id, project.name]),
+      ),
     [projectsQuery.data],
   );
 
@@ -103,7 +113,9 @@ export function GatewaysList() {
             : `${gateway.name} is off — every client goes silent.`,
         tone: "success",
       });
-      await queryClient.invalidateQueries({ queryKey: gatewaysQueryKey(selectedCompanyId!) });
+      await queryClient.invalidateQueries({
+        queryKey: gatewaysQueryKey(selectedCompanyId!),
+      });
     },
     onError: (error) =>
       pushToast({
@@ -114,14 +126,22 @@ export function GatewaysList() {
   });
 
   if (!selectedCompanyId) {
-    return <div className="p-6 text-sm text-muted-foreground">Select an organization to manage gateways.</div>;
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        Select an organization to manage gateways.
+      </div>
+    );
   }
 
   const gateways = gatewaysQuery.data?.gateways ?? [];
   const term = search.trim().toLowerCase();
   const filtered = term
     ? gateways.filter((gateway) => {
-        const scope = formatScope(gateway, projectNames, agentNames).toLowerCase();
+        const scope = formatScope(
+          gateway,
+          projectNames,
+          agentNames,
+        ).toLowerCase();
         return (
           gateway.name.toLowerCase().includes(term) ||
           gateway.displaySlug.toLowerCase().includes(term) ||
@@ -135,8 +155,8 @@ export function GatewaysList() {
       <header className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Apps</h1>
         <p className="text-sm text-muted-foreground">
-          A gateway is one safe MCP endpoint that exposes only the apps you assign. Hand it to a client
-          like Cursor or Claude Desktop.
+          A gateway is one safe MCP endpoint that exposes only the apps you
+          assign. Hand it to a client like Cursor or Claude Desktop.
         </p>
       </header>
 
@@ -146,7 +166,10 @@ export function GatewaysList() {
           <Skeleton className="h-52 w-full" />
         </div>
       ) : gatewaysQuery.isError ? (
-        <ErrorState error={gatewaysQuery.error} onRetry={() => gatewaysQuery.refetch()} />
+        <ErrorState
+          error={gatewaysQuery.error}
+          onRetry={() => gatewaysQuery.refetch()}
+        />
       ) : gateways.length === 0 ? (
         <EmptyGateways onCreate={() => setCreating(true)} />
       ) : (
@@ -210,38 +233,71 @@ export function GatewaysList() {
                   <table className="w-full min-w-(--sz-40rem) text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40 text-left text-(length:--text-micro) font-semibold uppercase tracking-wide text-muted-foreground">
-                        <th className="whitespace-nowrap px-4 py-2.5">Gateway</th>
+                        <th className="whitespace-nowrap px-4 py-2.5">
+                          Gateway
+                        </th>
                         <th className="whitespace-nowrap px-4 py-2.5">Scope</th>
                         <th className="whitespace-nowrap px-4 py-2.5">Apps</th>
-                        <th className="whitespace-nowrap px-4 py-2.5">Tokens</th>
-                        <th className="whitespace-nowrap px-4 py-2.5">Last used</th>
-                        <th className="whitespace-nowrap px-4 py-2.5 text-right">On</th>
+                        <th className="whitespace-nowrap px-4 py-2.5">
+                          Tokens
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-2.5">
+                          Last used
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-2.5 text-right">
+                          On
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map(({ gateway, scope, appsLabel, active, expiring, lastUsed, href }) => (
-                        <tr
-                          key={gateway.id}
-                          onClick={() => navigate(href)}
-                          className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/30"
-                        >
-                          <td className="w-64 max-w-64 whitespace-nowrap px-4 py-3">
-                            <div className="font-medium text-foreground">{gateway.name}</div>
-                            <CopyableGatewayUrl endpointPath={gateway.endpointPath} />
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{scope}</td>
-                          <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{appsLabel}</td>
-                          <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                            {active} active{expiring > 0 ? ` · ${expiring} expiring` : ""}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                            {lastUsed ? <RelativeTime value={lastUsed} /> : "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end">{toggle(gateway)}</div>
-                          </td>
-                        </tr>
-                      ))}
+                      {rows.map(
+                        ({
+                          gateway,
+                          scope,
+                          appsLabel,
+                          active,
+                          expiring,
+                          lastUsed,
+                          href,
+                        }) => (
+                          <tr
+                            key={gateway.id}
+                            onClick={() => navigate(href)}
+                            className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/30"
+                          >
+                            <td className="w-64 max-w-64 whitespace-nowrap px-4 py-3">
+                              <div className="font-medium text-foreground">
+                                {gateway.name}
+                              </div>
+                              <CopyableGatewayUrl
+                                endpointPath={gateway.endpointPath}
+                              />
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                              {scope}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                              {appsLabel}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                              {active} active
+                              {expiring > 0 ? ` · ${expiring} expiring` : ""}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                              {lastUsed ? (
+                                <RelativeTime value={lastUsed} />
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex justify-end">
+                                {toggle(gateway)}
+                              </div>
+                            </td>
+                          </tr>
+                        ),
+                      )}
                       {rows.length === 0 ? (
                         <tr>
                           <td colSpan={6}>{empty}</td>
@@ -253,35 +309,53 @@ export function GatewaysList() {
 
                 {/* Mobile: stacked cards so the On toggle stays reachable and thumb-sized. */}
                 <div className="space-y-3 sm:hidden">
-                  {rows.map(({ gateway, scope, appsLabel, active, expiring, lastUsed, href }) => (
-                    <div
-                      key={gateway.id}
-                      onClick={() => navigate(href)}
-                      className="cursor-pointer rounded-lg border border-border p-4 transition-colors hover:bg-muted/30"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="font-medium text-foreground">{gateway.name}</div>
-                          <CopyableGatewayUrl endpointPath={gateway.endpointPath} />
+                  {rows.map(
+                    ({
+                      gateway,
+                      scope,
+                      appsLabel,
+                      active,
+                      expiring,
+                      lastUsed,
+                      href,
+                    }) => (
+                      <div
+                        key={gateway.id}
+                        onClick={() => navigate(href)}
+                        className="cursor-pointer rounded-lg border border-border p-4 transition-colors hover:bg-muted/30"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-medium text-foreground">
+                              {gateway.name}
+                            </div>
+                            <CopyableGatewayUrl
+                              endpointPath={gateway.endpointPath}
+                            />
+                          </div>
+                          <div className="shrink-0">{toggle(gateway)}</div>
                         </div>
-                        <div className="shrink-0">{toggle(gateway)}</div>
+                        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                          <MobileField label="Scope" value={scope} />
+                          <MobileField label="Apps" value={appsLabel} />
+                          <MobileField
+                            label="Tokens"
+                            value={`${active} active${expiring > 0 ? ` · ${expiring} expiring` : ""}`}
+                          />
+                          <MobileField
+                            label="Last used"
+                            value={
+                              lastUsed ? <RelativeTime value={lastUsed} /> : "—"
+                            }
+                          />
+                        </dl>
                       </div>
-                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                        <MobileField label="Scope" value={scope} />
-                        <MobileField label="Apps" value={appsLabel} />
-                        <MobileField
-                          label="Tokens"
-                          value={`${active} active${expiring > 0 ? ` · ${expiring} expiring` : ""}`}
-                        />
-                        <MobileField
-                          label="Last used"
-                          value={lastUsed ? <RelativeTime value={lastUsed} /> : "—"}
-                        />
-                      </dl>
-                    </div>
-                  ))}
+                    ),
+                  )}
                   {rows.length === 0 ? (
-                    <div className="rounded-lg border border-border">{empty}</div>
+                    <div className="rounded-lg border border-border">
+                      {empty}
+                    </div>
                   ) : null}
                 </div>
               </>
@@ -289,10 +363,12 @@ export function GatewaysList() {
           })()}
 
           <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
-            <div className="text-sm font-semibold text-foreground">Why a gateway?</div>
+            <div className="text-sm font-semibold text-foreground">
+              Why a gateway?
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              You pick which apps go through it, who can use it, and how. Revoke the token, the whole
-              gateway goes silent — no app-by-app cleanup.
+              You pick which apps go through it, who can use it, and how. Revoke
+              the token, the whole gateway goes silent — no app-by-app cleanup.
             </p>
           </div>
         </div>
@@ -302,7 +378,9 @@ export function GatewaysList() {
         companyId={selectedCompanyId}
         open={creating}
         onOpenChange={setCreating}
-        onCreated={(gatewayId) => navigate(gatewayTabHref(gatewayId, "overview"))}
+        onCreated={(gatewayId) =>
+          navigate(gatewayTabHref(gatewayId, "overview"))
+        }
       />
     </div>
   );
@@ -312,7 +390,9 @@ export function GatewaysList() {
 function MobileField({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-(length:--text-micro) font-semibold uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dt className="text-(length:--text-micro) font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
       <dd className="mt-0.5 truncate text-foreground">{value}</dd>
     </div>
   );
@@ -323,8 +403,8 @@ function EmptyGateways({ onCreate }: { onCreate: () => void }) {
     <div className="rounded-2xl border border-dashed border-border p-12 text-center">
       <h2 className="text-lg font-semibold text-foreground">No gateways yet</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-        Group your connected apps into one safe endpoint you can hand to a client, then revoke it in one
-        move.
+        Group your connected apps into one safe endpoint you can hand to a
+        client, then revoke it in one move.
       </p>
       <Button className="mt-5" onClick={onCreate}>
         <Plus className="mr-1.5 h-4 w-4" />

@@ -1,6 +1,12 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
-import { accessSync, chmodSync, constants, mkdirSync, readFileSync } from "node:fs";
+import {
+  accessSync,
+  chmodSync,
+  constants,
+  mkdirSync,
+  readFileSync,
+} from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { and, eq } from "drizzle-orm";
@@ -149,7 +155,8 @@ export function buildNativeRunnerPreparePayload(
       kind: "codex",
       provider: "codex",
       driver: "codex_app_server",
-      providerVersion: input.providerLaunch?.providerVersion ?? "codex-app-server-v1",
+      providerVersion:
+        input.providerLaunch?.providerVersion ?? "codex-app-server-v1",
       command: input.providerLaunch?.command ?? "codex",
       args: input.providerLaunch?.args ?? ["app-server"],
       cwd: input.cwd,
@@ -166,7 +173,9 @@ export function buildNativeRunnerPreparePayload(
 }
 
 function executableName(): string {
-  return process.platform === "win32" ? "taskcore-runnerd.exe" : "taskcore-runnerd";
+  return process.platform === "win32"
+    ? "taskcore-runnerd.exe"
+    : "taskcore-runnerd";
 }
 
 export function resolveTaskcoreRunnerBinary(
@@ -177,7 +186,10 @@ export function resolveTaskcoreRunnerBinary(
   }
   if (configuredPath) {
     try {
-      accessSync(configuredPath, constants.R_OK | (process.platform === "win32" ? 0 : constants.X_OK));
+      accessSync(
+        configuredPath,
+        constants.R_OK | (process.platform === "win32" ? 0 : constants.X_OK),
+      );
       return configuredPath;
     } catch {
       // Preserve the existing fallback for an unavailable configured path.
@@ -195,7 +207,10 @@ export function resolveTaskcoreRunnerBinary(
   ].filter((candidate): candidate is string => Boolean(candidate));
   for (const candidate of candidates) {
     try {
-      accessSync(candidate, constants.R_OK | (process.platform === "win32" ? 0 : constants.X_OK));
+      accessSync(
+        candidate,
+        constants.R_OK | (process.platform === "win32" ? 0 : constants.X_OK),
+      );
       return candidate;
     } catch {
       // Continue through the fixed production and workspace locations.
@@ -219,17 +234,28 @@ export function buildNativeRunnerArguments(input: {
   maxRuntimeMs: number;
 }): string[] {
   return [
-    "--connect-url", input.connectUrl,
-    "--state-dir", input.stateDirectory,
-    "--runner-id", input.runnerInstanceId,
-    "--environment-lease-id", input.environmentLeaseId,
-    "--run-id", input.runId,
-    "--session-id", input.normalizedSessionId,
-    "--turn-id", input.turnId,
-    "--item-id", input.itemId,
-    "--runner-version", RUNNER_VERSION,
-    "--runner-digest", input.runnerDigest,
-    "--max-runtime-ms", String(input.maxRuntimeMs),
+    "--connect-url",
+    input.connectUrl,
+    "--state-dir",
+    input.stateDirectory,
+    "--runner-id",
+    input.runnerInstanceId,
+    "--environment-lease-id",
+    input.environmentLeaseId,
+    "--run-id",
+    input.runId,
+    "--session-id",
+    input.normalizedSessionId,
+    "--turn-id",
+    input.turnId,
+    "--item-id",
+    input.itemId,
+    "--runner-version",
+    RUNNER_VERSION,
+    "--runner-digest",
+    input.runnerDigest,
+    "--max-runtime-ms",
+    String(input.maxRuntimeMs),
   ];
 }
 
@@ -248,7 +274,10 @@ function waitForExit(child: ChildProcess): Promise<{
   });
 }
 
-async function waitForChildExit(exit: Promise<unknown>, timeoutMs: number): Promise<boolean> {
+async function waitForChildExit(
+  exit: Promise<unknown>,
+  timeoutMs: number,
+): Promise<boolean> {
   let timer: NodeJS.Timeout | null = null;
   try {
     return await Promise.race([
@@ -263,7 +292,10 @@ async function waitForChildExit(exit: Promise<unknown>, timeoutMs: number): Prom
   }
 }
 
-function signalRunnerProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
+function signalRunnerProcessGroup(
+  child: ChildProcess,
+  signal: NodeJS.Signals,
+): void {
   if (process.platform !== "win32" && child.pid) {
     try {
       process.kill(-child.pid, signal);
@@ -281,7 +313,7 @@ async function stopChild(
   allowGracefulExit = false,
 ): Promise<void> {
   if (child.exitCode !== null || child.signalCode !== null) return;
-  if (allowGracefulExit && await waitForChildExit(exit, 5_000)) return;
+  if (allowGracefulExit && (await waitForChildExit(exit, 5_000))) return;
   signalRunnerProcessGroup(child, "SIGTERM");
   if (await waitForChildExit(exit, 5_000)) return;
   if (child.exitCode === null && child.signalCode === null) {
@@ -356,30 +388,46 @@ export async function executeNativeCodexRunner(input: {
     runnerDigest,
   });
 
-  prepared.queueCommand("run.prepare", buildNativeRunnerPreparePayload({
-    cwd: input.cwd,
-    model: input.model,
-    resumeProviderSessionId: input.resumeProviderSessionId,
-    completionContract: input.completionContract,
-    semanticTools: prepared.semanticTools,
-    ...(input.providerLaunch ? { providerLaunch: input.providerLaunch } : {}),
-  }), `prepare_${input.runId}`);
+  prepared.queueCommand(
+    "run.prepare",
+    buildNativeRunnerPreparePayload({
+      cwd: input.cwd,
+      model: input.model,
+      resumeProviderSessionId: input.resumeProviderSessionId,
+      completionContract: input.completionContract,
+      semanticTools: prepared.semanticTools,
+      ...(input.providerLaunch ? { providerLaunch: input.providerLaunch } : {}),
+    }),
+    `prepare_${input.runId}`,
+  );
   prepared.queueCommand("session.open", {}, `open_${input.runId}`);
   const recoveryGoalRequestId = input.resumeSessionGoalHeartbeat
     ? `recovery_${input.runId}`
     : null;
   if (goalControl) {
-    const commandKey = createHash("sha256").update(goalControl.requestId).digest("hex").slice(0, 20);
+    const commandKey = createHash("sha256")
+      .update(goalControl.requestId)
+      .digest("hex")
+      .slice(0, 20);
     nativeGoalCommands(goalControl).forEach((command, index) => {
-      prepared.queueCommand(command.type, command.payload, `goal_${commandKey}_${index + 1}`);
+      prepared.queueCommand(
+        command.type,
+        command.payload,
+        `goal_${commandKey}_${index + 1}`,
+      );
     });
-    await input.db.update(agentSessionGoalActions).set({
-      status: "delivering",
-      updatedAt: new Date(),
-    }).where(and(
-      eq(agentSessionGoalActions.sessionId, goalControl.sessionId),
-      eq(agentSessionGoalActions.requestId, goalControl.requestId),
-    ));
+    await input.db
+      .update(agentSessionGoalActions)
+      .set({
+        status: "delivering",
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(agentSessionGoalActions.sessionId, goalControl.sessionId),
+          eq(agentSessionGoalActions.requestId, goalControl.requestId),
+        ),
+      );
   } else if (recoveryGoalRequestId) {
     prepared.queueCommand(
       "session.goal.set",
@@ -387,30 +435,38 @@ export async function executeNativeCodexRunner(input: {
       `goal_${recoveryGoalRequestId}`,
     );
   } else {
-    prepared.queueCommand("turn.start", { text: input.prompt }, `turn_${input.runId}`);
+    prepared.queueCommand(
+      "turn.start",
+      { text: input.prompt },
+      `turn_${input.runId}`,
+    );
   }
 
-  const child = spawn(binary, buildNativeRunnerArguments({
-    connectUrl: prepared.connectUrl,
-    stateDirectory: runnerStateDirectory,
-    runnerInstanceId: input.runnerInstanceId,
-    environmentLeaseId: input.environmentLeaseId,
-    runId: input.runId,
-    normalizedSessionId: input.normalizedSessionId,
-    turnId: input.turnId,
-    itemId: input.itemId,
-    runnerDigest,
-    maxRuntimeMs: input.timeoutMs,
-  }), {
-    cwd: input.cwd,
-    detached: process.platform !== "win32",
-    env: {
-      ...process.env,
-      ...input.environment,
-      TASKCORE_RUNNER_BOOTSTRAP_TICKET: prepared.bootstrapTicket,
+  const child = spawn(
+    binary,
+    buildNativeRunnerArguments({
+      connectUrl: prepared.connectUrl,
+      stateDirectory: runnerStateDirectory,
+      runnerInstanceId: input.runnerInstanceId,
+      environmentLeaseId: input.environmentLeaseId,
+      runId: input.runId,
+      normalizedSessionId: input.normalizedSessionId,
+      turnId: input.turnId,
+      itemId: input.itemId,
+      runnerDigest,
+      maxRuntimeMs: input.timeoutMs,
+    }),
+    {
+      cwd: input.cwd,
+      detached: process.platform !== "win32",
+      env: {
+        ...process.env,
+        ...input.environment,
+        TASKCORE_RUNNER_BOOTSTRAP_TICKET: prepared.bootstrapTicket,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
     },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  );
   const exit = waitForExit(child);
   child.stdout?.on("data", (chunk: Buffer) => {
     void input.onLog("stdout", chunk.toString("utf8"));
@@ -427,32 +483,51 @@ export async function executeNativeCodexRunner(input: {
       startedAt: new Date().toISOString(),
     });
     if (goalControl) {
-      const commandKey = createHash("sha256").update(goalControl.requestId).digest("hex").slice(0, 20);
+      const commandKey = createHash("sha256")
+        .update(goalControl.requestId)
+        .digest("hex")
+        .slice(0, 20);
       const commands = nativeGoalCommands(goalControl);
       for (let index = 0; index < commands.length; index += 1) {
-        await prepared.waitForCommand(`goal_${commandKey}_${index + 1}`, Math.min(input.timeoutMs, 30_000));
+        await prepared.waitForCommand(
+          `goal_${commandKey}_${index + 1}`,
+          Math.min(input.timeoutMs, 30_000),
+        );
       }
-      await prepared.waitForGoalEvent(goalControl.requestId, Math.min(input.timeoutMs, 30_000));
+      await prepared.waitForGoalEvent(
+        goalControl.requestId,
+        Math.min(input.timeoutMs, 30_000),
+      );
     } else if (recoveryGoalRequestId) {
-      await prepared.waitForCommand(`goal_${recoveryGoalRequestId}`, Math.min(input.timeoutMs, 30_000));
-      await prepared.waitForGoalEvent(recoveryGoalRequestId, Math.min(input.timeoutMs, 30_000));
+      await prepared.waitForCommand(
+        `goal_${recoveryGoalRequestId}`,
+        Math.min(input.timeoutMs, 30_000),
+      );
+      await prepared.waitForGoalEvent(
+        recoveryGoalRequestId,
+        Math.min(input.timeoutMs, 30_000),
+      );
     }
-    const shouldWaitForGoalCompletion = goalControl && (
-      goalControl.workingNow ||
-      ["create", "replace", "resume"].includes(goalControl.action) ||
-      (goalControl.action === "edit" && goalControl.currentStatus === "active")
-    );
-    const completion = goalControl && !shouldWaitForGoalCompletion
-      ? Promise.resolve(null)
-      : prepared.waitForTerminal(input.timeoutMs);
+    const shouldWaitForGoalCompletion =
+      goalControl &&
+      (goalControl.workingNow ||
+        ["create", "replace", "resume"].includes(goalControl.action) ||
+        (goalControl.action === "edit" &&
+          goalControl.currentStatus === "active"));
+    const completion =
+      goalControl && !shouldWaitForGoalCompletion
+        ? Promise.resolve(null)
+        : prepared.waitForTerminal(input.timeoutMs);
     const completed = await Promise.race([
       completion,
       exit.then(async ({ code, signal }) => {
-        const recovered = goalControl && !shouldWaitForGoalCompletion
-          ? null
-          : await prepared.waitForTerminal(2_000).catch(() => undefined);
+        const recovered =
+          goalControl && !shouldWaitForGoalCompletion
+            ? null
+            : await prepared.waitForTerminal(2_000).catch(() => undefined);
         if (recovered) return recovered;
-        if (recovered === null && goalControl && !shouldWaitForGoalCompletion) return null;
+        if (recovered === null && goalControl && !shouldWaitForGoalCompletion)
+          return null;
         throw new Error(
           `taskcore_runner_process_exited: code=${code ?? "null"} signal=${signal ?? "null"}`,
         );
@@ -462,50 +537,66 @@ export async function executeNativeCodexRunner(input: {
     prepared.queueCommand("runner.shutdown", {}, `shutdown_${input.runId}`);
     await stopChild(child, exit, true);
 
-    const succeeded = completed === null || completed.terminal.runTerminalState === "succeeded";
+    const succeeded =
+      completed === null || completed.terminal.runTerminalState === "succeeded";
     if (goalControl && completed === null) {
-      await input.db.update(agentSessionGoalActions).set({
-        status: "completed",
-        completedAt: new Date(),
-        updatedAt: new Date(),
-      }).where(and(
-        eq(agentSessionGoalActions.sessionId, goalControl.sessionId),
-        eq(agentSessionGoalActions.requestId, goalControl.requestId),
-      ));
+      await input.db
+        .update(agentSessionGoalActions)
+        .set({
+          status: "completed",
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(agentSessionGoalActions.sessionId, goalControl.sessionId),
+            eq(agentSessionGoalActions.requestId, goalControl.requestId),
+          ),
+        );
     }
     return {
       exitCode: succeeded ? 0 : 1,
       signal: null,
       timedOut: false,
-      ...(succeeded ? {} : {
-        errorCode: "taskcore_runner_provider_failed",
-        errorMessage: completed?.result.summary,
-      }),
+      ...(succeeded
+        ? {}
+        : {
+            errorCode: "taskcore_runner_provider_failed",
+            errorMessage: completed?.result.summary,
+          }),
       provider: "codex",
       model: input.model,
       sessionParams: {
         sessionId: completed?.providerSessionId ?? input.normalizedSessionId,
       },
-      sessionDisplayId: completed?.providerSessionId ?? input.normalizedSessionId,
+      sessionDisplayId:
+        completed?.providerSessionId ?? input.normalizedSessionId,
       resultJson: {
         nativeRunner: {
-          ...(completed ? { result: completed.result, terminal: completed.terminal } : {}),
-          ...(goalControl ? {
-            goalControl: {
-              requestId: goalControl.requestId,
-              action: goalControl.action,
-              status: "completed",
-            },
-          } : {}),
-          ...(recoveryGoalRequestId ? {
-            goalHeartbeat: {
-              requestId: recoveryGoalRequestId,
-              status: "settled",
-            },
-          } : {}),
+          ...(completed
+            ? { result: completed.result, terminal: completed.terminal }
+            : {}),
+          ...(goalControl
+            ? {
+                goalControl: {
+                  requestId: goalControl.requestId,
+                  action: goalControl.action,
+                  status: "completed",
+                },
+              }
+            : {}),
+          ...(recoveryGoalRequestId
+            ? {
+                goalHeartbeat: {
+                  requestId: recoveryGoalRequestId,
+                  status: "settled",
+                },
+              }
+            : {}),
         },
       },
-      summary: completed?.result.summary ?? "Agent session goal control applied.",
+      summary:
+        completed?.result.summary ?? "Agent session goal control applied.",
     };
   } catch (error) {
     if (goalControl) {

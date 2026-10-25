@@ -67,7 +67,10 @@ export function DecisionsToolbar({
             type="button"
             variant="outline"
             size="icon"
-            className={cn("h-8 w-8 shrink-0", activeFilterCount > 0 && "bg-accent")}
+            className={cn(
+              "h-8 w-8 shrink-0",
+              activeFilterCount > 0 && "bg-accent",
+            )}
             title="Filter"
             aria-label="Filter"
           >
@@ -75,7 +78,11 @@ export function DecisionsToolbar({
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 p-0">
-          <FilterMenu options={filterOptions} filters={filters} onChange={onFiltersChange} />
+          <FilterMenu
+            options={filterOptions}
+            filters={filters}
+            onChange={onFiltersChange}
+          />
         </PopoverContent>
       </Popover>
       {/* Group by */}
@@ -85,7 +92,10 @@ export function DecisionsToolbar({
             type="button"
             variant="outline"
             size="icon"
-            className={cn("h-8 w-8 shrink-0", groupBy !== "none" && "bg-accent")}
+            className={cn(
+              "h-8 w-8 shrink-0",
+              groupBy !== "none" && "bg-accent",
+            )}
             title="Group"
             aria-label="Group"
           >
@@ -100,7 +110,9 @@ export function DecisionsToolbar({
                 type="button"
                 className={cn(
                   "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm",
-                  groupBy === value ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/50",
+                  groupBy === value
+                    ? "bg-accent/50 text-foreground"
+                    : "text-muted-foreground hover:bg-accent/50",
                 )}
                 onClick={() => onGroupByChange(value)}
               >
@@ -133,7 +145,9 @@ export function DecisionsToolbar({
                 type="button"
                 className={cn(
                   "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm",
-                  sortOrder === value ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/50",
+                  sortOrder === value
+                    ? "bg-accent/50 text-foreground"
+                    : "text-muted-foreground hover:bg-accent/50",
                 )}
                 onClick={() => onSortOrderChange(value)}
               >
@@ -159,7 +173,9 @@ function FilterMenu({
 }) {
   const toggle = (key: keyof AttentionFilterState, value: string) => {
     const list = filters[key] as string[];
-    const nextList = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+    const nextList = list.includes(value)
+      ? list.filter((v) => v !== value)
+      : [...list, value];
     onChange({ ...filters, [key]: nextList });
   };
   const hasActive = countActiveAttentionFilters(filters) > 0;
@@ -167,7 +183,9 @@ function FilterMenu({
   return (
     <div className="max-h-(--sz-70vh) overflow-y-auto">
       <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Filter</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Filter
+        </span>
         {hasActive && (
           <button
             type="button"
@@ -248,7 +266,13 @@ function FilterMenu({
   );
 }
 
-function FilterSection({ title, children }: { title: string; children: ReactNode }) {
+function FilterSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <div className="border-t border-border/60 px-2 py-1.5">
       <p className="px-1 pb-1 text-(length:--text-nano) font-medium uppercase tracking-wide text-muted-foreground">
@@ -274,7 +298,11 @@ function FilterRow({
       className="flex w-full items-center gap-2 rounded-sm px-1 py-1 text-left text-sm hover:bg-accent/50"
       onClick={onToggle}
     >
-      <Checkbox checked={checked} className="pointer-events-none" tabIndex={-1} />
+      <Checkbox
+        checked={checked}
+        className="pointer-events-none"
+        tabIndex={-1}
+      />
       <span className="truncate">{label}</span>
     </button>
   );

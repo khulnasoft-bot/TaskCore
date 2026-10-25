@@ -28,7 +28,11 @@ export function bindManagedNativeCredentialTurn(
   if (previous && !previous.completed) {
     throw new Error("managed_native_credential_turn_still_owned");
   }
-  const turn: CredentialTurn = { ...callbacks, detached: false, completed: false };
+  const turn: CredentialTurn = {
+    ...callbacks,
+    detached: false,
+    completed: false,
+  };
   credentialTurns.set(session, turn);
   if (previous) return session;
 
@@ -48,13 +52,18 @@ export function bindManagedNativeCredentialTurn(
     if (owner?.detached) return;
     if (owner) owner.closing = true;
     await close(input);
-    if (!owner || owner.detached || credentialTurns.get(session) !== owner) return;
+    if (!owner || owner.detached || credentialTurns.get(session) !== owner)
+      return;
     try {
       await completeCredentialTurn(owner);
     } finally {
       // Idle expiry removes the provider credential, but never writes back to
       // the already-deleted temporary home of a completed invocation.
-      if (!owner.detached && !owner.removed && credentialTurns.get(session) === owner) {
+      if (
+        !owner.detached &&
+        !owner.removed &&
+        credentialTurns.get(session) === owner
+      ) {
         owner.removed = true;
         await owner.remove();
       }
@@ -65,12 +74,16 @@ export function bindManagedNativeCredentialTurn(
 
 async function completeCredentialTurn(turn: CredentialTurn) {
   if (turn.detached || turn.completed) return;
-  turn.completion ??= turn.copyBack().finally(() => { turn.completed = true; });
+  turn.completion ??= turn.copyBack().finally(() => {
+    turn.completed = true;
+  });
   await turn.completion;
 }
 
 /** Flush refreshes after each turn, without closing a healthy warm provider. */
-export async function completeManagedNativeCredentialTurn(session: NativeSession | undefined) {
+export async function completeManagedNativeCredentialTurn(
+  session: NativeSession | undefined,
+) {
   if (!session) return;
   const turn = credentialTurns.get(session);
   if (turn) await completeCredentialTurn(turn);

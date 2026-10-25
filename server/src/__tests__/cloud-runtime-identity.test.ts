@@ -3,7 +3,16 @@ import { cloudWarmStandbyMiddleware } from "../middleware/cloud-warm-standby.js"
 import { generateKeyPairSync, sign } from "node:crypto";
 import express from "express";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { createDb, instanceSettings } from "@taskcore/db";
 import {
   applyCloudRuntimeIdentityAssertion,
@@ -18,7 +27,10 @@ import {
 import { routineWebhookUrl } from "../services/routines.js";
 import { taskcoreCloudConnectorEnrollmentStatus } from "../services/taskcore-cloud-connector-enrollment.js";
 import { cloudRuntimeIdentityMiddleware } from "../middleware/cloud-runtime-identity.js";
-import { idleAdmissionMiddleware, trackIdleRequestHandlers } from "../middleware/idle-admission.js";
+import {
+  idleAdmissionMiddleware,
+  trackIdleRequestHandlers,
+} from "../middleware/idle-admission.js";
 import { idleWorkSnapshot } from "../services/task-admission.js";
 import { healthRoutes } from "../routes/health.js";
 import {
@@ -27,7 +39,9 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 const STACK_ID = "stack-pool-123";
 const POOL_ORIGIN = "https://pool-123.staging.taskcore.app";
@@ -46,11 +60,13 @@ function encodeJson(value: Record<string, unknown>) {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
 }
 
-function assertion(input: {
-  claims?: Record<string, unknown>;
-  header?: Record<string, unknown>;
-  signingKey?: typeof pair.privateKey;
-} = {}) {
+function assertion(
+  input: {
+    claims?: Record<string, unknown>;
+    header?: Record<string, unknown>;
+    signingKey?: typeof pair.privateKey;
+  } = {},
+) {
   const iat = Math.floor(NOW.getTime() / 1000);
   const header = encodeJson({
     alg: "EdDSA",
@@ -81,11 +97,15 @@ function assertion(input: {
 
 describeEmbeddedPostgres("Cloud runtime identity", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const originalEnv = { ...process.env };
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-cloud-runtime-identity-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-cloud-runtime-identity-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -100,12 +120,17 @@ describeEmbeddedPostgres("Cloud runtime identity", () => {
     process.env.TASKCORE_API_URL = POOL_ORIGIN;
     process.env.TASKCORE_PRIMARY_HOST = "pool-123.staging.taskcore.app";
     process.env.TASKCORE_STACK_SLUG = "pool-123";
-    process.env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS = JSON.stringify({ keys: [publicJwk] });
+    process.env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS = JSON.stringify({
+      keys: [publicJwk],
+    });
     process.env.TASKCORE_CLOUD_CONNECTOR_INSTANCE_ID = "managed-instance";
-    process.env.TASKCORE_CLOUD_CONNECTOR_SIGN_PRIVATE_KEY = "managed-signing-key";
-    process.env.TASKCORE_CLOUD_CONNECTOR_SEAL_PRIVATE_KEY = "managed-sealing-key";
+    process.env.TASKCORE_CLOUD_CONNECTOR_SIGN_PRIVATE_KEY =
+      "managed-signing-key";
+    process.env.TASKCORE_CLOUD_CONNECTOR_SEAL_PRIVATE_KEY =
+      "managed-sealing-key";
     process.env.TASKCORE_CLOUD_CONNECTOR_ENVIRONMENT = "staging";
-    process.env.TASKCORE_CLOUD_CONNECTOR_BASE_URL = "https://my-staging.taskcore.app";
+    process.env.TASKCORE_CLOUD_CONNECTOR_BASE_URL =
+      "https://my-staging.taskcore.app";
     await initializeCloudRuntimeIdentity(db);
   });
 
@@ -152,7 +177,9 @@ describeEmbeddedPostgres("Cloud runtime identity", () => {
     expect(process.env.TASKCORE_PUBLIC_URL).toBe(CANONICAL_ORIGIN);
     expect(process.env.TASKCORE_AUTH_PUBLIC_BASE_URL).toBe(CANONICAL_ORIGIN);
     expect(process.env.TASKCORE_API_URL).toBe(CANONICAL_ORIGIN);
-    expect(process.env.TASKCORE_PRIMARY_HOST).toBe("gonzo.staging.taskcore.app");
+    expect(process.env.TASKCORE_PRIMARY_HOST).toBe(
+      "gonzo.staging.taskcore.app",
+    );
     expect(process.env.TASKCORE_STACK_SLUG).toBe("gonzo");
     expect(routineWebhookUrl("hook-1")).toBe(
       "https://gonzo.staging.taskcore.app/api/routine-triggers/public/hook-1/fire",
@@ -168,18 +195,24 @@ describeEmbeddedPostgres("Cloud runtime identity", () => {
     const requestTime = Math.floor(Date.now() / 1000);
     const app = express();
     app.use(cloudRuntimeIdentityMiddleware(db));
-    app.use("/api/health", healthRoutes(db, {
-      deploymentMode: "authenticated",
-      deploymentExposure: "public",
-      authReady: true,
-      companyDeletionEnabled: false,
-    }));
+    app.use(
+      "/api/health",
+      healthRoutes(db, {
+        deploymentMode: "authenticated",
+        deploymentExposure: "public",
+        authReady: true,
+        companyDeletionEnabled: false,
+      }),
+    );
 
     const response = await request(app)
       .get("/api/health")
-      .set("x-taskcore-cloud-runtime-identity", assertion({
-        claims: { iat: requestTime, exp: requestTime + 300 },
-      }));
+      .set(
+        "x-taskcore-cloud-runtime-identity",
+        assertion({
+          claims: { iat: requestTime, exp: requestTime + 300 },
+        }),
+      );
 
     expect(response.status).toBe(200);
     expect(response.body.cloud.runtimeIdentity).toEqual({
@@ -188,44 +221,58 @@ describeEmbeddedPostgres("Cloud runtime identity", () => {
     });
   });
 
-  it.each([false, true])("counts exempt bootstrap writes until they settle (failure=%s)", async (fail) => {
-    let enterWrite!: () => void, finishWrite!: () => void;
-    const entered = new Promise<void>(resolve => { enterWrite = resolve; });
-    const pending = new Promise<void>(resolve => { finishWrite = resolve; });
-    const transaction = db.transaction.bind(db);
-    vi.spyOn(db, "transaction").mockImplementationOnce(async (...args) => {
-      enterWrite();
-      await pending;
-      if (fail) throw new Error("fixture bootstrap write failed");
-      return transaction(...args);
-    });
-    const app = express();
-    app.use(idleAdmissionMiddleware);
-    app.use(cloudRuntimeIdentityMiddleware(db));
-    app.get("/api/health", (_req, res) => res.sendStatus(204));
-    trackIdleRequestHandlers(app);
-    const requestTime = Math.floor(Date.now() / 1000);
-    const accepted = request(app).get("/api/health")
-      .set("x-taskcore-cloud-runtime-identity", assertion({ claims: { iat: requestTime, exp: requestTime + 300 } }))
-      .then(response => response);
-    try {
-      await entered;
-      expect(idleWorkSnapshot().active).toBe(1);
-    } finally {
-      finishWrite();
-      const response = await accepted;
-      expect(response.status).toBe(fail ? 401 : 204);
-    }
-    expect(idleWorkSnapshot().active).toBe(0);
-  });
+  it.each([false, true])(
+    "counts exempt bootstrap writes until they settle (failure=%s)",
+    async (fail) => {
+      let enterWrite!: () => void, finishWrite!: () => void;
+      const entered = new Promise<void>((resolve) => {
+        enterWrite = resolve;
+      });
+      const pending = new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+      const transaction = db.transaction.bind(db);
+      vi.spyOn(db, "transaction").mockImplementationOnce(async (...args) => {
+        enterWrite();
+        await pending;
+        if (fail) throw new Error("fixture bootstrap write failed");
+        return transaction(...args);
+      });
+      const app = express();
+      app.use(idleAdmissionMiddleware);
+      app.use(cloudRuntimeIdentityMiddleware(db));
+      app.get("/api/health", (_req, res) => res.sendStatus(204));
+      trackIdleRequestHandlers(app);
+      const requestTime = Math.floor(Date.now() / 1000);
+      const accepted = request(app)
+        .get("/api/health")
+        .set(
+          "x-taskcore-cloud-runtime-identity",
+          assertion({ claims: { iat: requestTime, exp: requestTime + 300 } }),
+        )
+        .then((response) => response);
+      try {
+        await entered;
+        expect(idleWorkSnapshot().active).toBe(1);
+      } finally {
+        finishWrite();
+        const response = await accepted;
+        expect(response.status).toBe(fail ? 401 : 204);
+      }
+      expect(idleWorkSnapshot().active).toBe(0);
+    },
+  );
 
   it("keeps probes idle until a verified durable claim and stays active across restart", async () => {
     const env = { ...process.env, TASKCORE_CLOUD_WARM_STANDBY: "1" };
     const isStandby = await createCloudWarmStandby(db, env);
     const execute = vi.spyOn(db, "execute");
     const health = healthRoutes(db, {
-      deploymentMode: "authenticated", deploymentExposure: "public",
-      authReady: true, companyDeletionEnabled: false, isWarmStandby: isStandby,
+      deploymentMode: "authenticated",
+      deploymentExposure: "public",
+      authReady: true,
+      companyDeletionEnabled: false,
+      isWarmStandby: isStandby,
     });
     const app = express();
     app.use(cloudRuntimeIdentityMiddleware(db));
@@ -234,18 +281,37 @@ describeEmbeddedPostgres("Cloud runtime identity", () => {
     expect((await request(app).get("/api/health")).body.warmStandby).toBe(true);
     expect(execute).not.toHaveBeenCalled();
     const requestTime = Math.floor(Date.now() / 1000);
-    const invalid = await request(app).get("/api/health").set("x-taskcore-cloud-runtime-identity", assertion({
-      claims: { sub: "another-stack", iat: requestTime, exp: requestTime + 300 },
-    }));
+    const invalid = await request(app)
+      .get("/api/health")
+      .set(
+        "x-taskcore-cloud-runtime-identity",
+        assertion({
+          claims: {
+            sub: "another-stack",
+            iat: requestTime,
+            exp: requestTime + 300,
+          },
+        }),
+      );
     expect(invalid.status).toBe(401);
     expect(isStandby()).toBe(true);
-    const signed = assertion({ claims: { iat: requestTime, exp: requestTime + 300 } });
-    const claimed = await request(app).get("/api/health").set("x-taskcore-cloud-runtime-identity", signed);
+    const signed = assertion({
+      claims: { iat: requestTime, exp: requestTime + 300 },
+    });
+    const claimed = await request(app)
+      .get("/api/health")
+      .set("x-taskcore-cloud-runtime-identity", signed);
     expect(claimed.status).toBe(200);
     expect(claimed.body.warmStandby).toBeUndefined();
     expect(isStandby()).toBe(false);
     expect(execute).toHaveBeenCalledOnce();
-    expect((await request(app).get("/api/health").set("x-taskcore-cloud-runtime-identity", signed)).status).toBe(200);
+    expect(
+      (
+        await request(app)
+          .get("/api/health")
+          .set("x-taskcore-cloud-runtime-identity", signed)
+      ).status,
+    ).toBe(200);
     resetCloudRuntimeIdentityForTests();
     process.env.TASKCORE_PUBLIC_URL = POOL_ORIGIN;
     await initializeCloudRuntimeIdentity(db);
@@ -253,7 +319,11 @@ describeEmbeddedPostgres("Cloud runtime identity", () => {
   });
 
   it("restores the canonical identity before consumers read stale startup variables", async () => {
-    await applyCloudRuntimeIdentityAssertion({ db, compactJws: assertion(), now: NOW });
+    await applyCloudRuntimeIdentityAssertion({
+      db,
+      compactJws: assertion(),
+      now: NOW,
+    });
     resetCloudRuntimeIdentityForTests();
     process.env.TASKCORE_PUBLIC_URL = POOL_ORIGIN;
     process.env.TASKCORE_AUTH_PUBLIC_BASE_URL = POOL_ORIGIN;
@@ -266,54 +336,78 @@ describeEmbeddedPostgres("Cloud runtime identity", () => {
   });
 
   it("accepts the identical claim after a restart with already-aligned provider variables", async () => {
-    await applyCloudRuntimeIdentityAssertion({ db, compactJws: assertion(), now: NOW });
+    await applyCloudRuntimeIdentityAssertion({
+      db,
+      compactJws: assertion(),
+      now: NOW,
+    });
     resetCloudRuntimeIdentityForTests();
     process.env.TASKCORE_PUBLIC_URL = CANONICAL_ORIGIN;
     process.env.TASKCORE_AUTH_PUBLIC_BASE_URL = CANONICAL_ORIGIN;
     process.env.TASKCORE_API_URL = CANONICAL_ORIGIN;
     await initializeCloudRuntimeIdentity(db);
 
-    await expect(applyCloudRuntimeIdentityAssertion({
-      db,
-      compactJws: assertion(),
-      now: NOW,
-    })).resolves.toMatchObject({ canonicalOrigin: CANONICAL_ORIGIN });
+    await expect(
+      applyCloudRuntimeIdentityAssertion({
+        db,
+        compactJws: assertion(),
+        now: NOW,
+      }),
+    ).resolves.toMatchObject({ canonicalOrigin: CANONICAL_ORIGIN });
   });
 
   it("accepts an identical replay but rejects a different claim or destination", async () => {
-    await applyCloudRuntimeIdentityAssertion({ db, compactJws: assertion(), now: NOW });
-    await expect(applyCloudRuntimeIdentityAssertion({
+    await applyCloudRuntimeIdentityAssertion({
       db,
       compactJws: assertion(),
       now: NOW,
-    })).resolves.toMatchObject({ canonicalOrigin: CANONICAL_ORIGIN });
-    await expect(applyCloudRuntimeIdentityAssertion({
-      db,
-      compactJws: assertion({ claims: { claimId: "another-claim" } }),
-      now: NOW,
-    })).rejects.toThrow("already claimed");
+    });
+    await expect(
+      applyCloudRuntimeIdentityAssertion({
+        db,
+        compactJws: assertion(),
+        now: NOW,
+      }),
+    ).resolves.toMatchObject({ canonicalOrigin: CANONICAL_ORIGIN });
+    await expect(
+      applyCloudRuntimeIdentityAssertion({
+        db,
+        compactJws: assertion({ claims: { claimId: "another-claim" } }),
+        now: NOW,
+      }),
+    ).rejects.toThrow("already claimed");
   });
 
   it.each([
     ["expired", { exp: Math.floor(NOW.getTime() / 1000) - 1 }],
     ["cross-stack", { sub: "stack-someone-else" }],
-    ["wrong previous origin", { previousOrigin: "https://another.staging.taskcore.app" }],
-    ["path-bearing destination", { canonicalOrigin: `${CANONICAL_ORIGIN}/GON` }],
+    [
+      "wrong previous origin",
+      { previousOrigin: "https://another.staging.taskcore.app" },
+    ],
+    [
+      "path-bearing destination",
+      { canonicalOrigin: `${CANONICAL_ORIGIN}/GON` },
+    ],
     ["slug mismatch", { stackSlug: "kermit" }],
   ])("rejects %s assertions", async (_label, claims) => {
-    await expect(applyCloudRuntimeIdentityAssertion({
-      db,
-      compactJws: assertion({ claims }),
-      now: NOW,
-    })).rejects.toThrow();
+    await expect(
+      applyCloudRuntimeIdentityAssertion({
+        db,
+        compactJws: assertion({ claims }),
+        now: NOW,
+      }),
+    ).rejects.toThrow();
   });
 
   it("rejects unknown keys and altered signed destinations", async () => {
-    await expect(applyCloudRuntimeIdentityAssertion({
-      db,
-      compactJws: assertion({ header: { kid: "unknown" } }),
-      now: NOW,
-    })).rejects.toThrow("unknown signing key");
+    await expect(
+      applyCloudRuntimeIdentityAssertion({
+        db,
+        compactJws: assertion({ header: { kid: "unknown" } }),
+        now: NOW,
+      }),
+    ).rejects.toThrow("unknown signing key");
 
     const valid = assertion();
     const [header, payload, signature] = valid.split(".");
@@ -321,10 +415,12 @@ describeEmbeddedPostgres("Cloud runtime identity", () => {
       ...JSON.parse(Buffer.from(payload!, "base64url").toString("utf8")),
       canonicalOrigin: "https://attacker.example.com",
     });
-    await expect(applyCloudRuntimeIdentityAssertion({
-      db,
-      compactJws: `${header}.${altered}.${signature}`,
-      now: NOW,
-    })).rejects.toThrow("signature is invalid");
+    await expect(
+      applyCloudRuntimeIdentityAssertion({
+        db,
+        compactJws: `${header}.${altered}.${signature}`,
+        now: NOW,
+      }),
+    ).rejects.toThrow("signature is invalid");
   });
 });

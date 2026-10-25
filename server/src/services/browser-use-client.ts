@@ -20,7 +20,8 @@ export function isBrowserUseConnection(c: {
   config?: Record<string, unknown>;
 }) {
   return (
-    c.transport === "rest_api" && c.config?.sourceTemplateKey === "browser-use-cloud"
+    c.transport === "rest_api" &&
+    c.config?.sourceTemplateKey === "browser-use-cloud"
   );
 }
 export function browserUseViewerUrl(value: unknown): string {
@@ -168,7 +169,9 @@ export function browserUseClient(
             ? "This browser conversation is busy. Wait for its run to finish."
             : `Browser Use request failed (${response.status}).`,
         response.status === 429 ? delay : 0,
-        response.status >= 400 && response.status < 500 && response.status !== 408,
+        response.status >= 400 &&
+          response.status < 500 &&
+          response.status !== 408,
       );
     }
     const reader = response.body?.getReader();
@@ -219,13 +222,20 @@ export function browserUseClient(
       const query = new URLSearchParams({ limit: "100" });
       if (sessionId) query.set("sessionId", id(sessionId));
       if (cursor) query.set("cursor", cursor);
-      return z.object({
-        runs: z.array(z.object({
-          id: z.string().uuid(), sessionId: z.string().uuid(), task: z.string(), status,
-        })),
-        nextCursor: z.string().nullable().optional(),
-        hasMore: z.boolean().default(false),
-      }).parse(await call(`/runs?${query}`));
+      return z
+        .object({
+          runs: z.array(
+            z.object({
+              id: z.string().uuid(),
+              sessionId: z.string().uuid(),
+              task: z.string(),
+              status,
+            }),
+          ),
+          nextCursor: z.string().nullable().optional(),
+          hasMore: z.boolean().default(false),
+        })
+        .parse(await call(`/runs?${query}`));
     },
     async summary(runId: string) {
       return z

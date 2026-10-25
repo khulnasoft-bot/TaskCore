@@ -163,8 +163,10 @@ export interface UserCompanyAccessEntry extends CompanyMembership {
 }
 
 export interface UserCompanyAccessResponse {
-  user: (AccessUserProfile & {
-    isInstanceAdmin: boolean;
-  }) | null;
+  user:
+    | (AccessUserProfile & {
+        isInstanceAdmin: boolean;
+      })
+    | null;
   companyAccess: UserCompanyAccessEntry[];
 }

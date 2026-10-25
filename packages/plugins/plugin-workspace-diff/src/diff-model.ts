@@ -64,7 +64,9 @@ export function fileName(filePath: string) {
   return filePath.split("/").filter(Boolean).pop() ?? filePath;
 }
 
-export function buildFilePatches(file: WorkspaceDiffFile): DiffPatchViewModel[] {
+export function buildFilePatches(
+  file: WorkspaceDiffFile,
+): DiffPatchViewModel[] {
   return file.patches.map((patch) => {
     const textPatch = patch.patch?.trimEnd() ?? null;
     const lineCount = textPatch ? textPatch.split("\n").length : 0;
@@ -90,10 +92,15 @@ export function isLongDiffFile(file: Pick<DiffFileViewModel, "lineCount">) {
   return file.lineCount > LONG_DIFF_LINE_THRESHOLD;
 }
 
-export function toFileViewModels(diff: WorkspaceDiffResponse | null | undefined): DiffFileViewModel[] {
+export function toFileViewModels(
+  diff: WorkspaceDiffResponse | null | undefined,
+): DiffFileViewModel[] {
   return (diff?.files ?? []).map((file) => {
     const patches = buildFilePatches(file);
-    const lineCount = patches.reduce((count, patch) => count + patch.lineCount, 0);
+    const lineCount = patches.reduce(
+      (count, patch) => count + patch.lineCount,
+      0,
+    );
     return {
       path: file.path,
       oldPath: file.oldPath,
@@ -113,7 +120,9 @@ export function toFileViewModels(diff: WorkspaceDiffResponse | null | undefined)
   });
 }
 
-export function diffSummary(diff: WorkspaceDiffResponse | null | undefined): DiffSummaryViewModel {
+export function diffSummary(
+  diff: WorkspaceDiffResponse | null | undefined,
+): DiffSummaryViewModel {
   const stats = diff?.stats;
   const fileCount = stats?.fileCount ?? 0;
   const additions = stats?.additions ?? 0;
@@ -138,6 +147,10 @@ export function nextExpandedFileSet(
   return next;
 }
 
-export function initialExpandedFileSet(files: readonly DiffFileViewModel[]): Set<string> {
-  return new Set(files.filter((file) => !file.longDiff).map((file) => file.path));
+export function initialExpandedFileSet(
+  files: readonly DiffFileViewModel[],
+): Set<string> {
+  return new Set(
+    files.filter((file) => !file.longDiff).map((file) => file.path),
+  );
 }

@@ -32,7 +32,9 @@ function resolveDurationSeconds(
 ): number | undefined {
   if (!run.startedAt) return undefined;
   const startedAtMs = new Date(run.startedAt).getTime();
-  const endMs = run.finishedAt ? new Date(run.finishedAt).getTime() : now.getTime();
+  const endMs = run.finishedAt
+    ? new Date(run.finishedAt).getTime()
+    : now.getTime();
   return Math.max(0, Math.round((endMs - startedAtMs) / 1000));
 }
 
@@ -52,7 +54,10 @@ function resolveDurationSeconds(
  * the caller's return on the slower of the two promises, so it does not
  * remove the delay.
  */
-export async function emitAgentTaskRun(db: Db, run: HeartbeatRun): Promise<void> {
+export async function emitAgentTaskRun(
+  db: Db,
+  run: HeartbeatRun,
+): Promise<void> {
   try {
     const client = getTelemetryClient();
     if (!client) return;
@@ -74,8 +79,7 @@ export async function emitAgentTaskRun(db: Db, run: HeartbeatRun): Promise<void>
       undefined;
 
     const taskId =
-      readNonEmptyString(parseObject(run.contextSnapshot).issueId) ??
-      undefined;
+      readNonEmptyString(parseObject(run.contextSnapshot).issueId) ?? undefined;
 
     trackAgentTaskRun(client, {
       agentId: run.agentId,
@@ -132,10 +136,18 @@ export async function emitAgentTaskRunById(
     const run = await db
       .select()
       .from(heartbeatRuns)
-      .where(and(eq(heartbeatRuns.id, input.runId), eq(heartbeatRuns.companyId, input.companyId)))
+      .where(
+        and(
+          eq(heartbeatRuns.id, input.runId),
+          eq(heartbeatRuns.companyId, input.companyId),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
     if (run) await emitAgentTaskRun(db, run);
   } catch (err) {
-    logger.warn({ err, runId: input.runId }, "failed to load run for agent.task_run telemetry");
+    logger.warn(
+      { err, runId: input.runId },
+      "failed to load run for agent.task_run telemetry",
+    );
   }
 }

@@ -3,8 +3,14 @@ import { wrapCommandWithEnv } from "../../src/pod-exec.js";
 
 describe("wrapCommandWithEnv", () => {
   it("returns the command unchanged when there is no env", () => {
-    expect(wrapCommandWithEnv(["opencode", "run"], undefined)).toEqual(["opencode", "run"]);
-    expect(wrapCommandWithEnv(["opencode", "run"], {})).toEqual(["opencode", "run"]);
+    expect(wrapCommandWithEnv(["opencode", "run"], undefined)).toEqual([
+      "opencode",
+      "run",
+    ]);
+    expect(wrapCommandWithEnv(["opencode", "run"], {})).toEqual([
+      "opencode",
+      "run",
+    ]);
   });
 
   it("exports the env vars and execs the original command", () => {
@@ -20,7 +26,10 @@ describe("wrapCommandWithEnv", () => {
   });
 
   it("never propagates PATH (would break command resolution in the sandbox image)", () => {
-    const out = wrapCommandWithEnv(["opencode"], { PATH: "/server/bin", XDG_CONFIG_HOME: "/c" });
+    const out = wrapCommandWithEnv(["opencode"], {
+      PATH: "/server/bin",
+      XDG_CONFIG_HOME: "/c",
+    });
     expect(out[2]).not.toContain("PATH=");
     expect(out[2]).toContain("XDG_CONFIG_HOME=");
   });

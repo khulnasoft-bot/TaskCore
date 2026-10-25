@@ -31,7 +31,9 @@ if (!Number.isInteger(port) || port <= 0 || port > 65535) {
 }
 
 if (!existsSync(join(root, "index.html"))) {
-  console.error(`No built Storybook at ${root}. Run \`pnpm build-storybook\` first.`);
+  console.error(
+    `No built Storybook at ${root}. Run \`pnpm build-storybook\` first.`,
+  );
   process.exit(1);
 }
 
@@ -56,20 +58,28 @@ const MIME = {
   ".mp4": "video/mp4",
 };
 
-const serverRequire = createRequire(new URL("../server/package.json", import.meta.url));
+const serverRequire = createRequire(
+  new URL("../server/package.json", import.meta.url),
+);
 const { register } = await import(serverRequire.resolve("tsx/esm/api"));
 register();
 const express = serverRequire("express");
-const { agentAvatarRoutes } = await import("../server/src/routes/agent-avatars.ts");
-const { createAgentAvatarService } = await import("../server/src/services/agent-avatars.ts");
-const { createLocalDiskStorageProvider } = await import("../server/src/storage/local-disk-provider.ts");
+const { agentAvatarRoutes } =
+  await import("../server/src/routes/agent-avatars.ts");
+const { createAgentAvatarService } =
+  await import("../server/src/services/agent-avatars.ts");
+const { createLocalDiskStorageProvider } =
+  await import("../server/src/storage/local-disk-provider.ts");
 const cache = await mkdtemp(join(tmpdir(), "taskcore-storybook-avatars-"));
 const avatars = createAgentAvatarService(createLocalDiskStorageProvider(cache));
 const api = express();
 api.use("/api", agentAvatarRoutes(avatars).router);
 const server = createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${port}`);
-  if (url.pathname.startsWith("/api/agent-avatars/")) { api(req, res); return; }
+  if (url.pathname.startsWith("/api/agent-avatars/")) {
+    api(req, res);
+    return;
+  }
   let filePath = normalize(join(root, decodeURIComponent(url.pathname)));
   if (!filePath.startsWith(root)) {
     res.writeHead(403).end("forbidden");

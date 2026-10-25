@@ -60,16 +60,14 @@ afterEach(async () => {
   // `ENOTEMPTY`. `maxRetries`/`retryDelay` make the cleanup ride out that window the
   // same way production tolerates it, instead of failing the just-passed test.
   await Promise.all(
-    tempRoots
-      .splice(0)
-      .map((root) =>
-        fs.rm(root, {
-          recursive: true,
-          force: true,
-          maxRetries: 5,
-          retryDelay: 50,
-        }),
-      ),
+    tempRoots.splice(0).map((root) =>
+      fs.rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 50,
+      }),
+    ),
   );
 });
 

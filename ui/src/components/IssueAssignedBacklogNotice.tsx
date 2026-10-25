@@ -33,11 +33,13 @@ export function IssueAssignedBacklogNotice({
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="leading-5">
             <span className="font-medium">Parked</span> —{" "}
-            <span className="font-medium">{assigneeLabel}</span> will not be asked to work on this until status changes to To do or In progress.
+            <span className="font-medium">{assigneeLabel}</span> will not be
+            asked to work on this until status changes to To do or In progress.
           </p>
           {assigneeAgent ? (
             <p className="text-xs leading-5 text-amber-800 dark:text-amber-200">
-              Comments still notify the assignee for questions or triage. Leave this parked only if the work is intentionally on hold.
+              Comments still notify the assignee for questions or triage. Leave
+              this parked only if the work is intentionally on hold.
             </p>
           ) : null}
           {onResume ? (

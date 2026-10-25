@@ -17,15 +17,35 @@ const trustedPrWorkflowPath = resolve(
 
 test("Grok subscription credentials require explicit catalog selection and observed auth evidence", async () => {
   const workflow = await readFile(workflowPath, "utf8");
-  const paid = workflow.slice(workflow.indexOf("    steps: &direct_eval_steps"), workflow.indexOf("  eval_shard_1:"));
-  assert.match(workflow, /grok_authentication:\n[\s\S]*?type: choice\n[\s\S]*?default: api_key/u);
+  const paid = workflow.slice(
+    workflow.indexOf("    steps: &direct_eval_steps"),
+    workflow.indexOf("  eval_shard_1:"),
+  );
+  assert.match(
+    workflow,
+    /grok_authentication:\n[\s\S]*?type: choice\n[\s\S]*?default: api_key/u,
+  );
   assert.match(workflow, /--grok-authentication "\$GROK_AUTHENTICATION"/u);
-  assert.ok(paid.includes("TASKCORE_ACPX_GROK_AUTH_JSON_SECRET: ${{ matrix.credentialName == 'TASKCORE_ACPX_GROK_AUTH_JSON_SECRET' && secrets.GROK_AUTH_JSON || '' }}"));
-  assert.ok(paid.includes("XAI_API_KEY: ${{ matrix.credentialName == 'XAI_API_KEY' && secrets.XAI_API_KEY || '' }}"));
+  assert.ok(
+    paid.includes(
+      "TASKCORE_ACPX_GROK_AUTH_JSON_SECRET: ${{ matrix.credentialName == 'TASKCORE_ACPX_GROK_AUTH_JSON_SECRET' && secrets.GROK_AUTH_JSON || '' }}",
+    ),
+  );
+  assert.ok(
+    paid.includes(
+      "XAI_API_KEY: ${{ matrix.credentialName == 'XAI_API_KEY' && secrets.XAI_API_KEY || '' }}",
+    ),
+  );
   assert.match(paid, /--summary-path cell-output\/roster-summary\.json/u);
-  assert.match(paid, /JSON\.parse\(readFileSync\("cell-output\/roster-summary\.json", "utf8"\)\)\.authenticationMode/u);
+  assert.match(
+    paid,
+    /JSON\.parse\(readFileSync\("cell-output\/roster-summary\.json", "utf8"\)\)\.authenticationMode/u,
+  );
   assert.match(paid, /authenticationMode !== expected/u);
-  for (const job of [workflow.slice(0, workflow.indexOf("  eval_shard_0:")), workflow.slice(workflow.indexOf("  report:"))]) {
+  for (const job of [
+    workflow.slice(0, workflow.indexOf("  eval_shard_0:")),
+    workflow.slice(workflow.indexOf("  report:")),
+  ]) {
     assert.doesNotMatch(job, /secrets\.GROK_AUTH_JSON/u);
   }
 });
@@ -72,8 +92,14 @@ test("resolves both repositories immutably and bounds total matrix concurrency",
     workflow.indexOf("  target_lock:"),
     workflow.indexOf("  catalog:"),
   );
-  assert.match(targetLock, /ref: \$\{\{ needs\.authorize\.outputs\.target_sha \}\}/u);
-  assert.match(targetLock, /pnpm install --ignore-scripts --no-frozen-lockfile --lockfile-only/u);
+  assert.match(
+    targetLock,
+    /ref: \$\{\{ needs\.authorize\.outputs\.target_sha \}\}/u,
+  );
+  assert.match(
+    targetLock,
+    /pnpm install --ignore-scripts --no-frozen-lockfile --lockfile-only/u,
+  );
   assert.match(targetLock, /Upload resolved target lockfile/u);
   const build = workflow.slice(
     workflow.indexOf("  build_runner:"),
@@ -188,8 +214,14 @@ test("publishes only the separately sanitized Evalbook through trusted OIDC code
   assert.match(publisher, /runner-protocol-evals/u);
   assert.match(publisher, /runner-protocol-viewer-/u);
   assert.match(publisher, /TASKCORE_RUNNER_PROTOCOL_EVAL_VIEWER_DIR/u);
-  assert.match(publisher, /url: \$\{\{ steps\.publish\.outputs\.report_url \}\}/u);
-  assert.match(publisher, /Publish versioned report and refresh the root index\n\s+id: publish/u);
+  assert.match(
+    publisher,
+    /url: \$\{\{ steps\.publish\.outputs\.report_url \}\}/u,
+  );
+  assert.match(
+    publisher,
+    /Publish versioned report and refresh the root index\n\s+id: publish/u,
+  );
   assert.doesNotMatch(publisher, /(?:OPENAI|ANTHROPIC|OPENROUTER)_API_KEY/u);
   assert.doesNotMatch(publisher, /taskcore\/taskcore-evals/u);
   assert.doesNotMatch(publisher, /downloaded-runner-protocol-evals/u);
@@ -201,21 +233,31 @@ test("provisions the Codex userns profile before any provider credentials", asyn
     workflow.indexOf("    steps: &direct_eval_steps"),
     workflow.indexOf("  eval_shard_1:"),
   );
-  const profile = direct.indexOf("Provision Codex sandbox on the disposable trusted runner");
-  const credentials = direct.indexOf("Prepare short-lived AgentCore web identity");
+  const profile = direct.indexOf(
+    "Provision Codex sandbox on the disposable trusted runner",
+  );
+  const credentials = direct.indexOf(
+    "Prepare short-lived AgentCore web identity",
+  );
   assert.ok(profile >= 0 && credentials >= 0 && profile < credentials);
   assert.match(direct, /apparmor_restrict_unprivileged_userns/u);
   assert.match(direct, /apparmor_parser/u);
   assert.match(direct, /userns,/u);
   assert.match(direct, /runner-protocol-build\/extracted\/portable/u);
   assert.match(direct, /matrix\.provider == 'codex'/u);
-  assert.match(direct, /matrix\.rosterId == 'protocol-live-acpx-codex-control'/u);
+  assert.match(
+    direct,
+    /matrix\.rosterId == 'protocol-live-acpx-codex-control'/u,
+  );
   assert.doesNotMatch(direct, /matrix\.profileId/u);
   const build = workflow.slice(
     workflow.indexOf("  build_runner:"),
     workflow.indexOf("  eval_shard_0:"),
   );
-  assert.match(build, /Materialize the pinned OpenCode executable before packaging/u);
+  assert.match(
+    build,
+    /Materialize the pinned OpenCode executable before packaging/u,
+  );
   assert.match(build, /materialize-opencode-binary\.mjs/u);
 });
 
@@ -228,8 +270,14 @@ test("report preparation stays on the trusted lock and install mode", async () =
   assert.match(report, /ref: \$\{\{ github\.sha \}\}/u);
   assert.doesNotMatch(report, /Download resolved target lockfile/u);
   assert.doesNotMatch(report, /Restore resolved target lockfile/u);
-  assert.match(report, /Resolve trusted report lockfile without lifecycle scripts/u);
-  assert.match(report, /pnpm install --ignore-scripts --no-frozen-lockfile --lockfile-only/u);
+  assert.match(
+    report,
+    /Resolve trusted report lockfile without lifecycle scripts/u,
+  );
+  assert.match(
+    report,
+    /pnpm install --ignore-scripts --no-frozen-lockfile --lockfile-only/u,
+  );
   assert.match(report, /pnpm install --frozen-lockfile --ignore-scripts\n/u);
 });
 
@@ -240,16 +288,28 @@ test("trusted catalog, direct eval, and report orchestration stay on workflow re
     ["  eval_shard_0:", "  eval_shard_1:"],
     ["  report:", "  publish_history:"],
   ]) {
-    const section = workflow.slice(workflow.indexOf(job), workflow.indexOf(next));
-    assert.match(section, /ref: \$\{\{ github\.sha \}\}/u, `${job} must use the trusted workflow revision`);
-    assert.doesNotMatch(section, /ref: \$\{\{ needs\.authorize\.outputs\.target_sha \}\}/u, `${job} must not execute target orchestration code`);
+    const section = workflow.slice(
+      workflow.indexOf(job),
+      workflow.indexOf(next),
+    );
+    assert.match(
+      section,
+      /ref: \$\{\{ github\.sha \}\}/u,
+      `${job} must use the trusted workflow revision`,
+    );
+    assert.doesNotMatch(
+      section,
+      /ref: \$\{\{ needs\.authorize\.outputs\.target_sha \}\}/u,
+      `${job} must not execute target orchestration code`,
+    );
   }
 });
 
-
 test("authentication failures retain cell metadata without leaking malformed summary content", async () => {
   const workflow = await readFile(workflowPath, "utf8");
-  const script = workflow.match(/CELL_EXIT_CODE="\$status" node --input-type=module <<'NODE'\n([\s\S]*?)          NODE/u)?.[1];
+  const script = workflow.match(
+    /CELL_EXIT_CODE="\$status" node --input-type=module <<'NODE'\n([\s\S]*?)          NODE/u,
+  )?.[1];
   assert.ok(script);
   const root = await mkdtemp(resolve(tmpdir(), "grok-cell-evidence-"));
   try {
@@ -257,27 +317,56 @@ test("authentication failures retain cell metadata without leaking malformed sum
     const summary = resolve(root, "cell-output/roster-summary.json");
     for (const [content, expectedFailure, expectedMode] of [
       [undefined, "grok_authentication_evidence_unreadable", undefined],
-      ["{SENSITIVE_SENTINEL", "grok_authentication_evidence_unreadable", undefined],
+      [
+        "{SENSITIVE_SENTINEL",
+        "grok_authentication_evidence_unreadable",
+        undefined,
+      ],
       ["null", "grok_authentication_evidence_unreadable", undefined],
-      ['{"authenticationMode":"SENSITIVE_SENTINEL"}', "grok_authentication_evidence_mismatch", undefined],
-      ['{"authenticationMode":"api_key"}', "grok_authentication_evidence_mismatch", "api_key"],
+      [
+        '{"authenticationMode":"SENSITIVE_SENTINEL"}',
+        "grok_authentication_evidence_mismatch",
+        undefined,
+      ],
+      [
+        '{"authenticationMode":"api_key"}',
+        "grok_authentication_evidence_mismatch",
+        "api_key",
+      ],
       ['{"authenticationMode":"subscription"}', undefined, "subscription"],
     ]) {
       if (content === undefined) await rm(summary, { force: true });
       else await writeFile(summary, content);
-      const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
-        cwd: root, encoding: "utf8",
-        env: { CREDENTIAL_NAME: "TASKCORE_ACPX_GROK_AUTH_JSON_SECRET", CELL_ID: "cell-1", CASE_ID: "context", ROSTER_FILE: "grok.json", CELL_EXIT_CODE: "7" },
-      });
+      const result = spawnSync(
+        process.execPath,
+        ["--input-type=module", "-e", script],
+        {
+          cwd: root,
+          encoding: "utf8",
+          env: {
+            CREDENTIAL_NAME: "TASKCORE_ACPX_GROK_AUTH_JSON_SECRET",
+            CELL_ID: "cell-1",
+            CASE_ID: "context",
+            ROSTER_FILE: "grok.json",
+            CELL_EXIT_CODE: "7",
+          },
+        },
+      );
       assert.equal(result.status, expectedFailure ? 1 : 0);
-      const retained = await readFile(resolve(root, "cell-output/cell.json"), "utf8");
+      const retained = await readFile(
+        resolve(root, "cell-output/cell.json"),
+        "utf8",
+      );
       const metadata = JSON.parse(retained);
       assert.equal(metadata.cellId, "cell-1");
       assert.equal(metadata.caseId, "context");
       assert.equal(metadata.exitCode, 7);
       assert.equal(metadata.authenticationEvidenceFailure, expectedFailure);
       assert.equal(metadata.authenticationMode, expectedMode);
-      assert.doesNotMatch(retained + result.stdout + result.stderr, /SENSITIVE_SENTINEL/u);
+      assert.doesNotMatch(
+        retained + result.stdout + result.stderr,
+        /SENSITIVE_SENTINEL/u,
+      );
     }
   } finally {
     await rm(root, { recursive: true, force: true });

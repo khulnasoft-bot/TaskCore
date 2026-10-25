@@ -15,9 +15,14 @@ type RawResponse = {
 const openServers: Array<ReturnType<typeof createServer>> = [];
 
 afterEach(async () => {
-  await Promise.all(openServers.splice(0).map((server) => new Promise<void>((resolve, reject) => {
-    server.close((err) => err ? reject(err) : resolve());
-  })));
+  await Promise.all(
+    openServers.splice(0).map(
+      (server) =>
+        new Promise<void>((resolve, reject) => {
+          server.close((err) => (err ? reject(err) : resolve()));
+        }),
+    ),
+  );
 });
 
 function issueListFixture(count: number) {
@@ -26,7 +31,8 @@ function issueListFixture(count: number) {
     companyId: "company-1",
     identifier: `PAP-${index + 1}`,
     title: `Synthetic issue list row ${index}`,
-    description: "repeatable payload used to prove API compression on the hot issue-list response",
+    description:
+      "repeatable payload used to prove API compression on the hot issue-list response",
     status: index % 2 === 0 ? "in_progress" : "todo",
     priority: "medium",
     assigneeAgentId: index % 3 === 0 ? "agent-1" : null,
@@ -41,7 +47,11 @@ function issueListFixture(count: number) {
   }));
 }
 
-async function requestRaw(app: express.Express, path: string, headers: Record<string, string> = {}): Promise<RawResponse> {
+async function requestRaw(
+  app: express.Express,
+  path: string,
+  headers: Record<string, string> = {},
+): Promise<RawResponse> {
   const server = createServer(app);
   openServers.push(server);
 
@@ -51,24 +61,27 @@ async function requestRaw(app: express.Express, path: string, headers: Record<st
   const address = server.address() as AddressInfo;
 
   return await new Promise<RawResponse>((resolve, reject) => {
-    const req = httpRequest({
-      host: "127.0.0.1",
-      port: address.port,
-      path,
-      headers,
-    }, (res) => {
-      const chunks: Buffer[] = [];
-      res.on("data", (chunk) => {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-      });
-      res.on("end", () => {
-        resolve({
-          statusCode: res.statusCode ?? 0,
-          headers: res.headers,
-          body: Buffer.concat(chunks),
+    const req = httpRequest(
+      {
+        host: "127.0.0.1",
+        port: address.port,
+        path,
+        headers,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         });
-      });
-    });
+        res.on("end", () => {
+          resolve({
+            statusCode: res.statusCode ?? 0,
+            headers: res.headers,
+            body: Buffer.concat(chunks),
+          });
+        });
+      },
+    );
     req.on("error", reject);
     req.end();
   });
@@ -90,7 +103,7 @@ function buildApp() {
     res.end(deflateSync(body));
   });
   app.get("/api/etag", (_req, res) => {
-    res.setHeader("ETag", "\"fixture-etag\"");
+    res.setHeader("ETag", '"fixture-etag"');
     res.json(issueListFixture(500));
   });
   app.get("/api/download", (_req, res) => {
@@ -101,7 +114,7 @@ function buildApp() {
   app.get("/api/json-download", (_req, res) => {
     const chunk = JSON.stringify(issueListFixture(500));
     res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=\"issues.json\"");
+    res.setHeader("Content-Disposition", 'attachment; filename="issues.json"');
     res.write(chunk.slice(0, chunk.length / 2));
     res.end(chunk.slice(chunk.length / 2));
   });
@@ -114,7 +127,10 @@ function buildApp() {
       user: { name: "Dotta", email: "dotta@example.test" },
     });
     res.setHeader("content-type", "application/json");
-    res.setHeader("set-cookie", "workspace.session_token=abc; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax");
+    res.setHeader(
+      "set-cookie",
+      "workspace.session_token=abc; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax",
+    );
     res.writeHead(200);
     const bytes = new TextEncoder().encode(body);
     res.write(bytes.subarray(0, 16));
@@ -131,27 +147,44 @@ function buildApp() {
 
 describe("API compression middleware", () => {
   it("compresses the hot 500-item issue-list response with gzip when the client supports it", async () => {
-    const uncompressed = await requestRaw(buildApp(), "/api/companies/company-1/issues?limit=500");
-    const compressed = await requestRaw(buildApp(), "/api/companies/company-1/issues?limit=500", {
-      "accept-encoding": "gzip",
-    });
+    const uncompressed = await requestRaw(
+      buildApp(),
+      "/api/companies/company-1/issues?limit=500",
+    );
+    const compressed = await requestRaw(
+      buildApp(),
+      "/api/companies/company-1/issues?limit=500",
+      {
+        "accept-encoding": "gzip",
+      },
+    );
 
     expect(uncompressed.statusCode).toBe(200);
     expect(compressed.statusCode).toBe(200);
     expect(compressed.headers["content-encoding"]).toBe("gzip");
     expect(compressed.headers["vary"]).toContain("Accept-Encoding");
-    expect(JSON.parse(gunzipSync(compressed.body).toString("utf8"))).toHaveLength(500);
-    expect(compressed.body.byteLength).toBeLessThan(uncompressed.body.byteLength / 5);
+    expect(
+      JSON.parse(gunzipSync(compressed.body).toString("utf8")),
+    ).toHaveLength(500);
+    expect(compressed.body.byteLength).toBeLessThan(
+      uncompressed.body.byteLength / 5,
+    );
   });
 
   it("uses deflate when that is the supported content encoding", async () => {
-    const res = await requestRaw(buildApp(), "/api/companies/company-1/issues?limit=500", {
-      "accept-encoding": "deflate",
-    });
+    const res = await requestRaw(
+      buildApp(),
+      "/api/companies/company-1/issues?limit=500",
+      {
+        "accept-encoding": "deflate",
+      },
+    );
 
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-encoding"]).toBe("deflate");
-    expect(JSON.parse(inflateSync(res.body).toString("utf8"))).toHaveLength(500);
+    expect(JSON.parse(inflateSync(res.body).toString("utf8"))).toHaveLength(
+      500,
+    );
   });
 
   it("keeps small JSON responses uncompressed for compatibility", async () => {
@@ -171,7 +204,9 @@ describe("API compression middleware", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-encoding"]).toBe("deflate");
-    expect(JSON.parse(inflateSync(res.body).toString("utf8"))).toEqual({ already: "encoded" });
+    expect(JSON.parse(inflateSync(res.body).toString("utf8"))).toEqual({
+      already: "encoded",
+    });
   });
 
   it("weakens strong ETag validators on compressed JSON responses", async () => {
@@ -181,7 +216,7 @@ describe("API compression middleware", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-encoding"]).toBe("gzip");
-    expect(res.headers.etag).toBe("W/\"fixture-etag\"");
+    expect(res.headers.etag).toBe('W/"fixture-etag"');
     expect(JSON.parse(gunzipSync(res.body).toString("utf8"))).toHaveLength(500);
   });
 
@@ -201,7 +236,9 @@ describe("API compression middleware", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.headers["content-disposition"]).toBe("attachment; filename=\"issues.json\"");
+    expect(res.headers["content-disposition"]).toBe(
+      'attachment; filename="issues.json"',
+    );
     expect(res.headers["content-encoding"]).toBeUndefined();
     expect(JSON.parse(res.body.toString("utf8"))).toHaveLength(500);
   });
@@ -214,7 +251,9 @@ describe("API compression middleware", () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers["set-cookie"]).toBeDefined();
     expect(res.headers["content-encoding"]).toBeUndefined();
-    expect(JSON.parse(res.body.toString("utf8")).user.email).toBe("dotta@example.test");
+    expect(JSON.parse(res.body.toString("utf8")).user.email).toBe(
+      "dotta@example.test",
+    );
   });
 
   it("does not drop the connection for large writeHead+Uint8Array auth responses", async () => {

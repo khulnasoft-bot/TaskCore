@@ -99,7 +99,9 @@ describe("plugin UI static route", () => {
   });
 
   it("serves built UI assets publicly when no company context is requested", async () => {
-    readyPlugin(createPluginPackage("export const marker = 'static-bundle';\n"));
+    readyPlugin(
+      createPluginPackage("export const marker = 'static-bundle';\n"),
+    );
     const app = await createApp({ type: "none", source: "none" });
 
     const res = await request(app).get(`/_plugins/${pluginId}/ui/index.js`);
@@ -142,10 +144,12 @@ describe("plugin UI static route", () => {
         devUiUrl: "http://localhost:5173/",
       },
     });
-    const fetchMock = vi.fn().mockResolvedValue(new Response("hot bundle", {
-      status: 200,
-      headers: { "content-type": "application/javascript" },
-    }));
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("hot bundle", {
+        status: 200,
+        headers: { "content-type": "application/javascript" },
+      }),
+    );
     vi.stubGlobal("fetch", fetchMock);
     const app = await createApp(boardActor([companyA]));
 

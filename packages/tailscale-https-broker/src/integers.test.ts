@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { assertCanonicalPort, parseCanonicalIntegerString } from "./integers.js";
+import {
+  assertCanonicalPort,
+  parseCanonicalIntegerString,
+} from "./integers.js";
 
 describe("assertCanonicalPort", () => {
   it("accepts in-range integers", () => {
@@ -42,7 +45,9 @@ describe("parseCanonicalIntegerString", () => {
     expect(() => parseCanonicalIntegerString("٤٢٠١٠")).toThrow();
     // Fullwidth digits.
     expect(() => parseCanonicalIntegerString("４２０１０")).toThrow();
-    expect(() => parseCanonicalIntegerString(42010 as unknown as string)).toThrow();
+    expect(() =>
+      parseCanonicalIntegerString(42010 as unknown as string),
+    ).toThrow();
   });
 
   it("rejects integer overflow beyond safe range", () => {

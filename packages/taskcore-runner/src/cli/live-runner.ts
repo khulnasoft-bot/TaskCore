@@ -29,8 +29,11 @@ function parseArgs(args: string[]): CliOptions {
 }
 
 function operationRevision(session: CapabilityLiveSession): number | null {
-  const result = session.snapshot().evidence.findLast((entry) => entry.kind === "tool_result")?.data.result;
-  if (typeof result !== "object" || result === null || Array.isArray(result)) return null;
+  const result = session
+    .snapshot()
+    .evidence.findLast((entry) => entry.kind === "tool_result")?.data.result;
+  if (typeof result !== "object" || result === null || Array.isArray(result))
+    return null;
   return typeof result.stateRevision === "number" ? result.stateRevision : null;
 }
 
@@ -38,7 +41,8 @@ async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   const service = new CapabilityLiveSessionService({
     transportOptions: {
-      onDiagnostic: (message) => process.stderr.write(`[capability runnerd] ${message}\n`),
+      onDiagnostic: (message) =>
+        process.stderr.write(`[capability runnerd] ${message}\n`),
     },
   });
   let session: CapabilityLiveSession | null = null;
@@ -47,12 +51,14 @@ async function main(): Promise<void> {
       workingDirectory: options.workingDirectory,
       turnTimeoutMs: 180_000,
     });
-    const first = await session.sendMessage([
-      "Call report_progress exactly once with idempotencyKey capability-live-smoke-1",
-      "and body 'Real Codex changed mock state through ControlPlanePort.'.",
-      "After the tool returns, reply with the exact stateRevision from its typed result.",
-      "Do not call any other tool.",
-    ].join(" "));
+    const first = await session.sendMessage(
+      [
+        "Call report_progress exactly once with idempotencyKey capability-live-smoke-1",
+        "and body 'Real Codex changed mock state through ControlPlanePort.'.",
+        "After the tool returns, reply with the exact stateRevision from its typed result.",
+        "Do not call any other tool.",
+      ].join(" "),
+    );
     const providerThreadId = first.snapshot.providerThreadId;
     const firstRunnerPid = first.snapshot.process?.runnerPid ?? null;
     const revision = operationRevision(session);
@@ -70,20 +76,27 @@ async function main(): Promise<void> {
       realCodexStarted: beforeShutdown.process?.codexPid !== null,
       sameProviderThread: second.snapshot.providerThreadId === providerThreadId,
       reconnectStartedNewRunner:
-        firstRunnerPid !== null && reconnected.process?.runnerPid !== firstRunnerPid,
-      reconnectReapedOldRunner: reconnected.evidence.some((entry) =>
-        entry.kind === "process" &&
-        entry.data.action === "transport_closed" &&
-        entry.data.reason === "reconnect" &&
-        entry.data.runnerExited === true),
-      mockStateChanged: comment?.body === "Real Codex changed mock state through ControlPlanePort.",
+        firstRunnerPid !== null &&
+        reconnected.process?.runnerPid !== firstRunnerPid,
+      reconnectReapedOldRunner: reconnected.evidence.some(
+        (entry) =>
+          entry.kind === "process" &&
+          entry.data.action === "transport_closed" &&
+          entry.data.reason === "reconnect" &&
+          entry.data.runnerExited === true,
+      ),
+      mockStateChanged:
+        comment?.body ===
+        "Real Codex changed mock state through ControlPlanePort.",
       typedResultChangedResponse:
         revision !== null && first.assistantText.includes(String(revision)),
       resumedResponseUsesTypedResult:
         revision !== null && second.assistantText.includes(String(revision)),
-      noRealTaskcoreRequest: beforeShutdown.networkEvidence.realTaskcoreRequests === 0,
+      noRealTaskcoreRequest:
+        beforeShutdown.networkEvidence.realTaskcoreRequests === 0,
       noTaskcoreAuthorityInChild:
-        beforeShutdown.networkEvidence.childTaskcoreEnvironmentKeys.length === 0,
+        beforeShutdown.networkEvidence.childTaskcoreEnvironmentKeys.length ===
+        0,
       authorityCleared: afterShutdown.authority.active === false,
       runnerExited: afterShutdown.process?.runnerExited === true,
     };
@@ -98,10 +111,15 @@ async function main(): Promise<void> {
       networkEvidence: afterShutdown.networkEvidence,
       assertions,
     };
-    process.stdout.write(options.json
-      ? `${JSON.stringify(output, null, 2)}\n`
-      : `${Object.entries(assertions).map(([key, value]) => `${value ? "PASS" : "FAIL"} ${key}`).join("\n")}\n`);
-    if (Object.values(assertions).some((passed) => !passed)) process.exitCode = 1;
+    process.stdout.write(
+      options.json
+        ? `${JSON.stringify(output, null, 2)}\n`
+        : `${Object.entries(assertions)
+            .map(([key, value]) => `${value ? "PASS" : "FAIL"} ${key}`)
+            .join("\n")}\n`,
+    );
+    if (Object.values(assertions).some((passed) => !passed))
+      process.exitCode = 1;
   } finally {
     if (session !== null && session.snapshot().status !== "closed") {
       await service.shutdown(session.id, "Capability live smoke cleanup");
@@ -110,6 +128,8 @@ async function main(): Promise<void> {
 }
 
 void main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? error.message : String(error)}\n`,
+  );
   process.exitCode = 1;
 });

@@ -128,16 +128,14 @@ afterEach(async () => {
   // CI shards a final write can race the recursive rm (ENOTEMPTY on the events
   // dir), so let fs.rm retry until the writer has quiesced.
   await Promise.all(
-    tempRoots
-      .splice(0)
-      .map((root) =>
-        fs.rm(root, {
-          recursive: true,
-          force: true,
-          maxRetries: 10,
-          retryDelay: 200,
-        }),
-      ),
+    tempRoots.splice(0).map((root) =>
+      fs.rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 200,
+      }),
+    ),
   );
 });
 

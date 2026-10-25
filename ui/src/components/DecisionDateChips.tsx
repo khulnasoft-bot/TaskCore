@@ -25,13 +25,24 @@ interface DecisionDateChipsProps {
  * (`activitySince`/`activityUntil`) so the page never ships the whole feed to
  * filter on the client. "Custom" opens a from/to range picker.
  */
-export function DecisionDateChips({ value, custom, onChange }: DecisionDateChipsProps) {
+export function DecisionDateChips({
+  value,
+  custom,
+  onChange,
+}: DecisionDateChipsProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5" data-decision-date-chips>
+    <div
+      className="flex flex-wrap items-center gap-1.5"
+      data-decision-date-chips
+    >
       {ATTENTION_DATE_RANGE_OPTIONS.map(([id, label]) => (
-        <ChipButton key={id} active={value === id} onClick={() => onChange(id, custom)}>
+        <ChipButton
+          key={id}
+          active={value === id}
+          onClick={() => onChange(id, custom)}
+        >
           {label}
         </ChipButton>
       ))}
@@ -56,7 +67,12 @@ export function DecisionDateChips({ value, custom, onChange }: DecisionDateChips
               value={custom.from ?? ""}
               max={custom.to ?? undefined}
               className="rounded-sm border border-border bg-background px-2 py-1 text-xs"
-              onChange={(event) => onChange("custom", { ...custom, from: event.target.value || null })}
+              onChange={(event) =>
+                onChange("custom", {
+                  ...custom,
+                  from: event.target.value || null,
+                })
+              }
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -68,7 +84,12 @@ export function DecisionDateChips({ value, custom, onChange }: DecisionDateChips
               value={custom.to ?? ""}
               min={custom.from ?? undefined}
               className="rounded-sm border border-border bg-background px-2 py-1 text-xs"
-              onChange={(event) => onChange("custom", { ...custom, to: event.target.value || null })}
+              onChange={(event) =>
+                onChange("custom", {
+                  ...custom,
+                  to: event.target.value || null,
+                })
+              }
             />
           </div>
           <div className="flex justify-end">
@@ -120,7 +141,12 @@ function ChipButton({
     return <span className={className}>{children}</span>;
   }
   return (
-    <button type="button" className={className} onClick={onClick} aria-pressed={active}>
+    <button
+      type="button"
+      className={className}
+      onClick={onClick}
+      aria-pressed={active}
+    >
       {children}
     </button>
   );

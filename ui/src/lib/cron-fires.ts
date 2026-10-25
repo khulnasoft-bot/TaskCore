@@ -52,14 +52,16 @@ function parseField(token: string, spec: FieldSpec): number[] {
     if (slashIdx !== -1) {
       const base = part.slice(0, slashIdx);
       const step = Number.parseInt(part.slice(slashIdx + 1), 10);
-      if (!Number.isInteger(step) || step <= 0) throw new Error("Invalid cron step");
+      if (!Number.isInteger(step) || step <= 0)
+        throw new Error("Invalid cron step");
       let start = spec.min;
       let end = spec.max;
       if (base === "*") {
         // every `step` from min
       } else if (base.includes("-")) {
         const [a, b] = base.split("-").map((s) => Number.parseInt(s, 10));
-        if (!Number.isInteger(a) || !Number.isInteger(b)) throw new Error("Invalid cron range");
+        if (!Number.isInteger(a) || !Number.isInteger(b))
+          throw new Error("Invalid cron range");
         start = a;
         end = b;
       } else {
@@ -75,7 +77,8 @@ function parseField(token: string, spec: FieldSpec): number[] {
 
     if (part.includes("-")) {
       const [a, b] = part.split("-").map((s) => Number.parseInt(s, 10));
-      if (!Number.isInteger(a) || !Number.isInteger(b)) throw new Error("Invalid cron range");
+      if (!Number.isInteger(a) || !Number.isInteger(b))
+        throw new Error("Invalid cron range");
       assertBounds(a, spec);
       assertBounds(b, spec);
       if (a > b) throw new Error("Invalid cron range (start > end)");
@@ -104,11 +107,17 @@ function assertBounds(value: number, spec: FieldSpec): void {
 }
 
 function coversEntireField(values: number[], spec: FieldSpec): boolean {
-  return values.length === spec.max - spec.min + 1 && values[0] === spec.min && values.at(-1) === spec.max;
+  return (
+    values.length === spec.max - spec.min + 1 &&
+    values[0] === spec.min &&
+    values.at(-1) === spec.max
+  );
 }
 
 /** Parse a 5-field cron expression. Returns null when it can't be parsed. */
-export function parseCronExpression(expression: string | null | undefined): ParsedCron | null {
+export function parseCronExpression(
+  expression: string | null | undefined,
+): ParsedCron | null {
   if (!expression) return null;
   const tokens = expression.trim().split(/\s+/);
   if (tokens.length !== 5) return null;
@@ -153,7 +162,8 @@ function getZonedMinuteParts(date: Date, timeZone: string): ZonedParts {
     if (part.type !== "literal") map[part.type] = part.value;
   }
   const weekday = WEEKDAY_INDEX[map.weekday ?? ""];
-  if (weekday === undefined) throw new Error(`Unable to resolve weekday for ${timeZone}`);
+  if (weekday === undefined)
+    throw new Error(`Unable to resolve weekday for ${timeZone}`);
   return {
     month: Number(map.month),
     day: Number(map.day),
@@ -266,7 +276,8 @@ export function previewFirePolicies(
       at,
       disposition,
       label: DISPOSITION_LABEL[disposition],
-      note: disposition === "queued" ? null : "if the previous run is still active",
+      note:
+        disposition === "queued" ? null : "if the previous run is still active",
     };
   });
 }

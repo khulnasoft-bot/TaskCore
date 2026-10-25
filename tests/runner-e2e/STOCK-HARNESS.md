@@ -22,11 +22,11 @@ product disposition recovery still counts as actual usage. This is not a new
 
 ## Coverage contract
 
-| Change | Required deterministic evidence | Product E2E evidence |
-| --- | --- | --- |
-| SH-1: native Codex preserves vendor base instructions | Serialized start/resume requests from the TypeScript driver, recovery paths, runnerd transport, Runner Lab/live sessions, and Rust provider use additive developer instructions. | Real new native Codex hires execute the three journeys below. Task success alone cannot prove vendor base preservation. |
-| SH-2: identity-only default hire manual | Existing public agent-creation and onboarding-asset tests cover default, custom, and CEO exceptions. | The public bundle is exactly one `AGENTS.md` containing the eight-word shipped identity, checked before provider execution and again during cleanup. |
-| SH-3: reduced shared legacy task/chat defaults and resume delta | Shared prompt tests and ACPX, Codex, OpenCode, Pi, Hermes, and Cursor Cloud adapter regressions retain runtime context and exclude removed generic procedures. | Actual legacy `adapter.invoke` prompts retain fresh identity/connection guidance, omit the removed procedures, and have complete receipts for every observed run. |
+| Change                                                          | Required deterministic evidence                                                                                                                                                  | Product E2E evidence                                                                                                                                              |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SH-1: native Codex preserves vendor base instructions           | Serialized start/resume requests from the TypeScript driver, recovery paths, runnerd transport, Runner Lab/live sessions, and Rust provider use additive developer instructions. | Real new native Codex hires execute the three journeys below. Task success alone cannot prove vendor base preservation.                                           |
+| SH-2: identity-only default hire manual                         | Existing public agent-creation and onboarding-asset tests cover default, custom, and CEO exceptions.                                                                             | The public bundle is exactly one `AGENTS.md` containing the eight-word shipped identity, checked before provider execution and again during cleanup.              |
+| SH-3: reduced shared legacy task/chat defaults and resume delta | Shared prompt tests and ACPX, Codex, OpenCode, Pi, Hermes, and Cursor Cloud adapter regressions retain runtime context and exclude removed generic procedures.                   | Actual legacy `adapter.invoke` prompts retain fresh identity/connection guidance, omit the removed procedures, and have complete receipts for every observed run. |
 
 `pnpm test:e2e:runner:stock-harness` runs these credential-free prerequisites,
 including the Rust test. It writes JSON reports, the source SHA, a working-source
@@ -66,11 +66,11 @@ existing journeys with independently calibrated graders.
   `legacy-acp-codex`, `legacy-acp-claude`.
 - Native: `runner-codex`, `runner-acpx-claude`, `runner-opencode`.
 
-| Journey | Expected provider turns | Observable outcome | Cell deadline |
-| --- | --- | --- | --- |
-| `assigned-skill-explicit-invocation` | 1 | Public skill creation/pinning, an explicit skill request, and saved output containing the marker available only in the skill body. | 12 minutes |
-| `ordered-comment-continuation` | 2 | Initial report followed by three ordered public comments, including repeated wording and a changed scope; final saved report preserves the ledger and requested scope. | 12 minutes |
-| `continuity-restart` | 3 | Task-backed chat retains the requested context across a server restart and subsequent replies. | 15 minutes |
+| Journey                              | Expected provider turns | Observable outcome                                                                                                                                                     | Cell deadline |
+| ------------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `assigned-skill-explicit-invocation` | 1                       | Public skill creation/pinning, an explicit skill request, and saved output containing the marker available only in the skill body.                                     | 12 minutes    |
+| `ordered-comment-continuation`       | 2                       | Initial report followed by three ordered public comments, including repeated wording and a changed scope; final saved report preserves the ledger and requested scope. | 12 minutes    |
+| `continuity-restart`                 | 3                       | Task-backed chat retains the requested context across a server restart and subsequent replies.                                                                         | 15 minutes    |
 
 A full matrix expects 48 provider turns. Models, credentials, effort,
 permissions, assigned skills, environment, and managed secret references are

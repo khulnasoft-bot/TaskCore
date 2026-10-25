@@ -17,14 +17,29 @@ export function useSavedProviderKeys(
   envKey: string,
   enabled = true,
 ) {
-  const provider = ({ ANTHROPIC_API_KEY: "anthropic", OPENAI_API_KEY: "openai", OPENROUTER_API_KEY: "openrouter", XAI_API_KEY: "xai" } as Record<string, AiProvider>)[envKey];
+  const provider = (
+    {
+      ANTHROPIC_API_KEY: "anthropic",
+      OPENAI_API_KEY: "openai",
+      OPENROUTER_API_KEY: "openrouter",
+      XAI_API_KEY: "xai",
+    } as Record<string, AiProvider>
+  )[envKey];
   const managed = useQuery({
     queryKey: ["ai-connections", companyId],
     queryFn: () => aiConnectionsApi.list(companyId!),
     enabled: Boolean(companyId && provider) && enabled,
     retry: false,
   });
-  const managedAccounts = provider && managed.data ? savedManagedProviderAccounts(companyId!, provider, managed.data.currentUserId, managed.data.connections) : [];
+  const managedAccounts =
+    provider && managed.data
+      ? savedManagedProviderAccounts(
+          companyId!,
+          provider,
+          managed.data.currentUserId,
+          managed.data.connections,
+        )
+      : [];
   const personal = useQuery({
     queryKey: queryKeys.secrets.myUserSecrets(companyId ?? ""),
     queryFn: () => secretsApi.listMyUserSecrets(companyId!),
@@ -40,7 +55,10 @@ export function useSavedProviderKeys(
   const storedLogin = useQuery({
     // Disabled queries still return cached data. Keep other providers away
     // from the shared Claude login cache.
-    queryKey: ["claude-oauth-token-status", envKey === "ANTHROPIC_API_KEY" ? companyId : null],
+    queryKey: [
+      "claude-oauth-token-status",
+      envKey === "ANTHROPIC_API_KEY" ? companyId : null,
+    ],
     queryFn: async () => {
       try {
         return await agentsApi.getClaudeOAuthTokenStatus(companyId!);
@@ -54,18 +72,31 @@ export function useSavedProviderKeys(
   });
   return {
     storedLogin,
-    options: [...managedAccounts.filter(account => account.aiConnection?.method === "api_key"), ...savedProviderKeys(
-      companyId ?? "",
-      envKey,
-      personal.data ?? [],
-      organization.data ?? [],
-    )],
-    subscriptions: [...managedAccounts.filter(account => account.aiConnection?.method === "subscription"), ...(provider === "openai" ? savedCodexSubscriptions(
-      companyId ?? "",
-      organization.data ?? [],
-    ) : [])],
+    options: [
+      ...managedAccounts.filter(
+        (account) => account.aiConnection?.method === "api_key",
+      ),
+      ...savedProviderKeys(
+        companyId ?? "",
+        envKey,
+        personal.data ?? [],
+        organization.data ?? [],
+      ),
+    ],
+    subscriptions: [
+      ...managedAccounts.filter(
+        (account) => account.aiConnection?.method === "subscription",
+      ),
+      ...(provider === "openai"
+        ? savedCodexSubscriptions(companyId ?? "", organization.data ?? [])
+        : []),
+    ],
     // Background refreshes must not unmount an active login panel sharing this query.
-    loading: personal.isLoading || organization.isLoading || storedLogin.isLoading || managed.isLoading,
+    loading:
+      personal.isLoading ||
+      organization.isLoading ||
+      storedLogin.isLoading ||
+      managed.isLoading,
     error: personal.isError || organization.isError || managed.isError,
   };
 }

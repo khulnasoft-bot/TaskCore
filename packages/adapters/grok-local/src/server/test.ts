@@ -33,7 +33,9 @@ export interface GrokModelsProbe {
   models: string[];
 }
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -48,8 +50,15 @@ function firstNonEmptyLine(text: string): string {
   );
 }
 
-function summarizeProbeDetail(stdout: string, stderr: string, parsedError: string | null): string | null {
-  const raw = parsedError?.trim() || firstNonEmptyLine(stderr) || firstNonEmptyLine(stdout);
+function summarizeProbeDetail(
+  stdout: string,
+  stderr: string,
+  parsedError: string | null,
+): string | null {
+  const raw =
+    parsedError?.trim() ||
+    firstNonEmptyLine(stderr) ||
+    firstNonEmptyLine(stdout);
   if (!raw) return null;
   const clean = raw.replace(/\s+/g, " ").trim();
   const max = 240;
@@ -57,7 +66,8 @@ function summarizeProbeDetail(stdout: string, stderr: string, parsedError: strin
 }
 
 function normalizeEnv(input: unknown): Record<string, string> {
-  if (typeof input !== "object" || input === null || Array.isArray(input)) return {};
+  if (typeof input !== "object" || input === null || Array.isArray(input))
+    return {};
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
     if (typeof value === "string") env[key] = value;
@@ -115,10 +125,15 @@ export async function testEnvironment(
   const command = asString(config.command, "grok");
   const target = ctx.executionTarget ?? null;
   const targetIsRemote = target?.kind === "remote";
-  const targetIsSandbox = target?.kind === "remote" && target.transport === "sandbox";
-  const cwd = resolveAdapterExecutionTargetCwd(target, asString(config.cwd, ""), process.cwd());
+  const targetIsSandbox =
+    target?.kind === "remote" && target.transport === "sandbox";
+  const cwd = resolveAdapterExecutionTargetCwd(
+    target,
+    asString(config.cwd, ""),
+    process.cwd(),
+  );
   const targetLabel = targetIsRemote
-    ? ctx.environmentName ?? describeAdapterExecutionTarget(target)
+    ? (ctx.environmentName ?? describeAdapterExecutionTarget(target))
     : null;
   const runId = `grok-envtest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -168,15 +183,26 @@ export async function testEnvironment(
           path.join(os.tmpdir(), `taskcore-grok-envtest-${runId}-`),
         );
         const prepared = await prepareAdapterExecutionTargetRuntime({
-          runId, target, adapterKey: "grok",
+          runId,
+          target,
+          adapterKey: "grok",
           workspaceLocalDir: runtimeWorkspaceLocalDir,
           workspaceRemoteDir: cwd,
-          assets: [{ key: "home", localDir: stagedHome, followSymlinks: true,
-            restore: async ({ assetDir, readFile }) => { await copyBackGrokAuth({
-              readSandboxAuth: () => readFile(path.posix.join(assetDir, "auth.json")),
-              hostHomeDir: hostHome, log: () => {},
-            }); },
-          }],
+          assets: [
+            {
+              key: "home",
+              localDir: stagedHome,
+              followSymlinks: true,
+              restore: async ({ assetDir, readFile }) => {
+                await copyBackGrokAuth({
+                  readSandboxAuth: () =>
+                    readFile(path.posix.join(assetDir, "auth.json")),
+                  hostHomeDir: hostHome,
+                  log: () => {},
+                });
+              },
+            },
+          ],
         });
         env.GROK_HOME = prepared.assetDirs.home;
         restore = () => prepared.restoreWorkspace(() => {});
@@ -186,220 +212,268 @@ export async function testEnvironment(
         checks.push({
           code: "grok_environment_unprepared",
           level: "error",
-          message: err instanceof Error ? err.message : "Could not stage the managed account into the environment",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Could not stage the managed account into the environment",
         });
       }
     }
-  const runtimeEnv = ensurePathInEnv({ ...process.env, ...env });
+    const runtimeEnv = ensurePathInEnv({ ...process.env, ...env });
 
-  try {
-    await ensureAdapterExecutionTargetCommandResolvable(command, target, cwd, runtimeEnv);
-    checks.push({
-      code: "grok_command_resolvable",
-      level: "info",
-      message: `Command is executable: ${command}`,
-    });
-  } catch (err) {
-    checks.push({
-      code: "grok_command_unresolvable",
-      level: "error",
-      message: err instanceof Error ? err.message : "Command is not executable",
-      detail: command,
-    });
-  }
-
-  const canRunProbe =
-    checks.every((check) =>
-      check.code !== "grok_cwd_invalid" &&
-      check.code !== "grok_command_unresolvable" &&
-      check.code !== "grok_environment_unprepared");
-
-  const configuredModel = asString(config.model, DEFAULT_GROK_LOCAL_MODEL).trim();
-
-  if (canRunProbe) {
-    const modelsProbe = await runAdapterExecutionTargetProcess(
-      runId,
-      target,
-      command,
-      ["models"],
-      {
+    try {
+      await ensureAdapterExecutionTargetCommandResolvable(
+        command,
+        target,
         cwd,
-        env,
-        timeoutSec: Math.max(1, asNumber(config.helloProbeTimeoutSec, 45)),
-        graceSec: 5,
-        onLog: async () => {},
-      },
+        runtimeEnv,
+      );
+      checks.push({
+        code: "grok_command_resolvable",
+        level: "info",
+        message: `Command is executable: ${command}`,
+      });
+    } catch (err) {
+      checks.push({
+        code: "grok_command_unresolvable",
+        level: "error",
+        message:
+          err instanceof Error ? err.message : "Command is not executable",
+        detail: command,
+      });
+    }
+
+    const canRunProbe = checks.every(
+      (check) =>
+        check.code !== "grok_cwd_invalid" &&
+        check.code !== "grok_command_unresolvable" &&
+        check.code !== "grok_environment_unprepared",
     );
 
-    const probeOutput = `${modelsProbe.stdout}\n${modelsProbe.stderr}`;
-    const parsedModels = parseGrokModelsOutput(modelsProbe.stdout);
-    const authRequired = GROK_AUTH_REQUIRED_RE.test(probeOutput);
+    const configuredModel = asString(
+      config.model,
+      DEFAULT_GROK_LOCAL_MODEL,
+    ).trim();
 
-    if (modelsProbe.timedOut) {
-      checks.push({
-        code: "grok_models_probe_timed_out",
-        level: "warn",
-        message: "`grok models` timed out.",
-        hint: "Retry the probe. If this persists, run `grok models` manually from the target environment.",
-      });
-    } else if ((modelsProbe.exitCode ?? 1) !== 0) {
-      checks.push({
-        code: authRequired ? "grok_auth_required" : "grok_models_probe_failed",
-        level: authRequired ? "warn" : "error",
-        message: authRequired
-          ? "Grok CLI is not authenticated."
-          : "`grok models` failed.",
-        detail: summarizeProbeDetail(modelsProbe.stdout, modelsProbe.stderr, null),
-        hint: authRequired ? "Run `grok login` on the target host, then retry." : undefined,
-      });
-      if (authRequired && targetIsSandbox) {
-        // Emit the neutral canonical check so the user interface can decide
-        // login eligibility from a stable code. The user interface does not
-        // read the message text or the top-level status.
+    if (canRunProbe) {
+      const modelsProbe = await runAdapterExecutionTargetProcess(
+        runId,
+        target,
+        command,
+        ["models"],
+        {
+          cwd,
+          env,
+          timeoutSec: Math.max(1, asNumber(config.helloProbeTimeoutSec, 45)),
+          graceSec: 5,
+          onLog: async () => {},
+        },
+      );
+
+      const probeOutput = `${modelsProbe.stdout}\n${modelsProbe.stderr}`;
+      const parsedModels = parseGrokModelsOutput(modelsProbe.stdout);
+      const authRequired = GROK_AUTH_REQUIRED_RE.test(probeOutput);
+
+      if (modelsProbe.timedOut) {
         checks.push({
-          code: ADAPTER_AUTH_MISSING_CHECK_CODE,
+          code: "grok_models_probe_timed_out",
           level: "warn",
-          message: "This environment has no ready authentication for this adapter.",
-          detail: summarizeProbeDetail(modelsProbe.stdout, modelsProbe.stderr, null),
-          hint: "Provide credentials for this adapter, or start login in the environment.",
+          message: "`grok models` timed out.",
+          hint: "Retry the probe. If this persists, run `grok models` manually from the target environment.",
         });
-      }
-    } else {
-      checks.push({
-        code: "grok_models_probe_passed",
-        level: "info",
-        message: parsedModels.authenticated
-          ? "Grok CLI authentication is configured."
-          : "`grok models` completed.",
-        detail: parsedModels.defaultModel ? `Default model: ${parsedModels.defaultModel}` : undefined,
-      });
-      if (parsedModels.models.length > 0) {
+      } else if ((modelsProbe.exitCode ?? 1) !== 0) {
         checks.push({
-          code: "grok_models_discovered",
+          code: authRequired
+            ? "grok_auth_required"
+            : "grok_models_probe_failed",
+          level: authRequired ? "warn" : "error",
+          message: authRequired
+            ? "Grok CLI is not authenticated."
+            : "`grok models` failed.",
+          detail: summarizeProbeDetail(
+            modelsProbe.stdout,
+            modelsProbe.stderr,
+            null,
+          ),
+          hint: authRequired
+            ? "Run `grok login` on the target host, then retry."
+            : undefined,
+        });
+        if (authRequired && targetIsSandbox) {
+          // Emit the neutral canonical check so the user interface can decide
+          // login eligibility from a stable code. The user interface does not
+          // read the message text or the top-level status.
+          checks.push({
+            code: ADAPTER_AUTH_MISSING_CHECK_CODE,
+            level: "warn",
+            message:
+              "This environment has no ready authentication for this adapter.",
+            detail: summarizeProbeDetail(
+              modelsProbe.stdout,
+              modelsProbe.stderr,
+              null,
+            ),
+            hint: "Provide credentials for this adapter, or start login in the environment.",
+          });
+        }
+      } else {
+        checks.push({
+          code: "grok_models_probe_passed",
           level: "info",
-          message: `Discovered ${parsedModels.models.length} Grok model(s).`,
+          message: parsedModels.authenticated
+            ? "Grok CLI authentication is configured."
+            : "`grok models` completed.",
+          detail: parsedModels.defaultModel
+            ? `Default model: ${parsedModels.defaultModel}`
+            : undefined,
+        });
+        if (parsedModels.models.length > 0) {
+          checks.push({
+            code: "grok_models_discovered",
+            level: "info",
+            message: `Discovered ${parsedModels.models.length} Grok model(s).`,
+          });
+        } else {
+          checks.push({
+            code: "grok_models_empty",
+            level: "warn",
+            message: "Grok returned no available models.",
+            hint: "Run `grok models` manually and verify the account has access to a model.",
+          });
+        }
+        if (configuredModel) {
+          // The default model id is a sentinel meaning "let the Grok CLI pick its
+          // own default" — execute.ts only passes `--model` when the value differs
+          // from it, so the sentinel is never sent to grok and must not be checked
+          // against the discovered list (real grok never lists "grok-build", which
+          // otherwise produced a spurious "not found" warning on every probe).
+          const usesCliDefault = configuredModel === DEFAULT_GROK_LOCAL_MODEL;
+          const available =
+            usesCliDefault || parsedModels.models.includes(configuredModel);
+          checks.push({
+            code: available ? "grok_model_configured" : "grok_model_not_found",
+            level: available ? "info" : "warn",
+            message: usesCliDefault
+              ? `Using the Grok CLI's default model${parsedModels.defaultModel ? ` (${parsedModels.defaultModel})` : ""}.`
+              : available
+                ? `Configured model: ${configuredModel}`
+                : `Configured model "${configuredModel}" not found in available models.`,
+            hint: available
+              ? undefined
+              : "Run `grok models` and choose an available model id.",
+          });
+        }
+      }
+    }
+
+    if (canRunProbe) {
+      const probeArgs = [
+        "--output-format",
+        "streaming-json",
+        "--always-approve",
+        "--permission-mode",
+        "dontAsk",
+        "--disable-web-search",
+      ];
+      if (configuredModel && configuredModel !== DEFAULT_GROK_LOCAL_MODEL) {
+        probeArgs.push("--model", configuredModel);
+      }
+      probeArgs.push("--single", "Respond with exactly hello.");
+
+      const helloProbe = await runAdapterExecutionTargetProcess(
+        runId,
+        target,
+        command,
+        probeArgs,
+        {
+          cwd,
+          env,
+          timeoutSec: Math.max(1, asNumber(config.helloProbeTimeoutSec, 45)),
+          graceSec: 5,
+          onLog: async () => {},
+        },
+      );
+      const parsed = parseGrokJsonl(helloProbe.stdout);
+      const detail = summarizeProbeDetail(
+        helloProbe.stdout,
+        helloProbe.stderr,
+        parsed.errorMessage,
+      );
+      const authRequired = GROK_AUTH_REQUIRED_RE.test(
+        `${helloProbe.stdout}\n${helloProbe.stderr}`,
+      );
+
+      if (helloProbe.timedOut) {
+        checks.push({
+          code: "grok_hello_probe_timed_out",
+          level: "warn",
+          message: "Grok hello probe timed out.",
+          hint: "Retry the probe. If this persists, verify Grok can run a simple `--single` prompt manually.",
+        });
+      } else if ((helloProbe.exitCode ?? 1) !== 0) {
+        checks.push({
+          code: authRequired
+            ? "grok_hello_probe_auth_required"
+            : "grok_hello_probe_failed",
+          level: authRequired ? "warn" : "error",
+          message: authRequired
+            ? "Grok CLI could not answer the hello probe because authentication is missing."
+            : "Grok hello probe failed.",
+          ...(detail ? { detail } : {}),
+          hint: authRequired
+            ? "Run `grok login` on the target host, then retry."
+            : undefined,
+        });
+        if (authRequired && targetIsSandbox) {
+          // Emit the neutral canonical check so the user interface can decide
+          // login eligibility from a stable code. The user interface does not
+          // read the message text or the top-level status.
+          checks.push({
+            code: ADAPTER_AUTH_MISSING_CHECK_CODE,
+            level: "warn",
+            message:
+              "This environment has no ready authentication for this adapter.",
+            ...(detail ? { detail } : {}),
+            hint: "Provide credentials for this adapter, or start login in the environment.",
+          });
+        }
+      } else if (/\bhello\b/i.test(parsed.summary)) {
+        checks.push({
+          code: "grok_hello_probe_passed",
+          level: "info",
+          message: "Grok hello probe succeeded.",
         });
       } else {
         checks.push({
-          code: "grok_models_empty",
+          code: "grok_hello_probe_unexpected_output",
           level: "warn",
-          message: "Grok returned no available models.",
-          hint: "Run `grok models` manually and verify the account has access to a model.",
-        });
-      }
-      if (configuredModel) {
-        // The default model id is a sentinel meaning "let the Grok CLI pick its
-        // own default" — execute.ts only passes `--model` when the value differs
-        // from it, so the sentinel is never sent to grok and must not be checked
-        // against the discovered list (real grok never lists "grok-build", which
-        // otherwise produced a spurious "not found" warning on every probe).
-        const usesCliDefault = configuredModel === DEFAULT_GROK_LOCAL_MODEL;
-        const available = usesCliDefault || parsedModels.models.includes(configuredModel);
-        checks.push({
-          code: available ? "grok_model_configured" : "grok_model_not_found",
-          level: available ? "info" : "warn",
-          message: usesCliDefault
-            ? `Using the Grok CLI's default model${parsedModels.defaultModel ? ` (${parsedModels.defaultModel})` : ""}.`
-            : available
-              ? `Configured model: ${configuredModel}`
-              : `Configured model "${configuredModel}" not found in available models.`,
-          hint: available ? undefined : "Run `grok models` and choose an available model id.",
-        });
-      }
-    }
-  }
-
-  if (canRunProbe) {
-    const probeArgs = [
-      "--output-format",
-      "streaming-json",
-      "--always-approve",
-      "--permission-mode",
-      "dontAsk",
-      "--disable-web-search",
-    ];
-    if (configuredModel && configuredModel !== DEFAULT_GROK_LOCAL_MODEL) {
-      probeArgs.push("--model", configuredModel);
-    }
-    probeArgs.push("--single", "Respond with exactly hello.");
-
-    const helloProbe = await runAdapterExecutionTargetProcess(
-      runId,
-      target,
-      command,
-      probeArgs,
-      {
-        cwd,
-        env,
-        timeoutSec: Math.max(1, asNumber(config.helloProbeTimeoutSec, 45)),
-        graceSec: 5,
-        onLog: async () => {},
-      },
-    );
-    const parsed = parseGrokJsonl(helloProbe.stdout);
-    const detail = summarizeProbeDetail(helloProbe.stdout, helloProbe.stderr, parsed.errorMessage);
-    const authRequired = GROK_AUTH_REQUIRED_RE.test(`${helloProbe.stdout}\n${helloProbe.stderr}`);
-
-    if (helloProbe.timedOut) {
-      checks.push({
-        code: "grok_hello_probe_timed_out",
-        level: "warn",
-        message: "Grok hello probe timed out.",
-        hint: "Retry the probe. If this persists, verify Grok can run a simple `--single` prompt manually.",
-      });
-    } else if ((helloProbe.exitCode ?? 1) !== 0) {
-      checks.push({
-        code: authRequired ? "grok_hello_probe_auth_required" : "grok_hello_probe_failed",
-        level: authRequired ? "warn" : "error",
-        message: authRequired
-          ? "Grok CLI could not answer the hello probe because authentication is missing."
-          : "Grok hello probe failed.",
-        ...(detail ? { detail } : {}),
-        hint: authRequired ? "Run `grok login` on the target host, then retry." : undefined,
-      });
-      if (authRequired && targetIsSandbox) {
-        // Emit the neutral canonical check so the user interface can decide
-        // login eligibility from a stable code. The user interface does not
-        // read the message text or the top-level status.
-        checks.push({
-          code: ADAPTER_AUTH_MISSING_CHECK_CODE,
-          level: "warn",
-          message: "This environment has no ready authentication for this adapter.",
+          message: "Grok hello probe succeeded but returned unexpected output.",
           ...(detail ? { detail } : {}),
-          hint: "Provide credentials for this adapter, or start login in the environment.",
         });
       }
-    } else if (/\bhello\b/i.test(parsed.summary)) {
-      checks.push({
-        code: "grok_hello_probe_passed",
-        level: "info",
-        message: "Grok hello probe succeeded.",
-      });
-    } else {
-      checks.push({
-        code: "grok_hello_probe_unexpected_output",
-        level: "warn",
-        message: "Grok hello probe succeeded but returned unexpected output.",
-        ...(detail ? { detail } : {}),
-      });
     }
-  }
 
-  return {
-    adapterType: "grok_local",
-    status: summarizeStatus(checks),
-    checks,
-    testedAt: new Date().toISOString(),
-  };
+    return {
+      adapterType: "grok_local",
+      status: summarizeStatus(checks),
+      checks,
+      testedAt: new Date().toISOString(),
+    };
   } finally {
-    try { await restore?.(); } finally {
+    try {
+      await restore?.();
+    } finally {
       // Both temporary directories are removed even when one removal fails,
       // and neither failure turns an answered environment test into a thrown
       // error: these are best-effort temp directories, and the caller asked
       // for checks.
       await Promise.allSettled([
-        stagedHome ? rm(stagedHome, { recursive: true, force: true }) : undefined,
-        runtimeWorkspaceLocalDir ? rm(runtimeWorkspaceLocalDir, { recursive: true, force: true }) : undefined,
+        stagedHome
+          ? rm(stagedHome, { recursive: true, force: true })
+          : undefined,
+        runtimeWorkspaceLocalDir
+          ? rm(runtimeWorkspaceLocalDir, { recursive: true, force: true })
+          : undefined,
       ]);
     }
   }

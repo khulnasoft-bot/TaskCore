@@ -1,4 +1,10 @@
-import { AlertTriangle, ExternalLink, Loader2, Lock, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  ExternalLink,
+  Loader2,
+  Lock,
+  RefreshCw,
+} from "lucide-react";
 import type { PipelineCaseLiveness } from "@taskcore/shared";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/lib/router";
@@ -101,12 +107,18 @@ export function PipelineLivenessBanner({
       )}
     >
       <div className="flex min-w-0 gap-3">
-        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", palette.icon)} aria-hidden="true" />
+        <Icon
+          className={cn("mt-0.5 h-4 w-4 shrink-0", palette.icon)}
+          aria-hidden="true"
+        />
         <div className="min-w-0 space-y-1">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             {view.tone === "retry" ? (
               <span
-                className={cn("h-1.5 w-1.5 animate-pulse rounded-full", palette.pulse)}
+                className={cn(
+                  "h-1.5 w-1.5 animate-pulse rounded-full",
+                  palette.pulse,
+                )}
                 aria-hidden="true"
               />
             ) : null}
@@ -126,8 +138,13 @@ export function PipelineLivenessBanner({
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
               {view.blockerLink ? (
                 <Link
-                  to={createIssueDetailPath(view.blockerLink.identifier ?? view.blockerLink.issueId)}
-                  className={cn("inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline", palette.link)}
+                  to={createIssueDetailPath(
+                    view.blockerLink.identifier ?? view.blockerLink.issueId,
+                  )}
+                  className={cn(
+                    "inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline",
+                    palette.link,
+                  )}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   {blockerLinkLabel(view.blockerLink)}
@@ -136,8 +153,14 @@ export function PipelineLivenessBanner({
               ) : null}
               {view.automationLink ? (
                 <Link
-                  to={createIssueDetailPath(view.automationLink.identifier ?? view.automationLink.issueId)}
-                  className={cn("inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline", palette.link)}
+                  to={createIssueDetailPath(
+                    view.automationLink.identifier ??
+                      view.automationLink.issueId,
+                  )}
+                  className={cn(
+                    "inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline",
+                    palette.link,
+                  )}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   {automationLinkLabel(view.automationLink)}

@@ -3,11 +3,15 @@ import { parseBuildVersion, readBuildVersion } from "../build-version.js";
 
 describe("parseBuildVersion", () => {
   it("trims a stamped git describe string", () => {
-    expect(parseBuildVersion("  v2026.722.0-15-g4c55f0d\n")).toBe("v2026.722.0-15-g4c55f0d");
+    expect(parseBuildVersion("  v2026.722.0-15-g4c55f0d\n")).toBe(
+      "v2026.722.0-15-g4c55f0d",
+    );
   });
 
   it("accepts an already-resolved version verbatim", () => {
-    expect(parseBuildVersion("2026.725.0-canary.2")).toBe("2026.725.0-canary.2");
+    expect(parseBuildVersion("2026.725.0-canary.2")).toBe(
+      "2026.725.0-canary.2",
+    );
   });
 
   it("rejects empty and whitespace-bearing values", () => {

@@ -99,7 +99,9 @@ describe("filterZombieCoalesceTarget", () => {
     const completedRun = { status: "completed", id: "done-1" };
     const emptyTracked = new Map<string, unknown>();
 
-    expect(filterZombieCoalesceTarget(completedRun, emptyTracked)).toBe(completedRun);
+    expect(filterZombieCoalesceTarget(completedRun, emptyTracked)).toBe(
+      completedRun,
+    );
   });
 
   // Regression guard: after server restart, runningProcesses is empty.

@@ -1,10 +1,23 @@
 export const SMOKE_RUN_TRIGGERS = ["manual", "routine", "ci"] as const;
 export type SmokeRunTrigger = (typeof SMOKE_RUN_TRIGGERS)[number];
 
-export const SMOKE_RUN_STATUSES = ["running", "passed", "failed", "cancelled"] as const;
+export const SMOKE_RUN_STATUSES = [
+  "running",
+  "passed",
+  "failed",
+  "cancelled",
+] as const;
 export type SmokeRunStatus = (typeof SMOKE_RUN_STATUSES)[number];
 
-export const SMOKE_RUN_STEP_PATHS = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"] as const;
+export const SMOKE_RUN_STEP_PATHS = [
+  "P1",
+  "P2",
+  "P3",
+  "P4",
+  "P5",
+  "P6",
+  "P7",
+] as const;
 export type SmokeRunStepPath = (typeof SMOKE_RUN_STEP_PATHS)[number];
 
 export const SMOKE_RUN_STEP_STATUSES = ["pass", "fail", "skipped"] as const;

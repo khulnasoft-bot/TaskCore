@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { isChromelessDisplayMode } from "./pwa-display-mode";
 
 function matchMode(activeMode: string | null) {
-  return (query: string) => ({ matches: query === `(display-mode: ${activeMode})` });
+  return (query: string) => ({
+    matches: query === `(display-mode: ${activeMode})`,
+  });
 }
 
 describe("isChromelessDisplayMode", () => {
@@ -15,7 +17,9 @@ describe("isChromelessDisplayMode", () => {
   });
 
   it("detects window-controls-overlay display mode from media queries", () => {
-    expect(isChromelessDisplayMode(matchMode("window-controls-overlay"), false)).toBe(true);
+    expect(
+      isChromelessDisplayMode(matchMode("window-controls-overlay"), false),
+    ).toBe(true);
   });
 
   it("detects iOS home-screen standalone launches", () => {

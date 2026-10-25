@@ -18,7 +18,9 @@ describe("isCloudManagedInstance", () => {
     ];
 
     for (const env of cases) {
-      const priorTokenFloor = Boolean(env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN?.trim());
+      const priorTokenFloor = Boolean(
+        env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN?.trim(),
+      );
       const priorManagedConfigFloor = env.TASKCORE_MANAGED_CONFIG !== undefined;
       const canonicalFloor = isCloudManagedInstance(env);
 
@@ -29,24 +31,30 @@ describe("isCloudManagedInstance", () => {
   });
 
   it("does not treat a blank tenant token alone as a managed signal", () => {
-    expect(isCloudManagedInstance({ TASKCORE_CLOUD_TENANT_SERVER_TOKEN: "   " })).toBe(false);
+    expect(
+      isCloudManagedInstance({ TASKCORE_CLOUD_TENANT_SERVER_TOKEN: "   " }),
+    ).toBe(false);
   });
 });
 
 describe("getCloudStackContext", () => {
   it("returns null outside Taskcore Cloud even when stray stack metadata exists", () => {
-    expect(getCloudStackContext({ TASKCORE_STACK_SLUG: "stray-stack" })).toBeNull();
+    expect(
+      getCloudStackContext({ TASKCORE_STACK_SLUG: "stray-stack" }),
+    ).toBeNull();
   });
 
   it("returns normalized provisioner metadata for cloud instances", () => {
-    expect(getCloudStackContext({
-      TASKCORE_CLOUD_TENANT_SERVER_TOKEN: "tenant-token",
-      TASKCORE_CLOUD_STACK_ID: " stack-1 ",
-      TASKCORE_STACK_SLUG: " acme ",
-      TASKCORE_CLOUD_ACCOUNT_GROUP_ID: " account-group-1 ",
-      TASKCORE_PRIMARY_HOST: " acme.taskcore.app ",
-      TASKCORE_CLOUD_API_ORIGIN: " https://app.taskcore.app ",
-    })).toEqual({
+    expect(
+      getCloudStackContext({
+        TASKCORE_CLOUD_TENANT_SERVER_TOKEN: "tenant-token",
+        TASKCORE_CLOUD_STACK_ID: " stack-1 ",
+        TASKCORE_STACK_SLUG: " acme ",
+        TASKCORE_CLOUD_ACCOUNT_GROUP_ID: " account-group-1 ",
+        TASKCORE_PRIMARY_HOST: " acme.taskcore.app ",
+        TASKCORE_CLOUD_API_ORIGIN: " https://app.taskcore.app ",
+      }),
+    ).toEqual({
       stackId: "stack-1",
       stackSlug: "acme",
       accountGroupId: "account-group-1",
@@ -56,7 +64,9 @@ describe("getCloudStackContext", () => {
   });
 
   it("represents missing managed metadata explicitly without failing health checks", () => {
-    expect(getCloudStackContext({ TASKCORE_MANAGED_CONFIG: "managed-document" })).toEqual({
+    expect(
+      getCloudStackContext({ TASKCORE_MANAGED_CONFIG: "managed-document" }),
+    ).toEqual({
       stackId: null,
       stackSlug: null,
       accountGroupId: null,

@@ -8,7 +8,8 @@ import type { PipelineCaseLiveness } from "@taskcore/shared";
  * - `retry`      → indigo, "blocker resolved, ready to retry"
  * - `attention`  → orange, "automation failed / no action path, needs a nudge"
  */
-export type LivenessBannerTone = "blocked" | "permission" | "retry" | "attention";
+export type LivenessBannerTone =
+  "blocked" | "permission" | "retry" | "attention";
 
 export type LivenessRetryKind = "automation" | "stage" | null;
 
@@ -57,7 +58,9 @@ const NO_ACTION_PATH_BODY =
  * preflight blocks on today. The fingerprint encodes it as the final two
  * colon-separated segments (`...:pipelines:write`).
  */
-function permissionKeyFromFingerprint(fingerprint: string | null | undefined): string | null {
+function permissionKeyFromFingerprint(
+  fingerprint: string | null | undefined,
+): string | null {
   if (!fingerprint) return null;
   const parts = fingerprint.split(":");
   if (parts.length < 2) return null;
@@ -65,7 +68,9 @@ function permissionKeyFromFingerprint(fingerprint: string | null | undefined): s
   return key.includes(":") ? key : null;
 }
 
-function blockerLinkFromLiveness(liveness: PipelineCaseLiveness): LivenessBannerLink | null {
+function blockerLinkFromLiveness(
+  liveness: PipelineCaseLiveness,
+): LivenessBannerLink | null {
   const blocker = liveness.blocker;
   if (blocker?.issueId) {
     return { issueId: blocker.issueId, title: blocker.title ?? null };
@@ -73,10 +78,16 @@ function blockerLinkFromLiveness(liveness: PipelineCaseLiveness): LivenessBanner
   return null;
 }
 
-function automationLinkFromLiveness(liveness: PipelineCaseLiveness): LivenessBannerLink | null {
+function automationLinkFromLiveness(
+  liveness: PipelineCaseLiveness,
+): LivenessBannerLink | null {
   const issue = liveness.issue;
   if (issue?.id) {
-    return { issueId: issue.id, identifier: issue.identifier, title: issue.title };
+    return {
+      issueId: issue.id,
+      identifier: issue.identifier,
+      title: issue.title,
+    };
   }
   return null;
 }
@@ -140,7 +151,9 @@ export function derivePipelineLivenessBanner(
         body: liveness.message,
         blockerLink: null,
         automationLink: automationLinkFromLiveness(liveness),
-        permissionKey: permissionKeyFromFingerprint(liveness.automation?.fingerprint) ?? "pipelines:write",
+        permissionKey:
+          permissionKeyFromFingerprint(liveness.automation?.fingerprint) ??
+          "pipelines:write",
         showRetry: false,
         retryKind: null,
         retryLabel: "",
@@ -157,7 +170,9 @@ export function derivePipelineLivenessBanner(
       return {
         reason: liveness.reason,
         tone: recovered ? "retry" : "attention",
-        title: recovered ? "Blocker resolved — ready to retry" : "Automation failed",
+        title: recovered
+          ? "Blocker resolved — ready to retry"
+          : "Automation failed",
         body: liveness.message,
         blockerLink: null,
         automationLink: automationLinkFromLiveness(liveness),

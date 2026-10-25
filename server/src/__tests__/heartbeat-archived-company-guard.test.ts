@@ -17,7 +17,9 @@ import {
 import { heartbeatService } from "../services/heartbeat.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -27,10 +29,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("heartbeat archived-company guard", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("heartbeat-archived-company-guard-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "heartbeat-archived-company-guard-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -217,7 +223,9 @@ describeEmbeddedPostgres("heartbeat archived-company guard", () => {
     expect(row?.monitorWakeRequestedAt).toBeNull();
     expect(row?.monitorLastTriggeredAt).toBeNull();
     expect(row?.monitorAttemptCount).toBe(0);
-    expect(row?.monitorNextCheckAt?.getTime()).toBe(monitorScheduledAt.getTime());
+    expect(row?.monitorNextCheckAt?.getTime()).toBe(
+      monitorScheduledAt.getTime(),
+    );
   });
 
   it("does not resume queued runs for archived companies", async () => {
@@ -247,12 +255,14 @@ describeEmbeddedPostgres("heartbeat archived-company guard", () => {
 
     const heartbeat = heartbeatService(db);
 
-    await expect(heartbeat.wakeup(agentId, {
-      source: "on_demand",
-      triggerDetail: "manual",
-      requestedByActorType: "user",
-      requestedByActorId: "board-user",
-    })).rejects.toMatchObject({
+    await expect(
+      heartbeat.wakeup(agentId, {
+        source: "on_demand",
+        triggerDetail: "manual",
+        requestedByActorType: "user",
+        requestedByActorId: "board-user",
+      }),
+    ).rejects.toMatchObject({
       status: 409,
       details: { status: "archived" },
     });
@@ -269,12 +279,14 @@ describeEmbeddedPostgres("heartbeat archived-company guard", () => {
 
     const heartbeat = heartbeatService(db);
 
-    await expect(heartbeat.wakeup(childId, {
-      source: "on_demand",
-      triggerDetail: "manual",
-      requestedByActorType: "user",
-      requestedByActorId: "board-user",
-    })).rejects.toMatchObject({
+    await expect(
+      heartbeat.wakeup(childId, {
+        source: "on_demand",
+        triggerDetail: "manual",
+        requestedByActorType: "user",
+        requestedByActorId: "board-user",
+      }),
+    ).rejects.toMatchObject({
       status: 409,
       details: {
         reason: "manager_terminated",

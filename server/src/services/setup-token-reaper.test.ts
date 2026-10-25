@@ -14,13 +14,19 @@ const NOW = 5_000;
 // already consumed.
 function createMemoryStore() {
   const rows = new Map<string, SetupTokenCleanupRecord>();
-  const matches = (row: SetupTokenCleanupRecord, identity: SetupTokenCleanupIdentity) =>
+  const matches = (
+    row: SetupTokenCleanupRecord,
+    identity: SetupTokenCleanupIdentity,
+  ) =>
     row.companyId === identity.companyId &&
     row.ownerUserId === identity.ownerUserId &&
     row.adapterType === identity.adapterType;
   return {
     rows,
-    seed(record: Partial<SetupTokenCleanupRecord> & Pick<SetupTokenCleanupRecord, "sessionId" | "leaseId">) {
+    seed(
+      record: Partial<SetupTokenCleanupRecord> &
+        Pick<SetupTokenCleanupRecord, "sessionId" | "leaseId">,
+    ) {
       const row: SetupTokenCleanupRecord = {
         sessionId: record.sessionId,
         companyId: record.companyId ?? "company-1",
@@ -37,7 +43,10 @@ function createMemoryStore() {
     },
     async listReapable(now: number): Promise<SetupTokenCleanupRecord[]> {
       return [...rows.values()].filter(
-        (row) => isTerminalSessionState(row.state) || row.deadline <= now || row.boundAt !== null,
+        (row) =>
+          isTerminalSessionState(row.state) ||
+          row.deadline <= now ||
+          row.boundAt !== null,
       );
     },
     async remove(identity: SetupTokenCleanupIdentity): Promise<void> {
@@ -66,7 +75,12 @@ describe("setup-token reaper", () => {
   it("releases the lease and removes the record for a reapable session", async () => {
     // A prior process crashed with a live record and a lease.
     const store = createMemoryStore();
-    store.seed({ sessionId: "orphan-1", leaseId: "lease-orphan", state: "awaiting_code", deadline: 1_000 });
+    store.seed({
+      sessionId: "orphan-1",
+      leaseId: "lease-orphan",
+      state: "awaiting_code",
+      deadline: 1_000,
+    });
     const leases = createFakeLeases();
     const reaper = createSetupTokenReaper({ store, leases, now: () => NOW });
 
@@ -100,7 +114,11 @@ describe("setup-token reaper", () => {
 
   it("keeps the record when the release fails, then clears it on the next sweep", async () => {
     const store = createMemoryStore();
-    store.seed({ sessionId: "orphan-2", leaseId: "lease-orphan-2", state: "failed" });
+    store.seed({
+      sessionId: "orphan-2",
+      leaseId: "lease-orphan-2",
+      state: "failed",
+    });
     let attempt = 0;
     const leases = createFakeLeases({
       releaseImpl: async () => {
@@ -120,16 +138,29 @@ describe("setup-token reaper", () => {
     const second = await reaper.sweep();
     expect(second.released).toBe(1);
     expect(second.failed).toBe(0);
-    expect(leases.releaseByIdCalls).toEqual(["lease-orphan-2", "lease-orphan-2"]);
+    expect(leases.releaseByIdCalls).toEqual([
+      "lease-orphan-2",
+      "lease-orphan-2",
+    ]);
     expect(store.rows.size).toBe(0);
   });
 
   it("reaps every reapable record in one sweep and stays idempotent on the next", async () => {
     const store = createMemoryStore();
     store.seed({ sessionId: "orphan-a", leaseId: "lease-a", state: "failed" });
-    store.seed({ sessionId: "orphan-b", leaseId: "lease-b", state: "cancelled" });
+    store.seed({
+      sessionId: "orphan-b",
+      leaseId: "lease-b",
+      state: "cancelled",
+    });
     // A consumed stored claim is reapable through the bound marker.
-    store.seed({ sessionId: "orphan-c", leaseId: "lease-c", state: "stored", deadline: NOW + 60_000, boundAt: 4_000 });
+    store.seed({
+      sessionId: "orphan-c",
+      leaseId: "lease-c",
+      state: "stored",
+      deadline: NOW + 60_000,
+      boundAt: 4_000,
+    });
     const leases = createFakeLeases();
     const reaper = createSetupTokenReaper({ store, leases, now: () => NOW });
 

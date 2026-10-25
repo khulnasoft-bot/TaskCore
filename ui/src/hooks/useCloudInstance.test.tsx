@@ -26,7 +26,9 @@ describe("useCloudInstance", () => {
     captured = null;
     container = document.createElement("div");
     document.body.appendChild(container);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
   });
 
   afterEach(() => {
@@ -44,7 +46,10 @@ describe("useCloudInstance", () => {
       stackSlug: "acme",
       cloudBaseUrl: "https://app.taskcore.app",
     };
-    queryClient.setQueryData<HealthStatus>(queryKeys.health, { status: "ok", cloud });
+    queryClient.setQueryData<HealthStatus>(queryKeys.health, {
+      status: "ok",
+      cloud,
+    });
     const root = createRoot(container);
 
     flushSync(() => {

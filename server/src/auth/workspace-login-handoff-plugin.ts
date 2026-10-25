@@ -61,7 +61,9 @@ type WorkspaceHandoffEndpointContext = {
     internalAdapter: {
       findUserById: (userId: string) => Promise<User | null>;
       createSession: (userId: string) => Promise<Session | null>;
-      findVerificationValue: (identifier: string) => Promise<{ identifier: string } | null>;
+      findVerificationValue: (
+        identifier: string,
+      ) => Promise<{ identifier: string } | null>;
       reserveVerificationValue: (data: {
         identifier: string;
         value: string;
@@ -80,7 +82,9 @@ function buildFallbackRedirect(input: {
   const target = new URL("/auth", input.baseUrl ?? "http://localhost");
   target.searchParams.set("next", input.next);
   target.searchParams.set("workspaceHandoffError", input.reason);
-  return input.baseUrl ? target.toString() : `${target.pathname}${target.search}`;
+  return input.baseUrl
+    ? target.toString()
+    : `${target.pathname}${target.search}`;
 }
 
 export function workspaceLoginHandoffPlugin(deps: {
@@ -94,7 +98,8 @@ export function workspaceLoginHandoffPlugin(deps: {
         WORKSPACE_HANDOFF_EXCHANGE_PATH,
         { method: "GET", requireHeaders: true },
         async (endpointContext) => {
-          const ctx = endpointContext as unknown as WorkspaceHandoffEndpointContext;
+          const ctx =
+            endpointContext as unknown as WorkspaceHandoffEndpointContext;
           const expected = deps.resolveExpectedIdentity();
           const rawTicket = ctx.query?.[WORKSPACE_HANDOFF_TICKET_QUERY_PARAM];
           const ticket = typeof rawTicket === "string" ? rawTicket : null;
@@ -115,7 +120,8 @@ export function workspaceLoginHandoffPlugin(deps: {
             },
             deps: {
               findClonedIdentity: async ({ userId, companyId }) => {
-                const user = await ctx.context.internalAdapter.findUserById(userId);
+                const user =
+                  await ctx.context.internalAdapter.findUserById(userId);
                 if (!user) return null;
                 // Membership lives in Taskcore's own schema, so it is read
                 // through the app's `db` handle rather than the Better Auth
@@ -151,20 +157,33 @@ export function workspaceLoginHandoffPlugin(deps: {
                 // one that survives two exchanges racing inside the TTL. Relying
                 // on the reservation alone would silently depend on the
                 // configured adapter enforcing id uniqueness.
-                if (await ctx.context.internalAdapter.findVerificationValue(identifier)) return false;
-                return await ctx.context.internalAdapter.reserveVerificationValue({
-                  identifier,
-                  value: "consumed",
-                  // Keep the record slightly past the ticket's own expiry so a
-                  // replay attempted at the very edge of the window still loses.
-                  expiresAt: new Date(expiresAt.getTime() + 60_000),
-                });
+                if (
+                  await ctx.context.internalAdapter.findVerificationValue(
+                    identifier,
+                  )
+                )
+                  return false;
+                return await ctx.context.internalAdapter.reserveVerificationValue(
+                  {
+                    identifier,
+                    value: "consumed",
+                    // Keep the record slightly past the ticket's own expiry so a
+                    // replay attempted at the very edge of the window still loses.
+                    expiresAt: new Date(expiresAt.getTime() + 60_000),
+                  },
+                );
               },
               createSession: async (userId) => {
-                const user = await ctx.context.internalAdapter.findUserById(userId);
-                if (!user) throw new Error("cloned user disappeared between verification and session creation");
-                const session = await ctx.context.internalAdapter.createSession(userId);
-                if (!session) throw new Error("Better Auth did not return a session");
+                const user =
+                  await ctx.context.internalAdapter.findUserById(userId);
+                if (!user)
+                  throw new Error(
+                    "cloned user disappeared between verification and session creation",
+                  );
+                const session =
+                  await ctx.context.internalAdapter.createSession(userId);
+                if (!session)
+                  throw new Error("Better Auth did not return a session");
                 await setSessionCookie(ctx as never, { session, user });
               },
             },
@@ -178,16 +197,26 @@ export function workspaceLoginHandoffPlugin(deps: {
                 nonce: result.payload?.jti ?? null,
                 executionWorkspaceId: expected.executionWorkspaceId,
                 instanceId: expected.instanceId,
-                keyFingerprint: expected.key ? workspaceHandoffKeyFingerprint(expected.key) : null,
+                keyFingerprint: expected.key
+                  ? workspaceHandoffKeyFingerprint(expected.key)
+                  : null,
                 needsRepair: isWorkspaceHandoffRepairReason(result.reason),
               },
               "workspace login handoff rejected",
             );
-            if (result.reason === "not_configured" || result.reason === "session_failed") {
-              throw ctx.error(result.reason === "not_configured" ? "SERVICE_UNAVAILABLE" : "INTERNAL_SERVER_ERROR", {
-                message: "Workspace login handoff is unavailable",
-                code: result.reason,
-              });
+            if (
+              result.reason === "not_configured" ||
+              result.reason === "session_failed"
+            ) {
+              throw ctx.error(
+                result.reason === "not_configured"
+                  ? "SERVICE_UNAVAILABLE"
+                  : "INTERNAL_SERVER_ERROR",
+                {
+                  message: "Workspace login handoff is unavailable",
+                  code: result.reason,
+                },
+              );
             }
             throw ctx.redirect(
               buildFallbackRedirect({

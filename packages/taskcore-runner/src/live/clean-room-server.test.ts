@@ -13,7 +13,10 @@ import type {
   CodexRpcServerRequest,
   CodexServerRequestHandler,
 } from "../drivers/codex/app-server-transport.js";
-import type { CapabilityIssueThreadSnapshot, CapabilityThreadItem } from "../issue-thread/types.js";
+import type {
+  CapabilityIssueThreadSnapshot,
+  CapabilityThreadItem,
+} from "../issue-thread/types.js";
 import type { CapabilityLiveTransportFactory } from "./live-session.js";
 import {
   createCapabilityTurnStreamDecoder,
@@ -92,7 +95,8 @@ class AsyncNotifications implements AsyncIterable<CodexRpcNotification> {
 
   close(): void {
     this.#closed = true;
-    for (const waiter of this.#waiters.splice(0)) waiter({ value: undefined, done: true });
+    for (const waiter of this.#waiters.splice(0))
+      waiter({ value: undefined, done: true });
   }
 
   [Symbol.asyncIterator](): AsyncIterator<CodexRpcNotification> {
@@ -121,20 +125,38 @@ class FakeCleanRoomTransport implements CodexAppServerTransport {
     state.transports.push(this);
   }
 
-  async request(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if (method === "initialize") return { user: { sessionId: this.state.providerSessionId } };
+  async request(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (method === "initialize")
+      return { user: { sessionId: this.state.providerSessionId } };
     if (method === "thread/start") {
-      for (const tool of (params.dynamicTools ?? []) as Array<{ name: string }>) {
+      for (const tool of (params.dynamicTools ?? []) as Array<{
+        name: string;
+      }>) {
         this.exposedTools.push(tool.name);
       }
-      return { thread: { id: this.state.threadId, sessionId: this.state.providerSessionId } };
+      return {
+        thread: {
+          id: this.state.threadId,
+          sessionId: this.state.providerSessionId,
+        },
+      };
     }
     if (method === "thread/read" || method === "thread/resume") {
-      return { thread: { id: this.state.threadId, sessionId: this.state.providerSessionId } };
+      return {
+        thread: {
+          id: this.state.threadId,
+          sessionId: this.state.providerSessionId,
+        },
+      };
     }
     if (method === "turn/start") {
       const turnId = `turn-${++this.state.nextTurn}`;
-      const input = Array.isArray(params.input) ? (params.input[0] as Record<string, unknown>) : {};
+      const input = Array.isArray(params.input)
+        ? (params.input[0] as Record<string, unknown>)
+        : {};
       void this.#runTurn(turnId, String(input.text ?? ""));
       return { turn: { id: turnId, status: "inProgress" } };
     }
@@ -171,14 +193,24 @@ class FakeCleanRoomTransport implements CodexAppServerTransport {
   }
 
   processInfo() {
-    return { pid: 7100, processGroupId: 7100, startedAt: "2026-08-01T00:00:00.000Z", exited: this.#closed, exitCode: null, signal: null };
+    return {
+      pid: 7100,
+      processGroupId: 7100,
+      startedAt: "2026-08-01T00:00:00.000Z",
+      exited: this.#closed,
+      exitCode: null,
+      signal: null,
+    };
   }
 
   async #runTurn(turnId: string, message: string): Promise<void> {
     await Promise.resolve();
     this.queue.push({
       method: "turn/started",
-      params: { threadId: this.state.threadId, turn: { id: turnId, status: "inProgress" } },
+      params: {
+        threadId: this.state.threadId,
+        turn: { id: turnId, status: "inProgress" },
+      },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     let assistantText = `Nothing to do for "${message}".`;
@@ -198,13 +230,20 @@ class FakeCleanRoomTransport implements CodexAppServerTransport {
         params: {
           threadId: this.state.threadId,
           turnId,
-          item: { id: `message-${turnId}`, type: "agentMessage", text: assistantText },
+          item: {
+            id: `message-${turnId}`,
+            type: "agentMessage",
+            text: assistantText,
+          },
         },
       });
       this.#usage(turnId);
       this.queue.push({
         method: "turn/completed",
-        params: { threadId: this.state.threadId, turn: { id: turnId, status: "completed" } },
+        params: {
+          threadId: this.state.threadId,
+          turn: { id: turnId, status: "completed" },
+        },
       });
       return;
     }
@@ -234,7 +273,24 @@ class FakeCleanRoomTransport implements CodexAppServerTransport {
         interactionKind: "questions",
         title: "Which way should I take this?",
         prompt: "Pick a direction for the clean-room issue.",
-        payload: { version: 1, questionSet: { schema: "taskcore.question_set.v1", questions: [{ id: "path", prompt: "Which path?", required: true, answerMode: "single_select", options: [{ id: "a", label: "Path A" }, { id: "b", label: "Path B" }] }] } },
+        payload: {
+          version: 1,
+          questionSet: {
+            schema: "taskcore.question_set.v1",
+            questions: [
+              {
+                id: "path",
+                prompt: "Which path?",
+                required: true,
+                answerMode: "single_select",
+                options: [
+                  { id: "a", label: "Path A" },
+                  { id: "b", label: "Path B" },
+                ],
+              },
+            ],
+          },
+        },
         continuationPolicy: "wake_assignee",
       });
     }
@@ -243,13 +299,20 @@ class FakeCleanRoomTransport implements CodexAppServerTransport {
       params: {
         threadId: this.state.threadId,
         turnId,
-        item: { id: `message-${turnId}`, type: "agentMessage", text: assistantText },
+        item: {
+          id: `message-${turnId}`,
+          type: "agentMessage",
+          text: assistantText,
+        },
       },
     });
     this.#usage(turnId);
     this.queue.push({
       method: "turn/completed",
-      params: { threadId: this.state.threadId, turn: { id: turnId, status: "completed" } },
+      params: {
+        threadId: this.state.threadId,
+        turn: { id: turnId, status: "completed" },
+      },
     });
   }
 
@@ -303,11 +366,18 @@ class FakeCleanRoomTransport implements CodexAppServerTransport {
     this.#usage(turnId);
     this.queue.push({
       method: "turn/completed",
-      params: { threadId: this.state.threadId, turn: { id: turnId, status: "completed" } },
+      params: {
+        threadId: this.state.threadId,
+        turn: { id: turnId, status: "completed" },
+      },
     });
   }
 
-  async #call(turnId: string, tool: string, args: Record<string, unknown>): Promise<string> {
+  async #call(
+    turnId: string,
+    tool: string,
+    args: Record<string, unknown>,
+  ): Promise<string> {
     const request: CodexRpcServerRequest = {
       id: `request-${turnId}`,
       method: "item/tool/call",
@@ -341,7 +411,9 @@ class FakeCleanRoomTransport implements CodexAppServerTransport {
   }
 }
 
-function fakeTransportFactory(state: FakeProviderState): CapabilityLiveTransportFactory {
+function fakeTransportFactory(
+  state: FakeProviderState,
+): CapabilityLiveTransportFactory {
   return (options) => {
     const evidence = {
       runnerPid: 7100,
@@ -366,13 +438,21 @@ function fakeTransportFactory(state: FakeProviderState): CapabilityLiveTransport
 interface CleanRoomPayload {
   sessionId: string;
   surface: string;
-  identity: { token: string; companyId: string; actorId: string; taskId: string; identifier: string };
+  identity: {
+    token: string;
+    companyId: string;
+    actorId: string;
+    taskId: string;
+    identifier: string;
+  };
   limits: { maxTurns: number; maxMessageBytes: number };
   view: CapabilityIssueThreadSnapshot;
   configuration: {
     provider: "codex" | "opencode";
     model: string | null;
-    lifecyclePolicy: { mode: "per_turn"; idleTimeoutMs: null } | { mode: "warm"; idleTimeoutMs: number };
+    lifecyclePolicy:
+      | { mode: "per_turn"; idleTimeoutMs: null }
+      | { mode: "warm"; idleTimeoutMs: number };
   };
 }
 
@@ -388,7 +468,10 @@ function assistantText(view: CapabilityIssueThreadSnapshot): string {
 }
 
 /** Polls until `ready` holds, so nothing in the suite waits on a fixed delay. */
-async function settle(ready: () => boolean | Promise<boolean>, attempts = 200): Promise<void> {
+async function settle(
+  ready: () => boolean | Promise<boolean>,
+  attempts = 200,
+): Promise<void> {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (await ready()) return;
     await new Promise((resolve) => setTimeout(resolve, 5));
@@ -396,7 +479,10 @@ async function settle(ready: () => boolean | Promise<boolean>, attempts = 200): 
   throw new Error("the clean-room stream never reached the expected state");
 }
 
-type CleanRoomFrame = CapabilityTurnStreamFrame<CapabilityIssueThreadSnapshot, CleanRoomPayload>;
+type CleanRoomFrame = CapabilityTurnStreamFrame<
+  CapabilityIssueThreadSnapshot,
+  CleanRoomPayload
+>;
 
 /**
  * Pulls frames off an open turn response one at a time. Reading incrementally
@@ -405,12 +491,16 @@ type CleanRoomFrame = CapabilityTurnStreamFrame<CapabilityIssueThreadSnapshot, C
  */
 class FrameReader {
   readonly #reader: ReadableStreamDefaultReader<Uint8Array>;
-  readonly #decoder = createCapabilityTurnStreamDecoder<CapabilityIssueThreadSnapshot, CleanRoomPayload>();
+  readonly #decoder = createCapabilityTurnStreamDecoder<
+    CapabilityIssueThreadSnapshot,
+    CleanRoomPayload
+  >();
   readonly #text = new TextDecoder();
   #queue: CleanRoomFrame[] = [];
 
   constructor(response: Response) {
-    if (response.body === null) throw new Error("the turn response had no body");
+    if (response.body === null)
+      throw new Error("the turn response had no body");
     this.#reader = response.body.getReader();
   }
 
@@ -421,14 +511,19 @@ class FrameReader {
         this.#queue.push(...this.#decoder.flush());
         break;
       }
-      this.#queue.push(...this.#decoder.push(this.#text.decode(chunk.value, { stream: true })));
+      this.#queue.push(
+        ...this.#decoder.push(this.#text.decode(chunk.value, { stream: true })),
+      );
     }
     const frame = this.#queue.shift();
-    if (frame === undefined) throw new Error("the turn stream ended without another frame");
+    if (frame === undefined)
+      throw new Error("the turn stream ended without another frame");
     return frame;
   }
 
-  async nextMatching(predicate: (frame: CleanRoomFrame) => boolean): Promise<CleanRoomFrame> {
+  async nextMatching(
+    predicate: (frame: CleanRoomFrame) => boolean,
+  ): Promise<CleanRoomFrame> {
     for (;;) {
       const frame = await this.next();
       if (predicate(frame)) return frame;
@@ -453,7 +548,9 @@ class Jar {
   headers(): Record<string, string> {
     if (this.#cookies.size === 0) return {};
     return {
-      cookie: [...this.#cookies].map(([name, value]) => `${name}=${value}`).join("; "),
+      cookie: [...this.#cookies]
+        .map(([name, value]) => `${name}=${value}`)
+        .join("; "),
     };
   }
 
@@ -462,7 +559,10 @@ class Jar {
       const pair = raw.split(";", 1)[0] ?? "";
       const separator = pair.indexOf("=");
       if (separator < 1) continue;
-      this.#cookies.set(pair.slice(0, separator).trim(), pair.slice(separator + 1).trim());
+      this.#cookies.set(
+        pair.slice(0, separator).trim(),
+        pair.slice(separator + 1).trim(),
+      );
     }
   }
 
@@ -516,12 +616,14 @@ const sourceRunnerModuleLoaders: Record<string, () => Promise<unknown>> = {
 
 async function loadSourceRunnerModule(relativePath: string): Promise<unknown> {
   const load = sourceRunnerModuleLoaders[relativePath];
-  if (load === undefined) throw new Error(`Unexpected runner module: ${relativePath}`);
+  if (load === undefined)
+    throw new Error(`Unexpected runner module: ${relativePath}`);
   return await load();
 }
 
 async function createMiddleware(state: FakeProviderState, root: string) {
-  const module = await import("../../scripts/capability-issue-thread-server.mjs");
+  const module =
+    await import("../../scripts/capability-issue-thread-server.mjs");
   return module.createCapabilityIssueThreadMiddleware({
     bindHost: "127.0.0.1",
     loadRunner: async () =>
@@ -540,12 +642,12 @@ async function readTurn(
   response: Response,
   frames: CapabilityIssueThreadSnapshot[] = [],
 ): Promise<CleanRoomPayload> {
-  return await readCapabilityTurnStream<CapabilityIssueThreadSnapshot, CleanRoomPayload>(
-    response,
-    (frame) => {
-      frames.push(frame.view);
-    },
-  );
+  return await readCapabilityTurnStream<
+    CapabilityIssueThreadSnapshot,
+    CleanRoomPayload
+  >(response, (frame) => {
+    frames.push(frame.view);
+  });
 }
 
 async function call(
@@ -555,24 +657,41 @@ async function call(
   browser: Jar = jar,
 ): Promise<CleanRoomPayload> {
   requestedUrls.push(`${origin}${path}`);
-  const response = await send(browser, path, body === undefined ? {} : { json: body });
+  const response = await send(
+    browser,
+    path,
+    body === undefined ? {} : { json: body },
+  );
   if (response.headers.get("content-type")?.includes("x-ndjson") === true) {
     return await readTurn(response, frames);
   }
-  const payload = (await response.json()) as CleanRoomPayload & { error?: string };
-  if (!response.ok) throw new Error(`${path} → ${response.status} ${payload.error ?? ""}`);
+  const payload = (await response.json()) as CleanRoomPayload & {
+    error?: string;
+  };
+  if (!response.ok)
+    throw new Error(`${path} → ${response.status} ${payload.error ?? ""}`);
   return payload;
 }
 
-async function status(path: string, body?: unknown, browser: Jar = jar): Promise<number> {
-  const response = await send(browser, path, body === undefined ? {} : { json: body });
+async function status(
+  path: string,
+  body?: unknown,
+  browser: Jar = jar,
+): Promise<number> {
+  const response = await send(
+    browser,
+    path,
+    body === undefined ? {} : { json: body },
+  );
   await response.text();
   return response.status;
 }
 
 beforeEach(async () => {
   requestedUrls.length = 0;
-  scratchParent = await mkdtemp(resolve(tmpdir(), "capability-clean-room-server-test-"));
+  scratchParent = await mkdtemp(
+    resolve(tmpdir(), "capability-clean-room-server-test-"),
+  );
   // Start with a missing child so the normal open path also proves that the
   // middleware creates its configured scratch root.
   scratchRoot = resolve(scratchParent, "run-scratch");
@@ -605,35 +724,55 @@ afterEach(async () => {
 });
 
 describe("Capability clean-room chat server", () => {
-  it.each(["claude", "codex"])("allows an unlisted %s model in the test-drive configuration", async acpxAgent => {
-    const { capabilityIssueThreadServerInternals: internals } = await import("../../scripts/capability-issue-thread-server.mjs");
-    const model = "custom/model[reasoning=medium]";
-    expect(internals.harnessConfiguration({ provider: "acpx", acpxAgent, model }))
-      .toMatchObject({ provider: "acpx", acpxAgent, model });
-    expect(() => internals.harnessConfiguration({ provider: "acpx", acpxAgent, model: " " }))
-      .toThrow("requires an explicit model");
-    expect(() => internals.harnessConfiguration({ provider: "acpx", acpxAgent: "unknown", model }))
-      .toThrow("ACPX agent must be");
-  });
+  it.each(["claude", "codex"])(
+    "allows an unlisted %s model in the test-drive configuration",
+    async (acpxAgent) => {
+      const { capabilityIssueThreadServerInternals: internals } =
+        await import("../../scripts/capability-issue-thread-server.mjs");
+      const model = "custom/model[reasoning=medium]";
+      expect(
+        internals.harnessConfiguration({ provider: "acpx", acpxAgent, model }),
+      ).toMatchObject({ provider: "acpx", acpxAgent, model });
+      expect(() =>
+        internals.harnessConfiguration({
+          provider: "acpx",
+          acpxAgent,
+          model: " ",
+        }),
+      ).toThrow("requires an explicit model");
+      expect(() =>
+        internals.harnessConfiguration({
+          provider: "acpx",
+          acpxAgent: "unknown",
+          model,
+        }),
+      ).toThrow("ACPX agent must be");
+    },
+  );
 
   it("validates the exact Claude Managed lab profile and canonical agent version", async () => {
-    const module = await import("../../scripts/capability-issue-thread-server.mjs");
+    const module =
+      await import("../../scripts/capability-issue-thread-server.mjs");
     const internals = module.capabilityIssueThreadServerInternals;
-    expect(internals.harnessConfiguration({
-      provider: "claude_managed",
-      model: "claude-sonnet-5",
-      managedProfileId: "managed-qualified",
-      maxSessionListCostUsd: 2,
-    })).toMatchObject({
+    expect(
+      internals.harnessConfiguration({
+        provider: "claude_managed",
+        model: "claude-sonnet-5",
+        managedProfileId: "managed-qualified",
+        maxSessionListCostUsd: 2,
+      }),
+    ).toMatchObject({
       provider: "claude_managed",
       model: "claude-sonnet-5",
       managedProfileId: "managed-qualified",
       maxSessionListCostUsd: 2,
     });
-    expect(() => internals.harnessConfiguration({
-      provider: "claude_managed",
-      model: "claude-opus-5",
-    })).toThrow("requires exact model claude-sonnet-5");
+    expect(() =>
+      internals.harnessConfiguration({
+        provider: "claude_managed",
+        model: "claude-opus-5",
+      }),
+    ).toThrow("requires exact model claude-sonnet-5");
 
     const keys = [
       "TASKCORE_CLAUDE_MANAGED_PROFILE_ID",
@@ -642,18 +781,22 @@ describe("Capability clean-room chat server", () => {
       "ANTHROPIC_MANAGED_AGENT_VERSION",
       "ANTHROPIC_MANAGED_ENVIRONMENT_ID",
     ] as const;
-    const prior = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    const prior = Object.fromEntries(
+      keys.map((key) => [key, process.env[key]]),
+    );
     try {
       process.env.TASKCORE_CLAUDE_MANAGED_PROFILE_ID = "managed-qualified";
       process.env.ANTHROPIC_API_KEY = "test-only-key";
       process.env.ANTHROPIC_MANAGED_AGENT_ID = "agent-qualified";
       process.env.ANTHROPIC_MANAGED_ENVIRONMENT_ID = "environment-qualified";
       process.env.ANTHROPIC_MANAGED_AGENT_VERSION = "2147483647";
-      expect(internals.resolveManagedProfile({
-        provider: "claude_managed",
-        managedProfileId: "managed-qualified",
-        maxSessionListCostUsd: 2,
-      })).toEqual({
+      expect(
+        internals.resolveManagedProfile({
+          provider: "claude_managed",
+          managedProfileId: "managed-qualified",
+          maxSessionListCostUsd: 2,
+        }),
+      ).toEqual({
         profileId: "managed-qualified",
         anthropicAgentId: "agent-qualified",
         agentVersion: "2147483647",
@@ -663,11 +806,13 @@ describe("Capability clean-room chat server", () => {
       });
       for (const agentVersion of ["latest", "0", "01", "2147483648"]) {
         process.env.ANTHROPIC_MANAGED_AGENT_VERSION = agentVersion;
-        expect(() => internals.resolveManagedProfile({
-          provider: "claude_managed",
-          managedProfileId: "managed-qualified",
-          maxSessionListCostUsd: 2,
-        })).toThrow("not fully qualified");
+        expect(() =>
+          internals.resolveManagedProfile({
+            provider: "claude_managed",
+            managedProfileId: "managed-qualified",
+            maxSessionListCostUsd: 2,
+          }),
+        ).toThrow("not fully qualified");
       }
     } finally {
       for (const key of keys) {
@@ -775,12 +920,15 @@ describe("Capability clean-room chat server", () => {
     expect(rendered.some((item) => item.kind === "agent_message")).toBe(true);
     const call0 = rendered.find((item) => item.kind === "tool_activity");
     expect(call0?.kind).toBe("tool_activity");
-    if (call0?.kind === "tool_activity") expect(call0.operationId).toBe("report_progress");
+    if (call0?.kind === "tool_activity")
+      expect(call0.operationId).toBe("report_progress");
 
     const durable = rendered.find((item) => item.kind === "durable_comment");
     expect(durable?.kind).toBe("durable_comment");
     if (durable?.kind === "durable_comment") {
-      expect(durable.body).toBe("Read the blank clean-room issue and recorded a first status.");
+      expect(durable.body).toBe(
+        "Read the blank clean-room issue and recorded a first status.",
+      );
     }
     expect(after.view.evidence.calls[0]?.outcome).toBe("ok");
     expect(after.view.evidence.state.length).toBeGreaterThan(0);
@@ -797,13 +945,34 @@ describe("Capability clean-room chat server", () => {
       },
     });
 
-    expect(after.toolResult).toMatchObject({ ok: true, operationId: "report_progress" });
+    expect(after.toolResult).toMatchObject({
+      ok: true,
+      operationId: "report_progress",
+    });
     expect(after.toolTurnId).toMatch(/^turn-/);
-    const turn = after.view.turns.find((candidate: { id: string }) => candidate.id === after.toolTurnId);
+    const turn = after.view.turns.find(
+      (candidate: { id: string }) => candidate.id === after.toolTurnId,
+    );
     expect(turn).toBeDefined();
-    expect(turn.items.some((item: CapabilityThreadItem) => item.kind === "user_message")).toBe(true);
-    expect(turn.items.some((item: CapabilityThreadItem) => item.kind === "tool_activity" && item.operationId === "report_progress")).toBe(true);
-    expect(turn.items.some((item: CapabilityThreadItem) => item.kind === "durable_comment" && item.body === "Progress entered manually from DevTools.")).toBe(true);
+    expect(
+      turn.items.some(
+        (item: CapabilityThreadItem) => item.kind === "user_message",
+      ),
+    ).toBe(true);
+    expect(
+      turn.items.some(
+        (item: CapabilityThreadItem) =>
+          item.kind === "tool_activity" &&
+          item.operationId === "report_progress",
+      ),
+    ).toBe(true);
+    expect(
+      turn.items.some(
+        (item: CapabilityThreadItem) =>
+          item.kind === "durable_comment" &&
+          item.body === "Progress entered manually from DevTools.",
+      ),
+    ).toBe(true);
     expect(after.view.evidence.state.at(-1)?.toRevision).toBeGreaterThan(0);
   });
 
@@ -812,7 +981,10 @@ describe("Capability clean-room chat server", () => {
     const finished = await call("/api/capability/ui/tool", {
       sessionId: opened.sessionId,
       operationId: "finish_task",
-      input: { idempotencyKey: "devtools-finish-1", summary: "The mock task is complete." },
+      input: {
+        idempotencyKey: "devtools-finish-1",
+        summary: "The mock task is complete.",
+      },
     });
     expect(finished.view.issue.status).toBe("done");
     expect(finished.view.composer.state).toBe("ready");
@@ -821,9 +993,13 @@ describe("Capability clean-room chat server", () => {
       sessionId: opened.sessionId,
       message: "Explain what was completed.",
     });
-    expect(items(continued.view).some(
-      (item) => item.kind === "user_message" && item.body === "Explain what was completed.",
-    )).toBe(true);
+    expect(
+      items(continued.view).some(
+        (item) =>
+          item.kind === "user_message" &&
+          item.body === "Explain what was completed.",
+      ),
+    ).toBe(true);
   });
 
   it("exposes full state history and can fork a retained revision", async () => {
@@ -838,34 +1014,45 @@ describe("Capability clean-room chat server", () => {
       `/api/capability/ui/devtools?sessionId=${opened.sessionId}`,
     );
     expect(inspectedResponse.status).toBe(200);
-    const inspected = await inspectedResponse.json() as {
+    const inspected = (await inspectedResponse.json()) as {
       schema: string;
-      revisions: Array<{ revision: number; operationId: string; state: Record<string, unknown> }>;
+      revisions: Array<{
+        revision: number;
+        operationId: string;
+        state: Record<string, unknown>;
+      }>;
     };
     expect(inspected.schema).toBe("taskcore.capability.devtools.v1");
     expect(inspected.revisions[0]?.operationId).toBe("fixture.seed");
-    expect(inspected.revisions.at(-1)?.state).toEqual(expect.objectContaining({
-      company: expect.any(Object),
-      actors: expect.any(Array),
-      tasks: expect.any(Array),
-      comments: expect.any(Array),
-      budgets: expect.any(Array),
-      audit: expect.any(Array),
-    }));
+    expect(inspected.revisions.at(-1)?.state).toEqual(
+      expect.objectContaining({
+        company: expect.any(Object),
+        actors: expect.any(Array),
+        tasks: expect.any(Array),
+        comments: expect.any(Array),
+        budgets: expect.any(Array),
+        audit: expect.any(Array),
+      }),
+    );
 
     const forkResponse = await send(jar, "/api/capability/ui/devtools/fork", {
-      json: { sessionId: opened.sessionId, revision: inspected.revisions[0]!.revision },
+      json: {
+        sessionId: opened.sessionId,
+        revision: inspected.revisions[0]!.revision,
+      },
     });
     expect(forkResponse.status).toBe(201);
-    const forked = await forkResponse.json() as CleanRoomPayload;
+    const forked = (await forkResponse.json()) as CleanRoomPayload;
     expect(forked.sessionId).not.toBe(opened.sessionId);
     expect(forked.view.issue.identifier).toBe(opened.view.issue.identifier);
     expect(forked.view.turns).toEqual([]);
-    expect(await status(
-      `/api/capability/ui/devtools?sessionId=${forked.sessionId}`,
-      undefined,
-      jar,
-    )).toBe(200);
+    expect(
+      await status(
+        `/api/capability/ui/devtools?sessionId=${forked.sessionId}`,
+        undefined,
+        jar,
+      ),
+    ).toBe(200);
   });
 
   it("returns a typed denial for an ungranted call and changes no mock state", async () => {
@@ -887,11 +1074,15 @@ describe("Capability clean-room chat server", () => {
     expect(denial.operationId).toBe("decide_approval");
     expect(denial.reason.length).toBeGreaterThan(0);
 
-    const record = after.view.evidence.calls.find((entry) => entry.operationId === "decide_approval");
+    const record = after.view.evidence.calls.find(
+      (entry) => entry.operationId === "decide_approval",
+    );
     expect(record?.outcome).toBe("denied");
     expect(record?.dispatchedCommand).toBe("rejected before dispatch");
     // The denial produced no state diff, so the last revision is unchanged.
-    expect(after.view.evidence.state.at(-1)?.toRevision ?? 0).toBe(revisionBefore);
+    expect(after.view.evidence.state.at(-1)?.toRevision ?? 0).toBe(
+      revisionBefore,
+    );
     expect(
       after.view.evidence.authorization.some(
         (entry) => entry.operationId === "decide_approval" && !entry.allowed,
@@ -920,7 +1111,9 @@ describe("Capability clean-room chat server", () => {
     });
     expect(answered.view.composer.state).toBe("ready");
     const resolved = items(answered.view).find(
-      (item) => item.kind === "interaction" && item.interactionId === card.interactionId,
+      (item) =>
+        item.kind === "interaction" &&
+        item.interactionId === card.interactionId,
     );
     expect(resolved?.kind === "interaction" && resolved.state).toBe("answered");
 
@@ -931,9 +1124,13 @@ describe("Capability clean-room chat server", () => {
     expect(refreshed.sessionId).toBe(opened.sessionId);
     expect(refreshed.view.turns.length).toBe(answered.view.turns.length);
 
-    const reconnected = await call("/api/capability/ui/reconnect", { sessionId: opened.sessionId });
+    const reconnected = await call("/api/capability/ui/reconnect", {
+      sessionId: opened.sessionId,
+    });
     expect(reconnected.sessionId).toBe(opened.sessionId);
-    expect(items(reconnected.view).some((item) => item.kind === "user_message")).toBe(true);
+    expect(
+      items(reconnected.view).some((item) => item.kind === "user_message"),
+    ).toBe(true);
 
     const hanging = call("/api/capability/ui/message", {
       sessionId: opened.sessionId,
@@ -959,31 +1156,42 @@ describe("Capability clean-room chat server", () => {
       message: "Read the issue and report progress.",
     });
 
-    const reset = await call("/api/capability/ui/reset", { sessionId: opened.sessionId });
+    const reset = await call("/api/capability/ui/reset", {
+      sessionId: opened.sessionId,
+    });
     expect(reset.sessionId).not.toBe(opened.sessionId);
     expect(reset.identity.companyId).not.toBe(opened.identity.companyId);
     expect(reset.identity.actorId).not.toBe(opened.identity.actorId);
     expect(reset.identity.taskId).not.toBe(opened.identity.taskId);
     expect(reset.view.turns).toEqual([]);
-    expect(await status("/api/capability/ui/message", {
-      sessionId: opened.sessionId,
-      message: "still there?",
-    })).toBe(200);
+    expect(
+      await status("/api/capability/ui/message", {
+        sessionId: opened.sessionId,
+        message: "still there?",
+      }),
+    ).toBe(200);
 
-    const fresh = await call("/api/capability/ui/cleanroom/session", { sessionId: reset.sessionId });
+    const fresh = await call("/api/capability/ui/cleanroom/session", {
+      sessionId: reset.sessionId,
+    });
     expect(fresh.sessionId).not.toBe(reset.sessionId);
     expect(fresh.identity.token).not.toBe(reset.identity.token);
     expect(fresh.view.turns).toEqual([]);
-    expect(await status("/api/capability/ui/message", {
-      sessionId: reset.sessionId,
-      message: "still there?",
-    })).toBe(200);
+    expect(
+      await status("/api/capability/ui/message", {
+        sessionId: reset.sessionId,
+        message: "still there?",
+      }),
+    ).toBe(200);
   });
 
   it("bounds turns per chat with a named reason instead of an opaque failure", async () => {
     const opened = await call("/api/capability/ui/cleanroom/session");
     for (let turn = 0; turn < opened.limits.maxTurns; turn += 1) {
-      await call("/api/capability/ui/message", { sessionId: opened.sessionId, message: `turn ${turn}` });
+      await call("/api/capability/ui/message", {
+        sessionId: opened.sessionId,
+        message: `turn ${turn}`,
+      });
     }
     const response = await send(jar, "/api/capability/ui/message", {
       json: { sessionId: opened.sessionId, message: "one more" },
@@ -1002,7 +1210,9 @@ describe("Capability clean-room chat server", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain("application/x-ndjson");
+    expect(response.headers.get("content-type")).toContain(
+      "application/x-ndjson",
+    );
     // A cache or proxy directive that permitted transformation could coalesce
     // the frames back into one body, which is the failure being fixed.
     expect(response.headers.get("cache-control")).toContain("no-transform");
@@ -1015,14 +1225,20 @@ describe("Capability clean-room chat server", () => {
     if (open.type !== "frame") return;
     expect(open.reason).toBe("open");
     expect(assistantText(open.view)).toBe("");
-    expect(open.view.turns.at(-1)?.items.some((item) => item.kind === "user_message")).toBe(true);
+    expect(
+      open.view.turns
+        .at(-1)
+        ?.items.some((item) => item.kind === "user_message"),
+    ).toBe(true);
 
     const streamed: string[] = [];
     for (let index = 0; index < STREAM_DELTAS.length; index += 1) {
       providerState.gate.release();
       const frame = await reader.nextMatching(
         (candidate) =>
-          candidate.type !== "frame" || assistantText(candidate.view) === STREAM_DELTAS.slice(0, index + 1).join(""),
+          candidate.type !== "frame" ||
+          assistantText(candidate.view) ===
+            STREAM_DELTAS.slice(0, index + 1).join(""),
       );
       expect(frame.type).toBe("frame");
       if (frame.type !== "frame") return;
@@ -1037,7 +1253,9 @@ describe("Capability clean-room chat server", () => {
     ]);
 
     providerState.gate.release();
-    const settled = await reader.nextMatching((candidate) => candidate.type === "settled");
+    const settled = await reader.nextMatching(
+      (candidate) => candidate.type === "settled",
+    );
     expect(settled.type).toBe("settled");
     if (settled.type !== "settled") return;
     // The terminal payload is the authority and is the same shape the route
@@ -1046,12 +1264,16 @@ describe("Capability clean-room chat server", () => {
     expect(settled.payload.surface).toBe("cleanroom");
     expect(assistantText(settled.payload.view)).toBe(STREAM_DELTAS.join(""));
     expect(settled.payload.view.composer.state).toBe("ready");
-    const messages = items(settled.payload.view).filter((item) => item.kind === "agent_message");
+    const messages = items(settled.payload.view).filter(
+      (item) => item.kind === "agent_message",
+    );
     expect(messages).toHaveLength(1);
     await reader.end();
 
     // The stream left the session usable rather than wedged mid-turn.
-    const next = await call("/api/capability/ui/cleanroom/session", { sessionId: opened.sessionId });
+    const next = await call("/api/capability/ui/cleanroom/session", {
+      sessionId: opened.sessionId,
+    });
     expect(next.sessionId).not.toBe(opened.sessionId);
   });
 
@@ -1067,26 +1289,36 @@ describe("Capability clean-room chat server", () => {
     await reader.next();
     providerState.gate.release();
     await reader.nextMatching(
-      (candidate) => candidate.type === "frame" && assistantText(candidate.view).length > 0,
+      (candidate) =>
+        candidate.type === "frame" && assistantText(candidate.view).length > 0,
     );
 
     controller.abort();
     // The abandoned turn is interrupted rather than left running: the session
     // returns to `ready`, which a still-active turn would never do.
     await settle(async () => {
-      const probe = await call(`/api/capability/ui/cleanroom/session?sessionId=${opened.sessionId}`);
-      return probe.sessionId === opened.sessionId && probe.view.composer.state === "ready";
+      const probe = await call(
+        `/api/capability/ui/cleanroom/session?sessionId=${opened.sessionId}`,
+      );
+      return (
+        probe.sessionId === opened.sessionId &&
+        probe.view.composer.state === "ready"
+      );
     });
     const after = await call("/api/capability/ui/message", {
       sessionId: opened.sessionId,
       message: "Read the issue and report progress.",
     });
     expect(after.sessionId).toBe(opened.sessionId);
-    expect(items(after.view).some((item) => item.kind === "durable_comment")).toBe(true);
+    expect(
+      items(after.view).some((item) => item.kind === "durable_comment"),
+    ).toBe(true);
   });
 
   it("keeps the preset scenario surface working and isolated from the clean room", async () => {
-    const scenario = await call("/api/capability/ui/session?scenario=hb-baseline");
+    const scenario = await call(
+      "/api/capability/ui/session?scenario=hb-baseline",
+    );
     const cleanRoom = await call("/api/capability/ui/cleanroom/session");
 
     expect(scenario.view.issue.identifier).toBe("MCK-31");
@@ -1115,11 +1347,17 @@ describe("Capability clean-room chat server", () => {
     const logs: string[] = [];
     const stdout = process.stdout.write.bind(process.stdout);
     const stderr = process.stderr.write.bind(process.stderr);
-    process.stdout.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+    process.stdout.write = ((
+      chunk: string | Uint8Array,
+      ...rest: unknown[]
+    ) => {
       logs.push(String(chunk));
       return stdout(chunk as string, ...(rest as []));
     }) as typeof process.stdout.write;
-    process.stderr.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+    process.stderr.write = ((
+      chunk: string | Uint8Array,
+      ...rest: unknown[]
+    ) => {
       logs.push(String(chunk));
       return stderr(chunk as string, ...(rest as []));
     }) as typeof process.stderr.write;
@@ -1133,11 +1371,18 @@ describe("Capability clean-room chat server", () => {
       opened = await call("/api/capability/ui/cleanroom/session");
       settled = await call(
         "/api/capability/ui/message",
-        { sessionId: opened.sessionId, message: `canary turn: ${CANARIES.prompt}` },
+        {
+          sessionId: opened.sessionId,
+          message: `canary turn: ${CANARIES.prompt}`,
+        },
         frames,
       );
-      reconnected = await call("/api/capability/ui/reconnect", { sessionId: opened.sessionId });
-      replayed = await call(`/api/capability/ui/cleanroom/session?sessionId=${opened.sessionId}`);
+      reconnected = await call("/api/capability/ui/reconnect", {
+        sessionId: opened.sessionId,
+      });
+      replayed = await call(
+        `/api/capability/ui/cleanroom/session?sessionId=${opened.sessionId}`,
+      );
     } finally {
       process.stdout.write = stdout;
       process.stderr.write = stderr;
@@ -1148,7 +1393,9 @@ describe("Capability clean-room chat server", () => {
     // The turn really did run: without a settled reply the sweep below would
     // pass on an empty transcript.
     expect(frames.length).toBeGreaterThan(0);
-    expect(items(settled.view).some((item) => item.kind === "durable_comment")).toBe(true);
+    expect(
+      items(settled.view).some((item) => item.kind === "durable_comment"),
+    ).toBe(true);
 
     // The prompt is legitimately echoed once per turn as the user's own card;
     // it must appear nowhere else, so user bodies are removed before scanning
@@ -1163,7 +1410,10 @@ describe("Capability clean-room chat server", () => {
       });
 
     const surfaces: Array<[string, string]> = [
-      ...frames.map((view, index) => [`frame ${index}`, withoutUserMessages(view)] as [string, string]),
+      ...frames.map(
+        (view, index) =>
+          [`frame ${index}`, withoutUserMessages(view)] as [string, string],
+      ),
       ["settled payload", withoutUserMessages(settled.view)],
       ["reconnect payload", withoutUserMessages(reconnected.view)],
       ["replay payload", withoutUserMessages(replayed.view)],
@@ -1173,7 +1423,9 @@ describe("Capability clean-room chat server", () => {
 
     for (const [label, encoded] of surfaces) {
       for (const [name, canary] of Object.entries(CANARIES)) {
-        expect(`${label}:${name}:${encoded.includes(canary)}`).toBe(`${label}:${name}:false`);
+        expect(`${label}:${name}:${encoded.includes(canary)}`).toBe(
+          `${label}:${name}:false`,
+        );
       }
       // Provider thread identity and the browser's own capability are equally
       // off-limits, and the undeclared argument name must not be echoed either.
@@ -1187,14 +1439,24 @@ describe("Capability clean-room chat server", () => {
     // The evidence panel still says what happened — the fix is a summary, not a
     // blank section.
     const runner = replayed.view.evidence.runner;
-    expect(runner.some((record) => record.kind === "provider_event")).toBe(true);
-    expect(runner.filter((record) => record.kind === "provider_event").every((record) =>
-      /^provider event · [a-z_]+$/.test(record.detail),
-    )).toBe(true);
-    expect(runner.some((record) => record.detail.includes("diagnostic · withheld"))).toBe(true);
-    expect(replayed.view.evidence.calls.every((record) =>
-      record.providerRequest.startsWith("tools/call ") && !record.providerRequest.includes("{"),
-    )).toBe(true);
+    expect(runner.some((record) => record.kind === "provider_event")).toBe(
+      true,
+    );
+    expect(
+      runner
+        .filter((record) => record.kind === "provider_event")
+        .every((record) => /^provider event · [a-z_]+$/.test(record.detail)),
+    ).toBe(true);
+    expect(
+      runner.some((record) => record.detail.includes("diagnostic · withheld")),
+    ).toBe(true);
+    expect(
+      replayed.view.evidence.calls.every(
+        (record) =>
+          record.providerRequest.startsWith("tools/call ") &&
+          !record.providerRequest.includes("{"),
+      ),
+    ).toBe(true);
   });
 
   /**
@@ -1206,12 +1468,29 @@ describe("Capability clean-room chat server", () => {
     const alice = new Jar();
     const mallory = new Jar();
 
-    const aliceRoom = await call("/api/capability/ui/cleanroom/session", undefined, undefined, alice);
-    const malloryRoom = await call("/api/capability/ui/cleanroom/session", undefined, undefined, mallory);
-    const aliceIssue = await call("/api/capability/ui/session?scenario=hb-baseline", undefined, undefined, alice);
+    const aliceRoom = await call(
+      "/api/capability/ui/cleanroom/session",
+      undefined,
+      undefined,
+      alice,
+    );
+    const malloryRoom = await call(
+      "/api/capability/ui/cleanroom/session",
+      undefined,
+      undefined,
+      mallory,
+    );
+    const aliceIssue = await call(
+      "/api/capability/ui/session?scenario=hb-baseline",
+      undefined,
+      undefined,
+      alice,
+    );
 
     expect(aliceRoom.sessionId).not.toBe(malloryRoom.sessionId);
-    expect(alice.value("taskcore_capability_chat")).not.toBe(mallory.value("taskcore_capability_chat"));
+    expect(alice.value("taskcore_capability_chat")).not.toBe(
+      mallory.value("taskcore_capability_chat"),
+    );
 
     // Reciprocal read denial: neither browser can name the other's session.
     for (const [reader, target] of [
@@ -1219,99 +1498,223 @@ describe("Capability clean-room chat server", () => {
       [alice, malloryRoom.sessionId],
     ] as Array<[Jar, string]>) {
       expect(
-        await status(`/api/capability/ui/cleanroom/session?sessionId=${target}`, undefined, reader),
+        await status(
+          `/api/capability/ui/cleanroom/session?sessionId=${target}`,
+          undefined,
+          reader,
+        ),
       ).toBe(404);
     }
 
     // Every mutation route, not only the ones that create sessions.
-    const mutations = ["message", "tool", "interrupt", "reconnect", "reset", "interaction"];
+    const mutations = [
+      "message",
+      "tool",
+      "interrupt",
+      "reconnect",
+      "reset",
+      "interaction",
+    ];
     for (const route of mutations) {
       expect(
-        await status(`/api/capability/ui/${route}`, { sessionId: aliceRoom.sessionId, message: "hi" }, mallory),
+        await status(
+          `/api/capability/ui/${route}`,
+          { sessionId: aliceRoom.sessionId, message: "hi" },
+          mallory,
+        ),
       ).toBe(404);
       expect(
-        await status(`/api/capability/ui/${route}`, { sessionId: aliceIssue.sessionId, message: "hi" }, mallory),
+        await status(
+          `/api/capability/ui/${route}`,
+          { sessionId: aliceIssue.sessionId, message: "hi" },
+          mallory,
+        ),
       ).toBe(404);
     }
 
     // A cookie-less caller is refused too: the capability is required, not
     // merely preferred when present.
     expect(
-      await status("/api/capability/ui/message", { sessionId: aliceRoom.sessionId, message: "hi" }, new Jar()),
+      await status(
+        "/api/capability/ui/message",
+        { sessionId: aliceRoom.sessionId, message: "hi" },
+        new Jar(),
+      ),
     ).toBe(404);
 
     // Alice still owns her own sessions throughout.
     expect(
-      await status(`/api/capability/ui/cleanroom/session?sessionId=${aliceRoom.sessionId}`, undefined, alice),
+      await status(
+        `/api/capability/ui/cleanroom/session?sessionId=${aliceRoom.sessionId}`,
+        undefined,
+        alice,
+      ),
     ).toBe(200);
-    expect(await status(`/api/capability/ui/session?sessionId=${aliceIssue.sessionId}`, undefined, alice)).toBe(200);
+    expect(
+      await status(
+        `/api/capability/ui/session?sessionId=${aliceIssue.sessionId}`,
+        undefined,
+        alice,
+      ),
+    ).toBe(200);
   });
 
   it("keeps the capability stable when reset and new chat archive resumable sessions", async () => {
     const alice = new Jar();
-    const opened = await call("/api/capability/ui/cleanroom/session", undefined, undefined, alice);
+    const opened = await call(
+      "/api/capability/ui/cleanroom/session",
+      undefined,
+      undefined,
+      alice,
+    );
     const first = alice.value("taskcore_capability_chat");
 
     const stale = new Jar();
-    stale.capture(new Response(null, {
-      headers: { "set-cookie": `taskcore_capability_chat=${first}` },
-    }));
+    stale.capture(
+      new Response(null, {
+        headers: { "set-cookie": `taskcore_capability_chat=${first}` },
+      }),
+    );
 
-    const afterReset = await call("/api/capability/ui/reset", { sessionId: opened.sessionId }, undefined, alice);
+    const afterReset = await call(
+      "/api/capability/ui/reset",
+      { sessionId: opened.sessionId },
+      undefined,
+      alice,
+    );
     const second = alice.value("taskcore_capability_chat");
     expect(second).toBe(first);
     expect(afterReset.sessionId).not.toBe(opened.sessionId);
-    expect(await status(`/api/capability/ui/cleanroom/session?sessionId=${opened.sessionId}`, undefined, stale)).toBe(200);
-    expect(await status(`/api/capability/ui/cleanroom/session?sessionId=${afterReset.sessionId}`, undefined, stale)).toBe(200);
+    expect(
+      await status(
+        `/api/capability/ui/cleanroom/session?sessionId=${opened.sessionId}`,
+        undefined,
+        stale,
+      ),
+    ).toBe(200);
+    expect(
+      await status(
+        `/api/capability/ui/cleanroom/session?sessionId=${afterReset.sessionId}`,
+        undefined,
+        stale,
+      ),
+    ).toBe(200);
 
-    const afterNewChat = await call("/api/capability/ui/cleanroom/session", { sessionId: afterReset.sessionId }, undefined, alice);
+    const afterNewChat = await call(
+      "/api/capability/ui/cleanroom/session",
+      { sessionId: afterReset.sessionId },
+      undefined,
+      alice,
+    );
     const third = alice.value("taskcore_capability_chat");
     expect(third).toBe(second);
     const previous = new Jar();
-    previous.capture(new Response(null, {
-      headers: { "set-cookie": `taskcore_capability_chat=${second}` },
-    }));
-    expect(await status(`/api/capability/ui/cleanroom/session?sessionId=${afterNewChat.sessionId}`, undefined, previous)).toBe(200);
-    expect(await status(`/api/capability/ui/cleanroom/session?sessionId=${afterNewChat.sessionId}`, undefined, alice)).toBe(200);
+    previous.capture(
+      new Response(null, {
+        headers: { "set-cookie": `taskcore_capability_chat=${second}` },
+      }),
+    );
+    expect(
+      await status(
+        `/api/capability/ui/cleanroom/session?sessionId=${afterNewChat.sessionId}`,
+        undefined,
+        previous,
+      ),
+    ).toBe(200);
+    expect(
+      await status(
+        `/api/capability/ui/cleanroom/session?sessionId=${afterNewChat.sessionId}`,
+        undefined,
+        alice,
+      ),
+    ).toBe(200);
   });
 
   it("lets two tabs of one browser hold their own sessions without revoking each other", async () => {
     // One jar is one browser. Reloading a page whose stored id is gone must not
     // rotate the capability, or two tabs would revoke each other on every load.
     const browser = new Jar();
-    const tabA = await call("/api/capability/ui/cleanroom/session", undefined, undefined, browser);
+    const tabA = await call(
+      "/api/capability/ui/cleanroom/session",
+      undefined,
+      undefined,
+      browser,
+    );
     const capability = browser.value("taskcore_capability_chat");
-    const tabB = await call("/api/capability/ui/cleanroom/session", undefined, undefined, browser);
+    const tabB = await call(
+      "/api/capability/ui/cleanroom/session",
+      undefined,
+      undefined,
+      browser,
+    );
 
     expect(tabB.sessionId).not.toBe(tabA.sessionId);
     expect(browser.value("taskcore_capability_chat")).toBe(capability);
     for (const sessionId of [tabA.sessionId, tabB.sessionId]) {
       expect(
-        await status(`/api/capability/ui/cleanroom/session?sessionId=${sessionId}`, undefined, browser),
+        await status(
+          `/api/capability/ui/cleanroom/session?sessionId=${sessionId}`,
+          undefined,
+          browser,
+        ),
       ).toBe(200);
     }
     // A different browser still reaches neither of them.
     const stranger = new Jar();
     for (const sessionId of [tabA.sessionId, tabB.sessionId]) {
       expect(
-        await status(`/api/capability/ui/cleanroom/session?sessionId=${sessionId}`, undefined, stranger),
+        await status(
+          `/api/capability/ui/cleanroom/session?sessionId=${sessionId}`,
+          undefined,
+          stranger,
+        ),
       ).toBe(404);
     }
   });
 
   it("keeps the issue-surface capability stable so reset archives remain resumable", async () => {
     const alice = new Jar();
-    const opened = await call("/api/capability/ui/session?scenario=hb-baseline", undefined, undefined, alice);
+    const opened = await call(
+      "/api/capability/ui/session?scenario=hb-baseline",
+      undefined,
+      undefined,
+      alice,
+    );
     const first = alice.value("taskcore_capability_issue");
     const stale = new Jar();
-    stale.capture(new Response(null, {
-      headers: { "set-cookie": `taskcore_capability_issue=${first}` },
-    }));
+    stale.capture(
+      new Response(null, {
+        headers: { "set-cookie": `taskcore_capability_issue=${first}` },
+      }),
+    );
 
-    const reset = await call("/api/capability/ui/reset", { sessionId: opened.sessionId }, undefined, alice);
+    const reset = await call(
+      "/api/capability/ui/reset",
+      { sessionId: opened.sessionId },
+      undefined,
+      alice,
+    );
     expect(alice.value("taskcore_capability_issue")).toBe(first);
-    expect(await status(`/api/capability/ui/session?sessionId=${opened.sessionId}`, undefined, stale)).toBe(200);
-    expect(await status(`/api/capability/ui/session?sessionId=${reset.sessionId}`, undefined, stale)).toBe(200);
-    expect(await status(`/api/capability/ui/session?sessionId=${reset.sessionId}`, undefined, alice)).toBe(200);
+    expect(
+      await status(
+        `/api/capability/ui/session?sessionId=${opened.sessionId}`,
+        undefined,
+        stale,
+      ),
+    ).toBe(200);
+    expect(
+      await status(
+        `/api/capability/ui/session?sessionId=${reset.sessionId}`,
+        undefined,
+        stale,
+      ),
+    ).toBe(200);
+    expect(
+      await status(
+        `/api/capability/ui/session?sessionId=${reset.sessionId}`,
+        undefined,
+        alice,
+      ),
+    ).toBe(200);
   });
 });

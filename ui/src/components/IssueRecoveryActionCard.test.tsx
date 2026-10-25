@@ -5,17 +5,31 @@ import { flushSync } from "react-dom";
 import type { AnchorHTMLAttributes, ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Agent, IssueRecoveryAction } from "@taskcore/shared";
-import { IssueRecoveryActionCard, deriveRecoveryCardState } from "./IssueRecoveryActionCard";
+import {
+  IssueRecoveryActionCard,
+  deriveRecoveryCardState,
+} from "./IssueRecoveryActionCard";
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
 const visibility = vi.hoisted(() => ({ visible: true, loaded: true }));
-vi.mock("@/hooks/useWorkspaceIsolationControls", () => ({ useWorkspaceIsolationControls: () => visibility }));
-beforeEach(() => { visibility.visible = true; visibility.loaded = true; });
+vi.mock("@/hooks/useWorkspaceIsolationControls", () => ({
+  useWorkspaceIsolationControls: () => visibility,
+}));
+beforeEach(() => {
+  visibility.visible = true;
+  visibility.loaded = true;
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -27,7 +41,9 @@ function act<T>(callback: () => T): T {
   });
   const maybePromise = result as unknown as PromiseLike<unknown>;
   if (result && typeof maybePromise.then === "function") {
-    throw new TypeError("This test act shim only supports synchronous callbacks.");
+    throw new TypeError(
+      "This test act shim only supports synchronous callbacks.",
+    );
   }
   return result as T;
 }
@@ -79,7 +95,9 @@ const returnAgent: Agent = {
   urlKey: "codexcoder",
 } as Agent;
 
-function buildAction(overrides: Partial<IssueRecoveryAction> = {}): IssueRecoveryAction {
+function buildAction(
+  overrides: Partial<IssueRecoveryAction> = {},
+): IssueRecoveryAction {
   return {
     id: "00000000-0000-0000-0000-0000000000aa",
     companyId: "company-1",
@@ -120,45 +138,100 @@ describe("deriveRecoveryCardState", () => {
   });
 
   it("maps active_run_watchdog to observe_only", () => {
-    expect(deriveRecoveryCardState(buildAction({ kind: "active_run_watchdog" }))).toBe("observe_only");
+    expect(
+      deriveRecoveryCardState(buildAction({ kind: "active_run_watchdog" })),
+    ).toBe("observe_only");
   });
 
   it("maps escalated status to escalated", () => {
-    expect(deriveRecoveryCardState(buildAction({ status: "escalated" }))).toBe("escalated");
+    expect(deriveRecoveryCardState(buildAction({ status: "escalated" }))).toBe(
+      "escalated",
+    );
   });
 
   it("maps resolved/cancelled to resolved", () => {
-    expect(deriveRecoveryCardState(buildAction({ status: "resolved" }))).toBe("resolved");
-    expect(deriveRecoveryCardState(buildAction({ status: "cancelled" }))).toBe("resolved");
+    expect(deriveRecoveryCardState(buildAction({ status: "resolved" }))).toBe(
+      "resolved",
+    );
+    expect(deriveRecoveryCardState(buildAction({ status: "cancelled" }))).toBe(
+      "resolved",
+    );
   });
 });
 
 describe("IssueRecoveryActionCard", () => {
-  it.each(["running", "scheduled", "missed"] as const)("describes native %s finalization without claiming another agent turn", (state) => {
-    const node = render(<IssueRecoveryActionCard action={buildAction({
-      kind: "active_run_watchdog", cause: "native_finalization_invalid",
-      nextAction: "Finish the existing run.",
-      wakePolicy: { kind: "resume_native_run", runId: "native-run", notBefore: state === "scheduled" ? "2099-01-01T00:00:00Z" : "2020-01-01T00:00:00Z" },
-      nativeRunActivity: state === "running" ? { runId: "native-run", status: "running", workspaceOperationId: "export-operation" } : null,
-    })} />);
-    expect(node.querySelector("section")?.getAttribute("data-recovery-state")).toBe(state === "missed" ? "needed" : "in_progress");
-    expect(node.textContent).toContain("existing run");
-    expect(node.textContent).not.toContain("retrying the original owner");
-    expect(node.textContent).not.toContain("retrying itself");
-    expect(node.textContent).not.toContain("repairs the next step only");
-    expect(node.textContent).not.toContain("stopped to wait");
-    expect(node.querySelector('[data-testid="recovery-retry-progress"]')?.getAttribute("data-recovery-lane")).toBe("native_run");
-  });
+  it.each(["running", "scheduled", "missed"] as const)(
+    "describes native %s finalization without claiming another agent turn",
+    (state) => {
+      const node = render(
+        <IssueRecoveryActionCard
+          action={buildAction({
+            kind: "active_run_watchdog",
+            cause: "native_finalization_invalid",
+            nextAction: "Finish the existing run.",
+            wakePolicy: {
+              kind: "resume_native_run",
+              runId: "native-run",
+              notBefore:
+                state === "scheduled"
+                  ? "2099-01-01T00:00:00Z"
+                  : "2020-01-01T00:00:00Z",
+            },
+            nativeRunActivity:
+              state === "running"
+                ? {
+                    runId: "native-run",
+                    status: "running",
+                    workspaceOperationId: "export-operation",
+                  }
+                : null,
+          })}
+        />,
+      );
+      expect(
+        node.querySelector("section")?.getAttribute("data-recovery-state"),
+      ).toBe(state === "missed" ? "needed" : "in_progress");
+      expect(node.textContent).toContain("existing run");
+      expect(node.textContent).not.toContain("retrying the original owner");
+      expect(node.textContent).not.toContain("retrying itself");
+      expect(node.textContent).not.toContain("repairs the next step only");
+      expect(node.textContent).not.toContain("stopped to wait");
+      expect(
+        node
+          .querySelector('[data-testid="recovery-retry-progress"]')
+          ?.getAttribute("data-recovery-lane"),
+      ).toBe("native_run");
+    },
+  );
 
   it("describes actual export progress after the board retries an exhausted repair", () => {
-    const node = render(<IssueRecoveryActionCard action={buildAction({
-      kind: "active_run_watchdog", cause: "native_finalization_invalid", ownerType: "board", status: "escalated", attemptCount: 3,
-      wakePolicy: { kind: "resume_native_run", runId: "native-run" },
-      nativeRunActivity: { runId: "native-run", status: "running", workspaceOperationId: "export-operation" },
-    })} />);
-    expect(node.querySelector("section")?.getAttribute("data-recovery-state")).toBe("in_progress");
-    expect(node.textContent).toContain("Taskcore is recovering the existing run");
-    expect(node.querySelector('[data-testid="recovery-recovery-owner"]')?.textContent).toContain("Taskcore");
+    const node = render(
+      <IssueRecoveryActionCard
+        action={buildAction({
+          kind: "active_run_watchdog",
+          cause: "native_finalization_invalid",
+          ownerType: "board",
+          status: "escalated",
+          attemptCount: 3,
+          wakePolicy: { kind: "resume_native_run", runId: "native-run" },
+          nativeRunActivity: {
+            runId: "native-run",
+            status: "running",
+            workspaceOperationId: "export-operation",
+          },
+        })}
+      />,
+    );
+    expect(
+      node.querySelector("section")?.getAttribute("data-recovery-state"),
+    ).toBe("in_progress");
+    expect(node.textContent).toContain(
+      "Taskcore is recovering the existing run",
+    );
+    expect(
+      node.querySelector('[data-testid="recovery-recovery-owner"]')
+        ?.textContent,
+    ).toContain("Taskcore");
     expect(node.textContent).not.toContain("Automatic retries are finished");
   });
 
@@ -166,31 +239,41 @@ describe("IssueRecoveryActionCard", () => {
     const node = render(
       <IssueRecoveryActionCard
         action={buildAction()}
-        agentMap={new Map([
-          [ownerAgent.id, ownerAgent],
-          [returnAgent.id, returnAgent],
-        ])}
+        agentMap={
+          new Map([
+            [ownerAgent.id, ownerAgent],
+            [returnAgent.id, returnAgent],
+          ])
+        }
         onResolve={() => {}}
       />,
     );
     const section = node.querySelector("section[aria-label]");
     expect(section).not.toBeNull();
     expect(section?.getAttribute("data-recovery-state")).toBe("needed");
-    expect(section?.getAttribute("data-recovery-kind")).toBe("missing_disposition");
+    expect(section?.getAttribute("data-recovery-kind")).toBe(
+      "missing_disposition",
+    );
     expect(node.textContent).toContain("RECOVERY NEEDED");
     expect(node.textContent).toContain("Missing Disposition");
     expect(node.textContent).toContain(
       "This task's run finished, but no next step was chosen. Choose what happens next — try the task again, mark it done, or send it for review.",
     );
-    expect(node.textContent).toContain("An agent will be asked to choose the next step");
+    expect(node.textContent).toContain(
+      "An agent will be asked to choose the next step",
+    );
     expect(node.textContent).toContain("ClaudeCoder");
     expect(node.textContent).toContain("CodexCoder");
-    expect(node.textContent).toContain("Choose and record a valid issue disposition.");
+    expect(node.textContent).toContain(
+      "Choose and record a valid issue disposition.",
+    );
   });
 
   it("renders observe_only tone for active_run_watchdog", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildAction({ kind: "active_run_watchdog" })} />,
+      <IssueRecoveryActionCard
+        action={buildAction({ kind: "active_run_watchdog" })}
+      />,
     );
     const section = node.querySelector("section[aria-label]");
     expect(section?.getAttribute("data-recovery-state")).toBe("observe_only");
@@ -200,13 +283,23 @@ describe("IssueRecoveryActionCard", () => {
     );
   });
 
-  it.each(["active", "escalated", "resolved"] as const)("keeps %s runner recovery in the run log without a card", status => {
-    const node = render(<IssueRecoveryActionCard action={buildAction({
-      kind: "active_run_watchdog", cause: "uncertain_external_action", status, ownerType: "board",
-    })} />);
-    expect(node.textContent).toBe("");
-    expect(node.querySelector("section")).toBeNull();
-  });
+  it.each(["active", "escalated", "resolved"] as const)(
+    "keeps %s runner recovery in the run log without a card",
+    (status) => {
+      const node = render(
+        <IssueRecoveryActionCard
+          action={buildAction({
+            kind: "active_run_watchdog",
+            cause: "uncertain_external_action",
+            status,
+            ownerType: "board",
+          })}
+        />,
+      );
+      expect(node.textContent).toBe("");
+      expect(node.querySelector("section")).toBeNull();
+    },
+  );
 
   it.each(["active", "escalated"] as const)(
     "describes a %s board-owned watchdog as a human decision, not a live run",
@@ -261,7 +354,10 @@ describe("IssueRecoveryActionCard", () => {
   it("explains issue_graph_liveness in plain language", () => {
     const node = render(
       <IssueRecoveryActionCard
-        action={buildAction({ kind: "issue_graph_liveness", cause: "issue_graph_liveness" })}
+        action={buildAction({
+          kind: "issue_graph_liveness",
+          cause: "issue_graph_liveness",
+        })}
       />,
     );
     expect(node.textContent).toContain("Task Needs Next Step");
@@ -271,7 +367,9 @@ describe("IssueRecoveryActionCard", () => {
   });
 
   it("falls back to an em dash when no evidence summary is available", () => {
-    const node = render(<IssueRecoveryActionCard action={buildAction({ evidence: {} })} />);
+    const node = render(
+      <IssueRecoveryActionCard action={buildAction({ evidence: {} })} />,
+    );
     expect(node.textContent).toContain("—");
   });
 
@@ -292,12 +390,16 @@ describe("IssueRecoveryActionCard", () => {
       />,
     );
     const section = node.querySelector("section[aria-label]");
-    expect(section?.getAttribute("data-recovery-kind")).toBe("workspace_validation");
+    expect(section?.getAttribute("data-recovery-kind")).toBe(
+      "workspace_validation",
+    );
     expect(node.textContent).toContain("Workspace Validation");
     expect(node.textContent).toContain(
       "Taskcore stopped this run because the task's git workspace could not be validated.",
     );
-    expect(node.textContent).toContain("Repair the source issue workspace link");
+    expect(node.textContent).toContain(
+      "Repair the source issue workspace link",
+    );
   });
 
   it("renders a human evidence summary as prose, not a mono log line", () => {
@@ -315,8 +417,10 @@ describe("IssueRecoveryActionCard", () => {
         })}
       />,
     );
-    const summary = Array.from(node.querySelectorAll("span")).find((el) =>
-      el.textContent === "Unmanaged background task stopped; no durable live path.",
+    const summary = Array.from(node.querySelectorAll("span")).find(
+      (el) =>
+        el.textContent ===
+        "Unmanaged background task stopped; no durable live path.",
     );
     expect(summary).toBeTruthy();
     expect(summary?.className).toContain("text-xs");
@@ -338,8 +442,8 @@ describe("IssueRecoveryActionCard", () => {
         })}
       />,
     );
-    const code = Array.from(node.querySelectorAll("span")).find((el) =>
-      el.textContent === "workspace_validation_failed",
+    const code = Array.from(node.querySelectorAll("span")).find(
+      (el) => el.textContent === "workspace_validation_failed",
     );
     expect(code).toBeTruthy();
     expect(code?.className).toContain("font-mono");
@@ -347,7 +451,13 @@ describe("IssueRecoveryActionCard", () => {
 
   it("renders the resolved state and outcome when resolved", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildAction({ status: "resolved", outcome: "restored", resolvedAt: "2026-05-09T19:35:00.000Z" })} />,
+      <IssueRecoveryActionCard
+        action={buildAction({
+          status: "resolved",
+          outcome: "restored",
+          resolvedAt: "2026-05-09T19:35:00.000Z",
+        })}
+      />,
     );
     const section = node.querySelector("section[aria-label]");
     expect(section?.getAttribute("data-recovery-state")).toBe("resolved");
@@ -361,22 +471,34 @@ describe("IssueRecoveryActionCard", () => {
     const node = render(
       <IssueRecoveryActionCard action={buildAction()} onResolve={onResolve} />,
     );
-    click(node.querySelector("[data-testid='recovery-action-resolve-trigger']"));
+    click(
+      node.querySelector("[data-testid='recovery-action-resolve-trigger']"),
+    );
 
     expect(document.body.textContent).toContain("Try again");
     expect(document.body.textContent).toContain("Mark task done");
     expect(document.body.textContent).not.toContain("Mark blocked");
     expect(document.body.textContent).not.toContain("Delegate follow-up issue");
-    click([...document.body.querySelectorAll("button")].find((button) => button.textContent?.includes("Try again")) ?? null);
+    click(
+      [...document.body.querySelectorAll("button")].find((button) =>
+        button.textContent?.includes("Try again"),
+      ) ?? null,
+    );
 
     expect(onResolve).toHaveBeenCalledWith("todo");
   });
 
   it("does not offer blocked recovery resolution without a blocker selection flow", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildAction()} onResolve={() => {}} canFalsePositive />,
+      <IssueRecoveryActionCard
+        action={buildAction()}
+        onResolve={() => {}}
+        canFalsePositive
+      />,
     );
-    click(node.querySelector("[data-testid='recovery-action-resolve-trigger']"));
+    click(
+      node.querySelector("[data-testid='recovery-action-resolve-trigger']"),
+    );
 
     expect(document.body.textContent).toContain("Try again");
     expect(document.body.textContent).toContain("Mark task done");
@@ -390,7 +512,9 @@ describe("IssueRecoveryActionCard", () => {
     const first = render(
       <IssueRecoveryActionCard action={buildAction()} onResolve={() => {}} />,
     );
-    click(first.querySelector("[data-testid='recovery-action-resolve-trigger']"));
+    click(
+      first.querySelector("[data-testid='recovery-action-resolve-trigger']"),
+    );
     expect(document.body.textContent).not.toContain("False positive");
 
     act(() => root?.unmount());
@@ -400,12 +524,22 @@ describe("IssueRecoveryActionCard", () => {
 
     const onResolve = vi.fn();
     const second = render(
-      <IssueRecoveryActionCard action={buildAction()} onResolve={onResolve} canFalsePositive />,
+      <IssueRecoveryActionCard
+        action={buildAction()}
+        onResolve={onResolve}
+        canFalsePositive
+      />,
     );
-    click(second.querySelector("[data-testid='recovery-action-resolve-trigger']"));
+    click(
+      second.querySelector("[data-testid='recovery-action-resolve-trigger']"),
+    );
     expect(document.body.textContent).toContain("False positive, done");
     expect(document.body.textContent).toContain("False positive, review");
-    click([...document.body.querySelectorAll("button")].find((button) => button.textContent?.includes("False positive, done")) ?? null);
+    click(
+      [...document.body.querySelectorAll("button")].find((button) =>
+        button.textContent?.includes("False positive, done"),
+      ) ?? null,
+    );
     expect(onResolve).toHaveBeenCalledWith("false_positive_done");
   });
 });
@@ -444,8 +578,12 @@ function buildWorkspaceValidationAction(
 
 describe("IssueRecoveryActionCard workspace_validation divergence", () => {
   it("renders the divergence diagnosis with branches, shas, verdict and plain-language reason", () => {
-    const node = render(<IssueRecoveryActionCard action={buildWorkspaceValidationAction()} />);
-    const diagnosis = node.querySelector("[data-testid='recovery-divergence-diagnosis']");
+    const node = render(
+      <IssueRecoveryActionCard action={buildWorkspaceValidationAction()} />,
+    );
+    const diagnosis = node.querySelector(
+      "[data-testid='recovery-divergence-diagnosis']",
+    );
     expect(diagnosis).not.toBeNull();
     const text = diagnosis?.textContent ?? "";
     expect(text).toContain("Divergence diagnosis");
@@ -457,45 +595,76 @@ describe("IssueRecoveryActionCard workspace_validation divergence", () => {
     expect(text).toContain("aaaaaaaaaa");
     expect(text).toContain("bbbbbbbbbb");
     expect(text).toContain("cannot prove a forward-only reconciliation");
-    expect(node.querySelector("[data-testid='recovery-ancestry-verdict']")).not.toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-ancestry-verdict']"),
+    ).not.toBeNull();
   });
 
   it("labels each ancestry verdict", () => {
-    const diverged = render(<IssueRecoveryActionCard action={buildWorkspaceValidationAction()} />);
-    expect(diverged.querySelector("[data-testid='recovery-ancestry-verdict']")?.textContent).toBe("Diverged");
+    const diverged = render(
+      <IssueRecoveryActionCard action={buildWorkspaceValidationAction()} />,
+    );
+    expect(
+      diverged.querySelector("[data-testid='recovery-ancestry-verdict']")
+        ?.textContent,
+    ).toBe("Diverged");
 
     const ancestor = render(
       <IssueRecoveryActionCard
-        action={buildWorkspaceValidationAction({ provenance: { ancestryVerdict: "ancestor" } })}
+        action={buildWorkspaceValidationAction({
+          provenance: { ancestryVerdict: "ancestor" },
+        })}
       />,
     );
-    expect(ancestor.querySelector("[data-testid='recovery-ancestry-verdict']")?.textContent).toBe("Forward-only");
+    expect(
+      ancestor.querySelector("[data-testid='recovery-ancestry-verdict']")
+        ?.textContent,
+    ).toBe("Forward-only");
 
     const unknown = render(
       <IssueRecoveryActionCard
-        action={buildWorkspaceValidationAction({ provenance: { ancestryVerdict: "unknown" } })}
+        action={buildWorkspaceValidationAction({
+          provenance: { ancestryVerdict: "unknown" },
+        })}
       />,
     );
-    expect(unknown.querySelector("[data-testid='recovery-ancestry-verdict']")?.textContent).toBe("Ancestry unknown");
+    expect(
+      unknown.querySelector("[data-testid='recovery-ancestry-verdict']")
+        ?.textContent,
+    ).toBe("Ancestry unknown");
   });
 
   it("does not render a divergence diagnosis for non-incoherence workspace failures", () => {
     const node = render(
       <IssueRecoveryActionCard
         action={buildWorkspaceValidationAction({
-          workspaceValidation: { reason: "workspace_link_missing", provenance: undefined },
+          workspaceValidation: {
+            reason: "workspace_link_missing",
+            provenance: undefined,
+          },
         })}
       />,
     );
-    expect(node.querySelector("[data-testid='recovery-divergence-diagnosis']")).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-divergence-diagnosis']"),
+    ).toBeNull();
   });
 
   it("hides the isolated re-issue action under operator visibility policy", () => {
     visibility.visible = false;
     const onReissueIsolated = vi.fn();
-    const node = render(<IssueRecoveryActionCard action={buildWorkspaceValidationAction()} onReissueIsolated={onReissueIsolated} />);
-    expect(node.querySelector("[data-testid='recovery-action-reissue-trigger']")).toBeNull();
-    expect(node.querySelector("[data-testid='recovery-divergence-diagnosis']")).not.toBeNull();
+    const node = render(
+      <IssueRecoveryActionCard
+        action={buildWorkspaceValidationAction()}
+        onReissueIsolated={onReissueIsolated}
+      />,
+    );
+    expect(
+      node.querySelector("[data-testid='recovery-action-reissue-trigger']"),
+    ).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-divergence-diagnosis']"),
+    ).not.toBeNull();
     expect(onReissueIsolated).not.toHaveBeenCalled();
   });
 
@@ -507,8 +676,14 @@ describe("IssueRecoveryActionCard workspace_validation divergence", () => {
         onReissueIsolated={onReissueIsolated}
       />,
     );
-    click(node.querySelector("[data-testid='recovery-action-reissue-trigger']"));
-    click(document.body.querySelector("[data-testid='recovery-action-reissue-confirm']"));
+    click(
+      node.querySelector("[data-testid='recovery-action-reissue-trigger']"),
+    );
+    click(
+      document.body.querySelector(
+        "[data-testid='recovery-action-reissue-confirm']",
+      ),
+    );
     expect(onReissueIsolated).toHaveBeenCalledWith({
       baseRef: "nleach/PAP-1405-live",
       liveBranch: "nleach/PAP-1405-live",
@@ -521,22 +696,38 @@ describe("IssueRecoveryActionCard workspace_validation divergence", () => {
     const onReissueIsolated = vi.fn();
     const node = render(
       <IssueRecoveryActionCard
-        action={buildWorkspaceValidationAction({ workspaceValidation: { actualBranch: null } })}
+        action={buildWorkspaceValidationAction({
+          workspaceValidation: { actualBranch: null },
+        })}
         onReissueIsolated={onReissueIsolated}
       />,
     );
-    click(node.querySelector("[data-testid='recovery-action-reissue-trigger']"));
-    click(document.body.querySelector("[data-testid='recovery-action-reissue-confirm']"));
+    click(
+      node.querySelector("[data-testid='recovery-action-reissue-trigger']"),
+    );
+    click(
+      document.body.querySelector(
+        "[data-testid='recovery-action-reissue-confirm']",
+      ),
+    );
     expect(onReissueIsolated).toHaveBeenCalledWith(
-      expect.objectContaining({ baseRef: "bbbbbbbbbbbb33334444", liveBranch: null }),
+      expect.objectContaining({
+        baseRef: "bbbbbbbbbbbb33334444",
+        liveBranch: null,
+      }),
     );
   });
 
   it("does not offer the re-issue action for non-workspace kinds", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildAction()} onReissueIsolated={() => {}} />,
+      <IssueRecoveryActionCard
+        action={buildAction()}
+        onReissueIsolated={() => {}}
+      />,
     );
-    expect(node.querySelector("[data-testid='recovery-action-reissue-trigger']")).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-action-reissue-trigger']"),
+    ).toBeNull();
   });
 
   it("disables the re-issue action while a re-issue is pending", () => {
@@ -547,7 +738,9 @@ describe("IssueRecoveryActionCard workspace_validation divergence", () => {
         reissuePending
       />,
     );
-    const trigger = node.querySelector<HTMLButtonElement>("[data-testid='recovery-action-reissue-trigger']");
+    const trigger = node.querySelector<HTMLButtonElement>(
+      "[data-testid='recovery-action-reissue-trigger']",
+    );
     expect(trigger?.disabled).toBe(true);
   });
 });
@@ -569,11 +762,15 @@ describe("IssueRecoveryActionCard W7 reconcile actions", () => {
     const onReconcileForward = vi.fn();
     const node = render(
       <IssueRecoveryActionCard
-        action={buildWorkspaceValidationAction({ provenance: { ancestryVerdict: "ancestor" } })}
+        action={buildWorkspaceValidationAction({
+          provenance: { ancestryVerdict: "ancestor" },
+        })}
         onReconcileForward={onReconcileForward}
       />,
     );
-    const button = node.querySelector("[data-testid='recovery-action-reconcile-forward']");
+    const button = node.querySelector(
+      "[data-testid='recovery-action-reconcile-forward']",
+    );
     expect(button).not.toBeNull();
     click(button);
     expect(onReconcileForward).toHaveBeenCalledTimes(1);
@@ -582,22 +779,30 @@ describe("IssueRecoveryActionCard W7 reconcile actions", () => {
   it("hides 'Reconcile forward & continue' when the verdict is not an ancestor", () => {
     const node = render(
       <IssueRecoveryActionCard
-        action={buildWorkspaceValidationAction({ provenance: { ancestryVerdict: "diverged" } })}
+        action={buildWorkspaceValidationAction({
+          provenance: { ancestryVerdict: "diverged" },
+        })}
         onReconcileForward={() => {}}
       />,
     );
-    expect(node.querySelector("[data-testid='recovery-action-reconcile-forward']")).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-action-reconcile-forward']"),
+    ).toBeNull();
   });
 
   it("disables reconcile-forward while a reconcile is pending", () => {
     const node = render(
       <IssueRecoveryActionCard
-        action={buildWorkspaceValidationAction({ provenance: { ancestryVerdict: "ancestor" } })}
+        action={buildWorkspaceValidationAction({
+          provenance: { ancestryVerdict: "ancestor" },
+        })}
         onReconcileForward={() => {}}
         reconcilePending
       />,
     );
-    const button = node.querySelector<HTMLButtonElement>("[data-testid='recovery-action-reconcile-forward']");
+    const button = node.querySelector<HTMLButtonElement>(
+      "[data-testid='recovery-action-reconcile-forward']",
+    );
     expect(button?.disabled).toBe(true);
   });
 
@@ -609,7 +814,9 @@ describe("IssueRecoveryActionCard W7 reconcile actions", () => {
         canBreakGlass={false}
       />,
     );
-    expect(node.querySelector("[data-testid='recovery-action-breakglass-trigger']")).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-action-breakglass-trigger']"),
+    ).toBeNull();
   });
 
   it("break-glass restates the divergence and gates the override behind a required reason", () => {
@@ -621,10 +828,14 @@ describe("IssueRecoveryActionCard W7 reconcile actions", () => {
         canBreakGlass
       />,
     );
-    click(node.querySelector("[data-testid='recovery-action-breakglass-trigger']"));
+    click(
+      node.querySelector("[data-testid='recovery-action-breakglass-trigger']"),
+    );
 
     // The confirm step restates the divergence: both branches and both short SHAs.
-    const restated = document.body.querySelector("[data-testid='recovery-breakglass-restated-divergence']");
+    const restated = document.body.querySelector(
+      "[data-testid='recovery-breakglass-restated-divergence']",
+    );
     const restatedText = restated?.textContent ?? "";
     expect(restatedText).toContain("PAP-522-recorded");
     expect(restatedText).toContain("nleach/PAP-1405-live");
@@ -641,16 +852,22 @@ describe("IssueRecoveryActionCard W7 reconcile actions", () => {
 
     // Whitespace-only reason does not enable it.
     setTextareaValue(
-      document.body.querySelector<HTMLTextAreaElement>("[data-testid='recovery-breakglass-reason']"),
+      document.body.querySelector<HTMLTextAreaElement>(
+        "[data-testid='recovery-breakglass-reason']",
+      ),
       "   ",
     );
     expect(
-      document.body.querySelector<HTMLButtonElement>("[data-testid='recovery-action-breakglass-confirm']")?.disabled,
+      document.body.querySelector<HTMLButtonElement>(
+        "[data-testid='recovery-action-breakglass-confirm']",
+      )?.disabled,
     ).toBe(true);
 
     // A real reason enables the override and is passed (trimmed) to the handler.
     setTextareaValue(
-      document.body.querySelector<HTMLTextAreaElement>("[data-testid='recovery-breakglass-reason']"),
+      document.body.querySelector<HTMLTextAreaElement>(
+        "[data-testid='recovery-breakglass-reason']",
+      ),
       "  Verified live branch is safe to adopt.  ",
     );
     const enabledConfirm = document.body.querySelector<HTMLButtonElement>(
@@ -658,7 +875,9 @@ describe("IssueRecoveryActionCard W7 reconcile actions", () => {
     );
     expect(enabledConfirm?.disabled).toBe(false);
     click(enabledConfirm);
-    expect(onBreakGlassOverride).toHaveBeenCalledWith("Verified live branch is safe to adopt.");
+    expect(onBreakGlassOverride).toHaveBeenCalledWith(
+      "Verified live branch is safe to adopt.",
+    );
   });
 
   it("does not offer reconcile actions for non-workspace recovery kinds", () => {
@@ -670,8 +889,12 @@ describe("IssueRecoveryActionCard W7 reconcile actions", () => {
         canBreakGlass
       />,
     );
-    expect(node.querySelector("[data-testid='recovery-action-reconcile-forward']")).toBeNull();
-    expect(node.querySelector("[data-testid='recovery-action-breakglass-trigger']")).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-action-reconcile-forward']"),
+    ).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-action-breakglass-trigger']"),
+    ).toBeNull();
   });
 });
 
@@ -698,26 +921,46 @@ describe("IssueRecoveryActionCard repair workspace (quarantine_restore)", () => 
   it("offers the repair action only for a dirty divergence", () => {
     const cleanNode = render(
       <IssueRecoveryActionCard
-        action={buildWorkspaceValidationAction({ workspaceValidation: { cleanliness: "clean" } })}
+        action={buildWorkspaceValidationAction({
+          workspaceValidation: { cleanliness: "clean" },
+        })}
         onQuarantineRestore={() => {}}
       />,
     );
-    expect(cleanNode.querySelector("[data-testid='recovery-action-repair-trigger']")).toBeNull();
+    expect(
+      cleanNode.querySelector("[data-testid='recovery-action-repair-trigger']"),
+    ).toBeNull();
 
     const dirtyNode = render(
-      <IssueRecoveryActionCard action={buildDirtyDivergenceAction()} onQuarantineRestore={() => {}} />,
+      <IssueRecoveryActionCard
+        action={buildDirtyDivergenceAction()}
+        onQuarantineRestore={() => {}}
+      />,
     );
-    expect(dirtyNode.querySelector("[data-testid='recovery-action-repair-trigger']")).not.toBeNull();
+    expect(
+      dirtyNode.querySelector("[data-testid='recovery-action-repair-trigger']"),
+    ).not.toBeNull();
   });
 
   it("does not offer the repair action without a handler or for non-workspace kinds", () => {
-    const noHandler = render(<IssueRecoveryActionCard action={buildDirtyDivergenceAction()} />);
-    expect(noHandler.querySelector("[data-testid='recovery-action-repair-trigger']")).toBeNull();
+    const noHandler = render(
+      <IssueRecoveryActionCard action={buildDirtyDivergenceAction()} />,
+    );
+    expect(
+      noHandler.querySelector("[data-testid='recovery-action-repair-trigger']"),
+    ).toBeNull();
 
     const nonWorkspace = render(
-      <IssueRecoveryActionCard action={buildAction()} onQuarantineRestore={() => {}} />,
+      <IssueRecoveryActionCard
+        action={buildAction()}
+        onQuarantineRestore={() => {}}
+      />,
     );
-    expect(nonWorkspace.querySelector("[data-testid='recovery-action-repair-trigger']")).toBeNull();
+    expect(
+      nonWorkspace.querySelector(
+        "[data-testid='recovery-action-repair-trigger']",
+      ),
+    ).toBeNull();
   });
 
   it("confirm popover restates the dirty count, live branch, rescue branch and recorded branch, then fires the handler", () => {
@@ -729,17 +972,22 @@ describe("IssueRecoveryActionCard repair workspace (quarantine_restore)", () => 
       />,
     );
     click(node.querySelector("[data-testid='recovery-action-repair-trigger']"));
-    const restated = document.body.querySelector("[data-testid='recovery-repair-restated']");
+    const restated = document.body.querySelector(
+      "[data-testid='recovery-repair-restated']",
+    );
     const text = restated?.textContent ?? "";
     expect(
-      document.body.querySelector("[data-testid='recovery-repair-dirty-count']")?.textContent,
+      document.body.querySelector("[data-testid='recovery-repair-dirty-count']")
+        ?.textContent,
     ).toBe("3 uncommitted changes");
     // live branch is named in the restated summary, left untouched
     expect(text).toContain("nleach/PAP-1405-live");
     expect(text).toContain("(left untouched)");
     // rescue branch preview mirrors the server naming (prefix + timestamp marker)
     expect(
-      document.body.querySelector("[data-testid='recovery-repair-rescue-branch']")?.textContent,
+      document.body.querySelector(
+        "[data-testid='recovery-repair-rescue-branch']",
+      )?.textContent,
     ).toContain("taskcore/rescue/PAP-1405/");
     // recorded branch to be restored
     expect(text).toContain("PAP-522-recorded");
@@ -747,20 +995,27 @@ describe("IssueRecoveryActionCard repair workspace (quarantine_restore)", () => 
     // No reason field is present — the operation is lossless.
     expect(document.body.querySelector("textarea")).toBeNull();
 
-    click(document.body.querySelector("[data-testid='recovery-action-repair-confirm']"));
+    click(
+      document.body.querySelector(
+        "[data-testid='recovery-action-repair-confirm']",
+      ),
+    );
     expect(onQuarantineRestore).toHaveBeenCalledTimes(1);
   });
 
   it("singularizes a one-file dirty count", () => {
     const node = render(
       <IssueRecoveryActionCard
-        action={buildDirtyDivergenceAction({ workspaceValidation: { statusEntryCount: 1 } })}
+        action={buildDirtyDivergenceAction({
+          workspaceValidation: { statusEntryCount: 1 },
+        })}
         onQuarantineRestore={() => {}}
       />,
     );
     click(node.querySelector("[data-testid='recovery-action-repair-trigger']"));
     expect(
-      document.body.querySelector("[data-testid='recovery-repair-dirty-count']")?.textContent,
+      document.body.querySelector("[data-testid='recovery-repair-dirty-count']")
+        ?.textContent,
     ).toBe("1 uncommitted change");
   });
 
@@ -773,7 +1028,9 @@ describe("IssueRecoveryActionCard repair workspace (quarantine_restore)", () => 
       />,
     );
     expect(
-      node.querySelector<HTMLButtonElement>("[data-testid='recovery-action-repair-trigger']")?.disabled,
+      node.querySelector<HTMLButtonElement>(
+        "[data-testid='recovery-action-repair-trigger']",
+      )?.disabled,
     ).toBe(true);
   });
 
@@ -787,7 +1044,12 @@ describe("IssueRecoveryActionCard repair workspace (quarantine_restore)", () => 
               claimedByWorkspaceId: "ws-99",
               claimedByIssueId: "issue-99",
               claimedByIssueIdentifier: "PAP-9001",
-              activeRun: { id: "run-9001", status: "running", issueId: "issue-99", issueIdentifier: "PAP-9001" },
+              activeRun: {
+                id: "run-9001",
+                status: "running",
+                issueId: "issue-99",
+                issueIdentifier: "PAP-9001",
+              },
             },
           },
         })}
@@ -796,13 +1058,17 @@ describe("IssueRecoveryActionCard repair workspace (quarantine_restore)", () => 
       />,
     );
     // Diagnosis gains a claimant line naming the claiming issue.
-    const notice = node.querySelector("[data-testid='recovery-contention-notice']");
+    const notice = node.querySelector(
+      "[data-testid='recovery-contention-notice']",
+    );
     expect(notice?.textContent).toContain("Worktree claimed by");
     expect(notice?.textContent).toContain("PAP-9001");
     expect(notice?.textContent).toContain("(active run)");
 
     // The repair control is present but disabled, with the claimant as the explanation.
-    const disabled = node.querySelector("[data-testid='recovery-action-repair-disabled']");
+    const disabled = node.querySelector(
+      "[data-testid='recovery-action-repair-disabled']",
+    );
     expect(disabled).not.toBeNull();
     const trigger = disabled?.querySelector<HTMLButtonElement>(
       "[data-testid='recovery-action-repair-trigger']",
@@ -816,7 +1082,9 @@ describe("IssueRecoveryActionCard repair workspace (quarantine_restore)", () => 
     expect(onQuarantineRestore).not.toHaveBeenCalled();
 
     // Re-issue is surfaced as the recommended action.
-    expect(node.querySelector("[data-testid='recovery-reissue-recommended']")).not.toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-reissue-recommended']"),
+    ).not.toBeNull();
     expect(
       node
         .querySelector("[data-testid='recovery-action-reissue-trigger']")
@@ -833,10 +1101,16 @@ describe("IssueRecoveryActionCard repair workspace (quarantine_restore)", () => 
       />,
     );
     // Metadata rows (e.g. the Owner/Next action table) are dropped in compact mode.
-    expect(node.textContent).not.toContain("Choose and record a valid issue disposition.");
+    expect(node.textContent).not.toContain(
+      "Choose and record a valid issue disposition.",
+    );
     // The divergence diagnosis and repair action still render.
-    expect(node.querySelector("[data-testid='recovery-divergence-diagnosis']")).not.toBeNull();
-    expect(node.querySelector("[data-testid='recovery-action-repair-trigger']")).not.toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-divergence-diagnosis']"),
+    ).not.toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-action-repair-trigger']"),
+    ).not.toBeNull();
   });
 });
 
@@ -889,7 +1163,9 @@ describe("IssueRecoveryActionCard owner-sticky retry lineage", () => {
   }
 
   /** Phase 2 — a manager (ClaudeCoder) repairs the path; CodexCoder keeps the task. */
-  function buildRecoveryLaneAction(overrides: Partial<IssueRecoveryAction> = {}) {
+  function buildRecoveryLaneAction(
+    overrides: Partial<IssueRecoveryAction> = {},
+  ) {
     return buildSourceLaneAction({
       ownerAgentId: ownerAgent.id,
       nextAction:
@@ -917,40 +1193,61 @@ describe("IssueRecoveryActionCard owner-sticky retry lineage", () => {
 
   it("stays quiet and names the retry lane while the original owner is being retried", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildSourceLaneAction()} agentMap={bothAgents} />,
+      <IssueRecoveryActionCard
+        action={buildSourceLaneAction()}
+        agentMap={bothAgents}
+      />,
     );
     const section = node.querySelector("section[aria-label]");
     expect(section?.getAttribute("data-recovery-state")).toBe("in_progress");
-    expect(section?.getAttribute("data-recovery-kind")).toBe("deliberate_wait_without_target");
+    expect(section?.getAttribute("data-recovery-kind")).toBe(
+      "deliberate_wait_without_target",
+    );
     expect(section?.getAttribute("data-recovery-lane")).toBe("source_owner");
     expect(node.textContent).toContain("RECOVERY IN PROGRESS");
     expect(node.textContent).not.toContain("RECOVERY NEEDED");
     expect(node.textContent).toContain("Wait Without A Target");
-    expect(node.textContent).toContain("The task stays with its owner, and no action is needed yet.");
-    expect(node.textContent).toContain("Taskcore is retrying the original owner");
+    expect(node.textContent).toContain(
+      "The task stays with its owner, and no action is needed yet.",
+    );
+    expect(node.textContent).toContain(
+      "Taskcore is retrying the original owner",
+    );
   });
 
   it("shows the five-attempt budget and the next due time", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildSourceLaneAction()} agentMap={bothAgents} />,
+      <IssueRecoveryActionCard
+        action={buildSourceLaneAction()}
+        agentMap={bothAgents}
+      />,
     );
-    const progress = node.querySelector("[data-testid='recovery-retry-progress']");
+    const progress = node.querySelector(
+      "[data-testid='recovery-retry-progress']",
+    );
     expect(progress).not.toBeNull();
     expect(progress?.getAttribute("data-recovery-lane")).toBe("source_owner");
     expect(progress?.getAttribute("data-recovery-attempt")).toBe("2");
     expect(progress?.getAttribute("data-recovery-max-attempts")).toBe("5");
     expect(progress?.textContent).toContain("Attempt 2 of 5");
-    expect(node.querySelector("[data-testid='recovery-next-retry']")?.textContent).toBe(
-      "Next try in 3m",
-    );
+    expect(
+      node.querySelector("[data-testid='recovery-next-retry']")?.textContent,
+    ).toBe("Next try in 3m");
   });
 
   it("keeps the source owner and the recovery owner as separate roles", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildRecoveryLaneAction()} agentMap={bothAgents} />,
+      <IssueRecoveryActionCard
+        action={buildRecoveryLaneAction()}
+        agentMap={bothAgents}
+      />,
     );
-    const sourceOwner = node.querySelector("[data-testid='recovery-source-owner']");
-    const recoveryOwner = node.querySelector("[data-testid='recovery-recovery-owner']");
+    const sourceOwner = node.querySelector(
+      "[data-testid='recovery-source-owner']",
+    );
+    const recoveryOwner = node.querySelector(
+      "[data-testid='recovery-recovery-owner']",
+    );
     // CodexCoder is the original owner and keeps the deliverable.
     expect(sourceOwner?.textContent).toContain("CodexCoder");
     expect(sourceOwner?.textContent).toContain("keeps this task");
@@ -965,25 +1262,34 @@ describe("IssueRecoveryActionCard owner-sticky retry lineage", () => {
 
   it("labels the source lane as the owner retrying itself", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildSourceLaneAction()} agentMap={bothAgents} />,
+      <IssueRecoveryActionCard
+        action={buildSourceLaneAction()}
+        agentMap={bothAgents}
+      />,
     );
     expect(
-      node.querySelector("[data-testid='recovery-recovery-owner']")?.textContent,
+      node.querySelector("[data-testid='recovery-recovery-owner']")
+        ?.textContent,
     ).toContain("Original owner — retrying itself");
   });
 
   it("reports the spent source attempts once the manager lane opens", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildRecoveryLaneAction()} agentMap={bothAgents} />,
+      <IssueRecoveryActionCard
+        action={buildRecoveryLaneAction()}
+        agentMap={bothAgents}
+      />,
     );
     const section = node.querySelector("section[aria-label]");
     expect(section?.getAttribute("data-recovery-lane")).toBe("recovery_owner");
     expect(section?.getAttribute("data-recovery-state")).toBe("in_progress");
     expect(
-      node.querySelector("[data-testid='recovery-source-attempts']")?.textContent,
+      node.querySelector("[data-testid='recovery-source-attempts']")
+        ?.textContent,
     ).toContain("The original owner used 5 of 5 automatic attempts.");
     expect(
-      node.querySelector("[data-testid='recovery-retry-progress']")?.textContent,
+      node.querySelector("[data-testid='recovery-retry-progress']")
+        ?.textContent,
     ).toContain("Attempt 1 of 3");
   });
 
@@ -1006,14 +1312,20 @@ describe("IssueRecoveryActionCard owner-sticky retry lineage", () => {
     const section = node.querySelector("section[aria-label]");
     expect(section?.getAttribute("data-recovery-state")).toBe("needed");
     expect(node.textContent).toContain("RECOVERY NEEDED");
-    expect(node.textContent).toContain("has used every automatic repair attempt");
-    expect(node.querySelector("[data-testid='recovery-next-retry']")?.textContent).toBe(
-      "Automatic retries used up",
+    expect(node.textContent).toContain(
+      "has used every automatic repair attempt",
     );
+    expect(
+      node.querySelector("[data-testid='recovery-next-retry']")?.textContent,
+    ).toBe("Automatic retries used up");
     // The follow-up line must not keep promising a retry that will never run, and the
     // generic timeout chip must not reintroduce a stale due time next to it.
-    expect(node.textContent).toContain("Automatic retries are finished — a decision is needed");
-    expect(node.textContent).not.toContain("Taskcore is retrying the original owner");
+    expect(node.textContent).toContain(
+      "Automatic retries are finished — a decision is needed",
+    );
+    expect(node.textContent).not.toContain(
+      "Taskcore is retrying the original owner",
+    );
     expect(node.textContent).not.toContain("Times out");
   });
 
@@ -1050,9 +1362,9 @@ describe("IssueRecoveryActionCard owner-sticky retry lineage", () => {
     expect(node.textContent).toContain("came due and did not run");
     expect(node.textContent).toContain("The scheduled retry did not run");
     // The repair lane still must not move the deliverable off its original owner.
-    expect(node.querySelector("[data-testid='recovery-source-owner']")?.textContent).toContain(
-      "keeps this task",
-    );
+    expect(
+      node.querySelector("[data-testid='recovery-source-owner']")?.textContent,
+    ).toContain("keeps this task");
   });
 
   it("stays quiet when the overdue attempt is a verified live run", () => {
@@ -1084,17 +1396,22 @@ describe("IssueRecoveryActionCard owner-sticky retry lineage", () => {
     );
     const section = node.querySelector("section[aria-label]");
     expect(section?.getAttribute("data-recovery-state")).toBe("in_progress");
-    expect(node.querySelector("[data-testid='recovery-next-retry']")?.textContent).toBe(
-      "Attempt running now",
-    );
+    expect(
+      node.querySelector("[data-testid='recovery-next-retry']")?.textContent,
+    ).toBe("Attempt running now");
     expect(node.textContent).not.toContain("Retry missed");
   });
 
   it("keeps timing in the retry-progress row only while a lane is live", () => {
     const node = render(
-      <IssueRecoveryActionCard action={buildSourceLaneAction()} agentMap={bothAgents} />,
+      <IssueRecoveryActionCard
+        action={buildSourceLaneAction()}
+        agentMap={bothAgents}
+      />,
     );
-    expect(node.textContent).toContain("Taskcore is retrying the original owner");
+    expect(node.textContent).toContain(
+      "Taskcore is retrying the original owner",
+    );
     expect(node.textContent).not.toContain("Times out");
   });
 
@@ -1127,7 +1444,9 @@ describe("IssueRecoveryActionCard owner-sticky retry lineage", () => {
     expect(section?.getAttribute("data-recovery-lane")).toBe("board");
     expect(node.textContent).toContain("Automatic recovery is exhausted");
     expect(node.textContent).toContain("Board decision required");
-    const recoveryOwner = node.querySelector("[data-testid='recovery-recovery-owner']");
+    const recoveryOwner = node.querySelector(
+      "[data-testid='recovery-recovery-owner']",
+    );
     expect(recoveryOwner?.textContent).toContain("Board");
     expect(recoveryOwner?.textContent).toContain("decides the next step only");
     expect(
@@ -1139,22 +1458,52 @@ describe("IssueRecoveryActionCard owner-sticky retry lineage", () => {
     const node = render(
       <IssueRecoveryActionCard action={buildAction()} agentMap={bothAgents} />,
     );
-    expect(node.querySelector("section[aria-label]")?.getAttribute("data-recovery-lane")).toBeNull();
-    expect(node.querySelector("[data-testid='recovery-retry-progress']")).toBeNull();
-    expect(node.querySelector("[data-testid='recovery-source-owner']")).toBeNull();
+    expect(
+      node
+        .querySelector("section[aria-label]")
+        ?.getAttribute("data-recovery-lane"),
+    ).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-retry-progress']"),
+    ).toBeNull();
+    expect(
+      node.querySelector("[data-testid='recovery-source-owner']"),
+    ).toBeNull();
     expect(node.textContent).toContain("→ Returns to:");
   });
 });
 
-it.each(["active", "escalated", "resolved"] as const)("does not show a historical unsafe-export repair card: %s", status => {
-  const node = render(<IssueRecoveryActionCard action={buildAction({ status, kind: "active_run_watchdog",
-    cause: "native_workspace_sync_out_unsafe_archive", ownerType: "board", nextAction: "Repair the unsafe link manually" })} onResolve={() => {}} />);
-  expect(node.textContent).toBe("");
-});
+it.each(["active", "escalated", "resolved"] as const)(
+  "does not show a historical unsafe-export repair card: %s",
+  (status) => {
+    const node = render(
+      <IssueRecoveryActionCard
+        action={buildAction({
+          status,
+          kind: "active_run_watchdog",
+          cause: "native_workspace_sync_out_unsafe_archive",
+          ownerType: "board",
+          nextAction: "Repair the unsafe link manually",
+        })}
+        onResolve={() => {}}
+      />,
+    );
+    expect(node.textContent).toBe("");
+  },
+);
 
 it("requires export retry for ordinary restoration while keeping explicit board overrides", () => {
-  const node = render(<IssueRecoveryActionCard action={buildAction({ kind: "active_run_watchdog", ownerType: "board",
-    cause: "native_workspace_sync_out_retry_exhausted" })} onResolve={() => {}} canFalsePositive />);
+  const node = render(
+    <IssueRecoveryActionCard
+      action={buildAction({
+        kind: "active_run_watchdog",
+        ownerType: "board",
+        cause: "native_workspace_sync_out_retry_exhausted",
+      })}
+      onResolve={() => {}}
+      canFalsePositive
+    />,
+  );
   click(node.querySelector("[data-testid='recovery-action-resolve-trigger']"));
   expect(document.body.textContent).not.toContain("Try again");
   expect(document.body.textContent).not.toContain("Mark task done");

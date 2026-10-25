@@ -12,13 +12,17 @@ export function shouldUseIsolatedTaskDirectory(input: {
   projectWorkspaceId: string | null;
   workspaceStrategies: unknown[];
 }): boolean {
-  return input.trustPreset === "low_trust_review"
-    && input.environmentDriver === "sandbox"
-    && input.mode === "isolated_workspace"
-    && !input.hasProjectWorkspace
-    && !input.projectWorkspaceId
+  return (
+    input.trustPreset === "low_trust_review" &&
+    input.environmentDriver === "sandbox" &&
+    input.mode === "isolated_workspace" &&
+    !input.hasProjectWorkspace &&
+    !input.projectWorkspaceId &&
     // Never discard an explicit repository/branch requirement or setup hook.
-    && input.workspaceStrategies.every((value) => Object.keys(parseObject(value)).length === 0);
+    input.workspaceStrategies.every(
+      (value) => Object.keys(parseObject(value)).length === 0,
+    )
+  );
 }
 
 /** Stable across turns, separate from project roots and shared agent homes. */
@@ -40,8 +44,14 @@ export async function materializeIsolatedTaskDirectory(input: {
       if (error.code !== "EEXIST") throw error;
     });
     const stat = await lstat(cwd);
-    if (!stat.isDirectory() || stat.isSymbolicLink() || await realpath(cwd) !== cwd) {
-      throw new Error("Isolated task workspace path is not a private directory");
+    if (
+      !stat.isDirectory() ||
+      stat.isSymbolicLink() ||
+      (await realpath(cwd)) !== cwd
+    ) {
+      throw new Error(
+        "Isolated task workspace path is not a private directory",
+      );
     }
   }
   return cwd;

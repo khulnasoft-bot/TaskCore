@@ -3,7 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { GROK_SYNC_ALLOWLIST, grokHomeHasSession, stageGrokHomeForSync } from "./grok-home.js";
+import {
+  GROK_SYNC_ALLOWLIST,
+  grokHomeHasSession,
+  stageGrokHomeForSync,
+} from "./grok-home.js";
 
 describe("GROK_SYNC_ALLOWLIST", () => {
   it("holds exactly one name: auth.json", () => {
@@ -34,16 +38,29 @@ describe("stageGrokHomeForSync", () => {
     const sessions = path.join(root, "sessions");
     await fs.mkdir(sessions);
     for (let offset = 0; offset < 5001; offset += 100) {
-      await Promise.all(Array.from({ length: Math.min(100, 5001 - offset) }, (_, index) => fs.writeFile(path.join(sessions, `other-${offset + index}.json`), "{}")));
+      await Promise.all(
+        Array.from({ length: Math.min(100, 5001 - offset) }, (_, index) =>
+          fs.writeFile(
+            path.join(sessions, `other-${offset + index}.json`),
+            "{}",
+          ),
+        ),
+      );
     }
-    await expect(grokHomeHasSession(root, "requested-session")).resolves.toBe(false);
+    await expect(grokHomeHasSession(root, "requested-session")).resolves.toBe(
+      false,
+    );
   });
 
   it("stages auth.json and stages no other file", async () => {
     const root = await makeRoot("taskcore-grok-stage-");
     const home = path.join(root, "grok-home");
     await fs.mkdir(home, { recursive: true });
-    await fs.writeFile(path.join(home, "auth.json"), JSON.stringify({ ok: true }), "utf8");
+    await fs.writeFile(
+      path.join(home, "auth.json"),
+      JSON.stringify({ ok: true }),
+      "utf8",
+    );
     // A decoy runtime file the allowlist must not pick up.
     await fs.writeFile(path.join(home, "sessions.sqlite"), "decoy", "utf8");
 
@@ -95,7 +112,9 @@ describe("stageGrokHomeForSync", () => {
     cleanupDirs.push(staged);
 
     const stagedAuthPath = path.join(staged, "auth.json");
-    expect(await fs.readFile(stagedAuthPath, "utf8")).toBe(JSON.stringify({ live: "token" }));
+    expect(await fs.readFile(stagedAuthPath, "utf8")).toBe(
+      JSON.stringify({ live: "token" }),
+    );
     // The staged copy is a real file, not a symlink into the shared source.
     expect((await fs.lstat(stagedAuthPath)).isSymbolicLink()).toBe(false);
   });
@@ -115,7 +134,10 @@ describe("stageGrokHomeForSync", () => {
     const root = await makeRoot("taskcore-grok-stage-dangling-");
     const home = path.join(root, "grok-home");
     await fs.mkdir(home, { recursive: true });
-    await fs.symlink(path.join(root, "gone", "auth.json"), path.join(home, "auth.json"));
+    await fs.symlink(
+      path.join(root, "gone", "auth.json"),
+      path.join(home, "auth.json"),
+    );
 
     const staged = await stageGrokHomeForSync(home, { runId: "run-dangling" });
     cleanupDirs.push(staged);
@@ -131,17 +153,26 @@ describe("stageGrokHomeForSync", () => {
 
     let createdDir: string | null = null;
     const realMkdtemp = fs.mkdtemp.bind(fs);
-    vi.spyOn(fs, "mkdtemp").mockImplementation(async (prefix: string, ...rest: unknown[]) => {
-      const dir = await (realMkdtemp as typeof fs.mkdtemp)(prefix, ...(rest as []));
-      createdDir = dir as string;
-      return dir;
-    });
+    vi.spyOn(fs, "mkdtemp").mockImplementation(
+      async (prefix: string, ...rest: unknown[]) => {
+        const dir = await (realMkdtemp as typeof fs.mkdtemp)(
+          prefix,
+          ...(rest as []),
+        );
+        createdDir = dir as string;
+        return dir;
+      },
+    );
     vi.spyOn(fs, "readFile").mockRejectedValue(
       Object.assign(new Error("boom"), { code: "EACCES" }),
     );
 
-    await expect(stageGrokHomeForSync(home, { runId: "run-fail" })).rejects.toThrow("boom");
+    await expect(
+      stageGrokHomeForSync(home, { runId: "run-fail" }),
+    ).rejects.toThrow("boom");
     expect(createdDir).not.toBeNull();
-    await expect(fs.access(createdDir as unknown as string)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(
+      fs.access(createdDir as unknown as string),
+    ).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

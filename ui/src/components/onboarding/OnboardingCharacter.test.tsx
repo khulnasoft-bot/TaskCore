@@ -14,7 +14,14 @@ let root: Root;
 let host: HTMLDivElement;
 const appearance = appearanceForPalette("arctic-blue");
 function player() {
-  return { destroy: vi.fn(), seek: vi.fn(), play: vi.fn(), pause: vi.fn(), setDefinition: vi.fn(), setAnimation: vi.fn() };
+  return {
+    destroy: vi.fn(),
+    seek: vi.fn(),
+    play: vi.fn(),
+    pause: vi.fn(),
+    setDefinition: vi.fn(),
+    setAnimation: vi.fn(),
+  };
 }
 beforeEach(() => {
   createCharacter.mockReset();
@@ -36,17 +43,25 @@ afterEach(async () => {
 });
 async function render(awake = false, selectedAppearance = appearance) {
   await act(async () => {
-    root.render(<OnboardingCharacter appearance={selectedAppearance} awake={awake} />);
+    root.render(
+      <OnboardingCharacter appearance={selectedAppearance} awake={awake} />,
+    );
   });
-  await act(async () => { await vi.dynamicImportSettled(); });
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
 }
 function expectFallback() {
-  expect(host.querySelector("img")?.classList.contains("invisible")).toBe(false);
+  expect(host.querySelector("img")?.classList.contains("invisible")).toBe(
+    false,
+  );
 }
 
 it("releases the first canvas if its colored twin cannot start", async () => {
   const gray = player();
-  createCharacter.mockReturnValueOnce(gray).mockImplementationOnce(() => { throw new Error("WebGL context limit"); });
+  createCharacter.mockReturnValueOnce(gray).mockImplementationOnce(() => {
+    throw new Error("WebGL context limit");
+  });
   await render();
   expect(gray.destroy).toHaveBeenCalledOnce();
   expectFallback();
@@ -67,11 +82,14 @@ it("owns the canvas before seeking so synchronous render errors can release it",
 });
 
 it("stops the wake and releases both canvases after a synchronous render error", async () => {
-  const gray = player(), twin = player();
-  createCharacter.mockImplementationOnce((_target, _definition, options) => {
-    gray.setAnimation.mockImplementationOnce(() => options?.onError?.());
-    return gray;
-  }).mockReturnValueOnce(twin);
+  const gray = player(),
+    twin = player();
+  createCharacter
+    .mockImplementationOnce((_target, _definition, options) => {
+      gray.setAnimation.mockImplementationOnce(() => options?.onError?.());
+      return gray;
+    })
+    .mockReturnValueOnce(twin);
   await render();
   await render(true);
   expect(gray.destroy).toHaveBeenCalledOnce();
@@ -82,8 +100,11 @@ it("stops the wake and releases both canvases after a synchronous render error",
 });
 
 it("releases both canvases if a wake transition throws", async () => {
-  const gray = player(), twin = player();
-  gray.setAnimation.mockImplementationOnce(() => { throw new Error("renderer unavailable"); });
+  const gray = player(),
+    twin = player();
+  gray.setAnimation.mockImplementationOnce(() => {
+    throw new Error("renderer unavailable");
+  });
   createCharacter.mockReturnValueOnce(gray).mockReturnValueOnce(twin);
   await render();
   await render(true);
@@ -92,16 +113,25 @@ it("releases both canvases if a wake transition throws", async () => {
   expectFallback();
 });
 
-it.each([false, true])("refreshes the sleeping twin when its palette changes (wake: %s)", async (awake) => {
-  const gray = player(), twin = player(), nextGray = player(), nextTwin = player();
-  createCharacter.mockReturnValueOnce(gray).mockReturnValueOnce(twin)
-    .mockReturnValueOnce(nextGray).mockReturnValueOnce(nextTwin);
-  await render();
-  await render(awake, appearanceForPalette("coral-mint"));
-  expect(gray.destroy).toHaveBeenCalledOnce();
-  expect(twin.destroy).toHaveBeenCalledOnce();
-  const definition = createCharacter.mock.calls[3][1];
-  expect(definition.character.color).toBe(CAP_V1_COLORS["coral-mint"].a);
-  expect(definition.character.color2).toBe(CAP_V1_COLORS["coral-mint"].b);
-  if (awake) expect(nextTwin.play).toHaveBeenCalledOnce();
-});
+it.each([false, true])(
+  "refreshes the sleeping twin when its palette changes (wake: %s)",
+  async (awake) => {
+    const gray = player(),
+      twin = player(),
+      nextGray = player(),
+      nextTwin = player();
+    createCharacter
+      .mockReturnValueOnce(gray)
+      .mockReturnValueOnce(twin)
+      .mockReturnValueOnce(nextGray)
+      .mockReturnValueOnce(nextTwin);
+    await render();
+    await render(awake, appearanceForPalette("coral-mint"));
+    expect(gray.destroy).toHaveBeenCalledOnce();
+    expect(twin.destroy).toHaveBeenCalledOnce();
+    const definition = createCharacter.mock.calls[3][1];
+    expect(definition.character.color).toBe(CAP_V1_COLORS["coral-mint"].a);
+    expect(definition.character.color2).toBe(CAP_V1_COLORS["coral-mint"].b);
+    if (awake) expect(nextTwin.play).toHaveBeenCalledOnce();
+  },
+);

@@ -39,7 +39,12 @@ function createSeededWorkspace() {
   writeFileSync(path.join(dir, "config.json"), "{}\n", "utf8");
   writeFileSync(
     path.join(dir, "seed-manifest.json"),
-    JSON.stringify({ version: 2, state: "verified", phase: "complete", seedMode: "minimal" }),
+    JSON.stringify({
+      version: 2,
+      state: "verified",
+      phase: "complete",
+      seedMode: "minimal",
+    }),
     "utf8",
   );
   return path.join(dir, "config.json");
@@ -54,12 +59,23 @@ function stubDb() {
   return {
     execute: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
     select: vi.fn((projection?: Record<string, unknown>) => {
-      const rows = projection && "count" in projection ? [{ count: 1 }] : [{ companyId: "company-1" }];
+      const rows =
+        projection && "count" in projection
+          ? [{ count: 1 }]
+          : [{ companyId: "company-1" }];
       const chain: Record<string, unknown> = {};
-      for (const method of ["from", "where", "innerJoin", "limit", "orderBy", "groupBy"]) {
+      for (const method of [
+        "from",
+        "where",
+        "innerJoin",
+        "limit",
+        "orderBy",
+        "groupBy",
+      ]) {
         chain[method] = vi.fn(() => chain);
       }
-      chain.then = (resolve: (value: unknown) => unknown) => Promise.resolve(rows).then(resolve);
+      chain.then = (resolve: (value: unknown) => unknown) =>
+        Promise.resolve(rows).then(resolve);
       return chain;
     }),
   } as unknown as Db;
@@ -68,7 +84,9 @@ function stubDb() {
 function createApp(actorType: "board" | "none") {
   const app = express();
   app.use((req, _res, next) => {
-    (req as express.Request & { actor: { type: string } }).actor = { type: actorType };
+    (req as express.Request & { actor: { type: string } }).actor = {
+      type: actorType,
+    };
     next();
   });
   app.use(
@@ -89,7 +107,8 @@ afterEach(() => {
     else process.env[key] = value;
   }
   previousEnv.clear();
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const dir of tempDirs.splice(0))
+    rmSync(dir, { recursive: true, force: true });
   vi.restoreAllMocks();
 });
 
@@ -101,7 +120,9 @@ describe("GET /api/health workspace readiness", () => {
       [WORKSPACE_EXECUTION_WORKSPACE_ID_ENV_KEY]: "ews-1",
       [WORKSPACE_EXECUTION_WORKSPACE_COMPANY_ID_ENV_KEY]: "company-1",
     });
-    const response = await request(createApp("board")).get("/api/health").expect(200);
+    const response = await request(createApp("board"))
+      .get("/api/health")
+      .expect(200);
     expect(response.body.workspace).toMatchObject({
       state: "ready",
       databaseReady: true,
@@ -121,7 +142,9 @@ describe("GET /api/health workspace readiness", () => {
       [WORKSPACE_EXECUTION_WORKSPACE_ID_ENV_KEY]: "ews-1",
       [WORKSPACE_EXECUTION_WORKSPACE_COMPANY_ID_ENV_KEY]: "company-1",
     });
-    const response = await request(createApp("none")).get("/api/health").expect(200);
+    const response = await request(createApp("none"))
+      .get("/api/health")
+      .expect(200);
     expect(response.body.status).toBe("ok");
     expect(response.body.workspace).toBeUndefined();
     expect(response.body.serverInfo).toBeUndefined();
@@ -172,7 +195,9 @@ describe("GET /api/health workspace readiness", () => {
     setEnv({ TASKCORE_CONFIG: path.join(dir, "config.json") });
     delete process.env[WORKSPACE_HANDOFF_KEY_ENV_KEY];
     delete process.env[WORKSPACE_EXECUTION_WORKSPACE_ID_ENV_KEY];
-    const response = await request(createApp("board")).get("/api/health").expect(200);
+    const response = await request(createApp("board"))
+      .get("/api/health")
+      .expect(200);
     expect(response.body.workspace).toBeUndefined();
   });
 });

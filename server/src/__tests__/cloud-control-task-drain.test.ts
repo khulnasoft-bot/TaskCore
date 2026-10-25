@@ -39,12 +39,14 @@ function encodeJson(value: Record<string, unknown>) {
 
 let requestIdCounter = 0;
 
-function controlAssertion(input: {
-  claims?: Record<string, unknown>;
-  header?: Record<string, unknown>;
-  signingKey?: typeof pair.privateKey;
-  action?: CloudControlAction;
-} = {}) {
+function controlAssertion(
+  input: {
+    claims?: Record<string, unknown>;
+    header?: Record<string, unknown>;
+    signingKey?: typeof pair.privateKey;
+    action?: CloudControlAction;
+  } = {},
+) {
   const iat = Math.floor(NOW.getTime() / 1000);
   const header = encodeJson({
     alg: "EdDSA",
@@ -77,8 +79,16 @@ describe("verifyCloudControlAssertion", () => {
     resetCloudControlReplayFenceForTests();
   });
 
-  const verify = (jws: string, expectedAction: CloudControlAction = "task-drain:start") =>
-    verifyCloudControlAssertion({ compactJws: jws, expectedAction, env: ENV, now: NOW });
+  const verify = (
+    jws: string,
+    expectedAction: CloudControlAction = "task-drain:start",
+  ) =>
+    verifyCloudControlAssertion({
+      compactJws: jws,
+      expectedAction,
+      env: ENV,
+      now: NOW,
+    });
 
   it("accepts a well-formed assertion bound to the expected action", () => {
     const claims = verify(controlAssertion());
@@ -104,15 +114,17 @@ describe("verifyCloudControlAssertion", () => {
   });
 
   it("rejects an assertion for a different action — read cannot start a drain", () => {
-    expect(() => verify(controlAssertion({ action: "task-drain:read" }))).toThrow(
-      /does not authorize this action/,
-    );
+    expect(() =>
+      verify(controlAssertion({ action: "task-drain:read" })),
+    ).toThrow(/does not authorize this action/);
   });
 
   it("rejects an unknown action even when it matches the expectation", () => {
     expect(() =>
       verifyCloudControlAssertion({
-        compactJws: controlAssertion({ claims: { action: "instance:shutdown" } }),
+        compactJws: controlAssertion({
+          claims: { action: "instance:shutdown" },
+        }),
         expectedAction: "instance:shutdown" as CloudControlAction,
         env: ENV,
         now: NOW,
@@ -124,7 +136,11 @@ describe("verifyCloudControlAssertion", () => {
     // Same key, disjoint typ/aud/claims — the one-time bootstrap claim can
     // never double as a management credential.
     const iat = Math.floor(NOW.getTime() / 1000);
-    const header = encodeJson({ alg: "EdDSA", typ: CLOUD_RUNTIME_IDENTITY_JWS_TYPE, kid: publicJwk.kid });
+    const header = encodeJson({
+      alg: "EdDSA",
+      typ: CLOUD_RUNTIME_IDENTITY_JWS_TYPE,
+      kid: publicJwk.kid,
+    });
     const payload = encodeJson({
       v: 1,
       iss: CLOUD_RUNTIME_IDENTITY_ISSUER,
@@ -137,25 +153,36 @@ describe("verifyCloudControlAssertion", () => {
       iat,
       exp: iat + 60,
     });
-    const signature = sign(null, Buffer.from(`${header}.${payload}`, "ascii"), pair.privateKey).toString("base64url");
-    expect(() => verify(`${header}.${payload}.${signature}`)).toThrow(/protected header is invalid/);
+    const signature = sign(
+      null,
+      Buffer.from(`${header}.${payload}`, "ascii"),
+      pair.privateKey,
+    ).toString("base64url");
+    expect(() => verify(`${header}.${payload}.${signature}`)).toThrow(
+      /protected header is invalid/,
+    );
   });
 
   it("rejects a control assertion whose audience is the runtime identity audience", () => {
-    expect(() => verify(controlAssertion({ claims: { aud: CLOUD_RUNTIME_IDENTITY_AUDIENCE } }))).toThrow(
-      /claims are incomplete|is invalid/,
-    );
+    expect(() =>
+      verify(
+        controlAssertion({ claims: { aud: CLOUD_RUNTIME_IDENTITY_AUDIENCE } }),
+      ),
+    ).toThrow(/claims are incomplete|is invalid/);
   });
 
   it("rejects an assertion for another stack, and any assertion when the instance is self-hosted", () => {
-    expect(() => verify(controlAssertion({ claims: { sub: "stack-other" } }))).toThrow(
-      /does not match this instance/,
-    );
+    expect(() =>
+      verify(controlAssertion({ claims: { sub: "stack-other" } })),
+    ).toThrow(/does not match this instance/);
     expect(() =>
       verifyCloudControlAssertion({
         compactJws: controlAssertion(),
         expectedAction: "task-drain:start",
-        env: { TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS: ENV.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS } as NodeJS.ProcessEnv,
+        env: {
+          TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS:
+            ENV.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS,
+        } as NodeJS.ProcessEnv,
         now: NOW,
       }),
     ).toThrow(/does not match this instance/);
@@ -163,23 +190,27 @@ describe("verifyCloudControlAssertion", () => {
 
   it("rejects expired assertions and oversized lifetimes", () => {
     const iat = Math.floor(NOW.getTime() / 1000);
-    expect(() => verify(controlAssertion({ claims: { iat: iat - 600, exp: iat - 300 } }))).toThrow(
-      /expired or has an invalid lifetime/,
-    );
-    expect(() => verify(controlAssertion({ claims: { exp: iat + 3600 } }))).toThrow(
-      /expired or has an invalid lifetime/,
-    );
+    expect(() =>
+      verify(controlAssertion({ claims: { iat: iat - 600, exp: iat - 300 } })),
+    ).toThrow(/expired or has an invalid lifetime/);
+    expect(() =>
+      verify(controlAssertion({ claims: { exp: iat + 3600 } })),
+    ).toThrow(/expired or has an invalid lifetime/);
   });
 
   it("rejects a signature from an unknown key", () => {
-    expect(() => verify(controlAssertion({ signingKey: otherPair.privateKey }))).toThrow(
-      /signature is invalid/,
-    );
+    expect(() =>
+      verify(controlAssertion({ signingKey: otherPair.privateKey })),
+    ).toThrow(/signature is invalid/);
   });
 
   it("rejects a blank or padded request id", () => {
-    expect(() => verify(controlAssertion({ claims: { requestId: "" } }))).toThrow(/claims are incomplete|request id/);
-    expect(() => verify(controlAssertion({ claims: { requestId: " padded " } }))).toThrow(/request id is invalid/);
+    expect(() =>
+      verify(controlAssertion({ claims: { requestId: "" } })),
+    ).toThrow(/claims are incomplete|request id/);
+    expect(() =>
+      verify(controlAssertion({ claims: { requestId: " padded " } })),
+    ).toThrow(/request id is invalid/);
   });
 });
 
@@ -188,9 +219,11 @@ describe("cloudControlMiddleware", () => {
 
   beforeEach(() => {
     resetCloudControlReplayFenceForTests();
-    savedEnv.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS = process.env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS;
+    savedEnv.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS =
+      process.env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS;
     savedEnv.TASKCORE_CLOUD_STACK_ID = process.env.TASKCORE_CLOUD_STACK_ID;
-    process.env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS = ENV.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS;
+    process.env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS =
+      ENV.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS;
     process.env.TASKCORE_CLOUD_STACK_ID = STACK_ID;
   });
 
@@ -226,7 +259,11 @@ describe("cloudControlMiddleware", () => {
   function freshAssertion(action: CloudControlAction) {
     // The middleware verifies against the real clock; sign a live token.
     const iat = Math.floor(Date.now() / 1000);
-    const header = encodeJson({ alg: "EdDSA", typ: CLOUD_CONTROL_JWS_TYPE, kid: publicJwk.kid });
+    const header = encodeJson({
+      alg: "EdDSA",
+      typ: CLOUD_CONTROL_JWS_TYPE,
+      kid: publicJwk.kid,
+    });
     const payload = encodeJson({
       v: 1,
       iss: CLOUD_RUNTIME_IDENTITY_ISSUER,
@@ -237,7 +274,11 @@ describe("cloudControlMiddleware", () => {
       iat,
       exp: iat + 60,
     });
-    const signature = sign(null, Buffer.from(`${header}.${payload}`, "ascii"), pair.privateKey).toString("base64url");
+    const signature = sign(
+      null,
+      Buffer.from(`${header}.${payload}`, "ascii"),
+      pair.privateKey,
+    ).toString("base64url");
     return `${header}.${payload}.${signature}`;
   }
 
@@ -248,7 +289,8 @@ describe("cloudControlMiddleware", () => {
       ["post", "task-drain:start"],
       ["delete", "task-drain:stop"],
     ] as const) {
-      const res = await (request(app) as any)[method]("/api/instance/task-drain")
+      const res = await (request(app) as any)
+        [method]("/api/instance/task-drain")
         .set(CLOUD_CONTROL_HEADER, freshAssertion(action));
       expect(res.status).toBe(200);
       expect(res.body.actor).toMatchObject({
@@ -275,7 +317,11 @@ describe("cloudControlMiddleware", () => {
       .get("/api/instance/lifecycle")
       .set(CLOUD_CONTROL_HEADER, freshAssertion("lifecycle:read"));
     expect(read.status).toBe(200);
-    expect(read.body.actor).toMatchObject({ type: "board", isInstanceAdmin: true, source: "cloud_control" });
+    expect(read.body.actor).toMatchObject({
+      type: "board",
+      isInstanceAdmin: true,
+      source: "cloud_control",
+    });
 
     const unarchive = await request(app)
       .post("/api/instance/lifecycle/unarchive-primary")
@@ -313,9 +359,13 @@ describe("cloudControlMiddleware", () => {
   it("rejects a replayed assertion at the middleware", async () => {
     const app = createApp();
     const jws = freshAssertion("task-drain:read");
-    const first = await request(app).get("/api/instance/task-drain").set(CLOUD_CONTROL_HEADER, jws);
+    const first = await request(app)
+      .get("/api/instance/task-drain")
+      .set(CLOUD_CONTROL_HEADER, jws);
     expect(first.status).toBe(200);
-    const replay = await request(app).get("/api/instance/task-drain").set(CLOUD_CONTROL_HEADER, jws);
+    const replay = await request(app)
+      .get("/api/instance/task-drain")
+      .set(CLOUD_CONTROL_HEADER, jws);
     expect(replay.status).toBe(401);
   });
 

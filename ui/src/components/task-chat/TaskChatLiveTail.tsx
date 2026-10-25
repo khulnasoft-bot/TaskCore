@@ -1,6 +1,10 @@
 import type { ReactElement } from "react";
 import { MarkdownBody } from "@/components/MarkdownBody";
-import type { TaskChatItem, TaskChatRuntimeRequestDecision, TaskChatRuntimeRequestItem } from "./task-chat-model";
+import type {
+  TaskChatItem,
+  TaskChatRuntimeRequestDecision,
+  TaskChatRuntimeRequestItem,
+} from "./task-chat-model";
 import { TaskChatToolCard } from "./TaskChatToolCard";
 import { TaskChatUsageReadout } from "./TaskChatUsageReadout";
 import { TaskChatRunnerActivityGroup } from "./TaskChatRunnerActivityGroup";
@@ -43,7 +47,9 @@ export function TaskChatLiveTail({
 
   if (rows.length === 0) {
     return emptyMessage ? (
-      <div className="px-1 py-1 text-xs text-muted-foreground/70">{emptyMessage}</div>
+      <div className="px-1 py-1 text-xs text-muted-foreground/70">
+        {emptyMessage}
+      </div>
     ) : null;
   }
 
@@ -91,14 +97,15 @@ function renderTailRow(
     case "thinking":
       return <TaskChatThinking key={item.id} item={item} />;
     case "activity_phase":
+      return <TaskChatRunnerActivityGroup key={item.id} item={item} />;
+    case "protocol":
       return (
-        <TaskChatRunnerActivityGroup
+        <TaskChatProtocolCard
           key={item.id}
           item={item}
+          onRuntimeRequestDecision={onRuntimeRequestDecision}
         />
       );
-    case "protocol":
-      return <TaskChatProtocolCard key={item.id} item={item} onRuntimeRequestDecision={onRuntimeRequestDecision} />;
     // Markers, interactions, briefs, statuses, turns, and dropped debug kinds
     // cannot appear as direct live-tail rows.
     default:

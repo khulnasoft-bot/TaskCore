@@ -20,7 +20,13 @@ export interface CapabilityChatHistoryItem {
   current: boolean;
 }
 
-export function SurfaceNav({ surface, history = [], activeSessionId = null, onNewChat, onSelectHistory }: {
+export function SurfaceNav({
+  surface,
+  history = [],
+  activeSessionId = null,
+  onNewChat,
+  onSelectHistory,
+}: {
   surface: CapabilitySurface;
   history?: CapabilityChatHistoryItem[];
   activeSessionId?: string | null;
@@ -28,27 +34,61 @@ export function SurfaceNav({ surface, history = [], activeSessionId = null, onNe
   onSelectHistory?: (sessionId: string) => void;
 }) {
   return (
-    <aside className="pit-surface-nav" aria-label="Runner navigation" data-testid="surface-nav">
-      <div className="pit-sidebar-brand"><Icon name="activity" /><span>Runner lab</span></div>
+    <aside
+      className="pit-surface-nav"
+      aria-label="Runner navigation"
+      data-testid="surface-nav"
+    >
+      <div className="pit-sidebar-brand">
+        <Icon name="activity" />
+        <span>Runner lab</span>
+      </div>
       <nav className="pit-sidebar-primary" aria-label="Capability surfaces">
-        <a className="pit-surface-link" href="#/issue/hb-baseline" aria-current={surface === "issue" ? "page" : undefined} data-testid="surface-issue-link">
-          <Icon name="timeline" /><span>Scenario explorer</span>
+        <a
+          className="pit-surface-link"
+          href="#/issue/hb-baseline"
+          aria-current={surface === "issue" ? "page" : undefined}
+          data-testid="surface-issue-link"
+        >
+          <Icon name="timeline" />
+          <span>Scenario explorer</span>
         </a>
-        <button type="button" className="pit-surface-link" onClick={onNewChat} disabled={onNewChat === undefined} data-testid="surface-chat-link">
-          <Icon name="spark" /><span>New chat</span>
+        <button
+          type="button"
+          className="pit-surface-link"
+          onClick={onNewChat}
+          disabled={onNewChat === undefined}
+          data-testid="surface-chat-link"
+        >
+          <Icon name="spark" />
+          <span>New chat</span>
         </button>
       </nav>
       {surface === "chat" ? (
-        <section className="pit-session-history" aria-labelledby="session-history-title">
+        <section
+          className="pit-session-history"
+          aria-labelledby="session-history-title"
+        >
           <h2 id="session-history-title">Session history</h2>
           <div className="pit-session-history-list">
             {history.map((item) => (
-              <button type="button" key={item.sessionId} className="pit-session-history-item" data-selected={activeSessionId === item.sessionId} onClick={() => onSelectHistory?.(item.sessionId)}>
+              <button
+                type="button"
+                key={item.sessionId}
+                className="pit-session-history-item"
+                data-selected={activeSessionId === item.sessionId}
+                onClick={() => onSelectHistory?.(item.sessionId)}
+              >
                 <span className="pit-session-history-title">{item.title}</span>
-                <span>{item.identifier}{item.current ? " · current" : ""}</span>
+                <span>
+                  {item.identifier}
+                  {item.current ? " · current" : ""}
+                </span>
               </button>
             ))}
-            {history.length === 0 ? <p className="pit-muted">No chats yet.</p> : null}
+            {history.length === 0 ? (
+              <p className="pit-muted">No chats yet.</p>
+            ) : null}
           </div>
         </section>
       ) : null}

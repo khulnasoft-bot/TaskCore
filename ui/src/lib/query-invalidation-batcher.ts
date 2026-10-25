@@ -1,5 +1,8 @@
 import { getPageVisibility } from "./page-visibility";
-import type { InvalidateQueryFilters, QueryClient } from "@tanstack/react-query";
+import type {
+  InvalidateQueryFilters,
+  QueryClient,
+} from "@tanstack/react-query";
 
 /**
  * Coalesces React Query invalidations triggered by the live-events stream.
@@ -63,9 +66,15 @@ export function createInvalidationBatcher(
     const filtersList = [...pending.values()];
     pending.clear();
     try {
-      await Promise.all(filtersList.map((filters) => queryClient.invalidateQueries(
-        getPageVisibility().visible ? filters : { ...filters, refetchType: "none" },
-      )));
+      await Promise.all(
+        filtersList.map((filters) =>
+          queryClient.invalidateQueries(
+            getPageVisibility().visible
+              ? filters
+              : { ...filters, refetchType: "none" },
+          ),
+        ),
+      );
     } finally {
       deferred?.resolve();
     }
@@ -138,7 +147,8 @@ export function createCoalescingQueryClient(
   return new Proxy(queryClient, {
     get(target, prop) {
       if (prop === "invalidateQueries") {
-        return (filters?: InvalidateQueryFilters) => batcher.schedule(filters ?? {});
+        return (filters?: InvalidateQueryFilters) =>
+          batcher.schedule(filters ?? {});
       }
       const value = Reflect.get(target, prop, target);
       return typeof value === "function" ? value.bind(target) : value;

@@ -32,7 +32,9 @@ export function hoistModuleGraph<T>(
   return {
     get value(): T {
       if (graph === undefined) {
-        throw new Error("module graph is not loaded yet — read .value inside a test");
+        throw new Error(
+          "module graph is not loaded yet — read .value inside a test",
+        );
       }
       return graph;
     },

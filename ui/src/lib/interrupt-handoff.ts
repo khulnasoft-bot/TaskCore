@@ -142,9 +142,14 @@ export function findPlainAgentNameCandidate(
   let best: PlainAgentNameCandidate | null = null;
 
   for (const mention of mentions) {
-    const tokens = [mention.name, mention.role ?? ""].filter((t) => t && t.trim().length >= 2);
+    const tokens = [mention.name, mention.role ?? ""].filter(
+      (t) => t && t.trim().length >= 2,
+    );
     for (const token of tokens) {
-      const re = new RegExp(`(?<![\\w@/])${escapeRegExp(token)}(?![\\w/])`, "i");
+      const re = new RegExp(
+        `(?<![\\w@/])${escapeRegExp(token)}(?![\\w/])`,
+        "i",
+      );
       if (re.test(text)) {
         if (!best || token.length > best.matchedText.length) {
           best = { agentId: mention.agentId, matchedText: token };
@@ -180,7 +185,10 @@ export interface ComposerHandoffPreview {
   chip?: { kind: "agent" | "user"; id: string };
 }
 
-function parseReassignValue(value: string): { kind: "agent" | "user" | "none"; id: string | null } {
+function parseReassignValue(value: string): {
+  kind: "agent" | "user" | "none";
+  id: string | null;
+} {
   if (!value || value === "__none__") return { kind: "none", id: null };
   if (value.startsWith("agent:")) {
     const id = value.slice("agent:".length);
@@ -257,7 +265,9 @@ export function computeComposerHandoffPreview(
       kind: "notify_agent",
       tone: "neutral",
       text: "Notify",
-      chip: input.mentionedAgentId ? { kind: "agent", id: input.mentionedAgentId } : undefined,
+      chip: input.mentionedAgentId
+        ? { kind: "agent", id: input.mentionedAgentId }
+        : undefined,
       suffix: input.mentionedAgentId ? undefined : "the mentioned agent",
     };
   }
@@ -299,7 +309,9 @@ export function classifyAssigneeHandoff(
 ): AssigneeHandoffInfo {
   if (to.agentId) {
     const who = opts.agentName ?? "the responsible agent";
-    const suffix = opts.interruptedRunAttached ? " (interrupted run attached)" : "";
+    const suffix = opts.interruptedRunAttached
+      ? " (interrupted run attached)"
+      : "";
     return { kind: "agent_wake", wakeText: `queued for ${who}${suffix}` };
   }
   if (to.userId) {
@@ -310,7 +322,8 @@ export function classifyAssigneeHandoff(
   }
   return {
     kind: "unassigned",
-    wakeText: "not created — no agent selected. Mention @agent or pick a responsible to dispatch.",
+    wakeText:
+      "not created — no agent selected. Mention @agent or pick a responsible to dispatch.",
   };
 }
 
@@ -333,7 +346,9 @@ export interface ReassignInterruptCopy {
  * operator picks a *different* target mid-run. Naming the running agent keeps
  * the interrupt consequence concrete instead of a bare "are you sure".
  */
-export function describeReassignInterrupt(opts: { runningAgentName?: string | null } = {}): ReassignInterruptCopy {
+export function describeReassignInterrupt(
+  opts: { runningAgentName?: string | null } = {},
+): ReassignInterruptCopy {
   const who = opts.runningAgentName?.trim() || "An agent";
   return {
     banner: `${who} is running — changing the responsible will interrupt this run.`,
@@ -346,11 +361,7 @@ export function describeReassignInterrupt(opts: { runningAgentName?: string | nu
 // --- Pause/hold "What this affects" buckets (PAP-10675, design surface 4) ------
 
 export type PauseAffectsBucketKey =
-  | "live_runs"
-  | "queued_wakes"
-  | "agent_owned"
-  | "human_owned"
-  | "static";
+  "live_runs" | "queued_wakes" | "agent_owned" | "human_owned" | "static";
 
 export interface PauseAffectsIssueLike {
   assigneeAgentId: string | null;

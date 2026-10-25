@@ -14,4 +14,3 @@ export interface AssetImage {
   updatedAt: Date;
   contentPath: string;
 }
-

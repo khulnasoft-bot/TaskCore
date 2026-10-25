@@ -3,23 +3,35 @@ import fs from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import postgres from "postgres";
 import { applyPendingMigrations } from "./client.js";
-import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./test-embedded-postgres.js";
+import {
+  getEmbeddedPostgresTestSupport,
+  startEmbeddedPostgresTestDatabase,
+} from "./test-embedded-postgres.js";
 
 const MIGRATION_FILE = "0182_connections_v3_schema_core.sql";
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 async function migrationHash() {
-  const content = await fs.promises.readFile(new URL(`./migrations/${MIGRATION_FILE}`, import.meta.url), "utf8");
+  const content = await fs.promises.readFile(
+    new URL(`./migrations/${MIGRATION_FILE}`, import.meta.url),
+    "utf8",
+  );
   return createHash("sha256").update(content).digest("hex");
 }
 
 describeEmbeddedPostgres("connections v3 schema core migration", () => {
-  afterEach(async () => Promise.all(cleanups.splice(0).map((cleanup) => cleanup())));
+  afterEach(async () =>
+    Promise.all(cleanups.splice(0).map((cleanup) => cleanup())),
+  );
 
   it("backfills a workspace grant and rolls back without losing the connection", async () => {
-    const database = await startEmbeddedPostgresTestDatabase("taskcore-connections-v3-migration-");
+    const database = await startEmbeddedPostgresTestDatabase(
+      "taskcore-connections-v3-migration-",
+    );
     cleanups.push(database.cleanup);
     const sql = postgres(database.connectionString, { max: 1 });
     cleanups.push(async () => sql.end());
@@ -81,17 +93,27 @@ describeEmbeddedPostgres("connections v3 schema core migration", () => {
       `ALTER TABLE "chat_endpoints" ADD CONSTRAINT "chat_endpoints_company_connection_fk" ${chatForeignKey!.definition}`,
     );
 
-    const [connection] = await sql<{ uid: string; ownership: string; transport: string; auth_kind: string }[]>`
+    const [connection] = await sql<
+      { uid: string; ownership: string; transport: string; auth_kind: string }[]
+    >`
       SELECT "uid", "ownership", "transport", "auth_kind" FROM "tool_connections" WHERE "id" = ${connectionId}
     `;
-    expect(connection).toMatchObject({ ownership: "customer", transport: "mcp_remote", auth_kind: "oauth" });
+    expect(connection).toMatchObject({
+      ownership: "customer",
+      transport: "mcp_remote",
+      auth_kind: "oauth",
+    });
     expect(connection?.uid).toMatch(/^linear\/production-[0-9a-f]{8}$/);
 
-    const [grant] = await sql<{ kind: string; is_default: boolean; credential_secret_refs: unknown[] }[]>`
+    const [grant] = await sql<
+      { kind: string; is_default: boolean; credential_secret_refs: unknown[] }[]
+    >`
       SELECT "kind", "is_default", "credential_secret_refs" FROM "connection_grants" WHERE "connection_id" = ${connectionId}
     `;
     expect(grant).toMatchObject({ kind: "workspace", is_default: true });
-    expect(grant?.credential_secret_refs).toEqual([{ secretId, configPath: "oauth.refresh_token" }]);
+    expect(grant?.credential_secret_refs).toEqual([
+      { secretId, configPath: "oauth.refresh_token" },
+    ]);
 
     const otherCompanyId = randomUUID();
     await sql`INSERT INTO "companies" ("id", "name", "issue_prefix") VALUES (${otherCompanyId}, 'Other', 'OTH')`;

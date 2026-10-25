@@ -10,7 +10,9 @@ import {
   isImageLikeOutput,
 } from "./issue-output";
 
-function makeWorkProduct(overrides: Partial<IssueWorkProduct> & { id: string }): IssueWorkProduct {
+function makeWorkProduct(
+  overrides: Partial<IssueWorkProduct> & { id: string },
+): IssueWorkProduct {
   return {
     companyId: "company-1",
     projectId: null,
@@ -53,7 +55,11 @@ function videoMetadata(attachmentId = uuid()) {
   };
 }
 
-function artifactMetadata(contentType: string, originalFilename: string, attachmentId = uuid()) {
+function artifactMetadata(
+  contentType: string,
+  originalFilename: string,
+  attachmentId = uuid(),
+) {
   return {
     ...videoMetadata(attachmentId),
     contentType,
@@ -93,24 +99,60 @@ describe("formatDuration", () => {
 
 describe("getOutputFileGlyph", () => {
   it("maps known mime types to tone + label", () => {
-    expect(getOutputFileGlyph("video/mp4")).toEqual({ label: "MP4", tone: "video" });
-    expect(getOutputFileGlyph("video/mp4; charset=binary")).toEqual({ label: "MP4", tone: "video" });
-    expect(getOutputFileGlyph("video/quicktime")).toEqual({ label: "MOV", tone: "video" });
-    expect(getOutputFileGlyph("application/pdf")).toEqual({ label: "PDF", tone: "pdf" });
-    expect(getOutputFileGlyph("application/zip")).toEqual({ label: "ZIP", tone: "zip" });
-    expect(getOutputFileGlyph("image/png")).toEqual({ label: "IMG", tone: "image" });
+    expect(getOutputFileGlyph("video/mp4")).toEqual({
+      label: "MP4",
+      tone: "video",
+    });
+    expect(getOutputFileGlyph("video/mp4; charset=binary")).toEqual({
+      label: "MP4",
+      tone: "video",
+    });
+    expect(getOutputFileGlyph("video/quicktime")).toEqual({
+      label: "MOV",
+      tone: "video",
+    });
+    expect(getOutputFileGlyph("application/pdf")).toEqual({
+      label: "PDF",
+      tone: "pdf",
+    });
+    expect(getOutputFileGlyph("application/zip")).toEqual({
+      label: "ZIP",
+      tone: "zip",
+    });
+    expect(getOutputFileGlyph("image/png")).toEqual({
+      label: "IMG",
+      tone: "image",
+    });
   });
 
   it("falls back to BIN for unknown types", () => {
-    expect(getOutputFileGlyph("application/octet-stream")).toEqual({ label: "BIN", tone: "bin" });
-    expect(getOutputFileGlyph(undefined)).toEqual({ label: "BIN", tone: "bin" });
+    expect(getOutputFileGlyph("application/octet-stream")).toEqual({
+      label: "BIN",
+      tone: "bin",
+    });
+    expect(getOutputFileGlyph(undefined)).toEqual({
+      label: "BIN",
+      tone: "bin",
+    });
   });
 
   it("labels document-like fallbacks defensively", () => {
-    expect(getOutputFileGlyph("text/plain")).toEqual({ label: "TXT", tone: "bin" });
-    expect(getOutputFileGlyph("text/markdown")).toEqual({ label: "MD", tone: "bin" });
-    expect(getOutputFileGlyph("application/json; charset=utf-8")).toEqual({ label: "JSON", tone: "bin" });
-    expect(getOutputFileGlyph("application/wasm")).toEqual({ label: "WASM", tone: "bin" });
+    expect(getOutputFileGlyph("text/plain")).toEqual({
+      label: "TXT",
+      tone: "bin",
+    });
+    expect(getOutputFileGlyph("text/markdown")).toEqual({
+      label: "MD",
+      tone: "bin",
+    });
+    expect(getOutputFileGlyph("application/json; charset=utf-8")).toEqual({
+      label: "JSON",
+      tone: "bin",
+    });
+    expect(getOutputFileGlyph("application/wasm")).toEqual({
+      label: "WASM",
+      tone: "bin",
+    });
   });
 });
 
@@ -120,10 +162,14 @@ describe("isOutputEligibleContentType", () => {
     expect(isOutputEligibleContentType("image/png")).toBe(true);
     expect(isOutputEligibleContentType("image/svg+xml")).toBe(true);
     expect(isOutputEligibleContentType("application/pdf")).toBe(true);
-    expect(isOutputEligibleContentType("application/vnd.example.bundle+zip")).toBe(true);
+    expect(
+      isOutputEligibleContentType("application/vnd.example.bundle+zip"),
+    ).toBe(true);
     expect(isOutputEligibleContentType("application/wasm")).toBe(true);
     expect(isOutputEligibleContentType("application/octet-stream")).toBe(true);
-    expect(isOutputEligibleContentType("application/octet-stream", "build.bin")).toBe(true);
+    expect(
+      isOutputEligibleContentType("application/octet-stream", "build.bin"),
+    ).toBe(true);
   });
 
   it("filters document-like and source formats out of outputs", () => {
@@ -135,8 +181,12 @@ describe("isOutputEligibleContentType", () => {
     expect(isOutputEligibleContentType("application/xml")).toBe(false);
     expect(isOutputEligibleContentType("text/csv")).toBe(false);
     expect(isOutputEligibleContentType("application/x-yaml")).toBe(false);
-    expect(isOutputEligibleContentType("application/octet-stream", "report.md")).toBe(false);
-    expect(isOutputEligibleContentType("application/octet-stream", "notes.txt")).toBe(false);
+    expect(
+      isOutputEligibleContentType("application/octet-stream", "report.md"),
+    ).toBe(false);
+    expect(
+      isOutputEligibleContentType("application/octet-stream", "notes.txt"),
+    ).toBe(false);
   });
 });
 
@@ -145,7 +195,12 @@ describe("getIssueOutputs", () => {
     const result = getIssueOutputs([
       makeWorkProduct({ id: "pr-1", type: "pull_request" }),
       makeWorkProduct({ id: "doc-1", type: "document" }),
-      makeWorkProduct({ id: "artifact-1", type: "artifact", provider: "custom", metadata: videoMetadata() }),
+      makeWorkProduct({
+        id: "artifact-1",
+        type: "artifact",
+        provider: "custom",
+        metadata: videoMetadata(),
+      }),
     ]);
     expect(result.count).toBe(0);
     expect(result.primary).toBeNull();
@@ -154,7 +209,11 @@ describe("getIssueOutputs", () => {
 
   it("parses a single video artifact into a primary output", () => {
     const result = getIssueOutputs([
-      makeWorkProduct({ id: "wp-1", metadata: videoMetadata(), isPrimary: true }),
+      makeWorkProduct({
+        id: "wp-1",
+        metadata: videoMetadata(),
+        isPrimary: true,
+      }),
     ]);
     expect(result.count).toBe(1);
     expect(result.primary?.id).toBe("wp-1");
@@ -165,10 +224,25 @@ describe("getIssueOutputs", () => {
 
   it("ignores markdown and text artifact metadata instead of promoting them to outputs", () => {
     const result = getIssueOutputs([
-      makeWorkProduct({ id: "markdown", metadata: artifactMetadata("text/markdown", "report.md") }),
-      makeWorkProduct({ id: "text", metadata: artifactMetadata("text/plain", "notes.txt") }),
-      makeWorkProduct({ id: "json", metadata: artifactMetadata("application/json", "summary.json") }),
-      makeWorkProduct({ id: "generic-markdown", metadata: artifactMetadata("application/octet-stream", "legacy-report.md") }),
+      makeWorkProduct({
+        id: "markdown",
+        metadata: artifactMetadata("text/markdown", "report.md"),
+      }),
+      makeWorkProduct({
+        id: "text",
+        metadata: artifactMetadata("text/plain", "notes.txt"),
+      }),
+      makeWorkProduct({
+        id: "json",
+        metadata: artifactMetadata("application/json", "summary.json"),
+      }),
+      makeWorkProduct({
+        id: "generic-markdown",
+        metadata: artifactMetadata(
+          "application/octet-stream",
+          "legacy-report.md",
+        ),
+      }),
     ]);
     expect(result.count).toBe(0);
     expect(result.primary).toBeNull();
@@ -176,15 +250,47 @@ describe("getIssueOutputs", () => {
 
   it("keeps video, image, pdf, zip, and binary artifact metadata as outputs", () => {
     const result = getIssueOutputs([
-      makeWorkProduct({ id: "video", metadata: artifactMetadata("video/mp4", "demo.mp4") }),
-      makeWorkProduct({ id: "image", metadata: artifactMetadata("image/png", "screenshot.png") }),
-      makeWorkProduct({ id: "svg", metadata: artifactMetadata("image/svg+xml", "diagram.svg") }),
-      makeWorkProduct({ id: "pdf", metadata: artifactMetadata("application/pdf", "brief.pdf") }),
-      makeWorkProduct({ id: "zip", metadata: artifactMetadata("application/zip; charset=binary", "bundle.zip") }),
-      makeWorkProduct({ id: "wasm", metadata: artifactMetadata("application/wasm", "module.wasm") }),
-      makeWorkProduct({ id: "binary", metadata: artifactMetadata("application/octet-stream", "build.bin") }),
+      makeWorkProduct({
+        id: "video",
+        metadata: artifactMetadata("video/mp4", "demo.mp4"),
+      }),
+      makeWorkProduct({
+        id: "image",
+        metadata: artifactMetadata("image/png", "screenshot.png"),
+      }),
+      makeWorkProduct({
+        id: "svg",
+        metadata: artifactMetadata("image/svg+xml", "diagram.svg"),
+      }),
+      makeWorkProduct({
+        id: "pdf",
+        metadata: artifactMetadata("application/pdf", "brief.pdf"),
+      }),
+      makeWorkProduct({
+        id: "zip",
+        metadata: artifactMetadata(
+          "application/zip; charset=binary",
+          "bundle.zip",
+        ),
+      }),
+      makeWorkProduct({
+        id: "wasm",
+        metadata: artifactMetadata("application/wasm", "module.wasm"),
+      }),
+      makeWorkProduct({
+        id: "binary",
+        metadata: artifactMetadata("application/octet-stream", "build.bin"),
+      }),
     ]);
-    expect(result.items.map((item) => item.id)).toEqual(["video", "image", "svg", "pdf", "zip", "wasm", "binary"]);
+    expect(result.items.map((item) => item.id)).toEqual([
+      "video",
+      "image",
+      "svg",
+      "pdf",
+      "zip",
+      "wasm",
+      "binary",
+    ]);
   });
 
   it("orders the explicit primary first, then most recent", () => {
@@ -214,7 +320,10 @@ describe("getIssueOutputs", () => {
     const result = getIssueOutputs([
       makeWorkProduct({
         id: "broken",
-        metadata: { attachmentId: "att-x", contentType: "video/mp4" } as Record<string, unknown>,
+        metadata: { attachmentId: "att-x", contentType: "video/mp4" } as Record<
+          string,
+          unknown
+        >,
       }),
     ]);
     expect(result.count).toBe(1);
@@ -228,9 +337,22 @@ describe("getPromotedOutputAttachmentIds", () => {
     const videoAttachmentId = uuid();
     const markdownAttachmentId = uuid();
     const ids = getPromotedOutputAttachmentIds([
-      makeWorkProduct({ id: "video", metadata: videoMetadata(videoAttachmentId) }),
-      makeWorkProduct({ id: "markdown", metadata: artifactMetadata("text/markdown", "report.md", markdownAttachmentId) }),
-      makeWorkProduct({ id: "broken", metadata: { attachmentId: "bad" } as Record<string, unknown> }),
+      makeWorkProduct({
+        id: "video",
+        metadata: videoMetadata(videoAttachmentId),
+      }),
+      makeWorkProduct({
+        id: "markdown",
+        metadata: artifactMetadata(
+          "text/markdown",
+          "report.md",
+          markdownAttachmentId,
+        ),
+      }),
+      makeWorkProduct({
+        id: "broken",
+        metadata: { attachmentId: "bad" } as Record<string, unknown>,
+      }),
     ]);
 
     expect(Array.from(ids)).toEqual([videoAttachmentId]);
@@ -238,12 +360,22 @@ describe("getPromotedOutputAttachmentIds", () => {
 });
 
 describe("isImageLikeOutput", () => {
-  it.each(["image/png", "application/octet-stream", "binary/octet-stream", "application/x-binary", ""])("recognizes images with %s MIME type", (contentType) => {
+  it.each([
+    "image/png",
+    "application/octet-stream",
+    "binary/octet-stream",
+    "application/x-binary",
+    "",
+  ])("recognizes images with %s MIME type", (contentType) => {
     expect(isImageLikeOutput(contentType, "Cover.PNG")).toBe(true);
   });
   it("respects specific non-image MIME types and unsupported filenames", () => {
     expect(isImageLikeOutput("text/plain", "cover.png")).toBe(false);
-    expect(isImageLikeOutput("application/octet-stream", "archive.zip")).toBe(false);
-    expect(isImageLikeOutput("application/octet-stream", "image.heic")).toBe(false);
+    expect(isImageLikeOutput("application/octet-stream", "archive.zip")).toBe(
+      false,
+    );
+    expect(isImageLikeOutput("application/octet-stream", "image.heic")).toBe(
+      false,
+    );
   });
 });

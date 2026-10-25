@@ -149,7 +149,9 @@ if (!css.includes(LADDER_MARKER)) {
   const DEF_RE = /^\s*--(?:fs-[0-9a-z_]+|ls-[0-9_]+):/;
   const firstDef = lines.findIndex((l) => DEF_RE.test(l));
   if (firstDef === -1) {
-    console.error("ERROR: no --fs-* / --ls-* definitions found and ladder marker absent — index.css in unexpected state.");
+    console.error(
+      "ERROR: no --fs-* / --ls-* definitions found and ladder marker absent — index.css in unexpected state.",
+    );
     process.exit(1);
   }
   const kept = lines.filter((l) => !DEF_RE.test(l));
@@ -160,9 +162,13 @@ if (!css.includes(LADDER_MARKER)) {
   kept.splice(precede, 0, LADDER_BLOCK);
   css = kept.join("\n");
   writeFileSync(CSS_PATH, css);
-  console.log("index.css: --fs-* / --ls-* definitions replaced with named ladder block");
+  console.log(
+    "index.css: --fs-* / --ls-* definitions replaced with named ladder block",
+  );
 } else {
-  console.log("index.css: ladder marker already present — skipped (idempotent)");
+  console.log(
+    "index.css: ladder marker already present — skipped (idempotent)",
+  );
 }
 
 // ── Guard: no survivors anywhere in ui/src (incl. index.css) ─────────────
@@ -172,7 +178,8 @@ for (const f of [...files, CSS_PATH]) {
   const content = readFileSync(f, "utf8");
   const lines = content.split("\n");
   lines.forEach((l, i) => {
-    if (SURVIVOR_RE.test(l)) survivors.push(`${relative(REPO_ROOT, f)}:${i + 1}: ${l.trim()}`);
+    if (SURVIVOR_RE.test(l))
+      survivors.push(`${relative(REPO_ROOT, f)}:${i + 1}: ${l.trim()}`);
   });
 }
 
@@ -190,7 +197,9 @@ console.log("Totals per target bucket:", JSON.stringify(bucketTotals, null, 2));
 console.log(`Files touched: ${filesTouched}`);
 
 if (survivors.length > 0) {
-  console.error(`\nERROR: ${survivors.length} leftover --fs-* / --ls-* reference(s) need manual review:`);
+  console.error(
+    `\nERROR: ${survivors.length} leftover --fs-* / --ls-* reference(s) need manual review:`,
+  );
   for (const s of survivors) console.error("  " + s);
   process.exit(1);
 }

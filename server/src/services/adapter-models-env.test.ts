@@ -14,17 +14,33 @@ describe("parseAdapterModelsEnv", () => {
   });
   it("parses the per-adapter model map", () => {
     const m = parseAdapterModelsEnv({ TASKCORE_ADAPTER_MODELS: ENV });
-    expect(m?.opencode_local?.[0]).toEqual({ id: "tensorix/deepseek/deepseek-chat-v3.1", label: "DeepSeek v3.1" });
+    expect(m?.opencode_local?.[0]).toEqual({
+      id: "tensorix/deepseek/deepseek-chat-v3.1",
+      label: "DeepSeek v3.1",
+    });
     expect(m?.opencode_local?.length).toBe(2);
   });
   it("defaults label to id when omitted", () => {
-    const m = parseAdapterModelsEnv({ TASKCORE_ADAPTER_MODELS: JSON.stringify({ pi_local: [{ id: "tensorix/x/y" }] }) });
-    expect(m?.pi_local?.[0]).toEqual({ id: "tensorix/x/y", label: "tensorix/x/y" });
+    const m = parseAdapterModelsEnv({
+      TASKCORE_ADAPTER_MODELS: JSON.stringify({
+        pi_local: [{ id: "tensorix/x/y" }],
+      }),
+    });
+    expect(m?.pi_local?.[0]).toEqual({
+      id: "tensorix/x/y",
+      label: "tensorix/x/y",
+    });
   });
   it("throws on invalid JSON (fail loud)", () => {
-    expect(() => parseAdapterModelsEnv({ TASKCORE_ADAPTER_MODELS: "{bad" })).toThrow(/TASKCORE_ADAPTER_MODELS/);
+    expect(() =>
+      parseAdapterModelsEnv({ TASKCORE_ADAPTER_MODELS: "{bad" }),
+    ).toThrow(/TASKCORE_ADAPTER_MODELS/);
   });
   it("throws when an entry lacks a string id", () => {
-    expect(() => parseAdapterModelsEnv({ TASKCORE_ADAPTER_MODELS: JSON.stringify({ a: [{ label: "x" }] }) })).toThrow();
+    expect(() =>
+      parseAdapterModelsEnv({
+        TASKCORE_ADAPTER_MODELS: JSON.stringify({ a: [{ label: "x" }] }),
+      }),
+    ).toThrow();
   });
 });

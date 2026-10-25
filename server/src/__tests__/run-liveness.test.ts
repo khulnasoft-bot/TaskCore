@@ -100,10 +100,33 @@ describe("run liveness classifier", () => {
         resultJson: { summary: "I will inspect the repo next." },
       };
       const expected = classifyRunLiveness(input);
-      expect(expected.livenessState).toBe(workMode === "planning" ? "advanced" : "plan_only");
-      for (const text of ["plan", "planning", "analysis", "investigation", "research", "report", "proposal", "design doc", "write-up", "making a plan", "No plan requested", "Preparar un plan"]) {
-        for (const prose of [{ title: `Implement ${text} export` }, { description: `Create a ${text} exporter.` }]) {
-          expect(classifyRunLiveness({ ...input, issue: { ...input.issue, ...prose } })).toEqual(expected);
+      expect(expected.livenessState).toBe(
+        workMode === "planning" ? "advanced" : "plan_only",
+      );
+      for (const text of [
+        "plan",
+        "planning",
+        "analysis",
+        "investigation",
+        "research",
+        "report",
+        "proposal",
+        "design doc",
+        "write-up",
+        "making a plan",
+        "No plan requested",
+        "Preparar un plan",
+      ]) {
+        for (const prose of [
+          { title: `Implement ${text} export` },
+          { description: `Create a ${text} exporter.` },
+        ]) {
+          expect(
+            classifyRunLiveness({
+              ...input,
+              issue: { ...input.issue, ...prose },
+            }),
+          ).toEqual(expected);
         }
       }
     },
@@ -112,12 +135,26 @@ describe("run liveness classifier", () => {
   it("a standard-mode task can deliver a plan and complete without entering planning mode", () => {
     const input = {
       ...baseInput,
-      issue: { ...baseInput.issue, workMode: "standard", title: "Write a plan" },
-      resultJson: { summary: "Plan:\n1. Inspect files.\n2. Implement the service." },
-      evidence: { documentRevisionsCreated: 1, planDocumentRevisionsCreated: 1 },
+      issue: {
+        ...baseInput.issue,
+        workMode: "standard",
+        title: "Write a plan",
+      },
+      resultJson: {
+        summary: "Plan:\n1. Inspect files.\n2. Implement the service.",
+      },
+      evidence: {
+        documentRevisionsCreated: 1,
+        planDocumentRevisionsCreated: 1,
+      },
     };
     expect(classifyRunLiveness(input).livenessState).toBe("advanced");
-    expect(classifyRunLiveness({ ...input, issue: { ...input.issue, status: "done" } }).livenessState).toBe("completed");
+    expect(
+      classifyRunLiveness({
+        ...input,
+        issue: { ...input.issue, status: "done" },
+      }).livenessState,
+    ).toBe("completed");
   });
 
   it("exempts runs that update the plan document from plan-only classification", () => {
@@ -181,7 +218,9 @@ describe("run liveness classifier", () => {
 
     expect(classification.livenessState).toBe("plan_only");
     expect(classification.actionability).toBe("runnable");
-    expect(classification.nextAction).toBe("run npm test and report the row counts.");
+    expect(classification.nextAction).toBe(
+      "run npm test and report the row counts.",
+    );
   });
 
   it("prefers durable comments over raw transcript next-action noise", () => {
@@ -209,7 +248,9 @@ describe("run liveness classifier", () => {
 
     expect(classification.livenessState).toBe("blocked");
     expect(classification.actionability).toBe("approval_required");
-    expect(classification.nextAction).toBe("wait for board approval before continuing.");
+    expect(classification.nextAction).toBe(
+      "wait for board approval before continuing.",
+    );
   });
 
   it("routes production-sensitive next actions to manager review", () => {
@@ -222,9 +263,10 @@ describe("run liveness classifier", () => {
 
     expect(classification.livenessState).toBe("needs_followup");
     expect(classification.actionability).toBe("manager_review");
-    expect(classification.nextAction).toBe("deploy to production and verify live traffic.");
+    expect(classification.nextAction).toBe(
+      "deploy to production and verify live traffic.",
+    );
   });
-
 
   it("uses killed background-task evidence instead of a generic failed-run reason", () => {
     const classification = classifyRunLiveness({
@@ -243,7 +285,9 @@ describe("run liveness classifier", () => {
     });
 
     expect(classification.livenessState).toBe("failed");
-    expect(classification.livenessReason).toBe("unmanaged background task stopped; no durable live path");
+    expect(classification.livenessReason).toBe(
+      "unmanaged background task stopped; no durable live path",
+    );
   });
 
   it("marks unclear useful output as unknown actionability", () => {

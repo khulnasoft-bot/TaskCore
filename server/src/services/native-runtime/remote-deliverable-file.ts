@@ -80,37 +80,74 @@ export async function readVerifiedRemoteWorkspaceFile(input: {
   sha256: string;
 }): Promise<Buffer> {
   const { workspaceRoot, contentRef, byteSize } = input;
-  if (typeof workspaceRoot !== "string" || !posix.isAbsolute(workspaceRoot) || workspaceRoot.length > 4096 ||
-      typeof contentRef !== "string" || !contentRef.trim() || contentRef.length > 2000 ||
-      /[\u0000-\u001f\u007f]/u.test(workspaceRoot + contentRef) || posix.isAbsolute(contentRef) ||
-      /^[a-z][a-z0-9+.-]*:/iu.test(contentRef) || contentRef.includes("\\")) {
+  if (
+    typeof workspaceRoot !== "string" ||
+    !posix.isAbsolute(workspaceRoot) ||
+    workspaceRoot.length > 4096 ||
+    typeof contentRef !== "string" ||
+    !contentRef.trim() ||
+    contentRef.length > 2000 ||
+    /[\u0000-\u001f\u007f]/u.test(workspaceRoot + contentRef) ||
+    posix.isAbsolute(contentRef) ||
+    /^[a-z][a-z0-9+.-]*:/iu.test(contentRef) ||
+    contentRef.includes("\\")
+  ) {
     throw new Error(`${PREFIX}path_denied`);
   }
   const relative = posix.normalize(contentRef);
-  if (relative === "." || relative === ".." || relative.startsWith("../")) throw new Error(`${PREFIX}path_denied`);
-  if (!Number.isSafeInteger(byteSize) || byteSize <= 0 || byteSize > MAX_REMOTE_DELIVERABLE_BYTES) {
+  if (relative === "." || relative === ".." || relative.startsWith("../"))
+    throw new Error(`${PREFIX}path_denied`);
+  if (
+    !Number.isSafeInteger(byteSize) ||
+    byteSize <= 0 ||
+    byteSize > MAX_REMOTE_DELIVERABLE_BYTES
+  ) {
     throw new Error(`${PREFIX}size_denied`);
   }
-  const sha256 = typeof input.sha256 === "string" ? input.sha256.trim().toLowerCase() : "";
-  if (!/^[a-f0-9]{64}$/u.test(sha256)) throw new Error(`${PREFIX}invalid_sha256`);
-  const result = await input.runner.execute({
-    command: "node",
-    args: ["--input-type=commonjs", "-e", READ_REMOTE_FILE, JSON.stringify({ workspaceRoot, contentRef: relative, byteSize, sha256 })],
-    cwd: workspaceRoot,
-    env: { NODE_OPTIONS: "", NODE_PATH: "" },
-    timeoutMs: READ_TIMEOUT_MS,
-    bypassSession: true,
-  }).catch(() => { throw new Error(`${PREFIX}remote_read_failed`); });
+  const sha256 =
+    typeof input.sha256 === "string" ? input.sha256.trim().toLowerCase() : "";
+  if (!/^[a-f0-9]{64}$/u.test(sha256))
+    throw new Error(`${PREFIX}invalid_sha256`);
+  const result = await input.runner
+    .execute({
+      command: "node",
+      args: [
+        "--input-type=commonjs",
+        "-e",
+        READ_REMOTE_FILE,
+        JSON.stringify({
+          workspaceRoot,
+          contentRef: relative,
+          byteSize,
+          sha256,
+        }),
+      ],
+      cwd: workspaceRoot,
+      env: { NODE_OPTIONS: "", NODE_PATH: "" },
+      timeoutMs: READ_TIMEOUT_MS,
+      bypassSession: true,
+    })
+    .catch(() => {
+      throw new Error(`${PREFIX}remote_read_failed`);
+    });
   if (result.timedOut) throw new Error(`${PREFIX}remote_read_timeout`);
   if (result.exitCode !== 0) {
     const code = result.stderr.trim();
-    throw new Error(/^taskcore_runner_file_handoff_(path_denied|symlink_denied|file_changed|hash_mismatch)$/u.test(code)
-      ? code : `${PREFIX}remote_read_failed`);
+    throw new Error(
+      /^taskcore_runner_file_handoff_(path_denied|symlink_denied|file_changed|hash_mismatch)$/u.test(
+        code,
+      )
+        ? code
+        : `${PREFIX}remote_read_failed`,
+    );
   }
   const encoded = result.stdout;
-  if (encoded.length !== 4 * Math.ceil(byteSize / 3)) throw new Error(`${PREFIX}size_denied`);
+  if (encoded.length !== 4 * Math.ceil(byteSize / 3))
+    throw new Error(`${PREFIX}size_denied`);
   const body = Buffer.from(encoded, "base64");
-  if (body.length !== byteSize || body.toString("base64") !== encoded) throw new Error(`${PREFIX}size_denied`);
-  if (createHash("sha256").update(body).digest("hex") !== sha256) throw new Error(`${PREFIX}hash_mismatch`);
+  if (body.length !== byteSize || body.toString("base64") !== encoded)
+    throw new Error(`${PREFIX}size_denied`);
+  if (createHash("sha256").update(body).digest("hex") !== sha256)
+    throw new Error(`${PREFIX}hash_mismatch`);
   return body;
 }

@@ -24,12 +24,14 @@ export async function notifySecretProposalResolution(input: {
   try {
     const issue = await input.issues.getById(input.proposal.originIssueId);
     if (!issue) return;
-    const subject = input.proposal.kind === "secret"
-      ? `secret proposal \`${input.proposal.proposedName ?? "unnamed"}\``
-      : `binding proposal \`${input.proposal.configPath ?? "unknown"}\``;
-    const configPath = input.proposal.kind === "binding"
-      ? `\n- New config path: \`${input.proposal.configPath ?? "unknown"}\`\n- Verify: \`GET /api/agents/me/secrets\``
-      : "";
+    const subject =
+      input.proposal.kind === "secret"
+        ? `secret proposal \`${input.proposal.proposedName ?? "unnamed"}\``
+        : `binding proposal \`${input.proposal.configPath ?? "unknown"}\``;
+    const configPath =
+      input.proposal.kind === "binding"
+        ? `\n- New config path: \`${input.proposal.configPath ?? "unknown"}\`\n- Verify: \`GET /api/agents/me/secrets\``
+        : "";
     const reason = input.reason ? `\n\nReason: ${input.reason}` : "";
     try {
       await input.issues.addComment(
@@ -54,7 +56,11 @@ export async function notifySecretProposalResolution(input: {
     });
   } catch (err) {
     logger.warn(
-      { err, issueId: input.proposal.originIssueId, proposalStatus: input.status },
+      {
+        err,
+        issueId: input.proposal.originIssueId,
+        proposalStatus: input.status,
+      },
       "failed to notify origin issue about secret proposal resolution",
     );
   }

@@ -22,7 +22,9 @@ export function createKubeConfig(input: CreateKubeConfigInput): KubeConfig {
     kc.loadFromString(input.kubeconfig);
     return kc;
   }
-  throw new Error("createKubeConfig requires either inCluster=true or a kubeconfig string");
+  throw new Error(
+    "createKubeConfig requires either inCluster=true or a kubeconfig string",
+  );
 }
 
 export interface KubeClients {

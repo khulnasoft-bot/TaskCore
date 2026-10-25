@@ -1,4 +1,7 @@
-import type { IssueCommentMetadata, IssueCommentPresentation } from "@taskcore/shared";
+import type {
+  IssueCommentMetadata,
+  IssueCommentPresentation,
+} from "@taskcore/shared";
 import {
   agentLinkRow,
   keyValueRow,
@@ -41,26 +44,52 @@ const STRANDED_RECOVERY_NOTICE_TITLES_BY_CAUSE: Record<string, string> = {
 // it), so the classified code is the only safe, specific cause the collapsed
 // notice row can lead with. A mapped code outranks the seed titles because the
 // seeds describe the recovery family ("No live execution path"), not the cause.
-const STRANDED_RECOVERY_NOTICE_TITLES_BY_RUN_ERROR_CODE: Record<string, string> = {
+const STRANDED_RECOVERY_NOTICE_TITLES_BY_RUN_ERROR_CODE: Record<
+  string,
+  string
+> = {
   provider_quota: "Error: usage limit reached",
   claude_auth_required: "Error: not logged in to Claude",
   acpx_auth_required: "Error: agent login required",
 };
 
-const WORKSPACE_SCAN_NOTICES: Record<string, { title: string; nextAction: string }> = {
-  workspace_git_scan_timeout: { title: "Workspace scan timed out", nextAction: "Check repository access and server load, then retry the task." },
-  workspace_git_scan_saturated: { title: "Workspace scan queue is full", nextAction: "Check server load and the workspace scan queue, then retry the task." },
-  workspace_git_scan_output_limit: { title: "Workspace scan exceeded its limit", nextAction: "Check the repository size and workspace scan output limit before retrying the task." },
-  workspace_git_scan_failed: { title: "Workspace scan failed", nextAction: "Inspect the failed run and check repository access and integrity before retrying the task." },
-  workspace_git_scan_cancelled: { title: "Workspace scan was cancelled", nextAction: "Inspect why workspace preparation was cancelled before retrying the task." },
+const WORKSPACE_SCAN_NOTICES: Record<
+  string,
+  { title: string; nextAction: string }
+> = {
+  workspace_git_scan_timeout: {
+    title: "Workspace scan timed out",
+    nextAction: "Check repository access and server load, then retry the task.",
+  },
+  workspace_git_scan_saturated: {
+    title: "Workspace scan queue is full",
+    nextAction:
+      "Check server load and the workspace scan queue, then retry the task.",
+  },
+  workspace_git_scan_output_limit: {
+    title: "Workspace scan exceeded its limit",
+    nextAction:
+      "Check the repository size and workspace scan output limit before retrying the task.",
+  },
+  workspace_git_scan_failed: {
+    title: "Workspace scan failed",
+    nextAction:
+      "Inspect the failed run and check repository access and integrity before retrying the task.",
+  },
+  workspace_git_scan_cancelled: {
+    title: "Workspace scan was cancelled",
+    nextAction:
+      "Inspect why workspace preparation was cancelled before retrying the task.",
+  },
 };
 
 export function buildImmediateExecutionPathRecoveryNoticeSeed(input: {
   status: "todo" | "in_progress";
 }): StrandedRecoveryNoticeSeed {
-  const retryDescription = input.status === "todo"
-    ? "Taskcore automatically retried dispatch for this assigned `todo` issue during terminal run recovery"
-    : "Taskcore automatically retried continuation for this assigned `in_progress` issue during terminal run recovery";
+  const retryDescription =
+    input.status === "todo"
+      ? "Taskcore automatically retried dispatch for this assigned `todo` issue during terminal run recovery"
+      : "Taskcore automatically retried continuation for this assigned `in_progress` issue during terminal run recovery";
   return {
     body:
       `${retryDescription}, but it still has no live execution path. ` +
@@ -80,11 +109,17 @@ export function buildWorkspaceValidationRecoveryNoticeSeed(): StrandedRecoveryNo
   };
 }
 
-export const SANDBOX_PROVIDER_PLUGIN_NOT_READY_REASON = "sandbox_provider_plugin_not_ready";
+export const SANDBOX_PROVIDER_PLUGIN_NOT_READY_REASON =
+  "sandbox_provider_plugin_not_ready";
 
-function readNonEmptyStringField(payload: Record<string, unknown> | null | undefined, key: string): string | null {
+function readNonEmptyStringField(
+  payload: Record<string, unknown> | null | undefined,
+  key: string,
+): string | null {
   const value = payload?.[key];
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 /**
@@ -113,17 +148,28 @@ export function sandboxProviderPluginRemedy(pluginStatus: string): string {
 export function buildConfigurationIncompleteRecoveryNoticeSeed(
   configurationIncomplete?: Record<string, unknown> | null,
 ): StrandedRecoveryNoticeSeed {
-  if (readNonEmptyStringField(configurationIncomplete, "reason") === "ai_connection_unavailable") {
+  if (
+    readNonEmptyStringField(configurationIncomplete, "reason") ===
+    "ai_connection_unavailable"
+  ) {
     return {
       title: "AI connection needs attention",
       body: "This task paused because its selected AI account is unavailable. Reconnect the account or choose an available connection to continue.",
-      nextAction: "Reconnect the selected AI account or choose an available connection, then continue the task.",
+      nextAction:
+        "Reconnect the selected AI account or choose an available connection, then continue the task.",
       tone: "danger",
     };
   }
-  if (readNonEmptyStringField(configurationIncomplete, "reason") === SANDBOX_PROVIDER_PLUGIN_NOT_READY_REASON) {
-    const pluginKey = readNonEmptyStringField(configurationIncomplete, "pluginKey") ?? "the sandbox provider plugin";
-    const pluginStatus = readNonEmptyStringField(configurationIncomplete, "pluginStatus") ?? "not ready";
+  if (
+    readNonEmptyStringField(configurationIncomplete, "reason") ===
+    SANDBOX_PROVIDER_PLUGIN_NOT_READY_REASON
+  ) {
+    const pluginKey =
+      readNonEmptyStringField(configurationIncomplete, "pluginKey") ??
+      "the sandbox provider plugin";
+    const pluginStatus =
+      readNonEmptyStringField(configurationIncomplete, "pluginStatus") ??
+      "not ready";
     return {
       body:
         `Taskcore stopped before dispatching the adapter because the sandbox provider plugin \`${pluginKey}\` ` +
@@ -175,24 +221,33 @@ export function buildStrandedRecoveryEscalationNotice(input: {
   recoveryCause?: string | null;
   recoveryActionId: string;
   recoveryOwner: { id: string; name: string | null } | null | undefined;
-  sourceRun: {
-    id: string;
-    agentId?: string | null;
-    status: string;
-    errorCode?: string | null;
-    errorSummary?: string | null;
-  } | null | undefined;
+  sourceRun:
+    | {
+        id: string;
+        agentId?: string | null;
+        status: string;
+        errorCode?: string | null;
+        errorSummary?: string | null;
+      }
+    | null
+    | undefined;
 }): StrandedRecoveryEscalationNotice {
-  const workspaceScan = WORKSPACE_SCAN_NOTICES[input.sourceRun?.errorCode ?? ""];
-  const seed = workspaceScan ? {
-    ...workspaceScan,
-    body: `Taskcore could not prepare the workspace before the agent started. Automatic recovery could not continue. ${workspaceScan.nextAction}`,
-    tone: "danger" as const,
-  } : input.seed;
+  const workspaceScan =
+    WORKSPACE_SCAN_NOTICES[input.sourceRun?.errorCode ?? ""];
+  const seed = workspaceScan
+    ? {
+        ...workspaceScan,
+        body: `Taskcore could not prepare the workspace before the agent started. Automatic recovery could not continue. ${workspaceScan.nextAction}`,
+        tone: "danger" as const,
+      }
+    : input.seed;
   const fallbackBody = input.fallbackBody?.trim();
-  const body = seed?.body ?? (fallbackBody || DEFAULT_STRANDED_RECOVERY_NOTICE_BODY);
+  const body =
+    seed?.body ?? (fallbackBody || DEFAULT_STRANDED_RECOVERY_NOTICE_BODY);
   const title =
-    STRANDED_RECOVERY_NOTICE_TITLES_BY_RUN_ERROR_CODE[input.sourceRun?.errorCode?.trim() ?? ""] ??
+    STRANDED_RECOVERY_NOTICE_TITLES_BY_RUN_ERROR_CODE[
+      input.sourceRun?.errorCode?.trim() ?? ""
+    ] ??
     seed?.title ??
     STRANDED_RECOVERY_NOTICE_TITLES_BY_CAUSE[input.recoveryCause ?? ""] ??
     DEFAULT_STRANDED_RECOVERY_NOTICE_TITLE;
@@ -201,15 +256,13 @@ export function buildStrandedRecoveryEscalationNotice(input: {
     keyValueRow("Recovery action", input.recoveryActionId),
     input.recoveryOwner
       ? agentLinkRow("Recovery owner", input.recoveryOwner)
-      : keyValueRow(
-          "Recovery owner",
-          "Board decision required",
-        ),
+      : keyValueRow("Recovery owner", "Board decision required"),
     keyValueRow(
       "Next action",
-      seed?.nextAction ?? (input.recoveryOwner
-        ? "The recovery owner should either restore a live execution path or record the manual resolution on the source issue"
-        : "Inspect the evidence, then retry the original owner, explicitly reassign, repair the execution path, or record an intentional resolution"),
+      seed?.nextAction ??
+        (input.recoveryOwner
+          ? "The recovery owner should either restore a live execution path or record the manual resolution on the source issue"
+          : "Inspect the evidence, then retry the original owner, explicitly reassign, repair the execution path, or record an intentional resolution"),
     ),
   ];
 
@@ -219,7 +272,8 @@ export function buildStrandedRecoveryEscalationNotice(input: {
     const failureCode = input.sourceRun.errorCode?.trim();
     if (failureCode) runRows.push(keyValueRow("Failure code", failureCode));
     const failureSummary = input.sourceRun.errorSummary?.trim();
-    if (failureSummary) runRows.push(keyValueRow("Failure summary", failureSummary));
+    if (failureSummary)
+      runRows.push(keyValueRow("Failure summary", failureSummary));
   }
 
   const sections: NoticeMetadataSection[] = [
@@ -229,7 +283,10 @@ export function buildStrandedRecoveryEscalationNotice(input: {
 
   return {
     body,
-    presentation: systemNoticePresentation({ tone: seed?.tone ?? "danger", title }),
+    presentation: systemNoticePresentation({
+      tone: seed?.tone ?? "danger",
+      title,
+    }),
     metadata: {
       version: 1,
       sourceRunId: input.sourceRun?.id ?? null,

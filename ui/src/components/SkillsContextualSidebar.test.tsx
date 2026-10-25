@@ -7,23 +7,33 @@ import { SkillsContextualSidebar } from "./SkillsContextualSidebar";
 import { contextualSidebarStyles } from "./contextual-sidebar-styles";
 
 const sidebarNavItemMock = vi.hoisted(() => vi.fn());
-const mockLocation = vi.hoisted(() => ({ pathname: "/PAP/skills", search: "" }));
+const mockLocation = vi.hoisted(() => ({
+  pathname: "/PAP/skills",
+  search: "",
+}));
 
 vi.mock("@/lib/router", () => ({
   useLocation: () => mockLocation,
   useNavigate: () => vi.fn(),
 }));
 vi.mock("@/context/CompanyContext", () => ({
-  useCompany: () => ({ selectedCompany: { name: "Taskcore", issuePrefix: "PAP" } }),
+  useCompany: () => ({
+    selectedCompany: { name: "Taskcore", issuePrefix: "PAP" },
+  }),
 }));
 vi.mock("@/context/SidebarContext", () => ({
   useSidebar: () => ({ isMobile: false, setSidebarOpen: vi.fn() }),
 }));
 vi.mock("./SidebarNavItem", () => ({
-  SidebarNavExpandedProvider: ({ children }: { children: React.ReactNode }) => children,
+  SidebarNavExpandedProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
   SidebarNavItem: (props: { to: string; label: string; active?: boolean }) => {
     sidebarNavItemMock(props);
-    return <a href={props.to} aria-current={props.active ? "page" : undefined}>{props.label}</a>;
+    return (
+      <a href={props.to} aria-current={props.active ? "page" : undefined}>
+        {props.label}
+      </a>
+    );
   },
 }));
 
@@ -57,10 +67,16 @@ describe("SkillsContextualSidebar", () => {
     expect(container.textContent).toContain("Installed");
     expect(container.textContent).toContain("Discover");
     expect(container.textContent).toContain("My Skills");
-    expect(container.textContent).toContain("Skills you create, edit, and test.");
+    expect(container.textContent).toContain(
+      "Skills you create, edit, and test.",
+    );
     expect(container.textContent).not.toContain("Taskcore");
-    expect(container.querySelector('[aria-label="Back from Skills"]')).toBeNull();
-    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("Installed");
+    expect(
+      container.querySelector('[aria-label="Back from Skills"]'),
+    ).toBeNull();
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe(
+      "Installed",
+    );
 
     act(() => root.unmount());
   });
@@ -68,22 +84,27 @@ describe("SkillsContextualSidebar", () => {
   it("uses the shared contextual-navigation spacing and type contract", () => {
     const root = render();
 
-    expect(container.querySelector('[data-slot="contextual-sidebar-nav"]')?.className).toBe(
-      contextualSidebarStyles.nav,
-    );
-    expect(container.querySelector('[data-slot="contextual-sidebar-section"]')?.className).toBe(
-      contextualSidebarStyles.section,
-    );
-    expect(container.querySelector('[data-slot="contextual-sidebar-section-label"]')?.className).toBe(
-      contextualSidebarStyles.sectionLabel,
-    );
-    expect(container.querySelector('[data-slot="contextual-sidebar-section-description"]')?.className).toBe(
-      contextualSidebarStyles.sectionDescription,
-    );
     expect(
-      Array.from(container.querySelectorAll('[data-slot="contextual-sidebar-group"]')).every(
-        (group) => group.className === contextualSidebarStyles.group,
-      ),
+      container.querySelector('[data-slot="contextual-sidebar-nav"]')
+        ?.className,
+    ).toBe(contextualSidebarStyles.nav);
+    expect(
+      container.querySelector('[data-slot="contextual-sidebar-section"]')
+        ?.className,
+    ).toBe(contextualSidebarStyles.section);
+    expect(
+      container.querySelector('[data-slot="contextual-sidebar-section-label"]')
+        ?.className,
+    ).toBe(contextualSidebarStyles.sectionLabel);
+    expect(
+      container.querySelector(
+        '[data-slot="contextual-sidebar-section-description"]',
+      )?.className,
+    ).toBe(contextualSidebarStyles.sectionDescription);
+    expect(
+      Array.from(
+        container.querySelectorAll('[data-slot="contextual-sidebar-group"]'),
+      ).every((group) => group.className === contextualSidebarStyles.group),
     ).toBe(true);
 
     act(() => root.unmount());
@@ -93,7 +114,9 @@ describe("SkillsContextualSidebar", () => {
     mockLocation.search = "?tab=bundled";
     const root = render();
 
-    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("Discover");
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe(
+      "Discover",
+    );
     expect(sidebarNavItemMock.mock.calls.map(([props]) => props.to)).toEqual([
       "/skills",
       "/skills?tab=discover",
@@ -109,7 +132,9 @@ describe("SkillsContextualSidebar", () => {
     mockLocation.search = "?tab=files";
     const root = render();
 
-    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("My Skills");
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe(
+      "My Skills",
+    );
 
     act(() => root.unmount());
   });

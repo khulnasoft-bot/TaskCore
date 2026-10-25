@@ -14,16 +14,23 @@ import { ProcessConfigFields } from "./process/config-fields";
 import { OpenClawGatewayConfigFields } from "./openclaw-gateway/config-fields";
 import { HermesGatewayConfigFields } from "./hermes-gateway/config-fields";
 
-beforeAll(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); });
+beforeAll(() => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+});
 
 async function renderMarkup(node: ReactNode, expand?: string): Promise<string> {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => root.render(node));
-  if (expand) await act(async () => {
-    container.querySelector(`[aria-label="${expand}"]`)?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-  });
+  if (expand)
+    await act(async () => {
+      container
+        .querySelector(`[aria-label="${expand}"]`)
+        ?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+    });
   const html = container.innerHTML;
   await act(async () => root.unmount());
   container.remove();
@@ -91,8 +98,18 @@ describe("adapter configuration sections", () => {
 
   it("keeps ACP agent admission choices in the adapter section", async () => {
     const config = { provider: "acpx", acpxAgent: "claude" };
-    const adapter = await renderSection(CodexLocalConfigFields, "taskcore_runner", "adapter", config);
-    const policy = await renderSection(CodexLocalConfigFields, "taskcore_runner", "runPolicy", config);
+    const adapter = await renderSection(
+      CodexLocalConfigFields,
+      "taskcore_runner",
+      "adapter",
+      config,
+    );
+    const policy = await renderSection(
+      CodexLocalConfigFields,
+      "taskcore_runner",
+      "runPolicy",
+      config,
+    );
 
     expect(adapter).toContain('aria-label="ACP agent"');
     expect(adapter).not.toContain("Runner lifecycle");
@@ -113,9 +130,9 @@ describe("adapter configuration sections", () => {
         agentCommand: "saved-command",
         warmHandleIdleMs: 1234,
       };
-      expect(await renderSection(Component, type, "advanced", config)).toContain(
-        'value="saved-command"',
-      );
+      expect(
+        await renderSection(Component, type, "advanced", config),
+      ).toContain('value="saved-command"');
       expect(
         await renderSection(Component, type, "configuration", config),
       ).not.toContain("ACP server command");
@@ -129,7 +146,12 @@ describe("adapter configuration sections", () => {
   it("keeps process command and arguments under Advanced with saved values", async () => {
     const config = { command: "node", args: ["worker.js", "--quiet"] };
     expect(
-      await renderSection(ProcessConfigFields, "process", "configuration", config),
+      await renderSection(
+        ProcessConfigFields,
+        "process",
+        "configuration",
+        config,
+      ),
     ).toBe("");
     const advanced = await renderSection(
       ProcessConfigFields,
@@ -151,9 +173,9 @@ describe("adapter configuration sections", () => {
       expect(
         await renderSection(Component, type, "configuration", config),
       ).not.toContain('value="37"');
-      expect(await renderSection(Component, type, "runPolicy", config)).toContain(
-        'value="37"',
-      );
+      expect(
+        await renderSection(Component, type, "runPolicy", config),
+      ).toContain('value="37"');
     },
   );
 });

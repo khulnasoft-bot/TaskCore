@@ -75,7 +75,11 @@ vi.mock("../services/secrets.js", () => ({
 vi.mock("../services/plugin-environment-driver.js", () => ({
   // The runtime reads this published constant at import time. Mirror the real
   // value so the mocked module keeps the same reusable-lease method contract.
-  REUSABLE_LEASE_WORKER_METHODS: ["environmentResumeLease", "environmentReleaseLease", "environmentDestroyLease"],
+  REUSABLE_LEASE_WORKER_METHODS: [
+    "environmentResumeLease",
+    "environmentReleaseLease",
+    "environmentDestroyLease",
+  ],
   listReadyPluginEnvironmentDrivers: vi.fn(async () => []),
   resolvePluginSandboxProviderDriverByKey: vi.fn(async () => null),
   validatePluginEnvironmentDriverConfig: vi.fn(async ({ config }) => config),
@@ -121,9 +125,12 @@ function createApp(actor: Record<string, unknown>) {
     (req as typeof req & { actor: Record<string, unknown> }).actor = actor;
     next();
   });
-  app.use("/api", environmentRoutes({
-    transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-  } as never));
+  app.use(
+    "/api",
+    environmentRoutes({
+      transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({}),
+    } as never),
+  );
   app.use(errorHandler);
   return app;
 }
@@ -134,11 +141,15 @@ describe("environment instance routes", () => {
     mockProjectService.clearExecutionWorkspaceEnvironmentSelection.mockReset();
     mockInstanceSettingsService.listCompanyIds.mockReset();
     mockInstanceSettingsService.getExperimental.mockReset();
-    mockInstanceSettingsService.getExperimental.mockResolvedValue({ enableManagedSandboxOnly: false });
+    mockInstanceSettingsService.getExperimental.mockResolvedValue({
+      enableManagedSandboxOnly: false,
+    });
     mockEnvironmentService.list.mockReset();
     mockEnvironmentService.getById.mockReset();
     mockEnvironmentService.create.mockReset();
-    Object.values(mockEnvironmentCustomImageService).forEach((mock) => mock.mockReset());
+    Object.values(mockEnvironmentCustomImageService).forEach((mock) =>
+      mock.mockReset(),
+    );
     mockEnvironmentCustomImageService.getOverview.mockResolvedValue({
       activeTemplate: null,
       activeSession: null,
@@ -157,10 +168,15 @@ describe("environment instance routes", () => {
     mockSecretService.replaceSecretRefsForInstanceTarget.mockReset();
     mockSecretService.replaceSecretRefsForInstanceTarget.mockResolvedValue([]);
 
-    mockInstanceSettingsService.listCompanyIds.mockResolvedValue(["company-1", "company-2"]);
+    mockInstanceSettingsService.listCompanyIds.mockResolvedValue([
+      "company-1",
+      "company-2",
+    ]);
     mockEnvironmentService.list.mockResolvedValue([]);
     mockEnvironmentService.create.mockResolvedValue(createEnvironment());
-    mockSecretService.normalizeEnvBindingsForPersistence.mockImplementation(async (_companyId, env) => env ?? {});
+    mockSecretService.normalizeEnvBindingsForPersistence.mockImplementation(
+      async (_companyId, env) => env ?? {},
+    );
     mockSecretService.listBindingCompanyIdsForTarget.mockResolvedValue([]);
     mockSecretService.syncEnvBindingsForTarget.mockResolvedValue([]);
     mockSecretService.syncSecretRefsForTarget.mockResolvedValue([]);
@@ -175,7 +191,9 @@ describe("environment instance routes", () => {
       isInstanceAdmin: true,
     });
 
-    const res = await request(app).get("/api/companies/company-1/environments?driver=local");
+    const res = await request(app).get(
+      "/api/companies/company-1/environments?driver=local",
+    );
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
@@ -192,7 +210,9 @@ describe("environment instance routes", () => {
       userId: "user-1",
       source: "session",
       companyIds: ["company-1"],
-      memberships: [{ companyId: "company-1", membershipRole: "member", status: "active" }],
+      memberships: [
+        { companyId: "company-1", membershipRole: "member", status: "active" },
+      ],
       isInstanceAdmin: false,
     });
 
@@ -266,7 +286,9 @@ describe("environment instance routes", () => {
       undefined,
       { db: expect.anything() },
     );
-    expect(mockSecretService.replaceSecretRefsForInstanceTarget).toHaveBeenCalledWith(
+    expect(
+      mockSecretService.replaceSecretRefsForInstanceTarget,
+    ).toHaveBeenCalledWith(
       { targetType: "environment", targetId: "env-1" },
       [],
       { db: expect.anything() },
@@ -278,15 +300,25 @@ describe("environment instance routes", () => {
       { db: expect.anything() },
     );
     expect(mockLogActivity).toHaveBeenCalledTimes(2);
-    expect(mockLogActivity.mock.calls.map((call) => call[1].companyId)).toEqual(["company-1", "company-2"]);
+    expect(mockLogActivity.mock.calls.map((call) => call[1].companyId)).toEqual(
+      ["company-1", "company-2"],
+    );
   });
 
   it("normalizes and syncs environment envVars on create", async () => {
     const envVars = {
-      ANTHROPIC_API_KEY: { type: "secret_ref", secretId: "11111111-1111-4111-8111-111111111111", version: "latest" },
+      ANTHROPIC_API_KEY: {
+        type: "secret_ref",
+        secretId: "11111111-1111-4111-8111-111111111111",
+        version: "latest",
+      },
     };
-    mockSecretService.normalizeEnvBindingsForPersistence.mockResolvedValue(envVars);
-    mockEnvironmentService.create.mockResolvedValue(createEnvironment({ envVars }));
+    mockSecretService.normalizeEnvBindingsForPersistence.mockResolvedValue(
+      envVars,
+    );
+    mockEnvironmentService.create.mockResolvedValue(
+      createEnvironment({ envVars }),
+    );
     const app = createApp({
       type: "board",
       userId: "board-1",
@@ -304,7 +336,9 @@ describe("environment instance routes", () => {
       });
 
     expect(res.status).toBe(201);
-    expect(mockSecretService.normalizeEnvBindingsForPersistence).toHaveBeenCalledWith(
+    expect(
+      mockSecretService.normalizeEnvBindingsForPersistence,
+    ).toHaveBeenCalledWith(
       "company-1",
       envVars,
       expect.objectContaining({ fieldPath: "envVars" }),
@@ -323,7 +357,9 @@ describe("environment instance routes", () => {
   });
 
   it("returns full environment details for an instance admin", async () => {
-    mockEnvironmentService.getById.mockResolvedValue(createEnvironment({ config: { shell: "zsh" } }));
+    mockEnvironmentService.getById.mockResolvedValue(
+      createEnvironment({ config: { shell: "zsh" } }),
+    );
     const app = createApp({
       type: "board",
       userId: "board-1",

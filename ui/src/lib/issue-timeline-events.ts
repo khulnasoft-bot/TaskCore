@@ -35,13 +35,17 @@ export interface IssueTimelineWorkspace {
   mode: string | null;
 }
 
-export function formatTimelineWorkspaceLabel(workspace: IssueTimelineWorkspace) {
-  const fallbackId = workspace.executionWorkspaceId ?? workspace.projectWorkspaceId;
+export function formatTimelineWorkspaceLabel(
+  workspace: IssueTimelineWorkspace,
+) {
+  const fallbackId =
+    workspace.executionWorkspaceId ?? workspace.projectWorkspaceId;
   return workspace.label ?? (fallbackId ? fallbackId.slice(0, 8) : "None");
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -57,15 +61,23 @@ function toTimestamp(value: Date | string) {
   return new Date(value).getTime();
 }
 
-function sameAssignee(left: IssueTimelineAssignee, right: IssueTimelineAssignee) {
+function sameAssignee(
+  left: IssueTimelineAssignee,
+  right: IssueTimelineAssignee,
+) {
   return left.agentId === right.agentId && left.userId === right.userId;
 }
 
-function sameWorkspace(left: IssueTimelineWorkspace, right: IssueTimelineWorkspace) {
-  return left.projectWorkspaceId === right.projectWorkspaceId
-    && left.executionWorkspaceId === right.executionWorkspaceId
-    && left.mode === right.mode
-    && left.label === right.label;
+function sameWorkspace(
+  left: IssueTimelineWorkspace,
+  right: IssueTimelineWorkspace,
+) {
+  return (
+    left.projectWorkspaceId === right.projectWorkspaceId &&
+    left.executionWorkspaceId === right.executionWorkspaceId &&
+    left.mode === right.mode &&
+    left.label === right.label
+  );
 }
 
 function workspaceFromRecord(value: unknown): IssueTimelineWorkspace | null {
@@ -88,7 +100,9 @@ function workspaceChangeFromDetails(details: Record<string, unknown>) {
   return { from, to };
 }
 
-function sortTimelineEvents<T extends { createdAt: Date | string; id: string }>(events: T[]) {
+function sortTimelineEvents<T extends { createdAt: Date | string; id: string }>(
+  events: T[],
+) {
   return [...events].sort((a, b) => {
     const createdAtDiff = toTimestamp(a.createdAt) - toTimestamp(b.createdAt);
     if (createdAtDiff !== 0) return createdAtDiff;
@@ -155,7 +169,9 @@ export function workModeInEffectAt(
   return mode ?? fallback;
 }
 
-export function extractIssueTimelineEvents(activity: ActivityEvent[] | null | undefined): IssueTimelineEvent[] {
+export function extractIssueTimelineEvents(
+  activity: ActivityEvent[] | null | undefined,
+): IssueTimelineEvent[] {
   const events: IssueTimelineEvent[] = [];
 
   for (const event of activity ?? []) {
@@ -163,7 +179,8 @@ export function extractIssueTimelineEvents(activity: ActivityEvent[] | null | un
     if (!details) continue;
 
     if (event.action === "issue.comment_added") {
-      if (details.followUpRequested !== true && details.resumeIntent !== true) continue;
+      if (details.followUpRequested !== true && details.resumeIntent !== true)
+        continue;
       if (details.reopened === true) continue;
       const commentId = nullableString(details.commentId);
       events.push({
@@ -194,14 +211,19 @@ export function extractIssueTimelineEvents(activity: ActivityEvent[] | null | un
     }
 
     if (hasOwn(details, "status")) {
-      const from = nullableString(previous?.status) ?? nullableString(details.reopenedFrom);
+      const from =
+        nullableString(previous?.status) ??
+        nullableString(details.reopenedFrom);
       const to = nullableString(details.status);
       if (from !== to) {
         timelineEvent.statusChange = { from, to };
       }
     }
 
-    if (hasOwn(details, "assigneeAgentId") || hasOwn(details, "assigneeUserId")) {
+    if (
+      hasOwn(details, "assigneeAgentId") ||
+      hasOwn(details, "assigneeUserId")
+    ) {
       const previousAssignee: IssueTimelineAssignee = {
         agentId: nullableString(previous?.assigneeAgentId),
         userId: nullableString(previous?.assigneeUserId),
@@ -229,10 +251,10 @@ export function extractIssueTimelineEvents(activity: ActivityEvent[] | null | un
     }
 
     if (
-      timelineEvent.statusChange
-      || timelineEvent.assigneeChange
-      || timelineEvent.workspaceChange
-      || timelineEvent.followUpRequested
+      timelineEvent.statusChange ||
+      timelineEvent.assigneeChange ||
+      timelineEvent.workspaceChange ||
+      timelineEvent.followUpRequested
     ) {
       events.push(timelineEvent);
     }

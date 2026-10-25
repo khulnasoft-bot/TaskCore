@@ -33,8 +33,16 @@ const claudePatch = await readFile(
   ),
   "utf8",
 );
-const profiles = JSON.parse(await readFile(new URL("../acpx-profiles.json", import.meta.url), "utf8"));
-const runnerdProfiles = await readFile(new URL("../runner/crates/runner-core/src/generated_acpx_profiles.rs", import.meta.url), "utf8");
+const profiles = JSON.parse(
+  await readFile(new URL("../acpx-profiles.json", import.meta.url), "utf8"),
+);
+const runnerdProfiles = await readFile(
+  new URL(
+    "../runner/crates/runner-core/src/generated_acpx_profiles.rs",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const providerPackBuilder = await readFile(
   new URL("../scripts/build-provider-pack.mjs", import.meta.url),
   "utf8",
@@ -49,9 +57,22 @@ const nativeSessionExecutor = await readFile(
 
 test("the runner pins every qualified ACPX production dependency", () => {
   assert.equal(runnerPackage.dependencies["@openai/codex"], "0.160.0");
-  assert.equal(runnerPackage.dependencies["@anthropic-ai/claude-agent-sdk"], undefined);
-  assert.equal(rootPackage.pnpm.overrides["@agentclientprotocol/codex-acp@1.6.2>@openai/codex"], runnerPackage.dependencies["@openai/codex"]);
-  assert.equal(rootPackage.pnpm.overrides["@agentclientprotocol/claude-agent-acp@0.73.0>@anthropic-ai/claude-agent-sdk"], "0.3.286");
+  assert.equal(
+    runnerPackage.dependencies["@anthropic-ai/claude-agent-sdk"],
+    undefined,
+  );
+  assert.equal(
+    rootPackage.pnpm.overrides[
+      "@agentclientprotocol/codex-acp@1.6.2>@openai/codex"
+    ],
+    runnerPackage.dependencies["@openai/codex"],
+  );
+  assert.equal(
+    rootPackage.pnpm.overrides[
+      "@agentclientprotocol/claude-agent-acp@0.73.0>@anthropic-ai/claude-agent-sdk"
+    ],
+    "0.3.286",
+  );
   assert.deepEqual(runnerPackage.optionalDependencies, {
     "@github/copilot-darwin-arm64": "1.0.88",
     "@github/copilot-darwin-x64": "1.0.88",
@@ -71,15 +92,28 @@ test("the runner pins every qualified ACPX production dependency", () => {
 
 test("the patched Codex ACP executable digest stays aligned across launch boundaries", async () => {
   const digest = profiles.profiles.codex.commandDigest;
-  const packagePath = createRequire(import.meta.url).resolve("@agentclientprotocol/codex-acp/package.json");
+  const packagePath = createRequire(import.meta.url).resolve(
+    "@agentclientprotocol/codex-acp/package.json",
+  );
   const installed = JSON.parse(await readFile(packagePath, "utf8"));
-  const executable = await readFile(resolve(dirname(packagePath), installed.bin["codex-acp"]));
-  assert.equal(digest, `sha256:${createHash("sha256").update(executable).digest("hex")}`,
-    "the identity binds installed executable bytes, not the patch file");
+  const executable = await readFile(
+    resolve(dirname(packagePath), installed.bin["codex-acp"]),
+  );
+  assert.equal(
+    digest,
+    `sha256:${createHash("sha256").update(executable).digest("hex")}`,
+    "the identity binds installed executable bytes, not the patch file",
+  );
 
   assert.match(runnerdProfiles, new RegExp(`"codex"[\\s\\S]*?${digest}`));
-  assert.match(providerPackBuilder, /codex:\s*profiles\.profiles\.codex\.commandDigest/);
-  assert.match(nativeSessionExecutor, /codex:\s*QUALIFIED_ACPX_PROFILES\.codex\.commandDigest/);
+  assert.match(
+    providerPackBuilder,
+    /codex:\s*profiles\.profiles\.codex\.commandDigest/,
+  );
+  assert.match(
+    nativeSessionExecutor,
+    /codex:\s*QUALIFIED_ACPX_PROFILES\.codex\.commandDigest/,
+  );
 });
 
 test("the package exposes only the reviewed runner CLI binaries", () => {
@@ -87,8 +121,7 @@ test("the package exposes only the reviewed runner CLI binaries", () => {
     "taskcore-runner-eval-session": "./dist/cli/eval-session.js",
     "taskcore-runner-codex-proxy": "./dist/cli/codex-app-server-unix-proxy.js",
     "taskcore-runner-acpx-sidecar": "./dist/cli/acpx-runtime-sidecar.js",
-    "taskcore-runner-opencode-proxy":
-      "./dist/cli/opencode-app-server-proxy.js",
+    "taskcore-runner-opencode-proxy": "./dist/cli/opencode-app-server-proxy.js",
   });
 });
 
@@ -161,25 +194,37 @@ test("the ACPX patch fails closed on an invalid spawn environment", () => {
 });
 
 test("authentication rejects invalid isolated environments without host fallback", () => {
-  const addedSource = acpxPatch.split("\n")
+  const addedSource = acpxPatch
+    .split("\n")
     .filter((line) => line.startsWith("+") && !line.startsWith("+++"))
-    .map((line) => line.slice(1)).join("\n");
+    .map((line) => line.slice(1))
+    .join("\n");
   const start = addedSource.indexOf("function isPlainStringEnvironment(value)");
   const end = addedSource.indexOf("function buildAgentEnvironment(", start);
   assert.ok(start >= 0 && end > start);
   const hostEnvironment = { XAI_API_KEY: "host-credential-must-not-leak" };
   const resolveEnvironment = new Function(
-    "process", `${addedSource.slice(start, end)}; return resolveAgentEnvironment;`,
+    "process",
+    `${addedSource.slice(start, end)}; return resolveAgentEnvironment;`,
   )({ env: hostEnvironment });
   for (const invalid of [undefined, null, [], "invalid", { XAI_API_KEY: 1 }]) {
     assert.throws(() => resolveEnvironment(() => invalid), TypeError);
   }
   const isolated = {};
-  assert.equal(resolveEnvironment(() => isolated), isolated);
+  assert.equal(
+    resolveEnvironment(() => isolated),
+    isolated,
+  );
   assert.equal(resolveEnvironment(() => isolated).XAI_API_KEY, undefined);
   assert.equal(resolveEnvironment(undefined), hostEnvironment);
-  assert.match(addedSource, /readEnvCredential\(method\.id, resolveAgentEnvironment\(this\.options\.spawnEnvironment\)\)/);
-  assert.match(addedSource, /resolveAgentEnvironment\(this\.options\.spawnEnvironment\)\)\.XAI_API_KEY/);
+  assert.match(
+    addedSource,
+    /readEnvCredential\(method\.id, resolveAgentEnvironment\(this\.options\.spawnEnvironment\)\)/,
+  );
+  assert.match(
+    addedSource,
+    /resolveAgentEnvironment\(this\.options\.spawnEnvironment\)\)\.XAI_API_KEY/,
+  );
 });
 
 test("the Codex patch enforces isolated instructions, tools, and skills", () => {

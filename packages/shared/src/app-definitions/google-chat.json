@@ -3,10 +3,7 @@
   "slug": "google-chat",
   "name": "Google Chat",
   "description": "Search and read Google Chat conversations and send messages.",
-  "categories": [
-    "communication",
-    "productivity"
-  ],
+  "categories": ["communication", "productivity"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/google-chat.svg"
@@ -41,13 +38,8 @@
         "label": "Read only",
         "description": "Search conversations and read messages."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "platform_shared"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["platform_shared"],
       "whenToUse": "Use Taskcore-managed OAuth for read-only Chat access.",
       "defaults": {
         "serverUrl": "https://chatmcp.googleapis.com/mcp/v1",
@@ -57,9 +49,7 @@
         ]
       },
       "guidanceMd": "Connect Google Chat to search conversations and read messages. Read/unread filtering and membership listing are not supported.",
-      "warnings": [
-        "Google Workspace MCP servers are in Developer Preview."
-      ],
+      "warnings": ["Google Workspace MCP servers are in Developer Preview."],
       "riskTier": "S3"
     },
     {
@@ -72,13 +62,8 @@
         "label": "Read only",
         "description": "Search conversations and read messages."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a customer-owned OAuth client for read-only Chat access.",
       "defaults": {
         "serverUrl": "https://chatmcp.googleapis.com/mcp/v1",
@@ -117,13 +102,8 @@
         "label": "Read & send",
         "description": "Read Chat and send messages."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "platform_shared"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["platform_shared"],
       "whenToUse": "Use Taskcore-managed OAuth to read Chat and send messages.",
       "defaults": {
         "serverUrl": "https://chatmcp.googleapis.com/mcp/v1",
@@ -150,13 +130,8 @@
         "label": "Read & send",
         "description": "Read Chat and send messages."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a customer-owned OAuth client to read Chat and send messages.",
       "defaults": {
         "serverUrl": "https://chatmcp.googleapis.com/mcp/v1",

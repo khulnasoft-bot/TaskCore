@@ -4,7 +4,10 @@ const plugin = definePlugin({
   async setup(ctx) {
     ctx.events.on("issue.created", async (event) => {
       const issueId = event.entityId ?? "unknown";
-      await ctx.state.set({ scopeKind: "issue", scopeId: issueId, stateKey: "seen" }, true);
+      await ctx.state.set(
+        { scopeKind: "issue", scopeId: issueId, stateKey: "seen" },
+        true,
+      );
       ctx.logger.info("Observed issue.created", { issueId });
     });
 
@@ -20,7 +23,7 @@ const plugin = definePlugin({
 
   async onHealth() {
     return { status: "ok", message: "Plugin worker is running" };
-  }
+  },
 });
 
 export default plugin;

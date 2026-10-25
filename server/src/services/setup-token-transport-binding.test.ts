@@ -102,7 +102,10 @@ function createFakeSandbox() {
 function createRecordingStore() {
   const rows = new Map<string, SetupTokenCleanupRecord>();
   const removed: string[] = [];
-  const stateWrites: Array<{ sessionId: string; state: SetupTokenSessionState }> = [];
+  const stateWrites: Array<{
+    sessionId: string;
+    state: SetupTokenSessionState;
+  }> = [];
   let reapable: SetupTokenCleanupRecord[] = [];
 
   const store: SetupTokenCleanupStore = {
@@ -155,7 +158,9 @@ function createRecordingStore() {
 }
 
 /** A permissive rate limiter, so the start path never rate-limits in a test. */
-const allowAllRateLimiter = { consume: () => ({ allowed: true, retryAfterSeconds: 0 }) };
+const allowAllRateLimiter = {
+  consume: () => ({ allowed: true, retryAfterSeconds: 0 }),
+};
 
 function buildService(input: {
   sandbox: SetupTokenSandboxProvider;
@@ -185,7 +190,10 @@ describe("setup-token production transport binding", () => {
   it("creates a live session with the transport bound and opens only the fixed command", async () => {
     const sandbox = createFakeSandbox();
     const store = createRecordingStore();
-    const { service } = buildService({ sandbox: sandbox.provider, store: store.store });
+    const { service } = buildService({
+      sandbox: sandbox.provider,
+      store: store.store,
+    });
 
     const started = await service.start(SCOPE);
     await flush();
@@ -206,7 +214,10 @@ describe("setup-token production transport binding", () => {
   it("releases the lease and cleans the durable store on a process failure", async () => {
     const sandbox = createFakeSandbox();
     const store = createRecordingStore();
-    const { service } = buildService({ sandbox: sandbox.provider, store: store.store });
+    const { service } = buildService({
+      sandbox: sandbox.provider,
+      store: store.store,
+    });
 
     const started = await service.start(SCOPE);
     await flush();
@@ -224,7 +235,10 @@ describe("setup-token production transport binding", () => {
   it("releases the lease and cleans the durable store on a cancel", async () => {
     const sandbox = createFakeSandbox();
     const store = createRecordingStore();
-    const { service } = buildService({ sandbox: sandbox.provider, store: store.store });
+    const { service } = buildService({
+      sandbox: sandbox.provider,
+      store: store.store,
+    });
 
     const started = await service.start(SCOPE);
     await flush();
@@ -240,7 +254,10 @@ describe("setup-token production transport binding", () => {
   it("releases the lease and cleans the durable store on a timeout expiry", async () => {
     const sandbox = createFakeSandbox();
     const store = createRecordingStore();
-    const { service } = buildService({ sandbox: sandbox.provider, store: store.store });
+    const { service } = buildService({
+      sandbox: sandbox.provider,
+      store: store.store,
+    });
 
     const started = await service.start(SCOPE);
     await flush();
@@ -255,7 +272,10 @@ describe("setup-token production transport binding", () => {
   it("cancels every live session and releases the lease on shutdown", async () => {
     const sandbox = createFakeSandbox();
     const store = createRecordingStore();
-    const { service } = buildService({ sandbox: sandbox.provider, store: store.store });
+    const { service } = buildService({
+      sandbox: sandbox.provider,
+      store: store.store,
+    });
 
     const started = await service.start(SCOPE);
     await flush();
@@ -312,8 +332,10 @@ describe("setup-token production transport binding", () => {
     });
     const provider = createProductionSetupTokenSandboxProvider({
       environments: {
-        getById: async () => ({ id: "env-1", driver: "sandbox", status: "active" }) as never,
-        getLeaseById: async () => ({ id: "lease-orphan", environmentId: "env-1" }) as never,
+        getById: async () =>
+          ({ id: "env-1", driver: "sandbox", status: "active" }) as never,
+        getLeaseById: async () =>
+          ({ id: "lease-orphan", environmentId: "env-1" }) as never,
         releaseLease: async () => ({}) as never,
       },
       environmentRuntime: {
@@ -356,7 +378,10 @@ describe("setup-token production transport binding", () => {
   it("releases a leftover lease by id on a restart reap", async () => {
     const sandbox = createFakeSandbox();
     const store = createRecordingStore();
-    const { service } = buildService({ sandbox: sandbox.provider, store: store.store });
+    const { service } = buildService({
+      sandbox: sandbox.provider,
+      store: store.store,
+    });
 
     // A crash left a durable record whose lease the reaper must free after a
     // restart. No live session references it.
@@ -386,7 +411,8 @@ describe("production sandbox provider", () => {
     const acquireRunLease = vi.fn();
     const provider = createProductionSetupTokenSandboxProvider({
       environments: {
-        getById: async () => ({ id: "env-1", driver: "sandbox", status: "active" }) as never,
+        getById: async () =>
+          ({ id: "env-1", driver: "sandbox", status: "active" }) as never,
         getLeaseById: async () => null,
         releaseLease: async () => ({}) as never,
       },
@@ -398,7 +424,9 @@ describe("production sandbox provider", () => {
       // characterization test.
     });
 
-    await expect(provider.acquire({ scope: SCOPE, deadline: Date.now() + 1000 })).rejects.toMatchObject({
+    await expect(
+      provider.acquire({ scope: SCOPE, deadline: Date.now() + 1000 }),
+    ).rejects.toMatchObject({
       status: 503,
     });
     // The provider held no lease, so it never acquired one.
@@ -408,7 +436,8 @@ describe("production sandbox provider", () => {
   it("fails closed for a local environment", async () => {
     const provider = createProductionSetupTokenSandboxProvider({
       environments: {
-        getById: async () => ({ id: "env-1", driver: "local", status: "active" }) as never,
+        getById: async () =>
+          ({ id: "env-1", driver: "local", status: "active" }) as never,
         getLeaseById: async () => null,
         releaseLease: async () => ({}) as never,
       },
@@ -421,7 +450,9 @@ describe("production sandbox provider", () => {
       },
     });
 
-    await expect(provider.acquire({ scope: SCOPE, deadline: Date.now() + 1000 })).rejects.toMatchObject({
+    await expect(
+      provider.acquire({ scope: SCOPE, deadline: Date.now() + 1000 }),
+    ).rejects.toMatchObject({
       status: 503,
     });
   });
@@ -438,7 +469,13 @@ describe("production sandbox provider", () => {
     const deadline = Date.now() + 1000;
     const provider = createProductionSetupTokenSandboxProvider({
       environments: {
-        getById: async () => ({ id: "env-1", name: "Sandbox", driver: "sandbox", status: "active" }) as never,
+        getById: async () =>
+          ({
+            id: "env-1",
+            name: "Sandbox",
+            driver: "sandbox",
+            status: "active",
+          }) as never,
         getLeaseById: async () => null,
         releaseLease: async () => ({}) as never,
       },
@@ -475,14 +512,22 @@ describe("production sandbox provider", () => {
     let forwardedExpiresAt: Date | null | undefined;
     const provider = createProductionSetupTokenSandboxProvider({
       environments: {
-        getById: async () => ({ id: "env-1", name: "Sandbox", driver: "sandbox", status: "active" }) as never,
+        getById: async () =>
+          ({
+            id: "env-1",
+            name: "Sandbox",
+            driver: "sandbox",
+            status: "active",
+          }) as never,
         getLeaseById: async () => null,
         releaseLease: async () => ({}) as never,
       },
       environmentRuntime: {
         // The runtime records the provider-attested expiry. Here the provider
         // grants an expiry at or before the requested deadline.
-        acquireRunLease: async (input: { requestedExpiresAt?: Date | null }) => {
+        acquireRunLease: async (input: {
+          requestedExpiresAt?: Date | null;
+        }) => {
           forwardedExpiresAt = input.requestedExpiresAt;
           const bounded = new Date(Math.min(deadline, deadline + 5_000));
           return {
@@ -521,7 +566,13 @@ describe("production sandbox provider", () => {
       });
       const provider = createProductionSetupTokenSandboxProvider({
         environments: {
-          getById: async () => ({ id: "env-1", name: "Sandbox", driver: "sandbox", status: "active" }) as never,
+          getById: async () =>
+            ({
+              id: "env-1",
+              name: "Sandbox",
+              driver: "sandbox",
+              status: "active",
+            }) as never,
           getLeaseById: async () => null,
           releaseLease: async () => ({}) as never,
         },
@@ -537,7 +588,9 @@ describe("production sandbox provider", () => {
         openLivePtySession,
       });
 
-      await expect(provider.acquire({ scope: SCOPE, deadline })).rejects.toMatchObject({
+      await expect(
+        provider.acquire({ scope: SCOPE, deadline }),
+      ).rejects.toMatchObject({
         status: 503,
       });
       // The provider released the acquired remote lease through the driver.
@@ -553,8 +606,13 @@ describe("production sandbox provider", () => {
     // run the provider driver release, not only the database row write.
     const releaseRunLease = vi.fn(async () => null);
     const releaseLease = vi.fn(async () => ({}) as never);
-    const getLeaseById = vi.fn(async () => ({ id: "lease-restart", environmentId: "env-1" }) as never);
-    const getById = vi.fn(async () => ({ id: "env-1", driver: "sandbox", status: "active" }) as never);
+    const getLeaseById = vi.fn(
+      async () => ({ id: "lease-restart", environmentId: "env-1" }) as never,
+    );
+    const getById = vi.fn(
+      async () =>
+        ({ id: "env-1", driver: "sandbox", status: "active" }) as never,
+    );
     const provider = createProductionSetupTokenSandboxProvider({
       environments: { getById, getLeaseById, releaseLease },
       environmentRuntime: {
@@ -672,7 +730,11 @@ describe("worker-bound live pseudo-terminal opener", () => {
     });
 
     await expect(
-      openLivePtySession({ scope: SCOPE, environmentId: "env-1", leaseId: "lease-42" }),
+      openLivePtySession({
+        scope: SCOPE,
+        environmentId: "env-1",
+        leaseId: "lease-42",
+      }),
     ).rejects.toMatchObject({ status: 503 });
     // The opener never reached the worker manager.
     expect(openLoginPtySession).not.toHaveBeenCalled();
@@ -685,7 +747,11 @@ describe("worker-bound live pseudo-terminal opener", () => {
     });
 
     await expect(
-      openLivePtySession({ scope: SCOPE, environmentId: "env-1", leaseId: "missing" }),
+      openLivePtySession({
+        scope: SCOPE,
+        environmentId: "env-1",
+        leaseId: "missing",
+      }),
     ).rejects.toMatchObject({ status: 503 });
   });
 });
@@ -826,7 +892,10 @@ async function captureDiagnostics(
     log: (line) => captured.push(line),
   });
 
-  await transport.leases.acquire({ scope: SCOPE, deadline: Date.now() + 60_000 });
+  await transport.leases.acquire({
+    scope: SCOPE,
+    deadline: Date.now() + 60_000,
+  });
   const controller = new AbortController();
   const process = transport.factory({
     scope: SCOPE,
@@ -875,14 +944,20 @@ describe("setup-token production transport binding diagnostics", () => {
     });
 
     // The run reached the success lines, so the capture is not empty.
-    expect(captured).toContain("[taskcore] Setup-token login: surfaced the sign-in prompt.");
+    expect(captured).toContain(
+      "[taskcore] Setup-token login: surfaced the sign-in prompt.",
+    );
     expect(captured).toContain(
       "[taskcore] Setup-token login: delivered the credential to the sink.",
     );
-    expect(captured).toContain("[taskcore] Setup-token login command ended successfully.");
+    expect(captured).toContain(
+      "[taskcore] Setup-token login command ended successfully.",
+    );
     // The runner sent the browser code, so the code-input path ran. The code
     // still never reaches a log line.
-    expect(captured).toContain("[taskcore] Setup-token login: sent the browser code to the prompt.");
+    expect(captured).toContain(
+      "[taskcore] Setup-token login: sent the browser code to the prompt.",
+    );
     expectSafeDiagnostics(captured);
   });
 
@@ -910,15 +985,26 @@ const SYNTH_TOKEN = "sk-ant-oat01-SYNTHETICSYNTHETICSYNTHETIC01";
 describe("buildClaudeOAuthWriteInput", () => {
   it("maps a scope with no overwrite to a first_write input", () => {
     const input = buildClaudeOAuthWriteInput(SCOPE, "session-7", SYNTH_TOKEN);
-    expect(input).toEqual({ sessionId: "session-7", mode: "first_write", value: SYNTH_TOKEN });
+    expect(input).toEqual({
+      sessionId: "session-7",
+      mode: "first_write",
+      value: SYNTH_TOKEN,
+    });
   });
 
   it("maps a scope with the overwrite capture to a confirmed_rotation input", () => {
     const overwriteScope: SetupTokenSessionScope = {
       ...SCOPE,
-      confirmedOverwrite: { expectedSecretId: "secret-9", expectedLatestVersion: 4 },
+      confirmedOverwrite: {
+        expectedSecretId: "secret-9",
+        expectedLatestVersion: 4,
+      },
     };
-    const input = buildClaudeOAuthWriteInput(overwriteScope, "session-8", SYNTH_TOKEN);
+    const input = buildClaudeOAuthWriteInput(
+      overwriteScope,
+      "session-8",
+      SYNTH_TOKEN,
+    );
     expect(input).toEqual({
       sessionId: "session-8",
       mode: "confirmed_rotation",

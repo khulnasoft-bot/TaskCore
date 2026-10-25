@@ -38,7 +38,8 @@ export function applyAgentSkillSnapshot(
   state: AgentSkillDraftState,
   desiredSkills: string[],
 ): AgentSkillSnapshotApplyResult {
-  const shouldReplaceDraft = !state.hasHydratedSnapshot || arraysEqual(state.draft, state.lastSaved);
+  const shouldReplaceDraft =
+    !state.hasHydratedSnapshot || arraysEqual(state.draft, state.lastSaved);
 
   return {
     draft: shouldReplaceDraft ? desiredSkills : state.draft,
@@ -61,7 +62,11 @@ export function shouldScheduleSkillAutosave(params: {
   failedDraft: string[] | null;
 }): boolean {
   if (sameSkillSelection(params.draft, params.lastSaved)) return false;
-  if (params.failedDraft && sameSkillSelection(params.draft, params.failedDraft)) return false;
+  if (
+    params.failedDraft &&
+    sameSkillSelection(params.draft, params.failedDraft)
+  )
+    return false;
   return true;
 }
 
@@ -70,6 +75,7 @@ export function isReadOnlyUnmanagedSkillEntry(
   companySkillKeys: Set<string>,
 ): boolean {
   if (companySkillKeys.has(entry.key)) return false;
-  if (entry.origin === "user_installed" || entry.origin === "external_unknown") return true;
+  if (entry.origin === "user_installed" || entry.origin === "external_unknown")
+    return true;
   return entry.managed === false && entry.state === "external";
 }

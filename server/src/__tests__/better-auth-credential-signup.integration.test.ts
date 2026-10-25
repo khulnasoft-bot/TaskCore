@@ -21,7 +21,10 @@ import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
-import { createBetterAuthHandler, createBetterAuthInstance } from "../auth/better-auth.js";
+import {
+  createBetterAuthHandler,
+  createBetterAuthInstance,
+} from "../auth/better-auth.js";
 import type { Config } from "../config.js";
 
 const ORIGIN = "http://127.0.0.1:41999";
@@ -34,7 +37,9 @@ const PASSWORD = "correct-horse-battery-staple";
 const CREDENTIAL_ISSUER = "local:credential";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 function testConfig(): Config {
   // Only the auth-relevant fields are read by `createBetterAuthInstance`; the
@@ -57,67 +62,77 @@ function sessionCookies(response: request.Response): string[] {
   return cookies.filter((cookie) => cookie.includes("session_token"));
 }
 
-describeEmbeddedPostgres("Better Auth credential sign-up against the real schema", () => {
-  let database: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
-  let db!: ReturnType<typeof createDb>;
-  let app!: express.Express;
-  const originalEnv = {
-    secret: process.env.BETTER_AUTH_SECRET,
-    rateLimit: process.env.TASKCORE_AUTH_RATE_LIMIT_ENABLED,
-  };
+describeEmbeddedPostgres(
+  "Better Auth credential sign-up against the real schema",
+  () => {
+    let database: Awaited<
+      ReturnType<typeof startEmbeddedPostgresTestDatabase>
+    > | null = null;
+    let db!: ReturnType<typeof createDb>;
+    let app!: express.Express;
+    const originalEnv = {
+      secret: process.env.BETTER_AUTH_SECRET,
+      rateLimit: process.env.TASKCORE_AUTH_RATE_LIMIT_ENABLED,
+    };
 
-  beforeAll(async () => {
-    process.env.BETTER_AUTH_SECRET = "better-auth-secret-for-credential-signup-tests";
-    // The rate limiter is on by default in `authenticated` mode and would score
-    // the sign-up and sign-in this suite issues back to back.
-    process.env.TASKCORE_AUTH_RATE_LIMIT_ENABLED = "false";
+    beforeAll(async () => {
+      process.env.BETTER_AUTH_SECRET =
+        "better-auth-secret-for-credential-signup-tests";
+      // The rate limiter is on by default in `authenticated` mode and would score
+      // the sign-up and sign-in this suite issues back to back.
+      process.env.TASKCORE_AUTH_RATE_LIMIT_ENABLED = "false";
 
-    database = await startEmbeddedPostgresTestDatabase("taskcore-better-auth-signup-");
-    db = createDb(database.connectionString);
+      database = await startEmbeddedPostgresTestDatabase(
+        "taskcore-better-auth-signup-",
+      );
+      db = createDb(database.connectionString);
 
-    const auth = createBetterAuthInstance(db, testConfig(), [ORIGIN]);
-    app = express();
-    // Mounted exactly as `createApp` mounts it, and with no body parser in
-    // front of it: Better Auth reads the raw request body itself.
-    app.all("/api/auth/{*authPath}", createBetterAuthHandler(auth));
-  }, 30_000);
+      const auth = createBetterAuthInstance(db, testConfig(), [ORIGIN]);
+      app = express();
+      // Mounted exactly as `createApp` mounts it, and with no body parser in
+      // front of it: Better Auth reads the raw request body itself.
+      app.all("/api/auth/{*authPath}", createBetterAuthHandler(auth));
+    }, 30_000);
 
-  afterAll(async () => {
-    await database?.cleanup();
-    if (originalEnv.secret === undefined) delete process.env.BETTER_AUTH_SECRET;
-    else process.env.BETTER_AUTH_SECRET = originalEnv.secret;
-    if (originalEnv.rateLimit === undefined) delete process.env.TASKCORE_AUTH_RATE_LIMIT_ENABLED;
-    else process.env.TASKCORE_AUTH_RATE_LIMIT_ENABLED = originalEnv.rateLimit;
-  });
-
-  it("creates the user and its credential account, then signs that user in", async () => {
-    const signUp = await request(app)
-      .post("/api/auth/sign-up/email")
-      .set("origin", ORIGIN)
-      .send({ email: EMAIL, password: PASSWORD, name: "Founder" });
-
-    // A missing `account` column fails here with a 500 and an empty body.
-    expect(signUp.status).toBe(200);
-    expect(signUp.body?.user?.email).toBe(EMAIL);
-
-    // Sign-up has to leave a usable account row behind. A half-created user —
-    // a `user` row with no `account` — cannot sign in, cannot sign up again,
-    // and cannot reset its password.
-    const accounts = await db.select().from(authAccounts);
-    expect(accounts).toHaveLength(1);
-    expect(accounts[0]).toMatchObject({
-      providerId: "credential",
-      issuer: CREDENTIAL_ISSUER,
+    afterAll(async () => {
+      await database?.cleanup();
+      if (originalEnv.secret === undefined)
+        delete process.env.BETTER_AUTH_SECRET;
+      else process.env.BETTER_AUTH_SECRET = originalEnv.secret;
+      if (originalEnv.rateLimit === undefined)
+        delete process.env.TASKCORE_AUTH_RATE_LIMIT_ENABLED;
+      else process.env.TASKCORE_AUTH_RATE_LIMIT_ENABLED = originalEnv.rateLimit;
     });
-    expect(accounts[0]?.password).toBeTruthy();
 
-    const signIn = await request(app)
-      .post("/api/auth/sign-in/email")
-      .set("origin", ORIGIN)
-      .send({ email: EMAIL, password: PASSWORD });
+    it("creates the user and its credential account, then signs that user in", async () => {
+      const signUp = await request(app)
+        .post("/api/auth/sign-up/email")
+        .set("origin", ORIGIN)
+        .send({ email: EMAIL, password: PASSWORD, name: "Founder" });
 
-    expect(signIn.status).toBe(200);
-    expect(signIn.body?.user?.email).toBe(EMAIL);
-    expect(sessionCookies(signIn).length).toBeGreaterThan(0);
-  });
-});
+      // A missing `account` column fails here with a 500 and an empty body.
+      expect(signUp.status).toBe(200);
+      expect(signUp.body?.user?.email).toBe(EMAIL);
+
+      // Sign-up has to leave a usable account row behind. A half-created user —
+      // a `user` row with no `account` — cannot sign in, cannot sign up again,
+      // and cannot reset its password.
+      const accounts = await db.select().from(authAccounts);
+      expect(accounts).toHaveLength(1);
+      expect(accounts[0]).toMatchObject({
+        providerId: "credential",
+        issuer: CREDENTIAL_ISSUER,
+      });
+      expect(accounts[0]?.password).toBeTruthy();
+
+      const signIn = await request(app)
+        .post("/api/auth/sign-in/email")
+        .set("origin", ORIGIN)
+        .send({ email: EMAIL, password: PASSWORD });
+
+      expect(signIn.status).toBe(200);
+      expect(signIn.body?.user?.email).toBe(EMAIL);
+      expect(sessionCookies(signIn).length).toBeGreaterThan(0);
+    });
+  },
+);

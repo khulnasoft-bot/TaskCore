@@ -38,7 +38,9 @@ import { routineService } from "../services/routines.ts";
 import { instanceSettingsService } from "../services/instance-settings.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -49,13 +51,17 @@ if (!embeddedPostgresSupport.supported) {
 describeEmbeddedPostgres("pipelineService", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof pipelineService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   const userActor: PipelineActor = { type: "user", userId: "board-user" };
   const noopHeartbeat = { wakeup: async () => null };
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-pipelines-service-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-pipelines-service-",
+    );
     db = createDb(tempDb.connectionString);
     svc = pipelineService(db, { heartbeat: noopHeartbeat });
   }, 20_000);
@@ -89,11 +95,14 @@ describeEmbeddedPostgres("pipelineService", () => {
   });
 
   async function seedCompany() {
-    const [company] = await db.insert(companies).values({
-      name: "Pipeline Co",
-      issuePrefix: `P${randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`,
-      defaultResponsibleUserId: "board-user",
-    }).returning();
+    const [company] = await db
+      .insert(companies)
+      .values({
+        name: "Pipeline Co",
+        issuePrefix: `P${randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+        defaultResponsibleUserId: "board-user",
+      })
+      .returning();
     return company!;
   }
 
@@ -107,31 +116,43 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
     });
     const stages = await svc.listStages(company.id, pipeline.id);
-    return { company, pipeline, stages, byKey: new Map(stages.map((stage) => [stage.key, stage])) };
+    return {
+      company,
+      pipeline,
+      stages,
+      byKey: new Map(stages.map((stage) => [stage.key, stage])),
+    };
   }
 
   async function seedRoutine(companyId: string, title = "Routine") {
-    const [agent] = await db.insert(agents).values({
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        companyId,
+        name: `${title} Agent`,
+        role: "engineer",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      })
+      .returning();
+    return routineService(db, { heartbeat: noopHeartbeat }).create(
       companyId,
-      name: `${title} Agent`,
-      role: "engineer",
-      adapterType: "codex_local",
-      adapterConfig: {},
-      runtimeConfig: {},
-      permissions: {},
-    }).returning();
-    return routineService(db, { heartbeat: noopHeartbeat }).create(companyId, {
-      projectId: null,
-      goalId: null,
-      parentIssueId: null,
-      title,
-      description: null,
-      assigneeAgentId: agent!.id,
-      priority: "medium",
-      status: "active",
-      concurrencyPolicy: "always_enqueue",
-      catchUpPolicy: "skip_missed",
-    }, {});
+      {
+        projectId: null,
+        goalId: null,
+        parentIssueId: null,
+        title,
+        description: null,
+        assigneeAgentId: agent!.id,
+        priority: "medium",
+        status: "active",
+        concurrencyPolicy: "always_enqueue",
+        catchUpPolicy: "skip_missed",
+      },
+      {},
+    );
   }
 
   async function eventCount(caseId: string) {
@@ -146,15 +167,25 @@ describeEmbeddedPostgres("pipelineService", () => {
     companyId: string;
     caseId: string;
     role: "origin" | "conversation" | "work" | "automation";
-    status?: "backlog" | "todo" | "in_progress" | "in_review" | "done" | "blocked" | "cancelled";
+    status?:
+      | "backlog"
+      | "todo"
+      | "in_progress"
+      | "in_review"
+      | "done"
+      | "blocked"
+      | "cancelled";
     title?: string;
   }) {
-    const [issue] = await db.insert(issues).values({
-      companyId: input.companyId,
-      title: input.title ?? `${input.role} issue`,
-      status: input.status ?? "todo",
-      priority: "medium",
-    }).returning();
+    const [issue] = await db
+      .insert(issues)
+      .values({
+        companyId: input.companyId,
+        title: input.title ?? `${input.role} issue`,
+        status: input.status ?? "todo",
+        priority: "medium",
+      })
+      .returning();
     await db.insert(pipelineCaseIssueLinks).values({
       companyId: input.companyId,
       caseId: input.caseId,
@@ -167,7 +198,13 @@ describeEmbeddedPostgres("pipelineService", () => {
   it("seeds default stages and protects non-empty stage deletion", async () => {
     const { company, pipeline, byKey } = await seedPipeline();
 
-    expect([...byKey.keys()]).toEqual(["intake", "in_progress", "review", "done", "cancelled"]);
+    expect([...byKey.keys()]).toEqual([
+      "intake",
+      "in_progress",
+      "review",
+      "done",
+      "cancelled",
+    ]);
     const created = await svc.ingestCase({
       companyId: company.id,
       pipelineId: pipeline.id,
@@ -177,8 +214,15 @@ describeEmbeddedPostgres("pipelineService", () => {
     });
 
     await expect(
-      svc.deleteStage({ companyId: company.id, pipelineId: pipeline.id, stageId: byKey.get("intake")!.id }),
-    ).rejects.toMatchObject({ status: 422, details: { code: "stage_has_cases" } });
+      svc.deleteStage({
+        companyId: company.id,
+        pipelineId: pipeline.id,
+        stageId: byKey.get("intake")!.id,
+      }),
+    ).rejects.toMatchObject({
+      status: 422,
+      details: { code: "stage_has_cases" },
+    });
 
     await svc.deleteStage({
       companyId: company.id,
@@ -186,7 +230,10 @@ describeEmbeddedPostgres("pipelineService", () => {
       stageId: byKey.get("intake")!.id,
       moveCasesToStageId: byKey.get("in_progress")!.id,
     });
-    const [moved] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, created.case.id));
+    const [moved] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, created.case.id));
     expect(moved!.stageId).toBe(byKey.get("in_progress")!.id);
   });
 
@@ -216,8 +263,14 @@ describeEmbeddedPostgres("pipelineService", () => {
       moveCasesToStageId: byKey.get("done")!.id,
     });
 
-    const [freshParent] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, parent.case.id));
-    const [freshChild] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, child.case.id));
+    const [freshParent] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, parent.case.id));
+    const [freshChild] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, child.case.id));
     expect(freshParent!.childCount).toBe(1);
     expect(freshParent!.terminalChildCount).toBe(1);
     expect(freshChild!.terminalKind).toBe("done");
@@ -278,7 +331,9 @@ describeEmbeddedPostgres("pipelineService", () => {
 
     expect(batch).toHaveLength(5);
     expect(batch.filter((item) => item.ok && item.created)).toHaveLength(3);
-    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(pipelineCases);
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(pipelineCases);
     expect(count).toBe(5);
   });
 
@@ -332,7 +387,10 @@ describeEmbeddedPostgres("pipelineService", () => {
         expectedVersion: 1,
         actor: userActor,
       }),
-    ).rejects.toMatchObject({ status: 409, details: { code: "version_conflict", version: 2 } });
+    ).rejects.toMatchObject({
+      status: 409,
+      details: { code: "version_conflict", version: 2 },
+    });
     expect(await eventCount(created.case.id)).toBe(before);
   });
 
@@ -363,9 +421,16 @@ describeEmbeddedPostgres("pipelineService", () => {
       }),
     ]);
 
-    expect(attempts.filter((attempt) => attempt.status === "fulfilled")).toHaveLength(1);
-    expect(attempts.filter((attempt) => attempt.status === "rejected")).toHaveLength(1);
-    const [row] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, created.case.id));
+    expect(
+      attempts.filter((attempt) => attempt.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      attempts.filter((attempt) => attempt.status === "rejected"),
+    ).toHaveLength(1);
+    const [row] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, created.case.id));
     expect(row!.version).toBe(2);
     expect(await eventCount(created.case.id)).toBe(2);
   });
@@ -382,8 +447,18 @@ describeEmbeddedPostgres("pipelineService", () => {
     const owner: PipelineActor = { type: "user", userId: "owner" };
     const other: PipelineActor = { type: "user", userId: "other" };
 
-    const claimed = await svc.claimCase({ companyId: company.id, caseId: created.case.id, actor: owner });
-    await expect(svc.claimCase({ companyId: company.id, caseId: created.case.id, actor: other })).rejects.toMatchObject({
+    const claimed = await svc.claimCase({
+      companyId: company.id,
+      caseId: created.case.id,
+      actor: owner,
+    });
+    await expect(
+      svc.claimCase({
+        companyId: company.id,
+        caseId: created.case.id,
+        actor: other,
+      }),
+    ).rejects.toMatchObject({
       status: 409,
       details: { code: "lease_held" },
     });
@@ -418,22 +493,35 @@ describeEmbeddedPostgres("pipelineService", () => {
       title: "Expired lease",
       actor: userActor,
     });
-    await db.update(pipelineCases).set({
-      leaseOwnerType: "user",
-      leaseUserId: "old-owner",
-      leaseToken: randomUUID(),
-      leaseExpiresAt: new Date(Date.now() - 5_000),
-    }).where(eq(pipelineCases.id, created.case.id));
+    await db
+      .update(pipelineCases)
+      .set({
+        leaseOwnerType: "user",
+        leaseUserId: "old-owner",
+        leaseToken: randomUUID(),
+        leaseExpiresAt: new Date(Date.now() - 5_000),
+      })
+      .where(eq(pipelineCases.id, created.case.id));
 
-    const claimed = await svc.claimCase({ companyId: company.id, caseId: created.case.id, actor: { type: "user", userId: "new-owner" } });
+    const claimed = await svc.claimCase({
+      companyId: company.id,
+      caseId: created.case.id,
+      actor: { type: "user", userId: "new-owner" },
+    });
 
     expect(claimed.leaseUserId).toBe("new-owner");
     const events = await svc.listCaseEvents(company.id, created.case.id);
-    expect(events.map((event) => event.type)).toEqual(["ingested", "lease_expired", "claimed"]);
+    expect(events.map((event) => event.type)).toEqual([
+      "ingested",
+      "lease_expired",
+      "claimed",
+    ]);
   });
 
   it("enforces transition edges only when enforceTransitions is enabled", async () => {
-    const { company, pipeline } = await seedPipeline({ enforceTransitions: true });
+    const { company, pipeline } = await seedPipeline({
+      enforceTransitions: true,
+    });
     const created = await svc.ingestCase({
       companyId: company.id,
       pipelineId: pipeline.id,
@@ -450,9 +538,15 @@ describeEmbeddedPostgres("pipelineService", () => {
         expectedVersion: 1,
         actor: userActor,
       }),
-    ).rejects.toMatchObject({ status: 409, details: { code: "transition_not_allowed" } });
+    ).rejects.toMatchObject({
+      status: 409,
+      details: { code: "transition_not_allowed" },
+    });
 
-    await db.update(pipelines).set({ enforceTransitions: false }).where(eq(pipelines.id, pipeline.id));
+    await db
+      .update(pipelines)
+      .set({ enforceTransitions: false })
+      .where(eq(pipelines.id, pipeline.id));
     const moved = await svc.transitionCase({
       companyId: company.id,
       caseId: created.case.id,
@@ -593,11 +687,20 @@ describeEmbeddedPostgres("pipelineService", () => {
     });
 
     const events = await svc.listCaseEvents(company.id, blocked.case.id);
-    expect(events.filter((event) => event.type === "blockers_resolved")).toHaveLength(2);
-    const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, workIssue.id));
+    expect(
+      events.filter((event) => event.type === "blockers_resolved"),
+    ).toHaveLength(2);
+    const comments = await db
+      .select()
+      .from(issueComments)
+      .where(eq(issueComments.issueId, workIssue.id));
     expect(comments).toHaveLength(2);
-    expect(comments.map((comment) => comment.body).join("\n")).toContain(firstBlocker.case.id);
-    expect(comments.map((comment) => comment.body).join("\n")).toContain(secondBlocker.case.id);
+    expect(comments.map((comment) => comment.body).join("\n")).toContain(
+      firstBlocker.case.id,
+    );
+    expect(comments.map((comment) => comment.body).join("\n")).toContain(
+      secondBlocker.case.id,
+    );
   });
 
   it("keeps cancelled blockers unsatisfied until replaced", async () => {
@@ -640,7 +743,12 @@ describeEmbeddedPostgres("pipelineService", () => {
       }),
     ).rejects.toMatchObject({ status: 409, details: { code: "blocked" } });
 
-    await svc.replaceBlockers({ companyId: company.id, caseId: blocked.case.id, blockedByCaseIds: [], actor: userActor });
+    await svc.replaceBlockers({
+      companyId: company.id,
+      caseId: blocked.case.id,
+      blockedByCaseIds: [],
+      actor: userActor,
+    });
     const moved = await svc.transitionCase({
       companyId: company.id,
       caseId: blocked.case.id,
@@ -698,13 +806,19 @@ describeEmbeddedPostgres("pipelineService", () => {
     });
 
     expect(updated.version).toBe(2);
-    const workComments = await db.select().from(issueComments).where(eq(issueComments.issueId, workIssue.id));
+    const workComments = await db
+      .select()
+      .from(issueComments)
+      .where(eq(issueComments.issueId, workIssue.id));
     expect(workComments).toHaveLength(1);
     expect(workComments[0]!.authorType).toBe("system");
     expect(workComments[0]!.body).toBe(
       `Upstream case [draft](/PAP/pipelines/${pipeline.id}/cases/${upstream.case.id}) changed (v1→v2).`,
     );
-    const conversationComments = await db.select().from(issueComments).where(eq(issueComments.issueId, conversationIssue.id));
+    const conversationComments = await db
+      .select()
+      .from(issueComments)
+      .where(eq(issueComments.issueId, conversationIssue.id));
     expect(conversationComments).toHaveLength(0);
   });
 
@@ -760,9 +874,15 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
     });
 
-    const terminalComments = await db.select().from(issueComments).where(eq(issueComments.issueId, terminalIssue.id));
+    const terminalComments = await db
+      .select()
+      .from(issueComments)
+      .where(eq(issueComments.issueId, terminalIssue.id));
     expect(terminalComments).toHaveLength(0);
-    const conversationComments = await db.select().from(issueComments).where(eq(issueComments.issueId, conversationIssue.id));
+    const conversationComments = await db
+      .select()
+      .from(issueComments)
+      .where(eq(issueComments.issueId, conversationIssue.id));
     expect(conversationComments).toHaveLength(0);
   });
 
@@ -803,7 +923,10 @@ describeEmbeddedPostgres("pipelineService", () => {
 
     expect(patched.version).toBe(1);
     expect(await eventCount(upstream.case.id)).toBe(beforeEvents);
-    const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, workIssue.id));
+    const comments = await db
+      .select()
+      .from(issueComments)
+      .where(eq(issueComments.issueId, workIssue.id));
     expect(comments).toHaveLength(0);
   });
 
@@ -814,7 +937,11 @@ describeEmbeddedPostgres("pipelineService", () => {
       companyId: company.id,
       pipelineId: pipeline.id,
       items: [
-        { caseKey: "tweet", title: "Tweet", blockedByCaseKeys: ["image", "post"] },
+        {
+          caseKey: "tweet",
+          title: "Tweet",
+          blockedByCaseKeys: ["image", "post"],
+        },
         { caseKey: "image", title: "Image" },
         { caseKey: "post", title: "Post" },
       ],
@@ -822,21 +949,27 @@ describeEmbeddedPostgres("pipelineService", () => {
     });
 
     expect(results.map((result) => result.ok)).toEqual([true, true, true]);
-    const successful = results.filter((result): result is Extract<(typeof results)[number], { ok: true }> => result.ok);
-    const byKey = new Map(successful
-      .map((result) => [result.case.caseKey, result.case.id]));
+    const successful = results.filter(
+      (result): result is Extract<(typeof results)[number], { ok: true }> =>
+        result.ok,
+    );
+    const byKey = new Map(
+      successful.map((result) => [result.case.caseKey, result.case.id]),
+    );
     const blockers = await db
       .select()
       .from(pipelineCaseBlockers)
       .where(eq(pipelineCaseBlockers.caseId, byKey.get("tweet")!));
-    expect(blockers.map((row) => row.blockedByCaseId).sort()).toEqual([
-      byKey.get("image")!,
-      byKey.get("post")!,
-    ].sort());
+    expect(blockers.map((row) => row.blockedByCaseId).sort()).toEqual(
+      [byKey.get("image")!, byKey.get("post")!].sort(),
+    );
     const events = await svc.listCaseEvents(company.id, byKey.get("tweet")!);
     const blockersEvent = events.find((event) => event.type === "blockers_set");
     expect(blockersEvent?.payload).toMatchObject({
-      blockedByCaseIds: expect.arrayContaining([byKey.get("image")!, byKey.get("post")!]),
+      blockedByCaseIds: expect.arrayContaining([
+        byKey.get("image")!,
+        byKey.get("post")!,
+      ]),
       blockedByCaseKeys: ["image", "post"],
     });
   });
@@ -875,7 +1008,11 @@ describeEmbeddedPostgres("pipelineService", () => {
       pipelineId: pipeline.id,
       items: [
         { caseKey: "ok", title: "OK" },
-        { caseKey: "missing", title: "Missing", blockedByCaseKeys: ["does-not-exist"] },
+        {
+          caseKey: "missing",
+          title: "Missing",
+          blockedByCaseKeys: ["does-not-exist"],
+        },
         { caseKey: "after", title: "After" },
       ],
       actor: userActor,
@@ -887,11 +1024,17 @@ describeEmbeddedPostgres("pipelineService", () => {
       caseKey: "missing",
       error: {
         status: 404,
-        details: { code: "blocker_case_key_not_found", missingCaseKeys: ["does-not-exist"] },
+        details: {
+          code: "blocker_case_key_not_found",
+          missingCaseKeys: ["does-not-exist"],
+        },
       },
     });
     expect(results[2]).toMatchObject({ ok: true });
-    const rows = await db.select().from(pipelineCases).where(eq(pipelineCases.pipelineId, pipeline.id));
+    const rows = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.pipelineId, pipeline.id));
     expect(rows.map((row) => row.caseKey).sort()).toEqual(["after", "ok"]);
   });
 
@@ -912,21 +1055,36 @@ describeEmbeddedPostgres("pipelineService", () => {
       expect.objectContaining({
         ok: false,
         caseKey: "a",
-        error: expect.objectContaining({ status: 409, details: { code: "blocker_cycle", blockedByCaseKeys: ["b"] } }),
+        error: expect.objectContaining({
+          status: 409,
+          details: { code: "blocker_cycle", blockedByCaseKeys: ["b"] },
+        }),
       }),
       expect.objectContaining({
         ok: false,
         caseKey: "b",
-        error: expect.objectContaining({ status: 409, details: { code: "blocker_cycle", blockedByCaseKeys: ["a"] } }),
+        error: expect.objectContaining({
+          status: 409,
+          details: { code: "blocker_cycle", blockedByCaseKeys: ["a"] },
+        }),
       }),
     ]);
-    const rows = await db.select().from(pipelineCases).where(eq(pipelineCases.pipelineId, pipeline.id));
+    const rows = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.pipelineId, pipeline.id));
     expect(rows).toHaveLength(0);
   });
 
   it("rejects parent and blocker cycles and enforces parent depth", async () => {
     const { company, pipeline } = await seedPipeline();
-    const a = await svc.ingestCase({ companyId: company.id, pipelineId: pipeline.id, caseKey: "a", title: "A", actor: userActor });
+    const a = await svc.ingestCase({
+      companyId: company.id,
+      pipelineId: pipeline.id,
+      caseKey: "a",
+      title: "A",
+      actor: userActor,
+    });
     const b = await svc.ingestCase({
       companyId: company.id,
       pipelineId: pipeline.id,
@@ -946,10 +1104,23 @@ describeEmbeddedPostgres("pipelineService", () => {
       }),
     ).rejects.toMatchObject({ status: 409, details: { code: "parent_cycle" } });
 
-    await svc.replaceBlockers({ companyId: company.id, caseId: a.case.id, blockedByCaseIds: [b.case.id], actor: userActor });
+    await svc.replaceBlockers({
+      companyId: company.id,
+      caseId: a.case.id,
+      blockedByCaseIds: [b.case.id],
+      actor: userActor,
+    });
     await expect(
-      svc.replaceBlockers({ companyId: company.id, caseId: b.case.id, blockedByCaseIds: [a.case.id], actor: userActor }),
-    ).rejects.toMatchObject({ status: 409, details: { code: "blocker_cycle" } });
+      svc.replaceBlockers({
+        companyId: company.id,
+        caseId: b.case.id,
+        blockedByCaseIds: [a.case.id],
+        actor: userActor,
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      details: { code: "blocker_cycle" },
+    });
 
     let parentCaseId: string | null = null;
     for (let index = 0; index < 32; index += 1) {
@@ -972,18 +1143,30 @@ describeEmbeddedPostgres("pipelineService", () => {
         parentCaseId,
         actor: userActor,
       }),
-    ).rejects.toMatchObject({ status: 422, details: { code: "parent_depth_exceeded" } });
+    ).rejects.toMatchObject({
+      status: 422,
+      details: { code: "parent_depth_exceeded" },
+    });
   });
 
   it("rolls up a three-level tree, updates counters, and emits children_terminal once", async () => {
     const { company, pipeline } = await seedPipeline();
-    const root = await svc.ingestCase({ companyId: company.id, pipelineId: pipeline.id, caseKey: "root", title: "Root", actor: userActor });
-    const [linkedIssue] = await db.insert(issues).values({
+    const root = await svc.ingestCase({
       companyId: company.id,
-      title: "Root conversation",
-      status: "todo",
-      priority: "medium",
-    }).returning();
+      pipelineId: pipeline.id,
+      caseKey: "root",
+      title: "Root",
+      actor: userActor,
+    });
+    const [linkedIssue] = await db
+      .insert(issues)
+      .values({
+        companyId: company.id,
+        title: "Root conversation",
+        status: "todo",
+        priority: "medium",
+      })
+      .returning();
     await db.insert(pipelineCaseIssueLinks).values({
       companyId: company.id,
       caseId: root.case.id,
@@ -1031,11 +1214,41 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
     });
 
-    await svc.transitionCase({ companyId: company.id, caseId: childB.case.id, toStageKey: "done", expectedVersion: 1, actor: userActor });
-    await svc.transitionCase({ companyId: company.id, caseId: childC.case.id, toStageKey: "done", expectedVersion: 1, actor: userActor });
-    await svc.transitionCase({ companyId: company.id, caseId: grandA.case.id, toStageKey: "done", expectedVersion: 1, actor: userActor });
-    await svc.transitionCase({ companyId: company.id, caseId: grandB.case.id, toStageKey: "cancelled", expectedVersion: 1, actor: userActor });
-    await svc.transitionCase({ companyId: company.id, caseId: childA.case.id, toStageKey: "done", expectedVersion: 1, actor: userActor });
+    await svc.transitionCase({
+      companyId: company.id,
+      caseId: childB.case.id,
+      toStageKey: "done",
+      expectedVersion: 1,
+      actor: userActor,
+    });
+    await svc.transitionCase({
+      companyId: company.id,
+      caseId: childC.case.id,
+      toStageKey: "done",
+      expectedVersion: 1,
+      actor: userActor,
+    });
+    await svc.transitionCase({
+      companyId: company.id,
+      caseId: grandA.case.id,
+      toStageKey: "done",
+      expectedVersion: 1,
+      actor: userActor,
+    });
+    await svc.transitionCase({
+      companyId: company.id,
+      caseId: grandB.case.id,
+      toStageKey: "cancelled",
+      expectedVersion: 1,
+      actor: userActor,
+    });
+    await svc.transitionCase({
+      companyId: company.id,
+      caseId: childA.case.id,
+      toStageKey: "done",
+      expectedVersion: 1,
+      actor: userActor,
+    });
 
     expect(await svc.getCaseRollup(company.id, root.case.id)).toEqual({
       total: 5,
@@ -1044,15 +1257,26 @@ describeEmbeddedPostgres("pipelineService", () => {
       open: 0,
       complete: true,
     });
-    const [freshRoot] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, root.case.id));
-    const [freshChildA] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, childA.case.id));
+    const [freshRoot] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, root.case.id));
+    const [freshChildA] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, childA.case.id));
     expect(freshRoot!.childCount).toBe(3);
     expect(freshRoot!.terminalChildCount).toBe(3);
     expect(freshChildA!.childCount).toBe(2);
     expect(freshChildA!.terminalChildCount).toBe(2);
     const rootEvents = await svc.listCaseEvents(company.id, root.case.id);
-    expect(rootEvents.filter((event) => event.type === "children_terminal")).toHaveLength(1);
-    const comments = await db.select().from(issueComments).where(eq(issueComments.issueId, linkedIssue!.id));
+    expect(
+      rootEvents.filter((event) => event.type === "children_terminal"),
+    ).toHaveLength(1);
+    const comments = await db
+      .select()
+      .from(issueComments)
+      .where(eq(issueComments.issueId, linkedIssue!.id));
     expect(comments).toHaveLength(1);
     expect(comments[0]!.authorType).toBe("system");
     expect(comments[0]!.body).toContain("All child cases");
@@ -1066,12 +1290,23 @@ describeEmbeddedPostgres("pipelineService", () => {
       name: "Auto children",
       actor: userActor,
       stages: [
-        { key: "intake", name: "Intake", kind: "open", config: { autoAdvanceOnChildrenTerminal: "done" } },
+        {
+          key: "intake",
+          name: "Intake",
+          kind: "open",
+          config: { autoAdvanceOnChildrenTerminal: "done" },
+        },
         { key: "done", name: "Done", kind: "done" },
         { key: "cancelled", name: "Cancelled", kind: "cancelled" },
       ],
     });
-    const root = await svc.ingestCase({ companyId: company.id, pipelineId: pipeline.id, caseKey: "auto-root", title: "Root", actor: userActor });
+    const root = await svc.ingestCase({
+      companyId: company.id,
+      pipelineId: pipeline.id,
+      caseKey: "auto-root",
+      title: "Root",
+      actor: userActor,
+    });
     const child = await svc.ingestCase({
       companyId: company.id,
       pipelineId: pipeline.id,
@@ -1081,13 +1316,26 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
     });
 
-    await svc.transitionCase({ companyId: company.id, caseId: child.case.id, toStageKey: "done", expectedVersion: 1, actor: userActor });
+    await svc.transitionCase({
+      companyId: company.id,
+      caseId: child.case.id,
+      toStageKey: "done",
+      expectedVersion: 1,
+      actor: userActor,
+    });
 
-    const [freshRoot] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, root.case.id));
+    const [freshRoot] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, root.case.id));
     expect(freshRoot!.terminalKind).toBe("done");
     expect(freshRoot!.version).toBe(2);
     const rootEvents = await svc.listCaseEvents(company.id, root.case.id);
-    expect(rootEvents.map((event) => event.type)).toEqual(["ingested", "children_terminal", "transitioned"]);
+    expect(rootEvents.map((event) => event.type)).toEqual([
+      "ingested",
+      "children_terminal",
+      "transitioned",
+    ]);
   });
 
   it("auto-advances a leased parent when child completion triggers a system transition", async () => {
@@ -1098,12 +1346,23 @@ describeEmbeddedPostgres("pipelineService", () => {
       name: "Auto children lease",
       actor: userActor,
       stages: [
-        { key: "intake", name: "Intake", kind: "open", config: { autoAdvanceOnChildrenTerminal: "done" } },
+        {
+          key: "intake",
+          name: "Intake",
+          kind: "open",
+          config: { autoAdvanceOnChildrenTerminal: "done" },
+        },
         { key: "done", name: "Done", kind: "done" },
         { key: "cancelled", name: "Cancelled", kind: "cancelled" },
       ],
     });
-    const root = await svc.ingestCase({ companyId: company.id, pipelineId: pipeline.id, caseKey: "leased-root", title: "Root", actor: userActor });
+    const root = await svc.ingestCase({
+      companyId: company.id,
+      pipelineId: pipeline.id,
+      caseKey: "leased-root",
+      title: "Root",
+      actor: userActor,
+    });
     const child = await svc.ingestCase({
       companyId: company.id,
       pipelineId: pipeline.id,
@@ -1118,13 +1377,27 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: { type: "user", userId: "reviewer" },
     });
 
-    await svc.transitionCase({ companyId: company.id, caseId: child.case.id, toStageKey: "done", expectedVersion: 1, actor: userActor });
+    await svc.transitionCase({
+      companyId: company.id,
+      caseId: child.case.id,
+      toStageKey: "done",
+      expectedVersion: 1,
+      actor: userActor,
+    });
 
-    const [freshRoot] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, root.case.id));
+    const [freshRoot] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, root.case.id));
     expect(freshRoot!.terminalKind).toBe("done");
     expect(freshRoot!.leaseToken).toBeNull();
     const rootEvents = await svc.listCaseEvents(company.id, root.case.id);
-    expect(rootEvents.map((event) => event.type)).toEqual(["ingested", "claimed", "children_terminal", "transitioned"]);
+    expect(rootEvents.map((event) => event.type)).toEqual([
+      "ingested",
+      "claimed",
+      "children_terminal",
+      "transitioned",
+    ]);
   });
 
   it("keeps child completion committed when parent children-terminal auto-advance is gated", async () => {
@@ -1135,12 +1408,23 @@ describeEmbeddedPostgres("pipelineService", () => {
       name: "Auto children blocked",
       actor: userActor,
       stages: [
-        { key: "intake", name: "Intake", kind: "open", config: { autoAdvanceOnChildrenTerminal: "done" } },
+        {
+          key: "intake",
+          name: "Intake",
+          kind: "open",
+          config: { autoAdvanceOnChildrenTerminal: "done" },
+        },
         { key: "done", name: "Done", kind: "done" },
         { key: "cancelled", name: "Cancelled", kind: "cancelled" },
       ],
     });
-    const root = await svc.ingestCase({ companyId: company.id, pipelineId: pipeline.id, caseKey: "blocked-root", title: "Root", actor: userActor });
+    const root = await svc.ingestCase({
+      companyId: company.id,
+      pipelineId: pipeline.id,
+      caseKey: "blocked-root",
+      title: "Root",
+      actor: userActor,
+    });
     const child = await svc.ingestCase({
       companyId: company.id,
       pipelineId: pipeline.id,
@@ -1164,16 +1448,32 @@ describeEmbeddedPostgres("pipelineService", () => {
     });
 
     await expect(
-      svc.transitionCase({ companyId: company.id, caseId: child.case.id, toStageKey: "done", expectedVersion: 1, actor: userActor }),
+      svc.transitionCase({
+        companyId: company.id,
+        caseId: child.case.id,
+        toStageKey: "done",
+        expectedVersion: 1,
+        actor: userActor,
+      }),
     ).resolves.toMatchObject({ case: { terminalKind: "done" } });
 
-    const [freshRoot] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, root.case.id));
-    const [freshChild] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, child.case.id));
+    const [freshRoot] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, root.case.id));
+    const [freshChild] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, child.case.id));
     expect(freshRoot!.terminalKind).toBeNull();
     expect(freshRoot!.terminalChildCount).toBe(1);
     expect(freshChild!.terminalKind).toBe("done");
     const rootEvents = await svc.listCaseEvents(company.id, root.case.id);
-    expect(rootEvents.map((event) => event.type)).toEqual(["ingested", "blockers_set", "children_terminal"]);
+    expect(rootEvents.map((event) => event.type)).toEqual([
+      "ingested",
+      "blockers_set",
+      "children_terminal",
+    ]);
   });
 
   it("records suggestion supersede, accept, and dismiss lifecycles", async () => {
@@ -1241,14 +1541,20 @@ describeEmbeddedPostgres("pipelineService", () => {
       reason: "Not ready",
       actor: userActor,
     });
-    const [dismissed] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, dismissCase.case.id));
+    const [dismissed] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, dismissCase.case.id));
     expect(dismissed!.pendingSuggestion).toBeNull();
     expect(dismissed!.version).toBe(1);
   });
 
   it("writes an event for each case mutation and rejects agent mutations without run provenance", async () => {
     const { company, pipeline } = await seedPipeline();
-    const agentActor = { type: "agent", agentId: randomUUID() } as PipelineActor;
+    const agentActor = {
+      type: "agent",
+      agentId: randomUUID(),
+    } as PipelineActor;
     await expect(
       svc.ingestCase({
         companyId: company.id,
@@ -1257,7 +1563,10 @@ describeEmbeddedPostgres("pipelineService", () => {
         title: "Bad provenance",
         actor: agentActor,
       }),
-    ).rejects.toMatchObject({ status: 422, details: { code: "run_id_required" } });
+    ).rejects.toMatchObject({
+      status: 422,
+      details: { code: "run_id_required" },
+    });
 
     const created = await svc.ingestCase({
       companyId: company.id,
@@ -1267,11 +1576,25 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
     });
     expect(await eventCount(created.case.id)).toBe(1);
-    await svc.patchCaseContent({ companyId: company.id, caseId: created.case.id, title: "Updated", actor: userActor });
+    await svc.patchCaseContent({
+      companyId: company.id,
+      caseId: created.case.id,
+      title: "Updated",
+      actor: userActor,
+    });
     expect(await eventCount(created.case.id)).toBe(2);
-    const claimed = await svc.claimCase({ companyId: company.id, caseId: created.case.id, actor: { type: "user", userId: "claimer" } });
+    const claimed = await svc.claimCase({
+      companyId: company.id,
+      caseId: created.case.id,
+      actor: { type: "user", userId: "claimer" },
+    });
     expect(await eventCount(created.case.id)).toBe(3);
-    await svc.releaseCase({ companyId: company.id, caseId: created.case.id, leaseToken: claimed.leaseToken, actor: { type: "user", userId: "claimer" } });
+    await svc.releaseCase({
+      companyId: company.id,
+      caseId: created.case.id,
+      leaseToken: claimed.leaseToken,
+      actor: { type: "user", userId: "claimer" },
+    });
     expect(await eventCount(created.case.id)).toBe(4);
     await svc.transitionCase({
       companyId: company.id,
@@ -1293,7 +1616,12 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
       stages: [
         { key: "intake", name: "Intake", kind: "open" },
-        { key: "drafting", name: "Drafting", kind: "working", config: { onEnter: { type: "run_routine", routineId: routine.id } } },
+        {
+          key: "drafting",
+          name: "Drafting",
+          kind: "working",
+          config: { onEnter: { type: "run_routine", routineId: routine.id } },
+        },
         { key: "done", name: "Done", kind: "done" },
         { key: "cancelled", name: "Cancelled", kind: "cancelled" },
       ],
@@ -1325,18 +1653,24 @@ describeEmbeddedPostgres("pipelineService", () => {
     expect(linksAfterTransition).toHaveLength(1);
     expect(linksAfterTransition[0]!.role).toBe("automation");
 
-    const [issue] = await db.select().from(issues).where(eq(issues.id, ledgers[0]!.executionIssueId!));
+    const [issue] = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, ledgers[0]!.executionIssueId!));
     expect(issue!.description).toContain("Pipeline Case Context");
     expect(issue!.description).toContain("untrustedContent");
 
-    const triggerEvent = await db.insert(pipelineCaseEvents).values({
-      companyId: company.id,
-      caseId: created.case.id,
-      type: "transitioned",
-      actorType: "system",
-      toStageId: moved.case.stageId,
-      payload: { simulatedCrash: true },
-    }).returning();
+    const triggerEvent = await db
+      .insert(pipelineCaseEvents)
+      .values({
+        companyId: company.id,
+        caseId: created.case.id,
+        type: "transitioned",
+        actorType: "system",
+        toStageId: moved.case.stageId,
+        payload: { simulatedCrash: true },
+      })
+      .returning();
     const automationId = ledgers[0]!.automationId;
     await db.insert(pipelineAutomationExecutions).values({
       companyId: company.id,
@@ -1367,24 +1701,36 @@ describeEmbeddedPostgres("pipelineService", () => {
     const crashExecutions = await db
       .select()
       .from(pipelineAutomationExecutions)
-      .where(eq(pipelineAutomationExecutions.triggeringEventId, triggerEvent[0]!.id));
+      .where(
+        eq(pipelineAutomationExecutions.triggeringEventId, triggerEvent[0]!.id),
+      );
     expect(crashExecutions).toHaveLength(1);
     expect(crashExecutions[0]!.executionIssueId).toBeTruthy();
     const crashLinks = await db
       .select()
       .from(pipelineCaseIssueLinks)
-      .where(eq(pipelineCaseIssueLinks.issueId, crashExecutions[0]!.executionIssueId!));
+      .where(
+        eq(
+          pipelineCaseIssueLinks.issueId,
+          crashExecutions[0]!.executionIssueId!,
+        ),
+      );
     expect(crashLinks).toHaveLength(1);
   });
 
   it("carries saved stage automation workspace context into the execution issue", async () => {
     const { company, pipeline, byKey } = await seedPipeline();
-    const routineSeed = await seedRoutine(company.id, "Workspace automation seed");
+    const routineSeed = await seedRoutine(
+      company.id,
+      "Workspace automation seed",
+    );
     const projectId = randomUUID();
     const projectWorkspaceId = randomUUID();
     const executionWorkspaceId = randomUUID();
 
-    await instanceSettingsService(db).updateExperimental({ enableIsolatedWorkspaces: true });
+    await instanceSettingsService(db).updateExperimental({
+      enableIsolatedWorkspaces: true,
+    });
     await db.insert(projects).values({
       id: projectId,
       companyId: company.id,
@@ -1430,7 +1776,9 @@ describeEmbeddedPostgres("pipelineService", () => {
       },
       actor: userActor,
     });
-    expect((updatedStage.config as { onEnter?: unknown }).onEnter).toMatchObject({
+    expect(
+      (updatedStage.config as { onEnter?: unknown }).onEnter,
+    ).toMatchObject({
       type: "run_routine",
       projectId,
       projectWorkspaceId,
@@ -1455,9 +1803,10 @@ describeEmbeddedPostgres("pipelineService", () => {
     });
 
     expect(moved.automationExecution.status).toBe("succeeded");
-    const executionIssueId = moved.automationExecution.status === "succeeded"
-      ? moved.automationExecution.execution.executionIssueId
-      : null;
+    const executionIssueId =
+      moved.automationExecution.status === "succeeded"
+        ? moved.automationExecution.execution.executionIssueId
+        : null;
     const [issue] = await db
       .select({
         projectId: issues.projectId,
@@ -1497,16 +1846,20 @@ describeEmbeddedPostgres("pipelineService", () => {
       },
       actor: userActor,
     });
-    const firstRoutineId = (firstSave.config as { onEnter?: { routineId?: string } }).onEnter?.routineId;
+    const firstRoutineId = (
+      firstSave.config as { onEnter?: { routineId?: string } }
+    ).onEnter?.routineId;
     expect(firstRoutineId).toBeTruthy();
-    const [defaultRoutine] = await db.select().from(routines).where(eq(routines.id, firstRoutineId!));
-    expect(defaultRoutine!.title).toBe(PIPELINE_AUTOMATION_DEFAULT_TITLE_TEMPLATE);
-    expect((defaultRoutine!.variables ?? []).map((variable) => variable.name)).toEqual([
-      "pipeline_name",
-      "stage_name",
-      "case_title",
-      "body",
-    ]);
+    const [defaultRoutine] = await db
+      .select()
+      .from(routines)
+      .where(eq(routines.id, firstRoutineId!));
+    expect(defaultRoutine!.title).toBe(
+      PIPELINE_AUTOMATION_DEFAULT_TITLE_TEMPLATE,
+    );
+    expect(
+      (defaultRoutine!.variables ?? []).map((variable) => variable.name),
+    ).toEqual(["pipeline_name", "stage_name", "case_title", "body"]);
 
     await db
       .update(routines)
@@ -1526,9 +1879,14 @@ describeEmbeddedPostgres("pipelineService", () => {
       },
       actor: userActor,
     });
-    const [customRoutine] = await db.select().from(routines).where(eq(routines.id, firstRoutineId!));
+    const [customRoutine] = await db
+      .select()
+      .from(routines)
+      .where(eq(routines.id, firstRoutineId!));
     expect(customRoutine!.title).toBe("Custom {{case_key}}: {{case_title}}");
-    expect((customRoutine!.variables ?? []).map((variable) => variable.name)).toContain("case_key");
+    expect(
+      (customRoutine!.variables ?? []).map((variable) => variable.name),
+    ).toContain("case_key");
 
     await db
       .update(routines)
@@ -1548,8 +1906,13 @@ describeEmbeddedPostgres("pipelineService", () => {
       },
       actor: userActor,
     });
-    const [upgradedRoutine] = await db.select().from(routines).where(eq(routines.id, firstRoutineId!));
-    expect(upgradedRoutine!.title).toBe(PIPELINE_AUTOMATION_DEFAULT_TITLE_TEMPLATE);
+    const [upgradedRoutine] = await db
+      .select()
+      .from(routines)
+      .where(eq(routines.id, firstRoutineId!));
+    expect(upgradedRoutine!.title).toBe(
+      PIPELINE_AUTOMATION_DEFAULT_TITLE_TEMPLATE,
+    );
 
     const created = await svc.ingestCase({
       companyId: company.id,
@@ -1567,9 +1930,10 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
     });
     expect(moved.automationExecution.status).toBe("succeeded");
-    const executionIssueId = moved.automationExecution.status === "succeeded"
-      ? moved.automationExecution.execution.executionIssueId
-      : null;
+    const executionIssueId =
+      moved.automationExecution.status === "succeeded"
+        ? moved.automationExecution.execution.executionIssueId
+        : null;
     const [issue] = await db
       .select({ title: issues.title })
       .from(issues)
@@ -1583,18 +1947,27 @@ describeEmbeddedPostgres("pipelineService", () => {
     const routine = await seedRoutine(company.id, "Own routine");
     const otherRoutine = await seedRoutine(otherCompany.id, "Other routine");
 
-    await expect(svc.createPipeline({
-      companyId: company.id,
-      key: "bad-automation",
-      name: "Bad automation",
-      actor: userActor,
-      stages: [
-        { key: "intake", name: "Intake", kind: "open" },
-        { key: "drafting", name: "Drafting", kind: "working", config: { onEnter: { type: "run_routine", routineId: otherRoutine.id } } },
-        { key: "done", name: "Done", kind: "done" },
-        { key: "cancelled", name: "Cancelled", kind: "cancelled" },
-      ],
-    })).rejects.toMatchObject({ status: 422, details: { code: "validation" } });
+    await expect(
+      svc.createPipeline({
+        companyId: company.id,
+        key: "bad-automation",
+        name: "Bad automation",
+        actor: userActor,
+        stages: [
+          { key: "intake", name: "Intake", kind: "open" },
+          {
+            key: "drafting",
+            name: "Drafting",
+            kind: "working",
+            config: {
+              onEnter: { type: "run_routine", routineId: otherRoutine.id },
+            },
+          },
+          { key: "done", name: "Done", kind: "done" },
+          { key: "cancelled", name: "Cancelled", kind: "cancelled" },
+        ],
+      }),
+    ).rejects.toMatchObject({ status: 422, details: { code: "validation" } });
 
     const pipeline = await svc.createPipeline({
       companyId: company.id,
@@ -1603,7 +1976,12 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
       stages: [
         { key: "intake", name: "Intake", kind: "open" },
-        { key: "drafting", name: "Drafting", kind: "working", config: { onEnter: { type: "run_routine", routineId: routine.id } } },
+        {
+          key: "drafting",
+          name: "Drafting",
+          kind: "working",
+          config: { onEnter: { type: "run_routine", routineId: routine.id } },
+        },
         { key: "done", name: "Done", kind: "done" },
         { key: "cancelled", name: "Cancelled", kind: "cancelled" },
       ],
@@ -1624,23 +2002,29 @@ describeEmbeddedPostgres("pipelineService", () => {
     });
     expect(moved.automationExecution.status).toBe("succeeded");
 
-    const [triggerEvent] = await db.insert(pipelineCaseEvents).values({
-      companyId: company.id,
-      caseId: created.case.id,
-      type: "transitioned",
-      actorType: "system",
-      toStageId: moved.case.stageId,
-      payload: { crossCompanyRoutine: true },
-    }).returning();
-    const [badExecution] = await db.insert(pipelineAutomationExecutions).values({
-      companyId: company.id,
-      caseId: created.case.id,
-      automationId: moved.automationLedger!.automationId,
-      triggeringEventId: triggerEvent!.id,
-      routineId: otherRoutine.id,
-      status: "failed",
-      error: "pending_dispatch",
-    }).returning();
+    const [triggerEvent] = await db
+      .insert(pipelineCaseEvents)
+      .values({
+        companyId: company.id,
+        caseId: created.case.id,
+        type: "transitioned",
+        actorType: "system",
+        toStageId: moved.case.stageId,
+        payload: { crossCompanyRoutine: true },
+      })
+      .returning();
+    const [badExecution] = await db
+      .insert(pipelineAutomationExecutions)
+      .values({
+        companyId: company.id,
+        caseId: created.case.id,
+        automationId: moved.automationLedger!.automationId,
+        triggeringEventId: triggerEvent!.id,
+        routineId: otherRoutine.id,
+        status: "failed",
+        error: "pending_dispatch",
+      })
+      .returning();
 
     const retried = await svc.retryAutomation({
       companyId: company.id,
@@ -1655,7 +2039,9 @@ describeEmbeddedPostgres("pipelineService", () => {
       .where(eq(pipelineAutomationExecutions.id, badExecution!.id));
     expect(execution!.error).toContain("same company");
     const events = await svc.listCaseEvents(company.id, created.case.id);
-    expect(events.filter((event) => event.type === "automation_failed")).toHaveLength(1);
+    expect(
+      events.filter((event) => event.type === "automation_failed"),
+    ).toHaveLength(1);
   });
 
   it("auto-advances after retry creates a fresh terminal child rollup", async () => {
@@ -1692,29 +2078,38 @@ describeEmbeddedPostgres("pipelineService", () => {
       title: "Parent",
       actor: userActor,
     });
-    const [event] = await db.insert(pipelineCaseEvents).values({
-      companyId: company.id,
-      caseId: parent.case.id,
-      type: "transitioned",
-      actorType: "system",
-      toStageId: parent.case.stageId,
-      payload: { test: true },
-    }).returning();
-    const [attempt] = await db.insert(pipelineAutomationExecutions).values({
-      companyId: company.id,
-      caseId: parent.case.id,
-      automationId: "build-children",
-      triggeringEventId: event!.id,
-      routineId: routine.id,
-      status: "failed",
-      error: "boom",
-    }).returning();
-    const [automationIssue] = await db.insert(issues).values({
-      companyId: company.id,
-      title: "Retry-owned automation issue",
-      status: "in_progress",
-      priority: "medium",
-    }).returning();
+    const [event] = await db
+      .insert(pipelineCaseEvents)
+      .values({
+        companyId: company.id,
+        caseId: parent.case.id,
+        type: "transitioned",
+        actorType: "system",
+        toStageId: parent.case.stageId,
+        payload: { test: true },
+      })
+      .returning();
+    const [attempt] = await db
+      .insert(pipelineAutomationExecutions)
+      .values({
+        companyId: company.id,
+        caseId: parent.case.id,
+        automationId: "build-children",
+        triggeringEventId: event!.id,
+        routineId: routine.id,
+        status: "failed",
+        error: "boom",
+      })
+      .returning();
+    const [automationIssue] = await db
+      .insert(issues)
+      .values({
+        companyId: company.id,
+        title: "Retry-owned automation issue",
+        status: "in_progress",
+        priority: "medium",
+      })
+      .returning();
     await db.insert(pipelineCaseIssueLinks).values({
       companyId: company.id,
       caseId: parent.case.id,
@@ -1722,14 +2117,17 @@ describeEmbeddedPostgres("pipelineService", () => {
       role: "automation",
       automationAttemptId: attempt!.id,
     });
-    const [pendingInteraction] = await db.insert(issueThreadInteractions).values({
-      companyId: company.id,
-      issueId: automationIssue!.id,
-      kind: "request_confirmation",
-      status: "pending",
-      continuationPolicy: "none",
-      payload: { version: 1, prompt: "Continue automation?" },
-    }).returning();
+    const [pendingInteraction] = await db
+      .insert(issueThreadInteractions)
+      .values({
+        companyId: company.id,
+        issueId: automationIssue!.id,
+        kind: "request_confirmation",
+        status: "pending",
+        continuationPolicy: "none",
+        payload: { version: 1, prompt: "Continue automation?" },
+      })
+      .returning();
     const child = await svc.ingestCase({
       companyId: company.id,
       pipelineId: pipeline.id,
@@ -1790,11 +2188,18 @@ describeEmbeddedPostgres("pipelineService", () => {
     });
 
     const [freshParent] = await db
-      .select({ childCount: pipelineCases.childCount, terminalChildCount: pipelineCases.terminalChildCount, stageKey: pipelineStages.key })
+      .select({
+        childCount: pipelineCases.childCount,
+        terminalChildCount: pipelineCases.terminalChildCount,
+        stageKey: pipelineStages.key,
+      })
       .from(pipelineCases)
       .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
       .where(eq(pipelineCases.id, parent.case.id));
-    const [freshChild] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, child.case.id));
+    const [freshChild] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, child.case.id));
     expect(freshParent!.childCount).toBe(2);
     expect(freshParent!.terminalChildCount).toBe(2);
     expect(freshParent!.stageKey).toBe("review");
@@ -1811,7 +2216,11 @@ describeEmbeddedPostgres("pipelineService", () => {
       .where(eq(issueThreadInteractions.id, pendingInteraction!.id));
     expect(expiredInteraction?.status).toBe("expired");
     const events = await svc.listCaseEvents(company.id, parent.case.id);
-    expect(events.filter((pipelineEvent) => pipelineEvent.type === "children_terminal")).toHaveLength(2);
+    expect(
+      events.filter(
+        (pipelineEvent) => pipelineEvent.type === "children_terminal",
+      ),
+    ).toHaveLength(2);
   });
 
   it("updates intermediate terminal counts when retry retires descendants only", async () => {
@@ -1846,23 +2255,29 @@ describeEmbeddedPostgres("pipelineService", () => {
       title: "Descendants parent",
       actor: userActor,
     });
-    const [event] = await db.insert(pipelineCaseEvents).values({
-      companyId: company.id,
-      caseId: parent.case.id,
-      type: "transitioned",
-      actorType: "system",
-      toStageId: parent.case.stageId,
-      payload: { test: true },
-    }).returning();
-    const [attempt] = await db.insert(pipelineAutomationExecutions).values({
-      companyId: company.id,
-      caseId: parent.case.id,
-      automationId: "build-descendants",
-      triggeringEventId: event!.id,
-      routineId: routine.id,
-      status: "failed",
-      error: "boom",
-    }).returning();
+    const [event] = await db
+      .insert(pipelineCaseEvents)
+      .values({
+        companyId: company.id,
+        caseId: parent.case.id,
+        type: "transitioned",
+        actorType: "system",
+        toStageId: parent.case.stageId,
+        payload: { test: true },
+      })
+      .returning();
+    const [attempt] = await db
+      .insert(pipelineAutomationExecutions)
+      .values({
+        companyId: company.id,
+        caseId: parent.case.id,
+        automationId: "build-descendants",
+        triggeringEventId: event!.id,
+        routineId: routine.id,
+        status: "failed",
+        error: "boom",
+      })
+      .returning();
     const child = await svc.ingestCase({
       companyId: company.id,
       pipelineId: pipeline.id,
@@ -1897,9 +2312,18 @@ describeEmbeddedPostgres("pipelineService", () => {
       actor: userActor,
     });
 
-    const [freshParent] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, parent.case.id));
-    const [freshChild] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, child.case.id));
-    const [freshGrandchild] = await db.select().from(pipelineCases).where(eq(pipelineCases.id, grandchild.case.id));
+    const [freshParent] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, parent.case.id));
+    const [freshChild] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, child.case.id));
+    const [freshGrandchild] = await db
+      .select()
+      .from(pipelineCases)
+      .where(eq(pipelineCases.id, grandchild.case.id));
     expect(freshParent!.terminalChildCount).toBe(0);
     expect(freshChild!.terminalKind).toBeNull();
     expect(freshChild!.terminalChildCount).toBe(1);

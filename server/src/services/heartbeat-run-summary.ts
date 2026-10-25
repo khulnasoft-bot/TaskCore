@@ -8,12 +8,18 @@ export const HEARTBEAT_RUN_RESULT_OUTPUT_MAX_CHARS = 4_096;
 export const HEARTBEAT_RUN_SAFE_RESULT_JSON_MAX_BYTES = 64 * 1024;
 
 /** Operator diagnostics are untrusted provider data, not model handoff prose. */
-export function summarizeRunErrorForModel(error: string | null, terminalFailureCategory?: unknown): string | null {
+export function summarizeRunErrorForModel(
+  error: string | null,
+  terminalFailureCategory?: unknown,
+): string | null {
   if (terminalFailureCategory == null) return error;
-  const category = typeof terminalFailureCategory === "string"
-    && ["connection", "access", "limit", "service", "request", "unknown"].includes(terminalFailureCategory)
-    ? terminalFailureCategory
-    : "unknown";
+  const category =
+    typeof terminalFailureCategory === "string" &&
+    ["connection", "access", "limit", "service", "request", "unknown"].includes(
+      terminalFailureCategory,
+    )
+      ? terminalFailureCategory
+      : "unknown";
   return `ACP agent reported a terminal ${category} failure. Provider diagnostics are available in the run record.`;
 }
 
@@ -601,7 +607,8 @@ export function findHeartbeatRunCompletionComment<T extends { id: string }>(
     } else if (
       receiptRecord.operationId === "register_deliverable" &&
       typeof receiptResult.attachmentId === "string" &&
-      receiptResult.commandId === `deliverable-prepared:${receiptResult.attachmentId}` &&
+      receiptResult.commandId ===
+        `deliverable-prepared:${receiptResult.attachmentId}` &&
       ["applied", "duplicate"].includes(String(receiptResult.disposition)) &&
       Array.isArray(receiptResult.entityRefs)
     ) {

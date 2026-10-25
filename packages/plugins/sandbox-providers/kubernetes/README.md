@@ -33,10 +33,10 @@ taskcore plugin install --local /path/to/taskcore/packages/plugins/sandbox-provi
 
 The plugin supports two backend modes, selected via the `backend` config field:
 
-| Backend | Default | Stability | Multi-command exec | Requires |
-|---|---|---|---|---|
-| `sandbox-cr` | Yes | Alpha | Yes | `kubernetes-sigs/agent-sandbox` controller |
-| `job` | No | Stable | No | Nothing beyond k8s 1.27+ |
+| Backend      | Default | Stability | Multi-command exec | Requires                                   |
+| ------------ | ------- | --------- | ------------------ | ------------------------------------------ |
+| `sandbox-cr` | Yes     | Alpha     | Yes                | `kubernetes-sigs/agent-sandbox` controller |
+| `job`        | No      | Stable    | No                 | Nothing beyond k8s 1.27+                   |
 
 **`sandbox-cr` (default):** Creates a `Sandbox` CR (`agents.x-k8s.io/v1alpha1`) whose controller provisions a long-lived pod running `sleep infinity`. taskcore-server execs individual commands into the running pod — this is the multi-command adapter-install pattern. When you `releaseLease`, the Sandbox CR is deleted and the controller tears down the pod.
 
@@ -58,22 +58,22 @@ Create a `sandbox` environment with `driver: kubernetes`. One of these auth fiel
 
 Common optional fields:
 
-| Field | Default | Purpose |
-|---|---|---|
-| `backend` | `"sandbox-cr"` | `sandbox-cr` (alpha, requires agent-sandbox controller) or `job` (stable, one-shot entrypoint). |
-| `adapterType` | `"claude_local"` | One of the supported adapter types (claude_local, codex_local, gemini_local, cursor_local, opencode_local, pi_local). Determines runtime image + env keys + egress allow-list. |
-| `namespacePrefix` | `"taskcore-"` | Prefix for the per-company tenant namespace. |
-| `companySlug` | derived from companyId | Override the auto-derived company slug. |
-| `imageRegistry` | (none) | Override the default registry for agent runtime images. |
-| `imageAllowList` | `[]` | Glob patterns of allowed `target.imageOverride` values. Empty = no override permitted. |
-| `imagePullSecrets` | `[]` | Names of pre-created Docker image pull secrets in the tenant namespace. |
-| `egressAllowFqdns` | `[]` | Additional FQDNs (beyond adapter defaults like `api.anthropic.com`). |
-| `egressAllowCidrs` | `[]` | Additional CIDRs to allow egress to. |
-| `egressMode` | `"standard"` | `standard` (NetworkPolicy + CIDRs) or `cilium` (CiliumNetworkPolicy + FQDN allow-list). |
-| `runtimeClassName` | (none) | e.g. `kata-fc` for Firecracker-backed microVMs. Cluster must have the RuntimeClass installed. |
-| `serviceAccountAnnotations` | `{}` | Annotations applied to per-tenant ServiceAccount (e.g. IRSA `eks.amazonaws.com/role-arn`). |
-| `jobTtlSecondsAfterFinished` | `900` | Seconds after a Job completes before garbage-collection. |
-| `podActivityDeadlineSec` | `3600` | Hard ceiling on a single run's wall-clock time. |
+| Field                        | Default                | Purpose                                                                                                                                                                        |
+| ---------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `backend`                    | `"sandbox-cr"`         | `sandbox-cr` (alpha, requires agent-sandbox controller) or `job` (stable, one-shot entrypoint).                                                                                |
+| `adapterType`                | `"claude_local"`       | One of the supported adapter types (claude_local, codex_local, gemini_local, cursor_local, opencode_local, pi_local). Determines runtime image + env keys + egress allow-list. |
+| `namespacePrefix`            | `"taskcore-"`          | Prefix for the per-company tenant namespace.                                                                                                                                   |
+| `companySlug`                | derived from companyId | Override the auto-derived company slug.                                                                                                                                        |
+| `imageRegistry`              | (none)                 | Override the default registry for agent runtime images.                                                                                                                        |
+| `imageAllowList`             | `[]`                   | Glob patterns of allowed `target.imageOverride` values. Empty = no override permitted.                                                                                         |
+| `imagePullSecrets`           | `[]`                   | Names of pre-created Docker image pull secrets in the tenant namespace.                                                                                                        |
+| `egressAllowFqdns`           | `[]`                   | Additional FQDNs (beyond adapter defaults like `api.anthropic.com`).                                                                                                           |
+| `egressAllowCidrs`           | `[]`                   | Additional CIDRs to allow egress to.                                                                                                                                           |
+| `egressMode`                 | `"standard"`           | `standard` (NetworkPolicy + CIDRs) or `cilium` (CiliumNetworkPolicy + FQDN allow-list).                                                                                        |
+| `runtimeClassName`           | (none)                 | e.g. `kata-fc` for Firecracker-backed microVMs. Cluster must have the RuntimeClass installed.                                                                                  |
+| `serviceAccountAnnotations`  | `{}`                   | Annotations applied to per-tenant ServiceAccount (e.g. IRSA `eks.amazonaws.com/role-arn`).                                                                                     |
+| `jobTtlSecondsAfterFinished` | `900`                  | Seconds after a Job completes before garbage-collection.                                                                                                                       |
+| `podActivityDeadlineSec`     | `3600`                 | Hard ceiling on a single run's wall-clock time.                                                                                                                                |
 
 Full JSON Schema in `src/manifest.ts`.
 

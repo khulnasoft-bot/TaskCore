@@ -76,7 +76,9 @@ try {
     page.on("request", (request) => requests.push(request.url()));
     await page.goto(`${origin}/${route}`, { waitUntil: "networkidle" });
     await page.locator(".pit-thread").waitFor({ state: "visible" });
-    const chatBackground = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const chatBackground = await page.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    );
     assert.equal(
       await page.locator("h1").textContent(),
       payload.view.issue.title,
@@ -116,11 +118,18 @@ try {
           .locator('[data-thread-item="tool_activity"][open]')
           .first()
           .getByRole("button", { name: "View in Evidence", exact: true });
-        const evidenceTab = page.getByRole("tab", { name: "Evidence", exact: true });
+        const evidenceTab = page.getByRole("tab", {
+          name: "Evidence",
+          exact: true,
+        });
         await evidenceLink.click();
         await expect(evidenceTab).toHaveAttribute("aria-selected", "true");
-        await expect(page.locator('[data-highlighted="true"]').first()).toBeVisible();
-        await expect(page.getByRole("heading", { name: "Assertions", exact: true })).toHaveCount(0);
+        await expect(
+          page.locator('[data-highlighted="true"]').first(),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("heading", { name: "Assertions", exact: true }),
+        ).toHaveCount(0);
         // Reopening the same record after selecting another tab must work too.
         await page.getByRole("tab", { name: "Eval", exact: true }).click();
         await evidenceLink.click();
@@ -153,17 +162,39 @@ try {
     assert.equal(new URL(page.url()).pathname, "/index.html");
     await expect(page.locator("body")).toHaveClass("evalbook-site");
     const assertSiteTheme = async () => {
-      assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), chatBackground);
-      assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), "dark");
+      assert.equal(
+        await page.evaluate(
+          () => getComputedStyle(document.body).backgroundColor,
+        ),
+        chatBackground,
+      );
+      assert.equal(
+        await page.evaluate(
+          () => getComputedStyle(document.documentElement).colorScheme,
+        ),
+        "dark",
+      );
     };
     await assertSiteTheme();
-    if (screenshots) await page.screenshot({ path: join(screenshots, "index.png"), fullPage: true });
+    if (screenshots)
+      await page.screenshot({
+        path: join(screenshots, "index.png"),
+        fullPage: true,
+      });
     await page.locator(".matrix tbody th a").first().click();
     await expect(page.getByText("Test design", { exact: true })).toBeVisible();
     await assertSiteTheme();
-    await page.getByText("Full authored test definition", { exact: true }).click();
-    if (screenshots) await page.screenshot({ path: join(screenshots, "test-design.png"), fullPage: true });
-    await page.getByRole("link", { name: "← All results", exact: true }).click();
+    await page
+      .getByText("Full authored test definition", { exact: true })
+      .click();
+    if (screenshots)
+      await page.screenshot({
+        path: join(screenshots, "test-design.png"),
+        fullPage: true,
+      });
+    await page
+      .getByRole("link", { name: "← All results", exact: true })
+      .click();
     await page.getByRole("link", { name: "Latest", exact: true }).click();
     await assertSiteTheme();
     await page.getByRole("link", { name: "Overview", exact: true }).click();

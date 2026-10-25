@@ -15,7 +15,10 @@ import {
   AGENTCORE_QUALIFIED_MODEL,
   CLAUDE_MANAGED_QUALIFIED_MODEL,
 } from "../provider-profile-qualification.js";
-import { resolveAcpxQualification, type AcpxQualificationCandidate } from "./acpx-qualification.js";
+import {
+  resolveAcpxQualification,
+  type AcpxQualificationCandidate,
+} from "./acpx-qualification.js";
 import { compatibleCodexModel } from "./codex-model-fallback.js";
 
 export const QUALIFIED_OPENCODE_RUNNER_VERSION = "1.18.34" as const;
@@ -33,10 +36,16 @@ export const DEFAULT_ACPX_RUNNER_MODELS = {
 
 export type QualifiedTaskcoreRunnerAcpxAgent =
   keyof typeof DEFAULT_ACPX_RUNNER_MODELS;
-type AdmittedTaskcoreRunnerAcpxAgent = QualifiedTaskcoreRunnerAcpxAgent | AcpxQualificationCandidate;
+type AdmittedTaskcoreRunnerAcpxAgent =
+  QualifiedTaskcoreRunnerAcpxAgent | AcpxQualificationCandidate;
 
 export type TaskcoreRunnerProviderProfile =
-  | { provider: "openai_dot"; backend: "openai_dot_mcp"; model: null; dotBindingId: string }
+  | {
+      provider: "openai_dot";
+      backend: "openai_dot_mcp";
+      model: null;
+      dotBindingId: string;
+    }
   | {
       provider: "codex";
       backend: "codex_app_server";
@@ -69,7 +78,11 @@ export type TaskcoreRunnerProviderProfile =
     };
 
 export type TaskcoreRunnerNativeProviderInput =
-  | { provider: "openai_dot"; model: null; dotBinding: import("../../vendor/taskcore-runner/index.js").DotBindingSnapshot }
+  | {
+      provider: "openai_dot";
+      model: null;
+      dotBinding: import("../../vendor/taskcore-runner/index.js").DotBindingSnapshot;
+    }
   | {
       provider: "codex";
       model: string | null;
@@ -125,7 +138,8 @@ export type TaskcoreRunnerNativeProviderInput =
       provider: "acpx";
       model: string;
       acpxAgent: AdmittedTaskcoreRunnerAcpxAgent;
-      acpxPermissionMode: "approve-all" | "approve-taskcore" | "approve-reads" | "deny-all";
+      acpxPermissionMode:
+        "approve-all" | "approve-taskcore" | "approve-reads" | "deny-all";
       acpxSessionMode?: "agent" | "plan" | "ask";
     };
 
@@ -141,7 +155,7 @@ export class TaskcoreRunnerProviderProfileError extends Error {
 
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -152,12 +166,22 @@ function optionalString(value: unknown): string | null {
 }
 
 /** Configuration can be saved before pairing; task admission requires a binding. */
-export function validateTaskcoreRunnerDotConfig(config: Record<string, unknown>, requireBinding = true): string | null {
+export function validateTaskcoreRunnerDotConfig(
+  config: Record<string, unknown>,
+  requireBinding = true,
+): string | null {
   const bindingId = optionalString(config.dotBindingId);
-  if ((requireBinding && !bindingId) || (bindingId && !/^[0-9a-f-]{36}$/i.test(bindingId))
-      || config.allowUnmeteredProvider !== true || (config.lifecycleMode && config.lifecycleMode !== "per_turn")
-      || optionalString(config.model)) {
-    throw new TaskcoreRunnerProviderProfileError("taskcore_runner_dot_config_invalid", "Dot requires per-turn lifecycle and explicit externally billed, unmetered-provider acknowledgement. Pair a binding before assigning work.");
+  if (
+    (requireBinding && !bindingId) ||
+    (bindingId && !/^[0-9a-f-]{36}$/i.test(bindingId)) ||
+    config.allowUnmeteredProvider !== true ||
+    (config.lifecycleMode && config.lifecycleMode !== "per_turn") ||
+    optionalString(config.model)
+  ) {
+    throw new TaskcoreRunnerProviderProfileError(
+      "taskcore_runner_dot_config_invalid",
+      "Dot requires per-turn lifecycle and explicit externally billed, unmetered-provider acknowledgement. Pair a binding before assigning work.",
+    );
   }
   return bindingId;
 }
@@ -175,10 +199,17 @@ export function projectTaskcoreRunnerTaskConfig(
   // The server resolves a connection's model namespace after task overrides.
   // Carry that model into durable input without allowing routing to change the harness.
   const model = optionalString(managedModel) ?? optionalString(task.model);
-  const effortKey = backend === "codex_app_server"
-    ? ["modelReasoningEffort", "reasoningEffort", "effort"].find((key) => key in task)
-    : undefined;
-  if (backend === "codex_app_server" && ((model !== null && model !== optionalString(base.model)) || effortKey !== undefined)) {
+  const effortKey =
+    backend === "codex_app_server"
+      ? ["modelReasoningEffort", "reasoningEffort", "effort"].find(
+          (key) => key in task,
+        )
+      : undefined;
+  if (
+    backend === "codex_app_server" &&
+    ((model !== null && model !== optionalString(base.model)) ||
+      effortKey !== undefined)
+  ) {
     delete config.modelReasoningEffort;
     delete config.reasoningEffort;
     delete config.effort;
@@ -210,10 +241,10 @@ function boundedPositiveInteger(
 ): number {
   if (value === undefined || value === null || value === "") return fallback;
   if (
-    typeof value !== "number"
-    || !Number.isSafeInteger(value)
-    || value <= 0
-    || value > maximum
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value <= 0 ||
+    value > maximum
   ) {
     throw new TaskcoreRunnerProviderProfileError(
       code,
@@ -231,8 +262,8 @@ function assertPermissionMode(
   if (!capability.configurable) return;
   const configured = config[capability.configKey];
   if (
-    configured !== undefined
-    && resolveTaskcoreRunnerPermissionMode(provider, configured) !== configured
+    configured !== undefined &&
+    resolveTaskcoreRunnerPermissionMode(provider, configured) !== configured
   ) {
     if (provider === "codex") {
       throw new TaskcoreRunnerProviderProfileError(
@@ -273,18 +304,20 @@ export function assertManagedProfileRecoveryBinding(input: {
 }): void {
   const { snapshot, stored } = input;
   if (
-    snapshot.profileId !== stored.id
-    || snapshot.anthropicAgentId !== stored.anthropicAgentId
-    || snapshot.agentVersion !== stored.agentVersion
-    || snapshot.environmentId !== stored.environmentId
-    || snapshot.betaVersion !== stored.betaVersion
+    snapshot.profileId !== stored.id ||
+    snapshot.anthropicAgentId !== stored.anthropicAgentId ||
+    snapshot.agentVersion !== stored.agentVersion ||
+    snapshot.environmentId !== stored.environmentId ||
+    snapshot.betaVersion !== stored.betaVersion
   ) {
     throw new TaskcoreRunnerProviderProfileError(
       "taskcore_runner_claude_managed_recovery_identity_mismatch",
       "The persisted Claude Managed identity no longer matches its qualified profile.",
     );
   }
-  const rawBinding = asRecord(asRecord(input.adapterConfig).env).ANTHROPIC_API_KEY;
+  const rawBinding = asRecord(
+    asRecord(input.adapterConfig).env,
+  ).ANTHROPIC_API_KEY;
   const boundSecretId = asRecord(rawBinding).secretId;
   if (boundSecretId !== stored.apiKeySecretId) {
     throw new TaskcoreRunnerProviderProfileError(
@@ -339,8 +372,8 @@ export function assertAgentCoreProfileRecoveryBinding(input: {
     "eventExpiryDays",
   ] as const;
   if (
-    snapshot.profileId !== stored.id
-    || fields.some((field) => snapshot[field] !== configuration[field])
+    snapshot.profileId !== stored.id ||
+    fields.some((field) => snapshot[field] !== configuration[field])
   ) {
     throw new TaskcoreRunnerProviderProfileError(
       "taskcore_runner_aws_agentcore_recovery_identity_mismatch",
@@ -369,11 +402,20 @@ export function resolveTaskcoreRunnerProviderProfile(
 
   if (candidate === "openai_dot") {
     const bindingId = validateTaskcoreRunnerDotConfig(config)!;
-    return { provider: "openai_dot", backend: "openai_dot_mcp", model: null, dotBindingId: bindingId };
+    return {
+      provider: "openai_dot",
+      backend: "openai_dot_mcp",
+      model: null,
+      dotBindingId: bindingId,
+    };
   }
   assertPermissionMode(candidate, config);
   try {
-    resolveTaskcoreRunnerCursorMode(candidate, config.acpxAgent, config.acpxSessionMode);
+    resolveTaskcoreRunnerCursorMode(
+      candidate,
+      config.acpxAgent,
+      config.acpxSessionMode,
+    );
   } catch (error) {
     throw new TaskcoreRunnerProviderProfileError(
       "taskcore_runner_cursor_mode_invalid",
@@ -470,26 +512,54 @@ export function resolveTaskcoreRunnerProviderProfile(
   }
 
   const acpxAgent = config.acpxAgent ?? "claude";
-  const pendingAcpxProfile = TASKCORE_RUNNER_ACPX_PROFILES.find(profile => profile.value === acpxAgent && !profile.qualified);
+  const pendingAcpxProfile = TASKCORE_RUNNER_ACPX_PROFILES.find(
+    (profile) => profile.value === acpxAgent && !profile.qualified,
+  );
   if (pendingAcpxProfile) {
-    if (!model) throw new TaskcoreRunnerProviderProfileError("taskcore_runner_acpx_model_required", `${pendingAcpxProfile.label} requires an explicit model ID; there is no default model.`);
+    if (!model)
+      throw new TaskcoreRunnerProviderProfileError(
+        "taskcore_runner_acpx_model_required",
+        `${pendingAcpxProfile.label} requires an explicit model ID; there is no default model.`,
+      );
     // Qualification authority belongs to the isolated server operator. Never
     // read this allowlist from adapter config, credential refs, or run env.
     let qualification: AcpxQualificationCandidate | undefined;
     try {
-      qualification = resolveAcpxQualification({ kind: "acpx", agent: pendingAcpxProfile.value, model }, process.env);
+      qualification = resolveAcpxQualification(
+        { kind: "acpx", agent: pendingAcpxProfile.value, model },
+        process.env,
+      );
     } catch {
-      throw new TaskcoreRunnerProviderProfileError("taskcore_runner_acpx_qualification_invalid", "ACPX qualification requires an exact host-authorized candidate and model.");
+      throw new TaskcoreRunnerProviderProfileError(
+        "taskcore_runner_acpx_qualification_invalid",
+        "ACPX qualification requires an exact host-authorized candidate and model.",
+      );
     }
     if (qualification) {
-      return { provider: "acpx", backend: "acpx_runtime", model, acpxAgent: qualification };
+      return {
+        provider: "acpx",
+        backend: "acpx_runtime",
+        model,
+        acpxAgent: qualification,
+      };
     }
-    throw new TaskcoreRunnerProviderProfileError("taskcore_runner_acpx_agent_unavailable", `${pendingAcpxProfile.label} is awaiting local and Daytona qualification. Its profile is not enabled for production runs.`);
+    throw new TaskcoreRunnerProviderProfileError(
+      "taskcore_runner_acpx_agent_unavailable",
+      `${pendingAcpxProfile.label} is awaiting local and Daytona qualification. Its profile is not enabled for production runs.`,
+    );
   }
   if (acpxAgent === "cursor" && !model) {
-    throw new TaskcoreRunnerProviderProfileError("taskcore_runner_acpx_model_required", "Cursor requires an explicit model ID; there is no default model.");
+    throw new TaskcoreRunnerProviderProfileError(
+      "taskcore_runner_acpx_model_required",
+      "Cursor requires an explicit model ID; there is no default model.",
+    );
   }
-  if (acpxAgent !== "claude" && acpxAgent !== "codex" && acpxAgent !== "grok" && acpxAgent !== "cursor") {
+  if (
+    acpxAgent !== "claude" &&
+    acpxAgent !== "codex" &&
+    acpxAgent !== "grok" &&
+    acpxAgent !== "cursor"
+  ) {
     throw new TaskcoreRunnerProviderProfileError(
       "taskcore_runner_acpx_agent_unavailable",
       "Taskcore Runner ACPX requires a qualified agent profile.",
@@ -501,7 +571,9 @@ export function resolveTaskcoreRunnerProviderProfile(
   } catch (error) {
     throw new TaskcoreRunnerProviderProfileError(
       "taskcore_runner_acpx_model_unqualified",
-      error instanceof Error ? error.message : "Taskcore Runner ACPX requires an admitted model.",
+      error instanceof Error
+        ? error.message
+        : "Taskcore Runner ACPX requires an admitted model.",
     );
   }
   return {
@@ -549,8 +621,19 @@ export function resolveTaskcoreRunnerNativeProviderInput(input: {
     );
   }
   if (profile.provider === "openai_dot") {
-    if (!input.dotBinding || input.dotBinding.bindingId !== profile.dotBindingId) throw new TaskcoreRunnerProviderProfileError("taskcore_runner_dot_binding_unavailable", "Dot binding must be resolved by the server after normal admission.");
-    return { provider: "openai_dot", model: null, dotBinding: input.dotBinding };
+    if (
+      !input.dotBinding ||
+      input.dotBinding.bindingId !== profile.dotBindingId
+    )
+      throw new TaskcoreRunnerProviderProfileError(
+        "taskcore_runner_dot_binding_unavailable",
+        "Dot binding must be resolved by the server after normal admission.",
+      );
+    return {
+      provider: "openai_dot",
+      model: null,
+      dotBinding: input.dotBinding,
+    };
   }
   if (profile.provider === "opencode") {
     return {
@@ -567,9 +650,15 @@ export function resolveTaskcoreRunnerNativeProviderInput(input: {
       provider: "acpx",
       model: profile.model,
       acpxAgent: profile.acpxAgent,
-      ...(profile.acpxAgent === "cursor" ? {
-        acpxSessionMode: resolveTaskcoreRunnerCursorMode("acpx", "cursor", config.acpxSessionMode),
-      } : {}),
+      ...(profile.acpxAgent === "cursor"
+        ? {
+            acpxSessionMode: resolveTaskcoreRunnerCursorMode(
+              "acpx",
+              "cursor",
+              config.acpxSessionMode,
+            ),
+          }
+        : {}),
       acpxPermissionMode: resolveTaskcoreRunnerPermissionMode(
         "acpx",
         config.acpxPermissionMode,
@@ -579,11 +668,9 @@ export function resolveTaskcoreRunnerNativeProviderInput(input: {
   if (profile.provider === "claude_managed") {
     const stored = input.managedProfile;
     if (
-      !stored
-      || (
-        profile.managedProfileId !== stored.id
-        && profile.managedProfileId !== stored.profileKey
-      )
+      !stored ||
+      (profile.managedProfileId !== stored.id &&
+        profile.managedProfileId !== stored.profileKey)
     ) {
       throw new TaskcoreRunnerProviderProfileError(
         "taskcore_runner_claude_managed_profile_mismatch",
@@ -597,8 +684,8 @@ export function resolveTaskcoreRunnerNativeProviderInput(input: {
       );
     }
     const model = profile.model ?? optionalString(stored.defaultModel);
-    const maxSessionListCostUsd = profile.maxSessionListCostUsd
-      ?? stored.defaultMaxListCostCents / 100;
+    const maxSessionListCostUsd =
+      profile.maxSessionListCostUsd ?? stored.defaultMaxListCostCents / 100;
     if (!model) {
       throw new TaskcoreRunnerProviderProfileError(
         "taskcore_runner_claude_managed_model_invalid",
@@ -633,11 +720,9 @@ export function resolveTaskcoreRunnerNativeProviderInput(input: {
   if (profile.provider === "aws_agentcore") {
     const stored = input.agentCoreProfile;
     if (
-      !stored
-      || (
-        profile.agentCoreProfileId !== stored.id
-        && profile.agentCoreProfileId !== stored.profileKey
-      )
+      !stored ||
+      (profile.agentCoreProfileId !== stored.id &&
+        profile.agentCoreProfileId !== stored.profileKey)
     ) {
       throw new TaskcoreRunnerProviderProfileError(
         "taskcore_runner_aws_agentcore_profile_mismatch",
@@ -661,8 +746,9 @@ export function resolveTaskcoreRunnerNativeProviderInput(input: {
         "The qualified AWS AgentCore profile must retain Memory events for exactly 90 days.",
       );
     }
-    const maxEstimatedSessionCostUsd = profile.maxEstimatedSessionCostUsd
-      ?? positiveNumberOrNull(
+    const maxEstimatedSessionCostUsd =
+      profile.maxEstimatedSessionCostUsd ??
+      positiveNumberOrNull(
         remote.defaultMaxEstimatedSessionCostUsd,
         "taskcore_runner_aws_agentcore_spend_cap_invalid",
         "The AWS AgentCore profile requires a positive estimated session spend ceiling.",
@@ -727,13 +813,30 @@ export function resolveTaskcoreRunnerNativeProviderInput(input: {
       },
     };
   }
-  const effort = config.modelReasoningEffort ?? config.reasoningEffort ?? config.effort;
-  const allowedEfforts = ["minimal", "low", "medium", "high", "xhigh", "max", "ultra"];
-  if (effort !== undefined && effort !== null && effort !== "" && (
-    typeof effort !== "string" || !allowedEfforts.includes(effort)
-    || (profile.model && isCodexLocalKnownModel(profile.model)
-      && !codexLocalReasoningEffortsForModel(profile.model).includes(effort as "minimal" | "low" | "medium" | "high" | "xhigh" | "max" | "ultra"))
-  )) {
+  const effort =
+    config.modelReasoningEffort ?? config.reasoningEffort ?? config.effort;
+  const allowedEfforts = [
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+    "ultra",
+  ];
+  if (
+    effort !== undefined &&
+    effort !== null &&
+    effort !== "" &&
+    (typeof effort !== "string" ||
+      !allowedEfforts.includes(effort) ||
+      (profile.model &&
+        isCodexLocalKnownModel(profile.model) &&
+        !codexLocalReasoningEffortsForModel(profile.model).includes(
+          effort as
+            "minimal" | "low" | "medium" | "high" | "xhigh" | "max" | "ultra",
+        )))
+  ) {
     throw new TaskcoreRunnerProviderProfileError(
       "taskcore_runner_codex_effort_invalid",
       "Taskcore Runner Codex reasoning effort is not supported for this model.",
@@ -746,6 +849,8 @@ export function resolveTaskcoreRunnerNativeProviderInput(input: {
       "codex",
       config.codexPermissionMode,
     ) as "never" | "on-request" | "untrusted",
-    ...(typeof effort === "string" && effort ? { codexReasoningEffort: effort } : {}),
+    ...(typeof effort === "string" && effort
+      ? { codexReasoningEffort: effort }
+      : {}),
   };
 }

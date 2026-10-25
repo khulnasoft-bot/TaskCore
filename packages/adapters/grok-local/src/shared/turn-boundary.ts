@@ -23,7 +23,10 @@ function endsWithSentenceClose(ch: string): boolean {
   return ch === "." || ch === "?" || ch === "!" || ch === ":" || ch === ";";
 }
 
-export function applyTurnBoundary(state: TurnBoundaryState, incoming: string): string {
+export function applyTurnBoundary(
+  state: TurnBoundaryState,
+  incoming: string,
+): string {
   if (!incoming) return incoming;
 
   let output = incoming;
@@ -40,15 +43,16 @@ export function applyTurnBoundary(state: TurnBoundaryState, incoming: string): s
     // stream "...`", "ls", "`" then "The"). A compound chunk like "`ls`" is a
     // self-contained span and the following capitalized word is a continuation,
     // not a new turn.
-    const closingLoneBacktick =
-      prev === "`" && state.backtickParity === 0;
-    const looksLikeNewTurn = endsWithSentenceClose(lastChar) || closingLoneBacktick;
+    const closingLoneBacktick = prev === "`" && state.backtickParity === 0;
+    const looksLikeNewTurn =
+      endsWithSentenceClose(lastChar) || closingLoneBacktick;
     if (looksLikeNewTurn) {
       output = `\n${incoming}`;
     }
   }
 
   state.lastChunk = incoming;
-  state.backtickParity = ((state.backtickParity + countBackticks(incoming)) % 2) as 0 | 1;
+  state.backtickParity = ((state.backtickParity + countBackticks(incoming)) %
+    2) as 0 | 1;
   return output;
 }

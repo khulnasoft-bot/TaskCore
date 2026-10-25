@@ -20,9 +20,8 @@ import { once } from "node:events";
 import { createCapabilityCookieJar } from "./capability-cookie-jar.mjs";
 import { createCapabilityIssueThreadMiddleware } from "./capability-issue-thread-server.mjs";
 
-const { readCapabilityTurnStream, CAPABILITY_TURN_STREAM_ACCEPT } = await import(
-  new URL("../dist/live/index.js", import.meta.url).href
-);
+const { readCapabilityTurnStream, CAPABILITY_TURN_STREAM_ACCEPT } =
+  await import(new URL("../dist/live/index.js", import.meta.url).href);
 
 const CREDENTIAL_PATTERNS = [
   /bearer\s+[a-z0-9._-]+/i,
@@ -36,7 +35,9 @@ const CREDENTIAL_PATTERNS = [
 
 function credentialLeaks(value) {
   const serialized = JSON.stringify(value);
-  return CREDENTIAL_PATTERNS.filter((pattern) => pattern.test(serialized)).map(String);
+  return CREDENTIAL_PATTERNS.filter((pattern) => pattern.test(serialized)).map(
+    String,
+  );
 }
 
 function assert(condition, message) {
@@ -60,12 +61,16 @@ function assistantText(view) {
  * just against a scripted one.
  */
 function monotonic(states) {
-  return states.every((state, index) => index === 0 || state.startsWith(states[index - 1]));
+  return states.every(
+    (state, index) => index === 0 || state.startsWith(states[index - 1]),
+  );
 }
 
 async function main() {
   const asJson = process.argv.includes("--json");
-  const middleware = createCapabilityIssueThreadMiddleware({ bindHost: "127.0.0.1" });
+  const middleware = createCapabilityIssueThreadMiddleware({
+    bindHost: "127.0.0.1",
+  });
   const server = createServer((request, response) => {
     middleware(request, response, () => {
       response.statusCode = 404;
@@ -97,10 +102,14 @@ async function main() {
   const turn = async (body) => {
     const response = await jar.fetch("/api/capability/ui/message", {
       method: "POST",
-      headers: { "content-type": "application/json", accept: CAPABILITY_TURN_STREAM_ACCEPT },
+      headers: {
+        "content-type": "application/json",
+        accept: CAPABILITY_TURN_STREAM_ACCEPT,
+      },
       body: JSON.stringify(body),
     });
-    if (!response.ok) throw new Error(`turn failed with HTTP ${response.status}`);
+    if (!response.ok)
+      throw new Error(`turn failed with HTTP ${response.status}`);
     const states = [];
     const settled = await readCapabilityTurnStream(response, (frame) => {
       states.push(assistantText(frame.view));
@@ -112,8 +121,10 @@ async function main() {
   let summary = {};
   try {
     const opened = await get("/api/capability/ui/cleanroom/session");
-    assertions.cleanRoomOpened = typeof opened.sessionId === "string" && opened.sessionId.length > 0;
-    assertions.blankThread = Array.isArray(opened.view.turns) && opened.view.turns.length === 0;
+    assertions.cleanRoomOpened =
+      typeof opened.sessionId === "string" && opened.sessionId.length > 0;
+    assertions.blankThread =
+      Array.isArray(opened.view.turns) && opened.view.turns.length === 0;
     assertions.noCannedEvidence =
       opened.view.evidence.calls.length === 0 &&
       opened.view.evidence.parity.length === 0 &&
@@ -136,18 +147,28 @@ async function main() {
     const firstItems = items(first.view);
     const growing = first.states.filter((state) => state.length > 0);
     assertions.streamedIncrementally =
-      growing.length >= 2 && monotonic(growing) && growing.at(-1) === assistantText(first.view);
-    assertions.realCodexTurn = firstItems.some((item) => item.kind === "agent_message");
-    assertions.semanticToolCalled = firstItems.some((item) => item.kind === "tool_activity");
-    assertions.mockStateMutated = firstItems.some((item) => item.kind === "durable_comment");
-    assertions.authorizationRecorded = first.view.evidence.authorization.length > 0;
+      growing.length >= 2 &&
+      monotonic(growing) &&
+      growing.at(-1) === assistantText(first.view);
+    assertions.realCodexTurn = firstItems.some(
+      (item) => item.kind === "agent_message",
+    );
+    assertions.semanticToolCalled = firstItems.some(
+      (item) => item.kind === "tool_activity",
+    );
+    assertions.mockStateMutated = firstItems.some(
+      (item) => item.kind === "durable_comment",
+    );
+    assertions.authorizationRecorded =
+      first.view.evidence.authorization.length > 0;
 
     const second = await turn({
       sessionId: opened.sessionId,
       message: "In one line, what status did you just record?",
     });
     assertions.multiTurnSameSession =
-      second.sessionId === opened.sessionId && second.view.turns.length > first.view.turns.length;
+      second.sessionId === opened.sessionId &&
+      second.view.turns.length > first.view.turns.length;
     assertions.composerReady = second.view.composer.state === "ready";
 
     const guard = second.view.evidence.control_plane.find((record) =>
@@ -156,7 +177,9 @@ async function main() {
     assertions.realApiBlocked = guard?.outcome === "no_real_taskcore_request";
     assertions.noCredentialInView = credentialLeaks(second.view).length === 0;
 
-    const fresh = await post("/api/capability/ui/cleanroom/session", { sessionId: opened.sessionId });
+    const fresh = await post("/api/capability/ui/cleanroom/session", {
+      sessionId: opened.sessionId,
+    });
     assertions.newChatRotatesIdentity =
       fresh.sessionId !== opened.sessionId &&
       fresh.identity.companyId !== opened.identity.companyId &&
@@ -165,7 +188,10 @@ async function main() {
     const retired = await jar.fetch("/api/capability/ui/message", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sessionId: opened.sessionId, message: "still there?" }),
+      body: JSON.stringify({
+        sessionId: opened.sessionId,
+        message: "still there?",
+      }),
     });
     assertions.priorAuthorityRetired = retired.status === 404;
     // A second browser must not reach the room this one owns.
@@ -175,7 +201,8 @@ async function main() {
     );
     await foreign.text();
     assertions.crossSessionDenied = foreign.status === 404;
-    assertions.capabilityBound = typeof jar.value("taskcore_capability_chat") === "string";
+    assertions.capabilityBound =
+      typeof jar.value("taskcore_capability_chat") === "string";
 
     summary = {
       schema: "taskcore.capability.clean-room-smoke.v1",
@@ -185,21 +212,30 @@ async function main() {
       newChatIssue: fresh.view.issue.identifier,
       turns: second.view.turns.length,
       streamedStates: first.states.length,
-      streamedPrefixes: first.states.filter((state) => state.length > 0).slice(0, 3),
+      streamedPrefixes: first.states
+        .filter((state) => state.length > 0)
+        .slice(0, 3),
       toolCalls: second.view.evidence.calls.map((call) => ({
         operationId: call.operationId,
         outcome: call.outcome,
       })),
       authorizationRecords: second.view.evidence.authorization.length,
-      assistantReply: firstItems.find((item) => item.kind === "agent_message")?.body ?? null,
+      assistantReply:
+        firstItems.find((item) => item.kind === "agent_message")?.body ?? null,
     };
 
     const failures = Object.entries(assertions).filter(([, ok]) => ok !== true);
     if (asJson) {
-      process.stdout.write(`${JSON.stringify({ ...summary, assertions }, null, 2)}\n`);
+      process.stdout.write(
+        `${JSON.stringify({ ...summary, assertions }, null, 2)}\n`,
+      );
     }
-    assert(failures.length === 0, `${failures.map(([name]) => name).join(", ")}`);
-    if (!asJson) process.stdout.write("Capability clean-room live smoke passed.\n");
+    assert(
+      failures.length === 0,
+      `${failures.map(([name]) => name).join(", ")}`,
+    );
+    if (!asJson)
+      process.stdout.write("Capability clean-room live smoke passed.\n");
   } finally {
     await middleware.close();
     server.close();

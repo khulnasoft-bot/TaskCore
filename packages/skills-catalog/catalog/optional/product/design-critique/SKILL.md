@@ -98,15 +98,19 @@ Group findings by severity, then by category. Each finding is one issue and one 
 ## Design critique: <screen name>
 
 ### Must-fix (blocks ship)
+
 - **<category>:** <one-line issue>. **Try:** <one-line suggestion>.
 
 ### Should-fix (before broader rollout)
+
 - **<category>:** <one-line issue>. **Try:** <one-line suggestion>.
 
 ### Nice-to-fix (when there's room)
+
 - **<category>:** <one-line issue>. **Try:** <one-line suggestion>.
 
 ### Strengths to keep
+
 - <one-line thing the design got right>
 ```
 

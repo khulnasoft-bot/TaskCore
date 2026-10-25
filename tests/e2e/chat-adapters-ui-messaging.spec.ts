@@ -279,9 +279,16 @@ test.describe("Board send delivery refresh", () => {
           await page.getByRole("button", { name: "Add to composer" }).click();
         }
         const chooserPromise = page.waitForEvent("filechooser");
-        await (classic
-          ? page.getByRole("button", { name: "Upload attachment", exact: true })
-          : page.getByRole("menuitem", { name: "Files and images", exact: true })
+        await (
+          classic
+            ? page.getByRole("button", {
+                name: "Upload attachment",
+                exact: true,
+              })
+            : page.getByRole("menuitem", {
+                name: "Files and images",
+                exact: true,
+              })
         ).click();
         const responsePromise = page.waitForResponse(
           (response) =>
@@ -592,7 +599,10 @@ test.describe("Board send delivery refresh", () => {
           // making the mocked rejection inconsistent with the actual request.
           privateComment = await json<{ id: string }>(
             await request.post(`/api/issues/${issue.id}/comments`, {
-              data: { body: "Private Board file", attachmentIds: [attachmentId] },
+              data: {
+                body: "Private Board file",
+                attachmentIds: [attachmentId],
+              },
             }),
             "bind selected file to private comment",
           );

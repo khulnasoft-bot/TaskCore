@@ -37,7 +37,9 @@ import { instanceSettingsService } from "../services/instance-settings.js";
 import type { StorageService } from "../storage/types.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -50,16 +52,34 @@ describeEmbeddedPostgres("cases routes", () => {
     const now = new Date("2026-07-10T00:00:00.000Z");
     const completedAt = new Date("2026-07-09T00:00:00.000Z");
 
-    expect(buildCasePatchUpdateValues({ title: "Rename" }, { status: "todo", completedAt: null }, now)).not.toHaveProperty("completedAt");
-    expect(buildCasePatchUpdateValues({ title: "Rename" }, { status: "done", completedAt }, now)).not.toHaveProperty("completedAt");
+    expect(
+      buildCasePatchUpdateValues(
+        { title: "Rename" },
+        { status: "todo", completedAt: null },
+        now,
+      ),
+    ).not.toHaveProperty("completedAt");
+    expect(
+      buildCasePatchUpdateValues(
+        { title: "Rename" },
+        { status: "done", completedAt },
+        now,
+      ),
+    ).not.toHaveProperty("completedAt");
 
-    const statusPatch = buildCasePatchUpdateValues({ status: "done" }, { status: "todo", completedAt: null }, now);
+    const statusPatch = buildCasePatchUpdateValues(
+      { status: "done" },
+      { status: "todo", completedAt: null },
+      now,
+    );
     expect(statusPatch).toHaveProperty("completedAt");
     expect(statusPatch.completedAt).toBeInstanceOf(Date);
   });
 
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const previousAgentJwtSecret = process.env.TASKCORE_AGENT_JWT_SECRET;
 
   const storage: StorageService = {
@@ -146,23 +166,29 @@ describeEmbeddedPostgres("cases routes", () => {
   }
 
   async function seedCompany(prefix = "CASE") {
-    const [company] = await db.insert(companies).values({
-      name: `${prefix} Co`,
-      issuePrefix: `${prefix}${randomUUID().replace(/-/g, "").slice(0, 4)}`,
-    }).returning();
+    const [company] = await db
+      .insert(companies)
+      .values({
+        name: `${prefix} Co`,
+        issuePrefix: `${prefix}${randomUUID().replace(/-/g, "").slice(0, 4)}`,
+      })
+      .returning();
     return company!;
   }
 
   async function seedAgent(companyId: string) {
-    const [agent] = await db.insert(agents).values({
-      companyId,
-      name: "Cases Agent",
-      role: "engineer",
-      adapterType: "codex_local",
-      adapterConfig: {},
-      runtimeConfig: {},
-      permissions: {},
-    }).returning();
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        companyId,
+        name: "Cases Agent",
+        role: "engineer",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {},
+        permissions: {},
+      })
+      .returning();
     return agent!;
   }
 
@@ -175,23 +201,43 @@ describeEmbeddedPostgres("cases routes", () => {
 
   it("gates every case route when enableCases is off", async () => {
     const company = await seedCompany("OFF");
-    const [caseRow] = await db.insert(cases).values({
-      companyId: company.id,
-      caseNumber: 1,
-      identifier: `${company.issuePrefix}-C1`,
-      caseType: "bug",
-      title: "Hidden case",
-    }).returning();
+    const [caseRow] = await db
+      .insert(cases)
+      .values({
+        companyId: company.id,
+        caseNumber: 1,
+        identifier: `${company.issuePrefix}-C1`,
+        caseType: "bug",
+        title: "Hidden case",
+      })
+      .returning();
     const http = request(app(boardActor));
 
     await http.get(`/api/companies/${company.id}/cases`).expect(403);
-    await http.post(`/api/companies/${company.id}/cases`).send({ caseType: "bug", title: "Bug" }).expect(403);
+    await http
+      .post(`/api/companies/${company.id}/cases`)
+      .send({ caseType: "bug", title: "Bug" })
+      .expect(403);
     await http.get(`/api/cases/${caseRow!.id}`).expect(403);
-    await http.patch(`/api/cases/${caseRow!.id}`).send({ status: "in_progress" }).expect(403);
-    await http.put(`/api/cases/${caseRow!.id}/documents/body`).send({ body: "Body" }).expect(403);
-    await http.get(`/api/cases/${caseRow!.id}/documents/body/annotations`).expect(403);
-    await http.post(`/api/cases/${caseRow!.id}/links`).send({ issueId: randomUUID(), role: "work" }).expect(403);
-    await http.post(`/api/cases/${caseRow!.id}/attachments`).attach("file", Buffer.from("x"), "x.txt").expect(403);
+    await http
+      .patch(`/api/cases/${caseRow!.id}`)
+      .send({ status: "in_progress" })
+      .expect(403);
+    await http
+      .put(`/api/cases/${caseRow!.id}/documents/body`)
+      .send({ body: "Body" })
+      .expect(403);
+    await http
+      .get(`/api/cases/${caseRow!.id}/documents/body/annotations`)
+      .expect(403);
+    await http
+      .post(`/api/cases/${caseRow!.id}/links`)
+      .send({ issueId: randomUUID(), role: "work" })
+      .expect(403);
+    await http
+      .post(`/api/cases/${caseRow!.id}/attachments`)
+      .attach("file", Buffer.from("x"), "x.txt")
+      .expect(403);
     await http.get(`/api/cases/${caseRow!.id}/events`).expect(403);
   });
 
@@ -206,37 +252,65 @@ describeEmbeddedPostgres("cases routes", () => {
     });
     instance.use("/api", caseRoutes(db, storage));
     const pipelinesStandIn = express.Router();
-    pipelinesStandIn.get("/cases/:caseId", (_req, res) => res.json({ handledBy: "pipelines" }));
-    pipelinesStandIn.patch("/cases/:caseId", (_req, res) => res.json({ handledBy: "pipelines" }));
-    pipelinesStandIn.put("/cases/:caseId/documents/:key", (_req, res) => res.json({ handledBy: "pipelines" }));
-    pipelinesStandIn.get("/cases/:caseId/documents/:key/revisions", (_req, res) => res.json({ handledBy: "pipelines" }));
-    pipelinesStandIn.get("/cases/:caseId/events", (_req, res) => res.json({ handledBy: "pipelines" }));
+    pipelinesStandIn.get("/cases/:caseId", (_req, res) =>
+      res.json({ handledBy: "pipelines" }),
+    );
+    pipelinesStandIn.patch("/cases/:caseId", (_req, res) =>
+      res.json({ handledBy: "pipelines" }),
+    );
+    pipelinesStandIn.put("/cases/:caseId/documents/:key", (_req, res) =>
+      res.json({ handledBy: "pipelines" }),
+    );
+    pipelinesStandIn.get(
+      "/cases/:caseId/documents/:key/revisions",
+      (_req, res) => res.json({ handledBy: "pipelines" }),
+    );
+    pipelinesStandIn.get("/cases/:caseId/events", (_req, res) =>
+      res.json({ handledBy: "pipelines" }),
+    );
     instance.use("/api", pipelinesStandIn);
     instance.use(errorHandler);
     const http = request(instance);
 
     const foreignId = randomUUID();
     // Flag off: non-Cases ids are not blocked by the Cases gate.
-    await http.get(`/api/cases/${foreignId}`).expect(200, { handledBy: "pipelines" });
+    await http
+      .get(`/api/cases/${foreignId}`)
+      .expect(200, { handledBy: "pipelines" });
     // Body is not validated against Cases schemas before falling through.
-    await http.patch(`/api/cases/${foreignId}`).send({ stageKey: "review" }).expect(200, { handledBy: "pipelines" });
-    await http.put(`/api/cases/${foreignId}/documents/body`).send({ markdown: "x" }).expect(200, { handledBy: "pipelines" });
-    await http.get(`/api/cases/${foreignId}/documents/body/revisions`).expect(200, { handledBy: "pipelines" });
-    await http.get(`/api/cases/${foreignId}/events`).expect(200, { handledBy: "pipelines" });
+    await http
+      .patch(`/api/cases/${foreignId}`)
+      .send({ stageKey: "review" })
+      .expect(200, { handledBy: "pipelines" });
+    await http
+      .put(`/api/cases/${foreignId}/documents/body`)
+      .send({ markdown: "x" })
+      .expect(200, { handledBy: "pipelines" });
+    await http
+      .get(`/api/cases/${foreignId}/documents/body/revisions`)
+      .expect(200, { handledBy: "pipelines" });
+    await http
+      .get(`/api/cases/${foreignId}/events`)
+      .expect(200, { handledBy: "pipelines" });
 
     // Flag on: real Cases rows are still handled by the cases router, unknown ids still fall through.
     await enableCases();
     const company = await seedCompany("FALL");
-    const [caseRow] = await db.insert(cases).values({
-      companyId: company.id,
-      caseNumber: 1,
-      identifier: `${company.issuePrefix}-C1`,
-      caseType: "bug",
-      title: "Ours",
-    }).returning();
+    const [caseRow] = await db
+      .insert(cases)
+      .values({
+        companyId: company.id,
+        caseNumber: 1,
+        identifier: `${company.issuePrefix}-C1`,
+        caseType: "bug",
+        title: "Ours",
+      })
+      .returning();
     const detail = await http.get(`/api/cases/${caseRow!.id}`).expect(200);
     expect(detail.body.identifier).toBe(caseRow!.identifier);
-    await http.get(`/api/cases/${foreignId}`).expect(200, { handledBy: "pipelines" });
+    await http
+      .get(`/api/cases/${foreignId}`)
+      .expect(200, { handledBy: "pipelines" });
   });
 
   it("creates cases and upserts idempotently by type and key", async () => {
@@ -264,7 +338,9 @@ describeEmbeddedPostgres("cases routes", () => {
       .expect(200);
 
     expect(second.body.id).toBe(first.body.id);
-    expect(first.body.identifier).toBe(`${company.issuePrefix.toUpperCase()}-C1`);
+    expect(first.body.identifier).toBe(
+      `${company.issuePrefix.toUpperCase()}-C1`,
+    );
     const all = await db.select().from(cases);
     expect(all).toHaveLength(1);
     expect(all[0]!.title).toBe("Investigate report again");
@@ -300,7 +376,9 @@ describeEmbeddedPostgres("cases routes", () => {
     expect(all[0]!.caseType).toBe("release_note");
     expect(all[0]!.key).toBe("2026-07-07");
     expect(["Release note A", "Release note B"]).toContain(all[0]!.title);
-    expect([{ channel: "stable" }, { channel: "canary" }]).toContainEqual(all[0]!.fields);
+    expect([{ channel: "stable" }, { channel: "canary" }]).toContainEqual(
+      all[0]!.fields,
+    );
   });
 
   it("upserts keyless cases by company and type", async () => {
@@ -334,7 +412,9 @@ describeEmbeddedPostgres("cases routes", () => {
       .send({ caseType: "blog_post", key: "launch", title: "Launch post" })
       .expect(201);
 
-    const byIdentifier = await http.get(`/api/cases/${created.body.identifier}`).expect(200);
+    const byIdentifier = await http
+      .get(`/api/cases/${created.body.identifier}`)
+      .expect(200);
     expect(byIdentifier.body.id).toBe(created.body.id);
     expect(byIdentifier.body.identifier).toMatch(/^REF[A-Z0-9]{4}-C1$/);
   });
@@ -350,12 +430,15 @@ describeEmbeddedPostgres("cases routes", () => {
       agentId: agent.id,
       status: "running",
     });
-    const [issue] = await db.insert(issues).values({
-      companyId: company.id,
-      title: "Source task",
-      status: "in_progress",
-      executionRunId: runId,
-    }).returning();
+    const [issue] = await db
+      .insert(issues)
+      .values({
+        companyId: company.id,
+        title: "Source task",
+        status: "in_progress",
+        executionRunId: runId,
+      })
+      .returning();
     const created = await request(app(boardActor))
       .post(`/api/companies/${company.id}/cases`)
       .send({ caseType: "bug", title: "Bug" })
@@ -382,11 +465,18 @@ describeEmbeddedPostgres("cases routes", () => {
     expect(links[0]!.role).toBe("work");
     expect(links[0]!.createdByRunId).toBe(runId);
 
-    const linkedEvents = await db.select().from(caseEvents).where(eq(caseEvents.kind, "issue_linked"));
+    const linkedEvents = await db
+      .select()
+      .from(caseEvents)
+      .where(eq(caseEvents.kind, "issue_linked"));
     expect(linkedEvents).toHaveLength(1);
     expect(linkedEvents[0]!.actorAgentId).toBe(agent.id);
     expect(linkedEvents[0]!.runId).toBe(runId);
-    expect(linkedEvents[0]!.payload).toMatchObject({ issueId: issue!.id, role: "work", autoLinked: true });
+    expect(linkedEvents[0]!.payload).toMatchObject({
+      issueId: issue!.id,
+      role: "work",
+      autoLinked: true,
+    });
   });
 
   it("lets a run-scoped agent JWT complete the case happy path without manual linking", async () => {
@@ -400,13 +490,21 @@ describeEmbeddedPostgres("cases routes", () => {
       agentId: agent.id,
       status: "running",
     });
-    const [issue] = await db.insert(issues).values({
-      companyId: company.id,
-      title: "Agent case source",
-      status: "in_progress",
-      executionRunId: runId,
-    }).returning();
-    const token = createLocalAgentJwt(agent.id, company.id, agent.adapterType, runId);
+    const [issue] = await db
+      .insert(issues)
+      .values({
+        companyId: company.id,
+        title: "Agent case source",
+        status: "in_progress",
+        executionRunId: runId,
+      })
+      .returning();
+    const token = createLocalAgentJwt(
+      agent.id,
+      company.id,
+      agent.adapterType,
+      runId,
+    );
     expect(token).toBeTruthy();
 
     const http = request(authenticatedApp());
@@ -436,7 +534,11 @@ describeEmbeddedPostgres("cases routes", () => {
       .set("X-Taskcore-Run-Id", runId)
       .send({
         status: "in_review",
-        fields: { slug: "launch-post", target_audience: "operators", publish_url: "https://example.com/launch" },
+        fields: {
+          slug: "launch-post",
+          target_audience: "operators",
+          publish_url: "https://example.com/launch",
+        },
       })
       .expect(200);
 
@@ -468,14 +570,18 @@ describeEmbeddedPostgres("cases routes", () => {
     expect(detail.body.issueLinks).toHaveLength(1);
 
     const eventRows = await db.select().from(caseEvents);
-    expect(eventRows.map((event) => event.kind)).toEqual(expect.arrayContaining([
-      "created",
-      "issue_linked",
-      "document_revised",
-      "status_changed",
-      "attachment_added",
-    ]));
-    expect(eventRows.filter((event) => event.runId === runId)).toHaveLength(eventRows.length);
+    expect(eventRows.map((event) => event.kind)).toEqual(
+      expect.arrayContaining([
+        "created",
+        "issue_linked",
+        "document_revised",
+        "status_changed",
+        "attachment_added",
+      ]),
+    );
+    expect(eventRows.filter((event) => event.runId === runId)).toHaveLength(
+      eventRows.length,
+    );
   });
 
   it("rejects cross-company agent access across the cases route surface", async () => {
@@ -483,26 +589,35 @@ describeEmbeddedPostgres("cases routes", () => {
     const ownCompany = await seedCompany("OWN");
     const otherCompany = await seedCompany("OTH");
     const agent = await seedAgent(ownCompany.id);
-    const [otherIssue] = await db.insert(issues).values({
-      companyId: otherCompany.id,
-      identifier: `${otherCompany.issuePrefix.toUpperCase()}-1`,
-      title: "Other company task",
-      status: "todo",
-    }).returning();
-    const [caseRow] = await db.insert(cases).values({
-      companyId: otherCompany.id,
-      caseNumber: 1,
-      identifier: `${otherCompany.issuePrefix.toUpperCase()}-C1`,
-      caseType: "bug",
-      title: "Other company case",
-    }).returning();
-    const [ownCase] = await db.insert(cases).values({
-      companyId: ownCompany.id,
-      caseNumber: 1,
-      identifier: `${ownCompany.issuePrefix.toUpperCase()}-C1`,
-      caseType: "bug",
-      title: "Own company case",
-    }).returning();
+    const [otherIssue] = await db
+      .insert(issues)
+      .values({
+        companyId: otherCompany.id,
+        identifier: `${otherCompany.issuePrefix.toUpperCase()}-1`,
+        title: "Other company task",
+        status: "todo",
+      })
+      .returning();
+    const [caseRow] = await db
+      .insert(cases)
+      .values({
+        companyId: otherCompany.id,
+        caseNumber: 1,
+        identifier: `${otherCompany.issuePrefix.toUpperCase()}-C1`,
+        caseType: "bug",
+        title: "Other company case",
+      })
+      .returning();
+    const [ownCase] = await db
+      .insert(cases)
+      .values({
+        companyId: ownCompany.id,
+        caseNumber: 1,
+        identifier: `${ownCompany.issuePrefix.toUpperCase()}-C1`,
+        caseType: "bug",
+        title: "Own company case",
+      })
+      .returning();
     await db.insert(caseEvents).values({
       companyId: otherCompany.id,
       caseId: caseRow!.id,
@@ -529,8 +644,14 @@ describeEmbeddedPostgres("cases routes", () => {
       .expect(403);
     await http.get(`/api/cases/${caseRow!.id}`).expect(404);
     await http.get(`/api/cases/${caseRow!.identifier}`).expect(404);
-    await http.patch(`/api/cases/${caseRow!.id}`).send({ status: "in_progress" }).expect(404);
-    await http.put(`/api/cases/${caseRow!.id}/documents/body`).send({ body: "Body" }).expect(404);
+    await http
+      .patch(`/api/cases/${caseRow!.id}`)
+      .send({ status: "in_progress" })
+      .expect(404);
+    await http
+      .put(`/api/cases/${caseRow!.id}/documents/body`)
+      .send({ body: "Body" })
+      .expect(404);
     await http
       .post(`/api/cases/${caseRow!.id}/links`)
       .send({ issueId: otherIssue!.id, role: "reference" })
@@ -549,21 +670,39 @@ describeEmbeddedPostgres("cases routes", () => {
       source: "session",
       isInstanceAdmin: false,
       companyIds: [ownCompany.id],
-      memberships: [{ companyId: ownCompany.id, membershipRole: "operator", status: "active" }],
+      memberships: [
+        {
+          companyId: ownCompany.id,
+          membershipRole: "operator",
+          status: "active",
+        },
+      ],
     };
     const limitedBoardHttp = request(app(limitedBoardActor));
-    const ownCaseResponse = await limitedBoardHttp.get(`/api/cases/${ownCase!.id}`).expect(200);
+    const ownCaseResponse = await limitedBoardHttp
+      .get(`/api/cases/${ownCase!.id}`)
+      .expect(200);
     expect(ownCaseResponse.body.id).toBe(ownCase!.id);
     await limitedBoardHttp.get(`/api/cases/${caseRow!.id}`).expect(404);
     await limitedBoardHttp.get(`/api/cases/${caseRow!.identifier}`).expect(404);
-    await limitedBoardHttp.get(`/api/issues/${otherIssue!.id}/cases`).expect(404);
-    await limitedBoardHttp.get(`/api/issues/${otherIssue!.identifier}/cases`).expect(404);
+    await limitedBoardHttp
+      .get(`/api/issues/${otherIssue!.id}/cases`)
+      .expect(404);
+    await limitedBoardHttp
+      .get(`/api/issues/${otherIssue!.identifier}/cases`)
+      .expect(404);
 
-    const scopedAdminHttp = request(app({ ...limitedBoardActor, isInstanceAdmin: true }));
+    const scopedAdminHttp = request(
+      app({ ...limitedBoardActor, isInstanceAdmin: true }),
+    );
     await scopedAdminHttp.get(`/api/cases/${caseRow!.id}`).expect(404);
     await scopedAdminHttp.get(`/api/cases/${caseRow!.identifier}`).expect(404);
-    await scopedAdminHttp.get(`/api/issues/${otherIssue!.id}/cases`).expect(404);
-    await scopedAdminHttp.get(`/api/issues/${otherIssue!.identifier}/cases`).expect(404);
+    await scopedAdminHttp
+      .get(`/api/issues/${otherIssue!.id}/cases`)
+      .expect(404);
+    await scopedAdminHttp
+      .get(`/api/issues/${otherIssue!.identifier}/cases`)
+      .expect(404);
 
     expect(await db.select().from(cases)).toHaveLength(2);
     expect(await db.select().from(caseDocuments)).toHaveLength(0);
@@ -577,27 +716,49 @@ describeEmbeddedPostgres("cases routes", () => {
   it("supports documents, manual issue links, attachment links, events, and list filters", async () => {
     await enableCases();
     const company = await seedCompany("SUR");
-    const [label] = await db.insert(labels).values({
-      companyId: company.id,
-      name: "Needs Review",
-      color: "#f59e0b",
-    }).returning();
-    const [issue] = await db.insert(issues).values({
-      companyId: company.id,
-      identifier: `${company.issuePrefix.toUpperCase()}-12`,
-      title: "Related task",
-      status: "todo",
-    }).returning();
+    const [label] = await db
+      .insert(labels)
+      .values({
+        companyId: company.id,
+        name: "Needs Review",
+        color: "#f59e0b",
+      })
+      .returning();
+    const [issue] = await db
+      .insert(issues)
+      .values({
+        companyId: company.id,
+        identifier: `${company.issuePrefix.toUpperCase()}-12`,
+        title: "Related task",
+        status: "todo",
+      })
+      .returning();
     const http = request(app(boardActor));
     const created = await http
       .post(`/api/companies/${company.id}/cases`)
-      .send({ caseType: "incident", title: "Production incident", status: "in_progress" })
+      .send({
+        caseType: "incident",
+        title: "Production incident",
+        status: "in_progress",
+      })
       .expect(201);
 
-    await http.patch(`/api/cases/${created.body.id}`).send({ labels: [label!.id] }).expect(200);
-    await http.put(`/api/cases/${created.body.identifier}/documents/runbook`).send({ body: "Steps" }).expect(200);
-    await http.post(`/api/cases/${created.body.id}/links`).send({ issueId: issue!.id, role: "reference" }).expect(201);
-    await http.post(`/api/cases/${created.body.id}/attachments`).attach("file", Buffer.from("artifact"), "artifact.txt").expect(201);
+    await http
+      .patch(`/api/cases/${created.body.id}`)
+      .send({ labels: [label!.id] })
+      .expect(200);
+    await http
+      .put(`/api/cases/${created.body.identifier}/documents/runbook`)
+      .send({ body: "Steps" })
+      .expect(200);
+    await http
+      .post(`/api/cases/${created.body.id}/links`)
+      .send({ issueId: issue!.id, role: "reference" })
+      .expect(201);
+    await http
+      .post(`/api/cases/${created.body.id}/attachments`)
+      .attach("file", Buffer.from("artifact"), "artifact.txt")
+      .expect(201);
 
     const activeList = await http
       .get(`/api/companies/${company.id}/cases`)
@@ -606,31 +767,48 @@ describeEmbeddedPostgres("cases routes", () => {
     expect(activeList.body).toHaveLength(1);
     expect(activeList.body[0].id).toBe(created.body.id);
 
-    const [project] = await db.insert(projects).values({ companyId: company.id, name: "Launch" }).returning();
-    const [projectCase] = await db.insert(cases).values({
-      companyId: company.id,
-      projectId: project!.id,
-      caseNumber: 50,
-      identifier: `${company.issuePrefix.toUpperCase()}-C50`,
-      caseType: "brief",
-      title: "Project brief",
-      status: "draft",
-    }).returning();
+    const [project] = await db
+      .insert(projects)
+      .values({ companyId: company.id, name: "Launch" })
+      .returning();
+    const [projectCase] = await db
+      .insert(cases)
+      .values({
+        companyId: company.id,
+        projectId: project!.id,
+        caseNumber: 50,
+        identifier: `${company.issuePrefix.toUpperCase()}-C50`,
+        caseType: "brief",
+        title: "Project brief",
+        status: "draft",
+      })
+      .returning();
     const multiFiltered = await http
       .get(`/api/companies/${company.id}/cases`)
-      .query({ types: ["incident", "brief"], statuses: ["in_progress", "draft"], projectIds: [project!.id], includeNoProject: "true" })
+      .query({
+        types: ["incident", "brief"],
+        statuses: ["in_progress", "draft"],
+        projectIds: [project!.id],
+        includeNoProject: "true",
+      })
       .expect(200);
-    expect(multiFiltered.body.map((row: { id: string }) => row.id).sort()).toEqual([created.body.id, projectCase!.id].sort());
+    expect(
+      multiFiltered.body.map((row: { id: string }) => row.id).sort(),
+    ).toEqual([created.body.id, projectCase!.id].sort());
 
-    await db.insert(cases).values(Array.from({ length: 205 }, (_, index) => ({
-      companyId: company.id,
-      caseNumber: 100 + index,
-      identifier: `${company.issuePrefix.toUpperCase()}-C${100 + index}`,
-      caseType: "incident",
-      title: `Filler incident ${index}`,
-      status: "in_progress",
-      updatedAt: new Date(`2030-01-01T00:${String(index % 60).padStart(2, "0")}:00.000Z`),
-    })));
+    await db.insert(cases).values(
+      Array.from({ length: 205 }, (_, index) => ({
+        companyId: company.id,
+        caseNumber: 100 + index,
+        identifier: `${company.issuePrefix.toUpperCase()}-C${100 + index}`,
+        caseType: "incident",
+        title: `Filler incident ${index}`,
+        status: "in_progress",
+        updatedAt: new Date(
+          `2030-01-01T00:${String(index % 60).padStart(2, "0")}:00.000Z`,
+        ),
+      })),
+    );
     const deepFiltered = await http
       .get(`/api/companies/${company.id}/cases`)
       .query({ q: "Production", limit: 1 })
@@ -638,17 +816,29 @@ describeEmbeddedPostgres("cases routes", () => {
     expect(deepFiltered.body).toHaveLength(1);
     expect(deepFiltered.body[0].id).toBe(created.body.id);
 
-    const detail = await http.get(`/api/cases/${created.body.identifier}`).expect(200);
+    const detail = await http
+      .get(`/api/cases/${created.body.identifier}`)
+      .expect(200);
     expect(detail.body.labels).toHaveLength(1);
     expect(detail.body.documents).toHaveLength(1);
     expect(detail.body.issueLinks).toHaveLength(1);
     expect(detail.body.attachments).toHaveLength(1);
 
-    const events = await http.get(`/api/cases/${created.body.id}/events`).expect(200);
+    const events = await http
+      .get(`/api/cases/${created.body.id}/events`)
+      .expect(200);
     expect(events.body.map((event: { kind: string }) => event.kind)).toEqual(
-      expect.arrayContaining(["created", "label_added", "document_revised", "issue_linked", "attachment_added"]),
+      expect.arrayContaining([
+        "created",
+        "label_added",
+        "document_revised",
+        "issue_linked",
+        "attachment_added",
+      ]),
     );
-    const linkedEvent = events.body.find((event: { kind: string }) => event.kind === "issue_linked");
+    const linkedEvent = events.body.find(
+      (event: { kind: string }) => event.kind === "issue_linked",
+    );
     expect(linkedEvent.issue).toMatchObject({
       id: issue!.id,
       identifier: issue!.identifier,
@@ -668,12 +858,15 @@ describeEmbeddedPostgres("cases routes", () => {
       agentId: agent.id,
       status: "running",
     });
-    const [issue] = await db.insert(issues).values({
-      companyId: company.id,
-      title: "Attribution source task",
-      status: "in_progress",
-      executionRunId: runId,
-    }).returning();
+    const [issue] = await db
+      .insert(issues)
+      .values({
+        companyId: company.id,
+        title: "Attribution source task",
+        status: "in_progress",
+        executionRunId: runId,
+      })
+      .returning();
 
     const agentActor: Express.Request["actor"] = {
       type: "agent",
@@ -697,13 +890,24 @@ describeEmbeddedPostgres("cases routes", () => {
       .expect(200);
     await http
       .put(`/api/cases/${created.body.id}/documents/body`)
-      .send({ body: "# v2", baseRevisionId: rev1.body.revision.id, changeSummary: "polish" })
+      .send({
+        body: "# v2",
+        baseRevisionId: rev1.body.revision.id,
+        changeSummary: "polish",
+      })
       .expect(200);
 
-    const events = await http.get(`/api/cases/${created.body.id}/events`).expect(200);
-    const revisedEvent = events.body.find((e: { kind: string }) => e.kind === "document_revised");
+    const events = await http
+      .get(`/api/cases/${created.body.id}/events`)
+      .expect(200);
+    const revisedEvent = events.body.find(
+      (e: { kind: string }) => e.kind === "document_revised",
+    );
     expect(revisedEvent.actorAgentName).toBe("Cases Agent");
-    expect(revisedEvent.issue).toMatchObject({ id: issue!.id, title: "Attribution source task" });
+    expect(revisedEvent.issue).toMatchObject({
+      id: issue!.id,
+      title: "Attribution source task",
+    });
 
     const revisions = await http
       .get(`/api/cases/${created.body.id}/documents/body/revisions`)
@@ -734,36 +938,58 @@ describeEmbeddedPostgres("cases routes", () => {
       .send({ body: "# v2", baseRevisionId: firstRevision.body.revision.id })
       .expect(200);
 
-    const loaded = await http.get(`/api/cases/${created.body.id}/documents/body`).expect(200);
+    const loaded = await http
+      .get(`/api/cases/${created.body.id}/documents/body`)
+      .expect(200);
     expect(loaded.body.body).toBe("# v2");
     expect(loaded.body.latestRevisionNumber).toBe(2);
 
-    const locked = await http.post(`/api/cases/${created.body.id}/documents/body/lock`).expect(200);
+    const locked = await http
+      .post(`/api/cases/${created.body.id}/documents/body/lock`)
+      .expect(200);
     expect(locked.body.lockedAt).toBeTruthy();
     await http
       .put(`/api/cases/${created.body.id}/documents/body`)
-      .send({ body: "# blocked", baseRevisionId: secondRevision.body.revision.id })
+      .send({
+        body: "# blocked",
+        baseRevisionId: secondRevision.body.revision.id,
+      })
       .expect(409);
-    await http.delete(`/api/cases/${created.body.id}/documents/body`).expect(409);
+    await http
+      .delete(`/api/cases/${created.body.id}/documents/body`)
+      .expect(409);
 
-    const unlocked = await http.post(`/api/cases/${created.body.id}/documents/body/unlock`).expect(200);
+    const unlocked = await http
+      .post(`/api/cases/${created.body.id}/documents/body/unlock`)
+      .expect(200);
     expect(unlocked.body.lockedAt).toBeNull();
 
     const restored = await http
-      .post(`/api/cases/${created.body.id}/documents/body/revisions/${firstRevision.body.revision.id}/restore`)
+      .post(
+        `/api/cases/${created.body.id}/documents/body/revisions/${firstRevision.body.revision.id}/restore`,
+      )
       .expect(200);
     expect(restored.body.document.body).toBe("# v1");
     expect(restored.body.document.latestRevisionNumber).toBe(3);
     expect(restored.body.restoredFromRevisionNumber).toBe(1);
 
-    const revisions = await http.get(`/api/cases/${created.body.id}/documents/body/revisions`).expect(200);
+    const revisions = await http
+      .get(`/api/cases/${created.body.id}/documents/body/revisions`)
+      .expect(200);
     expect(revisions.body.revisions).toHaveLength(3);
-    expect(revisions.body.revisions[0].changeSummary).toBe("Restored from revision 1");
+    expect(revisions.body.revisions[0].changeSummary).toBe(
+      "Restored from revision 1",
+    );
 
-    await http.delete(`/api/cases/${created.body.id}/documents/body`).expect(200);
-    await http.get(`/api/cases/${created.body.id}`).expect(200).expect((res) => {
-      expect(res.body.documents).toHaveLength(0);
-    });
+    await http
+      .delete(`/api/cases/${created.body.id}/documents/body`)
+      .expect(200);
+    await http
+      .get(`/api/cases/${created.body.id}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.documents).toHaveLength(0);
+      });
   });
 
   it("creates, replies to, resolves, reopens, and remaps case document annotations", async () => {
@@ -786,7 +1012,12 @@ describeEmbeddedPostgres("cases routes", () => {
         baseRevisionNumber: document.body.revision.revisionNumber,
         selector: {
           quote: { exact: "beta", prefix: "Alpha ", suffix: " gamma" },
-          position: { normalizedStart: 6, normalizedEnd: 10, markdownStart: 6, markdownEnd: 10 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 10,
+            markdownStart: 6,
+            markdownEnd: 10,
+          },
         },
         body: "Clarify this word.",
       })
@@ -798,25 +1029,33 @@ describeEmbeddedPostgres("cases routes", () => {
     expect(annotation.body.comments[0].caseId).toBe(created.body.id);
 
     const listed = await http
-      .get(`/api/cases/${created.body.identifier}/documents/body/annotations?status=all&includeComments=true`)
+      .get(
+        `/api/cases/${created.body.identifier}/documents/body/annotations?status=all&includeComments=true`,
+      )
       .expect(200);
     expect(listed.body).toHaveLength(1);
     expect(listed.body[0].comments).toHaveLength(1);
 
     const reply = await http
-      .post(`/api/cases/${created.body.id}/documents/body/annotations/${annotation.body.id}/comments`)
+      .post(
+        `/api/cases/${created.body.id}/documents/body/annotations/${annotation.body.id}/comments`,
+      )
       .send({ body: "Added context." })
       .expect(201);
     expect(reply.body.caseId).toBe(created.body.id);
 
     const resolved = await http
-      .patch(`/api/cases/${created.body.id}/documents/body/annotations/${annotation.body.id}`)
+      .patch(
+        `/api/cases/${created.body.id}/documents/body/annotations/${annotation.body.id}`,
+      )
       .send({ status: "resolved" })
       .expect(200);
     expect(resolved.body.status).toBe("resolved");
 
     const reopened = await http
-      .patch(`/api/cases/${created.body.id}/documents/body/annotations/${annotation.body.id}`)
+      .patch(
+        `/api/cases/${created.body.id}/documents/body/annotations/${annotation.body.id}`,
+      )
       .send({ status: "open" })
       .expect(200);
     expect(reopened.body.status).toBe("open");
@@ -829,22 +1068,47 @@ describeEmbeddedPostgres("cases routes", () => {
       })
       .expect(200);
     const remapped = await http
-      .get(`/api/cases/${created.body.id}/documents/body/annotations/${annotation.body.id}`)
+      .get(
+        `/api/cases/${created.body.id}/documents/body/annotations/${annotation.body.id}`,
+      )
       .expect(200);
-    expect(remapped.body.currentRevisionNumber).toBe(updatedDocument.body.revision.revisionNumber);
+    expect(remapped.body.currentRevisionNumber).toBe(
+      updatedDocument.body.revision.revisionNumber,
+    );
     expect(remapped.body.comments).toHaveLength(2);
 
     const activities = await db
-      .select({ action: activityLog.action, entityType: activityLog.entityType, entityId: activityLog.entityId })
+      .select({
+        action: activityLog.action,
+        entityType: activityLog.entityType,
+        entityId: activityLog.entityId,
+      })
       .from(activityLog)
       .where(eq(activityLog.entityId, created.body.id));
-    expect(activities).toEqual(expect.arrayContaining([
-      expect.objectContaining({ entityType: "case", action: "case.document_annotation_thread_created" }),
-      expect.objectContaining({ entityType: "case", action: "case.document_annotation_comment_added" }),
-      expect.objectContaining({ entityType: "case", action: "case.document_annotation_thread_resolved" }),
-      expect.objectContaining({ entityType: "case", action: "case.document_annotation_thread_reopened" }),
-      expect.objectContaining({ entityType: "case", action: "case.document_annotation_remapped" }),
-    ]));
+    expect(activities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entityType: "case",
+          action: "case.document_annotation_thread_created",
+        }),
+        expect.objectContaining({
+          entityType: "case",
+          action: "case.document_annotation_comment_added",
+        }),
+        expect.objectContaining({
+          entityType: "case",
+          action: "case.document_annotation_thread_resolved",
+        }),
+        expect.objectContaining({
+          entityType: "case",
+          action: "case.document_annotation_thread_reopened",
+        }),
+        expect.objectContaining({
+          entityType: "case",
+          action: "case.document_annotation_remapped",
+        }),
+      ]),
+    );
   });
 
   it("lists children by parent, exposes parent in detail, and lists cases for an issue", async () => {
@@ -857,7 +1121,11 @@ describeEmbeddedPostgres("cases routes", () => {
       .expect(201);
     const child = await boardHttp
       .post(`/api/companies/${company.id}/cases`)
-      .send({ caseType: "task", title: "Child task", parentCaseId: parent.body.id })
+      .send({
+        caseType: "task",
+        title: "Child task",
+        parentCaseId: parent.body.id,
+      })
       .expect(201);
 
     const children = await boardHttp
@@ -871,34 +1139,58 @@ describeEmbeddedPostgres("cases routes", () => {
       .get(`/api/companies/${company.id}/cases`)
       .query({ q: "Child task" })
       .expect(200);
-    expect(searchOnly.body.map((row: { id: string }) => row.id)).toEqual([child.body.id]);
+    expect(searchOnly.body.map((row: { id: string }) => row.id)).toEqual([
+      child.body.id,
+    ]);
 
     const searchWithAncestors = await boardHttp
       .get(`/api/companies/${company.id}/cases`)
       .query({ q: "Child task", includeAncestors: "true" })
       .expect(200);
-    expect(searchWithAncestors.body).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: child.body.id, matchesListFilters: true }),
-      expect.objectContaining({ id: parent.body.id, matchesListFilters: false }),
-    ]));
+    expect(searchWithAncestors.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: child.body.id,
+          matchesListFilters: true,
+        }),
+        expect.objectContaining({
+          id: parent.body.id,
+          matchesListFilters: false,
+        }),
+      ]),
+    );
 
-    const childDetail = await boardHttp.get(`/api/cases/${child.body.id}`).expect(200);
-    expect(childDetail.body.parent).toMatchObject({ id: parent.body.id, identifier: parent.body.identifier });
+    const childDetail = await boardHttp
+      .get(`/api/cases/${child.body.id}`)
+      .expect(200);
+    expect(childDetail.body.parent).toMatchObject({
+      id: parent.body.id,
+      identifier: parent.body.identifier,
+    });
 
     // Link the child case to an issue, then resolve cases-for-issue.
-    const [issue] = await db.insert(issues).values({
-      companyId: company.id,
-      title: "Issue with cases",
-      status: "todo",
-    }).returning();
+    const [issue] = await db
+      .insert(issues)
+      .values({
+        companyId: company.id,
+        title: "Issue with cases",
+        status: "todo",
+      })
+      .returning();
     await boardHttp
       .post(`/api/cases/${child.body.id}/links`)
       .send({ issueId: issue!.id, role: "work" })
       .expect(201);
 
-    const forIssue = await boardHttp.get(`/api/issues/${issue!.id}/cases`).expect(200);
+    const forIssue = await boardHttp
+      .get(`/api/issues/${issue!.id}/cases`)
+      .expect(200);
     expect(forIssue.body).toHaveLength(1);
     expect(forIssue.body[0]).toMatchObject({ role: "work" });
-    expect(forIssue.body[0].case).toMatchObject({ id: child.body.id, identifier: child.body.identifier, status: child.body.status });
+    expect(forIssue.body[0].case).toMatchObject({
+      id: child.body.id,
+      identifier: child.body.identifier,
+      status: child.body.status,
+    });
   });
 });

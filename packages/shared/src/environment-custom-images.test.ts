@@ -69,8 +69,12 @@ describe("environment customImage validators", () => {
   });
 
   it("validates setup-session requests and redacted connection summaries", () => {
-    expect(startEnvironmentCustomImageSetupSessionSchema.parse({ templateId })).toEqual({ templateId });
-    expect(() => startEnvironmentCustomImageSetupSessionSchema.parse({ ttlSeconds: 30 })).toThrow();
+    expect(
+      startEnvironmentCustomImageSetupSessionSchema.parse({ templateId }),
+    ).toEqual({ templateId });
+    expect(() =>
+      startEnvironmentCustomImageSetupSessionSchema.parse({ ttlSeconds: 30 }),
+    ).toThrow();
 
     expect(
       environmentCustomImageSetupConnectionSummarySchema.parse({
@@ -84,10 +88,12 @@ describe("environment customImage validators", () => {
       portRedacted: true,
     });
 
-    expect(() => environmentCustomImageSetupConnectionSummarySchema.parse({
-      type: "ssh",
-      hostRedacted: false,
-    })).toThrow();
+    expect(() =>
+      environmentCustomImageSetupConnectionSummarySchema.parse({
+        type: "ssh",
+        hostRedacted: false,
+      }),
+    ).toThrow();
   });
 });
 
@@ -110,7 +116,9 @@ describe("environment customImage redaction", () => {
     });
 
     expect(redacted.templateRef).toBe(REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE);
-    expect(redacted.sourceTemplateRef).toBe(REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE);
+    expect(redacted.sourceTemplateRef).toBe(
+      REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    );
     expect(redacted.metadata).toEqual({
       safeLabel: "codex template",
       apiToken: REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
@@ -141,9 +149,15 @@ describe("environment customImage redaction", () => {
       },
     });
 
-    expect(redacted.providerLeaseId).toBe(REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE);
-    expect(redacted.baseTemplateRef).toBe(REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE);
-    expect(redacted.connectionSecretRef).toBe(REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE);
+    expect(redacted.providerLeaseId).toBe(
+      REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    );
+    expect(redacted.baseTemplateRef).toBe(
+      REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    );
+    expect(redacted.connectionSecretRef).toBe(
+      REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,
+    );
     expect(redacted.connectionSummary).toEqual({
       type: "ssh",
       username: REDACTED_ENVIRONMENT_CUSTOM_IMAGE_VALUE,

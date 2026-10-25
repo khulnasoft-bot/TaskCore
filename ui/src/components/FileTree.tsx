@@ -25,7 +25,8 @@ export type FileTreeNode = {
   action?: string | null;
 };
 
-export type FileTreeBadgeVariant = "ok" | "warning" | "error" | "info" | "pending";
+export type FileTreeBadgeVariant =
+  "ok" | "warning" | "error" | "info" | "pending";
 
 export type FileTreeBadge = {
   label: string;
@@ -138,7 +139,9 @@ function flattenVisibleNodes(
   for (const node of nodes) {
     flattened.push({ node, depth });
     if (node.kind === "dir" && expandedDirs.has(node.path)) {
-      flattened.push(...flattenVisibleNodes(node.children, expandedDirs, depth + 1));
+      flattened.push(
+        ...flattenVisibleNodes(node.children, expandedDirs, depth + 1),
+      );
     }
   }
   return flattened;
@@ -154,7 +157,9 @@ function checkboxState(node: FileTreeNode, checkedFiles: Set<string>) {
 
   const childFiles = collectAllPaths(node.children, "file");
   const childFilePaths = [...childFiles];
-  const allChecked = childFilePaths.length > 0 && childFilePaths.every((p) => checkedFiles.has(p));
+  const allChecked =
+    childFilePaths.length > 0 &&
+    childFilePaths.every((p) => checkedFiles.has(p));
   const someChecked = childFilePaths.some((p) => checkedFiles.has(p));
   return { allChecked, someChecked: someChecked && !allChecked };
 }
@@ -163,7 +168,9 @@ function checkboxState(node: FileTreeNode, checkedFiles: Set<string>) {
 
 export type FrontmatterData = Record<string, string | string[]>;
 
-export function parseFrontmatter(content: string): { data: FrontmatterData; body: string } | null {
+export function parseFrontmatter(
+  content: string,
+): { data: FrontmatterData; body: string } | null {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!match) return null;
 
@@ -180,7 +187,12 @@ export function parseFrontmatter(content: string): { data: FrontmatterData; body
 
     if (trimmed.startsWith("- ") && currentKey) {
       if (!currentList) currentList = [];
-      currentList.push(trimmed.slice(2).trim().replace(/^["']|["']$/g, ""));
+      currentList.push(
+        trimmed
+          .slice(2)
+          .trim()
+          .replace(/^["']|["']$/g, ""),
+      );
       continue;
     }
 
@@ -249,13 +261,18 @@ export type FileTreeProps = {
   renderLabel?: (node: FileTreeNode) => ReactNode;
   checkboxLabel?: (node: FileTreeNode) => string;
   /** Override selection for package nodes; null leaves an aligned, non-selectable row. */
-  getCheckboxState?: (node: FileTreeNode) => 'checked' | 'mixed' | 'unchecked' | null;
+  getCheckboxState?: (
+    node: FileTreeNode,
+  ) => "checked" | "mixed" | "unchecked" | null;
   renderNodeExtra?: (node: FileTreeNode) => ReactNode;
   /** Search hides rows, while folder check states still include all descendants. */
   visiblePaths?: ReadonlySet<string>;
   disabled?: boolean;
   /** @deprecated Use fileTones for public surfaces. Kept for compatibility with host-only callers. */
-  fileRowClassName?: (node: FileTreeNode, checked: boolean) => string | undefined;
+  fileRowClassName?: (
+    node: FileTreeNode,
+    checked: boolean,
+  ) => string | undefined;
   /** Compact explorer rows place disclosure controls before the checkbox and icon. */
   layout?: "default" | "explorer";
   showCheckboxes?: boolean;
@@ -295,12 +312,17 @@ export function FileTree({
 }: FileTreeProps) {
   const effectiveCheckedFiles = checkedFiles ?? new Set<string>();
   const visibleNodes = useMemo(
-    () => flattenVisibleNodes(nodes, expandedDirs).filter(({ node }) => !visiblePaths || visiblePaths.has(node.path)),
+    () =>
+      flattenVisibleNodes(nodes, expandedDirs).filter(
+        ({ node }) => !visiblePaths || visiblePaths.has(node.path),
+      ),
     [expandedDirs, nodes, visiblePaths],
   );
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
-  const tabStop = visibleNodes.some(({ node }) => node.path === focusedPath) ? focusedPath : visibleNodes[0]?.node.path;
+  const tabStop = visibleNodes.some(({ node }) => node.path === focusedPath)
+    ? focusedPath
+    : visibleNodes[0]?.node.path;
 
   function focusPath(path: string) {
     setFocusedPath(path);
@@ -315,7 +337,11 @@ export function FileTree({
     else onSelectFile(node.path);
   }
 
-  function handleRowKeyDown(event: KeyboardEvent<HTMLDivElement>, index: number, node: FileTreeNode) {
+  function handleRowKeyDown(
+    event: KeyboardEvent<HTMLDivElement>,
+    index: number,
+    node: FileTreeNode,
+  ) {
     if (disabled) return;
     switch (event.key) {
       case "ArrowDown": {
@@ -347,7 +373,11 @@ export function FileTree({
         toggleNode(node);
         break;
       case " ":
-        if (showCheckboxes && onToggleCheck && getCheckboxState?.(node) !== null) {
+        if (
+          showCheckboxes &&
+          onToggleCheck &&
+          getCheckboxState?.(node) !== null
+        ) {
           event.preventDefault();
           onToggleCheck(node.path, node.kind);
         }
@@ -359,7 +389,13 @@ export function FileTree({
     return (
       <div aria-busy="true" aria-label={ariaLabel} role="tree" className="py-1">
         {[0, 1, 2, 3].map((row) => (
-          <div key={row} className={cn("flex items-center gap-2 px-4", TREE_ROW_HEIGHT_CLASS)}>
+          <div
+            key={row}
+            className={cn(
+              "flex items-center gap-2 px-4",
+              TREE_ROW_HEIGHT_CLASS,
+            )}
+          >
             <Skeleton className="h-4 w-4 shrink-0 rounded-sm" />
             <Skeleton className={cn("h-3.5", row === 1 ? "w-3/5" : "w-4/5")} />
           </div>
@@ -377,18 +413,21 @@ export function FileTree({
           className="flex min-h-9 items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm"
         >
           <div className="flex min-w-0 items-center gap-2">
-            <Badge variant="ghost"
-              className={cn(
-                "px-2.5",
-                statusBadge.error ?? statusBadgeDefault,
-              )}
+            <Badge
+              variant="ghost"
+              className={cn("px-2.5", statusBadge.error ?? statusBadgeDefault)}
             >
               error
             </Badge>
             <span className="min-w-0 text-destructive">{error.message}</span>
           </div>
           {error.retry && (
-            <Button type="button" size="xs" variant="outline" onClick={error.retry}>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              onClick={error.retry}
+            >
               Retry
             </Button>
           )}
@@ -401,9 +440,12 @@ export function FileTree({
     return (
       <div aria-label={ariaLabel} role="tree" className="p-3">
         <div className="rounded-md border border-dashed border-border px-4 py-8 text-center">
-          <div className="text-sm font-medium">{empty?.title ?? "No files"}</div>
+          <div className="text-sm font-medium">
+            {empty?.title ?? "No files"}
+          </div>
           <div className="mt-1 text-xs text-muted-foreground">
-            {empty?.description ?? "Files will appear here when they are available."}
+            {empty?.description ??
+              "Files will appear here when they are available."}
           </div>
         </div>
       </div>
@@ -416,12 +458,19 @@ export function FileTree({
         const expanded = node.kind === "dir" && expandedDirs.has(node.path);
         const customCheck = getCheckboxState?.(node);
         const hasCheckbox = showCheckboxes && customCheck !== null;
-        const { allChecked, someChecked } = customCheck === undefined || customCheck === null
-          ? checkboxState(node, effectiveCheckedFiles)
-          : { allChecked: customCheck === 'checked', someChecked: customCheck === 'mixed' };
+        const { allChecked, someChecked } =
+          customCheck === undefined || customCheck === null
+            ? checkboxState(node, effectiveCheckedFiles)
+            : {
+                allChecked: customCheck === "checked",
+                someChecked: customCheck === "mixed",
+              };
         const badge = fileBadges?.[node.path];
         const tone = fileTones?.[node.path] ?? "default";
-        const extraClassName = node.kind === "file" ? fileRowClassName?.(node, allChecked) : undefined;
+        const extraClassName =
+          node.kind === "file"
+            ? fileRowClassName?.(node, allChecked)
+            : undefined;
         const FileIcon = node.kind === "file" ? fileIcon(node.name) : null;
         const isSelected = node.kind === "file" && node.path === selectedFile;
 
@@ -436,17 +485,19 @@ export function FileTree({
             aria-level={depth + 1}
             aria-expanded={node.kind === "dir" ? expanded : undefined}
             aria-selected={node.kind === "file" ? isSelected : undefined}
-            aria-checked={hasCheckbox ? (someChecked ? "mixed" : allChecked) : undefined}
+            aria-checked={
+              hasCheckbox ? (someChecked ? "mixed" : allChecked) : undefined
+            }
             aria-disabled={disabled || undefined}
             tabIndex={tabStop === node.path ? 0 : -1}
             className={cn(
               layout === "explorer"
                 ? "group flex w-full items-center gap-2 pr-3 text-left text-sm text-muted-foreground hover:bg-accent/30 cursor-pointer"
                 : node.kind === "dir"
-                ? showCheckboxes
-                  ? "group grid w-full grid-cols-(--gtc-2) items-center gap-x-1 pr-3 text-left text-sm text-muted-foreground hover:bg-accent/30 hover:text-foreground"
-                  : "group grid w-full grid-cols-(--gtc-3) items-center gap-x-1 pr-3 text-left text-sm text-muted-foreground hover:bg-accent/30 hover:text-foreground max-[480px]:grid-cols-(--gtc-4)"
-                : "group flex w-full items-center gap-1 pr-3 text-left text-sm text-muted-foreground hover:bg-accent/30 hover:text-foreground cursor-pointer",
+                  ? showCheckboxes
+                    ? "group grid w-full grid-cols-(--gtc-2) items-center gap-x-1 pr-3 text-left text-sm text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+                    : "group grid w-full grid-cols-(--gtc-3) items-center gap-x-1 pr-3 text-left text-sm text-muted-foreground hover:bg-accent/30 hover:text-foreground max-[480px]:grid-cols-(--gtc-4)"
+                  : "group flex w-full items-center gap-1 pr-3 text-left text-sm text-muted-foreground hover:bg-accent/30 hover:text-foreground cursor-pointer",
               layout === "explorer" ? "h-8" : TREE_ROW_HEIGHT_CLASS,
               layout === "explorer" && "file-tree-row-explorer",
               isSelected && "text-foreground bg-accent/20",
@@ -462,15 +513,39 @@ export function FileTree({
             onKeyDown={(event) => handleRowKeyDown(event, index, node)}
             data-file-tree-path={node.path}
           >
-            {layout === "explorer" && (node.kind === "dir" ? (
-              <button type="button" disabled={disabled} className="flex size-4 shrink-0 items-center justify-center rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-                onClick={event => { event.stopPropagation(); onToggleDir(node.path); }}
-                aria-label={expanded ? `Collapse ${node.name}` : `Expand ${node.name}`}>
-                {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-              </button>
-            ) : <span className="size-4 shrink-0" aria-hidden="true" />)}
+            {layout === "explorer" &&
+              (node.kind === "dir" ? (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  className="flex size-4 shrink-0 items-center justify-center rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onToggleDir(node.path);
+                  }}
+                  aria-label={
+                    expanded ? `Collapse ${node.name}` : `Expand ${node.name}`
+                  }
+                >
+                  {expanded ? (
+                    <ChevronDown className="size-3.5" />
+                  ) : (
+                    <ChevronRight className="size-3.5" />
+                  )}
+                </button>
+              ) : (
+                <span className="size-4 shrink-0" aria-hidden="true" />
+              ))}
             {hasCheckbox ? (
-              <label className={cn("flex items-center", layout === "explorer" ? "size-4 shrink-0 justify-center" : "pl-2")} onClick={(event) => event.stopPropagation()}>
+              <label
+                className={cn(
+                  "flex items-center",
+                  layout === "explorer"
+                    ? "size-4 shrink-0 justify-center"
+                    : "pl-2",
+                )}
+                onClick={(event) => event.stopPropagation()}
+              >
                 <input
                   type="checkbox"
                   aria-label={checkboxLabel?.(node) ?? `Select ${node.path}`}
@@ -480,10 +555,16 @@ export function FileTree({
                     if (element) element.indeterminate = someChecked;
                   }}
                   onChange={() => onToggleCheck?.(node.path, node.kind)}
-                  className={layout === "explorer" ? "size-3.5 shrink-0 accent-foreground" : "mr-2 accent-foreground"}
+                  className={
+                    layout === "explorer"
+                      ? "size-3.5 shrink-0 accent-foreground"
+                      : "mr-2 accent-foreground"
+                  }
                 />
               </label>
-            ) : showCheckboxes && layout === "explorer" ? <span className="size-4 shrink-0" aria-hidden="true" /> : null}
+            ) : showCheckboxes && layout === "explorer" ? (
+              <span className="size-4 shrink-0" aria-hidden="true" />
+            ) : null}
             <span className="flex min-w-0 flex-1 items-center gap-2 py-1 text-left">
               <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                 {node.kind === "dir" ? (
@@ -496,12 +577,19 @@ export function FileTree({
                   <FileIcon className="h-3.5 w-3.5" />
                 ) : null}
               </span>
-              <span className={cn("min-w-0", layout === "explorer" && "flex-1", wrapLabels ? "break-all leading-4" : "truncate")}>
+              <span
+                className={cn(
+                  "min-w-0",
+                  layout === "explorer" && "flex-1",
+                  wrapLabels ? "break-all leading-4" : "truncate",
+                )}
+              >
                 {renderLabel ? renderLabel(node) : node.name}
               </span>
             </span>
             {badge && (
-              <Badge variant="ghost"
+              <Badge
+                variant="ghost"
                 className={cn(
                   "ml-3 text-(length:--text-nano) uppercase tracking-wide",
                   statusBadge[badge.status] ?? statusBadgeDefault,
@@ -522,7 +610,9 @@ export function FileTree({
                   event.stopPropagation();
                   onToggleDir(node.path);
                 }}
-                aria-label={expanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
+                aria-label={
+                  expanded ? `Collapse ${node.name}` : `Expand ${node.name}`
+                }
               >
                 {expanded ? (
                   <ChevronDown className="h-3.5 w-3.5" />

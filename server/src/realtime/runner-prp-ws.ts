@@ -140,13 +140,14 @@ export async function registerRunnerPrpAuthority(input: {
     runtimeRequestResolutions: new Map(),
   };
   registrations.set(input.runId, registeredAuthority);
-  const currentKey = input.issueId && input.agentId
-    ? liveAuthorityKey({
-        companyId: input.companyId,
-        issueId: input.issueId,
-        agentId: input.agentId,
-      })
-    : null;
+  const currentKey =
+    input.issueId && input.agentId
+      ? liveAuthorityKey({
+          companyId: input.companyId,
+          issueId: input.issueId,
+          agentId: input.agentId,
+        })
+      : null;
   if (currentKey !== null) {
     currentLiveAuthorities.set(currentKey, {
       runId: input.runId,
@@ -228,8 +229,7 @@ export function queueLiveRunnerPrpCommand(input: {
 export class RunnerPrpRuntimeRequestResolutionError extends Error {
   constructor(
     readonly code:
-      | "runner_prp_authority_not_active"
-      | "runtime_request_resolution_conflict",
+      "runner_prp_authority_not_active" | "runtime_request_resolution_conflict",
   ) {
     super(code);
     this.name = "RunnerPrpRuntimeRequestResolutionError";
@@ -250,21 +250,18 @@ export function queueRunnerPrpRuntimeRequestResolution(input: {
 }): { readonly commandId: string } {
   const registration = registrations.get(input.runId);
   if (
-    !registration
-    || registration.companyId !== input.companyId
+    !registration ||
+    registration.companyId !== input.companyId ||
     // Warm attachment briefly registers two routes for the same mutable core.
     // A route is not dispatch authority before or after its exact run epoch.
-    || registration.authority.store.state.identity.runId !== input.runId
+    registration.authority.store.state.identity.runId !== input.runId
   ) {
     throw new RunnerPrpRuntimeRequestResolutionError(
       "runner_prp_authority_not_active",
     );
   }
   const pending = input.pendingRequest;
-  if (
-    pending.companyId !== input.companyId
-    || pending.runId !== input.runId
-  ) {
+  if (pending.companyId !== input.companyId || pending.runId !== input.runId) {
     throw new RunnerPrpRuntimeRequestResolutionError(
       "runner_prp_authority_not_active",
     );
@@ -280,7 +277,9 @@ export function queueRunnerPrpRuntimeRequestResolution(input: {
     actor: input.actor,
     resolution: input.resolution,
   });
-  const previous = registration.runtimeRequestResolutions.get(pending.requestId);
+  const previous = registration.runtimeRequestResolutions.get(
+    pending.requestId,
+  );
   if (previous) {
     if (previous.fingerprint !== fingerprint) {
       throw new RunnerPrpRuntimeRequestResolutionError(

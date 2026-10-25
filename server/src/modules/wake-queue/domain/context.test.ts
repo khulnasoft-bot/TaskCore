@@ -78,7 +78,10 @@ describe("enrichPromotedWakeContext", () => {
       payload: { commentId: "comment-2" },
     });
 
-    expect(result.contextSnapshot.wakeCommentIds).toEqual(["comment-1", "comment-2"]);
+    expect(result.contextSnapshot.wakeCommentIds).toEqual([
+      "comment-1",
+      "comment-2",
+    ]);
     expect(result.contextSnapshot.commentId).toBe("comment-2");
     expect(result.contextSnapshot.wakeCommentId).toBe("comment-2");
     expect(result.contextSnapshot.taskcoreWakeComment).toBeUndefined();
@@ -95,7 +98,9 @@ describe("enrichPromotedWakeContext", () => {
       // should be cleared alongside the stale text projections.
       issueId: "issue-1",
       executionStage: { stage: "review" },
-      planReviewInteraction: { acceptedTargetRevision: { revisionId: "revision-1" } },
+      planReviewInteraction: {
+        acceptedTargetRevision: { revisionId: "revision-1" },
+      },
       acceptedPlanWakeRouting: { targetAgentId: "agent-1" },
       workspaceRefreshReason: "accepted_plan_confirmation",
     };
@@ -118,7 +123,11 @@ describe("enrichPromotedWakeContext", () => {
     expect(result.contextSnapshot.planReviewInteraction).toEqual({
       acceptedTargetRevision: { revisionId: "revision-1" },
     });
-    expect(result.contextSnapshot.acceptedPlanWakeRouting).toEqual({ targetAgentId: "agent-1" });
-    expect(result.contextSnapshot.workspaceRefreshReason).toBe("accepted_plan_confirmation");
+    expect(result.contextSnapshot.acceptedPlanWakeRouting).toEqual({
+      targetAgentId: "agent-1",
+    });
+    expect(result.contextSnapshot.workspaceRefreshReason).toBe(
+      "accepted_plan_confirmation",
+    );
   });
 });

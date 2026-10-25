@@ -1,6 +1,9 @@
 import { setTaskMonitorAction } from "./set-task-monitor.js";
 import { setTaskTitleAction } from "./set-task-title.js";
-import { submitComplaintAction, submitSuggestionAction } from "./submit-agent-commentary.js";
+import {
+  submitComplaintAction,
+  submitSuggestionAction,
+} from "./submit-agent-commentary.js";
 import { readAgentInstructionsAction } from "./read-agent-instructions.js";
 import { updateAgentInstructionsAction } from "./update-agent-instructions.js";
 import { getAgentInstructionHistoryAction } from "./get-agent-instruction-history.js";

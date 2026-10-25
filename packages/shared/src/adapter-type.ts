@@ -6,7 +6,9 @@ export const agentAdapterTypeSchema = z
   .trim()
   .min(1)
   .default("process")
-  .describe(`Known built-in adapters: ${AGENT_ADAPTER_TYPES.join(", ")}. External adapters may register additional non-empty string types at runtime.`);
+  .describe(
+    `Known built-in adapters: ${AGENT_ADAPTER_TYPES.join(", ")}. External adapters may register additional non-empty string types at runtime.`,
+  );
 
 export const optionalAgentAdapterTypeSchema = z
   .string()

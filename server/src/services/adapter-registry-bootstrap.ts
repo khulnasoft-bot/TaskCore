@@ -13,7 +13,10 @@
  * execution-policy-bootstrap.
  */
 import fs from "node:fs";
-import { adapterRegistrySchema, type AdapterRegistryEntryParsed } from "@taskcore/shared";
+import {
+  adapterRegistrySchema,
+  type AdapterRegistryEntryParsed,
+} from "@taskcore/shared";
 import { logger } from "../middleware/logger.js";
 import { listServerAdapters } from "../adapters/registry.js";
 import { setAdapterDisabled } from "./adapter-plugin-store.js";
@@ -48,7 +51,9 @@ export function parseAdapterRegistryEnv(
   try {
     parsed = JSON.parse(rawText);
   } catch (err) {
-    throw new Error(`TASKCORE_ADAPTERS must be valid JSON: ${(err as Error).message}`);
+    throw new Error(
+      `TASKCORE_ADAPTERS must be valid JSON: ${(err as Error).message}`,
+    );
   }
 
   const result = adapterRegistrySchema.safeParse(parsed);
@@ -92,6 +97,9 @@ export function reconcileAdapterAvailability(
     (shouldEnable ? enabled : disabled).push(type);
   }
 
-  logger.info({ enabled, disabled }, "reconciled adapter availability from TASKCORE_ADAPTERS");
+  logger.info(
+    { enabled, disabled },
+    "reconciled adapter availability from TASKCORE_ADAPTERS",
+  );
   return { enabled, disabled };
 }

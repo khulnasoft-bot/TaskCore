@@ -1,4 +1,9 @@
-import { asNumber, asString, parseJson, parseObject } from "@taskcore/adapter-utils/server-utils";
+import {
+  asNumber,
+  asString,
+  parseJson,
+  parseObject,
+} from "@taskcore/adapter-utils/server-utils";
 
 function collectMessageText(message: unknown): string[] {
   if (typeof message === "string") {
@@ -15,7 +20,8 @@ function collectMessageText(message: unknown): string[] {
     const part = parseObject(partRaw);
     const type = asString(part.type, "").trim();
     if (type === "output_text" || type === "text" || type === "content") {
-      const text = asString(part.text, "").trim() || asString(part.content, "").trim();
+      const text =
+        asString(part.text, "").trim() || asString(part.content, "").trim();
       if (text) lines.push(text);
     }
   }
@@ -51,7 +57,11 @@ function asErrorText(value: unknown): string {
 }
 
 function accumulateUsage(
-  target: { inputTokens: number; cachedInputTokens: number; outputTokens: number },
+  target: {
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+  },
   usageRaw: unknown,
 ) {
   const usage = parseObject(usageRaw);
@@ -60,17 +70,34 @@ function accumulateUsage(
 
   // Gemini CLI's input_tokens is the full prompt; input is uncached input.
   // https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/output/stream-json-formatter.ts
-  const cached = asNumber(source.cached_input_tokens,
-    asNumber(source.cachedInputTokens, asNumber(source.cachedContentTokenCount, asNumber(source.cached, 0))));
-  const prompt = asNumber(source.input_tokens, asNumber(source.inputTokens, asNumber(source.promptTokenCount, 0)));
+  const cached = asNumber(
+    source.cached_input_tokens,
+    asNumber(
+      source.cachedInputTokens,
+      asNumber(source.cachedContentTokenCount, asNumber(source.cached, 0)),
+    ),
+  );
+  const prompt = asNumber(
+    source.input_tokens,
+    asNumber(source.inputTokens, asNumber(source.promptTokenCount, 0)),
+  );
   const toolInput = asNumber(source.toolUsePromptTokenCount, 0);
-  target.inputTokens += Math.max(0, asNumber(source.input, prompt - cached)) + toolInput;
+  target.inputTokens +=
+    Math.max(0, asNumber(source.input, prompt - cached)) + toolInput;
   target.cachedInputTokens += cached;
   // The streaming CLI omits a separate thought count, but includes it in total_tokens.
-  const response = asNumber(source.output_tokens, asNumber(source.outputTokens, asNumber(source.candidatesTokenCount, 0)));
-  const total = asNumber(source.total_tokens, asNumber(source.totalTokenCount, 0));
-  target.outputTokens += Math.max(response + asNumber(source.thoughtsTokenCount, 0), total - prompt - toolInput);
-
+  const response = asNumber(
+    source.output_tokens,
+    asNumber(source.outputTokens, asNumber(source.candidatesTokenCount, 0)),
+  );
+  const total = asNumber(
+    source.total_tokens,
+    asNumber(source.totalTokenCount, 0),
+  );
+  target.outputTokens += Math.max(
+    response + asNumber(source.thoughtsTokenCount, 0),
+    total - prompt - toolInput,
+  );
 }
 
 export function parseGeminiJsonl(stdout: string) {
@@ -84,19 +111,35 @@ export function createGeminiJsonlParser() {
   let errorMessage: string | null = null;
   let costUsd: number | null = null;
   let resultEvent: Record<string, unknown> | null = null;
-  let question: { prompt: string; choices: Array<{ key: string; label: string; description?: string }> } | null = null;
+  let question: {
+    prompt: string;
+    choices: Array<{ key: string; label: string; description?: string }>;
+  } | null = null;
   const usage = {
     inputTokens: 0,
     cachedInputTokens: 0,
     outputTokens: 0,
   };
-  const recordAccounting = (event: Record<string, unknown>, usageRaw: unknown) => {
+  const recordAccounting = (
+    event: Record<string, unknown>,
+    usageRaw: unknown,
+  ) => {
     const before = { ...usage };
     accumulateUsage(usage, usageRaw);
-    const reportedCost = [event.total_cost_usd, event.cost_usd, event.cost]
-      .find((value) => typeof value === "number" && Number.isFinite(value) && value >= 0);
+    const reportedCost = [
+      event.total_cost_usd,
+      event.cost_usd,
+      event.cost,
+    ].find(
+      (value) =>
+        typeof value === "number" && Number.isFinite(value) && value >= 0,
+    );
     if (typeof reportedCost === "number") costUsd = reportedCost;
-    else if (usage.inputTokens !== before.inputTokens || usage.cachedInputTokens !== before.cachedInputTokens || usage.outputTokens !== before.outputTokens) {
+    else if (
+      usage.inputTokens !== before.inputTokens ||
+      usage.cachedInputTokens !== before.cachedInputTokens ||
+      usage.outputTokens !== before.outputTokens
+    ) {
       // An earlier price, including explicit zero, cannot cover new unpriced
       // usage. Text-only or terminal events with no new usage leave it intact.
       costUsd = null;
@@ -119,20 +162,25 @@ export function createGeminiJsonlParser() {
       if (type === "assistant") {
         messages.push(...collectMessageText(event.message));
         const messageObj = parseObject(event.message);
-        const content = Array.isArray(messageObj.content) ? messageObj.content : [];
+        const content = Array.isArray(messageObj.content)
+          ? messageObj.content
+          : [];
         for (const partRaw of content) {
           const part = parseObject(partRaw);
           if (asString(part.type, "").trim() === "question") {
             question = {
               prompt: asString(part.prompt, "").trim(),
-              choices: (Array.isArray(part.choices) ? part.choices : []).map((choiceRaw) => {
-                const choice = parseObject(choiceRaw);
-                return {
-                  key: asString(choice.key, "").trim(),
-                  label: asString(choice.label, "").trim(),
-                  description: asString(choice.description, "").trim() || undefined,
-                };
-              }),
+              choices: (Array.isArray(part.choices) ? part.choices : []).map(
+                (choiceRaw) => {
+                  const choice = parseObject(choiceRaw);
+                  return {
+                    key: asString(choice.key, "").trim(),
+                    label: asString(choice.label, "").trim(),
+                    description:
+                      asString(choice.description, "").trim() || undefined,
+                  };
+                },
+              ),
             };
             break; // only one question per message
           }
@@ -155,7 +203,10 @@ export function createGeminiJsonlParser() {
 
       if (type === "result") {
         resultEvent = event;
-        recordAccounting(event, event.usage ?? event.usageMetadata ?? event.stats);
+        recordAccounting(
+          event,
+          event.usage ?? event.usageMetadata ?? event.stats,
+        );
         const resultText =
           asString(event.result, "").trim() ||
           asString(event.text, "").trim() ||
@@ -168,14 +219,18 @@ export function createGeminiJsonlParser() {
           status === "error" ||
           status === "failed";
         if (isError) {
-          const text = asErrorText(event.error ?? event.message ?? event.result).trim();
+          const text = asErrorText(
+            event.error ?? event.message ?? event.result,
+          ).trim();
           if (text) errorMessage = text;
         }
         continue;
       }
 
       if (type === "error") {
-        const text = asErrorText(event.error ?? event.message ?? event.detail).trim();
+        const text = asErrorText(
+          event.error ?? event.message ?? event.detail,
+        ).trim();
         if (text) errorMessage = text;
         continue;
       }
@@ -183,7 +238,9 @@ export function createGeminiJsonlParser() {
       if (type === "system") {
         const subtype = asString(event.subtype, "").trim().toLowerCase();
         if (subtype === "error") {
-          const text = asErrorText(event.error ?? event.message ?? event.detail).trim();
+          const text = asErrorText(
+            event.error ?? event.message ?? event.detail,
+          ).trim();
           if (text) errorMessage = text;
         }
         continue;
@@ -214,7 +271,10 @@ export function createGeminiJsonlParser() {
   };
 }
 
-export function isGeminiSessionUnrecoverableError(stdout: string, stderr: string): boolean {
+export function isGeminiSessionUnrecoverableError(
+  stdout: string,
+  stderr: string,
+): boolean {
   const haystack = `${stdout}\n${stderr}`
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -226,7 +286,10 @@ export function isGeminiSessionUnrecoverableError(stdout: string, stderr: string
   );
 }
 
-export function isGeminiTransientNetworkError(stdout: string, stderr: string): boolean {
+export function isGeminiTransientNetworkError(
+  stdout: string,
+  stderr: string,
+): boolean {
   const haystack = `${stdout}\n${stderr}`
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -250,9 +313,13 @@ function extractGeminiErrorMessages(parsed: Record<string, unknown>): string[] {
       if (msg) messages.push(msg);
       continue;
     }
-    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry))
+      continue;
     const obj = entry as Record<string, unknown>;
-    const msg = asString(obj.message, "") || asString(obj.error, "") || asString(obj.code, "");
+    const msg =
+      asString(obj.message, "") ||
+      asString(obj.error, "") ||
+      asString(obj.code, "");
     if (msg) {
       messages.push(msg);
       continue;
@@ -267,7 +334,9 @@ function extractGeminiErrorMessages(parsed: Record<string, unknown>): string[] {
   return messages;
 }
 
-export function describeGeminiFailure(parsed: Record<string, unknown>): string | null {
+export function describeGeminiFailure(
+  parsed: Record<string, unknown>,
+): string | null {
   const status = asString(parsed.status, "");
   const errors = extractGeminiErrorMessages(parsed);
 
@@ -278,7 +347,8 @@ export function describeGeminiFailure(parsed: Record<string, unknown>): string |
   return parts.length > 1 ? parts.join(": ") : null;
 }
 
-const GEMINI_AUTH_REQUIRED_RE = /(?:not\s+authenticated|please\s+authenticate|api[_ ]?key\s+(?:required|missing|invalid)|authentication\s+required|manual\s+authorization\s+is\s+required|unauthorized|invalid\s+credentials|not\s+logged\s+in|login\s+required|run\s+`?gemini\s+auth(?:\s+login)?`?\s+first)/i;
+const GEMINI_AUTH_REQUIRED_RE =
+  /(?:not\s+authenticated|please\s+authenticate|api[_ ]?key\s+(?:required|missing|invalid)|authentication\s+required|manual\s+authorization\s+is\s+required|unauthorized|invalid\s+credentials|not\s+logged\s+in|login\s+required|run\s+`?gemini\s+auth(?:\s+login)?`?\s+first)/i;
 const GEMINI_QUOTA_EXHAUSTED_RE =
   /(?:resource_exhausted|quota|rate[-\s]?limit|too many requests|\b429\b|billing details)/i;
 
@@ -294,7 +364,9 @@ export function detectGeminiAuthRequired(input: {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const requiresAuth = messages.some((line) => GEMINI_AUTH_REQUIRED_RE.test(line));
+  const requiresAuth = messages.some((line) =>
+    GEMINI_AUTH_REQUIRED_RE.test(line),
+  );
   return { requiresAuth };
 }
 
@@ -310,7 +382,9 @@ export function detectGeminiQuotaExhausted(input: {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const exhausted = messages.some((line) => GEMINI_QUOTA_EXHAUSTED_RE.test(line));
+  const exhausted = messages.some((line) =>
+    GEMINI_QUOTA_EXHAUSTED_RE.test(line),
+  );
   return { exhausted };
 }
 
@@ -329,10 +403,11 @@ export function isGeminiTurnLimitResult(
     parsed.error_code,
   ].map((value) => asString(value, "").trim().toLowerCase());
 
-  return structuredStopReasons.some((reason) =>
-    reason === "turn_limit" ||
-    reason === "max_turns" ||
-    reason === "max_turns_exhausted" ||
-    reason === "turn_limit_exhausted",
+  return structuredStopReasons.some(
+    (reason) =>
+      reason === "turn_limit" ||
+      reason === "max_turns" ||
+      reason === "max_turns_exhausted" ||
+      reason === "turn_limit_exhausted",
   );
 }

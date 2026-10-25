@@ -3,10 +3,27 @@ import express, { type Request } from "express";
 import request from "supertest";
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { authUsers, companies, companyMemberships, instanceSettings, instanceUserRoles } from "@taskcore/db";
-import { actorMiddleware, cloudActorHeaderSourceFromHeaders, resolveCloudTenantActor } from "./auth.js";
-import { idleAdmissionMiddleware, trackIdleRequestHandlers } from "./idle-admission.js";
-import { idleWorkSnapshot, startTaskDrain, stopTaskDrain } from "../services/task-admission.js";
+import {
+  authUsers,
+  companies,
+  companyMemberships,
+  instanceSettings,
+  instanceUserRoles,
+} from "@taskcore/db";
+import {
+  actorMiddleware,
+  cloudActorHeaderSourceFromHeaders,
+  resolveCloudTenantActor,
+} from "./auth.js";
+import {
+  idleAdmissionMiddleware,
+  trackIdleRequestHandlers,
+} from "./idle-admission.js";
+import {
+  idleWorkSnapshot,
+  startTaskDrain,
+  stopTaskDrain,
+} from "../services/task-admission.js";
 import { readIdleSleepSafety } from "../services/idle-sleep-safety.js";
 
 // Minimal fake Drizzle Db: records every table passed to .insert() / .delete() and
@@ -17,15 +34,28 @@ import { readIdleSleepSafety } from "../services/idle-sleep-safety.js";
 // the user's own membership rows (rows configurable via membershipQueryRows,
 // where-conditions captured in selectWheres). The chain is awaitable so
 // directly-awaited statements resolve.
-function createFakeDb(options: {
-  membershipRow?: { companyId: string; membershipRole: string; status: string };
-  membershipQueryRows?: Array<{ companyId: string; membershipRole: string | null; status: string }>;
-  settingsRow?: Record<string, unknown> | null;
-  selectThrows?: boolean;
-  beforeWrite?: () => Promise<void>;
-} = {}) {
-  const membershipRow =
-    options.membershipRow ?? { companyId: "company-x", membershipRole: "owner", status: "active" };
+function createFakeDb(
+  options: {
+    membershipRow?: {
+      companyId: string;
+      membershipRole: string;
+      status: string;
+    };
+    membershipQueryRows?: Array<{
+      companyId: string;
+      membershipRole: string | null;
+      status: string;
+    }>;
+    settingsRow?: Record<string, unknown> | null;
+    selectThrows?: boolean;
+    beforeWrite?: () => Promise<void>;
+  } = {},
+) {
+  const membershipRow = options.membershipRow ?? {
+    companyId: "company-x",
+    membershipRole: "owner",
+    status: "active",
+  };
   const settingsRow =
     options.settingsRow === undefined
       ? {
@@ -46,9 +76,14 @@ function createFakeDb(options: {
   chain.onConflictDoUpdate = () => chain;
   chain.onConflictDoNothing = () => chain;
   chain.where = () => chain;
-  chain.returning = async () => { await options.beforeWrite?.(); return [membershipRow]; };
-  chain.then = (resolve: (v: unknown) => unknown, reject?: (error: unknown) => unknown) =>
-    Promise.resolve().then(options.beforeWrite).then(resolve, reject);
+  chain.returning = async () => {
+    await options.beforeWrite?.();
+    return [membershipRow];
+  };
+  chain.then = (
+    resolve: (v: unknown) => unknown,
+    reject?: (error: unknown) => unknown,
+  ) => Promise.resolve().then(options.beforeWrite).then(resolve, reject);
   const db = {
     insert: (table: unknown) => {
       insertedTables.push(table);
@@ -71,7 +106,8 @@ function createFakeDb(options: {
                   ? (options.membershipQueryRows ?? [])
                   : [];
             return {
-              then: (resolve: (v: unknown) => unknown) => Promise.resolve(rows).then(resolve),
+              then: (resolve: (v: unknown) => unknown) =>
+                Promise.resolve(rows).then(resolve),
             };
           },
         }),
@@ -96,7 +132,9 @@ function settingsRowWith(experimental: Record<string, unknown>) {
 function fakeReq(headers: Record<string, string>): Request {
   const lower: Record<string, string> = {};
   for (const [k, v] of Object.entries(headers)) lower[k.toLowerCase()] = v;
-  return { header: (name: string) => lower[name.toLowerCase()] } as unknown as Request;
+  return {
+    header: (name: string) => lower[name.toLowerCase()],
+  } as unknown as Request;
 }
 
 const VALID_HEADERS = {
@@ -166,46 +204,97 @@ describe("resolveCloudTenantActor (shared-pool hardening)", () => {
     expect(insertedTables).toContain(companyMemberships);
   });
 
-  it.each(["/api/health", "/api/instance/task-drain"])("counts unfinished authentication on exempt %s requests", async (path) => {
-    let enterWrite!: () => void, finishWrite!: () => void;
-    const entered = new Promise<void>(resolve => { enterWrite = resolve; });
-    const pending = new Promise<void>(resolve => { finishWrite = resolve; });
-    const { db, insertedTables } = createFakeDb({ beforeWrite: async () => { enterWrite(); await pending; } });
-    const server = express();
-    server.use(idleAdmissionMiddleware);
-    server.use(actorMiddleware(db, { deploymentMode: "authenticated", resolveSession: async () => null }));
-    const hold = startTaskDrain({ purpose: "idle", ttlMs: 60_000 });
-    const emptyDb = { transaction: async (run: (tx: unknown) => Promise<unknown>) =>
-      run({ execute: async () => [{ blocked: false }] }) } as unknown as Db;
-    server.get("/api/health", (_req, res) => res.sendStatus(204));
-    server.get("/api/instance/task-drain", async (_req, res) => {
-      res.json(await readIdleSleepSafety(emptyDb, () => ({ ...hold, draining: true, activeRuns: 0, pendingWakes: 0 }),
-        Date.now, hold.ownerId, async () => "none"));
-    });
-    trackIdleRequestHandlers(server);
-    const accepted = request(server).get(path).set(VALID_HEADERS).then(response => response);
-    try {
-      await entered;
-      expect(idleWorkSnapshot().active).toBeGreaterThan(0);
-      const during = await request(server).get("/api/instance/task-drain").expect(200);
-      expect(during.body.backgroundWork).toBe("unknown");
-    } finally {
-      finishWrite();
-      await accepted;
-    }
-    expect(insertedTables).toEqual(expect.arrayContaining([authUsers, companies, companyMemberships]));
-    expect(idleWorkSnapshot().active).toBe(0);
-    const after = await request(server).get("/api/instance/task-drain").expect(200);
-    expect(after.body.backgroundWork).toBe("none");
-  });
+  it.each(["/api/health", "/api/instance/task-drain"])(
+    "counts unfinished authentication on exempt %s requests",
+    async (path) => {
+      let enterWrite!: () => void, finishWrite!: () => void;
+      const entered = new Promise<void>((resolve) => {
+        enterWrite = resolve;
+      });
+      const pending = new Promise<void>((resolve) => {
+        finishWrite = resolve;
+      });
+      const { db, insertedTables } = createFakeDb({
+        beforeWrite: async () => {
+          enterWrite();
+          await pending;
+        },
+      });
+      const server = express();
+      server.use(idleAdmissionMiddleware);
+      server.use(
+        actorMiddleware(db, {
+          deploymentMode: "authenticated",
+          resolveSession: async () => null,
+        }),
+      );
+      const hold = startTaskDrain({ purpose: "idle", ttlMs: 60_000 });
+      const emptyDb = {
+        transaction: async (run: (tx: unknown) => Promise<unknown>) =>
+          run({ execute: async () => [{ blocked: false }] }),
+      } as unknown as Db;
+      server.get("/api/health", (_req, res) => res.sendStatus(204));
+      server.get("/api/instance/task-drain", async (_req, res) => {
+        res.json(
+          await readIdleSleepSafety(
+            emptyDb,
+            () => ({ ...hold, draining: true, activeRuns: 0, pendingWakes: 0 }),
+            Date.now,
+            hold.ownerId,
+            async () => "none",
+          ),
+        );
+      });
+      trackIdleRequestHandlers(server);
+      const accepted = request(server)
+        .get(path)
+        .set(VALID_HEADERS)
+        .then((response) => response);
+      try {
+        await entered;
+        expect(idleWorkSnapshot().active).toBeGreaterThan(0);
+        const during = await request(server)
+          .get("/api/instance/task-drain")
+          .expect(200);
+        expect(during.body.backgroundWork).toBe("unknown");
+      } finally {
+        finishWrite();
+        await accepted;
+      }
+      expect(insertedTables).toEqual(
+        expect.arrayContaining([authUsers, companies, companyMemberships]),
+      );
+      expect(idleWorkSnapshot().active).toBe(0);
+      const after = await request(server)
+        .get("/api/instance/task-drain")
+        .expect(200);
+      expect(after.body.backgroundWork).toBe("none");
+    },
+  );
 
   it("releases failed control authentication and preserves Express error handling", async () => {
-    const { db } = createFakeDb({ beforeWrite: async () => { throw new Error("fixture write failed"); } });
+    const { db } = createFakeDb({
+      beforeWrite: async () => {
+        throw new Error("fixture write failed");
+      },
+    });
     const server = express();
     server.use(idleAdmissionMiddleware);
-    server.use(actorMiddleware(db, { deploymentMode: "authenticated", resolveSession: async () => null }));
+    server.use(
+      actorMiddleware(db, {
+        deploymentMode: "authenticated",
+        resolveSession: async () => null,
+      }),
+    );
     server.get("/api/health", (_req, res) => res.sendStatus(204));
-    server.use((_err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => res.sendStatus(500));
+    server.use(
+      (
+        _err: Error,
+        _req: express.Request,
+        res: express.Response,
+        _next: express.NextFunction,
+      ) => res.sendStatus(500),
+    );
     trackIdleRequestHandlers(server);
     await request(server).get("/api/health").set(VALID_HEADERS).expect(500);
     expect(idleWorkSnapshot().active).toBe(0);
@@ -215,14 +304,21 @@ describe("resolveCloudTenantActor (shared-pool hardening)", () => {
   it("resyncs an A to B to A context transition inside the debounce window", async () => {
     const { db, insertedTables } = createFakeDb();
     const contextA = VALID_HEADERS;
-    const contextB = { ...VALID_HEADERS, "x-taskcore-cloud-stack-role": "member" };
+    const contextB = {
+      ...VALID_HEADERS,
+      "x-taskcore-cloud-stack-role": "member",
+    };
 
     await resolveCloudTenantActor(db, fakeReq(contextA));
     await resolveCloudTenantActor(db, fakeReq(contextB));
     await resolveCloudTenantActor(db, fakeReq(contextA));
 
-    expect(insertedTables.filter((table) => table === authUsers)).toHaveLength(3);
-    expect(insertedTables.filter((table) => table === companyMemberships)).toHaveLength(3);
+    expect(insertedTables.filter((table) => table === authUsers)).toHaveLength(
+      3,
+    );
+    expect(
+      insertedTables.filter((table) => table === companyMemberships),
+    ).toHaveLength(3);
   });
 
   it("returns null when the server token is unset", async () => {
@@ -238,9 +334,16 @@ describe("resolveCloudTenantActor (shared-pool hardening)", () => {
     // resolveCloudTenantActor the same way Express header() does.
     const { db } = createFakeDb();
     const rawHeaders: Record<string, string | string[] | undefined> = {};
-    for (const [k, v] of Object.entries(VALID_HEADERS)) rawHeaders[k.toLowerCase()] = v;
-    rawHeaders["x-taskcore-cloud-user-name"] = ["Cloud Owner", "ignored-duplicate"];
-    const actor = await resolveCloudTenantActor(db, cloudActorHeaderSourceFromHeaders(rawHeaders));
+    for (const [k, v] of Object.entries(VALID_HEADERS))
+      rawHeaders[k.toLowerCase()] = v;
+    rawHeaders["x-taskcore-cloud-user-name"] = [
+      "Cloud Owner",
+      "ignored-duplicate",
+    ];
+    const actor = await resolveCloudTenantActor(
+      db,
+      cloudActorHeaderSourceFromHeaders(rawHeaders),
+    );
     expect(actor).not.toBeNull();
     expect(actor!.userId).toBe("user-123");
     expect(actor!.userName).toBe("Cloud Owner");
@@ -249,7 +352,11 @@ describe("resolveCloudTenantActor (shared-pool hardening)", () => {
 
   it("maps a non-owner stack role through to the membership without elevating", async () => {
     const { db } = createFakeDb({
-      membershipRow: { companyId: "company-y", membershipRole: "member", status: "active" },
+      membershipRow: {
+        companyId: "company-y",
+        membershipRole: "member",
+        status: "active",
+      },
     });
     const actor = await resolveCloudTenantActor(
       db,
@@ -274,22 +381,40 @@ describe("resolveCloudTenantActor (shared-pool hardening)", () => {
         membershipQueryRows: [
           // The user's own row for the primary company comes back from the
           // query too — it must not appear twice.
-          { companyId: primaryCompanyId, membershipRole: "owner", status: "active" },
-          { companyId: "company-imported", membershipRole: "member", status: "active" },
+          {
+            companyId: primaryCompanyId,
+            membershipRole: "owner",
+            status: "active",
+          },
+          {
+            companyId: "company-imported",
+            membershipRole: "member",
+            status: "active",
+          },
         ],
       });
       const actor = await resolveCloudTenantActor(db, fakeReq(VALID_HEADERS));
       expect(actor!.companyIds).toEqual([primaryCompanyId, "company-imported"]);
       expect(actor!.memberships).toEqual([
-        { companyId: primaryCompanyId, membershipRole: "owner", status: "active" },
-        { companyId: "company-imported", membershipRole: "member", status: "active" },
+        {
+          companyId: primaryCompanyId,
+          membershipRole: "owner",
+          status: "active",
+        },
+        {
+          companyId: "company-imported",
+          membershipRole: "member",
+          status: "active",
+        },
       ]);
     });
 
     it("loads memberships with the session path's exact own-user active-status filter", async () => {
       const { db, selectWheres } = createFakeDb();
       await resolveCloudTenantActor(db, fakeReq(VALID_HEADERS));
-      const membershipSelects = selectWheres.filter((entry) => entry.table === companyMemberships);
+      const membershipSelects = selectWheres.filter(
+        (entry) => entry.table === companyMemberships,
+      );
       expect(membershipSelects).toHaveLength(1);
       // Rows for other users and rows in any non-active status are excluded
       // by the query itself: the filter binds exactly this user id and the
@@ -338,12 +463,19 @@ describe("resolveCloudTenantActor (shared-pool hardening)", () => {
       "never elevates the %s stack role even with the flag enabled",
       async (stackRole) => {
         const { db } = createFakeDb({
-          membershipRow: { companyId: "company-y", membershipRole: "member", status: "active" },
+          membershipRow: {
+            companyId: "company-y",
+            membershipRole: "member",
+            status: "active",
+          },
           settingsRow: settingsRowWith({ enableOwnerInstanceAdmin: true }),
         });
         const actor = await resolveCloudTenantActor(
           db,
-          fakeReq({ ...VALID_HEADERS, "x-taskcore-cloud-stack-role": stackRole }),
+          fakeReq({
+            ...VALID_HEADERS,
+            "x-taskcore-cloud-stack-role": stackRole,
+          }),
         );
         expect(actor).not.toBeNull();
         expect(actor!.isInstanceAdmin).toBe(false);

@@ -13,7 +13,9 @@ import {
 describe("routine variable helpers", () => {
   it("extracts placeholder names in first-appearance order", () => {
     expect(
-      extractRoutineVariableNames("Review {{repo}} and {{priority}} for {{repo}}"),
+      extractRoutineVariableNames(
+        "Review {{repo}} and {{priority}} for {{repo}}",
+      ),
     ).toEqual(["repo", "priority"]);
   });
 
@@ -28,13 +30,44 @@ describe("routine variable helpers", () => {
 
   it("preserves existing metadata when syncing variables from a template", () => {
     expect(
-      syncRoutineVariablesWithTemplate(["Triage {{repo}}", "Review {{repo}} and {{startDate}}"], [
-        { name: "repo", label: "Repository", type: "text", defaultValue: "taskcore", required: true, options: [] },
-        { name: "startDate", label: "Start", type: "text", defaultValue: "soon", required: false, options: [] },
-      ]),
+      syncRoutineVariablesWithTemplate(
+        ["Triage {{repo}}", "Review {{repo}} and {{startDate}}"],
+        [
+          {
+            name: "repo",
+            label: "Repository",
+            type: "text",
+            defaultValue: "taskcore",
+            required: true,
+            options: [],
+          },
+          {
+            name: "startDate",
+            label: "Start",
+            type: "text",
+            defaultValue: "soon",
+            required: false,
+            options: [],
+          },
+        ],
+      ),
     ).toEqual([
-      { name: "repo", label: "Repository", type: "text", defaultValue: "taskcore", required: true, options: [] },
-      { name: "startDate", label: "Start", type: "text", defaultValue: "soon", required: false, options: [] },
+      {
+        name: "repo",
+        label: "Repository",
+        type: "text",
+        defaultValue: "taskcore",
+        required: true,
+        options: [],
+      },
+      {
+        name: "startDate",
+        label: "Start",
+        type: "text",
+        defaultValue: "soon",
+        required: false,
+        options: [],
+      },
     ]);
   });
 
@@ -50,10 +83,27 @@ describe("routine variable helpers", () => {
 
   it("defaults newly synced capital-Date variables to date type", () => {
     expect(
-      syncRoutineVariablesWithTemplate("Compare {{startDate}} to {{endDate}} with {{date}}", []),
+      syncRoutineVariablesWithTemplate(
+        "Compare {{startDate}} to {{endDate}} with {{date}}",
+        [],
+      ),
     ).toEqual([
-      { name: "startDate", label: null, type: "date", defaultValue: null, required: true, options: [] },
-      { name: "endDate", label: null, type: "date", defaultValue: null, required: true, options: [] },
+      {
+        name: "startDate",
+        label: null,
+        type: "date",
+        defaultValue: null,
+        required: true,
+        options: [],
+      },
+      {
+        name: "endDate",
+        label: null,
+        type: "date",
+        defaultValue: null,
+        required: true,
+        options: [],
+      },
     ]);
   });
 
@@ -102,32 +152,52 @@ describe("routine variable helpers", () => {
       [],
     );
     expect(result).toEqual([
-      { name: "repo", label: null, type: "text", defaultValue: null, required: true, options: [] },
+      {
+        name: "repo",
+        label: null,
+        type: "text",
+        defaultValue: null,
+        required: true,
+        options: [],
+      },
     ]);
   });
 
   it("extracts snake_case variable names", () => {
-    expect(extractRoutineVariableNames("Open {{pr_url}} for review")).toEqual(["pr_url"]);
+    expect(extractRoutineVariableNames("Open {{pr_url}} for review")).toEqual([
+      "pr_url",
+    ]);
   });
 
   it("extracts variable names whose underscores were markdown-escaped by a WYSIWYG editor", () => {
     // MDXEditor / mdast-util-to-markdown defensively escape intraword underscores
     // when serializing rich-text back to markdown, so `{{pr_url}}` is stored as `{{pr\_url}}`.
-    expect(extractRoutineVariableNames("Open {{pr\\_url}} for review")).toEqual(["pr_url"]);
-    expect(extractRoutineVariableNames("{{pr\\_url\\_v2}}")).toEqual(["pr_url_v2"]);
+    expect(extractRoutineVariableNames("Open {{pr\\_url}} for review")).toEqual(
+      ["pr_url"],
+    );
+    expect(extractRoutineVariableNames("{{pr\\_url\\_v2}}")).toEqual([
+      "pr_url_v2",
+    ]);
   });
 
   it("syncRoutineVariablesWithTemplate handles markdown-escaped underscores", () => {
-    expect(
-      syncRoutineVariablesWithTemplate("Open {{pr\\_url}}", []),
-    ).toEqual([
-      { name: "pr_url", label: null, type: "text", defaultValue: null, required: true, options: [] },
+    expect(syncRoutineVariablesWithTemplate("Open {{pr\\_url}}", [])).toEqual([
+      {
+        name: "pr_url",
+        label: null,
+        type: "text",
+        defaultValue: null,
+        required: true,
+        options: [],
+      },
     ]);
   });
 
   it("interpolates variables that appear with markdown-escaped underscores", () => {
     expect(
-      interpolateRoutineTemplate("Open {{pr\\_url}}", { pr_url: "https://example.com" }),
+      interpolateRoutineTemplate("Open {{pr\\_url}}", {
+        pr_url: "https://example.com",
+      }),
     ).toBe("Open https://example.com");
   });
 
@@ -135,7 +205,10 @@ describe("routine variable helpers", () => {
     const builtins = getBuiltinRoutineVariableValues();
     const allVars = { ...builtins, repo: "taskcore" };
     expect(
-      interpolateRoutineTemplate("Report for {{date}} ({{timestamp}}) on {{repo}}", allVars),
+      interpolateRoutineTemplate(
+        "Report for {{date}} ({{timestamp}}) on {{repo}}",
+        allVars,
+      ),
     ).toBe(`Report for ${builtins.date} (${builtins.timestamp}) on taskcore`);
   });
 });

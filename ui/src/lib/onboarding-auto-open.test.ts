@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { claimOnboardingOffer, resetOnboardingOffers } from "./onboarding-auto-open";
+import {
+  claimOnboardingOffer,
+  resetOnboardingOffers,
+} from "./onboarding-auto-open";
 
 describe("claimOnboardingOffer", () => {
   beforeEach(resetOnboardingOffers);

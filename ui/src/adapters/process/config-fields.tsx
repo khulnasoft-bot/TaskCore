@@ -34,7 +34,8 @@ export function ProcessConfigFields({
   eff,
   mark,
 }: AdapterConfigFieldsProps) {
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       <Field configSection="advanced" label="Command" hint={help.command}>
         <DraftInput
@@ -53,7 +54,11 @@ export function ProcessConfigFields({
           placeholder="e.g. node, python"
         />
       </Field>
-      <Field configSection="advanced" label="Args (comma-separated)" hint={help.args}>
+      <Field
+        configSection="advanced"
+        label="Args (comma-separated)"
+        hint={help.args}
+      >
         <DraftInput
           value={
             isCreate
@@ -63,17 +68,13 @@ export function ProcessConfigFields({
           onCommit={(v) =>
             isCreate
               ? set!({ args: v })
-              : mark(
-                  "adapterConfig",
-                  "args",
-                  v ? parseCommaArgs(v) : undefined,
-                )
+              : mark("adapterConfig", "args", v ? parseCommaArgs(v) : undefined)
           }
           immediate
           className={inputClass}
           placeholder="e.g. script.js, --flag"
         />
       </Field>
-    </>
-  ));
+    </>,
+  );
 }

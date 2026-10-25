@@ -4,8 +4,14 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ensureManagedProjectWorkspace, prepareProjectRepositoryWorkspaces } from "../services/heartbeat.ts";
-import { buildGitAuthInvocation, GIT_CREDENTIAL_TOKEN_ENV_KEY } from "../services/git-credentials.ts";
+import {
+  ensureManagedProjectWorkspace,
+  prepareProjectRepositoryWorkspaces,
+} from "../services/heartbeat.ts";
+import {
+  buildGitAuthInvocation,
+  GIT_CREDENTIAL_TOKEN_ENV_KEY,
+} from "../services/git-credentials.ts";
 import { sanitizeRuntimeServiceBaseEnv } from "../services/workspace-runtime.ts";
 import { resolveManagedProjectWorkspaceDir } from "../home-paths.ts";
 import { readGitConnectionFailure } from "../services/git-connection-failure.js";
@@ -17,7 +23,9 @@ let originalHome: string | undefined;
 
 beforeAll(async () => {
   originalHome = process.env.TASKCORE_HOME;
-  tempHome = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-managed-clone-"));
+  tempHome = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-managed-clone-"),
+  );
   process.env.TASKCORE_HOME = tempHome;
 });
 
@@ -28,10 +36,16 @@ afterAll(async () => {
 });
 
 async function createLocalSourceRepo() {
-  const sourceRepo = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-clone-source-"));
+  const sourceRepo = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-clone-source-"),
+  );
   await execFile("git", ["init"], { cwd: sourceRepo });
-  await execFile("git", ["config", "user.email", "taskcore@example.com"], { cwd: sourceRepo });
-  await execFile("git", ["config", "user.name", "Taskcore Test"], { cwd: sourceRepo });
+  await execFile("git", ["config", "user.email", "taskcore@example.com"], {
+    cwd: sourceRepo,
+  });
+  await execFile("git", ["config", "user.name", "Taskcore Test"], {
+    cwd: sourceRepo,
+  });
   await fs.writeFile(path.join(sourceRepo, "README.md"), "hello\n", "utf8");
   await execFile("git", ["add", "README.md"], { cwd: sourceRepo });
   await execFile("git", ["commit", "-m", "init"], { cwd: sourceRepo });
@@ -40,56 +54,110 @@ async function createLocalSourceRepo() {
 
 describe("ensureManagedProjectWorkspace clone credentials", () => {
   it.each([
-    ["authentication_failed", "fatal: Authentication failed for 'https://example.test/team/repo.git/'"],
-    ["dns_failure", "ssh: Could not resolve hostname repository-alias.example.test: Name or service not known\nfatal: Could not read from remote repository."],
-    [null, "fatal: Authentication failed for 'https://example.test/team/repo.git/'\nfatal: bad config line 1 in file /tmp/config"],
+    [
+      "authentication_failed",
+      "fatal: Authentication failed for 'https://example.test/team/repo.git/'",
+    ],
+    [
+      "dns_failure",
+      "ssh: Could not resolve hostname repository-alias.example.test: Name or service not known\nfatal: Could not read from remote repository.",
+    ],
+    [
+      null,
+      "fatal: Authentication failed for 'https://example.test/team/repo.git/'\nfatal: bad config line 1 in file /tmp/config",
+    ],
     [null, "fatal: corrupt loose object"],
-  ] as const)("preserves only proven outbound clone classification through the actionable wrapper: %s", async (reason, stderr) => {
-    const bin = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-fake-clone-"));
-    await fs.writeFile(path.join(bin, "git"), `#!/bin/sh
+  ] as const)(
+    "preserves only proven outbound clone classification through the actionable wrapper: %s",
+    async (reason, stderr) => {
+      const bin = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-fake-clone-"),
+      );
+      await fs.writeFile(
+        path.join(bin, "git"),
+        `#!/bin/sh
 printf '%s\\n' "$FIXTURE_CLONE_STDERR" >&2
 exit 128
-`, { mode: 0o755 });
-    try {
-      const failure = await ensureManagedProjectWorkspace({
-        companyId: "remote-clone-fixture", projectId: path.basename(bin),
-        repoUrl: "https://fixture-user:fixture-password@example.test/team/repo.git",
-        resolveGitAuth: async () => ({
-          configArgs: [], env: { PATH: bin, FIXTURE_CLONE_STDERR: stderr },
-          source: "company_secret", secretName: "GITHUB_TOKEN",
-        }),
-      }).catch((error: unknown) => error);
-      expect(failure).toBeInstanceOf(Error);
-      expect((failure as Error).message).toContain("Failed to prepare managed checkout");
-      expect((failure as Error).message).not.toContain("fixture-password");
-      expect(readGitConnectionFailure(failure)).toEqual(reason ? {
-        schemaVersion: 1, provider: "git", operation: "clone", reason,
-      } : null);
-      const homeEntries = await fs.readdir(path.dirname(resolveManagedProjectWorkspaceDir({
-        companyId: "remote-clone-fixture", projectId: path.basename(bin), repoName: "repo",
-      })));
-      expect(homeEntries.some((name) => name.includes(".clone-"))).toBe(false);
-    } finally {
-      await fs.rm(bin, { recursive: true, force: true });
-    }
-  });
+`,
+        { mode: 0o755 },
+      );
+      try {
+        const failure = await ensureManagedProjectWorkspace({
+          companyId: "remote-clone-fixture",
+          projectId: path.basename(bin),
+          repoUrl:
+            "https://fixture-user:fixture-password@example.test/team/repo.git",
+          resolveGitAuth: async () => ({
+            configArgs: [],
+            env: { PATH: bin, FIXTURE_CLONE_STDERR: stderr },
+            source: "company_secret",
+            secretName: "GITHUB_TOKEN",
+          }),
+        }).catch((error: unknown) => error);
+        expect(failure).toBeInstanceOf(Error);
+        expect((failure as Error).message).toContain(
+          "Failed to prepare managed checkout",
+        );
+        expect((failure as Error).message).not.toContain("fixture-password");
+        expect(readGitConnectionFailure(failure)).toEqual(
+          reason
+            ? {
+                schemaVersion: 1,
+                provider: "git",
+                operation: "clone",
+                reason,
+              }
+            : null,
+        );
+        const homeEntries = await fs.readdir(
+          path.dirname(
+            resolveManagedProjectWorkspaceDir({
+              companyId: "remote-clone-fixture",
+              projectId: path.basename(bin),
+              repoName: "repo",
+            }),
+          ),
+        );
+        expect(homeEntries.some((name) => name.includes(".clone-"))).toBe(
+          false,
+        );
+      } finally {
+        await fs.rm(bin, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("does not classify a credential-provider exception that resembles a Git failure", async () => {
-    const failure = Object.assign(new Error("fatal: Authentication failed for 'https://example.test/repo.git'"), {
-      code: 128, stderr: "fatal: Authentication failed for 'https://example.test/repo.git'",
-    });
+    const failure = Object.assign(
+      new Error(
+        "fatal: Authentication failed for 'https://example.test/repo.git'",
+      ),
+      {
+        code: 128,
+        stderr:
+          "fatal: Authentication failed for 'https://example.test/repo.git'",
+      },
+    );
     const caught = await ensureManagedProjectWorkspace({
-      companyId: "credential-provider-fixture", projectId: "project", repoUrl: "https://example.test/repo.git",
-      resolveGitAuth: async () => { throw failure; },
+      companyId: "credential-provider-fixture",
+      projectId: "project",
+      repoUrl: "https://example.test/repo.git",
+      resolveGitAuth: async () => {
+        throw failure;
+      },
     }).catch((error: unknown) => error);
     expect(caught).toBe(failure);
     expect(readGitConnectionFailure(caught)).toBeNull();
   });
 
   it("does not transfer clone classification to a later local checkout failure", async () => {
-    const bin = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-fake-checkout-"));
+    const bin = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-fake-checkout-"),
+    );
     const previousPath = process.env.PATH;
-    await fs.writeFile(path.join(bin, "git"), `#!/bin/sh
+    await fs.writeFile(
+      path.join(bin, "git"),
+      `#!/bin/sh
 if [ "$1" = clone ]; then
   for argument in "$@"; do destination="$argument"; done
   /bin/mkdir -p "$destination/.git"
@@ -97,17 +165,23 @@ if [ "$1" = clone ]; then
 fi
 printf '%s\\n' "fatal: Authentication failed for 'https://example.test/repo.git'" >&2
 exit 128
-`, { mode: 0o755 });
+`,
+      { mode: 0o755 },
+    );
     try {
       process.env.PATH = bin;
       const failure = await ensureManagedProjectWorkspace({
-        companyId: "checkout-failure-fixture", projectId: "project", repoUrl: "https://example.test/repo.git", repoRef: "missing-branch",
+        companyId: "checkout-failure-fixture",
+        projectId: "project",
+        repoUrl: "https://example.test/repo.git",
+        repoRef: "missing-branch",
       }).catch((error: unknown) => error);
       expect(failure).toBeInstanceOf(Error);
       expect((failure as Error).message).toContain("Authentication failed");
       expect(readGitConnectionFailure(failure)).toBeNull();
     } finally {
-      if (previousPath === undefined) delete process.env.PATH; else process.env.PATH = previousPath;
+      if (previousPath === undefined) delete process.env.PATH;
+      else process.env.PATH = previousPath;
       await fs.rm(bin, { recursive: true, force: true });
     }
   });
@@ -116,11 +190,19 @@ exit 128
     const first = await createLocalSourceRepo();
     const second = await createLocalSourceRepo();
     try {
-      const anchor = await ensureManagedProjectWorkspace({ companyId: "repo-only", projectId: "two", repoUrl: first });
-      await execFile("git", ["checkout", "-b", "project-branch"], { cwd: second });
+      const anchor = await ensureManagedProjectWorkspace({
+        companyId: "repo-only",
+        projectId: "two",
+        repoUrl: first,
+      });
+      await execFile("git", ["checkout", "-b", "project-branch"], {
+        cwd: second,
+      });
       const resolveGitAuth = vi.fn(async () => null);
       const input = {
-        cwd: anchor.cwd, anchorRepoUrl: first, resolveGitAuth,
+        cwd: anchor.cwd,
+        anchorRepoUrl: first,
+        resolveGitAuth,
         workspaces: [
           { id: "first", repoUrl: first, repoRef: null },
           { id: "duplicate-first", repoUrl: first, repoRef: null },
@@ -130,26 +212,61 @@ exit 128
       const additional = await prepareProjectRepositoryWorkspaces(input);
       expect(additional).toHaveLength(1);
       expect(additional[0]!.workspaceId).toBe("second");
-      expect(path.relative(anchor.cwd, additional[0]!.cwd)).toMatch(/^\.taskcore-repositories\//);
-      expect((await execFile("git", ["branch", "--show-current"], { cwd: additional[0]!.cwd })).stdout.trim()).toBe("project-branch");
+      expect(path.relative(anchor.cwd, additional[0]!.cwd)).toMatch(
+        /^\.taskcore-repositories\//,
+      );
+      expect(
+        (
+          await execFile("git", ["branch", "--show-current"], {
+            cwd: additional[0]!.cwd,
+          })
+        ).stdout.trim(),
+      ).toBe("project-branch");
       expect(resolveGitAuth).toHaveBeenCalledWith(second);
-      await fs.writeFile(path.join(additional[0]!.cwd, "README.md"), "work in progress");
-      expect(await prepareProjectRepositoryWorkspaces(input)).toEqual(additional);
-      expect(await fs.readFile(path.join(additional[0]!.cwd, "README.md"), "utf8")).toBe("work in progress");
-      expect((await execFile("git", ["status", "--porcelain"], { cwd: anchor.cwd })).stdout).toBe("");
+      await fs.writeFile(
+        path.join(additional[0]!.cwd, "README.md"),
+        "work in progress",
+      );
+      expect(await prepareProjectRepositoryWorkspaces(input)).toEqual(
+        additional,
+      );
+      expect(
+        await fs.readFile(path.join(additional[0]!.cwd, "README.md"), "utf8"),
+      ).toBe("work in progress");
+      expect(
+        (await execFile("git", ["status", "--porcelain"], { cwd: anchor.cwd }))
+          .stdout,
+      ).toBe("");
     } finally {
-      await Promise.all([first, second].map((cwd) => fs.rm(cwd, { recursive: true, force: true })));
+      await Promise.all(
+        [first, second].map((cwd) =>
+          fs.rm(cwd, { recursive: true, force: true }),
+        ),
+      );
     }
   });
 
   it("fails task preparation when any attached repository cannot be cloned", async () => {
     const first = await createLocalSourceRepo();
     try {
-      const anchor = await ensureManagedProjectWorkspace({ companyId: "repo-failure", projectId: "two", repoUrl: first });
-      await expect(prepareProjectRepositoryWorkspaces({
-        cwd: anchor.cwd, anchorRepoUrl: first,
-        workspaces: [{ id: "missing", repoUrl: path.join(first, "missing.git"), repoRef: null }],
-      })).rejects.toThrow("Failed to prepare managed checkout");
+      const anchor = await ensureManagedProjectWorkspace({
+        companyId: "repo-failure",
+        projectId: "two",
+        repoUrl: first,
+      });
+      await expect(
+        prepareProjectRepositoryWorkspaces({
+          cwd: anchor.cwd,
+          anchorRepoUrl: first,
+          workspaces: [
+            {
+              id: "missing",
+              repoUrl: path.join(first, "missing.git"),
+              repoRef: null,
+            },
+          ],
+        }),
+      ).rejects.toThrow("Failed to prepare managed checkout");
     } finally {
       await fs.rm(first, { recursive: true, force: true });
     }
@@ -159,35 +276,73 @@ exit 128
     const first = await createLocalSourceRepo();
     const second = await createLocalSourceRepo();
     try {
-      const anchor = await ensureManagedProjectWorkspace({ companyId: "local-project", projectId: "two", repoUrl: first });
+      const anchor = await ensureManagedProjectWorkspace({
+        companyId: "local-project",
+        projectId: "two",
+        repoUrl: first,
+      });
       await fs.writeFile(path.join(second, "README.md"), "local changes");
       await fs.writeFile(path.join(second, ".gitignore"), "secret.txt\n");
       await fs.writeFile(path.join(second, "secret.txt"), "private");
       const [repo] = await prepareProjectRepositoryWorkspaces({
-        cwd: anchor.cwd, anchorRepoUrl: first,
-        workspaces: [{ id: "second", cwd: second, repoUrl: "https://github.com/example/backend.git", repoRef: null }],
+        cwd: anchor.cwd,
+        anchorRepoUrl: first,
+        workspaces: [
+          {
+            id: "second",
+            cwd: second,
+            repoUrl: "https://github.com/example/backend.git",
+            repoRef: null,
+          },
+        ],
       });
-      expect(await fs.readFile(path.join(repo!.cwd, "README.md"), "utf8")).toBe("local changes");
-      await expect(fs.stat(path.join(repo!.cwd, "secret.txt"))).rejects.toMatchObject({ code: "ENOENT" });
-      expect((await execFile("git", ["remote", "get-url", "origin"], { cwd: repo!.cwd })).stdout.trim()).toBe("https://github.com/example/backend.git");
+      expect(await fs.readFile(path.join(repo!.cwd, "README.md"), "utf8")).toBe(
+        "local changes",
+      );
+      await expect(
+        fs.stat(path.join(repo!.cwd, "secret.txt")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+      expect(
+        (
+          await execFile("git", ["remote", "get-url", "origin"], {
+            cwd: repo!.cwd,
+          })
+        ).stdout.trim(),
+      ).toBe("https://github.com/example/backend.git");
     } finally {
-      await Promise.all([first, second].map((cwd) => fs.rm(cwd, { recursive: true, force: true })));
+      await Promise.all(
+        [first, second].map((cwd) =>
+          fs.rm(cwd, { recursive: true, force: true }),
+        ),
+      );
     }
   });
   it("keeps different repositories with the same name separate within one project", async () => {
     const first = await createLocalSourceRepo();
     const second = await createLocalSourceRepo();
     try {
-      const results = await Promise.all([first, second].map((repoUrl) => ensureManagedProjectWorkspace({
-        companyId: "company-multiple", projectId: "project-multiple", repoUrl,
-      })));
+      const results = await Promise.all(
+        [first, second].map((repoUrl) =>
+          ensureManagedProjectWorkspace({
+            companyId: "company-multiple",
+            projectId: "project-multiple",
+            repoUrl,
+          }),
+        ),
+      );
       expect(results[0]!.cwd).not.toBe(results[1]!.cwd);
       for (let i = 0; i < results.length; i++) {
-        const origin = await execFile("git", ["remote", "get-url", "origin"], { cwd: results[i]!.cwd });
+        const origin = await execFile("git", ["remote", "get-url", "origin"], {
+          cwd: results[i]!.cwd,
+        });
         expect(origin.stdout.trim()).toBe([first, second][i]);
       }
     } finally {
-      await Promise.all([first, second].map((cwd) => fs.rm(cwd, { recursive: true, force: true })));
+      await Promise.all(
+        [first, second].map((cwd) =>
+          fs.rm(cwd, { recursive: true, force: true }),
+        ),
+      );
     }
   });
   it("rechecks the repository when another process wins the checkout rename", async () => {
@@ -195,7 +350,10 @@ exit 128
     const second = await createLocalSourceRepo();
     const companyId = "cross-process-race";
     const projectId = "same-name";
-    const sharedCwd = resolveManagedProjectWorkspaceDir({ companyId, projectId });
+    const sharedCwd = resolveManagedProjectWorkspaceDir({
+      companyId,
+      projectId,
+    });
     try {
       // A different process does not share managedCheckoutMaterializations. Publish
       // its completed checkout after this caller chose its destination, before rename.
@@ -205,12 +363,33 @@ exit 128
         }
         return null;
       });
-      const result = await ensureManagedProjectWorkspace({ companyId, projectId, repoUrl: first, resolveGitAuth });
-      expect((await execFile("git", ["remote", "get-url", "origin"], { cwd: result.cwd })).stdout.trim()).toBe(first);
-      expect((await execFile("git", ["remote", "get-url", "origin"], { cwd: sharedCwd })).stdout.trim()).toBe(second);
+      const result = await ensureManagedProjectWorkspace({
+        companyId,
+        projectId,
+        repoUrl: first,
+        resolveGitAuth,
+      });
+      expect(
+        (
+          await execFile("git", ["remote", "get-url", "origin"], {
+            cwd: result.cwd,
+          })
+        ).stdout.trim(),
+      ).toBe(first);
+      expect(
+        (
+          await execFile("git", ["remote", "get-url", "origin"], {
+            cwd: sharedCwd,
+          })
+        ).stdout.trim(),
+      ).toBe(second);
       expect(result.cwd).not.toBe(sharedCwd);
     } finally {
-      await Promise.all([first, second].map((cwd) => fs.rm(cwd, { recursive: true, force: true })));
+      await Promise.all(
+        [first, second].map((cwd) =>
+          fs.rm(cwd, { recursive: true, force: true }),
+        ),
+      );
     }
   });
 
@@ -252,10 +431,17 @@ exit 128
     // The failure here is a missing local path, not an auth rejection — the error must not
     // claim the credential "was rejected". Attribution for genuinely auth-shaped failures is
     // covered by the describeGitAuthFailure unit tests in git-credentials.test.ts.
-    const missingRepo = path.join(os.tmpdir(), "taskcore-definitely-missing", "repo.git");
+    const missingRepo = path.join(
+      os.tmpdir(),
+      "taskcore-definitely-missing",
+      "repo.git",
+    );
     const resolveGitAuth = vi.fn(async () => ({
       configArgs: [],
-      env: { [GIT_CREDENTIAL_TOKEN_ENV_KEY]: "token", GIT_TERMINAL_PROMPT: "0" },
+      env: {
+        [GIT_CREDENTIAL_TOKEN_ENV_KEY]: "token",
+        GIT_TERMINAL_PROMPT: "0",
+      },
       source: "company_secret" as const,
       secretName: "GH_TOKEN",
     }));
@@ -265,11 +451,15 @@ exit 128
       repoUrl: missingRepo,
       resolveGitAuth,
     }).then(
-      () => { throw new Error("expected the clone to fail"); },
+      () => {
+        throw new Error("expected the clone to fail");
+      },
       (err: unknown) => err as Error,
     );
     expect(error.message).toContain("Failed to prepare managed checkout");
-    expect(error.message).not.toContain("GH_TOKEN company-secret GitHub credential");
+    expect(error.message).not.toContain(
+      "GH_TOKEN company-secret GitHub credential",
+    );
   });
 
   it("serializes concurrent materializations of the same managed checkout", async () => {
@@ -303,13 +493,19 @@ exit 128
   it("does not mention credentials when an unauthenticated clone fails for non-auth reasons", async () => {
     // The Settings → Secrets hint is reserved for auth-shaped failures (covered in
     // git-credentials.test.ts); a plain missing-repo failure must not suggest credentials.
-    const missingRepo = path.join(os.tmpdir(), "taskcore-definitely-missing", "repo.git");
+    const missingRepo = path.join(
+      os.tmpdir(),
+      "taskcore-definitely-missing",
+      "repo.git",
+    );
     const error = await ensureManagedProjectWorkspace({
       companyId: "company-noauthfail",
       projectId: "project-1",
       repoUrl: missingRepo,
     }).then(
-      () => { throw new Error("expected the clone to fail"); },
+      () => {
+        throw new Error("expected the clone to fail");
+      },
       (err: unknown) => err as Error,
     );
     expect(error.message).toContain("Failed to prepare managed checkout");
@@ -317,14 +513,20 @@ exit 128
   });
 
   it("leaves neither the target nor temp directories behind when the clone fails", async () => {
-    const missingRepo = path.join(os.tmpdir(), "taskcore-definitely-missing", "repo.git");
+    const missingRepo = path.join(
+      os.tmpdir(),
+      "taskcore-definitely-missing",
+      "repo.git",
+    );
     const companyId = "company-cleanup";
     const projectId = "project-1";
-    await expect(ensureManagedProjectWorkspace({
-      companyId,
-      projectId,
-      repoUrl: missingRepo,
-    })).rejects.toThrow();
+    await expect(
+      ensureManagedProjectWorkspace({
+        companyId,
+        projectId,
+        repoUrl: missingRepo,
+      }),
+    ).rejects.toThrow();
     // Filesystem-path repo "URLs" derive no repo name, so the managed dir is the _default slot.
     const cwd = resolveManagedProjectWorkspaceDir({ companyId, projectId });
     await expect(fs.stat(cwd)).rejects.toMatchObject({ code: "ENOENT" });
@@ -347,7 +549,9 @@ exit 128
       });
       expect(result.cwd).toBe(cwd);
       expect(result.warning).toContain("Using it as-is");
-      await expect(fs.readFile(path.join(cwd, "keep.txt"), "utf8")).resolves.toBe("operator data\n");
+      await expect(
+        fs.readFile(path.join(cwd, "keep.txt"), "utf8"),
+      ).resolves.toBe("operator data\n");
     } finally {
       await fs.rm(sourceRepo, { recursive: true, force: true });
     }
@@ -362,12 +566,18 @@ exit 128
       secretName: "GITHUB_TOKEN",
     });
     const cloneEnv = {
-      ...sanitizeRuntimeServiceBaseEnv({ ...process.env, [GIT_CREDENTIAL_TOKEN_ENV_KEY]: "stale" }),
+      ...sanitizeRuntimeServiceBaseEnv({
+        ...process.env,
+        [GIT_CREDENTIAL_TOKEN_ENV_KEY]: "stale",
+      }),
       GIT_TERMINAL_PROMPT: "0",
       ...invocation.env,
     };
     expect(cloneEnv[GIT_CREDENTIAL_TOKEN_ENV_KEY]).toBe("tok");
-    expect(sanitizeRuntimeServiceBaseEnv({ [GIT_CREDENTIAL_TOKEN_ENV_KEY]: "stale" })[GIT_CREDENTIAL_TOKEN_ENV_KEY])
-      .toBeUndefined();
+    expect(
+      sanitizeRuntimeServiceBaseEnv({
+        [GIT_CREDENTIAL_TOKEN_ENV_KEY]: "stale",
+      })[GIT_CREDENTIAL_TOKEN_ENV_KEY],
+    ).toBeUndefined();
   });
 });

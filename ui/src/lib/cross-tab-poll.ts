@@ -101,7 +101,8 @@ export class LeaderElection {
     const base = options.hiddenGraceMs ?? 4_000;
     const jitterMax = options.hiddenGraceJitterMs ?? 4_000;
     const rng = env.random ?? Math.random;
-    this.hiddenGrace = base + Math.round(Math.min(Math.max(rng(), 0), 0.999999) * jitterMax);
+    this.hiddenGrace =
+      base + Math.round(Math.min(Math.max(rng(), 0), 0.999999) * jitterMax);
   }
 
   get id(): string {
@@ -167,7 +168,11 @@ export class LeaderElection {
   }
 
   private writeClaim(visible: boolean, now: number): void {
-    this.env.store.write({ leader: this.tabId, expiresAt: now + this.ttl, visible });
+    this.env.store.write({
+      leader: this.tabId,
+      expiresAt: now + this.ttl,
+      visible,
+    });
   }
 
   private tryClaim(visible: boolean, now: number): LeaderRole {
@@ -252,7 +257,12 @@ function stableFingerprint(value: unknown): string {
     write("{");
     for (const key of Object.keys(object).sort()) {
       const item = object[key];
-      if (item === undefined || typeof item === "function" || typeof item === "symbol") continue;
+      if (
+        item === undefined ||
+        typeof item === "function" ||
+        typeof item === "symbol"
+      )
+        continue;
       write(JSON.stringify(key));
       write(":");
       visit(item);
@@ -263,8 +273,12 @@ function stableFingerprint(value: unknown): string {
 
   try {
     visit(value);
-    hashA = Math.imul(hashA ^ (hashA >>> 16), 2246822507) ^ Math.imul(hashB ^ (hashB >>> 13), 3266489909);
-    hashB = Math.imul(hashB ^ (hashB >>> 16), 2246822507) ^ Math.imul(hashA ^ (hashA >>> 13), 3266489909);
+    hashA =
+      Math.imul(hashA ^ (hashA >>> 16), 2246822507) ^
+      Math.imul(hashB ^ (hashB >>> 13), 3266489909);
+    hashB =
+      Math.imul(hashB ^ (hashB >>> 16), 2246822507) ^
+      Math.imul(hashA ^ (hashA >>> 13), 3266489909);
     return `${(hashB >>> 0).toString(36)}${(hashA >>> 0).toString(36)}`;
   } catch {
     return String(value);
@@ -373,7 +387,9 @@ export function createBroadcastChannelShared(name: string): SharedChannel {
 export interface StorageRelayDeps {
   storage: Pick<Storage, "setItem">;
   /** Subscribe to cross-tab storage writes; returns an unsubscribe fn. */
-  onStorage: (cb: (key: string | null, newValue: string | null) => void) => () => void;
+  onStorage: (
+    cb: (key: string | null, newValue: string | null) => void,
+  ) => () => void;
   /** Monotonic nonce so repeated identical messages still trigger a `storage` event. */
   nextNonce: () => string;
 }
@@ -384,11 +400,17 @@ export interface StorageRelayDeps {
  * the `storage` event. Note: `storage` events do not fire in the writing tab, so
  * the sender never receives its own message (which is what we want anyway).
  */
-export function createStorageRelayShared(key: string, deps: StorageRelayDeps): SharedChannel {
+export function createStorageRelayShared(
+  key: string,
+  deps: StorageRelayDeps,
+): SharedChannel {
   return {
     post(message) {
       try {
-        deps.storage.setItem(key, JSON.stringify({ n: deps.nextNonce(), msg: message }));
+        deps.storage.setItem(
+          key,
+          JSON.stringify({ n: deps.nextNonce(), msg: message }),
+        );
       } catch {
         /* ignore */
       }
@@ -492,7 +514,10 @@ export function getSharedPollingTabId(): string {
 }
 
 function createRandomId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -531,51 +556,71 @@ export class SharedPollingCoordinator {
   private readonly now: () => number;
   private readonly getVisible: () => boolean;
   private readonly listeners = new Set<SharedPollingListener>();
-  private readonly resourceListeners = new Map<string, Set<SharedPollingResourceListener>>();
-  private readonly latestResults = new Map<string, {
-    message: SharedMessage;
-    lastAccessedAt: number;
-  }>();
-  private readonly lastPublished = new Map<string, {
-    dataUpdatedAt: number;
-    fingerprint: string;
-    sentAt: number;
-    lastAccessedAt: number;
-  }>();
-  private readonly pendingPublishes = new Map<string, {
-    data: unknown;
-    dataUpdatedAt: number;
-    fingerprint: string;
-    timer: ReturnType<typeof setTimeout>;
-  }>();
+  private readonly resourceListeners = new Map<
+    string,
+    Set<SharedPollingResourceListener>
+  >();
+  private readonly latestResults = new Map<
+    string,
+    {
+      message: SharedMessage;
+      lastAccessedAt: number;
+    }
+  >();
+  private readonly lastPublished = new Map<
+    string,
+    {
+      dataUpdatedAt: number;
+      fingerprint: string;
+      sentAt: number;
+      lastAccessedAt: number;
+    }
+  >();
+  private readonly pendingPublishes = new Map<
+    string,
+    {
+      data: unknown;
+      dataUpdatedAt: number;
+      fingerprint: string;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
   private unsubscribeChannel: (() => void) | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private releaseListeners: Array<() => void> = [];
   private snapshot: SharedPollingSnapshot = { isLeader: false };
 
-  constructor(companyId: string, options: SharedPollingCoordinatorOptions = {}) {
+  constructor(
+    companyId: string,
+    options: SharedPollingCoordinatorOptions = {},
+  ) {
     this.tabId = options.tabId ?? getSharedPollingTabId();
-    this.channel = options.channel ?? createSharedChannel(sharedPollingChannelName(companyId));
+    this.channel =
+      options.channel ??
+      createSharedChannel(sharedPollingChannelName(companyId));
     this.tickMs = options.tickMs ?? DEFAULT_COORDINATOR_TICK_MS;
-    this.publishDebounceMs = options.publishDebounceMs ?? DEFAULT_PUBLISH_DEBOUNCE_MS;
+    this.publishDebounceMs =
+      options.publishDebounceMs ?? DEFAULT_PUBLISH_DEBOUNCE_MS;
     this.now = options.now ?? (() => Date.now());
     this.getVisible = options.getVisible ?? getBrowserVisible;
     const leaseStore = createBrowserLeaseStore(companyId);
     this.localOnlyFallback = !options.election && !leaseStore;
-    this.election = options.election ?? new LeaderElection(
-      {
-        now: this.now,
-        store: leaseStore ?? {
-          read: () => null,
-          write: () => {},
-          clear: () => {},
+    this.election =
+      options.election ??
+      new LeaderElection(
+        {
+          now: this.now,
+          store: leaseStore ?? {
+            read: () => null,
+            write: () => {},
+            clear: () => {},
+          },
         },
-      },
-      {
-        tabId: this.tabId,
-        leaseTtlMs: options.leaseTtlMs,
-      },
-    );
+        {
+          tabId: this.tabId,
+          leaseTtlMs: options.leaseTtlMs,
+        },
+      );
   }
 
   getSnapshot(): SharedPollingSnapshot {
@@ -584,7 +629,9 @@ export class SharedPollingCoordinator {
 
   start(): void {
     if (this.intervalId != null) return;
-    this.unsubscribeChannel = this.channel.subscribe((message) => this.handleMessage(message));
+    this.unsubscribeChannel = this.channel.subscribe((message) =>
+      this.handleMessage(message),
+    );
     this.tick();
     this.intervalId = setInterval(() => this.tick(), this.tickMs);
     this.attachReleaseListeners();
@@ -613,7 +660,10 @@ export class SharedPollingCoordinator {
     };
   }
 
-  subscribeResource(key: string, listener: SharedPollingResourceListener): () => void {
+  subscribeResource(
+    key: string,
+    listener: SharedPollingResourceListener,
+  ): () => void {
     let listeners = this.resourceListeners.get(key);
     if (!listeners) {
       listeners = new Set();
@@ -654,7 +704,11 @@ export class SharedPollingCoordinator {
     }
     if (pending) {
       if (dataUpdatedAt < pending.dataUpdatedAt) return;
-      if (dataUpdatedAt === pending.dataUpdatedAt && fingerprint === pending.fingerprint) return;
+      if (
+        dataUpdatedAt === pending.dataUpdatedAt &&
+        fingerprint === pending.fingerprint
+      )
+        return;
       this.pendingPublishes.set(key, {
         ...pending,
         data,
@@ -664,7 +718,9 @@ export class SharedPollingCoordinator {
       return;
     }
 
-    const elapsedSinceLastPublish = last ? this.now() - last.sentAt : Number.POSITIVE_INFINITY;
+    const elapsedSinceLastPublish = last
+      ? this.now() - last.sentAt
+      : Number.POSITIVE_INFINITY;
     if (elapsedSinceLastPublish >= this.publishDebounceMs) {
       this.postResult(key, data, dataUpdatedAt, fingerprint);
       return;
@@ -675,7 +731,12 @@ export class SharedPollingCoordinator {
     this.pendingPublishes.set(key, { data, dataUpdatedAt, fingerprint, timer });
   }
 
-  private postResult(key: string, data: unknown, dataUpdatedAt: number, fingerprint: string): void {
+  private postResult(
+    key: string,
+    data: unknown,
+    dataUpdatedAt: number,
+    fingerprint: string,
+  ): void {
     const sentAt = this.now();
     const message: SharedMessage = {
       type: "result",
@@ -685,7 +746,12 @@ export class SharedPollingCoordinator {
       dataUpdatedAt,
       data,
     };
-    this.setLastPublished(key, { dataUpdatedAt, fingerprint, sentAt, lastAccessedAt: sentAt });
+    this.setLastPublished(key, {
+      dataUpdatedAt,
+      fingerprint,
+      sentAt,
+      lastAccessedAt: sentAt,
+    });
     this.setLatestResult(key, message);
     this.channel.post(message);
   }
@@ -694,7 +760,12 @@ export class SharedPollingCoordinator {
     const pending = this.pendingPublishes.get(key);
     if (!pending) return;
     this.pendingPublishes.delete(key);
-    this.postResult(key, pending.data, pending.dataUpdatedAt, pending.fingerprint);
+    this.postResult(
+      key,
+      pending.data,
+      pending.dataUpdatedAt,
+      pending.fingerprint,
+    );
   }
 
   private cancelPendingPublish(key: string): void {
@@ -705,7 +776,8 @@ export class SharedPollingCoordinator {
   }
 
   private clearPendingPublishes(): void {
-    for (const pending of this.pendingPublishes.values()) clearTimeout(pending.timer);
+    for (const pending of this.pendingPublishes.values())
+      clearTimeout(pending.timer);
     this.pendingPublishes.clear();
   }
 
@@ -749,12 +821,14 @@ export class SharedPollingCoordinator {
     this.evictLeastRecentlyUsed(this.latestResults);
   }
 
-  private getLastPublished(key: string): {
-    dataUpdatedAt: number;
-    fingerprint: string;
-    sentAt: number;
-    lastAccessedAt: number;
-  } | undefined {
+  private getLastPublished(key: string):
+    | {
+        dataUpdatedAt: number;
+        fingerprint: string;
+        sentAt: number;
+        lastAccessedAt: number;
+      }
+    | undefined {
     const entry = this.lastPublished.get(key);
     if (!entry) return undefined;
     entry.lastAccessedAt = this.now();
@@ -763,12 +837,15 @@ export class SharedPollingCoordinator {
     return entry;
   }
 
-  private setLastPublished(key: string, entry: {
-    dataUpdatedAt: number;
-    fingerprint: string;
-    sentAt: number;
-    lastAccessedAt: number;
-  }): void {
+  private setLastPublished(
+    key: string,
+    entry: {
+      dataUpdatedAt: number;
+      fingerprint: string;
+      sentAt: number;
+      lastAccessedAt: number;
+    },
+  ): void {
     this.lastPublished.delete(key);
     this.lastPublished.set(key, entry);
     this.evictLeastRecentlyUsed(this.lastPublished);
@@ -814,7 +891,8 @@ export class SharedPollingCoordinator {
   }
 
   private attachReleaseListeners(): void {
-    if (typeof window === "undefined" || this.releaseListeners.length > 0) return;
+    if (typeof window === "undefined" || this.releaseListeners.length > 0)
+      return;
     const release = () => this.election.release();
     const visibilityChanged = () => this.tick();
     window.addEventListener("pagehide", release);

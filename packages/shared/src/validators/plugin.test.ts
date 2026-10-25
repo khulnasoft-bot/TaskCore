@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { PLUGIN_CAPABILITIES } from "../constants.js";
 import { resolveDeclaredSandboxCapabilities } from "../environment-support.js";
-import { pluginManagedRoutineDeclarationSchema, pluginManifestV1Schema, pluginUiSlotDeclarationSchema } from "./plugin.js";
+import {
+  pluginManagedRoutineDeclarationSchema,
+  pluginManifestV1Schema,
+  pluginUiSlotDeclarationSchema,
+} from "./plugin.js";
 
 function buildSandboxProviderManifest(driver: Record<string, unknown>) {
   return {
@@ -34,9 +38,32 @@ describe("plugin capability constants", () => {
 
 describe("plugin manifest validators", () => {
   it("requires routing authority for native pooled connector declarations without a custom UI bundle", () => {
-    const manifest = { id: "example.pool", apiVersion: 1, version: "0.1.0", displayName: "Pool", description: "Pool", author: "Tests", categories: ["connector"], entrypoints: { worker: "worker.js" }, aiConnectionRouter: { name: "AI connection pool", description: "Use saved connections" } };
-    expect(pluginManifestV1Schema.safeParse({ ...manifest, capabilities: ["ui.page.register"] }).success).toBe(false);
-    expect(pluginManifestV1Schema.parse({ ...manifest, capabilities: ["ai.connections.route"] }).aiConnectionRouter).toEqual(manifest.aiConnectionRouter);
+    const manifest = {
+      id: "example.pool",
+      apiVersion: 1,
+      version: "0.1.0",
+      displayName: "Pool",
+      description: "Pool",
+      author: "Tests",
+      categories: ["connector"],
+      entrypoints: { worker: "worker.js" },
+      aiConnectionRouter: {
+        name: "AI connection pool",
+        description: "Use saved connections",
+      },
+    };
+    expect(
+      pluginManifestV1Schema.safeParse({
+        ...manifest,
+        capabilities: ["ui.page.register"],
+      }).success,
+    ).toBe(false);
+    expect(
+      pluginManifestV1Schema.parse({
+        ...manifest,
+        capabilities: ["ai.connections.route"],
+      }).aiConnectionRouter,
+    ).toEqual(manifest.aiConnectionRouter);
   });
   it("accepts existing-style plugins that do not request access or authorization capabilities", () => {
     const parsed = pluginManifestV1Schema.parse({
@@ -44,7 +71,8 @@ describe("plugin manifest validators", () => {
       apiVersion: 1,
       version: "0.1.0",
       displayName: "Compat Dashboard",
-      description: "Dashboard-only plugin without access or authorization host APIs.",
+      description:
+        "Dashboard-only plugin without access or authorization host APIs.",
       author: "Taskcore",
       categories: ["ui"],
       capabilities: ["ui.dashboardWidget.register"],
@@ -124,7 +152,11 @@ describe("plugin manifest validators", () => {
 
     expect(parsed.success).toBe(false);
     if (parsed.success) return;
-    expect(parsed.error.issues.some((issue) => issue.message.includes("provider key"))).toBe(true);
+    expect(
+      parsed.error.issues.some((issue) =>
+        issue.message.includes("provider key"),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -175,7 +207,11 @@ describe("plugin managed skill validators", () => {
 
     expect(parsed.success).toBe(false);
     if (parsed.success) return;
-    expect(parsed.error.issues.some((issue) => issue.message.includes("skills.managed"))).toBe(true);
+    expect(
+      parsed.error.issues.some((issue) =>
+        issue.message.includes("skills.managed"),
+      ),
+    ).toBe(true);
   });
 
   it("accepts managed skills with the skills.managed capability", () => {
@@ -212,7 +248,9 @@ describe("plugin UI slot validators", () => {
 
     expect(parsed.success).toBe(false);
     if (parsed.success) return;
-    expect(parsed.error.issues[0]?.message).toBe("routeSidebar slots require routePath");
+    expect(parsed.error.issues[0]?.message).toBe(
+      "routeSidebar slots require routePath",
+    );
   });
 
   it("keeps reserved company route protection for route-scoped sidebars", () => {
@@ -226,7 +264,11 @@ describe("plugin UI slot validators", () => {
 
     expect(parsed.success).toBe(false);
     if (parsed.success) return;
-    expect(parsed.error.issues.some((issue) => issue.message.includes("reserved by the host"))).toBe(true);
+    expect(
+      parsed.error.issues.some((issue) =>
+        issue.message.includes("reserved by the host"),
+      ),
+    ).toBe(true);
   });
 
   it("accepts workspace entity types as detailTab targets", () => {
@@ -238,7 +280,10 @@ describe("plugin UI slot validators", () => {
       entityTypes: ["execution_workspace", "project_workspace"],
     });
 
-    expect(parsed.entityTypes).toEqual(["execution_workspace", "project_workspace"]);
+    expect(parsed.entityTypes).toEqual([
+      "execution_workspace",
+      "project_workspace",
+    ]);
   });
 
   it("accepts execution_workspace as a toolbarButton entityType", () => {
@@ -276,7 +321,11 @@ describe("plugin UI slot validators", () => {
 
     expect(parsed.success).toBe(false);
     if (parsed.success) return;
-    expect(parsed.error.issues.some((issue) => issue.message.includes("reserved by the host"))).toBe(true);
+    expect(
+      parsed.error.issues.some((issue) =>
+        issue.message.includes("reserved by the host"),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -285,17 +334,25 @@ describe("sandbox provider capability declaration validators", () => {
     const parsed = pluginManifestV1Schema.parse(
       buildSandboxProviderManifest({ defaultAcquireTimeoutMs: 300_000 }),
     );
-    expect(parsed.environmentDrivers?.[0]?.defaultAcquireTimeoutMs).toBe(300_000);
-    const legacy = pluginManifestV1Schema.parse(buildSandboxProviderManifest({}));
-    expect(legacy.environmentDrivers?.[0]?.defaultAcquireTimeoutMs).toBeUndefined();
+    expect(parsed.environmentDrivers?.[0]?.defaultAcquireTimeoutMs).toBe(
+      300_000,
+    );
+    const legacy = pluginManifestV1Schema.parse(
+      buildSandboxProviderManifest({}),
+    );
+    expect(
+      legacy.environmentDrivers?.[0]?.defaultAcquireTimeoutMs,
+    ).toBeUndefined();
   });
 
   it.each([0, -1, 1.5, Infinity, NaN, "300000", 86_400_001])(
     "rejects an invalid acquisition budget: %s",
     (defaultAcquireTimeoutMs) => {
-      expect(pluginManifestV1Schema.safeParse(
-        buildSandboxProviderManifest({ defaultAcquireTimeoutMs }),
-      ).success).toBe(false);
+      expect(
+        pluginManifestV1Schema.safeParse(
+          buildSandboxProviderManifest({ defaultAcquireTimeoutMs }),
+        ).success,
+      ).toBe(false);
     },
   );
 
@@ -368,7 +425,9 @@ describe("sandbox provider capability declaration validators", () => {
     const driver = parsed.environmentDrivers?.[0];
 
     expect(driver?.sandboxCapabilities).toBeUndefined();
-    expect(resolveDeclaredSandboxCapabilities(driver!).reusableLeases).toBe(true);
+    expect(resolveDeclaredSandboxCapabilities(driver!).reusableLeases).toBe(
+      true,
+    );
   });
 
   it("test_sandbox_capabilities_reusable_leases_wins_over_compat_field", () => {
@@ -381,7 +440,9 @@ describe("sandbox provider capability declaration validators", () => {
     const driver = parsed.environmentDrivers?.[0];
 
     // The nested declaration wins over the legacy compat flag when both exist.
-    expect(resolveDeclaredSandboxCapabilities(driver!).reusableLeases).toBe(false);
+    expect(resolveDeclaredSandboxCapabilities(driver!).reusableLeases).toBe(
+      false,
+    );
   });
 });
 

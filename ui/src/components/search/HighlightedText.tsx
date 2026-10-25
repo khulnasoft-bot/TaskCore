@@ -8,7 +8,10 @@ export interface HighlightedTextProps {
   markClassName?: string;
 }
 
-function clampedRanges(text: string, highlights: readonly CompanySearchHighlight[]) {
+function clampedRanges(
+  text: string,
+  highlights: readonly CompanySearchHighlight[],
+) {
   const result: Array<{ start: number; end: number }> = [];
   for (const range of highlights) {
     const start = Math.max(0, Math.min(text.length, range.start));
@@ -29,8 +32,14 @@ function clampedRanges(text: string, highlights: readonly CompanySearchHighlight
   return merged;
 }
 
-export function HighlightedText({ text, highlights, className, markClassName }: HighlightedTextProps) {
-  const ranges = highlights && highlights.length > 0 ? clampedRanges(text, highlights) : [];
+export function HighlightedText({
+  text,
+  highlights,
+  className,
+  markClassName,
+}: HighlightedTextProps) {
+  const ranges =
+    highlights && highlights.length > 0 ? clampedRanges(text, highlights) : [];
   if (ranges.length === 0) {
     return <span className={className}>{text}</span>;
   }
@@ -38,9 +47,17 @@ export function HighlightedText({ text, highlights, className, markClassName }: 
   let cursor = 0;
   ranges.forEach((range, index) => {
     if (range.start > cursor) {
-      segments.push({ key: `t-${index}`, text: text.slice(cursor, range.start), highlight: false });
+      segments.push({
+        key: `t-${index}`,
+        text: text.slice(cursor, range.start),
+        highlight: false,
+      });
     }
-    segments.push({ key: `m-${index}`, text: text.slice(range.start, range.end), highlight: true });
+    segments.push({
+      key: `m-${index}`,
+      text: text.slice(range.start, range.end),
+      highlight: true,
+    });
     cursor = range.end;
   });
   if (cursor < text.length) {

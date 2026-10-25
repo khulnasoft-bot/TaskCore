@@ -12,7 +12,9 @@ import { afterEach, describe, expect, it } from "vitest";
 // classify failures (retry connection-level faults and 5xx, never retry a
 // definitive 4xx), and must stop at two attempts total to honor the shared
 // bounded-write-retry rule.
-const HELPER_PATH = path.resolve("skills/taskcore/scripts/taskcore-issue-update.sh");
+const HELPER_PATH = path.resolve(
+  "skills/taskcore/scripts/taskcore-issue-update.sh",
+);
 const REPO_HELPER_PATH = path.resolve("scripts/taskcore-issue-update.sh");
 
 interface HelperResult {
@@ -41,7 +43,11 @@ describe("taskcore issue update helper", () => {
   });
 
   async function startServer(
-    respond: (request: RecordedRequest, attempt: number, res: http.ServerResponse) => void,
+    respond: (
+      request: RecordedRequest,
+      attempt: number,
+      res: http.ServerResponse,
+    ) => void,
   ): Promise<{ baseUrl: string; requests: RecordedRequest[] }> {
     const requests: RecordedRequest[] = [];
     const server = http.createServer((req, res) => {
@@ -74,7 +80,11 @@ describe("taskcore issue update helper", () => {
     return { baseUrl: `http://127.0.0.1:${port}`, requests };
   }
 
-  function runHelper(apiUrl: string, args: string[], options: { helper?: string; cwd?: string; input?: string } = {}): Promise<HelperResult> {
+  function runHelper(
+    apiUrl: string,
+    args: string[],
+    options: { helper?: string; cwd?: string; input?: string } = {},
+  ): Promise<HelperResult> {
     return new Promise((resolve, reject) => {
       const child = spawn("bash", [options.helper ?? HELPER_PATH, ...args], {
         cwd: options.cwd,
@@ -100,61 +110,118 @@ describe("taskcore issue update helper", () => {
     });
   }
 
-  const doneArgs = ["--issue-id", "issue-1", "--status", "done", "--comment", "closing note"];
+  const doneArgs = [
+    "--issue-id",
+    "issue-1",
+    "--status",
+    "done",
+    "--comment",
+    "closing note",
+  ];
 
   it("exits 0 and prints the issue JSON when the server echoes the requested status", async () => {
-    const { baseUrl, requests } = await startServer((request, _attempt, res) => {
-      const payload = JSON.parse(request.body) as { status?: string; comment?: string };
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ id: "issue-1", status: payload.status }));
-    });
+    const { baseUrl, requests } = await startServer(
+      (request, _attempt, res) => {
+        const payload = JSON.parse(request.body) as {
+          status?: string;
+          comment?: string;
+        };
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ id: "issue-1", status: payload.status }));
+      },
+    );
 
     const result = await runHelper(baseUrl, doneArgs);
 
     expect(result.code).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({ id: "issue-1", status: "done" });
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      id: "issue-1",
+      status: "done",
+    });
     expect(requests).toHaveLength(1);
     expect(requests[0]?.method).toBe("PATCH");
     expect(requests[0]?.url).toBe("/api/issues/issue-1");
-    expect(JSON.parse(requests[0]?.body ?? "{}")).toEqual({ status: "done", comment: "closing note" });
+    expect(JSON.parse(requests[0]?.body ?? "{}")).toEqual({
+      status: "done",
+      comment: "closing note",
+    });
   });
 
   it.each([".claude/skills", "codex-home/skills"])(
-    "delivers the bundled helper through %s from an unrelated workspace", async skillsHome => {
-      const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore completion helper "));
+    "delivers the bundled helper through %s from an unrelated workspace",
+    async (skillsHome) => {
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore completion helper "),
+      );
       cleanupFns.push(() => fs.rm(root, { recursive: true, force: true }));
       const source = path.join(root, "bundle", "taskcore");
       const installed = path.join(root, skillsHome, "taskcore");
       const cwd = path.join(root, "unrelated project");
-      await fs.cp(path.dirname(path.dirname(HELPER_PATH)), source, { recursive: true });
+      await fs.cp(path.dirname(path.dirname(HELPER_PATH)), source, {
+        recursive: true,
+      });
       await fs.mkdir(path.dirname(installed), { recursive: true });
       await fs.mkdir(cwd);
       await ensureTaskcoreSkillSymlink(source, installed);
-      await expect(fs.access(path.join(cwd, "scripts/taskcore-issue-update.sh"))).rejects.toThrow();
+      await expect(
+        fs.access(path.join(cwd, "scripts/taskcore-issue-update.sh")),
+      ).rejects.toThrow();
       const savedComments: string[] = [];
-      const { baseUrl, requests } = await startServer((request, _attempt, res) => {
-        const payload = JSON.parse(request.body);
-        savedComments.push(payload.comment);
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ id: "issue-1", status: payload.status, comment: { body: payload.comment } }));
-      });
-      const comment = "Done\n\n- Saved [report](/TST/issues/TST-1#document-report)\n- Literal `code`, $HOME and $(not-a-command)";
-      const result = await runHelper(baseUrl, ["--issue-id", "issue-1", "--status", "done"], {
-        helper: path.join(installed, "scripts/taskcore-issue-update.sh"), cwd, input: comment,
-      });
+      const { baseUrl, requests } = await startServer(
+        (request, _attempt, res) => {
+          const payload = JSON.parse(request.body);
+          savedComments.push(payload.comment);
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(
+            JSON.stringify({
+              id: "issue-1",
+              status: payload.status,
+              comment: { body: payload.comment },
+            }),
+          );
+        },
+      );
+      const comment =
+        "Done\n\n- Saved [report](/TST/issues/TST-1#document-report)\n- Literal `code`, $HOME and $(not-a-command)";
+      const result = await runHelper(
+        baseUrl,
+        ["--issue-id", "issue-1", "--status", "done"],
+        {
+          helper: path.join(installed, "scripts/taskcore-issue-update.sh"),
+          cwd,
+          input: comment,
+        },
+      );
       expect(result.code).toBe(0);
-      expect(JSON.parse(result.stdout)).toMatchObject({ status: "done", comment: { body: comment } });
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        status: "done",
+        comment: { body: comment },
+      });
       expect(savedComments).toEqual([comment]);
       expect(requests).toHaveLength(1);
-      expect(requests[0]).toMatchObject({ method: "PATCH", url: "/api/issues/issue-1", authorization: "Bearer test-key", runId: "test-run" });
-    });
+      expect(requests[0]).toMatchObject({
+        method: "PATCH",
+        url: "/api/issues/issue-1",
+        authorization: "Bearer test-key",
+        runId: "test-run",
+      });
+    },
+  );
 
   it("keeps the repository entrypoint working outside the repository", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-helper-wrapper-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-helper-wrapper-"),
+    );
     cleanupFns.push(() => fs.rm(root, { recursive: true, force: true }));
-    const result = await runHelper("", [...doneArgs, "--dry-run"], { helper: REPO_HELPER_PATH, cwd: root });
+    const result = await runHelper("", [...doneArgs, "--dry-run"], {
+      helper: REPO_HELPER_PATH,
+      cwd: root,
+    });
     expect(result.code).toBe(0);
-    expect(JSON.parse(result.stdout)).toEqual({ status: "done", comment: "closing note" });
+    expect(JSON.parse(result.stdout)).toEqual({
+      status: "done",
+      comment: "closing note",
+    });
   });
 
   it("fails an empty 2xx body instead of treating it as success", async () => {
@@ -183,10 +250,12 @@ describe("taskcore issue update helper", () => {
   });
 
   it("does not retry a definitive 4xx rejection", async () => {
-    const { baseUrl, requests } = await startServer((_request, _attempt, res) => {
-      res.writeHead(422, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "validation" }));
-    });
+    const { baseUrl, requests } = await startServer(
+      (_request, _attempt, res) => {
+        res.writeHead(422, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "validation" }));
+      },
+    );
 
     const result = await runHelper(baseUrl, doneArgs);
 

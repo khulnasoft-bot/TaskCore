@@ -14,7 +14,10 @@ export function resolveNativeRunnerRequirement({ exitCode, stdout }) {
     try {
       const payload = JSON.parse(jsonLines[index]);
       if (typeof payload?.nativeRunnerRequired === "boolean") {
-        return { nativeRunnerRequired: payload.nativeRunnerRequired, valid: true };
+        return {
+          nativeRunnerRequired: payload.nativeRunnerRequired,
+          valid: true,
+        };
       }
     } catch {
       // Keep scanning earlier JSON-looking output from pnpm and runtime logging.
@@ -47,7 +50,8 @@ export function taskcoreRunnerBinaryNeedsBuild({
   if (!nativeRunnerRequired) return false;
   if (configuredBinary?.trim()) return false;
 
-  const executable = platform === "win32" ? "taskcore-runnerd.exe" : "taskcore-runnerd";
+  const executable =
+    platform === "win32" ? "taskcore-runnerd.exe" : "taskcore-runnerd";
   const packageRoot = path.join(repoRoot, "packages", "taskcore-runner");
   const stagedBinary = path.join(packageRoot, "dist", "bin", executable);
   const binaryStat = statSync(stagedBinary, { throwIfNoEntry: false });

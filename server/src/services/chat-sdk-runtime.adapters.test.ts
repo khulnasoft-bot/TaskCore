@@ -475,18 +475,15 @@ describe("Chat SDK published adapter integration", () => {
     try {
       await runtime.initialize();
       const response = await runtime.handleWebhook(
-        new Request(
-          "https://taskcore.example/api/chat-webhooks/public/slack",
-          {
-            method: "POST",
-            headers: {
-              "content-type": "application/x-www-form-urlencoded",
-              "x-slack-request-timestamp": timestamp,
-              "x-slack-signature": signature,
-            },
-            body,
+        new Request("https://taskcore.example/api/chat-webhooks/public/slack", {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            "x-slack-request-timestamp": timestamp,
+            "x-slack-signature": signature,
           },
-        ),
+          body,
+        }),
       );
       expect(response.status).toBe(200);
       expect(onAction).toHaveBeenCalledWith(
@@ -1136,15 +1133,11 @@ describe("Chat SDK published adapter integration", () => {
         yield "Second safe paragraph.";
       };
 
-      const sent = await adapter.stream(
-        "slack:D-TASKCORE:1788.400",
-        chunks(),
-        {
-          recipientTeamId: "T-TASKCORE",
-          recipientUserId: "U-OPERATOR",
-          updateIntervalMs: 0,
-        },
-      );
+      const sent = await adapter.stream("slack:D-TASKCORE:1788.400", chunks(), {
+        recipientTeamId: "T-TASKCORE",
+        recipientUserId: "U-OPERATOR",
+        updateIntervalMs: 0,
+      });
 
       expect(sent?.id).toBe("1788.901");
       expect(chatStream).toHaveBeenCalledOnce();

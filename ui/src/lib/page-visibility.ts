@@ -30,12 +30,15 @@ export function getPageVisibility(): PageVisibility {
   }
   const visible = document.visibilityState === "visible";
   if (!visible) return HIDDEN;
-  const focused = typeof document.hasFocus === "function" ? document.hasFocus() : true;
+  const focused =
+    typeof document.hasFocus === "function" ? document.hasFocus() : true;
   return { visible: true, focused };
 }
 
 /** Stable header value for `X-Taskcore-Tab-Visible`: "focused" | "visible" | "hidden". */
-export function getVisibilityHeaderValue(state: PageVisibility = getPageVisibility()): string {
+export function getVisibilityHeaderValue(
+  state: PageVisibility = getPageVisibility(),
+): string {
   if (!state.visible) return "hidden";
   return state.focused ? "focused" : "visible";
 }
@@ -106,5 +109,9 @@ function getServerSnapshot(): PageVisibility {
  * Backed by a single shared set of DOM listeners regardless of how many components subscribe.
  */
 export function usePageVisibility(): PageVisibility {
-  return useSyncExternalStore(subscribePageVisibility, getPageVisibilitySnapshot, getServerSnapshot);
+  return useSyncExternalStore(
+    subscribePageVisibility,
+    getPageVisibilitySnapshot,
+    getServerSnapshot,
+  );
 }

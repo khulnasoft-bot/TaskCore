@@ -20,14 +20,19 @@ describe("Standalone standalone demo", () => {
   it("keeps the legacy path as the default", async () => {
     const legacy = adapterSpy(createLegacyStandaloneStandaloneAdapter());
     const createLegacyAdapter = vi.fn(() => legacy.adapter);
-    const createNativeAdapter = vi.fn(() => createNativeStandaloneStandaloneAdapter());
-    const result = await runStandaloneStandaloneDemo({
-      featureFlagEnabled: false,
-      killSwitchEnabled: false,
-    }, {
-      createLegacyAdapter,
-      createNativeAdapter,
-    });
+    const createNativeAdapter = vi.fn(() =>
+      createNativeStandaloneStandaloneAdapter(),
+    );
+    const result = await runStandaloneStandaloneDemo(
+      {
+        featureFlagEnabled: false,
+        killSwitchEnabled: false,
+      },
+      {
+        createLegacyAdapter,
+        createNativeAdapter,
+      },
+    );
 
     expect(createLegacyAdapter).toHaveBeenCalledOnce();
     expect(createNativeAdapter).not.toHaveBeenCalled();
@@ -40,7 +45,11 @@ describe("Standalone standalone demo", () => {
       nativeAdapterInvocationCount: 0,
       legacyAdapterInvocationCount: 1,
       replay: { eventCount: 3, highestContiguousSourceSeq: 3 },
-      reducer: { integrity: "complete", runPhase: "terminal", runTerminalState: "succeeded" },
+      reducer: {
+        integrity: "complete",
+        runPhase: "terminal",
+        runTerminalState: "succeeded",
+      },
       finalization: { resultPersisted: true, terminalPersisted: true },
     });
   });
@@ -48,14 +57,19 @@ describe("Standalone standalone demo", () => {
   it("runs the native demo behind the feature flag", async () => {
     const native = adapterSpy(createNativeStandaloneStandaloneAdapter());
     const createNativeAdapter = vi.fn(() => native.adapter);
-    const createLegacyAdapter = vi.fn(() => createLegacyStandaloneStandaloneAdapter());
-    const result = await runStandaloneStandaloneDemo({
-      featureFlagEnabled: true,
-      killSwitchEnabled: false,
-    }, {
-      createLegacyAdapter,
-      createNativeAdapter,
-    });
+    const createLegacyAdapter = vi.fn(() =>
+      createLegacyStandaloneStandaloneAdapter(),
+    );
+    const result = await runStandaloneStandaloneDemo(
+      {
+        featureFlagEnabled: true,
+        killSwitchEnabled: false,
+      },
+      {
+        createLegacyAdapter,
+        createNativeAdapter,
+      },
+    );
 
     expect(createNativeAdapter).toHaveBeenCalledOnce();
     expect(createLegacyAdapter).not.toHaveBeenCalled();
@@ -76,24 +90,31 @@ describe("Standalone standalone demo", () => {
   });
 
   it("constructs and invokes only legacy when the kill switch is enabled", async () => {
-    expect(resolveStandaloneStandaloneMode({
-      featureFlagEnabled: true,
-      killSwitchEnabled: true,
-    })).toEqual({
+    expect(
+      resolveStandaloneStandaloneMode({
+        featureFlagEnabled: true,
+        killSwitchEnabled: true,
+      }),
+    ).toEqual({
       resolvedMode: "legacy",
       resolutionReason: "kill_switch_enabled",
     });
 
     const legacy = adapterSpy(createLegacyStandaloneStandaloneAdapter());
     const createLegacyAdapter = vi.fn(() => legacy.adapter);
-    const createNativeAdapter = vi.fn(() => createNativeStandaloneStandaloneAdapter());
-    const result = await runStandaloneStandaloneDemo({
-      featureFlagEnabled: true,
-      killSwitchEnabled: true,
-    }, {
-      createLegacyAdapter,
-      createNativeAdapter,
-    });
+    const createNativeAdapter = vi.fn(() =>
+      createNativeStandaloneStandaloneAdapter(),
+    );
+    const result = await runStandaloneStandaloneDemo(
+      {
+        featureFlagEnabled: true,
+        killSwitchEnabled: true,
+      },
+      {
+        createLegacyAdapter,
+        createNativeAdapter,
+      },
+    );
 
     expect(createLegacyAdapter).toHaveBeenCalledOnce();
     expect(createNativeAdapter).not.toHaveBeenCalled();
@@ -110,7 +131,11 @@ describe("Standalone standalone demo", () => {
         terminalReplayIdempotent: true,
         resultMutationRejected: true,
       },
-      reducer: { integrity: "complete", runPhase: "terminal", runTerminalState: "succeeded" },
+      reducer: {
+        integrity: "complete",
+        runPhase: "terminal",
+        runTerminalState: "succeeded",
+      },
       finalization: { resultPersisted: true, terminalPersisted: true },
     });
   });

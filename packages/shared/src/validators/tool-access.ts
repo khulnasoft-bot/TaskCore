@@ -43,75 +43,148 @@ import { objectWithoutDefaults } from "./partial.js";
 
 export const toolApplicationTypeSchema = z.enum(TOOL_APPLICATION_TYPES);
 export const toolApplicationStatusSchema = z.enum(TOOL_APPLICATION_STATUSES);
-export const toolConnectionTransportSchema = z.enum(["mcp_remote", "rest_api", "local_stdio", "chat_sdk"]);
+export const toolConnectionTransportSchema = z.enum([
+  "mcp_remote",
+  "rest_api",
+  "local_stdio",
+  "chat_sdk",
+]);
 export const toolConnectionPurposeSchema = z.enum(["tool", "channel"]);
-export const toolConnectionAuthKindSchema = z.enum(["oauth", "api_key", "none"]);
-export const toolConnectionOwnershipSchema = z.enum(["platform_shared", "platform_provisioned", "customer", "dcr"]);
-export const toolConnectionCredentialSourceSchema = z.enum(["taskcore_vault", "vercel_connect"]);
-export const vercelConnectCredentialSummarySchema = z.object({
-  provider: z.literal("vercel_connect"),
-  connectorId: z.string().trim().min(1).max(255),
-  connectorUid: z.string().trim().min(1).max(255),
-  service: z.string().trim().min(1).max(255),
-  connectorType: z.string().trim().min(1).max(255),
-  principalMode: z.enum(["app", "user"]),
-  headerName: z.string().trim().min(1).max(160),
-  headerPrefix: z.string().max(120).nullable().optional(),
-  scopes: z.array(z.string().trim().min(1).max(500)).max(50),
-}).strict();
-export const vercelConnectGrantSummarySchema = z.object({
-  provider: z.literal("vercel_connect"),
-  subjectType: z.enum(["app", "user"]),
-  installationId: z.string().trim().min(1).max(255).optional(),
-  tenantId: z.string().trim().min(1).max(255).optional(),
-  tokenId: z.string().trim().min(1).max(255).optional(),
-  expiresAt: z.string().datetime({ offset: true }).optional(),
-  lastVerifiedAt: z.string().datetime({ offset: true }).optional(),
-}).strict();
-export const connectionGrantKindSchema = z.enum(["organization", "user", "agent"]);
-export const connectionGrantStatusSchema = z.enum(["active", "revoked", "expired", "needs_reauthorization"]);
+export const toolConnectionAuthKindSchema = z.enum([
+  "oauth",
+  "api_key",
+  "none",
+]);
+export const toolConnectionOwnershipSchema = z.enum([
+  "platform_shared",
+  "platform_provisioned",
+  "customer",
+  "dcr",
+]);
+export const toolConnectionCredentialSourceSchema = z.enum([
+  "taskcore_vault",
+  "vercel_connect",
+]);
+export const vercelConnectCredentialSummarySchema = z
+  .object({
+    provider: z.literal("vercel_connect"),
+    connectorId: z.string().trim().min(1).max(255),
+    connectorUid: z.string().trim().min(1).max(255),
+    service: z.string().trim().min(1).max(255),
+    connectorType: z.string().trim().min(1).max(255),
+    principalMode: z.enum(["app", "user"]),
+    headerName: z.string().trim().min(1).max(160),
+    headerPrefix: z.string().max(120).nullable().optional(),
+    scopes: z.array(z.string().trim().min(1).max(500)).max(50),
+  })
+  .strict();
+export const vercelConnectGrantSummarySchema = z
+  .object({
+    provider: z.literal("vercel_connect"),
+    subjectType: z.enum(["app", "user"]),
+    installationId: z.string().trim().min(1).max(255).optional(),
+    tenantId: z.string().trim().min(1).max(255).optional(),
+    tokenId: z.string().trim().min(1).max(255).optional(),
+    expiresAt: z.string().datetime({ offset: true }).optional(),
+    lastVerifiedAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .strict();
+export const connectionGrantKindSchema = z.enum([
+  "organization",
+  "user",
+  "agent",
+]);
+export const connectionGrantStatusSchema = z.enum([
+  "active",
+  "revoked",
+  "expired",
+  "needs_reauthorization",
+]);
 export const createConnectionGrantDelegationSchema = z.object({
   agentId: z.string().guid(),
 });
-export type CreateConnectionGrantDelegation = z.infer<typeof createConnectionGrantDelegationSchema>;
-export const toolConnectionCredentialPolicySchema = z.enum(["shared", "per_user", "per_user_with_fallback", "per_agent"]);
-export const toolConnectionStatusSchema = z.enum(["draft", "active", "disabled", "archived"]);
-export const toolConnectionInstallTargetTypeSchema = z.enum(["company", "agent"]);
+export type CreateConnectionGrantDelegation = z.infer<
+  typeof createConnectionGrantDelegationSchema
+>;
+export const toolConnectionCredentialPolicySchema = z.enum([
+  "shared",
+  "per_user",
+  "per_user_with_fallback",
+  "per_agent",
+]);
+export const toolConnectionStatusSchema = z.enum([
+  "draft",
+  "active",
+  "disabled",
+  "archived",
+]);
+export const toolConnectionInstallTargetTypeSchema = z.enum([
+  "company",
+  "agent",
+]);
 export const toolCredentialPlacementSchema = z.enum(["header", "env", "url"]);
 export const toolConnectionKindSchema = z.enum(TOOL_CONNECTION_KINDS);
-export const toolConnectionHealthStatusSchema = z.enum(TOOL_CONNECTION_HEALTH_STATUSES);
+export const toolConnectionHealthStatusSchema = z.enum(
+  TOOL_CONNECTION_HEALTH_STATUSES,
+);
 export const toolCatalogEntryKindSchema = z.enum(TOOL_CATALOG_ENTRY_KINDS);
 export const toolCatalogEntryStatusSchema = z.enum(TOOL_CATALOG_ENTRY_STATUSES);
 export const toolRiskLevelSchema = z.enum(TOOL_RISK_LEVELS);
 export const toolProfileStatusSchema = z.enum(TOOL_PROFILE_STATUSES);
-export const toolProfileDefaultActionSchema = z.enum(TOOL_PROFILE_DEFAULT_ACTIONS);
-export const toolProfileEntrySelectorTypeSchema = z.enum(TOOL_PROFILE_ENTRY_SELECTOR_TYPES);
+export const toolProfileDefaultActionSchema = z.enum(
+  TOOL_PROFILE_DEFAULT_ACTIONS,
+);
+export const toolProfileEntrySelectorTypeSchema = z.enum(
+  TOOL_PROFILE_ENTRY_SELECTOR_TYPES,
+);
 export const toolProfileEntryEffectSchema = z.enum(TOOL_PROFILE_ENTRY_EFFECTS);
-export const toolProfileBindingTargetTypeSchema = z.enum(TOOL_PROFILE_BINDING_TARGET_TYPES);
+export const toolProfileBindingTargetTypeSchema = z.enum(
+  TOOL_PROFILE_BINDING_TARGET_TYPES,
+);
 export const toolPolicyTypeSchema = z.enum(TOOL_POLICY_TYPES);
 export const toolPolicyDecisionSchema = z.enum(TOOL_POLICY_DECISIONS);
 export const toolInvocationStatusSchema = z.enum(TOOL_INVOCATION_STATUSES);
-export const toolInvocationApprovalStateSchema = z.enum(TOOL_INVOCATION_APPROVAL_STATES);
+export const toolInvocationApprovalStateSchema = z.enum(
+  TOOL_INVOCATION_APPROVAL_STATES,
+);
 export const toolMcpGatewayStatusSchema = z.enum(TOOL_MCP_GATEWAY_STATUSES);
-export const toolMcpGatewayDefaultProfileModeSchema = z.enum(TOOL_MCP_GATEWAY_DEFAULT_PROFILE_MODES);
-export const toolMcpGatewayContextScopeTypeSchema = z.enum(TOOL_MCP_GATEWAY_CONTEXT_SCOPE_TYPES);
-export const toolMcpGatewayTokenSubjectTypeSchema = z.enum(TOOL_MCP_GATEWAY_TOKEN_SUBJECT_TYPES);
-export const toolMcpGatewayTokenActionSchema = z.enum(TOOL_MCP_GATEWAY_TOKEN_ACTIONS);
-export const toolActionRequestStatusSchema = z.enum(TOOL_ACTION_REQUEST_STATUSES);
+export const toolMcpGatewayDefaultProfileModeSchema = z.enum(
+  TOOL_MCP_GATEWAY_DEFAULT_PROFILE_MODES,
+);
+export const toolMcpGatewayContextScopeTypeSchema = z.enum(
+  TOOL_MCP_GATEWAY_CONTEXT_SCOPE_TYPES,
+);
+export const toolMcpGatewayTokenSubjectTypeSchema = z.enum(
+  TOOL_MCP_GATEWAY_TOKEN_SUBJECT_TYPES,
+);
+export const toolMcpGatewayTokenActionSchema = z.enum(
+  TOOL_MCP_GATEWAY_TOKEN_ACTIONS,
+);
+export const toolActionRequestStatusSchema = z.enum(
+  TOOL_ACTION_REQUEST_STATUSES,
+);
 export const toolAuditEventTypeSchema = z.enum(TOOL_AUDIT_EVENT_TYPES);
 export const toolAuditOutcomeSchema = z.enum(TOOL_AUDIT_OUTCOMES);
 export const toolRuntimeKindSchema = z.enum(TOOL_RUNTIME_KINDS);
 export const toolRuntimeSlotStatusSchema = z.enum(TOOL_RUNTIME_SLOT_STATUSES);
-export const toolRateLimitWindowKindSchema = z.enum(TOOL_RATE_LIMIT_WINDOW_KINDS);
+export const toolRateLimitWindowKindSchema = z.enum(
+  TOOL_RATE_LIMIT_WINDOW_KINDS,
+);
 
 const safeKeyPattern = /^[a-z0-9][a-z0-9._:-]*$/i;
 const sensitiveConfigKeyPattern =
   /^(access[-_]?key([-_]?id)?|api[-_]?key|authorization|bearer|client[-_]?secret|credential|credentials|jwt|password|passwd|private[-_]?key|refresh[-_]?token|secret|secret[-_]?access[-_]?key|secret[-_]?key|session[-_]?token|token)$/i;
 
-function rejectSensitiveConfigKeys(value: unknown, ctx: z.RefinementCtx, path: Array<string | number> = []) {
+function rejectSensitiveConfigKeys(
+  value: unknown,
+  ctx: z.RefinementCtx,
+  path: Array<string | number> = [],
+) {
   if (!value || typeof value !== "object") return;
   if (Array.isArray(value)) {
-    value.forEach((entry, index) => rejectSensitiveConfigKeys(entry, ctx, [...path, index]));
+    value.forEach((entry, index) =>
+      rejectSensitiveConfigKeys(entry, ctx, [...path, index]),
+    );
     return;
   }
   for (const [key, nested] of Object.entries(value)) {
@@ -128,12 +201,20 @@ function rejectSensitiveConfigKeys(value: unknown, ctx: z.RefinementCtx, path: A
 
 export const toolCredentialSecretRefSchema = z.object({
   secretId: z.string().guid(),
-  versionSelector: z.union([z.literal("latest"), z.number().int().positive()]).optional(),
+  versionSelector: z
+    .union([z.literal("latest"), z.number().int().positive()])
+    .optional(),
   configPath: z.string().trim().min(1).max(200),
   required: z.boolean().optional(),
   label: z.string().trim().max(120).optional().nullable(),
   projectionClass: z.enum(SECRET_PROJECTION_CLASSES).optional(),
-  projectionAllowlistKey: z.string().trim().min(1).max(160).optional().nullable(),
+  projectionAllowlistKey: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .optional()
+    .nullable(),
   keyScope: z.string().trim().min(1).max(160).optional(),
   expiresAt: z.string().datetime({ offset: true }).optional(),
 });
@@ -141,24 +222,42 @@ export const toolCredentialSecretRefSchema = z.object({
 export const mcpConnectionCredentialRefSchema = z.object({
   name: z.string().trim().min(1).max(120),
   secretId: z.string().guid(),
-  version: z.union([z.literal("latest"), z.number().int().positive()]).optional(),
+  version: z
+    .union([z.literal("latest"), z.number().int().positive()])
+    .optional(),
   placement: toolCredentialPlacementSchema,
   key: z.string().trim().min(1).max(160),
   prefix: z.string().max(120).nullable().optional(),
 });
 
-export const toolTransportConfigSchema = z.record(z.string(), z.unknown()).superRefine(rejectSensitiveConfigKeys);
+export const toolTransportConfigSchema = z
+  .record(z.string(), z.unknown())
+  .superRefine(rejectSensitiveConfigKeys);
 
 export const toolRedactedValueSummarySchema = z.object({
   summary: z.string().max(4000),
   sizeBytes: z.number().int().min(0).optional().nullable(),
-  sha256: z.string().trim().regex(/^[a-f0-9]{64}$/i).optional().nullable(),
-  redactedFields: z.array(z.string().trim().min(1).max(200)).default([]).optional(),
+  sha256: z
+    .string()
+    .trim()
+    .regex(/^[a-f0-9]{64}$/i)
+    .optional()
+    .nullable(),
+  redactedFields: z
+    .array(z.string().trim().min(1).max(200))
+    .default([])
+    .optional(),
   artifactId: z.string().guid().optional().nullable(),
 });
 
 export const createToolApplicationSchema = z.object({
-  applicationKey: z.string().trim().min(1).max(160).regex(safeKeyPattern).optional(),
+  applicationKey: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .regex(safeKeyPattern)
+    .optional(),
   name: z.string().trim().min(1).max(160),
   description: z.string().max(4000).optional().nullable(),
   type: toolApplicationTypeSchema,
@@ -171,10 +270,11 @@ export const createToolApplicationSchema = z.object({
 
 export type CreateToolApplication = z.infer<typeof createToolApplicationSchema>;
 
-export const updateToolApplicationSchema = createToolApplicationSchema.partial().refine(
-  (value) => Object.keys(value).length > 0,
-  { message: "At least one tool application field is required" },
-);
+export const updateToolApplicationSchema = createToolApplicationSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one tool application field is required",
+  });
 
 export type UpdateToolApplication = z.infer<typeof updateToolApplicationSchema>;
 
@@ -199,83 +299,137 @@ export const createToolConnectionSchema = z.object({
 
 export type CreateToolConnection = z.infer<typeof createToolConnectionSchema>;
 
-export const updateToolConnectionSchema = objectWithoutDefaults(createToolConnectionSchema.omit({ applicationId: true })).partial().refine(
-  (value) => Object.keys(value).length > 0,
-  { message: "At least one tool connection field is required" },
-);
+export const updateToolConnectionSchema = objectWithoutDefaults(
+  createToolConnectionSchema.omit({ applicationId: true }),
+)
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one tool connection field is required",
+  });
 
 export type UpdateToolConnection = z.infer<typeof updateToolConnectionSchema>;
 
-export const connectionGrantSchema = z.object({
-  id: z.string().guid(),
-  companyId: z.string().guid(),
-  connectionId: z.string().guid(),
-  kind: connectionGrantKindSchema,
-  subjectUserId: z.string().nullable(),
-  subjectAgentId: z.string().guid().nullable().optional(),
-  providerTenant: z.object({
-    name: z.string().trim().min(1).max(200).optional(),
-    externalId: z.string().trim().min(1).max(400).optional(),
-    oauth: z.object({
-      strategy: z.string().trim().min(1).max(100).optional(),
-      accessTokenExpiresAt: z.string().datetime().nullable().optional(),
-      scopes: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
-      scopeSource: z.enum(["provider", "requested_fallback"]).optional(),
-      unrequestedScopes: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
-      requestedScopes: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
-      tokenType: z.string().trim().min(1).max(100).optional(),
-      refreshTokenExpiresAt: z.string().datetime().optional(),
-      refreshedAt: z.string().datetime().optional(),
-    }).optional(),
-    github: z.object({
-      userId: z.string().regex(/^[1-9][0-9]{0,30}$/),
-      login: z.string().trim().min(1).max(100),
-      avatarUrl: z.string().url().max(2000).optional(),
-      installationCount: z.number().int().nonnegative(),
-      repositoryCount: z.number().int().nonnegative(),
-      repositorySelection: z.enum(["all", "selected", "mixed", "none"]),
-      installationIds: z.array(z.string().regex(/^[1-9][0-9]{0,30}$/)).max(100),
-      installationOwnerLogins: z.array(z.string().trim().min(1).max(100)).max(100),
-      installationUrl: z.string().url().max(2000).optional(),
-      managementUrl: z.string().url().max(2000).optional(),
-      appSlug: z.string().regex(/^[a-z0-9-]{1,100}$/).optional(),
-      lastAccessRefreshAt: z.string().datetime().optional(),
-      lastWebhookAt: z.string().datetime().optional(),
-      webhookHealth: z.enum(["pending", "healthy", "unhealthy"]).optional(),
-    }).optional(),
-  }).nullable(),
-  credentialSecretRefs: z.array(toolCredentialSecretRefSchema),
-  externalCredential: vercelConnectGrantSummarySchema.nullable().optional(),
-  status: connectionGrantStatusSchema,
-  isDefault: z.boolean(),
-  createdByAgentId: z.string().guid().nullable(),
-  createdByUserId: z.string().nullable(),
-  revokedAt: z.coerce.date().nullable(),
-  revokedByAgentId: z.string().guid().nullable(),
-  revokedByUserId: z.string().nullable(),
-  lastUsedAt: z.coerce.date().nullable(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-}).superRefine((grant, ctx) => {
-  const validSubject = (grant.kind === "user" && Boolean(grant.subjectUserId) && !grant.subjectAgentId)
-    || (grant.kind === "agent" && Boolean(grant.subjectAgentId) && !grant.subjectUserId)
-    || (grant.kind === "organization" && !grant.subjectUserId && !grant.subjectAgentId);
-  if (!validSubject) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["kind"], message: "User and agent grants require exactly their matching subject; organization grants cannot have a subject" });
-  }
-  if (grant.externalCredential && grant.credentialSecretRefs.length > 0) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["credentialSecretRefs"], message: "External grants cannot also contain Taskcore secret references" });
-  }
-});
+export const connectionGrantSchema = z
+  .object({
+    id: z.string().guid(),
+    companyId: z.string().guid(),
+    connectionId: z.string().guid(),
+    kind: connectionGrantKindSchema,
+    subjectUserId: z.string().nullable(),
+    subjectAgentId: z.string().guid().nullable().optional(),
+    providerTenant: z
+      .object({
+        name: z.string().trim().min(1).max(200).optional(),
+        externalId: z.string().trim().min(1).max(400).optional(),
+        oauth: z
+          .object({
+            strategy: z.string().trim().min(1).max(100).optional(),
+            accessTokenExpiresAt: z.string().datetime().nullable().optional(),
+            scopes: z
+              .array(z.string().trim().min(1).max(500))
+              .max(20)
+              .optional(),
+            scopeSource: z.enum(["provider", "requested_fallback"]).optional(),
+            unrequestedScopes: z
+              .array(z.string().trim().min(1).max(500))
+              .max(20)
+              .optional(),
+            requestedScopes: z
+              .array(z.string().trim().min(1).max(500))
+              .max(20)
+              .optional(),
+            tokenType: z.string().trim().min(1).max(100).optional(),
+            refreshTokenExpiresAt: z.string().datetime().optional(),
+            refreshedAt: z.string().datetime().optional(),
+          })
+          .optional(),
+        github: z
+          .object({
+            userId: z.string().regex(/^[1-9][0-9]{0,30}$/),
+            login: z.string().trim().min(1).max(100),
+            avatarUrl: z.string().url().max(2000).optional(),
+            installationCount: z.number().int().nonnegative(),
+            repositoryCount: z.number().int().nonnegative(),
+            repositorySelection: z.enum(["all", "selected", "mixed", "none"]),
+            installationIds: z
+              .array(z.string().regex(/^[1-9][0-9]{0,30}$/))
+              .max(100),
+            installationOwnerLogins: z
+              .array(z.string().trim().min(1).max(100))
+              .max(100),
+            installationUrl: z.string().url().max(2000).optional(),
+            managementUrl: z.string().url().max(2000).optional(),
+            appSlug: z
+              .string()
+              .regex(/^[a-z0-9-]{1,100}$/)
+              .optional(),
+            lastAccessRefreshAt: z.string().datetime().optional(),
+            lastWebhookAt: z.string().datetime().optional(),
+            webhookHealth: z
+              .enum(["pending", "healthy", "unhealthy"])
+              .optional(),
+          })
+          .optional(),
+      })
+      .nullable(),
+    credentialSecretRefs: z.array(toolCredentialSecretRefSchema),
+    externalCredential: vercelConnectGrantSummarySchema.nullable().optional(),
+    status: connectionGrantStatusSchema,
+    isDefault: z.boolean(),
+    createdByAgentId: z.string().guid().nullable(),
+    createdByUserId: z.string().nullable(),
+    revokedAt: z.coerce.date().nullable(),
+    revokedByAgentId: z.string().guid().nullable(),
+    revokedByUserId: z.string().nullable(),
+    lastUsedAt: z.coerce.date().nullable(),
+    createdAt: z.coerce.date(),
+    updatedAt: z.coerce.date(),
+  })
+  .superRefine((grant, ctx) => {
+    const validSubject =
+      (grant.kind === "user" &&
+        Boolean(grant.subjectUserId) &&
+        !grant.subjectAgentId) ||
+      (grant.kind === "agent" &&
+        Boolean(grant.subjectAgentId) &&
+        !grant.subjectUserId) ||
+      (grant.kind === "organization" &&
+        !grant.subjectUserId &&
+        !grant.subjectAgentId);
+    if (!validSubject) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["kind"],
+        message:
+          "User and agent grants require exactly their matching subject; organization grants cannot have a subject",
+      });
+    }
+    if (grant.externalCredential && grant.credentialSecretRefs.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["credentialSecretRefs"],
+        message:
+          "External grants cannot also contain Taskcore secret references",
+      });
+    }
+  });
 
-export const putToolConnectionInstallsSchema = z.object({
-  installs: z.array(z.object({
-    targetType: toolConnectionInstallTargetTypeSchema,
-    targetId: z.string().trim().min(1).max(200),
-  })).max(1000),
-}).strict();
+export const putToolConnectionInstallsSchema = z
+  .object({
+    installs: z
+      .array(
+        z.object({
+          targetType: toolConnectionInstallTargetTypeSchema,
+          targetId: z.string().trim().min(1).max(200),
+        }),
+      )
+      .max(1000),
+  })
+  .strict();
 
-export type PutToolConnectionInstalls = z.infer<typeof putToolConnectionInstallsSchema>;
+export type PutToolConnectionInstalls = z.infer<
+  typeof putToolConnectionInstallsSchema
+>;
 
 /**
  * Audience replacement for an organization grant (PAP-17835). An empty array is
@@ -283,13 +437,19 @@ export type PutToolConnectionInstalls = z.infer<typeof putToolConnectionInstalls
  * "empty list" as the mental model, so the wire format carries the emptiness and
  * the copy layer translates it.
  */
-export const replaceConnectionGrantMembersSchema = z.object({
-  memberUserIds: z.array(z.string().trim().min(1).max(500)).max(1000),
-}).strict();
+export const replaceConnectionGrantMembersSchema = z
+  .object({
+    memberUserIds: z.array(z.string().trim().min(1).max(500)).max(1000),
+  })
+  .strict();
 
-export type ReplaceConnectionGrantMembersInput = z.infer<typeof replaceConnectionGrantMembersSchema>;
+export type ReplaceConnectionGrantMembersInput = z.infer<
+  typeof replaceConnectionGrantMembersSchema
+>;
 
-export const connectionTokenIssuancePathSchema = z.enum(CONNECTION_TOKEN_ISSUANCE_PATHS);
+export const connectionTokenIssuancePathSchema = z.enum(
+  CONNECTION_TOKEN_ISSUANCE_PATHS,
+);
 
 export const connectionTokenScopeSchema = z.union([
   z.string().trim().min(1).max(500),
@@ -298,23 +458,34 @@ export const connectionTokenScopeSchema = z.union([
 
 export const connectionTokenSubjectSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("app") }).strict(),
-  z.object({ type: z.literal("user"), userId: z.string().trim().min(1).max(500) }).strict(),
+  z
+    .object({
+      type: z.literal("user"),
+      userId: z.string().trim().min(1).max(500),
+    })
+    .strict(),
 ]);
 
-export const connectionTokenRequestSchema = z.object({
-  subject: connectionTokenSubjectSchema.optional().default({ type: "app" }),
-  scope: connectionTokenScopeSchema.optional(),
-  requestedTtlSeconds: z.number().int().positive().max(86_400).optional(),
-  grantId: z.string().guid().optional(),
-}).strict();
+export const connectionTokenRequestSchema = z
+  .object({
+    subject: connectionTokenSubjectSchema.optional().default({ type: "app" }),
+    scope: connectionTokenScopeSchema.optional(),
+    requestedTtlSeconds: z.number().int().positive().max(86_400).optional(),
+    grantId: z.string().guid().optional(),
+  })
+  .strict();
 
-export const startConnectionAuthorizationSchema = z.object({
-  subjectUserId: z.string().trim().min(1).max(500),
-  scopes: z.array(z.string().trim().min(1).max(240)).max(100).optional(),
-  returnTo: z.string().trim().max(2000).optional(),
-}).strict();
+export const startConnectionAuthorizationSchema = z
+  .object({
+    subjectUserId: z.string().trim().min(1).max(500),
+    scopes: z.array(z.string().trim().min(1).max(240)).max(100).optional(),
+    returnTo: z.string().trim().max(2000).optional(),
+  })
+  .strict();
 
-export type ConnectionTokenRequestInput = z.infer<typeof connectionTokenRequestSchema>;
+export type ConnectionTokenRequestInput = z.infer<
+  typeof connectionTokenRequestSchema
+>;
 
 const envKeyPattern = /^[A-Z_][A-Z0-9_]*$/i;
 
@@ -332,17 +503,24 @@ export const createToolStdioCommandTemplateSchema = z.object({
   description: z.string().max(4000).optional().nullable(),
   command: z.string().trim().min(1).max(2000),
   args: z.array(z.string().max(2000)).max(100).default([]),
-  envKeys: z.array(z.string().trim().min(1).max(160).regex(envKeyPattern)).max(200).default([]),
+  envKeys: z
+    .array(z.string().trim().min(1).max(160).regex(envKeyPattern))
+    .max(200)
+    .default([]),
   tools: z.array(toolStdioTemplateToolSchema).max(500).default([]),
 });
 
-export type CreateToolStdioCommandTemplate = z.infer<typeof createToolStdioCommandTemplateSchema>;
+export type CreateToolStdioCommandTemplate = z.infer<
+  typeof createToolStdioCommandTemplateSchema
+>;
 
 export const disableToolStdioCommandTemplateSchema = z.object({
   reason: z.string().trim().max(1000).optional().nullable(),
 });
 
-export type DisableToolStdioCommandTemplate = z.infer<typeof disableToolStdioCommandTemplateSchema>;
+export type DisableToolStdioCommandTemplate = z.infer<
+  typeof disableToolStdioCommandTemplateSchema
+>;
 
 /**
  * How an operator says a generic remote MCP endpoint authenticates (PAP-17087).
@@ -351,7 +529,13 @@ export type DisableToolStdioCommandTemplate = z.infer<typeof disableToolStdioCom
  * probes the endpoint and branches on what it finds. The rest are the explicit
  * choices behind "Advanced authentication", where the operator already knows.
  */
-export const GENERIC_MCP_AUTH_MODES = ["auto", "none", "bearer", "custom_headers", "oauth"] as const;
+export const GENERIC_MCP_AUTH_MODES = [
+  "auto",
+  "none",
+  "bearer",
+  "custom_headers",
+  "oauth",
+] as const;
 
 export const genericMcpAuthModeSchema = z.enum(GENERIC_MCP_AUTH_MODES);
 
@@ -362,10 +546,12 @@ export type GenericMcpAuthMode = z.infer<typeof genericMcpAuthModeSchema>;
  * server supports neither CIMD nor dynamic registration. The secret is write-only:
  * it becomes a Taskcore secret ref and is never read back.
  */
-export const genericMcpOAuthClientSchema = z.object({
-  clientId: z.string().trim().min(1).max(4096),
-  clientSecret: z.string().min(1).max(16384).optional(),
-}).strict();
+export const genericMcpOAuthClientSchema = z
+  .object({
+    clientId: z.string().trim().min(1).max(4096),
+    clientSecret: z.string().min(1).max(16384).optional(),
+  })
+  .strict();
 
 export type GenericMcpOAuthClient = z.infer<typeof genericMcpOAuthClientSchema>;
 
@@ -405,90 +591,151 @@ function rejectUnsafeHeaderCredentials(
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: [...path, configPath],
-        message: mcpRemoteHeaderRejectionMessage(headerName, valueCheck.reason!),
+        message: mcpRemoteHeaderRejectionMessage(
+          headerName,
+          valueCheck.reason!,
+        ),
       });
     }
   }
 }
 
-export const connectToolAppSchema = z.object({
-  agentInstructions: connectionAgentInstructionsSchema.nullable().optional(),
-  galleryKey: z.string().trim().min(1).max(120).optional(),
-  connectionMethodKey: z.string().trim().min(1).max(120).optional(),
-  link: z.string().trim().url().max(2000).optional(),
-  name: z.string().trim().min(1).max(160).optional(),
-  credentialValues: z.record(z.string().trim().min(1).max(200), z.string().min(1)).optional(),
-  configValues: z.record(z.string().trim().min(1).max(200), z.unknown()).optional(),
-  applicationId: z.string().guid().optional(),
-  /** Pending connection request this setup should resolve after authorization. */
-  interactionId: z.string().uuid().optional(),
-  /** Exact draft to continue after an interrupted setup. */
-  resumeConnectionId: z.string().guid().optional(),
-  /** Exact configured connection to reauthorize without replacing its identity. */
-  reconnectConnectionId: z.string().guid().optional(),
-  saveDraft: z.boolean().optional(),
-  authMode: genericMcpAuthModeSchema.optional(),
-  oauthClient: genericMcpOAuthClientSchema.optional(),
-  credentialSource: z.enum(["taskcore_vault", "vercel_connect"]).optional(),
-  vercelConnect: z.object({ connector: z.string().trim().min(1).max(255) }).strict().optional(),
-  /**
-   * Which identity this credential becomes (PAP-17835). `user` means "Just me":
-   * the credential is committed to the caller's own personal grant and never to
-   * the connection row's shared secret refs or the default organization grant.
-   * Omitted keeps the historical shared-credential behaviour.
-   */
-  grantKind: connectionGrantKindSchema.optional(),
-  /** Same-company agent that owns a dedicated provider identity. */
-  subjectAgentId: z.string().guid().optional(),
-}).superRefine((value, ctx) => {
-  if (value.configValues) rejectSensitiveConfigKeys(value.configValues, ctx, ["configValues"]);
-  if (value.credentialValues) rejectUnsafeHeaderCredentials(value.credentialValues, ctx, ["credentialValues"]);
-  if ((value.grantKind === "agent") !== Boolean(value.subjectAgentId)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["subjectAgentId"], message: "subjectAgentId is required exactly for an agent grant" });
-  }
-  if (value.saveDraft && !isRemoteMcpConnectorMethod(value.galleryKey, value.connectionMethodKey)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["saveDraft"], message: "Draft saving requires a remote MCP connector" });
-  }
-  if (value.authMode && value.galleryKey && !isRemoteMcpConnectorMethod(value.galleryKey, value.connectionMethodKey)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["authMode"],
-      message: "Authentication mode selection applies to a pasted URL, not a gallery app",
-    });
-  }
-  if (value.resumeConnectionId && value.reconnectConnectionId) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["reconnectConnectionId"], message: "Choose resume or reconnect, not both" });
-  }
-  if (value.resumeConnectionId && !value.galleryKey) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["resumeConnectionId"],
-      message: "Only gallery app setup can resume a draft connection",
-    });
-  }
-  const source = value.credentialSource ?? "taskcore_vault";
-  if (source === "vercel_connect") {
-    if (!value.vercelConnect) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["vercelConnect"], message: "A Vercel connector UID is required" });
+export const connectToolAppSchema = z
+  .object({
+    agentInstructions: connectionAgentInstructionsSchema.nullable().optional(),
+    galleryKey: z.string().trim().min(1).max(120).optional(),
+    connectionMethodKey: z.string().trim().min(1).max(120).optional(),
+    link: z.string().trim().url().max(2000).optional(),
+    name: z.string().trim().min(1).max(160).optional(),
+    credentialValues: z
+      .record(z.string().trim().min(1).max(200), z.string().min(1))
+      .optional(),
+    configValues: z
+      .record(z.string().trim().min(1).max(200), z.unknown())
+      .optional(),
+    applicationId: z.string().guid().optional(),
+    /** Pending connection request this setup should resolve after authorization. */
+    interactionId: z.string().uuid().optional(),
+    /** Exact draft to continue after an interrupted setup. */
+    resumeConnectionId: z.string().guid().optional(),
+    /** Exact configured connection to reauthorize without replacing its identity. */
+    reconnectConnectionId: z.string().guid().optional(),
+    saveDraft: z.boolean().optional(),
+    authMode: genericMcpAuthModeSchema.optional(),
+    oauthClient: genericMcpOAuthClientSchema.optional(),
+    credentialSource: z.enum(["taskcore_vault", "vercel_connect"]).optional(),
+    vercelConnect: z
+      .object({ connector: z.string().trim().min(1).max(255) })
+      .strict()
+      .optional(),
+    /**
+     * Which identity this credential becomes (PAP-17835). `user` means "Just me":
+     * the credential is committed to the caller's own personal grant and never to
+     * the connection row's shared secret refs or the default organization grant.
+     * Omitted keeps the historical shared-credential behaviour.
+     */
+    grantKind: connectionGrantKindSchema.optional(),
+    /** Same-company agent that owns a dedicated provider identity. */
+    subjectAgentId: z.string().guid().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.configValues)
+      rejectSensitiveConfigKeys(value.configValues, ctx, ["configValues"]);
+    if (value.credentialValues)
+      rejectUnsafeHeaderCredentials(value.credentialValues, ctx, [
+        "credentialValues",
+      ]);
+    if ((value.grantKind === "agent") !== Boolean(value.subjectAgentId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["subjectAgentId"],
+        message: "subjectAgentId is required exactly for an agent grant",
+      });
     }
-    if (value.credentialValues && Object.keys(value.credentialValues).length > 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["credentialValues"], message: "Vercel-backed connections cannot include provider credentials" });
+    if (
+      value.saveDraft &&
+      !isRemoteMcpConnectorMethod(value.galleryKey, value.connectionMethodKey)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["saveDraft"],
+        message: "Draft saving requires a remote MCP connector",
+      });
     }
-    if (value.oauthClient) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["oauthClient"], message: "Vercel-backed connections cannot include OAuth client credentials" });
+    if (
+      value.authMode &&
+      value.galleryKey &&
+      !isRemoteMcpConnectorMethod(value.galleryKey, value.connectionMethodKey)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["authMode"],
+        message:
+          "Authentication mode selection applies to a pasted URL, not a gallery app",
+      });
     }
-  } else if (value.vercelConnect) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["vercelConnect"], message: "Vercel connector metadata requires the vercel_connect credential source" });
-  }
-}).refine(
-  (value) => Boolean(value.galleryKey) || Boolean(value.link),
-  { message: "Provide a galleryKey or link" },
-);
+    if (value.resumeConnectionId && value.reconnectConnectionId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reconnectConnectionId"],
+        message: "Choose resume or reconnect, not both",
+      });
+    }
+    if (value.resumeConnectionId && !value.galleryKey) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["resumeConnectionId"],
+        message: "Only gallery app setup can resume a draft connection",
+      });
+    }
+    const source = value.credentialSource ?? "taskcore_vault";
+    if (source === "vercel_connect") {
+      if (!value.vercelConnect) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["vercelConnect"],
+          message: "A Vercel connector UID is required",
+        });
+      }
+      if (
+        value.credentialValues &&
+        Object.keys(value.credentialValues).length > 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["credentialValues"],
+          message:
+            "Vercel-backed connections cannot include provider credentials",
+        });
+      }
+      if (value.oauthClient) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["oauthClient"],
+          message:
+            "Vercel-backed connections cannot include OAuth client credentials",
+        });
+      }
+    } else if (value.vercelConnect) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["vercelConnect"],
+        message:
+          "Vercel connector metadata requires the vercel_connect credential source",
+      });
+    }
+  })
+  .refine((value) => Boolean(value.galleryKey) || Boolean(value.link), {
+    message: "Provide a galleryKey or link",
+  });
 
 export type ConnectToolApp = z.infer<typeof connectToolAppSchema>;
 
 export const reconnectToolAppSchema = z.object({
-  credentialValues: z.record(z.string().trim().min(1).max(200), z.string().min(1)),
+  credentialValues: z.record(
+    z.string().trim().min(1).max(200),
+    z.string().min(1),
+  ),
 });
 
 export type ReconnectToolApp = z.infer<typeof reconnectToolAppSchema>;
@@ -514,21 +761,31 @@ export type FinishToolApp = z.infer<typeof finishToolAppSchema>;
  * app setup chooses identity before OAuth and writes the token directly to that
  * credential scope.
  */
-export const finalizeOAuthAccessSchema = z.object({
-  grantKind: connectionGrantKindSchema,
-}).strict();
+export const finalizeOAuthAccessSchema = z
+  .object({
+    grantKind: connectionGrantKindSchema,
+  })
+  .strict();
 
 export type FinalizeOAuthAccess = z.infer<typeof finalizeOAuthAccessSchema>;
 
-export const startToolOAuthSchema = z.object({
-  asCurrentUser: z.boolean().optional(),
-  asAgentId: z.string().uuid().optional(),
-  interactionId: z.string().uuid().optional(),
-}).strict().superRefine((value, ctx) => {
-  if (value.asCurrentUser && value.asAgentId) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["asAgentId"], message: "Choose either the current user or one dedicated agent" });
-  }
-}).default({});
+export const startToolOAuthSchema = z
+  .object({
+    asCurrentUser: z.boolean().optional(),
+    asAgentId: z.string().uuid().optional(),
+    interactionId: z.string().uuid().optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.asCurrentUser && value.asAgentId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["asAgentId"],
+        message: "Choose either the current user or one dedicated agent",
+      });
+    }
+  })
+  .default({});
 
 export type StartToolOAuth = z.infer<typeof startToolOAuthSchema>;
 
@@ -551,7 +808,9 @@ export const upsertToolCatalogEntrySchema = z.object({
   schemaHash: z.string().trim().max(128).optional().nullable(),
 });
 
-export type UpsertToolCatalogEntry = z.infer<typeof upsertToolCatalogEntrySchema>;
+export type UpsertToolCatalogEntry = z.infer<
+  typeof upsertToolCatalogEntrySchema
+>;
 
 export const createToolProfileSchema = z.object({
   profileKey: z.string().trim().min(1).max(160).regex(safeKeyPattern),
@@ -564,10 +823,13 @@ export const createToolProfileSchema = z.object({
 
 export type CreateToolProfile = z.infer<typeof createToolProfileSchema>;
 
-export const updateToolProfileSchema = objectWithoutDefaults(createToolProfileSchema).partial().refine(
-  (value) => Object.keys(value).length > 0,
-  { message: "At least one tool profile field is required" },
-);
+export const updateToolProfileSchema = objectWithoutDefaults(
+  createToolProfileSchema,
+)
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one tool profile field is required",
+  });
 
 export type UpdateToolProfile = z.infer<typeof updateToolProfileSchema>;
 
@@ -583,24 +845,40 @@ export const createToolProfileEntrySchema = z.object({
   conditions: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
-export type CreateToolProfileEntry = z.infer<typeof createToolProfileEntrySchema>;
+export type CreateToolProfileEntry = z.infer<
+  typeof createToolProfileEntrySchema
+>;
 
-export const createToolProfileEntryForProfileSchema = createToolProfileEntrySchema.omit({ profileId: true });
+export const createToolProfileEntryForProfileSchema =
+  createToolProfileEntrySchema.omit({ profileId: true });
 
-export type CreateToolProfileEntryForProfile = z.infer<typeof createToolProfileEntryForProfileSchema>;
+export type CreateToolProfileEntryForProfile = z.infer<
+  typeof createToolProfileEntryForProfileSchema
+>;
 
-export const updateToolProfileEntrySchema = objectWithoutDefaults(createToolProfileEntryForProfileSchema).partial().refine(
-  (value) => Object.keys(value).length > 0,
-  { message: "At least one tool profile entry field is required" },
-);
+export const updateToolProfileEntrySchema = objectWithoutDefaults(
+  createToolProfileEntryForProfileSchema,
+)
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one tool profile entry field is required",
+  });
 
-export type UpdateToolProfileEntry = z.infer<typeof updateToolProfileEntrySchema>;
+export type UpdateToolProfileEntry = z.infer<
+  typeof updateToolProfileEntrySchema
+>;
 
-export const createToolProfileWithEntriesSchema = createToolProfileSchema.extend({
-  entries: z.array(createToolProfileEntryForProfileSchema).max(250).optional(),
-});
+export const createToolProfileWithEntriesSchema =
+  createToolProfileSchema.extend({
+    entries: z
+      .array(createToolProfileEntryForProfileSchema)
+      .max(250)
+      .optional(),
+  });
 
-export type CreateToolProfileWithEntries = z.infer<typeof createToolProfileWithEntriesSchema>;
+export type CreateToolProfileWithEntries = z.infer<
+  typeof createToolProfileWithEntriesSchema
+>;
 
 export const duplicateToolProfileSchema = z.object({
   name: z.string().trim().min(1).max(160),
@@ -609,28 +887,46 @@ export const duplicateToolProfileSchema = z.object({
 
 export type DuplicateToolProfile = z.infer<typeof duplicateToolProfileSchema>;
 
-export const updateToolProfileWithEntriesSchema = objectWithoutDefaults(createToolProfileSchema).partial().extend({
-  entries: z.array(createToolProfileEntryForProfileSchema).max(250).optional(),
-}).refine(
-  (value) => Object.keys(value).length > 0,
-  { message: "At least one tool profile field is required" },
-);
+export const updateToolProfileWithEntriesSchema = objectWithoutDefaults(
+  createToolProfileSchema,
+)
+  .partial()
+  .extend({
+    entries: z
+      .array(createToolProfileEntryForProfileSchema)
+      .max(250)
+      .optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one tool profile field is required",
+  });
 
-export type UpdateToolProfileWithEntries = z.infer<typeof updateToolProfileWithEntriesSchema>;
+export type UpdateToolProfileWithEntries = z.infer<
+  typeof updateToolProfileWithEntriesSchema
+>;
 
 export const reviewToolProfileNewToolsSchema = z.object({
-  decisions: z.array(z.object({
-    catalogEntryId: z.string().guid(),
-    decision: z.enum(["allow", "keep_blocked"]),
-  })).min(1).max(250),
+  decisions: z
+    .array(
+      z.object({
+        catalogEntryId: z.string().guid(),
+        decision: z.enum(["allow", "keep_blocked"]),
+      }),
+    )
+    .min(1)
+    .max(250),
 });
 
-export type ReviewToolProfileNewTools = z.infer<typeof reviewToolProfileNewToolsSchema>;
+export type ReviewToolProfileNewTools = z.infer<
+  typeof reviewToolProfileNewToolsSchema
+>;
 
-export const deleteToolProfileSchema = z.object({
-  force: z.boolean().default(false),
-  reassignToProfileId: z.string().guid().optional(),
-}).prefault({});
+export const deleteToolProfileSchema = z
+  .object({
+    force: z.boolean().default(false),
+    reassignToProfileId: z.string().guid().optional(),
+  })
+  .prefault({});
 
 export type DeleteToolProfile = z.infer<typeof deleteToolProfileSchema>;
 
@@ -642,58 +938,97 @@ export const createToolProfileBindingSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
-export type CreateToolProfileBinding = z.infer<typeof createToolProfileBindingSchema>;
+export type CreateToolProfileBinding = z.infer<
+  typeof createToolProfileBindingSchema
+>;
 
-export const createToolProfileBindingForProfileSchema = createToolProfileBindingSchema.omit({ profileId: true });
+export const createToolProfileBindingForProfileSchema =
+  createToolProfileBindingSchema.omit({ profileId: true });
 
-export type CreateToolProfileBindingForProfile = z.infer<typeof createToolProfileBindingForProfileSchema>;
+export type CreateToolProfileBindingForProfile = z.infer<
+  typeof createToolProfileBindingForProfileSchema
+>;
 
-export const unbindToolProfileBindingSchema = createToolProfileBindingForProfileSchema.pick({
-  targetType: true,
-  targetId: true,
-});
+export const unbindToolProfileBindingSchema =
+  createToolProfileBindingForProfileSchema.pick({
+    targetType: true,
+    targetId: true,
+  });
 
-export type UnbindToolProfileBinding = z.infer<typeof unbindToolProfileBindingSchema>;
+export type UnbindToolProfileBinding = z.infer<
+  typeof unbindToolProfileBindingSchema
+>;
 
-const headerNameSchema = z.string().trim().min(1).max(120).regex(/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
+const headerNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
 
 export const toolMcpGatewayAuthConfigSchema = z.object({
   version: z.literal(1).default(1),
-  bearer: z.object({
-    enabled: z.boolean().default(true),
-    tokenPrefix: z.literal("pcgw").default("pcgw"),
-    defaultTtlSeconds: z.number().int().positive().max(31_536_000).nullable().default(7_776_000),
-    requireFiniteExpiry: z.boolean().default(true),
-    longLivedTokenRequiresOverride: z.boolean().default(true),
-  }).prefault({}),
-  oauth: z.object({
-    enabled: z.literal(false).default(false),
-    reservedFor: z.literal("v1_5").default("v1_5"),
-    protectedResourceMetadataPath: z.string().trim().max(240).optional().nullable(),
-    dynamicClientRegistration: z.literal(false).optional(),
-    authorizationCodePkce: z.literal(false).optional(),
-  }).prefault({}),
+  bearer: z
+    .object({
+      enabled: z.boolean().default(true),
+      tokenPrefix: z.literal("pcgw").default("pcgw"),
+      defaultTtlSeconds: z
+        .number()
+        .int()
+        .positive()
+        .max(31_536_000)
+        .nullable()
+        .default(7_776_000),
+      requireFiniteExpiry: z.boolean().default(true),
+      longLivedTokenRequiresOverride: z.boolean().default(true),
+    })
+    .prefault({}),
+  oauth: z
+    .object({
+      enabled: z.literal(false).default(false),
+      reservedFor: z.literal("v1_5").default("v1_5"),
+      protectedResourceMetadataPath: z
+        .string()
+        .trim()
+        .max(240)
+        .optional()
+        .nullable(),
+      dynamicClientRegistration: z.literal(false).optional(),
+      authorizationCodePkce: z.literal(false).optional(),
+    })
+    .prefault({}),
 });
 
 export const toolMcpGatewayHeaderPolicySchema = z.object({
   version: z.literal(1).default(1),
-  callerPassthrough: z.object({
-    enabled: z.boolean().default(false),
-    allowedHeaders: z.array(headerNameSchema).max(50).default([]),
-  }).prefault({}),
-  staticHeaders: z.array(z.object({
-    name: headerNameSchema,
-    valueRef: z.string().trim().max(240).optional().nullable(),
-    value: z.string().max(4000).optional().nullable(),
-  })).max(50).default([]),
-  generatedMetadata: z.object({
-    enabled: z.boolean().default(false),
-    allowedHeaders: z.array(headerNameSchema).max(20).default([]),
-  }).prefault({}),
-  responseHeaders: z.object({
-    forwardMcpRequiredHeaders: z.boolean().default(true),
-    forwardSafeCacheHeaders: z.boolean().default(true),
-  }).prefault({}),
+  callerPassthrough: z
+    .object({
+      enabled: z.boolean().default(false),
+      allowedHeaders: z.array(headerNameSchema).max(50).default([]),
+    })
+    .prefault({}),
+  staticHeaders: z
+    .array(
+      z.object({
+        name: headerNameSchema,
+        valueRef: z.string().trim().max(240).optional().nullable(),
+        value: z.string().max(4000).optional().nullable(),
+      }),
+    )
+    .max(50)
+    .default([]),
+  generatedMetadata: z
+    .object({
+      enabled: z.boolean().default(false),
+      allowedHeaders: z.array(headerNameSchema).max(20).default([]),
+    })
+    .prefault({}),
+  responseHeaders: z
+    .object({
+      forwardMcpRequiredHeaders: z.boolean().default(true),
+      forwardSafeCacheHeaders: z.boolean().default(true),
+    })
+    .prefault({}),
 });
 
 export const toolMcpGatewayMetadataPolicySchema = z.object({
@@ -716,11 +1051,21 @@ export const toolMcpGatewayOnDemandToolsConfigSchema = z.object({
 export const createToolMcpGatewaySchema = z.object({
   name: z.string().trim().min(1).max(160),
   slug: z.string().trim().min(1).max(120).regex(safeKeyPattern).optional(),
-  displaySlug: z.string().trim().min(1).max(120).regex(safeKeyPattern).optional(),
+  displaySlug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(safeKeyPattern)
+    .optional(),
   description: z.string().max(4000).optional().nullable(),
   profileId: z.string().guid(),
-  defaultProfileMode: toolMcpGatewayDefaultProfileModeSchema.default("gateway_only").optional(),
-  contextScopeType: toolMcpGatewayContextScopeTypeSchema.default("none").optional(),
+  defaultProfileMode: toolMcpGatewayDefaultProfileModeSchema
+    .default("gateway_only")
+    .optional(),
+  contextScopeType: toolMcpGatewayContextScopeTypeSchema
+    .default("none")
+    .optional(),
   contextScopeId: z.string().trim().min(1).max(200).optional().nullable(),
   agentId: z.string().guid().optional().nullable(),
   projectId: z.string().guid().optional().nullable(),
@@ -735,121 +1080,205 @@ export const createToolMcpGatewaySchema = z.object({
 
 export type CreateToolMcpGateway = z.infer<typeof createToolMcpGatewaySchema>;
 
-export const updateToolMcpGatewaySchema = objectWithoutDefaults(createToolMcpGatewaySchema)
+export const updateToolMcpGatewaySchema = objectWithoutDefaults(
+  createToolMcpGatewaySchema,
+)
   .partial()
   .extend({ status: toolMcpGatewayStatusSchema.optional() })
-  .refine((value) => Object.keys(value).length > 0, { message: "At least one gateway field is required" });
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one gateway field is required",
+  });
 
 export type UpdateToolMcpGateway = z.infer<typeof updateToolMcpGatewaySchema>;
 
-export const createToolMcpGatewayTokenSchema = z.object({
-  name: z.string().trim().min(1).max(160),
-  subjectType: toolMcpGatewayTokenSubjectTypeSchema.default("gateway_client").optional(),
-  subjectId: z.string().trim().min(1).max(240).optional().nullable(),
-  clientLabel: z.string().trim().min(1).max(160),
-  ownerNote: z.string().trim().max(1000).default(""),
-  allowedActions: z.array(toolMcpGatewayTokenActionSchema).min(1).max(TOOL_MCP_GATEWAY_TOKEN_ACTIONS.length).default(["tools/list", "tools/call"]).optional(),
-  expiresAt: z.coerce.date().optional().nullable(),
-  expiryOverrideReason: z.string().trim().min(1).max(1000).optional().nullable(),
-}).superRefine((value, ctx) => {
-  if (value.subjectType && value.subjectType !== "gateway_client") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["subjectType"],
-      message: "Public V1 token minting only supports gateway_client subjects; heartbeat_run is runtime-managed, while board_user and agent are reserved for later OAuth/user-bound flows.",
-    });
-  }
-  if (value.expiresAt === null && !value.expiryOverrideReason) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["expiryOverrideReason"],
-      message: "Non-expiring gateway tokens require an override reason.",
-    });
-  }
-});
+export const createToolMcpGatewayTokenSchema = z
+  .object({
+    name: z.string().trim().min(1).max(160),
+    subjectType: toolMcpGatewayTokenSubjectTypeSchema
+      .default("gateway_client")
+      .optional(),
+    subjectId: z.string().trim().min(1).max(240).optional().nullable(),
+    clientLabel: z.string().trim().min(1).max(160),
+    ownerNote: z.string().trim().max(1000).default(""),
+    allowedActions: z
+      .array(toolMcpGatewayTokenActionSchema)
+      .min(1)
+      .max(TOOL_MCP_GATEWAY_TOKEN_ACTIONS.length)
+      .default(["tools/list", "tools/call"])
+      .optional(),
+    expiresAt: z.coerce.date().optional().nullable(),
+    expiryOverrideReason: z
+      .string()
+      .trim()
+      .min(1)
+      .max(1000)
+      .optional()
+      .nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.subjectType && value.subjectType !== "gateway_client") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["subjectType"],
+        message:
+          "Public V1 token minting only supports gateway_client subjects; heartbeat_run is runtime-managed, while board_user and agent are reserved for later OAuth/user-bound flows.",
+      });
+    }
+    if (value.expiresAt === null && !value.expiryOverrideReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expiryOverrideReason"],
+        message: "Non-expiring gateway tokens require an override reason.",
+      });
+    }
+  });
 
-export type CreateToolMcpGatewayToken = z.infer<typeof createToolMcpGatewayTokenSchema>;
+export type CreateToolMcpGatewayToken = z.infer<
+  typeof createToolMcpGatewayTokenSchema
+>;
 
-const argumentConditionSchema = z.object({
-  fieldEquals: z.record(z.string().trim().min(1).max(120), z.unknown()).optional(),
-  fieldNotEquals: z.record(z.string().trim().min(1).max(120), z.unknown()).optional(),
-  fieldIn: z.record(z.string().trim().min(1).max(120), z.array(z.unknown()).min(1).max(100)).optional(),
-  fieldMatches: z.record(z.string().trim().min(1).max(120), z.string().trim().min(1).max(500)).optional(),
-  fieldExists: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
-  fieldAbsent: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
-}).strict().refine(
-  (value) => Object.values(value).some((nested) => Array.isArray(nested) ? nested.length > 0 : Boolean(nested && Object.keys(nested).length > 0)),
-  { message: "Argument conditions must include at least one field predicate" },
-);
+const argumentConditionSchema = z
+  .object({
+    fieldEquals: z
+      .record(z.string().trim().min(1).max(120), z.unknown())
+      .optional(),
+    fieldNotEquals: z
+      .record(z.string().trim().min(1).max(120), z.unknown())
+      .optional(),
+    fieldIn: z
+      .record(
+        z.string().trim().min(1).max(120),
+        z.array(z.unknown()).min(1).max(100),
+      )
+      .optional(),
+    fieldMatches: z
+      .record(
+        z.string().trim().min(1).max(120),
+        z.string().trim().min(1).max(500),
+      )
+      .optional(),
+    fieldExists: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
+    fieldAbsent: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      Object.values(value).some((nested) =>
+        Array.isArray(nested)
+          ? nested.length > 0
+          : Boolean(nested && Object.keys(nested).length > 0),
+      ),
+    {
+      message: "Argument conditions must include at least one field predicate",
+    },
+  );
 
-const timeWindowConditionSchema = z.object({
-  startAt: z.string().trim().datetime({ offset: true }).optional(),
-  endAt: z.string().trim().datetime({ offset: true }).optional(),
-  daysOfWeekUtc: z.array(z.number().int().min(0).max(6)).max(7).optional(),
-  startHourUtc: z.number().int().min(0).max(23).optional(),
-  endHourUtc: z.number().int().min(0).max(24).optional(),
-}).strict().refine(
-  (value) => value.startAt || value.endAt || value.daysOfWeekUtc?.length || value.startHourUtc !== undefined || value.endHourUtc !== undefined,
-  { message: "timeWindow must include at least one bound" },
-);
+const timeWindowConditionSchema = z
+  .object({
+    startAt: z.string().trim().datetime({ offset: true }).optional(),
+    endAt: z.string().trim().datetime({ offset: true }).optional(),
+    daysOfWeekUtc: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+    startHourUtc: z.number().int().min(0).max(23).optional(),
+    endHourUtc: z.number().int().min(0).max(24).optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.startAt ||
+      value.endAt ||
+      value.daysOfWeekUtc?.length ||
+      value.startHourUtc !== undefined ||
+      value.endHourUtc !== undefined,
+    { message: "timeWindow must include at least one bound" },
+  );
 
-const actorConditionSchema = z.object({
-  actorType: z.enum(["agent", "user", "system", "plugin"]).optional(),
-  actorTypes: z.array(z.enum(["agent", "user", "system", "plugin"])).max(20).optional(),
-  agentId: z.string().guid().optional(),
-  agentIds: z.array(z.string().guid()).max(100).optional(),
-}).strict();
+const actorConditionSchema = z
+  .object({
+    actorType: z.enum(["agent", "user", "system", "plugin"]).optional(),
+    actorTypes: z
+      .array(z.enum(["agent", "user", "system", "plugin"]))
+      .max(20)
+      .optional(),
+    agentId: z.string().guid().optional(),
+    agentIds: z.array(z.string().guid()).max(100).optional(),
+  })
+  .strict();
 
-const contextConditionSchema = z.object({
-  projectId: z.string().guid().optional(),
-  projectIds: z.array(z.string().guid()).max(100).optional(),
-  routineId: z.string().guid().optional(),
-  routineIds: z.array(z.string().guid()).max(100).optional(),
-  issueId: z.string().guid().optional(),
-  issueIds: z.array(z.string().guid()).max(100).optional(),
-  requireIssue: z.boolean().optional(),
-  requireProject: z.boolean().optional(),
-  requireRoutine: z.boolean().optional(),
-}).strict();
+const contextConditionSchema = z
+  .object({
+    projectId: z.string().guid().optional(),
+    projectIds: z.array(z.string().guid()).max(100).optional(),
+    routineId: z.string().guid().optional(),
+    routineIds: z.array(z.string().guid()).max(100).optional(),
+    issueId: z.string().guid().optional(),
+    issueIds: z.array(z.string().guid()).max(100).optional(),
+    requireIssue: z.boolean().optional(),
+    requireProject: z.boolean().optional(),
+    requireRoutine: z.boolean().optional(),
+  })
+  .strict();
 
-const credentialScopeConditionSchema = z.object({
-  applicationId: z.string().guid().optional(),
-  applicationIds: z.array(z.string().guid()).max(100).optional(),
-  connectionId: z.string().guid().optional(),
-  connectionIds: z.array(z.string().guid()).max(100).optional(),
-  catalogEntryId: z.string().guid().optional(),
-  catalogEntryIds: z.array(z.string().guid()).max(100).optional(),
-  applicationKey: z.string().trim().min(1).max(160).optional(),
-  applicationKeys: z.array(z.string().trim().min(1).max(160)).max(100).optional(),
-  providerType: z.string().trim().min(1).max(160).optional(),
-  providerTypes: z.array(z.string().trim().min(1).max(160)).max(100).optional(),
-}).strict();
-
-export const toolPolicyConditionsSchema = z.object({
-  arguments: argumentConditionSchema.optional(),
-  args: argumentConditionSchema.optional(),
-  actor: actorConditionSchema.optional(),
-  context: contextConditionSchema.optional(),
-  risk: z.object({
-    levels: z.array(toolRiskLevelSchema).max(20).optional(),
-    max: toolRiskLevelSchema.optional(),
-    isWrite: z.boolean().optional(),
-    isDestructive: z.boolean().optional(),
-  }).strict().optional(),
-  credentialScope: credentialScopeConditionSchema.optional(),
-  trustBoundary: z.object({
-    providerType: z.string().trim().min(1).max(160).optional(),
-    providerTypes: z.array(z.string().trim().min(1).max(160)).max(100).optional(),
+const credentialScopeConditionSchema = z
+  .object({
+    applicationId: z.string().guid().optional(),
+    applicationIds: z.array(z.string().guid()).max(100).optional(),
+    connectionId: z.string().guid().optional(),
+    connectionIds: z.array(z.string().guid()).max(100).optional(),
+    catalogEntryId: z.string().guid().optional(),
+    catalogEntryIds: z.array(z.string().guid()).max(100).optional(),
     applicationKey: z.string().trim().min(1).max(160).optional(),
-    applicationKeys: z.array(z.string().trim().min(1).max(160)).max(100).optional(),
-    remoteHttpOnly: z.boolean().optional(),
-    taskcoreSelfOnly: z.boolean().optional(),
-  }).strict().optional(),
-  timeWindow: timeWindowConditionSchema.optional(),
-}).strict().refine(
-  (value) => Object.keys(value).length > 0,
-  { message: "Tool policy conditions must include at least one supported condition group" },
-);
+    applicationKeys: z
+      .array(z.string().trim().min(1).max(160))
+      .max(100)
+      .optional(),
+    providerType: z.string().trim().min(1).max(160).optional(),
+    providerTypes: z
+      .array(z.string().trim().min(1).max(160))
+      .max(100)
+      .optional(),
+  })
+  .strict();
+
+export const toolPolicyConditionsSchema = z
+  .object({
+    arguments: argumentConditionSchema.optional(),
+    args: argumentConditionSchema.optional(),
+    actor: actorConditionSchema.optional(),
+    context: contextConditionSchema.optional(),
+    risk: z
+      .object({
+        levels: z.array(toolRiskLevelSchema).max(20).optional(),
+        max: toolRiskLevelSchema.optional(),
+        isWrite: z.boolean().optional(),
+        isDestructive: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    credentialScope: credentialScopeConditionSchema.optional(),
+    trustBoundary: z
+      .object({
+        providerType: z.string().trim().min(1).max(160).optional(),
+        providerTypes: z
+          .array(z.string().trim().min(1).max(160))
+          .max(100)
+          .optional(),
+        applicationKey: z.string().trim().min(1).max(160).optional(),
+        applicationKeys: z
+          .array(z.string().trim().min(1).max(160))
+          .max(100)
+          .optional(),
+        remoteHttpOnly: z.boolean().optional(),
+        taskcoreSelfOnly: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    timeWindow: timeWindowConditionSchema.optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message:
+      "Tool policy conditions must include at least one supported condition group",
+  });
 
 export const createToolPolicySchema = z.object({
   name: z.string().trim().min(1).max(160),
@@ -864,10 +1293,13 @@ export const createToolPolicySchema = z.object({
 
 export type CreateToolPolicy = z.infer<typeof createToolPolicySchema>;
 
-export const updateToolPolicySchema = objectWithoutDefaults(createToolPolicySchema).partial().refine(
-  (value) => Object.keys(value).length > 0,
-  { message: "At least one tool policy field is required" },
-);
+export const updateToolPolicySchema = objectWithoutDefaults(
+  createToolPolicySchema,
+)
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one tool policy field is required",
+  });
 
 export type UpdateToolPolicy = z.infer<typeof updateToolPolicySchema>;
 
@@ -907,7 +1339,9 @@ export const createToolActionRequestSchema = z.object({
   expiresAt: z.coerce.date().optional().nullable(),
 });
 
-export type CreateToolActionRequest = z.infer<typeof createToolActionRequestSchema>;
+export type CreateToolActionRequest = z.infer<
+  typeof createToolActionRequestSchema
+>;
 
 export const toolConnectionTestCallSchema = z.object({
   agentId: z.string().guid(),
@@ -915,7 +1349,9 @@ export const toolConnectionTestCallSchema = z.object({
   parameters: z.unknown().optional(),
 });
 
-export type ToolConnectionTestCallInput = z.infer<typeof toolConnectionTestCallSchema>;
+export type ToolConnectionTestCallInput = z.infer<
+  typeof toolConnectionTestCallSchema
+>;
 
 export const importMcpJsonSchema = z.object({
   mcpJson: z.union([z.string(), z.record(z.string(), z.unknown())]),
@@ -935,8 +1371,16 @@ export const toolAccessSelectorSchema = z.object({
   issueIds: z.array(z.string().guid()).optional(),
   gatewayId: z.string().guid().optional(),
   gatewayIds: z.array(z.string().guid()).optional(),
-  gatewayPublicId: z.string().trim().min(1).max(120).regex(safeKeyPattern).optional(),
-  gatewayPublicIds: z.array(z.string().trim().min(1).max(120).regex(safeKeyPattern)).optional(),
+  gatewayPublicId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(safeKeyPattern)
+    .optional(),
+  gatewayPublicIds: z
+    .array(z.string().trim().min(1).max(120).regex(safeKeyPattern))
+    .optional(),
   gatewayTokenId: z.string().guid().optional(),
   gatewayTokenIds: z.array(z.string().guid()).optional(),
   clientSubjectType: toolMcpGatewayTokenSubjectTypeSchema.optional(),
@@ -959,31 +1403,70 @@ export const toolAccessSelectorSchema = z.object({
 export const toolRateLimitRuleSchema = z.object({
   limit: z.number().int().positive().max(1_000_000),
   windowSeconds: z.number().int().positive().max(31_536_000),
-  keyBy: z.array(z.enum(["company", "agent", "application", "connection", "tool"])).optional(),
+  keyBy: z
+    .array(z.enum(["company", "agent", "application", "connection", "tool"]))
+    .optional(),
 });
 
-export const toolTrustRuleArgumentFiltersSchema = z.object({
-  allowAny: z.boolean().optional(),
-  exactHash: z.string().trim().regex(/^[a-f0-9]{64}$/i).optional().nullable(),
-  allowedHashes: z.array(z.string().trim().regex(/^[a-f0-9]{64}$/i)).max(100).optional(),
-  fieldEquals: z.record(z.string().trim().min(1).max(120), z.unknown()).optional(),
-  fieldNotEquals: z.record(z.string().trim().min(1).max(120), z.unknown()).optional(),
-  fieldIn: z.record(z.string().trim().min(1).max(120), z.array(z.unknown()).min(1).max(100)).optional(),
-  fieldMatches: z.record(z.string().trim().min(1).max(120), z.string().trim().min(1).max(500)).optional(),
-  fieldExists: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
-  fieldAbsent: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
-}).refine(
-  (value) => value.allowAny === true
-    || Boolean(value.exactHash)
-    || Boolean(value.allowedHashes?.length)
-    || Boolean(value.fieldEquals && Object.keys(value.fieldEquals).length > 0)
-    || Boolean(value.fieldNotEquals && Object.keys(value.fieldNotEquals).length > 0)
-    || Boolean(value.fieldIn && Object.keys(value.fieldIn).length > 0)
-    || Boolean(value.fieldMatches && Object.keys(value.fieldMatches).length > 0)
-    || Boolean(value.fieldExists?.length)
-    || Boolean(value.fieldAbsent?.length),
-  { message: "Trust-rule argument filters must specify allowAny, a hash filter, or a field predicate" },
-);
+export const toolTrustRuleArgumentFiltersSchema = z
+  .object({
+    allowAny: z.boolean().optional(),
+    exactHash: z
+      .string()
+      .trim()
+      .regex(/^[a-f0-9]{64}$/i)
+      .optional()
+      .nullable(),
+    allowedHashes: z
+      .array(
+        z
+          .string()
+          .trim()
+          .regex(/^[a-f0-9]{64}$/i),
+      )
+      .max(100)
+      .optional(),
+    fieldEquals: z
+      .record(z.string().trim().min(1).max(120), z.unknown())
+      .optional(),
+    fieldNotEquals: z
+      .record(z.string().trim().min(1).max(120), z.unknown())
+      .optional(),
+    fieldIn: z
+      .record(
+        z.string().trim().min(1).max(120),
+        z.array(z.unknown()).min(1).max(100),
+      )
+      .optional(),
+    fieldMatches: z
+      .record(
+        z.string().trim().min(1).max(120),
+        z.string().trim().min(1).max(500),
+      )
+      .optional(),
+    fieldExists: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
+    fieldAbsent: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
+  })
+  .refine(
+    (value) =>
+      value.allowAny === true ||
+      Boolean(value.exactHash) ||
+      Boolean(value.allowedHashes?.length) ||
+      Boolean(value.fieldEquals && Object.keys(value.fieldEquals).length > 0) ||
+      Boolean(
+        value.fieldNotEquals && Object.keys(value.fieldNotEquals).length > 0,
+      ) ||
+      Boolean(value.fieldIn && Object.keys(value.fieldIn).length > 0) ||
+      Boolean(
+        value.fieldMatches && Object.keys(value.fieldMatches).length > 0,
+      ) ||
+      Boolean(value.fieldExists?.length) ||
+      Boolean(value.fieldAbsent?.length),
+    {
+      message:
+        "Trust-rule argument filters must specify allowAny, a hash filter, or a field predicate",
+    },
+  );
 
 export const toolTrustRuleScopeSchema = z.object({
   includeAgent: z.boolean().optional(),
@@ -1014,7 +1497,9 @@ export const createToolTrustRuleFromActionRequestSchema = z.object({
   batchApproval: toolTrustRuleBatchApprovalSchema.optional().nullable(),
 });
 
-export type CreateToolTrustRuleFromActionRequest = z.infer<typeof createToolTrustRuleFromActionRequestSchema>;
+export type CreateToolTrustRuleFromActionRequest = z.infer<
+  typeof createToolTrustRuleFromActionRequestSchema
+>;
 
 export const revokeToolTrustRuleSchema = z.object({
   reason: z.string().trim().max(1000).optional().nullable(),
@@ -1029,19 +1514,31 @@ export const toolPolicyTestRequestSchema = z.object({
     actorId: z.string().trim().min(1).max(240),
     agentId: z.string().guid().optional().nullable(),
   }),
-  runContext: z.object({
-    heartbeatRunId: z.string().guid().optional().nullable(),
-    issueId: z.string().guid().optional().nullable(),
-    projectId: z.string().guid().optional().nullable(),
-    routineId: z.string().guid().optional().nullable(),
-    gatewayId: z.string().guid().optional().nullable(),
-    gatewayPublicId: z.string().trim().min(1).max(120).regex(safeKeyPattern).optional().nullable(),
-    gatewayTokenId: z.string().guid().optional().nullable(),
-    clientSubjectType: toolMcpGatewayTokenSubjectTypeSchema.optional().nullable(),
-    clientSubjectId: z.string().trim().min(1).max(240).optional().nullable(),
-    clientName: z.string().trim().min(1).max(160).optional().nullable(),
-    externalClient: z.boolean().optional().nullable(),
-  }).optional().nullable(),
+  runContext: z
+    .object({
+      heartbeatRunId: z.string().guid().optional().nullable(),
+      issueId: z.string().guid().optional().nullable(),
+      projectId: z.string().guid().optional().nullable(),
+      routineId: z.string().guid().optional().nullable(),
+      gatewayId: z.string().guid().optional().nullable(),
+      gatewayPublicId: z
+        .string()
+        .trim()
+        .min(1)
+        .max(120)
+        .regex(safeKeyPattern)
+        .optional()
+        .nullable(),
+      gatewayTokenId: z.string().guid().optional().nullable(),
+      clientSubjectType: toolMcpGatewayTokenSubjectTypeSchema
+        .optional()
+        .nullable(),
+      clientSubjectId: z.string().trim().min(1).max(240).optional().nullable(),
+      clientName: z.string().trim().min(1).max(160).optional().nullable(),
+      externalClient: z.boolean().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
   request: z.object({
     applicationId: z.string().guid().optional().nullable(),
     connectionId: z.string().guid().optional().nullable(),
@@ -1055,4 +1552,6 @@ export const toolPolicyTestRequestSchema = z.object({
   writeAuditEvent: z.boolean().optional(),
 });
 
-export type ToolPolicyTestRequestInput = z.infer<typeof toolPolicyTestRequestSchema>;
+export type ToolPolicyTestRequestInput = z.infer<
+  typeof toolPolicyTestRequestSchema
+>;

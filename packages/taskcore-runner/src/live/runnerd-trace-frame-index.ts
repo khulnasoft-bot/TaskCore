@@ -21,7 +21,8 @@ export class RunnerdTraceFrameIndex {
     const stat = statSync(tracePath);
     const identity = `${stat.dev}:${stat.ino}`;
     if (
-      identity !== this.#identity || stat.size < this.#offset ||
+      identity !== this.#identity ||
+      stat.size < this.#offset ||
       (stat.size === this.#offset && stat.mtimeMs !== this.#mtimeMs)
     ) {
       this.clear();
@@ -36,11 +37,17 @@ export class RunnerdTraceFrameIndex {
         if (`${opened.dev}:${opened.ino}` !== identity) {
           return { frameId: null, nativeChannelSettled: false };
         }
-        const buffer = Buffer.allocUnsafe(Math.min(READ_BUDGET_BYTES, stat.size - this.#offset));
+        const buffer = Buffer.allocUnsafe(
+          Math.min(READ_BUDGET_BYTES, stat.size - this.#offset),
+        );
         const bytes = readSync(fd, buffer, 0, buffer.length, this.#offset);
         this.#offset += bytes;
         let start = 0;
-        for (let end = buffer.indexOf(10); end !== -1 && end < bytes; end = buffer.indexOf(10, start)) {
+        for (
+          let end = buffer.indexOf(10);
+          end !== -1 && end < bytes;
+          end = buffer.indexOf(10, start)
+        ) {
           this.#consume(buffer.subarray(start, end), true);
           start = end + 1;
         }
@@ -51,7 +58,11 @@ export class RunnerdTraceFrameIndex {
     }
     // Until the observed suffix is indexed, a later interpretation or terminal
     // status may supersede the prefix. Let the existing pending queue retry.
-    if (this.#offset < stat.size || this.#partialBytes > 0 || this.#discardUntilNewline) {
+    if (
+      this.#offset < stat.size ||
+      this.#partialBytes > 0 ||
+      this.#discardUntilNewline
+    ) {
       return { frameId: null, nativeChannelSettled: false };
     }
     const frame = this.#frames.get(sourceEventId);
@@ -74,7 +85,10 @@ export class RunnerdTraceFrameIndex {
   }
 
   #consume(part: Buffer, terminated: boolean) {
-    if (this.#discardUntilNewline || this.#partialBytes + part.length > MAX_RECORD_BYTES) {
+    if (
+      this.#discardUntilNewline ||
+      this.#partialBytes + part.length > MAX_RECORD_BYTES
+    ) {
       // Raw provider frames can be tens of MiB. Correlation needs only small
       // interpretation/status records; leave oversized records in the raw file.
       this.#partial = [];
@@ -87,9 +101,10 @@ export class RunnerdTraceFrameIndex {
       this.#partialBytes += part.length;
       return;
     }
-    const line = this.#partialBytes > 0
-      ? Buffer.concat([...this.#partial, part]).toString("utf8")
-      : part.toString("utf8");
+    const line =
+      this.#partialBytes > 0
+        ? Buffer.concat([...this.#partial, part]).toString("utf8")
+        : part.toString("utf8");
     this.#partial = [];
     this.#partialBytes = 0;
     this.#indexLine(line);
@@ -109,10 +124,15 @@ export class RunnerdTraceFrameIndex {
     if (entry.kind === "trace_status" && entry.debugChannel === "rust_native") {
       this.#settledAt = this.#record;
     }
-    if (entry.kind !== "interpretation" || !Array.isArray(entry.emittedEventIds)) return;
+    if (
+      entry.kind !== "interpretation" ||
+      !Array.isArray(entry.emittedEventIds)
+    )
+      return;
     const frameId = typeof entry.frameId === "number" ? entry.frameId : null;
     for (const eventId of entry.emittedEventIds) {
-      if (typeof eventId === "string") this.#frames.set(eventId, { frameId, record: this.#record });
+      if (typeof eventId === "string")
+        this.#frames.set(eventId, { frameId, record: this.#record });
     }
   }
 }

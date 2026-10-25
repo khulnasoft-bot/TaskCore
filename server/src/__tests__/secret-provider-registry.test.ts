@@ -3,7 +3,10 @@ import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkSecretProviders, listSecretProviders } from "../secrets/provider-registry.js";
+import {
+  checkSecretProviders,
+  listSecretProviders,
+} from "../secrets/provider-registry.js";
 
 describe("secret provider registry", () => {
   const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
@@ -48,11 +51,17 @@ describe("secret provider registry", () => {
   });
 
   it("warns when the local encrypted key file is readable by group or others", async () => {
-    const dir = path.join(os.tmpdir(), `taskcore-secret-provider-${randomBytes(6).toString("hex")}`);
+    const dir = path.join(
+      os.tmpdir(),
+      `taskcore-secret-provider-${randomBytes(6).toString("hex")}`,
+    );
     tmpDirs.push(dir);
     mkdirSync(dir, { recursive: true });
     const keyFile = path.join(dir, "master.key");
-    writeFileSync(keyFile, randomBytes(32).toString("base64"), { encoding: "utf8", mode: 0o644 });
+    writeFileSync(keyFile, randomBytes(32).toString("base64"), {
+      encoding: "utf8",
+      mode: 0o644,
+    });
     chmodSync(keyFile, 0o644);
     process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = keyFile;
     delete process.env.TASKCORE_SECRETS_MASTER_KEY;

@@ -26,8 +26,9 @@ import {
 
 /** True when a Kubernetes API error means "resource not found" (HTTP 404). */
 export function isKubeNotFoundError(err: unknown): boolean {
-  const code = (err as { code?: number; statusCode?: number }).code
-    ?? (err as { code?: number; statusCode?: number }).statusCode;
+  const code =
+    (err as { code?: number; statusCode?: number }).code ??
+    (err as { code?: number; statusCode?: number }).statusCode;
   return code === 404;
 }
 
@@ -102,12 +103,15 @@ export async function checkLeaseResumable(
 
     // Confirm the pod itself is Running and not being torn down — the CR
     // status can lag pod deletion.
-    let pod: { metadata?: { deletionTimestamp?: unknown }; status?: { phase?: string } };
+    let pod: {
+      metadata?: { deletionTimestamp?: unknown };
+      status?: { phase?: string };
+    };
     try {
-      pod = await clients.core.readNamespacedPod({
+      pod = (await clients.core.readNamespacedPod({
         namespace: input.namespace,
         name: podName,
-      }) as typeof pod;
+      })) as typeof pod;
     } catch (err) {
       if (isKubeNotFoundError(err)) {
         return { resumable: false, reason: `Pod ${podName} no longer exists` };
@@ -119,7 +123,7 @@ export async function checkLeaseResumable(
     if (podPhase !== "Running" || terminating) {
       return {
         resumable: false,
-        reason: `Pod ${podName} is ${terminating ? "terminating" : podPhase ?? "in an unknown phase"}`,
+        reason: `Pod ${podName} is ${terminating ? "terminating" : (podPhase ?? "in an unknown phase")}`,
       };
     }
     return { resumable: true, podName, phase: "Running" };

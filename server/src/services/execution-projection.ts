@@ -33,7 +33,10 @@ const executionRunColumns = {
     'failureRetriesBeforeAiConnectionWait', ${heartbeatRuns.contextSnapshot}->'failureRetriesBeforeAiConnectionWait',
     'failureRetriesBeforeWorkspaceWait', ${heartbeatRuns.contextSnapshot}->'failureRetriesBeforeWorkspaceWait')`,
 };
-type Run = Pick<typeof heartbeatRuns.$inferSelect, keyof typeof executionRunColumns>;
+type Run = Pick<
+  typeof heartbeatRuns.$inferSelect,
+  keyof typeof executionRunColumns
+>;
 type Coordinator = typeof nativeRunFinalizations.$inferSelect;
 type Recovery = Pick<
   typeof issueRecoveryActions.$inferSelect,
@@ -55,27 +58,32 @@ export async function executionProjectionsForRuns(
   if (!runIds.length) return projections;
   // Opt in only with a pooled Db outside a transaction. Issue enrichment also
   // calls this helper with a transaction, whose failed reads must not replay.
-  const read = <T>(query: () => Promise<T>) => options.retryDatabaseReads
-    ? retryIdempotentDatabaseOperation(query)
-    : query();
-  const runs = await read(async () => db
-    .select(executionRunColumns)
-    .from(heartbeatRuns)
-    .where(
-      and(
-        eq(heartbeatRuns.companyId, companyId),
-        inArray(heartbeatRuns.id, runIds),
+  const read = <T>(query: () => Promise<T>) =>
+    options.retryDatabaseReads
+      ? retryIdempotentDatabaseOperation(query)
+      : query();
+  const runs = await read(async () =>
+    db
+      .select(executionRunColumns)
+      .from(heartbeatRuns)
+      .where(
+        and(
+          eq(heartbeatRuns.companyId, companyId),
+          inArray(heartbeatRuns.id, runIds),
+        ),
       ),
-    ));
-  const coordinators = await read(async () => db
-    .select()
-    .from(nativeRunFinalizations)
-    .where(
-      and(
-        eq(nativeRunFinalizations.companyId, companyId),
-        inArray(nativeRunFinalizations.runId, runIds),
+  );
+  const coordinators = await read(async () =>
+    db
+      .select()
+      .from(nativeRunFinalizations)
+      .where(
+        and(
+          eq(nativeRunFinalizations.companyId, companyId),
+          inArray(nativeRunFinalizations.runId, runIds),
+        ),
       ),
-    ));
+  );
   const issueIds = [
     ...new Set(
       runs
@@ -84,42 +92,46 @@ export async function executionProjectionsForRuns(
     ),
   ];
   const pending = issueIds.length
-    ? await read(async () => db
-        .select({
-          issueId: issueThreadInteractions.issueId,
-          kind: issueThreadInteractions.kind,
-        })
-        .from(issueThreadInteractions)
-        .where(
-          and(
-            eq(issueThreadInteractions.companyId, companyId),
-            inArray(issueThreadInteractions.issueId, issueIds),
-            eq(issueThreadInteractions.status, "pending"),
+    ? await read(async () =>
+        db
+          .select({
+            issueId: issueThreadInteractions.issueId,
+            kind: issueThreadInteractions.kind,
+          })
+          .from(issueThreadInteractions)
+          .where(
+            and(
+              eq(issueThreadInteractions.companyId, companyId),
+              inArray(issueThreadInteractions.issueId, issueIds),
+              eq(issueThreadInteractions.status, "pending"),
+            ),
           ),
-        ))
+      )
     : [];
   const recovery = issueIds.length
-    ? await read(async () => db
-        .select({
-          issueId: issueRecoveryActions.sourceIssueId,
-          cause: issueRecoveryActions.cause,
-          nextAction: issueRecoveryActions.nextAction,
-          evidence: issueRecoveryActions.evidence,
-          status: issueRecoveryActions.status,
-        })
-        .from(issueRecoveryActions)
-        .where(
-          and(
-            eq(issueRecoveryActions.companyId, companyId),
-            inArray(issueRecoveryActions.sourceIssueId, issueIds),
-            inArray(issueRecoveryActions.status, [
-              "active",
-              "escalated",
-              "resolved",
-            ]),
-          ),
-        )
-        .orderBy(desc(issueRecoveryActions.updatedAt)))
+    ? await read(async () =>
+        db
+          .select({
+            issueId: issueRecoveryActions.sourceIssueId,
+            cause: issueRecoveryActions.cause,
+            nextAction: issueRecoveryActions.nextAction,
+            evidence: issueRecoveryActions.evidence,
+            status: issueRecoveryActions.status,
+          })
+          .from(issueRecoveryActions)
+          .where(
+            and(
+              eq(issueRecoveryActions.companyId, companyId),
+              inArray(issueRecoveryActions.sourceIssueId, issueIds),
+              inArray(issueRecoveryActions.status, [
+                "active",
+                "escalated",
+                "resolved",
+              ]),
+            ),
+          )
+          .orderBy(desc(issueRecoveryActions.updatedAt)),
+      )
     : [];
   const coordinatorByRun = new Map(coordinators.map((row) => [row.runId, row]));
   for (const run of runs) {
@@ -127,7 +139,9 @@ export async function executionProjectionsForRuns(
     const matching = recovery.filter(
       (row) =>
         row.issueId === issueId &&
-        (row.status !== "resolved" || row.evidence.executionReconciliation || row.evidence.automaticRecovery) &&
+        (row.status !== "resolved" ||
+          row.evidence.executionReconciliation ||
+          row.evidence.automaticRecovery) &&
         (row.evidence.runId === run.id || row.evidence.sourceRunId === run.id),
     );
     const action =
@@ -189,13 +203,20 @@ export function projectExecution(
   };
   const set = (phase: ExecutionProjection["phase"], label: string) =>
     Object.assign(projection, { phase, label });
-  if (recoveryAction?.status === "resolved" && recoveryAction.evidence?.automaticRecovery) {
+  if (
+    recoveryAction?.status === "resolved" &&
+    recoveryAction.evidence?.automaticRecovery
+  ) {
     projection.cause = recoveryAction.cause;
     projection.nextAction = recoveryAction.nextAction;
     const continuation = recoveryAction.evidence.explicitUserContinuation as
       { previousRunId?: unknown; runId?: unknown } | undefined;
     const explicitSuccessor = text(continuation?.runId);
-    if (continuation?.previousRunId === run.id && explicitSuccessor && explicitSuccessor !== run.id) {
+    if (
+      continuation?.previousRunId === run.id &&
+      explicitSuccessor &&
+      explicitSuccessor !== run.id
+    ) {
       // The admission transaction already recorded the user's successor. Keep
       // the old failure diagnostic without making it hold the newer attempt.
       projection.successorRunId = explicitSuccessor;
@@ -238,23 +259,33 @@ export function projectExecution(
   )
     return set("finishing", "Finishing");
   if (successorRunId) return set("completed", "Continued in another run");
-  if (run.status === "scheduled_retry" && run.scheduledRetryReason === "ai_connection_busy") {
-    projection.nextAction = "Waiting for the AI subscription's current execution to finish; the scheduled check will revalidate access.";
+  if (
+    run.status === "scheduled_retry" &&
+    run.scheduledRetryReason === "ai_connection_busy"
+  ) {
+    projection.nextAction =
+      "Waiting for the AI subscription's current execution to finish; the scheduled check will revalidate access.";
     return set("retry_scheduled", "Waiting for AI subscription");
   }
-  if (run.status === "scheduled_retry" && run.scheduledRetryReason === "workspace_busy") {
-    projection.nextAction = "Waiting for the live workspace holder to finish; the scheduled check will revalidate ownership.";
+  if (
+    run.status === "scheduled_retry" &&
+    run.scheduledRetryReason === "workspace_busy"
+  ) {
+    projection.nextAction =
+      "Waiting for the live workspace holder to finish; the scheduled check will revalidate ownership.";
     return set("retry_scheduled", "Waiting for workspace");
   }
   // Cleanup can fail before a finalization coordinator exists. The missing
   // row must not turn a quarantined native session into an ordinary Retry.
-  const cleanupQuarantined = run.runtimeMode === "native" &&
+  const cleanupQuarantined =
+    run.runtimeMode === "native" &&
     ["failed", "timed_out"].includes(run.status) &&
     run.errorCode === "native_session_cleanup_quarantined";
-  if (!cleanupQuarantined && (
-    coordinator?.phase === "retryable_failure" ||
-    run.status === "scheduled_retry"
-  )) {
+  if (
+    !cleanupQuarantined &&
+    (coordinator?.phase === "retryable_failure" ||
+      run.status === "scheduled_retry")
+  ) {
     projection.recoveryOwner = "agent";
     return set(
       projection.retryAt && new Date(projection.retryAt) > now
@@ -265,7 +296,11 @@ export function projectExecution(
         : "Reconnecting",
     );
   }
-  if (coordinator?.phase === "terminal_failure" || recoveryAction || cleanupQuarantined) {
+  if (
+    coordinator?.phase === "terminal_failure" ||
+    recoveryAction ||
+    cleanupQuarantined
+  ) {
     if (
       !cleanupQuarantined &&
       coordinator?.failureCode === "native_provider_terminal_failed" &&
@@ -285,7 +320,8 @@ export function projectExecution(
       projection.cause;
     projection.nextAction = recoveryAction?.nextAction ?? projection.nextAction;
     if (cleanupQuarantined && !projection.nextAction) {
-      projection.nextAction = "Verify the stopped session and its saved work before starting a new attempt.";
+      projection.nextAction =
+        "Verify the stopped session and its saved work before starting a new attempt.";
     }
     projection.permittedActions.push("inspect_recovery");
     return set("recovery_needed", "Recovery needed");

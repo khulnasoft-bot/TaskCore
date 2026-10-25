@@ -246,12 +246,17 @@ describe("runner PRP websocket route", () => {
     ).toThrowError("native_runtime_request_resolver_denied");
     for (const pendingRequest of [
       { ...input.pendingRequest, companyId: "company-2" },
-      { ...input.pendingRequest, runId: "00000000-0000-4000-8000-000000000783" },
+      {
+        ...input.pendingRequest,
+        runId: "00000000-0000-4000-8000-000000000783",
+      },
     ]) {
-      expect(() => queueRunnerPrpRuntimeRequestResolution({
-        ...input,
-        pendingRequest,
-      })).toThrowError("runner_prp_authority_not_active");
+      expect(() =>
+        queueRunnerPrpRuntimeRequestResolution({
+          ...input,
+          pendingRequest,
+        }),
+      ).toThrowError("runner_prp_authority_not_active");
     }
     expect(queueCommand).toHaveBeenCalledTimes(1);
 
@@ -267,7 +272,9 @@ describe("runner PRP websocket route", () => {
     async (cached) => {
       const directory = mkdtempSync(join(tmpdir(), "runner-route-rotation-"));
       const server = createServer();
-      setupRunnerPrpWebSocketServer(server, { apiUrl: "http://127.0.0.1:3214" });
+      setupRunnerPrpWebSocketServer(server, {
+        apiUrl: "http://127.0.0.1:3214",
+      });
       const identity = {
         runnerInstanceId: "runner-route-test",
         environmentLeaseId: "environment-route-test",
@@ -331,9 +338,7 @@ describe("runner PRP websocket route", () => {
         // Registering the future URL cannot dispatch into the old authority.
         expect(() =>
           queueRunnerPrpRuntimeRequestResolution(nextInput),
-        ).toThrowError(
-          "runner_prp_authority_not_active",
-        );
+        ).toThrowError("runner_prp_authority_not_active");
         expect(authority.store.state.commands).toEqual([]);
         if (cached) {
           const queued = queueRunnerPrpRuntimeRequestResolution(input);
@@ -350,9 +355,9 @@ describe("runner PRP websocket route", () => {
         const statePath = join(directory, "control-plane-state.json");
         const before = readFileSync(statePath, "utf8");
 
-        expect(() => queueRunnerPrpRuntimeRequestResolution(input)).toThrowError(
-          "runner_prp_authority_not_active",
-        );
+        expect(() =>
+          queueRunnerPrpRuntimeRequestResolution(input),
+        ).toThrowError("runner_prp_authority_not_active");
         expect(authority.store.state.commands).toEqual([]);
         expect(readFileSync(statePath, "utf8")).toBe(before);
 

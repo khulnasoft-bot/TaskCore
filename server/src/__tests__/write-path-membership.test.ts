@@ -49,12 +49,9 @@ vi.mock("../services/index.js", () => ({
   logActivity: mockLogActivity,
 }));
 
-let routeModules:
-  | Promise<[
-    typeof import("../middleware/index.js"),
-    typeof import("../routes/goals.js"),
-  ]>
-  | null = null;
+let routeModules: Promise<
+  [typeof import("../middleware/index.js"), typeof import("../routes/goals.js")]
+> | null = null;
 
 async function loadRouteModules() {
   routeModules ??= Promise.all([
@@ -81,7 +78,8 @@ async function requestApp(
   app: express.Express,
   buildRequest: (baseUrl: string) => request.Test,
 ) {
-  const { createServer } = await vi.importActual<typeof import("node:http")>("node:http");
+  const { createServer } =
+    await vi.importActual<typeof import("node:http")>("node:http");
   const server = createServer(app);
   try {
     await new Promise<void>((resolve) => {
@@ -128,15 +126,15 @@ describe("write-path membership checks (viewer / inactive)", () => {
       companyIds: [companyId],
       source: "session" as const,
       isInstanceAdmin: false,
-      memberships: [
-        { companyId, status: "active", membershipRole: "viewer" },
-      ],
+      memberships: [{ companyId, status: "active", membershipRole: "viewer" }],
     };
 
     it("rejects PATCH on a goal with 403 'Viewer access is read-only'", async () => {
       const app = await createApp(viewerActor);
       const res = await requestApp(app, (baseUrl) =>
-        request(baseUrl).patch(`/api/goals/${goalId}`).send({ title: "New title" }),
+        request(baseUrl)
+          .patch(`/api/goals/${goalId}`)
+          .send({ title: "New title" }),
       );
 
       expect(res.status).toBe(403);
@@ -187,15 +185,15 @@ describe("write-path membership checks (viewer / inactive)", () => {
       companyIds: [companyId],
       source: "session" as const,
       isInstanceAdmin: false,
-      memberships: [
-        { companyId, status: "removed", membershipRole: "editor" },
-      ],
+      memberships: [{ companyId, status: "removed", membershipRole: "editor" }],
     };
 
     it("rejects PATCH on a goal with 403 'User does not have active company access'", async () => {
       const app = await createApp(inactiveActor);
       const res = await requestApp(app, (baseUrl) =>
-        request(baseUrl).patch(`/api/goals/${goalId}`).send({ title: "New title" }),
+        request(baseUrl)
+          .patch(`/api/goals/${goalId}`)
+          .send({ title: "New title" }),
       );
 
       expect(res.status).toBe(403);
@@ -235,19 +233,21 @@ describe("write-path membership checks (viewer / inactive)", () => {
       companyIds: [companyId],
       source: "session" as const,
       isInstanceAdmin: false,
-      memberships: [
-        { companyId, status: "active", membershipRole: "editor" },
-      ],
+      memberships: [{ companyId, status: "active", membershipRole: "editor" }],
     };
 
     it("allows PATCH on a goal", async () => {
       const app = await createApp(editorActor);
       const res = await requestApp(app, (baseUrl) =>
-        request(baseUrl).patch(`/api/goals/${goalId}`).send({ title: "New title" }),
+        request(baseUrl)
+          .patch(`/api/goals/${goalId}`)
+          .send({ title: "New title" }),
       );
 
       expect(res.status).toBe(200);
-      expect(mockGoalService.update).toHaveBeenCalledWith(goalId, { title: "New title" });
+      expect(mockGoalService.update).toHaveBeenCalledWith(goalId, {
+        title: "New title",
+      });
     });
   });
 });

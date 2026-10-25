@@ -74,7 +74,9 @@ vi.mock("./MarkdownBody", () => ({
     <div
       className={className}
       data-testid="markdown-body"
-      data-external-reference-keys={externalReferences ? Object.keys(externalReferences).join(",") : ""}
+      data-external-reference-keys={
+        externalReferences ? Object.keys(externalReferences).join(",") : ""
+      }
     >
       {children}
     </div>
@@ -85,7 +87,12 @@ vi.mock("./MarkdownEditor", async () => {
   const React = await import("react");
 
   return {
-    MarkdownEditor: ({ value, onChange, placeholder, contentClassName }: {
+    MarkdownEditor: ({
+      value,
+      onChange,
+      placeholder,
+      contentClassName,
+    }: {
       value: string;
       onChange?: (value: string) => void;
       placeholder?: string;
@@ -106,8 +113,15 @@ vi.mock("./MarkdownEditor", async () => {
 });
 
 vi.mock("@/components/ui/button", () => ({
-  Button: ({ children, onClick, type = "button", ...props }: ComponentProps<"button">) => (
-    <button type={type} onClick={onClick} {...props}>{children}</button>
+  Button: ({
+    children,
+    onClick,
+    type = "button",
+    ...props
+  }: ComponentProps<"button">) => (
+    <button type={type} onClick={onClick} {...props}>
+      {children}
+    </button>
   ),
 }));
 
@@ -117,10 +131,21 @@ vi.mock("@/components/ui/input", () => ({
 
 vi.mock("@/components/ui/dropdown-menu", async () => {
   return {
-    DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-    DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    DropdownMenuItem: ({ children, onClick, onSelect, disabled }: {
+    DropdownMenu: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+    DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    DropdownMenuItem: ({
+      children,
+      onClick,
+      onSelect,
+      disabled,
+    }: {
       children: React.ReactNode;
       onClick?: () => void;
       onSelect?: () => void;
@@ -137,9 +162,17 @@ vi.mock("@/components/ui/dropdown-menu", async () => {
         {children}
       </button>
     ),
-    DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    DropdownMenuRadioGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    DropdownMenuRadioItem: ({ children, onSelect, disabled }: {
+    DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    DropdownMenuRadioGroup: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    DropdownMenuRadioItem: ({
+      children,
+      onSelect,
+      disabled,
+    }: {
       children: React.ReactNode;
       onSelect?: () => void;
       disabled?: boolean;
@@ -156,10 +189,10 @@ const localStorageEntries = new Map<string, string>();
 
 function ensureLocalStorageMock() {
   if (
-    typeof window.localStorage?.getItem === "function"
-    && typeof window.localStorage?.setItem === "function"
-    && typeof window.localStorage?.removeItem === "function"
-    && typeof window.localStorage?.clear === "function"
+    typeof window.localStorage?.getItem === "function" &&
+    typeof window.localStorage?.setItem === "function" &&
+    typeof window.localStorage?.removeItem === "function" &&
+    typeof window.localStorage?.clear === "function"
   ) {
     return;
   }
@@ -195,7 +228,9 @@ async function flush() {
   });
 }
 
-function createIssueDocument(overrides: Partial<IssueDocument> = {}): IssueDocument {
+function createIssueDocument(
+  overrides: Partial<IssueDocument> = {},
+): IssueDocument {
   return {
     id: "document-1",
     companyId: "company-1",
@@ -219,7 +254,9 @@ function createIssueDocument(overrides: Partial<IssueDocument> = {}): IssueDocum
   };
 }
 
-function createRevision(overrides: Partial<DocumentRevision> = {}): DocumentRevision {
+function createRevision(
+  overrides: Partial<DocumentRevision> = {},
+): DocumentRevision {
   return {
     id: "revision-3",
     companyId: "company-1",
@@ -335,7 +372,11 @@ describe("IssueDocumentsSection", () => {
 
     expect(container.textContent).toContain("# Plan");
     expect(container.textContent).not.toContain("# Handoff");
-    expect(container.querySelector(`#document-${ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY}`)).toBeNull();
+    expect(
+      container.querySelector(
+        `#document-${ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY}`,
+      ),
+    ).toBeNull();
 
     await act(async () => {
       root.unmount();
@@ -354,9 +395,18 @@ describe("IssueDocumentsSection", () => {
     });
     const writeText = vi.fn(async () => {});
     const execCommand = vi.fn(() => true);
-    const originalClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
-    const originalSecureContext = Object.getOwnPropertyDescriptor(window, "isSecureContext");
-    const originalExecCommand = Object.getOwnPropertyDescriptor(document, "execCommand");
+    const originalClipboard = Object.getOwnPropertyDescriptor(
+      navigator,
+      "clipboard",
+    );
+    const originalSecureContext = Object.getOwnPropertyDescriptor(
+      window,
+      "isSecureContext",
+    );
+    const originalExecCommand = Object.getOwnPropertyDescriptor(
+      document,
+      "execCommand",
+    );
 
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -385,7 +435,9 @@ describe("IssueDocumentsSection", () => {
       await flush();
       await flush();
 
-      const copyButton = container.querySelector('button[title="Copy document"]');
+      const copyButton = container.querySelector(
+        'button[title="Copy document"]',
+      );
       expect(copyButton).toBeTruthy();
 
       await act(async () => {
@@ -413,7 +465,8 @@ describe("IssueDocumentsSection", () => {
       if (originalExecCommand) {
         Object.defineProperty(document, "execCommand", originalExecCommand);
       } else {
-        delete (document as { execCommand?: (command: string) => boolean }).execCommand;
+        delete (document as { execCommand?: (command: string) => boolean })
+          .execCommand;
       }
     }
   });
@@ -450,7 +503,11 @@ describe("IssueDocumentsSection", () => {
     await act(async () => {
       root.render(
         <QueryClientProvider client={queryClient}>
-          <IssueDocumentsSection issue={issue} canDeleteDocuments={false} canManageDocumentLocks />
+          <IssueDocumentsSection
+            issue={issue}
+            canDeleteDocuments={false}
+            canManageDocumentLocks
+          />
         </QueryClientProvider>,
       );
     });
@@ -466,7 +523,9 @@ describe("IssueDocumentsSection", () => {
     await flush();
 
     expect(mockIssuesApi.lockDocument).toHaveBeenCalledWith("issue-1", "plan");
-    expect(container.querySelector('button[title="Unlock document"]')).toBeTruthy();
+    expect(
+      container.querySelector('button[title="Unlock document"]'),
+    ).toBeTruthy();
 
     await act(async () => {
       root.unmount();
@@ -499,7 +558,11 @@ describe("IssueDocumentsSection", () => {
     await act(async () => {
       root.render(
         <QueryClientProvider client={queryClient}>
-          <IssueDocumentsSection issue={issue} canDeleteDocuments canManageDocumentLocks />
+          <IssueDocumentsSection
+            issue={issue}
+            canDeleteDocuments
+            canManageDocumentLocks
+          />
         </QueryClientProvider>,
       );
     });
@@ -509,7 +572,9 @@ describe("IssueDocumentsSection", () => {
     expect(container.textContent).toContain("Locked plan body");
     expect(container.textContent).not.toContain("Edit document");
     expect(container.textContent).not.toContain("Delete document");
-    expect(container.querySelector('button[title="Unlock document"]')).toBeTruthy();
+    expect(
+      container.querySelector('button[title="Unlock document"]'),
+    ).toBeTruthy();
 
     await act(async () => {
       root.unmount();
@@ -568,8 +633,22 @@ describe("IssueDocumentsSection", () => {
           <IssueDocumentsSection
             issue={issue}
             canDeleteDocuments={false}
-            agentMap={new Map([["agent-1", { id: "agent-1", name: "CodexCoder", icon: "code" }]])}
-            userProfileMap={new Map([["user-1", { label: "Dotta", image: "https://example.test/dotta.png" }]])}
+            agentMap={
+              new Map([
+                [
+                  "agent-1",
+                  { id: "agent-1", name: "CodexCoder", icon: "code" },
+                ],
+              ])
+            }
+            userProfileMap={
+              new Map([
+                [
+                  "user-1",
+                  { label: "Dotta", image: "https://example.test/dotta.png" },
+                ],
+              ])
+            }
           />
         </QueryClientProvider>,
       );
@@ -577,8 +656,9 @@ describe("IssueDocumentsSection", () => {
     await flush();
     await flush();
 
-    const revisionButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("rev 4"));
+    const revisionButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("rev 4"));
     expect(revisionButton).toBeTruthy();
 
     await act(async () => {
@@ -589,7 +669,11 @@ describe("IssueDocumentsSection", () => {
     expect(document.body.textContent).toContain("CodexCoder");
     expect(document.body.textContent).toContain("Dotta");
     expect(document.body.textContent).not.toContain("• agent");
-    expect(document.body.querySelectorAll('[data-slot="avatar"], [data-slot="agent-avatar"]').length).toBeGreaterThanOrEqual(2);
+    expect(
+      document.body.querySelectorAll(
+        '[data-slot="avatar"], [data-slot="agent-avatar"]',
+      ).length,
+    ).toBeGreaterThanOrEqual(2);
 
     await act(async () => {
       root.unmount();
@@ -630,7 +714,12 @@ describe("IssueDocumentsSection", () => {
     queryClient.setQueryData(
       queryKeys.issues.documentRevisions(issue.id, "plan"),
       [
-        createRevision({ id: "revision-4", revisionNumber: 4, body: "", createdAt: new Date("2026-03-31T12:05:00.000Z") }),
+        createRevision({
+          id: "revision-4",
+          revisionNumber: 4,
+          body: "",
+          createdAt: new Date("2026-03-31T12:05:00.000Z"),
+        }),
         createRevision(),
       ],
     );
@@ -648,18 +737,23 @@ describe("IssueDocumentsSection", () => {
     expect(container.textContent).not.toContain("Restored plan body");
 
     const revisionButtons = Array.from(container.querySelectorAll("button"));
-    const historicalRevisionButton = revisionButtons.find((button) => button.textContent?.includes("rev 3"));
+    const historicalRevisionButton = revisionButtons.find((button) =>
+      button.textContent?.includes("rev 3"),
+    );
     expect(historicalRevisionButton).toBeTruthy();
 
     await act(async () => {
-      historicalRevisionButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      historicalRevisionButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(container.textContent).toContain("Viewing revision 3");
     expect(container.textContent).toContain("Restored plan body");
 
-    const restoreButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Restore this revision"));
+    const restoreButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Restore this revision"),
+    );
     expect(restoreButton).toBeTruthy();
 
     await act(async () => {
@@ -667,7 +761,11 @@ describe("IssueDocumentsSection", () => {
     });
     await flush();
 
-    expect(mockIssuesApi.restoreDocumentRevision).toHaveBeenCalledWith("issue-1", "plan", "revision-3");
+    expect(mockIssuesApi.restoreDocumentRevision).toHaveBeenCalledWith(
+      "issue-1",
+      "plan",
+      "revision-3",
+    );
     expect(container.textContent).toContain("Restored plan body");
     expect(container.textContent).not.toContain("Viewing revision 3");
 
@@ -725,22 +823,29 @@ describe("IssueDocumentsSection", () => {
     expect(container.textContent).toContain("Current plan body");
 
     const revisionButtons = Array.from(container.querySelectorAll("button"));
-    const historicalRevisionButton = revisionButtons.find((button) => button.textContent?.includes("rev 3"));
+    const historicalRevisionButton = revisionButtons.find((button) =>
+      button.textContent?.includes("rev 3"),
+    );
     expect(historicalRevisionButton).toBeTruthy();
 
     await act(async () => {
-      historicalRevisionButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      historicalRevisionButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(container.textContent).toContain("Viewing revision 3");
     expect(container.textContent).toContain("Historical plan body");
 
-    const currentRevisionButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("rev 4"));
+    const currentRevisionButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("rev 4"));
     expect(currentRevisionButton).toBeTruthy();
 
     await act(async () => {
-      currentRevisionButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      currentRevisionButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(container.textContent).not.toContain("Viewing revision 3");
@@ -804,22 +909,29 @@ describe("IssueDocumentsSection", () => {
     expect(container.textContent).toContain("Current plan body");
 
     const revisionButtons = Array.from(container.querySelectorAll("button"));
-    const historicalRevisionButton = revisionButtons.find((button) => button.textContent?.includes("rev 2"));
+    const historicalRevisionButton = revisionButtons.find((button) =>
+      button.textContent?.includes("rev 2"),
+    );
     expect(historicalRevisionButton).toBeTruthy();
 
     await act(async () => {
-      historicalRevisionButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      historicalRevisionButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(container.textContent).toContain("Viewing revision 2");
     expect(container.textContent).toContain("Original plan body");
 
-    const currentRevisionButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("rev 3"));
+    const currentRevisionButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("rev 3"));
     expect(currentRevisionButton).toBeTruthy();
 
     await act(async () => {
-      currentRevisionButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      currentRevisionButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(container.textContent).not.toContain("Viewing revision 2");
@@ -918,8 +1030,9 @@ describe("IssueDocumentsSection", () => {
     const rendered = markdownBodies.find((element) =>
       (element.textContent ?? "").includes("Linked work"),
     );
-    expect(rendered?.getAttribute("data-external-reference-keys"))
-      .toContain("https://github.com/example/repo/pull/99");
+    expect(rendered?.getAttribute("data-external-reference-keys")).toContain(
+      "https://github.com/example/repo/pull/99",
+    );
 
     await act(async () => {
       root.unmount();
@@ -949,12 +1062,12 @@ describe("IssueDocumentsSection", () => {
           <IssueDocumentsSection
             issue={issue}
             canDeleteDocuments={false}
-            extraActions={(
+            extraActions={
               <>
                 <button type="button">Upload</button>
                 <button type="button">Sub-issue</button>
               </>
-            )}
+            }
           />
         </QueryClientProvider>,
       );
@@ -992,7 +1105,8 @@ describe("IssueDocumentsSection", () => {
       lockedByUserId: "user-1",
       updatedAt: new Date("2026-03-31T12:06:00.000Z"),
     };
-    const listDocuments = vi.fn()
+    const listDocuments = vi
+      .fn()
       .mockResolvedValueOnce([caseDocument])
       .mockResolvedValue([lockedCaseDocument]);
     const setDocumentLock = vi.fn().mockResolvedValue(lockedCaseDocument);
@@ -1011,8 +1125,18 @@ describe("IssueDocumentsSection", () => {
             subject={{
               id: "case-1",
               documentsQueryKey: ["cases", "documents", "case-1"],
-              idleDocumentRevisionsQueryKey: ["cases", "revisions", "case-1", "__idle__"],
-              documentRevisionsQueryKey: (key) => ["cases", "revisions", "case-1", key],
+              idleDocumentRevisionsQueryKey: [
+                "cases",
+                "revisions",
+                "case-1",
+                "__idle__",
+              ],
+              documentRevisionsQueryKey: (key) => [
+                "cases",
+                "revisions",
+                "case-1",
+                key,
+              ],
               listDocuments,
               listDocumentRevisions: vi.fn().mockResolvedValue([]),
               getDocument: vi.fn().mockResolvedValue(caseDocument),
@@ -1046,7 +1170,9 @@ describe("IssueDocumentsSection", () => {
     await flush();
 
     expect(setDocumentLock).toHaveBeenCalledWith("body", true);
-    expect(container.querySelector('button[title="Unlock document"]')).toBeTruthy();
+    expect(
+      container.querySelector('button[title="Unlock document"]'),
+    ).toBeTruthy();
 
     await act(async () => {
       root.unmount();

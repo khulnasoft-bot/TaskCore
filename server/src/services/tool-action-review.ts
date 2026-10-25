@@ -44,7 +44,13 @@ export async function commitToolActionReview(
     )
     .limit(1);
   if (!source) throw notFound("Tool action request not found");
-  if ((input.issueId || input.interactionId) && (!input.issueId || !input.interactionId || source.issueId !== input.issueId || source.interactionId !== input.interactionId)) {
+  if (
+    (input.issueId || input.interactionId) &&
+    (!input.issueId ||
+      !input.interactionId ||
+      source.issueId !== input.issueId ||
+      source.interactionId !== input.interactionId)
+  ) {
     throw conflict("Tool action request does not belong to this interaction");
   }
   const publications: ActivityPublication[] = [];

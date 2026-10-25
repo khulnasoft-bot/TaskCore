@@ -40,7 +40,9 @@ export function withRecoveryContext<T extends Record<string, unknown>>(
 export function withRecoveryContext<T extends Record<string, unknown>>(
   input: T,
   workClass: RecoveryWorkClass,
-): WithoutRecoveryContext<T> | (WithoutRecoveryContext<T> & typeof STATUS_ONLY_RECOVERY_GUARD_CONTEXT) {
+):
+  | WithoutRecoveryContext<T>
+  | (WithoutRecoveryContext<T> & typeof STATUS_ONLY_RECOVERY_GUARD_CONTEXT) {
   const scrubbed = scrubRecoveryContext(input);
   return workClass === "status_only"
     ? { ...scrubbed, ...STATUS_ONLY_RECOVERY_GUARD_CONTEXT }

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AttentionFeed, AttentionItem, AttentionSourceKind } from "@taskcore/shared";
+import type {
+  AttentionFeed,
+  AttentionItem,
+  AttentionSourceKind,
+} from "@taskcore/shared";
 import {
   ATTENTION_GROUP_BY_KEY,
   ATTENTION_GROUP_BY_OPTIONS,
@@ -31,7 +35,15 @@ function buildItem(overrides: Partial<AttentionItem> = {}): AttentionItem {
     id: "a1",
     companyId: "c1",
     sourceKind: "approval",
-    subject: { kind: "approval", id: "s1", companyId: "c1", title: "t", identifier: null, status: null, href: null },
+    subject: {
+      kind: "approval",
+      id: "s1",
+      companyId: "c1",
+      title: "t",
+      identifier: null,
+      status: null,
+      href: null,
+    },
     whyNow: "why",
     decisionVerbs: [],
     inlineResolvable: true,
@@ -87,26 +99,55 @@ describe("attention group preference persistence", () => {
 
 describe("isInlineResolvable", () => {
   it("is true for approvals/interactions/join when server flags inlineResolvable", () => {
-    for (const kind of ["approval", "issue_thread_interaction", "join_request"] as AttentionSourceKind[]) {
-      expect(isInlineResolvable(buildItem({ sourceKind: kind, inlineResolvable: true }))).toBe(true);
+    for (const kind of [
+      "approval",
+      "issue_thread_interaction",
+      "join_request",
+    ] as AttentionSourceKind[]) {
+      expect(
+        isInlineResolvable(
+          buildItem({ sourceKind: kind, inlineResolvable: true }),
+        ),
+      ).toBe(true);
     }
   });
 
   it("is false when the server marks a row non-inline (e.g. board approval)", () => {
-    expect(isInlineResolvable(buildItem({ sourceKind: "approval", inlineResolvable: false }))).toBe(false);
+    expect(
+      isInlineResolvable(
+        buildItem({ sourceKind: "approval", inlineResolvable: false }),
+      ),
+    ).toBe(false);
   });
 
   it("inlines a stalled review the server flagged (PAP-16080 §4.4)", () => {
-    expect(isInlineResolvable(buildItem({ sourceKind: "review", inlineResolvable: true }))).toBe(true);
+    expect(
+      isInlineResolvable(
+        buildItem({ sourceKind: "review", inlineResolvable: true }),
+      ),
+    ).toBe(true);
   });
 
   it("keeps a covered review deep-linking (server leaves inlineResolvable off)", () => {
-    expect(isInlineResolvable(buildItem({ sourceKind: "review", inlineResolvable: false }))).toBe(false);
+    expect(
+      isInlineResolvable(
+        buildItem({ sourceKind: "review", inlineResolvable: false }),
+      ),
+    ).toBe(false);
   });
 
   it("deep-links recovery/failure/budget rows rather than inlining", () => {
-    for (const kind of ["recovery_action", "failed_run", "budget_alert", "blocker_attention"] as AttentionSourceKind[]) {
-      expect(isInlineResolvable(buildItem({ sourceKind: kind, inlineResolvable: true }))).toBe(false);
+    for (const kind of [
+      "recovery_action",
+      "failed_run",
+      "budget_alert",
+      "blocker_attention",
+    ] as AttentionSourceKind[]) {
+      expect(
+        isInlineResolvable(
+          buildItem({ sourceKind: kind, inlineResolvable: true }),
+        ),
+      ).toBe(false);
     }
   });
 });
@@ -120,7 +161,11 @@ describe("attentionBadgeCount", () => {
       deskBadgeCount: 2,
       nextCursor: "next-page",
       countsBySourceKind: {} as AttentionFeed["countsBySourceKind"],
-      items: [buildItem({ id: "1" }), buildItem({ id: "2" }), buildItem({ id: "3" })],
+      items: [
+        buildItem({ id: "1" }),
+        buildItem({ id: "2" }),
+        buildItem({ id: "3" }),
+      ],
     };
     expect(attentionBadgeCount(feed)).toBe(2);
   });
@@ -145,22 +190,40 @@ describe("buildDeskShelves", () => {
       buildItem({ id: "new-2", createdAt: "2026-07-09T02:00:00Z" }),
     ];
     const shelves = buildDeskShelves(items, NOW);
-    expect(shelves.map((s) => s.key)).toEqual(["desk:new-today", "desk:earlier"]);
+    expect(shelves.map((s) => s.key)).toEqual([
+      "desk:new-today",
+      "desk:earlier",
+    ]);
     expect(shelves[0]!.label).toBe("New today");
-    expect(shelves[0]!.items.map((i) => i.id).sort()).toEqual(["new-1", "new-2"]);
+    expect(shelves[0]!.items.map((i) => i.id).sort()).toEqual([
+      "new-1",
+      "new-2",
+    ]);
     expect(shelves[1]!.items.map((i) => i.id)).toEqual(["old-1"]);
   });
 
   it("adds the 'Decide now' shelf only for items with a due decide-by, and never double-buckets them", () => {
     const items = [
       buildItem({ id: "due", decideBy: "today", createdAt: todayIso }),
-      buildItem({ id: "overdue", decideBy: "2026-07-01", createdAt: earlierIso }),
+      buildItem({
+        id: "overdue",
+        decideBy: "2026-07-01",
+        createdAt: earlierIso,
+      }),
       buildItem({ id: "new", createdAt: "2026-07-09T05:00:00Z" }),
       buildItem({ id: "old", createdAt: earlierIso }),
-      buildItem({ id: "whenever", decideBy: "whenever", createdAt: "2026-07-09T11:00:00Z" }),
+      buildItem({
+        id: "whenever",
+        decideBy: "whenever",
+        createdAt: "2026-07-09T11:00:00Z",
+      }),
     ];
     const shelves = buildDeskShelves(items, NOW);
-    expect(shelves.map((s) => s.key)).toEqual(["desk:decide-now", "desk:new-today", "desk:earlier"]);
+    expect(shelves.map((s) => s.key)).toEqual([
+      "desk:decide-now",
+      "desk:new-today",
+      "desk:earlier",
+    ]);
     // Decide-now items are pulled out of the arrival groups (disjoint shelves).
     expect(shelves[0]!.items.map((i) => i.id)).toEqual(["overdue", "due"]);
     // "New today" is newest-arrival-first: whenever (11:00) before new (05:00).
@@ -179,8 +242,18 @@ describe("buildDeskShelves", () => {
 describe("attentionIsNewToday", () => {
   const NOW = Date.parse("2026-07-09T12:00:00Z");
   it("is true when the item surfaced on the current UTC day", () => {
-    expect(attentionIsNewToday(buildItem({ createdAt: "2026-07-09T00:00:01Z" }), NOW)).toBe(true);
-    expect(attentionIsNewToday(buildItem({ createdAt: "2026-07-08T23:59:59Z" }), NOW)).toBe(false);
+    expect(
+      attentionIsNewToday(
+        buildItem({ createdAt: "2026-07-09T00:00:01Z" }),
+        NOW,
+      ),
+    ).toBe(true);
+    expect(
+      attentionIsNewToday(
+        buildItem({ createdAt: "2026-07-08T23:59:59Z" }),
+        NOW,
+      ),
+    ).toBe(false);
   });
 });
 
@@ -208,7 +281,9 @@ describe("sourceMeta + severityStyle", () => {
   });
 
   it("maps escalation severity to distinct accents", () => {
-    expect(severityStyle("critical").accent).not.toBe(severityStyle("low").accent);
+    expect(severityStyle("critical").accent).not.toBe(
+      severityStyle("low").accent,
+    );
   });
 });
 
@@ -217,19 +292,35 @@ describe("sourceMeta + severityStyle", () => {
 // colour and glyph, so the queue and the task list share one vocabulary.
 describe("attentionKind + attentionStatus (flattened decision types)", () => {
   it("reads anything stuck as blocking", () => {
-    expect(attentionKind(buildItem({ sourceKind: "failed_run" }))).toBe("blocking");
-    expect(attentionKind(buildItem({ sourceKind: "agent_error_alert" }))).toBe("blocking");
-    expect(attentionKind(buildItem({ sourceKind: "blocker_attention" }))).toBe("blocking");
-    expect(attentionKind(buildItem({ sourceKind: "recovery_action" }))).toBe("blocking");
-    expect(attentionKind(buildItem({ sourceKind: "budget_alert" }))).toBe("blocking");
+    expect(attentionKind(buildItem({ sourceKind: "failed_run" }))).toBe(
+      "blocking",
+    );
+    expect(attentionKind(buildItem({ sourceKind: "agent_error_alert" }))).toBe(
+      "blocking",
+    );
+    expect(attentionKind(buildItem({ sourceKind: "blocker_attention" }))).toBe(
+      "blocking",
+    );
+    expect(attentionKind(buildItem({ sourceKind: "recovery_action" }))).toBe(
+      "blocking",
+    );
+    expect(attentionKind(buildItem({ sourceKind: "budget_alert" }))).toBe(
+      "blocking",
+    );
   });
 
   it("reads anything awaiting a verdict as review", () => {
     expect(attentionKind(buildItem({ sourceKind: "approval" }))).toBe("review");
-    expect(attentionKind(buildItem({ sourceKind: "issue_thread_interaction" }))).toBe("review");
-    expect(attentionKind(buildItem({ sourceKind: "join_request" }))).toBe("review");
+    expect(
+      attentionKind(buildItem({ sourceKind: "issue_thread_interaction" })),
+    ).toBe("review");
+    expect(attentionKind(buildItem({ sourceKind: "join_request" }))).toBe(
+      "review",
+    );
     expect(attentionKind(buildItem({ sourceKind: "review" }))).toBe("review");
-    expect(attentionKind(buildItem({ sourceKind: "productivity_review" }))).toBe("review");
+    expect(
+      attentionKind(buildItem({ sourceKind: "productivity_review" })),
+    ).toBe("review");
   });
 
   it("keeps plan approvals in the review family whichever surface raised them", () => {
@@ -240,23 +331,40 @@ describe("attentionKind + attentionStatus (flattened decision types)", () => {
       summaryExcerpt: null,
       images: [],
     });
-    expect(attentionStatus(buildItem({ sourceKind: "approval", detail: planApproval() }))).toBe("in_review");
-    expect(attentionStatus(buildItem({ sourceKind: "issue_thread_interaction", detail: planApproval() }))).toBe(
-      "in_review",
-    );
+    expect(
+      attentionStatus(
+        buildItem({ sourceKind: "approval", detail: planApproval() }),
+      ),
+    ).toBe("in_review");
+    expect(
+      attentionStatus(
+        buildItem({
+          sourceKind: "issue_thread_interaction",
+          detail: planApproval(),
+        }),
+      ),
+    ).toBe("in_review");
   });
 
   it("keeps blocking and review distinct", () => {
-    expect(attentionStatus(buildItem({ sourceKind: "agent_error_alert" }))).not.toBe(
-      attentionStatus(buildItem({ sourceKind: "approval" })),
-    );
+    expect(
+      attentionStatus(buildItem({ sourceKind: "agent_error_alert" })),
+    ).not.toBe(attentionStatus(buildItem({ sourceKind: "approval" })));
   });
 
   it("borrows exactly two task statuses — and never keys colour off severity", () => {
-    expect(attentionStatus(buildItem({ sourceKind: "agent_error_alert" }))).toBe("blocked");
-    expect(attentionStatus(buildItem({ sourceKind: "approval" }))).toBe("in_review");
+    expect(
+      attentionStatus(buildItem({ sourceKind: "agent_error_alert" })),
+    ).toBe("blocked");
+    expect(attentionStatus(buildItem({ sourceKind: "approval" }))).toBe(
+      "in_review",
+    );
     // Same source, opposite severities → identical status (colour ≠ severity).
-    expect(attentionStatus(buildItem({ sourceKind: "failed_run", severity: "critical" }))).toBe(
+    expect(
+      attentionStatus(
+        buildItem({ sourceKind: "failed_run", severity: "critical" }),
+      ),
+    ).toBe(
       attentionStatus(buildItem({ sourceKind: "failed_run", severity: "low" })),
     );
   });
@@ -280,7 +388,10 @@ describe("attentionTaskRef", () => {
         href: "/PAP/issues/PAP-23",
       },
     });
-    expect(attentionTaskRef(item)).toEqual({ identifier: "PAP-23", href: "/PAP/issues/PAP-23" });
+    expect(attentionTaskRef(item)).toEqual({
+      identifier: "PAP-23",
+      href: "/PAP/issues/PAP-23",
+    });
   });
 
   it("reads the task off relatedIssue when the subject merely hangs off one", () => {
@@ -305,7 +416,10 @@ describe("attentionTaskRef", () => {
         href: "/PAP/issues/PAP-20",
       },
     });
-    expect(attentionTaskRef(item)).toEqual({ identifier: "PAP-20", href: "/PAP/issues/PAP-20" });
+    expect(attentionTaskRef(item)).toEqual({
+      identifier: "PAP-20",
+      href: "/PAP/issues/PAP-20",
+    });
   });
 
   it("prefers relatedIssue when both are present — it is the record the subject can't describe", () => {
@@ -374,7 +488,12 @@ describe("attentionDetailLine (§7)", () => {
   it("summarizes questions with a count and the first question", () => {
     const line = attentionDetailLine(
       buildItem({
-        detail: { kind: "questions", questionCount: 2, firstQuestionText: "Which auth provider?", images: [] },
+        detail: {
+          kind: "questions",
+          questionCount: 2,
+          firstQuestionText: "Which auth provider?",
+          images: [],
+        },
       }),
     );
     expect(line).toContain("2 questions");
@@ -384,7 +503,12 @@ describe("attentionDetailLine (§7)", () => {
   it("singularizes a single suggested task", () => {
     const line = attentionDetailLine(
       buildItem({
-        detail: { kind: "suggested_tasks", taskCount: 1, firstTaskTitle: "Add index", images: [] },
+        detail: {
+          kind: "suggested_tasks",
+          taskCount: 1,
+          firstTaskTitle: "Add index",
+          images: [],
+        },
       }),
     );
     expect(line).toContain("1 suggested task");
@@ -395,7 +519,12 @@ describe("attentionDetailLine (§7)", () => {
     const line = attentionDetailLine(
       buildItem({
         sourceKind: "failed_run",
-        detail: { kind: "failed_run", agentName: "Deployer", failureReasonExcerpt: "exit code 1", images: [] },
+        detail: {
+          kind: "failed_run",
+          agentName: "Deployer",
+          failureReasonExcerpt: "exit code 1",
+          images: [],
+        },
       }),
     );
     expect(line).toContain("Deployer");
@@ -408,22 +537,48 @@ describe("attentionDetailLine (§7)", () => {
 });
 
 describe("sortAttentionItems", () => {
-  const older = buildItem({ id: "old", activityAt: "2026-07-01T00:00:00Z", rank: 5 });
-  const newer = buildItem({ id: "new", activityAt: "2026-07-09T00:00:00Z", rank: 9 });
+  const older = buildItem({
+    id: "old",
+    activityAt: "2026-07-01T00:00:00Z",
+    rank: 5,
+  });
+  const newer = buildItem({
+    id: "new",
+    activityAt: "2026-07-09T00:00:00Z",
+    rank: 9,
+  });
 
   it("puts newest first by default", () => {
-    expect(sortAttentionItems([older, newer], "newest").map((i) => i.id)).toEqual(["new", "old"]);
+    expect(
+      sortAttentionItems([older, newer], "newest").map((i) => i.id),
+    ).toEqual(["new", "old"]);
   });
 
   it("reverses to oldest first", () => {
-    expect(sortAttentionItems([older, newer], "oldest").map((i) => i.id)).toEqual(["old", "new"]);
+    expect(
+      sortAttentionItems([older, newer], "oldest").map((i) => i.id),
+    ).toEqual(["old", "new"]);
   });
 
   it("breaks activity ties by rank (lower rank wins) regardless of order", () => {
-    const a = buildItem({ id: "a", activityAt: "2026-07-09T00:00:00Z", rank: 2 });
-    const b = buildItem({ id: "b", activityAt: "2026-07-09T00:00:00Z", rank: 1 });
-    expect(sortAttentionItems([a, b], "newest").map((i) => i.id)).toEqual(["b", "a"]);
-    expect(sortAttentionItems([a, b], "oldest").map((i) => i.id)).toEqual(["b", "a"]);
+    const a = buildItem({
+      id: "a",
+      activityAt: "2026-07-09T00:00:00Z",
+      rank: 2,
+    });
+    const b = buildItem({
+      id: "b",
+      activityAt: "2026-07-09T00:00:00Z",
+      rank: 1,
+    });
+    expect(sortAttentionItems([a, b], "newest").map((i) => i.id)).toEqual([
+      "b",
+      "a",
+    ]);
+    expect(sortAttentionItems([a, b], "oldest").map((i) => i.id)).toEqual([
+      "b",
+      "a",
+    ]);
   });
 
   it("does not mutate the input array", () => {
@@ -445,10 +600,18 @@ describe("attentionDateBucket", () => {
   const now = localTime(7, 10, 12).getTime();
 
   it("buckets by rolling calendar-day windows relative to now", () => {
-    expect(attentionDateBucket(localTime(7, 10, 9).toISOString(), now)).toBe("today");
-    expect(attentionDateBucket(localTime(7, 9, 23).toISOString(), now)).toBe("yesterday");
-    expect(attentionDateBucket(localTime(7, 6, 9).toISOString(), now)).toBe("this_week");
-    expect(attentionDateBucket(localTime(6, 1, 9).toISOString(), now)).toBe("earlier");
+    expect(attentionDateBucket(localTime(7, 10, 9).toISOString(), now)).toBe(
+      "today",
+    );
+    expect(attentionDateBucket(localTime(7, 9, 23).toISOString(), now)).toBe(
+      "yesterday",
+    );
+    expect(attentionDateBucket(localTime(7, 6, 9).toISOString(), now)).toBe(
+      "this_week",
+    );
+    expect(attentionDateBucket(localTime(6, 1, 9).toISOString(), now)).toBe(
+      "earlier",
+    );
   });
 
   it("treats invalid timestamps as earlier", () => {
@@ -475,13 +638,27 @@ describe("groupAttentionItems", () => {
 
   it("groups by date into fixed Today/Yesterday/This week/Earlier order", () => {
     const items = [
-      buildItem({ id: "earlier", activityAt: localTime(6, 1, 9).toISOString() }),
+      buildItem({
+        id: "earlier",
+        activityAt: localTime(6, 1, 9).toISOString(),
+      }),
       buildItem({ id: "today", activityAt: localTime(7, 10, 8).toISOString() }),
-      buildItem({ id: "yesterday", activityAt: localTime(7, 9, 8).toISOString() }),
+      buildItem({
+        id: "yesterday",
+        activityAt: localTime(7, 9, 8).toISOString(),
+      }),
     ];
     const groups = groupAttentionItems(items, "date", { now });
-    expect(groups.map((g) => g.label)).toEqual(["Today", "Yesterday", "Earlier"]);
-    expect(groups.map((g) => g.key)).toEqual(["date:today", "date:yesterday", "date:earlier"]);
+    expect(groups.map((g) => g.label)).toEqual([
+      "Today",
+      "Yesterday",
+      "Earlier",
+    ]);
+    expect(groups.map((g) => g.key)).toEqual([
+      "date:today",
+      "date:yesterday",
+      "date:earlier",
+    ]);
   });
 
   it("groups by severity in escalation order regardless of input order", () => {
@@ -496,11 +673,27 @@ describe("groupAttentionItems", () => {
 
   it("groups by project, keeping a 'No project' bucket for unassigned rows", () => {
     const items = [
-      buildItem({ id: "p1", activityAt: "2026-07-10T10:00:00Z", project: { id: "proj-1", name: "Alpha", urlKey: "alpha", color: null, icon: null } }),
-      buildItem({ id: "none", activityAt: "2026-07-10T11:00:00Z", project: null }),
+      buildItem({
+        id: "p1",
+        activityAt: "2026-07-10T10:00:00Z",
+        project: {
+          id: "proj-1",
+          name: "Alpha",
+          urlKey: "alpha",
+          color: null,
+          icon: null,
+        },
+      }),
+      buildItem({
+        id: "none",
+        activityAt: "2026-07-10T11:00:00Z",
+        project: null,
+      }),
     ];
     const groups = groupAttentionItems(items, "project");
-    const noneGroup = groups.find((g) => g.key === `project:${NO_GROUP_SENTINEL}`);
+    const noneGroup = groups.find(
+      (g) => g.key === `project:${NO_GROUP_SENTINEL}`,
+    );
     expect(noneGroup?.label).toBe("No project");
     expect(groups.find((g) => g.key === "project:proj-1")?.label).toBe("Alpha");
     // Freshest group floats first (No project row is newer).
@@ -513,7 +706,10 @@ describe("groupAttentionItems", () => {
       buildItem({ id: "j", sourceKind: "join_request" }),
     ];
     const groups = groupAttentionItems(items, "type");
-    expect(groups.map((g) => g.key).sort()).toEqual(["type:approval", "type:join_request"]);
+    expect(groups.map((g) => g.key).sort()).toEqual([
+      "type:approval",
+      "type:join_request",
+    ]);
   });
 
   it("preserves the caller-provided intra-group order (sort governs within a bucket)", () => {
@@ -534,29 +730,55 @@ describe("groupAttentionItems", () => {
 });
 
 describe("filterAttentionItems", () => {
-  const approval = buildItem({ id: "ap", sourceKind: "approval", severity: "high", project: { id: "p1", name: "Alpha", urlKey: "a", color: null, icon: null } });
-  const join = buildItem({ id: "jn", sourceKind: "join_request", severity: "low", project: null });
+  const approval = buildItem({
+    id: "ap",
+    sourceKind: "approval",
+    severity: "high",
+    project: { id: "p1", name: "Alpha", urlKey: "a", color: null, icon: null },
+  });
+  const join = buildItem({
+    id: "jn",
+    sourceKind: "join_request",
+    severity: "low",
+    project: null,
+  });
   const items = [approval, join];
 
   it("returns everything when no filters are active", () => {
-    expect(filterAttentionItems(items, defaultAttentionFilterState)).toHaveLength(2);
+    expect(
+      filterAttentionItems(items, defaultAttentionFilterState),
+    ).toHaveLength(2);
     expect(countActiveAttentionFilters(defaultAttentionFilterState)).toBe(0);
   });
 
   it("filters by source kind", () => {
-    const result = filterAttentionItems(items, { ...defaultAttentionFilterState, sourceKinds: ["approval"] });
+    const result = filterAttentionItems(items, {
+      ...defaultAttentionFilterState,
+      sourceKinds: ["approval"],
+    });
     expect(result.map((i) => i.id)).toEqual(["ap"]);
   });
 
   it("filters by severity", () => {
-    const result = filterAttentionItems(items, { ...defaultAttentionFilterState, severities: ["low"] });
+    const result = filterAttentionItems(items, {
+      ...defaultAttentionFilterState,
+      severities: ["low"],
+    });
     expect(result.map((i) => i.id)).toEqual(["jn"]);
   });
 
   it("filters by project id and the no-project sentinel", () => {
-    expect(filterAttentionItems(items, { ...defaultAttentionFilterState, projectIds: ["p1"] }).map((i) => i.id)).toEqual(["ap"]);
     expect(
-      filterAttentionItems(items, { ...defaultAttentionFilterState, projectIds: [NO_GROUP_SENTINEL] }).map((i) => i.id),
+      filterAttentionItems(items, {
+        ...defaultAttentionFilterState,
+        projectIds: ["p1"],
+      }).map((i) => i.id),
+    ).toEqual(["ap"]);
+    expect(
+      filterAttentionItems(items, {
+        ...defaultAttentionFilterState,
+        projectIds: [NO_GROUP_SENTINEL],
+      }).map((i) => i.id),
     ).toEqual(["jn"]);
   });
 
@@ -573,8 +795,24 @@ describe("filterAttentionItems", () => {
 describe("buildAttentionFilterOptions", () => {
   it("collects the distinct dimensions present in the feed", () => {
     const items = [
-      buildItem({ sourceKind: "approval", severity: "high", project: { id: "p1", name: "Alpha", urlKey: "a", color: null, icon: null }, workspace: { id: "w1", name: "WS" } }),
-      buildItem({ sourceKind: "join_request", severity: "low", project: null, workspace: null }),
+      buildItem({
+        sourceKind: "approval",
+        severity: "high",
+        project: {
+          id: "p1",
+          name: "Alpha",
+          urlKey: "a",
+          color: null,
+          icon: null,
+        },
+        workspace: { id: "w1", name: "WS" },
+      }),
+      buildItem({
+        sourceKind: "join_request",
+        severity: "low",
+        project: null,
+        workspace: null,
+      }),
     ];
     const options = buildAttentionFilterOptions(items);
     expect(options.sourceKinds.sort()).toEqual(["approval", "join_request"]);

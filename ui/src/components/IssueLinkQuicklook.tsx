@@ -4,7 +4,10 @@ import * as RouterDom from "react-router-dom";
 import type { Issue } from "@taskcore/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { timeAgo } from "@/lib/timeAgo";
-import { createIssueDetailPath, withIssueDetailHeaderSeed } from "@/lib/issueDetailBreadcrumb";
+import {
+  createIssueDetailPath,
+  withIssueDetailHeaderSeed,
+} from "@/lib/issueDetailBreadcrumb";
 import {
   getIssueDetailQueryOptions,
   ISSUE_DETAIL_STALE_TIME_MS,
@@ -12,7 +15,11 @@ import {
 } from "@/lib/issueDetailCache";
 import { queryKeys } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { StatusGlyph } from "@/components/StatusGlyph";
 import { ProjectTile } from "@/components/ProjectTile";
 
@@ -87,7 +94,9 @@ export const QUICKLOOK_CONTENT_CLASS = "w-72 p-3";
  * vertical line as the trigger's. `end` needs the mirror of it; `center` has no
  * edge to line up with, so it gets nothing.
  */
-export function quicklookAlignOffset(align: "start" | "center" | "end" = "start"): number {
+export function quicklookAlignOffset(
+  align: "start" | "center" | "end" = "start",
+): number {
   if (align === "start") return -QUICKLOOK_CONTENT_INSET_PX;
   if (align === "end") return QUICKLOOK_CONTENT_INSET_PX;
   return 0;
@@ -115,7 +124,9 @@ function summarizeIssueDescription(description: string | null | undefined) {
     .trim();
 
   if (!summary) return null;
-  return summary.length > 180 ? `${summary.slice(0, 177).trimEnd()}...` : summary;
+  return summary.length > 180
+    ? `${summary.slice(0, 177).trimEnd()}...`
+    : summary;
 }
 
 /** "·" between facts in the quicklook's meta and status lines. */
@@ -169,14 +180,21 @@ export function IssueQuicklookCard({
   linkState?: unknown;
   compact?: boolean;
 }) {
-  const description = useMemo(() => summarizeIssueDescription(issue.description), [issue.description]);
+  const description = useMemo(
+    () => summarizeIssueDescription(issue.description),
+    [issue.description],
+  );
   const projectName = issue.project?.name;
 
   return (
     <div className={cn("space-y-2", compact && "space-y-1.5")}>
       <div className="flex items-center gap-1">
         <div className="flex min-w-0 flex-1 items-center gap-1">
-          <StatusGlyph status={issue.status} size="md" title={statusLabel(issue.status)} />
+          <StatusGlyph
+            status={issue.status}
+            size="md"
+            title={statusLabel(issue.status)}
+          />
           <span className="shrink-0 font-mono text-(length:--text-micro) text-muted-foreground">
             {issue.identifier ?? issue.id.slice(0, 8)}
           </span>
@@ -322,10 +340,10 @@ export const IssueLinkQuicklook = React.forwardRef<
       if (!element) return false;
       const rect = element.getBoundingClientRect();
       return (
-        x >= rect.left - EDGE_SLACK_PX
-        && x <= rect.right + EDGE_SLACK_PX
-        && y >= rect.top - EDGE_SLACK_PX
-        && y <= rect.bottom + EDGE_SLACK_PX
+        x >= rect.left - EDGE_SLACK_PX &&
+        x <= rect.right + EDGE_SLACK_PX &&
+        y >= rect.top - EDGE_SLACK_PX &&
+        y <= rect.bottom + EDGE_SLACK_PX
       );
     };
 
@@ -340,7 +358,10 @@ export const IssueLinkQuicklook = React.forwardRef<
       if (nearBox(trigger, x, y) || nearBox(content, x, y)) return true;
       // Opened by keyboard: hold while focus is still inside.
       const active = document.activeElement;
-      return trigger === active || (!!content && !!active && content.contains(active));
+      return (
+        trigger === active ||
+        (!!content && !!active && content.contains(active))
+      );
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -350,16 +371,22 @@ export const IssueLinkQuicklook = React.forwardRef<
     return () => document.removeEventListener("pointermove", onPointerMove);
   }, [open, close]);
 
-  const prefetchedState = issuePrefetch ? withIssueDetailHeaderSeed(state, issuePrefetch) : state;
+  const prefetchedState = issuePrefetch
+    ? withIssueDetailHeaderSeed(state, issuePrefetch)
+    : state;
   const { data, isLoading } = useQuery({
-    ...getIssueDetailQueryOptions(queryClient, issuePathId, { placeholderIssue: issuePrefetch ?? undefined }),
+    ...getIssueDetailQueryOptions(queryClient, issuePathId, {
+      placeholderIssue: issuePrefetch ?? undefined,
+    }),
     enabled: open,
     staleTime: ISSUE_DETAIL_STALE_TIME_MS,
   });
 
   const detailPath = createIssueDetailPath(issuePathId);
   const handlePrefetch = React.useCallback(() => {
-    void prefetchIssueDetailForNavigation(queryClient, issuePathId, { issue: issuePrefetch });
+    void prefetchIssueDetailForNavigation(queryClient, issuePathId, {
+      issue: issuePrefetch,
+    });
   }, [issuePathId, issuePrefetch, queryClient]);
   const link = (
     <RouterDom.Link
@@ -435,14 +462,21 @@ export const IssueLinkQuicklook = React.forwardRef<
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         {data ? (
-          <IssueQuicklookCard issue={data} linkTo={detailPath} linkState={prefetchedState} compact />
+          <IssueQuicklookCard
+            issue={data}
+            linkTo={detailPath}
+            linkState={prefetchedState}
+            compact
+          />
         ) : (
           <div className="space-y-2">
             <div className="h-4 w-24 rounded bg-accent/50" />
             <div className="h-4 w-full rounded bg-accent/40" />
             <div className="h-4 w-3/4 rounded bg-accent/30" />
             {!isLoading ? (
-              <p className="text-xs text-muted-foreground">Unable to load task preview.</p>
+              <p className="text-xs text-muted-foreground">
+                Unable to load task preview.
+              </p>
             ) : null}
           </div>
         )}

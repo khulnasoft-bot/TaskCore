@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { ActivityEvent, Issue, Agent, ProviderTraceMetadata } from "@taskcore/shared";
+import type {
+  ActivityEvent,
+  Issue,
+  Agent,
+  ProviderTraceMetadata,
+} from "@taskcore/shared";
 import {
   isResponsibleUserDenialCode,
   responsibleUserLabel,
@@ -479,7 +484,8 @@ export function IssueRunLedger({
     [runs],
   );
   const canInspectProviderTrace =
-    boardAccess?.source === "local_implicit" || boardAccess?.isInstanceAdmin === true;
+    boardAccess?.source === "local_implicit" ||
+    boardAccess?.isInstanceAdmin === true;
   const { data: providerTraceRows } = useQuery({
     queryKey: queryKeys.providerTraceMetadata(companyId, traceRunIds),
     queryFn: () => heartbeatsApi.providerTraceMetadata(companyId, traceRunIds),
@@ -487,7 +493,8 @@ export function IssueRunLedger({
     retry: false,
   });
   const providerTraceMetadata = useMemo(
-    () => new Map((providerTraceRows ?? []).map((trace) => [trace.runId, trace])),
+    () =>
+      new Map((providerTraceRows ?? []).map((trace) => [trace.runId, trace])),
     [providerTraceRows],
   );
   const watchdogDecision = useMutation({
@@ -613,7 +620,9 @@ export function IssueRunLedgerContent({
   );
   useEffect(() => {
     if (inspectedRun || typeof window === "undefined") return;
-    const requestedRunId = new URLSearchParams(window.location.search).get("inspectRun");
+    const requestedRunId = new URLSearchParams(window.location.search).get(
+      "inspectRun",
+    );
     if (!requestedRunId) return;
     const requestedRun = ledgerRuns.find((run) => run.runId === requestedRunId);
     if (requestedRun) setInspectedRun(requestedRun);

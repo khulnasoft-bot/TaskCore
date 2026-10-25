@@ -7,11 +7,14 @@ export async function holdInteractionResponse(input: {
   pause?: () => Promise<void>;
 }) {
   const now = input.now ?? Date.now;
-  const pause = input.pause ?? (() => new Promise<void>((r) => setTimeout(r, 50)));
+  const pause =
+    input.pause ?? (() => new Promise<void>((r) => setTimeout(r, 50)));
   while (now() < input.deadlineAt) {
     const status = await input.loadStatus();
     if (status !== "pending") return status;
     await pause();
   }
-  throw new Error("Approval overlap fixture timed out waiting for the browser response");
+  throw new Error(
+    "Approval overlap fixture timed out waiting for the browser response",
+  );
 }

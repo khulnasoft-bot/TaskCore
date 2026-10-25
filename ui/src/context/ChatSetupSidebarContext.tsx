@@ -1,1 +1,4 @@
-export { SetupWizardSidebarProvider as ChatSetupSidebarProvider, useSetupWizardSidebar as useChatSetupSidebar } from "./SetupWizardSidebarContext";
+export {
+  SetupWizardSidebarProvider as ChatSetupSidebarProvider,
+  useSetupWizardSidebar as useChatSetupSidebar,
+} from "./SetupWizardSidebarContext";

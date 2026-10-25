@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { IssueWorkProduct } from "@taskcore/shared";
 import { IssueOutputSection } from "./IssueOutputSection";
 
-function makeWorkProduct(overrides: Partial<IssueWorkProduct> & { id: string }): IssueWorkProduct {
+function makeWorkProduct(
+  overrides: Partial<IssueWorkProduct> & { id: string },
+): IssueWorkProduct {
   return {
     companyId: "company-1",
     projectId: null,
@@ -70,7 +72,9 @@ describe("IssueOutputSection", () => {
     expect(markup).toContain(`/api/attachments/${UUIDS["att-1"]}/content`);
     // Filename surfaced and download/open wired
     expect(markup).toContain("demo.mp4");
-    expect(markup).toContain(`/api/attachments/${UUIDS["att-1"]}/content?download=1`);
+    expect(markup).toContain(
+      `/api/attachments/${UUIDS["att-1"]}/content?download=1`,
+    );
     expect(markup).toContain("Download");
     expect(markup).toContain("Open");
     // Section header + size formatting
@@ -95,16 +99,16 @@ describe("IssueOutputSection", () => {
 
     expect(markup).toContain("Browse");
     expect(markup).toContain("Open");
-    expect(markup).toContain(`href="/api/attachments/${UUIDS["att-1"]}/content"`);
+    expect(markup).toContain(
+      `href="/api/attachments/${UUIDS["att-1"]}/content"`,
+    );
     expect(markup).toContain("Download");
   });
 
   it("renders nothing when the issue has no artifact outputs (empty state)", () => {
     const markup = renderToStaticMarkup(
       <IssueOutputSection
-        workProducts={[
-          makeWorkProduct({ id: "pr-1", type: "pull_request" }),
-        ]}
+        workProducts={[makeWorkProduct({ id: "pr-1", type: "pull_request" })]}
       />,
     );
     expect(markup).toBe("");
@@ -140,7 +144,11 @@ describe("IssueOutputSection", () => {
           makeWorkProduct({
             id: "wp-pdf",
             createdAt: new Date("2026-05-30T11:00:00Z"),
-            metadata: metadata("att-pdf", "application/pdf", "talking-points.pdf"),
+            metadata: metadata(
+              "att-pdf",
+              "application/pdf",
+              "talking-points.pdf",
+            ),
           }),
         ]}
       />,
@@ -194,7 +202,10 @@ describe("IssueOutputSection", () => {
             title: "broken-output.mp4",
             isPrimary: true,
             // Missing required path fields → fails the shared metadata schema
-            metadata: { attachmentId: "att-x", contentType: "video/mp4" } as Record<string, unknown>,
+            metadata: {
+              attachmentId: "att-x",
+              contentType: "video/mp4",
+            } as Record<string, unknown>,
           }),
         ]}
       />,

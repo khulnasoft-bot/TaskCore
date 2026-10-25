@@ -44,7 +44,9 @@ describe("SidebarShell", () => {
   }
 
   function handle() {
-    return container.querySelector('[role="separator"]') as HTMLDivElement | null;
+    return container.querySelector(
+      '[role="separator"]',
+    ) as HTMLDivElement | null;
   }
 
   it("uses a persisted width when expanded", () => {
@@ -120,18 +122,24 @@ describe("SidebarShell", () => {
 
     const separator = handle();
     act(() => {
-      separator?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      separator?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+      );
     });
     expect(panel().style.width).toBe("256px");
     expect(window.localStorage.getItem("test.sidebar.width")).toBe("256");
 
     act(() => {
-      separator?.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
+      separator?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Home", bubbles: true }),
+      );
     });
     expect(panel().style.width).toBe("208px");
 
     act(() => {
-      separator?.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true }));
+      separator?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "End", bubbles: true }),
+      );
     });
     expect(panel().style.width).toBe("420px");
   });
@@ -173,7 +181,12 @@ describe("SidebarShell", () => {
 
     act(() => {
       root.render(
-        <SidebarShell open={false} collapsed resizable storageKey="test.sidebar.width">
+        <SidebarShell
+          open={false}
+          collapsed
+          resizable
+          storageKey="test.sidebar.width"
+        >
           <div>Sidebar</div>
         </SidebarShell>,
       );

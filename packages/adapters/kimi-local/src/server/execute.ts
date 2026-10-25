@@ -3,7 +3,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AdapterExecutionContext, AdapterExecutionResult } from "@taskcore/adapter-utils";
+import type {
+  AdapterExecutionContext,
+  AdapterExecutionResult,
+} from "@taskcore/adapter-utils";
 import {
   adapterExecutionTargetIsRemote,
   adapterExecutionTargetRemoteCwd,
@@ -90,7 +93,12 @@ function createKimiEventForwardingLog(
     const line = raw.trim();
     if (!line) return;
     for (const event of extractKimiRuntimeEvents(line)) {
-      await onEvent({ eventType: event.eventType, stream: "stdout", message: event.message, payload: event.payload });
+      await onEvent({
+        eventType: event.eventType,
+        stream: "stdout",
+        message: event.message,
+        payload: event.payload,
+      });
     }
   };
   return {
@@ -113,13 +121,20 @@ function createKimiEventForwardingLog(
   };
 }
 
-function hasNonEmptyEnvValue(env: Record<string, string>, key: string): boolean {
+function hasNonEmptyEnvValue(
+  env: Record<string, string>,
+  key: string,
+): boolean {
   const raw = env[key];
   return typeof raw === "string" && raw.trim().length > 0;
 }
 
-function resolveKimiBillingType(env: Record<string, string>): "api" | "subscription" {
-  return hasNonEmptyEnvValue(env, "KIMI_MODEL_API_KEY") ? "api" : "subscription";
+function resolveKimiBillingType(
+  env: Record<string, string>,
+): "api" | "subscription" {
+  return hasNonEmptyEnvValue(env, "KIMI_MODEL_API_KEY")
+    ? "api"
+    : "subscription";
 }
 
 /**
@@ -128,18 +143,25 @@ function resolveKimiBillingType(env: Record<string, string>): "api" | "subscript
  * KIMI_CODE_NO_AUTO_UPDATE=1 skips the update preflight. User-configured
  * values always win.
  */
-function buildKimiHeadlessEnv(env: Record<string, string>): Record<string, string> {
+function buildKimiHeadlessEnv(
+  env: Record<string, string>,
+): Record<string, string> {
   const next = { ...env };
   if (!next.CI?.trim()) next.CI = "1";
   if (!next.NO_COLOR?.trim()) next.NO_COLOR = "1";
-  if (!next.KIMI_CODE_NO_AUTO_UPDATE?.trim()) next.KIMI_CODE_NO_AUTO_UPDATE = "1";
+  if (!next.KIMI_CODE_NO_AUTO_UPDATE?.trim())
+    next.KIMI_CODE_NO_AUTO_UPDATE = "1";
   if (!next.TERM?.trim()) next.TERM = "dumb";
   return next;
 }
 
-function buildKimiRuntimeEnv(env: Record<string, string>): Record<string, string> {
+function buildKimiRuntimeEnv(
+  env: Record<string, string>,
+): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(ensurePathInEnv({ ...process.env, ...buildKimiHeadlessEnv(env) })).filter(
+    Object.entries(
+      ensurePathInEnv({ ...process.env, ...buildKimiHeadlessEnv(env) }),
+    ).filter(
       (entry): entry is [string, string] => typeof entry[1] === "string",
     ),
   );
@@ -160,7 +182,11 @@ function renderTaskcoreEnvNote(env: Record<string, string>): string {
 }
 
 function renderApiAccessNote(env: Record<string, string>): string {
-  if (!hasNonEmptyEnvValue(env, "TASKCORE_API_URL") || !hasNonEmptyEnvValue(env, "TASKCORE_API_KEY")) return "";
+  if (
+    !hasNonEmptyEnvValue(env, "TASKCORE_API_URL") ||
+    !hasNonEmptyEnvValue(env, "TASKCORE_API_KEY")
+  )
+    return "";
   return [
     "Taskcore API access note:",
     "Use shell commands with curl to make Taskcore API requests when needed.",
@@ -176,8 +202,13 @@ async function buildKimiSkillsDir(
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-kimi-skills-"));
   const target = path.join(tmp, "skills");
   await fs.mkdir(target, { recursive: true });
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredNames = new Set(resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries));
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredNames = new Set(
+    resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries),
+  );
   for (const entry of availableEntries) {
     if (!desiredNames.has(entry.key)) continue;
     if (isTaskcoreSkillSourceMissing(entry)) continue;
@@ -186,7 +217,9 @@ async function buildKimiSkillsDir(
   return target;
 }
 
-export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
+export async function execute(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
   const providerStop = createProviderStoppedBoundary(ctx.onProviderStopped);
   const engineSelection = await resolveKimiExecutionEngineForRun(ctx);
   if (engineSelection.unavailableReason) {
@@ -205,12 +238,24 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     return executeKimiAcp(ctx);
   }
 
-  const { runId, agent, runtime, config, context, onLog, onMeta, onEvent, onSpawn, authToken } = ctx;
+  const {
+    runId,
+    agent,
+    runtime,
+    config,
+    context,
+    onLog,
+    onMeta,
+    onEvent,
+    onSpawn,
+    authToken,
+  } = ctx;
   const executionTarget = readAdapterExecutionTarget({
     executionTarget: ctx.executionTarget,
     legacyRemoteExecution: ctx.executionTransport?.remoteExecution,
   });
-  const executionTargetIsRemote = adapterExecutionTargetIsRemote(executionTarget);
+  const executionTargetIsRemote =
+    adapterExecutionTargetIsRemote(executionTarget);
 
   const promptTemplate = asString(
     config.promptTemplate,
@@ -230,48 +275,76 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const agentHome = asString(workspaceContext.agentHome, "");
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-      (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
-    )
+        (value): value is Record<string, unknown> =>
+          typeof value === "object" && value !== null,
+      )
     : [];
   const configuredCwd = asString(config.cwd, "");
-  const useConfiguredInsteadOfAgentHome = workspaceSource === "agent_home" && configuredCwd.length > 0;
-  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome ? "" : workspaceCwd;
+  const useConfiguredInsteadOfAgentHome =
+    workspaceSource === "agent_home" && configuredCwd.length > 0;
+  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome
+    ? ""
+    : workspaceCwd;
   const cwd = effectiveWorkspaceCwd || configuredCwd || process.cwd();
-  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(executionTarget, cwd);
+  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(
+    executionTarget,
+    cwd,
+  );
   await ensureAbsoluteDirectory(cwd, { createIfMissing: true });
-  const kimiSkillEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredKimiSkillNames = resolveLegacyTaskcoreDesiredSkillNames(config, kimiSkillEntries);
+  const kimiSkillEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredKimiSkillNames = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    kimiSkillEntries,
+  );
   const envConfig = parseObject(config.env);
 
   const hasExplicitApiKey =
-    typeof envConfig.TASKCORE_API_KEY === "string" && envConfig.TASKCORE_API_KEY.trim().length > 0;
+    typeof envConfig.TASKCORE_API_KEY === "string" &&
+    envConfig.TASKCORE_API_KEY.trim().length > 0;
   const env: Record<string, string> = {
     ...buildTaskcoreEnv(agent, ctx.agentIdentity),
     ...buildRuntimeToolsEnv(ctx.runtimeTools),
   };
   env.TASKCORE_RUN_ID = runId;
   const wakeTaskId =
-    (typeof context.taskId === "string" && context.taskId.trim().length > 0 && context.taskId.trim()) ||
-    (typeof context.issueId === "string" && context.issueId.trim().length > 0 && context.issueId.trim()) ||
+    (typeof context.taskId === "string" &&
+      context.taskId.trim().length > 0 &&
+      context.taskId.trim()) ||
+    (typeof context.issueId === "string" &&
+      context.issueId.trim().length > 0 &&
+      context.issueId.trim()) ||
     null;
   const wakeReason =
-    typeof context.wakeReason === "string" && context.wakeReason.trim().length > 0
+    typeof context.wakeReason === "string" &&
+    context.wakeReason.trim().length > 0
       ? context.wakeReason.trim()
       : null;
   const wakeCommentId =
-    (typeof context.wakeCommentId === "string" && context.wakeCommentId.trim().length > 0 && context.wakeCommentId.trim()) ||
-    (typeof context.commentId === "string" && context.commentId.trim().length > 0 && context.commentId.trim()) ||
+    (typeof context.wakeCommentId === "string" &&
+      context.wakeCommentId.trim().length > 0 &&
+      context.wakeCommentId.trim()) ||
+    (typeof context.commentId === "string" &&
+      context.commentId.trim().length > 0 &&
+      context.commentId.trim()) ||
     null;
   const approvalId =
-    typeof context.approvalId === "string" && context.approvalId.trim().length > 0
+    typeof context.approvalId === "string" &&
+    context.approvalId.trim().length > 0
       ? context.approvalId.trim()
       : null;
   const approvalStatus =
-    typeof context.approvalStatus === "string" && context.approvalStatus.trim().length > 0
+    typeof context.approvalStatus === "string" &&
+    context.approvalStatus.trim().length > 0
       ? context.approvalStatus.trim()
       : null;
   const linkedIssueIds = Array.isArray(context.issueIds)
-    ? context.issueIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    ? context.issueIds.filter(
+        (value): value is string =>
+          typeof value === "string" && value.trim().length > 0,
+      )
     : [];
   const issueWorkMode = readTaskcoreIssueWorkModeFromContext(context);
   if (wakeTaskId) env.TASKCORE_TASK_ID = wakeTaskId;
@@ -280,7 +353,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   if (wakeCommentId) env.TASKCORE_WAKE_COMMENT_ID = wakeCommentId;
   if (approvalId) env.TASKCORE_APPROVAL_ID = approvalId;
   if (approvalStatus) env.TASKCORE_APPROVAL_STATUS = approvalStatus;
-  if (linkedIssueIds.length > 0) env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
+  if (linkedIssueIds.length > 0)
+    env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
   refreshTaskcoreWorkspaceEnvForExecution({
     env,
     envConfig,
@@ -302,7 +376,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   // applies to Kimi providers (managed OAuth models included). Only send it for
   // models that advertise support_efforts, and never clobber an explicit value.
   const configuredEffort = asString(config.effort, "").trim();
-  if (configuredEffort && modelSupportsEffort(model) && !hasNonEmptyEnvValue(env, "KIMI_MODEL_THINKING_EFFORT")) {
+  if (
+    configuredEffort &&
+    modelSupportsEffort(model) &&
+    !hasNonEmptyEnvValue(env, "KIMI_MODEL_THINKING_EFFORT")
+  ) {
     const kimiEffort = resolveKimiThinkingEffort(configuredEffort);
     if (kimiEffort) env.KIMI_MODEL_THINKING_EFFORT = kimiEffort;
   }
@@ -324,11 +402,22 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     graceSec,
     onLog,
   });
-  await ensureAdapterExecutionTargetCommandResolvable(command, executionTarget, cwd, runtimeEnv, {
-    installCommand: SANDBOX_INSTALL_COMMAND,
-    timeoutSec,
-  });
-  const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(command, executionTarget, cwd, runtimeEnv);
+  await ensureAdapterExecutionTargetCommandResolvable(
+    command,
+    executionTarget,
+    cwd,
+    runtimeEnv,
+    {
+      installCommand: SANDBOX_INSTALL_COMMAND,
+      timeoutSec,
+    },
+  );
+  const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(
+    command,
+    executionTarget,
+    cwd,
+    runtimeEnv,
+  );
   const extraArgs = (() => {
     const fromExtraArgs = asStringArray(config.extraArgs);
     if (fromExtraArgs.length > 0) return fromExtraArgs;
@@ -338,7 +427,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   let localSkillsDir: string | null = null;
   let remoteSkillsDir: string | null = null;
   let remoteRuntimeRootDir: string | null = null;
-  let taskcoreBridge: Awaited<ReturnType<typeof startAdapterExecutionTargetTaskcoreBridge>> = null;
+  let taskcoreBridge: Awaited<
+    ReturnType<typeof startAdapterExecutionTargetTaskcoreBridge>
+  > = null;
 
   if (executionTargetIsRemote) {
     try {
@@ -347,25 +438,32 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         "stdout",
         `[taskcore] Syncing workspace and Kimi runtime assets to ${describeAdapterExecutionTarget(executionTarget)}.\n`,
       );
-      const preparedExecutionTargetRuntime = await prepareAdapterExecutionTargetRuntime({
-        runId,
-        target: executionTarget,
-        adapterKey: "kimi",
-        timeoutSec,
-        workspaceLocalDir: cwd,
-        installCommand: SANDBOX_INSTALL_COMMAND,
-        detectCommand: command,
-        onProgress: (line) => onLog("stdout", line),
-        onRuntimeProgress: ctx.onRuntimeProgress,
-        assets: [{
-          key: "skills",
-          localDir: localSkillsDir,
-          followSymlinks: true,
-        }],
-      });
+      const preparedExecutionTargetRuntime =
+        await prepareAdapterExecutionTargetRuntime({
+          runId,
+          target: executionTarget,
+          adapterKey: "kimi",
+          timeoutSec,
+          workspaceLocalDir: cwd,
+          installCommand: SANDBOX_INSTALL_COMMAND,
+          detectCommand: command,
+          onProgress: (line) => onLog("stdout", line),
+          onRuntimeProgress: ctx.onRuntimeProgress,
+          assets: [
+            {
+              key: "skills",
+              localDir: localSkillsDir,
+              followSymlinks: true,
+            },
+          ],
+        });
       restoreRemoteWorkspace = () =>
-        preparedExecutionTargetRuntime.restoreWorkspace((line) => onLog("stdout", line));
-      effectiveExecutionCwd = preparedExecutionTargetRuntime.workspaceRemoteDir ?? effectiveExecutionCwd;
+        preparedExecutionTargetRuntime.restoreWorkspace((line) =>
+          onLog("stdout", line),
+        );
+      effectiveExecutionCwd =
+        preparedExecutionTargetRuntime.workspaceRemoteDir ??
+        effectiveExecutionCwd;
       refreshTaskcoreWorkspaceEnvForExecution({
         env,
         envConfig,
@@ -380,7 +478,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         executionCwd: effectiveExecutionCwd,
       });
       remoteRuntimeRootDir = preparedExecutionTargetRuntime.runtimeRootDir;
-      const managedHome = adapterExecutionTargetUsesManagedHome(executionTarget);
+      const managedHome =
+        adapterExecutionTargetUsesManagedHome(executionTarget);
       const managedRemoteHomeDir =
         managedHome && preparedExecutionTargetRuntime.runtimeRootDir
           ? preparedExecutionTargetRuntime.runtimeRootDir
@@ -393,19 +492,35 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       // shared $KIMI_CODE_HOME/skills home. Overwriting the shared home would
       // delete Kimi skills installed by the operator or other agents that
       // Taskcore does not own.
-      if (desiredKimiSkillNames.length > 0 && preparedExecutionTargetRuntime.assetDirs.skills) {
+      if (
+        desiredKimiSkillNames.length > 0 &&
+        preparedExecutionTargetRuntime.assetDirs.skills
+      ) {
         remoteSkillsDir = preparedExecutionTargetRuntime.assetDirs.skills;
       }
     } catch (error) {
       await Promise.allSettled([
         restoreRemoteWorkspace?.(),
-        localSkillsDir ? fs.rm(path.dirname(localSkillsDir), { recursive: true, force: true }).catch(() => undefined) : Promise.resolve(),
+        localSkillsDir
+          ? fs
+              .rm(path.dirname(localSkillsDir), {
+                recursive: true,
+                force: true,
+              })
+              .catch(() => undefined)
+          : Promise.resolve(),
       ]);
       throw error;
     }
   }
-  const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(executionTarget, effectiveExecutionCwd);
-  if (executionTargetIsRemote && adapterExecutionTargetUsesTaskcoreBridge(executionTarget)) {
+  const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(
+    executionTarget,
+    effectiveExecutionCwd,
+  );
+  if (
+    executionTargetIsRemote &&
+    adapterExecutionTargetUsesTaskcoreBridge(executionTarget)
+  ) {
     taskcoreBridge = await startAdapterExecutionTargetTaskcoreBridge({
       runId,
       target: runtimeExecutionTarget,
@@ -434,13 +549,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   }
 
   const runtimeSessionParams = parseObject(runtime.sessionParams);
-  const runtimeSessionId = asString(runtimeSessionParams.sessionId, runtime.sessionId ?? "");
+  const runtimeSessionId = asString(
+    runtimeSessionParams.sessionId,
+    runtime.sessionId ?? "",
+  );
   const runtimeSessionCwd = asString(runtimeSessionParams.cwd, "");
-  const runtimeRemoteExecution = parseObject(runtimeSessionParams.remoteExecution);
+  const runtimeRemoteExecution = parseObject(
+    runtimeSessionParams.remoteExecution,
+  );
   const canResumeSession =
     runtimeSessionId.length > 0 &&
-    (runtimeSessionCwd.length === 0 || path.resolve(runtimeSessionCwd) === path.resolve(effectiveExecutionCwd)) &&
-    adapterExecutionTargetSessionMatches(runtimeRemoteExecution, runtimeExecutionTarget);
+    (runtimeSessionCwd.length === 0 ||
+      path.resolve(runtimeSessionCwd) ===
+        path.resolve(effectiveExecutionCwd)) &&
+    adapterExecutionTargetSessionMatches(
+      runtimeRemoteExecution,
+      runtimeExecutionTarget,
+    );
   const sessionId = canResumeSession ? runtimeSessionId : null;
   if (executionTargetIsRemote && runtimeSessionId && !canResumeSession) {
     await onLog(
@@ -455,11 +580,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   }
 
   const instructionsFilePath = asString(config.instructionsFilePath, "").trim();
-  const instructionsDir = instructionsFilePath ? `${path.dirname(instructionsFilePath)}/` : "";
+  const instructionsDir = instructionsFilePath
+    ? `${path.dirname(instructionsFilePath)}/`
+    : "";
   let instructionsPrefix = "";
   if (instructionsFilePath) {
     try {
-      const instructionsContents = await fs.readFile(instructionsFilePath, "utf8");
+      const instructionsContents = await fs.readFile(
+        instructionsFilePath,
+        "utf8",
+      );
       instructionsPrefix =
         `${instructionsContents}\n\n` +
         `The above agent instructions were loaded from ${instructionsFilePath}. ` +
@@ -475,18 +605,32 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     }
   }
   const commandNotes = (() => {
-    const notes: string[] = ["Prompt is passed to Kimi via -p for non-interactive execution."];
-    notes.push("Added --output-format stream-json for structured headless output.");
-    notes.push("Set headless env (CI=1, NO_COLOR=1, KIMI_CODE_NO_AUTO_UPDATE=1) so unattended runs skip interactive prompts and update preflight.");
+    const notes: string[] = [
+      "Prompt is passed to Kimi via -p for non-interactive execution.",
+    ];
+    notes.push(
+      "Added --output-format stream-json for structured headless output.",
+    );
+    notes.push(
+      "Set headless env (CI=1, NO_COLOR=1, KIMI_CODE_NO_AUTO_UPDATE=1) so unattended runs skip interactive prompts and update preflight.",
+    );
     if (hasNonEmptyEnvValue(env, "KIMI_MODEL_THINKING_EFFORT")) {
-      notes.push(`Set KIMI_MODEL_THINKING_EFFORT=${env.KIMI_MODEL_THINKING_EFFORT} for model ${model}.`);
+      notes.push(
+        `Set KIMI_MODEL_THINKING_EFFORT=${env.KIMI_MODEL_THINKING_EFFORT} for model ${model}.`,
+      );
     }
-    const effectiveSkillsDir = executionTargetIsRemote ? remoteSkillsDir : localSkillsDir;
+    const effectiveSkillsDir = executionTargetIsRemote
+      ? remoteSkillsDir
+      : localSkillsDir;
     if (effectiveSkillsDir) {
-      notes.push(`Loading ${desiredKimiSkillNames.length} desired skill(s) via --skills-dir ${effectiveSkillsDir}.`);
+      notes.push(
+        `Loading ${desiredKimiSkillNames.length} desired skill(s) via --skills-dir ${effectiveSkillsDir}.`,
+      );
     }
     if (!executionTargetIsRemote && instructionsFilePath) {
-      notes.push(`Added --add-dir ${path.dirname(instructionsFilePath)} so sibling instruction files are readable.`);
+      notes.push(
+        `Added --add-dir ${path.dirname(instructionsFilePath)} so sibling instruction files are readable.`,
+      );
     }
     if (!instructionsFilePath) return notes;
     if (instructionsPrefix.length > 0) {
@@ -512,7 +656,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     run: { id: runId, source: "on_demand" },
     context,
   };
-  const sessionHandoffNote = asString(context.taskcoreSessionHandoffMarkdown, "").trim();
+  const sessionHandoffNote = asString(
+    context.taskcoreSessionHandoffMarkdown,
+    "",
+  ).trim();
   const taskcoreEnvNote = renderTaskcoreEnvNote(env);
   const apiAccessNote = renderApiAccessNote(env);
 
@@ -531,7 +678,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     // (local snapshot, or the synced remote snapshot) instead of the shared
     // skills home. Only passed when skills are desired so unconfigured agents
     // keep Kimi's default skill discovery.
-    const effectiveSkillsDir = executionTargetIsRemote ? remoteSkillsDir : localSkillsDir;
+    const effectiveSkillsDir = executionTargetIsRemote
+      ? remoteSkillsDir
+      : localSkillsDir;
     if (effectiveSkillsDir) {
       args.push("--skills-dir", effectiveSkillsDir);
     }
@@ -541,19 +690,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   };
 
   const runAttempt = async (resumeSessionId: string | null) => {
-    await hydrateFreshSessionHandoff(ctx, { resumedSession: Boolean(resumeSessionId) });
+    await hydrateFreshSessionHandoff(ctx, {
+      resumedSession: Boolean(resumeSessionId),
+    });
     const attemptSections = selectTaskcorePromptSections(context, {
       resumedSession: Boolean(resumeSessionId),
       includeCommunicationGuidance: false,
     });
-    const attemptBootstrapPrompt = !resumeSessionId && bootstrapPromptTemplate.trim().length > 0
-      ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
-      : "";
+    const attemptBootstrapPrompt =
+      !resumeSessionId && bootstrapPromptTemplate.trim().length > 0
+        ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
+        : "";
     const attemptWakePrompt = attemptSections.wakePrompt;
-    const attemptRenderedPrompt = Boolean(resumeSessionId) && attemptWakePrompt.length > 0
-      || isTaskcoreRecoveryWakePayload(context.taskcoreWake)
-      ? ""
-      : renderTemplate(promptTemplate, templateData);
+    const attemptRenderedPrompt =
+      (Boolean(resumeSessionId) && attemptWakePrompt.length > 0) ||
+      isTaskcoreRecoveryWakePayload(context.taskcoreWake)
+        ? ""
+        : renderTemplate(promptTemplate, templateData);
     const attemptBasePrompt = joinPromptSections([
       instructionsPrefix,
       attemptBootstrapPrompt,
@@ -565,7 +718,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       attemptRenderedPrompt,
     ]);
     const prompt = joinPromptSections([
-      selectInitialCommunicationGuidance(context, { resumedSession: Boolean(resumeSessionId) }),
+      selectInitialCommunicationGuidance(context, {
+        resumedSession: Boolean(resumeSessionId),
+      }),
       attemptBasePrompt,
     ]);
     const promptMetrics = {
@@ -592,9 +747,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         command: resolvedCommand,
         cwd: effectiveExecutionCwd,
         commandNotes,
-        commandArgs: args.map((value, index) => (
-          index === args.length - 1 ? `<prompt ${prompt.length} chars>` : value
-        )),
+        commandArgs: args.map((value, index) =>
+          index === args.length - 1 ? `<prompt ${prompt.length} chars>` : value,
+        ),
         env: loggedEnv,
         prompt,
         promptMetrics: { ...promptMetrics, promptChars: prompt.length },
@@ -603,18 +758,24 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     }
 
     const eventForwarder = createKimiEventForwardingLog(onLog, onEvent);
-    const proc = await runAdapterExecutionTargetProcess(runId, runtimeExecutionTarget, command, args, {
-      onProcessStopped: providerStop.beginInvocation(),
-      cwd,
-      env: invocationEnv,
-      timeoutSec,
-      graceSec,
-      onSpawn,
-      onRuntimeProgress: ctx.onRuntimeProgress,
-      onLog: eventForwarder.log,
-      runLogTail: taskcoreBridge?.runLogTail,
-      settleRunDisposition: taskcoreBridge?.settleRunDisposition,
-    });
+    const proc = await runAdapterExecutionTargetProcess(
+      runId,
+      runtimeExecutionTarget,
+      command,
+      args,
+      {
+        onProcessStopped: providerStop.beginInvocation(),
+        cwd,
+        env: invocationEnv,
+        timeoutSec,
+        graceSec,
+        onSpawn,
+        onRuntimeProgress: ctx.onRuntimeProgress,
+        onLog: eventForwarder.log,
+        runLogTail: taskcoreBridge?.runLogTail,
+        settleRunDisposition: taskcoreBridge?.settleRunDisposition,
+      },
+    );
     await eventForwarder.flush();
     return {
       proc,
@@ -641,7 +802,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       stdout: attempt.proc.stdout,
       stderr: attempt.proc.stderr,
     });
-    const networkUnavailable = isKimiTransientNetworkError(attempt.proc.stdout, attempt.proc.stderr);
+    const networkUnavailable = isKimiTransientNetworkError(
+      attempt.proc.stdout,
+      attempt.proc.stderr,
+    );
 
     if (attempt.proc.timedOut) {
       return {
@@ -668,7 +832,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       };
     }
 
-    const parsedError = typeof attempt.parsed.errorMessage === "string" ? attempt.parsed.errorMessage.trim() : "";
+    const parsedError =
+      typeof attempt.parsed.errorMessage === "string"
+        ? attempt.parsed.errorMessage.trim()
+        : "";
     const stderrLine = firstNonEmptyLine(attempt.proc.stderr);
     const structuredFailure = describeKimiFailure({
       errorMessage: attempt.parsed.errorMessage,
@@ -684,25 +851,31 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     // A null exit code means the process never exited normally (e.g. killed by
     // a signal). Timeouts are handled earlier; treat any other non-zero or
     // null exit as a failure so a signaled kill is never reported as success.
-    const failed = attempt.proc.exitCode === null || attempt.proc.exitCode !== 0;
+    const failed =
+      attempt.proc.exitCode === null || attempt.proc.exitCode !== 0;
 
     // On retry, don't fall back to old session ID — the old session was stale
     const canFallbackToRuntimeSession = !isRetry;
-    const resolvedSessionId = attempt.parsed.sessionId
-      ?? (canFallbackToRuntimeSession ? (runtimeSessionId ?? runtime.sessionId ?? null) : null);
+    const resolvedSessionId =
+      attempt.parsed.sessionId ??
+      (canFallbackToRuntimeSession
+        ? (runtimeSessionId ?? runtime.sessionId ?? null)
+        : null);
     const resolvedSessionParams = resolvedSessionId
       ? ({
-        sessionId: resolvedSessionId,
-        cwd: effectiveExecutionCwd,
-        ...(workspaceId ? { workspaceId } : {}),
-        ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
-        ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
-        ...(executionTargetIsRemote
-          ? {
-              remoteExecution: adapterExecutionTargetSessionIdentity(runtimeExecutionTarget),
-            }
-          : {}),
-      } as Record<string, unknown>)
+          sessionId: resolvedSessionId,
+          cwd: effectiveExecutionCwd,
+          ...(workspaceId ? { workspaceId } : {}),
+          ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
+          ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
+          ...(executionTargetIsRemote
+            ? {
+                remoteExecution: adapterExecutionTargetSessionIdentity(
+                  runtimeExecutionTarget,
+                ),
+              }
+            : {}),
+        } as Record<string, unknown>)
       : null;
     const resultJson: Record<string, unknown> = {
       toolCalls: attempt.parsed.toolCalls,
@@ -724,10 +897,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       errorCode: attempt.proc.errorCode
         ? attempt.proc.errorCode
         : failed && authMeta.requiresAuth
-        ? "kimi_auth_required"
-        : failed && networkUnavailable
-        ? "kimi_network_unavailable"
-        : null,
+          ? "kimi_auth_required"
+          : failed && networkUnavailable
+            ? "kimi_network_unavailable"
+            : null,
       sessionId: resolvedSessionId,
       sessionParams: resolvedSessionParams,
       sessionDisplayId: resolvedSessionId,
@@ -765,7 +938,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       await Promise.all([
         taskcoreBridge?.stop(),
         restoreRemoteWorkspace?.(),
-        localSkillsDir ? fs.rm(path.dirname(localSkillsDir), { recursive: true, force: true }).catch(() => undefined) : Promise.resolve(),
+        localSkillsDir
+          ? fs
+              .rm(path.dirname(localSkillsDir), {
+                recursive: true,
+                force: true,
+              })
+              .catch(() => undefined)
+          : Promise.resolve(),
       ]);
     }
   }

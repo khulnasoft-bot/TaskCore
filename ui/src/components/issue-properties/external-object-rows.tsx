@@ -44,13 +44,17 @@ function externalObjectRowLabel(group: IssueExternalObjectGroup): ReactNode {
   const Icon = externalObjectIconForKey(pill.iconKey);
   return (
     <span className="inline-flex min-w-0 items-start gap-1" title={displayKey}>
-      {Icon ? <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 mt-0.5" /> : null}
+      {Icon ? (
+        <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+      ) : null}
       <span className="truncate">{displayKey}</span>
     </span>
   );
 }
 
-function githubObjectPropertyValue(url: string | null | undefined): string | null {
+function githubObjectPropertyValue(
+  url: string | null | undefined,
+): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url);
@@ -65,42 +69,64 @@ function githubObjectPropertyValue(url: string | null | undefined): string | nul
   }
 }
 
-function externalObjectPropertyStatusLabel(group: IssueExternalObjectGroup): string {
+function externalObjectPropertyStatusLabel(
+  group: IssueExternalObjectGroup,
+): string {
   return externalObjectDisplayStatusLabel(group.pill);
 }
 
 function externalObjectPropertyValue(group: IssueExternalObjectGroup): string {
   const { pill } = group;
   const statusLabel = externalObjectPropertyStatusLabel(group);
-  const githubLabel = pill.providerKey === "github" ? githubObjectPropertyValue(pill.url) : null;
-  const base = githubLabel ?? pill.displayTitle?.trim() ?? externalObjectRowDisplayKey(group);
+  const githubLabel =
+    pill.providerKey === "github" ? githubObjectPropertyValue(pill.url) : null;
+  const base =
+    githubLabel ??
+    pill.displayTitle?.trim() ??
+    externalObjectRowDisplayKey(group);
   return statusLabel ? `${base} - ${statusLabel}` : base;
 }
 
 function isMergedExternalObject(group: IssueExternalObjectGroup): boolean {
   const statusLabel = externalObjectPropertyStatusLabel(group);
-  return group.pill.statusIconKey === "git-merge" || statusLabel.toLowerCase() === "merged";
+  return (
+    group.pill.statusIconKey === "git-merge" ||
+    statusLabel.toLowerCase() === "merged"
+  );
 }
 
 function externalObjectPropertyTone(group: IssueExternalObjectGroup): string {
   const tone = isMergedExternalObject(group)
     ? externalObjectStatusIcon.merged
-    : externalObjectStatusIcon[group.pill.statusCategory] ?? externalObjectStatusIconDefault;
-  return tone.split(" ").filter((c) => c.startsWith("text-")).join(" ");
+    : (externalObjectStatusIcon[group.pill.statusCategory] ??
+      externalObjectStatusIconDefault);
+  return tone
+    .split(" ")
+    .filter((c) => c.startsWith("text-"))
+    .join(" ");
 }
 
-function externalObjectPropertyStatusIconKey(group: IssueExternalObjectGroup): string | null | undefined {
-  if (isMergedExternalObject(group)) return group.pill.statusIconKey ?? "git-merge";
+function externalObjectPropertyStatusIconKey(
+  group: IssueExternalObjectGroup,
+): string | null | undefined {
+  if (isMergedExternalObject(group))
+    return group.pill.statusIconKey ?? "git-merge";
   return group.pill.statusIconKey;
 }
 
 function externalObjectPropertyTitle(group: IssueExternalObjectGroup): string {
   const { pill, sourceLabels } = group;
   const base = pill.displayTitle ?? externalObjectPropertyValue(group);
-  return sourceLabels.length > 0 ? `${base} - ${sourceLabels.join(", ")}` : base;
+  return sourceLabels.length > 0
+    ? `${base} - ${sourceLabels.join(", ")}`
+    : base;
 }
 
-function ExternalObjectPropertyValue({ group }: { group: IssueExternalObjectGroup }) {
+function ExternalObjectPropertyValue({
+  group,
+}: {
+  group: IssueExternalObjectGroup;
+}) {
   const { pill } = group;
   const statusLabel = externalObjectPropertyStatusLabel(group);
   const providerLabel = externalObjectProviderLabel(pill.providerKey);
@@ -121,7 +147,9 @@ function ExternalObjectPropertyValue({ group }: { group: IssueExternalObjectGrou
   const className = cn(
     "inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm no-underline",
     externalObjectPropertyTone(group),
-    pill.url ? "hover:underline focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring" : "",
+    pill.url
+      ? "hover:underline focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring"
+      : "",
   );
 
   if (pill.url) {
@@ -209,22 +237,25 @@ export function ExternalObjectRows({
   const visibleExternalObjects = expanded
     ? sortedExternalObjects
     : sortedExternalObjects.slice(0, EXTERNAL_OBJECT_PROPERTY_PREVIEW_COUNT);
-  const hiddenExternalObjectCount = sortedExternalObjects.length - visibleExternalObjects.length;
+  const hiddenExternalObjectCount =
+    sortedExternalObjects.length - visibleExternalObjects.length;
 
   return (
     <>
-      {visibleExternalObjects
-        .map((externalObject) => {
-          const { pill, group } = externalObject;
-          return (
-            <PropertyRow
-              key={group.object?.id ?? `${pill.providerKey}:${pill.objectType}:${pill.url ?? "anon"}`}
-              label={externalObjectRowLabel(externalObject)}
-            >
-              <ExternalObjectPropertyValue group={externalObject} />
-            </PropertyRow>
-          );
-        })}
+      {visibleExternalObjects.map((externalObject) => {
+        const { pill, group } = externalObject;
+        return (
+          <PropertyRow
+            key={
+              group.object?.id ??
+              `${pill.providerKey}:${pill.objectType}:${pill.url ?? "anon"}`
+            }
+            label={externalObjectRowLabel(externalObject)}
+          >
+            <ExternalObjectPropertyValue group={externalObject} />
+          </PropertyRow>
+        );
+      })}
       {expanded || hiddenExternalObjectCount > 0 ? (
         <PropertyRow label="References">
           <ExpandRelationListButton

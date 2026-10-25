@@ -88,7 +88,10 @@ describe("shouldRedirectCompanylessRouteToOnboarding", () => {
 describe("isOnboardingWizardActive", () => {
   it("is active on the freshly-landed onboarding route (auto-open, not dismissed)", () => {
     expect(
-      isOnboardingWizardActive({ onboardingOpen: false, routeDismissed: false }),
+      isOnboardingWizardActive({
+        onboardingOpen: false,
+        routeDismissed: false,
+      }),
     ).toBe(true);
   });
 
@@ -107,13 +110,17 @@ describe("isOnboardingWizardActive", () => {
 
 describe("companyPrefixFromOnboardingPath", () => {
   it("reads the prefix from a company onboarding path", () => {
-    expect(companyPrefixFromOnboardingPath("/PC7409/onboarding")).toBe("PC7409");
+    expect(companyPrefixFromOnboardingPath("/PC7409/onboarding")).toBe(
+      "PC7409",
+    );
   });
 
   it("keeps the prefix as written so the caller decides how to compare it", () => {
     // resolveRouteOnboardingOptions already matches case-insensitively.
     // Normalising here as well would hide which half owns the comparison.
-    expect(companyPrefixFromOnboardingPath("/pc7409/Onboarding")).toBe("pc7409");
+    expect(companyPrefixFromOnboardingPath("/pc7409/Onboarding")).toBe(
+      "pc7409",
+    );
   });
 
   it("has no prefix to read on the unprefixed route", () => {
@@ -121,8 +128,12 @@ describe("companyPrefixFromOnboardingPath", () => {
   });
 
   it("ignores paths that only look like onboarding", () => {
-    expect(companyPrefixFromOnboardingPath("/PC7409/onboarding/extra")).toBeUndefined();
-    expect(companyPrefixFromOnboardingPath("/PC7409/dashboard")).toBeUndefined();
+    expect(
+      companyPrefixFromOnboardingPath("/PC7409/onboarding/extra"),
+    ).toBeUndefined();
+    expect(
+      companyPrefixFromOnboardingPath("/PC7409/dashboard"),
+    ).toBeUndefined();
     expect(companyPrefixFromOnboardingPath("/")).toBeUndefined();
   });
 
@@ -130,7 +141,12 @@ describe("companyPrefixFromOnboardingPath", () => {
     // The two parse the same shape. If they ever disagree the wizard would
     // open on a path that resolves no company, or resolve a company on a path
     // that is not onboarding.
-    for (const pathname of ["/onboarding", "/PC1/onboarding", "/PC1/dash", "/a/b/c"]) {
+    for (const pathname of [
+      "/onboarding",
+      "/PC1/onboarding",
+      "/PC1/dash",
+      "/a/b/c",
+    ]) {
       const prefix = companyPrefixFromOnboardingPath(pathname);
       if (prefix !== undefined) expect(isOnboardingPath(pathname)).toBe(true);
     }
@@ -143,7 +159,11 @@ describe("companyPrefixFromOnboardingPath", () => {
     const pathname = "/PC7409/onboarding";
 
     expect(
-      resolveRouteOnboardingOptions({ pathname, companyPrefix: undefined, companies }),
+      resolveRouteOnboardingOptions({
+        pathname,
+        companyPrefix: undefined,
+        companies,
+      }),
     ).toEqual({ initialStep: 1 });
 
     expect(
@@ -170,7 +190,10 @@ describe("navigating away from a company's onboarding route", () => {
       companyPrefix: companyPrefixFromOnboardingPath("/PC1/onboarding"),
       companies,
     });
-    expect(onCompanyRoute).toEqual({ initialStep: ONBOARDING_AGENT_STEP, companyId: "c1" });
+    expect(onCompanyRoute).toEqual({
+      initialStep: ONBOARDING_AGENT_STEP,
+      companyId: "c1",
+    });
 
     const afterNavigating = resolveRouteOnboardingOptions({
       pathname: "/onboarding",
@@ -291,7 +314,10 @@ describe("resolveRouteOnboardingOptions — the agent step", () => {
       companyPrefix: "PC1",
       companies,
     });
-    expect(resolved).toEqual({ initialStep: ONBOARDING_AGENT_STEP, companyId: "c1" });
+    expect(resolved).toEqual({
+      initialStep: ONBOARDING_AGENT_STEP,
+      companyId: "c1",
+    });
     expect(resolved!.initialStep).not.toBe(ONBOARDING_MISSION_STEP);
   });
 
@@ -321,7 +347,13 @@ describe("resolveRouteOnboardingOptions — the agent step", () => {
   it("opens nothing on a managed stack whose companies are not exactly one", () => {
     // Zero companies means the list is still loading or errored — offering
     // creation would 403; opening an arc would name nobody. Do neither.
-    for (const companies of [[], [{ id: "c1", issuePrefix: "PC1" }, { id: "c2", issuePrefix: "PC2" }]]) {
+    for (const companies of [
+      [],
+      [
+        { id: "c1", issuePrefix: "PC1" },
+        { id: "c2", issuePrefix: "PC2" },
+      ],
+    ]) {
       expect(
         resolveRouteOnboardingOptions({
           pathname: "/onboarding",

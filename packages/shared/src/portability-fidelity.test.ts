@@ -24,16 +24,18 @@ describe("buildExportFidelityWarnings", () => {
   });
 
   it("emits no warnings for data the bundle now carries", () => {
-    expect(buildExportFidelityWarnings({
-      ...zeroCounts,
-      labelDefinitions: 2,
-      issueLabelReferences: 3,
-      issueBlockerRelations: 2,
-      issueDocuments: 1,
-      issueWorkProducts: 3,
-      issueAttachments: 4,
-      issueMonitors: 8,
-    })).toEqual([]);
+    expect(
+      buildExportFidelityWarnings({
+        ...zeroCounts,
+        labelDefinitions: 2,
+        issueLabelReferences: 3,
+        issueBlockerRelations: 2,
+        issueDocuments: 1,
+        issueWorkProducts: 3,
+        issueAttachments: 4,
+        issueMonitors: 8,
+      }),
+    ).toEqual([]);
   });
 
   it("emits one warning per unsupported data category with counts", () => {
@@ -48,9 +50,15 @@ describe("buildExportFidelityWarnings", () => {
       "cost_history_not_exported",
       "activity_history_not_exported",
     ]);
-    expect(warnings.every((warning) => warning.severity === "warning")).toBe(true);
-    expect(warnings[0]?.message).toBe("5 approvals are not included in the export bundle.");
-    expect(warnings[1]?.message).toBe("6 cost events are not included in the export bundle.");
+    expect(warnings.every((warning) => warning.severity === "warning")).toBe(
+      true,
+    );
+    expect(warnings[0]?.message).toBe(
+      "5 approvals are not included in the export bundle.",
+    );
+    expect(warnings[1]?.message).toBe(
+      "6 cost events are not included in the export bundle.",
+    );
   });
 });
 
@@ -69,8 +77,17 @@ describe("normalizeExportFidelityCounts", () => {
   });
 
   it("rejects negative and non-finite values", () => {
-    expect(normalizeExportFidelityCounts({ ...zeroCounts, approvals: -1 })).toBeNull();
-    expect(normalizeExportFidelityCounts({ ...zeroCounts, approvals: Number.NaN })).toBeNull();
-    expect(normalizeExportFidelityCounts({ ...zeroCounts, approvals: Number.POSITIVE_INFINITY })).toBeNull();
+    expect(
+      normalizeExportFidelityCounts({ ...zeroCounts, approvals: -1 }),
+    ).toBeNull();
+    expect(
+      normalizeExportFidelityCounts({ ...zeroCounts, approvals: Number.NaN }),
+    ).toBeNull();
+    expect(
+      normalizeExportFidelityCounts({
+        ...zeroCounts,
+        approvals: Number.POSITIVE_INFINITY,
+      }),
+    ).toBeNull();
   });
 });

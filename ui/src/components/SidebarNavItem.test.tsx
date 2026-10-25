@@ -16,13 +16,22 @@ const sidebarState = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/router", () => ({
-  NavLink: ({ children, to, className, ...props }: {
+  NavLink: ({
+    children,
+    to,
+    className,
+    ...props
+  }: {
     children: ReactNode | ((state: { isActive: boolean }) => ReactNode);
     to: string;
     className?: string | ((state: { isActive: boolean }) => string);
   }) => {
-    const resolvedClassName = typeof className === "function" ? className({ isActive: false }) : className;
-    const resolvedChildren = typeof children === "function" ? children({ isActive: false }) : children;
+    const resolvedClassName =
+      typeof className === "function"
+        ? className({ isActive: false })
+        : className;
+    const resolvedChildren =
+      typeof children === "function" ? children({ isActive: false }) : children;
     return (
       <a href={to} className={resolvedClassName} {...props}>
         {resolvedChildren}
@@ -73,9 +82,19 @@ describe("SidebarNavItem", () => {
   }
 
   it("shows the full label and numeric badge when expanded", () => {
-    render(<SidebarNavItem to="/inbox" label="Inbox" icon={Inbox} badge={28} badgeLabel="unread" />);
+    render(
+      <SidebarNavItem
+        to="/inbox"
+        label="Inbox"
+        icon={Inbox}
+        badge={28}
+        badgeLabel="unread"
+      />,
+    );
 
-    const label = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "Inbox");
+    const label = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent === "Inbox",
+    );
     expect(label?.className).not.toContain("sr-only");
     // The numeric badge is rendered in full (not a dot) and no rail aria-label is set.
     expect(container.textContent).toContain("28");
@@ -85,10 +104,16 @@ describe("SidebarNavItem", () => {
   it("outlines icon alert badges with the streamlined sidebar surface", () => {
     render(<SidebarNavItem to="/inbox" label="Inbox" icon={Inbox} alert />);
 
-    const alertBadge = container.querySelector('[data-slot="sidebar-icon-alert-badge"]');
+    const alertBadge = container.querySelector(
+      '[data-slot="sidebar-icon-alert-badge"]',
+    );
     expect(alertBadge).not.toBeNull();
-    expect(classTokens(alertBadge)).toContain("shadow-(--shadow-sidebar-icon-badge)");
-    expect(classTokens(alertBadge)).not.toContain("shadow-(--shadow-extract-12)");
+    expect(classTokens(alertBadge)).toContain(
+      "shadow-(--shadow-sidebar-icon-badge)",
+    );
+    expect(classTokens(alertBadge)).not.toContain(
+      "shadow-(--shadow-extract-12)",
+    );
   });
 
   it("omits the icon slot when an item has no icon", () => {
@@ -110,19 +135,31 @@ describe("SidebarNavItem", () => {
     render(<SidebarNavItem to="/issues" label="Tasks" icon={Inbox} />);
 
     expect(classTokens(link())).toContain("hover:bg-sidebar-accent");
-    expect(classTokens(link())).toContain("hover:text-sidebar-accent-foreground");
+    expect(classTokens(link())).toContain(
+      "hover:text-sidebar-accent-foreground",
+    );
     expect(classTokens(link())).not.toContain("hover:bg-background");
   });
 
   it("clips the label (kept in flow for 1:1 row height) and collapses the badge to a dot in the rail", () => {
     sidebarState.collapsed = true;
-    render(<SidebarNavItem to="/inbox" label="Inbox" icon={Inbox} badge={28} badgeLabel="unread" />);
+    render(
+      <SidebarNavItem
+        to="/inbox"
+        label="Inbox"
+        icon={Inbox}
+        badge={28}
+        badgeLabel="unread"
+      />,
+    );
 
     // The label stays in the DOM/a11y tree (not display:none) so screen readers
     // still announce it. Unlike sr-only it is kept IN FLOW (zero-width, clipped,
     // transparent) so it still contributes its line-height — that keeps the row
     // exactly as tall as the expanded state, so the icon never shifts (PAP-10676).
-    const label = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "Inbox");
+    const label = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent === "Inbox",
+    );
     expect(label).toBeTruthy();
     expect(label?.className).not.toContain("sr-only");
     expect(classTokens(label)).toContain("w-0");
@@ -135,7 +172,9 @@ describe("SidebarNavItem", () => {
 
     // Tooltip wraps the row; the trigger is the wrapper element so the NavLink's
     // own flex className is preserved (PAP-10676), with the <a> nested inside it.
-    expect(link().parentElement?.getAttribute("data-slot")).toBe("tooltip-trigger");
+    expect(link().parentElement?.getAttribute("data-slot")).toBe(
+      "tooltip-trigger",
+    );
   });
 
   it("surfaces the trailing status label in the rail aria-label", () => {
@@ -152,15 +191,27 @@ describe("SidebarNavItem", () => {
 
     // The trailing warning is hidden in the rail, so its text equivalent must
     // ride on the link's accessible name.
-    expect(link().getAttribute("aria-label")).toBe("CodexCoder, Invalid reporting chain");
+    expect(link().getAttribute("aria-label")).toBe(
+      "CodexCoder, Invalid reporting chain",
+    );
   });
 
   it("keeps the full presentation while peeking even when collapsed", () => {
     sidebarState.collapsed = true;
     sidebarState.peeking = true;
-    render(<SidebarNavItem to="/inbox" label="Inbox" icon={Inbox} badge={28} badgeLabel="unread" />);
+    render(
+      <SidebarNavItem
+        to="/inbox"
+        label="Inbox"
+        icon={Inbox}
+        badge={28}
+        badgeLabel="unread"
+      />,
+    );
 
-    const label = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "Inbox");
+    const label = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent === "Inbox",
+    );
     expect(label?.className).not.toContain("sr-only");
     expect(container.textContent).toContain("28");
     expect(link().getAttribute("aria-label")).toBeNull();
@@ -173,22 +224,39 @@ describe("SidebarNavItem", () => {
     sidebarState.collapsed = true;
     render(
       <SidebarNavExpandedProvider>
-        <SidebarNavItem to="/inbox" label="Inbox" icon={Inbox} badge={28} badgeLabel="unread" />
+        <SidebarNavItem
+          to="/inbox"
+          label="Inbox"
+          icon={Inbox}
+          badge={28}
+          badgeLabel="unread"
+        />
       </SidebarNavExpandedProvider>,
     );
 
-    const label = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "Inbox");
+    const label = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent === "Inbox",
+    );
     expect(classTokens(label)).not.toContain("w-0");
     expect(classTokens(label)).toContain("flex-1");
     // Full numeric badge, no rail aria-label, no tooltip wrapper.
     expect(container.textContent).toContain("28");
     expect(link().getAttribute("aria-label")).toBeNull();
-    expect(link().parentElement?.getAttribute("data-slot")).not.toBe("tooltip-trigger");
+    expect(link().parentElement?.getAttribute("data-slot")).not.toBe(
+      "tooltip-trigger",
+    );
   });
 
   it("surfaces the live count in the rail aria-label", () => {
     sidebarState.collapsed = true;
-    render(<SidebarNavItem to="/dashboard" label="Dashboard" icon={Inbox} liveCount={3} />);
+    render(
+      <SidebarNavItem
+        to="/dashboard"
+        label="Dashboard"
+        icon={Inbox}
+        liveCount={3}
+      />,
+    );
 
     expect(link().getAttribute("aria-label")).toBe("Dashboard, 3 live");
   });

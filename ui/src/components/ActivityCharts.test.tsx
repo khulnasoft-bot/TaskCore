@@ -101,7 +101,11 @@ describe("ActivityCharts", () => {
       <RunActivityChart
         runs={[
           createRun({ id: "run-success", status: "succeeded" }),
-          createRun({ id: "run-failed", status: "failed", errorCode: "provider_quota" }),
+          createRun({
+            id: "run-failed",
+            status: "failed",
+            errorCode: "provider_quota",
+          }),
         ]}
       />,
     );

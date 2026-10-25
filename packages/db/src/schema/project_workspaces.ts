@@ -15,8 +15,12 @@ export const projectWorkspaces = pgTable(
   "project_workspaces",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
-    projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     sourceType: text("source_type").notNull().default("local_path"),
     cwd: text("cwd"),
@@ -31,15 +35,31 @@ export const projectWorkspaces = pgTable(
     sharedWorkspaceKey: text("shared_workspace_key"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     isPrimary: boolean("is_primary").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    companyProjectIdx: index("project_workspaces_company_project_idx").on(table.companyId, table.projectId),
-    projectPrimaryIdx: index("project_workspaces_project_primary_idx").on(table.projectId, table.isPrimary),
-    projectSourceTypeIdx: index("project_workspaces_project_source_type_idx").on(table.projectId, table.sourceType),
-    companySharedKeyIdx: index("project_workspaces_company_shared_key_idx").on(table.companyId, table.sharedWorkspaceKey),
-    projectRemoteRefIdx: uniqueIndex("project_workspaces_project_remote_ref_idx")
-      .on(table.projectId, table.remoteProvider, table.remoteWorkspaceRef),
+    companyProjectIdx: index("project_workspaces_company_project_idx").on(
+      table.companyId,
+      table.projectId,
+    ),
+    projectPrimaryIdx: index("project_workspaces_project_primary_idx").on(
+      table.projectId,
+      table.isPrimary,
+    ),
+    projectSourceTypeIdx: index(
+      "project_workspaces_project_source_type_idx",
+    ).on(table.projectId, table.sourceType),
+    companySharedKeyIdx: index("project_workspaces_company_shared_key_idx").on(
+      table.companyId,
+      table.sharedWorkspaceKey,
+    ),
+    projectRemoteRefIdx: uniqueIndex(
+      "project_workspaces_project_remote_ref_idx",
+    ).on(table.projectId, table.remoteProvider, table.remoteWorkspaceRef),
   }),
 );

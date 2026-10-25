@@ -1,4 +1,9 @@
-import { test, expect, request as pwRequest, type APIRequestContext } from "@playwright/test";
+import {
+  test,
+  expect,
+  request as pwRequest,
+  type APIRequestContext,
+} from "@playwright/test";
 
 /**
  * E2E: contextual sidebar companion model.
@@ -17,7 +22,9 @@ const COMPANY_NAME_PREFIX = "E2E-SidebarTakeover";
 const COLLAPSED_STORAGE_KEY = "taskcore.sidebar.collapsed";
 const APP_SIDEBAR_EXPANDED_MARKER = "Collapse sidebar";
 
-async function createCompany(board: APIRequestContext): Promise<{ id: string; prefix: string }> {
+async function createCompany(
+  board: APIRequestContext,
+): Promise<{ id: string; prefix: string }> {
   const healthRes = await board.get(`${BASE_URL}/api/health`);
   expect(healthRes.ok()).toBe(true);
   const health = await healthRes.json();
@@ -27,7 +34,9 @@ async function createCompany(board: APIRequestContext): Promise<{ id: string; pr
     data: { name: `${COMPANY_NAME_PREFIX}-${Date.now()}` },
   });
   if (!companyRes.ok()) {
-    throw new Error(`POST /api/companies → ${companyRes.status()}: ${await companyRes.text()}`);
+    throw new Error(
+      `POST /api/companies → ${companyRes.status()}: ${await companyRes.text()}`,
+    );
   }
   const company = await companyRes.json();
   return {
@@ -49,7 +58,9 @@ test.describe("Contextual sidebar companion", () => {
   });
 
   test.afterAll(async () => {
-    await board.delete(`${BASE_URL}/api/companies/${companyId}`).catch(() => {});
+    await board
+      .delete(`${BASE_URL}/api/companies/${companyId}`)
+      .catch(() => {});
     await board.dispose();
   });
 
@@ -60,7 +71,9 @@ test.describe("Contextual sidebar companion", () => {
     }, COLLAPSED_STORAGE_KEY);
   });
 
-  test("replaces global navigation with Settings navigation", async ({ page }) => {
+  test("replaces global navigation with Settings navigation", async ({
+    page,
+  }) => {
     await page.goto(`/${prefix}/company/settings`);
 
     const contextual = page.locator('[data-contextual-sidebar="settings"]');
@@ -68,10 +81,18 @@ test.describe("Contextual sidebar companion", () => {
     await expect(contextual).toHaveCount(1);
     await expect(page.locator("[data-secondary-sidebar]")).toHaveCount(1);
 
-    await expect(contextual.getByRole("link", { name: "General" })).toBeVisible();
-    await expect(contextual.getByText("Environments", { exact: true })).toBeVisible();
-    await expect(contextual.getByRole("link", { name: "Back to app" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Open account menu" })).toBeVisible();
+    await expect(
+      contextual.getByRole("link", { name: "General" }),
+    ).toBeVisible();
+    await expect(
+      contextual.getByText("Environments", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      contextual.getByRole("link", { name: "Back to app" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Open account menu" }),
+    ).toBeVisible();
 
     await expect(page.getByRole("link", { name: "Dashboard" })).toHaveCount(0);
     await expect(page.getByLabel(APP_SIDEBAR_EXPANDED_MARKER)).toHaveCount(0);
@@ -88,9 +109,13 @@ test.describe("Contextual sidebar companion", () => {
     expect(labelBox!.width).toBeGreaterThan(20);
   });
 
-  test("keeps the retired collapse control absent across contextual navigation", async ({ page }) => {
+  test("keeps the retired collapse control absent across contextual navigation", async ({
+    page,
+  }) => {
     await page.goto(`/${prefix}/company/settings`);
-    await expect(page.locator('[data-contextual-sidebar="settings"]')).toBeVisible();
+    await expect(
+      page.locator('[data-contextual-sidebar="settings"]'),
+    ).toBeVisible();
     await expect(page.getByRole("link", { name: "Back to app" })).toBeVisible();
     await expect(page.getByLabel(APP_SIDEBAR_EXPANDED_MARKER)).toHaveCount(0);
 
@@ -101,7 +126,9 @@ test.describe("Contextual sidebar companion", () => {
     await expect(page.getByLabel(APP_SIDEBAR_EXPANDED_MARKER)).toHaveCount(0);
   });
 
-  test("uses Dashboard as the destination for a direct Settings link", async ({ page }) => {
+  test("uses Dashboard as the destination for a direct Settings link", async ({
+    page,
+  }) => {
     await page.goto(`/${prefix}/company/settings`);
     await page.getByRole("link", { name: "Back to app" }).click();
 

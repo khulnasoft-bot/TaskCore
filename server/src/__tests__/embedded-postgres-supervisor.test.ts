@@ -1,12 +1,17 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
-import { createEmbeddedPostgresSupervisor, type SupervisedEmbeddedPostgres } from "../embedded-postgres-supervisor.js";
+import {
+  createEmbeddedPostgresSupervisor,
+  type SupervisedEmbeddedPostgres,
+} from "../embedded-postgres-supervisor.js";
 
 function createInstance(startError?: Error) {
   const process = new EventEmitter();
   const instance: SupervisedEmbeddedPostgres = {
     process,
-    start: vi.fn(async () => { if (startError) throw startError; }),
+    start: vi.fn(async () => {
+      if (startError) throw startError;
+    }),
     stop: vi.fn(async () => undefined),
   };
   return { instance, process };
@@ -45,7 +50,11 @@ describe("embedded PostgreSQL supervisor", () => {
 
   it("bounds recovery attempts and reports the final failure", async () => {
     const initial = createInstance();
-    const failures = [new Error("first"), new Error("second"), new Error("third")];
+    const failures = [
+      new Error("first"),
+      new Error("second"),
+      new Error("third"),
+    ];
     const onRecoveryExhausted = vi.fn();
     const supervisor = createEmbeddedPostgresSupervisor({
       initialInstance: initial.instance,
@@ -56,6 +65,8 @@ describe("embedded PostgreSQL supervisor", () => {
     initial.process.emit("exit", 1, null);
     await supervisor.waitForRecovery();
     expect(onRecoveryExhausted).toHaveBeenCalledOnce();
-    expect(onRecoveryExhausted).toHaveBeenCalledWith(expect.objectContaining({ message: "third" }));
+    expect(onRecoveryExhausted).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "third" }),
+    );
   });
 });

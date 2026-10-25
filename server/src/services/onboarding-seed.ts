@@ -1,6 +1,12 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { agents, companyOnboardingSeeds, goals, issues, projects } from "@taskcore/db";
+import {
+  agents,
+  companyOnboardingSeeds,
+  goals,
+  issues,
+  projects,
+} from "@taskcore/db";
 import type { ApplyOnboardingSeed } from "@taskcore/shared";
 import { writeTaskcoreSkillSyncPreference } from "@taskcore/adapter-utils/server-utils";
 import { findActiveServerAdapter } from "../adapters/registry.js";
@@ -10,7 +16,11 @@ import { goalService } from "./goals.js";
 import { projectService } from "./projects.js";
 import { issueService } from "./issues.js";
 import { readBuiltInAgentMarker } from "./built-in-agent-metadata.js";
-import { logActivity, publishActivity, type ActivityPublication } from "./activity-log.js";
+import {
+  logActivity,
+  publishActivity,
+  type ActivityPublication,
+} from "./activity-log.js";
 
 /**
  * The project the seeded first task lands in, matching the name the tenant's
@@ -34,9 +44,10 @@ const SEEDED_AGENT_ROLE = "ceo";
 const FALLBACK_SEEDED_AGENT_ADAPTER_TYPE = "claude_local";
 
 function seededAgentAdapterType() {
-  const configured = process.env.TASKCORE_ONBOARDING_SEED_ADAPTER_TYPE?.trim()
-    || process.env.TASKCORE_TEAMS_CATALOG_DEFAULT_ADAPTER_TYPE?.trim()
-    || FALLBACK_SEEDED_AGENT_ADAPTER_TYPE;
+  const configured =
+    process.env.TASKCORE_ONBOARDING_SEED_ADAPTER_TYPE?.trim() ||
+    process.env.TASKCORE_TEAMS_CATALOG_DEFAULT_ADAPTER_TYPE?.trim() ||
+    FALLBACK_SEEDED_AGENT_ADAPTER_TYPE;
   // Server-seeded onboarding deliberately stays on a direct adapter. Native
   // runner rollout is an explicit post-onboarding configuration choice.
   return configured === "taskcore_runner"
@@ -52,7 +63,9 @@ function seededAgentAdapterType() {
  * truthfully reports its own toolkit as not installed. Enable the core set
  * whenever the seeded adapter supports skill sync.
  */
-function seededAgentAdapterConfig(adapterType: string): Record<string, unknown> {
+function seededAgentAdapterConfig(
+  adapterType: string,
+): Record<string, unknown> {
   const adapter = findActiveServerAdapter(adapterType);
   if (!adapter?.listSkills && !adapter?.syncSkills) return {};
   return writeTaskcoreSkillSyncPreference(
@@ -66,7 +79,10 @@ function seededAgentAdapterConfig(adapterType: string): Record<string, unknown> 
  * first-run wizard's `parseOnboardingGoalInput` does: first line is the title,
  * the remainder is the description.
  */
-export function parseSeedMission(raw: string): { title: string; description: string | null } {
+export function parseSeedMission(raw: string): {
+  title: string;
+  description: string | null;
+} {
   const trimmed = raw.trim();
   if (!trimmed) return { title: "", description: null };
 
@@ -109,7 +125,11 @@ export function onboardingSeedService(db: Db) {
       .then((rows) => rows[0] ?? null);
   }
 
-  async function goalStillExists(dbx: Db, companyId: string, goalId: string | null) {
+  async function goalStillExists(
+    dbx: Db,
+    companyId: string,
+    goalId: string | null,
+  ) {
     if (!goalId) return false;
     return dbx
       .select({ id: goals.id })
@@ -124,12 +144,18 @@ export function onboardingSeedService(db: Db) {
    * already has. Built-in agents are excluded — they are provisioned by the
    * platform and are not the customer's first hire.
    */
-  async function resolveTargetAgentId(dbx: Db, companyId: string, recordedAgentId: string | null) {
+  async function resolveTargetAgentId(
+    dbx: Db,
+    companyId: string,
+    recordedAgentId: string | null,
+  ) {
     if (recordedAgentId) {
       const recorded = await dbx
         .select({ id: agents.id })
         .from(agents)
-        .where(and(eq(agents.id, recordedAgentId), eq(agents.companyId, companyId)))
+        .where(
+          and(eq(agents.id, recordedAgentId), eq(agents.companyId, companyId)),
+        )
         .then((rows) => rows[0] ?? null);
       if (recorded) return recorded.id;
     }
@@ -137,15 +163,24 @@ export function onboardingSeedService(db: Db) {
     const candidates = await dbx
       .select({ id: agents.id, metadata: agents.metadata })
       .from(agents)
-      .where(and(
-        eq(agents.companyId, companyId),
-        eq(agents.role, SEEDED_AGENT_ROLE),
-        ne(agents.status, "terminated"),
-      ));
-    return candidates.find((row) => !readBuiltInAgentMarker(row.metadata))?.id ?? null;
+      .where(
+        and(
+          eq(agents.companyId, companyId),
+          eq(agents.role, SEEDED_AGENT_ROLE),
+          ne(agents.status, "terminated"),
+        ),
+      );
+    return (
+      candidates.find((row) => !readBuiltInAgentMarker(row.metadata))?.id ??
+      null
+    );
   }
 
-  async function issueStillExists(dbx: Db, companyId: string, issueId: string | null) {
+  async function issueStillExists(
+    dbx: Db,
+    companyId: string,
+    issueId: string | null,
+  ) {
     if (!issueId) return false;
     return dbx
       .select({ id: issues.id })
@@ -166,8 +201,9 @@ export function onboardingSeedService(db: Db) {
       .where(eq(projects.companyId, companyId));
     const reusable = existing.find(
       (project) =>
-        project.status !== "cancelled"
-        && project.name.trim().toLowerCase() === ONBOARDING_SEED_PROJECT_NAME.toLowerCase(),
+        project.status !== "cancelled" &&
+        project.name.trim().toLowerCase() ===
+          ONBOARDING_SEED_PROJECT_NAME.toLowerCase(),
     );
     if (reusable) return reusable.id;
 
@@ -219,7 +255,7 @@ export function onboardingSeedService(db: Db) {
       const parsed = parseSeedMission(mission);
       const target = (await goalStillExists(dbx, companyId, goalId))
         ? goalId
-        : (await goalSvc.getDefaultCompanyGoal(companyId))?.id ?? null;
+        : ((await goalSvc.getDefaultCompanyGoal(companyId))?.id ?? null);
       if (target) {
         await goalSvc.update(target, {
           title: parsed.title,
@@ -239,24 +275,34 @@ export function onboardingSeedService(db: Db) {
 
     // 2. Agent → the customer's first hire, the lead the first task is
     //    assigned to.
-    let agentId = await resolveTargetAgentId(dbx, companyId, existing?.agentId ?? null);
+    let agentId = await resolveTargetAgentId(
+      dbx,
+      companyId,
+      existing?.agentId ?? null,
+    );
     if (agentName) {
       if (agentId) {
         await agentSvc.update(agentId, { name: agentName, title: agentRole });
       } else {
         const adapterType = seededAgentAdapterType();
-        const created = await agentSvc.create(companyId, {
-          name: agentName,
-          role: SEEDED_AGENT_ROLE,
-          title: agentRole,
-          adapterType,
-          adapterConfig: seededAgentAdapterConfig(adapterType),
-          runtimeConfig: {},
-          permissions: {},
-          status: "idle",
-          spentMonthlyCents: 0,
-          lastHeartbeatAt: null,
-        }, { createdByUserId: audit?.actorType === "user" ? audit.actorId : null });
+        const created = await agentSvc.create(
+          companyId,
+          {
+            name: agentName,
+            role: SEEDED_AGENT_ROLE,
+            title: agentRole,
+            adapterType,
+            adapterConfig: seededAgentAdapterConfig(adapterType),
+            runtimeConfig: {},
+            permissions: {},
+            status: "idle",
+            spentMonthlyCents: 0,
+            lastHeartbeatAt: null,
+          },
+          {
+            createdByUserId: audit?.actorType === "user" ? audit.actorId : null,
+          },
+        );
         agentId = created.id;
       }
     }
@@ -298,7 +344,12 @@ export function onboardingSeedService(db: Db) {
           dbx,
         );
       } else {
-        const projectId = await resolveOnboardingProjectId(dbx, projectSvc, companyId, goalId);
+        const projectId = await resolveOnboardingProjectId(
+          dbx,
+          projectSvc,
+          companyId,
+          goalId,
+        );
         // The idempotency key is what protects two pushes that arrive at once
         // — Cloud's reconcile runs off portfolio fetches, which can overlap.
         // It is deliberately not revision-scoped: if the recorded issue is

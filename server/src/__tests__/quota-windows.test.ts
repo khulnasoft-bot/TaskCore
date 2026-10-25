@@ -83,8 +83,8 @@ describe("secondsToWindowLabel", () => {
   });
 
   it("labels windows under 6 hours as '5h'", () => {
-    expect(secondsToWindowLabel(3600, "fallback")).toBe("5h");   // 1h
-    expect(secondsToWindowLabel(18000, "fallback")).toBe("5h");  // 5h exactly
+    expect(secondsToWindowLabel(3600, "fallback")).toBe("5h"); // 1h
+    expect(secondsToWindowLabel(18000, "fallback")).toBe("5h"); // 5h exactly
   });
 
   it("labels windows up to 24 hours as '24h'", () => {
@@ -93,7 +93,7 @@ describe("secondsToWindowLabel", () => {
   });
 
   it("labels windows up to 7 days as '7d'", () => {
-    expect(secondsToWindowLabel(86401, "fallback")).toBe("7d");   // just over 24h
+    expect(secondsToWindowLabel(86401, "fallback")).toBe("7d"); // just over 24h
     expect(secondsToWindowLabel(604800, "fallback")).toBe("7d"); // 7d exactly
   });
 
@@ -166,14 +166,25 @@ describe("WHAM used_percent normalization via fetchCodexQuota", () => {
   });
 
   it.each([
-    [0.01, 0.01], [0.99, 0.99], [1.01, 1.01], [-1, 0],
-    [Number.NaN, null], [Number.POSITIVE_INFINITY, null], [undefined, null],
-  ])("handles percentage boundary %s consistently in RPC and WHAM", async (raw, expected) => {
-    mockFetch({ rate_limit: { primary_window: { used_percent: raw } } });
-    const windows = await fetchCodexQuota("token", null);
-    expect(windows[0].usedPercent).toBe(expected);
-    expect(mapCodexRpcQuota({ rateLimits: { primary: { usedPercent: raw } } }).windows[0].usedPercent).toBe(expected);
-  });
+    [0.01, 0.01],
+    [0.99, 0.99],
+    [1.01, 1.01],
+    [-1, 0],
+    [Number.NaN, null],
+    [Number.POSITIVE_INFINITY, null],
+    [undefined, null],
+  ])(
+    "handles percentage boundary %s consistently in RPC and WHAM",
+    async (raw, expected) => {
+      mockFetch({ rate_limit: { primary_window: { used_percent: raw } } });
+      const windows = await fetchCodexQuota("token", null);
+      expect(windows[0].usedPercent).toBe(expected);
+      expect(
+        mapCodexRpcQuota({ rateLimits: { primary: { usedPercent: raw } } })
+          .windows[0].usedPercent,
+      ).toBe(expected);
+    },
+  );
 
   it("treats value 0 as 0%", async () => {
     mockFetch({
@@ -243,69 +254,101 @@ describe("readClaudeToken", () => {
   it("returns null for malformed JSON", async () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-claude-${Date.now()}`);
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "credentials.json"), "not-json"),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() =>
+          fs.writeFile(path.join(tmpDir, "credentials.json"), "not-json"),
+        ),
     );
     process.env.CLAUDE_CONFIG_DIR = tmpDir;
     const token = await readClaudeToken();
     expect(token).toBe(null);
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 
   it("returns null when claudeAiOauth key is missing", async () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-claude-${Date.now()}`);
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "credentials.json"), JSON.stringify({ other: "data" })),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() =>
+          fs.writeFile(
+            path.join(tmpDir, "credentials.json"),
+            JSON.stringify({ other: "data" }),
+          ),
+        ),
     );
     process.env.CLAUDE_CONFIG_DIR = tmpDir;
     const token = await readClaudeToken();
     expect(token).toBe(null);
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 
   it("returns null when accessToken is an empty string", async () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-claude-${Date.now()}`);
     const creds = { claudeAiOauth: { accessToken: "" } };
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "credentials.json"), JSON.stringify(creds)),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() =>
+          fs.writeFile(
+            path.join(tmpDir, "credentials.json"),
+            JSON.stringify(creds),
+          ),
+        ),
     );
     process.env.CLAUDE_CONFIG_DIR = tmpDir;
     const token = await readClaudeToken();
     expect(token).toBe(null);
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 
   it("returns the token when credentials file is well-formed", async () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-claude-${Date.now()}`);
     const creds = { claudeAiOauth: { accessToken: "my-test-token" } };
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "credentials.json"), JSON.stringify(creds)),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() =>
+          fs.writeFile(
+            path.join(tmpDir, "credentials.json"),
+            JSON.stringify(creds),
+          ),
+        ),
     );
     process.env.CLAUDE_CONFIG_DIR = tmpDir;
     const token = await readClaudeToken();
     expect(token).toBe("my-test-token");
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 
   it("reads the token from .credentials.json when that is the available Claude auth file", async () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-claude-${Date.now()}`);
     const creds = { claudeAiOauth: { accessToken: "dotfile-token" } };
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, ".credentials.json"), JSON.stringify(creds)),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() =>
+          fs.writeFile(
+            path.join(tmpDir, ".credentials.json"),
+            JSON.stringify(creds),
+          ),
+        ),
     );
     process.env.CLAUDE_CONFIG_DIR = tmpDir;
     const token = await readClaudeToken();
     expect(token).toBe("dotfile-token");
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 });
 
@@ -392,36 +435,47 @@ describe("readCodexAuthInfo", () => {
   it("returns null for malformed JSON", async () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-codex-${Date.now()}`);
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "auth.json"), "{bad json"),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() => fs.writeFile(path.join(tmpDir, "auth.json"), "{bad json")),
     );
     process.env.CODEX_HOME = tmpDir;
     const result = await readCodexAuthInfo();
     expect(result).toBe(null);
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 
   it("returns null when accessToken is absent", async () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-codex-${Date.now()}`);
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "auth.json"), JSON.stringify({ accountId: "acc-1" })),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() =>
+          fs.writeFile(
+            path.join(tmpDir, "auth.json"),
+            JSON.stringify({ accountId: "acc-1" }),
+          ),
+        ),
     );
     process.env.CODEX_HOME = tmpDir;
     const result = await readCodexAuthInfo();
     expect(result).toBe(null);
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 
   it("reads the legacy flat auth shape", async () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-codex-${Date.now()}`);
     const auth = { accessToken: "codex-token", accountId: "acc-123" };
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "auth.json"), JSON.stringify(auth)),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() =>
+          fs.writeFile(path.join(tmpDir, "auth.json"), JSON.stringify(auth)),
+        ),
     );
     process.env.CODEX_HOME = tmpDir;
     const result = await readCodexAuthInfo();
@@ -431,7 +485,9 @@ describe("readCodexAuthInfo", () => {
       email: null,
       planType: null,
     });
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 
   it("reads the modern nested auth shape", async () => {
@@ -455,9 +511,11 @@ describe("readCodexAuthInfo", () => {
       last_refresh: "2026-03-14T12:00:00Z",
     };
     await import("node:fs/promises").then((fs) =>
-      fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "auth.json"), JSON.stringify(auth)),
-      ),
+      fs
+        .mkdir(tmpDir, { recursive: true })
+        .then(() =>
+          fs.writeFile(path.join(tmpDir, "auth.json"), JSON.stringify(auth)),
+        ),
     );
     process.env.CODEX_HOME = tmpDir;
     const result = await readCodexAuthInfo();
@@ -469,7 +527,9 @@ describe("readCodexAuthInfo", () => {
       planType: "pro",
       lastRefresh: "2026-03-14T12:00:00Z",
     });
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 });
 
@@ -488,18 +548,23 @@ describe("readCodexToken", () => {
     const tmpDir = path.join(os.tmpdir(), `taskcore-test-codex-${Date.now()}`);
     await import("node:fs/promises").then((fs) =>
       fs.mkdir(tmpDir, { recursive: true }).then(() =>
-        fs.writeFile(path.join(tmpDir, "auth.json"), JSON.stringify({
-          tokens: {
-            access_token: "nested-token",
-            account_id: "acc-nested",
-          },
-        })),
+        fs.writeFile(
+          path.join(tmpDir, "auth.json"),
+          JSON.stringify({
+            tokens: {
+              access_token: "nested-token",
+              account_id: "acc-nested",
+            },
+          }),
+        ),
       ),
     );
     process.env.CODEX_HOME = tmpDir;
     const result = await readCodexToken();
     expect(result).toEqual({ token: "nested-token", accountId: "acc-nested" });
-    await import("node:fs/promises").then((fs) => fs.rm(tmpDir, { recursive: true }));
+    await import("node:fs/promises").then((fs) =>
+      fs.rm(tmpDir, { recursive: true }),
+    );
   });
 });
 
@@ -527,7 +592,9 @@ describe("fetchClaudeQuota", () => {
 
   it("throws when the API returns a non-200 status", async () => {
     mockFetch({}, false, 401);
-    await expect(fetchClaudeQuota("token")).rejects.toThrow("anthropic usage api returned 401");
+    await expect(fetchClaudeQuota("token")).rejects.toThrow(
+      "anthropic usage api returned 401",
+    );
   });
 
   it("returns an empty array when all window fields are absent", async () => {
@@ -537,7 +604,9 @@ describe("fetchClaudeQuota", () => {
   });
 
   it("parses five_hour window with percentage-range utilization", async () => {
-    mockFetch({ five_hour: { utilization: 34.0, resets_at: "2026-01-01T00:00:00Z" } });
+    mockFetch({
+      five_hour: { utilization: 34.0, resets_at: "2026-01-01T00:00:00Z" },
+    });
     const windows = await fetchClaudeQuota("token");
     expect(windows).toHaveLength(1);
     expect(windows[0]).toMatchObject({
@@ -602,7 +671,9 @@ describe("fetchClaudeQuota", () => {
       "Current week (Sonnet only)",
       "Current week (Opus only)",
     ]);
-    expect(windows.map((w: QuotaWindow) => w.usedPercent)).toEqual([10, 20, 30, 40]);
+    expect(windows.map((w: QuotaWindow) => w.usedPercent)).toEqual([
+      10, 20, 30, 40,
+    ]);
   });
 
   it("parses extra usage when the OAuth response includes it", async () => {
@@ -668,21 +739,29 @@ describe("fetchCodexQuota", () => {
 
   it("throws when the WHAM API returns a non-200 status", async () => {
     mockFetch({}, false, 403);
-    await expect(fetchCodexQuota("token", null)).rejects.toThrow("chatgpt wham api returned 403");
+    await expect(fetchCodexQuota("token", null)).rejects.toThrow(
+      "chatgpt wham api returned 403",
+    );
   });
 
   it("passes ChatGPT-Account-Id header when accountId is provided", async () => {
     mockFetch({});
     await fetchCodexQuota("token", "acc-xyz");
-    const callInit = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][1] as RequestInit;
-    expect((callInit.headers as Record<string, string>)["ChatGPT-Account-Id"]).toBe("acc-xyz");
+    const callInit = (fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0][1] as RequestInit;
+    expect(
+      (callInit.headers as Record<string, string>)["ChatGPT-Account-Id"],
+    ).toBe("acc-xyz");
   });
 
   it("omits ChatGPT-Account-Id header when accountId is null", async () => {
     mockFetch({});
     await fetchCodexQuota("token", null);
-    const callInit = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][1] as RequestInit;
-    expect((callInit.headers as Record<string, string>)["ChatGPT-Account-Id"]).toBeUndefined();
+    const callInit = (fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0][1] as RequestInit;
+    expect(
+      (callInit.headers as Record<string, string>)["ChatGPT-Account-Id"],
+    ).toBeUndefined();
   });
 
   it("returns empty array when response body is empty", async () => {
@@ -694,12 +773,20 @@ describe("fetchCodexQuota", () => {
   it("normalizes numeric reset timestamps from WHAM", async () => {
     mockFetch({
       rate_limit: {
-        primary_window: { used_percent: 30, limit_window_seconds: 86400, reset_at: 1_767_312_000 },
+        primary_window: {
+          used_percent: 30,
+          limit_window_seconds: 86400,
+          reset_at: 1_767_312_000,
+        },
       },
     });
     const windows = await fetchCodexQuota("token", null);
     expect(windows).toHaveLength(1);
-    expect(windows[0]).toMatchObject({ label: "5h limit", usedPercent: 30, resetsAt: "2026-01-02T00:00:00.000Z" });
+    expect(windows[0]).toMatchObject({
+      label: "5h limit",
+      usedPercent: 30,
+      resetsAt: "2026-01-02T00:00:00.000Z",
+    });
   });
 
   it("parses secondary_window alongside primary_window", async () => {
@@ -721,7 +808,11 @@ describe("fetchCodexQuota", () => {
     });
     const windows = await fetchCodexQuota("token", null);
     expect(windows).toHaveLength(1);
-    expect(windows[0]).toMatchObject({ label: "Credits", valueLabel: "$4.20 remaining", usedPercent: null });
+    expect(windows[0]).toMatchObject({
+      label: "Credits",
+      valueLabel: "$4.20 remaining",
+      usedPercent: null,
+    });
   });
 
   it("omits Credits window when unlimited is true", async () => {
@@ -747,7 +838,11 @@ describe("mapCodexRpcQuota", () => {
       {
         rateLimits: {
           limitId: "codex",
-          primary: { usedPercent: 1, windowDurationMins: 300, resetsAt: 1_763_500_000 },
+          primary: {
+            usedPercent: 1,
+            windowDurationMins: 300,
+            resetsAt: 1_763_500_000,
+          },
           secondary: { usedPercent: 27, windowDurationMins: 10_080 },
           planType: "pro",
         },
@@ -834,22 +929,35 @@ describe("managed quota cancellation", () => {
 
   it.each([
     ["Claude", (signal: AbortSignal) => fetchClaudeQuota("token", signal)],
-    ["Codex", (signal: AbortSignal) => fetchCodexQuota("token", "account", signal)],
-  ] as const)("forwards cancellation to the %s provider", async (_provider, read) => {
-    const controller = new AbortController();
-    let requestSignal!: AbortSignal;
-    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => {
-      requestSignal = init.signal!;
-      return new Promise<Response>((_resolve, reject) => {
-        requestSignal.addEventListener("abort", () => reject(requestSignal.reason), { once: true });
-      });
-    }));
-    const pending = read(controller.signal);
-    const rejected = expect(pending).rejects.toThrow("account deadline");
-    controller.abort(new Error("account deadline"));
-    await rejected;
-    expect(requestSignal.aborted).toBe(true);
-  });
+    [
+      "Codex",
+      (signal: AbortSignal) => fetchCodexQuota("token", "account", signal),
+    ],
+  ] as const)(
+    "forwards cancellation to the %s provider",
+    async (_provider, read) => {
+      const controller = new AbortController();
+      let requestSignal!: AbortSignal;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init: RequestInit) => {
+          requestSignal = init.signal!;
+          return new Promise<Response>((_resolve, reject) => {
+            requestSignal.addEventListener(
+              "abort",
+              () => reject(requestSignal.reason),
+              { once: true },
+            );
+          });
+        }),
+      );
+      const pending = read(controller.signal);
+      const rejected = expect(pending).rejects.toThrow("account deadline");
+      controller.abort(new Error("account deadline"));
+      await rejected;
+      expect(requestSignal.aborted).toBe(true);
+    },
+  );
 });
 
 describe("fetchWithTimeout", () => {
@@ -859,7 +967,11 @@ describe("fetchWithTimeout", () => {
   });
 
   it("resolves normally when fetch completes before timeout", async () => {
-    const mockResponse = { ok: true, status: 200, json: async () => ({}) } as Response;
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    } as Response;
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockResponse));
 
     const result = await fetchWithTimeout("https://example.com", {}, 5000);
@@ -874,7 +986,9 @@ describe("fetchWithTimeout", () => {
         (_url: string, init: RequestInit) =>
           new Promise((_resolve, reject) => {
             init.signal?.addEventListener("abort", () => {
-              reject(new DOMException("The operation was aborted.", "AbortError"));
+              reject(
+                new DOMException("The operation was aborted.", "AbortError"),
+              );
             });
           }),
       ),

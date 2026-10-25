@@ -21,7 +21,9 @@ type Db = ReturnType<typeof createDb>;
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 
 /** `describe` on hosts that can run embedded Postgres, `describe.skip` elsewhere. */
-export const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+export const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 export type EmbeddedPostgresContext = { readonly db: Db };
 
@@ -34,7 +36,9 @@ export function useEmbeddedPostgres(
   opts: { resetEach?: (db: Db) => Promise<void> } = {},
 ): EmbeddedPostgresContext {
   let db: Db | null = null;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase(prefix);
@@ -61,7 +65,10 @@ export function useEmbeddedPostgres(
 
   return {
     get db() {
-      if (!db) throw new Error("embedded Postgres is not started yet — read .db inside a test");
+      if (!db)
+        throw new Error(
+          "embedded Postgres is not started yet — read .db inside a test",
+        );
       return db;
     },
   };
@@ -76,10 +83,17 @@ export type BoardActor = {
   isInstanceAdmin: boolean;
 };
 
-export type SeededCompany = { companyId: string; userId: string; actor: BoardActor };
+export type SeededCompany = {
+  companyId: string;
+  userId: string;
+  actor: BoardActor;
+};
 
 /** Creates a company whose board user holds company-scoped read and write grants. */
-export async function seedCompanyWithBoardAccess(db: Db, name: string): Promise<SeededCompany> {
+export async function seedCompanyWithBoardAccess(
+  db: Db,
+  name: string,
+): Promise<SeededCompany> {
   const companyId = randomUUID();
   const userId = `user-${randomUUID()}`;
   await db.insert(companies).values({
@@ -119,7 +133,11 @@ export async function seedCompanyWithBoardAccess(db: Db, name: string): Promise<
 type RouterFactory = (db: Db, storage: never) => Router;
 
 /** Mounts route modules under `/api` behind a fixed actor, with the real error handler. */
-export function routeApp(db: Db, actor: BoardActor, ...routerFactories: RouterFactory[]) {
+export function routeApp(
+  db: Db,
+  actor: BoardActor,
+  ...routerFactories: RouterFactory[]
+) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

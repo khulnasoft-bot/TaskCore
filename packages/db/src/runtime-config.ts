@@ -24,7 +24,8 @@ export type ResolvedDatabaseTarget =
   | {
       mode: "postgres";
       connectionString: string;
-      source: "DATABASE_URL" | "taskcore-env" | "config.database.connectionString";
+      source:
+        "DATABASE_URL" | "taskcore-env" | "config.database.connectionString";
       configPath: string;
       envPath: string;
     }
@@ -58,7 +59,10 @@ function resolveTaskcoreConfigPath(): string {
   if (process.env.TASKCORE_CONFIG?.trim()) {
     return path.resolve(process.env.TASKCORE_CONFIG.trim());
   }
-  return findConfigFileFromAncestors(process.cwd()) ?? resolveTaskcoreConfigPathForInstance();
+  return (
+    findConfigFileFromAncestors(process.cwd()) ??
+    resolveTaskcoreConfigPathForInstance()
+  );
 }
 
 function resolveTaskcoreEnvPath(configPath: string): string {
@@ -72,7 +76,9 @@ function parseEnvFile(contents: string): Record<string, string> {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
 
-    const match = rawLine.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    const match = rawLine.match(
+      /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/,
+    );
     if (!match) continue;
 
     const [, key, rawValue] = match;
@@ -83,7 +89,7 @@ function parseEnvFile(contents: string): Record<string, string> {
     }
 
     if (
-      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       entries[key] = value.slice(1, -1);
@@ -102,11 +108,16 @@ function readEnvEntries(envPath: string): Record<string, string> {
 }
 
 function migrateLegacyConfig(raw: unknown): PartialConfig | null {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw))
+    return null;
 
   const config = { ...(raw as Record<string, unknown>) };
   const databaseRaw = config.database;
-  if (typeof databaseRaw !== "object" || databaseRaw === null || Array.isArray(databaseRaw)) {
+  if (
+    typeof databaseRaw !== "object" ||
+    databaseRaw === null ||
+    Array.isArray(databaseRaw)
+  ) {
     return config;
   }
 
@@ -152,7 +163,11 @@ function readConfig(configPath: string): PartialConfig | null {
   }
 
   const migrated = migrateLegacyConfig(parsed);
-  if (migrated === null || typeof migrated !== "object" || Array.isArray(migrated)) {
+  if (
+    migrated === null ||
+    typeof migrated !== "object" ||
+    Array.isArray(migrated)
+  ) {
     throw new Error(`Invalid config at ${configPath}: expected a JSON object`);
   }
 
@@ -168,13 +183,19 @@ function readConfig(configPath: string): PartialConfig | null {
       ? {
           mode: database.mode === "postgres" ? "postgres" : "embedded-postgres",
           connectionString:
-            typeof database.connectionString === "string" ? database.connectionString : undefined,
+            typeof database.connectionString === "string"
+              ? database.connectionString
+              : undefined,
           embeddedPostgresDataDir:
             typeof database.embeddedPostgresDataDir === "string"
               ? database.embeddedPostgresDataDir
               : undefined,
-          embeddedPostgresPort: asPositiveInt(database.embeddedPostgresPort) ?? undefined,
-          pgliteDataDir: typeof database.pgliteDataDir === "string" ? database.pgliteDataDir : undefined,
+          embeddedPostgresPort:
+            asPositiveInt(database.embeddedPostgresPort) ?? undefined,
+          pgliteDataDir:
+            typeof database.pgliteDataDir === "string"
+              ? database.pgliteDataDir
+              : undefined,
           pglitePort: asPositiveInt(database.pglitePort) ?? undefined,
         }
       : undefined,
@@ -222,7 +243,8 @@ export function resolveDatabaseTarget(): ResolvedDatabaseTarget {
 
   const port = config?.database?.embeddedPostgresPort ?? 54329;
   const dataDir = resolveHomeAwarePath(
-    config?.database?.embeddedPostgresDataDir ?? resolveDefaultEmbeddedPostgresDir(),
+    config?.database?.embeddedPostgresDataDir ??
+      resolveDefaultEmbeddedPostgresDir(),
   );
 
   return {

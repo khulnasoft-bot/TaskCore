@@ -39,7 +39,9 @@ export class VercelConnectClientError extends Error {
   }
 }
 
-export function vercelConnectFailureMessage(code: VercelConnectFailureCode): string {
+export function vercelConnectFailureMessage(
+  code: VercelConnectFailureCode,
+): string {
   switch (code) {
     case "vercel_connect_unavailable":
       return "Vercel Connect is not configured on this Taskcore instance.";
@@ -66,8 +68,14 @@ export type VercelConnectTokenRequest = {
 
 export interface VercelConnectClient {
   getConnectorMetadata(connector: string): Promise<ConnectorMetadata>;
-  getToken(input: VercelConnectTokenRequest, options?: { forceRefresh?: boolean }): Promise<ConnectTokenResponse>;
-  startAuthorization(input: VercelConnectTokenRequest, callbackUrl: string): Promise<ConnectAuthorizationResponse>;
+  getToken(
+    input: VercelConnectTokenRequest,
+    options?: { forceRefresh?: boolean },
+  ): Promise<ConnectTokenResponse>;
+  startAuthorization(
+    input: VercelConnectTokenRequest,
+    callbackUrl: string,
+  ): Promise<ConnectAuthorizationResponse>;
   revoke(input: VercelConnectTokenRequest): Promise<void>;
   evict(input: VercelConnectTokenRequest): void;
 }
@@ -76,21 +84,29 @@ function enabled(value: string | undefined): boolean {
   return /^(1|true|yes|on)$/i.test(value?.trim() ?? "");
 }
 
-export function vercelConnectIntegrationStatus(env: NodeJS.ProcessEnv = process.env): {
+export function vercelConnectIntegrationStatus(
+  env: NodeJS.ProcessEnv = process.env,
+): {
   enabled: boolean;
   configured: boolean;
   authentication: "workload_oidc" | "access_token" | null;
   manageUrl: string;
 } {
   const integrationEnabled = enabled(env.TASKCORE_VERCEL_CONNECT_ENABLED);
-  const hasAccessToken = Boolean(env.TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN?.trim());
+  const hasAccessToken = Boolean(
+    env.TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN?.trim(),
+  );
   const hasWorkloadOidc = Boolean(env.VERCEL_OIDC_TOKEN?.trim());
   return {
     enabled: integrationEnabled,
     // Resolution stays available for existing connections when new setup is
     // disabled. The feature flag gates creation, not already-authorized calls.
     configured: hasWorkloadOidc || hasAccessToken,
-    authentication: hasWorkloadOidc ? "workload_oidc" : hasAccessToken ? "access_token" : null,
+    authentication: hasWorkloadOidc
+      ? "workload_oidc"
+      : hasAccessToken
+        ? "access_token"
+        : null,
     manageUrl: "https://vercel.com/connect",
   };
 }
@@ -100,11 +116,14 @@ export function vercelConnectIntegrationStatus(env: NodeJS.ProcessEnv = process.
  * Taskcore's local board commonly runs on 127.0.0.1, which is the same
  * loopback boundary but Vercel rejects it before authorization starts.
  */
-export function vercelConnectCallbackUrl(redirectUri: string, state: string): string {
+export function vercelConnectCallbackUrl(
+  redirectUri: string,
+  state: string,
+): string {
   const callbackUrl = new URL(redirectUri);
   if (
-    callbackUrl.protocol === "http:"
-    && (callbackUrl.hostname === "127.0.0.1" || callbackUrl.hostname === "[::1]")
+    callbackUrl.protocol === "http:" &&
+    (callbackUrl.hostname === "127.0.0.1" || callbackUrl.hostname === "[::1]")
   ) {
     callbackUrl.hostname = "localhost";
   }
@@ -141,18 +160,30 @@ function tokenParams(input: VercelConnectTokenRequest): ConnectTokenParams {
 }
 
 function mapSdkError(error: unknown): VercelConnectClientError {
-  if (error instanceof UserAuthorizationRequiredError || error instanceof NoValidTokenError) {
-    return new VercelConnectClientError("vercel_connect_authorization_required", 409);
+  if (
+    error instanceof UserAuthorizationRequiredError ||
+    error instanceof NoValidTokenError
+  ) {
+    return new VercelConnectClientError(
+      "vercel_connect_authorization_required",
+      409,
+    );
   }
   if (error instanceof ConnectorInstallationRequiredError) {
-    return new VercelConnectClientError("vercel_connect_installation_required", 409);
+    return new VercelConnectClientError(
+      "vercel_connect_installation_required",
+      409,
+    );
   }
   if (error instanceof ConnectError) {
     if (error.status === 401 || error.status === 403) {
       return new VercelConnectClientError("vercel_connect_auth_failed", 503);
     }
     if (error.status === 404) {
-      return new VercelConnectClientError("vercel_connect_connector_not_found", 422);
+      return new VercelConnectClientError(
+        "vercel_connect_connector_not_found",
+        422,
+      );
     }
   }
   return new VercelConnectClientError("vercel_connect_request_failed", 502);
@@ -177,7 +208,11 @@ export function createVercelConnectClient(): VercelConnectClient {
     async getToken(input, options = {}) {
       assertConfigured();
       const params = tokenParams(input);
-      const key = JSON.stringify([input.connector, params, options.forceRefresh === true]);
+      const key = JSON.stringify([
+        input.connector,
+        params,
+        options.forceRefresh === true,
+      ]);
       const existing = flights.get(key);
       if (existing) return existing;
       const request = getTokenResponse(
@@ -208,10 +243,16 @@ export function createVercelConnectClient(): VercelConnectClient {
     async revoke(input) {
       assertConfigured();
       try {
-        await revokeToken(input.connector, {
-          subject: input.subject,
-          ...(input.installationId ? { installationId: input.installationId } : {}),
-        }, vercelConnectSdkOptions());
+        await revokeToken(
+          input.connector,
+          {
+            subject: input.subject,
+            ...(input.installationId
+              ? { installationId: input.installationId }
+              : {}),
+          },
+          vercelConnectSdkOptions(),
+        );
       } catch (error) {
         throw mapSdkError(error);
       }
@@ -223,7 +264,10 @@ export function createVercelConnectClient(): VercelConnectClient {
 }
 
 function subjectHash(parts: string[]): string {
-  return createHash("sha256").update(parts.join("\0")).digest("base64url").slice(0, 43);
+  return createHash("sha256")
+    .update(parts.join("\0"))
+    .digest("base64url")
+    .slice(0, 43);
 }
 
 /** Subjects are deterministic, company-bound and never accepted from clients. */
@@ -234,23 +278,31 @@ export function deriveVercelConnectSubject(input: {
   grantKind: ConnectionGrantKind;
   subjectUserId?: string | null;
 }): { subject: ConnectTokenSubject; subjectId?: string } {
-  if (input.credential.principalMode === "app") return { subject: { type: "app" } };
-  const instanceId = process.env.TASKCORE_INSTANCE_ID
-    ?? process.env.TASKCORE_DEPLOYMENT_ID
-    ?? "taskcore-instance";
+  if (input.credential.principalMode === "app")
+    return { subject: { type: "app" } };
+  const instanceId =
+    process.env.TASKCORE_INSTANCE_ID ??
+    process.env.TASKCORE_DEPLOYMENT_ID ??
+    "taskcore-instance";
   const subjectId = `pc_${subjectHash([
     instanceId,
     input.companyId,
     input.connectionId,
     input.grantKind,
-    input.grantKind === "user" ? input.subjectUserId ?? "missing-user" : "organization",
+    input.grantKind === "user"
+      ? (input.subjectUserId ?? "missing-user")
+      : "organization",
   ])}`;
   return { subject: { type: "user", id: subjectId }, subjectId };
 }
 
 export function vercelTokenRequest(input: {
   credential: VercelConnectCredentialReference;
-  grant: { kind: ConnectionGrantKind; subjectUserId: string | null; externalCredential?: VercelConnectGrantReference | null };
+  grant: {
+    kind: ConnectionGrantKind;
+    subjectUserId: string | null;
+    externalCredential?: VercelConnectGrantReference | null;
+  };
   connectionId: string;
   companyId: string;
   resources?: string[];
@@ -283,7 +335,9 @@ export function vercelGrantReference(input: {
     provider: "vercel_connect",
     subjectType: input.credential.principalMode,
     ...(input.subjectId ? { subjectId: input.subjectId } : {}),
-    ...(input.token.installationId ? { installationId: input.token.installationId } : {}),
+    ...(input.token.installationId
+      ? { installationId: input.token.installationId }
+      : {}),
     ...(input.token.tenantId ? { tenantId: input.token.tenantId } : {}),
     ...(input.token.tokenId ? { tokenId: input.token.tokenId } : {}),
     expiresAt: new Date(input.token.expiresAt).toISOString(),

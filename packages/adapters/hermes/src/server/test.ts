@@ -15,8 +15,17 @@ import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { promisify } from "node:util";
 
-import { HERMES_CLI, DEFAULT_MODEL, ADAPTER_TYPE, VALID_PROVIDERS } from "../shared/constants.js";
-import { detectModel, resolveProvider, inferProviderFromModel } from "./detect-model.js";
+import {
+  HERMES_CLI,
+  DEFAULT_MODEL,
+  ADAPTER_TYPE,
+  VALID_PROVIDERS,
+} from "../shared/constants.js";
+import {
+  detectModel,
+  resolveProvider,
+  inferProviderFromModel,
+} from "./detect-model.js";
 import { resolveHermesCommand } from "./execute.js";
 
 const execFileAsync = promisify(execFile);
@@ -120,7 +129,8 @@ function checkModel(
   if (!model) {
     return {
       level: "info",
-      message: "No model specified — Hermes will use its configured default model",
+      message:
+        "No model specified — Hermes will use its configured default model",
       hint: "Set a model explicitly in Taskcore only if you want to override your local Hermes configuration.",
       code: "hermes_configured_default_model",
     };
@@ -199,11 +209,11 @@ async function checkApiKeys(
   const supportedProviders = VALID_PROVIDERS as readonly string[];
   const modelMatchesRequested =
     !!detectedConfig?.model &&
-    (!requestedModel || detectedConfig.model.toLowerCase() === requestedModel.toLowerCase());
+    (!requestedModel ||
+      detectedConfig.model.toLowerCase() === requestedModel.toLowerCase());
 
   const matchingHermesConfigApiKey =
-    !!detectedConfig?.hasApiKey &&
-    modelMatchesRequested;
+    !!detectedConfig?.hasApiKey && modelMatchesRequested;
 
   if (matchingHermesConfigApiKey && detectedConfig) {
     const providerLabel = detectedConfig.provider.trim();
@@ -211,7 +221,8 @@ async function checkApiKeys(
     if (!providerLabel) {
       return {
         level: "info",
-        message: "Hermes config includes an API key for the requested model via ~/.hermes/config.yaml without an explicit provider",
+        message:
+          "Hermes config includes an API key for the requested model via ~/.hermes/config.yaml without an explicit provider",
         hint: "Skipping the built-in API-key warning because Hermes can use model.api_key from the local Hermes config.",
         code: "hermes_api_key_in_config",
       };
@@ -267,7 +278,11 @@ async function checkProviderConsistency(
 
   // If provider was explicitly set but doesn't match what Hermes config says,
   // that's worth flagging.
-  if (explicitProvider && detectedConfig?.provider && explicitProvider !== detectedConfig.provider) {
+  if (
+    explicitProvider &&
+    detectedConfig?.provider &&
+    explicitProvider !== detectedConfig.provider
+  ) {
     return {
       level: "warn",
       message: `Provider mismatch: adapterConfig has "${explicitProvider}" but ~/.hermes/config.yaml has "${detectedConfig.provider}". Using adapterConfig value.`,
@@ -278,8 +293,12 @@ async function checkProviderConsistency(
 
   // If Hermes config matches the requested model but uses an adapter-unsupported
   // provider such as "custom", do not report a false provider inference.
-  if (!explicitProvider && resolvedFrom.startsWith("hermesConfigUnsupported:")) {
-    const unsupportedProvider = resolvedFrom.split(":", 2)[1] || detectedConfig?.provider || "unknown";
+  if (
+    !explicitProvider &&
+    resolvedFrom.startsWith("hermesConfigUnsupported:")
+  ) {
+    const unsupportedProvider =
+      resolvedFrom.split(":", 2)[1] || detectedConfig?.provider || "unknown";
     return {
       level: "info",
       message: `Hermes config uses unsupported adapter provider "${unsupportedProvider}" for model "${model}" — deferring to Hermes auto-detection`,
@@ -337,27 +356,59 @@ export async function testEnvironment(
   if (config.managedAiRouting) {
     const remote = ctx.executionTarget?.kind === "remote";
     if (remote) {
-      checks.push({ level: "error", code: "hermes_remote_probe_unsupported", message: "Hermes connection testing requires a local execution environment." });
+      checks.push({
+        level: "error",
+        code: "hermes_remote_probe_unsupported",
+        message:
+          "Hermes connection testing requires a local execution environment.",
+      });
     } else {
       const env = { ...process.env };
-      for (const [key, value] of Object.entries((config.env ?? {}) as Record<string, unknown>)) {
+      for (const [key, value] of Object.entries(
+        (config.env ?? {}) as Record<string, unknown>,
+      )) {
         if (typeof value === "string") env[key] = value;
       }
-      const args = ["chat", "-Q", "-q", "Respond with hello. Do not use tools.", "--max-turns", "1"];
+      const args = [
+        "chat",
+        "-Q",
+        "-q",
+        "Respond with hello. Do not use tools.",
+        "--max-turns",
+        "1",
+      ];
       if (asString(config.model)) args.push("-m", asString(config.model)!);
       const provider = asString(config.provider);
       if (provider && provider !== "auto") args.push("--provider", provider);
       try {
         const { stdout } = await execFileAsync(command, args, {
-          env, cwd: asString(config.cwd), timeout: 45_000, maxBuffer: 1024 * 1024,
+          env,
+          cwd: asString(config.cwd),
+          timeout: 45_000,
+          maxBuffer: 1024 * 1024,
         });
         if (!/\bhello\b/i.test(stdout)) throw new Error("No hello response");
-        checks.push({ level: "info", code: "hermes_hello_probe_passed", message: "Hermes responded through the selected connection." });
+        checks.push({
+          level: "info",
+          code: "hermes_hello_probe_passed",
+          message: "Hermes responded through the selected connection.",
+        });
       } catch {
-        checks.push({ level: "error", code: "hermes_hello_probe_failed", message: "Hermes could not complete a request through this connection.", hint: "Check the Hermes installation, endpoint, credential, and model, then test again." });
+        checks.push({
+          level: "error",
+          code: "hermes_hello_probe_failed",
+          message:
+            "Hermes could not complete a request through this connection.",
+          hint: "Check the Hermes installation, endpoint, credential, and model, then test again.",
+        });
       }
     }
-    return { adapterType: ADAPTER_TYPE, status: checks.some(check => check.level === "error") ? "fail" : "pass", checks, testedAt: new Date().toISOString() };
+    return {
+      adapterType: ADAPTER_TYPE,
+      status: checks.some((check) => check.level === "error") ? "fail" : "pass",
+      checks,
+      testedAt: new Date().toISOString(),
+    };
   }
 
   // 1. CLI installed?

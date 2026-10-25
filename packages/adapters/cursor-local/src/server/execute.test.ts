@@ -27,19 +27,20 @@ type PrepareCursorSandboxCommandResult = {
   preferredCommandPath: string | null;
 };
 
-const {
-  setPrepareCursorSandboxCommand,
-} = vi.hoisted(() => {
-  const setPrepareCursorSandboxCommand = vi.fn<
-    (input: PrepareCursorSandboxCommandInput) => Promise<PrepareCursorSandboxCommandResult>
-  >();
+const { setPrepareCursorSandboxCommand } = vi.hoisted(() => {
+  const setPrepareCursorSandboxCommand =
+    vi.fn<
+      (
+        input: PrepareCursorSandboxCommandInput,
+      ) => Promise<PrepareCursorSandboxCommandResult>
+    >();
   return { setPrepareCursorSandboxCommand };
 });
 
 vi.mock("@taskcore/adapter-utils/execution-target", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/execution-target")>(
-    "@taskcore/adapter-utils/execution-target",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/execution-target")
+  >("@taskcore/adapter-utils/execution-target");
   return {
     ...actual,
     startAdapterExecutionTargetTaskcoreBridge: async () => null,
@@ -47,10 +48,14 @@ vi.mock("@taskcore/adapter-utils/execution-target", async () => {
 });
 
 vi.mock("./remote-command.js", async () => {
-  const actual = await vi.importActual<typeof import("./remote-command.js")>("./remote-command.js");
+  const actual = await vi.importActual<typeof import("./remote-command.js")>(
+    "./remote-command.js",
+  );
   return {
     ...actual,
-    prepareCursorSandboxCommand: async (input: Parameters<typeof actual.prepareCursorSandboxCommand>[0]) => {
+    prepareCursorSandboxCommand: async (
+      input: Parameters<typeof actual.prepareCursorSandboxCommand>[0],
+    ) => {
       return setPrepareCursorSandboxCommand(input);
     },
   };
@@ -67,7 +72,10 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
 `;
 }
 
-function buildInstallSimulationCommand(commandPath: string, captureDir: string): string {
+function buildInstallSimulationCommand(
+  commandPath: string,
+  captureDir: string,
+): string {
   return [
     `mkdir -p ${JSON.stringify(path.dirname(commandPath))}`,
     `mkdir -p ${JSON.stringify(captureDir)}`,
@@ -111,7 +119,10 @@ function createFreshLeaseSandboxRunner(options: {
       const args = [...(input.args ?? [])];
       if (args[1] === SANDBOX_INSTALL_COMMAND) {
         installCommands.push(args[1]);
-        args[1] = buildInstallSimulationCommand(options.installCommandPath, options.captureDir);
+        args[1] = buildInstallSimulationCommand(
+          options.installCommandPath,
+          options.captureDir,
+        );
       }
 
       const inheritedPath = input.env?.PATH ?? systemPath;
@@ -122,97 +133,184 @@ function createFreshLeaseSandboxRunner(options: {
         PATH: pathWithLocalBin,
       };
 
-      return await runChildProcess(`cursor-fresh-lease-${counter}`, input.command, args, {
-        cwd: input.cwd ?? process.cwd(),
-        env,
-        stdin: input.stdin,
-        timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
-        graceSec: 5,
-        onLog: input.onLog ?? (async () => {}),
-        onSpawn: input.onSpawn
-          ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
-          : undefined,
-      });
+      return await runChildProcess(
+        `cursor-fresh-lease-${counter}`,
+        input.command,
+        args,
+        {
+          cwd: input.cwd ?? process.cwd(),
+          env,
+          stdin: input.stdin,
+          timeoutSec: Math.max(
+            1,
+            Math.ceil((input.timeoutMs ?? 30_000) / 1000),
+          ),
+          graceSec: 5,
+          onLog: input.onLog ?? (async () => {}),
+          onSpawn: input.onSpawn
+            ? async (meta) =>
+                input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+            : undefined,
+        },
+      );
     },
   };
 }
 
 describe("cursor execute", () => {
-  it.each([0, 7])("settles legacy step usage only after a clean process exit (%s)", async (exitCode) => {
-    setPrepareCursorSandboxCommand.mockReset();
-    setPrepareCursorSandboxCommand.mockImplementation(async (input) => ({
-      command: input.command, env: input.env, remoteSystemHomeDir: null,
-      addedPathEntry: null, preferredCommandPath: null,
-    }));
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-legacy-"));
-    const command = path.join(root, "agent.sh");
-    await fs.writeFile(command, `#!/bin/sh
+  it.each([0, 7])(
+    "settles legacy step usage only after a clean process exit (%s)",
+    async (exitCode) => {
+      setPrepareCursorSandboxCommand.mockReset();
+      setPrepareCursorSandboxCommand.mockImplementation(async (input) => ({
+        command: input.command,
+        env: input.env,
+        remoteSystemHomeDir: null,
+        addedPathEntry: null,
+        preferredCommandPath: null,
+      }));
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-cursor-legacy-"),
+      );
+      const command = path.join(root, "agent.sh");
+      await fs.writeFile(
+        command,
+        `#!/bin/sh
 cat >/dev/null
 printf '%s\\n' '{"type":"step_finish","part":{"tokens":{"input":20,"output":5},"cost":0.01}}'
 exit ${exitCode}
-`, { mode: 0o755 });
-    const onUsage = vi.fn();
-    try {
-      const result = await execute({
-        runId: "run-legacy", agent: { id: "agent-1", companyId: "company-1", name: "Cursor", adapterType: "cursor", adapterConfig: {} },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
-        config: { command, cwd: root }, context: createPromptContextFixture(),
-        authToken: "fixture-run-token", onLog: async () => {}, onUsage,
-      });
-      expect(result.usage).toMatchObject({ inputTokens: 20, outputTokens: 5 });
-      expect(result.costUsd).toBe(0.01);
-      expect(result.usageComplete).toBe(exitCode === 0);
-      expect(onUsage).toHaveBeenCalledWith(expect.objectContaining({ complete: false, costUsd: 0.01 }));
-    } finally {
-      await fs.rm(root, { recursive: true, force: true });
-    }
-  });
+`,
+        { mode: 0o755 },
+      );
+      const onUsage = vi.fn();
+      try {
+        const result = await execute({
+          runId: "run-legacy",
+          agent: {
+            id: "agent-1",
+            companyId: "company-1",
+            name: "Cursor",
+            adapterType: "cursor",
+            adapterConfig: {},
+          },
+          runtime: {
+            sessionId: null,
+            sessionParams: null,
+            sessionDisplayId: null,
+            taskKey: null,
+          },
+          config: { command, cwd: root },
+          context: createPromptContextFixture(),
+          authToken: "fixture-run-token",
+          onLog: async () => {},
+          onUsage,
+        });
+        expect(result.usage).toMatchObject({
+          inputTokens: 20,
+          outputTokens: 5,
+        });
+        expect(result.costUsd).toBe(0.01);
+        expect(result.usageComplete).toBe(exitCode === 0);
+        expect(onUsage).toHaveBeenCalledWith(
+          expect.objectContaining({ complete: false, costUsd: 0.01 }),
+        );
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
 
   it.each([
-    { detail: "Authentication failed", structured: "", expected: "Authentication failed" },
+    {
+      detail: "Authentication failed",
+      structured: "",
+      expected: "Authentication failed",
+    },
     { detail: "", structured: "", expected: "Cursor exited with code 7" },
-    { detail: "stderr fallback", structured: '{"type":"error","message":"Structured failure"}', expected: "Structured failure" },
-  ])("keeps the actual failure after a retrieval trace announcement: $expected", async ({ detail, structured, expected }) => {
-    setPrepareCursorSandboxCommand.mockReset();
-    setPrepareCursorSandboxCommand.mockImplementation(async (input) => ({
-      command: input.command, env: input.env, remoteSystemHomeDir: null,
-      addedPathEntry: null, preferredCommandPath: null,
-    }));
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-diagnostic-"));
-    const command = path.join(root, "agent.sh");
-    const trace = "cursor-retrieval: tracing to '/tmp/fixture-cursor-retrieval.log'";
-    // Values are fixed test fixtures, passed through env rather than shell code.
-    await fs.writeFile(command, `#!/bin/sh
+    {
+      detail: "stderr fallback",
+      structured: '{"type":"error","message":"Structured failure"}',
+      expected: "Structured failure",
+    },
+  ])(
+    "keeps the actual failure after a retrieval trace announcement: $expected",
+    async ({ detail, structured, expected }) => {
+      setPrepareCursorSandboxCommand.mockReset();
+      setPrepareCursorSandboxCommand.mockImplementation(async (input) => ({
+        command: input.command,
+        env: input.env,
+        remoteSystemHomeDir: null,
+        addedPathEntry: null,
+        preferredCommandPath: null,
+      }));
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-cursor-diagnostic-"),
+      );
+      const command = path.join(root, "agent.sh");
+      const trace =
+        "cursor-retrieval: tracing to '/tmp/fixture-cursor-retrieval.log'";
+      // Values are fixed test fixtures, passed through env rather than shell code.
+      await fs.writeFile(
+        command,
+        `#!/bin/sh
 cat >/dev/null
 printf '%s\\n' "$FIXTURE_TRACE" "$FIXTURE_DETAIL" >&2
 printf '%s\\n' "$FIXTURE_STRUCTURED"
 exit 7
-`, { mode: 0o755 });
-    try {
-      const result = await execute({
-        runId: "run-diagnostic-1",
-        agent: { id: "agent-1", companyId: "company-1", name: "Cursor", adapterType: "cursor", adapterConfig: {} },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
-        config: { command, cwd: root, env: { FIXTURE_TRACE: trace, FIXTURE_DETAIL: detail, FIXTURE_STRUCTURED: structured } },
-        context: createPromptContextFixture(), authToken: "fixture-run-token", onLog: async () => {},
-      });
-      expect(result.exitCode).toBe(7);
-      expect(result.errorMessage).toBe(expected);
-      expect(result.resultJson?.stderr).toContain(trace);
-      expect(result.resultJson?.stderr).toContain(detail);
-    } finally {
-      await fs.rm(root, { recursive: true, force: true });
-    }
-  });
+`,
+        { mode: 0o755 },
+      );
+      try {
+        const result = await execute({
+          runId: "run-diagnostic-1",
+          agent: {
+            id: "agent-1",
+            companyId: "company-1",
+            name: "Cursor",
+            adapterType: "cursor",
+            adapterConfig: {},
+          },
+          runtime: {
+            sessionId: null,
+            sessionParams: null,
+            sessionDisplayId: null,
+            taskKey: null,
+          },
+          config: {
+            command,
+            cwd: root,
+            env: {
+              FIXTURE_TRACE: trace,
+              FIXTURE_DETAIL: detail,
+              FIXTURE_STRUCTURED: structured,
+            },
+          },
+          context: createPromptContextFixture(),
+          authToken: "fixture-run-token",
+          onLog: async () => {},
+        });
+        expect(result.exitCode).toBe(7);
+        expect(result.errorMessage).toBe(expected);
+        expect(result.resultJson?.stderr).toContain(trace);
+        expect(result.resultJson?.stderr).toContain(detail);
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("installs the default agent command on a fresh sandbox lease before execution", async () => {
     setPrepareCursorSandboxCommand.mockReset();
     setPrepareCursorSandboxCommand.mockImplementation(async (input) => {
-      const actual = await vi.importActual<typeof import("./remote-command.js")>("./remote-command.js");
+      const actual = await vi.importActual<
+        typeof import("./remote-command.js")
+      >("./remote-command.js");
       return actual.prepareCursorSandboxCommand(input);
     });
 
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-fresh-lease-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-fresh-lease-"),
+    );
     const homeDir = path.join(root, "home");
     const workspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "remote-workspace");
@@ -267,11 +365,22 @@ exit 7
       expect(result.errorMessage).toBeNull();
       expect(runner.installCommands).toEqual([SANDBOX_INSTALL_COMMAND]);
 
-      const command = await fs.readFile(path.join(captureDir, "command.txt"), "utf8");
-      const runtimePath = await fs.readFile(path.join(captureDir, "path.txt"), "utf8");
-      const prompt = await fs.readFile(path.join(captureDir, "prompt.txt"), "utf8");
+      const command = await fs.readFile(
+        path.join(captureDir, "command.txt"),
+        "utf8",
+      );
+      const runtimePath = await fs.readFile(
+        path.join(captureDir, "path.txt"),
+        "utf8",
+      );
+      const prompt = await fs.readFile(
+        path.join(captureDir, "prompt.txt"),
+        "utf8",
+      );
       expect(command).toBe(agentPath);
-      expect(runtimePath.split(path.delimiter)).toContain(path.join(homeDir, ".local", "bin"));
+      expect(runtimePath.split(path.delimiter)).toContain(
+        path.join(homeDir, ".local", "bin"),
+      );
       expect(prompt).toContain("Follow the taskcore heartbeat.");
       expect(prompt).toContain("## Owned assignment");
     } finally {
@@ -286,7 +395,9 @@ exit 7
     const prepareInputs: PrepareCursorSandboxCommandInput[] = [];
     let finalPreparedCommand: string | null = null;
 
-    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-fresh-lease-managed-"));
+    const rootDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-fresh-lease-managed-"),
+    );
     const workspaceDir = path.join(rootDir, "workspace");
     const remoteWorkspace = path.join(rootDir, "remote-workspace");
     const systemHomeDir = path.join(rootDir, "system-home");
@@ -296,10 +407,14 @@ exit 7
     await fs.mkdir(fixtureBinDir, { recursive: true });
     // A regression in installer interception must fail locally, not download
     // and execute the real CLI or depend on an external server's latency.
-    await fs.writeFile(path.join(fixtureBinDir, "curl"), `#!/bin/sh
+    await fs.writeFile(
+      path.join(fixtureBinDir, "curl"),
+      `#!/bin/sh
 : > "$FIXTURE_CURL_ATTEMPT_PATH"
 exit 97
-`, { mode: 0o755 });
+`,
+      { mode: 0o755 },
+    );
     await fs.mkdir(managedCaptureDir, { recursive: true });
     await fs.mkdir(workspaceDir, { recursive: true });
     await fs.mkdir(remoteWorkspace, { recursive: true });
@@ -324,7 +439,12 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
       }
 
       expect(input.remoteSystemHomeDirHint).toBe(systemHomeDir);
-      const preferredCommandPath = path.join(systemHomeDir, ".local", "bin", input.command);
+      const preferredCommandPath = path.join(
+        systemHomeDir,
+        ".local",
+        "bin",
+        input.command,
+      );
       finalPreparedCommand = preferredCommandPath;
       const runtimeEnv = {
         ...input.env,
@@ -333,7 +453,10 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
       await fs.mkdir(path.dirname(preferredCommandPath), { recursive: true });
       await fs.writeFile(preferredCommandPath, preferredAgentScript);
       await fs.chmod(preferredCommandPath, 0o755);
-      await fs.writeFile(path.join(managedCaptureDir, "agent-output.log"), preferredCommandPath);
+      await fs.writeFile(
+        path.join(managedCaptureDir, "agent-output.log"),
+        preferredCommandPath,
+      );
 
       return {
         command: preferredCommandPath,
@@ -353,7 +476,12 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
     // shell seam faithful to that protocol instead of returning empty stdout
     // for every shell command.
     const runner = {
-      execute: async (input: { command: string; args?: string[]; env?: Record<string, string>; stdin?: string }) => {
+      execute: async (input: {
+        command: string;
+        args?: string[];
+        env?: Record<string, string>;
+        stdin?: string;
+      }) => {
         runnerState.commands.push(input.command);
         const args = [...(input.args ?? [])];
         if (args[1] === SANDBOX_INSTALL_COMMAND) {
@@ -365,19 +493,24 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
         }
         // Exercise actual bounded file reads during managed-home restoration;
         // reporting empty success for every shell command hides missing bytes.
-        return runChildProcess(`cursor-fresh-lease-${runnerState.commands.length}`, input.command, args, {
-          cwd: remoteWorkspace,
-          env: {
-            ...input.env,
-            PATH: `${fixtureBinDir}:${input.env?.PATH ?? ""}:/usr/bin:/bin`,
-            FIXTURE_CURL_ATTEMPT_PATH: networkAttemptPath,
+        return runChildProcess(
+          `cursor-fresh-lease-${runnerState.commands.length}`,
+          input.command,
+          args,
+          {
+            cwd: remoteWorkspace,
+            env: {
+              ...input.env,
+              PATH: `${fixtureBinDir}:${input.env?.PATH ?? ""}:/usr/bin:/bin`,
+              FIXTURE_CURL_ATTEMPT_PATH: networkAttemptPath,
+            },
+            stdin: input.stdin,
+            timeoutSec: 30,
+            graceSec: 5,
+            onLog: async () => {},
+            onSpawn: async () => {},
           },
-          stdin: input.stdin,
-          timeoutSec: 30,
-          graceSec: 5,
-          onLog: async () => {},
-          onSpawn: async () => {},
-        });
+        );
       },
     };
 
@@ -419,21 +552,28 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
         authToken: "run-jwt-token",
         onLog: async () => {},
         onMeta: async (meta) => {
-          runMeta.push(meta as unknown as { command?: string; [key: string]: unknown });
+          runMeta.push(
+            meta as unknown as { command?: string; [key: string]: unknown },
+          );
         },
       });
 
       expect(result.exitCode).toBe(0);
-      await expect(fs.stat(networkAttemptPath)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(fs.stat(networkAttemptPath)).rejects.toMatchObject({
+        code: "ENOENT",
+      });
       expect(runnerState.installCommands).toEqual([SANDBOX_INSTALL_COMMAND]);
       expect(prepareInputs).toHaveLength(2);
       expect(prepareInputs[1].env.HOME).toBeTruthy();
       expect(prepareInputs[1].env.HOME).not.toBe(systemHomeDir);
       expect(finalPreparedCommand).not.toBeNull();
       expect(finalPreparedCommand).toMatch(/\.local\/(bin|sbin)\/agent$/);
-      const resolvedCommand = runMeta.find(Boolean)?.command as string | undefined;
+      const resolvedCommand = runMeta.find(Boolean)?.command as
+        string | undefined;
       expect(resolvedCommand).toMatch(/\.local\/bin\/agent$/);
-      expect(resolvedCommand).toContain(path.join(systemHomeDir, ".local", "bin", command));
+      expect(resolvedCommand).toContain(
+        path.join(systemHomeDir, ".local", "bin", command),
+      );
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -450,12 +590,16 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
       addedPathEntry: null,
       preferredCommandPath: null,
     }));
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-resume-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-resume-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "agent.sh");
     const capturePath = path.join(root, "prompts.txt");
     await fs.mkdir(workspace, { recursive: true });
-    await fs.writeFile(commandPath, `#!/bin/sh
+    await fs.writeFile(
+      commandPath,
+      `#!/bin/sh
 count_file=${JSON.stringify(path.join(root, "count"))}
 count=$(cat "$count_file" 2>/dev/null || printf '0')
 count=$((count + 1))
@@ -468,15 +612,31 @@ if [ "$count" -eq 1 ]; then
 fi
 printf '%s\\n' '{"type":"system","subtype":"init","session_id":"cursor-session-fresh-2","model":"auto"}'
 printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-session-fresh-2","result":"ok"}'
-`);
+`,
+    );
     await fs.chmod(commandPath, 0o755);
 
     try {
       const result = await execute({
         runId: "run-cursor-resume-fallback",
-        agent: { id: "agent-1", companyId: "company-1", name: "Cursor Coder", adapterType: "cursor", adapterConfig: {} },
-        runtime: { sessionId: "cursor-session-old", sessionParams: null, sessionDisplayId: null, taskKey: null },
-        config: { command: commandPath, cwd: workspace, promptTemplate: "Follow the taskcore heartbeat." },
+        agent: {
+          id: "agent-1",
+          companyId: "company-1",
+          name: "Cursor Coder",
+          adapterType: "cursor",
+          adapterConfig: {},
+        },
+        runtime: {
+          sessionId: "cursor-session-old",
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
+        config: {
+          command: commandPath,
+          cwd: workspace,
+          promptTemplate: "Follow the taskcore heartbeat.",
+        },
         context: createPromptContextFixture(),
         authToken: "run-jwt-token",
         onLog: async () => {},

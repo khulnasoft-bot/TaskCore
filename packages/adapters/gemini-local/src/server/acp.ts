@@ -46,16 +46,19 @@ export interface GeminiEngineSelection {
   unavailableReason?: string;
 }
 
-type GeminiEngineResolutionInput =
-  Pick<AdapterExecutionContext, "config"> &
-  Partial<Pick<AdapterExecutionContext, "executionTarget" | "executionTransport">>;
+type GeminiEngineResolutionInput = Pick<AdapterExecutionContext, "config"> &
+  Partial<
+    Pick<AdapterExecutionContext, "executionTarget" | "executionTransport">
+  >;
 
 type GeminiAcpExecutorOptions = Omit<
   AcpxEngineExecutorOptions,
   "adapterType" | "moduleDir" | "packageRootDir"
 >;
 
-type GeminiAcpExecutor = (ctx: AdapterExecutionContext) => Promise<AdapterExecutionResult>;
+type GeminiAcpExecutor = (
+  ctx: AdapterExecutionContext,
+) => Promise<AdapterExecutionResult>;
 
 function normalizeEngine(value: unknown): GeminiEngineSelection {
   const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -64,7 +67,9 @@ function normalizeEngine(value: unknown): GeminiEngineSelection {
   return { engine: "acp", explicit: false };
 }
 
-export function resolveGeminiExecutionEngine(config: Record<string, unknown>): GeminiEngineSelection {
+export function resolveGeminiExecutionEngine(
+  config: Record<string, unknown>,
+): GeminiEngineSelection {
   return normalizeEngine(config.engine);
 }
 
@@ -92,18 +97,28 @@ function firstNonEmptyString(...values: unknown[]): string | undefined {
   return undefined;
 }
 
-export function buildGeminiAcpConfig(config: Record<string, unknown>): Record<string, unknown> {
-  const configuredAgentCommand = firstNonEmptyString(config.agentCommand, config.acpAgentCommand);
+export function buildGeminiAcpConfig(
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  const configuredAgentCommand = firstNonEmptyString(
+    config.agentCommand,
+    config.acpAgentCommand,
+  );
   const configuredGeminiCommand = firstNonEmptyString(config.command);
-  const agentCommand = configuredAgentCommand ?? (configuredGeminiCommand ? `${configuredGeminiCommand} --acp` : undefined);
+  const agentCommand =
+    configuredAgentCommand ??
+    (configuredGeminiCommand ? `${configuredGeminiCommand} --acp` : undefined);
   const stateDir = firstNonEmptyString(config.stateDir, config.acpStateDir);
-  const mode = firstNonEmptyString(config.mode, config.acpMode) ?? DEFAULT_ACP_ENGINE_MODE;
+  const mode =
+    firstNonEmptyString(config.mode, config.acpMode) ?? DEFAULT_ACP_ENGINE_MODE;
   const permissionMode =
     firstNonEmptyString(config.permissionMode, config.acpPermissionMode) ??
     DEFAULT_ACP_ENGINE_PERMISSION_MODE;
   const nonInteractivePermissions =
-    firstNonEmptyString(config.nonInteractivePermissions, config.acpNonInteractivePermissions) ??
-    DEFAULT_ACP_ENGINE_NON_INTERACTIVE_PERMISSIONS;
+    firstNonEmptyString(
+      config.nonInteractivePermissions,
+      config.acpNonInteractivePermissions,
+    ) ?? DEFAULT_ACP_ENGINE_NON_INTERACTIVE_PERMISSIONS;
   const warmHandleIdleMs =
     config.warmHandleIdleMs ??
     config.acpWarmHandleIdleMs ??
@@ -167,7 +182,8 @@ async function prepareGeminiRemoteManagedHome(
     createWorkspaceRestoreTeardown({
       stagedRuntime,
       onLog,
-      startMessage: "[taskcore] Restoring workspace changes from the sandbox.\n",
+      startMessage:
+        "[taskcore] Restoring workspace changes from the sandbox.\n",
       failurePrefix: "[taskcore] Gemini ACP teardown workspace restore failed",
     });
   const geminiSkillsHome = resolveGeminiSkillsHome(input.config);
@@ -185,7 +201,10 @@ async function prepareGeminiRemoteManagedHome(
     // No runtime root resolved — leave HOME as-is (host fallback) and skip the
     // in-sandbox seed; nothing to remap onto. The workspace still staged, so the
     // sync-back teardown still applies.
-    return { stagedRuntime, teardown: registerWorkspaceSyncBack(stagedRuntime) };
+    return {
+      stagedRuntime,
+      teardown: registerWorkspaceSyncBack(stagedRuntime),
+    };
   }
   env.HOME = managedRemoteHomeDir;
 
@@ -201,7 +220,11 @@ async function prepareGeminiRemoteManagedHome(
   // the managed home.
   const remoteSkillsAssetDir = stagedRuntime.assetDirs.skills;
   if (remoteSkillsAssetDir) {
-    const remoteSkillsDir = path.posix.join(managedRemoteHomeDir, ".gemini", "skills");
+    const remoteSkillsDir = path.posix.join(
+      managedRemoteHomeDir,
+      ".gemini",
+      "skills",
+    );
     await runAdapterExecutionTargetShellCommand(
       runId,
       executionTarget,
@@ -225,7 +248,11 @@ async function prepareGeminiRemoteManagedHome(
   // existing settings.json (user-shipped via workspace) is left untouched.
   const hasGeminiApiKey = Boolean(env.GEMINI_API_KEY || env.GOOGLE_API_KEY);
   if (hasGeminiApiKey) {
-    const remoteSettingsPath = path.posix.join(managedRemoteHomeDir, ".gemini", "settings.json");
+    const remoteSettingsPath = path.posix.join(
+      managedRemoteHomeDir,
+      ".gemini",
+      "settings.json",
+    );
     const authSettingsJson = JSON.stringify({
       selectedAuthType: "gemini-api-key",
       security: { auth: { selectedType: "gemini-api-key" } },
@@ -241,7 +268,9 @@ async function prepareGeminiRemoteManagedHome(
   return { stagedRuntime, teardown: registerWorkspaceSyncBack(stagedRuntime) };
 }
 
-function withGeminiAcpDefaults(options: GeminiAcpExecutorOptions): AcpxEngineExecutorOptions {
+function withGeminiAcpDefaults(
+  options: GeminiAcpExecutorOptions,
+): AcpxEngineExecutorOptions {
   return {
     prepareRemoteManagedHome: prepareGeminiRemoteManagedHome,
     ...options,
@@ -251,13 +280,18 @@ function withGeminiAcpDefaults(options: GeminiAcpExecutorOptions): AcpxEngineExe
   };
 }
 
-export function createGeminiAcpExecutor(options: GeminiAcpExecutorOptions = {}): GeminiAcpExecutor {
+export function createGeminiAcpExecutor(
+  options: GeminiAcpExecutorOptions = {},
+): GeminiAcpExecutor {
   let executor: GeminiAcpExecutor | null = null;
   return async (ctx) => {
     let currentExecutor = executor;
     if (!currentExecutor) {
-      const { createAcpxEngineExecutor } = await import("@taskcore/adapter-utils/acpx-engine/execute");
-      currentExecutor = createAcpxEngineExecutor(withGeminiAcpDefaults(options));
+      const { createAcpxEngineExecutor } =
+        await import("@taskcore/adapter-utils/acpx-engine/execute");
+      currentExecutor = createAcpxEngineExecutor(
+        withGeminiAcpDefaults(options),
+      );
       executor = currentExecutor;
     }
     return currentExecutor({
@@ -273,7 +307,9 @@ function parseVersion(version: string): [number, number, number] {
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
 
-export function nodeVersionMeetsGeminiAcpMinimum(version = process.version): boolean {
+export function nodeVersionMeetsGeminiAcpMinimum(
+  version = process.version,
+): boolean {
   const [major, minor, patch] = parseVersion(version);
   const [minMajor, minMinor, minPatch] = parseVersion(MIN_ACP_NODE_VERSION);
   if (major !== minMajor) return major > minMajor;
@@ -282,7 +318,10 @@ export function nodeVersionMeetsGeminiAcpMinimum(version = process.version): boo
 }
 
 async function pathExists(candidate: string): Promise<boolean> {
-  return fs.access(candidate).then(() => true).catch(() => false);
+  return fs
+    .access(candidate)
+    .then(() => true)
+    .catch(() => false);
 }
 
 function hasPathSeparator(command: string): boolean {
@@ -292,11 +331,14 @@ function hasPathSeparator(command: string): boolean {
 function firstShellToken(command: string): string | null {
   const trimmed = command.trim();
   if (!trimmed) return null;
-  if (trimmed.startsWith("'") || trimmed.startsWith("\"")) return null;
+  if (trimmed.startsWith("'") || trimmed.startsWith('"')) return null;
   return trimmed.split(/\s+/, 1)[0] ?? null;
 }
 
-async function findCommandOnPath(binName: string, pathValue = process.env.PATH ?? ""): Promise<string | null> {
+async function findCommandOnPath(
+  binName: string,
+  pathValue = process.env.PATH ?? "",
+): Promise<string | null> {
   for (const segment of pathValue.split(path.delimiter)) {
     if (!segment) continue;
     const candidate = path.join(segment, binName);
@@ -309,7 +351,7 @@ function resolveConfigPath(config: Record<string, unknown>): string {
   const envConfig = parseObject(config.env);
   return typeof envConfig.PATH === "string" && envConfig.PATH.trim().length > 0
     ? envConfig.PATH
-    : process.env.PATH ?? "";
+    : (process.env.PATH ?? "");
 }
 
 async function commandIsResolvable(
@@ -328,7 +370,11 @@ async function commandIsResolvable(
       await ensureAdapterExecutionTargetCommandResolvable(
         token,
         target,
-        resolveAdapterExecutionTargetCwd(target, asString(input?.config.cwd, ""), process.cwd()),
+        resolveAdapterExecutionTargetCwd(
+          target,
+          asString(input?.config.cwd, ""),
+          process.cwd(),
+        ),
         process.env,
       );
       return true;
@@ -336,12 +382,16 @@ async function commandIsResolvable(
       return false;
     }
   }
-  if (path.isAbsolute(token) || hasPathSeparator(token)) return pathExists(token);
+  if (path.isAbsolute(token) || hasPathSeparator(token))
+    return pathExists(token);
   return (await findCommandOnPath(token, pathValue)) !== null;
 }
 
 function resolveGeminiAcpCommand(config: Record<string, unknown>): string {
-  const configured = firstNonEmptyString(config.agentCommand, config.acpAgentCommand);
+  const configured = firstNonEmptyString(
+    config.agentCommand,
+    config.acpAgentCommand,
+  );
   if (configured) return configured;
   const geminiCommand = firstNonEmptyString(config.command) ?? "gemini";
   return `${geminiCommand} --acp`;
@@ -350,7 +400,11 @@ function resolveGeminiAcpCommand(config: Record<string, unknown>): string {
 function sandboxTargetHasProcessSessionBridge(
   target: ReturnType<typeof readAdapterExecutionTarget>,
 ): boolean {
-  return target?.kind === "remote" && target.transport === "sandbox" && Boolean(target.runner);
+  return (
+    target?.kind === "remote" &&
+    target.transport === "sandbox" &&
+    Boolean(target.runner)
+  );
 }
 
 async function geminiAcpUnavailableReason(
@@ -360,7 +414,10 @@ async function geminiAcpUnavailableReason(
     executionTarget: input.executionTarget,
     legacyRemoteExecution: input.executionTransport?.remoteExecution,
   });
-  if (target?.kind === "remote" && !sandboxTargetHasProcessSessionBridge(target)) {
+  if (
+    target?.kind === "remote" &&
+    !sandboxTargetHasProcessSessionBridge(target)
+  ) {
     if (target.transport === "sandbox") {
       return "Gemini ACP requires a bidirectional remote process target; this sandbox exposes only one-shot command execution.";
     }
@@ -370,13 +427,21 @@ async function geminiAcpUnavailableReason(
     return `Node ${process.version} (${process.execPath}) does not satisfy Gemini ACP's Node >=${MIN_ACP_NODE_VERSION} prerequisite.`;
   }
   const command = resolveGeminiAcpCommand(input.config);
-  if (!(await commandIsResolvable(command, resolveConfigPath(input.config), input))) {
+  if (
+    !(await commandIsResolvable(
+      command,
+      resolveConfigPath(input.config),
+      input,
+    ))
+  ) {
     return `Gemini ACP command is not available: ${command}.`;
   }
   return null;
 }
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -428,7 +493,9 @@ export async function testGeminiAcpEnvironment(
   }
 
   checks.push({
-    code: nodeVersionMeetsGeminiAcpMinimum() ? "gemini_acp_node_supported" : "gemini_acp_node_unsupported",
+    code: nodeVersionMeetsGeminiAcpMinimum()
+      ? "gemini_acp_node_supported"
+      : "gemini_acp_node_unsupported",
     level: nodeVersionMeetsGeminiAcpMinimum() ? "info" : "error",
     message: nodeVersionMeetsGeminiAcpMinimum()
       ? `Node ${process.version} satisfies ACP runtime requirements.`
@@ -439,12 +506,18 @@ export async function testGeminiAcpEnvironment(
   });
 
   const command = resolveGeminiAcpCommand(config);
-  const commandResolvable = await commandIsResolvable(command, resolveConfigPath(config), {
-    config,
-    executionTarget: ctx.executionTarget,
-  });
+  const commandResolvable = await commandIsResolvable(
+    command,
+    resolveConfigPath(config),
+    {
+      config,
+      executionTarget: ctx.executionTarget,
+    },
+  );
   checks.push({
-    code: commandResolvable ? "gemini_acp_command_resolvable" : "gemini_acp_command_missing",
+    code: commandResolvable
+      ? "gemini_acp_command_resolvable"
+      : "gemini_acp_command_missing",
     level: commandResolvable ? "info" : "error",
     message: commandResolvable
       ? `Gemini ACP command is executable: ${command}`
@@ -456,11 +529,17 @@ export async function testGeminiAcpEnvironment(
 
   const envConfig = parseObject(config.env);
   const considerHostEnv = !targetIsRemote;
-  const hasGca = envConfig.GOOGLE_GENAI_USE_GCA === "true" || (considerHostEnv && process.env.GOOGLE_GENAI_USE_GCA === "true");
+  const hasGca =
+    envConfig.GOOGLE_GENAI_USE_GCA === "true" ||
+    (considerHostEnv && process.env.GOOGLE_GENAI_USE_GCA === "true");
   const configGeminiApiKey = envConfig.GEMINI_API_KEY;
-  const hostGeminiApiKey = considerHostEnv ? process.env.GEMINI_API_KEY : undefined;
+  const hostGeminiApiKey = considerHostEnv
+    ? process.env.GEMINI_API_KEY
+    : undefined;
   const configGoogleApiKey = envConfig.GOOGLE_API_KEY;
-  const hostGoogleApiKey = considerHostEnv ? process.env.GOOGLE_API_KEY : undefined;
+  const hostGoogleApiKey = considerHostEnv
+    ? process.env.GOOGLE_API_KEY
+    : undefined;
   if (
     isNonEmpty(configGeminiApiKey) ||
     isNonEmpty(hostGeminiApiKey) ||
@@ -488,7 +567,8 @@ export async function testGeminiAcpEnvironment(
     });
   }
 
-  const mode = firstNonEmptyString(config.mode, config.acpMode) ?? DEFAULT_ACP_ENGINE_MODE;
+  const mode =
+    firstNonEmptyString(config.mode, config.acpMode) ?? DEFAULT_ACP_ENGINE_MODE;
   const warmHandleIdleMs = asNumber(
     config.warmHandleIdleMs ?? config.acpWarmHandleIdleMs,
     DEFAULT_ACP_ENGINE_WARM_HANDLE_IDLE_MS,
@@ -496,7 +576,8 @@ export async function testGeminiAcpEnvironment(
   checks.push({
     code: "gemini_acp_runtime_scaffold",
     level: "info",
-    message: "Gemini ACP runtime execution is available through the shared ACP engine.",
+    message:
+      "Gemini ACP runtime execution is available through the shared ACP engine.",
     detail: `mode=${mode}; warmHandleIdleMs=${warmHandleIdleMs}`,
   });
 

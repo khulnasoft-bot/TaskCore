@@ -21,7 +21,9 @@ import {
 } from "../services/recovery-observability.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -29,12 +31,17 @@ if (!embeddedPostgresSupport.supported) {
   );
 }
 
-function week(runs: number, recoveryActions: number, weekStart: string): WeeklyRecoveryRate {
+function week(
+  runs: number,
+  recoveryActions: number,
+  weekStart: string,
+): WeeklyRecoveryRate {
   return {
     weekStart,
     runs,
     recoveryActions,
-    ratePercent: runs > 0 ? Math.round((recoveryActions / runs) * 10000) / 100 : 0,
+    ratePercent:
+      runs > 0 ? Math.round((recoveryActions / runs) * 10000) / 100 : 0,
   };
 }
 
@@ -81,40 +88,58 @@ describe("classifyRecoveryHandoff", () => {
 
   it("marks a manager who kept and completed the work as owner_completed", () => {
     expect(
-      classifyRecoveryHandoff({ ...base, finalAssigneeAgentId: "manager", finalIssueStatus: "done" }),
+      classifyRecoveryHandoff({
+        ...base,
+        finalAssigneeAgentId: "manager",
+        finalIssueStatus: "done",
+      }),
     ).toBe("owner_completed");
   });
 
   it("does not treat in-review work as a completed owner handoff", () => {
     expect(
-      classifyRecoveryHandoff({ ...base, finalAssigneeAgentId: "manager", finalIssueStatus: "in_review" }),
+      classifyRecoveryHandoff({
+        ...base,
+        finalAssigneeAgentId: "manager",
+        finalIssueStatus: "in_review",
+      }),
     ).toBe("other");
   });
 
   it("marks work returned to the original assignee as handed_back", () => {
-    expect(classifyRecoveryHandoff({ ...base, finalAssigneeAgentId: "coder" })).toBe("handed_back");
+    expect(
+      classifyRecoveryHandoff({ ...base, finalAssigneeAgentId: "coder" }),
+    ).toBe("handed_back");
   });
 
   it("marks work delegated to a different specialist as handed_back", () => {
-    expect(classifyRecoveryHandoff({ ...base, finalAssigneeAgentId: "other-agent" })).toBe(
-      "handed_back",
-    );
+    expect(
+      classifyRecoveryHandoff({ ...base, finalAssigneeAgentId: "other-agent" }),
+    ).toBe("handed_back");
   });
 
   it("marks the original agent recovering its own issue as self_recovery", () => {
     expect(
-      classifyRecoveryHandoff({ ...base, ownerAgentId: "coder", returnOwnerAgentId: "coder" }),
+      classifyRecoveryHandoff({
+        ...base,
+        ownerAgentId: "coder",
+        returnOwnerAgentId: "coder",
+      }),
     ).toBe("self_recovery");
   });
 
   it("treats still-active actions as active regardless of assignee", () => {
-    expect(classifyRecoveryHandoff({ ...base, status: "active" })).toBe("active");
+    expect(classifyRecoveryHandoff({ ...base, status: "active" })).toBe(
+      "active",
+    );
   });
 });
 
 describeEmbeddedPostgres("recovery observability report", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   const now = new Date("2026-07-15T12:00:00.000Z");
   // Monday of each relevant week (matches Postgres date_trunc('week', ...)).
@@ -122,7 +147,9 @@ describeEmbeddedPostgres("recovery observability report", () => {
   const latestWeek = new Date("2026-07-14T12:00:00.000Z"); // in week 2026-07-13
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-recovery-observability-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-recovery-observability-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -273,11 +300,21 @@ describeEmbeddedPostgres("recovery observability report", () => {
     });
 
     expect(report.alert.breached).toBe(true);
-    expect(report.alert.breachedWeeks.map((w) => w.weekStart)).toEqual(["2026-07-06"]);
+    expect(report.alert.breachedWeeks.map((w) => w.weekStart)).toEqual([
+      "2026-07-06",
+    ]);
     const regression = report.weekly.find((w) => w.weekStart === "2026-07-06");
-    expect(regression).toMatchObject({ runs: 100, recoveryActions: 3, ratePercent: 3 });
+    expect(regression).toMatchObject({
+      runs: 100,
+      recoveryActions: 3,
+      ratePercent: 3,
+    });
     const latest = report.weekly.find((w) => w.weekStart === "2026-07-13");
-    expect(latest).toMatchObject({ runs: 100, recoveryActions: 1, ratePercent: 1 });
+    expect(latest).toMatchObject({
+      runs: 100,
+      recoveryActions: 1,
+      ratePercent: 1,
+    });
     expect(report.alert.latestWeekBreached).toBe(false);
   });
 
@@ -357,7 +394,10 @@ describeEmbeddedPostgres("recovery observability report", () => {
       finalIssueStatus: "in_progress",
     });
 
-    const report = await recoveryObservabilityService(db).report(companyId, { now, weeks: 8 });
+    const report = await recoveryObservabilityService(db).report(companyId, {
+      now,
+      weeks: 8,
+    });
 
     expect(report.handoff.ownerCompleted).toBe(2);
     expect(report.handoff.handedBack).toBe(2);
@@ -367,11 +407,15 @@ describeEmbeddedPostgres("recovery observability report", () => {
     expect(report.handoff.ownerCompletedRatio).toBe(50);
 
     const strandedCause = report.byCause.find(
-      (c) => c.cause === "stranded_assigned_issue" && c.latestRunErrorCode === "adapter_failed",
+      (c) =>
+        c.cause === "stranded_assigned_issue" &&
+        c.latestRunErrorCode === "adapter_failed",
     );
     expect(strandedCause?.count).toBe(4);
 
-    const processLostRouting = report.perCauseRouting.find((r) => r.cause === "process_lost");
+    const processLostRouting = report.perCauseRouting.find(
+      (r) => r.cause === "process_lost",
+    );
     expect(processLostRouting?.retriedByOriginalSucceeded).toBe(1);
     const strandedRouting = report.perCauseRouting.find(
       (r) => r.cause === "stranded_assigned_issue",
@@ -412,10 +456,15 @@ describeEmbeddedPostgres("recovery observability report", () => {
       finalIssueStatus: "blocked",
     });
 
-    const report = await recoveryObservabilityService(db).report(companyId, { now, weeks: 8 });
+    const report = await recoveryObservabilityService(db).report(companyId, {
+      now,
+      weeks: 8,
+    });
 
     expect(report.handoff).toMatchObject({ boardOwned: 1, activeTakeovers: 0 });
-    expect(report.perCauseRouting.find((entry) => entry.cause === "process_lost")).toMatchObject({
+    expect(
+      report.perCauseRouting.find((entry) => entry.cause === "process_lost"),
+    ).toMatchObject({
       active: 1,
     });
   });

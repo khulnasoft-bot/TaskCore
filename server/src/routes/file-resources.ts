@@ -27,35 +27,62 @@ export type WorkspaceFileResourceService = {
   availability(
     issueId: string,
     input: WorkspaceFileAvailabilityRequestInput,
-    opts?: { issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>> },
+    opts?: {
+      issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>>;
+    },
   ): Promise<WorkspaceFileAvailabilityResponse>;
-  list(issueId: string, input: {
-    workspace?: "auto" | "execution" | "project" | null;
-    projectId?: string | null;
-    workspaceId?: string | null;
-    path?: string | null;
-    mode?: "all" | "recent" | "changed" | null;
-    q?: string | null;
-    limit?: number | null;
-    offset?: number | null;
-  }, opts?: {
-    issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>>;
-    scanContext?: { signal?: AbortSignal; fairnessKeys?: readonly string[] };
-  }): Promise<WorkspaceFileListResponse>;
+  list(
+    issueId: string,
+    input: {
+      workspace?: "auto" | "execution" | "project" | null;
+      projectId?: string | null;
+      workspaceId?: string | null;
+      path?: string | null;
+      mode?: "all" | "recent" | "changed" | null;
+      q?: string | null;
+      limit?: number | null;
+      offset?: number | null;
+    },
+    opts?: {
+      issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>>;
+      scanContext?: { signal?: AbortSignal; fairnessKeys?: readonly string[] };
+    },
+  ): Promise<WorkspaceFileListResponse>;
   resolve(
     issueId: string,
-    input: { path: string; workspace?: "auto" | "execution" | "project" | null; projectId?: string | null; workspaceId?: string | null },
-    opts?: { issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>> },
+    input: {
+      path: string;
+      workspace?: "auto" | "execution" | "project" | null;
+      projectId?: string | null;
+      workspaceId?: string | null;
+    },
+    opts?: {
+      issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>>;
+    },
   ): Promise<ResolvedWorkspaceResource>;
   readContent(
     issueId: string,
-    input: { path: string; workspace?: "auto" | "execution" | "project" | null; projectId?: string | null; workspaceId?: string | null },
-    opts?: { issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>> },
+    input: {
+      path: string;
+      workspace?: "auto" | "execution" | "project" | null;
+      projectId?: string | null;
+      workspaceId?: string | null;
+    },
+    opts?: {
+      issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>>;
+    },
   ): Promise<WorkspaceFileContent>;
   prepareDownload(
     issueId: string,
-    input: { path: string; workspace?: "auto" | "execution" | "project" | null; projectId?: string | null; workspaceId?: string | null },
-    opts?: { issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>> },
+    input: {
+      path: string;
+      workspace?: "auto" | "execution" | "project" | null;
+      projectId?: string | null;
+      workspaceId?: string | null;
+    },
+    opts?: {
+      issue?: Awaited<ReturnType<WorkspaceFileResourceService["getIssue"]>>;
+    },
   ): Promise<{ resource: ResolvedWorkspaceResource; realPath: string }>;
 };
 
@@ -63,18 +90,22 @@ type FileResourceLimiter = {
   acquire(key: string): () => void;
 };
 
-export function createFileResourceLimiter(opts: {
-  maxConcurrent?: number;
-  maxRequests?: number;
-  windowMs?: number;
-  requestLimitMessage?: string;
-  concurrencyLimitMessage?: string;
-} = {}): FileResourceLimiter {
+export function createFileResourceLimiter(
+  opts: {
+    maxConcurrent?: number;
+    maxRequests?: number;
+    windowMs?: number;
+    requestLimitMessage?: string;
+    concurrencyLimitMessage?: string;
+  } = {},
+): FileResourceLimiter {
   const maxConcurrent = opts.maxConcurrent ?? 6;
   const maxRequests = opts.maxRequests ?? 120;
   const windowMs = opts.windowMs ?? 60_000;
-  const requestLimitMessage = opts.requestLimitMessage ?? "Too many file preview requests";
-  const concurrencyLimitMessage = opts.concurrencyLimitMessage ?? "Too many concurrent file preview requests";
+  const requestLimitMessage =
+    opts.requestLimitMessage ?? "Too many file preview requests";
+  const concurrencyLimitMessage =
+    opts.concurrencyLimitMessage ?? "Too many concurrent file preview requests";
   const activeByKey = new Map<string, number>();
   const windowsByKey = new Map<string, { startedAt: number; count: number }>();
 
@@ -82,7 +113,8 @@ export function createFileResourceLimiter(opts: {
     acquire(key: string) {
       const now = Date.now();
       for (const [windowKey, existing] of windowsByKey) {
-        if (now - existing.startedAt >= windowMs) windowsByKey.delete(windowKey);
+        if (now - existing.startedAt >= windowMs)
+          windowsByKey.delete(windowKey);
       }
       const window = windowsByKey.get(key);
       if (!window || now - window.startedAt >= windowMs) {
@@ -90,13 +122,17 @@ export function createFileResourceLimiter(opts: {
       } else {
         window.count += 1;
         if (window.count > maxRequests) {
-          throw new HttpError(429, requestLimitMessage, { code: "rate_limited" });
+          throw new HttpError(429, requestLimitMessage, {
+            code: "rate_limited",
+          });
         }
       }
 
       const active = activeByKey.get(key) ?? 0;
       if (active >= maxConcurrent) {
-        throw new HttpError(429, concurrencyLimitMessage, { code: "concurrency_limited" });
+        throw new HttpError(429, concurrencyLimitMessage, {
+          code: "concurrency_limited",
+        });
       }
       activeByKey.set(key, active + 1);
       return () => {
@@ -108,11 +144,13 @@ export function createFileResourceLimiter(opts: {
   };
 }
 
-export function createFileResourceListLimiter(opts: {
-  maxConcurrent?: number;
-  maxRequests?: number;
-  windowMs?: number;
-} = {}): FileResourceLimiter {
+export function createFileResourceListLimiter(
+  opts: {
+    maxConcurrent?: number;
+    maxRequests?: number;
+    windowMs?: number;
+  } = {},
+): FileResourceLimiter {
   return createFileResourceLimiter({
     maxConcurrent: opts.maxConcurrent ?? 2,
     maxRequests: opts.maxRequests ?? 30,
@@ -122,17 +160,20 @@ export function createFileResourceListLimiter(opts: {
   });
 }
 
-export function createFileResourceAvailabilityLimiter(opts: {
-  maxConcurrent?: number;
-  maxRequests?: number;
-  windowMs?: number;
-} = {}): FileResourceLimiter {
+export function createFileResourceAvailabilityLimiter(
+  opts: {
+    maxConcurrent?: number;
+    maxRequests?: number;
+    windowMs?: number;
+  } = {},
+): FileResourceLimiter {
   return createFileResourceLimiter({
     maxConcurrent: opts.maxConcurrent ?? 2,
     maxRequests: opts.maxRequests ?? 60,
     windowMs: opts.windowMs,
     requestLimitMessage: "Too many workspace file availability requests",
-    concurrencyLimitMessage: "Too many concurrent workspace file availability requests",
+    concurrencyLimitMessage:
+      "Too many concurrent workspace file availability requests",
   });
 }
 
@@ -162,7 +203,9 @@ function parseBooleanQuery(value: unknown) {
 }
 
 function safeAttachmentFilename(value: string) {
-  return value.replaceAll("\"", "").replace(/[\\/\r\n]/g, "_") || "workspace-file";
+  return (
+    value.replaceAll('"', "").replace(/[\\/\r\n]/g, "_") || "workspace-file"
+  );
 }
 
 function readQuery(query: unknown) {
@@ -175,8 +218,12 @@ function readQuery(query: unknown) {
         const code = (issue as { params?: { code?: string } }).params?.code;
         return code === "invalid_path" || code === "invalid_target";
       });
-      const code = (refinement as { params?: { code?: string } } | undefined)?.params?.code;
-      if (refinement) throw unprocessable(refinement.message, { code: code ?? "invalid_path" });
+      const code = (refinement as { params?: { code?: string } } | undefined)
+        ?.params?.code;
+      if (refinement)
+        throw unprocessable(refinement.message, {
+          code: code ?? "invalid_path",
+        });
     }
     throw error;
   }
@@ -196,11 +243,21 @@ function readListQuery(query: unknown) {
     if (error instanceof ZodError) {
       const refinement = error.issues.find((issue) => {
         const code = (issue as { params?: { code?: string } }).params?.code;
-        return code === "invalid_query" || code === "invalid_target" || code === "invalid_path";
+        return (
+          code === "invalid_query" ||
+          code === "invalid_target" ||
+          code === "invalid_path"
+        );
       });
-      const code = (refinement as { params?: { code?: string } } | undefined)?.params?.code;
-      if (refinement) throw unprocessable(refinement.message, { code: code ?? "invalid_query" });
-      throw unprocessable("Workspace file list query is invalid", { code: "invalid_query" });
+      const code = (refinement as { params?: { code?: string } } | undefined)
+        ?.params?.code;
+      if (refinement)
+        throw unprocessable(refinement.message, {
+          code: code ?? "invalid_query",
+        });
+      throw unprocessable("Workspace file list query is invalid", {
+        code: "invalid_query",
+      });
     }
     throw error;
   }
@@ -275,9 +332,15 @@ function listActivityDetails(input: {
     ...(input.workspaceId ? { workspaceId: input.workspaceId } : {}),
     ...(input.projectId ? { projectId: input.projectId } : {}),
     ...(input.projectName ? { projectName: input.projectName } : {}),
-    ...(typeof input.resultCount === "number" ? { resultCount: input.resultCount } : {}),
-    ...(typeof input.scannedCount === "number" ? { scannedCount: input.scannedCount } : {}),
-    ...(typeof input.truncated === "boolean" ? { truncated: input.truncated } : {}),
+    ...(typeof input.resultCount === "number"
+      ? { resultCount: input.resultCount }
+      : {}),
+    ...(typeof input.scannedCount === "number"
+      ? { scannedCount: input.scannedCount }
+      : {}),
+    ...(typeof input.truncated === "boolean"
+      ? { truncated: input.truncated }
+      : {}),
     ...(input.denialReason ? { denialReason: input.denialReason } : {}),
   };
 }
@@ -293,9 +356,15 @@ function availabilityActivityDetails(input: {
   return {
     outcome: input.outcome,
     requestedCount: input.requestedCount,
-    ...(typeof input.uniqueCount === "number" ? { uniqueCount: input.uniqueCount } : {}),
-    ...(typeof input.openableCount === "number" ? { openableCount: input.openableCount } : {}),
-    ...(typeof input.unavailableCount === "number" ? { unavailableCount: input.unavailableCount } : {}),
+    ...(typeof input.uniqueCount === "number"
+      ? { uniqueCount: input.uniqueCount }
+      : {}),
+    ...(typeof input.openableCount === "number"
+      ? { openableCount: input.openableCount }
+      : {}),
+    ...(typeof input.unavailableCount === "number"
+      ? { unavailableCount: input.unavailableCount }
+      : {}),
     ...(input.denialReason ? { denialReason: input.denialReason } : {}),
   };
 }
@@ -310,23 +379,33 @@ function safeListAuditQuery(query: unknown): {
   workspace: "auto" | "execution" | "project";
   mode: "all" | "recent" | "changed";
 } {
-  if (!query || typeof query !== "object") return { workspace: "auto", mode: "all" };
+  if (!query || typeof query !== "object")
+    return { workspace: "auto", mode: "all" };
   const record = query as Record<string, unknown>;
-  const workspace = typeof record.workspace === "string" && ["auto", "execution", "project"].includes(record.workspace)
-    ? (record.workspace as "auto" | "execution" | "project")
-    : "auto";
-  const mode = typeof record.mode === "string" && ["all", "recent", "changed"].includes(record.mode)
-    ? (record.mode as "all" | "recent" | "changed")
-    : "all";
+  const workspace =
+    typeof record.workspace === "string" &&
+    ["auto", "execution", "project"].includes(record.workspace)
+      ? (record.workspace as "auto" | "execution" | "project")
+      : "auto";
+  const mode =
+    typeof record.mode === "string" &&
+    ["all", "recent", "changed"].includes(record.mode)
+      ? (record.mode as "all" | "recent" | "changed")
+      : "all";
   return { workspace, mode };
 }
 
-function safeAuditTarget(query: unknown): { projectId: string | null; workspaceId: string | null } {
-  if (!query || typeof query !== "object") return { projectId: null, workspaceId: null };
+function safeAuditTarget(query: unknown): {
+  projectId: string | null;
+  workspaceId: string | null;
+} {
+  if (!query || typeof query !== "object")
+    return { projectId: null, workspaceId: null };
   const record = query as Record<string, unknown>;
   return {
     projectId: typeof record.projectId === "string" ? record.projectId : null,
-    workspaceId: typeof record.workspaceId === "string" ? record.workspaceId : null,
+    workspaceId:
+      typeof record.workspaceId === "string" ? record.workspaceId : null,
   };
 }
 
@@ -348,17 +427,22 @@ function denialReasonFromError(error: unknown) {
   return error.message;
 }
 
-export function fileResourceRoutes(db: Db, opts: {
-  service?: WorkspaceFileResourceService;
-  limiter?: FileResourceLimiter;
-  listLimiter?: FileResourceLimiter;
-  availabilityLimiter?: FileResourceLimiter;
-} = {}) {
+export function fileResourceRoutes(
+  db: Db,
+  opts: {
+    service?: WorkspaceFileResourceService;
+    limiter?: FileResourceLimiter;
+    listLimiter?: FileResourceLimiter;
+    availabilityLimiter?: FileResourceLimiter;
+  } = {},
+) {
   const router = Router();
-  const serviceFor = (req: Request) => opts.service ?? workspaceFileResourceService(db, req.actor);
+  const serviceFor = (req: Request) =>
+    opts.service ?? workspaceFileResourceService(db, req.actor);
   const limiter = opts.limiter ?? createFileResourceLimiter();
   const listLimiter = opts.listLimiter ?? createFileResourceListLimiter();
-  const availabilityLimiter = opts.availabilityLimiter ?? createFileResourceAvailabilityLimiter();
+  const availabilityLimiter =
+    opts.availabilityLimiter ?? createFileResourceAvailabilityLimiter();
 
   async function logAvailabilityAttempt(input: {
     companyId: string;
@@ -369,14 +453,17 @@ export function fileResourceRoutes(db: Db, opts: {
     result?: WorkspaceFileAvailabilityResponse;
     error?: unknown;
   }) {
-    const openableCount = input.result?.results.filter((result) => result.openable).length;
+    const openableCount = input.result?.results.filter(
+      (result) => result.openable,
+    ).length;
     await logActivity(db, {
       companyId: input.companyId,
       actorType: input.actor.actorType,
       actorId: input.actor.actorId,
-      action: input.outcome === "success"
-        ? "issue.file_resource_availability"
-        : "issue.file_resource_availability_denied",
+      action:
+        input.outcome === "success"
+          ? "issue.file_resource_availability"
+          : "issue.file_resource_availability_denied",
       entityType: "issue",
       entityId: input.issueId,
       agentId: input.actor.agentId,
@@ -387,7 +474,9 @@ export function fileResourceRoutes(db: Db, opts: {
         requestedCount: input.requestedCount,
         uniqueCount: input.result?.results.length,
         openableCount,
-        unavailableCount: input.result ? input.result.results.length - (openableCount ?? 0) : undefined,
+        unavailableCount: input.result
+          ? input.result.results.length - (openableCount ?? 0)
+          : undefined,
         denialReason: input.error ? denialReasonFromError(input.error) : null,
       }),
     });
@@ -401,7 +490,10 @@ export function fileResourceRoutes(db: Db, opts: {
     projectId?: string | null;
     workspaceId?: string | null;
     error: unknown;
-    action?: "issue.file_resource_content_denied" | "issue.file_resource_resolve_denied" | "issue.file_resource_download_denied";
+    action?:
+      | "issue.file_resource_content_denied"
+      | "issue.file_resource_resolve_denied"
+      | "issue.file_resource_download_denied";
   }) {
     await logActivity(db, {
       companyId: input.companyId,
@@ -426,7 +518,10 @@ export function fileResourceRoutes(db: Db, opts: {
     companyId: string;
     actor: ReturnType<typeof getActorInfo>;
     issueId: string;
-    query: { workspace: "auto" | "execution" | "project"; mode: "all" | "recent" | "changed" };
+    query: {
+      workspace: "auto" | "execution" | "project";
+      mode: "all" | "recent" | "changed";
+    };
     target?: { projectId: string | null; workspaceId: string | null };
     error: unknown;
   }) {
@@ -450,81 +545,90 @@ export function fileResourceRoutes(db: Db, opts: {
     });
   }
 
-  router.post("/issues/:issueId/file-resources/availability", async (req, res) => {
-    const requestedCount = safeAvailabilityRequestCount(req.body);
-    try {
-      assertBoard(req);
-    } catch (error) {
-      if (req.actor.type === "agent" && req.actor.companyId) {
+  router.post(
+    "/issues/:issueId/file-resources/availability",
+    async (req, res) => {
+      const requestedCount = safeAvailabilityRequestCount(req.body);
+      try {
+        assertBoard(req);
+      } catch (error) {
+        if (req.actor.type === "agent" && req.actor.companyId) {
+          await logAvailabilityAttempt({
+            companyId: req.actor.companyId,
+            actor: getActorInfo(req),
+            issueId: req.params.issueId,
+            outcome: "denied",
+            requestedCount,
+            error,
+          });
+        }
+        throw error;
+      }
+
+      const issue = await serviceFor(req).getIssue(req.params.issueId);
+      const actor = getActorInfo(req);
+      if (!hasCompanyAccess(req, issue.companyId)) {
+        const error = notFound("Issue not found");
         await logAvailabilityAttempt({
-          companyId: req.actor.companyId,
-          actor: getActorInfo(req),
+          companyId: issue.companyId,
+          actor,
           issueId: req.params.issueId,
           outcome: "denied",
           requestedCount,
           error,
         });
+        throw error;
       }
-      throw error;
-    }
 
-    const issue = await serviceFor(req).getIssue(req.params.issueId);
-    const actor = getActorInfo(req);
-    if (!hasCompanyAccess(req, issue.companyId)) {
-      const error = notFound("Issue not found");
-      await logAvailabilityAttempt({
-        companyId: issue.companyId,
-        actor,
-        issueId: req.params.issueId,
-        outcome: "denied",
-        requestedCount,
-        error,
-      });
-      throw error;
-    }
+      let body: ReturnType<typeof readAvailabilityBody>;
+      try {
+        body = readAvailabilityBody(req.body);
+      } catch (error) {
+        await logAvailabilityAttempt({
+          companyId: issue.companyId,
+          actor,
+          issueId: req.params.issueId,
+          outcome: "denied",
+          requestedCount,
+          error,
+        });
+        throw error;
+      }
 
-    let body: ReturnType<typeof readAvailabilityBody>;
-    try {
-      body = readAvailabilityBody(req.body);
-    } catch (error) {
-      await logAvailabilityAttempt({
-        companyId: issue.companyId,
-        actor,
-        issueId: req.params.issueId,
-        outcome: "denied",
-        requestedCount,
-        error,
-      });
-      throw error;
-    }
-
-    let release: (() => void) | null = null;
-    try {
-      release = availabilityLimiter.acquire(limiterKey(issue.companyId, actor.actorId, req.params.issueId));
-      const result = await serviceFor(req).availability(req.params.issueId, body, { issue });
-      await logAvailabilityAttempt({
-        companyId: issue.companyId,
-        actor,
-        issueId: req.params.issueId,
-        outcome: "success",
-        requestedCount: body.queries.length,
-        result,
-      });
-      res.json(result);
-    } catch (error) {
-      await logAvailabilityAttempt({
-        companyId: issue.companyId,
-        actor,
-        issueId: req.params.issueId,
-        outcome: "denied",
-        requestedCount: body.queries.length,
-        error,
-      });
-      throw error;
-    } finally {
-      release?.();
-    }
-  });
+      let release: (() => void) | null = null;
+      try {
+        release = availabilityLimiter.acquire(
+          limiterKey(issue.companyId, actor.actorId, req.params.issueId),
+        );
+        const result = await serviceFor(req).availability(
+          req.params.issueId,
+          body,
+          { issue },
+        );
+        await logAvailabilityAttempt({
+          companyId: issue.companyId,
+          actor,
+          issueId: req.params.issueId,
+          outcome: "success",
+          requestedCount: body.queries.length,
+          result,
+        });
+        res.json(result);
+      } catch (error) {
+        await logAvailabilityAttempt({
+          companyId: issue.companyId,
+          actor,
+          issueId: req.params.issueId,
+          outcome: "denied",
+          requestedCount: body.queries.length,
+          error,
+        });
+        throw error;
+      } finally {
+        release?.();
+      }
+    },
+  );
 
   router.get("/issues/:issueId/file-resources/list", async (req, res) => {
     const auditQuery = safeListAuditQuery(req.query);
@@ -580,7 +684,9 @@ export function fileResourceRoutes(db: Db, opts: {
 
     let release: (() => void) | null = null;
     try {
-      release = listLimiter.acquire(limiterKey(issue.companyId, actor.actorId, req.params.issueId));
+      release = listLimiter.acquire(
+        limiterKey(issue.companyId, actor.actorId, req.params.issueId),
+      );
     } catch (error) {
       await logListDeniedAttempt({
         companyId: issue.companyId,
@@ -715,7 +821,9 @@ export function fileResourceRoutes(db: Db, opts: {
     }
     let release: (() => void) | null = null;
     try {
-      release = limiter.acquire(limiterKey(issue.companyId, actor.actorId, req.params.issueId));
+      release = limiter.acquire(
+        limiterKey(issue.companyId, actor.actorId, req.params.issueId),
+      );
     } catch (error) {
       await logDeniedAttempt({
         companyId: issue.companyId,
@@ -730,7 +838,9 @@ export function fileResourceRoutes(db: Db, opts: {
       throw error;
     }
     try {
-      const result = await serviceFor(req).resolve(req.params.issueId, query, { issue });
+      const result = await serviceFor(req).resolve(req.params.issueId, query, {
+        issue,
+      });
       await logActivity(db, {
         companyId: issue.companyId,
         actorType: actor.actorType,
@@ -825,7 +935,9 @@ export function fileResourceRoutes(db: Db, opts: {
     }
     let release: (() => void) | null = null;
     try {
-      release = limiter.acquire(limiterKey(issue.companyId, actor.actorId, req.params.issueId));
+      release = limiter.acquire(
+        limiterKey(issue.companyId, actor.actorId, req.params.issueId),
+      );
     } catch (error) {
       await logDeniedAttempt({
         companyId: issue.companyId,
@@ -840,9 +952,15 @@ export function fileResourceRoutes(db: Db, opts: {
     }
     try {
       if (parseBooleanQuery(req.query.download)) {
-        let result: Awaited<ReturnType<WorkspaceFileResourceService["prepareDownload"]>> | null = null;
+        let result: Awaited<
+          ReturnType<WorkspaceFileResourceService["prepareDownload"]>
+        > | null = null;
         try {
-          result = await serviceFor(req).prepareDownload(req.params.issueId, query, { issue });
+          result = await serviceFor(req).prepareDownload(
+            req.params.issueId,
+            query,
+            { issue },
+          );
         } catch (error) {
           await logDeniedAttempt({
             companyId: issue.companyId,
@@ -879,20 +997,28 @@ export function fileResourceRoutes(db: Db, opts: {
           }),
         });
 
-        res.setHeader("Content-Type", result.resource.contentType ?? "application/octet-stream");
+        res.setHeader(
+          "Content-Type",
+          result.resource.contentType ?? "application/octet-stream",
+        );
         if (result.resource.byteSize != null) {
           res.setHeader("Content-Length", String(result.resource.byteSize));
         }
         res.setHeader("Cache-Control", "private, max-age=60");
         res.setHeader("X-Content-Type-Options", "nosniff");
-        res.setHeader("Content-Disposition", `attachment; filename="${safeAttachmentFilename(result.resource.title)}"`);
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${safeAttachmentFilename(result.resource.title)}"`,
+        );
         await pipeline(createReadStream(result.realPath), res);
         return;
       }
 
       let result: WorkspaceFileContent | null = null;
       try {
-        result = await serviceFor(req).readContent(req.params.issueId, query, { issue });
+        result = await serviceFor(req).readContent(req.params.issueId, query, {
+          issue,
+        });
       } catch (error) {
         await logDeniedAttempt({
           companyId: issue.companyId,

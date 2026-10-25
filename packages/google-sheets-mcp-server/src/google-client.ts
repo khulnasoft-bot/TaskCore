@@ -85,33 +85,50 @@ type SheetsApi = ReturnType<typeof google.sheets>;
 
 function normalizeRows(values: unknown): unknown[][] {
   return Array.isArray(values)
-    ? values.map((row) => Array.isArray(row) ? row : [row])
+    ? values.map((row) => (Array.isArray(row) ? row : [row]))
     : [];
 }
 
-function summarizeSpreadsheet(data: Record<string, unknown>, spreadsheetId: string): SpreadsheetSummary {
+function summarizeSpreadsheet(
+  data: Record<string, unknown>,
+  spreadsheetId: string,
+): SpreadsheetSummary {
   const properties = data.properties as Record<string, unknown> | undefined;
   return {
-    spreadsheetId: typeof data.spreadsheetId === "string" ? data.spreadsheetId : spreadsheetId,
+    spreadsheetId:
+      typeof data.spreadsheetId === "string"
+        ? data.spreadsheetId
+        : spreadsheetId,
     title: typeof properties?.title === "string" ? properties.title : null,
-    spreadsheetUrl: typeof data.spreadsheetUrl === "string" ? data.spreadsheetUrl : null,
+    spreadsheetUrl:
+      typeof data.spreadsheetUrl === "string" ? data.spreadsheetUrl : null,
   };
 }
 
 function summarizeSheet(raw: unknown): SheetTabSummary {
   const sheet = raw as Record<string, unknown>;
   const properties = sheet.properties as Record<string, unknown> | undefined;
-  const gridProperties = properties?.gridProperties as Record<string, unknown> | undefined;
+  const gridProperties = properties?.gridProperties as
+    Record<string, unknown> | undefined;
   return {
     sheetId: Number(properties?.sheetId),
-    title: typeof properties?.title === "string" ? properties.title : "Untitled",
+    title:
+      typeof properties?.title === "string" ? properties.title : "Untitled",
     index: typeof properties?.index === "number" ? properties.index : null,
-    rowCount: typeof gridProperties?.rowCount === "number" ? gridProperties.rowCount : null,
-    columnCount: typeof gridProperties?.columnCount === "number" ? gridProperties.columnCount : null,
+    rowCount:
+      typeof gridProperties?.rowCount === "number"
+        ? gridProperties.rowCount
+        : null,
+    columnCount:
+      typeof gridProperties?.columnCount === "number"
+        ? gridProperties.columnCount
+        : null,
   };
 }
 
-export function createGoogleSheetsClient(serviceAccount: GoogleSheetsServiceAccount): GoogleSheetsClient {
+export function createGoogleSheetsClient(
+  serviceAccount: GoogleSheetsServiceAccount,
+): GoogleSheetsClient {
   const auth = new google.auth.GoogleAuth({
     credentials: serviceAccount,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -128,9 +145,12 @@ export function createGoogleSheetsClient(serviceAccount: GoogleSheetsServiceAcco
       return Promise.all(
         spreadsheetIds.map(async (spreadsheetId) =>
           summarizeSpreadsheet(
-            await getSpreadsheet(spreadsheetId, "spreadsheetId,spreadsheetUrl,properties.title"),
+            await getSpreadsheet(
+              spreadsheetId,
+              "spreadsheetId,spreadsheetUrl,properties.title",
+            ),
             spreadsheetId,
-          )
+          ),
         ),
       );
     },
@@ -142,12 +162,17 @@ export function createGoogleSheetsClient(serviceAccount: GoogleSheetsServiceAcco
       );
       return {
         ...summarizeSpreadsheet(data, spreadsheetId),
-        sheets: Array.isArray(data.sheets) ? data.sheets.map(summarizeSheet) : [],
+        sheets: Array.isArray(data.sheets)
+          ? data.sheets.map(summarizeSheet)
+          : [],
       };
     },
 
     async readValues(spreadsheetId, range) {
-      const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range,
+      });
       return {
         spreadsheetId,
         range: String(response.data.range ?? range),
@@ -155,13 +180,21 @@ export function createGoogleSheetsClient(serviceAccount: GoogleSheetsServiceAcco
       };
     },
 
-    async searchRows({ spreadsheetId, range, query, caseSensitive = false, maxResults = 50 }) {
+    async searchRows({
+      spreadsheetId,
+      range,
+      query,
+      caseSensitive = false,
+      maxResults = 50,
+    }) {
       const values = await this.readValues(spreadsheetId, range);
       const needle = caseSensitive ? query : query.toLowerCase();
       const matches = values.values.flatMap((row, rowIndex) => {
         const haystack = row.map((cell) => String(cell ?? "")).join("\t");
         const comparable = caseSensitive ? haystack : haystack.toLowerCase();
-        return comparable.includes(needle) ? [{ rowIndex: rowIndex + 1, values: row }] : [];
+        return comparable.includes(needle)
+          ? [{ rowIndex: rowIndex + 1, values: row }]
+          : [];
       });
       return {
         spreadsheetId,
@@ -207,17 +240,19 @@ export function createGoogleSheetsClient(serviceAccount: GoogleSheetsServiceAcco
       const response = await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: {
-          requests: [{
-            addSheet: {
-              properties: {
-                title,
-                gridProperties: {
-                  ...(rowCount === undefined ? {} : { rowCount }),
-                  ...(columnCount === undefined ? {} : { columnCount }),
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title,
+                  gridProperties: {
+                    ...(rowCount === undefined ? {} : { rowCount }),
+                    ...(columnCount === undefined ? {} : { columnCount }),
+                  },
                 },
               },
             },
-          }],
+          ],
         },
       });
       const addedSheet = response.data.replies?.[0]?.addSheet;
@@ -244,16 +279,18 @@ export function createGoogleSheetsClient(serviceAccount: GoogleSheetsServiceAcco
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: {
-          requests: [{
-            deleteDimension: {
-              range: {
-                sheetId,
-                dimension: "ROWS",
-                startIndex,
-                endIndex,
+          requests: [
+            {
+              deleteDimension: {
+                range: {
+                  sheetId,
+                  dimension: "ROWS",
+                  startIndex,
+                  endIndex,
+                },
               },
             },
-          }],
+          ],
         },
       });
       return {

@@ -22,12 +22,16 @@ describe("createAssetImageMetadataSchema", () => {
       "profiles/https:__id.example.com_users_1",
     ];
     for (const namespace of namespaces) {
-      expect(parseNamespace(namespace), namespace).toMatchObject({ success: true });
+      expect(parseNamespace(namespace), namespace).toMatchObject({
+        success: true,
+      });
     }
   });
 
   it("accepts filenames that contain a dot", () => {
-    expect(parseNamespace("agents/agent-1/instructions/SKILL.md").success).toBe(true);
+    expect(parseNamespace("agents/agent-1/instructions/SKILL.md").success).toBe(
+      true,
+    );
   });
 
   it("treats the namespace as optional", () => {
@@ -35,13 +39,20 @@ describe("createAssetImageMetadataSchema", () => {
   });
 
   it("trims surrounding whitespace", () => {
-    expect(createAssetImageMetadataSchema.parse({ namespace: "  goals  " })).toEqual({
+    expect(
+      createAssetImageMetadataSchema.parse({ namespace: "  goals  " }),
+    ).toEqual({
       namespace: "goals",
     });
   });
 
   it("rejects namespaces with characters outside the accepted set", () => {
-    const namespaces = ["profiles/bad name!", "profiles/user#1", "profiles/user\\1", "profiles/user?x=1"];
+    const namespaces = [
+      "profiles/bad name!",
+      "profiles/user#1",
+      "profiles/user\\1",
+      "profiles/user?x=1",
+    ];
     for (const namespace of namespaces) {
       expect(parseNamespace(namespace).success, namespace).toBe(false);
     }
@@ -53,12 +64,22 @@ describe("createAssetImageMetadataSchema", () => {
   });
 
   it("rejects namespaces longer than the maximum length", () => {
-    expect(parseNamespace("a".repeat(ASSET_NAMESPACE_MAX_LENGTH)).success).toBe(true);
-    expect(parseNamespace("a".repeat(ASSET_NAMESPACE_MAX_LENGTH + 1)).success).toBe(false);
+    expect(parseNamespace("a".repeat(ASSET_NAMESPACE_MAX_LENGTH)).success).toBe(
+      true,
+    );
+    expect(
+      parseNamespace("a".repeat(ASSET_NAMESPACE_MAX_LENGTH + 1)).success,
+    ).toBe(false);
   });
 
   it("rejects dot path segments", () => {
-    const namespaces = ["profiles/../secrets", "../secrets", "profiles/./self", "profiles/..", "."];
+    const namespaces = [
+      "profiles/../secrets",
+      "../secrets",
+      "profiles/./self",
+      "profiles/..",
+      ".",
+    ];
     for (const namespace of namespaces) {
       expect(parseNamespace(namespace).success, namespace).toBe(false);
     }
@@ -85,7 +106,9 @@ describe("sanitizeAssetNamespace", () => {
   });
 
   it("replaces characters outside the accepted set with a dash", () => {
-    expect(sanitizeAssetNamespace("profiles/bad name")).toBe("profiles/bad-name");
+    expect(sanitizeAssetNamespace("profiles/bad name")).toBe(
+      "profiles/bad-name",
+    );
     expect(sanitizeAssetNamespace("profiles/user#1")).toBe("profiles/user-1");
   });
 
@@ -95,11 +118,15 @@ describe("sanitizeAssetNamespace", () => {
   });
 
   it("removes control characters", () => {
-    expect(sanitizeAssetNamespace("profiles/user\u0000\u0007id")).toBe("profiles/user-id");
+    expect(sanitizeAssetNamespace("profiles/user\u0000\u0007id")).toBe(
+      "profiles/user-id",
+    );
   });
 
   it("trims whitespace around every segment", () => {
-    expect(sanitizeAssetNamespace("  profiles  /  user-1  ")).toBe("profiles/user-1");
+    expect(sanitizeAssetNamespace("  profiles  /  user-1  ")).toBe(
+      "profiles/user-1",
+    );
   });
 
   it("drops empty segments", () => {
@@ -108,7 +135,9 @@ describe("sanitizeAssetNamespace", () => {
   });
 
   it("drops the . and .. segments", () => {
-    expect(sanitizeAssetNamespace("profiles/../secrets")).toBe("profiles/secrets");
+    expect(sanitizeAssetNamespace("profiles/../secrets")).toBe(
+      "profiles/secrets",
+    );
     expect(sanitizeAssetNamespace("profiles/./user-1")).toBe("profiles/user-1");
     expect(sanitizeAssetNamespace("../../etc/passwd")).toBe("etc/passwd");
   });
@@ -128,7 +157,9 @@ describe("sanitizeAssetNamespace", () => {
 
   it("does not leave a dot segment behind after a cut", () => {
     const long = `${"a".repeat(ASSET_NAMESPACE_MAX_LENGTH - 3)}/..b`;
-    expect(sanitizeAssetNamespace(long)).toBe("a".repeat(ASSET_NAMESPACE_MAX_LENGTH - 3));
+    expect(sanitizeAssetNamespace(long)).toBe(
+      "a".repeat(ASSET_NAMESPACE_MAX_LENGTH - 3),
+    );
   });
 
   it("returns undefined when no segment survives", () => {
@@ -150,7 +181,10 @@ describe("sanitizeAssetNamespace", () => {
     for (const input of inputs) {
       const sanitized = sanitizeAssetNamespace(input);
       expect(sanitized, input).toBeDefined();
-      expect(parseNamespace(sanitized as string).success, `${input} -> ${sanitized}`).toBe(true);
+      expect(
+        parseNamespace(sanitized as string).success,
+        `${input} -> ${sanitized}`,
+      ).toBe(true);
     }
   });
 });

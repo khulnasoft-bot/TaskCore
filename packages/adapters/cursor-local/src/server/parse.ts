@@ -1,12 +1,20 @@
 import { stripVTControlCharacters } from "node:util";
-import { asString, parseObject, parseJson } from "@taskcore/adapter-utils/server-utils";
+import {
+  asString,
+  parseObject,
+  parseJson,
+} from "@taskcore/adapter-utils/server-utils";
 import { normalizeCursorStreamLine } from "../shared/stream.js";
 
 /** Select diagnostics without mistaking Cursor's trace-file notice for an error. */
 export function firstCursorDiagnosticLine(text: string): string {
   for (const raw of text.split(/\r?\n/)) {
     const line = stripVTControlCharacters(raw).trim();
-    if (!line || /^cursor-retrieval: tracing to (?:'[^']*'|"[^"]*")$/.test(line)) continue;
+    if (
+      !line ||
+      /^cursor-retrieval: tracing to (?:'[^']*'|"[^"]*")$/.test(line)
+    )
+      continue;
     return line;
   }
   return "";
@@ -89,13 +97,26 @@ export function createCursorJsonlParser() {
   };
   // Missing counters are not reported zeroes. Preserve earlier valid counts,
   // but never present their partial sum as the complete invocation total.
-  const addUsage = (input: unknown, output: unknown, cached: unknown = 0, written: unknown = 0) => {
+  const addUsage = (
+    input: unknown,
+    output: unknown,
+    cached: unknown = 0,
+    written: unknown = 0,
+  ) => {
     const counts = [input, output, cached, written];
-    if (!counts.every(value => typeof value === "number" && Number.isSafeInteger(value) && value >= 0)) {
+    if (
+      !counts.every(
+        (value) =>
+          typeof value === "number" &&
+          Number.isSafeInteger(value) &&
+          value >= 0,
+      )
+    ) {
       missingUsage = true;
       return;
     }
-    const [inputTokens, outputTokens, cachedInputTokens, cacheWriteTokens] = counts as number[];
+    const [inputTokens, outputTokens, cachedInputTokens, cacheWriteTokens] =
+      counts as number[];
     const nextInput = usage.inputTokens + inputTokens + cacheWriteTokens;
     const nextOutput = usage.outputTokens + outputTokens;
     const nextCached = usage.cachedInputTokens + cachedInputTokens;
@@ -133,24 +154,32 @@ export function createCursorJsonlParser() {
         addUsage(
           usageObj.input_tokens ?? usageObj.inputTokens,
           usageObj.output_tokens ?? usageObj.outputTokens,
-          usageObj.cached_input_tokens ?? usageObj.cachedInputTokens ?? usageObj.cache_read_input_tokens,
+          usageObj.cached_input_tokens ??
+            usageObj.cachedInputTokens ??
+            usageObj.cache_read_input_tokens,
         );
         addCost(event.total_cost_usd ?? event.cost_usd ?? event.cost);
 
-        const isError = event.is_error === true || asString(event.subtype, "").toLowerCase() === "error";
+        const isError =
+          event.is_error === true ||
+          asString(event.subtype, "").toLowerCase() === "error";
         const resultText = asString(event.result, "").trim();
         if (resultText && messages.length === 0) {
           messages.push(resultText);
         }
         if (isError) {
-          const resultError = asErrorText(event.error ?? event.message ?? event.result).trim();
+          const resultError = asErrorText(
+            event.error ?? event.message ?? event.result,
+          ).trim();
           if (resultError) errorMessage = resultError;
         }
         continue;
       }
 
       if (type === "error") {
-        const message = asErrorText(event.message ?? event.error ?? event.detail).trim();
+        const message = asErrorText(
+          event.message ?? event.error ?? event.detail,
+        ).trim();
         if (message) errorMessage = message;
         continue;
       }
@@ -158,7 +187,9 @@ export function createCursorJsonlParser() {
       if (type === "system") {
         const subtype = asString(event.subtype, "").trim().toLowerCase();
         if (subtype === "error") {
-          const message = asErrorText(event.message ?? event.error ?? event.detail).trim();
+          const message = asErrorText(
+            event.message ?? event.error ?? event.detail,
+          ).trim();
           if (message) errorMessage = message;
         }
         continue;
@@ -197,7 +228,10 @@ export function createCursorJsonlParser() {
   };
 }
 
-export function isCursorUnknownSessionError(stdout: string, stderr: string): boolean {
+export function isCursorUnknownSessionError(
+  stdout: string,
+  stderr: string,
+): boolean {
   const haystack = `${stdout}\n${stderr}`
     .split(/\r?\n/)
     .map((line) => line.trim())

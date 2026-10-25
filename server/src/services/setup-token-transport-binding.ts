@@ -253,7 +253,10 @@ export function buildSetupTokenLoginTransport(
   // The service calls `leases.acquire` and then `factory` in sequence for one
   // session, so a per-scope handoff correlates them. The per-owner session cap is
   // one, so one scope holds at most one live acquire.
-  const pendingOpeners = new Map<string, { leaseId: string; openPtySession: LoginPtySessionOpener }>();
+  const pendingOpeners = new Map<
+    string,
+    { leaseId: string; openPtySession: LoginPtySessionOpener }
+  >();
   // The reverse map releases a handoff by lease id when the factory never
   // consumes it (a factory error path).
   const leaseScopeKeys = new Map<string, string>();
@@ -285,7 +288,13 @@ export function buildSetupTokenLoginTransport(
     }
   }
 
-  const factory: SetupTokenLoginProcessFactory = ({ scope, onPrompt, onCredential, timeoutMs, signal }): SetupTokenLoginProcess => {
+  const factory: SetupTokenLoginProcessFactory = ({
+    scope,
+    onPrompt,
+    onCredential,
+    timeoutMs,
+    signal,
+  }): SetupTokenLoginProcess => {
     const key = scopeKey(scope);
     const pending = pendingOpeners.get(key);
     if (!pending) {
@@ -321,19 +330,22 @@ export function buildSetupTokenLoginTransport(
     // runner ends on the timeout or the signal before it reads the code.
     codeReady.catch(() => {});
 
-    const done: Promise<SetupTokenLoginOutcome> = runSetupTokenLogin(transport, {
-      command,
-      timeoutMs,
-      signal,
-      onPrompt: (prompt) => onPrompt({ url: prompt.url }),
-      provideCode: () => codeReady,
-      onCredential: async (authBytes) => {
-        // Forward the minted token to the owner-bound secret write. The service
-        // holds the token only for this call and never stores it.
-        await onCredential(authBytes.toString("utf8"));
+    const done: Promise<SetupTokenLoginOutcome> = runSetupTokenLogin(
+      transport,
+      {
+        command,
+        timeoutMs,
+        signal,
+        onPrompt: (prompt) => onPrompt({ url: prompt.url }),
+        provideCode: () => codeReady,
+        onCredential: async (authBytes) => {
+          // Forward the minted token to the owner-bound secret write. The service
+          // holds the token only for this call and never stores it.
+          await onCredential(authBytes.toString("utf8"));
+        },
+        log,
       },
-      log,
-    }).then((result) => result.outcome);
+    ).then((result) => result.outcome);
 
     return {
       done,
@@ -347,13 +359,24 @@ export function buildSetupTokenLoginTransport(
     };
   };
 
-  return { factory, leases, store: deps.store, completeCredential: deps.completeCredential };
+  return {
+    factory,
+    leases,
+    store: deps.store,
+    completeCredential: deps.completeCredential,
+  };
 }
 
 /** The dependencies the production sandbox provider needs. */
 export interface ProductionSetupTokenSandboxProviderDeps {
-  environments: Pick<ReturnType<typeof environmentService>, "getById" | "getLeaseById" | "releaseLease">;
-  environmentRuntime: Pick<ReturnType<typeof environmentRuntimeService>, "acquireRunLease" | "getDriver">;
+  environments: Pick<
+    ReturnType<typeof environmentService>,
+    "getById" | "getLeaseById" | "releaseLease"
+  >;
+  environmentRuntime: Pick<
+    ReturnType<typeof environmentRuntimeService>,
+    "acquireRunLease" | "getDriver"
+  >;
   /**
    * Opens the live pseudo-terminal for the acquired lease. The Daytona provider
    * runs as a plugin worker, so the real opener binds `sandbox.process` inside
@@ -386,7 +409,11 @@ export function createProductionSetupTokenSandboxProvider(
   // database release.
   const leaseRecords = new Map<
     string,
-    Awaited<ReturnType<ReturnType<typeof environmentRuntimeService>["acquireRunLease"]>>
+    Awaited<
+      ReturnType<
+        ReturnType<typeof environmentRuntimeService>["acquireRunLease"]
+      >
+    >
   >();
 
   const failClosed = (): never => {
@@ -397,13 +424,17 @@ export function createProductionSetupTokenSandboxProvider(
     async acquire({ scope, deadline }) {
       const environment = await deps.environments.getById(scope.environmentId);
       if (!environment) {
-        log("[taskcore] Setup-token login: the selected environment is not found.");
+        log(
+          "[taskcore] Setup-token login: the selected environment is not found.",
+        );
         return failClosed();
       }
       if (environment.driver === "local" || environment.driver === "ssh") {
         // The login pseudo-terminal needs a sandbox. A local or an SSH
         // environment has no sandbox process to run the login command in.
-        log("[taskcore] Setup-token login: the selected environment has no sandbox.");
+        log(
+          "[taskcore] Setup-token login: the selected environment has no sandbox.",
+        );
         return failClosed();
       }
       if (!deps.openLivePtySession) {
@@ -450,10 +481,13 @@ export function createProductionSetupTokenSandboxProvider(
       // remote lease and fail closed, so the login holds no lease and leaves no
       // durable cleanup row.
       const expiresAt = leaseRecord.lease.expiresAt;
-      const expiresAtMs = expiresAt instanceof Date ? expiresAt.getTime() : Number.NaN;
+      const expiresAtMs =
+        expiresAt instanceof Date ? expiresAt.getTime() : Number.NaN;
       if (!Number.isFinite(expiresAtMs) || expiresAtMs > deadline) {
         await this.release(leaseId);
-        log("[taskcore] Setup-token login: the acquired lease expiry does not bound the session deadline.");
+        log(
+          "[taskcore] Setup-token login: the acquired lease expiry does not bound the session deadline.",
+        );
         return failClosed();
       }
 
@@ -468,7 +502,9 @@ export function createProductionSetupTokenSandboxProvider(
         // The opener bind failed. Release the lease and fail closed, so the login
         // holds no lease.
         await this.release(leaseId);
-        log("[taskcore] Setup-token login: the live pseudo-terminal bind failed.");
+        log(
+          "[taskcore] Setup-token login: the live pseudo-terminal bind failed.",
+        );
         void err;
         return failClosed();
       }
@@ -478,7 +514,9 @@ export function createProductionSetupTokenSandboxProvider(
       const leaseRecord = leaseRecords.get(leaseId);
       if (leaseRecord) {
         leaseRecords.delete(leaseId);
-        const driver = deps.environmentRuntime.getDriver(leaseRecord.environment.driver);
+        const driver = deps.environmentRuntime.getDriver(
+          leaseRecord.environment.driver,
+        );
         if (driver) {
           await driver.releaseRunLease({
             environment: leaseRecord.environment,
@@ -517,14 +555,18 @@ export function createProductionSetupTokenSandboxProvider(
     if (!environment) {
       // The lease resolves but its environment is gone, so no driver can tear down
       // the remote sandbox. Fail loud, so the reaper keeps the cleanup record.
-      log("[taskcore] Setup-token login: the lease environment is not found for a restart release.");
+      log(
+        "[taskcore] Setup-token login: the lease environment is not found for a restart release.",
+      );
       return failClosed();
     }
     const driver = deps.environmentRuntime.getDriver(environment.driver);
     if (!driver) {
       // No driver resolves the remote sandbox. Fail loud, so the reaper keeps the
       // cleanup record and retries the release.
-      log("[taskcore] Setup-token login: no driver resolves the lease for a restart release.");
+      log(
+        "[taskcore] Setup-token login: no driver resolves the lease for a restart release.",
+      );
       return failClosed();
     }
     await driver.releaseRunLease({ environment, lease, status: "released" });
@@ -532,7 +574,9 @@ export function createProductionSetupTokenSandboxProvider(
 }
 
 /** Builds the durable, database-backed cleanup store for the production binding. */
-export function createProductionSetupTokenCleanupStore(db: Db): SetupTokenCleanupStore {
+export function createProductionSetupTokenCleanupStore(
+  db: Db,
+): SetupTokenCleanupStore {
   return createDbSetupTokenCleanupStore(db);
 }
 
@@ -558,13 +602,10 @@ export interface LoginPtyWorkerManagerLike {
 
 /** The narrow lease-lookup surface the live opener needs. */
 export interface LoginPtyLeaseLookup {
-  getLeaseById(leaseId: string): Promise<
-    | {
-        providerLeaseId: string | null;
-        metadata: Record<string, unknown> | null | undefined;
-      }
-    | null
-  >;
+  getLeaseById(leaseId: string): Promise<{
+    providerLeaseId: string | null;
+    metadata: Record<string, unknown> | null | undefined;
+  } | null>;
 }
 
 /** The dependencies the worker-bound live pseudo-terminal opener needs. */
@@ -578,7 +619,9 @@ export interface WorkerBoundLoginPtyOpenerDeps {
 }
 
 function readLeaseMetaString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 /**
@@ -601,7 +644,8 @@ export function createWorkerBoundLoginPtyOpener(
   return async ({ scope, environmentId, leaseId }) => {
     const lease = await deps.environments.getLeaseById(leaseId);
     const providerLeaseId =
-      typeof lease?.providerLeaseId === "string" && lease.providerLeaseId.length > 0
+      typeof lease?.providerLeaseId === "string" &&
+      lease.providerLeaseId.length > 0
         ? lease.providerLeaseId
         : null;
     const metadata =
@@ -610,9 +654,12 @@ export function createWorkerBoundLoginPtyOpener(
         : {};
     const pluginId = readLeaseMetaString(metadata.pluginId);
     const driverKey =
-      readLeaseMetaString(metadata.provider) ?? readLeaseMetaString(metadata.driver);
+      readLeaseMetaString(metadata.provider) ??
+      readLeaseMetaString(metadata.driver);
     if (!providerLeaseId || !pluginId || !driverKey) {
-      log("[taskcore] Setup-token login: the lease carries no sandbox worker binding.");
+      log(
+        "[taskcore] Setup-token login: the lease carries no sandbox worker binding.",
+      );
       throw new SetupTokenSessionError(503, SETUP_TOKEN_START_FAILED);
     }
     // Resolve the closed command key from the trusted adapter type. An unmapped
@@ -621,7 +668,9 @@ export function createWorkerBoundLoginPtyOpener(
     try {
       loginCommandKey = resolveLoginCommandKey(scope.adapterType);
     } catch {
-      log("[taskcore] Setup-token login: the adapter type has no login command key.");
+      log(
+        "[taskcore] Setup-token login: the adapter type has no login command key.",
+      );
       throw new SetupTokenSessionError(503, SETUP_TOKEN_START_FAILED);
     }
     // The opener argument is the runner's fixed command string. It confers no

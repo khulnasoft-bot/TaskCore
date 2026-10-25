@@ -27,10 +27,14 @@ const mockCompanySkillsApi = vi.hoisted(() => ({
 const mockPushToast = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children: ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 vi.mock("@/api/agents", () => ({ agentsApi: mockAgentsApi }));
-vi.mock("@/api/companySkills", () => ({ companySkillsApi: mockCompanySkillsApi }));
+vi.mock("@/api/companySkills", () => ({
+  companySkillsApi: mockCompanySkillsApi,
+}));
 vi.mock("@/adapters/use-adapter-capabilities", () => ({
   useAdapterCapabilities: () => () => ({
     supportsInstructionsBundle: true,
@@ -43,7 +47,9 @@ vi.mock("@/context/ToastContext", () => ({
   useOptionalToastActions: () => ({ pushToast: mockPushToast }),
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -81,7 +87,9 @@ async function renderNode(node: ReactNode) {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   await act(async () => {
-    root?.render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+    root?.render(
+      <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>,
+    );
   });
   await flush();
 }
@@ -101,7 +109,9 @@ function findButton(name: string): HTMLButtonElement {
   return match;
 }
 
-function makeAgent(overrides: Partial<CompanySkillUsageAgent> = {}): CompanySkillUsageAgent {
+function makeAgent(
+  overrides: Partial<CompanySkillUsageAgent> = {},
+): CompanySkillUsageAgent {
   return {
     id: "agent-1",
     name: "Reviewer",
@@ -114,7 +124,9 @@ function makeAgent(overrides: Partial<CompanySkillUsageAgent> = {}): CompanySkil
   };
 }
 
-function makeVersion(overrides: Partial<CompanySkillVersion> = {}): CompanySkillVersion {
+function makeVersion(
+  overrides: Partial<CompanySkillVersion> = {},
+): CompanySkillVersion {
   return {
     id: "ver-1",
     companyId: "company-1",
@@ -132,7 +144,9 @@ function makeVersion(overrides: Partial<CompanySkillVersion> = {}): CompanySkill
   };
 }
 
-function makeSkill(overrides: Partial<CompanySkillDetail> = {}): CompanySkillDetail {
+function makeSkill(
+  overrides: Partial<CompanySkillDetail> = {},
+): CompanySkillDetail {
   return {
     id: "skill-1",
     companyId: "company-1",
@@ -201,7 +215,9 @@ afterEach(() => {
 
 describe("AgentsUsingSkillBadge", () => {
   it("renders a muted '0 agents' button with an a11y label when unused", async () => {
-    await renderNode(<AgentsUsingSkillBadge companyId="company-1" skill={makeSkill()} />);
+    await renderNode(
+      <AgentsUsingSkillBadge companyId="company-1" skill={makeSkill()} />,
+    );
     const badge = findButton("0 agents");
     expect(badge).toBeDefined();
     expect(badge?.getAttribute("aria-label")).toBe("0 agents use this skill");
@@ -210,9 +226,14 @@ describe("AgentsUsingSkillBadge", () => {
 
   it("pluralizes and opens the dialog on click", async () => {
     const skill = makeSkill({
-      usedByAgents: [makeAgent(), makeAgent({ id: "agent-2", name: "Coder", urlKey: "coder" })],
+      usedByAgents: [
+        makeAgent(),
+        makeAgent({ id: "agent-2", name: "Coder", urlKey: "coder" }),
+      ],
     });
-    await renderNode(<AgentsUsingSkillBadge companyId="company-1" skill={skill} />);
+    await renderNode(
+      <AgentsUsingSkillBadge companyId="company-1" skill={skill} />,
+    );
     const badge = findButton("2 agents");
     expect(badge?.getAttribute("aria-label")).toBe("2 agents use this skill");
     await click(badge!);
@@ -230,7 +251,12 @@ describe("AgentsUsingSkillDialog", () => {
     ]);
     const skill = makeSkill({ usedByAgents: [makeAgent()] });
     await renderNode(
-      <AgentsUsingSkillDialog open onOpenChange={() => {}} companyId="company-1" skill={skill} />,
+      <AgentsUsingSkillDialog
+        open
+        onOpenChange={() => {}}
+        companyId="company-1"
+        skill={skill}
+      />,
     );
     const select = document.body.querySelector("select");
     expect(select).not.toBeNull();
@@ -243,7 +269,11 @@ describe("AgentsUsingSkillDialog", () => {
         open
         onOpenChange={() => {}}
         companyId="company-1"
-        skill={makeSkill({ currentVersion: null, currentVersionId: null, usedByAgents: [makeAgent()] })}
+        skill={makeSkill({
+          currentVersion: null,
+          currentVersionId: null,
+          usedByAgents: [makeAgent()],
+        })}
       />,
     );
     // The second render's dialog is the last-opened; its row shows an em dash.
@@ -255,9 +285,16 @@ describe("AgentsUsingSkillDialog", () => {
       makeVersion({ id: "ver-3", revisionNumber: 3 }),
       makeVersion({ id: "ver-1", revisionNumber: 1 }),
     ]);
-    const skill = makeSkill({ usedByAgents: [makeAgent({ versionId: "ver-1" })] });
+    const skill = makeSkill({
+      usedByAgents: [makeAgent({ versionId: "ver-1" })],
+    });
     await renderNode(
-      <AgentsUsingSkillDialog open onOpenChange={() => {}} companyId="company-1" skill={skill} />,
+      <AgentsUsingSkillDialog
+        open
+        onOpenChange={() => {}}
+        companyId="company-1"
+        skill={skill}
+      />,
     );
     expect(document.body.textContent).toContain("2 versions behind latest");
   });
@@ -277,7 +314,12 @@ describe("AgentsUsingSkillDialog", () => {
     });
     const skill = makeSkill({ usedByAgents: [makeAgent()] });
     await renderNode(
-      <AgentsUsingSkillDialog open onOpenChange={() => {}} companyId="company-1" skill={skill} />,
+      <AgentsUsingSkillDialog
+        open
+        onOpenChange={() => {}}
+        companyId="company-1"
+        skill={skill}
+      />,
     );
 
     // The trash button has no text; grab it by aria-label.
@@ -315,11 +357,19 @@ describe("AgentsUsingSkillDialog", () => {
     });
     const skill = makeSkill({ usedByAgents: [makeAgent()] });
     await renderNode(
-      <AgentsUsingSkillDialog open onOpenChange={() => {}} companyId="company-1" skill={skill} />,
+      <AgentsUsingSkillDialog
+        open
+        onOpenChange={() => {}}
+        companyId="company-1"
+        skill={skill}
+      />,
     );
     const select = document.body.querySelector<HTMLSelectElement>("select");
     await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        "value",
+      )?.set;
       setter?.call(select, "ver-2");
       select?.dispatchEvent(new Event("change", { bubbles: true }));
     });
@@ -327,8 +377,14 @@ describe("AgentsUsingSkillDialog", () => {
 
     expect(mockAgentsApi.syncSkills).toHaveBeenCalledTimes(1);
     const [, sentEntries] = mockAgentsApi.syncSkills.mock.calls[0];
-    expect(sentEntries).toContainEqual({ key: "taskcore/other", versionId: null });
-    expect(sentEntries).toContainEqual({ key: "taskcore/demo", versionId: "ver-2" });
+    expect(sentEntries).toContainEqual({
+      key: "taskcore/other",
+      versionId: null,
+    });
+    expect(sentEntries).toContainEqual({
+      key: "taskcore/demo",
+      versionId: "ver-2",
+    });
   });
 
   it("hides mutating controls in read-only mode but keeps the roster", async () => {
@@ -343,7 +399,11 @@ describe("AgentsUsingSkillDialog", () => {
       />,
     );
     expect(document.body.textContent).toContain("Reviewer");
-    expect(document.body.querySelector('button[aria-label^="Remove this skill from"]')).toBeNull();
+    expect(
+      document.body.querySelector(
+        'button[aria-label^="Remove this skill from"]',
+      ),
+    ).toBeNull();
     expect(document.body.querySelector("select")).toBeNull();
   });
 });

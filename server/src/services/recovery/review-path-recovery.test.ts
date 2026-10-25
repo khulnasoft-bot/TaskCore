@@ -9,7 +9,8 @@ import {
 const stalled = {
   state: "stalled" as const,
   paths: [],
-  reason: "in_review issue has no participant, interaction, approval, monitor, active run, queued wake, or recovery path",
+  reason:
+    "in_review issue has no participant, interaction, approval, monitor, active run, queued wake, or recovery path",
 };
 
 describe("review-path recovery", () => {
@@ -54,7 +55,10 @@ describe("review-path recovery", () => {
       reviewAttention: stalled,
       existingWake: true,
     });
-    expect(duplicate).toEqual({ kind: "skip", reason: "review-path recovery wake already exists" });
+    expect(duplicate).toEqual({
+      kind: "skip",
+      reason: "review-path recovery wake already exists",
+    });
   });
 
   it.each(["chat:slack", "chat:slack:recovery", "chat:discord"])(
@@ -94,7 +98,8 @@ describe("review-path recovery", () => {
         "taskcoreExternalChatExecutionBound",
         "taskcoreWake",
         "sessionId",
-      ]) expect(decision.contextSnapshot).not.toHaveProperty(key);
+      ])
+        expect(decision.contextSnapshot).not.toHaveProperty(key);
       expect(decision.contextSnapshot.instruction).not.toBe("old instruction");
     },
   );
@@ -152,7 +157,10 @@ describe("review-path recovery", () => {
       existingWake: false,
     });
 
-    expect(decision).toEqual({ kind: "skip", reason: "bounded review-path recovery already ran" });
+    expect(decision).toEqual({
+      kind: "skip",
+      reason: "bounded review-path recovery already ran",
+    });
   });
 
   it("never wakes a healthy review", () => {
@@ -163,31 +171,41 @@ describe("review-path recovery", () => {
       contextSnapshot: { reviewPathConsumedRef: "interaction-1" },
       reviewAttention: {
         state: "covered",
-        paths: [{
-          kind: "interaction",
-          label: "Pending request confirmation",
-          responder: "Board",
-          since: null,
-          ref: "interaction-2",
-        }],
+        paths: [
+          {
+            kind: "interaction",
+            label: "Pending request confirmation",
+            responder: "Board",
+            since: null,
+            ref: "interaction-2",
+          },
+        ],
         reason: "Review is covered by 1 maintained path.",
       },
       existingWake: false,
     });
 
-    expect(decision).toEqual({ kind: "skip", reason: "review issue still has a maintained path" });
+    expect(decision).toEqual({
+      kind: "skip",
+      reason: "review issue still has a maintained path",
+    });
   });
 
   it("recognizes wrapped atomic deduplication conflicts without swallowing unrelated uniqueness errors", () => {
-    expect(isReviewPathRecoveryIdempotencyConflict({
-      cause: {
+    expect(
+      isReviewPathRecoveryIdempotencyConflict({
+        cause: {
+          code: "23505",
+          constraint_name:
+            "agent_wakeup_requests_review_path_recovery_idempotency_uq",
+        },
+      }),
+    ).toBe(true);
+    expect(
+      isReviewPathRecoveryIdempotencyConflict({
         code: "23505",
-        constraint_name: "agent_wakeup_requests_review_path_recovery_idempotency_uq",
-      },
-    })).toBe(true);
-    expect(isReviewPathRecoveryIdempotencyConflict({
-      code: "23505",
-      constraint_name: "some_other_unique_index",
-    })).toBe(false);
+        constraint_name: "some_other_unique_index",
+      }),
+    ).toBe(false);
   });
 });

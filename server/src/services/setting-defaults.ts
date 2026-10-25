@@ -9,7 +9,10 @@ export { SETTING_DEFAULTS_ENV_KEY };
 
 export type SettingDefaultsEnv = Record<string, string | undefined>;
 
-let cache: { raw: string | undefined; defaults: OperatorSettingDefaults | null } | null = null;
+let cache: {
+  raw: string | undefined;
+  defaults: OperatorSettingDefaults | null;
+} | null = null;
 
 /**
  * Operator setting defaults from the `TASKCORE_SETTING_DEFAULTS` env var

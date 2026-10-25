@@ -28,7 +28,9 @@ export interface CapabilityEvalSuiteCaseResult {
   stateDiff?: string[];
 }
 
-export type CapabilityEvalSuiteLookup = (caseId: string) => CapabilityEvalSuiteCaseResult | undefined;
+export type CapabilityEvalSuiteLookup = (
+  caseId: string,
+) => CapabilityEvalSuiteCaseResult | undefined;
 
 export interface CapabilityParityInput {
   entry: CapabilityScenarioIndexEntry;
@@ -46,43 +48,83 @@ export interface CapabilityParityInput {
  * check against the recorded transcript rather than an assumption.
  */
 const FORBIDDEN_OPERATION_MAP: Array<[RegExp, string[]]> = [
-  [/\/comments/, ["report_progress", "answer_status_question", "comment_on_approval"]],
+  [
+    /\/comments/,
+    ["report_progress", "answer_status_question", "comment_on_approval"],
+  ],
   [/\/documents/, ["write_document"]],
   [/\/interactions/, ["request_human_input"]],
   [/\/(artifacts|work-products|attachments)/, ["register_deliverable"]],
-  [/\/approvals/, ["request_approval", "decide_approval", "comment_on_approval", "list_approvals"]],
+  [
+    /\/approvals/,
+    [
+      "request_approval",
+      "decide_approval",
+      "comment_on_approval",
+      "list_approvals",
+    ],
+  ],
   [/\/secrets/, ["read_secret_value", "list_secret_metadata"]],
   [/\/routines/, ["list_routines", "manage_routine"]],
   [/\/cases/, ["list_cases", "upsert_case"]],
-  [/\/(workspaces|services)/, ["get_workspace_runtime", "control_workspace_service"]],
+  [
+    /\/(workspaces|services)/,
+    ["get_workspace_runtime", "control_workspace_service"],
+  ],
   [/\/agents/, ["list_agents"]],
   [/\/skills/, ["list_company_skills", "sync_company_skills"]],
   [/\/export/, ["export_company"]],
-  [/\/issues/, ["create_task", "finish_task", "block_task", "request_review", "set_dependencies", "search_tasks"]],
+  [
+    /\/issues/,
+    [
+      "create_task",
+      "finish_task",
+      "block_task",
+      "request_review",
+      "set_dependencies",
+      "search_tasks",
+    ],
+  ],
 ];
 
-export function capabilityScenarioParity(input: CapabilityParityInput): CapabilityParityReport {
-  const { entry, timeline, authorizationRecords, diff, exposure, failure } = input;
+export function capabilityScenarioParity(
+  input: CapabilityParityInput,
+): CapabilityParityReport {
+  const { entry, timeline, authorizationRecords, diff, exposure, failure } =
+    input;
   const calls = timeline.filter(
-    (item): item is Extract<CapabilityTimelineEntry, { kind: "semantic_call" }> =>
+    (
+      item,
+    ): item is Extract<CapabilityTimelineEntry, { kind: "semantic_call" }> =>
       item.kind === "semantic_call",
   );
   const results = timeline.filter(
-    (item): item is Extract<CapabilityTimelineEntry, { kind: "semantic_result" }> =>
+    (
+      item,
+    ): item is Extract<CapabilityTimelineEntry, { kind: "semantic_result" }> =>
       item.kind === "semantic_result",
   );
-  const controlPlaneEntries = timeline.filter((item) => item.kind === "control_plane_action");
+  const controlPlaneEntries = timeline.filter(
+    (item) => item.kind === "control_plane_action",
+  );
   const invokedOperations = new Set(calls.map((call) => call.operationId));
 
-  const forbidden = entry.forbiddenSemantics.map<CapabilityForbiddenCheck>((semantic) => {
-    const candidates = FORBIDDEN_OPERATION_MAP.find(([pattern]) => pattern.test(semantic))?.[1] ?? [];
-    const violating = calls.find((call) => candidates.includes(call.operationId));
-    return {
-      semantic,
-      invoked: violating !== undefined,
-      transcriptSequence: violating?.sequence ?? null,
-    };
-  });
+  const forbidden = entry.forbiddenSemantics.map<CapabilityForbiddenCheck>(
+    (semantic) => {
+      const candidates =
+        FORBIDDEN_OPERATION_MAP.find(([pattern]) =>
+          pattern.test(semantic),
+        )?.[1] ?? [];
+      const violating = calls.find((call) =>
+        candidates.includes(call.operationId),
+      );
+      return {
+        semantic,
+        invoked: violating !== undefined,
+        transcriptSequence: violating?.sequence ?? null,
+      };
+    },
+  );
 
   const assertions: CapabilityParityAssertion[] = [];
   const intentionalGaps: ScenarioChatntentionalGap[] = [];
@@ -128,15 +170,22 @@ export function capabilityScenarioParity(input: CapabilityParityInput): Capabili
 
   if (classes.has("authorization_policy")) {
     const consistent = authorizationRecords.every(
-      (record) => record.outcome !== "allowed" || record.missingClaims.length === 0,
+      (record) =>
+        record.outcome !== "allowed" || record.missingClaims.length === 0,
     );
-    const covered = new Set(authorizationRecords.map((record) => record.operationId));
+    const covered = new Set(
+      authorizationRecords.map((record) => record.operationId),
+    );
     const uncovered = calls.filter((call) => !covered.has(call.operationId));
-    const denials = authorizationRecords.filter((record) => record.outcome !== "allowed").length;
+    const denials = authorizationRecords.filter(
+      (record) => record.outcome !== "allowed",
+    ).length;
     push(
       "authorization_policy",
       "Every invocation carries an authorization record and no allowed call had a missing claim.",
-      consistent && uncovered.length === 0 && authorizationRecords.length >= calls.length,
+      consistent &&
+        uncovered.length === 0 &&
+        authorizationRecords.length >= calls.length,
       `an authorization record for each of ${calls.length} calls, 0 allowed calls with missing claims`,
       `${authorizationRecords.length} authorization records for ${calls.length} calls · ${denials} not allowed`,
     );
@@ -179,7 +228,9 @@ export function capabilityScenarioParity(input: CapabilityParityInput): Capabili
     "agent_tool_contract",
     "Every grant the scenario requires unlocked at least one exposed operation.",
     entry.scenarioClaims.every((claim) =>
-      [...exposure.always, ...exposure.optional].some((tool) => tool.requiredClaims.includes(claim)),
+      [...exposure.always, ...exposure.optional].some((tool) =>
+        tool.requiredClaims.includes(claim),
+      ),
     ) || entry.scenarioClaims.length === 0,
     entry.scenarioClaims.length === 0
       ? "no scenario claims required"
@@ -206,7 +257,8 @@ export function capabilityScenarioParity(input: CapabilityParityInput): Capabili
   };
 
   const verdict: CapabilityParityStatus =
-    failure !== null || assertions.some((assertion) => assertion.status === "fail")
+    failure !== null ||
+    assertions.some((assertion) => assertion.status === "fail")
       ? "fail"
       : assertions.length === 0
         ? "intentional_gap"
@@ -234,27 +286,42 @@ export function capabilityScenarioParity(input: CapabilityParityInput): Capabili
  * would be a verdict nobody made. The session verdict stays
  * `capabilityScenarioParity` over the cumulative timeline.
  */
-export function capabilityTurnParity(input: CapabilityParityInput): CapabilityParityReport {
+export function capabilityTurnParity(
+  input: CapabilityParityInput,
+): CapabilityParityReport {
   const { entry, timeline, authorizationRecords, diff, failure } = input;
   const calls = timeline.filter(
-    (item): item is Extract<CapabilityTimelineEntry, { kind: "semantic_call" }> =>
+    (
+      item,
+    ): item is Extract<CapabilityTimelineEntry, { kind: "semantic_call" }> =>
       item.kind === "semantic_call",
   );
   const results = timeline.filter(
-    (item): item is Extract<CapabilityTimelineEntry, { kind: "semantic_result" }> =>
+    (
+      item,
+    ): item is Extract<CapabilityTimelineEntry, { kind: "semantic_result" }> =>
       item.kind === "semantic_result",
   );
-  const controlPlaneEntries = timeline.filter((item) => item.kind === "control_plane_action");
+  const controlPlaneEntries = timeline.filter(
+    (item) => item.kind === "control_plane_action",
+  );
 
-  const forbidden = entry.forbiddenSemantics.map<CapabilityForbiddenCheck>((semantic) => {
-    const candidates = FORBIDDEN_OPERATION_MAP.find(([pattern]) => pattern.test(semantic))?.[1] ?? [];
-    const violating = calls.find((call) => candidates.includes(call.operationId));
-    return {
-      semantic,
-      invoked: violating !== undefined,
-      transcriptSequence: violating?.sequence ?? null,
-    };
-  });
+  const forbidden = entry.forbiddenSemantics.map<CapabilityForbiddenCheck>(
+    (semantic) => {
+      const candidates =
+        FORBIDDEN_OPERATION_MAP.find(([pattern]) =>
+          pattern.test(semantic),
+        )?.[1] ?? [];
+      const violating = calls.find((call) =>
+        candidates.includes(call.operationId),
+      );
+      return {
+        semantic,
+        invoked: violating !== undefined,
+        transcriptSequence: violating?.sequence ?? null,
+      };
+    },
+  );
 
   const assertions: CapabilityParityAssertion[] = [];
   const push = (
@@ -282,12 +349,17 @@ export function capabilityTurnParity(input: CapabilityParityInput): CapabilityPa
       `${calls.length} typed results for ${calls.length} calls`,
       `${results.length} typed results for ${calls.length} calls`,
     );
-    const covered = new Set(authorizationRecords.map((record) => record.operationId));
+    const covered = new Set(
+      authorizationRecords.map((record) => record.operationId),
+    );
     const uncovered = calls.filter((call) => !covered.has(call.operationId));
     const consistent = authorizationRecords.every(
-      (record) => record.outcome !== "allowed" || record.missingClaims.length === 0,
+      (record) =>
+        record.outcome !== "allowed" || record.missingClaims.length === 0,
     );
-    const denials = authorizationRecords.filter((record) => record.outcome !== "allowed").length;
+    const denials = authorizationRecords.filter(
+      (record) => record.outcome !== "allowed",
+    ).length;
     push(
       "authorization_policy",
       "Every invocation in this turn carries an authorization record and no allowed call had a missing claim.",
@@ -322,7 +394,8 @@ export function capabilityTurnParity(input: CapabilityParityInput): CapabilityPa
 
   const changedDomains = diff.domains.filter((domain) => domain.changed).length;
   const verdict: CapabilityParityStatus =
-    failure !== null || assertions.some((assertion) => assertion.status === "fail")
+    failure !== null ||
+    assertions.some((assertion) => assertion.status === "fail")
       ? "fail"
       : assertions.length === 0
         ? "not_run"
@@ -350,10 +423,14 @@ export function capabilityTurnParity(input: CapabilityParityInput): CapabilityPa
 }
 
 /** Builds an eval-suite lookup from a loaded Capability parity report. */
-export function capabilityEvalSuiteLookup(report: unknown): CapabilityEvalSuiteLookup {
+export function capabilityEvalSuiteLookup(
+  report: unknown,
+): CapabilityEvalSuiteLookup {
   const results =
-    typeof report === "object" && report !== null && Array.isArray((report as { results?: unknown }).results)
-      ? ((report as { results: CapabilityEvalSuiteCaseResult[] }).results)
+    typeof report === "object" &&
+    report !== null &&
+    Array.isArray((report as { results?: unknown }).results)
+      ? (report as { results: CapabilityEvalSuiteCaseResult[] }).results
       : [];
   const byId = new Map(results.map((result) => [result.caseId, result]));
   return (caseId) => byId.get(caseId);

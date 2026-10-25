@@ -5,12 +5,17 @@ import os from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
 import { reserveRunnerE2EDatabasePort } from "./ports.js";
-import { runnerE2EWebServerGracefulShutdown, runnerE2ETypeScriptProcessArgs } from "./web-server-command.js";
+import {
+  runnerE2EWebServerGracefulShutdown,
+  runnerE2ETypeScriptProcessArgs,
+} from "./web-server-command.js";
 
 const require = createRequire(import.meta.url);
 
 it("lets Playwright reap a restarted server through the production bounded shutdown policy", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "taskcore-playwright-shutdown-"));
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "taskcore-playwright-shutdown-"),
+  );
   const reservation = await reserveRunnerE2EDatabasePort(3100);
   const port = reservation.port;
   const supervisorPath = path.join(root, "supervisor.cjs");
@@ -24,7 +29,9 @@ it("lets Playwright reap a restarted server through the production bounded shutd
   let timer: ReturnType<typeof setTimeout> | undefined;
   let reservationReleased = false;
   try {
-    await writeFile(workerPath, `
+    await writeFile(
+      workerPath,
+      `
       const http = require('node:http');
       const server = http.createServer((req, res) => {
         res.end(process.env.REVISION);
@@ -32,8 +39,11 @@ it("lets Playwright reap a restarted server through the production bounded shutd
       });
       process.on('SIGTERM', () => server.close(() => process.exit(0)));
       server.listen(${port}, '127.0.0.1');
-    `);
-    await writeFile(supervisorPath, `
+    `,
+    );
+    await writeFile(
+      supervisorPath,
+      `
       const { spawn } = require('node:child_process');
       const fs = require('node:fs');
       let stopping = false;
@@ -55,8 +65,11 @@ it("lets Playwright reap a restarted server through the production bounded shutd
       }
       process.on('SIGTERM', () => { stopping = true; child.kill('SIGTERM'); });
       start();
-    `);
-    await writeFile(configPath, `module.exports = {
+    `,
+    );
+    await writeFile(
+      configPath,
+      `module.exports = {
       testDir: ${JSON.stringify(root)}, testMatch: 'shutdown.spec.cjs', workers: 1,
       reporter: 'line', timeout: 10000,
       webServer: {
@@ -64,8 +77,11 @@ it("lets Playwright reap a restarted server through the production bounded shutd
         url: 'http://127.0.0.1:${port}', timeout: 10000,
         gracefulShutdown: ${JSON.stringify(runnerE2EWebServerGracefulShutdown)},
       },
-    };`);
-    await writeFile(path.join(root, "shutdown.spec.cjs"), `
+    };`,
+    );
+    await writeFile(
+      path.join(root, "shutdown.spec.cjs"),
+      `
       const { test, expect } = require(${JSON.stringify(testModule)});
       test('restarts before teardown', async ({ request }) => {
         await request.get('http://127.0.0.1:${port}/restart');
@@ -74,7 +90,8 @@ it("lets Playwright reap a restarted server through the production bounded shutd
           catch { return ''; }
         }).toBe('2');
       });
-    `);
+    `,
+    );
     await reservation.close();
     reservationReleased = true;
     child = spawn(process.execPath, [cli, "test", "--config", configPath], {
@@ -83,15 +100,22 @@ it("lets Playwright reap a restarted server through the production bounded shutd
       env: { ...process.env, CI: "1" },
     });
     let output = "";
-    child.stdout?.on("data", (chunk) => { output += chunk; });
-    child.stderr?.on("data", (chunk) => { output += chunk; });
+    child.stdout?.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.stderr?.on("data", (chunk) => {
+      output += chunk;
+    });
     const exit = await Promise.race([
       new Promise<number | null>((resolve, reject) => {
         child!.once("error", reject);
         child!.once("exit", resolve);
       }),
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`Playwright cleanup stalled: ${output}`)), 20_000);
+        timer = setTimeout(
+          () => reject(new Error(`Playwright cleanup stalled: ${output}`)),
+          20_000,
+        );
       }),
     ]);
     expect(exit, output).toBe(0);
@@ -101,21 +125,32 @@ it("lets Playwright reap a restarted server through the production bounded shutd
     for (const pid of stopped.pids) {
       expect(() => process.kill(pid, 0)).toThrow();
     }
-    await expect(fetch(`http://127.0.0.1:${port}`, { signal: AbortSignal.timeout(500) })).rejects.toThrow();
+    await expect(
+      fetch(`http://127.0.0.1:${port}`, { signal: AbortSignal.timeout(500) }),
+    ).rejects.toThrow();
   } finally {
     if (timer) clearTimeout(timer);
     if (child?.pid && child.exitCode === null && child.signalCode === null) {
-      try { process.kill(-child.pid, "SIGKILL"); } catch { child.kill("SIGKILL"); }
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {
+        child.kill("SIGKILL");
+      }
     }
-    const pids: number[] = JSON.parse(await readFile(pidsPath, "utf8").catch(() => "[]"));
+    const pids: number[] = JSON.parse(
+      await readFile(pidsPath, "utf8").catch(() => "[]"),
+    );
     for (const pid of pids) {
-      try { process.kill(pid, "SIGKILL"); } catch { /* Already reaped. */ }
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        /* Already reaped. */
+      }
     }
     if (!reservationReleased) await reservation.close();
     await rm(root, { recursive: true, force: true });
   }
 }, 25_000);
-
 
 it("owns the actual server PID so a forced restart cannot leave a late database closer", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "taskcore-server-pid-"));
@@ -123,22 +158,42 @@ it("owns the actual server PID so a forced restart cannot leave a late database 
   let candidate: ReturnType<typeof spawn> | undefined;
   let actualPid: number | undefined;
   try {
-    await writeFile(entry, `process.send!({ pid: process.pid }); setInterval(() => {}, 1000);`);
-    candidate = spawn(process.execPath, runnerE2ETypeScriptProcessArgs(path.resolve(import.meta.dirname, "../.."), entry), { stdio: ["ignore", "pipe", "pipe", "ipc"] });
+    await writeFile(
+      entry,
+      `process.send!({ pid: process.pid }); setInterval(() => {}, 1000);`,
+    );
+    candidate = spawn(
+      process.execPath,
+      runnerE2ETypeScriptProcessArgs(
+        path.resolve(import.meta.dirname, "../.."),
+        entry,
+      ),
+      { stdio: ["ignore", "pipe", "pipe", "ipc"] },
+    );
     actualPid = await new Promise<number>((resolve, reject) => {
       candidate!.once("message", (message: any) => resolve(message.pid));
       candidate!.once("error", reject);
-      candidate!.once("exit", () => reject(new Error("Server exited before publishing its PID")));
+      candidate!.once("exit", () =>
+        reject(new Error("Server exited before publishing its PID")),
+      );
     });
     expect(actualPid).toBe(candidate.pid);
-    const exited = new Promise(resolve => candidate!.once("exit", resolve));
+    const exited = new Promise((resolve) => candidate!.once("exit", resolve));
     candidate.kill("SIGKILL");
     await exited;
     expect(() => process.kill(actualPid!, 0)).toThrow();
   } finally {
-    if (actualPid) { try { process.kill(actualPid, "SIGKILL"); } catch {} }
-    if (candidate && candidate.exitCode === null && candidate.signalCode === null) {
-      const exited = new Promise(resolve => candidate!.once("exit", resolve));
+    if (actualPid) {
+      try {
+        process.kill(actualPid, "SIGKILL");
+      } catch {}
+    }
+    if (
+      candidate &&
+      candidate.exitCode === null &&
+      candidate.signalCode === null
+    ) {
+      const exited = new Promise((resolve) => candidate!.once("exit", resolve));
       candidate.kill("SIGKILL");
       await exited;
     }

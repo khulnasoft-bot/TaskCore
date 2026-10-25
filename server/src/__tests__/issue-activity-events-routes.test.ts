@@ -20,7 +20,10 @@ const mockIssueService = vi.hoisted(() => ({
 const mockLogActivity = vi.hoisted(() => vi.fn(async () => undefined));
 const mockAccessService = vi.hoisted(() => ({
   decide: vi.fn(async ({ action }: { action: string }) => ({
-    action, allowed: action === "issue:read", reason: "allow_default", explanation: "Fixture task is readable",
+    action,
+    allowed: action === "issue:read",
+    reason: "allow_default",
+    explanation: "Fixture task is readable",
   })),
   canUser: vi.fn(async () => false),
   hasPermission: vi.fn(async () => false),
@@ -34,7 +37,11 @@ const mockHeartbeatService = vi.hoisted(() => ({
 }));
 const mockFeedbackService = vi.hoisted(() => ({
   listIssueVotesForUser: vi.fn(async () => []),
-  saveIssueVote: vi.fn(async () => ({ vote: null, consentEnabledNow: false, sharingEnabled: false })),
+  saveIssueVote: vi.fn(async () => ({
+    vote: null,
+    consentEnabledNow: false,
+    sharingEnabled: false,
+  })),
 }));
 const mockInstanceSettingsService = vi.hoisted(() => ({
   get: vi.fn(async () => ({
@@ -100,7 +107,9 @@ function registerModuleMocks() {
     companySkillService: () => ({
       completeTestRunForIssue: vi.fn(async () => null),
     }),
-    documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+    documentAnnotationService: () => ({
+      remapOpenThreadsForDocument: async () => [],
+    }),
     documentService: () => ({}),
     executionWorkspaceService: () => ({}),
     feedbackService: () => mockFeedbackService,
@@ -151,8 +160,12 @@ function createEmptyRelationReadDb() {
 
 async function createApp(db: unknown = createEmptyRelationReadDb()) {
   const [{ issueRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/issues.js")>(
+      "../routes/issues.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -189,7 +202,10 @@ function makeIssue() {
   };
 }
 
-function issueUpdateWithReceipt(issue: ReturnType<typeof makeIssue>, patch: Record<string, unknown>) {
+function issueUpdateWithReceipt(
+  issue: ReturnType<typeof makeIssue>,
+  patch: Record<string, unknown>,
+) {
   const {
     actorAgentId: _actorAgentId,
     actorRunId: _actorRunId,
@@ -225,12 +241,21 @@ describe("issue activity event routes", () => {
     vi.doUnmock("../middleware/index.js");
     registerModuleMocks();
     vi.clearAllMocks();
-    mockIssueService.assertCheckoutOwner.mockResolvedValue({ adoptedFromRunId: null });
-    mockIssueService.getByIdForUpdate.mockImplementation(async () => mockIssueService.getById());
+    mockIssueService.assertCheckoutOwner.mockResolvedValue({
+      adoptedFromRunId: null,
+    });
+    mockIssueService.getByIdForUpdate.mockImplementation(async () =>
+      mockIssueService.getById(),
+    );
     mockIssueService.findMentionedAgents.mockResolvedValue([]);
-    mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
+    mockIssueService.getRelationSummaries.mockResolvedValue({
+      blockedBy: [],
+      blocks: [],
+    });
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
-    mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
+    mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(
+      null,
+    );
     mockAccessService.canUser.mockResolvedValue(false);
     mockAccessService.hasPermission.mockResolvedValue(false);
     mockFeedbackService.listIssueVotesForUser.mockResolvedValue([]);
@@ -258,8 +283,10 @@ describe("issue activity event routes", () => {
   it("returns a field-change receipt and omits a requested no-op field", async () => {
     const issue = makeIssue();
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) =>
-      issueUpdateWithReceipt(issue, patch));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) =>
+        issueUpdateWithReceipt(issue, patch),
+    );
 
     const changed = await request(await createApp())
       .patch(`/api/issues/${issue.id}`)
@@ -293,18 +320,24 @@ describe("issue activity event routes", () => {
       blocks: [],
     });
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.getRelationSummaries.mockImplementation(async () => relationSummaries());
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => {
-      const from = blockedByIssueIds;
-      blockedByIssueIds = [...new Set(patch.blockedByIssueIds as string[])].sort();
-      return {
-        ...issueUpdateWithReceipt(issue, patch),
-        blockedByIssueIds,
-        changes: buildIssueChanges(issue, issue, {
-          blockedByIssueIds: { from, to: blockedByIssueIds },
-        }),
-      };
-    });
+    mockIssueService.getRelationSummaries.mockImplementation(async () =>
+      relationSummaries(),
+    );
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => {
+        const from = blockedByIssueIds;
+        blockedByIssueIds = [
+          ...new Set(patch.blockedByIssueIds as string[]),
+        ].sort();
+        return {
+          ...issueUpdateWithReceipt(issue, patch),
+          blockedByIssueIds,
+          changes: buildIssueChanges(issue, issue, {
+            blockedByIssueIds: { from, to: blockedByIssueIds },
+          }),
+        };
+      },
+    );
 
     const setResponse = await request(await createApp())
       .patch(`/api/issues/${issue.id}`)
@@ -336,8 +369,10 @@ describe("issue activity event routes", () => {
       description: "b".repeat(240),
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) =>
-      issueUpdateWithReceipt(issue, patch));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) =>
+        issueUpdateWithReceipt(issue, patch),
+    );
 
     const response = await request(await createApp())
       .patch(`/api/issues/${issue.id}`)
@@ -346,15 +381,21 @@ describe("issue activity event routes", () => {
     expect(response.status).toBe(200);
     expect(response.body.changes).toEqual({
       title: { from: "a".repeat(200), to: "c".repeat(200), updated: true },
-      description: { from: "b".repeat(200), to: "d".repeat(200), updated: true },
+      description: {
+        from: "b".repeat(200),
+        to: "d".repeat(200),
+        updated: true,
+      },
     });
   });
 
   it("returns only the minimal receipt fields when requested", async () => {
     const issue = makeIssue();
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) =>
-      issueUpdateWithReceipt(issue, patch));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) =>
+        issueUpdateWithReceipt(issue, patch),
+    );
 
     const response = await request(await createApp())
       .patch(`/api/issues/${issue.id}`)
@@ -375,8 +416,10 @@ describe("issue activity event routes", () => {
   it("preserves the default full response body with additive receipt fields", async () => {
     const issue = makeIssue();
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) =>
-      issueUpdateWithReceipt(issue, patch));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) =>
+        issueUpdateWithReceipt(issue, patch),
+    );
 
     const response = await request(await createApp())
       .patch(`/api/issues/${issue.id}`)
@@ -446,11 +489,13 @@ describe("issue activity event routes", () => {
       relationLookupCount += 1;
       return relationLookupCount === 1 ? previousRelations : nextRelations;
     });
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/11111111-1111-4111-8111-111111111111")
@@ -497,28 +542,36 @@ describe("issue activity event routes", () => {
       executionWorkspaceSettings: { mode: "shared_workspace" },
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-      changes: {
-        executionWorkspaceId: {
-          from: issue.executionWorkspaceId,
-          to: nextExecutionWorkspaceId,
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+        changes: {
+          executionWorkspaceId: {
+            from: issue.executionWorkspaceId,
+            to: nextExecutionWorkspaceId,
+          },
         },
-      },
-    }));
+      }),
+    );
 
     const dbMock = {
       select: vi.fn(() => ({
         from: (table: unknown) => ({
           where: async () => {
-            const tableName = getTableName(table as Parameters<typeof getTableName>[0]);
+            const tableName = getTableName(
+              table as Parameters<typeof getTableName>[0],
+            );
             if (tableName === "project_workspaces") {
-              return [{ id: previousProjectWorkspaceId, name: "Main workspace" }];
+              return [
+                { id: previousProjectWorkspaceId, name: "Main workspace" },
+              ];
             }
             if (tableName === "execution_workspaces") {
-              return [{ id: nextExecutionWorkspaceId, name: "Feature workspace" }];
+              return [
+                { id: nextExecutionWorkspaceId, name: "Feature workspace" },
+              ];
             }
             return [];
           },
@@ -564,11 +617,13 @@ describe("issue activity event routes", () => {
   it("logs successful_run_handoff_resolved when an in_progress issue transitions to done with a pending required handoff", async () => {
     const issue = { ...makeIssue(), status: "in_progress" };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const handoffActivityRow = {
       entityId: issue.id,
@@ -582,7 +637,8 @@ describe("issue activity event routes", () => {
       createdAt: new Date("2026-05-01T00:00:00.000Z"),
     };
     const dbMock = {
-      transaction: async (callback: (tx: unknown) => Promise<unknown>) => callback({}),
+      transaction: async (callback: (tx: unknown) => Promise<unknown>) =>
+        callback({}),
       select: () => ({
         from: () => ({
           where: () => ({
@@ -617,11 +673,13 @@ describe("issue activity event routes", () => {
   it("does not log successful_run_handoff_resolved when status stays in_progress", async () => {
     const issue = { ...makeIssue(), status: "in_progress" };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        updatedAt: new Date(),
+      }),
+    );
 
     const dbMock = {
       select: () => ({
@@ -640,7 +698,9 @@ describe("issue activity event routes", () => {
     expect(res.status).toBe(200);
     expect(mockLogActivity).not.toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ action: "issue.successful_run_handoff_resolved" }),
+      expect.objectContaining({
+        action: "issue.successful_run_handoff_resolved",
+      }),
     );
   });
 
@@ -650,12 +710,16 @@ describe("issue activity event routes", () => {
         {
           id: "11111111-1111-4111-8111-111111111111",
           type: "review",
-          participants: [{ type: "agent", agentId: "11111111-2222-4333-8444-555555555555" }],
+          participants: [
+            { type: "agent", agentId: "11111111-2222-4333-8444-555555555555" },
+          ],
         },
         {
           id: "22222222-2222-4222-8222-222222222222",
           type: "approval",
-          participants: [{ type: "agent", agentId: "66666666-7777-4888-8999-aaaaaaaaaaaa" }],
+          participants: [
+            { type: "agent", agentId: "66666666-7777-4888-8999-aaaaaaaaaaaa" },
+          ],
         },
       ],
     })!;
@@ -664,7 +728,9 @@ describe("issue activity event routes", () => {
         {
           id: "11111111-1111-4111-8111-111111111111",
           type: "review",
-          participants: [{ type: "agent", agentId: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff" }],
+          participants: [
+            { type: "agent", agentId: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff" },
+          ],
         },
         {
           id: "22222222-2222-4222-8222-222222222222",
@@ -678,12 +744,14 @@ describe("issue activity event routes", () => {
       executionPolicy: existingPolicy,
     };
     mockIssueService.getById.mockResolvedValue(issue);
-    mockIssueService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...issue,
-      ...patch,
-      executionPolicy: patch.executionPolicy,
-      updatedAt: new Date(),
-    }));
+    mockIssueService.update.mockImplementation(
+      async (_id: string, patch: Record<string, unknown>) => ({
+        ...issue,
+        ...patch,
+        executionPolicy: patch.executionPolicy,
+        updatedAt: new Date(),
+      }),
+    );
 
     const res = await request(await createApp())
       .patch("/api/issues/11111111-1111-4111-8111-111111111111")
@@ -696,9 +764,27 @@ describe("issue activity event routes", () => {
         expect.objectContaining({
           action: "issue.reviewers_updated",
           details: expect.objectContaining({
-            participants: [{ type: "agent", agentId: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", userId: null }],
-            addedParticipants: [{ type: "agent", agentId: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", userId: null }],
-            removedParticipants: [{ type: "agent", agentId: "11111111-2222-4333-8444-555555555555", userId: null }],
+            participants: [
+              {
+                type: "agent",
+                agentId: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+                userId: null,
+              },
+            ],
+            addedParticipants: [
+              {
+                type: "agent",
+                agentId: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+                userId: null,
+              },
+            ],
+            removedParticipants: [
+              {
+                type: "agent",
+                agentId: "11111111-2222-4333-8444-555555555555",
+                userId: null,
+              },
+            ],
           }),
         }),
       );
@@ -707,9 +793,19 @@ describe("issue activity event routes", () => {
         expect.objectContaining({
           action: "issue.approvers_updated",
           details: expect.objectContaining({
-            participants: [{ type: "user", agentId: null, userId: "local-board" }],
-            addedParticipants: [{ type: "user", agentId: null, userId: "local-board" }],
-            removedParticipants: [{ type: "agent", agentId: "66666666-7777-4888-8999-aaaaaaaaaaaa", userId: null }],
+            participants: [
+              { type: "user", agentId: null, userId: "local-board" },
+            ],
+            addedParticipants: [
+              { type: "user", agentId: null, userId: "local-board" },
+            ],
+            removedParticipants: [
+              {
+                type: "agent",
+                agentId: "66666666-7777-4888-8999-aaaaaaaaaaaa",
+                userId: null,
+              },
+            ],
           }),
         }),
       );

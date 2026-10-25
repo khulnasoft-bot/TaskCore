@@ -10,10 +10,20 @@ async function makeTempDir(prefix: string): Promise<string> {
 
 async function createTaskcoreRepoSkill(root: string, skillName: string) {
   await fs.mkdir(path.join(root, "server"), { recursive: true });
-  await fs.mkdir(path.join(root, "packages", "adapter-utils"), { recursive: true });
+  await fs.mkdir(path.join(root, "packages", "adapter-utils"), {
+    recursive: true,
+  });
   await fs.mkdir(path.join(root, "skills", skillName), { recursive: true });
-  await fs.writeFile(path.join(root, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n", "utf8");
-  await fs.writeFile(path.join(root, "package.json"), '{"name":"taskcore"}\n', "utf8");
+  await fs.writeFile(
+    path.join(root, "pnpm-workspace.yaml"),
+    "packages:\n  - packages/*\n",
+    "utf8",
+  );
+  await fs.writeFile(
+    path.join(root, "package.json"),
+    '{"name":"taskcore"}\n',
+    "utf8",
+  );
   await fs.writeFile(
     path.join(root, "skills", skillName, "SKILL.md"),
     `---\nname: ${skillName}\n---\n`,
@@ -36,7 +46,11 @@ describe("codex local adapter skill injection", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -51,7 +65,10 @@ describe("codex local adapter skill injection", () => {
     await createTaskcoreRepoSkill(currentRepo, "taskcore");
     await createTaskcoreRepoSkill(currentRepo, "taskcore-create-agent");
     await createTaskcoreRepoSkill(oldRepo, "taskcore");
-    await fs.symlink(path.join(oldRepo, "skills", "taskcore"), path.join(skillsHome, "taskcore"));
+    await fs.symlink(
+      path.join(oldRepo, "skills", "taskcore"),
+      path.join(skillsHome, "taskcore"),
+    );
 
     const logs: Array<{ stream: "stdout" | "stderr"; chunk: string }> = [];
     await ensureCodexSkillsInjected(
@@ -78,8 +95,12 @@ describe("codex local adapter skill injection", () => {
     expect(await fs.realpath(path.join(skillsHome, "taskcore"))).toBe(
       await fs.realpath(path.join(currentRepo, "skills", "taskcore")),
     );
-    expect(await fs.realpath(path.join(skillsHome, "taskcore-create-agent"))).toBe(
-      await fs.realpath(path.join(currentRepo, "skills", "taskcore-create-agent")),
+    expect(
+      await fs.realpath(path.join(skillsHome, "taskcore-create-agent")),
+    ).toBe(
+      await fs.realpath(
+        path.join(currentRepo, "skills", "taskcore-create-agent"),
+      ),
     );
     expect(logs).toContainEqual(
       expect.objectContaining({
@@ -90,7 +111,9 @@ describe("codex local adapter skill injection", () => {
     expect(logs).toContainEqual(
       expect.objectContaining({
         stream: "stdout",
-        chunk: expect.stringContaining('Injected Codex skill "taskcore-create-agent"'),
+        chunk: expect.stringContaining(
+          'Injected Codex skill "taskcore-create-agent"',
+        ),
       }),
     );
   });
@@ -105,15 +128,20 @@ describe("codex local adapter skill injection", () => {
 
     await createTaskcoreRepoSkill(currentRepo, "taskcore");
     await createCustomSkill(customRoot, "taskcore");
-    await fs.symlink(path.join(customRoot, "custom", "taskcore"), path.join(skillsHome, "taskcore"));
+    await fs.symlink(
+      path.join(customRoot, "custom", "taskcore"),
+      path.join(skillsHome, "taskcore"),
+    );
 
     await ensureCodexSkillsInjected(async () => {}, {
       skillsHome,
-      skillsEntries: [{
-        key: taskcoreKey,
-        runtimeName: "taskcore",
-        source: path.join(currentRepo, "skills", "taskcore"),
-      }],
+      skillsEntries: [
+        {
+          key: taskcoreKey,
+          runtimeName: "taskcore",
+          source: path.join(currentRepo, "skills", "taskcore"),
+        },
+      ],
     });
 
     expect(await fs.realpath(path.join(skillsHome, "taskcore"))).toBe(
@@ -142,21 +170,27 @@ describe("codex local adapter skill injection", () => {
       },
       {
         skillsHome,
-        skillsEntries: [{
-          key: taskcoreKey,
-          runtimeName: "taskcore",
-          source: path.join(currentRepo, "skills", "taskcore"),
-        }],
+        skillsEntries: [
+          {
+            key: taskcoreKey,
+            runtimeName: "taskcore",
+            source: path.join(currentRepo, "skills", "taskcore"),
+          },
+        ],
       },
     );
 
-    await expect(fs.lstat(path.join(skillsHome, "agent-browser"))).rejects.toMatchObject({
+    await expect(
+      fs.lstat(path.join(skillsHome, "agent-browser")),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
     expect(logs).toContainEqual(
       expect.objectContaining({
         stream: "stdout",
-        chunk: expect.stringContaining('Removed stale Codex skill "agent-browser"'),
+        chunk: expect.stringContaining(
+          'Removed stale Codex skill "agent-browser"',
+        ),
       }),
     );
   });
@@ -176,15 +210,21 @@ describe("codex local adapter skill injection", () => {
 
     await ensureCodexSkillsInjected(async () => {}, {
       skillsHome,
-      skillsEntries: [{
-        key: taskcoreKey,
-        runtimeName: "taskcore",
-        source: path.join(currentRepo, "skills", "taskcore"),
-      }],
+      skillsEntries: [
+        {
+          key: taskcoreKey,
+          runtimeName: "taskcore",
+          source: path.join(currentRepo, "skills", "taskcore"),
+        },
+      ],
     });
 
-    expect((await fs.lstat(path.join(skillsHome, "taskcore"))).isSymbolicLink()).toBe(true);
-    expect((await fs.lstat(path.join(skillsHome, "agent-browser"))).isSymbolicLink()).toBe(true);
+    expect(
+      (await fs.lstat(path.join(skillsHome, "taskcore"))).isSymbolicLink(),
+    ).toBe(true);
+    expect(
+      (await fs.lstat(path.join(skillsHome, "agent-browser"))).isSymbolicLink(),
+    ).toBe(true);
     expect(await fs.realpath(path.join(skillsHome, "agent-browser"))).toBe(
       await fs.realpath(path.join(currentRepo, "skills", "agent-browser")),
     );

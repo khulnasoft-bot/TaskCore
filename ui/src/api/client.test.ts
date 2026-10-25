@@ -23,7 +23,11 @@ function deferred<T>(): Deferred<T> {
 }
 
 function jsonResponse(body: unknown) {
-  return { ok: true, status: 200, json: async () => body } as unknown as Response;
+  return {
+    ok: true,
+    status: 200,
+    json: async () => body,
+  } as unknown as Response;
 }
 
 function errorResponse(body: unknown, status = 401) {
@@ -46,8 +50,12 @@ describe("tenant-session recovery", () => {
   it("keeps concurrent failures pending and schedules one top-level reload", async () => {
     const reload = vi.fn();
     const recovery = createTenantSessionRecoveryCoordinator(reload);
-    vi.spyOn(tenantSessionRecovery, "recoverIfNeeded").mockImplementation(recovery.recoverIfNeeded);
-    fetchMock.mockResolvedValue(errorResponse({ error: "tenant_session_required" }));
+    vi.spyOn(tenantSessionRecovery, "recoverIfNeeded").mockImplementation(
+      recovery.recoverIfNeeded,
+    );
+    fetchMock.mockResolvedValue(
+      errorResponse({ error: "tenant_session_required" }),
+    );
 
     const first = api.post("/tenant-session-a", { value: 1 });
     const second = api.post("/tenant-session-b", { value: 2 });
@@ -60,8 +68,12 @@ describe("tenant-session recovery", () => {
 
     let settled = false;
     void Promise.all([first, second]).then(
-      () => { settled = true; },
-      () => { settled = true; },
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
     );
     await Promise.resolve();
     expect(settled).toBe(false);
@@ -142,7 +154,10 @@ describe("in-tab GET coalescing", () => {
 
   it("never coalesces mutations", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
-    await Promise.all([api.post("/mutate", { a: 1 }), api.post("/mutate", { a: 1 })]);
+    await Promise.all([
+      api.post("/mutate", { a: 1 }),
+      api.post("/mutate", { a: 1 }),
+    ]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
@@ -194,23 +209,28 @@ describe("per-caller abort semantics", () => {
   it("rejects immediately if the caller signal is already aborted", async () => {
     const controller = new AbortController();
     controller.abort();
-    await expect(api.get("/already-aborted", { signal: controller.signal })).rejects.toMatchObject({
+    await expect(
+      api.get("/already-aborted", { signal: controller.signal }),
+    ).rejects.toMatchObject({
       name: "AbortError",
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
-
 describe("managed-account request isolation", () => {
   it("does not share a previous viewing user's pending account response", async () => {
     const previous = deferred<Response>();
     const current = deferred<Response>();
-    fetchMock.mockReturnValueOnce(previous.promise).mockReturnValueOnce(current.promise);
+    fetchMock
+      .mockReturnValueOnce(previous.promise)
+      .mockReturnValueOnce(current.promise);
     const previousUser = toolsApi.listAggregatorApps("shared-gateway");
     const currentUser = toolsApi.listAggregatorApps("shared-gateway");
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls.every(([, options]) => options.cache === "no-store")).toBe(true);
+    expect(
+      fetchMock.mock.calls.every(([, options]) => options.cache === "no-store"),
+    ).toBe(true);
     current.resolve(jsonResponse({ apps: ["current-user-account"] }));
     previous.resolve(jsonResponse({ apps: ["previous-user-account"] }));
     expect(await currentUser).toEqual({ apps: ["current-user-account"] });

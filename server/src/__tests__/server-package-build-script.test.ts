@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,7 +21,10 @@ const evidenceClassifierPath = fileURLToPath(
   new URL("../services/native-runtime/evidence-classifier.ts", import.meta.url),
 );
 const workspaceDiffReprojectionPath = fileURLToPath(
-  new URL("../services/provider-trace-workspace-diff-reprojection.ts", import.meta.url),
+  new URL(
+    "../services/provider-trace-workspace-diff-reprojection.ts",
+    import.meta.url,
+  ),
 );
 
 describe("server package build script", () => {
@@ -67,21 +76,30 @@ describe("server package build script", () => {
 
   it("replaces an existing read-only image manifest with the build's copy step", () => {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-    const step = packageJson.scripts.build.split(" && ").find((command: string) =>
-      command.includes("../packages/taskcore-runner/dist/."));
+    const step = packageJson.scripts.build
+      .split(" && ")
+      .find((command: string) =>
+        command.includes("../packages/taskcore-runner/dist/."),
+      );
     expect(step).toBeDefined();
     const [command, ...args] = step.split(" ");
     const root = mkdtempSync(path.join(tmpdir(), "runner-vendor-copy-"));
     try {
       const relative = "remote-provider-packs/linux-x64/provider-pack.json";
       const source = path.join(root, "packages/taskcore-runner/dist", relative);
-      const destination = path.join(root, "server/dist/vendor/taskcore-runner", relative);
+      const destination = path.join(
+        root,
+        "server/dist/vendor/taskcore-runner",
+        relative,
+      );
       mkdirSync(path.dirname(source), { recursive: true });
       mkdirSync(path.dirname(destination), { recursive: true });
       writeFileSync(source, "qualified image identity", { mode: 0o444 });
       writeFileSync(destination, "previous image identity", { mode: 0o444 });
       execFileSync(command, args, { cwd: path.join(root, "server") });
-      expect(readFileSync(destination, "utf8")).toBe("qualified image identity");
+      expect(readFileSync(destination, "utf8")).toBe(
+        "qualified image identity",
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -109,9 +127,7 @@ describe("server package build script", () => {
     expect(shim).toContain(
       '"../../../../packages/taskcore-runner/src/index.ts"',
     );
-    expect(shim).not.toContain(
-      'export * from "@taskcore/taskcore-runner"',
-    );
+    expect(shim).not.toContain('export * from "@taskcore/taskcore-runner"');
   });
 
   it("routes source-mode runtime imports through the runner shim", () => {

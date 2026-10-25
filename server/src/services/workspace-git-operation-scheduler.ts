@@ -24,11 +24,12 @@ export class WorkspaceGitScanError extends HttpError {
     message: string,
     details: Record<string, unknown> = {},
   ) {
-    const status = code === WORKSPACE_GIT_SCAN_ERROR_CODES.timeout
-      ? 504
-      : code === WORKSPACE_GIT_SCAN_ERROR_CODES.cancelled
-        ? 499
-        : 503;
+    const status =
+      code === WORKSPACE_GIT_SCAN_ERROR_CODES.timeout
+        ? 504
+        : code === WORKSPACE_GIT_SCAN_ERROR_CODES.cancelled
+          ? 499
+          : 503;
     super(status, message, {
       code,
       retryable: code !== WORKSPACE_GIT_SCAN_ERROR_CODES.cancelled,
@@ -39,7 +40,9 @@ export class WorkspaceGitScanError extends HttpError {
   }
 }
 
-export function isWorkspaceGitScanError(error: unknown): error is WorkspaceGitScanError {
+export function isWorkspaceGitScanError(
+  error: unknown,
+): error is WorkspaceGitScanError {
   return error instanceof WorkspaceGitScanError;
 }
 
@@ -185,7 +188,12 @@ const DEFAULT_CACHE_BYTES = 8 * 1024 * 1024;
 const DEFAULT_OUTPUT_BYTES = 1024 * 1024;
 const DEFAULT_WARNING_INTERVAL_MS = 10_000;
 
-function clampInteger(value: number | undefined, fallback: number, min: number, max: number): number {
+function clampInteger(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   if (!Number.isFinite(value)) return fallback;
   return Math.min(max, Math.max(min, Math.floor(value!)));
 }
@@ -205,20 +213,49 @@ function envInteger(
 
 export function workspaceGitSchedulerOptionsFromEnv(
   env: NodeJS.ProcessEnv = process.env,
-): Required<Pick<
-  WorkspaceGitOperationSchedulerOptions,
-  "concurrency" | "queueCapacity" | "timeoutMs" | "defaultCacheTtlMs"
->> {
+): Required<
+  Pick<
+    WorkspaceGitOperationSchedulerOptions,
+    "concurrency" | "queueCapacity" | "timeoutMs" | "defaultCacheTtlMs"
+  >
+> {
   return {
-    concurrency: envInteger(env, "TASKCORE_WORKSPACE_GIT_SCAN_CONCURRENCY", DEFAULT_CONCURRENCY, 1, 16),
-    queueCapacity: envInteger(env, "TASKCORE_WORKSPACE_GIT_SCAN_QUEUE_CAPACITY", DEFAULT_QUEUE_CAPACITY, 0, 1_024),
-    timeoutMs: envInteger(env, "TASKCORE_WORKSPACE_GIT_SCAN_TIMEOUT_MS", DEFAULT_TIMEOUT_MS, 100, 120_000),
-    defaultCacheTtlMs: envInteger(env, "TASKCORE_WORKSPACE_GIT_SCAN_CACHE_TTL_MS", DEFAULT_CACHE_TTL_MS, 0, 60_000),
+    concurrency: envInteger(
+      env,
+      "TASKCORE_WORKSPACE_GIT_SCAN_CONCURRENCY",
+      DEFAULT_CONCURRENCY,
+      1,
+      16,
+    ),
+    queueCapacity: envInteger(
+      env,
+      "TASKCORE_WORKSPACE_GIT_SCAN_QUEUE_CAPACITY",
+      DEFAULT_QUEUE_CAPACITY,
+      0,
+      1_024,
+    ),
+    timeoutMs: envInteger(
+      env,
+      "TASKCORE_WORKSPACE_GIT_SCAN_TIMEOUT_MS",
+      DEFAULT_TIMEOUT_MS,
+      100,
+      120_000,
+    ),
+    defaultCacheTtlMs: envInteger(
+      env,
+      "TASKCORE_WORKSPACE_GIT_SCAN_CACHE_TTL_MS",
+      DEFAULT_CACHE_TTL_MS,
+      0,
+      60_000,
+    ),
   };
 }
 
 function workspaceIdentity(canonicalWorkspacePath: string): string {
-  return createHash("sha256").update(canonicalWorkspacePath).digest("hex").slice(0, 16);
+  return createHash("sha256")
+    .update(canonicalWorkspacePath)
+    .digest("hex")
+    .slice(0, 16);
 }
 
 function scanKey(input: {
@@ -241,14 +278,16 @@ function scanKey(input: {
     "GIT_WORK_TREE",
   ].map((key) => [key, effectiveEnv[key] ?? null]);
   return createHash("sha256")
-    .update(JSON.stringify({
-      workspacePath: input.canonicalWorkspacePath,
-      args: input.args,
-      semanticEnv,
-      timeoutMs: input.timeoutMs,
-      maxStdoutBytes: input.maxStdoutBytes,
-      maxStderrBytes: input.maxStderrBytes,
-    }))
+    .update(
+      JSON.stringify({
+        workspacePath: input.canonicalWorkspacePath,
+        args: input.args,
+        semanticEnv,
+        timeoutMs: input.timeoutMs,
+        maxStdoutBytes: input.maxStdoutBytes,
+        maxStderrBytes: input.maxStderrBytes,
+      }),
+    )
     .digest("hex");
 }
 
@@ -260,17 +299,32 @@ function abortError(workspaceHash: string): WorkspaceGitScanError {
   );
 }
 
-function createSpawnRunner(input: { gitBinary: string; gitArgsPrefix: readonly string[] }): WorkspaceGitRunner {
+function createSpawnRunner(input: {
+  gitBinary: string;
+  gitArgsPrefix: readonly string[];
+}): WorkspaceGitRunner {
   return async (runInput) => {
     try {
-      return await runWorkspaceGitProcess({ ...runInput, ...input, cwd: runInput.canonicalWorkspacePath });
+      return await runWorkspaceGitProcess({
+        ...runInput,
+        ...input,
+        cwd: runInput.canonicalWorkspacePath,
+      });
     } catch (error) {
-      const candidate = error as { code?: WorkspaceGitScanErrorCode; details?: Record<string, unknown> };
+      const candidate = error as {
+        code?: WorkspaceGitScanErrorCode;
+        details?: Record<string, unknown>;
+      };
       throw new WorkspaceGitScanError(
-        candidate.code && Object.values(WORKSPACE_GIT_SCAN_ERROR_CODES).includes(candidate.code)
-          ? candidate.code : WORKSPACE_GIT_SCAN_ERROR_CODES.failed,
+        candidate.code &&
+          Object.values(WORKSPACE_GIT_SCAN_ERROR_CODES).includes(candidate.code)
+          ? candidate.code
+          : WORKSPACE_GIT_SCAN_ERROR_CODES.failed,
         error instanceof Error ? error.message : "Workspace Git scan failed",
-        { ...candidate.details, workspaceHash: workspaceIdentity(runInput.canonicalWorkspacePath) },
+        {
+          ...candidate.details,
+          workspaceHash: workspaceIdentity(runInput.canonicalWorkspacePath),
+        },
       );
     }
   };
@@ -309,21 +363,73 @@ export class WorkspaceGitOperationScheduler {
   };
 
   constructor(options: WorkspaceGitOperationSchedulerOptions = {}) {
-    this.concurrency = clampInteger(options.concurrency, DEFAULT_CONCURRENCY, 1, 16);
-    this.queueCapacity = clampInteger(options.queueCapacity, DEFAULT_QUEUE_CAPACITY, 0, 1_024);
-    this.timeoutMs = clampInteger(options.timeoutMs, DEFAULT_TIMEOUT_MS, 1, 120_000);
-    this.killGraceMs = clampInteger(options.killGraceMs, DEFAULT_KILL_GRACE_MS, 1, 10_000);
-    this.defaultCacheTtlMs = clampInteger(options.defaultCacheTtlMs, DEFAULT_CACHE_TTL_MS, 0, 60_000);
-    this.maxCacheEntries = clampInteger(options.maxCacheEntries, DEFAULT_CACHE_ENTRIES, 0, 10_000);
-    this.maxCacheBytes = clampInteger(options.maxCacheBytes, DEFAULT_CACHE_BYTES, 0, 1024 * 1024 * 1024);
-    this.maxStdoutBytes = clampInteger(options.maxStdoutBytes, DEFAULT_OUTPUT_BYTES, 1, 128 * 1024 * 1024);
-    this.maxStderrBytes = clampInteger(options.maxStderrBytes, DEFAULT_OUTPUT_BYTES, 1, 128 * 1024 * 1024);
-    this.warningIntervalMs = clampInteger(options.warningIntervalMs, DEFAULT_WARNING_INTERVAL_MS, 1, 60 * 60_000);
+    this.concurrency = clampInteger(
+      options.concurrency,
+      DEFAULT_CONCURRENCY,
+      1,
+      16,
+    );
+    this.queueCapacity = clampInteger(
+      options.queueCapacity,
+      DEFAULT_QUEUE_CAPACITY,
+      0,
+      1_024,
+    );
+    this.timeoutMs = clampInteger(
+      options.timeoutMs,
+      DEFAULT_TIMEOUT_MS,
+      1,
+      120_000,
+    );
+    this.killGraceMs = clampInteger(
+      options.killGraceMs,
+      DEFAULT_KILL_GRACE_MS,
+      1,
+      10_000,
+    );
+    this.defaultCacheTtlMs = clampInteger(
+      options.defaultCacheTtlMs,
+      DEFAULT_CACHE_TTL_MS,
+      0,
+      60_000,
+    );
+    this.maxCacheEntries = clampInteger(
+      options.maxCacheEntries,
+      DEFAULT_CACHE_ENTRIES,
+      0,
+      10_000,
+    );
+    this.maxCacheBytes = clampInteger(
+      options.maxCacheBytes,
+      DEFAULT_CACHE_BYTES,
+      0,
+      1024 * 1024 * 1024,
+    );
+    this.maxStdoutBytes = clampInteger(
+      options.maxStdoutBytes,
+      DEFAULT_OUTPUT_BYTES,
+      1,
+      128 * 1024 * 1024,
+    );
+    this.maxStderrBytes = clampInteger(
+      options.maxStderrBytes,
+      DEFAULT_OUTPUT_BYTES,
+      1,
+      128 * 1024 * 1024,
+    );
+    this.warningIntervalMs = clampInteger(
+      options.warningIntervalMs,
+      DEFAULT_WARNING_INTERVAL_MS,
+      1,
+      60 * 60_000,
+    );
     this.now = options.now ?? Date.now;
-    this.runner = options.runner ?? createSpawnRunner({
-      gitBinary: options.gitBinary ?? "git",
-      gitArgsPrefix: options.gitArgsPrefix ?? [],
-    });
+    this.runner =
+      options.runner ??
+      createSpawnRunner({
+        gitBinary: options.gitBinary ?? "git",
+        gitArgsPrefix: options.gitArgsPrefix ?? [],
+      });
   }
 
   snapshot(): WorkspaceGitSchedulerSnapshot {
@@ -350,36 +456,59 @@ export class WorkspaceGitOperationScheduler {
         { cause: error instanceof Error ? error.message : String(error) },
       );
     }
-    if (input.signal?.aborted) throw abortError(workspaceIdentity(canonicalWorkspacePath));
+    if (input.signal?.aborted)
+      throw abortError(workspaceIdentity(canonicalWorkspacePath));
 
     const workspaceHash = workspaceIdentity(canonicalWorkspacePath);
-    const timeoutMs = clampInteger(input.timeoutMs, this.timeoutMs, 1, input.onStdout ? 86_400_000 : 120_000);
-    const maxStdoutBytes = clampInteger(input.maxStdoutBytes, this.maxStdoutBytes, 1, 128 * 1024 * 1024);
-    const maxStderrBytes = clampInteger(input.maxStderrBytes, this.maxStderrBytes, 1, 128 * 1024 * 1024);
-    const key = input.onStdout ? `stream:${randomUUID()}` : scanKey({
-      canonicalWorkspacePath,
-      args: input.args,
-      env: input.env,
-      timeoutMs,
-      maxStdoutBytes,
-      maxStderrBytes,
-    });
-    const cacheTtlMs = input.onStdout ? 0 : clampInteger(input.cacheTtlMs, this.defaultCacheTtlMs, 0, 60_000);
+    const timeoutMs = clampInteger(
+      input.timeoutMs,
+      this.timeoutMs,
+      1,
+      input.onStdout ? 86_400_000 : 120_000,
+    );
+    const maxStdoutBytes = clampInteger(
+      input.maxStdoutBytes,
+      this.maxStdoutBytes,
+      1,
+      128 * 1024 * 1024,
+    );
+    const maxStderrBytes = clampInteger(
+      input.maxStderrBytes,
+      this.maxStderrBytes,
+      1,
+      128 * 1024 * 1024,
+    );
+    const key = input.onStdout
+      ? `stream:${randomUUID()}`
+      : scanKey({
+          canonicalWorkspacePath,
+          args: input.args,
+          env: input.env,
+          timeoutMs,
+          maxStdoutBytes,
+          maxStderrBytes,
+        });
+    const cacheTtlMs = input.onStdout
+      ? 0
+      : clampInteger(input.cacheTtlMs, this.defaultCacheTtlMs, 0, 60_000);
     // A correctness-sensitive caller that explicitly disables caching must not
     // consume a result populated earlier by the file browser.
     const cached = cacheTtlMs > 0 ? this.readCache(key) : null;
     if (cached) {
       this.totals.cacheHits += 1;
-      logger.debug({
-        event: "workspace_git_scan",
-        operation: input.operation,
-        workspaceHash,
-        cacheHit: true,
-        singleFlightJoined: false,
-        activeCount: this.activeCount,
-        queuedCount: this.queue.length,
-        cacheHitCount: this.totals.cacheHits,
-      }, "workspace Git scan cache hit");
+      logger.debug(
+        {
+          event: "workspace_git_scan",
+          operation: input.operation,
+          workspaceHash,
+          cacheHit: true,
+          singleFlightJoined: false,
+          activeCount: this.activeCount,
+          queuedCount: this.queue.length,
+          cacheHitCount: this.totals.cacheHits,
+        },
+        "workspace Git scan cache hit",
+      );
       return {
         stdout: cached.stdout,
         stderr: cached.stderr,
@@ -397,17 +526,24 @@ export class WorkspaceGitOperationScheduler {
       return this.addWaiter(existing, input.signal, true);
     }
 
-    if (this.activeCount >= this.concurrency && this.queue.length >= this.queueCapacity) {
+    if (
+      this.activeCount >= this.concurrency &&
+      this.queue.length >= this.queueCapacity
+    ) {
       this.totals.saturated += 1;
-      this.warnRateLimited("saturated", {
-        event: "workspace_git_scan",
-        operation: input.operation,
-        workspaceHash,
-        outcome: "saturated",
-        activeCount: this.activeCount,
-        queuedCount: this.queue.length,
-        saturationCount: this.totals.saturated,
-      }, "workspace Git scan queue saturated");
+      this.warnRateLimited(
+        "saturated",
+        {
+          event: "workspace_git_scan",
+          operation: input.operation,
+          workspaceHash,
+          outcome: "saturated",
+          activeCount: this.activeCount,
+          queuedCount: this.queue.length,
+          saturationCount: this.totals.saturated,
+        },
+        "workspace Git scan queue saturated",
+      );
       throw new WorkspaceGitScanError(
         WORKSPACE_GIT_SCAN_ERROR_CODES.saturated,
         "Changed files are temporarily unavailable because the Git scan queue is full",
@@ -420,10 +556,12 @@ export class WorkspaceGitOperationScheduler {
       );
     }
 
-    const fairnessKeys = Array.from(new Set([
-      `repository:${workspaceHash}`,
-      ...(input.fairnessKeys ?? []).filter(Boolean),
-    ])).sort();
+    const fairnessKeys = Array.from(
+      new Set([
+        `repository:${workspaceHash}`,
+        ...(input.fairnessKeys ?? []).filter(Boolean),
+      ]),
+    ).sort();
     const scan: PendingScan = {
       key,
       operation: input.operation,
@@ -493,14 +631,17 @@ export class WorkspaceGitOperationScheduler {
       if (index >= 0) this.queue.splice(index, 1);
       this.inFlight.delete(scan.key);
       this.totals.cancelled += 1;
-      logger.debug({
-        event: "workspace_git_scan",
-        operation: scan.operation,
-        workspaceHash: scan.workspaceHash,
-        outcome: "cancelled_before_start",
-        activeCount: this.activeCount,
-        queuedCount: this.queue.length,
-      }, "queued workspace Git scan cancelled");
+      logger.debug(
+        {
+          event: "workspace_git_scan",
+          operation: scan.operation,
+          workspaceHash: scan.workspaceHash,
+          outcome: "cancelled_before_start",
+          activeCount: this.activeCount,
+          queuedCount: this.queue.length,
+        },
+        "queued workspace Git scan cancelled",
+      );
       this.drain();
       this.pruneFairnessState();
       return;
@@ -534,11 +675,15 @@ export class WorkspaceGitOperationScheduler {
       // Average recency across every dimension so a common repository/company
       // key cannot mask a fresh actor or issue. Repeatedly changing only one
       // dimension therefore cannot jump ahead of a wholly unserved group.
-      const score = scan.fairnessKeys.reduce(
-        (total, key) => total + (this.lastServedByFairnessKey.get(key) ?? 0),
-        0,
-      ) / scan.fairnessKeys.length;
-      if (score < selectedScore || (score === selectedScore && scan.enqueuedAt < selectedEnqueuedAt)) {
+      const score =
+        scan.fairnessKeys.reduce(
+          (total, key) => total + (this.lastServedByFairnessKey.get(key) ?? 0),
+          0,
+        ) / scan.fairnessKeys.length;
+      if (
+        score < selectedScore ||
+        (score === selectedScore && scan.enqueuedAt < selectedEnqueuedAt)
+      ) {
         selectedIndex = index;
         selectedScore = score;
         selectedEnqueuedAt = scan.enqueuedAt;
@@ -552,7 +697,8 @@ export class WorkspaceGitOperationScheduler {
     this.activeCount += 1;
     this.totals.started += 1;
     this.serviceSequence += 1;
-    for (const key of scan.fairnessKeys) this.lastServedByFairnessKey.set(key, this.serviceSequence);
+    for (const key of scan.fairnessKeys)
+      this.lastServedByFairnessKey.set(key, this.serviceSequence);
     const startedAt = this.now();
     const queueWaitMs = Math.max(0, startedAt - scan.enqueuedAt);
 
@@ -591,19 +737,22 @@ export class WorkspaceGitOperationScheduler {
       this.detachWaiter(waiter);
       waiter.resolve({ ...responseBase, singleFlightJoined: waiter.joined });
     }
-    logger.info({
-      event: "workspace_git_scan",
-      operation: scan.operation,
-      workspaceHash: scan.workspaceHash,
-      outcome: "success",
-      queueWaitMs,
-      executionMs: Math.max(0, this.now() - startedAt),
-      activeCount: this.activeCount,
-      queuedCount: this.queue.length,
-      cacheHit: false,
-      singleFlightJoinCount: scan.joinCount,
-      exitOutcome: "zero",
-    }, "workspace Git scan completed");
+    logger.info(
+      {
+        event: "workspace_git_scan",
+        operation: scan.operation,
+        workspaceHash: scan.workspaceHash,
+        outcome: "success",
+        queueWaitMs,
+        executionMs: Math.max(0, this.now() - startedAt),
+        activeCount: this.activeCount,
+        queuedCount: this.queue.length,
+        cacheHit: false,
+        singleFlightJoinCount: scan.joinCount,
+        exitOutcome: "zero",
+      },
+      "workspace Git scan completed",
+    );
     this.release(scan);
   }
 
@@ -618,21 +767,28 @@ export class WorkspaceGitOperationScheduler {
       : new WorkspaceGitScanError(
           WORKSPACE_GIT_SCAN_ERROR_CODES.failed,
           "Workspace Git scan failed",
-          { cause: error instanceof Error ? error.message : String(error), workspaceHash: scan.workspaceHash },
+          {
+            cause: error instanceof Error ? error.message : String(error),
+            workspaceHash: scan.workspaceHash,
+          },
         );
     if (normalized.code === WORKSPACE_GIT_SCAN_ERROR_CODES.timeout) {
       this.totals.timedOut += 1;
-      this.warnRateLimited("timeout", {
-        event: "workspace_git_scan",
-        operation: scan.operation,
-        workspaceHash: scan.workspaceHash,
-        outcome: "timeout",
-        queueWaitMs,
-        executionMs: Math.max(0, this.now() - startedAt),
-        activeCount: this.activeCount,
-        queuedCount: this.queue.length,
-        timeoutCount: this.totals.timedOut,
-      }, "workspace Git scan timed out");
+      this.warnRateLimited(
+        "timeout",
+        {
+          event: "workspace_git_scan",
+          operation: scan.operation,
+          workspaceHash: scan.workspaceHash,
+          outcome: "timeout",
+          queueWaitMs,
+          executionMs: Math.max(0, this.now() - startedAt),
+          activeCount: this.activeCount,
+          queuedCount: this.queue.length,
+          timeoutCount: this.totals.timedOut,
+        },
+        "workspace Git scan timed out",
+      );
     } else if (normalized.code === WORKSPACE_GIT_SCAN_ERROR_CODES.cancelled) {
       this.totals.cancelled += 1;
     } else {
@@ -642,19 +798,22 @@ export class WorkspaceGitOperationScheduler {
       this.detachWaiter(waiter);
       waiter.reject(normalized);
     }
-    logger.info({
-      event: "workspace_git_scan",
-      operation: scan.operation,
-      workspaceHash: scan.workspaceHash,
-      outcome: normalized.code,
-      queueWaitMs,
-      executionMs: Math.max(0, this.now() - startedAt),
-      activeCount: this.activeCount,
-      queuedCount: this.queue.length,
-      cacheHit: false,
-      singleFlightJoinCount: scan.joinCount,
-      exitOutcome: normalized.code,
-    }, "workspace Git scan finished without a result");
+    logger.info(
+      {
+        event: "workspace_git_scan",
+        operation: scan.operation,
+        workspaceHash: scan.workspaceHash,
+        outcome: normalized.code,
+        queueWaitMs,
+        executionMs: Math.max(0, this.now() - startedAt),
+        activeCount: this.activeCount,
+        queuedCount: this.queue.length,
+        cacheHit: false,
+        singleFlightJoinCount: scan.joinCount,
+        exitOutcome: normalized.code,
+      },
+      "workspace Git scan finished without a result",
+    );
     this.release(scan);
   }
 
@@ -696,9 +855,14 @@ export class WorkspaceGitOperationScheduler {
     return entry;
   }
 
-  private writeCache(key: string, scan: PendingScan, result: WorkspaceGitRunnerResult): void {
+  private writeCache(
+    key: string,
+    scan: PendingScan,
+    result: WorkspaceGitRunnerResult,
+  ): void {
     if (this.maxCacheEntries === 0 || this.maxCacheBytes === 0) return;
-    const bytes = Buffer.byteLength(result.stdout) + Buffer.byteLength(result.stderr);
+    const bytes =
+      Buffer.byteLength(result.stdout) + Buffer.byteLength(result.stderr);
     if (bytes > this.maxCacheBytes) return;
     const existing = this.cache.get(key);
     if (existing) this.deleteCacheEntry(key, existing);
@@ -711,8 +875,12 @@ export class WorkspaceGitOperationScheduler {
     };
     this.cache.set(key, entry);
     this.cacheBytes += bytes;
-    while (this.cache.size > this.maxCacheEntries || this.cacheBytes > this.maxCacheBytes) {
-      const oldest = this.cache.entries().next().value as [string, CacheEntry] | undefined;
+    while (
+      this.cache.size > this.maxCacheEntries ||
+      this.cacheBytes > this.maxCacheBytes
+    ) {
+      const oldest = this.cache.entries().next().value as
+        [string, CacheEntry] | undefined;
       if (!oldest) break;
       this.deleteCacheEntry(oldest[0], oldest[1]);
     }
@@ -754,7 +922,8 @@ export function createWorkspaceGitOperationScheduler(
 }
 
 const envOptions = workspaceGitSchedulerOptionsFromEnv();
-export const workspaceGitOperationScheduler = createWorkspaceGitOperationScheduler(envOptions);
+export const workspaceGitOperationScheduler =
+  createWorkspaceGitOperationScheduler(envOptions);
 
 setExpensiveWorkspaceGitExecutor(async (input) => {
   const result = await workspaceGitOperationScheduler.run({

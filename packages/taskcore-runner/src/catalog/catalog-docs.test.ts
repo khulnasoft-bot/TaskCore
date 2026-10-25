@@ -27,13 +27,18 @@ function countsRegion(): string {
 }
 
 describe("capability-semantic-tools.md stays in sync with the catalog", () => {
-  const always = SCENARIO_CATALOG.filter((tool) => tool.disposition === "always_agent_tool");
-  const optional = SCENARIO_CATALOG.filter((tool) => tool.disposition === "optional_agent_tool");
+  const always = SCENARIO_CATALOG.filter(
+    (tool) => tool.disposition === "always_agent_tool",
+  );
+  const optional = SCENARIO_CATALOG.filter(
+    (tool) => tool.disposition === "optional_agent_tool",
+  );
 
   it("states the current total, always, and optional counts", () => {
     const region = countsRegion();
     const total = /holds \*\*(\d+) tools\*\*/.exec(region)?.[1];
-    const alwaysProse = /(\d+) always-agent tools and (\d+) optional tools/.exec(region);
+    const alwaysProse =
+      /(\d+) always-agent tools and (\d+) optional tools/.exec(region);
     const alwaysHeader = /### Always-agent tools \((\d+)\)/.exec(region)?.[1];
     const optionalHeader = /### Optional tools \((\d+)\)/.exec(region)?.[1];
 

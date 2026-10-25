@@ -1,10 +1,7 @@
 import type { Request, RequestHandler } from "express";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
-const DEFAULT_DEV_ORIGINS = [
-  "http://localhost:3100",
-  "http://127.0.0.1:3100",
-];
+const DEFAULT_DEV_ORIGINS = ["http://localhost:3100", "http://127.0.0.1:3100"];
 
 function parseOrigin(value: string | undefined) {
   if (!value) return null;
@@ -26,13 +23,12 @@ function requestHost(req: Request): string | undefined {
   const host = req.header("host")?.trim();
   const remoteAddress = req.socket?.remoteAddress;
   const trustProxy = req.app?.get("trust proxy fn") as
-    | ((address: string, hop: number) => boolean)
-    | undefined;
+    ((address: string, hop: number) => boolean) | undefined;
 
   if (
-    remoteAddress
-    && typeof trustProxy === "function"
-    && trustProxy(remoteAddress, 0)
+    remoteAddress &&
+    typeof trustProxy === "function" &&
+    trustProxy(remoteAddress, 0)
   ) {
     return req.header("x-forwarded-host")?.split(",")[0]?.trim() || host;
   }
@@ -41,7 +37,9 @@ function requestHost(req: Request): string | undefined {
 }
 
 function trustedOriginsForRequest(req: Request) {
-  const origins = new Set(DEFAULT_DEV_ORIGINS.map((value) => value.toLowerCase()));
+  const origins = new Set(
+    DEFAULT_DEV_ORIGINS.map((value) => value.toLowerCase()),
+  );
   const host = requestHost(req);
   if (host) {
     origins.add(`http://${host}`.toLowerCase());
@@ -89,18 +87,20 @@ export function boardMutationGuard(): RequestHandler {
     // signed Cloud control assertions are not browser-session requests.
     // In these modes, origin/referer headers can be absent; do not block those mutations.
     if (
-      req.actor.source === "local_implicit"
-      || req.actor.source === "board_key"
-      || req.actor.source === "mcp_oauth"
-      || req.actor.source === "cloud_tenant"
-      || req.actor.source === "cloud_control"
+      req.actor.source === "local_implicit" ||
+      req.actor.source === "board_key" ||
+      req.actor.source === "mcp_oauth" ||
+      req.actor.source === "cloud_tenant" ||
+      req.actor.source === "cloud_control"
     ) {
       next();
       return;
     }
 
     if (!trustedBoardMutationOrigin(req)) {
-      res.status(403).json({ error: "Board mutation requires trusted browser origin" });
+      res
+        .status(403)
+        .json({ error: "Board mutation requires trusted browser origin" });
       return;
     }
 

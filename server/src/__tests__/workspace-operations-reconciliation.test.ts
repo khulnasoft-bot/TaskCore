@@ -42,11 +42,13 @@ describe("workspace runtime control serialization", () => {
       },
     });
 
-    await expect(runExclusiveWorkspaceRuntimeControl({
-      executionWorkspaceId: "workspace-1",
-      action: "repair",
-      run: async () => "repaired",
-    })).rejects.toMatchObject({
+    await expect(
+      runExclusiveWorkspaceRuntimeControl({
+        executionWorkspaceId: "workspace-1",
+        action: "repair",
+        run: async () => "repaired",
+      }),
+    ).rejects.toMatchObject({
       status: 409,
       details: {
         code: "workspace_runtime_control_in_progress",
@@ -57,16 +59,20 @@ describe("workspace runtime control serialization", () => {
 
     releaseFirst();
     await expect(first).resolves.toBe("started");
-    await expect(runExclusiveWorkspaceRuntimeControl({
-      executionWorkspaceId: "workspace-1",
-      action: "stop",
-      run: async () => "stopped",
-    })).resolves.toBe("stopped");
+    await expect(
+      runExclusiveWorkspaceRuntimeControl({
+        executionWorkspaceId: "workspace-1",
+        action: "stop",
+        run: async () => "stopped",
+      }),
+    ).resolves.toBe("stopped");
   });
 });
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -76,14 +82,20 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("workspace operation reconciliation", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let logRoot = "";
   let previousLogRoot: string | undefined;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-workspace-operation-reconcile-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-workspace-operation-reconcile-",
+    );
     db = createDb(tempDb.connectionString);
-    logRoot = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-workspace-operation-logs-"));
+    logRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-workspace-operation-logs-"),
+    );
     previousLogRoot = process.env.WORKSPACE_OPERATION_LOG_BASE_PATH;
     process.env.WORKSPACE_OPERATION_LOG_BASE_PATH = logRoot;
   }, 20_000);
@@ -96,7 +108,8 @@ describeEmbeddedPostgres("workspace operation reconciliation", () => {
   });
 
   afterAll(async () => {
-    if (previousLogRoot === undefined) delete process.env.WORKSPACE_OPERATION_LOG_BASE_PATH;
+    if (previousLogRoot === undefined)
+      delete process.env.WORKSPACE_OPERATION_LOG_BASE_PATH;
     else process.env.WORKSPACE_OPERATION_LOG_BASE_PATH = previousLogRoot;
     await fs.rm(logRoot, { recursive: true, force: true });
     await tempDb?.cleanup();
@@ -166,7 +179,9 @@ describeEmbeddedPostgres("workspace operation reconciliation", () => {
     // Recovery is bounded and cannot steal a live operation (PAP-17249): a `running` control
     // that has signalled recently is left alone even when it carries no ownership stamp, which
     // is the shape a control recorded by a pre-stamp build has.
-    await expect(service.reconcileStaleRuntimeControlOperations(executionWorkspaceId)).resolves.toEqual({
+    await expect(
+      service.reconcileStaleRuntimeControlOperations(executionWorkspaceId),
+    ).resolves.toEqual({
       reconciled: 0,
       operationIds: [],
     });
@@ -192,7 +207,9 @@ describeEmbeddedPostgres("workspace operation reconciliation", () => {
       },
     });
     expect(stale?.finishedAt).toBeInstanceOf(Date);
-    expect(stale?.stderrExcerpt).toContain("no live owner has reported progress");
+    expect(stale?.stderrExcerpt).toContain(
+      "no live owner has reported progress",
+    );
     expect((await service.readLog(staleOperationId)).content).toContain(
       "no live owner has reported progress",
     );
@@ -243,11 +260,13 @@ describeEmbeddedPostgres("workspace operation reconciliation", () => {
           await reportProgress({
             metadata: {
               repairPhase: "target_backup",
-              repairDiagnostics: [{
-                phase: "target_backup",
-                status: "succeeded",
-                at: "2026-08-18T00:00:00.000Z",
-              }],
+              repairDiagnostics: [
+                {
+                  phase: "target_backup",
+                  status: "succeeded",
+                  at: "2026-08-18T00:00:00.000Z",
+                },
+              ],
               databaseOnly: true,
               worktreePreserved: true,
             },
@@ -267,8 +286,8 @@ describeEmbeddedPostgres("workspace operation reconciliation", () => {
         backupRetained: true,
       },
     });
-    expect((await workspaceOperationService(db).readLog(operation.id)).content).toContain(
-      "Workspace repair target_backup: succeeded.",
-    );
+    expect(
+      (await workspaceOperationService(db).readLog(operation.id)).content,
+    ).toContain("Workspace repair target_backup: succeeded.");
   });
 });

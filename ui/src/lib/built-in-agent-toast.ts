@@ -16,7 +16,9 @@ export interface BuiltInAgentPausedToastOptions {
  * "View agent" link and Resume happens on the agent page. Deduped so repeated
  * feature actions don't stack duplicate toasts.
  */
-export function buildBuiltInAgentPausedToast(options: BuiltInAgentPausedToastOptions): ToastInput {
+export function buildBuiltInAgentPausedToast(
+  options: BuiltInAgentPausedToastOptions,
+): ToastInput {
   const noun = options.featureNoun ?? "item";
   return {
     dedupeKey: `built-in-agent-paused:${options.displayName}`,

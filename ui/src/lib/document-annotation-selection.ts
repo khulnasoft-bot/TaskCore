@@ -23,7 +23,10 @@ export function getContainerTextOffset(
   container: HTMLElement,
   range: Range,
 ): ContainerTextOffset | null {
-  if (!container.contains(range.startContainer) || !container.contains(range.endContainer)) {
+  if (
+    !container.contains(range.startContainer) ||
+    !container.contains(range.endContainer)
+  ) {
     return null;
   }
   const preRange = document.createRange();
@@ -58,7 +61,10 @@ export function buildAnchorFromContainerSelection(input: {
   const occurrences = findAllOccurrences(projection.text, needle);
   if (occurrences.length === 0) return null;
 
-  const renderedTextLength = Math.max(1, normalizeAnchorText(input.containerOffset.containerText).length);
+  const renderedTextLength = Math.max(
+    1,
+    normalizeAnchorText(input.containerOffset.containerText).length,
+  );
   const renderedRatio = input.containerOffset.startOffset / renderedTextLength;
   const projectionLength = Math.max(1, projection.text.length);
   const expectedNormalized = Math.round(renderedRatio * projectionLength);
@@ -68,7 +74,11 @@ export function buildAnchorFromContainerSelection(input: {
 
   const normalizedStart = best;
   const normalizedEnd = best + needle.length;
-  const range = resolveProjectionRange(projection, normalizedStart, normalizedEnd);
+  const range = resolveProjectionRange(
+    projection,
+    normalizedStart,
+    normalizedEnd,
+  );
   if (!range) return null;
   if (normalizeAnchorText(range.text) !== needle) return null;
 
@@ -87,7 +97,10 @@ function findAllOccurrences(haystack: string, needle: string): number[] {
   return out;
 }
 
-function pickClosestOccurrence(occurrences: number[], expected: number): number | null {
+function pickClosestOccurrence(
+  occurrences: number[],
+  expected: number,
+): number | null {
   if (occurrences.length === 0) return null;
   if (occurrences.length === 1) return occurrences[0] ?? null;
   let best = occurrences[0] ?? 0;
@@ -115,12 +128,16 @@ export function rangesForNormalizedSpan(input: {
   if (!normalizedNeedle) return [];
   const containerText = input.container.textContent ?? "";
   const normalizedContainerText = normalizeAnchorText(containerText);
-  const containerOccurrenceIndex = normalizedContainerText.indexOf(normalizedNeedle);
+  const containerOccurrenceIndex =
+    normalizedContainerText.indexOf(normalizedNeedle);
   if (containerOccurrenceIndex === -1) return [];
 
   // Convert from normalized container offset back to raw container offset
   // by walking the raw text and matching whitespace squashing.
-  const rawIndex = mapNormalizedOffsetToRaw(containerText, containerOccurrenceIndex);
+  const rawIndex = mapNormalizedOffsetToRaw(
+    containerText,
+    containerOccurrenceIndex,
+  );
   if (rawIndex < 0) return [];
 
   const rawNeedleLength = matchRawLengthForNormalized(
@@ -134,7 +151,10 @@ export function rangesForNormalizedSpan(input: {
   return buildRangesForRawSpan(input.container, rawStart, rawEnd);
 }
 
-function mapNormalizedOffsetToRaw(rawText: string, normalizedOffset: number): number {
+function mapNormalizedOffsetToRaw(
+  rawText: string,
+  normalizedOffset: number,
+): number {
   let normalizedCursor = 0;
   let lastWasWhitespace = true; // mimic trim() at start
   for (let index = 0; index < rawText.length; index += 1) {
@@ -154,7 +174,10 @@ function mapNormalizedOffsetToRaw(rawText: string, normalizedOffset: number): nu
   return -1;
 }
 
-function matchRawLengthForNormalized(rawTail: string, normalizedLength: number): number {
+function matchRawLengthForNormalized(
+  rawTail: string,
+  normalizedLength: number,
+): number {
   let normalizedCount = 0;
   let lastWasWhitespace = false;
   for (let index = 0; index < rawTail.length; index += 1) {
@@ -174,8 +197,16 @@ function matchRawLengthForNormalized(rawTail: string, normalizedLength: number):
   return rawTail.length;
 }
 
-function buildRangesForRawSpan(container: HTMLElement, rawStart: number, rawEnd: number): Range[] {
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+function buildRangesForRawSpan(
+  container: HTMLElement,
+  rawStart: number,
+  rawEnd: number,
+): Range[] {
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    null,
+  );
   const ranges: Range[] = [];
   let cursor = 0;
   let node: Node | null = walker.nextNode();

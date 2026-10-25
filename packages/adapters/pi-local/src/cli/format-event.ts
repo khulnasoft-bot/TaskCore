@@ -9,7 +9,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -17,7 +18,9 @@ function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
-function extractTextContent(content: string | Array<{ type: string; text?: string }>): string {
+function extractTextContent(
+  content: string | Array<{ type: string; text?: string }>,
+): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   return content
@@ -56,7 +59,8 @@ export function printPiStreamEvent(raw: string, _debug: boolean): void {
   if (type === "turn_end") {
     const message = asRecord(parsed.message);
     if (message) {
-      const content = message.content as string | Array<{ type: string; text?: string }>;
+      const content = message.content as
+        string | Array<{ type: string; text?: string }>;
       const text = extractTextContent(content);
       if (text) {
         console.log(pc.green(`assistant: ${text}`));

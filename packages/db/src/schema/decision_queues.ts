@@ -24,25 +24,47 @@ export const decisionQueues = pgTable(
   "decision_queues",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     key: text("key").notNull(),
     title: text("title").notNull(),
     description: text("description"),
     createdByType: text("created_by_type").notNull(),
     createdByAgentId: uuid("created_by_agent_id").references(() => agents.id),
     createdByUserId: text("created_by_user_id"),
-    createdByRunId: uuid("created_by_run_id").references(() => heartbeatRuns.id),
-    createdByAgentApiKeyId: uuid("created_by_agent_api_key_id").references(() => agentApiKeys.id),
+    createdByRunId: uuid("created_by_run_id").references(
+      () => heartbeatRuns.id,
+    ),
+    createdByAgentApiKeyId: uuid("created_by_agent_api_key_id").references(
+      () => agentApiKeys.id,
+    ),
     retentionDays: integer("retention_days"),
-    seedRules: jsonb("seed_rules").$type<DecisionQueueSeedRule[]>().notNull().default([]),
+    seedRules: jsonb("seed_rules")
+      .$type<DecisionQueueSeedRule[]>()
+      .notNull()
+      .default([]),
     seedRulesEnabled: boolean("seed_rules_enabled").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    companyKeyUq: uniqueIndex("decision_queues_company_key_uq").on(table.companyId, table.key),
-    companyUpdatedIdx: index("decision_queues_company_updated_idx").on(table.companyId, table.updatedAt),
-    idCompanyUq: unique("decision_queues_id_company_uq").on(table.id, table.companyId),
+    companyKeyUq: uniqueIndex("decision_queues_company_key_uq").on(
+      table.companyId,
+      table.key,
+    ),
+    companyUpdatedIdx: index("decision_queues_company_updated_idx").on(
+      table.companyId,
+      table.updatedAt,
+    ),
+    idCompanyUq: unique("decision_queues_id_company_uq").on(
+      table.id,
+      table.companyId,
+    ),
     creatorCheck: check(
       "decision_queues_creator_check",
       sql`(
@@ -62,7 +84,9 @@ export const decisionQueueItems = pgTable(
   "decision_queue_items",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     queueId: uuid("queue_id").notNull(),
     sourceKind: text("source_kind").notNull(),
     sourceId: text("source_id").notNull(),
@@ -70,9 +94,13 @@ export const decisionQueueItems = pgTable(
     addedByAgentId: uuid("added_by_agent_id").references(() => agents.id),
     addedByUserId: text("added_by_user_id"),
     addedByRunId: uuid("added_by_run_id").references(() => heartbeatRuns.id),
-    addedByAgentApiKeyId: uuid("added_by_agent_api_key_id").references(() => agentApiKeys.id),
+    addedByAgentApiKeyId: uuid("added_by_agent_api_key_id").references(
+      () => agentApiKeys.id,
+    ),
     responsibleUserId: text("responsible_user_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     queueSourceUq: uniqueIndex("decision_queue_items_queue_source_uq").on(
@@ -105,7 +133,9 @@ export const decisionTriage = pgTable(
   "decision_triage",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     sourceKind: text("source_kind").notNull(),
     sourceId: text("source_id").notNull(),
     decideBy: text("decide_by"),
@@ -115,11 +145,17 @@ export const decisionTriage = pgTable(
     setByAgentId: uuid("set_by_agent_id").references(() => agents.id),
     setByUserId: text("set_by_user_id"),
     setByRunId: uuid("set_by_run_id").references(() => heartbeatRuns.id),
-    setByAgentApiKeyId: uuid("set_by_agent_api_key_id").references(() => agentApiKeys.id),
+    setByAgentApiKeyId: uuid("set_by_agent_api_key_id").references(
+      () => agentApiKeys.id,
+    ),
     responsibleUserId: text("responsible_user_id"),
     version: integer("version").notNull().default(1),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     companySourceUq: uniqueIndex("decision_triage_company_source_uq").on(
@@ -127,7 +163,10 @@ export const decisionTriage = pgTable(
       table.sourceKind,
       table.sourceId,
     ),
-    companyDecideByIdx: index("decision_triage_company_decide_by_idx").on(table.companyId, table.decideBy),
+    companyDecideByIdx: index("decision_triage_company_decide_by_idx").on(
+      table.companyId,
+      table.decideBy,
+    ),
     actorCheck: check(
       "decision_triage_actor_check",
       sql`(
@@ -150,7 +189,9 @@ export const decisionTriageEvents = pgTable(
   "decision_triage_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     queueId: uuid("queue_id").references(() => decisionQueues.id),
     sourceKind: text("source_kind"),
     sourceId: text("source_id"),
@@ -161,17 +202,22 @@ export const decisionTriageEvents = pgTable(
     actorRunId: uuid("actor_run_id").references(() => heartbeatRuns.id),
     agentApiKeyId: uuid("agent_api_key_id").references(() => agentApiKeys.id),
     responsibleUserId: text("responsible_user_id"),
-    details: jsonb("details").$type<Record<string, unknown>>().notNull().default({}),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    details: jsonb("details")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    companySourceCreatedIdx: index("decision_triage_events_company_source_created_idx").on(
-      table.companyId,
-      table.sourceKind,
-      table.sourceId,
+    companySourceCreatedIdx: index(
+      "decision_triage_events_company_source_created_idx",
+    ).on(table.companyId, table.sourceKind, table.sourceId, table.createdAt),
+    queueCreatedIdx: index("decision_triage_events_queue_created_idx").on(
+      table.queueId,
       table.createdAt,
     ),
-    queueCreatedIdx: index("decision_triage_events_queue_created_idx").on(table.queueId, table.createdAt),
     actorCheck: check(
       "decision_triage_events_actor_check",
       sql`(
@@ -187,21 +233,31 @@ export const decisionRetention = pgTable(
   "decision_retention",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     sourceKind: text("source_kind").notNull(),
     sourceId: text("source_id").notNull(),
-    sourceActivityAt: timestamp("source_activity_at", { withTimezone: true }).notNull(),
+    sourceActivityAt: timestamp("source_activity_at", {
+      withTimezone: true,
+    }).notNull(),
     keep: boolean("keep").notNull().default(false),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     archivedReason: text("archived_reason"),
     archivedByType: text("archived_by_type"),
     archivedByAgentId: uuid("archived_by_agent_id").references(() => agents.id),
     archivedByUserId: text("archived_by_user_id"),
-    archivedByRunId: uuid("archived_by_run_id").references(() => heartbeatRuns.id),
+    archivedByRunId: uuid("archived_by_run_id").references(
+      () => heartbeatRuns.id,
+    ),
     version: integer("version").notNull().default(1),
     archiveVersion: integer("archive_version").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     companySourceUq: uniqueIndex("decision_retention_company_source_uq").on(
@@ -209,7 +265,10 @@ export const decisionRetention = pgTable(
       table.sourceKind,
       table.sourceId,
     ),
-    companyArchivedIdx: index("decision_retention_company_archived_idx").on(table.companyId, table.archivedAt),
+    companyArchivedIdx: index("decision_retention_company_archived_idx").on(
+      table.companyId,
+      table.archivedAt,
+    ),
     archiveActorCheck: check(
       "decision_retention_archive_actor_check",
       sql`(
@@ -226,18 +285,26 @@ export const decisionArchiveNotificationOutbox = pgTable(
   "decision_archive_notification_outbox",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
     sourceKind: text("source_kind").notNull(),
     sourceId: text("source_id").notNull(),
     archiveVersion: integer("archive_version").notNull(),
-    originAgentId: uuid("origin_agent_id").notNull().references(() => agents.id),
+    originAgentId: uuid("origin_agent_id")
+      .notNull()
+      .references(() => agents.id),
     originIssueId: uuid("origin_issue_id").notNull(),
     status: text("status").notNull().default("pending"),
     attemptCount: integer("attempt_count").notNull().default(0),
     lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     notificationUq: uniqueIndex("decision_archive_notification_outbox_uq").on(
@@ -247,7 +314,10 @@ export const decisionArchiveNotificationOutbox = pgTable(
       table.archiveVersion,
       table.originAgentId,
     ),
-    pendingIdx: index("decision_archive_notification_outbox_pending_idx").on(table.status, table.createdAt),
+    pendingIdx: index("decision_archive_notification_outbox_pending_idx").on(
+      table.status,
+      table.createdAt,
+    ),
     statusCheck: check(
       "decision_archive_notification_outbox_status_check",
       sql`${table.status} IN ('pending', 'delivering', 'delivered')`,

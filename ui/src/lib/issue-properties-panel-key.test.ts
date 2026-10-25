@@ -51,7 +51,10 @@ describe("buildIssuePropertiesPanelKey", () => {
   });
 
   it("changes when watchdog configuration changes", () => {
-    const first = buildIssuePropertiesPanelKey(createIssue({ watchdog: null }), []);
+    const first = buildIssuePropertiesPanelKey(
+      createIssue({ watchdog: null }),
+      [],
+    );
     const second = buildIssuePropertiesPanelKey(
       createIssue({
         watchdog: {

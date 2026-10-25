@@ -1,6 +1,10 @@
 import { ChevronLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { aiConnectionRouterPluginKey, aiConnectionRouterSlug, humanizeConnectionDisplayName } from "@taskcore/shared";
+import {
+  aiConnectionRouterPluginKey,
+  aiConnectionRouterSlug,
+  humanizeConnectionDisplayName,
+} from "@taskcore/shared";
 import type { ToolApplication, ToolConnection } from "@taskcore/shared";
 import { Link } from "@/lib/router";
 import { toolsApi } from "@/api/tools";
@@ -34,8 +38,13 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
   const { isMobile, setSidebarOpen } = useSidebar();
 
   const connectionQuery = useQuery({
-    queryKey: queryKeys.tools.connection(props.kind === "connection" ? props.connectionId : "__none__"),
-    queryFn: () => toolsApi.getConnection(props.kind === "connection" ? props.connectionId : ""),
+    queryKey: queryKeys.tools.connection(
+      props.kind === "connection" ? props.connectionId : "__none__",
+    ),
+    queryFn: () =>
+      toolsApi.getConnection(
+        props.kind === "connection" ? props.connectionId : "",
+      ),
     enabled: props.kind === "connection" && !!props.connectionId,
   });
   const applicationsQuery = useQuery({
@@ -62,24 +71,38 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
 
   const connection = connectionQuery.data;
   const poolPluginKey = connection && aiConnectionRouterPluginKey(connection);
-  const applicationId = props.kind === "application" ? props.applicationId : connection?.applicationId;
-  const application = (applicationsQuery.data?.applications ?? []).find((app) => app.id === applicationId) ?? null;
-  const appConnections = props.kind === "application"
-    ? (connectionsQuery.data?.connections ?? []).filter((candidate) => candidate.applicationId === props.applicationId)
-    : [];
+  const applicationId =
+    props.kind === "application"
+      ? props.applicationId
+      : connection?.applicationId;
+  const application =
+    (applicationsQuery.data?.applications ?? []).find(
+      (app) => app.id === applicationId,
+    ) ?? null;
+  const appConnections =
+    props.kind === "application"
+      ? (connectionsQuery.data?.connections ?? []).filter(
+          (candidate) => candidate.applicationId === props.applicationId,
+        )
+      : [];
   const previousConnection = latestArchivedConnection(appConnections);
-  const appName = connection ? humanizeConnectionDisplayName(connection) : application?.name ?? "App";
+  const appName = connection
+    ? humanizeConnectionDisplayName(connection)
+    : (application?.name ?? "App");
   const logoEntry = galleryEntryFor(
     (galleryQuery.data?.apps ?? []) as AppGalleryDisplayEntry[],
     connection,
     application ?? undefined,
   );
-  const brandKey = appApplicationSourceSlug(application)
-    ?? appConnectionSourceSlug(connection)
-    ?? (logoEntry ? appDefinitionSlug(logoEntry) : null);
+  const brandKey =
+    appApplicationSourceSlug(application) ??
+    appConnectionSourceSlug(connection) ??
+    (logoEntry ? appDefinitionSlug(logoEntry) : null);
   const reviewConnectionId = connection?.id ?? previousConnection?.id ?? null;
   const attentionItem = reviewConnectionId
-    ? attentionQuery.data?.apps.find((app) => app.connection.id === reviewConnectionId)
+    ? attentionQuery.data?.apps.find(
+        (app) => app.connection.id === reviewConnectionId,
+      )
     : null;
   const reviewCount =
     (attentionItem?.pendingActionRequestCount ?? 0) +
@@ -107,20 +130,28 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
             darkLogoUrl={appDefinitionDarkLogoUrl(logoEntry)}
             size={28}
           />
-          <span className="flex-1 truncate text-sm font-bold text-foreground">{appName}</span>
+          <span className="flex-1 truncate text-sm font-bold text-foreground">
+            {appName}
+          </span>
         </div>
       </div>
 
       <nav className="scrollbar-auto-hide min-h-0 flex-1 overflow-y-auto px-3 py-2">
         <div className="flex flex-col gap-0.5">
-          {APP_TABS.filter(tab => !poolPluginKey || tab.key === "permissions").map((tab) => (
+          {APP_TABS.filter(
+            (tab) => !poolPluginKey || tab.key === "permissions",
+          ).map((tab) => (
             <SidebarNavItem
               key={tab.key}
               to={tabHref(props, tab.key)}
               label={poolPluginKey ? "Settings" : tab.label}
               icon={tab.icon}
               end
-              badge={tab.key === "review" && reviewCount > 0 ? reviewCount : undefined}
+              badge={
+                tab.key === "review" && reviewCount > 0
+                  ? reviewCount
+                  : undefined
+              }
               badgeTone="danger"
               badgeLabel="needing review"
             />
@@ -143,25 +174,42 @@ function galleryEntryFor(
   application: ToolApplication | undefined,
 ): AppGalleryDisplayEntry | null {
   const router = connection && aiConnectionRouterPluginKey(connection);
-  if (router) return apps.find(app => appDefinitionSlug(app) === aiConnectionRouterSlug(router)) ?? null;
-  const sourceSlug = appApplicationSourceSlug(application) ?? appConnectionSourceSlug(connection);
+  if (router)
+    return (
+      apps.find(
+        (app) => appDefinitionSlug(app) === aiConnectionRouterSlug(router),
+      ) ?? null
+    );
+  const sourceSlug =
+    appApplicationSourceSlug(application) ??
+    appConnectionSourceSlug(connection);
   if (sourceSlug) {
     const keyed = apps.find((app) => appDefinitionSlug(app) === sourceSlug);
     if (keyed) return keyed;
   }
   const name = (connection?.name ?? application?.name)?.toLowerCase();
   if (!name) return null;
-  return apps.find((app) => appDefinitionName(app).toLowerCase() === name) ??
+  return (
+    apps.find((app) => appDefinitionName(app).toLowerCase() === name) ??
     apps.find((app) => appDefinitionSlug(app) === name) ??
-    null;
+    null
+  );
 }
 
-function latestArchivedConnection(connections: ToolConnection[]): ToolConnection | null {
-  const archived = connections.filter((connection) => connection.status === "archived");
+function latestArchivedConnection(
+  connections: ToolConnection[],
+): ToolConnection | null {
+  const archived = connections.filter(
+    (connection) => connection.status === "archived",
+  );
   if (archived.length === 0) return null;
   return archived.reduce((latest, connection) => {
-    const latestTime = new Date(latest.updatedAt ?? latest.createdAt ?? 0).getTime();
-    const connectionTime = new Date(connection.updatedAt ?? connection.createdAt ?? 0).getTime();
+    const latestTime = new Date(
+      latest.updatedAt ?? latest.createdAt ?? 0,
+    ).getTime();
+    const connectionTime = new Date(
+      connection.updatedAt ?? connection.createdAt ?? 0,
+    ).getTime();
     return connectionTime > latestTime ? connection : latest;
   });
 }

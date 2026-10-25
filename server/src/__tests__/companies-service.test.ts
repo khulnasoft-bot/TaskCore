@@ -1,5 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   activityLog,
@@ -36,10 +45,15 @@ vi.mock("../services/cloud-lifecycle-sync.js", () => ({
 import { companyService } from "../services/companies.js";
 import { deriveIssuePrefixBase } from "../services/issue-prefix.js";
 import { readBuiltInAgentMarker } from "../services/built-in-agent-metadata.js";
-import { builtInAgentService, reconcileBuiltInAgentsOnStartup } from "../services/built-in-agents.js";
+import {
+  builtInAgentService,
+  reconcileBuiltInAgentsOnStartup,
+} from "../services/built-in-agents.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -49,10 +63,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("companyService", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-company-service-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-company-service-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -91,7 +109,9 @@ describeEmbeddedPostgres("companyService", () => {
 
     expect(created.issuePrefix).toBe("AROA");
 
-    const rows = await db.select({ issuePrefix: companies.issuePrefix }).from(companies);
+    const rows = await db
+      .select({ issuePrefix: companies.issuePrefix })
+      .from(companies);
     expect(rows.map((row) => row.issuePrefix).sort()).toEqual(["ARO", "AROA"]);
   });
 
@@ -102,17 +122,30 @@ describeEmbeddedPostgres("companyService", () => {
 
     // A new company starts clean: the Reflection Coach and Summarizer are
     // opt-in, not seeded by default for a new user.
-    const agentRows = await db.select().from(agents).where(eq(agents.companyId, created.id));
-    expect(agentRows.filter((row) => readBuiltInAgentMarker(row.metadata))).toHaveLength(0);
+    const agentRows = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.companyId, created.id));
+    expect(
+      agentRows.filter((row) => readBuiltInAgentMarker(row.metadata)),
+    ).toHaveLength(0);
 
     // Startup reconcile leaves a fresh company untouched — nothing is created.
     await reconcileBuiltInAgentsOnStartup(db);
-    const afterReconcileRows = await db.select().from(agents).where(eq(agents.companyId, created.id));
-    expect(afterReconcileRows.filter((row) => readBuiltInAgentMarker(row.metadata))).toHaveLength(0);
+    const afterReconcileRows = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.companyId, created.id));
+    expect(
+      afterReconcileRows.filter((row) => readBuiltInAgentMarker(row.metadata)),
+    ).toHaveLength(0);
 
     // The Reflection Coach remains available to enable on demand, and enabling
     // it materializes its bundled skill + paused routine.
-    const enabled = await builtInAgentService(db).ensure(created.id, "reflection-coach");
+    const enabled = await builtInAgentService(db).ensure(
+      created.id,
+      "reflection-coach",
+    );
     expect(enabled.agent).toMatchObject({
       name: "Reflection Coach",
       status: "paused",
@@ -122,10 +155,15 @@ describeEmbeddedPostgres("companyService", () => {
     const [skill] = await db
       .select()
       .from(companySkills)
-      .where(and(
-        eq(companySkills.companyId, created.id),
-        eq(companySkills.key, "taskcore/bundled/taskcore-operations/reflection-coach"),
-      ));
+      .where(
+        and(
+          eq(companySkills.companyId, created.id),
+          eq(
+            companySkills.key,
+            "taskcore/bundled/taskcore-operations/reflection-coach",
+          ),
+        ),
+      );
     expect(skill).toMatchObject({
       slug: "reflection-coach",
     });
@@ -133,14 +171,22 @@ describeEmbeddedPostgres("companyService", () => {
     const [routine] = await db
       .select()
       .from(routines)
-      .where(and(eq(routines.companyId, created.id), eq(routines.assigneeAgentId, enabled.agentId!)));
+      .where(
+        and(
+          eq(routines.companyId, created.id),
+          eq(routines.assigneeAgentId, enabled.agentId!),
+        ),
+      );
     expect(routine).toMatchObject({
       status: "paused",
       assigneeAgentId: enabled.agentId,
       originKind: "built_in_agent_bundle",
       originId: "reflection-coach:recent-agent-reflection",
     });
-    const [trigger] = await db.select().from(routineTriggers).where(eq(routineTriggers.routineId, routine!.id));
+    const [trigger] = await db
+      .select()
+      .from(routineTriggers)
+      .where(eq(routineTriggers.routineId, routine!.id));
     expect(trigger).toMatchObject({
       kind: "schedule",
       enabled: false,
@@ -269,10 +315,12 @@ describeEmbeddedPostgres("companyService", () => {
         details: activityLog.details,
       })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.action, "company.archived"),
-      ));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "company.archived"),
+        ),
+      );
     expect(archiveActivity).toHaveLength(1);
     expect(archiveActivity[0]).toMatchObject({
       actorType: "user",
@@ -289,12 +337,30 @@ describeEmbeddedPostgres("companyService", () => {
       .from(agents);
 
     const byId = new Map(rows.map((row) => [row.id, row]));
-    expect(byId.get(runningAgentId)).toMatchObject({ status: "paused", pauseReason: "company_archived" });
-    expect(byId.get(idleAgentId)).toMatchObject({ status: "paused", pauseReason: "company_archived" });
-    expect(byId.get(errorAgentId)).toMatchObject({ status: "paused", pauseReason: "company_archived" });
-    expect(byId.get(pausedAgentId)).toMatchObject({ status: "paused", pauseReason: "manual" });
-    expect(byId.get(pendingAgentId)).toMatchObject({ status: "pending_approval", pauseReason: null });
-    expect(byId.get(terminatedAgentId)).toMatchObject({ status: "terminated", pauseReason: null });
+    expect(byId.get(runningAgentId)).toMatchObject({
+      status: "paused",
+      pauseReason: "company_archived",
+    });
+    expect(byId.get(idleAgentId)).toMatchObject({
+      status: "paused",
+      pauseReason: "company_archived",
+    });
+    expect(byId.get(errorAgentId)).toMatchObject({
+      status: "paused",
+      pauseReason: "company_archived",
+    });
+    expect(byId.get(pausedAgentId)).toMatchObject({
+      status: "paused",
+      pauseReason: "manual",
+    });
+    expect(byId.get(pendingAgentId)).toMatchObject({
+      status: "pending_approval",
+      pauseReason: null,
+    });
+    expect(byId.get(terminatedAgentId)).toMatchObject({
+      status: "terminated",
+      pauseReason: null,
+    });
 
     const run = await db
       .select({
@@ -390,10 +456,12 @@ describeEmbeddedPostgres("companyService", () => {
         details: activityLog.details,
       })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.action, "company.reactivated"),
-      ));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "company.reactivated"),
+        ),
+      );
     expect(reactivateActivity).toHaveLength(1);
     expect(reactivateActivity[0]).toMatchObject({
       actorType: "user",
@@ -503,12 +571,25 @@ describeEmbeddedPostgres("companyService", () => {
     expect(archived?.status).toBe("archived");
 
     const rows = await db
-      .select({ id: agents.id, status: agents.status, pauseReason: agents.pauseReason })
+      .select({
+        id: agents.id,
+        status: agents.status,
+        pauseReason: agents.pauseReason,
+      })
       .from(agents);
     const byId = new Map(rows.map((row) => [row.id, row]));
-    expect(byId.get(runningAgentId)).toMatchObject({ status: "paused", pauseReason: "company_archived" });
-    expect(byId.get(idleAgentId)).toMatchObject({ status: "paused", pauseReason: "company_archived" });
-    expect(byId.get(pendingAgentId)).toMatchObject({ status: "pending_approval", pauseReason: null });
+    expect(byId.get(runningAgentId)).toMatchObject({
+      status: "paused",
+      pauseReason: "company_archived",
+    });
+    expect(byId.get(idleAgentId)).toMatchObject({
+      status: "paused",
+      pauseReason: "company_archived",
+    });
+    expect(byId.get(pendingAgentId)).toMatchObject({
+      status: "pending_approval",
+      pauseReason: null,
+    });
 
     const run = await db
       .select({ status: heartbeatRuns.status, error: heartbeatRuns.error })
@@ -526,10 +607,12 @@ describeEmbeddedPostgres("companyService", () => {
         details: activityLog.details,
       })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.action, "company.archived"),
-      ));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "company.archived"),
+        ),
+      );
     expect(archiveActivity).toHaveLength(1);
     expect(archiveActivity[0]).toMatchObject({
       actorType: "user",
@@ -589,21 +672,35 @@ describeEmbeddedPostgres("companyService", () => {
     expect(reactivated?.status).toBe("active");
 
     const rows = await db
-      .select({ id: agents.id, status: agents.status, pauseReason: agents.pauseReason })
+      .select({
+        id: agents.id,
+        status: agents.status,
+        pauseReason: agents.pauseReason,
+      })
       .from(agents);
     const byId = new Map(rows.map((row) => [row.id, row]));
-    expect(byId.get(archivedPausedAgentId)).toMatchObject({ status: "idle", pauseReason: null });
-    expect(byId.get(manualPausedAgentId)).toMatchObject({ status: "paused", pauseReason: "manual" });
+    expect(byId.get(archivedPausedAgentId)).toMatchObject({
+      status: "idle",
+      pauseReason: null,
+    });
+    expect(byId.get(manualPausedAgentId)).toMatchObject({
+      status: "paused",
+      pauseReason: "manual",
+    });
 
     const reactivateActivity = await db
       .select({ details: activityLog.details })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.action, "company.reactivated"),
-      ));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "company.reactivated"),
+        ),
+      );
     expect(reactivateActivity).toHaveLength(1);
-    expect(reactivateActivity[0]).toMatchObject({ details: { agentsRestored: 1 } });
+    expect(reactivateActivity[0]).toMatchObject({
+      details: { agentsRestored: 1 },
+    });
   });
 
   it("emits company.reactivated for archived → active even when no agents need restoring", async () => {
@@ -641,12 +738,16 @@ describeEmbeddedPostgres("companyService", () => {
     const reactivateActivity = await db
       .select({ details: activityLog.details })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.action, "company.reactivated"),
-      ));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "company.reactivated"),
+        ),
+      );
     expect(reactivateActivity).toHaveLength(1);
-    expect(reactivateActivity[0]).toMatchObject({ details: { agentsRestored: 0 } });
+    expect(reactivateActivity[0]).toMatchObject({
+      details: { agentsRestored: 0 },
+    });
   });
 
   it("does not emit company.reactivated when paused → active restores no archive-paused agents", async () => {
@@ -686,10 +787,12 @@ describeEmbeddedPostgres("companyService", () => {
     const reactivateActivity = await db
       .select({ id: activityLog.id })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.action, "company.reactivated"),
-      ));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "company.reactivated"),
+        ),
+      );
     expect(reactivateActivity).toHaveLength(0);
 
     const agent = await db
@@ -800,7 +903,12 @@ describeEmbeddedPostgres("companyService", () => {
       permissions: {},
     });
 
-    const actor = { actorType: "user" as const, actorId: "test-user", agentId: null, runId: null };
+    const actor = {
+      actorType: "user" as const,
+      actorId: "test-user",
+      agentId: null,
+      runId: null,
+    };
     const first = await companyService(db).archive(companyId, actor);
     expect(first?.status).toBe("archived");
 
@@ -810,12 +918,16 @@ describeEmbeddedPostgres("companyService", () => {
     const archiveActivity = await db
       .select({ details: activityLog.details })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.action, "company.archived"),
-      ));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "company.archived"),
+        ),
+      );
     expect(archiveActivity).toHaveLength(1);
-    expect(archiveActivity[0]).toMatchObject({ details: { agentsPaused: 1, runsCancelled: 0 } });
+    expect(archiveActivity[0]).toMatchObject({
+      details: { agentsPaused: 1, runsCancelled: 0 },
+    });
   });
 
   it("rings the Cloud lifecycle doorbell exactly on archived-boundary transitions", async () => {
@@ -828,7 +940,12 @@ describeEmbeddedPostgres("companyService", () => {
       requireBoardApprovalForNewAgents: false,
     });
     const svc = companyService(db);
-    const actor = { actorType: "user" as const, actorId: "test-user", agentId: null, runId: null };
+    const actor = {
+      actorType: "user" as const,
+      actorId: "test-user",
+      agentId: null,
+      runId: null,
+    };
 
     // A plain edit never rings.
     await svc.update(companyId, { name: "Doorbell Test Co (renamed)" }, actor);
@@ -895,7 +1012,10 @@ describeEmbeddedPostgres("companyService", () => {
       .select({ status: agents.status, pauseReason: agents.pauseReason })
       .from(agents)
       .then((rows) => rows[0] ?? null);
-    expect(agent).toMatchObject({ status: "paused", pauseReason: "company_archived" });
+    expect(agent).toMatchObject({
+      status: "paused",
+      pauseReason: "company_archived",
+    });
 
     const run = await db
       .select({ status: heartbeatRuns.status })
@@ -906,10 +1026,12 @@ describeEmbeddedPostgres("companyService", () => {
     const archiveActivity = await db
       .select({ details: activityLog.details })
       .from(activityLog)
-      .where(and(
-        eq(activityLog.companyId, companyId),
-        eq(activityLog.action, "company.archived"),
-      ));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "company.archived"),
+        ),
+      );
     expect(archiveActivity).toHaveLength(1);
     expect(archiveActivity[0]).toMatchObject({
       details: { agentsPaused: 1, runsCancelled: 1 },
@@ -948,8 +1070,18 @@ describeEmbeddedPostgres("companyService", () => {
         .returning({ id: companies.id });
       const companyId = company!.id;
       await db.insert(issues).values([
-        { companyId, title: "First", issueNumber: 1, identifier: `${issuePrefix}-1` },
-        { companyId, title: "Second", issueNumber: 12, identifier: `${issuePrefix}-12` },
+        {
+          companyId,
+          title: "First",
+          issueNumber: 1,
+          identifier: `${issuePrefix}-1`,
+        },
+        {
+          companyId,
+          title: "Second",
+          issueNumber: 12,
+          identifier: `${issuePrefix}-12`,
+        },
         // A pre-identifier issue must survive the re-key untouched.
         { companyId, title: "Unnumbered", issueNumber: null, identifier: null },
       ]);
@@ -997,7 +1129,10 @@ describeEmbeddedPostgres("companyService", () => {
         TEST_ACTOR,
       );
 
-      expect(updated).toMatchObject({ name: "Northwind Traders", issuePrefix: "NOR" });
+      expect(updated).toMatchObject({
+        name: "Northwind Traders",
+        issuePrefix: "NOR",
+      });
       await expect(readIdentifiers(companyId)).resolves.toEqual({
         issues: ["NOR-1", "NOR-12", null],
         cases: ["NOR-C3"],
@@ -1006,10 +1141,12 @@ describeEmbeddedPostgres("companyService", () => {
       const logged = await db
         .select({ details: activityLog.details })
         .from(activityLog)
-        .where(and(
-          eq(activityLog.companyId, companyId),
-          eq(activityLog.action, "company.updated"),
-        ));
+        .where(
+          and(
+            eq(activityLog.companyId, companyId),
+            eq(activityLog.action, "company.updated"),
+          ),
+        );
       expect(logged).toHaveLength(1);
       expect(logged[0]).toMatchObject({
         details: {
@@ -1024,7 +1161,9 @@ describeEmbeddedPostgres("companyService", () => {
     });
 
     it("suffixes the candidate when another company already holds the derived base", async () => {
-      await db.insert(companies).values({ name: "Northwind Holdings", issuePrefix: "NOR" });
+      await db
+        .insert(companies)
+        .values({ name: "Northwind Holdings", issuePrefix: "NOR" });
       const companyId = await seedCompanyWithWork("Acme Robotics", "ACM");
 
       const updated = await companyService(db).update(
@@ -1107,9 +1246,15 @@ describeEmbeddedPostgres("companyService", () => {
         .where(eq(companies.id, companyId));
       // Whichever update commits last, the prefix derives from the name that
       // survived, and the identifiers sit on that prefix.
-      expect(company!.issuePrefix.startsWith(deriveIssuePrefixBase(company!.name))).toBe(true);
+      expect(
+        company!.issuePrefix.startsWith(deriveIssuePrefixBase(company!.name)),
+      ).toBe(true);
       await expect(readIdentifiers(companyId)).resolves.toEqual({
-        issues: [`${company!.issuePrefix}-1`, `${company!.issuePrefix}-12`, null],
+        issues: [
+          `${company!.issuePrefix}-1`,
+          `${company!.issuePrefix}-12`,
+          null,
+        ],
         cases: [`${company!.issuePrefix}-C3`],
       });
     });
@@ -1140,12 +1285,14 @@ describeEmbeddedPostgres("companyService", () => {
         TEST_ACTOR,
       );
 
-      expect(updated).toMatchObject({ name: "Northwind Traders", issuePrefix: "ACM" });
+      expect(updated).toMatchObject({
+        name: "Northwind Traders",
+        issuePrefix: "ACM",
+      });
       await expect(readIdentifiers(companyId)).resolves.toEqual({
         issues: ["ACM-1", "ACM-12", null],
         cases: ["ACM-C3"],
       });
     });
   });
-
 });

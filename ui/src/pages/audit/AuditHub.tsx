@@ -25,7 +25,8 @@ export function AuditHub({ section }: { section: AuditSection }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const scope = auditScopeFromSearchParams(searchParams);
   const mode: AuditFeedMode = scope.mode === "agents" ? "agents" : "all";
-  const routineId = scope.entityType === "routine" ? scope.entityId ?? undefined : undefined;
+  const routineId =
+    scope.entityType === "routine" ? (scope.entityId ?? undefined) : undefined;
   const actionParam = searchParams.get("action");
   const actionDomain = [
     "issue.",
@@ -37,12 +38,19 @@ export function AuditHub({ section }: { section: AuditSection }) {
     "tool_",
     "cost.",
     "company.",
-  ].includes(actionParam ?? "") ? actionParam! : "__all";
+  ].includes(actionParam ?? "")
+    ? actionParam!
+    : "__all";
 
   useEffect(() => {
-    const current = AUDIT_SECTIONS.find((candidate) => candidate.value === section);
+    const current = AUDIT_SECTIONS.find(
+      (candidate) => candidate.value === section,
+    );
     setBreadcrumbs([
-      { label: "Audit", href: section === "activity" ? undefined : "/activity" },
+      {
+        label: "Audit",
+        href: section === "activity" ? undefined : "/activity",
+      },
       ...(section === "activity" || !current ? [] : [{ label: current.label }]),
     ]);
   }, [section, setBreadcrumbs]);
@@ -78,13 +86,20 @@ export function AuditHub({ section }: { section: AuditSection }) {
   );
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={History} message="Select an organization to view Audit." />;
+    return (
+      <EmptyState
+        icon={History}
+        message="Select an organization to view Audit."
+      />
+    );
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Audit</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          Audit
+        </h1>
       </div>
 
       <Tabs
@@ -98,7 +113,10 @@ export function AuditHub({ section }: { section: AuditSection }) {
       </Tabs>
 
       {section === "activity" && routineId ? (
-        <RoutineAuditActivity companyId={selectedCompanyId} routineId={routineId} />
+        <RoutineAuditActivity
+          companyId={selectedCompanyId}
+          routineId={routineId}
+        />
       ) : section === "activity" ? (
         <AuditFeed
           companyId={selectedCompanyId}

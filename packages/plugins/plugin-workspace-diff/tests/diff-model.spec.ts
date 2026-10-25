@@ -38,13 +38,21 @@ describe("workspace diff UI model", () => {
   });
 
   it("surfaces truncation and file warnings", () => {
-    const warning = { code: "patch_truncated" as const, message: "Patch was truncated.", path: "src/app.ts" };
+    const warning = {
+      code: "patch_truncated" as const,
+      message: "Patch was truncated.",
+      path: "src/app.ts",
+    };
     const file = changedFile({
       truncated: true,
       warnings: [warning],
       patches: [],
     });
-    const diff = diffResponse({ files: [file], truncated: true, warnings: [warning] });
+    const diff = diffResponse({
+      files: [file],
+      truncated: true,
+      warnings: [warning],
+    });
 
     expect(buildFilePatch(file)).toBeNull();
     expect(toFileViewModels(diff)[0]?.warnings).toEqual([warning]);
@@ -55,7 +63,11 @@ describe("workspace diff UI model", () => {
   });
 
   it("does not duplicate aggregated patch warnings", () => {
-    const warning = { code: "patch_truncated" as const, message: "Patch was truncated.", path: "src/app.ts" };
+    const warning = {
+      code: "patch_truncated" as const,
+      message: "Patch was truncated.",
+      path: "src/app.ts",
+    };
     const file = changedFile({
       warnings: [warning],
       patches: [
@@ -130,7 +142,9 @@ describe("workspace diff UI model", () => {
 
     expect(buildFilePatch(file)).toBe(stagedPatch.trimEnd());
     expect(patches.map((patch) => patch.kind)).toEqual(["staged", "unstaged"]);
-    expect(patches.map((patch) => patch.patch?.match(/^diff --git/gm)?.length ?? 0)).toEqual([1, 1]);
+    expect(
+      patches.map((patch) => patch.patch?.match(/^diff --git/gm)?.length ?? 0),
+    ).toEqual([1, 1]);
     expect(viewModel?.patches).toHaveLength(2);
     expect(viewModel?.patchKinds).toEqual(["staged", "unstaged"]);
   });
@@ -142,31 +156,36 @@ describe("workspace diff UI model", () => {
       "--- a/src/large.ts",
       "+++ b/src/large.ts",
       "@@ -1,1 +1,1 @@",
-      ...Array.from({ length: LONG_DIFF_LINE_THRESHOLD }, (_, index) => `+export const value${index} = ${index};`),
+      ...Array.from(
+        { length: LONG_DIFF_LINE_THRESHOLD },
+        (_, index) => `+export const value${index} = ${index};`,
+      ),
       "",
     ].join("\n");
-    const files = toFileViewModels(diffResponse({
-      files: [
-        changedFile({ path: "src/small.ts" }),
-        changedFile({
-          path: "src/large.ts",
-          additions: LONG_DIFF_LINE_THRESHOLD,
-          deletions: 0,
-          patches: [
-            {
-              kind: "unstaged",
-              patch: longPatch,
-              additions: LONG_DIFF_LINE_THRESHOLD,
-              deletions: 0,
-              binary: false,
-              oversized: false,
-              truncated: false,
-              warnings: [],
-            },
-          ],
-        }),
-      ],
-    }));
+    const files = toFileViewModels(
+      diffResponse({
+        files: [
+          changedFile({ path: "src/small.ts" }),
+          changedFile({
+            path: "src/large.ts",
+            additions: LONG_DIFF_LINE_THRESHOLD,
+            deletions: 0,
+            patches: [
+              {
+                kind: "unstaged",
+                patch: longPatch,
+                additions: LONG_DIFF_LINE_THRESHOLD,
+                deletions: 0,
+                binary: false,
+                oversized: false,
+                truncated: false,
+                warnings: [],
+              },
+            ],
+          }),
+        ],
+      }),
+    );
     const longFile = files.find((file) => file.path === "src/large.ts");
     const defaultExpanded = initialExpandedFileSet(files);
 

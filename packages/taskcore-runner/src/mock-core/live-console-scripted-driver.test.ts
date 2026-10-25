@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { HarnessSession } from "../contracts/harness-driver.js";
-import { validatePrpEvent, type PrpEvent } from "../protocol/replay-contract.js";
+import {
+  validatePrpEvent,
+  type PrpEvent,
+} from "../protocol/replay-contract.js";
 import {
   applyPrpEvent,
   createSessionSnapshotFromMetadata,
@@ -25,7 +28,10 @@ function collector(session: HarnessSession): {
   done: Promise<void>;
 } {
   const events: PrpEvent[] = [];
-  const waiters: Array<{ eventType: string; resolve: (event: PrpEvent) => void }> = [];
+  const waiters: Array<{
+    eventType: string;
+    resolve: (event: PrpEvent) => void;
+  }> = [];
   const done = (async () => {
     for await (const event of session.events()) {
       events.push(event);
@@ -115,7 +121,9 @@ describe("Live console demo manifests", () => {
   });
 
   it("rejects an unknown manifest id", () => {
-    expect(() => findLiveConsoleDemoManifest("nope")).toThrow(/unknown Live console demo manifest/);
+    expect(() => findLiveConsoleDemoManifest("nope")).toThrow(
+      /unknown Live console demo manifest/,
+    );
   });
 });
 
@@ -137,29 +145,42 @@ describe("Live console scripted driver", () => {
       "commandExecution",
       "agentMessage",
     ]);
-    const submitted = stream.events.find((event) => event.eventType === "turn.submitted");
+    const submitted = stream.events.find(
+      (event) => event.eventType === "turn.submitted",
+    );
     expect((submitted?.payload as { text?: string }).text).toBe("Summarize.");
     await session.close({ reason: "test" });
   });
 
   it("acknowledges same-turn steering and rejects a stale turn", async () => {
     const { session, stream } = await openSession("steering", 20);
-    const { turnId } = await session.startTurn({ message: { role: "user", text: "Go." } });
+    const { turnId } = await session.startTurn({
+      message: { role: "user", text: "Go." },
+    });
     await stream.waitFor("turn.started");
-    await session.steer?.({ turnId, message: { role: "user", text: "Be brief." } });
+    await session.steer?.({
+      turnId,
+      message: { role: "user", text: "Be brief." },
+    });
 
     await tick();
     const ack = stream.events.find(
-      (event) => (event.payload as { kind?: string }).kind === "steering_acknowledgement",
+      (event) =>
+        (event.payload as { kind?: string }).kind ===
+        "steering_acknowledgement",
     );
     expect((ack?.payload as { text?: string }).text).toBe("Be brief.");
 
     await expect(
-      session.steer?.({ turnId: "turn-999", message: { role: "user", text: "Stale." } }),
+      session.steer?.({
+        turnId: "turn-999",
+        message: { role: "user", text: "Stale." },
+      }),
     ).rejects.toMatchObject({ code: "stale_turn" });
     expect(
       stream.events.some(
-        (event) => (event.payload as { code?: string }).code === "stale_turn_rejected",
+        (event) =>
+          (event.payload as { code?: string }).code === "stale_turn_rejected",
       ),
     ).toBe(true);
 
@@ -172,25 +193,36 @@ describe("Live console scripted driver", () => {
 
   it("cancels a turn interrupted before the provider accepts it", async () => {
     const { session, stream } = await openSession("interrupt-before-start");
-    const { turnId } = await session.startTurn({ message: { role: "user", text: "Slow." } });
+    const { turnId } = await session.startTurn({
+      message: { role: "user", text: "Slow." },
+    });
     await session.interrupt?.({ turnId, reason: "browser_operator" });
     await stream.waitFor("turn.cancelled");
 
-    expect(stream.events.some((event) => event.eventType === "turn.started")).toBe(false);
+    expect(
+      stream.events.some((event) => event.eventType === "turn.started"),
+    ).toBe(false);
     expect(reduce(stream.events).turnState).toBe("cancelled");
     await session.close({ reason: "test" });
   });
 
   it("keeps partial text when a streaming item is interrupted", async () => {
-    const { session, stream } = await openSession("interrupt-during-generation", 40);
-    const { turnId } = await session.startTurn({ message: { role: "user", text: "Long." } });
+    const { session, stream } = await openSession(
+      "interrupt-during-generation",
+      40,
+    );
+    const { turnId } = await session.startTurn({
+      message: { role: "user", text: "Long." },
+    });
     await stream.waitFor("item.delta");
     await session.interrupt?.({ turnId });
     await stream.waitFor("turn.interrupted");
 
     const snapshot = reduce(stream.events);
     expect(snapshot.turnState).toBe("interrupted");
-    const item = snapshot.items.find((candidate) => candidate.itemId === "assistant-1");
+    const item = snapshot.items.find(
+      (candidate) => candidate.itemId === "assistant-1",
+    );
     expect(item?.text.length).toBeGreaterThan(0);
     expect(item?.text).not.toContain("And this final one.");
     await session.close({ reason: "test" });
@@ -198,25 +230,34 @@ describe("Live console scripted driver", () => {
 
   it("keeps an interrupted tool item without fabricating a result", async () => {
     const { session, stream } = await openSession("interrupt-during-tool", 5);
-    const { turnId } = await session.startTurn({ message: { role: "user", text: "Tool." } });
+    const { turnId } = await session.startTurn({
+      message: { role: "user", text: "Tool." },
+    });
     await stream.waitFor("item.started");
     await session.interrupt?.({ turnId });
     const interrupted = await stream.waitFor("turn.interrupted");
     expect(interrupted.eventType).toBe("turn.interrupted");
 
     const completion = stream.events.find(
-      (event) => event.eventType === "item.completed" && event.itemId === "tool-1",
+      (event) =>
+        event.eventType === "item.completed" && event.itemId === "tool-1",
     );
-    expect((completion?.payload as { status?: string }).status).toBe("interrupted");
+    expect((completion?.payload as { status?: string }).status).toBe(
+      "interrupted",
+    );
     expect(completion?.payload).not.toHaveProperty("output");
     await session.close({ reason: "test" });
   });
 
   it("resolves each runtime request exactly once", async () => {
     const { session, stream } = await openSession("approvals");
-    const { turnId } = await session.startTurn({ message: { role: "user", text: "Approve." } });
+    const { turnId } = await session.startTurn({
+      message: { role: "user", text: "Approve." },
+    });
     const created = await stream.waitFor("runtime_request.created");
-    const request = (created.payload as { request: { requestId: string; actions: string[] } }).request;
+    const request = (
+      created.payload as { request: { requestId: string; actions: string[] } }
+    ).request;
     expect(request.actions).toContain("accept_for_session");
 
     await session.resolveRuntimeRequest?.({
@@ -242,33 +283,51 @@ describe("Live console scripted driver", () => {
 
   it("never puts a submitted answer into the resolution acknowledgement", async () => {
     const { session, stream } = await openSession("user-input");
-    const { turnId } = await session.startTurn({ message: { role: "user", text: "Ask." } });
+    const { turnId } = await session.startTurn({
+      message: { role: "user", text: "Ask." },
+    });
     const created = await stream.waitFor("runtime_request.created");
-    const request = (created.payload as { request: { requestId: string } }).request;
+    const request = (created.payload as { request: { requestId: string } })
+      .request;
     await session.resolveRuntimeRequest?.({
       requestId: request.requestId,
       turnId,
-      resolution: { action: "submit", answers: { environment: { answers: ["staging"] } } },
+      resolution: {
+        action: "submit",
+        answers: { environment: { answers: ["staging"] } },
+      },
     });
     await tick();
-    const resolved = stream.events.find((event) => event.eventType === "runtime_request.resolved");
+    const resolved = stream.events.find(
+      (event) => event.eventType === "runtime_request.resolved",
+    );
     expect(JSON.stringify(resolved?.payload)).not.toContain("staging");
     await session.close({ reason: "test" });
   });
 
   it("fails an elicitation submit closed unless it carries content", async () => {
     const { session, stream } = await openSession("user-input");
-    const { turnId } = await session.startTurn({ message: { role: "user", text: "Ask." } });
+    const { turnId } = await session.startTurn({
+      message: { role: "user", text: "Ask." },
+    });
     const first = await stream.waitFor("runtime_request.created");
     await session.resolveRuntimeRequest?.({
-      requestId: (first.payload as { request: { requestId: string } }).request.requestId,
+      requestId: (first.payload as { request: { requestId: string } }).request
+        .requestId,
       turnId,
-      resolution: { action: "submit", answers: { environment: { answers: ["staging"] } } },
+      resolution: {
+        action: "submit",
+        answers: { environment: { answers: ["staging"] } },
+      },
     });
 
     // `waitFor` replays the first match, so the elicitation beat is polled for
     // by kind rather than by event type.
-    type CreatedRequest = { requestId: string; requestKind: string; itemId: string };
+    type CreatedRequest = {
+      requestId: string;
+      requestKind: string;
+      itemId: string;
+    };
     let request: CreatedRequest | undefined;
     for (let attempt = 0; attempt < 50 && request === undefined; attempt += 1) {
       await tick();
@@ -277,21 +336,25 @@ describe("Live console scripted driver", () => {
         .map((event) => (event.payload as { request: CreatedRequest }).request)
         .find((candidate) => candidate.requestKind === "elicitation");
     }
-    if (request === undefined) throw new Error("the elicitation request never opened");
+    if (request === undefined)
+      throw new Error("the elicitation request never opened");
     for (const resolution of [
       { action: "submit" },
       { action: "submit", content: {} },
       { action: "submit", answers: { channel: { answers: ["stable"] } } },
     ]) {
-      await expect(session.resolveRuntimeRequest?.({
-        requestId: request.requestId,
-        turnId,
-        resolution: resolution as never,
-      })).rejects.toThrow(/elicitation rejected its resolution/);
+      await expect(
+        session.resolveRuntimeRequest?.({
+          requestId: request.requestId,
+          turnId,
+          resolution: resolution as never,
+        }),
+      ).rejects.toThrow(/elicitation rejected its resolution/);
     }
     // Every rejection left the request answerable rather than settling it.
-    expect(session.pendingRuntimeRequests?.().map(({ requestId }) => requestId))
-      .toContain(request.requestId);
+    expect(
+      session.pendingRuntimeRequests?.().map(({ requestId }) => requestId),
+    ).toContain(request.requestId);
 
     await session.resolveRuntimeRequest?.({
       requestId: request.requestId,
@@ -299,8 +362,9 @@ describe("Live console scripted driver", () => {
       resolution: { action: "submit", content: { channel: "stable" } },
     });
     await tick();
-    const resolved = stream.events.filter((event) =>
-      event.eventType === "runtime_request.resolved");
+    const resolved = stream.events.filter(
+      (event) => event.eventType === "runtime_request.resolved",
+    );
     expect(resolved.at(-1)?.payload).toEqual({
       requestId: request.requestId,
       requestKind: "elicitation",
@@ -323,14 +387,18 @@ describe("Live console scripted driver", () => {
   it("moves a goal through set, pause, resume, and clear", async () => {
     const { session, stream } = await openSession("goals");
     expect(await session.goal?.({ action: "get" })).toBeNull();
-    expect((await session.goal?.({ action: "set", objective: "Ship it" }))?.status).toBe("active");
+    expect(
+      (await session.goal?.({ action: "set", objective: "Ship it" }))?.status,
+    ).toBe("active");
     expect((await session.goal?.({ action: "pause" }))?.status).toBe("paused");
     expect((await session.goal?.({ action: "resume" }))?.status).toBe("active");
     expect(await session.goal?.({ action: "clear" })).toBeNull();
 
     await tick();
     const goalEvents = stream.events.filter((event) =>
-      ["goal", "goal_cleared"].includes((event.payload as { kind?: string }).kind ?? ""),
+      ["goal", "goal_cleared"].includes(
+        (event.payload as { kind?: string }).kind ?? "",
+      ),
     );
     expect(goalEvents).toHaveLength(4);
     await session.close({ reason: "test" });

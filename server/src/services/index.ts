@@ -4,7 +4,10 @@ export { companySearchService } from "./company-search.js";
 export { companySearchExtractService } from "./company-search-extract.js";
 export { feedbackService } from "./feedback.js";
 export { companySkillService } from "./company-skills.js";
-export { companySkillPolicyService, normalizeSkillPolicySourceType } from "./company-skill-policy.js";
+export {
+  companySkillPolicyService,
+  normalizeSkillPolicySourceType,
+} from "./company-skill-policy.js";
 export { folderService } from "./folders.js";
 export { agentService, deduplicateAgentName } from "./agents.js";
 export {
@@ -20,7 +23,10 @@ export {
   type BuiltInAgentState,
   type BuiltInAgentStatus,
 } from "./built-in-agents.js";
-export { agentInstructionsService, syncInstructionsBundleConfigFromFilePath } from "./agent-instructions.js";
+export {
+  agentInstructionsService,
+  syncInstructionsBundleConfigFromFilePath,
+} from "./agent-instructions.js";
 export { assetService } from "./assets.js";
 export { documentService, extractLegacyPlanBody } from "./documents.js";
 export { artifactReviewDocumentService } from "./artifact-review-documents.js";
@@ -42,7 +48,10 @@ export {
   type IssueFilters,
 } from "./issues.js";
 export { issueThreadInteractionService } from "./issue-thread-interactions.js";
-export { githubConnectionEventService, type GitHubConnectionEventPollResult } from "./github-connection-events.js";
+export {
+  githubConnectionEventService,
+  type GitHubConnectionEventPollResult,
+} from "./github-connection-events.js";
 export {
   assertIssueReviewVerdictActorAllowed,
   type IssueReviewVerdictActor,
@@ -73,9 +82,15 @@ export {
 } from "./external-objects.js";
 export { goalService } from "./goals.js";
 export { activityService, type ActivityFilters } from "./activity.js";
-export { workTimelineService, normalizeTimelineWindow } from "./work-timeline.js";
+export {
+  workTimelineService,
+  normalizeTimelineWindow,
+} from "./work-timeline.js";
 export { attentionService } from "./attention.js";
-export { captureDecisionSnapshot, decisionTrainingService } from "./decision-training.js";
+export {
+  captureDecisionSnapshot,
+  decisionTrainingService,
+} from "./decision-training.js";
 export { decisionService } from "./decisions.js";
 export { decisionRetentionService } from "./decision-retention.js";
 export type {
@@ -91,7 +106,10 @@ export { budgetService } from "./budgets.js";
 export { secretService } from "./secrets.js";
 export { createRunSecretRedactionRegistry } from "./run-secret-redaction.js";
 export { createSecretProposalsService } from "./secret-proposals.js";
-export { googleSheetsRobotEmailFromEnv, toolAccessService } from "./tool-access.js";
+export {
+  googleSheetsRobotEmailFromEnv,
+  toolAccessService,
+} from "./tool-access.js";
 export {
   createVercelConnectClient,
   vercelConnectIntegrationStatus,
@@ -104,7 +122,10 @@ export { toolAccessPolicyService } from "./tool-access-policy.js";
 export { routineService } from "./routines.js";
 export { costService } from "./costs.js";
 export { financeService } from "./finance.js";
-export { heartbeatService, resolveHeartbeatSchedulingSuppression } from "./heartbeat.js";
+export {
+  heartbeatService,
+  resolveHeartbeatSchedulingSuppression,
+} from "./heartbeat.js";
 export {
   runnerGoalService,
   applyRunnerGoalPrpEvent,
@@ -113,11 +134,17 @@ export {
   RunnerGoalActionError,
   RunnerGoalConflictError,
 } from "./runner-goals.js";
-export { classifyIssueGraphLiveness, type IssueLivenessFinding } from "./recovery/index.js";
+export {
+  classifyIssueGraphLiveness,
+  type IssueLivenessFinding,
+} from "./recovery/index.js";
 export { dashboardService } from "./dashboard.js";
 export { sidebarBadgeService } from "./sidebar-badges.js";
 export { sidebarPreferenceService } from "./sidebar-preferences.js";
-export { resourceMembershipService, type ResourceMembershipPolicyHook } from "./resource-memberships.js";
+export {
+  resourceMembershipService,
+  type ResourceMembershipPolicyHook,
+} from "./resource-memberships.js";
 export { inboxDismissalService } from "./inbox-dismissals.js";
 export { accessService } from "./access.js";
 export {
@@ -135,7 +162,10 @@ export type {
   AuthorizationResource,
 } from "./authorization.js";
 export { boardAuthService } from "./board-auth.js";
-export { instanceSettingsService, applyManagedExperimentalOverlay } from "./instance-settings.js";
+export {
+  instanceSettingsService,
+  applyManagedExperimentalOverlay,
+} from "./instance-settings.js";
 export {
   getManagedInstanceConfig,
   managedFeatureKeySet,
@@ -146,7 +176,10 @@ export {
 } from "./managed-config.js";
 export { bootstrapExecutionPolicyFromEnv } from "./execution-policy-bootstrap.js";
 export { applyManagedEnvironments } from "./managed-environments.js";
-export { buildExportFidelityReport, collectExportFidelityCounts } from "./export-fidelity.js";
+export {
+  buildExportFidelityReport,
+  collectExportFidelityCounts,
+} from "./export-fidelity.js";
 export { companyPortabilityService } from "./company-portability.js";
 export { teamsCatalogService } from "./teams-catalog.js";
 export { environmentService } from "./environments.js";
@@ -154,9 +187,7 @@ export {
   applyCustomImageTemplateToSandboxConfig,
   fingerprintEnvironmentSandboxProviderConfig,
 } from "./environment-custom-image-runtime.js";
-export {
-  environmentCustomImageService,
-} from "./environment-custom-images.js";
+export { environmentCustomImageService } from "./environment-custom-images.js";
 export {
   environmentCustomImageTerminalConnectionRegistry,
   environmentCustomImageTerminalSessionStore,
@@ -198,15 +229,27 @@ export {
   type ActivityPublication,
   type LogActivityInput,
 } from "./activity-log.js";
-export { summarySlotService, SUMMARIZER_BUILT_IN_KEY } from "./summary-slots.js";
-export { notifyHireApproved, type NotifyHireApprovedInput } from "./hire-hook.js";
+export {
+  summarySlotService,
+  SUMMARIZER_BUILT_IN_KEY,
+} from "./summary-slots.js";
+export {
+  notifyHireApproved,
+  type NotifyHireApprovedInput,
+} from "./hire-hook.js";
 export { publishLiveEvent, subscribeCompanyLiveEvents } from "./live-events.js";
 export {
   reconcileCodexLocalManagedHomesOnStartup,
   type CodexAuthReconciliationSummary,
 } from "./codex-auth-reconciliation.js";
-export { reconcilePersistedRuntimeServicesOnStartup, restartDesiredRuntimeServicesOnStartup } from "./workspace-runtime.js";
-export { createStorageServiceFromConfig, getStorageService } from "../storage/index.js";
+export {
+  reconcilePersistedRuntimeServicesOnStartup,
+  restartDesiredRuntimeServicesOnStartup,
+} from "./workspace-runtime.js";
+export {
+  createStorageServiceFromConfig,
+  getStorageService,
+} from "../storage/index.js";
 export {
   managedAgentProfileService,
   CLAUDE_MANAGED_BETA_VERSION,
@@ -218,4 +261,7 @@ export {
   type RemoteAgentService,
 } from "./remote-agent-profiles.js";
 
-export { decisionModelService, defineDecisionFeature } from "./decision-models.js";
+export {
+  decisionModelService,
+  defineDecisionFeature,
+} from "./decision-models.js";

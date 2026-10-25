@@ -3,5 +3,7 @@ export interface StockInstructionVariant {
   sha256: string;
   content: string;
 }
-export function classifyStockInstructionManual(content: unknown): StockInstructionVariant;
+export function classifyStockInstructionManual(
+  content: unknown,
+): StockInstructionVariant;
 export function readStockInstructionVariant(): StockInstructionVariant;

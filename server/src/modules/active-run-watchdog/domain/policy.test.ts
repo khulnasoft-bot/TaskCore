@@ -59,7 +59,14 @@ describe("domain", () => {
     });
 
     it("returns null when every timestamp is null", () => {
-      expect(silenceStartedAt({ lastOutputAt: null, processStartedAt: null, startedAt: null, createdAt: null })).toBeNull();
+      expect(
+        silenceStartedAt({
+          lastOutputAt: null,
+          processStartedAt: null,
+          startedAt: null,
+          createdAt: null,
+        }),
+      ).toBeNull();
     });
 
     it("calculates the silence age from the selected timestamp", () => {
@@ -87,19 +94,28 @@ describe("domain", () => {
     });
 
     it("returns null silence age when there is no usable timestamp", () => {
-      const run = { lastOutputAt: null, processStartedAt: null, startedAt: null, createdAt: null };
+      const run = {
+        lastOutputAt: null,
+        processStartedAt: null,
+        startedAt: null,
+        createdAt: null,
+      };
 
-      expect(silenceAgeMs(run, new Date("2026-01-01T00:00:00.000Z"))).toBeNull();
+      expect(
+        silenceAgeMs(run, new Date("2026-01-01T00:00:00.000Z")),
+      ).toBeNull();
     });
   });
 
   describe("classifySilenceLevel", () => {
-    function classifyInput(overrides: {
-      isRunningRun?: boolean;
-      silenceAgeMs?: number | null;
-      dismissedFalsePositive?: boolean;
-      snoozed?: boolean;
-    } = {}) {
+    function classifyInput(
+      overrides: {
+        isRunningRun?: boolean;
+        silenceAgeMs?: number | null;
+        dismissedFalsePositive?: boolean;
+        snoozed?: boolean;
+      } = {},
+    ) {
       return {
         isRunningRun: true,
         silenceAgeMs: null,
@@ -114,17 +130,26 @@ describe("domain", () => {
     it.each([
       {
         name: "not-applicable when the run is not running",
-        input: classifyInput({ isRunningRun: false, silenceAgeMs: CRITICAL_THRESHOLD_MS + 1 }),
+        input: classifyInput({
+          isRunningRun: false,
+          silenceAgeMs: CRITICAL_THRESHOLD_MS + 1,
+        }),
         expected: "not_applicable",
       },
       {
         name: "not-applicable when the run has a permanent false-positive dismissal",
-        input: classifyInput({ dismissedFalsePositive: true, silenceAgeMs: CRITICAL_THRESHOLD_MS + 1 }),
+        input: classifyInput({
+          dismissedFalsePositive: true,
+          silenceAgeMs: CRITICAL_THRESHOLD_MS + 1,
+        }),
         expected: "not_applicable",
       },
       {
         name: "snoozed when a snooze or continue decision is active",
-        input: classifyInput({ snoozed: true, silenceAgeMs: CRITICAL_THRESHOLD_MS + 1 }),
+        input: classifyInput({
+          snoozed: true,
+          silenceAgeMs: CRITICAL_THRESHOLD_MS + 1,
+        }),
         expected: "snoozed",
       },
       {
@@ -161,7 +186,9 @@ describe("domain", () => {
     });
 
     it("re-arms the watchdog once the continue decision's snooze window has passed", () => {
-      expect(evaluateSuppression({ snoozedOrContinued: false })).toEqual({ suppressed: false });
+      expect(evaluateSuppression({ snoozedOrContinued: false })).toEqual({
+        suppressed: false,
+      });
     });
 
     it("suppresses a run permanently after a false-positive decision", () => {
@@ -217,19 +244,28 @@ describe("domain", () => {
   describe("shouldFoldTerminalSource", () => {
     it("folds a terminal source only with same-run terminal evidence", () => {
       expect(
-        shouldFoldTerminalSource({ sourceIssueStatus: "done", hasSameRunTerminalEvidence: true }),
+        shouldFoldTerminalSource({
+          sourceIssueStatus: "done",
+          hasSameRunTerminalEvidence: true,
+        }),
       ).toBe(true);
     });
 
     it("does not fold a terminal source without same-run terminal evidence", () => {
       expect(
-        shouldFoldTerminalSource({ sourceIssueStatus: "done", hasSameRunTerminalEvidence: false }),
+        shouldFoldTerminalSource({
+          sourceIssueStatus: "done",
+          hasSameRunTerminalEvidence: false,
+        }),
       ).toBe(false);
     });
 
     it("does not fold a non-terminal source even with evidence present", () => {
       expect(
-        shouldFoldTerminalSource({ sourceIssueStatus: "in_progress", hasSameRunTerminalEvidence: true }),
+        shouldFoldTerminalSource({
+          sourceIssueStatus: "in_progress",
+          hasSameRunTerminalEvidence: true,
+        }),
       ).toBe(false);
     });
   });

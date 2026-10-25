@@ -5,11 +5,14 @@ export function ConnectionProvenanceChip({
   connection,
   className,
 }: {
-  connection: {
-    config?: Record<string, unknown> | null;
-    credentialSource?: string;
-    externalCredential?: { connectorUid?: string } | null;
-  } | null | undefined;
+  connection:
+    | {
+        config?: Record<string, unknown> | null;
+        credentialSource?: string;
+        externalCredential?: { connectorUid?: string } | null;
+      }
+    | null
+    | undefined;
   className?: string;
 }) {
   const chipClass = cn(
@@ -21,7 +24,11 @@ export function ConnectionProvenanceChip({
     return (
       <span
         className={chipClass}
-        title={connectorUid ? `Credentials managed by Vercel Connect (${connectorUid})` : "Credentials managed by Vercel Connect"}
+        title={
+          connectorUid
+            ? `Credentials managed by Vercel Connect (${connectorUid})`
+            : "Credentials managed by Vercel Connect"
+        }
       >
         <Blocks className="h-3 w-3" />
         via Vercel Connect

@@ -19,7 +19,10 @@ export {
 
 export function SkillsContextualSidebar() {
   const location = useLocation();
-  const activeView = resolveSkillsNavigationView(location.pathname, location.search);
+  const activeView = resolveSkillsNavigationView(
+    location.pathname,
+    location.search,
+  );
 
   return (
     <ContextualSidebarFrame
@@ -35,7 +38,10 @@ export function SkillsContextualSidebar() {
         data-slot="contextual-sidebar-nav"
         className={contextualSidebarStyles.nav}
       >
-        <div data-slot="contextual-sidebar-group" className={contextualSidebarStyles.group}>
+        <div
+          data-slot="contextual-sidebar-group"
+          className={contextualSidebarStyles.group}
+        >
           <SidebarNavItem
             to={SKILLS_NAVIGATION_HREFS.installed}
             label="Installed"
@@ -50,10 +56,18 @@ export function SkillsContextualSidebar() {
             active={activeView === "discover"}
             end
           />
-          <SidebarNavItem to={SKILLS_NAVIGATION_HREFS.sources} label="Sources" icon={GithubIcon} active={activeView === "sources"} />
+          <SidebarNavItem
+            to={SKILLS_NAVIGATION_HREFS.sources}
+            label="Sources"
+            icon={GithubIcon}
+            active={activeView === "sources"}
+          />
         </div>
 
-        <div data-slot="contextual-sidebar-section" className={contextualSidebarStyles.section}>
+        <div
+          data-slot="contextual-sidebar-section"
+          className={contextualSidebarStyles.section}
+        >
           <div
             data-slot="contextual-sidebar-section-label"
             className={contextualSidebarStyles.sectionLabel}
@@ -66,7 +80,10 @@ export function SkillsContextualSidebar() {
           >
             Skills you create, edit, and test.
           </p>
-          <div data-slot="contextual-sidebar-group" className={contextualSidebarStyles.group}>
+          <div
+            data-slot="contextual-sidebar-group"
+            className={contextualSidebarStyles.group}
+          >
             <SidebarNavItem
               to={SKILLS_NAVIGATION_HREFS.authored}
               label="My Skills"

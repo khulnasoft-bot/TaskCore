@@ -17,7 +17,10 @@ export const DISPOSITION_LABEL: Record<CapabilityPrimaryDisposition, string> = {
   optional_agent_tool: "Optional tool",
 };
 
-export const DISPOSITION_TONE: Record<CapabilityPrimaryDisposition, "neutral" | "accent" | "success"> = {
+export const DISPOSITION_TONE: Record<
+  CapabilityPrimaryDisposition,
+  "neutral" | "accent" | "success"
+> = {
   control_plane_owned: "neutral",
   always_agent_tool: "success",
   optional_agent_tool: "accent",
@@ -46,7 +49,10 @@ export const PARITY_ICON: Record<CapabilityParityStatus, string> = {
   not_run: "○",
 };
 
-export const PARITY_TONE: Record<CapabilityParityStatus, "success" | "danger" | "warning" | "neutral"> = {
+export const PARITY_TONE: Record<
+  CapabilityParityStatus,
+  "success" | "danger" | "warning" | "neutral"
+> = {
   pass: "success",
   fail: "danger",
   intentional_gap: "warning",

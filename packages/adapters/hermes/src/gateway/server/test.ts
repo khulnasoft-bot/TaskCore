@@ -11,7 +11,9 @@ import {
   remotePlainHttpDeniedMessage,
 } from "./transport-security.js";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -22,7 +24,10 @@ const HERMES_DASHBOARD_API_PATHS = new Set(["", "/", "/chat"]);
 
 function isDefaultDashboardApiEntry(url: URL): boolean {
   const normalizedPath = url.pathname.replace(/\/+$/, "") || "/";
-  return url.port === DEFAULT_HERMES_DASHBOARD_PORT && HERMES_DASHBOARD_API_PATHS.has(normalizedPath);
+  return (
+    url.port === DEFAULT_HERMES_DASHBOARD_PORT &&
+    HERMES_DASHBOARD_API_PATHS.has(normalizedPath)
+  );
 }
 
 function normalizeBaseUrl(value: string): URL | null {
@@ -45,21 +50,30 @@ function apiUrl(baseUrl: URL, path: string): string {
 
 function errorDetail(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err);
-  const cause = err instanceof Error ? (err as { cause?: unknown }).cause : null;
+  const cause =
+    err instanceof Error ? (err as { cause?: unknown }).cause : null;
   if (!cause || typeof cause !== "object") return message;
 
   const causeRecord = cause as { code?: unknown; message?: unknown };
-  const causeMessage = typeof causeRecord.message === "string" ? causeRecord.message : "";
-  const causeCode = typeof causeRecord.code === "string" ? causeRecord.code : "";
-  if (!causeMessage || causeMessage === message) return causeCode ? `${message} (${causeCode})` : message;
-  return causeCode ? `${message} (${causeCode}: ${causeMessage})` : `${message} (${causeMessage})`;
+  const causeMessage =
+    typeof causeRecord.message === "string" ? causeRecord.message : "";
+  const causeCode =
+    typeof causeRecord.code === "string" ? causeRecord.code : "";
+  if (!causeMessage || causeMessage === message)
+    return causeCode ? `${message} (${causeCode})` : message;
+  return causeCode
+    ? `${message} (${causeCode}: ${causeMessage})`
+    : `${message} (${causeMessage})`;
 }
 
 export async function testEnvironment(
   ctx: AdapterEnvironmentTestContext,
 ): Promise<AdapterEnvironmentTestResult> {
   const checks: AdapterEnvironmentCheck[] = [];
-  const apiBaseUrl = asString(ctx.config.apiBaseUrl ?? ctx.config.url, "").trim();
+  const apiBaseUrl = asString(
+    ctx.config.apiBaseUrl ?? ctx.config.url,
+    "",
+  ).trim();
   const apiKey = asString(ctx.config.apiKey ?? ctx.config.token, "").trim();
 
   if (!apiBaseUrl) {
@@ -72,7 +86,9 @@ export async function testEnvironment(
   }
 
   const parsed = apiBaseUrl ? normalizeBaseUrl(apiBaseUrl) : null;
-  const mappedDefaultDashboardRoot = Boolean(parsed && isDefaultDashboardApiEntry(new URL(apiBaseUrl)));
+  const mappedDefaultDashboardRoot = Boolean(
+    parsed && isDefaultDashboardApiEntry(new URL(apiBaseUrl)),
+  );
   if (apiBaseUrl && !parsed) {
     checks.push({
       code: "hermes_gateway_api_base_url_invalid",
@@ -99,7 +115,11 @@ export async function testEnvironment(
     });
   }
 
-  if (parsed && isRemotePlainHttp(parsed) && !allowsInsecureRemoteHttp(ctx.config)) {
+  if (
+    parsed &&
+    isRemotePlainHttp(parsed) &&
+    !allowsInsecureRemoteHttp(ctx.config)
+  ) {
     checks.push({
       code: "hermes_gateway_plain_http_remote_denied",
       level: "error",
@@ -110,10 +130,14 @@ export async function testEnvironment(
     checks.push({
       code: "hermes_gateway_plain_http_remote_unsafe_allowed",
       level: "warn",
-      message: "Unsafe dev escape hatch enabled for non-loopback HTTP Hermes traffic.",
+      message:
+        "Unsafe dev escape hatch enabled for non-loopback HTTP Hermes traffic.",
       hint: "Remove the escape hatch and use HTTPS before using this gateway for real credentials.",
     });
-  } else if (parsed?.protocol === "http:" && isLoopbackHostname(parsed.hostname)) {
+  } else if (
+    parsed?.protocol === "http:" &&
+    isLoopbackHostname(parsed.hostname)
+  ) {
     checks.push({
       code: "hermes_gateway_loopback_http_allowed",
       level: "info",
@@ -141,7 +165,9 @@ export async function testEnvironment(
       signal: AbortSignal.timeout(2_000),
     });
     checks.push({
-      code: response.ok ? "hermes_gateway_health_ok" : "hermes_gateway_health_failed",
+      code: response.ok
+        ? "hermes_gateway_health_ok"
+        : "hermes_gateway_health_failed",
       level: response.ok ? "info" : "error",
       message: response.ok
         ? "Hermes Gateway health endpoint is reachable."

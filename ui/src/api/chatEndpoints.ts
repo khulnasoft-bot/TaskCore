@@ -21,7 +21,13 @@ export type {
 } from "@taskcore/shared";
 
 export type ChatProvider =
-  "slack" | "github" | "discord" | "microsoft-teams" | "telegram" | "agentmail" | "imessage-photon";
+  | "slack"
+  | "github"
+  | "discord"
+  | "microsoft-teams"
+  | "telegram"
+  | "agentmail"
+  | "imessage-photon";
 export type ChatEndpointStatus =
   | "draft"
   | "verifying"
@@ -201,12 +207,14 @@ export const chatEndpointsApi = {
     api.get<ChatEndpoint>(`/chat-endpoints/${endpointId}`),
   create: (
     companyId: string,
-    input: { provider: ChatProvider; assignedAgentId: string; slackApp?: SlackAppConfiguration },
+    input: {
+      provider: ChatProvider;
+      assignedAgentId: string;
+      slackApp?: SlackAppConfiguration;
+    },
   ) => api.post<ChatEndpoint>(`/companies/${companyId}/chat-endpoints`, input),
-  update: (
-    endpointId: string,
-    input: UpdateChatEndpointInput,
-  ) => api.patch<ChatEndpoint>(`/chat-endpoints/${endpointId}`, input),
+  update: (endpointId: string, input: UpdateChatEndpointInput) =>
+    api.patch<ChatEndpoint>(`/chat-endpoints/${endpointId}`, input),
   setup: (
     endpointId: string,
     input: {
@@ -216,13 +224,25 @@ export const chatEndpointsApi = {
     },
   ) => api.post<ChatEndpoint>(`/chat-endpoints/${endpointId}/setup`, input),
   createSlackApp: (endpointId: string, input: SlackRegistrationInput) =>
-    api.post<ChatEndpoint>(`/chat-endpoints/${endpointId}/slack/registration`, input),
+    api.post<ChatEndpoint>(
+      `/chat-endpoints/${endpointId}/slack/registration`,
+      input,
+    ),
   installSlackApp: (endpointId: string) =>
-    api.post<SlackInstallAuthorization>(`/chat-endpoints/${endpointId}/slack/install`, {}),
+    api.post<SlackInstallAuthorization>(
+      `/chat-endpoints/${endpointId}/slack/install`,
+      {},
+    ),
   resumeSlackInstallation: (endpointId: string) =>
     api.post<ChatEndpoint>(`/chat-endpoints/${endpointId}/slack/resume`, {}),
-  inspectPhoton: (endpointId: string, input: { projectId: string; projectSecret: string }) =>
-    api.post<PhotonProjectInspection>(`/chat-endpoints/${endpointId}/photon/inspect`, input),
+  inspectPhoton: (
+    endpointId: string,
+    input: { projectId: string; projectSecret: string },
+  ) =>
+    api.post<PhotonProjectInspection>(
+      `/chat-endpoints/${endpointId}/photon/inspect`,
+      input,
+    ),
   generateSetupSecret: (endpointId: string) =>
     api.post<ChatEndpointSetupSecret>(
       `/chat-endpoints/${endpointId}/setup-secret`,
@@ -230,9 +250,17 @@ export const chatEndpointsApi = {
     ),
   test: (endpointId: string) =>
     api.post<ChatEndpoint>(`/chat-endpoints/${endpointId}/test`, {}),
-  finishSlackSetup: (endpointId: string) => api.post<ChatEndpoint>(`/chat-endpoints/${endpointId}/finish`, {}),
-  setupTestStatus: (endpointId: string) => api.get<{ messageReceivedAt: string | null }>(`/chat-endpoints/${endpointId}/test-status`),
-  requestIdentityAccess: (token: string) => api.post<{ status: "member" | "pending_approval" }>("/chat-identity-links/request-access", { token }),
+  finishSlackSetup: (endpointId: string) =>
+    api.post<ChatEndpoint>(`/chat-endpoints/${endpointId}/finish`, {}),
+  setupTestStatus: (endpointId: string) =>
+    api.get<{ messageReceivedAt: string | null }>(
+      `/chat-endpoints/${endpointId}/test-status`,
+    ),
+  requestIdentityAccess: (token: string) =>
+    api.post<{ status: "member" | "pending_approval" }>(
+      "/chat-identity-links/request-access",
+      { token },
+    ),
   listResources: async (endpointId: string) =>
     rows(
       await api.get<ListResponse<ChatEndpointResource>>(

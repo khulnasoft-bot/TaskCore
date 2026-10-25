@@ -13,7 +13,9 @@
  *   - drop query string + fragment
  *   - default empty pathname to `/`
  */
-export function normalizeExternalObjectHref(value: string | null | undefined): string | null {
+export function normalizeExternalObjectHref(
+  value: string | null | undefined,
+): string | null {
   if (!value) return null;
 
   let url: URL;

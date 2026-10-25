@@ -89,8 +89,14 @@ export function AsciiArtAnimation() {
     }
 
     function rebuildGrid() {
-      const nextCols = Math.max(0, Math.ceil(preEl.clientWidth / Math.max(1, charW)));
-      const nextRows = Math.max(0, Math.ceil(preEl.clientHeight / Math.max(1, charH)));
+      const nextCols = Math.max(
+        0,
+        Math.ceil(preEl.clientWidth / Math.max(1, charW)),
+      );
+      const nextRows = Math.max(
+        0,
+        Math.ceil(preEl.clientHeight / Math.max(1, charH)),
+      );
       if (nextCols === cols && nextRows === rows) return;
 
       cols = nextCols;
@@ -117,10 +123,15 @@ export function AsciiArtAnimation() {
         return;
       }
 
-      const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => " "));
+      const grid = Array.from({ length: rows }, () =>
+        Array.from({ length: cols }, () => " "),
+      );
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          const ambient = (Math.sin(c * 0.11 + r * 0.04) + Math.cos(r * 0.08 - c * 0.02)) * 0.18 + 0.22;
+          const ambient =
+            (Math.sin(c * 0.11 + r * 0.04) + Math.cos(r * 0.08 - c * 0.02)) *
+              0.18 +
+            0.22;
           grid[r]![c] = toGlyph(ambient);
         }
       }
@@ -130,7 +141,8 @@ export function AsciiArtAnimation() {
       for (let baseRow = 1; baseRow < rows - 9; baseRow += gapY) {
         const startX = Math.floor(baseRow / gapY) % 2 === 0 ? 2 : 10;
         for (let baseCol = startX; baseCol < cols - 10; baseCol += gapX) {
-          const sprite = TASKCORE_SPRITES[(baseCol + baseRow) % TASKCORE_SPRITES.length]!;
+          const sprite =
+            TASKCORE_SPRITES[(baseCol + baseRow) % TASKCORE_SPRITES.length]!;
           for (let sr = 0; sr < sprite.length; sr++) {
             const line = sprite[sr]!;
             for (let sc = 0; sc < line.length; sc++) {
@@ -151,7 +163,8 @@ export function AsciiArtAnimation() {
     }
 
     function spawnClip() {
-      const sprite = TASKCORE_SPRITES[Math.floor(Math.random() * TASKCORE_SPRITES.length)]!;
+      const sprite =
+        TASKCORE_SPRITES[Math.floor(Math.random() * TASKCORE_SPRITES.length)]!;
       const size = spriteSize(sprite);
       const edge = Math.random();
       let x = 0;
@@ -162,13 +175,17 @@ export function AsciiArtAnimation() {
       if (edge < 0.68) {
         x = Math.random() < 0.5 ? -size.width - 1 : cols + 1;
         y = Math.random() * Math.max(1, rows - size.height);
-        vx = x < 0 ? 0.04 + Math.random() * 0.05 : -(0.04 + Math.random() * 0.05);
+        vx =
+          x < 0 ? 0.04 + Math.random() * 0.05 : -(0.04 + Math.random() * 0.05);
         vy = (Math.random() - 0.5) * 0.014;
       } else {
         x = Math.random() * Math.max(1, cols - size.width);
         y = Math.random() < 0.5 ? -size.height - 1 : rows + 1;
         vx = (Math.random() - 0.5) * 0.014;
-        vy = y < 0 ? 0.028 + Math.random() * 0.034 : -(0.028 + Math.random() * 0.034);
+        vy =
+          y < 0
+            ? 0.028 + Math.random() * 0.034
+            : -(0.028 + Math.random() * 0.034);
       }
 
       clips.push({
@@ -208,9 +225,13 @@ export function AsciiArtAnimation() {
     function step(time: number) {
       if (!loopActive) return;
       frameRef.current = requestAnimationFrame(step);
-      if (time - lastRenderAt < FRAME_INTERVAL_MS || cols <= 0 || rows <= 0) return;
+      if (time - lastRenderAt < FRAME_INTERVAL_MS || cols <= 0 || rows <= 0)
+        return;
 
-      const delta = Math.min(2, lastRenderAt === 0 ? 1 : (time - lastRenderAt) / 16.6667);
+      const delta = Math.min(
+        2,
+        lastRenderAt === 0 ? 1 : (time - lastRenderAt) / 16.6667,
+      );
       lastRenderAt = time;
       tick += delta;
 
@@ -225,8 +246,10 @@ export function AsciiArtAnimation() {
         const clip = clips[i]!;
         clip.life += delta;
 
-        const wobbleX = Math.sin((clip.y + clip.drift + tick * 0.12) * 0.09) * 0.0018;
-        const wobbleY = Math.cos((clip.x - clip.drift - tick * 0.09) * 0.08) * 0.0014;
+        const wobbleX =
+          Math.sin((clip.y + clip.drift + tick * 0.12) * 0.09) * 0.0018;
+        const wobbleY =
+          Math.cos((clip.x - clip.drift - tick * 0.09) * 0.08) * 0.0014;
         clip.vx = (clip.vx + wobbleX) * 0.998;
         clip.vy = (clip.vy + wobbleY) * 0.998;
 
@@ -245,12 +268,15 @@ export function AsciiArtAnimation() {
         }
 
         const life = clip.life / clip.maxLife;
-        const alpha = life < 0.12 ? life / 0.12 : life > 0.88 ? (1 - life) / 0.12 : 1;
+        const alpha =
+          life < 0.12 ? life / 0.12 : life > 0.88 ? (1 - life) / 0.12 : 1;
         stampClip(clip, alpha);
       }
 
-      for (let c = 0; c < cols; c++) colWave[c] = Math.sin(c * 0.08 + tick * 0.06);
-      for (let r = 0; r < rows; r++) rowWave[r] = Math.cos(r * 0.1 - tick * 0.05);
+      for (let c = 0; c < cols; c++)
+        colWave[c] = Math.sin(c * 0.08 + tick * 0.06);
+      for (let r = 0; r < rows; r++)
+        rowWave[r] = Math.cos(r * 0.1 - tick * 0.05);
 
       let output = "";
       for (let r = 0; r < rows; r++) {
@@ -262,7 +288,11 @@ export function AsciiArtAnimation() {
             continue;
           }
 
-          const ambient = 0.2 + colWave[c]! * 0.08 + rowWave[r]! * 0.06 + Math.sin((c + r) * 0.1 + tick * 0.035) * 0.05;
+          const ambient =
+            0.2 +
+            colWave[c]! * 0.08 +
+            rowWave[r]! * 0.06 +
+            Math.sin((c + r) * 0.1 + tick * 0.035) * 0.05;
           output += toGlyph((trail[idx] ?? 0) + ambient);
         }
         if (r < rows - 1) output += "\n";
@@ -351,7 +381,8 @@ export function AsciiArtAnimation() {
           width: "100%",
           height: "100%",
           padding: "14px",
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace",
+          fontFamily:
+            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace",
           fontSize: "11px",
           lineHeight: 1,
           whiteSpace: "pre",

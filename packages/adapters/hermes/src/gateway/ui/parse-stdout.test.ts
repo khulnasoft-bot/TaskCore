@@ -12,7 +12,9 @@ describe("parseHermesGatewayStdoutLine — reasoning.available payload extractio
   // and PASSES once the real reasoning text is extracted from `data`.
   it("uses the real reasoning text from data.text instead of the hardcoded placeholder", () => {
     const result = parseHermesGatewayStdoutLine(
-      eventLine("reasoning.available", { text: "Considering three approaches to the cache invalidation bug." }),
+      eventLine("reasoning.available", {
+        text: "Considering three approaches to the cache invalidation bug.",
+      }),
       TS,
     );
     expect(result).toHaveLength(1);
@@ -26,7 +28,9 @@ describe("parseHermesGatewayStdoutLine — reasoning.available payload extractio
 
   it("uses the real reasoning text from data.summary", () => {
     const result = parseHermesGatewayStdoutLine(
-      eventLine("reasoning.available", { summary: "Weighing tradeoffs between two refactor strategies." }),
+      eventLine("reasoning.available", {
+        summary: "Weighing tradeoffs between two refactor strategies.",
+      }),
       TS,
     );
     expect(result).toHaveLength(1);
@@ -39,7 +43,9 @@ describe("parseHermesGatewayStdoutLine — reasoning.available payload extractio
 
   it("recurses one level into a nested data.data record to find the reasoning text", () => {
     const result = parseHermesGatewayStdoutLine(
-      eventLine("reasoning.available", { data: { text: "Nested reasoning payload from gateway wrapper." } }),
+      eventLine("reasoning.available", {
+        data: { text: "Nested reasoning payload from gateway wrapper." },
+      }),
       TS,
     );
     expect(result).toHaveLength(1);
@@ -52,7 +58,9 @@ describe("parseHermesGatewayStdoutLine — reasoning.available payload extractio
 
   it("recurses one level into a nested data.payload record to find the reasoning text", () => {
     const result = parseHermesGatewayStdoutLine(
-      eventLine("reasoning.available", { payload: { reasoning: "Nested via payload wrapper instead of data." } }),
+      eventLine("reasoning.available", {
+        payload: { reasoning: "Nested via payload wrapper instead of data." },
+      }),
       TS,
     );
     expect(result).toHaveLength(1);
@@ -69,7 +77,11 @@ describe("parseHermesGatewayStdoutLine — reasoning.available payload extractio
       TS,
     );
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({ kind: "thinking", ts: TS, text: "Hermes reasoning available" });
+    expect(result[0]).toEqual({
+      kind: "thinking",
+      ts: TS,
+      text: "Hermes reasoning available",
+    });
   });
 
   it("falls back to the placeholder when data is entirely absent/unparseable", () => {
@@ -78,7 +90,11 @@ describe("parseHermesGatewayStdoutLine — reasoning.available payload extractio
       TS,
     );
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({ kind: "thinking", ts: TS, text: "Hermes reasoning available" });
+    expect(result[0]).toEqual({
+      kind: "thinking",
+      ts: TS,
+      text: "Hermes reasoning available",
+    });
   });
 });
 
@@ -89,12 +105,24 @@ describe("parseHermesGatewayStdoutLine — regression guards for unrelated handl
       TS,
     );
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({ kind: "assistant", ts: TS, text: "Hello there", delta: true });
+    expect(result[0]).toEqual({
+      kind: "assistant",
+      ts: TS,
+      text: "Hello there",
+      delta: true,
+    });
   });
 
   it("still yields a stdout part for a plain non-event line", () => {
-    const result = parseHermesGatewayStdoutLine("just a plain line of output", TS);
+    const result = parseHermesGatewayStdoutLine(
+      "just a plain line of output",
+      TS,
+    );
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({ kind: "stdout", ts: TS, text: "just a plain line of output" });
+    expect(result[0]).toEqual({
+      kind: "stdout",
+      ts: TS,
+      text: "just a plain line of output",
+    });
   });
 });

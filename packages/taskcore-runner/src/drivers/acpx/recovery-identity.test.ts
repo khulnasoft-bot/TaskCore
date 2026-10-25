@@ -1,5 +1,12 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, parse } from "node:path";
 
@@ -28,7 +35,15 @@ afterEach(async () => {
 describe("ACPX recovery identity", () => {
   it("preserves the pre-manifest Cursor recovery profile identity", async () => {
     const fixture = await recoveryFixture();
-    const historical = JSON.parse(await readFile(new URL("../../../test/fixtures/cursor-acp/pre-manifest-recovery-identity.json", import.meta.url), "utf8"));
+    const historical = JSON.parse(
+      await readFile(
+        new URL(
+          "../../../test/fixtures/cursor-acp/pre-manifest-recovery-identity.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
     const requestedModel = historical.profile.qualificationModel;
     const binding = await createAcpxRecoveryBinding({
       ...fixture.input,
@@ -36,7 +51,9 @@ describe("ACPX recovery identity", () => {
       profile: historical.profile,
     });
     const current = await createAcpxRecoveryBinding({
-      ...fixture.input, requestedModel, profile: resolveQualifiedAcpxProfile("cursor", requestedModel),
+      ...fixture.input,
+      requestedModel,
+      profile: resolveQualifiedAcpxProfile("cursor", requestedModel),
     });
     expect(current.profileDigest).not.toBe(binding.profileDigest);
     // Captured from e75fde6098b0ddd8cec765bfb6ecaeecb88a26a6 before
@@ -96,17 +113,34 @@ describe("ACPX recovery identity", () => {
 
   it("rejects restoration across task execution-policy changes", async () => {
     const fixture = await recoveryFixture();
-    const readonly = await createAcpxRecoveryBinding({ ...fixture.input, providerPolicy: { readOnly: true } });
-    const writable = await createAcpxRecoveryBinding({ ...fixture.input, providerPolicy: { readOnly: false } });
+    const readonly = await createAcpxRecoveryBinding({
+      ...fixture.input,
+      providerPolicy: { readOnly: true },
+    });
+    const writable = await createAcpxRecoveryBinding({
+      ...fixture.input,
+      providerPolicy: { readOnly: false },
+    });
     const record = createAcpxIdentityRecord(fixture.expected, readonly);
     expect(readonly.profileSessionKey).not.toBe(writable.profileSessionKey);
     expect(readonly.profileDigest).not.toBe(writable.profileDigest);
-    expect(() => verifyExpectedAcpxIdentity(fixture.expected, writable, record)).toThrow("persisted runtime record");
-    const changedRoots = await createAcpxRecoveryBinding({ ...fixture.input,
-      providerPolicy: { readOnly: true, protectedPaths: ["/another-protected-root"] } });
+    expect(() =>
+      verifyExpectedAcpxIdentity(fixture.expected, writable, record),
+    ).toThrow("persisted runtime record");
+    const changedRoots = await createAcpxRecoveryBinding({
+      ...fixture.input,
+      providerPolicy: {
+        readOnly: true,
+        protectedPaths: ["/another-protected-root"],
+      },
+    });
     expect(changedRoots.profileSessionKey).not.toBe(readonly.profileSessionKey);
-    await expect(createAcpxRecoveryBinding({ ...fixture.input,
-      providerPolicy: { readOnly: "yes" as never } })).rejects.toThrow("valid task execution policy");
+    await expect(
+      createAcpxRecoveryBinding({
+        ...fixture.input,
+        providerPolicy: { readOnly: "yes" as never },
+      }),
+    ).rejects.toThrow("valid task execution policy");
   });
 
   it("uses collision-resistant roots and policy-bound provider keys", async () => {

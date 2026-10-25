@@ -59,6 +59,10 @@ export const writeSummarySlotSchema = z
   })
   .strict();
 
-export type SummarySlotScopeSelectorInput = z.infer<typeof summarySlotScopeSelectorSchema>;
-export type GenerateSummarySlotInput = z.infer<typeof generateSummarySlotSchema>;
+export type SummarySlotScopeSelectorInput = z.infer<
+  typeof summarySlotScopeSelectorSchema
+>;
+export type GenerateSummarySlotInput = z.infer<
+  typeof generateSummarySlotSchema
+>;
 export type WriteSummarySlotInput = z.infer<typeof writeSummarySlotSchema>;

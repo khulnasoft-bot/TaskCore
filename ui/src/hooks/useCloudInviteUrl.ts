@@ -30,7 +30,10 @@ export function useCloudInviteUrl(): string | null {
     retry: false,
   });
   if (!cloud || cloudStacksQuery.isError) return null;
-  const currentStack = cloudStacksQuery.data?.stacks.find((stack) => stack.isCurrent);
-  if (currentStack?.role !== "owner" && currentStack?.role !== "admin") return null;
+  const currentStack = cloudStacksQuery.data?.stacks.find(
+    (stack) => stack.isCurrent,
+  );
+  if (currentStack?.role !== "owner" && currentStack?.role !== "admin")
+    return null;
   return cloudStackInviteUrl(cloud.cloudBaseUrl, currentStack.stackSlug);
 }

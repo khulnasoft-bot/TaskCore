@@ -1,6 +1,10 @@
 import { createReadStream, existsSync, statSync, watch } from "node:fs";
 import { mkdir, readdir, stat } from "node:fs/promises";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 
@@ -38,7 +42,10 @@ function normalizeFilePath(baseDir: string, reqPath: string): string {
   const resolved = pathname === "/" ? "/index.js" : pathname;
   const absolute = path.resolve(baseDir, `.${resolved}`);
   const normalizedBase = `${path.resolve(baseDir)}${path.sep}`;
-  if (!absolute.startsWith(normalizedBase) && absolute !== path.resolve(baseDir)) {
+  if (
+    !absolute.startsWith(normalizedBase) &&
+    absolute !== path.resolve(baseDir)
+  ) {
     throw new Error("path traversal blocked");
   }
   return absolute;
@@ -67,7 +74,7 @@ async function listFilesRecursive(dir: string): Promise<string[]> {
   for (const entry of entries) {
     const abs = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      out.push(...await listFilesRecursive(abs));
+      out.push(...(await listFilesRecursive(abs)));
     } else if (entry.isFile()) {
       out.push(abs);
     }
@@ -75,30 +82,44 @@ async function listFilesRecursive(dir: string): Promise<string[]> {
   return out;
 }
 
-function snapshotSignature(rows: Array<{ file: string; mtimeMs: number }>): string {
+function snapshotSignature(
+  rows: Array<{ file: string; mtimeMs: number }>,
+): string {
   return rows.map((row) => `${row.file}:${Math.trunc(row.mtimeMs)}`).join("|");
 }
 
-async function startUiWatcher(uiDir: string, onReload: (filePath: string) => void): Promise<Closeable> {
+async function startUiWatcher(
+  uiDir: string,
+  onReload: (filePath: string) => void,
+): Promise<Closeable> {
   try {
     // macOS/Windows support recursive native watching.
-    const watcher = watch(uiDir, { recursive: true }, (_eventType, filename) => {
-      if (!filename) return;
-      onReload(path.join(uiDir, filename));
-    });
+    const watcher = watch(
+      uiDir,
+      { recursive: true },
+      (_eventType, filename) => {
+        if (!filename) return;
+        onReload(path.join(uiDir, filename));
+      },
+    );
     return watcher;
   } catch {
     // Linux may reject recursive watch. Fall back to polling snapshots.
     let previous = snapshotSignature(
-      (await getUiBuildSnapshot(path.dirname(uiDir), path.basename(uiDir))).map((row) => ({
-        file: row.file,
-        mtimeMs: row.mtimeMs,
-      })),
+      (await getUiBuildSnapshot(path.dirname(uiDir), path.basename(uiDir))).map(
+        (row) => ({
+          file: row.file,
+          mtimeMs: row.mtimeMs,
+        }),
+      ),
     );
 
     const timer = setInterval(async () => {
       try {
-        const nextRows = await getUiBuildSnapshot(path.dirname(uiDir), path.basename(uiDir));
+        const nextRows = await getUiBuildSnapshot(
+          path.dirname(uiDir),
+          path.basename(uiDir),
+        );
         const next = snapshotSignature(nextRows);
         if (next === previous) return;
         previous = next;
@@ -124,7 +145,9 @@ async function startUiWatcher(uiDir: string, onReload: (filePath: string) => voi
  * - `GET /__taskcore__/events` for hot-reload stream
  * - Any other path serves files from the configured UI build directory
  */
-export async function startPluginDevServer(options: PluginDevServerOptions = {}): Promise<PluginDevServer> {
+export async function startPluginDevServer(
+  options: PluginDevServerOptions = {},
+): Promise<PluginDevServer> {
   const rootDir = path.resolve(options.rootDir ?? process.cwd());
   const uiDir = path.resolve(rootDir, options.uiDir ?? "dist/ui");
   const host = options.host ?? "127.0.0.1";
@@ -177,7 +200,11 @@ export async function startPluginDevServer(options: PluginDevServerOptions = {})
 
   const notifyReload = (filePath: string) => {
     const rel = path.relative(uiDir, filePath);
-    const payload = JSON.stringify({ type: "reload", file: rel, at: new Date().toISOString() });
+    const payload = JSON.stringify({
+      type: "reload",
+      file: rel,
+      at: new Date().toISOString(),
+    });
     for (const client of sseClients) {
       client.write(`event: reload\ndata: ${payload}\n\n`);
     }
@@ -191,7 +218,10 @@ export async function startPluginDevServer(options: PluginDevServerOptions = {})
   });
 
   const address = server.address();
-  const actualPort = address && typeof address === "object" ? (address as AddressInfo).port : port;
+  const actualPort =
+    address && typeof address === "object"
+      ? (address as AddressInfo).port
+      : port;
 
   return {
     url: `http://${host}:${actualPort}`,
@@ -213,16 +243,21 @@ export async function startPluginDevServer(options: PluginDevServerOptions = {})
  * Used by the polling watcher fallback and useful for tests that need to assert
  * whether a UI build has changed between runs.
  */
-export async function getUiBuildSnapshot(rootDir: string, uiDir = "dist/ui"): Promise<Array<{ file: string; mtimeMs: number }>> {
+export async function getUiBuildSnapshot(
+  rootDir: string,
+  uiDir = "dist/ui",
+): Promise<Array<{ file: string; mtimeMs: number }>> {
   const baseDir = path.resolve(rootDir, uiDir);
   if (!existsSync(baseDir)) return [];
   const files = await listFilesRecursive(baseDir);
-  const rows = await Promise.all(files.map(async (filePath) => {
-    const fileStat = await stat(filePath);
-    return {
-      file: path.relative(baseDir, filePath),
-      mtimeMs: fileStat.mtimeMs,
-    };
-  }));
+  const rows = await Promise.all(
+    files.map(async (filePath) => {
+      const fileStat = await stat(filePath);
+      return {
+        file: path.relative(baseDir, filePath),
+        mtimeMs: fileStat.mtimeMs,
+      };
+    }),
+  );
   return rows.sort((a, b) => a.file.localeCompare(b.file));
 }

@@ -69,7 +69,8 @@ async function startServer(options = {}) {
 function sendRequest(port, options = {}) {
   const body = options.body ?? "";
   const host = options.host ?? `127.0.0.1:${port}`;
-  const origin = options.origin === undefined ? `http://${host}` : options.origin;
+  const origin =
+    options.origin === undefined ? `http://${host}` : options.origin;
   const headers = {
     host,
     ...(origin === null ? {} : { origin }),
@@ -217,7 +218,7 @@ describe("Local runner browser transport hardening", () => {
 
     const declared = await sendRequest(port, { body: oversized });
     const streamed = await sendRequest(port, {
-      chunks: ["{\"scenario\":\"", "y".repeat(64), "\"}"],
+      chunks: ['{"scenario":"', "y".repeat(64), '"}'],
       headers: {
         "content-type": "application/json",
         "transfer-encoding": "chunked",

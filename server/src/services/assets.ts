@@ -4,7 +4,10 @@ import { assets } from "@taskcore/db";
 
 export function assetService(db: Db) {
   return {
-    create: (companyId: string, data: Omit<typeof assets.$inferInsert, "companyId">) =>
+    create: (
+      companyId: string,
+      data: Omit<typeof assets.$inferInsert, "companyId">,
+    ) =>
       db
         .insert(assets)
         .values({ ...data, companyId })
@@ -19,4 +22,3 @@ export function assetService(db: Db) {
         .then((rows) => rows[0] ?? null),
   };
 }
-

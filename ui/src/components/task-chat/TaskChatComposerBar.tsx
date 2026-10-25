@@ -2,7 +2,10 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 /** The inset strip shared by queued messages and new-task context. */
-export function TaskChatComposerBar({ className, ...props }: ComponentProps<"div">) {
+export function TaskChatComposerBar({
+  className,
+  ...props
+}: ComponentProps<"div">) {
   return (
     <div
       className={cn(

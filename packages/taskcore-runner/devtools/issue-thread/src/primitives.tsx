@@ -8,7 +8,10 @@ import type { CapabilityTaskStatus } from "../../../src/mock-core/capability-con
  * without color (contract §9.5).
  */
 
-const STATUS_COPY: Record<CapabilityTaskStatus, { label: string; glyph: string }> = {
+const STATUS_COPY: Record<
+  CapabilityTaskStatus,
+  { label: string; glyph: string }
+> = {
   backlog: { label: "Backlog", glyph: "○" },
   todo: { label: "Todo", glyph: "○" },
   in_progress: { label: "In progress", glyph: "◐" },

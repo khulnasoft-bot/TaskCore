@@ -16,7 +16,9 @@ export function isPublicRunnerScreenshotRoute(
     const candidate = new URL(url);
     const issueReference = target.issueIdentifier ?? target.issueId;
     const expectedPath = `/${encodeURIComponent(target.issuePrefix)}/issues/${encodeURIComponent(issueReference)}`;
-    const chatPath = target.chatAgentId ? `/${encodeURIComponent(target.issuePrefix)}/chats/${encodeURIComponent(target.chatAgentId)}` : null;
+    const chatPath = target.chatAgentId
+      ? `/${encodeURIComponent(target.issuePrefix)}/chats/${encodeURIComponent(target.chatAgentId)}`
+      : null;
     return (
       candidate.protocol === "http:" &&
       candidate.hostname === "127.0.0.1" &&

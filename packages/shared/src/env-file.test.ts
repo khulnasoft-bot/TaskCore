@@ -30,17 +30,19 @@ describe("env file editor", () => {
       { valueEncoding: "minimal" },
     );
 
-    expect(updated).toBe([
-      "# operator comment",
-      "UNKNOWN='keep this encoding'",
-      "",
-      'export TASKCORE_HOME = "/new path"  # managed path',
-      "TASKCORE_DUPLICATE=current",
-      'TASKCORE_DUPLICATE="current"',
-      "TRAILING=untouched",
-      'TASKCORE_WORKTREE_COLOR="#439edb"',
-      "",
-    ].join("\r\n"));
+    expect(updated).toBe(
+      [
+        "# operator comment",
+        "UNKNOWN='keep this encoding'",
+        "",
+        'export TASKCORE_HOME = "/new path"  # managed path',
+        "TASKCORE_DUPLICATE=current",
+        'TASKCORE_DUPLICATE="current"',
+        "TRAILING=untouched",
+        'TASKCORE_WORKTREE_COLOR="#439edb"',
+        "",
+      ].join("\r\n"),
+    );
     expect(updated.replaceAll("\r\n", "")).not.toContain("\n");
   });
 
@@ -48,7 +50,7 @@ describe("env file editor", () => {
     const original = [
       "TASKCORE_CURRENT=plain-value",
       "TASKCORE_CHANGED=old",
-      "UNKNOWN=\"operator value\"",
+      'UNKNOWN="operator value"',
       "",
     ].join("\n");
 
@@ -62,19 +64,23 @@ describe("env file editor", () => {
         },
         { valueEncoding: "json" },
       ),
-    ).toBe([
-      "TASKCORE_CURRENT=plain-value",
-      'TASKCORE_CHANGED="new"',
-      'UNKNOWN="operator value"',
-      'TASKCORE_ADDED="added"',
-      "",
-    ].join("\n"));
+    ).toBe(
+      [
+        "TASKCORE_CURRENT=plain-value",
+        'TASKCORE_CHANGED="new"',
+        'UNKNOWN="operator value"',
+        'TASKCORE_ADDED="added"',
+        "",
+      ].join("\n"),
+    );
   });
 
   it("does not treat an unquoted dotenv comment as the managed value", () => {
     expect(
       updateEnvFileContents(
-        ["TASKCORE_COLOR=#439edb", "TASKCORE_HOME=old# keep this comment"].join("\n"),
+        ["TASKCORE_COLOR=#439edb", "TASKCORE_HOME=old# keep this comment"].join(
+          "\n",
+        ),
         {
           TASKCORE_COLOR: "#439edb",
           TASKCORE_HOME: "new",
@@ -82,7 +88,10 @@ describe("env file editor", () => {
         { valueEncoding: "minimal" },
       ),
     ).toBe(
-      ['TASKCORE_COLOR="#439edb"#439edb', "TASKCORE_HOME=new# keep this comment"].join("\n"),
+      [
+        'TASKCORE_COLOR="#439edb"#439edb',
+        "TASKCORE_HOME=new# keep this comment",
+      ].join("\n"),
     );
   });
 
@@ -93,6 +102,8 @@ describe("env file editor", () => {
       "UNKNOWN=value",
     ].join("\n");
 
-    expect(updateEnvFileContents(original, { TASKCORE_HOME: "/same path" })).toBe(original);
+    expect(
+      updateEnvFileContents(original, { TASKCORE_HOME: "/same path" }),
+    ).toBe(original);
   });
 });

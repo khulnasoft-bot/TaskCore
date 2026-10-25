@@ -1,15 +1,25 @@
 import { z } from "zod";
 
 export const DOT_RUNNER_MCP_PATH = "/mcp/runner";
-export const DOT_RUNNER_MCP_SCOPES = ["taskcore:agent", "offline_access"] as const;
+export const DOT_RUNNER_MCP_SCOPES = [
+  "taskcore:agent",
+  "offline_access",
+] as const;
 export const PUBLIC_MCP_PATH = "/mcp/taskcore";
-export const PUBLIC_MCP_SCOPES = ["taskcore:read", "taskcore:write", "taskcore:configure", "offline_access"] as const;
-export const mcpConsentSchema = z.object({
-  decision: z.enum(["approve", "deny"]),
-  companyId: z.string().uuid().optional(),
-  allowWrites: z.boolean().default(false),
-  allowConfiguration: z.boolean().default(false),
-}).strict();
+export const PUBLIC_MCP_SCOPES = [
+  "taskcore:read",
+  "taskcore:write",
+  "taskcore:configure",
+  "offline_access",
+] as const;
+export const mcpConsentSchema = z
+  .object({
+    decision: z.enum(["approve", "deny"]),
+    companyId: z.string().uuid().optional(),
+    allowWrites: z.boolean().default(false),
+    allowConfiguration: z.boolean().default(false),
+  })
+  .strict();
 
 export interface McpConnectionRequest {
   id: string;
@@ -23,7 +33,12 @@ export interface McpConnectionRequest {
   requiresSignIn: boolean;
   /** Fixed by the authorization request; null permits direct-instance selection. */
   requestedCompanyId: string | null;
-  companies: Array<{ id: string; name: string; logoUrl: string | null; canWrite: boolean }>;
+  companies: Array<{
+    id: string;
+    name: string;
+    logoUrl: string | null;
+    canWrite: boolean;
+  }>;
   setupUrl: string | null;
 }
 

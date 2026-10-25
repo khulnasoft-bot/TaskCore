@@ -3,14 +3,16 @@ import { buildGrokLocalConfig } from "./build-config.js";
 
 describe("buildGrokLocalConfig", () => {
   it("maps create-form values into adapter config", () => {
-    expect(buildGrokLocalConfig({
-      cwd: "/tmp/project",
-      instructionsFilePath: "/tmp/AGENTS.md",
-      model: "grok-build",
-      thinkingEffort: "high",
-      envVars: "XAI_API_KEY=secret\n",
-      extraArgs: "--check, --verbatim",
-    } as never)).toEqual({
+    expect(
+      buildGrokLocalConfig({
+        cwd: "/tmp/project",
+        instructionsFilePath: "/tmp/AGENTS.md",
+        model: "grok-build",
+        thinkingEffort: "high",
+        envVars: "XAI_API_KEY=secret\n",
+        extraArgs: "--check, --verbatim",
+      } as never),
+    ).toEqual({
       cwd: "/tmp/project",
       instructionsFilePath: "/tmp/AGENTS.md",
       model: "grok-build",

@@ -22,7 +22,9 @@ function sortRevisionsDescending(revisions: DocumentRevision[]) {
   });
 }
 
-function createCurrentRevisionSnapshot(document: IssueDocument): DocumentRevision {
+function createCurrentRevisionSnapshot(
+  document: IssueDocument,
+): DocumentRevision {
   return {
     id: document.latestRevisionId ?? `${document.id}-latest`,
     companyId: document.companyId,
@@ -48,14 +50,20 @@ export function deriveDocumentRevisionState(
   const currentSnapshot = createCurrentRevisionSnapshot(document);
   const highestFetchedRevision = sortedRevisions[0] ?? null;
   const documentAppearsStale = Boolean(
-    highestFetchedRevision && highestFetchedRevision.revisionNumber > document.latestRevisionNumber,
+    highestFetchedRevision &&
+    highestFetchedRevision.revisionNumber > document.latestRevisionNumber,
   );
 
   const currentRevision = documentAppearsStale
     ? highestFetchedRevision!
-    : sortedRevisions.find((revision) => revision.id === document.latestRevisionId) ?? currentSnapshot;
+    : (sortedRevisions.find(
+        (revision) => revision.id === document.latestRevisionId,
+      ) ?? currentSnapshot);
 
-  const revisionsWithCurrent = sortRevisionsDescending([currentRevision, ...sortedRevisions]);
+  const revisionsWithCurrent = sortRevisionsDescending([
+    currentRevision,
+    ...sortedRevisions,
+  ]);
   const dedupedRevisions: DocumentRevision[] = [];
   const seenRevisionIds = new Set<string>();
 

@@ -2,16 +2,33 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { AgentDetail, AgentRuntimeState, HeartbeatRun, Issue } from "@taskcore/shared";
+import type {
+  AgentDetail,
+  AgentRuntimeState,
+  HeartbeatRun,
+  Issue,
+} from "@taskcore/shared";
 import { describe, expect, it, vi } from "vitest";
 import { AgentOverview } from "./AgentDetail";
 
 vi.mock("@/lib/router", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  const actual =
+    await vi.importActual<typeof import("react-router-dom")>(
+      "react-router-dom",
+    );
   return {
     ...actual,
-    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => (
-      <a href={to} {...props}>{children}</a>
+    Link: ({
+      to,
+      children,
+      ...props
+    }: {
+      to: string;
+      children: React.ReactNode;
+    }) => (
+      <a href={to} {...props}>
+        {children}
+      </a>
     ),
   };
 });
@@ -36,7 +53,12 @@ describe("AgentOverview", () => {
       adapterConfig: { model: "gpt-5.6-sol" },
       runtimeConfig: {},
       chainOfCommand: [],
-      access: { canAssignTasks: true, taskAssignSource: "explicit_grant", membership: null, grants: [] },
+      access: {
+        canAssignTasks: true,
+        taskAssignSource: "explicit_grant",
+        membership: null,
+        grants: [],
+      },
     } as unknown as AgentDetail;
     const issue = {
       id: "issue-1",

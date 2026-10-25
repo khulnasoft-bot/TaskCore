@@ -16,12 +16,15 @@ describe("Capability offline eval conformance", () => {
     ]);
     expect(report.fakeAgentOperationCount).toBe(report.codexOperationCount);
     expect(report.boundedCodexSample).toHaveLength(16);
-    expect(report.results.every((result) =>
-      result.caseId &&
-      result.semanticOperation &&
-      result.authorizationDecision &&
-      result.expectedSemantics.length > 0 &&
-      result.finalState.expected === result.finalState.observed,
-    )).toBe(true);
+    expect(
+      report.results.every(
+        (result) =>
+          result.caseId &&
+          result.semanticOperation &&
+          result.authorizationDecision &&
+          result.expectedSemantics.length > 0 &&
+          result.finalState.expected === result.finalState.observed,
+      ),
+    ).toBe(true);
   });
 });

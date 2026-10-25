@@ -43,20 +43,31 @@ function restartWakeRetryStorageKey(companyId: string, userId: string | null) {
 function readRestartWakeRetryIssueIds(storageKey: string | null) {
   if (!storageKey) return new Set<string>();
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? "[]") as unknown;
-    return new Set(Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : []);
+    const parsed = JSON.parse(
+      window.localStorage.getItem(storageKey) ?? "[]",
+    ) as unknown;
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === "string")
+        : [],
+    );
   } catch {
     return new Set<string>();
   }
 }
 
-function setRestartWakeRetryPending(storageKey: string | null, issueId: string, pending: boolean) {
+function setRestartWakeRetryPending(
+  storageKey: string | null,
+  issueId: string,
+  pending: boolean,
+) {
   if (!storageKey) return;
   const issueIds = readRestartWakeRetryIssueIds(storageKey);
   if (pending) issueIds.add(issueId);
   else issueIds.delete(issueId);
   try {
-    if (issueIds.size > 0) window.localStorage.setItem(storageKey, JSON.stringify([...issueIds]));
+    if (issueIds.size > 0)
+      window.localStorage.setItem(storageKey, JSON.stringify([...issueIds]));
     else window.localStorage.removeItem(storageKey);
   } catch {
     // Recent Tasks remains usable when browser storage is unavailable.
@@ -64,7 +75,9 @@ function setRestartWakeRetryPending(storageKey: string | null, issueId: string, 
 }
 
 function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message.trim() ? error.message : fallback;
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : fallback;
 }
 
 export function SidebarRecentTasks({
@@ -112,16 +125,24 @@ function RecentTasksList({
   const toastActions = useOptionalToastActions();
   const [renameEntry, setRenameEntry] = useState<RecentTaskEntry | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [pendingAction, setPendingAction] = useState<"rename" | "archive" | "pause" | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "rename" | "archive" | "pause" | null
+  >(null);
   const restartRetryStorageKey = restartWakeRetryStorageKey(companyId, userId);
 
   if (entries.length === 0) return null;
 
   const refreshIssueQueries = async (issueId: string) => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issueId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.list(companyId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.activity(issueId) }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.detail(issueId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.list(companyId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.activity(issueId),
+      }),
     ]);
   };
 
@@ -140,9 +161,15 @@ function RecentTasksList({
 
     setPendingAction("rename");
     try {
-      const updated = await issuesApi.update(renameEntry.id, { title: nextTitle });
-      queryClient.setQueryData(queryKeys.issues.detail(renameEntry.id), updated);
-      if (storageKey) updateRecentTaskSnapshots(storageKey, companyId, [updated]);
+      const updated = await issuesApi.update(renameEntry.id, {
+        title: nextTitle,
+      });
+      queryClient.setQueryData(
+        queryKeys.issues.detail(renameEntry.id),
+        updated,
+      );
+      if (storageKey)
+        updateRecentTaskSnapshots(storageKey, companyId, [updated]);
       await refreshIssueQueries(renameEntry.id);
       setRenameEntry(null);
       toastActions?.pushToast({ title: "Task renamed", tone: "success" });
@@ -165,11 +192,17 @@ function RecentTasksList({
       await queryClient.invalidateQueries({
         queryKey: queryKeys.sidebarBadges(companyId),
       });
-      toastActions?.pushToast({ title: "Task archived from inbox", tone: "success" });
+      toastActions?.pushToast({
+        title: "Task archived from inbox",
+        tone: "success",
+      });
     } catch (error) {
       toastActions?.pushToast({
         title: "Task archive failed",
-        body: errorMessage(error, "Unable to archive this task from the inbox."),
+        body: errorMessage(
+          error,
+          "Unable to archive this task from the inbox.",
+        ),
         tone: "error",
       });
     } finally {
@@ -184,9 +217,13 @@ function RecentTasksList({
       if (state.activePauseHold?.isRoot) {
         const restartIssue = await issuesApi.get(entry.id);
         setRestartWakeRetryPending(restartRetryStorageKey, entry.id, true);
-        await issuesApi.releaseTreeHold(entry.id, state.activePauseHold.holdId, {
-          reason: "Restarted from Recent Tasks.",
-        });
+        await issuesApi.releaseTreeHold(
+          entry.id,
+          state.activePauseHold.holdId,
+          {
+            reason: "Restarted from Recent Tasks.",
+          },
+        );
         if (restartIssue.assigneeAgentId) {
           const wakeResult = await agentsApi.wakeup(
             restartIssue.assigneeAgentId,
@@ -199,14 +236,20 @@ function RecentTasksList({
             restartIssue.companyId,
           );
           if (!("id" in wakeResult)) {
-            throw new Error(wakeResult.message ?? "The assignee wake was skipped.");
+            throw new Error(
+              wakeResult.message ?? "The assignee wake was skipped.",
+            );
           }
         }
         setRestartWakeRetryPending(restartRetryStorageKey, entry.id, false);
         toastActions?.pushToast({ title: "Task restarted", tone: "success" });
       } else if (state.activePauseHold) {
-        throw new Error("This task is paused by a parent task. Restart it from the pause root.");
-      } else if (readRestartWakeRetryIssueIds(restartRetryStorageKey).has(entry.id)) {
+        throw new Error(
+          "This task is paused by a parent task. Restart it from the pause root.",
+        );
+      } else if (
+        readRestartWakeRetryIssueIds(restartRetryStorageKey).has(entry.id)
+      ) {
         const restartIssue = await issuesApi.get(entry.id);
         if (restartIssue.assigneeAgentId) {
           const wakeResult = await agentsApi.wakeup(
@@ -220,7 +263,9 @@ function RecentTasksList({
             restartIssue.companyId,
           );
           if (!("id" in wakeResult)) {
-            throw new Error(wakeResult.message ?? "The assignee wake was skipped.");
+            throw new Error(
+              wakeResult.message ?? "The assignee wake was skipped.",
+            );
           }
         }
         setRestartWakeRetryPending(restartRetryStorageKey, entry.id, false);
@@ -251,14 +296,28 @@ function RecentTasksList({
     <>
       <SidebarSection label="Recent Tasks">
         {entries.map((entry) => (
-          <div key={entry.id} className="sidebar-action-row group/recent-task relative">
+          <div
+            key={entry.id}
+            className="sidebar-action-row group/recent-task relative"
+          >
             <SidebarNavItem
               to={`/issues/${entry.id}`}
               label={entry.title}
-              trailing={entry.status === "in_review" && entry.externalConversationState === "waiting"
-                ? <span className="text-xs text-muted-foreground">Idle</span> : undefined}
-              trailingLabel={entry.status === "in_review" && entry.externalConversationState === "waiting" ? "Idle" : undefined}
-              className={rail ? undefined : "sidebar-action-link pointer-coarse:pr-8"}
+              trailing={
+                entry.status === "in_review" &&
+                entry.externalConversationState === "waiting" ? (
+                  <span className="text-xs text-muted-foreground">Idle</span>
+                ) : undefined
+              }
+              trailingLabel={
+                entry.status === "in_review" &&
+                entry.externalConversationState === "waiting"
+                  ? "Idle"
+                  : undefined
+              }
+              className={
+                rail ? undefined : "sidebar-action-link pointer-coarse:pr-8"
+              }
               liveCount={liveIssueIds.has(entry.id) ? 1 : undefined}
             />
             {!rail ? (
@@ -316,10 +375,15 @@ function RecentTasksList({
         }}
       >
         <DialogContent className="sm:max-w-md">
-          <form className="grid gap-4" onSubmit={(event) => void submitRename(event)}>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => void submitRename(event)}
+          >
             <DialogHeader>
               <DialogTitle>Rename task</DialogTitle>
-              <DialogDescription>Choose a short, clear name for this task.</DialogDescription>
+              <DialogDescription>
+                Choose a short, clear name for this task.
+              </DialogDescription>
             </DialogHeader>
             <Input
               autoFocus

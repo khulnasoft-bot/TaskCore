@@ -22,9 +22,7 @@ export interface PeerPolicy {
 export class AuthorizationError extends Error {
   constructor(
     readonly code:
-      | "unauthorized_peer"
-      | "invalid_handle"
-      | "listener_ownership_mismatch",
+      "unauthorized_peer" | "invalid_handle" | "listener_ownership_mismatch",
     message: string,
   ) {
     super(message);
@@ -40,13 +38,22 @@ export class AuthorizationError extends Error {
  */
 export function authorizePeer(peer: PeerCredentials, policy: PeerPolicy): void {
   if (!Number.isInteger(peer.uid) || !Number.isInteger(peer.gid)) {
-    throw new AuthorizationError("unauthorized_peer", "missing peer credentials");
+    throw new AuthorizationError(
+      "unauthorized_peer",
+      "missing peer credentials",
+    );
   }
   if (!policy.allowedUids.has(peer.uid)) {
-    throw new AuthorizationError("unauthorized_peer", `uid ${peer.uid} not allowlisted`);
+    throw new AuthorizationError(
+      "unauthorized_peer",
+      `uid ${peer.uid} not allowlisted`,
+    );
   }
   if (!policy.allowedGids.has(peer.gid)) {
-    throw new AuthorizationError("unauthorized_peer", `gid ${peer.gid} not allowlisted`);
+    throw new AuthorizationError(
+      "unauthorized_peer",
+      `gid ${peer.gid} not allowlisted`,
+    );
   }
 }
 
@@ -73,15 +80,26 @@ export function authorizeRemoval(
   request: { runtimeId: string; handle: string },
   peer: PeerCredentials,
 ): LeaseRecord {
-  const lease = leases.find((entry) => handlesEqual(entry.handle, request.handle));
+  const lease = leases.find((entry) =>
+    handlesEqual(entry.handle, request.handle),
+  );
   if (!lease) {
-    throw new AuthorizationError("invalid_handle", "unknown or stale lease handle");
+    throw new AuthorizationError(
+      "invalid_handle",
+      "unknown or stale lease handle",
+    );
   }
   if (lease.runtimeId !== request.runtimeId) {
-    throw new AuthorizationError("listener_ownership_mismatch", "runtime id does not match lease");
+    throw new AuthorizationError(
+      "listener_ownership_mismatch",
+      "runtime id does not match lease",
+    );
   }
   if (lease.peerUid !== peer.uid || lease.peerGid !== peer.gid) {
-    throw new AuthorizationError("listener_ownership_mismatch", "peer identity does not match lease");
+    throw new AuthorizationError(
+      "listener_ownership_mismatch",
+      "peer identity does not match lease",
+    );
   }
   return lease;
 }

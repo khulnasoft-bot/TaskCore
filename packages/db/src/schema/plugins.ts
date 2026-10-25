@@ -8,7 +8,11 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { PluginCategory, PluginStatus, TaskcorePluginManifestV1 } from "@taskcore/shared";
+import type {
+  PluginCategory,
+  PluginStatus,
+  TaskcorePluginManifestV1,
+} from "@taskcore/shared";
 
 /**
  * `plugins` table — stores one row per installed plugin.
@@ -28,15 +32,24 @@ export const plugins = pgTable(
     packageName: text("package_name").notNull(),
     version: text("version").notNull(),
     apiVersion: integer("api_version").notNull().default(1),
-    categories: jsonb("categories").$type<PluginCategory[]>().notNull().default([]),
-    manifestJson: jsonb("manifest_json").$type<TaskcorePluginManifestV1>().notNull(),
+    categories: jsonb("categories")
+      .$type<PluginCategory[]>()
+      .notNull()
+      .default([]),
+    manifestJson: jsonb("manifest_json")
+      .$type<TaskcorePluginManifestV1>()
+      .notNull(),
     status: text("status").$type<PluginStatus>().notNull().default("installed"),
     installOrder: integer("install_order"),
     /** Resolved package path for local-path installs; used to find worker entrypoint. */
     packagePath: text("package_path"),
     lastError: text("last_error"),
-    installedAt: timestamp("installed_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    installedAt: timestamp("installed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     pluginKeyIdx: uniqueIndex("plugins_plugin_key_idx").on(table.pluginKey),

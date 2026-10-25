@@ -1,9 +1,13 @@
 import type { ChildProcess } from "node:child_process";
-import { createProcessTreeOwner, incompleteTreeFallback } from "./process-tree-owner.js";
+import {
+  createProcessTreeOwner,
+  incompleteTreeFallback,
+} from "./process-tree-owner.js";
 
 // The wrapper receives Playwright's group signal; only it signals Taskcore.
 export const runnerE2EServerDetached = process.platform !== "win32";
-const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export function createRunnerE2EServerStopper(options: {
   gracefulTimeoutMs: number;
@@ -23,16 +27,28 @@ export function createRunnerE2EServerStopper(options: {
     escalationLogged: boolean;
   };
   const states = new WeakMap<ChildProcess, State>();
-  const exited = (child: ChildProcess) => child.exitCode !== null || child.signalCode !== null || options.hasSpawnError(child);
+  const exited = (child: ChildProcess) =>
+    child.exitCode !== null ||
+    child.signalCode !== null ||
+    options.hasSpawnError(child);
   function watch(child: ChildProcess) {
     let state = states.get(child);
     if (!state) {
-      state = { owner: (options.createOwner ?? createProcessTreeOwner)(child), gracefulSent: false, groupSignals: new Set(), escalationLogged: false };
+      state = {
+        owner: (options.createOwner ?? createProcessTreeOwner)(child),
+        gracefulSent: false,
+        groupSignals: new Set(),
+        escalationLogged: false,
+      };
       states.set(child, state);
     }
     return state;
   }
-  async function stopOnce(child: ChildProcess, state: State, signal: NodeJS.Signals) {
+  async function stopOnce(
+    child: ChildProcess,
+    state: State,
+    signal: NodeJS.Signals,
+  ) {
     state.gracefulDeadline ??= Date.now() + options.gracefulTimeoutMs;
     await state.owner.observe();
     if (!exited(child) && !state.gracefulSent) {
@@ -41,16 +57,27 @@ export function createRunnerE2EServerStopper(options: {
     while (Date.now() < state.gracefulDeadline) {
       await state.owner.observe();
       if (exited(child)) {
-        if (!state.owner.liveGroups().length) { state.owner.stopObserving(); return; }
+        if (!state.owner.liveGroups().length) {
+          state.owner.stopObserving();
+          return;
+        }
         // The leader is gone. Retire only descendants whose start identities
         // we observed while they belonged to this server, including private groups.
-        const unsignaled = new Set(state.owner.liveGroups().map(group => group.processGroupId).filter(pid => !state.groupSignals.has(pid)));
-        for (const pid of await state.owner.signal("SIGTERM", unsignaled)) state.groupSignals.add(pid);
+        const unsignaled = new Set(
+          state.owner
+            .liveGroups()
+            .map((group) => group.processGroupId)
+            .filter((pid) => !state.groupSignals.has(pid)),
+        );
+        for (const pid of await state.owner.signal("SIGTERM", unsignaled))
+          state.groupSignals.add(pid);
       }
       await wait(25);
     }
     if (!state.escalationLogged) {
-      options.log(`\nTaskcore did not stop within ${options.gracefulTimeoutMs}ms; sending SIGKILL\n`);
+      options.log(
+        `\nTaskcore did not stop within ${options.gracefulTimeoutMs}ms; sending SIGKILL\n`,
+      );
       state.escalationLogged = true;
     }
     if (runnerE2EServerDetached) await state.owner.signal("SIGKILL");
@@ -58,24 +85,42 @@ export function createRunnerE2EServerStopper(options: {
     state.forcedDeadline ??= Date.now() + options.forcedTimeoutMs;
     do {
       await state.owner.observe();
-      if (exited(child) && !state.owner.liveGroups().length) { state.owner.stopObserving(); return; }
+      if (exited(child) && !state.owner.liveGroups().length) {
+        state.owner.stopObserving();
+        return;
+      }
       await wait(25);
     } while (Date.now() < state.forcedDeadline);
-    throw new Error("Taskcore server or observed descendants did not exit after SIGKILL");
+    throw new Error(
+      "Taskcore server or observed descendants did not exit after SIGKILL",
+    );
   }
-  const stop = (child: ChildProcess, signal: NodeJS.Signals = "SIGTERM"): Promise<void> => {
+  const stop = (
+    child: ChildProcess,
+    signal: NodeJS.Signals = "SIGTERM",
+  ): Promise<void> => {
     options.markExpectedStop(child);
     const state = watch(child);
-    state.promise ??= Promise.resolve().then(() => stopOnce(child, state, signal)).catch(async error => {
-      try {
-        await incompleteTreeFallback(error, child, state, state.gracefulDeadline!, options.forcedTimeoutMs);
-      } finally {
-        state.promise = undefined;
-      }
-    });
+    state.promise ??= Promise.resolve()
+      .then(() => stopOnce(child, state, signal))
+      .catch(async (error) => {
+        try {
+          await incompleteTreeFallback(
+            error,
+            child,
+            state,
+            state.gracefulDeadline!,
+            options.forcedTimeoutMs,
+          );
+        } finally {
+          state.promise = undefined;
+        }
+      });
     /* Retain the signal/deadline phase so a later audit can recover without
        repeating the graceful signal. */
     return state.promise;
   };
-  return Object.assign(stop, { watch: (child: ChildProcess) => watch(child).owner.observe() });
+  return Object.assign(stop, {
+    watch: (child: ChildProcess) => watch(child).owner.observe(),
+  });
 }

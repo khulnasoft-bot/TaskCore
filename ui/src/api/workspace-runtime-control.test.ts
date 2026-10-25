@@ -7,7 +7,7 @@ describe("sanitizeWorkspaceRuntimeControlTarget", () => {
       workspaceCommandId: "web",
       runtimeServiceId: "service-1",
       serviceIndex: 2,
-      ...( { action: "start" } as Record<string, unknown> ),
+      ...({ action: "start" } as Record<string, unknown>),
     });
 
     expect(sanitized).toEqual({

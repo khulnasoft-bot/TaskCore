@@ -5,9 +5,7 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { BuiltInAgentState } from "@/api/builtInAgents";
-import type {
-  CompanyLiveEventHandler,
-} from "@/context/LiveUpdatesProvider";
+import type { CompanyLiveEventHandler } from "@/context/LiveUpdatesProvider";
 import type {
   GetSummarySlotResponse,
   ListSummarySlotRevisionsResponse,
@@ -17,13 +15,21 @@ import type {
 } from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __liveUpdatesTestUtils } from "@/context/LiveUpdatesProvider";
-import { SummarySlotCard, resolveGenerationStatusLine } from "./SummarySlotCard";
+import {
+  SummarySlotCard,
+  resolveGenerationStatusLine,
+} from "./SummarySlotCard";
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { LiveEventSubscriptionContext, dispatchLiveEventToSubscribers } = __liveUpdatesTestUtils;
+const { LiveEventSubscriptionContext, dispatchLiveEventToSubscribers } =
+  __liveUpdatesTestUtils;
 
-const mockInstanceSettingsApi = vi.hoisted(() => ({ getExperimental: vi.fn() }));
+const mockInstanceSettingsApi = vi.hoisted(() => ({
+  getExperimental: vi.fn(),
+}));
 const mockSummarySlotsApi = vi.hoisted(() => ({
   get: vi.fn(),
   revisions: vi.fn(),
@@ -32,7 +38,9 @@ const mockSummarySlotsApi = vi.hoisted(() => ({
 const mockBuiltInAgentsApi = vi.hoisted(() => ({ list: vi.fn() }));
 const mockAgentsApi = vi.hoisted(() => ({ resume: vi.fn() }));
 
-vi.mock("@/api/instanceSettings", () => ({ instanceSettingsApi: mockInstanceSettingsApi }));
+vi.mock("@/api/instanceSettings", () => ({
+  instanceSettingsApi: mockInstanceSettingsApi,
+}));
 vi.mock("@/api/summarySlots", () => ({ summarySlotsApi: mockSummarySlotsApi }));
 vi.mock("@/api/builtInAgents", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/builtInAgents")>()),
@@ -40,10 +48,14 @@ vi.mock("@/api/builtInAgents", async (importOriginal) => ({
 }));
 vi.mock("@/api/agents", () => ({ agentsApi: mockAgentsApi }));
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children?: ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 vi.mock("@/components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: string }) => <div data-testid="markdown-body">{children}</div>,
+  MarkdownBody: ({ children }: { children: string }) => (
+    <div data-testid="markdown-body">{children}</div>
+  ),
 }));
 vi.mock("@/components/ConfigureBuiltInAgentModal", () => ({
   ConfigureBuiltInAgentModal: () => null,
@@ -103,7 +115,9 @@ function slot(overrides: Partial<SummarySlot> = {}): SummarySlot {
   };
 }
 
-function issue(overrides: Partial<SummarySlotIssueRef> = {}): SummarySlotIssueRef {
+function issue(
+  overrides: Partial<SummarySlotIssueRef> = {},
+): SummarySlotIssueRef {
   return {
     id: "issue-1",
     identifier: "PAP-14000",
@@ -123,9 +137,14 @@ function progressEvent(payload: Record<string, unknown>): LiveEvent {
   };
 }
 
-function renderCard(container: HTMLDivElement, subscribers: Set<CompanyLiveEventHandler>) {
+function renderCard(
+  container: HTMLDivElement,
+  subscribers: Set<CompanyLiveEventHandler>,
+) {
   const root = createRoot(container);
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   const subscription = {
     subscribe: (fn: CompanyLiveEventHandler) => {
       subscribers.add(fn);
@@ -164,17 +183,29 @@ describe("resolveGenerationStatusLine", () => {
 
   it("falls back to the assistant snippet, then the tool name", () => {
     expect(
-      resolveGenerationStatusLine({ message: null, currentToolName: "Grep", lastAssistantSnippet: "drafting" }),
+      resolveGenerationStatusLine({
+        message: null,
+        currentToolName: "Grep",
+        lastAssistantSnippet: "drafting",
+      }),
     ).toBe("drafting");
     expect(
-      resolveGenerationStatusLine({ message: null, currentToolName: "Grep", lastAssistantSnippet: null }),
+      resolveGenerationStatusLine({
+        message: null,
+        currentToolName: "Grep",
+        lastAssistantSnippet: null,
+      }),
     ).toBe("Working with Grep");
   });
 
   it("returns null when nothing has streamed", () => {
     expect(resolveGenerationStatusLine(null)).toBeNull();
     expect(
-      resolveGenerationStatusLine({ message: null, currentToolName: null, lastAssistantSnippet: null }),
+      resolveGenerationStatusLine({
+        message: null,
+        currentToolName: null,
+        lastAssistantSnippet: null,
+      }),
     ).toBeNull();
   });
 });
@@ -186,14 +217,19 @@ describe("SummarySlotCard live status line", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableSummaries: true });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableSummaries: true,
+    });
     mockBuiltInAgentsApi.list.mockResolvedValue([readySummarizer()]);
     mockSummarySlotsApi.get.mockResolvedValue({
       slot: slot(),
       document: null,
       generatingIssue: issue(),
     } satisfies GetSummarySlotResponse);
-    mockSummarySlotsApi.revisions.mockResolvedValue({ slot: slot(), revisions: [] } satisfies ListSummarySlotRevisionsResponse);
+    mockSummarySlotsApi.revisions.mockResolvedValue({
+      slot: slot(),
+      revisions: [],
+    } satisfies ListSummarySlotRevisionsResponse);
     mockSummarySlotsApi.generate.mockResolvedValue({
       slot: slot(),
       generatingIssue: issue(),
@@ -214,19 +250,26 @@ describe("SummarySlotCard live status line", () => {
     await flushQueries();
 
     // Falls back to the static generating copy before any event arrives.
-    expect(container.querySelector('[data-testid="summary-generation-status-line"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="summary-generation-status-line"]'),
+    ).toBeNull();
     expect(container.textContent).toContain("Summarizer is working in");
 
     await act(async () => {
       dispatchLiveEventToSubscribers(
         subscribers,
         "company-1",
-        progressEvent({ issueId: "issue-1", message: "reviewing 14 open issues" }),
+        progressEvent({
+          issueId: "issue-1",
+          message: "reviewing 14 open issues",
+        }),
       );
     });
     await flushQueries();
 
-    const statusLine = container.querySelector('[data-testid="summary-generation-status-line"]');
+    const statusLine = container.querySelector(
+      '[data-testid="summary-generation-status-line"]',
+    );
     expect(statusLine).not.toBeNull();
     expect(statusLine?.textContent).toBe("reviewing 14 open issues");
   });
@@ -245,7 +288,9 @@ describe("SummarySlotCard live status line", () => {
     });
     await flushQueries();
 
-    expect(container.querySelector('[data-testid="summary-generation-status-line"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="summary-generation-status-line"]'),
+    ).toBeNull();
     expect(container.textContent).not.toContain("unrelated run");
   });
 });

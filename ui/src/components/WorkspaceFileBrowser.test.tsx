@@ -4,9 +4,19 @@ import type { ComponentProps } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import type { Project, ProjectWorkspace, WorkspaceFileListDirectoryItem, WorkspaceFileListFileItem, WorkspaceFileListItem, WorkspaceFileListResponse } from "@taskcore/shared";
+import type {
+  Project,
+  ProjectWorkspace,
+  WorkspaceFileListDirectoryItem,
+  WorkspaceFileListFileItem,
+  WorkspaceFileListItem,
+  WorkspaceFileListResponse,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { WorkspaceFileBrowser, describeUnavailable } from "./WorkspaceFileBrowser";
+import {
+  WorkspaceFileBrowser,
+  describeUnavailable,
+} from "./WorkspaceFileBrowser";
 import { ApiError } from "@/api/client";
 
 function act(callback: () => void | Promise<void>) {
@@ -39,11 +49,14 @@ const cancelQueriesMock = vi.fn(() => Promise.resolve());
 const LIST_LIMIT = 100;
 
 vi.mock("@tanstack/react-query", async () => {
-  const actual = await vi.importActual<typeof import("@tanstack/react-query")>("@tanstack/react-query");
+  const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
+    "@tanstack/react-query",
+  );
   return {
     ...actual,
     useQuery: (options: unknown) => useQueryMock(options),
-    useQueries: ({ queries }: { queries: unknown[] }) => queries.map((options) => useQueryMock(options)),
+    useQueries: ({ queries }: { queries: unknown[] }) =>
+      queries.map((options) => useQueryMock(options)),
     useQueryClient: () => ({ cancelQueries: cancelQueriesMock }),
   };
 });
@@ -51,7 +64,9 @@ vi.mock("@tanstack/react-query", async () => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
-function createItem(overrides: Partial<WorkspaceFileListFileItem> = {}): WorkspaceFileListFileItem {
+function createItem(
+  overrides: Partial<WorkspaceFileListFileItem> = {},
+): WorkspaceFileListFileItem {
   return {
     kind: "file",
     provider: "git_worktree",
@@ -70,7 +85,9 @@ function createItem(overrides: Partial<WorkspaceFileListFileItem> = {}): Workspa
   };
 }
 
-function createDirectoryItem(overrides: Partial<WorkspaceFileListDirectoryItem> = {}): WorkspaceFileListDirectoryItem {
+function createDirectoryItem(
+  overrides: Partial<WorkspaceFileListDirectoryItem> = {},
+): WorkspaceFileListDirectoryItem {
   return {
     kind: "directory",
     provider: "git_worktree",
@@ -89,7 +106,10 @@ function createDirectoryItem(overrides: Partial<WorkspaceFileListDirectoryItem> 
   };
 }
 
-function availableResponse(items: WorkspaceFileListItem[], truncated = false): WorkspaceFileListResponse {
+function availableResponse(
+  items: WorkspaceFileListItem[],
+  truncated = false,
+): WorkspaceFileListResponse {
   return {
     kind: "workspace_file_list",
     state: "available",
@@ -99,7 +119,13 @@ function availableResponse(items: WorkspaceFileListItem[], truncated = false): W
       workspaceKind: "execution_workspace",
       workspaceId: "ws-1",
     },
-    query: { workspace: "auto", mode: "changed", q: null, limit: 100, offset: 0 },
+    query: {
+      workspace: "auto",
+      mode: "changed",
+      q: null,
+      limit: 100,
+      offset: 0,
+    },
     items,
     scannedCount: items.length,
     truncated,
@@ -117,7 +143,9 @@ function availableAllResponse(
   return response;
 }
 
-function createWorkspace(overrides: Partial<ProjectWorkspace> = {}): ProjectWorkspace {
+function createWorkspace(
+  overrides: Partial<ProjectWorkspace> = {},
+): ProjectWorkspace {
   return {
     id: "workspace-content",
     companyId: "company-1",
@@ -189,7 +217,13 @@ function unavailableResponse(reason: string): WorkspaceFileListResponse {
     state: "unavailable",
     unavailableReason: reason,
     workspace: null,
-    query: { workspace: "auto", mode: "changed", q: null, limit: 100, offset: 0 },
+    query: {
+      workspace: "auto",
+      mode: "changed",
+      q: null,
+      limit: 100,
+      offset: 0,
+    },
     items: [],
     scannedCount: 0,
     truncated: false,
@@ -197,7 +231,13 @@ function unavailableResponse(reason: string): WorkspaceFileListResponse {
 }
 
 function ok<T>(data: T) {
-  return { data, isFetching: false, isError: false, error: null, refetch: vi.fn() };
+  return {
+    data,
+    isFetching: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  };
 }
 
 describe("WorkspaceFileBrowser", () => {
@@ -229,24 +269,36 @@ describe("WorkspaceFileBrowser", () => {
     vi.restoreAllMocks();
   });
 
-  function renderBrowser(onOpen = vi.fn(), props: Partial<ComponentProps<typeof WorkspaceFileBrowser>> = {}) {
+  function renderBrowser(
+    onOpen = vi.fn(),
+    props: Partial<ComponentProps<typeof WorkspaceFileBrowser>> = {},
+  ) {
     const root = createRoot(container);
     roots.push(root);
     act(() => {
-      root.render(<WorkspaceFileBrowser issueId="issue-1" onOpen={onOpen} {...props} />);
+      root.render(
+        <WorkspaceFileBrowser issueId="issue-1" onOpen={onOpen} {...props} />,
+      );
     });
     return { root, onOpen };
   }
 
   function changedListQueryOptions() {
     return useQueryMock.mock.calls
-      .map(([options]) => options as {
-        queryKey?: readonly unknown[];
-        enabled?: boolean;
-        refetchOnWindowFocus?: boolean;
-        refetchOnReconnect?: boolean;
-      })
-      .filter((options) => options.queryKey?.[0] === "issues" && options.queryKey?.[3] === "list")
+      .map(
+        ([options]) =>
+          options as {
+            queryKey?: readonly unknown[];
+            enabled?: boolean;
+            refetchOnWindowFocus?: boolean;
+            refetchOnReconnect?: boolean;
+          },
+      )
+      .filter(
+        (options) =>
+          options.queryKey?.[0] === "issues" &&
+          options.queryKey?.[3] === "list",
+      )
       .at(-1);
   }
 
@@ -305,7 +357,9 @@ describe("WorkspaceFileBrowser", () => {
     });
 
     renderBrowser();
-    const refresh = container.querySelector<HTMLButtonElement>('button[aria-label="Refresh workspace files"]');
+    const refresh = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Refresh workspace files"]',
+    );
     expect(refresh).not.toBeNull();
     act(() => refresh!.click());
 
@@ -320,28 +374,40 @@ describe("WorkspaceFileBrowser", () => {
   it.each([
     [503, "workspace_git_scan_saturated"],
     [504, "workspace_git_scan_timeout"],
-  ] as const)("renders %s changed-file failures as a retryable state", (status, code) => {
-    const refetch = vi.fn();
-    useQueryMock.mockReturnValue({
-      data: undefined,
-      isFetching: false,
-      isError: true,
-      error: new ApiError("temporarily unavailable", status, { code }),
-      refetch,
-    });
+  ] as const)(
+    "renders %s changed-file failures as a retryable state",
+    (status, code) => {
+      const refetch = vi.fn();
+      useQueryMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        error: new ApiError("temporarily unavailable", status, { code }),
+        refetch,
+      });
 
-    renderBrowser();
+      renderBrowser();
 
-    expect(container.textContent).toContain("Changed files temporarily unavailable");
-    const retry = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Retry"));
-    expect(retry).not.toBeUndefined();
-    act(() => retry!.click());
-    expect(refetch).toHaveBeenCalledTimes(1);
-  });
+      expect(container.textContent).toContain(
+        "Changed files temporarily unavailable",
+      );
+      const retry = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent?.includes("Retry"),
+      );
+      expect(retry).not.toBeUndefined();
+      act(() => retry!.click());
+      expect(refetch).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("renders the Recently changed files as a tree and opens a row with its relative path", () => {
     useQueryMock.mockReturnValue(
-      ok(availableResponse([createItem(), createItem({ relativePath: "README.md", displayPath: "README.md" })])),
+      ok(
+        availableResponse([
+          createItem(),
+          createItem({ relativePath: "README.md", displayPath: "README.md" }),
+        ]),
+      ),
     );
 
     const { onOpen } = renderBrowser();
@@ -351,17 +417,21 @@ describe("WorkspaceFileBrowser", () => {
     expect(container.textContent).not.toContain("Recently changed");
     expect(container.textContent).not.toContain("From Isolated workspace");
 
-    const option = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
-      (el) => el.getAttribute("title") === "ui/src/pages/IssueDetail.tsx",
-    );
+    const option = Array.from(
+      container.querySelectorAll('[role="treeitem"]'),
+    ).find((el) => el.getAttribute("title") === "ui/src/pages/IssueDetail.tsx");
     expect(option).not.toBeUndefined();
-    const download = option!.querySelector<HTMLAnchorElement>('a[aria-label="Download IssueDetail.tsx"]');
+    const download = option!.querySelector<HTMLAnchorElement>(
+      'a[aria-label="Download IssueDetail.tsx"]',
+    );
     expect(download?.getAttribute("href")).toBe(
       "/api/issues/issue-1/file-resources/content?path=ui%2Fsrc%2Fpages%2FIssueDetail.tsx&download=1",
     );
 
     act(() => {
-      option!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      option!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(onOpen).toHaveBeenCalledWith({
       path: "ui/src/pages/IssueDetail.tsx",
@@ -373,19 +443,22 @@ describe("WorkspaceFileBrowser", () => {
 
   it("groups nested paths into collapsible folder rows instead of repeating full paths", () => {
     useQueryMock.mockReturnValue(
-      ok(availableResponse([
-        createItem({
-          title: "tweet.md",
-          relativePath: "videos/90-days-taskcore/tweet.md",
-          displayPath: "videos/90-days-taskcore/tweet.md",
-        }),
-        createItem({
-          title: "90-days-taskcore-1x1.mp4",
-          relativePath: "videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4",
-          displayPath: "videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4",
-          previewKind: "video",
-        }),
-      ])),
+      ok(
+        availableResponse([
+          createItem({
+            title: "tweet.md",
+            relativePath: "videos/90-days-taskcore/tweet.md",
+            displayPath: "videos/90-days-taskcore/tweet.md",
+          }),
+          createItem({
+            title: "90-days-taskcore-1x1.mp4",
+            relativePath:
+              "videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4",
+            displayPath: "videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4",
+            previewKind: "video",
+          }),
+        ]),
+      ),
     );
 
     renderBrowser();
@@ -395,14 +468,18 @@ describe("WorkspaceFileBrowser", () => {
     expect(container.textContent).toContain("90-days-taskcore");
     expect(container.textContent).toContain("tweet.md");
     expect(container.textContent).toContain("90-days-taskcore-1x1.mp4");
-    expect(container.textContent).not.toContain("videos/90-days-taskcore/tweet.md");
-
-    const videosFolder = Array.from(container.querySelectorAll('button[role="treeitem"]')).find(
-      (el) => el.getAttribute("title") === "videos",
+    expect(container.textContent).not.toContain(
+      "videos/90-days-taskcore/tweet.md",
     );
+
+    const videosFolder = Array.from(
+      container.querySelectorAll('button[role="treeitem"]'),
+    ).find((el) => el.getAttribute("title") === "videos");
     expect(videosFolder).not.toBeUndefined();
     act(() => {
-      videosFolder!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      videosFolder!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(container.textContent).not.toContain("tweet.md");
   });
@@ -410,17 +487,23 @@ describe("WorkspaceFileBrowser", () => {
   it("can render without autofocus when embedded beside a preview", () => {
     useQueryMock.mockReturnValue(ok(availableResponse([createItem()])));
     renderBrowser(vi.fn(), { autoFocusSearch: false });
-    expect(container.querySelector("input")?.hasAttribute("autofocus")).toBe(false);
+    expect(container.querySelector("input")?.hasAttribute("autofocus")).toBe(
+      false,
+    );
     expect(container.querySelector("input")?.className).toContain("max-w-full");
   });
 
   it("hides source controls, folder headings, workspace labels, and timestamps", () => {
-    useQueryMock.mockReturnValue(ok(availableResponse([
-      createItem({
-        relativePath: "videos/90-days-taskcore/tweet.md",
-        displayPath: "videos/90-days-taskcore/tweet.md",
-      }),
-    ])));
+    useQueryMock.mockReturnValue(
+      ok(
+        availableResponse([
+          createItem({
+            relativePath: "videos/90-days-taskcore/tweet.md",
+            displayPath: "videos/90-days-taskcore/tweet.md",
+          }),
+        ]),
+      ),
+    );
 
     renderBrowser(vi.fn(), { compact: true, autoFocusSearch: false });
 
@@ -437,9 +520,9 @@ describe("WorkspaceFileBrowser", () => {
   it("marks the selected file in the tree", () => {
     useQueryMock.mockReturnValue(ok(availableResponse([createItem()])));
     renderBrowser(vi.fn(), { selectedPath: "ui/src/pages/IssueDetail.tsx" });
-    const selected = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
-      (el) => el.getAttribute("title") === "ui/src/pages/IssueDetail.tsx",
-    );
+    const selected = Array.from(
+      container.querySelectorAll('[role="treeitem"]'),
+    ).find((el) => el.getAttribute("title") === "ui/src/pages/IssueDetail.tsx");
     expect(selected?.getAttribute("aria-selected")).toBe("true");
   });
 
@@ -458,12 +541,16 @@ describe("WorkspaceFileBrowser", () => {
       selectedPath: "docs/reference/cli/commands.md",
     });
 
-    const listCall = useQueryMock.mock.calls.find(([options]) => options.queryKey?.[3] === "list");
+    const listCall = useQueryMock.mock.calls.find(
+      ([options]) => options.queryKey?.[3] === "list",
+    );
     expect(listCall?.[0].queryKey[4]).toMatchObject({
       mode: "all",
       path: "docs/reference/cli",
     });
-    const selected = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
+    const selected = Array.from(
+      container.querySelectorAll('[role="treeitem"]'),
+    ).find(
       (el) => el.getAttribute("title") === "docs/reference/cli/commands.md",
     );
     expect(selected?.getAttribute("aria-selected")).toBe("true");
@@ -471,11 +558,17 @@ describe("WorkspaceFileBrowser", () => {
   });
 
   it("treats an explicit null initial folder as the workspace root", () => {
-    useQueryMock.mockReturnValue(ok(availableResponse([createItem({
-      title: "README.md",
-      relativePath: "README.md",
-      displayPath: "README.md",
-    })])));
+    useQueryMock.mockReturnValue(
+      ok(
+        availableResponse([
+          createItem({
+            title: "README.md",
+            relativePath: "README.md",
+            displayPath: "README.md",
+          }),
+        ]),
+      ),
+    );
 
     renderBrowser(vi.fn(), {
       compact: true,
@@ -484,7 +577,9 @@ describe("WorkspaceFileBrowser", () => {
       selectedPath: "docs/reference/cli/commands.md",
     });
 
-    const listCall = useQueryMock.mock.calls.find(([options]) => options.queryKey?.[3] === "list");
+    const listCall = useQueryMock.mock.calls.find(
+      ([options]) => options.queryKey?.[3] === "list",
+    );
     expect(listCall?.[0].queryKey[4]).toMatchObject({
       mode: "all",
       path: null,
@@ -492,11 +587,17 @@ describe("WorkspaceFileBrowser", () => {
   });
 
   it("preserves an initial search instead of narrowing to the selected file's parent folder", () => {
-    useQueryMock.mockReturnValue(ok(availableResponse([createItem({
-      title: "FileViewerSheet.tsx",
-      relativePath: "ui/src/components/FileViewerSheet.tsx",
-      displayPath: "ui/src/components/FileViewerSheet.tsx",
-    })])));
+    useQueryMock.mockReturnValue(
+      ok(
+        availableResponse([
+          createItem({
+            title: "FileViewerSheet.tsx",
+            relativePath: "ui/src/components/FileViewerSheet.tsx",
+            displayPath: "ui/src/components/FileViewerSheet.tsx",
+          }),
+        ]),
+      ),
+    );
 
     renderBrowser(vi.fn(), {
       compact: true,
@@ -505,7 +606,9 @@ describe("WorkspaceFileBrowser", () => {
       selectedPath: "ui/src/components/FileViewerSheet.tsx",
     });
 
-    const listCall = useQueryMock.mock.calls.find(([options]) => options.queryKey?.[3] === "list");
+    const listCall = useQueryMock.mock.calls.find(
+      ([options]) => options.queryKey?.[3] === "list",
+    );
     expect(listCall?.[0].queryKey[4]).toMatchObject({
       mode: "all",
       q: "FileViewerSheet",
@@ -514,13 +617,17 @@ describe("WorkspaceFileBrowser", () => {
   });
 
   it("does not mark an unrelated highlighted row as selected", () => {
-    useQueryMock.mockReturnValue(ok(availableResponse([
-      createItem({
-        title: "vite.config.ts",
-        relativePath: "ui/vite.config.ts",
-        displayPath: "ui/vite.config.ts",
-      }),
-    ])));
+    useQueryMock.mockReturnValue(
+      ok(
+        availableResponse([
+          createItem({
+            title: "vite.config.ts",
+            relativePath: "ui/vite.config.ts",
+            displayPath: "ui/vite.config.ts",
+          }),
+        ]),
+      ),
+    );
 
     renderBrowser(vi.fn(), {
       compact: true,
@@ -528,9 +635,9 @@ describe("WorkspaceFileBrowser", () => {
       selectedPath: "docs/reference/cli/commands.md",
     });
 
-    const unrelated = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
-      (el) => el.getAttribute("title") === "ui/vite.config.ts",
-    );
+    const unrelated = Array.from(
+      container.querySelectorAll('[role="treeitem"]'),
+    ).find((el) => el.getAttribute("title") === "ui/vite.config.ts");
     expect(unrelated?.getAttribute("aria-selected")).toBe("false");
   });
 
@@ -549,25 +656,39 @@ describe("WorkspaceFileBrowser", () => {
 
   it("renders newly loaded current-folder rows after Load more", () => {
     const folderPath = "ui/src/components";
-    const pageZero = availableAllResponse([
-      createItem({
-        title: "IssueLinkQuicklook.tsx",
-        relativePath: `${folderPath}/IssueLinkQuicklook.tsx`,
-        displayPath: `${folderPath}/IssueLinkQuicklook.tsx`,
-      }),
-    ], folderPath, true, 0);
-    const pageOne = availableAllResponse([
-      createItem({
-        title: "SourceTrustBadge.tsx",
-        relativePath: `${folderPath}/SourceTrustBadge.tsx`,
-        displayPath: `${folderPath}/SourceTrustBadge.tsx`,
-      }),
-    ], folderPath, true, LIST_LIMIT);
-    useQueryMock.mockImplementation((options: { queryKey: readonly unknown[] }) => {
-      const query = options.queryKey[4] as { path?: string | null; offset?: number } | undefined;
-      if (query?.path === folderPath && query.offset === LIST_LIMIT) return ok(pageOne);
-      return ok(pageZero);
-    });
+    const pageZero = availableAllResponse(
+      [
+        createItem({
+          title: "IssueLinkQuicklook.tsx",
+          relativePath: `${folderPath}/IssueLinkQuicklook.tsx`,
+          displayPath: `${folderPath}/IssueLinkQuicklook.tsx`,
+        }),
+      ],
+      folderPath,
+      true,
+      0,
+    );
+    const pageOne = availableAllResponse(
+      [
+        createItem({
+          title: "SourceTrustBadge.tsx",
+          relativePath: `${folderPath}/SourceTrustBadge.tsx`,
+          displayPath: `${folderPath}/SourceTrustBadge.tsx`,
+        }),
+      ],
+      folderPath,
+      true,
+      LIST_LIMIT,
+    );
+    useQueryMock.mockImplementation(
+      (options: { queryKey: readonly unknown[] }) => {
+        const query = options.queryKey[4] as
+          { path?: string | null; offset?: number } | undefined;
+        if (query?.path === folderPath && query.offset === LIST_LIMIT)
+          return ok(pageOne);
+        return ok(pageZero);
+      },
+    );
 
     renderBrowser(vi.fn(), {
       compact: true,
@@ -581,7 +702,9 @@ describe("WorkspaceFileBrowser", () => {
       (el) => el.textContent === "Load more from this folder",
     );
     act(() => {
-      loadMore!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      loadMore!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(container.textContent).toContain("SourceTrustBadge.tsx");
@@ -592,10 +715,22 @@ describe("WorkspaceFileBrowser", () => {
     const { onOpen } = renderBrowser();
     const input = container.querySelector("input")!;
     act(() => {
-      input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "ArrowDown",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
     act(() => {
-      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
     expect(onOpen).toHaveBeenCalledWith({
       path: "ui/src/pages/IssueDetail.tsx",
@@ -615,10 +750,15 @@ describe("WorkspaceFileBrowser", () => {
     onBrowseStateChange.mockClear();
 
     const input = container.querySelector("input")!;
-    const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )?.set;
     act(() => {
       nativeSetter?.call(input, "FileViewerSheet");
-      input.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
+      input.dispatchEvent(
+        new Event("input", { bubbles: true, cancelable: true }),
+      );
     });
     await new Promise((resolve) => window.setTimeout(resolve, 0));
 
@@ -633,7 +773,9 @@ describe("WorkspaceFileBrowser", () => {
   it("shows the remote-workspace state without file rows", () => {
     useQueryMock.mockReturnValue(ok(unavailableResponse("remote_workspace")));
     renderBrowser();
-    expect(container.textContent).toContain("Remote workspace preview not supported");
+    expect(container.textContent).toContain(
+      "Remote workspace preview not supported",
+    );
     expect(container.querySelector('[role="tree"]')).toBeNull();
   });
 
@@ -645,18 +787,22 @@ describe("WorkspaceFileBrowser", () => {
 
   it("opens a result from a selected other project workspace", () => {
     const contentItem = createItem({
-      relativePath: "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md",
-      displayPath: "Taskcore Content / content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md",
+      relativePath:
+        "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md",
+      displayPath:
+        "Taskcore Content / content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md",
       workspaceLabel: "Taskcore Content",
       workspaceKind: "project_workspace",
       workspaceId: "workspace-content",
       projectId: "project-content",
       projectName: "Taskcore Content",
     });
-    useQueryMock.mockImplementation((options: { queryKey: readonly unknown[] }) => {
-      if (options.queryKey[0] === "projects") return ok([createProject()]);
-      return ok(availableResponse([contentItem]));
-    });
+    useQueryMock.mockImplementation(
+      (options: { queryKey: readonly unknown[] }) => {
+        if (options.queryKey[0] === "projects") return ok([createProject()]);
+        return ok(availableResponse([contentItem]));
+      },
+    );
 
     const { onOpen } = renderBrowser(vi.fn(), {
       companyId: "company-1",
@@ -665,19 +811,25 @@ describe("WorkspaceFileBrowser", () => {
     });
 
     expect(container.textContent).not.toContain("Other project");
-    expect(container.textContent).toContain("Taskcore Content / Taskcore Content");
-    const listCall = useQueryMock.mock.calls.find(([options]) => options.queryKey?.[3] === "list");
+    expect(container.textContent).toContain(
+      "Taskcore Content / Taskcore Content",
+    );
+    const listCall = useQueryMock.mock.calls.find(
+      ([options]) => options.queryKey?.[3] === "list",
+    );
     expect(listCall?.[0].queryKey[4]).toMatchObject({
       workspace: "project",
       projectId: "project-content",
       workspaceId: "workspace-content",
     });
 
-    const option = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
-      (el) => el.getAttribute("title") === contentItem.displayPath,
-    )!;
+    const option = Array.from(
+      container.querySelectorAll('[role="treeitem"]'),
+    ).find((el) => el.getAttribute("title") === contentItem.displayPath)!;
     act(() => {
-      option.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      option.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(onOpen).toHaveBeenCalledWith({
       path: "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/README.md",
@@ -690,7 +842,8 @@ describe("WorkspaceFileBrowser", () => {
   });
 
   it("focuses an initial folder in a selected other project workspace", () => {
-    const folderPath = "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/";
+    const folderPath =
+      "content-os/cases/active/2026-06-06-pap-10199-bundled-skills/";
     const contentItem = createItem({
       relativePath: `${folderPath}README.md`,
       displayPath: `Taskcore Content / ${folderPath}README.md`,
@@ -700,10 +853,12 @@ describe("WorkspaceFileBrowser", () => {
       projectId: "project-content",
       projectName: "Taskcore Content",
     });
-    useQueryMock.mockImplementation((options: { queryKey: readonly unknown[] }) => {
-      if (options.queryKey[0] === "projects") return ok([createProject()]);
-      return ok(availableResponse([contentItem]));
-    });
+    useQueryMock.mockImplementation(
+      (options: { queryKey: readonly unknown[] }) => {
+        if (options.queryKey[0] === "projects") return ok([createProject()]);
+        return ok(availableResponse([contentItem]));
+      },
+    );
 
     const { onOpen } = renderBrowser(vi.fn(), {
       companyId: "company-1",
@@ -715,7 +870,9 @@ describe("WorkspaceFileBrowser", () => {
     expect(container.textContent).toContain("bundled-skills");
     expect(container.textContent).not.toContain(folderPath);
     expect(container.textContent).not.toContain("Files in folder");
-    const listCall = useQueryMock.mock.calls.find(([options]) => options.queryKey?.[3] === "list");
+    const listCall = useQueryMock.mock.calls.find(
+      ([options]) => options.queryKey?.[3] === "list",
+    );
     expect(listCall?.[0].queryKey[4]).toMatchObject({
       workspace: "project",
       projectId: "project-content",
@@ -723,11 +880,13 @@ describe("WorkspaceFileBrowser", () => {
       path: folderPath,
     });
 
-    const option = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
-      (el) => el.getAttribute("title") === contentItem.displayPath,
-    )!;
+    const option = Array.from(
+      container.querySelectorAll('[role="treeitem"]'),
+    ).find((el) => el.getAttribute("title") === contentItem.displayPath)!;
     act(() => {
-      option.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      option.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     expect(onOpen).toHaveBeenCalledWith({
       path: `${folderPath}README.md`,
@@ -746,14 +905,18 @@ describe("WorkspaceFileBrowser", () => {
       relativePath: `${folderPath}/control-plane-commands.md`,
       displayPath: `${folderPath}/control-plane-commands.md`,
     });
-    useQueryMock.mockReturnValue(ok(availableResponse([
-      createItem({
-        title: "setup-commands.md",
-        relativePath: `${folderPath}/setup-commands.md`,
-        displayPath: `${folderPath}/setup-commands.md`,
-      }),
-      controlPlane,
-    ])));
+    useQueryMock.mockReturnValue(
+      ok(
+        availableResponse([
+          createItem({
+            title: "setup-commands.md",
+            relativePath: `${folderPath}/setup-commands.md`,
+            displayPath: `${folderPath}/setup-commands.md`,
+          }),
+          controlPlane,
+        ]),
+      ),
+    );
 
     const { onOpen } = renderBrowser(vi.fn(), {
       compact: true,
@@ -762,11 +925,13 @@ describe("WorkspaceFileBrowser", () => {
       selectedPath: `${folderPath}/setup-commands.md`,
     });
 
-    const option = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
-      (el) => el.getAttribute("title") === controlPlane.displayPath,
-    )!;
+    const option = Array.from(
+      container.querySelectorAll('[role="treeitem"]'),
+    ).find((el) => el.getAttribute("title") === controlPlane.displayPath)!;
     act(() => {
-      option.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      option.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onOpen).toHaveBeenCalledWith({
@@ -785,20 +950,61 @@ describe("WorkspaceFileBrowser", () => {
       configurable: true,
       value: scrollIntoView,
     });
-    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function getBoundingClientRect(this: Element) {
-      if (this.getAttribute("aria-selected") === "true") {
-        return { top: 1086, bottom: 1114, left: 0, right: 100, width: 100, height: 28, x: 0, y: 1086, toJSON: () => ({}) };
-      }
-      if (typeof this.className === "string" && this.className.includes("overflow-y-auto")) {
-        return { top: 188, bottom: 546, left: 0, right: 320, width: 320, height: 358, x: 0, y: 188, toJSON: () => ({}) };
-      }
-      return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) };
-    });
-    useQueryMock.mockReturnValue(ok(availableResponse([createItem({
-      title: "setup-commands.md",
-      relativePath: selectedPath,
-      displayPath: selectedPath,
-    })])));
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      function getBoundingClientRect(this: Element) {
+        if (this.getAttribute("aria-selected") === "true") {
+          return {
+            top: 1086,
+            bottom: 1114,
+            left: 0,
+            right: 100,
+            width: 100,
+            height: 28,
+            x: 0,
+            y: 1086,
+            toJSON: () => ({}),
+          };
+        }
+        if (
+          typeof this.className === "string" &&
+          this.className.includes("overflow-y-auto")
+        ) {
+          return {
+            top: 188,
+            bottom: 546,
+            left: 0,
+            right: 320,
+            width: 320,
+            height: 358,
+            x: 0,
+            y: 188,
+            toJSON: () => ({}),
+          };
+        }
+        return {
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: 0,
+          height: 0,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        };
+      },
+    );
+    useQueryMock.mockReturnValue(
+      ok(
+        availableResponse([
+          createItem({
+            title: "setup-commands.md",
+            relativePath: selectedPath,
+            displayPath: selectedPath,
+          }),
+        ]),
+      ),
+    );
 
     renderBrowser(vi.fn(), {
       compact: true,
@@ -828,11 +1034,14 @@ describe("WorkspaceFileBrowser", () => {
       }),
     ]);
     cliResponse.query = { ...cliResponse.query, mode: "all", path: "docs/cli" };
-    useQueryMock.mockImplementation((options: { queryKey: readonly unknown[] }) => {
-      const query = options.queryKey[4] as { path?: string | null } | undefined;
-      if (query?.path === "docs/cli") return ok(cliResponse);
-      return ok(docsResponse);
-    });
+    useQueryMock.mockImplementation(
+      (options: { queryKey: readonly unknown[] }) => {
+        const query = options.queryKey[4] as
+          { path?: string | null } | undefined;
+        if (query?.path === "docs/cli") return ok(cliResponse);
+        return ok(docsResponse);
+      },
+    );
 
     renderBrowser(vi.fn(), {
       compact: true,
@@ -841,11 +1050,16 @@ describe("WorkspaceFileBrowser", () => {
       selectedPath,
     });
 
-    const childListCall = useQueryMock.mock.calls.find(([options]) => options.queryKey?.[4]?.path === "docs/cli");
-    expect(childListCall?.[0].queryKey[4]).toMatchObject({ path: "docs/cli", offset: 0 });
-    const selected = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
-      (el) => el.getAttribute("title") === selectedPath,
+    const childListCall = useQueryMock.mock.calls.find(
+      ([options]) => options.queryKey?.[4]?.path === "docs/cli",
     );
+    expect(childListCall?.[0].queryKey[4]).toMatchObject({
+      path: "docs/cli",
+      offset: 0,
+    });
+    const selected = Array.from(
+      container.querySelectorAll('[role="treeitem"]'),
+    ).find((el) => el.getAttribute("title") === selectedPath);
     expect(selected?.getAttribute("aria-selected")).toBe("true");
     expect(container.textContent).toContain("setup-commands.md");
   });
@@ -853,33 +1067,53 @@ describe("WorkspaceFileBrowser", () => {
   it("auto-pages the selected file's current folder until the selected row is loaded", async () => {
     const folderPath = "ui/src/components";
     const selectedPath = `${folderPath}/WorkspaceFileBrowser.tsx`;
-    const pageZero = availableAllResponse([
-      createItem({
-        title: "ActivityCharts.tsx",
-        relativePath: `${folderPath}/ActivityCharts.tsx`,
-        displayPath: `${folderPath}/ActivityCharts.tsx`,
-      }),
-    ], folderPath, true, 0);
-    const pageOne = availableAllResponse([
-      createItem({
-        title: "SourceTrustBadge.tsx",
-        relativePath: `${folderPath}/SourceTrustBadge.tsx`,
-        displayPath: `${folderPath}/SourceTrustBadge.tsx`,
-      }),
-    ], folderPath, true, LIST_LIMIT);
-    const pageTwo = availableAllResponse([
-      createItem({
-        title: "WorkspaceFileBrowser.tsx",
-        relativePath: selectedPath,
-        displayPath: selectedPath,
-      }),
-    ], folderPath, false, LIST_LIMIT * 2);
-    useQueryMock.mockImplementation((options: { queryKey: readonly unknown[] }) => {
-      const query = options.queryKey[4] as { path?: string | null; offset?: number } | undefined;
-      if (query?.path === folderPath && query.offset === LIST_LIMIT) return ok(pageOne);
-      if (query?.path === folderPath && query.offset === LIST_LIMIT * 2) return ok(pageTwo);
-      return ok(pageZero);
-    });
+    const pageZero = availableAllResponse(
+      [
+        createItem({
+          title: "ActivityCharts.tsx",
+          relativePath: `${folderPath}/ActivityCharts.tsx`,
+          displayPath: `${folderPath}/ActivityCharts.tsx`,
+        }),
+      ],
+      folderPath,
+      true,
+      0,
+    );
+    const pageOne = availableAllResponse(
+      [
+        createItem({
+          title: "SourceTrustBadge.tsx",
+          relativePath: `${folderPath}/SourceTrustBadge.tsx`,
+          displayPath: `${folderPath}/SourceTrustBadge.tsx`,
+        }),
+      ],
+      folderPath,
+      true,
+      LIST_LIMIT,
+    );
+    const pageTwo = availableAllResponse(
+      [
+        createItem({
+          title: "WorkspaceFileBrowser.tsx",
+          relativePath: selectedPath,
+          displayPath: selectedPath,
+        }),
+      ],
+      folderPath,
+      false,
+      LIST_LIMIT * 2,
+    );
+    useQueryMock.mockImplementation(
+      (options: { queryKey: readonly unknown[] }) => {
+        const query = options.queryKey[4] as
+          { path?: string | null; offset?: number } | undefined;
+        if (query?.path === folderPath && query.offset === LIST_LIMIT)
+          return ok(pageOne);
+        if (query?.path === folderPath && query.offset === LIST_LIMIT * 2)
+          return ok(pageTwo);
+        return ok(pageZero);
+      },
+    );
 
     renderBrowser(vi.fn(), {
       compact: true,
@@ -890,14 +1124,19 @@ describe("WorkspaceFileBrowser", () => {
 
     await waitForExpectation(() => {
       const pageTwoCall = useQueryMock.mock.calls.find(
-        ([options]) => options.queryKey?.[4]?.path === folderPath && options.queryKey[4].offset === LIST_LIMIT * 2,
+        ([options]) =>
+          options.queryKey?.[4]?.path === folderPath &&
+          options.queryKey[4].offset === LIST_LIMIT * 2,
       );
-      expect(pageTwoCall?.[0].queryKey[4]).toMatchObject({ path: folderPath, offset: LIST_LIMIT * 2 });
+      expect(pageTwoCall?.[0].queryKey[4]).toMatchObject({
+        path: folderPath,
+        offset: LIST_LIMIT * 2,
+      });
     });
     await waitForExpectation(() => {
-      const selected = Array.from(container.querySelectorAll('[role="treeitem"]')).find(
-        (el) => el.getAttribute("title") === selectedPath,
-      );
+      const selected = Array.from(
+        container.querySelectorAll('[role="treeitem"]'),
+      ).find((el) => el.getAttribute("title") === selectedPath);
       expect(selected?.getAttribute("aria-selected")).toBe("true");
       expect(container.textContent).toContain("WorkspaceFileBrowser.tsx");
     });
@@ -905,35 +1144,60 @@ describe("WorkspaceFileBrowser", () => {
 
   it("lets breadcrumb folders navigate to parent directories", () => {
     const folderPath = "content-os/cases/active/";
-    useQueryMock.mockReturnValue(ok(availableResponse([createItem({
-      relativePath: `${folderPath}README.md`,
-      displayPath: `${folderPath}README.md`,
-    })])));
+    useQueryMock.mockReturnValue(
+      ok(
+        availableResponse([
+          createItem({
+            relativePath: `${folderPath}README.md`,
+            displayPath: `${folderPath}README.md`,
+          }),
+        ]),
+      ),
+    );
 
     renderBrowser(vi.fn(), { initialFolderPath: folderPath });
-    const contentOsCrumb = Array.from(container.querySelectorAll("button")).find(
-      (el) => el.getAttribute("title") === "content-os",
-    );
+    const contentOsCrumb = Array.from(
+      container.querySelectorAll("button"),
+    ).find((el) => el.getAttribute("title") === "content-os");
     expect(contentOsCrumb).not.toBeUndefined();
     act(() => {
-      contentOsCrumb!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      contentOsCrumb!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
-    const latestListCall = useQueryMock.mock.calls.filter(([options]) => options.queryKey?.[3] === "list").at(-1);
-    expect(latestListCall?.[0].queryKey[4]).toMatchObject({ path: "content-os" });
+    const latestListCall = useQueryMock.mock.calls
+      .filter(([options]) => options.queryKey?.[3] === "list")
+      .at(-1);
+    expect(latestListCall?.[0].queryKey[4]).toMatchObject({
+      path: "content-os",
+    });
   });
 });
 
 describe("describeUnavailable", () => {
   it("maps reasons to copy that matches the viewer's denial voice", () => {
-    expect(describeUnavailable("remote_workspace").title).toBe("Remote workspace preview not supported");
+    expect(describeUnavailable("remote_workspace").title).toBe(
+      "Remote workspace preview not supported",
+    );
     expect(describeUnavailable("no_workspace").title).toBe("No workspace yet");
-    expect(describeUnavailable("no_local_workspace").title).toBe("No workspace yet");
-    expect(describeUnavailable("workspace_unavailable").title).toBe("Workspace is no longer available");
-    expect(describeUnavailable("archived").title).toBe("Workspace is no longer available");
+    expect(describeUnavailable("no_local_workspace").title).toBe(
+      "No workspace yet",
+    );
+    expect(describeUnavailable("workspace_unavailable").title).toBe(
+      "Workspace is no longer available",
+    );
+    expect(describeUnavailable("archived").title).toBe(
+      "Workspace is no longer available",
+    );
   });
 
   it("never leaks the raw reason code as the body", () => {
-    for (const reason of ["remote_workspace", "no_workspace", "workspace_unavailable", "weird_unknown"]) {
+    for (const reason of [
+      "remote_workspace",
+      "no_workspace",
+      "workspace_unavailable",
+      "weird_unknown",
+    ]) {
       const { body } = describeUnavailable(reason);
       expect(body).not.toBe(reason);
       expect(body).not.toMatch(/^[a-z_]+$/);

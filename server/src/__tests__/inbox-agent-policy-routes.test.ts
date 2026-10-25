@@ -20,14 +20,20 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("inbox agent policy routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-inbox-agent-policy-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-inbox-agent-policy-routes-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -115,13 +121,18 @@ describeEmbeddedPostgres("inbox agent policy routes", () => {
     return { companyId, userId, otherUserId, agentId };
   }
 
-  function boardActor(companyId: string, userId: string): Express.Request["actor"] {
+  function boardActor(
+    companyId: string,
+    userId: string,
+  ): Express.Request["actor"] {
     return {
       type: "board",
       source: "session",
       userId,
       companyIds: [companyId],
-      memberships: [{ companyId, membershipRole: "operator", status: "active" }],
+      memberships: [
+        { companyId, membershipRole: "operator", status: "active" },
+      ],
       isInstanceAdmin: false,
     };
   }
@@ -133,23 +144,27 @@ describeEmbeddedPostgres("inbox agent policy routes", () => {
     await request(app)
       .get(`/companies/${seeded.companyId}/users/me/inbox-agent-policy`)
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({
-        companyId: seeded.companyId,
-        userId: seeded.userId,
-        mode: "open",
-        allowedAgentIds: [],
-        materialized: false,
-      }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          companyId: seeded.companyId,
+          userId: seeded.userId,
+          mode: "open",
+          allowedAgentIds: [],
+          materialized: false,
+        }),
+      );
 
     await request(app)
       .put(`/companies/${seeded.companyId}/users/me/inbox-agent-policy`)
       .send({ mode: "allowlist", allowedAgentIds: [seeded.agentId] })
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({
-        mode: "allowlist",
-        allowedAgentIds: [seeded.agentId],
-        materialized: true,
-      }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          mode: "allowlist",
+          allowedAgentIds: [seeded.agentId],
+          materialized: true,
+        }),
+      );
 
     const [audit] = await db.select().from(activityLog);
     expect(audit).toMatchObject({
@@ -172,10 +187,14 @@ describeEmbeddedPostgres("inbox agent policy routes", () => {
     const app = appFor(actor);
 
     await request(app)
-      .put(`/companies/${seeded.companyId}/users/${seeded.otherUserId}/inbox-agent-policy`)
+      .put(
+        `/companies/${seeded.companyId}/users/${seeded.otherUserId}/inbox-agent-policy`,
+      )
       .send({ mode: "disabled", allowedAgentIds: [] })
       .expect(403)
-      .expect(({ body }) => expect(body.code).toBe("inbox_agent_policy_admin_required"));
+      .expect(({ body }) =>
+        expect(body.code).toBe("inbox_agent_policy_admin_required"),
+      );
 
     await db.insert(principalPermissionGrants).values({
       companyId: seeded.companyId,
@@ -185,14 +204,18 @@ describeEmbeddedPostgres("inbox agent policy routes", () => {
     });
 
     await request(app)
-      .put(`/companies/${seeded.companyId}/users/${seeded.otherUserId}/inbox-agent-policy`)
+      .put(
+        `/companies/${seeded.companyId}/users/${seeded.otherUserId}/inbox-agent-policy`,
+      )
       .send({ mode: "disabled", allowedAgentIds: [] })
       .expect(200)
-      .expect(({ body }) => expect(body).toMatchObject({
-        userId: seeded.otherUserId,
-        mode: "disabled",
-        allowedAgentIds: [],
-      }));
+      .expect(({ body }) =>
+        expect(body).toMatchObject({
+          userId: seeded.otherUserId,
+          mode: "disabled",
+          allowedAgentIds: [],
+        }),
+      );
   });
 
   it("rejects admin policies for users without an active company membership", async () => {
@@ -206,7 +229,9 @@ describeEmbeddedPostgres("inbox agent policy routes", () => {
     });
 
     await request(appFor(actor))
-      .put(`/companies/${seeded.companyId}/users/user-missing/inbox-agent-policy`)
+      .put(
+        `/companies/${seeded.companyId}/users/user-missing/inbox-agent-policy`,
+      )
       .send({ mode: "disabled", allowedAgentIds: [] })
       .expect(404);
   });
@@ -225,6 +250,8 @@ describeEmbeddedPostgres("inbox agent policy routes", () => {
       .put(`/companies/${seeded.companyId}/users/me/inbox-agent-policy`)
       .send({ mode: "allowlist", allowedAgentIds: [randomUUID()] })
       .expect(422)
-      .expect(({ body }) => expect(body.code).toBe("inbox_agent_policy_invalid_agents"));
+      .expect(({ body }) =>
+        expect(body.code).toBe("inbox_agent_policy_invalid_agents"),
+      );
   });
 });

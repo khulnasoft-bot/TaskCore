@@ -29,7 +29,10 @@ const serviceAccount = {
 
 function resetGoogleapisMock() {
   for (const mock of Object.values(mocks)) mock.mockReset();
-  mocks.GoogleAuth.mockImplementation(function GoogleAuth(this: { config?: unknown }, config: unknown) {
+  mocks.GoogleAuth.mockImplementation(function GoogleAuth(
+    this: { config?: unknown },
+    config: unknown,
+  ) {
     this.config = config;
   });
   mocks.sheets.mockReturnValue({
@@ -55,7 +58,10 @@ describe("Google Sheets API client", () => {
     mocks.valuesGet.mockResolvedValueOnce({
       data: {
         range: "Sheet1!A1:B2",
-        values: [["name", "amount"], ["paper", 12]],
+        values: [
+          ["name", "amount"],
+          ["paper", 12],
+        ],
       },
     });
 
@@ -74,35 +80,42 @@ describe("Google Sheets API client", () => {
       spreadsheetId: "sheet-1",
       range: "Sheet1!A1:B2",
     });
-    expect(values.values).toEqual([["name", "amount"], ["paper", 12]]);
+    expect(values.values).toEqual([
+      ["name", "amount"],
+      ["paper", 12],
+    ]);
   });
 
   it("maps batchUpdate replies for add_sheet_tab and delete_rows", async () => {
     mocks.batchUpdate
       .mockResolvedValueOnce({
         data: {
-          replies: [{
-            addSheet: {
-              properties: {
-                sheetId: 12,
-                title: "New",
-                index: 2,
-                gridProperties: { rowCount: 50, columnCount: 10 },
+          replies: [
+            {
+              addSheet: {
+                properties: {
+                  sheetId: 12,
+                  title: "New",
+                  index: 2,
+                  gridProperties: { rowCount: 50, columnCount: 10 },
+                },
               },
             },
-          }],
+          ],
         },
       })
       .mockResolvedValueOnce({ data: {} });
 
     const client = createGoogleSheetsClient(serviceAccount);
 
-    await expect(client.addSheetTab({
-      spreadsheetId: "sheet-1",
-      title: "New",
-      rowCount: 50,
-      columnCount: 10,
-    })).resolves.toEqual({
+    await expect(
+      client.addSheetTab({
+        spreadsheetId: "sheet-1",
+        title: "New",
+        rowCount: 50,
+        columnCount: 10,
+      }),
+    ).resolves.toEqual({
       spreadsheetId: "sheet-1",
       sheet: {
         sheetId: 12,
@@ -113,12 +126,14 @@ describe("Google Sheets API client", () => {
       },
     });
 
-    await expect(client.deleteRows({
-      spreadsheetId: "sheet-1",
-      sheetId: 12,
-      startIndex: 3,
-      endIndex: 5,
-    })).resolves.toEqual({
+    await expect(
+      client.deleteRows({
+        spreadsheetId: "sheet-1",
+        sheetId: 12,
+        startIndex: 3,
+        endIndex: 5,
+      }),
+    ).resolves.toEqual({
       spreadsheetId: "sheet-1",
       sheetId: 12,
       deletedRows: 2,
@@ -128,16 +143,18 @@ describe("Google Sheets API client", () => {
     expect(mocks.batchUpdate).toHaveBeenLastCalledWith({
       spreadsheetId: "sheet-1",
       requestBody: {
-        requests: [{
-          deleteDimension: {
-            range: {
-              sheetId: 12,
-              dimension: "ROWS",
-              startIndex: 3,
-              endIndex: 5,
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId: 12,
+                dimension: "ROWS",
+                startIndex: 3,
+                endIndex: 5,
+              },
             },
           },
-        }],
+        ],
       },
     });
   });

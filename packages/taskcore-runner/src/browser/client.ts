@@ -58,8 +58,15 @@ export interface RunnerClient {
     after?: number,
   ): Promise<{ events: PrpEvent[]; cursor: number; replay: boolean }>;
   startTurn(sessionId: string, text: string): Promise<RunnerSessionState>;
-  steerTurn(sessionId: string, turnId: string, text: string): Promise<RunnerSessionState>;
-  interruptTurn(sessionId: string, turnId: string | null): Promise<RunnerSessionState>;
+  steerTurn(
+    sessionId: string,
+    turnId: string,
+    text: string,
+  ): Promise<RunnerSessionState>;
+  interruptTurn(
+    sessionId: string,
+    turnId: string | null,
+  ): Promise<RunnerSessionState>;
   resolveRequest(
     sessionId: string,
     requestId: string,
@@ -107,7 +114,9 @@ function nativeEventSource(url: string): EventSourceLike {
  * the protocol server; injected transports may carry browser-to-server auth
  * but that auth is never copied into public session state or component props.
  */
-export function createRunnerClient(options: RunnerClientOptions = {}): RunnerClient {
+export function createRunnerClient(
+  options: RunnerClientOptions = {},
+): RunnerClient {
   const baseUrl = normalizedBaseUrl(options.baseUrl ?? "/api/liveConsole");
   const fetchImpl = options.fetchImpl ?? nativeFetch();
   const eventSourceFactory = options.eventSourceFactory ?? nativeEventSource;
@@ -125,16 +134,26 @@ export function createRunnerClient(options: RunnerClientOptions = {}): RunnerCli
         body = JSON.parse(text) as RunnerClientErrorBody;
       } catch {
         if (!response.ok) {
-          throw new RunnerClientError(response.status, "invalid_response", "The runner returned invalid JSON.");
+          throw new RunnerClientError(
+            response.status,
+            "invalid_response",
+            "The runner returned invalid JSON.",
+          );
         }
-        throw new RunnerClientError(response.status, "invalid_response", "The runner returned invalid JSON.");
+        throw new RunnerClientError(
+          response.status,
+          "invalid_response",
+          "The runner returned invalid JSON.",
+        );
       }
     }
     if (!response.ok) {
       throw new RunnerClientError(
         response.status,
         typeof body.error === "string" ? body.error : "request_failed",
-        typeof body.message === "string" ? body.message : `Request to ${path} failed.`,
+        typeof body.message === "string"
+          ? body.message
+          : `Request to ${path} failed.`,
       );
     }
     return body as T;
@@ -152,28 +171,44 @@ export function createRunnerClient(options: RunnerClientOptions = {}): RunnerCli
       });
     },
     readSession(sessionId) {
-      return send<RunnerSessionState>(`/sessions/${encodeURIComponent(sessionId)}`);
+      return send<RunnerSessionState>(
+        `/sessions/${encodeURIComponent(sessionId)}`,
+      );
     },
     readEvents(sessionId, after = 0) {
-      return send(`/sessions/${encodeURIComponent(sessionId)}/events?after=${after}`);
+      return send(
+        `/sessions/${encodeURIComponent(sessionId)}/events?after=${after}`,
+      );
     },
     startTurn(sessionId, text) {
-      return send<RunnerSessionState>(`/sessions/${encodeURIComponent(sessionId)}/turns`, {
-        method: "POST",
-        body: JSON.stringify({ text }),
-      });
+      return send<RunnerSessionState>(
+        `/sessions/${encodeURIComponent(sessionId)}/turns`,
+        {
+          method: "POST",
+          body: JSON.stringify({ text }),
+        },
+      );
     },
     steerTurn(sessionId, turnId, text) {
-      return send<RunnerSessionState>(`/sessions/${encodeURIComponent(sessionId)}/steer`, {
-        method: "POST",
-        body: JSON.stringify({ turnId, text }),
-      });
+      return send<RunnerSessionState>(
+        `/sessions/${encodeURIComponent(sessionId)}/steer`,
+        {
+          method: "POST",
+          body: JSON.stringify({ turnId, text }),
+        },
+      );
     },
     interruptTurn(sessionId, turnId) {
-      return send<RunnerSessionState>(`/sessions/${encodeURIComponent(sessionId)}/interrupt`, {
-        method: "POST",
-        body: JSON.stringify({ reason: "browser_operator", ...(turnId === null ? {} : { turnId }) }),
-      });
+      return send<RunnerSessionState>(
+        `/sessions/${encodeURIComponent(sessionId)}/interrupt`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "browser_operator",
+            ...(turnId === null ? {} : { turnId }),
+          }),
+        },
+      );
     },
     resolveRequest(sessionId, requestId, turnId, resolution) {
       return send<RunnerSessionState>(
@@ -188,10 +223,13 @@ export function createRunnerClient(options: RunnerClientOptions = {}): RunnerCli
       );
     },
     reconnectSession(sessionId) {
-      return send<RunnerSessionState>(`/sessions/${encodeURIComponent(sessionId)}/reconnect`, {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      return send<RunnerSessionState>(
+        `/sessions/${encodeURIComponent(sessionId)}/reconnect`,
+        {
+          method: "POST",
+          body: JSON.stringify({}),
+        },
+      );
     },
     async closeSession(sessionId) {
       await send(`/sessions/${encodeURIComponent(sessionId)}/close`, {

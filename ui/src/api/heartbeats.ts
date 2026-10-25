@@ -104,7 +104,10 @@ export type RuntimeRequestResolution =
   | { action: "accept" | "accept_for_session" | "decline" | "cancel" }
   | { action: "submit"; answers: Record<string, { answers: string[] }> }
   | { action: "submit"; content: Record<string, unknown> }
-  | { action: "submit"; response: import("@taskcore/adapter-utils").TaskcoreQuestionResponse };
+  | {
+      action: "submit";
+      response: import("@taskcore/adapter-utils").TaskcoreQuestionResponse;
+    };
 
 export interface HeartbeatRunListOptions {
   summary?: boolean;
@@ -116,7 +119,13 @@ export interface ProviderTraceInspection {
 }
 
 export const heartbeatsApi = {
-  executionForIssue: (issueId: string) => api.get<{ runId: string; agentId: string; recoveryAction: IssueRecoveryAction | null; execution: HeartbeatRun["execution"] } | null>(`/issues/${issueId}/execution`),
+  executionForIssue: (issueId: string) =>
+    api.get<{
+      runId: string;
+      agentId: string;
+      recoveryAction: IssueRecoveryAction | null;
+      execution: HeartbeatRun["execution"];
+    } | null>(`/issues/${issueId}/execution`),
   list: (
     companyId: string,
     agentId?: string,
@@ -133,12 +142,22 @@ export const heartbeatsApi = {
     );
   },
   get: (runId: string) => api.get<HeartbeatRun>(`/heartbeat-runs/${runId}`),
-  events: (runId: string, afterSeq = 0, limit = 200, options?: RequestOptions) =>
+  events: (
+    runId: string,
+    afterSeq = 0,
+    limit = 200,
+    options?: RequestOptions,
+  ) =>
     api.get<HeartbeatRunEvent[]>(
       `/heartbeat-runs/${runId}/events?afterSeq=${encodeURIComponent(String(afterSeq))}&limit=${encodeURIComponent(String(limit))}`,
       options,
     ),
-  log: (runId: string, offset = 0, limitBytes = 256000, options?: RequestOptions) =>
+  log: (
+    runId: string,
+    offset = 0,
+    limitBytes = 256000,
+    options?: RequestOptions,
+  ) =>
     api.get<{
       runId: string;
       store: string;
@@ -156,7 +175,9 @@ export const heartbeatsApi = {
   providerTrace: (runId: string) =>
     api.get<ProviderTraceInspection>(`/heartbeat-runs/${runId}/provider-trace`),
   providerTraceMetadata: (companyId: string, runIds: string[]) => {
-    const params = new URLSearchParams({ runIds: runIds.slice(0, 100).join(",") });
+    const params = new URLSearchParams({
+      runIds: runIds.slice(0, 100).join(","),
+    });
     return api.get<ProviderTraceMetadata[]>(
       `/companies/${companyId}/provider-traces?${params.toString()}`,
     );
@@ -180,7 +201,10 @@ export const heartbeatsApi = {
       const body = (await response.json().catch(() => null)) as {
         error?: string;
       } | null;
-      const recovery = tenantSessionRecovery.recoverIfNeeded(response.status, body);
+      const recovery = tenantSessionRecovery.recoverIfNeeded(
+        response.status,
+        body,
+      );
       if (recovery) return recovery;
       throw new Error(
         body?.error ?? `Trace download failed: ${response.status}`,
@@ -232,7 +256,8 @@ export const heartbeatsApi = {
     api.get<ActiveRunForIssue | null>(`/issues/${issueId}/active-run`),
   liveRunsForCompany: (
     companyId: string,
-    options?: number | { minCount?: number; limit?: number; distinctTasks?: boolean },
+    options?:
+      number | { minCount?: number; limit?: number; distinctTasks?: boolean },
   ) => {
     const searchParams = new URLSearchParams();
     if (typeof options === "number") {

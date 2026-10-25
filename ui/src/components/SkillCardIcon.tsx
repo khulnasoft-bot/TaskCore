@@ -13,7 +13,13 @@ export interface SkillIconCard {
   color: string | null;
 }
 
-export function SkillCardIcon({ card, size = 36 }: { card: SkillIconCard; size?: number }) {
+export function SkillCardIcon({
+  card,
+  size = 36,
+}: {
+  card: SkillIconCard;
+  size?: number;
+}) {
   if (card.iconUrl) {
     return (
       <img
@@ -30,7 +36,12 @@ export function SkillCardIcon({ card, size = 36 }: { card: SkillIconCard; size?:
     <span
       aria-hidden="true"
       className="flex shrink-0 items-center justify-center rounded-md font-semibold text-white"
-      style={{ width: size, height: size, backgroundColor: accent, fontSize: Math.round(size * 0.42) }}
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: accent,
+        fontSize: Math.round(size * 0.42),
+      }}
     >
       {letter}
     </span>

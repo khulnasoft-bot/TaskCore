@@ -16,7 +16,11 @@ describe("cursor local adapter skill injection", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -42,12 +46,20 @@ describe("cursor local adapter skill injection", () => {
     const injectedB = path.join(skillsHome, "taskcore-create-agent");
     expect((await fs.lstat(injectedA)).isSymbolicLink()).toBe(true);
     expect((await fs.lstat(injectedB)).isSymbolicLink()).toBe(true);
-    expect(await fs.realpath(injectedA)).toBe(await fs.realpath(path.join(skillsDir, "taskcore")));
+    expect(await fs.realpath(injectedA)).toBe(
+      await fs.realpath(path.join(skillsDir, "taskcore")),
+    );
     expect(await fs.realpath(injectedB)).toBe(
       await fs.realpath(path.join(skillsDir, "taskcore-create-agent")),
     );
-    expect(logs.some((line) => line.includes('Injected Cursor skill "taskcore"'))).toBe(true);
-    expect(logs.some((line) => line.includes('Injected Cursor skill "taskcore-create-agent"'))).toBe(true);
+    expect(
+      logs.some((line) => line.includes('Injected Cursor skill "taskcore"')),
+    ).toBe(true);
+    expect(
+      logs.some((line) =>
+        line.includes('Injected Cursor skill "taskcore-create-agent"'),
+      ),
+    ).toBe(true);
   });
 
   it("preserves existing targets and only links missing skills", async () => {
@@ -66,8 +78,14 @@ describe("cursor local adapter skill injection", () => {
     await ensureCursorSkillsInjected(async () => {}, { skillsDir, skillsHome });
 
     expect((await fs.lstat(existingTarget)).isDirectory()).toBe(true);
-    expect(await fs.readFile(path.join(existingTarget, "keep.txt"), "utf8")).toBe("keep");
-    expect((await fs.lstat(path.join(skillsHome, "taskcore-create-agent"))).isSymbolicLink()).toBe(true);
+    expect(
+      await fs.readFile(path.join(existingTarget, "keep.txt"), "utf8"),
+    ).toBe("keep");
+    expect(
+      (
+        await fs.lstat(path.join(skillsHome, "taskcore-create-agent"))
+      ).isSymbolicLink(),
+    ).toBe(true);
   });
 
   it("logs per-skill link failures and continues without throwing", async () => {
@@ -96,8 +114,16 @@ describe("cursor local adapter skill injection", () => {
       },
     );
 
-    expect((await fs.lstat(path.join(skillsHome, "ok-skill"))).isSymbolicLink()).toBe(true);
-    await expect(fs.lstat(path.join(skillsHome, "fail-skill"))).rejects.toThrow();
-    expect(logs.some((line) => line.includes('Failed to inject Cursor skill "fail-skill"'))).toBe(true);
+    expect(
+      (await fs.lstat(path.join(skillsHome, "ok-skill"))).isSymbolicLink(),
+    ).toBe(true);
+    await expect(
+      fs.lstat(path.join(skillsHome, "fail-skill")),
+    ).rejects.toThrow();
+    expect(
+      logs.some((line) =>
+        line.includes('Failed to inject Cursor skill "fail-skill"'),
+      ),
+    ).toBe(true);
   });
 });

@@ -18,10 +18,24 @@ import { aiConnectionProblem, personalAiDefault } from "./model";
 import type { AiConnectionPickerProps } from "./AiConnectionPicker";
 import type { AiConnectionSummary } from "./model";
 
-function ConnectionLabel({ connection, label }: { connection: AiConnectionSummary; label?: string }) {
+function ConnectionLabel({
+  connection,
+  label,
+}: {
+  connection: AiConnectionSummary;
+  label?: string;
+}) {
   return (
     <span className="flex min-w-0 items-center gap-2">
-      <AppLogo name={connection.name} brandKey={aiConnectionCatalogSlug(connection.provider, connection.routing)} size={20} compact />
+      <AppLogo
+        name={connection.name}
+        brandKey={aiConnectionCatalogSlug(
+          connection.provider,
+          connection.routing,
+        )}
+        size={20}
+        compact
+      />
       <span className="truncate">{label ?? connection.name}</span>
     </span>
   );
@@ -68,10 +82,10 @@ export function AiConnectionSelect({
     );
   const unavailable = Boolean(
     value &&
-      value.mode !== "responsible_user" &&
-      !selected &&
-      !loading &&
-      !error,
+    value.mode !== "responsible_user" &&
+    !selected &&
+    !loading &&
+    !error,
   );
   const canUseDefault = isAiConnectionCompatible(
     {
@@ -122,17 +136,29 @@ export function AiConnectionSelect({
               loading ? "Loading connections…" : "Choose a connection"
             }
           >
-            {selected
-              ? <ConnectionLabel connection={selected} label={value?.mode === "responsible_user" ? "Responsible user’s default" : undefined} />
-              : value?.mode === "responsible_user"
-                ? "Responsible user’s default"
-                : value ? "Unavailable connection" : undefined}
+            {selected ? (
+              <ConnectionLabel
+                connection={selected}
+                label={
+                  value?.mode === "responsible_user"
+                    ? "Responsible user’s default"
+                    : undefined
+                }
+              />
+            ) : value?.mode === "responsible_user" ? (
+              "Responsible user’s default"
+            ) : value ? (
+              "Unavailable connection"
+            ) : undefined}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {incompatible && selected && (
             <SelectItem value={selected.id} disabled>
-              <ConnectionLabel connection={selected} label={`${selected.name} · Incompatible`} />
+              <ConnectionLabel
+                connection={selected}
+                label={`${selected.name} · Incompatible`}
+              />
             </SelectItem>
           )}
           {compatible.map((c) => (
@@ -141,23 +167,32 @@ export function AiConnectionSelect({
               value={c.id}
               disabled={Boolean(aiConnectionProblem(c))}
             >
-              <ConnectionLabel connection={c} label={`${c.name}${c.status !== "connected" ? " · Reconnect" : ""}`} />
+              <ConnectionLabel
+                connection={c}
+                label={`${c.name}${c.status !== "connected" ? " · Reconnect" : ""}`}
+              />
             </SelectItem>
           ))}
           {(canUseDefault || value?.mode === "responsible_user") && (
             <SelectItem value="responsible_user" disabled={!canUseDefault}>
-              <span className="flex size-5 shrink-0 items-center justify-center"><UserRound className="size-4" /></span>
+              <span className="flex size-5 shrink-0 items-center justify-center">
+                <UserRound className="size-4" />
+              </span>
               Responsible user’s default
             </SelectItem>
           )}
           <SelectItem value="connect">
-            <span className="flex size-5 shrink-0 items-center justify-center"><Plus className="size-4" /></span>
+            <span className="flex size-5 shrink-0 items-center justify-center">
+              <Plus className="size-4" />
+            </span>
             Connect an account…
           </SelectItem>
         </SelectContent>
       </Select>
       {!readOnly && onReconnect && !loading && !error && (
-        <Button type="button" variant="outline" onClick={onReconnect}>Reconnect account</Button>
+        <Button type="button" variant="outline" onClick={onReconnect}>
+          Reconnect account
+        </Button>
       )}
       {error && (
         <div className="space-y-2">
@@ -171,7 +206,8 @@ export function AiConnectionSelect({
       )}
       {value?.mode === "responsible_user" && !personal && !loading && !error ? (
         <p role="alert" className="text-sm text-destructive">
-          You have no default account for this provider. Connect an account or choose another connection.
+          You have no default account for this provider. Connect an account or
+          choose another connection.
         </p>
       ) : unavailable ? (
         <p role="alert" className="text-sm text-destructive">

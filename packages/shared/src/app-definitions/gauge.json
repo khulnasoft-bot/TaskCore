@@ -3,16 +3,12 @@
   "slug": "gauge",
   "name": "Gauge",
   "description": "Track how AI answers mention your brand, research keywords and traffic, and run content workflows.",
-  "categories": [
-    "analytics"
-  ],
+  "categories": ["analytics"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/gauge.png"
   },
-  "urlPatterns": [
-    "https://app.withgauge.com/*"
-  ],
+  "urlPatterns": ["https://app.withgauge.com/*"],
   "docsUrl": "https://docs.withgauge.com/help/mcp",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,15 +16,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://app.withgauge.com/mcp",
-        "scopesHint": [
-          "mcp"
-        ]
+        "scopesHint": ["mcp"]
       },
       "guidanceMd": "Connect Gauge in the browser and choose the organization this connection may use. Write tools start enabled and remain governed by Taskcore's action policies.",
       "riskTier": "S3",
@@ -50,9 +42,7 @@
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a Gauge organization API key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://app.withgauge.com/mcp"

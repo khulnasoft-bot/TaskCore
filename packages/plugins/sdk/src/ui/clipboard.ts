@@ -7,6 +7,8 @@ import { getSdkUiRuntimeValue } from "./runtime.js";
  * API directly so copy actions also work in Taskcore's plain-HTTP deployments.
  */
 export function copyTextToClipboard(text: string): Promise<void> {
-  const copy = getSdkUiRuntimeValue<(value: string) => Promise<void>>("copyTextToClipboard");
+  const copy = getSdkUiRuntimeValue<(value: string) => Promise<void>>(
+    "copyTextToClipboard",
+  );
   return copy(text);
 }

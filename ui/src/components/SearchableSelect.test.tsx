@@ -4,7 +4,11 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SearchableSelect, type SearchableSelectGroup, type SearchableSelectOption } from "./SearchableSelect";
+import {
+  SearchableSelect,
+  type SearchableSelectGroup,
+  type SearchableSelectOption,
+} from "./SearchableSelect";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import {
   buildReusableExecutionWorkspaceOptionGroups,
@@ -40,19 +44,32 @@ function render(node: ReactNode, container: HTMLElement) {
 
 function setInputValue(input: HTMLInputElement, value: string) {
   act(() => {
-    const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )?.set;
     valueSetter?.call(input, value);
-    input.dispatchEvent(new InputEvent("input", { bubbles: true, data: value, inputType: "insertText" }));
+    input.dispatchEvent(
+      new InputEvent("input", {
+        bubbles: true,
+        data: value,
+        inputType: "insertText",
+      }),
+    );
   });
 }
 
 function keyDown(target: Element, key: string) {
   act(() => {
-    target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+    );
   });
 }
 
-function workspace(overrides: Partial<ReusableExecutionWorkspaceLike>): ReusableExecutionWorkspaceLike {
+function workspace(
+  overrides: Partial<ReusableExecutionWorkspaceLike>,
+): ReusableExecutionWorkspaceLike {
   return {
     id: overrides.id ?? "workspace-id",
     name: overrides.name ?? "Workspace",
@@ -63,7 +80,9 @@ function workspace(overrides: Partial<ReusableExecutionWorkspaceLike>): Reusable
   };
 }
 
-function buildWorkspaceSelectGroups(workspaces: readonly ReusableExecutionWorkspaceLike[]) {
+function buildWorkspaceSelectGroups(
+  workspaces: readonly ReusableExecutionWorkspaceLike[],
+) {
   return buildReusableExecutionWorkspaceOptionGroups(workspaces, {
     now: "2026-06-24T12:00:00.000Z",
   }).map((group) => ({
@@ -103,7 +122,11 @@ describe("SearchableSelect", () => {
 
   it("renders grouped duplicate options while keeping selection by value", async () => {
     const onValueChange = vi.fn();
-    const alpha: SearchableSelectOption = { key: "recent:alpha", value: "alpha", label: "Alpha" };
+    const alpha: SearchableSelectOption = {
+      key: "recent:alpha",
+      value: "alpha",
+      label: "Alpha",
+    };
     const groups: SearchableSelectGroup[] = [
       { id: "recent", label: "Recent", options: [alpha] },
       { id: "all", label: "All", options: [{ ...alpha, key: "all:alpha" }] },
@@ -116,35 +139,62 @@ describe("SearchableSelect", () => {
         onValueChange={onValueChange}
         placeholder="Pick one"
         disablePortal
-        renderOption={(option) => <span data-option-key={option.key}>{option.label}</span>}
+        renderOption={(option) => (
+          <span data-option-key={option.key}>{option.label}</span>
+        )}
       />,
       container,
     );
 
-    const trigger = container.querySelector("button[role='combobox']") as HTMLButtonElement | null;
+    const trigger = container.querySelector(
+      "button[role='combobox']",
+    ) as HTMLButtonElement | null;
     expect(trigger?.textContent).toContain("Alpha");
 
     act(() => {
-      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      trigger?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     await flush();
 
-    expect(container.querySelector("[data-option-key='recent:alpha']")).not.toBeNull();
-    expect(container.querySelector("[data-option-key='all:alpha']")).not.toBeNull();
-    expect(container.querySelector("[data-mobile-entity-picker]")).not.toBeNull();
-    expect(container.querySelector("[data-mobile-entity-picker-header]")?.textContent).toContain("Pick one");
-    expect(container.querySelector('button[aria-label="Close selector"]')).not.toBeNull();
+    expect(
+      container.querySelector("[data-option-key='recent:alpha']"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector("[data-option-key='all:alpha']"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector("[data-mobile-entity-picker]"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector("[data-mobile-entity-picker-header]")
+        ?.textContent,
+    ).toContain("Pick one");
+    expect(
+      container.querySelector('button[aria-label="Close selector"]'),
+    ).not.toBeNull();
   });
 
   it("filters options and returns the selected option object", async () => {
     const onValueChange = vi.fn();
-    const bravo = { key: "all:bravo", value: "bravo", label: "Bravo", searchText: "secondary branch" };
+    const bravo = {
+      key: "all:bravo",
+      value: "bravo",
+      label: "Bravo",
+      searchText: "secondary branch",
+    };
     const groups: SearchableSelectGroup[] = [
       {
         id: "all",
         label: "All",
         options: [
-          { key: "all:alpha", value: "alpha", label: "Alpha", searchText: "primary branch" },
+          {
+            key: "all:alpha",
+            value: "alpha",
+            label: "Alpha",
+            searchText: "primary branch",
+          },
           bravo,
         ],
       },
@@ -162,13 +212,19 @@ describe("SearchableSelect", () => {
       container,
     );
 
-    const trigger = container.querySelector("button[role='combobox']") as HTMLButtonElement | null;
+    const trigger = container.querySelector(
+      "button[role='combobox']",
+    ) as HTMLButtonElement | null;
     act(() => {
-      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      trigger?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     await flush();
 
-    const input = container.querySelector("input[placeholder='Search options...']") as HTMLInputElement | null;
+    const input = container.querySelector(
+      "input[placeholder='Search options...']",
+    ) as HTMLInputElement | null;
     expect(input).not.toBeNull();
     setInputValue(input!, "sec br");
     await flush();
@@ -176,10 +232,14 @@ describe("SearchableSelect", () => {
     expect(container.textContent).not.toContain("Alpha");
     expect(container.textContent).toContain("Bravo");
 
-    const bravoItem = Array.from(container.querySelectorAll("[cmdk-item]")).find((item) => item.textContent?.includes("Bravo"));
+    const bravoItem = Array.from(
+      container.querySelectorAll("[cmdk-item]"),
+    ).find((item) => item.textContent?.includes("Bravo"));
     expect(bravoItem).not.toBeUndefined();
     act(() => {
-      bravoItem?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      bravoItem?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     expect(onValueChange).toHaveBeenCalledWith("bravo", bravo);
@@ -216,25 +276,33 @@ describe("SearchableSelect", () => {
         placeholder="Pick one"
         searchPlaceholder="Search options..."
         disablePortal
-        renderOption={(option) => <span data-option-key={option.key}>{option.label}</span>}
+        renderOption={(option) => (
+          <span data-option-key={option.key}>{option.label}</span>
+        )}
       />,
       container,
     );
 
-    const trigger = container.querySelector("button[role='combobox']") as HTMLButtonElement | null;
+    const trigger = container.querySelector(
+      "button[role='combobox']",
+    ) as HTMLButtonElement | null;
     act(() => {
-      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      trigger?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     await flush();
 
-    const input = container.querySelector("input[placeholder='Search options...']") as HTMLInputElement | null;
+    const input = container.querySelector(
+      "input[placeholder='Search options...']",
+    ) as HTMLInputElement | null;
     expect(input).not.toBeNull();
     setInputValue(input!, "mobile");
     await flush();
 
-    const renderedKeys = Array.from(container.querySelectorAll("[data-option-key]")).map((item) =>
-      item.getAttribute("data-option-key"),
-    );
+    const renderedKeys = Array.from(
+      container.querySelectorAll("[data-option-key]"),
+    ).map((item) => item.getAttribute("data-option-key"));
     expect(renderedKeys).toEqual(["all:mobile", "all:path-only"]);
 
     const commandList = container.querySelector("[data-slot='command-list']");
@@ -247,8 +315,18 @@ describe("SearchableSelect", () => {
       {
         id: "all",
         options: [
-          { key: "all:alpha", value: "alpha", label: "Alpha", searchText: "visible" },
-          { key: "all:hidden", value: "hidden", label: "Hidden", searchText: "visible" },
+          {
+            key: "all:alpha",
+            value: "alpha",
+            label: "Alpha",
+            searchText: "visible",
+          },
+          {
+            key: "all:hidden",
+            value: "hidden",
+            label: "Hidden",
+            searchText: "visible",
+          },
         ],
       },
     ];
@@ -261,27 +339,37 @@ describe("SearchableSelect", () => {
         placeholder="Pick one"
         searchPlaceholder="Search options..."
         disablePortal
-        filterOption={(option, query) => option.value !== "hidden" && option.searchText === query}
+        filterOption={(option, query) =>
+          option.value !== "hidden" && option.searchText === query
+        }
         scoreOption={() => 0}
-        renderOption={(option) => <span data-option-key={option.key}>{option.label}</span>}
+        renderOption={(option) => (
+          <span data-option-key={option.key}>{option.label}</span>
+        )}
       />,
       container,
     );
 
-    const trigger = container.querySelector("button[role='combobox']") as HTMLButtonElement | null;
+    const trigger = container.querySelector(
+      "button[role='combobox']",
+    ) as HTMLButtonElement | null;
     act(() => {
-      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      trigger?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     await flush();
 
-    const input = container.querySelector("input[placeholder='Search options...']") as HTMLInputElement | null;
+    const input = container.querySelector(
+      "input[placeholder='Search options...']",
+    ) as HTMLInputElement | null;
     expect(input).not.toBeNull();
     setInputValue(input!, "visible");
     await flush();
 
-    const renderedKeys = Array.from(container.querySelectorAll("[data-option-key]")).map((item) =>
-      item.getAttribute("data-option-key"),
-    );
+    const renderedKeys = Array.from(
+      container.querySelectorAll("[data-option-key]"),
+    ).map((item) => item.getAttribute("data-option-key"));
     expect(renderedKeys).toEqual(["all:alpha"]);
   });
 
@@ -291,7 +379,12 @@ describe("SearchableSelect", () => {
     root = render(
       <SearchableSelect
         value=""
-        groups={[{ id: "all", options: [{ key: "all:alpha", value: "alpha", label: "Alpha" }] }]}
+        groups={[
+          {
+            id: "all",
+            options: [{ key: "all:alpha", value: "alpha", label: "Alpha" }],
+          },
+        ]}
         onValueChange={onValueChange}
         placeholder="Pick one"
         loading
@@ -301,9 +394,13 @@ describe("SearchableSelect", () => {
       container,
     );
 
-    const trigger = container.querySelector("button[role='combobox']") as HTMLButtonElement | null;
+    const trigger = container.querySelector(
+      "button[role='combobox']",
+    ) as HTMLButtonElement | null;
     act(() => {
-      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      trigger?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     await flush();
     expect(container.textContent).toContain("Loading choices...");
@@ -312,7 +409,12 @@ describe("SearchableSelect", () => {
       root?.render(
         <SearchableSelect
           value=""
-          groups={[{ id: "all", options: [{ key: "all:alpha", value: "alpha", label: "Alpha" }] }]}
+          groups={[
+            {
+              id: "all",
+              options: [{ key: "all:alpha", value: "alpha", label: "Alpha" }],
+            },
+          ]}
           onValueChange={onValueChange}
           placeholder="Pick one"
           searchPlaceholder="Search options..."
@@ -321,7 +423,9 @@ describe("SearchableSelect", () => {
         />,
       );
     });
-    const input = container.querySelector("input[placeholder='Search options...']") as HTMLInputElement | null;
+    const input = container.querySelector(
+      "input[placeholder='Search options...']",
+    ) as HTMLInputElement | null;
     expect(input).not.toBeNull();
     setInputValue(input!, "zzz");
     await flush();
@@ -339,14 +443,23 @@ describe("SearchableSelect", () => {
         />,
       );
     });
-    expect(container.querySelector("button[role='combobox']")?.hasAttribute("disabled")).toBe(true);
+    expect(
+      container
+        .querySelector("button[role='combobox']")
+        ?.hasAttribute("disabled"),
+    ).toBe(true);
   });
 
   it("opens on focus and closes with Escape", async () => {
     root = render(
       <SearchableSelect
         value=""
-        groups={[{ id: "all", options: [{ key: "all:alpha", value: "alpha", label: "Alpha" }] }]}
+        groups={[
+          {
+            id: "all",
+            options: [{ key: "all:alpha", value: "alpha", label: "Alpha" }],
+          },
+        ]}
         onValueChange={vi.fn()}
         placeholder="Pick one"
         searchPlaceholder="Search options..."
@@ -355,34 +468,48 @@ describe("SearchableSelect", () => {
       container,
     );
 
-    const trigger = container.querySelector("button[role='combobox']") as HTMLButtonElement | null;
+    const trigger = container.querySelector(
+      "button[role='combobox']",
+    ) as HTMLButtonElement | null;
     expect(trigger).not.toBeNull();
     act(() => {
       trigger?.focus();
     });
     await flush();
 
-    const input = container.querySelector("input[placeholder='Search options...']") as HTMLInputElement | null;
+    const input = container.querySelector(
+      "input[placeholder='Search options...']",
+    ) as HTMLInputElement | null;
     expect(input).not.toBeNull();
     expect(trigger?.getAttribute("aria-expanded")).toBe("true");
 
     keyDown(input!, "Escape");
     await flush();
 
-    expect(container.querySelector("input[placeholder='Search options...']")).toBeNull();
+    expect(
+      container.querySelector("input[placeholder='Search options...']"),
+    ).toBeNull();
     expect(trigger?.getAttribute("aria-expanded")).toBe("false");
 
     act(() => {
-      trigger?.dispatchEvent(new Event("pointerdown", { bubbles: true, cancelable: true }));
+      trigger?.dispatchEvent(
+        new Event("pointerdown", { bubbles: true, cancelable: true }),
+      );
       trigger?.focus();
-      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      trigger?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     await flush();
 
-    expect(container.querySelector("input[placeholder='Search options...']")).not.toBeNull();
+    expect(
+      container.querySelector("input[placeholder='Search options...']"),
+    ).not.toBeNull();
     expect(trigger?.getAttribute("aria-expanded")).toBe("true");
 
-    const reopenedInput = container.querySelector("input[placeholder='Search options...']") as HTMLInputElement | null;
+    const reopenedInput = container.querySelector(
+      "input[placeholder='Search options...']",
+    ) as HTMLInputElement | null;
     expect(reopenedInput).not.toBeNull();
     setInputValue(reopenedInput!, "alp");
     await flush();
@@ -390,58 +517,91 @@ describe("SearchableSelect", () => {
     keyDown(reopenedInput!, "Escape");
     await flush();
 
-    expect(container.querySelector("input[placeholder='Search options...']")).toBeNull();
+    expect(
+      container.querySelector("input[placeholder='Search options...']"),
+    ).toBeNull();
     expect(trigger?.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it.each([false, true])("dismisses outside a nested worktree picker (modal=%s) without reopening or closing the task", async (modal) => {
-    const onValueChange = vi.fn();
-    root = render(
-      <Dialog defaultOpen>
-        <DialogContent aria-describedby={undefined}>
-          <DialogTitle>New task</DialogTitle>
-          <button type="button" data-testid="outside-worktree">Task draft</button>
-          <SearchableSelect
-            value="new"
-            groups={[{ id: "all", options: [{ key: "new", value: "new", label: "New worktree" }] }]}
-            onValueChange={onValueChange}
-            placeholder="Worktrees"
-            searchPlaceholder="Search worktrees..."
-            modal={modal}
-          />
-        </DialogContent>
-      </Dialog>,
-      container,
-    );
-    await flush();
-    const trigger = document.querySelector<HTMLButtonElement>('button[role="combobox"]')!;
-    const outside = document.querySelector<HTMLButtonElement>('[data-testid="outside-worktree"]')!;
-    act(() => trigger.click());
-    // Radix installs its outside pointer listener after the opening event.
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
-    const picker = document.querySelector<HTMLElement>("[data-mobile-entity-picker]")!;
-    const outsideTarget = modal ? picker.parentElement! : outside;
-    act(() => {
-      const pointerDown = new MouseEvent("pointerdown", { bubbles: true, cancelable: true });
-      Object.defineProperty(pointerDown, "pointerType", { value: modal ? "touch" : "mouse" });
-      outsideTarget.dispatchEvent(pointerDown);
-      if (!modal) outside.focus();
-      outsideTarget.click();
-    });
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
-    expect(document.querySelector("[data-mobile-entity-picker]")).toBeNull();
-    expect(document.querySelector("[data-slot=dialog-content]")).not.toBeNull();
-    expect(trigger.getAttribute("aria-expanded")).toBe("false");
-    expect(trigger.textContent).toContain("New worktree");
-    expect(onValueChange).not.toHaveBeenCalled();
-    if (modal) expect(document.activeElement).toBe(trigger);
-    act(() => {
-      outside.focus();
-      trigger.focus();
-    });
-    await flush();
-    expect(document.querySelector("[data-mobile-entity-picker]")).not.toBeNull();
-  });
+  it.each([false, true])(
+    "dismisses outside a nested worktree picker (modal=%s) without reopening or closing the task",
+    async (modal) => {
+      const onValueChange = vi.fn();
+      root = render(
+        <Dialog defaultOpen>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>New task</DialogTitle>
+            <button type="button" data-testid="outside-worktree">
+              Task draft
+            </button>
+            <SearchableSelect
+              value="new"
+              groups={[
+                {
+                  id: "all",
+                  options: [
+                    { key: "new", value: "new", label: "New worktree" },
+                  ],
+                },
+              ]}
+              onValueChange={onValueChange}
+              placeholder="Worktrees"
+              searchPlaceholder="Search worktrees..."
+              modal={modal}
+            />
+          </DialogContent>
+        </Dialog>,
+        container,
+      );
+      await flush();
+      const trigger = document.querySelector<HTMLButtonElement>(
+        'button[role="combobox"]',
+      )!;
+      const outside = document.querySelector<HTMLButtonElement>(
+        '[data-testid="outside-worktree"]',
+      )!;
+      act(() => trigger.click());
+      // Radix installs its outside pointer listener after the opening event.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      const picker = document.querySelector<HTMLElement>(
+        "[data-mobile-entity-picker]",
+      )!;
+      const outsideTarget = modal ? picker.parentElement! : outside;
+      act(() => {
+        const pointerDown = new MouseEvent("pointerdown", {
+          bubbles: true,
+          cancelable: true,
+        });
+        Object.defineProperty(pointerDown, "pointerType", {
+          value: modal ? "touch" : "mouse",
+        });
+        outsideTarget.dispatchEvent(pointerDown);
+        if (!modal) outside.focus();
+        outsideTarget.click();
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(document.querySelector("[data-mobile-entity-picker]")).toBeNull();
+      expect(
+        document.querySelector("[data-slot=dialog-content]"),
+      ).not.toBeNull();
+      expect(trigger.getAttribute("aria-expanded")).toBe("false");
+      expect(trigger.textContent).toContain("New worktree");
+      expect(onValueChange).not.toHaveBeenCalled();
+      if (modal) expect(document.activeElement).toBe(trigger);
+      act(() => {
+        outside.focus();
+        trigger.focus();
+      });
+      await flush();
+      expect(
+        document.querySelector("[data-mobile-entity-picker]"),
+      ).not.toBeNull();
+    },
+  );
 
   it("filters workspace options, moves with arrows, and selects the workspace id with Enter", async () => {
     const onValueChange = vi.fn();
@@ -471,7 +631,9 @@ describe("SearchableSelect", () => {
         onValueChange={onValueChange}
         placeholder="Choose an existing workspace"
         searchPlaceholder="Search workspaces..."
-        filterOption={(option, query) => reusableWorkspaceOptionMatches(option, query)}
+        filterOption={(option, query) =>
+          reusableWorkspaceOptionMatches(option, query)
+        }
         disablePortal
         renderOption={(option, { selected }) => (
           <span data-option-key={option.key} data-selected={String(selected)}>
@@ -482,13 +644,19 @@ describe("SearchableSelect", () => {
       container,
     );
 
-    const trigger = container.querySelector("button[role='combobox']") as HTMLButtonElement | null;
+    const trigger = container.querySelector(
+      "button[role='combobox']",
+    ) as HTMLButtonElement | null;
     act(() => {
-      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      trigger?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
     await flush();
 
-    const input = container.querySelector("input[placeholder='Search workspaces...']") as HTMLInputElement | null;
+    const input = container.querySelector(
+      "input[placeholder='Search workspaces...']",
+    ) as HTMLInputElement | null;
     expect(input).not.toBeNull();
     expect(container.textContent).toContain("Recent");
     expect(container.textContent).toContain("All workspaces");
@@ -499,9 +667,10 @@ describe("SearchableSelect", () => {
     expect(container.textContent).toContain("Taskcore app");
     expect(container.textContent).not.toContain("Marketing site");
 
-    const selectedOptionKey = () => (
-      container.querySelector("[cmdk-item][aria-selected='true'] [data-option-key]")?.getAttribute("data-option-key")
-    );
+    const selectedOptionKey = () =>
+      container
+        .querySelector("[cmdk-item][aria-selected='true'] [data-option-key]")
+        ?.getAttribute("data-option-key");
 
     expect(selectedOptionKey()).toBe("recent:workspace-taskcore");
     keyDown(input!, "ArrowDown");
@@ -525,7 +694,9 @@ describe("SearchableSelect", () => {
         workspaceId: "workspace-taskcore",
       }),
     );
-    expect(container.querySelector("input[placeholder='Search workspaces...']")).toBeNull();
+    expect(
+      container.querySelector("input[placeholder='Search workspaces...']"),
+    ).toBeNull();
     expect(trigger?.getAttribute("aria-expanded")).toBe("false");
 
     act(() => {
@@ -533,7 +704,9 @@ describe("SearchableSelect", () => {
     });
     await flush();
 
-    expect(container.querySelector("input[placeholder='Search workspaces...']")).toBeNull();
+    expect(
+      container.querySelector("input[placeholder='Search workspaces...']"),
+    ).toBeNull();
     expect(trigger?.getAttribute("aria-expanded")).toBe("false");
   });
 });

@@ -4,17 +4,41 @@
   "title": "EvalScorecardV2",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "bundleId", "caseId", "candidateId", "classification", "dimensions", "overall"],
+  "required": [
+    "schema",
+    "bundleId",
+    "caseId",
+    "candidateId",
+    "classification",
+    "dimensions",
+    "overall"
+  ],
   "properties": {
     "schema": { "const": "taskcore.runner.eval-scorecard.v2" },
     "bundleId": { "type": "string", "minLength": 1 },
     "caseId": { "type": "string", "minLength": 1 },
     "candidateId": { "type": "string", "minLength": 1 },
-    "classification": { "enum": ["completed", "candidate_failure", "infrastructure_failure", "skipped"] },
+    "classification": {
+      "enum": [
+        "completed",
+        "candidate_failure",
+        "infrastructure_failure",
+        "skipped"
+      ]
+    },
     "dimensions": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["hard_invariants", "lifecycle_integrity", "semantic_outcome", "trajectory_restraint", "trace_completeness", "quality_efficiency", "continuation_integrity", "presentation_fidelity"],
+      "required": [
+        "hard_invariants",
+        "lifecycle_integrity",
+        "semantic_outcome",
+        "trajectory_restraint",
+        "trace_completeness",
+        "quality_efficiency",
+        "continuation_integrity",
+        "presentation_fidelity"
+      ],
       "properties": {
         "hard_invariants": { "$ref": "#/$defs/dimension" },
         "lifecycle_integrity": { "$ref": "#/$defs/dimension" },

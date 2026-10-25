@@ -241,10 +241,18 @@ export function createSanitizedCodexEnvironment(
     if (key.includes("PROXY") && proxyContainsCredentials(value)) continue;
     environment[key] = value;
   }
-  for (const key of ["TASKCORE_AGENT_KEY_ID", "TASKCORE_AGENT_PUBLIC_KEY", "TASKCORE_AGENT_PRIVATE_KEY"]) {
+  for (const key of [
+    "TASKCORE_AGENT_KEY_ID",
+    "TASKCORE_AGENT_PUBLIC_KEY",
+    "TASKCORE_AGENT_PRIVATE_KEY",
+  ]) {
     if (explicit?.[key] !== undefined) environment[key] = explicit[key];
   }
-  Object.assign(environment, githubCredentialEnvironment(source), configuredEnvironment(explicit));
+  Object.assign(
+    environment,
+    githubCredentialEnvironment(source),
+    configuredEnvironment(explicit),
+  );
   return environment;
 }
 

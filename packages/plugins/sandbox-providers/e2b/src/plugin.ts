@@ -31,13 +31,17 @@ interface E2bDriverConfig {
 }
 
 function parseDriverConfig(raw: Record<string, unknown>): E2bDriverConfig {
-  const template = typeof raw.template === "string" && raw.template.trim().length > 0
-    ? raw.template.trim()
-    : "base";
+  const template =
+    typeof raw.template === "string" && raw.template.trim().length > 0
+      ? raw.template.trim()
+      : "base";
   const timeoutMs = Number(raw.timeoutMs ?? 3_600_000);
   return {
     template,
-    apiKey: typeof raw.apiKey === "string" && raw.apiKey.trim().length > 0 ? raw.apiKey.trim() : null,
+    apiKey:
+      typeof raw.apiKey === "string" && raw.apiKey.trim().length > 0
+        ? raw.apiKey.trim()
+        : null,
     timeoutMs: Number.isFinite(timeoutMs) ? Math.trunc(timeoutMs) : 3_600_000,
     reuseLease: raw.reuseLease === true,
   };
@@ -49,7 +53,9 @@ function resolveApiKey(config: E2bDriverConfig): string {
   }
   const envApiKey = process.env.E2B_API_KEY?.trim() ?? "";
   if (!envApiKey) {
-    throw new Error("E2B sandbox environments require an API key in config or E2B_API_KEY.");
+    throw new Error(
+      "E2B sandbox environments require an API key in config or E2B_API_KEY.",
+    );
   }
   return envApiKey;
 }
@@ -69,7 +75,10 @@ function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function readTimeoutStream(error: TimeoutError, key: "stdout" | "stderr"): string {
+function readTimeoutStream(
+  error: TimeoutError,
+  key: "stdout" | "stderr",
+): string {
   const record = error as unknown as Record<string, unknown>;
   const direct = record[key];
   if (typeof direct === "string" && direct.length > 0) return direct;
@@ -78,17 +87,20 @@ function readTimeoutStream(error: TimeoutError, key: "stdout" | "stderr"): strin
   return typeof direct === "string" ? direct : "";
 }
 
-function buildTimeoutExecuteResult(error: TimeoutError): PluginEnvironmentExecuteResult {
+function buildTimeoutExecuteResult(
+  error: TimeoutError,
+): PluginEnvironmentExecuteResult {
   const stdout = readTimeoutStream(error, "stdout");
   const stderrOutput = readTimeoutStream(error, "stderr");
   const message = error.message.trim();
-  const stderr = stderrOutput.length > 0
-    ? message.length > 0 && !stderrOutput.includes(message)
-      ? `${stderrOutput}${stderrOutput.endsWith("\n") ? "" : "\n"}${message}\n`
-      : stderrOutput
-    : message.length > 0
-      ? `${message}\n`
-      : "";
+  const stderr =
+    stderrOutput.length > 0
+      ? message.length > 0 && !stderrOutput.includes(message)
+        ? `${stderrOutput}${stderrOutput.endsWith("\n") ? "" : "\n"}${message}\n`
+        : stderrOutput
+      : message.length > 0
+        ? `${message}\n`
+        : "";
   return {
     exitCode: null,
     timedOut: true,
@@ -97,26 +109,40 @@ function buildTimeoutExecuteResult(error: TimeoutError): PluginEnvironmentExecut
   };
 }
 
-async function ensureSandboxWorkspace(sandbox: Sandbox, remoteCwd: string): Promise<void> {
+async function ensureSandboxWorkspace(
+  sandbox: Sandbox,
+  remoteCwd: string,
+): Promise<void> {
   await sandbox.commands.run(`mkdir -p ${shellQuote(remoteCwd)}`);
 }
 
-async function resolveSandboxWorkingDirectory(sandbox: Sandbox): Promise<string> {
+async function resolveSandboxWorkingDirectory(
+  sandbox: Sandbox,
+): Promise<string> {
   const result = await sandbox.commands.run("pwd");
   const cwd = result.stdout.trim();
-  const remoteCwd = path.posix.join(cwd.length > 0 ? cwd : "/", "taskcore-workspace");
+  const remoteCwd = path.posix.join(
+    cwd.length > 0 ? cwd : "/",
+    "taskcore-workspace",
+  );
   await ensureSandboxWorkspace(sandbox, remoteCwd);
   return remoteCwd;
 }
 
-async function connectSandbox(config: E2bDriverConfig, providerLeaseId: string): Promise<Sandbox> {
+async function connectSandbox(
+  config: E2bDriverConfig,
+  providerLeaseId: string,
+): Promise<Sandbox> {
   return await Sandbox.connect(providerLeaseId, {
     apiKey: resolveApiKey(config),
     timeoutMs: config.timeoutMs,
   });
 }
 
-async function connectForCleanup(config: E2bDriverConfig, providerLeaseId: string): Promise<Sandbox | null> {
+async function connectForCleanup(
+  config: E2bDriverConfig,
+  providerLeaseId: string,
+): Promise<Sandbox | null> {
   try {
     return await connectSandbox(config, providerLeaseId);
   } catch (error) {
@@ -173,12 +199,16 @@ function buildLoginShellScript(input: {
   const envArgs = Object.entries(env)
     .filter((entry): entry is [string, string] => typeof entry[1] === "string")
     .map(([key, value]) => `${key}=${shellQuote(value)}`);
-  const commandParts = [shellQuote(input.command), ...input.args.map(shellQuote)].join(" ");
-  const execLine = envArgs.length > 0
-    ? `exec env ${envArgs.join(" ")} ${commandParts}`
-    : `exec ${commandParts}`;
+  const commandParts = [
+    shellQuote(input.command),
+    ...input.args.map(shellQuote),
+  ].join(" ");
+  const execLine =
+    envArgs.length > 0
+      ? `exec env ${envArgs.join(" ")} ${commandParts}`
+      : `exec ${commandParts}`;
   return [
-    'if [ -f /etc/profile ]; then . /etc/profile >/dev/null 2>&1 || true; fi',
+    "if [ -f /etc/profile ]; then . /etc/profile >/dev/null 2>&1 || true; fi",
     'if [ -f "$HOME/.profile" ]; then . "$HOME/.profile" >/dev/null 2>&1 || true; fi',
     // .bash_profile typically sources .bashrc itself; only source .bashrc
     // directly when no .bash_profile exists to avoid re-running idempotency-
@@ -190,13 +220,21 @@ function buildLoginShellScript(input: {
   ].join(" && ");
 }
 
-async function killSandboxBestEffort(sandbox: Sandbox, reason: string): Promise<void> {
+async function killSandboxBestEffort(
+  sandbox: Sandbox,
+  reason: string,
+): Promise<void> {
   await sandbox.kill().catch((error) => {
-    console.warn(`Failed to kill E2B sandbox during ${reason}: ${formatErrorMessage(error)}`);
+    console.warn(
+      `Failed to kill E2B sandbox during ${reason}: ${formatErrorMessage(error)}`,
+    );
   });
 }
 
-async function releaseSandboxBestEffort(sandbox: Sandbox, reuseLease: boolean): Promise<void> {
+async function releaseSandboxBestEffort(
+  sandbox: Sandbox,
+  reuseLease: boolean,
+): Promise<void> {
   if (!reuseLease) {
     await killSandboxBestEffort(sandbox, "lease release");
     return;
@@ -227,7 +265,10 @@ const plugin = definePlugin({
     const config = parseDriverConfig(params.config);
     const errors: string[] = [];
 
-    if (typeof params.config.template === "string" && params.config.template.trim().length === 0) {
+    if (
+      typeof params.config.template === "string" &&
+      params.config.template.trim().length === 0
+    ) {
       errors.push("E2B sandbox environments require a template.");
     }
     if (config.timeoutMs < 1 || config.timeoutMs > 86_400_000) {
@@ -296,7 +337,12 @@ const plugin = definePlugin({
 
       return {
         providerLeaseId: sandbox.sandboxId,
-        metadata: leaseMetadata({ config, sandbox, remoteCwd, resumedLease: false }),
+        metadata: leaseMetadata({
+          config,
+          sandbox,
+          remoteCwd,
+          resumedLease: false,
+        }),
       };
     } catch (error) {
       await sandbox.kill().catch(() => undefined);
@@ -316,7 +362,12 @@ const plugin = definePlugin({
 
         return {
           providerLeaseId: sandbox.sandboxId,
-          metadata: leaseMetadata({ config, sandbox, remoteCwd, resumedLease: true }),
+          metadata: leaseMetadata({
+            config,
+            sandbox,
+            remoteCwd,
+            resumedLease: true,
+          }),
         };
       } catch (error) {
         await sandbox.kill().catch(() => undefined);
@@ -359,10 +410,15 @@ const plugin = definePlugin({
       typeof params.lease.metadata?.remoteCwd === "string" &&
       params.lease.metadata.remoteCwd.trim().length > 0
         ? params.lease.metadata.remoteCwd.trim()
-        : params.workspace.remotePath ?? params.workspace.localPath ?? "/taskcore-workspace";
+        : (params.workspace.remotePath ??
+          params.workspace.localPath ??
+          "/taskcore-workspace");
 
     if (params.lease.providerLeaseId) {
-      const sandbox = await connectSandbox(config, params.lease.providerLeaseId);
+      const sandbox = await connectSandbox(
+        config,
+        params.lease.providerLeaseId,
+      );
       await ensureSandboxWorkspace(sandbox, remoteCwd);
     }
 
@@ -436,10 +492,10 @@ const plugin = definePlugin({
       // Env is interpolated into the script via `exec env KEY=val …` after
       // profile sourcing so user-configured env wins over anything profiles
       // export. No need to pass `envs:` separately.
-      const result = await sandbox.commands.run(command, {
+      const result = (await sandbox.commands.run(command, {
         cwd: params.cwd,
         timeoutMs,
-      }) as Awaited<ReturnType<Sandbox["commands"]["run"]>> & {
+      })) as Awaited<ReturnType<Sandbox["commands"]["run"]>> & {
         exitCode: number;
         stdout: string;
         stderr: string;

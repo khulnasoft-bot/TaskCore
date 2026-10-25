@@ -4,24 +4,45 @@ export const COMPANY_ARTIFACTS_DEFAULT_LIMIT = 30;
 export const COMPANY_ARTIFACTS_MAX_LIMIT = 100;
 export const COMPANY_ARTIFACTS_MAX_QUERY_LENGTH = 160;
 
-export const companyArtifactSourceSchema = z.enum(["document", "attachment", "work_product"]);
+export const companyArtifactSourceSchema = z.enum([
+  "document",
+  "attachment",
+  "work_product",
+]);
 
-export const companyArtifactMediaKindSchema = z.enum(["image", "video", "text", "document", "file", "empty"]);
+export const companyArtifactMediaKindSchema = z.enum([
+  "image",
+  "video",
+  "text",
+  "document",
+  "file",
+  "empty",
+]);
 
-export const companyArtifactGroupBySchema = z.enum(["none", "task", "parent_task"]);
+export const companyArtifactGroupBySchema = z.enum([
+  "none",
+  "task",
+  "parent_task",
+]);
 
 export const companyArtifactsQuerySchema = z.object({
-  kind: z.enum(["image", "video", "text", "document", "file", "all"]).optional().default("all"),
+  kind: z
+    .enum(["image", "video", "text", "document", "file", "all"])
+    .optional()
+    .default("all"),
   projectId: z.string().guid().optional(),
   /** Only artifacts attributed to this agent (the `createdByAgent` on each result). */
   agentId: z.string().guid().optional(),
   q: z.string().trim().max(COMPANY_ARTIFACTS_MAX_QUERY_LENGTH).optional(),
   groupBy: companyArtifactGroupBySchema.optional().default("none"),
   groupIssueId: z.string().guid().optional(),
-  starred: z.preprocess(
-    (value) => value === "true" ? true : value === "false" ? false : value,
-    z.boolean(),
-  ).optional().default(false),
+  starred: z
+    .preprocess(
+      (value) => (value === "true" ? true : value === "false" ? false : value),
+      z.boolean(),
+    )
+    .optional()
+    .default(false),
   limit: z.coerce
     .number()
     .int()
@@ -47,14 +68,18 @@ export const companyArtifactSchema = z.object({
     identifier: z.string(),
     title: z.string(),
   }),
-  project: z.object({
-    id: z.string().guid(),
-    name: z.string(),
-  }).nullable(),
-  createdByAgent: z.object({
-    id: z.string().guid(),
-    name: z.string(),
-  }).nullable(),
+  project: z
+    .object({
+      id: z.string().guid(),
+      name: z.string(),
+    })
+    .nullable(),
+  createdByAgent: z
+    .object({
+      id: z.string().guid(),
+      name: z.string(),
+    })
+    .nullable(),
   updatedAt: z.string().datetime(),
   href: z.string().min(1),
 });

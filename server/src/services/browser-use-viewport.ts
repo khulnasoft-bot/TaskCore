@@ -322,8 +322,7 @@ export function createBrowserUseViewportManager(
       browserId: string,
       address: string,
       input:
-        | BrowserUseViewportRequest
-        | Exclude<BrowserUseViewportPreset, "fit">,
+        BrowserUseViewportRequest | Exclude<BrowserUseViewportPreset, "fit">,
       expiresAt?: string,
       owner = "",
     ) {

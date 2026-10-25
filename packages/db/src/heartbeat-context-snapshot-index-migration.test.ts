@@ -20,9 +20,12 @@ d("heartbeat context_snapshot expression index migration", () => {
     const dbh = await startEmbeddedPostgresTestDatabase("pap16575-idx-");
     cleanups.push(() => dbh.cleanup());
     const sql = postgres(dbh.connectionString, { max: 1 });
-    cleanups.push(async () => { await sql.end(); });
+    cleanups.push(async () => {
+      await sql.end();
+    });
 
-    const idx = await sql`SELECT indexname FROM pg_indexes WHERE tablename IN ('heartbeat_runs','agent_wakeup_requests')`;
+    const idx =
+      await sql`SELECT indexname FROM pg_indexes WHERE tablename IN ('heartbeat_runs','agent_wakeup_requests')`;
     const names = idx.map((r) => r.indexname as string);
     expect(names).toContain("heartbeat_runs_company_ctx_issue_created_idx");
     expect(names).toContain("heartbeat_runs_company_ctx_task_created_idx");
@@ -50,13 +53,17 @@ d("heartbeat context_snapshot expression index migration", () => {
       "EXPLAIN SELECT id FROM heartbeat_runs WHERE company_id = '00000000-0000-0000-0000-000000000001' AND context_snapshot ->> 'taskKey' = 'x' ORDER BY created_at DESC, id DESC LIMIT 1",
     );
     const taskKeyText = taskKeyPlan.map((r) => Object.values(r)[0]).join("\n");
-    expect(taskKeyText).toContain("heartbeat_runs_company_ctx_taskkey_created_idx");
+    expect(taskKeyText).toContain(
+      "heartbeat_runs_company_ctx_taskkey_created_idx",
+    );
 
     const wakePlan = await sql.unsafe(
       "EXPLAIN SELECT id FROM agent_wakeup_requests WHERE company_id = '00000000-0000-0000-0000-000000000001' AND status = 'deferred_issue_execution' AND payload ->> 'issueId' = 'x' LIMIT 1",
     );
     const wakeText = wakePlan.map((r) => Object.values(r)[0]).join("\n");
-    expect(wakeText).toContain("agent_wakeup_requests_company_payload_issue_idx");
+    expect(wakeText).toContain(
+      "agent_wakeup_requests_company_payload_issue_idx",
+    );
 
     // Idempotency: re-running the migration statements against an already
     // migrated database must be a no-op, not an error.

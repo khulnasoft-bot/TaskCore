@@ -3,17 +3,13 @@
   "slug": "mixpanel",
   "name": "Mixpanel",
   "description": "Connect Mixpanel's provider-hosted MCP server.",
-  "categories": [
-    "analytics"
-  ],
+  "categories": ["analytics"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/mixpanel.svg",
     "darkLogoUrl": "/brands/apps/mixpanel-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.mixpanel.com/*"
-  ],
+  "urlPatterns": ["https://mcp.mixpanel.com/*"],
   "docsUrl": "https://mixpanel.com/blog/mixpanel-mcp-server/",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,9 +17,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.mixpanel.com/mcp",

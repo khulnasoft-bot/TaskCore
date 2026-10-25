@@ -58,9 +58,13 @@ import type {
   SuggestTasksResultCreatedTask,
 } from "@taskcore/shared";
 
-export function isInteractionPreparingApproval(interaction: IssueThreadInteraction): boolean {
-  return interaction.status === "pending"
-    && interaction.acceptanceBlocker === "workspace_sync_pending";
+export function isInteractionPreparingApproval(
+  interaction: IssueThreadInteraction,
+): boolean {
+  return (
+    interaction.status === "pending" &&
+    interaction.acceptanceBlocker === "workspace_sync_pending"
+  );
 }
 
 /** Poll only while an approval is preparing; retain each surface's idle cadence. */
@@ -84,9 +88,11 @@ export interface SuggestedTaskTreeNode {
 export function interactionReplacesComposerSkip(
   interaction: IssueThreadInteraction,
 ): boolean {
-  return interaction.kind === "request_confirmation"
-    || interaction.kind === "request_checkbox_confirmation"
-    || interaction.kind === "suggest_tasks";
+  return (
+    interaction.kind === "request_confirmation" ||
+    interaction.kind === "request_checkbox_confirmation" ||
+    interaction.kind === "suggest_tasks"
+  );
 }
 
 export function isIssueThreadInteraction(
@@ -94,17 +100,17 @@ export function isIssueThreadInteraction(
 ): value is IssueThreadInteraction {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<IssueThreadInteraction>;
-  return typeof candidate.id === "string"
-    && typeof candidate.companyId === "string"
-    && typeof candidate.issueId === "string"
-    && (
-      candidate.kind === "suggest_tasks"
-      || candidate.kind === "ask_user_questions"
-      || candidate.kind === "request_confirmation"
-      || candidate.kind === "request_checkbox_confirmation"
-      || candidate.kind === "request_item_verdicts"
-      || candidate.kind === "connection_intent"
-    );
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.companyId === "string" &&
+    typeof candidate.issueId === "string" &&
+    (candidate.kind === "suggest_tasks" ||
+      candidate.kind === "ask_user_questions" ||
+      candidate.kind === "request_confirmation" ||
+      candidate.kind === "request_checkbox_confirmation" ||
+      candidate.kind === "request_item_verdicts" ||
+      candidate.kind === "connection_intent")
+  );
 }
 
 export interface ItemVerdictProgress {
@@ -143,7 +149,14 @@ export function getItemVerdictProgress(args: {
     else pendingItemIds.push(item.id);
   }
   const decided = approved + rejected + deferred;
-  return { total: payload.items.length, decided, approved, rejected, deferred, pendingItemIds };
+  return {
+    total: payload.items.length,
+    decided,
+    approved,
+    rejected,
+    deferred,
+    pendingItemIds,
+  };
 }
 
 export function buildItemVerdictsSummary(
@@ -162,8 +175,10 @@ export function buildItemVerdictsSummary(
   }
   if (interaction.status === "expired") {
     const outcome = interaction.result?.outcome;
-    if (outcome === "superseded_by_comment") return "Verdicts expired after comment";
-    if (outcome === "stale_target") return "Verdicts expired after target changed";
+    if (outcome === "superseded_by_comment")
+      return "Verdicts expired after comment";
+    if (outcome === "stale_target")
+      return "Verdicts expired after target changed";
     return "Verdicts expired";
   }
   return `${progress.decided} of ${progress.total} decided`;
@@ -211,13 +226,16 @@ export function getRequestConfirmationTargetHref({
 export function buildIssueThreadInteractionSummary(
   interaction: IssueThreadInteraction,
 ) {
-  const administrativeOutcome = interaction.result && "outcome" in interaction.result
-    ? interaction.result.outcome
-    : null;
+  const administrativeOutcome =
+    interaction.result && "outcome" in interaction.result
+      ? interaction.result.outcome
+      : null;
   if (administrativeOutcome === "skipped") return "Skipped interaction";
   if (administrativeOutcome === "withdrawn") return "Withdrawn interaction";
-  if (administrativeOutcome === "issue_closed") return "Expired when issue closed";
-  if (administrativeOutcome === "addressee_deleted") return "Cancelled when addressee was deleted";
+  if (administrativeOutcome === "issue_closed")
+    return "Expired when issue closed";
+  if (administrativeOutcome === "addressee_deleted")
+    return "Cancelled when addressee was deleted";
   if (interaction.kind === "suggest_tasks") {
     const count = interaction.payload.tasks.length;
     if (interaction.status === "accepted") {
@@ -226,7 +244,9 @@ export function buildIssueThreadInteractionSummary(
       if (skippedCount > 0) {
         return `Accepted ${createdCount} of ${count} tasks`;
       }
-      return createdCount === 1 ? "Accepted 1 task" : `Accepted ${createdCount} tasks`;
+      return createdCount === 1
+        ? "Accepted 1 task"
+        : `Accepted ${createdCount} tasks`;
     }
     if (interaction.status === "rejected") {
       return count === 1 ? "Rejected 1 task" : `Rejected ${count} tasks`;
@@ -242,8 +262,10 @@ export function buildIssueThreadInteractionSummary(
     }
     if (interaction.status === "expired") {
       const outcome = interaction.result?.outcome;
-      if (outcome === "superseded_by_comment") return "Confirmation expired after comment";
-      if (outcome === "stale_target") return "Confirmation expired after target changed";
+      if (outcome === "superseded_by_comment")
+        return "Confirmation expired after comment";
+      if (outcome === "stale_target")
+        return "Confirmation expired after target changed";
       return "Confirmation expired";
     }
     return "Requested confirmation";
@@ -261,8 +283,10 @@ export function buildIssueThreadInteractionSummary(
     if (interaction.status === "rejected") return "Declined selection";
     if (interaction.status === "expired") {
       const outcome = interaction.result?.outcome;
-      if (outcome === "superseded_by_comment") return "Selection expired after comment";
-      if (outcome === "stale_target") return "Selection expired after target changed";
+      if (outcome === "superseded_by_comment")
+        return "Selection expired after comment";
+      if (outcome === "stale_target")
+        return "Selection expired after target changed";
       return "Selection expired";
     }
     return optionCount === 1
@@ -275,8 +299,10 @@ export function buildIssueThreadInteractionSummary(
   }
 
   if (interaction.kind === "connection_intent") {
-    if (interaction.status === "accepted") return `${interaction.payload.serviceName} connected`;
-    if (interaction.status === "rejected") return `${interaction.payload.serviceName} declined`;
+    if (interaction.status === "accepted")
+      return `${interaction.payload.serviceName} connected`;
+    if (interaction.status === "rejected")
+      return `${interaction.payload.serviceName} declined`;
     if (interaction.status === "expired") {
       return interaction.result?.outcome === "superseded"
         ? `${interaction.payload.serviceName} request superseded`
@@ -290,11 +316,15 @@ export function buildIssueThreadInteractionSummary(
     return count === 1 ? "Answered 1 question" : `Answered ${count} questions`;
   }
   if (interaction.status === "cancelled") {
-    return count === 1 ? "Cancelled 1 question" : `Cancelled ${count} questions`;
+    return count === 1
+      ? "Cancelled 1 question"
+      : `Cancelled ${count} questions`;
   }
   if (interaction.status === "expired") {
     if (interaction.result?.expirationReason === "superseded_by_comment") {
-      return count === 1 ? "Question expired after comment" : "Questions expired after comment";
+      return count === 1
+        ? "Question expired after comment"
+        : "Questions expired after comment";
     }
     return count === 1 ? "Question expired" : "Questions expired";
   }
@@ -307,26 +337,38 @@ export function buildAnsweredQuestionsDeliveryText(
 ): string {
   const questionSet = interaction.payload.questionSet;
   const legacyQuestionById = new Map(
-    interaction.payload.questions.map((question) => [question.id, question] as const),
+    interaction.payload.questions.map(
+      (question) => [question.id, question] as const,
+    ),
   );
   const canonicalQuestionById = new Map(
-    (questionSet?.questions ?? []).map((question) => [question.id, question] as const),
+    (questionSet?.questions ?? []).map(
+      (question) => [question.id, question] as const,
+    ),
   );
   const lines = (interaction.result?.answers ?? []).map((answer) => {
     const canonical = canonicalQuestionById.get(answer.questionId);
     const legacy = legacyQuestionById.get(answer.questionId);
     const optionLabels = new Map(
-      (canonical?.options ?? legacy?.options ?? []).map((option) => [option.id, option.label] as const),
+      (canonical?.options ?? legacy?.options ?? []).map(
+        (option) => [option.id, option.label] as const,
+      ),
     );
-    const values = answer.optionIds.map((optionId) => optionLabels.get(optionId) ?? optionId);
+    const values = answer.optionIds.map(
+      (optionId) => optionLabels.get(optionId) ?? optionId,
+    );
     if (answer.otherText?.trim()) values.push(answer.otherText.trim());
     const prompt = canonical?.prompt ?? legacy?.prompt ?? answer.questionId;
-    const label = canonical?.header && canonical.header !== prompt
-      ? `${canonical.header} — ${prompt}`
-      : prompt;
+    const label =
+      canonical?.header && canonical.header !== prompt
+        ? `${canonical.header} — ${prompt}`
+        : prompt;
     return `- ${label}: ${values.join(", ") || "No answer"}`;
   });
-  return ["Answered questions", ...(lines.length > 0 ? ["", ...lines] : [])].join("\n");
+  return [
+    "Answered questions",
+    ...(lines.length > 0 ? ["", ...lines] : []),
+  ].join("\n");
 }
 
 export function buildSuggestedTaskTree(
@@ -341,7 +383,9 @@ export function buildSuggestedTaskTree(
   for (const task of tasks) {
     const node = nodes.get(task.clientKey);
     if (!node) continue;
-    const parentNode = task.parentClientKey ? nodes.get(task.parentClientKey) : null;
+    const parentNode = task.parentClientKey
+      ? nodes.get(task.parentClientKey)
+      : null;
     if (parentNode) {
       parentNode.children.push(node);
       continue;
@@ -353,10 +397,18 @@ export function buildSuggestedTaskTree(
 }
 
 export function countSuggestedTaskNodes(node: SuggestedTaskTreeNode): number {
-  return 1 + node.children.reduce((sum, child) => sum + countSuggestedTaskNodes(child), 0);
+  return (
+    1 +
+    node.children.reduce(
+      (sum, child) => sum + countSuggestedTaskNodes(child),
+      0,
+    )
+  );
 }
 
-export function collectSuggestedTaskClientKeys(node: SuggestedTaskTreeNode): string[] {
+export function collectSuggestedTaskClientKeys(
+  node: SuggestedTaskTreeNode,
+): string[] {
   return [
     node.task.clientKey,
     ...node.children.flatMap((child) => collectSuggestedTaskClientKeys(child)),
@@ -368,7 +420,9 @@ export function getQuestionAnswerLabels(args: {
   answers: readonly AskUserQuestionsAnswer[];
 }) {
   const { question, answers } = args;
-  const answer = answers.find((candidate) => candidate.questionId === question.id);
+  const answer = answers.find(
+    (candidate) => candidate.questionId === question.id,
+  );
   const selectedIds = answer?.optionIds ?? [];
   const optionLabelById = new Map(
     question.options.map((option) => [option.id, option.label] as const),
@@ -396,9 +450,13 @@ export function getQuestionAnswerLabels(args: {
  * that can never arrive. Legitimate shapes all pass: yes/no, multi-select,
  * free-text, and single-option acknowledgements.
  */
-function isDegenerateAskUserQuestion(question: AskUserQuestionsQuestion): boolean {
+function isDegenerateAskUserQuestion(
+  question: AskUserQuestionsQuestion,
+): boolean {
   if (question.prompt.trim().length === 0) return true;
-  const hasFreeTextOption = question.options.some((option) => option.freeText === true);
+  const hasFreeTextOption = question.options.some(
+    (option) => option.freeText === true,
+  );
   if (hasFreeTextOption) return false;
   const selectableOptionCount = question.options.filter(
     (option) => option.freeText !== true,
@@ -441,7 +499,9 @@ export function isSupersededByNewerSiblingInteraction(
 ): boolean {
   if (interaction.kind !== "ask_user_questions") return false;
   if (interaction.status !== "expired") return false;
-  return interaction.result?.expirationReason === "superseded_by_newer_interaction";
+  return (
+    interaction.result?.expirationReason === "superseded_by_newer_interaction"
+  );
 }
 
 /**
@@ -454,7 +514,7 @@ export function shouldHideInteractionCard(
   interaction: IssueThreadInteraction,
 ): boolean {
   return (
-    isDegenerateAskUserQuestions(interaction)
-    || isSupersededByNewerSiblingInteraction(interaction)
+    isDegenerateAskUserQuestions(interaction) ||
+    isSupersededByNewerSiblingInteraction(interaction)
   );
 }

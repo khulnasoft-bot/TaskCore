@@ -26,28 +26,44 @@ describe("buildNetworkPolicyManifests", () => {
   it("egress allow includes kube-dns and taskcore-server callback", () => {
     const [, egress] = buildNetworkPolicyManifests(baseInput);
     const rules = egress.spec.egress;
-    const dnsRule = rules.find((r: { ports?: { protocol: string; port: number }[] }) =>
-      r.ports?.some((p) => p.port === 53),
+    const dnsRule = rules.find(
+      (r: { ports?: { protocol: string; port: number }[] }) =>
+        r.ports?.some((p) => p.port === 53),
     );
     expect(dnsRule).toBeDefined();
-    const taskcoreRule = rules.find((r: { to: { namespaceSelector?: { matchLabels?: Record<string, string> } }[] }) =>
-      r.to.some((t) => t.namespaceSelector?.matchLabels?.["kubernetes.io/metadata.name"] === "taskcore"),
+    const taskcoreRule = rules.find(
+      (r: {
+        to: { namespaceSelector?: { matchLabels?: Record<string, string> } }[];
+      }) =>
+        r.to.some(
+          (t) =>
+            t.namespaceSelector?.matchLabels?.[
+              "kubernetes.io/metadata.name"
+            ] === "taskcore",
+        ),
     );
     expect(taskcoreRule).toBeDefined();
   });
 
   it("includes user-supplied CIDRs in egress allow", () => {
-    const [, egress] = buildNetworkPolicyManifests({ ...baseInput, egressAllowCidrs: ["10.0.0.0/8"] });
-    const cidrRule = egress.spec.egress.find((r: { to: { ipBlock?: { cidr: string } }[] }) =>
-      r.to.some((t) => t.ipBlock?.cidr === "10.0.0.0/8"),
+    const [, egress] = buildNetworkPolicyManifests({
+      ...baseInput,
+      egressAllowCidrs: ["10.0.0.0/8"],
+    });
+    const cidrRule = egress.spec.egress.find(
+      (r: { to: { ipBlock?: { cidr: string } }[] }) =>
+        r.to.some((t) => t.ipBlock?.cidr === "10.0.0.0/8"),
     );
     expect(cidrRule).toBeDefined();
   });
 
   it("uses taskcore-server pod label selector for callback ingress to taskcore ns", () => {
     const [, egress] = buildNetworkPolicyManifests(baseInput);
-    const callbackRule = egress.spec.egress.find((r: { to: { podSelector?: { matchLabels?: Record<string, string> } }[] }) =>
-      r.to.some((t) => t.podSelector?.matchLabels?.app === "taskcore-server"),
+    const callbackRule = egress.spec.egress.find(
+      (r: {
+        to: { podSelector?: { matchLabels?: Record<string, string> } }[];
+      }) =>
+        r.to.some((t) => t.podSelector?.matchLabels?.app === "taskcore-server"),
     );
     expect(callbackRule).toBeDefined();
     expect(callbackRule.ports[0].port).toBe(3100);
@@ -58,12 +74,19 @@ describe("buildNetworkPolicyManifests", () => {
       ...baseInput,
       egressAllowFqdns: ["api.anthropic.com"],
     });
-    const fallback = egress.spec.egress.find((r: { to: { ipBlock?: { cidr: string } }[] }) =>
-      r.to.some((t) => t.ipBlock?.cidr === "0.0.0.0/0"),
+    const fallback = egress.spec.egress.find(
+      (r: { to: { ipBlock?: { cidr: string } }[] }) =>
+        r.to.some((t) => t.ipBlock?.cidr === "0.0.0.0/0"),
     );
     expect(fallback).toBeDefined();
     expect(fallback.to[0].ipBlock.except).toEqual(
-      expect.arrayContaining(["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "127.0.0.0/8"]),
+      expect.arrayContaining([
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "169.254.0.0/16",
+        "127.0.0.0/8",
+      ]),
     );
     expect(fallback.ports).toEqual(
       expect.arrayContaining([
@@ -79,16 +102,18 @@ describe("buildNetworkPolicyManifests", () => {
       egressAllowFqdns: ["api.anthropic.com"],
       egressAllowCidrs: ["203.0.113.0/24"],
     });
-    const fallback = egress.spec.egress.find((r: { to: { ipBlock?: { cidr: string } }[] }) =>
-      r.to.some((t) => t.ipBlock?.cidr === "0.0.0.0/0"),
+    const fallback = egress.spec.egress.find(
+      (r: { to: { ipBlock?: { cidr: string } }[] }) =>
+        r.to.some((t) => t.ipBlock?.cidr === "0.0.0.0/0"),
     );
     expect(fallback).toBeUndefined();
   });
 
   it("does NOT add the public-IPv4 fallback when no FQDNs are configured", () => {
     const [, egress] = buildNetworkPolicyManifests(baseInput);
-    const fallback = egress.spec.egress.find((r: { to: { ipBlock?: { cidr: string } }[] }) =>
-      r.to.some((t) => t.ipBlock?.cidr === "0.0.0.0/0"),
+    const fallback = egress.spec.egress.find(
+      (r: { to: { ipBlock?: { cidr: string } }[] }) =>
+        r.to.some((t) => t.ipBlock?.cidr === "0.0.0.0/0"),
     );
     expect(fallback).toBeUndefined();
   });
@@ -100,12 +125,16 @@ describe("buildNetworkPolicyManifests", () => {
       podSelector: { "taskcore.io/run-id": "run-123" },
       includeBaseRules: false,
       egressAllowFqdns: ["github.com", "pypi.org"],
-      ownerReferences: [{ apiVersion: "batch/v1", kind: "Job", name: "pc-run", uid: "uid-1" }],
+      ownerReferences: [
+        { apiVersion: "batch/v1", kind: "Job", name: "pc-run", uid: "uid-1" },
+      ],
     });
 
     expect(egress.metadata.name).toBe("pc-run-egress");
     expect(egress.metadata.ownerReferences).toHaveLength(1);
-    expect(egress.spec.podSelector.matchLabels).toEqual({ "taskcore.io/run-id": "run-123" });
+    expect(egress.spec.podSelector.matchLabels).toEqual({
+      "taskcore.io/run-id": "run-123",
+    });
     expect(egress.spec.egress).toHaveLength(1);
     expect(egress.spec.egress[0].to[0].ipBlock.cidr).toBe("0.0.0.0/0");
   });

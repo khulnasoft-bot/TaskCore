@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { forbidden, HttpError, notFound } from "../errors.js";
 import { logger } from "../middleware/logger.js";
-import { CloudPortfolioError, type CloudPortfolioPhase } from "../services/cloud-portfolio-error.js";
+import {
+  CloudPortfolioError,
+  type CloudPortfolioPhase,
+} from "../services/cloud-portfolio-error.js";
 import {
   getCloudStackContext,
   type CloudInstanceEnv,
@@ -15,12 +18,14 @@ type PortfolioCacheEntry = {
   payload: unknown;
 };
 
-export function cloudRoutes(opts: {
-  runtimeEnv?: CloudInstanceEnv;
-  fetchImpl?: typeof fetch;
-  now?: () => number;
-  cacheTtlMs?: number;
-} = {}) {
+export function cloudRoutes(
+  opts: {
+    runtimeEnv?: CloudInstanceEnv;
+    fetchImpl?: typeof fetch;
+    now?: () => number;
+    cacheTtlMs?: number;
+  } = {},
+) {
   const router = Router();
   const runtimeEnv = opts.runtimeEnv ?? process.env;
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -72,13 +77,20 @@ export function cloudRoutes(opts: {
     let phase: CloudPortfolioPhase = "fetch";
     let upstreamStatus: number | null = null;
     let upstreamSignal: AbortSignal | undefined;
-    const portfolioError = (kind: "upstream" | "invalid_response", error?: unknown) => {
-      const reportableError = new CloudPortfolioError(kind, {
-        phase,
-        elapsedMs: performance.now() - startedAt,
-        upstreamStatus,
-        deadlineExceeded: upstreamSignal?.aborted === true,
-      }, error);
+    const portfolioError = (
+      kind: "upstream" | "invalid_response",
+      error?: unknown,
+    ) => {
+      const reportableError = new CloudPortfolioError(
+        kind,
+        {
+          phase,
+          elapsedMs: performance.now() - startedAt,
+          upstreamStatus,
+          deadlineExceeded: upstreamSignal?.aborted === true,
+        },
+        error,
+      );
       // Preserve the route callsite instead of grouping by this helper frame.
       Error.captureStackTrace?.(reportableError, portfolioError);
       return reportableError;

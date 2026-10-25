@@ -7,7 +7,10 @@ const spawnMock = vi.hoisted(() => vi.fn());
 vi.stubGlobal("fetch", fetchMock);
 
 vi.mock("node:child_process", async () => {
-  const actual = await vi.importActual<typeof import("node:child_process")>("node:child_process");
+  const actual =
+    await vi.importActual<typeof import("node:child_process")>(
+      "node:child_process",
+    );
   return {
     ...actual,
     spawn: spawnMock,
@@ -33,7 +36,12 @@ class MockChildProcess extends EventEmitter {
   };
   kill = vi.fn();
 
-  constructor(input: { code?: number; signal?: string | null; stdout?: string; stderr?: string }) {
+  constructor(input: {
+    code?: number;
+    signal?: string | null;
+    stdout?: string;
+    stderr?: string;
+  }) {
     super();
     queueMicrotask(() => {
       if (input.stdout) this.stdout.emit("data", input.stdout);
@@ -43,7 +51,12 @@ class MockChildProcess extends EventEmitter {
   }
 }
 
-function queueSpawnResult(input: { code?: number; signal?: string | null; stdout?: string; stderr?: string }) {
+function queueSpawnResult(input: {
+  code?: number;
+  signal?: string | null;
+  stdout?: string;
+  stderr?: string;
+}) {
   spawnMock.mockImplementationOnce(() => new MockChildProcess(input));
 }
 
@@ -138,19 +151,21 @@ describe("exe.dev sandbox provider plugin", () => {
   });
 
   it("rejects invalid config", async () => {
-    await expect(plugin.definition.onEnvironmentValidateConfig?.({
-      driverKey: "exe-dev",
-      config: {
-        apiUrl: "not-a-url",
-        cpu: 0,
-        env: {
-          "BAD-KEY": "value",
+    await expect(
+      plugin.definition.onEnvironmentValidateConfig?.({
+        driverKey: "exe-dev",
+        config: {
+          apiUrl: "not-a-url",
+          cpu: 0,
+          env: {
+            "BAD-KEY": "value",
+          },
+          sshPort: 70000,
+          strictHostKeyChecking: "",
+          timeoutMs: 0,
         },
-        sshPort: 70000,
-        strictHostKeyChecking: "",
-        timeoutMs: 0,
-      },
-    })).resolves.toEqual({
+      }),
+    ).resolves.toEqual({
       ok: false,
       warnings: [
         "The Taskcore host must have SSH access to the created exe.dev VM, and its SSH key must be registered with exe.dev. The API token only covers provisioning.",
@@ -222,7 +237,9 @@ describe("exe.dev sandbox provider plugin", () => {
 
     it("rejects a pasted public key", () => {
       expect(
-        validateSshPrivateKey("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE+gT9 user@host"),
+        validateSshPrivateKey(
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE+gT9 user@host",
+        ),
       ).toMatch(/looks like a PUBLIC key/);
     });
 
@@ -258,7 +275,9 @@ describe("exe.dev sandbox provider plugin", () => {
         "Zm9vYmFy",
         "-----END RSA PRIVATE KEY-----",
       ].join("\n");
-      expect(validateSshPrivateKey(mismatched)).toMatch(/header\/footer mismatch/);
+      expect(validateSshPrivateKey(mismatched)).toMatch(
+        /header\/footer mismatch/,
+      );
     });
 
     it("returns the sshPrivateKey error from onEnvironmentValidateConfig on save", async () => {
@@ -273,19 +292,24 @@ describe("exe.dev sandbox provider plugin", () => {
 
       expect(result?.ok).toBe(false);
       expect(result?.errors ?? []).toEqual(
-        expect.arrayContaining([expect.stringMatching(/sshPrivateKey looks like a PUBLIC key/)]),
+        expect.arrayContaining([
+          expect.stringMatching(/sshPrivateKey looks like a PUBLIC key/),
+        ]),
       );
     });
   });
 
   it("acquires a lease by creating a VM and preparing the SSH workspace", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        vm_name: "taskcore-env-run",
-        ssh_dest: "taskcore-env-run.exe.xyz",
-        https_url: "https://taskcore-env-run.exe.xyz",
-        status: "running",
-      }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          vm_name: "taskcore-env-run",
+          ssh_dest: "taskcore-env-run.exe.xyz",
+          https_url: "https://taskcore-env-run.exe.xyz",
+          status: "running",
+        }),
+        { status: 200 },
+      ),
     );
     queueSpawnResult({ stdout: "/home/exe\nbash\n" });
     queueSpawnResult({});
@@ -305,7 +329,9 @@ describe("exe.dev sandbox provider plugin", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0]?.[1]?.body ?? "")).toContain("new --json --no-email");
+    expect(String(fetchMock.mock.calls[0]?.[1]?.body ?? "")).toContain(
+      "new --json --no-email",
+    );
     expect(spawnMock).toHaveBeenCalledTimes(2);
     expect(lease).toMatchObject({
       providerLeaseId: "taskcore-env-run",
@@ -322,11 +348,14 @@ describe("exe.dev sandbox provider plugin", () => {
 
   it("copies the source VM with exe.dev cp instead of creating a new VM", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        vm_name: "taskcore-env1-run1",
-        ssh_dest: "taskcore-env1-run1.exe.xyz",
-        status: "running",
-      }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          vm_name: "taskcore-env1-run1",
+          ssh_dest: "taskcore-env1-run1.exe.xyz",
+          status: "running",
+        }),
+        { status: 200 },
+      ),
     );
     queueSpawnResult({ stdout: "/home/exedev\nbash\n" });
     queueSpawnResult({});
@@ -373,12 +402,15 @@ describe("exe.dev sandbox provider plugin", () => {
 
   it("uses a pasted sshPrivateKey when connecting to the VM", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        vm_name: "taskcore-env-run",
-        ssh_dest: "taskcore-env-run.exe.xyz",
-        https_url: "https://taskcore-env-run.exe.xyz",
-        status: "running",
-      }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          vm_name: "taskcore-env-run",
+          ssh_dest: "taskcore-env-run.exe.xyz",
+          https_url: "https://taskcore-env-run.exe.xyz",
+          status: "running",
+        }),
+        { status: 200 },
+      ),
     );
     queueSpawnResult({ stdout: "/home/exe\nbash\n" });
     queueSpawnResult({});
@@ -390,7 +422,8 @@ describe("exe.dev sandbox provider plugin", () => {
       runId: "run-1",
       config: {
         apiKey: "api-key",
-        sshPrivateKey: "-----BEGIN PRIVATE KEY-----\npretend\n-----END PRIVATE KEY-----",
+        sshPrivateKey:
+          "-----BEGIN PRIVATE KEY-----\npretend\n-----END PRIVATE KEY-----",
       },
     });
 
@@ -402,12 +435,15 @@ describe("exe.dev sandbox provider plugin", () => {
 
   it("supplies a default Node-install setup script when none is provided", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        vm_name: "taskcore-env-run",
-        ssh_dest: "taskcore-env-run.exe.xyz",
-        https_url: "https://taskcore-env-run.exe.xyz",
-        status: "running",
-      }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          vm_name: "taskcore-env-run",
+          ssh_dest: "taskcore-env-run.exe.xyz",
+          https_url: "https://taskcore-env-run.exe.xyz",
+          status: "running",
+        }),
+        { status: 200 },
+      ),
     );
     queueSpawnResult({ stdout: "/home/exedev\nbash\n" });
     queueSpawnResult({});
@@ -432,12 +468,15 @@ describe("exe.dev sandbox provider plugin", () => {
 
   it("preserves an operator-supplied setup script and does not append the default", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        vm_name: "taskcore-env-run",
-        ssh_dest: "taskcore-env-run.exe.xyz",
-        https_url: "https://taskcore-env-run.exe.xyz",
-        status: "running",
-      }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          vm_name: "taskcore-env-run",
+          ssh_dest: "taskcore-env-run.exe.xyz",
+          https_url: "https://taskcore-env-run.exe.xyz",
+          status: "running",
+        }),
+        { status: 200 },
+      ),
     );
     queueSpawnResult({ stdout: "/home/exedev\nbash\n" });
     queueSpawnResult({});
@@ -459,7 +498,9 @@ describe("exe.dev sandbox provider plugin", () => {
   });
 
   it("does not redact the built-in default setup script in API errors", async () => {
-    fetchMock.mockResolvedValueOnce(new Response("upstream boom", { status: 500 }));
+    fetchMock.mockResolvedValueOnce(
+      new Response("upstream boom", { status: 500 }),
+    );
 
     const acquirePromise = plugin.definition.onEnvironmentAcquireLease?.({
       driverKey: "exe-dev",
@@ -486,66 +527,86 @@ describe("exe.dev sandbox provider plugin", () => {
 
   it("surfaces exe.dev SSH onboarding guidance during lease acquisition", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        vm_name: "taskcore-env-run",
-        ssh_dest: "taskcore-env-run.exe.xyz",
-        https_url: "https://taskcore-env-run.exe.xyz",
-        status: "running",
-      }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          vm_name: "taskcore-env-run",
+          ssh_dest: "taskcore-env-run.exe.xyz",
+          https_url: "https://taskcore-env-run.exe.xyz",
+          status: "running",
+        }),
+        { status: 200 },
+      ),
     );
     fetchMock.mockResolvedValueOnce(new Response("{}", { status: 200 }));
-    queueSpawnResult({ code: 1, stdout: "Please complete registration by running: ssh exe.dev\n" });
+    queueSpawnResult({
+      code: 1,
+      stdout: "Please complete registration by running: ssh exe.dev\n",
+    });
 
-    await expect(plugin.definition.onEnvironmentAcquireLease?.({
-      driverKey: "exe-dev",
-      companyId: "company-1",
-      environmentId: "env-1",
-      runId: "run-1",
-      config: {
-        apiKey: "api-key",
-        timeoutMs: 300000,
-      },
-    })).rejects.toThrow(
+    await expect(
+      plugin.definition.onEnvironmentAcquireLease?.({
+        driverKey: "exe-dev",
+        companyId: "company-1",
+        environmentId: "env-1",
+        runId: "run-1",
+        config: {
+          apiKey: "api-key",
+          timeoutMs: 300000,
+        },
+      }),
+    ).rejects.toThrow(
       "the Taskcore host SSH key is not registered with exe.dev",
     );
 
-    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe("rm --json 'taskcore-env-run'");
+    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe(
+      "rm --json 'taskcore-env-run'",
+    );
   });
 
   it("surfaces invalid SSH key-format guidance during lease acquisition", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        vm_name: "taskcore-env-run",
-        ssh_dest: "taskcore-env-run.exe.xyz",
-        https_url: "https://taskcore-env-run.exe.xyz",
-        status: "running",
-      }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          vm_name: "taskcore-env-run",
+          ssh_dest: "taskcore-env-run.exe.xyz",
+          https_url: "https://taskcore-env-run.exe.xyz",
+          status: "running",
+        }),
+        { status: 200 },
+      ),
     );
     fetchMock.mockResolvedValueOnce(new Response("{}", { status: 200 }));
     queueSpawnResult({
       code: 255,
-      stderr: 'Load key "/tmp/taskcore-exe-dev-ssh-abc/id_ed25519": invalid format\n',
+      stderr:
+        'Load key "/tmp/taskcore-exe-dev-ssh-abc/id_ed25519": invalid format\n',
     });
 
-    await expect(plugin.definition.onEnvironmentAcquireLease?.({
-      driverKey: "exe-dev",
-      companyId: "company-1",
-      environmentId: "env-1",
-      runId: "run-1",
-      config: {
-        apiKey: "api-key",
-        sshPrivateKey: "not-actually-a-key",
-        timeoutMs: 300000,
-      },
-    })).rejects.toThrow(
+    await expect(
+      plugin.definition.onEnvironmentAcquireLease?.({
+        driverKey: "exe-dev",
+        companyId: "company-1",
+        environmentId: "env-1",
+        runId: "run-1",
+        config: {
+          apiKey: "api-key",
+          sshPrivateKey: "not-actually-a-key",
+          timeoutMs: 300000,
+        },
+      }),
+    ).rejects.toThrow(
       "the configured SSH private key isn't an OpenSSH-format private key",
     );
 
-    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe("rm --json 'taskcore-env-run'");
+    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe(
+      "rm --json 'taskcore-env-run'",
+    );
   });
 
   it("redacts sensitive lifecycle flags in API errors", async () => {
-    fetchMock.mockResolvedValueOnce(new Response("upstream boom", { status: 500 }));
+    fetchMock.mockResolvedValueOnce(
+      new Response("upstream boom", { status: 500 }),
+    );
 
     const acquirePromise = plugin.definition.onEnvironmentAcquireLease?.({
       driverKey: "exe-dev",
@@ -653,7 +714,10 @@ describe("exe.dev sandbox provider plugin", () => {
   });
 
   it("returns exe.dev SSH onboarding guidance for command execution failures", async () => {
-    queueSpawnResult({ code: 1, stdout: "Please complete registration by running: ssh exe.dev\n" });
+    queueSpawnResult({
+      code: 1,
+      stdout: "Please complete registration by running: ssh exe.dev\n",
+    });
 
     const result = await plugin.definition.onEnvironmentExecute?.({
       driverKey: "exe-dev",
@@ -674,18 +738,23 @@ describe("exe.dev sandbox provider plugin", () => {
     });
 
     expect(result?.exitCode).toBe(1);
-    expect(String(result?.stderr ?? "")).toContain("the Taskcore host SSH key is not registered with exe.dev");
+    expect(String(result?.stderr ?? "")).toContain(
+      "the Taskcore host SSH key is not registered with exe.dev",
+    );
     expect(String(result?.stderr ?? "")).toContain("ssh exe.dev");
   });
 
   it("probes by creating and then deleting a VM after SSH verification", async () => {
     fetchMock
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({
-          vm_name: "taskcore-probe",
-          ssh_dest: "taskcore-probe.exe.xyz",
-          status: "running",
-        }), { status: 200 }),
+        new Response(
+          JSON.stringify({
+            vm_name: "taskcore-probe",
+            ssh_dest: "taskcore-probe.exe.xyz",
+            status: "running",
+          }),
+          { status: 200 },
+        ),
       )
       .mockResolvedValueOnce(new Response("{}", { status: 200 }));
     queueSpawnResult({ stdout: "/home/exe\nbash\n" });
@@ -710,17 +779,22 @@ describe("exe.dev sandbox provider plugin", () => {
         shellCommand: "bash",
       },
     });
-    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe("rm --json 'taskcore-probe'");
+    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe(
+      "rm --json 'taskcore-probe'",
+    );
   });
 
   it("cleans up the probe VM when SSH verification fails", async () => {
     fetchMock
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({
-          vm_name: "taskcore-probe",
-          ssh_dest: "taskcore-probe.exe.xyz",
-          status: "running",
-        }), { status: 200 }),
+        new Response(
+          JSON.stringify({
+            vm_name: "taskcore-probe",
+            ssh_dest: "taskcore-probe.exe.xyz",
+            status: "running",
+          }),
+          { status: 200 },
+        ),
       )
       .mockResolvedValueOnce(new Response("{}", { status: 200 }));
     queueSpawnResult({ code: 1, stderr: "permission denied" });
@@ -741,21 +815,31 @@ describe("exe.dev sandbox provider plugin", () => {
         provider: "exe-dev",
       },
     });
-    expect(String(result?.metadata?.error ?? "")).toContain("permission denied");
-    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe("rm --json 'taskcore-probe'");
+    expect(String(result?.metadata?.error ?? "")).toContain(
+      "permission denied",
+    );
+    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe(
+      "rm --json 'taskcore-probe'",
+    );
   });
 
   it("returns onboarding guidance when probe hits exe.dev SSH registration", async () => {
     fetchMock
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({
-          vm_name: "taskcore-probe",
-          ssh_dest: "taskcore-probe.exe.xyz",
-          status: "running",
-        }), { status: 200 }),
+        new Response(
+          JSON.stringify({
+            vm_name: "taskcore-probe",
+            ssh_dest: "taskcore-probe.exe.xyz",
+            status: "running",
+          }),
+          { status: 200 },
+        ),
       )
       .mockResolvedValueOnce(new Response("{}", { status: 200 }));
-    queueSpawnResult({ code: 1, stdout: "Please complete registration by running: ssh exe.dev\n" });
+    queueSpawnResult({
+      code: 1,
+      stdout: "Please complete registration by running: ssh exe.dev\n",
+    });
 
     const result = await plugin.definition.onEnvironmentProbe?.({
       driverKey: "exe-dev",
@@ -770,8 +854,12 @@ describe("exe.dev sandbox provider plugin", () => {
       ok: false,
       summary: "exe.dev environment probe failed.",
     });
-    expect(String(result?.metadata?.error ?? "")).toContain("the Taskcore host SSH key is not registered with exe.dev");
-    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe("rm --json 'taskcore-probe'");
+    expect(String(result?.metadata?.error ?? "")).toContain(
+      "the Taskcore host SSH key is not registered with exe.dev",
+    );
+    expect(String(fetchMock.mock.calls[1]?.[1]?.body ?? "")).toBe(
+      "rm --json 'taskcore-probe'",
+    );
   });
 
   it("deletes non-reusable leases on release", async () => {
@@ -789,7 +877,9 @@ describe("exe.dev sandbox provider plugin", () => {
       leaseMetadata: {},
     });
 
-    expect(String(fetchMock.mock.calls[0]?.[1]?.body ?? "")).toBe("rm --json 'vm-1'");
+    expect(String(fetchMock.mock.calls[0]?.[1]?.body ?? "")).toBe(
+      "rm --json 'vm-1'",
+    );
   });
 
   it("destroys leases on demand", async () => {
@@ -806,7 +896,9 @@ describe("exe.dev sandbox provider plugin", () => {
       leaseMetadata: {},
     });
 
-    expect(String(fetchMock.mock.calls[0]?.[1]?.body ?? "")).toBe("rm --json 'vm-2'");
+    expect(String(fetchMock.mock.calls[0]?.[1]?.body ?? "")).toBe(
+      "rm --json 'vm-2'",
+    );
   });
 
   it("realizes a workspace by mkdir-ing the remote cwd over SSH when VM metadata is present", async () => {
@@ -899,11 +991,9 @@ describe("exe.dev sandbox provider plugin", () => {
 });
 
 describe("exe-dev manifest form defaults", () => {
-  const configSchema = (
-    manifest.environmentDrivers?.[0]?.configSchema as {
-      properties?: Record<string, { format?: string; default?: unknown }>;
-    }
-  );
+  const configSchema = manifest.environmentDrivers?.[0]?.configSchema as {
+    properties?: Record<string, { format?: string; default?: unknown }>;
+  };
   const properties = configSchema.properties ?? {};
 
   it("pre-fills VM sizing for the environment form", () => {
@@ -913,7 +1003,8 @@ describe("exe-dev manifest form defaults", () => {
   });
 
   it("explains the cp token permission on the Source VM field", () => {
-    const sourceVm = properties.sourceVm as { title?: string; description?: string } | undefined;
+    const sourceVm = properties.sourceVm as
+      { title?: string; description?: string } | undefined;
     expect(sourceVm?.title).toBe("Source VM");
     expect(sourceVm?.description).toMatch(/token must allow `cp`.*403/);
   });

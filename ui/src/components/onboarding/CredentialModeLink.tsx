@@ -35,10 +35,20 @@ export function CredentialModeLink({
   mode: CredentialMode;
   onChange: (next: CredentialMode) => void;
 }) {
-  return <ModeLink destination={OTHER_MODE[mode]} onClick={() => onChange(OTHER_MODE[mode])} modes={NATIVE_MODES} />;
+  return (
+    <ModeLink
+      destination={OTHER_MODE[mode]}
+      onClick={() => onChange(OTHER_MODE[mode])}
+      modes={NATIVE_MODES}
+    />
+  );
 }
 
-function ModeLink({ destination, onClick, modes }: {
+function ModeLink({
+  destination,
+  onClick,
+  modes,
+}: {
   destination: CredentialMode;
   onClick: () => void;
   modes: CredentialMode[];

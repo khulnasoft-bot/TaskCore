@@ -102,16 +102,21 @@ describe("formatFileSize", () => {
 
 describe("extractAttachmentRefs", () => {
   it("extracts attachment links and strips link-only lines", () => {
-    const body = "Here are the notes.\n\n[notes.txt](/api/attachments/abc/content) ";
+    const body =
+      "Here are the notes.\n\n[notes.txt](/api/attachments/abc/content) ";
     const { refs, text } = extractAttachmentRefs(body);
-    expect(refs).toEqual([{ name: "notes.txt", url: "/api/attachments/abc/content" }]);
+    expect(refs).toEqual([
+      { name: "notes.txt", url: "/api/attachments/abc/content" },
+    ]);
     expect(text).toBe("Here are the notes.");
   });
 
   it("keeps links woven into prose while still chipping them", () => {
     const body = "See [report.pdf](/api/attachments/r1/content) for details.";
     const { refs, text } = extractAttachmentRefs(body);
-    expect(refs).toEqual([{ name: "report.pdf", url: "/api/attachments/r1/content" }]);
+    expect(refs).toEqual([
+      { name: "report.pdf", url: "/api/attachments/r1/content" },
+    ]);
     expect(text).toBe(body);
   });
 
@@ -126,7 +131,8 @@ describe("extractAttachmentRefs", () => {
   });
 
   it("ignores non-attachment links entirely", () => {
-    const body = "[docs](https://example.com/content) and [PAP-1](/issues/PAP-1)";
+    const body =
+      "[docs](https://example.com/content) and [PAP-1](/issues/PAP-1)";
     const { refs, text } = extractAttachmentRefs(body);
     expect(refs).toEqual([]);
     expect(text).toBe(body);
@@ -160,8 +166,11 @@ describe("extractImageRefs", () => {
   });
 
   it("dedupes repeated embeds and tolerates empty alt text", () => {
-    const body = "![](/api/attachments/a/content)\n![again](/api/attachments/a/content)";
-    expect(extractImageRefs(body)).toEqual([{ name: "", url: "/api/attachments/a/content" }]);
+    const body =
+      "![](/api/attachments/a/content)\n![again](/api/attachments/a/content)";
+    expect(extractImageRefs(body)).toEqual([
+      { name: "", url: "/api/attachments/a/content" },
+    ]);
   });
 
   it("unescapes bracket-escaped alt text", () => {
@@ -172,7 +181,9 @@ describe("extractImageRefs", () => {
   });
 
   it("returns nothing for bodies without images", () => {
-    expect(extractImageRefs("just text and a [link](/api/attachments/x/content)")).toEqual([]);
+    expect(
+      extractImageRefs("just text and a [link](/api/attachments/x/content)"),
+    ).toEqual([]);
   });
 
   it("promotes standalone embeds but leaves prose-woven embeds inline", () => {
@@ -200,7 +211,9 @@ describe("extractImageRefs", () => {
 describe("stripStandaloneImageEmbeds", () => {
   it("removes tail embeds promoted to thumbnails but keeps prose", () => {
     expect(
-      stripStandaloneImageEmbeds("Done.\n\n![desktop Default](/api/attachments/a/content)"),
+      stripStandaloneImageEmbeds(
+        "Done.\n\n![desktop Default](/api/attachments/a/content)",
+      ),
     ).toBe("Done.");
   });
 });

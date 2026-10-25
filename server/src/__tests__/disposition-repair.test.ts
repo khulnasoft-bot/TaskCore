@@ -21,7 +21,9 @@ const deliberateWaitRun = {
 
 describe("owner-sticky disposition repair", () => {
   it("classifies a deliberate wait without a target into its dedicated bounded lane", () => {
-    expect(ISSUE_RECOVERY_ACTION_KINDS).toContain("deliberate_wait_without_target");
+    expect(ISSUE_RECOVERY_ACTION_KINDS).toContain(
+      "deliberate_wait_without_target",
+    );
     expect(classifyContinuationFailure(deliberateWaitRun)).toEqual({
       kind: "deliberate_wait_without_target",
       maxAttempts: 5,
@@ -32,10 +34,14 @@ describe("owner-sticky disposition repair", () => {
 
   it("uses the persisted five-attempt owner-sticky schedule with bounded deterministic jitter", () => {
     const fingerprint = "disposition_repair:v1:example";
-    const timings = [1, 2, 3, 4, 5].map((attempt) => dispositionRepairDelayMs(attempt, fingerprint));
+    const timings = [1, 2, 3, 4, 5].map((attempt) =>
+      dispositionRepairDelayMs(attempt, fingerprint),
+    );
 
     expect(DISPOSITION_REPAIR_MAX_ATTEMPTS).toBe(5);
-    expect(DISPOSITION_REPAIR_BASE_DELAYS_MS).toEqual([0, 60_000, 120_000, 240_000, 480_000]);
+    expect(DISPOSITION_REPAIR_BASE_DELAYS_MS).toEqual([
+      0, 60_000, 120_000, 240_000, 480_000,
+    ]);
     expect(timings[0]).toEqual({ baseDelayMs: 0, jitterMs: 0, delayMs: 0 });
     expect(timings[1]?.baseDelayMs).toBe(60_000);
     expect(timings[1]?.jitterMs).toBeGreaterThanOrEqual(0);
@@ -48,6 +54,8 @@ describe("owner-sticky disposition repair", () => {
     expect(timings[4]?.baseDelayMs).toBe(480_000);
     expect(timings[4]?.jitterMs).toBeLessThanOrEqual(48_000);
     expect(dispositionRepairDelayMs(2, fingerprint)).toEqual(timings[1]);
-    expect(() => dispositionRepairDelayMs(6, fingerprint)).toThrow(/Invalid disposition repair attempt/);
+    expect(() => dispositionRepairDelayMs(6, fingerprint)).toThrow(
+      /Invalid disposition repair attempt/,
+    );
   });
 });

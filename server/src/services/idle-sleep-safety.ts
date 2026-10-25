@@ -17,7 +17,10 @@ export interface IdleSleepSafety {
   backgroundWork: "none" | "present" | "unknown";
 }
 
-export type InspectIdlePlugins = (hold: { ownerId: string; expiresAt: number }) => Promise<{
+export type InspectIdlePlugins = (hold: {
+  ownerId: string;
+  expiresAt: number;
+}) => Promise<{
   backgroundWork: "none" | "present" | "unknown";
   pluginIds: string[];
 }>;
@@ -65,26 +68,61 @@ const WORK_CHECKS = [
   // These less common work sources fail closed on any retained state. Their
   // terminal-state exceptions can be added with tests for the owning service.
   ...[
-    "chat_endpoints", "chat_deliveries", "chat_publications", "chat_actions",
-    "chat_completion_deliveries", "connection_event_deliveries",
-    "connection_intent_deliveries", "tool_action_requests", "tool_action_deliveries",
-    "issue_question_response_deliveries", "workspace_runtime_services",
-    "execution_workspace_runtime_leases", "pipeline_automation_executions",
-    "native_run_finalizations", "company_transfer_runs", "decisions", "decision_effect_executions",
-    "decision_archive_notification_outbox", "browser_use_sessions", "browser_use_runs",
-    "browser_use_browsers", "environment_custom_image_setup_sessions", "feedback_exports",
-    "adapter_auth_sessions", "company_secret_proposals", "execution_workspaces",
-    "mcp_oauth_grants", "mcp_mutation_receipts", "mcp_event_subscriptions",
-    "mcp_event_deliveries", "mcp_attachment_uploads", "dot_agent_bindings",
-    "dot_runner_assignments", "dot_runner_operations", "dot_mailbox_items",
+    "chat_endpoints",
+    "chat_deliveries",
+    "chat_publications",
+    "chat_actions",
+    "chat_completion_deliveries",
+    "connection_event_deliveries",
+    "connection_intent_deliveries",
+    "tool_action_requests",
+    "tool_action_deliveries",
+    "issue_question_response_deliveries",
+    "workspace_runtime_services",
+    "execution_workspace_runtime_leases",
+    "pipeline_automation_executions",
+    "native_run_finalizations",
+    "company_transfer_runs",
+    "decisions",
+    "decision_effect_executions",
+    "decision_archive_notification_outbox",
+    "browser_use_sessions",
+    "browser_use_runs",
+    "browser_use_browsers",
+    "environment_custom_image_setup_sessions",
+    "feedback_exports",
+    "adapter_auth_sessions",
+    "company_secret_proposals",
+    "execution_workspaces",
+    "mcp_oauth_grants",
+    "mcp_mutation_receipts",
+    "mcp_event_subscriptions",
+    "mcp_event_deliveries",
+    "mcp_attachment_uploads",
+    "dot_agent_bindings",
+    "dot_runner_assignments",
+    "dot_runner_operations",
+    "dot_mailbox_items",
   ].map((table) => `SELECT 1 FROM ${table}`),
 ] as const;
 
-function sameQuietHold(before: IdleSleepDrainStatus, after: IdleSleepDrainStatus, now: number): boolean {
-  return before.ownerId === after.ownerId && before.draining && after.draining && before.activeRuns === 0 && before.pendingWakes === 0
-    && after.activeRuns === 0 && after.pendingWakes === 0
-    && before.startedAt !== null && after.startedAt?.getTime() === before.startedAt.getTime()
-    && (after.expiresAt === null || after.expiresAt.getTime() > now);
+function sameQuietHold(
+  before: IdleSleepDrainStatus,
+  after: IdleSleepDrainStatus,
+  now: number,
+): boolean {
+  return (
+    before.ownerId === after.ownerId &&
+    before.draining &&
+    after.draining &&
+    before.activeRuns === 0 &&
+    before.pendingWakes === 0 &&
+    after.activeRuns === 0 &&
+    after.pendingWakes === 0 &&
+    before.startedAt !== null &&
+    after.startedAt?.getTime() === before.startedAt.getTime() &&
+    (after.expiresAt === null || after.expiresAt.getTime() > now)
+  );
 }
 
 /** Inventory persisted work after the task-drain admission hold lands.
@@ -107,32 +145,71 @@ export async function readIdleSleepSafety(
     // Reject known local blockers before querying (and potentially waking)
     // the tenant database. Keep the final inspection below as a second fence.
     const localFirst = await inspectLocalWork();
-    if (localFirst !== "none") return { version: 1, backgroundWork: localFirst };
+    if (localFirst !== "none")
+      return { version: 1, backgroundWork: localFirst };
     let quietPlugins: string[] = [];
     if (inspectPlugins) {
-      if (!ownerId || ownerId !== before.ownerId || before.expiresAt === null || localBefore.active !== 0) return unknown;
-      const pluginWork = await inspectPlugins({ ownerId, expiresAt: before.expiresAt.getTime() });
-      if (pluginWork.backgroundWork !== "none") return { version: 1, backgroundWork: pluginWork.backgroundWork };
+      if (
+        !ownerId ||
+        ownerId !== before.ownerId ||
+        before.expiresAt === null ||
+        localBefore.active !== 0
+      )
+        return unknown;
+      const pluginWork = await inspectPlugins({
+        ownerId,
+        expiresAt: before.expiresAt.getTime(),
+      });
+      if (pluginWork.backgroundWork !== "none")
+        return { version: 1, backgroundWork: pluginWork.backgroundWork };
       quietPlugins = pluginWork.pluginIds;
     }
-    const blocked = await db.transaction(async (tx) => {
-      await tx.execute(sql`SET LOCAL statement_timeout = '5s'`);
-      const checks = WORK_CHECKS.map((query) => sql`EXISTS (${sql.raw(query)})`);
-      // Only the current worker's owned runtime drain can exempt a plugin.
-      // Missing workers, old SDKs, and newly installed plugins still block.
-      checks.push(quietPlugins.length === 0
-        ? sql`EXISTS (SELECT 1 FROM plugins WHERE status <> 'disabled')`
-        : sql`EXISTS (SELECT 1 FROM plugins WHERE status <> 'disabled' AND id NOT IN (${sql.join(quietPlugins.map((id) => sql`${id}::uuid`), sql`, `)}))`);
-      const rows = await tx.execute<{ blocked: boolean }>(sql`SELECT ${sql.join(checks, sql` OR `)} AS blocked`);
-      return rows.length === 1 && typeof rows[0]?.blocked === "boolean" ? rows[0].blocked : undefined;
-    }, { isolationLevel: "repeatable read", accessMode: "read only" });
-    if (blocked === undefined || !sameQuietHold(before, getDrainStatus(), now())) return unknown;
+    const blocked = await db.transaction(
+      async (tx) => {
+        await tx.execute(sql`SET LOCAL statement_timeout = '5s'`);
+        const checks = WORK_CHECKS.map(
+          (query) => sql`EXISTS (${sql.raw(query)})`,
+        );
+        // Only the current worker's owned runtime drain can exempt a plugin.
+        // Missing workers, old SDKs, and newly installed plugins still block.
+        checks.push(
+          quietPlugins.length === 0
+            ? sql`EXISTS (SELECT 1 FROM plugins WHERE status <> 'disabled')`
+            : sql`EXISTS (SELECT 1 FROM plugins WHERE status <> 'disabled' AND id NOT IN (${sql.join(
+                quietPlugins.map((id) => sql`${id}::uuid`),
+                sql`, `,
+              )}))`,
+        );
+        const rows = await tx.execute<{ blocked: boolean }>(
+          sql`SELECT ${sql.join(checks, sql` OR `)} AS blocked`,
+        );
+        return rows.length === 1 && typeof rows[0]?.blocked === "boolean"
+          ? rows[0].blocked
+          : undefined;
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+    if (
+      blocked === undefined ||
+      !sameQuietHold(before, getDrainStatus(), now())
+    )
+      return unknown;
     if (blocked) return { version: 1, backgroundWork: "present" };
-    if (!ownerId || ownerId !== before.ownerId || before.expiresAt === null || localBefore.active !== 0) return unknown;
+    if (
+      !ownerId ||
+      ownerId !== before.ownerId ||
+      before.expiresAt === null ||
+      localBefore.active !== 0
+    )
+      return unknown;
     let expectedGeneration = localBefore.generation;
     if (prepareBackup) {
-      if (!sameQuietHold(before, getDrainStatus(), now()) ||
-          idleWorkSnapshot().generation !== expectedGeneration || idleWorkSnapshot().active !== 0) return unknown;
+      if (
+        !sameQuietHold(before, getDrainStatus(), now()) ||
+        idleWorkSnapshot().generation !== expectedGeneration ||
+        idleWorkSnapshot().active !== 0
+      )
+        return unknown;
       // The runner owns exactly one tracked-work receipt through dump,
       // archive verification and fsync. Its start/finish are the only work
       // allowed during this scan. Any concurrent work invalidates the dump.
@@ -142,10 +219,13 @@ export async function readIdleSleepSafety(
     const local = await inspectLocalWork();
     const after = getDrainStatus();
     const localAfter = idleWorkSnapshot();
-    if (!sameQuietHold(before, after, now()) || localAfter.active !== 0 ||
-        expectedGeneration !== localAfter.generation) return unknown;
+    if (
+      !sameQuietHold(before, after, now()) ||
+      localAfter.active !== 0 ||
+      expectedGeneration !== localAfter.generation
+    )
+      return unknown;
     return { version: 1, backgroundWork: local };
-
   } catch {
     // Missing migrations, unknown state, malformed configuration, timeouts and
     // database failures never authorize stopping the application. Do not leak

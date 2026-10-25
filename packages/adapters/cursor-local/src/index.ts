@@ -8,7 +8,8 @@ export const label = "Cursor";
 // artifact. Pinning a commit/version here would require shipping our own
 // mirror of the installer; revisit if Cursor adds an npm/release-asset
 // equivalent.
-export const SANDBOX_INSTALL_COMMAND = "curl https://cursor.com/install -fsS | bash";
+export const SANDBOX_INSTALL_COMMAND =
+  "curl https://cursor.com/install -fsS | bash";
 
 export const DEFAULT_CURSOR_LOCAL_MODEL = "auto";
 
@@ -66,7 +67,10 @@ const CURSOR_FALLBACK_MODEL_IDS = [
   "kimi-k2.5",
 ];
 
-export const models = CURSOR_FALLBACK_MODEL_IDS.map((id) => ({ id, label: id }));
+export const models = CURSOR_FALLBACK_MODEL_IDS.map((id) => ({
+  id,
+  label: id,
+}));
 
 export const agentConfigurationDoc = `# cursor agent configuration
 

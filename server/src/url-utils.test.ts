@@ -1,16 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { isLoopbackHost, rewriteLoopbackUrlPort, rewriteUrlPort } from "./url-utils.js";
+import {
+  isLoopbackHost,
+  rewriteLoopbackUrlPort,
+  rewriteUrlPort,
+} from "./url-utils.js";
 
 describe("rewriteUrlPort", () => {
   it("rewrites the port for any explicit-port URL, including external hosts", () => {
-    expect(rewriteUrlPort("http://localhost:5678", 3101)).toBe("http://localhost:3101/");
-    expect(rewriteUrlPort("http://127.0.0.1:9999", 3101)).toBe("http://127.0.0.1:3101/");
+    expect(rewriteUrlPort("http://localhost:5678", 3101)).toBe(
+      "http://localhost:3101/",
+    );
+    expect(rewriteUrlPort("http://127.0.0.1:9999", 3101)).toBe(
+      "http://127.0.0.1:3101/",
+    );
     // A worktree advertises its own port even on a non-loopback host.
-    expect(rewriteUrlPort("http://my-host.ts.net:3100", 3103)).toBe("http://my-host.ts.net:3103/");
+    expect(rewriteUrlPort("http://my-host.ts.net:3100", 3103)).toBe(
+      "http://my-host.ts.net:3103/",
+    );
   });
 
   it("leaves URLs without an explicit port stable", () => {
-    expect(rewriteUrlPort("https://taskcore.example", 3101)).toBe("https://taskcore.example");
+    expect(rewriteUrlPort("https://taskcore.example", 3101)).toBe(
+      "https://taskcore.example",
+    );
     expect(rewriteUrlPort("http://localhost", 3101)).toBe("http://localhost");
   });
 
@@ -23,9 +35,15 @@ describe("rewriteUrlPort", () => {
 
 describe("rewriteLoopbackUrlPort", () => {
   it("rewrites the port for loopback base URLs", () => {
-    expect(rewriteLoopbackUrlPort("http://localhost:5678", 3101)).toBe("http://localhost:3101/");
-    expect(rewriteLoopbackUrlPort("http://127.0.0.1:9999", 3101)).toBe("http://127.0.0.1:3101/");
-    expect(rewriteLoopbackUrlPort("http://[::1]:9999", 3101)).toBe("http://[::1]:3101/");
+    expect(rewriteLoopbackUrlPort("http://localhost:5678", 3101)).toBe(
+      "http://localhost:3101/",
+    );
+    expect(rewriteLoopbackUrlPort("http://127.0.0.1:9999", 3101)).toBe(
+      "http://127.0.0.1:3101/",
+    );
+    expect(rewriteLoopbackUrlPort("http://[::1]:9999", 3101)).toBe(
+      "http://[::1]:3101/",
+    );
   });
 
   it("leaves explicit external base URLs untouched (BRO-1558)", () => {
@@ -39,7 +57,9 @@ describe("rewriteLoopbackUrlPort", () => {
     expect(rewriteLoopbackUrlPort("https://taskcore.example.com", 3101)).toBe(
       "https://taskcore.example.com",
     );
-    expect(rewriteLoopbackUrlPort("http://localhost", 3101)).toBe("http://localhost");
+    expect(rewriteLoopbackUrlPort("http://localhost", 3101)).toBe(
+      "http://localhost",
+    );
   });
 
   it("passes through empty and unparseable inputs", () => {

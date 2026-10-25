@@ -11,7 +11,10 @@ vi.mock("novita-sandbox", () => ({
   },
 }));
 
-import plugin, { buildShellCommand, parseNovitaDriverConfig } from "./plugin.js";
+import plugin, {
+  buildShellCommand,
+  parseNovitaDriverConfig,
+} from "./plugin.js";
 
 describe("Novita sandbox provider plugin", () => {
   it("declares a sandbox provider environment driver", () => {
@@ -39,17 +42,19 @@ describe("Novita sandbox provider plugin", () => {
   });
 
   it("parses configured values", () => {
-    expect(parseNovitaDriverConfig({
-      apiKey: "sk-test",
-      domain: "https://sandbox.example.test",
-      template: "taskcore-template",
-      requestedCwd: "/workspace",
-      timeoutMs: 600000,
-      requestTimeoutMs: 45000,
-      secure: true,
-      autoPause: true,
-      reuseLease: true,
-    })).toMatchObject({
+    expect(
+      parseNovitaDriverConfig({
+        apiKey: "sk-test",
+        domain: "https://sandbox.example.test",
+        template: "taskcore-template",
+        requestedCwd: "/workspace",
+        timeoutMs: 600000,
+        requestTimeoutMs: 45000,
+        secure: true,
+        autoPause: true,
+        reuseLease: true,
+      }),
+    ).toMatchObject({
       apiKey: "sk-test",
       domain: "https://sandbox.example.test",
       template: "taskcore-template",
@@ -74,7 +79,9 @@ describe("Novita sandbox provider plugin", () => {
     expect(command).toContain("cd '/workspace/project'");
     expect(command).toContain("export MESSAGE='hello world';");
     expect(command).toContain("'node' '-e' 'console.log(process.env.MESSAGE)'");
-    expect(command).toContain("printf '%s' 'input body' > '/tmp/.taskcore-stdin-");
+    expect(command).toContain(
+      "printf '%s' 'input body' > '/tmp/.taskcore-stdin-",
+    );
     expect(command).toMatch(/< '\/tmp\/\.taskcore-stdin-[^']+'/);
     expect(command).toMatch(/rm -f '\/tmp\/\.taskcore-stdin-[^']+'/);
     expect(command).toContain("exit $status");
@@ -110,10 +117,12 @@ describe("Novita sandbox provider plugin", () => {
   });
 
   it("rejects unsafe environment variable keys", () => {
-    expect(() => buildShellCommand({
-      command: "env",
-      env: { "BAD-KEY": "value" },
-    })).toThrow("Invalid sandbox environment variable key");
+    expect(() =>
+      buildShellCommand({
+        command: "env",
+        env: { "BAD-KEY": "value" },
+      }),
+    ).toThrow("Invalid sandbox environment variable key");
   });
 
   it("returns a command failure when execute is called for an expired sandbox lease", async () => {

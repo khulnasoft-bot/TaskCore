@@ -1,6 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Loader2, ShieldQuestion, OctagonX, Ban, Scissors } from "lucide-react";
+import {
+  ChevronRight,
+  Loader2,
+  ShieldQuestion,
+  OctagonX,
+  Ban,
+  Scissors,
+} from "lucide-react";
 import type { TaskChatStatusItem } from "./task-chat-model";
 import { statusLabelIcon, toolTaxonomy } from "./tool-taxonomy";
 import { isGenericStatusLabel, whimsyWord } from "./status-whimsy";
@@ -22,7 +29,10 @@ function liveElapsedLabel(ms?: number): string | null {
 }
 
 /** Elapsed ms since `startedAtMs`, ticking ten times a second while `live`. */
-function useLiveElapsedMs(startedAtMs: number | undefined, live: boolean): number | undefined {
+function useLiveElapsedMs(
+  startedAtMs: number | undefined,
+  live: boolean,
+): number | undefined {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (startedAtMs == null || !live) return;
@@ -36,8 +46,15 @@ function useLiveElapsedMs(startedAtMs: number | undefined, live: boolean): numbe
  * How many line-heights the streaming interstitial block is shifted up so only
  * its LAST line shows in the 1lh viewport: lines − 1 (never negative).
  */
-export function lineScrollOffset(scrollHeight: number, lineHeightPx: number): number {
-  if (!Number.isFinite(scrollHeight) || !Number.isFinite(lineHeightPx) || lineHeightPx <= 0) {
+export function lineScrollOffset(
+  scrollHeight: number,
+  lineHeightPx: number,
+): number {
+  if (
+    !Number.isFinite(scrollHeight) ||
+    !Number.isFinite(lineHeightPx) ||
+    lineHeightPx <= 0
+  ) {
     return 0;
   }
   return Math.max(0, Math.round(scrollHeight / lineHeightPx) - 1);
@@ -93,7 +110,10 @@ function LiveSelfTalkLine({
   }, [text, streaming]);
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
-    const timer = window.setTimeout(() => setSettled(true), motionTokenMs("--motion-line-scroll"));
+    const timer = window.setTimeout(
+      () => setSettled(true),
+      motionTokenMs("--motion-line-scroll"),
+    );
     return () => {
       cancelAnimationFrame(id);
       window.clearTimeout(timer);
@@ -111,7 +131,8 @@ function LiveSelfTalkLine({
         ref={innerRef}
         className={cn("tc-line-scroll-inner block", !streaming && "truncate")}
         style={{
-          transform: shift !== 0 ? `translateY(calc(${shift} * 1lh))` : undefined,
+          transform:
+            shift !== 0 ? `translateY(calc(${shift} * 1lh))` : undefined,
           transition: settled && !leaving ? "none" : undefined,
         }}
       >
@@ -144,7 +165,10 @@ interface HeldSelfTalk {
  * between assistant messages (tool calls / thinking in between), so a
  * defined→undefined→defined sequence marks a new update.
  */
-function useHeldSelfTalk(selfTalk: string | undefined, live: boolean): HeldSelfTalk | null {
+function useHeldSelfTalk(
+  selfTalk: string | undefined,
+  live: boolean,
+): HeldSelfTalk | null {
   const [line, setLine] = useState<HeldSelfTalk | null>(null);
   const lineRef = useRef<HeldSelfTalk | null>(line);
   const pendingRef = useRef<string | null>(null);
@@ -240,8 +264,10 @@ function useHeldSelfTalk(selfTalk: string | undefined, live: boolean): HeldSelfT
   useEffect(
     () => () => {
       if (timerRef.current != null) window.clearTimeout(timerRef.current);
-      if (leaveTimerRef.current != null) window.clearTimeout(leaveTimerRef.current);
-      if (exitTimerRef.current != null) window.clearTimeout(exitTimerRef.current);
+      if (leaveTimerRef.current != null)
+        window.clearTimeout(leaveTimerRef.current);
+      if (exitTimerRef.current != null)
+        window.clearTimeout(exitTimerRef.current);
     },
     [],
   );
@@ -252,10 +278,18 @@ function useHeldSelfTalk(selfTalk: string | undefined, live: boolean): HeldSelfT
 const CONFIG = {
   running: { Icon: Loader2, spin: true, tone: "text-(--status-agent-running)" },
   working: { Icon: Loader2, spin: true, tone: "text-(--status-agent-running)" },
-  awaiting_approval: { Icon: ShieldQuestion, spin: false, tone: "text-primary" },
+  awaiting_approval: {
+    Icon: ShieldQuestion,
+    spin: false,
+    tone: "text-primary",
+  },
   interrupted: { Icon: OctagonX, spin: false, tone: "text-destructive" },
   refused: { Icon: Ban, spin: false, tone: "text-destructive" },
-  truncated: { Icon: Scissors, spin: false, tone: "text-(--status-agent-paused)" },
+  truncated: {
+    Icon: Scissors,
+    spin: false,
+    tone: "text-(--status-agent-paused)",
+  },
 } as const;
 
 interface TaskChatStatusPillProps {
@@ -312,9 +346,10 @@ export function TaskChatStatusPill({
     // text renders on the row above — swap for a deterministic whimsical
     // gerund (seeded by the run-scoped item id, rotating ~10s via the live
     // tick).
-    const label = streamingInterstitial || isGenericStatusLabel(item.label)
-      ? whimsyWord(item.id, liveElapsedMs ?? item.elapsedMs ?? 0)
-      : item.label;
+    const label =
+      streamingInterstitial || isGenericStatusLabel(item.label)
+        ? whimsyWord(item.id, liveElapsedMs ?? item.elapsedMs ?? 0)
+        : item.label;
     const statusLine = (
       <div className="tc-enter-status flex items-center gap-2 py-0.5 text-xs text-muted-foreground">
         {chevronOpen !== undefined ? (
@@ -323,7 +358,10 @@ export function TaskChatStatusPill({
             data-testid="task-chat-status-caret-slot"
           >
             <ChevronRight
-              className={cn("h-3 w-3 transition-transform", chevronOpen ? "rotate-90" : null)}
+              className={cn(
+                "h-3 w-3 transition-transform",
+                chevronOpen ? "rotate-90" : null,
+              )}
               aria-hidden
             />
           </span>
@@ -339,7 +377,9 @@ export function TaskChatStatusPill({
             className="h-2 w-2 animate-pulse rounded-full bg-(--status-agent-running)"
           />
         </span>
-        {ToolIcon ? <ToolIcon className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
+        {ToolIcon ? (
+          <ToolIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        ) : null}
         {/* Text cells share a baseline row so the smaller mono readouts don't
             float above the label's baseline. */}
         <span className="flex min-w-0 flex-1 items-baseline gap-2">
@@ -352,11 +392,14 @@ export function TaskChatStatusPill({
             </span>
           ) : null}
           {item.detail ? (
-            <span className="min-w-0 truncate font-mono text-(length:--text-micro)">{item.detail}</span>
+            <span className="min-w-0 truncate font-mono text-(length:--text-micro)">
+              {item.detail}
+            </span>
           ) : null}
           {item.tokens ? (
             <span className="ml-auto shrink-0 font-mono text-(length:--text-micro)">
-              {item.tokens.used.toLocaleString()}/{item.tokens.size.toLocaleString()} ctx
+              {item.tokens.used.toLocaleString()}/
+              {item.tokens.size.toLocaleString()} ctx
             </span>
           ) : null}
         </span>
@@ -412,22 +455,29 @@ export function TaskChatStatusPill({
     <div
       className={cn(
         "tc-enter-status flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm",
-        awaiting ? "tc-approval border-primary/40 bg-primary/5" : "border-border bg-muted/40",
+        awaiting
+          ? "tc-approval border-primary/40 bg-primary/5"
+          : "border-border bg-muted/40",
       )}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <Icon className={cn("h-4 w-4 shrink-0", tone, spin && "animate-spin")} />
+        <Icon
+          className={cn("h-4 w-4 shrink-0", tone, spin && "animate-spin")}
+        />
         <span className="min-w-0 truncate font-medium">{item.label}</span>
         <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
           {elapsed ? <span>{elapsed}</span> : null}
           {item.tokens ? (
             <span>
-              {item.tokens.used.toLocaleString()}/{item.tokens.size.toLocaleString()} ctx
+              {item.tokens.used.toLocaleString()}/
+              {item.tokens.size.toLocaleString()} ctx
             </span>
           ) : null}
         </span>
       </div>
-      {item.detail ? <p className="text-xs text-muted-foreground">{item.detail}</p> : null}
+      {item.detail ? (
+        <p className="text-xs text-muted-foreground">{item.detail}</p>
+      ) : null}
       {awaiting && item.approval ? (
         <div className="flex flex-wrap justify-end gap-2 pt-1">
           {item.approval.options.map((opt) => {

@@ -2,7 +2,11 @@ import type { Request, RequestHandler } from "express";
 
 function isLoopbackHostname(hostname: string): boolean {
   const normalized = hostname.trim().toLowerCase();
-  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
+  return (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1"
+  );
 }
 
 function extractHostname(req: Request): string | null {
@@ -28,7 +32,10 @@ function normalizeAllowedHostnames(values: string[]): string[] {
   return Array.from(unique);
 }
 
-export function resolvePrivateHostnameAllowSet(opts: { allowedHostnames: string[]; bindHost: string }): Set<string> {
+export function resolvePrivateHostnameAllowSet(opts: {
+  allowedHostnames: string[];
+  bindHost: string;
+}): Set<string> {
   const configuredAllow = normalizeAllowedHostnames(opts.allowedHostnames);
   const bindHost = opts.bindHost.trim().toLowerCase();
   const allowSet = new Set<string>(configuredAllow);
@@ -69,10 +76,13 @@ export function privateHostnameGuard(opts: {
 
   return (req, res, next) => {
     const hostname = extractHostname(req);
-    const wantsJson = req.path.startsWith("/api") || req.accepts(["json", "html", "text"]) === "json";
+    const wantsJson =
+      req.path.startsWith("/api") ||
+      req.accepts(["json", "html", "text"]) === "json";
 
     if (!hostname) {
-      const error = "Missing Host header. If you want to allow a hostname, run npx taskcore allowed-hostname <host>.";
+      const error =
+        "Missing Host header. If you want to allow a hostname, run npx taskcore allowed-hostname <host>.";
       if (wantsJson) {
         res.status(403).json({ error });
       } else {

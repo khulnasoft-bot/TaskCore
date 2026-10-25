@@ -13,7 +13,8 @@ const routineActivityMock = vi.hoisted(() => vi.fn());
 vi.mock("@/api/routines", () => ({
   routinesApi: {
     get: (routineId: string) => getRoutineMock(routineId),
-    listRuns: (routineId: string, limit?: number) => listRoutineRunsMock(routineId, limit),
+    listRuns: (routineId: string, limit?: number) =>
+      listRoutineRunsMock(routineId, limit),
     activity: (
       companyId: string,
       routineId: string,
@@ -38,7 +39,9 @@ describe("RoutineAuditActivity", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    getRoutineMock.mockResolvedValue({ triggers: [{ id: "trigger-1" }, { id: "trigger-2" }] });
+    getRoutineMock.mockResolvedValue({
+      triggers: [{ id: "trigger-1" }, { id: "trigger-2" }],
+    });
     listRoutineRunsMock.mockResolvedValue([{ id: "run-1" }, { id: "run-2" }]);
     routineActivityMock.mockResolvedValue([
       {
@@ -57,7 +60,9 @@ describe("RoutineAuditActivity", () => {
   });
 
   it("loads activity through the routine endpoint with its trigger and run scope", async () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     flushSync(() => {
       root.render(

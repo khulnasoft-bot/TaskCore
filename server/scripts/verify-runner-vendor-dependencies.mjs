@@ -54,10 +54,15 @@ const NODE_BUILTINS = new Set([
 /** The npm package name a bare import specifier resolves to, honoring scoped packages and subpaths. */
 function packageNameFromSpecifier(specifier) {
   const segments = specifier.split("/");
-  return specifier.startsWith("@") ? segments.slice(0, 2).join("/") : segments[0];
+  return specifier.startsWith("@")
+    ? segments.slice(0, 2).join("/")
+    : segments[0];
 }
 
-export function findMissingVendorDependencies(importedPackageNames, declaredDependencyNames) {
+export function findMissingVendorDependencies(
+  importedPackageNames,
+  declaredDependencyNames,
+) {
   return [...importedPackageNames]
     .filter((name) => !declaredDependencyNames.has(name))
     .sort();
@@ -93,7 +98,8 @@ export async function findRunnerExternalPackages(entryPoints) {
   for (const output of Object.values(result.metafile.outputs)) {
     for (const imported of output.imports) {
       if (!imported.external) continue;
-      if (imported.path.startsWith(".") || NODE_BUILTINS.has(imported.path)) continue;
+      if (imported.path.startsWith(".") || NODE_BUILTINS.has(imported.path))
+        continue;
       externalPackageNames.add(packageNameFromSpecifier(imported.path));
     }
   }
@@ -124,21 +130,28 @@ function explainMissingDependencies(missing, runnerDependencyNames) {
 }
 
 async function main() {
-  const entryPoints = ENTRY_POINT_NAMES.map((name) => resolve(runnerDist, name));
+  const entryPoints = ENTRY_POINT_NAMES.map((name) =>
+    resolve(runnerDist, name),
+  );
   const externalPackageNames = await findRunnerExternalPackages(entryPoints);
-  const serverDependencyNames = readDependencyNames(resolve(serverRoot, "package.json"));
+  const serverDependencyNames = readDependencyNames(
+    resolve(serverRoot, "package.json"),
+  );
 
   const missing = findMissingVendorDependencies(
     externalPackageNames,
     new Set(serverDependencyNames.keys()),
   );
   if (missing.length > 0) {
-    const runnerDependencyNames = readDependencyNames(resolve(runnerRoot, "package.json"));
+    const runnerDependencyNames = readDependencyNames(
+      resolve(runnerRoot, "package.json"),
+    );
     throw new Error(explainMissingDependencies(missing, runnerDependencyNames));
   }
 }
 
 // Only run when invoked directly (`node scripts/verify-runner-vendor-dependencies.mjs`),
 // not when the vitest suite imports findMissingVendorDependencies for a unit test.
-const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMain =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) await main();

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { explicitlyRequestsFileOutput, explicitlyRequestsTaskDocumentOutput } from "./native-deliverable-feedback.js";
+import {
+  explicitlyRequestsFileOutput,
+  explicitlyRequestsTaskDocumentOutput,
+} from "./native-deliverable-feedback.js";
 
 describe("explicit file output requirements", () => {
   it.each([
@@ -12,7 +15,7 @@ describe("explicit file output requirements", () => {
     "Make a file but do not send it to anyone else.",
     "Export a summary of this PDF as CSV.",
     "Create no temporary files; export the results as CSV.",
-  ])("recognizes an explicit output request: %s", objective => {
+  ])("recognizes an explicit output request: %s", (objective) => {
     expect(explicitlyRequestsFileOutput(objective)).toBe(true);
   });
   it.each([
@@ -31,11 +34,13 @@ describe("explicit file output requirements", () => {
     "Create no files.",
     "Generate no attachments and answer in chat.",
     "Write a reply without any files.",
-  ])("does not require a file for a text or source-review request: %s", objective => {
-    expect(explicitlyRequestsFileOutput(objective)).toBe(false);
-  });
+  ])(
+    "does not require a file for a text or source-review request: %s",
+    (objective) => {
+      expect(explicitlyRequestsFileOutput(objective)).toBe(false);
+    },
+  );
 });
-
 
 describe("explicit task-document output", () => {
   it.each([
@@ -45,7 +50,7 @@ describe("explicit task-document output", () => {
     "Do not call HubSpot, but create a document on this task.",
     "You may skip HubSpot, but create a document on this task.",
     "Explain the lookup error, but save a document on this task.",
-  ])("requires a published task document: %s", objective => {
+  ])("requires a published task document: %s", (objective) => {
     expect(explicitlyRequestsTaskDocumentOutput(objective)).toBe(true);
   });
   it.each([
@@ -70,7 +75,7 @@ describe("explicit task-document output", () => {
     "You may optionally create a document on this task.",
     "Create a document on this task only if useful; otherwise answer inline.",
     "Connect HubSpot so you can read my recent contacts. If the contacts are unavailable, a brief explanation is enough instead of the contact list.",
-  ])("preserves other output scopes: %s", objective => {
+  ])("preserves other output scopes: %s", (objective) => {
     expect(explicitlyRequestsTaskDocumentOutput(objective)).toBe(false);
   });
 });

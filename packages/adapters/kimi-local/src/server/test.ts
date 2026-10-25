@@ -22,11 +22,16 @@ import {
   resolveAdapterExecutionTargetCwd,
 } from "@taskcore/adapter-utils/execution-target";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
-import { resolveKimiExecutionEngineForRun, testKimiAcpEnvironment } from "./acp.js";
+import {
+  resolveKimiExecutionEngineForRun,
+  testKimiAcpEnvironment,
+} from "./acp.js";
 import { detectKimiAuthRequired, parseKimiJsonl } from "./parse.js";
 import { firstNonEmptyLine } from "./utils.js";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -38,11 +43,22 @@ function isNonEmpty(value: unknown): value is string {
 
 function commandLooksLike(command: string, expected: string): boolean {
   const base = path.basename(command).toLowerCase();
-  return base === expected || base === `${expected}.cmd` || base === `${expected}.exe`;
+  return (
+    base === expected ||
+    base === `${expected}.cmd` ||
+    base === `${expected}.exe`
+  );
 }
 
-function summarizeProbeDetail(stdout: string, stderr: string, parsedError: string | null): string | null {
-  const raw = parsedError?.trim() || firstNonEmptyLine(stderr) || firstNonEmptyLine(stdout);
+function summarizeProbeDetail(
+  stdout: string,
+  stderr: string,
+  parsedError: string | null,
+): string | null {
+  const raw =
+    parsedError?.trim() ||
+    firstNonEmptyLine(stderr) ||
+    firstNonEmptyLine(stdout);
   if (!raw) return null;
   const clean = raw.replace(/\s+/g, " ").trim();
   const max = 240;
@@ -50,7 +66,10 @@ function summarizeProbeDetail(stdout: string, stderr: string, parsedError: strin
 }
 
 async function pathExists(candidate: string): Promise<boolean> {
-  return fs.access(candidate).then(() => true).catch(() => false);
+  return fs
+    .access(candidate)
+    .then(() => true)
+    .catch(() => false);
 }
 
 /**
@@ -65,7 +84,9 @@ const PROVIDER_API_KEY_RE = /^\s*api_key\s*=\s*"[^"]+"/m;
 async function configTomlHasProviderKey(configPath: string): Promise<boolean> {
   try {
     const contents = await fs.readFile(configPath, "utf8");
-    return PROVIDERS_TABLE_RE.test(contents) && PROVIDER_API_KEY_RE.test(contents);
+    return (
+      PROVIDERS_TABLE_RE.test(contents) && PROVIDER_API_KEY_RE.test(contents)
+    );
   } catch {
     return false;
   }
@@ -77,18 +98,26 @@ async function configTomlHasProviderKey(configPath: string): Promise<boolean> {
  * provider, plus the KIMI_MODEL_NAME + KIMI_MODEL_API_KEY env pair (config
  * env or server env).
  */
-async function detectLocalKimiAuth(env: Record<string, string>): Promise<string | null> {
+async function detectLocalKimiAuth(
+  env: Record<string, string>,
+): Promise<string | null> {
   if (
-    (isNonEmpty(env.KIMI_MODEL_NAME) || isNonEmpty(process.env.KIMI_MODEL_NAME)) &&
-    (isNonEmpty(env.KIMI_MODEL_API_KEY) || isNonEmpty(process.env.KIMI_MODEL_API_KEY))
+    (isNonEmpty(env.KIMI_MODEL_NAME) ||
+      isNonEmpty(process.env.KIMI_MODEL_NAME)) &&
+    (isNonEmpty(env.KIMI_MODEL_API_KEY) ||
+      isNonEmpty(process.env.KIMI_MODEL_API_KEY))
   ) {
     return "KIMI_MODEL_NAME + KIMI_MODEL_API_KEY environment";
   }
   const kimiCodeHome =
     (isNonEmpty(env.KIMI_CODE_HOME) && env.KIMI_CODE_HOME.trim()) ||
-    (isNonEmpty(process.env.KIMI_CODE_HOME) && process.env.KIMI_CODE_HOME.trim()) ||
+    (isNonEmpty(process.env.KIMI_CODE_HOME) &&
+      process.env.KIMI_CODE_HOME.trim()) ||
     path.join(os.homedir(), ".kimi-code");
-  for (const candidate of [path.join(kimiCodeHome, "credentials"), path.join(kimiCodeHome, "oauth")]) {
+  for (const candidate of [
+    path.join(kimiCodeHome, "credentials"),
+    path.join(kimiCodeHome, "oauth"),
+  ]) {
     if (await pathExists(candidate)) {
       return `${candidate} (kimi login OAuth)`;
     }
@@ -111,11 +140,13 @@ export async function testEnvironment(
     return {
       adapterType: "kimi_local",
       status: "fail",
-      checks: [{
-        code: "adapter_engine_unavailable",
-        level: "error",
-        message: engineSelection.unavailableReason,
-      }],
+      checks: [
+        {
+          code: "adapter_engine_unavailable",
+          level: "error",
+          message: engineSelection.unavailableReason,
+        },
+      ],
       testedAt: new Date().toISOString(),
     };
   }
@@ -128,9 +159,13 @@ export async function testEnvironment(
   const command = asString(config.command, "kimi");
   const target = ctx.executionTarget ?? null;
   const targetIsRemote = target?.kind === "remote";
-  const cwd = resolveAdapterExecutionTargetCwd(target, asString(config.cwd, ""), process.cwd());
+  const cwd = resolveAdapterExecutionTargetCwd(
+    target,
+    asString(config.cwd, ""),
+    process.cwd(),
+  );
   const targetLabel = targetIsRemote
-    ? ctx.environmentName ?? describeAdapterExecutionTarget(target)
+    ? (ctx.environmentName ?? describeAdapterExecutionTarget(target))
     : null;
   const runId = `kimi-envtest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -178,7 +213,12 @@ export async function testEnvironment(
   });
   if (installCheck) checks.push(installCheck);
   try {
-    await ensureAdapterExecutionTargetCommandResolvable(command, target, cwd, runtimeEnv);
+    await ensureAdapterExecutionTargetCommandResolvable(
+      command,
+      target,
+      cwd,
+      runtimeEnv,
+    );
     checks.push({
       code: "kimi_command_resolvable",
       level: "info",
@@ -193,8 +233,11 @@ export async function testEnvironment(
     });
   }
 
-  const canRunProbe =
-    checks.every((check) => check.code !== "kimi_cwd_invalid" && check.code !== "kimi_command_unresolvable");
+  const canRunProbe = checks.every(
+    (check) =>
+      check.code !== "kimi_cwd_invalid" &&
+      check.code !== "kimi_command_unresolvable",
+  );
 
   if (canRunProbe && commandLooksLike(command, "kimi")) {
     const versionProbe = await runAdapterExecutionTargetProcess(
@@ -210,7 +253,9 @@ export async function testEnvironment(
         onLog: async () => {},
       },
     );
-    const versionLine = firstNonEmptyLine(versionProbe.stdout) || firstNonEmptyLine(versionProbe.stderr);
+    const versionLine =
+      firstNonEmptyLine(versionProbe.stdout) ||
+      firstNonEmptyLine(versionProbe.stderr);
     if (!versionProbe.timedOut && (versionProbe.exitCode ?? 1) === 0) {
       checks.push({
         code: "kimi_version_detected",
@@ -230,9 +275,9 @@ export async function testEnvironment(
   }
 
   const authSource = targetIsRemote
-    ? ((isNonEmpty(env.KIMI_MODEL_NAME) && isNonEmpty(env.KIMI_MODEL_API_KEY))
+    ? isNonEmpty(env.KIMI_MODEL_NAME) && isNonEmpty(env.KIMI_MODEL_API_KEY)
       ? "KIMI_MODEL_NAME + KIMI_MODEL_API_KEY adapter env"
-      : null)
+      : null
     : await detectLocalKimiAuth(env);
   if (authSource) {
     checks.push({
@@ -261,7 +306,10 @@ export async function testEnvironment(
       });
     } else {
       const model = asString(config.model, "").trim();
-      const helloProbeTimeoutSec = Math.max(1, asNumber(config.helloProbeTimeoutSec, 60));
+      const helloProbeTimeoutSec = Math.max(
+        1,
+        asNumber(config.helloProbeTimeoutSec, 60),
+      );
       const extraArgs = (() => {
         const fromExtraArgs = asStringArray(config.extraArgs);
         if (fromExtraArgs.length > 0) return fromExtraArgs;
@@ -287,7 +335,11 @@ export async function testEnvironment(
         },
       );
       const parsed = parseKimiJsonl(probe.stdout);
-      const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage);
+      const detail = summarizeProbeDetail(
+        probe.stdout,
+        probe.stderr,
+        parsed.errorMessage,
+      );
       const authMeta = detectKimiAuthRequired({
         stdout: probe.stdout,
         stderr: probe.stderr,
@@ -298,23 +350,27 @@ export async function testEnvironment(
           code: "kimi_hello_probe_timed_out",
           level: "warn",
           message: "Kimi hello probe timed out.",
-          hint: "Retry the probe. If this persists, verify Kimi can run `kimi -p \"Respond with hello.\"` from this directory manually.",
+          hint: 'Retry the probe. If this persists, verify Kimi can run `kimi -p "Respond with hello."` from this directory manually.',
         });
       } else if ((probe.exitCode ?? 1) === 0) {
         const summary = parsed.summary.trim();
         const hasHello = /\bhello\b/i.test(summary);
         checks.push({
-          code: hasHello ? "kimi_hello_probe_passed" : "kimi_hello_probe_unexpected_output",
+          code: hasHello
+            ? "kimi_hello_probe_passed"
+            : "kimi_hello_probe_unexpected_output",
           level: hasHello ? "info" : "warn",
           message: hasHello
             ? "Kimi hello probe succeeded."
             : "Kimi probe ran but did not return `hello` as expected.",
-          ...(summary ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) } : {}),
+          ...(summary
+            ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) }
+            : {}),
           ...(hasHello
             ? {}
             : {
-              hint: "Try `kimi -p \"Respond with hello.\" --output-format stream-json` manually to inspect full output.",
-            }),
+                hint: 'Try `kimi -p "Respond with hello." --output-format stream-json` manually to inspect full output.',
+              }),
         });
       } else if (authMeta.requiresAuth) {
         checks.push({
@@ -330,7 +386,7 @@ export async function testEnvironment(
           level: "error",
           message: "Kimi hello probe failed.",
           ...(detail ? { detail } : {}),
-          hint: "Run `kimi -p \"Respond with hello.\" --output-format stream-json` manually in this working directory to debug.",
+          hint: 'Run `kimi -p "Respond with hello." --output-format stream-json` manually in this working directory to debug.',
         });
       }
     }

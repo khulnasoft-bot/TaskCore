@@ -57,74 +57,106 @@ describe("decision validators", () => {
   });
 
   it("rejects malformed and unknown effects", () => {
-    expect(() => decisionEffectSchema.parse({
-      type: "comment_on_issue",
-      targetIssueId,
-      staleness: "strict",
-    })).toThrow();
-    expect(() => decisionEffectSchema.parse({
-      type: "delete_company",
-      targetIssueId,
-      staleness: "strict",
-    })).toThrow();
-    expect(() => decisionEffectSchema.parse({
-      type: "assign_issue",
-      targetIssueId,
-      staleness: "strict",
-    })).toThrow();
+    expect(() =>
+      decisionEffectSchema.parse({
+        type: "comment_on_issue",
+        targetIssueId,
+        staleness: "strict",
+      }),
+    ).toThrow();
+    expect(() =>
+      decisionEffectSchema.parse({
+        type: "delete_company",
+        targetIssueId,
+        staleness: "strict",
+      }),
+    ).toThrow();
+    expect(() =>
+      decisionEffectSchema.parse({
+        type: "assign_issue",
+        targetIssueId,
+        staleness: "strict",
+      }),
+    ).toThrow();
   });
 
   it("forces cancel-tree effects to be strict and destructive", () => {
-    expect(() => decisionEffectSchema.parse({
-      type: "cancel_issue_tree",
-      targetIssueId,
-      staleness: "lenient",
-      reasonComment: "No longer needed",
-    })).toThrow();
-
-    expect(() => decisionOptionSchema.parse({
-      id: "cancel",
-      label: "Cancel tree",
-      effects: [{
+    expect(() =>
+      decisionEffectSchema.parse({
         type: "cancel_issue_tree",
         targetIssueId,
-        staleness: "strict",
+        staleness: "lenient",
         reasonComment: "No longer needed",
-      }],
-    })).toThrow();
+      }),
+    ).toThrow();
 
-    expect(decisionOptionSchema.parse({
-      id: "cancel",
-      label: "Cancel tree",
-      style: "destructive",
-      effects: [{
-        type: "cancel_issue_tree",
-        targetIssueId,
-        staleness: "strict",
-        reasonComment: "No longer needed",
-      }],
-    }).style).toBe("destructive");
+    expect(() =>
+      decisionOptionSchema.parse({
+        id: "cancel",
+        label: "Cancel tree",
+        effects: [
+          {
+            type: "cancel_issue_tree",
+            targetIssueId,
+            staleness: "strict",
+            reasonComment: "No longer needed",
+          },
+        ],
+      }),
+    ).toThrow();
+
+    expect(
+      decisionOptionSchema.parse({
+        id: "cancel",
+        label: "Cancel tree",
+        style: "destructive",
+        effects: [
+          {
+            type: "cancel_issue_tree",
+            targetIssueId,
+            staleness: "strict",
+            reasonComment: "No longer needed",
+          },
+        ],
+      }).style,
+    ).toBe("destructive");
   });
 
   it("enforces option, input, and effect limits", () => {
     const dismissOption = { id: "dismiss", label: "Dismiss", effects: [] };
-    expect(decisionOptionsSchema.parse(Array.from({ length: 8 }, (_, index) => ({
-      ...dismissOption,
-      id: `option-${index}`,
-    })))).toHaveLength(8);
-    expect(() => decisionOptionsSchema.parse(Array.from({ length: 9 }, (_, index) => ({
-      ...dismissOption,
-      id: `option-${index}`,
-    })))).toThrow();
+    expect(
+      decisionOptionsSchema.parse(
+        Array.from({ length: 8 }, (_, index) => ({
+          ...dismissOption,
+          id: `option-${index}`,
+        })),
+      ),
+    ).toHaveLength(8);
+    expect(() =>
+      decisionOptionsSchema.parse(
+        Array.from({ length: 9 }, (_, index) => ({
+          ...dismissOption,
+          id: `option-${index}`,
+        })),
+      ),
+    ).toThrow();
 
-    expect(decisionInputsSchema.parse(Array.from({ length: 4 }, (_, index) => ({
-      id: `input-${index}`,
-      label: `Input ${index}`,
-    })))).toHaveLength(4);
-    expect(() => decisionInputsSchema.parse(Array.from({ length: 5 }, (_, index) => ({
-      id: `input-${index}`,
-      label: `Input ${index}`,
-    })))).toThrow();
+    expect(
+      decisionInputsSchema.parse(
+        Array.from({ length: 4 }, (_, index) => ({
+          id: `input-${index}`,
+          label: `Input ${index}`,
+        })),
+      ),
+    ).toHaveLength(4);
+    expect(() =>
+      decisionInputsSchema.parse(
+        Array.from({ length: 5 }, (_, index) => ({
+          id: `input-${index}`,
+          label: `Input ${index}`,
+        })),
+      ),
+    ).toThrow();
 
     const commentEffect = {
       type: "comment_on_issue",
@@ -132,26 +164,34 @@ describe("decision validators", () => {
       staleness: "strict",
       bodyMarkdown: "Comment",
     };
-    expect(decisionOptionSchema.parse({
-      id: "approve",
-      label: "Approve",
-      effects: Array.from({ length: 10 }, () => commentEffect),
-    }).effects).toHaveLength(10);
-    expect(() => decisionOptionSchema.parse({
-      id: "approve",
-      label: "Approve",
-      effects: Array.from({ length: 11 }, () => commentEffect),
-    })).toThrow();
+    expect(
+      decisionOptionSchema.parse({
+        id: "approve",
+        label: "Approve",
+        effects: Array.from({ length: 10 }, () => commentEffect),
+      }).effects,
+    ).toHaveLength(10);
+    expect(() =>
+      decisionOptionSchema.parse({
+        id: "approve",
+        label: "Approve",
+        effects: Array.from({ length: 11 }, () => commentEffect),
+      }),
+    ).toThrow();
   });
 
   it("rejects duplicate option and input ids", () => {
-    expect(() => decisionOptionsSchema.parse([
-      { id: "same", label: "One", effects: [] },
-      { id: "same", label: "Two", effects: [] },
-    ])).toThrow();
-    expect(() => decisionInputsSchema.parse([
-      { id: "same", label: "One" },
-      { id: "same", label: "Two" },
-    ])).toThrow();
+    expect(() =>
+      decisionOptionsSchema.parse([
+        { id: "same", label: "One", effects: [] },
+        { id: "same", label: "Two", effects: [] },
+      ]),
+    ).toThrow();
+    expect(() =>
+      decisionInputsSchema.parse([
+        { id: "same", label: "One" },
+        { id: "same", label: "Two" },
+      ]),
+    ).toThrow();
   });
 });

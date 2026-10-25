@@ -66,7 +66,10 @@ function makeRealExec(): { exec: PodStreamExec; calls: RecordedCall[] } {
 // sink without running any shell — used to drive the outbound disk-guard trip
 // with a pod-authored payload larger than the host allows. Rejects if the sink
 // errors (the guard fired). Records calls so a test can assert the exec ran.
-function makeOutputExec(totalBytes: number): { exec: PodStreamExec; calls: RecordedCall[] } {
+function makeOutputExec(totalBytes: number): {
+  exec: PodStreamExec;
+  calls: RecordedCall[];
+} {
   const calls: RecordedCall[] = [];
   const exec: PodStreamExec = async (command, io) => {
     calls.push({ command, script: command[2] ?? "" });
@@ -92,25 +95,37 @@ async function makeTmp(prefix: string): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(tmpDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    tmpDirs
+      .splice(0)
+      .map((dir) => fs.rm(dir, { recursive: true, force: true })),
+  );
 });
 
 describe("kubernetes file-sync path confinement", () => {
   it("rejects a target path that escapes the workspace remote dir", () => {
-    expect(() => assertConfinedSandboxPath("/workspace", "/workspace/../etc/passwd", "target")).toThrow(
-      /escapes|not a confined/,
-    );
-    expect(() => assertConfinedSandboxPath("/workspace", "/etc/passwd", "target")).toThrow(
-      /escapes|not a confined/,
-    );
-    expect(() => assertConfinedSandboxPath("/workspace", "relative/path", "target")).toThrow(
-      /not a confined/,
-    );
+    expect(() =>
+      assertConfinedSandboxPath(
+        "/workspace",
+        "/workspace/../etc/passwd",
+        "target",
+      ),
+    ).toThrow(/escapes|not a confined/);
+    expect(() =>
+      assertConfinedSandboxPath("/workspace", "/etc/passwd", "target"),
+    ).toThrow(/escapes|not a confined/);
+    expect(() =>
+      assertConfinedSandboxPath("/workspace", "relative/path", "target"),
+    ).toThrow(/not a confined/);
   });
 
   it("accepts a target path inside the remote dir", () => {
-    expect(() => assertConfinedSandboxPath("/workspace", "/workspace/a/b.txt", "target")).not.toThrow();
-    expect(() => assertConfinedSandboxPath("/workspace", "/workspace", "target")).not.toThrow();
+    expect(() =>
+      assertConfinedSandboxPath("/workspace", "/workspace/a/b.txt", "target"),
+    ).not.toThrow();
+    expect(() =>
+      assertConfinedSandboxPath("/workspace", "/workspace", "target"),
+    ).not.toThrow();
   });
 });
 
@@ -121,7 +136,7 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
     const plainSrc = path.join(host, "plain.txt");
     const secretSrc = path.join(host, "auth.json");
     await fs.writeFile(plainSrc, "hello world");
-    await fs.writeFile(secretSrc, "{\"token\":\"s3cr3t\"}");
+    await fs.writeFile(secretSrc, '{"token":"s3cr3t"}');
 
     const { exec, calls } = makeRealExec();
     const result = await performSyncIn({
@@ -132,7 +147,11 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
         {
           operationId: "op-alpha",
           files: [
-            { sourcePath: plainSrc, targetPath: path.join(remoteDir, "plain.txt"), kind: "file" },
+            {
+              sourcePath: plainSrc,
+              targetPath: path.join(remoteDir, "plain.txt"),
+              kind: "file",
+            },
             {
               sourcePath: secretSrc,
               targetPath: path.join(remoteDir, "nested/auth.json"),
@@ -153,18 +172,28 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
     // Streaming transport: no base64 round-trip anywhere in the script.
     expect(calls[0].script).not.toContain("base64");
     // Files landed with correct contents.
-    expect(await fs.readFile(path.join(remoteDir, "plain.txt"), "utf-8")).toBe("hello world");
-    expect(await fs.readFile(path.join(remoteDir, "nested/auth.json"), "utf-8")).toBe(
-      "{\"token\":\"s3cr3t\"}",
+    expect(await fs.readFile(path.join(remoteDir, "plain.txt"), "utf-8")).toBe(
+      "hello world",
     );
+    expect(
+      await fs.readFile(path.join(remoteDir, "nested/auth.json"), "utf-8"),
+    ).toBe('{"token":"s3cr3t"}');
     // Secret landed 0600.
-    expect((await fs.stat(path.join(remoteDir, "nested/auth.json"))).mode & 0o777).toBe(0o600);
+    expect(
+      (await fs.stat(path.join(remoteDir, "nested/auth.json"))).mode & 0o777,
+    ).toBe(0o600);
     // No leftover reserved scratch dir in the workspace root.
-    const leftovers = (await fs.readdir(remoteDir)).filter((e) => e.startsWith(".taskcore-upload"));
+    const leftovers = (await fs.readdir(remoteDir)).filter((e) =>
+      e.startsWith(".taskcore-upload"),
+    );
     expect(leftovers).toEqual([]);
     // Per-operation counts.
     expect(result.operations).toEqual([
-      { operationId: "op-alpha", filesTransferred: 2, bytesTransferred: expect.any(Number) },
+      {
+        operationId: "op-alpha",
+        filesTransferred: 2,
+        bytesTransferred: expect.any(Number),
+      },
     ]);
     expect(result.operations[0].bytesTransferred).toBeGreaterThan(0);
   });
@@ -200,10 +229,16 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
         ],
       });
       expect(calls).toHaveLength(1);
-      expect(await fs.readFile(path.join(remoteDir, "dst/keep.txt"), "utf-8")).toBe("keep");
-      expect(await fs.readFile(path.join(remoteDir, "dst/sub/data.bin"), "utf-8")).toBe("data");
+      expect(
+        await fs.readFile(path.join(remoteDir, "dst/keep.txt"), "utf-8"),
+      ).toBe("keep");
+      expect(
+        await fs.readFile(path.join(remoteDir, "dst/sub/data.bin"), "utf-8"),
+      ).toBe("data");
       // Exclude honored.
-      await expect(fs.stat(path.join(remoteDir, "dst/skip.log"))).rejects.toThrow();
+      await expect(
+        fs.stat(path.join(remoteDir, "dst/skip.log")),
+      ).rejects.toThrow();
     }
 
     // Dereference case: followSymlinks true → -h on the host tar-create.
@@ -211,7 +246,10 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
       const derefSrc = path.join(host, "deref");
       await fs.mkdir(derefSrc, { recursive: true });
       await fs.writeFile(path.join(derefSrc, "real.txt"), "realbytes");
-      await fs.symlink(path.join(derefSrc, "real.txt"), path.join(derefSrc, "link.txt"));
+      await fs.symlink(
+        path.join(derefSrc, "real.txt"),
+        path.join(derefSrc, "link.txt"),
+      );
       const derefTarget = await makeTmp("k8s-sandbox2-");
       const { exec } = makeRealExec();
       await performSyncIn({
@@ -235,7 +273,9 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
       const linkStat = await fs.lstat(path.join(derefTarget, "out/link.txt"));
       // Dereferenced: the link became a regular file carrying the bytes.
       expect(linkStat.isSymbolicLink()).toBe(false);
-      expect(await fs.readFile(path.join(derefTarget, "out/link.txt"), "utf-8")).toBe("realbytes");
+      expect(
+        await fs.readFile(path.join(derefTarget, "out/link.txt"), "utf-8"),
+      ).toBe("realbytes");
     }
   });
 
@@ -255,7 +295,13 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
       operations: [
         {
           operationId: "op",
-          files: [{ sourcePath: src, targetPath: path.join(remoteDir, "out"), kind: "directory" }],
+          files: [
+            {
+              sourcePath: src,
+              targetPath: path.join(remoteDir, "out"),
+              kind: "directory",
+            },
+          ],
         },
       ],
     });
@@ -277,7 +323,13 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
         operations: [
           {
             operationId: "op",
-            files: [{ sourcePath: src, targetPath: `${remoteDir}/../escape.txt`, kind: "file" }],
+            files: [
+              {
+                sourcePath: src,
+                targetPath: `${remoteDir}/../escape.txt`,
+                kind: "file",
+              },
+            ],
           },
         ],
       }),
@@ -307,7 +359,11 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
           {
             operationId: "op",
             files: [
-              { sourcePath: src, targetPath: path.join(remoteDir, "evil", "sub", "f.txt"), kind: "file" },
+              {
+                sourcePath: src,
+                targetPath: path.join(remoteDir, "evil", "sub", "f.txt"),
+                kind: "file",
+              },
             ],
           },
         ],
@@ -337,7 +393,11 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
           {
             operationId: "op",
             files: [
-              { sourcePath: srcDir, targetPath: path.join(remoteDir, "evil", "dst"), kind: "directory" },
+              {
+                sourcePath: srcDir,
+                targetPath: path.join(remoteDir, "evil", "dst"),
+                kind: "directory",
+              },
             ],
           },
         ],
@@ -366,7 +426,13 @@ describe("kubernetes onEnvironmentSyncIn (native single-exec transfer)", () => {
       operations: [
         {
           operationId: "op",
-          files: [{ sourcePath: src, targetPath: path.join(remoteDir, "big.bin"), kind: "file" }],
+          files: [
+            {
+              sourcePath: src,
+              targetPath: path.join(remoteDir, "big.bin"),
+              kind: "file",
+            },
+          ],
         },
       ],
     });
@@ -399,7 +465,11 @@ describe("kubernetes onEnvironmentSyncOut (native single-exec transfer)", () => 
         {
           operationId: "op-out",
           files: [
-            { sourcePath: path.join(remoteDir, "result.txt"), targetPath: plainTarget, kind: "file" },
+            {
+              sourcePath: path.join(remoteDir, "result.txt"),
+              targetPath: plainTarget,
+              kind: "file",
+            },
             {
               sourcePath: path.join(remoteDir, "secret.key"),
               targetPath: secretTarget,
@@ -416,10 +486,16 @@ describe("kubernetes onEnvironmentSyncOut (native single-exec transfer)", () => 
     expect(await fs.readFile(secretTarget, "utf-8")).toBe("PRIVATE");
     expect((await fs.stat(secretTarget)).mode & 0o777).toBe(0o600);
     expect(result.operations).toEqual([
-      { operationId: "op-out", filesTransferred: 2, bytesTransferred: expect.any(Number) },
+      {
+        operationId: "op-out",
+        filesTransferred: 2,
+        bytesTransferred: expect.any(Number),
+      },
     ]);
     // Reserved snapshot scratch cleaned up from the workspace root.
-    const leftovers = (await fs.readdir(remoteDir)).filter((e) => e.startsWith(".taskcore-upload"));
+    const leftovers = (await fs.readdir(remoteDir)).filter((e) =>
+      e.startsWith(".taskcore-upload"),
+    );
     expect(leftovers).toEqual([]);
   });
 
@@ -441,14 +517,20 @@ describe("kubernetes onEnvironmentSyncOut (native single-exec transfer)", () => 
       operations: [
         {
           operationId: "op-dir-out",
-          files: [{ sourcePath: srcDir, targetPath: target, kind: "directory" }],
+          files: [
+            { sourcePath: srcDir, targetPath: target, kind: "directory" },
+          ],
         },
       ],
     });
     expect(calls).toHaveLength(1);
     expect(await fs.readFile(path.join(target, "a.txt"), "utf-8")).toBe("aaa");
-    expect(await fs.readFile(path.join(target, "sub/b.txt"), "utf-8")).toBe("bbb");
-    expect((await fs.lstat(path.join(target, "link.txt"))).isSymbolicLink()).toBe(true);
+    expect(await fs.readFile(path.join(target, "sub/b.txt"), "utf-8")).toBe(
+      "bbb",
+    );
+    expect(
+      (await fs.lstat(path.join(target, "link.txt"))).isSymbolicLink(),
+    ).toBe(true);
     expect(result.operations[0].filesTransferred).toBeGreaterThanOrEqual(2);
   });
 
@@ -465,7 +547,11 @@ describe("kubernetes onEnvironmentSyncOut (native single-exec transfer)", () => 
           {
             operationId: "op",
             files: [
-              { sourcePath: "/etc/passwd", targetPath: path.join(hostOut, "leak"), kind: "file" },
+              {
+                sourcePath: "/etc/passwd",
+                targetPath: path.join(hostOut, "leak"),
+                kind: "file",
+              },
             ],
           },
         ],
@@ -489,7 +575,11 @@ describe("kubernetes onEnvironmentSyncOut (native single-exec transfer)", () => 
         {
           operationId: "op",
           files: [
-            { sourcePath: path.join(remoteDir, "result.txt"), targetPath: target, kind: "file" },
+            {
+              sourcePath: path.join(remoteDir, "result.txt"),
+              targetPath: target,
+              kind: "file",
+            },
           ],
         },
       ],
@@ -510,7 +600,10 @@ describe("kubernetes onEnvironmentSyncOut (native single-exec transfer)", () => 
     await fs.writeFile(path.join(outside, "secret"), "PRIVATE");
     // A symlink LEXICALLY inside the root that resolves to an out-of-root file —
     // only the in-pod realpath/FD guard can reject it.
-    await fs.symlink(path.join(outside, "secret"), path.join(remoteDir, "link"));
+    await fs.symlink(
+      path.join(outside, "secret"),
+      path.join(remoteDir, "link"),
+    );
     const target = path.join(hostOut, "leak");
 
     const { exec } = makeRealExec();
@@ -522,7 +615,13 @@ describe("kubernetes onEnvironmentSyncOut (native single-exec transfer)", () => 
         operations: [
           {
             operationId: "op",
-            files: [{ sourcePath: path.join(remoteDir, "link"), targetPath: target, kind: "file" }],
+            files: [
+              {
+                sourcePath: path.join(remoteDir, "link"),
+                targetPath: target,
+                kind: "file",
+              },
+            ],
           },
         ],
       }),
@@ -549,7 +648,11 @@ describe("kubernetes onEnvironmentSyncOut (native single-exec transfer)", () => 
           {
             operationId: "op",
             files: [
-              { sourcePath: path.join(remoteDir, "result.txt"), targetPath: target, kind: "file" },
+              {
+                sourcePath: path.join(remoteDir, "result.txt"),
+                targetPath: target,
+                kind: "file",
+              },
             ],
           },
         ],
@@ -585,7 +688,13 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
       operations: [
         {
           operationId: "op-cmd",
-          files: [{ sourcePath: src, targetPath: path.join(remoteDir, "config.txt"), kind: "file" }],
+          files: [
+            {
+              sourcePath: src,
+              targetPath: path.join(remoteDir, "config.txt"),
+              kind: "file",
+            },
+          ],
           // First command reads the just-uploaded file (proves upload-before-command);
           // second appends (proves array order). cwd absent → the remote dir.
           postUploadCommands: [
@@ -598,16 +707,26 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
 
     // Upload-before-commands AND order: out.txt is the first command's read of the
     // uploaded bytes, then the second command's append.
-    expect(await fs.readFile(path.join(remoteDir, "out.txt"), "utf-8")).toBe("helloDONE");
+    expect(await fs.readFile(path.join(remoteDir, "out.txt"), "utf-8")).toBe(
+      "helloDONE",
+    );
 
     // One exec for the transfer, then one exec per command (single-exec-per-command).
     expect(calls).toHaveLength(3);
     // C1/C3: each command rides as the FINAL positional argument, byte-for-byte
     // unmutated — the provider concatenated no shell fragment onto it.
-    const cmdCalls = calls.filter((c) => c.command.includes("cat config.txt > out.txt") || c.command.includes("printf DONE >> out.txt"));
+    const cmdCalls = calls.filter(
+      (c) =>
+        c.command.includes("cat config.txt > out.txt") ||
+        c.command.includes("printf DONE >> out.txt"),
+    );
     expect(cmdCalls).toHaveLength(2);
-    expect(cmdCalls[0].command[cmdCalls[0].command.length - 1]).toBe("cat config.txt > out.txt");
-    expect(cmdCalls[1].command[cmdCalls[1].command.length - 1]).toBe("printf DONE >> out.txt");
+    expect(cmdCalls[0].command[cmdCalls[0].command.length - 1]).toBe(
+      "cat config.txt > out.txt",
+    );
+    expect(cmdCalls[1].command[cmdCalls[1].command.length - 1]).toBe(
+      "printf DONE >> out.txt",
+    );
     // Absent cwd defaults to the remote dir (the penultimate positional arg), never
     // a process default cwd (C2).
     expect(cmdCalls[0].command[cmdCalls[0].command.length - 2]).toBe(remoteDir);
@@ -628,16 +747,22 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
       operations: [
         {
           operationId: "op-cwd",
-          files: [{ sourcePath: src, targetPath: path.join(subDir, "seed.txt"), kind: "file" }],
+          files: [
+            {
+              sourcePath: src,
+              targetPath: path.join(subDir, "seed.txt"),
+              kind: "file",
+            },
+          ],
           postUploadCommands: [{ command: "pwd -P > where.txt", cwd: subDir }],
         },
       ],
     });
     // The command ran with its cwd = subDir: `where.txt` lands there (relative
     // write), and its physical cwd (`pwd -P`) is the realpath of subDir.
-    expect((await fs.readFile(path.join(subDir, "where.txt"), "utf-8")).trim()).toBe(
-      await fs.realpath(subDir),
-    );
+    expect(
+      (await fs.readFile(path.join(subDir, "where.txt"), "utf-8")).trim(),
+    ).toBe(await fs.realpath(subDir));
   });
 
   it("aborts the operation fail-loud on a non-zero post-upload command exit, skipping the remainder (C4)", async () => {
@@ -655,7 +780,13 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
         operations: [
           {
             operationId: "op-fail",
-            files: [{ sourcePath: src, targetPath: path.join(remoteDir, "config.txt"), kind: "file" }],
+            files: [
+              {
+                sourcePath: src,
+                targetPath: path.join(remoteDir, "config.txt"),
+                kind: "file",
+              },
+            ],
             postUploadCommands: [
               { command: "exit 3" },
               { command: "touch should_not_exist.txt" },
@@ -665,7 +796,9 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
       }),
     ).rejects.toThrow(/post-upload command failed \(exit 3\)/);
     // Fail-fast: the command after the failing one never ran.
-    await expect(fs.stat(path.join(remoteDir, "should_not_exist.txt"))).rejects.toThrow();
+    await expect(
+      fs.stat(path.join(remoteDir, "should_not_exist.txt")),
+    ).rejects.toThrow();
   });
 
   it("rejects a post-upload command cwd that escapes the remote dir lexically, before any exec (C2)", async () => {
@@ -684,14 +817,22 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
           operations: [
             {
               operationId: "op-escape",
-              files: [{ sourcePath: src, targetPath: path.join(remoteDir, "config.txt"), kind: "file" }],
+              files: [
+                {
+                  sourcePath: src,
+                  targetPath: path.join(remoteDir, "config.txt"),
+                  kind: "file",
+                },
+              ],
               postUploadCommands: [{ command: "touch pwned.txt", cwd: badCwd }],
             },
           ],
         }),
       ).rejects.toThrow(/escapes|not a confined/);
       // Rejected before the command exec: only the transfer exec ran, no command.
-      expect(calls.some((c) => c.command.includes("touch pwned.txt"))).toBe(false);
+      expect(calls.some((c) => c.command.includes("touch pwned.txt"))).toBe(
+        false,
+      );
     }
   });
 
@@ -714,7 +855,13 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
         operations: [
           {
             operationId: "op-symlink",
-            files: [{ sourcePath: src, targetPath: path.join(remoteDir, "config.txt"), kind: "file" }],
+            files: [
+              {
+                sourcePath: src,
+                targetPath: path.join(remoteDir, "config.txt"),
+                kind: "file",
+              },
+            ],
             postUploadCommands: [{ command: "touch pwned.txt", cwd }],
           },
         ],
@@ -736,7 +883,16 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
       remoteDir,
       timeoutMs: 30_000,
       operations: [
-        { operationId: "op-plain", files: [{ sourcePath: src, targetPath: path.join(remoteDir, "config.txt"), kind: "file" }] },
+        {
+          operationId: "op-plain",
+          files: [
+            {
+              sourcePath: src,
+              targetPath: path.join(remoteDir, "config.txt"),
+              kind: "file",
+            },
+          ],
+        },
       ],
     });
 
@@ -748,7 +904,13 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
       operations: [
         {
           operationId: "op-plain",
-          files: [{ sourcePath: src, targetPath: path.join(remoteDir, "config.txt"), kind: "file" }],
+          files: [
+            {
+              sourcePath: src,
+              targetPath: path.join(remoteDir, "config.txt"),
+              kind: "file",
+            },
+          ],
           postUploadCommands: [],
         },
       ],
@@ -759,45 +921,76 @@ describe("kubernetes onEnvironmentSyncIn (post-upload commands)", () => {
   });
 });
 
-
 describe("parseTarVerboseListingLine", () => {
   it("parses GNU tar listing lines (file, dir, symlink, hardlink, numeric owner)", () => {
-    expect(parseTarVerboseListingLine("-rw-r--r-- daytona/daytona 7560 2026-08-11 21:43 AGENTS.md")).toEqual({
+    expect(
+      parseTarVerboseListingLine(
+        "-rw-r--r-- daytona/daytona 7560 2026-08-11 21:43 AGENTS.md",
+      ),
+    ).toEqual({
       typeFlag: "-",
       rest: "AGENTS.md",
     });
-    expect(parseTarVerboseListingLine("drwxr-xr-x daytona/daytona 0 2026-08-11 21:43 nested/")).toEqual({
+    expect(
+      parseTarVerboseListingLine(
+        "drwxr-xr-x daytona/daytona 0 2026-08-11 21:43 nested/",
+      ),
+    ).toEqual({
       typeFlag: "d",
       rest: "nested/",
     });
     expect(
-      parseTarVerboseListingLine("lrwxrwxrwx daytona/daytona 0 2026-08-11 21:43 shortcut -> nested/data.txt"),
+      parseTarVerboseListingLine(
+        "lrwxrwxrwx daytona/daytona 0 2026-08-11 21:43 shortcut -> nested/data.txt",
+      ),
     ).toEqual({ typeFlag: "l", rest: "shortcut -> nested/data.txt" });
     expect(
-      parseTarVerboseListingLine("hrw-r--r-- daytona/daytona 0 2026-08-11 21:43 copy.txt link to data.txt"),
+      parseTarVerboseListingLine(
+        "hrw-r--r-- daytona/daytona 0 2026-08-11 21:43 copy.txt link to data.txt",
+      ),
     ).toEqual({ typeFlag: "h", rest: "copy.txt link to data.txt" });
-    expect(parseTarVerboseListingLine("-rw-r--r-- 0/0 12 2026-08-11 21:43 root-owned.txt")).toEqual({
+    expect(
+      parseTarVerboseListingLine(
+        "-rw-r--r-- 0/0 12 2026-08-11 21:43 root-owned.txt",
+      ),
+    ).toEqual({
       typeFlag: "-",
       rest: "root-owned.txt",
     });
   });
 
   it("parses bsdtar (macOS) listing lines, including year-form dates", () => {
-    expect(parseTarVerboseListingLine("-rw-r--r--  0 daytona daytona  7560 Aug 11 21:43 AGENTS.md")).toEqual({
+    expect(
+      parseTarVerboseListingLine(
+        "-rw-r--r--  0 daytona daytona  7560 Aug 11 21:43 AGENTS.md",
+      ),
+    ).toEqual({
       typeFlag: "-",
       rest: "AGENTS.md",
     });
-    expect(parseTarVerboseListingLine("drwxr-xr-x  0 daytona daytona     0 Aug 11 21:43 nested/")).toEqual({
+    expect(
+      parseTarVerboseListingLine(
+        "drwxr-xr-x  0 daytona daytona     0 Aug 11 21:43 nested/",
+      ),
+    ).toEqual({
       typeFlag: "d",
       rest: "nested/",
     });
     expect(
-      parseTarVerboseListingLine("lrwxr-xr-x  0 daytona daytona     0 Aug 11 21:43 shortcut -> nested/data.txt"),
+      parseTarVerboseListingLine(
+        "lrwxr-xr-x  0 daytona daytona     0 Aug 11 21:43 shortcut -> nested/data.txt",
+      ),
     ).toEqual({ typeFlag: "l", rest: "shortcut -> nested/data.txt" });
     expect(
-      parseTarVerboseListingLine("hrw-r--r--  0 daytona daytona     0 Aug 11 21:43 copy.txt link to data.txt"),
+      parseTarVerboseListingLine(
+        "hrw-r--r--  0 daytona daytona     0 Aug 11 21:43 copy.txt link to data.txt",
+      ),
     ).toEqual({ typeFlag: "h", rest: "copy.txt link to data.txt" });
-    expect(parseTarVerboseListingLine("-rw-r--r--  0 daytona daytona  7560 Aug 11  2025 old.txt")).toEqual({
+    expect(
+      parseTarVerboseListingLine(
+        "-rw-r--r--  0 daytona daytona  7560 Aug 11  2025 old.txt",
+      ),
+    ).toEqual({
       typeFlag: "-",
       rest: "old.txt",
     });
@@ -807,7 +1000,11 @@ describe("parseTarVerboseListingLine", () => {
     // With unresolvable ids bsdtar prints bare numbers; a looser GNU-first parse
     // would read this shape shifted by one field and report the member name as
     // "21:43 ../escape.txt", hiding the leading "../" from the traversal check.
-    expect(parseTarVerboseListingLine("-rw-r--r--  0 1001 1001  7560 Aug 11 21:43 ../escape.txt")).toEqual({
+    expect(
+      parseTarVerboseListingLine(
+        "-rw-r--r--  0 1001 1001  7560 Aug 11 21:43 ../escape.txt",
+      ),
+    ).toEqual({
       typeFlag: "-",
       rest: "../escape.txt",
     });
@@ -815,10 +1012,20 @@ describe("parseTarVerboseListingLine", () => {
 
   it("returns null (fail closed) for lines matching neither dialect", () => {
     expect(parseTarVerboseListingLine("not a tar listing line")).toBeNull();
-    expect(parseTarVerboseListingLine("tar: Error is not recoverable: exiting now")).toBeNull();
+    expect(
+      parseTarVerboseListingLine("tar: Error is not recoverable: exiting now"),
+    ).toBeNull();
     // Device nodes carry "major,minor" instead of a byte count in both dialects.
-    expect(parseTarVerboseListingLine("crw-rw-rw- root/root 1,3 2026-08-11 21:43 dev/null")).toBeNull();
-    expect(parseTarVerboseListingLine("crw-rw-rw-  0 root wheel  1,3 Aug 11 21:43 dev/null")).toBeNull();
+    expect(
+      parseTarVerboseListingLine(
+        "crw-rw-rw- root/root 1,3 2026-08-11 21:43 dev/null",
+      ),
+    ).toBeNull();
+    expect(
+      parseTarVerboseListingLine(
+        "crw-rw-rw-  0 root wheel  1,3 Aug 11 21:43 dev/null",
+      ),
+    ).toBeNull();
   });
 });
 
@@ -828,7 +1035,9 @@ describe("splitLinkEntryOnce", () => {
       name: "shortcut",
       target: "nested/data.txt",
     });
-    expect(splitLinkEntryOnce("copy.txt link to data.txt", " link to ")).toEqual({
+    expect(
+      splitLinkEntryOnce("copy.txt link to data.txt", " link to "),
+    ).toEqual({
       name: "copy.txt",
       target: "data.txt",
     });
@@ -838,7 +1047,11 @@ describe("splitLinkEntryOnce", () => {
     expect(splitLinkEntryOnce("no delimiter here", " -> ")).toBeNull();
     // A link name or target embedding the delimiter makes the split point
     // unresolvable; either split choice can hide an escaping target.
-    expect(splitLinkEntryOnce("evil -> decoy -> ../../outside.txt", " -> ")).toBeNull();
-    expect(splitLinkEntryOnce("a link to b link to ../../outside.txt", " link to ")).toBeNull();
+    expect(
+      splitLinkEntryOnce("evil -> decoy -> ../../outside.txt", " -> "),
+    ).toBeNull();
+    expect(
+      splitLinkEntryOnce("a link to b link to ../../outside.txt", " link to "),
+    ).toBeNull();
   });
 });

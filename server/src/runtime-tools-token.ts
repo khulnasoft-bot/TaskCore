@@ -15,9 +15,11 @@ export interface RuntimeToolsTokenClaims {
 const TOKEN_TTL_SECONDS = 60 * 60;
 
 function secret() {
-  return process.env.TASKCORE_AGENT_JWT_SECRET?.trim()
-    || process.env.BETTER_AUTH_SECRET?.trim()
-    || null;
+  return (
+    process.env.TASKCORE_AGENT_JWT_SECRET?.trim() ||
+    process.env.BETTER_AUTH_SECRET?.trim() ||
+    null
+  );
 }
 
 function encode(value: unknown) {
@@ -57,17 +59,27 @@ export function createRuntimeToolsToken(input: {
     scope: input.scope ?? "connection_intents",
     iat: now,
     // Broker tokens remain scoped to a live run, which is rechecked on every use.
-    exp: now + (input.scope === "github_credentials" ? 30 * 24 * 60 * 60 : TOKEN_TTL_SECONDS),
+    exp:
+      now +
+      (input.scope === "github_credentials"
+        ? 30 * 24 * 60 * 60
+        : TOKEN_TTL_SECONDS),
     instance_id: instanceId,
   };
   const signingInput = `${encode({ alg: "HS256", typ: "JWT" })}.${encode(claims)}`;
   const signature = sign(signingInput, input.companyId, instanceId);
   return signature
-    ? { token: `${signingInput}.${signature}`, expiresAt: new Date(claims.exp * 1000).toISOString() }
+    ? {
+        token: `${signingInput}.${signature}`,
+        expiresAt: new Date(claims.exp * 1000).toISOString(),
+      }
     : null;
 }
 
-export function verifyRuntimeToolsToken(token: string, scope: RuntimeToolsTokenClaims["scope"] = "connection_intents"): RuntimeToolsTokenClaims | null {
+export function verifyRuntimeToolsToken(
+  token: string,
+  scope: RuntimeToolsTokenClaims["scope"] = "connection_intents",
+): RuntimeToolsTokenClaims | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   let header: Record<string, unknown>;
@@ -79,19 +91,23 @@ export function verifyRuntimeToolsToken(token: string, scope: RuntimeToolsTokenC
     return null;
   }
   if (header.alg !== "HS256") return null;
-  const companyId = typeof claims.company_id === "string" ? claims.company_id : null;
-  const instanceId = typeof claims.instance_id === "string" ? claims.instance_id : null;
-  if (!companyId || !instanceId || instanceId !== resolveTaskcoreInstanceId()) return null;
+  const companyId =
+    typeof claims.company_id === "string" ? claims.company_id : null;
+  const instanceId =
+    typeof claims.instance_id === "string" ? claims.instance_id : null;
+  if (!companyId || !instanceId || instanceId !== resolveTaskcoreInstanceId())
+    return null;
   const expected = sign(`${parts[0]}.${parts[1]}`, companyId, instanceId);
   if (!expected || !safeEqual(parts[2]!, expected)) return null;
   if (
-    typeof claims.sub !== "string"
-    || typeof claims.run_id !== "string"
-    || typeof claims.responsible_user_id !== "string"
-    || claims.scope !== scope
-    || typeof claims.iat !== "number"
-    || typeof claims.exp !== "number"
-    || claims.exp <= Math.floor(Date.now() / 1000)
-  ) return null;
+    typeof claims.sub !== "string" ||
+    typeof claims.run_id !== "string" ||
+    typeof claims.responsible_user_id !== "string" ||
+    claims.scope !== scope ||
+    typeof claims.iat !== "number" ||
+    typeof claims.exp !== "number" ||
+    claims.exp <= Math.floor(Date.now() / 1000)
+  )
+    return null;
   return claims as unknown as RuntimeToolsTokenClaims;
 }

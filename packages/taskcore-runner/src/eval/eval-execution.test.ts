@@ -37,10 +37,26 @@ function bundle(): EvalBundle {
       contract: "taskcore.capability.mock-state.v1",
     },
     faultInjection: [
-      { id: "fault-authz", class: "authorization", description: "deny approval decision exposure" },
-      { id: "fault-conflict", class: "conflict", description: "submit a stale plan revision" },
-      { id: "fault-retry", class: "retry", description: "fail the first artifact registration attempt" },
-      { id: "fault-provider", class: "provider_capability", description: "omit wake scheduling from the tool surface" },
+      {
+        id: "fault-authz",
+        class: "authorization",
+        description: "deny approval decision exposure",
+      },
+      {
+        id: "fault-conflict",
+        class: "conflict",
+        description: "submit a stale plan revision",
+      },
+      {
+        id: "fault-retry",
+        class: "retry",
+        description: "fail the first artifact registration attempt",
+      },
+      {
+        id: "fault-provider",
+        class: "provider_capability",
+        description: "omit wake scheduling from the tool surface",
+      },
     ],
   };
 }
@@ -56,8 +72,16 @@ describe("runEvalBehaviorFaultMatrix", () => {
 
     expect(report.aggregate).toMatchObject({ caseCount: 16, passed: 8 });
     for (const behavior of EVAL_BEHAVIOR_IDS) {
-      expect(report.cases.find((entry) => entry.observation.caseId === `${behavior}:green`)?.scorecard.overall.passed).toBe(true);
-      expect(report.cases.find((entry) => entry.observation.caseId === `${behavior}:red`)?.scorecard.overall.passed).toBe(false);
+      expect(
+        report.cases.find(
+          (entry) => entry.observation.caseId === `${behavior}:green`,
+        )?.scorecard.overall.passed,
+      ).toBe(true);
+      expect(
+        report.cases.find(
+          (entry) => entry.observation.caseId === `${behavior}:red`,
+        )?.scorecard.overall.passed,
+      ).toBe(false);
     }
 
     const faults = results.flatMap((result) => {

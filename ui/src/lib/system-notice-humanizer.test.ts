@@ -32,7 +32,9 @@ describe("humanizeSystemNotice", () => {
         "Taskcore stopped before dispatching the adapter because required secret/env bindings are missing. " +
         "Latest retry failure: `configuration_incomplete`. Moving it to `blocked` with a source-scoped recovery action.",
     });
-    expect(result.title).toBe("Task paused — a secret/config binding is missing");
+    expect(result.title).toBe(
+      "Task paused — a secret/config binding is missing",
+    );
     expect(result.tone).toBe("warning");
   });
 
@@ -42,7 +44,9 @@ describe("humanizeSystemNotice", () => {
         "Taskcore stopped before dispatching the adapter because required secret/env bindings are missing. " +
         "Moving it to `blocked` so an operator can bind the missing secret(s).",
     });
-    expect(result.title).toBe("Task paused — a secret/config binding is missing");
+    expect(result.title).toBe(
+      "Task paused — a secret/config binding is missing",
+    );
   });
 
   it("classifies workspace validation failures", () => {
@@ -81,7 +85,9 @@ describe("humanizeSystemNotice", () => {
     const longFirstSentence =
       "The heartbeat scheduler observed an unusual condition while reconciling this issue's run ledger against the " +
       "control plane state and recorded the discrepancy for later review.";
-    const result = humanizeSystemNotice({ body: `${longFirstSentence} Second sentence here.` });
+    const result = humanizeSystemNotice({
+      body: `${longFirstSentence} Second sentence here.`,
+    });
     expect(result.title).toBe("System update");
     expect(result.tone).toBe("neutral");
     expect(result.detail).toBeDefined();
@@ -90,7 +96,9 @@ describe("humanizeSystemNotice", () => {
   });
 
   it("keeps a short first sentence untruncated in the fallback detail", () => {
-    const result = humanizeSystemNotice({ body: "Run rescheduled. More context follows." });
+    const result = humanizeSystemNotice({
+      body: "Run rescheduled. More context follows.",
+    });
     expect(result).toEqual({
       title: "System update",
       tone: "neutral",

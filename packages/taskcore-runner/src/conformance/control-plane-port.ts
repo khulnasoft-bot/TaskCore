@@ -3,7 +3,11 @@ import type {
   ControlPlanePort,
   OpenControlPlaneRunInput,
 } from "../contracts/control-plane-port.js";
-import type { PrpEvent, PrpStructuredRunResult, PrpTerminalState } from "../protocol/replay-contract.js";
+import type {
+  PrpEvent,
+  PrpStructuredRunResult,
+  PrpTerminalState,
+} from "../protocol/replay-contract.js";
 
 export interface ControlPlanePortConformanceSnapshot {
   eventCount: number;
@@ -42,11 +46,23 @@ export const CONTROL_PLANE_CONFORMANCE_RESULT: PrpStructuredRunResult = {
   completionClaim: {
     contractRevision: "standalone-v1",
     objectiveSatisfied: true,
-    criteria: [{ criterionId: "objective", status: "satisfied", evidenceRefs: ["event:2"] }],
+    criteria: [
+      {
+        criterionId: "objective",
+        status: "satisfied",
+        evidenceRefs: ["event:2"],
+      },
+    ],
     remainingWork: [],
   },
   evidence: [{ kind: "event", ref: "event:2" }],
-  verification: [{ commandOrCheck: "standalone-conformance", status: "passed", artifactRef: "event:2" }],
+  verification: [
+    {
+      commandOrCheck: "standalone-conformance",
+      status: "passed",
+      artifactRef: "event:2",
+    },
+  ],
   attentionRequests: [],
   artifacts: [],
 };
@@ -58,7 +74,11 @@ export const CONTROL_PLANE_CONFORMANCE_TERMINAL: PrpTerminalState = {
   reportedWorkDisposition: "done",
 };
 
-function event(sourceSeq: number, eventType: PrpEvent["eventType"], payload: Record<string, unknown>): PrpEvent {
+function event(
+  sourceSeq: number,
+  eventType: PrpEvent["eventType"],
+  payload: Record<string, unknown>,
+): PrpEvent {
   return {
     schema: "taskcore.prp.event.v1",
     sourceEventId: `00000000-0000-4000-8000-000000000005:event:${sourceSeq}`,
@@ -79,7 +99,11 @@ function event(sourceSeq: number, eventType: PrpEvent["eventType"], payload: Rec
 export const CONTROL_PLANE_CONFORMANCE_EVENTS = [
   event(1, "session.started", { backend: "mock" }),
   event(2, "run.result.proposed", CONTROL_PLANE_CONFORMANCE_RESULT),
-  event(3, "run.terminal", CONTROL_PLANE_CONFORMANCE_TERMINAL as unknown as Record<string, unknown>),
+  event(
+    3,
+    "run.terminal",
+    CONTROL_PLANE_CONFORMANCE_TERMINAL as unknown as Record<string, unknown>,
+  ),
 ] as const;
 
 export async function runControlPlanePortConformance(
@@ -92,22 +116,40 @@ export async function runControlPlanePortConformance(
     try {
       await harness.port.openRun({
         ...CONTROL_PLANE_CONFORMANCE_OPEN,
-        identity: { ...CONTROL_PLANE_CONFORMANCE_OPEN.identity, issueId: "forged-issue" },
+        identity: {
+          ...CONTROL_PLANE_CONFORMANCE_OPEN.identity,
+          issueId: "forged-issue",
+        },
       });
     } catch {
       openBindingRejected = true;
     }
-    if (!openBindingRejected) throw new Error("mismatched run binding was accepted");
-    const first = await harness.port.appendEvent(CONTROL_PLANE_CONFORMANCE_EVENTS[0]);
-    if (first.disposition !== "committed" || first.highestContiguousSourceSeq !== 1) {
+    if (!openBindingRejected)
+      throw new Error("mismatched run binding was accepted");
+    const first = await harness.port.appendEvent(
+      CONTROL_PLANE_CONFORMANCE_EVENTS[0],
+    );
+    if (
+      first.disposition !== "committed" ||
+      first.highestContiguousSourceSeq !== 1
+    ) {
       throw new Error("first event did not commit at cursor 1");
     }
-    const gap = await harness.port.appendEvent(CONTROL_PLANE_CONFORMANCE_EVENTS[2]);
-    if (gap.highestContiguousSourceSeq !== 1) throw new Error("source gap was hidden");
-    const recovered = await harness.port.appendEvent(CONTROL_PLANE_CONFORMANCE_EVENTS[1]);
-    if (recovered.highestContiguousSourceSeq !== 3) throw new Error("source gap did not recover");
-    const duplicate = await harness.port.appendEvent(CONTROL_PLANE_CONFORMANCE_EVENTS[1]);
-    if (duplicate.disposition !== "duplicate") throw new Error("identical duplicate was not idempotent");
+    const gap = await harness.port.appendEvent(
+      CONTROL_PLANE_CONFORMANCE_EVENTS[2],
+    );
+    if (gap.highestContiguousSourceSeq !== 1)
+      throw new Error("source gap was hidden");
+    const recovered = await harness.port.appendEvent(
+      CONTROL_PLANE_CONFORMANCE_EVENTS[1],
+    );
+    if (recovered.highestContiguousSourceSeq !== 3)
+      throw new Error("source gap did not recover");
+    const duplicate = await harness.port.appendEvent(
+      CONTROL_PLANE_CONFORMANCE_EVENTS[1],
+    );
+    if (duplicate.disposition !== "duplicate")
+      throw new Error("identical duplicate was not idempotent");
     let eventIdMutationRejected = false;
     try {
       await harness.port.appendEvent({
@@ -117,18 +159,21 @@ export async function runControlPlanePortConformance(
     } catch {
       eventIdMutationRejected = true;
     }
-    if (!eventIdMutationRejected) throw new Error("mutated event id replay was accepted");
+    if (!eventIdMutationRejected)
+      throw new Error("mutated event id replay was accepted");
     let eventSequenceMutationRejected = false;
     try {
       await harness.port.appendEvent({
         ...CONTROL_PLANE_CONFORMANCE_EVENTS[1],
-        sourceEventId: "00000000-0000-4000-8000-000000000005:mutated-sequence-two",
+        sourceEventId:
+          "00000000-0000-4000-8000-000000000005:mutated-sequence-two",
         payload: { mutated: true },
       });
     } catch {
       eventSequenceMutationRejected = true;
     }
-    if (!eventSequenceMutationRejected) throw new Error("mutated source sequence replay was accepted");
+    if (!eventSequenceMutationRejected)
+      throw new Error("mutated source sequence replay was accepted");
 
     const replay = await harness.port.replayEvents({
       runId: CONTROL_PLANE_CONFORMANCE_OPEN.identity.runId,
@@ -150,7 +195,8 @@ export async function runControlPlanePortConformance(
     } catch {
       replayBindingRejected = true;
     }
-    if (!replayBindingRejected) throw new Error("mismatched replay binding was accepted");
+    if (!replayBindingRejected)
+      throw new Error("mismatched replay binding was accepted");
 
     const completion: CompleteControlPlaneRunInput = {
       result: CONTROL_PLANE_CONFORMANCE_RESULT,
@@ -170,7 +216,8 @@ export async function runControlPlanePortConformance(
     } catch {
       resultMutationRejected = true;
     }
-    if (!resultMutationRejected) throw new Error("mutated result replay was accepted");
+    if (!resultMutationRejected)
+      throw new Error("mutated result replay was accepted");
     return {
       eventCount: replay.highestContiguousSourceSeq,
       highestContiguousSourceSeq: replay.highestContiguousSourceSeq,

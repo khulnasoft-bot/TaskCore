@@ -1,12 +1,23 @@
 import { isLockedIssueStub } from "@/components/LockedIssueChip";
 import { IssuePullRequestLinks } from "../IssuePullRequestLinks";
 import { useIssueWorkProducts } from "../../hooks/useIssueWorkProducts";
-import { getIssuePullRequests, pullRequestHref, pullRequestIdentity } from "../../lib/issue-pull-requests";
+import {
+  getIssuePullRequests,
+  pullRequestHref,
+  pullRequestIdentity,
+} from "../../lib/issue-pull-requests";
 import { useWorkspaceIsolationControls } from "@/hooks/useWorkspaceIsolationControls";
 import { AgentIdentity } from "@/components/AgentIdentity";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { normalizeLegacyRunnerProvider } from "@taskcore/adapter-utils";
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 import { createPortal } from "react-dom";
 import { PROPERTIES_PANE_HEADER_SLOT_ID } from "../PropertiesPanel";
 import { issueStatusText } from "@/lib/status-colors";
@@ -34,8 +45,16 @@ import { projectsApi } from "../../api/projects";
 import { useCompany } from "../../context/CompanyContext";
 import { useSidebar } from "../../context/SidebarContext";
 import { queryKeys } from "../../lib/queryKeys";
-import { buildCompanyUserInlineOptions, buildCompanyUserLabelMap, buildCompanyUserProfileMap, isAgentTaskTarget } from "../../lib/company-members";
-import { ISSUE_OVERRIDE_ADAPTER_TYPES, type IssueModelLane } from "../../lib/issue-assignee-overrides";
+import {
+  buildCompanyUserInlineOptions,
+  buildCompanyUserLabelMap,
+  buildCompanyUserProfileMap,
+  isAgentTaskTarget,
+} from "../../lib/company-members";
+import {
+  ISSUE_OVERRIDE_ADAPTER_TYPES,
+  type IssueModelLane,
+} from "../../lib/issue-assignee-overrides";
 import { useProjectOrder } from "../../hooks/useProjectOrder";
 import {
   getRecentAssigneeIds,
@@ -46,7 +65,10 @@ import {
 import { getRecentProjectIds } from "../../lib/recent-projects";
 import { orderItemsBySelectedAndRecent } from "../../lib/recent-selections";
 import { formatAssigneeUserLabel, formatUserLabel } from "../../lib/assignees";
-import { buildExecutionPolicy, stageParticipantValues } from "../../lib/issue-execution-policy";
+import {
+  buildExecutionPolicy,
+  stageParticipantValues,
+} from "../../lib/issue-execution-policy";
 import { useExecutionPolicy } from "../../hooks/useExecutionPolicy";
 import {
   formatMonitorAbsolute,
@@ -74,8 +96,17 @@ import { Button } from "@/components/ui/button";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -85,8 +116,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { IssuePropertiesPlansTab } from "./IssuePropertiesPlansTab";
 import { IssuePropertiesArtifactsTab } from "./IssuePropertiesArtifactsTab";
-import { User, ArrowUpRight, Plus, X, GitBranch, FolderOpen, HardDrive, Check, Clock, RotateCcw, Loader2, CheckCircle2, ArchiveRestore, ChevronLeft } from "lucide-react";
-import { InlineEntitySelector, type InlineEntityOption } from "../InlineEntitySelector";
+import {
+  User,
+  ArrowUpRight,
+  Plus,
+  X,
+  GitBranch,
+  FolderOpen,
+  HardDrive,
+  Check,
+  Clock,
+  RotateCcw,
+  Loader2,
+  CheckCircle2,
+  ArchiveRestore,
+  ChevronLeft,
+} from "lucide-react";
+import {
+  InlineEntitySelector,
+  type InlineEntityOption,
+} from "../InlineEntitySelector";
 import {
   AssigneeRunningBanner,
   InterruptAssignConfirm,
@@ -125,7 +174,10 @@ import {
 } from "../../lib/reusable-execution-workspaces";
 import { issueReviewPolicyBadge } from "../../lib/review-policy";
 import { IssueCasesPanel } from "../IssueCasesPanel";
-import { ExpandRelationListButton, RemovableIssueReferencePill } from "./relation-controls";
+import {
+  ExpandRelationListButton,
+  RemovableIssueReferencePill,
+} from "./relation-controls";
 import { Badge } from "@/components/ui/badge";
 import {
   TaskDetailReferencesPanel,
@@ -133,7 +185,9 @@ import {
   type TaskDetailRelationItem,
 } from "../task-detail/TaskDetailRelationsPanel";
 
-function splitMiddleTruncation(value: string): { prefix: string; suffix: string } | null {
+function splitMiddleTruncation(
+  value: string,
+): { prefix: string; suffix: string } | null {
   const splitAt = Math.max(value.lastIndexOf("/"), value.lastIndexOf("\\"));
   if (splitAt <= 0 || splitAt >= value.length - 1) return null;
   return {
@@ -142,7 +196,13 @@ function splitMiddleTruncation(value: string): { prefix: string; suffix: string 
   };
 }
 
-function TruncatedCopyable({ value, icon: Icon }: { value: string; icon: ComponentType<{ className?: string }> }) {
+function TruncatedCopyable({
+  value,
+  icon: Icon,
+}: {
+  value: string;
+  icon: ComponentType<{ className?: string }>;
+}) {
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timerRef.current), []);
@@ -152,7 +212,9 @@ function TruncatedCopyable({ value, icon: Icon }: { value: string; icon: Compone
       setCopied(true);
       clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => setCopied(false), 1500);
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, [value]);
   const { enabled: streamlinedUiEnabled } = useStreamlinedUiEnabled();
   const middle = streamlinedUiEnabled ? splitMiddleTruncation(value) : null;
@@ -170,7 +232,9 @@ function TruncatedCopyable({ value, icon: Icon }: { value: string; icon: Compone
         title={value}
         aria-label={`Copy ${value} to clipboard`}
       >
-        {!streamlinedUiEnabled ? value : middle ? (
+        {!streamlinedUiEnabled ? (
+          value
+        ) : middle ? (
           <span className="flex min-w-0" data-middle-truncate="true">
             <span className="min-w-0 truncate">{middle.prefix}</span>
             <span className="max-w-1/2 shrink-0 truncate">{middle.suffix}</span>
@@ -180,7 +244,13 @@ function TruncatedCopyable({ value, icon: Icon }: { value: string; icon: Compone
         )}
       </button>
       {copied && (
-        <span className={cn("inline-flex items-center gap-1 text-xs shrink-0", issueStatusText.done)} role="status">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-xs shrink-0",
+            issueStatusText.done,
+          )}
+          role="status"
+        >
           <Check className="h-3 w-3 shrink-0" />
           Copied
         </span>
@@ -221,7 +291,8 @@ const ISSUE_PROPERTY_RELATION_PREVIEW_COUNT = 5;
 const STREAMLINED_PANE_TAB_CLASS =
   "task-detail-pane-tab h-7 rounded-md text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-type IssuePaneTab = "properties" | "subtasks" | "references" | "plans" | "artifacts";
+type IssuePaneTab =
+  "properties" | "subtasks" | "references" | "plans" | "artifacts";
 
 interface IssuePaneTabDescriptor {
   value: IssuePaneTab;
@@ -264,7 +335,8 @@ export function IssueProperties({
   // read — because an unresolved policy reads as "not managed" and would show
   // the folder the policy exists to hide.
   const hideHostPaths =
-    experimentalSettings === undefined || experimentalSettings.enableManagedSandboxOnly === true;
+    experimentalSettings === undefined ||
+    experimentalSettings.enableManagedSandboxOnly === true;
   const { enabled: streamlinedUiEnabled } = useStreamlinedUiEnabled();
   // Classic Task Interface: gate the Properties | Plans | Artifacts tab shell.
   // Flag ON renders the legacy stacked sections verbatim (no Tabs wrapper);
@@ -274,13 +346,17 @@ export function IssueProperties({
   // Classic Task Interface alone controls the production tabbed-vs-stacked
   // boundary. Streamlined UI layers new relationship tabs and visual treatment
   // onto master's tabbed task-chat pane without changing that boundary.
-  const taskChatShellEnabled = experimentalSettings?.enableClassicTaskInterface !== true;
-  const streamlinedPropertiesEnabled = streamlinedUiEnabled && taskChatShellEnabled;
+  const taskChatShellEnabled =
+    experimentalSettings?.enableClassicTaskInterface !== true;
+  const streamlinedPropertiesEnabled =
+    streamlinedUiEnabled && taskChatShellEnabled;
   // When hosted by the resizable PropertiesPanel, the tab strip portals into
   // the pane's header bar (left of the window controls). The slot only exists
   // once the panel has committed, hence the effect; inline hosts (mobile sheet)
   // keep the tab strip in place.
-  const [paneHeaderSlot, setPaneHeaderSlot] = useState<HTMLElement | null>(null);
+  const [paneHeaderSlot, setPaneHeaderSlot] = useState<HTMLElement | null>(
+    null,
+  );
   useEffect(() => {
     if (!taskChatShellEnabled || inline) {
       setPaneHeaderSlot(null);
@@ -303,32 +379,50 @@ export function IssueProperties({
     queryFn: () => issuesApi.listAttachments(issue.id),
     enabled: taskChatShellEnabled,
   });
-  const { data: paneTabWorkProducts, isError: workProductsError, refetch: refetchWorkProducts } = useIssueWorkProducts(issue.id);
-  const pullRequests = useMemo(() => getIssuePullRequests(paneTabWorkProducts), [paneTabWorkProducts]);
+  const {
+    data: paneTabWorkProducts,
+    isError: workProductsError,
+    refetch: refetchWorkProducts,
+  } = useIssueWorkProducts(issue.id);
+  const pullRequests = useMemo(
+    () => getIssuePullRequests(paneTabWorkProducts),
+    [paneTabWorkProducts],
+  );
   const remainingExternalObjects = useMemo(() => {
-    const identities = new Set(pullRequests.map((product) => pullRequestIdentity(pullRequestHref(product))).filter(Boolean));
-    return externalObjects?.filter((entry) => !identities.has(pullRequestIdentity(entry.pill.url)));
+    const identities = new Set(
+      pullRequests
+        .map((product) => pullRequestIdentity(pullRequestHref(product)))
+        .filter(Boolean),
+    );
+    return externalObjects?.filter(
+      (entry) => !identities.has(pullRequestIdentity(entry.pill.url)),
+    );
   }, [externalObjects, pullRequests]);
-  const { data: paneTabDocuments } = useIssueDocuments(taskChatShellEnabled ? issue.id : null);
+  const { data: paneTabDocuments } = useIssueDocuments(
+    taskChatShellEnabled ? issue.id : null,
+  );
   // Proxy `artifact-review-*` documents surface only through their Work
   // product row, so they must not summon the Plan or Documents surfaces.
   const paneTabStandaloneDocuments = (paneTabDocuments ?? []).filter(
     (doc) => !isArtifactReviewDocumentKey(doc.key),
   );
   const hasPlanTab =
-    Boolean(paneTabPlanDocument)
-    || (paneTabAcceptedPlans?.length ?? 0) > 0
-    || paneTabStandaloneDocuments.length > 0;
+    Boolean(paneTabPlanDocument) ||
+    (paneTabAcceptedPlans?.length ?? 0) > 0 ||
+    paneTabStandaloneDocuments.length > 0;
   // Artifacts covers the same three sources the tab body composes: work
   // products, documents (redundant with the Plan tab, intentionally), and
   // agent-created attachments. User comment uploads stay thread-only and
   // no longer summon the tab.
   const hasArtifactsTab =
-    (paneTabWorkProducts?.length ?? 0) > 0
-    || paneTabStandaloneDocuments.length > 0
-    || selectAgentArtifactAttachments(paneTabAttachments, paneTabWorkProducts).length > 0;
+    (paneTabWorkProducts?.length ?? 0) > 0 ||
+    paneTabStandaloneDocuments.length > 0 ||
+    selectAgentArtifactAttachments(paneTabAttachments, paneTabWorkProducts)
+      .length > 0;
   const [paneTab, setPaneTab] = useState<IssuePaneTab>("properties");
-  const [closedPaneTabs, setClosedPaneTabs] = useState<Set<IssuePaneTab>>(() => new Set());
+  const [closedPaneTabs, setClosedPaneTabs] = useState<Set<IssuePaneTab>>(
+    () => new Set(),
+  );
   // Once a plan document exists, surface it: switch the pane to the Plan tab so
   // the write-up is exposed alongside the plan-approval card, instead of leaving
   // the user on Properties. Only auto-switch until the user picks a tab by hand —
@@ -372,7 +466,9 @@ export function IssueProperties({
   const [projectOpen, setProjectOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState("");
   const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);
-  const [workspacePickerStep, setWorkspacePickerStep] = useState<"mode" | "reuse">("mode");
+  const [workspacePickerStep, setWorkspacePickerStep] = useState<
+    "mode" | "reuse"
+  >("mode");
   const [workspaceSearch, setWorkspaceSearch] = useState("");
   const [blockedByOpen, setBlockedByOpen] = useState(false);
   const [blockedBySearch, setBlockedBySearch] = useState("");
@@ -396,15 +492,31 @@ export function IssueProperties({
   const [newLabelName, setNewLabelName] = useState("");
   // token-extraction: allowlisted — color-picker seed state, persisted into label-create payload; a var() string would break that payload.
   const [newLabelColor, setNewLabelColor] = useState("#6366f1");
-  const [monitorAtInput, setMonitorAtInput] = useState(() => toDateTimeLocalValue(executionPolicy?.monitor?.nextCheckAt));
-  const [monitorNotesInput, setMonitorNotesInput] = useState(executionPolicy?.monitor?.notes ?? "");
-  const [monitorServiceInput, setMonitorServiceInput] = useState(executionPolicy?.monitor?.serviceName ?? "");
-  const [runtimeActionMessage, setRuntimeActionMessage] = useState<string | null>(null);
-  const [runtimeActionErrorMessage, setRuntimeActionErrorMessage] = useState<string | null>(null);
-  const [unarchiveErrorMessage, setUnarchiveErrorMessage] = useState<string | null>(null);
+  const [monitorAtInput, setMonitorAtInput] = useState(() =>
+    toDateTimeLocalValue(executionPolicy?.monitor?.nextCheckAt),
+  );
+  const [monitorNotesInput, setMonitorNotesInput] = useState(
+    executionPolicy?.monitor?.notes ?? "",
+  );
+  const [monitorServiceInput, setMonitorServiceInput] = useState(
+    executionPolicy?.monitor?.serviceName ?? "",
+  );
+  const [runtimeActionMessage, setRuntimeActionMessage] = useState<
+    string | null
+  >(null);
+  const [runtimeActionErrorMessage, setRuntimeActionErrorMessage] = useState<
+    string | null
+  >(null);
+  const [unarchiveErrorMessage, setUnarchiveErrorMessage] = useState<
+    string | null
+  >(null);
   const [watchdogOpen, setWatchdogOpen] = useState(false);
-  const [watchdogAgentInput, setWatchdogAgentInput] = useState(issue.watchdog?.watchdogAgentId ?? "");
-  const [watchdogInstructionsInput, setWatchdogInstructionsInput] = useState(issue.watchdog?.instructions ?? "");
+  const [watchdogAgentInput, setWatchdogAgentInput] = useState(
+    issue.watchdog?.watchdogAgentId ?? "",
+  );
+  const [watchdogInstructionsInput, setWatchdogInstructionsInput] = useState(
+    issue.watchdog?.instructions ?? "",
+  );
   const normalizedBlockedBySearch = blockedBySearch.trim();
   const normalizedParentSearch = parentSearch.trim();
 
@@ -437,7 +549,8 @@ export function IssueProperties({
     enabled: !!companyId,
   });
   const activeProjects = useMemo(
-    () => (projects ?? []).filter((p) => !p.archivedAt || p.id === issue.projectId),
+    () =>
+      (projects ?? []).filter((p) => !p.archivedAt || p.id === issue.projectId),
     [projects, issue.projectId],
   );
   const { orderedProjects } = useProjectOrder({
@@ -452,36 +565,71 @@ export function IssueProperties({
     enabled: !!companyId,
   });
 
-  const { data: allIssues, isFetching: isFetchingIssuePickerIssues } = useQuery({
-    queryKey: queryKeys.issues.list(companyId!),
-    queryFn: () => issuesApi.list(companyId!),
-    enabled: !!companyId && (parentOpen || (blockedByOpen && normalizedBlockedBySearch.length === 0)),
+  const { data: allIssues, isFetching: isFetchingIssuePickerIssues } = useQuery(
+    {
+      queryKey: queryKeys.issues.list(companyId!),
+      queryFn: () => issuesApi.list(companyId!),
+      enabled:
+        !!companyId &&
+        (parentOpen ||
+          (blockedByOpen && normalizedBlockedBySearch.length === 0)),
+    },
+  );
+
+  const {
+    data: searchedBlockedByIssues,
+    isFetching: isFetchingSearchedBlockedByIssues,
+  } = useQuery({
+    queryKey: companyId
+      ? queryKeys.issues.search(
+          companyId,
+          normalizedBlockedBySearch,
+          undefined,
+          ISSUE_BLOCKER_SEARCH_LIMIT,
+        )
+      : [
+          "issues",
+          "blocker-search",
+          normalizedBlockedBySearch,
+          ISSUE_BLOCKER_SEARCH_LIMIT,
+        ],
+    queryFn: () =>
+      issuesApi.list(companyId!, {
+        q: normalizedBlockedBySearch,
+        limit: ISSUE_BLOCKER_SEARCH_LIMIT,
+      }),
+    enabled:
+      !!companyId && blockedByOpen && normalizedBlockedBySearch.length > 0,
   });
 
-  const { data: searchedBlockedByIssues, isFetching: isFetchingSearchedBlockedByIssues } = useQuery({
+  const {
+    data: searchedParentIssues,
+    isFetching: isFetchingSearchedParentIssues,
+  } = useQuery({
     queryKey: companyId
-      ? queryKeys.issues.search(companyId, normalizedBlockedBySearch, undefined, ISSUE_BLOCKER_SEARCH_LIMIT)
-      : ["issues", "blocker-search", normalizedBlockedBySearch, ISSUE_BLOCKER_SEARCH_LIMIT],
-    queryFn: () => issuesApi.list(companyId!, {
-      q: normalizedBlockedBySearch,
-      limit: ISSUE_BLOCKER_SEARCH_LIMIT,
-    }),
-    enabled: !!companyId && blockedByOpen && normalizedBlockedBySearch.length > 0,
-  });
-
-  const { data: searchedParentIssues, isFetching: isFetchingSearchedParentIssues } = useQuery({
-    queryKey: companyId
-      ? queryKeys.issues.search(companyId, normalizedParentSearch, undefined, ISSUE_BLOCKER_SEARCH_LIMIT)
-      : ["issues", "blocker-search", normalizedParentSearch, ISSUE_BLOCKER_SEARCH_LIMIT],
-    queryFn: () => issuesApi.list(companyId!, {
-      q: normalizedParentSearch,
-      limit: ISSUE_BLOCKER_SEARCH_LIMIT,
-    }),
+      ? queryKeys.issues.search(
+          companyId,
+          normalizedParentSearch,
+          undefined,
+          ISSUE_BLOCKER_SEARCH_LIMIT,
+        )
+      : [
+          "issues",
+          "blocker-search",
+          normalizedParentSearch,
+          ISSUE_BLOCKER_SEARCH_LIMIT,
+        ],
+    queryFn: () =>
+      issuesApi.list(companyId!, {
+        q: normalizedParentSearch,
+        limit: ISSUE_BLOCKER_SEARCH_LIMIT,
+      }),
     enabled: !!companyId && parentOpen && normalizedParentSearch.length > 0,
   });
 
   const createLabel = useMutation({
-    mutationFn: (data: { name: string; color: string }) => issuesApi.createLabel(companyId!, data),
+    mutationFn: (data: { name: string; color: string }) =>
+      issuesApi.createLabel(companyId!, data),
     onSuccess: async (created) => {
       queryClient.setQueryData<IssueLabel[] | undefined>(
         queryKeys.issues.labels(companyId!),
@@ -492,7 +640,9 @@ export function IssueProperties({
         },
       );
       onUpdate({ labelIds: [...(issue.labelIds ?? []), created.id] });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.issues.labels(companyId!) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.labels(companyId!),
+      });
       setNewLabelName("");
     },
   });
@@ -504,16 +654,30 @@ export function IssueProperties({
     },
     onSuccess: () => {
       setUnarchiveErrorMessage(null);
-      queryClient.setQueryData<Issue>(queryKeys.issues.detail(issue.id), (current) =>
-        current ? { ...current, archivedAt: null, archivedByActorType: null, archivedByAgentId: null, archivedByRunId: null } : current,
+      queryClient.setQueryData<Issue>(
+        queryKeys.issues.detail(issue.id),
+        (current) =>
+          current
+            ? {
+                ...current,
+                archivedAt: null,
+                archivedByActorType: null,
+                archivedByAgentId: null,
+                archivedByRunId: null,
+              }
+            : current,
       );
-      void queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issue.id) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.detail(issue.id),
+      });
       if (companyId) invalidateInboxIssueQueries(queryClient, companyId);
     },
     onError: (error) => {
-      setUnarchiveErrorMessage(error instanceof Error && error.message.trim().length > 0
-        ? error.message
-        : "Failed to unarchive this issue. Please try again.");
+      setUnarchiveErrorMessage(
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : "Failed to unarchive this issue. Please try again.",
+      );
     },
   });
 
@@ -537,12 +701,16 @@ export function IssueProperties({
     return project?.name ?? id.slice(0, 8);
   };
   const currentProject = issue.projectId
-    ? orderedProjects.find((project) => project.id === issue.projectId) ?? null
+    ? (orderedProjects.find((project) => project.id === issue.projectId) ??
+      null)
     : null;
   const issueProject = issue.project ?? currentProject;
-  const { visible: workspaceIsolationControlsVisible } = useWorkspaceIsolationControls();
-  const workspacePickerEligible = workspaceIsolationControlsVisible && experimentalSettings?.enableIsolatedWorkspaces === true
-    && Boolean(issueProject?.executionWorkspacePolicy?.enabled);
+  const { visible: workspaceIsolationControlsVisible } =
+    useWorkspaceIsolationControls();
+  const workspacePickerEligible =
+    workspaceIsolationControlsVisible &&
+    experimentalSettings?.enableIsolatedWorkspaces === true &&
+    Boolean(issueProject?.executionWorkspacePolicy?.enabled);
   const {
     data: reusableExecutionWorkspaces,
     isLoading: reusableExecutionWorkspacesLoading,
@@ -553,43 +721,63 @@ export function IssueProperties({
       projectWorkspaceId: issue.projectWorkspaceId ?? undefined,
       reuseEligible: true,
     }),
-    queryFn: () => executionWorkspacesApi.list(companyId!, {
-      projectId: issue.projectId ?? undefined,
-      projectWorkspaceId: issue.projectWorkspaceId ?? undefined,
-      reuseEligible: true,
-    }),
-    enabled: Boolean(companyId) && Boolean(issue.projectId) && workspacePickerEligible && workspacePickerOpen,
+    queryFn: () =>
+      executionWorkspacesApi.list(companyId!, {
+        projectId: issue.projectId ?? undefined,
+        projectWorkspaceId: issue.projectWorkspaceId ?? undefined,
+        reuseEligible: true,
+      }),
+    enabled:
+      Boolean(companyId) &&
+      Boolean(issue.projectId) &&
+      workspacePickerEligible &&
+      workspacePickerOpen,
   });
-  const effectiveWorkspaceSelection = currentWorkspaceSelection(issue, issueProject);
-  const hasWorkspaceOverride = issue.executionWorkspacePreference != null
-    || issue.executionWorkspaceSettings != null;
-  const activeWorkspacePickerMode = effectiveWorkspaceSelection === "reuse_existing"
-    ? "reuse"
-    : !hasWorkspaceOverride
-      ? "default"
-      : effectiveWorkspaceSelection === "isolated_workspace"
-        ? "isolated"
-        : "default";
+  const effectiveWorkspaceSelection = currentWorkspaceSelection(
+    issue,
+    issueProject,
+  );
+  const hasWorkspaceOverride =
+    issue.executionWorkspacePreference != null ||
+    issue.executionWorkspaceSettings != null;
+  const activeWorkspacePickerMode =
+    effectiveWorkspaceSelection === "reuse_existing"
+      ? "reuse"
+      : !hasWorkspaceOverride
+        ? "default"
+        : effectiveWorkspaceSelection === "isolated_workspace"
+          ? "isolated"
+          : "default";
   const reusableWorkspaceOptions = useMemo(
-    () => buildReusableExecutionWorkspaceOptionGroups(
-      dedupeReusableExecutionWorkspaces(reusableExecutionWorkspaces ?? []),
-    ).map((group) => ({
-      ...group,
-      options: group.options.filter((option) => reusableWorkspaceOptionMatches(option, workspaceSearch)),
-    })).filter((group) => group.options.length > 0),
+    () =>
+      buildReusableExecutionWorkspaceOptionGroups(
+        dedupeReusableExecutionWorkspaces(reusableExecutionWorkspaces ?? []),
+      )
+        .map((group) => ({
+          ...group,
+          options: group.options.filter((option) =>
+            reusableWorkspaceOptionMatches(option, workspaceSearch),
+          ),
+        }))
+        .filter((group) => group.options.length > 0),
     [reusableExecutionWorkspaces, workspaceSearch],
   );
-  const boundWorkspace = (reusableExecutionWorkspaces ?? []).find(
-    (workspace) => workspace.id === issue.executionWorkspaceId,
-  ) ?? issue.currentExecutionWorkspace ?? null;
-  const workspaceTriggerLabel = activeWorkspacePickerMode === "isolated"
-    ? "New isolated workspace"
-    : activeWorkspacePickerMode === "reuse"
-      ? boundWorkspace?.name ?? "Reuse existing workspace"
-      : "Default";
-  const workspaceTriggerTitle = activeWorkspacePickerMode === "reuse"
-    ? boundWorkspace?.branchName ?? undefined
-    : undefined;
+  const boundWorkspace =
+    (reusableExecutionWorkspaces ?? []).find(
+      (workspace) => workspace.id === issue.executionWorkspaceId,
+    ) ??
+    issue.currentExecutionWorkspace ??
+    null;
+  const workspaceTriggerLabel =
+    activeWorkspacePickerMode === "isolated"
+      ? "New isolated workspace"
+      : activeWorkspacePickerMode === "reuse"
+        ? (boundWorkspace?.name ?? "Reuse existing workspace")
+        : "Default";
+  const workspaceTriggerTitle =
+    activeWorkspacePickerMode === "reuse"
+      ? (boundWorkspace?.branchName ?? undefined)
+      : undefined;
   const closeWorkspacePicker = () => {
     setWorkspacePickerOpen(false);
     setWorkspacePickerStep("mode");
@@ -599,7 +787,11 @@ export function IssueProperties({
     selection: null | "isolated_workspace" | "reuse_existing",
     workspace?: ExecutionWorkspace,
   ) => {
-    const update = buildWorkspaceSelectionUpdate(selection, workspace?.id, workspace?.mode);
+    const update = buildWorkspaceSelectionUpdate(
+      selection,
+      workspace?.id,
+      workspace?.mode,
+    );
     if (!update) return;
     onUpdate(update);
     closeWorkspacePicker();
@@ -608,38 +800,75 @@ export function IssueProperties({
     () => isMainIssueWorkspace({ issue, project: issueProject }),
     [issue, issueProject],
   );
-  const showWorkspaceDetailLink = Boolean(issue.executionWorkspaceId) && !issueUsesMainWorkspace;
+  const showWorkspaceDetailLink =
+    Boolean(issue.executionWorkspaceId) && !issueUsesMainWorkspace;
   const workspaceRuntimeConfig = issueUsesMainWorkspace
     ? null
-    : issue.currentExecutionWorkspace?.config?.workspaceRuntime ?? null;
-  const workspaceRuntimeServices = issue.currentExecutionWorkspace?.runtimeServices ?? [];
+    : (issue.currentExecutionWorkspace?.config?.workspaceRuntime ?? null);
+  const workspaceRuntimeServices =
+    issue.currentExecutionWorkspace?.runtimeServices ?? [];
   const workspaceCanRunCommands = Boolean(issue.currentExecutionWorkspace?.cwd);
-  const workspaceCanStartServices = Boolean(workspaceRuntimeConfig) && workspaceCanRunCommands;
-  const workspaceRuntimeSections = useMemo(() => buildWorkspaceRuntimeControlSections({
-    runtimeConfig: workspaceRuntimeConfig,
-    runtimeServices: workspaceRuntimeServices,
-    canStartServices: workspaceCanStartServices,
-    canRunJobs: workspaceCanRunCommands,
-  }), [workspaceCanRunCommands, workspaceCanStartServices, workspaceRuntimeConfig, workspaceRuntimeServices]);
-  const hasWorkspaceRuntimeControls = !issueUsesMainWorkspace && (
-    workspaceRuntimeSections.services.length > 0
-    || workspaceRuntimeSections.otherServices.length > 0
+  const workspaceCanStartServices =
+    Boolean(workspaceRuntimeConfig) && workspaceCanRunCommands;
+  const workspaceRuntimeSections = useMemo(
+    () =>
+      buildWorkspaceRuntimeControlSections({
+        runtimeConfig: workspaceRuntimeConfig,
+        runtimeServices: workspaceRuntimeServices,
+        canStartServices: workspaceCanStartServices,
+        canRunJobs: workspaceCanRunCommands,
+      }),
+    [
+      workspaceCanRunCommands,
+      workspaceCanStartServices,
+      workspaceRuntimeConfig,
+      workspaceRuntimeServices,
+    ],
   );
+  const hasWorkspaceRuntimeControls =
+    !issueUsesMainWorkspace &&
+    (workspaceRuntimeSections.services.length > 0 ||
+      workspaceRuntimeSections.otherServices.length > 0);
   const controlWorkspaceRuntime = useMutation({
     mutationFn: (request: WorkspaceRuntimeControlRequest) => {
-      const workspaceId = issue.currentExecutionWorkspace?.id ?? issue.executionWorkspaceId;
-      if (!workspaceId) throw new Error("This task is not attached to a workspace.");
-      return executionWorkspacesApi.controlRuntimeCommands(workspaceId, request.action, request);
+      const workspaceId =
+        issue.currentExecutionWorkspace?.id ?? issue.executionWorkspaceId;
+      if (!workspaceId)
+        throw new Error("This task is not attached to a workspace.");
+      return executionWorkspacesApi.controlRuntimeCommands(
+        workspaceId,
+        request.action,
+        request,
+      );
     },
     onSuccess: (result, request) => {
-      queryClient.setQueryData(queryKeys.executionWorkspaces.detail(result.workspace.id), result.workspace);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issue.id) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(result.workspace.projectId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.executionWorkspaces.overview(result.workspace.companyId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.executionWorkspaces.workspaceOperations(result.workspace.id) });
+      queryClient.setQueryData(
+        queryKeys.executionWorkspaces.detail(result.workspace.id),
+        result.workspace,
+      );
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.detail(issue.id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.detail(result.workspace.projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.executionWorkspaces.overview(
+          result.workspace.companyId,
+        ),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.executionWorkspaces.workspaceOperations(
+          result.workspace.id,
+        ),
+      });
       if (companyId) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.issues.list(companyId) });
-        void queryClient.invalidateQueries({ queryKey: queryKeys.executionWorkspaces.list(companyId) });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.issues.list(companyId),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.executionWorkspaces.list(companyId),
+        });
       }
       setRuntimeActionErrorMessage(null);
       setRuntimeActionMessage(
@@ -654,14 +883,23 @@ export function IssueProperties({
     },
     onError: (error) => {
       setRuntimeActionMessage(null);
-      setRuntimeActionErrorMessage(error instanceof Error ? error.message : "Failed to control workspace commands.");
+      setRuntimeActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to control workspace commands.",
+      );
     },
   });
-  const pendingWorkspaceRuntimeAction = controlWorkspaceRuntime.isPending ? controlWorkspaceRuntime.variables ?? null : null;
+  const pendingWorkspaceRuntimeAction = controlWorkspaceRuntime.isPending
+    ? (controlWorkspaceRuntime.variables ?? null)
+    : null;
   const referencedIssueIdentifiers = issue.referencedIssueIdentifiers ?? [];
   const relatedTasks = useMemo(() => {
     const excluded = new Set<string>();
-    const addExcluded = (candidate: { id: string; identifier?: string | null }) => {
+    const addExcluded = (candidate: {
+      id: string;
+      identifier?: string | null;
+    }) => {
       excluded.add(candidate.id);
       if (candidate.identifier) excluded.add(candidate.identifier);
     };
@@ -670,7 +908,8 @@ export function IssueProperties({
     for (const blocked of issue.blocks ?? []) addExcluded(blocked);
     for (const child of childIssues) addExcluded(child);
 
-    const referencedIssues = issue.relatedWork?.outbound.map((item) => item.issue) ?? [];
+    const referencedIssues =
+      issue.relatedWork?.outbound.map((item) => item.issue) ?? [];
     if (referencedIssues.length > 0) {
       return referencedIssues.filter((referenced) => {
         const label = referenced.identifier ?? referenced.id;
@@ -681,14 +920,21 @@ export function IssueProperties({
     return referencedIssueIdentifiers
       .filter((identifier) => !excluded.has(identifier))
       .map((identifier) => ({ id: identifier, identifier, title: identifier }));
-  }, [childIssues, issue.blockedBy, issue.blocks, issue.relatedWork?.outbound, referencedIssueIdentifiers]);
+  }, [
+    childIssues,
+    issue.blockedBy,
+    issue.blocks,
+    issue.relatedWork?.outbound,
+    referencedIssueIdentifiers,
+  ]);
   const panelReferencedTasks = useMemo<TaskDetailRelationItem[]>(() => {
-    const outbound = issue.relatedWork?.outbound.map(({ issue: referenced }) => ({
-      id: referenced.id,
-      identifier: referenced.identifier,
-      title: referenced.title,
-      status: referenced.status,
-    })) ?? [];
+    const outbound =
+      issue.relatedWork?.outbound.map(({ issue: referenced }) => ({
+        id: referenced.id,
+        identifier: referenced.identifier,
+        title: referenced.title,
+        status: referenced.status,
+      })) ?? [];
     if (outbound.length > 0) return outbound;
     return referencedIssueIdentifiers.map((identifier) => ({
       id: identifier,
@@ -697,12 +943,13 @@ export function IssueProperties({
     }));
   }, [issue.relatedWork?.outbound, referencedIssueIdentifiers]);
   const panelMentionedInTasks = useMemo<TaskDetailRelationItem[]>(
-    () => issue.relatedWork?.inbound.map(({ issue: referenced }) => ({
-      id: referenced.id,
-      identifier: referenced.identifier,
-      title: referenced.title,
-      status: referenced.status,
-    })) ?? [],
+    () =>
+      issue.relatedWork?.inbound.map(({ issue: referenced }) => ({
+        id: referenced.id,
+        identifier: referenced.identifier,
+        title: referenced.title,
+        status: referenced.status,
+      })) ?? [],
     [issue.relatedWork?.inbound],
   );
   const projectLink = (id: string | null) => {
@@ -711,9 +958,16 @@ export function IssueProperties({
     return project ? projectUrl(project) : `/projects/${id}`;
   };
 
-  const recentAssigneeIds = useMemo(() => getRecentAssigneeIds(), [assigneeOpen]);
+  const recentAssigneeIds = useMemo(
+    () => getRecentAssigneeIds(),
+    [assigneeOpen],
+  );
   const sortedAgents = useMemo(
-    () => sortAgentsByRecency((agents ?? []).filter(isAgentTaskTarget), recentAssigneeIds),
+    () =>
+      sortAgentsByRecency(
+        (agents ?? []).filter(isAgentTaskTarget),
+        recentAssigneeIds,
+      ),
     [agents, recentAssigneeIds],
   );
   const recentProjectIds = useMemo(() => getRecentProjectIds(), [projectOpen]);
@@ -726,7 +980,10 @@ export function IssueProperties({
     [companyMembers?.users],
   );
   const otherUserOptions = useMemo(
-    () => buildCompanyUserInlineOptions(companyMembers?.users, { excludeUserIds: [currentUserId, issue.createdByUserId] }),
+    () =>
+      buildCompanyUserInlineOptions(companyMembers?.users, {
+        excludeUserIds: [currentUserId, issue.createdByUserId],
+      }),
     [companyMembers?.users, currentUserId, issue.createdByUserId],
   );
 
@@ -737,30 +994,55 @@ export function IssueProperties({
   const assigneeAdapterOverrides = issue.assigneeAdapterOverrides ?? null;
   const showAssigneeAdapterOptions = assigneeAdapterOverrides !== null;
   const supportsAssigneeOverrides = Boolean(
-    assigneeAdapterType && ISSUE_OVERRIDE_ADAPTER_TYPES.has(assigneeAdapterType),
+    assigneeAdapterType &&
+    ISSUE_OVERRIDE_ADAPTER_TYPES.has(assigneeAdapterType),
   );
   const assigneeOverrideLane = overrideLane(assigneeAdapterOverrides);
-  const assigneeOverrideAdapterConfig = asRecord(assigneeAdapterOverrides?.adapterConfig);
+  const assigneeOverrideAdapterConfig = asRecord(
+    assigneeAdapterOverrides?.adapterConfig,
+  );
   const assigneeOverrideModel =
-    typeof assigneeOverrideAdapterConfig.model === "string" ? assigneeOverrideAdapterConfig.model : "";
+    typeof assigneeOverrideAdapterConfig.model === "string"
+      ? assigneeOverrideAdapterConfig.model
+      : "";
   const assigneePrimaryAdapterConfig = asRecord(assignee?.adapterConfig);
   const assigneePrimaryModel =
-    typeof assigneePrimaryAdapterConfig.model === "string" ? assigneePrimaryAdapterConfig.model : "";
+    typeof assigneePrimaryAdapterConfig.model === "string"
+      ? assigneePrimaryAdapterConfig.model
+      : "";
   const effectiveAssigneeModel = assigneeOverrideModel || assigneePrimaryModel;
   const assigneeOverrideThinkingEffort = thinkingEffortValueFor(
     assigneeAdapterType,
     assigneeOverrideAdapterConfig,
   );
-  const assigneeOverrideChrome = assigneeAdapterType === "claude_local"
-    && assigneeOverrideAdapterConfig.chrome === true;
-  const catalogProvider = assigneeAdapterType === "taskcore_runner" ? String(normalizeLegacyRunnerProvider(assigneePrimaryAdapterConfig).provider ?? "codex") : undefined;
+  const assigneeOverrideChrome =
+    assigneeAdapterType === "claude_local" &&
+    assigneeOverrideAdapterConfig.chrome === true;
+  const catalogProvider =
+    assigneeAdapterType === "taskcore_runner"
+      ? String(
+          normalizeLegacyRunnerProvider(assigneePrimaryAdapterConfig)
+            .provider ?? "codex",
+        )
+      : undefined;
   const { data: assigneeAdapterModels } = useQuery({
     queryKey:
       companyId && assigneeAdapterType
-        ? queryKeys.agents.adapterModels(companyId, assigneeAdapterType, null, catalogProvider)
+        ? queryKeys.agents.adapterModels(
+            companyId,
+            assigneeAdapterType,
+            null,
+            catalogProvider,
+          )
         : ["agents", "none", "adapter-models", assigneeAdapterType ?? "none"],
-    queryFn: () => agentsApi.adapterModels(companyId!, assigneeAdapterType!, { provider: catalogProvider }),
-    enabled: Boolean(companyId) && showAssigneeAdapterOptions && supportsAssigneeOverrides,
+    queryFn: () =>
+      agentsApi.adapterModels(companyId!, assigneeAdapterType!, {
+        provider: catalogProvider,
+      }),
+    enabled:
+      Boolean(companyId) &&
+      showAssigneeAdapterOptions &&
+      supportsAssigneeOverrides,
   });
   const modelOverrideOptions = useMemo<InlineEntityOption[]>(() => {
     const models = sortAdapterModels(assigneeAdapterModels ?? []);
@@ -769,7 +1051,10 @@ export function IssueProperties({
       label: model.label,
       searchText: `${model.id} ${extractProviderIdWithFallback(model.id)}`,
     }));
-    if (assigneeOverrideModel && !options.some((option) => option.id === assigneeOverrideModel)) {
+    if (
+      assigneeOverrideModel &&
+      !options.some((option) => option.id === assigneeOverrideModel)
+    ) {
       options.unshift({
         id: assigneeOverrideModel,
         label: assigneeOverrideModel,
@@ -778,14 +1063,20 @@ export function IssueProperties({
     }
     return options;
   }, [assigneeAdapterModels, assigneeOverrideModel]);
-  const updateAssigneeAdapterOverrides = (next: Issue["assigneeAdapterOverrides"]) => {
+  const updateAssigneeAdapterOverrides = (
+    next: Issue["assigneeAdapterOverrides"],
+  ) => {
     onUpdate({ assigneeAdapterOverrides: next });
   };
-  const buildAssigneeOverrideWithConfig = (adapterConfig: Record<string, unknown>) => {
+  const buildAssigneeOverrideWithConfig = (
+    adapterConfig: Record<string, unknown>,
+  ) => {
     const nextConfig = compactRecord(adapterConfig);
     const next = compactRecord({
       useProjectWorkspace: assigneeAdapterOverrides?.useProjectWorkspace,
-      ...(Object.keys(nextConfig).length > 0 ? { adapterConfig: nextConfig } : {}),
+      ...(Object.keys(nextConfig).length > 0
+        ? { adapterConfig: nextConfig }
+        : {}),
     });
     return Object.keys(next).length > 0 ? next : null;
   };
@@ -814,11 +1105,12 @@ export function IssueProperties({
       model: nextModel || undefined,
     };
     if (
-      assigneeAdapterType === "codex_local"
-      && assigneeOverrideThinkingEffort
-      && !thinkingEffortOptionsFor(assigneeAdapterType, nextModel || assigneePrimaryModel).some(
-        (option) => option.value === assigneeOverrideThinkingEffort,
-      )
+      assigneeAdapterType === "codex_local" &&
+      assigneeOverrideThinkingEffort &&
+      !thinkingEffortOptionsFor(
+        assigneeAdapterType,
+        nextModel || assigneePrimaryModel,
+      ).some((option) => option.value === assigneeOverrideThinkingEffort)
     ) {
       delete nextConfig.modelReasoningEffort;
       delete nextConfig.reasoningEffort;
@@ -831,7 +1123,11 @@ export function IssueProperties({
       updateAssigneeAdapterOverrides(null);
       return;
     }
-    updateAssigneeAdapterOverrides(buildAssigneeOverrideWithConfig(assigneeOverrideAdapterConfig) ?? { adapterConfig: {} });
+    updateAssigneeAdapterOverrides(
+      buildAssigneeOverrideWithConfig(assigneeOverrideAdapterConfig) ?? {
+        adapterConfig: {},
+      },
+    );
   };
   const assigneeOptionsTrigger = (() => {
     if (assigneeOverrideLane === "custom") {
@@ -840,7 +1136,10 @@ export function IssueProperties({
         assigneeOverrideThinkingEffort,
         assigneeOverrideChrome ? "Chrome" : "",
       ].filter(Boolean);
-      const summary = details.length > 0 ? `Override · ${details.join(" · ")}` : "Override · adapter options";
+      const summary =
+        details.length > 0
+          ? `Override · ${details.join(" · ")}`
+          : "Override · adapter options";
       return (
         <span
           className="min-w-0 truncate text-sm"
@@ -856,7 +1155,11 @@ export function IssueProperties({
     <div className="w-full space-y-3 p-2">
       <div className="space-y-1.5">
         <div className="text-xs text-muted-foreground">Model lane</div>
-        <div className="flex w-full overflow-hidden rounded-md border border-border" role="radiogroup" aria-label="Model lane">
+        <div
+          className="flex w-full overflow-hidden rounded-md border border-border"
+          role="radiogroup"
+          aria-label="Model lane"
+        >
           {(["primary", "custom"] as const).map((lane) => (
             <button
               key={lane}
@@ -875,7 +1178,8 @@ export function IssueProperties({
         </div>
         {assigneeOverrideLane === "custom" ? (
           <p className="text-xs text-muted-foreground">
-            Task-level model override — replaces the agent&apos;s primary model for this issue.
+            Task-level model override — replaces the agent&apos;s primary model
+            for this issue.
           </p>
         ) : null}
       </div>
@@ -897,14 +1201,20 @@ export function IssueProperties({
           <div className="space-y-1.5">
             <div className="text-xs text-muted-foreground">Thinking effort</div>
             <div className="flex items-center gap-1.5 flex-wrap">
-              {thinkingEffortOptionsFor(assigneeAdapterType, effectiveAssigneeModel).map((option) => (
+              {thinkingEffortOptionsFor(
+                assigneeAdapterType,
+                effectiveAssigneeModel,
+              ).map((option) => (
                 <button
                   key={option.value || "default"}
                   className={cn(
                     "px-2 py-1 rounded-md text-xs border border-border hover:bg-accent/50 transition-colors",
-                    assigneeOverrideThinkingEffort === option.value && "bg-accent",
+                    assigneeOverrideThinkingEffort === option.value &&
+                      "bg-accent",
                   )}
-                  onClick={() => updateAssigneeOverrideThinkingEffort(option.value)}
+                  onClick={() =>
+                    updateAssigneeOverrideThinkingEffort(option.value)
+                  }
                 >
                   {option.label}
                 </button>
@@ -913,10 +1223,16 @@ export function IssueProperties({
           </div>
           {assigneeAdapterType === "claude_local" ? (
             <div className="flex items-center justify-between rounded-md border border-border px-2 py-1.5">
-              <div className="text-xs text-muted-foreground">Enable Chrome (--chrome)</div>
+              <div className="text-xs text-muted-foreground">
+                Enable Chrome (--chrome)
+              </div>
               <ToggleSwitch
                 checked={assigneeOverrideChrome}
-                onCheckedChange={(next) => updateAssigneeOverrideConfig({ chrome: next ? true : undefined })}
+                onCheckedChange={(next) =>
+                  updateAssigneeOverrideConfig({
+                    chrome: next ? true : undefined,
+                  })
+                }
               />
             </div>
           ) : null}
@@ -939,18 +1255,29 @@ export function IssueProperties({
       </button>
     </div>
   );
-  const reviewerValues = stageParticipantValues(issue.executionPolicy, "review");
-  const approverValues = stageParticipantValues(issue.executionPolicy, "approval");
-  const userLabel = (userId: string | null | undefined) => formatAssigneeUserLabel(userId, currentUserId, userLabelMap);
-  const actualUserLabel = (userId: string | null | undefined) => formatUserLabel(userId, userLabelMap);
+  const reviewerValues = stageParticipantValues(
+    issue.executionPolicy,
+    "review",
+  );
+  const approverValues = stageParticipantValues(
+    issue.executionPolicy,
+    "approval",
+  );
+  const userLabel = (userId: string | null | undefined) =>
+    formatAssigneeUserLabel(userId, currentUserId, userLabelMap);
+  const actualUserLabel = (userId: string | null | undefined) =>
+    formatUserLabel(userId, userLabelMap);
   const assigneeUserLabel = userLabel(issue.assigneeUserId);
   const creatorUserLabel = actualUserLabel(issue.createdByUserId);
   const originatingActor = deriveOriginatingActor(issue);
   const originatingUserProfile =
-    originatingActor?.kind === "user" ? userProfileMap.get(originatingActor.id) : null;
+    originatingActor?.kind === "user"
+      ? userProfileMap.get(originatingActor.id)
+      : null;
   const originatingViaAgentName =
     originatingActor?.kind === "user" && originatingActor.viaAgentId
-      ? agentName(originatingActor.viaAgentId) ?? originatingActor.viaAgentId.slice(0, 8)
+      ? (agentName(originatingActor.viaAgentId) ??
+        originatingActor.viaAgentId.slice(0, 8))
       : null;
   const selectedAssigneeValue = issue.assigneeAgentId
     ? `agent:${issue.assigneeAgentId}`
@@ -968,7 +1295,8 @@ export function IssueProperties({
     [agents, userLabelMap, currentUserId],
   );
   const reassignInterruptCopy = useMemo(
-    () => describeReassignInterrupt({ runningAgentName: assignee?.name ?? null }),
+    () =>
+      describeReassignInterrupt({ runningAgentName: assignee?.name ?? null }),
     [assignee?.name],
   );
   const closeAssigneePicker = () => {
@@ -976,7 +1304,10 @@ export function IssueProperties({
     setAssigneeSearch("");
     setPendingAssignee(null);
   };
-  const applyAssignee = (next: { assigneeAgentId: string | null; assigneeUserId: string | null }, track?: () => void) => {
+  const applyAssignee = (
+    next: { assigneeAgentId: string | null; assigneeUserId: string | null },
+    track?: () => void,
+  ) => {
     track?.();
     onUpdate(next);
     closeAssigneePicker();
@@ -1002,7 +1333,10 @@ export function IssueProperties({
     }
     applyAssignee(next, track);
   };
-  const updateExecutionPolicy = (nextReviewers: string[], nextApprovers: string[]) => {
+  const updateExecutionPolicy = (
+    nextReviewers: string[],
+    nextApprovers: string[],
+  ) => {
     if (!policyAvailable) return;
     onUpdate({
       executionPolicy: buildExecutionPolicy({
@@ -1012,8 +1346,12 @@ export function IssueProperties({
       }),
     });
   };
-  const toggleExecutionParticipant = (stageType: "review" | "approval", value: string) => {
-    const currentValues = stageType === "review" ? reviewerValues : approverValues;
+  const toggleExecutionParticipant = (
+    stageType: "review" | "approval",
+    value: string,
+  ) => {
+    const currentValues =
+      stageType === "review" ? reviewerValues : approverValues;
     const nextValues = currentValues.includes(value)
       ? currentValues.filter((candidate) => candidate !== value)
       : [...currentValues, value];
@@ -1024,27 +1362,47 @@ export function IssueProperties({
   };
   const executionParticipantLabel = (value: string) => {
     if (value.startsWith("agent:")) {
-      return agentName(value.slice("agent:".length)) ?? value.slice("agent:".length, "agent:".length + 8);
+      return (
+        agentName(value.slice("agent:".length)) ??
+        value.slice("agent:".length, "agent:".length + 8)
+      );
     }
     if (value.startsWith("user:")) {
       return userLabel(value.slice("user:".length)) ?? "User";
     }
     return value;
   };
-  const reviewerLabel = reviewerValues.map((value) => executionParticipantLabel(value)).join(", ");
-  const approverLabel = approverValues.map((value) => executionParticipantLabel(value)).join(", ");
-  const reviewerTrigger = reviewerValues.length > 0
-    ? <span className="text-sm truncate min-w-0" title={reviewerLabel}>{reviewerLabel}</span>
-    : <span className="text-sm text-muted-foreground">None</span>;
-  const approverTrigger = approverValues.length > 0
-    ? <span className="text-sm truncate min-w-0" title={approverLabel}>{approverLabel}</span>
-    : <span className="text-sm text-muted-foreground">None</span>;
+  const reviewerLabel = reviewerValues
+    .map((value) => executionParticipantLabel(value))
+    .join(", ");
+  const approverLabel = approverValues
+    .map((value) => executionParticipantLabel(value))
+    .join(", ");
+  const reviewerTrigger =
+    reviewerValues.length > 0 ? (
+      <span className="text-sm truncate min-w-0" title={reviewerLabel}>
+        {reviewerLabel}
+      </span>
+    ) : (
+      <span className="text-sm text-muted-foreground">None</span>
+    );
+  const approverTrigger =
+    approverValues.length > 0 ? (
+      <span className="text-sm truncate min-w-0" title={approverLabel}>
+        {approverLabel}
+      </span>
+    ) : (
+      <span className="text-sm text-muted-foreground">None</span>
+    );
   // PAP-16506 P4: who may give the `in_review` verdict. Only an agent sets this,
   // and only the two opt-in constraints are worth a row — the default (`null` ≡
   // "anyone can approve") is what every issue already does, so it shows nothing.
   const reviewPolicyBadge = issueReviewPolicyBadge(issue.reviewPolicy);
   const nextRunnableExecutionStage = (() => {
-    if (issue.executionState?.status === "changes_requested" && issue.executionState.currentStageType) {
+    if (
+      issue.executionState?.status === "changes_requested" &&
+      issue.executionState.currentStageType
+    ) {
       return issue.executionState.currentStageType;
     }
     if (issue.executionState) return null;
@@ -1065,12 +1423,15 @@ export function IssueProperties({
   );
   const currentExecutionLabel = (() => {
     if (!issue.executionState?.currentStageType) return null;
-    const stageLabel = issue.executionState.currentStageType === "review" ? "Review" : "Approval";
+    const stageLabel =
+      issue.executionState.currentStageType === "review"
+        ? "Review"
+        : "Approval";
     const participant = issue.executionState.currentParticipant;
     const participantLabel = participant
-      ? (participant.type === "agent"
+      ? participant.type === "agent"
         ? agentName(participant.agentId ?? null)
-        : userLabel(participant.userId ?? null))
+        : userLabel(participant.userId ?? null)
       : null;
     if (issue.executionState.status === "changes_requested") {
       return `${stageLabel} requested changes${participantLabel ? ` by ${participantLabel}` : ""}`;
@@ -1078,7 +1439,9 @@ export function IssueProperties({
     return `${stageLabel} pending${participantLabel ? ` with ${participantLabel}` : ""}`;
   })();
   useEffect(() => {
-    setMonitorAtInput(toDateTimeLocalValue(executionPolicy?.monitor?.nextCheckAt));
+    setMonitorAtInput(
+      toDateTimeLocalValue(executionPolicy?.monitor?.nextCheckAt),
+    );
     setMonitorNotesInput(executionPolicy?.monitor?.notes ?? "");
     setMonitorServiceInput(executionPolicy?.monitor?.serviceName ?? "");
   }, [
@@ -1091,37 +1454,45 @@ export function IssueProperties({
     if (watchdogOpen) return;
     setWatchdogAgentInput(issue.watchdog?.watchdogAgentId ?? "");
     setWatchdogInstructionsInput(issue.watchdog?.instructions ?? "");
-  }, [issue.watchdog?.watchdogAgentId, issue.watchdog?.instructions, watchdogOpen]);
+  }, [
+    issue.watchdog?.watchdogAgentId,
+    issue.watchdog?.instructions,
+    watchdogOpen,
+  ]);
 
   const watchdogAgentOptions = useMemo<InlineEntityOption[]>(
     () =>
-      (agents ?? [])
-        .filter(isAgentTaskTarget)
-        .map((agent) => ({
-          id: agent.id,
-          label: agent.name,
-          searchText: `${agent.name} ${agent.role} ${agent.title ?? ""}`,
-        })),
+      (agents ?? []).filter(isAgentTaskTarget).map((agent) => ({
+        id: agent.id,
+        label: agent.name,
+        searchText: `${agent.name} ${agent.role} ${agent.title ?? ""}`,
+      })),
     [agents],
   );
   const upsertWatchdog = useMutation({
     mutationFn: (data: { agentId: string; instructions: string | null }) =>
       issuesApi.upsertWatchdog(issue.id, data),
     onSuccess: (watchdog) => {
-      queryClient.setQueryData<Issue>(queryKeys.issues.detail(issue.id), (current) =>
-        current ? { ...current, watchdog } : current,
+      queryClient.setQueryData<Issue>(
+        queryKeys.issues.detail(issue.id),
+        (current) => (current ? { ...current, watchdog } : current),
       );
-      void queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issue.id) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.detail(issue.id),
+      });
       setWatchdogOpen(false);
     },
   });
   const deleteWatchdog = useMutation({
     mutationFn: () => issuesApi.deleteWatchdog(issue.id),
     onSuccess: () => {
-      queryClient.setQueryData<Issue>(queryKeys.issues.detail(issue.id), (current) =>
-        current ? { ...current, watchdog: null } : current,
+      queryClient.setQueryData<Issue>(
+        queryKeys.issues.detail(issue.id),
+        (current) => (current ? { ...current, watchdog: null } : current),
       );
-      void queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issue.id) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.detail(issue.id),
+      });
       setWatchdogOpen(false);
     },
   });
@@ -1151,40 +1522,58 @@ export function IssueProperties({
     (child) => child.id === issue.watchdog?.watchdogIssueId,
   );
   const watchdogTrigger = issue.watchdog ? (
-    <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm" title={issue.watchdog.instructions?.trim() || undefined}>
+    <span
+      className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm"
+      title={issue.watchdog.instructions?.trim() || undefined}
+    >
       {(() => {
-        const agent = (agents ?? []).find((candidate) => candidate.id === issue.watchdog?.watchdogAgentId);
-        return agent ? <AgentAvatar agent={agent} size={16} className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/> : null;
+        const agent = (agents ?? []).find(
+          (candidate) => candidate.id === issue.watchdog?.watchdogAgentId,
+        );
+        return agent ? (
+          <AgentAvatar
+            agent={agent}
+            size={16}
+            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          />
+        ) : null;
       })()}
-      <span className="shrink-0 max-w-40 truncate">{agentName(issue.watchdog.watchdogAgentId)}</span>
+      <span className="shrink-0 max-w-40 truncate">
+        {agentName(issue.watchdog.watchdogAgentId)}
+      </span>
       {issue.watchdog.instructions?.trim() ? (
         <span className="min-w-0 flex-1 truncate text-muted-foreground">
           · {issue.watchdog.instructions.trim()}
         </span>
       ) : null}
       {issue.watchdog.status === "disabled" ? (
-        <span className="shrink-0 text-xs text-muted-foreground">(disabled)</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          (disabled)
+        </span>
       ) : null}
     </span>
   ) : (
     <span className="text-sm text-muted-foreground">None</span>
   );
-  const labelsExtra = !streamlinedPropertiesEnabled && (issue.labelIds ?? []).length > 0 ? (
-    <button
-      type="button"
-      className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-      onClick={() => setLabelsOpen(true)}
-      aria-label="Add label"
-      title="Add label"
-    >
-      <Plus className="h-3 w-3" />
-      Add label
-    </button>
-  ) : undefined;
+  const labelsExtra =
+    !streamlinedPropertiesEnabled && (issue.labelIds ?? []).length > 0 ? (
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+        onClick={() => setLabelsOpen(true)}
+        aria-label="Add label"
+        title="Add label"
+      >
+        <Plus className="h-3 w-3" />
+        Add label
+      </button>
+    ) : undefined;
   const watchdogContent = (
     <div className="space-y-3 p-2">
       <div className="space-y-1.5">
-        <div className="text-xs font-medium text-foreground">Watchdog agent</div>
+        <div className="text-xs font-medium text-foreground">
+          Watchdog agent
+        </div>
         <InlineEntitySelector
           value={watchdogAgentInput}
           options={watchdogAgentOptions}
@@ -1194,20 +1583,39 @@ export function IssueProperties({
           emptyMessage="No agents found."
           onChange={setWatchdogAgentInput}
           renderTriggerValue={(option) => {
-            if (!option) return <span className="text-muted-foreground">Select agent</span>;
-            const agent = (agents ?? []).find((candidate) => candidate.id === option.id);
+            if (!option)
+              return (
+                <span className="text-muted-foreground">Select agent</span>
+              );
+            const agent = (agents ?? []).find(
+              (candidate) => candidate.id === option.id,
+            );
             return (
               <>
-                {agent ? <AgentAvatar agent={agent} size={16} className="h-3 w-3 shrink-0 text-muted-foreground"/> : null}
+                {agent ? (
+                  <AgentAvatar
+                    agent={agent}
+                    size={16}
+                    className="h-3 w-3 shrink-0 text-muted-foreground"
+                  />
+                ) : null}
                 <span className="truncate">{option.label}</span>
               </>
             );
           }}
           renderOption={(option) => {
-            const agent = (agents ?? []).find((candidate) => candidate.id === option.id);
+            const agent = (agents ?? []).find(
+              (candidate) => candidate.id === option.id,
+            );
             return (
               <>
-                {agent ? <AgentAvatar agent={agent} size={16} className="h-3 w-3 shrink-0 text-muted-foreground"/> : null}
+                {agent ? (
+                  <AgentAvatar
+                    agent={agent}
+                    size={16}
+                    className="h-3 w-3 shrink-0 text-muted-foreground"
+                  />
+                ) : null}
                 <span className="truncate">{option.label}</span>
               </>
             );
@@ -1216,7 +1624,8 @@ export function IssueProperties({
       </div>
       <div className="space-y-1.5">
         <div className="text-xs font-medium text-foreground">
-          Instructions <span className="font-normal text-muted-foreground">(optional)</span>
+          Instructions{" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
         </div>
         <Textarea
           value={watchdogInstructionsInput}
@@ -1229,7 +1638,10 @@ export function IssueProperties({
       {watchdogIssueRef ? (
         <div className="text-xs text-muted-foreground">
           Watchdog task:{" "}
-          <Link to={`/issues/${watchdogIssueRef.id}`} className="text-primary hover:underline">
+          <Link
+            to={`/issues/${watchdogIssueRef.id}`}
+            className="text-primary hover:underline"
+          >
             {watchdogIssueRef.identifier ?? "View task"}
           </Link>
         </div>
@@ -1243,7 +1655,9 @@ export function IssueProperties({
         <button
           type="button"
           className="text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
-          disabled={deleteWatchdog.isPending || (!issue.watchdog && !watchdogAgentInput)}
+          disabled={
+            deleteWatchdog.isPending || (!issue.watchdog && !watchdogAgentInput)
+          }
           onClick={removeWatchdog}
         >
           {deleteWatchdog.isPending ? "Removing…" : "Remove"}
@@ -1255,17 +1669,23 @@ export function IssueProperties({
           disabled={!watchdogAgentInput || upsertWatchdog.isPending}
           onClick={saveWatchdog}
         >
-          {upsertWatchdog.isPending ? "Saving…" : issue.watchdog ? "Update" : "Set watchdog"}
+          {upsertWatchdog.isPending
+            ? "Saving…"
+            : issue.watchdog
+              ? "Update"
+              : "Set watchdog"}
         </Button>
       </div>
     </div>
   );
 
-  const updateMonitor = (nextMonitor: Issue["executionPolicy"] extends infer T
-    ? T extends { monitor?: infer M | null } | null | undefined
-      ? M | null
-      : never
-    : never) => {
+  const updateMonitor = (
+    nextMonitor: Issue["executionPolicy"] extends infer T
+      ? T extends { monitor?: infer M | null } | null | undefined
+        ? M | null
+        : never
+      : never,
+  ) => {
     if (!policyAvailable) return;
     const basePolicy = buildExecutionPolicy({
       existingPolicy: issue.executionPolicy ?? null,
@@ -1276,7 +1696,8 @@ export function IssueProperties({
       onUpdate({ executionPolicy: null });
       return;
     }
-    const { monitor: _previousMonitor, ...policyWithoutMonitor } = basePolicy ?? {};
+    const { monitor: _previousMonitor, ...policyWithoutMonitor } =
+      basePolicy ?? {};
     onUpdate({
       executionPolicy: {
         ...policyWithoutMonitor,
@@ -1307,13 +1728,23 @@ export function IssueProperties({
     setMonitorOpen(false);
   };
   const monitorState = issue.executionState?.monitor ?? null;
-  const monitorNextCheckAt = monitorState?.nextCheckAt ?? issue.monitorNextCheckAt ?? executionPolicy?.monitor?.nextCheckAt ?? null;
-  const monitorAttemptCount = issue.monitorAttemptCount ?? monitorState?.attemptCount ?? 0;
-  const monitorLastTriggeredAt = issue.monitorLastTriggeredAt ?? monitorState?.lastTriggeredAt ?? null;
-  const monitorServiceName = executionPolicy?.monitor?.serviceName ?? monitorState?.serviceName ?? null;
-  const monitorNotes = executionPolicy?.monitor?.notes ?? monitorState?.notes ?? null;
+  const monitorNextCheckAt =
+    monitorState?.nextCheckAt ??
+    issue.monitorNextCheckAt ??
+    executionPolicy?.monitor?.nextCheckAt ??
+    null;
+  const monitorAttemptCount =
+    issue.monitorAttemptCount ?? monitorState?.attemptCount ?? 0;
+  const monitorLastTriggeredAt =
+    issue.monitorLastTriggeredAt ?? monitorState?.lastTriggeredAt ?? null;
+  const monitorServiceName =
+    executionPolicy?.monitor?.serviceName ?? monitorState?.serviceName ?? null;
+  const monitorNotes =
+    executionPolicy?.monitor?.notes ?? monitorState?.notes ?? null;
   const monitorNow = useMonitorCountdown(monitorNextCheckAt);
-  const monitorRelative = monitorNextCheckAt ? formatMonitorEta(monitorNextCheckAt, monitorNow) : null;
+  const monitorRelative = monitorNextCheckAt
+    ? formatMonitorEta(monitorNextCheckAt, monitorNow)
+    : null;
   const monitorIsDueNow = monitorRelative === "due now";
   const monitorIsOverdue = Boolean(monitorRelative?.startsWith("overdue by "));
   const monitorPrimary = monitorNextCheckAt
@@ -1327,77 +1758,143 @@ export function IssueProperties({
       : `${formatMonitorAbsolute(monitorNextCheckAt, {}, monitorNow)}${monitorIsOverdue ? " · fires on next tick" : monitorAttemptCount > 0 ? ` · Attempt ${monitorAttemptCount}` : ""}`
     : monitorState?.status === "cleared"
       ? [
-          monitorLastTriggeredAt ? `last checked ${timeAgo(monitorLastTriggeredAt)}` : null,
-          monitorAttemptCount > 0 ? `after attempt ${monitorAttemptCount}` : null,
-        ].filter(Boolean).join(" · ")
+          monitorLastTriggeredAt
+            ? `last checked ${timeAgo(monitorLastTriggeredAt)}`
+            : null,
+          monitorAttemptCount > 0
+            ? `after attempt ${monitorAttemptCount}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
       : null;
   const monitorTrigger = (
     <TooltipProvider>
       <Tooltip open={monitorDetailsOpen} onOpenChange={setMonitorDetailsOpen}>
-      <TooltipTrigger asChild>
-        <span
-          className="inline-flex min-w-0 items-start gap-1.5"
-          data-testid="monitor-row-trigger"
-          onClick={() => setMonitorDetailsOpen(false)}
-        >
-      {monitorNextCheckAt ? (
-            <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-      ) : null}
-          <span className="flex min-w-0 flex-col items-start">
-            <span className={cn("text-sm", monitorNextCheckAt ? "font-semibold text-foreground" : "text-muted-foreground")}>{monitorPrimary}</span>
-            {monitorSecondary ? (
-              <span className="text-xs text-muted-foreground">{monitorSecondary}</span>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex min-w-0 items-start gap-1.5"
+            data-testid="monitor-row-trigger"
+            onClick={() => setMonitorDetailsOpen(false)}
+          >
+            {monitorNextCheckAt ? (
+              <Clock
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
             ) : null}
+            <span className="flex min-w-0 flex-col items-start">
+              <span
+                className={cn(
+                  "text-sm",
+                  monitorNextCheckAt
+                    ? "font-semibold text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {monitorPrimary}
+              </span>
+              {monitorSecondary ? (
+                <span className="text-xs text-muted-foreground">
+                  {monitorSecondary}
+                </span>
+              ) : null}
+            </span>
           </span>
-        </span>
-      </TooltipTrigger>
-      {monitorNextCheckAt ? (
-        <TooltipContent
-          side="left"
-          className="w-80 border border-border bg-popover p-0 text-popover-foreground shadow-md"
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <span className="text-sm font-semibold">Monitor</span>
-            {monitorAttemptCount > 0 ? <span className="text-xs text-muted-foreground">Attempt {monitorAttemptCount}</span> : null}
-          </div>
-          <div className="space-y-3 px-4 py-3 text-left">
-            <div>
-              <div className="text-xs text-muted-foreground">Next check</div>
-              <div className="text-sm">{formatMonitorAbsoluteFull(monitorNextCheckAt)}</div>
-              <div className="text-xs text-muted-foreground">{monitorRelative}</div>
+        </TooltipTrigger>
+        {monitorNextCheckAt ? (
+          <TooltipContent
+            side="left"
+            className="w-80 border border-border bg-popover p-0 text-popover-foreground shadow-md"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <span className="text-sm font-semibold">Monitor</span>
+              {monitorAttemptCount > 0 ? (
+                <span className="text-xs text-muted-foreground">
+                  Attempt {monitorAttemptCount}
+                </span>
+              ) : null}
             </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Watching</div>
-              <div className="text-sm">{monitorServiceName ?? "—"}</div>
+            <div className="space-y-3 px-4 py-3 text-left">
+              <div>
+                <div className="text-xs text-muted-foreground">Next check</div>
+                <div className="text-sm">
+                  {formatMonitorAbsoluteFull(monitorNextCheckAt)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {monitorRelative}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Watching</div>
+                <div className="text-sm">{monitorServiceName ?? "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Notes</div>
+                <div className="whitespace-normal text-sm">
+                  {monitorNotes ?? "—"}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">
+                  Last triggered
+                </div>
+                <div className="text-sm">
+                  {monitorLastTriggeredAt
+                    ? formatMonitorAbsoluteFull(monitorLastTriggeredAt)
+                    : "— not yet triggered"}
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Notes</div>
-              <div className="whitespace-normal text-sm">{monitorNotes ?? "—"}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Last triggered</div>
-              <div className="text-sm">{monitorLastTriggeredAt ? formatMonitorAbsoluteFull(monitorLastTriggeredAt) : "— not yet triggered"}</div>
-            </div>
-          </div>
-          <div className="flex gap-2 border-t border-border px-4 py-3">
-            {onCheckMonitorNow ? (
-              <Button type="button" size="sm" variant="outline" disabled={checkingMonitorNow} onClick={() => { setMonitorDetailsOpen(false); onCheckMonitorNow(); }}>
-                {checkingMonitorNow ? "Checking…" : "Check now"}
+            <div className="flex gap-2 border-t border-border px-4 py-3">
+              {onCheckMonitorNow ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={checkingMonitorNow}
+                  onClick={() => {
+                    setMonitorDetailsOpen(false);
+                    onCheckMonitorNow();
+                  }}
+                >
+                  {checkingMonitorNow ? "Checking…" : "Check now"}
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setMonitorDetailsOpen(false);
+                  setMonitorOpen(true);
+                }}
+              >
+                Edit
               </Button>
-            ) : null}
-            <Button type="button" size="sm" variant="outline" onClick={() => { setMonitorDetailsOpen(false); setMonitorOpen(true); }}>Edit</Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => { setMonitorDetailsOpen(false); clearMonitor(); }}>Clear</Button>
-          </div>
-        </TooltipContent>
-      ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setMonitorDetailsOpen(false);
+                  clearMonitor();
+                }}
+              >
+                Clear
+              </Button>
+            </div>
+          </TooltipContent>
+        ) : null}
       </Tooltip>
     </TooltipProvider>
   );
 
   const scheduledRetry = issue.scheduledRetry ?? null;
   const retryNow = useRetryNowMutation(issue.id);
-  const showScheduledRetryRow = scheduledRetry && scheduledRetry.status === "scheduled_retry";
+  const showScheduledRetryRow =
+    scheduledRetry && scheduledRetry.status === "scheduled_retry";
   const scheduledRetryDueAtIso = scheduledRetry?.scheduledRetryAt
     ? new Date(scheduledRetry.scheduledRetryAt).toISOString()
     : null;
@@ -1410,11 +1907,13 @@ export function IssueProperties({
   const scheduledRetryShortDate = scheduledRetry?.scheduledRetryAt
     ? formatDate(new Date(scheduledRetry.scheduledRetryAt))
     : null;
-  const scheduledRetryReasonLabel = formatRetryReason(scheduledRetry?.scheduledRetryReason);
+  const scheduledRetryReasonLabel = formatRetryReason(
+    scheduledRetry?.scheduledRetryReason,
+  );
   const scheduledRetryAttempt =
-    typeof scheduledRetry?.scheduledRetryAttempt === "number"
-    && Number.isFinite(scheduledRetry.scheduledRetryAttempt)
-    && scheduledRetry.scheduledRetryAttempt > 0
+    typeof scheduledRetry?.scheduledRetryAttempt === "number" &&
+    Number.isFinite(scheduledRetry.scheduledRetryAttempt) &&
+    scheduledRetry.scheduledRetryAttempt > 0
       ? scheduledRetry.scheduledRetryAttempt
       : null;
   const scheduledRetryIsContinuation =
@@ -1425,14 +1924,22 @@ export function IssueProperties({
     if (scheduledRetryRelative === "now") return `${action} due now`;
     return `${action} ${scheduledRetryRelative}`;
   })();
-  const scheduledRetryRetryNowSuccess = retryNow.isSuccess
-    && (retryNow.data?.outcome === "promoted" || retryNow.data?.outcome === "already_promoted");
-  const scheduledRetryAttemptBadge = scheduledRetryAttempt !== null ? (
-    <span className="whitespace-nowrap shrink-0 text-xs text-muted-foreground">Attempt {scheduledRetryAttempt}</span>
-  ) : null;
+  const scheduledRetryRetryNowSuccess =
+    retryNow.isSuccess &&
+    (retryNow.data?.outcome === "promoted" ||
+      retryNow.data?.outcome === "already_promoted");
+  const scheduledRetryAttemptBadge =
+    scheduledRetryAttempt !== null ? (
+      <span className="whitespace-nowrap shrink-0 text-xs text-muted-foreground">
+        Attempt {scheduledRetryAttempt}
+      </span>
+    ) : null;
   const scheduledRetryTrigger = (
     <span className="inline-flex min-w-0 items-center gap-1.5">
-      <RotateCcw className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <RotateCcw
+        className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+        aria-hidden="true"
+      />
       <span
         className="min-w-0 truncate text-sm text-foreground"
         title={scheduledRetryAbsolute ?? undefined}
@@ -1440,7 +1947,10 @@ export function IssueProperties({
         {scheduledRetryRelativeLabel}
       </span>
       {scheduledRetryShortDate ? (
-        <span className="shrink-0 text-xs text-muted-foreground" title={scheduledRetryAbsolute ?? undefined}>
+        <span
+          className="shrink-0 text-xs text-muted-foreground"
+          title={scheduledRetryAbsolute ?? undefined}
+        >
           {scheduledRetryShortDate}
         </span>
       ) : null}
@@ -1450,7 +1960,9 @@ export function IssueProperties({
     <div className="flex w-full flex-col gap-2 p-2 text-xs">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-foreground">
-          {scheduledRetryIsContinuation ? "Scheduled continuation" : "Scheduled retry"}
+          {scheduledRetryIsContinuation
+            ? "Scheduled continuation"
+            : "Scheduled retry"}
         </span>
         {scheduledRetryAttempt !== null ? (
           <span className="text-xs text-muted-foreground">
@@ -1471,7 +1983,9 @@ export function IssueProperties({
             <dd className="text-foreground">
               {scheduledRetryAbsolute}
               {scheduledRetryRelative ? (
-                <span className="ml-1 text-muted-foreground">· {scheduledRetryRelative}</span>
+                <span className="ml-1 text-muted-foreground">
+                  · {scheduledRetryRelative}
+                </span>
               ) : null}
             </dd>
           </>
@@ -1505,7 +2019,9 @@ export function IssueProperties({
         {scheduledRetry.error ? (
           <>
             <dt className="text-muted-foreground">Last error</dt>
-            <dd className="text-foreground break-words">{scheduledRetry.error}</dd>
+            <dd className="text-foreground break-words">
+              {scheduledRetry.error}
+            </dd>
           </>
         ) : null}
       </dl>
@@ -1528,13 +2044,18 @@ export function IssueProperties({
         >
           {retryNow.isPending ? (
             <span className="inline-flex items-center gap-1.5">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              <Loader2
+                className="h-3.5 w-3.5 animate-spin"
+                aria-hidden="true"
+              />
               Retrying…
             </span>
           ) : scheduledRetryRetryNowSuccess ? (
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-              {retryNow.data?.outcome === "already_promoted" ? "Already promoted" : "Promoted"}
+              {retryNow.data?.outcome === "already_promoted"
+                ? "Already promoted"
+                : "Promoted"}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5">
@@ -1550,7 +2071,8 @@ export function IssueProperties({
               ? retryNow.data?.outcome === "already_promoted"
                 ? "Already promoted — run starting"
                 : "Promoted — run starting"
-              : retryNow.data?.outcome === "waiting" && retryNow.data.scheduledRetry?.runId === scheduledRetry.runId
+              : retryNow.data?.outcome === "waiting" &&
+                  retryNow.data.scheduledRetry?.runId === scheduledRetry.runId
                 ? retryNow.data.message
                 : scheduledRetryIsContinuation
                   ? "Pulls continuation forward immediately"
@@ -1620,29 +2142,33 @@ export function IssueProperties({
       .filter((label): label is IssueLabel => Boolean(label));
   }, [issue.labelIds, issue.labels, labels]);
 
-  const labelsTrigger = selectedIssueLabels.length > 0 ? (
-    <div className="flex min-w-0 flex-col items-start gap-1">
-      {selectedIssueLabels.slice(0, 3).map((label) => (
-        <PropertyChip
-          key={label.id}
-          className="border-0"
-          style={{
-            backgroundColor: `${label.color}22`,
-            color: label.color,
-          }}
-        >
-          {label.name}
-        </PropertyChip>
-      ))}
-      {selectedIssueLabels.length > 3 && (
-        <Badge variant="outline" className="border-border text-muted-foreground">
-          +{selectedIssueLabels.length - 3} more
-        </Badge>
-      )}
-    </div>
-  ) : (
-    <span className="text-sm text-muted-foreground">None</span>
-  );
+  const labelsTrigger =
+    selectedIssueLabels.length > 0 ? (
+      <div className="flex min-w-0 flex-col items-start gap-1">
+        {selectedIssueLabels.slice(0, 3).map((label) => (
+          <PropertyChip
+            key={label.id}
+            className="border-0"
+            style={{
+              backgroundColor: `${label.color}22`,
+              color: label.color,
+            }}
+          >
+            {label.name}
+          </PropertyChip>
+        ))}
+        {selectedIssueLabels.length > 3 && (
+          <Badge
+            variant="outline"
+            className="border-border text-muted-foreground"
+          >
+            +{selectedIssueLabels.length - 3} more
+          </Badge>
+        )}
+      </div>
+    ) : (
+      <span className="text-sm text-muted-foreground">None</span>
+    );
   const labelsContent = (
     <>
       <input
@@ -1665,13 +2191,21 @@ export function IssueProperties({
                 key={label.id}
                 className={cn(
                   "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-left",
-                  selected && "bg-accent"
+                  selected && "bg-accent",
                 )}
                 onClick={() => toggleLabel(label.id)}
               >
-                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: label.color }} />
+                <span
+                  className="h-2.5 w-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: label.color }}
+                />
                 <span className="truncate flex-1">{label.name}</span>
-                {selected && <Check className="h-3.5 w-3.5 shrink-0 text-foreground" aria-hidden="true" />}
+                {selected && (
+                  <Check
+                    className="h-3.5 w-3.5 shrink-0 text-foreground"
+                    aria-hidden="true"
+                  />
+                )}
               </button>
             );
           })}
@@ -1713,7 +2247,9 @@ export function IssueProperties({
   ) : assigneeUserLabel ? (
     <>
       <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 truncate text-sm" title={assigneeUserLabel}>{assigneeUserLabel}</span>
+      <span className="min-w-0 truncate text-sm" title={assigneeUserLabel}>
+        {assigneeUserLabel}
+      </span>
     </>
   ) : (
     <span className="text-sm text-muted-foreground">Unassigned</span>
@@ -1724,22 +2260,28 @@ export function IssueProperties({
   // within their group via `sortedAgents`.
   const userAssigneeOptions = [
     ...(currentUserId
-      ? [{
-          kind: "user" as const,
-          value: `user:${currentUserId}`,
-          userId: currentUserId,
-          label: "Assign to me",
-          searchText: userLabel(currentUserId) ?? "",
-        }]
+      ? [
+          {
+            kind: "user" as const,
+            value: `user:${currentUserId}`,
+            userId: currentUserId,
+            label: "Assign to me",
+            searchText: userLabel(currentUserId) ?? "",
+          },
+        ]
       : []),
     ...(issue.createdByUserId && issue.createdByUserId !== currentUserId
-      ? [{
-          kind: "user" as const,
-          value: `user:${issue.createdByUserId}`,
-          userId: issue.createdByUserId,
-          label: creatorUserLabel ? `Assign to ${creatorUserLabel}` : "Assign to requester",
-          searchText: creatorUserLabel ?? "requester",
-        }]
+      ? [
+          {
+            kind: "user" as const,
+            value: `user:${issue.createdByUserId}`,
+            userId: issue.createdByUserId,
+            label: creatorUserLabel
+              ? `Assign to ${creatorUserLabel}`
+              : "Assign to requester",
+            searchText: creatorUserLabel ?? "requester",
+          },
+        ]
       : []),
     ...otherUserOptions.map((option) => ({
       kind: "user" as const,
@@ -1759,13 +2301,27 @@ export function IssueProperties({
 
   const matchesAssigneeSearch = (label: string, searchText: string) => {
     if (!assigneeSearch.trim()) return true;
-    return `${label} ${searchText}`.toLowerCase().includes(assigneeSearch.toLowerCase());
+    return `${label} ${searchText}`
+      .toLowerCase()
+      .includes(assigneeSearch.toLowerCase());
   };
 
   type AssigneeOptionLike =
     | { kind: "none"; value: string; label: string; searchText: string }
-    | { kind: "user"; value: string; userId: string; label: string; searchText: string }
-    | { kind: "agent"; value: string; agent: (typeof agentAssigneeOptions)[number]["agent"]; label: string; searchText: string };
+    | {
+        kind: "user";
+        value: string;
+        userId: string;
+        label: string;
+        searchText: string;
+      }
+    | {
+        kind: "agent";
+        value: string;
+        agent: (typeof agentAssigneeOptions)[number]["agent"];
+        label: string;
+        searchText: string;
+      };
 
   const renderAssigneeOption = (option: AssigneeOptionLike) => (
     <button
@@ -1776,26 +2332,41 @@ export function IssueProperties({
       )}
       onClick={() => {
         if (option.kind === "agent") {
-          selectAssignee({ assigneeAgentId: option.agent.id, assigneeUserId: null }, option.label, () =>
-            trackRecentAssignee(option.agent.id, companyId ?? undefined),
+          selectAssignee(
+            { assigneeAgentId: option.agent.id, assigneeUserId: null },
+            option.label,
+            () => trackRecentAssignee(option.agent.id, companyId ?? undefined),
           );
         } else if (option.kind === "user") {
-          selectAssignee({ assigneeAgentId: null, assigneeUserId: option.userId }, option.label, () =>
-            trackRecentAssigneeUser(option.userId, companyId ?? undefined),
+          selectAssignee(
+            { assigneeAgentId: null, assigneeUserId: option.userId },
+            option.label,
+            () =>
+              trackRecentAssigneeUser(option.userId, companyId ?? undefined),
           );
         } else {
-          selectAssignee({ assigneeAgentId: null, assigneeUserId: null }, option.label);
+          selectAssignee(
+            { assigneeAgentId: null, assigneeUserId: null },
+            option.label,
+          );
         }
       }}
     >
       {option.kind === "agent" ? (
-        <AgentAvatar agent={option.agent} size={16} className="shrink-0 h-3 w-3 text-muted-foreground"/>
+        <AgentAvatar
+          agent={option.agent}
+          size={16}
+          className="shrink-0 h-3 w-3 text-muted-foreground"
+        />
       ) : option.kind === "user" ? (
         <User className="h-3 w-3 shrink-0 text-muted-foreground" />
       ) : null}
       <span className="min-w-0 flex-1 truncate">{option.label}</span>
       {option.value === selectedAssigneeValue ? (
-        <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-foreground" aria-hidden="true" />
+        <Check
+          className="ml-auto h-3.5 w-3.5 shrink-0 text-foreground"
+          aria-hidden="true"
+        />
       ) : null}
     </button>
   );
@@ -1817,11 +2388,17 @@ export function IssueProperties({
     <div className="space-y-2 p-1">
       <InterruptAssignConfirm
         copy={reassignInterruptCopy}
-        to={{ agentId: pendingAssignee.assigneeAgentId, userId: pendingAssignee.assigneeUserId }}
+        to={{
+          agentId: pendingAssignee.assigneeAgentId,
+          userId: pendingAssignee.assigneeUserId,
+        }}
         resolvers={handoffResolvers}
         onConfirm={() =>
           applyAssignee(
-            { assigneeAgentId: pendingAssignee.assigneeAgentId, assigneeUserId: pendingAssignee.assigneeUserId },
+            {
+              assigneeAgentId: pendingAssignee.assigneeAgentId,
+              assigneeUserId: pendingAssignee.assigneeUserId,
+            },
             pendingAssignee.track,
           )
         }
@@ -1844,7 +2421,12 @@ export function IssueProperties({
       />
       <div className="max-h-56 overflow-y-auto overscroll-contain">
         {showNoAssigneeOption
-          ? renderAssigneeOption({ kind: "none", value: "", label: "No assignee", searchText: "" })
+          ? renderAssigneeOption({
+              kind: "none",
+              value: "",
+              label: "No assignee",
+              searchText: "",
+            })
           : null}
         {visibleAgentOptions.length > 0 ? (
           <>
@@ -1858,8 +2440,12 @@ export function IssueProperties({
             {visibleUserOptions.map((option) => renderAssigneeOption(option))}
           </>
         ) : null}
-        {!showNoAssigneeOption && visibleAgentOptions.length === 0 && visibleUserOptions.length === 0 ? (
-          <div className="px-2 py-2 text-xs text-muted-foreground">No matches.</div>
+        {!showNoAssigneeOption &&
+        visibleAgentOptions.length === 0 &&
+        visibleUserOptions.length === 0 ? (
+          <div className="px-2 py-2 text-xs text-muted-foreground">
+            No matches.
+          </div>
         ) : null}
       </div>
     </>
@@ -1896,7 +2482,9 @@ export function IssueProperties({
               "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
               values.includes(`user:${currentUserId}`) && "bg-accent",
             )}
-            onClick={() => toggleExecutionParticipant(stageType, `user:${currentUserId}`)}
+            onClick={() =>
+              toggleExecutionParticipant(stageType, `user:${currentUserId}`)
+            }
           >
             <User className="h-3 w-3 shrink-0 text-muted-foreground" />
             Assign to me
@@ -1908,7 +2496,12 @@ export function IssueProperties({
               "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
               values.includes(`user:${issue.createdByUserId}`) && "bg-accent",
             )}
-            onClick={() => toggleExecutionParticipant(stageType, `user:${issue.createdByUserId}`)}
+            onClick={() =>
+              toggleExecutionParticipant(
+                stageType,
+                `user:${issue.createdByUserId}`,
+              )
+            }
           >
             <User className="h-3 w-3 shrink-0 text-muted-foreground" />
             {creatorUserLabel ? creatorUserLabel : "Requester"}
@@ -1917,7 +2510,9 @@ export function IssueProperties({
         {otherUserOptions
           .filter((option) => {
             if (!search.trim()) return true;
-            return `${option.label} ${option.searchText ?? ""}`.toLowerCase().includes(search.toLowerCase());
+            return `${option.label} ${option.searchText ?? ""}`
+              .toLowerCase()
+              .includes(search.toLowerCase());
           })
           .map((option) => (
             <button
@@ -1948,7 +2543,11 @@ export function IssueProperties({
                 )}
                 onClick={() => toggleExecutionParticipant(stageType, encoded)}
               >
-                <AgentAvatar agent={agent} size={16} className="shrink-0 h-3 w-3 text-muted-foreground"/>
+                <AgentAvatar
+                  agent={agent}
+                  size={16}
+                  className="shrink-0 h-3 w-3 text-muted-foreground"
+                />
                 {agent.name}
               </button>
             );
@@ -1964,14 +2563,24 @@ export function IssueProperties({
         icon={issueProject?.icon ?? null}
         size="sm"
       />
-      <span className="text-sm truncate min-w-0" title={projectName(issue.projectId)}>{projectName(issue.projectId)}</span>
+      <span
+        className="text-sm truncate min-w-0"
+        title={projectName(issue.projectId)}
+      >
+        {projectName(issue.projectId)}
+      </span>
     </>
   ) : (
     <span className="text-sm text-muted-foreground">None</span>
   );
   const projectPickerOptions = orderItemsBySelectedAndRecent(
     [
-      { id: "", kind: "none" as const, name: "No project", color: null as string | null },
+      {
+        id: "",
+        kind: "none" as const,
+        name: "No project",
+        color: null as string | null,
+      },
       ...orderedProjects.map((project) => ({
         id: project.id,
         kind: "project" as const,
@@ -2009,15 +2618,22 @@ export function IssueProperties({
               )}
               onClick={() => {
                 if (option.kind === "project") {
-                  const defaultMode = defaultExecutionWorkspaceModeForProject(option.project);
+                  const defaultMode = defaultExecutionWorkspaceModeForProject(
+                    option.project,
+                  );
                   onUpdate({
                     projectId: option.project.id,
-                    projectWorkspaceId: defaultProjectWorkspaceIdForProject(option.project),
+                    projectWorkspaceId: defaultProjectWorkspaceIdForProject(
+                      option.project,
+                    ),
                     executionWorkspaceId: null,
-                    executionWorkspacePreference: workspaceIsolationControlsVisible ? defaultMode : null,
-                    executionWorkspaceSettings: workspaceIsolationControlsVisible && option.project.executionWorkspacePolicy?.enabled
-                      ? { mode: defaultMode }
-                      : null,
+                    executionWorkspacePreference:
+                      workspaceIsolationControlsVisible ? defaultMode : null,
+                    executionWorkspaceSettings:
+                      workspaceIsolationControlsVisible &&
+                      option.project.executionWorkspacePolicy?.enabled
+                        ? { mode: defaultMode }
+                        : null,
                   });
                 } else {
                   onUpdate({
@@ -2050,7 +2666,8 @@ export function IssueProperties({
   const visibleBlockedByRelations = blockedByExpanded
     ? blockedByRelations
     : blockedByRelations.slice(0, ISSUE_PROPERTY_RELATION_PREVIEW_COUNT);
-  const hiddenBlockedByCount = blockedByRelations.length - visibleBlockedByRelations.length;
+  const hiddenBlockedByCount =
+    blockedByRelations.length - visibleBlockedByRelations.length;
   const visibleChildIssues = subTasksExpanded
     ? childIssues
     : childIssues.slice(0, ISSUE_PROPERTY_RELATION_PREVIEW_COUNT);
@@ -2059,43 +2676,70 @@ export function IssueProperties({
   const visibleBlockingIssues = blockingExpanded
     ? blockingIssues
     : blockingIssues.slice(0, ISSUE_PROPERTY_RELATION_PREVIEW_COUNT);
-  const hiddenBlockingIssueCount = blockingIssues.length - visibleBlockingIssues.length;
-  const blockedByTrigger = blockedByRelations.length > 0 ? (
-    <div className="flex min-w-0 flex-col items-start gap-1">
-      {blockedByRelations.slice(0, 2).map((relation) => (
-        <IssueReferencePill
-          key={relation.id}
-          issue={relation}
-          onRemove={(id) => onUpdate({ blockedByIssueIds: blockedByIds.filter((candidate) => candidate !== id) })}
-        />
-      ))}
-      {blockedByRelations.length > 2 ? (
-        <Badge asChild variant="outline" className="border-border text-muted-foreground hover:bg-accent/50">
-          <button type="button" onClick={() => setBlockedByOpen(true)}>+{blockedByRelations.length - 2} more</button>
-        </Badge>
-      ) : null}
-    </div>
-  ) : (
-    <span className="text-sm text-muted-foreground">None</span>
-  );
-  const subtasksTrigger = childIssues.length > 0 ? (
-    <div className="flex min-w-0 flex-col items-start gap-1">
-      {childIssues.slice(0, 2).map((child) => (
-        <IssueReferencePill variant="property" key={child.id} issue={child} className="min-w-0 max-w-full" />
-      ))}
-      {childIssues.length > 2 ? (
-        <Badge asChild variant="outline" className="border-border text-muted-foreground hover:bg-accent/50">
-          <button type="button" onClick={() => setSubtasksOpen(true)}>+{childIssues.length - 2} more</button>
-        </Badge>
-      ) : null}
-    </div>
-  ) : (
-    <span className="text-sm text-muted-foreground">None</span>
-  );
+  const hiddenBlockingIssueCount =
+    blockingIssues.length - visibleBlockingIssues.length;
+  const blockedByTrigger =
+    blockedByRelations.length > 0 ? (
+      <div className="flex min-w-0 flex-col items-start gap-1">
+        {blockedByRelations.slice(0, 2).map((relation) => (
+          <IssueReferencePill
+            key={relation.id}
+            issue={relation}
+            onRemove={(id) =>
+              onUpdate({
+                blockedByIssueIds: blockedByIds.filter(
+                  (candidate) => candidate !== id,
+                ),
+              })
+            }
+          />
+        ))}
+        {blockedByRelations.length > 2 ? (
+          <Badge
+            asChild
+            variant="outline"
+            className="border-border text-muted-foreground hover:bg-accent/50"
+          >
+            <button type="button" onClick={() => setBlockedByOpen(true)}>
+              +{blockedByRelations.length - 2} more
+            </button>
+          </Badge>
+        ) : null}
+      </div>
+    ) : (
+      <span className="text-sm text-muted-foreground">None</span>
+    );
+  const subtasksTrigger =
+    childIssues.length > 0 ? (
+      <div className="flex min-w-0 flex-col items-start gap-1">
+        {childIssues.slice(0, 2).map((child) => (
+          <IssueReferencePill
+            variant="property"
+            key={child.id}
+            issue={child}
+            className="min-w-0 max-w-full"
+          />
+        ))}
+        {childIssues.length > 2 ? (
+          <Badge
+            asChild
+            variant="outline"
+            className="border-border text-muted-foreground hover:bg-accent/50"
+          >
+            <button type="button" onClick={() => setSubtasksOpen(true)}>
+              +{childIssues.length - 2} more
+            </button>
+          </Badge>
+        ) : null}
+      </div>
+    ) : (
+      <span className="text-sm text-muted-foreground">None</span>
+    );
   const visibleRelatedTasks = relatedTasksExpanded
     ? relatedTasks
     : relatedTasks.slice(0, ISSUE_PROPERTY_RELATION_PREVIEW_COUNT);
-  const hiddenRelatedTaskCount = relatedTasks.length - visibleRelatedTasks.length;
+  const hiddenRelatedTaskCount =
+    relatedTasks.length - visibleRelatedTasks.length;
   const descendantIssueIds = useMemo(() => {
     if (!allIssues?.length) return new Set<string>();
     const childrenByParentId = new Map<string, string[]>();
@@ -2118,20 +2762,32 @@ export function IssueProperties({
   }, [allIssues, issue.id]);
   const currentParentIssue = useMemo(() => {
     if (!issue.parentId) return null;
-    return allIssues?.find((candidate) => candidate.id === issue.parentId) ?? null;
+    return (
+      allIssues?.find((candidate) => candidate.id === issue.parentId) ?? null
+    );
   }, [allIssues, issue.parentId]);
-  const parentAncestor = issue.ancestors?.find((ancestor) => ancestor.id === issue.parentId);
-  const parentIdentifier = parentAncestor?.identifier ?? currentParentIssue?.identifier;
-  const parentTitle = parentAncestor?.title ?? currentParentIssue?.title ?? issue.parentId?.slice(0, 8);
+  const parentAncestor = issue.ancestors?.find(
+    (ancestor) => ancestor.id === issue.parentId,
+  );
+  const parentIdentifier =
+    parentAncestor?.identifier ?? currentParentIssue?.identifier;
+  const parentTitle =
+    parentAncestor?.title ??
+    currentParentIssue?.title ??
+    issue.parentId?.slice(0, 8);
   const parentTrigger = issue.parentId ? (
     <IssueReferencePill
       variant="property"
-      issue={isLockedIssueStub(parentAncestor) ? parentAncestor : {
-        id: issue.parentId,
-        identifier: parentIdentifier ?? issue.parentId,
-        title: parentTitle ?? "Parent task",
-        status: parentAncestor?.status ?? currentParentIssue?.status,
-      }}
+      issue={
+        isLockedIssueStub(parentAncestor)
+          ? parentAncestor
+          : {
+              id: issue.parentId,
+              identifier: parentIdentifier ?? issue.parentId,
+              title: parentTitle ?? "Parent task",
+              status: parentAncestor?.status ?? currentParentIssue?.status,
+            }
+      }
       className="min-w-0 max-w-full"
     />
   ) : (
@@ -2141,7 +2797,9 @@ export function IssueProperties({
   // When the user types, search on the server. The default list caps at 500 rows
   // and sorts priority-first, so a medium-priority or low-priority match past that
   // cap never enters the client list. A server query with `q` still finds it.
-  const parentSourceIssues = parentSearchActive ? searchedParentIssues : allIssues;
+  const parentSourceIssues = parentSearchActive
+    ? searchedParentIssues
+    : allIssues;
   const parentOptions = (parentSourceIssues ?? [])
     .filter((candidate) => candidate.id !== issue.id)
     .filter((candidate) => !descendantIssueIds.has(candidate.id))
@@ -2150,9 +2808,11 @@ export function IssueProperties({
       const bLabel = `${b.identifier ?? ""} ${b.title}`.trim();
       return aLabel.localeCompare(bLabel);
     });
-  const parentOptionsLoading = parentOpen && (
-    parentSearchActive ? isFetchingSearchedParentIssues : isFetchingIssuePickerIssues
-  );
+  const parentOptionsLoading =
+    parentOpen &&
+    (parentSearchActive
+      ? isFetchingSearchedParentIssues
+      : isFetchingIssuePickerIssues);
   const parentContent = (
     <>
       <input
@@ -2195,9 +2855,13 @@ export function IssueProperties({
           </button>
         ))}
         {parentOptionsLoading ? (
-          <div className="px-2 py-2 text-xs text-muted-foreground">Searching tasks...</div>
+          <div className="px-2 py-2 text-xs text-muted-foreground">
+            Searching tasks...
+          </div>
         ) : parentOptions.length === 0 ? (
-          <div className="px-2 py-2 text-xs text-muted-foreground">No matching tasks.</div>
+          <div className="px-2 py-2 text-xs text-muted-foreground">
+            No matching tasks.
+          </div>
         ) : null}
       </div>
     </>
@@ -2216,7 +2880,9 @@ export function IssueProperties({
             .map((candidate) => [candidate.id, candidate]),
         ).values(),
       )
-    : (blockerSourceIssues ?? []).filter((candidate) => candidate.id !== issue.id);
+    : (blockerSourceIssues ?? []).filter(
+        (candidate) => candidate.id !== issue.id,
+      );
   if (!blockerSearchActive) {
     blockerOptions.sort((a, b) => {
       const aLabel = `${a.identifier ?? ""} ${a.title}`.trim();
@@ -2224,9 +2890,11 @@ export function IssueProperties({
       return aLabel.localeCompare(bLabel);
     });
   }
-  const blockerOptionsLoading = blockedByOpen && (
-    blockerSearchActive ? isFetchingSearchedBlockedByIssues : isFetchingIssuePickerIssues
-  );
+  const blockerOptionsLoading =
+    blockedByOpen &&
+    (blockerSearchActive
+      ? isFetchingSearchedBlockedByIssues
+      : isFetchingIssuePickerIssues);
 
   const toggleBlockedBy = (blockedByIssueId: string) => {
     const nextBlockedByIds = blockedByIds.includes(blockedByIssueId)
@@ -2237,7 +2905,11 @@ export function IssueProperties({
     setBlockedBySearch("");
   };
   const removeBlockedBy = (blockedByIssueId: string) => {
-    onUpdate({ blockedByIssueIds: blockedByIds.filter((candidate) => candidate !== blockedByIssueId) });
+    onUpdate({
+      blockedByIssueIds: blockedByIds.filter(
+        (candidate) => candidate !== blockedByIssueId,
+      ),
+    });
   };
   const blockedByContent = (
     <>
@@ -2279,14 +2951,23 @@ export function IssueProperties({
                 {candidate.identifier ? `${candidate.identifier} ` : ""}
                 {candidate.title}
               </span>
-              {selected && <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-foreground" aria-hidden="true" />}
+              {selected && (
+                <Check
+                  className="ml-auto h-3.5 w-3.5 shrink-0 text-foreground"
+                  aria-hidden="true"
+                />
+              )}
             </button>
           );
         })}
         {blockerOptionsLoading ? (
-          <div className="px-2 py-2 text-xs text-muted-foreground">Searching tasks...</div>
+          <div className="px-2 py-2 text-xs text-muted-foreground">
+            Searching tasks...
+          </div>
         ) : blockerOptions.length === 0 ? (
-          <div className="px-2 py-2 text-xs text-muted-foreground">No matching tasks.</div>
+          <div className="px-2 py-2 text-xs text-muted-foreground">
+            No matching tasks.
+          </div>
         ) : null}
       </div>
     </>
@@ -2304,22 +2985,26 @@ export function IssueProperties({
   const subtasksContent = (
     <>
       <div className="max-h-48 overflow-y-auto overscroll-contain">
-        {childIssues.length > 0 ? childIssues.map((child) => (
-          <Link
-            key={child.id}
-            to={`/issues/${child.identifier ?? child.id}`}
-            state={issueLinkState}
-            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-accent/50"
-            onClick={() => setSubtasksOpen(false)}
-          >
-            <StatusIcon status={child.status} className="h-3 w-3" />
-            <span className="min-w-0 truncate">
-              {child.identifier ? `${child.identifier} ` : ""}
-              {child.title}
-            </span>
-          </Link>
-        )) : (
-          <div className="px-2 py-2 text-xs text-muted-foreground">No subtasks yet.</div>
+        {childIssues.length > 0 ? (
+          childIssues.map((child) => (
+            <Link
+              key={child.id}
+              to={`/issues/${child.identifier ?? child.id}`}
+              state={issueLinkState}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-accent/50"
+              onClick={() => setSubtasksOpen(false)}
+            >
+              <StatusIcon status={child.status} className="h-3 w-3" />
+              <span className="min-w-0 truncate">
+                {child.identifier ? `${child.identifier} ` : ""}
+                {child.title}
+              </span>
+            </Link>
+          ))
+        ) : (
+          <div className="px-2 py-2 text-xs text-muted-foreground">
+            No subtasks yet.
+          </div>
         )}
       </div>
       {onAddSubIssue ? (
@@ -2341,7 +3026,11 @@ export function IssueProperties({
   );
 
   const propertiesBody = (
-    <div className={cn(streamlinedPropertiesEnabled && "task-detail-properties pl-4")}>
+    <div
+      className={cn(
+        streamlinedPropertiesEnabled && "task-detail-properties pl-4",
+      )}
+    >
       <PropertySection
         title={streamlinedPropertiesEnabled ? "Work" : "Triage"}
         first
@@ -2373,18 +3062,26 @@ export function IssueProperties({
           inline={inline}
           label="Assignee"
           open={assigneeOpen}
-          onOpenChange={(open) => { setAssigneeOpen(open); if (!open) { setAssigneeSearch(""); setPendingAssignee(null); } }}
+          onOpenChange={(open) => {
+            setAssigneeOpen(open);
+            if (!open) {
+              setAssigneeSearch("");
+              setPendingAssignee(null);
+            }
+          }}
           triggerContent={assigneeTrigger}
           popoverClassName="w-52"
-          extra={issue.assigneeAgentId ? (
-            <Link
-              to={`/agents/${issue.assigneeAgentId}`}
-              className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          ) : undefined}
+          extra={
+            issue.assigneeAgentId ? (
+              <Link
+                to={`/agents/${issue.assigneeAgentId}`}
+                className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            ) : undefined
+          }
         >
           {assigneeContent}
         </PropertyPicker>
@@ -2407,19 +3104,24 @@ export function IssueProperties({
           inline={inline}
           label="Project"
           open={projectOpen}
-          onOpenChange={(open) => { setProjectOpen(open); if (!open) setProjectSearch(""); }}
+          onOpenChange={(open) => {
+            setProjectOpen(open);
+            if (!open) setProjectSearch("");
+          }}
           triggerContent={projectTrigger}
           triggerClassName="min-w-0 max-w-full"
           popoverClassName="w-fit min-w-(--sz-11rem)"
-          extra={issue.projectId ? (
-            <Link
-              to={projectLink(issue.projectId)!}
-              className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          ) : undefined}
+          extra={
+            issue.projectId ? (
+              <Link
+                to={projectLink(issue.projectId)!}
+                className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            ) : undefined
+          }
         >
           {projectContent}
         </PropertyPicker>
@@ -2428,7 +3130,10 @@ export function IssueProperties({
           inline={inline}
           label="Labels"
           open={labelsOpen}
-          onOpenChange={(open) => { setLabelsOpen(open); if (!open) setLabelSearch(""); }}
+          onOpenChange={(open) => {
+            setLabelsOpen(open);
+            if (!open) setLabelSearch("");
+          }}
           triggerContent={labelsTrigger}
           triggerClassName="min-w-0 max-w-full"
           popoverClassName="w-64"
@@ -2439,7 +3144,10 @@ export function IssueProperties({
         </PropertyPicker>
       </PropertySection>
 
-      <PropertySection title="Relationships" streamlined={streamlinedPropertiesEnabled}>
+      <PropertySection
+        title="Relationships"
+        streamlined={streamlinedPropertiesEnabled}
+      >
         <PropertyPicker
           inline={inline}
           label="Parent"
@@ -2489,7 +3197,9 @@ export function IssueProperties({
                 expanded={blockedByExpanded}
                 onClick={() => setBlockedByExpanded((expanded) => !expanded)}
               />
-              {renderAddBlockedByButton(() => setBlockedByOpen((open) => !open))}
+              {renderAddBlockedByButton(() =>
+                setBlockedByOpen((open) => !open),
+              )}
             </PropertyRow>
             {blockedByOpen ? (
               <div className="rounded-md border border-border bg-popover p-1 mb-2">
@@ -2519,8 +3229,14 @@ export function IssueProperties({
                 if (!open) setBlockedBySearch("");
               }}
             >
-              <PopoverTrigger asChild>{renderAddBlockedByButton()}</PopoverTrigger>
-              <PopoverContent className="w-72 p-1" align="end" collisionPadding={16}>
+              <PopoverTrigger asChild>
+                {renderAddBlockedByButton()}
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-72 p-1"
+                align="end"
+                collisionPadding={16}
+              >
                 {blockedByContent}
               </PopoverContent>
             </Popover>
@@ -2531,7 +3247,11 @@ export function IssueProperties({
           {blockingIssues.length > 0 ? (
             <div className="flex flex-col items-start gap-1.5">
               {visibleBlockingIssues.map((relation) => (
-                <IssueReferencePill variant="property" key={relation.id} issue={relation} />
+                <IssueReferencePill
+                  variant="property"
+                  key={relation.id}
+                  issue={relation}
+                />
               ))}
               <ExpandRelationListButton
                 hiddenCount={hiddenBlockingIssueCount}
@@ -2583,8 +3303,14 @@ export function IssueProperties({
           </PropertyRow>
         ) : null}
 
-        {(!streamlinedPropertiesEnabled || !taskChatShellEnabled) && relatedTasks.length > 0 ? (
-          <PropertyRow label={streamlinedPropertiesEnabled ? "Referenced" : "Related tasks"} wrap>
+        {(!streamlinedPropertiesEnabled || !taskChatShellEnabled) &&
+        relatedTasks.length > 0 ? (
+          <PropertyRow
+            label={
+              streamlinedPropertiesEnabled ? "Referenced" : "Related tasks"
+            }
+            wrap
+          >
             <div className="flex flex-col items-start gap-1.5">
               {visibleRelatedTasks.map((related) => (
                 <IssueReferencePill key={related.id} issue={related} />
@@ -2601,10 +3327,20 @@ export function IssueProperties({
         {pullRequests.length > 0 || workProductsError ? (
           <PropertyRow label="Pull requests" wrap>
             <div className="flex min-w-0 flex-col gap-2">
-              <IssuePullRequestLinks products={pullRequests} externalObjects={externalObjects?.map((entry) => entry.pill)} />
+              <IssuePullRequestLinks
+                products={pullRequests}
+                externalObjects={externalObjects?.map((entry) => entry.pill)}
+              />
               {workProductsError ? (
                 <span className="text-xs text-muted-foreground">
-                  Couldn’t load pull requests. <button type="button" className="text-primary hover:underline" onClick={() => void refetchWorkProducts()}>Retry</button>
+                  Couldn’t load pull requests.{" "}
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => void refetchWorkProducts()}
+                  >
+                    Retry
+                  </button>
                 </span>
               ) : null}
             </div>
@@ -2618,70 +3354,102 @@ export function IssueProperties({
         />
       </PropertySection>
 
-      <PropertySection title="Execution" streamlined={streamlinedPropertiesEnabled}>
+      <PropertySection
+        title="Execution"
+        streamlined={streamlinedPropertiesEnabled}
+      >
         {/* Read-only: agents set the policy, the board does not. */}
         {reviewPolicyBadge ? (
           <PropertyRow label="Approvals">
             <PropertyChip title={reviewPolicyBadge.description}>
-              <reviewPolicyBadge.Icon className="shrink-0 text-muted-foreground" aria-hidden />
-              <span className="min-w-0 truncate">{reviewPolicyBadge.label}</span>
+              <reviewPolicyBadge.Icon
+                className="shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <span className="min-w-0 truncate">
+                {reviewPolicyBadge.label}
+              </span>
             </PropertyChip>
           </PropertyRow>
         ) : null}
 
         {!policyAvailable ? (
           <PropertyRow label="Execution policy" wrap>
-            <span role="status" className="text-sm text-muted-foreground">Execution policy unavailable. Refresh to try again.</span>
+            <span role="status" className="text-sm text-muted-foreground">
+              Execution policy unavailable. Refresh to try again.
+            </span>
           </PropertyRow>
-        ) : (<>
-        <PropertyPicker
-          inline={inline}
-          label="Reviewers"
-          open={reviewersOpen}
-          onOpenChange={(open) => { setReviewersOpen(open); if (!open) setReviewerSearch(""); }}
-          triggerContent={reviewerTrigger}
-          triggerClassName="min-w-0 max-w-full"
-          popoverClassName="w-56"
-        >
-          {executionParticipantsContent(
-            "review",
-            reviewerValues,
-            reviewerSearch,
-            setReviewerSearch,
-            () => updateExecutionPolicy([], approverValues),
-          )}
-        </PropertyPicker>
-        {nextRunnableExecutionStage === "review" && reviewerValues.length > 0 ? runExecutionButton("review") : null}
+        ) : (
+          <>
+            <PropertyPicker
+              inline={inline}
+              label="Reviewers"
+              open={reviewersOpen}
+              onOpenChange={(open) => {
+                setReviewersOpen(open);
+                if (!open) setReviewerSearch("");
+              }}
+              triggerContent={reviewerTrigger}
+              triggerClassName="min-w-0 max-w-full"
+              popoverClassName="w-56"
+            >
+              {executionParticipantsContent(
+                "review",
+                reviewerValues,
+                reviewerSearch,
+                setReviewerSearch,
+                () => updateExecutionPolicy([], approverValues),
+              )}
+            </PropertyPicker>
+            {nextRunnableExecutionStage === "review" &&
+            reviewerValues.length > 0
+              ? runExecutionButton("review")
+              : null}
 
-        <PropertyPicker
-          inline={inline}
-          label="Approvers"
-          open={approversOpen}
-          onOpenChange={(open) => { setApproversOpen(open); if (!open) setApproverSearch(""); }}
-          triggerContent={approverTrigger}
-          triggerClassName="min-w-0 max-w-full"
-          popoverClassName="w-56"
-        >
-          {executionParticipantsContent(
-            "approval",
-            approverValues,
-            approverSearch,
-            setApproverSearch,
-            () => updateExecutionPolicy(reviewerValues, []),
-          )}
-        </PropertyPicker>
-        {nextRunnableExecutionStage === "approval" && approverValues.length > 0 ? runExecutionButton("approval") : null}
-        </>)}
+            <PropertyPicker
+              inline={inline}
+              label="Approvers"
+              open={approversOpen}
+              onOpenChange={(open) => {
+                setApproversOpen(open);
+                if (!open) setApproverSearch("");
+              }}
+              triggerContent={approverTrigger}
+              triggerClassName="min-w-0 max-w-full"
+              popoverClassName="w-56"
+            >
+              {executionParticipantsContent(
+                "approval",
+                approverValues,
+                approverSearch,
+                setApproverSearch,
+                () => updateExecutionPolicy(reviewerValues, []),
+              )}
+            </PropertyPicker>
+            {nextRunnableExecutionStage === "approval" &&
+            approverValues.length > 0
+              ? runExecutionButton("approval")
+              : null}
+          </>
+        )}
 
         {currentExecutionLabel && (
           <PropertyRow label="Execution">
-            <span className="text-sm truncate min-w-0" title={currentExecutionLabel}>{currentExecutionLabel}</span>
+            <span
+              className="text-sm truncate min-w-0"
+              title={currentExecutionLabel}
+            >
+              {currentExecutionLabel}
+            </span>
           </PropertyRow>
         )}
 
-        {showScheduledRetryRow && scheduledRetry?.scheduledRetryReason === "workspace_busy" ? (
+        {showScheduledRetryRow &&
+        scheduledRetry?.scheduledRetryReason === "workspace_busy" ? (
           <PropertyRow label="Workspace">
-            <span className="text-sm text-muted-foreground">Waiting for workspace</span>
+            <span className="text-sm text-muted-foreground">
+              Waiting for workspace
+            </span>
           </PropertyRow>
         ) : showScheduledRetryRow && scheduledRetryContent ? (
           <PropertyPicker
@@ -2691,7 +3459,10 @@ export function IssueProperties({
             onOpenChange={setScheduledRetryOpen}
             triggerContent={scheduledRetryTrigger}
             triggerClassName="min-w-0 max-w-full"
-            popoverClassName={cn("max-w-full", inline ? "w-full" : "w-80 sm:w-(--sz-32rem)")}
+            popoverClassName={cn(
+              "max-w-full",
+              inline ? "w-full" : "w-80 sm:w-(--sz-32rem)",
+            )}
             extra={scheduledRetryAttemptBadge}
           >
             {scheduledRetryContent}
@@ -2699,17 +3470,20 @@ export function IssueProperties({
         ) : null}
 
         {policyAvailable ? (
-        <PropertyPicker
-          inline={inline}
-          label="Monitor"
-          open={monitorOpen}
-          onOpenChange={setMonitorOpen}
-          triggerContent={monitorTrigger}
-          triggerClassName="min-w-0 max-w-full"
-          popoverClassName={cn("max-w-full", inline ? "w-full" : "w-80 sm:w-(--sz-32rem)")}
-        >
-          {monitorContent}
-        </PropertyPicker>
+          <PropertyPicker
+            inline={inline}
+            label="Monitor"
+            open={monitorOpen}
+            onOpenChange={setMonitorOpen}
+            triggerContent={monitorTrigger}
+            triggerClassName="min-w-0 max-w-full"
+            popoverClassName={cn(
+              "max-w-full",
+              inline ? "w-full" : "w-80 sm:w-(--sz-32rem)",
+            )}
+          >
+            {monitorContent}
+          </PropertyPicker>
         ) : null}
 
         <PropertyPicker
@@ -2719,7 +3493,10 @@ export function IssueProperties({
           onOpenChange={setWatchdogOpen}
           triggerContent={watchdogTrigger}
           triggerClassName="min-w-0 max-w-full"
-          popoverClassName={cn("max-w-full", inline ? "w-full" : "w-80 sm:w-96")}
+          popoverClassName={cn(
+            "max-w-full",
+            inline ? "w-full" : "w-80 sm:w-96",
+          )}
           extra={
             watchdogIssueRef ? (
               <Link
@@ -2738,8 +3515,15 @@ export function IssueProperties({
         </PropertyPicker>
       </PropertySection>
 
-      {workspacePickerEligible || hasWorkspaceRuntimeControls || issue.currentExecutionWorkspace?.branchName || issue.currentExecutionWorkspace?.cwd || issue.executionWorkspaceId ? (
-        <PropertySection title="Workspace" streamlined={streamlinedPropertiesEnabled}>
+      {workspacePickerEligible ||
+      hasWorkspaceRuntimeControls ||
+      issue.currentExecutionWorkspace?.branchName ||
+      issue.currentExecutionWorkspace?.cwd ||
+      issue.executionWorkspaceId ? (
+        <PropertySection
+          title="Workspace"
+          streamlined={streamlinedPropertiesEnabled}
+        >
           {workspacePickerEligible ? (
             <PropertyPicker
               inline={inline}
@@ -2752,11 +3536,11 @@ export function IssueProperties({
                   setWorkspaceSearch("");
                 }
               }}
-              triggerContent={(
+              triggerContent={
                 <span className="truncate" title={workspaceTriggerTitle}>
                   {workspaceTriggerLabel}
                 </span>
-              )}
+              }
               triggerClassName="min-w-0 max-w-full"
               popoverClassName={cn("max-w-full", inline ? "w-full" : "w-72")}
             >
@@ -2770,20 +3554,32 @@ export function IssueProperties({
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm">Default</span>
-                        <span className="block text-xs text-muted-foreground">Use the project workspace policy</span>
+                        <span className="block text-xs text-muted-foreground">
+                          Use the project workspace policy
+                        </span>
                       </span>
-                      {activeWorkspacePickerMode === "default" ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
+                      {activeWorkspacePickerMode === "default" ? (
+                        <Check className="h-3.5 w-3.5 shrink-0" />
+                      ) : null}
                     </button>
                     <button
                       type="button"
                       className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-accent/50"
-                      onClick={() => saveWorkspaceSelection("isolated_workspace")}
+                      onClick={() =>
+                        saveWorkspaceSelection("isolated_workspace")
+                      }
                     >
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm">New isolated workspace</span>
-                        <span className="block text-xs text-muted-foreground">Create a fresh workspace on the next run</span>
+                        <span className="block text-sm">
+                          New isolated workspace
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          Create a fresh workspace on the next run
+                        </span>
                       </span>
-                      {activeWorkspacePickerMode === "isolated" ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
+                      {activeWorkspacePickerMode === "isolated" ? (
+                        <Check className="h-3.5 w-3.5 shrink-0" />
+                      ) : null}
                     </button>
                     <button
                       type="button"
@@ -2791,14 +3587,22 @@ export function IssueProperties({
                       onClick={() => setWorkspacePickerStep("reuse")}
                     >
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm">Reuse existing workspace…</span>
-                        <span className="block text-xs text-muted-foreground">Pick a workspace to reuse</span>
+                        <span className="block text-sm">
+                          Reuse existing workspace…
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          Pick a workspace to reuse
+                        </span>
                       </span>
-                      {activeWorkspacePickerMode === "reuse" ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
+                      {activeWorkspacePickerMode === "reuse" ? (
+                        <Check className="h-3.5 w-3.5 shrink-0" />
+                      ) : null}
                     </button>
                   </div>
                   <div className="mt-1 border-t border-border px-2 py-1.5 text-xs text-muted-foreground">
-                    {issue.executionWorkspaceId ? "Current workspace stays active. Applies on the next run." : "Applies on the next run."}
+                    {issue.executionWorkspaceId
+                      ? "Current workspace stays active. Applies on the next run."
+                      : "Applies on the next run."}
                   </div>
                 </>
               ) : (
@@ -2817,40 +3621,66 @@ export function IssueProperties({
                       className="block w-full bg-transparent px-2 py-1.5 text-xs outline-none placeholder:text-muted-foreground/50"
                       placeholder="Search workspaces..."
                       value={workspaceSearch}
-                      onChange={(event) => setWorkspaceSearch(event.target.value)}
+                      onChange={(event) =>
+                        setWorkspaceSearch(event.target.value)
+                      }
                       autoFocus={!inline}
                       aria-label="Search reusable workspaces"
                     />
                   </div>
                   <div className="max-h-48 overflow-y-auto overscroll-contain py-1">
                     {reusableExecutionWorkspacesLoading ? (
-                      <div className="px-2 py-2 text-xs text-muted-foreground">Loading workspaces...</div>
-                    ) : reusableExecutionWorkspacesError ? (
-                      <div className="px-2 py-2 text-xs text-destructive">Failed to load workspaces.</div>
-                    ) : reusableWorkspaceOptions.length === 0 ? (
-                      <div className="px-2 py-2 text-xs text-muted-foreground">No matching workspaces.</div>
-                    ) : reusableWorkspaceOptions.map((group) => (
-                      <div key={group.id} className="py-1">
-                        <div className="px-2 pb-1 text-xs font-medium text-muted-foreground">{group.label}</div>
-                        {group.options.map((option) => (
-                          <button
-                            key={option.key}
-                            type="button"
-                            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-accent/50"
-                            onClick={() => saveWorkspaceSelection("reuse_existing", option.workspace)}
-                          >
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm">{option.label}</span>
-                              <span className="block truncate text-xs text-muted-foreground">{option.description}</span>
-                            </span>
-                            {issue.executionWorkspaceId === option.workspaceId ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
-                          </button>
-                        ))}
+                      <div className="px-2 py-2 text-xs text-muted-foreground">
+                        Loading workspaces...
                       </div>
-                    ))}
+                    ) : reusableExecutionWorkspacesError ? (
+                      <div className="px-2 py-2 text-xs text-destructive">
+                        Failed to load workspaces.
+                      </div>
+                    ) : reusableWorkspaceOptions.length === 0 ? (
+                      <div className="px-2 py-2 text-xs text-muted-foreground">
+                        No matching workspaces.
+                      </div>
+                    ) : (
+                      reusableWorkspaceOptions.map((group) => (
+                        <div key={group.id} className="py-1">
+                          <div className="px-2 pb-1 text-xs font-medium text-muted-foreground">
+                            {group.label}
+                          </div>
+                          {group.options.map((option) => (
+                            <button
+                              key={option.key}
+                              type="button"
+                              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-accent/50"
+                              onClick={() =>
+                                saveWorkspaceSelection(
+                                  "reuse_existing",
+                                  option.workspace,
+                                )
+                              }
+                            >
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm">
+                                  {option.label}
+                                </span>
+                                <span className="block truncate text-xs text-muted-foreground">
+                                  {option.description}
+                                </span>
+                              </span>
+                              {issue.executionWorkspaceId ===
+                              option.workspaceId ? (
+                                <Check className="h-3.5 w-3.5 shrink-0" />
+                              ) : null}
+                            </button>
+                          ))}
+                        </div>
+                      ))
+                    )}
                   </div>
                   <div className="border-t border-border px-2 py-1.5 text-xs text-muted-foreground">
-                    {issue.executionWorkspaceId ? "Current workspace stays active. Applies on the next run." : "Applies on the next run."}
+                    {issue.executionWorkspaceId
+                      ? "Current workspace stays active. Applies on the next run."
+                      : "Applies on the next run."}
                   </div>
                 </>
               )}
@@ -2875,16 +3705,22 @@ export function IssueProperties({
                   sections={workspaceRuntimeSections}
                   isPending={controlWorkspaceRuntime.isPending}
                   pendingRequest={pendingWorkspaceRuntimeAction}
-                  onAction={(request) => controlWorkspaceRuntime.mutate(request)}
+                  onAction={(request) =>
+                    controlWorkspaceRuntime.mutate(request)
+                  }
                   square
                   align="start"
                   iconOnly
                 />
                 {runtimeActionMessage ? (
-                  <span className="text-xs text-muted-foreground" role="status">{runtimeActionMessage}</span>
+                  <span className="text-xs text-muted-foreground" role="status">
+                    {runtimeActionMessage}
+                  </span>
                 ) : null}
                 {runtimeActionErrorMessage ? (
-                  <span className="text-xs text-destructive" role="alert">{runtimeActionErrorMessage}</span>
+                  <span className="text-xs text-destructive" role="alert">
+                    {runtimeActionErrorMessage}
+                  </span>
                 ) : null}
               </div>
             </PropertyRow>
@@ -2916,12 +3752,26 @@ export function IssueProperties({
                 to={`/agents/${originatingActor.id}`}
                 className="hover:underline"
               >
-                <AgentIdentity agent={agents?.find((agent) => agent.id === originatingActor.id) ?? { id: originatingActor.id, name: agentName(originatingActor.id) ?? "Agent" }} size="sm" />
+                <AgentIdentity
+                  agent={
+                    agents?.find(
+                      (agent) => agent.id === originatingActor.id,
+                    ) ?? {
+                      id: originatingActor.id,
+                      name: agentName(originatingActor.id) ?? "Agent",
+                    }
+                  }
+                  size="sm"
+                />
               </Link>
             ) : (
               <span className="flex min-w-0 items-center gap-1.5">
                 <Identity
-                  name={actualUserLabel(originatingActor.id) ?? originatingUserProfile?.label ?? "User"}
+                  name={
+                    actualUserLabel(originatingActor.id) ??
+                    originatingUserProfile?.label ??
+                    "User"
+                  }
                   avatarUrl={originatingUserProfile?.image ?? null}
                   size="sm"
                 />
@@ -2937,77 +3787,127 @@ export function IssueProperties({
         {issue.startedAt && (
           <PropertyRow label="Started">
             <span
-              className={streamlinedPropertiesEnabled ? "min-w-0 truncate whitespace-nowrap text-sm" : "text-sm"}
-              title={streamlinedPropertiesEnabled ? formatDateTime(issue.startedAt) : undefined}
-            >{formatDateTime(issue.startedAt)}</span>
+              className={
+                streamlinedPropertiesEnabled
+                  ? "min-w-0 truncate whitespace-nowrap text-sm"
+                  : "text-sm"
+              }
+              title={
+                streamlinedPropertiesEnabled
+                  ? formatDateTime(issue.startedAt)
+                  : undefined
+              }
+            >
+              {formatDateTime(issue.startedAt)}
+            </span>
           </PropertyRow>
         )}
         {issue.completedAt && (
           <PropertyRow label="Completed">
             <span
-              className={streamlinedPropertiesEnabled ? "min-w-0 truncate whitespace-nowrap text-sm" : "text-sm"}
-              title={streamlinedPropertiesEnabled ? formatDateTime(issue.completedAt) : undefined}
-            >{formatDateTime(issue.completedAt)}</span>
+              className={
+                streamlinedPropertiesEnabled
+                  ? "min-w-0 truncate whitespace-nowrap text-sm"
+                  : "text-sm"
+              }
+              title={
+                streamlinedPropertiesEnabled
+                  ? formatDateTime(issue.completedAt)
+                  : undefined
+              }
+            >
+              {formatDateTime(issue.completedAt)}
+            </span>
           </PropertyRow>
         )}
         <PropertyRow label="Created">
           <span
-            className={streamlinedPropertiesEnabled ? "min-w-0 truncate whitespace-nowrap text-sm" : "text-sm"}
-            title={streamlinedPropertiesEnabled ? formatDateTime(issue.createdAt) : undefined}
-          >{formatDateTime(issue.createdAt)}</span>
+            className={
+              streamlinedPropertiesEnabled
+                ? "min-w-0 truncate whitespace-nowrap text-sm"
+                : "text-sm"
+            }
+            title={
+              streamlinedPropertiesEnabled
+                ? formatDateTime(issue.createdAt)
+                : undefined
+            }
+          >
+            {formatDateTime(issue.createdAt)}
+          </span>
         </PropertyRow>
         <PropertyRow label="Updated">
           <span
-            className={streamlinedPropertiesEnabled ? "min-w-0 truncate whitespace-nowrap text-sm" : "text-sm"}
-            title={streamlinedPropertiesEnabled ? timeAgo(issue.updatedAt) : undefined}
-          >{timeAgo(issue.updatedAt)}</span>
+            className={
+              streamlinedPropertiesEnabled
+                ? "min-w-0 truncate whitespace-nowrap text-sm"
+                : "text-sm"
+            }
+            title={
+              streamlinedPropertiesEnabled
+                ? timeAgo(issue.updatedAt)
+                : undefined
+            }
+          >
+            {timeAgo(issue.updatedAt)}
+          </span>
         </PropertyRow>
-        {issue.archivedAt && issue.archivedByActorType === "agent" && issue.archivedByAgentId ? (
-          (() => {
-            const archivedByAgent = (agents ?? []).find((candidate) => candidate.id === issue.archivedByAgentId);
-            const archivedByName = agentName(issue.archivedByAgentId);
-            return (
-              <PropertyRow label="Archived">
-                <div className="flex min-w-0 max-w-full flex-col items-start gap-1">
-                  {/* The row label already reads "Archived", so the value shows just
+        {issue.archivedAt &&
+        issue.archivedByActorType === "agent" &&
+        issue.archivedByAgentId
+          ? (() => {
+              const archivedByAgent = (agents ?? []).find(
+                (candidate) => candidate.id === issue.archivedByAgentId,
+              );
+              const archivedByName = agentName(issue.archivedByAgentId);
+              return (
+                <PropertyRow label="Archived">
+                  <div className="flex min-w-0 max-w-full flex-col items-start gap-1">
+                    {/* The row label already reads "Archived", so the value shows just
                       the attributing agent (icon + name) — this gives the name the
                       full ~164px value column at the real 320px pane width, where an
                       "Archived by …" prefix would clip even short names. The full
                       phrasing + timestamp live in the tooltip so any residual
                       truncation on genuinely long names is recoverable. */}
-                  <span
-                    className="flex min-w-0 max-w-full items-center gap-1.5 text-sm"
-                    title={`Archived by ${archivedByName} · ${formatDateTime(issue.archivedAt)}`}
-                  >
-                    {archivedByAgent
-                      ? <AgentAvatar agent={archivedByAgent} size={16} className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
-                      : null}
-                    <span className="min-w-0 truncate">
-                      {archivedByName}
-                    </span>
-                  </span>
-                  <div className="flex min-w-0 max-w-full items-center gap-2">
-                    <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(issue.archivedAt)}</span>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground disabled:opacity-50"
-                      onClick={() => unarchiveFromInbox.mutate()}
-                      disabled={unarchiveFromInbox.isPending}
+                    <span
+                      className="flex min-w-0 max-w-full items-center gap-1.5 text-sm"
+                      title={`Archived by ${archivedByName} · ${formatDateTime(issue.archivedAt)}`}
                     >
-                      <ArchiveRestore className="h-3 w-3" />
-                      {unarchiveFromInbox.isPending ? "Unarchiving…" : "Unarchive"}
-                    </button>
+                      {archivedByAgent ? (
+                        <AgentAvatar
+                          agent={archivedByAgent}
+                          size={16}
+                          className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                        />
+                      ) : null}
+                      <span className="min-w-0 truncate">{archivedByName}</span>
+                    </span>
+                    <div className="flex min-w-0 max-w-full items-center gap-2">
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {timeAgo(issue.archivedAt)}
+                      </span>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground disabled:opacity-50"
+                        onClick={() => unarchiveFromInbox.mutate()}
+                        disabled={unarchiveFromInbox.isPending}
+                      >
+                        <ArchiveRestore className="h-3 w-3" />
+                        {unarchiveFromInbox.isPending
+                          ? "Unarchiving…"
+                          : "Unarchive"}
+                      </button>
+                    </div>
+                    {unarchiveErrorMessage ? (
+                      <p className="text-xs text-destructive" role="alert">
+                        {unarchiveErrorMessage}
+                      </p>
+                    ) : null}
                   </div>
-                  {unarchiveErrorMessage ? (
-                    <p className="text-xs text-destructive" role="alert">
-                      {unarchiveErrorMessage}
-                    </p>
-                  ) : null}
-                </div>
-              </PropertyRow>
-            );
-          })()
-        ) : null}
+                </PropertyRow>
+              );
+            })()
+          : null}
         {issue.requestDepth > 0 && (
           <PropertyRow label="Depth">
             <span className="text-sm font-mono">{issue.requestDepth}</span>
@@ -3027,12 +3927,20 @@ export function IssueProperties({
   if (!taskChatShellEnabled || sidePanelContentOnly) return propertiesBody;
 
   const hasSubtasksTab = streamlinedPropertiesEnabled && childIssues.length > 0;
-  const hasReferencesTab = streamlinedPropertiesEnabled
-    && (panelReferencedTasks.length > 0 || panelMentionedInTasks.length > 0);
+  const hasReferencesTab =
+    streamlinedPropertiesEnabled &&
+    (panelReferencedTasks.length > 0 || panelMentionedInTasks.length > 0);
   const availablePaneTabs: IssuePaneTabDescriptor[] = [
     { value: "properties", label: "Properties", closable: false },
     ...(hasSubtasksTab
-      ? [{ value: "subtasks" as const, label: "Subtasks", count: childIssues.length, closable: true }]
+      ? [
+          {
+            value: "subtasks" as const,
+            label: "Subtasks",
+            count: childIssues.length,
+            closable: true,
+          },
+        ]
       : []),
     ...(hasReferencesTab
       ? [{ value: "references" as const, label: "References", closable: true }]
@@ -3047,7 +3955,9 @@ export function IssueProperties({
   const visiblePaneTabs = availablePaneTabs.filter(
     (tab) => tab.value === "properties" || !closedPaneTabs.has(tab.value),
   );
-  const hiddenPaneTabs = availablePaneTabs.filter((tab) => closedPaneTabs.has(tab.value));
+  const hiddenPaneTabs = availablePaneTabs.filter((tab) =>
+    closedPaneTabs.has(tab.value),
+  );
 
   // Chat-style with nothing to switch between: render one selected tab button
   // so the header uses the same filled-tab treatment as the multi-tab state.
@@ -3055,22 +3965,31 @@ export function IssueProperties({
     return (
       <>
         {paneHeaderSlot
-          ? streamlinedPropertiesEnabled ? createPortal(
-              <div className="flex items-center" role="tablist" aria-label="Properties panel sections">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected="true"
-                  className={cn(
-                    STREAMLINED_PANE_TAB_CLASS,
-                    "inline-flex flex-none items-center bg-muted px-3",
-                  )}
+          ? streamlinedPropertiesEnabled
+            ? createPortal(
+                <div
+                  className="flex items-center"
+                  role="tablist"
+                  aria-label="Properties panel sections"
                 >
-                  Properties
-                </button>
-              </div>,
-              paneHeaderSlot,
-            ) : createPortal(<span className="text-sm font-medium">Properties</span>, paneHeaderSlot)
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                    className={cn(
+                      STREAMLINED_PANE_TAB_CLASS,
+                      "inline-flex flex-none items-center bg-muted px-3",
+                    )}
+                  >
+                    Properties
+                  </button>
+                </div>,
+                paneHeaderSlot,
+              )
+            : createPortal(
+                <span className="text-sm font-medium">Properties</span>,
+                paneHeaderSlot,
+              )
           : null}
         {propertiesBody}
       </>
@@ -3084,11 +4003,11 @@ export function IssueProperties({
   // Fall back to Properties if the selected tab's content went away (or the
   // selection was made on another issue).
   const activePaneTab =
-    (paneTab === "plans" && !hasPlanTab)
-    || (paneTab === "artifacts" && !hasArtifactsTab)
-    || (paneTab === "subtasks" && !hasSubtasksTab)
-    || (paneTab === "references" && !hasReferencesTab)
-    || closedPaneTabs.has(paneTab)
+    (paneTab === "plans" && !hasPlanTab) ||
+    (paneTab === "artifacts" && !hasArtifactsTab) ||
+    (paneTab === "subtasks" && !hasSubtasksTab) ||
+    (paneTab === "references" && !hasReferencesTab) ||
+    closedPaneTabs.has(paneTab)
       ? "properties"
       : paneTab;
   const closePaneTab = (value: IssuePaneTab) => {
@@ -3100,10 +4019,13 @@ export function IssueProperties({
       return next;
     });
     if (activePaneTab !== value) return;
-    const closingIndex = visiblePaneTabs.findIndex((tab) => tab.value === value);
-    const fallback = visiblePaneTabs[closingIndex - 1]
-      ?? visiblePaneTabs[closingIndex + 1]
-      ?? availablePaneTabs[0];
+    const closingIndex = visiblePaneTabs.findIndex(
+      (tab) => tab.value === value,
+    );
+    const fallback =
+      visiblePaneTabs[closingIndex - 1] ??
+      visiblePaneTabs[closingIndex + 1] ??
+      availablePaneTabs[0];
     setPaneTab(fallback.value);
   };
   const reopenPaneTab = (value: IssuePaneTab) => {
@@ -3116,7 +4038,9 @@ export function IssueProperties({
     });
     setPaneTab(value);
   };
-  const codexStylePaneTabs = Boolean(paneHeaderSlot && streamlinedPropertiesEnabled);
+  const codexStylePaneTabs = Boolean(
+    paneHeaderSlot && streamlinedPropertiesEnabled,
+  );
   // Production keeps the master underline treatment. Streamlined task detail
   // uses the compact, truncating Codex-inspired pane-tab treatment instead.
   const paneTabTriggerClass = paneHeaderSlot
@@ -3146,14 +4070,15 @@ export function IssueProperties({
             value={tab.value}
             className={cn(
               paneTabTriggerClass,
-              codexStylePaneTabs && "mx-1.5 hover:bg-accent/50 group-focus-within/pane-tab:bg-accent/50",
+              codexStylePaneTabs &&
+                "mx-1.5 hover:bg-accent/50 group-focus-within/pane-tab:bg-accent/50",
               codexStylePaneTabs && "px-3",
             )}
           >
             <span
               className={cn(
-                codexStylePaneTabs
-                  && "task-detail-pane-tab-label min-w-0 flex-1 overflow-hidden whitespace-nowrap",
+                codexStylePaneTabs &&
+                  "task-detail-pane-tab-label min-w-0 flex-1 overflow-hidden whitespace-nowrap",
               )}
               title={tab.label}
             >
@@ -3215,23 +4140,36 @@ export function IssueProperties({
             className="size-6 shrink-0 text-muted-foreground"
             disabled={hiddenPaneTabs.length === 0}
             aria-label="Open closed sidebar tab"
-            title={hiddenPaneTabs.length === 0 ? "All sidebar tabs are open" : "Open closed sidebar tab"}
+            title={
+              hiddenPaneTabs.length === 0
+                ? "All sidebar tabs are open"
+                : "Open closed sidebar tab"
+            }
           >
             <Plus className="size-3.5" aria-hidden />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-(--sz-8rem)">
           {hiddenPaneTabs.map((tab) => (
-            <DropdownMenuItem key={tab.value} onClick={() => reopenPaneTab(tab.value)}>
+            <DropdownMenuItem
+              key={tab.value}
+              onClick={() => reopenPaneTab(tab.value)}
+            >
               {tab.label}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-  ) : tabList;
+  ) : (
+    tabList
+  );
   return (
-    <Tabs value={activePaneTab} onValueChange={handlePaneTabChange} className="flex min-h-0 flex-col gap-3">
+    <Tabs
+      value={activePaneTab}
+      onValueChange={handlePaneTabChange}
+      className="flex min-h-0 flex-col gap-3"
+    >
       {paneHeaderSlot
         ? createPortal(
             // Portals keep React context but break the DOM tree the Tailwind
@@ -3272,7 +4210,9 @@ export function IssueProperties({
         <TabsContent value="artifacts">
           <IssuePropertiesArtifactsTab
             issue={issue}
-            documentDeepLink={documentDeepLink?.tab === "artifacts" ? documentDeepLink : null}
+            documentDeepLink={
+              documentDeepLink?.tab === "artifacts" ? documentDeepLink : null
+            }
           />
         </TabsContent>
       ) : null}

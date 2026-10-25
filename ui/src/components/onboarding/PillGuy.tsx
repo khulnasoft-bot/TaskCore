@@ -34,8 +34,22 @@ function DormantPill() {
     <svg viewBox="0 0 100 93" fill="none" aria-hidden className="size-full">
       <path d={BODY_PATH} fill={`url(#${DORMANT_GRADIENT_ID})`} />
       {/* Closed eyes: the same rounded rects as the open pair, flattened. */}
-      <rect x="75.9199" y="66.3047" width="9" height="4" rx="2" fill="var(--pill-guy-eye)" />
-      <rect x="28.9199" y="66.3047" width="9" height="4" rx="2" fill="var(--pill-guy-eye)" />
+      <rect
+        x="75.9199"
+        y="66.3047"
+        width="9"
+        height="4"
+        rx="2"
+        fill="var(--pill-guy-eye)"
+      />
+      <rect
+        x="28.9199"
+        y="66.3047"
+        width="9"
+        height="4"
+        rx="2"
+        fill="var(--pill-guy-eye)"
+      />
       <defs>
         <linearGradient
           id={DORMANT_GRADIENT_ID}
@@ -57,8 +71,22 @@ function AlivePill() {
   return (
     <svg viewBox="0 0 100 93" fill="none" aria-hidden className="size-full">
       <path d={BODY_PATH} fill={`url(#${ALIVE_GRADIENT_ID})`} />
-      <rect x="76.1406" y="63.1328" width="8.87072" height="10.3492" rx="4.43536" fill="var(--pill-guy-eye)" />
-      <rect x="28.8301" y="63.1328" width="8.87072" height="10.3492" rx="4.43536" fill="var(--pill-guy-eye)" />
+      <rect
+        x="76.1406"
+        y="63.1328"
+        width="8.87072"
+        height="10.3492"
+        rx="4.43536"
+        fill="var(--pill-guy-eye)"
+      />
+      <rect
+        x="28.8301"
+        y="63.1328"
+        width="8.87072"
+        height="10.3492"
+        rx="4.43536"
+        fill="var(--pill-guy-eye)"
+      />
       <path d={TUFT_PATH} fill="var(--pill-guy-tuft)" />
       <defs>
         <linearGradient

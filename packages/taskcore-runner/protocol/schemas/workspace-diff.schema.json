@@ -3,7 +3,16 @@
   "$id": "https://taskcore.dev/schemas/prp/v1/workspace-diff.schema.json",
   "title": "Taskcore workspace diff",
   "type": "object",
-  "required": ["schema", "changeSetId", "revision", "source", "complete", "files", "totals", "patchArtifactRef"],
+  "required": [
+    "schema",
+    "changeSetId",
+    "revision",
+    "source",
+    "complete",
+    "files",
+    "totals",
+    "patchArtifactRef"
+  ],
   "properties": {
     "schema": { "const": "taskcore.workspace.diff.v1" },
     "changeSetId": { "type": "string", "minLength": 1, "maxLength": 200 },
@@ -15,14 +24,34 @@
       "maxItems": 2000,
       "items": {
         "type": "object",
-        "required": ["path", "operation", "previousPath", "additions", "deletions", "binary", "diff"],
+        "required": [
+          "path",
+          "operation",
+          "previousPath",
+          "additions",
+          "deletions",
+          "binary",
+          "diff"
+        ],
         "properties": {
-          "path": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" },
-          "operation": { "enum": ["create", "modify", "delete", "rename", "mode_change"] },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+          },
+          "operation": {
+            "enum": ["create", "modify", "delete", "rename", "mode_change"]
+          },
           "previousPath": {
             "oneOf": [
               { "type": "null" },
-              { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" }
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024,
+                "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+              }
             ]
           },
           "additions": { "type": ["integer", "null"], "minimum": 0 },

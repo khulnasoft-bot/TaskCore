@@ -37,9 +37,11 @@ export function InteractionAudienceLine({
       data-audience-policy={audience.policy}
       data-audience-open={audience.isOpen ? "true" : "false"}
       data-audience-variant={variant}
-      title={compact
-        ? [audience.summary, audience.narrowedNote].filter(Boolean).join(" ")
-        : undefined}
+      title={
+        compact
+          ? [audience.summary, audience.narrowedNote].filter(Boolean).join(" ")
+          : undefined
+      }
     >
       <Users className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       {/* The clause names an agent, and an agent name is one unbreakable word.
@@ -55,7 +57,9 @@ export function InteractionAudienceLine({
             sentence needs a heading. */}
         {compact ? null : (
           <>
-            <span className="font-medium text-foreground">{audience.label}</span>
+            <span className="font-medium text-foreground">
+              {audience.label}
+            </span>
             {" — "}
           </>
         )}

@@ -15,11 +15,18 @@ type Heartbeat = ReturnType<typeof heartbeatService>;
 // still before run registration. Re-check the run table after the drain as a
 // backstop, and give a late run a macrotask before the next attempt, until no
 // run is queued or running.
-export async function drainHeartbeatRunsToQuiescence(db: Db, heartbeat: Heartbeat) {
+export async function drainHeartbeatRunsToQuiescence(
+  db: Db,
+  heartbeat: Heartbeat,
+) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     await heartbeat.drainActiveRunExecutions();
-    const runs = await db.select({ status: heartbeatRuns.status }).from(heartbeatRuns);
-    const hasPending = runs.some((run) => run.status === "queued" || run.status === "running");
+    const runs = await db
+      .select({ status: heartbeatRuns.status })
+      .from(heartbeatRuns);
+    const hasPending = runs.some(
+      (run) => run.status === "queued" || run.status === "running",
+    );
     if (!hasPending) return;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }

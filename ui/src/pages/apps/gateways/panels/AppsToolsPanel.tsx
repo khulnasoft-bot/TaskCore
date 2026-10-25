@@ -1,7 +1,11 @@
 import type { ToolProfileWithDetails } from "@taskcore/shared";
 import { Link } from "@/lib/router";
 import { cn } from "@/lib/utils";
-import { allowedToolsLabel, type GatewayAppRow, gatewayAppDisplayName } from "../gateway-helpers";
+import {
+  allowedToolsLabel,
+  type GatewayAppRow,
+  gatewayAppDisplayName,
+} from "../gateway-helpers";
 
 /**
  * Apps & tools tab — which apps this gateway exposes and how many tools each
@@ -20,7 +24,8 @@ export function AppsToolsPanel({
       <p className="text-sm text-muted-foreground">
         These apps go through this gateway. The bound profile
         {profile ? ` (${profile.name})` : ""} decides which tools are allowed
-        {profile ? ` — ${allowedToolsLabel(profile)}.` : "."} Change the profile under Advanced.
+        {profile ? ` — ${allowedToolsLabel(profile)}.` : "."} Change the profile
+        under Advanced.
       </p>
 
       {apps.length === 0 ? (
@@ -44,13 +49,21 @@ export function AppsToolsPanel({
                   ? `/apps/${app.connection.id}/permissions`
                   : `/apps/app/${app.application.id}/permissions`;
                 return (
-                  <tr key={app.application.id} className="border-b border-border last:border-0">
+                  <tr
+                    key={app.application.id}
+                    className="border-b border-border last:border-0"
+                  >
                     <td className="px-4 py-3">
-                      <Link to={href} className="font-medium text-foreground hover:underline">
+                      <Link
+                        to={href}
+                        className="font-medium text-foreground hover:underline"
+                      >
                         {gatewayAppDisplayName(app)}
                       </Link>
                       {app.needsAttention && app.attentionReason ? (
-                        <div className="text-xs text-muted-foreground">{app.attentionReason}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {app.attentionReason}
+                        </div>
                       ) : null}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
@@ -69,7 +82,10 @@ export function AppsToolsPanel({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link to={href} className="text-xs font-medium text-primary hover:underline">
+                      <Link
+                        to={href}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
                         Open →
                       </Link>
                     </td>

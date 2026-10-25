@@ -30,7 +30,12 @@ function createDbStub() {
     { principalId: "user-1", status: "active" as const },
   ];
   const users = [
-    { id: "user-1", name: "Dotta", email: "dotta@example.com", image: "https://example.com/dotta.png" },
+    {
+      id: "user-1",
+      name: "Dotta",
+      email: "dotta@example.com",
+      image: "https://example.com/dotta.png",
+    },
     { id: "user-2", name: null, email: "alex@example.com", image: null },
   ];
 
@@ -108,10 +113,18 @@ describe("GET /companies/:companyId/user-directory", () => {
       source: "session",
       isInstanceAdmin: false,
       companyIds: ["company-1"],
-      memberships: [{ companyId: "company-1", membershipRole: "operator", status: "active" }],
+      memberships: [
+        {
+          companyId: "company-1",
+          membershipRole: "operator",
+          status: "active",
+        },
+      ],
     });
 
-    const res = await request(app).get("/api/companies/company-1/user-directory");
+    const res = await request(app).get(
+      "/api/companies/company-1/user-directory",
+    );
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -119,12 +132,22 @@ describe("GET /companies/:companyId/user-directory", () => {
         {
           principalId: "user-2",
           status: "active",
-          user: { id: "user-2", name: null, email: "alex@example.com", image: null },
+          user: {
+            id: "user-2",
+            name: null,
+            email: "alex@example.com",
+            image: null,
+          },
         },
         {
           principalId: "user-1",
           status: "active",
-          user: { id: "user-1", name: "Dotta", email: "dotta@example.com", image: "https://example.com/dotta.png" },
+          user: {
+            id: "user-1",
+            name: "Dotta",
+            email: "dotta@example.com",
+            image: "https://example.com/dotta.png",
+          },
         },
       ],
     });

@@ -23,12 +23,18 @@ interface PerfMeasureReaperGlobal {
   __taskcoreKeepPerfMeasures?: boolean;
 }
 
-export function startPerfMeasureReaper(intervalMs: number = DEFAULT_INTERVAL_MS): () => void {
-  if (typeof performance === "undefined" || typeof performance.clearMeasures !== "function") {
+export function startPerfMeasureReaper(
+  intervalMs: number = DEFAULT_INTERVAL_MS,
+): () => void {
+  if (
+    typeof performance === "undefined" ||
+    typeof performance.clearMeasures !== "function"
+  ) {
     return () => {};
   }
   const reap = () => {
-    if ((globalThis as PerfMeasureReaperGlobal).__taskcoreKeepPerfMeasures) return;
+    if ((globalThis as PerfMeasureReaperGlobal).__taskcoreKeepPerfMeasures)
+      return;
     // clearMeasures() is cheap and does not materialize the (huge) buffer —
     // unlike getEntriesByType('measure'), so never call that to gate on size.
     performance.clearMeasures();

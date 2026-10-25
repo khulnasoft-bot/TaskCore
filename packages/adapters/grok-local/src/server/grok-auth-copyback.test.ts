@@ -1,4 +1,13 @@
-import { chmod, lstat, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  lstat,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -26,9 +35,14 @@ describe("copyBackGrokAuth", () => {
   });
 
   const IDENTITY = "https://auth.x.ai::11111111-1111-1111-1111-111111111111";
-  const OTHER_IDENTITY = "https://auth.x.ai::22222222-2222-2222-2222-222222222222";
+  const OTHER_IDENTITY =
+    "https://auth.x.ai::22222222-2222-2222-2222-222222222222";
 
-  function auth(input: { identityKey?: string; expiresAt?: string; marker: string }): string {
+  function auth(input: {
+    identityKey?: string;
+    expiresAt?: string;
+    marker: string;
+  }): string {
     return JSON.stringify(
       {
         [input.identityKey ?? IDENTITY]: {
@@ -43,7 +57,9 @@ describe("copyBackGrokAuth", () => {
   }
 
   async function makeHostDir(): Promise<string> {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "taskcore-grok-copyback-"));
+    const dir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-grok-copyback-"),
+    );
     cleanupDirs.push(dir);
     return dir;
   }
@@ -83,16 +99,23 @@ describe("copyBackGrokAuth", () => {
       },
     });
 
-    const finalHostAuth = await readFile(hostAuthPath, "utf8").catch((error: NodeJS.ErrnoException) =>
-      error.code === "ENOENT" ? null : Promise.reject(error),
+    const finalHostAuth = await readFile(hostAuthPath, "utf8").catch(
+      (error: NodeJS.ErrnoException) =>
+        error.code === "ENOENT" ? null : Promise.reject(error),
     );
-    const finalHostMode = finalHostAuth === null ? null : (await lstat(hostAuthPath)).mode & 0o777;
-    const leftoverEntries = (await readdir(hostHomeDir)).filter((name) => name !== "auth.json");
+    const finalHostMode =
+      finalHostAuth === null ? null : (await lstat(hostAuthPath)).mode & 0o777;
+    const leftoverEntries = (await readdir(hostHomeDir)).filter(
+      (name) => name !== "auth.json",
+    );
     return { outcome, finalHostAuth, finalHostMode, logs, leftoverEntries };
   }
 
   it("installs a strictly-later same-identity credential at mode 0600", async () => {
-    const sandboxAuth = auth({ expiresAt: NEWER, marker: "sandbox-newer-SENTINEL" });
+    const sandboxAuth = auth({
+      expiresAt: NEWER,
+      marker: "sandbox-newer-SENTINEL",
+    });
     const hostAuth = auth({ expiresAt: OLDER, marker: "host-older-SENTINEL" });
 
     const result = await runCopyBack({ sandboxAuth, hostAuth });
@@ -121,7 +144,11 @@ describe("copyBackGrokAuth", () => {
       },
       {
         name: "identity mismatch",
-        sandboxAuth: auth({ identityKey: OTHER_IDENTITY, expiresAt: NEWER, marker: "sandbox-other" }),
+        sandboxAuth: auth({
+          identityKey: OTHER_IDENTITY,
+          expiresAt: NEWER,
+          marker: "sandbox-other",
+        }),
         hostAuth: hostKeep,
       },
       {
@@ -132,7 +159,10 @@ describe("copyBackGrokAuth", () => {
     ];
 
     for (const entry of cases) {
-      const result = await runCopyBack({ sandboxAuth: entry.sandboxAuth, hostAuth: entry.hostAuth });
+      const result = await runCopyBack({
+        sandboxAuth: entry.sandboxAuth,
+        hostAuth: entry.hostAuth,
+      });
       expect(result.outcome, entry.name).toBe("kept-host");
       expect(result.finalHostAuth, entry.name).toBe(entry.hostAuth);
       expect(result.finalHostMode, entry.name).toBe(0o600);
@@ -153,9 +183,12 @@ describe("copyBackGrokAuth", () => {
 
   it("returns kept-host and writes nothing when the sandbox auth.json is absent", async () => {
     const hostAuth = auth({ expiresAt: OLDER, marker: "host-intact" });
-    const enoent = Object.assign(new Error("ENOENT: no such file or directory, open 'auth.json'"), {
-      code: "ENOENT",
-    });
+    const enoent = Object.assign(
+      new Error("ENOENT: no such file or directory, open 'auth.json'"),
+      {
+        code: "ENOENT",
+      },
+    );
 
     const result = await runCopyBack({
       sandboxAuth: async () => {
@@ -168,7 +201,9 @@ describe("copyBackGrokAuth", () => {
     expect(result.finalHostAuth).toBe(hostAuth);
     // No staging temp is ever created on the ENOENT path.
     expect(result.leftoverEntries).toEqual([]);
-    expect(result.logs.join("\n")).toContain("no sandbox credential to copy back");
+    expect(result.logs.join("\n")).toContain(
+      "no sandbox credential to copy back",
+    );
   });
 
   it("rethrows a sandbox read error that is not ENOENT", async () => {
@@ -188,17 +223,22 @@ describe("copyBackGrokAuth", () => {
     ).rejects.toThrow(/sandbox read boom/);
 
     expect(await readFile(hostAuthPath, "utf8")).toBe(hostAuth);
-    expect((await readdir(hostHomeDir)).filter((name) => name !== "auth.json")).toEqual([]);
+    expect(
+      (await readdir(hostHomeDir)).filter((name) => name !== "auth.json"),
+    ).toEqual([]);
   });
 
   it("serializes two concurrent copy-out operations on one home", async () => {
     const hostHomeDir = await makeHostDir();
     const hostAuthPath = path.join(hostHomeDir, "auth.json");
-    await writeFile(hostAuthPath, auth({ expiresAt: OLDER, marker: "host" }), { mode: 0o600 });
+    await writeFile(hostAuthPath, auth({ expiresAt: OLDER, marker: "host" }), {
+      mode: 0o600,
+    });
 
     const run = (marker: string, expiresAt: string) =>
       copyBackGrokAuth({
-        readSandboxAuth: async () => Buffer.from(auth({ expiresAt, marker }), "utf8"),
+        readSandboxAuth: async () =>
+          Buffer.from(auth({ expiresAt, marker }), "utf8"),
         hostHomeDir,
         log: () => {},
       });
@@ -258,7 +298,9 @@ describe("copyBackGrokAuth", () => {
     expect(await readFile(hostAuthPath, "utf8")).toBe(hostAuth);
     expect(after.mode & 0o777).toBe(0o600);
     expect(after.mtimeMs).toBe(before.mtimeMs);
-    expect((await readdir(hostHomeDir)).filter((name) => name !== "auth.json")).toEqual([]);
+    expect(
+      (await readdir(hostHomeDir)).filter((name) => name !== "auth.json"),
+    ).toEqual([]);
   });
 
   it("keeps no backup copy of the displaced credential in the destination directory", async () => {
@@ -276,7 +318,9 @@ describe("copyBackGrokAuth", () => {
 
   it("logs no token bytes and no home path on an error", async () => {
     const marker = "SECRET-ACCOUNT-HANDLE";
-    const root = await mkdtemp(path.join(os.tmpdir(), `taskcore-grok-copyback-${marker}-`));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), `taskcore-grok-copyback-${marker}-`),
+    );
     cleanupDirs.push(root);
     const hostAuth = auth({ expiresAt: OLDER, marker: "HOST-TOKEN-SENTINEL" });
     await writeFile(path.join(root, "auth.json"), hostAuth, { mode: 0o600 });
@@ -285,7 +329,11 @@ describe("copyBackGrokAuth", () => {
     const logs: string[] = [];
     try {
       await copyBackGrokAuth({
-        readSandboxAuth: async () => Buffer.from(auth({ expiresAt: NEWER, marker: "SANDBOX-TOKEN-SENTINEL" }), "utf8"),
+        readSandboxAuth: async () =>
+          Buffer.from(
+            auth({ expiresAt: NEWER, marker: "SANDBOX-TOKEN-SENTINEL" }),
+            "utf8",
+          ),
         hostHomeDir: root,
         log: (line) => {
           logs.push(line);

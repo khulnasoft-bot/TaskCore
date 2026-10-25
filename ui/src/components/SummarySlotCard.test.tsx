@@ -16,7 +16,9 @@ import type {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SummarySlotCard } from "./SummarySlotCard";
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 if (!HTMLElement.prototype.hasPointerCapture) {
   Object.defineProperty(HTMLElement.prototype, "hasPointerCapture", {
@@ -25,7 +27,9 @@ if (!HTMLElement.prototype.hasPointerCapture) {
   });
 }
 
-const mockInstanceSettingsApi = vi.hoisted(() => ({ getExperimental: vi.fn() }));
+const mockInstanceSettingsApi = vi.hoisted(() => ({
+  getExperimental: vi.fn(),
+}));
 const mockSummarySlotsApi = vi.hoisted(() => ({
   get: vi.fn(),
   revisions: vi.fn(),
@@ -34,7 +38,9 @@ const mockSummarySlotsApi = vi.hoisted(() => ({
 const mockBuiltInAgentsApi = vi.hoisted(() => ({ list: vi.fn() }));
 const mockAgentsApi = vi.hoisted(() => ({ resume: vi.fn() }));
 
-vi.mock("@/api/instanceSettings", () => ({ instanceSettingsApi: mockInstanceSettingsApi }));
+vi.mock("@/api/instanceSettings", () => ({
+  instanceSettingsApi: mockInstanceSettingsApi,
+}));
 vi.mock("@/api/summarySlots", () => ({ summarySlotsApi: mockSummarySlotsApi }));
 vi.mock("@/api/builtInAgents", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/builtInAgents")>()),
@@ -42,10 +48,14 @@ vi.mock("@/api/builtInAgents", async (importOriginal) => ({
 }));
 vi.mock("@/api/agents", () => ({ agentsApi: mockAgentsApi }));
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children?: ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 vi.mock("@/components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: string }) => <div data-testid="markdown-body">{children}</div>,
+  MarkdownBody: ({ children }: { children: string }) => (
+    <div data-testid="markdown-body">{children}</div>
+  ),
 }));
 vi.mock("@/components/ConfigureBuiltInAgentModal", () => ({
   ConfigureBuiltInAgentModal: ({
@@ -54,11 +64,14 @@ vi.mock("@/components/ConfigureBuiltInAgentModal", () => ({
   }: {
     open: boolean;
     onConfigured?: () => void;
-  }) => (open ? (
-    <div data-testid="configure-modal">
-      <button type="button" onClick={onConfigured}>Finish setup</button>
-    </div>
-  ) : null),
+  }) =>
+    open ? (
+      <div data-testid="configure-modal">
+        <button type="button" onClick={onConfigured}>
+          Finish setup
+        </button>
+      </div>
+    ) : null,
 }));
 
 async function act(callback: () => void | Promise<void>) {
@@ -78,11 +91,15 @@ async function flushQueries() {
 }
 
 async function openRevisionSelect(container: HTMLElement) {
-  const trigger = container.querySelector<HTMLElement>('button[aria-label="Select summary revision"]');
+  const trigger = container.querySelector<HTMLElement>(
+    'button[aria-label="Select summary revision"]',
+  );
   expect(trigger).not.toBeNull();
 
   await act(async () => {
-    trigger!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+    trigger!.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
     trigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   await flushQueries();
@@ -91,13 +108,15 @@ async function openRevisionSelect(container: HTMLElement) {
 }
 
 async function chooseRevisionOption(labelPart: string) {
-  const option = Array.from(document.body.querySelectorAll<HTMLElement>('[role="option"]')).find(
-    (element) => element.textContent?.includes(labelPart),
-  );
+  const option = Array.from(
+    document.body.querySelectorAll<HTMLElement>('[role="option"]'),
+  ).find((element) => element.textContent?.includes(labelPart));
   expect(option).toBeTruthy();
 
   await act(async () => {
-    option!.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0 }));
+    option!.dispatchEvent(
+      new PointerEvent("pointerup", { bubbles: true, button: 0 }),
+    );
     option!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   await flushQueries();
@@ -157,7 +176,9 @@ function slot(overrides: Partial<SummarySlot> = {}): SummarySlot {
   };
 }
 
-function summaryDocument(overrides: Partial<SummarySlotDocument> = {}): SummarySlotDocument {
+function summaryDocument(
+  overrides: Partial<SummarySlotDocument> = {},
+): SummarySlotDocument {
   return {
     id: "doc-1",
     companyId: "company-1",
@@ -176,7 +197,9 @@ function summaryDocument(overrides: Partial<SummarySlotDocument> = {}): SummaryS
   };
 }
 
-function issue(overrides: Partial<SummarySlotIssueRef> = {}): SummarySlotIssueRef {
+function issue(
+  overrides: Partial<SummarySlotIssueRef> = {},
+): SummarySlotIssueRef {
   return {
     id: "issue-1",
     identifier: "PAP-14000",
@@ -186,7 +209,9 @@ function issue(overrides: Partial<SummarySlotIssueRef> = {}): SummarySlotIssueRe
   };
 }
 
-function revision(overrides: Partial<SummarySlotRevision> = {}): SummarySlotRevision {
+function revision(
+  overrides: Partial<SummarySlotRevision> = {},
+): SummarySlotRevision {
   return {
     id: "rev-1",
     companyId: "company-1",
@@ -206,7 +231,9 @@ function revision(overrides: Partial<SummarySlotRevision> = {}): SummarySlotRevi
 
 function renderCard(container: HTMLDivElement) {
   const root = createRoot(container);
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   flushSync(() => {
     root.render(
       <QueryClientProvider client={queryClient}>
@@ -235,8 +262,15 @@ describe("SummarySlotCard", () => {
       enableBuiltInAgents: true,
     });
     mockBuiltInAgentsApi.list.mockResolvedValue([readySummarizer()]);
-    mockSummarySlotsApi.get.mockResolvedValue({ slot: null, document: null, generatingIssue: null } satisfies GetSummarySlotResponse);
-    mockSummarySlotsApi.revisions.mockResolvedValue({ slot: null, revisions: [] } satisfies ListSummarySlotRevisionsResponse);
+    mockSummarySlotsApi.get.mockResolvedValue({
+      slot: null,
+      document: null,
+      generatingIssue: null,
+    } satisfies GetSummarySlotResponse);
+    mockSummarySlotsApi.revisions.mockResolvedValue({
+      slot: null,
+      revisions: [],
+    } satisfies ListSummarySlotRevisionsResponse);
     mockSummarySlotsApi.generate.mockResolvedValue({
       slot: slot({ status: "generating", generatingIssueId: "issue-1" }),
       generatingIssue: issue(),
@@ -284,9 +318,9 @@ describe("SummarySlotCard", () => {
     await flushQueries();
 
     expect(container.textContent).toContain("Set up the Summarizer");
-    const setupButton = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent === "Set up Summarizer",
-    );
+    const setupButton = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Set up Summarizer");
     expect(setupButton).not.toBeNull();
 
     await act(async () => {
@@ -294,7 +328,9 @@ describe("SummarySlotCard", () => {
     });
     await flushQueries();
 
-    expect(container.querySelector('[data-testid="configure-modal"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="configure-modal"]'),
+    ).not.toBeNull();
   });
 
   it("clears a stale generation failure after setup succeeds", async () => {
@@ -308,26 +344,28 @@ describe("SummarySlotCard", () => {
       slot: slot({ documentId: "doc-1" }),
       revisions: [revision({ id: "rev-2", revisionNumber: 2 })],
     });
-    mockSummarySlotsApi.generate.mockRejectedValue(new Error("Summarizer built-in agent is not configured"));
+    mockSummarySlotsApi.generate.mockRejectedValue(
+      new Error("Summarizer built-in agent is not configured"),
+    );
 
     root = renderCard(container);
     await flushQueries();
 
-    const refreshButton = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent?.includes("Refresh"),
-    );
+    const refreshButton = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.includes("Refresh"));
     await act(() => refreshButton?.click());
     await flushQueries();
     expect(container.textContent).toContain("Summary request failed");
 
-    const setupButton = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent === "Set up Summarizer",
-    );
+    const setupButton = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Set up Summarizer");
     await act(() => setupButton?.click());
     await flushQueries();
-    const finishSetupButton = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent === "Finish setup",
-    );
+    const finishSetupButton = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Finish setup");
     await act(() => finishSetupButton?.click());
 
     expect(container.textContent).not.toContain("Summary request failed");
@@ -338,9 +376,9 @@ describe("SummarySlotCard", () => {
     await flushQueries();
 
     expect(container.textContent).toContain("No summary yet");
-    const generateButton = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent?.includes("Generate summary"),
-    );
+    const generateButton = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.includes("Generate summary"));
     expect(generateButton).not.toBeNull();
 
     await act(async () => {
@@ -365,8 +403,11 @@ describe("SummarySlotCard", () => {
     expect(container.textContent).toContain("Summarizer is paused");
     expect(container.textContent).not.toContain("No summary yet");
     expect(container.textContent).not.toContain("Generate summary");
-    expect([...container.querySelectorAll("button")].filter((button) => button.textContent === "Resume agent"))
-      .toHaveLength(1);
+    expect(
+      [...container.querySelectorAll("button")].filter(
+        (button) => button.textContent === "Resume agent",
+      ),
+    ).toHaveLength(1);
   });
 
   it("shows an active generating state with the linked task", async () => {
@@ -384,20 +425,32 @@ describe("SummarySlotCard", () => {
     expect(container.querySelector('[data-slot="card"]')).toBeNull();
     expect(container.textContent).toContain("Generating summary");
     expect(container.textContent).toContain("PAP-14000: Summarize project");
-    expect(container.querySelector('a[href="/issues/PAP-14000"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/issues/PAP-14000"]')?.closest("div")?.parentElement?.className)
-      .not.toContain("border");
+    expect(
+      container.querySelector('a[href="/issues/PAP-14000"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('a[href="/issues/PAP-14000"]')?.closest("div")
+        ?.parentElement?.className,
+    ).not.toContain("border");
   });
 
   it("renders the latest generated markdown", async () => {
     mockSummarySlotsApi.get.mockResolvedValue({
       slot: slot({ documentId: "doc-1" }),
-      document: summaryDocument({ body: "## Needs you\nReview the launch notes." }),
+      document: summaryDocument({
+        body: "## Needs you\nReview the launch notes.",
+      }),
       generatingIssue: null,
     } satisfies GetSummarySlotResponse);
     mockSummarySlotsApi.revisions.mockResolvedValue({
       slot: slot({ documentId: "doc-1" }),
-      revisions: [revision({ id: "rev-2", revisionNumber: 2, body: "## Needs you\nReview the launch notes." })],
+      revisions: [
+        revision({
+          id: "rev-2",
+          revisionNumber: 2,
+          body: "## Needs you\nReview the launch notes.",
+        }),
+      ],
     });
 
     root = renderCard(container);
@@ -405,7 +458,10 @@ describe("SummarySlotCard", () => {
 
     expect(container.textContent).toContain("Latest revision");
     expect(container.textContent).toContain("Review the launch notes.");
-    expect(container.querySelector('[data-testid="markdown-body"]')?.parentElement?.className).not.toContain("border");
+    expect(
+      container.querySelector('[data-testid="markdown-body"]')?.parentElement
+        ?.className,
+    ).not.toContain("border");
   });
 
   it("switches to a historical revision from a dated dropdown", async () => {
@@ -428,9 +484,24 @@ describe("SummarySlotCard", () => {
     mockSummarySlotsApi.revisions.mockResolvedValue({
       slot: slot({ documentId: "doc-1" }),
       revisions: [
-        revision({ id: "rev-1", revisionNumber: 1, body: "## Old\nOld body", createdAt: localAt(13, 17) }),
-        revision({ id: "rev-2", revisionNumber: 2, body: "## Middle\nMiddle body", createdAt: localAt(14, 9) }),
-        revision({ id: "rev-3", revisionNumber: 3, body: "## Latest\nCurrent body", createdAt: localAt(14, 17) }),
+        revision({
+          id: "rev-1",
+          revisionNumber: 1,
+          body: "## Old\nOld body",
+          createdAt: localAt(13, 17),
+        }),
+        revision({
+          id: "rev-2",
+          revisionNumber: 2,
+          body: "## Middle\nMiddle body",
+          createdAt: localAt(14, 9),
+        }),
+        revision({
+          id: "rev-3",
+          revisionNumber: 3,
+          body: "## Latest\nCurrent body",
+          createdAt: localAt(14, 17),
+        }),
       ],
     });
 
@@ -440,9 +511,12 @@ describe("SummarySlotCard", () => {
     expect(container.textContent).toContain("Current body");
     expect(container.textContent).toContain("3 revisions");
     expect(container.textContent).not.toContain("Latest (Rev 3)");
-    expect([...container.querySelectorAll<HTMLButtonElement>("button")].some(
-      (button) => button.textContent === "Revision 1" || button.textContent === "Rev 1",
-    )).toBe(false);
+    expect(
+      [...container.querySelectorAll<HTMLButtonElement>("button")].some(
+        (button) =>
+          button.textContent === "Revision 1" || button.textContent === "Rev 1",
+      ),
+    ).toBe(false);
 
     await openRevisionSelect(container);
 
@@ -455,9 +529,9 @@ describe("SummarySlotCard", () => {
     expect(container.textContent).toContain("Historical revision");
     expect(container.textContent).toContain("Old body");
 
-    const latestButton = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent === "Latest",
-    );
+    const latestButton = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Latest");
     expect(latestButton).not.toBeNull();
 
     await act(async () => {
@@ -476,7 +550,9 @@ describe("SummarySlotCard", () => {
         id: `rev-${revisionNumber}`,
         revisionNumber,
         body: `Revision ${revisionNumber}`,
-        createdAt: new Date(Date.UTC(2026, 6, revisionNumber, 12)).toISOString(),
+        createdAt: new Date(
+          Date.UTC(2026, 6, revisionNumber, 12),
+        ).toISOString(),
       });
     });
     mockSummarySlotsApi.get.mockResolvedValue({
@@ -500,19 +576,30 @@ describe("SummarySlotCard", () => {
 
     await openRevisionSelect(container);
 
-    const options = Array.from(document.body.querySelectorAll<HTMLElement>('[role="option"]'));
+    const options = Array.from(
+      document.body.querySelectorAll<HTMLElement>('[role="option"]'),
+    );
     expect(options).toHaveLength(30);
-    expect(options.some((option) => option.textContent?.includes("Latest (Rev 32)"))).toBe(true);
-    expect(options.some((option) => option.textContent?.includes("Rev 3 -"))).toBe(true);
-    expect(options.some((option) => option.textContent?.includes("Rev 2 -"))).toBe(false);
-    expect(options.some((option) => option.textContent?.includes("Rev 1 -"))).toBe(false);
+    expect(
+      options.some((option) => option.textContent?.includes("Latest (Rev 32)")),
+    ).toBe(true);
+    expect(
+      options.some((option) => option.textContent?.includes("Rev 3 -")),
+    ).toBe(true);
+    expect(
+      options.some((option) => option.textContent?.includes("Rev 2 -")),
+    ).toBe(false);
+    expect(
+      options.some((option) => option.textContent?.includes("Rev 1 -")),
+    ).toBe(false);
   });
 
   it("shows stopped generation as a failed retryable state", async () => {
     mockSummarySlotsApi.get.mockResolvedValue({
       slot: slot({
         status: "failed",
-        failureReason: "Summary generation task PAP-14000 finished without writing a summary.",
+        failureReason:
+          "Summary generation task PAP-14000 finished without writing a summary.",
         generatingIssueId: "issue-1",
       }),
       document: null,
@@ -523,11 +610,15 @@ describe("SummarySlotCard", () => {
     await flushQueries();
 
     expect(container.textContent).toContain("Summary generation failed");
-    expect(container.textContent).toContain("PAP-14000 finished without writing a summary");
-    expect(container.querySelector('[role="note"]')?.className).toContain("text-red-700");
-    const retryButton = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
-      (button) => button.textContent === "Retry",
+    expect(container.textContent).toContain(
+      "PAP-14000 finished without writing a summary",
     );
+    expect(container.querySelector('[role="note"]')?.className).toContain(
+      "text-red-700",
+    );
+    const retryButton = [
+      ...container.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent === "Retry");
     expect(retryButton).not.toBeNull();
 
     await act(async () => {

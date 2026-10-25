@@ -32,10 +32,7 @@ const report = evals.buildRunnerWorkflowEvalReport({
   results,
   traceability: traceabilitySummary,
 });
-const outputDirectory = resolve(
-  packageRoot,
-  ".taskcore-local/evals/workflows",
-);
+const outputDirectory = resolve(packageRoot, ".taskcore-local/evals/workflows");
 await mkdir(outputDirectory, { recursive: true });
 await Promise.all([
   writeFile(

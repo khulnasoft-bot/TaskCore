@@ -16,7 +16,11 @@ vi.mock("@/api/instanceSettings", () => ({
 
 vi.mock("@/lib/router", () => ({
   Navigate: ({ to, replace }: { to: string; replace?: boolean }) => (
-    <div data-testid="navigate" data-to={to} data-replace={String(replace ?? false)} />
+    <div
+      data-testid="navigate"
+      data-to={to}
+      data-replace={String(replace ?? false)}
+    />
   ),
   Outlet: () => <div data-testid="outlet">gated content</div>,
 }));
@@ -63,7 +67,9 @@ describe("ConferenceRoomChatGate (PAP-137)", () => {
   });
 
   it("redirects to the company home when the flag is off", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableConferenceRoomChat: false });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableConferenceRoomChat: false,
+    });
     await renderGate();
 
     const navigate = container.querySelector('[data-testid="navigate"]');
@@ -73,7 +79,9 @@ describe("ConferenceRoomChatGate (PAP-137)", () => {
   });
 
   it("renders the gated routes when the flag is on", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableConferenceRoomChat: true });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableConferenceRoomChat: true,
+    });
     await renderGate();
 
     expect(container.querySelector('[data-testid="outlet"]')).not.toBeNull();
@@ -81,7 +89,9 @@ describe("ConferenceRoomChatGate (PAP-137)", () => {
   });
 
   it("renders nothing (no premature redirect) while the flag is loading", async () => {
-    mockInstanceSettingsApi.getExperimental.mockImplementation(() => new Promise(() => {}));
+    mockInstanceSettingsApi.getExperimental.mockImplementation(
+      () => new Promise(() => {}),
+    );
     await renderGate();
 
     expect(container.querySelector('[data-testid="navigate"]')).toBeNull();

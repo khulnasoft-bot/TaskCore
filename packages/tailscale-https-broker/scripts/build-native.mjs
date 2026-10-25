@@ -4,7 +4,9 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 if (process.platform !== "linux") {
-  process.stdout.write("[tailscale-https-broker] skipping Linux SO_PEERCRED addon build\n");
+  process.stdout.write(
+    "[tailscale-https-broker] skipping Linux SO_PEERCRED addon build\n",
+  );
   process.exit(0);
 }
 
@@ -19,10 +21,14 @@ const headerCandidates = [
   "/usr/include/node",
   "/usr/local/include/node",
 ].filter(Boolean);
-const headerDir = headerCandidates.find((candidate) => existsSync(join(candidate, "node_api.h")));
+const headerDir = headerCandidates.find((candidate) =>
+  existsSync(join(candidate, "node_api.h")),
+);
 
 if (!headerDir) {
-  throw new Error("cannot build SO_PEERCRED addon: Node.js headers were not found");
+  throw new Error(
+    "cannot build SO_PEERCRED addon: Node.js headers were not found",
+  );
 }
 
 mkdirSync(outputDir, { recursive: true });
@@ -47,5 +53,7 @@ const result = spawnSync(
 
 if (result.error) throw result.error;
 if (result.status !== 0) {
-  throw new Error(`SO_PEERCRED addon compiler exited with status ${result.status}`);
+  throw new Error(
+    `SO_PEERCRED addon compiler exited with status ${result.status}`,
+  );
 }

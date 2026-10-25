@@ -21,13 +21,18 @@ export const TRUST_PRESET_LABELS: Record<TrustPreset, string> = {
 };
 
 export const TRUST_PRESET_DESCRIPTIONS: Record<TrustPreset, string> = {
-  standard: "Organization-visible collaboration. This is the default for normal work.",
+  standard:
+    "Organization-visible collaboration. This is the default for normal work.",
   low_trust_review:
     "Contained for hostile or untrusted input. Narrow Taskcore API, quarantined output. Use for PR review and external-content triage.",
 };
 
-export function getTrustPreset(permissions: Partial<AgentPermissions> | null | undefined): TrustPreset {
-  return permissions?.trustPreset === LOW_TRUST_REVIEW_PRESET ? LOW_TRUST_REVIEW_PRESET : DEFAULT_TRUST_PRESET;
+export function getTrustPreset(
+  permissions: Partial<AgentPermissions> | null | undefined,
+): TrustPreset {
+  return permissions?.trustPreset === LOW_TRUST_REVIEW_PRESET
+    ? LOW_TRUST_REVIEW_PRESET
+    : DEFAULT_TRUST_PRESET;
 }
 
 export function buildLowTrustReviewPolicy(
@@ -57,11 +62,15 @@ export function buildPermissionsForTrustPreset(
       // Operators can re-enable it explicitly afterwards.
       canCreateAgents: false,
       trustPreset: LOW_TRUST_REVIEW_PRESET,
-      authorizationPolicy: buildLowTrustReviewPolicy(current.authorizationPolicy),
+      authorizationPolicy: buildLowTrustReviewPolicy(
+        current.authorizationPolicy,
+      ),
     };
   }
 
-  const nextPolicy = { ...(current.authorizationPolicy ?? {}) } as TrustAuthorizationPolicy;
+  const nextPolicy = {
+    ...(current.authorizationPolicy ?? {}),
+  } as TrustAuthorizationPolicy;
   delete nextPolicy.trustPreset;
   delete nextPolicy.reviewPreset;
   delete nextPolicy.trustBoundary;
@@ -96,13 +105,16 @@ export function getSingleLowTrustBoundaryTarget(
   if (!boundary || countBoundaryTargets(boundary) !== 1) return null;
   const projectId = boundary.projectIds?.[0];
   if (projectId) return { type: "project", id: projectId };
-  if (boundary.rootIssueId) return { type: "root_issue", id: boundary.rootIssueId };
+  if (boundary.rootIssueId)
+    return { type: "root_issue", id: boundary.rootIssueId };
   const issueId = boundary.issueIds?.[0];
   if (issueId) return { type: "issue", id: issueId };
   return null;
 }
 
-export function isCeLowTrustBoundaryEditable(boundary: LowTrustBoundary | null | undefined) {
+export function isCeLowTrustBoundaryEditable(
+  boundary: LowTrustBoundary | null | undefined,
+) {
   return countBoundaryTargets(boundary) <= 1;
 }
 
@@ -111,10 +123,20 @@ export function setSingleLowTrustBoundaryTarget(
   companyId: string,
   target: LowTrustBoundaryTarget,
 ): Partial<AgentPermissions> {
-  const current = buildPermissionsForTrustPreset(permissions, LOW_TRUST_REVIEW_PRESET);
+  const current = buildPermissionsForTrustPreset(
+    permissions,
+    LOW_TRUST_REVIEW_PRESET,
+  );
   const currentPolicy = current.authorizationPolicy ?? {};
-  const existingBoundary = currentPolicy.trustBoundary ?? { mode: LOW_TRUST_REVIEW_PRESET };
-  const { projectIds: _projectIds, rootIssueId: _rootIssueId, issueIds: _issueIds, ...nonScopeBoundary } = existingBoundary;
+  const existingBoundary = currentPolicy.trustBoundary ?? {
+    mode: LOW_TRUST_REVIEW_PRESET,
+  };
+  const {
+    projectIds: _projectIds,
+    rootIssueId: _rootIssueId,
+    issueIds: _issueIds,
+    ...nonScopeBoundary
+  } = existingBoundary;
   const trustBoundary: LowTrustBoundary = {
     ...nonScopeBoundary,
     mode: LOW_TRUST_REVIEW_PRESET,
@@ -142,11 +164,19 @@ export function setSingleLowTrustBoundaryTarget(
 export function clearSingleLowTrustBoundaryTarget(
   permissions: Partial<AgentPermissions> | null | undefined,
 ): Partial<AgentPermissions> {
-  const current = buildPermissionsForTrustPreset(permissions, LOW_TRUST_REVIEW_PRESET);
+  const current = buildPermissionsForTrustPreset(
+    permissions,
+    LOW_TRUST_REVIEW_PRESET,
+  );
   const currentPolicy = current.authorizationPolicy ?? {};
   const boundary = currentPolicy.trustBoundary;
   if (!boundary) return current;
-  const { projectIds: _projectIds, rootIssueId: _rootIssueId, issueIds: _issueIds, ...nonScopeBoundary } = boundary;
+  const {
+    projectIds: _projectIds,
+    rootIssueId: _rootIssueId,
+    issueIds: _issueIds,
+    ...nonScopeBoundary
+  } = boundary;
   return {
     ...current,
     authorizationPolicy: {
@@ -164,18 +194,25 @@ export function summarizeLowTrustBoundaryTarget(
 ) {
   const target = getSingleLowTrustBoundaryTarget(boundary);
   if (target?.type === "project") return `Project ${target.id.slice(0, 8)}`;
-  if (target?.type === "root_issue") return `Root issue ${target.id.slice(0, 8)}`;
+  if (target?.type === "root_issue")
+    return `Root issue ${target.id.slice(0, 8)}`;
   if (target?.type === "issue") return `Issue ${target.id.slice(0, 8)}`;
-  if (!boundary || countBoundaryTargets(boundary) === 0) return "No boundary selected";
+  if (!boundary || countBoundaryTargets(boundary) === 0)
+    return "No boundary selected";
   return `${countBoundaryTargets(boundary)} boundaries`;
 }
 
-export function lowTrustBoundaryHasScope(boundary: LowTrustBoundary | null | undefined) {
+export function lowTrustBoundaryHasScope(
+  boundary: LowTrustBoundary | null | undefined,
+) {
   return countBoundaryTargets(boundary) > 0;
 }
 
-export function sourceTrustLabel(sourceTrust: SourceTrustMetadata | null | undefined) {
-  if (!sourceTrust || sourceTrust.preset !== LOW_TRUST_REVIEW_PRESET) return null;
+export function sourceTrustLabel(
+  sourceTrust: SourceTrustMetadata | null | undefined,
+) {
+  if (!sourceTrust || sourceTrust.preset !== LOW_TRUST_REVIEW_PRESET)
+    return null;
   if (sourceTrust.disposition === "promoted") return "Promoted from low-trust";
   return "Low-trust source";
 }

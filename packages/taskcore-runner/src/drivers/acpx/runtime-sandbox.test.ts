@@ -35,58 +35,119 @@ afterEach(async () => {
 });
 
 describe("ACPX runtime sandbox", () => {
-  it.each([false, true])("allows selected task secrets in Codex shells (agent identity: %s)", async identity => {
-    const fixture = await sandboxFixture("codex");
-    const pages = { TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: "task-pages-secret", CUSTOM_TOKEN: "task-service-secret" };
-    const sandbox = await prepareAcpxRuntimeSandbox({ binding: fixture.binding, agent: "codex", environment: {
-      PATH: process.env.PATH, OPENAI_API_KEY: "provider-secret", HOST_SECRET: "unselected-secret",
-      ...configuredEnvironmentProjection(pages), ...(identity ? { TASKCORE_AGENT_KEY_ID: "agent-key" } : {}),
-    } });
-    const config = await readFile(join(sandbox.agentHomeDirectory, "config.toml"), "utf8");
-    const keys = JSON.parse(config.split("\n").find(line => line.startsWith("include_only = "))?.slice("include_only = ".length) ?? "[]");
-    expect(keys).toEqual(expect.arrayContaining(Object.keys(pages)));
-    expect(keys).not.toContain("OPENAI_API_KEY");
-    expect(keys).not.toContain("HOST_SECRET");
-    expect(sandbox.launchEnvironment).toMatchObject(pages);
-    for (const value of Object.values(pages)) expect(config).not.toContain(value);
-  });
+  it.each([false, true])(
+    "allows selected task secrets in Codex shells (agent identity: %s)",
+    async (identity) => {
+      const fixture = await sandboxFixture("codex");
+      const pages = {
+        TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: "task-pages-secret",
+        CUSTOM_TOKEN: "task-service-secret",
+      };
+      const sandbox = await prepareAcpxRuntimeSandbox({
+        binding: fixture.binding,
+        agent: "codex",
+        environment: {
+          PATH: process.env.PATH,
+          OPENAI_API_KEY: "provider-secret",
+          HOST_SECRET: "unselected-secret",
+          ...configuredEnvironmentProjection(pages),
+          ...(identity ? { TASKCORE_AGENT_KEY_ID: "agent-key" } : {}),
+        },
+      });
+      const config = await readFile(
+        join(sandbox.agentHomeDirectory, "config.toml"),
+        "utf8",
+      );
+      const keys = JSON.parse(
+        config
+          .split("\n")
+          .find((line) => line.startsWith("include_only = "))
+          ?.slice("include_only = ".length) ?? "[]",
+      );
+      expect(keys).toEqual(expect.arrayContaining(Object.keys(pages)));
+      expect(keys).not.toContain("OPENAI_API_KEY");
+      expect(keys).not.toContain("HOST_SECRET");
+      expect(sandbox.launchEnvironment).toMatchObject(pages);
+      for (const value of Object.values(pages))
+        expect(config).not.toContain(value);
+    },
+  );
 
   it("restores Grok permission controls on recovery without importing compatible hooks or credentials", async () => {
     const fixture = await sandboxFixture("grok");
-    const sandbox = await prepareAcpxRuntimeSandbox({ binding: fixture.binding, agent: "grok" });
+    const sandbox = await prepareAcpxRuntimeSandbox({
+      binding: fixture.binding,
+      agent: "grok",
+    });
     const configPath = join(sandbox.agentHomeDirectory, "config.toml");
-    const requirementsPath = join(sandbox.agentHomeDirectory, "requirements.toml");
+    const requirementsPath = join(
+      sandbox.agentHomeDirectory,
+      "requirements.toml",
+    );
     await writeFile(configPath, '[permission]\nallow = ["Bash"]\n');
-    await writeFile(requirementsPath, '[ui]\ndisable_bypass_permissions_mode = false\n');
-    await prepareAcpxRuntimeSandbox({ binding: fixture.binding, agent: "grok" });
+    await writeFile(
+      requirementsPath,
+      "[ui]\ndisable_bypass_permissions_mode = false\n",
+    );
+    await prepareAcpxRuntimeSandbox({
+      binding: fixture.binding,
+      agent: "grok",
+    });
     const config = await readFile(configPath, "utf8");
-    expect(config).toContain('ask = ["Bash", "Read", "Edit", "Grep", "MCPTool", "WebFetch", "WebSearch"]');
-    expect(config).not.toContain('allow =');
-    expect(config).toContain('login_shell_capture = false');
+    expect(config).toContain(
+      'ask = ["Bash", "Read", "Edit", "Grep", "MCPTool", "WebFetch", "WebSearch"]',
+    );
+    expect(config).not.toContain("allow =");
+    expect(config).toContain("login_shell_capture = false");
     expect(config).toContain('exclude = ["XAI_API_KEY"]');
-    expect(config).toContain('[compat.claude]\nhooks = false\nmcps = false');
-    expect(await readFile(requirementsPath, "utf8")).toContain('disable_bypass_permissions_mode = true');
+    expect(config).toContain("[compat.claude]\nhooks = false\nmcps = false");
+    expect(await readFile(requirementsPath, "utf8")).toContain(
+      "disable_bypass_permissions_mode = true",
+    );
     expect((await stat(requirementsPath)).mode & 0o777).toBe(0o600);
   });
 
   it("keeps provider credentials outside identity-enabled Codex shell commands", async () => {
     const fixture = await sandboxFixture("codex");
     const sandbox = await prepareAcpxRuntimeSandbox({
-      binding: fixture.binding, agent: "codex", environment: {
+      binding: fixture.binding,
+      agent: "codex",
+      environment: {
         PATH: process.env.PATH,
-        OPENAI_API_KEY: "provider-secret", MY_SERVICE_TOKEN: "configured-secret",
+        OPENAI_API_KEY: "provider-secret",
+        MY_SERVICE_TOKEN: "configured-secret",
         TASKCORE_API_KEY: "scoped-run-token",
-        TASKCORE_AGENT_KEY_ID: "sha256:test", TASKCORE_AGENT_PUBLIC_KEY: "public-identity",
+        TASKCORE_AGENT_KEY_ID: "sha256:test",
+        TASKCORE_AGENT_PUBLIC_KEY: "public-identity",
         TASKCORE_AGENT_PRIVATE_KEY: "private-identity",
       },
     });
-    const config = await readFile(join(sandbox.agentHomeDirectory, "config.toml"), "utf8");
-    const keys = JSON.parse(config.split("\n").find(line => line.startsWith("include_only = "))!.slice("include_only = ".length));
-    expect(keys).toEqual(expect.arrayContaining(["TASKCORE_API_KEY", "TASKCORE_AGENT_PRIVATE_KEY"]));
+    const config = await readFile(
+      join(sandbox.agentHomeDirectory, "config.toml"),
+      "utf8",
+    );
+    const keys = JSON.parse(
+      config
+        .split("\n")
+        .find((line) => line.startsWith("include_only = "))!
+        .slice("include_only = ".length),
+    );
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "TASKCORE_API_KEY",
+        "TASKCORE_AGENT_PRIVATE_KEY",
+      ]),
+    );
     expect(keys).not.toContain("OPENAI_API_KEY");
     expect(keys).not.toContain("MY_SERVICE_TOKEN");
     expect(sandbox.launchEnvironment.OPENAI_API_KEY).toBe("provider-secret");
-    for (const value of ["provider-secret", "configured-secret", "scoped-run-token", "private-identity"]) expect(config).not.toContain(value);
+    for (const value of [
+      "provider-secret",
+      "configured-secret",
+      "scoped-run-token",
+      "private-identity",
+    ])
+      expect(config).not.toContain(value);
   });
 
   it.each(["claude-sonnet-5", "sonnet", "custom-deployment-id"])(
@@ -109,10 +170,22 @@ describe("ACPX runtime sandbox", () => {
   it("pins Claude's exact model in isolated settings on open and recovery", async () => {
     const fixture = await sandboxFixture("claude");
     for (const model of ["claude-sonnet-5", "custom-claude-model"]) {
-      const binding = { ...fixture.binding, requestedModel: model, effectiveModel: model };
+      const binding = {
+        ...fixture.binding,
+        requestedModel: model,
+        effectiveModel: model,
+      };
       for (let attempt = 0; attempt < 2; attempt += 1) {
-        const sandbox = await prepareAcpxRuntimeSandbox({ binding, agent: "claude" });
-        const settings = JSON.parse(await readFile(join(sandbox.agentHomeDirectory, "settings.json"), "utf8"));
+        const sandbox = await prepareAcpxRuntimeSandbox({
+          binding,
+          agent: "claude",
+        });
+        const settings = JSON.parse(
+          await readFile(
+            join(sandbox.agentHomeDirectory, "settings.json"),
+            "utf8",
+          ),
+        );
         expect(settings).toMatchObject({ model, availableModels: [model] });
       }
     }
@@ -131,14 +204,23 @@ describe("ACPX runtime sandbox", () => {
       const sandbox = await prepareAcpxRuntimeSandbox({
         binding: fixture.binding,
         agent,
-        providerPolicy: { readOnly: false, systemInstructions: "bound instructions" },
+        providerPolicy: {
+          readOnly: false,
+          systemInstructions: "bound instructions",
+        },
         environment: {
           PATH: process.env.PATH,
           [credentialName]: "provider-secret",
           UNRELATED_SECRET: "must-not-enter",
-          HOME: "/ambient/home", XDG_CONFIG_HOME: "/ambient/config", CURSOR_CONFIG_DIR: "/ambient/cursor",
-          COPILOT_HOME: "/ambient/copilot", COPILOT_PKG_CACHE_HOME: "/ambient/extraction-cache", COPILOT_ALLOW_ALL: "true",
-          TASKCORE_PI_READ_ONLY: "1", TASKCORE_PI_READ_ROOTS: '["/"]', TASKCORE_PI_ENTRYPOINT: "/ambient/pi.js",
+          HOME: "/ambient/home",
+          XDG_CONFIG_HOME: "/ambient/config",
+          CURSOR_CONFIG_DIR: "/ambient/cursor",
+          COPILOT_HOME: "/ambient/copilot",
+          COPILOT_PKG_CACHE_HOME: "/ambient/extraction-cache",
+          COPILOT_ALLOW_ALL: "true",
+          TASKCORE_PI_READ_ONLY: "1",
+          TASKCORE_PI_READ_ROOTS: '["/"]',
+          TASKCORE_PI_ENTRYPOINT: "/ambient/pi.js",
           HTTPS_PROXY: "https://proxy-user:proxy-password@example.test",
           TASKCORE_NATIVE_MCP_URL:
             "https://mcp.example.test/connect?ticket=secret",
@@ -203,27 +285,47 @@ describe("ACPX runtime sandbox", () => {
       expect(sandbox.launchEnvironment.COPILOT_PKG_CACHE_HOME).toBeUndefined();
       if (agent === "cursor") {
         expect(sandbox.launchEnvironment).toMatchObject({
-          CURSOR_CONFIG_DIR: sandbox.agentHomeDirectory, CURSOR_DATA_DIR: sandbox.dataDirectory,
-          AGENT_CLI_CREDENTIAL_STORE: "memory", NO_OPEN_BROWSER: "1", NODE_DISABLE_COMPILE_CACHE: "1",
+          CURSOR_CONFIG_DIR: sandbox.agentHomeDirectory,
+          CURSOR_DATA_DIR: sandbox.dataDirectory,
+          AGENT_CLI_CREDENTIAL_STORE: "memory",
+          NO_OPEN_BROWSER: "1",
+          NODE_DISABLE_COMPILE_CACHE: "1",
         });
       }
       if (agent === "copilot") {
         expect(sandbox.launchEnvironment).toMatchObject({
-          COPILOT_HOME: sandbox.agentHomeDirectory, COPILOT_CACHE_HOME: sandbox.cacheDirectory,
-          COPILOT_AUTO_UPDATE: "false", COPILOT_ALLOW_ALL: "false", COPILOT_DISABLE_TERMINAL_TITLE: "true", NO_COLOR: "1",
+          COPILOT_HOME: sandbox.agentHomeDirectory,
+          COPILOT_CACHE_HOME: sandbox.cacheDirectory,
+          COPILOT_AUTO_UPDATE: "false",
+          COPILOT_ALLOW_ALL: "false",
+          COPILOT_DISABLE_TERMINAL_TITLE: "true",
+          NO_COLOR: "1",
         });
-        expect(JSON.parse(await readFile(join(sandbox.agentHomeDirectory, "config.json"), "utf8"))).toEqual({
-          autoUpdate: false, trustedFolders: [], disableAllHooks: true, memory: false,
+        expect(
+          JSON.parse(
+            await readFile(
+              join(sandbox.agentHomeDirectory, "config.json"),
+              "utf8",
+            ),
+          ),
+        ).toEqual({
+          autoUpdate: false,
+          trustedFolders: [],
+          disableAllHooks: true,
+          memory: false,
           ide: { autoConnect: false, openDiffOnEdit: false },
         });
       }
       if (agent === "pi") {
         expect(sandbox.launchEnvironment).toMatchObject({
-          TASKCORE_PI_READ_ONLY: "0", TASKCORE_PI_READ_ROOTS: "[]",
+          TASKCORE_PI_READ_ONLY: "0",
+          TASKCORE_PI_READ_ROOTS: "[]",
           TASKCORE_PI_PROTECTED_ROOTS: JSON.stringify(sandbox.protectedPaths),
           TASKCORE_PI_SYSTEM_INSTRUCTIONS: "bound instructions",
         });
-        expect(sandbox.persistedEnvironment.TASKCORE_PI_SYSTEM_INSTRUCTIONS).toBeUndefined();
+        expect(
+          sandbox.persistedEnvironment.TASKCORE_PI_SYSTEM_INSTRUCTIONS,
+        ).toBeUndefined();
         await expect(
           readFile(join(sandbox.agentHomeDirectory, "settings.json"), "utf8"),
         ).resolves.toContain('"defaultProjectTrust":"never"');
@@ -233,20 +335,48 @@ describe("ACPX runtime sandbox", () => {
 
   it("requires Pi task policy and validates assigned roots independently from approval mode", async () => {
     const fixture = await sandboxFixture("pi");
-    await expect(prepareAcpxRuntimeSandbox({ binding: fixture.binding, agent: "pi" })).rejects.toThrow("explicit task execution policy");
+    await expect(
+      prepareAcpxRuntimeSandbox({ binding: fixture.binding, agent: "pi" }),
+    ).rejects.toThrow("explicit task execution policy");
     const readRoot = join(fixture.root, "assigned-skills");
     await mkdir(readRoot);
     const sandbox = await prepareAcpxRuntimeSandbox({
-      binding: { ...fixture.binding, permissionMode: "approve-all" }, agent: "pi",
-      providerPolicy: { readOnly: true, readRoots: [readRoot], protectedPaths: ["/verified/provider-pack"] },
+      binding: { ...fixture.binding, permissionMode: "approve-all" },
+      agent: "pi",
+      providerPolicy: {
+        readOnly: true,
+        readRoots: [readRoot],
+        protectedPaths: ["/verified/provider-pack"],
+      },
     });
     expect(sandbox.launchEnvironment.TASKCORE_PI_READ_ONLY).toBe("1");
-    expect(JSON.parse(sandbox.launchEnvironment.TASKCORE_PI_READ_ROOTS!)).toHaveLength(1);
+    expect(
+      JSON.parse(sandbox.launchEnvironment.TASKCORE_PI_READ_ROOTS!),
+    ).toHaveLength(1);
     expect(sandbox.protectedPaths).toContain("/verified/provider-pack");
-    for (const readRoots of [["/"], ["relative"], ["/missing/assigned-skills"]]) {
-      await expect(prepareAcpxRuntimeSandbox({ binding: fixture.binding, agent: "pi", providerPolicy: { readOnly: false, readRoots } })).rejects.toThrow();
+    for (const readRoots of [
+      ["/"],
+      ["relative"],
+      ["/missing/assigned-skills"],
+    ]) {
+      await expect(
+        prepareAcpxRuntimeSandbox({
+          binding: fixture.binding,
+          agent: "pi",
+          providerPolicy: { readOnly: false, readRoots },
+        }),
+      ).rejects.toThrow();
     }
-    await expect(prepareAcpxRuntimeSandbox({ binding: fixture.binding, agent: "pi", providerPolicy: { readOnly: false, systemInstructions: "x".repeat(32 * 1024 + 1) } })).rejects.toThrow("bounded size");
+    await expect(
+      prepareAcpxRuntimeSandbox({
+        binding: fixture.binding,
+        agent: "pi",
+        providerPolicy: {
+          readOnly: false,
+          systemInstructions: "x".repeat(32 * 1024 + 1),
+        },
+      }),
+    ).rejects.toThrow("bounded size");
   });
 
   it("re-prepares and re-synchronizes an existing private sandbox", async () => {
@@ -422,7 +552,9 @@ describe("ACPX runtime sandbox", () => {
   );
 });
 
-async function sandboxFixture(agent: "pi" | "claude" | "codex" | "grok" | "cursor" | "copilot") {
+async function sandboxFixture(
+  agent: "pi" | "claude" | "codex" | "grok" | "cursor" | "copilot",
+) {
   const root = await mkdtemp(join(tmpdir(), "taskcore-acpx-sandbox-"));
   temporaryDirectories.push(root);
   const workspace = join(root, "workspace");

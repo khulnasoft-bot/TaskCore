@@ -9,7 +9,10 @@ export interface DotBindingSnapshot {
   acceptByUnixMs: number;
   expiresAtUnixMs: number;
 }
-export interface ExternalProviderBinding extends Omit<DotBindingSnapshot, "acceptByUnixMs" | "expiresAtUnixMs"> {
+export interface ExternalProviderBinding extends Omit<
+  DotBindingSnapshot,
+  "acceptByUnixMs" | "expiresAtUnixMs"
+> {
   runId: string;
   normalizedSessionId: string;
   turnId: string;
@@ -29,10 +32,23 @@ export interface ExternalProviderOperation {
 }
 /** Broker port uses only the authenticated run's existing PRP command lane. */
 export interface ExternalProviderPort {
-  dispatch(event: { sourceEventId: string; payload: Record<string, unknown> }): Promise<void>;
-  settle(event: { sourceEventId: string; payload: Record<string, unknown> }): Promise<void>;
-  attach(send: (operation: ExternalProviderOperation) => Promise<void>, revoke?: () => Promise<void>, hasProviderCheckpoint?: boolean): Promise<() => Promise<void>>;
+  dispatch(event: {
+    sourceEventId: string;
+    payload: Record<string, unknown>;
+  }): Promise<void>;
+  settle(event: {
+    sourceEventId: string;
+    payload: Record<string, unknown>;
+  }): Promise<void>;
+  attach(
+    send: (operation: ExternalProviderOperation) => Promise<void>,
+    revoke?: () => Promise<void>,
+    hasProviderCheckpoint?: boolean,
+  ): Promise<() => Promise<void>>;
 }
-export function externalOperationDigest(action: ExternalProviderOperation["action"], input: Record<string, unknown>): string {
+export function externalOperationDigest(
+  action: ExternalProviderOperation["action"],
+  input: Record<string, unknown>,
+): string {
   return digestTaskcoreSemanticContent({ action, input });
 }

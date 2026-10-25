@@ -1,12 +1,19 @@
-import { buildAdapterEnvConfig, type CreateConfigValues } from "@taskcore/adapter-utils";
+import {
+  buildAdapterEnvConfig,
+  type CreateConfigValues,
+} from "@taskcore/adapter-utils";
 
-export function buildCursorCloudConfig(values: CreateConfigValues): Record<string, unknown> {
+export function buildCursorCloudConfig(
+  values: CreateConfigValues,
+): Record<string, unknown> {
   const config: Record<string, unknown> = {
     ...(values.adapterSchemaValues ?? {}),
   };
-  if (values.instructionsFilePath) config.instructionsFilePath = values.instructionsFilePath;
+  if (values.instructionsFilePath)
+    config.instructionsFilePath = values.instructionsFilePath;
   if (values.promptTemplate) config.promptTemplate = values.promptTemplate;
-  if (values.bootstrapPrompt) config.bootstrapPromptTemplate = values.bootstrapPrompt;
+  if (values.bootstrapPrompt)
+    config.bootstrapPromptTemplate = values.bootstrapPrompt;
   if (values.model?.trim()) config.model = values.model.trim();
 
   const env = buildAdapterEnvConfig(values.envBindings, values.envVars);

@@ -19,4 +19,8 @@ export interface DotConnection {
   agentStatus: string;
   binding: DotBinding | null;
 }
-export interface DotPairing { bindingId: string; pairingCode: string; expiresAt: string }
+export interface DotPairing {
+  bindingId: string;
+  pairingCode: string;
+  expiresAt: string;
+}

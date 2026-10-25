@@ -10,13 +10,22 @@ describe("workspace command helpers", () => {
     const commands = listWorkspaceCommandDefinitions({
       commands: [
         { id: "web", name: "web", kind: "service", command: "pnpm dev" },
-        { id: "db-migrate", name: "db:migrate", kind: "job", command: "pnpm db:migrate" },
+        {
+          id: "db-migrate",
+          name: "db:migrate",
+          kind: "job",
+          command: "pnpm db:migrate",
+        },
       ],
     });
 
     expect(commands).toEqual([
       expect.objectContaining({ id: "web", kind: "service", serviceIndex: 0 }),
-      expect.objectContaining({ id: "db-migrate", kind: "job", serviceIndex: null }),
+      expect.objectContaining({
+        id: "db-migrate",
+        kind: "job",
+        serviceIndex: null,
+      }),
     ]);
   });
 
@@ -27,15 +36,29 @@ describe("workspace command helpers", () => {
     });
 
     expect(commands).toEqual([
-      expect.objectContaining({ id: "service:web", kind: "service", serviceIndex: 0 }),
-      expect.objectContaining({ id: "job:lint", kind: "job", serviceIndex: null }),
+      expect.objectContaining({
+        id: "service:web",
+        kind: "service",
+        serviceIndex: 0,
+      }),
+      expect.objectContaining({
+        id: "job:lint",
+        kind: "job",
+        serviceIndex: null,
+      }),
     ]);
   });
 
   it("matches a configured service command to the current runtime service", () => {
     const workspaceRuntime = {
       commands: [
-        { id: "web", name: "web", kind: "service", command: "pnpm dev", cwd: "." },
+        {
+          id: "web",
+          name: "web",
+          kind: "service",
+          command: "pnpm dev",
+          cwd: ".",
+        },
       ],
     };
     const command = findWorkspaceCommandDefinition(workspaceRuntime, "web");
@@ -58,7 +81,13 @@ describe("workspace command helpers", () => {
   it("does not match a stale runtime service after the configured command changes", () => {
     const workspaceRuntime = {
       commands: [
-        { id: "web", name: "web", kind: "service", command: "pnpm dev:once --tailscale-auth", cwd: "." },
+        {
+          id: "web",
+          name: "web",
+          kind: "service",
+          command: "pnpm dev:once --tailscale-auth",
+          cwd: ".",
+        },
       ],
     };
     const command = findWorkspaceCommandDefinition(workspaceRuntime, "web");
@@ -81,7 +110,12 @@ describe("workspace command helpers", () => {
   it("matches an exposed dev runtime whose bind command was hardened to loopback", () => {
     const workspaceRuntime = {
       commands: [
-        { id: "web", name: "taskcore-dev", kind: "service", command: "pnpm dev --bind lan" },
+        {
+          id: "web",
+          name: "taskcore-dev",
+          kind: "service",
+          command: "pnpm dev --bind lan",
+        },
       ],
     };
     const command = findWorkspaceCommandDefinition(workspaceRuntime, "web");
@@ -111,9 +145,12 @@ describe("workspace command helpers", () => {
   });
 
   it("does not equate a loopback command with a lan command without managed exposure", () => {
-    const command = findWorkspaceCommandDefinition({
-      services: [{ name: "taskcore-dev", command: "pnpm dev --bind lan" }],
-    }, "service:taskcore-dev");
+    const command = findWorkspaceCommandDefinition(
+      {
+        services: [{ name: "taskcore-dev", command: "pnpm dev --bind lan" }],
+      },
+      "service:taskcore-dev",
+    );
 
     const match = matchWorkspaceRuntimeServiceToCommand(command!, [
       {
@@ -130,15 +167,18 @@ describe("workspace command helpers", () => {
   });
 
   it("does not revive runtime history from a previously configured port", () => {
-    const command = findWorkspaceCommandDefinition({
-      services: [
-        {
-          name: "web",
-          command: "pnpm dev",
-          port: { type: "fixed", value: 42001 },
-        },
-      ],
-    }, "service:web");
+    const command = findWorkspaceCommandDefinition(
+      {
+        services: [
+          {
+            name: "web",
+            command: "pnpm dev",
+            port: { type: "fixed", value: 42001 },
+          },
+        ],
+      },
+      "service:web",
+    );
     expect(command).toEqual(expect.objectContaining({ port: 42001 }));
 
     const match = matchWorkspaceRuntimeServiceToCommand(command!, [
@@ -160,19 +200,24 @@ describe("workspace command helpers", () => {
       },
     ]);
 
-    expect(match).toEqual(expect.objectContaining({ id: "runtime-current-port" }));
+    expect(match).toEqual(
+      expect.objectContaining({ id: "runtime-current-port" }),
+    );
   });
 
   it("does not treat an auto port preference as a fixed runtime identity", () => {
-    const command = findWorkspaceCommandDefinition({
-      services: [
-        {
-          name: "web",
-          command: "pnpm dev",
-          port: { type: "auto", value: 42001 },
-        },
-      ],
-    }, "service:web");
+    const command = findWorkspaceCommandDefinition(
+      {
+        services: [
+          {
+            name: "web",
+            command: "pnpm dev",
+            port: { type: "auto", value: 42001 },
+          },
+        ],
+      },
+      "service:web",
+    );
 
     expect(command).toEqual(expect.objectContaining({ port: null }));
   });

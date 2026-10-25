@@ -51,11 +51,17 @@ export function ReportsToPicker({
           {unknownManager ? (
             <>
               <User className="h-3 w-3 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 truncate text-muted-foreground">Unknown manager (stale ID)</span>
+              <span className="min-w-0 truncate text-muted-foreground">
+                Unknown manager (stale ID)
+              </span>
             </>
           ) : current ? (
             <>
-              <AgentAvatar agent={current} size={16} className="h-3 w-3 shrink-0 text-muted-foreground"/>
+              <AgentAvatar
+                agent={current}
+                size={16}
+                className="h-3 w-3 shrink-0 text-muted-foreground"
+              />
               <span
                 className={cn(
                   "min-w-0 truncate",
@@ -91,7 +97,11 @@ export function ReportsToPicker({
         </button>
         {terminatedManager && (
           <div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 py-1.5 text-xs text-muted-foreground border-b border-border mb-0.5">
-            <AgentAvatar agent={current} size={16} className="shrink-0 h-3 w-3"/>
+            <AgentAvatar
+              agent={current}
+              size={16}
+              className="shrink-0 h-3 w-3"
+            />
             <span className="min-w-0 truncate">
               Current: {current.name} (terminated)
             </span>
@@ -99,7 +109,8 @@ export function ReportsToPicker({
         )}
         {unknownManager && (
           <div className="px-2 py-1.5 text-xs text-muted-foreground border-b border-border mb-0.5">
-            Saved manager is missing from this organization. Choose a new manager or clear.
+            Saved manager is missing from this organization. Choose a new
+            manager or clear.
           </div>
         )}
         {rows.map((a) => (
@@ -115,9 +126,15 @@ export function ReportsToPicker({
               setOpen(false);
             }}
           >
-            <AgentAvatar agent={a} size={16} className="shrink-0 h-3 w-3 text-muted-foreground"/>
+            <AgentAvatar
+              agent={a}
+              size={16}
+              className="shrink-0 h-3 w-3 text-muted-foreground"
+            />
             <span className="min-w-0 truncate">{a.name}</span>
-            <span className="text-muted-foreground ml-auto shrink-0">{roleLabels[a.role] ?? a.role}</span>
+            <span className="text-muted-foreground ml-auto shrink-0">
+              {roleLabels[a.role] ?? a.role}
+            </span>
           </button>
         ))}
       </PopoverContent>

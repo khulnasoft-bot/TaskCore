@@ -64,7 +64,8 @@ const argsSchema = z
   })
   .strict();
 const terminalSessions = ["closed", "failed"];
-const requestMarker = (invocationId: string) => `\n\n[Taskcore request: ${invocationId}]`;
+const requestMarker = (invocationId: string) =>
+  `\n\n[Taskcore request: ${invocationId}]`;
 
 export function browserUseService(
   db: Db,
@@ -503,25 +504,45 @@ export function browserUseService(
       });
     } catch (error) {
       // A lost create response can mean paid work exists. Never submit it again.
-      const rejected = error instanceof BrowserUseError && error.requestRejected;
-      const message = rejected ? error.message :
-        "Browser run creation could not be confirmed. Taskcore is locating and stopping possible provider work. Do not start another run yet.";
-      await db.transaction(async tx => {
-        const [current] = await tx.select().from(sessions).where(eq(sessions.id, s.id)).for("update");
+      const rejected =
+        error instanceof BrowserUseError && error.requestRejected;
+      const message = rejected
+        ? error.message
+        : "Browser run creation could not be confirmed. Taskcore is locating and stopping possible provider work. Do not start another run yet.";
+      await db.transaction(async (tx) => {
+        const [current] = await tx
+          .select()
+          .from(sessions)
+          .where(eq(sessions.id, s.id))
+          .for("update");
         // A restart must not leave a drained rejection attached to a starting
         // session: that combination has neither recovery work nor an idle timer.
-        await tx.update(runs)
-          .set({ status: rejected ? "failed" : "unknown", eventsDrained: rejected ? 1 : 0 })
+        await tx
+          .update(runs)
+          .set({
+            status: rejected ? "failed" : "unknown",
+            eventsDrained: rejected ? 1 : 0,
+          })
           .where(eq(runs.invocationId, invocationId));
         const stopping = !rejected || current.stopRequested === "end";
-        await tx.update(sessions).set({
-          status: stopping ? "stopping" : (s.providerSessionId ? "idle" : "failed"),
-          stopRequested: stopping ? "end" : null,
-          idleDeadline: rejected && s.providerSessionId ? new Date(Date.now() + BROWSER_USE_IDLE_MS) : null,
-          error: message,
-          nextPollAt: new Date(),
-          updatedAt: new Date(),
-        }).where(eq(sessions.id, s.id));
+        await tx
+          .update(sessions)
+          .set({
+            status: stopping
+              ? "stopping"
+              : s.providerSessionId
+                ? "idle"
+                : "failed",
+            stopRequested: stopping ? "end" : null,
+            idleDeadline:
+              rejected && s.providerSessionId
+                ? new Date(Date.now() + BROWSER_USE_IDLE_MS)
+                : null,
+            error: message,
+            nextPollAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(sessions.id, s.id));
       });
       throw new BrowserUseError(
         error instanceof BrowserUseError ? error.status : 502,
@@ -677,7 +698,9 @@ export function browserUseService(
         status:
           b?.status === "stopped"
             ? "closed"
-            : !b && !terminalSessions.includes(s.status) && s.status !== "stopping"
+            : !b &&
+                !terminalSessions.includes(s.status) &&
+                s.status !== "stopping"
               ? "starting"
               : (s.status as TaskBrowser["status"]),
         runStatus: run?.status ?? null,
@@ -911,54 +934,65 @@ export function browserUseService(
     const cents = Math.max(0, Math.round(Number(summary.totalCostUsd) * 100));
     if (!Number.isSafeInteger(cents))
       throw new BrowserUseError(502, "Browser Use returned invalid usage.");
-    const event = await withAccountingTransaction(db, s.companyId, async (tx, publications) => {
-      const [issue] = await tx
-        .select({ projectId: issues.projectId })
-        .from(issues)
-        .where(and(eq(issues.id, s.issueId), eq(issues.companyId, s.companyId)));
-      const [current] = await tx
-        .select()
-        .from(runs)
-        .where(eq(runs.id, run.id))
-        .for("update");
-      if (cents <= current.accountedCents) return null;
-      const e = await createCostEventInTransaction(tx, s.companyId, {
-        agentId: s.agentId,
-        issueId: s.issueId,
-        projectId: issue?.projectId,
-        heartbeatRunId: run.heartbeatRunId,
-        provider: "browser-use-cloud",
-        biller: "browser-use-cloud",
-        billingType: "metered_api",
-        model: summary.model,
-        costCents: cents - current.accountedCents,
-        occurredAt: new Date(),
-        billingCode: `browser-use-cloud:${run.id}`,
-        idempotencyKey: `browser-use-cloud:${run.id}:${cents}`,
-      }, publications);
-      await createFinanceEventInTransaction(tx, publications, s.companyId, {
-        agentId: e.agentId,
-        issueId: e.issueId,
-        projectId: e.projectId,
-        heartbeatRunId: e.heartbeatRunId,
-        costEventId: e.id,
-        billingCode: e.billingCode,
-        eventKind: "inference_charge",
-        direction: "debit",
-        biller: "browser-use-cloud",
-        provider: "browser-use-cloud",
-        model: e.model,
-        amountCents: e.costCents,
-        currency: "USD",
-        description: "Browser Use agent run",
-        occurredAt: e.occurredAt,
-      });
-      await tx
-        .update(runs)
-        .set({ accountedCents: cents })
-        .where(eq(runs.id, run.id));
-      return e;
-    });
+    const event = await withAccountingTransaction(
+      db,
+      s.companyId,
+      async (tx, publications) => {
+        const [issue] = await tx
+          .select({ projectId: issues.projectId })
+          .from(issues)
+          .where(
+            and(eq(issues.id, s.issueId), eq(issues.companyId, s.companyId)),
+          );
+        const [current] = await tx
+          .select()
+          .from(runs)
+          .where(eq(runs.id, run.id))
+          .for("update");
+        if (cents <= current.accountedCents) return null;
+        const e = await createCostEventInTransaction(
+          tx,
+          s.companyId,
+          {
+            agentId: s.agentId,
+            issueId: s.issueId,
+            projectId: issue?.projectId,
+            heartbeatRunId: run.heartbeatRunId,
+            provider: "browser-use-cloud",
+            biller: "browser-use-cloud",
+            billingType: "metered_api",
+            model: summary.model,
+            costCents: cents - current.accountedCents,
+            occurredAt: new Date(),
+            billingCode: `browser-use-cloud:${run.id}`,
+            idempotencyKey: `browser-use-cloud:${run.id}:${cents}`,
+          },
+          publications,
+        );
+        await createFinanceEventInTransaction(tx, publications, s.companyId, {
+          agentId: e.agentId,
+          issueId: e.issueId,
+          projectId: e.projectId,
+          heartbeatRunId: e.heartbeatRunId,
+          costEventId: e.id,
+          billingCode: e.billingCode,
+          eventKind: "inference_charge",
+          direction: "debit",
+          biller: "browser-use-cloud",
+          provider: "browser-use-cloud",
+          model: e.model,
+          amountCents: e.costCents,
+          currency: "USD",
+          description: "Browser Use agent run",
+          occurredAt: e.occurredAt,
+        });
+        await tx
+          .update(runs)
+          .set({ accountedCents: cents })
+          .where(eq(runs.id, run.id));
+        return e;
+      },
+    );
     // Re-evaluate on retries too: accounting may have committed immediately
     // before a crash interrupted budget enforcement.
     const lastEvent =
@@ -1033,26 +1067,46 @@ export function browserUseService(
     for (const run of allRuns) {
       if (!run.providerRunId) {
         if (run.eventsDrained) continue; // A definitive rejection made no paid run.
-        if (run.status === "creating" && Date.now() - run.createdAt.getTime() <= 60_000) {
+        if (
+          run.status === "creating" &&
+          Date.now() - run.createdAt.getTime() <= 60_000
+        ) {
           active = true;
           continue;
         }
         end = true;
-        await db.update(sessions).set({ status: "stopping", stopRequested: "end" })
+        await db
+          .update(sessions)
+          .set({ status: "stopping", stopRequested: "end" })
           .where(eq(sessions.id, s.id));
         let cursor = run.recoveryCursor;
         for (let page = 0; page < 5 && !run.providerRunId; page++) {
           const listed = await client.listRuns(s.providerSessionId, cursor);
-          const matches = listed.runs.filter(candidate =>
-            candidate.task.endsWith(requestMarker(run.invocationId)) &&
-            (!s.providerSessionId || candidate.sessionId === s.providerSessionId));
-          if (matches.length > 1) throw new BrowserUseError(502, "Browser recovery found ambiguous provider work.");
+          const matches = listed.runs.filter(
+            (candidate) =>
+              candidate.task.endsWith(requestMarker(run.invocationId)) &&
+              (!s.providerSessionId ||
+                candidate.sessionId === s.providerSessionId),
+          );
+          if (matches.length > 1)
+            throw new BrowserUseError(
+              502,
+              "Browser recovery found ambiguous provider work.",
+            );
           const found = matches[0];
           if (found) {
-            await db.transaction(async tx => {
-              await tx.update(runs).set({ providerRunId: found.id, status: found.status, recoveryCursor: null })
+            await db.transaction(async (tx) => {
+              await tx
+                .update(runs)
+                .set({
+                  providerRunId: found.id,
+                  status: found.status,
+                  recoveryCursor: null,
+                })
                 .where(eq(runs.id, run.id));
-              await tx.update(sessions).set({ providerSessionId: found.sessionId })
+              await tx
+                .update(sessions)
+                .set({ providerSessionId: found.sessionId })
                 .where(eq(sessions.id, s.id));
             });
             run.providerRunId = found.id;
@@ -1060,10 +1114,19 @@ export function browserUseService(
             s.providerSessionId = found.sessionId;
             break;
           }
-          if (listed.hasMore && (!listed.nextCursor || listed.nextCursor === cursor))
-            throw new BrowserUseError(502, "Browser recovery cursor did not advance.");
+          if (
+            listed.hasMore &&
+            (!listed.nextCursor || listed.nextCursor === cursor)
+          )
+            throw new BrowserUseError(
+              502,
+              "Browser recovery cursor did not advance.",
+            );
           cursor = listed.hasMore ? listed.nextCursor! : null;
-          await db.update(runs).set({ status: "unknown", recoveryCursor: cursor }).where(eq(runs.id, run.id));
+          await db
+            .update(runs)
+            .set({ status: "unknown", recoveryCursor: cursor })
+            .where(eq(runs.id, run.id));
           if (!listed.hasMore) break;
         }
         if (!run.providerRunId) {

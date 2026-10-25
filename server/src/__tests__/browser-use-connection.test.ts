@@ -35,7 +35,11 @@ import { toolAccessService } from "../services/tool-access.js";
 import { createToolGatewayService } from "../services/tool-gateway.js";
 import { browserUseViewports } from "../services/browser-use-viewport.js";
 import { browserUseService } from "../services/browser-use.js";
-import { applyConnectorSkills, prepareConnectorSkillDelivery, resolveConnectorAssignments } from "../services/connector-runtime.js";
+import {
+  applyConnectorSkills,
+  prepareConnectorSkillDelivery,
+  resolveConnectorAssignments,
+} from "../services/connector-runtime.js";
 import { registerAssignedMcpGateway } from "../services/native-runtime/assigned-mcp-tools.js";
 import { listTaskcoreSkillEntries } from "@taskcore/adapter-utils/server-utils";
 import { fileURLToPath } from "node:url";
@@ -80,7 +84,10 @@ const actor = { actorType: "user" as const, actorId: "browser-reviewer" };
       const providerSession = randomUUID(),
         providerBrowser = randomUUID();
       let providerRun = randomUUID();
-      let acceptedTask = "", loseReply = false, rejectCode = 0, recoveryPages = 0;
+      let acceptedTask = "",
+        loseReply = false,
+        rejectCode = 0,
+        recoveryPages = 0;
       let status = "running",
         stopped = false,
         browserReady = false,
@@ -100,19 +107,39 @@ const actor = { actorType: "user" as const, actorId: "browser-reviewer" };
           return Response.json({ items: [], totalItems: 0 });
         if (path === "/runs" && init.method === "GET") {
           const cursor = Number(new URL(url).searchParams.get("cursor") ?? 0);
-          return Response.json(cursor < recoveryPages
-            ? { runs: [], hasMore: true, nextCursor: String(cursor + 1) }
-            : { runs: acceptedTask ? [{ id: providerRun, sessionId: providerSession, task: acceptedTask, status }] : [], hasMore: false });
+          return Response.json(
+            cursor < recoveryPages
+              ? { runs: [], hasMore: true, nextCursor: String(cursor + 1) }
+              : {
+                  runs: acceptedTask
+                    ? [
+                        {
+                          id: providerRun,
+                          sessionId: providerSession,
+                          task: acceptedTask,
+                          status,
+                        },
+                      ]
+                    : [],
+                  hasMore: false,
+                },
+          );
         }
         if (path === "/runs" && init.method === "POST" && rejectCode)
-          return new Response("Rejected", { status: rejectCode, headers: { "Retry-After": "1" } });
+          return new Response("Rejected", {
+            status: rejectCode,
+            headers: { "Retry-After": "1" },
+          });
         if (path === "/runs" && init.method === "POST" && failCreate)
           throw new Error("lost create response");
         if (path === "/runs" && init.method === "POST") {
           providerRun = randomUUID();
           status = "running";
           acceptedTask = JSON.parse(String(init.body)).task;
-          if (loseReply) { browserReady = true; throw new Error("lost accepted create response"); }
+          if (loseReply) {
+            browserReady = true;
+            throw new Error("lost accepted create response");
+          }
           return Response.json({
             id: providerRun,
             sessionId: providerSession,
@@ -305,109 +332,288 @@ const actor = { actorType: "user" as const, actorId: "browser-reviewer" };
         failCreate: () => {
           failCreate = true;
         },
-        loseReply: () => { loseReply = true; },
-        reject: (code: number) => { rejectCode = code; },
-        recoveryPages: (count: number) => { recoveryPages = count; },
+        loseReply: () => {
+          loseReply = true;
+        },
+        reject: (code: number) => {
+          rejectCode = code;
+        },
+        recoveryPages: (count: number) => {
+          recoveryPages = count;
+        },
         paginate: () => {
           paginatedEvents = true;
         },
       };
     }
     it("keeps Cloud instructions out of universal skills and unassigned runtime overlays", async () => {
-      const skills = await listTaskcoreSkillEntries(fileURLToPath(new URL("../", import.meta.url)), [fileURLToPath(new URL("../../../skills", import.meta.url))]);
-      expect(skills.some(skill => skill.runtimeName === "taskcore")).toBe(true);
-      expect(skills.some(skill => ["browser-use", "browser-use-cloud"].includes(skill.runtimeName))).toBe(false);
-      const base = { taskcoreSkillSync: { desiredSkills: ["taskcore/taskcore/browser-use", "taskcore/taskcore/browser-use-cloud"] } };
-      const unassigned = await applyConnectorSkills(base, [
-        { key: "taskcore/taskcore/browser-use", runtimeName: "browser-use", source: "/retired-browser-skill" },
-        { key: "taskcore/taskcore/browser-use-cloud", runtimeName: "browser-use-cloud", source: "/unassigned-cloud-skill" },
-        { key: "custom/browser-use", runtimeName: "browser-use", source: "/another-browser-skill" },
-      ], []);
-      expect(unassigned.taskcoreRuntimeSkills).toEqual([{ key: "custom/browser-use", runtimeName: "browser-use", source: "/another-browser-skill" }]);
+      const skills = await listTaskcoreSkillEntries(
+        fileURLToPath(new URL("../", import.meta.url)),
+        [fileURLToPath(new URL("../../../skills", import.meta.url))],
+      );
+      expect(skills.some((skill) => skill.runtimeName === "taskcore")).toBe(
+        true,
+      );
+      expect(
+        skills.some((skill) =>
+          ["browser-use", "browser-use-cloud"].includes(skill.runtimeName),
+        ),
+      ).toBe(false);
+      const base = {
+        taskcoreSkillSync: {
+          desiredSkills: [
+            "taskcore/taskcore/browser-use",
+            "taskcore/taskcore/browser-use-cloud",
+          ],
+        },
+      };
+      const unassigned = await applyConnectorSkills(
+        base,
+        [
+          {
+            key: "taskcore/taskcore/browser-use",
+            runtimeName: "browser-use",
+            source: "/retired-browser-skill",
+          },
+          {
+            key: "taskcore/taskcore/browser-use-cloud",
+            runtimeName: "browser-use-cloud",
+            source: "/unassigned-cloud-skill",
+          },
+          {
+            key: "custom/browser-use",
+            runtimeName: "browser-use",
+            source: "/another-browser-skill",
+          },
+        ],
+        [],
+      );
+      expect(unassigned.taskcoreRuntimeSkills).toEqual([
+        {
+          key: "custom/browser-use",
+          runtimeName: "browser-use",
+          source: "/another-browser-skill",
+        },
+      ]);
       expect(unassigned.taskcoreConnectorSkillDigest).toBeNull();
       expect(base.taskcoreSkillSync.desiredSkills).toHaveLength(2);
     });
     it("delivers the Cloud skill only with authorized connection tools in a task run", async () => {
       const f = await fixture();
-      const [unassignedAgent] = await db.insert(agents).values({
-        companyId: f.company.id,
-        name: "Agent without the Cloud connection",
-        role: "engineer",
-        adapterType: "process",
-        adapterConfig: {},
-      }).returning();
-      expect(await f.gateway.browserUseResources({ companyId: f.company.id, agentId: f.agent.id })).toEqual([]);
-      expect(await resolveConnectorAssignments(db, { ...f.binding, agentId: unassignedAgent.id })).toEqual([]);
-      expect(await resolveConnectorAssignments(db, { ...f.binding, companyId: randomUUID() })).toEqual([]);
+      const [unassignedAgent] = await db
+        .insert(agents)
+        .values({
+          companyId: f.company.id,
+          name: "Agent without the Cloud connection",
+          role: "engineer",
+          adapterType: "process",
+          adapterConfig: {},
+        })
+        .returning();
+      expect(
+        await f.gateway.browserUseResources({
+          companyId: f.company.id,
+          agentId: f.agent.id,
+        }),
+      ).toEqual([]);
+      expect(
+        await resolveConnectorAssignments(db, {
+          ...f.binding,
+          agentId: unassignedAgent.id,
+        }),
+      ).toEqual([]);
+      expect(
+        await resolveConnectorAssignments(db, {
+          ...f.binding,
+          companyId: randomUUID(),
+        }),
+      ).toEqual([]);
       const assignments = await resolveConnectorAssignments(db, f.binding);
-      expect(assignments).toMatchObject([{ key: "browser-use-cloud", skillKey: "taskcore/taskcore/browser-use-cloud", resources: [{ connectionId: f.connection.connectionId }] }]);
+      expect(assignments).toMatchObject([
+        {
+          key: "browser-use-cloud",
+          skillKey: "taskcore/taskcore/browser-use-cloud",
+          resources: [{ connectionId: f.connection.connectionId }],
+        },
+      ]);
       const config = await applyConnectorSkills({}, [], assignments);
       const skill = config.taskcoreRuntimeSkills[0];
       expect(skill.runtimeName).toBe("browser-use-cloud");
-      const markdown = await readFile(path.join(skill.source, "SKILL.md"), "utf8");
+      const markdown = await readFile(
+        path.join(skill.source, "SKILL.md"),
+        "utf8",
+      );
       expect(markdown).toContain("name: browser-use-cloud");
       expect(markdown).toContain("browser_start");
       expect(markdown).toContain(f.connection.connectionId);
       expect(markdown).not.toContain("bu_fixture_secret");
-      for (const adapterType of ["taskcore_runner", "codex_local", "claude_local", "kimi_local"]) {
-        const delivery = await prepareConnectorSkillDelivery({ ...config, engine: "cli" }, adapterType);
+      for (const adapterType of [
+        "taskcore_runner",
+        "codex_local",
+        "claude_local",
+        "kimi_local",
+      ]) {
+        const delivery = await prepareConnectorSkillDelivery(
+          { ...config, engine: "cli" },
+          adapterType,
+        );
         expect(delivery.config.taskcoreRuntimeSkills).toEqual([skill]);
       }
-      const sharedHome = await prepareConnectorSkillDelivery(config, "cursor_local");
+      const sharedHome = await prepareConnectorSkillDelivery(
+        config,
+        "cursor_local",
+      );
       expect(sharedHome.config.taskcoreRuntimeSkills).toEqual([]);
       expect(sharedHome.instructions).toContain("name: browser-use-cloud");
-      expect(sharedHome.config.taskcoreConnectorSkillDigest).toBe(config.taskcoreConnectorSkillDigest);
-      await db.update(connectionGrants).set({ status: "revoked" }).where(eq(connectionGrants.id, f.grant.id));
+      expect(sharedHome.config.taskcoreConnectorSkillDigest).toBe(
+        config.taskcoreConnectorSkillDigest,
+      );
+      await db
+        .update(connectionGrants)
+        .set({ status: "revoked" })
+        .where(eq(connectionGrants.id, f.grant.id));
       expect(await resolveConnectorAssignments(db, f.binding)).toEqual([]);
-      const revoked = await applyConnectorSkills(config, config.taskcoreRuntimeSkills, []);
+      const revoked = await applyConnectorSkills(
+        config,
+        config.taskcoreRuntimeSkills,
+        [],
+      );
       expect(revoked.taskcoreRuntimeSkills).toEqual([]);
       expect(revoked.taskcoreConnectorSkillDigest).toBeNull();
-      expect((await prepareConnectorSkillDelivery(revoked, "cursor_local")).instructions).toBe("");
+      expect(
+        (await prepareConnectorSkillDelivery(revoked, "cursor_local"))
+          .instructions,
+      ).toBe("");
     });
     it("withholds Cloud instructions when connection tools are disabled", async () => {
       const f = await fixture();
-      await db.update(toolConnections).set({ enabled: false }).where(eq(toolConnections.id, f.connection.connectionId));
+      await db
+        .update(toolConnections)
+        .set({ enabled: false })
+        .where(eq(toolConnections.id, f.connection.connectionId));
       expect(await resolveConnectorAssignments(db, f.binding)).toEqual([]);
     });
     it("reapplies the renumbered migration without losing existing browser work", async () => {
       const f = await fixture();
-      await f.service.execute(f.binding, f.grant, randomUUID(), "browser_start", {
-        task: "Read example.com",
-        maxCostUsd: 0.5,
-      });
-      f.ready(); f.complete(); await f.tick();
-      const previous = await db.select().from(browserUseRuns)
+      await f.service.execute(
+        f.binding,
+        f.grant,
+        randomUUID(),
+        "browser_start",
+        {
+          task: "Read example.com",
+          maxCostUsd: 0.5,
+        },
+      );
+      f.ready();
+      f.complete();
+      await f.tick();
+      const previous = await db
+        .select()
+        .from(browserUseRuns)
         .where(eq(browserUseRuns.companyId, f.company.id));
       expect(previous).toHaveLength(1);
-      const [original] = await db.select().from(toolConnections).where(eq(toolConnections.id, f.connection.connectionId));
-      await db.update(toolConnections).set({
-        config: { ...original.config, sourceTemplateKey: "browser-use" },
-        transportConfig: { ...original.transportConfig, sourceTemplateKey: "browser-use" },
-      }).where(eq(toolConnections.id, original.id));
-      await db.update(toolApplications).set({
-        applicationKey: `app-gallery:browser-use:${original.id}`,
-        metadata: { sourceTemplateKey: "browser-use", galleryKey: "browser-use" },
-      }).where(eq(toolApplications.id, original.applicationId));
-      const legacyCost = { provider: "browser-use", biller: "browser-use", billingCode: `browser-use:${previous[0].id}` };
-      await db.update(costEvents).set(legacyCost).where(eq(costEvents.companyId, f.company.id));
-      await db.update(financeEvents).set(legacyCost).where(eq(financeEvents.companyId, f.company.id));
-      const migration = await readFile(new URL(
-        "../../../packages/db/src/migrations/0290_browser_use_cloud.sql", import.meta.url,
-      ), "utf8");
+      const [original] = await db
+        .select()
+        .from(toolConnections)
+        .where(eq(toolConnections.id, f.connection.connectionId));
+      await db
+        .update(toolConnections)
+        .set({
+          config: { ...original.config, sourceTemplateKey: "browser-use" },
+          transportConfig: {
+            ...original.transportConfig,
+            sourceTemplateKey: "browser-use",
+          },
+        })
+        .where(eq(toolConnections.id, original.id));
+      await db
+        .update(toolApplications)
+        .set({
+          applicationKey: `app-gallery:browser-use:${original.id}`,
+          metadata: {
+            sourceTemplateKey: "browser-use",
+            galleryKey: "browser-use",
+          },
+        })
+        .where(eq(toolApplications.id, original.applicationId));
+      const legacyCost = {
+        provider: "browser-use",
+        biller: "browser-use",
+        billingCode: `browser-use:${previous[0].id}`,
+      };
+      await db
+        .update(costEvents)
+        .set(legacyCost)
+        .where(eq(costEvents.companyId, f.company.id));
+      await db
+        .update(financeEvents)
+        .set(legacyCost)
+        .where(eq(financeEvents.companyId, f.company.id));
+      const migration = await readFile(
+        new URL(
+          "../../../packages/db/src/migrations/0290_browser_use_cloud.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      );
       for (let attempt = 0; attempt < 2; attempt++) {
         for (const statement of migration.split("--> statement-breakpoint")) {
           if (statement.trim()) await db.execute(sql.raw(statement));
         }
       }
-      expect(await db.select().from(browserUseRuns)
-        .where(eq(browserUseRuns.companyId, f.company.id))).toEqual(previous);
-      const [migrated] = await db.select().from(toolConnections).where(eq(toolConnections.id, original.id));
-      expect(migrated).toMatchObject({ config: { sourceTemplateKey: "browser-use-cloud" }, transportConfig: { sourceTemplateKey: "browser-use-cloud" }, credentialSecretRefs: original.credentialSecretRefs });
-      expect(await db.select().from(toolApplications).where(eq(toolApplications.id, original.applicationId))).toMatchObject([{ applicationKey: `app-gallery:browser-use-cloud:${original.id}`, metadata: { sourceTemplateKey: "browser-use-cloud", galleryKey: "browser-use-cloud" } }]);
-      expect(await resolveConnectorAssignments(db, f.binding)).toMatchObject([{ key: "browser-use-cloud" }]);
+      expect(
+        await db
+          .select()
+          .from(browserUseRuns)
+          .where(eq(browserUseRuns.companyId, f.company.id)),
+      ).toEqual(previous);
+      const [migrated] = await db
+        .select()
+        .from(toolConnections)
+        .where(eq(toolConnections.id, original.id));
+      expect(migrated).toMatchObject({
+        config: { sourceTemplateKey: "browser-use-cloud" },
+        transportConfig: { sourceTemplateKey: "browser-use-cloud" },
+        credentialSecretRefs: original.credentialSecretRefs,
+      });
+      expect(
+        await db
+          .select()
+          .from(toolApplications)
+          .where(eq(toolApplications.id, original.applicationId)),
+      ).toMatchObject([
+        {
+          applicationKey: `app-gallery:browser-use-cloud:${original.id}`,
+          metadata: {
+            sourceTemplateKey: "browser-use-cloud",
+            galleryKey: "browser-use-cloud",
+          },
+        },
+      ]);
+      expect(await resolveConnectorAssignments(db, f.binding)).toMatchObject([
+        { key: "browser-use-cloud" },
+      ]);
       await f.tick();
-      expect(await db.select().from(costEvents).where(eq(costEvents.companyId, f.company.id))).toMatchObject([{ provider: "browser-use-cloud", biller: "browser-use-cloud", billingCode: `browser-use-cloud:${previous[0].id}`, costCents: 15 }]);
-      expect(await db.select().from(financeEvents).where(eq(financeEvents.companyId, f.company.id))).toMatchObject([{ provider: "browser-use-cloud", amountCents: 15 }]);
+      expect(
+        await db
+          .select()
+          .from(costEvents)
+          .where(eq(costEvents.companyId, f.company.id)),
+      ).toMatchObject([
+        {
+          provider: "browser-use-cloud",
+          biller: "browser-use-cloud",
+          billingCode: `browser-use-cloud:${previous[0].id}`,
+          costCents: 15,
+        },
+      ]);
+      expect(
+        await db
+          .select()
+          .from(financeEvents)
+          .where(eq(financeEvents.companyId, f.company.id)),
+      ).toMatchObject([{ provider: "browser-use-cloud", amountCents: 15 }]);
     });
     it("delivers Browser Use through the pinned native and CLI runtime gateway", async () => {
       const f = await fixture();
@@ -846,87 +1052,232 @@ const actor = { actorType: "user" as const, actorId: "browser-reviewer" };
         "browser_start",
         { task: "Read" },
       );
-      expect(result).toMatchObject({ status: "stopping", runStatus: "unknown" });
+      expect(result).toMatchObject({
+        status: "stopping",
+        runStatus: "unknown",
+      });
       expect(
         f.request.mock.calls.filter(
           ([url, init]) => url.endsWith("/runs") && init.method === "POST",
         ),
       ).toHaveLength(1);
     });
-    it.each([409, 429])("keeps a browser visible and closable after a rejected continuation (%s)", async (code) => {
-      const f = await fixture();
-      const start = await f.service.execute(f.binding, f.grant, randomUUID(), "browser_start", { task: "Read" }) as { sessionId: string };
-      f.ready(); f.complete(); await f.tick();
-      f.reject(code);
-      await expect(f.service.execute(f.binding, f.grant, randomUUID(), "browser_continue", { task: "Read again", sessionId: start.sessionId })).rejects.toThrow();
-      expect(await f.service.list(f.company.id, f.issue.id, actor.actorId)).toMatchObject([{ status: "idle" }]);
-      const [session] = await db.select().from(browserUseSessions).where(eq(browserUseSessions.id, start.sessionId));
-      await f.service.control(session, "end", actor.actorId);
-      // The 429 response delays the whole credential's provider requests.
-      if (code === 429) await new Promise(resolve => setTimeout(resolve, 1050));
-      await f.tick();
-      expect(await f.service.list(f.company.id, f.issue.id, actor.actorId)).toMatchObject([{ status: "closed" }]);
-    });
+    it.each([409, 429])(
+      "keeps a browser visible and closable after a rejected continuation (%s)",
+      async (code) => {
+        const f = await fixture();
+        const start = (await f.service.execute(
+          f.binding,
+          f.grant,
+          randomUUID(),
+          "browser_start",
+          { task: "Read" },
+        )) as { sessionId: string };
+        f.ready();
+        f.complete();
+        await f.tick();
+        f.reject(code);
+        await expect(
+          f.service.execute(
+            f.binding,
+            f.grant,
+            randomUUID(),
+            "browser_continue",
+            { task: "Read again", sessionId: start.sessionId },
+          ),
+        ).rejects.toThrow();
+        expect(
+          await f.service.list(f.company.id, f.issue.id, actor.actorId),
+        ).toMatchObject([{ status: "idle" }]);
+        const [session] = await db
+          .select()
+          .from(browserUseSessions)
+          .where(eq(browserUseSessions.id, start.sessionId));
+        await f.service.control(session, "end", actor.actorId);
+        // The 429 response delays the whole credential's provider requests.
+        if (code === 429)
+          await new Promise((resolve) => setTimeout(resolve, 1050));
+        await f.tick();
+        expect(
+          await f.service.list(f.company.id, f.issue.id, actor.actorId),
+        ).toMatchObject([{ status: "closed" }]);
+      },
+    );
     it("rolls back an interrupted rejection and closes the existing browser after restart", async () => {
       const f = await fixture();
-      const start = await f.service.execute(f.binding, f.grant, randomUUID(), "browser_start", { task: "Read" }) as { sessionId: string };
-      f.ready(); f.complete(); await f.tick();
+      const start = (await f.service.execute(
+        f.binding,
+        f.grant,
+        randomUUID(),
+        "browser_start",
+        { task: "Read" },
+      )) as { sessionId: string };
+      f.ready();
+      f.complete();
+      await f.tick();
       f.reject(409);
       const invocationId = randomUUID();
       const transaction = db.transaction.bind(db);
-      const interrupted = vi.spyOn(db, "transaction").mockImplementation((callback, config) =>
-        transaction(async tx => {
-          const result = await callback(tx);
-          const [run] = await tx.select().from(browserUseRuns).where(eq(browserUseRuns.invocationId, invocationId));
-          if (run?.status === "failed") throw new Error("process interrupted before commit");
-          return result;
-        }, config));
+      const interrupted = vi
+        .spyOn(db, "transaction")
+        .mockImplementation((callback, config) =>
+          transaction(async (tx) => {
+            const result = await callback(tx);
+            const [run] = await tx
+              .select()
+              .from(browserUseRuns)
+              .where(eq(browserUseRuns.invocationId, invocationId));
+            if (run?.status === "failed")
+              throw new Error("process interrupted before commit");
+            return result;
+          }, config),
+        );
       try {
-        await expect(f.service.execute(f.binding, f.grant, invocationId, "browser_continue", { task: "Read again", sessionId: start.sessionId })).rejects.toThrow("process interrupted");
+        await expect(
+          f.service.execute(
+            f.binding,
+            f.grant,
+            invocationId,
+            "browser_continue",
+            { task: "Read again", sessionId: start.sessionId },
+          ),
+        ).rejects.toThrow("process interrupted");
       } finally {
         interrupted.mockRestore();
       }
-      const [pending] = await db.select().from(browserUseRuns).where(eq(browserUseRuns.invocationId, invocationId));
-      expect(pending).toMatchObject({ status: "creating", eventsDrained: 0, providerRunId: null });
-      await db.update(browserUseRuns).set({ createdAt: new Date(Date.now() - 61_000) }).where(eq(browserUseRuns.id, pending.id));
-      await db.update(browserUseSessions).set({ nextPollAt: new Date(0) }).where(eq(browserUseSessions.id, start.sessionId));
+      const [pending] = await db
+        .select()
+        .from(browserUseRuns)
+        .where(eq(browserUseRuns.invocationId, invocationId));
+      expect(pending).toMatchObject({
+        status: "creating",
+        eventsDrained: 0,
+        providerRunId: null,
+      });
+      await db
+        .update(browserUseRuns)
+        .set({ createdAt: new Date(Date.now() - 61_000) })
+        .where(eq(browserUseRuns.id, pending.id));
+      await db
+        .update(browserUseSessions)
+        .set({ nextPollAt: new Date(0) })
+        .where(eq(browserUseSessions.id, start.sessionId));
       await browserUseService(db, f.request).sweep();
-      expect(await db.select().from(browserUseBrowsers).where(eq(browserUseBrowsers.sessionId, start.sessionId))).toMatchObject([{ status: "stopped" }]);
-      expect(f.request.mock.calls.filter(([url, init]) => url.endsWith("/runs") && init.method === "POST")).toHaveLength(2);
+      expect(
+        await db
+          .select()
+          .from(browserUseBrowsers)
+          .where(eq(browserUseBrowsers.sessionId, start.sessionId)),
+      ).toMatchObject([{ status: "stopped" }]);
+      expect(
+        f.request.mock.calls.filter(
+          ([url, init]) => url.endsWith("/runs") && init.method === "POST",
+        ),
+      ).toHaveLength(2);
     });
     it("recovers an accepted start after a lost response and restart, then stops and accounts without replay", async () => {
       const f = await fixture();
-      f.loseReply(); f.recoveryPages(6);
-      await expect(f.service.execute(f.binding, f.grant, randomUUID(), "browser_start", { task: "Read" })).rejects.toThrow("could not be confirmed");
+      f.loseReply();
+      f.recoveryPages(6);
+      await expect(
+        f.service.execute(f.binding, f.grant, randomUUID(), "browser_start", {
+          task: "Read",
+        }),
+      ).rejects.toThrow("could not be confirmed");
       await f.tick();
-      const [pending] = await db.select().from(browserUseRuns).where(eq(browserUseRuns.companyId, f.company.id));
+      const [pending] = await db
+        .select()
+        .from(browserUseRuns)
+        .where(eq(browserUseRuns.companyId, f.company.id));
       expect(pending.recoveryCursor).toBe("5");
-      await db.update(browserUseSessions).set({ nextPollAt: new Date(0) }).where(eq(browserUseSessions.companyId, f.company.id));
+      await db
+        .update(browserUseSessions)
+        .set({ nextPollAt: new Date(0) })
+        .where(eq(browserUseSessions.companyId, f.company.id));
       await browserUseService(db, f.request).sweep();
-      expect(await f.service.list(f.company.id, f.issue.id, actor.actorId)).toMatchObject([{ status: "closed" }]);
-      expect(await db.select().from(financeEvents).where(eq(financeEvents.companyId, f.company.id))).toMatchObject([{ amountCents: 15 }]);
-      expect(f.request.mock.calls.filter(([url, init]) => url.endsWith("/runs") && init.method === "POST")).toHaveLength(1);
+      expect(
+        await f.service.list(f.company.id, f.issue.id, actor.actorId),
+      ).toMatchObject([{ status: "closed" }]);
+      expect(
+        await db
+          .select()
+          .from(financeEvents)
+          .where(eq(financeEvents.companyId, f.company.id)),
+      ).toMatchObject([{ amountCents: 15 }]);
+      expect(
+        f.request.mock.calls.filter(
+          ([url, init]) => url.endsWith("/runs") && init.method === "POST",
+        ),
+      ).toHaveLength(1);
     });
     it("recovers a continuation's lost reply within its existing provider session", async () => {
       const f = await fixture();
-      const start = await f.service.execute(f.binding, f.grant, randomUUID(), "browser_start", { task: "Read" }) as { sessionId: string };
-      f.ready(); f.complete(); await f.tick();
-      f.loseReply();
-      await expect(f.service.execute(f.binding, f.grant, randomUUID(), "browser_continue", { task: "Read again", sessionId: start.sessionId })).rejects.toThrow("could not be confirmed");
+      const start = (await f.service.execute(
+        f.binding,
+        f.grant,
+        randomUUID(),
+        "browser_start",
+        { task: "Read" },
+      )) as { sessionId: string };
+      f.ready();
+      f.complete();
       await f.tick();
-      expect(await f.service.list(f.company.id, f.issue.id, actor.actorId)).toMatchObject([{ status: "closed" }]);
-      expect(f.request.mock.calls.some(([url]) => new URL(url).searchParams.has("sessionId"))).toBe(true);
-      expect(f.request.mock.calls.filter(([url, init]) => url.endsWith("/runs") && init.method === "POST")).toHaveLength(2);
+      f.loseReply();
+      await expect(
+        f.service.execute(
+          f.binding,
+          f.grant,
+          randomUUID(),
+          "browser_continue",
+          { task: "Read again", sessionId: start.sessionId },
+        ),
+      ).rejects.toThrow("could not be confirmed");
+      await f.tick();
+      expect(
+        await f.service.list(f.company.id, f.issue.id, actor.actorId),
+      ).toMatchObject([{ status: "closed" }]);
+      expect(
+        f.request.mock.calls.some(([url]) =>
+          new URL(url).searchParams.has("sessionId"),
+        ),
+      ).toBe(true);
+      expect(
+        f.request.mock.calls.filter(
+          ([url, init]) => url.endsWith("/runs") && init.method === "POST",
+        ),
+      ).toHaveLength(2);
     });
     it("recovers a process crash before provider identifiers were saved", async () => {
       const f = await fixture();
-      const start = await f.service.execute(f.binding, f.grant, randomUUID(), "browser_start", { task: "Read" }) as { sessionId: string };
+      const start = (await f.service.execute(
+        f.binding,
+        f.grant,
+        randomUUID(),
+        "browser_start",
+        { task: "Read" },
+      )) as { sessionId: string };
       f.ready();
-      await db.update(browserUseRuns).set({ providerRunId: null, status: "creating", createdAt: new Date(Date.now() - 61_000) }).where(eq(browserUseRuns.sessionId, start.sessionId));
-      await db.update(browserUseSessions).set({ providerSessionId: null, status: "starting" }).where(eq(browserUseSessions.id, start.sessionId));
+      await db
+        .update(browserUseRuns)
+        .set({
+          providerRunId: null,
+          status: "creating",
+          createdAt: new Date(Date.now() - 61_000),
+        })
+        .where(eq(browserUseRuns.sessionId, start.sessionId));
+      await db
+        .update(browserUseSessions)
+        .set({ providerSessionId: null, status: "starting" })
+        .where(eq(browserUseSessions.id, start.sessionId));
       await f.tick();
-      expect(await f.service.list(f.company.id, f.issue.id, actor.actorId)).toMatchObject([{ status: "closed" }]);
-      expect(f.request.mock.calls.filter(([url, init]) => url.endsWith("/runs") && init.method === "POST")).toHaveLength(1);
+      expect(
+        await f.service.list(f.company.id, f.issue.id, actor.actorId),
+      ).toMatchObject([{ status: "closed" }]);
+      expect(
+        f.request.mock.calls.filter(
+          ([url, init]) => url.endsWith("/runs") && init.method === "POST",
+        ),
+      ).toHaveLength(1);
     });
     it("drains bounded event pages after restart before closing and accounting", async () => {
       const f = await fixture();
@@ -983,145 +1334,167 @@ const actor = { actorType: "user" as const, actorId: "browser-reviewer" };
         )[0],
       ).toMatchObject({ eventCursor: 9, eventsDrained: 1, accountedCents: 15 });
     });
-    it.each(["task", "saved chat"])("protects %s browser routes from agent, other-company and read-only access", async (kind) => {
-      const f = await fixture();
-      if (kind === "saved chat") {
-        await db.update(issues).set({
-          conversationAgentId: f.agent.id,
-          conversationUserId: actor.actorId,
-          conversationState: "active",
-        }).where(eq(issues.id, f.issue.id));
-      }
-      await f.service.execute(
-        f.binding,
-        f.grant,
-        randomUUID(),
-        "browser_start",
-        { task: "Read" },
-      );
-      f.ready();
-      await f.tick();
-      const [browser] = await f.service.list(
-        f.company.id,
-        f.issue.id,
-        actor.actorId,
-      );
-      let mode = "board";
-      const app = express();
-      app.use(express.json());
-      app.use((req, _res, next) => {
-        req.actor =
-          mode === "agent"
-            ? {
-                type: "agent",
-                companyId: f.company.id,
-                agentId: f.agent.id,
-                source: "agent_key",
-              }
-            : {
-                type: "board",
-                userId: actor.actorId,
-                source: "session",
-                companyIds: mode === "other-company" ? [] : [f.company.id],
-              };
-        next();
-      });
-      app.use(browserUseRoutes(db, f.service));
-      app.use(errorHandler);
-      const listPath = `/issues/${f.issue.id}/browsers`;
-      const listed = await http(app).get(listPath);
-      expect(listed.status).toBe(200);
-      expect(listed.body).toMatchObject([{ id: browser.id, issueId: f.issue.id }]);
-      const missing = await http(app).get(`/issues/${randomUUID()}/browsers`);
-      expect(missing.status).toBe(404);
-      expect(missing.body).toEqual({ error: "Task not found" });
-      const path = `/issues/${f.issue.id}/browsers/${browser.id}/viewer`;
-      const ok = await http(app).get(path);
-      expect(ok.status).toBe(200);
-      expect(ok.headers["cache-control"]).toBe("no-store");
-      expect(ok.headers["referrer-policy"]).toBe("no-referrer");
-      const controlPath = path.replace("/viewer", "/control");
-      const presencePath = path.replace("/viewer", "/presence");
-      expect((await http(app).post(presencePath)).status).toBe(200);
-      const resizePath = path.replace("/viewer", "/viewport");
-      const resizeSpy = vi
-        .spyOn(browserUseViewports, "resize")
-        .mockResolvedValue({ preset: "phone" });
-      expect(
-        (await http(app).post(resizePath).send({ preset: "phone" })).body,
-      ).toEqual({ preset: "phone" });
-      expect(resizeSpy).toHaveBeenCalledTimes(1);
-      const viewerId = randomUUID();
-      resizeSpy.mockResolvedValueOnce({
-        preset: "fit",
-        width: 531,
-        height: 712,
-        applied: true,
-      });
-      expect(
-        (
-          await http(app)
-            .post(resizePath)
-            .send({ preset: "fit", width: 531, height: 712, viewerId })
-        ).body,
-      ).toMatchObject({ preset: "fit", width: 531 });
-      expect(resizeSpy).toHaveBeenLastCalledWith(
-        expect.any(String),
-        expect.any(String),
-        { preset: "fit", width: 531, height: 712, viewerId },
-        expect.any(String),
-        `${actor.actorId}:${viewerId}`,
-      );
-      expect(
-        (await http(app).post(`${resizePath}/release`).send({ viewerId }))
-          .status,
-      ).toBe(200);
-      expect(
-        (await http(app).post(resizePath).send({ preset: "custom", width: 1 }))
-          .status,
-      ).toBe(400);
-      expect((await http(app).post(controlPath).send({ action: "cancel" })).status).toBe(200);
-      mode = "agent";
-      expect((await http(app).get(listPath)).status).toBe(403);
-      expect((await http(app).post(controlPath).send({ action: "keep_open" })).status).toBe(403);
-      expect((await http(app).post(presencePath)).status).toBe(403);
-      expect(
-        (await http(app).post(`${resizePath}/release`).send({ viewerId }))
-          .status,
-      ).toBe(403);
-      expect(
-        (await http(app).post(resizePath).send({ preset: "phone" })).status,
-      ).toBe(403);
-      expect((await http(app).get(path)).status).toBe(403);
-      mode = "other-company";
-      const inaccessible = await http(app).get(listPath);
-      expect(inaccessible.status).toBe(missing.status);
-      expect(inaccessible.body).toEqual(missing.body);
-      expect((await http(app).post(controlPath).send({ action: "keep_open" })).status).toBe(404);
-      expect((await http(app).post(presencePath)).status).toBe(404);
-      expect(
-        (await http(app).post(`${resizePath}/release`).send({ viewerId }))
-          .status,
-      ).toBe(404);
-      expect(
-        (await http(app).post(resizePath).send({ preset: "phone" })).status,
-      ).toBe(404);
-      expect((await http(app).get(path)).status).toBe(404);
-      mode = "board";
-      await db
-        .update(companyMemberships)
-        .set({ membershipRole: "viewer" })
-        .where(eq(companyMemberships.companyId, f.company.id));
-      expect((await http(app).get(path)).status).toBe(403);
-      expect((await http(app).get(listPath)).body).toEqual([]);
-      expect((await http(app).post(controlPath).send({ action: "keep_open" })).status).toBe(403);
-      expect((await http(app).post(presencePath)).status).toBe(403);
-      expect(
-        (await http(app).post(resizePath).send({ preset: "phone" })).status,
-      ).toBe(403);
-      expect(resizeSpy).toHaveBeenCalledTimes(2);
-      resizeSpy.mockRestore();
-    });
+    it.each(["task", "saved chat"])(
+      "protects %s browser routes from agent, other-company and read-only access",
+      async (kind) => {
+        const f = await fixture();
+        if (kind === "saved chat") {
+          await db
+            .update(issues)
+            .set({
+              conversationAgentId: f.agent.id,
+              conversationUserId: actor.actorId,
+              conversationState: "active",
+            })
+            .where(eq(issues.id, f.issue.id));
+        }
+        await f.service.execute(
+          f.binding,
+          f.grant,
+          randomUUID(),
+          "browser_start",
+          { task: "Read" },
+        );
+        f.ready();
+        await f.tick();
+        const [browser] = await f.service.list(
+          f.company.id,
+          f.issue.id,
+          actor.actorId,
+        );
+        let mode = "board";
+        const app = express();
+        app.use(express.json());
+        app.use((req, _res, next) => {
+          req.actor =
+            mode === "agent"
+              ? {
+                  type: "agent",
+                  companyId: f.company.id,
+                  agentId: f.agent.id,
+                  source: "agent_key",
+                }
+              : {
+                  type: "board",
+                  userId: actor.actorId,
+                  source: "session",
+                  companyIds: mode === "other-company" ? [] : [f.company.id],
+                };
+          next();
+        });
+        app.use(browserUseRoutes(db, f.service));
+        app.use(errorHandler);
+        const listPath = `/issues/${f.issue.id}/browsers`;
+        const listed = await http(app).get(listPath);
+        expect(listed.status).toBe(200);
+        expect(listed.body).toMatchObject([
+          { id: browser.id, issueId: f.issue.id },
+        ]);
+        const missing = await http(app).get(`/issues/${randomUUID()}/browsers`);
+        expect(missing.status).toBe(404);
+        expect(missing.body).toEqual({ error: "Task not found" });
+        const path = `/issues/${f.issue.id}/browsers/${browser.id}/viewer`;
+        const ok = await http(app).get(path);
+        expect(ok.status).toBe(200);
+        expect(ok.headers["cache-control"]).toBe("no-store");
+        expect(ok.headers["referrer-policy"]).toBe("no-referrer");
+        const controlPath = path.replace("/viewer", "/control");
+        const presencePath = path.replace("/viewer", "/presence");
+        expect((await http(app).post(presencePath)).status).toBe(200);
+        const resizePath = path.replace("/viewer", "/viewport");
+        const resizeSpy = vi
+          .spyOn(browserUseViewports, "resize")
+          .mockResolvedValue({ preset: "phone" });
+        expect(
+          (await http(app).post(resizePath).send({ preset: "phone" })).body,
+        ).toEqual({ preset: "phone" });
+        expect(resizeSpy).toHaveBeenCalledTimes(1);
+        const viewerId = randomUUID();
+        resizeSpy.mockResolvedValueOnce({
+          preset: "fit",
+          width: 531,
+          height: 712,
+          applied: true,
+        });
+        expect(
+          (
+            await http(app)
+              .post(resizePath)
+              .send({ preset: "fit", width: 531, height: 712, viewerId })
+          ).body,
+        ).toMatchObject({ preset: "fit", width: 531 });
+        expect(resizeSpy).toHaveBeenLastCalledWith(
+          expect.any(String),
+          expect.any(String),
+          { preset: "fit", width: 531, height: 712, viewerId },
+          expect.any(String),
+          `${actor.actorId}:${viewerId}`,
+        );
+        expect(
+          (await http(app).post(`${resizePath}/release`).send({ viewerId }))
+            .status,
+        ).toBe(200);
+        expect(
+          (
+            await http(app)
+              .post(resizePath)
+              .send({ preset: "custom", width: 1 })
+          ).status,
+        ).toBe(400);
+        expect(
+          (await http(app).post(controlPath).send({ action: "cancel" })).status,
+        ).toBe(200);
+        mode = "agent";
+        expect((await http(app).get(listPath)).status).toBe(403);
+        expect(
+          (await http(app).post(controlPath).send({ action: "keep_open" }))
+            .status,
+        ).toBe(403);
+        expect((await http(app).post(presencePath)).status).toBe(403);
+        expect(
+          (await http(app).post(`${resizePath}/release`).send({ viewerId }))
+            .status,
+        ).toBe(403);
+        expect(
+          (await http(app).post(resizePath).send({ preset: "phone" })).status,
+        ).toBe(403);
+        expect((await http(app).get(path)).status).toBe(403);
+        mode = "other-company";
+        const inaccessible = await http(app).get(listPath);
+        expect(inaccessible.status).toBe(missing.status);
+        expect(inaccessible.body).toEqual(missing.body);
+        expect(
+          (await http(app).post(controlPath).send({ action: "keep_open" }))
+            .status,
+        ).toBe(404);
+        expect((await http(app).post(presencePath)).status).toBe(404);
+        expect(
+          (await http(app).post(`${resizePath}/release`).send({ viewerId }))
+            .status,
+        ).toBe(404);
+        expect(
+          (await http(app).post(resizePath).send({ preset: "phone" })).status,
+        ).toBe(404);
+        expect((await http(app).get(path)).status).toBe(404);
+        mode = "board";
+        await db
+          .update(companyMemberships)
+          .set({ membershipRole: "viewer" })
+          .where(eq(companyMemberships.companyId, f.company.id));
+        expect((await http(app).get(path)).status).toBe(403);
+        expect((await http(app).get(listPath)).body).toEqual([]);
+        expect(
+          (await http(app).post(controlPath).send({ action: "keep_open" }))
+            .status,
+        ).toBe(403);
+        expect((await http(app).post(presencePath)).status).toBe(403);
+        expect(
+          (await http(app).post(resizePath).send({ preset: "phone" })).status,
+        ).toBe(403);
+        expect(resizeSpy).toHaveBeenCalledTimes(2);
+        resizeSpy.mockRestore();
+      },
+    );
     it("rechecks current gateway access and closes browsers when it is removed", async () => {
       const f = await fixture();
       const start = (

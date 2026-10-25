@@ -12,25 +12,35 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/agent-config-primitives";
-import { AdapterTypeDropdown, ModelDropdown } from "@/components/AgentConfigForm";
+import {
+  AdapterTypeDropdown,
+  ModelDropdown,
+} from "@/components/AgentConfigForm";
 import { InlineBanner } from "@/components/InlineBanner";
 import { listAdapterOptions } from "@/adapters/metadata";
 import { agentsApi } from "@/api/agents";
 import { queryKeys } from "@/lib/queryKeys";
 import { ApiError } from "@/api/client";
-import {
-  builtInAgentsApi,
-  type BuiltInAgentState,
-} from "@/api/builtInAgents";
+import { builtInAgentsApi, type BuiltInAgentState } from "@/api/builtInAgents";
 import { adapterCuratesModelOrder } from "../lib/model-utils";
 
 /** Adapters whose config completeness is keyed on a non-empty `model`. */
 function isModelBasedAdapter(adapterType: string): boolean {
-  return !["process", "command", "http", "openclaw_gateway", "hermes_gateway"].includes(adapterType);
+  return ![
+    "process",
+    "command",
+    "http",
+    "openclaw_gateway",
+    "hermes_gateway",
+  ].includes(adapterType);
 }
 
 function defaultAdapterType(state: BuiltInAgentState): string {
-  return state.definition.defaultAdapterType ?? state.definition.allowedAdapterTypes?.[0] ?? "codex_local";
+  return (
+    state.definition.defaultAdapterType ??
+    state.definition.allowedAdapterTypes?.[0] ??
+    "codex_local"
+  );
 }
 
 function parseBudgetMonthlyCents(value: string): number | undefined {
@@ -69,9 +79,10 @@ export function ConfigureBuiltInAgentModal({
   );
   const [model, setModel] = useState<string>(() => {
     const config = state.agent?.adapterConfig;
-    const configuredModel = typeof config === "object" && config !== null
-      ? (config as Record<string, unknown>).model
-      : null;
+    const configuredModel =
+      typeof config === "object" && config !== null
+        ? (config as Record<string, unknown>).model
+        : null;
     if (typeof configuredModel === "string") return configuredModel;
     const defaultModel = state.definition.defaultAdapterConfig?.model;
     return typeof defaultModel === "string" ? defaultModel : "";
@@ -118,7 +129,9 @@ export function ConfigureBuiltInAgentModal({
   const canSubmit =
     budgetValid &&
     modelKnown &&
-    (setupSupportedInModal ? !modelRequired || normalizedModel.length > 0 : true);
+    (setupSupportedInModal
+      ? !modelRequired || normalizedModel.length > 0
+      : true);
   const submitLabel = setupSupportedInModal
     ? `Configure & enable ${definition.displayName}`
     : `Provision ${definition.displayName}`;
@@ -127,29 +140,48 @@ export function ConfigureBuiltInAgentModal({
     mutationFn: async () => {
       const adapterConfig: Record<string, unknown> = {};
       if (model.trim()) adapterConfig.model = model.trim();
-      const result = await builtInAgentsApi.provision(companyId, definition.key, {
-        adapterType,
-        adapterConfig,
-        ...(budgetMonthlyCents !== undefined ? { budgetMonthlyCents } : {}),
-      });
+      const result = await builtInAgentsApi.provision(
+        companyId,
+        definition.key,
+        {
+          adapterType,
+          adapterConfig,
+          ...(budgetMonthlyCents !== undefined ? { budgetMonthlyCents } : {}),
+        },
+      );
       return result;
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.builtInAgents.list(companyId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(companyId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.builtInAgents.list(companyId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.list(companyId),
+      });
       if (result.agentId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(result.agentId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.detail(result.agentId),
+        });
       }
       onConfigured?.(result);
       onOpenChange(false);
     },
     onError: (err) => {
-      setError(err instanceof ApiError ? err.message : "Failed to configure the built-in agent.");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Failed to configure the built-in agent.",
+      );
     },
   });
 
   return (
-    <Dialog open={open} onOpenChange={(next) => (provision.isPending ? undefined : onOpenChange(next))}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) =>
+        provision.isPending ? undefined : onOpenChange(next)
+      }
+    >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Set up the {definition.displayName}</DialogTitle>
@@ -158,9 +190,9 @@ export function ConfigureBuiltInAgentModal({
 
         <div className="space-y-4">
           <InlineBanner tone="info" compact>
-            Creates <strong>{definition.displayName}</strong> in your roster, badged{" "}
-            <strong>Built-in</strong>. Organizations that require hire approval will queue this for the
-            board.
+            Creates <strong>{definition.displayName}</strong> in your roster,
+            badged <strong>Built-in</strong>. Organizations that require hire
+            approval will queue this for the board.
           </InlineBanner>
 
           <Field label="Adapter type">
@@ -198,12 +230,16 @@ export function ConfigureBuiltInAgentModal({
 
           {!setupSupportedInModal && (
             <InlineBanner tone="warning" compact>
-              This adapter needs command or endpoint fields before it can run. Provision the
-              built-in row now, then finish those fields from the full agent configuration.
+              This adapter needs command or endpoint fields before it can run.
+              Provision the built-in row now, then finish those fields from the
+              full agent configuration.
             </InlineBanner>
           )}
 
-          <Field label="Monthly budget (optional)" hint="Leave blank for no cap.">
+          <Field
+            label="Monthly budget (optional)"
+            hint="Leave blank for no cap."
+          >
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">$</span>
               <Input

@@ -22,27 +22,44 @@ export async function recordExecutionWait(
 ): Promise<{ created: boolean }> {
   const { request, issueId, condition } = input;
   const digest = createHash("sha256")
-    .update(JSON.stringify([request.companyId, request.agentId, issueId, request.reason, condition]))
+    .update(
+      JSON.stringify([
+        request.companyId,
+        request.agentId,
+        issueId,
+        request.reason,
+        condition,
+      ]),
+    )
     .digest("hex");
   const key = `execution-wait:${digest}`;
   if (input.coalesce) {
-    const [existing] = await tx.select({ id: agentWakeupRequests.id })
+    const [existing] = await tx
+      .select({ id: agentWakeupRequests.id })
       .from(agentWakeupRequests)
-      .where(and(
-        eq(agentWakeupRequests.companyId, request.companyId),
-        eq(agentWakeupRequests.agentId, request.agentId),
-        eq(agentWakeupRequests.status, "skipped"),
-        eq(agentWakeupRequests.idempotencyKey, key),
-        sql`${agentWakeupRequests.payload}->>'issueId' = ${issueId}`,
-      )).limit(1);
+      .where(
+        and(
+          eq(agentWakeupRequests.companyId, request.companyId),
+          eq(agentWakeupRequests.agentId, request.agentId),
+          eq(agentWakeupRequests.status, "skipped"),
+          eq(agentWakeupRequests.idempotencyKey, key),
+          sql`${agentWakeupRequests.payload}->>'issueId' = ${issueId}`,
+        ),
+      )
+      .limit(1);
     if (existing) {
-      await tx.update(agentWakeupRequests).set({
-        coalescedCount: sql`${agentWakeupRequests.coalescedCount} + 1`,
-        updatedAt: new Date(),
-      }).where(and(
-        eq(agentWakeupRequests.companyId, request.companyId),
-        eq(agentWakeupRequests.id, existing.id),
-      ));
+      await tx
+        .update(agentWakeupRequests)
+        .set({
+          coalescedCount: sql`${agentWakeupRequests.coalescedCount} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(agentWakeupRequests.companyId, request.companyId),
+            eq(agentWakeupRequests.id, existing.id),
+          ),
+        );
       return { created: false };
     }
   }
@@ -55,7 +72,10 @@ export async function recordExecutionWait(
     payload: {
       ...request.payload,
       issueId,
-      executionWait: { ...condition, requestedIdempotencyKey: request.idempotencyKey ?? null },
+      executionWait: {
+        ...condition,
+        requestedIdempotencyKey: request.idempotencyKey ?? null,
+      },
     },
   });
   return { created: true };

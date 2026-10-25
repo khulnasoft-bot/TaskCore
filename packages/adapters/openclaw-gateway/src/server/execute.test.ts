@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildAgentParams, resolveClaimedApiKeyPath, resolveSessionKey } from "./execute.js";
+import {
+  buildAgentParams,
+  resolveClaimedApiKeyPath,
+  resolveSessionKey,
+} from "./execute.js";
 
 describe("resolveSessionKey", () => {
   it("prefixes run-scoped session keys with the configured agent", () => {
@@ -104,7 +108,9 @@ describe("resolveClaimedApiKeyPath", () => {
 
   it("returns the configured per-agent path when set", () => {
     expect(
-      resolveClaimedApiKeyPath("~/.openclaw/workspace/taskcore-keys/happy.json"),
+      resolveClaimedApiKeyPath(
+        "~/.openclaw/workspace/taskcore-keys/happy.json",
+      ),
     ).toBe("~/.openclaw/workspace/taskcore-keys/happy.json");
   });
 

@@ -12,7 +12,10 @@ import {
 import { aiConnectionsApi } from "@/api/ai-connections";
 import { agentsApi } from "@/api/agents";
 import { ConnectionChoiceList } from "@/features/connections/ConnectionChoiceList";
-import { ConnectionAccessDefaults, connectionDefaultSummarySentence } from "@/features/connections/ConnectionSetupFlow";
+import {
+  ConnectionAccessDefaults,
+  connectionDefaultSummarySentence,
+} from "@/features/connections/ConnectionSetupFlow";
 import { AppLogo } from "@/pages/apps/AppLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,14 +128,22 @@ export function AiProviderSetup({
     queryFn: () => aiConnectionsApi.list(companyId, agentId),
   });
   const canManageConnections = accounts.data?.canManageConnections ?? false;
-  const ownership = reconnect?.ownership ?? ownershipChoice ?? (!agentId && canManageConnections ? "shared" : "personal");
+  const ownership =
+    reconnect?.ownership ??
+    ownershipChoice ??
+    (!agentId && canManageConnections ? "shared" : "personal");
   const allAgents = allAgentsChoice ?? (!agentId && canManageConnections);
   const agents = useQuery({
     queryKey: ["agents", companyId, "provider-access"],
     queryFn: () => agentsApi.list(companyId),
   });
-  const label = providerLabel ?? providers.find((p) => p.id === provider)?.name ?? "provider";
-  const advanced = reconnect ? Boolean(reconnect.routing) : ["openrouter", "bedrock", "gateway", "local"].includes(provider ?? "");
+  const label =
+    providerLabel ??
+    providers.find((p) => p.id === provider)?.name ??
+    "provider";
+  const advanced = reconnect
+    ? Boolean(reconnect.routing)
+    : ["openrouter", "bedrock", "gateway", "local"].includes(provider ?? "");
   const nativeProvider: AiProvider =
     provider === "bedrock"
       ? "anthropic"
@@ -245,8 +256,8 @@ export function AiProviderSetup({
         disabled={Boolean(reconnect)}
       />
       <span className="block">
-        Use the provider’s model ID or your gateway’s alias. You can
-        also enter one on the agent.
+        Use the provider’s model ID or your gateway’s alias. You can also enter
+        one on the agent.
       </span>
     </label>
   );
@@ -255,25 +266,58 @@ export function AiProviderSetup({
       companyId={companyId}
       extra={advanced ? modelSettings : undefined}
       agents={agents.data ?? []}
-      sentence={connectionDefaultSummarySentence({ grantKind: ownership === "shared" ? "organization" : "user", authKind: auth === "none" ? "none" : "api_key", installChoice: allAgents ? "all" : "specific", installCount: agentIds.size })}
-      capabilities={{ canCreateOrganizationGrant: canManageConnections, canSetCompanyInstall: canManageConnections }}
+      sentence={connectionDefaultSummarySentence({
+        grantKind: ownership === "shared" ? "organization" : "user",
+        authKind: auth === "none" ? "none" : "api_key",
+        installChoice: allAgents ? "all" : "specific",
+        installCount: agentIds.size,
+      })}
+      capabilities={{
+        canCreateOrganizationGrant: canManageConnections,
+        canSetCompanyInstall: canManageConnections,
+      }}
       authKind={auth === "none" ? "none" : "api_key"}
       grantKind={ownership === "shared" ? "organization" : "user"}
       grantKinds={["user", "organization"]}
-      setGrantKind={kind => setOwnership(kind === "organization" ? "shared" : "personal")}
+      setGrantKind={(kind) =>
+        setOwnership(kind === "organization" ? "shared" : "personal")
+      }
       installChoice={allAgents ? "all" : "specific"}
-      setInstallChoice={choice => setAllAgents(choice === "all")}
+      setInstallChoice={(choice) => setAllAgents(choice === "all")}
       installAgentIds={agentIds}
       setInstallAgentIds={setAgentIds}
       disabled={save.isPending}
-      notice={!canManageConnections ? ["Only a connection manager can share this credential with everyone or give every agent access."] : undefined}
+      notice={
+        !canManageConnections
+          ? [
+              "Only a connection manager can share this credential with everyone or give every agent access.",
+            ]
+          : undefined
+      }
     />
   ) : undefined;
-  const cancel = () => reconnect || initialProvider ? onCancel() : setStep("provider");
-  if (!reconnect && accounts.isPending) return <p role="status">Loading connection permissions…</p>;
-  if (!reconnect && accounts.isError) return <p role="alert">Could not load connection permissions. <Button type="button" variant="ghost" onClick={() => void accounts.refetch()}>Retry</Button></p>;
+  const cancel = () =>
+    reconnect || initialProvider ? onCancel() : setStep("provider");
+  if (!reconnect && accounts.isPending)
+    return <p role="status">Loading connection permissions…</p>;
+  if (!reconnect && accounts.isError)
+    return (
+      <p role="alert">
+        Could not load connection permissions.{" "}
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => void accounts.refetch()}
+        >
+          Retry
+        </Button>
+      </p>
+    );
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6" onSubmit={(event) => event.stopPropagation()}>
+    <div
+      className="mx-auto w-full max-w-2xl space-y-6"
+      onSubmit={(event) => event.stopPropagation()}
+    >
       <div className="space-y-2">
         <h2 className="text-xl font-semibold">
           {step === "provider"
@@ -281,18 +325,33 @@ export function AiProviderSetup({
             : `${reconnect ? "Reconnect" : "Connect"} ${label}`}
         </h2>
       </div>
-      {agents.isError && <p role="alert" className="text-sm text-destructive">Could not load agents. <Button type="button" variant="ghost" onClick={() => void agents.refetch()}>Retry</Button></p>}
+      {agents.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          Could not load agents.{" "}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => void agents.refetch()}
+          >
+            Retry
+          </Button>
+        </p>
+      )}
       {step === "provider" ? (
         <>
-          {advancedOnly ? choices(true) : <>
-          {choices(false)}
-          <details>
-            <summary className="cursor-pointer text-sm text-muted-foreground">
-              Advanced providers
-            </summary>
-            <div className="pt-4">{choices(true)}</div>
-          </details>
-          </>}
+          {advancedOnly ? (
+            choices(true)
+          ) : (
+            <>
+              {choices(false)}
+              <details>
+                <summary className="cursor-pointer text-sm text-muted-foreground">
+                  Advanced providers
+                </summary>
+                <div className="pt-4">{choices(true)}</div>
+              </details>
+            </>
+          )}
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
@@ -312,7 +371,12 @@ export function AiProviderSetup({
           environmentId={environmentId}
           onCancel={cancel}
           defaults={accessDefaults}
-          disabled={!reconnect && ownership === "shared" && !allAgents && agentIds.size === 0}
+          disabled={
+            !reconnect &&
+            ownership === "shared" &&
+            !allAgents &&
+            agentIds.size === 0
+          }
           onComplete={complete}
         />
       ) : (
@@ -410,21 +474,26 @@ export function AiProviderSetup({
               </Select>
             </label>
           )}
-          {
-            auth !== "none" && (
-              <label className="block space-y-2 text-xs text-muted-foreground">
-                API key
-                <Input
-                  aria-label="API key"
-                  type="password"
-                  autoComplete="new-password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-              </label>
-            )
-          }
-          {reconnect && <details><summary className="cursor-pointer text-sm text-muted-foreground">Model settings</summary>{modelSettings}</details>}
+          {auth !== "none" && (
+            <label className="block space-y-2 text-xs text-muted-foreground">
+              API key
+              <Input
+                aria-label="API key"
+                type="password"
+                autoComplete="new-password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </label>
+          )}
+          {reconnect && (
+            <details>
+              <summary className="cursor-pointer text-sm text-muted-foreground">
+                Model settings
+              </summary>
+              {modelSettings}
+            </details>
+          )}
           <p className="text-xs text-muted-foreground">
             Test the connection with your chosen model in the agent’s execution
             environment after connecting.
@@ -449,8 +518,13 @@ export function AiProviderSetup({
             <Button
               type="submit"
               disabled={
-                save.isPending || accounts.isPending || accounts.isError ||
-                (!reconnect && ownership === "shared" && !allAgents && agentIds.size === 0) ||
+                save.isPending ||
+                accounts.isPending ||
+                accounts.isError ||
+                (!reconnect &&
+                  ownership === "shared" &&
+                  !allAgents &&
+                  agentIds.size === 0) ||
                 (auth !== "none" && !apiKey.trim())
               }
             >

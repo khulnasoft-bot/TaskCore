@@ -2,7 +2,10 @@ import { eq, sql } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import { instanceUserRoles } from "@taskcore/db";
 
-type FirstAdminTransaction = Pick<Db, "execute" | "select" | "insert" | "update">;
+type FirstAdminTransaction = Pick<
+  Db,
+  "execute" | "select" | "insert" | "update"
+>;
 
 export type FirstAdminClaimResult<T = unknown> =
   | {
@@ -24,7 +27,9 @@ export async function claimFirstInstanceAdmin<T = unknown>(
   },
 ): Promise<FirstAdminClaimResult<T>> {
   return db.transaction(async (tx) => {
-    await tx.execute(sql`lock table ${instanceUserRoles} in share row exclusive mode`);
+    await tx.execute(
+      sql`lock table ${instanceUserRoles} in share row exclusive mode`,
+    );
 
     const existingAdmin = await tx
       .select({ userId: instanceUserRoles.userId })

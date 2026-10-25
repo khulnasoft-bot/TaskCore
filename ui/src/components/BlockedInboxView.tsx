@@ -6,7 +6,11 @@ import type { Issue } from "@taskcore/shared";
 import { issuesApi } from "../api/issues";
 import { queryKeys } from "../lib/queryKeys";
 import { cn } from "../lib/utils";
-import { applyIssueFilters, type IssueFilterState, type IssueFilterWorkspaceContext } from "../lib/issue-filters";
+import {
+  applyIssueFilters,
+  type IssueFilterState,
+  type IssueFilterWorkspaceContext,
+} from "../lib/issue-filters";
 import { resolveInboxIssueBlockerAttention } from "../lib/inbox-live-descendants";
 import {
   blockedRowMatchesSearch,
@@ -67,7 +71,9 @@ export function BlockedInboxView({
   showUpdatedColumn,
   presentation = "legacy",
 }: BlockedInboxViewProps) {
-  const [collapsedVariants, setCollapsedVariants] = useState<Set<string>>(() => new Set());
+  const [collapsedVariants, setCollapsedVariants] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const {
     data: issues = [] as Issue[],
@@ -76,7 +82,10 @@ export function BlockedInboxView({
     error,
     refetch,
   } = useQuery({
-    queryKey: [...queryKeys.issues.listBlockedAttention(companyId), "live-descendant-summary"],
+    queryKey: [
+      ...queryKeys.issues.listBlockedAttention(companyId),
+      "live-descendant-summary",
+    ],
     queryFn: () =>
       issuesApi.list(companyId, {
         attention: "blocked",
@@ -104,8 +113,17 @@ export function BlockedInboxView({
       ).map((issue) => issue.id),
     );
     return filteredRows.filter((row) => visibleIssueIds.has(row.issue.id));
-  }, [currentUserId, filteredRows, issueFilters, liveIssueIds, workspaceFilterContext]);
-  const sortedRows = useMemo(() => sortBlockedInboxRows(issueFilteredRows, sortBy), [issueFilteredRows, sortBy]);
+  }, [
+    currentUserId,
+    filteredRows,
+    issueFilters,
+    liveIssueIds,
+    workspaceFilterContext,
+  ]);
+  const sortedRows = useMemo(
+    () => sortBlockedInboxRows(issueFilteredRows, sortBy),
+    [issueFilteredRows, sortBy],
+  );
   const groups = useMemo(
     () => groupBlockedInboxRows(issueFilteredRows, sortBy),
     [issueFilteredRows, sortBy],
@@ -122,7 +140,11 @@ export function BlockedInboxView({
 
   if (isLoading) {
     return (
-      <div data-testid="blocked-inbox-loading" className="space-y-3" aria-busy="true">
+      <div
+        data-testid="blocked-inbox-loading"
+        className="space-y-3"
+        aria-busy="true"
+      >
         {Array.from({ length: 3 }).map((_, groupIdx) => (
           <div key={groupIdx} className="space-y-1">
             <div className="h-4 w-40 animate-pulse rounded bg-muted/70" />
@@ -157,9 +179,14 @@ export function BlockedInboxView({
         className="flex flex-col gap-2 rounded-md border border-amber-300/70 bg-amber-50/90 p-4 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
       >
         <div className="flex items-start gap-2">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <AlertTriangle
+            className="mt-0.5 h-4 w-4 shrink-0"
+            aria-hidden="true"
+          />
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium">Couldn't load the Blocked tab.</p>
+            <p className="text-sm font-medium">
+              Couldn't load the Blocked tab.
+            </p>
             <p className="text-xs opacity-80">
               Other Inbox tabs still work. {message}
             </p>
@@ -189,9 +216,12 @@ export function BlockedInboxView({
           <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
         </span>
         <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">No work is stopped.</p>
+          <p className="text-sm font-medium text-foreground">
+            No work is stopped.
+          </p>
           <p className="text-xs text-muted-foreground">
-            Tasks that need a decision, recovery, or external action will appear here.
+            Tasks that need a decision, recovery, or external action will appear
+            here.
           </p>
         </div>
       </Card>
@@ -214,58 +244,67 @@ export function BlockedInboxView({
   return (
     <div data-testid="blocked-inbox" className="space-y-3">
       <div className="overflow-hidden rounded-xl">
-        {groupBy === "none" ? (
-          sortedRows.map((row) => (
-            <BlockedInboxRow
-              key={row.issue.id}
-              row={row}
-              issueLinkState={issueLinkState}
-              agentNameById={agentNameById} agents={agents}
-              userLabelById={userLabelById}
-              liveIssueIds={liveIssueIds}
-              subtreeLiveCounts={subtreeLiveCounts}
-              showStatusColumn={showStatusColumn}
-              showIdentifierColumn={showIdentifierColumn}
-              showUpdatedColumn={showUpdatedColumn}
-              presentation={presentation}
-            />
-          ))
-        ) : (
-          groups.map((group) => {
-            const isCollapsed = collapsedVariants.has(group.variant);
-            return (
-              <div key={group.variant} data-testid={`blocked-inbox-group-${group.variant}`}>
-                <div className={presentation === "task" ? "rounded-lg px-3 sm:pl-0 sm:pr-4" : "px-3 sm:px-4"}>
-                  <IssueGroupHeader
-                    label={`${group.label} · ${group.rows.length}`}
-                    collapsible
-                    collapsed={isCollapsed}
-                    onToggle={() => toggleVariant(group.variant)}
-                  />
-                </div>
-                {!isCollapsed && (
-                  <div>
-                    {group.rows.map((row) => (
-                      <BlockedInboxRow
-                        key={row.issue.id}
-                        row={row}
-                        issueLinkState={issueLinkState}
-                        agentNameById={agentNameById} agents={agents}
-                        userLabelById={userLabelById}
-                        liveIssueIds={liveIssueIds}
-                        subtreeLiveCounts={subtreeLiveCounts}
-                        showStatusColumn={showStatusColumn}
-                        showIdentifierColumn={showIdentifierColumn}
-                        showUpdatedColumn={showUpdatedColumn}
-                        presentation={presentation}
-                      />
-                    ))}
+        {groupBy === "none"
+          ? sortedRows.map((row) => (
+              <BlockedInboxRow
+                key={row.issue.id}
+                row={row}
+                issueLinkState={issueLinkState}
+                agentNameById={agentNameById}
+                agents={agents}
+                userLabelById={userLabelById}
+                liveIssueIds={liveIssueIds}
+                subtreeLiveCounts={subtreeLiveCounts}
+                showStatusColumn={showStatusColumn}
+                showIdentifierColumn={showIdentifierColumn}
+                showUpdatedColumn={showUpdatedColumn}
+                presentation={presentation}
+              />
+            ))
+          : groups.map((group) => {
+              const isCollapsed = collapsedVariants.has(group.variant);
+              return (
+                <div
+                  key={group.variant}
+                  data-testid={`blocked-inbox-group-${group.variant}`}
+                >
+                  <div
+                    className={
+                      presentation === "task"
+                        ? "rounded-lg px-3 sm:pl-0 sm:pr-4"
+                        : "px-3 sm:px-4"
+                    }
+                  >
+                    <IssueGroupHeader
+                      label={`${group.label} · ${group.rows.length}`}
+                      collapsible
+                      collapsed={isCollapsed}
+                      onToggle={() => toggleVariant(group.variant)}
+                    />
                   </div>
-                )}
-              </div>
-            );
-          })
-        )}
+                  {!isCollapsed && (
+                    <div>
+                      {group.rows.map((row) => (
+                        <BlockedInboxRow
+                          key={row.issue.id}
+                          row={row}
+                          issueLinkState={issueLinkState}
+                          agentNameById={agentNameById}
+                          agents={agents}
+                          userLabelById={userLabelById}
+                          liveIssueIds={liveIssueIds}
+                          subtreeLiveCounts={subtreeLiveCounts}
+                          showStatusColumn={showStatusColumn}
+                          showIdentifierColumn={showIdentifierColumn}
+                          showUpdatedColumn={showUpdatedColumn}
+                          presentation={presentation}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
       </div>
     </div>
   );
@@ -291,7 +330,8 @@ function resolveOwnerName(
   userLabelById?: ReadonlyMap<string, string>,
 ): { label: string | null; isAgent: boolean } {
   const owner = row.attention.owner;
-  if (owner.label) return { label: owner.label, isAgent: owner.type === "agent" };
+  if (owner.label)
+    return { label: owner.label, isAgent: owner.type === "agent" };
   if (owner.agentId) {
     return { label: agentNameById.get(owner.agentId) ?? null, isAgent: true };
   }
@@ -314,7 +354,11 @@ function BlockedInboxRow({
   showUpdatedColumn,
   presentation,
 }: BlockedInboxRowProps) {
-  const { label: ownerName, isAgent } = resolveOwnerName(row, agentNameById, userLabelById);
+  const { label: ownerName, isAgent } = resolveOwnerName(
+    row,
+    agentNameById,
+    userLabelById,
+  );
   const stoppedAge = formatStoppedAge(row.attention.stoppedSinceAt);
   const blockerAttention = resolveInboxIssueBlockerAttention(row.issue, {
     isLive: liveIssueIds.has(row.issue.id),
@@ -335,13 +379,34 @@ function BlockedInboxRow({
       </span>
       {ownerName ? (
         <span className="hidden w-(--sz-150px) min-w-0 items-center text-muted-foreground sm:inline-flex">
-          {isAgent ? <AgentIdentity agent={agents?.find((agent) => agent.id === row.attention.owner.agentId) ?? { id: row.attention.owner.agentId ?? undefined, name: ownerName }} size="xs" className="max-w-full" /> : <Identity name={ownerName} size="xs" className="max-w-full" />}
+          {isAgent ? (
+            <AgentIdentity
+              agent={
+                agents?.find(
+                  (agent) => agent.id === row.attention.owner.agentId,
+                ) ?? {
+                  id: row.attention.owner.agentId ?? undefined,
+                  name: ownerName,
+                }
+              }
+              size="xs"
+              className="max-w-full"
+            />
+          ) : (
+            <Identity name={ownerName} size="xs" className="max-w-full" />
+          )}
         </span>
       ) : (
-        <span className="hidden w-(--sz-150px) shrink-0 sm:inline-flex" aria-hidden="true" />
+        <span
+          className="hidden w-(--sz-150px) shrink-0 sm:inline-flex"
+          aria-hidden="true"
+        />
       )}
       {presentation === "legacy" && showUpdatedColumn ? (
-        <span className="hidden w-(--sz-5_75rem) text-right text-muted-foreground sm:inline" data-testid="blocked-row-age">
+        <span
+          className="hidden w-(--sz-5_75rem) text-right text-muted-foreground sm:inline"
+          data-testid="blocked-row-age"
+        >
           {stoppedAge}
         </span>
       ) : null}
@@ -350,7 +415,9 @@ function BlockedInboxRow({
 
   const mobileMeta = (
     <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-      {presentation === "legacy" && <span data-testid="blocked-row-age-mobile">{stoppedAge}</span>}
+      {presentation === "legacy" && (
+        <span data-testid="blocked-row-age-mobile">{stoppedAge}</span>
+      )}
       {ownerName ? (
         <>
           {presentation === "legacy" && <span aria-hidden="true">·</span>}
@@ -371,23 +438,37 @@ function BlockedInboxRow({
       issueLinkState={issueLinkState}
       presentation={presentation}
       showDivider={presentation === "legacy"}
-      statusSlot={presentation === "task"
-        ? showStatusColumn
-          ? <StatusIcon status={row.issue.status} blockerAttention={blockerAttention} />
-          : <span className="inline-flex size-4" aria-hidden="true" />
-        : undefined}
-      showIdentifier={presentation === "task" ? showIdentifierColumn : undefined}
-      desktopMetaLeading={presentation === "legacy" ? (
-        <BlockedRowDesktopMeta
-          row={row}
-          blockerAttention={blockerAttention}
-          showStatusColumn={showStatusColumn}
-          showIdentifierColumn={showIdentifierColumn}
-        />
-      ) : undefined}
+      statusSlot={
+        presentation === "task" ? (
+          showStatusColumn ? (
+            <StatusIcon
+              status={row.issue.status}
+              blockerAttention={blockerAttention}
+            />
+          ) : (
+            <span className="inline-flex size-4" aria-hidden="true" />
+          )
+        ) : undefined
+      }
+      showIdentifier={
+        presentation === "task" ? showIdentifierColumn : undefined
+      }
+      desktopMetaLeading={
+        presentation === "legacy" ? (
+          <BlockedRowDesktopMeta
+            row={row}
+            blockerAttention={blockerAttention}
+            showStatusColumn={showStatusColumn}
+            showIdentifierColumn={showIdentifierColumn}
+          />
+        ) : undefined
+      }
       mobileLeading={
         <span className="flex shrink-0 items-center gap-1.5 pt-px">
-          <StatusIcon status={row.issue.status} blockerAttention={blockerAttention} />
+          <StatusIcon
+            status={row.issue.status}
+            blockerAttention={blockerAttention}
+          />
         </span>
       }
       titleSuffix={
@@ -398,9 +479,15 @@ function BlockedInboxRow({
         />
       }
       mobileMeta={mobileMeta}
-      mobileTitleMeta={presentation === "task" ? <span data-testid="blocked-row-age-mobile">{stoppedAge}</span> : undefined}
+      mobileTitleMeta={
+        presentation === "task" ? (
+          <span data-testid="blocked-row-age-mobile">{stoppedAge}</span>
+        ) : undefined
+      }
       desktopTrailing={desktopTrailing}
-      trailingMeta={presentation === "task" && showUpdatedColumn ? stoppedAge : null}
+      trailingMeta={
+        presentation === "task" && showUpdatedColumn ? stoppedAge : null
+      }
     />
   );
 }
@@ -419,8 +506,17 @@ function BlockedRowDesktopMeta({
   const identifier = row.issue.identifier ?? row.issue.id.slice(0, 8);
   return (
     <span className="hidden shrink-0 items-center gap-2 sm:inline-flex">
-      {showStatusColumn ? <StatusIcon status={row.issue.status} blockerAttention={blockerAttention} /> : null}
-      {showIdentifierColumn ? <span className="font-mono text-xs text-muted-foreground">{identifier}</span> : null}
+      {showStatusColumn ? (
+        <StatusIcon
+          status={row.issue.status}
+          blockerAttention={blockerAttention}
+        />
+      ) : null}
+      {showIdentifierColumn ? (
+        <span className="font-mono text-xs text-muted-foreground">
+          {identifier}
+        </span>
+      ) : null}
     </span>
   );
 }

@@ -46,7 +46,8 @@ export function FooterNav({
   onPrimary: () => void;
 }) {
   const label = loading && loadingLabel ? loadingLabel : primaryLabel;
-  const icon: FooterPrimaryIcon = primaryIcon ?? (loading ? "spinner" : "arrow");
+  const icon: FooterPrimaryIcon =
+    primaryIcon ?? (loading ? "spinner" : "arrow");
 
   return (
     <div className="flex items-center justify-between pt-9">
@@ -109,7 +110,9 @@ export function FooterNav({
             animate={{ opacity: 1 }}
             transition={CTA_LABEL_IN}
           >
-            {icon === "spinner" ? <Loader2 className="mr-1 size-4 animate-spin" /> : null}
+            {icon === "spinner" ? (
+              <Loader2 className="mr-1 size-4 animate-spin" />
+            ) : null}
             {label}
             {icon === "arrow" ? <ArrowRight className="ml-1 size-3.5" /> : null}
           </motion.span>

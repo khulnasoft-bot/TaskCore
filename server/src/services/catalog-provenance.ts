@@ -25,7 +25,9 @@ function asCatalogString(value: unknown) {
 
 export function readCatalogStringList(value: unknown) {
   if (!Array.isArray(value)) return null;
-  const entries = value.map((entry) => asCatalogString(entry)).filter((entry): entry is string => Boolean(entry));
+  const entries = value
+    .map((entry) => asCatalogString(entry))
+    .filter((entry): entry is string => Boolean(entry));
   return entries.length === value.length ? entries : null;
 }
 
@@ -37,11 +39,14 @@ export function readPortableCatalogProvenance(
   metadata: Record<string, unknown> | null,
   canonicalKey: string | null = null,
 ) {
-  const taskcore = isCatalogRecord(metadata?.taskcore) ? metadata.taskcore : null;
+  const taskcore = isCatalogRecord(metadata?.taskcore)
+    ? metadata.taskcore
+    : null;
   const catalog = isCatalogRecord(taskcore?.catalog) ? taskcore.catalog : null;
   if (!catalog) return null;
 
-  const sourceRef = asCatalogString(catalog.sourceRef) ?? asCatalogString(catalog.originHash);
+  const sourceRef =
+    asCatalogString(catalog.sourceRef) ?? asCatalogString(catalog.originHash);
   const normalized: Record<string, unknown> = {
     ...(canonicalKey ? { skillKey: canonicalKey } : {}),
     sourceKind: "catalog",

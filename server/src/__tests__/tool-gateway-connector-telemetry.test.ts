@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   activityLog,
   agents,
@@ -65,9 +73,8 @@ vi.mock("../services/activity-log.js", async (importOriginal) => {
   };
 });
 
-const { createToolGatewayService } = await import(
-  "../services/tool-gateway.js"
-);
+const { createToolGatewayService } =
+  await import("../services/tool-gateway.js");
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported
@@ -148,7 +155,11 @@ async function createIssueAndRun(db: Db, companyId: string, agentId: string) {
   return { issue, run };
 }
 
-async function allowAllToolsForAgent(db: Db, companyId: string, agentId: string) {
+async function allowAllToolsForAgent(
+  db: Db,
+  companyId: string,
+  agentId: string,
+) {
   const profile = await db
     .insert(toolProfiles)
     .values({
@@ -233,29 +244,30 @@ async function createRemoteMcpTool(db: Db, companyId: string) {
       versionHash: randomUUID(),
     })
     .returning();
-  return { application: application!, connection: connection!, catalogEntry: catalogEntry! };
+  return {
+    application: application!,
+    connection: connection!,
+    catalogEntry: catalogEntry!,
+  };
 }
 
 async function settledEvents(expectedCount: number) {
   await vi.waitFor(() => {
     expect(
-      track.mock.calls.filter(
-        ([name]) => name === "connection.invoked",
-      ).length,
+      track.mock.calls.filter(([name]) => name === "connection.invoked").length,
     ).toBeGreaterThanOrEqual(expectedCount);
   });
   // The emitter runs as detached background work; give any surplus emission a
   // chance to land before asserting the exact count.
   await new Promise((resolve) => setTimeout(resolve, 150));
-  return track.mock.calls.filter(
-    ([name]) => name === "connection.invoked",
-  );
+  return track.mock.calls.filter(([name]) => name === "connection.invoked");
 }
 
 describeEmbeddedPostgres("gateway connector invocation telemetry", () => {
   let db!: Db;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null =
-    null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase(
@@ -295,7 +307,9 @@ describeEmbeddedPostgres("gateway connector invocation telemetry", () => {
     await tempDb?.cleanup();
   });
 
-  async function fixture(options: Parameters<typeof createToolGatewayService>[1] = {}) {
+  async function fixture(
+    options: Parameters<typeof createToolGatewayService>[1] = {},
+  ) {
     const company = await createCompany(db);
     const agent = await createAgent(db, company.id);
     const { run } = await createIssueAndRun(db, company.id, agent.id);
@@ -357,7 +371,9 @@ describeEmbeddedPostgres("gateway connector invocation telemetry", () => {
     expect(events).toHaveLength(1);
     expect(events[0]?.[1]).toMatchObject({ status: "failed", origin: "agent" });
     expect(
-      events.some(([, dims]) => (dims as { status: string }).status === "succeeded"),
+      events.some(
+        ([, dims]) => (dims as { status: string }).status === "succeeded",
+      ),
     ).toBe(false);
   }, 30_000);
 
@@ -430,9 +446,9 @@ describeEmbeddedPostgres("gateway connector invocation telemetry", () => {
 
     events = await settledEvents(2);
     expect(events).toHaveLength(2);
-    expect(events.map(([, dims]) => (dims as { status: string }).status).sort()).toEqual(
-      ["rate_limited", "succeeded"],
-    );
+    expect(
+      events.map(([, dims]) => (dims as { status: string }).status).sort(),
+    ).toEqual(["rate_limited", "succeeded"]);
   }, 30_000);
 
   it("approval flow: pending emits nothing, decline emits denied, approve emits succeeded", async () => {
@@ -455,7 +471,8 @@ describeEmbeddedPostgres("gateway connector invocation telemetry", () => {
         () => {
           throw new Error("expected approval_required");
         },
-        (error) => expect(error).toMatchObject({ reasonCode: "approval_required" }),
+        (error) =>
+          expect(error).toMatchObject({ reasonCode: "approval_required" }),
       );
     // Awaiting approval is in-flight: no completion event may exist yet. The
     // approval card itself emits the registered interaction.created event, so
@@ -486,7 +503,8 @@ describeEmbeddedPostgres("gateway connector invocation telemetry", () => {
         () => {
           throw new Error("expected approval_required");
         },
-        (error) => expect(error).toMatchObject({ reasonCode: "approval_required" }),
+        (error) =>
+          expect(error).toMatchObject({ reasonCode: "approval_required" }),
       );
     const approvable = await db
       .select()
@@ -500,7 +518,10 @@ describeEmbeddedPostgres("gateway connector invocation telemetry", () => {
     });
     events = await settledEvents(1);
     expect(events).toHaveLength(1);
-    expect(events[0]?.[1]).toMatchObject({ status: "succeeded", origin: "agent" });
+    expect(events[0]?.[1]).toMatchObject({
+      status: "succeeded",
+      origin: "agent",
+    });
   }, 40_000);
 
   it("labels connection-test executions as setup_test", async () => {

@@ -30,8 +30,19 @@ export { AdapterMark } from "../AdapterMark";
 
 function AgentBasicsCharacter() {
   const { selectedCompanyId } = useCompany();
-  const { appearance } = useAgentAppearanceDraft(`${selectedCompanyId}:new-agent`);
-  return <AgentCharacter appearance={appearance} state="sleepy" muted size={256} className="size-48" trackingScope="page" />;
+  const { appearance } = useAgentAppearanceDraft(
+    `${selectedCompanyId}:new-agent`,
+  );
+  return (
+    <AgentCharacter
+      appearance={appearance}
+      state="sleepy"
+      muted
+      size={256}
+      className="size-48"
+      trackingScope="page"
+    />
+  );
 }
 
 export function AgentBasicsDialog({
@@ -116,9 +127,15 @@ export function AgentBasicsDialog({
             if (!name.trim()) return;
             if (step === "name") setStep("adapter");
             else if (validAdapter)
-              onContinue({ name: name.trim(),
-                adapterType: adapterType === "openai_dot" ? "taskcore_runner" : adapterType,
-                runnerProvider: adapterType === "openai_dot" ? "openai_dot" : runnerProvider });
+              onContinue({
+                name: name.trim(),
+                adapterType:
+                  adapterType === "openai_dot"
+                    ? "taskcore_runner"
+                    : adapterType,
+                runnerProvider:
+                  adapterType === "openai_dot" ? "openai_dot" : runnerProvider,
+              });
           }}
         >
           <div className="flex min-h-0 flex-col gap-7 overflow-y-auto px-6 pb-8 sm:px-10">
@@ -175,7 +192,12 @@ export function AgentBasicsDialog({
                     {error.message}
                   </p>
                 )}
-                <div className={cn("grid grid-cols-2 gap-3", choices.length !== 4 && "sm:grid-cols-3")}>
+                <div
+                  className={cn(
+                    "grid grid-cols-2 gap-3",
+                    choices.length !== 4 && "sm:grid-cols-3",
+                  )}
+                >
                   {choices.map((adapter) => {
                     const display = getAdapterDisplay(adapter.type);
                     return (

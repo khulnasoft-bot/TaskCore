@@ -22,14 +22,18 @@ function apiBaseFromDocument(): URL | null {
 }
 
 async function parseResponse(response: Response): Promise<SessionResponse> {
-  if (!response.ok) throw new Error(`The Scenario chat demo returned HTTP ${response.status}.`);
+  if (!response.ok)
+    throw new Error(`The Scenario chat demo returned HTTP ${response.status}.`);
   const value: unknown = await response.json();
   if (
-    typeof value !== "object" || value === null ||
+    typeof value !== "object" ||
+    value === null ||
     typeof (value as { sessionId?: unknown }).sessionId !== "string" ||
     typeof (value as { artifact?: unknown }).artifact !== "object"
   ) {
-    throw new Error("The Scenario chat demo returned an invalid session response.");
+    throw new Error(
+      "The Scenario chat demo returned an invalid session response.",
+    );
   }
   return value as SessionResponse;
 }
@@ -51,7 +55,8 @@ export class CapabilityRemoteChatSession implements CapabilityChatSessionClient 
     _options: CapabilityChatSessionOptions = {},
   ): Promise<CapabilityRemoteChatSession> {
     const apiBase = apiBaseFromDocument();
-    if (!apiBase) throw new Error("The Scenario chat server endpoint is not configured.");
+    if (!apiBase)
+      throw new Error("The Scenario chat server endpoint is not configured.");
     const response = await fetch(new URL("sessions", apiBase), {
       method: "POST",
       credentials: "same-origin",
@@ -91,13 +96,19 @@ export class CapabilityRemoteChatSession implements CapabilityChatSessionClient 
     }).catch(() => undefined);
   }
 
-  private async mutate(action: "turn" | "replay", body: Record<string, unknown>): Promise<CapabilityChatSessionArtifact> {
-    const response = await fetch(new URL(`sessions/${this.sessionId}/${action}`, this.apiBase), {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+  private async mutate(
+    action: "turn" | "replay",
+    body: Record<string, unknown>,
+  ): Promise<CapabilityChatSessionArtifact> {
+    const response = await fetch(
+      new URL(`sessions/${this.sessionId}/${action}`, this.apiBase),
+      {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
     const updated = await parseResponse(response);
     this.sessionId = updated.sessionId;
     this.currentArtifact = updated.artifact;

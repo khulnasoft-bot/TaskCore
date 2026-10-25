@@ -45,7 +45,7 @@ Taskcore project material lives only under `wiki/projects/<project-slug>/`. Do n
   title: Human-readable title
   type: source | project | entity | concept | synthesis
   tags: [tag-a, tag-b]
-  sources: [raw/doc.pdf]    # for source pages and synthesis pages
+  sources: [raw/doc.pdf] # for source pages and synthesis pages
   created: YYYY-MM-DD
   updated: YYYY-MM-DD
   ---

@@ -54,18 +54,21 @@ function NoBoardAccessPage() {
       <Card className="block p-6">
         <h1 className="text-xl font-semibold">No organization access</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This account is signed in, but it does not have an active organization membership or instance-admin access on
-          this Taskcore instance.
+          This account is signed in, but it does not have an active organization
+          membership or instance-admin access on this Taskcore instance.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Use an organization invite or sign in with an account that already belongs to this org.
+          Use an organization invite or sign in with an account that already
+          belongs to this org.
         </p>
       </Card>
     </div>
   );
 }
 
-export function CloudAccessGate({ allowMembershipRequest = false }: { allowMembershipRequest?: boolean } = {}) {
+export function CloudAccessGate({
+  allowMembershipRequest = false,
+}: { allowMembershipRequest?: boolean } = {}) {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [hasOpenedBoard, setHasOpenedBoard] = useState(false);
@@ -74,24 +77,32 @@ export function CloudAccessGate({ allowMembershipRequest = false }: { allowMembe
     queryFn: () => healthApi.get(),
     retry: false,
     refetchInterval: (query) => {
-      if (query.state.error) return isTemporaryApiError(query.state.error) ? RECONNECT_INTERVAL_MS : false;
+      if (query.state.error)
+        return isTemporaryApiError(query.state.error)
+          ? RECONNECT_INTERVAL_MS
+          : false;
       const data = query.state.data;
       if (data?.status === "starting") return RECONNECT_INTERVAL_MS;
-      return data?.deploymentMode === "authenticated" && data.bootstrapStatus === "bootstrap_pending"
+      return data?.deploymentMode === "authenticated" &&
+        data.bootstrapStatus === "bootstrap_pending"
         ? 2000
         : false;
     },
     refetchIntervalInBackground: true,
   });
 
-  const isAuthenticatedMode = healthQuery.data?.deploymentMode === "authenticated";
-  const isBootstrapPending = isAuthenticatedMode && healthQuery.data?.bootstrapStatus === "bootstrap_pending";
+  const isAuthenticatedMode =
+    healthQuery.data?.deploymentMode === "authenticated";
+  const isBootstrapPending =
+    isAuthenticatedMode &&
+    healthQuery.data?.bootstrapStatus === "bootstrap_pending";
   const sessionQuery = useQuery({
     queryKey: queryKeys.auth.session,
     queryFn: () => authApi.getSession(),
     enabled: isAuthenticatedMode,
     retry: false,
-    refetchInterval: (query) => isTemporaryApiError(query.state.error) ? RECONNECT_INTERVAL_MS : false,
+    refetchInterval: (query) =>
+      isTemporaryApiError(query.state.error) ? RECONNECT_INTERVAL_MS : false,
     refetchIntervalInBackground: true,
   });
 
@@ -104,7 +115,8 @@ export function CloudAccessGate({ allowMembershipRequest = false }: { allowMembe
     queryFn: () => accessApi.getCurrentBoardAccess(),
     enabled: isAuthenticatedMode && !isBootstrapPending && !!sessionQuery.data,
     retry: false,
-    refetchInterval: (query) => isTemporaryApiError(query.state.error) ? RECONNECT_INTERVAL_MS : false,
+    refetchInterval: (query) =>
+      isTemporaryApiError(query.state.error) ? RECONNECT_INTERVAL_MS : false,
     refetchIntervalInBackground: true,
   });
   const claimMutation = useMutation({
@@ -112,31 +124,54 @@ export function CloudAccessGate({ allowMembershipRequest = false }: { allowMembe
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.session });
       await queryClient.invalidateQueries({ queryKey: queryKeys.health });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.companies.stats });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.access.currentBoardAccess });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.companies.all,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.companies.stats,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.access.currentBoardAccess,
+      });
     },
   });
 
   const activeQueries = [
     healthQuery,
     ...(isAuthenticatedMode ? [sessionQuery] : []),
-    ...(isAuthenticatedMode && !isBootstrapPending && sessionQuery.data ? [boardAccessQuery] : []),
+    ...(isAuthenticatedMode && !isBootstrapPending && sessionQuery.data
+      ? [boardAccessQuery]
+      : []),
   ];
   const isServerStarting = healthQuery.data?.status === "starting";
-  const isReconnecting = isServerStarting || activeQueries.some((query) => isTemporaryApiError(query.error));
+  const isReconnecting =
+    isServerStarting ||
+    activeQueries.some((query) => isTemporaryApiError(query.error));
   // A background outage must not unmount editors and discard drafts. Cached
   // access is only retained for transport failures; 401/403 still fail closed.
-  const blockingError = activeQueries.find((query) => query.error
-    && !(query.data !== undefined && isTemporaryApiError(query.error)))?.error;
+  const blockingError = activeQueries.find(
+    (query) =>
+      query.error &&
+      !(query.data !== undefined && isTemporaryApiError(query.error)),
+  )?.error;
   const isLoading =
     healthQuery.isLoading ||
     (isAuthenticatedMode && sessionQuery.isLoading) ||
-    (isAuthenticatedMode && !isBootstrapPending && !!sessionQuery.data && boardAccessQuery.isLoading);
-  const hasBoardAccess = allowMembershipRequest || !isAuthenticatedMode
-    || !!boardAccessQuery.data?.isInstanceAdmin || (boardAccessQuery.data?.companyIds.length ?? 0) > 0;
-  const canAccessBoard = !isLoading && !blockingError && !isBootstrapPending
-    && (!isAuthenticatedMode || !!sessionQuery.data) && hasBoardAccess;
+    (isAuthenticatedMode &&
+      !isBootstrapPending &&
+      !!sessionQuery.data &&
+      boardAccessQuery.isLoading);
+  const hasBoardAccess =
+    allowMembershipRequest ||
+    !isAuthenticatedMode ||
+    !!boardAccessQuery.data?.isInstanceAdmin ||
+    (boardAccessQuery.data?.companyIds.length ?? 0) > 0;
+  const canAccessBoard =
+    !isLoading &&
+    !blockingError &&
+    !isBootstrapPending &&
+    (!isAuthenticatedMode || !!sessionQuery.data) &&
+    hasBoardAccess;
   useEffect(() => {
     if (!canAccessBoard) setHasOpenedBoard(false);
     else if (healthQuery.data?.status === "ok") setHasOpenedBoard(true);
@@ -149,7 +184,9 @@ export function CloudAccessGate({ allowMembershipRequest = false }: { allowMembe
       wasReconnecting.current = false;
       // Other reads (including the company list) may have failed during boot.
       // Refresh those too so recovery does not strand the user on a second error.
-      void queryClient.invalidateQueries({ predicate: (query) => isTemporaryApiError(query.state.error) });
+      void queryClient.invalidateQueries({
+        predicate: (query) => isTemporaryApiError(query.state.error),
+      });
     }
   }, [isReconnecting, isLoading, blockingError, queryClient]);
 
@@ -174,7 +211,12 @@ export function CloudAccessGate({ allowMembershipRequest = false }: { allowMembe
   }
 
   if (isAuthenticatedMode && healthQuery.data?.cloud && !sessionQuery.data) {
-    return <CloudSignIn cloud={healthQuery.data.cloud} returnTo={`${location.pathname}${location.search}${location.hash}`} />;
+    return (
+      <CloudSignIn
+        cloud={healthQuery.data.cloud}
+        returnTo={`${location.pathname}${location.search}${location.hash}`}
+      />
+    );
   }
 
   if (isBootstrapPending) {
@@ -182,17 +224,27 @@ export function CloudAccessGate({ allowMembershipRequest = false }: { allowMembe
     if (!health) {
       return <TaskcoreLoading />;
     }
-    const claimError = claimMutation.error instanceof ApiError
-      ? { status: claimMutation.error.status, message: claimMutation.error.message }
-      : claimMutation.error instanceof Error
-        ? { message: claimMutation.error.message }
-        : null;
+    const claimError =
+      claimMutation.error instanceof ApiError
+        ? {
+            status: claimMutation.error.status,
+            message: claimMutation.error.message,
+          }
+        : claimMutation.error instanceof Error
+          ? { message: claimMutation.error.message }
+          : null;
     return (
       <BootstrapPendingPage
         claimAvailable={health.deploymentExposure === "private"}
         hasActiveInvite={health.bootstrapInviteActive}
         session={sessionQuery.data}
-        claimState={claimMutation.isSuccess ? "success" : claimMutation.isPending ? "claiming" : "idle"}
+        claimState={
+          claimMutation.isSuccess
+            ? "success"
+            : claimMutation.isPending
+              ? "claiming"
+              : "idle"
+        }
         claimError={claimError}
         onClaim={() => claimMutation.mutate()}
       />
@@ -213,7 +265,10 @@ export function CloudAccessGate({ allowMembershipRequest = false }: { allowMembe
   return (
     <>
       {isReconnecting && (
-        <div role="status" className="bg-muted px-4 py-2 text-center text-sm text-muted-foreground">
+        <div
+          role="status"
+          className="bg-muted px-4 py-2 text-center text-sm text-muted-foreground"
+        >
           Connection interrupted. Reconnecting automatically…
         </div>
       )}

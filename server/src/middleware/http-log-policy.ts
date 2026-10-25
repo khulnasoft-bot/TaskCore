@@ -45,7 +45,9 @@ const SECRET_SENSITIVE_HTTP_PATHS = [
 const SECRET_SENSITIVE_HTTP_METHODS = new Set(["POST", "PUT", "PATCH"]);
 
 /** Free-form agent feedback must never be copied into HTTP diagnostics. */
-export function isPrivateAgentCommentaryHttpRequest(url: string | undefined): boolean {
+export function isPrivateAgentCommentaryHttpRequest(
+  url: string | undefined,
+): boolean {
   if (!url) return false;
   // Express routes are case-insensitive and also accept absolute-form URLs.
   const pathname = normalizePath(url).replace(/^https?:\/\/[^/]*/i, "");
@@ -63,7 +65,12 @@ export function isPrivateWebhookHttpRequest(
     // Do not let URL dot-segment normalization erase an explicitly supplied
     // ingress namespace on a malformed absolute-form callback.
     const rawPath = pathname.replace(/^https?:\/\/[^/]*/i, "");
-    if (/^\/api\/(?:chat-webhooks|routine-triggers\/public)(?:\/|$)/i.test(rawPath)) return true;
+    if (
+      /^\/api\/(?:chat-webhooks|routine-triggers\/public)(?:\/|$)/i.test(
+        rawPath,
+      )
+    )
+      return true;
     try {
       pathname = new URL(url).pathname;
     } catch {
@@ -72,7 +79,9 @@ export function isPrivateWebhookHttpRequest(
   }
   // This namespace is reserved for provider ingress, including malformed or
   // unknown callback paths. Rejecting a route must not make its payload public.
-  return /^\/api\/(?:chat-webhooks|routine-triggers\/public)(?:\/|$)/i.test(pathname);
+  return /^\/api\/(?:chat-webhooks|routine-triggers\/public)(?:\/|$)/i.test(
+    pathname,
+  );
 }
 
 /**
@@ -90,10 +99,26 @@ export function isSecretSensitiveHttpRequest(
   if (url && normalizePath(url).startsWith("/mcp/files/")) return true;
   if (isPrivateAgentCommentaryHttpRequest(url)) return true;
   // Avatar uploads and dedicated Dot MCP calls may contain private image bytes.
-  if (url && /^(?:\/mcp\/runner(?:\/|$)|\/api\/companies\/[^/]+\/agents\/[^/]+\/avatar(?:\/|$))/i.test(normalizePath(url).replace(/^https?:\/\/[^/]*/i, ""))) return true;
+  if (
+    url &&
+    /^(?:\/mcp\/runner(?:\/|$)|\/api\/companies\/[^/]+\/agents\/[^/]+\/avatar(?:\/|$))/i.test(
+      normalizePath(url).replace(/^https?:\/\/[^/]*/i, ""),
+    )
+  )
+    return true;
   if (!method || !url) return false;
-  if (/^\/api\/chat-slack\/oauth(?:\/|$)/i.test(normalizePath(url).replace(/^https?:\/\/[^/]*/i, ""))) return true;
-  if (/^\/api\/chat-endpoints\/[^/]+\/slack(?:\/|$)/i.test(normalizePath(url).replace(/^https?:\/\/[^/]*/i, ""))) return true;
+  if (
+    /^\/api\/chat-slack\/oauth(?:\/|$)/i.test(
+      normalizePath(url).replace(/^https?:\/\/[^/]*/i, ""),
+    )
+  )
+    return true;
+  if (
+    /^\/api\/chat-endpoints\/[^/]+\/slack(?:\/|$)/i.test(
+      normalizePath(url).replace(/^https?:\/\/[^/]*/i, ""),
+    )
+  )
+    return true;
   if (!SECRET_SENSITIVE_HTTP_METHODS.has(method.toUpperCase())) return false;
   const pathname = normalizePath(url);
   return SECRET_SENSITIVE_HTTP_PATHS.some((pattern) => pattern.test(pathname));

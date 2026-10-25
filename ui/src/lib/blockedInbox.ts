@@ -13,20 +13,21 @@ export type BlockedReasonVariant =
   | "external_wait"
   | "owner_paused";
 
-const VARIANT_BY_REASON: Record<IssueBlockedInboxReason, BlockedReasonVariant> = {
-  pending_board_decision: "needs_decision",
-  pending_user_decision: "needs_decision",
-  missing_successful_run_disposition: "needs_decision",
-  blocked_chain_stalled: "stalled",
-  blocked_by_unassigned_issue: "needs_attention",
-  blocked_by_assigned_backlog_issue: "needs_attention",
-  blocked_by_cancelled_issue: "needs_attention",
-  in_review_without_action_path: "needs_attention",
-  invalid_review_participant: "needs_attention",
-  open_recovery_issue: "recovery_required",
-  external_owner_action: "external_wait",
-  blocked_by_uninvokable_assignee: "owner_paused",
-};
+const VARIANT_BY_REASON: Record<IssueBlockedInboxReason, BlockedReasonVariant> =
+  {
+    pending_board_decision: "needs_decision",
+    pending_user_decision: "needs_decision",
+    missing_successful_run_disposition: "needs_decision",
+    blocked_chain_stalled: "stalled",
+    blocked_by_unassigned_issue: "needs_attention",
+    blocked_by_assigned_backlog_issue: "needs_attention",
+    blocked_by_cancelled_issue: "needs_attention",
+    in_review_without_action_path: "needs_attention",
+    invalid_review_participant: "needs_attention",
+    open_recovery_issue: "recovery_required",
+    external_owner_action: "external_wait",
+    blocked_by_uninvokable_assignee: "owner_paused",
+  };
 
 export const BLOCKED_REASON_VARIANT_ORDER: BlockedReasonVariant[] = [
   "needs_decision",
@@ -70,7 +71,9 @@ const SEVERITY_RANK: Record<IssueBlockedInboxSeverity, number> = {
 
 export type BlockedInboxBadgeTone = "muted" | "amber" | "red";
 
-export function blockedReasonVariant(reason: IssueBlockedInboxReason): BlockedReasonVariant {
+export function blockedReasonVariant(
+  reason: IssueBlockedInboxReason,
+): BlockedReasonVariant {
   return VARIANT_BY_REASON[reason] ?? "needs_attention";
 }
 
@@ -82,7 +85,9 @@ export function blockedVariantLabel(variant: BlockedReasonVariant): string {
   return BLOCKED_VARIANT_LABELS[variant];
 }
 
-export function blockedSeverityRank(severity: IssueBlockedInboxSeverity): number {
+export function blockedSeverityRank(
+  severity: IssueBlockedInboxSeverity,
+): number {
   return SEVERITY_RANK[severity] ?? 9;
 }
 
@@ -90,10 +95,15 @@ export function compareBlockedAttention(
   a: IssueBlockedInboxAttention,
   b: IssueBlockedInboxAttention,
 ): number {
-  const sevDiff = blockedSeverityRank(a.severity) - blockedSeverityRank(b.severity);
+  const sevDiff =
+    blockedSeverityRank(a.severity) - blockedSeverityRank(b.severity);
   if (sevDiff !== 0) return sevDiff;
-  const aSince = a.stoppedSinceAt ? new Date(a.stoppedSinceAt).getTime() : Number.POSITIVE_INFINITY;
-  const bSince = b.stoppedSinceAt ? new Date(b.stoppedSinceAt).getTime() : Number.POSITIVE_INFINITY;
+  const aSince = a.stoppedSinceAt
+    ? new Date(a.stoppedSinceAt).getTime()
+    : Number.POSITIVE_INFINITY;
+  const bSince = b.stoppedSinceAt
+    ? new Date(b.stoppedSinceAt).getTime()
+    : Number.POSITIVE_INFINITY;
   const sinceDiff = aSince - bSince;
   return Number.isFinite(sinceDiff) ? sinceDiff : 0;
 }
@@ -126,7 +136,9 @@ export interface BlockedInboxGroup {
   rows: BlockedInboxIssueRow[];
 }
 
-export function buildBlockedInboxRows(issues: readonly Issue[]): BlockedInboxIssueRow[] {
+export function buildBlockedInboxRows(
+  issues: readonly Issue[],
+): BlockedInboxIssueRow[] {
   const rows: BlockedInboxIssueRow[] = [];
   for (const issue of issues) {
     const attention = issue.blockedInboxAttention;
@@ -136,13 +148,17 @@ export function buildBlockedInboxRows(issues: readonly Issue[]): BlockedInboxIss
       attention,
       variant: blockedReasonVariant(attention.reason),
       reasonLabel: blockedReasonLabel(attention.reason),
-      stoppedAtMs: attention.stoppedSinceAt ? new Date(attention.stoppedSinceAt).getTime() : null,
+      stoppedAtMs: attention.stoppedSinceAt
+        ? new Date(attention.stoppedSinceAt).getTime()
+        : null,
     });
   }
   return rows;
 }
 
-function issueTimestampMs(value: Date | string | null | undefined): number | null {
+function issueTimestampMs(
+  value: Date | string | null | undefined,
+): number | null {
   if (!value) return null;
   const timestamp = new Date(value).getTime();
   return Number.isFinite(timestamp) ? timestamp : null;
@@ -152,7 +168,10 @@ function blockedRowRecencyMs(row: BlockedInboxIssueRow): number {
   return row.stoppedAtMs ?? issueTimestampMs(row.issue.updatedAt) ?? 0;
 }
 
-function compareBlockedRowsByTitle(a: BlockedInboxIssueRow, b: BlockedInboxIssueRow): number {
+function compareBlockedRowsByTitle(
+  a: BlockedInboxIssueRow,
+  b: BlockedInboxIssueRow,
+): number {
   const byTitle = a.issue.title.localeCompare(b.issue.title);
   if (byTitle !== 0) return byTitle;
   return a.issue.id.localeCompare(b.issue.id);
@@ -176,7 +195,9 @@ export function compareBlockedRows(
     const bStopped = b.stoppedAtMs ?? Number.POSITIVE_INFINITY;
     const stoppedDiff = aStopped - bStopped;
     if (stoppedDiff !== 0) return stoppedDiff;
-    const severityDiff = blockedSeverityRank(a.attention.severity) - blockedSeverityRank(b.attention.severity);
+    const severityDiff =
+      blockedSeverityRank(a.attention.severity) -
+      blockedSeverityRank(b.attention.severity);
     if (severityDiff !== 0) return severityDiff;
     return compareBlockedRowsByTitle(a, b);
   }
@@ -210,12 +231,19 @@ export function groupBlockedInboxRows(
     const list = buckets.get(variant);
     if (!list || list.length === 0) continue;
     const sorted = sortBlockedInboxRows(list, sort);
-    groups.push({ variant, label: BLOCKED_VARIANT_LABELS[variant], rows: sorted });
+    groups.push({
+      variant,
+      label: BLOCKED_VARIANT_LABELS[variant],
+      rows: sorted,
+    });
   }
   return groups;
 }
 
-export function blockedRowMatchesSearch(row: BlockedInboxIssueRow, query: string): boolean {
+export function blockedRowMatchesSearch(
+  row: BlockedInboxIssueRow,
+  query: string,
+): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   const haystack = [
@@ -235,11 +263,15 @@ export function blockedRowMatchesSearch(row: BlockedInboxIssueRow, query: string
   return haystack.includes(q);
 }
 
-export function blockedBadgeTone(rows: readonly BlockedInboxIssueRow[]): BlockedInboxBadgeTone {
+export function blockedBadgeTone(
+  rows: readonly BlockedInboxIssueRow[],
+): BlockedInboxBadgeTone {
   if (rows.length === 0) return "muted";
   let highest: IssueBlockedInboxSeverity = "low";
   for (const row of rows) {
-    if (blockedSeverityRank(row.attention.severity) < blockedSeverityRank(highest)) {
+    if (
+      blockedSeverityRank(row.attention.severity) < blockedSeverityRank(highest)
+    ) {
       highest = row.attention.severity;
     }
   }
@@ -248,7 +280,10 @@ export function blockedBadgeTone(rows: readonly BlockedInboxIssueRow[]): Blocked
   return "muted";
 }
 
-export function formatStoppedAge(stoppedSinceAt: string | null, now: number = Date.now()): string {
+export function formatStoppedAge(
+  stoppedSinceAt: string | null,
+  now: number = Date.now(),
+): string {
   if (!stoppedSinceAt) return "stopped";
   const then = new Date(stoppedSinceAt).getTime();
   if (!Number.isFinite(then)) return "stopped";

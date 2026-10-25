@@ -24,11 +24,17 @@ describe("isOperatorInterruptedRun", () => {
 
   it("detects operator interrupts via resultJson flag", () => {
     expect(isOperatorInterruptedRun({ operatorInterrupted: true })).toBe(true);
-    expect(isOperatorInterruptedRun({ interruptionSource: "issue_comment_interrupt" })).toBe(true);
+    expect(
+      isOperatorInterruptedRun({
+        interruptionSource: "issue_comment_interrupt",
+      }),
+    ).toBe(true);
   });
 
   it("does not flag ordinary cancels or failures", () => {
-    expect(isOperatorInterruptedRun({ stopReason: "cancelled" }, "cancelled")).toBe(false);
+    expect(
+      isOperatorInterruptedRun({ stopReason: "cancelled" }, "cancelled"),
+    ).toBe(false);
     expect(isOperatorInterruptedRun(null, "claude_exit_143")).toBe(false);
     expect(isOperatorInterruptedRun(null)).toBe(false);
   });
@@ -36,7 +42,9 @@ describe("isOperatorInterruptedRun", () => {
 
 describe("resolveRunStatusPresentation", () => {
   it("renders an operator-interrupted cancel as amber 'interrupted'", () => {
-    const p = resolveRunStatusPresentation("cancelled", { operatorInterrupted: true });
+    const p = resolveRunStatusPresentation("cancelled", {
+      operatorInterrupted: true,
+    });
     expect(p.label).toBe("interrupted");
     expect(p.className).toContain("amber");
     expect(p.srHint).toMatch(/board comment/);
@@ -57,7 +65,9 @@ describe("resolveRunStatusPresentation", () => {
 
 describe("structured mention vs plain text", () => {
   it("extracts agent ids only from structured agent:// links", () => {
-    expect(extractAgentMentionIds(`hey ${qaMention} please look`)).toEqual([QA_ID]);
+    expect(extractAgentMentionIds(`hey ${qaMention} please look`)).toEqual([
+      QA_ID,
+    ]);
     expect(bodyHasAgentMention(`hey ${qaMention}`)).toBe(true);
   });
 
@@ -82,9 +92,10 @@ describe("structured mention vs plain text", () => {
   });
 
   it("matches by role as well as display name", () => {
-    const candidate = findPlainAgentNameCandidate("can the reviewer check this", [
-      { agentId: "agent-x", name: "Casey", role: "reviewer" },
-    ]);
+    const candidate = findPlainAgentNameCandidate(
+      "can the reviewer check this",
+      [{ agentId: "agent-x", name: "Casey", role: "reviewer" }],
+    );
     expect(candidate?.matchedText).toBe("reviewer");
   });
 });
@@ -98,7 +109,10 @@ describe("computeComposerHandoffPreview", () => {
   };
 
   it("A. reassign to agent with active run = interrupt + handoff", () => {
-    const p = computeComposerHandoffPreview({ ...base, reassignTarget: `agent:${QA_ID}` });
+    const p = computeComposerHandoffPreview({
+      ...base,
+      reassignTarget: `agent:${QA_ID}`,
+    });
     expect(p.kind).toBe("interrupt_handoff_agent");
     expect(p.chip).toEqual({ kind: "agent", id: QA_ID });
     expect(p.tone).toBe("neutral");
@@ -114,14 +128,20 @@ describe("computeComposerHandoffPreview", () => {
   });
 
   it("B. reassign to user = handoff, no agent wake", () => {
-    const p = computeComposerHandoffPreview({ ...base, reassignTarget: "user:user-board" });
+    const p = computeComposerHandoffPreview({
+      ...base,
+      reassignTarget: "user:user-board",
+    });
     expect(p.kind).toBe("user_handoff");
     expect(p.chip).toEqual({ kind: "user", id: "user-board" });
     expect(p.suffix).toMatch(/no agent/i);
   });
 
   it("clearing the assignee reads as no agent wake", () => {
-    const p = computeComposerHandoffPreview({ ...base, reassignTarget: "__none__" });
+    const p = computeComposerHandoffPreview({
+      ...base,
+      reassignTarget: "__none__",
+    });
     expect(p.kind).toBe("clear_assignee");
     expect(p.text).toMatch(/no agent/i);
   });
@@ -159,7 +179,10 @@ describe("computeComposerHandoffPreview", () => {
 
 describe("classifyAssigneeHandoff", () => {
   it("A. to agent = queued wake", () => {
-    const info = classifyAssigneeHandoff({ agentId: QA_ID, userId: null }, { agentName: "QA" });
+    const info = classifyAssigneeHandoff(
+      { agentId: QA_ID, userId: null },
+      { agentName: "QA" },
+    );
     expect(info.kind).toBe("agent_wake");
     expect(info.wakeText).toMatch(/queued for QA/);
   });
@@ -173,7 +196,10 @@ describe("classifyAssigneeHandoff", () => {
   });
 
   it("B. to user = no wake, board handoff", () => {
-    const info = classifyAssigneeHandoff({ agentId: null, userId: "user-board" });
+    const info = classifyAssigneeHandoff({
+      agentId: null,
+      userId: "user-board",
+    });
     expect(info.kind).toBe("user_handoff");
     expect(info.wakeText).toMatch(/not created/);
   });
@@ -188,26 +214,34 @@ describe("classifyAssigneeHandoff", () => {
 describe("describeReassignInterrupt", () => {
   it("names the running agent in the banner and confirm", () => {
     const copy = describeReassignInterrupt({ runningAgentName: "ClaudeCoder" });
-    expect(copy.banner).toBe("ClaudeCoder is running — changing the responsible will interrupt this run.");
+    expect(copy.banner).toBe(
+      "ClaudeCoder is running — changing the responsible will interrupt this run.",
+    );
     expect(copy.confirmAction).toBe("Interrupt & assign");
     expect(copy.cancelAction).toBe("Cancel");
   });
 
   it("falls back to a generic subject when no name is known", () => {
     expect(describeReassignInterrupt().banner).toMatch(/^An agent is running/);
-    expect(describeReassignInterrupt({ runningAgentName: "  " }).banner).toMatch(/^An agent is running/);
+    expect(
+      describeReassignInterrupt({ runningAgentName: "  " }).banner,
+    ).toMatch(/^An agent is running/);
   });
 });
 
 describe("computePauseAffectsSummary", () => {
-  const issue = (over: Partial<PauseAffectsIssueLike>): PauseAffectsIssueLike => ({
+  const issue = (
+    over: Partial<PauseAffectsIssueLike>,
+  ): PauseAffectsIssueLike => ({
     assigneeAgentId: null,
     assigneeUserId: null,
     activeRun: null,
     ...over,
   });
-  const bucket = (summary: ReturnType<typeof computePauseAffectsSummary>, key: string) =>
-    summary.buckets.find((b) => b.key === key)!;
+  const bucket = (
+    summary: ReturnType<typeof computePauseAffectsSummary>,
+    key: string,
+  ) => summary.buckets.find((b) => b.key === key)!;
 
   it("partitions affected issues into disjoint buckets", () => {
     const summary = computePauseAffectsSummary([
@@ -228,7 +262,11 @@ describe("computePauseAffectsSummary", () => {
 
   it("ignores skipped issues", () => {
     const summary = computePauseAffectsSummary([
-      issue({ assigneeAgentId: "a1", activeRun: { status: "running" }, skipped: true }),
+      issue({
+        assigneeAgentId: "a1",
+        activeRun: { status: "running" },
+        skipped: true,
+      }),
       issue({ assigneeUserId: "u1" }),
     ]);
     expect(summary.affectedIssueCount).toBe(1);
@@ -237,7 +275,10 @@ describe("computePauseAffectsSummary", () => {
   });
 
   it("flags nothingLive when no run is live or queued", () => {
-    const summary = computePauseAffectsSummary([issue({ assigneeUserId: "u1" }), issue({})]);
+    const summary = computePauseAffectsSummary([
+      issue({ assigneeUserId: "u1" }),
+      issue({}),
+    ]);
     expect(summary.nothingLive).toBe(true);
   });
 

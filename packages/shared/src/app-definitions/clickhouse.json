@@ -3,17 +3,13 @@
   "slug": "clickhouse",
   "name": "ClickHouse",
   "description": "Connect ClickHouse's provider-hosted MCP server.",
-  "categories": [
-    "data"
-  ],
+  "categories": ["data"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/clickhouse.svg",
     "darkLogoUrl": "/brands/apps/clickhouse-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.clickhouse.cloud/*"
-  ],
+  "urlPatterns": ["https://mcp.clickhouse.cloud/*"],
   "docsUrl": "https://clickhouse.com/blog/announcing-managed-clickstack-mcp-server",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,9 +17,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.clickhouse.cloud/clickstack",
@@ -41,9 +35,7 @@
       "consoleLinks": {
         "docs": "https://clickhouse.com/blog/announcing-managed-clickstack-mcp-server"
       },
-      "warnings": [
-        "A ClickHouse Cloud ClickStack service and its service ID."
-      ],
+      "warnings": ["A ClickHouse Cloud ClickStack service and its service ID."],
       "tenantFields": [
         {
           "key": "serviceId",
@@ -58,9 +50,7 @@
           }
         }
       ],
-      "requiredResourceFilters": [
-        "service"
-      ]
+      "requiredResourceFilters": ["service"]
     }
   ]
 }

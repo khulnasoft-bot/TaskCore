@@ -1,7 +1,12 @@
 import express from "express";
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { activityLog, companies, companyMemberships, instanceUserRoles } from "@taskcore/db";
+import {
+  activityLog,
+  companies,
+  companyMemberships,
+  instanceUserRoles,
+} from "@taskcore/db";
 import {
   actorMiddleware,
   humanizeCloudStackSlug,
@@ -32,11 +37,14 @@ function createDb() {
 }
 
 describe("actorMiddleware authenticated session profile", () => {
-  const originalCloudTenantToken = process.env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN;
+  const originalCloudTenantToken =
+    process.env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN;
 
   afterEach(() => {
-    if (originalCloudTenantToken === undefined) delete process.env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN;
-    else process.env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN = originalCloudTenantToken;
+    if (originalCloudTenantToken === undefined)
+      delete process.env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN;
+    else
+      process.env.TASKCORE_CLOUD_TENANT_SERVER_TOKEN = originalCloudTenantToken;
   });
 
   it("preserves the signed-in user name and email on the board actor", async () => {
@@ -90,11 +98,13 @@ describe("actorMiddleware authenticated session profile", () => {
             return chain;
           },
           returning() {
-            return Promise.resolve([{
-              companyId: inserts.at(-1)?.values.companyId,
-              membershipRole: inserts.at(-1)?.values.membershipRole,
-              status: inserts.at(-1)?.values.status,
-            }]);
+            return Promise.resolve([
+              {
+                companyId: inserts.at(-1)?.values.companyId,
+                membershipRole: inserts.at(-1)?.values.membershipRole,
+                status: inserts.at(-1)?.values.status,
+              },
+            ]);
           },
         };
         return chain;
@@ -132,7 +142,9 @@ describe("actorMiddleware authenticated session profile", () => {
       userEmail: "owner@example.com",
       source: "cloud_tenant",
       isInstanceAdmin: false,
-      memberships: [expect.objectContaining({ membershipRole: "owner", status: "active" })],
+      memberships: [
+        expect.objectContaining({ membershipRole: "owner", status: "active" }),
+      ],
     });
     expect(res.body.companyIds[0]).toMatch(/^[0-9a-f-]{36}$/);
     // authUsers, companies, companyMemberships, the role-default
@@ -166,7 +178,13 @@ describe("actorMiddleware authenticated session profile", () => {
         return insertChain;
       },
       returning() {
-        return Promise.resolve([{ companyId: "company-1", membershipRole: "member", status: "active" }]);
+        return Promise.resolve([
+          {
+            companyId: "company-1",
+            membershipRole: "member",
+            status: "active",
+          },
+        ]);
       },
       then(resolve: (value: unknown) => unknown) {
         return Promise.resolve(undefined).then(resolve);
@@ -178,7 +196,13 @@ describe("actorMiddleware authenticated session profile", () => {
           where: () =>
             Promise.resolve(
               table === companyMemberships
-                ? [{ companyId: importedCompanyId, membershipRole: "member", status: "active" }]
+                ? [
+                    {
+                      companyId: importedCompanyId,
+                      membershipRole: "member",
+                      status: "active",
+                    },
+                  ]
                 : [],
             ),
         }),
@@ -213,15 +237,21 @@ describe("actorMiddleware authenticated session profile", () => {
 
     // Reads and writes both reach the imported company through the real
     // membership row (write access also consults actor.memberships).
-    const read = await request(app).get(`/companies/${importedCompanyId}/resource`).set(cloudHeaders);
+    const read = await request(app)
+      .get(`/companies/${importedCompanyId}/resource`)
+      .set(cloudHeaders);
     expect(read.status).toBe(200);
     expect(read.body.companyIds).toContain(importedCompanyId);
 
-    const write = await request(app).post(`/companies/${importedCompanyId}/resource`).set(cloudHeaders);
+    const write = await request(app)
+      .post(`/companies/${importedCompanyId}/resource`)
+      .set(cloudHeaders);
     expect(write.status).toBe(200);
 
     // Companies the user holds no membership row in stay unreachable.
-    const denied = await request(app).get(`/companies/${unrelatedCompanyId}/resource`).set(cloudHeaders);
+    const denied = await request(app)
+      .get(`/companies/${unrelatedCompanyId}/resource`)
+      .set(cloudHeaders);
     expect(denied.status).toBe(403);
   });
 
@@ -280,7 +310,9 @@ describe("actorMiddleware authenticated session profile", () => {
       })),
       delete: vi.fn(() => ({ where: () => Promise.resolve(undefined) })),
     } as any;
-    db.transaction = vi.fn(async (run: (tx: typeof db) => Promise<void>) => run(db));
+    db.transaction = vi.fn(async (run: (tx: typeof db) => Promise<void>) =>
+      run(db),
+    );
     const app = express();
     app.use(
       actorMiddleware(db, {
@@ -296,10 +328,7 @@ describe("actorMiddleware authenticated session profile", () => {
       .set("x-taskcore-cloud-user-id", "global-user-1")
       .set("x-taskcore-cloud-user-email", "owner@example.com")
       .set("x-taskcore-cloud-stack-id", "stack-purple-rain")
-      .set(
-        "x-taskcore-cloud-taskcore-company-id",
-        "taskcore-stack-purple-rain",
-      )
+      .set("x-taskcore-cloud-taskcore-company-id", "taskcore-stack-purple-rain")
       .set("x-taskcore-cloud-taskcore-company-name", "Purple Rain")
       .set("x-taskcore-cloud-stack-role", "owner");
 
@@ -339,7 +368,9 @@ describe("actorMiddleware authenticated session profile", () => {
         return insertChain;
       },
       returning() {
-        return Promise.resolve([{ companyId: "company-1", membershipRole: "owner", status: "active" }]);
+        return Promise.resolve([
+          { companyId: "company-1", membershipRole: "owner", status: "active" },
+        ]);
       },
       then(resolve: (value: unknown) => unknown) {
         return Promise.resolve(undefined).then(resolve);
@@ -350,7 +381,9 @@ describe("actorMiddleware authenticated session profile", () => {
         from: (table: unknown) => ({
           where: () =>
             Promise.resolve(
-              table === instanceUserRoles && state.staleInstanceAdminRow ? [{ id: "stale-role-row" }] : [],
+              table === instanceUserRoles && state.staleInstanceAdminRow
+                ? [{ id: "stale-role-row" }]
+                : [],
             ),
         }),
       })),
@@ -368,7 +401,11 @@ describe("actorMiddleware authenticated session profile", () => {
         deploymentMode: "authenticated",
         resolveSession: async () => ({
           session: { id: "session-1", userId: "global-user-1" },
-          user: { id: "global-user-1", name: "Stack Owner", email: "owner@example.com" },
+          user: {
+            id: "global-user-1",
+            name: "Stack Owner",
+            email: "owner@example.com",
+          },
         }),
       }),
     );
@@ -378,7 +415,10 @@ describe("actorMiddleware authenticated session profile", () => {
 
     // Control: while the stale row exists, the session path still elevates.
     const before = await request(app).get("/actor");
-    expect(before.body).toMatchObject({ source: "session", isInstanceAdmin: true });
+    expect(before.body).toMatchObject({
+      source: "session",
+      isInstanceAdmin: true,
+    });
 
     // One trusted-header authentication purges the stale grant.
     const cloud = await request(app)
@@ -388,7 +428,10 @@ describe("actorMiddleware authenticated session profile", () => {
       .set("x-taskcore-cloud-user-email", "owner@example.com")
       .set("x-taskcore-cloud-stack-id", "stack-alpha")
       .set("x-taskcore-cloud-stack-role", "owner");
-    expect(cloud.body).toMatchObject({ source: "cloud_tenant", isInstanceAdmin: false });
+    expect(cloud.body).toMatchObject({
+      source: "cloud_tenant",
+      isInstanceAdmin: false,
+    });
     expect(state.staleInstanceAdminRow).toBe(false);
 
     // The same user no longer gets instance admin via the session path.

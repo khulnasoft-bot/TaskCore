@@ -10,7 +10,9 @@ describe("adapterRegistrySchema", () => {
         envKeys: ["ANTHROPIC_API_KEY"],
         allowFqdns: [],
         probeCommand: ["opencode", "--version"],
-        defaultEnv: { ANTHROPIC_BASE_URL: "http://bifrost.bifrost.svc.cluster.local:8080" },
+        defaultEnv: {
+          ANTHROPIC_BASE_URL: "http://bifrost.bifrost.svc.cluster.local:8080",
+        },
       },
     ]);
     expect(parsed[0].adapterType).toBe("opencode_local");

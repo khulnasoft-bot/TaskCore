@@ -11,7 +11,9 @@ import type { LiveRunForIssue } from "../api/heartbeats";
 import type { Agent, SuccessfulRunHandoffState } from "@taskcore/shared";
 
 vi.mock("@assistant-ui/react", () => ({
-  AssistantRuntimeProvider: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  AssistantRuntimeProvider: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
   useAui: () => ({ thread: () => ({ append: async () => undefined }) }),
 }));
 
@@ -23,7 +25,9 @@ vi.mock("./transcript/useLiveRunTranscripts", () => ({
 }));
 
 vi.mock("./MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  MarkdownBody: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 vi.mock("./MarkdownEditor", () => ({
@@ -31,15 +35,23 @@ vi.mock("./MarkdownEditor", () => ({
 }));
 
 vi.mock("./InlineEntitySelector", () => ({ InlineEntitySelector: () => null }));
-vi.mock("./Identity", () => ({ Identity: ({ name }: { name: string }) => <span>{name}</span> }));
-vi.mock("./OutputFeedbackButtons", () => ({ OutputFeedbackButtons: () => null }));
+vi.mock("./Identity", () => ({
+  Identity: ({ name }: { name: string }) => <span>{name}</span>,
+}));
+vi.mock("./OutputFeedbackButtons", () => ({
+  OutputFeedbackButtons: () => null,
+}));
 vi.mock("@/components/ui/tooltip", () => ({
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
-  TooltipContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  TooltipContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 vi.mock("./AgentIconPicker", () => ({ AgentIcon: () => null }));
-vi.mock("./StatusBadge", () => ({ StatusBadge: ({ status }: { status: string }) => <span>{status}</span> }));
+vi.mock("./StatusBadge", () => ({
+  StatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
+}));
 vi.mock("./IssueLinkQuicklook", () => ({
   IssueLinkQuicklook: ({
     children,
@@ -108,12 +120,38 @@ const baseTimestamps = {
 describe("IssueChatThread system notice routing", () => {
   it("renders the typed disposition notice in the classic thread without reading its prose", () => {
     const comment: IssueChatComment = {
-      id: "typed-recovery", companyId: "company-1", issueId: "issue-1", authorType: "system", authorAgentId: null, authorUserId: null,
-      body: "Unrelated wording", presentation: { kind: "system_notice", tone: "warning", title: "Different title", detailsDefaultOpen: false, density: "compact" },
-      metadata: { version: 1, sections: [], recovery: { kind: "disposition_repair_escalated", actionId: "action", assigneeAgentId: "agent", attemptCount: 3, maxAttempts: 3, reason: "unchanged_source_state_exhausted" } }, ...baseTimestamps,
+      id: "typed-recovery",
+      companyId: "company-1",
+      issueId: "issue-1",
+      authorType: "system",
+      authorAgentId: null,
+      authorUserId: null,
+      body: "Unrelated wording",
+      presentation: {
+        kind: "system_notice",
+        tone: "warning",
+        title: "Different title",
+        detailsDefaultOpen: false,
+        density: "compact",
+      },
+      metadata: {
+        version: 1,
+        sections: [],
+        recovery: {
+          kind: "disposition_repair_escalated",
+          actionId: "action",
+          assigneeAgentId: "agent",
+          attemptCount: 3,
+          maxAttempts: 3,
+          reason: "unchanged_source_state_exhausted",
+        },
+      },
+      ...baseTimestamps,
     };
     renderThread([comment]);
-    expect(container.querySelector('[data-testid="disposition-recovery-notice"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="disposition-recovery-notice"]'),
+    ).not.toBeNull();
     expect(container.textContent).toContain("3 automatic attempts");
     expect(container.textContent).not.toContain("Unrelated wording");
   });
@@ -139,8 +177,18 @@ describe("IssueChatThread system notice routing", () => {
           {
             title: "Required action",
             rows: [
-              { type: "issue_link", label: "Source issue", issueId: "i1", identifier: "PAP-3440", title: "Recovery" },
-              { type: "key_value", label: "Status before", value: "in_progress" },
+              {
+                type: "issue_link",
+                label: "Source issue",
+                issueId: "i1",
+                identifier: "PAP-3440",
+                title: "Recovery",
+              },
+              {
+                type: "key_value",
+                label: "Status before",
+                value: "in_progress",
+              },
             ],
           },
         ],
@@ -153,13 +201,19 @@ describe("IssueChatThread system notice routing", () => {
     const row = container.querySelector('[data-message-role="system"]');
     expect(row).not.toBeNull();
     const status = row?.querySelector('[role="status"]');
-    expect(status?.getAttribute("aria-label")).toBe("Missing issue disposition");
+    expect(status?.getAttribute("aria-label")).toBe(
+      "Missing issue disposition",
+    );
     expect(container.textContent).toContain("Taskcore needs a disposition");
     // collapsed by default — metadata identifier should not be visible
     expect(container.textContent).not.toContain("PAP-3440");
-    const toggle = row?.querySelector("button[aria-expanded]") as HTMLButtonElement | null;
+    const toggle = row?.querySelector(
+      "button[aria-expanded]",
+    ) as HTMLButtonElement | null;
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
-    expect(container.querySelectorAll('[data-message-role="user"]').length).toBe(0);
+    expect(
+      container.querySelectorAll('[data-message-role="user"]').length,
+    ).toBe(0);
   });
 
   it("renders a system notice with a malformed createdAt without tripping the error boundary (PAP-16607)", () => {
@@ -186,7 +240,9 @@ describe("IssueChatThread system notice routing", () => {
 
     renderThread([comment]);
 
-    expect(container.textContent).not.toContain("Chat renderer hit an internal state error.");
+    expect(container.textContent).not.toContain(
+      "Chat renderer hit an internal state error.",
+    );
     expect(container.textContent).toContain("Workspace ready");
   });
 
@@ -210,7 +266,12 @@ describe("IssueChatThread system notice routing", () => {
         sections: [
           {
             rows: [
-              { type: "agent_link", label: "Owner", agentId: "agent-cto", name: "CTO" },
+              {
+                type: "agent_link",
+                label: "Owner",
+                agentId: "agent-cto",
+                name: "CTO",
+              },
             ],
           },
         ],
@@ -246,7 +307,9 @@ describe("IssueChatThread system notice routing", () => {
     expect(container.querySelector('[role="status"]')).toBeNull();
     const userRow = container.querySelector('[data-message-role="user"]');
     expect(userRow).not.toBeNull();
-    expect(container.textContent).toContain("Successful run missing issue disposition");
+    expect(container.textContent).toContain(
+      "Successful run missing issue disposition",
+    );
   });
 
   it("keeps regular user comments rendering as user bubbles", () => {
@@ -266,7 +329,9 @@ describe("IssueChatThread system notice routing", () => {
     renderThread([comment]);
 
     expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.querySelector('[data-message-role="user"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-message-role="user"]'),
+    ).not.toBeNull();
     expect(container.textContent).toContain("Standard user message.");
   });
 
@@ -287,7 +352,9 @@ describe("IssueChatThread system notice routing", () => {
     renderThread([comment]);
 
     expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.querySelector('[data-message-role="assistant"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-message-role="assistant"]'),
+    ).not.toBeNull();
   });
 
   it("labels system notice source as the originating run agent name when runAgentId is available", () => {
@@ -320,15 +387,22 @@ describe("IssueChatThread system notice routing", () => {
 
     const status = container.querySelector('[role="status"]');
     expect(status).not.toBeNull();
-    const sourceLink = status?.querySelector('a[href^="/agents/"]') as HTMLAnchorElement | null;
-    expect(sourceLink?.getAttribute("href")).toBe("/agents/agent-codex/runs/run-issue-chat-01");
+    const sourceLink = status?.querySelector(
+      'a[href^="/agents/"]',
+    ) as HTMLAnchorElement | null;
+    expect(sourceLink?.getAttribute("href")).toBe(
+      "/agents/agent-codex/runs/run-issue-chat-01",
+    );
     expect(sourceLink?.textContent).toBe("CodexCoder");
     expect(sourceLink?.textContent).not.toBe("You");
   });
 
   it("shows copy-link feedback on the link button only", async () => {
     const writeText = vi.fn(async () => undefined);
-    const originalSecureContext = Object.getOwnPropertyDescriptor(window, "isSecureContext");
+    const originalSecureContext = Object.getOwnPropertyDescriptor(
+      window,
+      "isSecureContext",
+    );
     Object.defineProperty(window, "isSecureContext", {
       configurable: true,
       value: true,
@@ -357,14 +431,20 @@ describe("IssueChatThread system notice routing", () => {
 
     renderThread([comment]);
 
-    const copyLink = container.querySelector('button[aria-label="Copy link to system notice"]') as HTMLButtonElement;
-    const copyText = container.querySelector('button[aria-label="Copy system notice"]') as HTMLButtonElement;
+    const copyLink = container.querySelector(
+      'button[aria-label="Copy link to system notice"]',
+    ) as HTMLButtonElement;
+    const copyText = container.querySelector(
+      'button[aria-label="Copy system notice"]',
+    ) as HTMLButtonElement;
     await act(async () => {
       copyLink.click();
       await Promise.resolve();
     });
 
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("#comment-comment-copy-link"));
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining("#comment-comment-copy-link"),
+    );
     expect(copyLink.querySelector(".lucide-check")).not.toBeNull();
     expect(copyText.querySelector(".lucide-check")).toBeNull();
     if (originalSecureContext) {
@@ -428,8 +508,12 @@ describe("IssueChatThread system notice routing", () => {
     renderThread([comment]);
 
     const status = container.querySelector('[role="status"]');
-    const sourceLink = status?.querySelector('a[href^="/agents/"]') as HTMLAnchorElement | null;
-    expect(sourceLink?.getAttribute("href")).toBe("/agents/agent-unknown/runs/run-xyz");
+    const sourceLink = status?.querySelector(
+      'a[href^="/agents/"]',
+    ) as HTMLAnchorElement | null;
+    expect(sourceLink?.getAttribute("href")).toBe(
+      "/agents/agent-unknown/runs/run-xyz",
+    );
     expect(sourceLink?.textContent).toBe("Taskcore");
   });
 
@@ -459,14 +543,20 @@ describe("IssueChatThread system notice routing", () => {
     renderThread([comment], { agentMap });
 
     // No longer an assistant bubble — it collapses like a system notice.
-    expect(container.querySelector('[data-message-role="assistant"]')).toBeNull();
+    expect(
+      container.querySelector('[data-message-role="assistant"]'),
+    ).toBeNull();
     const row = container.querySelector('[data-message-role="system"]');
     expect(row).not.toBeNull();
     const status = row?.querySelector('[role="status"]');
     expect(status?.getAttribute("aria-label")).toBe("Recovery reassignment");
     // The real author's name + run link stay visible on the notice.
-    const sourceLink = status?.querySelector('a[href^="/agents/"]') as HTMLAnchorElement | null;
-    expect(sourceLink?.getAttribute("href")).toBe("/agents/agent-1/runs/run-owner");
+    const sourceLink = status?.querySelector(
+      'a[href^="/agents/"]',
+    ) as HTMLAnchorElement | null;
+    expect(sourceLink?.getAttribute("href")).toBe(
+      "/agents/agent-1/runs/run-owner",
+    );
     expect(sourceLink?.textContent).toBe("ClaudeCoder");
   });
 
@@ -493,7 +583,14 @@ describe("IssueChatThread system notice routing", () => {
         sections: [
           {
             title: "Escalation",
-            rows: [{ type: "agent_link", label: "Owner", agentId: "agent-cto", name: "CTO" }],
+            rows: [
+              {
+                type: "agent_link",
+                label: "Owner",
+                agentId: "agent-cto",
+                name: "CTO",
+              },
+            ],
           },
         ],
       },
@@ -502,16 +599,24 @@ describe("IssueChatThread system notice routing", () => {
 
     renderThread([comment]);
 
-    const row = container.querySelector('[data-testid="compact-system-notice"]');
+    const row = container.querySelector(
+      '[data-testid="compact-system-notice"]',
+    );
     expect(row).not.toBeNull();
     // Collapsed: title + timestamp + chevron visible, but body/card hidden.
     expect(row?.textContent).toContain("Recovery escalated");
-    expect(row?.querySelector('[data-testid="compact-system-notice-time"]')).not.toBeNull();
+    expect(
+      row?.querySelector('[data-testid="compact-system-notice-time"]'),
+    ).not.toBeNull();
     expect(row?.querySelector(".lucide-chevron-down")).not.toBeNull();
-    const toggle = row?.querySelector("button[aria-expanded]") as HTMLButtonElement;
+    const toggle = row?.querySelector(
+      "button[aria-expanded]",
+    ) as HTMLButtonElement;
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     const detailsId = toggle.getAttribute("aria-controls");
-    const details = detailsId ? container.ownerDocument.getElementById(detailsId) : null;
+    const details = detailsId
+      ? container.ownerDocument.getElementById(detailsId)
+      : null;
     expect(details).not.toBeNull();
     expect(details).toHaveProperty("hidden", true);
     // The full SystemNotice card lives inside the collapsed region.
@@ -548,12 +653,18 @@ describe("IssueChatThread system notice routing", () => {
 
     renderThread([comment]);
 
-    const row = container.querySelector('[data-testid="compact-system-notice"]');
+    const row = container.querySelector(
+      '[data-testid="compact-system-notice"]',
+    );
     expect(row).not.toBeNull();
-    const toggle = row?.querySelector("button[aria-expanded]") as HTMLButtonElement;
+    const toggle = row?.querySelector(
+      "button[aria-expanded]",
+    ) as HTMLButtonElement;
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     const detailsId = toggle.getAttribute("aria-controls");
-    const details = detailsId ? container.ownerDocument.getElementById(detailsId) : null;
+    const details = detailsId
+      ? container.ownerDocument.getElementById(detailsId)
+      : null;
     expect(details).toHaveProperty("hidden", false);
     expect(details?.querySelector('[role="status"]')).not.toBeNull();
     expect(details?.textContent).toContain("Recovery escalated to the CTO.");
@@ -583,11 +694,15 @@ describe("IssueChatThread system notice routing", () => {
 
     renderThread([comment], { agentMap });
 
-    const row = container.querySelector('[data-testid="compact-system-notice"]');
+    const row = container.querySelector(
+      '[data-testid="compact-system-notice"]',
+    );
     expect(row).not.toBeNull();
     expect(row?.textContent).toContain("Recovery owner update");
     // Author name shows on the collapsed row itself.
-    expect(row?.querySelector("button[aria-expanded]")?.textContent).toContain("ClaudeCoder");
+    expect(row?.querySelector("button[aria-expanded]")?.textContent).toContain(
+      "ClaudeCoder",
+    );
   });
 
   it("keeps notices without density rendering as the full card (graceful fallback)", () => {
@@ -611,7 +726,9 @@ describe("IssueChatThread system notice routing", () => {
 
     renderThread([comment]);
 
-    expect(container.querySelector('[data-testid="compact-system-notice"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="compact-system-notice"]'),
+    ).toBeNull();
     const status = container.querySelector('[role="status"]');
     expect(status?.getAttribute("aria-label")).toBe("Recovery completed");
     // Body is visible immediately on the full card.
@@ -642,8 +759,17 @@ describe("IssueChatThread system notice routing", () => {
           {
             title: "Run evidence",
             rows: [
-              { type: "run_link", label: "Completed run", runId: "run-stale", title: "succeeded" },
-              { type: "key_value", label: "Normalized cause", value: "successful_run_missing_state" },
+              {
+                type: "run_link",
+                label: "Completed run",
+                runId: "run-stale",
+                title: "succeeded",
+              },
+              {
+                type: "key_value",
+                label: "Normalized cause",
+                value: "successful_run_missing_state",
+              },
             ],
           },
         ],
@@ -665,24 +791,39 @@ describe("IssueChatThread system notice routing", () => {
       },
     });
 
-    const row = container.querySelector('[data-testid="stale-disposition-warning"]');
+    const row = container.querySelector(
+      '[data-testid="stale-disposition-warning"]',
+    );
     expect(row).not.toBeNull();
-    expect(row?.querySelector('span[aria-hidden="true"]')?.className).toContain("size-6");
-    const toggle = row?.querySelector("button[aria-expanded]") as HTMLButtonElement;
+    expect(row?.querySelector('span[aria-hidden="true"]')?.className).toContain(
+      "size-6",
+    );
+    const toggle = row?.querySelector(
+      "button[aria-expanded]",
+    ) as HTMLButtonElement;
     expect(toggle.className).toContain("w-full");
     expect(toggle.className).toContain("py-0.5");
     expect(row?.querySelector('[role="status"]')).toBeNull();
     expect(row?.querySelector(".lucide-triangle-alert")).toBeNull();
     expect(row?.querySelector(".lucide-chevron-down")).not.toBeNull();
-    expect(row?.querySelector('[data-testid="stale-disposition-warning-time"]')?.parentElement?.className).toContain("ml-auto");
+    expect(
+      row?.querySelector('[data-testid="stale-disposition-warning-time"]')
+        ?.parentElement?.className,
+    ).toContain("ml-auto");
     expect(row?.textContent).toContain("Stale disposition warning");
-    expect(row?.textContent).not.toContain("This disposition warning is stale because the issue now has a newer disposition.");
-    expect(row?.textContent).not.toContain("Taskcore needs a disposition before this issue can continue.");
+    expect(row?.textContent).not.toContain(
+      "This disposition warning is stale because the issue now has a newer disposition.",
+    );
+    expect(row?.textContent).not.toContain(
+      "Taskcore needs a disposition before this issue can continue.",
+    );
 
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     const detailsId = toggle.getAttribute("aria-controls");
     expect(detailsId).toBeTruthy();
-    const details = detailsId ? container.ownerDocument.getElementById(detailsId) : null;
+    const details = detailsId
+      ? container.ownerDocument.getElementById(detailsId)
+      : null;
     expect(details).not.toBeNull();
     expect(details?.textContent).toContain("run-stale");
     expect(details).toHaveProperty("hidden", true);
@@ -735,9 +876,13 @@ describe("IssueChatThread system notice routing", () => {
       },
     });
 
-    const row = container.querySelector('[data-testid="stale-disposition-warning"]');
+    const row = container.querySelector(
+      '[data-testid="stale-disposition-warning"]',
+    );
     expect(row).not.toBeNull();
-    expect(row?.textContent).not.toContain("Taskcore needs a disposition before this issue can continue.");
+    expect(row?.textContent).not.toContain(
+      "Taskcore needs a disposition before this issue can continue.",
+    );
   });
 
   it("keeps the required disposition warning loud when no live continuation exists", () => {
@@ -779,8 +924,12 @@ describe("IssueChatThread system notice routing", () => {
       },
     });
 
-    expect(container.querySelector('[data-testid="stale-disposition-warning"]')).toBeNull();
-    expect(container.textContent).toContain("Taskcore needs a disposition before this issue can continue.");
+    expect(
+      container.querySelector('[data-testid="stale-disposition-warning"]'),
+    ).toBeNull();
+    expect(container.textContent).toContain(
+      "Taskcore needs a disposition before this issue can continue.",
+    );
   });
 
   it("folds a required disposition warning when a live run starts after the issue payload was fetched", () => {
@@ -838,8 +987,12 @@ describe("IssueChatThread system notice routing", () => {
       },
     });
 
-    const row = container.querySelector('[data-testid="stale-disposition-warning"]');
+    const row = container.querySelector(
+      '[data-testid="stale-disposition-warning"]',
+    );
     expect(row).not.toBeNull();
-    expect(row?.textContent).not.toContain("Taskcore needs a disposition before this issue can continue.");
+    expect(row?.textContent).not.toContain(
+      "Taskcore needs a disposition before this issue can continue.",
+    );
   });
 });

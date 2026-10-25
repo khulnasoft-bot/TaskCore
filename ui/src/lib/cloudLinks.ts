@@ -11,7 +11,10 @@
  * harness shadows GET `/stacks` and `/stacks/*` on tenant hosts, so an in-app
  * route under that prefix would be unreachable.
  */
-export function cloudAppUrl(cloudBaseUrl: string | null | undefined, path: string): string | null {
+export function cloudAppUrl(
+  cloudBaseUrl: string | null | undefined,
+  path: string,
+): string | null {
   const base = cloudBaseUrl?.trim();
   if (!base) return null;
   try {
@@ -26,13 +29,20 @@ export function cloudAppUrl(cloudBaseUrl: string | null | undefined, path: strin
 }
 
 /** Cloud's own create-a-stack flow, which replaces the in-app company wizard. */
-export function cloudStackCreateUrl(cloudBaseUrl: string | null | undefined): string | null {
+export function cloudStackCreateUrl(
+  cloudBaseUrl: string | null | undefined,
+): string | null {
   return cloudAppUrl(cloudBaseUrl, "/stacks/new");
 }
 
 /** Keep auth return targets inside the tenant, and never return to the login form. */
 export function tenantSignInReturnPath(path: string): string {
-  if (!path.startsWith("/") || path.startsWith("//") || /[\\\x00-\x20]/.test(path)) return "/";
+  if (
+    !path.startsWith("/") ||
+    path.startsWith("//") ||
+    /[\\\x00-\x20]/.test(path)
+  )
+    return "/";
   const url = new URL(path, "https://tenant.invalid");
   if (url.pathname.replace(/\/+$/, "") === "/auth") return "/";
   return `${url.pathname}${url.search}${url.hash}`;
@@ -46,7 +56,10 @@ export function cloudStackEntryUrl(
 ): string | null {
   const slug = stackSlug?.trim();
   if (!slug) return null;
-  const entry = cloudAppUrl(cloudBaseUrl, `/v1/stacks/${encodeURIComponent(slug)}/entry-redirect`);
+  const entry = cloudAppUrl(
+    cloudBaseUrl,
+    `/v1/stacks/${encodeURIComponent(slug)}/entry-redirect`,
+  );
   if (!entry) return null;
   const url = new URL(entry);
   url.searchParams.set("returnTo", tenantSignInReturnPath(returnTo));
@@ -60,7 +73,10 @@ export function cloudStackInviteUrl(
 ): string | null {
   const slug = stackSlug?.trim();
   if (!slug) return null;
-  return cloudAppUrl(cloudBaseUrl, `/workspaces/${encodeURIComponent(slug)}/settings?section=people`);
+  return cloudAppUrl(
+    cloudBaseUrl,
+    `/workspaces/${encodeURIComponent(slug)}/settings?section=people`,
+  );
 }
 
 /**
@@ -70,6 +86,8 @@ export function cloudStackInviteUrl(
  * stack's only company — bouncing back into it is exactly what the
  * navigation is escaping.
  */
-export function cloudPortfolioManageUrl(cloudBaseUrl: string | null | undefined): string | null {
+export function cloudPortfolioManageUrl(
+  cloudBaseUrl: string | null | undefined,
+): string | null {
   return cloudAppUrl(cloudBaseUrl, "/orgs?manage=1");
 }

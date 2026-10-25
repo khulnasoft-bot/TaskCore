@@ -1,6 +1,18 @@
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
-import type { AdapterAuthSessionInternalStatus, AgentAdapterType } from "@taskcore/shared";
+import {
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+import type {
+  AdapterAuthSessionInternalStatus,
+  AgentAdapterType,
+} from "@taskcore/shared";
 import { companies } from "./companies.js";
 import { environments } from "./environments.js";
 
@@ -46,9 +58,16 @@ export const adapterAuthSessions = pgTable(
   "adapter_auth_sessions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    environmentId: uuid("environment_id").notNull().references(() => environments.id, { onDelete: "cascade" }),
-    aiConnection: jsonb("ai_connection").$type<import("@taskcore/shared").AiConnectionLoginIntent>(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    environmentId: uuid("environment_id")
+      .notNull()
+      .references(() => environments.id, { onDelete: "cascade" }),
+    aiConnection:
+      jsonb("ai_connection").$type<
+        import("@taskcore/shared").AiConnectionLoginIntent
+      >(),
     connectionId: uuid("connection_id"),
     connectionGrantId: uuid("connection_grant_id"),
     connectionMethod: text("connection_method"),
@@ -68,7 +87,10 @@ export const adapterAuthSessions = pgTable(
     // The merged login state. The column is `text`, so it stores every value of
     // the merged `AdapterAuthSessionState` set. The compile-time `$type` is the
     // merged union, so both login stores share one status type.
-    status: text("status").$type<AdapterAuthSessionState>().notNull().default("starting"),
+    status: text("status")
+      .$type<AdapterAuthSessionState>()
+      .notNull()
+      .default("starting"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     // The promotion claim deadline. The service sets this column when it moves the
     // row to `promoting`. While the deadline is in the future, the claim is live,
@@ -76,7 +98,9 @@ export const adapterAuthSessions = pgTable(
     // A null or past deadline means no live claim, so the reaper can reclaim a
     // stalled `promoting` row. The service clears the column on every terminal
     // transition.
-    promotionExpiresAt: timestamp("promotion_expires_at", { withTimezone: true }),
+    promotionExpiresAt: timestamp("promotion_expires_at", {
+      withTimezone: true,
+    }),
     // The claim-consumption marker for a `stored` row. The column is null while
     // the stored claim is live. The create path sets it one time when it consumes
     // the claim. A non-null value marks a consumed claim, so the reaper removes
@@ -94,8 +118,12 @@ export const adapterAuthSessions = pgTable(
     // credential byte, never an account identifier. Null for every failure
     // and for flows that produce no claim.
     resultClaim: jsonb("result_claim").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     companyStatusIdx: index("adapter_auth_sessions_company_status_idx").on(
@@ -106,18 +134,24 @@ export const adapterAuthSessions = pgTable(
     // the slot per company, owner, and adapter. The index applies to the active
     // states of the merged set. It does not include the environment; the board
     // rule scopes the slot to the owner, not the environment.
-    companyOwnerAdapterActiveUq: uniqueIndex("adapter_auth_sessions_company_owner_adapter_active_uq")
+    companyOwnerAdapterActiveUq: uniqueIndex(
+      "adapter_auth_sessions_company_owner_adapter_active_uq",
+    )
       .on(table.companyId, table.startedByUserId, table.adapterType)
       .where(
         sql`${table.status} IN ('starting', 'waiting_for_user', 'promoting', 'awaiting_code', 'submitting')`,
       ),
     // The public session id is unique across the table. The store keys its
     // lookups by this id.
-    publicSessionIdUq: uniqueIndex("adapter_auth_sessions_public_session_id_uq").on(
-      table.publicSessionId,
+    publicSessionIdUq: uniqueIndex(
+      "adapter_auth_sessions_public_session_id_uq",
+    ).on(table.publicSessionId),
+    environmentIdx: index("adapter_auth_sessions_environment_idx").on(
+      table.environmentId,
     ),
-    environmentIdx: index("adapter_auth_sessions_environment_idx").on(table.environmentId),
     expiresIdx: index("adapter_auth_sessions_expires_idx").on(table.expiresAt),
-    providerLeaseIdx: index("adapter_auth_sessions_provider_lease_idx").on(table.providerLeaseId),
+    providerLeaseIdx: index("adapter_auth_sessions_provider_lease_idx").on(
+      table.providerLeaseId,
+    ),
   }),
 );

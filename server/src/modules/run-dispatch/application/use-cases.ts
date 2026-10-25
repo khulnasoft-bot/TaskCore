@@ -1,16 +1,27 @@
 import type { RunDispatchWriter, ScheduledRetryReader } from "./ports.js";
-import type { PostCommitEffect, PromoteScheduledRetryOutcome } from "./types.js";
+import type {
+  PostCommitEffect,
+  PromoteScheduledRetryOutcome,
+} from "./types.js";
 
-export function createEvaluateScheduledRetryGate(deps: { reader: ScheduledRetryReader }) {
+export function createEvaluateScheduledRetryGate(deps: {
+  reader: ScheduledRetryReader;
+}) {
   return (input: {
     runId: string;
     companyId: string;
     retryReasonOverride: string;
     now?: Date;
-  }) => deps.reader.evaluateScheduledRetryGate({ ...input, now: input.now ?? new Date() });
+  }) =>
+    deps.reader.evaluateScheduledRetryGate({
+      ...input,
+      now: input.now ?? new Date(),
+    });
 }
 
-export function createPromoteScheduledRetry(deps: { writer: RunDispatchWriter }) {
+export function createPromoteScheduledRetry(deps: {
+  writer: RunDispatchWriter;
+}) {
   return (input: {
     runId: string;
     companyId: string;
@@ -29,10 +40,17 @@ export function createPromoteDueScheduledRetries(deps: {
   reader: ScheduledRetryReader;
   promoteScheduledRetry: ReturnType<typeof createPromoteScheduledRetry>;
 }) {
-  return async function promoteDueScheduledRetries(input: { now?: Date; cutoff: Date | null }) {
+  return async function promoteDueScheduledRetries(input: {
+    now?: Date;
+    cutoff: Date | null;
+  }) {
     const now = input.now ?? new Date();
     const dueRuns = (
-      await deps.reader.listDueRetries({ now, cutoff: input.cutoff, limit: MAX_DUE_RETRIES_PER_SWEEP })
+      await deps.reader.listDueRetries({
+        now,
+        cutoff: input.cutoff,
+        limit: MAX_DUE_RETRIES_PER_SWEEP,
+      })
     ).slice(0, MAX_DUE_RETRIES_PER_SWEEP);
     const runIds: string[] = [];
     const postCommitEffects: PostCommitEffect[] = [];
@@ -48,24 +66,33 @@ export function createPromoteDueScheduledRetries(deps: {
   };
 }
 
-export function createCancelStaleQueuedRun(deps: { writer: RunDispatchWriter }) {
+export function createCancelStaleQueuedRun(deps: {
+  writer: RunDispatchWriter;
+}) {
   return (input: {
     runId: string;
     companyId: string;
     expectedStatus: "queued" | "running";
     now?: Date;
-  }) => deps.writer.cancelStaleQueuedRun({ ...input, now: input.now ?? new Date() });
+  }) =>
+    deps.writer.cancelStaleQueuedRun({
+      ...input,
+      now: input.now ?? new Date(),
+    });
 }
 
-export function createDispatchResolvedInteractionIfCurrent(deps: { writer: RunDispatchWriter }) {
+export function createDispatchResolvedInteractionIfCurrent(deps: {
+  writer: RunDispatchWriter;
+}) {
   return <T>(input: {
     runId: string;
     companyId: string;
     expectedStatus: "queued" | "running";
     dispatch: (markDispatchStarted: () => void) => Promise<T>;
     now?: Date;
-  }) => deps.writer.dispatchResolvedInteractionIfCurrent({
-    ...input,
-    now: input.now ?? new Date(),
-  });
+  }) =>
+    deps.writer.dispatchResolvedInteractionIfCurrent({
+      ...input,
+      now: input.now ?? new Date(),
+    });
 }

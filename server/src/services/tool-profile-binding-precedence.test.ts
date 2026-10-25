@@ -8,14 +8,38 @@ const createdAt = new Date("2026-08-11T00:00:00.000Z");
 
 describe("tool profile binding precedence", () => {
   it("adds an agent connection grant without dropping broader access to other apps", () => {
-    const company = { profileId: "company", targetType: "company" as const, targetId: "company-1", priority: 100, createdAt };
-    const grant = { profileId: "grant", targetType: "agent" as const, targetId: "agent-1", priority: 100, createdAt };
+    const company = {
+      profileId: "company",
+      targetType: "company" as const,
+      targetId: "company-1",
+      priority: 100,
+      createdAt,
+    };
+    const grant = {
+      profileId: "grant",
+      targetType: "agent" as const,
+      targetId: "agent-1",
+      priority: 100,
+      createdAt,
+    };
     const profiles = [
       { id: "company", profileKey: "default", metadata: {} },
-      { id: "grant", profileKey: "connection-intent:connection-1:agent-1", metadata: { source: "connection_intent", connectionId: "connection-1", agentId: "agent-1" } },
+      {
+        id: "grant",
+        profileKey: "connection-intent:connection-1:agent-1",
+        metadata: {
+          source: "connection_intent",
+          connectionId: "connection-1",
+          agentId: "agent-1",
+        },
+      },
     ];
-    expect(effectiveToolProfileBindings([company, grant], profiles, "connection-1")).toEqual([company, grant]);
-    expect(effectiveToolProfileBindings([company, grant], profiles, "connection-2")).toEqual([company]);
+    expect(
+      effectiveToolProfileBindings([company, grant], profiles, "connection-1"),
+    ).toEqual([company, grant]);
+    expect(
+      effectiveToolProfileBindings([company, grant], profiles, "connection-2"),
+    ).toEqual([company]);
   });
   it("keeps ordinary profiles at the narrowest matching scope", () => {
     const companyBinding = {
@@ -33,15 +57,23 @@ describe("tool profile binding precedence", () => {
       createdAt,
     };
 
-    expect(narrowestScopeBindings([companyBinding, agentBinding])).toEqual([agentBinding]);
-    expect(effectiveToolProfileBindings(
-      [companyBinding, agentBinding],
-      [
-        { id: "company-profile", profileKey: "company-default", metadata: {} },
-        { id: "agent-profile", profileKey: "agent-default", metadata: {} },
-      ],
-      "connection-1",
-    )).toEqual([agentBinding]);
+    expect(narrowestScopeBindings([companyBinding, agentBinding])).toEqual([
+      agentBinding,
+    ]);
+    expect(
+      effectiveToolProfileBindings(
+        [companyBinding, agentBinding],
+        [
+          {
+            id: "company-profile",
+            profileKey: "company-default",
+            metadata: {},
+          },
+          { id: "agent-profile", profileKey: "agent-default", metadata: {} },
+        ],
+        "connection-1",
+      ),
+    ).toEqual([agentBinding]);
   });
 
   it("carries the wizard-managed app assignment alongside a narrower profile", () => {
@@ -60,18 +92,23 @@ describe("tool profile binding precedence", () => {
       createdAt,
     };
 
-    expect(effectiveToolProfileBindings(
-      [appBinding, agentBinding],
-      [
-        {
-          id: "app-profile",
-          profileKey: "app:connection-1",
-          metadata: { source: "app_gallery_finish", connectionId: "connection-1" },
-        },
-        { id: "agent-profile", profileKey: "agent-default", metadata: {} },
-      ],
-      "connection-1",
-    )).toEqual([agentBinding, appBinding]);
+    expect(
+      effectiveToolProfileBindings(
+        [appBinding, agentBinding],
+        [
+          {
+            id: "app-profile",
+            profileKey: "app:connection-1",
+            metadata: {
+              source: "app_gallery_finish",
+              connectionId: "connection-1",
+            },
+          },
+          { id: "agent-profile", profileKey: "agent-default", metadata: {} },
+        ],
+        "connection-1",
+      ),
+    ).toEqual([agentBinding, appBinding]);
   });
 
   it("does not carry wizard-managed app assignments into a gateway-only profile", () => {
@@ -90,19 +127,28 @@ describe("tool profile binding precedence", () => {
       createdAt,
     };
 
-    expect(effectiveToolProfileBindings(
-      [appBinding, gatewayBinding],
-      [
-        {
-          id: "app-profile",
-          profileKey: "app:connection-1",
-          metadata: { source: "app_gallery_finish", connectionId: "connection-1" },
-        },
-        { id: "gateway-profile", profileKey: "runtime-gateway", metadata: {} },
-      ],
-      "connection-1",
-      { includeAdditiveAppProfiles: false },
-    )).toEqual([gatewayBinding]);
+    expect(
+      effectiveToolProfileBindings(
+        [appBinding, gatewayBinding],
+        [
+          {
+            id: "app-profile",
+            profileKey: "app:connection-1",
+            metadata: {
+              source: "app_gallery_finish",
+              connectionId: "connection-1",
+            },
+          },
+          {
+            id: "gateway-profile",
+            profileKey: "runtime-gateway",
+            metadata: {},
+          },
+        ],
+        "connection-1",
+        { includeAdditiveAppProfiles: false },
+      ),
+    ).toEqual([gatewayBinding]);
   });
 
   it("does not overlay a wizard profile onto another connection", () => {
@@ -121,14 +167,21 @@ describe("tool profile binding precedence", () => {
       createdAt,
     };
 
-    expect(effectiveToolProfileBindings(
-      [appBinding, agentBinding],
-      [{
-        id: "app-profile",
-        profileKey: "app:connection-1",
-        metadata: { source: "app_gallery_finish", connectionId: "connection-1" },
-      }],
-      "connection-2",
-    )).toEqual([agentBinding]);
+    expect(
+      effectiveToolProfileBindings(
+        [appBinding, agentBinding],
+        [
+          {
+            id: "app-profile",
+            profileKey: "app:connection-1",
+            metadata: {
+              source: "app_gallery_finish",
+              connectionId: "connection-1",
+            },
+          },
+        ],
+        "connection-2",
+      ),
+    ).toEqual([agentBinding]);
   });
 });

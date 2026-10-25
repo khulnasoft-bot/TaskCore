@@ -61,7 +61,11 @@ export function AgentContextualSidebar({
   const { selectedCompanyId } = useCompany();
   const shouldResolveAgent = !agentId || !agentName;
   const { data: resolvedAgent } = useQuery({
-    queryKey: [...queryKeys.agents.detail(agentRef), selectedCompanyId ?? null, "contextual-sidebar"],
+    queryKey: [
+      ...queryKeys.agents.detail(agentRef),
+      selectedCompanyId ?? null,
+      "contextual-sidebar",
+    ],
     queryFn: () => agentsApi.get(agentRef, selectedCompanyId ?? undefined),
     enabled: shouldResolveAgent && Boolean(agentRef && selectedCompanyId),
   });
@@ -93,40 +97,52 @@ export function AgentContextualSidebar({
             >
               {section.label}
             </p>
-            <div data-slot="contextual-sidebar-group" className={contextualSidebarStyles.group}>
-              {section.items
-                .map((item) => {
-                  const href = agentDetailHref(agentRef, item.value);
-                  return (
-                    <SidebarNavItem
-                      key={item.value}
-                      to={href}
-                      label={labels?.[item.value] ?? item.label}
-                      icon={localIcons[item.value]}
-                    />
-                  );
-                })}
+            <div
+              data-slot="contextual-sidebar-group"
+              className={contextualSidebarStyles.group}
+            >
+              {section.items.map((item) => {
+                const href = agentDetailHref(agentRef, item.value);
+                return (
+                  <SidebarNavItem
+                    key={item.value}
+                    to={href}
+                    label={labels?.[item.value] ?? item.label}
+                    icon={localIcons[item.value]}
+                  />
+                );
+              })}
             </div>
           </div>
         ))}
 
-        <div data-slot="contextual-sidebar-section" className={contextualSidebarStyles.section}>
+        <div
+          data-slot="contextual-sidebar-section"
+          className={contextualSidebarStyles.section}
+        >
           <p
             data-slot="contextual-sidebar-section-label"
             className={contextualSidebarStyles.sectionLabel}
           >
             Audit
           </p>
-          <div data-slot="contextual-sidebar-group" className={contextualSidebarStyles.group}>
-            {resolvedId ? auditItems.map((item) => (
-              <SidebarNavItem
-                key={item.section}
-                to={agentScopedAuditHref(resolvedId, item.section)}
-                label={item.label}
-                icon={item.icon}
-              />
-            )) : (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">Loading audit links…</p>
+          <div
+            data-slot="contextual-sidebar-group"
+            className={contextualSidebarStyles.group}
+          >
+            {resolvedId ? (
+              auditItems.map((item) => (
+                <SidebarNavItem
+                  key={item.section}
+                  to={agentScopedAuditHref(resolvedId, item.section)}
+                  label={item.label}
+                  icon={item.icon}
+                />
+              ))
+            ) : (
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                Loading audit links…
+              </p>
             )}
           </div>
         </div>

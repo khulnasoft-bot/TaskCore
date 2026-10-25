@@ -10,7 +10,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -49,7 +50,11 @@ function errorText(value: unknown): string {
   }
 }
 
-function collectTextEntries(messageRaw: unknown, ts: string, kind: "assistant" | "user"): TranscriptEntry[] {
+function collectTextEntries(
+  messageRaw: unknown,
+  ts: string,
+  kind: "assistant" | "user",
+): TranscriptEntry[] {
   if (typeof messageRaw === "string") {
     const text = messageRaw.trim();
     return text ? [{ kind, ts, text }] : [];
@@ -67,7 +72,8 @@ function collectTextEntries(messageRaw: unknown, ts: string, kind: "assistant" |
     const part = asRecord(partRaw);
     if (!part) continue;
     const type = asString(part.type).trim();
-    if (type !== "output_text" && type !== "text" && type !== "content") continue;
+    if (type !== "output_text" && type !== "text" && type !== "content")
+      continue;
     const text = asString(part.text).trim() || asString(part.content).trim();
     if (text) entries.push({ kind, ts, text });
   }
@@ -75,7 +81,10 @@ function collectTextEntries(messageRaw: unknown, ts: string, kind: "assistant" |
   return entries;
 }
 
-function parseAssistantMessage(messageRaw: unknown, ts: string): TranscriptEntry[] {
+function parseAssistantMessage(
+  messageRaw: unknown,
+  ts: string,
+): TranscriptEntry[] {
   if (typeof messageRaw === "string") {
     const text = messageRaw.trim();
     return text ? [{ kind: "assistant", ts, text }] : [];
@@ -128,8 +137,12 @@ function parseAssistantMessage(messageRaw: unknown, ts: string): TranscriptEntry
         asString(part.output) ||
         asString(part.text) ||
         asString(part.result) ||
-        stringifyUnknown(part.output ?? part.result ?? part.text ?? part.response);
-      const isError = part.is_error === true || asString(part.status).toLowerCase() === "error";
+        stringifyUnknown(
+          part.output ?? part.result ?? part.text ?? part.response,
+        );
+      const isError =
+        part.is_error === true ||
+        asString(part.status).toLowerCase() === "error";
       entries.push({
         kind: "tool_result",
         ts,
@@ -143,46 +156,81 @@ function parseAssistantMessage(messageRaw: unknown, ts: string): TranscriptEntry
   return entries;
 }
 
-function parseTopLevelToolEvent(parsed: Record<string, unknown>, ts: string): TranscriptEntry[] {
+function parseTopLevelToolEvent(
+  parsed: Record<string, unknown>,
+  ts: string,
+): TranscriptEntry[] {
   const subtype = asString(parsed.subtype).trim().toLowerCase();
-  const callId = asString(parsed.call_id, asString(parsed.callId, asString(parsed.id, "tool_call")));
+  const callId = asString(
+    parsed.call_id,
+    asString(parsed.callId, asString(parsed.id, "tool_call")),
+  );
   const toolCall = asRecord(parsed.tool_call ?? parsed.toolCall);
   if (!toolCall) {
-    return [{ kind: "system", ts, text: `tool_call${subtype ? ` (${subtype})` : ""}` }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `tool_call${subtype ? ` (${subtype})` : ""}`,
+      },
+    ];
   }
 
   const [toolName] = Object.keys(toolCall);
   if (!toolName) {
-    return [{ kind: "system", ts, text: `tool_call${subtype ? ` (${subtype})` : ""}` }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `tool_call${subtype ? ` (${subtype})` : ""}`,
+      },
+    ];
   }
   const payload = asRecord(toolCall[toolName]) ?? {};
 
   if (subtype === "started" || subtype === "start") {
-    return [{
-      kind: "tool_call",
-      ts,
-      name: toolName,
-      input: payload.args ?? payload.input ?? payload.arguments ?? payload,
-    }];
+    return [
+      {
+        kind: "tool_call",
+        ts,
+        name: toolName,
+        input: payload.args ?? payload.input ?? payload.arguments ?? payload,
+      },
+    ];
   }
 
-  if (subtype === "completed" || subtype === "complete" || subtype === "finished") {
+  if (
+    subtype === "completed" ||
+    subtype === "complete" ||
+    subtype === "finished"
+  ) {
     const result = payload.result ?? payload.output ?? payload.error;
     const isError =
       parsed.is_error === true ||
       payload.is_error === true ||
       payload.error !== undefined ||
       asString(payload.status).toLowerCase() === "error";
-    return [{
-      kind: "tool_result",
-      ts,
-      toolUseId: callId,
-      content: result !== undefined ? stringifyUnknown(result) : `${toolName} completed`,
-      isError,
-    }];
+    return [
+      {
+        kind: "tool_result",
+        ts,
+        toolUseId: callId,
+        content:
+          result !== undefined
+            ? stringifyUnknown(result)
+            : `${toolName} completed`,
+        isError,
+      },
+    ];
   }
 
-  return [{ kind: "system", ts, text: `tool_call${subtype ? ` (${subtype})` : ""}: ${toolName}` }];
+  return [
+    {
+      kind: "system",
+      ts,
+      text: `tool_call${subtype ? ` (${subtype})` : ""}: ${toolName}`,
+    },
+  ];
 }
 
 function readSessionId(parsed: Record<string, unknown>): string {
@@ -196,20 +244,35 @@ function readSessionId(parsed: Record<string, unknown>): string {
 }
 
 function readUsage(parsed: Record<string, unknown>) {
-  const usage = asRecord(parsed.usage) ?? asRecord(parsed.usageMetadata) ?? asRecord(parsed.stats);
+  const usage =
+    asRecord(parsed.usage) ??
+    asRecord(parsed.usageMetadata) ??
+    asRecord(parsed.stats);
   const usageMetadata = asRecord(usage?.usageMetadata);
   const source = usageMetadata ?? usage ?? {};
   return {
-    inputTokens: asNumber(source.input_tokens, asNumber(source.inputTokens, asNumber(source.promptTokenCount))),
-    outputTokens: asNumber(source.output_tokens, asNumber(source.outputTokens, asNumber(source.candidatesTokenCount))),
+    inputTokens: asNumber(
+      source.input_tokens,
+      asNumber(source.inputTokens, asNumber(source.promptTokenCount)),
+    ),
+    outputTokens: asNumber(
+      source.output_tokens,
+      asNumber(source.outputTokens, asNumber(source.candidatesTokenCount)),
+    ),
     cachedTokens: asNumber(
       source.cached_input_tokens,
-      asNumber(source.cachedInputTokens, asNumber(source.cachedContentTokenCount, asNumber(source.cached))),
+      asNumber(
+        source.cachedInputTokens,
+        asNumber(source.cachedContentTokenCount, asNumber(source.cached)),
+      ),
     ),
   };
 }
 
-export function parseGeminiStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseGeminiStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   const parsed = asRecord(safeJsonParse(line));
   if (!parsed) {
     return [{ kind: "stdout", ts, text: line }];
@@ -225,7 +288,14 @@ export function parseGeminiStdoutLine(line: string, ts: string): TranscriptEntry
     const subtype = asString(parsed.subtype);
     if (subtype === "init") {
       const sessionId = readSessionId(parsed);
-      return [{ kind: "init", ts, model: asString(parsed.model, "gemini"), sessionId }];
+      return [
+        {
+          kind: "init",
+          ts,
+          model: asString(parsed.model, "gemini"),
+          sessionId,
+        },
+      ];
     }
     if (subtype === "error") {
       const text = errorText(parsed.error ?? parsed.message ?? parsed.detail);
@@ -256,7 +326,9 @@ export function parseGeminiStdoutLine(line: string, ts: string): TranscriptEntry
   }
 
   if (type === "thinking") {
-    const text = asString(parsed.text).trim() || asString(asRecord(parsed.delta)?.text).trim();
+    const text =
+      asString(parsed.text).trim() ||
+      asString(asRecord(parsed.delta)?.text).trim();
     return text ? [{ kind: "thinking", ts, text }] : [];
   }
 
@@ -270,20 +342,30 @@ export function parseGeminiStdoutLine(line: string, ts: string): TranscriptEntry
     const isError =
       parsed.is_error === true || status === "error" || status === "failed";
     const errors = isError
-      ? [errorText(parsed.error ?? parsed.message ?? parsed.result)].filter(Boolean)
+      ? [errorText(parsed.error ?? parsed.message ?? parsed.result)].filter(
+          Boolean,
+        )
       : [];
-    return [{
-      kind: "result",
-      ts,
-      text: asString(parsed.result) || asString(parsed.text) || asString(parsed.response),
-      inputTokens: usage.inputTokens,
-      outputTokens: usage.outputTokens,
-      cachedTokens: usage.cachedTokens,
-      costUsd: asNumber(parsed.total_cost_usd, asNumber(parsed.cost_usd, asNumber(parsed.cost))),
-      subtype: asString(parsed.subtype, status || "result"),
-      isError,
-      errors,
-    }];
+    return [
+      {
+        kind: "result",
+        ts,
+        text:
+          asString(parsed.result) ||
+          asString(parsed.text) ||
+          asString(parsed.response),
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        cachedTokens: usage.cachedTokens,
+        costUsd: asNumber(
+          parsed.total_cost_usd,
+          asNumber(parsed.cost_usd, asNumber(parsed.cost)),
+        ),
+        subtype: asString(parsed.subtype, status || "result"),
+        isError,
+        errors,
+      },
+    ];
   }
 
   if (type === "error") {

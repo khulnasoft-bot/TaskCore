@@ -6,7 +6,10 @@ function unavailableProvider(
   id: "aws_secrets_manager" | "gcp_secret_manager" | "vault",
   label: string,
 ): SecretProviderModule {
-  function externalFingerprint(externalRef: string, providerVersionRef: string | null): string {
+  function externalFingerprint(
+    externalRef: string,
+    providerVersionRef: string | null,
+  ): string {
     return createHash("sha256")
       .update(`${id}:${externalRef}:${providerVersionRef ?? ""}`)
       .digest("hex");
@@ -46,19 +49,28 @@ function unavailableProvider(
       };
     },
     async validateConfig() {
-      return { ok: false, warnings: [`${id} provider is not configured in this deployment`] };
+      return {
+        ok: false,
+        warnings: [`${id} provider is not configured in this deployment`],
+      };
     },
     async createSecret() {
-      throw unprocessable(`${id} provider is not configured for Taskcore-managed values`);
+      throw unprocessable(
+        `${id} provider is not configured for Taskcore-managed values`,
+      );
     },
     async createVersion() {
-      throw unprocessable(`${id} provider is not configured for Taskcore-managed values`);
+      throw unprocessable(
+        `${id} provider is not configured for Taskcore-managed values`,
+      );
     },
     async linkExternalSecret(input) {
       return prepareExternalReference(input);
     },
     async resolveVersion() {
-      throw unprocessable(`${id} provider is not configured in this deployment`);
+      throw unprocessable(
+        `${id} provider is not configured in this deployment`,
+      );
     },
     async deleteOrArchive() {
       // External references are metadata-only in Taskcore for unconfigured providers.

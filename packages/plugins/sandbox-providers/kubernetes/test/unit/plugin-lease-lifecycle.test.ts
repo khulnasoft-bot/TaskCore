@@ -13,7 +13,9 @@ import plugin from "../../src/plugin.js";
 
 const CONFIG = { inCluster: true, backend: "sandbox-cr" };
 
-function leaseMetadata(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function leaseMetadata(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     namespace: "taskcore-acme",
     jobName: "pc-abc",
@@ -52,7 +54,9 @@ describe("onEnvironmentResumeLease", () => {
   it("returns a valid lease handle for a live sandbox-cr lease", async () => {
     h.clients = {
       custom: {
-        getNamespacedCustomObject: vi.fn().mockResolvedValue(readySandboxCr("pc-abc-pod")),
+        getNamespacedCustomObject: vi
+          .fn()
+          .mockResolvedValue(readySandboxCr("pc-abc-pod")),
       },
       core: {
         readNamespacedPod: vi.fn().mockResolvedValue({
@@ -90,11 +94,15 @@ describe("onEnvironmentResumeLease", () => {
   it("flags a resumed job-backend lease as native-sync-unsupported so the server keeps the base64 fallback", async () => {
     h.clients = {
       batch: {
-        readNamespacedJobStatus: vi.fn().mockResolvedValue({ status: { active: 1 } }),
+        readNamespacedJobStatus: vi
+          .fn()
+          .mockResolvedValue({ status: { active: 1 } }),
       },
       core: {
         listNamespacedPod: vi.fn().mockResolvedValue({
-          items: [{ metadata: { name: "pc-job-pod" }, status: { phase: "Running" } }],
+          items: [
+            { metadata: { name: "pc-job-pod" }, status: { phase: "Running" } },
+          ],
         }),
       },
     };
@@ -105,7 +113,11 @@ describe("onEnvironmentResumeLease", () => {
       environmentId: "env-1",
       config: { inCluster: true, backend: "job" },
       providerLeaseId: "pc-job",
-      leaseMetadata: leaseMetadata({ jobName: "pc-job", backend: "job", podName: "pc-job-pod" }),
+      leaseMetadata: leaseMetadata({
+        jobName: "pc-job",
+        backend: "job",
+        podName: "pc-job-pod",
+      }),
     });
 
     expect(lease.providerLeaseId).toBe("pc-job");
@@ -121,7 +133,9 @@ describe("onEnvironmentResumeLease", () => {
 
   it("returns providerLeaseId null (expired) when the Sandbox CR is gone, so the caller falls back to acquireLease", async () => {
     h.clients = {
-      custom: { getNamespacedCustomObject: vi.fn().mockRejectedValue(notFound()) },
+      custom: {
+        getNamespacedCustomObject: vi.fn().mockRejectedValue(notFound()),
+      },
       core: { readNamespacedPod: vi.fn() },
     };
 
@@ -142,7 +156,9 @@ describe("onEnvironmentResumeLease", () => {
   it("returns providerLeaseId null when the backing pod is gone", async () => {
     h.clients = {
       custom: {
-        getNamespacedCustomObject: vi.fn().mockResolvedValue(readySandboxCr("pc-abc-pod")),
+        getNamespacedCustomObject: vi
+          .fn()
+          .mockResolvedValue(readySandboxCr("pc-abc-pod")),
       },
       core: { readNamespacedPod: vi.fn().mockRejectedValue(notFound()) },
     };
@@ -168,7 +184,10 @@ describe("onEnvironmentDestroyLease", () => {
     const deleteSecret = vi.fn().mockResolvedValue({});
     h.clients = {
       custom: { deleteNamespacedCustomObject: deleteCr },
-      core: { deleteNamespacedPod: deletePod, deleteNamespacedSecret: deleteSecret },
+      core: {
+        deleteNamespacedPod: deletePod,
+        deleteNamespacedSecret: deleteSecret,
+      },
       batch: { deleteNamespacedJob: vi.fn() },
     };
 
@@ -196,7 +215,9 @@ describe("onEnvironmentDestroyLease", () => {
 
   it("is idempotent: resolves cleanly when every resource is already gone (404)", async () => {
     h.clients = {
-      custom: { deleteNamespacedCustomObject: vi.fn().mockRejectedValue(notFound()) },
+      custom: {
+        deleteNamespacedCustomObject: vi.fn().mockRejectedValue(notFound()),
+      },
       core: {
         deleteNamespacedPod: vi.fn().mockRejectedValue(notFound()),
         deleteNamespacedSecret: vi.fn().mockRejectedValue(notFound()),
@@ -254,7 +275,12 @@ describe("onEnvironmentDestroyLease", () => {
       environmentId: "env-1",
       config: { inCluster: true, backend: "job" },
       providerLeaseId: "pc-job",
-      leaseMetadata: leaseMetadata({ jobName: "pc-job", backend: "job", podName: "pc-job-pod", secretName: "pc-job-env" }),
+      leaseMetadata: leaseMetadata({
+        jobName: "pc-job",
+        backend: "job",
+        podName: "pc-job-pod",
+        secretName: "pc-job-env",
+      }),
     });
 
     expect(deleteJob).toHaveBeenCalledWith(

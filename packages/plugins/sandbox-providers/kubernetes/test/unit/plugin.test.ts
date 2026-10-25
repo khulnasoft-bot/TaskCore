@@ -4,7 +4,9 @@ import plugin from "../../src/plugin.js";
 describe("plugin", () => {
   it("exports the kubernetes driver", () => {
     expect(plugin.definition.onEnvironmentAcquireLease).toBeTypeOf("function");
-    expect(plugin.definition.onEnvironmentValidateConfig).toBeTypeOf("function");
+    expect(plugin.definition.onEnvironmentValidateConfig).toBeTypeOf(
+      "function",
+    );
   });
 
   it("validateConfig accepts inCluster=true config", async () => {
@@ -80,13 +82,19 @@ describe("plugin", () => {
     });
     expect(result.ok).toBe(true);
     expect(result.warnings).toBeDefined();
-    expect(result.warnings?.some((w) => w.includes("api.anthropic.com"))).toBe(true);
+    expect(result.warnings?.some((w) => w.includes("api.anthropic.com"))).toBe(
+      true,
+    );
   });
 
   it("validateConfig does NOT warn when egressMode is cilium", async () => {
     const result = await plugin.definition.onEnvironmentValidateConfig!({
       driverKey: "kubernetes",
-      config: { inCluster: true, adapterType: "claude_local", egressMode: "cilium" },
+      config: {
+        inCluster: true,
+        adapterType: "claude_local",
+        egressMode: "cilium",
+      },
     });
     expect(result.ok).toBe(true);
     expect(result.warnings).toBeUndefined();
@@ -122,7 +130,11 @@ describe("plugin", () => {
         config: { inCluster: true },
         lease: {
           providerLeaseId: "lease-1",
-          metadata: { remoteCwd: "/workspace", backend: "job", namespace: "taskcore-co" },
+          metadata: {
+            remoteCwd: "/workspace",
+            backend: "job",
+            namespace: "taskcore-co",
+          },
         },
         operations: [],
       }),

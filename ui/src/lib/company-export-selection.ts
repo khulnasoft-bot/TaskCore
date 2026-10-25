@@ -10,12 +10,7 @@ import type {
  * .taskcore.yaml, images, company logo) always export and have no toggle.
  */
 export type ExportCategoryKey =
-  | "agents"
-  | "projects"
-  | "skills"
-  | "routines"
-  | "tasks"
-  | "attachments";
+  "agents" | "projects" | "skills" | "routines" | "tasks" | "attachments";
 
 export type ExportCategorySelection = Record<ExportCategoryKey, boolean>;
 
@@ -74,7 +69,9 @@ export function isAttachmentsCategoryEnabled(
   return categories.tasks || categories.routines;
 }
 
-function buildRecurringTaskPrefixes(issues: ExportSelectionIssue[]): Set<string> {
+function buildRecurringTaskPrefixes(
+  issues: ExportSelectionIssue[],
+): Set<string> {
   const prefixes = new Set<string>();
 
   for (const issue of issues) {
@@ -94,7 +91,10 @@ function buildRecurringTaskPrefixes(issues: ExportSelectionIssue[]): Set<string>
   return prefixes;
 }
 
-function isRecurringTaskFile(filePath: string, recurringTaskPrefixes: Set<string>): boolean {
+function isRecurringTaskFile(
+  filePath: string,
+  recurringTaskPrefixes: Set<string>,
+): boolean {
   for (const prefix of recurringTaskPrefixes) {
     if (filePath === prefix || filePath.startsWith(prefix)) return true;
   }
@@ -145,7 +145,8 @@ function buildEmbeddedAssetShaOwnership(
     const sha = entry.sha256.trim().toLowerCase();
     if (!sha) continue;
     const owners = ownersBySha.get(sha) ?? new Set<string>();
-    const ownedBy = entry.ownedBy && entry.ownedBy.length > 0 ? entry.ownedBy : ["always"];
+    const ownedBy =
+      entry.ownedBy && entry.ownedBy.length > 0 ? entry.ownedBy : ["always"];
     for (const owner of ownedBy) owners.add(owner);
     ownersBySha.set(sha, owners);
   }
@@ -163,7 +164,8 @@ function isEmbeddedAssetBlobIncluded(
   categories: ExportCategorySelection,
 ): boolean {
   for (const owner of owners) {
-    if (!EMBEDDED_ASSET_OWNER_CATEGORY_KEYS.has(owner as ExportCategoryKey)) return true;
+    if (!EMBEDDED_ASSET_OWNER_CATEGORY_KEYS.has(owner as ExportCategoryKey))
+      return true;
     if (categories[owner as ExportCategoryKey]) return true;
   }
   return false;
@@ -182,7 +184,9 @@ export function categorizeExportFile(
   if (filePath.startsWith("projects/")) return "projects";
   if (filePath.startsWith("skills/")) return "skills";
   if (filePath.startsWith("tasks/")) {
-    return isRecurringTaskFile(filePath, recurringTaskPrefixes) ? "routines" : "tasks";
+    return isRecurringTaskFile(filePath, recurringTaskPrefixes)
+      ? "routines"
+      : "tasks";
   }
   if (filePath.startsWith("blobs/")) return "attachments";
   return null;
@@ -224,8 +228,11 @@ export function buildExportCheckedFiles(input: {
   const { filePaths, issues, categories } = input;
   const recurringTaskPrefixes = buildRecurringTaskPrefixes(issues);
   const blobOwnership = buildAttachmentShaOwnership(issues);
-  const embeddedOwnership = buildEmbeddedAssetShaOwnership(input.embeddedAssets ?? []);
-  const attachmentsOn = categories.attachments && isAttachmentsCategoryEnabled(categories);
+  const embeddedOwnership = buildEmbeddedAssetShaOwnership(
+    input.embeddedAssets ?? [],
+  );
+  const attachmentsOn =
+    categories.attachments && isAttachmentsCategoryEnabled(categories);
 
   const checked = new Set<string>();
   for (const filePath of filePaths) {
@@ -243,7 +250,10 @@ export function buildExportCheckedFiles(input: {
       // regardless of the Attachments toggle. A blob shared with an
       // attachment can still qualify through the attachment path below.
       const embeddedOwners = embeddedOwnership.get(sha);
-      if (embeddedOwners && isEmbeddedAssetBlobIncluded(embeddedOwners, categories)) {
+      if (
+        embeddedOwners &&
+        isEmbeddedAssetBlobIncluded(embeddedOwners, categories)
+      ) {
         checked.add(filePath);
         continue;
       }
@@ -257,8 +267,8 @@ export function buildExportCheckedFiles(input: {
         // disabled stay dropped instead of falling back to this gate.
         if (!embeddedOwners) checked.add(filePath);
       } else if (
-        (ownedByOneOff && categories.tasks)
-        || (ownedByRecurring && categories.routines)
+        (ownedByOneOff && categories.tasks) ||
+        (ownedByRecurring && categories.routines)
       ) {
         checked.add(filePath);
       }

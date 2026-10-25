@@ -566,7 +566,10 @@ describe("issue comment reopen routes", () => {
       issue.id,
       "Inspect the file",
       expect.anything(),
-      expect.objectContaining({ attachmentIds: [id], clientRequestId: "77777777-7777-4777-8777-777777777777" }),
+      expect.objectContaining({
+        attachmentIds: [id],
+        clientRequestId: "77777777-7777-4777-8777-777777777777",
+      }),
       mockTx,
     );
   });
@@ -821,7 +824,8 @@ describe("issue comment reopen routes", () => {
     });
     mockAccessService.decide.mockImplementation(
       async (input: { action?: string }) => {
-        const allowed = input.action === "issue:read" || input.action === "issue:comment";
+        const allowed =
+          input.action === "issue:read" || input.action === "issue:comment";
         return {
           allowed,
           action: input.action,
@@ -869,7 +873,8 @@ describe("issue comment reopen routes", () => {
       });
       mockAccessService.decide.mockImplementation(
         async (input: { action?: string }) => {
-          const allowed = input.action === "issue:read" || input.action === "issue:comment";
+          const allowed =
+            input.action === "issue:read" || input.action === "issue:comment";
           return {
             allowed,
             action: input.action,

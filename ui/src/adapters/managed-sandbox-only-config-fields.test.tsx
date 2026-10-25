@@ -4,7 +4,10 @@ import { act, type ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ClaudeLocalConfigFields, ClaudeLocalAdvancedFields } from "./claude-local/config-fields";
+import {
+  ClaudeLocalConfigFields,
+  ClaudeLocalAdvancedFields,
+} from "./claude-local/config-fields";
 import { CodexLocalConfigFields } from "./codex-local/config-fields";
 import { GeminiLocalConfigFields } from "./gemini-local/config-fields";
 import type { AdapterConfigFieldsProps } from "./types";
@@ -57,7 +60,9 @@ function renderFields(
 }
 
 function fieldLabels(container: HTMLElement) {
-  return Array.from(container.querySelectorAll("label")).map((label) => label.textContent?.trim() ?? "");
+  return Array.from(container.querySelectorAll("label")).map(
+    (label) => label.textContent?.trim() ?? "",
+  );
 }
 
 function choosePathButtons(container: HTMLElement) {
@@ -77,7 +82,9 @@ describe("adapter config fields under the managed-sandbox-only policy", () => {
   });
 
   it("renders the Claude execution engine and ACP paths when the policy is off", () => {
-    const result = renderFields(ClaudeLocalAdvancedFields, { adapterType: "claude_local" });
+    const result = renderFields(ClaudeLocalAdvancedFields, {
+      adapterType: "claude_local",
+    });
     roots.push(result.root);
 
     const labels = fieldLabels(result.container);
@@ -99,14 +106,18 @@ describe("adapter config fields under the managed-sandbox-only policy", () => {
     expect(labels).not.toContain("ACP server command");
     expect(labels).not.toContain("ACP state directory");
     expect(choosePathButtons(result.container)).toHaveLength(0);
-    expect(result.container.textContent).not.toContain("/srv/agents/cody/acp-state");
+    expect(result.container.textContent).not.toContain(
+      "/srv/agents/cody/acp-state",
+    );
     // The non-path ACP controls describe run behavior, not the host, so they stay.
     expect(labels).toContain("ACP session mode");
     expect(labels).toContain("ACP non-interactive permissions");
   });
 
   it("drops the Claude instructions-file path once the form resolves the gate", () => {
-    const visible = renderFields(ClaudeLocalConfigFields, { adapterType: "claude_local" });
+    const visible = renderFields(ClaudeLocalConfigFields, {
+      adapterType: "claude_local",
+    });
     roots.push(visible.root);
     expect(fieldLabels(visible.container)).toContain("Agent instructions file");
 
@@ -118,7 +129,9 @@ describe("adapter config fields under the managed-sandbox-only policy", () => {
       managedSandboxOnly: true,
     });
     roots.push(hidden.root);
-    expect(fieldLabels(hidden.container)).not.toContain("Agent instructions file");
+    expect(fieldLabels(hidden.container)).not.toContain(
+      "Agent instructions file",
+    );
     expect(choosePathButtons(hidden.container)).toHaveLength(0);
   });
 
@@ -147,13 +160,17 @@ describe("adapter config fields under the managed-sandbox-only policy", () => {
     expect(labels).not.toContain("ACP state directory");
     expect(labels).not.toContain("Agent instructions file");
     expect(choosePathButtons(result.container)).toHaveLength(0);
-    expect(result.container.textContent).not.toContain("/srv/agents/cody/acp-state");
+    expect(result.container.textContent).not.toContain(
+      "/srv/agents/cody/acp-state",
+    );
     // Codex behavior toggles are not host paths, so the policy keeps them.
     expect(result.container.textContent).toContain("Fast mode");
   });
 
   it("renders the Gemini execution engine and paths when the policy is off", () => {
-    const result = renderFields(GeminiLocalConfigFields, { adapterType: "gemini_local" });
+    const result = renderFields(GeminiLocalConfigFields, {
+      adapterType: "gemini_local",
+    });
     roots.push(result.root);
 
     const labels = fieldLabels(result.container);

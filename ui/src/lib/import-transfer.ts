@@ -18,7 +18,9 @@ export const IMPORT_TRANSFER_PART_ATTEMPTS = 3;
 
 async function sha256Hex(bytes: BufferSource): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
 /**
@@ -26,11 +28,20 @@ async function sha256Hex(bytes: BufferSource): Promise<string> {
  * caller reads from the File: the whole-file digest hashes the buffer itself
  * and each part digest hashes a view into it, so no second copy is ever held.
  */
-export async function buildImportTransferManifest(buffer: ArrayBuffer): Promise<CompanyImportTransferDeclaration> {
+export async function buildImportTransferManifest(
+  buffer: ArrayBuffer,
+): Promise<CompanyImportTransferDeclaration> {
   const zipSha256 = await sha256Hex(buffer);
   const parts: CompanyImportTransferDeclaredPart[] = [];
-  for (let offset = 0; offset < buffer.byteLength; offset += IMPORT_TRANSFER_PART_SIZE_BYTES) {
-    const byteSize = Math.min(IMPORT_TRANSFER_PART_SIZE_BYTES, buffer.byteLength - offset);
+  for (
+    let offset = 0;
+    offset < buffer.byteLength;
+    offset += IMPORT_TRANSFER_PART_SIZE_BYTES
+  ) {
+    const byteSize = Math.min(
+      IMPORT_TRANSFER_PART_SIZE_BYTES,
+      buffer.byteLength - offset,
+    );
     parts.push({
       index: parts.length,
       byteSize,

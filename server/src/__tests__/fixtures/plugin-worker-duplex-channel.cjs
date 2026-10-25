@@ -90,11 +90,15 @@ function scriptedFrameLines(directive, hostRouteId, workerSessionId) {
       },
     })}\n`;
   }
-  if (typeof directive.exitCode === "number" || directive.transportClosed === true) {
+  if (
+    typeof directive.exitCode === "number" ||
+    directive.transportClosed === true
+  ) {
     const exitParams = {
       hostRouteId,
       workerSessionId,
-      exitCode: typeof directive.exitCode === "number" ? directive.exitCode : null,
+      exitCode:
+        typeof directive.exitCode === "number" ? directive.exitCode : null,
     };
     // A transport-close directive marks a reason-less transport close, so the
     // fixture carries the discriminator the same way a real worker does.
@@ -105,7 +109,9 @@ function scriptedFrameLines(directive, hostRouteId, workerSessionId) {
       params: exitParams,
     })}\n`;
   }
-  const dataAfterExit = Array.isArray(directive.dataAfterExit) ? directive.dataAfterExit : [];
+  const dataAfterExit = Array.isArray(directive.dataAfterExit)
+    ? directive.dataAfterExit
+    : [];
   for (const entry of dataAfterExit) {
     lines += `${JSON.stringify({
       jsonrpc: "2.0",
@@ -133,12 +139,16 @@ function parseDirective(raw) {
   }
 }
 
-const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
+const rl = readline.createInterface({
+  input: process.stdin,
+  crlfDelay: Infinity,
+});
 
 rl.on("line", (line) => {
   if (!line.trim()) return;
   const message = JSON.parse(line);
-  const method = message && typeof message.method === "string" ? message.method : null;
+  const method =
+    message && typeof message.method === "string" ? message.method : null;
   const params = message.params ?? {};
 
   if (method === "initialize") {
@@ -171,13 +181,17 @@ rl.on("line", (line) => {
       echoInput: directive.echoInput === true,
       noWriteReply: mode === "no-write-reply",
       writeReplyDelayMs:
-        typeof directive.writeReplyDelayMs === "number" ? directive.writeReplyDelayMs : 0,
+        typeof directive.writeReplyDelayMs === "number"
+          ? directive.writeReplyDelayMs
+          : 0,
       scriptedFramesAfterFirstWrite:
         directive.emitScriptedFramesAfterFirstWrite === true
           ? scriptedFrameLines(directive, hostRouteId, workerSessionId)
           : null,
       emitAfterCloseChunk:
-        typeof directive.emitAfterCloseChunk === "string" ? directive.emitAfterCloseChunk : null,
+        typeof directive.emitAfterCloseChunk === "string"
+          ? directive.emitAfterCloseChunk
+          : null,
     });
 
     if (mode === "no-open-reply") {
@@ -201,7 +215,10 @@ rl.on("line", (line) => {
       // Write the open reply and the scripted frames in one stdout write. The
       // host reads them in one batch, so a data or exit frame arrives before the
       // route binds. The host must hold and replay the frame after the bind.
-      process.stdout.write(openReplyLine + scriptedFrameLines(directive, hostRouteId, workerSessionId));
+      process.stdout.write(
+        openReplyLine +
+          scriptedFrameLines(directive, hostRouteId, workerSessionId),
+      );
       return;
     }
 
@@ -218,7 +235,10 @@ rl.on("line", (line) => {
       // token until the stream flush, the stream error, or the worker exit.
       rl.pause();
       process.stdin.pause();
-      if (typeof directive.exitAfterStopMs === "number" && directive.exitAfterStopMs >= 0) {
+      if (
+        typeof directive.exitAfterStopMs === "number" &&
+        directive.exitAfterStopMs >= 0
+      ) {
         // Exit after the delay, so a test observes the worker exit release the held
         // transport tokens without a slow shutdown drain on an unread stdin.
         setTimeout(() => process.exit(0), directive.exitAfterStopMs);
@@ -231,7 +251,9 @@ rl.on("line", (line) => {
     // `sid` or `rid` to force a mismatch.
     if (directive.emitScriptedFramesAfterFirstWrite !== true) {
       setImmediate(() => {
-        process.stdout.write(scriptedFrameLines(directive, hostRouteId, workerSessionId));
+        process.stdout.write(
+          scriptedFrameLines(directive, hostRouteId, workerSessionId),
+        );
       });
     }
     return;
@@ -255,7 +277,10 @@ rl.on("line", (line) => {
       // test proves the input reaches the worker and the output routes back.
       // Work on the decoded Buffer, not a string, so a non-UTF-8 payload (the
       // full 256-value byte corpus) echoes byte-exact under the `echo:` prefix.
-      const echoBytes = Buffer.concat([Buffer.from("echo:", "utf8"), fromWireChunk(params.data)]);
+      const echoBytes = Buffer.concat([
+        Buffer.from("echo:", "utf8"),
+        fromWireChunk(params.data),
+      ]);
       send({
         jsonrpc: "2.0",
         method: "duplexChannel.data",
@@ -300,13 +325,20 @@ rl.on("line", (line) => {
       return;
     }
     if (closeMode === "bad-ack") {
-      send({ jsonrpc: "2.0", id: message.id, result: { hostRouteId: "mismatched-route" } });
+      send({
+        jsonrpc: "2.0",
+        id: message.id,
+        result: { hostRouteId: "mismatched-route" },
+      });
       return;
     }
     // A bound close echoes both identifiers; a pre-bind close with no entry
     // echoes the host route id only.
     const ack = entry
-      ? { hostRouteId: params.hostRouteId, workerSessionId: entry.workerSessionId }
+      ? {
+          hostRouteId: params.hostRouteId,
+          workerSessionId: entry.workerSessionId,
+        }
       : { hostRouteId: params.hostRouteId };
     send({ jsonrpc: "2.0", id: message.id, result: ack });
     if (entry && entry.emitAfterCloseChunk) {

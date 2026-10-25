@@ -5,7 +5,10 @@ import type { Dirent } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AdapterExecutionContext, AdapterExecutionResult } from "@taskcore/adapter-utils";
+import type {
+  AdapterExecutionContext,
+  AdapterExecutionResult,
+} from "@taskcore/adapter-utils";
 import {
   adapterExecutionTargetIsRemote,
   adapterExecutionTargetRemoteCwd,
@@ -56,14 +59,18 @@ import {
   DEFAULT_TASKCORE_CONVERSATION_PROMPT_TEMPLATE,
   runChildProcess,
 } from "@taskcore/adapter-utils/server-utils";
-import { DEFAULT_GEMINI_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../index.js";
+import {
+  DEFAULT_GEMINI_LOCAL_MODEL,
+  SANDBOX_INSTALL_COMMAND,
+} from "../index.js";
 import {
   describeGeminiFailure,
   detectGeminiAuthRequired,
   isGeminiTransientNetworkError,
   isGeminiTurnLimitResult,
   isGeminiSessionUnrecoverableError,
-  parseGeminiJsonl, createGeminiJsonlParser,
+  parseGeminiJsonl,
+  createGeminiJsonlParser,
 } from "./parse.js";
 import { firstNonEmptyLine } from "./utils.js";
 import {
@@ -75,18 +82,26 @@ import { resolveGeminiSkillsHome } from "./skills.js";
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const executeGeminiAcp = createGeminiAcpExecutor();
 
-function hasNonEmptyEnvValue(env: Record<string, string>, key: string): boolean {
+function hasNonEmptyEnvValue(
+  env: Record<string, string>,
+  key: string,
+): boolean {
   const raw = env[key];
   return typeof raw === "string" && raw.trim().length > 0;
 }
 
-function resolveGeminiBillingType(env: Record<string, string>): "api" | "subscription" {
-  return hasNonEmptyEnvValue(env, "GEMINI_API_KEY") || hasNonEmptyEnvValue(env, "GOOGLE_API_KEY")
+function resolveGeminiBillingType(
+  env: Record<string, string>,
+): "api" | "subscription" {
+  return hasNonEmptyEnvValue(env, "GEMINI_API_KEY") ||
+    hasNonEmptyEnvValue(env, "GOOGLE_API_KEY")
     ? "api"
     : "subscription";
 }
 
-function buildGeminiHeadlessEnv(env: Record<string, string>): Record<string, string> {
+function buildGeminiHeadlessEnv(
+  env: Record<string, string>,
+): Record<string, string> {
   const next = { ...env };
   const term = env.TERM?.trim().toLowerCase();
   if (!term || term === "dumb" || term === "vt100") {
@@ -100,9 +115,13 @@ function buildGeminiHeadlessEnv(env: Record<string, string>): Record<string, str
   return next;
 }
 
-function buildGeminiRuntimeEnv(env: Record<string, string>): Record<string, string> {
+function buildGeminiRuntimeEnv(
+  env: Record<string, string>,
+): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(ensurePathInEnv({ ...process.env, ...buildGeminiHeadlessEnv(env) })).filter(
+    Object.entries(
+      ensurePathInEnv({ ...process.env, ...buildGeminiHeadlessEnv(env) }),
+    ).filter(
       (entry): entry is [string, string] => typeof entry[1] === "string",
     ),
   );
@@ -123,7 +142,11 @@ function renderTaskcoreEnvNote(env: Record<string, string>): string {
 }
 
 function renderApiAccessNote(env: Record<string, string>): string {
-  if (!hasNonEmptyEnvValue(env, "TASKCORE_API_URL") || !hasNonEmptyEnvValue(env, "TASKCORE_API_KEY")) return "";
+  if (
+    !hasNonEmptyEnvValue(env, "TASKCORE_API_URL") ||
+    !hasNonEmptyEnvValue(env, "TASKCORE_API_KEY")
+  )
+    return "";
   return [
     "Taskcore API access note:",
     "Use run_shell_command with curl to make Taskcore API requests.",
@@ -148,8 +171,12 @@ async function ensureGeminiSkillsInjected(
   desiredSkillNames?: string[],
   skillsHome = resolveGeminiSkillsHome({}),
 ): Promise<void> {
-  const desiredSet = new Set(desiredSkillNames ?? skillsEntries.map((entry) => entry.key));
-  const selectedEntries = skillsEntries.filter((entry) => desiredSet.has(entry.key));
+  const desiredSet = new Set(
+    desiredSkillNames ?? skillsEntries.map((entry) => entry.key),
+  );
+  const selectedEntries = skillsEntries.filter((entry) =>
+    desiredSet.has(entry.key),
+  );
   if (selectedEntries.length === 0) return;
 
   try {
@@ -194,11 +221,18 @@ async function ensureGeminiSkillsInjected(
 async function buildGeminiSkillsDir(
   config: Record<string, unknown>,
 ): Promise<string> {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-skills-"));
+  const tmp = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-gemini-skills-"),
+  );
   const target = path.join(tmp, "skills");
   await fs.mkdir(target, { recursive: true });
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredNames = new Set(resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries));
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredNames = new Set(
+    resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries),
+  );
   for (const entry of availableEntries) {
     if (!desiredNames.has(entry.key)) continue;
     if (isTaskcoreSkillSourceMissing(entry)) continue;
@@ -207,7 +241,9 @@ async function buildGeminiSkillsDir(
   return target;
 }
 
-export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
+export async function execute(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
   const providerStop = createProviderStoppedBoundary(ctx.onProviderStopped);
   const engineSelection = await resolveGeminiExecutionEngineForRun(ctx);
   if (engineSelection.unavailableReason) {
@@ -226,12 +262,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     return executeGeminiAcp(ctx);
   }
 
-  const { runId, agent, runtime, config, context, onLog, onMeta, onSpawn, authToken } = ctx;
+  const {
+    runId,
+    agent,
+    runtime,
+    config,
+    context,
+    onLog,
+    onMeta,
+    onSpawn,
+    authToken,
+  } = ctx;
   const executionTarget = readAdapterExecutionTarget({
     executionTarget: ctx.executionTarget,
     legacyRemoteExecution: ctx.executionTransport?.remoteExecution,
   });
-  const executionTargetIsRemote = adapterExecutionTargetIsRemote(executionTarget);
+  const executionTargetIsRemote =
+    adapterExecutionTargetIsRemote(executionTarget);
 
   const promptTemplate = asString(
     config.promptTemplate,
@@ -252,21 +299,36 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const agentHome = asString(workspaceContext.agentHome, "");
   const workspaceHints = Array.isArray(context.taskcoreWorkspaces)
     ? context.taskcoreWorkspaces.filter(
-      (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
-    )
+        (value): value is Record<string, unknown> =>
+          typeof value === "object" && value !== null,
+      )
     : [];
   const configuredCwd = asString(config.cwd, "");
-  const useConfiguredInsteadOfAgentHome = workspaceSource === "agent_home" && configuredCwd.length > 0;
-  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome ? "" : workspaceCwd;
+  const useConfiguredInsteadOfAgentHome =
+    workspaceSource === "agent_home" && configuredCwd.length > 0;
+  const effectiveWorkspaceCwd = useConfiguredInsteadOfAgentHome
+    ? ""
+    : workspaceCwd;
   const cwd = effectiveWorkspaceCwd || configuredCwd || process.cwd();
-  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(executionTarget, cwd);
+  let effectiveExecutionCwd = adapterExecutionTargetRemoteCwd(
+    executionTarget,
+    cwd,
+  );
   await ensureAbsoluteDirectory(cwd, { createIfMissing: true });
-  const geminiSkillEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredGeminiSkillNames = resolveLegacyTaskcoreDesiredSkillNames(config, geminiSkillEntries);
+  const geminiSkillEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredGeminiSkillNames = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    geminiSkillEntries,
+  );
   if (!executionTargetIsRemote) {
     await ensureGeminiSkillsInjected(
       onLog,
-      geminiSkillEntries.filter((entry) => !isTaskcoreSkillSourceMissing(entry)),
+      geminiSkillEntries.filter(
+        (entry) => !isTaskcoreSkillSourceMissing(entry),
+      ),
       desiredGeminiSkillNames,
       resolveGeminiSkillsHome(config),
     );
@@ -279,27 +341,41 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   };
   env.TASKCORE_RUN_ID = runId;
   const wakeTaskId =
-    (typeof context.taskId === "string" && context.taskId.trim().length > 0 && context.taskId.trim()) ||
-    (typeof context.issueId === "string" && context.issueId.trim().length > 0 && context.issueId.trim()) ||
+    (typeof context.taskId === "string" &&
+      context.taskId.trim().length > 0 &&
+      context.taskId.trim()) ||
+    (typeof context.issueId === "string" &&
+      context.issueId.trim().length > 0 &&
+      context.issueId.trim()) ||
     null;
   const wakeReason =
-    typeof context.wakeReason === "string" && context.wakeReason.trim().length > 0
+    typeof context.wakeReason === "string" &&
+    context.wakeReason.trim().length > 0
       ? context.wakeReason.trim()
       : null;
   const wakeCommentId =
-    (typeof context.wakeCommentId === "string" && context.wakeCommentId.trim().length > 0 && context.wakeCommentId.trim()) ||
-    (typeof context.commentId === "string" && context.commentId.trim().length > 0 && context.commentId.trim()) ||
+    (typeof context.wakeCommentId === "string" &&
+      context.wakeCommentId.trim().length > 0 &&
+      context.wakeCommentId.trim()) ||
+    (typeof context.commentId === "string" &&
+      context.commentId.trim().length > 0 &&
+      context.commentId.trim()) ||
     null;
   const approvalId =
-    typeof context.approvalId === "string" && context.approvalId.trim().length > 0
+    typeof context.approvalId === "string" &&
+    context.approvalId.trim().length > 0
       ? context.approvalId.trim()
       : null;
   const approvalStatus =
-    typeof context.approvalStatus === "string" && context.approvalStatus.trim().length > 0
+    typeof context.approvalStatus === "string" &&
+    context.approvalStatus.trim().length > 0
       ? context.approvalStatus.trim()
       : null;
   const linkedIssueIds = Array.isArray(context.issueIds)
-    ? context.issueIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    ? context.issueIds.filter(
+        (value): value is string =>
+          typeof value === "string" && value.trim().length > 0,
+      )
     : [];
   const issueWorkMode = readTaskcoreIssueWorkModeFromContext(context);
   if (wakeTaskId) env.TASKCORE_TASK_ID = wakeTaskId;
@@ -308,7 +384,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   if (wakeCommentId) env.TASKCORE_WAKE_COMMENT_ID = wakeCommentId;
   if (approvalId) env.TASKCORE_APPROVAL_ID = approvalId;
   if (approvalStatus) env.TASKCORE_APPROVAL_STATUS = approvalStatus;
-  if (linkedIssueIds.length > 0) env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
+  if (linkedIssueIds.length > 0)
+    env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
   refreshTaskcoreWorkspaceEnvForExecution({
     env,
     envConfig,
@@ -322,7 +399,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     executionTargetIsRemote,
     executionCwd: effectiveExecutionCwd,
   });
-  if (executionTargetIsRemote && typeof env.GEMINI_CLI_TRUST_WORKSPACE !== "string") {
+  if (
+    executionTargetIsRemote &&
+    typeof env.GEMINI_CLI_TRUST_WORKSPACE !== "string"
+  ) {
     env.GEMINI_CLI_TRUST_WORKSPACE = "true";
   }
   if (authToken) {
@@ -346,11 +426,22 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     graceSec,
     onLog,
   });
-  await ensureAdapterExecutionTargetCommandResolvable(command, executionTarget, cwd, runtimeEnv, {
-    installCommand: SANDBOX_INSTALL_COMMAND,
-    timeoutSec,
-  });
-  const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(command, executionTarget, cwd, runtimeEnv);
+  await ensureAdapterExecutionTargetCommandResolvable(
+    command,
+    executionTarget,
+    cwd,
+    runtimeEnv,
+    {
+      installCommand: SANDBOX_INSTALL_COMMAND,
+      timeoutSec,
+    },
+  );
+  const resolvedCommand = await resolveAdapterExecutionTargetCommandForLogs(
+    command,
+    executionTarget,
+    cwd,
+    runtimeEnv,
+  );
   const extraArgs = (() => {
     const fromExtraArgs = asStringArray(config.extraArgs);
     if (fromExtraArgs.length > 0) return fromExtraArgs;
@@ -360,7 +451,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   let remoteSkillsDir: string | null = null;
   let localSkillsDir: string | null = null;
   let remoteRuntimeRootDir: string | null = null;
-  let taskcoreBridge: Awaited<ReturnType<typeof startAdapterExecutionTargetTaskcoreBridge>> = null;
+  let taskcoreBridge: Awaited<
+    ReturnType<typeof startAdapterExecutionTargetTaskcoreBridge>
+  > = null;
 
   if (executionTargetIsRemote) {
     try {
@@ -369,25 +462,32 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         "stdout",
         `[taskcore] Syncing workspace and Gemini runtime assets to ${describeAdapterExecutionTarget(executionTarget)}.\n`,
       );
-      const preparedExecutionTargetRuntime = await prepareAdapterExecutionTargetRuntime({
-        runId,
-        target: executionTarget,
-        adapterKey: "gemini",
-        timeoutSec,
-        workspaceLocalDir: cwd,
-        installCommand: SANDBOX_INSTALL_COMMAND,
-        detectCommand: command,
-        onProgress: (line) => onLog("stdout", line),
-        onRuntimeProgress: ctx.onRuntimeProgress,
-        assets: [{
-          key: "skills",
-          localDir: localSkillsDir,
-          followSymlinks: true,
-        }],
-      });
+      const preparedExecutionTargetRuntime =
+        await prepareAdapterExecutionTargetRuntime({
+          runId,
+          target: executionTarget,
+          adapterKey: "gemini",
+          timeoutSec,
+          workspaceLocalDir: cwd,
+          installCommand: SANDBOX_INSTALL_COMMAND,
+          detectCommand: command,
+          onProgress: (line) => onLog("stdout", line),
+          onRuntimeProgress: ctx.onRuntimeProgress,
+          assets: [
+            {
+              key: "skills",
+              localDir: localSkillsDir,
+              followSymlinks: true,
+            },
+          ],
+        });
       restoreRemoteWorkspace = () =>
-        preparedExecutionTargetRuntime.restoreWorkspace((line) => onLog("stdout", line));
-      effectiveExecutionCwd = preparedExecutionTargetRuntime.workspaceRemoteDir ?? effectiveExecutionCwd;
+        preparedExecutionTargetRuntime.restoreWorkspace((line) =>
+          onLog("stdout", line),
+        );
+      effectiveExecutionCwd =
+        preparedExecutionTargetRuntime.workspaceRemoteDir ??
+        effectiveExecutionCwd;
       refreshTaskcoreWorkspaceEnvForExecution({
         env,
         envConfig,
@@ -402,7 +502,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         executionCwd: effectiveExecutionCwd,
       });
       remoteRuntimeRootDir = preparedExecutionTargetRuntime.runtimeRootDir;
-      const managedHome = adapterExecutionTargetUsesManagedHome(executionTarget);
+      const managedHome =
+        adapterExecutionTargetUsesManagedHome(executionTarget);
       const managedRemoteHomeDir =
         managedHome && preparedExecutionTargetRuntime.runtimeRootDir
           ? preparedExecutionTargetRuntime.runtimeRootDir
@@ -444,11 +545,17 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       // reaches the agent pod via the provider's per-run secret (envKeys
       // passthrough from the host env), so the host env is the signal here.
       const hasGeminiApiKey = Boolean(
-        env.GEMINI_API_KEY || env.GOOGLE_API_KEY ||
-        process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
+        env.GEMINI_API_KEY ||
+        env.GOOGLE_API_KEY ||
+        process.env.GEMINI_API_KEY ||
+        process.env.GOOGLE_API_KEY,
       );
       if (managedRemoteHomeDir && hasGeminiApiKey) {
-        const remoteSettingsPath = path.posix.join(managedRemoteHomeDir, ".gemini", "settings.json");
+        const remoteSettingsPath = path.posix.join(
+          managedRemoteHomeDir,
+          ".gemini",
+          "settings.json",
+        );
         const authSettingsJson = JSON.stringify({
           selectedAuthType: "gemini-api-key",
           security: { auth: { selectedType: "gemini-api-key" } },
@@ -463,18 +570,37 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     } catch (error) {
       await Promise.allSettled([
         restoreRemoteWorkspace?.(),
-        localSkillsDir ? fs.rm(path.dirname(localSkillsDir), { recursive: true, force: true }).catch(() => undefined) : Promise.resolve(),
+        localSkillsDir
+          ? fs
+              .rm(path.dirname(localSkillsDir), {
+                recursive: true,
+                force: true,
+              })
+              .catch(() => undefined)
+          : Promise.resolve(),
       ]);
       throw error;
     }
   }
-  const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(executionTarget, effectiveExecutionCwd);
-  if (executionTargetIsRemote && adapterExecutionTargetUsesTaskcoreBridge(executionTarget)) {
+  const runtimeExecutionTarget = overrideAdapterExecutionTargetRemoteCwd(
+    executionTarget,
+    effectiveExecutionCwd,
+  );
+  if (
+    executionTargetIsRemote &&
+    adapterExecutionTargetUsesTaskcoreBridge(executionTarget)
+  ) {
     taskcoreBridge = await startAdapterExecutionTargetTaskcoreBridge({
       runId,
       target: runtimeExecutionTarget,
-      enableSandboxDuplexBridge: adapterExecutionTargetEnablesSandboxDuplexBridge(runtimeExecutionTarget),
-      duplexObservabilityRecorder: adapterExecutionTargetDuplexObservabilityRecorder(runtimeExecutionTarget),
+      enableSandboxDuplexBridge:
+        adapterExecutionTargetEnablesSandboxDuplexBridge(
+          runtimeExecutionTarget,
+        ),
+      duplexObservabilityRecorder:
+        adapterExecutionTargetDuplexObservabilityRecorder(
+          runtimeExecutionTarget,
+        ),
       runtimeRootDir: remoteRuntimeRootDir,
       adapterKey: "gemini",
       timeoutSec,
@@ -487,13 +613,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   }
 
   const runtimeSessionParams = parseObject(runtime.sessionParams);
-  const runtimeSessionId = asString(runtimeSessionParams.sessionId, runtime.sessionId ?? "");
+  const runtimeSessionId = asString(
+    runtimeSessionParams.sessionId,
+    runtime.sessionId ?? "",
+  );
   const runtimeSessionCwd = asString(runtimeSessionParams.cwd, "");
-  const runtimeRemoteExecution = parseObject(runtimeSessionParams.remoteExecution);
+  const runtimeRemoteExecution = parseObject(
+    runtimeSessionParams.remoteExecution,
+  );
   const canResumeSession =
     runtimeSessionId.length > 0 &&
-    (runtimeSessionCwd.length === 0 || path.resolve(runtimeSessionCwd) === path.resolve(effectiveExecutionCwd)) &&
-    adapterExecutionTargetSessionMatches(runtimeRemoteExecution, runtimeExecutionTarget);
+    (runtimeSessionCwd.length === 0 ||
+      path.resolve(runtimeSessionCwd) ===
+        path.resolve(effectiveExecutionCwd)) &&
+    adapterExecutionTargetSessionMatches(
+      runtimeRemoteExecution,
+      runtimeExecutionTarget,
+    );
   const sessionId = canResumeSession ? runtimeSessionId : null;
   if (executionTargetIsRemote && runtimeSessionId && !canResumeSession) {
     await onLog(
@@ -508,11 +644,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   }
 
   const instructionsFilePath = asString(config.instructionsFilePath, "").trim();
-  const instructionsDir = instructionsFilePath ? `${path.dirname(instructionsFilePath)}/` : "";
+  const instructionsDir = instructionsFilePath
+    ? `${path.dirname(instructionsFilePath)}/`
+    : "";
   let instructionsPrefix = "";
   if (instructionsFilePath) {
     try {
-      const instructionsContents = await fs.readFile(instructionsFilePath, "utf8");
+      const instructionsContents = await fs.readFile(
+        instructionsFilePath,
+        "utf8",
+      );
       instructionsPrefix =
         `${instructionsContents}\n\n` +
         `The above agent instructions were loaded from ${instructionsFilePath}. ` +
@@ -526,11 +667,17 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     }
   }
   const commandNotes = (() => {
-    const notes: string[] = ["Prompt is passed to Gemini via --prompt for non-interactive execution."];
+    const notes: string[] = [
+      "Prompt is passed to Gemini via --prompt for non-interactive execution.",
+    ];
     notes.push("Added --approval-mode yolo for unattended execution.");
-    notes.push("Set headless terminal/browser env so Gemini fails fast instead of opening interactive auth or color prompts.");
+    notes.push(
+      "Set headless terminal/browser env so Gemini fails fast instead of opening interactive auth or color prompts.",
+    );
     if (executionTargetIsRemote) {
-      notes.push("Set GEMINI_CLI_TRUST_WORKSPACE=true for remote headless execution.");
+      notes.push(
+        "Set GEMINI_CLI_TRUST_WORKSPACE=true for remote headless execution.",
+      );
     }
     if (!instructionsFilePath) return notes;
     if (instructionsPrefix.length > 0) {
@@ -561,15 +708,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       !resumedSession && bootstrapPromptTemplate.trim().length > 0
         ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
         : "";
-    const { taskContextNote, wakePrompt } = selectTaskcorePromptSections(context, {
-      resumedSession,
-      includeCommunicationGuidance: false,
-    });
+    const { taskContextNote, wakePrompt } = selectTaskcorePromptSections(
+      context,
+      {
+        resumedSession,
+        includeCommunicationGuidance: false,
+      },
+    );
     const shouldUseResumeDeltaPrompt = resumedSession && wakePrompt.length > 0;
-    const renderedPrompt = shouldUseResumeDeltaPrompt || isTaskcoreRecoveryWakePayload(context.taskcoreWake)
-      ? ""
-      : renderTemplate(promptTemplate, templateData);
-    const sessionHandoffNote = asString(context.taskcoreSessionHandoffMarkdown, "").trim();
+    const renderedPrompt =
+      shouldUseResumeDeltaPrompt ||
+      isTaskcoreRecoveryWakePayload(context.taskcoreWake)
+        ? ""
+        : renderTemplate(promptTemplate, templateData);
+    const sessionHandoffNote = asString(
+      context.taskcoreSessionHandoffMarkdown,
+      "",
+    ).trim();
     const taskcoreEnvNote = renderTaskcoreEnvNote(env);
     const apiAccessNote = renderApiAccessNote(env);
     const basePrompt = joinPromptSections([
@@ -600,7 +755,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const buildArgs = (resumeSessionId: string | null, prompt: string) => {
     const args = ["--output-format", "stream-json"];
     if (resumeSessionId) args.push("--resume", resumeSessionId);
-    if (model && model !== DEFAULT_GEMINI_LOCAL_MODEL) args.push("--model", model);
+    if (model && model !== DEFAULT_GEMINI_LOCAL_MODEL)
+      args.push("--model", model);
     args.push("--approval-mode", "yolo");
     if (sandbox) {
       args.push("--sandbox");
@@ -613,10 +769,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   };
 
   const runAttempt = async (resumeSessionId: string | null) => {
-    await hydrateFreshSessionHandoff(ctx, { resumedSession: Boolean(resumeSessionId) });
+    await hydrateFreshSessionHandoff(ctx, {
+      resumedSession: Boolean(resumeSessionId),
+    });
     const { basePrompt, promptMetrics } = buildPrompt(Boolean(resumeSessionId));
     const prompt = joinPromptSections([
-      selectInitialCommunicationGuidance(context, { resumedSession: Boolean(resumeSessionId) }),
+      selectInitialCommunicationGuidance(context, {
+        resumedSession: Boolean(resumeSessionId),
+      }),
       basePrompt,
     ]);
     const args = buildArgs(resumeSessionId, prompt);
@@ -633,9 +793,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         command: resolvedCommand,
         cwd: effectiveExecutionCwd,
         commandNotes,
-        commandArgs: args.map((value, index) => (
-          index === args.length - 1 ? `<prompt ${prompt.length} chars>` : value
-        )),
+        commandArgs: args.map((value, index) =>
+          index === args.length - 1 ? `<prompt ${prompt.length} chars>` : value,
+        ),
         env: loggedEnv,
         prompt,
         promptMetrics: { ...promptMetrics, promptChars: prompt.length },
@@ -644,22 +804,41 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     }
 
     const consumeAccounting = createGeminiJsonlParser();
-    const accountingLog = createUsageCheckpointLog(onLog, ctx.onUsage, stdout => {
-      const parsed = consumeAccounting(stdout);
-      return { usage: parsed.usage, costUsd: parsed.costUsd, usageBasis: "per_run", provider: "google", biller: "google", billingType, model, complete: parsed.resultEvent !== null };
-    });
-    const proc = await runAdapterExecutionTargetProcess(runId, runtimeExecutionTarget, command, args, {
-      onProcessStopped: providerStop.beginInvocation(),
-      cwd,
-      env: invocationEnv,
-      timeoutSec,
-      graceSec,
-      onSpawn,
-      onRuntimeProgress: ctx.onRuntimeProgress,
-      onLog: accountingLog,
-      runLogTail: taskcoreBridge?.runLogTail,
-      settleRunDisposition: taskcoreBridge?.settleRunDisposition,
-    });
+    const accountingLog = createUsageCheckpointLog(
+      onLog,
+      ctx.onUsage,
+      (stdout) => {
+        const parsed = consumeAccounting(stdout);
+        return {
+          usage: parsed.usage,
+          costUsd: parsed.costUsd,
+          usageBasis: "per_run",
+          provider: "google",
+          biller: "google",
+          billingType,
+          model,
+          complete: parsed.resultEvent !== null,
+        };
+      },
+    );
+    const proc = await runAdapterExecutionTargetProcess(
+      runId,
+      runtimeExecutionTarget,
+      command,
+      args,
+      {
+        onProcessStopped: providerStop.beginInvocation(),
+        cwd,
+        env: invocationEnv,
+        timeoutSec,
+        graceSec,
+        onSpawn,
+        onRuntimeProgress: ctx.onRuntimeProgress,
+        onLog: accountingLog,
+        runLogTail: taskcoreBridge?.runLogTail,
+        settleRunDisposition: taskcoreBridge?.settleRunDisposition,
+      },
+    );
     await accountingLog.flush();
     return {
       proc,
@@ -687,7 +866,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       stdout: attempt.proc.stdout,
       stderr: attempt.proc.stderr,
     });
-    const networkUnavailable = isGeminiTransientNetworkError(attempt.proc.stdout, attempt.proc.stderr);
+    const networkUnavailable = isGeminiTransientNetworkError(
+      attempt.proc.stdout,
+      attempt.proc.stderr,
+    );
 
     if (attempt.proc.timedOut) {
       return {
@@ -695,13 +877,13 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         signal: attempt.proc.signal,
         timedOut: true,
         usageComplete: attempt.parsed.resultEvent !== null,
-          usage: attempt.parsed.usage,
-          usageBasis: "per_run",
-          provider: "google",
-          biller: "google",
-          model,
-          billingType,
-          costUsd: attempt.parsed.costUsd,
+        usage: attempt.parsed.usage,
+        usageBasis: "per_run",
+        provider: "google",
+        biller: "google",
+        model,
+        billingType,
+        costUsd: attempt.parsed.costUsd,
         errorMessage: `Timed out after ${timeoutSec}s`,
         errorCode: authMeta.requiresAuth
           ? "gemini_auth_required"
@@ -712,7 +894,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       };
     }
 
-    const parsedError = typeof attempt.parsed.errorMessage === "string" ? attempt.parsed.errorMessage.trim() : "";
+    const parsedError =
+      typeof attempt.parsed.errorMessage === "string"
+        ? attempt.parsed.errorMessage.trim()
+        : "";
     const stderrLine = firstNonEmptyLine(attempt.proc.stderr);
     const structuredFailure = attempt.parsed.resultEvent
       ? describeGeminiFailure(attempt.parsed.resultEvent)
@@ -730,28 +915,35 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
     // On retry, don't fall back to old session ID — the old session was stale
     const canFallbackToRuntimeSession = !isRetry;
-    const resolvedSessionId = attempt.parsed.sessionId
-      ?? (canFallbackToRuntimeSession ? (runtimeSessionId ?? runtime.sessionId ?? null) : null);
+    const resolvedSessionId =
+      attempt.parsed.sessionId ??
+      (canFallbackToRuntimeSession
+        ? (runtimeSessionId ?? runtime.sessionId ?? null)
+        : null);
     const resolvedSessionParams = resolvedSessionId
       ? ({
-        sessionId: resolvedSessionId,
-        cwd: effectiveExecutionCwd,
-        ...(workspaceId ? { workspaceId } : {}),
-        ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
-        ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
-        ...(executionTargetIsRemote
-          ? {
-              remoteExecution: adapterExecutionTargetSessionIdentity(runtimeExecutionTarget),
-            }
-          : {}),
-      } as Record<string, unknown>)
+          sessionId: resolvedSessionId,
+          cwd: effectiveExecutionCwd,
+          ...(workspaceId ? { workspaceId } : {}),
+          ...(workspaceRepoUrl ? { repoUrl: workspaceRepoUrl } : {}),
+          ...(workspaceRepoRef ? { repoRef: workspaceRepoRef } : {}),
+          ...(executionTargetIsRemote
+            ? {
+                remoteExecution: adapterExecutionTargetSessionIdentity(
+                  runtimeExecutionTarget,
+                ),
+              }
+            : {}),
+        } as Record<string, unknown>)
       : null;
     const resultJson: Record<string, unknown> = {
       ...(attempt.parsed.resultEvent ?? {
         stdout: attempt.proc.stdout,
         stderr: attempt.proc.stderr,
       }),
-      ...(failed && clearSessionForTurnLimit ? { stopReason: "max_turns_exhausted" } : {}),
+      ...(failed && clearSessionForTurnLimit
+        ? { stopReason: "max_turns_exhausted" }
+        : {}),
     };
 
     return {
@@ -767,12 +959,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       errorCode: attempt.proc.errorCode
         ? attempt.proc.errorCode
         : failed && authMeta.requiresAuth
-        ? "gemini_auth_required"
-        : failed && clearSessionForTurnLimit
-        ? "max_turns_exhausted"
-        : failed && networkUnavailable
-        ? "gemini_network_unavailable"
-        : null,
+          ? "gemini_auth_required"
+          : failed && clearSessionForTurnLimit
+            ? "max_turns_exhausted"
+            : failed && networkUnavailable
+              ? "gemini_network_unavailable"
+              : null,
       usage: attempt.parsed.usage,
       sessionId: resolvedSessionId,
       sessionParams: resolvedSessionParams,
@@ -785,7 +977,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       resultJson,
       summary: attempt.parsed.summary,
       question: attempt.parsed.question,
-      clearSession: clearSessionForTurnLimit || Boolean(clearSessionOnMissingSession && !resolvedSessionId),
+      clearSession:
+        clearSessionForTurnLimit ||
+        Boolean(clearSessionOnMissingSession && !resolvedSessionId),
     };
   };
 
@@ -795,7 +989,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       sessionId &&
       !initial.proc.timedOut &&
       (initial.proc.exitCode ?? 0) !== 0 &&
-      isGeminiSessionUnrecoverableError(initial.proc.stdout, initial.proc.stderr)
+      isGeminiSessionUnrecoverableError(
+        initial.proc.stdout,
+        initial.proc.stderr,
+      )
     ) {
       await onLog(
         "stdout",
@@ -813,7 +1010,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       await Promise.all([
         taskcoreBridge?.stop(),
         restoreRemoteWorkspace?.(),
-        localSkillsDir ? fs.rm(path.dirname(localSkillsDir), { recursive: true, force: true }).catch(() => undefined) : Promise.resolve(),
+        localSkillsDir
+          ? fs
+              .rm(path.dirname(localSkillsDir), {
+                recursive: true,
+                force: true,
+              })
+              .catch(() => undefined)
+          : Promise.resolve(),
       ]);
     }
   }

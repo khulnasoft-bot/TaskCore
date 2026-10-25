@@ -4,7 +4,10 @@ import type { IssueDocument } from "@taskcore/shared";
 import { FileQuestion, Loader2 } from "lucide-react";
 import { ApiError } from "@/api/client";
 import { issuesApi } from "@/api/issues";
-import { DocumentAnnotationsCountChip, IssueDocumentAnnotations } from "@/components/IssueDocumentAnnotations";
+import {
+  DocumentAnnotationsCountChip,
+  IssueDocumentAnnotations,
+} from "@/components/IssueDocumentAnnotations";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { queryKeys } from "@/lib/queryKeys";
 import { documentDisplayTitle } from "@/lib/issue-artifacts";
@@ -36,7 +39,10 @@ export function TaskDocumentPanel({
 
   if (query.isLoading) {
     return (
-      <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground" role="status">
+      <div
+        className="flex items-center gap-2 py-8 text-sm text-muted-foreground"
+        role="status"
+      >
         <Loader2 className="size-4 animate-spin" aria-hidden />
         Loading document…
       </div>
@@ -45,7 +51,8 @@ export function TaskDocumentPanel({
   if (query.isError) {
     return (
       <div className="py-8 text-sm text-muted-foreground" role="alert">
-        The document could not be loaded. Retry from the tab launcher or refresh the task.
+        The document could not be loaded. Retry from the tab launcher or refresh
+        the task.
       </div>
     );
   }
@@ -53,11 +60,15 @@ export function TaskDocumentPanel({
   if (!document) {
     return (
       <div className="flex items-start gap-3 py-8 text-sm" role="status">
-        <FileQuestion className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+        <FileQuestion
+          className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
         <div className="space-y-1">
           <p className="font-medium">Document no longer available</p>
           <p className="text-muted-foreground">
-            This tab is preserved so the missing resource is explicit. Close it or choose another document.
+            This tab is preserved so the missing resource is explicit. Close it
+            or choose another document.
           </p>
         </div>
       </div>
@@ -67,7 +78,9 @@ export function TaskDocumentPanel({
   return (
     <article className="space-y-4">
       <header className="space-y-1">
-        <h2 className="text-lg font-semibold">{documentDisplayTitle(document)}</h2>
+        <h2 className="text-lg font-semibold">
+          {documentDisplayTitle(document)}
+        </h2>
         <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           <span>{`Revision ${document.latestRevisionNumber ?? 1}`}</span>
           <span aria-hidden>·</span>

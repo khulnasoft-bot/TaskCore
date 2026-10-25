@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { testEnvironment } from "@taskcore/adapter-gemini-local/server";
 
-async function writeFakeGeminiCommand(binDir: string, argsCapturePath: string): Promise<string> {
+async function writeFakeGeminiCommand(
+  binDir: string,
+  argsCapturePath: string,
+): Promise<string> {
   const commandPath = path.join(binDir, "gemini");
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
@@ -61,7 +64,9 @@ describe("gemini_local environment diagnostics", () => {
       },
     });
 
-    expect(result.checks.some((check) => check.code === "gemini_cwd_valid")).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "gemini_cwd_valid"),
+    ).toBe(true);
     expect(result.checks.some((check) => check.level === "error")).toBe(false);
     const stats = await fs.stat(cwd);
     expect(stats.isDirectory()).toBe(true);
@@ -96,7 +101,9 @@ describe("gemini_local environment diagnostics", () => {
     });
 
     expect(result.status).not.toBe("fail");
-    const args = JSON.parse(await fs.readFile(argsCapturePath, "utf8")) as string[];
+    const args = JSON.parse(
+      await fs.readFile(argsCapturePath, "utf8"),
+    ) as string[];
     expect(args).toContain("--model");
     expect(args).toContain("gemini-2.5-pro");
     expect(args).toContain("--approval-mode");
@@ -130,7 +137,11 @@ describe("gemini_local environment diagnostics", () => {
     });
 
     expect(result.status).toBe("warn");
-    expect(result.checks.some((check) => check.code === "gemini_hello_probe_quota_exhausted")).toBe(true);
+    expect(
+      result.checks.some(
+        (check) => check.code === "gemini_hello_probe_quota_exhausted",
+      ),
+    ).toBe(true);
     await fs.rm(root, { recursive: true, force: true });
   });
 
@@ -160,9 +171,15 @@ describe("gemini_local environment diagnostics", () => {
                 stdout: [
                   JSON.stringify({
                     type: "assistant",
-                    message: { content: [{ type: "output_text", text: "hello" }] },
+                    message: {
+                      content: [{ type: "output_text", text: "hello" }],
+                    },
                   }),
-                  JSON.stringify({ type: "result", subtype: "success", result: "hello" }),
+                  JSON.stringify({
+                    type: "result",
+                    subtype: "success",
+                    result: "hello",
+                  }),
                 ].join("\n"),
                 stderr: "",
                 pid: null,
@@ -184,7 +201,9 @@ describe("gemini_local environment diagnostics", () => {
       environmentName: "QA Cloudflare",
     });
 
-    expect(result.checks.some((check) => check.code === "gemini_hello_probe_passed")).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "gemini_hello_probe_passed"),
+    ).toBe(true);
     expect(probeEnv?.GEMINI_CLI_TRUST_WORKSPACE).toBe("true");
   });
 });

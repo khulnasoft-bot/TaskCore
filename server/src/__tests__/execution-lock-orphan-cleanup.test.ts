@@ -19,7 +19,9 @@ import {
 import { heartbeatService } from "../services/heartbeat.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -29,10 +31,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("execution lock orphan cleanup", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-exec-lock-orphan-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-exec-lock-orphan-",
+    );
     db = createDb(tempDb.connectionString);
   }, 30_000);
 
@@ -78,7 +84,10 @@ describeEmbeddedPostgres("execution lock orphan cleanup", () => {
     return agentId;
   }
 
-  async function seedIssue(companyId: string, overrides: Partial<typeof issues.$inferInsert> = {}) {
+  async function seedIssue(
+    companyId: string,
+    overrides: Partial<typeof issues.$inferInsert> = {},
+  ) {
     const issueId = randomUUID();
     await db.insert(issues).values({
       id: issueId,
@@ -142,8 +151,14 @@ describeEmbeddedPostgres("execution lock orphan cleanup", () => {
 
       await heartbeatService(db).cancelRun(runId);
 
-      const [contextAfter] = await db.select().from(issues).where(eq(issues.id, contextIssueId));
-      const [orphanAfter] = await db.select().from(issues).where(eq(issues.id, orphanIssueId));
+      const [contextAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, contextIssueId));
+      const [orphanAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, orphanIssueId));
 
       expect(contextAfter?.executionRunId).toBeNull();
       expect(contextAfter?.executionAgentNameKey).toBeNull();
@@ -190,7 +205,10 @@ describeEmbeddedPostgres("execution lock orphan cleanup", () => {
 
       await heartbeatService(db).cancelRun(runId);
 
-      const rows = await db.select().from(issues).where(eq(issues.companyId, companyId));
+      const rows = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.companyId, companyId));
       expect(rows).toHaveLength(4);
       for (const row of rows) {
         expect(row.executionRunId).toBeNull();
@@ -235,8 +253,14 @@ describeEmbeddedPostgres("execution lock orphan cleanup", () => {
 
       await heartbeatService(db).cancelRun(runId);
 
-      const [orphanAAfter] = await db.select().from(issues).where(eq(issues.id, orphanAId));
-      const [orphanBAfter] = await db.select().from(issues).where(eq(issues.id, orphanBId));
+      const [orphanAAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, orphanAId));
+      const [orphanBAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, orphanBId));
 
       expect(orphanAAfter?.executionRunId).toBeNull();
       expect(orphanBAfter?.executionRunId).toBeNull();
@@ -288,8 +312,14 @@ describeEmbeddedPostgres("execution lock orphan cleanup", () => {
 
       await heartbeatService(db).cancelRun(runAId);
 
-      const [issueAAfter] = await db.select().from(issues).where(eq(issues.id, issueAId));
-      const [issueBAfter] = await db.select().from(issues).where(eq(issues.id, issueBId));
+      const [issueAAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, issueAId));
+      const [issueBAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, issueBId));
 
       expect(issueAAfter?.executionRunId).toBeNull();
       expect(issueAAfter?.companyId).toBe(companyAId);
@@ -379,8 +409,14 @@ describeEmbeddedPostgres("execution lock orphan cleanup", () => {
 
       await heartbeatService(db).cancelRun(finalizingRunId);
 
-      const [dualAfter] = await db.select().from(issues).where(eq(issues.id, dualLockIssueId));
-      const [retryAfter] = await db.select().from(issues).where(eq(issues.id, retryIssueId));
+      const [dualAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, dualLockIssueId));
+      const [retryAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, retryIssueId));
       const [checkoutOnlyAfter] = await db
         .select()
         .from(issues)
@@ -452,8 +488,14 @@ describeEmbeddedPostgres("execution lock orphan cleanup", () => {
 
       await heartbeatService(db).cancelRun(finalizingRunId);
 
-      const [contextAfter] = await db.select().from(issues).where(eq(issues.id, contextIssueId));
-      const [unrelatedAfter] = await db.select().from(issues).where(eq(issues.id, unrelatedIssueId));
+      const [contextAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, contextIssueId));
+      const [unrelatedAfter] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, unrelatedIssueId));
 
       expect(contextAfter?.executionRunId).toBeNull();
       expect(unrelatedAfter?.executionRunId).toBe(unrelatedRunId);

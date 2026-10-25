@@ -57,11 +57,11 @@ Open the Values UI in a browser tab and keep it visible. Every successful
 
 All configuration is via environment variables:
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` (or `KV_DEMO_PORT`) | `8848` | Listen port. Use `0` for a random free port. |
-| `KV_DEMO_HOST` | `127.0.0.1` | Bind host. Use `0.0.0.0` to accept connections from another machine on the LAN. |
-| `KV_DEMO_TOKEN` | unset | Optional shared secret. When set, data and MCP routes require it. |
+| Variable                   | Default     | Purpose                                                                         |
+| -------------------------- | ----------- | ------------------------------------------------------------------------------- |
+| `PORT` (or `KV_DEMO_PORT`) | `8848`      | Listen port. Use `0` for a random free port.                                    |
+| `KV_DEMO_HOST`             | `127.0.0.1` | Bind host. Use `0.0.0.0` to accept connections from another machine on the LAN. |
+| `KV_DEMO_TOKEN`            | unset       | Optional shared secret. When set, data and MCP routes require it.               |
 
 When `KV_DEMO_TOKEN` is set, present it as `Authorization: Bearer <token>`.
 For the browser UI, open `http://127.0.0.1:8848/#token=<token>`; the fragment is
@@ -123,8 +123,8 @@ If a token is set, add the `credentialValues` block:
   the same loopback URL, so the UI always sees the same store the tools
   mutated.
 - **`local_stdio` (not used here)** — runs MCP servers as supervised child
-  processes inside Taskcore's runtime slots. Reserved for *trusted local
-  deployments* (developer laptop, `local_trusted` or
+  processes inside Taskcore's runtime slots. Reserved for _trusted local
+  deployments_ (developer laptop, `local_trusted` or
   `authenticated/private` with `TASKCORE_TRUSTED_MCP_RUNTIME_HOST` set on a
   single trusted worker). Each runtime slot has its own process, which would
   give each slot its own in-memory store — you would lose the shared-state
@@ -158,13 +158,13 @@ rows above.
 
 ## What lives where
 
-| Concern | Stored in this package | Stored in Taskcore |
-| --- | --- | --- |
-| Key/value entries (`kv_*` data) | In-memory `Map`, lost on restart. | Not stored. Taskcore never sees the values directly; the gateway only sees the MCP request/response envelope and the redacted-by-policy view the audit log keeps. |
-| Connection record (URL, token, transport) | Not stored. | Persisted in `tool_connections`. The optional token becomes a secret. |
-| Profile / policy / binding decisions | Not stored. | Persisted under `tool_profiles`, `tool_policies`, and `tool_profile_bindings`. |
-| Approval action requests | Not stored. | Persisted under `tool_action_requests`, linked to issue-thread interactions. |
-| Audit rows for each call | Not stored. | Persisted under `tool_call_events`. Append-only. |
+| Concern                                   | Stored in this package            | Stored in Taskcore                                                                                                                                                |
+| ----------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key/value entries (`kv_*` data)           | In-memory `Map`, lost on restart. | Not stored. Taskcore never sees the values directly; the gateway only sees the MCP request/response envelope and the redacted-by-policy view the audit log keeps. |
+| Connection record (URL, token, transport) | Not stored.                       | Persisted in `tool_connections`. The optional token becomes a secret.                                                                                             |
+| Profile / policy / binding decisions      | Not stored.                       | Persisted under `tool_profiles`, `tool_policies`, and `tool_profile_bindings`.                                                                                    |
+| Approval action requests                  | Not stored.                       | Persisted under `tool_action_requests`, linked to issue-thread interactions.                                                                                      |
+| Audit rows for each call                  | Not stored.                       | Persisted under `tool_call_events`. Append-only.                                                                                                                  |
 
 ## Cleanup and reset
 
@@ -182,6 +182,7 @@ records stay intact unless you also archive the connection.
   lsof -nP -iTCP:8848 -sTCP:LISTEN
   kill <pid>
   ```
+
 - **Quiesce the Taskcore side** — disable the connection so the gateway
   stops trying to reach the now-stopped server:
 
@@ -192,6 +193,7 @@ records stay intact unless you also archive the connection.
     "$TASKCORE_URL/api/tool-connections/$CONNECTION_ID" \
     -d '{ "enabled": false, "status": "disabled" }'
   ```
+
 - **Archive the application** when you are fully done. Audit history is
   retained, but no new calls can land:
 

@@ -21,20 +21,29 @@ import { issueThreadInteractionService } from "../issue-thread-interactions.js";
 import { questionResponseDeliveryService } from "../question-response-delivery.js";
 import type { NativeRunStoreBinding } from "./native-run-coordinator-store.js";
 
-import { parseQuestionInteractionAnswers, parseSavedQuestionInteractionAnswers } from "../question-interaction-answers.js";
+import {
+  parseQuestionInteractionAnswers,
+  parseSavedQuestionInteractionAnswers,
+} from "../question-interaction-answers.js";
 
 const QUESTION_KEY_PREFIX = "taskcore-runner-question:";
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/;
-export const NATIVE_QUESTION_CANCELLATION_CONTEXT_KEY = "nativeQuestionCancellation";
+export const NATIVE_QUESTION_CANCELLATION_CONTEXT_KEY =
+  "nativeQuestionCancellation";
 
 type QueueCommand = (
   type: string,
   payload?: Record<string, unknown>,
   commandId?: string,
-) => { readonly commandId: string; readonly controllerSeq: number } | Promise<{ readonly commandId: string; readonly controllerSeq: number }>;
+) =>
+  | { readonly commandId: string; readonly controllerSeq: number }
+  | Promise<{ readonly commandId: string; readonly controllerSeq: number }>;
 
 interface NativeQuestionCommandTarget {
-  binding: Pick<NativeRunStoreBinding, "companyId" | "issueId" | "runId" | "agentId">;
+  binding: Pick<
+    NativeRunStoreBinding,
+    "companyId" | "issueId" | "runId" | "agentId"
+  >;
   queueCommand: QueueCommand;
 }
 
@@ -61,7 +70,7 @@ type NativeQuestionMutationDb = Pick<Db | DbTransaction, "select" | "update">;
 
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
@@ -75,12 +84,16 @@ function requestIdForInteraction(
   if (!key?.startsWith(expectedPrefix)) return null;
   const requestId = key.slice(expectedPrefix.length);
   if (!REQUEST_ID_PATTERN.test(requestId)) return null;
-  return typeof payload.runtimeRequestId === "string" && payload.runtimeRequestId !== requestId
+  return typeof payload.runtimeRequestId === "string" &&
+    payload.runtimeRequestId !== requestId
     ? null
     : requestId;
 }
 
-function toInteractionPayload(questionSet: TaskcoreQuestionSet, runtimeRequestId: string) {
+function toInteractionPayload(
+  questionSet: TaskcoreQuestionSet,
+  runtimeRequestId: string,
+) {
   return {
     ...questionSetToAskUserQuestionsPayload(questionSet),
     runtimeRequestId,
@@ -89,71 +102,101 @@ function toInteractionPayload(questionSet: TaskcoreQuestionSet, runtimeRequestId
   };
 }
 
-
 async function authorizedNativeRun(
   db: Pick<Db | DbTransaction, "select">,
   interaction: NativeQuestionAuthorizationIdentity,
 ) {
   const requestId = requestIdForInteraction(interaction);
   if (!requestId || !interaction.sourceRunId) return null;
-  const run = await db.select({
-    id: heartbeatRuns.id,
-    companyId: heartbeatRuns.companyId,
-    issueId: heartbeatRuns.nativeIssueId,
-    agentId: heartbeatRuns.agentId,
-    runtimeMode: heartbeatRuns.runtimeMode,
-    status: heartbeatRuns.status,
-  }).from(heartbeatRuns).where(and(
-    eq(heartbeatRuns.id, interaction.sourceRunId),
-    eq(heartbeatRuns.companyId, interaction.companyId),
-    eq(heartbeatRuns.nativeIssueId, interaction.issueId),
-    eq(heartbeatRuns.runtimeMode, "native"),
-  )).limit(1).then((rows) => rows[0] ?? null);
+  const run = await db
+    .select({
+      id: heartbeatRuns.id,
+      companyId: heartbeatRuns.companyId,
+      issueId: heartbeatRuns.nativeIssueId,
+      agentId: heartbeatRuns.agentId,
+      runtimeMode: heartbeatRuns.runtimeMode,
+      status: heartbeatRuns.status,
+    })
+    .from(heartbeatRuns)
+    .where(
+      and(
+        eq(heartbeatRuns.id, interaction.sourceRunId),
+        eq(heartbeatRuns.companyId, interaction.companyId),
+        eq(heartbeatRuns.nativeIssueId, interaction.issueId),
+        eq(heartbeatRuns.runtimeMode, "native"),
+      ),
+    )
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
   return run ? { ...run, requestId } : null;
 }
 
 /** Materialize questions; permission requests use the privileged runtime card. */
 export async function projectNativeRuntimeRequest(input: {
   db: Db;
-  binding: Pick<NativeRunStoreBinding, "companyId" | "issueId" | "runId" | "agentId" | "normalizedSessionId" | "runnerSourceInstanceId">;
+  binding: Pick<
+    NativeRunStoreBinding,
+    | "companyId"
+    | "issueId"
+    | "runId"
+    | "agentId"
+    | "normalizedSessionId"
+    | "runnerSourceInstanceId"
+  >;
   event: PrpEvent;
 }): Promise<AskUserQuestionsInteraction | null> {
   if (input.event.eventType !== "runtime_request.created") return null;
   if (
-    input.event.runId !== input.binding.runId
-    || input.event.normalizedSessionId !== input.binding.normalizedSessionId
-    || input.event.sourceInstanceId !== input.binding.runnerSourceInstanceId
+    input.event.runId !== input.binding.runId ||
+    input.event.normalizedSessionId !== input.binding.normalizedSessionId ||
+    input.event.sourceInstanceId !== input.binding.runnerSourceInstanceId
   ) {
     throw new Error("native_runtime_request_binding_mismatch");
   }
   const request = record(record(input.event.payload)?.request);
   if (
-    !request
-    || request.schema !== "taskcore.runtime_request.v2"
-    || request.status !== "pending"
-    || typeof request.requestId !== "string"
-    || !REQUEST_ID_PATTERN.test(request.requestId)
+    !request ||
+    request.schema !== "taskcore.runtime_request.v2" ||
+    request.status !== "pending" ||
+    typeof request.requestId !== "string" ||
+    !REQUEST_ID_PATTERN.test(request.requestId)
   ) {
     throw new Error("native_runtime_request_invalid");
   }
-  if (request.requestKind === "permission_approval" && request.type === "permission") {
-    const choices = Array.isArray(request.choices) ? request.choices.map(record) : [];
-    const supported = new Set(["accept", "accept_for_session", "decline", "cancel"]);
+  if (
+    request.requestKind === "permission_approval" &&
+    request.type === "permission"
+  ) {
+    const choices = Array.isArray(request.choices)
+      ? request.choices.map(record)
+      : [];
+    const supported = new Set([
+      "accept",
+      "accept_for_session",
+      "decline",
+      "cancel",
+    ]);
     if (
-      typeof request.turnId !== "string"
-      || request.turnId !== input.event.turnId
-      || (request.itemId != null && typeof request.itemId !== "string")
-      || (request.itemId ?? null) !== (input.event.itemId ?? null)
-      || typeof request.prompt !== "string"
-      || !request.prompt.trim()
-      || request.prompt.length > 4000
-      || choices.length === 0
-      || choices.length > 4
-      || choices.some((choice) => !choice
-        || typeof choice.key !== "string" || !supported.has(choice.key)
-        || typeof choice.label !== "string" || !choice.label.trim() || choice.label.length > 500)
-      || new Set(choices.map((choice) => choice?.key)).size !== choices.length
-      || (request.details !== undefined && !record(request.details))
+      typeof request.turnId !== "string" ||
+      request.turnId !== input.event.turnId ||
+      (request.itemId != null && typeof request.itemId !== "string") ||
+      (request.itemId ?? null) !== (input.event.itemId ?? null) ||
+      typeof request.prompt !== "string" ||
+      !request.prompt.trim() ||
+      request.prompt.length > 4000 ||
+      choices.length === 0 ||
+      choices.length > 4 ||
+      choices.some(
+        (choice) =>
+          !choice ||
+          typeof choice.key !== "string" ||
+          !supported.has(choice.key) ||
+          typeof choice.label !== "string" ||
+          !choice.label.trim() ||
+          choice.label.length > 500,
+      ) ||
+      new Set(choices.map((choice) => choice?.key)).size !== choices.length ||
+      (request.details !== undefined && !record(request.details))
     ) {
       throw new Error("native_runtime_permission_invalid");
     }
@@ -168,23 +211,30 @@ export async function projectNativeRuntimeRequest(input: {
     throw new Error("native_runtime_request_invalid");
   }
   const questionSet = parseTaskcoreQuestionSet(request.input);
-  if (questionSet.questions.some((question) => question.textValidation?.pattern !== undefined)) {
+  if (
+    questionSet.questions.some(
+      (question) => question.textValidation?.pattern !== undefined,
+    )
+  ) {
     // JavaScript regular expressions have no execution budget. Provider-authored
     // patterns therefore stay fail-closed until the runner contract supplies a
     // bounded regex dialect rather than exposing the server to catastrophic backtracking.
     throw new Error("native_runtime_question_pattern_unsupported");
   }
   const idempotencyKey = `${QUESTION_KEY_PREFIX}${input.binding.runId}:${request.requestId}`;
-  const existing = await input.db.select({ id: issueThreadInteractions.id })
+  const existing = await input.db
+    .select({ id: issueThreadInteractions.id })
     .from(issueThreadInteractions)
-    .where(and(
-      eq(issueThreadInteractions.companyId, input.binding.companyId),
-      eq(issueThreadInteractions.issueId, input.binding.issueId),
-      eq(issueThreadInteractions.idempotencyKey, idempotencyKey),
-    ))
+    .where(
+      and(
+        eq(issueThreadInteractions.companyId, input.binding.companyId),
+        eq(issueThreadInteractions.issueId, input.binding.issueId),
+        eq(issueThreadInteractions.idempotencyKey, idempotencyKey),
+      ),
+    )
     .limit(1)
     .then((rows) => rows[0] ?? null);
-  const interaction = await issueThreadInteractionService(input.db).create(
+  const interaction = (await issueThreadInteractionService(input.db).create(
     { id: input.binding.issueId, companyId: input.binding.companyId },
     {
       kind: "ask_user_questions",
@@ -193,12 +243,14 @@ export async function projectNativeRuntimeRequest(input: {
       resolverPolicy: "human_only",
       continuationPolicy: "none",
       ...(questionSet.title ? { title: questionSet.title.slice(0, 240) } : {}),
-      ...(typeof request.prompt === "string" ? { summary: request.prompt.slice(0, 1000) } : {}),
+      ...(typeof request.prompt === "string"
+        ? { summary: request.prompt.slice(0, 1000) }
+        : {}),
       payload: toInteractionPayload(questionSet, request.requestId),
     },
     { agentId: input.binding.agentId, runId: input.binding.runId },
     { supersedePendingSiblingInteractions: false },
-  ) as AskUserQuestionsInteraction;
+  )) as AskUserQuestionsInteraction;
   if (!existing) {
     await logActivity(input.db, {
       companyId: input.binding.companyId,
@@ -228,12 +280,19 @@ export async function validateNativeQuestionResponseInput(
   interaction: AskUserQuestionsInteraction,
   input: RespondIssueThreadInteraction,
 ): Promise<void> {
-  if (!requestIdForInteraction(interaction) || !interaction.payload.questionSet) return;
+  if (!requestIdForInteraction(interaction) || !interaction.payload.questionSet)
+    return;
   try {
-    await parseQuestionInteractionAnswers(interaction.payload.questionSet, input.answers, interaction.payload.questions);
+    await parseQuestionInteractionAnswers(
+      interaction.payload.questionSet,
+      input.answers,
+      interaction.payload.questions,
+    );
   } catch (error) {
     throw unprocessable(
-      error instanceof Error ? error.message : "Invalid native question response",
+      error instanceof Error
+        ? error.message
+        : "Invalid native question response",
       { code: "invalid_question_response" },
     );
   }
@@ -244,28 +303,43 @@ export async function deliverNativeQuestionResponse(
   db: Db,
   interaction: AskUserQuestionsInteraction,
 ): Promise<"not_native" | "pending" | "queued"> {
-  if (interaction.status !== "answered" || !interaction.result || !interaction.payload.questionSet) {
+  if (
+    interaction.status !== "answered" ||
+    !interaction.result ||
+    !interaction.payload.questionSet
+  ) {
     return "not_native";
   }
   const run = await authorizedNativeRun(db, interaction);
   // A historical question can be answered after its provider turn has ended.
   // Fall through to durable fresh-wake delivery instead of waiting forever for
   // a command target that cannot return for this terminal run.
-  if (!run || ["succeeded", "failed", "cancelled", "timed_out"].includes(run.status)) return "not_native";
-  const response = parseSavedQuestionInteractionAnswers(interaction.payload.questionSet, interaction.result.answers, interaction.payload.questions);
+  if (
+    !run ||
+    ["succeeded", "failed", "cancelled", "timed_out"].includes(run.status)
+  )
+    return "not_native";
+  const response = parseSavedQuestionInteractionAnswers(
+    interaction.payload.questionSet,
+    interaction.result.answers,
+    interaction.payload.questions,
+  );
   const target = activeTargets.get(run.id);
   if (
-    !target
-    || target.binding.companyId !== run.companyId
-    || target.binding.issueId !== run.issueId
-    || target.binding.agentId !== run.agentId
+    !target ||
+    target.binding.companyId !== run.companyId ||
+    target.binding.issueId !== run.issueId ||
+    target.binding.agentId !== run.agentId
   ) {
     return "pending";
   }
   try {
     await target.queueCommand(
       "request.resolve",
-      { requestId: run.requestId, response: response as unknown as Record<string, unknown> },
+      {
+        requestId: run.requestId,
+        response: response as unknown as Record<string, unknown>,
+      },
       `question_${interaction.id}`,
     );
     return "queued";
@@ -288,7 +362,8 @@ async function deliverNativeQuestionResponseDurably(
         throw new Error("native_question_wake_unreachable");
       },
     } as never,
-    resolveNativeQuestion: (candidate) => deliverNativeQuestionResponse(db, candidate),
+    resolveNativeQuestion: (candidate) =>
+      deliverNativeQuestionResponse(db, candidate),
   }).deliver(interaction.id);
 }
 
@@ -298,19 +373,23 @@ export async function flushNativeQuestionResponses(
 ): Promise<void> {
   const target = activeTargets.get(runId);
   if (!target) return;
-  const interactions = await issueThreadInteractionService(db).listForIssue(target.binding.issueId);
+  const interactions = await issueThreadInteractionService(db).listForIssue(
+    target.binding.issueId,
+  );
   for (const interaction of interactions) {
     if (
-      interaction.kind === "ask_user_questions"
-      && interaction.sourceRunId === runId
-      && interaction.status === "answered"
+      interaction.kind === "ask_user_questions" &&
+      interaction.sourceRunId === runId &&
+      interaction.status === "answered"
     ) {
       await deliverNativeQuestionResponseDurably(db, interaction);
     }
   }
 }
 
-export function registerNativeQuestionCommandTarget(target: NativeQuestionCommandTarget): () => void {
+export function registerNativeQuestionCommandTarget(
+  target: NativeQuestionCommandTarget,
+): () => void {
   const existing = activeTargets.get(target.binding.runId);
   if (existing) throw new Error("native_question_command_target_conflict");
   activeTargets.set(target.binding.runId, target);
@@ -348,8 +427,10 @@ export async function requestNativeQuestionRunCancellation(
     ...cause,
     requestedAt: new Date().toISOString(),
   });
-  return db.update(heartbeatRuns).set({
-    contextSnapshot: sql`jsonb_set(
+  return db
+    .update(heartbeatRuns)
+    .set({
+      contextSnapshot: sql`jsonb_set(
       case
         when jsonb_typeof(${heartbeatRuns.contextSnapshot}) = 'object'
           then ${heartbeatRuns.contextSnapshot}
@@ -359,14 +440,19 @@ export async function requestNativeQuestionRunCancellation(
       ${marker}::jsonb,
       true
     )`,
-    updatedAt: new Date(),
-  }).where(and(
-    eq(heartbeatRuns.id, run.id),
-    eq(heartbeatRuns.companyId, interaction.companyId),
-    eq(heartbeatRuns.nativeIssueId, interaction.issueId),
-    eq(heartbeatRuns.runtimeMode, "native"),
-    inArray(heartbeatRuns.status, ["queued", "running"]),
-  )).returning({ id: heartbeatRuns.id }).then((rows) => rows[0]?.id ?? null);
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(heartbeatRuns.id, run.id),
+        eq(heartbeatRuns.companyId, interaction.companyId),
+        eq(heartbeatRuns.nativeIssueId, interaction.issueId),
+        eq(heartbeatRuns.runtimeMode, "native"),
+        inArray(heartbeatRuns.status, ["queued", "running"]),
+      ),
+    )
+    .returning({ id: heartbeatRuns.id })
+    .then((rows) => rows[0]?.id ?? null);
 }
 
 /** Capture the minimum bound identity needed to cancel after the issue transaction commits. */

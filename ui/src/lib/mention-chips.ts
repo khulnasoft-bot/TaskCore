@@ -101,7 +101,9 @@ export function parseMentionChipHref(href: string): ParsedMentionChip | null {
   return null;
 }
 
-export function mentionChipInlineStyle(mention: ParsedMentionChip): CSSProperties | undefined {
+export function mentionChipInlineStyle(
+  mention: ParsedMentionChip,
+): CSSProperties | undefined {
   const style: CSSProperties & Record<string, string> = {};
 
   if (mention.kind === "project" && mention.color) {
@@ -111,18 +113,28 @@ export function mentionChipInlineStyle(mention: ParsedMentionChip): CSSPropertie
   }
 
   if (mention.kind === "agent") {
-    const appearance = resolveAgentAppearance(mention.appearance, mention.agentId);
-    style["--taskcore-mention-avatar-image"] = `url("${agentAvatarUrl(appearance, 16, 2)}")`;
+    const appearance = resolveAgentAppearance(
+      mention.appearance,
+      mention.agentId,
+    );
+    style["--taskcore-mention-avatar-image"] =
+      `url("${agentAvatarUrl(appearance, 16, 2)}")`;
   }
 
   return Object.keys(style).length > 0 ? (style as CSSProperties) : undefined;
 }
 
-export function applyMentionChipDecoration(element: HTMLElement, mention: ParsedMentionChip) {
+export function applyMentionChipDecoration(
+  element: HTMLElement,
+  mention: ParsedMentionChip,
+) {
   clearMentionChipDecoration(element);
   element.dataset.mentionKind = mention.kind;
   element.setAttribute("contenteditable", "false");
-  element.classList.add("taskcore-mention-chip", `taskcore-mention-chip--${mention.kind}`);
+  element.classList.add(
+    "taskcore-mention-chip",
+    `taskcore-mention-chip--${mention.kind}`,
+  );
   if (mention.kind === "project") {
     element.classList.add("taskcore-project-mention-chip");
   }
@@ -134,7 +146,8 @@ export function applyMentionChipDecoration(element: HTMLElement, mention: Parsed
       if (key.startsWith("--")) {
         element.style.setProperty(key, value);
       } else {
-        (element.style as CSSStyleDeclaration & Record<string, string>)[key] = value;
+        (element.style as CSSStyleDeclaration & Record<string, string>)[key] =
+          value;
       }
     }
   }
@@ -161,7 +174,9 @@ export function clearMentionChipDecoration(element: HTMLElement) {
   element.style.removeProperty("--taskcore-mention-avatar-image");
 }
 
-function projectMentionColors(color: string): Pick<CSSProperties, "borderColor" | "backgroundColor" | "color"> {
+function projectMentionColors(
+  color: string,
+): Pick<CSSProperties, "borderColor" | "backgroundColor" | "color"> {
   const rgb = hexToRgb(color);
   if (!rgb) return {};
   return {

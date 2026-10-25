@@ -73,7 +73,9 @@ describe("POST /api/companies Cloud floor", () => {
       isInstanceAdmin: true,
     });
 
-    const res = await request(app).post("/api/companies").send({ name: "Second Company" });
+    const res = await request(app)
+      .post("/api/companies")
+      .send({ name: "Second Company" });
 
     expect(res.status).toBe(403);
     expect(res.body).toMatchObject({ code: "cloud_managed" });
@@ -105,14 +107,18 @@ describe("POST /api/companies Cloud floor", () => {
       isInstanceAdmin: true,
     });
 
-    const res = await request(app).post("/api/companies").send({ name: "New Company" });
+    const res = await request(app)
+      .post("/api/companies")
+      .send({ name: "New Company" });
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual(createdCompany);
-    expect(mockCompanyService.create).toHaveBeenCalledWith(expect.objectContaining({
-      name: "New Company",
-      defaultResponsibleUserId: "local-user",
-    }));
+    expect(mockCompanyService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "New Company",
+        defaultResponsibleUserId: "local-user",
+      }),
+    );
     expect(mockAccessService.ensureMembership).toHaveBeenCalledWith(
       "company-new",
       "user",

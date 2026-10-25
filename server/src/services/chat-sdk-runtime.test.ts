@@ -954,7 +954,10 @@ describe("Chat SDK endpoint runtime", () => {
           } else expect(registry.get(options.endpointId)).toBeNull();
         } finally {
           held.resolve();
-          await Promise.allSettled([initializing, retirement ?? Promise.resolve()]);
+          await Promise.allSettled([
+            initializing,
+            retirement ?? Promise.resolve(),
+          ]);
           await first.shutdown();
           await registry.shutdown();
         }
@@ -970,7 +973,9 @@ describe("Chat SDK endpoint runtime", () => {
         shutdown(): Promise<void>;
       };
       const held = deferred();
-      const initialize = vi.spyOn(chat, "initialize").mockReturnValue(held.promise);
+      const initialize = vi
+        .spyOn(chat, "initialize")
+        .mockReturnValue(held.promise);
       const shutdown = vi
         .spyOn(chat, "shutdown")
         .mockRejectedValueOnce(new Error("SDK disconnect failed"))
@@ -1011,7 +1016,9 @@ describe("Chat SDK endpoint runtime", () => {
         webhooks: Record<string, () => Promise<Response>>;
       };
       const held = deferred();
-      const initialize = vi.spyOn(chat, "initialize").mockReturnValue(held.promise);
+      const initialize = vi
+        .spyOn(chat, "initialize")
+        .mockReturnValue(held.promise);
       const shutdown = vi.spyOn(chat, "shutdown");
       // The pinned SDK's webhook entry automatically initializes its adapter.
       chat.webhooks.slack = async () => {
@@ -1087,9 +1094,13 @@ describe("Chat SDK endpoint runtime", () => {
       const chat = captures.chats[0] as unknown as {
         webhooks: Record<string, () => Promise<Response>>;
       };
-      const handler = vi.fn(async () => new Response("accepted", { status: 202 }));
+      const handler = vi.fn(
+        async () => new Response("accepted", { status: 202 }),
+      );
       chat.webhooks.slack = handler;
-      const boundary = runtime as unknown as { initializeChat(): Promise<void> };
+      const boundary = runtime as unknown as {
+        initializeChat(): Promise<void>;
+      };
       const initializeChat = boundary.initializeChat.bind(runtime);
       let retiring: Promise<void> | undefined;
       vi.spyOn(boundary, "initializeChat").mockImplementation(async () => {

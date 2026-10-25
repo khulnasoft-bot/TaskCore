@@ -1,10 +1,20 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadShardDurations, selectGeneralServerShard } from "./general-server-shard.mjs";
+import {
+  loadShardDurations,
+  selectGeneralServerShard,
+} from "./general-server-shard.mjs";
 
 import { assertSelectedTests, partitionTestLines } from "./test-line-shard.mjs";
 
@@ -76,7 +86,8 @@ const generalModeName = "general";
 const allModeName = "all";
 const generalServerGroupName = "general-server";
 const generalServerWithoutChatGroupName = "general-server-without-chat";
-const generalServerWithoutChatOrNativeRunnerGroupName = "general-server-without-chat-or-native-runner";
+const generalServerWithoutChatOrNativeRunnerGroupName =
+  "general-server-without-chat-or-native-runner";
 const generalChatGroupName = "general-chat";
 const generalServerNativeRunnerGroupName = "general-server-native-runner";
 const chatSuite = "server/src/__tests__/chat-channels.integration.test.ts";
@@ -99,7 +110,8 @@ const nativeRunnerSuites = [
 // unknown workflow degrades to today's slower-but-covered behavior rather
 // than dropping the suite.
 const prWorkflowName = "PR";
-const nativeRunnerSuiteRunsInRustCachedLane = process.env.GITHUB_WORKFLOW === prWorkflowName;
+const nativeRunnerSuiteRunsInRustCachedLane =
+  process.env.GITHUB_WORKFLOW === prWorkflowName;
 const withoutChatExcludedSuites = nativeRunnerSuiteRunsInRustCachedLane
   ? [chatSuite, ...nativeRunnerSuites]
   : [chatSuite];
@@ -111,15 +123,23 @@ const generalServerGroups = [
   generalServerWithoutChatOrNativeRunnerGroupName,
 ];
 function excludedServerSuites(groupName) {
-  if (groupName === generalServerWithoutChatOrNativeRunnerGroupName) return [chatSuite, ...nativeRunnerSuites];
-  if (groupName === generalServerWithoutChatGroupName) return withoutChatExcludedSuites;
+  if (groupName === generalServerWithoutChatOrNativeRunnerGroupName)
+    return [chatSuite, ...nativeRunnerSuites];
+  if (groupName === generalServerWithoutChatGroupName)
+    return withoutChatExcludedSuites;
   return [];
 }
 const generalWorkspacesAGroupName = "general-workspaces-a";
 const generalWorkspacesBGroupName = "general-workspaces-b";
 const generalWorkspacesAProjects = ["@taskcore/ui", "taskcore"];
-const generalWorkspacesBProjects = nonServerProjects.filter((project) => !generalWorkspacesAProjects.includes(project));
-const generalGroupNames = [generalServerGroupName, generalWorkspacesAGroupName, generalWorkspacesBGroupName];
+const generalWorkspacesBProjects = nonServerProjects.filter(
+  (project) => !generalWorkspacesAProjects.includes(project),
+);
+const generalGroupNames = [
+  generalServerGroupName,
+  generalWorkspacesAGroupName,
+  generalWorkspacesBGroupName,
+];
 const allowedGeneralGroupNames = [
   ...generalGroupNames,
   generalServerWithoutChatGroupName,
@@ -127,10 +147,7 @@ const allowedGeneralGroupNames = [
   generalChatGroupName,
   generalServerNativeRunnerGroupName,
 ];
-const serializedServerVitestArgs = [
-  "--no-file-parallelism",
-  "--maxWorkers=1",
-];
+const serializedServerVitestArgs = ["--no-file-parallelism", "--maxWorkers=1"];
 const sourceOnlyVitestArgs = ["--exclude", "**/dist/**"];
 
 function walk(dir) {
@@ -171,16 +188,22 @@ function toServerPath(file) {
 // chatSuiteRunLine classifies a `list`-reported line against the actual
 // source and returns the line `vitest run` accepts, or null if the line
 // does not belong to any real `it`/`test` call (a bogus entry to drop).
-const callAnywherePattern = /(?:^|[^\w$])(?:it|test)(?:\.(?:each|skip|only))?\(/;
+const callAnywherePattern =
+  /(?:^|[^\w$])(?:it|test)(?:\.(?:each|skip|only))?\(/;
 const inlineCallPattern = /\)\(\s*["'`]/;
 
 function chatSuiteRunLine(sourceLines, line) {
   const text = (sourceLines[line - 1] ?? "").trim();
-  if (callAnywherePattern.test(text) || text.endsWith(")(") || inlineCallPattern.test(text)) {
+  if (
+    callAnywherePattern.test(text) ||
+    text.endsWith(")(") ||
+    inlineCallPattern.test(text)
+  ) {
     return line;
   }
   const previous = (sourceLines[line - 2] ?? "").trim();
-  const isNameArgument = text.startsWith('"') || text.startsWith("'") || text.startsWith("`");
+  const isNameArgument =
+    text.startsWith('"') || text.startsWith("'") || text.startsWith("`");
   if (isNameArgument && previous.endsWith(")(")) {
     return line - 1;
   }
@@ -252,13 +275,19 @@ function parseCliOptions(argv) {
     }
 
     if (arg === "--shard-index") {
-      shardIndex = parseNonNegativeInteger(readOptionValue(argv, index, arg), arg);
+      shardIndex = parseNonNegativeInteger(
+        readOptionValue(argv, index, arg),
+        arg,
+      );
       index += 1;
       continue;
     }
 
     if (arg.startsWith("--shard-index=")) {
-      shardIndex = parseNonNegativeInteger(arg.slice("--shard-index=".length), "--shard-index");
+      shardIndex = parseNonNegativeInteger(
+        arg.slice("--shard-index=".length),
+        "--shard-index",
+      );
       continue;
     }
 
@@ -269,7 +298,10 @@ function parseCliOptions(argv) {
     }
 
     if (arg.startsWith("--shard-count=")) {
-      shardCount = parsePositiveInteger(arg.slice("--shard-count=".length), "--shard-count");
+      shardCount = parsePositiveInteger(
+        arg.slice("--shard-count=".length),
+        "--shard-count",
+      );
       continue;
     }
 
@@ -293,7 +325,9 @@ function parseCliOptions(argv) {
   }
 
   if (!new Set([allModeName, generalModeName, serializedModeName]).has(mode)) {
-    fail(`Unknown mode "${mode}". Expected one of: ${allModeName}, ${generalModeName}, ${serializedModeName}.`);
+    fail(
+      `Unknown mode "${mode}". Expected one of: ${allModeName}, ${generalModeName}, ${serializedModeName}.`,
+    );
   }
 
   if ((shardIndex === null) !== (shardCount === null)) {
@@ -303,7 +337,11 @@ function parseCliOptions(argv) {
   const shardAllowed =
     mode === serializedModeName ||
     (mode === generalModeName &&
-      ([...generalServerGroups, generalChatGroupName, generalWorkspacesAGroupName].includes(group)));
+      [
+        ...generalServerGroups,
+        generalChatGroupName,
+        generalWorkspacesAGroupName,
+      ].includes(group));
   if (!shardAllowed && shardIndex !== null) {
     fail(
       "--shard-index/--shard-count are only valid with serialized mode or a shardable general server/chat/workspaces-a group.",
@@ -315,12 +353,16 @@ function parseCliOptions(argv) {
   }
 
   if (group !== null && !allowedGeneralGroupNames.includes(group)) {
-    fail(`Unknown group "${group}". Expected one of: ${allowedGeneralGroupNames.join(", ")}.`);
+    fail(
+      `Unknown group "${group}". Expected one of: ${allowedGeneralGroupNames.join(", ")}.`,
+    );
   }
 
   if (shardIndex !== null) {
     if (shardIndex >= shardCount) {
-      fail(`--shard-index must be less than --shard-count. Received ${shardIndex} of ${shardCount}.`);
+      fail(
+        `--shard-index must be less than --shard-count. Received ${shardIndex} of ${shardCount}.`,
+      );
     }
   }
 
@@ -348,7 +390,9 @@ function selectSerializedSuites(routeTests, shardIndex, shardCount) {
   // over the alphabetical list clustered the heavy heartbeat/issues suites on
   // one shard (291s vs 170-201s test steps across the matrix in actions run
   // 32012408876), which made that shard the whole PR run's slowest check.
-  const byRepoPath = new Map(routeTests.map((routeTest) => [routeTest.repoPath, routeTest]));
+  const byRepoPath = new Map(
+    routeTests.map((routeTest) => [routeTest.repoPath, routeTest]),
+  );
   const shardFiles = selectGeneralServerShard(
     routeTests.map((routeTest) => routeTest.repoPath),
     shardIndex,
@@ -369,8 +413,10 @@ function runVitest(args, label, testShard = null) {
   const env = {
     ...process.env,
     NODE_ENV: "test",
-    TASKCORE_TEST_HOST_HOME: process.env.TASKCORE_TEST_HOST_HOME
-      ?? (process.env.TASKCORE_HOME?.trim() || path.join(os.homedir(), ".taskcore")),
+    TASKCORE_TEST_HOST_HOME:
+      process.env.TASKCORE_TEST_HOST_HOME ??
+      (process.env.TASKCORE_HOME?.trim() ||
+        path.join(os.homedir(), ".taskcore")),
     TASKCORE_HOME: path.join(testRoot, "h"),
     // Config discovery otherwise prefers the checkout's .taskcore/config.json
     // over TASKCORE_HOME, importing preview scheduling policy into unit tests.
@@ -385,41 +431,84 @@ function runVitest(args, label, testShard = null) {
     const sourceLines = readFileSync(file, "utf8").split("\n");
     const collect = (filters, name) => {
       const output = path.join(testRoot, `${name}.json`);
-      const result = spawnSync("pnpm", ["exec", "vitest", "list", ...sourceOnlyVitestArgs,
-        ...filters, "--allowOnly=false", "--includeTaskLocation", `--json=${output}`], {
-        cwd: repoRoot, env, stdio: "inherit",
-      });
-      if (result.error || result.status !== 0) fail(`Vitest collection failed: ${result.error?.message ?? result.status}`);
+      const result = spawnSync(
+        "pnpm",
+        [
+          "exec",
+          "vitest",
+          "list",
+          ...sourceOnlyVitestArgs,
+          ...filters,
+          "--allowOnly=false",
+          "--includeTaskLocation",
+          `--json=${output}`,
+        ],
+        {
+          cwd: repoRoot,
+          env,
+          stdio: "inherit",
+        },
+      );
+      if (result.error || result.status !== 0)
+        fail(
+          `Vitest collection failed: ${result.error?.message ?? result.status}`,
+        );
       return JSON.parse(readFileSync(output, "utf8"));
     };
     const allCollected = collect(args, "all");
     const collected = [];
     const bogusCollected = [];
     for (const test of allCollected) {
-      (chatSuiteRunLine(sourceLines, test.location.line) === null ? bogusCollected : collected).push(test);
+      (chatSuiteRunLine(sourceLines, test.location.line) === null
+        ? bogusCollected
+        : collected
+      ).push(test);
     }
     if (bogusCollected.length > 0) {
       console.warn(
         `[test:run] dropping ${bogusCollected.length} bogus Vitest collection entr${bogusCollected.length === 1 ? "y" : "ies"} with no matching it()/test() call: ${bogusCollected.map((test) => `${test.location.line}:${JSON.stringify(test.name)}`).join(", ")}`,
       );
     }
-    const selected = partitionTestLines(collected, testShard.count, file)[testShard.index];
+    const selected = partitionTestLines(collected, testShard.count, file)[
+      testShard.index
+    ];
     // Validate shard membership with the same `list`-reported lines that
     // produced `selected`, then switch to the `run`-compatible lines only for
     // the filters handed to the real `vitest run` below (see
     // chatSuiteRunLine).
-    const validationFilters = selected.lines.map((line) => `${chatSuite}:${line}`);
-    const validationArgs = [...args.filter((arg) => arg !== chatSuite), ...validationFilters];
-    assertSelectedTests(selected.tests, collect(validationArgs, "selected"), file);
-    console.log(`[test:run] chat shard ${testShard.index + 1}/${testShard.count}: ${selected.tests.length}/${collected.length} tests, ${selected.lines.length} source lines; exact filter coverage verified`);
-    const runFilters = selected.lines.map((line) => `${chatSuite}:${chatSuiteRunLine(sourceLines, line)}`);
-    args = [...args.filter((arg) => arg !== chatSuite), ...runFilters, "--allowOnly=false"];
+    const validationFilters = selected.lines.map(
+      (line) => `${chatSuite}:${line}`,
+    );
+    const validationArgs = [
+      ...args.filter((arg) => arg !== chatSuite),
+      ...validationFilters,
+    ];
+    assertSelectedTests(
+      selected.tests,
+      collect(validationArgs, "selected"),
+      file,
+    );
+    console.log(
+      `[test:run] chat shard ${testShard.index + 1}/${testShard.count}: ${selected.tests.length}/${collected.length} tests, ${selected.lines.length} source lines; exact filter coverage verified`,
+    );
+    const runFilters = selected.lines.map(
+      (line) => `${chatSuite}:${chatSuiteRunLine(sourceLines, line)}`,
+    );
+    args = [
+      ...args.filter((arg) => arg !== chatSuite),
+      ...runFilters,
+      "--allowOnly=false",
+    ];
   }
-  const result = spawnSync("pnpm", ["exec", "vitest", "run", ...sourceOnlyVitestArgs, ...args], {
-    cwd: repoRoot,
-    env,
-    stdio: "inherit",
-  });
+  const result = spawnSync(
+    "pnpm",
+    ["exec", "vitest", "run", ...sourceOnlyVitestArgs, ...args],
+    {
+      cwd: repoRoot,
+      env,
+      stdio: "inherit",
+    },
+  );
   if (result.error) {
     console.error(`[test:run] Failed to start Vitest: ${result.error.message}`);
     process.exit(1);
@@ -435,35 +524,66 @@ function runGeneralSuites(routeTests) {
   }
 }
 
-function runProjectGroup(projects, groupName, shardIndex = null, shardCount = null) {
+function runProjectGroup(
+  projects,
+  groupName,
+  shardIndex = null,
+  shardCount = null,
+) {
   // With shard args, lean on Vitest's native --shard: each matrix job runs the
   // same per-project invocations but only its slice of each project's test
   // files. Vitest's sharding is deterministic for an identical file list, so
   // the matrix jobs form a complete, non-overlapping cover of every project.
   const shardArgs =
-    shardCount !== null && shardCount > 1 ? [`--shard=${shardIndex + 1}/${shardCount}`] : [];
-  const shardSuffix = shardArgs.length > 0 ? ` shard ${shardIndex + 1}/${shardCount}` : "";
+    shardCount !== null && shardCount > 1
+      ? [`--shard=${shardIndex + 1}/${shardCount}`]
+      : [];
+  const shardSuffix =
+    shardArgs.length > 0 ? ` shard ${shardIndex + 1}/${shardCount}` : "";
   for (const project of projects) {
-    runVitest(["--project", project, ...shardArgs], `${groupName} project ${project}${shardSuffix}`);
+    runVitest(
+      ["--project", project, ...shardArgs],
+      `${groupName} project ${project}${shardSuffix}`,
+    );
   }
 }
 
-function runGeneralGroup(routeTests, groupName, shardIndex = null, shardCount = null) {
+function runGeneralGroup(
+  routeTests,
+  groupName,
+  shardIndex = null,
+  shardCount = null,
+) {
   if (groupName === generalChatGroupName) {
-    runVitest(["--project", "@taskcore/server", ...serializedServerVitestArgs, chatSuite],
-      "chat integration test shard", { index: shardIndex ?? 0, count: shardCount ?? 1 });
+    runVitest(
+      [
+        "--project",
+        "@taskcore/server",
+        ...serializedServerVitestArgs,
+        chatSuite,
+      ],
+      "chat integration test shard",
+      { index: shardIndex ?? 0, count: shardCount ?? 1 },
+    );
     return;
   }
   if (groupName === generalServerNativeRunnerGroupName) {
     runVitest(
-      ["--project", "@taskcore/server", ...serializedServerVitestArgs, ...nativeRunnerSuites],
+      [
+        "--project",
+        "@taskcore/server",
+        ...serializedServerVitestArgs,
+        ...nativeRunnerSuites,
+      ],
       "native runner vertical-slice suite",
     );
     return;
   }
   if (generalServerGroups.includes(groupName)) {
     const excludedSuites = excludedServerSuites(groupName);
-    const files = generalServerTestFiles.filter((file) => !excludedSuites.includes(file));
+    const files = generalServerTestFiles.filter(
+      (file) => !excludedSuites.includes(file),
+    );
     if (shardCount !== null && shardCount > 1) {
       const shardFiles = selectGeneralServerShard(
         files,
@@ -490,7 +610,10 @@ function runGeneralGroup(routeTests, groupName, shardIndex = null, shardCount = 
       return;
     }
 
-    const excludeRouteArgs = routeTests.flatMap((file) => ["--exclude", file.serverPath]);
+    const excludeRouteArgs = routeTests.flatMap((file) => [
+      "--exclude",
+      file.serverPath,
+    ]);
     for (const suite of excludedSuites) {
       excludeRouteArgs.push("--exclude", suite.replace(/^server\//, ""));
     }
@@ -511,7 +634,12 @@ function runGeneralGroup(routeTests, groupName, shardIndex = null, shardCount = 
     // 31371439296, 2026-08-10, where workspaces-a was the slowest PR check).
     // Its 439 test files shard cleanly with Vitest's native --shard, so the
     // lane splits across runners without a duration manifest.
-    runProjectGroup(generalWorkspacesAProjects, groupName, shardIndex, shardCount);
+    runProjectGroup(
+      generalWorkspacesAProjects,
+      groupName,
+      shardIndex,
+      shardCount,
+    );
     return;
   }
 
@@ -558,10 +686,10 @@ const routeTests = walk(serverTestsDir)
 // config pins maxWorkers to 1, so the only way to parallelize is across jobs.
 // Suites are partitioned by recorded duration (scripts/general-server-shard.mjs)
 // rather than round-robin, so one slow suite cluster can't stretch a single shard.
-const serializedRepoPaths = new Set(routeTests.map(test => test.repoPath));
+const serializedRepoPaths = new Set(routeTests.map((test) => test.repoPath));
 const generalServerTestFiles = [
-  ...walk(serverSrcDir).filter(file => file.endsWith(".test.ts")),
-  ...walk(serverScriptsDir).filter(file => file.endsWith(".test.mjs")),
+  ...walk(serverSrcDir).filter((file) => file.endsWith(".test.ts")),
+  ...walk(serverScriptsDir).filter((file) => file.endsWith(".test.mjs")),
 ]
   .map((file) => toRepoPath(file))
   // Only exclude suites actually assigned to the serialized lane. A name
@@ -573,7 +701,11 @@ const options = parseCliOptions(process.argv.slice(2));
 if (options.dryRun) {
   const serializedSuites =
     options.mode === serializedModeName
-      ? selectSerializedSuites(routeTests, options.shardIndex, options.shardCount)
+      ? selectSerializedSuites(
+          routeTests,
+          options.shardIndex,
+          options.shardCount,
+        )
       : routeTests;
   console.log(
     JSON.stringify(
@@ -584,16 +716,22 @@ if (options.dryRun) {
         group: options.group,
         availableGeneralGroups: allowedGeneralGroupNames,
         serializedSuiteCount: routeTests.length,
-        selectedSerializedSuites: serializedSuites.map((routeTest) => routeTest.repoPath),
+        selectedSerializedSuites: serializedSuites.map(
+          (routeTest) => routeTest.repoPath,
+        ),
         generalServerSuiteCount: generalServerTestFiles.length,
         selectedGeneralServerSuites:
-          options.mode === generalModeName && options.group === generalServerNativeRunnerGroupName
+          options.mode === generalModeName &&
+          options.group === generalServerNativeRunnerGroupName
             ? nativeRunnerSuites
             : options.mode === generalModeName &&
                 generalServerGroups.includes(options.group) &&
                 options.shardCount !== null
               ? selectGeneralServerShard(
-                  generalServerTestFiles.filter((file) => !excludedServerSuites(options.group).includes(file)),
+                  generalServerTestFiles.filter(
+                    (file) =>
+                      !excludedServerSuites(options.group).includes(file),
+                  ),
                   options.shardIndex,
                   options.shardCount,
                   generalServerShardDurations,
@@ -621,12 +759,21 @@ if (options.dryRun) {
 
 if (options.mode === generalModeName || options.mode === allModeName) {
   if (options.group) {
-    runGeneralGroup(routeTests, options.group, options.shardIndex, options.shardCount);
+    runGeneralGroup(
+      routeTests,
+      options.group,
+      options.shardIndex,
+      options.shardCount,
+    );
   } else {
     runGeneralSuites(routeTests);
   }
 }
 
 if (options.mode === serializedModeName || options.mode === allModeName) {
-  runSerializedSuites(routeTests, options.shardIndex ?? 0, options.shardCount ?? 1);
+  runSerializedSuites(
+    routeTests,
+    options.shardIndex ?? 0,
+    options.shardCount ?? 1,
+  );
 }

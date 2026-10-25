@@ -37,8 +37,12 @@ const SidebarContext = createContext<SidebarContextValue | null>(null);
 const MOBILE_BREAKPOINT = 768;
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < MOBILE_BREAKPOINT);
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= MOBILE_BREAKPOINT);
+  const [isMobile, setIsMobile] = useState(
+    () => window.innerWidth < MOBILE_BREAKPOINT,
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => window.innerWidth >= MOBILE_BREAKPOINT,
+  );
 
   const [routeRequestsCollapsed, setRouteRequestsCollapsed] = useState(false);
   const [forceCollapsed, setForceCollapsed] = useState(false);
@@ -99,7 +103,9 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
+  return (
+    <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
+  );
 }
 
 export function useSidebar() {

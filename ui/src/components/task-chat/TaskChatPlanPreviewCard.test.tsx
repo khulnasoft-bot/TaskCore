@@ -35,7 +35,9 @@ function planDocument(overrides: Partial<IssueDocument> = {}): IssueDocument {
   };
 }
 
-function livePlan(steps: TaskChatProviderActivityItem["steps"]): TaskChatProviderActivityItem {
+function livePlan(
+  steps: TaskChatProviderActivityItem["steps"],
+): TaskChatProviderActivityItem {
   return {
     id: "live-plan",
     kind: "protocol",
@@ -68,18 +70,30 @@ describe("TaskChatPlanPreviewCard", () => {
   });
 
   it("extracts the Markdown H1 and the first three meaningful plan lines", () => {
-    expect(planPreviewContent("# Ship it\n\n---\n## Build\n- **First** step\n2. Use [the docs](https://example.com)\n```\nFourth"))
-      .toEqual({ title: "Ship it", preview: ["Build", "First step", "Use the docs"] });
+    expect(
+      planPreviewContent(
+        "# Ship it\n\n---\n## Build\n- **First** step\n2. Use [the docs](https://example.com)\n```\nFourth",
+      ),
+    ).toEqual({
+      title: "Ship it",
+      preview: ["Build", "First step", "Use the docs"],
+    });
   });
 
   it("renders a saved revision as a Plan-pane link", () => {
-    act(() => root.render(
-      <ThemeProvider>
-        <TaskChatPlanPreviewCard source={{ kind: "saved", document: planDocument() }} />
-      </ThemeProvider>,
-    ));
+    act(() =>
+      root.render(
+        <ThemeProvider>
+          <TaskChatPlanPreviewCard
+            source={{ kind: "saved", document: planDocument() }}
+          />
+        </ThemeProvider>,
+      ),
+    );
 
-    const preview = container.querySelector('[data-testid="task-chat-plan-preview"]');
+    const preview = container.querySelector(
+      '[data-testid="task-chat-plan-preview"]',
+    );
     expect(preview?.getAttribute("href")).toBe("#document-plan");
     expect(preview?.getAttribute("aria-label")).toBe("Open Plan revision 4");
     expect(preview?.textContent).toContain("Plan· rev 4");
@@ -89,33 +103,49 @@ describe("TaskChatPlanPreviewCard", () => {
   });
 
   it("replaces saved preview content when the canonical revision updates", () => {
-    const render = (document: IssueDocument) => act(() => root.render(
-      <ThemeProvider>
-        <TaskChatPlanPreviewCard source={{ kind: "saved", document }} />
-      </ThemeProvider>,
-    ));
+    const render = (document: IssueDocument) =>
+      act(() =>
+        root.render(
+          <ThemeProvider>
+            <TaskChatPlanPreviewCard source={{ kind: "saved", document }} />
+          </ThemeProvider>,
+        ),
+      );
     render(planDocument());
-    render(planDocument({
-      body: "# Revised streaming UX\n- Preserve final-answer streaming.\n- Preserve provider redaction.",
-      latestRevisionId: "plan-revision-5",
-      latestRevisionNumber: 5,
-    }));
+    render(
+      planDocument({
+        body: "# Revised streaming UX\n- Preserve final-answer streaming.\n- Preserve provider redaction.",
+        latestRevisionId: "plan-revision-5",
+        latestRevisionNumber: 5,
+      }),
+    );
 
-    expect(container.querySelectorAll('[data-testid="task-chat-plan-preview"]')).toHaveLength(1);
+    expect(
+      container.querySelectorAll('[data-testid="task-chat-plan-preview"]'),
+    ).toHaveLength(1);
     expect(container.textContent).toContain("Plan· rev 5");
     expect(container.textContent).toContain("Revised streaming UX");
     expect(container.textContent).not.toContain("Streaming task UX");
   });
 
   it("updates a live provider preview in place as steps stream", () => {
-    const render = (steps: TaskChatProviderActivityItem["steps"]) => act(() => root.render(
-      <ThemeProvider>
-        <TaskChatPlanPreviewCard source={{ kind: "live", activity: livePlan(steps) }} />
-      </ThemeProvider>,
-    ));
+    const render = (steps: TaskChatProviderActivityItem["steps"]) =>
+      act(() =>
+        root.render(
+          <ThemeProvider>
+            <TaskChatPlanPreviewCard
+              source={{ kind: "live", activity: livePlan(steps) }}
+            />
+          </ThemeProvider>,
+        ),
+      );
 
-    render([{ id: "one", label: "Inspect the existing card", status: "in_progress" }]);
-    const preview = container.querySelector('[data-testid="task-chat-plan-preview"]');
+    render([
+      { id: "one", label: "Inspect the existing card", status: "in_progress" },
+    ]);
+    const preview = container.querySelector(
+      '[data-testid="task-chat-plan-preview"]',
+    );
     expect(preview?.tagName).toBe("SECTION");
     expect(preview?.textContent).toContain("Writing plan· rev 5");
     expect(preview?.textContent).toContain("Inspect the existing card");
@@ -124,7 +154,9 @@ describe("TaskChatPlanPreviewCard", () => {
       { id: "one", label: "Inspect the existing card", status: "completed" },
       { id: "two", label: "Render streamed plan steps", status: "in_progress" },
     ]);
-    expect(container.querySelectorAll('[data-testid="task-chat-plan-preview"]')).toHaveLength(1);
+    expect(
+      container.querySelectorAll('[data-testid="task-chat-plan-preview"]'),
+    ).toHaveLength(1);
     expect(container.textContent).toContain("Render streamed plan steps");
   });
 });

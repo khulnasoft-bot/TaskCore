@@ -25,11 +25,17 @@ function app(actor = boardActor) {
     req.actor = actor;
     next();
   });
-  instance.use("/api", chatChannelRoutes({} as Db, {
-    service: chat as unknown as ChatChannelService,
-    heartbeat: { wakeup: vi.fn() },
-  }));
-  instance.use("/api", emailRoutes({} as Db, email as unknown as EmailChannelService));
+  instance.use(
+    "/api",
+    chatChannelRoutes({} as Db, {
+      service: chat as unknown as ChatChannelService,
+      heartbeat: { wakeup: vi.fn() },
+    }),
+  );
+  instance.use(
+    "/api",
+    emailRoutes({} as Db, email as unknown as EmailChannelService),
+  );
   instance.use(errorHandler);
   return instance;
 }
@@ -47,8 +53,12 @@ describe("task connector read routes", () => {
     async (invalidId) => {
       const server = app();
       const encodedId = encodeURIComponent(invalidId);
-      await request(server).get(`/api/issues/${encodedId}/chat-binding`).expect(400);
-      await request(server).get(`/api/companies/${companyId}/email/tasks/${encodedId}`).expect(400);
+      await request(server)
+        .get(`/api/issues/${encodedId}/chat-binding`)
+        .expect(400);
+      await request(server)
+        .get(`/api/companies/${companyId}/email/tasks/${encodedId}`)
+        .expect(400);
       expect(chat.getIssueBinding).not.toHaveBeenCalled();
       expect(email.authorizeRead).not.toHaveBeenCalled();
       expect(email.thread).not.toHaveBeenCalled();
@@ -57,8 +67,12 @@ describe("task connector read routes", () => {
 
   it("retains normal task reads and email authorization", async () => {
     const server = app();
-    await request(server).get(`/api/issues/${issueId}/chat-binding`).expect(200, "null");
-    await request(server).get(`/api/companies/${companyId}/email/tasks/${issueId}`).expect(200, "null");
+    await request(server)
+      .get(`/api/issues/${issueId}/chat-binding`)
+      .expect(200, "null");
+    await request(server)
+      .get(`/api/companies/${companyId}/email/tasks/${issueId}`)
+      .expect(200, "null");
     expect(chat.getIssueBinding).toHaveBeenCalledWith(issueId);
     expect(email.authorizeRead).toHaveBeenCalledWith(companyId, issueId, {
       userId: boardActor.userId,
@@ -67,28 +81,39 @@ describe("task connector read routes", () => {
     expect(email.thread).toHaveBeenCalledWith(companyId, issueId);
   });
 
-  it.each([issueId, `chat:${issueId}`])("retains authentication checks for %s", async (id) => {
-    const server = app({ type: "none", source: "none" });
-    await request(server).get(`/api/issues/${id}/chat-binding`).expect(403);
-    await request(server).get(`/api/companies/${companyId}/email/tasks/${id}`).expect(401);
-    expect(chat.getIssueBinding).not.toHaveBeenCalled();
-    expect(email.authorizeRead).not.toHaveBeenCalled();
-    expect(email.thread).not.toHaveBeenCalled();
-  });
+  it.each([issueId, `chat:${issueId}`])(
+    "retains authentication checks for %s",
+    async (id) => {
+      const server = app({ type: "none", source: "none" });
+      await request(server).get(`/api/issues/${id}/chat-binding`).expect(403);
+      await request(server)
+        .get(`/api/companies/${companyId}/email/tasks/${id}`)
+        .expect(401);
+      expect(chat.getIssueBinding).not.toHaveBeenCalled();
+      expect(email.authorizeRead).not.toHaveBeenCalled();
+      expect(email.thread).not.toHaveBeenCalled();
+    },
+  );
 
   it("retains company isolation for task bindings", async () => {
     const binding = { endpointId: "test-endpoint" };
     chat.getIssueBinding.mockResolvedValue(binding);
     chat.get.mockResolvedValue({ companyId });
-    await request(app()).get(`/api/issues/${issueId}/chat-binding`).expect(200, binding);
+    await request(app())
+      .get(`/api/issues/${issueId}/chat-binding`)
+      .expect(200, binding);
     chat.get.mockResolvedValue({ companyId: "other-company" });
     await request(app()).get(`/api/issues/${issueId}/chat-binding`).expect(404);
   });
 
-  it.each([issueId, `chat:${issueId}`])("retains company isolation for email task %s", async (id) => {
-    await request(app({ ...boardActor, companyIds: [] }))
-      .get(`/api/companies/${companyId}/email/tasks/${id}`).expect(403);
-    expect(email.authorizeRead).not.toHaveBeenCalled();
-    expect(email.thread).not.toHaveBeenCalled();
-  });
+  it.each([issueId, `chat:${issueId}`])(
+    "retains company isolation for email task %s",
+    async (id) => {
+      await request(app({ ...boardActor, companyIds: [] }))
+        .get(`/api/companies/${companyId}/email/tasks/${id}`)
+        .expect(403);
+      expect(email.authorizeRead).not.toHaveBeenCalled();
+      expect(email.thread).not.toHaveBeenCalled();
+    },
+  );
 });

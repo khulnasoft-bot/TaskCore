@@ -3,9 +3,12 @@ import { ApiError } from "./client";
 
 async function request(path: string, init: RequestInit) {
   const response = await fetch(`/api/announcements/${path}`, {
-    credentials: "same-origin", cache: "no-store", ...init,
+    credentials: "same-origin",
+    cache: "no-store",
+    ...init,
   });
-  if (!response.ok) throw new ApiError("Announcement request failed", response.status, null);
+  if (!response.ok)
+    throw new ApiError("Announcement request failed", response.status, null);
   return response;
 }
 
@@ -18,7 +21,10 @@ export const announcementsApi = {
   },
   async dismiss(id: string, companyId: string, signal: AbortSignal) {
     await request(`${encodeURIComponent(id)}/dismiss`, {
-      method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ companyId }),
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId }),
     });
   },
 };

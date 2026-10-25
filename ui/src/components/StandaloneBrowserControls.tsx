@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ExternalLink, RefreshCw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useOptionalToastActions } from "../context/ToastContext";
-import { CHROMELESS_DISPLAY_MODES, isChromelessDisplayMode } from "../lib/pwa-display-mode";
+import {
+  CHROMELESS_DISPLAY_MODES,
+  isChromelessDisplayMode,
+} from "../lib/pwa-display-mode";
 import { copyTextToClipboard } from "../lib/clipboard";
 
 function ControlButton({
@@ -51,10 +58,19 @@ export function StandaloneBrowserControls({ mobile }: { mobile: boolean }) {
     update();
     if (typeof window.matchMedia !== "function") return;
 
-    const mediaQueries = CHROMELESS_DISPLAY_MODES.map((mode) => window.matchMedia(`(display-mode: ${mode})`));
-    if (mediaQueries.every((media) => typeof media.addEventListener === "function")) {
+    const mediaQueries = CHROMELESS_DISPLAY_MODES.map((mode) =>
+      window.matchMedia(`(display-mode: ${mode})`),
+    );
+    if (
+      mediaQueries.every(
+        (media) => typeof media.addEventListener === "function",
+      )
+    ) {
       mediaQueries.forEach((media) => media.addEventListener("change", update));
-      return () => mediaQueries.forEach((media) => media.removeEventListener("change", update));
+      return () =>
+        mediaQueries.forEach((media) =>
+          media.removeEventListener("change", update),
+        );
     }
 
     mediaQueries.forEach((media) => media.addListener(update));
@@ -76,7 +92,11 @@ export function StandaloneBrowserControls({ mobile }: { mobile: boolean }) {
       toastActions?.pushToast({ title: "Link copied", tone: "success" });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      toastActions?.pushToast({ title: "Share failed", body: "Try opening the page in your browser.", tone: "error" });
+      toastActions?.pushToast({
+        title: "Share failed",
+        body: "Try opening the page in your browser.",
+        tone: "error",
+      });
     }
   }, [toastActions]);
 

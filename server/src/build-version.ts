@@ -13,7 +13,9 @@ const DEFAULT_BUILD_VERSION_PATH = fileURLToPath(
   new URL("../../.taskcore-build-version", import.meta.url),
 );
 
-export function parseBuildVersion(value: string | null | undefined): string | null {
+export function parseBuildVersion(
+  value: string | null | undefined,
+): string | null {
   const version = value?.trim() ?? "";
   // A version/describe string is a single token: reject empties and anything
   // carrying whitespace so a stray file cannot inject a multi-line value.
@@ -38,7 +40,9 @@ export function readBuildVersion(
   try {
     const readTextFile =
       opts.readTextFile ?? ((path: string) => readFileSync(path, "utf8"));
-    return parseBuildVersion(readTextFile(opts.buildVersionPath ?? DEFAULT_BUILD_VERSION_PATH));
+    return parseBuildVersion(
+      readTextFile(opts.buildVersionPath ?? DEFAULT_BUILD_VERSION_PATH),
+    );
   } catch {
     return null;
   }

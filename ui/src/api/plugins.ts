@@ -219,16 +219,14 @@ export const pluginsApi = {
   /**
    * List bundled plugin packages available from the current repo checkout.
    */
-  listBundled: () =>
-    api.get<AvailableBundledPlugin[]>("/plugins/examples"),
+  listBundled: () => api.get<AvailableBundledPlugin[]>("/plugins/examples"),
 
   /**
    * Fetch a single plugin record by its UUID or plugin key.
    *
    * @param pluginId - The plugin's UUID (from `PluginRecord.id`) or plugin key.
    */
-  get: (pluginId: string) =>
-    api.get<PluginRecord>(`/plugins/${pluginId}`),
+  get: (pluginId: string) => api.get<PluginRecord>(`/plugins/${pluginId}`),
 
   /**
    * Install a plugin from npm or a local path.
@@ -241,8 +239,11 @@ export const pluginsApi = {
    * @param params.version - Target npm version tag/range (optional; defaults to latest).
    * @param params.isLocalPath - Set to `true` when `packageName` is a local path.
    */
-  install: (params: { packageName: string; version?: string; isLocalPath?: boolean }) =>
-    api.post<PluginRecord>("/plugins/install", params),
+  install: (params: {
+    packageName: string;
+    version?: string;
+    isLocalPath?: boolean;
+  }) => api.post<PluginRecord>("/plugins/install", params),
 
   /**
    * Uninstall a plugin.
@@ -252,7 +253,9 @@ export const pluginsApi = {
    *   Otherwise the plugin is soft-deleted with a 30-day data retention window.
    */
   uninstall: (pluginId: string, purge?: boolean) =>
-    api.delete<{ ok: boolean }>(`/plugins/${pluginId}${purge ? "?purge=true" : ""}`),
+    api.delete<{ ok: boolean }>(
+      `/plugins/${pluginId}${purge ? "?purge=true" : ""}`,
+    ),
 
   /**
    * Transition a plugin from `error` state back to `ready`.
@@ -271,7 +274,10 @@ export const pluginsApi = {
    * @param reason - Optional human-readable reason stored in `lastError`.
    */
   disable: (pluginId: string, reason?: string) =>
-    api.post<{ ok: boolean }>(`/plugins/${pluginId}/disable`, reason ? { reason } : {}),
+    api.post<{ ok: boolean }>(
+      `/plugins/${pluginId}/disable`,
+      reason ? { reason } : {},
+    ),
 
   /**
    * Run health diagnostics for a plugin.
@@ -303,15 +309,25 @@ export const pluginsApi = {
    * @param pluginId - UUID of the plugin.
    * @param options - Optional filters: limit, level, since.
    */
-  logs: (pluginId: string, options?: { limit?: number; level?: string; since?: string }) => {
+  logs: (
+    pluginId: string,
+    options?: { limit?: number; level?: string; since?: string },
+  ) => {
     const params = new URLSearchParams();
     if (options?.limit) params.set("limit", String(options.limit));
     if (options?.level) params.set("level", options.level);
     if (options?.since) params.set("since", options.since);
     const qs = params.toString();
-    return api.get<Array<{ id: string; pluginId: string; level: string; message: string; meta: Record<string, unknown> | null; createdAt: string }>>(
-      `/plugins/${pluginId}/logs${qs ? `?${qs}` : ""}`,
-    );
+    return api.get<
+      Array<{
+        id: string;
+        pluginId: string;
+        level: string;
+        message: string;
+        meta: Record<string, unknown> | null;
+        createdAt: string;
+      }>
+    >(`/plugins/${pluginId}/logs${qs ? `?${qs}` : ""}`);
   },
 
   /**
@@ -324,7 +340,10 @@ export const pluginsApi = {
    * @param version - Target version (optional; defaults to latest published).
    */
   upgrade: (pluginId: string, version?: string) =>
-    api.post<{ ok: boolean }>(`/plugins/${pluginId}/upgrade`, version ? { version } : {}),
+    api.post<{ ok: boolean }>(
+      `/plugins/${pluginId}/upgrade`,
+      version ? { version } : {},
+    ),
 
   /**
    * Returns normalized UI contribution declarations for ready plugins.
@@ -359,7 +378,9 @@ export const pluginsApi = {
    * @param pluginId - UUID of the plugin.
    */
   getConfig: (pluginId: string, companyId: string) =>
-    api.get<PluginConfig | null>(`/plugins/${pluginId}/config?companyId=${encodeURIComponent(companyId)}`),
+    api.get<PluginConfig | null>(
+      `/plugins/${pluginId}/config?companyId=${encodeURIComponent(companyId)}`,
+    ),
 
   /**
    * Save (create or update) the configuration for a plugin.
@@ -370,8 +391,15 @@ export const pluginsApi = {
    * @param pluginId - UUID of the plugin.
    * @param configJson - Configuration values matching the plugin's `instanceConfigSchema`.
    */
-  saveConfig: (pluginId: string, companyId: string, configJson: Record<string, unknown>) =>
-    api.post<PluginConfig>(`/plugins/${pluginId}/config`, { companyId, configJson }),
+  saveConfig: (
+    pluginId: string,
+    companyId: string,
+    configJson: Record<string, unknown>,
+  ) =>
+    api.post<PluginConfig>(`/plugins/${pluginId}/config`, {
+      companyId,
+      configJson,
+    }),
 
   /**
    * Call the plugin's `validateConfig` RPC method to test the configuration
@@ -385,14 +413,23 @@ export const pluginsApi = {
    * @param pluginId - UUID of the plugin.
    * @param configJson - Configuration values to validate.
    */
-  testConfig: (pluginId: string, companyId: string, configJson: Record<string, unknown>) =>
-    api.post<{ valid: boolean; message?: string }>(`/plugins/${pluginId}/config/test`, { companyId, configJson }),
+  testConfig: (
+    pluginId: string,
+    companyId: string,
+    configJson: Record<string, unknown>,
+  ) =>
+    api.post<{ valid: boolean; message?: string }>(
+      `/plugins/${pluginId}/config/test`,
+      { companyId, configJson },
+    ),
 
   /**
    * List manifest-declared and stored company-scoped local folders for a plugin.
    */
   listLocalFolders: (pluginId: string, companyId: string) =>
-    api.get<PluginLocalFoldersResponse>(`/plugins/${pluginId}/companies/${companyId}/local-folders`),
+    api.get<PluginLocalFoldersResponse>(
+      `/plugins/${pluginId}/companies/${companyId}/local-folders`,
+    ),
 
   /**
    * Inspect a configured local folder without changing persisted settings.
@@ -468,11 +505,14 @@ export const pluginsApi = {
     companyId?: string | null,
     renderEnvironment?: PluginLauncherRenderContextSnapshot | null,
   ) =>
-    api.post<{ data: unknown }>(`/plugins/${pluginId}/data/${encodeURIComponent(key)}`, {
-      companyId: companyId ?? undefined,
-      params,
-      renderEnvironment: renderEnvironment ?? undefined,
-    }),
+    api.post<{ data: unknown }>(
+      `/plugins/${pluginId}/data/${encodeURIComponent(key)}`,
+      {
+        companyId: companyId ?? undefined,
+        params,
+        renderEnvironment: renderEnvironment ?? undefined,
+      },
+    ),
 
   /**
    * Proxy a `performAction` call from a plugin UI component to its worker backend.
@@ -508,9 +548,12 @@ export const pluginsApi = {
     companyId?: string | null,
     renderEnvironment?: PluginLauncherRenderContextSnapshot | null,
   ) =>
-    api.post<{ data: unknown }>(`/plugins/${pluginId}/actions/${encodeURIComponent(key)}`, {
-      companyId: companyId ?? undefined,
-      params,
-      renderEnvironment: renderEnvironment ?? undefined,
-    }),
+    api.post<{ data: unknown }>(
+      `/plugins/${pluginId}/actions/${encodeURIComponent(key)}`,
+      {
+        companyId: companyId ?? undefined,
+        params,
+        renderEnvironment: renderEnvironment ?? undefined,
+      },
+    ),
 };

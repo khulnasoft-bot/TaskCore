@@ -275,9 +275,7 @@ body { background: #18181b; }
 `,
     renderCard: (node, isOg) => {
       const icon =
-        node.icon && !isOg
-          ? `<div class="icon-wrap">${node.icon}</div>`
-          : "";
+        node.icon && !isOg ? `<div class="icon-wrap">${node.icon}</div>` : "";
       return `<div class="org-card">${icon}<div class="name">${node.name}</div><div class="role">${node.role}</div></div>`;
     },
   },
@@ -326,9 +324,7 @@ body { background: #0f0c29; }
 `,
     renderCard: (node, isOg) => {
       const icon =
-        node.icon && !isOg
-          ? `<div class="icon-wrap">${node.icon}</div>`
-          : "";
+        node.icon && !isOg ? `<div class="icon-wrap">${node.icon}</div>` : "";
       return `<div class="org-card">${icon}<div class="name">${node.name}</div><div class="role">${node.role}</div></div>`;
     },
   },
@@ -369,9 +365,7 @@ body { background: #0c0c0e; }
     renderCard: (node, isOg) => {
       const cls = node.tag === "ceo" ? " chief" : "";
       const icon =
-        node.icon && !isOg
-          ? `<div class="icon-wrap">${node.icon}</div>`
-          : "";
+        node.icon && !isOg ? `<div class="icon-wrap">${node.icon}</div>` : "";
       return `<div class="org-card${cls}">${icon}<div class="name">${node.name}</div><div class="role">${node.role}</div></div>`;
     },
   },
@@ -499,15 +493,12 @@ body { background: #0d1117; }
         ops: "operations",
       };
       const icon =
-        node.icon && !isOg
-          ? `<div class="icon-wrap">${node.icon}</div>`
-          : "";
-      const roleText =
-        isOg
+        node.icon && !isOg ? `<div class="icon-wrap">${node.icon}</div>` : "";
+      const roleText = isOg
+        ? node.role
+        : node.children
           ? node.role
-          : node.children
-            ? node.role
-            : schemaRoles[node.tag] || node.role;
+          : schemaRoles[node.tag] || node.role;
       return `<div class="org-card t-${node.tag}">${icon}<div class="name">${node.name}</div><div class="role">${roleText}</div></div>`;
     },
   },
@@ -515,11 +506,7 @@ body { background: #0d1117; }
 
 // ── HTML rendering ─────────────────────────────────────────────
 
-function renderNode(
-  node: OrgNode,
-  style: StyleDef,
-  isOg: boolean,
-): string {
+function renderNode(node: OrgNode, style: StyleDef, isOg: boolean): string {
   const cardHtml = style.renderCard(node, isOg);
   if (!node.children || node.children.length === 0) {
     return `<div class="org-node">${cardHtml}</div>`;
@@ -530,11 +517,7 @@ function renderNode(
   return `<div class="org-node">${cardHtml}<div class="org-children">${childrenHtml}</div></div>`;
 }
 
-function renderTree(
-  orgData: OrgNode,
-  style: StyleDef,
-  isOg: boolean,
-): string {
+function renderTree(orgData: OrgNode, style: StyleDef, isOg: boolean): string {
   const compact = isOg ? " og-compact" : "";
   return `<div class="org-tree${compact}">${renderNode(orgData, style, isOg)}</div>`;
 }
@@ -546,11 +529,7 @@ const TASKCORE_WATERMARK = `<div class="watermark">
   Taskcore
 </div>`;
 
-function buildHtml(
-  style: StyleDef,
-  orgData: OrgNode,
-  isOg: boolean,
-): string {
+function buildHtml(style: StyleDef, orgData: OrgNode, isOg: boolean): string {
   const tree = renderTree(orgData, style, isOg);
   return `<!DOCTYPE html>
 <html><head>

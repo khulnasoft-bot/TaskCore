@@ -14,7 +14,10 @@ import {
   stringifyFrontmatter,
 } from "./frontmatter.js";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../..",
+);
 const skillMarkdownSearchRoots = [
   "packages/skills-catalog/catalog",
   "packages/teams-catalog/catalog",
@@ -25,77 +28,93 @@ const skillMarkdownSearchRoots = [
 
 describe("parseFrontmatterMarkdown", () => {
   it("parses folded and literal YAML block scalars", () => {
-    const folded = parseFrontmatterMarkdown([
-      "---",
-      "name: Folded",
-      "description: >",
-      "  First line",
-      "  second line",
-      "",
-      "  Third paragraph",
-      "---",
-      "",
-      "Body",
-    ].join("\n"));
+    const folded = parseFrontmatterMarkdown(
+      [
+        "---",
+        "name: Folded",
+        "description: >",
+        "  First line",
+        "  second line",
+        "",
+        "  Third paragraph",
+        "---",
+        "",
+        "Body",
+      ].join("\n"),
+    );
 
-    expect(folded.frontmatter.description).toBe("First line second line\n\nThird paragraph\n");
+    expect(folded.frontmatter.description).toBe(
+      "First line second line\n\nThird paragraph\n",
+    );
 
-    const literal = parseFrontmatterMarkdown([
-      "---",
-      "name: Literal",
-      "description: |",
-      "  First line",
-      "  second line",
-      "---",
-      "",
-      "Body",
-    ].join("\n"));
+    const literal = parseFrontmatterMarkdown(
+      [
+        "---",
+        "name: Literal",
+        "description: |",
+        "  First line",
+        "  second line",
+        "---",
+        "",
+        "Body",
+      ].join("\n"),
+    );
 
     expect(literal.frontmatter.description).toBe("First line\nsecond line\n");
   });
 
   it("respects block-scalar chomping indicators", () => {
-    const foldedStrip = parseFrontmatterMarkdown([
-      "---",
-      "description: >-",
-      "  First line",
-      "  second line",
-      "",
-      "  Third paragraph",
-      "---",
-      "",
-      "Body",
-    ].join("\n"));
+    const foldedStrip = parseFrontmatterMarkdown(
+      [
+        "---",
+        "description: >-",
+        "  First line",
+        "  second line",
+        "",
+        "  Third paragraph",
+        "---",
+        "",
+        "Body",
+      ].join("\n"),
+    );
 
-    expect(foldedStrip.frontmatter.description).toBe("First line second line\n\nThird paragraph");
+    expect(foldedStrip.frontmatter.description).toBe(
+      "First line second line\n\nThird paragraph",
+    );
 
-    const literalKeep = parseFrontmatterMarkdown([
-      "---",
-      "description: |+",
-      "  First line",
-      "  second line",
-      "",
-      "",
-      "---",
-      "",
-      "Body",
-    ].join("\n"));
+    const literalKeep = parseFrontmatterMarkdown(
+      [
+        "---",
+        "description: |+",
+        "  First line",
+        "  second line",
+        "",
+        "",
+        "---",
+        "",
+        "Body",
+      ].join("\n"),
+    );
 
-    expect(literalKeep.frontmatter.description).toBe("First line\nsecond line\n\n");
+    expect(literalKeep.frontmatter.description).toBe(
+      "First line\nsecond line\n\n",
+    );
   });
 
   it("parses inline object array items nested under frontmatter keys", () => {
-    const parsed = parseFrontmatterMarkdown([
-      "---",
-      "metadata:",
-      "  sources:",
-      "    - kind: github-dir",
-      "      repo: taskcore/taskcore",
-      "      path: skills/taskcore",
-      "---",
-      "",
-      "Body",
-    ].join("\n"));
+    const parsed = parseFrontmatterMarkdown(
+      [
+        "---",
+        "metadata:",
+        "  sources:",
+        "    - kind: github-dir",
+        "      repo: taskcore/taskcore",
+        "      path: skills/taskcore",
+        "---",
+        "",
+        "Body",
+      ].join("\n"),
+    );
 
     expect(parsed.frontmatter).toMatchObject({
       metadata: {
@@ -111,12 +130,9 @@ describe("parseFrontmatterMarkdown", () => {
   });
 
   it("does not treat trailing-dot decimals as numbers", () => {
-    const parsed = parseFrontmatterMarkdown([
-      "---",
-      "version: 1.",
-      "---",
-      "",
-    ].join("\n"));
+    const parsed = parseFrontmatterMarkdown(
+      ["---", "version: 1.", "---", ""].join("\n"),
+    );
 
     expect(parsed.frontmatter.version).toBe("1.");
   });
@@ -196,8 +212,12 @@ describe("stringifyFrontmatter", () => {
       },
     },
   ])("serializes parser-compatible YAML for $label", ({ value }) => {
-    const first = parseFrontmatterMarkdown(`---\n${stringifyFrontmatter(value)}\n---\n`).frontmatter;
-    const second = parseFrontmatterMarkdown(`---\n${stringifyFrontmatter(first)}\n---\n`).frontmatter;
+    const first = parseFrontmatterMarkdown(
+      `---\n${stringifyFrontmatter(value)}\n---\n`,
+    ).frontmatter;
+    const second = parseFrontmatterMarkdown(
+      `---\n${stringifyFrontmatter(first)}\n---\n`,
+    ).frontmatter;
 
     expect(second).toEqual(first);
   });
@@ -218,21 +238,25 @@ describe("skillFrontmatterSchema", () => {
   });
 
   it("rejects non-slug skill names", () => {
-    expect(() => skillFrontmatterSchema.parse({
-      name: "Demo Skill",
-      description: "A demo skill.",
-    })).toThrow();
+    expect(() =>
+      skillFrontmatterSchema.parse({
+        name: "Demo Skill",
+        description: "A demo skill.",
+      }),
+    ).toThrow();
   });
 });
 
 describe("detectFrontmatterRoundTripIssues", () => {
   it("reports YAML constructs that fields mode cannot preserve", () => {
-    const issues = detectFrontmatterRoundTripIssues([
-      "# leading comment",
-      "\"quoted-key\": value",
-      "base: &base",
-      "copy: *base",
-    ].join("\n"));
+    const issues = detectFrontmatterRoundTripIssues(
+      [
+        "# leading comment",
+        '"quoted-key": value',
+        "base: &base",
+        "copy: *base",
+      ].join("\n"),
+    );
 
     expect(issues.map((issue) => issue.kind)).toEqual([
       "comment",
@@ -261,7 +285,11 @@ describe("joinFrontmatterBlock", () => {
 
   it("returns the body untouched when there is no frontmatter", () => {
     expect(
-      joinFrontmatterBlock({ frontmatterText: "", body: "just body", hasFrontmatter: false }),
+      joinFrontmatterBlock({
+        frontmatterText: "",
+        body: "just body",
+        hasFrontmatter: false,
+      }),
     ).toBe("just body");
   });
 });
@@ -279,10 +307,15 @@ describe("parseFrontmatterFields", () => {
 
 describe("analyzeFrontmatterBlock", () => {
   it("marks a simple inline block as round-trippable", () => {
-    const result = analyzeFrontmatterBlock("name: reflection-coach\ndescription: A coach");
+    const result = analyzeFrontmatterBlock(
+      "name: reflection-coach\ndescription: A coach",
+    );
     expect(result.canRoundTrip).toBe(true);
     expect(result.issues).toEqual([]);
-    expect(result.parsed).toEqual({ name: "reflection-coach", description: "A coach" });
+    expect(result.parsed).toEqual({
+      name: "reflection-coach",
+      description: "A coach",
+    });
   });
 
   it("marks a block with allowed-tools and metadata as round-trippable", () => {
@@ -302,7 +335,9 @@ describe("analyzeFrontmatterBlock", () => {
   });
 
   it("refuses fields mode when comments are present (would be dropped)", () => {
-    const result = analyzeFrontmatterBlock("name: coach # inline note\ndescription: x");
+    const result = analyzeFrontmatterBlock(
+      "name: coach # inline note\ndescription: x",
+    );
     expect(result.canRoundTrip).toBe(false);
     expect(result.issues.some((issue) => issue.kind === "comment")).toBe(true);
   });
@@ -323,10 +358,14 @@ describe("analyzeFrontmatterBlock", () => {
 });
 
 function collectSkillMarkdownFiles() {
-  return skillMarkdownSearchRoots.flatMap((relativeRoot) => {
-    const absoluteRoot = path.join(repoRoot, relativeRoot);
-    return fs.existsSync(absoluteRoot) ? collectSkillMarkdownFilesUnder(absoluteRoot) : [];
-  }).sort();
+  return skillMarkdownSearchRoots
+    .flatMap((relativeRoot) => {
+      const absoluteRoot = path.join(repoRoot, relativeRoot);
+      return fs.existsSync(absoluteRoot)
+        ? collectSkillMarkdownFilesUnder(absoluteRoot)
+        : [];
+    })
+    .sort();
 }
 
 function collectSkillMarkdownFilesUnder(root: string): string[] {

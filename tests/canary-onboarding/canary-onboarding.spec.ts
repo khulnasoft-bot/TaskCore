@@ -22,11 +22,14 @@ test("the exact published canary installs and reaches Connect a model", async ({
   // this release check must prove that a refetch does not remount the wizard
   // from that old draft and leave the customer on the name screen.
   await page.addInitScript(() => {
-    localStorage.setItem("taskcore-onboarding-state", JSON.stringify({
-      step: 1,
-      companyName: "",
-      createdCompanyId: null,
-    }));
+    localStorage.setItem(
+      "taskcore-onboarding-state",
+      JSON.stringify({
+        step: 1,
+        companyName: "",
+        createdCompanyId: null,
+      }),
+    );
   });
   let delayCompanyListRefetch = false;
   await page.route("**/api/companies", async (route) => {
@@ -49,7 +52,9 @@ test("the exact published canary installs and reaches Connect a model", async ({
 
   await page.goto("/onboarding");
   await expect(
-    page.getByRole("heading", { name: "What is the name of your organization?" }),
+    page.getByRole("heading", {
+      name: "What is the name of your organization?",
+    }),
   ).toBeVisible();
   await page.getByRole("textbox").fill(companyName);
   delayCompanyListRefetch = true;
@@ -63,7 +68,10 @@ test("the exact published canary installs and reaches Connect a model", async ({
     "/api/companies",
   );
   const company = companies.find((candidate) => candidate.name === companyName);
-  expect(company, `organization ${companyName} should exist through the API`).toBeTruthy();
+  expect(
+    company,
+    `organization ${companyName} should exist through the API`,
+  ).toBeTruthy();
 
   expect(
     await getJson<Array<{ id: string }>>(
@@ -80,7 +88,9 @@ test("the exact published canary installs and reaches Connect a model", async ({
 
   await agentNameField.fill(agentName);
   await page.getByRole("button", { name: "Next", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Connect a model" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Connect a model" }),
+  ).toBeVisible();
 
   // Stop before Connect: a public-repository gate must not require a Claude or
   // Codex credential, and reaching this screen has not hired an agent or made

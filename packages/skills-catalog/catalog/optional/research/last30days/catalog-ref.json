@@ -27,10 +27,7 @@
     "product-manager",
     "analyst"
   ],
-  "requires": [
-    "node",
-    "python3"
-  ],
+  "requires": ["node", "python3"],
   "tags": [
     "research",
     "last-30-days",

@@ -80,11 +80,19 @@ const mockChatRunRetries = vi.hoisted(() => ({
 }));
 
 function registerModuleMocks() {
-  vi.doMock("../services/native-runtime/native-review-participant.js", async () => ({
-    ...(await vi.importActual<typeof import("../services/native-runtime/native-review-participant.js")>("../services/native-runtime/native-review-participant.js")),
-    getNativeReviewAssignment: mockNativeReviewAssignment,
-  }));
-  vi.doMock("../services/execution-projection.js", () => mockExecutionProjection);
+  vi.doMock(
+    "../services/native-runtime/native-review-participant.js",
+    async () => ({
+      ...(await vi.importActual<
+        typeof import("../services/native-runtime/native-review-participant.js")
+      >("../services/native-runtime/native-review-participant.js")),
+      getNativeReviewAssignment: mockNativeReviewAssignment,
+    }),
+  );
+  vi.doMock(
+    "../services/execution-projection.js",
+    () => mockExecutionProjection,
+  );
   vi.doMock("../routes/authz.js", async () =>
     vi.importActual("../routes/authz.js"),
   );
@@ -113,15 +121,19 @@ function registerModuleMocks() {
     providerTraceStore: () => mockProviderTraceStore,
   }));
 
-  vi.doMock("../services/provider-trace-workspace-diff-reprojection.js", () => ({
-    projectCodexWorkspaceDiffsFromTrace: mockWorkspaceDiffReprojection.project,
-    persistReprojectedWorkspaceDiffs: mockWorkspaceDiffReprojection.persist,
-  }));
+  vi.doMock(
+    "../services/provider-trace-workspace-diff-reprojection.js",
+    () => ({
+      projectCodexWorkspaceDiffsFromTrace:
+        mockWorkspaceDiffReprojection.project,
+      persistReprojectedWorkspaceDiffs: mockWorkspaceDiffReprojection.persist,
+    }),
+  );
 
   vi.doMock("../realtime/runner-prp-ws.js", async () => {
-    const actual = await vi.importActual<typeof import("../realtime/runner-prp-ws.js")>(
-      "../realtime/runner-prp-ws.js",
-    );
+    const actual = await vi.importActual<
+      typeof import("../realtime/runner-prp-ws.js")
+    >("../realtime/runner-prp-ws.js");
     return {
       ...actual,
       queueRunnerPrpRuntimeRequestResolution: mockQueueRuntimeRequestResolution,
@@ -294,12 +306,14 @@ describe("agent live run routes", () => {
     mockChatRunRetries.processFailedChatRunRetry.mockReset();
     mockNativeReviewAssignment.mockReset().mockResolvedValue(null);
     mockAccessService.canUser.mockResolvedValue(true);
-    mockAccessService.decide.mockImplementation(async (input: { action?: string }) => ({
-      allowed: true,
-      action: input.action,
-      reason: "allow_explicit_grant",
-      explanation: "Allowed by test grant.",
-    }));
+    mockAccessService.decide.mockImplementation(
+      async (input: { action?: string }) => ({
+        allowed: true,
+        action: input.action,
+        reason: "allow_explicit_grant",
+        explanation: "Allowed by test grant.",
+      }),
+    );
     mockAccessService.hasPermission.mockResolvedValue(true);
     mockIssueService.getByIdentifier.mockResolvedValue({
       id: "issue-1",
@@ -394,7 +408,10 @@ describe("agent live run routes", () => {
     });
     mockProviderTraceStore.getByRun.mockResolvedValue(null);
     mockProviderTraceStore.readExactEntries.mockResolvedValue([]);
-    mockWorkspaceDiffReprojection.project.mockReturnValue({ turns: [], skipReasons: [] });
+    mockWorkspaceDiffReprojection.project.mockReturnValue({
+      turns: [],
+      skipReasons: [],
+    });
     mockWorkspaceDiffReprojection.persist.mockResolvedValue({
       created: 0,
       skipped: 0,
@@ -418,24 +435,33 @@ describe("agent live run routes", () => {
       ["get", "/workspace-operations"],
     ] as const;
 
-    it.each(["undefined", "null", "not-a-uuid", " aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa "])(
-      "rejects malformed run ID %j before any run lookup",
-      async (runId) => {
-        const app = await createApp();
-        for (const [method, suffix] of routes) {
-          const response = await requestApp(app, (url) =>
-            request(url)[method](`/api/heartbeat-runs/${encodeURIComponent(runId)}${suffix}`).send({}),
-          );
-          expect(response.status, `${method} ${suffix}: ${JSON.stringify(response.body)}`).toBe(400);
-          expect(response.body).toEqual({ error: "Invalid heartbeat run ID" });
-        }
-        expect(mockHeartbeatService.getRun).not.toHaveBeenCalled();
-        expect(mockHeartbeatService.getRunLogAccess).not.toHaveBeenCalled();
-        expect(mockHeartbeatService.readLog).not.toHaveBeenCalled();
-        expect(mockProviderTraceStore.inspect).not.toHaveBeenCalled();
-        expect(mockLogActivity).not.toHaveBeenCalled();
-      },
-    );
+    it.each([
+      "undefined",
+      "null",
+      "not-a-uuid",
+      " aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa ",
+    ])("rejects malformed run ID %j before any run lookup", async (runId) => {
+      const app = await createApp();
+      for (const [method, suffix] of routes) {
+        const response = await requestApp(app, (url) =>
+          request(url)
+            [method](
+              `/api/heartbeat-runs/${encodeURIComponent(runId)}${suffix}`,
+            )
+            .send({}),
+        );
+        expect(
+          response.status,
+          `${method} ${suffix}: ${JSON.stringify(response.body)}`,
+        ).toBe(400);
+        expect(response.body).toEqual({ error: "Invalid heartbeat run ID" });
+      }
+      expect(mockHeartbeatService.getRun).not.toHaveBeenCalled();
+      expect(mockHeartbeatService.getRunLogAccess).not.toHaveBeenCalled();
+      expect(mockHeartbeatService.readLog).not.toHaveBeenCalled();
+      expect(mockProviderTraceStore.inspect).not.toHaveBeenCalled();
+      expect(mockLogActivity).not.toHaveBeenCalled();
+    });
 
     it("accepts uppercase UUIDs without changing the lookup value", async () => {
       const runId = "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA";
@@ -446,31 +472,59 @@ describe("agent live run routes", () => {
       expect(mockHeartbeatService.getRunLogAccess).toHaveBeenCalledWith(runId);
     });
 
-    it.each(["get", "log"])("keeps missing and cross-company %s lookups indistinguishable", async (kind) => {
-      const lookup = kind === "log" ? mockHeartbeatService.getRunLogAccess : mockHeartbeatService.getRun;
-      const suffix = kind === "log" ? "/log" : "";
-      const app = await createApp({}, {
-        type: "board", userId: "test-user", source: "session", companyIds: ["company-1"],
-      });
-      for (const result of [null, { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", companyId: "company-2" }]) {
-        lookup.mockResolvedValueOnce(result);
-        const response = await requestApp(app, (url) =>
-          request(url).get(`/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa${suffix}`),
+    it.each(["get", "log"])(
+      "keeps missing and cross-company %s lookups indistinguishable",
+      async (kind) => {
+        const lookup =
+          kind === "log"
+            ? mockHeartbeatService.getRunLogAccess
+            : mockHeartbeatService.getRun;
+        const suffix = kind === "log" ? "/log" : "";
+        const app = await createApp(
+          {},
+          {
+            type: "board",
+            userId: "test-user",
+            source: "session",
+            companyIds: ["company-1"],
+          },
         );
-        expect(response.status).toBe(404);
-        expect(response.body).toEqual({ error: "Heartbeat run not found" });
-      }
-      expect(lookup).toHaveBeenCalledTimes(2);
-      expect(mockHeartbeatService.readLog).not.toHaveBeenCalled();
-    });
+        for (const result of [
+          null,
+          {
+            id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            companyId: "company-2",
+          },
+        ]) {
+          lookup.mockResolvedValueOnce(result);
+          const response = await requestApp(app, (url) =>
+            request(url).get(
+              `/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa${suffix}`,
+            ),
+          );
+          expect(response.status).toBe(404);
+          expect(response.body).toEqual({ error: "Heartbeat run not found" });
+        }
+        expect(lookup).toHaveBeenCalledTimes(2);
+        expect(mockHeartbeatService.readLog).not.toHaveBeenCalled();
+      },
+    );
 
     it("keeps board and instance-admin checks ahead of malformed-ID validation", async () => {
-      const app = await createApp({}, { type: "agent", companyId: "company-1", agentId: routeAgentId });
-      for (const [method, suffix] of routes.filter(([, suffix]) =>
-        suffix === "/cancel" || suffix === "/runtime-requests/approval-1/resolve" || suffix.startsWith("/provider-trace"),
+      const app = await createApp(
+        {},
+        { type: "agent", companyId: "company-1", agentId: routeAgentId },
+      );
+      for (const [method, suffix] of routes.filter(
+        ([, suffix]) =>
+          suffix === "/cancel" ||
+          suffix === "/runtime-requests/approval-1/resolve" ||
+          suffix.startsWith("/provider-trace"),
       )) {
         const response = await requestApp(app, (url) =>
-          request(url)[method](`/api/heartbeat-runs/undefined${suffix}`).send({}),
+          request(url)
+            [method](`/api/heartbeat-runs/undefined${suffix}`)
+            .send({}),
         );
         expect(response.status, `${method} ${suffix}`).toBe(403);
       }
@@ -571,11 +625,18 @@ describe("agent live run routes", () => {
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(mockHeartbeatService.decorateActiveRunStatus).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", issueId: "issue-1" }),
+      expect.objectContaining({
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        issueId: "issue-1",
+      }),
       { companyId: "company-1", issueId: "issue-1" },
     );
-    expect(mockExecutionProjection.executionProjectionForRun).toHaveBeenCalledWith(
-      expect.anything(), "company-1", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    expect(
+      mockExecutionProjection.executionProjectionForRun,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      "company-1",
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     );
     expect(res.body).toMatchObject({
       execution: null,
@@ -595,13 +656,15 @@ describe("agent live run routes", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(mockHeartbeatService.getRunLogAccess).toHaveBeenCalledWith("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    expect(mockHeartbeatService.getRunLogAccess).toHaveBeenCalledWith(
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    );
     expect(mockHeartbeatService.readLog).toHaveBeenCalledWith(
       {
         id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         companyId: "company-1",
-      scopeKind: "company",
-      issueId: null,
+        scopeKind: "company",
+        issueId: null,
         logStore: "local_file",
         logRef: "logs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.ndjson",
       },
@@ -622,22 +685,29 @@ describe("agent live run routes", () => {
   it.each(["skill_test", "task_bridge"])(
     "denies %s keys from company-wide run and workspace logs",
     async (kind) => {
-      mockAccessService.decide.mockImplementation(async (input: { action?: string }) => ({
-        allowed: input.action !== "company_scope:read",
-        action: input.action,
-        reason: input.action === "company_scope:read" ? "deny_key_scope" : "allow_explicit_grant",
-        explanation: input.action === "company_scope:read"
-          ? "Restricted keys cannot read company-wide run telemetry."
-          : "Allowed by test grant.",
-      }));
+      mockAccessService.decide.mockImplementation(
+        async (input: { action?: string }) => ({
+          allowed: input.action !== "company_scope:read",
+          action: input.action,
+          reason:
+            input.action === "company_scope:read"
+              ? "deny_key_scope"
+              : "allow_explicit_grant",
+          explanation:
+            input.action === "company_scope:read"
+              ? "Restricted keys cannot read company-wide run telemetry."
+              : "Allowed by test grant.",
+        }),
+      );
       const actor = {
         type: "agent",
         agentId: routeAgentId,
         companyId: "company-1",
         source: "agent_key",
-        keyScope: kind === "skill_test"
-          ? { kind, issueId: "issue-1" }
-          : { kind, parentIssueId: "issue-1" },
+        keyScope:
+          kind === "skill_test"
+            ? { kind, issueId: "issue-1" }
+            : { kind, parentIssueId: "issue-1" },
       };
       const app = await createApp({}, actor);
       const paths = [
@@ -651,17 +721,21 @@ describe("agent live run routes", () => {
       ];
 
       for (const path of paths) {
-        const res = await requestApp(app, (baseUrl) => request(baseUrl).get(path));
+        const res = await requestApp(app, (baseUrl) =>
+          request(baseUrl).get(path),
+        );
         expect(res.status, `${path}: ${JSON.stringify(res.body)}`).toBe(403);
         expect(res.body.error).toContain("Run telemetry");
       }
 
       expect(mockHeartbeatService.readLog).not.toHaveBeenCalled();
       expect(mockWorkspaceOperationService.readLog).not.toHaveBeenCalled();
-      expect(mockAccessService.decide).toHaveBeenCalledWith(expect.objectContaining({
-        action: "company_scope:read",
-        resource: { type: "company", companyId: "company-1" },
-      }));
+      expect(mockAccessService.decide).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "company_scope:read",
+          resource: { type: "company", companyId: "company-1" },
+        }),
+      );
     },
   );
 
@@ -703,7 +777,9 @@ describe("agent live run routes", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(limit).toHaveBeenCalledWith(50);
     expect(res.body).toHaveLength(50);
-    expect(mockRunSecretRedactionRegistry.redactForRuns).toHaveBeenCalledTimes(1);
+    expect(mockRunSecretRedactionRegistry.redactForRuns).toHaveBeenCalledTimes(
+      1,
+    );
     expect(mockRunSecretRedactionRegistry.redactForRun).not.toHaveBeenCalled();
     expect(mockHeartbeatService.buildRunOutputSilence).toHaveBeenCalledTimes(
       50,
@@ -750,7 +826,9 @@ describe("agent live run routes", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(limit).toHaveBeenCalledWith(50);
     expect(res.body).toHaveLength(50);
-    expect(mockRunSecretRedactionRegistry.redactForRuns).toHaveBeenCalledTimes(1);
+    expect(mockRunSecretRedactionRegistry.redactForRuns).toHaveBeenCalledTimes(
+      1,
+    );
     expect(mockRunSecretRedactionRegistry.redactForRun).not.toHaveBeenCalled();
   });
 
@@ -969,17 +1047,33 @@ describe("agent live run routes", () => {
     });
   });
 
-  it.each(["wakeup", "heartbeat/invoke"])("lets an operator start an existing agent via %s without creating agents", async (endpoint) => {
-    mockAccessService.decide.mockImplementation(async ({ action }) => ({
-      allowed: action === "agent:wake", explanation: "Missing permission: agents:create",
-    }));
-    const res = await requestApp(await createApp(undefined, {
-      type: "board", userId: "operator", source: "session", companyIds: ["company-1"],
-    }), url => request(url).post(`/api/agents/${routeAgentId}/${endpoint}`).send({}));
-    expect(res.status, JSON.stringify(res.body)).toBe(202);
-    expect(mockAccessService.decide).toHaveBeenCalledWith(expect.objectContaining({ action: "agent:wake" }));
-    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(routeAgentId, expect.objectContaining({ manualUserWake: true }));
-  });
+  it.each(["wakeup", "heartbeat/invoke"])(
+    "lets an operator start an existing agent via %s without creating agents",
+    async (endpoint) => {
+      mockAccessService.decide.mockImplementation(async ({ action }) => ({
+        allowed: action === "agent:wake",
+        explanation: "Missing permission: agents:create",
+      }));
+      const res = await requestApp(
+        await createApp(undefined, {
+          type: "board",
+          userId: "operator",
+          source: "session",
+          companyIds: ["company-1"],
+        }),
+        (url) =>
+          request(url).post(`/api/agents/${routeAgentId}/${endpoint}`).send({}),
+      );
+      expect(res.status, JSON.stringify(res.body)).toBe(202);
+      expect(mockAccessService.decide).toHaveBeenCalledWith(
+        expect.objectContaining({ action: "agent:wake" }),
+      );
+      expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
+        routeAgentId,
+        expect.objectContaining({ manualUserWake: true }),
+      );
+    },
+  );
 
   describe("exact native model-rejected review retry", () => {
     const reviewContext = {
@@ -987,60 +1081,170 @@ describe("agent live run routes", () => {
       nativeReviewDecisionId: "66666666-6666-4666-8666-666666666666",
     };
     const selectedRun = {
-      id: failedChatRunId, companyId: "company-1", agentId: routeAgentId,
-      status: "failed", runtimeMode: "native", errorCode: "native_provider_model_rejected",
+      id: failedChatRunId,
+      companyId: "company-1",
+      agentId: routeAgentId,
+      status: "failed",
+      runtimeMode: "native",
+      errorCode: "native_provider_model_rejected",
       nativeIssueId: failedChatIssueId,
       contextSnapshot: { issueId: failedChatIssueId, ...reviewContext },
     };
-    const selectedIssue = { id: failedChatIssueId, companyId: "company-1", status: "in_review", assigneeAgentId: "worker", assigneeUserId: null };
-    const retryBody = { failedRunId: failedChatRunId, reason: "retry_failed_run" };
+    const selectedIssue = {
+      id: failedChatIssueId,
+      companyId: "company-1",
+      status: "in_review",
+      assigneeAgentId: "worker",
+      assigneeUserId: null,
+    };
+    const retryBody = {
+      failedRunId: failedChatRunId,
+      reason: "retry_failed_run",
+    };
     beforeEach(() => {
-      mockAgentService.getById.mockResolvedValue({ id: routeAgentId, companyId: "company-1" });
+      mockAgentService.getById.mockResolvedValue({
+        id: routeAgentId,
+        companyId: "company-1",
+      });
       mockHeartbeatService.getRun.mockResolvedValue(selectedRun);
       mockIssueService.getById.mockResolvedValue(selectedIssue);
-      mockNativeReviewAssignment.mockResolvedValue({ interaction: { status: "pending" } });
+      mockNativeReviewAssignment.mockResolvedValue({
+        interaction: { status: "pending" },
+      });
     });
 
     it("permits the Board to retry the exact pending review using only saved context", async () => {
       const fixture = createFailedChatRetryDb(false);
-      const res = await requestApp(await createApp(fixture.db), url => request(url).post(`/api/agents/${routeAgentId}/wakeup`).send({
-        ...retryBody, payload: { issueId: "forged", nativeReviewInteractionId: "forged", nativeReviewDecisionId: "forged" },
-      }));
+      const res = await requestApp(await createApp(fixture.db), (url) =>
+        request(url)
+          .post(`/api/agents/${routeAgentId}/wakeup`)
+          .send({
+            ...retryBody,
+            payload: {
+              issueId: "forged",
+              nativeReviewInteractionId: "forged",
+              nativeReviewDecisionId: "forged",
+            },
+          }),
+      );
       expect(res.status, JSON.stringify(res.body)).toBe(202);
-      expect(mockNativeReviewAssignment).toHaveBeenCalledExactlyOnceWith(fixture.db, {
-        companyId: "company-1", issueId: failedChatIssueId, agentId: routeAgentId, contextSnapshot: reviewContext,
-      });
-      expect(mockHeartbeatService.wakeup).toHaveBeenCalledExactlyOnceWith(routeAgentId, expect.objectContaining({
-        failedRunId: failedChatRunId, reason: "retry_failed_run", payload: { issueId: failedChatIssueId },
-        requestedByActorType: "user", contextSnapshot: expect.objectContaining(reviewContext),
-      }));
-      expect(JSON.stringify(mockHeartbeatService.wakeup.mock.calls)).not.toContain("forged");
+      expect(mockNativeReviewAssignment).toHaveBeenCalledExactlyOnceWith(
+        fixture.db,
+        {
+          companyId: "company-1",
+          issueId: failedChatIssueId,
+          agentId: routeAgentId,
+          contextSnapshot: reviewContext,
+        },
+      );
+      expect(mockHeartbeatService.wakeup).toHaveBeenCalledExactlyOnceWith(
+        routeAgentId,
+        expect.objectContaining({
+          failedRunId: failedChatRunId,
+          reason: "retry_failed_run",
+          payload: { issueId: failedChatIssueId },
+          requestedByActorType: "user",
+          contextSnapshot: expect.objectContaining(reviewContext),
+        }),
+      );
+      expect(
+        JSON.stringify(mockHeartbeatService.wakeup.mock.calls),
+      ).not.toContain("forged");
     });
 
-    it.each(["agent-caller", "denied-task", "foreign-company", "foreign-agent", "foreign-issue", "legacy", "unknown-error", "missing-context", "stale", "resolved", "changed-reviewer"])(
-      "rejects an ineligible exact review retry (%s)", async scenario => {
-        let actor: Record<string, unknown> | undefined;
-        if (scenario === "agent-caller") actor = { type: "agent", agentId: routeAgentId, companyId: "company-1" };
-        if (scenario === "denied-task") mockAccessService.decide.mockImplementation(async ({ action }) => ({ allowed: action !== "issue:comment", explanation: "Denied" }));
-        if (scenario === "foreign-company") mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, companyId: "company-2" });
-        if (scenario === "foreign-agent") mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, agentId: "other-reviewer" });
-        if (scenario === "foreign-issue") mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, nativeIssueId: "other-task" });
-        if (scenario === "legacy") mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, runtimeMode: "legacy" });
-        if (scenario === "unknown-error") mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, errorCode: "adapter_failed" });
-        if (scenario === "missing-context") mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, contextSnapshot: { issueId: failedChatIssueId } });
-        if (scenario === "stale" || scenario === "changed-reviewer") mockNativeReviewAssignment.mockResolvedValue(null);
-        if (scenario === "resolved") mockNativeReviewAssignment.mockResolvedValue({ interaction: { status: "accepted" } });
-        const fixture = createFailedChatRetryDb(false);
-        const res = await requestApp(await createApp(fixture.db, actor), url => request(url).post(`/api/agents/${routeAgentId}/wakeup`).send({
-          ...retryBody, payload: { ...reviewContext },
+    it.each([
+      "agent-caller",
+      "denied-task",
+      "foreign-company",
+      "foreign-agent",
+      "foreign-issue",
+      "legacy",
+      "unknown-error",
+      "missing-context",
+      "stale",
+      "resolved",
+      "changed-reviewer",
+    ])("rejects an ineligible exact review retry (%s)", async (scenario) => {
+      let actor: Record<string, unknown> | undefined;
+      if (scenario === "agent-caller")
+        actor = {
+          type: "agent",
+          agentId: routeAgentId,
+          companyId: "company-1",
+        };
+      if (scenario === "denied-task")
+        mockAccessService.decide.mockImplementation(async ({ action }) => ({
+          allowed: action !== "issue:comment",
+          explanation: "Denied",
         }));
-        expect(res.status).toBe(["agent-caller", "denied-task"].includes(scenario) ? 403 : ["foreign-company", "foreign-agent"].includes(scenario) ? 404 : 409);
-        expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
-        if (["agent-caller", "denied-task", "foreign-company", "foreign-agent", "foreign-issue", "legacy", "unknown-error", "missing-context"].includes(scenario)) {
-          expect(mockNativeReviewAssignment).not.toHaveBeenCalled();
-        }
-      },
-    );
+      if (scenario === "foreign-company")
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          companyId: "company-2",
+        });
+      if (scenario === "foreign-agent")
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          agentId: "other-reviewer",
+        });
+      if (scenario === "foreign-issue")
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          nativeIssueId: "other-task",
+        });
+      if (scenario === "legacy")
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          runtimeMode: "legacy",
+        });
+      if (scenario === "unknown-error")
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          errorCode: "adapter_failed",
+        });
+      if (scenario === "missing-context")
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          contextSnapshot: { issueId: failedChatIssueId },
+        });
+      if (scenario === "stale" || scenario === "changed-reviewer")
+        mockNativeReviewAssignment.mockResolvedValue(null);
+      if (scenario === "resolved")
+        mockNativeReviewAssignment.mockResolvedValue({
+          interaction: { status: "accepted" },
+        });
+      const fixture = createFailedChatRetryDb(false);
+      const res = await requestApp(await createApp(fixture.db, actor), (url) =>
+        request(url)
+          .post(`/api/agents/${routeAgentId}/wakeup`)
+          .send({
+            ...retryBody,
+            payload: { ...reviewContext },
+          }),
+      );
+      expect(res.status).toBe(
+        ["agent-caller", "denied-task"].includes(scenario)
+          ? 403
+          : ["foreign-company", "foreign-agent"].includes(scenario)
+            ? 404
+            : 409,
+      );
+      expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
+      if (
+        [
+          "agent-caller",
+          "denied-task",
+          "foreign-company",
+          "foreign-agent",
+          "foreign-issue",
+          "legacy",
+          "unknown-error",
+          "missing-context",
+        ].includes(scenario)
+      ) {
+        expect(mockNativeReviewAssignment).not.toHaveBeenCalled();
+      }
+    });
   });
 
   describe("exact failed chat run retry", () => {
@@ -1069,8 +1273,13 @@ describe("agent live run routes", () => {
       });
       mockHeartbeatService.getRun.mockResolvedValue(selectedRun);
       mockIssueService.getById.mockResolvedValue({
-        id: failedChatIssueId, companyId: "company-1", assigneeAgentId: routeAgentId,
-        assigneeUserId: null, projectId: null, parentId: null, status: "blocked",
+        id: failedChatIssueId,
+        companyId: "company-1",
+        assigneeAgentId: routeAgentId,
+        assigneeUserId: null,
+        projectId: null,
+        parentId: null,
+        status: "blocked",
       });
       mockChatRunRetries.prepareFailedChatRunRetry.mockResolvedValue({
         actionId: retryActionId,
@@ -1086,106 +1295,231 @@ describe("agent live run routes", () => {
 
     it("refuses a quarantined native retry before queuing another failed attempt", async () => {
       const fixture = createFailedChatRetryDb(false);
-      mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun,
-        runtimeMode: "native", errorCode: "native_session_cleanup_quarantined" });
-      const res = await requestApp(await createApp(fixture.db, {
-        type: "board", userId: "operator", source: "session", companyIds: ["company-1"],
-      }), url => request(url).post(`/api/agents/${routeAgentId}/wakeup`).send(retryBody));
+      mockHeartbeatService.getRun.mockResolvedValue({
+        ...selectedRun,
+        runtimeMode: "native",
+        errorCode: "native_session_cleanup_quarantined",
+      });
+      const res = await requestApp(
+        await createApp(fixture.db, {
+          type: "board",
+          userId: "operator",
+          source: "session",
+          companyIds: ["company-1"],
+        }),
+        (url) =>
+          request(url)
+            .post(`/api/agents/${routeAgentId}/wakeup`)
+            .send(retryBody),
+      );
       expect(res.status).toBe(409);
-      expect(res.body).toMatchObject({ error: expect.stringContaining("cleanup and reconciliation") });
+      expect(res.body).toMatchObject({
+        error: expect.stringContaining("cleanup and reconciliation"),
+      });
       expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
-      expect(mockChatRunRetries.prepareFailedChatRunRetry).not.toHaveBeenCalled();
+      expect(
+        mockChatRunRetries.prepareFailedChatRunRetry,
+      ).not.toHaveBeenCalled();
     });
 
     it("retries a task for an operator without agent-creation permission", async () => {
       const fixture = createFailedChatRetryDb(false);
-      mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, contextSnapshot: {
-        issueId: failedChatIssueId,
-      } });
+      mockHeartbeatService.getRun.mockResolvedValue({
+        ...selectedRun,
+        contextSnapshot: {
+          issueId: failedChatIssueId,
+        },
+      });
       mockAccessService.decide.mockImplementation(async ({ action }) => ({
-        allowed: action === "issue:comment" || action === "agent:wake", explanation: "Missing permission: agents:create",
+        allowed: action === "issue:comment" || action === "agent:wake",
+        explanation: "Missing permission: agents:create",
       }));
-      const res = await requestApp(await createApp(fixture.db, {
-        type: "board", userId: "operator", source: "session", companyIds: ["company-1"],
-      }), url => request(url).post(`/api/agents/${routeAgentId}/wakeup`).send(retryBody));
-      expect(res.status, JSON.stringify(res.body)).toBe(202);
-      expect(mockAccessService.decide).toHaveBeenCalledWith(expect.objectContaining({
-        action: "issue:comment", resource: expect.objectContaining({
-          type: "issue", companyId: "company-1", issueId: failedChatIssueId,
+      const res = await requestApp(
+        await createApp(fixture.db, {
+          type: "board",
+          userId: "operator",
+          source: "session",
+          companyIds: ["company-1"],
         }),
-      }));
-      expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(routeAgentId, expect.objectContaining({
-        requestedByActorType: "user", requestedByActorId: "operator", failedRunId: failedChatRunId,
-        payload: { issueId: failedChatIssueId },
-      }));
-    });
-
-    it.each([0, 3])("preserves an Agent Chat request and generation %s using only the selected run's context", async (generation) => {
-      const fixture = createFailedChatRetryDb(false);
-      mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, contextSnapshot: {
-        issueId: failedChatIssueId,
-        wakeCommentIds: ["first-comment", "original-comment"],
-        wakeCommentId: "original-comment",
-        ...(generation > 0 ? { conversationSessionGeneration: generation } : {}),
-      } });
-      mockIssueService.getById.mockResolvedValue({
-        id: failedChatIssueId, companyId: "company-1", assigneeAgentId: routeAgentId,
-        conversationAgentId: routeAgentId, conversationUserId: "local-board",
-        status: "in_review", conversationState: "waiting", conversationSessionGeneration: generation,
-      });
-      const res = await requestApp(await createApp(fixture.db), url =>
-        request(url).post(`/api/agents/${routeAgentId}/wakeup`).send({
-          ...retryBody, payload: { commentId: "forged-comment", wakeCommentIds: ["forged-comment"], conversationSessionGeneration: 999 },
-        }));
+        (url) =>
+          request(url)
+            .post(`/api/agents/${routeAgentId}/wakeup`)
+            .send(retryBody),
+      );
       expect(res.status, JSON.stringify(res.body)).toBe(202);
-      expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(routeAgentId, expect.objectContaining({
-        payload: { issueId: failedChatIssueId },
-        contextSnapshot: expect.objectContaining({
-          wakeCommentIds: ["first-comment", "original-comment"],
-          wakeCommentId: "original-comment",
-          conversationSessionGeneration: generation,
+      expect(mockAccessService.decide).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "issue:comment",
+          resource: expect.objectContaining({
+            type: "issue",
+            companyId: "company-1",
+            issueId: failedChatIssueId,
+          }),
         }),
-      }));
-      expect(mockChatRunRetries.prepareFailedChatRunRetry).not.toHaveBeenCalled();
+      );
+      expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
+        routeAgentId,
+        expect.objectContaining({
+          requestedByActorType: "user",
+          requestedByActorId: "operator",
+          failedRunId: failedChatRunId,
+          payload: { issueId: failedChatIssueId },
+        }),
+      );
     });
 
-    it.each([undefined, 0, 2])("rejects pre-reset Agent Chat retries from generation %s", async (generation) => {
-      const fixture = createFailedChatRetryDb(false);
-      mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, contextSnapshot: {
-        issueId: failedChatIssueId, wakeCommentId: "original-comment",
-        ...(generation === undefined ? {} : { conversationSessionGeneration: generation }),
-      } });
-      mockIssueService.getById.mockResolvedValue({
-        id: failedChatIssueId, companyId: "company-1", assigneeAgentId: routeAgentId,
-        conversationAgentId: routeAgentId, conversationUserId: "local-board",
-        conversationSessionGeneration: 3,
-      });
-      const res = await requestApp(await createApp(fixture.db), url =>
-        request(url).post(`/api/agents/${routeAgentId}/wakeup`).send(retryBody));
-      expect(res.status, JSON.stringify(res.body)).toBe(409);
-      expect(res.body.error).toContain("Conversation session changed");
-      expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
-      expect(mockChatRunRetries.prepareFailedChatRunRetry).not.toHaveBeenCalled();
-    });
-
-    it.each(["viewer", "missing", "other-company", "reassigned", "other-chat-owner"])(
-      "rejects a %s task retry without dispatching or requiring agent creation", async (fault) => {
+    it.each([0, 3])(
+      "preserves an Agent Chat request and generation %s using only the selected run's context",
+      async (generation) => {
         const fixture = createFailedChatRetryDb(false);
-        mockHeartbeatService.getRun.mockResolvedValue({ ...selectedRun, contextSnapshot: { issueId: failedChatIssueId } });
-        if (fault === "viewer") mockAccessService.decide.mockResolvedValue({
-          allowed: false, explanation: "Viewer membership does not grant issue:comment.",
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          contextSnapshot: {
+            issueId: failedChatIssueId,
+            wakeCommentIds: ["first-comment", "original-comment"],
+            wakeCommentId: "original-comment",
+            ...(generation > 0
+              ? { conversationSessionGeneration: generation }
+              : {}),
+          },
         });
-        else mockIssueService.getById.mockResolvedValue(fault === "missing" ? null : {
-          id: failedChatIssueId, companyId: fault === "other-company" ? "elsewhere" : "company-1",
-          assigneeAgentId: "other-agent", assigneeUserId: null, projectId: null, parentId: null, status: "blocked",
-          ...(fault === "other-chat-owner" ? { conversationAgentId: routeAgentId, conversationUserId: "someone-else" } : {}),
+        mockIssueService.getById.mockResolvedValue({
+          id: failedChatIssueId,
+          companyId: "company-1",
+          assigneeAgentId: routeAgentId,
+          conversationAgentId: routeAgentId,
+          conversationUserId: "local-board",
+          status: "in_review",
+          conversationState: "waiting",
+          conversationSessionGeneration: generation,
         });
-        const res = await requestApp(await createApp(fixture.db), url =>
-          request(url).post(`/api/agents/${routeAgentId}/wakeup`).send(retryBody));
-        expect(res.status).toBe(fault === "viewer" || fault === "other-chat-owner" ? 403 : fault === "reassigned" ? 409 : 404);
-        expect(mockAccessService.decide.mock.calls.every(([input]) => input.action !== "agents:create")).toBe(true);
+        const res = await requestApp(await createApp(fixture.db), (url) =>
+          request(url)
+            .post(`/api/agents/${routeAgentId}/wakeup`)
+            .send({
+              ...retryBody,
+              payload: {
+                commentId: "forged-comment",
+                wakeCommentIds: ["forged-comment"],
+                conversationSessionGeneration: 999,
+              },
+            }),
+        );
+        expect(res.status, JSON.stringify(res.body)).toBe(202);
+        expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
+          routeAgentId,
+          expect.objectContaining({
+            payload: { issueId: failedChatIssueId },
+            contextSnapshot: expect.objectContaining({
+              wakeCommentIds: ["first-comment", "original-comment"],
+              wakeCommentId: "original-comment",
+              conversationSessionGeneration: generation,
+            }),
+          }),
+        );
+        expect(
+          mockChatRunRetries.prepareFailedChatRunRetry,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([undefined, 0, 2])(
+      "rejects pre-reset Agent Chat retries from generation %s",
+      async (generation) => {
+        const fixture = createFailedChatRetryDb(false);
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          contextSnapshot: {
+            issueId: failedChatIssueId,
+            wakeCommentId: "original-comment",
+            ...(generation === undefined
+              ? {}
+              : { conversationSessionGeneration: generation }),
+          },
+        });
+        mockIssueService.getById.mockResolvedValue({
+          id: failedChatIssueId,
+          companyId: "company-1",
+          assigneeAgentId: routeAgentId,
+          conversationAgentId: routeAgentId,
+          conversationUserId: "local-board",
+          conversationSessionGeneration: 3,
+        });
+        const res = await requestApp(await createApp(fixture.db), (url) =>
+          request(url)
+            .post(`/api/agents/${routeAgentId}/wakeup`)
+            .send(retryBody),
+        );
+        expect(res.status, JSON.stringify(res.body)).toBe(409);
+        expect(res.body.error).toContain("Conversation session changed");
         expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
-        expect(mockChatRunRetries.prepareFailedChatRunRetry).not.toHaveBeenCalled();
+        expect(
+          mockChatRunRetries.prepareFailedChatRunRetry,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      "viewer",
+      "missing",
+      "other-company",
+      "reassigned",
+      "other-chat-owner",
+    ])(
+      "rejects a %s task retry without dispatching or requiring agent creation",
+      async (fault) => {
+        const fixture = createFailedChatRetryDb(false);
+        mockHeartbeatService.getRun.mockResolvedValue({
+          ...selectedRun,
+          contextSnapshot: { issueId: failedChatIssueId },
+        });
+        if (fault === "viewer")
+          mockAccessService.decide.mockResolvedValue({
+            allowed: false,
+            explanation: "Viewer membership does not grant issue:comment.",
+          });
+        else
+          mockIssueService.getById.mockResolvedValue(
+            fault === "missing"
+              ? null
+              : {
+                  id: failedChatIssueId,
+                  companyId:
+                    fault === "other-company" ? "elsewhere" : "company-1",
+                  assigneeAgentId: "other-agent",
+                  assigneeUserId: null,
+                  projectId: null,
+                  parentId: null,
+                  status: "blocked",
+                  ...(fault === "other-chat-owner"
+                    ? {
+                        conversationAgentId: routeAgentId,
+                        conversationUserId: "someone-else",
+                      }
+                    : {}),
+                },
+          );
+        const res = await requestApp(await createApp(fixture.db), (url) =>
+          request(url)
+            .post(`/api/agents/${routeAgentId}/wakeup`)
+            .send(retryBody),
+        );
+        expect(res.status).toBe(
+          fault === "viewer" || fault === "other-chat-owner"
+            ? 403
+            : fault === "reassigned"
+              ? 409
+              : 404,
+        );
+        expect(
+          mockAccessService.decide.mock.calls.every(
+            ([input]) => input.action !== "agents:create",
+          ),
+        ).toBe(true);
+        expect(mockHeartbeatService.wakeup).not.toHaveBeenCalled();
+        expect(
+          mockChatRunRetries.prepareFailedChatRunRetry,
+        ).not.toHaveBeenCalled();
       },
     );
 
@@ -1240,7 +1574,8 @@ describe("agent live run routes", () => {
         expect(res.status, JSON.stringify(res.body)).toBe(202);
         expect(res.body).toEqual(receipt);
         expect(mockHeartbeatService.getRun).toHaveBeenCalledWith(
-          failedChatRunId, { includeExecutionEvidence: true },
+          failedChatRunId,
+          { includeExecutionEvidence: true },
         );
         expect(
           mockChatRunRetries.prepareFailedChatRunRetry,
@@ -1655,13 +1990,17 @@ describe("agent live run routes", () => {
       isInstanceAdmin: false,
     });
 
-    const res = await requestApp(app, (baseUrl) => request(baseUrl)
-      .post("/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/runtime-requests/approval-1/resolve")
-      .send({
-        requestKind: "runtime",
-        turnId: "attacker-turn",
-        resolution: { action: "accept" },
-      }));
+    const res = await requestApp(app, (baseUrl) =>
+      request(baseUrl)
+        .post(
+          "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/runtime-requests/approval-1/resolve",
+        )
+        .send({
+          requestKind: "runtime",
+          turnId: "attacker-turn",
+          resolution: { action: "accept" },
+        }),
+    );
 
     expect(res.status).toBe(403);
     expect(mockQueueRuntimeRequestResolution).not.toHaveBeenCalled();
@@ -1703,13 +2042,17 @@ describe("agent live run routes", () => {
       isInstanceAdmin: true,
     });
 
-    const res = await requestApp(app, (baseUrl) => request(baseUrl)
-      .post("/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/runtime-requests/approval-1/resolve")
-      .send({
-        requestKind: "user_input",
-        turnId: "attacker-turn",
-        resolution: { action: "accept" },
-      }));
+    const res = await requestApp(app, (baseUrl) =>
+      request(baseUrl)
+        .post(
+          "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/runtime-requests/approval-1/resolve",
+        )
+        .send({
+          requestKind: "user_input",
+          turnId: "attacker-turn",
+          resolution: { action: "accept" },
+        }),
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(202);
     expect(mockQueueRuntimeRequestResolution).toHaveBeenCalledWith({
@@ -1733,11 +2076,26 @@ describe("agent live run routes", () => {
   });
 
   it.each([
-    ["get", "/api/companies/company-1/provider-traces?runIds=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
-    ["get", "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace"],
-    ["post", "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace/frames/1/reveal"],
-    ["get", "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace/download"],
-    ["delete", "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace"],
+    [
+      "get",
+      "/api/companies/company-1/provider-traces?runIds=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    ],
+    [
+      "get",
+      "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace",
+    ],
+    [
+      "post",
+      "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace/frames/1/reveal",
+    ],
+    [
+      "get",
+      "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace/download",
+    ],
+    [
+      "delete",
+      "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace",
+    ],
   ] as const)(
     "requires instance administration to %s %s",
     async (method, path) => {
@@ -1814,7 +2172,9 @@ describe("agent live run routes", () => {
       ],
     });
     const res = await requestApp(await createApp(), (baseUrl) =>
-      request(baseUrl).get("/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace"),
+      request(baseUrl).get(
+        "/api/heartbeat-runs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/provider-trace",
+      ),
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);

@@ -13,7 +13,9 @@ vi.mock("@/lib/router", () => ({
     to,
     ...props
   }: { children: React.ReactNode; to: string } & React.ComponentProps<"a">) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -38,7 +40,8 @@ afterEach(() => {
   container = null;
 });
 
-const SAMPLE = "Some text\n\n```ts\nconst answer = 42;\n```\n\nAnd a [link](https://example.com).";
+const SAMPLE =
+  "Some text\n\n```ts\nconst answer = 42;\n```\n\nAnd a [link](https://example.com).";
 
 function tree(children: string, queryClient: QueryClient) {
   return (

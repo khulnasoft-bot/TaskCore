@@ -1,7 +1,11 @@
 import { expect, type Locator } from "@playwright/test";
 
 /** Blocker replies include an explanation; ordinary marker-only replies do not. */
-export async function assertNativeBlockerReply(agentReplies: Locator, marker: string, timeout = 30_000): Promise<void> {
+export async function assertNativeBlockerReply(
+  agentReplies: Locator,
+  marker: string,
+  timeout = 30_000,
+): Promise<void> {
   const reply = agentReplies.filter({ hasText: marker });
   await expect(reply).toHaveCount(1, { timeout });
   await expect(reply).toBeVisible({ timeout });

@@ -15,7 +15,9 @@ import { isTerminalRunStatus } from "@/components/task-chat/transcript-adapter";
  * tool_call as its status progresses, so calls carrying a `toolUseId` are
  * counted once.
  */
-export function toolCountSummaryFromEntries(entries: readonly TranscriptEntry[]): string | null {
+export function toolCountSummaryFromEntries(
+  entries: readonly TranscriptEntry[],
+): string | null {
   const seen = new Set<string>();
   let commands = 0;
   let other = 0;
@@ -29,7 +31,8 @@ export function toolCountSummaryFromEntries(entries: readonly TranscriptEntry[])
     else other += 1;
   }
   const parts: string[] = [];
-  if (commands > 0) parts.push(`ran ${commands} command${commands === 1 ? "" : "s"}`);
+  if (commands > 0)
+    parts.push(`ran ${commands} command${commands === 1 ? "" : "s"}`);
   if (other > 0) parts.push(`called ${other} tool${other === 1 ? "" : "s"}`);
   return parts.length > 0 ? parts.join(", ") : null;
 }
@@ -63,11 +66,13 @@ export function TaskChatLiveRunPill({
   useSecondTick(active && startedAtMs != null);
 
   const elapsedMs =
-    startedAtMs == null ? null : (active ? Date.now() : finishedAtMs ?? Date.now()) - startedAtMs;
-  const elapsed = elapsedMs != null
-    ? formatDurationWords(elapsedMs)
-    : null;
-  const failed = ["failed", "timed_out", "cancelled", "interrupted"].includes(status);
+    startedAtMs == null
+      ? null
+      : (active ? Date.now() : (finishedAtMs ?? Date.now())) - startedAtMs;
+  const elapsed = elapsedMs != null ? formatDurationWords(elapsedMs) : null;
+  const failed = ["failed", "timed_out", "cancelled", "interrupted"].includes(
+    status,
+  );
   const verb = active ? "Working" : failed ? "Stopped" : "Worked";
   const suffix = elapsed ? `for ${elapsed}` : null;
 
@@ -83,13 +88,26 @@ export function TaskChatLiveRunPill({
           </span>
         ) : (
           <span className="flex size-5 shrink-0 items-center justify-center">
-            <span className={cn("h-1.5 w-1.5 rounded-full", (failed || active) ? "bg-muted-foreground/40" : "bg-emerald-500/70")} />
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                failed || active
+                  ? "bg-muted-foreground/40"
+                  : "bg-emerald-500/70",
+              )}
+            />
           </span>
         )}
         {active ? <span className={cn("shimmer-text")}>{verb}</span> : verb}
       </span>
-      {suffix ? <span className="text-xs text-muted-foreground/60">{suffix}</span> : null}
-      {toolSummary ? <span className="text-xs text-muted-foreground/40">· {toolSummary}</span> : null}
+      {suffix ? (
+        <span className="text-xs text-muted-foreground/60">{suffix}</span>
+      ) : null}
+      {toolSummary ? (
+        <span className="text-xs text-muted-foreground/40">
+          · {toolSummary}
+        </span>
+      ) : null}
     </div>
   );
 }

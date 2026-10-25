@@ -11,7 +11,7 @@ import { CHAT_CONTROL_RECOVERY_ADMISSION_KEY } from "../chat-control-recovery-st
 
 function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -20,15 +20,16 @@ function contractBinding(
   persistedRevision: number,
 ): { revision: string; criterionIds: string[] } {
   const contract = record(contractJson);
-  const revision = typeof contract.revision === "string" ? contract.revision : "";
+  const revision =
+    typeof contract.revision === "string" ? contract.revision : "";
   const criteria = Array.isArray(contract.criteria) ? contract.criteria : [];
   const criterionIds = criteria
     .map((criterion) => record(criterion).id)
     .filter((id): id is string => typeof id === "string" && id.length > 0);
   if (
-    (revision && revision !== String(persistedRevision))
-    || criterionIds.length === 0
-    || criterionIds.length !== criteria.length
+    (revision && revision !== String(persistedRevision)) ||
+    criterionIds.length === 0 ||
+    criterionIds.length !== criteria.length
   ) {
     throw new Error("native_completion_contract_binding_invalid");
   }
@@ -64,47 +65,54 @@ export async function prepareNativeHeartbeatRun(input: {
   const persistedProfile = record(input.run.runnerProfileJson);
   const runnerInstanceId = input.run.runnerInstanceId ?? randomUUID();
   const normalizedSessionId = input.run.nativeSessionId ?? randomUUID();
-  const turnId = typeof persistedProfile.turnId === "string"
-    ? persistedProfile.turnId
-    : randomUUID();
-  const itemId = typeof persistedProfile.itemId === "string"
-    ? persistedProfile.itemId
-    : randomUUID();
-  const environmentLeaseId = typeof persistedProfile.environmentLeaseId === "string"
-    ? persistedProfile.environmentLeaseId
-    : input.environmentLeaseId;
+  const turnId =
+    typeof persistedProfile.turnId === "string"
+      ? persistedProfile.turnId
+      : randomUUID();
+  const itemId =
+    typeof persistedProfile.itemId === "string"
+      ? persistedProfile.itemId
+      : randomUUID();
+  const environmentLeaseId =
+    typeof persistedProfile.environmentLeaseId === "string"
+      ? persistedProfile.environmentLeaseId
+      : input.environmentLeaseId;
 
   const persistedContract = input.run.completionContractId
     ? await input.db
-      .select()
-      .from(completionContracts)
-      .where(and(
-        eq(completionContracts.id, input.run.completionContractId),
-        eq(completionContracts.companyId, input.run.companyId),
-        eq(completionContracts.issueId, input.issue.id),
-      ))
-      .limit(1)
-      .then((rows) => rows[0] ?? null)
+        .select()
+        .from(completionContracts)
+        .where(
+          and(
+            eq(completionContracts.id, input.run.completionContractId),
+            eq(completionContracts.companyId, input.run.companyId),
+            eq(completionContracts.issueId, input.issue.id),
+          ),
+        )
+        .limit(1)
+        .then((rows) => rows[0] ?? null)
     : null;
   const completion = persistedContract
     ? { row: persistedContract, contract: persistedContract.contractJson }
     : await ensureNativeCompletionContract({
-      db: input.db,
-      companyId: input.run.companyId,
-      issue: input.issue,
-      actorId: input.run.agentId,
-    });
+        db: input.db,
+        companyId: input.run.companyId,
+        issue: input.issue,
+        actorId: input.run.agentId,
+      });
   const binding = contractBinding(completion.contract, completion.row.revision);
 
   await input.db.transaction(async (tx) => {
     const [locked] = await tx
       .select()
       .from(heartbeatRuns)
-      .where(and(
-        eq(heartbeatRuns.id, input.run.id),
-        eq(heartbeatRuns.companyId, input.run.companyId),
-        eq(heartbeatRuns.agentId, input.run.agentId),
-      ))
+      .where(
+        and(
+          eq(heartbeatRuns.id, input.run.id),
+          eq(heartbeatRuns.companyId, input.run.companyId),
+          eq(heartbeatRuns.agentId, input.run.agentId),
+        ),
+      )
       .for("update")
       .limit(1);
     if (!locked) throw new Error("native_runtime_run_missing");
@@ -112,13 +120,11 @@ export async function prepareNativeHeartbeatRun(input: {
       throw new Error("native_runtime_mode_conflict");
     }
     if (
-      locked.runtimeModeResolvedAt
-      && (
-        locked.runnerInstanceId !== runnerInstanceId
-        || locked.nativeSessionId !== normalizedSessionId
-        || locked.nativeIssueId !== input.issue.id
-        || locked.completionContractId !== completion.row.id
-      )
+      locked.runtimeModeResolvedAt &&
+      (locked.runnerInstanceId !== runnerInstanceId ||
+        locked.nativeSessionId !== normalizedSessionId ||
+        locked.nativeIssueId !== input.issue.id ||
+        locked.completionContractId !== completion.row.id)
     ) {
       throw new Error("native_runtime_binding_conflict");
     }
@@ -128,7 +134,8 @@ export async function prepareNativeHeartbeatRun(input: {
         runtimeMode: "native",
         runtimeModeResolverVersion:
           locked.runtimeModeResolverVersion ?? NATIVE_RUNTIME_RESOLVER_VERSION,
-        runtimeModeReason: locked.runtimeModeReason ?? "explicit_taskcore_runner",
+        runtimeModeReason:
+          locked.runtimeModeReason ?? "explicit_taskcore_runner",
         runtimeModeResolvedAt: locked.runtimeModeResolvedAt ?? new Date(),
         runnerProfileJson: {
           schema: "taskcore.runner.profile.v1",
@@ -143,9 +150,10 @@ export async function prepareNativeHeartbeatRun(input: {
             CHAT_CONTROL_RECOVERY_ADMISSION_KEY,
           )
             ? {
-              [CHAT_CONTROL_RECOVERY_ADMISSION_KEY]:
-                record(locked.runnerProfileJson)[CHAT_CONTROL_RECOVERY_ADMISSION_KEY],
-            }
+                [CHAT_CONTROL_RECOVERY_ADMISSION_KEY]: record(
+                  locked.runnerProfileJson,
+                )[CHAT_CONTROL_RECOVERY_ADMISSION_KEY],
+              }
             : {}),
         },
         runnerInstanceId,

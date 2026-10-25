@@ -21,7 +21,9 @@ const mockTreeControlService = vi.hoisted(() => ({
 const mockReplayBlocks = vi.hoisted(() => vi.fn());
 const mockReplayWhere = vi.hoisted(() => vi.fn());
 const mockExecutionBlocker = vi.hoisted(() => vi.fn());
-vi.mock("../services/execution-blocker.js", () => ({ getExecutionBlocker: mockExecutionBlocker }));
+vi.mock("../services/execution-blocker.js", () => ({
+  getExecutionBlocker: mockExecutionBlocker,
+}));
 
 const mockLogActivity = vi.hoisted(() => vi.fn());
 const mockHeartbeatService = vi.hoisted(() => ({
@@ -57,10 +59,18 @@ async function createApp(
   const query = {
     from: () => query,
     innerJoin: () => query,
-    where: (predicate: unknown) => { mockReplayWhere(predicate); return mockReplayBlocks(); },
+    where: (predicate: unknown) => {
+      mockReplayWhere(predicate);
+      return mockReplayBlocks();
+    },
     limit: mockReplayBlocks,
   };
-  app.use("/api", issueTreeControlRoutes({ select: () => query } as any, { pluginWorkerManager }));
+  app.use(
+    "/api",
+    issueTreeControlRoutes({ select: () => query } as any, {
+      pluginWorkerManager,
+    }),
+  );
   app.use(errorHandler);
   return app;
 }
@@ -100,10 +110,15 @@ describe("issue tree control routes", () => {
       source: "session",
       isInstanceAdmin: false,
     });
-    mockAccessService.decide.mockResolvedValue({ allowed: false, reason: "deny_issue_private" });
+    mockAccessService.decide.mockResolvedValue({
+      allowed: false,
+      reason: "deny_issue_private",
+    });
 
     const res = await request(app)
-      .post("/api/issues/11111111-1111-4111-8111-111111111111/tree-control/preview")
+      .post(
+        "/api/issues/11111111-1111-4111-8111-111111111111/tree-control/preview",
+      )
       .send({ mode: "pause" });
 
     expect(res.status).toBe(404);
@@ -190,8 +205,12 @@ describe("issue tree control routes", () => {
         wakeAgents ? ["agent-parent", "agent-child"] : [],
       );
       if (wakeAgents) {
-        const { params } = new PgDialect().sqlToQuery(mockReplayWhere.mock.calls[0]![0]);
-        expect(params).toEqual(expect.arrayContaining(["todo", "in_progress", "in_review"]));
+        const { params } = new PgDialect().sqlToQuery(
+          mockReplayWhere.mock.calls[0]![0],
+        );
+        expect(params).toEqual(
+          expect.arrayContaining(["todo", "in_progress", "in_review"]),
+        );
         expect(params).not.toContain("blocked");
         expect(params).not.toContain("backlog");
       }
@@ -216,7 +235,9 @@ describe("issue tree control routes", () => {
   it("resumes sandbox-backed work through the shared plugin worker manager", async () => {
     const rootId = "11111111-1111-4111-8111-111111111111";
     const holdId = "33333333-3333-4333-8333-333333333333";
-    const pluginWorkerManager = { isRunning: () => true } as unknown as PluginWorkerManager;
+    const pluginWorkerManager = {
+      isRunning: () => true,
+    } as unknown as PluginWorkerManager;
     mockHeartbeatFactory.mockImplementation((_db, options) => ({
       ...mockHeartbeatService,
       wakeup: async (...args: unknown[]) => {
@@ -227,23 +248,41 @@ describe("issue tree control routes", () => {
       },
     }));
     mockIssueService.getById.mockResolvedValue({
-      id: rootId, companyId: "company-2", status: "todo", assigneeAgentId: "agent-parent",
+      id: rootId,
+      companyId: "company-2",
+      status: "todo",
+      assigneeAgentId: "agent-parent",
     });
     mockTreeControlService.releaseHold.mockResolvedValue({
-      id: holdId, mode: "pause", status: "released", members: [{ issueId: rootId }],
+      id: holdId,
+      mode: "pause",
+      status: "released",
+      members: [{ issueId: rootId }],
     });
-    const app = await createApp({
-      type: "board", userId: "user-1", companyIds: ["company-2"], source: "session",
-    }, pluginWorkerManager);
+    const app = await createApp(
+      {
+        type: "board",
+        userId: "user-1",
+        companyIds: ["company-2"],
+        source: "session",
+      },
+      pluginWorkerManager,
+    );
     const response = await request(app)
       .post(`/api/issues/${rootId}/tree-holds/${holdId}/release`)
       .send({ metadata: { wakeAgents: true } });
     expect(response.status).toBe(200);
     expect(response.body.wakeFailures).toBeUndefined();
-    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith("agent-parent", expect.objectContaining({
-      reason: "issue_tree_resumed",
-      contextSnapshot: expect.objectContaining({ issueId: rootId, source: "issue.tree_resume" }),
-    }));
+    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
+      "agent-parent",
+      expect.objectContaining({
+        reason: "issue_tree_resumed",
+        contextSnapshot: expect.objectContaining({
+          issueId: rootId,
+          source: "issue.tree_resume",
+        }),
+      }),
+    );
   });
 
   it("reports wake failures without undoing release or skipping other assignees", async () => {
@@ -294,8 +333,14 @@ describe("issue tree control routes", () => {
       members: [{ issueId: rootId }],
     });
     mockReplayBlocks.mockResolvedValue([{ id: rootId, identifier: "TEST-1" }]);
-    mockExecutionBlocker.mockResolvedValue({ nextAction: "Resume without waking agents until the previous execution stops.",
-      recoveryActionId: null, cause: "execution_owner_active", runId: "previous-run", agentId: "agent-1" });
+    mockExecutionBlocker.mockResolvedValue({
+      nextAction:
+        "Resume without waking agents until the previous execution stops.",
+      recoveryActionId: null,
+      cause: "execution_owner_active",
+      runId: "previous-run",
+      agentId: "agent-1",
+    });
     const app = await createApp({
       type: "board",
       userId: "user-1",
@@ -322,7 +367,9 @@ describe("issue tree control routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/issues/11111111-1111-4111-8111-111111111111/tree-control/preview")
+      .post(
+        "/api/issues/11111111-1111-4111-8111-111111111111/tree-control/preview",
+      )
       .send({ mode: "pause" });
 
     expect(res.status).toBe(404);
@@ -357,10 +404,13 @@ describe("issue tree control routes", () => {
       isInstanceAdmin: false,
     });
 
-    const getRes = await request(app)
-      .get("/api/issues/11111111-1111-4111-8111-111111111111/tree-holds/null");
+    const getRes = await request(app).get(
+      "/api/issues/11111111-1111-4111-8111-111111111111/tree-holds/null",
+    );
     const releaseRes = await request(app)
-      .post("/api/issues/11111111-1111-4111-8111-111111111111/tree-holds/null/release")
+      .post(
+        "/api/issues/11111111-1111-4111-8111-111111111111/tree-holds/null/release",
+      )
       .send({ reason: "bad hold id" });
 
     expect(getRes.status).toBe(400);
@@ -404,9 +454,16 @@ describe("issue tree control routes", () => {
     expect(mockHeartbeatService.cancelRun).toHaveBeenCalledWith(
       "44444444-4444-4444-8444-444444444444",
       "Cancelled by a board operator's subtree pause",
-      { resultJson: { cancelledByActorType: "user", cancelledByUserId: "user-1" } },
+      {
+        resultJson: {
+          cancelledByActorType: "user",
+          cancelledByUserId: "user-1",
+        },
+      },
     );
-    expect(mockTreeControlService.cancelUnclaimedWakeupsForTree).toHaveBeenCalledWith(
+    expect(
+      mockTreeControlService.cancelUnclaimedWakeupsForTree,
+    ).toHaveBeenCalledWith(
       "company-2",
       "11111111-1111-4111-8111-111111111111",
       "Cancelled because an active subtree pause hold was created",
@@ -454,7 +511,9 @@ describe("issue tree control routes", () => {
       .send({ mode: "cancel", reason: "cancel subtree" });
 
     expect(res.status).toBe(201);
-    expect(mockTreeControlService.cancelIssueStatusesForHold).toHaveBeenCalledWith(
+    expect(
+      mockTreeControlService.cancelIssueStatusesForHold,
+    ).toHaveBeenCalledWith(
       "company-2",
       "11111111-1111-4111-8111-111111111111",
       "33333333-3333-4333-8333-333333333333",
@@ -498,7 +557,9 @@ describe("issue tree control routes", () => {
       updatedIssueIds: ["11111111-1111-4111-8111-111111111111"],
       updatedIssues: [],
     });
-    mockHeartbeatService.cancelRun.mockRejectedValue(new Error("adapter process did not exit"));
+    mockHeartbeatService.cancelRun.mockRejectedValue(
+      new Error("adapter process did not exit"),
+    );
 
     const res = await request(app)
       .post("/api/issues/11111111-1111-4111-8111-111111111111/tree-holds")
@@ -508,9 +569,16 @@ describe("issue tree control routes", () => {
     expect(mockHeartbeatService.cancelRun).toHaveBeenCalledWith(
       "44444444-4444-4444-8444-444444444444",
       "Cancelled by a board operator's subtree cancel",
-      { resultJson: { cancelledByActorType: "user", cancelledByUserId: "user-1" } },
+      {
+        resultJson: {
+          cancelledByActorType: "user",
+          cancelledByUserId: "user-1",
+        },
+      },
     );
-    expect(mockTreeControlService.cancelIssueStatusesForHold).toHaveBeenCalledWith(
+    expect(
+      mockTreeControlService.cancelIssueStatusesForHold,
+    ).toHaveBeenCalledWith(
       "company-2",
       "11111111-1111-4111-8111-111111111111",
       "33333333-3333-4333-8333-333333333333",
@@ -570,10 +638,16 @@ describe("issue tree control routes", () => {
 
     const res = await request(app)
       .post("/api/issues/11111111-1111-4111-8111-111111111111/tree-holds")
-      .send({ mode: "restore", reason: "restore subtree", metadata: { wakeAgents: true } });
+      .send({
+        mode: "restore",
+        reason: "restore subtree",
+        metadata: { wakeAgents: true },
+      });
 
     expect(res.status).toBe(200);
-    expect(mockTreeControlService.restoreIssueStatusesForHold).toHaveBeenCalledWith(
+    expect(
+      mockTreeControlService.restoreIssueStatusesForHold,
+    ).toHaveBeenCalledWith(
       "company-2",
       "11111111-1111-4111-8111-111111111111",
       "66666666-6666-4666-8666-666666666666",
@@ -583,7 +657,9 @@ describe("issue tree control routes", () => {
       "22222222-2222-4222-8222-222222222222",
       expect.objectContaining({
         reason: "issue_tree_restored",
-        payload: expect.objectContaining({ issueId: "55555555-5555-4555-8555-555555555555" }),
+        payload: expect.objectContaining({
+          issueId: "55555555-5555-4555-8555-555555555555",
+        }),
       }),
     );
     expect(res.body.hold.status).toBe("released");
@@ -610,7 +686,9 @@ describe("issue tree control routes", () => {
         activeRuns: [],
       },
     });
-    mockTreeControlService.restoreIssueStatusesForHold.mockRejectedValue(new Error("restore failed"));
+    mockTreeControlService.restoreIssueStatusesForHold.mockRejectedValue(
+      new Error("restore failed"),
+    );
     mockTreeControlService.releaseHold.mockResolvedValue({
       id: "66666666-6666-4666-8666-666666666666",
       mode: "restore",
@@ -627,7 +705,8 @@ describe("issue tree control routes", () => {
       "11111111-1111-4111-8111-111111111111",
       "66666666-6666-4666-8666-666666666666",
       expect.objectContaining({
-        reason: "Restore operation failed before subtree status updates completed",
+        reason:
+          "Restore operation failed before subtree status updates completed",
         metadata: { cleanup: "restore_failed_before_apply" },
       }),
     );
@@ -666,10 +745,18 @@ describe("issue tree control routes", () => {
     expect(res.status).toBe(200);
     expect(res.body.hold.mode).toBe("resume");
     expect(res.body.hold.status).toBe("released");
-    expect(res.body.resumedPauseHoldIds).toEqual(["33333333-3333-4333-8333-333333333333"]);
+    expect(res.body.resumedPauseHoldIds).toEqual([
+      "33333333-3333-4333-8333-333333333333",
+    ]);
     expect(mockHeartbeatService.cancelRun).not.toHaveBeenCalled();
-    expect(mockTreeControlService.cancelUnclaimedWakeupsForTree).not.toHaveBeenCalled();
-    expect(mockTreeControlService.cancelIssueStatusesForHold).not.toHaveBeenCalled();
-    expect(mockTreeControlService.restoreIssueStatusesForHold).not.toHaveBeenCalled();
+    expect(
+      mockTreeControlService.cancelUnclaimedWakeupsForTree,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockTreeControlService.cancelIssueStatusesForHold,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockTreeControlService.restoreIssueStatusesForHold,
+    ).not.toHaveBeenCalled();
   });
 });

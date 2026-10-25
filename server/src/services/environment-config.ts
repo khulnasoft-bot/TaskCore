@@ -31,63 +31,84 @@ import {
 } from "./json-schema-secret-refs.js";
 import { resolveActiveEnvironmentCustomImageTemplateForRuntime } from "./environment-custom-image-runtime.js";
 
-const secretRefSchema = z.object({
-  type: z.literal("secret_ref"),
-  secretId: z.string().guid(),
-  version: z.union([z.literal("latest"), z.number().int().positive()]).optional().default("latest"),
-}).strict();
+const secretRefSchema = z
+  .object({
+    type: z.literal("secret_ref"),
+    secretId: z.string().guid(),
+    version: z
+      .union([z.literal("latest"), z.number().int().positive()])
+      .optional()
+      .default("latest"),
+  })
+  .strict();
 
-const sshEnvironmentConfigSchema = z.object({
-  host: z.string({ error: "SSH environments require a host." }).trim().min(1, "SSH environments require a host."),
-  port: z.coerce.number().int().min(1).max(65535).default(22),
-  username: z.string({ error: "SSH environments require a username." }).trim().min(1, "SSH environments require a username."),
-  remoteWorkspacePath: z
-    .string({ error: "SSH environments require a remote workspace path." })
-    .trim()
-    .min(1, "SSH environments require a remote workspace path.")
-    .refine((value) => value.startsWith("/"), "SSH remote workspace path must be absolute."),
-  privateKey: z.null().optional().default(null),
-  privateKeySecretRef: secretRefSchema.optional().nullable().default(null),
-  knownHosts: z
-    .string()
-    .trim()
-    .optional()
-    .nullable()
-    .transform((value) => (value && value.length > 0 ? value : null)),
-  strictHostKeyChecking: z.boolean().optional().default(true),
-}).strict();
+const sshEnvironmentConfigSchema = z
+  .object({
+    host: z
+      .string({ error: "SSH environments require a host." })
+      .trim()
+      .min(1, "SSH environments require a host."),
+    port: z.coerce.number().int().min(1).max(65535).default(22),
+    username: z
+      .string({ error: "SSH environments require a username." })
+      .trim()
+      .min(1, "SSH environments require a username."),
+    remoteWorkspacePath: z
+      .string({ error: "SSH environments require a remote workspace path." })
+      .trim()
+      .min(1, "SSH environments require a remote workspace path.")
+      .refine(
+        (value) => value.startsWith("/"),
+        "SSH remote workspace path must be absolute.",
+      ),
+    privateKey: z.null().optional().default(null),
+    privateKeySecretRef: secretRefSchema.optional().nullable().default(null),
+    knownHosts: z
+      .string()
+      .trim()
+      .optional()
+      .nullable()
+      .transform((value) => (value && value.length > 0 ? value : null)),
+    strictHostKeyChecking: z.boolean().optional().default(true),
+  })
+  .strict();
 
-const sshEnvironmentConfigProbeSchema = sshEnvironmentConfigSchema.extend({
-  privateKey: z
-    .string()
-    .trim()
-    .optional()
-    .nullable()
-    .transform((value) => (value && value.length > 0 ? value : null)),
-}).strict();
+const sshEnvironmentConfigProbeSchema = sshEnvironmentConfigSchema
+  .extend({
+    privateKey: z
+      .string()
+      .trim()
+      .optional()
+      .nullable()
+      .transform((value) => (value && value.length > 0 ? value : null)),
+  })
+  .strict();
 
 const sshEnvironmentConfigPersistenceSchema = sshEnvironmentConfigProbeSchema;
 
-const fakeSandboxEnvironmentConfigSchema = z.object({
-  provider: z.literal("fake").default("fake"),
-  image: z
-    .string()
-    .trim()
-    .min(1, "Fake sandbox environments require an image.")
-    .default("ubuntu:24.04"),
-  reuseLease: z.boolean().optional().default(false),
-  streamRunLogs: z.boolean().optional(),
-  runnerLifecycleMode: z.enum(["inherit", "per_turn", "warm"]).optional(),
-  runnerIdleTimeoutMs: z.coerce
-    .number()
-    .int()
-    .min(1_000)
-    .max(86_400_000)
-    .optional(),
-  archiveOnRelease: z.boolean().optional(),
-}).strict();
+const fakeSandboxEnvironmentConfigSchema = z
+  .object({
+    provider: z.literal("fake").default("fake"),
+    image: z
+      .string()
+      .trim()
+      .min(1, "Fake sandbox environments require an image.")
+      .default("ubuntu:24.04"),
+    reuseLease: z.boolean().optional().default(false),
+    streamRunLogs: z.boolean().optional(),
+    runnerLifecycleMode: z.enum(["inherit", "per_turn", "warm"]).optional(),
+    runnerIdleTimeoutMs: z.coerce
+      .number()
+      .int()
+      .min(1_000)
+      .max(86_400_000)
+      .optional(),
+    archiveOnRelease: z.boolean().optional(),
+  })
+  .strict();
 
-const pluginSandboxProviderKeySchema = z.string()
+const pluginSandboxProviderKeySchema = z
+  .string()
   .trim()
   .min(1, "Sandbox provider is required.")
   .regex(
@@ -95,29 +116,36 @@ const pluginSandboxProviderKeySchema = z.string()
     "Sandbox provider key must start with a lowercase alphanumeric and contain only lowercase letters, digits, dots, hyphens, or underscores",
   );
 
-const pluginSandboxEnvironmentConfigSchema = z.object({
-  provider: pluginSandboxProviderKeySchema,
-  timeoutMs: z.coerce.number().int().min(1).max(86_400_000).optional(),
-  reuseLease: z.boolean().optional().default(false),
-  streamRunLogs: z.boolean().optional(),
-  runnerLifecycleMode: z.enum(["inherit", "per_turn", "warm"]).optional(),
-  runnerIdleTimeoutMs: z.coerce
-    .number()
-    .int()
-    .min(1_000)
-    .max(86_400_000)
-    .optional(),
-  archiveOnRelease: z.boolean().optional(),
-}).catchall(z.unknown());
+const pluginSandboxEnvironmentConfigSchema = z
+  .object({
+    provider: pluginSandboxProviderKeySchema,
+    timeoutMs: z.coerce.number().int().min(1).max(86_400_000).optional(),
+    reuseLease: z.boolean().optional().default(false),
+    streamRunLogs: z.boolean().optional(),
+    runnerLifecycleMode: z.enum(["inherit", "per_turn", "warm"]).optional(),
+    runnerIdleTimeoutMs: z.coerce
+      .number()
+      .int()
+      .min(1_000)
+      .max(86_400_000)
+      .optional(),
+    archiveOnRelease: z.boolean().optional(),
+  })
+  .catchall(z.unknown());
 
-const pluginEnvironmentConfigSchema = z.object({
-  pluginKey: z.string().min(1),
-  driverKey: z.string().min(1).regex(
-    /^[a-z0-9][a-z0-9._-]*$/,
-    "Environment driver key must start with a lowercase alphanumeric and contain only lowercase letters, digits, dots, hyphens, or underscores",
-  ),
-  driverConfig: z.record(z.string(), z.unknown()).optional().default({}),
-}).strict();
+const pluginEnvironmentConfigSchema = z
+  .object({
+    pluginKey: z.string().min(1),
+    driverKey: z
+      .string()
+      .min(1)
+      .regex(
+        /^[a-z0-9][a-z0-9._-]*$/,
+        "Environment driver key must start with a lowercase alphanumeric and contain only lowercase letters, digits, dots, hyphens, or underscores",
+      ),
+    driverConfig: z.record(z.string(), z.unknown()).optional().default({}),
+  })
+  .strict();
 
 export type ParsedEnvironmentConfig =
   | { driver: "local"; config: LocalEnvironmentConfig }
@@ -132,7 +160,9 @@ function toErrorMessage(error: z.ZodError) {
 }
 
 function getSandboxProvider(raw: Record<string, unknown>) {
-  return typeof raw.provider === "string" && raw.provider.trim().length > 0 ? raw.provider.trim() : "fake";
+  return typeof raw.provider === "string" && raw.provider.trim().length > 0
+    ? raw.provider.trim()
+    : "fake";
 }
 
 // Operator flags removed when session-output streaming moved to the verified
@@ -143,7 +173,9 @@ function getSandboxProvider(raw: Record<string, unknown>) {
 // and so the removed flag never reaches the parsed config.
 const REMOVED_SANDBOX_CONFIG_KEYS = ["streamAgentSessionOutput"] as const;
 
-function stripRemovedSandboxConfigKeys(raw: Record<string, unknown>): Record<string, unknown> {
+function stripRemovedSandboxConfigKeys(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
   if (!REMOVED_SANDBOX_CONFIG_KEYS.some((key) => key in raw)) {
     return raw;
   }
@@ -163,14 +195,20 @@ function parseSandboxEnvironmentConfig(
   if (provider === "fake") {
     const parsed = fakeSandboxEnvironmentConfigSchema.safeParse(raw);
     return parsed.success
-      ? ({ success: true as const, data: parsed.data satisfies FakeSandboxEnvironmentConfig })
-      : ({ success: false as const, error: parsed.error });
+      ? {
+          success: true as const,
+          data: parsed.data satisfies FakeSandboxEnvironmentConfig,
+        }
+      : { success: false as const, error: parsed.error };
   }
 
   const parsed = pluginSandboxEnvironmentConfigSchema.safeParse(raw);
   return parsed.success
-    ? ({ success: true as const, data: parsed.data satisfies PluginSandboxEnvironmentConfig })
-    : ({ success: false as const, error: parsed.error });
+    ? {
+        success: true as const,
+        data: parsed.data satisfies PluginSandboxEnvironmentConfig,
+      }
+    : { success: false as const, error: parsed.error };
 }
 
 async function getSandboxProviderConfigSchema(
@@ -183,7 +221,7 @@ async function getSandboxProviderConfigSchema(
   });
   const schema = resolved?.driver.configSchema;
   return schema && typeof schema === "object" && !Array.isArray(schema)
-    ? schema as Record<string, unknown>
+    ? (schema as Record<string, unknown>)
     : null;
 }
 
@@ -191,7 +229,9 @@ export async function resolveSandboxProviderSecretRefPaths(
   db: Db,
   provider: string,
 ): Promise<Set<string>> {
-  return collectSecretRefPaths(await getSandboxProviderConfigSchema(db, provider));
+  return collectSecretRefPaths(
+    await getSandboxProviderConfigSchema(db, provider),
+  );
 }
 
 function secretName(input: {
@@ -199,11 +239,12 @@ function secretName(input: {
   driver: EnvironmentDriver;
   field: string;
 }) {
-  const slug = input.environmentName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48) || "environment";
+  const slug =
+    input.environmentName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || "environment";
   return `environment-${input.driver}-${slug}-${input.field}-${randomUUID().slice(0, 8)}`;
 }
 
@@ -265,7 +306,10 @@ async function persistConfigSecretRefs(input: {
 }): Promise<Record<string, unknown>> {
   let nextConfig = { ...input.config };
   for (const path of collectSecretRefPaths(input.schema)) {
-    const rawValue = canonicalizeSecretRefValue(readConfigValueAtPath(nextConfig, path), path);
+    const rawValue = canonicalizeSecretRefValue(
+      readConfigValueAtPath(nextConfig, path),
+      path,
+    );
     if (typeof rawValue !== "string") continue;
     const trimmed = rawValue.trim();
     if (trimmed.length === 0) {
@@ -305,12 +349,17 @@ async function resolveConfigSecretRefsForRuntime(input: {
   const secrets = secretService(input.db);
   let nextConfig = { ...input.config };
   for (const path of collectSecretRefPaths(input.schema)) {
-    const current = canonicalizeSecretRefValue(readConfigValueAtPath(nextConfig, path), path);
+    const current = canonicalizeSecretRefValue(
+      readConfigValueAtPath(nextConfig, path),
+      path,
+    );
     if (typeof current !== "string") continue;
     const trimmed = current.trim();
     if (!isUuidSecretRef(trimmed)) continue;
     if (!input.context.consumerId) {
-      throw unprocessable("Runtime secret resolution requires an environment id");
+      throw unprocessable(
+        "Runtime secret resolution requires an environment id",
+      );
     }
     nextConfig = writeConfigValueAtPath(
       nextConfig,
@@ -337,14 +386,24 @@ async function resolveConfigSecretRefsForProbe(input: {
   accessContext?: {
     actorType: "agent" | "user";
     actorId: string;
-    actorSource?: "local_implicit" | "session" | "board_key" | "agent_key" | "agent_jwt" | "mcp_oauth" | "cloud_tenant";
+    actorSource?:
+      | "local_implicit"
+      | "session"
+      | "board_key"
+      | "agent_key"
+      | "agent_jwt"
+      | "mcp_oauth"
+      | "cloud_tenant";
     heartbeatRunId?: string | null;
   };
 }): Promise<Record<string, unknown>> {
   const secrets = secretService(input.db);
   let nextConfig = { ...input.config };
   for (const path of collectSecretRefPaths(input.schema)) {
-    const current = canonicalizeSecretRefValue(readConfigValueAtPath(nextConfig, path), path);
+    const current = canonicalizeSecretRefValue(
+      readConfigValueAtPath(nextConfig, path),
+      path,
+    );
     if (typeof current !== "string") continue;
     const trimmed = current.trim();
     if (!isUuidSecretRef(trimmed)) continue;
@@ -354,15 +413,20 @@ async function resolveConfigSecretRefsForProbe(input: {
     nextConfig = writeConfigValueAtPath(
       nextConfig,
       path,
-      await secrets.resolveSecretValueForEphemeralAccess(input.companyId, trimmed, "latest", {
-        consumerType: "system",
-        consumerId: "environment-probe-config",
-        configPath: path,
-        actorType: input.accessContext?.actorType ?? "system",
-        actorId: input.accessContext?.actorId ?? null,
-        actorSource: input.accessContext?.actorSource,
-        heartbeatRunId: input.accessContext?.heartbeatRunId ?? null,
-      }),
+      await secrets.resolveSecretValueForEphemeralAccess(
+        input.companyId,
+        trimmed,
+        "latest",
+        {
+          consumerType: "system",
+          consumerId: "environment-probe-config",
+          configPath: path,
+          actorType: input.accessContext?.actorType ?? "system",
+          actorId: input.accessContext?.actorId ?? null,
+          actorSource: input.accessContext?.actorSource,
+          heartbeatRunId: input.accessContext?.heartbeatRunId ?? null,
+        },
+      ),
     );
   }
   return nextConfig;
@@ -371,27 +435,53 @@ async function resolveConfigSecretRefsForProbe(input: {
 export async function collectEnvironmentSecretRefs(input: {
   db: Db;
   environment: Pick<Environment, "id" | "driver" | "config">;
-}): Promise<Array<{ secretId: string; configPath: string; versionSelector?: SecretVersionSelector }>> {
+}): Promise<
+  Array<{
+    secretId: string;
+    configPath: string;
+    versionSelector?: SecretVersionSelector;
+  }>
+> {
   const parsed = parseEnvironmentDriverConfig(input.environment);
   if (parsed.driver === "ssh" && parsed.config.privateKeySecretRef) {
-    return [{
-      secretId: parsed.config.privateKeySecretRef.secretId,
-      configPath: "privateKeySecretRef",
-      versionSelector: parsed.config.privateKeySecretRef.version ?? "latest",
-    }];
+    return [
+      {
+        secretId: parsed.config.privateKeySecretRef.secretId,
+        configPath: "privateKeySecretRef",
+        versionSelector: parsed.config.privateKeySecretRef.version ?? "latest",
+      },
+    ];
   }
   if (parsed.driver === "sandbox" && parsed.config.provider !== "fake") {
-    const schema = await getSandboxProviderConfigSchema(input.db, parsed.config.provider);
-    const refs: Array<{ secretId: string; configPath: string; versionSelector?: SecretVersionSelector }> = [];
+    const schema = await getSandboxProviderConfigSchema(
+      input.db,
+      parsed.config.provider,
+    );
+    const refs: Array<{
+      secretId: string;
+      configPath: string;
+      versionSelector?: SecretVersionSelector;
+    }> = [];
     for (const path of collectSecretRefPaths(schema)) {
-      const current = readConfigValueAtPath(parsed.config as Record<string, unknown>, path);
+      const current = readConfigValueAtPath(
+        parsed.config as Record<string, unknown>,
+        path,
+      );
       const binding = parseSecretRefBindingObject(current);
       if (binding) {
-        refs.push({ secretId: binding.secretId, configPath: path, versionSelector: binding.version });
+        refs.push({
+          secretId: binding.secretId,
+          configPath: path,
+          versionSelector: binding.version,
+        });
         continue;
       }
       if (typeof current === "string" && isUuidSecretRef(current.trim())) {
-        refs.push({ secretId: current.trim(), configPath: path, versionSelector: "latest" });
+        refs.push({
+          secretId: current.trim(),
+          configPath: path,
+          versionSelector: "latest",
+        });
       }
     }
     return refs;
@@ -399,7 +489,9 @@ export async function collectEnvironmentSecretRefs(input: {
   return [];
 }
 
-export function stripSandboxProviderEnvelope(config: SandboxEnvironmentConfig): Record<string, unknown> {
+export function stripSandboxProviderEnvelope(
+  config: SandboxEnvironmentConfig,
+): Record<string, unknown> {
   const {
     provider: _provider,
     streamRunLogs: _streamRunLogs,
@@ -442,7 +534,9 @@ export function normalizeEnvironmentConfig(input: {
   }
 
   if (input.driver === "ssh") {
-    const parsed = sshEnvironmentConfigSchema.safeParse(parseObject(input.config));
+    const parsed = sshEnvironmentConfigSchema.safeParse(
+      parseObject(input.config),
+    );
     if (!parsed.success) {
       throw unprocessable(toErrorMessage(parsed.error), {
         issues: parsed.error.issues,
@@ -462,7 +556,9 @@ export function normalizeEnvironmentConfig(input: {
   }
 
   if (input.driver === "plugin") {
-    const parsed = pluginEnvironmentConfigSchema.safeParse(parseObject(input.config));
+    const parsed = pluginEnvironmentConfigSchema.safeParse(
+      parseObject(input.config),
+    );
     if (!parsed.success) {
       throw unprocessable(toErrorMessage(parsed.error), {
         issues: parsed.error.issues,
@@ -482,13 +578,22 @@ export function normalizeEnvironmentConfigForProbe(input: {
   accessContext?: {
     actorType: "agent" | "user";
     actorId: string;
-    actorSource?: "local_implicit" | "session" | "board_key" | "agent_key" | "agent_jwt" | "mcp_oauth" | "cloud_tenant";
+    actorSource?:
+      | "local_implicit"
+      | "session"
+      | "board_key"
+      | "agent_key"
+      | "agent_jwt"
+      | "mcp_oauth"
+      | "cloud_tenant";
     heartbeatRunId?: string | null;
   };
   pluginWorkerManager?: PluginWorkerManager;
 }): Promise<Record<string, unknown>> | Record<string, unknown> {
   if (input.driver === "ssh") {
-    const parsed = sshEnvironmentConfigProbeSchema.safeParse(parseObject(input.config));
+    const parsed = sshEnvironmentConfigProbeSchema.safeParse(
+      parseObject(input.config),
+    );
     if (!parsed.success) {
       throw unprocessable(toErrorMessage(parsed.error), {
         issues: parsed.error.issues,
@@ -508,7 +613,9 @@ export function normalizeEnvironmentConfigForProbe(input: {
       return parsed.data;
     }
     if (!input.pluginWorkerManager) {
-      throw unprocessable("Sandbox provider config validation requires a running plugin worker manager.");
+      throw unprocessable(
+        "Sandbox provider config validation requires a running plugin worker manager.",
+      );
     }
     return validatePluginSandboxProviderConfig({
       db: input.db,
@@ -529,7 +636,7 @@ export function normalizeEnvironmentConfigForProbe(input: {
           validated.driver.configSchema &&
           typeof validated.driver.configSchema === "object" &&
           !Array.isArray(validated.driver.configSchema)
-            ? validated.driver.configSchema as Record<string, unknown>
+            ? (validated.driver.configSchema as Record<string, unknown>)
             : null,
       })),
     }));
@@ -552,7 +659,9 @@ export async function normalizeEnvironmentConfigForPersistence(input: {
   pluginWorkerManager?: PluginWorkerManager;
 }): Promise<Record<string, unknown>> {
   if (input.driver === "ssh") {
-    const parsed = sshEnvironmentConfigPersistenceSchema.safeParse(parseObject(input.config));
+    const parsed = sshEnvironmentConfigPersistenceSchema.safeParse(
+      parseObject(input.config),
+    );
     if (!parsed.success) {
       throw unprocessable(toErrorMessage(parsed.error), {
         issues: parsed.error.issues,
@@ -599,7 +708,9 @@ export async function normalizeEnvironmentConfigForPersistence(input: {
       );
     }
     if (!input.pluginWorkerManager) {
-      throw unprocessable("Sandbox provider config validation requires a running plugin worker manager.");
+      throw unprocessable(
+        "Sandbox provider config validation requires a running plugin worker manager.",
+      );
     }
     const validated = await validatePluginSandboxProviderConfig({
       db: input.db,
@@ -618,28 +729,36 @@ export async function normalizeEnvironmentConfigForPersistence(input: {
         ...applyHostOwnedSandboxFlags(validated.normalizedConfig, parsed.data),
       },
       schema:
-        validated.driver.configSchema && typeof validated.driver.configSchema === "object" && !Array.isArray(validated.driver.configSchema)
-          ? validated.driver.configSchema as Record<string, unknown>
+        validated.driver.configSchema &&
+        typeof validated.driver.configSchema === "object" &&
+        !Array.isArray(validated.driver.configSchema)
+          ? (validated.driver.configSchema as Record<string, unknown>)
           : null,
       actor: input.actor,
     });
   }
 
   if (input.driver === "plugin") {
-    const parsed = pluginEnvironmentConfigSchema.safeParse(parseObject(input.config));
+    const parsed = pluginEnvironmentConfigSchema.safeParse(
+      parseObject(input.config),
+    );
     if (!parsed.success) {
       throw unprocessable(toErrorMessage(parsed.error), {
         issues: parsed.error.issues,
       });
     }
     if (!input.pluginWorkerManager) {
-      throw unprocessable("Plugin environment config validation requires a running plugin worker manager.");
+      throw unprocessable(
+        "Plugin environment config validation requires a running plugin worker manager.",
+      );
     }
-    return { ...(await validatePluginEnvironmentDriverConfig({
-      db: input.db,
-      workerManager: input.pluginWorkerManager,
-      config: parsed.data,
-    })) };
+    return {
+      ...(await validatePluginEnvironmentDriverConfig({
+        db: input.db,
+        workerManager: input.pluginWorkerManager,
+        config: parsed.data,
+      })),
+    };
   }
 
   return normalizeEnvironmentConfig({
@@ -651,7 +770,8 @@ export async function normalizeEnvironmentConfigForPersistence(input: {
 export async function resolveEnvironmentDriverConfigForRuntime(
   db: Db,
   companyId: string | null,
-  environment: Pick<Environment, "driver" | "config"> & Partial<Pick<Environment, "id">>,
+  environment: Pick<Environment, "driver" | "config"> &
+    Partial<Pick<Environment, "id">>,
   context?: {
     issueId?: string | null;
     heartbeatRunId?: string | null;
@@ -665,13 +785,19 @@ export async function resolveEnvironmentDriverConfigForRuntime(
   const parsed = parseEnvironmentDriverConfig(environment);
   const secrets = secretService(db);
   const environmentId = environment.id;
-  if (parsed.driver === "ssh" && parsed.config.privateKeySecretRef && !environmentId) {
+  if (
+    parsed.driver === "ssh" &&
+    parsed.config.privateKeySecretRef &&
+    !environmentId
+  ) {
     throw unprocessable("Runtime secret resolution requires an environment id");
   }
 
   if (parsed.driver === "ssh" && parsed.config.privateKeySecretRef) {
     if (!companyId) {
-      throw unprocessable("Runtime secret resolution requires a companyId context");
+      throw unprocessable(
+        "Runtime secret resolution requires a companyId context",
+      );
     }
     return {
       driver: "ssh",
@@ -696,10 +822,13 @@ export async function resolveEnvironmentDriverConfigForRuntime(
   }
 
   if (parsed.driver === "sandbox" && parsed.config.provider !== "fake") {
-    const schema = await getSandboxProviderConfigSchema(db, parsed.config.provider);
+    const schema = await getSandboxProviderConfigSchema(
+      db,
+      parsed.config.provider,
+    );
     let runtimeConfig = parsed.config;
     if (companyId) {
-      runtimeConfig = await resolveConfigSecretRefsForRuntime({
+      runtimeConfig = (await resolveConfigSecretRefsForRuntime({
         db,
         companyId,
         config: parsed.config as Record<string, unknown>,
@@ -709,28 +838,40 @@ export async function resolveEnvironmentDriverConfigForRuntime(
           issueId: context?.issueId ?? null,
           heartbeatRunId: context?.heartbeatRunId ?? null,
         },
-      }) as SandboxEnvironmentConfig;
+      })) as SandboxEnvironmentConfig;
     } else {
       for (const path of collectSecretRefPaths(schema)) {
-        const current = readConfigValueAtPath(parsed.config as Record<string, unknown>, path);
-        if (parseSecretRefBindingObject(current) || (typeof current === "string" && isUuidSecretRef(current.trim()))) {
-          throw unprocessable("Runtime secret resolution requires a companyId context");
+        const current = readConfigValueAtPath(
+          parsed.config as Record<string, unknown>,
+          path,
+        );
+        if (
+          parseSecretRefBindingObject(current) ||
+          (typeof current === "string" && isUuidSecretRef(current.trim()))
+        ) {
+          throw unprocessable(
+            "Runtime secret resolution requires a companyId context",
+          );
         }
       }
     }
     return {
       driver: "sandbox",
-      config: environmentId && (context?.issueId || context?.heartbeatRunId || context?.applyCustomImageTemplate)
-        ? await resolveActiveEnvironmentCustomImageTemplateForRuntime(db, {
-            environmentId,
-            baseConfig: parsed.config,
-            runtimeConfig,
-            // Match the capture-time fingerprint exclusions: secret-ref paths
-            // are excluded when the template's source fingerprint is computed,
-            // so they must be excluded when re-checking it here.
-            secretRefExcludePaths: collectSecretRefPaths(schema),
-          })
-        : runtimeConfig,
+      config:
+        environmentId &&
+        (context?.issueId ||
+          context?.heartbeatRunId ||
+          context?.applyCustomImageTemplate)
+          ? await resolveActiveEnvironmentCustomImageTemplateForRuntime(db, {
+              environmentId,
+              baseConfig: parsed.config,
+              runtimeConfig,
+              // Match the capture-time fingerprint exclusions: secret-ref paths
+              // are excluded when the template's source fingerprint is computed,
+              // so they must be excluded when re-checking it here.
+              secretRefExcludePaths: collectSecretRefPaths(schema),
+            })
+          : runtimeConfig,
     };
   }
 
@@ -759,18 +900,26 @@ export async function resolveSandboxCleanupConfigSecrets(
   const secrets = secretService(db);
   let nextConfig = { ...config } as Record<string, unknown>;
   for (const path of collectSecretRefPaths(schema)) {
-    const current = canonicalizeSecretRefValue(readConfigValueAtPath(nextConfig, path), path);
+    const current = canonicalizeSecretRefValue(
+      readConfigValueAtPath(nextConfig, path),
+      path,
+    );
     if (typeof current !== "string") continue;
     const trimmed = current.trim();
     if (!isUuidSecretRef(trimmed)) continue;
     nextConfig = writeConfigValueAtPath(
       nextConfig,
       path,
-      await secrets.resolveSecretValueForSandboxCleanup(companyId, trimmed, "latest", {
-        configPath: path,
-        issueId: context?.issueId ?? null,
-        heartbeatRunId: context?.heartbeatRunId ?? null,
-      }),
+      await secrets.resolveSecretValueForSandboxCleanup(
+        companyId,
+        trimmed,
+        "latest",
+        {
+          configPath: path,
+          issueId: context?.issueId ?? null,
+          heartbeatRunId: context?.heartbeatRunId ?? null,
+        },
+      ),
     );
   }
   return nextConfig as SandboxEnvironmentConfig;
@@ -780,7 +929,9 @@ export function readSshEnvironmentPrivateKeySecretId(
   environment: Pick<Environment, "driver" | "config">,
 ): string | null {
   if (environment.driver !== "ssh") return null;
-  const parsed = sshEnvironmentConfigSchema.safeParse(parseObject(environment.config));
+  const parsed = sshEnvironmentConfigSchema.safeParse(
+    parseObject(environment.config),
+  );
   if (!parsed.success) return null;
   return parsed.data.privateKeySecretRef?.secretId ?? null;
 }
@@ -796,7 +947,9 @@ export function parseEnvironmentDriverConfig(
   }
 
   if (environment.driver === "ssh") {
-    const parsed = sshEnvironmentConfigSchema.parse(parseObject(environment.config));
+    const parsed = sshEnvironmentConfigSchema.parse(
+      parseObject(environment.config),
+    );
     return {
       driver: "ssh",
       config: parsed,
@@ -815,7 +968,9 @@ export function parseEnvironmentDriverConfig(
   }
 
   if (environment.driver === "plugin") {
-    const parsed = pluginEnvironmentConfigSchema.parse(parseObject(environment.config));
+    const parsed = pluginEnvironmentConfigSchema.parse(
+      parseObject(environment.config),
+    );
     return {
       driver: "plugin",
       config: parsed,

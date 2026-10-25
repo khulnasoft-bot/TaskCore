@@ -15,7 +15,11 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Agent } from "@taskcore/shared";
 import { CommentSubmissionUnknownError } from "../lib/comment-submit-result";
-import { loadDraft, preserveDraftInTab, settleDraftSubmission } from "../lib/composer-draft";
+import {
+  loadDraft,
+  preserveDraftInTab,
+  settleDraftSubmission,
+} from "../lib/composer-draft";
 import {
   IssueAssigneePausedNotice,
   IssueChatThread,
@@ -443,11 +447,21 @@ describe("IssueChatThread", () => {
               authorType: "user" as const,
               body: `Reply from ${source}`,
               presentation: null,
-              metadata: source === "imessage" ? {
-                version: 1 as const,
-                sourceChannel: "imessage-photon" as const,
-                sections: [{ title: "iMessage Photon sender", rows: [{ type: "text" as const, text: "Linked person" }] }],
-              } : null,
+              metadata:
+                source === "imessage"
+                  ? {
+                      version: 1 as const,
+                      sourceChannel: "imessage-photon" as const,
+                      sections: [
+                        {
+                          title: "iMessage Photon sender",
+                          rows: [
+                            { type: "text" as const, text: "Linked person" },
+                          ],
+                        },
+                      ],
+                    }
+                  : null,
               createdAt: new Date("2026-09-12T12:00:00Z"),
               updatedAt: new Date("2026-09-12T12:00:00Z"),
             }))}
@@ -462,8 +476,12 @@ describe("IssueChatThread", () => {
         </MemoryRouter>,
       );
     });
-    expect(container.querySelector("#comment-comment-imessage")?.textContent).toContain("Sent from iMessage");
-    expect(container.querySelector("#comment-comment-board")?.textContent).not.toContain("Sent from iMessage");
+    expect(
+      container.querySelector("#comment-comment-imessage")?.textContent,
+    ).toContain("Sent from iMessage");
+    expect(
+      container.querySelector("#comment-comment-board")?.textContent,
+    ).not.toContain("Sent from iMessage");
     act(() => root.unmount());
   });
 
@@ -765,8 +783,14 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.querySelector('[data-testid="issue-chat-composer-work-mode-chip"]')).toBeNull();
-    const add = container.querySelector('[data-testid="issue-chat-composer-add"]') as HTMLButtonElement;
+    expect(
+      container.querySelector(
+        '[data-testid="issue-chat-composer-work-mode-chip"]',
+      ),
+    ).toBeNull();
+    const add = container.querySelector(
+      '[data-testid="issue-chat-composer-add"]',
+    ) as HTMLButtonElement;
     expect(add).not.toBeNull();
 
     const composer = container.querySelector(
@@ -776,7 +800,9 @@ describe("IssueChatThread", () => {
     expect(composer?.className).not.toContain("amber");
 
     act(() => {
-      add.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      add.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
     });
 
     const menuItem = document.querySelector(
@@ -793,11 +819,17 @@ describe("IssueChatThread", () => {
     expect(onWorkModeChange).not.toHaveBeenCalled();
     expect(composer?.getAttribute("data-pending-work-mode")).toBe("planning");
     expect(composer?.className).toContain("amber");
-    const chip = container.querySelector('[data-testid="issue-chat-composer-work-mode-chip"]') as HTMLButtonElement;
+    const chip = container.querySelector(
+      '[data-testid="issue-chat-composer-work-mode-chip"]',
+    ) as HTMLButtonElement;
     expect(chip?.textContent).toContain("Plan mode");
     act(() => chip.click());
     expect(composer?.getAttribute("data-pending-work-mode")).toBe("standard");
-    expect(container.querySelector('[data-testid="issue-chat-composer-work-mode-chip"]')).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-testid="issue-chat-composer-work-mode-chip"]',
+      ),
+    ).toBeNull();
 
     act(() => {
       root.unmount();
@@ -825,7 +857,9 @@ describe("IssueChatThread", () => {
       );
     });
 
-    const add = container.querySelector('[data-testid="issue-chat-composer-add"]') as HTMLButtonElement;
+    const add = container.querySelector(
+      '[data-testid="issue-chat-composer-add"]',
+    ) as HTMLButtonElement;
     const composer = container.querySelector(
       '[data-testid="issue-chat-composer"]',
     ) as HTMLDivElement | null;
@@ -833,7 +867,9 @@ describe("IssueChatThread", () => {
     expect(composer).not.toBeNull();
 
     act(() => {
-      add.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      add.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
     });
 
     const askMenuItem = document.querySelector(
@@ -849,7 +885,11 @@ describe("IssueChatThread", () => {
     expect(onWorkModeChange).not.toHaveBeenCalled();
     expect(composer?.getAttribute("data-pending-work-mode")).toBe("ask");
     expect(composer?.className).toContain("sky");
-    expect(container.querySelector('[data-testid="issue-chat-composer-work-mode-chip"]')?.textContent).toContain("Ask mode");
+    expect(
+      container.querySelector(
+        '[data-testid="issue-chat-composer-work-mode-chip"]',
+      )?.textContent,
+    ).toContain("Ask mode");
 
     act(() => {
       composer?.dispatchEvent(
@@ -863,7 +903,11 @@ describe("IssueChatThread", () => {
     });
 
     expect(composer?.getAttribute("data-pending-work-mode")).toBe("standard");
-    expect(container.querySelector('[data-testid="issue-chat-composer-work-mode-chip"]')).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-testid="issue-chat-composer-work-mode-chip"]',
+      ),
+    ).toBeNull();
 
     act(() => {
       root.unmount();
@@ -3127,21 +3171,43 @@ describe("IssueChatThread", () => {
 
   it("hides queued interrupt and cancel actions until the task resumes", () => {
     const root = createRoot(container);
-    const comments = [{
-      id: "comment-paused-queue", companyId: "company-1", issueId: "issue-1",
-      authorAgentId: null, authorUserId: "user-1", authorType: "user" as const,
-      body: "Keep this queued message", presentation: null, metadata: null,
-      queueState: "queued" as const, queueTargetRunId: "run-1",
-      createdAt: new Date(), updatedAt: new Date(),
-    }];
+    const comments = [
+      {
+        id: "comment-paused-queue",
+        companyId: "company-1",
+        issueId: "issue-1",
+        authorAgentId: null,
+        authorUserId: "user-1",
+        authorType: "user" as const,
+        body: "Keep this queued message",
+        presentation: null,
+        metadata: null,
+        queueState: "queued" as const,
+        queueTargetRunId: "run-1",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
     for (const paused of [false, true, false]) {
-      act(() => root.render(<MemoryRouter><IssueChatThread
-        comments={comments} onAdd={async () => {}}
-        onInterruptQueued={async () => {}} onCancelQueued={() => {}}
-        composerPause={paused ? { scope: "leaf", onResume: () => {} } : null}
-        enableLiveTranscriptPolling={false}
-      /></MemoryRouter>));
-      const labels = [...container.querySelectorAll("button")].map((button) => button.textContent);
+      act(() =>
+        root.render(
+          <MemoryRouter>
+            <IssueChatThread
+              comments={comments}
+              onAdd={async () => {}}
+              onInterruptQueued={async () => {}}
+              onCancelQueued={() => {}}
+              composerPause={
+                paused ? { scope: "leaf", onResume: () => {} } : null
+              }
+              enableLiveTranscriptPolling={false}
+            />
+          </MemoryRouter>,
+        ),
+      );
+      const labels = [...container.querySelectorAll("button")].map(
+        (button) => button.textContent,
+      );
       expect(labels.includes("Interrupt")).toBe(!paused);
       expect(labels.includes("Cancel")).toBe(!paused);
       expect(container.textContent).toContain("Keep this queued message");
@@ -3152,15 +3218,38 @@ describe("IssueChatThread", () => {
   it("dispatches queued messages with Interrupt after the target run has stopped", () => {
     const root = createRoot(container);
     const onInterruptQueued = vi.fn(async () => {});
-    act(() => root.render(<MemoryRouter><IssueChatThread
-      comments={[{ id: "comment-queue", companyId: "company-1", issueId: "issue-1",
-        authorAgentId: null, authorUserId: "user-1", authorType: "user", body: "Pending input",
-        presentation: null, metadata: null, queueState: "queued", queueTargetRunId: null,
-        createdAt: new Date(), updatedAt: new Date() }]}
-      onAdd={async () => {}} onInterruptQueued={onInterruptQueued} showComposer={false}
-      enableLiveTranscriptPolling={false}
-    /></MemoryRouter>));
-    const interrupt = [...container.querySelectorAll("button")].find(button => button.textContent === "Interrupt");
+    act(() =>
+      root.render(
+        <MemoryRouter>
+          <IssueChatThread
+            comments={[
+              {
+                id: "comment-queue",
+                companyId: "company-1",
+                issueId: "issue-1",
+                authorAgentId: null,
+                authorUserId: "user-1",
+                authorType: "user",
+                body: "Pending input",
+                presentation: null,
+                metadata: null,
+                queueState: "queued",
+                queueTargetRunId: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              },
+            ]}
+            onAdd={async () => {}}
+            onInterruptQueued={onInterruptQueued}
+            showComposer={false}
+            enableLiveTranscriptPolling={false}
+          />
+        </MemoryRouter>,
+      ),
+    );
+    const interrupt = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Interrupt",
+    );
     expect(interrupt).toBeDefined();
     act(() => interrupt!.click());
     expect(onInterruptQueued).toHaveBeenCalledWith(null);
@@ -3281,42 +3370,51 @@ describe("IssueChatThread", () => {
     const submitted = "One text-only save interrupted by reload.";
     const nextDraft = "A newer draft written while delivery was pending.";
     localStorage.setItem(key, `${submitted}\n\n${nextDraft}`);
-    localStorage.setItem(`${key}:submission:v1`, JSON.stringify({
-      version: 1,
-      draftKey: key,
-      attemptId,
-      reviewed: false,
-      nextDraftOffset: submitted.length + 2,
-      submittedAttachmentIds: [],
-    }));
+    localStorage.setItem(
+      `${key}:submission:v1`,
+      JSON.stringify({
+        version: 1,
+        draftKey: key,
+        attemptId,
+        reviewed: false,
+        nextDraftOffset: submitted.length + 2,
+        submittedAttachmentIds: [],
+      }),
+    );
     const root = createRoot(container);
     try {
-      act(() => root.render(
-        <StrictMode>
-          <MemoryRouter>
-            <IssueChatThread
-              comments={[{
-                ...issueChatLongThreadComments[0]!,
-                id: "confirmed-restored-comment",
-                body: submitted,
-                authorAgentId: null,
-                authorUserId: "user-1",
-                clientRequestId: attemptId,
-              }]}
-              currentUserId="user-1"
-              linkedRuns={[]}
-              timelineEvents={[]}
-              liveRuns={[]}
-              onAdd={async () => {}}
-              draftKey={key}
-              enableLiveTranscriptPolling={false}
-            />
-          </MemoryRouter>
-        </StrictMode>,
-      ));
-      expect(container.querySelector<HTMLTextAreaElement>(
-        'textarea[aria-label="Issue chat editor"]',
-      )?.value).toBe(nextDraft);
+      act(() =>
+        root.render(
+          <StrictMode>
+            <MemoryRouter>
+              <IssueChatThread
+                comments={[
+                  {
+                    ...issueChatLongThreadComments[0]!,
+                    id: "confirmed-restored-comment",
+                    body: submitted,
+                    authorAgentId: null,
+                    authorUserId: "user-1",
+                    clientRequestId: attemptId,
+                  },
+                ]}
+                currentUserId="user-1"
+                linkedRuns={[]}
+                timelineEvents={[]}
+                liveRuns={[]}
+                onAdd={async () => {}}
+                draftKey={key}
+                enableLiveTranscriptPolling={false}
+              />
+            </MemoryRouter>
+          </StrictMode>,
+        ),
+      );
+      expect(
+        container.querySelector<HTMLTextAreaElement>(
+          'textarea[aria-label="Issue chat editor"]',
+        )?.value,
+      ).toBe(nextDraft);
       expect(localStorage.getItem(key)).toBe(nextDraft);
       expect(localStorage.getItem(`${key}:submission:v1`)).toBeNull();
       expect(container.textContent).not.toContain("We couldn’t confirm");
@@ -3331,31 +3429,72 @@ describe("IssueChatThread", () => {
     async (failure) => {
       const key = "unavailable-submission-storage";
       const originalSetItem = localStorage.setItem.bind(localStorage);
-      const write = vi.spyOn(localStorage, "setItem").mockImplementation((key, value) => {
-        if (failure === "all storage" || key.endsWith(":submission:v1")) throw new Error("Storage unavailable");
-        originalSetItem(key, value);
-      });
-      const read = failure === "all storage"
-        ? vi.spyOn(localStorage, "getItem").mockImplementation(() => { throw new Error("Storage unavailable"); })
-        : null;
+      const write = vi
+        .spyOn(localStorage, "setItem")
+        .mockImplementation((key, value) => {
+          if (failure === "all storage" || key.endsWith(":submission:v1"))
+            throw new Error("Storage unavailable");
+          originalSetItem(key, value);
+        });
+      const read =
+        failure === "all storage"
+          ? vi.spyOn(localStorage, "getItem").mockImplementation(() => {
+              throw new Error("Storage unavailable");
+            })
+          : null;
       let rejectSend!: (error: Error) => void;
-      const onAdd = vi.fn().mockReturnValueOnce(new Promise<void>((_, reject) => { rejectSend = reject; })).mockResolvedValue(undefined);
+      const onAdd = vi
+        .fn()
+        .mockReturnValueOnce(
+          new Promise<void>((_, reject) => {
+            rejectSend = reject;
+          }),
+        )
+        .mockResolvedValue(undefined);
       const root = createRoot(container);
       const element = (attemptId?: string) => (
         <MemoryRouter>
           <IssueChatThread
-            comments={attemptId ? [{ ...issueChatLongThreadComments[0]!, id: "confirmed-memory-comment", body: "Earlier message", authorAgentId: null, authorUserId: "user-1", clientRequestId: attemptId }] : []}
-            currentUserId="user-1" linkedRuns={[]} timelineEvents={[]} liveRuns={[]}
-            onAdd={onAdd} draftKey={key} enableLiveTranscriptPolling={false}
+            comments={
+              attemptId
+                ? [
+                    {
+                      ...issueChatLongThreadComments[0]!,
+                      id: "confirmed-memory-comment",
+                      body: "Earlier message",
+                      authorAgentId: null,
+                      authorUserId: "user-1",
+                      clientRequestId: attemptId,
+                    },
+                  ]
+                : []
+            }
+            currentUserId="user-1"
+            linkedRuns={[]}
+            timelineEvents={[]}
+            liveRuns={[]}
+            onAdd={onAdd}
+            draftKey={key}
+            enableLiveTranscriptPolling={false}
           />
         </MemoryRouter>
       );
-      const editor = () => container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Issue chat editor"]')!;
-      const type = (value: string) => act(() => {
-        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")!.set!.call(editor(), value);
-        editor().dispatchEvent(new Event("input", { bubbles: true }));
-      });
-      const send = () => Array.from(container.querySelectorAll("button")).find(button => button.textContent === "Send") as HTMLButtonElement;
+      const editor = () =>
+        container.querySelector<HTMLTextAreaElement>(
+          'textarea[aria-label="Issue chat editor"]',
+        )!;
+      const type = (value: string) =>
+        act(() => {
+          Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype,
+            "value",
+          )!.set!.call(editor(), value);
+          editor().dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      const send = () =>
+        Array.from(container.querySelectorAll("button")).find(
+          (button) => button.textContent === "Send",
+        ) as HTMLButtonElement;
       try {
         await act(async () => root.render(element()));
         type("Earlier message");
@@ -3378,7 +3517,14 @@ describe("IssueChatThread", () => {
     },
   );
 
-  it.each(["newer local text", "foreign pending receipt", "matching text with new attachments", "matching full text with new attachments", "own receipt with newer stored text", "unavailable recovery storage"])(
+  it.each([
+    "newer local text",
+    "foreign pending receipt",
+    "matching text with new attachments",
+    "matching full text with new attachments",
+    "own receipt with newer stored text",
+    "unavailable recovery storage",
+  ])(
     "preserves both tabs through settlement and reload: %s",
     async (scenario) => {
       const key = `cross-tab-preserved-${scenario}`;
@@ -3386,59 +3532,154 @@ describe("IssueChatThread", () => {
       const newerId = "baf8228f-0be7-45ae-a104-6fbe0af6f1d3";
       const attachmentId = "caf8228f-0be7-45ae-a104-6fbe0af6f1d3";
       const localText = "This tab's newer unsent draft";
-      const otherText = scenario === "matching text with new attachments" ? localText : scenario === "matching full text with new attachments" ? `Earlier message\n\n${localText}` : "The other tab's unsent draft";
+      const otherText =
+        scenario === "matching text with new attachments"
+          ? localText
+          : scenario === "matching full text with new attachments"
+            ? `Earlier message\n\n${localText}`
+            : "The other tab's unsent draft";
       localStorage.setItem(key, `Earlier message\n\n${localText}`);
-      localStorage.setItem(`${key}:submission:v1`, JSON.stringify({ version: 1, draftKey: key, attemptId, reviewed: false, nextDraftOffset: 17, submittedAttachmentIds: [] }));
+      localStorage.setItem(
+        `${key}:submission:v1`,
+        JSON.stringify({
+          version: 1,
+          draftKey: key,
+          attemptId,
+          reviewed: false,
+          nextDraftOffset: 17,
+          submittedAttachmentIds: [],
+        }),
+      );
       const element = (confirmed: boolean, foreignConfirmed = false) => (
         <MemoryRouter>
           <IssueChatThread
-            comments={confirmed ? [
-              { ...issueChatLongThreadComments[0]!, id: "confirmed-cross-tab-comment", body: "Earlier message", authorAgentId: null, authorUserId: "user-1", clientRequestId: attemptId },
-              ...(foreignConfirmed ? [{ ...issueChatLongThreadComments[0]!, id: "other-tab-confirmed", body: "Other tab message", authorAgentId: null, authorUserId: "user-1", clientRequestId: newerId }] : []),
-            ] : []}
-            currentUserId="user-1" linkedRuns={[]} timelineEvents={[]} liveRuns={[]}
-            onAdd={async () => {}} draftKey={key} enableLiveTranscriptPolling={false}
+            comments={
+              confirmed
+                ? [
+                    {
+                      ...issueChatLongThreadComments[0]!,
+                      id: "confirmed-cross-tab-comment",
+                      body: "Earlier message",
+                      authorAgentId: null,
+                      authorUserId: "user-1",
+                      clientRequestId: attemptId,
+                    },
+                    ...(foreignConfirmed
+                      ? [
+                          {
+                            ...issueChatLongThreadComments[0]!,
+                            id: "other-tab-confirmed",
+                            body: "Other tab message",
+                            authorAgentId: null,
+                            authorUserId: "user-1",
+                            clientRequestId: newerId,
+                          },
+                        ]
+                      : []),
+                  ]
+                : []
+            }
+            currentUserId="user-1"
+            linkedRuns={[]}
+            timelineEvents={[]}
+            liveRuns={[]}
+            onAdd={async () => {}}
+            draftKey={key}
+            enableLiveTranscriptPolling={false}
           />
         </MemoryRouter>
       );
       let root = createRoot(container);
       const storagePrototype = Object.getPrototypeOf(sessionStorage) as Storage;
       const originalStorageWrite = storagePrototype.setItem;
-      const recoveryWrite = scenario === "unavailable recovery storage"
-        ? vi.spyOn(storagePrototype, "setItem").mockImplementation(function (this: Storage, key: string, value: string) {
-          if (this === sessionStorage) throw new Error("Storage full");
-          return originalStorageWrite.call(this, key, value);
-        })
-        : null;
+      const recoveryWrite =
+        scenario === "unavailable recovery storage"
+          ? vi.spyOn(storagePrototype, "setItem").mockImplementation(function (
+              this: Storage,
+              key: string,
+              value: string,
+            ) {
+              if (this === sessionStorage) throw new Error("Storage full");
+              return originalStorageWrite.call(this, key, value);
+            })
+          : null;
       try {
         await act(async () => root.render(element(false)));
-        if (scenario === "own receipt with newer stored text") localStorage.setItem(key, `Earlier message\n\n${otherText}`);
-        else expect(settleDraftSubmission(key, attemptId, otherText)).toBe(true);
-        if (scenario === "foreign pending receipt") localStorage.setItem(`${key}:submission:v1`, JSON.stringify({ version: 1, draftKey: key, attemptId: newerId, reviewed: false, nextDraftOffset: 0, submittedAttachmentIds: [] }));
-        localStorage.setItem(`${key}:attachments:v1`, JSON.stringify({ version: 1, draftKey: key, attachments: [{ attachmentId, name: "another-tab.txt", inline: false, contentPath: `/api/attachments/${attachmentId}/content` }] }));
+        if (scenario === "own receipt with newer stored text")
+          localStorage.setItem(key, `Earlier message\n\n${otherText}`);
+        else
+          expect(settleDraftSubmission(key, attemptId, otherText)).toBe(true);
+        if (scenario === "foreign pending receipt")
+          localStorage.setItem(
+            `${key}:submission:v1`,
+            JSON.stringify({
+              version: 1,
+              draftKey: key,
+              attemptId: newerId,
+              reviewed: false,
+              nextDraftOffset: 0,
+              submittedAttachmentIds: [],
+            }),
+          );
+        localStorage.setItem(
+          `${key}:attachments:v1`,
+          JSON.stringify({
+            version: 1,
+            draftKey: key,
+            attachments: [
+              {
+                attachmentId,
+                name: "another-tab.txt",
+                inline: false,
+                contentPath: `/api/attachments/${attachmentId}/content`,
+              },
+            ],
+          }),
+        );
         await act(async () => root.render(element(true)));
-        const editor = () => container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Issue chat editor"]')!;
+        const editor = () =>
+          container.querySelector<HTMLTextAreaElement>(
+            'textarea[aria-label="Issue chat editor"]',
+          )!;
         expect(editor().value).toBe(localText);
         expect(container.textContent).not.toContain("We couldn’t confirm");
-        if (scenario === "unavailable recovery storage") expect(container.textContent).toContain("copy your text before leaving");
-        if (scenario.includes("with new attachments")) expect(container.textContent).toContain("another-tab.txt");
+        if (scenario === "unavailable recovery storage")
+          expect(container.textContent).toContain(
+            "copy your text before leaving",
+          );
+        if (scenario.includes("with new attachments"))
+          expect(container.textContent).toContain("another-tab.txt");
         if (scenario === "foreign pending receipt") {
-          localStorage.setItem(key, "The owning tab kept typing after the first receipt");
+          localStorage.setItem(
+            key,
+            "The owning tab kept typing after the first receipt",
+          );
           await act(async () => root.render(element(true, true)));
-          expect(localStorage.getItem(`${key}:submission:v1`)).toContain(newerId);
+          expect(localStorage.getItem(`${key}:submission:v1`)).toContain(
+            newerId,
+          );
         } else expect(localStorage.getItem(`${key}:submission:v1`)).toBeNull();
         const storedText = localStorage.getItem(key);
-        expect(storedText).toBe(scenario === "foreign pending receipt" ? "The owning tab kept typing after the first receipt" : otherText);
-        expect(localStorage.getItem(`${key}:attachments:v1`)).toContain(attachmentId);
+        expect(storedText).toBe(
+          scenario === "foreign pending receipt"
+            ? "The owning tab kept typing after the first receipt"
+            : otherText,
+        );
+        expect(localStorage.getItem(`${key}:attachments:v1`)).toContain(
+          attachmentId,
+        );
         await act(async () => root.unmount());
         expect(localStorage.getItem(key)).toBe(storedText);
         if (scenario === "unavailable recovery storage") return;
         root = createRoot(container);
         await act(async () => root.render(element(true, true)));
         expect(editor().value).toBe(localText);
-        if (scenario.includes("with new attachments")) expect(container.textContent).toContain("another-tab.txt");
+        if (scenario.includes("with new attachments"))
+          expect(container.textContent).toContain("another-tab.txt");
         expect(localStorage.getItem(key)).toBe(storedText);
-        expect(localStorage.getItem(`${key}:attachments:v1`)).toContain(attachmentId);
+        expect(localStorage.getItem(`${key}:attachments:v1`)).toContain(
+          attachmentId,
+        );
       } finally {
         if (container.childNodes.length) await act(async () => root.unmount());
         recoveryWrite?.mockRestore();
@@ -3446,37 +3687,65 @@ describe("IssueChatThread", () => {
     },
   );
 
-  it.each(["ordinary", "recovered"])("preserves %s drafts when the same composer switches A to B to A before debounce", async (kind) => {
-    vi.useFakeTimers();
-    const a = `navigation-a-${kind}`;
-    const b = `navigation-b-${kind}`;
-    const keys = kind === "recovered"
-      ? [preserveDraftInTab(a, "Draft A", []).key, preserveDraftInTab(b, "Draft B", []).key]
-      : [a, b];
-    if (kind === "ordinary") { localStorage.setItem(a, "Draft A"); localStorage.setItem(b, "Draft B"); }
-    const root = createRoot(container);
-    const element = (draftKey: string) => (
-      <MemoryRouter><IssueChatThread comments={[]} linkedRuns={[]} timelineEvents={[]} liveRuns={[]}
-        onAdd={async () => {}} draftKey={draftKey} enableLiveTranscriptPolling={false} /></MemoryRouter>
-    );
-    const editor = () => container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Issue chat editor"]')!;
-    const type = (value: string) => act(() => {
-      Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")!.set!.call(editor(), value);
-      editor().dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    try {
-      await act(async () => root.render(element(a)));
-      expect(editor().value).toBe("Draft A");
-      type("Draft A typed just now");
-      await act(async () => root.render(element(b)));
-      expect(editor().value).toBe("Draft B");
-      expect(loadDraft(keys[0]!)).toBe("Draft A typed just now");
-      type("Draft B typed just now");
-      await act(async () => root.render(element(a)));
-      expect(editor().value).toBe("Draft A typed just now");
-      expect(loadDraft(keys[1]!)).toBe("Draft B typed just now");
-    } finally { await act(async () => root.unmount()); }
-  });
+  it.each(["ordinary", "recovered"])(
+    "preserves %s drafts when the same composer switches A to B to A before debounce",
+    async (kind) => {
+      vi.useFakeTimers();
+      const a = `navigation-a-${kind}`;
+      const b = `navigation-b-${kind}`;
+      const keys =
+        kind === "recovered"
+          ? [
+              preserveDraftInTab(a, "Draft A", []).key,
+              preserveDraftInTab(b, "Draft B", []).key,
+            ]
+          : [a, b];
+      if (kind === "ordinary") {
+        localStorage.setItem(a, "Draft A");
+        localStorage.setItem(b, "Draft B");
+      }
+      const root = createRoot(container);
+      const element = (draftKey: string) => (
+        <MemoryRouter>
+          <IssueChatThread
+            comments={[]}
+            linkedRuns={[]}
+            timelineEvents={[]}
+            liveRuns={[]}
+            onAdd={async () => {}}
+            draftKey={draftKey}
+            enableLiveTranscriptPolling={false}
+          />
+        </MemoryRouter>
+      );
+      const editor = () =>
+        container.querySelector<HTMLTextAreaElement>(
+          'textarea[aria-label="Issue chat editor"]',
+        )!;
+      const type = (value: string) =>
+        act(() => {
+          Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype,
+            "value",
+          )!.set!.call(editor(), value);
+          editor().dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      try {
+        await act(async () => root.render(element(a)));
+        expect(editor().value).toBe("Draft A");
+        type("Draft A typed just now");
+        await act(async () => root.render(element(b)));
+        expect(editor().value).toBe("Draft B");
+        expect(loadDraft(keys[0]!)).toBe("Draft A typed just now");
+        type("Draft B typed just now");
+        await act(async () => root.render(element(a)));
+        expect(editor().value).toBe("Draft A typed just now");
+        expect(loadDraft(keys[1]!)).toBe("Draft B typed just now");
+      } finally {
+        await act(async () => root.unmount());
+      }
+    },
+  );
 
   it("returns to the shared draft after finishing a recovery and leaving the task", async () => {
     const a = "finished-recovery-a";
@@ -3486,21 +3755,43 @@ describe("IssueChatThread", () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     const root = createRoot(container);
     const element = (draftKey: string) => (
-      <MemoryRouter><IssueChatThread comments={[]} linkedRuns={[]} timelineEvents={[]} liveRuns={[]}
-        onAdd={onAdd} draftKey={draftKey} enableLiveTranscriptPolling={false} /></MemoryRouter>
+      <MemoryRouter>
+        <IssueChatThread
+          comments={[]}
+          linkedRuns={[]}
+          timelineEvents={[]}
+          liveRuns={[]}
+          onAdd={onAdd}
+          draftKey={draftKey}
+          enableLiveTranscriptPolling={false}
+        />
+      </MemoryRouter>
     );
-    const editor = () => container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Issue chat editor"]')!;
+    const editor = () =>
+      container.querySelector<HTMLTextAreaElement>(
+        'textarea[aria-label="Issue chat editor"]',
+      )!;
     try {
       await act(async () => root.render(element(a)));
       expect(editor().value).toBe("My recovered message");
-      await act(async () => (Array.from(container.querySelectorAll("button")).find(button => button.textContent === "Send") as HTMLButtonElement).click());
+      await act(async () =>
+        (
+          Array.from(container.querySelectorAll("button")).find(
+            (button) => button.textContent === "Send",
+          ) as HTMLButtonElement
+        ).click(),
+      );
       expect(onAdd.mock.calls[0]![0]).toBe("My recovered message");
       expect(editor().value).toBe("");
       await act(async () => root.render(element(b)));
       await act(async () => root.render(element(a)));
       expect(editor().value).toBe("The other tab's preserved draft");
-      expect(container.textContent).not.toContain("This draft is kept separately");
-    } finally { await act(async () => root.unmount()); }
+      expect(container.textContent).not.toContain(
+        "This draft is kept separately",
+      );
+    } finally {
+      await act(async () => root.unmount());
+    }
   });
 
   it("stores and restores the composer draft per issue key", () => {
@@ -3736,19 +4027,35 @@ describe("IssueChatThread", () => {
     });
 
     expect(onAttachImage).toHaveBeenCalledWith(file);
-    const add = container.querySelector('[data-testid="issue-chat-composer-add"]') as HTMLButtonElement;
+    const add = container.querySelector(
+      '[data-testid="issue-chat-composer-add"]',
+    ) as HTMLButtonElement;
     expect(add.disabled).toBe(false);
     act(() => {
-      add.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      add.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
     });
-    expect(document.querySelector('[data-testid="composer-add-file"]')?.getAttribute("data-disabled")).not.toBeNull();
-    const plan = document.querySelector('[data-testid="composer-add-plan"]') as HTMLButtonElement;
+    expect(
+      document
+        .querySelector('[data-testid="composer-add-file"]')
+        ?.getAttribute("data-disabled"),
+    ).not.toBeNull();
+    const plan = document.querySelector(
+      '[data-testid="composer-add-plan"]',
+    ) as HTMLButtonElement;
     act(() => plan.click());
-    const chip = container.querySelector('[data-testid="issue-chat-composer-work-mode-chip"]') as HTMLButtonElement;
+    const chip = container.querySelector(
+      '[data-testid="issue-chat-composer-work-mode-chip"]',
+    ) as HTMLButtonElement;
     expect(chip?.textContent).toContain("Plan mode");
     expect(chip.disabled).toBe(false);
     act(() => chip.click());
-    expect(container.querySelector('[data-testid="issue-chat-composer-work-mode-chip"]')).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-testid="issue-chat-composer-work-mode-chip"]',
+      ),
+    ).toBeNull();
 
     await act(async () => {
       finishUpload();
@@ -3826,7 +4133,14 @@ describe("IssueChatThread", () => {
     expect(send().disabled).toBe(false);
     await act(async () => send().click());
     const expectedBody = `Inspect the file\n\n[fresh.txt](/api/attachments/${id}/content)`;
-    expect(onAdd).toHaveBeenNthCalledWith(1, expectedBody, undefined, undefined, [id], expect.any(String));
+    expect(onAdd).toHaveBeenNthCalledWith(
+      1,
+      expectedBody,
+      undefined,
+      undefined,
+      [id],
+      expect.any(String),
+    );
     expect(appendMock).not.toHaveBeenCalled();
     await act(async () => root.unmount());
     root = createRoot(container);
@@ -3838,7 +4152,14 @@ describe("IssueChatThread", () => {
     ).toBe("Inspect the file");
     expect(container.textContent).toContain("fresh.txt");
     await act(async () => send().click());
-    expect(onAdd).toHaveBeenNthCalledWith(2, expectedBody, undefined, undefined, [id], expect.any(String));
+    expect(onAdd).toHaveBeenNthCalledWith(
+      2,
+      expectedBody,
+      undefined,
+      undefined,
+      [id],
+      expect.any(String),
+    );
     expect(onAttachImage).toHaveBeenCalledTimes(1);
     await act(async () => root.unmount());
   });
@@ -3915,50 +4236,90 @@ describe("IssueChatThread", () => {
       const key = `legacy-next-draft-${outcome}`;
       let resolveSend!: () => void;
       let rejectSend!: (error: Error) => void;
-      const onAdd = vi.fn().mockReturnValue(new Promise<void>((resolve, reject) => {
-        resolveSend = resolve;
-        rejectSend = reject;
-      }));
+      const onAdd = vi.fn().mockReturnValue(
+        new Promise<void>((resolve, reject) => {
+          resolveSend = resolve;
+          rejectSend = reject;
+        }),
+      );
       const attachmentId = "aaf8228f-0be7-45ae-a104-6fbe0af6f1d3";
       const onAttachImage = vi.fn().mockResolvedValue({
-        id: attachmentId, contentPath: `/api/attachments/${attachmentId}/content`, originalFilename: "next-draft.txt",
+        id: attachmentId,
+        contentPath: `/api/attachments/${attachmentId}/content`,
+        originalFilename: "next-draft.txt",
       });
       let root = createRoot(container);
       const element = (requestId?: string) => (
         <MemoryRouter>
           <IssueChatThread
-            comments={requestId ? [{
-              ...issueChatLongThreadComments[0]!,
-              id: "confirmed-legacy-comment", body: "Earlier message",
-              authorAgentId: null, authorUserId: "user-1", clientRequestId: requestId,
-            }] : []}
+            comments={
+              requestId
+                ? [
+                    {
+                      ...issueChatLongThreadComments[0]!,
+                      id: "confirmed-legacy-comment",
+                      body: "Earlier message",
+                      authorAgentId: null,
+                      authorUserId: "user-1",
+                      clientRequestId: requestId,
+                    },
+                  ]
+                : []
+            }
             currentUserId="user-1"
-            linkedRuns={[]} timelineEvents={[]} liveRuns={[]}
-            onAdd={onAdd} onAttachImage={onAttachImage} draftKey={key} enableLiveTranscriptPolling={false}
+            linkedRuns={[]}
+            timelineEvents={[]}
+            liveRuns={[]}
+            onAdd={onAdd}
+            onAttachImage={onAttachImage}
+            draftKey={key}
+            enableLiveTranscriptPolling={false}
           />
         </MemoryRouter>
       );
-      const editor = () => container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Issue chat editor"]')!;
-      const type = (value: string) => act(() => {
-        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")!.set!.call(editor(), value);
-        editor().dispatchEvent(new Event("input", { bubbles: true }));
-      });
+      const editor = () =>
+        container.querySelector<HTMLTextAreaElement>(
+          'textarea[aria-label="Issue chat editor"]',
+        )!;
+      const type = (value: string) =>
+        act(() => {
+          Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype,
+            "value",
+          )!.set!.call(editor(), value);
+          editor().dispatchEvent(new Event("input", { bubbles: true }));
+        });
       await act(async () => root.render(element()));
       type("Earlier message");
-      await act(async () => Array.from(container.querySelectorAll("button")).find(button => button.textContent === "Send")!.click());
+      await act(async () =>
+        Array.from(container.querySelectorAll("button"))
+          .find((button) => button.textContent === "Send")!
+          .click(),
+      );
       const requestId = onAdd.mock.calls[0]![4] as string;
       type("Newer unsent draft");
-      await act(async () => container.querySelector('[data-testid="issue-chat-composer"]')!
-        .dispatchEvent(createFileDragEvent("drop", [new File(["next"], "next-draft.txt", { type: "text/plain" })])));
+      await act(async () =>
+        container
+          .querySelector('[data-testid="issue-chat-composer"]')!
+          .dispatchEvent(
+            createFileDragEvent("drop", [
+              new File(["next"], "next-draft.txt", { type: "text/plain" }),
+            ]),
+          ),
+      );
       if (outcome !== "late receipt") await act(async () => root.unmount());
-      if (outcome === "navigation success") await act(async () => resolveSend());
-      else if (outcome === "late receipt") await act(async () => rejectSend(new CommentSubmissionUnknownError()));
+      if (outcome === "navigation success")
+        await act(async () => resolveSend());
+      else if (outcome === "late receipt")
+        await act(async () => rejectSend(new CommentSubmissionUnknownError()));
       if (outcome !== "late receipt") root = createRoot(container);
       await act(async () => root.render(element(requestId)));
       expect(editor().value).toBe("Newer unsent draft");
       expect(localStorage.getItem(key)).toBe("Newer unsent draft");
       expect(localStorage.getItem(`${key}:submission:v1`)).toBeNull();
-      expect(localStorage.getItem(`${key}:attachments:v1`)).toContain(attachmentId);
+      expect(localStorage.getItem(`${key}:attachments:v1`)).toContain(
+        attachmentId,
+      );
       expect(container.textContent).toContain("next-draft.txt");
       expect(container.textContent).not.toContain("We couldn’t confirm");
       await act(async () => root.unmount());
@@ -4012,10 +4373,16 @@ describe("IssueChatThread", () => {
         .find((button) => button.textContent === "Send")!
         .click(),
     );
-    expect(onAdd).toHaveBeenCalledWith("Please review the result", undefined, {
-      assigneeAgentId: null,
-      assigneeUserId: "reviewer",
-    }, undefined, expect.any(String));
+    expect(onAdd).toHaveBeenCalledWith(
+      "Please review the result",
+      undefined,
+      {
+        assigneeAgentId: null,
+        assigneeUserId: "reviewer",
+      },
+      undefined,
+      expect.any(String),
+    );
     expect(appendMock).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Posting...");
     expect(localStorage.getItem("legacy-awaited-reassignment")).toBe(
@@ -4266,7 +4633,13 @@ describe("IssueChatThread", () => {
       submitButton?.click();
     });
 
-    expect(onAdd).toHaveBeenCalledWith("Please pick this back up", true, undefined, undefined, expect.any(String));
+    expect(onAdd).toHaveBeenCalledWith(
+      "Please pick this back up",
+      true,
+      undefined,
+      undefined,
+      expect.any(String),
+    );
 
     act(() => {
       root.unmount();
@@ -4339,7 +4712,13 @@ describe("IssueChatThread", () => {
     });
 
     expect(onAdd).toHaveBeenCalledTimes(1);
-    expect(onAdd).toHaveBeenCalledWith("Reply without assignee", undefined, undefined, undefined, expect.any(String));
+    expect(onAdd).toHaveBeenCalledWith(
+      "Reply without assignee",
+      undefined,
+      undefined,
+      undefined,
+      expect.any(String),
+    );
     expect(
       document.querySelector('[data-testid="issue-chat-no-assignee-dialog"]'),
     ).toBeNull();
@@ -4835,8 +5214,8 @@ describe("IssueChatThread", () => {
       );
     });
 
-    const header = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("worked for 4 minutes"),
+    const header = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("worked for 4 minutes"),
     );
     expect(header).toBeDefined();
     const label = Array.from(header!.children).find((child) =>
@@ -4847,7 +5226,9 @@ describe("IssueChatThread", () => {
     expect(header?.classList.contains("group")).toBe(true);
     expect(caret?.classList.contains("opacity-0")).toBe(true);
     expect(caret?.classList.contains("group-hover:opacity-100")).toBe(true);
-    expect(caret?.classList.contains("group-focus-visible:opacity-100")).toBe(true);
+    expect(caret?.classList.contains("group-focus-visible:opacity-100")).toBe(
+      true,
+    );
     expect(caret?.nextElementSibling?.classList.contains("ml-auto")).toBe(true);
 
     act(() => {

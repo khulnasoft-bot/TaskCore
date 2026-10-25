@@ -3,16 +3,12 @@
   "slug": "openai",
   "name": "OpenAI",
   "description": "Connect OpenAI accounts for your agents.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "branding": {
     "logoUrl": "/brands/apps/openai.svg",
     "darkLogoUrl": "/brands/apps/openai-dark.svg"
   },
-  "urlPatterns": [
-    "https://api.openai.com/*"
-  ],
+  "urlPatterns": ["https://api.openai.com/*"],
   "methods": [
     {
       "key": "ai-subscription",
@@ -24,13 +20,8 @@
         "provider": "openai",
         "method": "subscription"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Authenticate an agent with this account.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3"
@@ -45,13 +36,8 @@
         "provider": "openai",
         "method": "api_key"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Authenticate an agent with this account.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3",
@@ -71,7 +57,5 @@
       }
     }
   ],
-  "tags": [
-    "model-provider"
-  ]
+  "tags": ["model-provider"]
 }

@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/lib/router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, ChevronDown, Loader2, Search, Store, X } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  Loader2,
+  Search,
+  Store,
+  X,
+} from "lucide-react";
 import type { Agent, AgentDesiredSkillEntry } from "@taskcore/shared";
 import { agentsApi } from "../../api/agents";
 import { companySkillsApi } from "../../api/companySkills";
@@ -13,8 +21,16 @@ import { cn } from "../../lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { PageSkeleton } from "../../components/PageSkeleton";
 import {
   applyAgentSkillSnapshot,
@@ -25,7 +41,10 @@ import {
 import { AgentSkillRow, type AgentSkillRowData } from "./AgentSkillRow";
 import { filterAgentSkills } from "./agent-skill-filter";
 import { buildAgentSkillSourceMeta } from "./agent-skill-source";
-import { AgentSkillReleasePicker, releaseShortLabel } from "./AgentSkillReleasePicker";
+import {
+  AgentSkillReleasePicker,
+  releaseShortLabel,
+} from "./AgentSkillReleasePicker";
 
 const MATERIALIZATION_NOTE =
   "Enabled skills are materialized into the stable Taskcore-managed prompt bundle on the agent's next run.";
@@ -39,9 +58,9 @@ export function toDesiredSkillPayload(
   pins: Record<string, string>,
   versionPinsEnabled = true,
 ): Array<string | AgentDesiredSkillEntry> {
-  return keys.map((key) => (
-    versionPinsEnabled && pins[key] ? { key, versionId: pins[key]! } : key
-  ));
+  return keys.map((key) =>
+    versionPinsEnabled && pins[key] ? { key, versionId: pins[key]! } : key,
+  );
 }
 
 /** Extract the skill key from either payload shape (string or entry). */
@@ -50,7 +69,9 @@ function desiredSkillKey(entry: string | AgentDesiredSkillEntry): string {
 }
 
 /** Reduce desired entries to a key → versionId map for non-default pins only. */
-function pinsFromEntries(entries: AgentDesiredSkillEntry[] | undefined): Record<string, string> {
+function pinsFromEntries(
+  entries: AgentDesiredSkillEntry[] | undefined,
+): Record<string, string> {
   const pins: Record<string, string> = {};
   for (const entry of entries ?? []) {
     if (entry.versionId) pins[entry.key] = entry.versionId;
@@ -58,7 +79,13 @@ function pinsFromEntries(entries: AgentDesiredSkillEntry[] | undefined): Record<
   return pins;
 }
 
-export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?: string }) {
+export function AgentSkillsTab({
+  agent,
+  companyId,
+}: {
+  agent: Agent;
+  companyId?: string;
+}) {
   const queryClient = useQueryClient();
   const [skillDraft, setSkillDraft] = useState<string[]>([]);
   const [lastSavedSkills, setLastSavedSkills] = useState<string[]>([]);
@@ -94,19 +121,26 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
   const betaSkillsEnabled = experimentalSettings?.enableBetaSkills === true;
 
   const taskcoreCoreSkill = useMemo(
-    () => (companySkills ?? []).find((skill) => skill.key === TASKCORE_CORE_SKILL_KEY) ?? null,
+    () =>
+      (companySkills ?? []).find(
+        (skill) => skill.key === TASKCORE_CORE_SKILL_KEY,
+      ) ?? null,
     [companySkills, skillSnapshot],
   );
 
   // Seeded releases (release_id IS NOT NULL) for the taskcore core skill. Only
   // fetched when the flag is on and the skill is present in the library.
   const { data: taskcoreVersions } = useQuery({
-    queryKey: queryKeys.companySkills.versions(companyId ?? "", taskcoreCoreSkill?.id ?? ""),
+    queryKey: queryKeys.companySkills.versions(
+      companyId ?? "",
+      taskcoreCoreSkill?.id ?? "",
+    ),
     queryFn: () => companySkillsApi.versions(companyId!, taskcoreCoreSkill!.id),
     enabled: Boolean(companyId && betaSkillsEnabled && taskcoreCoreSkill?.id),
   });
   const taskcoreReleases = useMemo(
-    () => (taskcoreVersions ?? []).filter((version) => version.releaseId != null),
+    () =>
+      (taskcoreVersions ?? []).filter((version) => version.releaseId != null),
     [taskcoreVersions],
   );
 
@@ -121,8 +155,12 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
       versionPinsRef.current = nextPins;
       setVersionPins(nextPins);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.urlKey) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.detail(agent.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.detail(agent.urlKey),
+        }),
       ]);
     },
     onError: (_error, attemptedDesiredSkills) => {
@@ -194,11 +232,13 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
           failedDraft: failedSkillDraftRef.current,
         })
       ) {
-        syncSkills.mutate(toDesiredSkillPayload(
-          skillDraft,
-          versionPinsRef.current,
-          betaSkillsEnabled,
-        ));
+        syncSkills.mutate(
+          toDesiredSkillPayload(
+            skillDraft,
+            versionPinsRef.current,
+            betaSkillsEnabled,
+          ),
+        );
       }
     }, 250);
 
@@ -221,7 +261,10 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
     [companySkills],
   );
   const adapterEntryByKey = useMemo(
-    () => new Map((skillSnapshot?.entries ?? []).map((entry) => [entry.key, entry])),
+    () =>
+      new Map(
+        (skillSnapshot?.entries ?? []).map((entry) => [entry.key, entry]),
+      ),
     [skillSnapshot],
   );
 
@@ -230,27 +273,34 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
   // Library skills → row models (the store's visual language, tuned for rows).
   const libraryRows = useMemo<AgentSkillRowData[]>(
     () =>
-      (companySkills ?? []).filter((skill) => !(skillSnapshot?.entries ?? []).some((entry) => entry.key === skill.key && entry.readOnly)).map((skill) => ({
-        key: skill.key,
-        name: skill.name,
-        icon: {
+      (companySkills ?? [])
+        .filter(
+          (skill) =>
+            !(skillSnapshot?.entries ?? []).some(
+              (entry) => entry.key === skill.key && entry.readOnly,
+            ),
+        )
+        .map((skill) => ({
           key: skill.key,
           name: skill.name,
+          icon: {
+            key: skill.key,
+            name: skill.name,
+            slug: skill.slug,
+            iconUrl: skill.iconUrl,
+            color: skill.color,
+          },
+          summary: resolveSkillSummaryText(skill, { fallbackKey: true }),
+          chip: skill.categories[0] ?? null,
+          sourceMeta: buildAgentSkillSourceMeta(skill),
+          linkTo: `/skills/${skill.id}`,
+          // search haystack (mirrors the store's discoveryMatchesSearch fields)
           slug: skill.slug,
-          iconUrl: skill.iconUrl,
-          color: skill.color,
-        },
-        summary: resolveSkillSummaryText(skill, { fallbackKey: true }),
-        chip: skill.categories[0] ?? null,
-        sourceMeta: buildAgentSkillSourceMeta(skill),
-        linkTo: `/skills/${skill.id}`,
-        // search haystack (mirrors the store's discoveryMatchesSearch fields)
-        slug: skill.slug,
-        author: skill.authorName ?? skill.sourceLabel,
-        tagline: skill.tagline,
-        description: skill.description,
-        categories: skill.categories,
-      })),
+          author: skill.authorName ?? skill.sourceLabel,
+          tagline: skill.tagline,
+          description: skill.description,
+          categories: skill.categories,
+        })),
     [companySkills, skillSnapshot],
   );
 
@@ -258,11 +308,21 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
   const detectedRows = useMemo<AgentSkillRowData[]>(
     () =>
       (skillSnapshot?.entries ?? [])
-        .filter((entry) => (entry.readOnly && entry.desired) || isReadOnlyUnmanagedSkillEntry(entry, companySkillKeys))
+        .filter(
+          (entry) =>
+            (entry.readOnly && entry.desired) ||
+            isReadOnlyUnmanagedSkillEntry(entry, companySkillKeys),
+        )
         .map((entry) => ({
           key: entry.key,
           name: entry.runtimeName ?? entry.key,
-          icon: { key: entry.key, name: entry.runtimeName ?? entry.key, slug: null, iconUrl: null, color: null },
+          icon: {
+            key: entry.key,
+            name: entry.runtimeName ?? entry.key,
+            slug: null,
+            iconUrl: null,
+            color: null,
+          },
           summary: entry.detail ?? null,
           chip: null,
           linkTo: null,
@@ -287,9 +347,18 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
     [companySkillByKey, skillDraft],
   );
 
-  const filteredEnabled = useMemo(() => filterAgentSkills(enabledRows, search), [enabledRows, search]);
-  const filteredAvailable = useMemo(() => filterAgentSkills(availableRows, search), [availableRows, search]);
-  const filteredDetected = useMemo(() => filterAgentSkills(detectedRows, search), [detectedRows, search]);
+  const filteredEnabled = useMemo(
+    () => filterAgentSkills(enabledRows, search),
+    [enabledRows, search],
+  );
+  const filteredAvailable = useMemo(
+    () => filterAgentSkills(availableRows, search),
+    [availableRows, search],
+  );
+  const filteredDetected = useMemo(
+    () => filterAgentSkills(detectedRows, search),
+    [detectedRows, search],
+  );
 
   const applicationLabel = useMemo(() => {
     switch (skillSnapshot?.mode) {
@@ -344,22 +413,29 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
   // beta-skills flag is on and seeded releases exist.
   const releasePickerActive = betaSkillsEnabled && taskcoreReleases.length > 0;
 
-  const renderRow = (row: AgentSkillRowData, variant: "enabled" | "available") => {
+  const renderRow = (
+    row: AgentSkillRowData,
+    variant: "enabled" | "available",
+  ) => {
     // Historical assignments stay interactive so the user can remove them.
     // The server rejects new assignments and omits stale ones from native
     // runtime context, so disabling an enabled row would only trap stale data.
-    const legacyTaskcoreBlocked = agent.adapterType === "taskcore_runner"
-      && variant === "available"
-      && row.key === TASKCORE_CORE_SKILL_KEY;
+    const legacyTaskcoreBlocked =
+      agent.adapterType === "taskcore_runner" &&
+      variant === "available" &&
+      row.key === TASKCORE_CORE_SKILL_KEY;
     const rowDisabled = unsupported || legacyTaskcoreBlocked;
     const rowDisabledReason = legacyTaskcoreBlocked
       ? "Taskcore Runner uses native semantic coordination and cannot attach the legacy Taskcore operational skill."
       : unsupportedMessage;
     const showReleasePicker =
-      releasePickerActive && variant === "enabled" && row.key === TASKCORE_CORE_SKILL_KEY;
+      releasePickerActive &&
+      variant === "enabled" &&
+      row.key === TASKCORE_CORE_SKILL_KEY;
     const pinnedVersionId = versionPins[row.key] ?? null;
     const pinnedRelease = pinnedVersionId
-      ? taskcoreReleases.find((release) => release.id === pinnedVersionId) ?? null
+      ? (taskcoreReleases.find((release) => release.id === pinnedVersionId) ??
+        null)
       : null;
 
     return (
@@ -441,7 +517,9 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
 
         {syncSkills.isError ? (
           <p className="text-xs text-destructive">
-            {syncSkills.error instanceof Error ? syncSkills.error.message : "Failed to update skills"}
+            {syncSkills.error instanceof Error
+              ? syncSkills.error.message
+              : "Failed to update skills"}
           </p>
         ) : null}
       </div>
@@ -462,7 +540,8 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
               className="flex items-center justify-between gap-3 border-b border-amber-300/40 bg-amber-50/60 px-3 py-2 text-xs text-amber-800 last:border-b-0 dark:border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-200"
             >
               <span className="min-w-0 truncate">
-                <span className="font-medium">{key}</span> is enabled but missing from the organization library.
+                <span className="font-medium">{key}</span> is enabled but
+                missing from the organization library.
               </span>
               <button
                 type="button"
@@ -483,17 +562,25 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
         <EmptyLibraryCard />
       ) : (
         <div className="space-y-4">
-          <SkillSection title="Enabled on this agent" count={filteredEnabled.length}>
+          <SkillSection
+            title="Enabled on this agent"
+            count={filteredEnabled.length}
+          >
             {filteredEnabled.length > 0 ? (
               filteredEnabled.map((row) => renderRow(row, "enabled"))
             ) : (
               <SectionEmpty>
-                {search ? "No enabled skills match your search." : "No skills enabled on this agent yet."}
+                {search
+                  ? "No enabled skills match your search."
+                  : "No skills enabled on this agent yet."}
               </SectionEmpty>
             )}
           </SkillSection>
 
-          <SkillSection title="Available from the library" count={filteredAvailable.length}>
+          <SkillSection
+            title="Available from the library"
+            count={filteredAvailable.length}
+          >
             {filteredAvailable.length > 0 ? (
               filteredAvailable.map((row) => renderRow(row, "available"))
             ) : (
@@ -520,15 +607,23 @@ export function AgentSkillsTab({ agent, companyId }: { agent: Agent; companyId?:
                   <span className="text-xs font-medium text-muted-foreground">
                     Automatic and detected skills (read-only)
                   </span>
-                  <span className="text-xs text-muted-foreground/70">{filteredDetected.length}</span>
+                  <span className="text-xs text-muted-foreground/70">
+                    {filteredDetected.length}
+                  </span>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   {filteredDetected.length > 0 ? (
                     filteredDetected.map((row) => (
-                      <AgentSkillRow key={row.key} variant="readonly" data={row} />
+                      <AgentSkillRow
+                        key={row.key}
+                        variant="readonly"
+                        data={row}
+                      />
                     ))
                   ) : (
-                    <SectionEmpty>No detected skills match your search.</SectionEmpty>
+                    <SectionEmpty>
+                      No detected skills match your search.
+                    </SectionEmpty>
                   )}
                 </CollapsibleContent>
               </div>
@@ -597,7 +692,9 @@ function SkillSection({
   return (
     <section className="overflow-hidden rounded-lg border border-border">
       <div className="flex items-center gap-2 bg-muted/50 px-3 py-2">
-        <span className="text-xs font-medium text-muted-foreground">{title}</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {title}
+        </span>
         <span className="text-xs text-muted-foreground/70">{count}</span>
       </div>
       <div>{children}</div>
@@ -606,7 +703,9 @@ function SkillSection({
 }
 
 function SectionEmpty({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 py-4 text-xs text-muted-foreground">{children}</div>;
+  return (
+    <div className="px-3 py-4 text-xs text-muted-foreground">{children}</div>
+  );
 }
 
 function EmptyLibraryCard() {
@@ -614,7 +713,9 @@ function EmptyLibraryCard() {
     <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-10 text-center">
       <Store className="h-8 w-8 text-muted-foreground/60" />
       <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">No skills in the organization library</p>
+        <p className="text-sm font-medium text-foreground">
+          No skills in the organization library
+        </p>
         <p className="text-xs text-muted-foreground">
           Install skills to the organization, then enable them on this agent.
         </p>

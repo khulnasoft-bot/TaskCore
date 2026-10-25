@@ -76,7 +76,11 @@ describe("LCA full heartbeat observation", () => {
     summary: string,
     complete: boolean,
     requiredTurns = 2,
-    taskInput: { title?: string; description?: string; workMode?: "standard" | "planning" } = {},
+    taskInput: {
+      title?: string;
+      description?: string;
+      workMode?: "standard" | "planning";
+    } = {},
   ) {
     const companyId = randomUUID(),
       agentId = randomUUID(),
@@ -191,15 +195,29 @@ describe("LCA full heartbeat observation", () => {
           operations++;
           if (result.reportedWorkDisposition === "yielded") {
             await new TaskcoreRunnerToolAuthority(db, input.binding).execute({
-              tool: "request_human_input", callId: `step-${providerTurns}`,
+              tool: "request_human_input",
+              callId: `step-${providerTurns}`,
               arguments: {
-                interactionKind: "questions", idempotencyKey: `step-${providerTurns}`,
-                title: `Input for step ${providerTurns + 1}`, prompt: "Choose the next step",
+                interactionKind: "questions",
+                idempotencyKey: `step-${providerTurns}`,
+                title: `Input for step ${providerTurns + 1}`,
+                prompt: "Choose the next step",
                 continuationPolicy: "wake_assignee",
-                payload: { version: 1, questions: [{
-                  id: "next", prompt: "Choose the next step", selectionMode: "single", required: true,
-                  options: [{ id: "continue", label: "Continue" }, { id: "revise", label: "Revise" }],
-                }] },
+                payload: {
+                  version: 1,
+                  questions: [
+                    {
+                      id: "next",
+                      prompt: "Choose the next step",
+                      selectionMode: "single",
+                      required: true,
+                      options: [
+                        { id: "continue", label: "Continue" },
+                        { id: "revise", label: "Revise" },
+                      ],
+                    },
+                  ],
+                },
               },
             });
           }
@@ -301,8 +319,10 @@ describe("LCA full heartbeat observation", () => {
             errorCode: r.errorCode,
             livenessState: r.livenessState,
             repairAttempt: r.contextSnapshot?.dispositionRepairAttempt ?? null,
-            repairMaxAttempts: r.contextSnapshot?.dispositionRepairMaxAttempts ?? null,
-            repairInstruction: r.contextSnapshot?.dispositionRepairInstruction ?? null,
+            repairMaxAttempts:
+              r.contextSnapshot?.dispositionRepairMaxAttempts ?? null,
+            repairInstruction:
+              r.contextSnapshot?.dispositionRepairInstruction ?? null,
           })),
           wakes: wakes
             .map((w) => ({ reason: w.reason, status: w.status }))
@@ -315,23 +335,34 @@ describe("LCA full heartbeat observation", () => {
       const first = await collect();
       if (mode === "native" && !complete) {
         for (let step = 1; step < requiredTurns; step++) {
-          const pending = (await db.select().from(issueThreadInteractions).where(eq(issueThreadInteractions.issueId, issueId)))
-            .filter(interaction => interaction.status === "pending");
+          const pending = (
+            await db
+              .select()
+              .from(issueThreadInteractions)
+              .where(eq(issueThreadInteractions.issueId, issueId))
+          ).filter((interaction) => interaction.status === "pending");
           expect(pending).toHaveLength(1);
           expect(providerTurns).toBe(step);
           // A real persisted response, not summary text, owns the next run.
           await heartbeat.dispatchPendingNativeStatusWakeups({ companyId });
           await heartbeat.drainActiveRunExecutions();
           expect(providerTurns).toBe(step);
-          await issueThreadInteractionService(db).answerQuestions({ id: issueId, companyId }, pending[0].id,
-            { answers: [{ questionId: "next", optionIds: ["continue"] }] }, { userId: "fixture-owner" });
+          await issueThreadInteractionService(db).answerQuestions(
+            { id: issueId, companyId },
+            pending[0].id,
+            { answers: [{ questionId: "next", optionIds: ["continue"] }] },
+            { userId: "fixture-owner" },
+          );
           const delivery = questionResponseDeliveryService(db, { heartbeat });
           const delivered = await delivery.deliver(pending[0].id);
           await heartbeat.drainActiveRunExecutions();
           // Replayed delivery cannot create a duplicate successor.
           await delivery.deliver(pending[0].id);
           await heartbeat.drainActiveRunExecutions();
-          expect(providerTurns, JSON.stringify({ delivered, state: await collect() })).toBe(step + 1);
+          expect(
+            providerTurns,
+            JSON.stringify({ delivered, state: await collect() }),
+          ).toBe(step + 1);
         }
       }
       await heartbeat.dispatchPendingNativeStatusWakeups({ companyId });
@@ -404,28 +435,48 @@ describe("LCA full heartbeat observation", () => {
     expect(misleading.providerTurns).toBe(2);
     expect(misleading.wakes).toEqual(neutral.wakes);
     expect(misleading.issue).toEqual(neutral.issue);
-    const repairs = (observed: typeof neutral) => observed.runs.filter(r => r.repairAttempt !== null)
-      .map(({ repairAttempt, repairMaxAttempts, repairInstruction }) => ({ repairAttempt, repairMaxAttempts, repairInstruction }));
-    expect(repairs(neutral)).toMatchObject([{ repairAttempt: 1, repairMaxAttempts: 2 }]);
+    const repairs = (observed: typeof neutral) =>
+      observed.runs
+        .filter((r) => r.repairAttempt !== null)
+        .map(({ repairAttempt, repairMaxAttempts, repairInstruction }) => ({
+          repairAttempt,
+          repairMaxAttempts,
+          repairInstruction,
+        }));
+    expect(repairs(neutral)).toMatchObject([
+      { repairAttempt: 1, repairMaxAttempts: 2 },
+    ]);
     expect(repairs(misleading)).toEqual(repairs(neutral));
   });
-  it.each(["standard", "planning"] as const)("LCA-05 legacy %s mode survives wording changes through heartbeat and repair", async (workMode) => {
-    const summary = "I will inspect the repository next.";
-    const neutral = await run("legacy", summary, false, 2, { workMode, title: "Inspect exporter", description: "Describe the changes." });
-    const challenge = await run("legacy", summary, false, 2, { workMode, title: "Making a plan", description: "Create a research report and plan." });
-    for (const observed of [neutral, challenge]) {
-      expect(observed.providerTurns).toBe(2);
-      expect(observed.issue).toEqual({ status: "done", locked: false });
-      expect(observed.workMode).toBe(workMode);
-    }
-    expect(challenge.wakes).toEqual(neutral.wakes);
-    // A successor can finish before its predecessor's diagnostic projection.
-    // Compare the durable continuation effects, not that asynchronous view.
-    const effects = (observed: typeof neutral) => observed.runs
-      .map(({ livenessState: _diagnostic, ...effect }) => effect)
-      .sort((a, b) => Number(a.repairAttempt) - Number(b.repairAttempt));
-    expect(effects(challenge)).toEqual(effects(neutral));
-  });
+  it.each(["standard", "planning"] as const)(
+    "LCA-05 legacy %s mode survives wording changes through heartbeat and repair",
+    async (workMode) => {
+      const summary = "I will inspect the repository next.";
+      const neutral = await run("legacy", summary, false, 2, {
+        workMode,
+        title: "Inspect exporter",
+        description: "Describe the changes.",
+      });
+      const challenge = await run("legacy", summary, false, 2, {
+        workMode,
+        title: "Making a plan",
+        description: "Create a research report and plan.",
+      });
+      for (const observed of [neutral, challenge]) {
+        expect(observed.providerTurns).toBe(2);
+        expect(observed.issue).toEqual({ status: "done", locked: false });
+        expect(observed.workMode).toBe(workMode);
+      }
+      expect(challenge.wakes).toEqual(neutral.wakes);
+      // A successor can finish before its predecessor's diagnostic projection.
+      // Compare the durable continuation effects, not that asynchronous view.
+      const effects = (observed: typeof neutral) =>
+        observed.runs
+          .map(({ livenessState: _diagnostic, ...effect }) => effect)
+          .sort((a, b) => Number(a.repairAttempt) - Number(b.repairAttempt));
+      expect(effects(challenge)).toEqual(effects(neutral));
+    },
+  );
   it("LCA-02 native answered-question workflow continues beyond the failure retry allowance", async () => {
     const steps = BOUNDED_TRANSIENT_HEARTBEAT_RETRY_DELAYS_MS.length + 2;
     const observed = await run(
@@ -450,13 +501,11 @@ describe("LCA full heartbeat observation", () => {
         agentId = randomUUID(),
         issueId = randomUUID(),
         interactionId = randomUUID();
-      await db
-        .insert(companies)
-        .values({
-          id: companyId,
-          name: "Approval gate fixture",
-          issuePrefix: `G${companyId.slice(0, 6)}`,
-        });
+      await db.insert(companies).values({
+        id: companyId,
+        name: "Approval gate fixture",
+        issuePrefix: `G${companyId.slice(0, 6)}`,
+      });
       await db.insert(agents).values({
         id: agentId,
         companyId,
@@ -473,15 +522,13 @@ describe("LCA full heartbeat observation", () => {
           },
         },
       });
-      await db
-        .insert(issues)
-        .values({
-          id: issueId,
-          companyId,
-          title: "Approved work",
-          status: "in_review",
-          assigneeAgentId: agentId,
-        });
+      await db.insert(issues).values({
+        id: issueId,
+        companyId,
+        title: "Approved work",
+        status: "in_review",
+        assigneeAgentId: agentId,
+      });
       const resolvedAt = new Date();
       await db.insert(issueThreadInteractions).values({
         id: interactionId,

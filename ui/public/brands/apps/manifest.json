@@ -201,9 +201,7 @@
       "provider": "Google Calendar",
       "catalogVisible": true,
       "localAsset": "/brands/apps/google-calendar.svg",
-      "aliases": [
-        "gcal"
-      ]
+      "aliases": ["gcal"]
     },
     {
       "slug": "google-chat",
@@ -216,27 +214,21 @@
       "provider": "Google People",
       "catalogVisible": true,
       "localAsset": "/brands/apps/google-people.svg",
-      "aliases": [
-        "google contacts"
-      ]
+      "aliases": ["google contacts"]
     },
     {
       "slug": "google-workspace-search",
       "provider": "Google Workspace Search",
       "catalogVisible": true,
       "localAsset": "/brands/apps/google-workspace-search.svg",
-      "aliases": [
-        "workspace search"
-      ]
+      "aliases": ["workspace search"]
     },
     {
       "slug": "hugging-face",
       "provider": "Hugging Face",
       "catalogVisible": true,
       "localAsset": "/brands/apps/hugging-face.svg",
-      "aliases": [
-        "huggingface"
-      ]
+      "aliases": ["huggingface"]
     },
     {
       "slug": "jira",
@@ -301,9 +293,7 @@
       "provider": "Microsoft Teams",
       "catalogVisible": true,
       "localAsset": "/brands/apps/microsoft-teams.svg",
-      "aliases": [
-        "teams"
-      ]
+      "aliases": ["teams"]
     },
     {
       "slug": "netlify",
@@ -525,9 +515,7 @@
       "catalogVisible": false,
       "localAsset": "/brands/apps/jam-dev.svg",
       "darkAsset": "/brands/apps/jam-dev-dark.svg",
-      "aliases": [
-        "jam"
-      ]
+      "aliases": ["jam"]
     },
     {
       "slug": "railway",

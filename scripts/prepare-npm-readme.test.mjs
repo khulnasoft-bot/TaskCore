@@ -13,7 +13,7 @@ test("rewrites repository-relative image sources for npm", () => {
   const readme = [
     '<img src="doc/assets/banner.jpg">',
     '<source srcset="doc/assets/light.png, doc/assets/dark.png">',
-    '[docs](doc/assets/not-an-image.md)',
+    "[docs](doc/assets/not-an-image.md)",
     '<img src="https://example.com/already-absolute.png">',
     '<img src="https://example.com/doc/assets/already-absolute.png">',
   ].join("\n");

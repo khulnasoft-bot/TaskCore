@@ -1,4 +1,8 @@
-import { readCodexThreadState, readCodexTurnMetadata, readCodexTurnItems } from "./codex-history.js";
+import {
+  readCodexThreadState,
+  readCodexTurnMetadata,
+  readCodexTurnItems,
+} from "./codex-history.js";
 import { codexRunUsage, observeCodexUsage } from "./codex-usage-baseline.js";
 import { randomUUID } from "node:crypto";
 import { NativeProviderTerminalFailure } from "../../contracts/native-session-backend.js";
@@ -74,7 +78,12 @@ export class CodexHarnessSession
 
   turnControlCapabilities() {
     if (this.driverKind === "acpx_runtime") {
-      return this.transport.turnControlCapabilities?.() ?? { steering: false, queuedFollowUp: false };
+      return (
+        this.transport.turnControlCapabilities?.() ?? {
+          steering: false,
+          queuedFollowUp: false,
+        }
+      );
     }
     return { steering: this.capabilities.steering, queuedFollowUp: false };
   }
@@ -115,7 +124,10 @@ export class CodexHarnessSession
       this.eventQueue.clear();
     }
     if (this.codexUsageBaseline && input.runId !== this.runId) {
-      this.codexUsageBaseline = { baseline: { ...this.codexUsageBaseline.latest }, latest: { ...this.codexUsageBaseline.latest } };
+      this.codexUsageBaseline = {
+        baseline: { ...this.codexUsageBaseline.latest },
+        latest: { ...this.codexUsageBaseline.latest },
+      };
       this.usageSnapshot = codexRunUsage(this.codexUsageBaseline);
     }
     this.runId = input.runId;
@@ -153,7 +165,11 @@ export class CodexHarnessSession
   }> {
     this.assertProtocolIntegrity();
     if (this.protocolFailed && this.protocolFailureCode) {
-      throw new NativeProviderTerminalFailure(this.protocolFailureCode, false, this.protocolFailureMessage ?? undefined);
+      throw new NativeProviderTerminalFailure(
+        this.protocolFailureCode,
+        false,
+        this.protocolFailureMessage ?? undefined,
+      );
     }
     if (
       this.terminal ||
@@ -224,7 +240,10 @@ export class CodexHarnessSession
         ...(this.reasoningEffort ? { effort: this.reasoningEffort } : {}),
         cwd: this.opened.context.workingDirectory,
         permissions:
-          text(record(record(this.opened.context.sandbox).permissionProfile).id) || (requestedMode === "plan"
+          text(
+            record(record(this.opened.context.sandbox).permissionProfile).id,
+          ) ||
+          (requestedMode === "plan"
             ? PLANNING_PERMISSION_PROFILE
             : SKILLLESS_PERMISSION_PROFILE),
         runtimeWorkspaceRoots: [this.opened.context.workingDirectory],
@@ -315,8 +334,15 @@ export class CodexHarnessSession
   }): Promise<void> {
     this.assertProtocolIntegrity();
     const controls = this.turnControlCapabilities();
-    if (!(input.mode === "follow_up" ? controls.queuedFollowUp : controls.steering)) {
-      throw this.unsupported("steering", "requested turn control was not negotiated");
+    if (
+      !(input.mode === "follow_up"
+        ? controls.queuedFollowUp
+        : controls.steering)
+    ) {
+      throw this.unsupported(
+        "steering",
+        "requested turn control was not negotiated",
+      );
     }
     this.requireActiveTurn(input.turnId, "steering");
     if (input.correlationId) {
@@ -324,7 +350,10 @@ export class CodexHarnessSession
         input.correlationId,
       );
       if (acknowledgedTurnId) {
-        if (this.driverKind === "acpx_runtime") throw new Error("ACP turn control correlation was already acknowledged");
+        if (this.driverKind === "acpx_runtime")
+          throw new Error(
+            "ACP turn control correlation was already acknowledged",
+          );
         if (acknowledgedTurnId !== input.turnId)
           throw new HarnessOperationAlreadyTerminalError("steering");
         return;
@@ -351,8 +380,13 @@ export class CodexHarnessSession
         "item.completed",
         {
           kind: "steering_acknowledgement",
-          text: input.mode === "follow_up" ? "Follow-up queued by the active provider." : "Steering acknowledged for the active turn.",
-          ...(this.driverKind === "acpx_runtime" ? { mode: input.mode ?? "steer" } : {}),
+          text:
+            input.mode === "follow_up"
+              ? "Follow-up queued by the active provider."
+              : "Steering acknowledged for the active turn.",
+          ...(this.driverKind === "acpx_runtime"
+            ? { mode: input.mode ?? "steer" }
+            : {}),
           status: "acknowledged",
         },
         {
@@ -548,8 +582,8 @@ export class CodexHarnessSession
     this.assertProtocolIntegrity();
     this.requireCapability("goals");
     if (
-      input.action !== "get"
-      && !this.goalCapability.actions.includes(input.action)
+      input.action !== "get" &&
+      !this.goalCapability.actions.includes(input.action)
     ) {
       throw this.unsupported(
         `goal ${input.action}`,
@@ -557,10 +591,10 @@ export class CodexHarnessSession
       );
     }
     const expectsIdleAutostart =
-      this.activeTurnId === null
-      && !this.turnStartPending
-      && (input.action === "resume"
-        || (input.action === "set" && (input.status ?? "active") === "active"));
+      this.activeTurnId === null &&
+      !this.turnStartPending &&
+      (input.action === "resume" ||
+        (input.action === "set" && (input.status ?? "active") === "active"));
     if (expectsIdleAutostart) {
       // Codex activates an idle goal by starting a provider turn without a
       // turn/start response. Keep the expectation armed until turn/started
@@ -653,7 +687,10 @@ export class CodexHarnessSession
     this.assertProtocolIntegrity();
     this.requireCapability("read");
     try {
-      const snapshot = await readCodexThreadState(this.transport, this.opened.threadId);
+      const snapshot = await readCodexThreadState(
+        this.transport,
+        this.opened.threadId,
+      );
       this.assertProtocolIntegrity();
       return snapshot;
     } catch (error) {
@@ -681,12 +718,22 @@ export class CodexHarnessSession
         "thread/read returned a different provider session",
       );
     }
-    const turns = await readCodexTurnMetadata(this.transport, this.opened.threadId);
+    const turns = await readCodexTurnMetadata(
+      this.transport,
+      this.opened.threadId,
+    );
     thread.turns = turns;
     for (const turn of turns) {
-      if ((text(turn.id) === this.activeTurnId || this.terminalTurns.has(text(turn.id)))
-        && text(turn.status) !== "inProgress") {
-        turn.items = await readCodexTurnItems(this.transport, this.opened.threadId, text(turn.id));
+      if (
+        (text(turn.id) === this.activeTurnId ||
+          this.terminalTurns.has(text(turn.id))) &&
+        text(turn.status) !== "inProgress"
+      ) {
+        turn.items = await readCodexTurnItems(
+          this.transport,
+          this.opened.threadId,
+          text(turn.id),
+        );
         turn.itemsView = "full";
       }
     }
@@ -806,7 +853,9 @@ export class CodexHarnessSession
               callId: this.resultCallId,
               turnId: this.resultTurnId,
             },
-      ...(this.codexUsageBaseline ? { codexUsageBaseline: structuredClone(this.codexUsageBaseline) } : {}),
+      ...(this.codexUsageBaseline
+        ? { codexUsageBaseline: structuredClone(this.codexUsageBaseline) }
+        : {}),
       terminalTurns: [...this.terminalTurns].map(([turnId, fingerprint]) => ({
         turnId,
         fingerprint,

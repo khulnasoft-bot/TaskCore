@@ -1,9 +1,6 @@
 import { configFieldsForSection } from "../config-sections";
 import type { AdapterConfigFieldsProps } from "../types";
-import {
-  DraftInput,
-  Field,
-} from "../../components/agent-config-primitives";
+import { DraftInput, Field } from "../../components/agent-config-primitives";
 import { ChoosePathButton } from "../../components/PathInstructionsModal";
 
 const inputClass =
@@ -22,14 +19,15 @@ export function GrokLocalConfigFields({
   hideInstructionsFile,
 }: AdapterConfigFieldsProps) {
   if (hideInstructionsFile) return null;
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       <Field label="Agent instructions file" hint={instructionsFileHint}>
         <div className="flex items-center gap-2">
           <DraftInput
             value={
               isCreate
-                ? values!.instructionsFilePath ?? ""
+                ? (values!.instructionsFilePath ?? "")
                 : eff(
                     "adapterConfig",
                     "instructionsFilePath",
@@ -48,6 +46,6 @@ export function GrokLocalConfigFields({
           <ChoosePathButton />
         </div>
       </Field>
-    </>
-  ));
+    </>,
+  );
 }

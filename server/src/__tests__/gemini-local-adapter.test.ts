@@ -10,7 +10,12 @@ import { printGeminiStreamEvent } from "@taskcore/adapter-gemini-local/cli";
 describe("gemini_local parser", () => {
   it("extracts session, summary, usage, cost, and terminal error message from v0.38 stream-json output", () => {
     const stdout = [
-      JSON.stringify({ type: "system", subtype: "init", session_id: "gemini-session-1", model: "gemini-2.5-pro" }),
+      JSON.stringify({
+        type: "system",
+        subtype: "init",
+        session_id: "gemini-session-1",
+        model: "gemini-2.5-pro",
+      }),
       JSON.stringify({
         type: "message",
         role: "assistant",
@@ -76,15 +81,21 @@ describe("gemini_local parser", () => {
 
 describe("gemini_local stale session detection", () => {
   it("treats missing session messages as an unknown session error", () => {
-    expect(isGeminiSessionUnrecoverableError("", "unknown session id abc")).toBe(true);
-    expect(isGeminiSessionUnrecoverableError("", "checkpoint latest not found")).toBe(true);
+    expect(
+      isGeminiSessionUnrecoverableError("", "unknown session id abc"),
+    ).toBe(true);
+    expect(
+      isGeminiSessionUnrecoverableError("", "checkpoint latest not found"),
+    ).toBe(true);
   });
 });
 
 describe("gemini_local turn-limit detection", () => {
   it("detects structured turn-limit signals and exit code 53", () => {
     expect(isGeminiTurnLimitResult({ status: "turn_limit" })).toBe(true);
-    expect(isGeminiTurnLimitResult({ stopReason: "max_turns_exhausted" })).toBe(true);
+    expect(isGeminiTurnLimitResult({ stopReason: "max_turns_exhausted" })).toBe(
+      true,
+    );
     expect(isGeminiTurnLimitResult(null, 53)).toBe(true);
   });
 
@@ -115,9 +126,7 @@ describe("gemini_local ui stdout parser", () => {
         }),
         ts,
       ),
-    ).toEqual([
-      { kind: "assistant", ts, text: "I checked the repo." },
-    ]);
+    ).toEqual([{ kind: "assistant", ts, text: "I checked the repo." }]);
 
     expect(
       parseGeminiStdoutLine(
@@ -162,7 +171,12 @@ describe("gemini_local cli formatter", () => {
 
     try {
       printGeminiStreamEvent(
-        JSON.stringify({ type: "system", subtype: "init", session_id: "gemini-session-1", model: "gemini-2.5-pro" }),
+        JSON.stringify({
+          type: "system",
+          subtype: "init",
+          session_id: "gemini-session-1",
+          model: "gemini-2.5-pro",
+        }),
         false,
       );
       printGeminiStreamEvent(
@@ -190,7 +204,9 @@ describe("gemini_local cli formatter", () => {
         JSON.stringify({ type: "error", message: "boom" }),
         false,
       );
-      joined = spy.mock.calls.map((call) => stripAnsi(call.join(" "))).join("\n");
+      joined = spy.mock.calls
+        .map((call) => stripAnsi(call.join(" ")))
+        .join("\n");
     } finally {
       spy.mockRestore();
     }

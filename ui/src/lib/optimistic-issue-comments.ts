@@ -39,7 +39,9 @@ function createOptimisticCommentId() {
   return `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function sortIssueComments<T extends { createdAt: Date | string; id: string }>(comments: T[]) {
+export function sortIssueComments<
+  T extends { createdAt: Date | string; id: string },
+>(comments: T[]) {
   return [...comments].sort((a, b) => {
     const createdAtDiff = toTimestamp(a.createdAt) - toTimestamp(b.createdAt);
     if (createdAtDiff !== 0) return createdAtDiff;
@@ -47,7 +49,9 @@ export function sortIssueComments<T extends { createdAt: Date | string; id: stri
   });
 }
 
-function sortIssueCommentsDesc<T extends { createdAt: Date | string; id: string }>(comments: T[]) {
+function sortIssueCommentsDesc<
+  T extends { createdAt: Date | string; id: string },
+>(comments: T[]) {
   return sortIssueComments(comments).reverse();
 }
 
@@ -96,16 +100,24 @@ export function isQueuedIssueComment(params: {
   if (params.interruptedRunId) return false;
   if (
     params.comment.id &&
-    (params.comment.id === params.activeRunWakeCommentId || params.comment.id === params.activeRunCommentId)
+    (params.comment.id === params.activeRunWakeCommentId ||
+      params.comment.id === params.activeRunCommentId)
   ) {
     return false;
   }
-  if (params.comment.authorAgentId && params.activeRunAgentId && params.comment.authorAgentId === params.activeRunAgentId) {
+  if (
+    params.comment.authorAgentId &&
+    params.activeRunAgentId &&
+    params.comment.authorAgentId === params.activeRunAgentId
+  ) {
     return false;
   }
   if (params.comment.clientStatus === "queued") return true;
   if (!params.activeRunStartedAt) return false;
-  return toTimestamp(params.comment.createdAt) >= toTimestamp(params.activeRunStartedAt);
+  return (
+    toTimestamp(params.comment.createdAt) >=
+    toTimestamp(params.activeRunStartedAt)
+  );
 }
 
 export function applyLocalQueuedIssueCommentState<T extends IssueComment>(
@@ -118,7 +130,8 @@ export function applyLocalQueuedIssueCommentState<T extends IssueComment>(
 ): T | LocallyQueuedIssueComment<T> {
   const queuedTargetRunId = params.queuedTargetRunId ?? null;
   if (!queuedTargetRunId || !params.targetRunIsLive) return comment;
-  if (params.runningRunId && params.runningRunId !== queuedTargetRunId) return comment;
+  if (params.runningRunId && params.runningRunId !== queuedTargetRunId)
+    return comment;
 
   return {
     ...comment,
@@ -143,18 +156,26 @@ export function mergeIssueComments(
     // comment in different React Query notifications. Keep the optimistic row
     // mounted through that handoff without briefly rendering both versions.
     // Consume matches one-for-one so repeated identical messages remain valid.
-    const matchingPersistedComment = persistedComments.find((persisted) =>
-      !reconciledPersistedIds.has(persisted.id) &&
-      persisted.issueId === comment.issueId &&
-      persisted.authorType === comment.authorType &&
-      persisted.authorUserId === comment.authorUserId &&
-      persisted.body === comment.body &&
-      Math.abs(toTimestamp(persisted.createdAt) - toTimestamp(comment.createdAt)) <= 60_000
+    const matchingPersistedComment = persistedComments.find(
+      (persisted) =>
+        !reconciledPersistedIds.has(persisted.id) &&
+        persisted.issueId === comment.issueId &&
+        persisted.authorType === comment.authorType &&
+        persisted.authorUserId === comment.authorUserId &&
+        persisted.body === comment.body &&
+        Math.abs(
+          toTimestamp(persisted.createdAt) - toTimestamp(comment.createdAt),
+        ) <= 60_000,
     );
     if (matchingPersistedComment) {
       reconciledPersistedIds.add(matchingPersistedComment.id);
-      const acknowledged = { ...matchingPersistedComment, clientId: comment.clientId };
-      merged[merged.findIndex((entry) => entry.id === matchingPersistedComment.id)] = acknowledged;
+      const acknowledged = {
+        ...matchingPersistedComment,
+        clientId: comment.clientId,
+      };
+      merged[
+        merged.findIndex((entry) => entry.id === matchingPersistedComment.id)
+      ] = acknowledged;
       continue;
     }
 
@@ -166,7 +187,10 @@ export function mergeIssueComments(
 export function takeOptimisticIssueComment(
   comments: OptimisticIssueComment[],
   clientId: string,
-): { comments: OptimisticIssueComment[]; comment: OptimisticIssueComment | null } {
+): {
+  comments: OptimisticIssueComment[];
+  comment: OptimisticIssueComment | null;
+} {
   const index = comments.findIndex((comment) => comment.clientId === clientId);
   if (index === -1) {
     return { comments, comment: null };
@@ -200,7 +224,9 @@ function getNextPageCursor<T extends { id: string }>(
   return lastPage[lastPage.length - 1]?.id;
 }
 
-export async function loadRemainingIssueCommentPages<T extends { id: string }>(params: {
+export async function loadRemainingIssueCommentPages<
+  T extends { id: string },
+>(params: {
   pages: ReadonlyArray<ReadonlyArray<T>> | undefined;
   pageParams: ReadonlyArray<string | null> | undefined;
   pageSize: number;
@@ -223,7 +249,7 @@ export async function loadRemainingIssueCommentPages<T extends { id: string }>(p
   const seenCursors = new Set<string>();
   while (cursor && !seenCursors.has(cursor) && seenCursors.size < maxPages) {
     seenCursors.add(cursor);
-    const nextPage = [...await params.fetchPage(cursor)];
+    const nextPage = [...(await params.fetchPage(cursor))];
     pages.push(nextPage);
     pageParams.push(cursor);
 
@@ -253,7 +279,9 @@ export function upsertIssueComment(
   nextComment: IssueComment,
 ): IssueComment[] {
   const current = comments ?? [];
-  const existingIndex = current.findIndex((comment) => comment.id === nextComment.id);
+  const existingIndex = current.findIndex(
+    (comment) => comment.id === nextComment.id,
+  );
   if (existingIndex === -1) {
     return sortIssueComments([...current, nextComment]);
   }
@@ -273,7 +301,12 @@ export function applyOptimisticIssueCommentUpdate(
   if (!issue) return issue;
   const nextIssue: Issue = { ...issue };
 
-  if (params.reopen === true && (issue.status === "done" || issue.status === "cancelled" || issue.status === "blocked")) {
+  if (
+    params.reopen === true &&
+    (issue.status === "done" ||
+      issue.status === "cancelled" ||
+      issue.status === "blocked")
+  ) {
     nextIssue.status = "todo";
   }
 
@@ -295,7 +328,8 @@ export function applyOptimisticIssueFieldUpdate(
     ...issue,
     updatedAt: new Date(),
   };
-  const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(data, key);
+  const hasOwn = (key: string) =>
+    Object.prototype.hasOwnProperty.call(data, key);
   const assign = <K extends keyof Issue>(key: K) => {
     if (hasOwn(key)) {
       nextIssue[key] = data[key] as Issue[K];
@@ -315,22 +349,35 @@ export function applyOptimisticIssueFieldUpdate(
   assign("hiddenAt");
 
   if (hasOwn("labelIds") && Array.isArray(data.labelIds)) {
-    const nextLabelIds = data.labelIds.filter((value): value is string => typeof value === "string");
+    const nextLabelIds = data.labelIds.filter(
+      (value): value is string => typeof value === "string",
+    );
     nextIssue.labelIds = nextLabelIds;
     if (issue.labels) {
-      nextIssue.labels = issue.labels.filter((label) => nextLabelIds.includes(label.id));
+      nextIssue.labels = issue.labels.filter((label) =>
+        nextLabelIds.includes(label.id),
+      );
     }
   }
 
-  if (hasOwn("blockedByIssueIds") && Array.isArray(data.blockedByIssueIds) && issue.blockedBy) {
+  if (
+    hasOwn("blockedByIssueIds") &&
+    Array.isArray(data.blockedByIssueIds) &&
+    issue.blockedBy
+  ) {
     const nextBlockedByIds = new Set(
-      data.blockedByIssueIds.filter((value): value is string => typeof value === "string"),
+      data.blockedByIssueIds.filter(
+        (value): value is string => typeof value === "string",
+      ),
     );
-    nextIssue.blockedBy = issue.blockedBy.filter((relation) => nextBlockedByIds.has(relation.id));
+    nextIssue.blockedBy = issue.blockedBy.filter((relation) =>
+      nextBlockedByIds.has(relation.id),
+    );
   }
 
   if (hasOwn("projectId")) {
-    nextIssue.project = issue.project?.id === nextIssue.projectId ? issue.project : null;
+    nextIssue.project =
+      issue.project?.id === nextIssue.projectId ? issue.project : null;
   }
 
   if (hasOwn("parentId")) {
@@ -352,7 +399,9 @@ export function matchesIssueRef(
   refs: Iterable<string>,
 ) {
   const refSet = refs instanceof Set ? refs : new Set(refs);
-  return refSet.has(issue.id) || (!!issue.identifier && refSet.has(issue.identifier));
+  return (
+    refSet.has(issue.id) || (!!issue.identifier && refSet.has(issue.identifier))
+  );
 }
 
 export function applyOptimisticIssueFieldUpdateToCollection(
@@ -382,7 +431,9 @@ export function upsertIssueCommentInPages(
 
   const nextPages = pages.map((page) => [...page]);
   for (let pageIndex = 0; pageIndex < nextPages.length; pageIndex += 1) {
-    const existingIndex = nextPages[pageIndex]!.findIndex((comment) => comment.id === nextComment.id);
+    const existingIndex = nextPages[pageIndex]!.findIndex(
+      (comment) => comment.id === nextComment.id,
+    );
     if (existingIndex === -1) continue;
     nextPages[pageIndex]![existingIndex] = nextComment;
     nextPages[pageIndex] = sortIssueCommentsDesc(nextPages[pageIndex]!);

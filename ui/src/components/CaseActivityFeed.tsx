@@ -37,26 +37,46 @@ function actorLabel(event: CaseEvent): string {
 }
 
 function ActorIcon({ event }: { event: CaseEvent }) {
-  const Icon = event.actorType === "agent" ? Bot : event.actorType === "user" ? User : Cog;
-  return <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />;
+  const Icon =
+    event.actorType === "agent" ? Bot : event.actorType === "user" ? User : Cog;
+  return (
+    <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+  );
 }
 
 function issueRelationLabel(event: CaseEvent): string {
-  return event.kind === "issue_linked" || event.kind === "issue_unlinked" ? "issue" : "via";
+  return event.kind === "issue_linked" || event.kind === "issue_unlinked"
+    ? "issue"
+    : "via";
 }
 
 /** One event with actor + run→issue attribution (P4 §1). */
-export function CaseEventRow({ event, compact = false }: { event: CaseEvent; compact?: boolean }) {
+export function CaseEventRow({
+  event,
+  compact = false,
+}: {
+  event: CaseEvent;
+  compact?: boolean;
+}) {
   const detail =
     event.kind === "status_changed" && event.payload
       ? `${(event.payload.previousStatus as string) ?? "?"} → ${(event.payload.status as string) ?? "?"}`
       : "";
   return (
-    <div className={cn("flex items-start gap-2 text-xs", compact ? "py-1.5" : "py-2")}>
-      <span className="mt-1"><ActorIcon event={event} /></span>
+    <div
+      className={cn(
+        "flex items-start gap-2 text-xs",
+        compact ? "py-1.5" : "py-2",
+      )}
+    >
+      <span className="mt-1">
+        <ActorIcon event={event} />
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="font-medium">{EVENT_LABEL[event.kind] ?? event.kind}</span>
+          <span className="font-medium">
+            {EVENT_LABEL[event.kind] ?? event.kind}
+          </span>
           {detail && <span className="text-muted-foreground">· {detail}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
@@ -71,7 +91,9 @@ export function CaseEventRow({ event, compact = false }: { event: CaseEvent; com
                 title={event.issue.title}
               >
                 <StatusIcon status={event.issue.status} size="sm" />
-                <span className="shrink-0 font-mono">{event.issue.identifier}</span>
+                <span className="shrink-0 font-mono">
+                  {event.issue.identifier}
+                </span>
                 <span className="min-w-0 truncate">{event.issue.title}</span>
               </Link>
             </>
@@ -96,7 +118,8 @@ export function CaseActivityFeed({ events }: { events: CaseEvent[] }) {
   }, [events]);
 
   const filtered = useMemo(
-    () => (active.size === 0 ? events : events.filter((e) => active.has(e.kind))),
+    () =>
+      active.size === 0 ? events : events.filter((e) => active.has(e.kind)),
     [events, active],
   );
 
@@ -109,14 +132,19 @@ export function CaseActivityFeed({ events }: { events: CaseEvent[] }) {
     });
   }
 
-  const filterLabel = active.size === 0
-    ? "All activity"
-    : active.size === 1
-      ? EVENT_LABEL[[...active][0]!] ?? [...active][0]!
-      : `${active.size} filters`;
+  const filterLabel =
+    active.size === 0
+      ? "All activity"
+      : active.size === 1
+        ? (EVENT_LABEL[[...active][0]!] ?? [...active][0]!)
+        : `${active.size} filters`;
 
   if (events.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No activity yet.</p>;
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        No activity yet.
+      </p>
+    );
   }
 
   return (
@@ -152,7 +180,9 @@ export function CaseActivityFeed({ events }: { events: CaseEvent[] }) {
         </DropdownMenu>
       </div>
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">No events match this filter.</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          No events match this filter.
+        </p>
       ) : (
         <div className="divide-y divide-border">
           {filtered.map((event) => (

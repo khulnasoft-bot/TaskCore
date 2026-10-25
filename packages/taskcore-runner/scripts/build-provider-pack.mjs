@@ -19,13 +19,23 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { parseProviderPackArguments, materializeCandidateProviderPack, providerPackProviders, providerPackManifestFields } from "./candidate-provider-pack.mjs";
-import { writePortableCopilotShims, writePortableExecutableShim } from "./provider-pack-executable-shims.mjs";
+import {
+  parseProviderPackArguments,
+  materializeCandidateProviderPack,
+  providerPackProviders,
+  providerPackManifestFields,
+} from "./candidate-provider-pack.mjs";
+import {
+  writePortableCopilotShims,
+  writePortableExecutableShim,
+} from "./provider-pack-executable-shims.mjs";
 import { buildNodeStartupTimeout } from "./build-node-startup-timeout.mjs";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = resolve(packageRoot, "../..");
-const { output: outputArgument, candidates } = parseProviderPackArguments(process.argv.slice(2));
+const { output: outputArgument, candidates } = parseProviderPackArguments(
+  process.argv.slice(2),
+);
 const outputRoot = resolve(
   process.cwd(),
   outputArgument ?? join(packageRoot, "provider-pack"),
@@ -38,7 +48,9 @@ if (
   throw new Error(`Refusing unsafe provider-pack output path: ${outputRoot}`);
 }
 
-const temporaryParent = realpathSync(mkdtempSync(join(tmpdir(), "taskcore-provider-pack-")));
+const temporaryParent = realpathSync(
+  mkdtempSync(join(tmpdir(), "taskcore-provider-pack-")),
+);
 const temporaryRoot = join(temporaryParent, "pack");
 
 function canonicalJson(value) {
@@ -121,9 +133,13 @@ try {
   // Fail the image build if a bridge silently brings back an older/private
   // provider CLI. A direct dependency alone does not deduplicate pnpm's graph.
   const packRequire = createRequire(join(temporaryRoot, "package.json"));
-  const codexAcpRequire = createRequire(packRequire.resolve("@agentclientprotocol/codex-acp/package.json"));
-  if (realpathSync(codexAcpRequire.resolve("@openai/codex/package.json")) !==
-      realpathSync(packRequire.resolve("@openai/codex/package.json"))) {
+  const codexAcpRequire = createRequire(
+    packRequire.resolve("@agentclientprotocol/codex-acp/package.json"),
+  );
+  if (
+    realpathSync(codexAcpRequire.resolve("@openai/codex/package.json")) !==
+    realpathSync(packRequire.resolve("@openai/codex/package.json"))
+  ) {
     throw new Error("Codex ACP must share the image's Codex installation");
   }
 
@@ -153,22 +169,47 @@ try {
   copyFileSync(process.execPath, stableNodeCommand);
   chmodSync(stableNodeCommand, 0o755);
   const relocatedNode = spawnSync(stableNodeCommand, ["--version"], {
-    cwd: temporaryRoot, env: { PATH: "/usr/bin:/bin" }, encoding: "utf8", timeout: buildNodeStartupTimeout(),
+    cwd: temporaryRoot,
+    env: { PATH: "/usr/bin:/bin" },
+    encoding: "utf8",
+    timeout: buildNodeStartupTimeout(),
   });
-  if (relocatedNode.status !== 0 || relocatedNode.stdout.trim() !== `v${process.versions.node}`) {
-    throw new Error("Provider pack Node is not portable after relocation; build with a standalone Node distribution");
+  if (
+    relocatedNode.status !== 0 ||
+    relocatedNode.stdout.trim() !== `v${process.versions.node}`
+  ) {
+    throw new Error(
+      "Provider pack Node is not portable after relocation; build with a standalone Node distribution",
+    );
   }
 
   const candidateProviders = {};
-  for (const provider of providerPackProviders(process.platform, process.arch, candidates)) {
+  for (const provider of providerPackProviders(
+    process.platform,
+    process.arch,
+    candidates,
+  )) {
     const assetPath = `provider-assets/${provider}/${process.platform}-${process.arch}`;
-    const metadata = await materializeCandidateProviderPack({ provider, outputRoot: join(temporaryRoot, assetPath) });
-    if (typeof metadata?.version !== "string" || !metadata.version || metadata.version.length > 120
-      || !/^sha256:[a-f0-9]{64}$/.test(metadata.profileDigest)
-      || !/^sha256:[a-f0-9]{64}$/.test(metadata.closureDigest)) throw new Error("Candidate builder omitted its pinned identity");
-    candidateProviders[provider] = { version: metadata.version, profileDigest: metadata.profileDigest,
-      closureDigest: metadata.closureDigest, qualification: provider === "cursor" ? "qualified" : "pending", path: assetPath,
-      sha256: sha256Tree(join(temporaryRoot, assetPath)) };
+    const metadata = await materializeCandidateProviderPack({
+      provider,
+      outputRoot: join(temporaryRoot, assetPath),
+    });
+    if (
+      typeof metadata?.version !== "string" ||
+      !metadata.version ||
+      metadata.version.length > 120 ||
+      !/^sha256:[a-f0-9]{64}$/.test(metadata.profileDigest) ||
+      !/^sha256:[a-f0-9]{64}$/.test(metadata.closureDigest)
+    )
+      throw new Error("Candidate builder omitted its pinned identity");
+    candidateProviders[provider] = {
+      version: metadata.version,
+      profileDigest: metadata.profileDigest,
+      closureDigest: metadata.closureDigest,
+      qualification: provider === "cursor" ? "qualified" : "pending",
+      path: assetPath,
+      sha256: sha256Tree(join(temporaryRoot, assetPath)),
+    };
   }
 
   // pnpm's generated .bin shims embed the temporary deployment directory in
@@ -185,17 +226,26 @@ try {
   );
   // Use the ACP bridge's SDK dependency directly, avoiding a second peer-
   // resolved SDK installation just to expose its CLI on the global PATH.
-  const sdkRequire = createRequire(claudeAcpRequire.resolve("@anthropic-ai/claude-agent-sdk"));
+  const sdkRequire = createRequire(
+    claudeAcpRequire.resolve("@anthropic-ai/claude-agent-sdk"),
+  );
   const claudeExecutable = sdkRequire.resolve(
     `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/claude`,
   );
   writePortableExecutableShim(
     temporaryRoot,
     "claude",
-    relative(realpathSync(join(temporaryRoot, "node_modules")), realpathSync(claudeExecutable)),
+    relative(
+      realpathSync(join(temporaryRoot, "node_modules")),
+      realpathSync(claudeExecutable),
+    ),
   );
   writePortableExecutableShim(temporaryRoot, "node", "node/bin/node");
-  writePortableExecutableShim(temporaryRoot, "opencode", "opencode-ai/bin/opencode.exe");
+  writePortableExecutableShim(
+    temporaryRoot,
+    "opencode",
+    "opencode-ai/bin/opencode.exe",
+  );
   writePortableCopilotShims(temporaryRoot);
   writePortableNodeShim("acpx", "acpx/dist/cli.js");
   writePortableNodeShim(
@@ -318,16 +368,16 @@ try {
       .digest("hex")}`,
     acpxProfileDigests: {
       grok: profiles.profiles.grok.commandDigest,
-      claude:
-        profiles.profiles.claude.commandDigest,
-      codex:
-        profiles.profiles.codex.commandDigest,
+      claude: profiles.profiles.claude.commandDigest,
+      codex: profiles.profiles.codex.commandDigest,
     },
     ...providerPackManifestFields(candidateProviders, candidates),
     artifacts: {
       grokLauncher: {
         path: "dist/providers/grok/launcher.cjs",
-        sha256: sha256File(join(temporaryRoot, "dist/providers/grok/launcher.cjs")),
+        sha256: sha256File(
+          join(temporaryRoot, "dist/providers/grok/launcher.cjs"),
+        ),
       },
       nodeCommand: {
         path: nodeCommand,

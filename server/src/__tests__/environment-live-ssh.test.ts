@@ -31,7 +31,12 @@ async function readOptionalSecret(
 function resolveEnvLabStatePath(): string {
   const instanceRoot =
     process.env.TASKCORE_INSTANCE_ROOT?.trim() ||
-    path.join(process.env.HOME ?? "/tmp", ".taskcore-worktrees", "instances", "live-ssh-test");
+    path.join(
+      process.env.HOME ?? "/tmp",
+      ".taskcore-worktrees",
+      "instances",
+      "live-ssh-test",
+    );
   return path.join(instanceRoot, "env-lab", "ssh-fixture", "state.json");
 }
 
@@ -46,9 +51,19 @@ function tryExplicitConfig(): {
   const username = process.env.TASKCORE_ENV_LIVE_SSH_USERNAME?.trim() ?? "";
   const remoteWorkspacePath =
     process.env.TASKCORE_ENV_LIVE_SSH_REMOTE_WORKSPACE_PATH?.trim() ?? "";
-  const port = Number.parseInt(process.env.TASKCORE_ENV_LIVE_SSH_PORT ?? "22", 10);
+  const port = Number.parseInt(
+    process.env.TASKCORE_ENV_LIVE_SSH_PORT ?? "22",
+    10,
+  );
 
-  if (!host || !username || !remoteWorkspacePath || !Number.isInteger(port) || port < 1 || port > 65535) {
+  if (
+    !host ||
+    !username ||
+    !remoteWorkspacePath ||
+    !Number.isInteger(port) ||
+    port < 1 ||
+    port > 65535
+  ) {
     return null;
   }
   return { host, port, username, remoteWorkspacePath };
@@ -110,7 +125,9 @@ async function resolveSshConfig(): Promise<SshConnectionConfig | null> {
         process.env.TASKCORE_ENV_LIVE_SSH_KNOWN_HOSTS_PATH,
       ),
       strictHostKeyChecking:
-        (process.env.TASKCORE_ENV_LIVE_SSH_STRICT_HOST_KEY_CHECKING ?? "true").toLowerCase() !== "false",
+        (
+          process.env.TASKCORE_ENV_LIVE_SSH_STRICT_HOST_KEY_CHECKING ?? "true"
+        ).toLowerCase() !== "false",
     };
   }
 
@@ -169,7 +186,9 @@ describeLiveSsh("live SSH environment smoke", () => {
 
     const config = resolvedConfig;
     const ready = await ensureSshWorkspaceReady(config);
-    const quotedRemoteWorkspacePath = JSON.stringify(config.remoteWorkspacePath);
+    const quotedRemoteWorkspacePath = JSON.stringify(
+      config.remoteWorkspacePath,
+    );
     const result = await runSshCommand(
       config,
       `cd ${quotedRemoteWorkspacePath} && which git && which tar && pwd`,

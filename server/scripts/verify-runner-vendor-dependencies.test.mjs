@@ -91,7 +91,9 @@ describe("findRunnerExternalPackages", () => {
     fixtureDir = mkdtempSync(join(tmpdir(), "taskcore-runner-vendor-fixture-"));
     const missingEntryPoint = join(fixtureDir, "index.js");
 
-    await expect(findRunnerExternalPackages([missingEntryPoint])).rejects.toThrow(
+    await expect(
+      findRunnerExternalPackages([missingEntryPoint]),
+    ).rejects.toThrow(
       /expected build output at .*index\.js.*Run "pnpm --filter @taskcore\/taskcore-runner build" first/s,
     );
   });

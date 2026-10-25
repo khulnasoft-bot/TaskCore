@@ -12,7 +12,10 @@ import {
   writeDevServerRestartRequest,
 } from "../dev-server-status.js";
 import { logger } from "../middleware/logger.js";
-import { getServerInfoSnapshot, type ServerInfoSnapshot } from "../server-info.js";
+import {
+  getServerInfoSnapshot,
+  type ServerInfoSnapshot,
+} from "../server-info.js";
 import {
   getCloudStackContext,
   isCloudManagedInstance,
@@ -27,7 +30,10 @@ import {
   type InspectDatabaseBackupHealthOptions,
 } from "../services/database-backup-health.js";
 import { instanceSettingsService } from "../services/instance-settings.js";
-import { isManagedWorkspaceInstance, resolveWorkspaceReadiness } from "../services/workspace-readiness.js";
+import {
+  isManagedWorkspaceInstance,
+  resolveWorkspaceReadiness,
+} from "../services/workspace-readiness.js";
 import {
   resolveWorkspaceReadinessLocalToken,
   WORKSPACE_READINESS_TOKEN_HEADER,
@@ -50,7 +56,10 @@ function shouldExposeFullHealthDetails(
   return actorType === "board" || actorType === "agent";
 }
 
-function matchesSharedToken(expectedToken: string | undefined | null, providedToken: string | undefined) {
+function matchesSharedToken(
+  expectedToken: string | undefined | null,
+  providedToken: string | undefined,
+) {
   const expectedValue = expectedToken?.trim();
   const token = providedToken?.trim();
   if (!expectedValue || !token) return false;
@@ -62,7 +71,10 @@ function matchesSharedToken(expectedToken: string | undefined | null, providedTo
 }
 
 function hasDevServerStatusToken(providedToken: string | undefined) {
-  return matchesSharedToken(process.env.TASKCORE_DEV_SERVER_STATUS_TOKEN, providedToken);
+  return matchesSharedToken(
+    process.env.TASKCORE_DEV_SERVER_STATUS_TOKEN,
+    providedToken,
+  );
 }
 
 /**
@@ -74,10 +86,15 @@ function hasDevServerStatusToken(providedToken: string | undefined) {
  * supervisor already uses, and never a browser-supplied identity header.
  */
 function hasWorkspaceReadinessToken(providedToken: string | undefined) {
-  return matchesSharedToken(resolveWorkspaceReadinessLocalToken(), providedToken);
+  return matchesSharedToken(
+    resolveWorkspaceReadinessLocalToken(),
+    providedToken,
+  );
 }
 
-function redactedDatabaseBackupWarning(warning: DatabaseBackupHealthWarning): DatabaseBackupHealthWarning {
+function redactedDatabaseBackupWarning(
+  warning: DatabaseBackupHealthWarning,
+): DatabaseBackupHealthWarning {
   const messages: Record<DatabaseBackupHealthWarning["code"], string> = {
     database_backup_check_failed: "Database backup health check failed.",
     database_backup_last_failure: "Database backup failure marker is present.",
@@ -90,7 +107,9 @@ function redactedDatabaseBackupWarning(warning: DatabaseBackupHealthWarning): Da
   };
 }
 
-function redactedDatabaseBackupHealth(databaseBackup: DatabaseBackupHealthStatus) {
+function redactedDatabaseBackupHealth(
+  databaseBackup: DatabaseBackupHealthStatus,
+) {
   return {
     enabled: databaseBackup.enabled,
     status: databaseBackup.status,
@@ -101,19 +120,22 @@ function redactedDatabaseBackupHealth(databaseBackup: DatabaseBackupHealthStatus
 function getCloudHealthStatus(env: CloudInstanceEnv) {
   const context = getCloudStackContext(env);
   if (!context) return undefined;
-  const runtimeIdentity = env === process.env ? getCloudRuntimeIdentity() : null;
+  const runtimeIdentity =
+    env === process.env ? getCloudRuntimeIdentity() : null;
 
   return {
     managed: true as const,
     managedBy: "taskcore-cloud" as const,
     stackSlug: context.stackSlug,
     cloudBaseUrl: context.cloudOrigin,
-    ...(runtimeIdentity ? {
-      runtimeIdentity: {
-        canonicalOrigin: runtimeIdentity.canonicalOrigin,
-        stackSlug: runtimeIdentity.stackSlug,
-      },
-    } : {}),
+    ...(runtimeIdentity
+      ? {
+          runtimeIdentity: {
+            canonicalOrigin: runtimeIdentity.canonicalOrigin,
+            stackSlug: runtimeIdentity.stackSlug,
+          },
+        }
+      : {}),
   };
 }
 
@@ -218,7 +240,10 @@ export function healthRoutes(
         res.status(404).json({ error: "dev_server_supervisor_unavailable" });
         return;
       }
-      logger.error({ err: error, requestId }, "failed to coordinate hot restart request");
+      logger.error(
+        { err: error, requestId },
+        "failed to coordinate hot restart request",
+      );
       res.status(500).json({ error: "hot_restart_intent_failed" });
       return;
     }
@@ -238,8 +263,7 @@ export function healthRoutes(
     );
     const runtimeEnv = opts.runtimeEnv ?? process.env;
     const startupRecovery = getStartupRecoveryState();
-    const healthStatus =
-      startupRecovery.phase === "ready" ? "ok" : "starting";
+    const healthStatus = startupRecovery.phase === "ready" ? "ok" : "starting";
     const cloud = getCloudHealthStatus(runtimeEnv);
     // Operator-hidden settings ride every response (like `cloud`): the list
     // holds UI surface names only, and the settings nav needs it before any
@@ -258,18 +282,25 @@ export function healthRoutes(
     // can read which commit this server is running without authenticating.
     const commit = serverInfo.git.available ? serverInfo.git.fullSha : null;
     const exposeDevServerDetails =
-      exposeFullDetails || hasDevServerStatusToken(req.get("x-taskcore-dev-server-status-token"));
+      exposeFullDetails ||
+      hasDevServerStatusToken(req.get("x-taskcore-dev-server-status-token"));
     // Workspace readiness names the instance and execution workspace that
     // answered, so it rides the protected responses only. Public health stays
     // redacted: an anonymous caller still learns liveness and nothing else.
     const exposeWorkspaceReadiness =
-      isManagedWorkspaceInstance()
-      && (exposeFullDetails || hasWorkspaceReadinessToken(req.get(WORKSPACE_READINESS_TOKEN_HEADER)));
-    const requestedHandoffUserId = req.get(WORKSPACE_READINESS_USER_ID_HEADER)?.trim();
-    const requestedHandoffUserEmail = req.get(WORKSPACE_READINESS_USER_EMAIL_HEADER)?.trim();
-    const handoffSubject = requestedHandoffUserId && requestedHandoffUserEmail
-      ? { userId: requestedHandoffUserId, email: requestedHandoffUserEmail }
-      : null;
+      isManagedWorkspaceInstance() &&
+      (exposeFullDetails ||
+        hasWorkspaceReadinessToken(req.get(WORKSPACE_READINESS_TOKEN_HEADER)));
+    const requestedHandoffUserId = req
+      .get(WORKSPACE_READINESS_USER_ID_HEADER)
+      ?.trim();
+    const requestedHandoffUserEmail = req
+      .get(WORKSPACE_READINESS_USER_EMAIL_HEADER)
+      ?.trim();
+    const handoffSubject =
+      requestedHandoffUserId && requestedHandoffUserEmail
+        ? { userId: requestedHandoffUserId, email: requestedHandoffUserEmail }
+        : null;
 
     if (!db) {
       res.json(
@@ -319,7 +350,9 @@ export function healthRoutes(
       // disk is exactly what tells an operator whether this is a half-finished
       // restore or a database that died after being verified.
       const workspace = exposeWorkspaceReadiness
-        ? await resolveWorkspaceReadiness({ db, handoffSubject }).catch(() => null)
+        ? await resolveWorkspaceReadiness({ db, handoffSubject }).catch(
+            () => null,
+          )
         : null;
       res.status(503).json({
         status: "unhealthy",
@@ -342,7 +375,10 @@ export function healthRoutes(
     // bootstrap_pending forever and lock every managed tenant out at the
     // claim screen. Self-hosted deployments (neither canonical managed signal)
     // are unaffected.
-    if (opts.deploymentMode === "authenticated" && !isCloudManagedInstance(runtimeEnv)) {
+    if (
+      opts.deploymentMode === "authenticated" &&
+      !isCloudManagedInstance(runtimeEnv)
+    ) {
       const roleCount = await db
         .select({ count: count() })
         .from(instanceUserRoles)
@@ -370,7 +406,11 @@ export function healthRoutes(
 
     const persistedDevServerStatus = readPersistedDevServerStatus();
     let devServer: ReturnType<typeof toDevServerHealthStatus> | undefined;
-    if (exposeDevServerDetails && persistedDevServerStatus && typeof (db as { select?: unknown }).select === "function") {
+    if (
+      exposeDevServerDetails &&
+      persistedDevServerStatus &&
+      typeof (db as { select?: unknown }).select === "function"
+    ) {
       const instanceSettings = instanceSettingsService(db);
       const experimentalSettings = await instanceSettings.getExperimental();
       const activeRunCount = await db
@@ -380,22 +420,27 @@ export function healthRoutes(
         .then((rows) => Number(rows[0]?.count ?? 0));
 
       devServer = toDevServerHealthStatus(persistedDevServerStatus, {
-        autoRestartEnabled: experimentalSettings.autoRestartDevServerWhenIdle ?? false,
+        autoRestartEnabled:
+          experimentalSettings.autoRestartDevServerWhenIdle ?? false,
         activeRunCount,
       });
     }
 
     const workspaceReadiness = exposeWorkspaceReadiness
-      ? await resolveWorkspaceReadiness({ db, handoffSubject }).catch((error) => {
-          logger.warn({ err: error }, "workspace readiness probe failed");
-          return null;
-        })
+      ? await resolveWorkspaceReadiness({ db, handoffSubject }).catch(
+          (error) => {
+            logger.warn({ err: error }, "workspace readiness probe failed");
+            return null;
+          },
+        )
       : null;
 
     const databaseBackup = opts.databaseBackupHealth
       ? inspectDatabaseBackupHealth(opts.databaseBackupHealth)
       : undefined;
-    const warnings = databaseBackup?.warnings.length ? databaseBackup.warnings : undefined;
+    const warnings = databaseBackup?.warnings.length
+      ? databaseBackup.warnings
+      : undefined;
     const nativeRecovery = exposeFullDetails
       ? await nativeRestartRecoverySummary(db).catch((error) => {
           logger.warn({ err: error }, "native recovery health summary failed");
@@ -404,8 +449,12 @@ export function healthRoutes(
       : undefined;
 
     if (!exposeFullDetails) {
-      const redactedDatabaseBackup = databaseBackup ? redactedDatabaseBackupHealth(databaseBackup) : undefined;
-      const redactedWarnings = redactedDatabaseBackup?.warnings.length ? redactedDatabaseBackup.warnings : undefined;
+      const redactedDatabaseBackup = databaseBackup
+        ? redactedDatabaseBackupHealth(databaseBackup)
+        : undefined;
+      const redactedWarnings = redactedDatabaseBackup?.warnings.length
+        ? redactedDatabaseBackup.warnings
+        : undefined;
       res.json({
         status: healthStatus,
         deploymentMode: opts.deploymentMode,
@@ -414,7 +463,9 @@ export function healthRoutes(
         commit,
         bootstrapStatus,
         bootstrapInviteActive,
-        ...(redactedDatabaseBackup ? { databaseBackup: redactedDatabaseBackup } : {}),
+        ...(redactedDatabaseBackup
+          ? { databaseBackup: redactedDatabaseBackup }
+          : {}),
         ...(redactedWarnings ? { warnings: redactedWarnings } : {}),
         ...(devServer ? { devServer } : {}),
         // Token-authorized probe on an otherwise redacted response: the control
@@ -434,7 +485,7 @@ export function healthRoutes(
       commit,
       deploymentMode: opts.deploymentMode,
       deploymentExposure: opts.deploymentExposure,
-        localAiLoginSupported: supportsLocalAiLogin(opts),
+      localAiLoginSupported: supportsLocalAiLogin(opts),
       authReady: opts.authReady,
       bootstrapStatus,
       bootstrapInviteActive,

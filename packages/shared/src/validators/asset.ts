@@ -49,7 +49,9 @@ export const createAssetImageMetadataSchema = z.object({
     .optional(),
 });
 
-export type CreateAssetImageMetadata = z.infer<typeof createAssetImageMetadataSchema>;
+export type CreateAssetImageMetadata = z.infer<
+  typeof createAssetImageMetadataSchema
+>;
 
 /**
  * Make a namespace that `createAssetImageMetadataSchema` accepts.
@@ -64,7 +66,12 @@ export type CreateAssetImageMetadata = z.infer<typeof createAssetImageMetadataSc
 export function sanitizeAssetNamespace(namespace: string): string | undefined {
   const cleaned = namespace
     .split("/")
-    .map((segment) => segment.trim().replace(DISALLOWED_SEGMENT_CHARS, "-").replace(/-{2,}/g, "-"))
+    .map((segment) =>
+      segment
+        .trim()
+        .replace(DISALLOWED_SEGMENT_CHARS, "-")
+        .replace(/-{2,}/g, "-"),
+    )
     .filter(isUsableSegment)
     .join("/");
   if (cleaned.length <= ASSET_NAMESPACE_MAX_LENGTH) {

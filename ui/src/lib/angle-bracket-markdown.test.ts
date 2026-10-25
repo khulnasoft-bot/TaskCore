@@ -11,61 +11,87 @@ describe("escapeUnsupportedAngleBrackets", () => {
   });
 
   it("escapes a placeholder written in prose", () => {
-    expect(escapeUnsupportedAngleBrackets("Rename <name> to the real name")).toBe(
-      "Rename \\<name> to the real name",
-    );
+    expect(
+      escapeUnsupportedAngleBrackets("Rename <name> to the real name"),
+    ).toBe("Rename \\<name> to the real name");
   });
 
   it("escapes closing tags, comments and processing instructions", () => {
-    expect(escapeUnsupportedAngleBrackets("a </close> b")).toBe("a \\</close> b");
-    expect(escapeUnsupportedAngleBrackets("a <!-- note --> b")).toBe("a \\<!-- note --> b");
+    expect(escapeUnsupportedAngleBrackets("a </close> b")).toBe(
+      "a \\</close> b",
+    );
+    expect(escapeUnsupportedAngleBrackets("a <!-- note --> b")).toBe(
+      "a \\<!-- note --> b",
+    );
     expect(escapeUnsupportedAngleBrackets("a <?php b")).toBe("a \\<?php b");
   });
 
   it("escapes every eligible bracket on a line", () => {
-    expect(escapeUnsupportedAngleBrackets("<a> and <b>")).toBe("\\<a> and \\<b>");
+    expect(escapeUnsupportedAngleBrackets("<a> and <b>")).toBe(
+      "\\<a> and \\<b>",
+    );
   });
 
   it("leaves a bracket that cannot open HTML alone", () => {
     expect(escapeUnsupportedAngleBrackets("Affected versions: <= v0.3.1")).toBe(
       "Affected versions: <= v0.3.1",
     );
-    expect(escapeUnsupportedAngleBrackets("2 < 3 and 4 > 1")).toBe("2 < 3 and 4 > 1");
+    expect(escapeUnsupportedAngleBrackets("2 < 3 and 4 > 1")).toBe(
+      "2 < 3 and 4 > 1",
+    );
     expect(escapeUnsupportedAngleBrackets("a <1 b")).toBe("a <1 b");
     expect(escapeUnsupportedAngleBrackets("trailing <")).toBe("trailing <");
   });
 
   it("escapes a bracket next to one that cannot open HTML", () => {
-    expect(escapeUnsupportedAngleBrackets("use <= or <name>")).toBe("use <= or \\<name>");
+    expect(escapeUnsupportedAngleBrackets("use <= or <name>")).toBe(
+      "use <= or \\<name>",
+    );
   });
 
   it("does not double-escape an already-escaped bracket", () => {
-    expect(escapeUnsupportedAngleBrackets("Rename \\<name> here")).toBe("Rename \\<name> here");
+    expect(escapeUnsupportedAngleBrackets("Rename \\<name> here")).toBe(
+      "Rename \\<name> here",
+    );
   });
 
   it("escapes a bracket that follows a literal backslash", () => {
     // `\\` is an escaped backslash, so the `<` after it is still bare markup.
-    expect(escapeUnsupportedAngleBrackets("a \\\\<name> b")).toBe("a \\\\\\<name> b");
+    expect(escapeUnsupportedAngleBrackets("a \\\\<name> b")).toBe(
+      "a \\\\\\<name> b",
+    );
   });
 
   it("skips inline code spans", () => {
-    expect(escapeUnsupportedAngleBrackets("Use `<name>` here")).toBe("Use `<name>` here");
-    expect(escapeUnsupportedAngleBrackets("Use ``a <b> c`` here")).toBe("Use ``a <b> c`` here");
+    expect(escapeUnsupportedAngleBrackets("Use `<name>` here")).toBe(
+      "Use `<name>` here",
+    );
+    expect(escapeUnsupportedAngleBrackets("Use ``a <b> c`` here")).toBe(
+      "Use ``a <b> c`` here",
+    );
   });
 
   it("escapes outside a code span on the same line", () => {
-    expect(escapeUnsupportedAngleBrackets("`<a>` then <b>")).toBe("`<a>` then \\<b>");
+    expect(escapeUnsupportedAngleBrackets("`<a>` then <b>")).toBe(
+      "`<a>` then \\<b>",
+    );
   });
 
   it("treats an unmatched backtick as literal text, not a code span", () => {
     // CommonMark only forms a code span from a matched pair of equal-length
     // backtick runs, so the bracket after a lone backtick is still markup.
-    expect(escapeUnsupportedAngleBrackets("a ` b <name> c")).toBe("a ` b \\<name> c");
-    expect(escapeUnsupportedAngleBrackets("a ``b` c <name>")).toBe("a ``b` c \\<name>");
+    expect(escapeUnsupportedAngleBrackets("a ` b <name> c")).toBe(
+      "a ` b \\<name> c",
+    );
+    expect(escapeUnsupportedAngleBrackets("a ``b` c <name>")).toBe(
+      "a ``b` c \\<name>",
+    );
   });
 
   it("treats a backslash-escaped backtick as literal text", () => {
-    expect(escapeUnsupportedAngleBrackets("a \\`x` b <name>")).toBe("a \\`x` b \\<name>");
+    expect(escapeUnsupportedAngleBrackets("a \\`x` b <name>")).toBe(
+      "a \\`x` b \\<name>",
+    );
   });
 
   it("skips a code span that wraps across a soft line break", () => {
@@ -85,31 +111,33 @@ describe("escapeUnsupportedAngleBrackets", () => {
     expect(escapeUnsupportedAngleBrackets("```\n<name>\n```\n<after>")).toBe(
       "```\n<name>\n```\n\\<after>",
     );
-    expect(escapeUnsupportedAngleBrackets("~~~ts\n<name>\n~~~")).toBe("~~~ts\n<name>\n~~~");
+    expect(escapeUnsupportedAngleBrackets("~~~ts\n<name>\n~~~")).toBe(
+      "~~~ts\n<name>\n~~~",
+    );
   });
 
   it("skips a fenced code block nested in a blockquote", () => {
-    expect(escapeUnsupportedAngleBrackets("> ```\n> <name>\n> ```\n<after>")).toBe(
-      "> ```\n> <name>\n> ```\n\\<after>",
-    );
+    expect(
+      escapeUnsupportedAngleBrackets("> ```\n> <name>\n> ```\n<after>"),
+    ).toBe("> ```\n> <name>\n> ```\n\\<after>");
   });
 
   it("skips a fenced code block nested in a list", () => {
-    expect(escapeUnsupportedAngleBrackets("- ```\n  <name>\n  ```\n<after>")).toBe(
-      "- ```\n  <name>\n  ```\n\\<after>",
-    );
+    expect(
+      escapeUnsupportedAngleBrackets("- ```\n  <name>\n  ```\n<after>"),
+    ).toBe("- ```\n  <name>\n  ```\n\\<after>");
   });
 
   it("does not close a fence on a shorter run of the same character", () => {
-    expect(escapeUnsupportedAngleBrackets("````\n<a>\n```\n<b>\n````\n<c>")).toBe(
-      "````\n<a>\n```\n<b>\n````\n\\<c>",
-    );
+    expect(
+      escapeUnsupportedAngleBrackets("````\n<a>\n```\n<b>\n````\n<c>"),
+    ).toBe("````\n<a>\n```\n<b>\n````\n\\<c>");
   });
 
   it("skips indented code blocks", () => {
-    expect(escapeUnsupportedAngleBrackets("intro\n\n    <name>\n\nafter <x>")).toBe(
-      "intro\n\n    <name>\n\nafter \\<x>",
-    );
+    expect(
+      escapeUnsupportedAngleBrackets("intro\n\n    <name>\n\nafter <x>"),
+    ).toBe("intro\n\n    <name>\n\nafter \\<x>");
     expect(escapeUnsupportedAngleBrackets("\t<name>")).toBe("\t<name>");
   });
 
@@ -124,25 +152,33 @@ describe("escapeUnsupportedAngleBrackets", () => {
     expect(escapeUnsupportedAngleBrackets("> Rename <name> here")).toBe(
       "> Rename \\<name> here",
     );
-    expect(escapeUnsupportedAngleBrackets(">\n>     <name>")).toBe(">\n>     <name>");
+    expect(escapeUnsupportedAngleBrackets(">\n>     <name>")).toBe(
+      ">\n>     <name>",
+    );
   });
 
   it("skips autolinks", () => {
-    expect(escapeUnsupportedAngleBrackets("See <https://example.com> for more")).toBe(
-      "See <https://example.com> for more",
-    );
+    expect(
+      escapeUnsupportedAngleBrackets("See <https://example.com> for more"),
+    ).toBe("See <https://example.com> for more");
     expect(escapeUnsupportedAngleBrackets("Mail <a.b@example.com> now")).toBe(
       "Mail <a.b@example.com> now",
     );
   });
 
   it("escapes a tag that only looks like an autolink", () => {
-    expect(escapeUnsupportedAngleBrackets("<notascheme>")).toBe("\\<notascheme>");
+    expect(escapeUnsupportedAngleBrackets("<notascheme>")).toBe(
+      "\\<notascheme>",
+    );
   });
 
   it("skips pointed-bracket link destinations", () => {
-    expect(escapeUnsupportedAngleBrackets("[a](<my file.md>)")).toBe("[a](<my file.md>)");
-    expect(escapeUnsupportedAngleBrackets("![i](<f.png>)")).toBe("![i](<f.png>)");
+    expect(escapeUnsupportedAngleBrackets("[a](<my file.md>)")).toBe(
+      "[a](<my file.md>)",
+    );
+    expect(escapeUnsupportedAngleBrackets("![i](<f.png>)")).toBe(
+      "![i](<f.png>)",
+    );
   });
 
   it("still escapes prose around a pointed link destination", () => {
@@ -170,13 +206,19 @@ describe("escapeUnsupportedAngleBrackets", () => {
 describe("unescapeAngleBracketEscapes", () => {
   it("leaves markdown without escapes untouched", () => {
     expect(unescapeAngleBracketEscapes("")).toBe("");
-    expect(unescapeAngleBracketEscapes("Rename <name> here")).toBe("Rename <name> here");
+    expect(unescapeAngleBracketEscapes("Rename <name> here")).toBe(
+      "Rename <name> here",
+    );
   });
 
   it("drops the backslash from an escaped html-like bracket", () => {
-    expect(unescapeAngleBracketEscapes("Rename \\<name> here")).toBe("Rename <name> here");
+    expect(unescapeAngleBracketEscapes("Rename \\<name> here")).toBe(
+      "Rename <name> here",
+    );
     expect(unescapeAngleBracketEscapes("a \\</close> b")).toBe("a </close> b");
-    expect(unescapeAngleBracketEscapes("a \\<!-- note --> b")).toBe("a <!-- note --> b");
+    expect(unescapeAngleBracketEscapes("a \\<!-- note --> b")).toBe(
+      "a <!-- note --> b",
+    );
     expect(unescapeAngleBracketEscapes("a \\<?php b")).toBe("a <?php b");
   });
 
@@ -193,25 +235,31 @@ describe("unescapeAngleBracketEscapes", () => {
 
   it("keeps backslash parity", () => {
     // `\\` is a literal backslash; the `<name>` after it is already bare.
-    expect(unescapeAngleBracketEscapes("a \\\\<name> b")).toBe("a \\\\<name> b");
+    expect(unescapeAngleBracketEscapes("a \\\\<name> b")).toBe(
+      "a \\\\<name> b",
+    );
     // `\\` then `\<` is a literal backslash followed by an escaped bracket.
-    expect(unescapeAngleBracketEscapes("a \\\\\\<name> b")).toBe("a \\\\<name> b");
+    expect(unescapeAngleBracketEscapes("a \\\\\\<name> b")).toBe(
+      "a \\\\<name> b",
+    );
   });
 
   it("keeps an escape that would otherwise open an autolink", () => {
     // `\<https://example.com>` renders as the literal text `<https://example.com>`.
     // Dropping the backslash would publish a link the author escaped on purpose,
     // and the escape half never escapes an autolink, so there is nothing to undo.
-    expect(unescapeAngleBracketEscapes("See \\<https://example.com> here")).toBe(
-      "See \\<https://example.com> here",
-    );
+    expect(
+      unescapeAngleBracketEscapes("See \\<https://example.com> here"),
+    ).toBe("See \\<https://example.com> here");
     expect(unescapeAngleBracketEscapes("Mail \\<a.b@example.com> now")).toBe(
       "Mail \\<a.b@example.com> now",
     );
   });
 
   it("keeps an escape that would otherwise open a pointed link destination", () => {
-    expect(unescapeAngleBracketEscapes("[a](\\<my file.md>)")).toBe("[a](\\<my file.md>)");
+    expect(unescapeAngleBracketEscapes("[a](\\<my file.md>)")).toBe(
+      "[a](\\<my file.md>)",
+    );
   });
 
   it("still unescapes a tag that only looks like an autolink", () => {
@@ -221,13 +269,15 @@ describe("unescapeAngleBracketEscapes", () => {
   });
 
   it("skips code spans and code blocks", () => {
-    expect(unescapeAngleBracketEscapes("Use `\\<name>` here")).toBe("Use `\\<name>` here");
+    expect(unescapeAngleBracketEscapes("Use `\\<name>` here")).toBe(
+      "Use `\\<name>` here",
+    );
     expect(unescapeAngleBracketEscapes("```\n\\<name>\n```\n\\<after>")).toBe(
       "```\n\\<name>\n```\n<after>",
     );
-    expect(unescapeAngleBracketEscapes("intro\n\n    \\<name>\n\nafter \\<x>")).toBe(
-      "intro\n\n    \\<name>\n\nafter <x>",
-    );
+    expect(
+      unescapeAngleBracketEscapes("intro\n\n    \\<name>\n\nafter \\<x>"),
+    ).toBe("intro\n\n    \\<name>\n\nafter <x>");
   });
 
   it("is idempotent", () => {
@@ -269,15 +319,19 @@ describe("angle bracket escape round trip", () => {
 
   it("returns the original markdown after escaping and unescaping", () => {
     for (const input of cases) {
-      expect(unescapeAngleBracketEscapes(escapeUnsupportedAngleBrackets(input))).toBe(input);
+      expect(
+        unescapeAngleBracketEscapes(escapeUnsupportedAngleBrackets(input)),
+      ).toBe(input);
     }
   });
 
   it("normalizes a pre-escaped bracket to its clean form", () => {
     // `\<name>` and `<name>` are the same literal text; the clean form is what
     // this product stores, and the rewrite only happens on a real edit.
-    expect(unescapeAngleBracketEscapes(escapeUnsupportedAngleBrackets("Rename \\<name>"))).toBe(
-      "Rename <name>",
-    );
+    expect(
+      unescapeAngleBracketEscapes(
+        escapeUnsupportedAngleBrackets("Rename \\<name>"),
+      ),
+    ).toBe("Rename <name>");
   });
 });

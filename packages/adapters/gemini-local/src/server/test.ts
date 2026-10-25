@@ -20,15 +20,24 @@ import {
   describeAdapterExecutionTarget,
   resolveAdapterExecutionTargetCwd,
 } from "@taskcore/adapter-utils/execution-target";
-import { DEFAULT_GEMINI_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../index.js";
-import { detectGeminiAuthRequired, detectGeminiQuotaExhausted, parseGeminiJsonl } from "./parse.js";
+import {
+  DEFAULT_GEMINI_LOCAL_MODEL,
+  SANDBOX_INSTALL_COMMAND,
+} from "../index.js";
+import {
+  detectGeminiAuthRequired,
+  detectGeminiQuotaExhausted,
+  parseGeminiJsonl,
+} from "./parse.js";
 import { firstNonEmptyLine } from "./utils.js";
 import {
   resolveGeminiExecutionEngineForRun,
   testGeminiAcpEnvironment,
 } from "./acp.js";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -40,11 +49,22 @@ function isNonEmpty(value: unknown): value is string {
 
 function commandLooksLike(command: string, expected: string): boolean {
   const base = path.basename(command).toLowerCase();
-  return base === expected || base === `${expected}.cmd` || base === `${expected}.exe`;
+  return (
+    base === expected ||
+    base === `${expected}.cmd` ||
+    base === `${expected}.exe`
+  );
 }
 
-function summarizeProbeDetail(stdout: string, stderr: string, parsedError: string | null): string | null {
-  const raw = parsedError?.trim() || firstNonEmptyLine(stderr) || firstNonEmptyLine(stdout);
+function summarizeProbeDetail(
+  stdout: string,
+  stderr: string,
+  parsedError: string | null,
+): string | null {
+  const raw =
+    parsedError?.trim() ||
+    firstNonEmptyLine(stderr) ||
+    firstNonEmptyLine(stdout);
   if (!raw) return null;
   const clean = raw.replace(/\s+/g, " ").trim();
   const max = 240;
@@ -62,11 +82,13 @@ export async function testEnvironment(
     return {
       adapterType: "gemini_local",
       status: "fail",
-      checks: [{
-        code: "adapter_engine_unavailable",
-        level: "error",
-        message: engineSelection.unavailableReason,
-      }],
+      checks: [
+        {
+          code: "adapter_engine_unavailable",
+          level: "error",
+          message: engineSelection.unavailableReason,
+        },
+      ],
       testedAt: new Date().toISOString(),
     };
   }
@@ -79,9 +101,13 @@ export async function testEnvironment(
   const command = asString(config.command, "gemini");
   const target = ctx.executionTarget ?? null;
   const targetIsRemote = target?.kind === "remote";
-  const cwd = resolveAdapterExecutionTargetCwd(target, asString(config.cwd, ""), process.cwd());
+  const cwd = resolveAdapterExecutionTargetCwd(
+    target,
+    asString(config.cwd, ""),
+    process.cwd(),
+  );
   const targetLabel = targetIsRemote
-    ? ctx.environmentName ?? describeAdapterExecutionTarget(target)
+    ? (ctx.environmentName ?? describeAdapterExecutionTarget(target))
     : null;
   const runId = `gemini-envtest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -132,7 +158,12 @@ export async function testEnvironment(
   });
   if (installCheck) checks.push(installCheck);
   try {
-    await ensureAdapterExecutionTargetCommandResolvable(command, target, cwd, runtimeEnv);
+    await ensureAdapterExecutionTargetCommandResolvable(
+      command,
+      target,
+      cwd,
+      runtimeEnv,
+    );
     checks.push({
       code: "gemini_command_resolvable",
       level: "info",
@@ -148,10 +179,16 @@ export async function testEnvironment(
   }
 
   const configGeminiApiKey = env.GEMINI_API_KEY;
-  const hostGeminiApiKey = targetIsRemote ? undefined : process.env.GEMINI_API_KEY;
+  const hostGeminiApiKey = targetIsRemote
+    ? undefined
+    : process.env.GEMINI_API_KEY;
   const configGoogleApiKey = env.GOOGLE_API_KEY;
-  const hostGoogleApiKey = targetIsRemote ? undefined : process.env.GOOGLE_API_KEY;
-  const hasGca = env.GOOGLE_GENAI_USE_GCA === "true" || (!targetIsRemote && process.env.GOOGLE_GENAI_USE_GCA === "true");
+  const hostGoogleApiKey = targetIsRemote
+    ? undefined
+    : process.env.GOOGLE_API_KEY;
+  const hasGca =
+    env.GOOGLE_GENAI_USE_GCA === "true" ||
+    (!targetIsRemote && process.env.GOOGLE_GENAI_USE_GCA === "true");
   if (
     isNonEmpty(configGeminiApiKey) ||
     isNonEmpty(hostGeminiApiKey) ||
@@ -174,13 +211,17 @@ export async function testEnvironment(
     checks.push({
       code: "gemini_api_key_missing",
       level: "info",
-      message: "No explicit API key detected. Gemini CLI may still authenticate via `gemini auth login` (OAuth).",
+      message:
+        "No explicit API key detected. Gemini CLI may still authenticate via `gemini auth login` (OAuth).",
       hint: "If the hello probe fails with an auth error, set GEMINI_API_KEY or GOOGLE_API_KEY in adapter env, or run `gemini auth login`.",
     });
   }
 
-  const canRunProbe =
-    checks.every((check) => check.code !== "gemini_cwd_invalid" && check.code !== "gemini_command_unresolvable");
+  const canRunProbe = checks.every(
+    (check) =>
+      check.code !== "gemini_cwd_invalid" &&
+      check.code !== "gemini_command_unresolvable",
+  );
   if (canRunProbe) {
     if (!commandLooksLike(command, "gemini")) {
       checks.push({
@@ -192,18 +233,31 @@ export async function testEnvironment(
       });
     } else {
       const model = asString(config.model, DEFAULT_GEMINI_LOCAL_MODEL).trim();
-      const approvalMode = asString(config.approvalMode, asBoolean(config.yolo, true) ? "yolo" : "default");
+      const approvalMode = asString(
+        config.approvalMode,
+        asBoolean(config.yolo, true) ? "yolo" : "default",
+      );
       const sandbox = asBoolean(config.sandbox, false);
-      const helloProbeTimeoutSec = Math.max(1, asNumber(config.helloProbeTimeoutSec, 60));
+      const helloProbeTimeoutSec = Math.max(
+        1,
+        asNumber(config.helloProbeTimeoutSec, 60),
+      );
       const extraArgs = (() => {
         const fromExtraArgs = asStringArray(config.extraArgs);
         if (fromExtraArgs.length > 0) return fromExtraArgs;
         return asStringArray(config.args);
       })();
 
-      const args = ["--output-format", "stream-json", "--prompt", "Respond with hello."];
-      if (model && model !== DEFAULT_GEMINI_LOCAL_MODEL) args.push("--model", model);
-      if (approvalMode !== "default") args.push("--approval-mode", approvalMode);
+      const args = [
+        "--output-format",
+        "stream-json",
+        "--prompt",
+        "Respond with hello.",
+      ];
+      if (model && model !== DEFAULT_GEMINI_LOCAL_MODEL)
+        args.push("--model", model);
+      if (approvalMode !== "default")
+        args.push("--approval-mode", approvalMode);
       if (sandbox) {
         args.push("--sandbox");
       } else {
@@ -221,11 +275,15 @@ export async function testEnvironment(
           env,
           timeoutSec: helloProbeTimeoutSec,
           graceSec: 5,
-          onLog: async () => { },
+          onLog: async () => {},
         },
       );
       const parsed = parseGeminiJsonl(probe.stdout);
-      const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage);
+      const detail = summarizeProbeDetail(
+        probe.stdout,
+        probe.stderr,
+        parsed.errorMessage,
+      );
       const authMeta = detectGeminiAuthRequired({
         parsed: parsed.resultEvent,
         stdout: probe.stdout,
@@ -258,17 +316,21 @@ export async function testEnvironment(
         const summary = parsed.summary.trim();
         const hasHello = /\bhello\b/i.test(summary);
         checks.push({
-          code: hasHello ? "gemini_hello_probe_passed" : "gemini_hello_probe_unexpected_output",
+          code: hasHello
+            ? "gemini_hello_probe_passed"
+            : "gemini_hello_probe_unexpected_output",
           level: hasHello ? "info" : "warn",
           message: hasHello
             ? "Gemini hello probe succeeded."
             : "Gemini probe ran but did not return `hello` as expected.",
-          ...(summary ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) } : {}),
+          ...(summary
+            ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) }
+            : {}),
           ...(hasHello
             ? {}
             : {
-              hint: "Try `gemini --output-format json \"Respond with hello.\"` manually to inspect full output.",
-            }),
+                hint: 'Try `gemini --output-format json "Respond with hello."` manually to inspect full output.',
+              }),
         });
       } else if (authMeta.requiresAuth) {
         checks.push({
@@ -284,7 +346,7 @@ export async function testEnvironment(
           level: "error",
           message: "Gemini hello probe failed.",
           ...(detail ? { detail } : {}),
-          hint: "Run `gemini --output-format json \"Respond with hello.\"` manually in this working directory to debug.",
+          hint: 'Run `gemini --output-format json "Respond with hello."` manually in this working directory to debug.',
         });
       }
     }

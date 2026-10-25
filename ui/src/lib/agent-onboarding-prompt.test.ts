@@ -4,7 +4,8 @@ import { buildAgentOnboardingPrompt } from "./agent-onboarding-prompt";
 describe("buildAgentOnboardingPrompt", () => {
   it("includes Hermes Gateway setup guidance for external agents", () => {
     const prompt = buildAgentOnboardingPrompt({
-      onboardingTextUrl: "http://localhost:3100/api/invites/token-123/onboarding.txt",
+      onboardingTextUrl:
+        "http://localhost:3100/api/invites/token-123/onboarding.txt",
       connectionCandidates: ["http://192.168.1.10:3100"],
     });
 
@@ -21,7 +22,9 @@ describe("buildAgentOnboardingPrompt", () => {
     expect(prompt).toContain("http://127.0.0.1:9119");
     expect(prompt).toContain("http://127.0.0.1:9119/chat");
     expect(prompt).toContain("Taskcore maps it to `/api`");
-    expect(prompt).toContain("`/chat` and the dashboard root are browser UI routes");
+    expect(prompt).toContain(
+      "`/chat` and the dashboard root are browser UI routes",
+    );
     expect(prompt).toContain("`/api/v1/runs`");
     expect(prompt).toContain("http://<private-ip>:8642");
     expect(prompt).toContain("http://<tailnet-host>:8642");
@@ -30,8 +33,14 @@ describe("buildAgentOnboardingPrompt", () => {
     expect(prompt).toContain("`hermes_local` runs Hermes on the Taskcore host");
     expect(prompt).toContain("Hermes-originated Taskcore API calls");
     expect(prompt).toContain("Do not rotate or invent a Taskcore key manually");
-    expect(prompt).toContain("parsed `token` field from the raw HTTP JSON response");
-    expect(prompt).toContain("A token value containing literal `...` or `[redacted]`");
-    expect(prompt).toContain("never persist a displayed preview that contains `...`");
+    expect(prompt).toContain(
+      "parsed `token` field from the raw HTTP JSON response",
+    );
+    expect(prompt).toContain(
+      "A token value containing literal `...` or `[redacted]`",
+    );
+    expect(prompt).toContain(
+      "never persist a displayed preview that contains `...`",
+    );
   });
 });

@@ -9,7 +9,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -27,7 +28,10 @@ function stringifyUnknown(value: unknown): string {
   }
 }
 
-function parseAssistantMessage(message: Record<string, unknown>, ts: string): TranscriptEntry[] {
+function parseAssistantMessage(
+  message: Record<string, unknown>,
+  ts: string,
+): TranscriptEntry[] {
   const content = Array.isArray(message.content) ? message.content : [];
   const entries: TranscriptEntry[] = [];
   for (const partRaw of content) {
@@ -80,53 +84,69 @@ function parseSdkMessage(messageRaw: unknown, ts: string): TranscriptEntry[] {
   }
 
   if (type === "tool_call") {
-    const toolUseId = asString(message.call_id, asString(message.id, "tool_call"));
+    const toolUseId = asString(
+      message.call_id,
+      asString(message.id, "tool_call"),
+    );
     const status = asString(message.status).toLowerCase();
     if (status === "running") {
-      return [{
-        kind: "tool_call",
-        ts,
-        name: asString(message.name, "tool"),
-        toolUseId,
-        input: message.args ?? {},
-      }];
+      return [
+        {
+          kind: "tool_call",
+          ts,
+          name: asString(message.name, "tool"),
+          toolUseId,
+          input: message.args ?? {},
+        },
+      ];
     }
     if (status === "completed" || status === "error") {
-      return [{
-        kind: "tool_result",
-        ts,
-        toolUseId,
-        toolName: asString(message.name, "tool"),
-        content: stringifyUnknown(message.result ?? message.args ?? {}),
-        isError: status === "error",
-      }];
+      return [
+        {
+          kind: "tool_result",
+          ts,
+          toolUseId,
+          toolName: asString(message.name, "tool"),
+          content: stringifyUnknown(message.result ?? message.args ?? {}),
+          isError: status === "error",
+        },
+      ];
     }
     return [];
   }
 
   if (type === "tool_result") {
-    const toolUseId = asString(message.call_id, asString(message.id, "tool_result"));
+    const toolUseId = asString(
+      message.call_id,
+      asString(message.id, "tool_result"),
+    );
     const isError =
       message.is_error === true ||
       asString(message.status).toLowerCase() === "error";
-    return [{
-      kind: "tool_result",
-      ts,
-      toolUseId,
-      toolName: asString(message.name, "tool"),
-      content: stringifyUnknown(message.result ?? message.content ?? message.output ?? {}),
-      isError,
-    }];
+    return [
+      {
+        kind: "tool_result",
+        ts,
+        toolUseId,
+        toolName: asString(message.name, "tool"),
+        content: stringifyUnknown(
+          message.result ?? message.content ?? message.output ?? {},
+        ),
+        isError,
+      },
+    ];
   }
 
   if (type === "status") {
     const status = asString(message.status);
     const statusMessage = asString(message.message);
-    return [{
-      kind: "system",
-      ts,
-      text: `status: ${status}${statusMessage ? ` - ${statusMessage}` : ""}`,
-    }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `status: ${status}${statusMessage ? ` - ${statusMessage}` : ""}`,
+      },
+    ];
   }
 
   if (type === "task") {
@@ -137,7 +157,10 @@ function parseSdkMessage(messageRaw: unknown, ts: string): TranscriptEntry[] {
   return [];
 }
 
-export function parseCursorCloudStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseCursorCloudStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   const parsed = asRecord(safeJsonParse(line));
   if (!parsed) {
     return [{ kind: "stdout", ts, text: line }];
@@ -146,20 +169,24 @@ export function parseCursorCloudStdoutLine(line: string, ts: string): Transcript
   const type = asString(parsed.type);
   if (type === "cursor_cloud.init") {
     const sessionId = asString(parsed.sessionId, asString(parsed.agentId));
-    return [{
-      kind: "init",
-      ts,
-      model: asString(parsed.model, "cursor_cloud"),
-      sessionId,
-    }];
+    return [
+      {
+        kind: "init",
+        ts,
+        model: asString(parsed.model, "cursor_cloud"),
+        sessionId,
+      },
+    ];
   }
 
   if (type === "cursor_cloud.status") {
-    return [{
-      kind: "system",
-      ts,
-      text: `${asString(parsed.status, "status")}${parsed.message ? `: ${asString(parsed.message)}` : ""}`,
-    }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `${asString(parsed.status, "status")}${parsed.message ? `: ${asString(parsed.message)}` : ""}`,
+      },
+    ];
   }
 
   if (type === "cursor_cloud.message") {
@@ -168,18 +195,20 @@ export function parseCursorCloudStdoutLine(line: string, ts: string): Transcript
 
   if (type === "cursor_cloud.result") {
     const status = asString(parsed.status, "error");
-    return [{
-      kind: "result",
-      ts,
-      text: asString(parsed.result),
-      inputTokens: 0,
-      outputTokens: 0,
-      cachedTokens: 0,
-      costUsd: 0,
-      subtype: status,
-      isError: status !== "finished",
-      errors: parsed.error ? [asString(parsed.error)] : [],
-    }];
+    return [
+      {
+        kind: "result",
+        ts,
+        text: asString(parsed.result),
+        inputTokens: 0,
+        outputTokens: 0,
+        cachedTokens: 0,
+        costUsd: 0,
+        subtype: status,
+        isError: status !== "finished",
+        errors: parsed.error ? [asString(parsed.error)] : [],
+      },
+    ];
   }
 
   return [{ kind: "stdout", ts, text: line }];

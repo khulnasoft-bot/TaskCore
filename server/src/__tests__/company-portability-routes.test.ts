@@ -111,7 +111,9 @@ async function createApp(actor: Record<string, unknown>) {
   const middlewareModulePath = `../middleware/index.js?company-portability-routes-${appImportCounter}`;
   const [{ companyRoutes }, { errorHandler }] = await Promise.all([
     import(routeModulePath) as Promise<typeof import("../routes/companies.js")>,
-    import(middlewareModulePath) as Promise<typeof import("../middleware/index.js")>,
+    import(middlewareModulePath) as Promise<
+      typeof import("../middleware/index.js")
+    >,
   ]);
   const app = express();
   app.use(express.json());
@@ -142,7 +144,13 @@ function createExportResult() {
       projects: [],
       issues: [],
       envInputs: [],
-      includes: { company: true, agents: true, projects: true, issues: false, skills: false },
+      includes: {
+        company: true,
+        agents: true,
+        projects: true,
+        issues: false,
+        skills: false,
+      },
       company: null,
       schemaVersion: 1,
       generatedAt: "2026-01-01T00:00:00.000Z",
@@ -186,7 +194,11 @@ function createImportResult(action = "updated") {
   };
 }
 
-async function waitForImportJobStatus(app: express.Express, statusUrl: string, status: string) {
+async function waitForImportJobStatus(
+  app: express.Express,
+  statusUrl: string,
+  status: string,
+) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const res = await request(app).get(statusUrl).set(cloudHeaders);
     if (res.body.job?.status === status) {
@@ -230,13 +242,16 @@ async function createBoardApp() {
   const middlewareModulePath = `../middleware/index.js?company-portability-routes-${appImportCounter}`;
   const [{ companyRoutes }, { errorHandler }] = await Promise.all([
     import(routeModulePath) as Promise<typeof import("../routes/companies.js")>,
-    import(middlewareModulePath) as Promise<typeof import("../middleware/index.js")>,
+    import(middlewareModulePath) as Promise<
+      typeof import("../middleware/index.js")
+    >,
   ]);
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
     const header = req.headers[TEST_USER_HEADER];
-    const userId = typeof header === "string" && header.length > 0 ? header : "board-user-a";
+    const userId =
+      typeof header === "string" && header.length > 0 ? header : "board-user-a";
     (req as any).actor = boardActor(userId);
     next();
   });
@@ -276,7 +291,10 @@ function crc32(bytes: Uint8Array) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function buildStoreZip(files: Record<string, string>, rootPath: string): Buffer {
+function buildStoreZip(
+  files: Record<string, string>,
+  rootPath: string,
+): Buffer {
   const encoder = new TextEncoder();
   const localChunks: Buffer[] = [];
   const centralChunks: Buffer[] = [];
@@ -343,10 +361,29 @@ describe("company portability routes", () => {
       role: id === ceoAgentId ? "ceo" : "engineer",
     }));
     mockAgentService.list.mockResolvedValue([]);
-    mockCompanyPortabilityService.exportBundle.mockResolvedValue(createExportResult());
+    mockCompanyPortabilityService.exportBundle.mockResolvedValue(
+      createExportResult(),
+    );
     mockCompanyPortabilityService.previewExport.mockResolvedValue({
       rootPath: "taskcore",
-      manifest: { agents: [], skills: [], projects: [], issues: [], envInputs: [], includes: { company: true, agents: true, projects: true, issues: false, skills: false }, company: null, schemaVersion: 1, generatedAt: new Date().toISOString(), source: null },
+      manifest: {
+        agents: [],
+        skills: [],
+        projects: [],
+        issues: [],
+        envInputs: [],
+        includes: {
+          company: true,
+          agents: true,
+          projects: true,
+          issues: false,
+          skills: false,
+        },
+        company: null,
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        source: null,
+      },
       files: {},
       fileInventory: [],
       counts: { files: 0, agents: 0, skills: 0, projects: 0, issues: 0 },
@@ -406,7 +443,10 @@ describe("company portability routes", () => {
       runId: "run-1",
     });
 
-    for (const path of [`/api/companies/${companyId}/export`, `/api/companies/${companyId}/exports`]) {
+    for (const path of [
+      `/api/companies/${companyId}/export`,
+      `/api/companies/${companyId}/exports`,
+    ]) {
       const res = await request(app).post(path).send(exportRequest);
 
       expect(res.status).toBe(403);
@@ -418,7 +458,24 @@ describe("company portability routes", () => {
   it("allows CEO agents to use company-scoped export preview routes", async () => {
     mockCompanyPortabilityService.previewExport.mockResolvedValue({
       rootPath: "taskcore",
-      manifest: { agents: [], skills: [], projects: [], issues: [], envInputs: [], includes: { company: true, agents: true, projects: true, issues: false, skills: false }, company: null, schemaVersion: 1, generatedAt: new Date().toISOString(), source: null },
+      manifest: {
+        agents: [],
+        skills: [],
+        projects: [],
+        issues: [],
+        envInputs: [],
+        includes: {
+          company: true,
+          agents: true,
+          projects: true,
+          issues: false,
+          skills: false,
+        },
+        company: null,
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        source: null,
+      },
       files: {},
       fileInventory: [],
       counts: { files: 0, agents: 0, skills: 0, projects: 0, issues: 0 },
@@ -442,7 +499,9 @@ describe("company portability routes", () => {
   });
 
   it("allows CEO agents to export through legacy and CEO-safe bundle routes", async () => {
-    mockCompanyPortabilityService.exportBundle.mockResolvedValue(createExportResult());
+    mockCompanyPortabilityService.exportBundle.mockResolvedValue(
+      createExportResult(),
+    );
     const app = await createApp({
       type: "agent",
       agentId: ceoAgentId,
@@ -451,7 +510,10 @@ describe("company portability routes", () => {
       runId: "run-1",
     });
 
-    for (const path of [`/api/companies/${companyId}/export`, `/api/companies/${companyId}/exports`]) {
+    for (const path of [
+      `/api/companies/${companyId}/export`,
+      `/api/companies/${companyId}/exports`,
+    ]) {
       const res = await request(app).post(path).send(exportRequest);
 
       expect(res.status).toBe(200);
@@ -473,7 +535,9 @@ describe("company portability routes", () => {
   });
 
   it("allows board users to export through legacy and CEO-safe bundle routes", async () => {
-    mockCompanyPortabilityService.exportBundle.mockResolvedValue(createExportResult());
+    mockCompanyPortabilityService.exportBundle.mockResolvedValue(
+      createExportResult(),
+    );
     const app = await createApp({
       type: "board",
       userId: "user-1",
@@ -482,7 +546,10 @@ describe("company portability routes", () => {
       isInstanceAdmin: false,
     });
 
-    for (const path of [`/api/companies/${companyId}/export`, `/api/companies/${companyId}/exports`]) {
+    for (const path of [
+      `/api/companies/${companyId}/export`,
+      `/api/companies/${companyId}/exports`,
+    ]) {
       const res = await request(app).post(path).send(exportRequest);
 
       expect(res.status).toBe(200);
@@ -492,14 +559,16 @@ describe("company portability routes", () => {
   });
 
   it("requires instance-admin access when a company export includes external instructions", async () => {
-    mockAgentService.list.mockResolvedValue([{
-      id: "external-agent",
-      companyId,
-      adapterConfig: {
-        instructionsBundleMode: "external",
-        instructionsRootPath: "/srv/taskcore/external-agent",
+    mockAgentService.list.mockResolvedValue([
+      {
+        id: "external-agent",
+        companyId,
+        adapterConfig: {
+          instructionsBundleMode: "external",
+          instructionsRootPath: "/srv/taskcore/external-agent",
+        },
       },
-    }]);
+    ]);
     const nonAdminActors = [
       {
         type: "board",
@@ -536,14 +605,16 @@ describe("company portability routes", () => {
   });
 
   it("allows an instance admin to export companies with external instructions", async () => {
-    mockAgentService.list.mockResolvedValue([{
-      id: "external-agent",
-      companyId,
-      adapterConfig: {
-        instructionsBundleMode: "external",
-        instructionsRootPath: "/srv/taskcore/external-agent",
+    mockAgentService.list.mockResolvedValue([
+      {
+        id: "external-agent",
+        companyId,
+        adapterConfig: {
+          instructionsBundleMode: "external",
+          instructionsRootPath: "/srv/taskcore/external-agent",
+        },
       },
-    }]);
+    ]);
     const app = await createApp({
       type: "board",
       userId: "instance-admin",
@@ -553,7 +624,9 @@ describe("company portability routes", () => {
       isInstanceAdmin: true,
     });
 
-    const res = await request(app).post(`/api/companies/${companyId}/exports`).send(exportRequest);
+    const res = await request(app)
+      .post(`/api/companies/${companyId}/exports`)
+      .send(exportRequest);
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(mockCompanyPortabilityService.exportBundle).toHaveBeenCalledWith(
@@ -585,7 +658,9 @@ describe("company portability routes", () => {
         adapterConfig: { instructionsBundleMode: "managed" },
       },
     ]);
-    mockCompanyPortabilityService.exportBundle.mockResolvedValue(createExportResult());
+    mockCompanyPortabilityService.exportBundle.mockResolvedValue(
+      createExportResult(),
+    );
     const app = await createApp({
       type: "board",
       userId: "company-admin",
@@ -604,7 +679,9 @@ describe("company portability routes", () => {
       .send(selectedAgentRequest);
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(mockAgentService.list).toHaveBeenCalledWith(companyId, { includeTerminated: true });
+    expect(mockAgentService.list).toHaveBeenCalledWith(companyId, {
+      includeTerminated: true,
+    });
     expect(mockCompanyPortabilityService.exportBundle).toHaveBeenCalledWith(
       companyId,
       selectedAgentRequest,
@@ -613,14 +690,16 @@ describe("company portability routes", () => {
   });
 
   it("keeps non-agent exports open when external instructions are excluded", async () => {
-    mockAgentService.list.mockResolvedValue([{
-      id: "external-agent",
-      companyId,
-      adapterConfig: {
-        instructionsBundleMode: "external",
-        instructionsRootPath: "/srv/taskcore/external-agent",
+    mockAgentService.list.mockResolvedValue([
+      {
+        id: "external-agent",
+        companyId,
+        adapterConfig: {
+          instructionsBundleMode: "external",
+          instructionsRootPath: "/srv/taskcore/external-agent",
+        },
       },
-    }]);
+    ]);
     const app = await createApp({
       type: "board",
       userId: "company-admin",
@@ -685,11 +764,24 @@ describe("company portability routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/companies/11111111-1111-4111-8111-111111111111/imports/preview")
+      .post(
+        "/api/companies/11111111-1111-4111-8111-111111111111/imports/preview",
+      )
       .send({
-        source: { type: "inline", files: { "COMPANY.md": "---\nname: Test\n---\n" } },
-        include: { company: true, agents: true, projects: false, issues: false },
-        target: { mode: "existing_company", companyId: "11111111-1111-4111-8111-111111111111" },
+        source: {
+          type: "inline",
+          files: { "COMPANY.md": "---\nname: Test\n---\n" },
+        },
+        include: {
+          company: true,
+          agents: true,
+          projects: false,
+          issues: false,
+        },
+        target: {
+          mode: "existing_company",
+          companyId: "11111111-1111-4111-8111-111111111111",
+        },
         collisionStrategy: "replace",
       });
 
@@ -711,10 +803,12 @@ describe("company portability routes", () => {
       `/api/companies/${otherCompanyId}/imports/preview`,
       `/api/companies/${otherCompanyId}/imports/apply`,
     ]) {
-      const res = await request(app).post(path).send({
-        ...importRequest,
-        target: { mode: "existing_company", companyId: otherCompanyId },
-      });
+      const res = await request(app)
+        .post(path)
+        .send({
+          ...importRequest,
+          target: { mode: "existing_company", companyId: otherCompanyId },
+        });
 
       expect(res.status).toBe(403);
       expect(res.body.error).toContain("another company");
@@ -737,10 +831,12 @@ describe("company portability routes", () => {
       `/api/companies/${companyId}/imports/preview`,
       `/api/companies/${companyId}/imports/apply`,
     ]) {
-      const res = await request(app).post(path).send({
-        ...importRequest,
-        target: { mode: "existing_company", companyId: otherCompanyId },
-      });
+      const res = await request(app)
+        .post(path)
+        .send({
+          ...importRequest,
+          target: { mode: "existing_company", companyId: otherCompanyId },
+        });
 
       expect(res.status).toBe(403);
       expect(res.body.error).toContain("only target the route company");
@@ -762,9 +858,20 @@ describe("company portability routes", () => {
     const res = await request(app)
       .post("/api/companies/import/preview")
       .send({
-        source: { type: "inline", files: { "COMPANY.md": "---\nname: Test\n---\n" } },
-        include: { company: true, agents: true, projects: false, issues: false },
-        target: { mode: "existing_company", companyId: "11111111-1111-4111-8111-111111111111" },
+        source: {
+          type: "inline",
+          files: { "COMPANY.md": "---\nname: Test\n---\n" },
+        },
+        include: {
+          company: true,
+          agents: true,
+          projects: false,
+          issues: false,
+        },
+        target: {
+          mode: "existing_company",
+          companyId: "11111111-1111-4111-8111-111111111111",
+        },
         collisionStrategy: "rename",
       });
 
@@ -802,8 +909,16 @@ describe("company portability routes", () => {
     const res = await request(app)
       .post("/api/companies/import/preview")
       .send({
-        source: { type: "inline", files: { "COMPANY.md": "---\nname: Test\n---\n" } },
-        include: { company: true, agents: true, projects: false, issues: false },
+        source: {
+          type: "inline",
+          files: { "COMPANY.md": "---\nname: Test\n---\n" },
+        },
+        include: {
+          company: true,
+          agents: true,
+          projects: false,
+          issues: false,
+        },
         target: { mode: "new_company", newCompanyName: "Imported Test" },
         collisionStrategy: "rename",
       });
@@ -825,9 +940,20 @@ describe("company portability routes", () => {
     const res = await request(app)
       .post("/api/companies/11111111-1111-4111-8111-111111111111/imports/apply")
       .send({
-        source: { type: "inline", files: { "COMPANY.md": "---\nname: Test\n---\n" } },
-        include: { company: true, agents: true, projects: false, issues: false },
-        target: { mode: "existing_company", companyId: "11111111-1111-4111-8111-111111111111" },
+        source: {
+          type: "inline",
+          files: { "COMPANY.md": "---\nname: Test\n---\n" },
+        },
+        include: {
+          company: true,
+          agents: true,
+          projects: false,
+          issues: false,
+        },
+        target: {
+          mode: "existing_company",
+          companyId: "11111111-1111-4111-8111-111111111111",
+        },
         collisionStrategy: "replace",
       });
 
@@ -846,11 +972,24 @@ describe("company portability routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/companies/11111111-1111-4111-8111-111111111111/imports/preview")
+      .post(
+        "/api/companies/11111111-1111-4111-8111-111111111111/imports/preview",
+      )
       .send({
-        source: { type: "inline", files: { "COMPANY.md": "---\nname: Test\n---\n" } },
-        include: { company: true, agents: true, projects: false, issues: false },
-        target: { mode: "existing_company", companyId: "11111111-1111-4111-8111-111111111111" },
+        source: {
+          type: "inline",
+          files: { "COMPANY.md": "---\nname: Test\n---\n" },
+        },
+        include: {
+          company: true,
+          agents: true,
+          projects: false,
+          issues: false,
+        },
+        target: {
+          mode: "existing_company",
+          companyId: "11111111-1111-4111-8111-111111111111",
+        },
         collisionStrategy: "rename",
       });
 
@@ -869,7 +1008,9 @@ describe("company portability routes", () => {
     });
 
     const res = await request(app)
-      .post("/api/companies/11111111-1111-4111-8111-111111111111/imports/preview")
+      .post(
+        "/api/companies/11111111-1111-4111-8111-111111111111/imports/preview",
+      )
       .send({ target: { mode: "existing_company", companyId: "not-a-uuid" } });
 
     expect(res.status).toBe(403);
@@ -889,9 +1030,20 @@ describe("company portability routes", () => {
     const res = await request(app)
       .post("/api/companies/11111111-1111-4111-8111-111111111111/imports/apply")
       .send({
-        source: { type: "inline", files: { "COMPANY.md": "---\nname: Test\n---\n" } },
-        include: { company: true, agents: true, projects: false, issues: false },
-        target: { mode: "existing_company", companyId: "11111111-1111-4111-8111-111111111111" },
+        source: {
+          type: "inline",
+          files: { "COMPANY.md": "---\nname: Test\n---\n" },
+        },
+        include: {
+          company: true,
+          agents: true,
+          projects: false,
+          issues: false,
+        },
+        target: {
+          mode: "existing_company",
+          companyId: "11111111-1111-4111-8111-111111111111",
+        },
         collisionStrategy: "rename",
       });
 
@@ -912,8 +1064,16 @@ describe("company portability routes", () => {
     const res = await request(app)
       .post("/api/companies/import")
       .send({
-        source: { type: "inline", files: { "COMPANY.md": "---\nname: Test\n---\n" } },
-        include: { company: true, agents: true, projects: false, issues: false },
+        source: {
+          type: "inline",
+          files: { "COMPANY.md": "---\nname: Test\n---\n" },
+        },
+        include: {
+          company: true,
+          agents: true,
+          projects: false,
+          issues: false,
+        },
         target: { mode: "new_company", newCompanyName: "Imported Test" },
         collisionStrategy: "rename",
       });
@@ -924,11 +1084,17 @@ describe("company portability routes", () => {
   });
 
   it("accepts trusted Cloud async import jobs and reports success by job id", async () => {
-    let resolveImport: (value: ReturnType<typeof createImportResult>) => void = () => undefined;
-    const pendingImport = new Promise<ReturnType<typeof createImportResult>>((resolve) => {
-      resolveImport = resolve;
-    });
-    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(pendingImport);
+    let resolveImport: (
+      value: ReturnType<typeof createImportResult>,
+    ) => void = () => undefined;
+    const pendingImport = new Promise<ReturnType<typeof createImportResult>>(
+      (resolve) => {
+        resolveImport = resolve;
+      },
+    );
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      pendingImport,
+    );
     const app = await createApp(cloudTenantActor());
 
     const accepted = await request(app)
@@ -939,36 +1105,56 @@ describe("company portability routes", () => {
 
     expect(accepted.status).toBe(202);
     expect(accepted.body.job.status).toBe("running");
-    expect(accepted.body.statusUrl).toMatch(/^\/api\/companies\/import\/jobs\/tenant-import-/);
+    expect(accepted.body.statusUrl).toMatch(
+      /^\/api\/companies\/import\/jobs\/tenant-import-/,
+    );
     expect(accepted.body.retryAfterMs).toBe(1000);
-    await waitForCondition(() => mockCompanyPortabilityService.importBundle.mock.calls.length === 1, "import job start");
-    expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledWith(importRequest, "cloud-user-1", { pauseAutomations: false });
+    await waitForCondition(
+      () => mockCompanyPortabilityService.importBundle.mock.calls.length === 1,
+      "import job start",
+    );
+    expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledWith(
+      importRequest,
+      "cloud-user-1",
+      { pauseAutomations: false },
+    );
     expect(mockLogActivity).not.toHaveBeenCalled();
 
     resolveImport(createImportResult("updated"));
-    const succeeded = await waitForImportJobStatus(app, accepted.body.statusUrl, "succeeded");
+    const succeeded = await waitForImportJobStatus(
+      app,
+      accepted.body.statusUrl,
+      "succeeded",
+    );
 
     expect(succeeded.status).toBe(200);
     expect(succeeded.body.job.status).toBe("succeeded");
     expect(succeeded.body.job.result.companyId).toBe(companyId);
     expect(succeeded.body.retryAfterMs).toBeUndefined();
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "company.imported",
-      companyId,
-      details: expect.objectContaining({
-        agentCount: 1,
-        warningCount: 0,
-        companyAction: "updated",
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "company.imported",
+        companyId,
+        details: expect.objectContaining({
+          agentCount: 1,
+          warningCount: 0,
+          companyAction: "updated",
+        }),
       }),
-    }));
+    );
 
     const completedAtMs = Date.parse(succeeded.body.job.completedAt);
 
     // A completed job stays resolvable well past the old 5-minute retention so a
     // user who steps away during a long import never polls into a false 404.
-    const withinWindow = vi.spyOn(Date, "now").mockReturnValue(completedAtMs + (5 * 60 * 1000) + 1);
+    const withinWindow = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(completedAtMs + 5 * 60 * 1000 + 1);
     try {
-      const stillThere = await request(app).get(accepted.body.statusUrl).set(cloudHeaders);
+      const stillThere = await request(app)
+        .get(accepted.body.statusUrl)
+        .set(cloudHeaders);
       expect(stillThere.status).toBe(200);
       expect(stillThere.body.job.status).toBe("succeeded");
       expect(stillThere.body.job.result.companyId).toBe(companyId);
@@ -978,9 +1164,13 @@ describe("company portability routes", () => {
 
     // Only past the extended 60-minute window is the in-memory record finally
     // dropped, and only then does the status route report the job as gone.
-    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(completedAtMs + (60 * 60 * 1000) + 1);
+    const nowSpy = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(completedAtMs + 60 * 60 * 1000 + 1);
     try {
-      const expired = await request(app).get(accepted.body.statusUrl).set(cloudHeaders);
+      const expired = await request(app)
+        .get(accepted.body.statusUrl)
+        .set(cloudHeaders);
       expect(expired.status).toBe(404);
       expect(expired.body.error).toBe("Import job not found");
     } finally {
@@ -989,7 +1179,9 @@ describe("company portability routes", () => {
   });
 
   it("reports trusted Cloud async import job failures with the tenant error message", async () => {
-    mockCompanyPortabilityService.importBundle.mockRejectedValueOnce(new Error("tenant import exploded"));
+    mockCompanyPortabilityService.importBundle.mockRejectedValueOnce(
+      new Error("tenant import exploded"),
+    );
     const app = await createApp(cloudTenantActor());
 
     const accepted = await request(app)
@@ -999,7 +1191,11 @@ describe("company portability routes", () => {
       .send(importRequest);
 
     expect(accepted.status).toBe(202);
-    const failed = await waitForImportJobStatus(app, accepted.body.statusUrl, "failed");
+    const failed = await waitForImportJobStatus(
+      app,
+      accepted.body.statusUrl,
+      "failed",
+    );
 
     expect(failed.status).toBe(200);
     expect(failed.body.job.status).toBe("failed");
@@ -1022,7 +1218,11 @@ describe("company portability routes", () => {
     expect(accepted.body.job.status).toBe("running");
     expect(mockCompanyPortabilityService.importBundle).not.toHaveBeenCalled();
 
-    const failed = await waitForImportJobStatus(app, accepted.body.statusUrl, "failed");
+    const failed = await waitForImportJobStatus(
+      app,
+      accepted.body.statusUrl,
+      "failed",
+    );
 
     expect(failed.status).toBe(200);
     expect(failed.body.job.status).toBe("failed");
@@ -1055,7 +1255,9 @@ describe("company portability routes", () => {
   });
 
   it("forwards pauseAutomations from the global import body to the portability service", async () => {
-    mockCompanyPortabilityService.importBundle.mockResolvedValueOnce(createImportResult("created"));
+    mockCompanyPortabilityService.importBundle.mockResolvedValueOnce(
+      createImportResult("created"),
+    );
     const app = await createApp(cloudTenantActor());
 
     const res = await request(app)
@@ -1072,11 +1274,17 @@ describe("company portability routes", () => {
   });
 
   it("runs board-session async imports as jobs and reports the full result by job id", async () => {
-    let resolveImport: (value: ReturnType<typeof createImportResult>) => void = () => undefined;
-    const pendingImport = new Promise<ReturnType<typeof createImportResult>>((resolve) => {
-      resolveImport = resolve;
-    });
-    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(pendingImport);
+    let resolveImport: (
+      value: ReturnType<typeof createImportResult>,
+    ) => void = () => undefined;
+    const pendingImport = new Promise<ReturnType<typeof createImportResult>>(
+      (resolve) => {
+        resolveImport = resolve;
+      },
+    );
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      pendingImport,
+    );
     const app = await createBoardApp();
 
     const accepted = await request(app)
@@ -1088,16 +1296,30 @@ describe("company portability routes", () => {
     expect(accepted.status).toBe(202);
     expect(accepted.body.job.status).toBe("running");
     // Board jobs get their own id prefix, distinct from the tenant-import prefix.
-    expect(accepted.body.statusUrl).toMatch(/^\/api\/companies\/import\/jobs\/import-/);
+    expect(accepted.body.statusUrl).toMatch(
+      /^\/api\/companies\/import\/jobs\/import-/,
+    );
     expect(accepted.body.statusUrl).not.toMatch(/\/jobs\/tenant-import-/);
-    await waitForCondition(() => mockCompanyPortabilityService.importBundle.mock.calls.length === 1, "board import start");
-    expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledWith(importRequest, "board-user-a", { pauseAutomations: false });
+    await waitForCondition(
+      () => mockCompanyPortabilityService.importBundle.mock.calls.length === 1,
+      "board import start",
+    );
+    expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledWith(
+      importRequest,
+      "board-user-a",
+      { pauseAutomations: false },
+    );
 
     const fullResult = createImportResult("created");
     resolveImport(fullResult);
-    const succeeded = await waitForImportJobStatusAs(app, accepted.body.statusUrl, "succeeded", {
-      [TEST_USER_HEADER]: "board-user-a",
-    });
+    const succeeded = await waitForImportJobStatusAs(
+      app,
+      accepted.body.statusUrl,
+      "succeeded",
+      {
+        [TEST_USER_HEADER]: "board-user-a",
+      },
+    );
 
     expect(succeeded.status).toBe(200);
     expect(succeeded.body.job.status).toBe("succeeded");
@@ -1105,14 +1327,19 @@ describe("company portability routes", () => {
     // Parity with the synchronous response: the board job carries the full
     // import result so the import page can run the same activation path.
     expect(succeeded.body.job.importResult).toEqual(fullResult);
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      action: "company.imported",
-      companyId,
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: "company.imported",
+        companyId,
+      }),
+    );
   });
 
   it("hides a board import job from other board users", async () => {
-    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(new Promise(() => undefined));
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
     const app = await createBoardApp();
 
     const accepted = await request(app)
@@ -1123,17 +1350,23 @@ describe("company portability routes", () => {
 
     expect(accepted.status).toBe(202);
 
-    const crossUser = await request(app).get(accepted.body.statusUrl).set(TEST_USER_HEADER, "board-user-b");
+    const crossUser = await request(app)
+      .get(accepted.body.statusUrl)
+      .set(TEST_USER_HEADER, "board-user-b");
     expect(crossUser.status).toBe(404);
     expect(crossUser.body.error).toBe("Import job not found");
 
-    const owner = await request(app).get(accepted.body.statusUrl).set(TEST_USER_HEADER, "board-user-a");
+    const owner = await request(app)
+      .get(accepted.body.statusUrl)
+      .set(TEST_USER_HEADER, "board-user-a");
     expect(owner.status).toBe(200);
     expect(owner.body.job.status).toBe("running");
   });
 
   it("returns 409 with the running job when a board user resubmits an import", async () => {
-    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(new Promise(() => undefined));
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
     const app = await createBoardApp();
 
     const first = await request(app)
@@ -1157,7 +1390,9 @@ describe("company portability routes", () => {
     expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
 
     // A different board user is not blocked by the first user's running job.
-    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(new Promise(() => undefined));
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
     const otherUser = await request(app)
       .post("/api/companies/import")
       .set("x-taskcore-cloud-async-import", "1")
@@ -1168,40 +1403,49 @@ describe("company portability routes", () => {
     expect(otherUser.body.job.id).not.toBe(first.body.job.id);
   });
 
-  it(
-    "rejects a concurrent different import without adopting the running job",
-    async () => {
-      mockCompanyPortabilityService.importBundle.mockReturnValueOnce(new Promise(() => undefined));
-      const app = await createBoardApp();
+  it("rejects a concurrent different import without adopting the running job", async () => {
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
+    const app = await createBoardApp();
 
-      const first = await request(app)
-        .post("/api/companies/import")
-        .set("x-taskcore-cloud-async-import", "1")
-        .set(TEST_USER_HEADER, "board-user-a")
-        .send(importRequest);
+    const first = await request(app)
+      .post("/api/companies/import")
+      .set("x-taskcore-cloud-async-import", "1")
+      .set(TEST_USER_HEADER, "board-user-a")
+      .send(importRequest);
 
-      expect(first.status).toBe(202);
+    expect(first.status).toBe(202);
 
-      // Same user, a *different* import (another destination) while the first
-      // still runs. It must NOT adopt the first job — adopting would show the
-      // wrong result and switch to the wrong company — so the 409 carries no
-      // job to watch, and no second import starts.
-      const different = await request(app)
-        .post("/api/companies/import")
-        .set("x-taskcore-cloud-async-import", "1")
-        .set(TEST_USER_HEADER, "board-user-a")
-        .send({ ...importRequest, target: { mode: "new_company", newCompanyName: "A Different Destination" } });
+    // Same user, a *different* import (another destination) while the first
+    // still runs. It must NOT adopt the first job — adopting would show the
+    // wrong result and switch to the wrong company — so the 409 carries no
+    // job to watch, and no second import starts.
+    const different = await request(app)
+      .post("/api/companies/import")
+      .set("x-taskcore-cloud-async-import", "1")
+      .set(TEST_USER_HEADER, "board-user-a")
+      .send({
+        ...importRequest,
+        target: {
+          mode: "new_company",
+          newCompanyName: "A Different Destination",
+        },
+      });
 
-      expect(different.status).toBe(409);
-      expect(different.body.job).toBeUndefined();
-      expect(different.body.statusUrl).toBeUndefined();
-      expect(different.body.error).toMatch(/different import is already running/i);
-      expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
-    },
-  );
+    expect(different.status).toBe(409);
+    expect(different.body.job).toBeUndefined();
+    expect(different.body.statusUrl).toBeUndefined();
+    expect(different.body.error).toMatch(
+      /different import is already running/i,
+    );
+    expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledTimes(1);
+  });
 
   it("fails a board async import job when the bundle import throws", async () => {
-    mockCompanyPortabilityService.importBundle.mockRejectedValueOnce(new Error("import payload is incomplete"));
+    mockCompanyPortabilityService.importBundle.mockRejectedValueOnce(
+      new Error("import payload is incomplete"),
+    );
     const app = await createBoardApp();
 
     const accepted = await request(app)
@@ -1212,9 +1456,14 @@ describe("company portability routes", () => {
 
     expect(accepted.status).toBe(202);
 
-    const failed = await waitForImportJobStatusAs(app, accepted.body.statusUrl, "failed", {
-      [TEST_USER_HEADER]: "board-user-a",
-    });
+    const failed = await waitForImportJobStatusAs(
+      app,
+      accepted.body.statusUrl,
+      "failed",
+      {
+        [TEST_USER_HEADER]: "board-user-a",
+      },
+    );
 
     expect(failed.status).toBe(200);
     expect(failed.body.job.status).toBe("failed");
@@ -1233,7 +1482,9 @@ describe("company portability routes", () => {
       runId: "run-1",
     });
 
-    const res = await request(app).get("/api/companies/import/jobs/import-does-not-exist");
+    const res = await request(app).get(
+      "/api/companies/import/jobs/import-does-not-exist",
+    );
 
     expect(res.status).toBe(403);
     expect(res.body.error).toContain("Board access required");
@@ -1251,7 +1502,9 @@ describe("company portability routes", () => {
   });
 
   it("forwards pauseAutomations from CEO-safe import apply bodies to the portability service", async () => {
-    mockCompanyPortabilityService.importBundle.mockResolvedValueOnce(createImportResult("created"));
+    mockCompanyPortabilityService.importBundle.mockResolvedValueOnce(
+      createImportResult("created"),
+    );
     const app = await createApp({
       type: "agent",
       agentId: ceoAgentId,
@@ -1268,13 +1521,20 @@ describe("company portability routes", () => {
     expect(mockCompanyPortabilityService.importBundle).toHaveBeenCalledWith(
       { ...importRequest, pauseAutomations: true },
       null,
-      { mode: "agent_safe", sourceCompanyId: companyId, pauseAutomations: true },
+      {
+        mode: "agent_safe",
+        sourceCompanyId: companyId,
+        pauseAutomations: true,
+      },
     );
   });
 
   it("imports a company from a multipart zip upload, unzipping into the same inline bundle", async () => {
     const app = await createBoardApp();
-    const files = { "COMPANY.md": "---\nname: Test\n---\n", "agents/ceo/AGENTS.md": "---\nname: CEO\n---\n" };
+    const files = {
+      "COMPANY.md": "---\nname: Test\n---\n",
+      "agents/ceo/AGENTS.md": "---\nname: CEO\n---\n",
+    };
     const zip = buildStoreZip(files, "taskcore");
 
     const res = await request(app)
@@ -1288,7 +1548,10 @@ describe("company portability routes", () => {
     const call = mockCompanyPortabilityService.importBundle.mock.calls[0]!;
     // The uploaded zip is unzipped into the exact inline source the importer
     // consumes; the other import fields ride along from the JSON meta field.
-    expect(call[0]).toEqual({ ...importMeta, source: { type: "inline", rootPath: "taskcore", files } });
+    expect(call[0]).toEqual({
+      ...importMeta,
+      source: { type: "inline", rootPath: "taskcore", files },
+    });
     expect(call[1]).toBe("board-user-a");
     expect(call[2]).toEqual({ pauseAutomations: false });
   });
@@ -1305,17 +1568,28 @@ describe("company portability routes", () => {
       .attach("package", zip, "taskcore-demo.zip");
 
     expect(res.status).toBe(200);
-    expect(mockCompanyPortabilityService.previewImport).toHaveBeenCalledTimes(1);
+    expect(mockCompanyPortabilityService.previewImport).toHaveBeenCalledTimes(
+      1,
+    );
     const call = mockCompanyPortabilityService.previewImport.mock.calls[0]!;
-    expect(call[0]).toEqual({ ...importMeta, source: { type: "inline", rootPath: "taskcore", files } });
+    expect(call[0]).toEqual({
+      ...importMeta,
+      source: { type: "inline", rootPath: "taskcore", files },
+    });
   });
 
   it("runs a multipart zip import as an async board job via ?async=1", async () => {
-    let resolveImport: (value: ReturnType<typeof createImportResult>) => void = () => undefined;
-    const pendingImport = new Promise<ReturnType<typeof createImportResult>>((resolve) => {
-      resolveImport = resolve;
-    });
-    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(pendingImport);
+    let resolveImport: (
+      value: ReturnType<typeof createImportResult>,
+    ) => void = () => undefined;
+    const pendingImport = new Promise<ReturnType<typeof createImportResult>>(
+      (resolve) => {
+        resolveImport = resolve;
+      },
+    );
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      pendingImport,
+    );
     const app = await createBoardApp();
     const files = { "COMPANY.md": "---\nname: Test\n---\n" };
     const zip = buildStoreZip(files, "taskcore");
@@ -1328,27 +1602,38 @@ describe("company portability routes", () => {
 
     expect(accepted.status).toBe(202);
     expect(accepted.body.job.status).toBe("running");
-    expect(accepted.body.statusUrl).toMatch(/^\/api\/companies\/import\/jobs\/import-/);
+    expect(accepted.body.statusUrl).toMatch(
+      /^\/api\/companies\/import\/jobs\/import-/,
+    );
     await waitForCondition(
       () => mockCompanyPortabilityService.importBundle.mock.calls.length === 1,
       "multipart async import start",
     );
-    expect(mockCompanyPortabilityService.importBundle.mock.calls[0]![0]).toEqual({
+    expect(
+      mockCompanyPortabilityService.importBundle.mock.calls[0]![0],
+    ).toEqual({
       ...importMeta,
       source: { type: "inline", rootPath: "taskcore", files },
     });
 
     const fullResult = createImportResult("created");
     resolveImport(fullResult);
-    const succeeded = await waitForImportJobStatusAs(app, accepted.body.statusUrl, "succeeded", {
-      [TEST_USER_HEADER]: "board-user-a",
-    });
+    const succeeded = await waitForImportJobStatusAs(
+      app,
+      accepted.body.statusUrl,
+      "succeeded",
+      {
+        [TEST_USER_HEADER]: "board-user-a",
+      },
+    );
     expect(succeeded.body.job.status).toBe("succeeded");
     expect(succeeded.body.job.importResult).toEqual(fullResult);
   });
 
   it("engages the async path for board sessions via ?async=1, not the stripped cloud header", async () => {
-    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(new Promise(() => undefined));
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
     const app = await createBoardApp();
 
     // The Cloud harness strips inbound x-taskcore-cloud-* headers, so a browser
@@ -1360,7 +1645,9 @@ describe("company portability routes", () => {
 
     expect(accepted.status).toBe(202);
     expect(accepted.body.job.status).toBe("running");
-    expect(accepted.body.statusUrl).toMatch(/^\/api\/companies\/import\/jobs\/import-/);
+    expect(accepted.body.statusUrl).toMatch(
+      /^\/api\/companies\/import\/jobs\/import-/,
+    );
   });
 
   it("keeps a board import synchronous when neither async signal is present", async () => {
@@ -1376,7 +1663,9 @@ describe("company portability routes", () => {
   });
 
   it("still engages the async path for cloud tenants via the x-taskcore-cloud-async-import header", async () => {
-    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(new Promise(() => undefined));
+    mockCompanyPortabilityService.importBundle.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
     const app = await createApp(cloudTenantActor());
 
     const accepted = await request(app)
@@ -1386,12 +1675,17 @@ describe("company portability routes", () => {
       .send(importRequest);
 
     expect(accepted.status).toBe(202);
-    expect(accepted.body.statusUrl).toMatch(/^\/api\/companies\/import\/jobs\/tenant-import-/);
+    expect(accepted.body.statusUrl).toMatch(
+      /^\/api\/companies\/import\/jobs\/tenant-import-/,
+    );
   });
 
   it("rejects a truncated zip upload without importing anything", async () => {
     const app = await createBoardApp();
-    const zip = buildStoreZip({ "COMPANY.md": "---\nname: Test\n---\n" }, "taskcore");
+    const zip = buildStoreZip(
+      { "COMPANY.md": "---\nname: Test\n---\n" },
+      "taskcore",
+    );
     const truncated = zip.subarray(0, 40);
 
     const res = await request(app)

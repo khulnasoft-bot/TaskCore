@@ -74,7 +74,11 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   ];
 }
 
-function makeCompanyPatternDataUrl(seed: string, logicalSize = 22, cellSize = 2): string {
+function makeCompanyPatternDataUrl(
+  seed: string,
+  logicalSize = 22,
+  cellSize = 2,
+): string {
   if (typeof document === "undefined") return "";
 
   const canvas = document.createElement("canvas");
@@ -103,7 +107,8 @@ function makeCompanyPatternDataUrl(seed: string, logicalSize = 22, cellSize = 2)
   const gradientAngle = rand() * Math.PI * 2;
   const gradientDirX = Math.cos(gradientAngle);
   const gradientDirY = Math.sin(gradientAngle);
-  const maxProjection = Math.abs(gradientDirX * half) + Math.abs(gradientDirY * half);
+  const maxProjection =
+    Math.abs(gradientDirX * half) + Math.abs(gradientDirY * half);
   const diagonalFrequency = 0.34 + rand() * 0.12;
   const antiDiagonalFrequency = 0.33 + rand() * 0.12;
   const diagonalPhase = rand() * Math.PI * 2;
@@ -125,8 +130,11 @@ function makeCompanyPatternDataUrl(seed: string, logicalSize = 22, cellSize = 2)
       // Side-to-side signal where visible gradient is produced by dither density.
       const projection = dx * gradientDirX + dy * gradientDirY;
       const gradient = (projection / maxProjection + 1) * 0.5;
-      const diagonal = Math.sin((dx + dy) * diagonalFrequency + diagonalPhase) * 0.5 + 0.5;
-      const antiDiagonal = Math.sin((dx - dy) * antiDiagonalFrequency + antiDiagonalPhase) * 0.5 + 0.5;
+      const diagonal =
+        Math.sin((dx + dy) * diagonalFrequency + diagonalPhase) * 0.5 + 0.5;
+      const antiDiagonal =
+        Math.sin((dx - dy) * antiDiagonalFrequency + antiDiagonalPhase) * 0.5 +
+        0.5;
       const hatch = diagonal * 0.5 + antiDiagonal * 0.5;
       const signal = Math.max(0, Math.min(1, gradient + (hatch - 0.5) * 0.22));
 
@@ -154,7 +162,10 @@ export function CompanyPatternIcon({
 }: CompanyPatternIconProps) {
   const initial = companyName.trim().charAt(0).toUpperCase() || "?";
   const [imageError, setImageError] = useState(false);
-  const logo = !imageError && typeof logoUrl === "string" && logoUrl.trim().length > 0 ? logoUrl : null;
+  const logo =
+    !imageError && typeof logoUrl === "string" && logoUrl.trim().length > 0
+      ? logoUrl
+      : null;
   useEffect(() => {
     setImageError(false);
   }, [logoUrl]);

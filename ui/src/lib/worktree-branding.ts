@@ -18,7 +18,11 @@ function normalizeHexColor(value: string | null): string | null {
   if (!value) return null;
   const hex = value.startsWith("#") ? value.slice(1) : value;
   if (/^[0-9a-fA-F]{3}$/.test(hex)) {
-    return `#${hex.split("").map((char) => `${char}${char}`).join("").toLowerCase()}`;
+    return `#${hex
+      .split("")
+      .map((char) => `${char}${char}`)
+      .join("")
+      .toLowerCase()}`;
   }
   if (/^[0-9a-fA-F]{6}$/.test(hex)) {
     return `#${hex.toLowerCase()}`;
@@ -37,18 +41,22 @@ function hexToRgb(color: string): { r: number; g: number; b: number } {
 
 function relativeLuminanceChannel(value: number): number {
   const normalized = value / 255;
-  return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+  return normalized <= 0.03928
+    ? normalized / 12.92
+    : ((normalized + 0.055) / 1.055) ** 2.4;
 }
 
 function pickReadableTextColor(background: string): string {
   const { r, g, b } = hexToRgb(background);
   const luminance =
-    (0.2126 * relativeLuminanceChannel(r)) +
-    (0.7152 * relativeLuminanceChannel(g)) +
-    (0.0722 * relativeLuminanceChannel(b));
+    0.2126 * relativeLuminanceChannel(r) +
+    0.7152 * relativeLuminanceChannel(g) +
+    0.0722 * relativeLuminanceChannel(b);
   const whiteContrast = 1.05 / (luminance + 0.05);
   const blackContrast = (luminance + 0.05) / 0.05;
-  return whiteContrast >= blackContrast ? READABLE_TEXT_LIGHT : READABLE_TEXT_DARK;
+  return whiteContrast >= blackContrast
+    ? READABLE_TEXT_LIGHT
+    : READABLE_TEXT_DARK;
 }
 
 /**
@@ -83,6 +91,8 @@ export function getWorktreeUiBranding(): WorktreeUiBranding | null {
     enabled: true,
     name,
     color,
-    textColor: normalizeHexColor(readMetaContent("taskcore-worktree-text-color")) ?? pickReadableTextColor(color),
+    textColor:
+      normalizeHexColor(readMetaContent("taskcore-worktree-text-color")) ??
+      pickReadableTextColor(color),
   };
 }

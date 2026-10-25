@@ -7,7 +7,9 @@ export interface TaskcoreMcpConfig {
 }
 
 function nonEmpty(value: string | undefined): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function stripTrailingSlash(value: string): string {
@@ -19,7 +21,9 @@ export function normalizeApiUrl(apiUrl: string): string {
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
 
-export function readConfigFromEnv(env: NodeJS.ProcessEnv = process.env): TaskcoreMcpConfig {
+export function readConfigFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): TaskcoreMcpConfig {
   const apiUrl = nonEmpty(env.TASKCORE_API_URL);
   if (!apiUrl) {
     throw new Error("Missing TASKCORE_API_URL");

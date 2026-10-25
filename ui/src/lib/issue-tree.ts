@@ -30,9 +30,15 @@ export function buildIssueTree(items: Issue[]): IssueTree {
  * Returns the total number of descendants (all depths) of `id` in `childMap`.
  * Used to accurately label collapsed parent badges like "(3 sub-tasks)".
  */
-export function countDescendants(id: string, childMap: Map<string, Issue[]>): number {
+export function countDescendants(
+  id: string,
+  childMap: Map<string, Issue[]>,
+): number {
   const children = childMap.get(id) ?? [];
-  return children.reduce((sum, c) => sum + 1 + countDescendants(c.id, childMap), 0);
+  return children.reduce(
+    (sum, c) => sum + 1 + countDescendants(c.id, childMap),
+    0,
+  );
 }
 
 /**
@@ -42,7 +48,10 @@ export function countDescendants(id: string, childMap: Map<string, Issue[]>): nu
  * stale servers may ignore newer descendant-scoped query params, and the UI
  * must still avoid rendering global issue data in a sub-issue panel.
  */
-export function filterIssueDescendants(rootId: string, items: Issue[]): Issue[] {
+export function filterIssueDescendants(
+  rootId: string,
+  items: Issue[],
+): Issue[] {
   const childrenByParentId = new Map<string, Issue[]>();
   for (const item of items) {
     if (!item.parentId) continue;

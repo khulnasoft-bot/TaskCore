@@ -14,7 +14,10 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // We intercept runChildProcess so we can inspect its opts without spawning
 // a real child process.
 vi.mock("@taskcore/adapter-utils/server-utils", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@taskcore/adapter-utils/server-utils")>();
+  const actual =
+    await importOriginal<
+      typeof import("@taskcore/adapter-utils/server-utils")
+    >();
   return {
     ...actual,
     runChildProcess: vi.fn(async () => ({
@@ -105,24 +108,50 @@ describe("hermes-local adapter onSpawn forwarding", () => {
   });
 
   it("keeps wake data in the prompt and drops configured JSON env copies", async () => {
-    const { ctx } = makeCtx({ env: { TASKCORE_WAKE_PAYLOAD_JSON: "stale configured wake" } });
-    const wake = { reason: "issue_assigned", issue: { id: "issue-1", description: "Current task brief" } };
-    await execute({ ...ctx, context: { ...ctx.context, taskcoreWake: wake } } as any);
+    const { ctx } = makeCtx({
+      env: { TASKCORE_WAKE_PAYLOAD_JSON: "stale configured wake" },
+    });
+    const wake = {
+      reason: "issue_assigned",
+      issue: { id: "issue-1", description: "Current task brief" },
+    };
+    await execute({
+      ...ctx,
+      context: { ...ctx.context, taskcoreWake: wake },
+    } as any);
     const call = vi.mocked(serverUtils.runChildProcess).mock.calls.at(-1)!;
     expect(call[3].env).not.toHaveProperty("TASKCORE_WAKE_PAYLOAD_JSON");
-    expect(call[2]).toContainEqual(expect.stringContaining("Current task brief"));
+    expect(call[2]).toContainEqual(
+      expect.stringContaining("Current task brief"),
+    );
   });
 
   it("launches in the assigned task workspace when no cwd was configured", async () => {
     const { ctx } = makeCtx();
-    await execute({ ...ctx, context: { ...ctx.context, taskcoreWorkspace: { cwd: "/private/qa/agent-workspace" } } } as any);
-    expect(vi.mocked(serverUtils.runChildProcess).mock.calls.at(-1)![3].cwd).toBe("/private/qa/agent-workspace");
+    await execute({
+      ...ctx,
+      context: {
+        ...ctx.context,
+        taskcoreWorkspace: { cwd: "/private/qa/agent-workspace" },
+      },
+    } as any);
+    expect(
+      vi.mocked(serverUtils.runChildProcess).mock.calls.at(-1)![3].cwd,
+    ).toBe("/private/qa/agent-workspace");
   });
 
   it("preserves an explicitly configured cwd", async () => {
     const { ctx } = makeCtx({ cwd: "/private/qa/configured-workspace" });
-    await execute({ ...ctx, context: { ...ctx.context, taskcoreWorkspace: { cwd: "/private/qa/agent-workspace" } } } as any);
-    expect(vi.mocked(serverUtils.runChildProcess).mock.calls.at(-1)![3].cwd).toBe("/private/qa/configured-workspace");
+    await execute({
+      ...ctx,
+      context: {
+        ...ctx.context,
+        taskcoreWorkspace: { cwd: "/private/qa/agent-workspace" },
+      },
+    } as any);
+    expect(
+      vi.mocked(serverUtils.runChildProcess).mock.calls.at(-1)![3].cwd,
+    ).toBe("/private/qa/configured-workspace");
   });
 
   it("runChildProcess opts type includes onSpawn", () => {

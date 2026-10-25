@@ -31,20 +31,23 @@ export function dashboardRoutes(db: Db) {
     res.json(summary);
   });
 
-  router.get("/companies/:companyId/recovery-observability", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
-    const weeks = parsePositiveNumber(req.query.weeks, 8, MAX_WINDOW_WEEKS);
-    const thresholdPercent = parsePositiveNumber(
-      req.query.threshold,
-      DEFAULT_RECOVERY_RATE_THRESHOLD_PERCENT,
-    );
-    const report = await recoveryObservability.report(companyId, {
-      weeks,
-      thresholdPercent,
-    });
-    res.json(report);
-  });
+  router.get(
+    "/companies/:companyId/recovery-observability",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertCompanyAccess(req, companyId);
+      const weeks = parsePositiveNumber(req.query.weeks, 8, MAX_WINDOW_WEEKS);
+      const thresholdPercent = parsePositiveNumber(
+        req.query.threshold,
+        DEFAULT_RECOVERY_RATE_THRESHOLD_PERCENT,
+      );
+      const report = await recoveryObservability.report(companyId, {
+        weeks,
+        thresholdPercent,
+      });
+      res.json(report);
+    },
+  );
 
   return router;
 }

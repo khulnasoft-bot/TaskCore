@@ -8,11 +8,16 @@ export function inboxDismissalService(db: Db) {
     companyId: string,
     userId: string,
     itemKey: string,
-    input: { kind: InboxDismissalKind; dismissedAt?: Date; snoozedUntil?: Date | null },
+    input: {
+      kind: InboxDismissalKind;
+      dismissedAt?: Date;
+      snoozedUntil?: Date | null;
+    },
   ) {
     const now = new Date();
     const dismissedAt = input.dismissedAt ?? now;
-    const snoozedUntil = input.kind === "snooze" ? input.snoozedUntil ?? null : null;
+    const snoozedUntil =
+      input.kind === "snooze" ? (input.snoozedUntil ?? null) : null;
     const [row] = await db
       .insert(inboxDismissals)
       .values({
@@ -25,7 +30,11 @@ export function inboxDismissalService(db: Db) {
         updatedAt: now,
       })
       .onConflictDoUpdate({
-        target: [inboxDismissals.companyId, inboxDismissals.userId, inboxDismissals.itemKey],
+        target: [
+          inboxDismissals.companyId,
+          inboxDismissals.userId,
+          inboxDismissals.itemKey,
+        ],
         set: {
           kind: input.kind,
           dismissedAt,
@@ -42,7 +51,12 @@ export function inboxDismissalService(db: Db) {
       db
         .select()
         .from(inboxDismissals)
-        .where(and(eq(inboxDismissals.companyId, companyId), eq(inboxDismissals.userId, userId)))
+        .where(
+          and(
+            eq(inboxDismissals.companyId, companyId),
+            eq(inboxDismissals.userId, userId),
+          ),
+        )
         .orderBy(desc(inboxDismissals.updatedAt)),
 
     dismiss: async (
@@ -58,16 +72,23 @@ export function inboxDismissalService(db: Db) {
       itemKey: string,
       snoozedUntil: Date,
       dismissedAt: Date = new Date(),
-    ) => upsert(companyId, userId, itemKey, { kind: "snooze", dismissedAt, snoozedUntil }),
+    ) =>
+      upsert(companyId, userId, itemKey, {
+        kind: "snooze",
+        dismissedAt,
+        snoozedUntil,
+      }),
 
     restore: async (companyId: string, userId: string, itemKey: string) => {
       const [row] = await db
         .delete(inboxDismissals)
-        .where(and(
-          eq(inboxDismissals.companyId, companyId),
-          eq(inboxDismissals.userId, userId),
-          eq(inboxDismissals.itemKey, itemKey),
-        ))
+        .where(
+          and(
+            eq(inboxDismissals.companyId, companyId),
+            eq(inboxDismissals.userId, userId),
+            eq(inboxDismissals.itemKey, itemKey),
+          ),
+        )
         .returning();
       return row ?? null;
     },

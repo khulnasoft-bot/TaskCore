@@ -24,7 +24,10 @@ const FOLDER_VALUE_PREFIX = "__secret_folder__:";
 function statusBadge(status: SecretStatus | undefined) {
   if (!status || status === "active") return null;
   return (
-    <Badge variant="outline" className="ml-auto text-(length:--text-nano) font-normal text-muted-foreground">
+    <Badge
+      variant="outline"
+      className="ml-auto text-(length:--text-nano) font-normal text-muted-foreground"
+    >
       {status}
     </Badge>
   );
@@ -84,7 +87,10 @@ function buildFolderGroup(
       continue;
     }
 
-    if (parts.length === currentLength + 1 || (currentLength === 0 && parts.length === 0)) {
+    if (
+      parts.length === currentLength + 1 ||
+      (currentLength === 0 && parts.length === 0)
+    ) {
       const label = parts.at(-1) ?? secret.name;
       leafSecrets.push({
         key: `browse-${secret.id}`,
@@ -160,8 +166,14 @@ export function SecretPicker({
     [secrets, secretId],
   );
   const boundMissing = Boolean(secretId) && !boundSecret;
-  const currentPath = useMemo(() => (currentPathKey ? currentPathKey.split("/") : []), [currentPathKey]);
-  const hasFolderPaths = useMemo(() => secrets.some((secret) => splitSecretPath(secret.name).length > 1), [secrets]);
+  const currentPath = useMemo(
+    () => (currentPathKey ? currentPathKey.split("/") : []),
+    [currentPathKey],
+  );
+  const hasFolderPaths = useMemo(
+    () => secrets.some((secret) => splitSecretPath(secret.name).length > 1),
+    [secrets],
+  );
 
   const groups = useMemo<SearchableSelectGroup<string, SecretOption>[]>(() => {
     const result: SearchableSelectGroup<string, SecretOption>[] = [];
@@ -227,13 +239,21 @@ export function SecretPicker({
   }, [boundMissing, recentlyUsedSecrets, secretId, secrets]);
 
   const deriveGroups = useCallback(
-    (query: string, baseGroups: readonly SearchableSelectGroup<string, SecretOption>[]) => {
+    (
+      query: string,
+      baseGroups: readonly SearchableSelectGroup<string, SecretOption>[],
+    ) => {
       if (!hasFolderPaths) return baseGroups;
       if (normalizeSearchText(query)) return baseGroups;
 
       const browseGroup = buildFolderGroup(secrets, currentPath, secretId);
-      const stableGroups = baseGroups.filter((group) => group.id === "current-missing" || group.id === "recently-used");
-      return browseGroup.options.length > 0 ? [...stableGroups, browseGroup] : stableGroups;
+      const stableGroups = baseGroups.filter(
+        (group) =>
+          group.id === "current-missing" || group.id === "recently-used",
+      );
+      return browseGroup.options.length > 0
+        ? [...stableGroups, browseGroup]
+        : stableGroups;
     },
     [currentPath, hasFolderPaths, secretId, secrets],
   );
@@ -276,10 +296,20 @@ export function SecretPicker({
         }
         const nonActive = option.status && option.status !== "active";
         return (
-          <span className="flex w-full min-w-0 items-center gap-1.5" title={option.title}>
-            <KeyRound className={cn("size-3.5 shrink-0", nonActive ? "text-amber-600" : "text-muted-foreground")} />
+          <span
+            className="flex w-full min-w-0 items-center gap-1.5"
+            title={option.title}
+          >
+            <KeyRound
+              className={cn(
+                "size-3.5 shrink-0",
+                nonActive ? "text-amber-600" : "text-muted-foreground",
+              )}
+            />
             <span className="min-w-0 flex-1 truncate">{option.label}</span>
-            {nonActive ? <span className="text-amber-600">({option.status})</span> : null}
+            {nonActive ? (
+              <span className="text-amber-600">({option.status})</span>
+            ) : null}
           </span>
         );
       }}
@@ -287,12 +317,21 @@ export function SecretPicker({
         if (option.kind === "folder" || option.kind === "back") {
           const Icon = option.kind === "back" ? CornerUpLeft : Folder;
           return (
-            <span className="flex min-w-0 flex-1 items-center gap-1.5" title={option.title ?? option.label}>
+            <span
+              className="flex min-w-0 flex-1 items-center gap-1.5"
+              title={option.title ?? option.label}
+            >
               <Icon className="size-3.5 shrink-0 text-muted-foreground" />
               <span className="flex min-w-0 flex-col">
-                <span className={cn("truncate text-sm", selected && "font-medium")}>{option.label}</span>
+                <span
+                  className={cn("truncate text-sm", selected && "font-medium")}
+                >
+                  {option.label}
+                </span>
                 {option.pathHint ? (
-                  <span className="truncate font-mono text-(length:--text-micro) text-muted-foreground">{option.pathHint}</span>
+                  <span className="truncate font-mono text-(length:--text-micro) text-muted-foreground">
+                    {option.pathHint}
+                  </span>
                 ) : null}
               </span>
             </span>
@@ -301,39 +340,55 @@ export function SecretPicker({
 
         return (
           <span
-            className={cn("flex min-w-0 flex-1 items-center gap-1.5", option.disabled && "opacity-60")}
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-1.5",
+              option.disabled && "opacity-60",
+            )}
             title={option.title ?? option.label}
           >
             <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />
             <span className="flex min-w-0 flex-col">
-              <span className={cn("min-w-0 truncate font-mono text-sm", selected && "font-medium")}>
+              <span
+                className={cn(
+                  "min-w-0 truncate font-mono text-sm",
+                  selected && "font-medium",
+                )}
+              >
                 {option.label}
               </span>
               {option.pathHint && option.pathHint !== option.label ? (
-                <span className="truncate font-mono text-(length:--text-micro) text-muted-foreground">{option.pathHint}</span>
+                <span className="truncate font-mono text-(length:--text-micro) text-muted-foreground">
+                  {option.pathHint}
+                </span>
               ) : null}
             </span>
             {statusBadge(option.status)}
           </span>
         );
       }}
-      createItem={onCreateNew
-        ? {
-            render: (query) => (
-              <span className="flex items-center gap-1.5 text-sm">
-                <Plus className="size-3.5 shrink-0" />
-                {query.trim() ? (
-                  <span>
-                    Create secret <span className="font-mono">&ldquo;{query.trim()}&rdquo;</span>…
-                  </span>
-                ) : (
-                  <span>Create new secret…</span>
-                )}
-              </span>
-            ),
-            onSelect: (query) => onCreateNew(query),
-          }
-        : undefined}
+      createItem={
+        onCreateNew
+          ? {
+              render: (query) => (
+                <span className="flex items-center gap-1.5 text-sm">
+                  <Plus className="size-3.5 shrink-0" />
+                  {query.trim() ? (
+                    <span>
+                      Create secret{" "}
+                      <span className="font-mono">
+                        &ldquo;{query.trim()}&rdquo;
+                      </span>
+                      …
+                    </span>
+                  ) : (
+                    <span>Create new secret…</span>
+                  )}
+                </span>
+              ),
+              onSelect: (query) => onCreateNew(query),
+            }
+          : undefined
+      }
     />
   );
 }

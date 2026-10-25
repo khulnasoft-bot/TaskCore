@@ -31,11 +31,11 @@ describe("adapter-agnostic config keys", () => {
     const uiSource = readRepoFile("ui/src/lib/agent-config-patch.ts");
 
     expect(serverSource).toContain("ADAPTER_AGNOSTIC_KEYS");
-    expect(serverSource).toContain("from \"@taskcore/shared\"");
+    expect(serverSource).toContain('from "@taskcore/shared"');
     expect(serverSource).not.toMatch(/const\s+ADAPTER_AGNOSTIC_KEYS\s*=/);
 
     expect(uiSource).toContain("ADAPTER_AGNOSTIC_KEYS");
-    expect(uiSource).toContain("from \"@taskcore/shared\"");
+    expect(uiSource).toContain('from "@taskcore/shared"');
     expect(uiSource).not.toMatch(/const\s+ADAPTER_AGNOSTIC_KEYS\s*=/);
   });
 });

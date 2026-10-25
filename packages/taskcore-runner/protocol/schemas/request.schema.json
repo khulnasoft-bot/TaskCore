@@ -32,12 +32,7 @@
           "const": "permission"
         },
         "status": {
-          "enum": [
-            "pending",
-            "resolved",
-            "expired",
-            "cancelled"
-          ]
+          "enum": ["pending", "resolved", "expired", "cancelled"]
         },
         "prompt": {
           "type": "string",
@@ -50,18 +45,10 @@
           "maxItems": 4,
           "items": {
             "type": "object",
-            "required": [
-              "key",
-              "label"
-            ],
+            "required": ["key", "label"],
             "properties": {
               "key": {
-                "enum": [
-                  "accept",
-                  "accept_for_session",
-                  "decline",
-                  "cancel"
-                ]
+                "enum": ["accept", "accept_for_session", "decline", "cancel"]
               },
               "label": {
                 "type": "string",
@@ -75,9 +62,7 @@
             {
               "contains": {
                 "type": "object",
-                "required": [
-                  "key"
-                ],
+                "required": ["key"],
                 "properties": {
                   "key": {
                     "const": "accept"
@@ -90,9 +75,7 @@
             {
               "contains": {
                 "type": "object",
-                "required": [
-                  "key"
-                ],
+                "required": ["key"],
                 "properties": {
                   "key": {
                     "const": "accept_for_session"
@@ -105,9 +88,7 @@
             {
               "contains": {
                 "type": "object",
-                "required": [
-                  "key"
-                ],
+                "required": ["key"],
                 "properties": {
                   "key": {
                     "const": "decline"
@@ -120,9 +101,7 @@
             {
               "contains": {
                 "type": "object",
-                "required": [
-                  "key"
-                ],
+                "required": ["key"],
                 "properties": {
                   "key": {
                     "const": "cancel"
@@ -140,9 +119,7 @@
         },
         "origin": {
           "type": "object",
-          "required": [
-            "adapter"
-          ],
+          "required": ["adapter"],
           "properties": {
             "adapter": {
               "type": "string",
@@ -168,10 +145,7 @@
           "maxLength": 240
         },
         "itemId": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "minLength": 1,
           "maxLength": 240
         }
@@ -180,7 +154,15 @@
     },
     {
       "type": "object",
-      "required": ["schema", "requestKind", "requestId", "type", "status", "prompt", "input"],
+      "required": [
+        "schema",
+        "requestKind",
+        "requestId",
+        "type",
+        "status",
+        "prompt",
+        "input"
+      ],
       "properties": {
         "schema": { "const": "taskcore.runtime_request.v2" },
         "requestKind": { "const": "runtime" },
@@ -188,7 +170,9 @@
         "type": { "const": "input" },
         "status": { "enum": ["pending", "resolved", "expired", "cancelled"] },
         "prompt": { "type": "string", "minLength": 1, "maxLength": 4000 },
-        "input": { "$ref": "https://taskcore.dev/schemas/prp/v1/question-set.schema.json" },
+        "input": {
+          "$ref": "https://taskcore.dev/schemas/prp/v1/question-set.schema.json"
+        },
         "origin": {
           "type": "object",
           "required": ["adapter"],
@@ -206,7 +190,14 @@
     },
     {
       "type": "object",
-      "required": ["schema", "requestKind", "requestId", "type", "status", "prompt"],
+      "required": [
+        "schema",
+        "requestKind",
+        "requestId",
+        "type",
+        "status",
+        "prompt"
+      ],
       "properties": {
         "schema": { "const": "taskcore.runtime_request.v1" },
         "requestKind": { "const": "runtime" },
@@ -231,7 +222,14 @@
     },
     {
       "type": "object",
-      "required": ["schema", "requestKind", "requestId", "kind", "blocking", "payload"],
+      "required": [
+        "schema",
+        "requestKind",
+        "requestId",
+        "kind",
+        "blocking",
+        "payload"
+      ],
       "properties": {
         "schema": { "const": "taskcore.interaction_request.v1" },
         "requestKind": { "const": "issue_thread" },

@@ -80,7 +80,9 @@ describe("question adapter conformance fixtures", () => {
       responseContext,
     );
     if (codexQuestionSet === null) {
-      throw new Error("Codex conformance fixture did not contain a question set");
+      throw new Error(
+        "Codex conformance fixture did not contain a question set",
+      );
     }
     const codexRequest: HarnessRuntimeRequest = {
       requestId: "fixture-request",
@@ -110,10 +112,14 @@ describe("question adapter conformance fixtures", () => {
     );
 
     expect(
-      runtimeRequestResponse(codexRequest, {
-        action: "submit",
-        response: codexResponse,
-      }, responseContext),
+      runtimeRequestResponse(
+        codexRequest,
+        {
+          action: "submit",
+          response: codexResponse,
+        },
+        responseContext,
+      ),
     ).toEqual(codex.nativeResponse);
     expect(normalizedAcpx?.accept(acpxResponse)).toEqual(acpx.nativeResponse);
   });

@@ -16,10 +16,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { SecretPicker } from "./SecretPicker";
-import { CreateSecretPopover, ConvertToSecretPopover } from "./CreateSecretPopover";
+import {
+  CreateSecretPopover,
+  ConvertToSecretPopover,
+} from "./CreateSecretPopover";
 import { isSensitiveEnv } from "./sensitive";
 import {
   computeRowHealth,
@@ -37,7 +48,11 @@ const nameInputClass =
 const valueTextInputClass =
   "min-w-0 flex-1 bg-transparent px-2 py-1.5 text-sm font-mono outline-none placeholder:text-muted-foreground/40";
 
-type SecretPopoverState = { mode: "create" | "store"; name: string; value: string } | null;
+type SecretPopoverState = {
+  mode: "create" | "store";
+  name: string;
+  value: string;
+} | null;
 export interface EnvironmentVariableDirtyFields {
   name: boolean;
   value: boolean;
@@ -94,11 +109,18 @@ export function EnvironmentVariableRow({
   const [versionOpen, setVersionOpen] = useState(false);
   const [undoPrev, setUndoPrev] = useState<EnvRow | null>(null);
 
-  const health = computeRowHealth(row, secrets) ?? computeUserSecretRowHealth(row, userSecretDefinitions);
-  const boundSecret = row.source === "secret" ? secrets.find((s) => s.id === row.secretId) ?? null : null;
+  const health =
+    computeRowHealth(row, secrets) ??
+    computeUserSecretRowHealth(row, userSecretDefinitions);
+  const boundSecret =
+    row.source === "secret"
+      ? (secrets.find((s) => s.id === row.secretId) ?? null)
+      : null;
   const userSecretsEnabled = (userSecretDefinitions?.length ?? 0) > 0;
   const sensitive =
-    row.source === "text" && !row.sensitiveDismissed && isSensitiveEnv(row.name, row.textValue);
+    row.source === "text" &&
+    !row.sensitiveDismissed &&
+    isSensitiveEnv(row.name, row.textValue);
 
   // Consume parent focus requests (append / source-switch flows).
   useEffect(() => {
@@ -109,7 +131,9 @@ export function EnvironmentVariableRow({
       valueInputRef.current?.focus();
     } else if (row.source === "secret") {
       // Focusing the combobox trigger opens SearchableSelect (non-pointer focus).
-      valueCellRef.current?.querySelector<HTMLElement>("[role=combobox]")?.focus();
+      valueCellRef.current
+        ?.querySelector<HTMLElement>("[role=combobox]")
+        ?.focus();
     } else {
       valueCellRef.current?.querySelector<HTMLElement>("select,input")?.focus();
     }
@@ -127,7 +151,13 @@ export function EnvironmentVariableRow({
     if (next === "user_secret") {
       if (row.source === "user_secret") return;
       onPatch({ source: "user_secret", secretId: "", version: "latest" });
-      window.setTimeout(() => valueCellRef.current?.querySelector<HTMLElement>("select,input")?.focus(), 0);
+      window.setTimeout(
+        () =>
+          valueCellRef.current
+            ?.querySelector<HTMLElement>("select,input")
+            ?.focus(),
+        0,
+      );
       return;
     }
 
@@ -144,19 +174,30 @@ export function EnvironmentVariableRow({
         // immediately dismiss — the same nested open-while-closing race as the
         // ⋯ path and the picker's + Create item (PAP-12476/12477/12478).
         const { name, value } = plan;
-        window.setTimeout(() => setSecretPopover({ mode: "store", name, value }), 0);
+        window.setTimeout(
+          () => setSecretPopover({ mode: "store", name, value }),
+          0,
+        );
         return;
       }
       case "to-secret":
         onPatch({ source: "secret", userSecretKey: "", required: true });
         // Auto-open the picker.
         window.setTimeout(() => {
-          valueCellRef.current?.querySelector<HTMLElement>("[role=combobox]")?.focus();
+          valueCellRef.current
+            ?.querySelector<HTMLElement>("[role=combobox]")
+            ?.focus();
         }, 0);
         return;
       case "to-text":
         if (plan.undoFrom) setUndoPrev(plan.undoFrom);
-        onPatch({ source: "text", secretId: "", userSecretKey: "", required: true, version: "latest" });
+        onPatch({
+          source: "text",
+          secretId: "",
+          userSecretKey: "",
+          required: true,
+          version: "latest",
+        });
         window.setTimeout(() => valueInputRef.current?.focus(), 0);
         return;
     }
@@ -179,7 +220,10 @@ export function EnvironmentVariableRow({
   function openStoreAsSecret() {
     const name = secretNameFromKey(row.name) || "secret";
     const { textValue } = row;
-    window.setTimeout(() => setSecretPopover({ mode: "store", name, value: textValue }), 0);
+    window.setTimeout(
+      () => setSecretPopover({ mode: "store", name, value: textValue }),
+      0,
+    );
   }
 
   const sourceLabel =
@@ -193,7 +237,8 @@ export function EnvironmentVariableRow({
   const isDirty = dirtyFields.name || dirtyFields.value;
 
   const versions = boundSecret ? Math.max(0, boundSecret.latestVersion) : 0;
-  const versionTagLabel = row.version === "latest" ? "latest" : `v${row.version}`;
+  const versionTagLabel =
+    row.version === "latest" ? "latest" : `v${row.version}`;
   const versionPinned = row.version !== "latest";
 
   return (
@@ -210,17 +255,26 @@ export function EnvironmentVariableRow({
           ref={nameInputRef}
           className={cn(
             nameInputClass,
-            dirtyFields.name && "border-amber-500/70 bg-amber-500/10 focus-visible:ring-amber-500/40",
-            showNameIssue && nameIssue?.level === "error" && "border-destructive focus-visible:ring-destructive/40",
-            showNameIssue && nameIssue?.level === "warn" && "border-amber-500 focus-visible:ring-amber-500/40",
+            dirtyFields.name &&
+              "border-amber-500/70 bg-amber-500/10 focus-visible:ring-amber-500/40",
+            showNameIssue &&
+              nameIssue?.level === "error" &&
+              "border-destructive focus-visible:ring-destructive/40",
+            showNameIssue &&
+              nameIssue?.level === "warn" &&
+              "border-amber-500 focus-visible:ring-amber-500/40",
           )}
           placeholder="KEY"
           value={row.name}
           spellCheck={false}
           disabled={disabled}
           aria-label="Variable name"
-          aria-invalid={showNameIssue && nameIssue?.level === "error" ? true : undefined}
-          aria-describedby={showNameIssue && nameIssue ? nameErrorId : undefined}
+          aria-invalid={
+            showNameIssue && nameIssue?.level === "error" ? true : undefined
+          }
+          aria-describedby={
+            showNameIssue && nameIssue ? nameErrorId : undefined
+          }
           onChange={(event) => onPatch({ name: event.target.value })}
           onBlur={onNameBlur}
           onPaste={(event) => {
@@ -232,7 +286,10 @@ export function EnvironmentVariableRow({
             if (event.key === "Enter") {
               event.preventDefault();
               if (row.source === "text") valueInputRef.current?.focus();
-              else valueCellRef.current?.querySelector<HTMLElement>("[role=combobox],select,input")?.focus();
+              else
+                valueCellRef.current
+                  ?.querySelector<HTMLElement>("[role=combobox],select,input")
+                  ?.focus();
             }
           }}
         />
@@ -251,7 +308,8 @@ export function EnvironmentVariableRow({
               ref={valueCellRef}
               className={cn(
                 "relative flex items-stretch overflow-hidden rounded-md border border-border bg-transparent focus-within:ring-2 focus-within:ring-ring/40",
-                dirtyFields.value && "border-amber-500/70 bg-amber-500/10 focus-within:ring-amber-500/40",
+                dirtyFields.value &&
+                  "border-amber-500/70 bg-amber-500/10 focus-within:ring-amber-500/40",
                 disabled && "opacity-60",
               )}
             >
@@ -279,18 +337,32 @@ export function EnvironmentVariableRow({
                   <TooltipContent side="top">{sourceLabel}</TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuItem className="flex-col items-start gap-0.5" onSelect={() => switchSource("text")}>
+                  <DropdownMenuItem
+                    className="flex-col items-start gap-0.5"
+                    onSelect={() => switchSource("text")}
+                  >
                     <span className="text-sm">Text value</span>
-                    <span className="text-(length:--text-micro) text-muted-foreground">Store the value inline as plain text.</span>
+                    <span className="text-(length:--text-micro) text-muted-foreground">
+                      Store the value inline as plain text.
+                    </span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex-col items-start gap-0.5" onSelect={() => switchSource("secret")}>
+                  <DropdownMenuItem
+                    className="flex-col items-start gap-0.5"
+                    onSelect={() => switchSource("secret")}
+                  >
                     <span className="text-sm">Organization secret</span>
-                    <span className="text-(length:--text-micro) text-muted-foreground">Resolve a stored organization secret at run start.</span>
+                    <span className="text-(length:--text-micro) text-muted-foreground">
+                      Resolve a stored organization secret at run start.
+                    </span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex-col items-start gap-0.5" onSelect={() => switchSource("user_secret")}>
+                  <DropdownMenuItem
+                    className="flex-col items-start gap-0.5"
+                    onSelect={() => switchSource("user_secret")}
+                  >
                     <span className="text-sm">User secret</span>
                     <span className="text-(length:--text-micro) text-muted-foreground">
-                      Resolve the responsible user&apos;s own value at run start.
+                      Resolve the responsible user&apos;s own value at run
+                      start.
                     </span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -307,7 +379,9 @@ export function EnvironmentVariableRow({
                     spellCheck={false}
                     disabled={disabled}
                     aria-label="Variable value"
-                    onChange={(event) => onPatch({ textValue: event.target.value })}
+                    onChange={(event) =>
+                      onPatch({ textValue: event.target.value })
+                    }
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && isLast) {
                         event.preventDefault();
@@ -325,7 +399,9 @@ export function EnvironmentVariableRow({
                         title="This value looks sensitive — store it as a secret"
                       >
                         <ShieldAlert className="size-3.5" />
-                        <span className="hidden @[30rem]/env:inline">Store as secret</span>
+                        <span className="hidden @[30rem]/env:inline">
+                          Store as secret
+                        </span>
                       </button>
                       <button
                         type="button"
@@ -347,13 +423,21 @@ export function EnvironmentVariableRow({
                     secrets={secrets}
                     recentlyUsedSecrets={recentlyUsedSecrets}
                     disabled={disabled}
-                    onSelect={(id) => onPatch({ secretId: id, version: "latest" })}
+                    onSelect={(id) =>
+                      onPatch({ secretId: id, version: "latest" })
+                    }
                     onCreateNew={(query) =>
-                      setSecretPopover({ mode: "create", name: secretNameFromKey(query) || query.trim(), value: "" })
+                      setSecretPopover({
+                        mode: "create",
+                        name: secretNameFromKey(query) || query.trim(),
+                        value: "",
+                      })
                     }
                     triggerClassName={cn(
                       "rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0",
-                      boundSecret && boundSecret.status === "active" && "pr-24 has-[>svg]:!pr-24",
+                      boundSecret &&
+                        boundSecret.status === "active" &&
+                        "pr-24 has-[>svg]:!pr-24",
                     )}
                   />
                   {boundSecret && boundSecret.status === "active" ? (
@@ -378,7 +462,12 @@ export function EnvironmentVariableRow({
                           {versionTagLabel}
                         </button>
                       </PopoverAnchor>
-                      <PopoverContent align="end" className="w-44 p-1" role="radiogroup" aria-label="Secret version">
+                      <PopoverContent
+                        align="end"
+                        className="w-44 p-1"
+                        role="radiogroup"
+                        aria-label="Secret version"
+                      >
                         <button
                           type="button"
                           role="radio"
@@ -392,9 +481,15 @@ export function EnvironmentVariableRow({
                             row.version === "latest" && "font-medium",
                           )}
                         >
-                          latest <span className="text-(length:--text-micro) text-muted-foreground">(recommended)</span>
+                          latest{" "}
+                          <span className="text-(length:--text-micro) text-muted-foreground">
+                            (recommended)
+                          </span>
                         </button>
-                        {Array.from({ length: versions }, (_, idx) => versions - idx)
+                        {Array.from(
+                          { length: versions },
+                          (_, idx) => versions - idx,
+                        )
                           .filter((v) => v > 0)
                           .map((v) => (
                             <button
@@ -408,7 +503,8 @@ export function EnvironmentVariableRow({
                               }}
                               className={cn(
                                 "flex w-full items-center rounded px-2 py-1.5 text-sm hover:bg-accent",
-                                row.version === v && "font-medium text-amber-700 dark:text-amber-400",
+                                row.version === v &&
+                                  "font-medium text-amber-700 dark:text-amber-400",
                               )}
                             >
                               v{v}
@@ -427,22 +523,33 @@ export function EnvironmentVariableRow({
                       disabled={disabled}
                       onChange={(event) => {
                         const key = event.target.value;
-                        const definition = userSecretDefinitions?.find((candidate) => candidate.key === key);
+                        const definition = userSecretDefinitions?.find(
+                          (candidate) => candidate.key === key,
+                        );
                         onPatch({
                           userSecretKey: key,
-                          ...(definition && !row.name.trim() ? { name: definition.key.toUpperCase() } : {}),
+                          ...(definition && !row.name.trim()
+                            ? { name: definition.key.toUpperCase() }
+                            : {}),
                         });
                       }}
                       className="min-w-0 bg-transparent px-2 py-1.5 text-sm font-mono outline-none disabled:pointer-events-none"
                     >
                       <option value="">Select user secret...</option>
-                      {row.userSecretKey && !userSecretDefinitions?.some((definition) => definition.key === row.userSecretKey) ? (
-                        <option value={row.userSecretKey}>Unknown ({row.userSecretKey})</option>
+                      {row.userSecretKey &&
+                      !userSecretDefinitions?.some(
+                        (definition) => definition.key === row.userSecretKey,
+                      ) ? (
+                        <option value={row.userSecretKey}>
+                          Unknown ({row.userSecretKey})
+                        </option>
                       ) : null}
                       {(userSecretDefinitions ?? []).map((definition) => (
                         <option key={definition.id} value={definition.key}>
                           {definition.name}
-                          {definition.status !== "active" ? ` (${definition.status})` : ""}
+                          {definition.status !== "active"
+                            ? ` (${definition.status})`
+                            : ""}
                         </option>
                       ))}
                     </select>
@@ -454,14 +561,18 @@ export function EnvironmentVariableRow({
                       spellCheck={false}
                       disabled={disabled}
                       aria-label="User secret key"
-                      onChange={(event) => onPatch({ userSecretKey: event.target.value })}
+                      onChange={(event) =>
+                        onPatch({ userSecretKey: event.target.value })
+                      }
                     />
                   )}
                   <select
                     aria-label="Requirement"
                     value={row.required ? "required" : "optional"}
                     disabled={disabled}
-                    onChange={(event) => onPatch({ required: event.target.value === "required" })}
+                    onChange={(event) =>
+                      onPatch({ required: event.target.value === "required" })
+                    }
                     className="border-l border-border bg-transparent px-2 py-1.5 text-xs font-medium text-muted-foreground outline-none disabled:pointer-events-none"
                   >
                     <option value="required">Required</option>
@@ -523,7 +634,9 @@ export function EnvironmentVariableRow({
             role="status"
             className={cn(
               "mt-0.5 text-(length:--text-micro)",
-              health.level === "error" ? "text-destructive" : "text-amber-600 dark:text-amber-400",
+              health.level === "error"
+                ? "text-destructive"
+                : "text-amber-600 dark:text-amber-400",
             )}
           >
             {health.message}
@@ -538,7 +651,12 @@ export function EnvironmentVariableRow({
               type="button"
               className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
               onClick={() => {
-                onPatch({ source: "secret", secretId: undoPrev.secretId, version: undoPrev.version, textValue: "" });
+                onPatch({
+                  source: "secret",
+                  secretId: undoPrev.secretId,
+                  version: undoPrev.version,
+                  textValue: "",
+                });
                 setUndoPrev(null);
               }}
             >
@@ -553,7 +671,9 @@ export function EnvironmentVariableRow({
           id={nameErrorId}
           className={cn(
             "col-span-2 col-start-1 row-start-3 min-w-0 text-(length:--text-micro) @[40rem]/env:col-span-2 @[40rem]/env:row-start-2",
-            nameIssue.level === "error" ? "text-destructive" : "text-amber-600 dark:text-amber-400",
+            nameIssue.level === "error"
+              ? "text-destructive"
+              : "text-amber-600 dark:text-amber-400",
           )}
         >
           {nameIssue.message}
@@ -562,7 +682,9 @@ export function EnvironmentVariableRow({
 
       {/* Actions cell — mobile col 2 line 1 / desktop col 3 */}
       <div className="col-start-2 row-start-1 flex items-center justify-end gap-0.5 self-start @[40rem]/env:col-start-3 @[40rem]/env:self-center">
-        {row.source === "text" && !sensitive && (row.name.trim() || row.textValue) ? (
+        {row.source === "text" &&
+        !sensitive &&
+        (row.name.trim() || row.textValue) ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild disabled={disabled}>
               <button

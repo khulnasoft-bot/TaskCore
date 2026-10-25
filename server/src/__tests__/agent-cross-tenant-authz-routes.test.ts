@@ -118,7 +118,8 @@ vi.mock("../telemetry.js", () => ({
 }));
 
 vi.mock("../routes/authz.js", async () => {
-  const { forbidden, unauthorized } = await vi.importActual<typeof import("../errors.js")>("../errors.js");
+  const { forbidden, unauthorized } =
+    await vi.importActual<typeof import("../errors.js")>("../errors.js");
   function assertAuthenticated(req: Express.Request) {
     if (req.actor.type === "none") {
       throw unauthorized();
@@ -131,9 +132,15 @@ vi.mock("../routes/authz.js", async () => {
     }
   }
 
-  function assertCompanyAccess(req: Express.Request, expectedCompanyId: string) {
+  function assertCompanyAccess(
+    req: Express.Request,
+    expectedCompanyId: string,
+  ) {
     assertAuthenticated(req);
-    if (req.actor.type === "agent" && req.actor.companyId !== expectedCompanyId) {
+    if (
+      req.actor.type === "agent" &&
+      req.actor.companyId !== expectedCompanyId
+    ) {
       throw forbidden("Agent key cannot access another company");
     }
     if (req.actor.type === "board" && req.actor.source !== "local_implicit") {
@@ -144,9 +151,13 @@ vi.mock("../routes/authz.js", async () => {
     }
   }
 
-  function hasCompanyAccess(req: Express.Request, expectedCompanyId: string): boolean {
+  function hasCompanyAccess(
+    req: Express.Request,
+    expectedCompanyId: string,
+  ): boolean {
     if (req.actor.type === "none") return false;
-    if (req.actor.type === "agent") return req.actor.companyId === expectedCompanyId;
+    if (req.actor.type === "agent")
+      return req.actor.companyId === expectedCompanyId;
     if (req.actor.source === "local_implicit") return true;
     return (req.actor.companyIds ?? []).includes(expectedCompanyId);
   }
@@ -168,7 +179,8 @@ vi.mock("../routes/authz.js", async () => {
 
   function assertInstanceAdmin(req: Express.Request) {
     assertBoard(req);
-    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return;
+    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+      return;
     throw forbidden("Instance admin access required");
   }
 
@@ -226,12 +238,12 @@ vi.mock("../services/instance-settings.js", () => ({
   }),
 }));
 
-let routeModules:
-  | Promise<[
+let routeModules: Promise<
+  [
     typeof import("../middleware/index.js"),
     typeof import("../routes/agents.js"),
-  ]>
-  | null = null;
+  ]
+> | null = null;
 
 async function loadRouteModules() {
   routeModules ??= Promise.all([
@@ -248,7 +260,9 @@ async function createApp(actor: Record<string, unknown>) {
   app.use((req, _res, next) => {
     (req as any).actor = {
       ...actor,
-      companyIds: Array.isArray(actor.companyIds) ? [...actor.companyIds] : actor.companyIds,
+      companyIds: Array.isArray(actor.companyIds)
+        ? [...actor.companyIds]
+        : actor.companyIds,
     };
     next();
   });
@@ -261,7 +275,8 @@ async function requestApp(
   app: express.Express,
   buildRequest: (baseUrl: string) => request.Test,
 ) {
-  const { createServer } = await vi.importActual<typeof import("node:http")>("node:http");
+  const { createServer } =
+    await vi.importActual<typeof import("node:http")>("node:http");
   const server = createServer(app);
   try {
     await new Promise<void>((resolve) => {
@@ -294,7 +309,8 @@ function resetMockDefaults() {
   for (const mock of Object.values(mockIssueApprovalService)) mock.mockReset();
   for (const mock of Object.values(mockIssueService)) mock.mockReset();
   for (const mock of Object.values(mockSecretService)) mock.mockReset();
-  for (const mock of Object.values(mockAgentInstructionsService)) mock.mockReset();
+  for (const mock of Object.values(mockAgentInstructionsService))
+    mock.mockReset();
   for (const mock of Object.values(mockCompanySkillService)) mock.mockReset();
   mockLogActivity.mockReset();
   mockGetTelemetryClient.mockReset();
@@ -304,7 +320,10 @@ function resetMockDefaults() {
   mockAgentService.getById.mockImplementation(async () => ({ ...baseAgent }));
   mockAgentService.pause.mockImplementation(async () => ({ ...baseAgent }));
   mockAgentService.resume.mockImplementation(async () => ({ ...baseAgent }));
-  mockAgentService.clearError.mockImplementation(async () => ({ ...baseAgent, status: "idle" }));
+  mockAgentService.clearError.mockImplementation(async () => ({
+    ...baseAgent,
+    status: "idle",
+  }));
   mockAgentService.terminate.mockImplementation(async () => ({ ...baseAgent }));
   mockAgentService.remove.mockImplementation(async () => ({ ...baseAgent }));
   mockAgentService.listKeys.mockImplementation(async () => []);
@@ -322,24 +341,38 @@ function resetMockDefaults() {
     ...baseKey,
     revokedAt: new Date("2026-04-11T00:05:00.000Z"),
   }));
-  mockAccessService.canUser.mockImplementation(async () => currentAccessCanUser);
-  mockAccessService.decide.mockImplementation(async (input: { actor?: { type?: string; source?: string }; action?: string }) => {
-    const allowed = input.actor?.type === "board" && input.actor.source === "local_implicit"
-      ? true
-      : currentAccessCanUser;
-    return {
-      allowed,
-      action: input.action,
-      reason: allowed ? "allow_explicit_grant" : "deny_missing_grant",
-      explanation: allowed ? "Allowed by test grant." : `Missing permission: ${input.action ?? "action"}`,
-    };
-  });
+  mockAccessService.canUser.mockImplementation(
+    async () => currentAccessCanUser,
+  );
+  mockAccessService.decide.mockImplementation(
+    async (input: {
+      actor?: { type?: string; source?: string };
+      action?: string;
+    }) => {
+      const allowed =
+        input.actor?.type === "board" && input.actor.source === "local_implicit"
+          ? true
+          : currentAccessCanUser;
+      return {
+        allowed,
+        action: input.action,
+        reason: allowed ? "allow_explicit_grant" : "deny_missing_grant",
+        explanation: allowed
+          ? "Allowed by test grant."
+          : `Missing permission: ${input.action ?? "action"}`,
+      };
+    },
+  );
   mockAccessService.hasPermission.mockImplementation(async () => false);
   mockAccessService.getMembership.mockImplementation(async () => null);
   mockAccessService.listPrincipalGrants.mockImplementation(async () => []);
   mockAccessService.ensureMembership.mockImplementation(async () => undefined);
-  mockAccessService.setPrincipalPermission.mockImplementation(async () => undefined);
-  mockHeartbeatService.cancelActiveForAgent.mockImplementation(async () => undefined);
+  mockAccessService.setPrincipalPermission.mockImplementation(
+    async () => undefined,
+  );
+  mockHeartbeatService.cancelActiveForAgent.mockImplementation(
+    async () => undefined,
+  );
   mockLogActivity.mockImplementation(async () => undefined);
 }
 
@@ -360,37 +393,56 @@ describe("agent cross-tenant route authorization", () => {
       {
         label: "public cryptographic identity",
         request: (app: express.Express) =>
-          requestApp(app, (baseUrl) => request(baseUrl).get(`/api/agents/${agentId}/identity`)),
+          requestApp(app, (baseUrl) =>
+            request(baseUrl).get(`/api/agents/${agentId}/identity`),
+          ),
         untouched: [],
       },
       {
         label: "pause",
         request: (app: express.Express) =>
-          requestApp(app, (baseUrl) => request(baseUrl).post(`/api/agents/${agentId}/pause`).send({})),
-        untouched: [mockAgentService.pause, mockHeartbeatService.cancelActiveForAgent],
+          requestApp(app, (baseUrl) =>
+            request(baseUrl).post(`/api/agents/${agentId}/pause`).send({}),
+          ),
+        untouched: [
+          mockAgentService.pause,
+          mockHeartbeatService.cancelActiveForAgent,
+        ],
       },
       {
         label: "clear error",
         request: (app: express.Express) =>
-          requestApp(app, (baseUrl) => request(baseUrl).post(`/api/agents/${agentId}/clear-error`).send({})),
+          requestApp(app, (baseUrl) =>
+            request(baseUrl)
+              .post(`/api/agents/${agentId}/clear-error`)
+              .send({}),
+          ),
         untouched: [mockAgentService.clearError],
       },
       {
         label: "list keys",
         request: (app: express.Express) =>
-          requestApp(app, (baseUrl) => request(baseUrl).get(`/api/agents/${agentId}/keys`)),
+          requestApp(app, (baseUrl) =>
+            request(baseUrl).get(`/api/agents/${agentId}/keys`),
+          ),
         untouched: [mockAgentService.listKeys],
       },
       {
         label: "create key",
         request: (app: express.Express) =>
-          requestApp(app, (baseUrl) => request(baseUrl).post(`/api/agents/${agentId}/keys`).send({ name: "exploit" })),
+          requestApp(app, (baseUrl) =>
+            request(baseUrl)
+              .post(`/api/agents/${agentId}/keys`)
+              .send({ name: "exploit" }),
+          ),
         untouched: [mockAgentService.createApiKey],
       },
       {
         label: "revoke key",
         request: (app: express.Express) =>
-          requestApp(app, (baseUrl) => request(baseUrl).delete(`/api/agents/${agentId}/keys/${keyId}`)),
+          requestApp(app, (baseUrl) =>
+            request(baseUrl).delete(`/api/agents/${agentId}/keys/${keyId}`),
+          ),
         untouched: [mockAgentService.getKeyById, mockAgentService.revokeKey],
       },
     ];
@@ -400,7 +452,10 @@ describe("agent cross-tenant route authorization", () => {
       const app = await createApp(crossTenantActor);
       const res = await deniedCase.request(app);
 
-      expect(res.status, `${deniedCase.label}: ${JSON.stringify(res.body)}`).toBe(404);
+      expect(
+        res.status,
+        `${deniedCase.label}: ${JSON.stringify(res.body)}`,
+      ).toBe(404);
       expect(res.body.error).toBe("Agent not found");
       expect(mockAgentService.getById).toHaveBeenCalledWith(agentId);
       for (const mock of deniedCase.untouched) {
@@ -420,7 +475,9 @@ describe("agent cross-tenant route authorization", () => {
       isInstanceAdmin: false,
     });
 
-    const res = await requestApp(app, (baseUrl) => request(baseUrl).delete(`/api/agents/${agentId}/keys/${keyId}`));
+    const res = await requestApp(app, (baseUrl) =>
+      request(baseUrl).delete(`/api/agents/${agentId}/keys/${keyId}`),
+    );
 
     expect(res.status).toBe(404);
     expect(res.body.error).toContain("Key not found");
@@ -446,7 +503,12 @@ describe("agent cross-tenant route authorization", () => {
   });
 
   it("preserves board resume access", async () => {
-    const pausedAgent = { ...baseAgent, status: "paused", pauseReason: "manual", pausedAt: new Date() };
+    const pausedAgent = {
+      ...baseAgent,
+      status: "paused",
+      pauseReason: "manual",
+      pausedAt: new Date(),
+    };
     mockAgentService.getById.mockResolvedValue(pausedAgent);
     mockAgentService.resume.mockResolvedValue({
       ...pausedAgent,
@@ -468,17 +530,20 @@ describe("agent cross-tenant route authorization", () => {
 
     expect(res.status).toBe(200);
     expect(mockAgentService.resume).toHaveBeenCalledWith(agentId);
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      companyId,
-      actorType: "user",
-      actorId: "board-user",
-      agentId: null,
-      runId: null,
-      agentApiKeyId: null,
-      action: "agent.resumed",
-      entityType: "agent",
-      entityId: agentId,
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        companyId,
+        actorType: "user",
+        actorId: "board-user",
+        agentId: null,
+        runId: null,
+        agentApiKeyId: null,
+        action: "agent.resumed",
+        entityType: "agent",
+        entityId: agentId,
+      }),
+    );
   });
 
   it("allows a same-company agent with a direct agents:configure grant to resume", async () => {
@@ -503,11 +568,13 @@ describe("agent cross-tenant route authorization", () => {
     );
 
     expect(res.status).toBe(200);
-    expect(mockAccessService.decide).toHaveBeenCalledWith(expect.objectContaining({
-      action: "agent_config:update",
-      resource: { type: "agent", companyId, agentId },
-      scope: { requiresChangeGrant: true },
-    }));
+    expect(mockAccessService.decide).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "agent_config:update",
+        resource: { type: "agent", companyId, agentId },
+        scope: { requiresChangeGrant: true },
+      }),
+    );
     expect(mockAgentService.resume).toHaveBeenCalledWith(agentId);
   });
 
@@ -666,7 +733,9 @@ describe("agent cross-tenant route authorization", () => {
       pauseReason: "system",
       pausedAt: new Date("2026-04-11T00:02:00.000Z"),
     };
-    mockAgentService.getById.mockImplementation(async () => ({ ...errorAgent }));
+    mockAgentService.getById.mockImplementation(async () => ({
+      ...errorAgent,
+    }));
     mockAgentService.clearError.mockImplementation(async () => ({
       ...errorAgent,
       status: "idle",
@@ -694,14 +763,17 @@ describe("agent cross-tenant route authorization", () => {
       pausedAt: null,
     });
     expect(mockAgentService.clearError).toHaveBeenCalledWith(agentId);
-    expect(mockLogActivity).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      companyId,
-      actorType: "user",
-      actorId: "board-user",
-      action: "agent.error_cleared",
-      entityType: "agent",
-      entityId: agentId,
-    }));
+    expect(mockLogActivity).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        companyId,
+        actorType: "user",
+        actorId: "board-user",
+        action: "agent.error_cleared",
+        entityType: "agent",
+        entityId: agentId,
+      }),
+    );
   });
 
   it("returns 409 and does not mutate when the agent org chain is invalid", async () => {
@@ -734,9 +806,14 @@ describe("agent cross-tenant route authorization", () => {
 
   it("returns a clear 409 for non-error agents", async () => {
     const { conflict } = await import("../errors.js");
-    mockAgentService.getById.mockImplementation(async () => ({ ...baseAgent, status: "idle" }));
+    mockAgentService.getById.mockImplementation(async () => ({
+      ...baseAgent,
+      status: "idle",
+    }));
     mockAgentService.clearError.mockImplementation(async () => {
-      throw conflict("Only agents in error status can have their error cleared");
+      throw conflict(
+        "Only agents in error status can have their error cleared",
+      );
     });
     const app = await createApp({
       type: "board",
@@ -751,7 +828,9 @@ describe("agent cross-tenant route authorization", () => {
     );
 
     expect(res.status).toBe(409);
-    expect(res.body.error).toBe("Only agents in error status can have their error cleared");
+    expect(res.body.error).toBe(
+      "Only agents in error status can have their error cleared",
+    );
     expect(mockLogActivity).not.toHaveBeenCalled();
   });
 });

@@ -165,7 +165,8 @@ export interface ToolApplication {
 }
 
 export interface ToolConnection {
-  agentInstructions?: import("../connection-instructions.js").ConnectionAgentInstructions | null;
+  agentInstructions?:
+    import("../connection-instructions.js").ConnectionAgentInstructions | null;
   id: string;
   companyId: string;
   applicationId: string;
@@ -241,7 +242,12 @@ export interface ConnectionGrant {
         expiresAt?: string;
       };
     };
-    slackSearch?: { endpointId: string; workspaceId: string; slackUserId: string; clientRevision: string };
+    slackSearch?: {
+      endpointId: string;
+      workspaceId: string;
+      slackUserId: string;
+      clientRevision: string;
+    };
     github?: {
       userId: string;
       login: string;

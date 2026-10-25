@@ -243,9 +243,7 @@ export function frameAcpxToolClassification(
   );
   return {
     kind:
-      typeof toolKind === "string"
-        ? boundedSidecarText(toolKind, 4_000)
-        : null,
+      typeof toolKind === "string" ? boundedSidecarText(toolKind, 4_000) : null,
     toolOperation,
   };
 }

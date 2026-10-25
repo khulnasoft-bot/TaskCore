@@ -33,40 +33,67 @@ describe("isThrottleCandidateIssueRewake", () => {
 
   it("throttles state-poll reasons and reason-less invokes", () => {
     expect(isThrottleCandidateIssueRewake(base)).toBe(true);
-    expect(isThrottleCandidateIssueRewake({ ...base, reason: null })).toBe(true);
-    expect(isThrottleCandidateIssueRewake({ ...base, reason: "issue_continuation_needed" })).toBe(true);
-    expect(isThrottleCandidateIssueRewake({ ...base, reason: "issue_assignment_recovery" })).toBe(true);
-    expect(isThrottleCandidateIssueRewake({ ...base, reason: "issue_graph_liveness_backstop" })).toBe(true);
+    expect(isThrottleCandidateIssueRewake({ ...base, reason: null })).toBe(
+      true,
+    );
+    expect(
+      isThrottleCandidateIssueRewake({
+        ...base,
+        reason: "issue_continuation_needed",
+      }),
+    ).toBe(true);
+    expect(
+      isThrottleCandidateIssueRewake({
+        ...base,
+        reason: "issue_assignment_recovery",
+      }),
+    ).toBe(true);
+    expect(
+      isThrottleCandidateIssueRewake({
+        ...base,
+        reason: "issue_graph_liveness_backstop",
+      }),
+    ).toBe(true);
   });
 
   it("keeps agent comments throttle-eligible without granting human comment privileges", () => {
-    expect(isThrottleCandidateIssueRewake({
-      ...base,
-      reason: "issue_commented",
-      wakeCommentId: "comment-1",
-      requestedByActorType: "agent",
-    })).toBe(true);
-    expect(isThrottleCandidateIssueRewake({
-      ...base,
-      reason: "issue_commented",
-      wakeCommentId: "comment-1",
-      requestedByActorType: "user",
-    })).toBe(false);
+    expect(
+      isThrottleCandidateIssueRewake({
+        ...base,
+        reason: "issue_commented",
+        wakeCommentId: "comment-1",
+        requestedByActorType: "agent",
+      }),
+    ).toBe(true);
+    expect(
+      isThrottleCandidateIssueRewake({
+        ...base,
+        reason: "issue_commented",
+        wakeCommentId: "comment-1",
+        requestedByActorType: "user",
+      }),
+    ).toBe(false);
   });
 
   it("never throttles trusted explicit escalation wakes", () => {
-    expect(isThrottleCandidateIssueRewake({ ...base, forceFreshSession: true })).toBe(false);
-    expect(isThrottleCandidateIssueRewake({ ...base, hasExplicitResume: true })).toBe(false);
+    expect(
+      isThrottleCandidateIssueRewake({ ...base, forceFreshSession: true }),
+    ).toBe(false);
+    expect(
+      isThrottleCandidateIssueRewake({ ...base, hasExplicitResume: true }),
+    ).toBe(false);
   });
 
   it("keeps agent-authored explicit resume comments throttle-eligible", () => {
-    expect(isThrottleCandidateIssueRewake({
-      ...base,
-      reason: "issue_reopened_via_comment",
-      wakeCommentId: "comment-1",
-      requestedByActorType: "agent",
-      hasExplicitResume: true,
-    })).toBe(true);
+    expect(
+      isThrottleCandidateIssueRewake({
+        ...base,
+        reason: "issue_reopened_via_comment",
+        wakeCommentId: "comment-1",
+        requestedByActorType: "agent",
+        hasExplicitResume: true,
+      }),
+    ).toBe(true);
   });
 
   it("passes event-shaped wake reasons through", () => {
@@ -86,10 +113,18 @@ describe("isThrottleCandidateIssueRewake", () => {
 
 describe("computeIssueRewakeCooldownMs", () => {
   it("starts at the base cooldown and doubles per extra no-progress run, capped", () => {
-    expect(computeIssueRewakeCooldownMs(ISSUE_REWAKE_NO_PROGRESS_THRESHOLD)).toBe(ISSUE_REWAKE_BASE_COOLDOWN_MS);
-    expect(computeIssueRewakeCooldownMs(ISSUE_REWAKE_NO_PROGRESS_THRESHOLD + 1)).toBe(ISSUE_REWAKE_BASE_COOLDOWN_MS * 2);
-    expect(computeIssueRewakeCooldownMs(ISSUE_REWAKE_NO_PROGRESS_THRESHOLD + 3)).toBe(ISSUE_REWAKE_BASE_COOLDOWN_MS * 8);
-    expect(computeIssueRewakeCooldownMs(100)).toBe(ISSUE_REWAKE_MAX_COOLDOWN_MS);
+    expect(
+      computeIssueRewakeCooldownMs(ISSUE_REWAKE_NO_PROGRESS_THRESHOLD),
+    ).toBe(ISSUE_REWAKE_BASE_COOLDOWN_MS);
+    expect(
+      computeIssueRewakeCooldownMs(ISSUE_REWAKE_NO_PROGRESS_THRESHOLD + 1),
+    ).toBe(ISSUE_REWAKE_BASE_COOLDOWN_MS * 2);
+    expect(
+      computeIssueRewakeCooldownMs(ISSUE_REWAKE_NO_PROGRESS_THRESHOLD + 3),
+    ).toBe(ISSUE_REWAKE_BASE_COOLDOWN_MS * 8);
+    expect(computeIssueRewakeCooldownMs(100)).toBe(
+      ISSUE_REWAKE_MAX_COOLDOWN_MS,
+    );
   });
 });
 
@@ -139,8 +174,14 @@ describe("evaluateIssueRewakeThrottle", () => {
     const decision = evaluateIssueRewakeThrottle({
       now: NOW,
       recentTerminalRuns: [
-        runSample({ id: "r2", finishedSecondsAgo: ISSUE_REWAKE_BASE_COOLDOWN_MS / 1000 + 1 }),
-        runSample({ id: "r1", finishedSecondsAgo: ISSUE_REWAKE_BASE_COOLDOWN_MS / 1000 + 30 }),
+        runSample({
+          id: "r2",
+          finishedSecondsAgo: ISSUE_REWAKE_BASE_COOLDOWN_MS / 1000 + 1,
+        }),
+        runSample({
+          id: "r1",
+          finishedSecondsAgo: ISSUE_REWAKE_BASE_COOLDOWN_MS / 1000 + 30,
+        }),
       ],
       runIdsWithIssueProgress: new Set(),
       hasNewIssueInputSinceLastRun: false,

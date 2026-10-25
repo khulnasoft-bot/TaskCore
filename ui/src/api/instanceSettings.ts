@@ -9,8 +9,7 @@ import type {
 import { api } from "./client";
 
 export const instanceSettingsApi = {
-  get: () =>
-    api.get<InstanceSettings>("/instance/settings"),
+  get: () => api.get<InstanceSettings>("/instance/settings"),
   update: (patch: PatchInstanceSettings) =>
     api.patch<InstanceSettings>("/instance/settings", patch),
   getGeneral: () =>
@@ -18,7 +17,12 @@ export const instanceSettingsApi = {
   updateGeneral: (patch: PatchInstanceGeneralSettings) =>
     api.patch<InstanceGeneralSettings>("/instance/settings/general", patch),
   getExperimental: () =>
-    api.get<InstanceExperimentalSettingsWithManaged>("/instance/settings/experimental"),
+    api.get<InstanceExperimentalSettingsWithManaged>(
+      "/instance/settings/experimental",
+    ),
   updateExperimental: (patch: PatchInstanceExperimentalSettings) =>
-    api.patch<InstanceExperimentalSettingsWithManaged>("/instance/settings/experimental", patch),
+    api.patch<InstanceExperimentalSettingsWithManaged>(
+      "/instance/settings/experimental",
+      patch,
+    ),
 };

@@ -38,13 +38,11 @@ describe("provider-owned interaction arbitration", () => {
     const issueId = randomUUID();
     const runId = randomUUID();
     const interactionId = randomUUID();
-    await db
-      .insert(companies)
-      .values({
-        id: companyId,
-        name: "Arbitration",
-        issuePrefix: `CI${String.fromCharCode(65 + companyCount++)}`,
-      });
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Arbitration",
+      issuePrefix: `CI${String.fromCharCode(65 + companyCount++)}`,
+    });
     await db.insert(agents).values(
       [agentId, otherAgentId].map((id) => ({
         id,

@@ -25,7 +25,10 @@ export const SERVICE_WORKER_BUILD_ID_PLACEHOLDER = "__TASKCORE_BUILD_ID__";
  * worker that never rotates — the exact bug this plugin exists to prevent — so
  * a loud build failure beats a silent no-op.
  */
-export function stampServiceWorkerBuildId(source: string, buildId: string): string {
+export function stampServiceWorkerBuildId(
+  source: string,
+  buildId: string,
+): string {
   if (!source.includes(SERVICE_WORKER_BUILD_ID_PLACEHOLDER)) {
     throw new Error(
       `service worker is missing the ${SERVICE_WORKER_BUILD_ID_PLACEHOLDER} placeholder; ` +
@@ -33,7 +36,9 @@ export function stampServiceWorkerBuildId(source: string, buildId: string): stri
     );
   }
   if (!buildId) {
-    throw new Error("refusing to stamp the service worker with an empty build id");
+    throw new Error(
+      "refusing to stamp the service worker with an empty build id",
+    );
   }
   return source.split(SERVICE_WORKER_BUILD_ID_PLACEHOLDER).join(buildId);
 }

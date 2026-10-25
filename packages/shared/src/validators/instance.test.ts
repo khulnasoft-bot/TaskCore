@@ -6,18 +6,37 @@ import {
 
 describe("instance experimental settings validators", () => {
   it("defaults chat connectors off independently of Apps and accepts only explicit boolean patches", () => {
-    expect(instanceExperimentalSettingsSchema.parse({}).enableChatConnectors).toBe(false);
-    expect(instanceExperimentalSettingsSchema.parse({ enableApps: true }).enableChatConnectors).toBe(false);
-    expect(patchInstanceExperimentalSettingsSchema.parse({ enableChatConnectors: true }))
-      .toEqual({ enableChatConnectors: true });
-    expect(patchInstanceExperimentalSettingsSchema.parse({ enableChatConnectors: false }))
-      .toEqual({ enableChatConnectors: false });
-    expect(patchInstanceExperimentalSettingsSchema.safeParse({ enableChatConnectors: "true" }).success).toBe(false);
+    expect(
+      instanceExperimentalSettingsSchema.parse({}).enableChatConnectors,
+    ).toBe(false);
+    expect(
+      instanceExperimentalSettingsSchema.parse({ enableApps: true })
+        .enableChatConnectors,
+    ).toBe(false);
+    expect(
+      patchInstanceExperimentalSettingsSchema.parse({
+        enableChatConnectors: true,
+      }),
+    ).toEqual({ enableChatConnectors: true });
+    expect(
+      patchInstanceExperimentalSettingsSchema.parse({
+        enableChatConnectors: false,
+      }),
+    ).toEqual({ enableChatConnectors: false });
+    expect(
+      patchInstanceExperimentalSettingsSchema.safeParse({
+        enableChatConnectors: "true",
+      }).success,
+    ).toBe(false);
   });
   it("defaults the streamlined UI on and accepts an explicit patch", () => {
-    expect(instanceExperimentalSettingsSchema.parse({}).enableStreamlinedUi).toBe(true);
     expect(
-      patchInstanceExperimentalSettingsSchema.parse({ enableStreamlinedUi: false }),
+      instanceExperimentalSettingsSchema.parse({}).enableStreamlinedUi,
+    ).toBe(true);
+    expect(
+      patchInstanceExperimentalSettingsSchema.parse({
+        enableStreamlinedUi: false,
+      }),
     ).toEqual({ enableStreamlinedUi: false });
   });
 
@@ -28,9 +47,13 @@ describe("instance experimental settings validators", () => {
   });
 
   it("defaults Taskcore developer mode off and accepts explicit patches", () => {
-    expect(instanceExperimentalSettingsSchema.parse({}).enableTaskcoreDeveloperMode).toBe(false);
     expect(
-      patchInstanceExperimentalSettingsSchema.parse({ enableTaskcoreDeveloperMode: true }),
+      instanceExperimentalSettingsSchema.parse({}).enableTaskcoreDeveloperMode,
+    ).toBe(false);
+    expect(
+      patchInstanceExperimentalSettingsSchema.parse({
+        enableTaskcoreDeveloperMode: true,
+      }),
     ).toEqual({ enableTaskcoreDeveloperMode: true });
   });
 
@@ -65,18 +88,22 @@ describe("instance experimental settings validators", () => {
 
   it("accepts an explicit sandbox duplex bridge kill switch value", () => {
     expect(
-      instanceExperimentalSettingsSchema.parse({ enableSandboxDuplexBridge: true })
-        .enableSandboxDuplexBridge,
+      instanceExperimentalSettingsSchema.parse({
+        enableSandboxDuplexBridge: true,
+      }).enableSandboxDuplexBridge,
     ).toBe(true);
     expect(
-      instanceExperimentalSettingsSchema.parse({ enableSandboxDuplexBridge: false })
-        .enableSandboxDuplexBridge,
+      instanceExperimentalSettingsSchema.parse({
+        enableSandboxDuplexBridge: false,
+      }).enableSandboxDuplexBridge,
     ).toBe(false);
   });
 
   it("accepts the sandbox duplex bridge kill switch in a patch", () => {
     expect(
-      patchInstanceExperimentalSettingsSchema.parse({ enableSandboxDuplexBridge: true }),
+      patchInstanceExperimentalSettingsSchema.parse({
+        enableSandboxDuplexBridge: true,
+      }),
     ).toEqual({ enableSandboxDuplexBridge: true });
   });
 

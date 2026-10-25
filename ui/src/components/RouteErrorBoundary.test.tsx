@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 
 const navigateMock = vi.hoisted(() => vi.fn());
-const routerLocation = vi.hoisted(() => ({ current: { pathname: "/co/agents/new", search: "?adapterType=claude_local" } }));
+const routerLocation = vi.hoisted(() => ({
+  current: { pathname: "/co/agents/new", search: "?adapterType=claude_local" },
+}));
 const captureBrowserExceptionMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/router", () => ({
@@ -15,7 +17,8 @@ vi.mock("@/lib/router", () => ({
 }));
 
 vi.mock("@/lib/sentry", () => ({
-  captureBrowserException: (...args: unknown[]) => captureBrowserExceptionMock(...args),
+  captureBrowserException: (...args: unknown[]) =>
+    captureBrowserExceptionMock(...args),
 }));
 
 function Boom(): never {
@@ -28,7 +31,10 @@ describe("RouteErrorBoundary", () => {
 
   beforeEach(() => {
     navigateMock.mockReset();
-    routerLocation.current = { pathname: "/co/agents/new", search: "?adapterType=claude_local" };
+    routerLocation.current = {
+      pathname: "/co/agents/new",
+      search: "?adapterType=claude_local",
+    };
     container = document.createElement("div");
     document.body.appendChild(container);
     // React logs caught render errors to console.error; silence the expected noise.
@@ -52,9 +58,13 @@ describe("RouteErrorBoundary", () => {
     });
 
     expect(captureBrowserExceptionMock).toHaveBeenCalledTimes(1);
-    expect(captureBrowserExceptionMock).toHaveBeenCalledWith(expect.any(Error), {
-      boundary: "route", componentStack: expect.stringContaining("Boom"),
-    });
+    expect(captureBrowserExceptionMock).toHaveBeenCalledWith(
+      expect.any(Error),
+      {
+        boundary: "route",
+        componentStack: expect.stringContaining("Boom"),
+      },
+    );
     expect(
       Array.from(container.querySelectorAll("button")).some(
         (button) => button.textContent === "Go back",

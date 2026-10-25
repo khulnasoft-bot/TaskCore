@@ -13,12 +13,16 @@ async function main(): Promise<void> {
       return;
     }
 
-    console.log(`Applying ${before.pendingMigrations.length} pending migration(s)...`);
+    console.log(
+      `Applying ${before.pendingMigrations.length} pending migration(s)...`,
+    );
     await applyPendingMigrations(resolved.connectionString);
 
     const after = await inspectMigrations(resolved.connectionString);
     if (after.status !== "upToDate") {
-      throw new Error(`Migrations incomplete: ${after.pendingMigrations.join(", ")}`);
+      throw new Error(
+        `Migrations incomplete: ${after.pendingMigrations.join(", ")}`,
+      );
     }
     console.log("Migrations complete");
   } finally {

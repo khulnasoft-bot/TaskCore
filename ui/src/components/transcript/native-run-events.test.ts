@@ -85,14 +85,31 @@ describe("provider notice presentation", () => {
     const entries = nativeRunEventsToTranscript([
       event(1, "provider.notice.recorded", legacyNotice),
       event(2, "harness.diagnostic", { code: "codex_unrelated_information" }),
-      event(3, "provider.notice.recorded", { ...legacyNotice, summary: "Repository is not trusted" }),
-      event(4, "provider.notice.recorded", { ...legacyNotice, severity: "error" }),
-      event(5, "provider.notice.recorded", { ...legacyNotice, category: "configWarning" }),
-      event(6, "item.completed", { kind: "agentMessage", channel: "final", text: "Here is the answer." }),
+      event(3, "provider.notice.recorded", {
+        ...legacyNotice,
+        summary: "Repository is not trusted",
+      }),
+      event(4, "provider.notice.recorded", {
+        ...legacyNotice,
+        severity: "error",
+      }),
+      event(5, "provider.notice.recorded", {
+        ...legacyNotice,
+        category: "configWarning",
+      }),
+      event(6, "item.completed", {
+        kind: "agentMessage",
+        channel: "final",
+        text: "Here is the answer.",
+      }),
     ]);
     expect(entries).toMatchObject([
       { kind: "provider_activity", summary: "Repository is not trusted" },
-      { kind: "provider_activity", status: "failed", summary: legacyNotice.summary },
+      {
+        kind: "provider_activity",
+        status: "failed",
+        summary: legacyNotice.summary,
+      },
       { kind: "provider_activity", summary: legacyNotice.summary },
       { kind: "assistant", text: "Here is the answer." },
     ]);
@@ -101,17 +118,32 @@ describe("provider notice presentation", () => {
   it("preserves notice text as a notice rather than a synthetic tool call", () => {
     const entries = nativeRunEventsToTranscript([
       event(1, "provider.notice.recorded", {
-        schema: "taskcore.provider.notice.v1", noticeId: "warning-1",
-        severity: "warning", category: "configWarning", summary: "Repository is not trusted",
+        schema: "taskcore.provider.notice.v1",
+        noticeId: "warning-1",
+        severity: "warning",
+        category: "configWarning",
+        summary: "Repository is not trusted",
       }),
       event(2, "provider.notice.recorded", {
-        schema: "taskcore.provider.notice.v1", noticeId: "error-1",
-        severity: "error", message: "Provider connection failed",
+        schema: "taskcore.provider.notice.v1",
+        noticeId: "error-1",
+        severity: "error",
+        message: "Provider connection failed",
       }),
     ]);
     expect(entries).toMatchObject([
-      { kind: "provider_activity", family: "provider_notice", status: "informational", summary: "Repository is not trusted" },
-      { kind: "provider_activity", family: "provider_notice", status: "failed", summary: "Provider connection failed" },
+      {
+        kind: "provider_activity",
+        family: "provider_notice",
+        status: "informational",
+        summary: "Repository is not trusted",
+      },
+      {
+        kind: "provider_activity",
+        family: "provider_notice",
+        status: "failed",
+        summary: "Provider connection failed",
+      },
     ]);
     expect(entries.some((entry) => entry.kind === "tool_call")).toBe(false);
   });
@@ -208,14 +240,14 @@ describe("nativeRunEventsToTranscript", () => {
       if (mode === "provider_acceptance")
         acceptedEnvelope.sourceKind = "runner";
       if (mode === "provider_terminal") terminalEnvelope.sourceKind = "runner";
-        if (mode === "proposal") {
-          accepted.eventType = "run.result.proposed";
-          acceptedEnvelope.eventType = accepted.eventType;
-          acceptedEnvelope.payload = result;
-        }
-        if (mode === "forged_marker") {
-          result.continuation.kind = "monitor";
-          mutableResult.acceptedResponseWake = {
+      if (mode === "proposal") {
+        accepted.eventType = "run.result.proposed";
+        acceptedEnvelope.eventType = accepted.eventType;
+        acceptedEnvelope.payload = result;
+      }
+      if (mode === "forged_marker") {
+        result.continuation.kind = "monitor";
+        mutableResult.acceptedResponseWake = {
           runId: RUN_ID,
           sourceEventId: "event-2",
         };
@@ -273,13 +305,15 @@ describe("nativeRunEventsToTranscript", () => {
   });
 
   it("projects the cross-language duplicate-delivery fixture exactly once", () => {
-    const fixture = JSON.parse(readFileSync(
-      new URL(
-        "../../../../packages/taskcore-runner/protocol/fixtures/replay/duplicate-event.json",
-        import.meta.url,
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../../../packages/taskcore-runner/protocol/fixtures/replay/duplicate-event.json",
+          import.meta.url,
+        ),
+        "utf8",
       ),
-      "utf8",
-    )) as { events: Array<Record<string, unknown>> };
+    ) as { events: Array<Record<string, unknown>> };
     const persistedEvents = fixture.events.map((prpEvent, index) => ({
       id: index + 1,
       companyId: "company_replay",
@@ -303,26 +337,54 @@ describe("nativeRunEventsToTranscript", () => {
         itemId: "item_replay_duplicate",
       }),
     ]);
-    expect(transcript.filter((entry) => entry.kind === "run_result")).toHaveLength(1);
-    expect(transcript.filter((entry) => entry.kind === "run_terminal")).toHaveLength(1);
+    expect(
+      transcript.filter((entry) => entry.kind === "run_result"),
+    ).toHaveLength(1);
+    expect(
+      transcript.filter((entry) => entry.kind === "run_terminal"),
+    ).toHaveLength(1);
   });
 
   it("preserves buffered output tails when a native turn ends", () => {
     const transcript = nativeRunEventsToTranscript([
-      event(1, "item.delta", { itemId: "reasoning-1", kind: "reasoning", text: "Thinking" }),
-      event(2, "turn.completed", { status: "completed", outputTails: [
-        { itemId: "reasoning-1", payload: { kind: "reasoning", text: "-" } },
-      ] }),
+      event(1, "item.delta", {
+        itemId: "reasoning-1",
+        kind: "reasoning",
+        text: "Thinking",
+      }),
+      event(2, "turn.completed", {
+        status: "completed",
+        outputTails: [
+          { itemId: "reasoning-1", payload: { kind: "reasoning", text: "-" } },
+        ],
+      }),
     ]);
-    expect(transcript.filter(entry => entry.kind === "thinking").map(entry => "text" in entry ? entry.text : "").join("")).toBe("Thinking-");
+    expect(
+      transcript
+        .filter((entry) => entry.kind === "thinking")
+        .map((entry) => ("text" in entry ? entry.text : ""))
+        .join(""),
+    ).toBe("Thinking-");
   });
 
   it("projects provider-neutral messages, tools, usage, and the final reply", () => {
     const transcript = nativeRunEventsToTranscript([
       event(6, "run.result.proposed", runResult("Done safely.")),
-      event(1, "item.delta", { itemId: "message-1", kind: "agentMessage", text: "Done " }),
-      event(2, "item.delta", { itemId: "message-1", kind: "agentMessage", text: "safely." }),
-      event(3, "item.completed", { itemId: "message-1", kind: "agentMessage", text: "Done safely." }),
+      event(1, "item.delta", {
+        itemId: "message-1",
+        kind: "agentMessage",
+        text: "Done ",
+      }),
+      event(2, "item.delta", {
+        itemId: "message-1",
+        kind: "agentMessage",
+        text: "safely.",
+      }),
+      event(3, "item.completed", {
+        itemId: "message-1",
+        kind: "agentMessage",
+        text: "Done safely.",
+      }),
       event(4, "tool.execution.started", {
         schema: "taskcore.tool.execution.v1",
         executionId: "exec-1",
@@ -526,25 +588,45 @@ describe("nativeRunEventsToTranscript", () => {
   });
 
   it("streams deltas until a loss-resistant completed item is available", () => {
-    expect(nativeRunEventsToTranscript([
-      event(1, "item.delta", { itemId: "message-1", kind: "agentMessage", text: "Still " }),
-      event(2, "item.delta", { itemId: "message-1", kind: "agentMessage", text: "working" }),
-    ])).toEqual([
-      expect.objectContaining({ kind: "assistant", text: "Still ", delta: true }),
-      expect.objectContaining({ kind: "assistant", text: "working", delta: true }),
+    expect(
+      nativeRunEventsToTranscript([
+        event(1, "item.delta", {
+          itemId: "message-1",
+          kind: "agentMessage",
+          text: "Still ",
+        }),
+        event(2, "item.delta", {
+          itemId: "message-1",
+          kind: "agentMessage",
+          text: "working",
+        }),
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        kind: "assistant",
+        text: "Still ",
+        delta: true,
+      }),
+      expect.objectContaining({
+        kind: "assistant",
+        text: "working",
+        delta: true,
+      }),
     ]);
   });
 
   it("streams canonical kind-less deltas using item identity from item.started", () => {
-    expect(nativeRunEventsToTranscript([
-      itemEvent(1, "item.started", "message-1", {
-        kind: "assistant_message",
-        channel: "progress",
-        text: "",
-      }),
-      itemEvent(2, "item.delta", "message-1", { text: "Still " }),
-      itemEvent(3, "item.delta", "message-1", { text: "working" }),
-    ])).toEqual([
+    expect(
+      nativeRunEventsToTranscript([
+        itemEvent(1, "item.started", "message-1", {
+          kind: "assistant_message",
+          channel: "progress",
+          text: "",
+        }),
+        itemEvent(2, "item.delta", "message-1", { text: "Still " }),
+        itemEvent(3, "item.delta", "message-1", { text: "working" }),
+      ]),
+    ).toEqual([
       expect.objectContaining({
         kind: "assistant",
         text: "Still ",
@@ -566,9 +648,11 @@ describe("nativeRunEventsToTranscript", () => {
         kind: "assistant_message",
         text: "Canonical persisted reply.",
       }),
-      event(2, "run.result.proposed", runResult(
-        "Structured fallback must not replace the reply.",
-      )),
+      event(
+        2,
+        "run.result.proposed",
+        runResult("Structured fallback must not replace the reply."),
+      ),
     ]);
     expect(transcript).toEqual([
       expect.objectContaining({
@@ -581,7 +665,9 @@ describe("nativeRunEventsToTranscript", () => {
         summary: "Structured fallback must not replace the reply.",
       }),
     ]);
-    expect(transcript.filter((entry) => entry.kind === "assistant")).toHaveLength(1);
+    expect(
+      transcript.filter((entry) => entry.kind === "assistant"),
+    ).toHaveLength(1);
   });
 
   it("sums run deltas without leaking session-cumulative usage", () => {
@@ -682,10 +768,18 @@ describe("nativeRunEventsToTranscript", () => {
     const transcript = nativeRunEventsToTranscript([
       event(1, "usage.reported", {
         runDelta: { inputTokens: 12, outputTokens: 3, providerCostUsd: 0.01 },
-        cumulative: { inputTokens: 112, outputTokens: 53, providerCostUsd: 1.01 },
+        cumulative: {
+          inputTokens: 112,
+          outputTokens: 53,
+          providerCostUsd: 1.01,
+        },
       }),
       event(2, "usage.reported", {
-        runDelta: { inputTokens: 116, outputTokens: 55, providerCostUsd: 1.015 },
+        runDelta: {
+          inputTokens: 116,
+          outputTokens: 55,
+          providerCostUsd: 1.015,
+        },
       }),
     ]);
 
@@ -701,9 +795,11 @@ describe("nativeRunEventsToTranscript", () => {
   });
 
   it("uses the structured run summary when no agent message was emitted", () => {
-    expect(nativeRunEventsToTranscript([
-      event(1, "run.result.proposed", runResult("Recovered final reply.")),
-    ])).toEqual([
+    expect(
+      nativeRunEventsToTranscript([
+        event(1, "run.result.proposed", runResult("Recovered final reply.")),
+      ]),
+    ).toEqual([
       expect.objectContaining({
         kind: "run_result",
         summary: "Recovered final reply.",
@@ -717,14 +813,16 @@ describe("nativeRunEventsToTranscript", () => {
   });
 
   it("prefers an explicit final item completed after the result proposal", () => {
-    expect(nativeRunEventsToTranscript([
-      event(1, "run.result.proposed", runResult("Structured fallback.")),
-      itemEvent(2, "item.completed", "message-final", {
-        kind: "assistant_message",
-        channel: "final",
-        text: "The complete final reply.",
-      }),
-    ])).toEqual([
+    expect(
+      nativeRunEventsToTranscript([
+        event(1, "run.result.proposed", runResult("Structured fallback.")),
+        itemEvent(2, "item.completed", "message-final", {
+          kind: "assistant_message",
+          channel: "final",
+          text: "The complete final reply.",
+        }),
+      ]),
+    ).toEqual([
       expect.objectContaining({
         kind: "run_result",
         summary: "Structured fallback.",
@@ -738,16 +836,18 @@ describe("nativeRunEventsToTranscript", () => {
   });
 
   it("does not append a fallback after a channel-less final delta", () => {
-    expect(nativeRunEventsToTranscript([
-      itemEvent(1, "item.started", "message-final", {
-        kind: "assistant_message",
-        text: "",
-      }),
-      itemEvent(2, "item.delta", "message-final", {
-        text: "Streamed final reply.",
-      }),
-      event(3, "run.result.proposed", runResult("Structured fallback.")),
-    ])).toEqual([
+    expect(
+      nativeRunEventsToTranscript([
+        itemEvent(1, "item.started", "message-final", {
+          kind: "assistant_message",
+          text: "",
+        }),
+        itemEvent(2, "item.delta", "message-final", {
+          text: "Streamed final reply.",
+        }),
+        event(3, "run.result.proposed", runResult("Structured fallback.")),
+      ]),
+    ).toEqual([
       expect.objectContaining({
         kind: "assistant",
         text: "Streamed final reply.",
@@ -762,17 +862,19 @@ describe("nativeRunEventsToTranscript", () => {
   });
 
   it("keeps progress separate from the final runner response", () => {
-    expect(nativeRunEventsToTranscript([
-      event(1, "item.completed", {
-        itemId: "progress-1",
-        kind: "agentMessage",
-        channel: "progress",
-        text: "Checking the implementation.",
-      }),
-      event(2, "run.result.accepted", {
-        result: runResult("The implementation is ready."),
-      }),
-    ])).toEqual([
+    expect(
+      nativeRunEventsToTranscript([
+        event(1, "item.completed", {
+          itemId: "progress-1",
+          kind: "agentMessage",
+          channel: "progress",
+          text: "Checking the implementation.",
+        }),
+        event(2, "run.result.accepted", {
+          result: runResult("The implementation is ready."),
+        }),
+      ]),
+    ).toEqual([
       expect.objectContaining({
         kind: "assistant",
         text: "Checking the implementation.",
@@ -791,20 +893,22 @@ describe("nativeRunEventsToTranscript", () => {
   });
 
   it("projects provider-neutral activity without exposing provider envelopes", () => {
-    expect(nativeRunEventsToTranscript([
-      event(1, "research.started", {
-        schema: "taskcore.research.v1",
-        researchId: "research-1",
-        query: "current behavior",
-        status: "running",
-      }),
-      event(2, "research.completed", {
-        schema: "taskcore.research.v1",
-        researchId: "research-1",
-        query: "current behavior",
-        status: "completed",
-      }),
-    ])).toEqual([
+    expect(
+      nativeRunEventsToTranscript([
+        event(1, "research.started", {
+          schema: "taskcore.research.v1",
+          researchId: "research-1",
+          query: "current behavior",
+          status: "running",
+        }),
+        event(2, "research.completed", {
+          schema: "taskcore.research.v1",
+          researchId: "research-1",
+          query: "current behavior",
+          status: "completed",
+        }),
+      ]),
+    ).toEqual([
       expect.objectContaining({
         kind: "tool_call",
         name: "research",
@@ -821,14 +925,16 @@ describe("nativeRunEventsToTranscript", () => {
   it.each(["running", "pending", "in_progress"])(
     "keeps an explicitly %s activity open even when its event suffix looks terminal",
     (status) => {
-      expect(nativeRunEventsToTranscript([
-        event(1, "artifact.generated", {
-          schema: "taskcore.artifact.generated.v1",
-          artifactId: "artifact-1",
-          status,
-          reference: "artifacts/preview.png",
-        }),
-      ])).toEqual([
+      expect(
+        nativeRunEventsToTranscript([
+          event(1, "artifact.generated", {
+            schema: "taskcore.artifact.generated.v1",
+            artifactId: "artifact-1",
+            status,
+            reference: "artifacts/preview.png",
+          }),
+        ]),
+      ).toEqual([
         expect.objectContaining({
           kind: "tool_call",
           toolUseId: "artifact:artifact-1",
@@ -844,48 +950,54 @@ describe("nativeRunEventsToTranscript", () => {
       status: "completed",
       summary: "must not render",
     });
-    (unsupportedVersion.payload!.prpEvent as Record<string, unknown>).schemaVersion = 2;
+    (
+      unsupportedVersion.payload!.prpEvent as Record<string, unknown>
+    ).schemaVersion = 2;
 
-    expect(nativeRunEventsToTranscript([
-      unsupportedVersion,
-      event(2, "model.provider_message.recorded", {
-        schema: "taskcore.model.provider_message.v1",
-        routeId: "route-1",
-        message: "provider envelope must not render",
-      }),
-      event(3, "model.verification.updated", {
-        schema: "taskcore.provider.native.v1",
-        verificationId: "verification-2",
-        status: "completed",
-        summary: "wrong payload schema must not render",
-      }),
-    ])).toEqual([]);
+    expect(
+      nativeRunEventsToTranscript([
+        unsupportedVersion,
+        event(2, "model.provider_message.recorded", {
+          schema: "taskcore.model.provider_message.v1",
+          routeId: "route-1",
+          message: "provider envelope must not render",
+        }),
+        event(3, "model.verification.updated", {
+          schema: "taskcore.provider.native.v1",
+          verificationId: "verification-2",
+          status: "completed",
+          summary: "wrong payload schema must not render",
+        }),
+      ]),
+    ).toEqual([]);
   });
 
   it("fails closed for mismatched tool execution and run result schemas", () => {
-    expect(nativeRunEventsToTranscript([
-      event(1, "tool.execution.started", {
-        schema: "taskcore.provider.native.v1",
-        executionId: "exec-1",
-        transport: "process",
-        operation: "execute",
-        status: "running",
-      }),
-      event(2, "run.result.proposed", {
-        schema: "taskcore.provider.native.v1",
-        summary: "malformed proposal must not render",
-      }),
-      event(3, "run.result.accepted", {
-        result: {
+    expect(
+      nativeRunEventsToTranscript([
+        event(1, "tool.execution.started", {
           schema: "taskcore.provider.native.v1",
-          summary: "malformed accepted result must not render",
-        },
-      }),
-      event(4, "run.result.accepted", {
-        schema: "taskcore.run_result.v1",
-        summary: "accepted wrappers must not masquerade as results",
-      }),
-    ])).toEqual([]);
+          executionId: "exec-1",
+          transport: "process",
+          operation: "execute",
+          status: "running",
+        }),
+        event(2, "run.result.proposed", {
+          schema: "taskcore.provider.native.v1",
+          summary: "malformed proposal must not render",
+        }),
+        event(3, "run.result.accepted", {
+          result: {
+            schema: "taskcore.provider.native.v1",
+            summary: "malformed accepted result must not render",
+          },
+        }),
+        event(4, "run.result.accepted", {
+          schema: "taskcore.run_result.v1",
+          summary: "accepted wrappers must not masquerade as results",
+        }),
+      ]),
+    ).toEqual([]);
   });
 
   it("fails closed for malformed, mismatched, and unknown event envelopes", () => {
@@ -894,61 +1006,72 @@ describe("nativeRunEventsToTranscript", () => {
       kind: "agentMessage",
       text: "must not render",
     });
-    (mismatched.payload!.prpEvent as Record<string, unknown>).runId = "other-run";
+    (mismatched.payload!.prpEvent as Record<string, unknown>).runId =
+      "other-run";
     const malformed = event(2, "item.delta", {});
     malformed.payload = { providerNativeSecret: "must not render" };
 
-    expect(nativeRunEventsToTranscript([
-      mismatched,
-      malformed,
-      event(3, "extension.unknown", { explanation: "not a transcript row" }),
-    ])).toEqual([]);
+    expect(
+      nativeRunEventsToTranscript([
+        mismatched,
+        malformed,
+        event(3, "extension.unknown", { explanation: "not a transcript row" }),
+      ]),
+    ).toEqual([]);
   });
 
   it("projects structured questions through resolution without losing identity", () => {
-    expect(nativeRunEventsToTranscript([
-      event(1, "runtime_request.created", {
-        request: {
-          schema: "taskcore.runtime_request.v1",
-          requestId: "question-1",
-          requestKind: "elicitation",
-          type: "input",
-          status: "pending",
-          prompt: "Choose a rollout",
-          input: {
-            schema: "taskcore.question_set.v1",
-            questions: [{
-              id: "rollout",
-              prompt: "Which rollout?",
-              required: true,
-              answerMode: "single_select",
-              options: [{ id: "safe", label: "Safe" }],
-            }],
+    expect(
+      nativeRunEventsToTranscript([
+        event(1, "runtime_request.created", {
+          request: {
+            schema: "taskcore.runtime_request.v1",
+            requestId: "question-1",
+            requestKind: "elicitation",
+            type: "input",
+            status: "pending",
+            prompt: "Choose a rollout",
+            input: {
+              schema: "taskcore.question_set.v1",
+              questions: [
+                {
+                  id: "rollout",
+                  prompt: "Which rollout?",
+                  required: true,
+                  answerMode: "single_select",
+                  options: [{ id: "safe", label: "Safe" }],
+                },
+              ],
+            },
           },
-        },
-      }),
-      event(2, "runtime_request.resolved", {
-        request: {
-          requestId: "question-1",
-          status: "resolved",
-          response: {
-            schema: "taskcore.question_response.v1",
-            answers: { rollout: { selectedOptionIds: ["safe"] } },
+        }),
+        event(2, "runtime_request.resolved", {
+          request: {
+            requestId: "question-1",
+            status: "resolved",
+            response: {
+              schema: "taskcore.question_response.v1",
+              answers: { rollout: { selectedOptionIds: ["safe"] } },
+            },
           },
-        },
-      }),
-    ])).toEqual([
+        }),
+      ]),
+    ).toEqual([
       expect.objectContaining({
         kind: "runtime_request",
         requestId: "question-1",
         status: "pending",
-        questionSet: expect.objectContaining({ schema: "taskcore.question_set.v1" }),
+        questionSet: expect.objectContaining({
+          schema: "taskcore.question_set.v1",
+        }),
       }),
       expect.objectContaining({
         kind: "runtime_request",
         requestId: "question-1",
         status: "resolved",
-        response: expect.objectContaining({ schema: "taskcore.question_response.v1" }),
+        response: expect.objectContaining({
+          schema: "taskcore.question_response.v1",
+        }),
       }),
     ]);
   });
@@ -960,19 +1083,21 @@ describe("nativeRunEventsToTranscript", () => {
   ] as const)(
     "projects a visible %s terminal state",
     (turnTerminalState, runTerminalState, expectedRunState) => {
-      expect(nativeRunEventsToTranscript([
-        event(1, "run.terminal", {
-          schema: "taskcore.prp.terminal.v1",
-          turnTerminalState,
-          runTerminalState,
-          reportedWorkDisposition: "needs_review",
-          stopReason: {
-            schema: "taskcore.stop_reason.v1",
-            code: "provider_failed",
-            message: "Provider could not finish the turn.",
-          },
-        }),
-      ])).toEqual([
+      expect(
+        nativeRunEventsToTranscript([
+          event(1, "run.terminal", {
+            schema: "taskcore.prp.terminal.v1",
+            turnTerminalState,
+            runTerminalState,
+            reportedWorkDisposition: "needs_review",
+            stopReason: {
+              schema: "taskcore.stop_reason.v1",
+              code: "provider_failed",
+              message: "Provider could not finish the turn.",
+            },
+          }),
+        ]),
+      ).toEqual([
         expect.objectContaining({
           kind: "run_terminal",
           turnState: turnTerminalState,
@@ -984,13 +1109,15 @@ describe("nativeRunEventsToTranscript", () => {
   );
 
   it("fails closed instead of presenting malformed terminal state as success", () => {
-    expect(nativeRunEventsToTranscript([
-      event(1, "run.terminal", {
-        schema: "taskcore.prp.terminal.v1",
-        turnTerminalState: "mystery",
-        runTerminalState: "successful-ish",
-        reportedWorkDisposition: "done",
-      }),
-    ])).toEqual([]);
+    expect(
+      nativeRunEventsToTranscript([
+        event(1, "run.terminal", {
+          schema: "taskcore.prp.terminal.v1",
+          turnTerminalState: "mystery",
+          runTerminalState: "successful-ish",
+          reportedWorkDisposition: "done",
+        }),
+      ]),
+    ).toEqual([]);
   });
 });

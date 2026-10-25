@@ -38,7 +38,10 @@ type BetterAuthGetSessionApi = {
   getSession?: (input: { headers: Headers }) => Promise<unknown>;
 };
 
-type BetterAuthHandlerTarget = Extract<Parameters<typeof toNodeHandler>[0], { handler: Auth["handler"] }>;
+type BetterAuthHandlerTarget = Extract<
+  Parameters<typeof toNodeHandler>[0],
+  { handler: Auth["handler"] }
+>;
 
 type BetterAuthSessionResolver = {
   api?: BetterAuthGetSessionApi;
@@ -49,15 +52,20 @@ type BetterAuthInstance = BetterAuthHandlerTarget & BetterAuthSessionResolver;
 const AUTH_COOKIE_PREFIX_FALLBACK = "default";
 const AUTH_COOKIE_PREFIX_INVALID_SEGMENTS_RE = /[^a-zA-Z0-9_-]+/g;
 
-export function deriveAuthCookiePrefix(instanceId = resolveTaskcoreInstanceId()): string {
-  const scopedInstanceId = instanceId
-    .trim()
-    .replace(AUTH_COOKIE_PREFIX_INVALID_SEGMENTS_RE, "-")
-    .replace(/^-+|-+$/g, "") || AUTH_COOKIE_PREFIX_FALLBACK;
+export function deriveAuthCookiePrefix(
+  instanceId = resolveTaskcoreInstanceId(),
+): string {
+  const scopedInstanceId =
+    instanceId
+      .trim()
+      .replace(AUTH_COOKIE_PREFIX_INVALID_SEGMENTS_RE, "-")
+      .replace(/^-+|-+$/g, "") || AUTH_COOKIE_PREFIX_FALLBACK;
   return `taskcore-${scopedInstanceId}`;
 }
 
-export function buildBetterAuthAdvancedOptions(input: { disableSecureCookies: boolean }) {
+export function buildBetterAuthAdvancedOptions(input: {
+  disableSecureCookies: boolean;
+}) {
   return {
     cookiePrefix: deriveAuthCookiePrefix(),
     ...(input.disableSecureCookies ? { useSecureCookies: false } : {}),
@@ -95,10 +103,11 @@ export function shouldDisableSecureAuthCookies(input: {
   managedRuntimePublicUrl?: string | undefined;
   requestUrl?: string | undefined;
 }): boolean {
-  const publicUrl = (
+  const publicUrl =
     input.publicUrl?.trim() ||
-    (input.authBaseUrlMode === "explicit" ? input.authPublicBaseUrl?.trim() : "")
-  );
+    (input.authBaseUrlMode === "explicit"
+      ? input.authPublicBaseUrl?.trim()
+      : "");
   if (
     input.deploymentMode === "authenticated" &&
     isHttpsUrl(publicUrl) &&
@@ -111,10 +120,9 @@ export function shouldDisableSecureAuthCookies(input: {
 
   return (
     input.deploymentMode === "authenticated" &&
-    (
-      (input.deploymentExposure === "private" && input.authBaseUrlMode === "auto") ||
-      input.deploymentExposure === undefined
-    )
+    ((input.deploymentExposure === "private" &&
+      input.authBaseUrlMode === "auto") ||
+      input.deploymentExposure === undefined)
   );
 }
 
@@ -151,16 +159,23 @@ function requestUrlFromHeaders(headers: Headers): string | undefined {
   const host = headers.get("host")?.trim();
   if (!host) return undefined;
 
-  const forwardedProtocol = headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim().toLowerCase();
-  const protocol = forwardedProtocol === "http" || forwardedProtocol === "https"
-    ? forwardedProtocol
-    : (() => {
-      try {
-        return isLoopbackHostname(new URL(`http://${host}`).hostname) ? "http" : "https";
-      } catch {
-        return "https";
-      }
-    })();
+  const forwardedProtocol = headers
+    .get("x-forwarded-proto")
+    ?.split(",", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  const protocol =
+    forwardedProtocol === "http" || forwardedProtocol === "https"
+      ? forwardedProtocol
+      : (() => {
+          try {
+            return isLoopbackHostname(new URL(`http://${host}`).hostname)
+              ? "http"
+              : "https";
+          } catch {
+            return "https";
+          }
+        })();
   return `${protocol}://${host}`;
 }
 
@@ -181,8 +196,14 @@ function headersFromExpressRequest(req: Request): Headers {
   return headersFromNodeHeaders(req.headers);
 }
 
-export function deriveAuthTrustedOrigins(config: Config, opts?: { listenPort?: number }): string[] {
-  const baseUrl = config.authBaseUrlMode === "explicit" ? config.authPublicBaseUrl : undefined;
+export function deriveAuthTrustedOrigins(
+  config: Config,
+  opts?: { listenPort?: number },
+): string[] {
+  const baseUrl =
+    config.authBaseUrlMode === "explicit"
+      ? config.authPublicBaseUrl
+      : undefined;
   const trustedOrigins = new Set<string>();
 
   if (baseUrl) {
@@ -225,8 +246,8 @@ export function resolveWorkspaceHandoffIdentity(
   const key = resolveWorkspaceHandoffLocalKey(env);
   if (!key) return null;
   const configuredOrigin =
-    normalizeWorkspaceHandoffOrigin(env.TASKCORE_PUBLIC_URL)
-    ?? (config.authBaseUrlMode === "explicit"
+    normalizeWorkspaceHandoffOrigin(env.TASKCORE_PUBLIC_URL) ??
+    (config.authBaseUrlMode === "explicit"
       ? normalizeWorkspaceHandoffOrigin(config.authPublicBaseUrl)
       : null);
   return {
@@ -238,15 +259,24 @@ export function resolveWorkspaceHandoffIdentity(
   };
 }
 
-export function createBetterAuthInstance(db: Db, config: Config, trustedOrigins: string[]): BetterAuthInstance {
-  const baseUrl = config.authBaseUrlMode === "explicit" ? config.authPublicBaseUrl : undefined;
+export function createBetterAuthInstance(
+  db: Db,
+  config: Config,
+  trustedOrigins: string[],
+): BetterAuthInstance {
+  const baseUrl =
+    config.authBaseUrlMode === "explicit"
+      ? config.authPublicBaseUrl
+      : undefined;
   const publicUrl = process.env.TASKCORE_PUBLIC_URL?.trim() || baseUrl;
-  const managedRuntimePublicUrl = process.env.TASKCORE_MANAGED_RUNTIME_PUBLIC_URL?.trim() || undefined;
-  const secret = process.env.BETTER_AUTH_SECRET ?? process.env.TASKCORE_AGENT_JWT_SECRET;
+  const managedRuntimePublicUrl =
+    process.env.TASKCORE_MANAGED_RUNTIME_PUBLIC_URL?.trim() || undefined;
+  const secret =
+    process.env.BETTER_AUTH_SECRET ?? process.env.TASKCORE_AGENT_JWT_SECRET;
   if (!secret) {
     throw new Error(
       "BETTER_AUTH_SECRET (or TASKCORE_AGENT_JWT_SECRET) must be set. " +
-      "For local development, set BETTER_AUTH_SECRET=taskcore-dev-secret in your .env file.",
+        "For local development, set BETTER_AUTH_SECRET=taskcore-dev-secret in your .env file.",
     );
   }
   const disableSecureCookies = shouldDisableSecureAuthCookies({
@@ -338,7 +368,9 @@ export function createBetterAuthInstance(db: Db, config: Config, trustedOrigins:
       const auth = shouldDisableSecureAuthCookies({
         ...cookieSecurityInput,
         requestUrl: request.url,
-      }) ? loopbackAuth : defaultAuth;
+      })
+        ? loopbackAuth
+        : defaultAuth;
       return auth.handler(request);
     },
     api: {
@@ -346,14 +378,18 @@ export function createBetterAuthInstance(db: Db, config: Config, trustedOrigins:
         const auth = shouldDisableSecureAuthCookies({
           ...cookieSecurityInput,
           requestUrl: requestUrlFromHeaders(input.headers),
-        }) ? loopbackAuth : defaultAuth;
+        })
+          ? loopbackAuth
+          : defaultAuth;
         return auth.api.getSession(input);
       },
     },
   };
 }
 
-export function createBetterAuthHandler(auth: BetterAuthHandlerTarget): RequestHandler {
+export function createBetterAuthHandler(
+  auth: BetterAuthHandlerTarget,
+): RequestHandler {
   const handler = toNodeHandler(auth);
   return (req, res, next) => {
     void Promise.resolve(handler(req, res)).catch(next);
@@ -376,9 +412,10 @@ export async function resolveBetterAuthSessionFromHeaders(
     session?: { id?: string; userId?: string } | null;
     user?: { id?: string; email?: string | null; name?: string | null } | null;
   };
-  const session = value.session?.id && value.session.userId
-    ? { id: value.session.id, userId: value.session.userId }
-    : null;
+  const session =
+    value.session?.id && value.session.userId
+      ? { id: value.session.id, userId: value.session.userId }
+      : null;
   const user = value.user?.id
     ? {
         id: value.user.id,
@@ -395,5 +432,8 @@ export async function resolveBetterAuthSession(
   auth: BetterAuthSessionResolver,
   req: Request,
 ): Promise<BetterAuthSessionResult | null> {
-  return resolveBetterAuthSessionFromHeaders(auth, headersFromExpressRequest(req));
+  return resolveBetterAuthSessionFromHeaders(
+    auth,
+    headersFromExpressRequest(req),
+  );
 }

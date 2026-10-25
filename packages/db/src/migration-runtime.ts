@@ -2,7 +2,10 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 import { ensurePostgresDatabase, getPostgresDataDirectory } from "./client.js";
-import { createEmbeddedPostgresLogBuffer, formatEmbeddedPostgresError } from "./embedded-postgres-error.js";
+import {
+  createEmbeddedPostgresLogBuffer,
+  formatEmbeddedPostgresError,
+} from "./embedded-postgres-error.js";
 import { prepareEmbeddedPostgresNativeRuntime } from "./embedded-postgres-native.js";
 import { resolveDatabaseTarget } from "./runtime-config.js";
 
@@ -32,7 +35,9 @@ export type MigrationConnection = {
 function readRunningPostmasterPid(postmasterPidFile: string): number | null {
   if (!existsSync(postmasterPidFile)) return null;
   try {
-    const pid = Number(readFileSync(postmasterPidFile, "utf8").split("\n")[0]?.trim());
+    const pid = Number(
+      readFileSync(postmasterPidFile, "utf8").split("\n")[0]?.trim(),
+    );
     if (!Number.isInteger(pid) || pid <= 0) return null;
     process.kill(pid, 0);
     return pid;
@@ -104,12 +109,16 @@ async function ensureEmbeddedPostgresConnection(
 
   if (!runningPid && existsSync(pgVersionFile)) {
     try {
-      const actualDataDir = await getPostgresDataDirectory(preferredAdminConnectionString);
+      const actualDataDir = await getPostgresDataDirectory(
+        preferredAdminConnectionString,
+      );
       const matchesDataDir =
         typeof actualDataDir === "string" &&
         path.resolve(actualDataDir) === path.resolve(dataDir);
       if (!matchesDataDir) {
-        throw new Error("reachable postgres does not use the expected embedded data directory");
+        throw new Error(
+          "reachable postgres does not use the expected embedded data directory",
+        );
       }
       await ensurePostgresDatabase(preferredAdminConnectionString, "taskcore");
       process.emitWarning(
@@ -152,8 +161,7 @@ async function ensureEmbeddedPostgresConnection(
       await instance.initialise();
     } catch (error) {
       throw formatEmbeddedPostgresError(error, {
-        fallbackMessage:
-          `Failed to initialize embedded PostgreSQL cluster in ${dataDir} on port ${selectedPort}`,
+        fallbackMessage: `Failed to initialize embedded PostgreSQL cluster in ${dataDir} on port ${selectedPort}`,
         recentLogs: logBuffer.getRecentLogs(),
       });
     }

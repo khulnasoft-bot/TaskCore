@@ -10,112 +10,155 @@ import {
 } from "./constants.js";
 import { validateConfiguredBindMode } from "./network-bind.js";
 
-export const configMetaSchema = z.object({
-  version: z.literal(1),
-  updatedAt: z.string(),
-  source: z.enum(["onboard", "configure", "doctor"]),
-}).passthrough();
+export const configMetaSchema = z
+  .object({
+    version: z.literal(1),
+    updatedAt: z.string(),
+    source: z.enum(["onboard", "configure", "doctor"]),
+  })
+  .passthrough();
 
-export const llmConfigSchema = z.object({
-  provider: z.enum(["claude", "openai"]),
-  apiKey: z.string().optional(),
-}).passthrough();
+export const llmConfigSchema = z
+  .object({
+    provider: z.enum(["claude", "openai"]),
+    apiKey: z.string().optional(),
+  })
+  .passthrough();
 
-export const databaseBackupConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-  intervalMinutes: z.number().int().min(1).max(7 * 24 * 60).default(60),
-  retentionDays: z.number().int().min(1).max(3650).default(7),
-  dir: z.string().default("~/.taskcore/instances/default/data/backups"),
-}).passthrough();
+export const databaseBackupConfigSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    intervalMinutes: z
+      .number()
+      .int()
+      .min(1)
+      .max(7 * 24 * 60)
+      .default(60),
+    retentionDays: z.number().int().min(1).max(3650).default(7),
+    dir: z.string().default("~/.taskcore/instances/default/data/backups"),
+  })
+  .passthrough();
 
-export const databaseConfigSchema = z.object({
-  mode: z.enum(["embedded-postgres", "postgres"]).default("embedded-postgres"),
-  connectionString: z.string().optional(),
-  embeddedPostgresDataDir: z.string().default("~/.taskcore/instances/default/db"),
-  embeddedPostgresPort: z.number().int().min(1).max(65535).default(54329),
-  backup: databaseBackupConfigSchema.default({
-    enabled: true,
-    intervalMinutes: 60,
-    retentionDays: 7,
-    dir: "~/.taskcore/instances/default/data/backups",
-  }),
-}).passthrough();
+export const databaseConfigSchema = z
+  .object({
+    mode: z
+      .enum(["embedded-postgres", "postgres"])
+      .default("embedded-postgres"),
+    connectionString: z.string().optional(),
+    embeddedPostgresDataDir: z
+      .string()
+      .default("~/.taskcore/instances/default/db"),
+    embeddedPostgresPort: z.number().int().min(1).max(65535).default(54329),
+    backup: databaseBackupConfigSchema.default({
+      enabled: true,
+      intervalMinutes: 60,
+      retentionDays: 7,
+      dir: "~/.taskcore/instances/default/data/backups",
+    }),
+  })
+  .passthrough();
 
-export const loggingConfigSchema = z.object({
-  mode: z.enum(["file", "cloud"]),
-  logDir: z.string().default("~/.taskcore/instances/default/logs"),
-}).passthrough();
+export const loggingConfigSchema = z
+  .object({
+    mode: z.enum(["file", "cloud"]),
+    logDir: z.string().default("~/.taskcore/instances/default/logs"),
+  })
+  .passthrough();
 
-export const serverConfigSchema = z.object({
-  deploymentMode: z.enum(DEPLOYMENT_MODES).default("local_trusted"),
-  exposure: z.enum(DEPLOYMENT_EXPOSURES).default("private"),
-  bind: z.enum(BIND_MODES).optional(),
-  customBindHost: z.string().optional(),
-  host: z.string().default("127.0.0.1"),
-  port: z.number().int().min(1).max(65535).default(3100),
-  allowedHostnames: z.array(z.string().min(1)).default([]),
-  serveUi: z.boolean().default(true),
-}).passthrough();
+export const serverConfigSchema = z
+  .object({
+    deploymentMode: z.enum(DEPLOYMENT_MODES).default("local_trusted"),
+    exposure: z.enum(DEPLOYMENT_EXPOSURES).default("private"),
+    bind: z.enum(BIND_MODES).optional(),
+    customBindHost: z.string().optional(),
+    host: z.string().default("127.0.0.1"),
+    port: z.number().int().min(1).max(65535).default(3100),
+    allowedHostnames: z.array(z.string().min(1)).default([]),
+    serveUi: z.boolean().default(true),
+  })
+  .passthrough();
 
-export const authConfigSchema = z.object({
-  baseUrlMode: z.enum(AUTH_BASE_URL_MODES).default("auto"),
-  publicBaseUrl: z.string().url().optional(),
-  disableSignUp: z.boolean().default(false),
-}).passthrough();
+export const authConfigSchema = z
+  .object({
+    baseUrlMode: z.enum(AUTH_BASE_URL_MODES).default("auto"),
+    publicBaseUrl: z.string().url().optional(),
+    disableSignUp: z.boolean().default(false),
+  })
+  .passthrough();
 
-export const storageLocalDiskConfigSchema = z.object({
-  baseDir: z.string().default("~/.taskcore/instances/default/data/storage"),
-}).passthrough();
+export const storageLocalDiskConfigSchema = z
+  .object({
+    baseDir: z.string().default("~/.taskcore/instances/default/data/storage"),
+  })
+  .passthrough();
 
-export const storageS3ConfigSchema = z.object({
-  bucket: z.string().min(1).default("taskcore"),
-  region: z.string().min(1).default("us-east-1"),
-  endpoint: z.string().optional(),
-  prefix: z.string().default(""),
-  forcePathStyle: z.boolean().default(false),
-}).passthrough();
+export const storageS3ConfigSchema = z
+  .object({
+    bucket: z.string().min(1).default("taskcore"),
+    region: z.string().min(1).default("us-east-1"),
+    endpoint: z.string().optional(),
+    prefix: z.string().default(""),
+    forcePathStyle: z.boolean().default(false),
+  })
+  .passthrough();
 
-export const storageVercelBlobConfigSchema = z.object({
-  access: z.enum(STORAGE_VERCEL_BLOB_ACCESS_MODES).default("private"),
-  prefix: z.string().default(""),
-}).passthrough();
+export const storageVercelBlobConfigSchema = z
+  .object({
+    access: z.enum(STORAGE_VERCEL_BLOB_ACCESS_MODES).default("private"),
+    prefix: z.string().default(""),
+  })
+  .passthrough();
 
-export const storageConfigSchema = z.object({
-  provider: z.enum(STORAGE_PROVIDERS).default("local_disk"),
-  localDisk: storageLocalDiskConfigSchema.default({
-    baseDir: "~/.taskcore/instances/default/data/storage",
-  }),
-  s3: storageS3ConfigSchema.default({
-    bucket: "taskcore",
-    region: "us-east-1",
-    prefix: "",
-    forcePathStyle: false,
-  }),
-  vercelBlob: storageVercelBlobConfigSchema.default({
-    access: "private",
-    prefix: "",
-  }),
-}).passthrough();
+export const storageConfigSchema = z
+  .object({
+    provider: z.enum(STORAGE_PROVIDERS).default("local_disk"),
+    localDisk: storageLocalDiskConfigSchema.default({
+      baseDir: "~/.taskcore/instances/default/data/storage",
+    }),
+    s3: storageS3ConfigSchema.default({
+      bucket: "taskcore",
+      region: "us-east-1",
+      prefix: "",
+      forcePathStyle: false,
+    }),
+    vercelBlob: storageVercelBlobConfigSchema.default({
+      access: "private",
+      prefix: "",
+    }),
+  })
+  .passthrough();
 
-export const secretsLocalEncryptedConfigSchema = z.object({
-  keyFilePath: z.string().default("~/.taskcore/instances/default/secrets/master.key"),
-}).passthrough();
+export const secretsLocalEncryptedConfigSchema = z
+  .object({
+    keyFilePath: z
+      .string()
+      .default("~/.taskcore/instances/default/secrets/master.key"),
+  })
+  .passthrough();
 
-export const secretsConfigSchema = z.object({
-  provider: z.enum(SECRET_PROVIDERS).default("local_encrypted"),
-  strictMode: z.boolean().default(false),
-  localEncrypted: secretsLocalEncryptedConfigSchema.default({
-    keyFilePath: "~/.taskcore/instances/default/secrets/master.key",
-  }),
-}).passthrough();
+export const secretsConfigSchema = z
+  .object({
+    provider: z.enum(SECRET_PROVIDERS).default("local_encrypted"),
+    strictMode: z.boolean().default(false),
+    localEncrypted: secretsLocalEncryptedConfigSchema.default({
+      keyFilePath: "~/.taskcore/instances/default/secrets/master.key",
+    }),
+  })
+  .passthrough();
 
-export const telemetryConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-}).passthrough().prefault({});
+export const telemetryConfigSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+  })
+  .passthrough()
+  .prefault({});
 
-export const updatesConfigSchema = z.object({
-  checkEnabled: z.boolean().default(true),
-}).passthrough().prefault({});
+export const updatesConfigSchema = z
+  .object({
+    checkEnabled: z.boolean().default(true),
+  })
+  .passthrough()
+  .prefault({});
 
 export const taskcoreConfigSchema = z
   .object({
@@ -156,10 +199,14 @@ export const taskcoreConfigSchema = z
   })
   .passthrough()
   .superRefine((value, ctx) => {
-    if (value.server.deploymentMode === "local_trusted" && value.server.exposure !== "private") {
+    if (
+      value.server.deploymentMode === "local_trusted" &&
+      value.server.exposure !== "private"
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "server.exposure must be private when deploymentMode is local_trusted",
+        message:
+          "server.exposure must be private when deploymentMode is local_trusted",
         path: ["server", "exposure"],
       });
     }
@@ -174,22 +221,29 @@ export const taskcoreConfigSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message,
-        path: message.includes("customBindHost") ? ["server", "customBindHost"] : ["server", "bind"],
+        path: message.includes("customBindHost")
+          ? ["server", "customBindHost"]
+          : ["server", "bind"],
       });
     }
 
     if (value.auth.baseUrlMode === "explicit" && !value.auth.publicBaseUrl) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "auth.publicBaseUrl is required when auth.baseUrlMode is explicit",
+        message:
+          "auth.publicBaseUrl is required when auth.baseUrlMode is explicit",
         path: ["auth", "publicBaseUrl"],
       });
     }
 
-    if (value.server.exposure === "public" && value.auth.baseUrlMode !== "explicit") {
+    if (
+      value.server.exposure === "public" &&
+      value.auth.baseUrlMode !== "explicit"
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "auth.baseUrlMode must be explicit when deploymentMode=authenticated and exposure=public",
+        message:
+          "auth.baseUrlMode must be explicit when deploymentMode=authenticated and exposure=public",
         path: ["auth", "baseUrlMode"],
       });
     }
@@ -197,7 +251,8 @@ export const taskcoreConfigSchema = z
     if (value.server.exposure === "public" && !value.auth.publicBaseUrl) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "auth.publicBaseUrl is required when deploymentMode=authenticated and exposure=public",
+        message:
+          "auth.publicBaseUrl is required when deploymentMode=authenticated and exposure=public",
         path: ["auth", "publicBaseUrl"],
       });
     }
@@ -209,11 +264,17 @@ export type DatabaseConfig = z.infer<typeof databaseConfigSchema>;
 export type LoggingConfig = z.infer<typeof loggingConfigSchema>;
 export type ServerConfig = z.infer<typeof serverConfigSchema>;
 export type StorageConfig = z.infer<typeof storageConfigSchema>;
-export type StorageLocalDiskConfig = z.infer<typeof storageLocalDiskConfigSchema>;
+export type StorageLocalDiskConfig = z.infer<
+  typeof storageLocalDiskConfigSchema
+>;
 export type StorageS3Config = z.infer<typeof storageS3ConfigSchema>;
-export type StorageVercelBlobConfig = z.infer<typeof storageVercelBlobConfigSchema>;
+export type StorageVercelBlobConfig = z.infer<
+  typeof storageVercelBlobConfigSchema
+>;
 export type SecretsConfig = z.infer<typeof secretsConfigSchema>;
-export type SecretsLocalEncryptedConfig = z.infer<typeof secretsLocalEncryptedConfigSchema>;
+export type SecretsLocalEncryptedConfig = z.infer<
+  typeof secretsLocalEncryptedConfigSchema
+>;
 export type AuthConfig = z.infer<typeof authConfigSchema>;
 export type TelemetryConfig = z.infer<typeof telemetryConfigSchema>;
 export type UpdatesConfig = z.infer<typeof updatesConfigSchema>;
@@ -259,7 +320,11 @@ function mergeUnknownConfigKeys(
 
     const updateValue = update[key];
     if (isRecord(sourceValue) && isRecord(updateValue)) {
-      merged[key] = mergeUnknownConfigKeys(sourceValue, updateValue, childSchema);
+      merged[key] = mergeUnknownConfigKeys(
+        sourceValue,
+        updateValue,
+        childSchema,
+      );
     }
   }
 
@@ -288,12 +353,16 @@ export type ConfigKeyWarning = {
 };
 
 function editDistance(left: string, right: string): number {
-  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  const previous = Array.from(
+    { length: right.length + 1 },
+    (_, index) => index,
+  );
 
   for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
     const current = [leftIndex];
     for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
-      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      const substitutionCost =
+        left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
       current[rightIndex] = Math.min(
         current[rightIndex - 1] + 1,
         previous[rightIndex] + 1,
@@ -312,10 +381,12 @@ function nearMatch(key: string, candidates: string[]): string | null {
 
   for (const candidate of candidates) {
     const normalizedCandidate = candidate.toLowerCase();
-    if (normalizedKey === normalizedCandidate && key !== candidate) return candidate;
+    if (normalizedKey === normalizedCandidate && key !== candidate)
+      return candidate;
 
     const distance = editDistance(normalizedKey, normalizedCandidate);
-    const threshold = Math.max(normalizedKey.length, normalizedCandidate.length) >= 8 ? 2 : 1;
+    const threshold =
+      Math.max(normalizedKey.length, normalizedCandidate.length) >= 8 ? 2 : 1;
     if (distance > threshold || (best && distance >= best.distance)) continue;
     best = { candidate, distance };
   }
@@ -356,7 +427,9 @@ function collectConfigKeyWarnings(
 }
 
 /** Returns likely misspellings among retained extension keys without modifying them. */
-export function findTaskcoreConfigKeyWarnings(config: unknown): ConfigKeyWarning[] {
+export function findTaskcoreConfigKeyWarnings(
+  config: unknown,
+): ConfigKeyWarning[] {
   if (!isRecord(config)) return [];
   const warnings: ConfigKeyWarning[] = [];
   collectConfigKeyWarnings(config, taskcoreConfigSchema, "", warnings);

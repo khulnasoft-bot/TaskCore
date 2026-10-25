@@ -173,8 +173,11 @@ describe("Codex app-server Codex driver", () => {
     });
     const resolvedEvent = (async () => {
       for await (const event of session.events()) {
-        if (event.eventType === "runtime_request.resolved"
-          && event.payload.requestId === "dot-185-request") return event;
+        if (
+          event.eventType === "runtime_request.resolved" &&
+          event.payload.requestId === "dot-185-request"
+        )
+          return event;
       }
       return null;
     })();
@@ -192,7 +195,10 @@ describe("Codex app-server Codex driver", () => {
             question: "Where should we deploy?",
             options: [
               { label: "Staging", description: "Deploy to staging first." },
-              { label: "Production", description: "Deploy directly to production." },
+              {
+                label: "Production",
+                description: "Deploy directly to production.",
+              },
             ],
             isOther: true,
           },
@@ -223,8 +229,16 @@ describe("Codex app-server Codex driver", () => {
           answerMode: "single_select",
           customAnswer: { enabled: true },
           options: [
-            { id: "option-1", label: "Staging", description: "Deploy to staging first." },
-            { id: "option-2", label: "Production", description: "Deploy directly to production." },
+            {
+              id: "option-1",
+              label: "Staging",
+              description: "Deploy to staging first.",
+            },
+            {
+              id: "option-2",
+              label: "Production",
+              description: "Deploy directly to production.",
+            },
           ],
         },
         { id: "regions", answerMode: "multi_select", required: false },
@@ -284,18 +298,26 @@ describe("Codex app-server Codex driver", () => {
         threadId: "thread-1",
         turnId,
         itemId: "private-option-item",
-        questions: [{
-          id: "credential",
-          question: "Choose the configured credential.",
-          options: [{ id: "configured", label: "token=native-option-secret" }],
-        }],
+        questions: [
+          {
+            id: "credential",
+            question: "Choose the configured credential.",
+            options: [
+              { id: "configured", label: "token=native-option-secret" },
+            ],
+          },
+        ],
       },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const [publicRequest] = structuredClone(session.pendingRuntimeRequests?.() ?? []);
+    const [publicRequest] = structuredClone(
+      session.pendingRuntimeRequests?.() ?? [],
+    );
     expect(JSON.stringify(publicRequest)).not.toContain("native-option-secret");
-    expect(publicRequest?.input?.questions[0]?.options?.[0]?.label).toContain("[REDACTED]");
+    expect(publicRequest?.input?.questions[0]?.options?.[0]?.label).toContain(
+      "[REDACTED]",
+    );
 
     await session.resolveRuntimeRequest?.({
       requestId: "private-option-request",
@@ -326,33 +348,40 @@ describe("Codex app-server Codex driver", () => {
     });
     const diagnostic = (async () => {
       for await (const event of session.events()) {
-        if (event.eventType === "harness.diagnostic" && event.payload.code === "runtime_input_rejected") {
+        if (
+          event.eventType === "harness.diagnostic" &&
+          event.payload.code === "runtime_input_rejected"
+        ) {
           return event;
         }
       }
       return null;
     })();
-    await expect(transport.invoke({
-      id: "malformed-input",
-      method: "item/tool/requestUserInput",
-      params: {
-        threadId: "thread-1",
-        turnId,
-        itemId: "malformed-item",
-        questions: [
-          { id: "duplicate", question: "First?" },
-          { id: "duplicate", question: "Second?" },
-        ],
-      },
-    })).resolves.toEqual({ answers: {} });
-    expect(session.pendingRuntimeRequests?.()).toEqual([]);
-    expect(await diagnostic).toEqual(expect.objectContaining({
-      eventType: "harness.diagnostic",
-      payload: expect.objectContaining({
-        code: "runtime_input_rejected",
-        adapter: "codex-app-server",
+    await expect(
+      transport.invoke({
+        id: "malformed-input",
+        method: "item/tool/requestUserInput",
+        params: {
+          threadId: "thread-1",
+          turnId,
+          itemId: "malformed-item",
+          questions: [
+            { id: "duplicate", question: "First?" },
+            { id: "duplicate", question: "Second?" },
+          ],
+        },
       }),
-    }));
+    ).resolves.toEqual({ answers: {} });
+    expect(session.pendingRuntimeRequests?.()).toEqual([]);
+    expect(await diagnostic).toEqual(
+      expect.objectContaining({
+        eventType: "harness.diagnostic",
+        payload: expect.objectContaining({
+          code: "runtime_input_rejected",
+          adapter: "codex-app-server",
+        }),
+      }),
+    );
     await session.close({ reason: "fixture complete" });
   });
 
@@ -463,12 +492,14 @@ describe("Codex app-server Codex driver", () => {
         threadId: "thread-1",
         turnId,
         itemId: "lost-input-item",
-        questions: [{
-          id: "environment",
-          header: "Environment",
-          question: "Where should we deploy?",
-          options: [{ label: "Staging" }, { label: "Production" }],
-        }],
+        questions: [
+          {
+            id: "environment",
+            header: "Environment",
+            question: "Where should we deploy?",
+            options: [{ label: "Staging" }, { label: "Production" }],
+          },
+        ],
       },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -476,7 +507,9 @@ describe("Codex app-server Codex driver", () => {
     expect(await pending).toEqual({ answers: {} });
     await consume;
 
-    const expired = events.find((event) => event.eventType === "runtime_request.expired");
+    const expired = events.find(
+      (event) => event.eventType === "runtime_request.expired",
+    );
     expect(expired).toMatchObject({
       turnId,
       itemId: "lost-input-item",
@@ -497,7 +530,9 @@ describe("Codex app-server Codex driver", () => {
         },
       },
     });
-    expect(events.filter((event) => event.eventType === "runtime_request.cancelled")).toHaveLength(0);
+    expect(
+      events.filter((event) => event.eventType === "runtime_request.cancelled"),
+    ).toHaveLength(0);
     expect(validatePrpEvent(expired!)).toMatchObject({ ok: true });
   });
 
@@ -519,12 +554,14 @@ describe("Codex app-server Codex driver", () => {
         threadId: "thread-1",
         turnId,
         itemId: "handoff-input-item",
-        questions: [{
-          id: "environment",
-          header: "Environment",
-          question: "Where should we deploy?",
-          options: [{ label: "Staging" }, { label: "Production" }],
-        }],
+        questions: [
+          {
+            id: "environment",
+            header: "Environment",
+            question: "Where should we deploy?",
+            options: [{ label: "Staging" }, { label: "Production" }],
+          },
+        ],
       },
     });
     let created: PrpEvent | null = null;
@@ -601,17 +638,20 @@ describe("Codex app-server Codex driver", () => {
         threadId: "thread-1",
         turnId,
         itemId: "aborted-handoff-input-item",
-        questions: [{
-          id: "environment",
-          header: "Environment",
-          question: "Where should we deploy?",
-          options: [{ label: "Staging" }, { label: "Production" }],
-        }],
+        questions: [
+          {
+            id: "environment",
+            header: "Environment",
+            question: "Where should we deploy?",
+            options: [{ label: "Staging" }, { label: "Production" }],
+          },
+        ],
       },
     });
     for (let count = 0; count < 20; count += 1) {
       const event = await iterator.next();
-      if (event.done || event.value.eventType === "runtime_request.created") break;
+      if (event.done || event.value.eventType === "runtime_request.created")
+        break;
     }
 
     const ownership = new AbortController();
@@ -625,9 +665,11 @@ describe("Codex app-server Codex driver", () => {
     expect(abortedHandoff.result).toBe("already_settled");
     await expect(abortedHandoff.cleanup).resolves.toBeUndefined();
     expect(session.pendingRuntimeRequests?.()).toHaveLength(1);
-    expect(transport.calls).not.toContainEqual(expect.objectContaining({
-      method: "turn/interrupt",
-    }));
+    expect(transport.calls).not.toContainEqual(
+      expect.objectContaining({
+        method: "turn/interrupt",
+      }),
+    );
 
     const liveHandoff = session.handoffRuntimeRequest!({
       requestId: "aborted-handoff-input",
@@ -644,9 +686,10 @@ describe("Codex app-server Codex driver", () => {
   it("lets an answer claimed before expiry win the terminal-event race", async () => {
     const transport = new FakeCodexTransport();
     let releaseResolution!: () => void;
-    transport.runtimeRequestResolver = () => new Promise<void>((resolve) => {
-      releaseResolution = resolve;
-    });
+    transport.runtimeRequestResolver = () =>
+      new Promise<void>((resolve) => {
+        releaseResolution = resolve;
+      });
     const session = await makeDriver([transport]).openSession({
       runId: "run-answer-handoff-race",
       normalizedSessionId: "normalized-answer-handoff-race",
@@ -663,17 +706,20 @@ describe("Codex app-server Codex driver", () => {
         threadId: "thread-1",
         turnId,
         itemId: "race-input-item",
-        questions: [{
-          id: "environment",
-          header: "Environment",
-          question: "Where should we deploy?",
-          options: [{ label: "Staging" }, { label: "Production" }],
-        }],
+        questions: [
+          {
+            id: "environment",
+            header: "Environment",
+            question: "Where should we deploy?",
+            options: [{ label: "Staging" }, { label: "Production" }],
+          },
+        ],
       },
     });
     for (let count = 0; count < 20; count += 1) {
       const event = await iterator.next();
-      if (event.done || event.value.eventType === "runtime_request.created") break;
+      if (event.done || event.value.eventType === "runtime_request.created")
+        break;
     }
     const resolution = session.resolveRuntimeRequest!({
       requestId: "race-input",
@@ -704,8 +750,12 @@ describe("Codex app-server Codex driver", () => {
       const event = await iterator.next();
       if (event.done) break;
       if (
-        event.value.payload.requestId === "race-input"
-        && ["runtime_request.resolved", "runtime_request.cancelled", "runtime_request.expired"].includes(event.value.eventType)
+        event.value.payload.requestId === "race-input" &&
+        [
+          "runtime_request.resolved",
+          "runtime_request.cancelled",
+          "runtime_request.expired",
+        ].includes(event.value.eventType)
       ) {
         terminalEvent = event.value;
         break;
@@ -753,5 +803,4 @@ describe("Codex app-server Codex driver", () => {
     await pending;
     await session.close({ reason: "fixture complete" });
   });
-
 });

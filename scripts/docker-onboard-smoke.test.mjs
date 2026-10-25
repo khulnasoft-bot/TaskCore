@@ -29,9 +29,15 @@ test("smoke script is executable and parses", () => {
 
 test("container name can be fixed by the caller", () => {
   // A name the caller chose is a name it still has when this script fails.
-  assert.match(script, /CONTAINER_NAME="\$\{SMOKE_CONTAINER_NAME:-\$IMAGE_NAME\}"/);
+  assert.match(
+    script,
+    /CONTAINER_NAME="\$\{SMOKE_CONTAINER_NAME:-\$IMAGE_NAME\}"/,
+  );
   // And it is still sanitized into something Docker will accept.
-  assert.match(script, /CONTAINER_NAME="\$\{CONTAINER_NAME\/\/\[\^a-zA-Z0-9_\.-\]\/-\}"/);
+  assert.match(
+    script,
+    /CONTAINER_NAME="\$\{CONTAINER_NAME\/\/\[\^a-zA-Z0-9_\.-\]\/-\}"/,
+  );
 });
 
 test("the container does not remove itself", () => {
@@ -71,7 +77,10 @@ test("the log dump starts empty on every run", () => {
   // when this run fails before a container exists.
   const truncateAt = script.search(/^\s*: >"\$SMOKE_LOG_FILE"/m);
   const dumpAt = script.indexOf("dump_container_logs() {");
-  assert.ok(truncateAt !== -1, "the script must truncate SMOKE_LOG_FILE at startup");
+  assert.ok(
+    truncateAt !== -1,
+    "the script must truncate SMOKE_LOG_FILE at startup",
+  );
   assert.ok(
     truncateAt < dumpAt,
     "the truncation must happen before anything can write the dump",
@@ -84,7 +93,10 @@ test("workflow fixes the container name before the harness runs", () => {
   // Reading the name back out of the harness is the defect: a step that only
   // learns it on success cannot use it on failure.
   assert.doesNotMatch(dockerJob, /echo "SMOKE_CONTAINER_NAME=/);
-  assert.match(dockerJob, /SMOKE_LOG_FILE="\$\{\{ runner\.temp \}\}\/docker-onboard-smoke\.log"/);
+  assert.match(
+    dockerJob,
+    /SMOKE_LOG_FILE="\$\{\{ runner\.temp \}\}\/docker-onboard-smoke\.log"/,
+  );
 });
 
 test("workflow captures and uploads the logs unconditionally", () => {

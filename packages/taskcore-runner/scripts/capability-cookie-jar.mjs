@@ -15,13 +15,20 @@ export function createCapabilityCookieJar(origin) {
       const pair = raw.split(";", 1)[0] ?? "";
       const separator = pair.indexOf("=");
       if (separator < 1) continue;
-      cookies.set(pair.slice(0, separator).trim(), pair.slice(separator + 1).trim());
+      cookies.set(
+        pair.slice(0, separator).trim(),
+        pair.slice(separator + 1).trim(),
+      );
     }
   }
 
   function header() {
     if (cookies.size === 0) return {};
-    return { cookie: [...cookies].map(([name, value]) => `${name}=${value}`).join("; ") };
+    return {
+      cookie: [...cookies]
+        .map(([name, value]) => `${name}=${value}`)
+        .join("; "),
+    };
   }
 
   return {

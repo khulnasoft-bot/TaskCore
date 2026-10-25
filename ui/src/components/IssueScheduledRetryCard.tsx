@@ -1,11 +1,20 @@
-import { Clock, RotateCcw, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  Clock,
+  RotateCcw,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+} from "lucide-react";
 import { Link } from "@/lib/router";
 import { Button } from "@/components/ui/button";
 import { cn, formatDateTime } from "@/lib/utils";
 import { formatMonitorOffset } from "@/lib/issue-monitor";
 import { formatRetryReason } from "@/lib/runRetryState";
 import type { IssueScheduledRetry } from "@taskcore/shared";
-import { useRetryNowMutation, type RetryNowError } from "../hooks/useRetryNowMutation";
+import {
+  useRetryNowMutation,
+  type RetryNowError,
+} from "../hooks/useRetryNowMutation";
 import { Badge } from "@/components/ui/badge";
 import { InlineBanner } from "@/components/InlineBanner";
 
@@ -16,7 +25,9 @@ function isContinuationReason(reason: string | null | undefined) {
 }
 
 function shortRunId(runId: string | null | undefined) {
-  return typeof runId === "string" && runId.length >= 8 ? runId.slice(0, 8) : runId ?? "";
+  return typeof runId === "string" && runId.length >= 8
+    ? runId.slice(0, 8)
+    : (runId ?? "");
 }
 
 interface IssueScheduledRetryCardProps {
@@ -35,13 +46,21 @@ export function IssueScheduledRetryCard({
 
   if (scheduledRetry.scheduledRetryReason === "workspace_busy") {
     return (
-      <InlineBanner tone="info" icon={Clock} title="Waiting for workspace" className="mb-3">
-        Another task is using this workspace. Work starts automatically when it is available.
+      <InlineBanner
+        tone="info"
+        icon={Clock}
+        title="Waiting for workspace"
+        className="mb-3"
+      >
+        Another task is using this workspace. Work starts automatically when it
+        is available.
       </InlineBanner>
     );
   }
 
-  const continuation = isContinuationReason(scheduledRetry.scheduledRetryReason);
+  const continuation = isContinuationReason(
+    scheduledRetry.scheduledRetryReason,
+  );
   const dueAtIso = scheduledRetry.scheduledRetryAt
     ? new Date(scheduledRetry.scheduledRetryAt).toISOString()
     : null;
@@ -51,14 +70,18 @@ export function IssueScheduledRetryCard({
     : null;
   const reason = formatRetryReason(scheduledRetry.scheduledRetryReason);
   const attempt =
-    typeof scheduledRetry.scheduledRetryAttempt === "number"
-    && Number.isFinite(scheduledRetry.scheduledRetryAttempt)
-    && scheduledRetry.scheduledRetryAttempt > 0
+    typeof scheduledRetry.scheduledRetryAttempt === "number" &&
+    Number.isFinite(scheduledRetry.scheduledRetryAttempt) &&
+    scheduledRetry.scheduledRetryAttempt > 0
       ? scheduledRetry.scheduledRetryAttempt
       : null;
 
-  const badgeLabel = continuation ? "Continuation scheduled" : "Retry scheduled";
-  const titleAction = continuation ? "Automatic continuation" : "Automatic retry";
+  const badgeLabel = continuation
+    ? "Continuation scheduled"
+    : "Retry scheduled";
+  const titleAction = continuation
+    ? "Automatic continuation"
+    : "Automatic retry";
   let titleSuffix: string;
   if (relative === "now") {
     titleSuffix = "due now";
@@ -73,8 +96,10 @@ export function IssueScheduledRetryCard({
     ? "Pulls continuation forward immediately"
     : "Pulls retry forward immediately";
   const isError = retryNow.isError || retryNow.lastError !== null;
-  const isSuccessTransient = retryNow.isSuccess
-    && (retryNow.data?.outcome === "promoted" || retryNow.data?.outcome === "already_promoted");
+  const isSuccessTransient =
+    retryNow.isSuccess &&
+    (retryNow.data?.outcome === "promoted" ||
+      retryNow.data?.outcome === "already_promoted");
 
   return (
     <div
@@ -84,7 +109,10 @@ export function IssueScheduledRetryCard({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300">
+            <Badge
+              variant="outline"
+              className="border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+            >
               <Clock className="h-3 w-3" aria-hidden="true" />
               {badgeLabel}
             </Badge>
@@ -95,11 +123,15 @@ export function IssueScheduledRetryCard({
               <span className="text-muted-foreground">{reason}</span>
             ) : null}
           </div>
-          <div className="mt-1 text-sm font-medium text-foreground">{title}</div>
-          {(absolute || scheduledRetry.retryOfRunId) ? (
+          <div className="mt-1 text-sm font-medium text-foreground">
+            {title}
+          </div>
+          {absolute || scheduledRetry.retryOfRunId ? (
             <div className="mt-0.5 text-xs text-muted-foreground">
               {absolute ? <span>{absolute}</span> : null}
-              {absolute && scheduledRetry.retryOfRunId ? <span>{" · "}</span> : null}
+              {absolute && scheduledRetry.retryOfRunId ? (
+                <span>{" · "}</span>
+              ) : null}
               {scheduledRetry.retryOfRunId ? (
                 <span>
                   Replaces run{" "}
@@ -115,7 +147,9 @@ export function IssueScheduledRetryCard({
           ) : null}
           {scheduledRetry.error ? (
             <div className="mt-1 text-xs text-muted-foreground">
-              Last attempt failed: {scheduledRetry.error}{/[.!?]$/.test(scheduledRetry.error.trim()) ? "" : "."} Taskcore will retry automatically.
+              Last attempt failed: {scheduledRetry.error}
+              {/[.!?]$/.test(scheduledRetry.error.trim()) ? "" : "."} Taskcore
+              will retry automatically.
             </div>
           ) : null}
           {isError ? (
@@ -140,13 +174,18 @@ export function IssueScheduledRetryCard({
           >
             {retryNow.isPending ? (
               <span className="inline-flex items-center gap-1.5">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                <Loader2
+                  className="h-3.5 w-3.5 animate-spin"
+                  aria-hidden="true"
+                />
                 Retrying…
               </span>
             ) : isSuccessTransient ? (
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                {retryNow.data?.outcome === "already_promoted" ? "Already promoted" : "Promoted"}
+                {retryNow.data?.outcome === "already_promoted"
+                  ? "Already promoted"
+                  : "Promoted"}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5">
@@ -162,7 +201,8 @@ export function IssueScheduledRetryCard({
                 ? retryNow.data?.outcome === "already_promoted"
                   ? "Already promoted — run starting"
                   : "Promoted — run starting"
-                : retryNow.data?.outcome === "waiting" && retryNow.data.scheduledRetry?.runId === scheduledRetry.runId
+                : retryNow.data?.outcome === "waiting" &&
+                    retryNow.data.scheduledRetry?.runId === scheduledRetry.runId
                   ? retryNow.data.message
                   : helperIdle}
           </span>
@@ -178,7 +218,11 @@ interface RetryErrorBandProps {
   className?: string;
 }
 
-export function RetryErrorBand({ error, onRetry, className }: RetryErrorBandProps) {
+export function RetryErrorBand({
+  error,
+  onRetry,
+  className,
+}: RetryErrorBandProps) {
   if (!error) return null;
   return (
     <div

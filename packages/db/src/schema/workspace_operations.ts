@@ -18,13 +18,21 @@ export const workspaceOperations = pgTable(
   "workspace_operations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-    executionWorkspaceId: uuid("execution_workspace_id").references(() => executionWorkspaces.id, {
-      onDelete: "set null",
-    }),
-    heartbeatRunId: uuid("heartbeat_run_id").references(() => heartbeatRuns.id, {
-      onDelete: "set null",
-    }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    executionWorkspaceId: uuid("execution_workspace_id").references(
+      () => executionWorkspaces.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    heartbeatRunId: uuid("heartbeat_run_id").references(
+      () => heartbeatRuns.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     issueId: uuid("issue_id").references(() => issues.id, {
       onDelete: "set null",
     }),
@@ -41,23 +49,27 @@ export const workspaceOperations = pgTable(
     stdoutExcerpt: text("stdout_excerpt"),
     stderrExcerpt: text("stderr_excerpt"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
-    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    companyRunStartedIdx: index("workspace_operations_company_run_started_idx").on(
-      table.companyId,
-      table.heartbeatRunId,
-      table.startedAt,
-    ),
-    companyWorkspaceStartedIdx: index("workspace_operations_company_workspace_started_idx").on(
-      table.companyId,
-      table.executionWorkspaceId,
-      table.startedAt,
-    ),
-    companyWorkspaceIssueStartedIdx: index("workspace_operations_company_workspace_issue_started_idx").on(
+    companyRunStartedIdx: index(
+      "workspace_operations_company_run_started_idx",
+    ).on(table.companyId, table.heartbeatRunId, table.startedAt),
+    companyWorkspaceStartedIdx: index(
+      "workspace_operations_company_workspace_started_idx",
+    ).on(table.companyId, table.executionWorkspaceId, table.startedAt),
+    companyWorkspaceIssueStartedIdx: index(
+      "workspace_operations_company_workspace_issue_started_idx",
+    ).on(
       table.companyId,
       table.executionWorkspaceId,
       table.issueId,

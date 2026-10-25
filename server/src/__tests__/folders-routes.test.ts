@@ -21,8 +21,12 @@ vi.mock("../services/index.js", () => ({
 async function createApp() {
   vi.resetModules();
   const [{ errorHandler }, { folderRoutes }] = await Promise.all([
-    import("../middleware/index.js") as Promise<typeof import("../middleware/index.js")>,
-    import("../routes/folders.js") as Promise<typeof import("../routes/folders.js")>,
+    import("../middleware/index.js") as Promise<
+      typeof import("../middleware/index.js")
+    >,
+    import("../routes/folders.js") as Promise<
+      typeof import("../routes/folders.js")
+    >,
   ]);
   const app = express();
   app.use(express.json());

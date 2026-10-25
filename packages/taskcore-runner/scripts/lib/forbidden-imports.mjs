@@ -2,7 +2,15 @@ import { readFile, readdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SOURCE_EXTENSIONS = new Set([".cjs", ".js", ".jsx", ".mjs", ".rs", ".ts", ".tsx"]);
+const SOURCE_EXTENSIONS = new Set([
+  ".cjs",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".rs",
+  ".ts",
+  ".tsx",
+]);
 const IMPORT_PATTERNS = [
   /\b(?:import|export)\s+(?:type\s+)?(?:[^"'`;]{0,500}?\s+from\s+)?["']([^"']+)["']/g,
   /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g,
@@ -48,7 +56,11 @@ export function findSpecifiers(source) {
   const found = [];
   for (const pattern of IMPORT_PATTERNS) {
     pattern.lastIndex = 0;
-    for (let match = pattern.exec(source); match !== null; match = pattern.exec(source)) {
+    for (
+      let match = pattern.exec(source);
+      match !== null;
+      match = pattern.exec(source)
+    ) {
       found.push({ specifier: match[1], offset: match.index });
     }
   }
@@ -107,13 +119,19 @@ function violationReason({ file, packageRoot, specifier }) {
   }
 
   if (
-    ["devtools/browser/", "src/react/", "examples/"].some((root) => relativeFile.includes(root)) &&
+    ["devtools/browser/", "src/react/", "examples/"].some((root) =>
+      relativeFile.includes(root),
+    ) &&
     isForbiddenBrowserPackage(specifier)
   ) {
     return "the standalone browser app adapts component source instead of adopting its runtime";
   }
 
-  if (["server", "ui", "cli"].some((root) => specifier === root || specifier.startsWith(`${root}/`))) {
+  if (
+    ["server", "ui", "cli"].some(
+      (root) => specifier === root || specifier.startsWith(`${root}/`),
+    )
+  ) {
     return "Taskcore application internals are outside the standalone boundary";
   }
 
@@ -151,18 +169,18 @@ async function manifestViolations(packageRoot) {
   );
   const unreviewedDevelopmentDependencies = Object.keys(
     manifest.devDependencies ?? {},
-  ).filter(
-    (name) => name.startsWith("@taskcore/"),
-  );
+  ).filter((name) => name.startsWith("@taskcore/"));
   return [...runtimeDependencies, ...unreviewedDevelopmentDependencies]
     .filter(
-      (name) => name.startsWith("@taskcore/") && name !== "@taskcore/taskcore-runner",
+      (name) =>
+        name.startsWith("@taskcore/") && name !== "@taskcore/taskcore-runner",
     )
     .map((specifier) => ({
       file: manifestPath,
       line: 1,
       specifier,
-      reason: "workspace dependencies require an explicit standalone-boundary review",
+      reason:
+        "workspace dependencies require an explicit standalone-boundary review",
     }));
 }
 
@@ -192,7 +210,11 @@ async function cargoManifestViolations(packageRoot, cargoRoots) {
   for (const manifest of manifests.sort()) {
     const source = await readFile(manifest, "utf8");
     const pathPattern = /\bpath\s*=\s*["']([^"']+)["']/g;
-    for (let match = pathPattern.exec(source); match !== null; match = pathPattern.exec(source)) {
+    for (
+      let match = pathPattern.exec(source);
+      match !== null;
+      match = pathPattern.exec(source)
+    ) {
       const dependencyPath = resolve(dirname(manifest), match[1]);
       if (isInside(packageRoot, dependencyPath)) {
         continue;
@@ -201,7 +223,8 @@ async function cargoManifestViolations(packageRoot, cargoRoots) {
         file: manifest,
         line: source.slice(0, match.index).split("\n").length,
         specifier: match[1],
-        reason: "Cargo path dependencies may not escape packages/taskcore-runner",
+        reason:
+          "Cargo path dependencies may not escape packages/taskcore-runner",
       });
     }
   }
@@ -244,7 +267,10 @@ export async function checkForbiddenImports({
   return violations;
 }
 
-export function formatForbiddenImportViolation(violation, packageRoot = defaultPackageRoot) {
+export function formatForbiddenImportViolation(
+  violation,
+  packageRoot = defaultPackageRoot,
+) {
   return `${relative(packageRoot, violation.file)}:${violation.line} imports ${JSON.stringify(
     violation.specifier,
   )}: ${violation.reason}`;

@@ -14,16 +14,12 @@
     {
       "id": "set_task_title",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:set_task_title",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::set_task_title has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:set_task_title"
-      ],
+      "deterministicCases": ["protocol-action:set_task_title"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::set_task_title has a schema-valid canonical example and every declared projection",
@@ -33,16 +29,12 @@
     {
       "id": "set_task_monitor",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:set_task_monitor",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::set_task_monitor has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:set_task_monitor"
-      ],
+      "deterministicCases": ["protocol-action:set_task_monitor"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::set_task_monitor has a schema-valid canonical example and every declared projection",
@@ -52,16 +44,12 @@
     {
       "id": "submit_complaint",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:submit_complaint",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::submit_complaint has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:submit_complaint"
-      ],
+      "deterministicCases": ["protocol-action:submit_complaint"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::submit_complaint has a schema-valid canonical example and every declared projection",
@@ -71,16 +59,12 @@
     {
       "id": "submit_suggestion",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:submit_suggestion",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::submit_suggestion has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:submit_suggestion"
-      ],
+      "deterministicCases": ["protocol-action:submit_suggestion"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::submit_suggestion has a schema-valid canonical example and every declared projection",
@@ -90,16 +74,12 @@
     {
       "id": "read_agent_instructions",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:read_agent_instructions",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::read_agent_instructions has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:read_agent_instructions"
-      ],
+      "deterministicCases": ["protocol-action:read_agent_instructions"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::read_agent_instructions has a schema-valid canonical example and every declared projection",
@@ -109,16 +89,12 @@
     {
       "id": "update_agent_instructions",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:update_agent_instructions",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::update_agent_instructions has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:update_agent_instructions"
-      ],
+      "deterministicCases": ["protocol-action:update_agent_instructions"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::update_agent_instructions has a schema-valid canonical example and every declared projection",
@@ -128,16 +104,12 @@
     {
       "id": "get_agent_instruction_history",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:get_agent_instruction_history",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::get_agent_instruction_history has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:get_agent_instruction_history"
-      ],
+      "deterministicCases": ["protocol-action:get_agent_instruction_history"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::get_agent_instruction_history has a schema-valid canonical example and every declared projection",
@@ -147,16 +119,12 @@
     {
       "id": "restore_agent_instructions",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:restore_agent_instructions",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::restore_agent_instructions has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:restore_agent_instructions"
-      ],
+      "deterministicCases": ["protocol-action:restore_agent_instructions"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::restore_agent_instructions has a schema-valid canonical example and every declared projection",
@@ -166,17 +134,12 @@
     {
       "id": "create_skill",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:create_skill",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::create_skill has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:create_skill"
-      ],
+      "deterministicCases": ["protocol-action:create_skill"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::create_skill has a schema-valid canonical example and every declared projection",
@@ -186,17 +149,12 @@
     {
       "id": "update_skill",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:update_skill",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::update_skill has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:update_skill"
-      ],
+      "deterministicCases": ["protocol-action:update_skill"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::update_skill has a schema-valid canonical example and every declared projection",
@@ -206,16 +164,12 @@
     {
       "id": "create_project",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:create_project",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::create_project has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:create_project"
-      ],
+      "deterministicCases": ["protocol-action:create_project"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::create_project has a schema-valid canonical example and every declared projection",
@@ -225,16 +179,12 @@
     {
       "id": "list_project_repositories",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_project_repositories",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_project_repositories has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:list_project_repositories"
-      ],
+      "deterministicCases": ["protocol-action:list_project_repositories"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::list_project_repositories has a schema-valid canonical example and every declared projection",
@@ -244,16 +194,12 @@
     {
       "id": "search_api",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:search_api",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::search_api has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:search_api"
-      ],
+      "deterministicCases": ["protocol-action:search_api"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::search_api has a schema-valid canonical example and every declared projection",
@@ -263,16 +209,12 @@
     {
       "id": "call_api",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:call_api",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::call_api has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:call_api"
-      ],
+      "deterministicCases": ["protocol-action:call_api"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::call_api has a schema-valid canonical example and every declared projection",
@@ -282,16 +224,12 @@
     {
       "id": "administer_company",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:administer_company",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::administer_company has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:administer_company"
-      ],
+      "deterministicCases": ["protocol-action:administer_company"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::administer_company has a schema-valid canonical example and every declared projection",
@@ -301,10 +239,7 @@
     {
       "id": "answer_status_question",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:answer_status_question",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::answer_status_question has a schema-valid canonical example and every declared projection",
@@ -330,10 +265,7 @@
     {
       "id": "block_task",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:block_task",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::block_task has a schema-valid canonical example and every declared projection",
@@ -361,10 +293,7 @@
     {
       "id": "comment_on_approval",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:comment_on_approval",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::comment_on_approval has a schema-valid canonical example and every declared projection",
@@ -388,17 +317,12 @@
     {
       "id": "control_workspace_service",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:control_workspace_service",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::control_workspace_service has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:control_workspace_service"
-      ],
+      "deterministicCases": ["protocol-action:control_workspace_service"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::control_workspace_service has a schema-valid canonical example and every declared projection",
@@ -408,13 +332,8 @@
     {
       "id": "create_task",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
-      "legacyAliases": [
-        "mcp:taskcoreCreateIssue"
-      ],
+      "surfaces": ["scenario", "live"],
+      "legacyAliases": ["mcp:taskcoreCreateIssue"],
       "contractCase": "protocol-action:create_task",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::create_task has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [
@@ -440,9 +359,7 @@
         "su-no-poll-01",
         "su-parent-goal-01"
       ],
-      "legacyRequirementCases": [
-        "su-parent-goal-01"
-      ],
+      "legacyRequirementCases": ["su-parent-goal-01"],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::create_task has a schema-valid canonical example and every declared projection",
         "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
@@ -451,16 +368,11 @@
     {
       "id": "decide_approval",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:decide_approval",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::decide_approval has a schema-valid canonical example and every declared projection",
-      "legacyBehavioralCases": [
-        "ap-approval-wake-01"
-      ],
+      "legacyBehavioralCases": ["ap-approval-wake-01"],
       "deterministicCases": [
         "protocol-action:decide_approval",
         "ap-approval-wake-01"
@@ -474,9 +386,7 @@
     {
       "id": "export_company",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:export_company",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::export_company has a schema-valid canonical example and every declared projection",
@@ -500,10 +410,7 @@
     {
       "id": "finish_task",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:finish_task",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::finish_task has a schema-valid canonical example and every declared projection",
@@ -539,16 +446,11 @@
     {
       "id": "generic_api_request",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:generic_api_request",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::generic_api_request has a schema-valid canonical example and every declared projection",
-      "legacyBehavioralCases": [
-        "wk-skilltest-mode-01"
-      ],
+      "legacyBehavioralCases": ["wk-skilltest-mode-01"],
       "deterministicCases": [
         "protocol-action:generic_api_request",
         "wk-skilltest-mode-01"
@@ -562,21 +464,13 @@
     {
       "id": "get_agent",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
-      "legacyAliases": [
-        "mcp:taskcoreGetAgent"
-      ],
+      "surfaces": ["live"],
+      "legacyAliases": ["mcp:taskcoreGetAgent"],
       "contractCase": "protocol-action:get_agent",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::get_agent has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:get_agent"
-      ],
-      "legacyRequirementCases": [
-        "rf-api-mgr-heartbeat-01"
-      ],
+      "deterministicCases": ["protocol-action:get_agent"],
+      "legacyRequirementCases": ["rf-api-mgr-heartbeat-01"],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::get_agent has a schema-valid canonical example and every declared projection",
         "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
@@ -585,16 +479,12 @@
     {
       "id": "get_approval",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:get_approval",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::get_approval has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:get_approval"
-      ],
+      "deterministicCases": ["protocol-action:get_approval"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::get_approval has a schema-valid canonical example and every declared projection",
@@ -604,16 +494,12 @@
     {
       "id": "get_approval_context",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:get_approval_context",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::get_approval_context has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:get_approval_context"
-      ],
+      "deterministicCases": ["protocol-action:get_approval_context"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::get_approval_context has a schema-valid canonical example and every declared projection",
@@ -623,13 +509,8 @@
     {
       "id": "get_task_context",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
-      "legacyAliases": [
-        "mcp:taskcoreMe"
-      ],
+      "surfaces": ["scenario", "live"],
+      "legacyAliases": ["mcp:taskcoreMe"],
       "contractCase": "protocol-action:get_task_context",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::get_task_context has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [
@@ -849,9 +730,7 @@
         "wk-resume-delta-01",
         "wk-skilltest-mode-01"
       ],
-      "legacyRequirementCases": [
-        "hb-inbox-lite-01"
-      ],
+      "legacyRequirementCases": ["hb-inbox-lite-01"],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::get_task_context has a schema-valid canonical example and every declared projection",
         "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
@@ -860,10 +739,7 @@
     {
       "id": "get_task_history",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:get_task_history",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::get_task_history has a schema-valid canonical example and every declared projection",
@@ -887,10 +763,7 @@
     {
       "id": "get_workspace_runtime",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:get_workspace_runtime",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::get_workspace_runtime has a schema-valid canonical example and every declared projection",
@@ -912,15 +785,11 @@
     {
       "id": "inspect_operation_result",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:inspect_operation_result",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::inspect_operation_result has a schema-valid canonical example and every declared projection",
-      "legacyBehavioralCases": [
-        "ix-checkbox-result-01"
-      ],
+      "legacyBehavioralCases": ["ix-checkbox-result-01"],
       "deterministicCases": [
         "protocol-action:inspect_operation_result",
         "ix-checkbox-result-01"
@@ -934,13 +803,8 @@
     {
       "id": "list_agents",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
-      "legacyAliases": [
-        "mcp:taskcoreListAgents"
-      ],
+      "surfaces": ["scenario", "live"],
+      "legacyAliases": ["mcp:taskcoreListAgents"],
       "contractCase": "protocol-action:list_agents",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_agents has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [
@@ -966,9 +830,7 @@
         "se-q-filters-01",
         "se-q-topic-01"
       ],
-      "legacyRequirementCases": [
-        "rf-api-mgr-heartbeat-01"
-      ],
+      "legacyRequirementCases": ["rf-api-mgr-heartbeat-01"],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::list_agents has a schema-valid canonical example and every declared projection",
         "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
@@ -977,16 +839,12 @@
     {
       "id": "hire_agent",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:hire_agent",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::hire_agent has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:hire_agent"
-      ],
+      "deterministicCases": ["protocol-action:hire_agent"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::hire_agent has a schema-valid canonical example and every declared projection",
@@ -996,10 +854,7 @@
     {
       "id": "list_approvals",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_approvals",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_approvals has a schema-valid canonical example and every declared projection",
@@ -1029,9 +884,7 @@
     {
       "id": "list_cases",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_cases",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_cases has a schema-valid canonical example and every declared projection",
@@ -1055,9 +908,7 @@
     {
       "id": "list_company_skills",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_company_skills",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_company_skills has a schema-valid canonical example and every declared projection",
@@ -1081,17 +932,12 @@
     {
       "id": "list_document_revisions",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_document_revisions",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_document_revisions has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:list_document_revisions"
-      ],
+      "deterministicCases": ["protocol-action:list_document_revisions"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::list_document_revisions has a schema-valid canonical example and every declared projection",
@@ -1101,10 +947,7 @@
     {
       "id": "list_documents",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_documents",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_documents has a schema-valid canonical example and every declared projection",
@@ -1142,16 +985,12 @@
     {
       "id": "list_goals",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_goals",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_goals has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:list_goals"
-      ],
+      "deterministicCases": ["protocol-action:list_goals"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::list_goals has a schema-valid canonical example and every declared projection",
@@ -1161,17 +1000,12 @@
     {
       "id": "list_projects",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_projects",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_projects has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:list_projects"
-      ],
+      "deterministicCases": ["protocol-action:list_projects"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::list_projects has a schema-valid canonical example and every declared projection",
@@ -1181,9 +1015,7 @@
     {
       "id": "list_routines",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_routines",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_routines has a schema-valid canonical example and every declared projection",
@@ -1211,15 +1043,11 @@
     {
       "id": "list_secret_metadata",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:list_secret_metadata",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::list_secret_metadata has a schema-valid canonical example and every declared projection",
-      "legacyBehavioralCases": [
-        "rs-secret-hygiene-01"
-      ],
+      "legacyBehavioralCases": ["rs-secret-hygiene-01"],
       "deterministicCases": [
         "protocol-action:list_secret_metadata",
         "rs-secret-hygiene-01"
@@ -1233,16 +1061,12 @@
     {
       "id": "manage_routine",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:manage_routine",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::manage_routine has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:manage_routine"
-      ],
+      "deterministicCases": ["protocol-action:manage_routine"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::manage_routine has a schema-valid canonical example and every declared projection",
@@ -1252,17 +1076,12 @@
     {
       "id": "read_document",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:read_document",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::read_document has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:read_document"
-      ],
+      "deterministicCases": ["protocol-action:read_document"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::read_document has a schema-valid canonical example and every declared projection",
@@ -1272,15 +1091,11 @@
     {
       "id": "read_secret_value",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:read_secret_value",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::read_secret_value has a schema-valid canonical example and every declared projection",
-      "legacyBehavioralCases": [
-        "rs-secret-hygiene-01"
-      ],
+      "legacyBehavioralCases": ["rs-secret-hygiene-01"],
       "deterministicCases": [
         "protocol-action:read_secret_value",
         "rs-secret-hygiene-01"
@@ -1294,10 +1109,7 @@
     {
       "id": "register_deliverable",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:register_deliverable",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::register_deliverable has a schema-valid canonical example and every declared projection",
@@ -1325,13 +1137,8 @@
     {
       "id": "report_progress",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
-      "legacyAliases": [
-        "mcp:taskcoreAddComment"
-      ],
+      "surfaces": ["scenario", "live"],
+      "legacyAliases": ["mcp:taskcoreAddComment"],
       "contractCase": "protocol-action:report_progress",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::report_progress has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [
@@ -1433,9 +1240,7 @@
         "su-no-poll-01",
         "su-parent-goal-01"
       ],
-      "legacyRequirementCases": [
-        "cm-multiline-01"
-      ],
+      "legacyRequirementCases": ["cm-multiline-01"],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::report_progress has a schema-valid canonical example and every declared projection",
         "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
@@ -1444,17 +1249,11 @@
     {
       "id": "request_approval",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:request_approval",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::request_approval has a schema-valid canonical example and every declared projection",
-      "legacyBehavioralCases": [
-        "ap-board-approval-01",
-        "ap-mcp-gate-01"
-      ],
+      "legacyBehavioralCases": ["ap-board-approval-01", "ap-mcp-gate-01"],
       "deterministicCases": [
         "protocol-action:request_approval",
         "ap-board-approval-01",
@@ -1469,10 +1268,7 @@
     {
       "id": "request_human_input",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:request_human_input",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::request_human_input has a schema-valid canonical example and every declared projection",
@@ -1508,10 +1304,7 @@
     {
       "id": "request_review",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:request_review",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::request_review has a schema-valid canonical example and every declared projection",
@@ -1543,16 +1336,12 @@
     {
       "id": "schedule_wake",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "live"
-      ],
+      "surfaces": ["live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:schedule_wake",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::schedule_wake has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:schedule_wake"
-      ],
+      "deterministicCases": ["protocol-action:schedule_wake"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::schedule_wake has a schema-valid canonical example and every declared projection",
@@ -1562,13 +1351,8 @@
     {
       "id": "search_tasks",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
-      "legacyAliases": [
-        "mcp:taskcoreListIssues"
-      ],
+      "surfaces": ["scenario", "live"],
+      "legacyAliases": ["mcp:taskcoreListIssues"],
       "contractCase": "protocol-action:search_tasks",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::search_tasks has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [
@@ -1586,9 +1370,7 @@
         "se-q-filters-01",
         "se-q-topic-01"
       ],
-      "legacyRequirementCases": [
-        "se-q-filters-01"
-      ],
+      "legacyRequirementCases": ["se-q-filters-01"],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::search_tasks has a schema-valid canonical example and every declared projection",
         "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
@@ -1597,16 +1379,11 @@
     {
       "id": "set_dependencies",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:set_dependencies",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::set_dependencies has a schema-valid canonical example and every declared projection",
-      "legacyBehavioralCases": [
-        "mh-subtask-tree-01"
-      ],
+      "legacyBehavioralCases": ["mh-subtask-tree-01"],
       "deterministicCases": [
         "protocol-action:set_dependencies",
         "mh-subtask-tree-01"
@@ -1620,17 +1397,12 @@
     {
       "id": "reassign_task",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:reassign_task",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::reassign_task has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:reassign_task"
-      ],
+      "deterministicCases": ["protocol-action:reassign_task"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::reassign_task has a schema-valid canonical example and every declared projection",
@@ -1640,16 +1412,12 @@
     {
       "id": "sync_company_skills",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:sync_company_skills",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::sync_company_skills has a schema-valid canonical example and every declared projection",
       "legacyBehavioralCases": [],
-      "deterministicCases": [
-        "protocol-action:sync_company_skills"
-      ],
+      "deterministicCases": ["protocol-action:sync_company_skills"],
       "legacyRequirementCases": [],
       "deterministicOwners": [
         "src/catalog/protocol-action-contracts.test.ts::sync_company_skills has a schema-valid canonical example and every declared projection",
@@ -1659,9 +1427,7 @@
     {
       "id": "upsert_case",
       "ownership": "optional_agent_tool",
-      "surfaces": [
-        "scenario"
-      ],
+      "surfaces": ["scenario"],
       "legacyAliases": [],
       "contractCase": "protocol-action:upsert_case",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::upsert_case has a schema-valid canonical example and every declared projection",
@@ -1685,10 +1451,7 @@
     {
       "id": "write_document",
       "ownership": "always_agent_tool",
-      "surfaces": [
-        "scenario",
-        "live"
-      ],
+      "surfaces": ["scenario", "live"],
       "legacyAliases": [],
       "contractCase": "protocol-action:write_document",
       "contractOwner": "src/catalog/protocol-action-contracts.test.ts::write_document has a schema-valid canonical example and every declared projection",
@@ -1753,10 +1516,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ap-approval-deny-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1774,10 +1534,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ap-approval-wake-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1794,10 +1551,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ap-board-approval-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1814,10 +1568,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ap-mcp-expiry-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1836,10 +1587,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ap-mcp-gate-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1855,10 +1603,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ap-mcp-pathmissing-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1874,9 +1619,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ar-no-done-without-upload-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1894,9 +1637,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ar-upload-before-done-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1912,9 +1653,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ar-workproduct-pr-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1930,9 +1669,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ar-workproduct-wsfile-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1949,10 +1686,7 @@
         "schedule_blocker_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/bl-cancelled-not-resolved-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1969,10 +1703,7 @@
         "schedule_blocker_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/bl-clear-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -1990,10 +1721,7 @@
         "schedule_blocker_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/bl-create-blocked-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2010,10 +1738,7 @@
         "schedule_blocker_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/bl-firstclass-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2030,10 +1755,7 @@
         "schedule_blocker_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/bl-read-owners-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2049,9 +1771,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/cm-mention-structured-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2067,9 +1787,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/cm-multiline-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2085,9 +1803,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/cm-prefixed-url-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2103,9 +1819,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/cm-progress-nextaction-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2121,9 +1835,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/cm-runid-modify-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2139,9 +1851,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/cm-ticket-link-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2157,10 +1867,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/co-409-stop-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2176,10 +1883,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/co-409-stop-02.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2195,10 +1899,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/co-before-work-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2214,10 +1915,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/co-body-contract-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2233,10 +1931,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/co-no-status-patch-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2252,10 +1947,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/co-runid-header-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2272,9 +1964,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/dp-base-revision-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2292,9 +1982,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/dp-plan-doc-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2312,9 +2000,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/dp-plan-link-comment-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2331,10 +2017,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-blocked-dedup-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2352,10 +2035,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-budget-critical-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2372,10 +2052,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-close-retry-fault-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2392,10 +2069,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-exec-not-participant-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2412,10 +2086,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-exec-participant-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2432,10 +2103,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-mention-handoff-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2452,10 +2120,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-mention-noassign-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2472,10 +2137,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-no-unassigned-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2492,10 +2154,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/er-release-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2511,9 +2170,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/hb-context-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant"
-      ],
+      "assertionClasses": ["control_plane_invariant"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2529,9 +2186,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/hb-inbox-lite-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant"
-      ],
+      "assertionClasses": ["control_plane_invariant"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2547,9 +2202,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/hb-pick-priority-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant"
-      ],
+      "assertionClasses": ["control_plane_invariant"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2566,9 +2219,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/hb-scoped-wake-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant"
-      ],
+      "assertionClasses": ["control_plane_invariant"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2584,9 +2235,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/hb-wake-comment-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant"
-      ],
+      "assertionClasses": ["control_plane_invariant"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2602,10 +2251,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-checkbox-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2622,10 +2268,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-checkbox-result-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2641,10 +2284,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-confirmation-plan-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2660,10 +2300,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-continuation-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2679,10 +2316,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-questions-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2698,10 +2332,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-stale-target-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2717,10 +2348,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-suggest-tasks-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2736,10 +2364,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-superseded-comment-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2755,10 +2380,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/ix-verdicts-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["agent_tool_contract", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2776,10 +2398,7 @@
         "schedule_blocker_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/mh-blocked-handoff-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2797,10 +2416,7 @@
         "schedule_blocker_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/mh-children-complete-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2817,10 +2433,7 @@
         "schedule_blocker_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/mh-plan-confirm-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2840,10 +2453,7 @@
         "set_dependencies"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/mh-subtask-tree-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2860,10 +2470,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-api-404-report-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2880,10 +2487,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-api-cancel-obsolete-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2900,10 +2504,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-api-mention-discipline-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2922,10 +2523,7 @@
         "search_tasks"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-api-mgr-heartbeat-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2942,10 +2540,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-api-review-changes-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2961,10 +2556,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-art-attachment-wp-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -2981,10 +2573,7 @@
         "upsert_case"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-case-child-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3001,10 +2590,7 @@
         "upsert_case"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-case-lifecycle-link-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3021,10 +2607,7 @@
         "upsert_case"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-case-upsert-doc-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3040,10 +2623,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-cskill-audit-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3059,10 +2639,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-cskill-install-attach-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3078,10 +2655,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-cskill-self-sync-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3097,10 +2671,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-iws-start-url-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3116,10 +2687,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-iws-target-restart-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3135,10 +2703,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-routine-create-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3154,10 +2719,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-routine-manual-run-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3173,10 +2735,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-routine-pause-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3192,10 +2751,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-routine-policy-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3211,10 +2767,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-routine-webhook-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3230,10 +2783,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-wf-export-preview-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3249,10 +2799,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-wf-invite-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3268,10 +2815,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rf-wf-project-setup-01.yaml",
-      "assertionClasses": [
-        "authorization_policy",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["authorization_policy", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3288,10 +2832,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rs-dependency-blocked-wake-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3308,10 +2849,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rs-question-only-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3329,10 +2867,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/rs-secret-hygiene-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "restraint_no_call"
-      ],
+      "assertionClasses": ["control_plane_invariant", "restraint_no_call"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3349,9 +2884,7 @@
         "search_tasks"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/se-get-issue-01.yaml",
-      "assertionClasses": [
-        "authorization_policy"
-      ],
+      "assertionClasses": ["authorization_policy"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3368,9 +2901,7 @@
         "search_tasks"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/se-q-comments-01.yaml",
-      "assertionClasses": [
-        "authorization_policy"
-      ],
+      "assertionClasses": ["authorization_policy"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3387,9 +2918,7 @@
         "search_tasks"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/se-q-filters-01.yaml",
-      "assertionClasses": [
-        "authorization_policy"
-      ],
+      "assertionClasses": ["authorization_policy"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3406,9 +2935,7 @@
         "search_tasks"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/se-q-topic-01.yaml",
-      "assertionClasses": [
-        "authorization_policy"
-      ],
+      "assertionClasses": ["authorization_policy"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3426,9 +2953,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/st-backlog-park-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3446,9 +2971,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/st-blocked-owner-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3466,9 +2989,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/st-crossteam-cancel-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3486,9 +3007,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/st-done-comment-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3506,9 +3025,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/st-env-blocked-notdone-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3526,9 +3043,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/st-ephemeral-verify-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3546,9 +3061,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/st-handback-review-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3566,9 +3079,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/st-unverified-toolchain-01.yaml",
-      "assertionClasses": [
-        "agent_tool_contract"
-      ],
+      "assertionClasses": ["agent_tool_contract"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3585,9 +3096,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/su-crossteam-billing-01.yaml",
-      "assertionClasses": [
-        "authorization_policy"
-      ],
+      "assertionClasses": ["authorization_policy"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3604,9 +3113,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/su-inherit-workspace-01.yaml",
-      "assertionClasses": [
-        "authorization_policy"
-      ],
+      "assertionClasses": ["authorization_policy"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3623,9 +3130,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/su-no-poll-01.yaml",
-      "assertionClasses": [
-        "authorization_policy"
-      ],
+      "assertionClasses": ["authorization_policy"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3642,9 +3147,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/su-parent-goal-01.yaml",
-      "assertionClasses": [
-        "authorization_policy"
-      ],
+      "assertionClasses": ["authorization_policy"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3661,10 +3164,7 @@
         "route_wake"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/wk-ask-mode-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["control_plane_invariant", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3681,10 +3181,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/wk-plan-accepted-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["control_plane_invariant", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3701,10 +3198,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/wk-plan-annotation-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["control_plane_invariant", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3724,10 +3218,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/wk-plan-directive-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["control_plane_invariant", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3744,10 +3235,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/wk-plan-directive-02.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["control_plane_invariant", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3765,10 +3253,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/wk-recovery-processlost-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["control_plane_invariant", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3786,10 +3271,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/wk-resume-delta-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["control_plane_invariant", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     },
     {
@@ -3808,10 +3290,7 @@
         "write_document"
       ],
       "sourceAnchor": "taskcore-evals/taskcore-skill-optimization/skills/taskcore/tests/cases/wk-skilltest-mode-01.yaml",
-      "assertionClasses": [
-        "control_plane_invariant",
-        "combined_multi_hop"
-      ],
+      "assertionClasses": ["control_plane_invariant", "combined_multi_hop"],
       "deterministicOwner": "src/scenarios/scenario-explorer.test.ts::renders every scenario with exposure, control plane, authorization, diff, and parity"
     }
   ],

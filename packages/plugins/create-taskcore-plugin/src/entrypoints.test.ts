@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it } from "vitest";
 const tempDirs: string[] = [];
 
 function makeTempDir(): string {
-  const dir = fs.mkdtempSync(path.join(process.cwd(), ".tmp-create-taskcore-plugin-"));
+  const dir = fs.mkdtempSync(
+    path.join(process.cwd(), ".tmp-create-taskcore-plugin-"),
+  );
   tempDirs.push(dir);
   return dir;
 }
@@ -23,7 +25,13 @@ describe("create-taskcore-plugin entrypoints", () => {
     const outputRoot = makeTempDir();
 
     try {
-      process.argv = [process.execPath, path.resolve("cli/dist/index.js"), "demo-plugin", "--output", outputRoot];
+      process.argv = [
+        process.execPath,
+        path.resolve("cli/dist/index.js"),
+        "demo-plugin",
+        "--output",
+        outputRoot,
+      ];
       const library = await import("./index.js");
 
       expect(library.scaffoldPluginProject).toBeTypeOf("function");
@@ -62,7 +70,9 @@ describe("create-taskcore-plugin entrypoints", () => {
 
     expect(result).toBe(outputDir);
     expect(stdout).toEqual([`Created plugin scaffold at ${outputDir}`]);
-    expect(JSON.parse(fs.readFileSync(path.join(outputDir, "package.json"), "utf8"))).toMatchObject({
+    expect(
+      JSON.parse(fs.readFileSync(path.join(outputDir, "package.json"), "utf8")),
+    ).toMatchObject({
       name: "demo-plugin",
       taskcorePlugin: {
         manifest: "./dist/manifest.js",

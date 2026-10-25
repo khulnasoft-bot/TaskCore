@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-export const CAPABILITY_SCENARIO_MANIFEST_MODULE = "virtual:capability-scenario-manifest";
+export const CAPABILITY_SCENARIO_MANIFEST_MODULE =
+  "virtual:capability-scenario-manifest";
 export const CAPABILITY_EVAL_REPORT_MODULE = "virtual:capability-eval-report";
 
 /**
@@ -20,7 +21,10 @@ export function capabilityExplorerFixturesPlugin() {
   return {
     name: "capability-explorer-fixtures",
     resolveId(source) {
-      if (source === CAPABILITY_SCENARIO_MANIFEST_MODULE || source === CAPABILITY_EVAL_REPORT_MODULE) {
+      if (
+        source === CAPABILITY_SCENARIO_MANIFEST_MODULE ||
+        source === CAPABILITY_EVAL_REPORT_MODULE
+      ) {
         return `\0${source}`;
       }
       return null;
@@ -37,7 +41,10 @@ export function capabilityExplorerFixturesPlugin() {
         // Capability's report is optional: when it has not been generated the
         // Parity tab renders "Not run" rather than inventing a verdict.
         const report = await readFile(
-          resolve(packageRoot, ".taskcore-local/evidence/capability/eval-parity-report.json"),
+          resolve(
+            packageRoot,
+            ".taskcore-local/evidence/capability/eval-parity-report.json",
+          ),
           "utf8",
         ).catch(() => null);
         return `export default ${report ?? "null"};`;

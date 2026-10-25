@@ -79,7 +79,8 @@ const manifest: TaskcorePluginManifestV1 = {
           },
           blockNetwork: {
             type: "boolean",
-            description: "Whether to block all egress network access from the sandbox.",
+            description:
+              "Whether to block all egress network access from the sandbox.",
             default: false,
           },
           cidrAllowlist: {

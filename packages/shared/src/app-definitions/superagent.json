@@ -3,25 +3,19 @@
   "slug": "superagent",
   "name": "Superagent",
   "description": "Review security findings, start red-team reports, and score content and packages before agents trust them.",
-  "categories": [
-    "developer"
-  ],
+  "categories": ["developer"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/superagent.png"
   },
-  "urlPatterns": [
-    "https://www.superagent.sh/*"
-  ],
+  "urlPatterns": ["https://www.superagent.sh/*"],
   "docsUrl": "https://www.superagent.sh/docs/mcp",
   "methods": [
     {
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Connect with a Superagent organization API key.",
       "defaults": {
         "serverUrl": "https://www.superagent.sh/mcp"

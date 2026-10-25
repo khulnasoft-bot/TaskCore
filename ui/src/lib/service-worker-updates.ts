@@ -38,7 +38,8 @@ export function startServiceWorkerUpdates(
   }
   const documentRef = options.documentRef ?? document;
   const reload = options.reload ?? (() => window.location.reload());
-  const updateIntervalMs = options.updateIntervalMs ?? DEFAULT_UPDATE_INTERVAL_MS;
+  const updateIntervalMs =
+    options.updateIntervalMs ?? DEFAULT_UPDATE_INTERVAL_MS;
 
   // Only a page that is already worker-controlled is running
   // potentially-stale code when the controller changes; a first-ever

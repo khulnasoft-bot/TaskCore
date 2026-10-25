@@ -69,12 +69,14 @@ export function EntityRow({
     "px-4 py-2 text-sm border-b border-border last:border-b-0 transition-colors",
     isClickable && "cursor-pointer hover:bg-accent/50",
     selected && "bg-accent/30",
-    className
+    className,
   );
 
   const content = (
     <>
-      {leading && <div className="flex items-center gap-2 shrink-0">{leading}</div>}
+      {leading && (
+        <div className="flex items-center gap-2 shrink-0">{leading}</div>
+      )}
       <div
         className={cn(
           // `titlePriority` gives the name a floor so it ellipsizes instead of
@@ -90,7 +92,13 @@ export function EntityRow({
               {identifier}
             </span>
           )}
-          <span className={cn(!titleTextClassName && "truncate", titleTextClassName)} title={title}>
+          <span
+            className={cn(
+              !titleTextClassName && "truncate",
+              titleTextClassName,
+            )}
+            title={title}
+          >
             {title}
           </span>
           {titleAccessory}
@@ -122,7 +130,9 @@ export function EntityRow({
         </div>
       )}
       {meta && <div className={cn("flex-1", metaSpacerClassName)} />}
-      {trailing && <div className="flex items-center gap-2 shrink-0">{trailing}</div>}
+      {trailing && (
+        <div className="flex items-center gap-2 shrink-0">{trailing}</div>
+      )}
     </>
   );
 
@@ -140,7 +150,11 @@ export function EntityRow({
 
   if (to) {
     return (
-      <Link to={to} className={cn("no-underline text-inherit", shellClasses)} onClick={onClick}>
+      <Link
+        to={to}
+        className={cn("no-underline text-inherit", shellClasses)}
+        onClick={onClick}
+      >
         {body}
       </Link>
     );

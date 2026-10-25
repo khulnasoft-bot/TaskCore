@@ -2,7 +2,10 @@ import { explicitTaskSkillNames } from "../contracts/runtime-context.js";
 import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { CODEX_SKILLLESS_BASE_INSTRUCTIONS } from "../contracts/codex.js";
-import { NATIVE_EXECUTION_INPUT_SCHEMA, type NativeExecutionInput } from "../contracts/native-execution.js";
+import {
+  NATIVE_EXECUTION_INPUT_SCHEMA,
+  type NativeExecutionInput,
+} from "../contracts/native-execution.js";
 import {
   type NativeRuntimeContextSnapshot,
   type NativeSkillInput,
@@ -28,9 +31,12 @@ export function nativeSystemInstructions(input: NativeExecutionInput): string {
   }
   const entry = readFileSync(entryPath, "utf8");
   if (input.provider.kind === "openai_dot") {
-    return [input.runtimeContext.prompt.text, entry.trim(),
+    return [
+      input.runtimeContext.prompt.text,
+      entry.trim(),
       "This provider has no mounted workspace. Use Taskcore semantic tools for task coordination and write_document for durable text deliverables. Read pinned skills with list_assigned_skills and read_assigned_skill. Assigned app tools run through the Taskcore MCP gateway with normal permissions and approvals. If workspace tools are advertised, use them for files and sandboxed commands, then register_deliverable for requested downloadable files. Use get_identity and list_people to discover the responsible person and assignees. Read the current catalog before concluding a capability is unavailable.",
-      `Assigned skills: ${input.runtimeContext.skills.map(skill => skill.runtimeName).join(", ") || "none"}.`].join("\n\n");
+      `Assigned skills: ${input.runtimeContext.skills.map((skill) => skill.runtimeName).join(", ") || "none"}.`,
+    ].join("\n\n");
   }
   return composeNativeSystemInstructions(input.runtimeContext, entry);
 }
@@ -111,11 +117,13 @@ export function nativeTaskConstraints(input: NativeExecutionInput): string[] {
   }
   return [
     "Use only the assigned skills and provider-native tools.",
-    ...(input.runtimeContext.instructions.workingCopy ? [
-      input.runtimeContext.instructions.workingCopy.kind === "agent_files"
-        ? `For this turn, AGENT_HOME is ${input.runtimeContext.instructions.workingCopy.rootPath}. This replaces any prior turn's agent directory path. It contains your instructions and persistent personal files, separate from the task working directory. Changes save after the provider stops; check the save receipt.`
-        : `For this turn, the editable agent instruction file is ${input.runtimeContext.instructions.workingCopy.rootPath}/${input.runtimeContext.instructions.workingCopy.entryPath}. This replaces any private working-copy path from a previous turn. Ordinary edits save after the provider stops and only with a durable revision receipt. Use the agent instruction tools for immediate saves. Shared instruction assets and repository instructions are not collected.`,
-    ] : []),
+    ...(input.runtimeContext.instructions.workingCopy
+      ? [
+          input.runtimeContext.instructions.workingCopy.kind === "agent_files"
+            ? `For this turn, AGENT_HOME is ${input.runtimeContext.instructions.workingCopy.rootPath}. This replaces any prior turn's agent directory path. It contains your instructions and persistent personal files, separate from the task working directory. Changes save after the provider stops; check the save receipt.`
+            : `For this turn, the editable agent instruction file is ${input.runtimeContext.instructions.workingCopy.rootPath}/${input.runtimeContext.instructions.workingCopy.entryPath}. This replaces any private working-copy path from a previous turn. Ordinary edits save after the provider stops and only with a durable revision receipt. Use the agent instruction tools for immediate saves. Shared instruction assets and repository instructions are not collected.`,
+        ]
+      : []),
     "Use Taskcore semantic tools for coordination and finalization.",
     "When available, use submit_complaint for the raw reaction to agent-work friction or submit_suggestion for a concrete improvement. Submit proactively when warranted, briefly and in your own voice; this is not a mandatory report. Feedback is internal and attributed. Exclude secrets, private prompts, customer data, and personal blame. Never submit the same incident through both tools; aim for at most three suggestions per run. Submit silently once, before finishing, then immediately continue the primary task even if submission fails. Answer truthfully if the user asks about feedback or what you submitted.",
     "Save requested plans and Taskcore documents directly with write_document. A saved Taskcore document is already a durable deliverable. Do not create a local file, compute file hashes, or call register_deliverable for it unless the user also requests a downloadable file. Cite the saved document in your completion evidence and include its returned documentHref as a clickable link in your final response.",
@@ -136,7 +144,12 @@ export function nativeTaskSkillInputs(
   context: NativeRuntimeContextSnapshot | null,
 ): NativeSkillInput[] {
   if (!description || !context) return [];
-  const names = new Set(explicitTaskSkillNames(description, context.skills.map((skill) => skill.runtimeName)));
+  const names = new Set(
+    explicitTaskSkillNames(
+      description,
+      context.skills.map((skill) => skill.runtimeName),
+    ),
+  );
   return context.skills
     .filter((skill) => names.has(skill.runtimeName))
     .map((skill) => ({

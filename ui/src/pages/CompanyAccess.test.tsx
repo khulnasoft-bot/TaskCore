@@ -16,7 +16,9 @@ const mockUsePluginSlots = vi.hoisted(() => vi.fn());
 const mockNavigate = vi.hoisted(() => vi.fn());
 const listInvitesMock = vi.hoisted(() => vi.fn());
 const listCloudStacksMock = vi.hoisted(() => vi.fn());
-const mockSearchParamsState = vi.hoisted(() => ({ current: new URLSearchParams() }));
+const mockSearchParamsState = vi.hoisted(() => ({
+  current: new URLSearchParams(),
+}));
 
 vi.mock("@/api/cloud", () => ({
   cloudApi: { listStacks: listCloudStacksMock },
@@ -25,7 +27,8 @@ vi.mock("@/api/cloud", () => ({
 vi.mock("@/api/access", () => ({
   accessApi: {
     listMembers: (companyId: string) => listMembersMock(companyId),
-    listJoinRequests: (companyId: string, status: string) => listJoinRequestsMock(companyId, status),
+    listJoinRequests: (companyId: string, status: string) =>
+      listJoinRequestsMock(companyId, status),
     updateMember: (companyId: string, memberId: string, input: unknown) =>
       updateMemberMock(companyId, memberId, input),
     updateMemberPermissions: vi.fn(),
@@ -34,7 +37,8 @@ vi.mock("@/api/access", () => ({
       archiveMemberMock(companyId, memberId, input),
     approveJoinRequest: vi.fn(),
     rejectJoinRequest: vi.fn(),
-    listInvites: (companyId: string, options: unknown) => listInvitesMock(companyId, options),
+    listInvites: (companyId: string, options: unknown) =>
+      listInvitesMock(companyId, options),
     createCompanyInvite: vi.fn(),
     revokeInvite: vi.fn(),
   },
@@ -48,12 +52,15 @@ vi.mock("@/api/agents", () => ({
 
 vi.mock("@/api/issues", () => ({
   issuesApi: {
-    list: (companyId: string, filters: unknown) => listIssuesMock(companyId, filters),
+    list: (companyId: string, filters: unknown) =>
+      listIssuesMock(companyId, filters),
   },
 }));
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => <a href={to}>{children}</a>,
+  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
+    <a href={to}>{children}</a>
+  ),
   Navigate: ({ to, replace }: { to: string; replace?: boolean }) => {
     mockNavigate(to, replace);
     return <div data-testid="navigate">{to}</div>;
@@ -61,9 +68,7 @@ vi.mock("@/lib/router", () => ({
   useSearchParams: () => [
     mockSearchParamsState.current,
     (
-      updater:
-        | URLSearchParams
-        | ((prev: URLSearchParams) => URLSearchParams),
+      updater: URLSearchParams | ((prev: URLSearchParams) => URLSearchParams),
     ) => {
       mockSearchParamsState.current =
         typeof updater === "function"
@@ -238,10 +243,18 @@ describe("CompanyAccess", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).not.toContain("Manage the people who can work in Taskcore");
-    expect(container.textContent).not.toContain("Members can collaborate across the company by default");
-    expect(container.textContent).not.toContain("Core keeps this page focused on membership");
-    expect(container.textContent).not.toContain("Manage human company memberships and status here");
+    expect(container.textContent).not.toContain(
+      "Manage the people who can work in Taskcore",
+    );
+    expect(container.textContent).not.toContain(
+      "Members can collaborate across the company by default",
+    );
+    expect(container.textContent).not.toContain(
+      "Core keeps this page focused on membership",
+    );
+    expect(container.textContent).not.toContain(
+      "Manage human company memberships and status here",
+    );
     expect(container.textContent).toContain("Pending human joins");
     expect(container.textContent).toContain("Name");
     expect(container.textContent).toContain("Email");
@@ -267,8 +280,12 @@ describe("CompanyAccess", () => {
     });
     await flushReact();
 
-    expect(document.body.textContent).toContain("Update organization role and membership status");
-    expect(document.body.textContent).not.toContain("Implicit grants from role");
+    expect(document.body.textContent).toContain(
+      "Update organization role and membership status",
+    );
+    expect(document.body.textContent).not.toContain(
+      "Implicit grants from role",
+    );
     expect(document.body.textContent).not.toContain("permissionKey");
 
     await act(async () => {
@@ -302,9 +319,9 @@ describe("CompanyAccess", () => {
     });
     await flushReact();
 
-    const saveButton = Array.from(document.body.querySelectorAll("button")).find(
-      (button) => button.textContent === "Save member",
-    );
+    const saveButton = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((button) => button.textContent === "Save member");
     expect(saveButton).toBeTruthy();
 
     await act(async () => {
@@ -338,13 +355,15 @@ describe("CompanyAccess", () => {
     await flushReact();
     await flushReact();
 
-    const removeButtons = Array.from(container.querySelectorAll("button")).filter(
-      (button) => button.textContent?.includes("Remove"),
-    );
+    const removeButtons = Array.from(
+      container.querySelectorAll("button"),
+    ).filter((button) => button.textContent?.includes("Remove"));
     expect(removeButtons.length).toBeGreaterThan(0);
 
     await act(async () => {
-      removeButtons[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      removeButtons[0]?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flushReact();
 
@@ -358,9 +377,9 @@ describe("CompanyAccess", () => {
       reassignmentSelect!.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    const confirmButton = Array.from(document.body.querySelectorAll("button")).find(
-      (button) => button.textContent === "Remove member",
-    );
+    const confirmButton = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((button) => button.textContent === "Remove member");
     expect(confirmButton).toBeTruthy();
 
     await act(async () => {
@@ -425,13 +444,17 @@ describe("CompanyAccess", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).not.toContain("Company admins cannot be removed from company access.");
+    expect(container.textContent).not.toContain(
+      "Company admins cannot be removed from company access.",
+    );
     const removeButton = Array.from(container.querySelectorAll("button")).find(
       (button) => button.textContent?.includes("Remove"),
     );
     expect(removeButton).toBeTruthy();
     expect(removeButton).toHaveProperty("disabled", true);
-    expect(removeButton?.getAttribute("title")).toBe("Company admins cannot be removed from company access.");
+    expect(removeButton?.getAttribute("title")).toBe(
+      "Company admins cannot be removed from company access.",
+    );
 
     await act(async () => {
       root.unmount();
@@ -466,7 +489,10 @@ describe("CompanyAccess", () => {
     });
     await flushReact();
 
-    expect(mockNavigate).toHaveBeenCalledWith("/company/settings/permissions", true);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/company/settings/permissions",
+      true,
+    );
     expect(container.textContent).toContain("/company/settings/permissions");
 
     await act(async () => {
@@ -527,7 +553,8 @@ describe("CompanyAccess invites tab", () => {
   async function renderPage(queryClient?: QueryClient) {
     const root = createRoot(container);
     const client =
-      queryClient ?? new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      queryClient ??
+      new QueryClient({ defaultOptions: { queries: { retry: false } } });
     await act(async () => {
       root.render(
         <QueryClientProvider client={client}>
@@ -543,7 +570,9 @@ describe("CompanyAccess invites tab", () => {
   it("shows Members and Invites tabs with Members active by default", async () => {
     const root = await renderPage();
 
-    const tabLabels = [...container.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent);
+    const tabLabels = [...container.querySelectorAll('[role="tab"]')].map(
+      (tab) => tab.textContent,
+    );
     expect(tabLabels).toEqual(["Members", "Invites"]);
     expect(container.textContent).toContain("Organization Members");
     expect(container.textContent).not.toContain("Invite a person");
@@ -568,8 +597,12 @@ describe("CompanyAccess invites tab", () => {
   });
 
   it("hides the Invites tab when the operator hides company.invites", async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(["health"], { hiddenSettings: ["company.invites"] } as never);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    client.setQueryData(["health"], {
+      hiddenSettings: ["company.invites"],
+    } as never);
     mockSearchParamsState.current = new URLSearchParams("tab=invites");
     const root = await renderPage(client);
 
@@ -583,43 +616,79 @@ describe("CompanyAccess invites tab", () => {
     });
   });
 
-  function cloudClient(cloudBaseUrl: string | null = "https://cloud.example.test") {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  function cloudClient(
+    cloudBaseUrl: string | null = "https://cloud.example.test",
+  ) {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     client.setQueryData(["health"], {
       hiddenSettings: ["company.invites"],
-      cloud: { managed: true, managedBy: "taskcore-cloud", cloudBaseUrl, stackSlug: "old-slug" },
+      cloud: {
+        managed: true,
+        managedBy: "taskcore-cloud",
+        cloudBaseUrl,
+        stackSlug: "old-slug",
+      },
     });
     return client;
   }
 
   function cloudStack(role: string, isCurrent = true) {
-    return { stackSlug: isCurrent ? "current-team" : "other-team", role, isCurrent,
-      displayName: "Team", primaryHost: null, lifecycleState: "active", sleepState: "awake" };
+    return {
+      stackSlug: isCurrent ? "current-team" : "other-team",
+      role,
+      isCurrent,
+      displayName: "Team",
+      primaryHost: null,
+      lifecycleState: "active",
+      sleepState: "awake",
+    };
   }
 
-  it.each(["owner", "admin"])("offers Cloud invitations to the current stack's %s even with local invites hidden", async (role) => {
-    listCloudStacksMock.mockResolvedValue({ stacks: [cloudStack("owner", false), cloudStack(role)] });
-    const root = await renderPage(cloudClient());
+  it.each(["owner", "admin"])(
+    "offers Cloud invitations to the current stack's %s even with local invites hidden",
+    async (role) => {
+      listCloudStacksMock.mockResolvedValue({
+        stacks: [cloudStack("owner", false), cloudStack(role)],
+      });
+      const root = await renderPage(cloudClient());
 
-    const invite = [...container.querySelectorAll("a")].find((link) => link.textContent === "Invite people");
-    expect(invite?.getAttribute("href")).toBe("https://cloud.example.test/workspaces/current-team/settings?section=people");
-    expect(invite?.getAttribute("target")).toBeNull();
-    expect(container.querySelectorAll('[role="tab"]')).toHaveLength(0);
-    expect(listInvitesMock).not.toHaveBeenCalled();
+      const invite = [...container.querySelectorAll("a")].find(
+        (link) => link.textContent === "Invite people",
+      );
+      expect(invite?.getAttribute("href")).toBe(
+        "https://cloud.example.test/workspaces/current-team/settings?section=people",
+      );
+      expect(invite?.getAttribute("target")).toBeNull();
+      expect(container.querySelectorAll('[role="tab"]')).toHaveLength(0);
+      expect(listInvitesMock).not.toHaveBeenCalled();
 
-    await act(async () => root.unmount());
-  });
+      await act(async () => root.unmount());
+    },
+  );
 
-  it.each(["member", "support", "unknown"])("does not expose Cloud invitations to a %s who owns another stack", async (role) => {
-    listCloudStacksMock.mockResolvedValue({ stacks: [cloudStack("owner", false), cloudStack(role)] });
-    const root = await renderPage(cloudClient());
-    expect(container.textContent).not.toContain("Invite people");
-    await act(async () => root.unmount());
-  });
+  it.each(["member", "support", "unknown"])(
+    "does not expose Cloud invitations to a %s who owns another stack",
+    async (role) => {
+      listCloudStacksMock.mockResolvedValue({
+        stacks: [cloudStack("owner", false), cloudStack(role)],
+      });
+      const root = await renderPage(cloudClient());
+      expect(container.textContent).not.toContain("Invite people");
+      await act(async () => root.unmount());
+    },
+  );
 
   it("waits for the Cloud role before showing the invitation action", async () => {
-    let resolveStacks!: (value: { stacks: ReturnType<typeof cloudStack>[] }) => void;
-    listCloudStacksMock.mockReturnValue(new Promise((resolve) => { resolveStacks = resolve; }));
+    let resolveStacks!: (value: {
+      stacks: ReturnType<typeof cloudStack>[];
+    }) => void;
+    listCloudStacksMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveStacks = resolve;
+      }),
+    );
     const root = await renderPage(cloudClient());
     expect(container.textContent).not.toContain("Invite people");
     await act(async () => resolveStacks({ stacks: [cloudStack("admin")] }));
@@ -634,14 +703,18 @@ describe("CompanyAccess invites tab", () => {
     const root = await renderPage(client);
     expect(container.textContent).toContain("Invite people");
     listCloudStacksMock.mockRejectedValue(new Error("Portfolio unavailable"));
-    await act(async () => { await client.invalidateQueries({ queryKey: ["cloud", "stacks"] }); });
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ["cloud", "stacks"] });
+    });
     await flushReact();
     expect(container.textContent).not.toContain("Invite people");
     await act(async () => root.unmount());
   });
 
   it("requires an identified current stack and a configured Cloud destination", async () => {
-    listCloudStacksMock.mockResolvedValue({ stacks: [cloudStack("owner", false)] });
+    listCloudStacksMock.mockResolvedValue({
+      stacks: [cloudStack("owner", false)],
+    });
     const root = await renderPage(cloudClient());
     expect(container.textContent).not.toContain("Invite people");
     await act(async () => root.unmount());

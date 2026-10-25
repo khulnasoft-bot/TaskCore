@@ -24,7 +24,9 @@ function stubPrefixReadDb(takenPrefixes: string[]) {
           conditions.push(condition);
           return {
             then: (resolve: (rows: unknown) => unknown) =>
-              Promise.resolve(takenPrefixes.map((issuePrefix) => ({ issuePrefix }))).then(resolve),
+              Promise.resolve(
+                takenPrefixes.map((issuePrefix) => ({ issuePrefix })),
+              ).then(resolve),
           };
         },
       }),
@@ -75,21 +77,39 @@ describe("issuePrefixSuffixForAttempt", () => {
 
 describe("isIssuePrefixConflict", () => {
   it("matches the raw driver error", () => {
-    expect(isIssuePrefixConflict({ code: "23505", constraint: "companies_issue_prefix_idx" })).toBe(true);
+    expect(
+      isIssuePrefixConflict({
+        code: "23505",
+        constraint: "companies_issue_prefix_idx",
+      }),
+    ).toBe(true);
   });
 
   it("walks the cause chain Drizzle wraps the driver error in", () => {
     const wrapped = new Error("Failed query") as Error & { cause?: unknown };
-    wrapped.cause = { code: "23505", constraint_name: "companies_issue_prefix_idx" };
+    wrapped.cause = {
+      code: "23505",
+      constraint_name: "companies_issue_prefix_idx",
+    };
     expect(isIssuePrefixConflict(wrapped)).toBe(true);
   });
 
   it("ignores a unique violation on a different constraint", () => {
-    expect(isIssuePrefixConflict({ code: "23505", constraint: "issues_identifier_idx" })).toBe(false);
+    expect(
+      isIssuePrefixConflict({
+        code: "23505",
+        constraint: "issues_identifier_idx",
+      }),
+    ).toBe(false);
   });
 
   it("ignores a different error code on the same constraint", () => {
-    expect(isIssuePrefixConflict({ code: "23503", constraint: "companies_issue_prefix_idx" })).toBe(false);
+    expect(
+      isIssuePrefixConflict({
+        code: "23503",
+        constraint: "companies_issue_prefix_idx",
+      }),
+    ).toBe(false);
   });
 
   it("terminates on a self-referential cause chain", () => {
@@ -120,7 +140,10 @@ describe("pickAvailableIssuePrefix", () => {
   it("compares against a base that carries LIKE metacharacters without treating it as a pattern", async () => {
     const { db, conditions } = stubPrefixReadDb([]);
     await expect(pickAvailableIssuePrefix(db, "A%_")).resolves.toBe("A%_");
-    expect(new PgDialect().sqlToQuery(conditions[0] as SQL).params).toEqual([3, "A%_"]);
+    expect(new PgDialect().sqlToQuery(conditions[0] as SQL).params).toEqual([
+      3,
+      "A%_",
+    ]);
   });
 
   it("skips every prefix already taken in the same family", async () => {

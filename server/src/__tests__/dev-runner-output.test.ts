@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "../../../scripts/dev-runner-output.mjs";
+import {
+  createCapturedOutputBuffer,
+  parseJsonResponseWithLimit,
+} from "../../../scripts/dev-runner-output.mjs";
 
 describe("createCapturedOutputBuffer", () => {
   it("keeps small output unchanged", () => {
@@ -32,14 +35,21 @@ describe("createCapturedOutputBuffer", () => {
       headers: { "content-type": "application/json" },
     });
 
-    await expect(parseJsonResponseWithLimit<{ ok: boolean }>(response, 64)).resolves.toEqual({ ok: true });
+    await expect(
+      parseJsonResponseWithLimit<{ ok: boolean }>(response, 64),
+    ).resolves.toEqual({ ok: true });
   });
 
   it("rejects oversized JSON responses before parsing them", async () => {
-    const response = new Response(JSON.stringify({ payload: "x".repeat(128) }), {
-      headers: { "content-type": "application/json" },
-    });
+    const response = new Response(
+      JSON.stringify({ payload: "x".repeat(128) }),
+      {
+        headers: { "content-type": "application/json" },
+      },
+    );
 
-    await expect(parseJsonResponseWithLimit(response, 32)).rejects.toThrow("Response exceeds 32 bytes");
+    await expect(parseJsonResponseWithLimit(response, 32)).rejects.toThrow(
+      "Response exceeds 32 bytes",
+    );
   });
 });

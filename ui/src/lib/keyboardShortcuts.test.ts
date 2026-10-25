@@ -34,15 +34,41 @@ describe("keyboardShortcuts helpers", () => {
       ["Enter", "toggle"],
       ["x", "dismiss"],
     ] as const)("maps %s to %s", (key, expected) => {
-      expect(resolveAttentionQueueKeyAction({ ...baseArgs, key })).toBe(expected);
+      expect(resolveAttentionQueueKeyAction({ ...baseArgs, key })).toBe(
+        expected,
+      );
     });
 
     it("does not act while typing, dialog-bound, modified, or unselected", () => {
       const input = document.createElement("input");
-      expect(resolveAttentionQueueKeyAction({ ...baseArgs, key: "j", target: input })).toBe("ignore");
-      expect(resolveAttentionQueueKeyAction({ ...baseArgs, key: "j", hasOpenDialog: true })).toBe("ignore");
-      expect(resolveAttentionQueueKeyAction({ ...baseArgs, key: "j", metaKey: true })).toBe("ignore");
-      expect(resolveAttentionQueueKeyAction({ ...baseArgs, key: "Enter", hasSelection: false })).toBe("ignore");
+      expect(
+        resolveAttentionQueueKeyAction({
+          ...baseArgs,
+          key: "j",
+          target: input,
+        }),
+      ).toBe("ignore");
+      expect(
+        resolveAttentionQueueKeyAction({
+          ...baseArgs,
+          key: "j",
+          hasOpenDialog: true,
+        }),
+      ).toBe("ignore");
+      expect(
+        resolveAttentionQueueKeyAction({
+          ...baseArgs,
+          key: "j",
+          metaKey: true,
+        }),
+      ).toBe("ignore");
+      expect(
+        resolveAttentionQueueKeyAction({
+          ...baseArgs,
+          key: "Enter",
+          hasSelection: false,
+        }),
+      ).toBe("ignore");
     });
   });
 
@@ -68,7 +94,9 @@ describe("keyboardShortcuts helpers", () => {
     root.innerHTML = `<div role="dialog" aria-modal="true"></div>`;
 
     expect(hasBlockingShortcutDialog(root)).toBe(true);
-    expect(hasBlockingShortcutDialog(document.createElement("div"))).toBe(false);
+    expect(hasBlockingShortcutDialog(document.createElement("div"))).toBe(
+      false,
+    );
   });
 
   it("ignores non-dialog elements that happen to be aria-modal", () => {
@@ -82,11 +110,15 @@ describe("keyboardShortcuts helpers", () => {
     const root = document.createElement("div");
     const hidden = document.createElement("input");
     hidden.setAttribute("data-page-search-target", "true");
-    vi.spyOn(hidden, "getClientRects").mockReturnValue([] as unknown as DOMRectList);
+    vi.spyOn(hidden, "getClientRects").mockReturnValue(
+      [] as unknown as DOMRectList,
+    );
 
     const visible = document.createElement("input");
     visible.setAttribute("data-page-search-target", "true");
-    vi.spyOn(visible, "getClientRects").mockReturnValue([{}] as unknown as DOMRectList);
+    vi.spyOn(visible, "getClientRects").mockReturnValue([
+      {},
+    ] as unknown as DOMRectList);
 
     root.append(hidden, visible);
     document.body.appendChild(root);
@@ -101,7 +133,9 @@ describe("keyboardShortcuts helpers", () => {
     const input = document.createElement("input");
     input.value = "existing query";
     input.setAttribute("data-page-search-target", "true");
-    vi.spyOn(input, "getClientRects").mockReturnValue([{}] as unknown as DOMRectList);
+    vi.spyOn(input, "getClientRects").mockReturnValue([
+      {},
+    ] as unknown as DOMRectList);
     root.appendChild(input);
     document.body.appendChild(root);
 
@@ -114,208 +148,240 @@ describe("keyboardShortcuts helpers", () => {
   });
 
   it("blurs page search on a plain Enter press", () => {
-    expect(shouldBlurPageSearchOnEnter({
-      key: "Enter",
-      isComposing: false,
-    })).toBe(true);
+    expect(
+      shouldBlurPageSearchOnEnter({
+        key: "Enter",
+        isComposing: false,
+      }),
+    ).toBe(true);
   });
 
   it("keeps focus while composing with an IME", () => {
-    expect(shouldBlurPageSearchOnEnter({
-      key: "Enter",
-      isComposing: true,
-    })).toBe(false);
+    expect(
+      shouldBlurPageSearchOnEnter({
+        key: "Enter",
+        isComposing: true,
+      }),
+    ).toBe(false);
   });
 
   it("blurs page search on Escape when the field is already empty", () => {
-    expect(shouldBlurPageSearchOnEscape({
-      key: "Escape",
-      isComposing: false,
-      currentValue: "",
-    })).toBe(true);
+    expect(
+      shouldBlurPageSearchOnEscape({
+        key: "Escape",
+        isComposing: false,
+        currentValue: "",
+      }),
+    ).toBe(true);
   });
 
   it("keeps focus on the first Escape while the field still has text", () => {
-    expect(shouldBlurPageSearchOnEscape({
-      key: "Escape",
-      isComposing: false,
-      currentValue: "query",
-    })).toBe(false);
+    expect(
+      shouldBlurPageSearchOnEscape({
+        key: "Escape",
+        isComposing: false,
+        currentValue: "query",
+      }),
+    ).toBe(false);
   });
 
   it("archives only the first clean y press", () => {
     const button = document.createElement("button");
 
-    expect(resolveInboxQuickArchiveKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "y",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("archive");
+    expect(
+      resolveInboxQuickArchiveKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "y",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("archive");
   });
 
   it("ignores non-y keypresses", () => {
     const button = document.createElement("button");
 
-    expect(resolveInboxQuickArchiveKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "n",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("ignore");
+    expect(
+      resolveInboxQuickArchiveKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "n",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("ignore");
   });
 
   it("stays inert for modifier combos before a real keypress", () => {
     const button = document.createElement("button");
 
-    expect(resolveInboxQuickArchiveKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "Meta",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("ignore");
+    expect(
+      resolveInboxQuickArchiveKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "Meta",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("ignore");
 
-    expect(resolveInboxQuickArchiveKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "y",
-      metaKey: true,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("ignore");
+    expect(
+      resolveInboxQuickArchiveKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "y",
+        metaKey: true,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("ignore");
   });
 
   it("ignores input typing instead of archiving", () => {
     const input = document.createElement("input");
 
-    expect(resolveInboxQuickArchiveKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "y",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: input,
-      hasOpenDialog: false,
-    })).toBe("ignore");
+    expect(
+      resolveInboxQuickArchiveKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "y",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: input,
+        hasOpenDialog: false,
+      }),
+    ).toBe("ignore");
   });
 
   it("undoes only a clean lowercase u press when an archive is available", () => {
     const button = document.createElement("button");
 
-    expect(resolveInboxUndoArchiveKeyAction({
-      hasUndoableArchive: true,
-      defaultPrevented: false,
-      key: "u",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("undo_archive");
+    expect(
+      resolveInboxUndoArchiveKeyAction({
+        hasUndoableArchive: true,
+        defaultPrevented: false,
+        key: "u",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("undo_archive");
   });
 
   it("keeps uppercase U available for mark-unread handling", () => {
     const button = document.createElement("button");
 
-    expect(resolveInboxUndoArchiveKeyAction({
-      hasUndoableArchive: true,
-      defaultPrevented: false,
-      key: "U",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("ignore");
+    expect(
+      resolveInboxUndoArchiveKeyAction({
+        hasUndoableArchive: true,
+        defaultPrevented: false,
+        key: "U",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("ignore");
   });
 
   it("arms go-to-inbox on a clean g press", () => {
     const button = document.createElement("button");
 
-    expect(resolveIssueDetailGoKeyAction({
-      armed: false,
-      defaultPrevented: false,
-      key: "g",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("arm");
+    expect(
+      resolveIssueDetailGoKeyAction({
+        armed: false,
+        defaultPrevented: false,
+        key: "g",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("arm");
   });
 
   it("navigates to inbox on i after g", () => {
     const button = document.createElement("button");
 
-    expect(resolveIssueDetailGoKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "i",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("navigate_inbox");
+    expect(
+      resolveIssueDetailGoKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "i",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("navigate_inbox");
   });
 
   it("focuses the comment composer on c after g", () => {
     const button = document.createElement("button");
 
-    expect(resolveIssueDetailGoKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "c",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("focus_comment");
+    expect(
+      resolveIssueDetailGoKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "c",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("focus_comment");
   });
 
   it("opens the file viewer on f after g", () => {
     const button = document.createElement("button");
 
-    expect(resolveIssueDetailGoKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "f",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: button,
-      hasOpenDialog: false,
-    })).toBe("open_file_viewer");
+    expect(
+      resolveIssueDetailGoKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "f",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: button,
+        hasOpenDialog: false,
+      }),
+    ).toBe("open_file_viewer");
   });
 
   it("disarms go-to-inbox instead of firing from an editor", () => {
     const input = document.createElement("textarea");
 
-    expect(resolveIssueDetailGoKeyAction({
-      armed: true,
-      defaultPrevented: false,
-      key: "i",
-      metaKey: false,
-      ctrlKey: false,
-      altKey: false,
-      target: input,
-      hasOpenDialog: false,
-    })).toBe("disarm");
+    expect(
+      resolveIssueDetailGoKeyAction({
+        armed: true,
+        defaultPrevented: false,
+        key: "i",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        target: input,
+        hasOpenDialog: false,
+      }),
+    ).toBe("disarm");
   });
 });

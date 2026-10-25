@@ -3,11 +3,15 @@
 // `taskcore` field on the agent payload. Parse the block back out so tests can
 // assert against the structured payload instead of raw JSON substrings, keeping
 // them robust to serialization formatting/key-order changes.
-export function parseWakePayloadFromMessage(message: unknown): Record<string, unknown> {
+export function parseWakePayloadFromMessage(
+  message: unknown,
+): Record<string, unknown> {
   const text = String(message ?? "");
   const match = text.match(/```json\n([\s\S]*?)\n```/);
   if (!match) {
-    throw new Error(`Expected a wake JSON block in gateway message, got: ${text}`);
+    throw new Error(
+      `Expected a wake JSON block in gateway message, got: ${text}`,
+    );
   }
   return JSON.parse(match[1]) as Record<string, unknown>;
 }

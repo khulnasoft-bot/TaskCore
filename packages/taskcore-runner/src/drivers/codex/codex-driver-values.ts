@@ -34,9 +34,7 @@ export function record(value: unknown): Record<string, unknown> {
  * so the compatibility Codex facade must preserve the item as activity
  * without trying to infer a second result from its text.
  */
-export const RUNNERD_CANONICAL_ITEM = Symbol(
-  "taskcore.runnerd.canonical-item",
-);
+export const RUNNERD_CANONICAL_ITEM = Symbol("taskcore.runnerd.canonical-item");
 
 export function text(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;

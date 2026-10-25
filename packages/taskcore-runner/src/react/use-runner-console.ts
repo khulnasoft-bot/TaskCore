@@ -29,7 +29,8 @@ const SESSION_STORAGE_KEY = "taskcore-runner.sdk.v1.session";
 const RECONNECT_DELAY_MS = 1500;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-export type SteeringChipStatus = "pending" | "acknowledged" | "rejected" | "failed";
+export type SteeringChipStatus =
+  "pending" | "acknowledged" | "rejected" | "failed";
 
 export interface SteeringChip {
   id: string;
@@ -95,14 +96,19 @@ export interface RunnerConsole {
     turnId: string,
     resolution: Record<string, unknown>,
   ) => Promise<void>;
-  goal: (operation: GoalOperation, body?: Record<string, unknown>) => Promise<void>;
+  goal: (
+    operation: GoalOperation,
+    body?: Record<string, unknown>,
+  ) => Promise<void>;
   dropConnection: () => void;
   retryNow: () => void;
   reset: () => Promise<void>;
   dismissSteeringChip: (id: string) => void;
 }
 
-export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConsole {
+export function useRunnerConsole(
+  options: RunnerClientOptions = {},
+): RunnerConsole {
   const runnerClient = useMemo(
     () => createRunnerClient(options),
     [options.baseUrl, options.eventSourceFactory, options.fetchImpl],
@@ -148,58 +154,64 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
       setReconnectAttempt(attempt);
       const open = () => {
         if (streamGenerationRef.current !== generation) return;
-        streamRef.current = runnerClient.openEventStream(sessionId, cursorRef.current, {
-          onOpen: () => {
-            setConnection("connected");
-            setReconnectAttempt(0);
-            setAnnouncement(attempt === 0 ? "Connected" : "Reconnected with gap recovery");
+        streamRef.current = runnerClient.openEventStream(
+          sessionId,
+          cursorRef.current,
+          {
+            onOpen: () => {
+              setConnection("connected");
+              setReconnectAttempt(0);
+              setAnnouncement(
+                attempt === 0 ? "Connected" : "Reconnected with gap recovery",
+              );
+            },
+            onEvent: (event) => {
+              cursorRef.current += 1;
+              // Preserve the exact canonical stream, including deliberate
+              // duplicate ids. The shared reducer, not the hook, owns duplicate
+              // detection and replay integrity.
+              setEvents((current) => [...current, event]);
+            },
+            onError: () => {
+              closeStream();
+              if (attempt >= MAX_RECONNECT_ATTEMPTS) {
+                setConnection("disconnected");
+                setAnnouncement("Disconnected");
+                return;
+              }
+              setConnection("reconnecting");
+              setReconnectAttempt(attempt + 1);
+              setAnnouncement(`Reconnecting, attempt ${attempt + 1}`);
+              retryTimerRef.current = setTimeout(
+                () => subscribe(sessionId, attempt + 1),
+                RECONNECT_DELAY_MS,
+              );
+            },
           },
-          onEvent: (event) => {
-            cursorRef.current += 1;
-            // Preserve the exact canonical stream, including deliberate
-            // duplicate ids. The shared reducer, not the hook, owns duplicate
-            // detection and replay integrity.
-            setEvents((current) => [...current, event]);
-          },
-          onError: () => {
-            closeStream();
-            if (attempt >= MAX_RECONNECT_ATTEMPTS) {
-              setConnection("disconnected");
-              setAnnouncement("Disconnected");
-              return;
-            }
-            setConnection("reconnecting");
-            setReconnectAttempt(attempt + 1);
-            setAnnouncement(`Reconnecting, attempt ${attempt + 1}`);
-            retryTimerRef.current = setTimeout(
-              () => subscribe(sessionId, attempt + 1),
-              RECONNECT_DELAY_MS,
-            );
-          },
-        });
+        );
       };
 
       if (attempt === 0) {
         open();
         return;
       }
-      void runnerClient.readEvents(sessionId, cursorRef.current).then((history) => {
-        if (streamGenerationRef.current !== generation) return;
-        setEvents((current) => [...current, ...history.events]);
-        cursorRef.current = history.cursor;
-        open();
-      }).catch(open);
+      void runnerClient
+        .readEvents(sessionId, cursorRef.current)
+        .then((history) => {
+          if (streamGenerationRef.current !== generation) return;
+          setEvents((current) => [...current, ...history.events]);
+          cursorRef.current = history.cursor;
+          open();
+        })
+        .catch(open);
     },
     [closeStream, runnerClient],
   );
 
-  const adopt = useCallback(
-    (next: RunnerSessionState) => {
-      setState(next);
-      setError(null);
-    },
-    [],
-  );
+  const adopt = useCallback((next: RunnerSessionState) => {
+    setState(next);
+    setError(null);
+  }, []);
 
   const attach = useCallback(
     async (sessionId: string, resume: boolean) => {
@@ -225,7 +237,8 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
       .then((list) => {
         if (cancelled) return;
         setManifests(list);
-        if (list[0] !== undefined) setSelectedManifestId((current) => current || list[0]!.id);
+        if (list[0] !== undefined)
+          setSelectedManifestId((current) => current || list[0]!.id);
       })
       .catch((cause) => {
         if (!cancelled) setError(errorMessage(cause));
@@ -259,7 +272,10 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
     return () => clearTimeout(timer);
   }, [events.length, runnerClient]);
 
-  const liveSnapshot = useMemo(() => reduceEvents(state, events), [state, events]);
+  const liveSnapshot = useMemo(
+    () => reduceEvents(state, events),
+    [state, events],
+  );
   const visibleEvents = useMemo(
     () => (replayActive ? events.slice(0, replayPosition) : events),
     [events, replayActive, replayPosition],
@@ -273,7 +289,8 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
     if (state === null || liveSnapshot === null) return null;
     if (state.cursor !== events.length) return null;
     return (
-      JSON.stringify(liveSnapshot.timeline) === JSON.stringify(state.snapshot.timeline) &&
+      JSON.stringify(liveSnapshot.timeline) ===
+        JSON.stringify(state.snapshot.timeline) &&
       liveSnapshot.integrity === state.snapshot.integrity
     );
   }, [state, liveSnapshot, events.length]);
@@ -289,7 +306,10 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
       setReplayPlaying(false);
       return undefined;
     }
-    const timer = setTimeout(() => setReplayPosition((current) => current + 1), 140);
+    const timer = setTimeout(
+      () => setReplayPosition((current) => current + 1),
+      140,
+    );
     return () => clearTimeout(timer);
   }, [replayPlaying, replayPosition, events.length]);
 
@@ -300,7 +320,8 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
       const acknowledged = events.filter(
         (event) =>
           event.eventType === "item.completed" &&
-          (event.payload as { kind?: string }).kind === "steering_acknowledgement",
+          (event.payload as { kind?: string }).kind ===
+            "steering_acknowledgement",
       );
       let index = 0;
       return chips.map((chip) => {
@@ -316,7 +337,8 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
 
   // The reducer is authoritative for the active turn. Falling back to the
   // last public-state read would keep a finished turn alive in the composer.
-  const activeTurnId = snapshot === null ? (state?.activeTurnId ?? null) : snapshot.activeTurnId;
+  const activeTurnId =
+    snapshot === null ? (state?.activeTurnId ?? null) : snapshot.activeTurnId;
 
   // A submitted turn that has not been accepted yet is a protocol fact, not a
   // local flag: it is what makes interrupt-before-start reachable.
@@ -359,7 +381,9 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
         setReplayPosition(0);
         setSelectedThreadId(null);
         setSubmitting(true);
-        const manifest = manifests.find((entry) => entry.id === input.manifestId);
+        const manifest = manifests.find(
+          (entry) => entry.id === input.manifestId,
+        );
         try {
           const created = await runnerClient.createSession({
             manifest: input.manifestId,
@@ -433,7 +457,9 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
               : chip,
           ),
         );
-        setAnnouncement(stale ? "Steering rejected: turn already ended" : "Steering failed");
+        setAnnouncement(
+          stale ? "Steering rejected: turn already ended" : "Steering failed",
+        );
         await refreshState().catch(() => undefined);
       }
     },
@@ -456,11 +482,22 @@ export function useRunnerConsole(options: RunnerClientOptions = {}): RunnerConso
   }, [activeTurnId, adopt, runnerClient]);
 
   const resolve = useCallback(
-    async (requestId: string, turnId: string, resolution: Record<string, unknown>) => {
+    async (
+      requestId: string,
+      turnId: string,
+      resolution: Record<string, unknown>,
+    ) => {
       const sessionId = sessionIdRef.current;
       if (sessionId === null) return;
       await guard(async () => {
-        adopt(await runnerClient.resolveRequest(sessionId, requestId, turnId, resolution));
+        adopt(
+          await runnerClient.resolveRequest(
+            sessionId,
+            requestId,
+            turnId,
+            resolution,
+          ),
+        );
         setAnnouncement("Request resolved");
       });
     },

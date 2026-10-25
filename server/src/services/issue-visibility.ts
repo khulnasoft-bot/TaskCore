@@ -12,5 +12,9 @@ export function visibleIssueSql(alias = "issues") {
 
 /** Work queues and execution totals omit persistent conversation containers. */
 export function executionIssueCondition(): SQL {
-  return and(visibleIssueCondition(), isNull(issues.conversationAgentId), nonIdleSlackIssueCondition())!;
+  return and(
+    visibleIssueCondition(),
+    isNull(issues.conversationAgentId),
+    nonIdleSlackIssueCondition(),
+  )!;
 }

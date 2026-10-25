@@ -37,15 +37,25 @@ function act(callback: () => void) {
  * are synchronous and the guard fails closed until the policy resolves, so the
  * cache is primed by default. Pass `null` to render with the policy unresolved.
  */
-function withQueryClient(node: ReactNode, experimentalSettings: Record<string, unknown> | null = {}) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function withQueryClient(
+  node: ReactNode,
+  experimentalSettings: Record<string, unknown> | null = {},
+) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   if (experimentalSettings) {
-    queryClient.setQueryData(queryKeys.instance.experimentalSettings, experimentalSettings);
+    queryClient.setQueryData(
+      queryKeys.instance.experimentalSettings,
+      experimentalSettings,
+    );
   }
   return <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>;
 }
 
-function createRuntimeService(overrides: Partial<WorkspaceRuntimeService> = {}): WorkspaceRuntimeService {
+function createRuntimeService(
+  overrides: Partial<WorkspaceRuntimeService> = {},
+): WorkspaceRuntimeService {
   return {
     id: overrides.id ?? "service-1",
     companyId: overrides.companyId ?? "company-1",
@@ -85,11 +95,20 @@ describe("buildWorkspaceRuntimeControlSections", () => {
       runtimeConfig: {
         commands: [
           { id: "web", name: "web", kind: "service", command: "pnpm dev" },
-          { id: "db-migrate", name: "db:migrate", kind: "job", command: "pnpm db:migrate" },
+          {
+            id: "db-migrate",
+            name: "db:migrate",
+            kind: "job",
+            command: "pnpm db:migrate",
+          },
         ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "running" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+        }),
       ],
       canStartServices: true,
       canRunJobs: true,
@@ -114,7 +133,12 @@ describe("buildWorkspaceRuntimeControlSections", () => {
     const sections = buildWorkspaceRuntimeControlSections({
       runtimeConfig: {
         commands: [
-          { id: "web", name: "web", kind: "service", command: "pnpm dev:once --tailscale-auth" },
+          {
+            id: "web",
+            name: "web",
+            kind: "service",
+            command: "pnpm dev:once --tailscale-auth",
+          },
         ],
       },
       runtimeServices: [
@@ -144,7 +168,12 @@ describe("buildWorkspaceRuntimeControlSections", () => {
     const sections = buildWorkspaceRuntimeControlSections({
       runtimeConfig: {
         commands: [
-          { id: "web", name: "web", kind: "service", command: "pnpm dev:once --tailscale-auth" },
+          {
+            id: "web",
+            name: "web",
+            kind: "service",
+            command: "pnpm dev:once --tailscale-auth",
+          },
         ],
       },
       runtimeServices: [
@@ -173,7 +202,8 @@ describe("buildWorkspaceRuntimeControlSections", () => {
         statusLabel: "running",
         command: "pnpm dev",
         runtimeServiceId: "service-web",
-        disabledReason: "This runtime service no longer matches a configured workspace command.",
+        disabledReason:
+          "This runtime service no longer matches a configured workspace command.",
       }),
     ]);
   });
@@ -182,7 +212,12 @@ describe("buildWorkspaceRuntimeControlSections", () => {
     const sections = buildWorkspaceRuntimeControlSections({
       runtimeConfig: {
         commands: [
-          { id: "web", name: "web", kind: "service", command: "pnpm dev:once --tailscale-auth" },
+          {
+            id: "web",
+            name: "web",
+            kind: "service",
+            command: "pnpm dev:once --tailscale-auth",
+          },
         ],
       },
       runtimeServices: [
@@ -211,7 +246,8 @@ describe("buildWorkspaceRuntimeControlSections", () => {
         statusLabel: "running",
         command: "pnpm dev",
         runtimeServiceId: "service-web",
-        disabledReason: "This runtime service no longer matches a configured workspace command.",
+        disabledReason:
+          "This runtime service no longer matches a configured workspace command.",
       }),
     ]);
   });
@@ -220,7 +256,12 @@ describe("buildWorkspaceRuntimeControlSections", () => {
     const sections = buildWorkspaceRuntimeControlSections({
       runtimeConfig: {
         commands: [
-          { id: "web", name: "web", kind: "service", command: "pnpm dev:once --tailscale-auth" },
+          {
+            id: "web",
+            name: "web",
+            kind: "service",
+            command: "pnpm dev:once --tailscale-auth",
+          },
         ],
       },
       runtimeServices: [
@@ -249,7 +290,8 @@ describe("buildWorkspaceRuntimeControlSections", () => {
         statusLabel: "running",
         command: "pnpm dev",
         runtimeServiceId: "service-web",
-        disabledReason: "This runtime service no longer matches a configured workspace command.",
+        disabledReason:
+          "This runtime service no longer matches a configured workspace command.",
       }),
     ]);
   });
@@ -261,11 +303,20 @@ describe("buildWorkspaceRuntimeControlItems", () => {
       runtimeConfig: {
         commands: [
           { id: "web", name: "web", kind: "service", command: "pnpm dev" },
-          { id: "db-migrate", name: "db:migrate", kind: "job", command: "pnpm db:migrate" },
+          {
+            id: "db-migrate",
+            name: "db:migrate",
+            kind: "job",
+            command: "pnpm db:migrate",
+          },
         ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "running" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+        }),
       ],
       canStartServices: true,
       canRunJobs: true,
@@ -298,20 +349,35 @@ describe("WorkspaceRuntimeControls", () => {
   it("shows the service working directory when the managed-sandbox-only policy is off", () => {
     const sections = buildWorkspaceRuntimeControlSections({
       runtimeConfig: {
-        commands: [{ id: "web", name: "web", kind: "service", command: "pnpm dev", cwd: "." }],
+        commands: [
+          {
+            id: "web",
+            name: "web",
+            kind: "service",
+            command: "pnpm dev",
+            cwd: ".",
+          },
+        ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "running", cwd: "/srv/repo" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+          cwd: "/srv/repo",
+        }),
       ],
       canStartServices: true,
     });
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
-        {},
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
+          {},
+        ),
+      );
     });
 
     expect(container.textContent).toContain("/srv/repo");
@@ -325,20 +391,35 @@ describe("WorkspaceRuntimeControls", () => {
     // fails closed so a managed instance never flashes the execution-host path.
     const sections = buildWorkspaceRuntimeControlSections({
       runtimeConfig: {
-        commands: [{ id: "web", name: "web", kind: "service", command: "pnpm dev", cwd: "." }],
+        commands: [
+          {
+            id: "web",
+            name: "web",
+            kind: "service",
+            command: "pnpm dev",
+            cwd: ".",
+          },
+        ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "running", cwd: "/srv/repo" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+          cwd: "/srv/repo",
+        }),
       ],
       canStartServices: true,
     });
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
-        null,
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
+          null,
+        ),
+      );
     });
 
     expect(container.textContent).not.toContain("/srv/repo");
@@ -350,7 +431,15 @@ describe("WorkspaceRuntimeControls", () => {
   it("drops the service working directory when the managed-sandbox-only policy is on", () => {
     const sections = buildWorkspaceRuntimeControlSections({
       runtimeConfig: {
-        commands: [{ id: "web", name: "web", kind: "service", command: "pnpm dev", cwd: "." }],
+        commands: [
+          {
+            id: "web",
+            name: "web",
+            kind: "service",
+            command: "pnpm dev",
+            cwd: ".",
+          },
+        ],
       },
       runtimeServices: [
         createRuntimeService({
@@ -367,10 +456,12 @@ describe("WorkspaceRuntimeControls", () => {
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
-        { enableManagedSandboxOnly: true },
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
+          { enableManagedSandboxOnly: true },
+        ),
+      );
     });
 
     expect(container.textContent).not.toContain("/srv/repo");
@@ -387,11 +478,20 @@ describe("WorkspaceRuntimeControls", () => {
       runtimeConfig: {
         commands: [
           { id: "web", name: "web", kind: "service", command: "pnpm dev" },
-          { id: "db-migrate", name: "db:migrate", kind: "job", command: "pnpm db:migrate" },
+          {
+            id: "db-migrate",
+            name: "db:migrate",
+            kind: "job",
+            command: "pnpm db:migrate",
+          },
         ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "running" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+        }),
       ],
       canStartServices: true,
       canRunJobs: true,
@@ -399,15 +499,16 @@ describe("WorkspaceRuntimeControls", () => {
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls
-          sections={sections}
-          onAction={vi.fn()}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
+        ),
+      );
     });
 
-    const buttons = Array.from(container.querySelectorAll("button")).map((button) => button.textContent?.trim());
+    const buttons = Array.from(container.querySelectorAll("button")).map(
+      (button) => button.textContent?.trim(),
+    );
     expect(buttons).toEqual(["Stop", "Restart", "Run"]);
     expect(container.textContent).toContain("Services");
     expect(container.textContent).toContain("Jobs");
@@ -423,19 +524,25 @@ describe("WorkspaceRuntimeControls", () => {
         ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "running" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+        }),
       ],
       canStartServices: true,
     });
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeQuickControls
-          sections={sections}
-          onAction={vi.fn()}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeQuickControls
+            sections={sections}
+            onAction={vi.fn()}
+          />,
+        ),
+      );
     });
 
     const buttons = Array.from(container.querySelectorAll("button"));
@@ -455,7 +562,12 @@ describe("WorkspaceRuntimeControls", () => {
       runtimeConfig: {
         commands: [
           { id: "web", name: "web", kind: "service", command: "pnpm dev" },
-          { id: "db-migrate", name: "db:migrate", kind: "job", command: "pnpm db:migrate" },
+          {
+            id: "db-migrate",
+            name: "db:migrate",
+            kind: "job",
+            command: "pnpm db:migrate",
+          },
         ],
       },
       runtimeServices: [],
@@ -465,17 +577,21 @@ describe("WorkspaceRuntimeControls", () => {
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls
-          sections={sections}
-          disabledHint="Add a workspace path first."
-          onAction={vi.fn()}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls
+            sections={sections}
+            disabledHint="Add a workspace path first."
+            onAction={vi.fn()}
+          />,
+        ),
+      );
     });
 
     const buttons = Array.from(container.querySelectorAll("button"));
-    expect(buttons.every((button) => button.hasAttribute("disabled"))).toBe(true);
+    expect(buttons.every((button) => button.hasAttribute("disabled"))).toBe(
+      true,
+    );
     expect(container.textContent).toContain("Add a workspace path first.");
 
     act(() => root.unmount());
@@ -489,20 +605,26 @@ describe("WorkspaceRuntimeControls", () => {
         ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "running" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+        }),
       ],
       canStartServices: true,
     });
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls
-          sections={sections}
-          disabledHint="Add runtime settings first."
-          onAction={vi.fn()}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls
+            sections={sections}
+            disabledHint="Add runtime settings first."
+            onAction={vi.fn()}
+          />,
+        ),
+      );
     });
 
     expect(container.textContent).not.toContain("Add runtime settings first.");
@@ -518,19 +640,23 @@ describe("WorkspaceRuntimeControls", () => {
         ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "stopped", healthStatus: "unknown" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "stopped",
+          healthStatus: "unknown",
+        }),
       ],
       canStartServices: true,
     });
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls
-          sections={sections}
-          onAction={vi.fn()}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
+        ),
+      );
     });
 
     expect(container.textContent).not.toContain("unknown");
@@ -539,8 +665,18 @@ describe("WorkspaceRuntimeControls", () => {
   });
 
   it.each([
-    ["failed", "external HTTPS health probe did not validate", "HTTPS unavailable", "Check the Tailscale broker and node HTTPS configuration."],
-    ["cleanup_pending", "host broker cleanup confirmation timed out", "HTTPS cleanup pending", "Restart the host broker before reusing this port."],
+    [
+      "failed",
+      "external HTTPS health probe did not validate",
+      "HTTPS unavailable",
+      "Check the Tailscale broker and node HTTPS configuration.",
+    ],
+    [
+      "cleanup_pending",
+      "host broker cleanup confirmation timed out",
+      "HTTPS cleanup pending",
+      "Restart the host broker before reusing this port.",
+    ],
   ] as const)(
     "shows %s exposure state, last error, and remediation on service cards",
     (state, lastError, label, remediation) => {
@@ -560,7 +696,9 @@ describe("WorkspaceRuntimeControls", () => {
               state,
               publicUrl: null,
               hostname: "taskcore-dev.tail29c1aa.ts.net",
-              listeners: [{ purpose: "app", publicPort: 42002, targetPort: 42002 }],
+              listeners: [
+                { purpose: "app", publicPort: 42002, targetPort: 42002 },
+              ],
               brokerRef: "service-web",
               lastError,
               updatedAt: "2026-08-12T00:00:00.000Z",
@@ -572,12 +710,11 @@ describe("WorkspaceRuntimeControls", () => {
 
       const root = createRoot(container);
       act(() => {
-        root.render(withQueryClient(
-          <WorkspaceRuntimeControls
-            sections={sections}
-            onAction={vi.fn()}
-          />,
-        ));
+        root.render(
+          withQueryClient(
+            <WorkspaceRuntimeControls sections={sections} onAction={vi.fn()} />,
+          ),
+        );
       });
 
       const alert = container.querySelector('[role="alert"]');
@@ -606,20 +743,24 @@ describe("WorkspaceRuntimeControls", () => {
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls
-          sections={sections}
-          square
-          onAction={vi.fn()}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls
+            sections={sections}
+            square
+            onAction={vi.fn()}
+          />,
+        ),
+      );
     });
 
     const summaryPanel = container.querySelector(".border.border-border\\/70");
-    const servicePanel = Array.from(container.querySelectorAll(".border.border-border\\/80"))
-      .find((element) => element.textContent?.includes("web"));
-    const startButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "Start");
+    const servicePanel = Array.from(
+      container.querySelectorAll(".border.border-border\\/80"),
+    ).find((element) => element.textContent?.includes("web"));
+    const startButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Start",
+    );
 
     expect(summaryPanel?.className).toContain("rounded-none");
     expect(summaryPanel?.className).not.toContain("bg-background/60");
@@ -642,48 +783,62 @@ describe("WorkspaceRuntimeControls", () => {
 
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <WorkspaceRuntimeControls
-          items={items}
-          emptyMessage="No runtime services have been started yet."
-          disabledHint="Add runtime settings first."
-          onAction={vi.fn()}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <WorkspaceRuntimeControls
+            items={items}
+            emptyMessage="No runtime services have been started yet."
+            disabledHint="Add runtime settings first."
+            onAction={vi.fn()}
+          />,
+        ),
+      );
     });
 
     expect(container.textContent).toContain("Services");
     expect(container.textContent).toContain("Add runtime settings first.");
-    expect(Array.from(container.querySelectorAll("button")).map((button) => button.textContent?.trim())).toEqual(["Start"]);
+    expect(
+      Array.from(container.querySelectorAll("button")).map((button) =>
+        button.textContent?.trim(),
+      ),
+    ).toEqual(["Start"]);
 
     act(() => root.unmount());
   });
 });
 
 describe("buildWorkspaceServiceControlEntries", () => {
-  const sections = () => buildWorkspaceRuntimeControlSections({
-    runtimeConfig: {
-      commands: [
-        { id: "web", name: "web", kind: "service", command: "pnpm dev" },
-        { id: "db-migrate", name: "db:migrate", kind: "job", command: "pnpm db:migrate" },
+  const sections = () =>
+    buildWorkspaceRuntimeControlSections({
+      runtimeConfig: {
+        commands: [
+          { id: "web", name: "web", kind: "service", command: "pnpm dev" },
+          {
+            id: "db-migrate",
+            name: "db:migrate",
+            kind: "job",
+            command: "pnpm db:migrate",
+          },
+        ],
+      },
+      runtimeServices: [
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+          url: "http://localhost:3100",
+          port: 3100,
+          healthStatus: "healthy",
+        }),
       ],
-    },
-    runtimeServices: [
-      createRuntimeService({
-        id: "service-web",
-        serviceName: "web",
-        status: "running",
-        url: "http://localhost:3100",
-        port: 3100,
-        healthStatus: "healthy",
-      }),
-    ],
-    canStartServices: true,
-    canRunJobs: true,
-  });
+      canStartServices: true,
+      canRunJobs: true,
+    });
 
   it("maps service items to control bar entries and excludes jobs", () => {
-    const entries = buildWorkspaceServiceControlEntries({ sections: sections() });
+    const entries = buildWorkspaceServiceControlEntries({
+      sections: sections(),
+    });
 
     expect(entries).toEqual([
       expect.objectContaining({
@@ -722,7 +877,11 @@ describe("buildWorkspaceServiceControlEntries", () => {
         ],
       },
       runtimeServices: [
-        createRuntimeService({ id: "service-web", serviceName: "web", status: "running" }),
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+        }),
         createRuntimeService({
           id: "service-api",
           serviceName: "api",
@@ -732,11 +891,21 @@ describe("buildWorkspaceServiceControlEntries", () => {
       ],
       canStartServices: true,
     });
-    const pendingRequests = resolveWorkspaceServiceControlRequests(built, "stop", null);
+    const pendingRequests = resolveWorkspaceServiceControlRequests(
+      built,
+      "stop",
+      null,
+    );
 
-    const entries = buildWorkspaceServiceControlEntries({ sections: built, pendingRequests });
+    const entries = buildWorkspaceServiceControlEntries({
+      sections: built,
+      pendingRequests,
+    });
 
-    expect(entries.map((entry) => entry.state)).toEqual(["stopping", "stopping"]);
+    expect(entries.map((entry) => entry.state)).toEqual([
+      "stopping",
+      "stopping",
+    ]);
   });
 
   it("maps a provisioning runtime service to the provisioning control state", () => {
@@ -746,14 +915,24 @@ describe("buildWorkspaceServiceControlEntries", () => {
       status: "provisioning",
     });
     const built = buildWorkspaceRuntimeControlSections({
-      runtimeConfig: { commands: [{ id: "web", name: "web", kind: "service", command: "pnpm dev" }] },
+      runtimeConfig: {
+        commands: [
+          { id: "web", name: "web", kind: "service", command: "pnpm dev" },
+        ],
+      },
       runtimeServices: [provisioning],
       canStartServices: true,
     });
 
-    expect(built.services[0]).toMatchObject({ statusLabel: "provisioning", runtimeServiceId: "service-web" });
+    expect(built.services[0]).toMatchObject({
+      statusLabel: "provisioning",
+      runtimeServiceId: "service-web",
+    });
 
-    const entries = buildWorkspaceServiceControlEntries({ sections: built, runtimeServices: [provisioning] });
+    const entries = buildWorkspaceServiceControlEntries({
+      sections: built,
+      runtimeServices: [provisioning],
+    });
     expect(entries[0].state).toBe("provisioning");
   });
 
@@ -766,14 +945,25 @@ describe("buildWorkspaceServiceControlEntries", () => {
     });
     const built = buildWorkspaceRuntimeControlSections({
       runtimeConfig: {
-        commands: [{ id: "web", name: "web", kind: "service", command: "pnpm dev:once --tailscale-auth" }],
+        commands: [
+          {
+            id: "web",
+            name: "web",
+            kind: "service",
+            command: "pnpm dev:once --tailscale-auth",
+          },
+        ],
       },
       runtimeServices: [provisioning],
       canStartServices: true,
     });
 
     expect(built.otherServices).toEqual([
-      expect.objectContaining({ title: "web", statusLabel: "provisioning", runtimeServiceId: "service-web" }),
+      expect.objectContaining({
+        title: "web",
+        statusLabel: "provisioning",
+        runtimeServiceId: "service-web",
+      }),
     ]);
   });
 
@@ -785,7 +975,11 @@ describe("buildWorkspaceServiceControlEntries", () => {
       stoppedAt: new Date(Date.now() - 60_000),
     });
     const built = buildWorkspaceRuntimeControlSections({
-      runtimeConfig: { commands: [{ id: "web", name: "web", kind: "service", command: "pnpm dev" }] },
+      runtimeConfig: {
+        commands: [
+          { id: "web", name: "web", kind: "service", command: "pnpm dev" },
+        ],
+      },
       runtimeServices: [failed],
       canStartServices: true,
     });
@@ -816,11 +1010,18 @@ describe("buildWorkspaceServiceControlEntries", () => {
       },
     });
     const built = buildWorkspaceRuntimeControlSections({
-      runtimeConfig: { commands: [{ id: "web", name: "web", kind: "service", command: "pnpm dev" }] },
+      runtimeConfig: {
+        commands: [
+          { id: "web", name: "web", kind: "service", command: "pnpm dev" },
+        ],
+      },
       runtimeServices: [running],
       canStartServices: true,
     });
-    const [entry] = buildWorkspaceServiceControlEntries({ sections: built, runtimeServices: [running] });
+    const [entry] = buildWorkspaceServiceControlEntries({
+      sections: built,
+      runtimeServices: [running],
+    });
 
     expect(entry.state).toBe("running");
     expect(entry.exposureState).toBe("failed");
@@ -836,32 +1037,41 @@ describe("buildWorkspaceServiceControlEntries", () => {
     const httpsUrl = "https://taskcore-dev.tail29c1aa.ts.net:42010";
     const buildEntry = (service: ReturnType<typeof createRuntimeService>) => {
       const sections = buildWorkspaceRuntimeControlSections({
-        runtimeConfig: { commands: [{ id: "web", name: "web", kind: "service", command: "pnpm dev" }] },
+        runtimeConfig: {
+          commands: [
+            { id: "web", name: "web", kind: "service", command: "pnpm dev" },
+          ],
+        },
         runtimeServices: [service],
         canStartServices: true,
       });
-      return buildWorkspaceServiceControlEntries({ sections, runtimeServices: [service] })[0];
+      return buildWorkspaceServiceControlEntries({
+        sections,
+        runtimeServices: [service],
+      })[0];
     };
 
-    const ready = buildEntry(createRuntimeService({
-      status: "running",
-      healthStatus: "healthy",
-      port: 42_010,
-      url: httpsUrl,
-      exposure: {
-        provider: "tailscale_https",
-        state: "ready",
-        publicUrl: httpsUrl,
-        hostname: "taskcore-dev.tail29c1aa.ts.net",
-        listeners: [
-          { purpose: "app", publicPort: 42_010, targetPort: 42_010 },
-          { purpose: "vite_hmr", publicPort: 52_010, targetPort: 52_010 },
-        ],
-        brokerRef: "service-1",
-        lastError: null,
-        updatedAt: "2026-08-12T00:00:00.000Z",
-      },
-    }));
+    const ready = buildEntry(
+      createRuntimeService({
+        status: "running",
+        healthStatus: "healthy",
+        port: 42_010,
+        url: httpsUrl,
+        exposure: {
+          provider: "tailscale_https",
+          state: "ready",
+          publicUrl: httpsUrl,
+          hostname: "taskcore-dev.tail29c1aa.ts.net",
+          listeners: [
+            { purpose: "app", publicPort: 42_010, targetPort: 42_010 },
+            { purpose: "vite_hmr", publicPort: 52_010, targetPort: 52_010 },
+          ],
+          brokerRef: "service-1",
+          lastError: null,
+          updatedAt: "2026-08-12T00:00:00.000Z",
+        },
+      }),
+    );
     expect(ready.state).toBe("running");
     expect(ready.url).toBe(httpsUrl);
     expect(ready.exposureState).toBe("ready");
@@ -869,22 +1079,24 @@ describe("buildWorkspaceServiceControlEntries", () => {
     expect(ready.exposureDetail).toBe("HTTPS ready");
     expect(ready.exposureDetail).not.toMatch(/unavailable|cleanup|Check the/i);
 
-    const pending = buildEntry(createRuntimeService({
-      status: "running",
-      healthStatus: "healthy",
-      port: 42_020,
-      url: null,
-      exposure: {
-        provider: "tailscale_https",
-        state: "pending",
-        publicUrl: null,
-        hostname: "taskcore-dev.tail29c1aa.ts.net",
-        listeners: [],
-        brokerRef: null,
-        lastError: null,
-        updatedAt: "2026-08-12T00:00:00.000Z",
-      },
-    }));
+    const pending = buildEntry(
+      createRuntimeService({
+        status: "running",
+        healthStatus: "healthy",
+        port: 42_020,
+        url: null,
+        exposure: {
+          provider: "tailscale_https",
+          state: "pending",
+          publicUrl: null,
+          hostname: "taskcore-dev.tail29c1aa.ts.net",
+          listeners: [],
+          brokerRef: null,
+          lastError: null,
+          updatedAt: "2026-08-12T00:00:00.000Z",
+        },
+      }),
+    );
     expect(pending.url ?? null).toBeNull();
     expect(pending.exposureDetail).toBe("Provisioning HTTPS…");
     expect(JSON.stringify(pending)).not.toContain("http://");
@@ -892,42 +1104,71 @@ describe("buildWorkspaceServiceControlEntries", () => {
 });
 
 describe("resolveWorkspaceServiceControlRequests", () => {
-  const mixedSections = () => buildWorkspaceRuntimeControlSections({
-    runtimeConfig: {
-      commands: [
-        { id: "web", name: "web", kind: "service", command: "pnpm dev" },
-        { id: "api", name: "api", kind: "service", command: "pnpm api" },
+  const mixedSections = () =>
+    buildWorkspaceRuntimeControlSections({
+      runtimeConfig: {
+        commands: [
+          { id: "web", name: "web", kind: "service", command: "pnpm dev" },
+          { id: "api", name: "api", kind: "service", command: "pnpm api" },
+        ],
+      },
+      runtimeServices: [
+        createRuntimeService({
+          id: "service-web",
+          serviceName: "web",
+          status: "running",
+        }),
       ],
-    },
-    runtimeServices: [
-      createRuntimeService({ id: "service-web", serviceName: "web", status: "running" }),
-    ],
-    canStartServices: true,
-  });
+      canStartServices: true,
+    });
 
   it("targets a single service by key", () => {
     const built = mixedSections();
-    const requests = resolveWorkspaceServiceControlRequests(built, "stop", built.services[0].key);
+    const requests = resolveWorkspaceServiceControlRequests(
+      built,
+      "stop",
+      built.services[0].key,
+    );
 
     expect(requests).toEqual([
-      expect.objectContaining({ action: "stop", workspaceCommandId: "web", runtimeServiceId: "service-web" }),
+      expect.objectContaining({
+        action: "stop",
+        workspaceCommandId: "web",
+        runtimeServiceId: "service-web",
+      }),
     ]);
   });
 
   it("stops only active services for the aggregate stop", () => {
-    const requests = resolveWorkspaceServiceControlRequests(mixedSections(), "stop", null);
+    const requests = resolveWorkspaceServiceControlRequests(
+      mixedSections(),
+      "stop",
+      null,
+    );
 
-    expect(requests).toEqual([expect.objectContaining({ action: "stop", workspaceCommandId: "web" })]);
+    expect(requests).toEqual([
+      expect.objectContaining({ action: "stop", workspaceCommandId: "web" }),
+    ]);
   });
 
   it("starts only inactive services for the aggregate start", () => {
-    const requests = resolveWorkspaceServiceControlRequests(mixedSections(), "start", null);
+    const requests = resolveWorkspaceServiceControlRequests(
+      mixedSections(),
+      "start",
+      null,
+    );
 
-    expect(requests).toEqual([expect.objectContaining({ action: "start", workspaceCommandId: "api" })]);
+    expect(requests).toEqual([
+      expect.objectContaining({ action: "start", workspaceCommandId: "api" }),
+    ]);
   });
 
   it("restarts active services and starts stopped ones for the aggregate restart", () => {
-    const requests = resolveWorkspaceServiceControlRequests(mixedSections(), "restart", null);
+    const requests = resolveWorkspaceServiceControlRequests(
+      mixedSections(),
+      "restart",
+      null,
+    );
 
     expect(requests).toEqual([
       expect.objectContaining({ action: "restart", workspaceCommandId: "web" }),

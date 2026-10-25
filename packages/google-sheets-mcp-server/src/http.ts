@@ -1,8 +1,16 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createGoogleSheetsMcpServer } from "./index.js";
 import type { GoogleSheetsMcpConfig } from "./config.js";
-import { createGoogleSheetsClient, type GoogleSheetsClient } from "./google-client.js";
+import {
+  createGoogleSheetsClient,
+  type GoogleSheetsClient,
+} from "./google-client.js";
 
 export interface GoogleSheetsMcpHttpOptions {
   config: GoogleSheetsMcpConfig;
@@ -31,7 +39,8 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 
 function presentedToken(req: IncomingMessage): string | null {
   const header = req.headers.authorization;
-  if (header?.startsWith("Bearer ")) return header.slice("Bearer ".length).trim();
+  if (header?.startsWith("Bearer "))
+    return header.slice("Bearer ".length).trim();
   return null;
 }
 
@@ -62,14 +71,19 @@ async function handleMcp(
   } catch (error) {
     sendJson(res, 400, {
       jsonrpc: "2.0",
-      error: { code: -32700, message: error instanceof Error ? error.message : "Parse error" },
+      error: {
+        code: -32700,
+        message: error instanceof Error ? error.message : "Parse error",
+      },
       id: null,
     });
     return;
   }
 
   const { server } = createGoogleSheetsMcpServer(config, { client });
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
   res.on("close", () => {
     void transport.close();
     void server.close();
@@ -82,7 +96,8 @@ export function createGoogleSheetsMcpHttpServer(
   options: GoogleSheetsMcpHttpOptions,
 ): GoogleSheetsMcpHttpServer {
   const requiredToken = options.token?.trim() || null;
-  const client = options.client ?? createGoogleSheetsClient(options.config.serviceAccount);
+  const client =
+    options.client ?? createGoogleSheetsClient(options.config.serviceAccount);
 
   const server = createServer((req, res) => {
     void (async () => {
@@ -95,14 +110,18 @@ export function createGoogleSheetsMcpHttpServer(
         }
 
         if (requiredToken && presentedToken(req) !== requiredToken) {
-          sendJson(res, 401, { error: "Unauthorized. Provide GOOGLE_SHEETS_MCP_TOKEN." });
+          sendJson(res, 401, {
+            error: "Unauthorized. Provide GOOGLE_SHEETS_MCP_TOKEN.",
+          });
           return;
         }
 
         await handleMcp(req, res, options.config, client);
       } catch (error) {
         if (!res.headersSent) {
-          sendJson(res, 500, { error: error instanceof Error ? error.message : "Internal error." });
+          sendJson(res, 500, {
+            error: error instanceof Error ? error.message : "Internal error.",
+          });
         } else {
           res.end();
         }

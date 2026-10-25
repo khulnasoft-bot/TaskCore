@@ -18,8 +18,12 @@ describe("runtime exposure port policy", () => {
   it("accepts app ports only inside the dedicated range", () => {
     expect(isRuntimeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MIN)).toBe(true);
     expect(isRuntimeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MAX)).toBe(true);
-    expect(isRuntimeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MIN - 1)).toBe(false);
-    expect(isRuntimeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MAX + 1)).toBe(false);
+    expect(isRuntimeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MIN - 1)).toBe(
+      false,
+    );
+    expect(isRuntimeExposureAppPort(RUNTIME_EXPOSURE_APP_PORT_MAX + 1)).toBe(
+      false,
+    );
   });
 
   it("rejects privileged, reserved, and non-integer ports", () => {
@@ -40,7 +44,9 @@ describe("runtime exposure port policy", () => {
       RUNTIME_EXPOSURE_APP_PORT_MAX + RUNTIME_EXPOSURE_HMR_PORT_OFFSET,
     );
     expect(isRuntimeExposureHmrPort(RUNTIME_EXPOSURE_HMR_PORT_MIN)).toBe(true);
-    expect(isAllowedRuntimeExposurePort(RUNTIME_EXPOSURE_HMR_PORT_MIN)).toBe(true);
+    expect(isAllowedRuntimeExposurePort(RUNTIME_EXPOSURE_HMR_PORT_MIN)).toBe(
+      true,
+    );
   });
 
   it("derives a deterministic HMR companion port and rejects out-of-range apps", () => {
@@ -58,12 +64,12 @@ describe("runtime exposure port policy", () => {
   });
 
   it("builds https URLs on the non-standard port", () => {
-    expect(buildRuntimeExposureUrl("taskcore-dev.tail29c1aa.ts.net", 42010)).toBe(
-      "https://taskcore-dev.tail29c1aa.ts.net:42010",
-    );
-    expect(buildRuntimeExposureHealthUrl("taskcore-dev.tail29c1aa.ts.net", 42010)).toBe(
-      "https://taskcore-dev.tail29c1aa.ts.net:42010/api/health",
-    );
+    expect(
+      buildRuntimeExposureUrl("taskcore-dev.tail29c1aa.ts.net", 42010),
+    ).toBe("https://taskcore-dev.tail29c1aa.ts.net:42010");
+    expect(
+      buildRuntimeExposureHealthUrl("taskcore-dev.tail29c1aa.ts.net", 42010),
+    ).toBe("https://taskcore-dev.tail29c1aa.ts.net:42010/api/health");
   });
 
   it("rejects empty hostnames and out-of-range ports when building URLs", () => {

@@ -7,11 +7,13 @@ import {
 } from "../server/src/services/hot-restart.js";
 
 function usage(): never {
-  console.error([
-    "Usage: tsx scripts/request-hot-restart.ts --server-pid <pid> [--drain-required]",
-    "",
-    "Writes an instance-scoped hot-restart intent plus a legacy home-root handoff marker.",
-  ].join("\n"));
+  console.error(
+    [
+      "Usage: tsx scripts/request-hot-restart.ts --server-pid <pid> [--drain-required]",
+      "",
+      "Writes an instance-scoped hot-restart intent plus a legacy home-root handoff marker.",
+    ].join("\n"),
+  );
   process.exit(2);
 }
 
@@ -59,19 +61,22 @@ async function readPreviousServerInfo() {
       signal: AbortSignal.timeout(2_000),
     });
     if (!response.ok) return { version: null, identity: null };
-    const body = await response.json() as Record<string, unknown>;
-    const serverInfo = body.serverInfo && typeof body.serverInfo === "object"
-      ? body.serverInfo as Record<string, unknown>
-      : null;
+    const body = (await response.json()) as Record<string, unknown>;
+    const serverInfo =
+      body.serverInfo && typeof body.serverInfo === "object"
+        ? (body.serverInfo as Record<string, unknown>)
+        : null;
     return {
-      version: typeof body.serverVersion === "string"
-        ? body.serverVersion
-        : typeof body.version === "string"
-          ? body.version
+      version:
+        typeof body.serverVersion === "string"
+          ? body.serverVersion
+          : typeof body.version === "string"
+            ? body.version
+            : null,
+      identity:
+        typeof serverInfo?.processStartedAt === "string"
+          ? serverInfo.processStartedAt
           : null,
-      identity: typeof serverInfo?.processStartedAt === "string"
-        ? serverInfo.processStartedAt
-        : null,
     };
   } catch {
     return { version: null, identity: null };
@@ -80,9 +85,10 @@ async function readPreviousServerInfo() {
 
 async function readPreflightActiveRunIds() {
   const config = loadConfig();
-  const dbUrl = process.env.DATABASE_URL?.trim()
-    || config.databaseUrl
-    || `postgres://taskcore:taskcore@127.0.0.1:${config.embeddedPostgresPort}/taskcore`;
+  const dbUrl =
+    process.env.DATABASE_URL?.trim() ||
+    config.databaseUrl ||
+    `postgres://taskcore:taskcore@127.0.0.1:${config.embeddedPostgresPort}/taskcore`;
   const db = createDb(dbUrl);
   try {
     const rows = await db.$client<{ id: string }[]>`
@@ -97,7 +103,9 @@ async function readPreflightActiveRunIds() {
 }
 
 const { serverPid, drainRequired } = readArgs(process.argv.slice(2));
-const preflightActiveRunIds = drainRequired ? [] : await readPreflightActiveRunIds();
+const preflightActiveRunIds = drainRequired
+  ? []
+  : await readPreflightActiveRunIds();
 const previousServerInfo = await readPreviousServerInfo();
 const intent = await writeHotRestartIntent({
   previousServerPid: serverPid,
@@ -108,13 +116,19 @@ const intent = await writeHotRestartIntent({
   preflightActiveRunIds,
 });
 
-console.log(JSON.stringify({
-  status: "hot_restart_intent_written",
-  intentPath: resolveHotRestartIntentPath(),
-  previousServerPid: intent.previousServerPid,
-  previousServerIdentity: intent.previousServerIdentity,
-  previousServerStartedAt: intent.previousServerStartedAt,
-  previousServerVersion: intent.previousServerVersion,
-  drainRequired: intent.drainRequired,
-  preflightActiveRunIds: intent.preflightActiveRunIds,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      status: "hot_restart_intent_written",
+      intentPath: resolveHotRestartIntentPath(),
+      previousServerPid: intent.previousServerPid,
+      previousServerIdentity: intent.previousServerIdentity,
+      previousServerStartedAt: intent.previousServerStartedAt,
+      previousServerVersion: intent.previousServerVersion,
+      drainRequired: intent.drainRequired,
+      preflightActiveRunIds: intent.preflightActiveRunIds,
+    },
+    null,
+    2,
+  ),
+);

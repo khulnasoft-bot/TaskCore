@@ -29,7 +29,8 @@ export type {
  * frontend and server stay synchronized as the contract evolves.
  */
 
-export type ArtifactKindFilter = Exclude<CompanyArtifactMediaKind, "empty"> | "all";
+export type ArtifactKindFilter =
+  Exclude<CompanyArtifactMediaKind, "empty"> | "all";
 
 export interface ListArtifactsParams {
   kind?: ArtifactKindFilter;
@@ -51,7 +52,8 @@ function buildArtifactsQuery(params?: ListArtifactsParams): string {
   if (params?.projectId) search.set("projectId", params.projectId);
   if (params?.agentId) search.set("agentId", params.agentId);
   if (params?.q) search.set("q", params.q);
-  if (params?.groupBy && params.groupBy !== "none") search.set("groupBy", params.groupBy);
+  if (params?.groupBy && params.groupBy !== "none")
+    search.set("groupBy", params.groupBy);
   if (params?.groupIssueId) search.set("groupIssueId", params.groupIssueId);
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.cursor) search.set("cursor", params.cursor);
@@ -79,7 +81,10 @@ function normalizeArtifactsResponse(
 }
 
 export const artifactsApi = {
-  list: async (companyId: string, params?: ListArtifactsParams): Promise<CompanyArtifactsResponse> => {
+  list: async (
+    companyId: string,
+    params?: ListArtifactsParams,
+  ): Promise<CompanyArtifactsResponse> => {
     const raw = await api.get<CompanyArtifactsResponse | CompanyArtifact[]>(
       `/companies/${companyId}/artifacts${buildArtifactsQuery(params)}`,
     );

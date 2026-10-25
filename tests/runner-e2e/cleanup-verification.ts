@@ -1,4 +1,8 @@
-export interface CleanupCheck { id: string; passed: boolean; detail: string }
+export interface CleanupCheck {
+  id: string;
+  passed: boolean;
+  detail: string;
+}
 export type CleanupAssertion = () => Promise<CleanupCheck[]>;
 
 export function mayAllocateRemoteResources(environment: string) {
@@ -11,8 +15,11 @@ export function shouldKeepFailedDiagnostics(input: {
   expectedResults: number;
   results: readonly { status: string }[];
 }) {
-  return input.enabled && (input.results.length !== input.expectedResults ||
-    input.results.some(result => result.status === "failed"));
+  return (
+    input.enabled &&
+    (input.results.length !== input.expectedResults ||
+      input.results.some((result) => result.status === "failed"))
+  );
 }
 
 /** A stopped controller does not prove remote resources were retired. Retain
@@ -22,25 +29,49 @@ export function mustPreserveRecoveryState(input: {
   resourceAdmissionStarted?: boolean;
   results: readonly { cleanup: string; synthetic?: boolean }[];
 }) {
-  return input.processCleanupFailed || input.results.some(result => result.cleanup === "failed")
-    || (input.resourceAdmissionStarted === true && (input.results.length === 0 || input.results.some(result => result.synthetic)));
+  return (
+    input.processCleanupFailed ||
+    input.results.some((result) => result.cleanup === "failed") ||
+    (input.resourceAdmissionStarted === true &&
+      (input.results.length === 0 ||
+        input.results.some((result) => result.synthetic)))
+  );
 }
 
 /** Always finish every registered observer, even when an earlier proof fails. */
-export async function verifyCleanupAssertions(assertions: readonly CleanupAssertion[]) {
-  const checks: CleanupCheck[] = [], errors: unknown[] = [];
+export async function verifyCleanupAssertions(
+  assertions: readonly CleanupAssertion[],
+) {
+  const checks: CleanupCheck[] = [],
+    errors: unknown[] = [];
   for (const [index, assertion] of assertions.entries()) {
     try {
       const result = await assertion();
-      if (!Array.isArray(result) || result.length === 0 || result.some(check =>
-        !check || typeof check.id !== "string" || !check.id || typeof check.passed !== "boolean" || typeof check.detail !== "string")) {
+      if (
+        !Array.isArray(result) ||
+        result.length === 0 ||
+        result.some(
+          (check) =>
+            !check ||
+            typeof check.id !== "string" ||
+            !check.id ||
+            typeof check.passed !== "boolean" ||
+            typeof check.detail !== "string",
+        )
+      ) {
         throw new Error("Cleanup assertion did not return complete checks");
       }
       checks.push(...result);
-      if (result.some(check => !check.passed)) throw new Error("Cleanup assertion reported a failed check");
+      if (result.some((check) => !check.passed))
+        throw new Error("Cleanup assertion reported a failed check");
     } catch (error) {
       errors.push(error);
-      checks.push({ id: `assertion-${index}-completed`, passed: false, detail: error instanceof Error ? error.message : "Cleanup assertion failed" });
+      checks.push({
+        id: `assertion-${index}-completed`,
+        passed: false,
+        detail:
+          error instanceof Error ? error.message : "Cleanup assertion failed",
+      });
     }
   }
   return { checks, errors };
@@ -54,9 +85,17 @@ export async function runCleanupWithObservers(input: {
   teardown(): Promise<void>;
 }) {
   const errors: unknown[] = [];
-  try { await input.retireRuns(); } catch (error) { errors.push(error); }
+  try {
+    await input.retireRuns();
+  } catch (error) {
+    errors.push(error);
+  }
   const verification = await verifyCleanupAssertions(input.assertions);
   errors.push(...verification.errors);
-  try { await input.teardown(); } catch (error) { errors.push(error); }
+  try {
+    await input.teardown();
+  } catch (error) {
+    errors.push(error);
+  }
   return { checks: verification.checks, errors };
 }

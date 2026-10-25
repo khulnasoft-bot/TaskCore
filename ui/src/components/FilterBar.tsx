@@ -31,7 +31,12 @@ export function FilterBar({ filters, onRemove, onClear }: FilterBarProps) {
           </button>
         </Badge>
       ))}
-      <Button variant="ghost" size="sm" className="text-xs h-6" onClick={onClear}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-xs h-6"
+        onClick={onClear}
+      >
         Clear all
       </Button>
     </div>

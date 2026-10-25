@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import express, { Router, type NextFunction, type Request, type Response } from "express";
+import express, {
+  Router,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import multer from "multer";
 import { and, count as countFn, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -34,7 +39,13 @@ import {
   type CompanyImportTransferPartUploadResult,
   type CompanyImportTransferStatus,
 } from "@taskcore/shared/company-import-transfer";
-import { badRequest, conflict, forbidden, notFound, unprocessable } from "../errors.js";
+import {
+  badRequest,
+  conflict,
+  forbidden,
+  notFound,
+  unprocessable,
+} from "../errors.js";
 import { PORTABLE_ZIP_UPLOAD_LIMIT_BYTES } from "../http/body-limits.js";
 import { logger } from "../middleware/logger.js";
 import { validate } from "../middleware/validate.js";
@@ -68,7 +79,13 @@ import {
 import { isCloudManagedInstance } from "../services/cloud-instance.js";
 import { getHiddenSettings } from "../services/settings-visibility.js";
 import type { StorageService } from "../storage/types.js";
-import { assertBoard, assertCompanyAccess, assertInstanceAdmin, getActorInfo, hasCompanyAccess } from "./authz.js";
+import {
+  assertBoard,
+  assertCompanyAccess,
+  assertInstanceAdmin,
+  getActorInfo,
+  hasCompanyAccess,
+} from "./authz.js";
 import { COMPANY_IMPORT_ROUTE_PATH } from "./company-import-paths.js";
 
 // A company import can arrive one of two ways on the import + preview routes:
@@ -82,7 +99,10 @@ import { COMPANY_IMPORT_ROUTE_PATH } from "./company-import-paths.js";
 // The zip is unzipped server-side into the exact `{ rootPath, files }` bundle
 // the inline source carries, then fed through the unchanged preview/import
 // logic, so import semantics are identical regardless of transport.
-const PORTABLE_ZIP_CONTENT_TYPES = ["application/zip", "application/x-zip-compressed"] as const;
+const PORTABLE_ZIP_CONTENT_TYPES = [
+  "application/zip",
+  "application/x-zip-compressed",
+] as const;
 
 const zipPackageUpload = multer({
   storage: multer.memoryStorage(),
@@ -130,7 +150,11 @@ function isZipImport(req: Request) {
 }
 
 function runMiddleware(
-  middleware: (req: Request, res: Response, next: (err?: unknown) => void) => void,
+  middleware: (
+    req: Request,
+    res: Response,
+    next: (err?: unknown) => void,
+  ) => void,
   req: Request,
   res: Response,
 ) {
@@ -182,7 +206,10 @@ function importTransferApplyMeta(body: unknown): Record<string, unknown> {
  * `meta` fields as `source = { type: "inline", rootPath, files }`. A truncated,
  * corrupt, or empty zip fails closed with a 400/422 before anything is imported.
  */
-async function resolveImportPayload(req: Request, res: Response): Promise<unknown> {
+async function resolveImportPayload(
+  req: Request,
+  res: Response,
+): Promise<unknown> {
   const multipart = isMultipartImport(req);
   const rawZip = isZipImport(req);
   if (!multipart && !rawZip) {
@@ -213,7 +240,9 @@ async function resolveImportPayload(req: Request, res: Response): Promise<unknow
     try {
       await runMiddleware(rawZipBodyParser, req, res);
     } catch (error) {
-      throw badRequest(error instanceof Error ? error.message : "Invalid zip upload");
+      throw badRequest(
+        error instanceof Error ? error.message : "Invalid zip upload",
+      );
     }
     zipBytes = Buffer.isBuffer(req.body) ? req.body : undefined;
     const metaQuery = req.query.meta;
@@ -226,7 +255,11 @@ async function resolveImportPayload(req: Request, res: Response): Promise<unknow
   const archive = await readImportZipArchive(zipBytes);
   return {
     ...parseImportMeta(metaRaw),
-    source: { type: "inline", rootPath: archive.rootPath, files: archive.files },
+    source: {
+      type: "inline",
+      rootPath: archive.rootPath,
+      files: archive.files,
+    },
   };
 }
 
@@ -250,7 +283,9 @@ async function readImportZipArchive(zipBytes: Buffer) {
       ),
     });
   } catch (error) {
-    throw badRequest(`Import package could not be read: ${errorMessage(error)}`);
+    throw badRequest(
+      `Import package could not be read: ${errorMessage(error)}`,
+    );
   }
   if (Object.keys(archive.files).length === 0) {
     throw badRequest("Import package contained no files.");
@@ -267,7 +302,10 @@ async function readImportZipArchive(zipBytes: Buffer) {
  * async path.
  */
 function wantsAsyncImport(req: Request) {
-  return req.query.async === "1" || req.header("x-taskcore-cloud-async-import") === "1";
+  return (
+    req.query.async === "1" ||
+    req.header("x-taskcore-cloud-async-import") === "1"
+  );
 }
 
 export interface CompanyRoutesOptions {
@@ -275,12 +313,17 @@ export interface CompanyRoutesOptions {
   importTransferSpoolRoot?: string;
 }
 
-export function companyRoutes(db: Db, storage?: StorageService, options?: CompanyRoutesOptions) {
+export function companyRoutes(
+  db: Db,
+  storage?: StorageService,
+  options?: CompanyRoutesOptions,
+) {
   const router = Router();
   const importTransferSpoolRoot =
     options?.importTransferSpoolRoot ?? resolveDefaultImportTransferSpoolRoot();
   const svc = companyService(db, {
-    cancelWorkForScope: (scope) => heartbeatService(db).cancelBudgetScopeWork(scope),
+    cancelWorkForScope: (scope) =>
+      heartbeatService(db).cancelBudgetScopeWork(scope),
   });
   const agents = agentService(db);
   const portability = companyPortabilityService(db, storage);
@@ -303,7 +346,8 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
   }
 
   function parseDateQuery(value: unknown, field: string) {
-    if (typeof value !== "string" || value.trim().length === 0) return undefined;
+    if (typeof value !== "string" || value.trim().length === 0)
+      return undefined;
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
       throw badRequest(`Invalid ${field} query value`);
@@ -325,34 +369,50 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     companyId: string,
     input: { include?: { agents?: boolean }; agents?: string[] },
   ) {
-    const instanceAdmin = req.actor.type === "board"
-      && (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin === true);
-    const includesAgents = input.agents && input.agents.length > 0
-      ? true
-      : input.include?.agents ?? true;
+    const instanceAdmin =
+      req.actor.type === "board" &&
+      (req.actor.source === "local_implicit" ||
+        req.actor.isInstanceAdmin === true);
+    const includesAgents =
+      input.agents && input.agents.length > 0
+        ? true
+        : (input.include?.agents ?? true);
     if (!includesAgents) return instanceAdmin;
-    const companyAgents = await agents.list(companyId, { includeTerminated: true });
-    const selection = resolvePortableExportAgentSelection(companyAgents, input.agents, includesAgents);
-    if (selection.agents.some((agent) => agentInstructionsBundleMode(agent) === "external")) {
+    const companyAgents = await agents.list(companyId, {
+      includeTerminated: true,
+    });
+    const selection = resolvePortableExportAgentSelection(
+      companyAgents,
+      input.agents,
+      includesAgents,
+    );
+    if (
+      selection.agents.some(
+        (agent) => agentInstructionsBundleMode(agent) === "external",
+      )
+    ) {
       assertInstanceAdmin(req);
     }
     return instanceAdmin;
   }
 
-  const timelineQuerySchema = z.object({
-    from: z.string().optional(),
-    to: z.string().optional(),
-    userId: z.string().min(1).optional(),
-    goalId: z.string().guid().optional(),
-    projectId: z.string().guid().optional(),
-    issueId: z.string().guid().optional(),
-    limit: z.string().optional(),
-    offset: z.string().optional(),
-  }).passthrough();
+  const timelineQuerySchema = z
+    .object({
+      from: z.string().optional(),
+      to: z.string().optional(),
+      userId: z.string().min(1).optional(),
+      goalId: z.string().guid().optional(),
+      projectId: z.string().guid().optional(),
+      issueId: z.string().guid().optional(),
+      limit: z.string().optional(),
+      offset: z.string().optional(),
+    })
+    .passthrough();
 
   function assertImportTargetAccess(
     req: Request,
-    target: { mode: "new_company" } | { mode: "existing_company"; companyId: string },
+    target:
+      { mode: "new_company" } | { mode: "existing_company"; companyId: string },
   ) {
     if (target.mode === "new_company") {
       assertInstanceAdmin(req);
@@ -361,7 +421,11 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     assertCompanyAccess(req, target.companyId);
   }
 
-  async function assertSameCompanyCeoAgentOrBoard(req: Request, companyId: string, capability: string) {
+  async function assertSameCompanyCeoAgentOrBoard(
+    req: Request,
+    companyId: string,
+    capability: string,
+  ) {
     assertCompanyAccess(req, companyId);
     if (req.actor.type === "board") {
       return;
@@ -401,22 +465,26 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
 
   router.get("/stats", async (req, res) => {
     assertBoard(req);
-    const allowed = req.actor.source === "local_implicit" || req.actor.isInstanceAdmin
-      ? null
-      : new Set(req.actor.companyIds ?? []);
+    const allowed =
+      req.actor.source === "local_implicit" || req.actor.isInstanceAdmin
+        ? null
+        : new Set(req.actor.companyIds ?? []);
     const stats = await svc.stats();
     if (!allowed) {
       res.json(stats);
       return;
     }
-    const filtered = Object.fromEntries(Object.entries(stats).filter(([companyId]) => allowed.has(companyId)));
+    const filtered = Object.fromEntries(
+      Object.entries(stats).filter(([companyId]) => allowed.has(companyId)),
+    );
     res.json(filtered);
   });
 
   // Common malformed path when companyId is empty in "/api/companies/{companyId}/issues".
   router.get("/issues", (_req, res) => {
     res.status(400).json({
-      error: "Missing companyId in path. Use /api/companies/{companyId}/issues.",
+      error:
+        "Missing companyId in path. Use /api/companies/{companyId}/issues.",
     });
   });
 
@@ -424,9 +492,14 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     const query = companyArtifactsQuerySchema.parse(req.query);
-    res.json(await artifacts.list(companyId, query, {
-      userId: query.starred && req.actor.type === "board" ? req.actor.userId : undefined,
-    }));
+    res.json(
+      await artifacts.list(companyId, query, {
+        userId:
+          query.starred && req.actor.type === "board"
+            ? req.actor.userId
+            : undefined,
+      }),
+    );
   });
 
   router.get("/:companyId/timeline", async (req, res) => {
@@ -439,7 +512,11 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
       resource: { type: "company", companyId },
     });
     if (!companyScopeDecision.allowed) {
-      res.status(403).json({ error: "Timeline is outside this actor's authorization boundary" });
+      res
+        .status(403)
+        .json({
+          error: "Timeline is outside this actor's authorization boundary",
+        });
       return;
     }
 
@@ -503,21 +580,36 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     assertCompanyAccess(req, companyId);
     assertBoard(req);
 
-    const targetTypeRaw = typeof req.query.targetType === "string" ? req.query.targetType : undefined;
-    const voteRaw = typeof req.query.vote === "string" ? req.query.vote : undefined;
-    const statusRaw = typeof req.query.status === "string" ? req.query.status : undefined;
-    const issueId = typeof req.query.issueId === "string" && req.query.issueId.trim().length > 0 ? req.query.issueId : undefined;
-    const projectId = typeof req.query.projectId === "string" && req.query.projectId.trim().length > 0
-      ? req.query.projectId
-      : undefined;
+    const targetTypeRaw =
+      typeof req.query.targetType === "string"
+        ? req.query.targetType
+        : undefined;
+    const voteRaw =
+      typeof req.query.vote === "string" ? req.query.vote : undefined;
+    const statusRaw =
+      typeof req.query.status === "string" ? req.query.status : undefined;
+    const issueId =
+      typeof req.query.issueId === "string" &&
+      req.query.issueId.trim().length > 0
+        ? req.query.issueId
+        : undefined;
+    const projectId =
+      typeof req.query.projectId === "string" &&
+      req.query.projectId.trim().length > 0
+        ? req.query.projectId
+        : undefined;
 
     const traces = await feedback.listFeedbackTraces({
       companyId,
       issueId,
       projectId,
-      targetType: targetTypeRaw ? feedbackTargetTypeSchema.parse(targetTypeRaw) : undefined,
+      targetType: targetTypeRaw
+        ? feedbackTargetTypeSchema.parse(targetTypeRaw)
+        : undefined,
       vote: voteRaw ? feedbackVoteValueSchema.parse(voteRaw) : undefined,
-      status: statusRaw ? feedbackTraceStatusSchema.parse(statusRaw) : undefined,
+      status: statusRaw
+        ? feedbackTraceStatusSchema.parse(statusRaw)
+        : undefined,
       from: parseDateQuery(req.query.from, "from"),
       to: parseDateQuery(req.query.to, "to"),
       sharedOnly: parseBooleanQuery(req.query.sharedOnly),
@@ -530,14 +622,21 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     const companyId = req.params.companyId as string;
     await assertSameCompanyCeoAgentOrBoard(req, companyId, "company exports");
     const body = companyPortabilityExportSchema.parse(req.body);
-    const allowExternalInstructions = await assertExternalInstructionExportAllowed(req, companyId, body);
-    const result = await portability.exportBundle(companyId, body, { allowExternalInstructions });
+    const allowExternalInstructions =
+      await assertExternalInstructionExportAllowed(req, companyId, body);
+    const result = await portability.exportBundle(companyId, body, {
+      allowExternalInstructions,
+    });
     res.json(result);
   });
 
   router.get("/:companyId/export/fidelity", async (req, res) => {
     const companyId = req.params.companyId as string;
-    await assertSameCompanyCeoAgentOrBoard(req, companyId, "company export fidelity");
+    await assertSameCompanyCeoAgentOrBoard(
+      req,
+      companyId,
+      "company export fidelity",
+    );
     const counts = await collectExportFidelityCounts(db, companyId);
     res.json(buildExportFidelityReport(companyId, counts));
   });
@@ -578,7 +677,9 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
 
   router.post("/import/preview", async (req, res) => {
     assertBoard(req);
-    const body = companyPortabilityPreviewSchema.parse(await resolveImportPayload(req, res));
+    const body = companyPortabilityPreviewSchema.parse(
+      await resolveImportPayload(req, res),
+    );
     assertImportTargetAccess(req, body.target);
     const preview = await portability.previewImport(body);
     res.json(preview);
@@ -624,7 +725,10 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
       try {
         const importBody = companyPortabilityImportSchema.parse(rawImportBody);
         assertImportTargetAccess(req, importBody.target);
-        const activity = importedCompanyActivityContext(actor, importBody.include ?? null);
+        const activity = importedCompanyActivityContext(
+          actor,
+          importBody.include ?? null,
+        );
         const result = await portability.importBundle(importBody, boardUserId, {
           pauseAutomations: importBody.pauseAutomations === true,
         });
@@ -721,7 +825,11 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     if (!isImportTransferRunId(transferId)) {
       throw notFound("Import transfer not found");
     }
-    const run = await companyTransferRunService.getRunForActor(db, transferId, importJobActorKey(req));
+    const run = await companyTransferRunService.getRunForActor(
+      db,
+      transferId,
+      importJobActorKey(req),
+    );
     if (!run || run.direction !== "import") {
       throw notFound("Import transfer not found");
     }
@@ -729,7 +837,9 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
   }
 
   /** The declared part list persisted on the run at create time. */
-  function storedImportTransferManifest(run: { manifest: unknown }): ImportTransferManifest {
+  function storedImportTransferManifest(run: {
+    manifest: unknown;
+  }): ImportTransferManifest {
     const parsed = importTransferManifestSchema.safeParse(run.manifest);
     if (!parsed.success) {
       throw conflict("Import transfer has no recorded part manifest");
@@ -754,7 +864,11 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
         missing.push(part.index);
         continue;
       }
-      const sizeOnDisk = await importTransferPartSizeOnDisk(importTransferSpoolRoot, run.id, part.index);
+      const sizeOnDisk = await importTransferPartSizeOnDisk(
+        importTransferSpoolRoot,
+        run.id,
+        part.index,
+      );
       if (sizeOnDisk !== part.byteSize) {
         missing.push(part.index);
       }
@@ -781,26 +895,39 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     }
     declared.parts.forEach((part, position) => {
       if (part.index !== position) {
-        throw unprocessable("Import transfer parts must be contiguous, ordered 0..n-1");
+        throw unprocessable(
+          "Import transfer parts must be contiguous, ordered 0..n-1",
+        );
       }
       if (part.byteSize > declared.partSizeBytes) {
-        throw unprocessable(`Part ${part.index} is larger than the declared partSizeBytes`);
+        throw unprocessable(
+          `Part ${part.index} is larger than the declared partSizeBytes`,
+        );
       }
     });
-    const declaredTotal = declared.parts.reduce((sum, part) => sum + part.byteSize, 0);
+    const declaredTotal = declared.parts.reduce(
+      (sum, part) => sum + part.byteSize,
+      0,
+    );
     if (declaredTotal !== declared.totalBytes) {
       throw unprocessable("Sum of part byte sizes must equal totalBytes");
     }
 
     const idempotencyKey = createHash("sha256")
-      .update(JSON.stringify([declared.zipSha256, declared.parts.map((part) => part.sha256)]))
+      .update(
+        JSON.stringify([
+          declared.zipSha256,
+          declared.parts.map((part) => part.sha256),
+        ]),
+      )
       .digest("hex");
-    const { run, alreadyCompleted } = await companyTransferRunService.resumeOrCreate(db, {
-      direction: "import",
-      actorKey: importJobActorKey(req),
-      idempotencyKey,
-      containerRef: { kind: "chunked_zip_upload" },
-    });
+    const { run, alreadyCompleted } =
+      await companyTransferRunService.resumeOrCreate(db, {
+        direction: "import",
+        actorKey: importJobActorKey(req),
+        idempotencyKey,
+        containerRef: { kind: "chunked_zip_upload" },
+      });
     if (alreadyCompleted) {
       // Tell the caller WHERE the prior apply landed. companyId on the run is
       // written best-effort after apply and the company may have been deleted
@@ -809,9 +936,10 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
       // access may have been revoked since — withhold the identity unless
       // they can still reach the company today (hasCompanyAccess, so a
       // revoked caller sees the same null as a deleted company).
-      const landedCompany = run.companyId && hasCompanyAccess(req, run.companyId)
-        ? await svc.getById(run.companyId)
-        : null;
+      const landedCompany =
+        run.companyId && hasCompanyAccess(req, run.companyId)
+          ? await svc.getById(run.companyId)
+          : null;
       res.json({
         transferId: run.id,
         status: "completed",
@@ -819,17 +947,29 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
         totalParts: declared.parts.length,
         missingParts: [],
         company: landedCompany
-          ? { id: landedCompany.id, name: landedCompany.name ?? null, issuePrefix: landedCompany.issuePrefix ?? null }
+          ? {
+              id: landedCompany.id,
+              name: landedCompany.name ?? null,
+              issuePrefix: landedCompany.issuePrefix ?? null,
+            }
           : null,
       } satisfies CompanyImportTransferCreated);
       return;
     }
     if (run.manifest === null || run.manifest === undefined) {
-      const manifestSha256 = createHash("sha256").update(JSON.stringify(declared)).digest("hex");
-      await companyTransferRunService.recordManifest(db, run.id, declared, manifestSha256, {
-        chunkCount: declared.parts.length,
-        blobCount: 0,
-      });
+      const manifestSha256 = createHash("sha256")
+        .update(JSON.stringify(declared))
+        .digest("hex");
+      await companyTransferRunService.recordManifest(
+        db,
+        run.id,
+        declared,
+        manifestSha256,
+        {
+          chunkCount: declared.parts.length,
+          blobCount: 0,
+        },
+      );
     }
     await companyTransferRunService.start(db, run.id);
     res.json({
@@ -857,22 +997,35 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
         // An apply is assembling the spool right now; accepting writes would
         // let a retried upload race the files being read. Parts are frozen
         // until the apply settles (completed short-circuits, failed resumes).
-        throw conflict("Import transfer apply is in progress; retry after it settles");
+        throw conflict(
+          "Import transfer apply is in progress; retry after it settles",
+        );
       }
       const manifest = storedImportTransferManifest(run);
       const rawIndex = req.params.partIndex as string;
       // Strict integer-in-bounds validation before the index goes anywhere
       // near a filesystem path.
-      if (!/^\d{1,5}$/.test(rawIndex) || Number(rawIndex) >= manifest.parts.length) {
+      if (
+        !/^\d{1,5}$/.test(rawIndex) ||
+        Number(rawIndex) >= manifest.parts.length
+      ) {
         throw notFound("Import transfer part not found");
       }
       const partIndex = Number(rawIndex);
       const declared = manifest.parts[partIndex]!;
       const partName = importTransferPartName(partIndex);
       if (run.completedParts.includes(partName)) {
-        const sizeOnDisk = await importTransferPartSizeOnDisk(importTransferSpoolRoot, run.id, partIndex);
+        const sizeOnDisk = await importTransferPartSizeOnDisk(
+          importTransferSpoolRoot,
+          run.id,
+          partIndex,
+        );
         if (sizeOnDisk === declared.byteSize) {
-          res.json({ ok: true, index: partIndex, alreadyCompleted: true } satisfies CompanyImportTransferPartUploadResult);
+          res.json({
+            ok: true,
+            index: partIndex,
+            alreadyCompleted: true,
+          } satisfies CompanyImportTransferPartUploadResult);
           return;
         }
       }
@@ -884,10 +1037,21 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
       }
       const digest = createHash("sha256").update(bytes).digest("hex");
       if (digest !== declared.sha256) {
-        throw unprocessable(`Part ${partIndex} content does not match its declared sha256`);
+        throw unprocessable(
+          `Part ${partIndex} content does not match its declared sha256`,
+        );
       }
-      await writeImportTransferPart(importTransferSpoolRoot, run.id, partIndex, bytes);
-      const recorded = await companyTransferRunService.completePart(db, run.id, partName);
+      await writeImportTransferPart(
+        importTransferSpoolRoot,
+        run.id,
+        partIndex,
+        bytes,
+      );
+      const recorded = await companyTransferRunService.completePart(
+        db,
+        run.id,
+        partName,
+      );
       if (!recorded) {
         // The run left pending/running between the load above and this
         // record. Which way it went decides the file's fate: under a claimed
@@ -897,30 +1061,48 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
         // stray part is dropped and the client told to re-create.
         const current = await companyTransferRunService.getRun(db, run.id);
         if (current?.status === "applying" || current?.status === "completed") {
-          throw conflict("Import transfer apply is in progress; retry after it settles");
+          throw conflict(
+            "Import transfer apply is in progress; retry after it settles",
+          );
         }
-        await removeImportTransferPart(importTransferSpoolRoot, run.id, partIndex);
-        res.status(410).json({ error: "Import transfer expired — re-create it" });
+        await removeImportTransferPart(
+          importTransferSpoolRoot,
+          run.id,
+          partIndex,
+        );
+        res
+          .status(410)
+          .json({ error: "Import transfer expired — re-create it" });
         return;
       }
-      res.json({ ok: true, index: partIndex, alreadyCompleted: false } satisfies CompanyImportTransferPartUploadResult);
+      res.json({
+        ok: true,
+        index: partIndex,
+        alreadyCompleted: false,
+      } satisfies CompanyImportTransferPartUploadResult);
     },
   );
 
   // Resume polling: which parts are done, which are still missing.
-  router.get(`${COMPANY_IMPORT_TRANSFERS_ROUTE_PATH}/:transferId`, async (req, res) => {
-    assertBoard(req);
-    const run = await requireImportTransferRun(req);
-    const manifest = storedImportTransferManifest(run);
-    const missingParts = run.status === "completed" ? [] : await importTransferMissingParts(run, manifest);
-    res.json({
-      transferId: run.id,
-      status: run.status,
-      totalParts: manifest.parts.length,
-      completedParts: manifest.parts.length - missingParts.length,
-      missingParts,
-    } satisfies CompanyImportTransferStatus);
-  });
+  router.get(
+    `${COMPANY_IMPORT_TRANSFERS_ROUTE_PATH}/:transferId`,
+    async (req, res) => {
+      assertBoard(req);
+      const run = await requireImportTransferRun(req);
+      const manifest = storedImportTransferManifest(run);
+      const missingParts =
+        run.status === "completed"
+          ? []
+          : await importTransferMissingParts(run, manifest);
+      res.json({
+        transferId: run.id,
+        status: run.status,
+        totalParts: manifest.parts.length,
+        completedParts: manifest.parts.length - missingParts.length,
+        missingParts,
+      } satisfies CompanyImportTransferStatus);
+    },
+  );
 
   /**
    * Resolve a completed transfer into the same raw preview/import body a
@@ -956,7 +1138,9 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
       // An apply holds the claim right now: its assembly is reading the spool
       // and its success deletes it, so neither a preview nor a second apply
       // may touch the parts until the claim settles.
-      throw conflict("Import transfer apply is in progress; retry after it settles");
+      throw conflict(
+        "Import transfer apply is in progress; retry after it settles",
+      );
     }
     if (run.status === "cancelled") {
       // The abandoned-spool sweep cancelled the run and deleted its parts —
@@ -973,23 +1157,43 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
       });
       return null;
     }
-    if (options.claimApply && !(await companyTransferRunService.claimApply(db, run.id))) {
+    if (
+      options.claimApply &&
+      !(await companyTransferRunService.claimApply(db, run.id))
+    ) {
       throw conflict("Import transfer apply is already in progress");
     }
     try {
-      const zipBytes = await assembleImportTransferZip(importTransferSpoolRoot, run.id, manifest.parts.length);
+      const zipBytes = await assembleImportTransferZip(
+        importTransferSpoolRoot,
+        run.id,
+        manifest.parts.length,
+      );
       const zipSha256 = createHash("sha256").update(zipBytes).digest("hex");
-      if (zipBytes.length !== manifest.totalBytes || zipSha256 !== manifest.zipSha256) {
-        await companyTransferRunService.fail(db, run.id, "Assembled import package failed whole-file verification");
+      if (
+        zipBytes.length !== manifest.totalBytes ||
+        zipSha256 !== manifest.zipSha256
+      ) {
+        await companyTransferRunService.fail(
+          db,
+          run.id,
+          "Assembled import package failed whole-file verification",
+        );
         await removeImportTransferSpool(importTransferSpoolRoot, run.id);
-        throw unprocessable("Assembled import package failed verification; upload the transfer again");
+        throw unprocessable(
+          "Assembled import package failed verification; upload the transfer again",
+        );
       }
       const archive = await readImportZipArchive(zipBytes);
       return {
         run,
         rawBody: {
           ...importTransferApplyMeta(req.body),
-          source: { type: "inline", rootPath: archive.rootPath, files: archive.files },
+          source: {
+            type: "inline",
+            rootPath: archive.rootPath,
+            files: archive.files,
+          },
         },
       };
     } catch (error) {
@@ -999,7 +1203,11 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
       // is guarded on "applying", so the verification path that already
       // failed the run keeps its more specific terminal state.
       if (options.claimApply) {
-        await companyTransferRunService.releaseApplyClaim(db, run.id, errorMessage(error));
+        await companyTransferRunService.releaseApplyClaim(
+          db,
+          run.id,
+          errorMessage(error),
+        );
         throw error;
       }
       // Unclaimed (preview) path: assembly read the spool without freezing
@@ -1013,10 +1221,14 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
         throw conflict("Import transfer has already been applied");
       }
       if (current?.status === "applying") {
-        throw conflict("Import transfer apply is in progress; retry after it settles");
+        throw conflict(
+          "Import transfer apply is in progress; retry after it settles",
+        );
       }
       if (current?.status === "cancelled") {
-        res.status(410).json({ error: "Import transfer expired — re-create it" });
+        res
+          .status(410)
+          .json({ error: "Import transfer expired — re-create it" });
         return null;
       }
       throw error;
@@ -1027,106 +1239,129 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
   // transfer: the ledger run stays open and the parts stay spooled, so the
   // subsequent apply reuses them instead of re-uploading. The body carries the
   // same meta fields the multipart preview route's `meta` field does.
-  router.post(`${COMPANY_IMPORT_TRANSFERS_ROUTE_PATH}/:transferId/preview`, async (req, res) => {
-    assertBoard(req);
-    const resolved = await resolveImportTransferBody(req, res);
-    if (!resolved) return;
-    const body = companyPortabilityPreviewSchema.parse(resolved.rawBody);
-    assertImportTargetAccess(req, body.target);
-    const preview = await portability.previewImport(body);
-    res.json(preview);
-  });
+  router.post(
+    `${COMPANY_IMPORT_TRANSFERS_ROUTE_PATH}/:transferId/preview`,
+    async (req, res) => {
+      assertBoard(req);
+      const resolved = await resolveImportTransferBody(req, res);
+      if (!resolved) return;
+      const body = companyPortabilityPreviewSchema.parse(resolved.rawBody);
+      assertImportTargetAccess(req, body.target);
+      const preview = await portability.previewImport(body);
+      res.json(preview);
+    },
+  );
 
   // Assemble the spooled parts back into the original zip, verify it against
   // the declared whole-file hash, and run it through the exact import path a
   // single-shot zip upload takes. The body carries the same meta fields the
   // multipart route's `meta` field does (include/target/collisionStrategy/...).
-  router.post(`${COMPANY_IMPORT_TRANSFERS_ROUTE_PATH}/:transferId/apply`, async (req, res) => {
-    assertBoard(req);
-    const resolved = await resolveImportTransferBody(req, res, { claimApply: true });
-    if (!resolved) return;
-    const { run, rawBody: rawImportBody } = resolved;
-    try {
-      await executeImportRequest(req, res, rawImportBody, {
-        onSuccess: async (result) => {
-          // Settle the run the moment the import is committed: every later
-          // step is best-effort, because any error escaping this hook reads
-          // as a failed apply and — before complete() — would release the
-          // claim on an already-committed import. complete() gets one retry;
-          // if both attempts fail the run is left "applying" (unclaimable, so
-          // no duplicate import) and logged for the operator; a restart's
-          // stranded-run recovery then makes it inspectable as failed.
-          try {
-            await companyTransferRunService.complete(db, run.id);
-          } catch {
+  router.post(
+    `${COMPANY_IMPORT_TRANSFERS_ROUTE_PATH}/:transferId/apply`,
+    async (req, res) => {
+      assertBoard(req);
+      const resolved = await resolveImportTransferBody(req, res, {
+        claimApply: true,
+      });
+      if (!resolved) return;
+      const { run, rawBody: rawImportBody } = resolved;
+      try {
+        await executeImportRequest(req, res, rawImportBody, {
+          onSuccess: async (result) => {
+            // Settle the run the moment the import is committed: every later
+            // step is best-effort, because any error escaping this hook reads
+            // as a failed apply and — before complete() — would release the
+            // claim on an already-committed import. complete() gets one retry;
+            // if both attempts fail the run is left "applying" (unclaimable, so
+            // no duplicate import) and logged for the operator; a restart's
+            // stranded-run recovery then makes it inspectable as failed.
             try {
               await companyTransferRunService.complete(db, run.id);
-            } catch (settleError) {
-              logger.error(
-                { err: settleError, transferId: run.id },
-                "import committed but the transfer run could not be marked completed",
-              );
-              return;
+            } catch {
+              try {
+                await companyTransferRunService.complete(db, run.id);
+              } catch (settleError) {
+                logger.error(
+                  { err: settleError, transferId: run.id },
+                  "import committed but the transfer run could not be marked completed",
+                );
+                return;
+              }
             }
-          }
-          try {
-            await companyTransferRunService.attachCompany(db, run.id, result.company.id);
-          } catch (attachError) {
-            logger.warn(
-              { err: attachError, transferId: run.id },
-              "failed to attach the imported company to its transfer run",
+            try {
+              await companyTransferRunService.attachCompany(
+                db,
+                run.id,
+                result.company.id,
+              );
+            } catch (attachError) {
+              logger.warn(
+                { err: attachError, transferId: run.id },
+                "failed to attach the imported company to its transfer run",
+              );
+            }
+            // Best-effort cleanup: the import is committed and the run is
+            // completed, so a spool deletion error must not escape — it would
+            // reach the failure paths below and read as a failed apply. The
+            // leftover dir is harmless (completed runs never assemble again)
+            // and the sweep collects terminal-run spools immediately.
+            try {
+              await removeImportTransferSpool(importTransferSpoolRoot, run.id);
+            } catch (cleanupError) {
+              logger.warn(
+                { err: cleanupError, transferId: run.id },
+                "failed to delete import transfer spool after a successful apply",
+              );
+            }
+          },
+          onFailure: async (message) => {
+            // Parts remain spooled: the failure is in the import itself, not
+            // the upload, so a retry of apply can reuse the verified parts.
+            // Guarded release, not a blind fail: this hook also fires when an
+            // error escapes onSuccess above, i.e. possibly after complete(),
+            // and a completed run must never be flipped back to claimable.
+            await companyTransferRunService.releaseApplyClaim(
+              db,
+              run.id,
+              message,
             );
-          }
-          // Best-effort cleanup: the import is committed and the run is
-          // completed, so a spool deletion error must not escape — it would
-          // reach the failure paths below and read as a failed apply. The
-          // leftover dir is harmless (completed runs never assemble again)
-          // and the sweep collects terminal-run spools immediately.
-          try {
-            await removeImportTransferSpool(importTransferSpoolRoot, run.id);
-          } catch (cleanupError) {
-            logger.warn(
-              { err: cleanupError, transferId: run.id },
-              "failed to delete import transfer spool after a successful apply",
+          },
+          onConflict: async () => {
+            // The request was refused before any import work (another import is
+            // running for this actor): release the claim so the transfer stays
+            // retryable instead of stranded in "applying" until a restart.
+            await companyTransferRunService.releaseApplyClaim(
+              db,
+              run.id,
+              "another import is already running for this actor",
             );
-          }
-        },
-        onFailure: async (message) => {
-          // Parts remain spooled: the failure is in the import itself, not
-          // the upload, so a retry of apply can reuse the verified parts.
-          // Guarded release, not a blind fail: this hook also fires when an
-          // error escapes onSuccess above, i.e. possibly after complete(),
-          // and a completed run must never be flipped back to claimable.
-          await companyTransferRunService.releaseApplyClaim(db, run.id, message);
-        },
-        onConflict: async () => {
-          // The request was refused before any import work (another import is
-          // running for this actor): release the claim so the transfer stays
-          // retryable instead of stranded in "applying" until a restart.
-          await companyTransferRunService.releaseApplyClaim(
-            db,
-            run.id,
-            "another import is already running for this actor",
-          );
-        },
-      });
-    } catch (error) {
-      // Whatever escapes here (bad meta, an import error rethrown after
-      // onFailure) must not leave the run parked in "applying": release the
-      // claim, which keeps the run retryable. The release is guarded on
-      // "applying", so a run that already settled — failed by onFailure, or
-      // completed before a late error — keeps its terminal state.
-      await companyTransferRunService.releaseApplyClaim(db, run.id, errorMessage(error));
-      throw error;
-    }
-  });
+          },
+        });
+      } catch (error) {
+        // Whatever escapes here (bad meta, an import error rethrown after
+        // onFailure) must not leave the run parked in "applying": release the
+        // claim, which keeps the run retryable. The release is guarded on
+        // "applying", so a run that already settled — failed by onFailure, or
+        // completed before a late error — keeps its terminal state.
+        await companyTransferRunService.releaseApplyClaim(
+          db,
+          run.id,
+          errorMessage(error),
+        );
+        throw error;
+      }
+    },
+  );
 
   router.post("/:companyId/exports/preview", async (req, res) => {
     const companyId = req.params.companyId as string;
     await assertSameCompanyCeoAgentOrBoard(req, companyId, "company exports");
     const body = companyPortabilityExportSchema.parse(req.body);
-    const allowExternalInstructions = await assertExternalInstructionExportAllowed(req, companyId, body);
-    const preview = await portability.previewExport(companyId, body, { allowExternalInstructions });
+    const allowExternalInstructions =
+      await assertExternalInstructionExportAllowed(req, companyId, body);
+    const preview = await portability.previewExport(companyId, body, {
+      allowExternalInstructions,
+    });
     res.json(preview);
   });
 
@@ -1134,8 +1369,11 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     const companyId = req.params.companyId as string;
     await assertSameCompanyCeoAgentOrBoard(req, companyId, "company exports");
     const body = companyPortabilityExportSchema.parse(req.body);
-    const allowExternalInstructions = await assertExternalInstructionExportAllowed(req, companyId, body);
-    const result = await portability.exportBundle(companyId, body, { allowExternalInstructions });
+    const allowExternalInstructions =
+      await assertExternalInstructionExportAllowed(req, companyId, body);
+    const result = await portability.exportBundle(companyId, body, {
+      allowExternalInstructions,
+    });
     res.json(result);
   });
 
@@ -1143,11 +1381,16 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     const companyId = req.params.companyId as string;
     await assertSameCompanyCeoAgentOrBoard(req, companyId, "company imports");
     const body = companyPortabilityPreviewSchema.parse(req.body);
-    if (body.target.mode === "existing_company" && body.target.companyId !== companyId) {
+    if (
+      body.target.mode === "existing_company" &&
+      body.target.companyId !== companyId
+    ) {
       throw forbidden("Safe import route can only target the route company");
     }
     if (body.collisionStrategy === "replace") {
-      throw forbidden("Safe import route does not allow replace collision strategy");
+      throw forbidden(
+        "Safe import route does not allow replace collision strategy",
+      );
     }
     const preview = await portability.previewImport(body, {
       mode: "agent_safe",
@@ -1160,18 +1403,27 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     const companyId = req.params.companyId as string;
     await assertSameCompanyCeoAgentOrBoard(req, companyId, "company imports");
     const body = companyPortabilityImportSchema.parse(req.body);
-    if (body.target.mode === "existing_company" && body.target.companyId !== companyId) {
+    if (
+      body.target.mode === "existing_company" &&
+      body.target.companyId !== companyId
+    ) {
       throw forbidden("Safe import route can only target the route company");
     }
     if (body.collisionStrategy === "replace") {
-      throw forbidden("Safe import route does not allow replace collision strategy");
+      throw forbidden(
+        "Safe import route does not allow replace collision strategy",
+      );
     }
     const actor = getActorInfo(req);
-    const result = await portability.importBundle(body, req.actor.type === "board" ? req.actor.userId : null, {
-      mode: "agent_safe",
-      sourceCompanyId: companyId,
-      pauseAutomations: body.pauseAutomations === true,
-    });
+    const result = await portability.importBundle(
+      body,
+      req.actor.type === "board" ? req.actor.userId : null,
+      {
+        mode: "agent_safe",
+        sourceCompanyId: companyId,
+        pauseAutomations: body.pauseAutomations === true,
+      },
+    );
     await logActivity(db, {
       companyId: result.company.id,
       actorType: actor.actorType,
@@ -1193,54 +1445,68 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     res.json(result);
   });
 
-  router.post("/", (req, _res, next) => {
-    assertBoard(req);
-    if (isCloudManagedInstance()) {
-      throw forbidden("Company creation is managed by Taskcore Cloud", {
-        code: "cloud_managed",
+  router.post(
+    "/",
+    (req, _res, next) => {
+      assertBoard(req);
+      if (isCloudManagedInstance()) {
+        throw forbidden("Company creation is managed by Taskcore Cloud", {
+          code: "cloud_managed",
+        });
+      }
+      next();
+    },
+    validate(createCompanySchema),
+    async (req, res) => {
+      assertBoard(req);
+      if (!(
+        req.actor.source === "local_implicit" || req.actor.isInstanceAdmin
+      )) {
+        throw forbidden("Instance admin required");
+      }
+      const ownerPrincipalId = req.actor.userId ?? "local-board";
+      const company = await svc.create({
+        ...req.body,
+        defaultResponsibleUserId:
+          req.body.defaultResponsibleUserId ?? ownerPrincipalId,
       });
-    }
-    next();
-  }, validate(createCompanySchema), async (req, res) => {
-    assertBoard(req);
-    if (!(req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)) {
-      throw forbidden("Instance admin required");
-    }
-    const ownerPrincipalId = req.actor.userId ?? "local-board";
-    const company = await svc.create({
-      ...req.body,
-      defaultResponsibleUserId: req.body.defaultResponsibleUserId ?? ownerPrincipalId,
-    });
-    await access.ensureMembership(company.id, "user", ownerPrincipalId, "owner", "active");
-    await access.ensureRoleDefaultGrants(
-      company.id,
-      ownerPrincipalId,
-      "owner",
-      req.actor.userId ?? null,
-    );
-    await logActivity(db, {
-      companyId: company.id,
-      actorType: "user",
-      actorId: req.actor.userId ?? "board",
-      action: "company.created",
-      entityType: "company",
-      entityId: company.id,
-      details: { name: company.name },
-    });
-    if (company.budgetMonthlyCents > 0) {
-      await budgets.upsertPolicy(
+      await access.ensureMembership(
         company.id,
-        {
-          scopeType: "company",
-          scopeId: company.id,
-          amount: company.budgetMonthlyCents,
-          windowKind: "calendar_month_utc",
-        },
-        req.actor.userId ?? "board",
+        "user",
+        ownerPrincipalId,
+        "owner",
+        "active",
       );
-    }
-    res.status(201).json(company);
-  });
+      await access.ensureRoleDefaultGrants(
+        company.id,
+        ownerPrincipalId,
+        "owner",
+        req.actor.userId ?? null,
+      );
+      await logActivity(db, {
+        companyId: company.id,
+        actorType: "user",
+        actorId: req.actor.userId ?? "board",
+        action: "company.created",
+        entityType: "company",
+        entityId: company.id,
+        details: { name: company.name },
+      });
+      if (company.budgetMonthlyCents > 0) {
+        await budgets.upsertPolicy(
+          company.id,
+          {
+            scopeType: "company",
+            scopeId: company.id,
+            amount: company.budgetMonthlyCents,
+            windowKind: "calendar_month_utc",
+          },
+          req.actor.userId ?? "board",
+        );
+      }
+      res.status(201).json(company);
+    },
+  );
 
   router.patch("/:companyId", async (req, res) => {
     const companyId = req.params.companyId as string;
@@ -1262,13 +1528,17 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
     }
 
     if (req.actor.type !== "agent") {
-      if (body.feedbackDataSharingEnabled === true && !existingCompany.feedbackDataSharingEnabled) {
+      if (
+        body.feedbackDataSharingEnabled === true &&
+        !existingCompany.feedbackDataSharingEnabled
+      ) {
         body = {
           ...body,
           feedbackDataSharingConsentAt: new Date(),
           feedbackDataSharingConsentByUserId: req.actor.userId ?? "local-board",
           feedbackDataSharingTermsVersion:
-            typeof body.feedbackDataSharingTermsVersion === "string" && body.feedbackDataSharingTermsVersion.length > 0
+            typeof body.feedbackDataSharingTermsVersion === "string" &&
+            body.feedbackDataSharingTermsVersion.length > 0
               ? body.feedbackDataSharingTermsVersion
               : DEFAULT_FEEDBACK_DATA_SHARING_TERMS_VERSION,
         };
@@ -1284,11 +1554,13 @@ export function companyRoutes(db: Db, storage?: StorageService, options?: Compan
       const [archivedPausedCount] = await db
         .select({ value: countFn() })
         .from(agentsTable)
-        .where(and(
-          eq(agentsTable.companyId, companyId),
-          eq(agentsTable.status, "paused"),
-          eq(agentsTable.pauseReason, "company_archived"),
-        ));
+        .where(
+          and(
+            eq(agentsTable.companyId, companyId),
+            eq(agentsTable.status, "paused"),
+            eq(agentsTable.pauseReason, "company_archived"),
+          ),
+        );
       transitionsPausedToActiveWithArchivePausedAgents =
         Number(archivedPausedCount?.value ?? 0) > 0;
     }
@@ -1469,10 +1741,15 @@ function createImportJob(
  * submit apart from a concurrent, unrelated import.
  */
 function importRequestSignature(body: unknown): string {
-  return createHash("sha256").update(JSON.stringify(body) ?? "").digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(body) ?? "")
+    .digest("hex");
 }
 
-function findRunningImportJob(importJobs: Map<string, ImportJobRecord>, actorKey: string) {
+function findRunningImportJob(
+  importJobs: Map<string, ImportJobRecord>,
+  actorKey: string,
+) {
   for (const job of importJobs.values()) {
     if (job.status === "running" && job.actorKey === actorKey) {
       return job;
@@ -1567,7 +1844,8 @@ function importJobAcceptedResponse(job: ImportJobRecord) {
  */
 function importAlreadyRunningResponse() {
   return {
-    error: "A different import is already running for this account. Wait for it to finish before starting another.",
+    error:
+      "A different import is already running for this account. Wait for it to finish before starting another.",
   };
 }
 
@@ -1609,7 +1887,10 @@ function importJobResponse(job: ImportJobRecord) {
   return response;
 }
 
-function cleanupTerminalImportJobs(importJobs: Map<string, ImportJobRecord>, terminalRetentionMs: number) {
+function cleanupTerminalImportJobs(
+  importJobs: Map<string, ImportJobRecord>,
+  terminalRetentionMs: number,
+) {
   const now = Date.now();
   for (const [jobId, job] of importJobs) {
     if (job.status === "running" || !job.completedAt) continue;
@@ -1620,5 +1901,7 @@ function cleanupTerminalImportJobs(importJobs: Map<string, ImportJobRecord>, ter
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error && error.message.trim() ? error.message : String(error);
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : String(error);
 }

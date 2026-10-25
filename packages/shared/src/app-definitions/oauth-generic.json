@@ -3,9 +3,7 @@
   "slug": "oauth-generic",
   "name": "OAuth app",
   "description": "Connect a provider using your own OAuth client.",
-  "categories": [
-    "other"
-  ],
+  "categories": ["other"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/oauth-generic.svg"
@@ -16,10 +14,7 @@
       "key": "oauth",
       "transport": "rest_api",
       "auth": "oauth",
-      "ownershipModes": [
-        "customer",
-        "dcr"
-      ],
+      "ownershipModes": ["customer", "dcr"],
       "whenToUse": "Use credentials from your provider account.",
       "defaults": {},
       "guidanceMd": "Register an OAuth client with the provider and add Taskcore's redirect URI.",

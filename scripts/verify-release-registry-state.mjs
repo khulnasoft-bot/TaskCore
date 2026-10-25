@@ -72,12 +72,21 @@ function parseArgs(argv) {
         usage();
         process.exit(0);
       default:
-        throw createExitError(`unexpected argument: ${arg}`, EXIT_NON_RETRIABLE_FAILURE);
+        throw createExitError(
+          `unexpected argument: ${arg}`,
+          EXIT_NON_RETRIABLE_FAILURE,
+        );
     }
   }
 
-  if (!PRERELEASE_CHANNELS.has(options.channel) && options.channel !== "stable") {
-    throw createExitError("--channel must be canary, nightly, beta, or stable", EXIT_NON_RETRIABLE_FAILURE);
+  if (
+    !PRERELEASE_CHANNELS.has(options.channel) &&
+    options.channel !== "stable"
+  ) {
+    throw createExitError(
+      "--channel must be canary, nightly, beta, or stable",
+      EXIT_NON_RETRIABLE_FAILURE,
+    );
   }
 
   if (!options.distTag) {
@@ -85,22 +94,34 @@ function parseArgs(argv) {
   }
 
   if (!options.targetVersion) {
-    throw createExitError("--target-version is required", EXIT_NON_RETRIABLE_FAILURE);
+    throw createExitError(
+      "--target-version is required",
+      EXIT_NON_RETRIABLE_FAILURE,
+    );
   }
 
   if (options.packages.length === 0 || options.packages.some((name) => !name)) {
-    throw createExitError("at least one non-empty --package value is required", EXIT_NON_RETRIABLE_FAILURE);
+    throw createExitError(
+      "at least one non-empty --package value is required",
+      EXIT_NON_RETRIABLE_FAILURE,
+    );
   }
 
   if (options.allowCanaryLatest && options.channel !== "canary") {
-    throw createExitError("--allow-canary-latest only applies to canary releases", EXIT_NON_RETRIABLE_FAILURE);
+    throw createExitError(
+      "--allow-canary-latest only applies to canary releases",
+      EXIT_NON_RETRIABLE_FAILURE,
+    );
   }
 
   return options;
 }
 
 function createRegistryUrl(packageName, version = "") {
-  const registry = process.env.npm_config_registry ?? process.env.NPM_CONFIG_REGISTRY ?? "https://registry.npmjs.org/";
+  const registry =
+    process.env.npm_config_registry ??
+    process.env.NPM_CONFIG_REGISTRY ??
+    "https://registry.npmjs.org/";
   const baseUrl = registry.endsWith("/") ? registry : `${registry}/`;
   const encodedPackage = encodeURIComponent(packageName);
 
@@ -111,7 +132,10 @@ function createRegistryUrl(packageName, version = "") {
   return new URL(`${encodedPackage}/${encodeURIComponent(version)}`, baseUrl);
 }
 
-export async function fetchRegistryJson(url, { allowMissing = false, timeoutMs = 30_000 } = {}) {
+export async function fetchRegistryJson(
+  url,
+  { allowMissing = false, timeoutMs = 30_000 } = {},
+) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let response;
@@ -125,7 +149,9 @@ export async function fetchRegistryJson(url, { allowMissing = false, timeoutMs =
     });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`npm registry request timed out for ${url} after ${timeoutMs}ms`);
+      throw new Error(
+        `npm registry request timed out for ${url} after ${timeoutMs}ms`,
+      );
     }
     throw error;
   } finally {
@@ -137,18 +163,29 @@ export async function fetchRegistryJson(url, { allowMissing = false, timeoutMs =
   }
 
   if (!response.ok) {
-    throw new Error(`npm registry request failed for ${url}: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `npm registry request failed for ${url}: ${response.status} ${response.statusText}`,
+    );
   }
 
   return response.json();
 }
 
-async function fetchPackageDocument(packageName, { allowMissing = false } = {}) {
+async function fetchPackageDocument(
+  packageName,
+  { allowMissing = false } = {},
+) {
   return fetchRegistryJson(createRegistryUrl(packageName), { allowMissing });
 }
 
-async function fetchPackageManifest(packageName, version, { allowMissing = false } = {}) {
-  return fetchRegistryJson(createRegistryUrl(packageName, version), { allowMissing });
+async function fetchPackageManifest(
+  packageName,
+  version,
+  { allowMissing = false } = {},
+) {
+  return fetchRegistryJson(createRegistryUrl(packageName, version), {
+    allowMissing,
+  });
 }
 
 export function createManifestLookupKey(packageName, version) {
@@ -159,8 +196,15 @@ function isRangeVersionSpecifier(version) {
   return /[\^~*xX><| ]/.test(version);
 }
 
-function resolvePublishedManifest(packageName, version, packageDoc, packageManifestsByKey = new Map()) {
-  const directManifest = packageManifestsByKey.get(createManifestLookupKey(packageName, version));
+function resolvePublishedManifest(
+  packageName,
+  version,
+  packageDoc,
+  packageManifestsByKey = new Map(),
+) {
+  const directManifest = packageManifestsByKey.get(
+    createManifestLookupKey(packageName, version),
+  );
   if (directManifest) {
     return directManifest;
   }
@@ -200,7 +244,10 @@ function collectInternalDependencyProblemEntries(
       }
 
       // Peer dependency ranges express compatibility, not a manifest that can be fetched directly.
-      if (sectionName === "peerDependencies" && isRangeVersionSpecifier(dependencyVersion)) {
+      if (
+        sectionName === "peerDependencies" &&
+        isRangeVersionSpecifier(dependencyVersion)
+      ) {
         continue;
       }
 
@@ -210,7 +257,10 @@ function collectInternalDependencyProblemEntries(
         packageDocsByName.get(dependencyName),
         packageManifestsByKey,
       );
-      const dependencyLookupKey = createManifestLookupKey(dependencyName, dependencyVersion);
+      const dependencyLookupKey = createManifestLookupKey(
+        dependencyName,
+        dependencyVersion,
+      );
 
       if (!dependencyManifest) {
         const dependencyDoc = packageDocsByName.get(dependencyName);
@@ -247,11 +297,26 @@ export function collectInternalDependencyProblems(
   ).map((problem) => problem.message);
 }
 
-function requireManifest(packageName, version, packageDoc, packageManifestsByKey, problems) {
-  const manifest = resolvePublishedManifest(packageName, version, packageDoc, packageManifestsByKey);
+function requireManifest(
+  packageName,
+  version,
+  packageDoc,
+  packageManifestsByKey,
+  problems,
+) {
+  const manifest = resolvePublishedManifest(
+    packageName,
+    version,
+    packageDoc,
+    packageManifestsByKey,
+  );
   if (!manifest) {
     if (problems) {
-      problems.push(createProblem(`${packageName}: npm registry is missing manifest data for ${version}`));
+      problems.push(
+        createProblem(
+          `${packageName}: npm registry is missing manifest data for ${version}`,
+        ),
+      );
     }
     return null;
   }
@@ -280,21 +345,36 @@ export function verifyPackageRegistryProblems({
     );
   }
 
-  const targetManifest = requireManifest(packageName, targetVersion, packageDoc, packageManifestsByKey, problems);
+  const targetManifest = requireManifest(
+    packageName,
+    targetVersion,
+    packageDoc,
+    packageManifestsByKey,
+    problems,
+  );
   if (targetManifest) {
     for (const problem of collectInternalDependencyProblemEntries(
       targetManifest,
       packageDocsByName,
       packageManifestsByKey,
     )) {
-      problems.push(createProblem(`${packageName}@${targetVersion}: ${problem.message}`, problem));
+      problems.push(
+        createProblem(
+          `${packageName}@${targetVersion}: ${problem.message}`,
+          problem,
+        ),
+      );
     }
   }
 
   if (PRERELEASE_CHANNELS.has(channel)) {
     const latestVersion = distTags.latest;
 
-    if (latestVersion && isPrereleaseVersion(latestVersion) && !allowCanaryLatest) {
+    if (
+      latestVersion &&
+      isPrereleaseVersion(latestVersion) &&
+      !allowCanaryLatest
+    ) {
       problems.push(
         createProblem(
           `${packageName}: latest dist-tag still resolves to prerelease ${latestVersion}; if that state is intentional, rerun the verification script directly with --allow-canary-latest`,
@@ -317,7 +397,12 @@ export function verifyPackageRegistryProblems({
           packageDocsByName,
           packageManifestsByKey,
         )) {
-          problems.push(createProblem(`${packageName}@${latestVersion} via latest: ${problem.message}`, problem));
+          problems.push(
+            createProblem(
+              `${packageName}@${latestVersion} via latest: ${problem.message}`,
+              problem,
+            ),
+          );
         }
       }
     }
@@ -327,7 +412,9 @@ export function verifyPackageRegistryProblems({
 }
 
 export function verifyPackageRegistryState(options) {
-  return verifyPackageRegistryProblems(options).map((problem) => problem.message);
+  return verifyPackageRegistryProblems(options).map(
+    (problem) => problem.message,
+  );
 }
 
 function collectInternalDependencyVersions(manifest) {
@@ -347,7 +434,10 @@ function collectInternalDependencyVersions(manifest) {
         continue;
       }
 
-      if (sectionName === "peerDependencies" && isRangeVersionSpecifier(dependencyVersion)) {
+      if (
+        sectionName === "peerDependencies" &&
+        isRangeVersionSpecifier(dependencyVersion)
+      ) {
         continue;
       }
 
@@ -369,7 +459,10 @@ async function main() {
 
   await Promise.all(
     packageNames.map(async (packageName) => {
-      packageDocsByName.set(packageName, await fetchPackageDocument(packageName));
+      packageDocsByName.set(
+        packageName,
+        await fetchPackageDocument(packageName),
+      );
     }),
   );
 
@@ -385,18 +478,24 @@ async function main() {
   }
 
   await Promise.all(
-    [...versionsToFetchByPackage.entries()].flatMap(([packageName, versionsToFetch]) =>
-      [...versionsToFetch].map(async (version) => {
-        packageManifestsByKey.set(
-          createManifestLookupKey(packageName, version),
-          await fetchPackageManifest(packageName, version, { allowMissing: true }),
-        );
-      }),
+    [...versionsToFetchByPackage.entries()].flatMap(
+      ([packageName, versionsToFetch]) =>
+        [...versionsToFetch].map(async (version) => {
+          packageManifestsByKey.set(
+            createManifestLookupKey(packageName, version),
+            await fetchPackageManifest(packageName, version, {
+              allowMissing: true,
+            }),
+          );
+        }),
     ),
   );
 
   const dependencyVersionsByKey = new Map();
-  for (const [packageName, versionsToFetch] of versionsToFetchByPackage.entries()) {
+  for (const [
+    packageName,
+    versionsToFetch,
+  ] of versionsToFetchByPackage.entries()) {
     for (const version of versionsToFetch) {
       const manifest = resolvePublishedManifest(
         packageName,
@@ -408,9 +507,14 @@ async function main() {
         continue;
       }
 
-      for (const dependencyVersion of collectInternalDependencyVersions(manifest)) {
+      for (const dependencyVersion of collectInternalDependencyVersions(
+        manifest,
+      )) {
         dependencyVersionsByKey.set(
-          createManifestLookupKey(dependencyVersion.packageName, dependencyVersion.version),
+          createManifestLookupKey(
+            dependencyVersion.packageName,
+            dependencyVersion.version,
+          ),
           dependencyVersion,
         );
       }
@@ -418,23 +522,29 @@ async function main() {
   }
 
   await Promise.all(
-    [...dependencyVersionsByKey.values()].map(async ({ packageName, version }) => {
-      const lookupKey = createManifestLookupKey(packageName, version);
-      if (packageManifestsByKey.has(lookupKey)) {
-        return;
-      }
+    [...dependencyVersionsByKey.values()].map(
+      async ({ packageName, version }) => {
+        const lookupKey = createManifestLookupKey(packageName, version);
+        if (packageManifestsByKey.has(lookupKey)) {
+          return;
+        }
 
-      packageManifestsByKey.set(
-        lookupKey,
-        await fetchPackageManifest(packageName, version, { allowMissing: true }),
-      );
-    }),
+        packageManifestsByKey.set(
+          lookupKey,
+          await fetchPackageManifest(packageName, version, {
+            allowMissing: true,
+          }),
+        );
+      },
+    ),
   );
 
   const problems = [];
 
   for (const packageName of packageNames) {
-    process.stdout.write(`  Verifying ${packageName} on dist-tag ${options.distTag}\n`);
+    process.stdout.write(
+      `  Verifying ${packageName} on dist-tag ${options.distTag}\n`,
+    );
     const packageProblems = verifyPackageRegistryProblems({
       packageName,
       packageDoc: packageDocsByName.get(packageName),
@@ -447,7 +557,9 @@ async function main() {
     });
 
     if (packageProblems.length === 0) {
-      process.stdout.write(`    ✓ dist-tag and published internal dependencies are consistent\n`);
+      process.stdout.write(
+        `    ✓ dist-tag and published internal dependencies are consistent\n`,
+      );
       continue;
     }
 
@@ -461,11 +573,15 @@ async function main() {
     const exitCode = problems.some((problem) => !problem.retriable)
       ? EXIT_NON_RETRIABLE_FAILURE
       : EXIT_RETRIABLE_FAILURE;
-    throw createExitError(`npm registry verification failed for ${problems.length} problem(s)`, exitCode);
+    throw createExitError(
+      `npm registry verification failed for ${problems.length} problem(s)`,
+      exitCode,
+    );
   }
 }
 
-const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isDirectRun =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isDirectRun) {
   main().catch((error) => {

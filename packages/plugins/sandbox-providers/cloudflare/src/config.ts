@@ -7,7 +7,9 @@ const DEFAULT_BRIDGE_REQUEST_TIMEOUT_MS = 300_000;
 const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function readTrimmedString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
@@ -23,7 +25,9 @@ function isLocalBridgeHost(url: URL): boolean {
   return LOCALHOST_HOSTNAMES.has(url.hostname);
 }
 
-export function parseCloudflareDriverConfig(raw: Record<string, unknown>): CloudflareDriverConfig {
+export function parseCloudflareDriverConfig(
+  raw: Record<string, unknown>,
+): CloudflareDriverConfig {
   return {
     bridgeBaseUrl: readTrimmedString(raw.bridgeBaseUrl) ?? "",
     bridgeAuthToken: readTrimmedString(raw.bridgeAuthToken) ?? "",
@@ -35,12 +39,17 @@ export function parseCloudflareDriverConfig(raw: Record<string, unknown>): Cloud
     sessionStrategy: raw.sessionStrategy === "default" ? "default" : "named",
     sessionId: readTrimmedString(raw.sessionId) ?? "taskcore",
     timeoutMs: readInteger(raw.timeoutMs, DEFAULT_TIMEOUT_MS),
-    bridgeRequestTimeoutMs: readInteger(raw.bridgeRequestTimeoutMs, DEFAULT_BRIDGE_REQUEST_TIMEOUT_MS),
+    bridgeRequestTimeoutMs: readInteger(
+      raw.bridgeRequestTimeoutMs,
+      DEFAULT_BRIDGE_REQUEST_TIMEOUT_MS,
+    ),
     previewHostname: readTrimmedString(raw.previewHostname),
   };
 }
 
-export function validateCloudflareDriverConfig(config: CloudflareDriverConfig): string[] {
+export function validateCloudflareDriverConfig(
+  config: CloudflareDriverConfig,
+): string[] {
   const errors: string[] = [];
 
   if (!config.bridgeBaseUrl) {
@@ -48,8 +57,13 @@ export function validateCloudflareDriverConfig(config: CloudflareDriverConfig): 
   } else {
     try {
       const url = new URL(config.bridgeBaseUrl);
-      if (url.protocol !== "https:" && !(url.protocol === "http:" && isLocalBridgeHost(url))) {
-        errors.push("bridgeBaseUrl must use HTTPS unless it points at localhost.");
+      if (
+        url.protocol !== "https:" &&
+        !(url.protocol === "http:" && isLocalBridgeHost(url))
+      ) {
+        errors.push(
+          "bridgeBaseUrl must use HTTPS unless it points at localhost.",
+        );
       }
     } catch {
       errors.push("bridgeBaseUrl must be a valid URL.");
@@ -68,7 +82,10 @@ export function validateCloudflareDriverConfig(config: CloudflareDriverConfig): 
     errors.push("timeoutMs must be between 1 and 86400000.");
   }
 
-  if (config.bridgeRequestTimeoutMs < 1 || config.bridgeRequestTimeoutMs > 86_400_000) {
+  if (
+    config.bridgeRequestTimeoutMs < 1 ||
+    config.bridgeRequestTimeoutMs > 86_400_000
+  ) {
     errors.push("bridgeRequestTimeoutMs must be between 1 and 86400000.");
   }
 
@@ -76,7 +93,10 @@ export function validateCloudflareDriverConfig(config: CloudflareDriverConfig): 
     errors.push("requestedCwd must be an absolute POSIX path.");
   }
 
-  if (config.sessionStrategy === "named" && config.sessionId.trim().length === 0) {
+  if (
+    config.sessionStrategy === "named" &&
+    config.sessionId.trim().length === 0
+  ) {
     errors.push("sessionId is required when sessionStrategy is named.");
   }
 

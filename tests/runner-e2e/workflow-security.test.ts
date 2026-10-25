@@ -16,18 +16,33 @@ const everydayOracleImage =
 
 describe("public repository paid workflow security", () => {
   it("keeps the manual EC2 image build credential-free and pins the authorized target", async () => {
-    const workflow = await readFile(path.join(repositoryRoot, ".github/workflows/docker-runner-check.yml"), "utf8");
+    const workflow = await readFile(
+      path.join(repositoryRoot, ".github/workflows/docker-runner-check.yml"),
+      "utf8",
+    );
     const manual = workflow.slice(workflow.indexOf("  authorize_manual:"));
     expect(manual.match(/AWS_CI_TRUSTED_USER_IDS/gu)).toHaveLength(2);
-    expect(manual.match(/test "\$REPOSITORY_ID" = 1170821064/gu)).toHaveLength(2);
-    expect(manual).toContain('runs-on: runs-on/fleet=taskcore-public-pr-x64/env=public-ci');
-    expect(manual).toContain('repos/$REPOSITORY/git/ref/heads/$TARGET_BRANCH');
-    expect(manual).toContain('ref: ${{ needs.authorize_manual.outputs.target_sha }}');
-    expect(manual).toContain('SOURCE_SHA: ${{ needs.authorize_manual.outputs.target_sha }}');
-    expect([...manual.matchAll(/secrets\.([A-Z_]+)/gu)].map(match => match[1])).toEqual(["GITHUB_TOKEN"]);
-    expect(manual).toContain('pnpm install --resolution-only --ignore-scripts --no-frozen-lockfile');
-    expect(manual).toContain('TASKCORE_RUNNER_LOCK_SHA256=$lock_sha');
-    expect(manual).toContain('docker logout ghcr.io');
+    expect(manual.match(/test "\$REPOSITORY_ID" = 1170821064/gu)).toHaveLength(
+      2,
+    );
+    expect(manual).toContain(
+      "runs-on: runs-on/fleet=taskcore-public-pr-x64/env=public-ci",
+    );
+    expect(manual).toContain("repos/$REPOSITORY/git/ref/heads/$TARGET_BRANCH");
+    expect(manual).toContain(
+      "ref: ${{ needs.authorize_manual.outputs.target_sha }}",
+    );
+    expect(manual).toContain(
+      "SOURCE_SHA: ${{ needs.authorize_manual.outputs.target_sha }}",
+    );
+    expect(
+      [...manual.matchAll(/secrets\.([A-Z_]+)/gu)].map((match) => match[1]),
+    ).toEqual(["GITHUB_TOKEN"]);
+    expect(manual).toContain(
+      "pnpm install --resolution-only --ignore-scripts --no-frozen-lockfile",
+    );
+    expect(manual).toContain("TASKCORE_RUNNER_LOCK_SHA256=$lock_sha");
+    expect(manual).toContain("docker logout ghcr.io");
   });
 
   it("uses the reviewed master branch for the first-party trusted PR workflow", async () => {
@@ -317,11 +332,17 @@ describe("public repository paid workflow security", () => {
     expect(paidExecution).toBeGreaterThan(awsFfmpegInstall);
     expect(paidExecution).toBeGreaterThan(daytonaPluginPreparation);
     expect(paidExecution).toBeGreaterThan(everydayOraclePreparation);
-    const grokPreparation = paidJob.indexOf("- name: Install checksum-verified Grok executable");
+    const grokPreparation = paidJob.indexOf(
+      "- name: Install checksum-verified Grok executable",
+    );
     expect(grokPreparation).toBeGreaterThan(paidInstall);
     expect(paidExecution).toBeGreaterThan(grokPreparation);
-    expect(paidJob).toContain("if: matrix.environmentId == 'local' && (matrix.profileId == 'runner-acpx-grok' || matrix.profileId == 'runner-acpx-grok-subscription')");
-    expect(paidJob).toContain("run: sudo node packages/taskcore-runner/scripts/provision-grok.mjs /opt/taskcore/providers/grok/1.0.13/grok");
+    expect(paidJob).toContain(
+      "if: matrix.environmentId == 'local' && (matrix.profileId == 'runner-acpx-grok' || matrix.profileId == 'runner-acpx-grok-subscription')",
+    );
+    expect(paidJob).toContain(
+      "run: sudo node packages/taskcore-runner/scripts/provision-grok.mjs /opt/taskcore/providers/grok/1.0.13/grok",
+    );
 
     const everydayOracleStep = paidJob.slice(
       everydayOraclePreparation,
@@ -396,9 +417,15 @@ describe("public repository paid workflow security", () => {
     );
     expect(authorizeJob).toContain('echo "max_parallel_limit=100"');
     expect(fullStack).toContain('[ "$MAX_PARALLEL_LIMIT" -gt 100 ]');
-    expect(fullStack).toContain("REQUESTED_MAX_PARALLEL: ${{ inputs.max_parallel }}");
-    expect(fullStack).toContain('[ "$REQUESTED_MAX_PARALLEL" -gt "$MAX_PARALLEL" ]');
-    expect(fullStack).toContain('[[ "$REQUESTED_MAX_PARALLEL" =~ ^[1-9][0-9]{0,2}$ ]]');
+    expect(fullStack).toContain(
+      "REQUESTED_MAX_PARALLEL: ${{ inputs.max_parallel }}",
+    );
+    expect(fullStack).toContain(
+      '[ "$REQUESTED_MAX_PARALLEL" -gt "$MAX_PARALLEL" ]',
+    );
+    expect(fullStack).toContain(
+      '[[ "$REQUESTED_MAX_PARALLEL" =~ ^[1-9][0-9]{0,2}$ ]]',
+    );
 
     expect(fullStack).toContain(
       '[ "$MAX_PARALLEL" -gt "$MAX_PARALLEL_LIMIT" ]',
@@ -705,9 +732,7 @@ describe("public repository paid workflow security", () => {
       "utf8",
     );
 
-    expect(config).toContain(
-      "process.env.TASKCORE_PLAYWRIGHT_CHANNEL?.trim()",
-    );
+    expect(config).toContain("process.env.TASKCORE_PLAYWRIGHT_CHANNEL?.trim()");
     expect(config).toContain("{ channel: playwrightChannel }");
     expect(config).toContain(
       "process.env.TASKCORE_RUNNER_E2E_CHROMIUM_EXECUTABLE?.trim()",
@@ -719,11 +744,16 @@ describe("public repository paid workflow security", () => {
 
   it("resolves each trusted reporting lockfile before frozen install and AWS credentials", async () => {
     const workflow = await readFile(
-      path.join(repositoryRoot, ".github/workflows/runner-full-stack-e2e.yml"), "utf8",
+      path.join(repositoryRoot, ".github/workflows/runner-full-stack-e2e.yml"),
+      "utf8",
     );
     for (const jobName of ["report", "publish_history"]) {
-      const job = workflow.split(`\n  ${jobName}:`)[1]!.split(/\n  [a-z_]+:/u)[0]!;
-      const resolve = job.indexOf("pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile");
+      const job = workflow
+        .split(`\n  ${jobName}:`)[1]!
+        .split(/\n  [a-z_]+:/u)[0]!;
+      const resolve = job.indexOf(
+        "pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile",
+      );
       const install = job.indexOf("pnpm install --frozen-lockfile");
       expect(job).toContain("ref: ${{ github.sha }}");
       expect(job).not.toContain("resolved-target-lockfile");

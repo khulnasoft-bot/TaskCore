@@ -4,12 +4,20 @@ import { buildLoginLeaseAcquireArgs } from "./adapter-login-lease.js";
 
 // A minimal environment stand-in. The helper copies the reference without a
 // read, so the test does not need a full environment row.
-const ENVIRONMENT = { id: "env-1", name: "Sandbox", driver: "sandbox" } as unknown as Environment;
+const ENVIRONMENT = {
+  id: "env-1",
+  name: "Sandbox",
+  driver: "sandbox",
+} as unknown as Environment;
 
 describe("buildLoginLeaseAcquireArgs", () => {
   it("sets the fixed lease arguments that both login services share", () => {
     const args = buildLoginLeaseAcquireArgs({
-      metadata: { companyId: "co-1", environment: ENVIRONMENT, adapterType: "codex" },
+      metadata: {
+        companyId: "co-1",
+        environment: ENVIRONMENT,
+        adapterType: "codex",
+      },
     });
 
     // A null issue, a null heartbeat run, and a null execution workspace disable
@@ -23,7 +31,11 @@ describe("buildLoginLeaseAcquireArgs", () => {
 
   it("passes the lease metadata through to the acquire arguments", () => {
     const args = buildLoginLeaseAcquireArgs({
-      metadata: { companyId: "co-1", environment: ENVIRONMENT, adapterType: "claude" },
+      metadata: {
+        companyId: "co-1",
+        environment: ENVIRONMENT,
+        adapterType: "claude",
+      },
     });
 
     expect(args.companyId).toBe("co-1");

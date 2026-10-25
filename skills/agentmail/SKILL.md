@@ -5,7 +5,6 @@ description: Use your assigned AgentMail inbox to read email tasks, explicitly s
 
 # AgentMail
 
-
 Native runners use `agentmail_inboxes`, `agentmail_read_thread`,
 `agentmail_send`, and `agentmail_delivery`. For `agentmail_send`, pass the
 request body described below in `request`; for `agentmail_delivery`, pass the
@@ -48,19 +47,18 @@ operator reconciliation. Sending does not automatically complete the task.
 If access is revoked or this inbox is disconnected, stop using it. Reassignment
 and reconnection are managed through the AgentMail connection in Taskcore.
 
-
 ## HTTP API reference
 
 These endpoints are also available through the sandbox callback bridge. Use the
 injected Taskcore API URL and agent credential; include `X-Taskcore-Run-Id` on
 writes. Provider keys stay in the control plane.
 
-| Action | Endpoint |
-| --- | --- |
-| Discover assigned inboxes | `GET /api/companies/{companyId}/email/inboxes` |
-| Read task email context | `GET /api/companies/{companyId}/email/tasks/{taskId}` |
-| Queue new email or reply | `POST /api/companies/{companyId}/email/send` |
-| Read delivery outcome | `GET /api/companies/{companyId}/email/deliveries/{publicationId}` |
+| Action                    | Endpoint                                                          |
+| ------------------------- | ----------------------------------------------------------------- |
+| Discover assigned inboxes | `GET /api/companies/{companyId}/email/inboxes`                    |
+| Read task email context   | `GET /api/companies/{companyId}/email/tasks/{taskId}`             |
+| Queue new email or reply  | `POST /api/companies/{companyId}/email/send`                      |
+| Read delivery outcome     | `GET /api/companies/{companyId}/email/deliveries/{publicationId}` |
 
 A new conversation requires `endpointId` (the assigned inbox record's `id`),
 `parentIssueId` (current task), `to`, `subject`, `text`, and UUID `idempotencyKey`.

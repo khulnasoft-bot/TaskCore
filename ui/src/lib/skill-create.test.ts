@@ -9,7 +9,9 @@ import {
   splitCategoryDraft,
 } from "./skill-create";
 
-function skill(overrides: Partial<CompanySkillDetail> = {}): CompanySkillDetail {
+function skill(
+  overrides: Partial<CompanySkillDetail> = {},
+): CompanySkillDetail {
   return {
     id: "skill-1",
     companyId: "company-1",
@@ -17,7 +19,8 @@ function skill(overrides: Partial<CompanySkillDetail> = {}): CompanySkillDetail 
     slug: "demo-skill",
     name: "Demo Skill",
     description: "A demo skill.",
-    markdown: "---\nname: Demo Skill\ndescription: Existing\n---\n\n# Demo Skill\n",
+    markdown:
+      "---\nname: Demo Skill\ndescription: Existing\n---\n\n# Demo Skill\n",
     sourceType: "local_path",
     sourceLocator: null,
     sourceRef: null,
@@ -57,19 +60,18 @@ function skill(overrides: Partial<CompanySkillDetail> = {}): CompanySkillDetail 
 
 describe("skill create helpers", () => {
   it("normalizes slugs and category drafts", () => {
-    expect(normalizeSkillDraftSlug("  My Fancy_SKILL!!  ")).toBe("my-fancy-skill");
-    expect(splitCategoryDraft(" Review, memory tools, review, , Agent_QA ")).toEqual([
-      "Review",
-      "memory tools",
-      "Agent_QA",
-    ]);
+    expect(normalizeSkillDraftSlug("  My Fancy_SKILL!!  ")).toBe(
+      "my-fancy-skill",
+    );
+    expect(
+      splitCategoryDraft(" Review, memory tools, review, , Agent_QA "),
+    ).toEqual(["Review", "memory tools", "Agent_QA"]);
   });
 
   it("keeps commas as draft delimiters while allowing spaces inside category names", () => {
-    expect(splitCategoryDraft(" AI Tools, Developer Experience, ai tools,  ")).toEqual([
-      "AI Tools",
-      "Developer Experience",
-    ]);
+    expect(
+      splitCategoryDraft(" AI Tools, Developer Experience, ai tools,  "),
+    ).toEqual(["AI Tools", "Developer Experience"]);
   });
 
   it("builds blank drafts with default SKILL.md frontmatter", () => {
@@ -79,11 +81,15 @@ describe("skill create helpers", () => {
     expect(draft.slug).toBe("");
     expect(draft.sharingScope).toBe("company");
     expect(draft.markdown).toContain("name: New Skill");
-    expect(draft.markdown).toContain("Describe when agents should use this skill.");
+    expect(draft.markdown).toContain(
+      "Describe when agents should use this skill.",
+    );
   });
 
   it("builds fork drafts from the source skill metadata", () => {
-    const draft = buildForkSkillDraft(skill({ color: "#123456", folderId: "bundled-folder" }));
+    const draft = buildForkSkillDraft(
+      skill({ color: "#123456", folderId: "bundled-folder" }),
+    );
 
     expect(draft.name).toBe("Demo Skill Fork");
     expect(draft.slug).toBe("demo-skill-fork");
@@ -113,7 +119,10 @@ describe("skill create helpers", () => {
       categories: ["review"],
       sharingScope: "private",
       forkedFromSkillId: null,
-      markdown: defaultSkillMarkdown("Code Review", "Review repository changes."),
+      markdown: defaultSkillMarkdown(
+        "Code Review",
+        "Review repository changes.",
+      ),
     });
   });
 });

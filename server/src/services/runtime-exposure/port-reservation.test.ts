@@ -31,7 +31,9 @@ const LEASED_WORKSPACE = "b7ce28b4-7921-4e23-8be2-8b42193bf4ad";
 const OTHER_WORKSPACE = "9f2c1d40-1111-4222-8333-444455556666";
 const LEASED_ISSUE = "17251aaa-1111-4222-8333-444455556666";
 
-function identity(overrides: Partial<ExposureOwnerIdentity> = {}): ExposureOwnerIdentity {
+function identity(
+  overrides: Partial<ExposureOwnerIdentity> = {},
+): ExposureOwnerIdentity {
   return {
     runtimeServiceId: null,
     executionWorkspaceId: null,
@@ -48,7 +50,9 @@ function identity(overrides: Partial<ExposureOwnerIdentity> = {}): ExposureOwner
  * is empty, so the `port` column is the only surviving record of which pair the
  * lease owns. Reproducing that faithfully is the whole point of the fixture.
  */
-function stoppedTornDownRow(overrides: Partial<PersistedExposureRowSnapshot> = {}): PersistedExposureRowSnapshot {
+function stoppedTornDownRow(
+  overrides: Partial<PersistedExposureRowSnapshot> = {},
+): PersistedExposureRowSnapshot {
   return {
     id: "runtime-lane-b",
     status: "stopped",
@@ -63,7 +67,9 @@ function stoppedTornDownRow(overrides: Partial<PersistedExposureRowSnapshot> = {
 
 describe("collectRowExposurePorts", () => {
   it("derives the pair from the port column when teardown erased the listeners", () => {
-    expect([...collectRowExposurePorts(stoppedTornDownRow())]).toEqual([42001, 52001]);
+    expect([...collectRowExposurePorts(stoppedTornDownRow())]).toEqual([
+      42001, 52001,
+    ]);
   });
 
   it("ignores a legacy pinned port outside the dedicated range", () => {
@@ -73,7 +79,10 @@ describe("collectRowExposurePorts", () => {
 
   it("unions declared listeners with the port-derived pair", () => {
     const row = stoppedTornDownRow({
-      exposure: { state: "ready", listeners: [{ targetPort: 42001 }, { targetPort: 52001 }] },
+      exposure: {
+        state: "ready",
+        listeners: [{ targetPort: 42001 }, { targetPort: 52001 }],
+      },
     });
     expect([...collectRowExposurePorts(row)].sort()).toEqual([42001, 52001]);
   });
@@ -102,11 +111,17 @@ describe("regression 1: stopped-but-leased pair reuse is denied", () => {
 
     const conflict = findExposurePairConflict({
       pair: { appPort: 42001, hmrPort: 52001 },
-      claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE, runtimeServiceId: "runtime-posthog" }),
+      claimant: identity({
+        executionWorkspaceId: OTHER_WORKSPACE,
+        runtimeServiceId: "runtime-posthog",
+      }),
       ledger,
     });
 
-    expect(conflict).toMatchObject({ code: "reserved_by_other_workspace", port: 42001 });
+    expect(conflict).toMatchObject({
+      code: "reserved_by_other_workspace",
+      port: 42001,
+    });
     const message = describeExposurePortConflict(conflict!);
     expect(message).toContain("42001");
     expect(message).toContain(LEASED_WORKSPACE);
@@ -122,11 +137,16 @@ describe("regression 1: stopped-but-leased pair reuse is denied", () => {
       activeExecutionWorkspaceIds: [LEASED_WORKSPACE],
     });
 
-    expect(findExposurePairConflict({
-      pair: { appPort: 42001, hmrPort: 52001 },
-      claimant: identity({ executionWorkspaceId: LEASED_WORKSPACE, runtimeServiceId: "runtime-lane-b-restart" }),
-      ledger,
-    })).toBeNull();
+    expect(
+      findExposurePairConflict({
+        pair: { appPort: 42001, hmrPort: 52001 },
+        claimant: identity({
+          executionWorkspaceId: LEASED_WORKSPACE,
+          runtimeServiceId: "runtime-lane-b-restart",
+        }),
+        ledger,
+      }),
+    ).toBeNull();
   });
 
   it("keeps the HMR companion reserved even when only the app port is claimed", () => {
@@ -138,11 +158,13 @@ describe("regression 1: stopped-but-leased pair reuse is denied", () => {
     // A different pair whose app port is free but whose companion is the
     // lease's HMR port can never happen with the fixed offset, so assert the
     // companion is independently defended instead.
-    expect(findExposurePairConflict({
-      pair: { appPort: 52001, hmrPort: 62001 },
-      claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
-      ledger,
-    })).toMatchObject({ code: "reserved_by_other_workspace", port: 52001 });
+    expect(
+      findExposurePairConflict({
+        pair: { appPort: 52001, hmrPort: 62001 },
+        claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
+        ledger,
+      }),
+    ).toMatchObject({ code: "reserved_by_other_workspace", port: 52001 });
   });
 
   it("still reserves nothing for a row with no lease and no exposure", () => {
@@ -156,34 +178,47 @@ describe("regression 1: stopped-but-leased pair reuse is denied", () => {
 
 describe("regression 2: cross-execution-workspace process adoption is denied", () => {
   it("refuses adoption when the execution workspace IDs differ", () => {
-    expect(isExposureAdoptionPermitted(
-      identity({ executionWorkspaceId: LEASED_WORKSPACE }),
-      identity({ executionWorkspaceId: OTHER_WORKSPACE }),
-    )).toBe(false);
+    expect(
+      isExposureAdoptionPermitted(
+        identity({ executionWorkspaceId: LEASED_WORKSPACE }),
+        identity({ executionWorkspaceId: OTHER_WORKSPACE }),
+      ),
+    ).toBe(false);
   });
 
   it("refuses adoption when either side's workspace is unknown", () => {
-    expect(isExposureAdoptionPermitted(
-      identity({ executionWorkspaceId: null, runtimeServiceId: "runtime-unknown" }),
-      identity({ executionWorkspaceId: OTHER_WORKSPACE }),
-    )).toBe(false);
-    expect(isExposureAdoptionPermitted(
-      identity({ executionWorkspaceId: LEASED_WORKSPACE }),
-      identity({ executionWorkspaceId: null }),
-    )).toBe(false);
+    expect(
+      isExposureAdoptionPermitted(
+        identity({
+          executionWorkspaceId: null,
+          runtimeServiceId: "runtime-unknown",
+        }),
+        identity({ executionWorkspaceId: OTHER_WORKSPACE }),
+      ),
+    ).toBe(false);
+    expect(
+      isExposureAdoptionPermitted(
+        identity({ executionWorkspaceId: LEASED_WORKSPACE }),
+        identity({ executionWorkspaceId: null }),
+      ),
+    ).toBe(false);
     // Two nulls are not "the same workspace"; they are two unknowns.
     expect(isExposureAdoptionPermitted(identity(), identity())).toBe(false);
   });
 
   it("permits the same workspace and the same runtime service", () => {
-    expect(isExposureAdoptionPermitted(
-      identity({ executionWorkspaceId: LEASED_WORKSPACE }),
-      identity({ executionWorkspaceId: LEASED_WORKSPACE }),
-    )).toBe(true);
-    expect(isExposureAdoptionPermitted(
-      identity({ runtimeServiceId: "runtime-lane-b" }),
-      identity({ runtimeServiceId: "runtime-lane-b" }),
-    )).toBe(true);
+    expect(
+      isExposureAdoptionPermitted(
+        identity({ executionWorkspaceId: LEASED_WORKSPACE }),
+        identity({ executionWorkspaceId: LEASED_WORKSPACE }),
+      ),
+    ).toBe(true);
+    expect(
+      isExposureAdoptionPermitted(
+        identity({ runtimeServiceId: "runtime-lane-b" }),
+        identity({ runtimeServiceId: "runtime-lane-b" }),
+      ),
+    ).toBe(true);
   });
 
   it("denies a pair whose live listener belongs to another workspace", () => {
@@ -191,10 +226,21 @@ describe("regression 2: cross-execution-workspace process adoption is denied", (
       pair: { appPort: 42001, hmrPort: 52001 },
       claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
       ledger: buildExposureReservationLedger({}),
-      listenerOwners: new Map([[42001, identity({ executionWorkspaceId: LEASED_WORKSPACE, issueId: LEASED_ISSUE })]]),
+      listenerOwners: new Map([
+        [
+          42001,
+          identity({
+            executionWorkspaceId: LEASED_WORKSPACE,
+            issueId: LEASED_ISSUE,
+          }),
+        ],
+      ]),
     });
 
-    expect(conflict).toMatchObject({ code: "listener_owned_by_other_workspace", port: 42001 });
+    expect(conflict).toMatchObject({
+      code: "listener_owned_by_other_workspace",
+      port: 42001,
+    });
     expect(describeExposurePortConflict(conflict!)).toContain(LEASED_WORKSPACE);
   });
 
@@ -206,8 +252,13 @@ describe("regression 2: cross-execution-workspace process adoption is denied", (
       listenerOwners: new Map([[52001, null]]),
     });
 
-    expect(conflict).toMatchObject({ code: "listener_owned_by_other_workspace", port: 52001 });
-    expect(describeExposurePortConflict(conflict!)).toContain("an unidentified owner");
+    expect(conflict).toMatchObject({
+      code: "listener_owned_by_other_workspace",
+      port: 52001,
+    });
+    expect(describeExposurePortConflict(conflict!)).toContain(
+      "an unidentified owner",
+    );
   });
 
   it("throws a terminal, attributed error on the allocation path", () => {
@@ -234,7 +285,10 @@ describe("regression 3: Serve mapping ownership mismatch is visible and fails cl
         id: "runtime-posthog",
         status: "running",
         port: 42001,
-        exposure: { state: "ready", listeners: [{ targetPort: 42001 }, { targetPort: 52001 }] },
+        exposure: {
+          state: "ready",
+          listeners: [{ targetPort: 42001 }, { targetPort: 52001 }],
+        },
         executionWorkspaceId: OTHER_WORKSPACE,
         projectWorkspaceId: null,
         issueId: null,
@@ -254,7 +308,9 @@ describe("regression 3: Serve mapping ownership mismatch is visible and fails cl
       pair: { appPort: 42001, hmrPort: 52001 },
       claimant: identity({ executionWorkspaceId: LEASED_WORKSPACE }),
       ledger,
-      serveMappingOwners: new Map([[42001, identity({ executionWorkspaceId: OTHER_WORKSPACE })]]),
+      serveMappingOwners: new Map([
+        [42001, identity({ executionWorkspaceId: OTHER_WORKSPACE })],
+      ]),
     });
     expect(conflict).toMatchObject({ port: 42001 });
     expect(describeExposurePortConflict(conflict!)).toContain(OTHER_WORKSPACE);
@@ -265,11 +321,18 @@ describe("regression 3: Serve mapping ownership mismatch is visible and fails cl
       pair: { appPort: 42005, hmrPort: 52005 },
       claimant: identity({ executionWorkspaceId: LEASED_WORKSPACE }),
       ledger: buildExposureReservationLedger({}),
-      serveMappingOwners: new Map([[52005, identity({ executionWorkspaceId: OTHER_WORKSPACE })]]),
+      serveMappingOwners: new Map([
+        [52005, identity({ executionWorkspaceId: OTHER_WORKSPACE })],
+      ]),
     });
 
-    expect(conflict).toMatchObject({ code: "serve_mapping_owned_by_other_workspace", port: 52005 });
-    expect(describeExposurePortConflict(conflict!)).toContain("Tailscale Serve mapping");
+    expect(conflict).toMatchObject({
+      code: "serve_mapping_owned_by_other_workspace",
+      port: 52005,
+    });
+    expect(describeExposurePortConflict(conflict!)).toContain(
+      "Tailscale Serve mapping",
+    );
   });
 
   it("surfaces a stopped/removed row whose reserved port is mapped to another runtime", () => {
@@ -307,14 +370,18 @@ describe("regression 3: Serve mapping ownership mismatch is visible and fails cl
       livePorts: new Set([52001]),
     });
 
-    expect(drift).toMatchObject([{ port: 52001, reason: "live_listener", conflictingOwner: null }]);
+    expect(drift).toMatchObject([
+      { port: 52001, reason: "live_listener", conflictingOwner: null },
+    ]);
   });
 
   it("does not call a lane's own live listener drift", () => {
     const drift = findExposureReservationDrift({
       persistedRows: [stoppedTornDownRow()],
       livePorts: new Set([42001]),
-      listenerOwners: new Map([[42001, identity({ runtimeServiceId: "runtime-lane-b" })]]),
+      listenerOwners: new Map([
+        [42001, identity({ runtimeServiceId: "runtime-lane-b" })],
+      ]),
     });
 
     expect(drift).toEqual([]);
@@ -322,15 +389,20 @@ describe("regression 3: Serve mapping ownership mismatch is visible and fails cl
 
   it("does not report a healthy running lane as drift", () => {
     const drift = findExposureReservationDrift({
-      persistedRows: [{
-        id: "runtime-lane-a",
-        status: "running",
-        port: 42000,
-        exposure: { state: "ready", listeners: [{ targetPort: 42000 }, { targetPort: 52000 }] },
-        executionWorkspaceId: LEASED_WORKSPACE,
-        projectWorkspaceId: null,
-        issueId: null,
-      }],
+      persistedRows: [
+        {
+          id: "runtime-lane-a",
+          status: "running",
+          port: 42000,
+          exposure: {
+            state: "ready",
+            listeners: [{ targetPort: 42000 }, { targetPort: 52000 }],
+          },
+          executionWorkspaceId: LEASED_WORKSPACE,
+          projectWorkspaceId: null,
+          issueId: null,
+        },
+      ],
       livePorts: new Set([42000, 52000]),
       brokerMappings: [{ runtimeId: "runtime-lane-a", port: 42000 }],
     });
@@ -359,12 +431,17 @@ describe("regression 4: concurrent allocators return unique pairs", () => {
 
   it("hands two concurrent allocators distinct pairs", async () => {
     const claims = new ExposurePortPairClaims();
-    const allocate = () => allocateExposurePortPair({
-      isPortAvailable: async () => true,
-      claimPair: (pair) => claims.claim(pair),
-    });
+    const allocate = () =>
+      allocateExposurePortPair({
+        isPortAvailable: async () => true,
+        claimPair: (pair) => claims.claim(pair),
+      });
 
-    const [first, second, third] = await Promise.all([allocate(), allocate(), allocate()]);
+    const [first, second, third] = await Promise.all([
+      allocate(),
+      allocate(),
+      allocate(),
+    ]);
 
     expect(first).toEqual({ appPort: 42000, hmrPort: 52000 });
     expect(second).toEqual({ appPort: 42001, hmrPort: 52001 });
@@ -373,11 +450,12 @@ describe("regression 4: concurrent allocators return unique pairs", () => {
 
   it("gives concurrent allocators distinct pairs even when both prefer the same port", async () => {
     const claims = new ExposurePortPairClaims();
-    const allocate = () => allocateExposurePortPair({
-      isPortAvailable: async () => true,
-      preferredAppPort: 42007,
-      claimPair: (pair) => claims.claim(pair),
-    });
+    const allocate = () =>
+      allocateExposurePortPair({
+        isPortAvailable: async () => true,
+        preferredAppPort: 42007,
+        claimPair: (pair) => claims.claim(pair),
+      });
 
     const [first, second] = await Promise.all([allocate(), allocate()]);
 
@@ -400,13 +478,17 @@ describe("regression 4: concurrent allocators return unique pairs", () => {
   it("folds live claims into a ledger so a second allocator sees them", () => {
     const claims = new ExposurePortPairClaims();
     claims.claim({ appPort: 42000, hmrPort: 52000 }, 0);
-    const ledger = buildExposureReservationLedger({ inFlightClaimedPorts: claims.activePorts(0) });
+    const ledger = buildExposureReservationLedger({
+      inFlightClaimedPorts: claims.activePorts(0),
+    });
 
-    expect(findExposurePairConflict({
-      pair: { appPort: 42000, hmrPort: 52000 },
-      claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
-      ledger,
-    })).toMatchObject({ code: "reserved_by_other_workspace" });
+    expect(
+      findExposurePairConflict({
+        pair: { appPort: 42000, hmrPort: 52000 },
+        claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
+        ledger,
+      }),
+    ).toMatchObject({ code: "reserved_by_other_workspace" });
   });
 });
 
@@ -426,11 +508,13 @@ describe("regression 5: release/teardown makes the pair reusable, sparing manual
     });
 
     expect(released.reservedPorts.has(42001)).toBe(false);
-    expect(findExposurePairConflict({
-      pair: { appPort: 42001, hmrPort: 52001 },
-      claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
-      ledger: released,
-    })).toBeNull();
+    expect(
+      findExposurePairConflict({
+        pair: { appPort: 42001, hmrPort: 52001 },
+        claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
+        ledger: released,
+      }),
+    ).toBeNull();
   });
 
   it("releases an in-process claim on teardown", () => {
@@ -470,10 +554,12 @@ describe("regression 5: release/teardown makes the pair reusable, sparing manual
     });
     expect(ledger.reservedPorts.has(42010)).toBe(false);
 
-    expect(findExposureReservationDrift({
-      persistedRows: [stoppedTornDownRow({ port: 42010 })],
-      brokerMappings: [],
-    })).toEqual([]);
+    expect(
+      findExposureReservationDrift({
+        persistedRows: [stoppedTornDownRow({ port: 42010 })],
+        brokerMappings: [],
+      }),
+    ).toEqual([]);
   });
 
   it("lets a fresh workspace take the released pair end to end", async () => {
@@ -492,11 +578,13 @@ describe("regression 5: release/teardown makes the pair reusable, sparing manual
     });
 
     expect(pair).toEqual({ appPort: 42001, hmrPort: 52001 });
-    expect(findExposurePairConflict({
-      pair,
-      claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
-      ledger,
-    })).toBeNull();
+    expect(
+      findExposurePairConflict({
+        pair,
+        claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
+        ledger,
+      }),
+    ).toBeNull();
   });
 });
 
@@ -505,19 +593,25 @@ describe("reservation precedence", () => {
     const ledger = buildExposureReservationLedger({
       persistedRows: [stoppedTornDownRow()],
       activeExecutionWorkspaceIds: [LEASED_WORKSPACE],
-      inMemoryRuntimes: [{
-        runtimeServiceId: "runtime-lane-b",
-        executionWorkspaceId: LEASED_WORKSPACE,
-        projectWorkspaceId: null,
-        issueId: LEASED_ISSUE,
-        ports: [42001],
-      }],
+      inMemoryRuntimes: [
+        {
+          runtimeServiceId: "runtime-lane-b",
+          executionWorkspaceId: LEASED_WORKSPACE,
+          projectWorkspaceId: null,
+          issueId: LEASED_ISSUE,
+          ports: [42001],
+        },
+      ],
       brokerMappings: [{ runtimeId: "runtime-lane-b", port: 42001 }],
     });
 
     // Running in this process beats a Serve mapping, which beats the lease.
-    expect(ledger.reservationByPort.get(42001)?.source).toBe("in_memory_runtime");
-    expect(ledger.reservationByPort.get(52001)?.source).toBe("leased_workspace");
+    expect(ledger.reservationByPort.get(42001)?.source).toBe(
+      "in_memory_runtime",
+    );
+    expect(ledger.reservationByPort.get(52001)?.source).toBe(
+      "leased_workspace",
+    );
   });
 
   it("quarantine outranks every other claim", () => {
@@ -529,11 +623,13 @@ describe("reservation precedence", () => {
 
     expect(ledger.reservationByPort.get(42001)?.source).toBe("quarantine");
     // Even the leaseholder cannot take a quarantined port back.
-    expect(findExposurePairConflict({
-      pair: { appPort: 42001, hmrPort: 52001 },
-      claimant: identity({ executionWorkspaceId: LEASED_WORKSPACE }),
-      ledger,
-    })).toMatchObject({ code: "quarantined_port" });
+    expect(
+      findExposurePairConflict({
+        pair: { appPort: 42001, hmrPort: 52001 },
+        claimant: identity({ executionWorkspaceId: LEASED_WORKSPACE }),
+        ledger,
+      }),
+    ).toMatchObject({ code: "quarantined_port" });
   });
 
   it("names an unresolvable broker runtime rather than reporting no holder", () => {
@@ -546,6 +642,8 @@ describe("reservation precedence", () => {
       claimant: identity({ executionWorkspaceId: OTHER_WORKSPACE }),
       ledger,
     });
-    expect(describeExposurePortConflict(conflict!)).toContain("runtime-vanished");
+    expect(describeExposurePortConflict(conflict!)).toContain(
+      "runtime-vanished",
+    );
   });
 });

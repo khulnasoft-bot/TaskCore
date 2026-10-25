@@ -1,4 +1,7 @@
-import { isLockedIssueStub, LockedIssueChip } from "@/components/LockedIssueChip";
+import {
+  isLockedIssueStub,
+  LockedIssueChip,
+} from "@/components/LockedIssueChip";
 import type { Issue, IssueStatus, IssueLockedStub } from "@taskcore/shared";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,14 +32,22 @@ export function RelationNavigationList({
   issueLinkState?: unknown;
 }) {
   if (items.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>;
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        {emptyMessage}
+      </p>
+    );
   }
 
   return (
     <ul className="flex flex-col gap-0.5" aria-label={ariaLabel}>
       {items.map((item) => {
         if (isLockedIssueStub(item)) {
-          return <li key={item.id} className="px-2 py-2"><LockedIssueChip identifier={item.identifier} /></li>;
+          return (
+            <li key={item.id} className="px-2 py-2">
+              <LockedIssueChip identifier={item.identifier} />
+            </li>
+          );
         }
         const pathId = item.identifier ?? item.id;
         return (
@@ -44,12 +55,17 @@ export function RelationNavigationList({
             <Link
               to={createIssueDetailPath(pathId)}
               state={issueLinkState}
-              onClickCapture={() => rememberIssueDetailLocationState(pathId, issueLinkState)}
+              onClickCapture={() =>
+                rememberIssueDetailLocationState(pathId, issueLinkState)
+              }
               className="flex min-w-0 items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               title={`${item.identifier ? `${item.identifier} — ` : ""}${item.title}`}
             >
               {item.status ? (
-                <StatusIcon status={item.status} className="h-3.5 w-3.5 shrink-0" />
+                <StatusIcon
+                  status={item.status}
+                  className="h-3.5 w-3.5 shrink-0"
+                />
               ) : null}
               <span className="min-w-0 flex-1 truncate">{item.title}</span>
               {item.identifier ? (
@@ -74,12 +90,14 @@ const NEXT_SUBTASK_STATUS_ORDER: IssueStatus[] = [
 ];
 
 export function resolveTaskDetailSubtaskState(items: Issue[]) {
-  const nextAction = NEXT_SUBTASK_STATUS_ORDER
-    .map((status) => items.find((item) => item.status === status))
-    .find((item): item is Issue => Boolean(item)) ?? null;
-  const rootBlocker = nextAction?.status === "blocked"
-    ? nextAction.blockerAttention?.terminalBlocker ?? null
-    : null;
+  const nextAction =
+    NEXT_SUBTASK_STATUS_ORDER.map((status) =>
+      items.find((item) => item.status === status),
+    ).find((item): item is Issue => Boolean(item)) ?? null;
+  const rootBlocker =
+    nextAction?.status === "blocked"
+      ? (nextAction.blockerAttention?.terminalBlocker ?? null)
+      : null;
 
   return {
     nextAction,
@@ -125,8 +143,10 @@ export function TaskDetailSubtasksPanel({
   issueLinkState?: unknown;
 }) {
   const completed = items.filter((item) => item.status === "done").length;
-  const progress = items.length > 0 ? Math.round((completed / items.length) * 100) : 0;
-  const { nextAction, rootBlocker, remainingItems } = resolveTaskDetailSubtaskState(items);
+  const progress =
+    items.length > 0 ? Math.round((completed / items.length) * 100) : 0;
+  const { nextAction, rootBlocker, remainingItems } =
+    resolveTaskDetailSubtaskState(items);
   const allCompleted = items.length > 0 && completed === items.length;
 
   return (
@@ -134,7 +154,9 @@ export function TaskDetailSubtasksPanel({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>Progress</span>
-          <span className="font-mono">{completed} of {items.length} complete</span>
+          <span className="font-mono">
+            {completed} of {items.length} complete
+          </span>
         </div>
         <div
           className="h-1.5 overflow-hidden rounded-full bg-muted"
@@ -152,8 +174,14 @@ export function TaskDetailSubtasksPanel({
       </div>
 
       {rootBlocker ? (
-        <section className="flex flex-col gap-1.5" aria-labelledby="task-root-blocker-heading">
-          <h3 id="task-root-blocker-heading" className="text-xs font-medium text-muted-foreground">
+        <section
+          className="flex flex-col gap-1.5"
+          aria-labelledby="task-root-blocker-heading"
+        >
+          <h3
+            id="task-root-blocker-heading"
+            className="text-xs font-medium text-muted-foreground"
+          >
             Root blocker
           </h3>
           <RelationNavigationList
@@ -166,9 +194,17 @@ export function TaskDetailSubtasksPanel({
       ) : null}
 
       {nextAction ? (
-        <section className="flex flex-col gap-1.5" aria-labelledby="task-next-action-heading">
-          <h3 id="task-next-action-heading" className="text-xs font-medium text-muted-foreground">
-            {nextAction.status === "blocked" ? "Blocked subtask" : "Next action"}
+        <section
+          className="flex flex-col gap-1.5"
+          aria-labelledby="task-next-action-heading"
+        >
+          <h3
+            id="task-next-action-heading"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            {nextAction.status === "blocked"
+              ? "Blocked subtask"
+              : "Next action"}
           </h3>
           <TaskDetailTaskList
             items={[nextAction]}
@@ -178,15 +214,25 @@ export function TaskDetailSubtasksPanel({
         </section>
       ) : items.length > 0 ? (
         <p className="text-xs text-muted-foreground">
-          {allCompleted ? "All subtasks are complete." : "No remaining subtask actions."}
+          {allCompleted
+            ? "All subtasks are complete."
+            : "No remaining subtask actions."}
         </p>
       ) : (
-        <p className="py-6 text-center text-sm text-muted-foreground">No subtasks yet.</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          No subtasks yet.
+        </p>
       )}
 
       {remainingItems.length > 0 ? (
-        <section className="flex flex-col gap-1.5" aria-labelledby="task-other-subtasks-heading">
-          <h3 id="task-other-subtasks-heading" className="text-xs font-medium text-muted-foreground">
+        <section
+          className="flex flex-col gap-1.5"
+          aria-labelledby="task-other-subtasks-heading"
+        >
+          <h3
+            id="task-other-subtasks-heading"
+            className="text-xs font-medium text-muted-foreground"
+          >
             {nextAction ? "Other subtasks" : "Subtasks"}
           </h3>
           <TaskDetailTaskList
@@ -198,7 +244,13 @@ export function TaskDetailSubtasksPanel({
       ) : null}
 
       {onAddSubtask ? (
-        <Button type="button" variant="outline" size="sm" className="self-start" onClick={onAddSubtask}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={onAddSubtask}
+        >
           <Plus className="h-3.5 w-3.5" />
           Add subtask
         </Button>
@@ -218,8 +270,14 @@ export function TaskDetailReferencesPanel({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-2" aria-labelledby="task-referenced-heading">
-        <h3 id="task-referenced-heading" className="text-xs font-medium text-muted-foreground">
+      <section
+        className="flex flex-col gap-2"
+        aria-labelledby="task-referenced-heading"
+      >
+        <h3
+          id="task-referenced-heading"
+          className="text-xs font-medium text-muted-foreground"
+        >
           Referenced
         </h3>
         <RelationNavigationList
@@ -229,8 +287,14 @@ export function TaskDetailReferencesPanel({
           issueLinkState={issueLinkState}
         />
       </section>
-      <section className="flex flex-col gap-2" aria-labelledby="task-mentioned-in-heading">
-        <h3 id="task-mentioned-in-heading" className="text-xs font-medium text-muted-foreground">
+      <section
+        className="flex flex-col gap-2"
+        aria-labelledby="task-mentioned-in-heading"
+      >
+        <h3
+          id="task-mentioned-in-heading"
+          className="text-xs font-medium text-muted-foreground"
+        >
           Mentioned in
         </h3>
         <RelationNavigationList

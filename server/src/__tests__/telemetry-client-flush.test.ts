@@ -1,9 +1,16 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { TelemetryClient } from "../../../packages/shared/src/telemetry/client.js";
-import type { TelemetryConfig, TelemetryState } from "../../../packages/shared/src/telemetry/types.js";
+import type {
+  TelemetryConfig,
+  TelemetryState,
+} from "../../../packages/shared/src/telemetry/types.js";
 
 function makeClient(config?: Partial<TelemetryConfig>) {
-  const merged: TelemetryConfig = { enabled: true, endpoint: "http://localhost:9999/ingest", ...config };
+  const merged: TelemetryConfig = {
+    enabled: true,
+    endpoint: "http://localhost:9999/ingest",
+    ...config,
+  };
   const state: TelemetryState = {
     installId: "test-install",
     salt: "test-salt",
@@ -37,7 +44,9 @@ describe("TelemetryClient periodic flush", () => {
     expect(lastCall?.[0]).toBe("http://localhost:9999/ingest");
     const requestInit = lastCall?.[1] as RequestInit | undefined;
     expect(requestInit?.method).toBe("POST");
-    expect(requestInit?.headers).toEqual({ "Content-Type": "application/json" });
+    expect(requestInit?.headers).toEqual({
+      "Content-Type": "application/json",
+    });
     const body = JSON.parse(String(requestInit?.body ?? "{}"));
     expect(body).toMatchObject({
       app: "taskcore",
@@ -78,7 +87,9 @@ describe("TelemetryClient periodic flush", () => {
 
   it("falls back to the api gateway ingest url when the default hostname fails", async () => {
     vi.mocked(fetch)
-      .mockRejectedValueOnce(new TypeError("getaddrinfo ENOTFOUND telemetry.taskcore.ing"))
+      .mockRejectedValueOnce(
+        new TypeError("getaddrinfo ENOTFOUND telemetry.taskcore.ing"),
+      )
       .mockResolvedValueOnce({ ok: true });
 
     const client = makeClient({ endpoint: undefined });
@@ -87,8 +98,12 @@ describe("TelemetryClient periodic flush", () => {
     await client.flush();
 
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe("https://telemetry.taskcore.ing/ingest");
-    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe("https://rusqrrg391.execute-api.us-east-1.amazonaws.com/ingest");
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(
+      "https://telemetry.taskcore.ing/ingest",
+    );
+    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe(
+      "https://rusqrrg391.execute-api.us-east-1.amazonaws.com/ingest",
+    );
   });
 
   it("startPeriodicFlush is idempotent", () => {
@@ -125,7 +140,12 @@ describe("TelemetryClient retry integration", () => {
       {
         enabled: true,
         endpoint: "http://localhost:9999/ingest",
-        backoff: { baseDelayMs: 1_000, maxDelayMs: 30_000, maxAttempts: 5, jitterRatio: 0.25 },
+        backoff: {
+          baseDelayMs: 1_000,
+          maxDelayMs: 30_000,
+          maxAttempts: 5,
+          jitterRatio: 0.25,
+        },
       },
       () => state,
       "0.0.0-test",
@@ -139,8 +159,12 @@ describe("TelemetryClient retry integration", () => {
     await vi.advanceTimersByTimeAsync(1_000);
     expect(fetchMock).toHaveBeenCalledTimes(2); // attempt 2 -> 200
 
-    const first = JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body));
-    const second = JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body));
+    const first = JSON.parse(
+      String((fetchMock.mock.calls[0]?.[1] as RequestInit).body),
+    );
+    const second = JSON.parse(
+      String((fetchMock.mock.calls[1]?.[1] as RequestInit).body),
+    );
     expect(second.batchId).toBe(first.batchId);
     expect(second.events).toEqual(first.events);
     client.stop();

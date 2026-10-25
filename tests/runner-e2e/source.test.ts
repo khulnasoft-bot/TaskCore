@@ -23,8 +23,7 @@ describe("runner E2E source provenance", () => {
     ).toEqual({
       sha: "target-sha",
       ref: "refs/heads/target",
-      workflowRunUrl:
-        "https://github.com/khulnasoft/taskcore/actions/runs/123",
+      workflowRunUrl: "https://github.com/khulnasoft/taskcore/actions/runs/123",
     });
   });
 
@@ -47,8 +46,7 @@ describe("runner E2E source provenance", () => {
     ).toEqual({
       sha: "result-sha",
       ref: "refs/heads/master",
-      workflowRunUrl:
-        "https://github.com/khulnasoft/taskcore/actions/runs/456",
+      workflowRunUrl: "https://github.com/khulnasoft/taskcore/actions/runs/456",
     });
     expect(resolveRunnerE2ESource(null, {})).toEqual({
       sha: null,

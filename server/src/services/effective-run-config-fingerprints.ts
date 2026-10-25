@@ -4,12 +4,17 @@ import type { RuntimeSecretManifestEntry } from "./secrets.js";
 
 export const EFFECTIVE_RUN_CONFIG_FINGERPRINT_VERSION = 1;
 export const EFFECTIVE_RUN_CONFIG_FINGERPRINT_ALGORITHM = "sha256";
-export const EFFECTIVE_RUN_CONFIG_FINGERPRINT_CATEGORIES = ["session", "workspace", "lease"] as const;
+export const EFFECTIVE_RUN_CONFIG_FINGERPRINT_CATEGORIES = [
+  "session",
+  "workspace",
+  "lease",
+] as const;
 
 export type EffectiveRunConfigFingerprintCategory =
   (typeof EFFECTIVE_RUN_CONFIG_FINGERPRINT_CATEGORIES)[number];
 
-export type EffectiveRunConfigChangedCategory = EffectiveRunConfigFingerprintCategory;
+export type EffectiveRunConfigChangedCategory =
+  EffectiveRunConfigFingerprintCategory;
 
 export type EffectiveRunConfigCanonicalValue =
   | null
@@ -31,8 +36,7 @@ export interface EffectiveRunConfigSecretVersionMetadata {
 }
 
 export type EffectiveRunConfigSecretManifestEntry =
-  | RuntimeSecretManifestEntry
-  | EffectiveRunConfigSecretVersionMetadata;
+  RuntimeSecretManifestEntry | EffectiveRunConfigSecretVersionMetadata;
 
 export interface EffectiveRunConfigFingerprintInput {
   session?: unknown;
@@ -65,7 +69,10 @@ export interface EffectiveRunConfigFingerprintDiff {
 }
 
 const OMIT = Symbol("omit-from-effective-run-config-fingerprint");
-const REDACTED_VALUE: EffectiveRunConfigCanonicalValue = { type: "redacted", present: true };
+const REDACTED_VALUE: EffectiveRunConfigCanonicalValue = {
+  type: "redacted",
+  present: true,
+};
 
 const SENSITIVE_CONFIG_KEY_RE =
   /(?:api[_-]?key|access[_-]?token|auth(?:orization)?|bearer|cookie|credential|jwt|password|passwd|private[_-]?key|secret|token)$/i;
@@ -109,14 +116,18 @@ type SecretManifestIndex = {
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return Boolean(value)
-    && typeof value === "object"
-    && !Array.isArray(value)
-    && !(value instanceof Date);
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    !(value instanceof Date)
+  );
 }
 
 function readString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function readVersion(value: unknown) {
@@ -141,12 +152,14 @@ function normalizeSecretManifestEntry(
   const bindingId = readString(record.bindingId);
   const provider = readString(record.provider);
   const providerVersionRef = readString(record.providerVersionRef);
-  const outcome = record.outcome === "success" || record.outcome === "failure"
-    ? record.outcome
-    : null;
+  const outcome =
+    record.outcome === "success" || record.outcome === "failure"
+      ? record.outcome
+      : null;
   if (bindingId !== null) normalized.bindingId = bindingId;
   if (provider !== null) normalized.provider = provider;
-  if (providerVersionRef !== null) normalized.providerVersionRef = providerVersionRef;
+  if (providerVersionRef !== null)
+    normalized.providerVersionRef = providerVersionRef;
   if (outcome !== null) normalized.outcome = outcome;
   return normalized;
 }
@@ -154,12 +167,16 @@ function normalizeSecretManifestEntry(
 function buildSecretManifestIndex(
   manifest: readonly EffectiveRunConfigSecretManifestEntry[] | undefined,
 ): SecretManifestIndex {
-  const byConfigPath = new Map<string, EffectiveRunConfigSecretVersionMetadata>();
+  const byConfigPath = new Map<
+    string,
+    EffectiveRunConfigSecretVersionMetadata
+  >();
   const byEnvKey = new Map<string, EffectiveRunConfigSecretVersionMetadata>();
   for (const entry of manifest ?? []) {
     const normalized = normalizeSecretManifestEntry(entry);
     if (!normalized) continue;
-    if (normalized.configPath) byConfigPath.set(normalized.configPath, normalized);
+    if (normalized.configPath)
+      byConfigPath.set(normalized.configPath, normalized);
     if (normalized.envKey) byEnvKey.set(normalized.envKey, normalized);
   }
   return { byConfigPath, byEnvKey };
@@ -182,10 +199,12 @@ function canonicalSecretMetadata(
 }
 
 function isSecretRefBinding(value: unknown): value is Record<string, unknown> {
-  return isPlainObject(value)
-    && value.type === "secret_ref"
-    && typeof value.secretId === "string"
-    && value.secretId.trim().length > 0;
+  return (
+    isPlainObject(value) &&
+    value.type === "secret_ref" &&
+    typeof value.secretId === "string" &&
+    value.secretId.trim().length > 0
+  );
 }
 
 function canonicalSecretRefBinding(
@@ -201,15 +220,22 @@ function canonicalSecretRefBinding(
   });
 }
 
-function omitNullish(record: Record<string, unknown>): EffectiveRunConfigCanonicalValue {
+function omitNullish(
+  record: Record<string, unknown>,
+): EffectiveRunConfigCanonicalValue {
   return Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== undefined && value !== null),
+    Object.entries(record).filter(
+      ([, value]) => value !== undefined && value !== null,
+    ),
   ) as EffectiveRunConfigCanonicalValue;
 }
 
 function isTimestampNoiseKey(key: string) {
-  return /(created|updated|started|finished|completed|cancelled|resolved|used|heartbeat)At$/i.test(key)
-    && !/(revision|version)/i.test(key);
+  return (
+    /(created|updated|started|finished|completed|cancelled|resolved|used|heartbeat)At$/i.test(
+      key,
+    ) && !/(revision|version)/i.test(key)
+  );
 }
 
 function shouldOmitObjectKey(
@@ -220,7 +246,11 @@ function shouldOmitObjectKey(
   if (HOST_NOISE_KEYS.has(key)) return true;
   if (isTimestampNoiseKey(key)) return true;
   if (category === "session" && SESSION_HOST_PATH_KEYS.has(key)) return true;
-  if (category === "lease" && (key === "remoteCwd" || key === "workspaceRemoteDir")) return true;
+  if (
+    category === "lease" &&
+    (key === "remoteCwd" || key === "workspaceRemoteDir")
+  )
+    return true;
   return false;
 }
 
@@ -232,13 +262,18 @@ function stableStringify(value: EffectiveRunConfigCanonicalValue): string {
     const record = value as Record<string, EffectiveRunConfigCanonicalValue>;
     return `{${Object.keys(record)
       .sort()
-      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key] ?? null)}`)
+      .map(
+        (key) =>
+          `${JSON.stringify(key)}:${stableStringify(record[key] ?? null)}`,
+      )
       .join(",")}}`;
   }
   return JSON.stringify(value);
 }
 
-function canonicalizePlainEnvValueForHash(value: unknown): EffectiveRunConfigCanonicalValue {
+function canonicalizePlainEnvValueForHash(
+  value: unknown,
+): EffectiveRunConfigCanonicalValue {
   if (value === undefined || value === null) return null;
   if (Array.isArray(value)) {
     return value.map((entry) => canonicalizePlainEnvValueForHash(entry));
@@ -265,7 +300,9 @@ function canonicalizePlainEnvValueForHash(value: unknown): EffectiveRunConfigCan
 
 function hashPlainEnvValue(value: unknown): string | null {
   if (value === undefined || value === null) return null;
-  const canonicalJson = stableStringify(canonicalizePlainEnvValueForHash(value));
+  const canonicalJson = stableStringify(
+    canonicalizePlainEnvValueForHash(value),
+  );
   return `sha256:${createHash("sha256").update(canonicalJson).digest("hex")}`;
 }
 
@@ -277,7 +314,9 @@ function canonicalizeEnvRecord(
   const canonicalEnv: Record<string, EffectiveRunConfigCanonicalValue> = {};
   for (const key of Object.keys(envValue).sort()) {
     if (GENERATED_RUNTIME_ENVIRONMENT_KEYS.has(key)) continue;
-    const manifestEntry = context.secrets.byConfigPath.get(`env.${key}`) ?? context.secrets.byEnvKey.get(key);
+    const manifestEntry =
+      context.secrets.byConfigPath.get(`env.${key}`) ??
+      context.secrets.byEnvKey.get(key);
     if (manifestEntry) {
       canonicalEnv[key] = canonicalSecretMetadata(manifestEntry);
       continue;
@@ -310,7 +349,10 @@ function canonicalizeValue(
   if (value === null) return null;
   if (Array.isArray(value)) {
     return value.map((entry, index) => {
-      const next = canonicalizeValue(entry, { ...context, path: [...context.path, String(index)] });
+      const next = canonicalizeValue(entry, {
+        ...context,
+        path: [...context.path, String(index)],
+      });
       return next === OMIT ? null : next;
     });
   }
@@ -318,10 +360,14 @@ function canonicalizeValue(
     return canonicalSecretRefBinding(value, context.path.join("."));
   }
   if (isPlainObject(value)) {
-    const canonicalObject: Record<string, EffectiveRunConfigCanonicalValue> = {};
+    const canonicalObject: Record<string, EffectiveRunConfigCanonicalValue> =
+      {};
     for (const key of Object.keys(value).sort()) {
       if (key === "env") {
-        const env = canonicalizeEnvRecord(value[key], { ...context, path: [...context.path, key] });
+        const env = canonicalizeEnvRecord(value[key], {
+          ...context,
+          path: [...context.path, key],
+        });
         if (env !== OMIT) canonicalObject[key] = env;
         continue;
       }
@@ -330,7 +376,10 @@ function canonicalizeValue(
         canonicalObject[key] = REDACTED_VALUE;
         continue;
       }
-      const next = canonicalizeValue(value[key], { ...context, path: [...context.path, key] });
+      const next = canonicalizeValue(value[key], {
+        ...context,
+        path: [...context.path, key],
+      });
       if (next !== OMIT) canonicalObject[key] = next;
     }
     return Object.keys(canonicalObject).length > 0 ? canonicalObject : {};
@@ -402,11 +451,13 @@ function createCategoryFingerprintFromCanonicalValue(input: {
 
 function canonicalRecord(value: EffectiveRunConfigCanonicalValue) {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, EffectiveRunConfigCanonicalValue>
+    ? (value as Record<string, EffectiveRunConfigCanonicalValue>)
     : {};
 }
 
-export function createEffectiveRunConfigSubcategoryFingerprints<T extends string>(input: {
+export function createEffectiveRunConfigSubcategoryFingerprints<
+  T extends string,
+>(input: {
   category: EffectiveRunConfigFingerprintCategory;
   value: Record<T, unknown>;
   subcategories: readonly T[];
@@ -479,10 +530,13 @@ export function diffEffectiveRunConfigFingerprints(
   const changed = Object.fromEntries(
     EFFECTIVE_RUN_CONFIG_FINGERPRINT_CATEGORIES.map((category) => [
       category,
-      fingerprintForCategory(previous, category) !== fingerprintForCategory(next, category),
+      fingerprintForCategory(previous, category) !==
+        fingerprintForCategory(next, category),
     ]),
   ) as Record<EffectiveRunConfigChangedCategory, boolean>;
-  const changedCategories = EFFECTIVE_RUN_CONFIG_FINGERPRINT_CATEGORIES.filter((category) => changed[category]);
+  const changedCategories = EFFECTIVE_RUN_CONFIG_FINGERPRINT_CATEGORIES.filter(
+    (category) => changed[category],
+  );
   return {
     version: EFFECTIVE_RUN_CONFIG_FINGERPRINT_VERSION,
     hasChanges: changedCategories.length > 0,

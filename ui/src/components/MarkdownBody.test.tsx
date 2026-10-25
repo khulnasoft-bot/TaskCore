@@ -36,7 +36,9 @@ vi.mock("@/lib/router", () => ({
     to,
     ...props
   }: { children: ReactNode; to: string } & React.ComponentProps<"a">) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
   useLocation: () => ({
     pathname: "/PAP/issues/PAP-10306",
@@ -52,7 +54,14 @@ vi.mock("../api/issues", () => ({
 
 // Defaults to null (no provider) so the existing suite exercises the permissive
 // path unchanged. Gating tests override the return value per-case.
-const mockUseOptionalCompany = vi.hoisted(() => vi.fn<() => { companies: Array<{ issuePrefix: string }>; selectedCompanyId?: string } | null>(() => null));
+const mockUseOptionalCompany = vi.hoisted(() =>
+  vi.fn<
+    () => {
+      companies: Array<{ issuePrefix: string }>;
+      selectedCompanyId?: string;
+    } | null
+  >(() => null),
+);
 
 vi.mock("../context/CompanyContext", () => ({
   useOptionalCompany: mockUseOptionalCompany,
@@ -64,7 +73,12 @@ afterEach(() => {
 
 function renderMarkdown(
   children: string,
-  seededIssues: Array<{ identifier: string; status: string; title?: string; cacheKey?: string }> = [],
+  seededIssues: Array<{
+    identifier: string;
+    status: string;
+    title?: string;
+    cacheKey?: string;
+  }> = [],
   props: Partial<ComponentProps<typeof MarkdownBody>> = {},
 ) {
   const queryClient = new QueryClient({
@@ -76,12 +90,15 @@ function renderMarkdown(
   });
 
   for (const issue of seededIssues) {
-    queryClient.setQueryData(queryKeys.issues.detail(issue.cacheKey ?? issue.identifier), {
-      id: issue.identifier,
-      identifier: issue.identifier,
-      status: issue.status,
-      title: issue.title,
-    });
+    queryClient.setQueryData(
+      queryKeys.issues.detail(issue.cacheKey ?? issue.identifier),
+      {
+        id: issue.identifier,
+        identifier: issue.identifier,
+        status: issue.status,
+        title: issue.title,
+      },
+    );
   }
 
   return renderToStaticMarkup(
@@ -97,10 +114,18 @@ describe("MarkdownBody", () => {
   it("preserves a saved document anchor in an explicit task link", () => {
     // Hover/focus can resolve the issue to its plain identifier. Both the old
     // fragment-bearing cache key and the corrected plain key model that load.
-    const html = renderMarkdown("[Saved document](/PAP/issues/PAP-1271#document-output)", [
-      { identifier: "PAP-1271", status: "done" },
-      { identifier: "PAP-1271", status: "done", cacheKey: "PAP-1271#document-output" },
-    ], { linkIssueReferences: true });
+    const html = renderMarkdown(
+      "[Saved document](/PAP/issues/PAP-1271#document-output)",
+      [
+        { identifier: "PAP-1271", status: "done" },
+        {
+          identifier: "PAP-1271",
+          status: "done",
+          cacheKey: "PAP-1271#document-output",
+        },
+      ],
+      { linkIssueReferences: true },
+    );
     expect(html).toContain('href="/issues/PAP-1271#document-output"');
     expect(html).not.toContain("PAP-1271%23document-output");
   });
@@ -133,25 +158,35 @@ describe("MarkdownBody", () => {
   });
 
   it("renders decision images as inert references without resolving or preloading them", () => {
-    const resolveImageSrc = vi.fn((src: string) => `https://resolver.invalid/${src}`);
+    const resolveImageSrc = vi.fn(
+      (src: string) => `https://resolver.invalid/${src}`,
+    );
     const html = renderMarkdown(
       '# Plan\n\n**Keep this step.**\n\n![Evidence](https://provider.invalid/track.png "Provider image")\n\n![Relative](images/proof.png)\n\n![Protocol relative](//provider.invalid/other.png)',
-      [], { mediaMode: "reference", resolveImageSrc },
+      [],
+      { mediaMode: "reference", resolveImageSrc },
     );
 
     expect(html).toContain("<h1>Plan</h1>");
     expect(html).toContain("<strong>Keep this step.</strong>");
-    expect(html).toContain("Image: Evidence (https://provider.invalid/track.png)");
+    expect(html).toContain(
+      "Image: Evidence (https://provider.invalid/track.png)",
+    );
     expect(html).toContain('title="Provider image"');
     expect(html).toContain("Image: Relative (images/proof.png)");
-    expect(html).toContain("Image: Protocol relative (//provider.invalid/other.png)");
+    expect(html).toContain(
+      "Image: Protocol relative (//provider.invalid/other.png)",
+    );
     expect(html).not.toMatch(/<(?:img|link|iframe|video|audio)\b/);
     expect(resolveImageSrc).not.toHaveBeenCalled();
   });
 
   it("keeps diagram source inert in decision media mode", () => {
-    const source = 'flowchart LR\n  A@{ img: "https://provider.invalid/diagram.png" }';
-    const html = renderMarkdown(`\`\`\`mermaid\n${source}\n\`\`\``, [], { mediaMode: "reference" });
+    const source =
+      'flowchart LR\n  A@{ img: "https://provider.invalid/diagram.png" }';
+    const html = renderMarkdown(`\`\`\`mermaid\n${source}\n\`\`\``, [], {
+      mediaMode: "reference",
+    });
 
     expect(html).toContain('class="language-mermaid"');
     expect(html).toContain("https://provider.invalid/diagram.png");
@@ -186,7 +221,9 @@ describe("MarkdownBody", () => {
   });
 
   it("sanitizes unsafe javascript markdown links", () => {
-    const html = renderMarkdown("[click me](javascript:alert(document.cookie))");
+    const html = renderMarkdown(
+      "[click me](javascript:alert(document.cookie))",
+    );
 
     expect(html).toContain('<a href="" rel="noreferrer"');
     expect(html).toContain(">click me</a>");
@@ -194,7 +231,10 @@ describe("MarkdownBody", () => {
   });
 
   it("uses the current company agent appearance for an old saved mention", () => {
-    mockUseOptionalCompany.mockReturnValue({ companies: [{ issuePrefix: "PAP" }], selectedCompanyId: "company-1" });
+    mockUseOptionalCompany.mockReturnValue({
+      companies: [{ issuePrefix: "PAP" }],
+      selectedCompanyId: "company-1",
+    });
     const client = new QueryClient();
     client.setQueryData(queryKeys.agents.list("company-1"), [
       { id: "agent-123", appearance: appearanceForPalette("electric-grove") },
@@ -234,31 +274,45 @@ describe("MarkdownBody", () => {
   });
 
   it("hides escaped HTML comment placeholders before attachment images", () => {
-    const html = renderMarkdown("\\<!-- --> ![](/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content)");
+    const html = renderMarkdown(
+      "\\<!-- --> ![](/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content)",
+    );
 
-    expect(html).toContain('<img src="/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content" alt=""/>');
+    expect(html).toContain(
+      '<img src="/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content" alt=""/>',
+    );
     expect(html).not.toContain("&lt;!--");
     expect(html).not.toContain("--&gt;");
   });
 
   it("hides incomplete streamed HTML comment placeholders before attachment images", () => {
-    const html = renderMarkdown("\\<!-- ![](/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content)");
+    const html = renderMarkdown(
+      "\\<!-- ![](/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content)",
+    );
 
-    expect(html).toContain('<img src="/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content" alt=""/>');
+    expect(html).toContain(
+      '<img src="/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content" alt=""/>',
+    );
     expect(html).not.toContain("&lt;!--");
   });
 
   it("hides incomplete encoded HTML comment placeholders", () => {
-    const html = renderMarkdown("&lt;!-- -- ![](/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content)");
+    const html = renderMarkdown(
+      "&lt;!-- -- ![](/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content)",
+    );
 
-    expect(html).toContain('<img src="/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content" alt=""/>');
+    expect(html).toContain(
+      '<img src="/api/attachments/57d0805a-1b95-4fa5-abb4-d0c33e2e649c/content" alt=""/>',
+    );
     expect(html).not.toContain("&lt;!--");
     expect(html).not.toContain("&amp;lt;!--");
   });
 
   it("keeps HTML comment markers when they are literal code content", () => {
     const inlineHtml = renderMarkdown("Use `<!-- -->` as a literal.");
-    const blockHtml = renderMarkdown("```html\n<!-- keep this example -->\n```");
+    const blockHtml = renderMarkdown(
+      "```html\n<!-- keep this example -->\n```",
+    );
 
     expect(inlineHtml).toContain("&lt;!-- --&gt;");
     expect(blockHtml).toContain("&lt;!-- keep this example --&gt;");
@@ -286,7 +340,9 @@ describe("MarkdownBody", () => {
   });
 
   it("does not inject extra line-break nodes into nested lists", () => {
-    const html = renderMarkdown("1. Parent item\n   - child a\n   - child b\n\n2. Second item");
+    const html = renderMarkdown(
+      "1. Parent item\n   - child a\n   - child b\n\n2. Second item",
+    );
 
     expect(html).not.toContain("[&amp;_p]:whitespace-pre-line");
     expect(html).not.toContain("Parent item<br/>");
@@ -345,7 +401,8 @@ describe("MarkdownBody", () => {
   });
 
   it("preserves absolute issue URLs as external links", () => {
-    const url = "http://remote.example.test:3103/PAPA/issues/PAPA-115#comment-850083f3-24de-43e7-a8cd-bc01f7cc9f0d";
+    const url =
+      "http://remote.example.test:3103/PAPA/issues/PAPA-115#comment-850083f3-24de-43e7-a8cd-bc01f7cc9f0d";
     const html = renderMarkdown(`See ${url}.`, [
       { identifier: "PAPA-115", status: "blocked" },
     ]);
@@ -358,10 +415,13 @@ describe("MarkdownBody", () => {
   });
 
   it("linkifies plain internal issue paths in markdown text", () => {
-    const html = renderMarkdown("See /issues/PAP-1179 and /PAP/issues/pap-1180 for context.", [
-      { identifier: "PAP-1179", status: "blocked" },
-      { identifier: "PAP-1180", status: "done" },
-    ]);
+    const html = renderMarkdown(
+      "See /issues/PAP-1179 and /PAP/issues/pap-1180 for context.",
+      [
+        { identifier: "PAP-1179", status: "blocked" },
+        { identifier: "PAP-1180", status: "done" },
+      ],
+    );
 
     expect(html).toContain('href="/issues/PAP-1179"');
     expect(html).toContain('href="/issues/PAP-1180"');
@@ -372,9 +432,13 @@ describe("MarkdownBody", () => {
   });
 
   it("does not auto-link non-issue internal route paths", () => {
-    const html = renderMarkdown("Use /issues/new for the creation form, /issues/PAP-42extra as text, and /api/issues for data.");
+    const html = renderMarkdown(
+      "Use /issues/new for the creation form, /issues/PAP-42extra as text, and /api/issues for data.",
+    );
 
-    expect(html).toContain("Use /issues/new for the creation form, /issues/PAP-42extra as text, and /api/issues for data.");
+    expect(html).toContain(
+      "Use /issues/new for the creation form, /issues/PAP-42extra as text, and /api/issues for data.",
+    );
     expect(html).not.toContain('href="/issues/new"');
     expect(html).not.toContain('href="/issues/PAP-42"');
     expect(html).not.toContain('data-mention-kind="issue"');
@@ -400,28 +464,42 @@ describe("MarkdownBody", () => {
     ]);
 
     expect(html).toContain('href="/issues/PAP-1271"');
-    expect(html).toContain('<code style="overflow-wrap:anywhere;word-break:break-word">PAP-1271</code>');
+    expect(html).toContain(
+      '<code style="overflow-wrap:anywhere;word-break:break-word">PAP-1271</code>',
+    );
     expect(html).toContain("var(--status-task-icon-done)");
     expect(html).toContain("taskcore-markdown-issue-ref");
   });
 
   it("renders linked inline-code workspace paths as file viewer links before issue links", () => {
     const html = renderMarkdown(
-      "- **MP4**: [`videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4`](/PAP/issues/PAP-10306 \"Publish handoff\")",
-      [{ identifier: "PAP-10306", status: "in_review", title: "Publish handoff" }],
+      '- **MP4**: [`videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4`](/PAP/issues/PAP-10306 "Publish handoff")',
+      [
+        {
+          identifier: "PAP-10306",
+          status: "in_review",
+          title: "Publish handoff",
+        },
+      ],
       { resolveWorkspaceFileRef: () => OPENABLE_AUTO_TARGET },
     );
 
     expect(html).toContain('data-workspace-file-link="true"');
-    expect(html).toContain('data-workspace-file-path="videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4"');
-    expect(html).toContain("videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4");
+    expect(html).toContain(
+      'data-workspace-file-path="videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4"',
+    );
+    expect(html).toContain(
+      "videos/90-days-taskcore/out/90-days-taskcore-1x1.mp4",
+    );
     expect(html).not.toContain("max-w-(--sz-38ch)");
     expect(html).not.toContain("taskcore-markdown-issue-ref");
     expect(html).not.toContain('href="/issues/PAP-10306"');
   });
 
   it("renders auto-detected workspace paths as plain code without an availability resolver", () => {
-    const html = renderMarkdown("Check `ui/src/pages/IssueDetail.tsx:42` please.");
+    const html = renderMarkdown(
+      "Check `ui/src/pages/IssueDetail.tsx:42` please.",
+    );
 
     expect(html).not.toContain("data-workspace-file-link");
     expect(html).not.toContain("taskcore-workspace-file-link");
@@ -460,22 +538,27 @@ describe("MarkdownBody", () => {
     );
 
     expect(html).toContain('data-workspace-file-link="true"');
-    expect(html).toContain('data-workspace-file-path="ui/src/pages/IssueDetail.tsx"');
+    expect(html).toContain(
+      'data-workspace-file-path="ui/src/pages/IssueDetail.tsx"',
+    );
   });
 
   it("keeps trailing punctuation outside auto-linked issue references", () => {
-    const html = renderMarkdown("See PAP-1271: /issues/PAP-1272] and issue://PAP-1273.", [
-      { identifier: "PAP-1271", status: "done" },
-      { identifier: "PAP-1272", status: "blocked" },
-      { identifier: "PAP-1273", status: "todo" },
-    ]);
+    const html = renderMarkdown(
+      "See PAP-1271: /issues/PAP-1272] and issue://PAP-1273.",
+      [
+        { identifier: "PAP-1271", status: "done" },
+        { identifier: "PAP-1272", status: "blocked" },
+        { identifier: "PAP-1273", status: "todo" },
+      ],
+    );
 
     expect(html).toContain('<a href="/issues/PAP-1271"');
-    expect(html).toContain('>PAP-1271</a>:');
+    expect(html).toContain(">PAP-1271</a>:");
     expect(html).toContain('<a href="/issues/PAP-1272"');
-    expect(html).toContain('>/issues/PAP-1272</a>]');
+    expect(html).toContain(">/issues/PAP-1272</a>]");
     expect(html).toContain('<a href="/issues/PAP-1273"');
-    expect(html).toContain('>issue://PAP-1273</a>.');
+    expect(html).toContain(">issue://PAP-1273</a>.");
   });
 
   it("can opt out of issue reference linkification for offline previews", () => {
@@ -507,13 +590,16 @@ describe("MarkdownBody", () => {
       [],
       {
         enableWikiLinks: true,
-        resolveWikiLinkHref: (target) => `/wiki/page/${target.endsWith(".md") ? target : `${target}.md`}`,
+        resolveWikiLinkHref: (target) =>
+          `/wiki/page/${target.endsWith(".md") ? target : `${target}.md`}`,
       },
     );
 
     expect(html).toContain('href="/wiki/page/wiki/entities/taskcore.md"');
     expect(html).toContain('data-taskcore-wiki-link="true"');
-    expect(html).toContain('data-taskcore-wiki-target="wiki/entities/taskcore"');
+    expect(html).toContain(
+      'data-taskcore-wiki-target="wiki/entities/taskcore"',
+    );
     expect(html).toContain(">Taskcore</a>");
     expect(html).toContain('href="/wiki/page/wiki/entities/dotta-b.md"');
     expect(html).toContain(">wiki/entities/dotta-b</a>");
@@ -521,15 +607,11 @@ describe("MarkdownBody", () => {
   });
 
   it("keeps wiki links as text when the custom resolver rejects them", () => {
-    const html = renderMarkdown(
-      "See [[wiki/entities/taskcore]].",
-      [],
-      {
-        enableWikiLinks: true,
-        wikiLinkRoot: "/wiki/page",
-        resolveWikiLinkHref: () => null,
-      },
-    );
+    const html = renderMarkdown("See [[wiki/entities/taskcore]].", [], {
+      enableWikiLinks: true,
+      wikiLinkRoot: "/wiki/page",
+      resolveWikiLinkHref: () => null,
+    });
 
     expect(html).toContain("[[wiki/entities/taskcore]]");
     expect(html).not.toContain('data-taskcore-wiki-link="true"');
@@ -553,26 +635,40 @@ describe("MarkdownBody", () => {
   });
 
   it("applies wrap-friendly styles to long inline content", () => {
-    const html = renderMarkdown("averyveryveryveryveryveryveryveryveryverylongtoken");
+    const html = renderMarkdown(
+      "averyveryveryveryveryveryveryveryveryverylongtoken",
+    );
 
-    expect(html).toContain('class="taskcore-markdown prose prose-sm min-w-0 max-w-full break-words overflow-hidden');
-    expect(html).toContain('style="overflow-wrap:anywhere;word-break:break-word"');
+    expect(html).toContain(
+      'class="taskcore-markdown prose prose-sm min-w-0 max-w-full break-words overflow-hidden',
+    );
+    expect(html).toContain(
+      'style="overflow-wrap:anywhere;word-break:break-word"',
+    );
     expect(html).toContain("<p");
   });
 
   it("applies wrap-friendly styles to long links", () => {
-    const html = renderMarkdown("[link](https://example.com/reallyreallyreallyreallyreallyreallyreallyreallylong)");
+    const html = renderMarkdown(
+      "[link](https://example.com/reallyreallyreallyreallyreallyreallyreallyreallylong)",
+    );
 
-    expect(html).toContain('<a href="https://example.com/reallyreallyreallyreallyreallyreallyreallyreallylong"');
-    expect(html).toContain('style="overflow-wrap:anywhere;word-break:break-word"');
+    expect(html).toContain(
+      '<a href="https://example.com/reallyreallyreallyreallyreallyreallyreallyreallylong"',
+    );
+    expect(html).toContain(
+      'style="overflow-wrap:anywhere;word-break:break-word"',
+    );
   });
 
   it("renders markdown tables in a horizontally scrollable region", () => {
-    const html = renderMarkdown([
-      "| Time UTC | Source | Finding | Stalled leaf | Escalation |",
-      "| --- | --- | --- | --- | --- |",
-      "| 2026-04-30T14:31:35Z | PAP-2505 | in_review_without_action_path | PAP-2779 | PAP-2910 |",
-    ].join("\n"));
+    const html = renderMarkdown(
+      [
+        "| Time UTC | Source | Finding | Stalled leaf | Escalation |",
+        "| --- | --- | --- | --- | --- |",
+        "| 2026-04-30T14:31:35Z | PAP-2505 | in_review_without_action_path | PAP-2779 | PAP-2910 |",
+      ].join("\n"),
+    );
 
     expect(html).toContain('class="taskcore-markdown-table-scroll"');
     expect(html).toContain('aria-label="Scrollable table"');
@@ -590,7 +686,9 @@ describe("MarkdownBody", () => {
   });
 
   it("opens GitHub links in a new tab", () => {
-    const html = renderMarkdown("[pr](https://github.com/khulnasoft/taskcore/pull/4099)");
+    const html = renderMarkdown(
+      "[pr](https://github.com/khulnasoft/taskcore/pull/4099)",
+    );
 
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noopener noreferrer"');
@@ -605,22 +703,36 @@ describe("MarkdownBody", () => {
   });
 
   it("prefixes GitHub markdown links with the GitHub icon glued to the first character", () => {
-    const html = renderMarkdown("[https://github.com/khulnasoft/taskcore/pull/4099](https://github.com/khulnasoft/taskcore/pull/4099)");
+    const html = renderMarkdown(
+      "[https://github.com/khulnasoft/taskcore/pull/4099](https://github.com/khulnasoft/taskcore/pull/4099)",
+    );
 
-    expect(html).toContain('<a href="https://github.com/khulnasoft/taskcore/pull/4099"');
-    expect(html).toContain('class="lucide lucide-github mr-1 inline h-3.5 w-3.5 align-(--va-0_125em)"');
+    expect(html).toContain(
+      '<a href="https://github.com/khulnasoft/taskcore/pull/4099"',
+    );
+    expect(html).toContain(
+      'class="lucide lucide-github mr-1 inline h-3.5 w-3.5 align-(--va-0_125em)"',
+    );
     // The icon and first character "h" must sit in a no-wrap span so the
     // icon can never be orphaned on the previous line from the URL text.
-    expect(html).toMatch(/<span style="white-space:nowrap">.*lucide-github.*?<\/svg>h<\/span>/);
+    expect(html).toMatch(
+      /<span style="white-space:nowrap">.*lucide-github.*?<\/svg>h<\/span>/,
+    );
     expect(html).toContain("ttps://github.com/khulnasoft/taskcore/pull/4099");
     expect(html).not.toContain("lucide-external-link");
   });
 
   it("prefixes GitHub autolinks with the GitHub icon", () => {
-    const html = renderMarkdown("See https://github.com/khulnasoft/taskcore/issues/1778");
+    const html = renderMarkdown(
+      "See https://github.com/khulnasoft/taskcore/issues/1778",
+    );
 
-    expect(html).toContain('<a href="https://github.com/khulnasoft/taskcore/issues/1778"');
-    expect(html).toContain('class="lucide lucide-github mr-1 inline h-3.5 w-3.5 align-(--va-0_125em)"');
+    expect(html).toContain(
+      '<a href="https://github.com/khulnasoft/taskcore/issues/1778"',
+    );
+    expect(html).toContain(
+      'class="lucide lucide-github mr-1 inline h-3.5 w-3.5 align-(--va-0_125em)"',
+    );
   });
 
   it("does not prefix non-GitHub markdown links with the GitHub icon", () => {
@@ -637,7 +749,9 @@ describe("MarkdownBody", () => {
     expect(html).toContain("lucide-external-link");
     // Last character "s" must sit in a no-wrap span with the icon so the
     // indicator never wraps away from the link text.
-    expect(html).toMatch(/<span style="white-space:nowrap">s<svg[^>]*lucide-external-link/);
+    expect(html).toMatch(
+      /<span style="white-space:nowrap">s<svg[^>]*lucide-external-link/,
+    );
   });
 
   it("does not render the new-tab icon on internal links", () => {
@@ -647,7 +761,9 @@ describe("MarkdownBody", () => {
   });
 
   it("keeps fenced code blocks width-bounded and horizontally scrollable", () => {
-    const html = renderMarkdown("```text\nGET /heartbeat-runs/ca5d23fc-c15b-4826-8ff1-2b6dd11be096/log?offset=2062357&limitBytes=256000\n```");
+    const html = renderMarkdown(
+      "```text\nGET /heartbeat-runs/ca5d23fc-c15b-4826-8ff1-2b6dd11be096/log?offset=2062357&limitBytes=256000\n```",
+    );
 
     expect(html).toContain("<pre");
     expect(html).toContain('style="max-width:100%;overflow-x:auto"');
@@ -658,7 +774,9 @@ describe("MarkdownBody", () => {
 
     expect(html).toContain("taskcore-markdown-codeblock");
     expect(html).toContain("taskcore-markdown-codeblock-actions");
-    expect(html).toContain("position:absolute;top:0.4rem;right:0.4rem;display:inline-flex");
+    expect(html).toContain(
+      "position:absolute;top:0.4rem;right:0.4rem;display:inline-flex",
+    );
     expect(html).toContain("taskcore-markdown-codeblock-wrap");
     expect(html).toContain('aria-label="Wrap lines"');
     expect(html).toContain("position:static;opacity:1;display:inline-flex");
@@ -668,7 +786,9 @@ describe("MarkdownBody", () => {
   });
 
   it("renders code block actions for indented preformatted markdown blocks", () => {
-    const html = renderMarkdown("Plan:\n\n    source fetch/sync -> signal inbox");
+    const html = renderMarkdown(
+      "Plan:\n\n    source fetch/sync -> signal inbox",
+    );
 
     expect(html).toContain("taskcore-markdown-codeblock");
     expect(html).toContain("taskcore-markdown-codeblock-wrap");
@@ -683,10 +803,13 @@ describe("MarkdownBody", () => {
   });
 
   it("renders internal issue links and bare identifiers as inline issue refs", () => {
-    const html = renderMarkdown(`See PAP-42 and [linked task](${buildIssueReferenceHref("PAP-77")}) for follow-up.`, [
-      { identifier: "PAP-42", status: "done" },
-      { identifier: "PAP-77", status: "blocked" },
-    ]);
+    const html = renderMarkdown(
+      `See PAP-42 and [linked task](${buildIssueReferenceHref("PAP-77")}) for follow-up.`,
+      [
+        { identifier: "PAP-42", status: "done" },
+        { identifier: "PAP-77", status: "blocked" },
+      ],
+    );
 
     expect(html).toContain('href="/issues/PAP-42"');
     expect(html).toContain('href="/issues/PAP-77"');
@@ -696,7 +819,9 @@ describe("MarkdownBody", () => {
   });
 
   it("gates bare-identifier auto-linking to known company prefixes", () => {
-    mockUseOptionalCompany.mockReturnValue({ companies: [{ issuePrefix: "PAP" }] });
+    mockUseOptionalCompany.mockReturnValue({
+      companies: [{ issuePrefix: "PAP" }],
+    });
 
     const html = renderMarkdown("Depends on PAP-1271 and blocked by JIRA-2.", [
       { identifier: "PAP-1271", status: "done" },
@@ -741,7 +866,9 @@ describe("MarkdownBody", () => {
   });
 
   it("never gates explicit internal issue paths, even for unknown prefixes", () => {
-    mockUseOptionalCompany.mockReturnValue({ companies: [{ issuePrefix: "PAP" }] });
+    mockUseOptionalCompany.mockReturnValue({
+      companies: [{ issuePrefix: "PAP" }],
+    });
 
     const html = renderMarkdown("See /ACME/issues/ACME-1 for the writeup.", [
       { identifier: "ACME-1", status: "done" },
@@ -749,5 +876,4 @@ describe("MarkdownBody", () => {
 
     expect(html).toContain('href="/issues/ACME-1"');
   });
-
 });

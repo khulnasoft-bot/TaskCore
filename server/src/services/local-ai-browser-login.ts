@@ -44,65 +44,131 @@ sys.exit(os.waitstatus_to_exitcode(status))
 `;
 
 /** Run the same browser-code login used by sandbox connections on the local host. */
-export function startLocalBrowserLogin(provider: "anthropic" | "openai", home: string): LocalBrowserLoginState {
+export function startLocalBrowserLogin(
+  provider: "anthropic" | "openai",
+  home: string,
+): LocalBrowserLoginState {
   const controller = new AbortController();
   const state: LocalBrowserLoginState = { abort: () => controller.abort() };
   const executable = provider === "anthropic" ? "claude" : "codex";
-  const args = provider === "anthropic" ? ["setup-token"] : ["login", "--device-auth"];
+  const args =
+    provider === "anthropic" ? ["setup-token"] : ["login", "--device-auth"];
   let child: ChildProcessWithoutNullStreams | null = null;
   const driver = {
-    start(_command: string, onData: (chunk: string) => void): Promise<{ exitCode: number | null }> {
-      const env = { ...process.env,
-        ANTHROPIC_API_KEY: "", ANTHROPIC_AUTH_TOKEN: "", CLAUDE_CODE_OAUTH_TOKEN: "",
-        OPENAI_API_KEY: "", CODEX_API_KEY: "",
-        CLAUDE_CONFIG_DIR: provider === "anthropic" ? home : process.env.CLAUDE_CONFIG_DIR,
+    start(
+      _command: string,
+      onData: (chunk: string) => void,
+    ): Promise<{ exitCode: number | null }> {
+      const env = {
+        ...process.env,
+        ANTHROPIC_API_KEY: "",
+        ANTHROPIC_AUTH_TOKEN: "",
+        CLAUDE_CODE_OAUTH_TOKEN: "",
+        OPENAI_API_KEY: "",
+        CODEX_API_KEY: "",
+        CLAUDE_CONFIG_DIR:
+          provider === "anthropic" ? home : process.env.CLAUDE_CONFIG_DIR,
         CODEX_HOME: provider === "openai" ? home : process.env.CODEX_HOME,
         BROWSER: "true",
       };
       return new Promise((resolve, reject) => {
-        child = spawn("python3", ["-u", "-c", PYTHON_PTY_BRIDGE, executable, ...args], { env, stdio: ["pipe", "pipe", "pipe"] });
-        child.stdout.on("data", (bytes: Buffer) => onData(bytes.toString("utf8")));
+        child = spawn(
+          "python3",
+          ["-u", "-c", PYTHON_PTY_BRIDGE, executable, ...args],
+          { env, stdio: ["pipe", "pipe", "pipe"] },
+        );
+        child.stdout.on("data", (bytes: Buffer) =>
+          onData(bytes.toString("utf8")),
+        );
         // Provider output may contain secrets. Never log or retain stderr.
         child.stderr.resume();
         child.once("error", reject);
         child.once("close", (exitCode) => resolve({ exitCode }));
       });
     },
-    write(input: string) { child?.stdin.write(input); },
-    stop() { child?.kill("SIGTERM"); },
-    async dispose() { child?.kill("SIGTERM"); },
-    async readFile(file: string) { const { readLocalAiCredentialFile } = await import("./local-ai-credential-file.js"); return Buffer.from(await readLocalAiCredentialFile(file)); },
+    write(input: string) {
+      child?.stdin.write(input);
+    },
+    stop() {
+      child?.kill("SIGTERM");
+    },
+    async dispose() {
+      child?.kill("SIGTERM");
+    },
+    async readFile(file: string) {
+      const { readLocalAiCredentialFile } =
+        await import("./local-ai-credential-file.js");
+      return Buffer.from(await readLocalAiCredentialFile(file));
+    },
   };
   if (provider === "anthropic") {
     let deliverCode: ((code: string) => void) | undefined;
-    const codeReady = new Promise<string>((resolve) => { deliverCode = resolve; });
-    state.submitCode = (code) => { deliverCode?.(code); deliverCode = undefined; };
+    const codeReady = new Promise<string>((resolve) => {
+      deliverCode = resolve;
+    });
+    state.submitCode = (code) => {
+      deliverCode?.(code);
+      deliverCode = undefined;
+    };
     void runSetupTokenLogin(driver, {
-      timeoutMs: 300_000, signal: controller.signal,
-      onPrompt: (prompt) => { state.authorizationUrl = prompt.url; },
-      provideCode: (signal) => new Promise<string>((resolve, reject) => {
-        const abort = () => reject(new Error("Local sign-in cancelled"));
-        if (signal.aborted) { abort(); return; }
-        signal.addEventListener("abort", abort, { once: true });
-        codeReady.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
-      }),
+      timeoutMs: 300_000,
+      signal: controller.signal,
+      onPrompt: (prompt) => {
+        state.authorizationUrl = prompt.url;
+      },
+      provideCode: (signal) =>
+        new Promise<string>((resolve, reject) => {
+          const abort = () => reject(new Error("Local sign-in cancelled"));
+          if (signal.aborted) {
+            abort();
+            return;
+          }
+          signal.addEventListener("abort", abort, { once: true });
+          codeReady
+            .then(resolve, reject)
+            .finally(() => signal.removeEventListener("abort", abort));
+        }),
       onCredential: async (bytes) => {
-        const file = await open(path.join(home, ".credentials.json"),
-          constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
+        const file = await open(
+          path.join(home, ".credentials.json"),
+          constants.O_CREAT |
+            constants.O_EXCL |
+            constants.O_WRONLY |
+            constants.O_NOFOLLOW,
+          0o600,
+        );
         try {
-          await file.writeFile(JSON.stringify({ claudeAiOauth: { accessToken: bytes.toString("utf8") } }));
+          await file.writeFile(
+            JSON.stringify({
+              claudeAiOauth: { accessToken: bytes.toString("utf8") },
+            }),
+          );
         } finally {
           await file.close();
         }
       },
-    }).then((result) => { state.outcome = result.outcome === "success" ? "success" : "failure"; })
-      .catch(() => { state.outcome = "failure"; });
+    })
+      .then((result) => {
+        state.outcome = result.outcome === "success" ? "success" : "failure";
+      })
+      .catch(() => {
+        state.outcome = "failure";
+      });
   } else {
     void runDeviceLogin(driver, {
-      timeoutMs: 300_000, signal: controller.signal,
-      onPrompt: (prompt) => { state.authorizationUrl = prompt.url; state.code = prompt.code; },
-    }).then((result) => { state.outcome = result.outcome === "success" ? "success" : "failure"; })
-      .catch(() => { state.outcome = "failure"; });
+      timeoutMs: 300_000,
+      signal: controller.signal,
+      onPrompt: (prompt) => {
+        state.authorizationUrl = prompt.url;
+        state.code = prompt.code;
+      },
+    })
+      .then((result) => {
+        state.outcome = result.outcome === "success" ? "success" : "failure";
+      })
+      .catch(() => {
+        state.outcome = "failure";
+      });
   }
   return state;
 }

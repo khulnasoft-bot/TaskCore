@@ -2,7 +2,8 @@ import pc from "picocolors";
 import { printAcpxStreamEvent } from "@taskcore/adapter-utils/acpx-engine/cli";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -41,7 +42,11 @@ function errorText(value: unknown): string {
   }
 }
 
-function printTextMessage(prefix: string, colorize: (text: string) => string, messageRaw: unknown): void {
+function printTextMessage(
+  prefix: string,
+  colorize: (text: string) => string,
+  messageRaw: unknown,
+): void {
   if (typeof messageRaw === "string") {
     const text = messageRaw.trim();
     if (text) console.log(colorize(`${prefix}: ${text}`));
@@ -81,30 +86,55 @@ function printTextMessage(prefix: string, colorize: (text: string) => string, me
     }
 
     if (type === "tool_result" || type === "tool_response") {
-      const isError = part.is_error === true || asString(part.status).toLowerCase() === "error";
+      const isError =
+        part.is_error === true ||
+        asString(part.status).toLowerCase() === "error";
       const contentText =
         asString(part.output) ||
         asString(part.text) ||
         asString(part.result) ||
-        stringifyUnknown(part.output ?? part.result ?? part.text ?? part.response);
-      console.log((isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`));
+        stringifyUnknown(
+          part.output ?? part.result ?? part.text ?? part.response,
+        );
+      console.log(
+        (isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`),
+      );
       if (contentText) console.log((isError ? pc.red : pc.gray)(contentText));
     }
   }
 }
 
 function printUsage(parsed: Record<string, unknown>) {
-  const usage = asRecord(parsed.usage) ?? asRecord(parsed.usageMetadata) ?? asRecord(parsed.stats);
+  const usage =
+    asRecord(parsed.usage) ??
+    asRecord(parsed.usageMetadata) ??
+    asRecord(parsed.stats);
   const usageMetadata = asRecord(usage?.usageMetadata);
   const source = usageMetadata ?? usage ?? {};
-  const input = asNumber(source.input_tokens, asNumber(source.inputTokens, asNumber(source.promptTokenCount)));
-  const output = asNumber(source.output_tokens, asNumber(source.outputTokens, asNumber(source.candidatesTokenCount)));
+  const input = asNumber(
+    source.input_tokens,
+    asNumber(source.inputTokens, asNumber(source.promptTokenCount)),
+  );
+  const output = asNumber(
+    source.output_tokens,
+    asNumber(source.outputTokens, asNumber(source.candidatesTokenCount)),
+  );
   const cached = asNumber(
     source.cached_input_tokens,
-    asNumber(source.cachedInputTokens, asNumber(source.cachedContentTokenCount, asNumber(source.cached))),
+    asNumber(
+      source.cachedInputTokens,
+      asNumber(source.cachedContentTokenCount, asNumber(source.cached)),
+    ),
   );
-  const cost = asNumber(parsed.total_cost_usd, asNumber(parsed.cost_usd, asNumber(parsed.cost)));
-  console.log(pc.blue(`tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`));
+  const cost = asNumber(
+    parsed.total_cost_usd,
+    asNumber(parsed.cost_usd, asNumber(parsed.cost)),
+  );
+  console.log(
+    pc.blue(
+      `tokens: in=${input} out=${output} cached=${cached} cost=$${cost.toFixed(6)}`,
+    ),
+  );
 }
 
 export function printGeminiStreamEvent(raw: string, _debug: boolean): void {
@@ -135,7 +165,10 @@ export function printGeminiStreamEvent(raw: string, _debug: boolean): void {
         asString(parsed.sessionID) ||
         asString(parsed.checkpoint_id);
       const model = asString(parsed.model);
-      const details = [sessionId ? `session: ${sessionId}` : "", model ? `model: ${model}` : ""]
+      const details = [
+        sessionId ? `session: ${sessionId}` : "",
+        model ? `model: ${model}` : "",
+      ]
         .filter(Boolean)
         .join(", ");
       console.log(pc.blue(`Gemini init${details ? ` (${details})` : ""}`));
@@ -176,7 +209,9 @@ export function printGeminiStreamEvent(raw: string, _debug: boolean): void {
   }
 
   if (type === "thinking") {
-    const text = asString(parsed.text).trim() || asString(asRecord(parsed.delta)?.text).trim();
+    const text =
+      asString(parsed.text).trim() ||
+      asString(asRecord(parsed.delta)?.text).trim();
     if (text) console.log(pc.gray(`thinking: ${text}`));
     return;
   }
@@ -192,20 +227,38 @@ export function printGeminiStreamEvent(raw: string, _debug: boolean): void {
     const payload = asRecord(toolCall[toolName]) ?? {};
     if (subtype === "started" || subtype === "start") {
       console.log(pc.yellow(`tool_call: ${toolName}`));
-      console.log(pc.gray(stringifyUnknown(payload.args ?? payload.input ?? payload.arguments ?? payload)));
+      console.log(
+        pc.gray(
+          stringifyUnknown(
+            payload.args ?? payload.input ?? payload.arguments ?? payload,
+          ),
+        ),
+      );
       return;
     }
-    if (subtype === "completed" || subtype === "complete" || subtype === "finished") {
+    if (
+      subtype === "completed" ||
+      subtype === "complete" ||
+      subtype === "finished"
+    ) {
       const isError =
         parsed.is_error === true ||
         payload.is_error === true ||
         payload.error !== undefined ||
         asString(payload.status).toLowerCase() === "error";
-      console.log((isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`));
-      console.log((isError ? pc.red : pc.gray)(stringifyUnknown(payload.result ?? payload.output ?? payload.error)));
+      console.log(
+        (isError ? pc.red : pc.cyan)(`tool_result${isError ? " (error)" : ""}`),
+      );
+      console.log(
+        (isError ? pc.red : pc.gray)(
+          stringifyUnknown(payload.result ?? payload.output ?? payload.error),
+        ),
+      );
       return;
     }
-    console.log(pc.yellow(`tool_call: ${toolName}${subtype ? ` (${subtype})` : ""}`));
+    console.log(
+      pc.yellow(`tool_call: ${toolName}${subtype ? ` (${subtype})` : ""}`),
+    );
     return;
   }
 
@@ -216,7 +269,11 @@ export function printGeminiStreamEvent(raw: string, _debug: boolean): void {
       parsed.is_error === true || status === "error" || status === "failed";
     const subtype = asString(parsed.subtype, status || "result");
     if (subtype || isError) {
-      console.log((isError ? pc.red : pc.blue)(`result: subtype=${subtype} is_error=${isError ? "true" : "false"}`));
+      console.log(
+        (isError ? pc.red : pc.blue)(
+          `result: subtype=${subtype} is_error=${isError ? "true" : "false"}`,
+        ),
+      );
     }
     if (isError) {
       const text = errorText(parsed.error ?? parsed.message ?? parsed.result);

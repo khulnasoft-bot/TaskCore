@@ -127,7 +127,9 @@ describe("durable inbound chat scheduler receipts", () => {
       status: "running",
       // This fixture-owned slot has no provider process/work. Its retirement
       // must not impersonate an ambiguous legacy provider failure.
-      resultJson: { executionRecovery: { kind: "bootstrap", providerWorkStarted: false } },
+      resultJson: {
+        executionRecovery: { kind: "bootstrap", providerWorkStarted: false },
+      },
       contextSnapshot: { issueId: deferred ? issueId : randomUUID() },
     });
     runningProcesses.set(activeRunId, {
@@ -190,47 +192,100 @@ describe("durable inbound chat scheduler receipts", () => {
     };
   }
 
-  async function executionHold(f: { companyId: string; issueId: string; agentId: string }) {
-    const [action] = await db.insert(issueRecoveryActions).values({
-      companyId: f.companyId, sourceIssueId: f.issueId, kind: "active_run_watchdog",
-      ownerType: "board", returnOwnerAgentId: f.agentId,
-      cause: "legacy_execution_requires_reconciliation", status: "resolved",
-      fingerprint: randomUUID(), evidence: { automaticRecovery: { replay: "blocked" } },
-      nextAction: "Check the stopped execution.",
-    }).returning();
-    return () => db.update(issueRecoveryActions).set({ evidence: {} }).where(eq(issueRecoveryActions.id, action!.id));
+  async function executionHold(f: {
+    companyId: string;
+    issueId: string;
+    agentId: string;
+  }) {
+    const [action] = await db
+      .insert(issueRecoveryActions)
+      .values({
+        companyId: f.companyId,
+        sourceIssueId: f.issueId,
+        kind: "active_run_watchdog",
+        ownerType: "board",
+        returnOwnerAgentId: f.agentId,
+        cause: "legacy_execution_requires_reconciliation",
+        status: "resolved",
+        fingerprint: randomUUID(),
+        evidence: { automaticRecovery: { replay: "blocked" } },
+        nextAction: "Check the stopped execution.",
+      })
+      .returning();
+    return () =>
+      db
+        .update(issueRecoveryActions)
+        .set({ evidence: {} })
+        .where(eq(issueRecoveryActions.id, action!.id));
   }
 
   it("defers held inbound chat exactly once and keeps its authority separate from a generic wake", async () => {
     const f = await fixture();
     const clearHold = await executionHold(f);
     const request = f.request();
-    const wake = () => f.heartbeat.wakeup(f.agentId, {
-      source: "on_demand", triggerDetail: "manual", reason: "issue_commented",
-      payload: { issueId: f.issueId, commentId: request.commentId },
-      contextSnapshot: { issueId: f.issueId, source: "chat:slack", wakeCommentId: request.commentId },
-      requestedByActorType: "user", requestedByActorId: request.requestedByActorId,
-      durableChatRequest: request,
-    });
+    const wake = () =>
+      f.heartbeat.wakeup(f.agentId, {
+        source: "on_demand",
+        triggerDetail: "manual",
+        reason: "issue_commented",
+        payload: { issueId: f.issueId, commentId: request.commentId },
+        contextSnapshot: {
+          issueId: f.issueId,
+          source: "chat:slack",
+          wakeCommentId: request.commentId,
+        },
+        requestedByActorType: "user",
+        requestedByActorId: request.requestedByActorId,
+        durableChatRequest: request,
+      });
     for (let i = 0; i < 3; i++) expect(await wake()).toBeNull();
-    const receipts = await db.select().from(agentWakeupRequests).where(eq(agentWakeupRequests.agentId, f.agentId));
+    const receipts = await db
+      .select()
+      .from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.agentId, f.agentId));
     expect(receipts).toHaveLength(1);
     expect(receipts[0]).toMatchObject({
-      id: request.id, idempotencyKey: request.idempotencyKey, requestedAt: request.requestedAt,
-      status: "deferred_issue_execution", runId: null, requestedByActorId: request.requestedByActorId,
-      payload: { _taskcoreWakeContext: { source: "chat:slack", wakeCommentIds: [request.commentId] } },
+      id: request.id,
+      idempotencyKey: request.idempotencyKey,
+      requestedAt: request.requestedAt,
+      status: "deferred_issue_execution",
+      runId: null,
+      requestedByActorId: request.requestedByActorId,
+      payload: {
+        _taskcoreWakeContext: {
+          source: "chat:slack",
+          wakeCommentIds: [request.commentId],
+        },
+      },
     });
     expect(f.authorize).toHaveBeenCalledTimes(1);
-    expect(await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.wakeupRequestId, request.id))).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.wakeupRequestId, request.id)),
+    ).toHaveLength(0);
     await clearHold();
     const generic = await f.heartbeat.wakeup(f.agentId, {
-      source: "on_demand", triggerDetail: "manual", reason: "issue_resumed",
-      payload: { issueId: f.issueId }, requestedByActorType: "user", requestedByActorId: "board-user",
+      source: "on_demand",
+      triggerDetail: "manual",
+      reason: "issue_resumed",
+      payload: { issueId: f.issueId },
+      requestedByActorType: "user",
+      requestedByActorId: "board-user",
     });
     expect(generic?.status).toBe("queued");
     expect(generic?.contextSnapshot?.wakeCommentIds).toBeUndefined();
-    expect((await db.select().from(agentWakeupRequests).where(eq(agentWakeupRequests.id, request.id)))[0]).toMatchObject({
-      status: "deferred_issue_execution", runId: null,
+    expect(
+      (
+        await db
+          .select()
+          .from(agentWakeupRequests)
+          .where(eq(agentWakeupRequests.id, request.id))
+      )[0],
+    ).toMatchObject({
+      status: "deferred_issue_execution",
+      runId: null,
     });
   });
 
@@ -483,46 +538,53 @@ describe("durable inbound chat scheduler receipts", () => {
     expect(f.authority).not.toHaveBeenCalled();
   });
 
-  it.each([false, true])("cancels a revoked deferred retry without reopening its batch (execution hold=%s)", async (held) => {
-    const f = await retryFixture(true);
-    const clearHold = held ? await executionHold(f) : null;
-    f.register();
-    await f.wake();
-    await clearHold?.();
-    f.authority.mockImplementation(async (_tx, input) => {
-      if (input.phase === "promotion")
-        throw conflict("Current chat access was revoked");
-    });
-    await db
-      .update(issues)
-      .set({ status: "done" })
-      .where(eq(issues.id, f.issueId));
-    await f.heartbeat.cancelRun(f.activeRunId, "Fixture predecessor finished", {
-      suppressImmediateRecovery: true,
-    });
-    await f.heartbeat.drainActiveRunExecutions();
-    const [receipt] = await db
-      .select()
-      .from(agentWakeupRequests)
-      .where(eq(agentWakeupRequests.id, f.actionId));
-    expect(receipt).toMatchObject({ status: "cancelled", runId: null });
-    expect(receipt.payload).toMatchObject({ wakeCommentIds: f.commentIds });
-    const [issue] = await db
-      .select()
-      .from(issues)
-      .where(eq(issues.id, f.issueId));
-    expect(issue).toMatchObject({ status: "done", executionRunId: null });
-    expect(
+  it.each([false, true])(
+    "cancels a revoked deferred retry without reopening its batch (execution hold=%s)",
+    async (held) => {
+      const f = await retryFixture(true);
+      const clearHold = held ? await executionHold(f) : null;
+      f.register();
+      await f.wake();
+      await clearHold?.();
+      f.authority.mockImplementation(async (_tx, input) => {
+        if (input.phase === "promotion")
+          throw conflict("Current chat access was revoked");
+      });
       await db
+        .update(issues)
+        .set({ status: "done" })
+        .where(eq(issues.id, f.issueId));
+      await f.heartbeat.cancelRun(
+        f.activeRunId,
+        "Fixture predecessor finished",
+        {
+          suppressImmediateRecovery: true,
+        },
+      );
+      await f.heartbeat.drainActiveRunExecutions();
+      const [receipt] = await db
         .select()
-        .from(heartbeatRuns)
-        .where(eq(heartbeatRuns.wakeupRequestId, f.actionId)),
-    ).toEqual([]);
-    expect(f.authority.mock.calls.map((call) => call[1].phase)).toEqual([
-      "admission",
-      "promotion",
-    ]);
-  });
+        .from(agentWakeupRequests)
+        .where(eq(agentWakeupRequests.id, f.actionId));
+      expect(receipt).toMatchObject({ status: "cancelled", runId: null });
+      expect(receipt.payload).toMatchObject({ wakeCommentIds: f.commentIds });
+      const [issue] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, f.issueId));
+      expect(issue).toMatchObject({ status: "done", executionRunId: null });
+      expect(
+        await db
+          .select()
+          .from(heartbeatRuns)
+          .where(eq(heartbeatRuns.wakeupRequestId, f.actionId)),
+      ).toEqual([]);
+      expect(f.authority.mock.calls.map((call) => call[1].phase)).toEqual([
+        "admission",
+        "promotion",
+      ]);
+    },
+  );
 
   it("denies a queued retry at execution when current authority is revoked", async () => {
     const f = await retryFixture();
@@ -568,51 +630,58 @@ describe("durable inbound chat scheduler receipts", () => {
     ]);
   });
 
-  it.each([false, true])("preserves the exact retry column and comment batch during promotion (execution hold=%s)", async (held) => {
-    const f = await retryFixture(true);
-    const clearHold = held ? await executionHold(f) : null;
-    f.register();
-    await f.wake();
-    await clearHold?.();
-    // A separate fixture-owned run occupies the agent slot after the issue's
-    // predecessor releases it, so this asserts promotion before execution.
-    const blockerId = randomUUID();
-    await db.insert(heartbeatRuns).values({
-      id: blockerId,
-      companyId: f.companyId,
-      agentId: f.agentId,
-      status: "running",
-      contextSnapshot: { issueId: randomUUID() },
-    });
-    runningProcesses.set(blockerId, {
-      child: {} as never,
-      graceSec: 0,
-      processGroupId: null,
-    });
-    liveRunIds.add(blockerId);
-    await f.heartbeat.cancelRun(f.activeRunId, "Fixture predecessor finished", {
-      suppressImmediateRecovery: true,
-    });
-    await f.heartbeat.drainActiveRunExecutions();
-    const [run] = await db
-      .select()
-      .from(heartbeatRuns)
-      .where(eq(heartbeatRuns.wakeupRequestId, f.actionId));
-    expect(run).toMatchObject({
-      status: "queued",
-      retryOfRunId: f.failedRunId,
-      contextSnapshot: f.context,
-    });
-    const [receipt] = await db
-      .select()
-      .from(agentWakeupRequests)
-      .where(eq(agentWakeupRequests.id, f.actionId));
-    expect(receipt).toMatchObject({ status: "queued", runId: run.id });
-    expect(f.authority.mock.calls.map((call) => call[1].phase)).toEqual([
-      "admission",
-      "promotion",
-    ]);
-  });
+  it.each([false, true])(
+    "preserves the exact retry column and comment batch during promotion (execution hold=%s)",
+    async (held) => {
+      const f = await retryFixture(true);
+      const clearHold = held ? await executionHold(f) : null;
+      f.register();
+      await f.wake();
+      await clearHold?.();
+      // A separate fixture-owned run occupies the agent slot after the issue's
+      // predecessor releases it, so this asserts promotion before execution.
+      const blockerId = randomUUID();
+      await db.insert(heartbeatRuns).values({
+        id: blockerId,
+        companyId: f.companyId,
+        agentId: f.agentId,
+        status: "running",
+        contextSnapshot: { issueId: randomUUID() },
+      });
+      runningProcesses.set(blockerId, {
+        child: {} as never,
+        graceSec: 0,
+        processGroupId: null,
+      });
+      liveRunIds.add(blockerId);
+      await f.heartbeat.cancelRun(
+        f.activeRunId,
+        "Fixture predecessor finished",
+        {
+          suppressImmediateRecovery: true,
+        },
+      );
+      await f.heartbeat.drainActiveRunExecutions();
+      const [run] = await db
+        .select()
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.wakeupRequestId, f.actionId));
+      expect(run).toMatchObject({
+        status: "queued",
+        retryOfRunId: f.failedRunId,
+        contextSnapshot: f.context,
+      });
+      const [receipt] = await db
+        .select()
+        .from(agentWakeupRequests)
+        .where(eq(agentWakeupRequests.id, f.actionId));
+      expect(receipt).toMatchObject({ status: "queued", runId: run.id });
+      expect(f.authority.mock.calls.map((call) => call[1].phase)).toEqual([
+        "admission",
+        "promotion",
+      ]);
+    },
+  );
 
   it.each([false, true])(
     "rechecks current retry authority immediately before dispatch (revoked=%s)",
@@ -688,12 +757,16 @@ describe("durable inbound chat scheduler receipts", () => {
     },
   );
 
-  it.each([
-    { withDeferredInput: false, sourceKind: "inbound_wakeup" },
-    { withDeferredInput: true, sourceKind: "inbound_wakeup" },
-    { withDeferredInput: false, sourceKind: "unrelated_action" },
-    { withDeferredInput: false, sourceKind: "missing" },
-  ].flatMap((scope) => [false, true].map((preProvider) => ({ ...scope, preProvider }))))(
+  it.each(
+    [
+      { withDeferredInput: false, sourceKind: "inbound_wakeup" },
+      { withDeferredInput: true, sourceKind: "inbound_wakeup" },
+      { withDeferredInput: false, sourceKind: "unrelated_action" },
+      { withDeferredInput: false, sourceKind: "missing" },
+    ].flatMap((scope) =>
+      [false, true].map((preProvider) => ({ ...scope, preProvider })),
+    ),
+  )(
     "fences generic recovery by actual original chat ownership ($sourceKind, deferred=$withDeferredInput, pre-provider=$preProvider)",
     async ({ withDeferredInput, sourceKind, preProvider }) => {
       const f = await retryFixture();
@@ -707,8 +780,10 @@ describe("durable inbound chat scheduler receipts", () => {
         .where(eq(chatActions.id, f.actionId));
       if (sourceKind === "missing")
         await db.delete(chatActions).where(eq(chatActions.id, f.actionId));
-      const genericRecoveryExpected = preProvider && sourceKind !== "inbound_wakeup";
-      const nextExecutionExpected = preProvider && (withDeferredInput || genericRecoveryExpected);
+      const genericRecoveryExpected =
+        preProvider && sourceKind !== "inbound_wakeup";
+      const nextExecutionExpected =
+        preProvider && (withDeferredInput || genericRecoveryExpected);
       const { failedRunRetry: _retry, ...ordinaryRequest } = f.request;
       const wakeOriginal = (id: string, commentId: string) =>
         f.heartbeat.wakeup(f.agentId, {
@@ -738,12 +813,21 @@ describe("durable inbound chat scheduler receipts", () => {
         });
       if (preProvider) {
         execute.mockResolvedValueOnce({
-          exitCode: 1, signal: null, timedOut: false,
+          exitCode: 1,
+          signal: null,
+          timedOut: false,
           summary: "Fixture failed before provider work",
-          resultJson: { executionRecovery: { kind: "bootstrap", providerWorkStarted: false } },
+          resultJson: {
+            executionRecovery: {
+              kind: "bootstrap",
+              providerWorkStarted: false,
+            },
+          },
         });
       } else {
-        execute.mockRejectedValueOnce(new Error("Original chat provider outcome is unknown"));
+        execute.mockRejectedValueOnce(
+          new Error("Original chat provider outcome is unknown"),
+        );
       }
       const original = await wakeOriginal(f.actionId, f.commentIds[1]);
       const deferredId = randomUUID();
@@ -779,16 +863,12 @@ describe("durable inbound chat scheduler receipts", () => {
         retryOfRunId: null,
         wakeupRequestId: f.actionId,
       });
-      expect(execute).toHaveBeenCalledTimes(
-        nextExecutionExpected ? 2 : 1,
-      );
+      expect(execute).toHaveBeenCalledTimes(nextExecutionExpected ? 2 : 1);
       const runs = await db
         .select()
         .from(heartbeatRuns)
         .where(eq(heartbeatRuns.agentId, f.agentId));
-      expect(runs).toHaveLength(
-        nextExecutionExpected ? 4 : 3,
-      );
+      expect(runs).toHaveLength(nextExecutionExpected ? 4 : 3);
       expect(
         runs.some(
           (entry) =>
@@ -801,8 +881,11 @@ describe("durable inbound chat scheduler receipts", () => {
         .from(issues)
         .where(eq(issues.id, f.issueId));
       expect(issue).toMatchObject({
-        status:
-          nextExecutionExpected ? "done" : preProvider ? "blocked" : "in_progress",
+        status: nextExecutionExpected
+          ? "done"
+          : preProvider
+            ? "blocked"
+            : "in_progress",
         executionRunId: null,
       });
       if (withDeferredInput) {
@@ -815,7 +898,10 @@ describe("durable inbound chat scheduler receipts", () => {
           // Unknown earlier effects require reconciliation. Preserve the
           // separate user's durable cause, without dispatching it on this
           // cancellation/failure path or relabeling it as an automatic retry.
-          expect(receipt).toMatchObject({ status: "deferred_issue_execution", runId: null });
+          expect(receipt).toMatchObject({
+            status: "deferred_issue_execution",
+            runId: null,
+          });
           expect(next).toBeUndefined();
           return;
         }

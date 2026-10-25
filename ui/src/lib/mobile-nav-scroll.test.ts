@@ -2,13 +2,18 @@ import { describe, expect, it } from "vitest";
 import { MobileNavScrollTracker } from "./mobile-nav-scroll";
 
 function tracker(top = 0) {
-  return new MobileNavScrollTracker({ topZone: 24, hideDistance: 32, showDistance: 16 }, top, 1000);
+  return new MobileNavScrollTracker(
+    { topZone: 24, hideDistance: 32, showDistance: 16 },
+    top,
+    1000,
+  );
 }
 
 describe("mobile navigation scroll response", () => {
   it("hides after deliberate downward movement, including slow scrolling", () => {
     const nav = tracker(100);
-    for (let top = 101; top < 132; top++) expect(nav.update(top, 1000)).toBe(true);
+    for (let top = 101; top < 132; top++)
+      expect(nav.update(top, 1000)).toBe(true);
     expect(nav.update(132, 1000)).toBe(false);
   });
 
@@ -33,7 +38,8 @@ describe("mobile navigation scroll response", () => {
   it("uses the same top-zone threshold for sparse and frequent events", () => {
     const slow = tracker();
     const fast = tracker();
-    for (let top = 1; top <= 55; top++) expect(slow.update(top, 1000)).toBe(true);
+    for (let top = 1; top <= 55; top++)
+      expect(slow.update(top, 1000)).toBe(true);
     expect(fast.update(55, 1000)).toBe(true);
     expect(slow.update(56, 1000)).toBe(false);
     expect(fast.update(56, 1000)).toBe(false);

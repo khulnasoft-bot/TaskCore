@@ -473,28 +473,65 @@ describe("RunnerInspector", () => {
   });
 
   it("keeps client and provider JSON-RPC id spaces separate when grouping operations", async () => {
-    eventsMock.mockResolvedValue([{
-      id: 41,
-      companyId: "company-1",
-      runId: "run-1",
-      agentId: "agent-1",
-      seq: 9,
-      eventType: "run.result.proposed",
-      stream: "stdout",
-      level: "info",
-      color: null,
-      message: null,
-      payload: { prpEvent: { sourceEventId: "runner:run-1:9", payload: {} } },
-      createdAt: "2026-08-22T12:00:03.000Z",
-    }]);
+    eventsMock.mockResolvedValue([
+      {
+        id: 41,
+        companyId: "company-1",
+        runId: "run-1",
+        agentId: "agent-1",
+        seq: 9,
+        eventType: "run.result.proposed",
+        stream: "stdout",
+        level: "info",
+        color: null,
+        message: null,
+        payload: { prpEvent: { sourceEventId: "runner:run-1:9", payload: {} } },
+        createdAt: "2026-08-22T12:00:03.000Z",
+      },
+    ]);
     traceMock.mockResolvedValue({
       trace: null,
       entries: [
-        { kind: "frame", frameId: 1, timestamp: "1", direction: "client_to_provider", parsed: { id: 1, method: "initialize" } },
-        { kind: "frame", frameId: 2, timestamp: "2", direction: "provider_to_client", parsed: { id: 1, result: {} } },
-        { kind: "frame", frameId: 3, timestamp: "3", direction: "provider_to_client", parsed: { id: 1, method: "item/tool/call", params: { callId: "finish-1", tool: "taskcore_finish" } } },
-        { kind: "frame", frameId: 4, timestamp: "4", direction: "client_to_provider", parsed: { id: 1, result: { success: true } } },
-        { kind: "interpretation", frameId: 3, stage: "typescript_codex_driver_normalization", disposition: "mapped", emittedEventIds: ["runner:run-1:9"], ruleId: "codex_driver.normalize.item/tool/call" },
+        {
+          kind: "frame",
+          frameId: 1,
+          timestamp: "1",
+          direction: "client_to_provider",
+          parsed: { id: 1, method: "initialize" },
+        },
+        {
+          kind: "frame",
+          frameId: 2,
+          timestamp: "2",
+          direction: "provider_to_client",
+          parsed: { id: 1, result: {} },
+        },
+        {
+          kind: "frame",
+          frameId: 3,
+          timestamp: "3",
+          direction: "provider_to_client",
+          parsed: {
+            id: 1,
+            method: "item/tool/call",
+            params: { callId: "finish-1", tool: "taskcore_finish" },
+          },
+        },
+        {
+          kind: "frame",
+          frameId: 4,
+          timestamp: "4",
+          direction: "client_to_provider",
+          parsed: { id: 1, result: { success: true } },
+        },
+        {
+          kind: "interpretation",
+          frameId: 3,
+          stage: "typescript_codex_driver_normalization",
+          disposition: "mapped",
+          emittedEventIds: ["runner:run-1:9"],
+          ruleId: "codex_driver.normalize.item/tool/call",
+        },
       ],
     });
 
@@ -609,7 +646,8 @@ describe("RunnerInspector", () => {
             {
               inputPath: "params.item.results",
               action: "dropped",
-              reason: "Raw provider results are not part of this semantic event",
+              reason:
+                "Raw provider results are not part of this semantic event",
             },
           ],
           reason: "Normalized provider web search",
@@ -657,7 +695,9 @@ describe("RunnerInspector", () => {
     expect(container.textContent).toContain("rust_jsonrpc_parse");
     expect(container.textContent).toContain("rust_durable_normalization");
     expect(container.textContent).toContain("typescript_runnerd_rehydration");
-    expect(container.textContent).toContain("typescript_codex_driver_normalization");
+    expect(container.textContent).toContain(
+      "typescript_codex_driver_normalization",
+    );
     expect(container.textContent).toContain("params.item.results");
     expect(container.textContent).toContain("payload.query");
     expect(container.textContent).toContain("research.completed");

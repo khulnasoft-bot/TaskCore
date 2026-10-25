@@ -41,7 +41,10 @@ import { createSetupTokenSecretWriter } from "../services/setup-token-transport-
 
 // The fixed Claude Code OAuth binding. It is a user-secret reference to the
 // fixed key. Any other shape is a replacement or a weaker binding.
-const FIXED_BINDING = { type: "user_secret_ref", key: "CLAUDE_CODE_OAUTH_TOKEN" } as const;
+const FIXED_BINDING = {
+  type: "user_secret_ref",
+  key: "CLAUDE_CODE_OAUTH_TOKEN",
+} as const;
 const withEnv = (env: Record<string, unknown>) => ({ env });
 
 // --- The pure server-enforced binding invariant (no database) ----------------
@@ -77,7 +80,9 @@ describe("assertClaudeOAuthBindingInvariant", () => {
   it("permits a normal plain-value replacement of the fixed binding", () => {
     const decision = assertClaudeOAuthBindingInvariant({
       adapterType: "claude_local",
-      nextConfig: withEnv({ CLAUDE_CODE_OAUTH_TOKEN: { type: "plain", value: "sk-fake" } }),
+      nextConfig: withEnv({
+        CLAUDE_CODE_OAUTH_TOKEN: { type: "plain", value: "sk-fake" },
+      }),
       priorConfig: withEnv({ CLAUDE_CODE_OAUTH_TOKEN: FIXED_BINDING }),
     });
     expect(decision).toEqual({ introducesBinding: false, keepsBinding: false });
@@ -86,7 +91,9 @@ describe("assertClaudeOAuthBindingInvariant", () => {
   it("permits a re-point to a different user-secret key", () => {
     const decision = assertClaudeOAuthBindingInvariant({
       adapterType: "claude_local",
-      nextConfig: withEnv({ CLAUDE_CODE_OAUTH_TOKEN: { type: "user_secret_ref", key: "OTHER" } }),
+      nextConfig: withEnv({
+        CLAUDE_CODE_OAUTH_TOKEN: { type: "user_secret_ref", key: "OTHER" },
+      }),
       priorConfig: withEnv({ CLAUDE_CODE_OAUTH_TOKEN: FIXED_BINDING }),
     });
     expect(decision).toEqual({ introducesBinding: false, keepsBinding: false });
@@ -96,7 +103,11 @@ describe("assertClaudeOAuthBindingInvariant", () => {
     const decision = assertClaudeOAuthBindingInvariant({
       adapterType: "claude_local",
       nextConfig: withEnv({
-        CLAUDE_CODE_OAUTH_TOKEN: { type: "secret_ref", secretId: randomUUID(), version: "latest" },
+        CLAUDE_CODE_OAUTH_TOKEN: {
+          type: "secret_ref",
+          secretId: randomUUID(),
+          version: "latest",
+        },
       }),
       priorConfig: withEnv({ CLAUDE_CODE_OAUTH_TOKEN: FIXED_BINDING }),
     });
@@ -150,7 +161,11 @@ describe("assertClaudeOAuthBindingInvariant", () => {
         adapterType: "claude_local",
         nextConfig: withEnv({
           CLAUDE_CODE_OAUTH_TOKEN: FIXED_BINDING,
-          ANTHROPIC_API_KEY: { type: "secret_ref", secretId: randomUUID(), version: "latest" },
+          ANTHROPIC_API_KEY: {
+            type: "secret_ref",
+            secretId: randomUUID(),
+            version: "latest",
+          },
         }),
         priorConfig: null,
       }),
@@ -172,7 +187,9 @@ describe("assertClaudeOAuthBindingInvariant", () => {
   it("does nothing for a non-claude_local adapter", () => {
     const decision = assertClaudeOAuthBindingInvariant({
       adapterType: "codex_local",
-      nextConfig: withEnv({ CLAUDE_CODE_OAUTH_TOKEN: { type: "plain", value: "anything" } }),
+      nextConfig: withEnv({
+        CLAUDE_CODE_OAUTH_TOKEN: { type: "plain", value: "anything" },
+      }),
       priorConfig: null,
     });
     expect(decision).toEqual({ introducesBinding: false, keepsBinding: false });
@@ -180,8 +197,12 @@ describe("assertClaudeOAuthBindingInvariant", () => {
 
   it("recognizes only the exact fixed binding shape", () => {
     expect(isFixedClaudeOAuthBinding(FIXED_BINDING)).toBe(true);
-    expect(isFixedClaudeOAuthBinding({ type: "plain", value: "x" })).toBe(false);
-    expect(isFixedClaudeOAuthBinding({ type: "user_secret_ref", key: "OTHER" })).toBe(false);
+    expect(isFixedClaudeOAuthBinding({ type: "plain", value: "x" })).toBe(
+      false,
+    );
+    expect(
+      isFixedClaudeOAuthBinding({ type: "user_secret_ref", key: "OTHER" }),
+    ).toBe(false);
     expect(isFixedClaudeOAuthBinding(null)).toBe(false);
   });
 
@@ -192,18 +213,34 @@ describe("assertClaudeOAuthBindingInvariant", () => {
   });
 
   it("matches two fixed bindings only when their version selectors are exactly equal", () => {
-    expect(claudeOAuthBindingsMatchExactly(FIXED_BINDING, FIXED_BINDING)).toBe(true);
+    expect(claudeOAuthBindingsMatchExactly(FIXED_BINDING, FIXED_BINDING)).toBe(
+      true,
+    );
     expect(
-      claudeOAuthBindingsMatchExactly({ ...FIXED_BINDING, version: 5 }, { ...FIXED_BINDING, version: 5 }),
+      claudeOAuthBindingsMatchExactly(
+        { ...FIXED_BINDING, version: 5 },
+        { ...FIXED_BINDING, version: 5 },
+      ),
     ).toBe(true);
     expect(
-      claudeOAuthBindingsMatchExactly({ ...FIXED_BINDING, version: 5 }, { ...FIXED_BINDING, version: 2 }),
+      claudeOAuthBindingsMatchExactly(
+        { ...FIXED_BINDING, version: 5 },
+        { ...FIXED_BINDING, version: 2 },
+      ),
     ).toBe(false);
     expect(
-      claudeOAuthBindingsMatchExactly({ ...FIXED_BINDING, version: 5 }, { ...FIXED_BINDING, version: "latest" }),
+      claudeOAuthBindingsMatchExactly(
+        { ...FIXED_BINDING, version: 5 },
+        { ...FIXED_BINDING, version: "latest" },
+      ),
     ).toBe(false);
     // Neither side needs the exact fixed shape only; both sides do.
-    expect(claudeOAuthBindingsMatchExactly(FIXED_BINDING, { type: "plain", value: "x" })).toBe(false);
+    expect(
+      claudeOAuthBindingsMatchExactly(FIXED_BINDING, {
+        type: "plain",
+        value: "x",
+      }),
+    ).toBe(false);
     expect(claudeOAuthBindingsMatchExactly(null, FIXED_BINDING)).toBe(false);
   });
 });
@@ -211,7 +248,9 @@ describe("assertClaudeOAuthBindingInvariant", () => {
 // --- The stored-session claim on the create and hire paths (Postgres) --------
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -226,12 +265,20 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
   let connectionString!: string;
   let db!: ReturnType<typeof createDb>;
   const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
-  const secretsTmpDir = path.join(os.tmpdir(), `taskcore-claude-oauth-binding-${randomUUID()}`);
+  const secretsTmpDir = path.join(
+    os.tmpdir(),
+    `taskcore-claude-oauth-binding-${randomUUID()}`,
+  );
 
   beforeAll(async () => {
     mkdirSync(secretsTmpDir, { recursive: true });
-    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(secretsTmpDir, "master.key");
-    const started = await startEmbeddedPostgresTestDatabase("claude-oauth-binding");
+    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(
+      secretsTmpDir,
+      "master.key",
+    );
+    const started = await startEmbeddedPostgresTestDatabase(
+      "claude-oauth-binding",
+    );
     stopDb = started.cleanup;
     connectionString = started.connectionString;
     db = createDb(connectionString);
@@ -286,10 +333,18 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    return { companyId, environmentId, ownerUserId: `user-${randomUUID().slice(0, 8)}` };
+    return {
+      companyId,
+      environmentId,
+      ownerUserId: `user-${randomUUID().slice(0, 8)}`,
+    };
   }
 
-  async function seedStoredClaim(scope: Scope, deadlineMs: number, state = "stored"): Promise<string> {
+  async function seedStoredClaim(
+    scope: Scope,
+    deadlineMs: number,
+    state = "stored",
+  ): Promise<string> {
     const sessionId = randomUUID();
     await createDbSetupTokenCleanupStore(db).record({
       sessionId,
@@ -312,7 +367,9 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
       status: "idle" as const,
       adapterType: "claude_local",
       defaultEnvironmentId: scope.environmentId,
-      adapterConfig: { env: { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING }, ...extraEnv } },
+      adapterConfig: {
+        env: { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING }, ...extraEnv },
+      },
       runtimeConfig: {},
       spentMonthlyCents: 0,
       lastHeartbeatAt: null,
@@ -328,21 +385,33 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
   }
 
   async function countAgents(companyId: string): Promise<number> {
-    const rows = await db.select().from(agents).where(eq(agents.companyId, companyId));
+    const rows = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.companyId, companyId));
     return rows.length;
   }
 
   // Seed one stored owner value for the fixed Claude OAuth definition. The
   // apply-existing path binds the fixed reference only when this value exists.
-  async function seedStoredOwnerValue(scope: Scope, value = "sk-owner-token"): Promise<void> {
-    await secretService(db).completeClaudeOAuthUserSecret(scope.companyId, scope.ownerUserId, {
-      sessionId: randomUUID(),
-      mode: "first_write",
-      value,
-    });
+  async function seedStoredOwnerValue(
+    scope: Scope,
+    value = "sk-owner-token",
+  ): Promise<void> {
+    await secretService(db).completeClaudeOAuthUserSecret(
+      scope.companyId,
+      scope.ownerUserId,
+      {
+        sessionId: randomUUID(),
+        mode: "first_write",
+        value,
+      },
+    );
   }
 
-  async function countUserSecretDefinitions(companyId: string): Promise<number> {
+  async function countUserSecretDefinitions(
+    companyId: string,
+  ): Promise<number> {
     const rows = await db
       .select()
       .from(userSecretDefinitions)
@@ -362,9 +431,16 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const scope = await seedScope();
     const sessionId = await seedStoredClaim(scope, Date.now() + 60_000);
 
-    const created = await agentService(db).create(scope.companyId, createInput(scope), {
-      claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
-    });
+    const created = await agentService(db).create(
+      scope.companyId,
+      createInput(scope),
+      {
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
+      },
+    );
 
     const persisted = created.adapterConfig as { env: Record<string, unknown> };
     expect(persisted.env.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject({
@@ -377,7 +453,10 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     // A replay of the same claim inserts no second agent.
     await expect(
       agentService(db).create(scope.companyId, createInput(scope), {
-        claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
       }),
     ).rejects.toMatchObject({ message: CLAUDE_OAUTH_CLAIM_REJECTED });
     expect(await countAgents(scope.companyId)).toBe(1);
@@ -387,7 +466,10 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const scope = await seedScope();
     await expect(
       agentService(db).create(scope.companyId, createInput(scope), {
-        claudeLogin: { storedSessionId: undefined, ownerUserId: scope.ownerUserId },
+        claudeLogin: {
+          storedSessionId: undefined,
+          ownerUserId: scope.ownerUserId,
+        },
       }),
     ).rejects.toMatchObject({ message: CLAUDE_OAUTH_CLAIM_REJECTED });
     expect(await countAgents(scope.companyId)).toBe(0);
@@ -410,7 +492,10 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const sessionId = await seedStoredClaim(scope, Date.now() - 1_000);
     await expect(
       agentService(db).create(scope.companyId, createInput(scope), {
-        claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
       }),
     ).rejects.toMatchObject({ message: CLAUDE_OAUTH_CLAIM_REJECTED });
     expect((await readClaim(sessionId))?.boundAt).toBeNull();
@@ -418,10 +503,17 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
   it("rejects a non-stored claim and leaves it unconsumed", async () => {
     const scope = await seedScope();
-    const sessionId = await seedStoredClaim(scope, Date.now() + 60_000, "awaiting_code");
+    const sessionId = await seedStoredClaim(
+      scope,
+      Date.now() + 60_000,
+      "awaiting_code",
+    );
     await expect(
       agentService(db).create(scope.companyId, createInput(scope), {
-        claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
       }),
     ).rejects.toMatchObject({ message: CLAUDE_OAUTH_CLAIM_REJECTED });
     expect((await readClaim(sessionId))?.boundAt).toBeNull();
@@ -434,54 +526,89 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     messages.push(
       await agentService(db)
         .create(missingScope.companyId, createInput(missingScope), {
-          claudeLogin: { storedSessionId: undefined, ownerUserId: missingScope.ownerUserId },
+          claudeLogin: {
+            storedSessionId: undefined,
+            ownerUserId: missingScope.ownerUserId,
+          },
         })
         .then(() => "no-error")
         .catch((error: Error) => error.message),
     );
     // Foreign owner.
     const foreignScope = await seedScope();
-    const foreignSession = await seedStoredClaim(foreignScope, Date.now() + 60_000);
+    const foreignSession = await seedStoredClaim(
+      foreignScope,
+      Date.now() + 60_000,
+    );
     messages.push(
       await agentService(db)
         .create(foreignScope.companyId, createInput(foreignScope), {
-          claudeLogin: { storedSessionId: foreignSession, ownerUserId: "intruder" },
+          claudeLogin: {
+            storedSessionId: foreignSession,
+            ownerUserId: "intruder",
+          },
         })
         .then(() => "no-error")
         .catch((error: Error) => error.message),
     );
     // Expired.
     const expiredScope = await seedScope();
-    const expiredSession = await seedStoredClaim(expiredScope, Date.now() - 1_000);
+    const expiredSession = await seedStoredClaim(
+      expiredScope,
+      Date.now() - 1_000,
+    );
     messages.push(
       await agentService(db)
         .create(expiredScope.companyId, createInput(expiredScope), {
-          claudeLogin: { storedSessionId: expiredSession, ownerUserId: expiredScope.ownerUserId },
+          claudeLogin: {
+            storedSessionId: expiredSession,
+            ownerUserId: expiredScope.ownerUserId,
+          },
         })
         .then(() => "no-error")
         .catch((error: Error) => error.message),
     );
     // Non-stored.
     const nonStoredScope = await seedScope();
-    const nonStoredSession = await seedStoredClaim(nonStoredScope, Date.now() + 60_000, "submitting");
+    const nonStoredSession = await seedStoredClaim(
+      nonStoredScope,
+      Date.now() + 60_000,
+      "submitting",
+    );
     messages.push(
       await agentService(db)
         .create(nonStoredScope.companyId, createInput(nonStoredScope), {
-          claudeLogin: { storedSessionId: nonStoredSession, ownerUserId: nonStoredScope.ownerUserId },
+          claudeLogin: {
+            storedSessionId: nonStoredSession,
+            ownerUserId: nonStoredScope.ownerUserId,
+          },
         })
         .then(() => "no-error")
         .catch((error: Error) => error.message),
     );
     // Already consumed.
     const consumedScope = await seedScope();
-    const consumedSession = await seedStoredClaim(consumedScope, Date.now() + 60_000);
-    await agentService(db).create(consumedScope.companyId, createInput(consumedScope), {
-      claudeLogin: { storedSessionId: consumedSession, ownerUserId: consumedScope.ownerUserId },
-    });
+    const consumedSession = await seedStoredClaim(
+      consumedScope,
+      Date.now() + 60_000,
+    );
+    await agentService(db).create(
+      consumedScope.companyId,
+      createInput(consumedScope),
+      {
+        claudeLogin: {
+          storedSessionId: consumedSession,
+          ownerUserId: consumedScope.ownerUserId,
+        },
+      },
+    );
     messages.push(
       await agentService(db)
         .create(consumedScope.companyId, createInput(consumedScope), {
-          claudeLogin: { storedSessionId: consumedSession, ownerUserId: consumedScope.ownerUserId },
+          claudeLogin: {
+            storedSessionId: consumedSession,
+            ownerUserId: consumedScope.ownerUserId,
+          },
         })
         .then(() => "no-error")
         .catch((error: Error) => error.message),
@@ -496,10 +623,16 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
     const results = await Promise.allSettled([
       agentService(db).create(scope.companyId, createInput(scope), {
-        claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
       }),
       agentService(db).create(scope.companyId, createInput(scope), {
-        claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
       }),
     ]);
 
@@ -507,7 +640,9 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const rejected = results.filter((result) => result.status === "rejected");
     expect(fulfilled).toHaveLength(1);
     expect(rejected).toHaveLength(1);
-    expect((rejected[0] as PromiseRejectedResult).reason.message).toBe(CLAUDE_OAUTH_CLAIM_REJECTED);
+    expect((rejected[0] as PromiseRejectedResult).reason.message).toBe(
+      CLAUDE_OAUTH_CLAIM_REJECTED,
+    );
     expect(await countAgents(scope.companyId)).toBe(1);
   });
 
@@ -538,7 +673,10 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     await locked;
     const createPromise = agentService(db)
       .create(scope.companyId, createInput(scope), {
-        claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
       })
       .then(() => "created")
       .catch((error: Error) => error.message);
@@ -555,37 +693,69 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
   it("removes the fixed binding on a normal update", async () => {
     const scope = await seedScope();
     const sessionId = await seedStoredClaim(scope, Date.now() + 60_000);
-    const created = await agentService(db).create(scope.companyId, createInput(scope), {
-      claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
+    const created = await agentService(db).create(
+      scope.companyId,
+      createInput(scope),
+      {
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
+      },
+    );
+
+    const updated = await agentService(db).update(created.id, {
+      adapterConfig: { env: {} },
     });
 
-    const updated = await agentService(db).update(created.id, { adapterConfig: { env: {} } });
-
-    const updatedEnv = (updated?.adapterConfig as { env: Record<string, unknown> }).env;
+    const updatedEnv = (
+      updated?.adapterConfig as { env: Record<string, unknown> }
+    ).env;
     expect(updatedEnv.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
   });
 
   it("re-points the binding to a plain value on a normal update", async () => {
     const scope = await seedScope();
     const sessionId = await seedStoredClaim(scope, Date.now() + 60_000);
-    const created = await agentService(db).create(scope.companyId, createInput(scope), {
-      claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
-    });
+    const created = await agentService(db).create(
+      scope.companyId,
+      createInput(scope),
+      {
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
+      },
+    );
 
     const updated = await agentService(db).update(created.id, {
-      adapterConfig: { env: { CLAUDE_CODE_OAUTH_TOKEN: { type: "plain", value: "sk-fake" } } },
+      adapterConfig: {
+        env: { CLAUDE_CODE_OAUTH_TOKEN: { type: "plain", value: "sk-fake" } },
+      },
     });
 
-    const updatedEnv = (updated?.adapterConfig as { env: Record<string, unknown> }).env;
-    expect(updatedEnv.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject({ type: "plain", value: "sk-fake" });
+    const updatedEnv = (
+      updated?.adapterConfig as { env: Record<string, unknown> }
+    ).env;
+    expect(updatedEnv.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject({
+      type: "plain",
+      value: "sk-fake",
+    });
   });
 
   it("removes the binding by a move to another adapter type on a normal update", async () => {
     const scope = await seedScope();
     const sessionId = await seedStoredClaim(scope, Date.now() + 60_000);
-    const created = await agentService(db).create(scope.companyId, createInput(scope), {
-      claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
-    });
+    const created = await agentService(db).create(
+      scope.companyId,
+      createInput(scope),
+      {
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
+      },
+    );
 
     // The write moves the agent to the process adapter and drops the binding in
     // the same PATCH. The binding is a normal environment variable, so the write
@@ -596,21 +766,34 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     });
 
     expect(updated?.adapterType).toBe("process");
-    const updatedEnv = (updated?.adapterConfig as { env: Record<string, unknown> }).env;
+    const updatedEnv = (
+      updated?.adapterConfig as { env: Record<string, unknown> }
+    ).env;
     expect(updatedEnv.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
   });
 
   it("keeps an existing binding when the update changes another field", async () => {
     const scope = await seedScope();
     const sessionId = await seedStoredClaim(scope, Date.now() + 60_000);
-    const created = await agentService(db).create(scope.companyId, createInput(scope), {
-      claudeLogin: { storedSessionId: sessionId, ownerUserId: scope.ownerUserId },
-    });
+    const created = await agentService(db).create(
+      scope.companyId,
+      createInput(scope),
+      {
+        claudeLogin: {
+          storedSessionId: sessionId,
+          ownerUserId: scope.ownerUserId,
+        },
+      },
+    );
 
     const updated = await agentService(db).update(created.id, {
-      adapterConfig: { model: "claude-opus", env: { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING } } },
+      adapterConfig: {
+        model: "claude-opus",
+        env: { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING } },
+      },
     });
-    const env = (updated?.adapterConfig as { env: Record<string, unknown> }).env;
+    const env = (updated?.adapterConfig as { env: Record<string, unknown> })
+      .env;
     expect(env.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject(FIXED_BINDING);
   });
 
@@ -630,12 +813,16 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
     await expect(
       agentService(db).update(created.id, {
-        adapterConfig: { env: { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING } } },
+        adapterConfig: {
+          env: { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING } },
+        },
       }),
     ).rejects.toMatchObject({ message: CLAUDE_OAUTH_CLAIM_REJECTED });
 
     const reloaded = await agentService(db).getById(created.id);
-    const reloadedEnv = (reloaded?.adapterConfig as { env: Record<string, unknown> }).env;
+    const reloadedEnv = (
+      reloaded?.adapterConfig as { env: Record<string, unknown> }
+    ).env;
     expect(reloadedEnv.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
   });
 
@@ -645,9 +832,16 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const scope = await seedScope();
     await seedStoredOwnerValue(scope);
 
-    const created = await agentService(db).create(scope.companyId, createInput(scope), {
-      claudeLogin: { ownerUserId: scope.ownerUserId, applyExistingWithoutClaim: true },
-    });
+    const created = await agentService(db).create(
+      scope.companyId,
+      createInput(scope),
+      {
+        claudeLogin: {
+          ownerUserId: scope.ownerUserId,
+          applyExistingWithoutClaim: true,
+        },
+      },
+    );
 
     const persisted = created.adapterConfig as { env: Record<string, unknown> };
     expect(persisted.env.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject({
@@ -666,11 +860,16 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const scope = await seedScope();
     await seedStoredOwnerValue(scope);
 
-    const created = await agentService(
-      db,
-    ).create(scope.companyId, { ...createInput(scope), status: "pending_approval" }, {
-      claudeLogin: { ownerUserId: scope.ownerUserId, applyExistingWithoutClaim: true },
-    });
+    const created = await agentService(db).create(
+      scope.companyId,
+      { ...createInput(scope), status: "pending_approval" },
+      {
+        claudeLogin: {
+          ownerUserId: scope.ownerUserId,
+          applyExistingWithoutClaim: true,
+        },
+      },
+    );
 
     expect(created.status).toBe("pending_approval");
     const persisted = created.adapterConfig as { env: Record<string, unknown> };
@@ -694,11 +893,21 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
     const updated = await agentService(db).update(
       created.id,
-      { adapterConfig: { env: { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING } } } },
-      { claudeLogin: { ownerUserId: scope.ownerUserId, applyExistingWithoutClaim: true } },
+      {
+        adapterConfig: {
+          env: { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING } },
+        },
+      },
+      {
+        claudeLogin: {
+          ownerUserId: scope.ownerUserId,
+          applyExistingWithoutClaim: true,
+        },
+      },
     );
 
-    const env = (updated?.adapterConfig as { env: Record<string, unknown> }).env;
+    const env = (updated?.adapterConfig as { env: Record<string, unknown> })
+      .env;
     expect(env.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject(FIXED_BINDING);
   });
 
@@ -707,7 +916,10 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
     await expect(
       agentService(db).create(scope.companyId, createInput(scope), {
-        claudeLogin: { ownerUserId: scope.ownerUserId, applyExistingWithoutClaim: true },
+        claudeLogin: {
+          ownerUserId: scope.ownerUserId,
+          applyExistingWithoutClaim: true,
+        },
       }),
     ).rejects.toMatchObject({ message: CLAUDE_OAUTH_CLAIM_REJECTED });
 
@@ -739,9 +951,16 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     foreignScope.ownerUserId = ownerScope.ownerUserId;
 
     await expect(
-      agentService(db).create(foreignScope.companyId, createInput(foreignScope), {
-        claudeLogin: { ownerUserId: foreignScope.ownerUserId, applyExistingWithoutClaim: true },
-      }),
+      agentService(db).create(
+        foreignScope.companyId,
+        createInput(foreignScope),
+        {
+          claudeLogin: {
+            ownerUserId: foreignScope.ownerUserId,
+            applyExistingWithoutClaim: true,
+          },
+        },
+      ),
     ).rejects.toMatchObject({ message: CLAUDE_OAUTH_CLAIM_REJECTED });
     expect(await countAgents(foreignScope.companyId)).toBe(0);
   });
@@ -766,7 +985,12 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
         spentMonthlyCents: 0,
         lastHeartbeatAt: null,
       },
-      { claudeLogin: { ownerUserId: scope.ownerUserId, applyExistingWithoutClaim: true } },
+      {
+        claudeLogin: {
+          ownerUserId: scope.ownerUserId,
+          applyExistingWithoutClaim: true,
+        },
+      },
     );
 
     const env = (created.adapterConfig as { env: Record<string, unknown> }).env;
@@ -791,12 +1015,21 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
           ownerUserId: "intruder",
         },
       }),
-      { claudeLogin: { ownerUserId: scope.ownerUserId, applyExistingWithoutClaim: true } },
+      {
+        claudeLogin: {
+          ownerUserId: scope.ownerUserId,
+          applyExistingWithoutClaim: true,
+        },
+      },
     );
 
-    const binding = (created.adapterConfig as { env: Record<string, Record<string, unknown>> }).env
-      .CLAUDE_CODE_OAUTH_TOKEN;
-    expect(binding).toMatchObject({ type: "user_secret_ref", key: "CLAUDE_CODE_OAUTH_TOKEN" });
+    const binding = (
+      created.adapterConfig as { env: Record<string, Record<string, unknown>> }
+    ).env.CLAUDE_CODE_OAUTH_TOKEN;
+    expect(binding).toMatchObject({
+      type: "user_secret_ref",
+      key: "CLAUDE_CODE_OAUTH_TOKEN",
+    });
     expect(binding.secretId).toBeUndefined();
     expect(binding.ownerUserId).toBeUndefined();
   });
@@ -804,9 +1037,16 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
   it("resolves the bound reference to the stored value without leaking it in a log", async () => {
     const scope = await seedScope();
     await seedStoredOwnerValue(scope, "sk-secret-resolve");
-    const created = await agentService(db).create(scope.companyId, createInput(scope), {
-      claudeLogin: { ownerUserId: scope.ownerUserId, applyExistingWithoutClaim: true },
-    });
+    const created = await agentService(db).create(
+      scope.companyId,
+      createInput(scope),
+      {
+        claudeLogin: {
+          ownerUserId: scope.ownerUserId,
+          applyExistingWithoutClaim: true,
+        },
+      },
+    );
 
     // The successful bind writes a declaration for the agent, so the fixed
     // reference resolves at runtime. The declaration and the definition carry no
@@ -820,7 +1060,11 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
   async function seedParentAgent(
     parentScope: Scope,
-    options: { adapterType?: string; holdsFixedBinding?: boolean; version?: number } = {},
+    options: {
+      adapterType?: string;
+      holdsFixedBinding?: boolean;
+      version?: number;
+    } = {},
   ) {
     const [row] = await db
       .insert(agents)
@@ -834,11 +1078,16 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
           env:
             options.holdsFixedBinding === false
               ? {}
-              // A binding written through the normal persistence path always
-              // carries a resolved version, "latest" by default. Match that
-              // shape here, so only `options.version` simulates a pinned
-              // version, or a version change since the child copied it.
-              : { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING, version: options.version ?? "latest" } },
+              : // A binding written through the normal persistence path always
+                // carries a resolved version, "latest" by default. Match that
+                // shape here, so only `options.version` simulates a pinned
+                // version, or a version change since the child copied it.
+                {
+                  CLAUDE_CODE_OAUTH_TOKEN: {
+                    ...FIXED_BINDING,
+                    version: options.version ?? "latest",
+                  },
+                },
         },
         runtimeConfig: {},
       })
@@ -846,7 +1095,9 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     return row!;
   }
 
-  async function countDeclarationsForCompany(companyId: string): Promise<number> {
+  async function countDeclarationsForCompany(
+    companyId: string,
+  ): Promise<number> {
     const rows = await db
       .select()
       .from(userSecretDeclarations)
@@ -858,9 +1109,13 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const scope = await seedScope();
     const parent = await seedParentAgent(scope);
 
-    const created = await agentService(db).create(scope.companyId, createInput(scope), {
-      claudeLogin: { inheritedFromAgentId: parent.id },
-    });
+    const created = await agentService(db).create(
+      scope.companyId,
+      createInput(scope),
+      {
+        claudeLogin: { inheritedFromAgentId: parent.id },
+      },
+    );
 
     const persisted = created.adapterConfig as { env: Record<string, unknown> };
     expect(persisted.env.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject(FIXED_BINDING);
@@ -873,12 +1128,17 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
     const created = await agentService(db).create(
       scope.companyId,
-      createInput(scope, { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING, version: 5 } }),
+      createInput(scope, {
+        CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING, version: 5 },
+      }),
       { claudeLogin: { inheritedFromAgentId: parent.id } },
     );
 
     const persisted = created.adapterConfig as { env: Record<string, unknown> };
-    expect(persisted.env.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject({ ...FIXED_BINDING, version: 5 });
+    expect(persisted.env.CLAUDE_CODE_OAUTH_TOKEN).toMatchObject({
+      ...FIXED_BINDING,
+      version: 5,
+    });
     expect(await countDeclarationsForAgent(created.id)).toBe(1);
   });
 
@@ -892,7 +1152,9 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     await expect(
       agentService(db).create(
         scope.companyId,
-        createInput(scope, { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING, version: 2 } }),
+        createInput(scope, {
+          CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING, version: 2 },
+        }),
         { claudeLogin: { inheritedFromAgentId: parent.id } },
       ),
     ).rejects.toMatchObject({ message: CLAUDE_OAUTH_CLAIM_REJECTED });
@@ -976,7 +1238,9 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     // first, moves the bound version to 6, then holds the open transaction
     // until the gate releases.
     const rotationHeld = lockDb.transaction(async (tx) => {
-      await tx.execute(sql`SELECT id FROM agents WHERE id = ${parent.id} FOR UPDATE`);
+      await tx.execute(
+        sql`SELECT id FROM agents WHERE id = ${parent.id} FOR UPDATE`,
+      );
       await tx.execute(
         sql`UPDATE agents SET adapter_config = jsonb_set(adapter_config, '{env,CLAUDE_CODE_OAUTH_TOKEN,version}', '6') WHERE id = ${parent.id}`,
       );
@@ -991,7 +1255,9 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const createPromise = agentService(db)
       .create(
         scope.companyId,
-        createInput(scope, { CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING, version: 5 } }),
+        createInput(scope, {
+          CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_BINDING, version: 5 },
+        }),
         { claudeLogin: { inheritedFromAgentId: parent.id } },
       )
       .then(() => "created")
@@ -1023,10 +1289,18 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
   it("commits the stored transition and the secret together on a first write", async () => {
     const scope = await seedScope();
-    const sessionId = await seedStoredClaim(scope, Date.now() + 60_000, "submitting");
+    const sessionId = await seedStoredClaim(
+      scope,
+      Date.now() + 60_000,
+      "submitting",
+    );
     const writer = createSetupTokenSecretWriter({ db });
 
-    await writer({ scope: claimScope(scope), sessionId, token: "sk-ant-oat01-FIRSTWRITE" });
+    await writer({
+      scope: claimScope(scope),
+      sessionId,
+      token: "sk-ant-oat01-FIRSTWRITE",
+    });
 
     // The durable row transitioned to `stored` and stays unconsumed.
     const claim = await readClaim(sessionId);
@@ -1043,7 +1317,11 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
 
   it("rolls back the transition and writes no secret when the secret write fails", async () => {
     const scope = await seedScope();
-    const sessionId = await seedStoredClaim(scope, Date.now() + 60_000, "submitting");
+    const sessionId = await seedStoredClaim(
+      scope,
+      Date.now() + 60_000,
+      "submitting",
+    );
     // Inject a completion that fails after the transition. The whole transaction
     // rolls back, so neither the claim nor the secret commits.
     const writer = createSetupTokenSecretWriter({
@@ -1056,30 +1334,48 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     });
 
     await expect(
-      writer({ scope: claimScope(scope), sessionId, token: "sk-ant-oat01-ROLLBACK" }),
+      writer({
+        scope: claimScope(scope),
+        sessionId,
+        token: "sk-ant-oat01-ROLLBACK",
+      }),
     ).rejects.toThrow();
 
     const claim = await readClaim(sessionId);
     expect(claim?.status).toBe("submitting");
     expect(claim?.boundAt).toBeNull();
     expect(
-      await secretService(db).readClaudeOAuthUserSecretStatus(scope.companyId, scope.ownerUserId),
+      await secretService(db).readClaudeOAuthUserSecretStatus(
+        scope.companyId,
+        scope.ownerUserId,
+      ),
     ).toBeNull();
     expect(await countUserSecretDefinitions(scope.companyId)).toBe(0);
   });
 
   it("writes no secret for an expired claim", async () => {
     const scope = await seedScope();
-    const sessionId = await seedStoredClaim(scope, Date.now() - 1_000, "submitting");
+    const sessionId = await seedStoredClaim(
+      scope,
+      Date.now() - 1_000,
+      "submitting",
+    );
     const writer = createSetupTokenSecretWriter({ db });
 
     await expect(
-      writer({ scope: claimScope(scope), sessionId, token: "sk-ant-oat01-EXPIRED" }),
+      writer({
+        scope: claimScope(scope),
+        sessionId,
+        token: "sk-ant-oat01-EXPIRED",
+      }),
     ).rejects.toThrow();
 
     expect((await readClaim(sessionId))?.status).toBe("submitting");
     expect(
-      await secretService(db).readClaudeOAuthUserSecretStatus(scope.companyId, scope.ownerUserId),
+      await secretService(db).readClaudeOAuthUserSecretStatus(
+        scope.companyId,
+        scope.ownerUserId,
+      ),
     ).toBeNull();
   });
 
@@ -1098,11 +1394,18 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
     const writer = createSetupTokenSecretWriter({ db });
 
     await expect(
-      writer({ scope: claimScope(scope), sessionId, token: "sk-ant-oat01-BOUND" }),
+      writer({
+        scope: claimScope(scope),
+        sessionId,
+        token: "sk-ant-oat01-BOUND",
+      }),
     ).rejects.toThrow();
 
     expect(
-      await secretService(db).readClaudeOAuthUserSecretStatus(scope.companyId, scope.ownerUserId),
+      await secretService(db).readClaudeOAuthUserSecretStatus(
+        scope.companyId,
+        scope.ownerUserId,
+      ),
     ).toBeNull();
   });
 
@@ -1114,7 +1417,11 @@ describeEmbeddedPostgres("agent service Claude OAuth binding claim", () => {
       scope.ownerUserId,
     );
     expect(before).not.toBeNull();
-    const sessionId = await seedStoredClaim(scope, Date.now() + 60_000, "submitting");
+    const sessionId = await seedStoredClaim(
+      scope,
+      Date.now() + 60_000,
+      "submitting",
+    );
     const writer = createSetupTokenSecretWriter({ db });
 
     await writer({

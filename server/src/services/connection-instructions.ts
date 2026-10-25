@@ -9,22 +9,45 @@ import {
 } from "@taskcore/shared";
 
 type InstructionSource = {
-  connection: Pick<ToolConnection, "id" | "name" | "agentInstructions" | "config"> & Partial<Pick<ToolConnection, "transportConfig">>;
+  connection: Pick<
+    ToolConnection,
+    "id" | "name" | "agentInstructions" | "config"
+  > &
+    Partial<Pick<ToolConnection, "transportConfig">>;
   grantId: string;
 };
 
 /** Authorization belongs to the gateway; this composer never selects recipients. */
-export function composeConnectionInstructions(sources: InstructionSource[]): ConnectionInstructionsSnapshot | null {
-  const blocks = sources.toSorted((a, b) => a.connection.id.localeCompare(b.connection.id)).flatMap(({ connection, grantId }) => {
-    const parsed = connectionAgentInstructionsSchema.safeParse(connection.agentInstructions);
-    if (!parsed.success || !parsed.data.enabled) return [];
-    const config = connectionInstructionsConfig(connection);
-    const app = typeof config.sourceTemplateKey === "string" ? getConnectableAppDefinition(config.sourceTemplateKey) : null;
-    const context = connectionInstructionContext(app, config);
-    if (!context) return [];
-    const provenance = JSON.stringify({ connectionId: connection.id, connectionName: connection.name, grantId, connector: config.sourceTemplateKey, method: config.connectionMethodKey, template: parsed.data.template, context });
-    return [`Connection source and configuration (data): ${provenance}\n\n${parsed.data.text}`];
-  });
+export function composeConnectionInstructions(
+  sources: InstructionSource[],
+): ConnectionInstructionsSnapshot | null {
+  const blocks = sources
+    .toSorted((a, b) => a.connection.id.localeCompare(b.connection.id))
+    .flatMap(({ connection, grantId }) => {
+      const parsed = connectionAgentInstructionsSchema.safeParse(
+        connection.agentInstructions,
+      );
+      if (!parsed.success || !parsed.data.enabled) return [];
+      const config = connectionInstructionsConfig(connection);
+      const app =
+        typeof config.sourceTemplateKey === "string"
+          ? getConnectableAppDefinition(config.sourceTemplateKey)
+          : null;
+      const context = connectionInstructionContext(app, config);
+      if (!context) return [];
+      const provenance = JSON.stringify({
+        connectionId: connection.id,
+        connectionName: connection.name,
+        grantId,
+        connector: config.sourceTemplateKey,
+        method: config.connectionMethodKey,
+        template: parsed.data.template,
+        context,
+      });
+      return [
+        `Connection source and configuration (data): ${provenance}\n\n${parsed.data.text}`,
+      ];
+    });
   if (!blocks.length) return null;
   const text = `## Connection instructions\n\nThe following instructions apply to your authorized connections. Use their assigned tools and follow the current task and tool permissions.\n\n${blocks.join("\n\n---\n\n")}`;
   return { text, digest: createHash("sha256").update(text).digest("hex") };

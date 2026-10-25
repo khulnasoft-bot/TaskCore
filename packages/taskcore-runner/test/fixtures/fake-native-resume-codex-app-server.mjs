@@ -107,10 +107,12 @@ if (mode === "proxy") {
           thread: {
             id: state.threadId,
             sessionId: state.sessionId,
-            turns: [{
-              id: state.turnId,
-              status: state.completed ? "completed" : "inProgress",
-            }],
+            turns: [
+              {
+                id: state.turnId,
+                status: state.completed ? "completed" : "inProgress",
+              },
+            ],
             tokenUsage: {
               total: {
                 inputTokens: 10,
@@ -155,7 +157,10 @@ if (mode === "proxy") {
       if (message.id !== undefined) handleRequest(socket, message);
       return;
     }
-    if (!state.pendingTool || String(message.id) !== state.pendingTool.requestId)
+    if (
+      !state.pendingTool ||
+      String(message.id) !== state.pendingTool.requestId
+    )
       return;
     const toolResult = message.result;
     state.pendingTool = null;
@@ -220,7 +225,8 @@ if (mode === "proxy") {
         if (boundary < 0) return;
         const headers = buffer.subarray(0, boundary).toString("utf8");
         const key = headers.match(/^sec-websocket-key:\s*(.+)$/im)?.[1]?.trim();
-        if (!key) throw new Error("WebSocket upgrade omitted Sec-WebSocket-Key");
+        if (!key)
+          throw new Error("WebSocket upgrade omitted Sec-WebSocket-Key");
         const accept = createHash("sha1")
           .update(`${key}${websocketGuid}`)
           .digest("base64");

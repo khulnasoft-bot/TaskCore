@@ -14,7 +14,11 @@ async function makeTempDir(prefix: string): Promise<string> {
 async function createSkillDir(root: string, name: string) {
   const skillDir = path.join(root, name);
   await fs.mkdir(skillDir, { recursive: true });
-  await fs.writeFile(path.join(skillDir, "SKILL.md"), `---\nname: ${name}\n---\n`, "utf8");
+  await fs.writeFile(
+    path.join(skillDir, "SKILL.md"),
+    `---\nname: ${name}\n---\n`,
+    "utf8",
+  );
   return skillDir;
 }
 
@@ -24,7 +28,11 @@ describe("claude local skill sync", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -38,26 +46,41 @@ describe("claude local skill sync", () => {
 
     expect(snapshot.mode).toBe("ephemeral");
     expect(snapshot.supported).toBe(true);
-    expect(snapshot.desiredSkills).toEqual([taskcoreKey, "taskcore/taskcore/complain", "taskcore/taskcore/suggestion-box"]);
-    expect(snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("configured");
-    expect(snapshot.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("available");
+    expect(snapshot.desiredSkills).toEqual([
+      taskcoreKey,
+      "taskcore/taskcore/complain",
+      "taskcore/taskcore/suggestion-box",
+    ]);
+    expect(
+      snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("configured");
+    expect(
+      snapshot.entries.find((entry) => entry.key === createAgentKey)?.state,
+    ).toBe("available");
   });
 
   it("respects an explicit desired skill list without mutating a persistent home", async () => {
-    const snapshot = await syncClaudeSkills({
-      agentId: "agent-2",
-      companyId: "company-1",
-      adapterType: "claude_local",
-      config: {
-        taskcoreSkillSync: {
-          desiredSkills: [taskcoreKey],
+    const snapshot = await syncClaudeSkills(
+      {
+        agentId: "agent-2",
+        companyId: "company-1",
+        adapterType: "claude_local",
+        config: {
+          taskcoreSkillSync: {
+            desiredSkills: [taskcoreKey],
+          },
         },
       },
-    }, [taskcoreKey]);
+      [taskcoreKey],
+    );
 
     expect(snapshot.desiredSkills).toContain(taskcoreKey);
-    expect(snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("configured");
-    expect(snapshot.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("available");
+    expect(
+      snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("configured");
+    expect(
+      snapshot.entries.find((entry) => entry.key === createAgentKey)?.state,
+    ).toBe("available");
   });
 
   it("normalizes legacy flat Taskcore skill refs to canonical keys", async () => {
@@ -75,8 +98,12 @@ describe("claude local skill sync", () => {
     expect(snapshot.warnings).toEqual([]);
     expect(snapshot.desiredSkills).toContain(taskcoreKey);
     expect(snapshot.desiredSkills).not.toContain("taskcore");
-    expect(snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("configured");
-    expect(snapshot.entries.find((entry) => entry.key === "taskcore")).toBeUndefined();
+    expect(
+      snapshot.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("configured");
+    expect(
+      snapshot.entries.find((entry) => entry.key === "taskcore"),
+    ).toBeUndefined();
   });
 
   it("shows host-level user-installed Claude skills as read-only external entries", async () => {
@@ -95,16 +122,19 @@ describe("claude local skill sync", () => {
       },
     });
 
-    expect(snapshot.entries).toContainEqual(expect.objectContaining({
-      key: "crack-python",
-      runtimeName: "crack-python",
-      state: "external",
-      managed: false,
-      origin: "user_installed",
-      originLabel: "User-installed",
-      locationLabel: "~/.claude/skills",
-      readOnly: true,
-      detail: "Installed outside Taskcore management in the Claude skills home.",
-    }));
+    expect(snapshot.entries).toContainEqual(
+      expect.objectContaining({
+        key: "crack-python",
+        runtimeName: "crack-python",
+        state: "external",
+        managed: false,
+        origin: "user_installed",
+        originLabel: "User-installed",
+        locationLabel: "~/.claude/skills",
+        readOnly: true,
+        detail:
+          "Installed outside Taskcore management in the Claude skills home.",
+      }),
+    );
   });
 });

@@ -39,7 +39,10 @@ describe("environment test harness", () => {
       environmentDriver: driver,
     });
 
-    const lease = await harness.acquireLease({ ...BASE_PARAMS, runId: "run-1" });
+    const lease = await harness.acquireLease({
+      ...BASE_PARAMS,
+      runId: "run-1",
+    });
     expect(lease.providerLeaseId).toBe("fake-lease-1");
 
     await harness.realizeWorkspace({
@@ -87,8 +90,12 @@ describe("environment test harness", () => {
     const probe = await harness.probe(BASE_PARAMS);
     expect(probe.ok).toBe(true);
 
-    expect(filterEnvironmentEvents(harness.environmentEvents, "validateConfig")).toHaveLength(1);
-    expect(filterEnvironmentEvents(harness.environmentEvents, "probe")).toHaveLength(1);
+    expect(
+      filterEnvironmentEvents(harness.environmentEvents, "validateConfig"),
+    ).toHaveLength(1);
+    expect(
+      filterEnvironmentEvents(harness.environmentEvents, "probe"),
+    ).toHaveLength(1);
   });
 
   it("supports probe failure injection", async () => {
@@ -103,14 +110,21 @@ describe("environment test harness", () => {
   });
 
   it("supports acquire failure injection and records errors", async () => {
-    const driver = createFakeEnvironmentDriver({ acquireFailure: "No capacity" });
+    const driver = createFakeEnvironmentDriver({
+      acquireFailure: "No capacity",
+    });
     const harness = createEnvironmentTestHarness({
       manifest: FAKE_MANIFEST,
       environmentDriver: driver,
     });
 
-    await expect(harness.acquireLease({ ...BASE_PARAMS, runId: "run-1" })).rejects.toThrow("No capacity");
-    const errorEvent = assertEnvironmentError(harness.environmentEvents, "acquireLease");
+    await expect(
+      harness.acquireLease({ ...BASE_PARAMS, runId: "run-1" }),
+    ).rejects.toThrow("No capacity");
+    const errorEvent = assertEnvironmentError(
+      harness.environmentEvents,
+      "acquireLease",
+    );
     expect(errorEvent.error).toBe("No capacity");
   });
 
@@ -121,7 +135,10 @@ describe("environment test harness", () => {
       environmentDriver: driver,
     });
 
-    const lease = await harness.acquireLease({ ...BASE_PARAMS, runId: "run-1" });
+    const lease = await harness.acquireLease({
+      ...BASE_PARAMS,
+      runId: "run-1",
+    });
     const result = await harness.execute({
       ...BASE_PARAMS,
       lease,
@@ -138,7 +155,10 @@ describe("environment test harness", () => {
       environmentDriver: driver,
     });
 
-    const lease = await harness.acquireLease({ ...BASE_PARAMS, runId: "run-1" });
+    const lease = await harness.acquireLease({
+      ...BASE_PARAMS,
+      runId: "run-1",
+    });
     const resumed = await harness.resumeLease({
       ...BASE_PARAMS,
       providerLeaseId: lease.providerLeaseId!,
@@ -165,7 +185,10 @@ describe("environment test harness", () => {
       environmentDriver: driver,
     });
 
-    const lease = await harness.acquireLease({ ...BASE_PARAMS, runId: "run-1" });
+    const lease = await harness.acquireLease({
+      ...BASE_PARAMS,
+      runId: "run-1",
+    });
     await harness.destroyLease({
       ...BASE_PARAMS,
       providerLeaseId: lease.providerLeaseId,
@@ -175,7 +198,9 @@ describe("environment test harness", () => {
   });
 
   it("assertLeaseLifecycle throws when acquire is missing", () => {
-    expect(() => assertLeaseLifecycle([], "env-1")).toThrow("No acquireLease event");
+    expect(() => assertLeaseLifecycle([], "env-1")).toThrow(
+      "No acquireLease event",
+    );
   });
 
   it("assertWorkspaceRealizationLifecycle validates workspace between acquire and release", async () => {
@@ -185,15 +210,24 @@ describe("environment test harness", () => {
       environmentDriver: driver,
     });
 
-    const lease = await harness.acquireLease({ ...BASE_PARAMS, runId: "run-1" });
+    const lease = await harness.acquireLease({
+      ...BASE_PARAMS,
+      runId: "run-1",
+    });
     await harness.realizeWorkspace({
       ...BASE_PARAMS,
       lease,
       workspace: { localPath: "/tmp/ws" },
     });
-    await harness.releaseLease({ ...BASE_PARAMS, providerLeaseId: lease.providerLeaseId });
+    await harness.releaseLease({
+      ...BASE_PARAMS,
+      providerLeaseId: lease.providerLeaseId,
+    });
 
-    const realize = assertWorkspaceRealizationLifecycle(harness.environmentEvents, "env-1");
+    const realize = assertWorkspaceRealizationLifecycle(
+      harness.environmentEvents,
+      "env-1",
+    );
     expect(realize.type).toBe("realizeWorkspace");
   });
 
@@ -204,10 +238,16 @@ describe("environment test harness", () => {
       environmentDriver: driver,
     });
 
-    const lease = await harness.acquireLease({ ...BASE_PARAMS, runId: "run-1" });
+    const lease = await harness.acquireLease({
+      ...BASE_PARAMS,
+      runId: "run-1",
+    });
     await harness.execute({ ...BASE_PARAMS, lease, command: "ls" });
     await harness.execute({ ...BASE_PARAMS, lease, command: "pwd" });
-    await harness.releaseLease({ ...BASE_PARAMS, providerLeaseId: lease.providerLeaseId });
+    await harness.releaseLease({
+      ...BASE_PARAMS,
+      providerLeaseId: lease.providerLeaseId,
+    });
 
     const execs = assertExecutionLifecycle(harness.environmentEvents, "env-1");
     expect(execs).toHaveLength(2);
@@ -219,7 +259,9 @@ describe("environment test harness", () => {
       environmentDriver: { driverKey: "bare" },
     });
 
-    await expect(harness.probe(BASE_PARAMS)).rejects.toThrow("does not implement onProbe");
+    await expect(harness.probe(BASE_PARAMS)).rejects.toThrow(
+      "does not implement onProbe",
+    );
     assertEnvironmentError(harness.environmentEvents, "probe");
   });
 
@@ -227,7 +269,12 @@ describe("environment test harness", () => {
     const driver = createFakeEnvironmentDriver();
     const harness = createEnvironmentTestHarness({
       manifest: FAKE_MANIFEST,
-      capabilities: [...FAKE_MANIFEST.capabilities, "events.subscribe", "plugin.state.read", "plugin.state.write"],
+      capabilities: [
+        ...FAKE_MANIFEST.capabilities,
+        "events.subscribe",
+        "plugin.state.read",
+        "plugin.state.write",
+      ],
       environmentDriver: driver,
     });
 

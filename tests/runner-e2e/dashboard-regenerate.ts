@@ -96,8 +96,9 @@ export async function regenerateRunnerDashboard(input: {
     results,
   });
   // A rendering refresh must not inherit the renderer's checkout or CI event.
-  const retainedSource = results.find((result) =>
-    result.source?.sha || result.source?.ref || result.source?.workflowRunUrl,
+  const retainedSource = results.find(
+    (result) =>
+      result.source?.sha || result.source?.ref || result.source?.workflowRunUrl,
   )?.source;
   campaign.source = normalized.source ?? {
     sha: retainedSource?.sha ?? null,
@@ -142,7 +143,8 @@ export async function regenerateRunnerDashboard(input: {
       return {
         result,
         valid:
-          result.status === "passed" && result.cleanup === "passed" &&
+          result.status === "passed" &&
+          result.cleanup === "passed" &&
           publishedResult.evidenceValid !== false,
         errors: publishedResult.evidenceErrors ?? [],
         evidenceBaseHref,

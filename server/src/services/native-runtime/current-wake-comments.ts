@@ -13,7 +13,10 @@ import type { SourceTrustMetadata } from "@taskcore/shared";
 
 import { createRunSecretRedactionRegistry } from "../run-secret-redaction.js";
 import { sanitizeQuarantinedCommentForHigherTrust } from "../source-trust.js";
-import { getNativeReviewAssignment, readNativeReviewAssignmentContext } from "./native-review-participant.js";
+import {
+  getNativeReviewAssignment,
+  readNativeReviewAssignmentContext,
+} from "./native-review-participant.js";
 
 export const READ_CURRENT_WAKE_COMMENTS_TOOL_NAME =
   "read_current_wake_comments";
@@ -307,8 +310,8 @@ export async function resolveCurrentWakeCommentsBinding(
     (wake.checkedOutByHarness !== true &&
       !(
         wake.externalChatExecutionBound === true &&
-        record(bound.run.contextSnapshot)
-          .taskcoreExternalChatExecutionBound === true
+        record(bound.run.contextSnapshot).taskcoreExternalChatExecutionBound ===
+          true
       )) ||
     wake.fallbackFetchNeeded !== true ||
     commentIds.length === 0 ||
@@ -778,17 +781,27 @@ export async function assertCurrentWakeCommentsRead(
       .for("update")
       .limit(1)
       .then((rows) => rows[0] ?? null);
-    if (!locked) throw new Error("native_current_wake_comments_binding_changed");
+    if (!locked)
+      throw new Error("native_current_wake_comments_binding_changed");
     if (readNativeReviewAssignmentContext(locked.contextSnapshot)) {
       // Accepting a review can release the child's execution lock. The exact
       // resolving run may still finish; it does not regain task write access.
       const review = await getNativeReviewAssignment(tx as unknown as Db, {
-        ...input, contextSnapshot: locked.contextSnapshot, allowResolvedByRunId: input.runId,
+        ...input,
+        contextSnapshot: locked.contextSnapshot,
+        allowResolvedByRunId: input.runId,
       });
-      if (!review || (review.interaction.status === "pending" && locked.issueExecutionRunId !== input.runId)) {
+      if (
+        !review ||
+        (review.interaction.status === "pending" &&
+          locked.issueExecutionRunId !== input.runId)
+      ) {
         throw new Error("native_current_wake_comments_binding_changed");
       }
-    } else if (locked.issueAssigneeAgentId !== input.agentId || locked.issueExecutionRunId !== input.runId) {
+    } else if (
+      locked.issueAssigneeAgentId !== input.agentId ||
+      locked.issueExecutionRunId !== input.runId
+    ) {
       throw new Error("native_current_wake_comments_binding_changed");
     }
     const currentBinding = await resolveCurrentWakeCommentsBinding(

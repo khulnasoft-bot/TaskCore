@@ -18,7 +18,9 @@ import {
 import { heartbeatService } from "../services/heartbeat.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -51,7 +53,8 @@ async function waitForRunLeasesToRelease(
       .select()
       .from(environmentLeases)
       .where(eq(environmentLeases.heartbeatRunId, runId));
-    if (leases.length > 0 && leases.every((lease) => lease.status !== "active")) return leases;
+    if (leases.length > 0 && leases.every((lease) => lease.status !== "active"))
+      return leases;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   return await db
@@ -63,13 +66,18 @@ async function waitForRunLeasesToRelease(
 describeEmbeddedPostgres("heartbeat local environment lifecycle", () => {
   let db!: ReturnType<typeof createDb>;
   let heartbeat!: ReturnType<typeof heartbeatService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let previousAgentJwtSecret: string | undefined;
 
   beforeAll(async () => {
     previousAgentJwtSecret = process.env.TASKCORE_AGENT_JWT_SECRET;
-    process.env.TASKCORE_AGENT_JWT_SECRET = "heartbeat-local-environment-test-secret";
-    tempDb = await startEmbeddedPostgresTestDatabase("heartbeat-local-environment-");
+    process.env.TASKCORE_AGENT_JWT_SECRET =
+      "heartbeat-local-environment-test-secret";
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "heartbeat-local-environment-",
+    );
     db = createDb(tempDb.connectionString);
     heartbeat = heartbeatService(db);
   }, 20_000);
@@ -81,7 +89,8 @@ describeEmbeddedPostgres("heartbeat local environment lifecycle", () => {
     // before the TRUNCATE below, or a write that lands after the company row
     // is gone violates heartbeat_run_events' foreign key.
     await heartbeat.drainActiveRunExecutions();
-    await db.execute(sql.raw(`
+    await db.execute(
+      sql.raw(`
       TRUNCATE TABLE
         "environment_leases",
         "environments",
@@ -94,7 +103,8 @@ describeEmbeddedPostgres("heartbeat local environment lifecycle", () => {
         "agents",
         "companies"
       RESTART IDENTITY CASCADE
-    `));
+    `),
+    );
   });
 
   afterAll(async () => {
@@ -215,7 +225,10 @@ describeEmbeddedPostgres("heartbeat local environment lifecycle", () => {
     const finished = await waitForRunToFinish(heartbeat, queued!.id);
     expect(finished?.status).toBe("succeeded");
 
-    const captured = JSON.parse(await readFile(envPath, "utf8")) as Record<string, unknown>;
+    const captured = JSON.parse(await readFile(envPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
     expect(captured).toMatchObject({
       agentId,
       companyId,

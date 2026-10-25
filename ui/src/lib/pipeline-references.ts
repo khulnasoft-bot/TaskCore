@@ -14,9 +14,21 @@
  */
 
 export type WorkReference =
-  | { id: string; kind: "workspace"; label: string; path: string | null; branch: string | null }
+  | {
+      id: string;
+      kind: "workspace";
+      label: string;
+      path: string | null;
+      branch: string | null;
+    }
   | { id: string; kind: "url"; label: string; url: string }
-  | { id: string; kind: "issue"; label: string; issueId: string | null; identifier: string | null };
+  | {
+      id: string;
+      kind: "issue";
+      label: string;
+      issueId: string | null;
+      identifier: string | null;
+    };
 
 interface ReferenceCaseInput {
   fields?: Record<string, unknown> | null;
@@ -28,7 +40,9 @@ function readString(value: unknown): string | null {
 }
 
 function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function isHttpUrl(value: string): boolean {
@@ -47,13 +61,23 @@ function humanizeKey(key: string): string {
 function normalizeKind(raw: unknown): WorkReference["kind"] | null {
   const kind = readString(raw)?.toLowerCase();
   if (!kind) return null;
-  if (kind === "workspace" || kind === "folder" || kind === "workspace_folder" || kind === "file") return "workspace";
+  if (
+    kind === "workspace" ||
+    kind === "folder" ||
+    kind === "workspace_folder" ||
+    kind === "file"
+  )
+    return "workspace";
   if (kind === "url" || kind === "link" || kind === "external") return "url";
   if (kind === "issue" || kind === "task" || kind === "ticket") return "issue";
   return null;
 }
 
-function workspaceFromRecord(id: string, label: string, record: Record<string, unknown>): WorkReference {
+function workspaceFromRecord(
+  id: string,
+  label: string,
+  record: Record<string, unknown>,
+): WorkReference {
   return {
     id,
     kind: "workspace",
@@ -86,13 +110,22 @@ function referenceFromField(key: string, value: unknown): WorkReference | null {
   const recordUrl = readString(record.url) ?? readString(record.href);
   if (explicitKind === "url" || (recordUrl && isHttpUrl(recordUrl))) {
     if (!recordUrl) return null;
-    return { id: key, kind: "url", label: readString(record.label) ?? label, url: recordUrl };
+    return {
+      id: key,
+      kind: "url",
+      label: readString(record.label) ?? label,
+      url: recordUrl,
+    };
   }
 
   // Issue-shaped.
   const issueId = readString(record.issueId) ?? readString(record.id);
-  const identifier = readString(record.identifier) ?? readString(record.issueIdentifier);
-  if (explicitKind === "issue" || ((issueId || identifier) && (record.issueId || record.issueIdentifier))) {
+  const identifier =
+    readString(record.identifier) ?? readString(record.issueIdentifier);
+  if (
+    explicitKind === "issue" ||
+    ((issueId || identifier) && (record.issueId || record.issueIdentifier))
+  ) {
     return {
       id: key,
       kind: "issue",
@@ -103,7 +136,12 @@ function referenceFromField(key: string, value: unknown): WorkReference | null {
   }
 
   // Workspace-shaped.
-  if (explicitKind === "workspace" || record.path || record.folder || record.workspacePath) {
+  if (
+    explicitKind === "workspace" ||
+    record.path ||
+    record.folder ||
+    record.workspacePath
+  ) {
     return workspaceFromRecord(key, readString(record.label) ?? label, record);
   }
 
@@ -114,12 +152,22 @@ function referenceFromField(key: string, value: unknown): WorkReference | null {
  * Extract every typed work reference for a case, starting with the dedicated
  * `workspaceRef` column and then any reference-shaped `fields` entries.
  */
-export function extractWorkReferences(caseItem: ReferenceCaseInput): WorkReference[] {
+export function extractWorkReferences(
+  caseItem: ReferenceCaseInput,
+): WorkReference[] {
   const references: WorkReference[] = [];
 
   const workspaceRef = readRecord(caseItem.workspaceRef);
-  if (workspaceRef && (workspaceRef.path || workspaceRef.folder || workspaceRef.workspacePath || workspaceRef.name)) {
-    references.push(workspaceFromRecord("workspaceRef", "Workspace folder", workspaceRef));
+  if (
+    workspaceRef &&
+    (workspaceRef.path ||
+      workspaceRef.folder ||
+      workspaceRef.workspacePath ||
+      workspaceRef.name)
+  ) {
+    references.push(
+      workspaceFromRecord("workspaceRef", "Workspace folder", workspaceRef),
+    );
   }
 
   for (const [key, value] of Object.entries(caseItem.fields ?? {})) {
@@ -134,7 +182,9 @@ export function extractWorkReferences(caseItem: ReferenceCaseInput): WorkReferen
  * The set of `fields` keys that render as typed references, so the plain
  * Details list can exclude them and avoid showing the same value twice.
  */
-export function referenceFieldKeys(fields: Record<string, unknown> | null | undefined): Set<string> {
+export function referenceFieldKeys(
+  fields: Record<string, unknown> | null | undefined,
+): Set<string> {
   const keys = new Set<string>();
   for (const [key, value] of Object.entries(fields ?? {})) {
     if (referenceFromField(key, value)) keys.add(key);

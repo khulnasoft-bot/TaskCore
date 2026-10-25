@@ -19,7 +19,9 @@ import {
 import { issueService } from "../services/issues.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -30,10 +32,14 @@ if (!embeddedPostgresSupport.supported) {
 describeEmbeddedPostgres("issue review attention", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof issueService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-review-attention-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-review-attention-",
+    );
     db = createDb(tempDb.connectionString);
     svc = issueService(db);
   }, 30_000);
@@ -101,14 +107,22 @@ describeEmbeddedPostgres("issue review attention", () => {
 
   it("surfaces a pathless agent-owned review as stalled and a queued recovery as covered", async () => {
     const { companyId, agentId } = await seed();
-    const issueId = await insertReview({ companyId, agentId, identifier: "RVA-1" });
+    const issueId = await insertReview({
+      companyId,
+      agentId,
+      identifier: "RVA-1",
+    });
 
-    let row = (await svc.list(companyId, { status: "in_review" })).find((issue) => issue.id === issueId);
+    let row = (await svc.list(companyId, { status: "in_review" })).find(
+      (issue) => issue.id === issueId,
+    );
     expect(row?.reviewAttention).toMatchObject({
       state: "stalled",
       paths: [],
     });
-    expect(row?.reviewAttention?.reason).toContain("no participant, interaction, approval");
+    expect(row?.reviewAttention?.reason).toContain(
+      "no participant, interaction, approval",
+    );
 
     const recoveryIdempotencyKey = `issue_review_path_lost:${issueId}:fingerprint`;
     const recoveryWake = {
@@ -121,25 +135,47 @@ describeEmbeddedPostgres("issue review attention", () => {
       idempotencyKey: recoveryIdempotencyKey,
     };
     await db.insert(agentWakeupRequests).values(recoveryWake);
-    await expect(db.insert(agentWakeupRequests).values(recoveryWake)).rejects.toMatchObject({
+    await expect(
+      db.insert(agentWakeupRequests).values(recoveryWake),
+    ).rejects.toMatchObject({
       cause: {
         code: "23505",
-        constraint_name: "agent_wakeup_requests_review_path_recovery_idempotency_uq",
+        constraint_name:
+          "agent_wakeup_requests_review_path_recovery_idempotency_uq",
       },
     });
 
-    row = (await svc.list(companyId, { status: "in_review" })).find((issue) => issue.id === issueId);
+    row = (await svc.list(companyId, { status: "in_review" })).find(
+      (issue) => issue.id === issueId,
+    );
     expect(row?.reviewAttention).toMatchObject({
       state: "covered",
-      paths: [expect.objectContaining({ kind: "queued_wake", responder: "Review Agent" })],
+      paths: [
+        expect.objectContaining({
+          kind: "queued_wake",
+          responder: "Review Agent",
+        }),
+      ],
     });
   });
 
   it("reports every healthy review path as covered", async () => {
     const { companyId, agentId } = await seed();
-    const interactionIssueId = await insertReview({ companyId, agentId, identifier: "RVA-2" });
-    const humanOnlyInteractionIssueId = await insertReview({ companyId, agentId, identifier: "RVA-2H" });
-    const approvalIssueId = await insertReview({ companyId, agentId, identifier: "RVA-3" });
+    const interactionIssueId = await insertReview({
+      companyId,
+      agentId,
+      identifier: "RVA-2",
+    });
+    const humanOnlyInteractionIssueId = await insertReview({
+      companyId,
+      agentId,
+      identifier: "RVA-2H",
+    });
+    const approvalIssueId = await insertReview({
+      companyId,
+      agentId,
+      identifier: "RVA-3",
+    });
     const monitorIssueId = await insertReview({
       companyId,
       agentId,
@@ -157,10 +193,21 @@ describeEmbeddedPostgres("issue review attention", () => {
       companyId,
       agentId,
       identifier: "RVA-6",
-      executionState: { status: "pending", currentParticipant: { type: "agent", agentId } },
+      executionState: {
+        status: "pending",
+        currentParticipant: { type: "agent", agentId },
+      },
     });
-    const activeRunIssueId = await insertReview({ companyId, agentId, identifier: "RVA-7" });
-    const recoveryIssueId = await insertReview({ companyId, agentId, identifier: "RVA-8" });
+    const activeRunIssueId = await insertReview({
+      companyId,
+      agentId,
+      identifier: "RVA-7",
+    });
+    const recoveryIssueId = await insertReview({
+      companyId,
+      agentId,
+      identifier: "RVA-8",
+    });
 
     await db.insert(issueThreadInteractions).values({
       companyId,
@@ -190,7 +237,9 @@ describeEmbeddedPostgres("issue review attention", () => {
       status: "pending",
       payload: { title: "Review" },
     });
-    await db.insert(issueApprovals).values({ companyId, issueId: approvalIssueId, approvalId });
+    await db
+      .insert(issueApprovals)
+      .values({ companyId, issueId: approvalIssueId, approvalId });
     await db.insert(heartbeatRuns).values({
       companyId,
       agentId,
@@ -229,12 +278,19 @@ describeEmbeddedPostgres("issue review attention", () => {
         paths: expect.arrayContaining([expect.objectContaining({ kind })]),
       });
     }
-    expect(byId.get(interactionIssueId)?.paths).toEqual(expect.arrayContaining([
-      expect.objectContaining({ kind: "interaction", responder: "Review Agent" }),
-    ]));
-    expect(byId.get(humanOnlyInteractionIssueId)?.paths).toEqual(expect.arrayContaining([
-      expect.objectContaining({ kind: "interaction", responder: "Board" }),
-    ]));
+    expect(byId.get(interactionIssueId)?.paths).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "interaction",
+          responder: "Review Agent",
+        }),
+      ]),
+    );
+    expect(byId.get(humanOnlyInteractionIssueId)?.paths).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "interaction", responder: "Board" }),
+      ]),
+    );
   });
 
   it("does not let a transiently skipped recovery consume its fingerprint", async () => {
@@ -255,9 +311,11 @@ describeEmbeddedPostgres("issue review attention", () => {
       finishedAt: new Date(),
     });
 
-    await expect(db.insert(agentWakeupRequests).values({
-      ...baseWake,
-      status: "queued",
-    })).resolves.toBeDefined();
+    await expect(
+      db.insert(agentWakeupRequests).values({
+        ...baseWake,
+        status: "queued",
+      }),
+    ).resolves.toBeDefined();
   });
 });

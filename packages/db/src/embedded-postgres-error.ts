@@ -4,7 +4,8 @@ const RECENT_LOG_SUMMARY_LINES = 8;
 function toError(error: unknown, fallbackMessage: string): Error {
   if (error instanceof Error) return error;
   if (error === undefined) return new Error(fallbackMessage);
-  if (typeof error === "string") return new Error(`${fallbackMessage}: ${error}`);
+  if (typeof error === "string")
+    return new Error(`${fallbackMessage}: ${error}`);
 
   try {
     return new Error(`${fallbackMessage}: ${JSON.stringify(error)}`);
@@ -35,7 +36,9 @@ function detectEmbeddedPostgresHint(recentLogs: string[]): string | null {
   );
 }
 
-export function createEmbeddedPostgresLogBuffer(limit = DEFAULT_RECENT_LOG_LIMIT): {
+export function createEmbeddedPostgresLogBuffer(
+  limit = DEFAULT_RECENT_LOG_LIMIT,
+): {
   append(message: unknown): void;
   getRecentLogs(): string[];
 } {

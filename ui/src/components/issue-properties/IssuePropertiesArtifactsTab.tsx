@@ -238,7 +238,12 @@ function MarkdownWorkProductRow({
               {openTextAttachment ? (
                 <button
                   type="button"
-                  onClick={() => openTextAttachment(metadata.attachmentId, metadata.originalFilename ?? workProduct.title)}
+                  onClick={() =>
+                    openTextAttachment(
+                      metadata.attachmentId,
+                      metadata.originalFilename ?? workProduct.title,
+                    )
+                  }
                   aria-label={`Open in tab: ${workProduct.title}`}
                   title="Open in tab"
                   className="shrink-0 px-1.5 py-1.5 text-muted-foreground hover:text-foreground"
@@ -441,33 +446,27 @@ export function IssuePropertiesArtifactsTab({
 
   const allRows = useMemo<ArtifactRow[]>(
     () => [
-      ...workProductRows.map(
-        (value): ArtifactRow => ({
-          kind: "work_product",
-          id: value.id,
-          runId: value.createdByRunId,
-          date: new Date(value.createdAt),
-          value,
-        }),
-      ),
-      ...documentRows.map(
-        (value): ArtifactRow => ({
-          kind: "document",
-          id: value.id,
-          runId: null,
-          date: new Date(value.createdAt),
-          value,
-        }),
-      ),
-      ...fileRows.map(
-        (value): ArtifactRow => ({
-          kind: "attachment",
-          id: value.id,
-          runId: null,
-          date: new Date(value.createdAt),
-          value,
-        }),
-      ),
+      ...workProductRows.map((value): ArtifactRow => ({
+        kind: "work_product",
+        id: value.id,
+        runId: value.createdByRunId,
+        date: new Date(value.createdAt),
+        value,
+      })),
+      ...documentRows.map((value): ArtifactRow => ({
+        kind: "document",
+        id: value.id,
+        runId: null,
+        date: new Date(value.createdAt),
+        value,
+      })),
+      ...fileRows.map((value): ArtifactRow => ({
+        kind: "attachment",
+        id: value.id,
+        runId: null,
+        date: new Date(value.createdAt),
+        value,
+      })),
     ],
     [documentRows, fileRows, workProductRows],
   );

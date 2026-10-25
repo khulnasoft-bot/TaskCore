@@ -30,11 +30,15 @@ function startFakeBroker(
         expected = buf.readUInt32BE(0);
       }
       if (buf.byteLength < LENGTH_PREFIX_BYTES + expected) return;
-      const body = buf.subarray(LENGTH_PREFIX_BYTES, LENGTH_PREFIX_BYTES + expected).toString("utf8");
+      const body = buf
+        .subarray(LENGTH_PREFIX_BYTES, LENGTH_PREFIX_BYTES + expected)
+        .toString("utf8");
       const request = JSON.parse(body) as Record<string, unknown>;
       const response = handler(request);
       const respBody = Buffer.from(JSON.stringify(response), "utf8");
-      const frame = Buffer.allocUnsafe(LENGTH_PREFIX_BYTES + respBody.byteLength);
+      const frame = Buffer.allocUnsafe(
+        LENGTH_PREFIX_BYTES + respBody.byteLength,
+      );
       frame.writeUInt32BE(respBody.byteLength, 0);
       respBody.copy(frame, LENGTH_PREFIX_BYTES);
       socket.end(frame);
@@ -77,18 +81,36 @@ describe("UnixBrokerClient", () => {
     const socketPath = fake((request) => {
       seen = request;
       if (request.op === "reserve") {
-        return { ok: true, op: "reserve", requestId: request.requestId, handle: "h".repeat(20), reservedPorts: [42000, 52000] };
+        return {
+          ok: true,
+          op: "reserve",
+          requestId: request.requestId,
+          handle: "h".repeat(20),
+          reservedPorts: [42000, 52000],
+        };
       }
-      return { ok: true, op: "expose", requestId: request.requestId, handle: "h".repeat(20), publicPorts: [42000, 52000] };
+      return {
+        ok: true,
+        op: "expose",
+        requestId: request.requestId,
+        handle: "h".repeat(20),
+        publicPorts: [42000, 52000],
+      };
     });
     const client = new UnixBrokerClient({ socketPath });
     const reserved = await client.reserve(RUNTIME_ID, [
       { purpose: "app", port: 42000 },
       { purpose: "vite_hmr", port: 52000 },
     ]);
-    expect(reserved).toEqual({ handle: "h".repeat(20), reservedPorts: [42000, 52000] });
+    expect(reserved).toEqual({
+      handle: "h".repeat(20),
+      reservedPorts: [42000, 52000],
+    });
     const result = await client.expose(RUNTIME_ID, reserved.handle);
-    expect(result).toEqual({ handle: "h".repeat(20), publicPorts: [42000, 52000] });
+    expect(result).toEqual({
+      handle: "h".repeat(20),
+      publicPorts: [42000, 52000],
+    });
     expect(seen).toMatchObject({
       v: 1,
       op: "expose",
@@ -119,7 +141,9 @@ describe("UnixBrokerClient", () => {
     }));
     const client = new UnixBrokerClient({ socketPath });
     const listeners = await client.list();
-    expect(listeners).toEqual([{ runtimeId: RUNTIME_ID, port: 42000, purpose: "app" }]);
+    expect(listeners).toEqual([
+      { runtimeId: RUNTIME_ID, port: 42000, purpose: "app" },
+    ]);
   });
 
   it("surfaces a broker error response as a coded BrokerClientError", async () => {
@@ -130,7 +154,9 @@ describe("UnixBrokerClient", () => {
       message: "denied",
     }));
     const client = new UnixBrokerClient({ socketPath });
-    await expect(client.reserve(RUNTIME_ID, [{ purpose: "app", port: 42000 }])).rejects.toMatchObject({
+    await expect(
+      client.reserve(RUNTIME_ID, [{ purpose: "app", port: 42000 }]),
+    ).rejects.toMatchObject({
       name: "BrokerClientError",
       code: "port_not_allowlisted",
     });
@@ -143,9 +169,16 @@ describe("UnixBrokerClient", () => {
   });
 
   it("rejects an expose response missing publicPorts", async () => {
-    const socketPath = fake((request) => ({ ok: true, op: "expose", requestId: request.requestId, handle: "h".repeat(20) }));
+    const socketPath = fake((request) => ({
+      ok: true,
+      op: "expose",
+      requestId: request.requestId,
+      handle: "h".repeat(20),
+    }));
     const client = new UnixBrokerClient({ socketPath });
-    await expect(client.expose(RUNTIME_ID, "h".repeat(20))).rejects.toMatchObject({
+    await expect(
+      client.expose(RUNTIME_ID, "h".repeat(20)),
+    ).rejects.toMatchObject({
       code: "malformed_response",
     });
   });
@@ -159,7 +192,9 @@ describe("UnixBrokerClient", () => {
       socketPath: path.join(os.tmpdir(), `missing-${randomUUID()}.sock`),
       timeoutMs: 500,
     });
-    await expect(client.list()).rejects.toMatchObject({ code: "transport_error" });
+    await expect(client.list()).rejects.toMatchObject({
+      code: "transport_error",
+    });
   });
 });
 
@@ -173,7 +208,9 @@ async function silentTimeout(): Promise<boolean> {
     socket.on("error", () => {});
     connections.push(socket);
   });
-  await new Promise<void>((resolve) => server.listen(socketPath, () => resolve()));
+  await new Promise<void>((resolve) =>
+    server.listen(socketPath, () => resolve()),
+  );
   try {
     const client = new UnixBrokerClient({ socketPath, timeoutMs: 150 });
     try {

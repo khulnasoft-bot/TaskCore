@@ -24,7 +24,8 @@ vi.doMock("node:fs", async () => {
 });
 
 vi.doMock("node:module", async () => {
-  const actual = await vi.importActual<typeof import("node:module")>("node:module");
+  const actual =
+    await vi.importActual<typeof import("node:module")>("node:module");
   return {
     ...actual,
     createRequire: () => ({
@@ -56,7 +57,14 @@ function catalogSkill(slug: string, name = slug): CatalogSkill {
     recommendedForRoles: ["engineer"],
     requires: [],
     tags: ["test"],
-    files: [{ path: "SKILL.md", kind: "skill", sizeBytes: 8, sha256: `sha256:${slug}` }],
+    files: [
+      {
+        path: "SKILL.md",
+        kind: "skill",
+        sizeBytes: 8,
+        sha256: `sha256:${slug}`,
+      },
+    ],
     contentHash: `sha256:${slug}`,
   };
 }
@@ -91,7 +99,9 @@ describe("skills catalog service", () => {
       mtimeMs: manifestMtimeMs,
       size: Buffer.byteLength(manifestJson),
     }));
-    mockReadFile.mockImplementation(async (filePath: string) => `content:${filePath}`);
+    mockReadFile.mockImplementation(
+      async (filePath: string) => `content:${filePath}`,
+    );
     mockRequireResolve.mockImplementation((specifier: string) => {
       if (specifier === "@taskcore/skills-catalog/package.json") {
         return "/published/node_modules/@taskcore/skills-catalog/package.json";
@@ -121,7 +131,9 @@ describe("skills catalog service", () => {
       "taskcore/bundled/software-development/new-skill",
     ]);
     expect(mockReadFileSync).toHaveBeenCalledTimes(2);
-    expect(() => service.getCatalogSkillOrThrow("old-skill")).toThrow("Catalog skill not found");
+    expect(() => service.getCatalogSkillOrThrow("old-skill")).toThrow(
+      "Catalog skill not found",
+    );
     expect(service.getCatalogPackageMetadata()).toEqual({
       packageName: "@taskcore/skills-catalog",
       packageVersion: "0.3.2",
@@ -132,12 +144,19 @@ describe("skills catalog service", () => {
     const imageSkill = catalogSkill("with-image", "With Image");
     imageSkill.files = [
       ...imageSkill.files,
-      { path: "assets/logo.png", kind: "asset", sizeBytes: 4, sha256: "sha256:logo" },
+      {
+        path: "assets/logo.png",
+        kind: "asset",
+        sizeBytes: 4,
+        sha256: "sha256:logo",
+      },
     ];
     manifestJson = manifest([imageSkill]);
     const service = await import("../services/skills-catalog.js");
 
-    await expect(service.readCatalogSkillFile(imageSkill.id, "assets/logo.png")).rejects.toMatchObject({
+    await expect(
+      service.readCatalogSkillFile(imageSkill.id, "assets/logo.png"),
+    ).rejects.toMatchObject({
       status: 415,
       message: "Catalog asset previews are not supported.",
     });
@@ -158,17 +177,26 @@ describe("skills catalog service", () => {
       url: "https://github.com/example/remote-skill/tree/v1.0.0/skills/remote",
     };
     remoteSkill.files = [
-      { path: "SKILL.md", kind: "skill", sizeBytes: Buffer.byteLength(markdown), sha256: sha256(markdown) },
+      {
+        path: "SKILL.md",
+        kind: "skill",
+        sizeBytes: Buffer.byteLength(markdown),
+        sha256: sha256(markdown),
+      },
     ];
     manifestJson = manifest([remoteSkill]);
     const fetchMock = vi.fn(async (url: string) => {
-      expect(url).toBe("https://raw.githubusercontent.com/example/remote-skill/0123456789abcdef0123456789abcdef01234567/skills/remote/SKILL.md");
+      expect(url).toBe(
+        "https://raw.githubusercontent.com/example/remote-skill/0123456789abcdef0123456789abcdef01234567/skills/remote/SKILL.md",
+      );
       return new Response(markdown, { status: 200 });
     });
     vi.stubGlobal("fetch", fetchMock);
     const service = await import("../services/skills-catalog.js");
 
-    await expect(service.readCatalogSkillFile(remoteSkill.id, "SKILL.md")).resolves.toMatchObject({
+    await expect(
+      service.readCatalogSkillFile(remoteSkill.id, "SKILL.md"),
+    ).resolves.toMatchObject({
       catalogSkillId: remoteSkill.id,
       path: "SKILL.md",
       content: markdown,
@@ -190,14 +218,18 @@ describe("skills catalog service", () => {
       },
     ];
     manifestJson = manifest([publishedSkill], "0.3.2");
-    mockReadFile.mockImplementationOnce(async () => Buffer.from(publishedMarkdown));
+    mockReadFile.mockImplementationOnce(async () =>
+      Buffer.from(publishedMarkdown),
+    );
     const service = await import("../services/skills-catalog.js");
 
     expect(service.getCatalogPackageMetadata()).toEqual({
       packageName: "@taskcore/skills-catalog",
       packageVersion: "0.3.2",
     });
-    await expect(service.readCatalogSkillFile(publishedSkill.id, "SKILL.md")).resolves.toMatchObject({
+    await expect(
+      service.readCatalogSkillFile(publishedSkill.id, "SKILL.md"),
+    ).resolves.toMatchObject({
       catalogSkillId: publishedSkill.id,
       path: "SKILL.md",
       content: publishedMarkdown,
@@ -210,8 +242,12 @@ describe("skills catalog service", () => {
     expect(mockReadFile).toHaveBeenCalledWith(
       "/published/node_modules/@taskcore/skills-catalog/catalog/bundled/software-development/published-skill/SKILL.md",
     );
-    expect(mockRequireResolve).toHaveBeenCalledWith("@taskcore/skills-catalog/package.json");
-    expect(mockRequireResolve).toHaveBeenCalledWith("@taskcore/skills-catalog/catalog.json");
+    expect(mockRequireResolve).toHaveBeenCalledWith(
+      "@taskcore/skills-catalog/package.json",
+    );
+    expect(mockRequireResolve).toHaveBeenCalledWith(
+      "@taskcore/skills-catalog/catalog.json",
+    );
   });
 
   it("returns an empty list, caches package-resolution failure, and logs only once when the manifest cannot be resolved", async () => {

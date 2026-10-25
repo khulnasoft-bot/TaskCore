@@ -2,7 +2,9 @@ import { createServer } from "node:http";
 import { expect, test } from "@playwright/test";
 import { dropChatSendAcknowledgement } from "./lost-send.js";
 
-test("drops the browser response only after the real server committed its comment", async ({ page }) => {
+test("drops the browser response only after the real server committed its comment", async ({
+  page,
+}) => {
   const requests: unknown[] = [];
   const server = createServer(async (req, res) => {
     if (req.method === "POST") {
@@ -23,9 +25,10 @@ test("drops the browser response only after the real server committed its commen
       }
     </script>`);
   });
-  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
-  if (!address || typeof address === "string") throw new Error("Missing fixture listener");
+  if (!address || typeof address === "string")
+    throw new Error("Missing fixture listener");
   const interception = await dropChatSendAcknowledgement(page, "PLAN123");
   try {
     await page.goto(`http://127.0.0.1:${address.port}`);
@@ -35,7 +38,9 @@ test("drops the browser response only after the real server committed its commen
       data: { body: "Create PLAN123", clientRequestId: "original-key" },
       commentId: "saved-comment",
     });
-    expect(requests).toEqual([{ body: "Create PLAN123", clientRequestId: "original-key" }]);
+    expect(requests).toEqual([
+      { body: "Create PLAN123", clientRequestId: "original-key" },
+    ]);
     await expect(page.locator("output")).toHaveText("response lost");
     await interception.dispose();
     await page.reload();
@@ -45,6 +50,8 @@ test("drops the browser response only after the real server committed its commen
   } finally {
     await interception.dispose();
     server.closeAllConnections();
-    await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 });

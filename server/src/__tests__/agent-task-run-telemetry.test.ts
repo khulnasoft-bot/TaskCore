@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { agents, companies, createDb, heartbeatRuns } from "@taskcore/db";
 import {
   getEmbeddedPostgresTestSupport,
@@ -14,9 +22,9 @@ vi.mock("../telemetry.js", () => ({
 }));
 
 vi.mock("@taskcore/shared/telemetry", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/shared/telemetry")>(
-    "@taskcore/shared/telemetry",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/shared/telemetry")
+  >("@taskcore/shared/telemetry");
   return {
     ...actual,
     trackAgentTaskRun: mockTrackAgentTaskRun,
@@ -26,16 +34,22 @@ vi.mock("@taskcore/shared/telemetry", async () => {
 import { emitAgentTaskRun } from "../services/agent-task-run-telemetry.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("emitAgentTaskRun", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let companyId!: string;
   let agentId!: string;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-agent-task-run-telemetry-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-agent-task-run-telemetry-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -79,7 +93,13 @@ describeEmbeddedPostgres("emitAgentTaskRun", () => {
 
   it("emits one agent.task_run event for each of the five terminal states", async () => {
     await seedCompanyAndAgent();
-    const states = ["succeeded", "interrupted", "failed", "cancelled", "timed_out"] as const;
+    const states = [
+      "succeeded",
+      "interrupted",
+      "failed",
+      "cancelled",
+      "timed_out",
+    ] as const;
     for (const state of states) {
       mockTrackAgentTaskRun.mockClear();
       const runId = randomUUID();

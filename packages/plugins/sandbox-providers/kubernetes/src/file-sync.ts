@@ -121,7 +121,11 @@ function shQuote(value: string): string {
  * `..` traversal are rejected fail-closed before any bytes move. Sandbox paths
  * are POSIX.
  */
-export function assertConfinedSandboxPath(remoteDir: string, candidate: string, label: string): void {
+export function assertConfinedSandboxPath(
+  remoteDir: string,
+  candidate: string,
+  label: string,
+): void {
   const normalizedRoot = path.posix.normalize(remoteDir);
   const normalized = path.posix.normalize(candidate);
   if (
@@ -130,11 +134,17 @@ export function assertConfinedSandboxPath(remoteDir: string, candidate: string, 
     normalized.includes("/../") ||
     normalized.endsWith("/..")
   ) {
-    throw new Error(`Kubernetes sync ${label} path is not a confined absolute path: ${candidate}`);
+    throw new Error(
+      `Kubernetes sync ${label} path is not a confined absolute path: ${candidate}`,
+    );
   }
-  const prefix = normalizedRoot.endsWith("/") ? normalizedRoot : `${normalizedRoot}/`;
+  const prefix = normalizedRoot.endsWith("/")
+    ? normalizedRoot
+    : `${normalizedRoot}/`;
   if (normalized !== normalizedRoot && !normalized.startsWith(prefix)) {
-    throw new Error(`Kubernetes sync ${label} path escapes the workspace remote dir: ${candidate}`);
+    throw new Error(
+      `Kubernetes sync ${label} path escapes the workspace remote dir: ${candidate}`,
+    );
   }
 }
 
@@ -144,7 +154,11 @@ export function assertConfinedSandboxPath(remoteDir: string, candidate: string, 
  */
 function posixPathEscapes(relative: string): boolean {
   const normalized = path.posix.normalize(relative);
-  return normalized === ".." || normalized.startsWith("../") || path.posix.isAbsolute(normalized);
+  return (
+    normalized === ".." ||
+    normalized.startsWith("../") ||
+    path.posix.isAbsolute(normalized)
+  );
 }
 
 async function withHostTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
@@ -178,19 +192,19 @@ function canonicalizerPreamble(quotedRoot: string): string[] {
     'elif command -v readlink >/dev/null 2>&1; then _pc_resolve() { readlink -f -- "$1"; };',
     'else echo "no path canonicalizer available" >&2; exit 40; fi;',
     `_pc_root=$(_pc_resolve ${quotedRoot}) || { echo "cannot resolve root" >&2; exit 41; };`,
-    '_pc_confine_ancestor() {',
+    "_pc_confine_ancestor() {",
     // Confinement targets are always absolute (asserted host-side), so `dirname`
     // needs no `--` end-of-options guard — and omitting it keeps the walk correct
     // on minimal shells (e.g. BusyBox `dirname`, which does not parse `--`).
-    '  _pc_a=$1;',
+    "  _pc_a=$1;",
     '  while [ ! -e "$_pc_a" ] && [ ! -L "$_pc_a" ]; do',
     '    _pc_p=$(dirname "$_pc_a");',
     '    [ "$_pc_p" = "$_pc_a" ] && break;',
-    '    _pc_a=$_pc_p;',
-    '  done;',
+    "    _pc_a=$_pc_p;",
+    "  done;",
     '  _pc_ar=$(_pc_resolve "$_pc_a") || return 42;',
     '  case "$_pc_ar/" in "$_pc_root"/*) return 0 ;; *) return 42 ;; esac;',
-    '};',
+    "};",
   ];
 }
 
@@ -297,10 +311,15 @@ async function createHostTarball(input: {
   followSymlinks?: boolean;
   entries?: string[];
 }): Promise<void> {
-  const excludeArgs = ["._*", ...(input.exclude ?? [])].flatMap((entry) => ["--exclude", entry]);
+  const excludeArgs = ["._*", ...(input.exclude ?? [])].flatMap((entry) => [
+    "--exclude",
+    entry,
+  ]);
   const entries =
     input.entries ??
-    (await fs.readdir(input.localDir)).sort((left, right) => left.localeCompare(right));
+    (await fs.readdir(input.localDir)).sort((left, right) =>
+      left.localeCompare(right),
+    );
   if (entries.length === 0) {
     await fs.writeFile(input.archivePath, Buffer.alloc(1024));
     return;
@@ -319,7 +338,10 @@ async function createHostTarball(input: {
       "--",
       ...entries,
     ],
-    { env: { ...process.env, COPYFILE_DISABLE: "1" }, maxBuffer: 64 * 1024 * 1024 },
+    {
+      env: { ...process.env, COPYFILE_DISABLE: "1" },
+      maxBuffer: 64 * 1024 * 1024,
+    },
   );
 }
 
@@ -338,10 +360,14 @@ async function createHostTarball(input: {
  * `major,minor`) match neither shape. Returns null when nothing matches so
  * callers can fail closed.
  */
-export function parseTarVerboseListingLine(line: string): { typeFlag: string; rest: string } | null {
+export function parseTarVerboseListingLine(
+  line: string,
+): { typeFlag: string; rest: string } | null {
   const gnu = line.match(/^(\S+)\s+\S+\/\S+\s+\d+\s+\S+\s+\S+\s+(.*)$/);
   if (gnu) return { typeFlag: gnu[1][0], rest: gnu[2] };
-  const bsd = line.match(/^(\S+)\s+\d+\s+\S+\s+\S+\s+\d+\s+\S+\s+\d{1,2}\s+(?:\d{4}|\d{1,2}:\d{2}(?::\d{2})?)\s+(.*)$/);
+  const bsd = line.match(
+    /^(\S+)\s+\d+\s+\S+\s+\S+\s+\d+\s+\S+\s+\d{1,2}\s+(?:\d{4}|\d{1,2}:\d{2}(?::\d{2})?)\s+(.*)$/,
+  );
   if (bsd) return { typeFlag: bsd[1][0], rest: bsd[2] };
   return null;
 }
@@ -354,11 +380,17 @@ export function parseTarVerboseListingLine(line: string): { typeFlag: string; re
  * would let a crafted name or target hide an escaping link target from the
  * confinement check. Returns null so callers fail closed.
  */
-export function splitLinkEntryOnce(field: string, delimiter: string): { name: string; target: string } | null {
+export function splitLinkEntryOnce(
+  field: string,
+  delimiter: string,
+): { name: string; target: string } | null {
   const first = field.indexOf(delimiter);
   if (first === -1) return null;
   if (field.indexOf(delimiter, first + delimiter.length) !== -1) return null;
-  return { name: field.slice(0, first), target: field.slice(first + delimiter.length) };
+  return {
+    name: field.slice(0, first),
+    target: field.slice(first + delimiter.length),
+  };
 }
 
 /**
@@ -369,7 +401,9 @@ export function splitLinkEntryOnce(field: string, delimiter: string): { name: st
  * escapes the tree. Legitimate in-tree relative links are preserved. Parses the
  * `-tvf` verbose listing; any unparseable line fails closed.
  */
-async function assertTarballEntriesConfined(archivePath: string): Promise<void> {
+async function assertTarballEntriesConfined(
+  archivePath: string,
+): Promise<void> {
   const { stdout } = await execFileAsync("tar", ["-tvf", archivePath], {
     env: { ...process.env, COPYFILE_DISABLE: "1" },
     maxBuffer: 64 * 1024 * 1024,
@@ -378,28 +412,41 @@ async function assertTarballEntriesConfined(archivePath: string): Promise<void> 
   for (const line of lines) {
     const parsed = parseTarVerboseListingLine(line);
     if (!parsed) {
-      throw new Error(`Kubernetes syncOut refusing tarball with an unparseable entry listing: ${line}`);
+      throw new Error(
+        `Kubernetes syncOut refusing tarball with an unparseable entry listing: ${line}`,
+      );
     }
     const typeFlag = parsed.typeFlag;
     let name = parsed.rest;
     let linkTarget: string | null = null;
     if (typeFlag === "l") {
       const split = splitLinkEntryOnce(name, " -> ");
-      if (!split) throw new Error(`Kubernetes syncOut refusing unparseable or ambiguous symlink entry: ${line}`);
+      if (!split)
+        throw new Error(
+          `Kubernetes syncOut refusing unparseable or ambiguous symlink entry: ${line}`,
+        );
       name = split.name;
       linkTarget = split.target;
     } else if (typeFlag === "h") {
       const split = splitLinkEntryOnce(name, " link to ");
-      if (!split) throw new Error(`Kubernetes syncOut refusing unparseable or ambiguous hardlink entry: ${line}`);
+      if (!split)
+        throw new Error(
+          `Kubernetes syncOut refusing unparseable or ambiguous hardlink entry: ${line}`,
+        );
       name = split.name;
       linkTarget = split.target;
     }
     const cleanName = name.replace(/\/+$/, "");
     if (cleanName.length > 0 && posixPathEscapes(cleanName)) {
-      throw new Error(`Kubernetes syncOut refusing tarball member that escapes the extraction dir: ${name}`);
+      throw new Error(
+        `Kubernetes syncOut refusing tarball member that escapes the extraction dir: ${name}`,
+      );
     }
     if (linkTarget !== null) {
-      const resolved = path.posix.join(path.posix.dirname(cleanName), linkTarget);
+      const resolved = path.posix.join(
+        path.posix.dirname(cleanName),
+        linkTarget,
+      );
       if (path.posix.isAbsolute(linkTarget) || posixPathEscapes(resolved)) {
         throw new Error(
           `Kubernetes syncOut refusing tarball link whose target escapes the extraction dir: ${name} -> ${linkTarget}`,
@@ -409,7 +456,10 @@ async function assertTarballEntriesConfined(archivePath: string): Promise<void> 
   }
 }
 
-async function extractHostTarball(input: { archivePath: string; localDir: string }): Promise<void> {
+async function extractHostTarball(input: {
+  archivePath: string;
+  localDir: string;
+}): Promise<void> {
   // The archive is sandbox-authored and untrusted: validate every member (and
   // link target) is confined before letting host-side tar write a single byte.
   await assertTarballEntriesConfined(input.archivePath);
@@ -420,11 +470,16 @@ async function extractHostTarball(input: { archivePath: string; localDir: string
   });
 }
 
-async function countHostFiles(root: string, exclude?: string[]): Promise<number> {
+async function countHostFiles(
+  root: string,
+  exclude?: string[],
+): Promise<number> {
   const excludeSet = new Set(exclude ?? []);
   let total = 0;
   const walk = async (dir: string): Promise<void> => {
-    const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+    const entries = await fs
+      .readdir(dir, { withFileTypes: true })
+      .catch(() => []);
     for (const entry of entries) {
       if (excludeSet.has(entry.name)) continue;
       const full = path.join(dir, entry.name);
@@ -459,7 +514,8 @@ async function syncInFileMappings(input: {
   timeoutMs: number;
 }): Promise<{ filesTransferred: number; bytesTransferred: number }> {
   const { exec, mappings, remoteDir, timeoutMs } = input;
-  if (mappings.length === 0) return { filesTransferred: 0, bytesTransferred: 0 };
+  if (mappings.length === 0)
+    return { filesTransferred: 0, bytesTransferred: 0 };
 
   for (const mapping of mappings) {
     assertConfinedSandboxPath(remoteDir, mapping.targetPath, "target");
@@ -480,7 +536,11 @@ async function syncInFileMappings(input: {
     }
 
     const archivePath = path.join(tmp, "sync-in.tar");
-    await createHostTarball({ localDir: stage, archivePath, entries: indexNames });
+    await createHostTarball({
+      localDir: stage,
+      archivePath,
+      entries: indexNames,
+    });
     // Exact archive size: the pod reads precisely this many bytes so its extract
     // pipeline self-terminates without depending on stdin EOF delivery.
     const archiveBytes = (await fs.stat(archivePath)).size;
@@ -489,12 +549,16 @@ async function syncInFileMappings(input: {
     // `0700`), so a secret is never world-readable and the closing `mv -f` is an
     // atomic same-filesystem rename.
     const remoteStage = path.posix.join(remoteDir, scratchName());
-    const parentDirs = [...new Set(mappings.map((m) => path.posix.dirname(m.targetPath)))];
+    const parentDirs = [
+      ...new Set(mappings.map((m) => path.posix.dirname(m.targetPath))),
+    ];
 
     const script: string[] = [...canonicalizerPreamble(shQuote(remoteDir))];
     // Sweep the staging dir on ANY exit so a failed transfer leaves no scratch.
     script.push(`trap 'rm -rf ${shQuote(remoteStage)}' EXIT;`);
-    script.push(`mkdir -p -m 700 ${shQuote(remoteStage)} || { echo "stage mkdir failed" >&2; exit 46; };`);
+    script.push(
+      `mkdir -p -m 700 ${shQuote(remoteStage)} || { echo "stage mkdir failed" >&2; exit 46; };`,
+    );
     // Confine the deepest existing ancestor of each target parent BEFORE creating
     // it: `mkdir -p` follows a sandbox-planted symlink ancestor and would
     // otherwise materialize the directory OUTSIDE the root before any post-mkdir
@@ -607,7 +671,10 @@ async function syncInDirectoryMapping(input: {
       timeoutMs,
       label: "syncIn directory transfer",
     });
-    const filesTransferred = await countHostFiles(mapping.sourcePath, mapping.exclude);
+    const filesTransferred = await countHostFiles(
+      mapping.sourcePath,
+      mapping.exclude,
+    );
     return { filesTransferred, bytesTransferred: archiveBytes };
   });
 }
@@ -663,10 +730,13 @@ async function runPostUploadCommands(input: {
     ].join("\n");
     const commandTimeoutMs = command.timeoutMs ?? timeoutMs;
     // Positional args: $0=pc-post-upload, $1=cwd, $2=the verbatim command string.
-    const result = await exec(["/bin/sh", "-c", wrapper, "pc-post-upload", cwd, command.command], {
-      timeoutMs: commandTimeoutMs,
-      maxStderrBytes: SYNC_STDERR_CAP_BYTES,
-    });
+    const result = await exec(
+      ["/bin/sh", "-c", wrapper, "pc-post-upload", cwd, command.command],
+      {
+        timeoutMs: commandTimeoutMs,
+        maxStderrBytes: SYNC_STDERR_CAP_BYTES,
+      },
+    );
     if (result.exitCode !== 0) {
       const detail = (result.stderr || "").trim();
       throw new Error(
@@ -687,8 +757,12 @@ export async function performSyncIn(input: {
     let filesTransferred = 0;
     let bytesTransferred = 0;
 
-    const fileMappings = operation.files.filter((mapping) => mapping.kind === "file");
-    const directoryMappings = operation.files.filter((mapping) => mapping.kind === "directory");
+    const fileMappings = operation.files.filter(
+      (mapping) => mapping.kind === "file",
+    );
+    const directoryMappings = operation.files.filter(
+      (mapping) => mapping.kind === "directory",
+    );
 
     const fileResult = await syncInFileMappings({
       exec: input.exec,
@@ -720,7 +794,11 @@ export async function performSyncIn(input: {
       timeoutMs: input.timeoutMs,
     });
 
-    operations.push({ operationId: operation.operationId, filesTransferred, bytesTransferred });
+    operations.push({
+      operationId: operation.operationId,
+      filesTransferred,
+      bytesTransferred,
+    });
   }
   return { operations };
 }
@@ -747,7 +825,8 @@ async function syncOutFileMappings(input: {
   maxOutputBytes: number;
 }): Promise<{ filesTransferred: number; bytesTransferred: number }> {
   const { exec, mappings, remoteDir, timeoutMs, maxOutputBytes } = input;
-  if (mappings.length === 0) return { filesTransferred: 0, bytesTransferred: 0 };
+  if (mappings.length === 0)
+    return { filesTransferred: 0, bytesTransferred: 0 };
 
   for (const mapping of mappings) {
     assertConfinedSandboxPath(remoteDir, mapping.sourcePath, "source");
@@ -759,7 +838,9 @@ async function syncOutFileMappings(input: {
 
     const script: string[] = [...canonicalizerPreamble(shQuote(remoteDir))];
     script.push(`trap 'rm -rf ${shQuote(remoteStage)}' EXIT;`);
-    script.push(`mkdir -p -m 700 ${shQuote(remoteStage)} || { echo "stage mkdir failed" >&2; exit 46; };`);
+    script.push(
+      `mkdir -p -m 700 ${shQuote(remoteStage)} || { echo "stage mkdir failed" >&2; exit 46; };`,
+    );
     mappings.forEach((mapping, i) => {
       const snapshot = path.posix.join(remoteStage, indexNames[i]);
       script.push(
@@ -867,8 +948,14 @@ async function syncOutDirectoryMapping(input: {
       label: "syncOut directory transfer",
     });
     const bytesTransferred = (await fs.stat(localTar)).size;
-    await extractHostTarball({ archivePath: localTar, localDir: mapping.targetPath });
-    const filesTransferred = await countHostFiles(mapping.targetPath, mapping.exclude);
+    await extractHostTarball({
+      archivePath: localTar,
+      localDir: mapping.targetPath,
+    });
+    const filesTransferred = await countHostFiles(
+      mapping.targetPath,
+      mapping.exclude,
+    );
     return { filesTransferred, bytesTransferred };
   });
 }
@@ -886,8 +973,12 @@ export async function performSyncOut(input: {
     let filesTransferred = 0;
     let bytesTransferred = 0;
 
-    const fileMappings = operation.files.filter((mapping) => mapping.kind === "file");
-    const directoryMappings = operation.files.filter((mapping) => mapping.kind === "directory");
+    const fileMappings = operation.files.filter(
+      (mapping) => mapping.kind === "file",
+    );
+    const directoryMappings = operation.files.filter(
+      (mapping) => mapping.kind === "directory",
+    );
 
     const fileResult = await syncOutFileMappings({
       exec: input.exec,
@@ -911,7 +1002,11 @@ export async function performSyncOut(input: {
       bytesTransferred += dirResult.bytesTransferred;
     }
 
-    operations.push({ operationId: operation.operationId, filesTransferred, bytesTransferred });
+    operations.push({
+      operationId: operation.operationId,
+      filesTransferred,
+      bytesTransferred,
+    });
   }
   return { operations };
 }

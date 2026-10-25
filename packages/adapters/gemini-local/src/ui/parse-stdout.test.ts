@@ -22,7 +22,9 @@ describe("parseGeminiStdoutLine", () => {
       content: "Respond with hello.",
     });
     const entries = parseGeminiStdoutLine(line, ts);
-    expect(entries).toEqual([{ kind: "user", ts, text: "Respond with hello." }]);
+    expect(entries).toEqual([
+      { kind: "user", ts, text: "Respond with hello." },
+    ]);
   });
 
   it("preserves the legacy claude-style assistant event handler", () => {
@@ -63,16 +65,27 @@ describe("parseGeminiStdoutLine", () => {
       error: "boom",
     });
     const [entry] = parseGeminiStdoutLine(line, ts);
-    expect(entry).toMatchObject({ kind: "result", isError: true, errors: ["boom"] });
+    expect(entry).toMatchObject({
+      kind: "result",
+      isError: true,
+      errors: ["boom"],
+    });
   });
 
   it("ignores message events without an actionable role", () => {
-    const line = JSON.stringify({ type: "message", role: "system", content: "ignored" });
+    const line = JSON.stringify({
+      type: "message",
+      role: "system",
+      content: "ignored",
+    });
     expect(parseGeminiStdoutLine(line, ts)).toEqual([]);
   });
 
   it("delegates ACPX events to the shared ACPX transcript parser", () => {
-    const line = JSON.stringify({ type: "acpx.text_delta", text: "hello from acp" });
+    const line = JSON.stringify({
+      type: "acpx.text_delta",
+      text: "hello from acp",
+    });
 
     expect(parseGeminiStdoutLine(line, ts)).toEqual([
       { kind: "assistant", ts, text: "hello from acp", delta: true },

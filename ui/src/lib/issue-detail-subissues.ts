@@ -24,17 +24,27 @@ export type IssueSiblingNavigation = {
   totalCount: number;
 };
 
-export function shouldRenderRichSubIssuesSection(childIssuesLoading: boolean, childIssueCount: number): boolean {
+export function shouldRenderRichSubIssuesSection(
+  childIssuesLoading: boolean,
+  childIssueCount: number,
+): boolean {
   return childIssuesLoading || childIssueCount > 0;
 }
 
 const MIN_CHILD_ISSUES_FOR_PROGRESS_SUMMARY = 2;
 
-export function shouldRenderSubIssueProgressSummary(enabled: boolean | undefined, childIssueCount: number): boolean {
-  return enabled === true && childIssueCount >= MIN_CHILD_ISSUES_FOR_PROGRESS_SUMMARY;
+export function shouldRenderSubIssueProgressSummary(
+  enabled: boolean | undefined,
+  childIssueCount: number,
+): boolean {
+  return (
+    enabled === true && childIssueCount >= MIN_CHILD_ISSUES_FOR_PROGRESS_SUMMARY
+  );
 }
 
-export function buildSubIssueProgressSummary(issues: Issue[]): SubIssueProgressSummary {
+export function buildSubIssueProgressSummary(
+  issues: Issue[],
+): SubIssueProgressSummary {
   const countsByStatus: Partial<Record<IssueStatus, number>> = {};
   const progressIssues = issues.filter((issue) => issue.status !== "cancelled");
   for (const issue of progressIssues) {
@@ -42,10 +52,15 @@ export function buildSubIssueProgressSummary(issues: Issue[]): SubIssueProgressS
   }
 
   const orderedIssues = workflowSort(progressIssues);
-  const nextIssue = orderedIssues.find((issue) => isActionableStatus(issue.status)) ?? null;
-  const remainingIssues = orderedIssues.filter((issue) => !isTerminalStatus(issue.status));
+  const nextIssue =
+    orderedIssues.find((issue) => isActionableStatus(issue.status)) ?? null;
+  const remainingIssues = orderedIssues.filter(
+    (issue) => !isTerminalStatus(issue.status),
+  );
   const blockedIssue =
-    nextIssue === null && remainingIssues.length > 0 && remainingIssues.every((issue) => issue.status === "blocked")
+    nextIssue === null &&
+    remainingIssues.length > 0 &&
+    remainingIssues.every((issue) => issue.status === "blocked")
       ? remainingIssues[0]
       : null;
 
@@ -77,7 +92,11 @@ export function buildIssueSiblingNavigation(
       byId.set(
         issue.id,
         issue.id === currentIssue.id
-          ? { ...issue, ...currentIssue, blockedBy: currentIssue.blockedBy ?? issue.blockedBy }
+          ? {
+              ...issue,
+              ...currentIssue,
+              blockedBy: currentIssue.blockedBy ?? issue.blockedBy,
+            }
           : issue,
       );
     }
@@ -85,9 +104,13 @@ export function buildIssueSiblingNavigation(
   }
 
   const ordered = workflowSort(Array.from(byId.values()));
-  const currentIndex = ordered.findIndex((issue) => issue.id === currentIssue.id);
+  const currentIndex = ordered.findIndex(
+    (issue) => issue.id === currentIssue.id,
+  );
   const directChildren = workflowSort(
-    childIssues.filter((issue) => issue.parentId === currentIssue.id && !issue.hiddenAt),
+    childIssues.filter(
+      (issue) => issue.parentId === currentIssue.id && !issue.hiddenAt,
+    ),
   );
   const firstChild = directChildren[0] ?? null;
 
@@ -103,7 +126,8 @@ export function buildIssueSiblingNavigation(
   }
 
   const previous = currentIndex > 0 ? ordered[currentIndex - 1] : null;
-  const next = currentIndex < ordered.length - 1 ? ordered[currentIndex + 1] : firstChild;
+  const next =
+    currentIndex < ordered.length - 1 ? ordered[currentIndex + 1] : firstChild;
   if (!previous && !next) return null;
 
   return {

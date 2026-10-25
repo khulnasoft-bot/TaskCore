@@ -3,9 +3,7 @@
   "slug": "chat-completions-api",
   "name": "Chat Completions API",
   "description": "Connect any compatible harness to a Chat Completions-compatible provider or gateway.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "branding": {
     "logoUrl": "/brands/apps/api-key-generic.svg"
   },
@@ -21,13 +19,8 @@
         "provider": "openai",
         "method": "api_key"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Connect any compatible harness to a Chat Completions-compatible provider or gateway.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3",
@@ -47,7 +40,5 @@
       }
     }
   ],
-  "tags": [
-    "model-provider"
-  ]
+  "tags": ["model-provider"]
 }

@@ -44,7 +44,10 @@ import type {
 } from "@taskcore/shared";
 import { pluginRegistryService } from "./plugin-registry.js";
 import { pluginLoader, type PluginLoader } from "./plugin-loader.js";
-import type { PluginWorkerManager, WorkerStartOptions } from "./plugin-worker-manager.js";
+import type {
+  PluginWorkerManager,
+  WorkerStartOptions,
+} from "./plugin-worker-manager.js";
 import { badRequest, notFound } from "../errors.js";
 import { logger } from "../middleware/logger.js";
 
@@ -109,7 +112,11 @@ export interface PluginLifecycleEvents {
   /** Emitted after a plugin is disabled (ready → disabled). */
   "plugin.disabled": { pluginId: string; pluginKey: string; reason?: string };
   /** Emitted after a plugin is unloaded (any → uninstalled). */
-  "plugin.unloaded": { pluginId: string; pluginKey: string; removeData: boolean };
+  "plugin.unloaded": {
+    pluginId: string;
+    pluginKey: string;
+    removeData: boolean;
+  };
   /** Emitted on any status change. */
   "plugin.status_changed": {
     pluginId: string;
@@ -128,7 +135,8 @@ export interface PluginLifecycleEvents {
 }
 
 type LifecycleEventName = keyof PluginLifecycleEvents;
-type LifecycleEventPayload<K extends LifecycleEventName> = PluginLifecycleEvents[K];
+type LifecycleEventPayload<K extends LifecycleEventName> =
+  PluginLifecycleEvents[K];
 
 // ---------------------------------------------------------------------------
 // PluginLifecycleManager
@@ -350,7 +358,7 @@ export function pluginLifecycleManager(
     lastError: string | null = null,
     existingPlugin?: PluginRecord,
   ): Promise<PluginRecord> {
-    const plugin = existingPlugin ?? await requirePlugin(pluginId);
+    const plugin = existingPlugin ?? (await requirePlugin(pluginId));
     assertTransition(plugin, to);
 
     const previousStatus = plugin.status;
@@ -360,7 +368,8 @@ export function pluginLifecycleManager(
       lastError,
     });
 
-    if (!updated) throw notFound(`Plugin not found after status update: ${pluginId}`);
+    if (!updated)
+      throw notFound(`Plugin not found after status update: ${pluginId}`);
     const result = updated as PluginRecord;
 
     log.info(
@@ -400,7 +409,11 @@ export function pluginLifecycleManager(
     pluginKey: string,
   ): Promise<void> {
     if (!workerManager) return;
-    if (!workerManager.isRunning(pluginId) && !workerManager.getWorker(pluginId)) return;
+    if (
+      !workerManager.isRunning(pluginId) &&
+      !workerManager.getWorker(pluginId)
+    )
+      return;
 
     try {
       await workerManager.stopWorker(pluginId);
@@ -408,7 +421,11 @@ export function pluginLifecycleManager(
       emitDomain("plugin.worker_stopped", { pluginId, pluginKey });
     } catch (err) {
       log.warn(
-        { pluginId, pluginKey, err: err instanceof Error ? err.message : String(err) },
+        {
+          pluginId,
+          pluginKey,
+          err: err instanceof Error ? err.message : String(err),
+        },
         "plugin lifecycle: failed to stop worker (best-effort)",
       );
     }
@@ -416,17 +433,20 @@ export function pluginLifecycleManager(
 
   async function activateReadyPlugin(pluginId: string): Promise<void> {
     const supportsRuntimeActivation =
-      typeof pluginLoaderInstance.hasRuntimeServices === "function"
-      && typeof pluginLoaderInstance.loadSingle === "function";
-    if (!supportsRuntimeActivation || !pluginLoaderInstance.hasRuntimeServices()) {
+      typeof pluginLoaderInstance.hasRuntimeServices === "function" &&
+      typeof pluginLoaderInstance.loadSingle === "function";
+    if (
+      !supportsRuntimeActivation ||
+      !pluginLoaderInstance.hasRuntimeServices()
+    ) {
       return;
     }
 
     const loadResult = await pluginLoaderInstance.loadSingle(pluginId);
     if (!loadResult.success) {
       throw new Error(
-        loadResult.error
-        ?? `Failed to activate plugin ${loadResult.plugin.pluginKey}`,
+        loadResult.error ??
+          `Failed to activate plugin ${loadResult.plugin.pluginKey}`,
       );
     }
   }
@@ -436,10 +456,13 @@ export function pluginLifecycleManager(
     pluginKey: string,
   ): Promise<void> {
     const supportsRuntimeDeactivation =
-      typeof pluginLoaderInstance.hasRuntimeServices === "function"
-      && typeof pluginLoaderInstance.unloadSingle === "function";
+      typeof pluginLoaderInstance.hasRuntimeServices === "function" &&
+      typeof pluginLoaderInstance.unloadSingle === "function";
 
-    if (supportsRuntimeDeactivation && pluginLoaderInstance.hasRuntimeServices()) {
+    if (
+      supportsRuntimeDeactivation &&
+      pluginLoaderInstance.hasRuntimeServices()
+    ) {
       await pluginLoaderInstance.unloadSingle(pluginId, pluginKey);
       return;
     }
@@ -492,7 +515,11 @@ export function pluginLifecycleManager(
       const plugin = await requirePlugin(pluginId);
 
       // Only allow enabling from disabled, error, or upgrade_pending states
-      if (plugin.status !== "disabled" && plugin.status !== "error" && plugin.status !== "upgrade_pending") {
+      if (
+        plugin.status !== "disabled" &&
+        plugin.status !== "error" &&
+        plugin.status !== "upgrade_pending"
+      ) {
         throw badRequest(
           `Cannot enable plugin in status '${plugin.status}'. ` +
             `Plugin must be in 'disabled', 'error', or 'upgrade_pending' status to be enabled.`,
@@ -522,7 +549,12 @@ export function pluginLifecycleManager(
 
       await deactivatePluginRuntime(pluginId, plugin.pluginKey);
 
-      const result = await transition(pluginId, "disabled", reason ?? null, plugin);
+      const result = await transition(
+        pluginId,
+        "disabled",
+        reason ?? null,
+        plugin,
+      );
       emitDomain("plugin.disabled", {
         pluginId,
         pluginKey: result.pluginKey,
@@ -609,7 +641,12 @@ export function pluginLifecycleManager(
       const plugin = await requirePlugin(pluginId);
       await deactivatePluginRuntime(pluginId, plugin.pluginKey);
 
-      const result = await transition(pluginId, "upgrade_pending", null, plugin);
+      const result = await transition(
+        pluginId,
+        "upgrade_pending",
+        null,
+        plugin,
+      );
       emitDomain("plugin.upgrade_pending", {
         pluginId,
         pluginKey: result.pluginKey,
@@ -681,7 +718,12 @@ export function pluginLifecycleManager(
           "plugin lifecycle: new capabilities detected, transitioning to upgrade_pending",
         );
         // Skip the inner stopWorkerIfRunning since we already stopped above
-        const result = await transition(pluginId, "upgrade_pending", null, plugin);
+        const result = await transition(
+          pluginId,
+          "upgrade_pending",
+          null,
+          plugin,
+        );
         emitDomain("plugin.upgrade_pending", {
           pluginId,
           pluginKey: result.pluginKey,
@@ -777,10 +819,10 @@ export function pluginLifecycleManager(
       }
 
       const supportsRuntimeActivation =
-        typeof pluginLoaderInstance.hasRuntimeServices === "function"
-        && typeof pluginLoaderInstance.loadSingle === "function"
-        && typeof pluginLoaderInstance.unloadSingle === "function"
-        && pluginLoaderInstance.hasRuntimeServices();
+        typeof pluginLoaderInstance.hasRuntimeServices === "function" &&
+        typeof pluginLoaderInstance.loadSingle === "function" &&
+        typeof pluginLoaderInstance.unloadSingle === "function" &&
+        pluginLoaderInstance.hasRuntimeServices();
 
       if (supportsRuntimeActivation) {
         log.info(
@@ -810,8 +852,14 @@ export function pluginLifecycleManager(
           "plugin lifecycle: restarting worker (runtime services unavailable; skipping migration re-apply)",
         );
         await handle.restart();
-        emitDomain("plugin.worker_stopped", { pluginId, pluginKey: plugin.pluginKey });
-        emitDomain("plugin.worker_started", { pluginId, pluginKey: plugin.pluginKey });
+        emitDomain("plugin.worker_stopped", {
+          pluginId,
+          pluginKey: plugin.pluginKey,
+        });
+        emitDomain("plugin.worker_started", {
+          pluginId,
+          pluginKey: plugin.pluginKey,
+        });
       }
 
       log.info(

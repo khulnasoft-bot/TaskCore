@@ -52,27 +52,41 @@ function externalObjectValueLabel(
   fallback: string,
   statusLabel: string,
 ): string {
-  const githubLabel = object.providerKey === "github" ? githubObjectLabel(object.url) : null;
+  const githubLabel =
+    object.providerKey === "github" ? githubObjectLabel(object.url) : null;
   const base = githubLabel ?? object.displayTitle?.trim() ?? fallback;
   return statusLabel ? `${base} - ${statusLabel}` : base;
 }
 
-function isMergedExternalObject(object: ExternalObjectPillData, statusLabel: string): boolean {
-  return object.statusIconKey === "git-merge" || statusLabel.toLowerCase() === "merged";
+function isMergedExternalObject(
+  object: ExternalObjectPillData,
+  statusLabel: string,
+): boolean {
+  return (
+    object.statusIconKey === "git-merge" ||
+    statusLabel.toLowerCase() === "merged"
+  );
 }
 
-function externalObjectPillTone(object: ExternalObjectPillData, statusLabel: string): string {
+function externalObjectPillTone(
+  object: ExternalObjectPillData,
+  statusLabel: string,
+): string {
   if (isMergedExternalObject(object, statusLabel)) {
     return "text-violet-600 border-violet-600 dark:text-violet-400 dark:border-violet-400";
   }
-  return externalObjectStatusIcon[object.statusCategory] ?? externalObjectStatusIconDefault;
+  return (
+    externalObjectStatusIcon[object.statusCategory] ??
+    externalObjectStatusIconDefault
+  );
 }
 
 function externalObjectStatusIconKey(
   object: ExternalObjectPillData,
   statusLabel: string,
 ): string | null | undefined {
-  if (isMergedExternalObject(object, statusLabel)) return object.statusIconKey ?? "git-merge";
+  if (isMergedExternalObject(object, statusLabel))
+    return object.statusIconKey ?? "git-merge";
   return object.statusIconKey;
 }
 
@@ -113,7 +127,11 @@ export function ExternalObjectPill({
   const overlay = externalObjectLivenessOverlay[object.liveness] ?? "";
   const providerLabel = externalObjectProviderLabel(object.providerKey);
   const typeLabel = externalObjectTypeLabel(object.objectType);
-  const displayKey = externalObjectDisplayLabel(object.providerKey, object.objectType, object.displayKey);
+  const displayKey = externalObjectDisplayLabel(
+    object.providerKey,
+    object.objectType,
+    object.displayKey,
+  );
   const statusLabel = externalObjectDisplayStatusLabel(object);
   const tone = externalObjectPillTone(object, statusLabel);
   const valueLabel = externalObjectValueLabel(object, displayKey, statusLabel);
@@ -122,7 +140,9 @@ export function ExternalObjectPill({
   const ProviderIcon = externalObjectIconForKey(object.iconKey);
   const ariaKey = displayKey;
   const ariaLabel = `${ariaKey} — ${statusLabel}${
-    object.liveness === "fresh" || object.liveness === "unknown" ? "" : ` (${livenessLabel})`
+    object.liveness === "fresh" || object.liveness === "unknown"
+      ? ""
+      : ` (${livenessLabel})`
   }${object.displayTitle ? `: ${object.displayTitle}` : ""}`;
 
   const interactive = !inert && Boolean(object.url);
@@ -131,15 +151,18 @@ export function ExternalObjectPill({
     "inline-flex max-w-full items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs no-underline",
     // Tone is applied as text classes only — the border style comes from the
     // overlay (dashed for stale/auth/unreachable).
-    tone.split(" ").filter((c) => c.startsWith("text-")).join(" "),
+    tone
+      .split(" ")
+      .filter((c) => c.startsWith("text-"))
+      .join(" "),
     overlay,
-    interactive
-      && "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring",
+    interactive &&
+      "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring",
     className,
   );
   const titleAttr = sourceSummary
     ? `${object.displayTitle ?? displayKey} — ${sourceSummary}`
-    : object.displayTitle ?? displayKey;
+    : (object.displayTitle ?? displayKey);
   const labelText = children ?? (
     <>
       <ExternalObjectStatusIcon
@@ -149,12 +172,17 @@ export function ExternalObjectPill({
         sizeClassName="h-3 w-3"
         label={`${providerLabel}: ${statusLabel}`}
       />
-      <span className="max-w-(--sz-16rem) truncate font-medium">{valueLabel}</span>
+      <span className="max-w-(--sz-16rem) truncate font-medium">
+        {valueLabel}
+      </span>
     </>
   );
-  const countSuffix = typeof sourceCount === "number" && sourceCount > 1 ? (
-    <span className="tabular-nums text-(length:--text-nano) font-medium opacity-80">×{sourceCount}</span>
-  ) : null;
+  const countSuffix =
+    typeof sourceCount === "number" && sourceCount > 1 ? (
+      <span className="tabular-nums text-(length:--text-nano) font-medium opacity-80">
+        ×{sourceCount}
+      </span>
+    ) : null;
   const innerContent = (
     <>
       {showProviderIcon && ProviderIcon ? (

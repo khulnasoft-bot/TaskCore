@@ -1,17 +1,21 @@
 import type { IssueAttachment, IssueDocument } from "./issue.js";
 import type { IssueWorkProduct } from "./work-product.js";
 
-export type CompanySkillSourceType = "local_path" | "github" | "url" | "catalog" | "skills_sh";
+export type CompanySkillSourceType =
+  "local_path" | "github" | "url" | "catalog" | "skills_sh";
 
-export type CompanySkillTrustLevel = "markdown_only" | "assets" | "scripts_executables";
+export type CompanySkillTrustLevel =
+  "markdown_only" | "assets" | "scripts_executables";
 
 export type CompanySkillCompatibility = "compatible" | "unknown" | "invalid";
 
-export type CompanySkillSourceBadge = "taskcore" | "github" | "local" | "url" | "catalog" | "skills_sh";
+export type CompanySkillSourceBadge =
+  "taskcore" | "github" | "local" | "url" | "catalog" | "skills_sh";
 
 export type CompanySkillSharingScope = "private" | "company" | "public_link";
 
-export type CompanySkillListSort = "alphabetical" | "recent" | "installs" | "stars" | "agents" | "forks";
+export type CompanySkillListSort =
+  "alphabetical" | "recent" | "installs" | "stars" | "agents" | "forks";
 
 export type CompanySkillListInclude = "lastEditor";
 
@@ -368,7 +372,8 @@ export interface CompanySkillProjectBrowseResult {
   truncated: boolean;
 }
 
-export type CompanySkillProjectScanCandidateStatus = "new" | "already_imported" | "conflict" | "skipped";
+export type CompanySkillProjectScanCandidateStatus =
+  "new" | "already_imported" | "conflict" | "skipped";
 
 export interface CompanySkillProjectScanCandidate {
   slug: string;
@@ -468,7 +473,8 @@ export interface CompanySkillFileDeleteResult {
   deletedPaths: string[];
 }
 
-export type CompanySkillTestRunStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+export type CompanySkillTestRunStatus =
+  "queued" | "running" | "succeeded" | "failed" | "cancelled";
 
 export interface CompanySkillTestInput {
   id: string;
@@ -587,7 +593,8 @@ export interface CompanySkillTestRunListQuery {
   inputId?: string;
 }
 
-export type CompanySkillTestRunHarnessContentUnavailableReason = "expired" | "deleted" | "missing";
+export type CompanySkillTestRunHarnessContentUnavailableReason =
+  "expired" | "deleted" | "missing";
 
 /**
  * Rich renderable content hydrated from the run's own hidden harness issue.

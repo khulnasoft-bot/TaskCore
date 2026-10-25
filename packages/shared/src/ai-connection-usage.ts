@@ -44,11 +44,21 @@ export interface AiConnectionUsage {
   planType: string | null;
   limits: AiConnectionUsageLimit[];
   overage: AiConnectionUsageOverage | null;
-  errorCode?: "unsupported" | "connection_unavailable" | "authentication_required" | "permission_denied" | "rate_limited" | "provider_unavailable" | "invalid_response";
+  errorCode?:
+    | "unsupported"
+    | "connection_unavailable"
+    | "authentication_required"
+    | "permission_denied"
+    | "rate_limited"
+    | "provider_unavailable"
+    | "invalid_response";
   message?: string;
 }
 
-export function supportsAiConnectionUsage(provider: AiProvider, method: AiAuthMethod): boolean {
+export function supportsAiConnectionUsage(
+  provider: AiProvider,
+  method: AiAuthMethod,
+): boolean {
   return method === "subscription"
     ? provider === "openai" || provider === "anthropic" || provider === "xai"
     : provider === "openrouter";

@@ -22,15 +22,21 @@ const mockCompanySkillsApi = vi.hoisted(() => ({
 const mockPushToast = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children: ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
   useNavigate: () => mockNavigate,
 }));
-vi.mock("@/api/companySkills", () => ({ companySkillsApi: mockCompanySkillsApi }));
+vi.mock("@/api/companySkills", () => ({
+  companySkillsApi: mockCompanySkillsApi,
+}));
 vi.mock("@/context/ToastContext", () => ({
   useOptionalToastActions: () => ({ pushToast: mockPushToast }),
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -67,7 +73,9 @@ async function renderNode(node: ReactNode) {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   await act(async () => {
-    root?.render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+    root?.render(
+      <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>,
+    );
   });
   await flush();
 }
@@ -80,14 +88,16 @@ async function click(el: Element) {
 }
 
 function findButton(match: (text: string) => boolean): HTMLButtonElement {
-  const found = Array.from(document.body.querySelectorAll("button")).find((button) =>
-    match(button.textContent?.trim() ?? ""),
+  const found = Array.from(document.body.querySelectorAll("button")).find(
+    (button) => match(button.textContent?.trim() ?? ""),
   ) as HTMLButtonElement | undefined;
   if (!found) throw new Error("button not found");
   return found;
 }
 
-function makeAgent(over: Partial<CompanySkillUsageAgent> = {}): CompanySkillUsageAgent {
+function makeAgent(
+  over: Partial<CompanySkillUsageAgent> = {},
+): CompanySkillUsageAgent {
   return {
     id: "agent-1",
     name: "Reviewer",
@@ -146,7 +156,9 @@ function makeSkill(over: Partial<CompanySkillDetail> = {}): CompanySkillDetail {
   };
 }
 
-function makePrecheck(over: Partial<CompanySkillForkPrecheckResult> = {}): CompanySkillForkPrecheckResult {
+function makePrecheck(
+  over: Partial<CompanySkillForkPrecheckResult> = {},
+): CompanySkillForkPrecheckResult {
   return {
     skillId: "skill-1",
     original: {
@@ -164,7 +176,9 @@ function makePrecheck(over: Partial<CompanySkillForkPrecheckResult> = {}): Compa
   };
 }
 
-function makeForkSummary(over: Partial<CompanySkillForkSummary> = {}): CompanySkillForkSummary {
+function makeForkSummary(
+  over: Partial<CompanySkillForkSummary> = {},
+): CompanySkillForkSummary {
   return {
     id: "fork-existing",
     name: "Deep Research (copy)",
@@ -203,7 +217,10 @@ afterEach(() => {
 
 describe("ForkSkillDialog", () => {
   it("shows the agent count prominently and forks with reassignment ON by default", async () => {
-    const agents = [makeAgent({ id: "a1", name: "Reviewer" }), makeAgent({ id: "a2", name: "Planner" })];
+    const agents = [
+      makeAgent({ id: "a1", name: "Reviewer" }),
+      makeAgent({ id: "a2", name: "Planner" }),
+    ];
     mockCompanySkillsApi.forkPrecheck.mockResolvedValue(
       makePrecheck({ agentUsageCount: 2, usedByAgents: agents }),
     );
@@ -225,16 +242,24 @@ describe("ForkSkillDialog", () => {
       />,
     );
 
-    expect(document.body.textContent).toContain("2 agents currently use this skill");
+    expect(document.body.textContent).toContain(
+      "2 agents currently use this skill",
+    );
     expect(document.body.textContent).toContain("Reviewer");
     expect(document.body.textContent).toContain("Planner");
 
-    const confirm = findButton((t) => t.startsWith("Create copy & switch 2 agents"));
+    const confirm = findButton((t) =>
+      t.startsWith("Create copy & switch 2 agents"),
+    );
     await click(confirm);
 
-    expect(mockCompanySkillsApi.fork).toHaveBeenCalledWith("company-1", "skill-1", {
-      reassignAgentIds: ["a1", "a2"],
-    });
+    expect(mockCompanySkillsApi.fork).toHaveBeenCalledWith(
+      "company-1",
+      "skill-1",
+      {
+        reassignAgentIds: ["a1", "a2"],
+      },
+    );
     expect(mockNavigate).toHaveBeenCalledWith("/skills/studio/fork-new");
     expect(mockPushToast).toHaveBeenCalledWith(
       expect.objectContaining({ tone: "success" }),
@@ -266,20 +291,28 @@ describe("ForkSkillDialog", () => {
 
     await click(findButton((t) => t === "Create copy"));
 
-    expect(mockCompanySkillsApi.fork).toHaveBeenCalledWith("company-1", "skill-1", {
-      reassignAgentIds: [],
-    });
+    expect(mockCompanySkillsApi.fork).toHaveBeenCalledWith(
+      "company-1",
+      "skill-1",
+      {
+        reassignAgentIds: [],
+      },
+    );
   });
 
   it("offers 'Open your existing copy' when an un-diverged same-actor fork exists", async () => {
     mockCompanySkillsApi.forkPrecheck.mockResolvedValue(
-      makePrecheck({ existingForks: [makeForkSummary({ id: "fork-existing" })] }),
+      makePrecheck({
+        existingForks: [makeForkSummary({ id: "fork-existing" })],
+      }),
     );
 
     await renderNode(
       <ForkSkillDialog
         companyId="company-1"
-        skill={makeSkill({ existingForks: [makeForkSummary({ id: "fork-existing" })] })}
+        skill={makeSkill({
+          existingForks: [makeForkSummary({ id: "fork-existing" })],
+        })}
         open
         onOpenChange={() => {}}
       />,
@@ -293,12 +326,21 @@ describe("ForkSkillDialog", () => {
 
   it("hides the toggle and reports zero usage when no agents use the skill", async () => {
     await renderNode(
-      <ForkSkillDialog companyId="company-1" skill={makeSkill()} open onOpenChange={() => {}} />,
+      <ForkSkillDialog
+        companyId="company-1"
+        skill={makeSkill()}
+        open
+        onOpenChange={() => {}}
+      />,
     );
 
-    expect(document.body.textContent).toContain("No agents currently use this skill");
+    expect(document.body.textContent).toContain(
+      "No agents currently use this skill",
+    );
     expect(
-      document.body.querySelector('button[aria-label="Switch these agents to the copy"]'),
+      document.body.querySelector(
+        'button[aria-label="Switch these agents to the copy"]',
+      ),
     ).toBeNull();
   });
 });

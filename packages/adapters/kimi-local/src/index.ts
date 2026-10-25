@@ -3,7 +3,9 @@ import { buildSandboxNpmInstallCommand } from "@taskcore/adapter-utils";
 export const type = "kimi_local";
 export const label = "Kimi Code CLI (local)";
 
-export const SANDBOX_INSTALL_COMMAND = buildSandboxNpmInstallCommand("@moonshot-ai/kimi-code");
+export const SANDBOX_INSTALL_COMMAND = buildSandboxNpmInstallCommand(
+  "@moonshot-ai/kimi-code",
+);
 
 export const DEFAULT_KIMI_LOCAL_MODEL = "kimi-code/kimi-for-coding";
 

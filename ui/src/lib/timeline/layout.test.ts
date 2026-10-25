@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { WorkTimelineResult } from "@taskcore/shared";
-import { chooseTickStepMs, computeLayout, issueColor, shortLabel, type LayoutOptions } from "./layout";
+import {
+  chooseTickStepMs,
+  computeLayout,
+  issueColor,
+  shortLabel,
+  type LayoutOptions,
+} from "./layout";
 
 const DAY = "2026-07-02";
 const t = (hhmm: string) => `${DAY}T${hhmm}:00.000Z`;
@@ -40,17 +46,79 @@ function sample(): WorkTimelineResult {
     retryOfRunId,
   });
   const spans = [
-    span("r1", "agent:ceo", "i-405", "PAP-12405", "09:02", "09:10", "completed"),
-    span("r2", "agent:cto", "i-405", "PAP-12405", "09:14", "09:52", "completed"),
-    span("r3", "agent:senior", "i-075", "PAP-12075", "09:58", "10:20", "completed"),
+    span(
+      "r1",
+      "agent:ceo",
+      "i-405",
+      "PAP-12405",
+      "09:02",
+      "09:10",
+      "completed",
+    ),
+    span(
+      "r2",
+      "agent:cto",
+      "i-405",
+      "PAP-12405",
+      "09:14",
+      "09:52",
+      "completed",
+    ),
+    span(
+      "r3",
+      "agent:senior",
+      "i-075",
+      "PAP-12075",
+      "09:58",
+      "10:20",
+      "completed",
+    ),
     span("r4", "agent:ux", "i-422", "PAP-12422", "10:10", "11:34", "running"),
-    span("r5", "agent:codex", "i-423", "PAP-12423", "10:10", "10:56", "completed"),
-    span("r6", "agent:codex", "i-075", "PAP-12075", "10:22", "11:08", "completed"), // overlaps r5 → sub-lane
+    span(
+      "r5",
+      "agent:codex",
+      "i-423",
+      "PAP-12423",
+      "10:10",
+      "10:56",
+      "completed",
+    ),
+    span(
+      "r6",
+      "agent:codex",
+      "i-075",
+      "PAP-12075",
+      "10:22",
+      "11:08",
+      "completed",
+    ), // overlaps r5 → sub-lane
     span("r7", "agent:qa", "i-423", "PAP-12423", "11:40", "12:12", "completed"),
-    span("r8", "agent:codex", "i-423", "PAP-12423", "12:20", "12:38", "completed", "r5"), // retry
-    span("r9", "system:routine", "i-286", "PAP-12286", "20:00", "20:04", "completed"),
+    span(
+      "r8",
+      "agent:codex",
+      "i-423",
+      "PAP-12423",
+      "12:20",
+      "12:38",
+      "completed",
+      "r5",
+    ), // retry
+    span(
+      "r9",
+      "system:routine",
+      "i-286",
+      "PAP-12286",
+      "20:00",
+      "20:04",
+      "completed",
+    ),
   ];
-  const edge = (from: string, to: string, issueId: string, at: string): WorkTimelineResult["edges"][number] => ({
+  const edge = (
+    from: string,
+    to: string,
+    issueId: string,
+    at: string,
+  ): WorkTimelineResult["edges"][number] => ({
     fromActorId: from,
     toActorId: to,
     issueId,
@@ -137,8 +205,12 @@ describe("computeLayout", () => {
 
     const layout = computeLayout(data, OPTS);
     const ceoRuns = layout.rows.find((r) => r.actor.id === "agent:ceo")!.bars;
-    expect(ceoRuns.find((b) => b.span.runId === "r1")?.kickoff?.id).toBe("user:dotta");
-    expect(ceoRuns.find((b) => b.span.runId === "r1-later-automation")?.kickoff).toBeNull();
+    expect(ceoRuns.find((b) => b.span.runId === "r1")?.kickoff?.id).toBe(
+      "user:dotta",
+    );
+    expect(
+      ceoRuns.find((b) => b.span.runId === "r1-later-automation")?.kickoff,
+    ).toBeNull();
   });
 
   it("prefers the nearest post-start kickoff edge when no prior edge exists", () => {
@@ -156,8 +228,20 @@ describe("computeLayout", () => {
       retryOfRunId: null,
     });
     data.edges.push(
-      { fromActorId: "agent:qa", toActorId: "agent:ux", issueId: "i-late", at: t("14:30"), kind: "delegation" },
-      { fromActorId: "agent:cto", toActorId: "agent:ux", issueId: "i-late", at: t("14:02"), kind: "delegation" },
+      {
+        fromActorId: "agent:qa",
+        toActorId: "agent:ux",
+        issueId: "i-late",
+        at: t("14:30"),
+        kind: "delegation",
+      },
+      {
+        fromActorId: "agent:cto",
+        toActorId: "agent:ux",
+        issueId: "i-late",
+        at: t("14:02"),
+        kind: "delegation",
+      },
     );
 
     const layout = computeLayout(data, OPTS);
@@ -174,7 +258,8 @@ describe("computeLayout", () => {
     const dashed = layout.connectors.filter((c) => c.dashed);
     expect(dashed).toHaveLength(1); // only the QA→codex retry hop
     // every connector is left-to-right (source trailing edge → target leading edge)
-    for (const c of layout.connectors) expect(c.x2).toBeGreaterThanOrEqual(c.x1 - 1);
+    for (const c of layout.connectors)
+      expect(c.x2).toBeGreaterThanOrEqual(c.x1 - 1);
   });
 
   it("extends in-progress runs to now and clamps sub-minute bars", () => {
@@ -197,9 +282,24 @@ describe("human activity markers", () => {
   const withUserEvents = (): WorkTimelineResult => ({
     ...sample(),
     events: [
-      { actorId: "user:dotta", kind: "created", issueId: "i-405", at: t("09:00") },
-      { actorId: "user:dotta", kind: "commented", issueId: "i-422", at: t("11:00") },
-      { actorId: "user:dotta", kind: "approved", issueId: "i-423", at: t("12:15") },
+      {
+        actorId: "user:dotta",
+        kind: "created",
+        issueId: "i-405",
+        at: t("09:00"),
+      },
+      {
+        actorId: "user:dotta",
+        kind: "commented",
+        issueId: "i-422",
+        at: t("11:00"),
+      },
+      {
+        actorId: "user:dotta",
+        kind: "approved",
+        issueId: "i-423",
+        at: t("12:15"),
+      },
     ],
   });
 

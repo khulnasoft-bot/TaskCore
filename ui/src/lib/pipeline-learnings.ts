@@ -13,7 +13,9 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function asString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function eventItemTitle(event: PipelineCompanyCaseEvent): string {
@@ -38,7 +40,10 @@ function eventActorName(event: PipelineCompanyCaseEvent): string {
   );
 }
 
-function payloadText(event: PipelineCompanyCaseEvent, ...keys: string[]): string | null {
+function payloadText(
+  event: PipelineCompanyCaseEvent,
+  ...keys: string[]
+): string | null {
   const payload = asRecord(event.payload);
   for (const key of keys) {
     const value = asString(payload[key]);
@@ -53,7 +58,9 @@ function reviewVerb(decision: string | null): string {
   return "approved";
 }
 
-export function formatLearningEvent(event: PipelineCompanyCaseEvent): LearningEventPresentation {
+export function formatLearningEvent(
+  event: PipelineCompanyCaseEvent,
+): LearningEventPresentation {
   const payload = asRecord(event.payload);
   const title = eventItemTitle(event);
 
@@ -61,7 +68,8 @@ export function formatLearningEvent(event: PipelineCompanyCaseEvent): LearningEv
     const actor = eventActorName(event);
     const decision = asString(payload.decision);
     const toStageName =
-      asString(event.toStage?.name) ?? payloadText(event, "toStageName", "stageName", "targetStageName");
+      asString(event.toStage?.name) ??
+      payloadText(event, "toStageName", "stageName", "targetStageName");
     const stageCopy = toStageName ? ` moving to ${toStageName}` : "";
     const note = payloadText(event, "reason", "note");
     const noteCopy = note ? ` - note: ${note}` : "";
@@ -72,9 +80,11 @@ export function formatLearningEvent(event: PipelineCompanyCaseEvent): LearningEv
   }
 
   if (event.type === "transition_forced") {
-    const fromStageName = asString(event.fromStage?.name) ?? payloadText(event, "fromStageName");
+    const fromStageName =
+      asString(event.fromStage?.name) ?? payloadText(event, "fromStageName");
     const toStageName =
-      asString(event.toStage?.name) ?? payloadText(event, "toStageName", "stageName", "targetStageName");
+      asString(event.toStage?.name) ??
+      payloadText(event, "toStageName", "stageName", "targetStageName");
     const fromCopy = fromStageName ? ` from ${fromStageName}` : "";
     const toCopy = toStageName ? ` to ${toStageName}` : "";
     const reason = payloadText(event, "reason", "note");
@@ -101,15 +111,25 @@ export function learningDayLabel(value: string | Date) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown";
   const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const startOfToday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  ).getTime();
+  const startOfDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  ).getTime();
   const diffDays = Math.round((startOfToday - startOfDay) / 86_400_000);
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   return formatShortDate(date);
 }
 
-export function groupLearningEventsByDay<T extends { createdAt: string | Date }>(events: T[]) {
+export function groupLearningEventsByDay<
+  T extends { createdAt: string | Date },
+>(events: T[]) {
   const groups: Array<{ key: string; label: string; events: T[] }> = [];
   for (const event of events) {
     const key = learningDayKey(event.createdAt);
@@ -118,7 +138,11 @@ export function groupLearningEventsByDay<T extends { createdAt: string | Date }>
       existing.events.push(event);
       continue;
     }
-    groups.push({ key, label: learningDayLabel(event.createdAt), events: [event] });
+    groups.push({
+      key,
+      label: learningDayLabel(event.createdAt),
+      events: [event],
+    });
   }
   return groups;
 }

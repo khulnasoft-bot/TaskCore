@@ -17,22 +17,29 @@ async function loadRunner() {
 
 async function createWorkingDirectory() {
   const scratchRoot =
-    process.env.TASKCORE_RUN_SCRATCH_DIR ?? process.env.TASKCORE_SCRATCH_DIR ?? tmpdir();
+    process.env.TASKCORE_RUN_SCRATCH_DIR ??
+    process.env.TASKCORE_SCRATCH_DIR ??
+    tmpdir();
   return mkdtemp(resolve(scratchRoot, "live-console-browser-"));
 }
 
 export function createLiveConsoleBrowserMiddleware(options = {}) {
   const load = options.loadRunner ?? loadRunner;
-  const driverMode = options.driverMode ?? process.env.TASKCORE_LIVE_CONSOLE_DRIVER ?? "demo";
+  const driverMode =
+    options.driverMode ?? process.env.TASKCORE_LIVE_CONSOLE_DRIVER ?? "demo";
   const chunkDelayMs = Number.parseInt(
-    options.chunkDelayMs ?? process.env.TASKCORE_LIVE_CONSOLE_CHUNK_DELAY_MS ?? "45",
+    options.chunkDelayMs ??
+      process.env.TASKCORE_LIVE_CONSOLE_CHUNK_DELAY_MS ??
+      "45",
     10,
   );
   // Abandoned demo sessions hold their slot until the process exits, so a long
   // scripted run needs headroom the interactive default does not. The server
   // still clamps this to its own hard ceiling.
   const maxActiveSessions = Number.parseInt(
-    options.maxActiveSessions ?? process.env.TASKCORE_LIVE_CONSOLE_MAX_SESSIONS ?? "",
+    options.maxActiveSessions ??
+      process.env.TASKCORE_LIVE_CONSOLE_MAX_SESSIONS ??
+      "",
     10,
   );
   let bootstrap = null;
@@ -56,11 +63,14 @@ export function createLiveConsoleBrowserMiddleware(options = {}) {
             ? new runner.CodexAppServerDriver({
                 taskEnvelope,
                 conversationMode: manifestId === "chat" ? "direct" : "task",
-                onDiagnostic: (message) => process.stderr.write(`[liveConsole] ${message}\n`),
+                onDiagnostic: (message) =>
+                  process.stderr.write(`[liveConsole] ${message}\n`),
               })
             : new runner.LiveConsoleScriptedDriver({
                 manifestId: manifestId ?? "completion",
-                chunkDelayMs: Number.isInteger(chunkDelayMs) ? chunkDelayMs : 45,
+                chunkDelayMs: Number.isInteger(chunkDelayMs)
+                  ? chunkDelayMs
+                  : 45,
               }),
       });
       return { handle: server.middleware(), server, workingDirectory };
@@ -68,7 +78,11 @@ export function createLiveConsoleBrowserMiddleware(options = {}) {
     return bootstrap;
   }
 
-  const middleware = async function liveConsoleMiddleware(request, response, next) {
+  const middleware = async function liveConsoleMiddleware(
+    request,
+    response,
+    next,
+  ) {
     const url = new URL(request.url ?? "/", "http://liveConsole.local");
     if (!url.pathname.startsWith("/api/liveConsole/")) {
       next();
@@ -80,10 +94,12 @@ export function createLiveConsoleBrowserMiddleware(options = {}) {
     } catch (error) {
       response.statusCode = 500;
       response.setHeader("content-type", "application/json; charset=utf-8");
-      response.end(JSON.stringify({
-        error: "liveConsole_unavailable",
-        message: String(error instanceof Error ? error.message : error),
-      }));
+      response.end(
+        JSON.stringify({
+          error: "liveConsole_unavailable",
+          message: String(error instanceof Error ? error.message : error),
+        }),
+      );
     }
   };
   middleware.close = async () => {
@@ -98,7 +114,10 @@ export function createLiveConsoleBrowserMiddleware(options = {}) {
 export function liveConsoleBrowserServerPlugin(options = {}) {
   const middlewares = new Set();
   async function mount(server, host) {
-    const middleware = createLiveConsoleBrowserMiddleware({ ...options, bindHost: host });
+    const middleware = createLiveConsoleBrowserMiddleware({
+      ...options,
+      bindHost: host,
+    });
     await middleware.prepare(host);
     middlewares.add(middleware);
     server.middlewares.use(middleware);
@@ -111,11 +130,25 @@ export function liveConsoleBrowserServerPlugin(options = {}) {
     name: "taskcore-runner-live-console-server",
     async configureServer(server) {
       const host = server.config.server.host;
-      await mount(server, typeof host === "string" ? host : host === true ? "0.0.0.0" : "127.0.0.1");
+      await mount(
+        server,
+        typeof host === "string"
+          ? host
+          : host === true
+            ? "0.0.0.0"
+            : "127.0.0.1",
+      );
     },
     async configurePreviewServer(server) {
       const host = server.config.preview.host;
-      await mount(server, typeof host === "string" ? host : host === true ? "0.0.0.0" : "127.0.0.1");
+      await mount(
+        server,
+        typeof host === "string"
+          ? host
+          : host === true
+            ? "0.0.0.0"
+            : "127.0.0.1",
+      );
     },
   };
 }

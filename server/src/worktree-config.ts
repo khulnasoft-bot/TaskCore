@@ -8,7 +8,10 @@ import {
   taskcoreConfigSchema,
   type TaskcoreConfig,
 } from "@taskcore/shared";
-import { updateEnvFileContents, writeEnvFileAtomicallyIfChanged } from "@taskcore/shared/env-file";
+import {
+  updateEnvFileContents,
+  writeEnvFileAtomicallyIfChanged,
+} from "@taskcore/shared/env-file";
 import {
   readWorktreePortRegistry,
   withWorktreePortRegistryLockSync,
@@ -19,7 +22,9 @@ import { rewriteUrlPort } from "./url-utils.js";
 import { applyEmptyWorktreeSigningSecrets } from "./dev-runner-worktree.js";
 
 function nonEmpty(value: string | null | undefined): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function expandHomePrefix(value: string): string {
@@ -48,7 +53,9 @@ function parseEnvFile(contents: string): Record<string, string> {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
 
-    const match = rawLine.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    const match = rawLine.match(
+      /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/,
+    );
     if (!match) continue;
 
     const [, key, rawValue] = match;
@@ -59,7 +66,7 @@ function parseEnvFile(contents: string): Record<string, string> {
     }
 
     if (
-      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       entries[key] = value.slice(1, -1);
@@ -128,7 +135,8 @@ function resolveWorktreeRuntimeContext(
   const persistedConfigPath = nonEmpty(persistedEnv.TASKCORE_CONFIG);
   const persistedConfigLooksStale =
     persistedConfigPath !== null &&
-    path.resolve(expandHomePrefix(persistedConfigPath)) !== path.resolve(configPath) &&
+    path.resolve(expandHomePrefix(persistedConfigPath)) !==
+      path.resolve(configPath) &&
     !fs.existsSync(resolveHomeAwarePath(persistedConfigPath));
   const stablePersistedEnv = persistedConfigLooksStale ? {} : persistedEnv;
   const worktreeRoot = path.resolve(path.dirname(configPath), "..");
@@ -183,10 +191,13 @@ function atomicWriteFile(filePath: string, contents: string): void {
         directoryDescriptor = fs.openSync(path.dirname(filePath), "r");
         fs.fsyncSync(directoryDescriptor);
       } catch (error) {
-        const code = error instanceof Error && "code" in error ? error.code : null;
+        const code =
+          error instanceof Error && "code" in error ? error.code : null;
         if (
           process.platform !== "win32" ||
-          !["EACCES", "EINVAL", "EISDIR", "ENOTSUP", "EPERM"].includes(String(code))
+          !["EACCES", "EINVAL", "EISDIR", "ENOTSUP", "EPERM"].includes(
+            String(code),
+          )
         ) {
           throw error;
         }
@@ -197,7 +208,8 @@ function atomicWriteFile(filePath: string, contents: string): void {
     } catch (error) {
       if (fileDescriptor !== null) fs.closeSync(fileDescriptor);
       fs.rmSync(temporaryPath, { force: true });
-      const code = error instanceof Error && "code" in error ? error.code : null;
+      const code =
+        error instanceof Error && "code" in error ? error.code : null;
       if (code === "EEXIST") continue;
       throw error;
     }
@@ -208,7 +220,9 @@ function writeConfigFile(configPath: string, config: TaskcoreConfig): boolean {
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   const update = taskcoreConfigSchema.parse(config);
   const source = fs.existsSync(configPath)
-    ? taskcoreConfigSchema.parse(JSON.parse(fs.readFileSync(configPath, "utf8")))
+    ? taskcoreConfigSchema.parse(
+        JSON.parse(fs.readFileSync(configPath, "utf8")),
+      )
     : null;
   const nextConfig = source
     ? taskcoreConfigSchema.parse(mergeTaskcoreConfig(source, update))
@@ -242,7 +256,10 @@ function collectSiblingWorktreePorts(
   const siblingConfigPaths = new Set<string>();
   for (const configPath of registeredConfigPaths) {
     const resolvedConfigPath = path.resolve(configPath);
-    if (resolvedConfigPath !== path.resolve(context.configPath) && fs.existsSync(resolvedConfigPath)) {
+    if (
+      resolvedConfigPath !== path.resolve(context.configPath) &&
+      fs.existsSync(resolvedConfigPath)
+    ) {
       siblingConfigPaths.add(resolvedConfigPath);
     }
   }
@@ -251,20 +268,34 @@ function collectSiblingWorktreePorts(
     for (const entry of fs.readdirSync(instancesDir, { withFileTypes: true })) {
       if (!entry.isDirectory() || entry.name === context.instanceId) continue;
 
-      const siblingConfigPath = path.resolve(instancesDir, entry.name, "config.json");
+      const siblingConfigPath = path.resolve(
+        instancesDir,
+        entry.name,
+        "config.json",
+      );
       if (fs.existsSync(siblingConfigPath)) {
         siblingConfigPaths.add(siblingConfigPath);
       }
     }
   }
 
-  const repoManagedWorktreesRoot = resolveRepoManagedWorktreesRoot(path.dirname(context.configPath));
+  const repoManagedWorktreesRoot = resolveRepoManagedWorktreesRoot(
+    path.dirname(context.configPath),
+  );
   if (repoManagedWorktreesRoot && fs.existsSync(repoManagedWorktreesRoot)) {
-    for (const entry of fs.readdirSync(repoManagedWorktreesRoot, { withFileTypes: true })) {
+    for (const entry of fs.readdirSync(repoManagedWorktreesRoot, {
+      withFileTypes: true,
+    })) {
       if (!entry.isDirectory()) continue;
 
-      const siblingConfigPath = path.resolve(repoManagedWorktreesRoot, entry.name, ".taskcore", "config.json");
-      if (path.resolve(siblingConfigPath) === path.resolve(context.configPath)) continue;
+      const siblingConfigPath = path.resolve(
+        repoManagedWorktreesRoot,
+        entry.name,
+        ".taskcore",
+        "config.json",
+      );
+      if (path.resolve(siblingConfigPath) === path.resolve(context.configPath))
+        continue;
       if (fs.existsSync(siblingConfigPath)) {
         siblingConfigPaths.add(siblingConfigPath);
       }
@@ -273,8 +304,13 @@ function collectSiblingWorktreePorts(
 
   for (const siblingConfigPath of siblingConfigPaths) {
     try {
-      const siblingConfig = JSON.parse(fs.readFileSync(siblingConfigPath, "utf8")) as TaskcoreConfig;
-      if (Number.isInteger(siblingConfig.server.port) && siblingConfig.server.port > 0) {
+      const siblingConfig = JSON.parse(
+        fs.readFileSync(siblingConfigPath, "utf8"),
+      ) as TaskcoreConfig;
+      if (
+        Number.isInteger(siblingConfig.server.port) &&
+        siblingConfig.server.port > 0
+      ) {
         serverPorts.add(siblingConfig.server.port);
       }
       if (
@@ -291,7 +327,10 @@ function collectSiblingWorktreePorts(
   return { serverPorts, databasePorts, configPaths: siblingConfigPaths };
 }
 
-function findNextUnclaimedPort(preferredPort: number, claimedPorts: Set<number>): number {
+function findNextUnclaimedPort(
+  preferredPort: number,
+  claimedPorts: Set<number>,
+): number {
   let port = Math.max(1, Math.trunc(preferredPort));
   while (claimedPorts.has(port)) {
     port += 1;
@@ -310,7 +349,7 @@ function buildIsolatedWorktreeConfig(
   const serverPort = portOverrides?.serverPort ?? config.server.port;
   const databasePort =
     config.database.mode === "embedded-postgres"
-      ? portOverrides?.databasePort ?? config.database.embeddedPostgresPort
+      ? (portOverrides?.databasePort ?? config.database.embeddedPostgresPort)
       : undefined;
   const nextConfig: TaskcoreConfig = {
     ...config,
@@ -319,7 +358,8 @@ function buildIsolatedWorktreeConfig(
       ...(config.database.mode === "embedded-postgres"
         ? {
             embeddedPostgresDataDir: context.embeddedPostgresDataDir,
-            embeddedPostgresPort: databasePort ?? config.database.embeddedPostgresPort,
+            embeddedPostgresPort:
+              databasePort ?? config.database.embeddedPostgresPort,
             backup: {
               ...config.database.backup,
               enabled: false,
@@ -370,7 +410,12 @@ function needsWorktreeConfigRepair(
     if (config.database.backup.enabled) {
       return true;
     }
-    if (!isPathInside(config.database.embeddedPostgresDataDir, context.instanceRoot)) {
+    if (
+      !isPathInside(
+        config.database.embeddedPostgresDataDir,
+        context.instanceRoot,
+      )
+    ) {
       return true;
     }
     if (!isPathInside(config.database.backup.dir, context.instanceRoot)) {
@@ -384,7 +429,12 @@ function needsWorktreeConfigRepair(
   if (!isPathInside(config.storage.localDisk.baseDir, context.instanceRoot)) {
     return true;
   }
-  if (!isPathInside(config.secrets.localEncrypted.keyFilePath, context.instanceRoot)) {
+  if (
+    !isPathInside(
+      config.secrets.localEncrypted.keyFilePath,
+      context.instanceRoot,
+    )
+  ) {
     return true;
   }
 
@@ -403,7 +453,10 @@ export function applyRuntimePortSelectionToConfig(
   let changed = false;
   let nextConfig = config;
 
-  if (input.allowServerPortWrite !== false && config.server.port !== input.serverPort) {
+  if (
+    input.allowServerPortWrite !== false &&
+    config.server.port !== input.serverPort
+  ) {
     nextConfig = {
       ...nextConfig,
       server: {
@@ -430,8 +483,14 @@ export function applyRuntimePortSelectionToConfig(
     changed = true;
   }
 
-  if (nextConfig.auth.baseUrlMode === "explicit" && nextConfig.auth.publicBaseUrl) {
-    const rewritten = rewriteUrlPort(nextConfig.auth.publicBaseUrl, input.serverPort);
+  if (
+    nextConfig.auth.baseUrlMode === "explicit" &&
+    nextConfig.auth.publicBaseUrl
+  ) {
+    const rewritten = rewriteUrlPort(
+      nextConfig.auth.publicBaseUrl,
+      input.serverPort,
+    );
     if (rewritten && rewritten !== nextConfig.auth.publicBaseUrl) {
       nextConfig = {
         ...nextConfig,
@@ -456,7 +515,9 @@ export function maybeRepairLegacyWorktreeConfigAndEnvFiles(): {
     return { repairedConfig: false, repairedEnv: false };
   }
 
-  applyEmptyWorktreeSigningSecrets(path.resolve(path.dirname(context.configPath), ".."));
+  applyEmptyWorktreeSigningSecrets(
+    path.resolve(path.dirname(context.configPath), ".."),
+  );
 
   process.env.TASKCORE_HOME = context.homeDir;
   process.env.TASKCORE_INSTANCE_ID = context.instanceId;
@@ -467,65 +528,89 @@ export function maybeRepairLegacyWorktreeConfigAndEnvFiles(): {
   let repairedConfig = false;
   if (fs.existsSync(context.configPath)) {
     try {
-      const runtimeConfig = withWorktreePortRegistryLockSync(context.homeDir, () => {
-        const parsed = JSON.parse(fs.readFileSync(context.configPath, "utf8")) as TaskcoreConfig;
-        let selectedConfig = parsed;
-        const registeredConfigPaths = readWorktreePortRegistry(context.homeDir);
-        const siblingPorts = collectSiblingWorktreePorts(context, registeredConfigPaths);
-        const serverPortCollision = siblingPorts.serverPorts.has(parsed.server.port);
-        const databasePortCollision =
-          parsed.database.mode === "embedded-postgres" &&
-          siblingPorts.databasePorts.has(parsed.database.embeddedPostgresPort);
-
-        if (needsWorktreeConfigRepair(parsed, context) || serverPortCollision || databasePortCollision) {
-          const selectedServerPort = findNextUnclaimedPort(
-            parsed.server.port === 3100 ? 3101 : parsed.server.port,
-            siblingPorts.serverPorts,
+      const runtimeConfig = withWorktreePortRegistryLockSync(
+        context.homeDir,
+        () => {
+          const parsed = JSON.parse(
+            fs.readFileSync(context.configPath, "utf8"),
+          ) as TaskcoreConfig;
+          let selectedConfig = parsed;
+          const registeredConfigPaths = readWorktreePortRegistry(
+            context.homeDir,
           );
-          const selectedDatabasePort =
-            parsed.database.mode === "embedded-postgres"
-              ? findNextUnclaimedPort(
-                  parsed.database.embeddedPostgresPort === 54329
-                    ? 54330
-                    : parsed.database.embeddedPostgresPort,
-                  new Set([...siblingPorts.databasePorts, selectedServerPort]),
-                )
-              : undefined;
-
-          selectedConfig = buildIsolatedWorktreeConfig(parsed, context, {
-            serverPort: selectedServerPort,
-            databasePort: selectedDatabasePort,
-          });
-          writeConfigFile(context.configPath, selectedConfig);
-          repairedConfig = true;
-
-          if (serverPortCollision || databasePortCollision) {
-            console.warn(
-              [
-                `Worktree port conflict detected for ${context.worktreeName}; updated and persisted workspace ports.`,
-                ...(serverPortCollision
-                  ? [`server: ${parsed.server.port} -> ${selectedServerPort}`]
-                  : []),
-                ...(databasePortCollision && parsed.database.mode === "embedded-postgres"
-                  ? [`database: ${parsed.database.embeddedPostgresPort} -> ${selectedDatabasePort}`]
-                  : []),
-              ].join(" "),
+          const siblingPorts = collectSiblingWorktreePorts(
+            context,
+            registeredConfigPaths,
+          );
+          const serverPortCollision = siblingPorts.serverPorts.has(
+            parsed.server.port,
+          );
+          const databasePortCollision =
+            parsed.database.mode === "embedded-postgres" &&
+            siblingPorts.databasePorts.has(
+              parsed.database.embeddedPostgresPort,
             );
-          }
-        }
 
-        writeWorktreePortRegistry(context.homeDir, [
-          ...registeredConfigPaths,
-          ...siblingPorts.configPaths,
-          context.configPath,
-        ]);
-        return selectedConfig;
-      });
+          if (
+            needsWorktreeConfigRepair(parsed, context) ||
+            serverPortCollision ||
+            databasePortCollision
+          ) {
+            const selectedServerPort = findNextUnclaimedPort(
+              parsed.server.port === 3100 ? 3101 : parsed.server.port,
+              siblingPorts.serverPorts,
+            );
+            const selectedDatabasePort =
+              parsed.database.mode === "embedded-postgres"
+                ? findNextUnclaimedPort(
+                    parsed.database.embeddedPostgresPort === 54329
+                      ? 54330
+                      : parsed.database.embeddedPostgresPort,
+                    new Set([
+                      ...siblingPorts.databasePorts,
+                      selectedServerPort,
+                    ]),
+                  )
+                : undefined;
+
+            selectedConfig = buildIsolatedWorktreeConfig(parsed, context, {
+              serverPort: selectedServerPort,
+              databasePort: selectedDatabasePort,
+            });
+            writeConfigFile(context.configPath, selectedConfig);
+            repairedConfig = true;
+
+            if (serverPortCollision || databasePortCollision) {
+              console.warn(
+                [
+                  `Worktree port conflict detected for ${context.worktreeName}; updated and persisted workspace ports.`,
+                  ...(serverPortCollision
+                    ? [`server: ${parsed.server.port} -> ${selectedServerPort}`]
+                    : []),
+                  ...(databasePortCollision &&
+                  parsed.database.mode === "embedded-postgres"
+                    ? [
+                        `database: ${parsed.database.embeddedPostgresPort} -> ${selectedDatabasePort}`,
+                      ]
+                    : []),
+                ].join(" "),
+              );
+            }
+          }
+
+          writeWorktreePortRegistry(context.homeDir, [
+            ...registeredConfigPaths,
+            ...siblingPorts.configPaths,
+            context.configPath,
+          ]);
+          return selectedConfig;
+        },
+      );
 
       if (
-        !nonEmpty(process.env.PORT)
-        && Number.isInteger(runtimeConfig.server.port)
-        && runtimeConfig.server.port > 0
+        !nonEmpty(process.env.PORT) &&
+        Number.isInteger(runtimeConfig.server.port) &&
+        runtimeConfig.server.port > 0
       ) {
         process.env.PORT = String(runtimeConfig.server.port);
       }
@@ -564,13 +649,20 @@ export function maybeRepairLegacyWorktreeConfigAndEnvFiles(): {
   const repairedEnv = existingContents !== repairedContents;
 
   if (repairedEnv) {
-    writeEnvFileAtomicallyIfChanged(context.envPath, existingContents, repairedContents);
+    writeEnvFileAtomicallyIfChanged(
+      context.envPath,
+      existingContents,
+      repairedContents,
+    );
   }
 
   return { repairedConfig, repairedEnv };
 }
 
-function isPortPinnedByRuntimeEnv(rawValue: string | null | undefined, selectedPort: number): boolean {
+function isPortPinnedByRuntimeEnv(
+  rawValue: string | null | undefined,
+  selectedPort: number,
+): boolean {
   const normalized = nonEmpty(rawValue);
   if (!normalized) return false;
   const parsedPort = Number(normalized);
@@ -587,7 +679,9 @@ export function maybePersistWorktreeRuntimePorts(input: {
 
   let fileConfig: TaskcoreConfig;
   try {
-    fileConfig = JSON.parse(fs.readFileSync(context.configPath, "utf8")) as TaskcoreConfig;
+    fileConfig = JSON.parse(
+      fs.readFileSync(context.configPath, "utf8"),
+    ) as TaskcoreConfig;
   } catch {
     return;
   }
@@ -595,7 +689,10 @@ export function maybePersistWorktreeRuntimePorts(input: {
   const { config, changed } = applyRuntimePortSelectionToConfig(fileConfig, {
     serverPort: input.serverPort,
     databasePort: input.databasePort,
-    allowServerPortWrite: !isPortPinnedByRuntimeEnv(process.env.PORT, input.serverPort),
+    allowServerPortWrite: !isPortPinnedByRuntimeEnv(
+      process.env.PORT,
+      input.serverPort,
+    ),
     allowDatabasePortWrite: !nonEmpty(process.env.DATABASE_URL),
   });
 

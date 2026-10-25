@@ -5,7 +5,8 @@ const { mockResolveEnvironmentDriverConfigForRuntime } = vi.hoisted(() => ({
 }));
 
 vi.mock("../services/environment-config.js", () => ({
-  resolveEnvironmentDriverConfigForRuntime: mockResolveEnvironmentDriverConfigForRuntime,
+  resolveEnvironmentDriverConfigForRuntime:
+    mockResolveEnvironmentDriverConfigForRuntime,
 }));
 
 import { resolveEnvironmentExecutionTarget } from "../services/environment-execution-target.js";
@@ -44,7 +45,11 @@ async function buildSandboxTarget(input: {
     db: {} as never,
     companyId: "company-1",
     adapterType: "codex_local",
-    environment: { id: "env-1", driver: "sandbox", config: { provider: "daytona" } },
+    environment: {
+      id: "env-1",
+      driver: "sandbox",
+      config: { provider: "daytona" },
+    },
     leaseId: "lease-1",
     leaseMetadata: { remoteCwd: "/work" },
     lease: { id: "lease-1", leasePolicy: "reuse_by_environment" } as never,
@@ -71,12 +76,16 @@ describe("resolveEnvironmentExecutionTarget duplex kill switch", () => {
   });
 
   it("stamps no grant when the setting is off", async () => {
-    const { target } = await buildSandboxTarget({ bridgeInput: { enableDuplexBridge: false } });
+    const { target } = await buildSandboxTarget({
+      bridgeInput: { enableDuplexBridge: false },
+    });
     expect(target.enableSandboxDuplexBridge).toBe(false);
   });
 
   it("stamps no grant when the settings read fails, and the error does not become a grant", async () => {
-    const { target, readSandboxDuplexBridgeInput } = await buildSandboxTarget({ rejectRead: true });
+    const { target, readSandboxDuplexBridgeInput } = await buildSandboxTarget({
+      rejectRead: true,
+    });
     expect(readSandboxDuplexBridgeInput).toHaveBeenCalledTimes(1);
     // The resolve did not throw, and the read error stamped no grant.
     expect(target.enableSandboxDuplexBridge).toBe(false);

@@ -10,7 +10,9 @@ import { describe, expect, it } from "vitest";
  * open when the package is absent or at an unsupported version).
  */
 
-const packageJsonPath = fileURLToPath(new URL("../../package.json", import.meta.url));
+const packageJsonPath = fileURLToPath(
+  new URL("../../package.json", import.meta.url),
+);
 
 describe("server package Sentry peer metadata", () => {
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
@@ -22,7 +24,9 @@ describe("server package Sentry peer metadata", () => {
 
   it("declares @sentry/node as an optional peer dependency", () => {
     expect(packageJson.peerDependencies?.["@sentry/node"]).toBeDefined();
-    expect(packageJson.peerDependenciesMeta?.["@sentry/node"]?.optional).toBe(true);
+    expect(packageJson.peerDependenciesMeta?.["@sentry/node"]?.optional).toBe(
+      true,
+    );
   });
 
   it("does not list @sentry/node in dependencies or devDependencies", () => {

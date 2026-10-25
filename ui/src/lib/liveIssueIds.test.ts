@@ -122,40 +122,94 @@ describe("collectLiveIssueIds", () => {
       },
     ];
 
-    expect([...collectLiveIssueIds(liveRuns, [
-      { id: "issue-done", status: "done" },
-      { id: "issue-open", status: "in_progress" },
-    ])]).toEqual(["issue-open"]);
+    expect([
+      ...collectLiveIssueIds(liveRuns, [
+        { id: "issue-done", status: "done" },
+        { id: "issue-open", status: "in_progress" },
+      ]),
+    ]).toEqual(["issue-open"]);
   });
 
   it("keeps newer terminal snapshots authoritative when stale non-terminal snapshots appear later", () => {
     const liveRuns: LiveRunForIssue[] = [
       liveRun({ id: "run-done", issueId: "issue-done", status: "running" }),
-      liveRun({ id: "run-cancelled", issueId: "issue-cancelled", status: "queued" }),
+      liveRun({
+        id: "run-cancelled",
+        issueId: "issue-cancelled",
+        status: "queued",
+      }),
       liveRun({ id: "run-open", issueId: "issue-open", status: "running" }),
     ];
 
-    expect([...collectLiveIssueIds(liveRuns, [
-      { id: "issue-done", status: "done", updatedAt: "2026-04-20T10:02:00.000Z" },
-      { id: "issue-cancelled", status: "cancelled", updatedAt: "2026-04-20T10:02:00.000Z" },
-      { id: "issue-open", status: "in_progress", updatedAt: "2026-04-20T10:02:00.000Z" },
-      { id: "issue-done", status: "in_progress", updatedAt: "2026-04-20T10:01:00.000Z" },
-      { id: "issue-cancelled", status: "todo", updatedAt: "2026-04-20T10:01:00.000Z" },
-    ])]).toEqual(["issue-open"]);
+    expect([
+      ...collectLiveIssueIds(liveRuns, [
+        {
+          id: "issue-done",
+          status: "done",
+          updatedAt: "2026-04-20T10:02:00.000Z",
+        },
+        {
+          id: "issue-cancelled",
+          status: "cancelled",
+          updatedAt: "2026-04-20T10:02:00.000Z",
+        },
+        {
+          id: "issue-open",
+          status: "in_progress",
+          updatedAt: "2026-04-20T10:02:00.000Z",
+        },
+        {
+          id: "issue-done",
+          status: "in_progress",
+          updatedAt: "2026-04-20T10:01:00.000Z",
+        },
+        {
+          id: "issue-cancelled",
+          status: "todo",
+          updatedAt: "2026-04-20T10:01:00.000Z",
+        },
+      ]),
+    ]).toEqual(["issue-open"]);
   });
 
   it("allows a newer non-terminal snapshot to reopen an issue with a stale terminal snapshot", () => {
     const liveRuns: LiveRunForIssue[] = [
-      liveRun({ id: "run-reopened", issueId: "issue-reopened", status: "running" }),
-      liveRun({ id: "run-terminal", issueId: "issue-terminal", status: "queued" }),
+      liveRun({
+        id: "run-reopened",
+        issueId: "issue-reopened",
+        status: "running",
+      }),
+      liveRun({
+        id: "run-terminal",
+        issueId: "issue-terminal",
+        status: "queued",
+      }),
     ];
 
-    expect([...collectLiveIssueIds(liveRuns, [
-      { id: "issue-reopened", status: "done", updatedAt: "2026-04-20T10:01:00.000Z" },
-      { id: "issue-terminal", status: "in_progress", updatedAt: "2026-04-20T10:01:00.000Z" },
-      { id: "issue-reopened", status: "in_progress", updatedAt: "2026-04-20T10:02:00.000Z" },
-      { id: "issue-terminal", status: "done", updatedAt: "2026-04-20T10:02:00.000Z" },
-    ])]).toEqual(["issue-reopened"]);
+    expect([
+      ...collectLiveIssueIds(liveRuns, [
+        {
+          id: "issue-reopened",
+          status: "done",
+          updatedAt: "2026-04-20T10:01:00.000Z",
+        },
+        {
+          id: "issue-terminal",
+          status: "in_progress",
+          updatedAt: "2026-04-20T10:01:00.000Z",
+        },
+        {
+          id: "issue-reopened",
+          status: "in_progress",
+          updatedAt: "2026-04-20T10:02:00.000Z",
+        },
+        {
+          id: "issue-terminal",
+          status: "done",
+          updatedAt: "2026-04-20T10:02:00.000Z",
+        },
+      ]),
+    ]).toEqual(["issue-reopened"]);
   });
 });
 
@@ -177,7 +231,10 @@ describe("collectSubtreeLiveCounts", () => {
   });
 
   it("counts multiple live descendants under a shared ancestor", () => {
-    const counts = collectSubtreeLiveCounts(tree, new Set(["child-b", "grandchild"]));
+    const counts = collectSubtreeLiveCounts(
+      tree,
+      new Set(["child-b", "grandchild"]),
+    );
     expect(counts.get("root")).toBe(2);
     expect(counts.get("child-a")).toBe(1);
     expect(counts.has("child-b")).toBe(false);

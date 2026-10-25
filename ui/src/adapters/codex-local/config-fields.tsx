@@ -1,4 +1,10 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { AdapterMark } from "../../components/AdapterMark";
 import { DotRunnerConnection } from "../../components/DotRunnerConnection";
 import { configFieldsForSection } from "../config-sections";
@@ -72,7 +78,13 @@ export function CodexLocalConfigFields({
   const configuredRunnerProvider = runnerManaged
     ? isCreate
       ? values!.adapterSchemaValues?.provider
-      : eff("adapterConfig", "provider", config.provider === "acpx" && config.acpxAgent === "codex" ? "codex" : config.provider ?? "codex")
+      : eff(
+          "adapterConfig",
+          "provider",
+          config.provider === "acpx" && config.acpxAgent === "codex"
+            ? "codex"
+            : (config.provider ?? "codex"),
+        )
     : "codex";
   const runnerProvider: TaskcoreRunnerProvider = isTaskcoreRunnerProvider(
     configuredRunnerProvider,
@@ -169,7 +181,8 @@ export function CodexLocalConfigFields({
       ? "Fast mode consumes credits/tokens much faster than standard Codex runs."
       : `Fast mode currently only works on ${supportedModelsLabel} or manual model IDs. Taskcore will ignore this toggle until the model is switched.`;
 
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       {!hideEngineChoice && (
         <Field
@@ -202,29 +215,39 @@ export function CodexLocalConfigFields({
         </Field>
       )}
       {runnerManaged && runnerProvider !== "openai_dot" && (
-        <Field configSection="adapter"
+        <Field
+          configSection="adapter"
           label="Harness"
           hint="Choose the agent harness that runs your tasks."
         >
           <Select
-            value={runnerProvider === "acpx" && runnerSchemaValue("acpxAgent", "claude") === "grok" ? "grok" : runnerProvider}
+            value={
+              runnerProvider === "acpx" &&
+              runnerSchemaValue("acpxAgent", "claude") === "grok"
+                ? "grok"
+                : runnerProvider
+            }
             onValueChange={(value) => {
               const grok = value === "grok";
-              const provider = grok ? "acpx" : isTaskcoreRunnerProvider(value)
-                ? value
-                : "codex";
+              const provider = grok
+                ? "acpx"
+                : isTaskcoreRunnerProvider(value)
+                  ? value
+                  : "codex";
               const model =
                 provider === "openai_dot"
                   ? ""
                   : provider === "opencode"
-                  ? defaultOpenCodeRunnerModel
-                  : provider === "claude_managed"
-                    ? defaultClaudeManagedModel
-                    : provider === "aws_agentcore"
-                      ? defaultAwsAgentCoreModel
-                      : provider === "acpx"
-                        ? grok ? "grok-4.7" : defaultAcpxClaudeModel
-                        : DEFAULT_CODEX_LOCAL_MODEL;
+                    ? defaultOpenCodeRunnerModel
+                    : provider === "claude_managed"
+                      ? defaultClaudeManagedModel
+                      : provider === "aws_agentcore"
+                        ? defaultAwsAgentCoreModel
+                        : provider === "acpx"
+                          ? grok
+                            ? "grok-4.7"
+                            : defaultAcpxClaudeModel
+                          : DEFAULT_CODEX_LOCAL_MODEL;
               if (isCreate) {
                 set!({
                   model,
@@ -232,7 +255,9 @@ export function CodexLocalConfigFields({
                     ...values!.adapterSchemaValues,
                     provider,
                     acpxSessionMode: undefined,
-                    ...(provider === "acpx" ? { acpxAgent: grok ? "grok" : "claude" } : {}),
+                    ...(provider === "acpx"
+                      ? { acpxAgent: grok ? "grok" : "claude" }
+                      : {}),
                   },
                 });
               } else {
@@ -241,7 +266,22 @@ export function CodexLocalConfigFields({
                 mark("adapterConfig", "model", model);
                 if (provider === "openai_dot") {
                   mark("adapterConfig", "lifecycleMode", "per_turn");
-                  for (const key of ["cwd", "env", "instructionsFilePath", "command", "extraArgs", "engine", "modelReasoningEffort", "workspaceStrategy", "workspaceRuntime", "idleTimeoutMs", "acpxAgent", "managedProfileId", "agentCoreProfileId"]) mark("adapterConfig", key, undefined);
+                  for (const key of [
+                    "cwd",
+                    "env",
+                    "instructionsFilePath",
+                    "command",
+                    "extraArgs",
+                    "engine",
+                    "modelReasoningEffort",
+                    "workspaceStrategy",
+                    "workspaceRuntime",
+                    "idleTimeoutMs",
+                    "acpxAgent",
+                    "managedProfileId",
+                    "agentCoreProfileId",
+                  ])
+                    mark("adapterConfig", key, undefined);
                 }
                 if (provider === "acpx") {
                   mark("adapterConfig", "acpxAgent", grok ? "grok" : "claude");
@@ -249,7 +289,9 @@ export function CodexLocalConfigFields({
               }
             }}
           >
-            <SelectTrigger className="w-full" aria-label="Harness"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full" aria-label="Harness">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {runnerHarnessOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
@@ -261,55 +303,152 @@ export function CodexLocalConfigFields({
           </Select>
         </Field>
       )}
-      {runnerManaged && runnerProvider === "openai_dot" && <>
-        <Field configSection="adapter" label="Dot connection" hint="A verified event round trip is required before assigning work.">
-          <DotRunnerConnection companyId={companyId} agentId={agentId} bindingId={String(runnerSchemaValue("dotBindingId", ""))} onBinding={id => updateRunnerSchemaValue("dotBindingId", id)} />
-        </Field>
-        <ToggleField label="Read task attachments" hint="Let Dot read files attached to its current assigned task. File contents are sent to OpenAI. Does not require workspace command access; off by default."
-          checked={runnerSchemaValue("dotAttachmentAccess", false) === true} onChange={value => updateRunnerSchemaValue("dotAttachmentAccess", value)} />
-        <ToggleField label="Workspace files and commands" hint="Let Dot read and write its assigned workspace and publish files. Requires a local Runner. Commands are available only on Linux with bubblewrap; they cannot read your home directory or use injected credentials."
-          checked={runnerSchemaValue("dotWorkspaceAccess", false) === true} onChange={value => updateRunnerSchemaValue("dotWorkspaceAccess", value)} />
-        <ToggleField label="Allow externally billed provider" hint="Dot does not report token usage or cost. Taskcore cannot enforce a provider spend ceiling; known company and agent budget limits still apply."
-          checked={runnerSchemaValue("allowUnmeteredProvider", false) === true} onChange={value => updateRunnerSchemaValue("allowUnmeteredProvider", value)} />
-      </>}
-      {runnerManaged && runnerProvider === "acpx" && runnerSchemaValue("acpxAgent", "claude") !== "grok" && (
-        <Field configSection="adapter" label="ACP agent" hint="Cursor uses Taskcore questions; per-run cost is unavailable. GitHub Copilot and Pi await qualification.">
-          <Select
-            value={String(isCreate ? values!.adapterSchemaValues?.acpxAgent ?? "claude" : eff("adapterConfig", "acpxAgent", config.acpxAgent ?? "claude"))}
-            onValueChange={(value) => {
-              const profile = TASKCORE_RUNNER_ACPX_PROFILES.find(entry => entry.value === value);
-              const acpxSessionMode = profile?.value === "cursor" ? "agent" : undefined;
-              if (!profile?.qualified) return;
-              if (isCreate) set!({ model: profile.value === "claude" ? defaultAcpxClaudeModel : "",
-                adapterSchemaValues: { ...values!.adapterSchemaValues, acpxAgent: profile.value, acpxSessionMode } });
-              else { mark("adapterConfig", "acpxAgent", profile.value); mark("adapterConfig", "acpxSessionMode", acpxSessionMode); mark("adapterConfig", "model", profile.value === "claude" ? defaultAcpxClaudeModel : ""); }
-            }}>
-            <SelectTrigger className="w-full" aria-label="ACP agent"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {TASKCORE_RUNNER_ACPX_PROFILES.map(profile => (
-                <SelectItem key={profile.value} value={profile.value} disabled={!profile.qualified}>
-                  <AdapterMark type={profile.value === "cursor" ? "cursor" : `${profile.value}_local`} className="size-4" />
-                  {profile.label}{profile.qualified ? "" : " — qualification pending"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+      {runnerManaged && runnerProvider === "openai_dot" && (
+        <>
+          <Field
+            configSection="adapter"
+            label="Dot connection"
+            hint="A verified event round trip is required before assigning work."
+          >
+            <DotRunnerConnection
+              companyId={companyId}
+              agentId={agentId}
+              bindingId={String(runnerSchemaValue("dotBindingId", ""))}
+              onBinding={(id) => updateRunnerSchemaValue("dotBindingId", id)}
+            />
+          </Field>
+          <ToggleField
+            label="Read task attachments"
+            hint="Let Dot read files attached to its current assigned task. File contents are sent to OpenAI. Does not require workspace command access; off by default."
+            checked={runnerSchemaValue("dotAttachmentAccess", false) === true}
+            onChange={(value) =>
+              updateRunnerSchemaValue("dotAttachmentAccess", value)
+            }
+          />
+          <ToggleField
+            label="Workspace files and commands"
+            hint="Let Dot read and write its assigned workspace and publish files. Requires a local Runner. Commands are available only on Linux with bubblewrap; they cannot read your home directory or use injected credentials."
+            checked={runnerSchemaValue("dotWorkspaceAccess", false) === true}
+            onChange={(value) =>
+              updateRunnerSchemaValue("dotWorkspaceAccess", value)
+            }
+          />
+          <ToggleField
+            label="Allow externally billed provider"
+            hint="Dot does not report token usage or cost. Taskcore cannot enforce a provider spend ceiling; known company and agent budget limits still apply."
+            checked={
+              runnerSchemaValue("allowUnmeteredProvider", false) === true
+            }
+            onChange={(value) =>
+              updateRunnerSchemaValue("allowUnmeteredProvider", value)
+            }
+          />
+        </>
       )}
-      {runnerManaged && runnerProvider === "acpx" && runnerSchemaValue("acpxAgent", "claude") === "cursor" && (
-        <Field configSection="adapter" label="Cursor mode" hint="Select Cursor's session mode. Permissions and company approval rules still apply.">
-          <select className={inputClass} aria-label="Cursor mode"
-            value={String(runnerSchemaValue("acpxSessionMode", "agent"))}
-            onChange={(event) => updateRunnerSchemaValue("acpxSessionMode", event.target.value)}>
-            {!["agent", "plan", "ask"].includes(String(runnerSchemaValue("acpxSessionMode", "agent"))) && (
-              <option value={String(runnerSchemaValue("acpxSessionMode", "agent"))} disabled>Unsupported saved mode — select Agent, Plan, or Ask</option>
-            )}
-            <option value="agent">Agent</option>
-            <option value="plan">Plan</option>
-            <option value="ask">Ask</option>
-          </select>
-        </Field>
-      )}
+      {runnerManaged &&
+        runnerProvider === "acpx" &&
+        runnerSchemaValue("acpxAgent", "claude") !== "grok" && (
+          <Field
+            configSection="adapter"
+            label="ACP agent"
+            hint="Cursor uses Taskcore questions; per-run cost is unavailable. GitHub Copilot and Pi await qualification."
+          >
+            <Select
+              value={String(
+                isCreate
+                  ? (values!.adapterSchemaValues?.acpxAgent ?? "claude")
+                  : eff(
+                      "adapterConfig",
+                      "acpxAgent",
+                      config.acpxAgent ?? "claude",
+                    ),
+              )}
+              onValueChange={(value) => {
+                const profile = TASKCORE_RUNNER_ACPX_PROFILES.find(
+                  (entry) => entry.value === value,
+                );
+                const acpxSessionMode =
+                  profile?.value === "cursor" ? "agent" : undefined;
+                if (!profile?.qualified) return;
+                if (isCreate)
+                  set!({
+                    model:
+                      profile.value === "claude" ? defaultAcpxClaudeModel : "",
+                    adapterSchemaValues: {
+                      ...values!.adapterSchemaValues,
+                      acpxAgent: profile.value,
+                      acpxSessionMode,
+                    },
+                  });
+                else {
+                  mark("adapterConfig", "acpxAgent", profile.value);
+                  mark("adapterConfig", "acpxSessionMode", acpxSessionMode);
+                  mark(
+                    "adapterConfig",
+                    "model",
+                    profile.value === "claude" ? defaultAcpxClaudeModel : "",
+                  );
+                }
+              }}
+            >
+              <SelectTrigger className="w-full" aria-label="ACP agent">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TASKCORE_RUNNER_ACPX_PROFILES.map((profile) => (
+                  <SelectItem
+                    key={profile.value}
+                    value={profile.value}
+                    disabled={!profile.qualified}
+                  >
+                    <AdapterMark
+                      type={
+                        profile.value === "cursor"
+                          ? "cursor"
+                          : `${profile.value}_local`
+                      }
+                      className="size-4"
+                    />
+                    {profile.label}
+                    {profile.qualified ? "" : " — qualification pending"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
+      {runnerManaged &&
+        runnerProvider === "acpx" &&
+        runnerSchemaValue("acpxAgent", "claude") === "cursor" && (
+          <Field
+            configSection="adapter"
+            label="Cursor mode"
+            hint="Select Cursor's session mode. Permissions and company approval rules still apply."
+          >
+            <select
+              className={inputClass}
+              aria-label="Cursor mode"
+              value={String(runnerSchemaValue("acpxSessionMode", "agent"))}
+              onChange={(event) =>
+                updateRunnerSchemaValue("acpxSessionMode", event.target.value)
+              }
+            >
+              {!["agent", "plan", "ask"].includes(
+                String(runnerSchemaValue("acpxSessionMode", "agent")),
+              ) && (
+                <option
+                  value={String(runnerSchemaValue("acpxSessionMode", "agent"))}
+                  disabled
+                >
+                  Unsupported saved mode — select Agent, Plan, or Ask
+                </option>
+              )}
+              <option value="agent">Agent</option>
+              <option value="plan">Plan</option>
+              <option value="ask">Ask</option>
+            </select>
+          </Field>
+        )}
       {runnerManaged && runnerProvider === "claude_managed" && (
         <>
           <Field
@@ -416,7 +555,8 @@ export function CodexLocalConfigFields({
               className={inputClass}
             />
           </Field>
-          <Field configSection="runPolicy"
+          <Field
+            configSection="runPolicy"
             label="Invocation timeout (seconds)"
             hint="Qualified range is 1–300 seconds."
           >
@@ -444,68 +584,77 @@ export function CodexLocalConfigFields({
           />
         </>
       )}
-      {runnerManaged && runnerPermissionCapability.configurable && (runnerPermissionCapability.options.length > 1 || runnerPermissionModeUnsupported) && (
-        <Field
-          label="Permission mode"
-          hint={`${runnerPermissionCapability.description} The selected mode does not widen Taskcore's workspace, network, credential, or planning boundaries.`}
-        >
-          <Select
-            value={
-              runnerPermissionModeUnsupported
-                ? "__unsupported__"
-                : runnerPermissionMode
-            }
-            onValueChange={(selectedMode) => {
-              const value = resolveTaskcoreRunnerPermissionMode(
-                runnerProvider,
-                selectedMode,
-              ) as TaskcoreRunnerPermissionMode;
-              if (isCreate) {
-                set!({
-                  adapterSchemaValues: {
-                    ...values!.adapterSchemaValues,
-                    [runnerPermissionCapability.configKey]: value,
-                  },
-                });
-              } else {
-                mark(
-                  "adapterConfig",
-                  runnerPermissionCapability.configKey,
-                  value,
-                );
-              }
-            }}
+      {runnerManaged &&
+        runnerPermissionCapability.configurable &&
+        (runnerPermissionCapability.options.length > 1 ||
+          runnerPermissionModeUnsupported) && (
+          <Field
+            label="Permission mode"
+            hint={`${runnerPermissionCapability.description} The selected mode does not widen Taskcore's workspace, network, credential, or planning boundaries.`}
           >
-            <SelectTrigger aria-label="Permission mode" className="w-full font-sans">
-              <SelectValue>
-                {runnerPermissionModeUnsupported
-                  ? "Unsupported saved mode — select a qualified mode"
-                  : runnerPermissionCapability.options.find((option) => option.value === runnerPermissionMode)?.label}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {runnerPermissionModeUnsupported && (
-                <SelectItem value="__unsupported__" disabled>
-                  Unsupported saved mode — select a qualified mode
-                </SelectItem>
-              )}
-              {runnerPermissionCapability.options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {runnerPermissionModeUnsupported && runnerProvider === "codex" && (
-            <p className="mt-1 text-xs text-destructive" role="alert">
-              This saved Codex mode cannot start or recover a Taskcore Runner
-              run. Select Automatic (isolated) to remediate it.
-            </p>
-          )}
-        </Field>
-      )}
+            <Select
+              value={
+                runnerPermissionModeUnsupported
+                  ? "__unsupported__"
+                  : runnerPermissionMode
+              }
+              onValueChange={(selectedMode) => {
+                const value = resolveTaskcoreRunnerPermissionMode(
+                  runnerProvider,
+                  selectedMode,
+                ) as TaskcoreRunnerPermissionMode;
+                if (isCreate) {
+                  set!({
+                    adapterSchemaValues: {
+                      ...values!.adapterSchemaValues,
+                      [runnerPermissionCapability.configKey]: value,
+                    },
+                  });
+                } else {
+                  mark(
+                    "adapterConfig",
+                    runnerPermissionCapability.configKey,
+                    value,
+                  );
+                }
+              }}
+            >
+              <SelectTrigger
+                aria-label="Permission mode"
+                className="w-full font-sans"
+              >
+                <SelectValue>
+                  {runnerPermissionModeUnsupported
+                    ? "Unsupported saved mode — select a qualified mode"
+                    : runnerPermissionCapability.options.find(
+                        (option) => option.value === runnerPermissionMode,
+                      )?.label}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {runnerPermissionModeUnsupported && (
+                  <SelectItem value="__unsupported__" disabled>
+                    Unsupported saved mode — select a qualified mode
+                  </SelectItem>
+                )}
+                {runnerPermissionCapability.options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {runnerPermissionModeUnsupported && runnerProvider === "codex" && (
+              <p className="mt-1 text-xs text-destructive" role="alert">
+                This saved Codex mode cannot start or recover a Taskcore Runner
+                run. Select Automatic (isolated) to remediate it.
+              </p>
+            )}
+          </Field>
+        )}
       {runnerManaged && runnerProvider !== "openai_dot" && (
-        <Field configSection="runPolicy"
+        <Field
+          configSection="runPolicy"
           label="Runner lifecycle"
           hint="Turn by turn suspends after each run. Warm keeps the same provider process available between governed runs."
         >
@@ -524,49 +673,53 @@ export function CodexLocalConfigFields({
           </select>
         </Field>
       )}
-      {runnerManaged && runnerProvider !== "openai_dot" && runnerLifecycleMode === "warm" && (
-        <Field configSection="runPolicy"
-          label="Warm idle timeout (ms)"
-          hint="After this much inactivity, runnerd checkpoints and suspends the provider session. The maximum is 24 hours."
-        >
-          {isCreate ? (
-            <input
-              type="number"
-              min={1}
-              max={TASKCORE_RUNNER_IDLE_TIMEOUT_MAX_MS}
-              className={inputClass}
-              value={runnerIdleTimeoutMs}
-              onChange={(event) =>
-                set!({
-                  taskcoreRunnerIdleTimeoutMs:
-                    resolveTaskcoreRunnerIdleTimeoutMs(
-                      Number(event.target.value),
-                    ),
-                })
-              }
-            />
-          ) : (
-            <DraftNumberInput
-              value={runnerIdleTimeoutMs}
-              min={1}
-              max={TASKCORE_RUNNER_IDLE_TIMEOUT_MAX_MS}
-              onCommit={(value) =>
-                mark(
-                  "adapterConfig",
-                  "idleTimeoutMs",
-                  resolveTaskcoreRunnerIdleTimeoutMs(value),
-                )
-              }
-              immediate
-              className={inputClass}
-            />
-          )}
-        </Field>
-      )}
+      {runnerManaged &&
+        runnerProvider !== "openai_dot" &&
+        runnerLifecycleMode === "warm" && (
+          <Field
+            configSection="runPolicy"
+            label="Warm idle timeout (ms)"
+            hint="After this much inactivity, runnerd checkpoints and suspends the provider session. The maximum is 24 hours."
+          >
+            {isCreate ? (
+              <input
+                type="number"
+                min={1}
+                max={TASKCORE_RUNNER_IDLE_TIMEOUT_MAX_MS}
+                className={inputClass}
+                value={runnerIdleTimeoutMs}
+                onChange={(event) =>
+                  set!({
+                    taskcoreRunnerIdleTimeoutMs:
+                      resolveTaskcoreRunnerIdleTimeoutMs(
+                        Number(event.target.value),
+                      ),
+                  })
+                }
+              />
+            ) : (
+              <DraftNumberInput
+                value={runnerIdleTimeoutMs}
+                min={1}
+                max={TASKCORE_RUNNER_IDLE_TIMEOUT_MAX_MS}
+                onCommit={(value) =>
+                  mark(
+                    "adapterConfig",
+                    "idleTimeoutMs",
+                    resolveTaskcoreRunnerIdleTimeoutMs(value),
+                  )
+                }
+                immediate
+                className={inputClass}
+              />
+            )}
+          </Field>
+        )}
       {acpSelected && (
         <>
           {!managedSandboxOnly && (
-            <Field configSection="advanced"
+            <Field
+              configSection="advanced"
               label="ACP server command"
               hint="Optional override for the Codex ACP server command. Defaults to the package-local codex-acp binary."
             >
@@ -591,7 +744,8 @@ export function CodexLocalConfigFields({
               />
             </Field>
           )}
-          <Field configSection="runPolicy"
+          <Field
+            configSection="runPolicy"
             label="ACP session mode"
             hint="Persistent keeps ACP session state between runs. One-shot starts fresh each run."
           >
@@ -673,7 +827,8 @@ export function CodexLocalConfigFields({
               </div>
             </Field>
           )}
-          <Field configSection="runPolicy"
+          <Field
+            configSection="runPolicy"
             label="ACP warm process idle ms"
             hint="Defaults to 0, which closes the ACP process after each run while retaining persistent session state."
           >
@@ -788,17 +943,19 @@ export function CodexLocalConfigFields({
           )}
         </>
       )}
-      {runnerProvider !== "openai_dot" && <LocalWorkspaceRuntimeFields
-        isCreate={isCreate}
-        values={values}
-        set={set}
-        config={config}
-        mark={mark}
-        eff={eff}
-        mode={mode}
-        adapterType={adapterType}
-        models={models}
-      />}
-    </>
-  ));
+      {runnerProvider !== "openai_dot" && (
+        <LocalWorkspaceRuntimeFields
+          isCreate={isCreate}
+          values={values}
+          set={set}
+          config={config}
+          mark={mark}
+          eff={eff}
+          mode={mode}
+          adapterType={adapterType}
+          models={models}
+        />
+      )}
+    </>,
+  );
 }

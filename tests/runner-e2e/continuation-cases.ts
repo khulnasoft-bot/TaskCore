@@ -10,9 +10,13 @@ export const CONTINUATION_CASES = [
   "question-tool-documentation",
   "provider-question-bridge",
 ] as const;
-export type ContinuationCase = (typeof CONTINUATION_CASES)[number] | "question-answer-resume";
+export type ContinuationCase =
+  (typeof CONTINUATION_CASES)[number] | "question-answer-resume";
 export function continuationScenario(id: string, nonce: string) {
-  if (id !== "question-answer-resume" && !CONTINUATION_CASES.includes(id as (typeof CONTINUATION_CASES)[number]))
+  if (
+    id !== "question-answer-resume" &&
+    !CONTINUATION_CASES.includes(id as (typeof CONTINUATION_CASES)[number])
+  )
     throw new Error(`Unknown continuation case: ${id}`);
   const marker = `AMBER${nonce.replace(/[^a-z0-9]/gi, "")}`;
   const old = `COBALT${nonce.replace(/[^a-z0-9]/gi, "")}`;
@@ -21,7 +25,8 @@ export function continuationScenario(id: string, nonce: string) {
   const childTitle = `Follow-up ${marker}`;
   const document =
     "Save the final note as a task document. No other deliverables or child tasks are needed.";
-  const questionPrompt = "Help me write a one-sentence welcome note for a club meetup. First let me choose Morning or Afternoon using clickable choices. After I choose, ask me for a reference to include using an open text field. Ask only one question at a time and wait for my answers. Then save the note as a task document, including the selected time and my reference exactly as supplied, and finish. Do not create any other tasks or deliverables.";
+  const questionPrompt =
+    "Help me write a one-sentence welcome note for a club meetup. First let me choose Morning or Afternoon using clickable choices. After I choose, ask me for a reference to include using an open text field. Ask only one question at a time and wait for my answers. Then save the note as a task document, including the selected time and my reference exactly as supplied, and finish. Do not create any other tasks or deliverables.";
   const prompts: Record<ContinuationCase, string> = {
     "question-answer-resume": questionPrompt,
     "provider-question-bridge": `Use your built-in AskUserQuestion tool (not Taskcore's request_human_input) to ask which reference to include, with two choices: ${marker} and ${old}. Wait for my real answer, then save a one-sentence welcome note including only my selected reference as a task document and finish. No other tasks or deliverables are needed.`,
@@ -63,15 +68,17 @@ export const continuationTasks: readonly RunnerTaskFixture[] =
     flow: "continuation",
     automaticRetryPolicy: "single_attempt",
     expectedRunCount:
-      id === "provider-question-bridge" ? 1 : id === "completed-action-resume"
-        ? 4
-        : [
-              "clarification-not-approval",
-              "revision-preserves-approval",
-              "question-tool-documentation",
-            ].includes(id)
-          ? 3
-          : 2,
+      id === "provider-question-bridge"
+        ? 1
+        : id === "completed-action-resume"
+          ? 4
+          : [
+                "clarification-not-approval",
+                "revision-preserves-approval",
+                "question-tool-documentation",
+              ].includes(id)
+            ? 3
+            : 2,
     attemptTimeoutMs: { local: 10 * 60_000, daytona: 10 * 60_000 },
     expectedTerminalState: { issue: "done", run: "succeeded" },
     buildTitle: (nonce) => `Continuation ${id} ${nonce}`,
@@ -90,9 +97,12 @@ export function continuationScreenshotFile(
 
 /** Separate behavior contract; leave the semantic documentation case unchanged. */
 export const questionResumeTask: RunnerTaskFixture = {
-  ...continuationTasks.find(t => t.id === "question-tool-documentation")!,
-  id: "question-answer-resume", label: "Two answered questions across native paths",
-  expectedRunCount: 3, minimumExpectedRunCount: 1,
-  buildTitle: nonce => `Question resume ${nonce}`,
-  buildPrompt: nonce => continuationScenario("question-answer-resume", nonce).prompt,
+  ...continuationTasks.find((t) => t.id === "question-tool-documentation")!,
+  id: "question-answer-resume",
+  label: "Two answered questions across native paths",
+  expectedRunCount: 3,
+  minimumExpectedRunCount: 1,
+  buildTitle: (nonce) => `Question resume ${nonce}`,
+  buildPrompt: (nonce) =>
+    continuationScenario("question-answer-resume", nonce).prompt,
 };

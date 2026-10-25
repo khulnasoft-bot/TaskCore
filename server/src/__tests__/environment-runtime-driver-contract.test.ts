@@ -30,7 +30,9 @@ import { environmentRuntimeService } from "../services/environment-runtime.js";
 import { secretService } from "../services/secrets.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 const sshFixtureSupport = await getSshEnvLabSupport();
 
 if (!embeddedPostgresSupport.supported) {
@@ -44,10 +46,13 @@ interface RuntimeContractCase {
   driver: string;
   config: Record<string, unknown>;
   setup?: () => Promise<() => Promise<void>>;
-  expectLease: (lease: {
-    providerLeaseId: string | null;
-    metadata: Record<string, unknown> | null;
-  }, environment: Environment) => void;
+  expectLease: (
+    lease: {
+      providerLeaseId: string | null;
+      metadata: Record<string, unknown> | null;
+    },
+    environment: Environment,
+  ) => void;
 }
 
 describeEmbeddedPostgres("environment runtime driver contract", () => {
@@ -56,7 +61,9 @@ describeEmbeddedPostgres("environment runtime driver contract", () => {
   const fixtureRoots: string[] = [];
 
   beforeAll(async () => {
-    const started = await startEmbeddedPostgresTestDatabase("environment-runtime-contract");
+    const started = await startEmbeddedPostgresTestDatabase(
+      "environment-runtime-contract",
+    );
     stopDb = started.stop;
     db = createDb(started.connectionString);
   });
@@ -65,7 +72,9 @@ describeEmbeddedPostgres("environment runtime driver contract", () => {
     while (fixtureRoots.length > 0) {
       const root = fixtureRoots.pop();
       if (!root) continue;
-      await stopSshEnvLabFixture(path.join(root, "state.json")).catch(() => undefined);
+      await stopSshEnvLabFixture(path.join(root, "state.json")).catch(
+        () => undefined,
+      );
       await rm(root, { recursive: true, force: true }).catch(() => undefined);
     }
     await db.delete(environmentLeases);
@@ -253,7 +262,9 @@ describeEmbeddedPostgres("environment runtime driver contract", () => {
         reuseLease: false,
       },
       expectLease: (lease) => {
-        expect(lease.providerLeaseId).toMatch(/^sandbox:\/\/fake\/[0-9a-f-]+\/[0-9a-f-]+$/);
+        expect(lease.providerLeaseId).toMatch(
+          /^sandbox:\/\/fake\/[0-9a-f-]+\/[0-9a-f-]+$/,
+        );
         expect(lease.metadata).toMatchObject({
           provider: "fake",
           image: "ubuntu:24.04",
@@ -271,21 +282,32 @@ describeEmbeddedPostgres("environment runtime driver contract", () => {
 
   it("SSH satisfies the acquire/release host contract", async () => {
     if (!sshFixtureSupport.supported) {
-      console.warn(`Skipping SSH driver contract test: ${sshFixtureSupport.reason ?? "unsupported environment"}`);
+      console.warn(
+        `Skipping SSH driver contract test: ${sshFixtureSupport.reason ?? "unsupported environment"}`,
+      );
       return;
     }
 
-    const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-env-runtime-contract-ssh-"));
+    const fixtureRoot = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-env-runtime-contract-ssh-"),
+    );
     fixtureRoots.push(fixtureRoot);
-    const fixture = await startSshEnvLabFixture({ statePath: path.join(fixtureRoot, "state.json") });
+    const fixture = await startSshEnvLabFixture({
+      statePath: path.join(fixtureRoot, "state.json"),
+    });
     const sshConfig = await buildSshEnvLabFixtureConfig(fixture);
 
     await runContract({
       name: "ssh",
       driver: "ssh",
-      config: sshConfig as SshEnvironmentConfig as unknown as Record<string, unknown>,
+      config: sshConfig as SshEnvironmentConfig as unknown as Record<
+        string,
+        unknown
+      >,
       expectLease: (lease) => {
-        expect(lease.providerLeaseId).toContain(`ssh://${sshConfig.username}@${sshConfig.host}:${sshConfig.port}`);
+        expect(lease.providerLeaseId).toContain(
+          `ssh://${sshConfig.username}@${sshConfig.host}:${sshConfig.port}`,
+        );
         expect(lease.metadata).toMatchObject({
           host: sshConfig.host,
           port: sshConfig.port,

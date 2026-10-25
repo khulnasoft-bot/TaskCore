@@ -48,7 +48,10 @@ function createQuery(rows: unknown[], hooks: QueryHooks = {}) {
       return query;
     }),
     returning: vi.fn(() => query),
-    then(resolve: (value: unknown[]) => unknown, reject?: (reason: unknown) => unknown) {
+    then(
+      resolve: (value: unknown[]) => unknown,
+      reject?: (reason: unknown) => unknown,
+    ) {
       return Promise.resolve(rows).then(resolve, reject);
     },
   };
@@ -148,7 +151,10 @@ function createApp(db: Record<string, unknown>) {
   });
 }
 
-function createAppWithActor(db: Record<string, unknown>, actor: Record<string, unknown>) {
+function createAppWithActor(
+  db: Record<string, unknown>,
+  actor: Record<string, unknown>,
+) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -216,11 +222,7 @@ function createDirectHumanInviteDbStub() {
     approvedAt: new Date("2026-03-07T00:02:00.000Z"),
     updatedAt: new Date("2026-03-07T00:02:00.000Z"),
   };
-  const selectResponses = [
-    [invite],
-    [{ email: "invitee@example.com" }],
-    [],
-  ];
+  const selectResponses = [[invite], [{ email: "invitee@example.com" }], []];
   const updateResponses = [[], [approvedJoinRequest]];
   const insertResponses = [[createdJoinRequest]];
 
@@ -363,7 +365,8 @@ describe("POST /invites/:token/accept", () => {
   });
 
   it("grants company access immediately for a human invite", async () => {
-    const { db, insertedValues, updateValues } = createDirectHumanInviteDbStub();
+    const { db, insertedValues, updateValues } =
+      createDirectHumanInviteDbStub();
     const app = createAppWithActor(db, {
       type: "board",
       source: "session",
@@ -457,7 +460,9 @@ describe("POST /invites/:token/accept", () => {
       ]),
     );
     expect(updateValues).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ acceptedAt: expect.any(Date) })]),
+      expect.arrayContaining([
+        expect.objectContaining({ acceptedAt: expect.any(Date) }),
+      ]),
     );
     expect(accessServiceMock.ensureMembership).toHaveBeenCalledWith(
       "company-1",

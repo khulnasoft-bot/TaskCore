@@ -20,41 +20,64 @@ export type IssueDetailGoKeyAction =
   | "focus_comment"
   | "open_file_viewer"
   | "disarm";
-export type AttentionQueueKeyAction = "ignore" | "next" | "previous" | "toggle" | "dismiss";
+export type AttentionQueueKeyAction =
+  "ignore" | "next" | "previous" | "toggle" | "dismiss";
 
-export function isKeyboardShortcutTextInputTarget(target: EventTarget | null): boolean {
+export function isKeyboardShortcutTextInputTarget(
+  target: EventTarget | null,
+): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
   return !!target.closest(KEYBOARD_SHORTCUT_TEXT_INPUT_SELECTOR);
 }
 
-export function hasBlockingShortcutDialog(root: ParentNode = document): boolean {
+export function hasBlockingShortcutDialog(
+  root: ParentNode = document,
+): boolean {
   return !!root.querySelector("[role='dialog'][aria-modal='true']");
 }
 
 function isVisibleShortcutTarget(element: HTMLElement): boolean {
   if (!element.isConnected) return false;
-  if ("disabled" in element && typeof element.disabled === "boolean" && element.disabled) return false;
+  if (
+    "disabled" in element &&
+    typeof element.disabled === "boolean" &&
+    element.disabled
+  )
+    return false;
   if (element.closest("[hidden], [aria-hidden='true'], [inert]")) return false;
   if (element.closest("[role='dialog'][aria-modal='true']")) return false;
 
   const style = window.getComputedStyle(element);
   if (style.display === "none" || style.visibility === "hidden") return false;
 
-  return element.getClientRects().length > 0 || element === document.activeElement;
+  return (
+    element.getClientRects().length > 0 || element === document.activeElement
+  );
 }
 
-export function findPageSearchShortcutTarget(root: ParentNode = document): HTMLElement | null {
-  const candidates = Array.from(root.querySelectorAll<HTMLElement>(PAGE_SEARCH_SHORTCUT_SELECTOR));
-  return candidates.find((candidate) => isVisibleShortcutTarget(candidate)) ?? null;
+export function findPageSearchShortcutTarget(
+  root: ParentNode = document,
+): HTMLElement | null {
+  const candidates = Array.from(
+    root.querySelectorAll<HTMLElement>(PAGE_SEARCH_SHORTCUT_SELECTOR),
+  );
+  return (
+    candidates.find((candidate) => isVisibleShortcutTarget(candidate)) ?? null
+  );
 }
 
-export function focusPageSearchShortcutTarget(root: ParentNode = document): boolean {
+export function focusPageSearchShortcutTarget(
+  root: ParentNode = document,
+): boolean {
   const target = findPageSearchShortcutTarget(root);
   if (!target) return false;
 
   target.focus();
-  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement
+  ) {
     target.select();
   }
   return true;
@@ -105,8 +128,16 @@ export function resolveAttentionQueueKeyAction({
   hasOpenDialog: boolean;
   hasSelection: boolean;
 }): AttentionQueueKeyAction {
-  if (defaultPrevented || metaKey || ctrlKey || altKey || isModifierOnlyKey(key)) return "ignore";
-  if (hasOpenDialog || isKeyboardShortcutTextInputTarget(target)) return "ignore";
+  if (
+    defaultPrevented ||
+    metaKey ||
+    ctrlKey ||
+    altKey ||
+    isModifierOnlyKey(key)
+  )
+    return "ignore";
+  if (hasOpenDialog || isKeyboardShortcutTextInputTarget(target))
+    return "ignore";
 
   switch (key) {
     case "j":
@@ -146,7 +177,8 @@ export function resolveInboxQuickArchiveKeyAction({
   if (!armed) return "ignore";
   if (defaultPrevented) return "ignore";
   if (metaKey || ctrlKey || altKey || isModifierOnlyKey(key)) return "ignore";
-  if (hasOpenDialog || isKeyboardShortcutTextInputTarget(target)) return "ignore";
+  if (hasOpenDialog || isKeyboardShortcutTextInputTarget(target))
+    return "ignore";
   if (key.toLowerCase() === "y") return "archive";
   return "ignore";
 }
@@ -173,7 +205,8 @@ export function resolveInboxUndoArchiveKeyAction({
   if (!hasUndoableArchive) return "ignore";
   if (defaultPrevented) return "ignore";
   if (metaKey || ctrlKey || altKey || isModifierOnlyKey(key)) return "ignore";
-  if (hasOpenDialog || isKeyboardShortcutTextInputTarget(target)) return "ignore";
+  if (hasOpenDialog || isKeyboardShortcutTextInputTarget(target))
+    return "ignore";
   if (key === "u") return "undo_archive";
   return "ignore";
 }

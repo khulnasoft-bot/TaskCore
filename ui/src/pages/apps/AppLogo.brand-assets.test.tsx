@@ -25,53 +25,85 @@ describe("AppLogo local brand assets", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each([undefined, "/brands/apps/notion.svg"])("keeps same-artwork local branding authoritative over a remote dark logo (%s)", async (darkAsset) => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ schemaVersion: 1, providers: [{
-        slug: "notion", provider: "Notion", localAsset: "/brands/apps/notion.svg", darkAsset,
-      }] }),
-    }));
-    root = createRoot(container);
-    await act(async () => {
-      root.render(<AppLogo name="Notion" size={28} className="border" logoUrl="https://remote.example/light.svg" darkLogoUrl="https://remote.example/stale-dark.svg" />);
-    });
-    const images = Array.from(container.querySelectorAll("img"));
-    expect(images.map((image) => image.getAttribute("src"))).toEqual(["/brands/apps/notion.svg"]);
-    expect(images[0]?.alt).toBe("");
-    const wrapper = images[0]!.parentElement!;
-    expect(wrapper.className).toContain("rounded-lg bg-muted");
-    expect(wrapper.className).toContain("border");
-    expect(wrapper.style.width).toBe("28px");
-    expect(wrapper.style.height).toBe("28px");
-    await act(async () => { images[0]!.dispatchEvent(new Event("error")); });
-    expect(container.querySelector("img")).toBeNull();
-    expect(container.textContent).toBe("N");
-  });
+  it.each([undefined, "/brands/apps/notion.svg"])(
+    "keeps same-artwork local branding authoritative over a remote dark logo (%s)",
+    async (darkAsset) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            schemaVersion: 1,
+            providers: [
+              {
+                slug: "notion",
+                provider: "Notion",
+                localAsset: "/brands/apps/notion.svg",
+                darkAsset,
+              },
+            ],
+          }),
+        }),
+      );
+      root = createRoot(container);
+      await act(async () => {
+        root.render(
+          <AppLogo
+            name="Notion"
+            size={28}
+            className="border"
+            logoUrl="https://remote.example/light.svg"
+            darkLogoUrl="https://remote.example/stale-dark.svg"
+          />,
+        );
+      });
+      const images = Array.from(container.querySelectorAll("img"));
+      expect(images.map((image) => image.getAttribute("src"))).toEqual([
+        "/brands/apps/notion.svg",
+      ]);
+      expect(images[0]?.alt).toBe("");
+      const wrapper = images[0]!.parentElement!;
+      expect(wrapper.className).toContain("rounded-lg bg-muted");
+      expect(wrapper.className).toContain("border");
+      expect(wrapper.style.width).toBe("28px");
+      expect(wrapper.style.height).toBe("28px");
+      await act(async () => {
+        images[0]!.dispatchEvent(new Event("error"));
+      });
+      expect(container.querySelector("img")).toBeNull();
+      expect(container.textContent).toBe("N");
+    },
+  );
 
   it("loads the manifest and renders its light and dark provider assets", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         schemaVersion: 1,
-        providers: [{
-          slug: "github",
-          provider: "GitHub",
-          localAsset: "/brands/apps/github.svg",
-          darkAsset: "/brands/apps/github-dark.svg",
-        }],
+        providers: [
+          {
+            slug: "github",
+            provider: "GitHub",
+            localAsset: "/brands/apps/github.svg",
+            darkAsset: "/brands/apps/github-dark.svg",
+          },
+        ],
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
     root = createRoot(container);
 
     await act(async () => {
-      root.render(<AppLogo name="GitHub" logoUrl="https://remote.example/github.svg" />);
+      root.render(
+        <AppLogo name="GitHub" logoUrl="https://remote.example/github.svg" />,
+      );
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    expect(fetchMock).toHaveBeenCalledWith("/brands/apps/manifest.json", { credentials: "same-origin" });
+    expect(fetchMock).toHaveBeenCalledWith("/brands/apps/manifest.json", {
+      credentials: "same-origin",
+    });
     const images = Array.from(container.querySelectorAll("img"));
     expect(images.map((image) => image.getAttribute("src"))).toEqual([
       "/brands/apps/github.svg",
@@ -82,61 +114,82 @@ describe("AppLogo local brand assets", () => {
   });
 
   it.each([
-    { failedIndex: 0, survivingAsset: "/brands/apps/github-dark.svg", survivingClass: "dark:block", fallbackClass: "dark:hidden" },
-    { failedIndex: 1, survivingAsset: "/brands/apps/github.svg", survivingClass: "dark:hidden", fallbackClass: "dark:flex" },
-  ])("keeps the valid theme asset when image $failedIndex fails", async ({
-    failedIndex,
-    survivingAsset,
-    survivingClass,
-    fallbackClass,
-  }) => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        schemaVersion: 1,
-        providers: [{
-          slug: "github",
-          provider: "GitHub",
-          localAsset: "/brands/apps/github.svg",
-          darkAsset: "/brands/apps/github-dark.svg",
-        }],
-      }),
-    }));
-    root = createRoot(container);
+    {
+      failedIndex: 0,
+      survivingAsset: "/brands/apps/github-dark.svg",
+      survivingClass: "dark:block",
+      fallbackClass: "dark:hidden",
+    },
+    {
+      failedIndex: 1,
+      survivingAsset: "/brands/apps/github.svg",
+      survivingClass: "dark:hidden",
+      fallbackClass: "dark:flex",
+    },
+  ])(
+    "keeps the valid theme asset when image $failedIndex fails",
+    async ({ failedIndex, survivingAsset, survivingClass, fallbackClass }) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            schemaVersion: 1,
+            providers: [
+              {
+                slug: "github",
+                provider: "GitHub",
+                localAsset: "/brands/apps/github.svg",
+                darkAsset: "/brands/apps/github-dark.svg",
+              },
+            ],
+          }),
+        }),
+      );
+      root = createRoot(container);
 
-    await act(async () => {
-      root.render(<AppLogo name="GitHub" />);
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-    const failedImage = container.querySelectorAll("img")[failedIndex];
-    expect(failedImage).toBeTruthy();
+      await act(async () => {
+        root.render(<AppLogo name="GitHub" />);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      const failedImage = container.querySelectorAll("img")[failedIndex];
+      expect(failedImage).toBeTruthy();
 
-    await act(async () => {
-      failedImage!.dispatchEvent(new Event("error", { bubbles: true }));
-    });
+      await act(async () => {
+        failedImage!.dispatchEvent(new Event("error", { bubbles: true }));
+      });
 
-    const remainingImages = Array.from(container.querySelectorAll("img"));
-    expect(remainingImages).toHaveLength(1);
-    expect(remainingImages[0]?.getAttribute("src")).toBe(survivingAsset);
-    expect(remainingImages[0]?.className).toContain(survivingClass);
-    const fallback = container.querySelector("span > span");
-    expect(fallback?.textContent).toBe("G");
-    expect(fallback?.className).toContain(fallbackClass);
-  });
+      const remainingImages = Array.from(container.querySelectorAll("img"));
+      expect(remainingImages).toHaveLength(1);
+      expect(remainingImages[0]?.getAttribute("src")).toBe(survivingAsset);
+      expect(remainingImages[0]?.className).toContain(survivingClass);
+      const fallback = container.querySelector("span > span");
+      expect(fallback?.textContent).toBe("G");
+      expect(fallback?.className).toContain(fallbackClass);
+    },
+  );
 
   it("does not request a remote logo while the local manifest lookup is pending", async () => {
     let resolveResponse!: (value: {
       ok: boolean;
       json: () => Promise<unknown>;
     }) => void;
-    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => new Promise((resolve) => {
-      resolveResponse = resolve;
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveResponse = resolve;
+          }),
+      ),
+    );
     root = createRoot(container);
 
     act(() => {
-      root.render(<AppLogo name="GitHub" logoUrl="https://remote.example/github.svg" />);
+      root.render(
+        <AppLogo name="GitHub" logoUrl="https://remote.example/github.svg" />,
+      );
     });
 
     expect(container.querySelector("img")).toBeNull();
@@ -146,32 +199,41 @@ describe("AppLogo local brand assets", () => {
         ok: true,
         json: async () => ({
           schemaVersion: 1,
-          providers: [{
-            slug: "github",
-            provider: "GitHub",
-            localAsset: "/brands/apps/github.svg",
-          }],
+          providers: [
+            {
+              slug: "github",
+              provider: "GitHub",
+              localAsset: "/brands/apps/github.svg",
+            },
+          ],
         }),
       });
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    expect(container.querySelector("img")?.getAttribute("src")).toBe("/brands/apps/github.svg");
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "/brands/apps/github.svg",
+    );
   });
 
   it("uses a stable provider key for owner-qualified display names", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        schemaVersion: 1,
-        providers: [{
-          slug: "github",
-          provider: "GitHub",
-          localAsset: "/brands/apps/github.svg",
-        }],
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          schemaVersion: 1,
+          providers: [
+            {
+              slug: "github",
+              provider: "GitHub",
+              localAsset: "/brands/apps/github.svg",
+            },
+          ],
+        }),
       }),
-    }));
+    );
     root = createRoot(container);
 
     await act(async () => {
@@ -186,21 +248,28 @@ describe("AppLogo local brand assets", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector("img")?.getAttribute("src")).toBe("/brands/apps/github.svg");
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "/brands/apps/github.svg",
+    );
   });
 
   it("does not expose a remote logo before a stable provider key arrives", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        schemaVersion: 1,
-        providers: [{
-          slug: "github",
-          provider: "GitHub",
-          localAsset: "/brands/apps/github.svg",
-        }],
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          schemaVersion: 1,
+          providers: [
+            {
+              slug: "github",
+              provider: "GitHub",
+              localAsset: "/brands/apps/github.svg",
+            },
+          ],
+        }),
       }),
-    }));
+    );
     root = createRoot(container);
 
     await act(async () => {
@@ -230,22 +299,34 @@ describe("AppLogo local brand assets", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector("img")?.getAttribute("src")).toBe("/brands/apps/github.svg");
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "/brands/apps/github.svg",
+    );
   });
 
   it("keeps the caller logo when the manifest has no matching provider", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ schemaVersion: 1, providers: [] }),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ schemaVersion: 1, providers: [] }),
+      }),
+    );
     root = createRoot(container);
 
     await act(async () => {
-      root.render(<AppLogo name="Custom MCP" logoUrl="https://remote.example/custom.svg" />);
+      root.render(
+        <AppLogo
+          name="Custom MCP"
+          logoUrl="https://remote.example/custom.svg"
+        />,
+      );
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    expect(container.querySelector("img")?.getAttribute("src")).toBe("https://remote.example/custom.svg");
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "https://remote.example/custom.svg",
+    );
   });
 });

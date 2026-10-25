@@ -35,10 +35,18 @@ vi.mock("../api/artifacts", () => ({
 // Render the menu inline (no radix portal / pointer-capture) so option clicks
 // are deterministic in jsdom.
 vi.mock("@/components/ui/dropdown-menu", () => ({
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
   DropdownMenuItem: ({
     children,
     onSelect,
@@ -81,7 +89,9 @@ class MockIntersectionObserver {
   takeRecords = vi.fn(() => []);
 }
 
-function sampleArtifact(overrides: Partial<CompanyArtifact> = {}): CompanyArtifact {
+function sampleArtifact(
+  overrides: Partial<CompanyArtifact> = {},
+): CompanyArtifact {
   return {
     id: "artifact-1",
     source: "document",
@@ -101,7 +111,9 @@ function sampleArtifact(overrides: Partial<CompanyArtifact> = {}): CompanyArtifa
   };
 }
 
-function sampleGroup(overrides: Partial<CompanyArtifactGroup> = {}): CompanyArtifactGroup {
+function sampleGroup(
+  overrides: Partial<CompanyArtifactGroup> = {},
+): CompanyArtifactGroup {
   return {
     id: "task:issue-1",
     groupBy: "task",
@@ -135,7 +147,10 @@ async function waitForAssertion(assertion: () => void, attempts = 50) {
   throw lastError;
 }
 
-function renderArtifacts(container: HTMLDivElement, initialEntries: string[] = ["/artifacts"]) {
+function renderArtifacts(
+  container: HTMLDivElement,
+  initialEntries: string[] = ["/artifacts"],
+) {
   const root = createRoot(container);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -163,16 +178,22 @@ describe("Artifacts page", () => {
     artifactsApiMock.list.mockReset();
     latestObserverCallback = null;
     originalIntersectionObserver = window.IntersectionObserver;
-    window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+    window.IntersectionObserver =
+      MockIntersectionObserver as unknown as typeof IntersectionObserver;
   });
 
   afterEach(() => {
-    window.IntersectionObserver = originalIntersectionObserver as typeof IntersectionObserver;
+    window.IntersectionObserver =
+      originalIntersectionObserver as typeof IntersectionObserver;
     container.remove();
   });
 
   it("requests task-grouped artifact stacks by default", async () => {
-    artifactsApiMock.list.mockResolvedValue({ artifacts: [], groups: [sampleGroup()], nextCursor: null });
+    artifactsApiMock.list.mockResolvedValue({
+      artifacts: [],
+      groups: [sampleGroup()],
+      nextCursor: null,
+    });
 
     const { root } = renderArtifacts(container);
 
@@ -185,15 +206,23 @@ describe("Artifacts page", () => {
         limit: 30,
         cursor: undefined,
       });
-      const groupControl = container.querySelector('[data-testid="artifact-group-control"]') as HTMLButtonElement;
-      const allFilter = [...container.querySelectorAll('[role="tab"]')]
-        .find((element) => element.textContent === "All") as HTMLButtonElement;
+      const groupControl = container.querySelector(
+        '[data-testid="artifact-group-control"]',
+      ) as HTMLButtonElement;
+      const allFilter = [...container.querySelectorAll('[role="tab"]')].find(
+        (element) => element.textContent === "All",
+      ) as HTMLButtonElement;
       expect(groupControl).not.toBeNull();
       expect(groupControl.textContent).toBe("");
       expect(groupControl.getAttribute("data-variant")).toBe("outline");
       expect(groupControl.getAttribute("data-size")).toBe("icon");
       expect(groupControl.getAttribute("data-group-by")).toBe("task");
-      expect(Boolean(groupControl.compareDocumentPosition(allFilter) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+      expect(
+        Boolean(
+          groupControl.compareDocumentPosition(allFilter) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ).toBe(true);
     });
 
     flushSync(() => {
@@ -203,12 +232,18 @@ describe("Artifacts page", () => {
 
   it("debounces artifact search into the artifacts API", async () => {
     artifactsApiMock.list
-      .mockResolvedValueOnce({ artifacts: [], groups: [sampleGroup()], nextCursor: null })
+      .mockResolvedValueOnce({
+        artifacts: [],
+        groups: [sampleGroup()],
+        nextCursor: null,
+      })
       .mockResolvedValueOnce({ artifacts: [], groups: [], nextCursor: null });
 
     const { root } = renderArtifacts(container);
 
-    const input = container.querySelector('input[aria-label="Search artifacts"]') as HTMLInputElement;
+    const input = container.querySelector(
+      'input[aria-label="Search artifacts"]',
+    ) as HTMLInputElement;
     expect(input).not.toBeNull();
 
     flushSync(() => {
@@ -239,12 +274,17 @@ describe("Artifacts page", () => {
   });
 
   it("keeps the artifacts grid max-width constrained and left aligned", async () => {
-    artifactsApiMock.list.mockResolvedValue({ artifacts: [sampleArtifact()], nextCursor: null });
+    artifactsApiMock.list.mockResolvedValue({
+      artifacts: [sampleArtifact()],
+      nextCursor: null,
+    });
 
     const { root } = renderArtifacts(container, ["/artifacts?groupBy=none"]);
 
     await waitForAssertion(() => {
-      expect(container.querySelector('[data-testid="artifact-card"]')).not.toBeNull();
+      expect(
+        container.querySelector('[data-testid="artifact-card"]'),
+      ).not.toBeNull();
     });
 
     const pageShell = container.firstElementChild as HTMLElement | null;
@@ -259,11 +299,15 @@ describe("Artifacts page", () => {
   it("fetches the next artifact page when the sentinel intersects", async () => {
     artifactsApiMock.list
       .mockResolvedValueOnce({
-        artifacts: [sampleArtifact({ id: "artifact-1", title: "First Artifact" })],
+        artifacts: [
+          sampleArtifact({ id: "artifact-1", title: "First Artifact" }),
+        ],
         nextCursor: "cursor-2",
       })
       .mockResolvedValueOnce({
-        artifacts: [sampleArtifact({ id: "artifact-2", title: "Second Artifact" })],
+        artifacts: [
+          sampleArtifact({ id: "artifact-2", title: "Second Artifact" }),
+        ],
         nextCursor: null,
       });
 
@@ -297,17 +341,28 @@ describe("Artifacts page", () => {
   });
 
   it("switches grouping via the group control and refetches stacks", async () => {
-    artifactsApiMock.list.mockImplementation((_companyId: string, params?: { groupBy?: string }) => {
-      if (params?.groupBy === "none") {
-        return Promise.resolve({ artifacts: [sampleArtifact()], nextCursor: null });
-      }
-      return Promise.resolve({ artifacts: [], groups: [sampleGroup()], nextCursor: null });
-    });
+    artifactsApiMock.list.mockImplementation(
+      (_companyId: string, params?: { groupBy?: string }) => {
+        if (params?.groupBy === "none") {
+          return Promise.resolve({
+            artifacts: [sampleArtifact()],
+            nextCursor: null,
+          });
+        }
+        return Promise.resolve({
+          artifacts: [],
+          groups: [sampleGroup()],
+          nextCursor: null,
+        });
+      },
+    );
 
     const { root } = renderArtifacts(container);
 
     await waitForAssertion(() => {
-      expect(container.querySelector('[data-testid="artifact-group-card"]')).not.toBeNull();
+      expect(
+        container.querySelector('[data-testid="artifact-group-card"]'),
+      ).not.toBeNull();
     });
 
     const noneOption = container.querySelector(
@@ -316,7 +371,9 @@ describe("Artifacts page", () => {
     expect(noneOption).not.toBeNull();
 
     flushSync(() => {
-      noneOption.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      noneOption.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true }),
+      );
     });
 
     await waitForAssertion(() => {
@@ -328,8 +385,12 @@ describe("Artifacts page", () => {
         limit: 30,
         cursor: undefined,
       });
-      expect(container.querySelector('[data-testid="artifact-card"]')).not.toBeNull();
-      const groupControl = container.querySelector('[data-testid="artifact-group-control"]') as HTMLElement;
+      expect(
+        container.querySelector('[data-testid="artifact-card"]'),
+      ).not.toBeNull();
+      const groupControl = container.querySelector(
+        '[data-testid="artifact-group-control"]',
+      ) as HTMLElement;
       expect(groupControl.getAttribute("data-group-by")).toBe("none");
     });
 
@@ -356,7 +417,9 @@ describe("Artifacts page", () => {
         limit: 30,
         cursor: undefined,
       });
-      const card = container.querySelector('[data-testid="artifact-group-card"]') as HTMLElement;
+      const card = container.querySelector(
+        '[data-testid="artifact-group-card"]',
+      ) as HTMLElement;
       expect(card).not.toBeNull();
       expect(card.getAttribute("data-count")).toBe("4");
       expect(card.getAttribute("data-stacked")).toBe("true");
@@ -389,12 +452,20 @@ describe("Artifacts page", () => {
         limit: 30,
         cursor: undefined,
       });
-      expect(container.querySelector('[data-testid="artifact-stack-back"]')).not.toBeNull();
       expect(
-        (container.querySelector('[data-testid="artifact-stack-back"]') as HTMLAnchorElement).getAttribute("href"),
+        container.querySelector('[data-testid="artifact-stack-back"]'),
+      ).not.toBeNull();
+      expect(
+        (
+          container.querySelector(
+            '[data-testid="artifact-stack-back"]',
+          ) as HTMLAnchorElement
+        ).getAttribute("href"),
       ).toBe("/artifacts");
       expect(container.textContent).toContain("Stacked Artifact");
-      expect(container.querySelector('[data-testid="artifact-card"]')).not.toBeNull();
+      expect(
+        container.querySelector('[data-testid="artifact-card"]'),
+      ).not.toBeNull();
     });
 
     flushSync(() => {
@@ -409,7 +480,9 @@ describe("Artifacts page", () => {
       nextCursor: null,
     });
 
-    const { root } = renderArtifacts(container, ["/artifacts?kind=image&groupBy=task"]);
+    const { root } = renderArtifacts(container, [
+      "/artifacts?kind=image&groupBy=task",
+    ]);
 
     await waitForAssertion(() => {
       expect(artifactsApiMock.list).toHaveBeenCalledWith("company-1", {

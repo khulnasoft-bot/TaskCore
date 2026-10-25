@@ -11,11 +11,11 @@ exist.
 
 Sources were checked on 2026-08-07.
 
-| Surface | Finding | Runner decision |
-|---|---|---|
-| shadcn/ui | Official documentation describes open-code component distribution and provides first-class Vite and monorepo setup paths. | Compatible with Taskcore's Vite UI model. Reuse or adapt checked-in source while keeping Taskcore tokens and accessibility rules authoritative. |
-| AI Elements | Official documentation describes a registry built on shadcn/ui, targets React 19 and Tailwind CSS 4, and lists Next.js plus AI SDK as prerequisites. | Source shapes are promising, but the documented turnkey setup does not match a standalone Vite runner console. Evaluate individual source components; do not adopt the Next.js/AI SDK runtime stack by default. |
-| Conformance package | This phase has no browser surface. | Keep the dependency graph empty at runtime and defer all component selection. |
+| Surface             | Finding                                                                                                                                              | Runner decision                                                                                                                                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| shadcn/ui           | Official documentation describes open-code component distribution and provides first-class Vite and monorepo setup paths.                            | Compatible with Taskcore's Vite UI model. Reuse or adapt checked-in source while keeping Taskcore tokens and accessibility rules authoritative.                                                                 |
+| AI Elements         | Official documentation describes a registry built on shadcn/ui, targets React 19 and Tailwind CSS 4, and lists Next.js plus AI SDK as prerequisites. | Source shapes are promising, but the documented turnkey setup does not match a standalone Vite runner console. Evaluate individual source components; do not adopt the Next.js/AI SDK runtime stack by default. |
+| Conformance package | This phase has no browser surface.                                                                                                                   | Keep the dependency graph empty at runtime and defer all component selection.                                                                                                                                   |
 
 ## Candidate later evaluation
 

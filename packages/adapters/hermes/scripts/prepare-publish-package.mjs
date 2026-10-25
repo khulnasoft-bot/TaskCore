@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -42,7 +48,12 @@ function collectWorkspaceVersions(repoRoot) {
 
     for (const entry of readdirSync(absDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
-      if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
+      if (
+        entry.name === "node_modules" ||
+        entry.name === "dist" ||
+        entry.name === ".git"
+      )
+        continue;
       walk(join(relDir, entry.name));
     }
   }
@@ -64,7 +75,9 @@ function rewriteWorkspaceDeps(deps, workspaceVersions) {
 
       const resolvedVersion = workspaceVersions.get(name);
       if (!resolvedVersion) {
-        throw new Error(`Cannot resolve workspace dependency ${name} for publish package`);
+        throw new Error(
+          `Cannot resolve workspace dependency ${name} for publish package`,
+        );
       }
       return [name, resolvedVersion];
     }),
@@ -83,7 +96,9 @@ if (!publishConfig.exports) {
 }
 
 const repoRoot = findRepoRoot(packageDir);
-const workspaceVersions = repoRoot ? collectWorkspaceVersions(repoRoot) : new Map();
+const workspaceVersions = repoRoot
+  ? collectWorkspaceVersions(repoRoot)
+  : new Map();
 
 renameSync(packageJsonPath, devPackageJsonPath);
 
@@ -99,8 +114,14 @@ const publishPkg = {
   types: publishConfig.types,
   publishConfig: nextPublishConfig,
   dependencies: rewriteWorkspaceDeps(pkg.dependencies, workspaceVersions),
-  optionalDependencies: rewriteWorkspaceDeps(pkg.optionalDependencies, workspaceVersions),
-  peerDependencies: rewriteWorkspaceDeps(pkg.peerDependencies, workspaceVersions),
+  optionalDependencies: rewriteWorkspaceDeps(
+    pkg.optionalDependencies,
+    workspaceVersions,
+  ),
+  peerDependencies: rewriteWorkspaceDeps(
+    pkg.peerDependencies,
+    workspaceVersions,
+  ),
 };
 
 writeFileSync(packageJsonPath, `${JSON.stringify(publishPkg, null, 2)}\n`);

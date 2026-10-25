@@ -62,7 +62,9 @@ const DEDUPE_WINDOW_MS = 3500;
 const DEDUPE_MAX_AGE_MS = 20000;
 
 const ToastStateContext = createContext<ToastItem[] | null>(null);
-const ToastActionsContext = createContext<ToastActionsContextValue | null>(null);
+const ToastActionsContext = createContext<ToastActionsContextValue | null>(
+  null,
+);
 
 function normalizeTtl(value: number | undefined, tone: ToastTone) {
   const fallback = DEFAULT_TTL_BY_TONE[tone];
@@ -109,7 +111,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const tone = input.tone ?? "info";
       const ttlMs = normalizeTtl(input.ttlMs, tone);
       const dedupeKey =
-        input.dedupeKey ?? input.id ?? `${tone}|${input.title}|${input.body ?? ""}|${input.action?.href ?? ""}`;
+        input.dedupeKey ??
+        input.id ??
+        `${tone}|${input.title}|${input.body ?? ""}|${input.action?.href ?? ""}`;
 
       for (const [key, ts] of dedupeRef.current.entries()) {
         if (now - ts > DEDUPE_MAX_AGE_MS) {
@@ -150,12 +154,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [clearTimer, dismissToast],
   );
 
-  useEffect(() => () => {
-    for (const handle of timersRef.current.values()) {
-      window.clearTimeout(handle);
-    }
-    timersRef.current.clear();
-  }, []);
+  useEffect(
+    () => () => {
+      for (const handle of timersRef.current.values()) {
+        window.clearTimeout(handle);
+      }
+      timersRef.current.clear();
+    },
+    [],
+  );
 
   const actions = useMemo<ToastActionsContextValue>(
     () => ({
@@ -168,7 +175,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   return (
     <ToastActionsContext.Provider value={actions}>
-      <ToastStateContext.Provider value={toasts}>{children}</ToastStateContext.Provider>
+      <ToastStateContext.Provider value={toasts}>
+        {children}
+      </ToastStateContext.Provider>
     </ToastActionsContext.Provider>
   );
 }
@@ -200,5 +209,8 @@ export function useOptionalToastState() {
 export function useToast() {
   const toasts = useToastState();
   const actions = useToastActions();
-  return useMemo<ToastContextValue>(() => ({ toasts, ...actions }), [toasts, actions]);
+  return useMemo<ToastContextValue>(
+    () => ({ toasts, ...actions }),
+    [toasts, actions],
+  );
 }

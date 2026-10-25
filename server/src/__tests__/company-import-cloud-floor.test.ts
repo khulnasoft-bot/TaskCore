@@ -49,12 +49,27 @@ const IMPORT_ROUTES: Array<{ method: "get" | "post" | "put"; path: string }> = [
   { method: "post", path: "/api/companies/import" },
   { method: "get", path: "/api/companies/import/jobs/some-job" },
   { method: "post", path: "/api/companies/import/transfers" },
-  { method: "put", path: `/api/companies/import/transfers/${TRANSFER_ID}/parts/0` },
+  {
+    method: "put",
+    path: `/api/companies/import/transfers/${TRANSFER_ID}/parts/0`,
+  },
   { method: "get", path: `/api/companies/import/transfers/${TRANSFER_ID}` },
-  { method: "post", path: `/api/companies/import/transfers/${TRANSFER_ID}/preview` },
-  { method: "post", path: `/api/companies/import/transfers/${TRANSFER_ID}/apply` },
-  { method: "post", path: "/api/companies/11111111-2222-4333-8444-555555555555/imports/preview" },
-  { method: "post", path: "/api/companies/11111111-2222-4333-8444-555555555555/imports/apply" },
+  {
+    method: "post",
+    path: `/api/companies/import/transfers/${TRANSFER_ID}/preview`,
+  },
+  {
+    method: "post",
+    path: `/api/companies/import/transfers/${TRANSFER_ID}/apply`,
+  },
+  {
+    method: "post",
+    path: "/api/companies/11111111-2222-4333-8444-555555555555/imports/preview",
+  },
+  {
+    method: "post",
+    path: "/api/companies/11111111-2222-4333-8444-555555555555/imports/apply",
+  },
 ];
 
 async function createApp(actor: Record<string, unknown>) {
@@ -107,8 +122,13 @@ describe("company import Cloud floor", () => {
 
     for (const route of IMPORT_ROUTES) {
       const res = await request(app)[route.method](route.path).send({});
-      expect(res.status, `${route.method.toUpperCase()} ${route.path}`).toBe(403);
-      expect(res.body, `${route.method.toUpperCase()} ${route.path}`).toMatchObject({
+      expect(res.status, `${route.method.toUpperCase()} ${route.path}`).toBe(
+        403,
+      );
+      expect(
+        res.body,
+        `${route.method.toUpperCase()} ${route.path}`,
+      ).toMatchObject({
         code: "cloud_managed",
       });
     }
@@ -116,7 +136,10 @@ describe("company import Cloud floor", () => {
   });
 
   it("floors on the managed-config signal alone", async () => {
-    process.env.TASKCORE_MANAGED_CONFIG = JSON.stringify({ v: 1, mode: "cloud" });
+    process.env.TASKCORE_MANAGED_CONFIG = JSON.stringify({
+      v: 1,
+      mode: "cloud",
+    });
     const app = await createApp(boardAdmin);
 
     const res = await request(app).post("/api/companies/import").send({});
@@ -131,7 +154,11 @@ describe("company import Cloud floor", () => {
     // An agent actor never passes the import routes' own assertBoard, and the
     // body is not schema-valid either — the floor must still answer first so a
     // Cloud caller sees one consistent refusal.
-    const app = await createApp({ type: "agent", agentId: "agent-1", companyId: "company-1" });
+    const app = await createApp({
+      type: "agent",
+      agentId: "agent-1",
+      companyId: "company-1",
+    });
 
     const res = await request(app)
       .post("/api/companies/import/transfers")
@@ -148,8 +175,13 @@ describe("company import Cloud floor", () => {
 
     for (const route of IMPORT_ROUTES) {
       const res = await request(app)[route.method](route.path).send({});
-      expect(res.status, `${route.method.toUpperCase()} ${route.path}`).toBe(403);
-      expect(res.body, `${route.method.toUpperCase()} ${route.path}`).toMatchObject({
+      expect(res.status, `${route.method.toUpperCase()} ${route.path}`).toBe(
+        403,
+      );
+      expect(
+        res.body,
+        `${route.method.toUpperCase()} ${route.path}`,
+      ).toMatchObject({
         code: "settings_operator_managed",
       });
     }
@@ -160,7 +192,9 @@ describe("company import Cloud floor", () => {
     process.env.TASKCORE_HIDDEN_SETTINGS = "company.secrets,company.members";
     const app = await createApp(boardAdmin);
 
-    const res = await request(app).get("/api/companies/import/jobs/unknown-job");
+    const res = await request(app).get(
+      "/api/companies/import/jobs/unknown-job",
+    );
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ error: "Import job not found" });
@@ -197,7 +231,9 @@ describe("company import Cloud floor", () => {
   it("preserves self-hosted import job polling", async () => {
     const app = await createApp(boardAdmin);
 
-    const res = await request(app).get("/api/companies/import/jobs/unknown-job");
+    const res = await request(app).get(
+      "/api/companies/import/jobs/unknown-job",
+    );
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ error: "Import job not found" });

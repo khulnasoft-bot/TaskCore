@@ -1,4 +1,9 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from "@playwright/test";
 import { createServer, type Server } from "node:http";
 import { listenOnFetchAllowedPort } from "./fetch-allowed-port";
 
@@ -11,9 +16,17 @@ const SCREENSHOT_DIR = "test-results";
 
 type Seed = { companyId: string; prefix: string };
 
-async function newCompany(request: APIRequestContext, label: string): Promise<Seed> {
-  const res = await request.post("/api/companies", { data: { name: `Apps navigation ${label} ${Date.now()}` } });
-  expect(res.ok(), `create company failed ${res.status()}: ${await res.text()}`).toBe(true);
+async function newCompany(
+  request: APIRequestContext,
+  label: string,
+): Promise<Seed> {
+  const res = await request.post("/api/companies", {
+    data: { name: `Apps navigation ${label} ${Date.now()}` },
+  });
+  expect(
+    res.ok(),
+    `create company failed ${res.status()}: ${await res.text()}`,
+  ).toBe(true);
   const company = await res.json();
   return {
     companyId: company.id,
@@ -45,7 +58,11 @@ async function startMockMcp(): Promise<MockMcpServer> {
                 name: "list_widgets",
                 title: "List widgets",
                 description: "Read-only listing of widgets.",
-                inputSchema: { type: "object", properties: {}, additionalProperties: false },
+                inputSchema: {
+                  type: "object",
+                  properties: {},
+                  additionalProperties: false,
+                },
               },
             ],
           },
@@ -54,7 +71,9 @@ async function startMockMcp(): Promise<MockMcpServer> {
       return;
     }
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ jsonrpc: "2.0", id: payload.id ?? null, result: {} }));
+    res.end(
+      JSON.stringify({ jsonrpc: "2.0", id: payload.id ?? null, result: {} }),
+    );
   });
   const port = await listenOnFetchAllowedPort(server);
   return {
@@ -63,24 +82,49 @@ async function startMockMcp(): Promise<MockMcpServer> {
   };
 }
 
-async function connectApp(request: APIRequestContext, seed: Seed, url: string): Promise<string> {
-  const connect = await request.post(`/api/companies/${seed.companyId}/tools/apps/connect`, {
-    data: { link: url, credentialValues: { "credentials.authorization": "qa-token" } },
-  });
-  expect(connect.ok(), `connect failed ${connect.status()}: ${await connect.text()}`).toBe(true);
+async function connectApp(
+  request: APIRequestContext,
+  seed: Seed,
+  url: string,
+): Promise<string> {
+  const connect = await request.post(
+    `/api/companies/${seed.companyId}/tools/apps/connect`,
+    {
+      data: {
+        link: url,
+        credentialValues: { "credentials.authorization": "qa-token" },
+      },
+    },
+  );
+  expect(
+    connect.ok(),
+    `connect failed ${connect.status()}: ${await connect.text()}`,
+  ).toBe(true);
   const body = await connect.json();
   const enabledCatalogEntryIds = (body.actions?.readOnly ?? []).map(
     (action: { catalogEntryId: string }) => action.catalogEntryId,
   );
-  const finish = await request.post(`/api/companies/${seed.companyId}/tools/apps/${body.connectionId}/finish`, {
-    data: { enabledCatalogEntryIds, askFirstCatalogEntryIds: [], access: "all_agents" },
-  });
-  expect(finish.ok(), `finish failed ${finish.status()}: ${await finish.text()}`).toBe(true);
+  const finish = await request.post(
+    `/api/companies/${seed.companyId}/tools/apps/${body.connectionId}/finish`,
+    {
+      data: {
+        enabledCatalogEntryIds,
+        askFirstCatalogEntryIds: [],
+        access: "all_agents",
+      },
+    },
+  );
+  expect(
+    finish.ok(),
+    `finish failed ${finish.status()}: ${await finish.text()}`,
+  ).toBe(true);
   return body.connectionId as string;
 }
 
 async function forceDark(page: Page) {
-  await page.addInitScript(() => window.localStorage.setItem("taskcore.theme", "dark"));
+  await page.addInitScript(() =>
+    window.localStorage.setItem("taskcore.theme", "dark"),
+  );
 }
 
 test.describe.serial("dark-mode Apps surfaces", () => {
@@ -100,14 +144,23 @@ test.describe.serial("dark-mode Apps surfaces", () => {
     // Broken app → needs attention. Use a `localhost` URL so the derived
     // connection name differs from the healthy `127.0.0.1` app.
     const ephemeral = await startMockMcp();
-    brokenId = await connectApp(request, seed, ephemeral.url.replace("127.0.0.1", "localhost"));
+    brokenId = await connectApp(
+      request,
+      seed,
+      ephemeral.url.replace("127.0.0.1", "localhost"),
+    );
     const brokenUrl = "http://localhost:65535/";
     const patch = await request.patch(`/api/tool-connections/${brokenId}`, {
       data: { config: { url: brokenUrl } },
     });
-    expect(patch.ok(), `patch broken url failed ${patch.status()}: ${await patch.text()}`).toBe(true);
+    expect(
+      patch.ok(),
+      `patch broken url failed ${patch.status()}: ${await patch.text()}`,
+    ).toBe(true);
     await ephemeral.close();
-    const health = await request.post(`/api/tool-connections/${brokenId}/health-check`);
+    const health = await request.post(
+      `/api/tool-connections/${brokenId}/health-check`,
+    );
     expect(health.status()).toBe(502);
   });
 
@@ -118,75 +171,150 @@ test.describe.serial("dark-mode Apps surfaces", () => {
   test("sidebar says Connectors and links to /apps", async ({ page }) => {
     await forceDark(page);
     await page.goto(`/${seed.prefix}/dashboard`);
-    const connectorsLink = page.getByRole("link", { name: "Connectors", exact: true });
+    const connectorsLink = page.getByRole("link", {
+      name: "Connectors",
+      exact: true,
+    });
     await expect(connectorsLink).toBeVisible({ timeout: 30_000 });
-    await expect(connectorsLink).toHaveAttribute("href", new RegExp(`/${seed.prefix}/apps$`));
+    await expect(connectorsLink).toHaveAttribute(
+      "href",
+      new RegExp(`/${seed.prefix}/apps$`),
+    );
   });
 
   test("apps list dark mode with attention banner", async ({ page }) => {
     await forceDark(page);
     await page.goto(`/${seed.prefix}/apps/connections`);
-    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(/needs attention/i).first()).toBeVisible({ timeout: 30_000 });
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/apps-nav-01-apps-dark.png`, fullPage: true });
+    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible(
+      { timeout: 30_000 },
+    );
+    await expect(page.getByText(/needs attention/i).first()).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/apps-nav-01-apps-dark.png`,
+      fullPage: true,
+    });
   });
 
   test("attention details dark mode", async ({ page }) => {
     await forceDark(page);
     await page.goto(`/${seed.prefix}/apps/connections`);
-    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(/connect ECONNREFUSED/i).first()).toBeVisible({ timeout: 30_000 });
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/apps-nav-02-attention-dark.png`, fullPage: true });
+    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible(
+      { timeout: 30_000 },
+    );
+    await expect(page.getByText(/connect ECONNREFUSED/i).first()).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/apps-nav-02-attention-dark.png`,
+      fullPage: true,
+    });
   });
 
-  test("advanced door shows paste config with the merged Apps sidebar", async ({ page }) => {
+  test("advanced door shows paste config with the merged Apps sidebar", async ({
+    page,
+  }) => {
     await forceDark(page);
     await page.goto(`/${seed.prefix}/apps/advanced`);
-    await expect(page.getByRole("heading", { name: "Advanced setup" })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(/Paste the MCP config snippet/i).first()).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByRole("heading", { name: "Advanced setup" }),
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(
+      page.getByText(/Paste the MCP config snippet/i).first(),
+    ).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole("link", { name: "Connectors" })).toBeVisible();
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/apps-nav-03-advanced-run-dark.png`, fullPage: true });
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/apps-nav-03-advanced-run-dark.png`,
+      fullPage: true,
+    });
 
     // Sidebar and tab switcher both link Paste a config — either lands on /paste-config.
     await page.getByRole("link", { name: "Paste a config" }).first().click();
     await expect(page).toHaveURL(/\/apps\/advanced\/paste-config$/);
-    await expect(page.getByText(/Paste the MCP config snippet/i).first()).toBeVisible({ timeout: 20_000 });
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/apps-nav-04-advanced-paste-dark.png`, fullPage: true });
+    await expect(
+      page.getByText(/Paste the MCP config snippet/i).first(),
+    ).toBeVisible({ timeout: 20_000 });
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/apps-nav-04-advanced-paste-dark.png`,
+      fullPage: true,
+    });
   });
 
-  test("developer routes share the merged Apps sidebar without hidden tabs", async ({ page }) => {
+  test("developer routes share the merged Apps sidebar without hidden tabs", async ({
+    page,
+  }) => {
     await forceDark(page);
     await page.goto(`/${seed.prefix}/apps/advanced/profiles`);
-    await expect(page.getByRole("heading", { name: "Access profiles" })).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator('a[href$="/apps/advanced/gateways"]', { hasText: "Gateways" })).toHaveCount(0);
-    await expect(page.locator('a[href$="/apps/advanced/profiles"]', { hasText: "Profiles" })).toHaveCount(0);
-    await expect(page.locator('a[href$="/apps/advanced/audit"]', { hasText: "Activity" })).toHaveCount(0);
-    await expect(page.locator('a[href$="/activity"]', { hasText: "Audit" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Applications", exact: true })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Access profiles" }),
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(
+      page.locator('a[href$="/apps/advanced/gateways"]', {
+        hasText: "Gateways",
+      }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('a[href$="/apps/advanced/profiles"]', {
+        hasText: "Profiles",
+      }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('a[href$="/apps/advanced/audit"]', { hasText: "Activity" }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('a[href$="/activity"]', { hasText: "Audit" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Applications", exact: true }),
+    ).toHaveCount(0);
     // Apps section lives in the same sidebar now.
-    await expect(page.locator('a[href$="/apps"]', { hasText: "Connectors" })).toBeVisible();
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/apps-nav-05-developer-overview-dark.png`, fullPage: true });
+    await expect(
+      page.locator('a[href$="/apps"]', { hasText: "Connectors" }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/apps-nav-05-developer-overview-dark.png`,
+      fullPage: true,
+    });
   });
 
   test("app detail rename and connector-list removal", async ({ page }) => {
     await forceDark(page);
     await page.goto(`/${seed.prefix}/apps/${brokenId}/permissions`);
-    await expect(page.getByRole("heading").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading").first()).toBeVisible({
+      timeout: 30_000,
+    });
 
     // Rename from the header pencil.
     await page.getByRole("button", { name: "Rename app" }).click();
     await page.getByLabel("App name").fill("QA Renamed App");
     await page.getByRole("button", { name: "Save", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "QA Renamed App" })).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByRole("heading", { name: "QA Renamed App" }),
+    ).toBeVisible({ timeout: 20_000 });
 
     await page.goto(`/${seed.prefix}/apps`);
-    await page.getByRole("button", { name: "Manage QA Renamed App connection" }).click();
+    await page
+      .getByRole("button", { name: "Manage QA Renamed App connection" })
+      .click();
     await page.getByRole("menuitem", { name: "Remove connection" }).click();
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/apps-nav-06-danger-zone-dark.png`, fullPage: true });
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/apps-nav-06-danger-zone-dark.png`,
+      fullPage: true,
+    });
     await page.getByRole("button", { name: "Remove connection" }).click();
-    await expect(page).toHaveURL(new RegExp(`/${seed.prefix}/apps$`), { timeout: 20_000 });
-    await expect(page.getByText("Connection removed").first()).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible();
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/apps-nav-07-after-remove-dark.png`, fullPage: true });
+    await expect(page).toHaveURL(new RegExp(`/${seed.prefix}/apps$`), {
+      timeout: 20_000,
+    });
+    await expect(page.getByText("Connection removed").first()).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(
+      page.getByRole("heading", { name: "Connectors" }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/apps-nav-07-after-remove-dark.png`,
+      fullPage: true,
+    });
   });
 });

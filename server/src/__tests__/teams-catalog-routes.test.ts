@@ -35,8 +35,12 @@ function registerModuleMocks() {
 
 async function createApp(actor: Record<string, unknown>) {
   const [{ teamsCatalogRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/teams-catalog.js")>("../routes/teams-catalog.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/teams-catalog.js")>(
+      "../routes/teams-catalog.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -64,14 +68,24 @@ function catalogTeam(overrides: Record<string, unknown> = {}) {
     defaultInstall: true,
     recommendedForCompanyTypes: ["software"],
     tags: ["engineering"],
-    counts: { agents: 3, projects: 1, tasks: 1, routines: 0, localSkills: 0, catalogSkills: 1, externalSkillSources: 0 },
+    counts: {
+      agents: 3,
+      projects: 1,
+      tasks: 1,
+      routines: 0,
+      localSkills: 0,
+      catalogSkills: 1,
+      externalSkillSources: 0,
+    },
     rootAgentSlugs: ["cto"],
     agentSlugs: ["cto", "senior-coder", "qa"],
     projectSlugs: ["product-engineering"],
     requiredSkills: [],
     envInputs: [],
     sourceRefs: [],
-    files: [{ path: "TEAM.md", kind: "team", sizeBytes: 128, sha256: "sha256:team" }],
+    files: [
+      { path: "TEAM.md", kind: "team", sizeBytes: 128, sha256: "sha256:team" },
+    ],
     trustLevel: "markdown_only",
     compatibility: "compatible",
     contentHash: "sha256:catalog-team",
@@ -96,7 +110,8 @@ describe("teams catalog routes", () => {
     mockCatalogModule.listCatalogTeams.mockReturnValue([catalogTeam()]);
     mockCatalogModule.getCatalogTeamOrThrow.mockReturnValue(catalogTeam());
     mockCatalogModule.readCatalogTeamFile.mockResolvedValue({
-      catalogTeamId: "taskcore:bundled:software-development:product-engineering",
+      catalogTeamId:
+        "taskcore:bundled:software-development:product-engineering",
       path: "TEAM.md",
       kind: "team",
       content: "# Product Engineering",
@@ -106,7 +121,12 @@ describe("teams catalog routes", () => {
     mockTeamsCatalogService.previewCatalogTeamImport.mockResolvedValue({
       team: catalogTeam(),
       portabilityPreview: {
-        plan: { companyAction: "none", agentPlans: [], projectPlans: [], issuePlans: [] },
+        plan: {
+          companyAction: "none",
+          agentPlans: [],
+          projectPlans: [],
+          issuePlans: [],
+        },
         warnings: [],
         errors: [],
       },
@@ -148,16 +168,30 @@ describe("teams catalog routes", () => {
       isInstanceAdmin: false,
     });
 
-    const list = await request(app).get("/api/teams/catalog?kind=bundled&q=engineering");
-    const detail = await request(app).get("/api/teams/catalog/product-engineering");
-    const file = await request(app).get("/api/teams/catalog/product-engineering/files?path=TEAM.md");
+    const list = await request(app).get(
+      "/api/teams/catalog?kind=bundled&q=engineering",
+    );
+    const detail = await request(app).get(
+      "/api/teams/catalog/product-engineering",
+    );
+    const file = await request(app).get(
+      "/api/teams/catalog/product-engineering/files?path=TEAM.md",
+    );
 
     expect(list.status, JSON.stringify(list.body)).toBe(200);
     expect(detail.status, JSON.stringify(detail.body)).toBe(200);
     expect(file.status, JSON.stringify(file.body)).toBe(200);
-    expect(mockCatalogModule.listCatalogTeams).toHaveBeenCalledWith({ kind: "bundled", q: "engineering" });
-    expect(mockCatalogModule.getCatalogTeamOrThrow).toHaveBeenCalledWith("product-engineering");
-    expect(mockCatalogModule.readCatalogTeamFile).toHaveBeenCalledWith("product-engineering", "TEAM.md");
+    expect(mockCatalogModule.listCatalogTeams).toHaveBeenCalledWith({
+      kind: "bundled",
+      q: "engineering",
+    });
+    expect(mockCatalogModule.getCatalogTeamOrThrow).toHaveBeenCalledWith(
+      "product-engineering",
+    );
+    expect(mockCatalogModule.readCatalogTeamFile).toHaveBeenCalledWith(
+      "product-engineering",
+      "TEAM.md",
+    );
   });
 
   it("returns server-computed installed-team state for actors with company access", async () => {
@@ -169,10 +203,14 @@ describe("teams catalog routes", () => {
       isInstanceAdmin: false,
     });
 
-    const res = await request(app).get(`/api/companies/${companyId}/teams/catalog/installed`);
+    const res = await request(app).get(
+      `/api/companies/${companyId}/teams/catalog/installed`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(mockTeamsCatalogService.listInstalledCatalogTeams).toHaveBeenCalledWith(companyId);
+    expect(
+      mockTeamsCatalogService.listInstalledCatalogTeams,
+    ).toHaveBeenCalledWith(companyId);
     expect(res.body).toEqual([
       expect.objectContaining({
         catalogId: "taskcore:bundled:software-development:product-engineering",
@@ -192,18 +230,26 @@ describe("teams catalog routes", () => {
       isInstanceAdmin: false,
     });
 
-    const res = await request(app).get(`/api/companies/${companyId}/teams/catalog/installed`);
+    const res = await request(app).get(
+      `/api/companies/${companyId}/teams/catalog/installed`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);
-    expect(mockTeamsCatalogService.listInstalledCatalogTeams).not.toHaveBeenCalled();
+    expect(
+      mockTeamsCatalogService.listInstalledCatalogTeams,
+    ).not.toHaveBeenCalled();
   });
 
   it("requires authentication for catalog read routes", async () => {
     const app = await createApp({ type: "none" });
 
     const list = await request(app).get("/api/teams/catalog");
-    const detail = await request(app).get("/api/teams/catalog/product-engineering");
-    const file = await request(app).get("/api/teams/catalog/product-engineering/files?path=TEAM.md");
+    const detail = await request(app).get(
+      "/api/teams/catalog/product-engineering",
+    );
+    const file = await request(app).get(
+      "/api/teams/catalog/product-engineering/files?path=TEAM.md",
+    );
 
     expect(list.status, JSON.stringify(list.body)).toBe(401);
     expect(detail.status, JSON.stringify(detail.body)).toBe(401);
@@ -222,14 +268,18 @@ describe("teams catalog routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/teams/catalog/ref/preview?ref=taskcore%2Fbundled%2Fsoftware-development%2Fproduct-engineering`)
+      .post(
+        `/api/companies/${companyId}/teams/catalog/ref/preview?ref=taskcore%2Fbundled%2Fsoftware-development%2Fproduct-engineering`,
+      )
       .send({
         targetManagerSlug: "engineering-lead",
         sourcePolicy: { allowExternalSources: true },
       });
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(mockTeamsCatalogService.previewCatalogTeamImport).toHaveBeenCalledWith(
+    expect(
+      mockTeamsCatalogService.previewCatalogTeamImport,
+    ).toHaveBeenCalledWith(
       companyId,
       "taskcore/bundled/software-development/product-engineering",
       expect.objectContaining({
@@ -254,13 +304,17 @@ describe("teams catalog routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/teams/catalog/product-engineering/preview`)
+      .post(
+        `/api/companies/${companyId}/teams/catalog/product-engineering/preview`,
+      )
       .send({
         include: { company: true, agents: true },
       });
 
     expect(res.status, JSON.stringify(res.body)).toBe(400);
-    expect(mockTeamsCatalogService.previewCatalogTeamImport).not.toHaveBeenCalled();
+    expect(
+      mockTeamsCatalogService.previewCatalogTeamImport,
+    ).not.toHaveBeenCalled();
   });
 
   it("installs catalog teams only for actors that can create agents", async () => {
@@ -272,7 +326,9 @@ describe("teams catalog routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/teams/catalog/product-engineering/install`)
+      .post(
+        `/api/companies/${companyId}/teams/catalog/product-engineering/install`,
+      )
       .send({
         collisionStrategy: "rename",
         secretValues: { "agent:cto:OPENAI_API_KEY": "sk-test" },
@@ -310,7 +366,9 @@ describe("teams catalog routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/companies/${companyId}/teams/catalog/product-engineering/install`)
+      .post(
+        `/api/companies/${companyId}/teams/catalog/product-engineering/install`,
+      )
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);

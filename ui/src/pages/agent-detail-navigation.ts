@@ -46,10 +46,13 @@ export const AGENT_DETAIL_NAVIGATION: ReadonlyArray<{
   },
 ] as const;
 
-export function parseAgentDetailView(value: string | null): AgentLocalDetailView {
+export function parseAgentDetailView(
+  value: string | null,
+): AgentLocalDetailView {
   if (value === "instructions" || value === "prompts") return "instructions";
   if (value === "skills") return "skills";
-  if (value === "runtime" || value === "configure" || value === "configuration") return "runtime";
+  if (value === "runtime" || value === "configure" || value === "configuration")
+    return "runtime";
   if (value === "secrets") return "secrets";
   if (value === "tools") return "tools";
   if (value === "channels") return "channels";
@@ -59,11 +62,16 @@ export function parseAgentDetailView(value: string | null): AgentLocalDetailView
   return "overview";
 }
 
-export function agentDetailHref(agentRef: string, view: AgentLocalDetailView = "overview") {
+export function agentDetailHref(
+  agentRef: string,
+  view: AgentLocalDetailView = "overview",
+) {
   return `/agents/${agentRef}/${view}`;
 }
 
-export function agentLegacyAuditSection(value: string | null): AuditSection | null {
+export function agentLegacyAuditSection(
+  value: string | null,
+): AuditSection | null {
   if (value === "runs") return "runs";
   if (value === "audit" || value === "activity") return "activity";
   if (value === "cost" || value === "costs") return "costs";

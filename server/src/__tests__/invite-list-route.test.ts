@@ -1,9 +1,21 @@
 import { randomUUID } from "node:crypto";
 import express from "express";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { companies, createDb, invites, joinRequests } from "@taskcore/db";
-import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
+import {
+  getEmbeddedPostgresTestSupport,
+  startEmbeddedPostgresTestDatabase,
+} from "./helpers/embedded-postgres.js";
 import { accessRoutes } from "../routes/access.js";
 import { errorHandler } from "../middleware/index.js";
 
@@ -28,7 +40,9 @@ vi.mock("../services/index.js", () => ({
 }));
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -38,11 +52,15 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("GET /companies/:companyId/invites", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let companyId!: string;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-invite-list-route-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-invite-list-route-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -146,15 +164,21 @@ describeEmbeddedPostgres("GET /companies/:companyId/invites", () => {
 
     const app = createApp(companyId);
 
-    const firstPage = await request(app).get(`/api/companies/${companyId}/invites?limit=2`);
+    const firstPage = await request(app).get(
+      `/api/companies/${companyId}/invites?limit=2`,
+    );
 
     expect(firstPage.status).toBe(200);
     expect(firstPage.body.invites).toHaveLength(2);
-    expect(firstPage.body.invites.map((invite: { id: string }) => invite.id)).toEqual([inviteThreeId, inviteTwoId]);
+    expect(
+      firstPage.body.invites.map((invite: { id: string }) => invite.id),
+    ).toEqual([inviteThreeId, inviteTwoId]);
     expect(firstPage.body.invites[0].relatedJoinRequestId).toBeTruthy();
     expect(firstPage.body.nextOffset).toBe(2);
 
-    const secondPage = await request(app).get(`/api/companies/${companyId}/invites?limit=2&offset=2`);
+    const secondPage = await request(app).get(
+      `/api/companies/${companyId}/invites?limit=2&offset=2`,
+    );
 
     expect(secondPage.status).toBe(200);
     expect(secondPage.body.invites).toHaveLength(1);

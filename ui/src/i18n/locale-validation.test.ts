@@ -47,7 +47,9 @@ describe("locale validation", () => {
           },
         },
       }),
-    ).toEqual(expect.arrayContaining(["app.noCompanies.title must be a string"]));
+    ).toEqual(
+      expect.arrayContaining(["app.noCompanies.title must be a string"]),
+    );
   });
 
   it("requires interpolation placeholders to match English", () => {
@@ -55,7 +57,9 @@ describe("locale validation", () => {
       message: "Invite {{name}} to {{company}}",
     };
 
-    expect(validateLocaleMessages({ message: "Invite {{name}}" }, reference)).toEqual([
+    expect(
+      validateLocaleMessages({ message: "Invite {{name}}" }, reference),
+    ).toEqual([
       'message interpolation placeholders must match English exactly: expected ["company","name"], received ["name"]',
     ]);
   });
@@ -95,8 +99,11 @@ describe("locale validation", () => {
   });
 
   it("caps localized string length relative to English", () => {
-    expect(validateLocaleMessages({ message: "x".repeat(200) }, { message: "Short" })).toEqual([
-      "message is too long: 200 characters exceeds 133",
-    ]);
+    expect(
+      validateLocaleMessages(
+        { message: "x".repeat(200) },
+        { message: "Short" },
+      ),
+    ).toEqual(["message is too long: 200 characters exceeds 133"]);
   });
 });

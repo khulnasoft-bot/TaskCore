@@ -5,9 +5,18 @@ import type {
 } from "@taskcore/shared";
 
 export const SKILL_CREATE_ACCENTS = [
-  "#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444",
-  "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#22c55e",
-  "#3b82f6", "#a855f7",
+  "#6366f1",
+  "#0ea5e9",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#ec4899",
+  "#14b8a6",
+  "#f97316",
+  "#22c55e",
+  "#3b82f6",
+  "#a855f7",
 ];
 
 export type SkillCreateDraft = {
@@ -50,7 +59,8 @@ export function splitCategoryDraft(value: string) {
 
 export function defaultSkillMarkdown(name: string, tagline: string) {
   const title = name.trim() || "New Skill";
-  const summary = tagline.trim() || "Describe when agents should use this skill.";
+  const summary =
+    tagline.trim() || "Describe when agents should use this skill.";
   return [
     "---",
     `name: ${title}`,
@@ -74,11 +84,15 @@ export function defaultSkillMarkdown(name: string, tagline: string) {
   ].join("\n");
 }
 
-export function skillAccentColor(key: string, explicit: string | null | undefined): string {
+export function skillAccentColor(
+  key: string,
+  explicit: string | null | undefined,
+): string {
   const trimmed = explicit?.trim();
   if (trimmed) return trimmed;
   let hash = 0;
-  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < key.length; i += 1)
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   return SKILL_CREATE_ACCENTS[hash % SKILL_CREATE_ACCENTS.length]!;
 }
 
@@ -98,7 +112,9 @@ export function buildBlankSkillDraft(): SkillCreateDraft {
   };
 }
 
-export function buildForkSkillDraft(skill: CompanySkillDetail): SkillCreateDraft {
+export function buildForkSkillDraft(
+  skill: CompanySkillDetail,
+): SkillCreateDraft {
   const name = `${skill.name} Fork`;
   const slug = normalizeSkillDraftSlug(`${skill.slug}-fork`);
   return {
@@ -116,11 +132,15 @@ export function buildForkSkillDraft(skill: CompanySkillDetail): SkillCreateDraft
   };
 }
 
-export function skillCreateDraftToPayload(draft: SkillCreateDraft): CompanySkillCreateRequest {
-  const effectiveSlug = draft.slug.trim() || normalizeSkillDraftSlug(draft.name);
-  const effectiveMarkdown = draft.markdown.trim().length > 0
-    ? draft.markdown
-    : defaultSkillMarkdown(draft.name, draft.tagline);
+export function skillCreateDraftToPayload(
+  draft: SkillCreateDraft,
+): CompanySkillCreateRequest {
+  const effectiveSlug =
+    draft.slug.trim() || normalizeSkillDraftSlug(draft.name);
+  const effectiveMarkdown =
+    draft.markdown.trim().length > 0
+      ? draft.markdown
+      : defaultSkillMarkdown(draft.name, draft.tagline);
 
   return {
     name: draft.name.trim(),

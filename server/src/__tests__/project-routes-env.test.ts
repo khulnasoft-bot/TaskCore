@@ -55,8 +55,13 @@ vi.mock("../services/workspace-runtime.js", () => ({
 
 function registerModuleMocks() {
   vi.doMock("../services/activity-log.js", async () => ({
-    ...await vi.importActual<typeof import("../services/activity-log.js")>("../services/activity-log.js"),
-    persistActivity: async (db: unknown, input: unknown) => { await mockLogActivity(db, input); return { activity: { id: "activity" }, publication: null }; },
+    ...(await vi.importActual<typeof import("../services/activity-log.js")>(
+      "../services/activity-log.js",
+    )),
+    persistActivity: async (db: unknown, input: unknown) => {
+      await mockLogActivity(db, input);
+      return { activity: { id: "activity" }, publication: null };
+    },
     publishActivity: vi.fn(),
   }));
   vi.doMock("../telemetry.js", () => ({
@@ -88,8 +93,12 @@ function registerModuleMocks() {
 
 async function createApp() {
   const [{ projectRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/projects.js")>("../routes/projects.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/projects.js")>(
+      "../routes/projects.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -103,7 +112,12 @@ async function createApp() {
     };
     next();
   });
-  app.use("/api", projectRoutes({ transaction: async (effect: (tx: unknown) => unknown) => effect({}) } as any));
+  app.use(
+    "/api",
+    projectRoutes({
+      transaction: async (effect: (tx: unknown) => unknown) => effect({}),
+    } as any),
+  );
   app.use(errorHandler);
   return app;
 }
@@ -163,11 +177,16 @@ describe("project env routes", () => {
       explanation: "Allowed by test mock.",
     });
     mockGetTelemetryClient.mockReturnValue({ track: vi.fn() });
-    mockProjectService.resolveByReference.mockResolvedValue({ ambiguous: false, project: null });
+    mockProjectService.resolveByReference.mockResolvedValue({
+      ambiguous: false,
+      project: null,
+    });
     mockProjectService.createWorkspace.mockResolvedValue(null);
     mockProjectService.listWorkspaces.mockResolvedValue([]);
     mockEnvironmentService.getById.mockReset();
-    mockSecretService.normalizeEnvBindingsForPersistence.mockImplementation(async (_companyId, env) => env);
+    mockSecretService.normalizeEnvBindingsForPersistence.mockImplementation(
+      async (_companyId, env) => env,
+    );
   });
 
   it("normalizes env bindings on create and logs only env keys", async () => {
@@ -178,8 +197,12 @@ describe("project env routes", () => {
         version: "latest",
       },
     };
-    mockSecretService.normalizeEnvBindingsForPersistence.mockResolvedValue(normalizedEnv);
-    mockProjectService.create.mockResolvedValue(buildProject({ env: normalizedEnv }));
+    mockSecretService.normalizeEnvBindingsForPersistence.mockResolvedValue(
+      normalizedEnv,
+    );
+    mockProjectService.create.mockResolvedValue(
+      buildProject({ env: normalizedEnv }),
+    );
 
     const app = await createApp();
     const res = await request(app)
@@ -190,7 +213,9 @@ describe("project env routes", () => {
       });
 
     expect([200, 201], JSON.stringify(res.body)).toContain(res.status);
-    expect(mockSecretService.normalizeEnvBindingsForPersistence).toHaveBeenCalledWith(
+    expect(
+      mockSecretService.normalizeEnvBindingsForPersistence,
+    ).toHaveBeenCalledWith(
       "company-1",
       normalizedEnv,
       expect.objectContaining({ fieldPath: "env" }),
@@ -213,16 +238,18 @@ describe("project env routes", () => {
     const normalizedEnv = {
       PLAIN_KEY: { type: "plain", value: "top-secret" },
     };
-    mockSecretService.normalizeEnvBindingsForPersistence.mockResolvedValue(normalizedEnv);
+    mockSecretService.normalizeEnvBindingsForPersistence.mockResolvedValue(
+      normalizedEnv,
+    );
     mockProjectService.getById.mockResolvedValue(buildProject());
-    mockProjectService.update.mockResolvedValue(buildProject({ env: normalizedEnv }));
+    mockProjectService.update.mockResolvedValue(
+      buildProject({ env: normalizedEnv }),
+    );
 
     const app = await createApp();
-    const res = await request(app)
-      .patch("/api/projects/project-1")
-      .send({
-        env: normalizedEnv,
-      });
+    const res = await request(app).patch("/api/projects/project-1").send({
+      env: normalizedEnv,
+    });
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(mockLogActivity).toHaveBeenCalledWith(

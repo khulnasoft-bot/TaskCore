@@ -56,7 +56,12 @@ describe("task draft upload receipts", () => {
 
     saveDraft(fork.key, "Next recovered draft");
     expect(loadDraftRecoveryKey(key)).toBe(fork.key);
-    saveDraftSubmission(fork.key, { attemptId: id, reviewed: false, nextDraftOffset: 0, submittedAttachmentIds: [] });
+    saveDraftSubmission(fork.key, {
+      attemptId: id,
+      reviewed: false,
+      nextDraftOffset: 0,
+      submittedAttachmentIds: [],
+    });
     expect(settleDraftSubmission(fork.key, id)).toBe(true);
     expect(loadDraftRecoveryKey(key)).toBe(fork.key);
     expect(loadDraft(fork.key)).toBe("Next recovered draft");
@@ -69,10 +74,19 @@ describe("task draft upload receipts", () => {
 
   it("settles only submitted text and attachments while preserving the next draft", () => {
     const nextId = "aaf8228f-0be7-45ae-a104-6fbe0af6f1d3";
-    const nextReceipt = { ...receipt, attachmentId: nextId, contentPath: `/api/attachments/${nextId}/content` };
+    const nextReceipt = {
+      ...receipt,
+      attachmentId: nextId,
+      contentPath: `/api/attachments/${nextId}/content`,
+    };
     saveDraft(key, "Sent\n\nNext");
     saveDraftAttachments(key, [receipt]);
-    saveDraftSubmission(key, { attemptId: id, reviewed: false, nextDraftOffset: 6, submittedAttachmentIds: [id] });
+    saveDraftSubmission(key, {
+      attemptId: id,
+      reviewed: false,
+      nextDraftOffset: 6,
+      submittedAttachmentIds: [id],
+    });
     saveDraftAttachments(key, [receipt, nextReceipt], nextId);
     expect(loadDraftAttachments(key)).toEqual([receipt]);
     saveDraftAttachments(key, [receipt, nextReceipt], id);

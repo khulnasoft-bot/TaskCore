@@ -1,7 +1,14 @@
 /** A local callback result is not evidence that the provider received its reply. */
-export function requireAcpxResponseDelivery(context: { responseDelivery?: Promise<void> }): Promise<void> {
-  if (!context.responseDelivery || typeof context.responseDelivery.then !== "function") {
-    throw new Error("ACP interaction has no bound provider response delivery receipt");
+export function requireAcpxResponseDelivery(context: {
+  responseDelivery?: Promise<void>;
+}): Promise<void> {
+  if (
+    !context.responseDelivery ||
+    typeof context.responseDelivery.then !== "function"
+  ) {
+    throw new Error(
+      "ACP interaction has no bound provider response delivery receipt",
+    );
   }
   return context.responseDelivery;
 }

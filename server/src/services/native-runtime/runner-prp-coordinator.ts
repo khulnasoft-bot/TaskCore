@@ -72,7 +72,10 @@ export interface PreparedRunnerPrpSession {
     readonly turnId?: string;
     readonly providerSessionId?: string;
   }>;
-  waitForCommand(commandId: string, timeoutMs?: number): Promise<Record<string, unknown> | null>;
+  waitForCommand(
+    commandId: string,
+    timeoutMs?: number,
+  ): Promise<Record<string, unknown> | null>;
   waitForGoalEvent(requestId: string, timeoutMs?: number): Promise<void>;
   release(): Promise<void>;
 }
@@ -246,9 +249,15 @@ export function runnerPrpCoordinator(
         completionContractCriterionIds: criterionIds,
       } as const;
       const nativeStore = new NativeRunCoordinatorStore(db, storeBinding);
-      type StoredCompletedRun = NonNullable<Awaited<ReturnType<typeof nativeStore.readCompletedRun>>>;
-      type CompletedRun = StoredCompletedRun & { readonly providerSessionId?: string };
-      const withProviderSession = async (stored: StoredCompletedRun): Promise<CompletedRun> => {
+      type StoredCompletedRun = NonNullable<
+        Awaited<ReturnType<typeof nativeStore.readCompletedRun>>
+      >;
+      type CompletedRun = StoredCompletedRun & {
+        readonly providerSessionId?: string;
+      };
+      const withProviderSession = async (
+        stored: StoredCompletedRun,
+      ): Promise<CompletedRun> => {
         const providerSessionId = await nativeStore.readProviderSessionId();
         return {
           ...stored,
@@ -283,7 +292,11 @@ export function runnerPrpCoordinator(
         onCommittedEvent: async (event) => {
           await nativeStore.appendEvent(event);
           if (event.eventType === "runtime_request.created") {
-            await projectNativeRuntimeRequest({ db, binding: storeBinding, event });
+            await projectNativeRuntimeRequest({
+              db,
+              binding: storeBinding,
+              event,
+            });
           }
           await nativeStore.reconcileTerminalEvent(event);
           if (event.eventType === "run.terminal") {
@@ -322,8 +335,16 @@ export function runnerPrpCoordinator(
         releaseQuestionTarget = registerNativeQuestionCommandTarget({
           binding: storeBinding,
           queueCommand: (type, payload = {}, commandId) => {
-            const command = authority.queueCommand(type, payload, commandId, true);
-            return { commandId: command.commandId, controllerSeq: command.controllerSeq };
+            const command = authority.queueCommand(
+              type,
+              payload,
+              commandId,
+              true,
+            );
+            return {
+              commandId: command.commandId,
+              controllerSeq: command.controllerSeq,
+            };
           },
         });
         await flushNativeQuestionResponses(db, input.runId);
@@ -400,12 +421,14 @@ export function runnerPrpCoordinator(
           const deadline = Date.now() + timeoutMs;
           while (Date.now() < deadline) {
             const outcome = authority.commandOutcome(commandId);
-            if (!outcome) throw new Error(`runner_prp_command_missing:${commandId}`);
+            if (!outcome)
+              throw new Error(`runner_prp_command_missing:${commandId}`);
             if (outcome.status === "completed") return outcome.result;
             if (outcome.status === "failed" || outcome.status === "rejected") {
-              const message = outcome.result && typeof outcome.result.message === "string"
-                ? outcome.result.message
-                : `runner_prp_command_${outcome.status}:${commandId}`;
+              const message =
+                outcome.result && typeof outcome.result.message === "string"
+                  ? outcome.result.message
+                  : `runner_prp_command_${outcome.status}:${commandId}`;
               throw new Error(message);
             }
             await new Promise<void>((resolve) => {
@@ -430,14 +453,18 @@ export function runnerPrpCoordinator(
             rejectGoalEvent = reject;
           });
           const waiter = { resolve: resolveGoalEvent, reject: rejectGoalEvent };
-          const waiters = goalEventWaiters.get(requestId) ?? new Set<typeof waiter>();
+          const waiters =
+            goalEventWaiters.get(requestId) ?? new Set<typeof waiter>();
           waiters.add(waiter);
           goalEventWaiters.set(requestId, waiters);
           try {
             await Promise.race([
               goalEvent,
               new Promise<never>((_resolve, reject) => {
-                timer = setTimeout(() => reject(new Error("runner_prp_goal_event_timeout")), timeoutMs);
+                timer = setTimeout(
+                  () => reject(new Error("runner_prp_goal_event_timeout")),
+                  timeoutMs,
+                );
                 timer.unref();
               }),
             ]);

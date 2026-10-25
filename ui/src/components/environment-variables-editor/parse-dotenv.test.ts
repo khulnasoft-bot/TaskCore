@@ -18,11 +18,13 @@ describe("parseDotenv", () => {
   });
 
   it("tolerates a leading `export`", () => {
-    expect(parseDotenv("export TOKEN=abc123")).toEqual([{ key: "TOKEN", value: "abc123" }]);
+    expect(parseDotenv("export TOKEN=abc123")).toEqual([
+      { key: "TOKEN", value: "abc123" },
+    ]);
   });
 
   it("strips a single layer of matching quotes", () => {
-    expect(parseDotenv('A="hello world"\nB=\'single\'')).toEqual([
+    expect(parseDotenv("A=\"hello world\"\nB='single'")).toEqual([
       { key: "A", value: "hello world" },
       { key: "B", value: "single" },
     ]);
@@ -35,11 +37,15 @@ describe("parseDotenv", () => {
   });
 
   it("strips trailing inline comments on unquoted values", () => {
-    expect(parseDotenv("FOO=bar # trailing")).toEqual([{ key: "FOO", value: "bar" }]);
+    expect(parseDotenv("FOO=bar # trailing")).toEqual([
+      { key: "FOO", value: "bar" },
+    ]);
   });
 
   it("skips lines with invalid keys", () => {
-    expect(parseDotenv("1BAD=x\n-also-bad=y\nGOOD=z")).toEqual([{ key: "GOOD", value: "z" }]);
+    expect(parseDotenv("1BAD=x\n-also-bad=y\nGOOD=z")).toEqual([
+      { key: "GOOD", value: "z" },
+    ]);
   });
 
   it("returns an empty array for text with no assignments", () => {

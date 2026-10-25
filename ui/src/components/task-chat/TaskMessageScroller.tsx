@@ -1,5 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { readThreadScrollAnchor, threadScrollAnchorDelta, type ThreadScrollAnchor } from "./scroll-anchor";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  readThreadScrollAnchor,
+  threadScrollAnchorDelta,
+  type ThreadScrollAnchor,
+} from "./scroll-anchor";
 import { cn } from "@/lib/utils";
 import { useStreamlinedTaskChatPresentation } from "./presentation-mode";
 import { ArrowDown } from "lucide-react";
@@ -17,7 +28,8 @@ type PillPhase = "hidden" | "in" | "out";
  * never fires animationend, so we must unmount immediately.
  */
 function motionDisabled(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function")
+    return true;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
@@ -44,11 +56,18 @@ interface TaskMessageScrollerProps {
  * the glide cancels it and treats the user as unpinned. Content-driven follow
  * while pinned stays instant, so no reflow/jump happens during streaming.
  */
-export function TaskMessageScroller({ children, contentKey, className }: TaskMessageScrollerProps) {
+export function TaskMessageScroller({
+  children,
+  contentKey,
+  className,
+}: TaskMessageScrollerProps) {
   const streamlined = useStreamlinedTaskChatPresentation();
   const navigation = useTaskChatScrollNavigation();
   const initialPositionApplied = useRef(false);
-  const appliedNavigation = useRef({ key: navigation.key, hash: navigation.hash });
+  const appliedNavigation = useRef({
+    key: navigation.key,
+    hash: navigation.hash,
+  });
   const ref = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<ThreadScrollAnchor | null>(null);
   const pinnedRef = useRef(true);
@@ -65,9 +84,13 @@ export function TaskMessageScroller({ children, contentKey, className }: TaskMes
     if (scrollbarIdleTimerRef.current !== null) {
       window.clearTimeout(scrollbarIdleTimerRef.current);
     }
-    const idleDelay = scrollbarIdleDelayRef.current ?? parseCssTimeMs(
-      getComputedStyle(document.documentElement).getPropertyValue("--motion-scrollbar-idle-delay"),
-    );
+    const idleDelay =
+      scrollbarIdleDelayRef.current ??
+      parseCssTimeMs(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--motion-scrollbar-idle-delay",
+        ),
+      );
     scrollbarIdleDelayRef.current = idleDelay;
     scrollbarIdleTimerRef.current = window.setTimeout(() => {
       delete el.dataset.scrollActive;
@@ -83,7 +106,9 @@ export function TaskMessageScroller({ children, contentKey, className }: TaskMes
   const hidePill = useCallback(() => {
     // Keep rendering through the exit animation; unmount on animationend.
     // Without animations (reduced motion / no matchMedia) unmount immediately.
-    setPillPhase((phase) => (phase === "hidden" ? phase : motionDisabled() ? "hidden" : "out"));
+    setPillPhase((phase) =>
+      phase === "hidden" ? phase : motionDisabled() ? "hidden" : "out",
+    );
   }, []);
 
   const isPinned = useCallback(() => {
@@ -121,7 +146,8 @@ export function TaskMessageScroller({ children, contentKey, className }: TaskMes
     if (!el) return;
     const rect = el.getBoundingClientRect();
     anchorRef.current = readThreadScrollAnchor(el, rect.top, rect.bottom);
-    if (initialPositionApplied.current) navigation.remember(el.scrollTop, anchorRef.current);
+    if (initialPositionApplied.current)
+      navigation.remember(el.scrollTop, anchorRef.current);
   }, [navigation.key, navigation.hash, navigation.ready]);
 
   const reconcileContent = useCallback(() => {
@@ -137,7 +163,11 @@ export function TaskMessageScroller({ children, contentKey, className }: TaskMes
     }
     if (pinnedRef.current) scrollToBottom();
     else {
-      const delta = threadScrollAnchorDelta(el, anchorRef.current, el.getBoundingClientRect().top);
+      const delta = threadScrollAnchorDelta(
+        el,
+        anchorRef.current,
+        el.getBoundingClientRect().top,
+      );
       if (delta) el.scrollTop += delta;
     }
     rememberAnchor();
@@ -217,11 +247,14 @@ export function TaskMessageScroller({ children, contentKey, className }: TaskMes
     };
   }, [showPill]);
 
-  useEffect(() => () => {
-    if (scrollbarIdleTimerRef.current !== null) {
-      window.clearTimeout(scrollbarIdleTimerRef.current);
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (scrollbarIdleTimerRef.current !== null) {
+        window.clearTimeout(scrollbarIdleTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -242,12 +275,22 @@ export function TaskMessageScroller({ children, contentKey, className }: TaskMes
   // Follow new content only when already pinned; otherwise hold position.
   useLayoutEffect(() => {
     const el = ref.current;
-    if (appliedNavigation.current.key !== navigation.key || appliedNavigation.current.hash !== navigation.hash) {
-      appliedNavigation.current = { key: navigation.key, hash: navigation.hash };
+    if (
+      appliedNavigation.current.key !== navigation.key ||
+      appliedNavigation.current.hash !== navigation.hash
+    ) {
+      appliedNavigation.current = {
+        key: navigation.key,
+        hash: navigation.hash,
+      };
       initialPositionApplied.current = false;
     }
     if (el && navigation.ready && !initialPositionApplied.current) {
-      const top = navigation.initialPosition(el, el.getBoundingClientRect().top, el.scrollTop);
+      const top = navigation.initialPosition(
+        el,
+        el.getBoundingClientRect().top,
+        el.scrollTop,
+      );
       if (top !== null) {
         el.scrollTop = top;
         pinnedRef.current = isPinned();
@@ -256,7 +299,13 @@ export function TaskMessageScroller({ children, contentKey, className }: TaskMes
       initialPositionApplied.current = true;
     }
     reconcileContent();
-  }, [contentKey, reconcileContent, navigation.key, navigation.hash, navigation.ready]);
+  }, [
+    contentKey,
+    reconcileContent,
+    navigation.key,
+    navigation.hash,
+    navigation.ready,
+  ]);
 
   return (
     <div className="relative min-h-0 flex-1">

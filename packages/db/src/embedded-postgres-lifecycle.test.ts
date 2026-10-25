@@ -13,10 +13,12 @@ describe("loadWithoutEmbeddedPostgresExitHooks", () => {
       "SIGBREAK",
       "message",
     ];
-    const before = new Map(eventNames.map((eventName) => [
-      eventName,
-      process.rawListeners(eventName),
-    ]));
+    const before = new Map(
+      eventNames.map((eventName) => [
+        eventName,
+        process.rawListeners(eventName),
+      ]),
+    );
     const moduleName = "embedded-postgres";
 
     await loadWithoutEmbeddedPostgresExitHooks(() => import(moduleName));
@@ -34,28 +36,31 @@ describe("loadWithoutEmbeddedPostgresExitHooks", () => {
     target.on("exit", existingExitListener);
 
     const dependencyListener = vi.fn();
-    const loaded = await loadWithoutEmbeddedPostgresExitHooks(
-      async () => {
-        for (const eventName of [
-          "exit",
-          "beforeExit",
-          "SIGHUP",
-          "SIGINT",
-          "SIGTERM",
-          "SIGBREAK",
-          "message",
-        ]) {
-          target.on(eventName, dependencyListener);
-        }
-        return { default: class EmbeddedPostgres {} };
-      },
-      target,
-    );
+    const loaded = await loadWithoutEmbeddedPostgresExitHooks(async () => {
+      for (const eventName of [
+        "exit",
+        "beforeExit",
+        "SIGHUP",
+        "SIGINT",
+        "SIGTERM",
+        "SIGBREAK",
+        "message",
+      ]) {
+        target.on(eventName, dependencyListener);
+      }
+      return { default: class EmbeddedPostgres {} };
+    }, target);
 
     expect(loaded.default.name).toBe("EmbeddedPostgres");
     expect(target.rawListeners("SIGTERM")).toEqual([existingSignalListener]);
     expect(target.rawListeners("exit")).toEqual([existingExitListener]);
-    for (const eventName of ["beforeExit", "SIGHUP", "SIGINT", "SIGBREAK", "message"]) {
+    for (const eventName of [
+      "beforeExit",
+      "SIGHUP",
+      "SIGINT",
+      "SIGBREAK",
+      "message",
+    ]) {
       expect(target.rawListeners(eventName)).toEqual([]);
     }
   });
@@ -64,13 +69,12 @@ describe("loadWithoutEmbeddedPostgresExitHooks", () => {
     const target = new EventEmitter();
     const dependencyListener = vi.fn();
 
-    await expect(loadWithoutEmbeddedPostgresExitHooks(
-      async () => {
+    await expect(
+      loadWithoutEmbeddedPostgresExitHooks(async () => {
         target.on("SIGTERM", dependencyListener);
         throw new Error("import failed");
-      },
-      target,
-    )).rejects.toThrow("import failed");
+      }, target),
+    ).rejects.toThrow("import failed");
 
     expect(target.rawListeners("SIGTERM")).toEqual([]);
   });

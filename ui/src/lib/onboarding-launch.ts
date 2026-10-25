@@ -3,12 +3,15 @@ import type { Goal, Project } from "@taskcore/shared";
 export const ONBOARDING_PROJECT_NAME = "Onboarding";
 
 function goalCreatedAt(goal: Goal) {
-  const createdAt = goal.createdAt instanceof Date ? goal.createdAt : new Date(goal.createdAt);
+  const createdAt =
+    goal.createdAt instanceof Date ? goal.createdAt : new Date(goal.createdAt);
   return Number.isNaN(createdAt.getTime()) ? 0 : createdAt.getTime();
 }
 
 function pickEarliestGoal(goals: Goal[]) {
-  return [...goals].sort((a, b) => goalCreatedAt(a) - goalCreatedAt(b))[0] ?? null;
+  return (
+    [...goals].sort((a, b) => goalCreatedAt(a) - goalCreatedAt(b))[0] ?? null
+  );
 }
 
 export function selectDefaultCompanyGoalId(goals: Goal[]): string | null {
@@ -32,14 +35,15 @@ export function buildOnboardingProjectPayload(goalId: string | null) {
   };
 }
 
-export function selectReusableOnboardingProject<T extends Pick<Project, "name" | "status">>(
-  projects: T[],
-): T | null {
+export function selectReusableOnboardingProject<
+  T extends Pick<Project, "name" | "status">,
+>(projects: T[]): T | null {
   return (
     projects.find(
       (project) =>
         project.status !== "cancelled" &&
-        project.name.trim().toLowerCase() === ONBOARDING_PROJECT_NAME.toLowerCase(),
+        project.name.trim().toLowerCase() ===
+          ONBOARDING_PROJECT_NAME.toLowerCase(),
     ) ?? null
   );
 }

@@ -54,13 +54,21 @@ afterEach(async () => {
 });
 
 describe("ACPX installation integrity", () => {
-  it.each([["linux", "arm64"], ["darwin", "ia32"], ["freebsd", "x64"]] as const)(
+  it.each([
+    ["linux", "arm64"],
+    ["darwin", "ia32"],
+    ["freebsd", "x64"],
+  ] as const)(
     "rejects the actual Claude runtime probe on unsupported %s %s",
     async (platform, arch) => {
-      const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue(platform);
+      const platformSpy = vi
+        .spyOn(process, "platform", "get")
+        .mockReturnValue(platform);
       const archSpy = vi.spyOn(process, "arch", "get").mockReturnValue(arch);
       try {
-        await expect(probeAcpxClaudeInstallation("custom-claude-model")).rejects.toThrow(
+        await expect(
+          probeAcpxClaudeInstallation("custom-claude-model"),
+        ).rejects.toThrow(
           `ACPX claude verified runtime executable is unavailable for ${platform} ${arch}`,
         );
       } finally {
@@ -578,7 +586,11 @@ describe("ACPX installation integrity", () => {
     );
   });
 
-  it.runIf((process.platform === "linux" && process.arch === "x64") || (process.platform === "darwin" && ["arm64", "x64"].includes(process.arch)))(
+  it.runIf(
+    (process.platform === "linux" && process.arch === "x64") ||
+      (process.platform === "darwin" &&
+        ["arm64", "x64"].includes(process.arch)),
+  )(
     "resolves and pins the installed Claude ACP dependency graph",
     async () => {
       const profile = resolveQualifiedAcpxProfile("claude", "claude-sonnet-5");
@@ -612,24 +624,42 @@ describe("ACPX installation integrity", () => {
   it("resolves the shipped builtin launcher without an npm package", async () => {
     const launcher = builtinGrokLauncherPath();
     expect(launcher).toContain("/providers/grok/launcher.cjs");
-    expect(`sha256:${createHash("sha256").update(await readFile(launcher)).digest("hex")}`)
-      .toBe(resolveQualifiedAcpxProfile("grok", "grok-4.7").commandDigest);
-    expect(resolveQualifiedAcpxProfile("grok", "grok-4.7").agentServerPackage).toBe("builtin:grok-acp");
+    expect(
+      `sha256:${createHash("sha256")
+        .update(await readFile(launcher))
+        .digest("hex")}`,
+    ).toBe(resolveQualifiedAcpxProfile("grok", "grok-4.7").commandDigest);
+    expect(
+      resolveQualifiedAcpxProfile("grok", "grok-4.7").agentServerPackage,
+    ).toBe("builtin:grok-acp");
   });
 
   it("reports a missing environment prerequisite before launching Grok", async () => {
     const fixture = await installationFixture();
-    await expect(verifyProvisionedGrokExecutable(join(fixture.commandDirectory, "missing")))
-      .rejects.toThrow(/Grok Build 1.0.13 prerequisite missing/);
+    await expect(
+      verifyProvisionedGrokExecutable(
+        join(fixture.commandDirectory, "missing"),
+      ),
+    ).rejects.toThrow(/Grok Build 1.0.13 prerequisite missing/);
   });
 
   it("resolves a controller-owned builtin root for descriptor-loaded sidecars and rejects relative roots", () => {
     vi.stubEnv("TASKCORE_ACPX_BUILTIN_ROOT", "/verified/dist/providers");
-    try { expect(builtinGrokLauncherPath("file:///proc/self/fd/9")).toBe("/verified/dist/providers/grok/launcher.cjs"); }
-    finally { vi.unstubAllEnvs(); }
+    try {
+      expect(builtinGrokLauncherPath("file:///proc/self/fd/9")).toBe(
+        "/verified/dist/providers/grok/launcher.cjs",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
     vi.stubEnv("TASKCORE_ACPX_BUILTIN_ROOT", "../untrusted");
-    try { expect(() => builtinGrokLauncherPath()).toThrow("Invalid builtin provider root"); }
-    finally { vi.unstubAllEnvs(); }
+    try {
+      expect(() => builtinGrokLauncherPath()).toThrow(
+        "Invalid builtin provider root",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("rejects a tampered native Grok executable and symlink substitution", async () => {
@@ -637,10 +667,14 @@ describe("ACPX installation integrity", () => {
 
     const native = join(fixture.commandDirectory, "grok");
     await writeFile(native, "tampered native binary", { mode: 0o700 });
-    await expect(verifyProvisionedGrokExecutable(native)).rejects.toThrow(/digest mismatch/);
+    await expect(verifyProvisionedGrokExecutable(native)).rejects.toThrow(
+      /digest mismatch/,
+    );
     await rm(native);
     await symlink(fixture.commandPath, native);
-    await expect(verifyProvisionedGrokExecutable(native)).rejects.toThrow(/regular file|symlink|no-follow/);
+    await expect(verifyProvisionedGrokExecutable(native)).rejects.toThrow(
+      /regular file|symlink|no-follow/,
+    );
   });
 
   it("rejects package version and executable digest drift", async () => {
@@ -1926,9 +1960,13 @@ async function expectOutput(
   });
   const [exitCode] = await once(child, "exit");
   expect(exitCode, stderr).toBe(0);
-  const normalized = process.platform === "darwin"
-    ? stdout.replace(/\/private\/var\/[^"\s]*\/taskcore-acpx-[^/]+\/0/g, "/proc/self/fd/4")
-    : stdout;
+  const normalized =
+    process.platform === "darwin"
+      ? stdout.replace(
+          /\/private\/var\/[^"\s]*\/taskcore-acpx-[^/]+\/0/g,
+          "/proc/self/fd/4",
+        )
+      : stdout;
   expect(normalized).toBe(expected);
 }
 
@@ -2138,89 +2176,238 @@ async function installationFixture() {
   };
 }
 
-
 describe("Grok launcher subscription refresh", () => {
   it("binds the Grok launcher bytes to the shared release declaration", async () => {
-    const launcher = await readFile(new URL("../../providers/grok/launcher.cjs", import.meta.url));
+    const launcher = await readFile(
+      new URL("../../providers/grok/launcher.cjs", import.meta.url),
+    );
     const digest = `sha256:${createHash("sha256").update(launcher).digest("hex")}`;
-    const manifest = JSON.parse(await readFile(new URL("../../../acpx-profiles.json", import.meta.url), "utf8"));
+    const manifest = JSON.parse(
+      await readFile(
+        new URL("../../../acpx-profiles.json", import.meta.url),
+        "utf8",
+      ),
+    );
     expect(manifest.profiles.grok.commandDigest).toBe(digest);
-    expect(resolveQualifiedAcpxProfile("grok", "explicit-model").commandDigest).toBe(digest);
+    expect(
+      resolveQualifiedAcpxProfile("grok", "explicit-model").commandDigest,
+    ).toBe(digest);
   });
 
-  async function fixture(input: {
-    expiry?: number; rawExpiry?: unknown; apiKey?: string; executable?: string;
-    refresh?: { status: number | null; signal?: string | null; error?: Error };
-    mode?: number; fileError?: string; growingFile?: boolean;
-  } = {}) {
-    const script = await readFile(new URL("../../providers/grok/launcher.cjs", import.meta.url), "utf8");
-    const payload = Buffer.from(JSON.stringify({ account: {
-      key: "PRIVATE-CREDENTIAL-SENTINEL", refresh_token: "PRIVATE-REFRESH-SENTINEL",
-      expires_at: "rawExpiry" in input ? input.rawExpiry : new Date(input.expiry ?? Date.now() - 60_000).toISOString(),
-    } }));
+  async function fixture(
+    input: {
+      expiry?: number;
+      rawExpiry?: unknown;
+      apiKey?: string;
+      executable?: string;
+      refresh?: {
+        status: number | null;
+        signal?: string | null;
+        error?: Error;
+      };
+      mode?: number;
+      fileError?: string;
+      growingFile?: boolean;
+    } = {},
+  ) {
+    const script = await readFile(
+      new URL("../../providers/grok/launcher.cjs", import.meta.url),
+      "utf8",
+    );
+    const payload = Buffer.from(
+      JSON.stringify({
+        account: {
+          key: "PRIVATE-CREDENTIAL-SENTINEL",
+          refresh_token: "PRIVATE-REFRESH-SENTINEL",
+          expires_at:
+            "rawExpiry" in input
+              ? input.rawExpiry
+              : new Date(input.expiry ?? Date.now() - 60_000).toISOString(),
+        },
+      }),
+    );
     const fs = {
       constants,
-      openSync: vi.fn(() => { if (input.fileError) throw Object.assign(new Error("PRIVATE-CREDENTIAL-SENTINEL"), { code: input.fileError }); return 42; }),
-      fstatSync: vi.fn(() => ({ isFile: () => true, uid: 1000, mode: input.mode ?? 0o600, size: payload.length })),
-      readSync: vi.fn((_fd: number, buffer: Buffer, offset: number, length: number, position: number) => {
-        if (input.growingFile) { buffer.fill(65, offset, offset + length); return length; }
-        return payload.copy(buffer, offset, position, position + length);
+      openSync: vi.fn(() => {
+        if (input.fileError)
+          throw Object.assign(new Error("PRIVATE-CREDENTIAL-SENTINEL"), {
+            code: input.fileError,
+          });
+        return 42;
       }),
+      fstatSync: vi.fn(() => ({
+        isFile: () => true,
+        uid: 1000,
+        mode: input.mode ?? 0o600,
+        size: payload.length,
+      })),
+      readSync: vi.fn(
+        (
+          _fd: number,
+          buffer: Buffer,
+          offset: number,
+          length: number,
+          position: number,
+        ) => {
+          if (input.growingFile) {
+            buffer.fill(65, offset, offset + length);
+            return length;
+          }
+          return payload.copy(buffer, offset, position, position + length);
+        },
+      ),
       closeSync: vi.fn(),
     };
-    const spawnSync = vi.fn((_file: string, _args: string[], _options: { env: Record<string, string>; stdio: Array<string | number>; timeout: number; killSignal: string }) => input.refresh ?? { status: 0, signal: null });
+    const spawnSync = vi.fn(
+      (
+        _file: string,
+        _args: string[],
+        _options: {
+          env: Record<string, string>;
+          stdio: Array<string | number>;
+          timeout: number;
+          killSignal: string;
+        },
+      ) => input.refresh ?? { status: 0, signal: null },
+    );
     const execve = vi.fn();
     const executable = input.executable ?? "/private/verified/grok";
-    return { fs, spawnSync, execve, executable, run: () => runInNewContext(script, {
-      Buffer, Date,
-      process: { env: { TASKCORE_GROK_VERIFIED_EXECUTABLE: executable, GROK_HOME: "/isolated/grok", ...(input.apiKey ? { XAI_API_KEY: input.apiKey } : {}) }, getuid: () => 1000, execve },
-      require: (name: string) => name === "node:path" ? { isAbsolute, join } : name === "node:fs" ? fs : name === "node:child_process" ? { spawnSync } : undefined,
-    }) };
+    return {
+      fs,
+      spawnSync,
+      execve,
+      executable,
+      run: () =>
+        runInNewContext(script, {
+          Buffer,
+          Date,
+          process: {
+            env: {
+              TASKCORE_GROK_VERIFIED_EXECUTABLE: executable,
+              GROK_HOME: "/isolated/grok",
+              ...(input.apiKey ? { XAI_API_KEY: input.apiKey } : {}),
+            },
+            getuid: () => 1000,
+            execve,
+          },
+          require: (name: string) =>
+            name === "node:path"
+              ? { isAbsolute, join }
+              : name === "node:fs"
+                ? fs
+                : name === "node:child_process"
+                  ? { spawnSync }
+                  : undefined,
+        }),
+    };
   }
 
   it("refreshes an expired subscription without inference or ACP output before native startup", async () => {
-    const test = await fixture(); test.run();
-    expect(test.spawnSync).toHaveBeenCalledExactlyOnceWith(test.executable, ["models"], {
-      env: { GROK_HOME: "/isolated/grok" }, stdio: ["ignore", "ignore", "ignore"], timeout: 15_000, killSignal: "SIGKILL",
-    });
-    expect(test.execve).toHaveBeenCalledExactlyOnceWith(test.executable, [test.executable, "agent", "--no-leader", "stdio"], { GROK_HOME: "/isolated/grok" });
-    expect(test.spawnSync.mock.invocationCallOrder[0]).toBeLessThan(test.execve.mock.invocationCallOrder[0]!);
-    expect(test.fs.openSync).toHaveBeenCalledWith("/isolated/grok/auth.json", constants.O_RDONLY | constants.O_NOFOLLOW);
+    const test = await fixture();
+    test.run();
+    expect(test.spawnSync).toHaveBeenCalledExactlyOnceWith(
+      test.executable,
+      ["models"],
+      {
+        env: { GROK_HOME: "/isolated/grok" },
+        stdio: ["ignore", "ignore", "ignore"],
+        timeout: 15_000,
+        killSignal: "SIGKILL",
+      },
+    );
+    expect(test.execve).toHaveBeenCalledExactlyOnceWith(
+      test.executable,
+      [test.executable, "agent", "--no-leader", "stdio"],
+      { GROK_HOME: "/isolated/grok" },
+    );
+    expect(test.spawnSync.mock.invocationCallOrder[0]).toBeLessThan(
+      test.execve.mock.invocationCallOrder[0]!,
+    );
+    expect(test.fs.openSync).toHaveBeenCalledWith(
+      "/isolated/grok/auth.json",
+      constants.O_RDONLY | constants.O_NOFOLLOW,
+    );
     expect(test.fs.closeSync).toHaveBeenCalledWith(42);
   });
-  it.each(["/proc/self/fd/8", "/dev/fd/8"])("retains only the verified executable descriptor for %s", async executable => {
-    const test = await fixture({ executable }); test.run();
-    expect(test.spawnSync.mock.calls[0]![2].stdio).toEqual(["ignore", "ignore", "ignore", "ignore", "ignore", "ignore", "ignore", "ignore", 8]);
-  });
-  it("does not refresh a fresh subscription", async () => {
-    const test = await fixture({ expiry: Date.now() + 600_000 }); test.run();
-    expect(test.spawnSync).not.toHaveBeenCalled(); expect(test.execve).toHaveBeenCalledOnce();
-  });
-  it.each(["seconds", "milliseconds"])("refreshes expired and near-expiry numeric %s but skips fresh credentials", async encoding => {
-    for (const [offset, expected] of [[-60_000, true], [30_000, true], [600_000, false]] as const) {
-      const ms = Date.now() + offset;
-      const test = await fixture({ rawExpiry: encoding === "seconds" ? ms / 1000 : ms });
+  it.each(["/proc/self/fd/8", "/dev/fd/8"])(
+    "retains only the verified executable descriptor for %s",
+    async (executable) => {
+      const test = await fixture({ executable });
       test.run();
-      expect(test.spawnSync).toHaveBeenCalledTimes(expected ? 1 : 0);
-      expect(test.execve).toHaveBeenCalledOnce();
-    }
-  });
-  it.each([null, "1760000000", "2020-01-01", true, {}, []])("does not coerce unsupported expiry encodings: %j", async rawExpiry => {
-    const test = await fixture({ rawExpiry }); test.run();
+      expect(test.spawnSync.mock.calls[0]![2].stdio).toEqual([
+        "ignore",
+        "ignore",
+        "ignore",
+        "ignore",
+        "ignore",
+        "ignore",
+        "ignore",
+        "ignore",
+        8,
+      ]);
+    },
+  );
+  it("does not refresh a fresh subscription", async () => {
+    const test = await fixture({ expiry: Date.now() + 600_000 });
+    test.run();
     expect(test.spawnSync).not.toHaveBeenCalled();
     expect(test.execve).toHaveBeenCalledOnce();
   });
+  it.each(["seconds", "milliseconds"])(
+    "refreshes expired and near-expiry numeric %s but skips fresh credentials",
+    async (encoding) => {
+      for (const [offset, expected] of [
+        [-60_000, true],
+        [30_000, true],
+        [600_000, false],
+      ] as const) {
+        const ms = Date.now() + offset;
+        const test = await fixture({
+          rawExpiry: encoding === "seconds" ? ms / 1000 : ms,
+        });
+        test.run();
+        expect(test.spawnSync).toHaveBeenCalledTimes(expected ? 1 : 0);
+        expect(test.execve).toHaveBeenCalledOnce();
+      }
+    },
+  );
+  it.each([null, "1760000000", "2020-01-01", true, {}, []])(
+    "does not coerce unsupported expiry encodings: %j",
+    async (rawExpiry) => {
+      const test = await fixture({ rawExpiry });
+      test.run();
+      expect(test.spawnSync).not.toHaveBeenCalled();
+      expect(test.execve).toHaveBeenCalledOnce();
+    },
+  );
   it("never discovers subscription credentials for an explicit API key", async () => {
-    const test = await fixture({ apiKey: "explicit-api-key" }); test.run();
-    expect(test.fs.openSync).not.toHaveBeenCalled(); expect(test.spawnSync).not.toHaveBeenCalled(); expect(test.execve).toHaveBeenCalledOnce();
+    const test = await fixture({ apiKey: "explicit-api-key" });
+    test.run();
+    expect(test.fs.openSync).not.toHaveBeenCalled();
+    expect(test.spawnSync).not.toHaveBeenCalled();
+    expect(test.execve).toHaveBeenCalledOnce();
   });
-  it.each([{ status: 1 }, { status: null, signal: "SIGKILL" }, { status: null, error: new Error("PRIVATE-CREDENTIAL-SENTINEL") }])("fails closed on refresh failure without exposing provider output: %j", async refresh => {
-    const test = await fixture({ refresh });
-    expect(test.run).toThrow("Grok subscription refresh failed; reconnect Grok Build");
-    expect(test.execve).not.toHaveBeenCalled();
-  });
-  it.each([{ mode: 0o644 }, { fileError: "ELOOP" }, { growingFile: true }])("rejects unsafe or growing credential files: %j", async input => {
-    const test = await fixture(input); expect(test.run).toThrow("Grok subscription credential is invalid");
-    expect(test.spawnSync).not.toHaveBeenCalled(); expect(test.execve).not.toHaveBeenCalled();
-  });
+  it.each([
+    { status: 1 },
+    { status: null, signal: "SIGKILL" },
+    { status: null, error: new Error("PRIVATE-CREDENTIAL-SENTINEL") },
+  ])(
+    "fails closed on refresh failure without exposing provider output: %j",
+    async (refresh) => {
+      const test = await fixture({ refresh });
+      expect(test.run).toThrow(
+        "Grok subscription refresh failed; reconnect Grok Build",
+      );
+      expect(test.execve).not.toHaveBeenCalled();
+    },
+  );
+  it.each([{ mode: 0o644 }, { fileError: "ELOOP" }, { growingFile: true }])(
+    "rejects unsafe or growing credential files: %j",
+    async (input) => {
+      const test = await fixture(input);
+      expect(test.run).toThrow("Grok subscription credential is invalid");
+      expect(test.spawnSync).not.toHaveBeenCalled();
+      expect(test.execve).not.toHaveBeenCalled();
+    },
+  );
 });

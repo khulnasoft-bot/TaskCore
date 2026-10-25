@@ -27,7 +27,11 @@ vi.hoisted(() => {
   };
   if (!sheetProto.__pap13002Patched) {
     const original = sheetProto.insertRule;
-    sheetProto.insertRule = function patched(this: CSSStyleSheet, rule: string, index?: number) {
+    sheetProto.insertRule = function patched(
+      this: CSSStyleSheet,
+      rule: string,
+      index?: number,
+    ) {
       try {
         return original.call(this, rule, index);
       } catch {
@@ -52,7 +56,9 @@ vi.mock("./components/Layout", async () => {
 
 // The experimental gate would otherwise hide the page behind a feature flag.
 vi.mock("./components/CasesExperimentalGate", () => ({
-  CasesExperimentalGate: ({ children }: { children: ReactNode }) => <>{children}</>,
+  CasesExperimentalGate: ({ children }: { children: ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // Rendered by <App> outside <Routes> and needs DialogProvider; irrelevant here.
@@ -62,7 +68,9 @@ vi.mock("./components/OnboardingWizardVariant", () => ({
 
 // Sentinel pages so we can assert *which* route resolved.
 vi.mock("./pages/Cases", () => ({ Cases: () => <div>CASES_LIST_PAGE</div> }));
-vi.mock("./pages/CaseDetail", () => ({ CaseDetail: () => <div>CASE_DETAIL_PAGE</div> }));
+vi.mock("./pages/CaseDetail", () => ({
+  CaseDetail: () => <div>CASE_DETAIL_PAGE</div>,
+}));
 
 // Cloud access is unrelated to the route-table regression. Let it fall through
 // synchronously so this test does not poll its three query transitions.
@@ -132,14 +140,18 @@ describe("App Cases routing (PAP-13002)", () => {
   it("redirects unprefixed /cases to the company-prefixed list page", async () => {
     const root = await renderAppAt(container, "/cases");
     await waitForRoute(container, "CASES_LIST_PAGE");
-    expect(container.textContent).not.toContain("No organization matches prefix");
+    expect(container.textContent).not.toContain(
+      "No organization matches prefix",
+    );
     flushSync(() => root.unmount());
   });
 
   it("redirects unprefixed /cases/:id to the company-prefixed detail page", async () => {
     const root = await renderAppAt(container, "/cases/PAP-C5");
     await waitForRoute(container, "CASE_DETAIL_PAGE");
-    expect(container.textContent).not.toContain("No organization matches prefix");
+    expect(container.textContent).not.toContain(
+      "No organization matches prefix",
+    );
     flushSync(() => root.unmount());
   });
 });

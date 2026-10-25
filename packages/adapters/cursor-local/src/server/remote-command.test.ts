@@ -19,17 +19,26 @@ function createLocalSandboxRunner() {
       onSpawn?: (meta: { pid: number; startedAt: string }) => Promise<void>;
     }) => {
       counter += 1;
-      return await runChildProcess(`cursor-remote-command-${counter}`, input.command, input.args ?? [], {
-        cwd: input.cwd ?? process.cwd(),
-        env: input.env ?? {},
-        stdin: input.stdin,
-        timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
-        graceSec: 5,
-        onLog: input.onLog ?? (async () => {}),
-        onSpawn: input.onSpawn
-          ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
-          : undefined,
-      });
+      return await runChildProcess(
+        `cursor-remote-command-${counter}`,
+        input.command,
+        input.args ?? [],
+        {
+          cwd: input.cwd ?? process.cwd(),
+          env: input.env ?? {},
+          stdin: input.stdin,
+          timeoutSec: Math.max(
+            1,
+            Math.ceil((input.timeoutMs ?? 30_000) / 1000),
+          ),
+          graceSec: 5,
+          onLog: input.onLog ?? (async () => {}),
+          onSpawn: input.onSpawn
+            ? async (meta) =>
+                input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+            : undefined,
+        },
+      );
     },
   };
 }
@@ -45,7 +54,9 @@ printf '%s\\n' ok
 
 describe("prepareCursorSandboxCommand", () => {
   it("prefers the Cursor installer bin directory when the default agent entrypoint is installed there", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-remote-command-cursor-bin-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-remote-command-cursor-bin-"),
+    );
     const systemHomeDir = path.join(root, "system-home");
     const managedHomeDir = path.join(root, "managed-home");
     const remoteWorkspace = path.join(root, "workspace");
@@ -78,20 +89,28 @@ describe("prepareCursorSandboxCommand", () => {
       expect(result.command).toBe(cursorAgentPath);
       expect(result.preferredCommandPath).toBe(cursorAgentPath);
       expect(result.remoteSystemHomeDir).toBe(systemHomeDir);
-      expect(result.addedPathEntry).toBe(path.join(systemHomeDir, ".local", "bin"));
+      expect(result.addedPathEntry).toBe(
+        path.join(systemHomeDir, ".local", "bin"),
+      );
       expect(result.env.PATH?.split(":").slice(0, 2)).toEqual([
         path.join(systemHomeDir, ".local", "bin"),
         path.join(systemHomeDir, ".cursor", "bin"),
       ]);
-      expect(result.env.PATH).not.toContain(path.join(managedHomeDir, ".cursor", "bin"));
-      expect(result.env.PATH).not.toContain(path.join(managedHomeDir, ".local", "bin"));
+      expect(result.env.PATH).not.toContain(
+        path.join(managedHomeDir, ".cursor", "bin"),
+      );
+      expect(result.env.PATH).not.toContain(
+        path.join(managedHomeDir, ".local", "bin"),
+      );
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
 
   it("keeps probing the original sandbox home after managed HOME overrides", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-cursor-remote-command-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-cursor-remote-command-"),
+    );
     const systemHomeDir = path.join(root, "system-home");
     const managedHomeDir = path.join(root, "managed-home");
     const remoteWorkspace = path.join(root, "workspace");
@@ -124,12 +143,16 @@ describe("prepareCursorSandboxCommand", () => {
       expect(result.command).toBe(systemAgentPath);
       expect(result.preferredCommandPath).toBe(systemAgentPath);
       expect(result.remoteSystemHomeDir).toBe(systemHomeDir);
-      expect(result.addedPathEntry).toBe(path.join(systemHomeDir, ".local", "bin"));
+      expect(result.addedPathEntry).toBe(
+        path.join(systemHomeDir, ".local", "bin"),
+      );
       expect(result.env.PATH?.split(":").slice(0, 2)).toEqual([
         path.join(systemHomeDir, ".local", "bin"),
         path.join(systemHomeDir, ".cursor", "bin"),
       ]);
-      expect(result.env.PATH).not.toContain(path.join(managedHomeDir, ".local", "bin"));
+      expect(result.env.PATH).not.toContain(
+        path.join(managedHomeDir, ".local", "bin"),
+      );
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

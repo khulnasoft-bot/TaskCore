@@ -37,7 +37,9 @@ export function IssueCasesPanel({ issueId }: { issueId: string }) {
 
   return (
     <section className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cases</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Cases
+      </h3>
       <div className="space-y-1">
         {links.map((link) => (
           <Link
@@ -45,9 +47,15 @@ export function IssueCasesPanel({ issueId }: { issueId: string }) {
             to={caseHref(link.case.identifier)}
             className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm transition-colors hover:bg-accent/50"
           >
-            <span className="font-mono text-xs text-muted-foreground shrink-0">{link.case.identifier}</span>
-            <span className="min-w-0 flex-1 truncate" title={link.case.title}>{link.case.title}</span>
-            <Badge variant="secondary" className="shrink-0">{ROLE_LABEL[link.role]}</Badge>
+            <span className="font-mono text-xs text-muted-foreground shrink-0">
+              {link.case.identifier}
+            </span>
+            <span className="min-w-0 flex-1 truncate" title={link.case.title}>
+              {link.case.title}
+            </span>
+            <Badge variant="secondary" className="shrink-0">
+              {ROLE_LABEL[link.role]}
+            </Badge>
             <StatusBadge status={link.case.status} />
           </Link>
         ))}

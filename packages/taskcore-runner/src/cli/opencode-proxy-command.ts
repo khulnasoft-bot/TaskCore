@@ -31,9 +31,7 @@ export function withoutAmbientOpenCodeCommand(
  * file identity bound through the nested Node spawn on supported Unix hosts;
  * unsupported platforms fail closed in runnerd before this proxy starts.
  */
-export function trustedOpenCodeLaunchBinding(
-  args: readonly string[],
-): {
+export function trustedOpenCodeLaunchBinding(args: readonly string[]): {
   command: string;
   commandFd?: number;
   commandLifecycle?: {
@@ -41,14 +39,21 @@ export function trustedOpenCodeLaunchBinding(
     afterSpawn(): void;
   };
 } {
-  const command = args.length === 2 && args[0] === TRUSTED_OPENCODE_EXECUTABLE_ARG
-    ? args[1]!
-    : "";
-  const matched = process.platform === "linux"
-    ? command.match(/^\/proc\/self\/fd\/(\d+)$/)
-    : null;
+  const command =
+    args.length === 2 && args[0] === TRUSTED_OPENCODE_EXECUTABLE_ARG
+      ? args[1]!
+      : "";
+  const matched =
+    process.platform === "linux"
+      ? command.match(/^\/proc\/self\/fd\/(\d+)$/)
+      : null;
   const commandFd = Number(matched?.[1]);
-  if (matched && Number.isInteger(commandFd) && commandFd >= 3 && commandFd <= 255) {
+  if (
+    matched &&
+    Number.isInteger(commandFd) &&
+    commandFd >= 3 &&
+    commandFd <= 255
+  ) {
     return { command, commandFd };
   }
   const validateMacSnapshot = (expected?: { dev: number; ino: number }) => {
@@ -137,7 +142,8 @@ export function trustedOpenCodeLaunchBinding(
             Math.min(buffer.length, sourceMetadata.size - sourceOffset),
             sourceOffset,
           );
-          if (count === 0) throw new Error("verified OpenCode snapshot ended early");
+          if (count === 0)
+            throw new Error("verified OpenCode snapshot ended early");
           let written = 0;
           while (written < count) {
             const writeCount = writeSync(
@@ -147,7 +153,9 @@ export function trustedOpenCodeLaunchBinding(
               count - written,
             );
             if (writeCount === 0) {
-              throw new Error("verified OpenCode snapshot copy made no progress");
+              throw new Error(
+                "verified OpenCode snapshot copy made no progress",
+              );
             }
             written += writeCount;
           }

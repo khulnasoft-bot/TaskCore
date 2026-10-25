@@ -42,9 +42,10 @@ export function Menu({
   }, [open]);
 
   function focusItem(index: number) {
-    const buttons = containerRef.current?.querySelectorAll<HTMLButtonElement>(
-      '[role="menuitem"]',
-    );
+    const buttons =
+      containerRef.current?.querySelectorAll<HTMLButtonElement>(
+        '[role="menuitem"]',
+      );
     if (buttons === undefined || buttons.length === 0) return;
     buttons[(index + buttons.length) % buttons.length]?.focus();
   }
@@ -59,7 +60,9 @@ export function Menu({
 
   function onMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     const buttons = [
-      ...(containerRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []),
+      ...(containerRef.current?.querySelectorAll<HTMLButtonElement>(
+        '[role="menuitem"]',
+      ) ?? []),
     ];
     const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
     if (event.key === "Escape") {
@@ -85,7 +88,9 @@ export function Menu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-disabled={disabled}
-        {...(disabled && disabledReason !== null ? { "aria-describedby": descriptionId } : {})}
+        {...(disabled && disabledReason !== null
+          ? { "aria-describedby": descriptionId }
+          : {})}
         onClick={() => {
           if (disabled) return;
           setOpen((current) => !current);
@@ -104,7 +109,12 @@ export function Menu({
         </p>
       ) : null}
       {open && !disabled ? (
-        <div role="menu" aria-labelledby={triggerId} className="ui-menu-list" onKeyDown={onMenuKeyDown}>
+        <div
+          role="menu"
+          aria-labelledby={triggerId}
+          className="ui-menu-list"
+          onKeyDown={onMenuKeyDown}
+        >
           {items.map((item) => {
             const itemReasonId = `${triggerId}-${item.id}-reason`;
             return (
@@ -114,7 +124,9 @@ export function Menu({
                   role="menuitem"
                   className="ui-menu-item"
                   aria-disabled={!item.enabled}
-                  {...(item.reason === null ? {} : { "aria-describedby": itemReasonId })}
+                  {...(item.reason === null
+                    ? {}
+                    : { "aria-describedby": itemReasonId })}
                   onClick={() => {
                     if (!item.enabled) return;
                     setOpen(false);

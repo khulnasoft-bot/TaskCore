@@ -10,12 +10,20 @@ import { api } from "./client";
 // The shared types model timestamps as `Date` (the server row shape); over the
 // wire they arrive as ISO strings, so the UI-facing DTOs restate the time
 // fields as strings. Everything else round-trips unchanged.
-export type DecisionQueueDto = Omit<DecisionQueue, "createdAt" | "updatedAt"> & {
+export type DecisionQueueDto = Omit<
+  DecisionQueue,
+  "createdAt" | "updatedAt"
+> & {
   createdAt: string;
   updatedAt: string;
 };
-export type DecisionQueueItemDto = Omit<DecisionQueueItem, "createdAt"> & { createdAt: string };
-export type DecisionTriageDto = Omit<DecisionTriage, "createdAt" | "updatedAt" | "snoozedUntil"> & {
+export type DecisionQueueItemDto = Omit<DecisionQueueItem, "createdAt"> & {
+  createdAt: string;
+};
+export type DecisionTriageDto = Omit<
+  DecisionTriage,
+  "createdAt" | "updatedAt" | "snoozedUntil"
+> & {
   createdAt: string;
   updatedAt: string;
   snoozedUntil: string | null;
@@ -65,7 +73,11 @@ export interface DecisionRetentionDto {
 }
 
 export interface CreateDecisionArchiveProposalBody {
-  items: Array<{ sourceKind: AttentionSourceKind; sourceId: string; reason: string }>;
+  items: Array<{
+    sourceKind: AttentionSourceKind;
+    sourceId: string;
+    reason: string;
+  }>;
   idempotencyKey?: string;
 }
 
@@ -78,20 +90,33 @@ export interface CreateDecisionArchiveProposalBody {
  */
 export const decisionQueuesApi = {
   seedRules: (companyId: string) =>
-    api.get<DecisionQueueSeedDefinition[]>(`/companies/${companyId}/decision-queue-seed-rules`),
+    api.get<DecisionQueueSeedDefinition[]>(
+      `/companies/${companyId}/decision-queue-seed-rules`,
+    ),
 
-  list: (companyId: string) => api.get<DecisionQueueDto[]>(`/companies/${companyId}/decision-queues`),
+  list: (companyId: string) =>
+    api.get<DecisionQueueDto[]>(`/companies/${companyId}/decision-queues`),
 
   create: (companyId: string, body: CreateDecisionQueueBody) =>
     api.post<DecisionQueueDto>(`/companies/${companyId}/decision-queues`, body),
 
   update: (companyId: string, key: string, body: UpdateDecisionQueueBody) =>
-    api.patch<DecisionQueueDto>(`/companies/${companyId}/decision-queues/${encodeURIComponent(key)}`, body),
+    api.patch<DecisionQueueDto>(
+      `/companies/${companyId}/decision-queues/${encodeURIComponent(key)}`,
+      body,
+    ),
 
   listItems: (companyId: string, key: string) =>
-    api.get<DecisionQueueItemDto[]>(`/companies/${companyId}/decision-queues/${encodeURIComponent(key)}/items`),
+    api.get<DecisionQueueItemDto[]>(
+      `/companies/${companyId}/decision-queues/${encodeURIComponent(key)}/items`,
+    ),
 
-  addItem: (companyId: string, key: string, sourceKind: AttentionSourceKind, sourceId: string) =>
+  addItem: (
+    companyId: string,
+    key: string,
+    sourceKind: AttentionSourceKind,
+    sourceId: string,
+  ) =>
     api.post<DecisionQueueItemDto>(
       `/companies/${companyId}/decision-queues/${encodeURIComponent(key)}/items`,
       { sourceKind, sourceId },
@@ -109,7 +134,11 @@ export const decisionQueuesApi = {
       reason ? { reason } : {},
     ),
 
-  getTriage: (companyId: string, sourceKind: AttentionSourceKind, sourceId: string) =>
+  getTriage: (
+    companyId: string,
+    sourceKind: AttentionSourceKind,
+    sourceId: string,
+  ) =>
     api.get<DecisionTriageDto | null>(
       `/companies/${companyId}/decision-triage/${encodeURIComponent(sourceKind)}/${encodeURIComponent(sourceId)}`,
     ),
@@ -125,24 +154,39 @@ export const decisionQueuesApi = {
       body,
     ),
 
-  setKeep: (companyId: string, sourceKind: AttentionSourceKind, sourceId: string, keep: boolean) =>
+  setKeep: (
+    companyId: string,
+    sourceKind: AttentionSourceKind,
+    sourceId: string,
+    keep: boolean,
+  ) =>
     api.patch<DecisionRetentionDto>(
       `/companies/${companyId}/decision-retention/${encodeURIComponent(sourceKind)}/${encodeURIComponent(sourceId)}`,
       { keep },
     ),
 
-  archive: (companyId: string, sourceKind: AttentionSourceKind, sourceId: string) =>
+  archive: (
+    companyId: string,
+    sourceKind: AttentionSourceKind,
+    sourceId: string,
+  ) =>
     api.post<DecisionRetentionDto>(
       `/companies/${companyId}/decision-retention/${encodeURIComponent(sourceKind)}/${encodeURIComponent(sourceId)}/archive`,
       {},
     ),
 
-  revive: (companyId: string, sourceKind: AttentionSourceKind, sourceId: string) =>
+  revive: (
+    companyId: string,
+    sourceKind: AttentionSourceKind,
+    sourceId: string,
+  ) =>
     api.post<DecisionRetentionDto>(
       `/companies/${companyId}/decision-retention/${encodeURIComponent(sourceKind)}/${encodeURIComponent(sourceId)}/revive`,
       {},
     ),
 
-  proposeArchive: (companyId: string, body: CreateDecisionArchiveProposalBody) =>
-    api.post(`/companies/${companyId}/decision-archive-proposals`, body),
+  proposeArchive: (
+    companyId: string,
+    body: CreateDecisionArchiveProposalBody,
+  ) => api.post(`/companies/${companyId}/decision-archive-proposals`, body),
 };

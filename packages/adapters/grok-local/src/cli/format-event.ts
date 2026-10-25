@@ -1,7 +1,8 @@
 import pc from "picocolors";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -37,7 +38,10 @@ export function printGrokStreamEvent(raw: string, _debug: boolean): void {
   if (type === "end") {
     const stopReason = asString(parsed.stopReason);
     const sessionId = asString(parsed.sessionId);
-    const details = [stopReason ? `stopReason=${stopReason}` : "", sessionId ? `session=${sessionId}` : ""]
+    const details = [
+      stopReason ? `stopReason=${stopReason}` : "",
+      sessionId ? `session=${sessionId}` : "",
+    ]
       .filter(Boolean)
       .join(" ");
     console.log(pc.blue(`Grok run completed${details ? ` (${details})` : ""}`));
@@ -55,5 +59,9 @@ export function printGrokStreamEvent(raw: string, _debug: boolean): void {
   }
 
   const payload = asRecord(parsed);
-  console.log(pc.gray(`event: ${type || "unknown"} ${payload ? JSON.stringify(payload) : line}`));
+  console.log(
+    pc.gray(
+      `event: ${type || "unknown"} ${payload ? JSON.stringify(payload) : line}`,
+    ),
+  );
 }

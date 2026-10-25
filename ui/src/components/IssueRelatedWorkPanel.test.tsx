@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 import { IssueRelatedWorkPanel } from "./IssueRelatedWorkPanel";
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: ComponentProps<"a"> & { to: string }) => <a href={to} {...props}>{children}</a>,
+  Link: ({ children, to, ...props }: ComponentProps<"a"> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 describe("IssueRelatedWorkPanel", () => {
@@ -25,8 +29,18 @@ describe("IssueRelatedWorkPanel", () => {
               },
               mentionCount: 2,
               sources: [
-                { kind: "title", sourceRecordId: null, label: "title", matchedText: "PAP-22" },
-                { kind: "document", sourceRecordId: "doc-1", label: "plan", matchedText: "/issues/PAP-22" },
+                {
+                  kind: "title",
+                  sourceRecordId: null,
+                  label: "title",
+                  matchedText: "PAP-22",
+                },
+                {
+                  kind: "document",
+                  sourceRecordId: "doc-1",
+                  label: "plan",
+                  matchedText: "/issues/PAP-22",
+                },
               ],
             },
           ],
@@ -43,7 +57,12 @@ describe("IssueRelatedWorkPanel", () => {
               },
               mentionCount: 1,
               sources: [
-                { kind: "comment", sourceRecordId: "comment-1", label: "comment", matchedText: "PAP-1" },
+                {
+                  kind: "comment",
+                  sourceRecordId: "comment-1",
+                  label: "comment",
+                  matchedText: "PAP-1",
+                },
               ],
             },
           ],
@@ -79,9 +98,24 @@ describe("IssueRelatedWorkPanel", () => {
               },
               mentionCount: 3,
               sources: [
-                { kind: "comment", sourceRecordId: "c1", label: "comment", matchedText: "PAP-44 first" },
-                { kind: "comment", sourceRecordId: "c2", label: "comment", matchedText: "PAP-44 second" },
-                { kind: "comment", sourceRecordId: "c3", label: "comment", matchedText: "PAP-44 third" },
+                {
+                  kind: "comment",
+                  sourceRecordId: "c1",
+                  label: "comment",
+                  matchedText: "PAP-44 first",
+                },
+                {
+                  kind: "comment",
+                  sourceRecordId: "c2",
+                  label: "comment",
+                  matchedText: "PAP-44 second",
+                },
+                {
+                  kind: "comment",
+                  sourceRecordId: "c3",
+                  label: "comment",
+                  matchedText: "PAP-44 third",
+                },
               ],
             },
           ],

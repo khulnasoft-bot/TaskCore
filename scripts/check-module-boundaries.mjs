@@ -8,7 +8,12 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const defaultServerSrc = resolve(repoRoot, "server/src");
 const defaultModulesRoot = resolve(defaultServerSrc, "modules");
 const layerNames = new Set(["domain", "application", "adapters"]);
-const databasePackages = ["@taskcore/db", "drizzle-orm", "embedded-postgres", "postgres"];
+const databasePackages = [
+  "@taskcore/db",
+  "drizzle-orm",
+  "embedded-postgres",
+  "postgres",
+];
 
 function normalizedRelative(from, to) {
   return relative(from, to).split(sep).join("/");
@@ -24,7 +29,9 @@ function isPackageOrSubpath(specifier, packageName) {
 }
 
 function isDatabasePackage(specifier) {
-  return databasePackages.some((packageName) => isPackageOrSubpath(specifier, packageName));
+  return databasePackages.some((packageName) =>
+    isPackageOrSubpath(specifier, packageName),
+  );
 }
 
 export function extractImportSpecifiers(sourceText) {
@@ -65,13 +72,17 @@ function listProductionSourceFiles(root) {
 
 function moduleLocation(modulesRoot, filePath) {
   if (!isInside(modulesRoot, filePath)) return null;
-  const [moduleName, layer] = normalizedRelative(modulesRoot, filePath).split("/");
+  const [moduleName, layer] = normalizedRelative(modulesRoot, filePath).split(
+    "/",
+  );
   if (!moduleName) return null;
   return { moduleName, layer: layerNames.has(layer) ? layer : null };
 }
 
 function resolvedTarget(sourceFile, specifier) {
-  return specifier.startsWith(".") ? resolve(dirname(sourceFile), specifier) : null;
+  return specifier.startsWith(".")
+    ? resolve(dirname(sourceFile), specifier)
+    : null;
 }
 
 function targetServerSegments(serverSrc, target) {
@@ -97,13 +108,27 @@ export function scanModuleBoundaries({
     for (const specifier of extractImportSpecifiers(sourceText)) {
       const target = resolvedTarget(sourceFile, specifier);
       const targetSegments = targetServerSegments(serverSrc, target);
-      const targetLocation = target ? moduleLocation(modulesRoot, target) : null;
+      const targetLocation = target
+        ? moduleLocation(modulesRoot, target)
+        : null;
 
       if (sourceLocation?.layer === "domain") {
         if (isDatabasePackage(specifier)) {
-          addViolation(violations, sourceLabel, "domain", specifier, "domain cannot import database packages");
+          addViolation(
+            violations,
+            sourceLabel,
+            "domain",
+            specifier,
+            "domain cannot import database packages",
+          );
         } else if (specifier.startsWith("node:")) {
-          addViolation(violations, sourceLabel, "domain", specifier, "domain cannot import Node.js runtime modules");
+          addViolation(
+            violations,
+            sourceLabel,
+            "domain",
+            specifier,
+            "domain cannot import Node.js runtime modules",
+          );
         } else if (
           targetSegments.includes("services") ||
           targetSegments.includes("routes") ||
@@ -116,25 +141,73 @@ export function scanModuleBoundaries({
             specifier,
             "domain cannot import server services, routes, or adapters",
           );
-        } else if (targetLocation?.layer === "application" || targetLocation?.layer === "adapters") {
-          addViolation(violations, sourceLabel, "domain", specifier, "domain cannot depend on outer module layers");
+        } else if (
+          targetLocation?.layer === "application" ||
+          targetLocation?.layer === "adapters"
+        ) {
+          addViolation(
+            violations,
+            sourceLabel,
+            "domain",
+            specifier,
+            "domain cannot depend on outer module layers",
+          );
         }
       }
 
       if (sourceLocation?.layer === "application") {
         if (isDatabasePackage(specifier)) {
-          addViolation(violations, sourceLabel, "application", specifier, "application cannot import database packages");
-        } else if (targetLocation?.layer === "adapters" || targetSegments.includes("adapters")) {
-          addViolation(violations, sourceLabel, "application", specifier, "application cannot import concrete adapters");
-        } else if (targetSegments.includes("services") || targetSegments.includes("routes")) {
-          addViolation(violations, sourceLabel, "application", specifier, "application cannot import server services or routes");
-        } else if (targetSegments.join("/") === "errors.js" || targetSegments.join("/") === "errors.ts") {
-          addViolation(violations, sourceLabel, "application", specifier, "application cannot import HTTP error helpers");
+          addViolation(
+            violations,
+            sourceLabel,
+            "application",
+            specifier,
+            "application cannot import database packages",
+          );
+        } else if (
+          targetLocation?.layer === "adapters" ||
+          targetSegments.includes("adapters")
+        ) {
+          addViolation(
+            violations,
+            sourceLabel,
+            "application",
+            specifier,
+            "application cannot import concrete adapters",
+          );
+        } else if (
+          targetSegments.includes("services") ||
+          targetSegments.includes("routes")
+        ) {
+          addViolation(
+            violations,
+            sourceLabel,
+            "application",
+            specifier,
+            "application cannot import server services or routes",
+          );
+        } else if (
+          targetSegments.join("/") === "errors.js" ||
+          targetSegments.join("/") === "errors.ts"
+        ) {
+          addViolation(
+            violations,
+            sourceLabel,
+            "application",
+            specifier,
+            "application cannot import HTTP error helpers",
+          );
         }
       }
 
-      if (targetLocation && sourceLocation?.moduleName !== targetLocation.moduleName) {
-        const targetRelative = normalizedRelative(resolve(modulesRoot, targetLocation.moduleName), target);
+      if (
+        targetLocation &&
+        sourceLocation?.moduleName !== targetLocation.moduleName
+      ) {
+        const targetRelative = normalizedRelative(
+          resolve(modulesRoot, targetLocation.moduleName),
+          target,
+        );
         if (targetRelative !== "index.js" && targetRelative !== "index.ts") {
           addViolation(
             violations,
@@ -160,7 +233,8 @@ function main() {
   const violations = scanModuleBoundaries();
   if (violations.length > 0) {
     console.error("Feature module boundary check failed:");
-    for (const violation of violations) console.error(`- ${formatViolation(violation)}`);
+    for (const violation of violations)
+      console.error(`- ${formatViolation(violation)}`);
     process.exitCode = 1;
     return;
   }

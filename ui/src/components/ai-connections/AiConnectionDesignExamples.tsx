@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { AiConnectionPicker } from "./AiConnectionPicker";
-import { LocalProviderLoginInstructions, ProviderApiKeyCard } from "@/components/AdapterLoginChrome";
+import {
+  LocalProviderLoginInstructions,
+  ProviderApiKeyCard,
+} from "@/components/AdapterLoginChrome";
 import type {
   AiConnectionBinding,
   AiConnectionRequirement,
@@ -39,7 +42,11 @@ export function AiConnectionDesignExamples() {
         Storybook under AI Connections / Review. Example controls below do not
         connect accounts.
       </p>
-      <p className="text-sm text-muted-foreground">Provider lists and account management use Browse and AppDetail from the Connectors interface. The picker below uses ConnectionChoiceList, also used by ConnectionSetupFlow.</p>
+      <p className="text-sm text-muted-foreground">
+        Provider lists and account management use Browse and AppDetail from the
+        Connectors interface. The picker below uses ConnectionChoiceList, also
+        used by ConnectionSetupFlow.
+      </p>
       <AiConnectionPicker
         requirement={requirement}
         connections={[account]}
@@ -61,8 +68,15 @@ export function AiConnectionDesignExamples() {
       />
       <LocalProviderLoginInstructions
         adapterType="claude_local"
-        login={{ isolated: true, preparing: false, status: "sign_in_required", error: null,
-          command: "CLAUDE_CONFIG_DIR='/example/connection-login' claude auth login", retry: () => {} }}
+        login={{
+          isolated: true,
+          preparing: false,
+          status: "sign_in_required",
+          error: null,
+          command:
+            "CLAUDE_CONFIG_DIR='/example/connection-login' claude auth login",
+          retry: () => {},
+        }}
       />
     </div>
   );

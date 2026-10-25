@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   costEvents,
   agents,
@@ -16,12 +24,16 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const mockTelemetryClient = vi.hoisted(() => ({ track: vi.fn() }));
-vi.mock("../telemetry.ts", () => ({ getTelemetryClient: () => mockTelemetryClient }));
+vi.mock("../telemetry.ts", () => ({
+  getTelemetryClient: () => mockTelemetryClient,
+}));
 
 import { heartbeatService } from "../services/heartbeat.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -33,10 +45,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("heartbeat terminalizeRunOnLeaseRelease", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-lease-release-terminal-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-lease-release-terminal-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -106,7 +122,10 @@ describeEmbeddedPostgres("heartbeat terminalizeRunOnLeaseRelease", () => {
   it("forces a still-running run to succeeded when the issue already reached done", async () => {
     // This reproduces the defect: the agent PATCHed the issue to done, but the
     // teardown released the environment lease before the run-terminal write.
-    const { issueId, runId, run } = await seed({ issueStatus: "done", runStatus: "running" });
+    const { issueId, runId, run } = await seed({
+      issueStatus: "done",
+      runStatus: "running",
+    });
 
     const heartbeat = heartbeatService(db);
     const terminal = await heartbeat.terminalizeRunOnLeaseRelease(run);
@@ -128,16 +147,24 @@ describeEmbeddedPostgres("heartbeat terminalizeRunOnLeaseRelease", () => {
     expect(issueStatus).toBe("done");
 
     const event = await db
-      .select({ message: heartbeatRunEvents.message, payload: heartbeatRunEvents.payload })
+      .select({
+        message: heartbeatRunEvents.message,
+        payload: heartbeatRunEvents.payload,
+      })
       .from(heartbeatRunEvents)
       .where(eq(heartbeatRunEvents.runId, runId))
       .then((rows) => rows[0]);
     expect(event?.message).toContain("lease release");
-    expect((event?.payload as { terminalStatus?: string } | null)?.terminalStatus).toBe("succeeded");
+    expect(
+      (event?.payload as { terminalStatus?: string } | null)?.terminalStatus,
+    ).toBe("succeeded");
   });
 
   it("forces a still-running run to interrupted when the issue is not terminal", async () => {
-    const { runId, run } = await seed({ issueStatus: "in_progress", runStatus: "running" });
+    const { runId, run } = await seed({
+      issueStatus: "in_progress",
+      runStatus: "running",
+    });
 
     const heartbeat = heartbeatService(db);
     const terminal = await heartbeat.terminalizeRunOnLeaseRelease(run);
@@ -145,7 +172,10 @@ describeEmbeddedPostgres("heartbeat terminalizeRunOnLeaseRelease", () => {
     expect(terminal.status).toBe("interrupted");
 
     const row = await db
-      .select({ status: heartbeatRuns.status, errorCode: heartbeatRuns.errorCode })
+      .select({
+        status: heartbeatRuns.status,
+        errorCode: heartbeatRuns.errorCode,
+      })
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runId))
       .then((rows) => rows[0]);
@@ -153,25 +183,55 @@ describeEmbeddedPostgres("heartbeat terminalizeRunOnLeaseRelease", () => {
     expect(row?.errorCode).toBe("lease_released_before_terminal");
   });
 
-  it.each(["in_progress", "done"])("preserves acknowledged Stop when teardown wins the finalizer race (%s)", async (issueStatus) => {
-    const { companyId, issueId, runId } = await seed({ issueStatus, runStatus: "running" });
-    const [run] = await db.update(heartbeatRuns).set({
-      nativeIssueId: issueId,
-      resultJson: { cancelledByActorType: "user", cancelledByUserId: "board", nativeCancellation: {
-        schema: "taskcore.native-cancellation.v1", runId, companyId, issueId, scope: "run",
-        reasonCode: "cancellation_run_only", dispatched: true, dispatchState: "acknowledged",
-        intentAuditId: randomUUID(), acknowledgementAuditId: randomUUID(),
-      } },
-    }).where(eq(heartbeatRuns.id, runId)).returning();
-    const terminal = await heartbeatService(db).terminalizeRunOnLeaseRelease(run!);
-    expect(terminal).toMatchObject({ status: "cancelled", error: null, errorCode: null });
-  });
+  it.each(["in_progress", "done"])(
+    "preserves acknowledged Stop when teardown wins the finalizer race (%s)",
+    async (issueStatus) => {
+      const { companyId, issueId, runId } = await seed({
+        issueStatus,
+        runStatus: "running",
+      });
+      const [run] = await db
+        .update(heartbeatRuns)
+        .set({
+          nativeIssueId: issueId,
+          resultJson: {
+            cancelledByActorType: "user",
+            cancelledByUserId: "board",
+            nativeCancellation: {
+              schema: "taskcore.native-cancellation.v1",
+              runId,
+              companyId,
+              issueId,
+              scope: "run",
+              reasonCode: "cancellation_run_only",
+              dispatched: true,
+              dispatchState: "acknowledged",
+              intentAuditId: randomUUID(),
+              acknowledgementAuditId: randomUUID(),
+            },
+          },
+        })
+        .where(eq(heartbeatRuns.id, runId))
+        .returning();
+      const terminal = await heartbeatService(db).terminalizeRunOnLeaseRelease(
+        run!,
+      );
+      expect(terminal).toMatchObject({
+        status: "cancelled",
+        error: null,
+        errorCode: null,
+      });
+    },
+  );
 
   it("forces a still-queued run to interrupted when the lease releases before it starts", async () => {
     // A queued run holds a lease but never reached "running". The teardown
     // released the lease, so the run must not stay queued and show a phantom
     // live run. A running-only update would miss it.
-    const { runId, run } = await seed({ issueStatus: "in_progress", runStatus: "queued" });
+    const { runId, run } = await seed({
+      issueStatus: "in_progress",
+      runStatus: "queued",
+    });
 
     const heartbeat = heartbeatService(db);
     const terminal = await heartbeat.terminalizeRunOnLeaseRelease(run);
@@ -179,7 +239,10 @@ describeEmbeddedPostgres("heartbeat terminalizeRunOnLeaseRelease", () => {
     expect(terminal.status).toBe("interrupted");
 
     const row = await db
-      .select({ status: heartbeatRuns.status, errorCode: heartbeatRuns.errorCode })
+      .select({
+        status: heartbeatRuns.status,
+        errorCode: heartbeatRuns.errorCode,
+      })
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runId))
       .then((rows) => rows[0]);
@@ -188,7 +251,10 @@ describeEmbeddedPostgres("heartbeat terminalizeRunOnLeaseRelease", () => {
   });
 
   it("forces a still-queued run to succeeded when the issue already reached done", async () => {
-    const { runId, run } = await seed({ issueStatus: "done", runStatus: "queued" });
+    const { runId, run } = await seed({
+      issueStatus: "done",
+      runStatus: "queued",
+    });
 
     const heartbeat = heartbeatService(db);
     const terminal = await heartbeat.terminalizeRunOnLeaseRelease(run);
@@ -204,7 +270,10 @@ describeEmbeddedPostgres("heartbeat terminalizeRunOnLeaseRelease", () => {
   });
 
   it("keeps an already-terminal run authoritative and records no new event", async () => {
-    const { runId, run } = await seed({ issueStatus: "done", runStatus: "failed" });
+    const { runId, run } = await seed({
+      issueStatus: "done",
+      runStatus: "failed",
+    });
 
     const heartbeat = heartbeatService(db);
     const terminal = await heartbeat.terminalizeRunOnLeaseRelease(run);

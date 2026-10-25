@@ -29,7 +29,8 @@ export function createAcpxCommandLeaseOwner(
           failures.push(error);
         }
       }
-      if (failures.length) throw new AggregateError(failures, "ACPX command leases did not close");
+      if (failures.length)
+        throw new AggregateError(failures, "ACPX command leases did not close");
     },
   };
   return {
@@ -42,7 +43,10 @@ export function createAcpxCommandLeaseOwner(
           .then(openCommand)
           .then((replacement) => {
             leases.add(replacement);
-            if (closing) throw new Error("Verified ACPX command owner closed during refresh");
+            if (closing)
+              throw new Error(
+                "Verified ACPX command owner closed during refresh",
+              );
             current = replacement;
             consumed = false;
           });

@@ -25,7 +25,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Project } from "@taskcore/shared";
 
 // Sidebar star reveals with the row's own group, not the shared unnamed group.
@@ -53,14 +57,20 @@ export function SidebarStarredProjects() {
   const membershipsQuery = useResourceMemberships(selectedCompanyId);
   const membershipMutation = useResourceMembershipMutation(selectedCompanyId);
 
-  const projectMatch = location.pathname.match(/^\/(?:[^/]+\/)?projects\/([^/]+)/);
+  const projectMatch = location.pathname.match(
+    /^\/(?:[^/]+\/)?projects\/([^/]+)/,
+  );
   const activeProjectRef = projectMatch?.[1] ?? null;
 
   const starredProjects = useMemo(() => {
     if (!membershipsQuery.isSuccess) return [];
-    const starredIds = new Set(starredResourceIds(membershipsQuery.data, "project"));
+    const starredIds = new Set(
+      starredResourceIds(membershipsQuery.data, "project"),
+    );
     if (starredIds.size === 0) return [];
-    const byId = new Map((projects ?? []).map((project: Project) => [project.id, project]));
+    const byId = new Map(
+      (projects ?? []).map((project: Project) => [project.id, project]),
+    );
     return Array.from(starredIds)
       .map((id) => byId.get(id))
       .filter((project): project is Project => !!project)
@@ -70,21 +80,23 @@ export function SidebarStarredProjects() {
   }, [membershipsQuery.data, membershipsQuery.isSuccess, projects]);
 
   const unstar = useCallback(
-    (project: Project) => membershipMutation.mutate({
-      resourceType: "project",
-      resourceId: project.id,
-      resourceName: project.name,
-      starred: false,
-    }),
+    (project: Project) =>
+      membershipMutation.mutate({
+        resourceType: "project",
+        resourceId: project.id,
+        resourceName: project.name,
+        starred: false,
+      }),
     [membershipMutation],
   );
   const leave = useCallback(
-    (project: Project) => membershipMutation.mutate({
-      resourceType: "project",
-      resourceId: project.id,
-      resourceName: project.name,
-      state: "left",
-    }),
+    (project: Project) =>
+      membershipMutation.mutate({
+        resourceType: "project",
+        resourceId: project.id,
+        resourceName: project.name,
+        state: "left",
+      }),
     [membershipMutation],
   );
   const pendingFor = useCallback(
@@ -107,10 +119,13 @@ export function SidebarStarredProjects() {
     <div className="flex flex-col gap-0.5" aria-label="Starred projects">
       {starredProjects.map((project) => {
         const routeRef = projectRouteRef(project);
-        const isActive = activeProjectRef === routeRef || activeProjectRef === project.id;
+        const isActive =
+          activeProjectRef === routeRef || activeProjectRef === project.id;
         const pending = pendingFor(project);
-        const unstarPending = pending && membershipMutation.variables?.starred === false;
-        const leavePending = pending && membershipMutation.variables?.state === "left";
+        const unstarPending =
+          pending && membershipMutation.variables?.starred === false;
+        const leavePending =
+          pending && membershipMutation.variables?.state === "left";
         const starred = isStarred(membershipsQuery.data, "project", project.id);
 
         const link = (
@@ -128,9 +143,22 @@ export function SidebarStarredProjects() {
                 : "text-foreground/80 hover:bg-accent/50 hover:text-foreground",
             )}
           >
-            <ProjectTile color={project.color ?? null} icon={project.icon ?? null} size="xs" />
-            <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : "flex-1 truncate"}>{project.name}</span>
-            {!rail && project.visibility === "private" ? <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-label="Private project" /> : null}
+            <ProjectTile
+              color={project.color ?? null}
+              icon={project.icon ?? null}
+              size="xs"
+            />
+            <span
+              className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : "flex-1 truncate"}
+            >
+              {project.name}
+            </span>
+            {!rail && project.visibility === "private" ? (
+              <Lock
+                className="size-3.5 shrink-0 text-muted-foreground"
+                aria-label="Private project"
+              />
+            ) : null}
             {!rail && project.pauseReason === "budget" ? (
               <BudgetSidebarMarker title="Project paused by budget" />
             ) : null}
@@ -138,7 +166,10 @@ export function SidebarStarredProjects() {
         );
 
         return (
-          <div key={project.id} className="group/starred-project relative flex items-center">
+          <div
+            key={project.id}
+            className="group/starred-project relative flex items-center"
+          >
             {rail ? (
               <Tooltip>
                 <TooltipTrigger asChild>

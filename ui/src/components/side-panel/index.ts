@@ -1,4 +1,8 @@
-export { SidePanelFrame, SidePanelToggleButton, SidePanelWindowControls } from "./SidePanelFrame";
+export {
+  SidePanelFrame,
+  SidePanelToggleButton,
+  SidePanelWindowControls,
+} from "./SidePanelFrame";
 export { SidePanelLauncher } from "./SidePanelLauncher";
 export { SidePanelTab } from "./SidePanelTab";
 export { SidePanelTabs } from "./SidePanelTabs";

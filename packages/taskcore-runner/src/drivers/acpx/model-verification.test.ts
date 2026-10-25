@@ -4,27 +4,42 @@ import { resolveQualifiedAcpxProfile } from "./qualified-profiles.js";
 import { requireVerifiedAcpxModel } from "./model-verification.js";
 
 describe("ACPX requested model verification", () => {
-  it.each(["claude", "codex", "pi", "grok", "cursor", "copilot"] as const)("selects and verifies an unlisted model unchanged with %s", async agent => {
-    const model = "custom/model[context=272k,reasoning=medium]";
-    let currentModelId = "default";
-    const getStatus = vi.fn(async () => ({
-      models: { currentModelId, availableModelIds: ["default"] },
-    }));
-    const setModel = vi.fn(async (selected: string) => { currentModelId = selected; });
-    await expect(requireVerifiedAcpxModel(
-      { getStatus, setModel }, resolveQualifiedAcpxProfile(agent, model),
-    )).resolves.toMatchObject({ models: { currentModelId: model } });
-    expect(setModel).toHaveBeenCalledExactlyOnceWith(model);
-    expect(getStatus).toHaveBeenCalledTimes(2);
-  });
+  it.each(["claude", "codex", "pi", "grok", "cursor", "copilot"] as const)(
+    "selects and verifies an unlisted model unchanged with %s",
+    async (agent) => {
+      const model = "custom/model[context=272k,reasoning=medium]";
+      let currentModelId = "default";
+      const getStatus = vi.fn(async () => ({
+        models: { currentModelId, availableModelIds: ["default"] },
+      }));
+      const setModel = vi.fn(async (selected: string) => {
+        currentModelId = selected;
+      });
+      await expect(
+        requireVerifiedAcpxModel(
+          { getStatus, setModel },
+          resolveQualifiedAcpxProfile(agent, model),
+        ),
+      ).resolves.toMatchObject({ models: { currentModelId: model } });
+      expect(setModel).toHaveBeenCalledExactlyOnceWith(model);
+      expect(getStatus).toHaveBeenCalledTimes(2);
+    },
+  );
 
   it("propagates a provider's model rejection without selecting a fallback", async () => {
     const rejected = new Error("Model is not available for this account");
-    const getStatus = vi.fn(async () => ({ models: { currentModelId: "default" } }));
-    const setModel = vi.fn(async () => { throw rejected; });
-    await expect(requireVerifiedAcpxModel(
-      { getStatus, setModel }, resolveQualifiedAcpxProfile("codex", "unavailable-model"),
-    )).rejects.toBe(rejected);
+    const getStatus = vi.fn(async () => ({
+      models: { currentModelId: "default" },
+    }));
+    const setModel = vi.fn(async () => {
+      throw rejected;
+    });
+    await expect(
+      requireVerifiedAcpxModel(
+        { getStatus, setModel },
+        resolveQualifiedAcpxProfile("codex", "unavailable-model"),
+      ),
+    ).rejects.toBe(rejected);
     expect(setModel).toHaveBeenCalledExactlyOnceWith("unavailable-model");
     expect(getStatus).toHaveBeenCalledTimes(1);
   });

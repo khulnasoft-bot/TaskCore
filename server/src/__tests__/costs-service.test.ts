@@ -40,7 +40,9 @@ function makeDb(overrides: Record<string, unknown> = {}) {
   return {
     select: vi.fn().mockReturnValue(thenableChain),
     insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }),
+      values: vi
+        .fn()
+        .mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }),
     }),
     update: vi.fn().mockReturnValue({
       set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) }),
@@ -89,7 +91,15 @@ const mockCostService = vi.hoisted(() => ({
 }));
 const mockFinanceService = vi.hoisted(() => ({
   createEvent: vi.fn(),
-  summary: vi.fn().mockResolvedValue({ debitCents: 0, creditCents: 0, netCents: 0, estimatedDebitCents: 0, eventCount: 0 }),
+  summary: vi
+    .fn()
+    .mockResolvedValue({
+      debitCents: 0,
+      creditCents: 0,
+      netCents: 0,
+      estimatedDebitCents: 0,
+      eventCount: 0,
+    }),
   byBiller: vi.fn().mockResolvedValue([]),
   byKind: vi.fn().mockResolvedValue([]),
   list: vi.fn().mockResolvedValue([]),
@@ -131,8 +141,12 @@ function registerModuleMocks() {
 describe("cost routes", () => {
   const routeModules = hoistModuleGraph(registerModuleMocks, async () => {
     const [costsRouteModule, middlewareModule] = await Promise.all([
-      vi.importActual<typeof import("../routes/costs.js")>("../routes/costs.js"),
-      vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+      vi.importActual<typeof import("../routes/costs.js")>(
+        "../routes/costs.js",
+      ),
+      vi.importActual<typeof import("../middleware/index.js")>(
+        "../middleware/index.js",
+      ),
     ]);
     return { ...costsRouteModule, errorHandler: middlewareModule.errorHandler };
   });
@@ -142,7 +156,11 @@ describe("cost routes", () => {
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
-      req.actor = { type: "board", userId: "board-user", source: "local_implicit" };
+      req.actor = {
+        type: "board",
+        userId: "board-user",
+        source: "local_implicit",
+      };
       next();
     });
     app.use("/api", costRoutes(makeDb() as any));
@@ -212,10 +230,12 @@ describe("cost routes", () => {
 
   it("accepts valid ISO date strings", async () => {
     const { parseCostDateRange } = loadCostParsers();
-    expect(parseCostDateRange({
-      from: "2026-01-01T00:00:00.000Z",
-      to: "2026-01-31T23:59:59.999Z",
-    })).toEqual({
+    expect(
+      parseCostDateRange({
+        from: "2026-01-01T00:00:00.000Z",
+        to: "2026-01-31T23:59:59.999Z",
+      }),
+    ).toEqual({
       from: new Date("2026-01-01T00:00:00.000Z"),
       to: new Date("2026-01-31T23:59:59.999Z"),
     });
@@ -233,24 +253,32 @@ describe("cost routes", () => {
       { from: "09/01/2026" },
       { period: "all", from: "2026-09-01" },
       { period: "unknown" },
-    ]) expect(() => parseCostDateRange(input)).toThrow();
+    ])
+      expect(() => parseCostDateRange(input)).toThrow();
   });
 
   it("returns 400 for an invalid 'from' date string", async () => {
     const { parseCostDateRange } = loadCostParsers();
-    expect(() => parseCostDateRange({ from: "not-a-date" })).toThrow(/invalid 'from' date/i);
+    expect(() => parseCostDateRange({ from: "not-a-date" })).toThrow(
+      /invalid 'from' date/i,
+    );
   });
 
   it("returns 400 for an invalid 'to' date string", async () => {
     const { parseCostDateRange } = loadCostParsers();
-    expect(() => parseCostDateRange({ to: "banana" })).toThrow(/invalid 'to' date/i);
+    expect(() => parseCostDateRange({ to: "banana" })).toThrow(
+      /invalid 'to' date/i,
+    );
   });
 
   it("returns finance summary rows for valid requests", async () => {
     const app = createApp();
     const res = await request(app)
       .get("/api/companies/company-1/costs/finance-summary")
-      .query({ from: "2026-02-01T00:00:00.000Z", to: "2026-02-28T23:59:59.999Z" });
+      .query({
+        from: "2026-02-01T00:00:00.000Z",
+        to: "2026-02-28T23:59:59.999Z",
+      });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       debitCents: 0,
@@ -267,9 +295,13 @@ describe("cost routes", () => {
 
     expect(res.status).toBe(200);
     expect(mockIssueService.getByIdentifier).toHaveBeenCalledWith("PC1A2-1");
-    expect(mockCostService.issueTreeSummary).toHaveBeenCalledWith("company-1", "issue-1", {
-      excludeRoot: false,
-    });
+    expect(mockCostService.issueTreeSummary).toHaveBeenCalledWith(
+      "company-1",
+      "issue-1",
+      {
+        excludeRoot: false,
+      },
+    );
     expect(res.body).toEqual({
       issueId: "issue-1",
       issueCount: 1,
@@ -285,7 +317,8 @@ describe("cost routes", () => {
 
   it("returns 400 for invalid finance event list limits", async () => {
     const { parseCostLimit } = loadCostParsers();
-    for (const limit of ["0", "25garbage", "1.5", ["25"], "501"]) expect(() => parseCostLimit({ limit })).toThrow(/invalid 'limit'/i);
+    for (const limit of ["0", "25garbage", "1.5", ["25"], "501"])
+      expect(() => parseCostLimit({ limit })).toThrow(/invalid 'limit'/i);
   });
 
   it("accepts valid finance event list limits", async () => {
@@ -367,7 +400,13 @@ describe("cost routes", () => {
   });
 
   it("allows authorized board users to update an agent budget and budget policy", async () => {
-    mockAgentService.getById.mockResolvedValueOnce({ id: "agent-1", companyId: "company-1", name: "Budget Agent", budgetMonthlyCents: 100, spentMonthlyCents: 0 });
+    mockAgentService.getById.mockResolvedValueOnce({
+      id: "agent-1",
+      companyId: "company-1",
+      name: "Budget Agent",
+      budgetMonthlyCents: 100,
+      spentMonthlyCents: 0,
+    });
     mockAgentService.getById.mockResolvedValueOnce({
       id: "agent-1",
       companyId: "company-1",
@@ -381,7 +420,9 @@ describe("cost routes", () => {
       source: "session",
       isInstanceAdmin: false,
       companyIds: ["company-1"],
-      memberships: [{ companyId: "company-1", status: "active", membershipRole: "admin" }],
+      memberships: [
+        { companyId: "company-1", status: "active", membershipRole: "admin" },
+      ],
     });
 
     const res = await request(app)
@@ -409,13 +450,17 @@ describe("cost routes", () => {
 });
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("cost and finance aggregate overflow handling", () => {
   let db!: ReturnType<typeof createDb>;
   let costs!: ReturnType<typeof costService>;
   let finance!: ReturnType<typeof financeService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("taskcore-costs-service-");
@@ -477,7 +522,10 @@ describeEmbeddedPostgres("cost and finance aggregate overflow handling", () => {
 
     expect(event.costStatus).toBe("unpriced");
     expect(event.inputTokens).toBe(2_732_577);
-    const [agent] = await db.select().from(agents).where(eq(agents.id, agentId));
+    const [agent] = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.id, agentId));
     expect(agent?.spentMonthlyCents).toBe(0);
   });
 
@@ -553,7 +601,9 @@ describeEmbeddedPostgres("cost and finance aggregate overflow handling", () => {
     expect(byAgentRow?.costCents).toBe(4_000_000_000);
     // Historical OpenAI input includes these ten cached tokens.
     expect(byAgentRow?.inputTokens).toBe(3_999_999_990);
-    expect(byAgentRow!.inputTokens + byAgentRow!.cachedInputTokens).toBe(4_000_000_000);
+    expect(byAgentRow!.inputTokens + byAgentRow!.cachedInputTokens).toBe(
+      4_000_000_000,
+    );
     expect(byProjectRow?.costCents).toBe(4_000_000_000);
     expect(byAgentModelRow?.costCents).toBe(4_000_000_000);
   });
@@ -888,9 +938,13 @@ describeEmbeddedPostgres("cost and finance aggregate overflow handling", () => {
 
     // excludeRoot drops the root issue's own runs (the 60s contextSnapshot run)
     // while keeping the child + grandchild runs and any live child run.
-    const descendantsOnly = await costs.issueTreeSummary(companyId, rootIssueId, {
-      excludeRoot: true,
-    });
+    const descendantsOnly = await costs.issueTreeSummary(
+      companyId,
+      rootIssueId,
+      {
+        excludeRoot: true,
+      },
+    );
     expect(descendantsOnly.issueCount).toBe(2);
     expect(descendantsOnly.runCount).toBe(3);
     // 120s + 30s = 150s + ~5s live run

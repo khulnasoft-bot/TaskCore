@@ -14,12 +14,12 @@ continuation delivery, or replacement admission.
 
 ## Boundaries and checks
 
-| Test owner | Established premise | Required outcome |
-|---|---|---|
-| `native-replacement-evidence.test.ts` | Explicit known/unknown process ownership, history, workspace, action receipts, and retry budget | Allow replacement only with complete safe evidence. Return a specific cause and next action otherwise. |
-| `stopped-codex-turn.test.ts` | Precisely bound fixture transcripts with a closed text-only turn, partial output, wrong turn identity, or an unknown action | Accept the closed safe transcript; reject incomplete or uncertain current-turn effects. |
-| `native-safe-replacement.test.ts` | Inject the stopped-session verifier result into the real database reconciler; record real saved file bytes and one user comment | Verified recovery schedules one successor whose continuation includes the comment once; missing proof or an unconfirmed action schedules none. All cases retain the saved file and user comment. |
-| `native-safe-replacement.test.ts` | Concurrent reconciliation, transaction failpoints, changed ownership, exhausted budgets, and cancelled work | Preserve one successor lineage, roll back incomplete commits, respect user intent, and stop retries at the incident limit. |
+| Test owner                            | Established premise                                                                                                             | Required outcome                                                                                                                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `native-replacement-evidence.test.ts` | Explicit known/unknown process ownership, history, workspace, action receipts, and retry budget                                 | Allow replacement only with complete safe evidence. Return a specific cause and next action otherwise.                                                                                           |
+| `stopped-codex-turn.test.ts`          | Precisely bound fixture transcripts with a closed text-only turn, partial output, wrong turn identity, or an unknown action     | Accept the closed safe transcript; reject incomplete or uncertain current-turn effects.                                                                                                          |
+| `native-safe-replacement.test.ts`     | Inject the stopped-session verifier result into the real database reconciler; record real saved file bytes and one user comment | Verified recovery schedules one successor whose continuation includes the comment once; missing proof or an unconfirmed action schedules none. All cases retain the saved file and user comment. |
+| `native-safe-replacement.test.ts`     | Concurrent reconciliation, transaction failpoints, changed ownership, exhausted budgets, and cancelled work                     | Preserve one successor lineage, roll back incomplete commits, respect user intent, and stop retries at the incident limit.                                                                       |
 
 The injected verifier is a test boundary. These tests do not prove that an
 operating-system process actually stopped or that a provider completes the

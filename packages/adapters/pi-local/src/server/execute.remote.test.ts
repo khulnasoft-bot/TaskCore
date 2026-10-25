@@ -37,7 +37,9 @@ const {
     startedAt: new Date().toISOString(),
   })),
   ensureCommandResolvable: vi.fn(async () => undefined),
-  resolveCommandForLogs: vi.fn(async () => "ssh://fixture@127.0.0.1:2222/remote/workspace :: pi"),
+  resolveCommandForLogs: vi.fn(
+    async () => "ssh://fixture@127.0.0.1:2222/remote/workspace :: pi",
+  ),
   prepareWorkspaceForSshExecution: vi.fn(async () => ({ gitBacked: false })),
   restoreWorkspaceFromSshExecution: vi.fn(async () => undefined),
   runSshCommand: vi.fn(async () => ({
@@ -57,9 +59,9 @@ const {
 }));
 
 vi.mock("@taskcore/adapter-utils/server-utils", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/server-utils")>(
-    "@taskcore/adapter-utils/server-utils",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/server-utils")
+  >("@taskcore/adapter-utils/server-utils");
   return {
     ...actual,
     ensureCommandResolvable,
@@ -69,9 +71,9 @@ vi.mock("@taskcore/adapter-utils/server-utils", async () => {
 });
 
 vi.mock("@taskcore/adapter-utils/ssh", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/ssh")>(
-    "@taskcore/adapter-utils/ssh",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/ssh")
+  >("@taskcore/adapter-utils/ssh");
   return {
     ...actual,
     prepareWorkspaceForSshExecution,
@@ -82,9 +84,9 @@ vi.mock("@taskcore/adapter-utils/ssh", async () => {
 });
 
 vi.mock("@taskcore/adapter-utils/execution-target", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/execution-target")>(
-    "@taskcore/adapter-utils/execution-target",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/execution-target")
+  >("@taskcore/adapter-utils/execution-target");
   return {
     ...actual,
     startAdapterExecutionTargetTaskcoreBridge,
@@ -92,7 +94,8 @@ vi.mock("@taskcore/adapter-utils/execution-target", async () => {
 });
 
 vi.mock("./models.js", async () => {
-  const actual = await vi.importActual<typeof import("./models.js")>("./models.js");
+  const actual =
+    await vi.importActual<typeof import("./models.js")>("./models.js");
   return {
     ...actual,
     ensurePiModelConfiguredAndAvailable: vi.fn(async () => [
@@ -116,11 +119,14 @@ describe("pi remote execution", () => {
   });
 
   it("prepares the workspace, syncs Pi skills, and restores workspace changes for remote SSH execution", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-remote-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-remote-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
     const alternateWorkspaceDir = path.join(rootDir, "workspace-other");
-    const managedRemoteWorkspace = "/remote/workspace/.taskcore-runtime/runs/run-1/workspace";
+    const managedRemoteWorkspace =
+      "/remote/workspace/.taskcore-runtime/runs/run-1/workspace";
     await mkdir(workspaceDir, { recursive: true });
     await mkdir(alternateWorkspaceDir, { recursive: true });
 
@@ -188,24 +194,38 @@ describe("pi remote execution", () => {
         remoteCwd: managedRemoteWorkspace,
       },
     });
-    expect(String(result.sessionId)).toContain(`${managedRemoteWorkspace}/.taskcore-runtime/pi/sessions/`);
+    expect(String(result.sessionId)).toContain(
+      `${managedRemoteWorkspace}/.taskcore-runtime/pi/sessions/`,
+    );
     expect(prepareWorkspaceForSshExecution).toHaveBeenCalledTimes(1);
     expect(syncDirectoryToSsh).toHaveBeenCalledTimes(1);
-    expect(syncDirectoryToSsh).toHaveBeenCalledWith(expect.objectContaining({
-      remoteDir: `${managedRemoteWorkspace}/.taskcore-runtime/pi/skills`,
-      followSymlinks: true,
-    }));
+    expect(syncDirectoryToSsh).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remoteDir: `${managedRemoteWorkspace}/.taskcore-runtime/pi/skills`,
+        followSymlinks: true,
+      }),
+    );
     expect(runSshCommand).toHaveBeenCalledWith(
       expect.anything(),
       expect.stringContaining(".taskcore-runtime/pi/sessions"),
       expect.anything(),
     );
     const call = runChildProcess.mock.calls[0] as unknown as
-      | [string, string, string[], { env: Record<string, string>; remoteExecution?: { remoteCwd: string } | null }]
+      | [
+          string,
+          string,
+          string[],
+          {
+            env: Record<string, string>;
+            remoteExecution?: { remoteCwd: string } | null;
+          },
+        ]
       | undefined;
     expect(call?.[2]).toContain("--session");
     expect(call?.[2]).toContain("--skill");
-    expect(call?.[2]).toContain(`${managedRemoteWorkspace}/.taskcore-runtime/pi/skills`);
+    expect(call?.[2]).toContain(
+      `${managedRemoteWorkspace}/.taskcore-runtime/pi/skills`,
+    );
     expect(call?.[3].env.TASKCORE_WORKSPACE_CWD).toBe(managedRemoteWorkspace);
     expect(JSON.parse(call?.[3].env.TASKCORE_WORKSPACES_JSON ?? "[]")).toEqual([
       {
@@ -228,10 +248,13 @@ describe("pi remote execution", () => {
   });
 
   it("ships the managed Pi agent config and repoints PI_CODING_AGENT_DIR when TASKCORE_PI_PROVIDERS is set", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-remote-providers-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-remote-providers-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
-    const managedRemoteWorkspace = "/remote/workspace/.taskcore-runtime/runs/run-providers/workspace";
+    const managedRemoteWorkspace =
+      "/remote/workspace/.taskcore-runtime/runs/run-providers/workspace";
     await mkdir(workspaceDir, { recursive: true });
 
     const providers = {
@@ -287,12 +310,13 @@ describe("pi remote execution", () => {
       onLog: async () => {},
     });
 
-    expect(syncDirectoryToSsh).toHaveBeenCalledWith(expect.objectContaining({
-      remoteDir: `${managedRemoteWorkspace}/.taskcore-runtime/pi/agentConfig`,
-    }));
+    expect(syncDirectoryToSsh).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remoteDir: `${managedRemoteWorkspace}/.taskcore-runtime/pi/agentConfig`,
+      }),
+    );
     const call = runChildProcess.mock.calls[0] as unknown as
-      | [string, string, string[], { env: Record<string, string> }]
-      | undefined;
+      [string, string, string[], { env: Record<string, string> }] | undefined;
     expect(call?.[3].env.PI_CODING_AGENT_DIR).toBe(
       `${managedRemoteWorkspace}/.taskcore-runtime/pi/agentConfig`,
     );
@@ -303,15 +327,21 @@ describe("pi remote execution", () => {
   });
 
   it("resumes saved Pi sessions for remote SSH execution only when the identity matches", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-remote-resume-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-remote-resume-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
-    const managedRemoteWorkspace = "/remote/workspace/.taskcore-runtime/runs/run-ssh-resume/workspace";
+    const managedRemoteWorkspace =
+      "/remote/workspace/.taskcore-runtime/runs/run-ssh-resume/workspace";
     await mkdir(workspaceDir, { recursive: true });
 
     runSshCommand.mockImplementation(async (...args: unknown[]) => {
       const command = String(args[1] ?? "");
-      if (command.includes("head -n 1") && command.includes("session-123.jsonl")) {
+      if (
+        command.includes("head -n 1") &&
+        command.includes("session-123.jsonl")
+      ) {
         return {
           stdout: `${JSON.stringify({ type: "session", cwd: managedRemoteWorkspace })}\n`,
           stderr: "",
@@ -375,20 +405,28 @@ describe("pi remote execution", () => {
       onLog: async () => {},
     });
 
-    const call = runChildProcess.mock.calls[0] as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls[0] as unknown as
+      [string, string, string[]] | undefined;
     expect(call?.[2]).toContain("--session");
-    expect(call?.[2]).toContain(`${managedRemoteWorkspace}/.taskcore-runtime/pi/sessions/session-123.jsonl`);
+    expect(call?.[2]).toContain(
+      `${managedRemoteWorkspace}/.taskcore-runtime/pi/sessions/session-123.jsonl`,
+    );
   });
 
   it("starts a fresh remote Pi session when the saved session header cwd points at a different workspace", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-remote-stale-session-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-remote-stale-session-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
     await mkdir(workspaceDir, { recursive: true });
 
     runSshCommand.mockImplementation(async (...args: unknown[]) => {
       const command = String(args[1] ?? "");
-      if (command.includes("head -n 1") && command.includes("session-123.jsonl")) {
+      if (
+        command.includes("head -n 1") &&
+        command.includes("session-123.jsonl")
+      ) {
         return {
           stdout: `${JSON.stringify({ type: "session", cwd: "/remote/old-workspace" })}\n`,
           stderr: "",
@@ -412,9 +450,11 @@ describe("pi remote execution", () => {
         adapterConfig: {},
       },
       runtime: {
-        sessionId: "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+        sessionId:
+          "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
         sessionParams: {
-          sessionId: "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+          sessionId:
+            "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
           cwd: "/remote/workspace",
           remoteExecution: {
             transport: "ssh",
@@ -452,24 +492,35 @@ describe("pi remote execution", () => {
       onLog: async () => {},
     });
 
-    const managedRemoteWorkspaceFresh = "/remote/workspace/.taskcore-runtime/runs/run-ssh-stale-session/workspace";
-    const call = runChildProcess.mock.calls[0] as unknown as [string, string, string[]] | undefined;
+    const managedRemoteWorkspaceFresh =
+      "/remote/workspace/.taskcore-runtime/runs/run-ssh-stale-session/workspace";
+    const call = runChildProcess.mock.calls[0] as unknown as
+      [string, string, string[]] | undefined;
     const sessionIndex = call?.[2].indexOf("--session") ?? -1;
     expect(sessionIndex).toBeGreaterThanOrEqual(0);
     const usedSession = sessionIndex >= 0 ? call?.[2][sessionIndex + 1] : null;
-    expect(usedSession).toContain(`${managedRemoteWorkspaceFresh}/.taskcore-runtime/pi/sessions/`);
-    expect(usedSession).not.toBe("/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl");
+    expect(usedSession).toContain(
+      `${managedRemoteWorkspaceFresh}/.taskcore-runtime/pi/sessions/`,
+    );
+    expect(usedSession).not.toBe(
+      "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+    );
   });
 
   it("starts a fresh remote Pi session when the saved session header is empty or unreadable", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-remote-empty-header-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-remote-empty-header-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
     await mkdir(workspaceDir, { recursive: true });
 
     runSshCommand.mockImplementation(async (...args: unknown[]) => {
       const command = String(args[1] ?? "");
-      if (command.includes("head -n 1") && command.includes("session-123.jsonl")) {
+      if (
+        command.includes("head -n 1") &&
+        command.includes("session-123.jsonl")
+      ) {
         return { stdout: "", stderr: "", exitCode: 0 };
       }
       return { stdout: "", stderr: "", exitCode: 0 };
@@ -485,9 +536,11 @@ describe("pi remote execution", () => {
         adapterConfig: {},
       },
       runtime: {
-        sessionId: "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+        sessionId:
+          "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
         sessionParams: {
-          sessionId: "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+          sessionId:
+            "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
           cwd: "/remote/workspace",
           remoteExecution: {
             transport: "ssh",
@@ -519,22 +572,30 @@ describe("pi remote execution", () => {
       onLog: async () => {},
     });
 
-    const call = runChildProcess.mock.calls[0] as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls[0] as unknown as
+      [string, string, string[]] | undefined;
     const sessionIndex = call?.[2].indexOf("--session") ?? -1;
     expect(sessionIndex).toBeGreaterThanOrEqual(0);
     const usedSession = sessionIndex >= 0 ? call?.[2][sessionIndex + 1] : null;
-    expect(usedSession).not.toBe("/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl");
+    expect(usedSession).not.toBe(
+      "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+    );
   });
 
   it("starts a fresh remote Pi session when the remote head command fails", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-remote-head-failure-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-remote-head-failure-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
     await mkdir(workspaceDir, { recursive: true });
 
     runSshCommand.mockImplementation(async (...args: unknown[]) => {
       const command = String(args[1] ?? "");
-      if (command.includes("head -n 1") && command.includes("session-123.jsonl")) {
+      if (
+        command.includes("head -n 1") &&
+        command.includes("session-123.jsonl")
+      ) {
         throw Object.assign(new Error("ssh: connect failed"), {
           stdout: "",
           stderr: "ssh: connect failed",
@@ -554,9 +615,11 @@ describe("pi remote execution", () => {
         adapterConfig: {},
       },
       runtime: {
-        sessionId: "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+        sessionId:
+          "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
         sessionParams: {
-          sessionId: "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+          sessionId:
+            "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
           cwd: "/remote/workspace",
           remoteExecution: {
             transport: "ssh",
@@ -569,7 +632,11 @@ describe("pi remote execution", () => {
         sessionDisplayId: "session-123",
         taskKey: null,
       },
-      config: { command: "pi", model: "openai/gpt-5.4-mini", bootstrapPromptTemplate: "BOOTSTRAP {{run.id}}" },
+      config: {
+        command: "pi",
+        model: "openai/gpt-5.4-mini",
+        bootstrapPromptTemplate: "BOOTSTRAP {{run.id}}",
+      },
       context: {
         ...createPromptContextFixture(),
         taskcoreWorkspace: { cwd: workspaceDir, source: "project_primary" },
@@ -589,11 +656,14 @@ describe("pi remote execution", () => {
       onLog: async () => {},
     });
 
-    const call = runChildProcess.mock.calls[0] as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls[0] as unknown as
+      [string, string, string[]] | undefined;
     const sessionIndex = call?.[2].indexOf("--session") ?? -1;
     expect(sessionIndex).toBeGreaterThanOrEqual(0);
     const usedSession = sessionIndex >= 0 ? call?.[2][sessionIndex + 1] : null;
-    expect(usedSession).not.toBe("/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl");
+    expect(usedSession).not.toBe(
+      "/remote/workspace/.taskcore-runtime/pi/sessions/session-123.jsonl",
+    );
     const prompt = String(call?.[2].at(-1) ?? "");
     expect(prompt).toContain("## Owned assignment");
     expect(prompt).toContain("BOOTSTRAP run-ssh-head-failure");
@@ -601,7 +671,9 @@ describe("pi remote execution", () => {
   });
 
   it("delivers the owned assignment and ordered wake comments through Pi's prompt", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-context-ownership-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-context-ownership-"),
+    );
     cleanupDirs.push(rootDir);
     await mkdir(rootDir, { recursive: true });
     const fixture = createPromptContextFixture();
@@ -616,16 +688,27 @@ describe("pi remote execution", () => {
         adapterType: "pi_local",
         adapterConfig: {},
       },
-      runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+      runtime: {
+        sessionId: null,
+        sessionParams: null,
+        sessionDisplayId: null,
+        taskKey: null,
+      },
       config: { command: "pi", model: "openai/gpt-5.4-mini", cwd: rootDir },
-      context: { ...fixture, taskcoreWorkspace: { cwd: rootDir, source: "project_primary" } },
+      context: {
+        ...fixture,
+        taskcoreWorkspace: { cwd: rootDir, source: "project_primary" },
+      },
       onLog: async () => {},
     } as never);
 
-    const call = runChildProcess.mock.calls.at(-1) as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls.at(-1) as unknown as
+      [string, string, string[]] | undefined;
     deliveredPrompt = String(call?.[2].at(-1) ?? "");
     expect(deliveredPrompt).toContain(fixture.taskcoreTaskMarkdownAssignment);
-    expect(deliveredPrompt.indexOf("Append the same ledger entry.")).toBeLessThan(
+    expect(
+      deliveredPrompt.indexOf("Append the same ledger entry."),
+    ).toBeLessThan(
       deliveredPrompt.lastIndexOf("Append the same ledger entry."),
     );
     expect(deliveredPrompt.indexOf("comment-first")).toBeLessThan(
@@ -634,11 +717,15 @@ describe("pi remote execution", () => {
     expect(deliveredPrompt.indexOf("comment-second")).toBeLessThan(
       deliveredPrompt.indexOf("comment-scope"),
     );
-    expect(deliveredPrompt).toContain("Change the final scope to the launch checklist.");
+    expect(deliveredPrompt).toContain(
+      "Change the final scope to the launch checklist.",
+    );
   });
 
   it("keeps the default Taskcore policy in the system carrier without duplicating it in user input", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-default-policy-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-default-policy-"),
+    );
     cleanupDirs.push(rootDir);
 
     await execute({
@@ -650,13 +737,19 @@ describe("pi remote execution", () => {
         adapterType: "pi_local",
         adapterConfig: {},
       },
-      runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+      runtime: {
+        sessionId: null,
+        sessionParams: null,
+        sessionDisplayId: null,
+        taskKey: null,
+      },
       config: { command: "pi", model: "openai/gpt-5.4-mini", cwd: rootDir },
       context: {},
       onLog: async () => {},
     } as never);
 
-    const call = runChildProcess.mock.calls.at(-1) as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls.at(-1) as unknown as
+      [string, string, string[]] | undefined;
     const args = call?.[2] ?? [];
     const systemPrompt = args[args.indexOf("--append-system-prompt") + 1] ?? "";
     const userPrompt = args.at(-1) ?? "";
@@ -665,7 +758,9 @@ describe("pi remote execution", () => {
   });
 
   it("preserves custom prompt templates in both configured carriers", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-custom-policy-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-custom-policy-"),
+    );
     cleanupDirs.push(rootDir);
 
     await execute({
@@ -677,7 +772,12 @@ describe("pi remote execution", () => {
         adapterType: "pi_local",
         adapterConfig: {},
       },
-      runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+      runtime: {
+        sessionId: null,
+        sessionParams: null,
+        sessionDisplayId: null,
+        taskKey: null,
+      },
       config: {
         command: "pi",
         model: "openai/gpt-5.4-mini",
@@ -688,7 +788,8 @@ describe("pi remote execution", () => {
       onLog: async () => {},
     } as never);
 
-    const call = runChildProcess.mock.calls.at(-1) as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls.at(-1) as unknown as
+      [string, string, string[]] | undefined;
     const args = call?.[2] ?? [];
     const systemPrompt = args[args.indexOf("--append-system-prompt") + 1] ?? "";
     const userPrompt = args.at(-1) ?? "";
@@ -697,10 +798,16 @@ describe("pi remote execution", () => {
   });
 
   it("keeps resumed default identity and connection guidance in the system carrier", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-resumed-policy-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-resumed-policy-"),
+    );
     cleanupDirs.push(rootDir);
     const sessionPath = path.join(rootDir, "session.jsonl");
-    await writeFile(sessionPath, `${JSON.stringify({ type: "session", cwd: rootDir })}\n`, "utf8");
+    await writeFile(
+      sessionPath,
+      `${JSON.stringify({ type: "session", cwd: rootDir })}\n`,
+      "utf8",
+    );
 
     await execute({
       runId: "run-resumed-policy",
@@ -722,7 +829,8 @@ describe("pi remote execution", () => {
       onLog: async () => {},
     } as never);
 
-    const call = runChildProcess.mock.calls.at(-1) as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls.at(-1) as unknown as
+      [string, string, string[]] | undefined;
     const args = call?.[2] ?? [];
     const systemPrompt = args[args.indexOf("--append-system-prompt") + 1] ?? "";
     const userPrompt = args.at(-1) ?? "";
@@ -733,12 +841,22 @@ describe("pi remote execution", () => {
   });
 
   it("keeps default identity in system input when custom prompt uses loaded instructions", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-pi-instructions-policy-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-pi-instructions-policy-"),
+    );
     cleanupDirs.push(rootDir);
     const sessionPath = path.join(rootDir, "session.jsonl");
     const instructionsPath = path.join(rootDir, "AGENTS.md");
-    await writeFile(sessionPath, `${JSON.stringify({ type: "session", cwd: rootDir })}\n`, "utf8");
-    await writeFile(instructionsPath, "Loaded instructions for this run.\n", "utf8");
+    await writeFile(
+      sessionPath,
+      `${JSON.stringify({ type: "session", cwd: rootDir })}\n`,
+      "utf8",
+    );
+    await writeFile(
+      instructionsPath,
+      "Loaded instructions for this run.\n",
+      "utf8",
+    );
 
     await execute({
       runId: "run-instructions-policy",
@@ -766,7 +884,8 @@ describe("pi remote execution", () => {
       onLog: async () => {},
     } as never);
 
-    const call = runChildProcess.mock.calls.at(-1) as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls.at(-1) as unknown as
+      [string, string, string[]] | undefined;
     const args = call?.[2] ?? [];
     const systemPrompt = args[args.indexOf("--append-system-prompt") + 1] ?? "";
     const userPrompt = args.at(-1) ?? "";

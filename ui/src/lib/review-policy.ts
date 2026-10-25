@@ -1,5 +1,8 @@
 import { UserCheck, UserMinus, type LucideIcon } from "lucide-react";
-import { ISSUE_REVIEW_POLICIES, type IssueReviewPolicy } from "@taskcore/shared";
+import {
+  ISSUE_REVIEW_POLICIES,
+  type IssueReviewPolicy,
+} from "@taskcore/shared";
 
 /**
  * Copy for an issue's `reviewPolicy` (PAP-16506 P4).
@@ -39,7 +42,8 @@ const BADGES: Partial<Record<IssueReviewPolicy, IssueReviewPolicyBadge>> = {
   human_only: {
     value: "human_only",
     label: "Human only",
-    description: "Only a person can approve this review. Agents cannot give the verdict.",
+    description:
+      "Only a person can approve this review. Agents cannot give the verdict.",
     Icon: UserCheck,
   },
 };

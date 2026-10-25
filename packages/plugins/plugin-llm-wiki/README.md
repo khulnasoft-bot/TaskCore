@@ -80,8 +80,6 @@ Remaining alpha gaps:
 - Host-level plugin install and live agent invocation still need Taskcore
   server/runtime smoke coverage when preparing a release candidate.
 
-
-
 ## Install Into Taskcore
 
 ```bash

@@ -13,7 +13,10 @@ import type {
 } from "@taskcore/shared";
 import { api } from "./client";
 
-export type { PipelineHealthReport, PipelineHealthWarning } from "@taskcore/shared";
+export type {
+  PipelineHealthReport,
+  PipelineHealthWarning,
+} from "@taskcore/shared";
 
 export type PipelineConnectionRef =
   | string
@@ -74,7 +77,11 @@ export interface PipelineStage {
 
 export interface PipelineDetail extends PipelineListItem {
   stages: PipelineStage[];
-  transitions: Array<{ fromStageId: string; toStageId: string; label?: string | null }>;
+  transitions: Array<{
+    fromStageId: string;
+    toStageId: string;
+    label?: string | null;
+  }>;
   documentKeys?: Array<{ key: string; documentId: string }>;
 }
 
@@ -86,8 +93,17 @@ export interface PipelineTransitionEdge {
 
 export interface PipelineDocumentPayload {
   link: { key: string; documentId: string; [key: string]: unknown };
-  document: { id: string; title: string; latestBody?: string | null; [key: string]: unknown };
-  revision?: { body?: string | null; title?: string | null; [key: string]: unknown } | null;
+  document: {
+    id: string;
+    title: string;
+    latestBody?: string | null;
+    [key: string]: unknown;
+  };
+  revision?: {
+    body?: string | null;
+    title?: string | null;
+    [key: string]: unknown;
+  } | null;
 }
 
 export interface PipelineDocumentRevision {
@@ -263,7 +279,12 @@ export interface PipelineCaseEvent {
   actorAgent?: { id: string; name: string } | null;
   automation?: {
     routine: { id: string; title: string } | null;
-    issue: { id: string; identifier: string | null; title: string; status: string } | null;
+    issue: {
+      id: string;
+      identifier: string | null;
+      title: string;
+      status: string;
+    } | null;
     routineRunId?: string | null;
     stage?: { id: string; key: string; name: string; kind: string } | null;
   };
@@ -376,12 +397,22 @@ export interface PipelineBulkReviewResult {
     caseId: string;
     ok: boolean;
     result?: unknown;
-    error?: { status?: number; message?: string; code?: string; details?: Record<string, unknown> };
+    error?: {
+      status?: number;
+      message?: string;
+      code?: string;
+      details?: Record<string, unknown>;
+    };
   }>;
 }
 
 export interface PipelineCompanyCaseEvent extends PipelineCaseEvent {
-  case: { id: string; caseKey: string | null; title: string; terminalKind?: string | null };
+  case: {
+    id: string;
+    caseKey: string | null;
+    title: string;
+    terminalKind?: string | null;
+  };
   pipeline: { id: string; key: string; name: string };
   fromStage?: { id: string; key: string; name: string; kind: string } | null;
   toStage?: { id: string; key: string; name: string; kind: string } | null;
@@ -407,7 +438,12 @@ export interface PipelineCaseChildrenTreeNode {
   updatedAt?: Date | string;
   pipeline: { id: string; key: string; name: string };
   stage: { id: string; key: string; name: string; kind: string };
-  rollup?: { total: number; done: number; dropped: number; inMotion: number } | null;
+  rollup?: {
+    total: number;
+    done: number;
+    dropped: number;
+    inMotion: number;
+  } | null;
   childGroups?: Array<{
     pipeline: { id: string; key: string; name: string };
     cases: PipelineCaseChildrenTreeNode[];
@@ -416,7 +452,12 @@ export interface PipelineCaseChildrenTreeNode {
 
 export interface PipelineCaseChildrenTree {
   case: PipelineCaseChildrenTreeNode;
-  rollup?: { total: number; done: number; dropped: number; inMotion: number } | null;
+  rollup?: {
+    total: number;
+    done: number;
+    dropped: number;
+    inMotion: number;
+  } | null;
   childGroups?: Array<{
     pipeline: { id: string; key: string; name: string };
     cases: PipelineCaseChildrenTreeNode[];
@@ -458,108 +499,203 @@ export type PipelineBatchIngestResult =
     };
 
 export const pipelinesApi = {
-  list: (companyId: string) => api.get<PipelineListItem[]>(`/companies/${companyId}/pipelines`),
+  list: (companyId: string) =>
+    api.get<PipelineListItem[]>(`/companies/${companyId}/pipelines`),
   create: (
     companyId: string,
-    data: { key: string; name: string; description?: string | null; projectId?: string | null },
-  ) => api.post<PipelineListItem & { stages?: PipelineStage[] }>(`/companies/${companyId}/pipelines`, data),
-  get: (pipelineId: string) => api.get<PipelineDetail>(`/pipelines/${pipelineId}`),
-  getHealth: (pipelineId: string) => api.get<PipelineHealthReport>(`/pipelines/${pipelineId}/health`),
+    data: {
+      key: string;
+      name: string;
+      description?: string | null;
+      projectId?: string | null;
+    },
+  ) =>
+    api.post<PipelineListItem & { stages?: PipelineStage[] }>(
+      `/companies/${companyId}/pipelines`,
+      data,
+    ),
+  get: (pipelineId: string) =>
+    api.get<PipelineDetail>(`/pipelines/${pipelineId}`),
+  getHealth: (pipelineId: string) =>
+    api.get<PipelineHealthReport>(`/pipelines/${pipelineId}/health`),
   update: (
     pipelineId: string,
-    data: { name?: string; description?: string | null; enforceTransitions?: boolean; archived?: boolean },
+    data: {
+      name?: string;
+      description?: string | null;
+      enforceTransitions?: boolean;
+      archived?: boolean;
+    },
   ) => api.patch<PipelineListItem>(`/pipelines/${pipelineId}`, data),
   createStage: (
     pipelineId: string,
-    data: { key: string; name: string; kind: string; position: number; config?: Record<string, unknown> },
+    data: {
+      key: string;
+      name: string;
+      kind: string;
+      position: number;
+      config?: Record<string, unknown>;
+    },
   ) => api.post<PipelineStage>(`/pipelines/${pipelineId}/stages`, data),
   updateStage: (
     pipelineId: string,
     stageId: string,
-    data: { key?: string; name?: string; kind?: string; position?: number; config?: Record<string, unknown> },
-  ) => api.patch<PipelineStage>(`/pipelines/${pipelineId}/stages/${stageId}`, data),
+    data: {
+      key?: string;
+      name?: string;
+      kind?: string;
+      position?: number;
+      config?: Record<string, unknown>;
+    },
+  ) =>
+    api.patch<PipelineStage>(
+      `/pipelines/${pipelineId}/stages/${stageId}`,
+      data,
+    ),
   // Stage secrets live on the backing automation routine's env, not in stage
   // config. This narrow route updates only that env (and its secret bindings)
   // so saving secrets never clobbers unrelated stage settings.
   updateStageAutomationEnv: (
     pipelineId: string,
     stageId: string,
-    data: { env: RoutineEnvConfig | null; baseRoutineRevisionId?: string | null },
-  ) => api.patch<PipelineStage>(`/pipelines/${pipelineId}/stages/${stageId}/automation-env`, data),
+    data: {
+      env: RoutineEnvConfig | null;
+      baseRoutineRevisionId?: string | null;
+    },
+  ) =>
+    api.patch<PipelineStage>(
+      `/pipelines/${pipelineId}/stages/${stageId}/automation-env`,
+      data,
+    ),
   deleteStage: (
     pipelineId: string,
     stageId: string,
     data?: { moveCasesToStageId?: string | null },
   ) => {
     const params = new URLSearchParams();
-    if (data?.moveCasesToStageId) params.set("moveCasesToStageId", data.moveCasesToStageId);
+    if (data?.moveCasesToStageId)
+      params.set("moveCasesToStageId", data.moveCasesToStageId);
     const qs = params.toString();
-    return api.delete<{ deleted: boolean }>(`/pipelines/${pipelineId}/stages/${stageId}${qs ? `?${qs}` : ""}`);
+    return api.delete<{ deleted: boolean }>(
+      `/pipelines/${pipelineId}/stages/${stageId}${qs ? `?${qs}` : ""}`,
+    );
   },
   setTransitions: (
     pipelineId: string,
-    data: { transitions: PipelineTransitionEdge[]; enforceTransitions?: boolean },
+    data: {
+      transitions: PipelineTransitionEdge[];
+      enforceTransitions?: boolean;
+    },
   ) =>
-    api.put<{ transitions: Array<{ fromStageId: string; toStageId: string; label?: string | null }> }>(
-      `/pipelines/${pipelineId}/transitions`,
-      data,
-    ),
+    api.put<{
+      transitions: Array<{
+        fromStageId: string;
+        toStageId: string;
+        label?: string | null;
+      }>;
+    }>(`/pipelines/${pipelineId}/transitions`, data),
   getDocument: (pipelineId: string, key: string) =>
-    api.get<PipelineDocumentPayload>(`/pipelines/${pipelineId}/documents/${encodeURIComponent(key)}`),
-  upsertDocument: (pipelineId: string, key: string, data: { title?: string; body: string; baseRevisionId?: string | null }) =>
-    api.put<{ document: PipelineDocumentPayload["document"]; revision: NonNullable<PipelineDocumentPayload["revision"]> }>(
+    api.get<PipelineDocumentPayload>(
       `/pipelines/${pipelineId}/documents/${encodeURIComponent(key)}`,
-      data,
     ),
+  upsertDocument: (
+    pipelineId: string,
+    key: string,
+    data: { title?: string; body: string; baseRevisionId?: string | null },
+  ) =>
+    api.put<{
+      document: PipelineDocumentPayload["document"];
+      revision: NonNullable<PipelineDocumentPayload["revision"]>;
+    }>(`/pipelines/${pipelineId}/documents/${encodeURIComponent(key)}`, data),
   listDocumentRevisions: (pipelineId: string, key: string) =>
-    api.get<PipelineDocumentRevision[]>(`/pipelines/${pipelineId}/documents/${encodeURIComponent(key)}/revisions`),
-  restoreDocumentRevision: (pipelineId: string, key: string, revisionId: string) =>
+    api.get<PipelineDocumentRevision[]>(
+      `/pipelines/${pipelineId}/documents/${encodeURIComponent(key)}/revisions`,
+    ),
+  restoreDocumentRevision: (
+    pipelineId: string,
+    key: string,
+    revisionId: string,
+  ) =>
     api.post<{
       document: PipelineDocumentPayload["document"];
       revision: PipelineDocumentRevision;
       restoredFromRevisionId: string;
       restoredFromRevisionNumber: number;
-    }>(`/pipelines/${pipelineId}/documents/${encodeURIComponent(key)}/revisions/${revisionId}/restore`, {}),
+    }>(
+      `/pipelines/${pipelineId}/documents/${encodeURIComponent(key)}/revisions/${revisionId}/restore`,
+      {},
+    ),
   getCaseDocument: (caseId: string, key: string) =>
-    api.get<PipelineCaseDocumentPayload>(`/cases/${caseId}/documents/${encodeURIComponent(key)}`),
+    api.get<PipelineCaseDocumentPayload>(
+      `/cases/${caseId}/documents/${encodeURIComponent(key)}`,
+    ),
   upsertCaseDocument: (
     caseId: string,
     key: string,
-    data: { title?: string; format?: string; body: string; changeSummary?: string | null; baseRevisionId?: string | null },
+    data: {
+      title?: string;
+      format?: string;
+      body: string;
+      changeSummary?: string | null;
+      baseRevisionId?: string | null;
+    },
   ) =>
-    api.put<{ document: PipelineCaseDocumentPayload["document"]; revision: PipelineCaseDocumentRevision }>(
-      `/cases/${caseId}/documents/${encodeURIComponent(key)}`,
-      data,
-    ),
+    api.put<{
+      document: PipelineCaseDocumentPayload["document"];
+      revision: PipelineCaseDocumentRevision;
+    }>(`/cases/${caseId}/documents/${encodeURIComponent(key)}`, data),
   listCaseDocumentRevisions: (caseId: string, key: string) =>
-    api.get<PipelineCaseDocumentRevision[]>(`/cases/${caseId}/documents/${encodeURIComponent(key)}/revisions`),
-  restoreCaseDocumentRevision: (caseId: string, key: string, revisionId: string) =>
+    api.get<PipelineCaseDocumentRevision[]>(
+      `/cases/${caseId}/documents/${encodeURIComponent(key)}/revisions`,
+    ),
+  restoreCaseDocumentRevision: (
+    caseId: string,
+    key: string,
+    revisionId: string,
+  ) =>
     api.post<{
       document: PipelineCaseDocumentPayload["document"];
       revision: PipelineCaseDocumentRevision;
       restoredFromRevisionId: string;
       restoredFromRevisionNumber: number;
-    }>(`/cases/${caseId}/documents/${encodeURIComponent(key)}/revisions/${revisionId}/restore`, {}),
-  getIntakeForm: (pipelineId: string) => api.get<PipelineIntakeForm>(`/pipelines/${pipelineId}/intake-form`),
-  listCases: (pipelineId: string, filters?: { parentCaseId?: string; terminal?: boolean }) => {
+    }>(
+      `/cases/${caseId}/documents/${encodeURIComponent(key)}/revisions/${revisionId}/restore`,
+      {},
+    ),
+  getIntakeForm: (pipelineId: string) =>
+    api.get<PipelineIntakeForm>(`/pipelines/${pipelineId}/intake-form`),
+  listCases: (
+    pipelineId: string,
+    filters?: { parentCaseId?: string; terminal?: boolean },
+  ) => {
     const params = new URLSearchParams();
     if (filters?.parentCaseId) params.set("parentCaseId", filters.parentCaseId);
-    if (filters?.terminal !== undefined) params.set("terminal", filters.terminal ? "true" : "false");
+    if (filters?.terminal !== undefined)
+      params.set("terminal", filters.terminal ? "true" : "false");
     const qs = params.toString();
-    return api.get<PipelineCaseChildRow[]>(`/pipelines/${pipelineId}/cases${qs ? `?${qs}` : ""}`);
+    return api.get<PipelineCaseChildRow[]>(
+      `/pipelines/${pipelineId}/cases${qs ? `?${qs}` : ""}`,
+    );
   },
   getCase: (caseId: string) => api.get<PipelineCaseDetail>(`/cases/${caseId}`),
   getCaseChildren: (caseId: string) =>
     api.get<PipelineCaseChildrenResponse>(`/cases/${caseId}/children`),
   getCaseChildrenTree: (caseId: string) =>
     api.get<PipelineCaseChildrenTree>(`/cases/${caseId}/children/tree`),
-  getCaseEvents: (caseId: string, filters?: { limit?: number; offset?: number; order?: "asc" | "desc" }) => {
+  getCaseEvents: (
+    caseId: string,
+    filters?: { limit?: number; offset?: number; order?: "asc" | "desc" },
+  ) => {
     const params = new URLSearchParams();
-    if (filters?.limit !== undefined) params.set("limit", String(filters.limit));
-    if (filters?.offset !== undefined) params.set("offset", String(filters.offset));
+    if (filters?.limit !== undefined)
+      params.set("limit", String(filters.limit));
+    if (filters?.offset !== undefined)
+      params.set("offset", String(filters.offset));
     if (filters?.order) params.set("order", filters.order);
     const qs = params.toString();
-    return api.get<PipelineCaseEventsPage>(`/cases/${caseId}/events${qs ? `?${qs}` : ""}`);
+    return api.get<PipelineCaseEventsPage>(
+      `/cases/${caseId}/events${qs ? `?${qs}` : ""}`,
+    );
   },
   getCaseIssueLinks: (caseId: string) =>
     api.get<PipelineCaseIssueLinkWithIssue[]>(`/cases/${caseId}/issue-links`),
@@ -570,9 +706,13 @@ export const pipelinesApi = {
     data:
       | { issueId: string; role: PipelineCaseIssueLink["role"] }
       | { role: "conversation"; issueId?: undefined },
-  ) => data.issueId
-    ? api.post<PipelineCaseIssueLink>(`/cases/${caseId}/issue-links`, data)
-    : api.post<{ issue: Issue; created: boolean }>(`/cases/${caseId}/open-conversation`, {}),
+  ) =>
+    data.issueId
+      ? api.post<PipelineCaseIssueLink>(`/cases/${caseId}/issue-links`, data)
+      : api.post<{ issue: Issue; created: boolean }>(
+          `/cases/${caseId}/open-conversation`,
+          {},
+        ),
   updateCase: (
     caseId: string,
     data: {
@@ -583,12 +723,16 @@ export const pipelinesApi = {
       expectedVersion?: number;
       leaseToken?: string | null;
     },
-  ) => api.patch<{ case: PipelineCase; event?: PipelineCaseEvent | null } | PipelineCase>(`/cases/${caseId}`, data),
+  ) =>
+    api.patch<
+      { case: PipelineCase; event?: PipelineCaseEvent | null } | PipelineCase
+    >(`/cases/${caseId}`, data),
   acknowledgeDrift: (caseId: string, data?: { expectedVersion?: number }) =>
-    api.post<{ case: PipelineCase; event: PipelineCaseEvent | null; acknowledged: boolean }>(
-      `/cases/${caseId}/acknowledge-drift`,
-      data ?? {},
-    ),
+    api.post<{
+      case: PipelineCase;
+      event: PipelineCaseEvent | null;
+      acknowledged: boolean;
+    }>(`/cases/${caseId}/acknowledge-drift`, data ?? {}),
   resolveSuggestion: (
     caseId: string,
     data: {
@@ -612,10 +756,16 @@ export const pipelinesApi = {
   ) => api.post<unknown>(`/cases/${caseId}/transition`, data),
   rerunCurrentStageAutomation: (caseId: string) =>
     api.post<unknown>(`/cases/${caseId}/automation/current-stage/rerun`, {}),
-  getAutomationRetryPlan: (caseId: string, scope: PipelineAutomationRetryScope, targetStageId?: string | null) => {
+  getAutomationRetryPlan: (
+    caseId: string,
+    scope: PipelineAutomationRetryScope,
+    targetStageId?: string | null,
+  ) => {
     const params = new URLSearchParams({ scope });
     if (targetStageId) params.set("targetStageId", targetStageId);
-    return api.get<PipelineAutomationRetryPlan>(`/cases/${caseId}/automation/retry-plan?${params.toString()}`);
+    return api.get<PipelineAutomationRetryPlan>(
+      `/cases/${caseId}/automation/retry-plan?${params.toString()}`,
+    );
   },
   retryStageAutomation: (
     caseId: string,
@@ -628,31 +778,45 @@ export const pipelinesApi = {
   ) => api.post<unknown>(`/cases/${caseId}/automation/retry`, data),
   retryAutomation: (caseId: string, automationId: string) =>
     api.post<unknown>(`/cases/${caseId}/automations/${automationId}/retry`, {}),
-  ingestCasesBatch: (pipelineId: string, data: {
-    items: Array<{
-      caseKey?: string | null;
-      title: string;
-      fields?: Record<string, unknown>;
-      stageKey?: string | null;
-      parentCaseId?: string | null;
-      requestKey?: string | null;
-      blockedByCaseIds?: string[];
-      blockedByCaseKeys?: string[];
-    }>;
-  }) =>
-    api.post<PipelineBatchIngestResult[]>(`/pipelines/${pipelineId}/cases/batch`, data),
+  ingestCasesBatch: (
+    pipelineId: string,
+    data: {
+      items: Array<{
+        caseKey?: string | null;
+        title: string;
+        fields?: Record<string, unknown>;
+        stageKey?: string | null;
+        parentCaseId?: string | null;
+        requestKey?: string | null;
+        blockedByCaseIds?: string[];
+        blockedByCaseKeys?: string[];
+      }>;
+    },
+  ) =>
+    api.post<PipelineBatchIngestResult[]>(
+      `/pipelines/${pipelineId}/cases/batch`,
+      data,
+    ),
   listAttention: (companyId: string, options?: { limit?: number }) => {
     const params = new URLSearchParams();
-    if (options?.limit !== undefined) params.set("limit", String(options.limit));
+    if (options?.limit !== undefined)
+      params.set("limit", String(options.limit));
     const qs = params.toString();
-    return api.get<PipelineAttentionFeed>(`/companies/${companyId}/pipelines-attention${qs ? `?${qs}` : ""}`);
+    return api.get<PipelineAttentionFeed>(
+      `/companies/${companyId}/pipelines-attention${qs ? `?${qs}` : ""}`,
+    );
   },
-  listReviewCases: (companyId: string, filters?: { pipelineId?: string; parentCaseId?: string }) => {
+  listReviewCases: (
+    companyId: string,
+    filters?: { pipelineId?: string; parentCaseId?: string },
+  ) => {
     const params = new URLSearchParams();
     if (filters?.pipelineId) params.set("pipelineId", filters.pipelineId);
     if (filters?.parentCaseId) params.set("parentCaseId", filters.parentCaseId);
     const qs = params.toString();
-    return api.get<PipelineReviewCaseRow[]>(`/companies/${companyId}/review-cases${qs ? `?${qs}` : ""}`);
+    return api.get<PipelineReviewCaseRow[]>(
+      `/companies/${companyId}/review-cases${qs ? `?${qs}` : ""}`,
+    );
   },
   reviewCase: (
     caseId: string,
@@ -673,16 +837,24 @@ export const pipelinesApi = {
         expectedVersion: number;
       }>;
     },
-  ) => api.post<PipelineBulkReviewResult>(`/companies/${companyId}/review-cases/bulk`, data),
+  ) =>
+    api.post<PipelineBulkReviewResult>(
+      `/companies/${companyId}/review-cases/bulk`,
+      data,
+    ),
   listCompanyCaseEvents: (
     companyId: string,
     filters?: { types?: string; limit?: number; offset?: number },
   ) => {
     const params = new URLSearchParams();
     if (filters?.types) params.set("types", filters.types);
-    if (filters?.limit !== undefined) params.set("limit", String(filters.limit));
-    if (filters?.offset !== undefined) params.set("offset", String(filters.offset));
+    if (filters?.limit !== undefined)
+      params.set("limit", String(filters.limit));
+    if (filters?.offset !== undefined)
+      params.set("offset", String(filters.offset));
     const qs = params.toString();
-    return api.get<PipelineCompanyCaseEventsPage>(`/companies/${companyId}/case-events${qs ? `?${qs}` : ""}`);
+    return api.get<PipelineCompanyCaseEventsPage>(
+      `/companies/${companyId}/case-events${qs ? `?${qs}` : ""}`,
+    );
   },
 };

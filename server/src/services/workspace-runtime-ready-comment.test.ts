@@ -78,7 +78,9 @@ describe("workspace-ready comment builders", () => {
 
   it("uses a warning notice that is expanded when warnings are present", () => {
     const input = {
-      workspace: workspace({ warnings: ["The worktree was restored from a stale reference."] }),
+      workspace: workspace({
+        warnings: ["The worktree was restored from a stale reference."],
+      }),
       runtimeServices: [],
     };
 
@@ -88,7 +90,12 @@ describe("workspace-ready comment builders", () => {
     });
     expect(buildWorkspaceReadyMetadata(input).sections.at(-1)).toEqual({
       title: "Warnings",
-      rows: [{ type: "text", text: "The worktree was restored from a stale reference." }],
+      rows: [
+        {
+          type: "text",
+          text: "The worktree was restored from a stale reference.",
+        },
+      ],
     });
   });
 
@@ -99,7 +106,9 @@ describe("workspace-ready comment builders", () => {
     });
 
     expect(presentation.title).toHaveLength(160);
-    expect(presentation.title).toBe(`${`Workspace ready · ${"b".repeat(200)}`.slice(0, 159)}…`);
+    expect(presentation.title).toBe(
+      `${`Workspace ready · ${"b".repeat(200)}`.slice(0, 159)}…`,
+    );
   });
 
   it("falls back to the workspace strategy when no branch is available", () => {
@@ -132,8 +141,16 @@ describe("workspace-ready comment builders", () => {
           title: "Workspace",
           rows: [
             { type: "key_value", label: "Strategy", value: "git_worktree" },
-            { type: "key_value", label: "Branch", value: "PAP-16051-workspace-ready-notice" },
-            { type: "key_value", label: "CWD", value: "/repo/.taskcore/worktrees/PAP-16051" },
+            {
+              type: "key_value",
+              label: "Branch",
+              value: "PAP-16051-workspace-ready-notice",
+            },
+            {
+              type: "key_value",
+              label: "CWD",
+              value: "/repo/.taskcore/worktrees/PAP-16051",
+            },
           ],
         },
         {
@@ -150,7 +167,9 @@ describe("workspace-ready comment builders", () => {
   it("keeps service labels within the comment metadata boundary", () => {
     const metadata = buildWorkspaceReadyMetadata({
       workspace: workspace(),
-      runtimeServices: [runtimeService({ serviceName: `  ${"s".repeat(150)}  ` })],
+      runtimeServices: [
+        runtimeService({ serviceName: `  ${"s".repeat(150)}  ` }),
+      ],
     });
     const serviceLabel = metadata.sections[1]?.rows[0];
 
@@ -175,20 +194,30 @@ describe("workspace-ready comment builders", () => {
       title: "Workspace",
       rows: [
         { type: "key_value", label: "Strategy", value: "git_worktree" },
-        { type: "key_value", label: "Branch", value: "PAP-16051-workspace-ready-notice" },
+        {
+          type: "key_value",
+          label: "Branch",
+          value: "PAP-16051-workspace-ready-notice",
+        },
         { type: "key_value", label: "CWD", value: "/repo/runtime" },
-        { type: "key_value", label: "Worktree", value: "/repo/.taskcore/worktrees/PAP-16051" },
+        {
+          type: "key_value",
+          label: "Worktree",
+          value: "/repo/.taskcore/worktrees/PAP-16051",
+        },
       ],
     });
-    expect(buildWorkspaceReadyComment(input)).toBe([
-      "## Workspace Ready",
-      "",
-      "- Strategy: `git_worktree`",
-      "- Branch: `PAP-16051-workspace-ready-notice`",
-      "- CWD: `/repo/runtime`",
-      "- Worktree: `/repo/.taskcore/worktrees/PAP-16051`",
-      "- Warning: Warning text",
-      "- Service: web: http://localhost:3100 (reused)",
-    ].join("\n"));
+    expect(buildWorkspaceReadyComment(input)).toBe(
+      [
+        "## Workspace Ready",
+        "",
+        "- Strategy: `git_worktree`",
+        "- Branch: `PAP-16051-workspace-ready-notice`",
+        "- CWD: `/repo/runtime`",
+        "- Worktree: `/repo/.taskcore/worktrees/PAP-16051`",
+        "- Warning: Warning text",
+        "- Service: web: http://localhost:3100 (reused)",
+      ].join("\n"),
+    );
   });
 });

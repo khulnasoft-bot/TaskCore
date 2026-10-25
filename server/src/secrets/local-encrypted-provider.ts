@@ -1,5 +1,19 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { chmodSync, existsSync, linkSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from "node:crypto";
+import {
+  chmodSync,
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { resolveDefaultSecretsKeyFilePath } from "../home-paths.js";
 import type {
@@ -68,12 +82,17 @@ function loadOrCreateMasterKey(allowCreate = true): Buffer {
     return decoded;
   }
 
-  if (!allowCreate) throw new Error(`Secrets master key file is missing: ${keyPath}`);
+  if (!allowCreate)
+    throw new Error(`Secrets master key file is missing: ${keyPath}`);
   const dir = path.dirname(keyPath);
   mkdirSync(dir, { recursive: true });
   const generated = randomBytes(32);
   const temporaryPath = `${keyPath}.${process.pid}.${randomBytes(12).toString("hex")}.tmp`;
-  writeFileSync(temporaryPath, generated.toString("base64"), { encoding: "utf8", mode: 0o600, flag: "wx" });
+  writeFileSync(temporaryPath, generated.toString("base64"), {
+    encoding: "utf8",
+    mode: 0o600,
+    flag: "wx",
+  });
   try {
     // A hard link publishes a complete file without overwriting a competitor's
     // key. Opening the destination with wx would expose an empty/partial file.
@@ -143,7 +162,9 @@ async function inspectLocalEncryptedHealth(): Promise<SecretProviderHealthCheck>
       provider: "local_encrypted",
       status: "warn",
       message: `Secrets key file does not exist yet: ${keyPath}`,
-      warnings: ["The first managed secret write will create this key file with 0600 permissions."],
+      warnings: [
+        "The first managed secret write will create this key file with 0600 permissions.",
+      ],
       backupGuidance: [
         "Back up the key file together with database backups.",
         "The database alone cannot restore local encrypted secret values.",
@@ -185,7 +206,9 @@ async function inspectLocalEncryptedHealth(): Promise<SecretProviderHealthCheck>
 
   const warnings =
     mode !== null && (mode & 0o077) !== 0
-      ? [`Secrets key file permissions are ${mode.toString(8)}; run chmod 600 ${keyPath}`]
+      ? [
+          `Secrets key file permissions are ${mode.toString(8)}; run chmod 600 ${keyPath}`,
+        ]
       : [];
   return {
     provider: "local_encrypted",
@@ -200,10 +223,16 @@ async function inspectLocalEncryptedHealth(): Promise<SecretProviderHealthCheck>
   };
 }
 
-function encryptValue(masterKey: Buffer, value: string): LocalEncryptedMaterial {
+function encryptValue(
+  masterKey: Buffer,
+  value: string,
+): LocalEncryptedMaterial {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", masterKey, iv);
-  const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  const ciphertext = Buffer.concat([
+    cipher.update(value, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
   return {
     scheme: "local_encrypted_v1",
@@ -213,17 +242,26 @@ function encryptValue(masterKey: Buffer, value: string): LocalEncryptedMaterial 
   };
 }
 
-function decryptValue(masterKey: Buffer, material: LocalEncryptedMaterial): string {
+function decryptValue(
+  masterKey: Buffer,
+  material: LocalEncryptedMaterial,
+): string {
   const iv = Buffer.from(material.iv, "base64");
   const tag = Buffer.from(material.tag, "base64");
   const ciphertext = Buffer.from(material.ciphertext, "base64");
   const decipher = createDecipheriv("aes-256-gcm", masterKey, iv);
   decipher.setAuthTag(tag);
   try {
-    const plain = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const plain = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
     return plain.toString("utf8");
   } catch (err) {
-    const keyFingerprint = createHash("sha256").update(masterKey).digest("hex").slice(0, 12);
+    const keyFingerprint = createHash("sha256")
+      .update(masterKey)
+      .digest("hex")
+      .slice(0, 12);
     throw new Error(
       `Secret decryption failed (master key fingerprint: ${keyFingerprint}). ` +
         `This usually means the master key does not match the key used to encrypt the secret. ` +
@@ -232,7 +270,9 @@ function decryptValue(masterKey: Buffer, material: LocalEncryptedMaterial): stri
   }
 }
 
-function asLocalEncryptedMaterial(value: StoredSecretVersionMaterial): LocalEncryptedMaterial {
+function asLocalEncryptedMaterial(
+  value: StoredSecretVersionMaterial,
+): LocalEncryptedMaterial {
   if (
     value &&
     typeof value === "object" &&
@@ -260,8 +300,13 @@ export const localEncryptedProvider: SecretProviderModule = {
   },
   async validateConfig(input): Promise<SecretProviderValidationResult> {
     const warnings: string[] = [];
-    if (input?.deploymentMode === "authenticated" && input.strictMode !== true) {
-      warnings.push("Strict secret mode should be enabled for authenticated deployments");
+    if (
+      input?.deploymentMode === "authenticated" &&
+      input.strictMode !== true
+    ) {
+      warnings.push(
+        "Strict secret mode should be enabled for authenticated deployments",
+      );
     }
     const health = await inspectLocalEncryptedHealth();
     if (health.status === "error") {
@@ -277,7 +322,9 @@ export const localEncryptedProvider: SecretProviderModule = {
     return prepareManagedVersion(input.value);
   },
   async linkExternalSecret() {
-    throw badRequest("local_encrypted does not support external reference secrets");
+    throw badRequest(
+      "local_encrypted does not support external reference secrets",
+    );
   },
   async resolveVersion(input) {
     const masterKey = loadOrCreateMasterKey(false);

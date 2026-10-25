@@ -4,7 +4,10 @@
 // shape; this file holds only the small pieces that are specific to
 // building the release half's promoted-run snapshot.
 
-import { extractWakeCommentIds, WAKE_COMMENT_IDS_KEY } from "../../run-dispatch/index.js";
+import {
+  extractWakeCommentIds,
+  WAKE_COMMENT_IDS_KEY,
+} from "../../run-dispatch/index.js";
 import { readNonEmptyString } from "./values.js";
 
 const TASKCORE_WAKE_PAYLOAD_KEY = "taskcoreWake";
@@ -65,11 +68,17 @@ function mergeWakeCommentIds(...values: Array<unknown>): string[] {
   return merged;
 }
 
-export function hasInteractionContinuationWakeContext(contextSnapshot: Record<string, unknown>): boolean {
-  return INTERACTION_CONTINUATION_CONTEXT_KEYS.some((key) => readNonEmptyString(contextSnapshot[key]));
+export function hasInteractionContinuationWakeContext(
+  contextSnapshot: Record<string, unknown>,
+): boolean {
+  return INTERACTION_CONTINUATION_CONTEXT_KEYS.some((key) =>
+    readNonEmptyString(contextSnapshot[key]),
+  );
 }
 
-function isInteractionResolutionWakePayload(payload: Record<string, unknown> | null | undefined): boolean {
+function isInteractionResolutionWakePayload(
+  payload: Record<string, unknown> | null | undefined,
+): boolean {
   return readNonEmptyString(payload?.mutation) === "interaction";
 }
 
@@ -110,7 +119,10 @@ export function enrichPromotedWakeContext(
   const { reason, source, triggerDetail, payload } = input;
   const commentIdFromPayload = readNonEmptyString(payload?.["commentId"]);
   const taskKey = deriveTaskKey(contextSnapshot, payload);
-  const wakeCommentIds = mergeWakeCommentIds(contextSnapshot, commentIdFromPayload);
+  const wakeCommentIds = mergeWakeCommentIds(
+    contextSnapshot,
+    commentIdFromPayload,
+  );
 
   if (!readNonEmptyString(contextSnapshot["wakeReason"]) && reason) {
     contextSnapshot.wakeReason = reason;
@@ -118,7 +130,10 @@ export function enrichPromotedWakeContext(
   if (!readNonEmptyString(contextSnapshot["taskKey"]) && taskKey) {
     contextSnapshot.taskKey = taskKey;
   }
-  if (!readNonEmptyString(contextSnapshot["commentId"]) && commentIdFromPayload) {
+  if (
+    !readNonEmptyString(contextSnapshot["commentId"]) &&
+    commentIdFromPayload
+  ) {
     contextSnapshot.commentId = commentIdFromPayload;
   }
   // The wake payload, resolved comment, and task-markdown snapshots below are
@@ -153,7 +168,10 @@ export function enrichPromotedWakeContext(
   if (!readNonEmptyString(contextSnapshot["wakeSource"]) && source) {
     contextSnapshot.wakeSource = source;
   }
-  if (!readNonEmptyString(contextSnapshot["wakeTriggerDetail"]) && triggerDetail) {
+  if (
+    !readNonEmptyString(contextSnapshot["wakeTriggerDetail"]) &&
+    triggerDetail
+  ) {
     contextSnapshot.wakeTriggerDetail = triggerDetail;
   }
   normalizeInteractionContinuationWakeContext(contextSnapshot, payload);

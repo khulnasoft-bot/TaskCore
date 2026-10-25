@@ -166,9 +166,12 @@ export async function fetchProviderDailyCosts(
         throw unprocessable("Provider returned an unexpected billing period.");
       days.add(start);
       for (const result of bucket.results) {
-        const scopeField = parsed.provider === "openai" ? "project_id" : "workspace_id";
+        const scopeField =
+          parsed.provider === "openai" ? "project_id" : "workspace_id";
         if (!Object.hasOwn(result, scopeField)) {
-          throw unprocessable("Provider report is missing the requested project/workspace grouping.");
+          throw unprocessable(
+            "Provider report is missing the requested project/workspace grouping.",
+          );
         }
         const scope =
           (parsed.provider === "openai"
@@ -239,10 +242,18 @@ export async function importProviderDailyCosts(
   // provider (which may be local encryption, AWS, etc.). Never send a generic
   // company secret to an external API merely because the caller knows its ID.
   const designation = secret.providerMetadata?.providerBilling;
-  if (!designation || typeof designation !== "object" || Array.isArray(designation)
-    || !("provider" in designation) || designation.provider !== input.provider
-    || !("accountId" in designation) || designation.accountId !== input.accountId) {
-    throw forbidden("Select a company secret designated for this billing provider and account.");
+  if (
+    !designation ||
+    typeof designation !== "object" ||
+    Array.isArray(designation) ||
+    !("provider" in designation) ||
+    designation.provider !== input.provider ||
+    !("accountId" in designation) ||
+    designation.accountId !== input.accountId
+  ) {
+    throw forbidden(
+      "Select a company secret designated for this billing provider and account.",
+    );
   }
   const credential = await secretService(db).resolveSecretValue(
     companyId,

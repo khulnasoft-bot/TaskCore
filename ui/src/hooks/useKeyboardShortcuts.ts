@@ -75,7 +75,10 @@ export function useKeyboardShortcuts({
           onGoToInbox();
           return;
         }
-        if (chordAction === "focus_comment" || chordAction === "open_file_viewer") {
+        if (
+          chordAction === "focus_comment" ||
+          chordAction === "open_file_viewer"
+        ) {
           // Armed chord keys that only mean something on the issue detail
           // page — swallow them so they don't trigger bare shortcuts (c).
           disarmGoChord();
@@ -133,7 +136,8 @@ export function useKeyboardShortcuts({
 
     const handlePointerDown = () => disarmGoChord();
     const handleFocusIn = (e: FocusEvent) => {
-      if (e.target instanceof HTMLElement && e.target !== document.body) disarmGoChord();
+      if (e.target instanceof HTMLElement && e.target !== document.body)
+        disarmGoChord();
     };
 
     document.addEventListener("pointerdown", handlePointerDown, true);
@@ -145,5 +149,12 @@ export function useKeyboardShortcuts({
       document.removeEventListener("focusin", handleFocusIn, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onNewIssue, onSearch, onToggleSidebar, onTogglePanel, onShowShortcuts, onGoToInbox]);
+  }, [
+    onNewIssue,
+    onSearch,
+    onToggleSidebar,
+    onTogglePanel,
+    onShowShortcuts,
+    onGoToInbox,
+  ]);
 }

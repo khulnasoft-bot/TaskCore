@@ -3,17 +3,13 @@
   "slug": "razorpay",
   "name": "Razorpay",
   "description": "Connect Razorpay's provider-hosted MCP server.",
-  "categories": [
-    "commerce"
-  ],
+  "categories": ["commerce"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/razorpay.svg",
     "darkLogoUrl": "/brands/apps/razorpay-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.razorpay.com/*"
-  ],
+  "urlPatterns": ["https://mcp.razorpay.com/*"],
   "docsUrl": "https://razorpay.com/docs/mcp-server/oauth/",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,9 +17,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.razorpay.com/mcp"
@@ -43,9 +37,7 @@
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.razorpay.com/mcp"

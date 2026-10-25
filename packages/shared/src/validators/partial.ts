@@ -37,5 +37,7 @@ export function shapeWithoutDefaults(shape: z.ZodRawShape): z.ZodRawShape {
 export function objectWithoutDefaults<T extends z.ZodRawShape>(
   schema: z.ZodObject<T>,
 ): z.ZodObject<T> {
-  return z.object(shapeWithoutDefaults(schema.shape)) as unknown as z.ZodObject<T>;
+  return z.object(
+    shapeWithoutDefaults(schema.shape),
+  ) as unknown as z.ZodObject<T>;
 }

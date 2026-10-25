@@ -59,8 +59,7 @@ export function parseRunnerSelectors(
     else if (flag === "--connection-config") {
       options.connectionConfig = valueFor(args, index, flag);
       index += 1;
-    }
-    else if (flag === "--max-parallel") {
+    } else if (flag === "--max-parallel") {
       const value = valueFor(args, index, flag);
       index += 1;
       options.maxParallel = Number(value);
@@ -95,9 +94,7 @@ export function parseRunnerSelectors(
     throw new RunnerSelectorError("--max-parallel must be a positive integer");
   }
   if (![0, 1].includes(options.maxAutomaticRetries)) {
-    throw new RunnerSelectorError(
-      "--max-automatic-retries must be 0 or 1",
-    );
+    throw new RunnerSelectorError("--max-automatic-retries must be 0 or 1");
   }
 
   const hasDimensions =
@@ -173,7 +170,12 @@ export function selectRunnerExecutions(
 
   const selected = matrix.filter((execution) => {
     if (options.ids.length > 0) return options.ids.includes(execution.id);
-    if (execution.suite.manualOnly && !options.suites.includes(execution.suite.id) && !options.list) return false;
+    if (
+      execution.suite.manualOnly &&
+      !options.suites.includes(execution.suite.id) &&
+      !options.list
+    )
+      return false;
     if (
       options.all ||
       (options.list &&
@@ -205,7 +207,10 @@ export function selectRunnerExecutions(
 export function buildMatrixJobs(
   executions: readonly MatrixExecution[],
 ): MatrixJob[] {
-  if (executions.some(e => e.task.flow === "provider_connection")) throw new RunnerSelectorError("Provider connection journeys use an explicit local/staging connection configuration; they are not admitted to paid CI matrix jobs yet.");
+  if (executions.some((e) => e.task.flow === "provider_connection"))
+    throw new RunnerSelectorError(
+      "Provider connection journeys use an explicit local/staging connection configuration; they are not admitted to paid CI matrix jobs yet.",
+    );
   return executions
     .map((execution) => ({
       executionId: execution.id,

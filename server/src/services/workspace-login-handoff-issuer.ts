@@ -15,7 +15,11 @@
 
 import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { authUsers, instanceUserRoles, workspaceRuntimeServices } from "@taskcore/db";
+import {
+  authUsers,
+  instanceUserRoles,
+  workspaceRuntimeServices,
+} from "@taskcore/db";
 import type { WorkspaceReadiness } from "@taskcore/shared";
 import {
   buildWorkspaceHandoffExchangeUrl,
@@ -41,7 +45,11 @@ export type WorkspaceLoginHandoffFailure =
   | { reason: "handoff_not_configured" }
   | { reason: "runtime_not_running" }
   | { reason: "runtime_url_unusable"; detail: string }
-  | { reason: "workspace_not_ready"; detail: string | null; readiness: WorkspaceReadiness | null };
+  | {
+      reason: "workspace_not_ready";
+      detail: string | null;
+      readiness: WorkspaceReadiness | null;
+    };
 
 export type WorkspaceLoginHandoffIssuance = {
   url: string;
@@ -78,11 +86,18 @@ export async function resolveWorkspaceHandoffBoardIdentity(
   if (actor.source !== "local_implicit") return null;
 
   const admin = await db
-    .select({ id: authUsers.id, email: authUsers.email, createdAt: authUsers.createdAt })
+    .select({
+      id: authUsers.id,
+      email: authUsers.email,
+      createdAt: authUsers.createdAt,
+    })
     .from(authUsers)
     .innerJoin(
       instanceUserRoles,
-      and(eq(instanceUserRoles.userId, authUsers.id), eq(instanceUserRoles.role, "instance_admin")),
+      and(
+        eq(instanceUserRoles.userId, authUsers.id),
+        eq(instanceUserRoles.role, "instance_admin"),
+      ),
     )
     .orderBy(authUsers.createdAt, authUsers.id)
     .limit(1)
@@ -112,7 +127,10 @@ export async function resolveLiveWorkspaceRuntimeOrigin(
     .where(
       and(
         eq(workspaceRuntimeServices.companyId, input.companyId),
-        eq(workspaceRuntimeServices.executionWorkspaceId, input.executionWorkspaceId),
+        eq(
+          workspaceRuntimeServices.executionWorkspaceId,
+          input.executionWorkspaceId,
+        ),
         eq(workspaceRuntimeServices.status, "running"),
         eq(workspaceRuntimeServices.healthStatus, "healthy"),
       ),
@@ -138,10 +156,15 @@ export async function issueWorkspaceLoginHandoff(input: {
     executionWorkspaceId: input.executionWorkspace.id,
     companyId: input.companyId,
   });
-  if (!identity) return { ok: false, failure: { reason: "handoff_not_configured" } };
+  if (!identity)
+    return { ok: false, failure: { reason: "handoff_not_configured" } };
 
-  const boardIdentity = await resolveWorkspaceHandoffBoardIdentity(input.db, input.actor);
-  if (!boardIdentity) return { ok: false, failure: { reason: "no_board_identity" } };
+  const boardIdentity = await resolveWorkspaceHandoffBoardIdentity(
+    input.db,
+    input.actor,
+  );
+  if (!boardIdentity)
+    return { ok: false, failure: { reason: "no_board_identity" } };
 
   const live = await resolveLiveWorkspaceRuntimeOrigin(input.db, {
     companyId: input.companyId,
@@ -151,7 +174,10 @@ export async function issueWorkspaceLoginHandoff(input: {
 
   const origin = normalizeWorkspaceHandoffOrigin(live.url);
   if (!origin) {
-    return { ok: false, failure: { reason: "runtime_url_unusable", detail: live.url } };
+    return {
+      ok: false,
+      failure: { reason: "runtime_url_unusable", detail: live.url },
+    };
   }
 
   const probe = input.probe ?? probeManagedWorkspaceReadiness;
@@ -201,7 +227,9 @@ export async function issueWorkspaceLoginHandoff(input: {
 }
 
 /** HTTP status for a failed issuance. */
-export function workspaceLoginHandoffFailureStatus(failure: WorkspaceLoginHandoffFailure): number {
+export function workspaceLoginHandoffFailureStatus(
+  failure: WorkspaceLoginHandoffFailure,
+): number {
   switch (failure.reason) {
     case "no_board_identity":
       return 403;

@@ -31,8 +31,18 @@ function isWriteMethod(method: string): boolean {
   return !["GET", "HEAD"].includes(method.toUpperCase());
 }
 
-function buildErrorMessage(method: string, path: string, status: number, body: unknown): string {
-  if (body && typeof body === "object" && "error" in body && typeof body.error === "string") {
+function buildErrorMessage(
+  method: string,
+  path: string,
+  status: number,
+  body: unknown,
+): string {
+  if (
+    body &&
+    typeof body === "object" &&
+    "error" in body &&
+    typeof body.error === "string"
+  ) {
     return `${method} ${path} failed with ${status}: ${body.error}`;
   }
   return `${method} ${path} failed with ${status}`;
@@ -62,7 +72,9 @@ export class TaskcoreApiClient {
   resolveCompanyId(companyId?: string | null): string {
     const resolved = companyId?.trim() || this.config.companyId;
     if (!resolved) {
-      throw new Error("companyId is required because TASKCORE_COMPANY_ID is not set");
+      throw new Error(
+        "companyId is required because TASKCORE_COMPANY_ID is not set",
+      );
     }
     return resolved;
   }
@@ -70,12 +82,18 @@ export class TaskcoreApiClient {
   resolveAgentId(agentId?: string | null): string {
     const resolved = agentId?.trim() || this.config.agentId;
     if (!resolved) {
-      throw new Error("agentId is required because TASKCORE_AGENT_ID is not set");
+      throw new Error(
+        "agentId is required because TASKCORE_AGENT_ID is not set",
+      );
     }
     return resolved;
   }
 
-  async requestJson<T>(method: string, path: string, options: JsonRequestOptions = {}): Promise<T> {
+  async requestJson<T>(
+    method: string,
+    path: string,
+    options: JsonRequestOptions = {},
+  ): Promise<T> {
     if (!path.startsWith("/")) {
       throw new Error(`API path must start with "/": ${path}`);
     }
@@ -95,7 +113,8 @@ export class TaskcoreApiClient {
     const response = await fetch(url, {
       method,
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body:
+        options.body === undefined ? undefined : JSON.stringify(options.body),
     });
     const parsedBody = await parseResponseBody(response);
 
@@ -105,7 +124,12 @@ export class TaskcoreApiClient {
         method: method.toUpperCase(),
         path,
         body: parsedBody,
-        message: buildErrorMessage(method.toUpperCase(), path, response.status, parsedBody),
+        message: buildErrorMessage(
+          method.toUpperCase(),
+          path,
+          response.status,
+          parsedBody,
+        ),
       });
     }
 

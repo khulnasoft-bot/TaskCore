@@ -1,30 +1,57 @@
 // @vitest-environment jsdom
 import { act, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { IssueAttachment, IssueDocumentSummary, IssueWorkProduct } from "@taskcore/shared";
+import type {
+  IssueAttachment,
+  IssueDocumentSummary,
+  IssueWorkProduct,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTaskArtifactArrival } from "./useTaskArtifactArrival";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 const fileId = "00000000-0000-4000-8000-000000000001";
-const attachment = (id = fileId, userUpload = false) => ({
-  id, createdByAgentId: userUpload ? null : "agent-1", createdByUserId: userUpload ? "user-1" : null,
-} as IssueAttachment);
-const document = (key = "report") => ({ id: `doc-${key}`, key } as IssueDocumentSummary);
-const product = (attachmentId = fileId) => ({
-  id: `product-${attachmentId}`, companyId: "company-1", issueId: "task-1",
-  projectId: null, executionWorkspaceId: null, runtimeServiceId: null,
-  externalId: null, title: "Image", url: null, status: "active", reviewState: "none",
-  isPrimary: false, healthStatus: "unknown", summary: null, createdByRunId: null,
-  createdAt: new Date(), updatedAt: new Date(),
-  type: "artifact", provider: "taskcore", metadata: {
-    attachmentId, contentType: "image/png", byteSize: 123,
-    contentPath: `/api/attachments/${attachmentId}/content`,
-    openPath: `/api/attachments/${attachmentId}/content`,
-    downloadPath: `/api/attachments/${attachmentId}/content?download=1`,
-  },
-} as IssueWorkProduct);
+const attachment = (id = fileId, userUpload = false) =>
+  ({
+    id,
+    createdByAgentId: userUpload ? null : "agent-1",
+    createdByUserId: userUpload ? "user-1" : null,
+  }) as IssueAttachment;
+const document = (key = "report") =>
+  ({ id: `doc-${key}`, key }) as IssueDocumentSummary;
+const product = (attachmentId = fileId) =>
+  ({
+    id: `product-${attachmentId}`,
+    companyId: "company-1",
+    issueId: "task-1",
+    projectId: null,
+    executionWorkspaceId: null,
+    runtimeServiceId: null,
+    externalId: null,
+    title: "Image",
+    url: null,
+    status: "active",
+    reviewState: "none",
+    isPrimary: false,
+    healthStatus: "unknown",
+    summary: null,
+    createdByRunId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    type: "artifact",
+    provider: "taskcore",
+    metadata: {
+      attachmentId,
+      contentType: "image/png",
+      byteSize: 123,
+      contentPath: `/api/attachments/${attachmentId}/content`,
+      openPath: `/api/attachments/${attachmentId}/content`,
+      downloadPath: `/api/attachments/${attachmentId}/content?download=1`,
+    },
+  }) as IssueWorkProduct;
 
 function Watch(props: Parameters<typeof useTaskArtifactArrival>[0]) {
   useTaskArtifactArrival(props);
@@ -40,7 +67,13 @@ describe("new task artifacts", () => {
     container = window.document.createElement("div");
     root = createRoot(container);
     onArrival.mockReset();
-    props = { issueId: "task-1", attachments: [], workProducts: [], documents: [], onArrival };
+    props = {
+      issueId: "task-1",
+      attachments: [],
+      workProducts: [],
+      documents: [],
+      onArrival,
+    };
   });
   afterEach(() => act(() => root.unmount()));
   async function render(update: Partial<typeof props> = {}) {
@@ -49,18 +82,31 @@ describe("new task artifacts", () => {
   }
 
   it("registers existing artifacts as their queries load", async () => {
-    await render({ attachments: undefined, workProducts: undefined, documents: undefined });
+    await render({
+      attachments: undefined,
+      workProducts: undefined,
+      documents: undefined,
+    });
     await render({ attachments: [attachment()] });
     await render({ documents: [document()] });
     await render({ workProducts: [product()] });
     expect(onArrival).toHaveBeenCalledTimes(2);
   });
 
-  it.each(["attachments", "workProducts", "documents"] as const)("reveals new %s after the initial load", async (source) => {
-    await render();
-    await render({ [source]: { attachments: [attachment()], workProducts: [product()], documents: [document()] }[source] });
-    expect(onArrival).toHaveBeenCalledOnce();
-  });
+  it.each(["attachments", "workProducts", "documents"] as const)(
+    "reveals new %s after the initial load",
+    async (source) => {
+      await render();
+      await render({
+        [source]: {
+          attachments: [attachment()],
+          workProducts: [product()],
+          documents: [document()],
+        }[source],
+      });
+      expect(onArrival).toHaveBeenCalledOnce();
+    },
+  );
 
   it("does not reopen for upload promotion, revisions, removals, or retry snapshots", async () => {
     await render();
@@ -89,8 +135,17 @@ describe("new task artifacts", () => {
 
   it("registers a newly navigated task and detects its subsequent additions", async () => {
     await render();
-    await render({ issueId: "task-2", attachments: undefined, documents: undefined, workProducts: undefined });
-    await render({ attachments: [attachment()], documents: [], workProducts: [] });
+    await render({
+      issueId: "task-2",
+      attachments: undefined,
+      documents: undefined,
+      workProducts: undefined,
+    });
+    await render({
+      attachments: [attachment()],
+      documents: [],
+      workProducts: [],
+    });
     expect(onArrival).toHaveBeenCalledOnce();
     await render({ documents: [document()] });
     expect(onArrival).toHaveBeenCalledTimes(2);
@@ -98,7 +153,10 @@ describe("new task artifacts", () => {
 
   it("leaves Plan handling and user input uploads alone, but reveals a published user file", async () => {
     await render();
-    await render({ attachments: [attachment(fileId, true)], documents: [document("plan"), document(`artifact-review-${fileId}`)] });
+    await render({
+      attachments: [attachment(fileId, true)],
+      documents: [document("plan"), document(`artifact-review-${fileId}`)],
+    });
     expect(onArrival).not.toHaveBeenCalled();
     await render({ workProducts: [product()] });
     expect(onArrival).toHaveBeenCalledOnce();
@@ -109,7 +167,15 @@ describe("new task artifacts", () => {
     onArrival.mockClear();
     await render({ documents: [{ ...document(), latestRevisionNumber: 2 }] });
     expect(onArrival).not.toHaveBeenCalled();
-    await render({ workProducts: [{ id: "pr-1", type: "pull_request", provider: "github" } as IssueWorkProduct] });
+    await render({
+      workProducts: [
+        {
+          id: "pr-1",
+          type: "pull_request",
+          provider: "github",
+        } as IssueWorkProduct,
+      ],
+    });
     expect(onArrival).toHaveBeenCalledOnce();
   });
 });

@@ -1,17 +1,23 @@
 import type { AdapterSessionCodec } from "@taskcore/adapter-utils";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
 function readString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
-function readRepos(value: unknown): Array<{ url: string; startingRef?: string; prUrl?: string }> {
+function readRepos(
+  value: unknown,
+): Array<{ url: string; startingRef?: string; prUrl?: string }> {
   if (!Array.isArray(value)) return [];
-  const repos: Array<{ url: string; startingRef?: string; prUrl?: string }> = [];
+  const repos: Array<{ url: string; startingRef?: string; prUrl?: string }> =
+    [];
   for (const entry of value) {
     const repo = asRecord(entry);
     if (!repo) continue;
@@ -36,7 +42,8 @@ function normalize(raw: unknown): Record<string, unknown> | null {
     readString(record.agentId) ??
     readString(record.sessionId);
   if (!cursorAgentId) return null;
-  const latestRunId = readString(record.latestRunId) ?? readString(record.runId);
+  const latestRunId =
+    readString(record.latestRunId) ?? readString(record.runId);
   const runtime = readString(record.runtime) ?? "cloud";
   const envType = readString(record.envType);
   const envName = readString(record.envName);

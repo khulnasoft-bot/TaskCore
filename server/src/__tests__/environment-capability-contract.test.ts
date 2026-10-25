@@ -42,7 +42,10 @@ describe("environment capability contract normalizer", () => {
       independentControlCommands: false,
       nativeSyncIn: true,
     };
-    const effective = classifyEnvironmentCapabilities({ verifiedMethods, declared });
+    const effective = classifyEnvironmentCapabilities({
+      verifiedMethods,
+      declared,
+    });
 
     // Verified + declared true.
     expect(effective.persistentProcessSessions).toBe(true);
@@ -58,7 +61,9 @@ describe("environment capability contract normalizer", () => {
     for (const key of SANDBOX_CAPABILITY_KEYS) {
       if (effective[key]) {
         expect(verifiedOnly[key]).toBe(true);
-        expect((declared as Record<string, boolean | undefined>)[key]).not.toBe(false);
+        expect((declared as Record<string, boolean | undefined>)[key]).not.toBe(
+          false,
+        );
       }
     }
   });
@@ -177,7 +182,9 @@ describe("environment capability contract normalizer", () => {
 
     // A built-in provider without an execute method verifies no exec capability.
     const noExec = classifyEnvironmentCapabilities({
-      verifiedMethods: builtinSandboxProviderVerifiedMethods({ supportsReusableLeases: false }),
+      verifiedMethods: builtinSandboxProviderVerifiedMethods({
+        supportsReusableLeases: false,
+      }),
       declared: { persistentProcessSessions: true },
     });
     expect(noExec.persistentProcessSessions).toBe(false);
@@ -379,7 +386,10 @@ describe("environment capability contract normalizer", () => {
     };
 
     for (const verifiedMethods of [null, undefined, [] as string[]]) {
-      const effective = classifyEnvironmentCapabilities({ verifiedMethods, declared: declaredAll });
+      const effective = classifyEnvironmentCapabilities({
+        verifiedMethods,
+        declared: declaredAll,
+      });
       for (const key of SANDBOX_CAPABILITY_KEYS) {
         expect(effective[key]).toBe(false);
       }
@@ -417,7 +427,8 @@ describe("general runtime capability resolver — four-driver matrix", () => {
       const effective = classifyEnvironmentCapabilities({
         verifiedMethods: VERIFY_ALL,
         declared: DECLARE_ALL,
-        supportedCapabilities: ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
+        supportedCapabilities:
+          ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
       });
       for (const key of SANDBOX_CAPABILITY_KEYS) {
         expect(effective[key]).toBe(false);
@@ -434,7 +445,8 @@ describe("general runtime capability resolver — four-driver matrix", () => {
       const effective = classifyEnvironmentCapabilities({
         verifiedMethods: VERIFY_ALL,
         declared: DECLARE_ALL,
-        supportedCapabilities: ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
+        supportedCapabilities:
+          ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
       });
       for (const key of SANDBOX_CAPABILITY_KEYS) {
         expect(effective[key]).toBe(true);
@@ -442,7 +454,10 @@ describe("general runtime capability resolver — four-driver matrix", () => {
       // The static gate changes nothing versus the ungated normalizer for
       // these two drivers, so the two results match field for field.
       expect(effective).toEqual(
-        classifyEnvironmentCapabilities({ verifiedMethods: VERIFY_ALL, declared: DECLARE_ALL }),
+        classifyEnvironmentCapabilities({
+          verifiedMethods: VERIFY_ALL,
+          declared: DECLARE_ALL,
+        }),
       );
     }
   });
@@ -457,7 +472,8 @@ describe("general runtime capability resolver — four-driver matrix", () => {
         const effective = classifyEnvironmentCapabilities({
           verifiedMethods,
           declared: DECLARE_ALL,
-          supportedCapabilities: ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
+          supportedCapabilities:
+            ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
         });
         for (const key of SANDBOX_CAPABILITY_KEYS) {
           expect(effective[key]).toBe(false);
@@ -476,7 +492,8 @@ describe("general runtime capability resolver — four-driver matrix", () => {
         verifiedMethods: VERIFY_ALL,
         declared: DECLARE_ALL,
         narrowing: { duplexCommandStream: false },
-        supportedCapabilities: ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
+        supportedCapabilities:
+          ENVIRONMENT_DRIVER_CAPABILITY_SUPPORT[driver].supportedCapabilities,
       });
       expect(effective.duplexCommandStream).toBe(false);
       // A capability the narrowing does not name is unaffected.

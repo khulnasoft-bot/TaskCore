@@ -21,7 +21,8 @@ export const IMPORT_TRANSFER_SPOOL_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /** How often the abandoned-spool sweep runs. */
 export const IMPORT_TRANSFER_SPOOL_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function resolveDefaultImportTransferSpoolRoot(): string {
   return path.resolve(resolveTaskcoreInstanceRoot(), "import-transfers");
@@ -51,7 +52,10 @@ function spoolDirFor(spoolRoot: string, runId: string): string {
 }
 
 function partPathFor(spoolRoot: string, runId: string, index: number): string {
-  return path.join(spoolDirFor(spoolRoot, runId), importTransferPartName(index));
+  return path.join(
+    spoolDirFor(spoolRoot, runId),
+    importTransferPartName(index),
+  );
 }
 
 /** Atomic part write: temp file in the same dir, then rename over the target. */
@@ -99,7 +103,10 @@ export async function assembleImportTransferZip(
   return Buffer.concat(buffers);
 }
 
-export async function removeImportTransferSpool(spoolRoot: string, runId: string): Promise<void> {
+export async function removeImportTransferSpool(
+  spoolRoot: string,
+  runId: string,
+): Promise<void> {
   await fs.rm(spoolDirFor(spoolRoot, runId), { recursive: true, force: true });
 }
 
@@ -152,7 +159,9 @@ export async function sweepAbandonedImportTransferSpools(
   for (const entry of entries) {
     if (!entry.isDirectory() || !isImportTransferRunId(entry.name)) continue;
     const runId = entry.name;
-    const run = await companyTransferRunService.getRun(db, runId).catch(() => null);
+    const run = await companyTransferRunService
+      .getRun(db, runId)
+      .catch(() => null);
     if (run) {
       if (run.status === "completed" || run.status === "cancelled") {
         // Terminal runs never assemble again; a leftover spool (e.g. a

@@ -1,6 +1,12 @@
 import type { TelemetryBackoffConfig, TelemetryConfig } from "./types.js";
 
-const CI_ENV_VARS = ["CI", "CONTINUOUS_INTEGRATION", "BUILD_NUMBER", "GITHUB_ACTIONS", "GITLAB_CI"];
+const CI_ENV_VARS = [
+  "CI",
+  "CONTINUOUS_INTEGRATION",
+  "BUILD_NUMBER",
+  "GITHUB_ACTIONS",
+  "GITLAB_CI",
+];
 
 /**
  * Single source of truth for telemetry soft caps + backoff. Kept as config
@@ -28,7 +34,11 @@ export const TELEMETRY_DEFAULTS: {
 export type TelemetryConfigOverrides = Partial<
   Pick<
     TelemetryConfig,
-    "enabled" | "maxEventsPerBatch" | "maxBodyBytes" | "maxPendingRetryBatches" | "backoff"
+    | "enabled"
+    | "maxEventsPerBatch"
+    | "maxBodyBytes"
+    | "maxPendingRetryBatches"
+    | "backoff"
   >
 >;
 
@@ -49,18 +59,24 @@ export interface ResolvedTelemetryCaps {
  * caller did not override. One source of truth for both the config surface and
  * the `client.ts` consumer.
  */
-export function resolveCaps(overrides?: TelemetryConfigOverrides): ResolvedTelemetryCaps {
+export function resolveCaps(
+  overrides?: TelemetryConfigOverrides,
+): ResolvedTelemetryCaps {
   return {
-    maxEventsPerBatch: overrides?.maxEventsPerBatch ?? TELEMETRY_DEFAULTS.maxEventsPerBatch,
+    maxEventsPerBatch:
+      overrides?.maxEventsPerBatch ?? TELEMETRY_DEFAULTS.maxEventsPerBatch,
     maxBodyBytes: overrides?.maxBodyBytes ?? TELEMETRY_DEFAULTS.maxBodyBytes,
     maxPendingRetryBatches:
-      overrides?.maxPendingRetryBatches ?? TELEMETRY_DEFAULTS.maxPendingRetryBatches,
+      overrides?.maxPendingRetryBatches ??
+      TELEMETRY_DEFAULTS.maxPendingRetryBatches,
     backoff: { ...TELEMETRY_DEFAULTS.backoff, ...overrides?.backoff },
   };
 }
 
 function isCI(): boolean {
-  return CI_ENV_VARS.some((key) => process.env[key] === "true" || process.env[key] === "1");
+  return CI_ENV_VARS.some(
+    (key) => process.env[key] === "true" || process.env[key] === "1",
+  );
 }
 
 export function resolveTelemetryConfig(

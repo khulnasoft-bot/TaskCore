@@ -20,11 +20,13 @@ const mockRoutinesApi = vi.hoisted(() => ({
 }));
 
 vi.mock("../api/routines", async () => {
-  const actual = await vi.importActual<Record<string, unknown>>("../api/routines");
+  const actual =
+    await vi.importActual<Record<string, unknown>>("../api/routines");
   return {
     ...actual,
     routinesApi: {
-      ...((actual as { routinesApi?: Record<string, unknown> }).routinesApi ?? {}),
+      ...((actual as { routinesApi?: Record<string, unknown> }).routinesApi ??
+        {}),
       ...mockRoutinesApi,
     },
   };
@@ -37,15 +39,31 @@ vi.mock("./MarkdownBody", () => ({
 vi.mock("@/components/ui/dialog", () => ({
   Dialog: ({ open, children }: { open: boolean; children: React.ReactNode }) =>
     open ? <div data-testid="dialog">{children}</div> : null,
-  DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
-  DialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
-  DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogContent: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogHeader: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogTitle: ({ children }: { children: React.ReactNode }) => (
+    <h2>{children}</h2>
+  ),
+  DialogDescription: ({ children }: { children: React.ReactNode }) => (
+    <p>{children}</p>
+  ),
+  DialogFooter: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 vi.mock("@/components/ui/button", () => ({
-  Button: ({ children, onClick, type = "button", disabled, ...props }: ComponentProps<"button">) => (
+  Button: ({
+    children,
+    onClick,
+    type = "button",
+    disabled,
+    ...props
+  }: ComponentProps<"button">) => (
     <button type={type} onClick={onClick} disabled={disabled} {...props}>
       {children}
     </button>
@@ -57,13 +75,19 @@ vi.mock("@/components/ui/input", () => ({
 }));
 
 vi.mock("@/components/ui/label", () => ({
-  Label: ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) => (
-    <label htmlFor={htmlFor}>{children}</label>
-  ),
+  Label: ({
+    children,
+    htmlFor,
+  }: {
+    children: React.ReactNode;
+    htmlFor?: string;
+  }) => <label htmlFor={htmlFor}>{children}</label>,
 }));
 
 vi.mock("@/components/ui/skeleton", () => ({
-  Skeleton: (props: ComponentProps<"div">) => <div data-testid="skeleton" {...props} />,
+  Skeleton: (props: ComponentProps<"div">) => (
+    <div data-testid="skeleton" {...props} />
+  ),
 }));
 
 const toastSpy = vi.fn();
@@ -80,7 +104,9 @@ async function flush() {
   });
 }
 
-function snapshotV1(overrides?: Partial<RoutineRevisionSnapshotV1["routine"]>): RoutineRevisionSnapshotV1 {
+function snapshotV1(
+  overrides?: Partial<RoutineRevisionSnapshotV1["routine"]>,
+): RoutineRevisionSnapshotV1 {
   return {
     version: 1,
     routine: {
@@ -107,7 +133,9 @@ function snapshotV1(overrides?: Partial<RoutineRevisionSnapshotV1["routine"]>): 
   };
 }
 
-function createRevision(overrides: Partial<RoutineRevision> = {}): RoutineRevision {
+function createRevision(
+  overrides: Partial<RoutineRevision> = {},
+): RoutineRevision {
   return {
     id: overrides.id ?? "revision-1",
     companyId: "company-1",
@@ -178,7 +206,9 @@ describe("RoutineHistoryTab", () => {
     container.remove();
   });
 
-  async function render(props: Partial<Parameters<typeof RoutineHistoryTab>[0]> = {}) {
+  async function render(
+    props: Partial<Parameters<typeof RoutineHistoryTab>[0]> = {},
+  ) {
     const root = createRoot(container);
     const queryClient = makeQueryClient();
     const routine = props.routine ?? createRoutine();
@@ -208,7 +238,10 @@ describe("RoutineHistoryTab", () => {
       createRevision({ id: "revision-1", revisionNumber: 1 }),
     ]);
     await render({
-      routine: createRoutine({ latestRevisionId: "revision-1", latestRevisionNumber: 1 }),
+      routine: createRoutine({
+        latestRevisionId: "revision-1",
+        latestRevisionNumber: 1,
+      }),
     });
     expect(container.textContent).toContain("No edits yet");
     expect(container.textContent).toContain("Revision 1 is the only history");
@@ -283,7 +316,10 @@ describe("RoutineHistoryTab", () => {
     const old = createRevision({ id: "revision-1", revisionNumber: 1 });
     mockRoutinesApi.listRevisions.mockResolvedValue([current, old]);
     mockRoutinesApi.restoreRevision.mockResolvedValue({
-      routine: createRoutine({ latestRevisionId: "revision-3", latestRevisionNumber: 3 }),
+      routine: createRoutine({
+        latestRevisionId: "revision-3",
+        latestRevisionNumber: 3,
+      }),
       revision: createRevision({
         id: "revision-3",
         revisionNumber: 3,
@@ -301,18 +337,18 @@ describe("RoutineHistoryTab", () => {
       oldRow?.click();
     });
     await flush();
-    const restoreButtons = Array.from(container.querySelectorAll("button")).filter(
-      (button) => button.textContent === "Restore as new revision",
-    );
+    const restoreButtons = Array.from(
+      container.querySelectorAll("button"),
+    ).filter((button) => button.textContent === "Restore as new revision");
     expect(restoreButtons.length).toBeGreaterThan(0);
     await act(async () => {
       restoreButtons[0].click();
     });
     await flush();
     expect(container.querySelector("[data-testid='dialog']")).not.toBeNull();
-    const confirmButtons = Array.from(container.querySelectorAll("button")).filter((b) =>
-      (b.textContent ?? "").includes("Restore as revision 3"),
-    );
+    const confirmButtons = Array.from(
+      container.querySelectorAll("button"),
+    ).filter((b) => (b.textContent ?? "").includes("Restore as revision 3"));
     expect(confirmButtons.length).toBeGreaterThan(0);
     await act(async () => {
       confirmButtons[0].click();
@@ -344,7 +380,9 @@ describe("RoutineHistoryTab", () => {
       id: "revision-1",
       revisionNumber: 1,
       snapshot: snapshotV1({
-        env: { GH_TOKEN: { type: "secret_ref", secretId: "secret-1", version: 3 } },
+        env: {
+          GH_TOKEN: { type: "secret_ref", secretId: "secret-1", version: 3 },
+        },
       }),
     });
     mockRoutinesApi.listRevisions.mockResolvedValue([current, old]);
@@ -385,9 +423,9 @@ describe("RoutineHistoryTab", () => {
       oldRow?.click();
     });
     await flush();
-    const restoreButtons = Array.from(container.querySelectorAll("button")).filter(
-      (button) => button.textContent === "Restore as new revision",
-    );
+    const restoreButtons = Array.from(
+      container.querySelectorAll("button"),
+    ).filter((button) => button.textContent === "Restore as new revision");
     expect(restoreButtons.length).toBeGreaterThan(0);
     await act(async () => {
       restoreButtons[0].click();
@@ -403,14 +441,26 @@ describe("RoutineHistoryTab", () => {
       id: "revision-2",
       revisionNumber: 2,
       snapshot: snapshotV1({
-        env: { GH_TOKEN: { type: "secret_ref", secretId: "secret-2", version: "latest" } },
+        env: {
+          GH_TOKEN: {
+            type: "secret_ref",
+            secretId: "secret-2",
+            version: "latest",
+          },
+        },
       }),
     });
     const old = createRevision({
       id: "revision-1",
       revisionNumber: 1,
       snapshot: snapshotV1({
-        env: { GH_TOKEN: { type: "secret_ref", secretId: "secret-1", version: "latest" } },
+        env: {
+          GH_TOKEN: {
+            type: "secret_ref",
+            secretId: "secret-1",
+            version: "latest",
+          },
+        },
       }),
     });
     const secrets: CompanySecret[] = [
@@ -518,16 +568,16 @@ describe("RoutineHistoryTab", () => {
       oldRow?.click();
     });
     await flush();
-    const restoreButtons = Array.from(container.querySelectorAll("button")).filter(
-      (button) => button.textContent === "Restore as new revision",
-    );
+    const restoreButtons = Array.from(
+      container.querySelectorAll("button"),
+    ).filter((button) => button.textContent === "Restore as new revision");
     await act(async () => {
       restoreButtons[0].click();
     });
     await flush();
-    const confirmButtons = Array.from(container.querySelectorAll("button")).filter((b) =>
-      (b.textContent ?? "").includes("Restore as revision 3"),
-    );
+    const confirmButtons = Array.from(
+      container.querySelectorAll("button"),
+    ).filter((b) => (b.textContent ?? "").includes("Restore as revision 3"));
     await act(async () => {
       confirmButtons[0].click();
     });

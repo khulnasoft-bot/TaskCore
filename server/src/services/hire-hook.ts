@@ -35,7 +35,10 @@ export async function notifyHireApproved(
     .then((rows) => rows[0] ?? null);
 
   if (!row) {
-    logger.warn({ companyId, agentId, source, sourceId }, "hire hook: agent not found in company, skipping");
+    logger.warn(
+      { companyId, agentId, source, sourceId },
+      "hire hook: agent not found in company, skipping",
+    );
     return;
   }
 
@@ -58,7 +61,9 @@ export async function notifyHireApproved(
   };
 
   const adapterConfig =
-    typeof row.adapterConfig === "object" && row.adapterConfig !== null && !Array.isArray(row.adapterConfig)
+    typeof row.adapterConfig === "object" &&
+    row.adapterConfig !== null &&
+    !Array.isArray(row.adapterConfig)
       ? (row.adapterConfig as Record<string, unknown>)
       : {};
 
@@ -78,7 +83,15 @@ export async function notifyHireApproved(
     }
 
     logger.warn(
-      { companyId, agentId, adapterType, source, sourceId, error: result.error, detail: result.detail },
+      {
+        companyId,
+        agentId,
+        adapterType,
+        source,
+        sourceId,
+        error: result.error,
+        detail: result.detail,
+      },
       "hire hook: adapter returned failure",
     );
     await logActivity(db, {
@@ -88,7 +101,13 @@ export async function notifyHireApproved(
       action: "hire_hook.failed",
       entityType: "agent",
       entityId: agentId,
-      details: { source, sourceId, adapterType, error: result.error, detail: result.detail },
+      details: {
+        source,
+        sourceId,
+        adapterType,
+        error: result.error,
+        detail: result.detail,
+      },
     });
   } catch (err) {
     logger.error(

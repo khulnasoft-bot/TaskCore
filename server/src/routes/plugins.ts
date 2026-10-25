@@ -42,9 +42,7 @@ import type {
   PluginBridgeErrorCode,
   PluginLauncherRenderContextSnapshot,
 } from "@taskcore/shared";
-import {
-  PLUGIN_STATUSES,
-} from "@taskcore/shared";
+import { PLUGIN_STATUSES } from "@taskcore/shared";
 import { pluginRegistryService } from "../services/plugin-registry.js";
 import { pluginLifecycleManager } from "../services/plugin-lifecycle.js";
 import {
@@ -61,8 +59,14 @@ import type { PluginJobStore } from "../services/plugin-job-store.js";
 import type { PluginWorkerManager } from "../services/plugin-worker-manager.js";
 import type { PluginStreamBus } from "../services/plugin-stream-bus.js";
 import type { PluginToolDispatcher } from "../services/plugin-tool-dispatcher.js";
-import { ToolGatewayHttpError, type ToolGatewayService } from "../services/tool-gateway.js";
-import type { PluginPerformActionActorContext, ToolRunContext } from "@taskcore/plugin-sdk";
+import {
+  ToolGatewayHttpError,
+  type ToolGatewayService,
+} from "../services/tool-gateway.js";
+import type {
+  PluginPerformActionActorContext,
+  ToolRunContext,
+} from "@taskcore/plugin-sdk";
 import { JsonRpcCallError, PLUGIN_RPC_ERROR_CODES } from "@taskcore/plugin-sdk";
 import {
   assertAuthenticated,
@@ -81,9 +85,7 @@ import {
   requireLocalFolderDeclaration,
   setStoredLocalFolder,
 } from "../services/plugin-local-folders.js";
-import {
-  extractSecretRefBindingsFromConfig,
-} from "../services/plugin-secrets-handler.js";
+import { extractSecretRefBindingsFromConfig } from "../services/plugin-secrets-handler.js";
 import {
   canonicalizeLocalPluginPath,
   isWithinBundledPluginRoot,
@@ -91,7 +93,13 @@ import {
 import { isCloudManagedInstance } from "../services/cloud-instance.js";
 import { getHiddenSettings } from "../services/settings-visibility.js";
 import { secretService } from "../services/secrets.js";
-import { badRequest, forbidden, notFound, unauthorized, unprocessable } from "../errors.js";
+import {
+  badRequest,
+  forbidden,
+  notFound,
+  unauthorized,
+  unprocessable,
+} from "../errors.js";
 
 /**
  * Floor: when the hosting operator hides the Plugins settings surface
@@ -101,16 +109,23 @@ import { badRequest, forbidden, notFound, unauthorized, unprocessable } from "..
  */
 function assertPluginManagementVisible() {
   if (getHiddenSettings().has("instance.plugins")) {
-    throw forbidden("Plugin management is managed by the hosting operator on this instance", {
-      code: "settings_operator_managed",
-    });
+    throw forbidden(
+      "Plugin management is managed by the hosting operator on this instance",
+      {
+        code: "settings_operator_managed",
+      },
+    );
   }
 }
 
 /** UI slot declaration extracted from plugin manifest */
-type PluginUiSlotDeclaration = NonNullable<NonNullable<TaskcorePluginManifestV1["ui"]>["slots"]>[number];
+type PluginUiSlotDeclaration = NonNullable<
+  NonNullable<TaskcorePluginManifestV1["ui"]>["slots"]
+>[number];
 /** Launcher declaration extracted from plugin manifest */
-type PluginLauncherDeclaration = NonNullable<TaskcorePluginManifestV1["launchers"]>[number];
+type PluginLauncherDeclaration = NonNullable<
+  TaskcorePluginManifestV1["launchers"]
+>[number];
 
 /**
  * Normalized UI contribution for frontend slot host consumption.
@@ -210,18 +225,29 @@ function titleCasePluginName(packageName: string): string {
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
-  return access(filePath).then(() => true, () => false);
+  return access(filePath).then(
+    () => true,
+    () => false,
+  );
 }
 
-async function readJsonFile(filePath: string): Promise<Record<string, unknown> | null> {
+async function readJsonFile(
+  filePath: string,
+): Promise<Record<string, unknown> | null> {
   try {
-    return JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+    return JSON.parse(await readFile(filePath, "utf8")) as Record<
+      string,
+      unknown
+    >;
   } catch {
     return null;
   }
 }
 
-async function findPackageJsonFiles(root: string, maxDepth = 4): Promise<string[]> {
+async function findPackageJsonFiles(
+  root: string,
+  maxDepth = 4,
+): Promise<string[]> {
   if (!(await fileExists(root))) return [];
 
   const packageJsonFiles: string[] = [];
@@ -245,12 +271,15 @@ async function findPackageJsonFiles(root: string, maxDepth = 4): Promise<string[
   return packageJsonFiles;
 }
 
-function manifestSourcePath(packageRoot: string, pkgJson: Record<string, unknown>): string | null {
+function manifestSourcePath(
+  packageRoot: string,
+  pkgJson: Record<string, unknown>,
+): string | null {
   const taskcorePlugin = pkgJson.taskcorePlugin;
   if (
-    !taskcorePlugin
-    || typeof taskcorePlugin !== "object"
-    || Array.isArray(taskcorePlugin)
+    !taskcorePlugin ||
+    typeof taskcorePlugin !== "object" ||
+    Array.isArray(taskcorePlugin)
   ) {
     return null;
   }
@@ -280,12 +309,15 @@ async function bundledPluginMetadata(
 
   try {
     const source = await readFile(sourcePath, "utf8");
-    const pluginId = source
-      .match(/(?:export\s+)?const\s+PLUGIN_ID\s*=\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`)/)
-      ?.slice(1)
-      .find(Boolean)
-      ?? firstStringLiteral(source, "id")
-      ?? null;
+    const pluginId =
+      source
+        .match(
+          /(?:export\s+)?const\s+PLUGIN_ID\s*=\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`)/,
+        )
+        ?.slice(1)
+        .find(Boolean) ??
+      firstStringLiteral(source, "id") ??
+      null;
     return {
       pluginKey: pluginId ?? undefined,
       displayName: firstStringLiteral(source, "displayName") ?? undefined,
@@ -296,11 +328,14 @@ async function bundledPluginMetadata(
   }
 }
 
-function isExperimentalBundledPlugin(packageRoot: string, packageName: string): boolean {
+function isExperimentalBundledPlugin(
+  packageRoot: string,
+  packageName: string,
+): boolean {
   return (
-    EXPERIMENTAL_BUNDLED_PLUGIN_PACKAGE_NAMES.has(packageName)
-    || packageRoot.includes(`${path.sep}sandbox-providers${path.sep}`)
-    || packageName.includes("sandbox")
+    EXPERIMENTAL_BUNDLED_PLUGIN_PACKAGE_NAMES.has(packageName) ||
+    packageRoot.includes(`${path.sep}sandbox-providers${path.sep}`) ||
+    packageName.includes("sandbox")
   );
 }
 
@@ -312,10 +347,10 @@ async function discoverBundledPlugins(): Promise<DiscoveredBundledPlugin[]> {
     const pkgJson = await readJsonFile(packageJsonPath);
     const taskcorePlugin = pkgJson?.taskcorePlugin;
     if (
-      !pkgJson
-      || !taskcorePlugin
-      || typeof taskcorePlugin !== "object"
-      || Array.isArray(taskcorePlugin)
+      !pkgJson ||
+      !taskcorePlugin ||
+      typeof taskcorePlugin !== "object" ||
+      Array.isArray(taskcorePlugin)
     ) {
       continue;
     }
@@ -324,14 +359,17 @@ async function discoverBundledPlugins(): Promise<DiscoveredBundledPlugin[]> {
     if (typeof packageName !== "string" || packageName.length === 0) continue;
 
     const metadata = await bundledPluginMetadata(packageRoot, pkgJson);
-    const tag = packageRoot.includes(`${path.sep}examples${path.sep}`) ? "example" : "first-party";
+    const tag = packageRoot.includes(`${path.sep}examples${path.sep}`)
+      ? "example"
+      : "first-party";
     bundledPlugins.push({
       entry: {
         packageName,
         pluginKey: metadata.pluginKey ?? packageName,
         displayName: metadata.displayName ?? titleCasePluginName(packageName),
-        description: metadata.description
-          ?? `Bundled Taskcore plugin from ${path.relative(REPO_ROOT, packageRoot)}.`,
+        description:
+          metadata.description ??
+          `Bundled Taskcore plugin from ${path.relative(REPO_ROOT, packageRoot)}.`,
         localPath: packageRoot,
         tag,
         experimental: isExperimentalBundledPlugin(packageRoot, packageName),
@@ -342,7 +380,8 @@ async function discoverBundledPlugins(): Promise<DiscoveredBundledPlugin[]> {
   }
 
   return bundledPlugins.sort((left, right) => {
-    if (left.entry.tag !== right.entry.tag) return left.entry.tag === "first-party" ? -1 : 1;
+    if (left.entry.tag !== right.entry.tag)
+      return left.entry.tag === "first-party" ? -1 : 1;
     return left.entry.displayName.localeCompare(right.entry.displayName);
   });
 }
@@ -357,7 +396,8 @@ async function listBundledPlugins(): Promise<AvailableBundledPlugin[]> {
   // during install is no longer reported as missing its entrypoints.
   return discovered.map(({ entry, packageRoot, pkgJson }) => ({
     ...entry,
-    hasBuiltEntrypoints: listMissingDeclaredPluginEntrypoints(packageRoot, pkgJson).length === 0,
+    hasBuiltEntrypoints:
+      listMissingDeclaredPluginEntrypoints(packageRoot, pkgJson).length === 0,
   }));
 }
 
@@ -542,7 +582,11 @@ export function pluginRoutes(
   });
   const issuesSvc = issueService(db);
 
-  function matchScopedApiRoute(route: PluginApiRouteDeclaration, method: string, requestPath: string) {
+  function matchScopedApiRoute(
+    route: PluginApiRouteDeclaration,
+    method: string,
+    requestPath: string,
+  ) {
     if (route.method !== method) return null;
     const normalize = (value: string) => value.replace(/\/+$/, "") || "/";
     const routeSegments = normalize(route.path).split("/").filter(Boolean);
@@ -593,7 +637,9 @@ export function pluginRoutes(
     }
   }
 
-  function normalizeQuery(query: Request["query"]): Record<string, string | string[]> {
+  function normalizeQuery(
+    query: Request["query"],
+  ): Record<string, string | string[]> {
     const normalized: Record<string, string | string[]> = {};
     for (const [key, value] of Object.entries(query)) {
       if (typeof value === "string") {
@@ -612,7 +658,8 @@ export function pluginRoutes(
   ) {
     const resolution = route.companyResolution;
     if (!resolution) {
-      if (req.actor.type === "agent" && req.actor.companyId) return req.actor.companyId;
+      if (req.actor.type === "agent" && req.actor.companyId)
+        return req.actor.companyId;
       return null;
     }
 
@@ -644,7 +691,9 @@ export function pluginRoutes(
       return;
     }
     if (route.auth === "webhook") {
-      throw unprocessable("Webhook-scoped plugin API routes require a signature verifier and are not enabled");
+      throw unprocessable(
+        "Webhook-scoped plugin API routes require a signature verifier and are not enabled",
+      );
     }
     assertAuthenticated(req);
     if (req.actor.type !== "board" && req.actor.type !== "agent") {
@@ -662,14 +711,20 @@ export function pluginRoutes(
     if (policy === "none" || req.actor.type !== "agent") return;
     const issueId = params.issueId;
     if (!issueId) {
-      throw unprocessable("Checkout-protected plugin API routes require an issueId route parameter");
+      throw unprocessable(
+        "Checkout-protected plugin API routes require an issueId route parameter",
+      );
     }
     const issue = await issuesSvc.getById(issueId);
     if (!issue || issue.companyId !== companyId) {
       throw notFound("Issue not found");
     }
     if (policy === "required-for-agent-in-progress") {
-      if (issue.status !== "in_progress" || issue.assigneeAgentId !== req.actor.agentId) return;
+      if (
+        issue.status !== "in_progress" ||
+        issue.assigneeAgentId !== req.actor.agentId
+      )
+        return;
     }
     const runId = req.actor.runId?.trim();
     if (!runId) {
@@ -683,9 +738,7 @@ export function pluginRoutes(
 
   async function resolvePluginAuditCompanyIds(req: Request): Promise<string[]> {
     if (typeof (db as { select?: unknown }).select === "function") {
-      const rows = await db
-        .select({ id: companies.id })
-        .from(companies);
+      const rows = await db.select({ id: companies.id }).from(companies);
       return rows.map((row) => row.id);
     }
 
@@ -710,22 +763,28 @@ export function pluginRoutes(
     if (companyIds.length === 0) return;
 
     const actor = getActorInfo(req);
-    await Promise.all(companyIds.map((companyId) =>
-      logActivity(db, {
-        companyId,
-        actorType: actor.actorType,
-        actorId: actor.actorId,
-        agentId: actor.agentId,
-        runId: actor.runId,
-        agentApiKeyId: actor.agentApiKeyId,
-        action,
-        entityType: "plugin",
-        entityId,
-        details,
-      })));
+    await Promise.all(
+      companyIds.map((companyId) =>
+        logActivity(db, {
+          companyId,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          agentId: actor.agentId,
+          runId: actor.runId,
+          agentApiKeyId: actor.agentApiKeyId,
+          action,
+          entityType: "plugin",
+          entityId,
+          details,
+        }),
+      ),
+    );
   }
 
-  function assertPluginBridgeScope(req: Request, companyId: unknown): string | undefined {
+  function assertPluginBridgeScope(
+    req: Request,
+    companyId: unknown,
+  ): string | undefined {
     if (companyId === undefined || companyId === null) {
       assertInstanceAdmin(req);
       return undefined;
@@ -737,9 +796,14 @@ export function pluginRoutes(
     return companyId;
   }
 
-  function requirePluginConfigCompanyId(req: Request, companyId: unknown): string {
+  function requirePluginConfigCompanyId(
+    req: Request,
+    companyId: unknown,
+  ): string {
     if (typeof companyId !== "string" || companyId.trim().length === 0) {
-      throw badRequest('"companyId" is required and must be a non-empty string');
+      throw badRequest(
+        '"companyId" is required and must be a non-empty string',
+      );
     }
     const scopedCompanyId = companyId.trim();
     assertCompanyAccess(req, scopedCompanyId);
@@ -758,7 +822,9 @@ export function pluginRoutes(
       checked.add(ref.secretId);
       const secret = await secretsSvc.getById(ref.secretId);
       if (!secret || secret.companyId !== companyId) {
-        throw unprocessable("Plugin config references a secret outside the selected company");
+        throw unprocessable(
+          "Plugin config references a secret outside the selected company",
+        );
       }
       if (secret.status === "deleted") {
         throw unprocessable("Plugin config references a deleted secret");
@@ -766,7 +832,10 @@ export function pluginRoutes(
     }
   }
 
-  function performActionActorContext(req: Request, companyId: string | undefined): PluginPerformActionActorContext {
+  function performActionActorContext(
+    req: Request,
+    companyId: string | undefined,
+  ): PluginPerformActionActorContext {
     const scopedCompanyId = companyId ?? null;
     if (req.actor.type === "agent") {
       return {
@@ -803,7 +872,9 @@ export function pluginRoutes(
     return companyId === undefined ? base : { ...base, companyId };
   }
 
-  async function validateToolRunContextScope(runContext: ToolRunContext): Promise<string | null> {
+  async function validateToolRunContextScope(
+    runContext: ToolRunContext,
+  ): Promise<string | null> {
     const [agent] = await db
       .select({ companyId: agents.companyId })
       .from(agents)
@@ -814,7 +885,10 @@ export function pluginRoutes(
     }
 
     const [run] = await db
-      .select({ companyId: heartbeatRuns.companyId, agentId: heartbeatRuns.agentId })
+      .select({
+        companyId: heartbeatRuns.companyId,
+        agentId: heartbeatRuns.agentId,
+      })
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.id, runContext.runId))
       .limit(1);
@@ -854,7 +928,10 @@ export function pluginRoutes(
     assertBoardOrgAccess(req);
     const rawStatus = req.query.status;
     if (rawStatus !== undefined) {
-      if (typeof rawStatus !== "string" || !(PLUGIN_STATUSES as readonly string[]).includes(rawStatus)) {
+      if (
+        typeof rawStatus !== "string" ||
+        !(PLUGIN_STATUSES as readonly string[]).includes(rawStatus)
+      ) {
         res.status(400).json({
           error: `Invalid status '${String(rawStatus)}'. Must be one of: ${PLUGIN_STATUSES.join(", ")}`,
         });
@@ -980,7 +1057,15 @@ export function pluginRoutes(
         companyId: req.actor.companyId,
         agentId: req.actor.agentId,
       });
-      res.json(pluginId ? tools.filter((tool) => tool.pluginId === pluginId || tool.name.startsWith(`${pluginId}:`)) : tools);
+      res.json(
+        pluginId
+          ? tools.filter(
+              (tool) =>
+                tool.pluginId === pluginId ||
+                tool.name.startsWith(`${pluginId}:`),
+            )
+          : tools,
+      );
       return;
     }
 
@@ -1017,7 +1102,7 @@ export function pluginRoutes(
       return;
     }
 
-    const body = (req.body as PluginToolExecuteRequest | undefined);
+    const body = req.body as PluginToolExecuteRequest | undefined;
     if (!body) {
       res.status(400).json({ error: "Request body is required" });
       return;
@@ -1027,18 +1112,28 @@ export function pluginRoutes(
 
     // Validate required fields
     if (!tool || typeof tool !== "string") {
-      res.status(400).json({ error: '"tool" is required and must be a string' });
+      res
+        .status(400)
+        .json({ error: '"tool" is required and must be a string' });
       return;
     }
 
     if (!runContext || typeof runContext !== "object") {
-      res.status(400).json({ error: '"runContext" is required and must be an object' });
+      res
+        .status(400)
+        .json({ error: '"runContext" is required and must be an object' });
       return;
     }
 
-    if (!runContext.agentId || !runContext.runId || !runContext.companyId || !runContext.projectId) {
+    if (
+      !runContext.agentId ||
+      !runContext.runId ||
+      !runContext.companyId ||
+      !runContext.projectId
+    ) {
       res.status(400).json({
-        error: '"runContext" must include agentId, runId, companyId, and projectId',
+        error:
+          '"runContext" must include agentId, runId, companyId, and projectId',
       });
       return;
     }
@@ -1066,7 +1161,13 @@ export function pluginRoutes(
         res.json(result);
       } catch (err) {
         if (err instanceof ToolGatewayHttpError) {
-          res.status(err.status).json({ error: err.message, reasonCode: err.reasonCode, ...err.details });
+          res
+            .status(err.status)
+            .json({
+              error: err.message,
+              reasonCode: err.reasonCode,
+              ...err.details,
+            });
           return;
         }
         const message = err instanceof Error ? err.message : String(err);
@@ -1141,11 +1242,14 @@ export function pluginRoutes(
   router.post("/plugins/install", async (req, res) => {
     assertInstanceAdmin(req);
     assertPluginManagementVisible();
-    const { packageName, version, isLocalPath } = req.body as PluginInstallRequest;
+    const { packageName, version, isLocalPath } =
+      req.body as PluginInstallRequest;
 
     // Input validation
     if (!packageName || typeof packageName !== "string") {
-      res.status(400).json({ error: "packageName is required and must be a string" });
+      res
+        .status(400)
+        .json({ error: "packageName is required and must be a string" });
       return;
     }
 
@@ -1155,7 +1259,9 @@ export function pluginRoutes(
     }
 
     if (isLocalPath !== undefined && typeof isLocalPath !== "boolean") {
-      res.status(400).json({ error: "isLocalPath must be a boolean if provided" });
+      res
+        .status(400)
+        .json({ error: "isLocalPath must be a boolean if provided" });
       return;
     }
 
@@ -1168,7 +1274,9 @@ export function pluginRoutes(
 
     // Basic security check for package name (prevent injection)
     if (!isLocalPath && /[<>:"|?*]/.test(trimmedPackage)) {
-      res.status(400).json({ error: "packageName contains invalid characters" });
+      res
+        .status(400)
+        .json({ error: "packageName contains invalid characters" });
       return;
     }
 
@@ -1189,10 +1297,15 @@ export function pluginRoutes(
     if (isLocalPath) {
       const validated = await canonicalizeLocalPluginPath(trimmedPackage);
       if (!validated.ok) {
-        res.status(400).json({ error: `Invalid localPath: ${validated.reason}` });
+        res
+          .status(400)
+          .json({ error: `Invalid localPath: ${validated.reason}` });
         return;
       }
-      if (cloudManaged && !(await isWithinBundledPluginRoot(validated.canonicalPath))) {
+      if (
+        cloudManaged &&
+        !(await isWithinBundledPluginRoot(validated.canonicalPath))
+      ) {
         res.status(403).json({
           error:
             "cloud-managed instances may only install plugins from the bundled plugin catalog",
@@ -1203,14 +1316,17 @@ export function pluginRoutes(
     }
 
     try {
-      const installOptions = canonicalLocalPath !== undefined
-        ? { localPath: canonicalLocalPath }
-        : { packageName: trimmedPackage, version: version?.trim() };
+      const installOptions =
+        canonicalLocalPath !== undefined
+          ? { localPath: canonicalLocalPath }
+          : { packageName: trimmedPackage, version: version?.trim() };
 
       const discovered = await loader.installPlugin(installOptions);
 
       if (!discovered.manifest) {
-        res.status(500).json({ error: "Plugin installed but manifest is missing" });
+        res
+          .status(500)
+          .json({ error: "Plugin installed but manifest is missing" });
         return;
       }
 
@@ -1219,18 +1335,28 @@ export function pluginRoutes(
       if (existingPlugin) {
         await lifecycle.load(existingPlugin.id);
         const updated = await registry.getById(existingPlugin.id);
-        await logPluginMutationActivity(req, "plugin.installed", existingPlugin.id, {
-          pluginId: existingPlugin.id,
-          pluginKey: existingPlugin.pluginKey,
-          packageName: updated?.packageName ?? existingPlugin.packageName,
-          version: updated?.version ?? existingPlugin.version,
-          source: isLocalPath ? "local_path" : "npm",
+        await logPluginMutationActivity(
+          req,
+          "plugin.installed",
+          existingPlugin.id,
+          {
+            pluginId: existingPlugin.id,
+            pluginKey: existingPlugin.pluginKey,
+            packageName: updated?.packageName ?? existingPlugin.packageName,
+            version: updated?.version ?? existingPlugin.version,
+            source: isLocalPath ? "local_path" : "npm",
+          },
+        );
+        publishGlobalLiveEvent({
+          type: "plugin.ui.updated",
+          payload: { pluginId: existingPlugin.id, action: "installed" },
         });
-        publishGlobalLiveEvent({ type: "plugin.ui.updated", payload: { pluginId: existingPlugin.id, action: "installed" } });
         res.json(updated);
       } else {
         // This shouldn't happen since installPlugin already registers in the DB
-        res.status(500).json({ error: "Plugin installed but not found in registry" });
+        res
+          .status(500)
+          .json({ error: "Plugin installed but not found in registry" });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1418,11 +1544,17 @@ export function pluginRoutes(
         code: "WORKER_UNAVAILABLE",
         message: `Plugin is not ready (current status: ${plugin.status})`,
       };
-      attachPluginBridgeErrorContext(req, res, new Error(bridgeError.message), bridgeError, {
-        pluginId: plugin.id,
-        pluginKey: plugin.pluginKey,
-        bridgeMethod: "getData",
-      });
+      attachPluginBridgeErrorContext(
+        req,
+        res,
+        new Error(bridgeError.message),
+        bridgeError,
+        {
+          pluginId: plugin.id,
+          pluginKey: plugin.pluginKey,
+          bridgeMethod: "getData",
+        },
+      );
       res.status(502).json(bridgeError);
       return;
     }
@@ -1437,16 +1569,12 @@ export function pluginRoutes(
     const companyId = assertPluginBridgeScope(req, body.companyId);
 
     try {
-      const result = await bridgeDeps.workerManager.call(
-        plugin.id,
-        "getData",
-        {
-          key: body.key,
-          ...(companyId ? { companyId } : {}),
-          params: body.params ?? {},
-          renderEnvironment: body.renderEnvironment ?? null,
-        },
-      );
+      const result = await bridgeDeps.workerManager.call(plugin.id, "getData", {
+        key: body.key,
+        ...(companyId ? { companyId } : {}),
+        params: body.params ?? {},
+        renderEnvironment: body.renderEnvironment ?? null,
+      });
       res.json({ data: result });
     } catch (err) {
       const bridgeError = mapRpcErrorToBridgeError(err);
@@ -1511,11 +1639,17 @@ export function pluginRoutes(
         code: "WORKER_UNAVAILABLE",
         message: `Plugin is not ready (current status: ${plugin.status})`,
       };
-      attachPluginBridgeErrorContext(req, res, new Error(bridgeError.message), bridgeError, {
-        pluginId: plugin.id,
-        pluginKey: plugin.pluginKey,
-        bridgeMethod: "performAction",
-      });
+      attachPluginBridgeErrorContext(
+        req,
+        res,
+        new Error(bridgeError.message),
+        bridgeError,
+        {
+          pluginId: plugin.id,
+          pluginKey: plugin.pluginKey,
+          bridgeMethod: "performAction",
+        },
+      );
       res.status(502).json(bridgeError);
       return;
     }
@@ -1535,7 +1669,10 @@ export function pluginRoutes(
         "performAction",
         {
           key: body.key,
-          params: actionParamsWithAuthorizedCompanyScope(body.params, companyId),
+          params: actionParamsWithAuthorizedCompanyScope(
+            body.params,
+            companyId,
+          ),
           actorContext: performActionActorContext(req, companyId),
           renderEnvironment: body.renderEnvironment ?? null,
         },
@@ -1605,35 +1742,39 @@ export function pluginRoutes(
         code: "WORKER_UNAVAILABLE",
         message: `Plugin is not ready (current status: ${plugin.status})`,
       };
-      attachPluginBridgeErrorContext(req, res, new Error(bridgeError.message), bridgeError, {
-        pluginId: plugin.id,
-        pluginKey: plugin.pluginKey,
-        bridgeMethod: "getData",
-        dataKey: key,
-      });
+      attachPluginBridgeErrorContext(
+        req,
+        res,
+        new Error(bridgeError.message),
+        bridgeError,
+        {
+          pluginId: plugin.id,
+          pluginKey: plugin.pluginKey,
+          bridgeMethod: "getData",
+          dataKey: key,
+        },
+      );
       res.status(502).json(bridgeError);
       return;
     }
 
-    const body = req.body as {
-      companyId?: string;
-      params?: Record<string, unknown>;
-      renderEnvironment?: PluginLauncherRenderContextSnapshot | null;
-    } | undefined;
+    const body = req.body as
+      | {
+          companyId?: string;
+          params?: Record<string, unknown>;
+          renderEnvironment?: PluginLauncherRenderContextSnapshot | null;
+        }
+      | undefined;
 
     const companyId = assertPluginBridgeScope(req, body?.companyId);
 
     try {
-      const result = await bridgeDeps.workerManager.call(
-        plugin.id,
-        "getData",
-        {
-          key,
-          ...(companyId ? { companyId } : {}),
-          params: body?.params ?? {},
-          renderEnvironment: body?.renderEnvironment ?? null,
-        },
-      );
+      const result = await bridgeDeps.workerManager.call(plugin.id, "getData", {
+        key,
+        ...(companyId ? { companyId } : {}),
+        params: body?.params ?? {},
+        renderEnvironment: body?.renderEnvironment ?? null,
+      });
       res.json({ data: result });
     } catch (err) {
       const bridgeError = mapRpcErrorToBridgeError(err);
@@ -1695,21 +1836,29 @@ export function pluginRoutes(
         code: "WORKER_UNAVAILABLE",
         message: `Plugin is not ready (current status: ${plugin.status})`,
       };
-      attachPluginBridgeErrorContext(req, res, new Error(bridgeError.message), bridgeError, {
-        pluginId: plugin.id,
-        pluginKey: plugin.pluginKey,
-        bridgeMethod: "performAction",
-        actionKey: key,
-      });
+      attachPluginBridgeErrorContext(
+        req,
+        res,
+        new Error(bridgeError.message),
+        bridgeError,
+        {
+          pluginId: plugin.id,
+          pluginKey: plugin.pluginKey,
+          bridgeMethod: "performAction",
+          actionKey: key,
+        },
+      );
       res.status(502).json(bridgeError);
       return;
     }
 
-    const body = req.body as {
-      companyId?: string;
-      params?: Record<string, unknown>;
-      renderEnvironment?: PluginLauncherRenderContextSnapshot | null;
-    } | undefined;
+    const body = req.body as
+      | {
+          companyId?: string;
+          params?: Record<string, unknown>;
+          renderEnvironment?: PluginLauncherRenderContextSnapshot | null;
+        }
+      | undefined;
 
     const companyId = assertPluginBridgeScope(req, body?.companyId);
 
@@ -1719,7 +1868,10 @@ export function pluginRoutes(
         "performAction",
         {
           key,
-          params: actionParamsWithAuthorizedCompanyScope(body?.params, companyId),
+          params: actionParamsWithAuthorizedCompanyScope(
+            body?.params,
+            companyId,
+          ),
           actorContext: performActionActorContext(req, companyId),
           renderEnvironment: body?.renderEnvironment ?? null,
         },
@@ -1776,7 +1928,9 @@ export function pluginRoutes(
     const companyId = req.query.companyId as string | undefined;
 
     if (!companyId) {
-      res.status(400).json({ error: '"companyId" query parameter is required' });
+      res
+        .status(400)
+        .json({ error: '"companyId" query parameter is required' });
       return;
     }
 
@@ -1792,7 +1946,7 @@ export function pluginRoutes(
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     });
     res.flushHeaders();
@@ -1832,7 +1986,9 @@ export function pluginRoutes(
 
   router.use("/plugins/:pluginId/api", async (req, res) => {
     if (!bridgeDeps) {
-      res.status(501).json({ error: "Plugin scoped API routes are not enabled" });
+      res
+        .status(501)
+        .json({ error: "Plugin scoped API routes are not enabled" });
       return;
     }
 
@@ -1843,25 +1999,35 @@ export function pluginRoutes(
       return;
     }
     if (plugin.status !== "ready") {
-      res.status(503).json({ error: `Plugin is not ready (current status: ${plugin.status})` });
+      res
+        .status(503)
+        .json({
+          error: `Plugin is not ready (current status: ${plugin.status})`,
+        });
       return;
     }
-    const isWorkerRunning = typeof bridgeDeps.workerManager.isRunning === "function"
-      ? bridgeDeps.workerManager.isRunning(plugin.id)
-      : true;
+    const isWorkerRunning =
+      typeof bridgeDeps.workerManager.isRunning === "function"
+        ? bridgeDeps.workerManager.isRunning(plugin.id)
+        : true;
     if (!isWorkerRunning) {
       res.status(503).json({ error: "Plugin worker is not running" });
       return;
     }
     if (!plugin.manifestJson.capabilities.includes("api.routes.register")) {
-      res.status(404).json({ error: "Plugin does not expose scoped API routes" });
+      res
+        .status(404)
+        .json({ error: "Plugin does not expose scoped API routes" });
       return;
     }
 
     const requestPath = req.path || "/";
     const routes = plugin.manifestJson.apiRoutes ?? [];
     const match = routes
-      .map((route) => ({ route, params: matchScopedApiRoute(route, req.method, requestPath) }))
+      .map((route) => ({
+        route,
+        params: matchScopedApiRoute(route, req.method, requestPath),
+      }))
       .find((candidate) => candidate.params !== null);
     if (!match || !match.params) {
       res.status(404).json({ error: "Plugin API route not found" });
@@ -1870,15 +2036,27 @@ export function pluginRoutes(
 
     try {
       assertScopedApiAuth(req, match.route);
-      const companyId = await resolveScopedApiCompanyId(match.route, match.params, req);
+      const companyId = await resolveScopedApiCompanyId(
+        match.route,
+        match.params,
+        req,
+      );
       if (!companyId) {
-        res.status(400).json({ error: "Unable to resolve company for plugin API route" });
+        res
+          .status(400)
+          .json({ error: "Unable to resolve company for plugin API route" });
         return;
       }
       assertCompanyAccess(req, companyId);
       await enforceScopedApiCheckout(req, match.route, match.params, companyId);
-      if (req.method !== "GET" && req.headers["content-type"] && !req.is("application/json")) {
-        res.status(415).json({ error: "Plugin API routes accept JSON requests only" });
+      if (
+        req.method !== "GET" &&
+        req.headers["content-type"] &&
+        !req.is("application/json")
+      ) {
+        res
+          .status(415)
+          .json({ error: "Plugin API routes accept JSON requests only" });
         return;
       }
       const requestBody = req.body ?? null;
@@ -1907,14 +2085,17 @@ export function pluginRoutes(
         headers: sanitizePluginRequestHeaders(req),
       };
 
-      const result = await bridgeDeps.workerManager.call(
+      const result = (await bridgeDeps.workerManager.call(
         plugin.id,
         "handleApiRequest",
         input,
-      ) as PluginScopedApiResponse;
-      const status = Number.isInteger(result.status) && Number(result.status) >= 200 && Number(result.status) <= 599
-        ? Number(result.status)
-        : 200;
+      )) as PluginScopedApiResponse;
+      const status =
+        Number.isInteger(result.status) &&
+        Number(result.status) >= 200 &&
+        Number(result.status) <= 599
+          ? Number(result.status)
+          : 200;
       applyPluginScopedApiResponseHeaders(res, result.headers);
       if (status === 204) {
         res.status(status).end();
@@ -1922,18 +2103,19 @@ export function pluginRoutes(
         res.status(status).json(result.body ?? null);
       }
     } catch (err) {
-      const status = typeof (err as { status?: unknown }).status === "number"
-        ? (err as { status: number }).status
-        : err instanceof JsonRpcCallError && (
-          err.code === PLUGIN_RPC_ERROR_CODES.CAPABILITY_DENIED ||
-          err.code === PLUGIN_RPC_ERROR_CODES.INVOCATION_SCOPE_DENIED
-        )
-          ? 403
-          : err instanceof JsonRpcCallError && err.code === PLUGIN_RPC_ERROR_CODES.METHOD_NOT_IMPLEMENTED
-            ? 501
-            : err instanceof JsonRpcCallError
-              ? 502
-              : 500;
+      const status =
+        typeof (err as { status?: unknown }).status === "number"
+          ? (err as { status: number }).status
+          : err instanceof JsonRpcCallError &&
+              (err.code === PLUGIN_RPC_ERROR_CODES.CAPABILITY_DENIED ||
+                err.code === PLUGIN_RPC_ERROR_CODES.INVOCATION_SCOPE_DENIED)
+            ? 403
+            : err instanceof JsonRpcCallError &&
+                err.code === PLUGIN_RPC_ERROR_CODES.METHOD_NOT_IMPLEMENTED
+              ? 501
+              : err instanceof JsonRpcCallError
+                ? 502
+                : 500;
       res.status(status).json({
         error: err instanceof Error ? err.message : String(err),
       });
@@ -2001,7 +2183,10 @@ export function pluginRoutes(
         pluginKey: plugin.pluginKey,
         purge,
       });
-      publishGlobalLiveEvent({ type: "plugin.ui.updated", payload: { pluginId: plugin.id, action: "uninstalled" } });
+      publishGlobalLiveEvent({
+        type: "plugin.ui.updated",
+        payload: { pluginId: plugin.id, action: "uninstalled" },
+      });
       res.json(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2037,7 +2222,10 @@ export function pluginRoutes(
         pluginKey: plugin.pluginKey,
         version: result?.version ?? plugin.version,
       });
-      publishGlobalLiveEvent({ type: "plugin.ui.updated", payload: { pluginId: plugin.id, action: "enabled" } });
+      publishGlobalLiveEvent({
+        type: "plugin.ui.updated",
+        payload: { pluginId: plugin.id, action: "enabled" },
+      });
       res.json(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2078,7 +2266,10 @@ export function pluginRoutes(
         pluginKey: plugin.pluginKey,
         reason: reason ?? null,
       });
-      publishGlobalLiveEvent({ type: "plugin.ui.updated", payload: { pluginId: plugin.id, action: "disabled" } });
+      publishGlobalLiveEvent({
+        type: "plugin.ui.updated",
+        payload: { pluginId: plugin.id, action: "disabled" },
+      });
       res.json(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2124,7 +2315,9 @@ export function pluginRoutes(
     checks.push({
       name: "manifest",
       passed: hasValidManifest,
-      message: hasValidManifest ? "Manifest is valid" : "Manifest is invalid or missing",
+      message: hasValidManifest
+        ? "Manifest is valid"
+        : "Manifest is invalid or missing",
     });
 
     // Check 3: Plugin status
@@ -2178,7 +2371,10 @@ export function pluginRoutes(
       return;
     }
 
-    const limit = Math.min(Math.max(parseInt(req.query.limit as string, 10) || 25, 1), 500);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit as string, 10) || 25, 1),
+      500,
+    );
     const level = req.query.level as string | undefined;
     const since = req.query.since as string | undefined;
 
@@ -2248,7 +2444,10 @@ export function pluginRoutes(
         version: result?.version ?? plugin.version,
         targetVersion: version ?? null,
       });
-      publishGlobalLiveEvent({ type: "plugin.ui.updated", payload: { pluginId: plugin.id, action: "upgraded" } });
+      publishGlobalLiveEvent({
+        type: "plugin.ui.updated",
+        payload: { pluginId: plugin.id, action: "upgraded" },
+      });
       res.json(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2314,10 +2513,17 @@ export function pluginRoutes(
       return;
     }
 
-    const body = req.body as { companyId?: unknown; configJson?: Record<string, unknown> } | undefined;
+    const body = req.body as
+      { companyId?: unknown; configJson?: Record<string, unknown> } | undefined;
     const companyId = requirePluginConfigCompanyId(req, body?.companyId);
-    if (!body?.configJson || typeof body.configJson !== "object" || Array.isArray(body.configJson)) {
-      res.status(400).json({ error: '"configJson" is required and must be an object' });
+    if (
+      !body?.configJson ||
+      typeof body.configJson !== "object" ||
+      Array.isArray(body.configJson)
+    ) {
+      res
+        .status(400)
+        .json({ error: '"configJson" is required and must be an object' });
       return;
     }
 
@@ -2338,7 +2544,8 @@ export function pluginRoutes(
       const validation = validateInstanceConfig(body.configJson, schema);
       if (!validation.valid) {
         res.status(400).json({
-          error: "Configuration does not match the plugin's instanceConfigSchema",
+          error:
+            "Configuration does not match the plugin's instanceConfigSchema",
           fieldErrors: validation.errors,
         });
         return;
@@ -2346,7 +2553,10 @@ export function pluginRoutes(
     }
 
     try {
-      const secretRefs = extractSecretRefBindingsFromConfig(body.configJson, schema);
+      const secretRefs = extractSecretRefBindingsFromConfig(
+        body.configJson,
+        schema,
+      );
       await validatePluginSecretRefsForCompany(companyId, secretRefs);
       await secretService(db).syncSecretRefsForTarget(
         companyId,
@@ -2387,11 +2597,10 @@ export function pluginRoutes(
         }
 
         try {
-          await bridgeDeps.workerManager.call(
-            plugin.id,
-            "configChanged",
-            { config: body.configJson, companyId },
-          );
+          await bridgeDeps.workerManager.call(plugin.id, "configChanged", {
+            config: body.configJson,
+            companyId,
+          });
         } catch (rpcErr) {
           if (
             rpcErr instanceof JsonRpcCallError &&
@@ -2460,10 +2669,17 @@ export function pluginRoutes(
       return;
     }
 
-    const body = req.body as { companyId?: unknown; configJson?: Record<string, unknown> } | undefined;
+    const body = req.body as
+      { companyId?: unknown; configJson?: Record<string, unknown> } | undefined;
     const companyId = requirePluginConfigCompanyId(req, body?.companyId);
-    if (!body?.configJson || typeof body.configJson !== "object" || Array.isArray(body.configJson)) {
-      res.status(400).json({ error: '"configJson" is required and must be an object' });
+    if (
+      !body?.configJson ||
+      typeof body.configJson !== "object" ||
+      Array.isArray(body.configJson)
+    ) {
+      res
+        .status(400)
+        .json({ error: '"configJson" is required and must be an object' });
       return;
     }
 
@@ -2473,7 +2689,8 @@ export function pluginRoutes(
       const validation = validateInstanceConfig(body.configJson, schema);
       if (!validation.valid) {
         res.status(400).json({
-          error: "Configuration does not match the plugin's instanceConfigSchema",
+          error:
+            "Configuration does not match the plugin's instanceConfigSchema",
           fieldErrors: validation.errors,
         });
         return;
@@ -2481,7 +2698,10 @@ export function pluginRoutes(
     }
 
     try {
-      const secretRefs = extractSecretRefBindingsFromConfig(body.configJson, schema);
+      const secretRefs = extractSecretRefBindingsFromConfig(
+        body.configJson,
+        schema,
+      );
       await validatePluginSecretRefsForCompany(companyId, secretRefs);
 
       const result = await bridgeDeps.workerManager.call(
@@ -2604,9 +2824,13 @@ export function pluginRoutes(
       return;
     }
 
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 25;
+    const limit = req.query.limit
+      ? parseInt(req.query.limit as string, 10)
+      : 25;
     if (isNaN(limit) || limit < 1 || limit > 500) {
-      res.status(400).json({ error: "limit must be a number between 1 and 500" });
+      res
+        .status(400)
+        .json({ error: "limit must be a number between 1 and 500" });
       return;
     }
 
@@ -2826,148 +3050,196 @@ export function pluginRoutes(
   // Company-scoped trusted local folders
   // ===========================================================================
 
-  router.get("/plugins/:pluginId/companies/:companyId/local-folders", async (req, res) => {
-    assertBoardOrgAccess(req);
-    const { pluginId, companyId } = req.params;
-    assertCompanyAccess(req, companyId);
+  router.get(
+    "/plugins/:pluginId/companies/:companyId/local-folders",
+    async (req, res) => {
+      assertBoardOrgAccess(req);
+      const { pluginId, companyId } = req.params;
+      assertCompanyAccess(req, companyId);
 
-    const plugin = await resolvePlugin(registry, pluginId);
-    if (!plugin) {
-      res.status(404).json({ error: "Plugin not found" });
-      return;
-    }
+      const plugin = await resolvePlugin(registry, pluginId);
+      if (!plugin) {
+        res.status(404).json({ error: "Plugin not found" });
+        return;
+      }
 
-    const settings = await registry.getCompanySettings(plugin.id, companyId);
-    const storedFolders = getStoredLocalFolders(settings?.settingsJson);
-    const declarations = plugin.manifestJson.localFolders ?? [];
-    const folderKeys = declarations.map((declaration) => declaration.folderKey);
+      const settings = await registry.getCompanySettings(plugin.id, companyId);
+      const storedFolders = getStoredLocalFolders(settings?.settingsJson);
+      const declarations = plugin.manifestJson.localFolders ?? [];
+      const folderKeys = declarations.map(
+        (declaration) => declaration.folderKey,
+      );
 
-    const statuses = await Promise.all(folderKeys.map((folderKey) =>
-      inspectPluginLocalFolder({
+      const statuses = await Promise.all(
+        folderKeys.map((folderKey) =>
+          inspectPluginLocalFolder({
+            folderKey,
+            declaration: findLocalFolderDeclaration(declarations, folderKey),
+            storedConfig: storedFolders[folderKey] ?? null,
+          }),
+        ),
+      );
+
+      res.json({
+        pluginId: plugin.id,
+        companyId,
+        declarations,
+        folders: statuses,
+      });
+    },
+  );
+
+  router.get(
+    "/plugins/:pluginId/companies/:companyId/local-folders/:folderKey/status",
+    async (req, res) => {
+      assertBoardOrgAccess(req);
+      const { pluginId, companyId, folderKey } = req.params;
+      assertCompanyAccess(req, companyId);
+
+      const plugin = await resolvePlugin(registry, pluginId);
+      if (!plugin) {
+        res.status(404).json({ error: "Plugin not found" });
+        return;
+      }
+
+      const settings = await registry.getCompanySettings(plugin.id, companyId);
+      const storedFolders = getStoredLocalFolders(settings?.settingsJson);
+      const declarations = plugin.manifestJson.localFolders ?? [];
+      const declaration = requireLocalFolderDeclaration(
+        declarations,
         folderKey,
-        declaration: findLocalFolderDeclaration(declarations, folderKey),
+      );
+      const status = await inspectPluginLocalFolder({
+        folderKey,
+        declaration,
         storedConfig: storedFolders[folderKey] ?? null,
-      })));
+      });
+      res.json(status);
+    },
+  );
 
-    res.json({
-      pluginId: plugin.id,
-      companyId,
-      declarations,
-      folders: statuses,
-    });
-  });
+  router.post(
+    "/plugins/:pluginId/companies/:companyId/local-folders/:folderKey/validate",
+    async (req, res) => {
+      assertBoardOrgAccess(req);
+      const { pluginId, companyId, folderKey } = req.params;
+      assertCompanyAccess(req, companyId);
 
-  router.get("/plugins/:pluginId/companies/:companyId/local-folders/:folderKey/status", async (req, res) => {
-    assertBoardOrgAccess(req);
-    const { pluginId, companyId, folderKey } = req.params;
-    assertCompanyAccess(req, companyId);
+      const plugin = await resolvePlugin(registry, pluginId);
+      if (!plugin) {
+        res.status(404).json({ error: "Plugin not found" });
+        return;
+      }
 
-    const plugin = await resolvePlugin(registry, pluginId);
-    if (!plugin) {
-      res.status(404).json({ error: "Plugin not found" });
-      return;
-    }
+      const body = req.body as
+        | {
+            path?: unknown;
+            access?: "read" | "readWrite";
+            requiredDirectories?: string[];
+            requiredFiles?: string[];
+          }
+        | undefined;
+      if (typeof body?.path !== "string" || body.path.trim().length === 0) {
+        res
+          .status(400)
+          .json({ error: '"path" is required and must be a non-empty string' });
+        return;
+      }
 
-    const settings = await registry.getCompanySettings(plugin.id, companyId);
-    const storedFolders = getStoredLocalFolders(settings?.settingsJson);
-    const declarations = plugin.manifestJson.localFolders ?? [];
-    const declaration = requireLocalFolderDeclaration(declarations, folderKey);
-    const status = await inspectPluginLocalFolder({
-      folderKey,
-      declaration,
-      storedConfig: storedFolders[folderKey] ?? null,
-    });
-    res.json(status);
-  });
+      const declaration = requireLocalFolderDeclaration(
+        plugin.manifestJson.localFolders ?? [],
+        folderKey,
+      );
+      const status = await inspectPluginLocalFolder({
+        folderKey,
+        declaration,
+        overrideConfig: {
+          path: body.path,
+        },
+      });
+      res.json(status);
+    },
+  );
 
-  router.post("/plugins/:pluginId/companies/:companyId/local-folders/:folderKey/validate", async (req, res) => {
-    assertBoardOrgAccess(req);
-    const { pluginId, companyId, folderKey } = req.params;
-    assertCompanyAccess(req, companyId);
+  router.put(
+    "/plugins/:pluginId/companies/:companyId/local-folders/:folderKey",
+    async (req, res) => {
+      assertBoardOrgAccess(req);
+      assertPluginManagementVisible();
+      const { pluginId, companyId, folderKey } = req.params;
+      assertCompanyAccess(req, companyId);
 
-    const plugin = await resolvePlugin(registry, pluginId);
-    if (!plugin) {
-      res.status(404).json({ error: "Plugin not found" });
-      return;
-    }
+      const plugin = await resolvePlugin(registry, pluginId);
+      if (!plugin) {
+        res.status(404).json({ error: "Plugin not found" });
+        return;
+      }
 
-    const body = req.body as {
-      path?: unknown;
-      access?: "read" | "readWrite";
-      requiredDirectories?: string[];
-      requiredFiles?: string[];
-    } | undefined;
-    if (typeof body?.path !== "string" || body.path.trim().length === 0) {
-      res.status(400).json({ error: '"path" is required and must be a non-empty string' });
-      return;
-    }
+      const body = req.body as
+        | {
+            path?: unknown;
+            access?: "read" | "readWrite";
+            requiredDirectories?: string[];
+            requiredFiles?: string[];
+          }
+        | undefined;
+      if (typeof body?.path !== "string" || body.path.trim().length === 0) {
+        res
+          .status(400)
+          .json({ error: '"path" is required and must be a non-empty string' });
+        return;
+      }
 
-    const declaration = requireLocalFolderDeclaration(plugin.manifestJson.localFolders ?? [], folderKey);
-    const status = await inspectPluginLocalFolder({
-      folderKey,
-      declaration,
-      overrideConfig: {
-        path: body.path,
-      },
-    });
-    res.json(status);
-  });
+      const existing = await registry.getCompanySettings(plugin.id, companyId);
+      const declaration = requireLocalFolderDeclaration(
+        plugin.manifestJson.localFolders ?? [],
+        folderKey,
+      );
+      const status = await inspectPluginLocalFolder({
+        folderKey,
+        declaration,
+        storedConfig:
+          getStoredLocalFolders(existing?.settingsJson)[folderKey] ?? null,
+        overrideConfig: {
+          path: body.path,
+        },
+      });
 
-  router.put("/plugins/:pluginId/companies/:companyId/local-folders/:folderKey", async (req, res) => {
-    assertBoardOrgAccess(req);
-    assertPluginManagementVisible();
-    const { pluginId, companyId, folderKey } = req.params;
-    assertCompanyAccess(req, companyId);
+      const nextSettings = setStoredLocalFolder(
+        existing?.settingsJson,
+        folderKey,
+        {
+          path: body.path,
+          access: status.access,
+          requiredDirectories: status.requiredDirectories,
+          requiredFiles: status.requiredFiles,
+        },
+      );
+      await registry.upsertCompanySettings(plugin.id, companyId, {
+        enabled: existing?.enabled ?? true,
+        settingsJson: nextSettings,
+        lastError: status.healthy
+          ? null
+          : status.problems
+              .map((item: { message: string }) => item.message)
+              .join("; "),
+      });
+      await logPluginMutationActivity(
+        req,
+        "plugin.local_folder.configured",
+        plugin.id,
+        {
+          pluginId: plugin.id,
+          pluginKey: plugin.pluginKey,
+          companyId,
+          folderKey,
+          healthy: status.healthy,
+        },
+      );
 
-    const plugin = await resolvePlugin(registry, pluginId);
-    if (!plugin) {
-      res.status(404).json({ error: "Plugin not found" });
-      return;
-    }
-
-    const body = req.body as {
-      path?: unknown;
-      access?: "read" | "readWrite";
-      requiredDirectories?: string[];
-      requiredFiles?: string[];
-    } | undefined;
-    if (typeof body?.path !== "string" || body.path.trim().length === 0) {
-      res.status(400).json({ error: '"path" is required and must be a non-empty string' });
-      return;
-    }
-
-    const existing = await registry.getCompanySettings(plugin.id, companyId);
-    const declaration = requireLocalFolderDeclaration(plugin.manifestJson.localFolders ?? [], folderKey);
-    const status = await inspectPluginLocalFolder({
-      folderKey,
-      declaration,
-      storedConfig: getStoredLocalFolders(existing?.settingsJson)[folderKey] ?? null,
-      overrideConfig: {
-        path: body.path,
-      },
-    });
-
-    const nextSettings = setStoredLocalFolder(existing?.settingsJson, folderKey, {
-      path: body.path,
-      access: status.access,
-      requiredDirectories: status.requiredDirectories,
-      requiredFiles: status.requiredFiles,
-    });
-    await registry.upsertCompanySettings(plugin.id, companyId, {
-      enabled: existing?.enabled ?? true,
-      settingsJson: nextSettings,
-      lastError: status.healthy ? null : status.problems.map((item: { message: string }) => item.message).join("; "),
-    });
-    await logPluginMutationActivity(req, "plugin.local_folder.configured", plugin.id, {
-      pluginId: plugin.id,
-      pluginKey: plugin.pluginKey,
-      companyId,
-      folderKey,
-      healthy: status.healthy,
-    });
-
-    res.json(status);
-  });
+      res.json(status);
+    },
+  );
 
   // ===========================================================================
   // Plugin health dashboard — aggregated diagnostics for the settings page
@@ -3042,13 +3314,20 @@ export function pluginRoutes(
 
     if (jobDeps) {
       try {
-        const runs = await jobDeps.jobStore.listRunsByPlugin(plugin.id, undefined, 10);
+        const runs = await jobDeps.jobStore.listRunsByPlugin(
+          plugin.id,
+          undefined,
+          10,
+        );
         // Also fetch job definitions so we can include jobKey
         const jobs = await jobDeps.jobStore.listJobs(plugin.id);
         const jobKeyMap = new Map(jobs.map((j) => [j.id, j.jobKey]));
 
         recentJobRuns = runs
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          )
           .map((r) => ({
             id: r.id,
             jobId: r.jobId,
@@ -3058,7 +3337,9 @@ export function pluginRoutes(
             durationMs: r.durationMs,
             error: r.error,
             startedAt: r.startedAt ? new Date(r.startedAt).toISOString() : null,
-            finishedAt: r.finishedAt ? new Date(r.finishedAt).toISOString() : null,
+            finishedAt: r.finishedAt
+              ? new Date(r.finishedAt).toISOString()
+              : null,
             createdAt: new Date(r.createdAt).toISOString(),
           }));
       } catch {
@@ -3122,7 +3403,9 @@ export function pluginRoutes(
     checks.push({
       name: "manifest",
       passed: hasValidManifest,
-      message: hasValidManifest ? "Manifest is valid" : "Manifest is invalid or missing",
+      message: hasValidManifest
+        ? "Manifest is valid"
+        : "Manifest is invalid or missing",
     });
 
     const isHealthy = plugin.status === "ready";

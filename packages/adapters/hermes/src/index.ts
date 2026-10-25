@@ -57,7 +57,9 @@ const sessionManagement: AdapterSessionManagement = {
   },
 };
 
-function getRuntimeCommandSpec(config: Record<string, unknown>): AdapterRuntimeCommandSpec {
+function getRuntimeCommandSpec(
+  config: Record<string, unknown>,
+): AdapterRuntimeCommandSpec {
   const command = resolveHermesCommand(config);
   return {
     command,

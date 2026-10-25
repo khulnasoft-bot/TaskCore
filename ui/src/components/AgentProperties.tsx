@@ -1,7 +1,11 @@
 import { AgentIdentity } from "@/components/AgentIdentity";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
-import { AGENT_ROLE_LABELS, type Agent, type AgentRuntimeState } from "@taskcore/shared";
+import {
+  AGENT_ROLE_LABELS,
+  type Agent,
+  type AgentRuntimeState,
+} from "@taskcore/shared";
 import { agentsApi } from "../api/agents";
 import { useCompany } from "../context/CompanyContext";
 import { getAdapterLabel } from "../adapters/adapter-display-registry";
@@ -18,11 +22,21 @@ interface AgentPropertiesProps {
 
 const roleLabels = AGENT_ROLE_LABELS as Record<string, string>;
 
-function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
+function PropertyRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-start gap-3 py-1.5">
-      <span className="text-xs text-muted-foreground shrink-0 w-20 mt-0.5">{label}</span>
-      <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">{children}</div>
+      <span className="text-xs text-muted-foreground shrink-0 w-20 mt-0.5">
+        {label}
+      </span>
+      <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+        {children}
+      </div>
     </div>
   );
 }
@@ -37,7 +51,9 @@ export function AgentProperties({ agent, runtimeState }: AgentPropertiesProps) {
     enabled: !!selectedCompanyId && !!agent.reportsTo,
   });
 
-  const reportsToAgent = agent.reportsTo ? agents?.find((a) => a.id === agent.reportsTo) : null;
+  const reportsToAgent = agent.reportsTo
+    ? agents?.find((a) => a.id === agent.reportsTo)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -53,7 +69,9 @@ export function AgentProperties({ agent, runtimeState }: AgentPropertiesProps) {
           </PropertyRow>
         )}
         <PropertyRow label="Role">
-          <span className="text-sm">{roleLabels[agent.role] ?? agent.role}</span>
+          <span className="text-sm">
+            {roleLabels[agent.role] ?? agent.role}
+          </span>
         </PropertyRow>
         {agent.title && (
           <PropertyRow label="Title">
@@ -61,7 +79,9 @@ export function AgentProperties({ agent, runtimeState }: AgentPropertiesProps) {
           </PropertyRow>
         )}
         <PropertyRow label="Adapter">
-          <span className="text-sm font-mono">{getAdapterLabel(agent.adapterType)}</span>
+          <span className="text-sm font-mono">
+            {getAdapterLabel(agent.adapterType)}
+          </span>
         </PropertyRow>
       </div>
 
@@ -71,12 +91,17 @@ export function AgentProperties({ agent, runtimeState }: AgentPropertiesProps) {
         {(runtimeState?.sessionDisplayId ?? runtimeState?.sessionId) && (
           <PropertyRow label="Session">
             <span className="text-xs font-mono">
-              {String(runtimeState.sessionDisplayId ?? runtimeState.sessionId).slice(0, 12)}...
+              {String(
+                runtimeState.sessionDisplayId ?? runtimeState.sessionId,
+              ).slice(0, 12)}
+              ...
             </span>
           </PropertyRow>
         )}
         {runtimeState?.lastError && (
-          <PropertyRow label={lastErrorIsActive ? "Last error" : "Last run error"}>
+          <PropertyRow
+            label={lastErrorIsActive ? "Last error" : "Last run error"}
+          >
             <span
               className={
                 lastErrorIsActive
@@ -100,7 +125,9 @@ export function AgentProperties({ agent, runtimeState }: AgentPropertiesProps) {
                 <AgentIdentity agent={reportsToAgent} size="sm" />
               </Link>
             ) : (
-              <span className="text-sm font-mono">{agent.reportsTo.slice(0, 8)}</span>
+              <span className="text-sm font-mono">
+                {agent.reportsTo.slice(0, 8)}
+              </span>
             )}
           </PropertyRow>
         )}

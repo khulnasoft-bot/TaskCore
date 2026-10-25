@@ -109,8 +109,18 @@ export interface TimelineLayout {
 }
 
 export const AXIS_H = 32;
-const RUNNING_STATUSES = new Set(["running", "in_progress", "queued", "pending"]);
-const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "aborted", "skipped"]);
+const RUNNING_STATUSES = new Set([
+  "running",
+  "in_progress",
+  "queued",
+  "pending",
+]);
+const CANCELLED_STATUSES = new Set([
+  "cancelled",
+  "canceled",
+  "aborted",
+  "skipped",
+]);
 
 export function isRunningStatus(status: string): boolean {
   return RUNNING_STATUSES.has(status);
@@ -166,7 +176,8 @@ export function issueColor(key: string): string {
 /** 2-char initials for an SVG avatar chip. */
 export function shortLabel(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts.length >= 2)
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return (name.slice(0, 2) || "?").toUpperCase();
 }
 
@@ -179,7 +190,10 @@ function spanEndMs(s: WorkTimelineSpan, nowMs: number): number {
   return raw;
 }
 
-function kickoffEdgeRunDistanceMs(edge: WorkTimelineEdge, span: WorkTimelineSpan): number {
+function kickoffEdgeRunDistanceMs(
+  edge: WorkTimelineEdge,
+  span: WorkTimelineSpan,
+): number {
   return Math.abs(spanStartMs(span) - new Date(edge.at).getTime());
 }
 
@@ -187,14 +201,18 @@ function spanGroupKey(actorId: string, issueId: string): string {
   return `${actorId}\0${issueId}`;
 }
 
-function closestRunForKickoffEdge(edge: WorkTimelineEdge, spans: readonly WorkTimelineSpan[]): string | null {
+function closestRunForKickoffEdge(
+  edge: WorkTimelineEdge,
+  spans: readonly WorkTimelineSpan[],
+): string | null {
   let closest: { span: WorkTimelineSpan; distance: number } | null = null;
   for (const span of spans) {
     const distance = kickoffEdgeRunDistanceMs(edge, span);
     if (
-      !closest
-      || distance < closest.distance
-      || (distance === closest.distance && span.runId.localeCompare(closest.span.runId) < 0)
+      !closest ||
+      distance < closest.distance ||
+      (distance === closest.distance &&
+        span.runId.localeCompare(closest.span.runId) < 0)
     ) {
       closest = { span, distance };
     }
@@ -244,7 +262,7 @@ function resolveKickoff(
     if (e.fromActorId === span.actorId) continue; // self-kickoff is not a delegation
     const at = new Date(e.at).getTime();
     // Prefer edges at-or-before the run start; otherwise smallest absolute gap.
-    const delta = at <= start ? start - at : (at - start) + 1e12;
+    const delta = at <= start ? start - at : at - start + 1e12;
     if (!best || delta < best.delta) best = { edge: e, delta };
   }
   if (!best) return null;
@@ -252,12 +270,18 @@ function resolveKickoff(
   return actorById.get(best.edge.fromActorId) ?? null;
 }
 
-export function computeLayout(result: WorkTimelineResult, opts: LayoutOptions): TimelineLayout {
+export function computeLayout(
+  result: WorkTimelineResult,
+  opts: LayoutOptions,
+): TimelineLayout {
   const { pxPerMinute, gutter, rowH, barH, laneGap, nowMs } = opts;
   const fromMs = new Date(result.window.from).getTime();
   const toMs = new Date(result.window.to).getTime();
   const actorById = new Map(result.actors.map((a) => [a.id, a]));
-  const closestRunByKickoffEdge = buildClosestRunByKickoffEdge(result.spans, result.edges);
+  const closestRunByKickoffEdge = buildClosestRunByKickoffEdge(
+    result.spans,
+    result.edges,
+  );
 
   const x = (ms: number) => gutter + ((ms - fromMs) / 60000) * pxPerMinute;
 
@@ -272,7 +296,7 @@ export function computeLayout(result: WorkTimelineResult, opts: LayoutOptions): 
 
   const rowActors = result.actors
     .filter((a) => firstActivity.has(a.id)) // drop actors with no run in-window
-    .sort((a, b) => (firstActivity.get(a.id)! - firstActivity.get(b.id)!));
+    .sort((a, b) => firstActivity.get(a.id)! - firstActivity.get(b.id)!);
 
   // Issue hue map (ordered by first appearance) for the task color map.
   const issueOrder: string[] = [];
@@ -284,7 +308,11 @@ export function computeLayout(result: WorkTimelineResult, opts: LayoutOptions): 
       issueLabel.set(key, s.issueIdentifier ?? s.issueTitle ?? "issue");
     }
   }
-  const issues = issueOrder.map((key) => ({ key, label: issueLabel.get(key)!, color: issueColor(key) }));
+  const issues = issueOrder.map((key) => ({
+    key,
+    label: issueLabel.get(key)!,
+    color: issueColor(key),
+  }));
 
   const barIndex = new Map<string, PositionedBar>(); // runId -> bar
   const rows: ActorRow[] = [];
@@ -332,7 +360,12 @@ export function computeLayout(result: WorkTimelineResult, opts: LayoutOptions): 
         yc: laneTop + barH / 2,
         height: barH,
         running: isRunningStatus(r.status),
-        kickoff: resolveKickoff(r, result.edges, actorById, closestRunByKickoffEdge),
+        kickoff: resolveKickoff(
+          r,
+          result.edges,
+          actorById,
+          closestRunByKickoffEdge,
+        ),
       };
       barIndex.set(r.runId, bar);
       return bar;
@@ -340,9 +373,21 @@ export function computeLayout(result: WorkTimelineResult, opts: LayoutOptions): 
 
     const markers: PositionedMarker[] = [];
 
-    const activeMs = runs.reduce((sum, r) => sum + Math.max(0, spanEndMs(r, nowMs) - spanStartMs(r)), 0);
+    const activeMs = runs.reduce(
+      (sum, r) => sum + Math.max(0, spanEndMs(r, nowMs) - spanStartMs(r)),
+      0,
+    );
 
-    rows.push({ actor, y, h, laneCount, bars, markers, runCount: runs.length, activeMs });
+    rows.push({
+      actor,
+      y,
+      h,
+      laneCount,
+      bars,
+      markers,
+      runCount: runs.length,
+      activeMs,
+    });
     y += h;
   }
 
@@ -370,7 +415,17 @@ export function computeLayout(result: WorkTimelineResult, opts: LayoutOptions): 
 
   const width = gutter + ((toMs - fromMs) / 60000) * pxPerMinute + 40;
   const height = y + AXIS_H;
-  return { rows, connectors, width, height, fromMs, toMs, gutter, pxPerMinute, issues };
+  return {
+    rows,
+    connectors,
+    width,
+    height,
+    fromMs,
+    toMs,
+    gutter,
+    pxPerMinute,
+    issues,
+  };
 }
 
 /** The kickoff actor's bar that best precedes `target` (same issue preferred). */
@@ -409,7 +464,8 @@ export function chooseTickStepMs(pxPerMinute: number): number {
 
 export function formatDuration(startMs: number, endMs: number): string {
   const mins = Math.max(0, Math.round((endMs - startMs) / 60000));
-  if (mins >= 1440) return `${Math.floor(mins / 1440)}d ${Math.floor((mins % 1440) / 60)}h`;
+  if (mins >= 1440)
+    return `${Math.floor(mins / 1440)}d ${Math.floor((mins % 1440) / 60)}h`;
   if (mins >= 60) return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   return `${mins}m`;
 }

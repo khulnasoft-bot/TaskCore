@@ -43,7 +43,9 @@ export class PhotonReceiver {
     this.streams = [
       client.messages.subscribeEvents(),
       client.chats.subscribeEvents(),
-      ...(this.options.allocation === "shared" ? [] : [client.groups.subscribeEvents()]),
+      ...(this.options.allocation === "shared"
+        ? []
+        : [client.groups.subscribeEvents()]),
       client.polls.subscribeEvents(),
     ];
     for (const stream of this.streams) {
@@ -120,7 +122,10 @@ export class PhotonReceiver {
           if (
             !Number.isSafeInteger(event.headSequence) ||
             event.headSequence < 0 ||
-            (sequence !== undefined && (shared ? event.headSequence < sequence : event.headSequence !== sequence))
+            (sequence !== undefined &&
+              (shared
+                ? event.headSequence < sequence
+                : event.headSequence !== sequence))
           )
             throw new PhotonError(
               "history_gap",
@@ -131,7 +136,9 @@ export class PhotonReceiver {
           // > 1 billion). A complete replay barrier covers the filtered tail.
           // Commit shared batches only here, after every admission succeeds;
           // malformed ordering or interrupted replay keeps the previous cursor.
-          sequence = shared ? event.headSequence : sequence ?? event.headSequence;
+          sequence = shared
+            ? event.headSequence
+            : (sequence ?? event.headSequence);
           await this.checkpoint(sequence);
           completed = true;
           break;
@@ -142,11 +149,26 @@ export class PhotonReceiver {
             "Photon returned an invalid event sequence",
           );
         if (++batchEvents > 100_000)
-          throw new PhotonError("history_gap", "Photon replay exceeds the supported recovery window");
-        if (shared && sequence !== undefined && event.sequence < sequence && event.sequence > (original?.sequence ?? -1))
-          throw new PhotonError("history_gap", "Photon replay arrived out of order; the saved cursor was retained");
+          throw new PhotonError(
+            "history_gap",
+            "Photon replay exceeds the supported recovery window",
+          );
+        if (
+          shared &&
+          sequence !== undefined &&
+          event.sequence < sequence &&
+          event.sequence > (original?.sequence ?? -1)
+        )
+          throw new PhotonError(
+            "history_gap",
+            "Photon replay arrived out of order; the saved cursor was retained",
+          );
         if (sequence !== undefined && event.sequence <= sequence) continue;
-        if (!shared && sequence !== undefined && event.sequence !== sequence + 1)
+        if (
+          !shared &&
+          sequence !== undefined &&
+          event.sequence !== sequence + 1
+        )
           throw new PhotonError(
             "history_gap",
             "Photon event history is incomplete; operator recovery is required",

@@ -17,10 +17,15 @@ import {
 import { issueReferenceService } from "../services/issue-references.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
-async function ensureIssueReferenceMentionsTable(db: ReturnType<typeof createDb>) {
-  await db.execute(sql.raw(`
+async function ensureIssueReferenceMentionsTable(
+  db: ReturnType<typeof createDb>,
+) {
+  await db.execute(
+    sql.raw(`
     CREATE TABLE IF NOT EXISTS "issue_reference_mentions" (
       "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       "company_id" uuid NOT NULL,
@@ -41,7 +46,8 @@ async function ensureIssueReferenceMentionsTable(db: ReturnType<typeof createDb>
       ON "issue_reference_mentions" ("company_id", "source_issue_id", "target_issue_id");
     CREATE UNIQUE INDEX IF NOT EXISTS "issue_reference_mentions_company_source_mention_uq"
       ON "issue_reference_mentions" ("company_id", "source_issue_id", "target_issue_id", "source_kind", "source_record_id");
-  `));
+  `),
+  );
 }
 
 if (!embeddedPostgresSupport.supported) {
@@ -53,7 +59,9 @@ if (!embeddedPostgresSupport.supported) {
 describeEmbeddedPostgres("issueReferenceService", () => {
   let db!: ReturnType<typeof createDb>;
   let refs!: ReturnType<typeof issueReferenceService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-refs-");
@@ -159,20 +167,35 @@ describeEmbeddedPostgres("issueReferenceService", () => {
 
     const summary = await refs.listIssueReferenceSummary(sourceIssueId);
 
-    expect(summary.outbound.map((item) => item.issue.identifier)).toEqual(["PAP-2", "PAP-3"]);
+    expect(summary.outbound.map((item) => item.issue.identifier)).toEqual([
+      "PAP-2",
+      "PAP-3",
+    ]);
     expect(summary.outbound[0]?.mentionCount).toBe(2);
-    expect(summary.outbound[0]?.sources.map((source) => source.label)).toEqual(["title", "comment"]);
+    expect(summary.outbound[0]?.sources.map((source) => source.label)).toEqual([
+      "title",
+      "comment",
+    ]);
     expect(summary.outbound[1]?.mentionCount).toBe(2);
-    expect(summary.outbound[1]?.sources.map((source) => source.label)).toEqual(["description", "plan"]);
-    expect(summary.inbound.map((item) => item.issue.identifier)).toEqual(["PAP-4"]);
+    expect(summary.outbound[1]?.sources.map((source) => source.label)).toEqual([
+      "description",
+      "plan",
+    ]);
+    expect(summary.inbound.map((item) => item.issue.identifier)).toEqual([
+      "PAP-4",
+    ]);
 
     await refs.deleteDocumentSource(documentId);
 
     const withoutDocument = await refs.listIssueReferenceSummary(sourceIssueId);
-    const pap3 = withoutDocument.outbound.find((item) => item.issue.identifier === "PAP-3");
+    const pap3 = withoutDocument.outbound.find(
+      (item) => item.issue.identifier === "PAP-3",
+    );
 
     expect(pap3?.mentionCount).toBe(1);
-    expect(pap3?.sources.map((source) => source.label)).toEqual(["description"]);
+    expect(pap3?.sources.map((source) => source.label)).toEqual([
+      "description",
+    ]);
   });
 
   it("backfills existing references for a company without requiring write-time sync", async () => {
@@ -239,6 +262,9 @@ describeEmbeddedPostgres("issueReferenceService", () => {
     expect(summary.outbound).toHaveLength(1);
     expect(summary.outbound[0]?.issue.identifier).toBe("PAP-20");
     expect(summary.outbound[0]?.mentionCount).toBe(2);
-    expect(summary.outbound[0]?.sources.map((source) => source.label)).toEqual(["plan", "comment"]);
+    expect(summary.outbound[0]?.sources.map((source) => source.label)).toEqual([
+      "plan",
+      "comment",
+    ]);
   });
 });

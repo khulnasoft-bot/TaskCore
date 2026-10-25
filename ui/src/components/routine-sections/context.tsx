@@ -42,10 +42,21 @@ export const EDITABLE_SECTIONS: RoutineSectionKey[] = [
 
 /** Which dirty-field keys belong to which section (for scoped save state). */
 export const SECTION_FIELD_KEYS: Record<string, string[]> = {
-  overview: ["title", "description", "projectId", "assigneeAgentId", "priority"],
+  overview: [
+    "title",
+    "description",
+    "projectId",
+    "assigneeAgentId",
+    "priority",
+  ],
   variables: ["variables"],
   secrets: ["env"],
-  delivery: ["concurrencyPolicy", "catchUpPolicy", "activityGatePolicy", "activityGateScope"],
+  delivery: [
+    "concurrencyPolicy",
+    "catchUpPolicy",
+    "activityGatePolicy",
+    "activityGateScope",
+  ],
 };
 
 export type RoutineEditDraft = {
@@ -86,7 +97,9 @@ export type SecretMessage = {
 type AgentList = Awaited<ReturnType<typeof agentsApi.list>>;
 type ProjectList = Awaited<ReturnType<typeof projectsApi.list>>;
 type SecretList = Awaited<ReturnType<typeof secretsApi.list>>;
-type RoutineRunList = Awaited<ReturnType<typeof import("../../api/routines").routinesApi.listRuns>>;
+type RoutineRunList = Awaited<
+  ReturnType<typeof import("../../api/routines").routinesApi.listRuns>
+>;
 type RoutineActivityList = Awaited<
   ReturnType<typeof import("../../api/routines").routinesApi.activity>
 >;
@@ -102,7 +115,9 @@ export type RoutineDetailContextValue = {
   routineDefaults: RoutineEditDraft;
   dirtyFields: RoutineHistoryDirtyFieldDescriptor[];
   isEditDirty: boolean;
-  sectionDirtyFields: (section: RoutineSectionKey) => RoutineHistoryDirtyFieldDescriptor[];
+  sectionDirtyFields: (
+    section: RoutineSectionKey,
+  ) => RoutineHistoryDirtyFieldDescriptor[];
   isSectionDirty: (section: RoutineSectionKey) => boolean;
   discardSection: (section: RoutineSectionKey) => void;
 
@@ -123,17 +138,37 @@ export type RoutineDetailContextValue = {
   // triggers
   newTrigger: NewTriggerDraft;
   setNewTrigger: React.Dispatch<React.SetStateAction<NewTriggerDraft>>;
-  createTrigger: UseMutationResult<RoutineTriggerResponse, unknown, void, unknown>;
-  updateTrigger: UseMutationResult<unknown, unknown, { id: string; patch: Record<string, unknown> }, unknown>;
+  createTrigger: UseMutationResult<
+    RoutineTriggerResponse,
+    unknown,
+    void,
+    unknown
+  >;
+  updateTrigger: UseMutationResult<
+    unknown,
+    unknown,
+    { id: string; patch: Record<string, unknown> },
+    unknown
+  >;
   deleteTrigger: UseMutationResult<unknown, unknown, string, unknown>;
-  rotateTrigger: UseMutationResult<RotateRoutineTriggerResponse, unknown, string, unknown>;
+  rotateTrigger: UseMutationResult<
+    RotateRoutineTriggerResponse,
+    unknown,
+    string,
+    unknown
+  >;
 
   // secrets
   secretMessage: SecretMessage | null;
   setSecretMessage: (message: SecretMessage | null) => void;
   copySecretValue: (label: string, value: string) => void;
   availableSecrets: SecretList;
-  createSecret: UseMutationResult<CompanySecret, unknown, { name: string; value: string }, unknown>;
+  createSecret: UseMutationResult<
+    CompanySecret,
+    unknown,
+    { name: string; value: string },
+    unknown
+  >;
 
   // entities
   agents: AgentList;
@@ -168,15 +203,21 @@ export type RoutineDetailContextValue = {
     response: import("../../api/routines").RestoreRoutineRevisionResponse,
   ) => void;
 
-  navigateToSection: (section: RoutineSectionKey, options?: { replace?: boolean }) => void;
+  navigateToSection: (
+    section: RoutineSectionKey,
+    options?: { replace?: boolean },
+  ) => void;
 };
 
-export const RoutineDetailContext = createContext<RoutineDetailContextValue | null>(null);
+export const RoutineDetailContext =
+  createContext<RoutineDetailContextValue | null>(null);
 
 export function useRoutineDetail(): RoutineDetailContextValue {
   const value = useContext(RoutineDetailContext);
   if (!value) {
-    throw new Error("useRoutineDetail must be used within a RoutineDetailContext provider");
+    throw new Error(
+      "useRoutineDetail must be used within a RoutineDetailContext provider",
+    );
   }
   return value;
 }

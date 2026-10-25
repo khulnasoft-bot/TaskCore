@@ -58,7 +58,9 @@ function boundedText(
     : `${candidate.slice(0, maxCharacters)}...[truncated]`;
 }
 
-export function runtimeRequestKind(method: string): HarnessRuntimeRequestKind | null {
+export function runtimeRequestKind(
+  method: string,
+): HarnessRuntimeRequestKind | null {
   if (
     method === "item/commandExecution/requestApproval" ||
     method === "execCommandApproval"
@@ -71,7 +73,10 @@ export function runtimeRequestKind(method: string): HarnessRuntimeRequestKind | 
   ) {
     return "file_approval";
   }
-  if (method === "item/permissions/requestApproval" || method === "session/request_permission")
+  if (
+    method === "item/permissions/requestApproval" ||
+    method === "session/request_permission"
+  )
     return "permission_approval";
   if (
     method === "item/tool/requestUserInput" ||
@@ -79,7 +84,11 @@ export function runtimeRequestKind(method: string): HarnessRuntimeRequestKind | 
   ) {
     return "user_input";
   }
-  if (method === "mcpServer/elicitation/request" || isAcpxCanonicalInputMethod(method)) return "elicitation";
+  if (
+    method === "mcpServer/elicitation/request" ||
+    isAcpxCanonicalInputMethod(method)
+  )
+    return "elicitation";
   return null;
 }
 
@@ -89,9 +98,15 @@ export function runtimeRequestKind(method: string): HarnessRuntimeRequestKind | 
  * however, a malformed/unsupported form must fail closed instead of silently
  * degrading back to the legacy textarea presentation.
  */
-export function hasCodexQuestionForm(method: string, params: Record<string, unknown>): boolean {
+export function hasCodexQuestionForm(
+  method: string,
+  params: Record<string, unknown>,
+): boolean {
   if (isAcpxCanonicalInputMethod(method)) return "questionSet" in params;
-  if (method === "item/tool/requestUserInput" || method === "tool/requestUserInput") {
+  if (
+    method === "item/tool/requestUserInput" ||
+    method === "tool/requestUserInput"
+  ) {
     return "questions" in params;
   }
   if (method === "mcpServer/elicitation/request") {
@@ -131,7 +146,9 @@ function exactOptionLabel(value: unknown, index: number): string {
   }
   const redacted = redactCodexDiagnostic(label || `Option ${index + 1}`);
   if (redacted.length > 1_000) {
-    throw new Error("Codex option label exceeds 1000 characters after redaction");
+    throw new Error(
+      "Codex option label exceeds 1000 characters after redaction",
+    );
   }
   return redacted;
 }
@@ -143,9 +160,7 @@ function exactQuestionText(
 ): string {
   const candidate = text(value);
   if (candidate.length > maxCharacters) {
-    throw new Error(
-      `Codex ${field} exceeds ${maxCharacters} characters`,
-    );
+    throw new Error(`Codex ${field} exceeds ${maxCharacters} characters`);
   }
   return candidate;
 }
@@ -216,16 +231,21 @@ function codexOptions(value: unknown): NormalizedQuestionOptions | undefined {
   return { options, nativeValues };
 }
 
-function jsonSchemaOptions(schema: Record<string, unknown>): NormalizedQuestionOptions {
+function jsonSchemaOptions(
+  schema: Record<string, unknown>,
+): NormalizedQuestionOptions {
   const values = Array.isArray(schema.enum)
     ? schema.enum
     : Array.isArray(schema.oneOf)
       ? schema.oneOf.map((entry) => record(entry).const)
       : [];
-  if (values.length > 128) throw new Error("Codex question exceeds 128 options");
+  if (values.length > 128)
+    throw new Error("Codex question exceeds 128 options");
   const nativeValues = new Map<string, unknown>();
   const options = values.map((value, index) => {
-    const oneOf = Array.isArray(schema.oneOf) ? record(schema.oneOf[index]) : {};
+    const oneOf = Array.isArray(schema.oneOf)
+      ? record(schema.oneOf[index])
+      : {};
     const id = `option-${index + 1}`;
     nativeValues.set(id, structuredClone(value));
     return {
@@ -256,7 +276,9 @@ function retainNativeOptionValues(
   responseContext: CodexQuestionResponseContext,
 ): TaskcoreQuestionSet {
   if (!NATIVE_OPTION_VALUES.has(responseContext)) {
-    throw new Error("Codex question response context was not created by this adapter");
+    throw new Error(
+      "Codex question response context was not created by this adapter",
+    );
   }
   NATIVE_OPTION_VALUES.set(responseContext, nativeValues);
   return questionSet;
@@ -268,10 +290,16 @@ export function normalizeCodexQuestionSet(
   params: Record<string, unknown>,
   responseContext: CodexQuestionResponseContext,
 ): TaskcoreQuestionSet | null {
-  if (isAcpxCanonicalInputMethod(method)) return parseTaskcoreQuestionSet(params.questionSet);
-  if (method === "item/tool/requestUserInput" || method === "tool/requestUserInput") {
-    if (!Array.isArray(params.questions) || params.questions.length === 0) return null;
-    if (params.questions.length > 64) throw new Error("Codex question form exceeds 64 questions");
+  if (isAcpxCanonicalInputMethod(method))
+    return parseTaskcoreQuestionSet(params.questionSet);
+  if (
+    method === "item/tool/requestUserInput" ||
+    method === "tool/requestUserInput"
+  ) {
+    if (!Array.isArray(params.questions) || params.questions.length === 0)
+      return null;
+    if (params.questions.length > 64)
+      throw new Error("Codex question form exceeds 64 questions");
     const explicitQuestionIds = params.questions.map((rawQuestion, index) => {
       const questionId = text(record(rawQuestion).id).trim();
       return questionId.length > 0 ? stableQuestionId(questionId, index) : null;
@@ -285,171 +313,246 @@ export function normalizeCodexQuestionSet(
       usedQuestionIds.add(id);
     }
     const nativeValues = new Map<string, ReadonlyMap<string, unknown>>();
-    const questions = params.questions.map((rawQuestion, index): TaskcoreQuestion => {
-      const question = record(rawQuestion);
-      const normalizedOptions = codexOptions(question.options);
-      let questionId = explicitQuestionIds[index];
-      if (questionId === null || questionId === undefined) {
-        let generatedIndex = index + 1;
-        questionId = `question-${generatedIndex}`;
-        while (usedQuestionIds.has(questionId)) {
-          generatedIndex += 1;
+    const questions = params.questions.map(
+      (rawQuestion, index): TaskcoreQuestion => {
+        const question = record(rawQuestion);
+        const normalizedOptions = codexOptions(question.options);
+        let questionId = explicitQuestionIds[index];
+        if (questionId === null || questionId === undefined) {
+          let generatedIndex = index + 1;
           questionId = `question-${generatedIndex}`;
+          while (usedQuestionIds.has(questionId)) {
+            generatedIndex += 1;
+            questionId = `question-${generatedIndex}`;
+          }
+          usedQuestionIds.add(questionId);
         }
-        usedQuestionIds.add(questionId);
+        if (normalizedOptions !== undefined) {
+          nativeValues.set(questionId, normalizedOptions.nativeValues);
+        }
+        return {
+          id: questionId,
+          ...(text(question.header).length > 0
+            ? {
+                header: exactRedactedQuestionText(
+                  text(question.header),
+                  "question header",
+                  1_000,
+                ),
+              }
+            : {}),
+          prompt: exactRedactedQuestionText(
+            text(
+              question.question,
+              text(question.prompt, `Question ${index + 1}`),
+            ),
+            "question prompt",
+          ),
+          ...(text(question.description).length > 0
+            ? {
+                helpText: exactRedactedQuestionText(
+                  question.description,
+                  "question description",
+                ),
+              }
+            : {}),
+          // Codex requestUserInput questions do not normally declare requiredness.
+          // Do not invent a required constraint when the provider omitted one.
+          required: question.required === true,
+          answerMode:
+            normalizedOptions && normalizedOptions.options.length > 0
+              ? question.multiSelect === true || question.multiple === true
+                ? "multi_select"
+                : "single_select"
+              : "text",
+          ...(normalizedOptions && normalizedOptions.options.length > 0
+            ? { options: normalizedOptions.options }
+            : {}),
+          ...(question.isOther === true || question.allowOther === true
+            ? {
+                customAnswer: {
+                  enabled: true,
+                  label: "Other",
+                  placeholder: "Enter another answer",
+                },
+              }
+            : {}),
+          ...(!(normalizedOptions && normalizedOptions.options.length > 0) &&
+          (typeof question.minLength === "number" ||
+            typeof question.maxLength === "number")
+            ? {
+                textValidation: {
+                  ...(typeof question.minLength === "number"
+                    ? { minLength: question.minLength }
+                    : {}),
+                  ...(typeof question.maxLength === "number"
+                    ? { maxLength: question.maxLength }
+                    : {}),
+                },
+              }
+            : {}),
+        };
+      },
+    );
+    return retainNativeOptionValues(
+      parseTaskcoreQuestionSet({
+        schema: TASKCORE_QUESTION_SET_SCHEMA,
+        title: exactRedactedQuestionText(
+          text(params.title, "Codex needs your input"),
+          "form title",
+          1_000,
+        ),
+        ...(text(params.description).length > 0
+          ? {
+              description: exactRedactedQuestionText(
+                params.description,
+                "form description",
+              ),
+            }
+          : {}),
+        submitLabel: exactRedactedQuestionText(
+          text(params.submitLabel, "Submit answers"),
+          "submit label",
+          1_000,
+        ),
+        questions,
+      }),
+      nativeValues,
+      responseContext,
+    );
+  }
+  if (method !== "mcpServer/elicitation/request") return null;
+  const requestedSchema = record(params.requestedSchema ?? params.schema);
+  const properties = record(requestedSchema.properties);
+  const required = new Set(
+    Array.isArray(requestedSchema.required)
+      ? requestedSchema.required.filter(
+          (entry): entry is string => typeof entry === "string",
+        )
+      : [],
+  );
+  const propertyEntries = Object.entries(properties);
+  if (propertyEntries.length > 64)
+    throw new Error("Codex question form exceeds 64 questions");
+  const nativeValues = new Map<string, ReadonlyMap<string, unknown>>();
+  const questions = propertyEntries.map(
+    ([id, rawProperty]): TaskcoreQuestion => {
+      const property = record(rawProperty);
+      const propertyType = text(property.type);
+      const itemSchema = record(property.items);
+      const selectSchema = propertyType === "array" ? itemSchema : property;
+      const normalizedOptions =
+        propertyType === "boolean"
+          ? {
+              options: [
+                { id: "true", label: "Yes" },
+                { id: "false", label: "No" },
+              ],
+              nativeValues: new Map<string, unknown>([
+                ["true", true],
+                ["false", false],
+              ]),
+            }
+          : jsonSchemaOptions(selectSchema);
+      if (normalizedOptions.options.length > 0) {
+        nativeValues.set(id, normalizedOptions.nativeValues);
       }
-      if (normalizedOptions !== undefined) {
-        nativeValues.set(questionId, normalizedOptions.nativeValues);
-      }
+      const answerMode: TaskcoreQuestion["answerMode"] =
+        propertyType === "array" && normalizedOptions.options.length > 0
+          ? "multi_select"
+          : normalizedOptions.options.length > 0
+            ? "single_select"
+            : "text";
+      const inputType =
+        propertyType === "integer"
+          ? "integer"
+          : propertyType === "number"
+            ? "number"
+            : "text";
       return {
-        id: questionId,
-        ...(text(question.header).length > 0
+        id,
+        ...(text(property.title).length > 0
           ? {
               header: exactRedactedQuestionText(
-                text(question.header),
+                text(property.title),
                 "question header",
                 1_000,
               ),
             }
           : {}),
         prompt: exactRedactedQuestionText(
-          text(question.question, text(question.prompt, `Question ${index + 1}`)),
+          text(property.title, id),
           "question prompt",
         ),
-        ...(text(question.description).length > 0
+        ...(text(property.description).length > 0
           ? {
               helpText: exactRedactedQuestionText(
-                question.description,
+                text(property.description),
                 "question description",
               ),
             }
           : {}),
-        // Codex requestUserInput questions do not normally declare requiredness.
-        // Do not invent a required constraint when the provider omitted one.
-        required: question.required === true,
-        answerMode: normalizedOptions && normalizedOptions.options.length > 0
-          ? question.multiSelect === true || question.multiple === true ? "multi_select" : "single_select"
-          : "text",
-        ...(normalizedOptions && normalizedOptions.options.length > 0
+        required: required.has(id),
+        answerMode,
+        ...(normalizedOptions.options.length > 0
           ? { options: normalizedOptions.options }
           : {}),
-        ...(question.isOther === true || question.allowOther === true
-          ? { customAnswer: { enabled: true, label: "Other", placeholder: "Enter another answer" } }
-          : {}),
-        ...(!(normalizedOptions && normalizedOptions.options.length > 0) && (typeof question.minLength === "number" || typeof question.maxLength === "number")
-          ? { textValidation: {
-              ...(typeof question.minLength === "number" ? { minLength: question.minLength } : {}),
-              ...(typeof question.maxLength === "number" ? { maxLength: question.maxLength } : {}),
-            } }
+        ...(answerMode === "text"
+          ? {
+              textValidation: {
+                inputType,
+                ...(typeof property.minLength === "number"
+                  ? { minLength: property.minLength }
+                  : {}),
+                ...(typeof property.maxLength === "number"
+                  ? { maxLength: property.maxLength }
+                  : {}),
+                ...(typeof property.minimum === "number"
+                  ? { minimum: property.minimum }
+                  : {}),
+                ...(typeof property.maximum === "number"
+                  ? { maximum: property.maximum }
+                  : {}),
+                ...(typeof property.pattern === "string"
+                  ? { pattern: property.pattern }
+                  : {}),
+              },
+            }
           : {}),
       };
-    });
-    return retainNativeOptionValues(parseTaskcoreQuestionSet({
+    },
+  );
+  if (questions.length === 0) return null;
+  return retainNativeOptionValues(
+    parseTaskcoreQuestionSet({
       schema: TASKCORE_QUESTION_SET_SCHEMA,
-      title: exactRedactedQuestionText(
-        text(params.title, "Codex needs your input"),
-        "form title",
-        1_000,
-      ),
-      ...(text(params.description).length > 0
+      title: "A tool needs your input",
+      ...(text(params.message).length > 0
         ? {
             description: exactRedactedQuestionText(
-              params.description,
+              text(params.message),
               "form description",
             ),
           }
         : {}),
-      submitLabel: exactRedactedQuestionText(
-        text(params.submitLabel, "Submit answers"),
-        "submit label",
-        1_000,
-      ),
+      submitLabel: "Submit",
       questions,
-    }), nativeValues, responseContext);
-  }
-  if (method !== "mcpServer/elicitation/request") return null;
-  const requestedSchema = record(params.requestedSchema ?? params.schema);
-  const properties = record(requestedSchema.properties);
-  const required = new Set(Array.isArray(requestedSchema.required) ? requestedSchema.required.filter((entry): entry is string => typeof entry === "string") : []);
-  const propertyEntries = Object.entries(properties);
-  if (propertyEntries.length > 64) throw new Error("Codex question form exceeds 64 questions");
-  const nativeValues = new Map<string, ReadonlyMap<string, unknown>>();
-  const questions = propertyEntries.map(([id, rawProperty]): TaskcoreQuestion => {
-    const property = record(rawProperty);
-    const propertyType = text(property.type);
-    const itemSchema = record(property.items);
-    const selectSchema = propertyType === "array" ? itemSchema : property;
-    const normalizedOptions = propertyType === "boolean"
-      ? {
-          options: [{ id: "true", label: "Yes" }, { id: "false", label: "No" }],
-          nativeValues: new Map<string, unknown>([["true", true], ["false", false]]),
-        }
-      : jsonSchemaOptions(selectSchema);
-    if (normalizedOptions.options.length > 0) {
-      nativeValues.set(id, normalizedOptions.nativeValues);
-    }
-    const answerMode: TaskcoreQuestion["answerMode"] = propertyType === "array" && normalizedOptions.options.length > 0
-      ? "multi_select"
-      : normalizedOptions.options.length > 0
-        ? "single_select"
-        : "text";
-    const inputType = propertyType === "integer" ? "integer" : propertyType === "number" ? "number" : "text";
-    return {
-      id,
-      ...(text(property.title).length > 0
-        ? {
-            header: exactRedactedQuestionText(
-              text(property.title),
-              "question header",
-              1_000,
-            ),
-          }
-        : {}),
-      prompt: exactRedactedQuestionText(
-        text(property.title, id),
-        "question prompt",
-      ),
-      ...(text(property.description).length > 0
-        ? {
-            helpText: exactRedactedQuestionText(
-              text(property.description),
-              "question description",
-            ),
-          }
-        : {}),
-      required: required.has(id),
-      answerMode,
-      ...(normalizedOptions.options.length > 0 ? { options: normalizedOptions.options } : {}),
-      ...(answerMode === "text" ? { textValidation: {
-        inputType,
-        ...(typeof property.minLength === "number" ? { minLength: property.minLength } : {}),
-        ...(typeof property.maxLength === "number" ? { maxLength: property.maxLength } : {}),
-        ...(typeof property.minimum === "number" ? { minimum: property.minimum } : {}),
-        ...(typeof property.maximum === "number" ? { maximum: property.maximum } : {}),
-        ...(typeof property.pattern === "string" ? { pattern: property.pattern } : {}),
-      } } : {}),
-    };
-  });
-  if (questions.length === 0) return null;
-  return retainNativeOptionValues(parseTaskcoreQuestionSet({
-    schema: TASKCORE_QUESTION_SET_SCHEMA,
-    title: "A tool needs your input",
-    ...(text(params.message).length > 0
-      ? {
-          description: exactRedactedQuestionText(
-            text(params.message),
-            "form description",
-          ),
-        }
-      : {}),
-    submitLabel: "Submit",
-    questions,
-  }), nativeValues, responseContext);
+    }),
+    nativeValues,
+    responseContext,
+  );
 }
 
-export function runtimeRequestProtocolPayload(request: HarnessRuntimeRequest): Record<string, unknown> {
+export function runtimeRequestProtocolPayload(
+  request: HarnessRuntimeRequest,
+): Record<string, unknown> {
   if (request.method === "session/request_permission") {
-    return { ...request, schema: TASKCORE_RUNTIME_REQUEST_SCHEMA_V2, type: "permission", choices: request.details.choices };
+    return {
+      ...request,
+      schema: TASKCORE_RUNTIME_REQUEST_SCHEMA_V2,
+      type: "permission",
+      choices: request.details.choices,
+    };
   }
   if (request.input !== undefined) {
     return {
@@ -477,9 +580,10 @@ function canonicalCodexAnswers(
   for (const question of request.input?.questions ?? []) {
     const answer = response.answers[question.id];
     if (answer === undefined) continue;
-    const nativeValues = request.input === undefined
-      ? undefined
-      : NATIVE_OPTION_VALUES.get(responseContext)?.get(question.id);
+    const nativeValues =
+      request.input === undefined
+        ? undefined
+        : NATIVE_OPTION_VALUES.get(responseContext)?.get(question.id);
     const labels = (answer.selectedOptionIds ?? []).map((optionId) => {
       const value = nativeValues?.has(optionId)
         ? nativeValues.get(optionId)
@@ -503,7 +607,8 @@ function jsonSchemaOptionValue(
   optionId: string,
   nativeValues: ReadonlyMap<string, unknown> | undefined,
 ): unknown {
-  if (nativeValues?.has(optionId)) return structuredClone(nativeValues.get(optionId));
+  if (nativeValues?.has(optionId))
+    return structuredClone(nativeValues.get(optionId));
   if (optionId === "true") return true;
   if (optionId === "false") return false;
   const index = Number(optionId.match(/^option-(\d+)$/)?.[1] ?? "0") - 1;
@@ -518,7 +623,9 @@ function canonicalElicitationContent(
   response: TaskcoreQuestionResponse,
   responseContext: CodexQuestionResponseContext,
 ): Record<string, unknown> {
-  const requestedSchema = record(request.details.requestedSchema ?? request.details.schema);
+  const requestedSchema = record(
+    request.details.requestedSchema ?? request.details.schema,
+  );
   const properties = record(requestedSchema.properties);
   const content: Record<string, unknown> = {};
   for (const question of request.input?.questions ?? []) {
@@ -526,21 +633,30 @@ function canonicalElicitationContent(
     if (answer === undefined) continue;
     const property = record(properties[question.id]);
     const itemSchema = record(property.items);
-    const nativeValues = request.input === undefined
-      ? undefined
-      : NATIVE_OPTION_VALUES.get(responseContext)?.get(question.id);
+    const nativeValues =
+      request.input === undefined
+        ? undefined
+        : NATIVE_OPTION_VALUES.get(responseContext)?.get(question.id);
     if (question.answerMode === "text") {
       const value = answer.text ?? "";
-      content[question.id] = property.type === "integer" || property.type === "number" ? Number(value) : value;
+      content[question.id] =
+        property.type === "integer" || property.type === "number"
+          ? Number(value)
+          : value;
     } else if (question.answerMode === "multi_select") {
       content[question.id] = (answer.selectedOptionIds ?? []).map((optionId) =>
-        jsonSchemaOptionValue(itemSchema, optionId, nativeValues));
+        jsonSchemaOptionValue(itemSchema, optionId, nativeValues),
+      );
     } else {
       const optionId = answer.selectedOptionIds?.[0];
       if (optionId !== undefined) {
-        content[question.id] = jsonSchemaOptionValue(property, optionId, nativeValues);
-      }
-      else if (answer.customText !== undefined) content[question.id] = answer.customText;
+        content[question.id] = jsonSchemaOptionValue(
+          property,
+          optionId,
+          nativeValues,
+        );
+      } else if (answer.customText !== undefined)
+        content[question.id] = answer.customText;
     }
   }
   return content;
@@ -558,7 +674,11 @@ export function runtimeRequestResponse(
 ): Record<string, unknown> {
   // The durable transport sends this canonical resolution to the ACPX sidecar,
   // which owns conversion back to the original provider form values.
-  if (isAcpxCanonicalInputMethod(request.method) || request.method === "session/request_permission") return structuredClone(resolution);
+  if (
+    isAcpxCanonicalInputMethod(request.method) ||
+    request.method === "session/request_permission"
+  )
+    return structuredClone(resolution);
   if (
     request.requestKind === "command_approval" ||
     request.requestKind === "file_approval"

@@ -3,8 +3,16 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { catalogManifest, catalogTeams, resolveCatalogTeamRef } from "./index.js";
-import { asBoolean, asString, parseFrontmatterMarkdown } from "./frontmatter.js";
+import {
+  catalogManifest,
+  catalogTeams,
+  resolveCatalogTeamRef,
+} from "./index.js";
+import {
+  asBoolean,
+  asString,
+  parseFrontmatterMarkdown,
+} from "./frontmatter.js";
 import type { CatalogTeam } from "./types.js";
 
 const EXPECTED_BUNDLED_KEYS = [
@@ -13,11 +21,12 @@ const EXPECTED_BUNDLED_KEYS = [
   "taskcore/bundled/software-development/product-engineering",
 ];
 
-const EXPECTED_OPTIONAL_KEYS = [
-  "taskcore/optional/content/content-machine",
-];
+const EXPECTED_OPTIONAL_KEYS = ["taskcore/optional/content/content-machine"];
 
-const PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const PACKAGE_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 
 describe("shipped teams catalog", () => {
   it("ships the expected bundled and optional team fixtures", () => {
@@ -36,9 +45,17 @@ describe("shipped teams catalog", () => {
 
   it("keeps every shipped team free of executable scripts and external sources in Phase B", () => {
     const risky = catalogTeams.filter(
-      (team) => team.trustLevel === "scripts_executables" || team.trustLevel === "external_sources",
+      (team) =>
+        team.trustLevel === "scripts_executables" ||
+        team.trustLevel === "external_sources",
     );
-    expect(risky, formatViolations("script-bearing or external-source teams require later security review", risky)).toEqual([]);
+    expect(
+      risky,
+      formatViolations(
+        "script-bearing or external-source teams require later security review",
+        risky,
+      ),
+    ).toEqual([]);
   });
 
   it("populates browse/search-relevant fields for every shipped team", () => {
@@ -48,7 +65,9 @@ describe("shipped teams catalog", () => {
         issues.push(`${team.key} compatibility=${team.compatibility}`);
       }
       if (!team.description || team.description.length < 40) {
-        issues.push(`${team.key} description must be at least 40 characters for catalog browse/search`);
+        issues.push(
+          `${team.key} description must be at least 40 characters for catalog browse/search`,
+        );
       }
       if (team.recommendedForCompanyTypes.length === 0) {
         issues.push(`${team.key} must list recommendedForCompanyTypes`);
@@ -68,8 +87,10 @@ describe("shipped teams catalog", () => {
     for (const team of catalogTeams) {
       const expectedKey = `taskcore/${team.kind}/${team.category}/${team.slug}`;
       const expectedId = `taskcore:${team.kind}:${team.category}:${team.slug}`;
-      if (team.key !== expectedKey) violations.push(`${team.key} should be ${expectedKey}`);
-      if (team.id !== expectedId) violations.push(`${team.id} should be ${expectedId}`);
+      if (team.key !== expectedKey)
+        violations.push(`${team.key} should be ${expectedKey}`);
+      if (team.id !== expectedId)
+        violations.push(`${team.id} should be ${expectedId}`);
     }
     expect(violations).toEqual([]);
   });
@@ -77,34 +98,79 @@ describe("shipped teams catalog", () => {
   it("exposes a stable manifest header for downstream consumers", () => {
     expect(catalogManifest.schemaVersion).toBe(1);
     expect(catalogManifest.packageName).toBe("@taskcore/teams-catalog");
-    expect(catalogTeams.length).toBe(EXPECTED_BUNDLED_KEYS.length + EXPECTED_OPTIONAL_KEYS.length);
+    expect(catalogTeams.length).toBe(
+      EXPECTED_BUNDLED_KEYS.length + EXPECTED_OPTIONAL_KEYS.length,
+    );
   });
 
   it("resolves shipped teams by id, key, and unique slug", () => {
-    const sample = catalogTeams.find((team) => team.key === "taskcore/bundled/company-defaults/core-exec-team");
-    expect(sample, "expected core-exec-team to ship in the bundled catalog").toBeDefined();
+    const sample = catalogTeams.find(
+      (team) => team.key === "taskcore/bundled/company-defaults/core-exec-team",
+    );
+    expect(
+      sample,
+      "expected core-exec-team to ship in the bundled catalog",
+    ).toBeDefined();
     if (!sample) return;
 
     expect(resolveCatalogTeamRef(sample.id)).toMatchObject({ key: sample.key });
-    expect(resolveCatalogTeamRef(sample.key)).toMatchObject({ key: sample.key });
-    expect(resolveCatalogTeamRef(sample.slug)).toMatchObject({ key: sample.key });
+    expect(resolveCatalogTeamRef(sample.key)).toMatchObject({
+      key: sample.key,
+    });
+    expect(resolveCatalogTeamRef(sample.slug)).toMatchObject({
+      key: sample.key,
+    });
   });
 
   it("preserves shipped agent roles, reporting lines, and skill assignments", () => {
     const expected = {
-      "core-exec-team/ceo": { role: "ceo", reportsTo: null, skills: ["task-planning", "issue-triage"] },
-      "core-exec-team/cto": { role: "engineering-manager", reportsTo: "ceo", skills: ["github-pr-workflow", "task-planning"] },
-      "core-exec-team/qa": { role: "qa", reportsTo: "cto", skills: ["qa-acceptance"] },
-      "product-engineering/cto": { role: "engineering-manager", reportsTo: null, skills: ["github-pr-workflow", "task-planning", "doc-maintenance"] },
-      "product-engineering/qa": { role: "qa", reportsTo: "cto", skills: ["qa-acceptance"] },
-      "product-engineering/senior-coder": { role: "engineer", reportsTo: "cto", skills: ["github-pr-workflow", "doc-maintenance"] },
-      "product-design/ux-designer": { role: "designer", reportsTo: null, skills: ["wireframe", "design-critique", "task-planning"] },
-      "content-machine/content-lead": { role: "content-strategist", reportsTo: null, skills: ["content-calendar"] },
+      "core-exec-team/ceo": {
+        role: "ceo",
+        reportsTo: null,
+        skills: ["task-planning", "issue-triage"],
+      },
+      "core-exec-team/cto": {
+        role: "engineering-manager",
+        reportsTo: "ceo",
+        skills: ["github-pr-workflow", "task-planning"],
+      },
+      "core-exec-team/qa": {
+        role: "qa",
+        reportsTo: "cto",
+        skills: ["qa-acceptance"],
+      },
+      "product-engineering/cto": {
+        role: "engineering-manager",
+        reportsTo: null,
+        skills: ["github-pr-workflow", "task-planning", "doc-maintenance"],
+      },
+      "product-engineering/qa": {
+        role: "qa",
+        reportsTo: "cto",
+        skills: ["qa-acceptance"],
+      },
+      "product-engineering/senior-coder": {
+        role: "engineer",
+        reportsTo: "cto",
+        skills: ["github-pr-workflow", "doc-maintenance"],
+      },
+      "product-design/ux-designer": {
+        role: "designer",
+        reportsTo: null,
+        skills: ["wireframe", "design-critique", "task-planning"],
+      },
+      "content-machine/content-lead": {
+        role: "content-strategist",
+        reportsTo: null,
+        skills: ["content-calendar"],
+      },
     };
     const observed: Record<string, unknown> = {};
     for (const team of catalogTeams) {
       for (const file of team.files.filter((entry) => entry.kind === "agent")) {
-        const raw = fs.readFileSync(path.join(PACKAGE_DIR, team.path, file.path));
+        const raw = fs.readFileSync(
+          path.join(PACKAGE_DIR, team.path, file.path),
+        );
         const { frontmatter } = parseFrontmatterMarkdown(raw.toString("utf8"));
         observed[`${team.slug}/${frontmatter.slug}`] = {
           role: frontmatter.role,
@@ -113,7 +179,9 @@ describe("shipped teams catalog", () => {
         };
         // An edited role file must also regenerate its distributable manifest.
         expect(file.sizeBytes, `${team.key}/${file.path}`).toBe(raw.byteLength);
-        expect(file.sha256, `${team.key}/${file.path}`).toBe(createHash("sha256").update(raw).digest("hex"));
+        expect(file.sha256, `${team.key}/${file.path}`).toBe(
+          createHash("sha256").update(raw).digest("hex"),
+        );
       }
     }
     expect(observed).toEqual(expected);
@@ -125,16 +193,22 @@ describe("shipped teams catalog", () => {
     for (const team of catalogTeams) {
       for (const file of team.files.filter((entry) => entry.kind === "task")) {
         const absolutePath = path.join(PACKAGE_DIR, team.path, file.path);
-        const parsed = parseFrontmatterMarkdown(fs.readFileSync(absolutePath, "utf8"));
+        const parsed = parseFrontmatterMarkdown(
+          fs.readFileSync(absolutePath, "utf8"),
+        );
         if (!asBoolean(parsed.frontmatter.recurring)) continue;
 
         const project = asString(parsed.frontmatter.project);
         if (!project) {
-          issues.push(`${team.key}/${file.path} recurring task must declare a project`);
+          issues.push(
+            `${team.key}/${file.path} recurring task must declare a project`,
+          );
           continue;
         }
         if (!team.projectSlugs.includes(project)) {
-          issues.push(`${team.key}/${file.path} project=${project} must match a team project`);
+          issues.push(
+            `${team.key}/${file.path} project=${project} must match a team project`,
+          );
         }
       }
     }
@@ -145,6 +219,8 @@ describe("shipped teams catalog", () => {
 
 function formatViolations(label: string, teams: CatalogTeam[]) {
   if (teams.length === 0) return label;
-  const detail = teams.map((team) => `${team.key} (${team.trustLevel})`).join(", ");
+  const detail = teams
+    .map((team) => `${team.key} (${team.trustLevel})`)
+    .join(", ");
   return `${label}: ${detail}`;
 }

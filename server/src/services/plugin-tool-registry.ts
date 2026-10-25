@@ -23,7 +23,11 @@ import type {
   TaskcorePluginManifestV1,
   PluginToolDeclaration,
 } from "@taskcore/shared";
-import type { ToolRunContext, ToolResult, ExecuteToolParams } from "@taskcore/plugin-sdk";
+import type {
+  ToolRunContext,
+  ToolResult,
+  ExecuteToolParams,
+} from "@taskcore/plugin-sdk";
 import type { PluginWorkerManager } from "./plugin-worker-manager.js";
 import { logger } from "../middleware/logger.js";
 
@@ -115,7 +119,11 @@ export interface PluginToolRegistry {
    *   `workerManager.isRunning(pluginDbId)` call returns false and every tool
    *   dispatch fails with `worker for plugin X is not running`.
    */
-  registerPlugin(pluginId: string, manifest: TaskcorePluginManifestV1, pluginDbId: string): void;
+  registerPlugin(
+    pluginId: string,
+    manifest: TaskcorePluginManifestV1,
+    pluginDbId: string,
+  ): void;
 
   /**
    * Remove all tool registrations for a plugin.
@@ -157,7 +165,9 @@ export interface PluginToolRegistry {
    * @param namespacedName - e.g. `"acme.linear:search-issues"`
    * @returns `{ pluginId, toolName }` or `null` if the format is invalid
    */
-  parseNamespacedName(namespacedName: string): { pluginId: string; toolName: string } | null;
+  parseNamespacedName(
+    namespacedName: string,
+  ): { pluginId: string; toolName: string } | null;
 
   /**
    * Build a namespaced tool name from a plugin ID and bare tool name.
@@ -246,7 +256,9 @@ export function createPluginToolRegistry(
     return `${pluginId}${TOOL_NAMESPACE_SEPARATOR}${toolName}`;
   }
 
-  function parseName(namespacedName: string): { pluginId: string; toolName: string } | null {
+  function parseName(
+    namespacedName: string,
+  ): { pluginId: string; toolName: string } | null {
     const sepIndex = namespacedName.lastIndexOf(TOOL_NAMESPACE_SEPARATOR);
     if (sepIndex <= 0 || sepIndex >= namespacedName.length - 1) {
       return null;
@@ -257,7 +269,11 @@ export function createPluginToolRegistry(
     };
   }
 
-  function addTool(pluginId: string, decl: PluginToolDeclaration, pluginDbId: string): void {
+  function addTool(
+    pluginId: string,
+    decl: PluginToolDeclaration,
+    pluginDbId: string,
+  ): void {
     const namespacedName = buildName(pluginId, decl.name);
 
     const entry: RegisteredTool = {
@@ -298,7 +314,11 @@ export function createPluginToolRegistry(
   // -----------------------------------------------------------------------
 
   return {
-    registerPlugin(pluginId: string, manifest: TaskcorePluginManifestV1, pluginDbId: string): void {
+    registerPlugin(
+      pluginId: string,
+      manifest: TaskcorePluginManifestV1,
+      pluginDbId: string,
+    ): void {
       // Guard at the registry boundary so a missing UUID surfaces as an
       // explicit contract error instead of a downstream
       // `worker for plugin X is not running`.
@@ -373,7 +393,9 @@ export function createPluginToolRegistry(
       return Array.from(byNamespace.values());
     },
 
-    parseNamespacedName(namespacedName: string): { pluginId: string; toolName: string } | null {
+    parseNamespacedName(
+      namespacedName: string,
+    ): { pluginId: string; toolName: string } | null {
       return parseName(namespacedName);
     },
 
@@ -401,7 +423,7 @@ export function createPluginToolRegistry(
       if (!tool) {
         throw new Error(
           `Tool "${namespacedName}" is not registered. ` +
-          `The plugin may not be installed or its worker may not be running.`,
+            `The plugin may not be installed or its worker may not be running.`,
         );
       }
 
@@ -409,7 +431,7 @@ export function createPluginToolRegistry(
       if (!workerManager) {
         throw new Error(
           `Cannot execute tool "${namespacedName}" — no worker manager configured. ` +
-          `Tool execution requires a PluginWorkerManager.`,
+            `Tool execution requires a PluginWorkerManager.`,
         );
       }
 
@@ -418,13 +440,20 @@ export function createPluginToolRegistry(
       if (!workerManager.isRunning(dbId)) {
         throw new Error(
           `Cannot execute tool "${namespacedName}" — ` +
-          `worker for plugin "${pluginId}" is not running.`,
+            `worker for plugin "${pluginId}" is not running.`,
         );
       }
 
       // 5. Dispatch the executeTool RPC call to the worker
       log.debug(
-        { pluginId, pluginDbId: dbId, toolName, namespacedName, agentId: runContext.agentId, runId: runContext.runId },
+        {
+          pluginId,
+          pluginDbId: dbId,
+          toolName,
+          namespacedName,
+          agentId: runContext.agentId,
+          runId: runContext.runId,
+        },
         "executing tool via plugin worker",
       );
 

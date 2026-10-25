@@ -43,7 +43,9 @@ const REQUIRED_INTERACTION_STATES: CapabilityThreadInteractionState[] = [
   "superseded_by_comment",
 ];
 
-function allItems(snapshot: CapabilityIssueThreadSnapshot): CapabilityThreadItem[] {
+function allItems(
+  snapshot: CapabilityIssueThreadSnapshot,
+): CapabilityThreadItem[] {
   return snapshot.turns.flatMap((turn) => turn.items);
 }
 
@@ -93,7 +95,8 @@ describe("Capability issue-thread fixtures", () => {
   it("covers every §3 thread item type across the matrix", () => {
     const seen = new Set<CapabilityThreadItem["kind"]>();
     for (const slug of CAPABILITY_UI_SHOT_SLUGS) {
-      for (const item of allItems(capabilityIssueThreadFixture(slug))) seen.add(item.kind);
+      for (const item of allItems(capabilityIssueThreadFixture(slug)))
+        seen.add(item.kind);
     }
     for (const kind of REQUIRED_ITEM_KINDS) {
       expect(seen, `missing thread item ${kind}`).toContain(kind);
@@ -114,17 +117,28 @@ describe("Capability issue-thread fixtures", () => {
 
   it("covers every §4 composer state", () => {
     const seen = new Set(
-      CAPABILITY_UI_SHOT_SLUGS.map((slug) => capabilityIssueThreadFixture(slug).composer.state),
+      CAPABILITY_UI_SHOT_SLUGS.map(
+        (slug) => capabilityIssueThreadFixture(slug).composer.state,
+      ),
     );
-    for (const state of ["ready", "streaming", "waiting", "reconnecting", "disabled"]) {
+    for (const state of [
+      "ready",
+      "streaming",
+      "waiting",
+      "reconnecting",
+      "disabled",
+    ]) {
       expect(seen, `missing composer state ${state}`).toContain(state);
     }
   });
 
   it("binds the confirmation card to an explicit revision", () => {
-    const snapshot = capabilityIssueThreadFixture("interaction-confirmation-pending");
+    const snapshot = capabilityIssueThreadFixture(
+      "interaction-confirmation-pending",
+    );
     const card = allItems(snapshot).find(
-      (item) => item.kind === "interaction" && item.interactionKind === "confirmation",
+      (item) =>
+        item.kind === "interaction" && item.interactionKind === "confirmation",
     );
     expect(card?.kind).toBe("interaction");
     if (card?.kind !== "interaction") return;
@@ -166,39 +180,69 @@ describe("Capability issue-thread fixtures", () => {
 
   it("keeps credentials out of every fixture", () => {
     for (const slug of CAPABILITY_UI_SHOT_SLUGS) {
-      expect(credentialLike(capabilityIssueThreadFixture(slug)), slug).toEqual([]);
+      expect(credentialLike(capabilityIssueThreadFixture(slug)), slug).toEqual(
+        [],
+      );
     }
   });
 
   it("gives every provider-event scenario correlated active and terminal activity", () => {
-    for (const slug of CAPABILITY_UI_SHOT_SLUGS.filter((entry) => /^(?:pe|te|mp|rs|da|mr|cc|ag|rv|hk|mc|sr|ti|wt|pn|cm)-/.test(entry))) {
+    for (const slug of CAPABILITY_UI_SHOT_SLUGS.filter((entry) =>
+      /^(?:pe|te|mp|rs|da|mr|cc|ag|rv|hk|mc|sr|ti|wt|pn|cm)-/.test(entry),
+    )) {
       const snapshot = capabilityIssueThreadFixture(slug);
-      const activity = allItems(snapshot).filter((item) => item.kind === "provider_activity");
+      const activity = allItems(snapshot).filter(
+        (item) => item.kind === "provider_activity",
+      );
       expect(activity.length, slug).toBeGreaterThanOrEqual(2);
-      expect(activity.some((item) => item.kind === "provider_activity" && item.status === "running"), slug).toBe(true);
-      expect(activity.some((item) => item.kind === "provider_activity" && item.status !== "running"), slug).toBe(true);
+      expect(
+        activity.some(
+          (item) =>
+            item.kind === "provider_activity" && item.status === "running",
+        ),
+        slug,
+      ).toBe(true);
+      expect(
+        activity.some(
+          (item) =>
+            item.kind === "provider_activity" && item.status !== "running",
+        ),
+        slug,
+      ).toBe(true);
       for (const item of activity) {
         if (item.kind !== "provider_activity") continue;
-        expect(snapshot.evidence.runner.some((entry) => entry.id === item.evidenceRef.recordId), slug).toBe(true);
+        expect(
+          snapshot.evidence.runner.some(
+            (entry) => entry.id === item.evidenceRef.recordId,
+          ),
+          slug,
+        ).toBe(true);
       }
     }
   });
 
   it("includes a reviewable workspace-change scenario", () => {
     const snapshot = capabilityIssueThreadFixture("workspace-file-changes");
-    const item = allItems(snapshot).find((candidate) => candidate.kind === "workspace_changes");
+    const item = allItems(snapshot).find(
+      (candidate) => candidate.kind === "workspace_changes",
+    );
     expect(item?.kind).toBe("workspace_changes");
     if (item?.kind !== "workspace_changes") return;
     expect(item.changeSet.files).toHaveLength(4);
     expect(item.changeSet.source).toBe("runner_verified");
     expect(item.changeSet.files[0]?.diff).toContain("diff --git");
-    expect(allItems(capabilityIssueThreadFixture("thread-baseline", "wc-workspace-changes")))
-      .toEqual(allItems(snapshot));
+    expect(
+      allItems(
+        capabilityIssueThreadFixture("thread-baseline", "wc-workspace-changes"),
+      ),
+    ).toEqual(allItems(snapshot));
   });
 
   it("includes a verified individual-file reference scenario", () => {
     const snapshot = capabilityIssueThreadFixture("workspace-file-reference");
-    const item = allItems(snapshot).find((candidate) => candidate.kind === "workspace_file_reference");
+    const item = allItems(snapshot).find(
+      (candidate) => candidate.kind === "workspace_file_reference",
+    );
     expect(item?.kind).toBe("workspace_file_reference");
     if (item?.kind !== "workspace_file_reference") return;
     expect(item.reference).toMatchObject({
@@ -208,8 +252,11 @@ describe("Capability issue-thread fixtures", () => {
       presentation: "document",
     });
     expect(item.reference.preview).toContain("# TaskCore Runner Protocol");
-    expect(allItems(capabilityIssueThreadFixture("thread-baseline", "fr-file-reference")))
-      .toEqual(allItems(snapshot));
+    expect(
+      allItems(
+        capabilityIssueThreadFixture("thread-baseline", "fr-file-reference"),
+      ),
+    ).toEqual(allItems(snapshot));
   });
 });
 
@@ -251,7 +298,11 @@ describe("Capability live projection", () => {
     const applied = await adapter.applyCommand({
       runId: "run-7g-1",
       idempotencyKey: "progress-1",
-      command: { kind: "report_progress", taskId: "task-31", body: "Read the mock task." },
+      command: {
+        kind: "report_progress",
+        taskId: "task-31",
+        body: "Read the mock task.",
+      },
     });
 
     return {
@@ -317,7 +368,11 @@ describe("Capability live projection", () => {
           at: "2026-08-09T09:00:00.000Z",
           turnId: null,
           data: {
-            operationIds: ["get_task_context", "report_progress", "search_tasks"],
+            operationIds: [
+              "get_task_context",
+              "report_progress",
+              "search_tasks",
+            ],
             scenarioId: "hb-baseline",
           },
         },
@@ -387,26 +442,41 @@ describe("Capability live projection", () => {
         },
       ],
       process: null,
-      networkEvidence: { realTaskcoreRequests: 0, childTaskcoreEnvironmentKeys: [] },
+      networkEvidence: {
+        realTaskcoreRequests: 0,
+        childTaskcoreEnvironmentKeys: [],
+      },
     } as CapabilityLiveSessionSnapshot;
   }
 
   it("projects mock records into the same view contract the fixtures use", async () => {
     const snapshot = await liveSnapshot();
-    snapshot.workspaceDiffs = [{
-      turnId: "turn-1",
-      at: "2026-08-09T09:00:35.000Z",
-      diff: {
-        schema: "taskcore.workspace.diff.v1",
-        changeSetId: "turn-1:workspace",
-        revision: 1,
-        source: "runner_verified",
-        complete: true,
-        files: [{ path: "src/index.ts", operation: "modify", previousPath: null, additions: 1, deletions: 1, binary: false, diff: "-old\n+new\n" }],
-        totals: { files: 1, additions: 1, deletions: 1 },
-        patchArtifactRef: null,
+    snapshot.workspaceDiffs = [
+      {
+        turnId: "turn-1",
+        at: "2026-08-09T09:00:35.000Z",
+        diff: {
+          schema: "taskcore.workspace.diff.v1",
+          changeSetId: "turn-1:workspace",
+          revision: 1,
+          source: "runner_verified",
+          complete: true,
+          files: [
+            {
+              path: "src/index.ts",
+              operation: "modify",
+              previousPath: null,
+              additions: 1,
+              deletions: 1,
+              binary: false,
+              diff: "-old\n+new\n",
+            },
+          ],
+          totals: { files: 1, additions: 1, deletions: 1 },
+          patchArtifactRef: null,
+        },
       },
-    }];
+    ];
     const view = projectCapabilityIssueThread({ snapshot });
 
     expect(view.schema).toBe(CAPABILITY_ISSUE_THREAD_VIEW_SCHEMA);
@@ -416,10 +486,14 @@ describe("Capability live projection", () => {
     expect(view.issue.identifier).toBe("MCK-31");
 
     const items = allItems(view);
-    expect(items.filter((item) => item.kind === "user_message")).toHaveLength(1);
+    expect(items.filter((item) => item.kind === "user_message")).toHaveLength(
+      1,
+    );
     expect(items.some((item) => item.kind === "agent_message")).toBe(true);
     expect(items.some((item) => item.kind === "tool_activity")).toBe(true);
-    expect(items.find((item) => item.kind === "workspace_changes")).toMatchObject({
+    expect(
+      items.find((item) => item.kind === "workspace_changes"),
+    ).toMatchObject({
       kind: "workspace_changes",
       changeSet: { source: "runner_verified", totals: { files: 1 } },
     });
@@ -432,9 +506,11 @@ describe("Capability live projection", () => {
       label: "Thinking",
       eventCount: 2,
     });
-    expect(view.evidence.runner.filter(
-      (record) => record.details.some((entry) => entry.value === "reasoning_delta"),
-    )).toHaveLength(2);
+    expect(
+      view.evidence.runner.filter((record) =>
+        record.details.some((entry) => entry.value === "reasoning_delta"),
+      ),
+    ).toHaveLength(2);
 
     // The durable comment comes from the mock record the command created,
     // not from the model's prose.
@@ -455,9 +531,12 @@ describe("Capability live projection", () => {
     const view = projectCapabilityIssueThread({ snapshot });
 
     expect(view.identity.agentLabel).toBe("Real OpenCode");
-    expect(allItems(view).find((item) => item.kind === "agent_message"))
-      .toMatchObject({ author: "Real OpenCode" });
-    expect(view.composer.helper).toBe("OpenCode is working — send to steer, or stop the turn.");
+    expect(
+      allItems(view).find((item) => item.kind === "agent_message"),
+    ).toMatchObject({ author: "Real OpenCode" });
+    expect(view.composer.helper).toBe(
+      "OpenCode is working — send to steer, or stop the turn.",
+    );
     expect(JSON.stringify(view)).not.toContain("Codex");
   });
 
@@ -485,7 +564,9 @@ describe("Capability live projection", () => {
       },
     });
     const view = projectCapabilityIssueThread({ snapshot });
-    expect(allItems(view).find((item) => item.kind === "provider_activity")).toMatchObject({
+    expect(
+      allItems(view).find((item) => item.kind === "provider_activity"),
+    ).toMatchObject({
       family: "plan",
       eventType: "plan.updated",
       status: "completed",
@@ -494,24 +575,47 @@ describe("Capability live projection", () => {
   });
 
   it("hides the synthetic interaction-result message from the thread", async () => {
-    const view = projectCapabilityIssueThread({ snapshot: await liveSnapshot() });
+    const view = projectCapabilityIssueThread({
+      snapshot: await liveSnapshot(),
+    });
     const bodies = allItems(view)
       .filter((item) => item.kind === "user_message")
       .map((item) => item.body);
-    expect(bodies.some((body) => body.includes("semantic-interaction-result"))).toBe(false);
+    expect(
+      bodies.some((body) => body.includes("semantic-interaction-result")),
+    ).toBe(false);
   });
-  it.each([["cursor", "Cursor"], ["copilot", "GitHub Copilot"], ["pi", "Pi"]] as const)("labels the %s provider truthfully", async (agent, label) => {
+  it.each([
+    ["cursor", "Cursor"],
+    ["copilot", "GitHub Copilot"],
+    ["pi", "Pi"],
+  ] as const)("labels the %s provider truthfully", async (agent, label) => {
     const snapshot = await liveSnapshot();
-    snapshot.config = { ...snapshot.config, provider: "acpx", driver: "acpx_runtime", acpxAgent: agent };
-    expect(projectCapabilityIssueThread({ snapshot }).identity.agentLabel).toBe(`Real ${label} via ACPX`);
+    snapshot.config = {
+      ...snapshot.config,
+      provider: "acpx",
+      driver: "acpx_runtime",
+      acpxAgent: agent,
+    };
+    expect(projectCapabilityIssueThread({ snapshot }).identity.agentLabel).toBe(
+      `Real ${label} via ACPX`,
+    );
   });
 
   it("separates exposed agent tools from withheld control-plane operations", async () => {
-    const view = projectCapabilityIssueThread({ snapshot: await liveSnapshot() });
+    const view = projectCapabilityIssueThread({
+      snapshot: await liveSnapshot(),
+    });
     const rows = view.evidence.tools[0]?.rows ?? [];
-    const always = rows.filter((row) => row.disposition === "always_agent_tool");
-    const granted = rows.filter((row) => row.disposition === "optional_agent_tool");
-    const withheld = rows.filter((row) => row.disposition === "control_plane_owned");
+    const always = rows.filter(
+      (row) => row.disposition === "always_agent_tool",
+    );
+    const granted = rows.filter(
+      (row) => row.disposition === "optional_agent_tool",
+    );
+    const withheld = rows.filter(
+      (row) => row.disposition === "control_plane_owned",
+    );
     expect(always.map((row) => row.operationId)).toContain("report_progress");
     expect(granted.map((row) => row.operationId)).toContain("search_tasks");
     expect(withheld.map((row) => row.operationId)).toContain("create_task");
@@ -519,7 +623,9 @@ describe("Capability live projection", () => {
 
   it("derives composer state from server records rather than browser guesses", async () => {
     const snapshot = await liveSnapshot();
-    expect(projectCapabilityIssueThread({ snapshot }).composer.state).toBe("ready");
+    expect(projectCapabilityIssueThread({ snapshot }).composer.state).toBe(
+      "ready",
+    );
     expect(
       projectCapabilityIssueThread({
         snapshot: { ...snapshot, activeTurnId: "turn-1" },
@@ -537,7 +643,9 @@ describe("Capability live projection", () => {
   });
 
   it("keeps credentials out of the projected view", async () => {
-    const view = projectCapabilityIssueThread({ snapshot: await liveSnapshot() });
+    const view = projectCapabilityIssueThread({
+      snapshot: await liveSnapshot(),
+    });
     expect(credentialLike(view)).toEqual([]);
   });
 });

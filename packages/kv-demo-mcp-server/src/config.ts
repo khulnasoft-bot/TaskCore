@@ -29,7 +29,9 @@ export function createKvDemoConfig(input: KvDemoConfigInput): KvDemoConfig {
   };
 }
 
-export function readConfigFromEnv(env: NodeJS.ProcessEnv = process.env): KvDemoConfig {
+export function readConfigFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): KvDemoConfig {
   return createKvDemoConfig({
     port: env.PORT ?? env.KV_DEMO_PORT,
     host: env.KV_DEMO_HOST,

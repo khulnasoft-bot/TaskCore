@@ -17,7 +17,15 @@
   "$defs": {
     "measurement": {
       "type": "object",
-      "required": ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens", "activeSeconds", "requests", "providerCostUsd"],
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "cacheReadTokens",
+        "cacheWriteTokens",
+        "activeSeconds",
+        "requests",
+        "providerCostUsd"
+      ],
       "properties": {
         "inputTokens": { "type": "integer", "minimum": 0 },
         "outputTokens": { "type": "integer", "minimum": 0 },

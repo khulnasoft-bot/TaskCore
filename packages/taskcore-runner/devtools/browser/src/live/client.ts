@@ -22,14 +22,19 @@ export class LiveConsoleError extends Error {
 async function send<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: init?.body === undefined ? undefined : { "content-type": "application/json" },
+    headers:
+      init?.body === undefined
+        ? undefined
+        : { "content-type": "application/json" },
   });
   const body = (await response.json()) as Record<string, unknown>;
   if (!response.ok) {
     throw new LiveConsoleError(
       response.status,
       typeof body.error === "string" ? body.error : "request_failed",
-      typeof body.message === "string" ? body.message : `Request to ${path} failed.`,
+      typeof body.message === "string"
+        ? body.message
+        : `Request to ${path} failed.`,
     );
   }
   return body as T;
@@ -52,7 +57,9 @@ export async function createSession(input: {
   });
 }
 
-export async function readSession(sessionId: string): Promise<LiveSessionState> {
+export async function readSession(
+  sessionId: string,
+): Promise<LiveSessionState> {
   return send<LiveSessionState>(`/sessions/${sessionId}`);
 }
 
@@ -120,7 +127,9 @@ export async function goalOperation(
   });
 }
 
-export async function reconnectSession(sessionId: string): Promise<LiveSessionState> {
+export async function reconnectSession(
+  sessionId: string,
+): Promise<LiveSessionState> {
   return send<LiveSessionState>(`/sessions/${sessionId}/reconnect`, {
     method: "POST",
     body: JSON.stringify({}),
@@ -151,7 +160,9 @@ export function openEventStream(
     onError?: () => void;
   },
 ): EventStreamHandle {
-  const source = new EventSource(`${BASE}/sessions/${sessionId}/stream?after=${after}`);
+  const source = new EventSource(
+    `${BASE}/sessions/${sessionId}/stream?after=${after}`,
+  );
   source.onopen = () => handlers.onOpen?.();
   source.onmessage = (message) => {
     try {

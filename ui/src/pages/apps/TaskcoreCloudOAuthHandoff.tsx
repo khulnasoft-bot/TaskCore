@@ -38,15 +38,20 @@ export function ManagedOAuthHandoffState({
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {failed
-              ? error ?? "Taskcore couldn’t prepare the provider sign-in. Try again."
+              ? (error ??
+                "Taskcore couldn’t prepare the provider sign-in. Try again.")
               : phase === "reauthenticating"
                 ? "Your Taskcore sign-in is being refreshed."
                 : "Taskcore is opening the provider securely."}
           </p>
           {failed ? (
             <div className="mt-6 flex items-center gap-2">
-              <Button type="button" onClick={onRetry}>Try again</Button>
-              <Button type="button" variant="ghost" onClick={onCancel}>Return to Taskcore</Button>
+              <Button type="button" onClick={onRetry}>
+                Try again
+              </Button>
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Return to Taskcore
+              </Button>
             </div>
           ) : null}
         </div>
@@ -64,23 +69,34 @@ export function TaskcoreCloudOAuthHandoffPage() {
     const handoff = readPendingCloudHandoff();
     if (!handoff) {
       setPhase("error");
-      setError("This sign-in expired. Return to Taskcore and start the connection again.");
+      setError(
+        "This sign-in expired. Return to Taskcore and start the connection again.",
+      );
       return;
     }
     setPhase("loading");
     setError(null);
     try {
-      const target = await prepareOAuthNavigation({ authorizationUrl: "", handoff });
+      const target = await prepareOAuthNavigation({
+        authorizationUrl: "",
+        handoff,
+      });
       if (target.kind === "reauthentication") {
         setPhase("error");
-        setError("Taskcore couldn’t refresh this sign-in. Try again to continue.");
+        setError(
+          "Taskcore couldn’t refresh this sign-in. Try again to continue.",
+        );
         return;
       }
       clearPendingCloudHandoff();
       navigateTopLevel(target.url);
     } catch (caught) {
       setPhase("error");
-      setError(caught instanceof Error ? caught.message : "Taskcore couldn’t prepare secure sign-in.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Taskcore couldn’t prepare secure sign-in.",
+      );
     }
   }, []);
 

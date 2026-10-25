@@ -30,7 +30,10 @@
 import type { TranscriptEntry } from "@taskcore/adapter-utils";
 import type { StdoutLineParser, StdoutParserFactory } from "./types";
 import { createSandboxedWorker } from "./sandboxed-parser-worker";
-import type { SandboxRequest, SandboxResponse } from "./sandboxed-parser-worker";
+import type {
+  SandboxRequest,
+  SandboxResponse,
+} from "./sandboxed-parser-worker";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -88,7 +91,11 @@ function notifyResultReady(): void {
  * Parse a single line synchronously by delegating to the worker.
  * Returns a Promise that resolves with the TranscriptEntry[] from the worker.
  */
-function parseLineAsync(sandbox: SandboxedParser, line: string, ts: string): Promise<TranscriptEntry[]> {
+function parseLineAsync(
+  sandbox: SandboxedParser,
+  line: string,
+  ts: string,
+): Promise<TranscriptEntry[]> {
   return new Promise((resolve) => {
     const id = nextRequestId(sandbox);
     sandbox.pendingResolves.set(id, resolve);
@@ -140,7 +147,10 @@ function initSandboxedWorker(source: string): Promise<SandboxedParser> {
               resolver(resp.entries as TranscriptEntry[]);
             }
           } else if (resp.type === "error") {
-            console.error("[adapter-ui-loader] Worker reported error:", resp.message);
+            console.error(
+              "[adapter-ui-loader] Worker reported error:",
+              resp.message,
+            );
             drainPendingRequests(sandbox);
           }
         };
@@ -215,7 +225,9 @@ function buildParserModule(sandbox: SandboxedParser): DynamicParserModule {
  *
  * @returns A DynamicParserModule, or null if unavailable.
  */
-export async function loadDynamicParser(adapterType: string): Promise<DynamicParserModule | null> {
+export async function loadDynamicParser(
+  adapterType: string,
+): Promise<DynamicParserModule | null> {
   // Return cached parser if already loaded.
   const cached = dynamicParserCache.get(adapterType);
   if (cached) return cached;
@@ -229,7 +241,9 @@ export async function loadDynamicParser(adapterType: string): Promise<DynamicPar
 
   const loadPromise = (async (): Promise<DynamicParserModule | null> => {
     try {
-      const response = await fetch(`/api/adapters/${encodeURIComponent(adapterType)}/ui-parser.js`);
+      const response = await fetch(
+        `/api/adapters/${encodeURIComponent(adapterType)}/ui-parser.js`,
+      );
       if (!response.ok) {
         failedLoads.add(adapterType);
         return null;
@@ -244,10 +258,15 @@ export async function loadDynamicParser(adapterType: string): Promise<DynamicPar
       const parserModule = buildParserModule(sandbox);
       dynamicParserCache.set(adapterType, parserModule);
 
-      console.info(`[adapter-ui-loader] Loaded sandboxed UI parser for "${adapterType}"`);
+      console.info(
+        `[adapter-ui-loader] Loaded sandboxed UI parser for "${adapterType}"`,
+      );
       return parserModule;
     } catch (err) {
-      console.warn(`[adapter-ui-loader] Failed to load UI parser for "${adapterType}":`, err);
+      console.warn(
+        `[adapter-ui-loader] Failed to load UI parser for "${adapterType}":`,
+        err,
+      );
       failedLoads.add(adapterType);
       return null;
     } finally {
@@ -279,7 +298,9 @@ export function invalidateDynamicParser(adapterType: string): boolean {
   }
 
   if (wasCached) {
-    console.info(`[adapter-ui-loader] Invalidated sandboxed UI parser for "${adapterType}"`);
+    console.info(
+      `[adapter-ui-loader] Invalidated sandboxed UI parser for "${adapterType}"`,
+    );
   }
   return wasCached;
 }

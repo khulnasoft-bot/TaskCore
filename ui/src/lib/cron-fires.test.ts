@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { nextCronFires, parseCronExpression, previewFirePolicies } from "./cron-fires";
+import {
+  nextCronFires,
+  parseCronExpression,
+  previewFirePolicies,
+} from "./cron-fires";
 
 describe("parseCronExpression", () => {
   it("parses a standard 5-field expression", () => {
@@ -52,7 +56,10 @@ describe("nextCronFires", () => {
   it("interprets cron fields in the trigger timezone", () => {
     // 14:00 in New York (EDT, UTC-4 in June) is 18:00 UTC.
     const after = new Date("2026-06-09T10:00:00Z");
-    const fires = nextCronFires("0 14 * * *", 1, { after, timeZone: "America/New_York" });
+    const fires = nextCronFires("0 14 * * *", 1, {
+      after,
+      timeZone: "America/New_York",
+    });
     expect(fires[0]?.toISOString()).toBe("2026-06-09T18:00:00.000Z");
   });
 
@@ -70,20 +77,32 @@ describe("previewFirePolicies", () => {
   ];
 
   it("always queues the first fire regardless of policy", () => {
-    for (const policy of ["coalesce_if_active", "always_enqueue", "skip_if_active"]) {
+    for (const policy of [
+      "coalesce_if_active",
+      "always_enqueue",
+      "skip_if_active",
+    ]) {
       expect(previewFirePolicies(fires, policy)[0]?.disposition).toBe("queued");
     }
   });
 
   it("coalesces subsequent fires under coalesce_if_active", () => {
     const preview = previewFirePolicies(fires, "coalesce_if_active");
-    expect(preview.map((e) => e.disposition)).toEqual(["queued", "coalesced", "coalesced"]);
+    expect(preview.map((e) => e.disposition)).toEqual([
+      "queued",
+      "coalesced",
+      "coalesced",
+    ]);
     expect(preview[1]?.label).toBe("would be coalesced");
   });
 
   it("skips subsequent fires under skip_if_active", () => {
     const preview = previewFirePolicies(fires, "skip_if_active");
-    expect(preview.map((e) => e.disposition)).toEqual(["queued", "skipped", "skipped"]);
+    expect(preview.map((e) => e.disposition)).toEqual([
+      "queued",
+      "skipped",
+      "skipped",
+    ]);
   });
 
   it("queues every fire under always_enqueue", () => {

@@ -53,8 +53,10 @@ export function migrationRefusalError(
   state: { appliedMigrations: string[]; tableCount: number },
   message: string,
 ): Error {
-  const neverMigrated = state.appliedMigrations.length === 0 && state.tableCount === 0;
-  if (neverMigrated) return new StartupRefusalError("schema-not-yet-migrated", message);
+  const neverMigrated =
+    state.appliedMigrations.length === 0 && state.tableCount === 0;
+  if (neverMigrated)
+    return new StartupRefusalError("schema-not-yet-migrated", message);
   // A database with applied HISTORY and newer pending files is normal
   // mid-upgrade under a supervisor: managed fleet rolls deliver the new
   // app image before the migration runner, so every upgraded stack

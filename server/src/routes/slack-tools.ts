@@ -85,57 +85,77 @@ export function slackToolRoutes(db: Db, publicBaseUrl?: string) {
       ))
     );
   }
-  router.get("/companies/:companyId/slack/endpoints/:endpointId/search", async (req, res) => {
-    const userId = user(req);
-    const companyId = String(req.params.companyId);
-    assertCompanyAccess(req, companyId);
-    res.set("Cache-Control", "no-store").json({
-      ...(await oauth.status(companyId, String(req.params.endpointId), userId)),
-      canConfigure: await canConfigure(req, companyId, userId),
-    });
-  });
-  router.put("/companies/:companyId/slack/endpoints/:endpointId/search", async (req, res) => {
-    const userId = user(req);
-    const companyId = String(req.params.companyId);
-    assertCompanyAccess(req, companyId);
-    if (
-      req.actor.source !== "local_implicit" &&
-      !req.actor.isInstanceAdmin &&
-      !(await accessService(db).hasPermission(
-        companyId,
-        "user",
-        userId,
-        "tools:manage_connections",
-      ))
-    )
-      throw forbidden("Missing permission: tools:manage_connections");
-    res.json(
-      await oauth.configure(
-        companyId,
-        String(req.params.endpointId),
-        userId,
-        req.body,
-      ),
-    );
-  });
-  router.post("/companies/:companyId/slack/endpoints/:endpointId/search/connect", async (req, res) => {
-    const userId = user(req);
-    const companyId = String(req.params.companyId);
-    assertCompanyAccess(req, companyId);
-    res
-      .set("Cache-Control", "no-store")
-      .json(
-        await oauth.start(companyId, String(req.params.endpointId), userId),
+  router.get(
+    "/companies/:companyId/slack/endpoints/:endpointId/search",
+    async (req, res) => {
+      const userId = user(req);
+      const companyId = String(req.params.companyId);
+      assertCompanyAccess(req, companyId);
+      res.set("Cache-Control", "no-store").json({
+        ...(await oauth.status(
+          companyId,
+          String(req.params.endpointId),
+          userId,
+        )),
+        canConfigure: await canConfigure(req, companyId, userId),
+      });
+    },
+  );
+  router.put(
+    "/companies/:companyId/slack/endpoints/:endpointId/search",
+    async (req, res) => {
+      const userId = user(req);
+      const companyId = String(req.params.companyId);
+      assertCompanyAccess(req, companyId);
+      if (
+        req.actor.source !== "local_implicit" &&
+        !req.actor.isInstanceAdmin &&
+        !(await accessService(db).hasPermission(
+          companyId,
+          "user",
+          userId,
+          "tools:manage_connections",
+        ))
+      )
+        throw forbidden("Missing permission: tools:manage_connections");
+      res.json(
+        await oauth.configure(
+          companyId,
+          String(req.params.endpointId),
+          userId,
+          req.body,
+        ),
       );
-  });
-  router.delete("/companies/:companyId/slack/endpoints/:endpointId/search", async (req, res) => {
-    const userId = user(req);
-    const companyId = String(req.params.companyId);
-    assertCompanyAccess(req, companyId);
-    res.json(
-      await oauth.disconnect(companyId, String(req.params.endpointId), userId),
-    );
-  });
+    },
+  );
+  router.post(
+    "/companies/:companyId/slack/endpoints/:endpointId/search/connect",
+    async (req, res) => {
+      const userId = user(req);
+      const companyId = String(req.params.companyId);
+      assertCompanyAccess(req, companyId);
+      res
+        .set("Cache-Control", "no-store")
+        .json(
+          await oauth.start(companyId, String(req.params.endpointId), userId),
+        );
+    },
+  );
+  router.delete(
+    "/companies/:companyId/slack/endpoints/:endpointId/search",
+    async (req, res) => {
+      const userId = user(req);
+      const companyId = String(req.params.companyId);
+      assertCompanyAccess(req, companyId);
+      res.json(
+        await oauth.disconnect(
+          companyId,
+          String(req.params.endpointId),
+          userId,
+        ),
+      );
+    },
+  );
   router.post(
     "/companies/:companyId/slack/tasks/:issueId/tools",
     async (req, res) => {

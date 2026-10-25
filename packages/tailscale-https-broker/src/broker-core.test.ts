@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MemoryAuditSink } from "./audit.js";
-import { BrokerCore, type CliResult, type ListenerOwnership } from "./broker-core.js";
+import {
+  BrokerCore,
+  type CliResult,
+  type ListenerOwnership,
+} from "./broker-core.js";
 import { defaultIsAllowedPort } from "./port-policy.js";
 import type { BrokerRequest, PeerCredentials } from "./types.js";
 
@@ -28,20 +32,32 @@ class FakeTailscale {
     const [, sub, a2, a3] = argv;
     if (sub === "serve" && a2 === "status") {
       this.statusCalls += 1;
-      return { code: 0, stdout: this.statusJson(), stderr: "", timedOut: false };
+      return {
+        code: 0,
+        stdout: this.statusJson(),
+        stderr: "",
+        timedOut: false,
+      };
     }
     if (sub === "serve" && a2 === "--bg") {
       this.exposeCalls += 1;
       const port = Number(a3.replace("--https=", ""));
-      if (this.failExposePort === port) return { code: 1, stdout: "", stderr: "boom", timedOut: false };
+      if (this.failExposePort === port)
+        return { code: 1, stdout: "", stderr: "boom", timedOut: false };
       this.ports.set(port, `http://127.0.0.1:${port}`);
-      if (this.sideEffectOnExpose) this.ports.set(this.sideEffectOnExpose, `http://127.0.0.1:${this.sideEffectOnExpose}`);
-      if (this.retargetPrimaryOnExpose) this.ports.set(443, "http://127.0.0.1:9999");
+      if (this.sideEffectOnExpose)
+        this.ports.set(
+          this.sideEffectOnExpose,
+          `http://127.0.0.1:${this.sideEffectOnExpose}`,
+        );
+      if (this.retargetPrimaryOnExpose)
+        this.ports.set(443, "http://127.0.0.1:9999");
       return { code: 0, stdout: "", stderr: "", timedOut: false };
     }
     if (sub === "serve" && a2.startsWith("--https=") && a3 === "off") {
       this.removeCalls += 1;
-      if (this.failRemove) return { code: 1, stdout: "", stderr: "no", timedOut: false };
+      if (this.failRemove)
+        return { code: 1, stdout: "", stderr: "no", timedOut: false };
       this.ports.delete(Number(a2.replace("--https=", "")));
       return { code: 0, stdout: "", stderr: "", timedOut: false };
     }
@@ -94,15 +110,24 @@ const reserveReq = (runtimeId = RUNTIME_A, port = 42010): BrokerRequest => ({
   listeners: [{ purpose: "app", port }],
 });
 
-async function reserveAndExpose(core: BrokerCore, runtimeId = RUNTIME_A, port = 42010, peer = PEER) {
+async function reserveAndExpose(
+  core: BrokerCore,
+  runtimeId = RUNTIME_A,
+  port = 42010,
+  peer = PEER,
+) {
   const reserved = await core.handle(reserveReq(runtimeId, port), peer);
-  if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
-  return await core.handle({
-    op: "expose",
-    requestId: "req-x",
-    runtimeId,
-    handle: reserved.handle,
-  }, peer);
+  if (!reserved.ok || reserved.op !== "reserve")
+    throw new Error("reserve failed");
+  return await core.handle(
+    {
+      op: "expose",
+      requestId: "req-x",
+      runtimeId,
+      handle: reserved.handle,
+    },
+    peer,
+  );
 }
 
 let dir: string;
@@ -122,10 +147,22 @@ describe("expose", () => {
     const reserved = await core.handle(reserveReq(), PEER);
     expect(reserved.ok).toBe(true);
     expect(fake.ports.has(42010)).toBe(false);
-    const beforeList = await core.handle({ op: "list", requestId: "before-list" }, PEER);
+    const beforeList = await core.handle(
+      { op: "list", requestId: "before-list" },
+      PEER,
+    );
     expect(beforeList).toMatchObject({ ok: true, listeners: [] });
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("expected reserve ok");
-    const res = await core.handle({ op: "expose", requestId: "req-x", runtimeId: RUNTIME_A, handle: reserved.handle }, PEER);
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("expected reserve ok");
+    const res = await core.handle(
+      {
+        op: "expose",
+        requestId: "req-x",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
+      PEER,
+    );
     expect(res.ok).toBe(true);
     if (!res.ok || res.op !== "expose") throw new Error("expected expose ok");
     expect(res.publicPorts).toEqual([42010]);
@@ -141,12 +178,32 @@ describe("expose", () => {
     const fake = new FakeTailscale();
     const { core } = makeCore(fake, registryPath);
     const firstReservation = await core.handle(reserveReq(), PEER);
-    if (!firstReservation.ok || firstReservation.op !== "reserve") throw new Error("reserve failed");
-    await core.handle({ op: "expose", requestId: "first", runtimeId: RUNTIME_A, handle: firstReservation.handle }, PEER);
+    if (!firstReservation.ok || firstReservation.op !== "reserve")
+      throw new Error("reserve failed");
+    await core.handle(
+      {
+        op: "expose",
+        requestId: "first",
+        runtimeId: RUNTIME_A,
+        handle: firstReservation.handle,
+      },
+      PEER,
+    );
     const before = fake.exposeCalls;
     const repeatedReservation = await core.handle(reserveReq(), PEER);
-    expect(repeatedReservation).toMatchObject({ ok: true, handle: firstReservation.handle });
-    const res = await core.handle({ op: "expose", requestId: "second", runtimeId: RUNTIME_A, handle: firstReservation.handle }, PEER);
+    expect(repeatedReservation).toMatchObject({
+      ok: true,
+      handle: firstReservation.handle,
+    });
+    const res = await core.handle(
+      {
+        op: "expose",
+        requestId: "second",
+        runtimeId: RUNTIME_A,
+        handle: firstReservation.handle,
+      },
+      PEER,
+    );
     expect(res.ok).toBe(true);
     expect(fake.exposeCalls).toBe(before); // no additional CLI mutation
   });
@@ -156,14 +213,18 @@ describe("expose", () => {
     let now = "2026-08-11T00:00:00.000Z";
     const { core } = makeCore(fake, registryPath, undefined, () => now);
     const reserved = await core.handle(reserveReq(), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
     now = "2026-08-11T00:06:00.000Z";
-    const result = await core.handle({
-      op: "expose",
-      requestId: "expired",
-      runtimeId: RUNTIME_A,
-      handle: reserved.handle,
-    }, PEER);
+    const result = await core.handle(
+      {
+        op: "expose",
+        requestId: "expired",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
+      PEER,
+    );
     expect(result).toMatchObject({ ok: false, code: "reservation_expired" });
     expect(fake.exposeCalls).toBe(0);
     expect(JSON.parse(readFileSync(registryPath, "utf8")).leases).toEqual([]);
@@ -172,7 +233,11 @@ describe("expose", () => {
   it("rejects an unauthorized peer without mutating serve", async () => {
     const fake = new FakeTailscale();
     const { core } = makeCore(fake, registryPath);
-    const res = await core.handle(reserveReq(), { uid: 1000, gid: 987, pid: 1 });
+    const res = await core.handle(reserveReq(), {
+      uid: 1000,
+      gid: 987,
+      pid: 1,
+    });
     expect(res.ok).toBe(false);
     if (res.ok) throw new Error("unreachable");
     expect(res.code).toBe("unauthorized_peer");
@@ -193,9 +258,33 @@ describe("expose", () => {
     // reaches only the root-owned audit file, which the calling account cannot
     // read. Distinguishing them relaxes nothing — all three deny below.
     for (const { ownership, code } of [
-      { ownership: { present: false, loopbackOnly: true, ownerUidMatches: true, inodes: [] }, code: "listener_absent" },
-      { ownership: { present: true, loopbackOnly: false, ownerUidMatches: true, inodes: ["5001"] }, code: "listener_not_loopback" },
-      { ownership: { present: true, loopbackOnly: true, ownerUidMatches: false, inodes: ["5001"] }, code: "listener_ownership_mismatch" },
+      {
+        ownership: {
+          present: false,
+          loopbackOnly: true,
+          ownerUidMatches: true,
+          inodes: [],
+        },
+        code: "listener_absent",
+      },
+      {
+        ownership: {
+          present: true,
+          loopbackOnly: false,
+          ownerUidMatches: true,
+          inodes: ["5001"],
+        },
+        code: "listener_not_loopback",
+      },
+      {
+        ownership: {
+          present: true,
+          loopbackOnly: true,
+          ownerUidMatches: false,
+          inodes: ["5001"],
+        },
+        code: "listener_ownership_mismatch",
+      },
     ]) {
       const fake = new FakeTailscale();
       const { core, audit } = makeCore(fake, registryPath, () => ownership);
@@ -232,9 +321,9 @@ describe("expose", () => {
     if (!res.ok) expect(res.code).toBe("listener_unattributable");
     expect(fake.exposeCalls).toBe(0);
     expect([...fake.ports]).toEqual([[443, "http://127.0.0.1:3100"]]);
-    expect(audit.events.find((event) => event.decision === "deny")?.reasonCode).toBe(
-      "listener_unattributable",
-    );
+    expect(
+      audit.events.find((event) => event.decision === "deny")?.reasonCode,
+    ).toBe("listener_unattributable");
   });
 
   it("denies before publishing when the listener is substituted during the Serve status read", async () => {
@@ -257,11 +346,17 @@ describe("expose", () => {
     }));
 
     const reserved = await core.handle(reserveReq(), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
     statusReadsBeforeExpose = fake.statusCalls;
 
     const res = await core.handle(
-      { op: "expose", requestId: "req-sub", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-sub",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(res.ok).toBe(false);
@@ -271,9 +366,9 @@ describe("expose", () => {
     // published, so only the pre-existing primary route remains.
     expect(fake.exposeCalls).toBe(0);
     expect([...fake.ports]).toEqual([[443, "http://127.0.0.1:3100"]]);
-    expect(audit.events.find((event) => event.decision === "deny")?.reasonCode).toBe(
-      "listener_substituted",
-    );
+    expect(
+      audit.events.find((event) => event.decision === "deny")?.reasonCode,
+    ).toBe("listener_substituted");
   });
 
   it("withdraws the mapping when substitution happens after the port is published", async () => {
@@ -325,11 +420,17 @@ describe("expose", () => {
     // Re-expose the same port. The mapping already matches, so the apply loop
     // takes the idempotent path and publishes nothing.
     const reserved = await core.handle(reserveReq(), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
     statusReadsBeforeReExpose = fake.statusCalls;
 
     const second = await core.handle(
-      { op: "expose", requestId: "req-again", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-again",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(second.ok).toBe(false);
@@ -356,11 +457,17 @@ describe("expose", () => {
     }));
 
     const reserved = await core.handle(reserveReq(), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
     statusReadsBeforeExpose = fake.statusCalls;
 
     const res = await core.handle(
-      { op: "expose", requestId: "req-res", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-res",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(res.ok).toBe(false);
@@ -389,11 +496,17 @@ describe("expose", () => {
     const removeCallsAfterFirst = fake.removeCalls;
 
     const reserved = await core.handle(reserveReq(), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
     statusReadsBeforeReExpose = fake.statusCalls;
 
     const second = await core.handle(
-      { op: "expose", requestId: "req-noread", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-noread",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(second.ok).toBe(false);
@@ -438,10 +551,16 @@ describe("expose", () => {
       inodes: bound ? ["5001"] : [],
     }));
     const reserved = await core.handle(reserveReq(), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
 
     const denied = await core.handle(
-      { op: "expose", requestId: "req-x1", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-x1",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(denied.ok).toBe(false);
@@ -452,7 +571,12 @@ describe("expose", () => {
     // Once the child is actually bound, the very same reservation still exposes.
     bound = true;
     const exposed = await core.handle(
-      { op: "expose", requestId: "req-x2", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "expose",
+        requestId: "req-x2",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(exposed.ok).toBe(true);
@@ -498,7 +622,11 @@ describe("expose", () => {
 });
 
 describe("remove", () => {
-  async function exposeAndGetHandle(core: BrokerCore, port = 42010, runtime = RUNTIME_A) {
+  async function exposeAndGetHandle(
+    core: BrokerCore,
+    port = 42010,
+    runtime = RUNTIME_A,
+  ) {
     const res = await reserveAndExpose(core, runtime, port);
     if (!res.ok || res.op !== "expose") throw new Error("expose failed");
     return res.handle;
@@ -513,7 +641,8 @@ describe("remove", () => {
       PEER,
     );
     expect(res.ok).toBe(true);
-    if (res.ok && res.op === "remove") expect(res.removedPorts).toEqual([42010]);
+    if (res.ok && res.op === "remove")
+      expect(res.removedPorts).toEqual([42010]);
     expect(fake.ports.has(42010)).toBe(false);
     expect(fake.ports.get(443)).toBe("http://127.0.0.1:3100"); // primary intact
   });
@@ -523,7 +652,12 @@ describe("remove", () => {
     const { core } = makeCore(fake, registryPath);
     const handle = await exposeAndGetHandle(core);
     const bad = await core.handle(
-      { op: "remove", requestId: "r", runtimeId: RUNTIME_A, handle: "random-handle-not-real-xxxx" },
+      {
+        op: "remove",
+        requestId: "r",
+        runtimeId: RUNTIME_A,
+        handle: "random-handle-not-real-xxxx",
+      },
       PEER,
     );
     expect(bad.ok).toBe(false);
@@ -541,9 +675,15 @@ describe("remove", () => {
     const fake = new FakeTailscale();
     const { core } = makeCore(fake, registryPath);
     const reserved = await core.handle(reserveReq(), PEER);
-    if (!reserved.ok || reserved.op !== "reserve") throw new Error("reserve failed");
+    if (!reserved.ok || reserved.op !== "reserve")
+      throw new Error("reserve failed");
     const res = await core.handle(
-      { op: "remove", requestId: "req-r", runtimeId: RUNTIME_A, handle: reserved.handle },
+      {
+        op: "remove",
+        requestId: "req-r",
+        runtimeId: RUNTIME_A,
+        handle: reserved.handle,
+      },
       PEER,
     );
     expect(res).toMatchObject({ ok: true, removedPorts: [] });
@@ -560,7 +700,9 @@ describe("list", () => {
     const res = await core.handle({ op: "list", requestId: "req-l" }, PEER);
     expect(res.ok).toBe(true);
     if (res.ok && res.op === "list") {
-      expect(res.listeners).toEqual([{ runtimeId: RUNTIME_A, port: 42010, purpose: "app" }]);
+      expect(res.listeners).toEqual([
+        { runtimeId: RUNTIME_A, port: 42010, purpose: "app" },
+      ]);
       expect(JSON.stringify(res)).not.toMatch(/handle/);
     }
   });
@@ -582,7 +724,12 @@ describe("node identity", () => {
       isAllowedPort: defaultIsAllowedPort,
       deps: {
         runTailscale: fake.run,
-        verifyListenerOwnership: () => ({ present: true, loopbackOnly: true, ownerUidMatches: true, inodes: ["5001"] }),
+        verifyListenerOwnership: () => ({
+          present: true,
+          loopbackOnly: true,
+          ownerUidMatches: true,
+          inodes: ["5001"],
+        }),
         nowIso: () => "2026-08-11T00:00:00.000Z",
       },
     });

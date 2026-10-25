@@ -3,7 +3,10 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../config.js";
 
-const missingConfigPath = path.join(os.tmpdir(), `taskcore-managed-runtime-config-${process.pid}.json`);
+const missingConfigPath = path.join(
+  os.tmpdir(),
+  `taskcore-managed-runtime-config-${process.pid}.json`,
+);
 
 function useIsolatedConfigEnvironment() {
   vi.stubEnv("TASKCORE_CONFIG", missingConfigPath);
@@ -25,7 +28,10 @@ afterEach(() => {
 describe("managed runtime public URL config", () => {
   it("configures Better Auth from the managed runtime fallback", () => {
     useIsolatedConfigEnvironment();
-    vi.stubEnv("TASKCORE_MANAGED_RUNTIME_PUBLIC_URL", "https://worktree.tail29c1aa.ts.net");
+    vi.stubEnv(
+      "TASKCORE_MANAGED_RUNTIME_PUBLIC_URL",
+      "https://worktree.tail29c1aa.ts.net",
+    );
 
     const config = loadConfig();
 
@@ -36,7 +42,10 @@ describe("managed runtime public URL config", () => {
   it("keeps explicit operator configuration ahead of the managed fallback", () => {
     useIsolatedConfigEnvironment();
     vi.stubEnv("TASKCORE_PUBLIC_URL", "https://operator.example.com");
-    vi.stubEnv("TASKCORE_MANAGED_RUNTIME_PUBLIC_URL", "https://inferred.tail29c1aa.ts.net");
+    vi.stubEnv(
+      "TASKCORE_MANAGED_RUNTIME_PUBLIC_URL",
+      "https://inferred.tail29c1aa.ts.net",
+    );
 
     const config = loadConfig();
 

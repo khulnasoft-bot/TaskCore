@@ -47,7 +47,9 @@ const mockIssueReferenceService = vi.hoisted(() => ({
 }));
 
 const mockSecretService = vi.hoisted(() => ({
-  normalizeEnvBindingsForPersistence: vi.fn(async (_companyId: string, env: Record<string, unknown>) => env),
+  normalizeEnvBindingsForPersistence: vi.fn(
+    async (_companyId: string, env: Record<string, unknown>) => env,
+  ),
 }));
 
 const mockLogActivity = vi.hoisted(() => vi.fn());
@@ -65,8 +67,12 @@ vi.mock("../services/index.js", () => ({
     decide: vi.fn(async (input: { action: string }) => ({
       allowed: ["project:read", "issue:read"].includes(input.action),
       action: input.action,
-      reason: ["project:read", "issue:read"].includes(input.action) ? "allow_explicit_grant" : "deny_missing_grant",
-      explanation: ["project:read", "issue:read"].includes(input.action) ? "Allowed by test default." : "Missing permission.",
+      reason: ["project:read", "issue:read"].includes(input.action)
+        ? "allow_explicit_grant"
+        : "deny_missing_grant",
+      explanation: ["project:read", "issue:read"].includes(input.action)
+        ? "Allowed by test default."
+        : "Missing permission.",
     })),
     hasPermission: vi.fn(),
   }),
@@ -99,13 +105,17 @@ vi.mock("../services/index.js", () => ({
     expireStaleRequestConfirmationsForIssueDocument: vi.fn(async () => []),
   }),
   documentService: () => ({}),
-  documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+  documentAnnotationService: () => ({
+    remapOpenThreadsForDocument: async () => [],
+  }),
   routineService: () => ({}),
   workProductService: () => ({}),
 }));
 
 vi.mock("../services/activity-log.js", async () => ({
-  ...await vi.importActual<typeof import("../services/activity-log.js")>("../services/activity-log.js"),
+  ...(await vi.importActual<typeof import("../services/activity-log.js")>(
+    "../services/activity-log.js",
+  )),
   persistActivity: async (db: unknown, input: unknown) => {
     await mockLogActivity(db, input);
     return { activity: { id: "activity" }, publication: null };
@@ -146,7 +156,12 @@ let issueServer: Server | null = null;
 
 function createProjectApp() {
   projectServer ??= buildApp((expressApp) => {
-    expressApp.use("/api", projectRoutes({ transaction: async (effect: (tx: unknown) => unknown) => effect({}) } as any));
+    expressApp.use(
+      "/api",
+      projectRoutes({
+        transaction: async (effect: (tx: unknown) => unknown) => effect({}),
+      } as any),
+    );
   }).listen(0);
   return projectServer;
 }
@@ -319,7 +334,9 @@ describe("execution environment route guards", () => {
       });
 
     expect(res.status).toBe(422);
-    expect(res.body.error).toContain('Environment driver "unsupported_driver" is not allowed here');
+    expect(res.body.error).toContain(
+      'Environment driver "unsupported_driver" is not allowed here',
+    );
     expect(mockIssueService.create).not.toHaveBeenCalled();
   });
 
@@ -342,7 +359,9 @@ describe("execution environment route guards", () => {
       });
 
     expect(res.status).toBe(422);
-    expect(res.body.error).toContain('Environment sandbox provider "fake" is not allowed here');
+    expect(res.body.error).toContain(
+      'Environment sandbox provider "fake" is not allowed here',
+    );
     expect(mockIssueService.create).not.toHaveBeenCalled();
   });
 

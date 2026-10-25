@@ -20,7 +20,9 @@
     },
     "workAssessmentId": { "type": "string", "minLength": 1 },
     "statusDecisionId": { "type": "string", "minLength": 1 },
-    "stopReason": { "$ref": "https://taskcore.dev/schemas/prp/v1/stop-reason.schema.json" }
+    "stopReason": {
+      "$ref": "https://taskcore.dev/schemas/prp/v1/stop-reason.schema.json"
+    }
   },
   "additionalProperties": true
 }

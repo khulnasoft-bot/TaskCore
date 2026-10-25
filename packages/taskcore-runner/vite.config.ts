@@ -11,7 +11,11 @@ const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   root: resolve(packageRoot, "devtools/browser"),
-  plugins: [react(), localRunnerBrowserServerPlugin(), liveConsoleBrowserServerPlugin()],
+  plugins: [
+    react(),
+    localRunnerBrowserServerPlugin(),
+    liveConsoleBrowserServerPlugin(),
+  ],
   server: {
     host: "127.0.0.1",
   },

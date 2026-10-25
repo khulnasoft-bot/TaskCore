@@ -1,22 +1,43 @@
-import { PrimaryAgentIndicator, SetPrimaryAgentButton } from "@/components/primary-agent/PrimaryAgentPresentation";
+import {
+  PrimaryAgentIndicator,
+  SetPrimaryAgentButton,
+} from "@/components/primary-agent/PrimaryAgentPresentation";
 import { AiConnectionPoolRunDetails } from "@/components/ai-connections/AiConnectionPoolRunDetails";
 import { AgentConnectionInstructions } from "@/features/connections/ConnectionInstructions";
-import type { AgentInstructionCandidate, AgentInstructionsBundle } from "@taskcore/shared";
+import type {
+  AgentInstructionCandidate,
+  AgentInstructionsBundle,
+} from "@taskcore/shared";
 import { InstructionHistory } from "../components/InstructionHistory";
 import { AgentCharacter } from "../components/AgentCharacter";
 import { characterStateForAgent } from "@taskcore/shared";
 import { mergeRunLogChunks, readChunkSeq } from "../lib/run-log-chunks";
 import { getPageVisibility, usePageVisibility } from "../lib/page-visibility";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { useParams, useNavigate, Link, Navigate, useBeforeUnload, type NavigateFunction } from "@/lib/router";
-import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  useParams,
+  useNavigate,
+  Link,
+  Navigate,
+  useBeforeUnload,
+  type NavigateFunction,
+} from "@/lib/router";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import {
   agentsApi,
   type AgentKey,
   type ClaudeLoginResult,
   type AgentPermissionUpdate,
 } from "../api/agents";
-import { builtInAgentsApi, type BuiltInManagedResourceKind } from "../api/builtInAgents";
+import {
+  builtInAgentsApi,
+  type BuiltInManagedResourceKind,
+} from "../api/builtInAgents";
 import { companySkillsApi } from "../api/companySkills";
 import { heartbeatsApi } from "../api/heartbeats";
 import { instanceSettingsApi } from "../api/instanceSettings";
@@ -35,7 +56,11 @@ import { copyTextToClipboard } from "../lib/clipboard";
 import { AgentSkillsTab } from "./agent-skills/AgentSkillsTab";
 import { AgentConfigForm } from "../components/AgentConfigForm";
 import { getAdapterDisplay } from "../adapters/adapter-display-registry";
-import { adapterLabels, roleLabels, help } from "../components/agent-config-primitives";
+import {
+  adapterLabels,
+  roleLabels,
+  help,
+} from "../components/agent-config-primitives";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { useAdapterCapabilities } from "@/adapters/use-adapter-capabilities";
 import { redactCommandText as redactCommandSecretText } from "@taskcore/adapter-utils";
@@ -64,7 +89,13 @@ import { SourceResolvedFoldBadge } from "../components/SourceResolvedFoldBadge";
 import { readSourceResolvedWatchdogFold } from "../lib/source-resolved-watchdog-fold";
 import { buildSameOriginWebSocketUrl } from "../lib/websocket-url";
 import { tryCreateWebSocket } from "../lib/websocket";
-import { formatDate, relativeTime, formatTokens, visibleRunCostUsd, visibleRunTokenTotal } from "../lib/utils";
+import {
+  formatDate,
+  relativeTime,
+  formatTokens,
+  visibleRunCostUsd,
+  visibleRunTokenTotal,
+} from "../lib/utils";
 import { cn } from "../lib/utils";
 import { RunRetryDetails } from "../components/RunRetryDetails";
 import { Button } from "@/components/ui/button";
@@ -72,7 +103,11 @@ import { Tabs } from "@/components/ui/tabs";
 import { PageTabBar } from "../components/PageTabBar";
 import { AuditFeed } from "./audit/AuditFeed";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   CheckCircle2,
   XCircle,
@@ -93,10 +128,17 @@ import {
   FolderOpen,
   AlertTriangle,
 } from "lucide-react";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
-import { RunTranscriptView, type TranscriptMode } from "../components/transcript/RunTranscriptView";
+import {
+  RunTranscriptView,
+  type TranscriptMode,
+} from "../components/transcript/RunTranscriptView";
 import { AgentToolsTab } from "./AgentToolsTab";
 import { AgentChannelsPanel } from "../components/chat/AgentChannelsPanel";
 import {
@@ -126,8 +168,14 @@ import {
   ProviderTraceStatusBadge,
   runRequestedProviderTrace,
 } from "../components/ProviderTraceStatusBadge";
-import { buildPermissionsForTrustPreset, getTrustPreset } from "../lib/trust-policy-ui";
-import { redactHomePathUserSegments, redactHomePathUserSegmentsInValue } from "@taskcore/adapter-utils";
+import {
+  buildPermissionsForTrustPreset,
+  getTrustPreset,
+} from "../lib/trust-policy-ui";
+import {
+  redactHomePathUserSegments,
+  redactHomePathUserSegmentsInValue,
+} from "@taskcore/adapter-utils";
 import { agentRouteRef } from "../lib/utils";
 import {
   isStarred,
@@ -145,8 +193,14 @@ import {
   type AgentDetailView,
 } from "./agent-detail-navigation";
 
-const runStatusIcons: Record<string, { icon: typeof CheckCircle2; color: string }> = {
-  succeeded: { icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
+const runStatusIcons: Record<
+  string,
+  { icon: typeof CheckCircle2; color: string }
+> = {
+  succeeded: {
+    icon: CheckCircle2,
+    color: "text-green-600 dark:text-green-400",
+  },
   failed: { icon: XCircle, color: "text-red-600 dark:text-red-400" },
   running: { icon: Loader2, color: "text-blue-600 dark:text-blue-400" }, // Gallery feedback r1: running = status blue, not cyan.
   queued: { icon: Clock, color: "text-yellow-600 dark:text-yellow-400" },
@@ -160,13 +214,20 @@ const RUN_LOG_PAGE_BYTES = 256_000;
 const REDACTED_ENV_VALUE = "***REDACTED***";
 const SECRET_ENV_KEY_RE =
   /(api[-_]?key|access[-_]?token|auth(?:_?token)?|authorization|bearer|secret|passwd|password|credential|jwt|private[-_]?key|cookie|connectionstring)/i;
-const COMMAND_ENV_KEY_RE = /(^command$|^cmd$|command[-_]?line|resolved[-_]?command|TASKCORE_RESOLVED_COMMAND)/i;
-const JWT_VALUE_RE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?$/;
+const COMMAND_ENV_KEY_RE =
+  /(^command$|^cmd$|command[-_]?line|resolved[-_]?command|TASKCORE_RESOLVED_COMMAND)/i;
+const JWT_VALUE_RE =
+  /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?$/;
 
 function formatOrgChainHealthPath(agent: AgentDetailRecord) {
-  return agent.orgChainHealth?.fullChain
-    .map((entry) => `${entry.name}${entry.status !== "active" && entry.status !== "idle" ? ` (${entry.status})` : ""}`)
-    .join(" -> ") ?? agent.name;
+  return (
+    agent.orgChainHealth?.fullChain
+      .map(
+        (entry) =>
+          `${entry.name}${entry.status !== "active" && entry.status !== "idle" ? ` (${entry.status})` : ""}`,
+      )
+      .join(" -> ") ?? agent.name
+  );
 }
 
 function redactPathText(value: string, censorUsernameInLogs: boolean) {
@@ -174,11 +235,19 @@ function redactPathText(value: string, censorUsernameInLogs: boolean) {
 }
 
 function redactPathValue<T>(value: T, censorUsernameInLogs: boolean): T {
-  return redactHomePathUserSegmentsInValue(value, { enabled: censorUsernameInLogs });
+  return redactHomePathUserSegmentsInValue(value, {
+    enabled: censorUsernameInLogs,
+  });
 }
 
-function redactCommandText(value: string, censorUsernameInLogs: boolean): string {
-  return redactPathText(redactCommandSecretText(value, REDACTED_ENV_VALUE), censorUsernameInLogs);
+function redactCommandText(
+  value: string,
+  censorUsernameInLogs: boolean,
+): string {
+  return redactPathText(
+    redactCommandSecretText(value, REDACTED_ENV_VALUE),
+    censorUsernameInLogs,
+  );
 }
 
 function shouldRedactSecretValue(key: string, value: unknown): boolean {
@@ -187,7 +256,11 @@ function shouldRedactSecretValue(key: string, value: unknown): boolean {
   return JWT_VALUE_RE.test(value);
 }
 
-function redactEnvValue(key: string, value: unknown, censorUsernameInLogs: boolean): string {
+function redactEnvValue(
+  key: string,
+  value: unknown,
+  censorUsernameInLogs: boolean,
+): string {
   if (
     typeof value === "object" &&
     value !== null &&
@@ -198,8 +271,10 @@ function redactEnvValue(key: string, value: unknown, censorUsernameInLogs: boole
   }
   if (shouldRedactSecretValue(key, value)) return REDACTED_ENV_VALUE;
   if (value === null || value === undefined) return "";
-  if (typeof value === "string" && COMMAND_ENV_KEY_RE.test(key)) return redactCommandText(value, censorUsernameInLogs);
-  if (typeof value === "string") return redactPathText(value, censorUsernameInLogs);
+  if (typeof value === "string" && COMMAND_ENV_KEY_RE.test(key))
+    return redactCommandText(value, censorUsernameInLogs);
+  if (typeof value === "string")
+    return redactPathText(value, censorUsernameInLogs);
   try {
     return JSON.stringify(redactPathValue(value, censorUsernameInLogs));
   } catch {
@@ -222,7 +297,10 @@ function shouldUseMarkdownInstructionsEditor(input: {
   return isMarkdown(input.selectedPath);
 }
 
-function formatEnvForDisplay(envValue: unknown, censorUsernameInLogs: boolean): string {
+function formatEnvForDisplay(
+  envValue: unknown,
+  censorUsernameInLogs: boolean,
+): string {
   const env = asRecord(envValue);
   if (!env) return "<unable-to-parse>";
 
@@ -231,7 +309,9 @@ function formatEnvForDisplay(envValue: unknown, censorUsernameInLogs: boolean): 
 
   return keys
     .sort()
-    .map((key) => `${key}=${redactEnvValue(key, env[key], censorUsernameInLogs)}`)
+    .map(
+      (key) => `${key}=${redactEnvValue(key, env[key], censorUsernameInLogs)}`,
+    )
     .join("\n");
 }
 
@@ -251,7 +331,9 @@ function isWindowContainer(container: ScrollContainer): container is Window {
 
 function isElementScrollContainer(element: HTMLElement): boolean {
   const overflowY = window.getComputedStyle(element).overflowY;
-  return overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay";
+  return (
+    overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay"
+  );
 }
 
 function findScrollContainer(anchor: HTMLElement | null): ScrollContainer {
@@ -263,7 +345,10 @@ function findScrollContainer(anchor: HTMLElement | null): ScrollContainer {
   return window;
 }
 
-function readScrollMetrics(container: ScrollContainer): { scrollHeight: number; distanceFromBottom: number } {
+function readScrollMetrics(container: ScrollContainer): {
+  scrollHeight: number;
+  distanceFromBottom: number;
+} {
   if (isWindowContainer(container)) {
     const pageHeight = Math.max(
       document.documentElement.scrollHeight,
@@ -283,7 +368,10 @@ function readScrollMetrics(container: ScrollContainer): { scrollHeight: number; 
   };
 }
 
-function scrollToContainerBottom(container: ScrollContainer, behavior: ScrollBehavior = "auto") {
+function scrollToContainerBottom(
+  container: ScrollContainer,
+  behavior: ScrollBehavior = "auto",
+) {
   if (isWindowContainer(container)) {
     const pageHeight = Math.max(
       document.documentElement.scrollHeight,
@@ -297,7 +385,9 @@ function scrollToContainerBottom(container: ScrollContainer, behavior: ScrollBeh
 }
 
 /** @deprecated Use AGENT_DETAIL_NAVIGATION for contextual navigation. */
-export const AGENT_DETAIL_TABS = AGENT_DETAIL_NAVIGATION.flatMap((section) => section.items);
+export const AGENT_DETAIL_TABS = AGENT_DETAIL_NAVIGATION.flatMap(
+  (section) => section.items,
+);
 
 const LEGACY_AGENT_DETAIL_TABS = [
   { value: "dashboard", label: "Dashboard" },
@@ -311,7 +401,8 @@ const LEGACY_AGENT_DETAIL_TABS = [
   { value: "budget", label: "Budget" },
 ] as const;
 
-export const DISCARD_AGENT_CONFIG_CHANGES_MESSAGE = "Discard unsaved agent configuration changes?";
+export const DISCARD_AGENT_CONFIG_CHANGES_MESSAGE =
+  "Discard unsaved agent configuration changes?";
 
 export function confirmAgentConfigNavigation(
   dirty: boolean,
@@ -321,8 +412,12 @@ export function confirmAgentConfigNavigation(
   return !dirty || confirm(DISCARD_AGENT_CONFIG_CHANGES_MESSAGE);
 }
 
-export function agentConfigHistoryRestoreDelta(currentIndex: unknown, nextIndex: unknown): number | null {
-  if (typeof currentIndex !== "number" || typeof nextIndex !== "number") return null;
+export function agentConfigHistoryRestoreDelta(
+  currentIndex: unknown,
+  nextIndex: unknown,
+): number | null {
+  if (typeof currentIndex !== "number" || typeof nextIndex !== "number")
+    return null;
   const delta = currentIndex - nextIndex;
   return delta === 0 ? null : delta;
 }
@@ -332,7 +427,10 @@ export function restoreAgentConfigHistoryEntry(
   currentEntry: { index: unknown; state: unknown; url: string },
   nextIndex: unknown,
 ): boolean {
-  const restoreDelta = agentConfigHistoryRestoreDelta(currentEntry.index, nextIndex);
+  const restoreDelta = agentConfigHistoryRestoreDelta(
+    currentEntry.index,
+    nextIndex,
+  );
   if (restoreDelta === null) {
     // Some legacy URL-cleanup paths erased React Router's history index. A
     // fresh copy of the guarded entry is the only safe way to return without
@@ -375,8 +473,7 @@ function runMetrics(run: HeartbeatRun) {
     "cached_input_tokens",
     "cache_read_input_tokens",
   );
-  const cost =
-    visibleRunCostUsd(usage, result);
+  const cost = visibleRunCostUsd(usage, result);
   const provider = asNonEmptyString(usage?.provider) ?? null;
   const model = asNonEmptyString(usage?.model) ?? null;
   return {
@@ -398,7 +495,8 @@ export type RunLogChunk = {
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -428,7 +526,9 @@ export function shouldPollRunShellLog(status: HeartbeatRun["status"]): boolean {
   return status === "running";
 }
 
-export function runDetailRefetchIntervalMs(status: HeartbeatRun["status"]): 5000 | 15000 | false {
+export function runDetailRefetchIntervalMs(
+  status: HeartbeatRun["status"],
+): 5000 | 15000 | false {
   if (status === "queued") return 5000;
   if (status === "running") return 15000;
   return false;
@@ -444,28 +544,40 @@ export function RunInvocationCard({
   const rawCommandLine = [
     typeof payload.command === "string" ? payload.command : null,
     ...(Array.isArray(payload.commandArgs)
-      ? payload.commandArgs.filter((value): value is string => typeof value === "string")
+      ? payload.commandArgs.filter(
+          (value): value is string => typeof value === "string",
+        )
       : []),
   ]
     .filter((value): value is string => Boolean(value))
     .join(" ");
-  const commandLine = rawCommandLine ? redactCommandText(rawCommandLine, censorUsernameInLogs) : "";
+  const commandLine = rawCommandLine
+    ? redactCommandText(rawCommandLine, censorUsernameInLogs)
+    : "";
 
   const hasAdvancedDetails =
-    commandLine.length > 0
-    || (Array.isArray(payload.commandNotes) && payload.commandNotes.length > 0)
-    || payload.prompt !== undefined
-    || payload.context !== undefined
-    || payload.env !== undefined;
+    commandLine.length > 0 ||
+    (Array.isArray(payload.commandNotes) && payload.commandNotes.length > 0) ||
+    payload.prompt !== undefined ||
+    payload.context !== undefined ||
+    payload.env !== undefined;
 
   return (
     <div className="rounded-lg border border-border bg-background/60 p-3 space-y-2">
-      <div className="text-xs font-medium text-muted-foreground">Invocation</div>
+      <div className="text-xs font-medium text-muted-foreground">
+        Invocation
+      </div>
       {typeof payload.adapterType === "string" && (
-        <div className="text-xs"><span className="text-muted-foreground">Adapter: </span>{payload.adapterType}</div>
+        <div className="text-xs">
+          <span className="text-muted-foreground">Adapter: </span>
+          {payload.adapterType}
+        </div>
       )}
       {typeof payload.cwd === "string" && (
-        <div className="text-xs break-all"><span className="text-muted-foreground">Working dir: </span><span className="font-mono">{payload.cwd}</span></div>
+        <div className="text-xs break-all">
+          <span className="text-muted-foreground">Working dir: </span>
+          <span className="font-mono">{payload.cwd}</span>
+        </div>
       )}
       {hasAdvancedDetails && (
         <Collapsible>
@@ -480,41 +592,62 @@ export function RunInvocationCard({
                 <span className="font-mono">{commandLine}</span>
               </div>
             )}
-            {Array.isArray(payload.commandNotes) && payload.commandNotes.length > 0 && (
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Command notes</div>
-                <ul className="list-disc pl-5 space-y-1">
-                  {payload.commandNotes
-                    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-                    .map((note, idx) => (
-                      <li key={`${idx}-${note}`} className="text-xs break-all font-mono">
-                        {note}
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
+            {Array.isArray(payload.commandNotes) &&
+              payload.commandNotes.length > 0 && (
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Command notes
+                  </div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {payload.commandNotes
+                      .filter(
+                        (value): value is string =>
+                          typeof value === "string" && value.trim().length > 0,
+                      )
+                      .map((note, idx) => (
+                        <li
+                          key={`${idx}-${note}`}
+                          className="text-xs break-all font-mono"
+                        >
+                          {note}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
             {payload.prompt !== undefined && (
               <div>
                 <div className="text-xs text-muted-foreground mb-1">Prompt</div>
                 <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap">
                   {typeof payload.prompt === "string"
                     ? redactPathText(payload.prompt, censorUsernameInLogs)
-                    : JSON.stringify(redactPathValue(payload.prompt, censorUsernameInLogs), null, 2)}
+                    : JSON.stringify(
+                        redactPathValue(payload.prompt, censorUsernameInLogs),
+                        null,
+                        2,
+                      )}
                 </pre>
               </div>
             )}
             {payload.context !== undefined && (
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Context</div>
+                <div className="text-xs text-muted-foreground mb-1">
+                  Context
+                </div>
                 <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap">
-                  {JSON.stringify(redactPathValue(payload.context, censorUsernameInLogs), null, 2)}
+                  {JSON.stringify(
+                    redactPathValue(payload.context, censorUsernameInLogs),
+                    null,
+                    2,
+                  )}
                 </pre>
               </div>
             )}
             {payload.env !== undefined && (
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Environment</div>
+                <div className="text-xs text-muted-foreground mb-1">
+                  Environment
+                </div>
                 <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap font-mono">
                   {formatEnvForDisplay(payload.env, censorUsernameInLogs)}
                 </pre>
@@ -533,9 +666,15 @@ function parseStoredLogContent(content: string): RunLogChunk[] {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const raw = JSON.parse(trimmed) as { ts?: unknown; stream?: unknown; chunk?: unknown };
+      const raw = JSON.parse(trimmed) as {
+        ts?: unknown;
+        stream?: unknown;
+        chunk?: unknown;
+      };
       const stream =
-        raw.stream === "stderr" || raw.stream === "system" ? raw.stream : "stdout";
+        raw.stream === "stderr" || raw.stream === "system"
+          ? raw.stream
+          : "stdout";
       const chunk = typeof raw.chunk === "string" ? raw.chunk : "";
       const ts = typeof raw.ts === "string" ? raw.ts : new Date().toISOString();
       if (!chunk) continue;
@@ -579,9 +718,14 @@ function workspaceOperationStatusTone(status: WorkspaceOperation["status"]) {
   }
 }
 
-function WorkspaceOperationStatusBadge({ status }: { status: WorkspaceOperation["status"] }) {
+function WorkspaceOperationStatusBadge({
+  status,
+}: {
+  status: WorkspaceOperation["status"];
+}) {
   return (
-    <Badge variant="outline"
+    <Badge
+      variant="outline"
       className={cn(
         "text-(length:--text-micro) capitalize",
         workspaceOperationStatusTone(status),
@@ -600,7 +744,11 @@ function WorkspaceOperationLogViewer({
   censorUsernameInLogs: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: logData, isLoading, error } = useQuery({
+  const {
+    data: logData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["workspace-operation-log", operation.id],
     queryFn: () => heartbeatsApi.workspaceOperationLog(operation.id),
     enabled: open && Boolean(operation.logRef),
@@ -623,21 +771,29 @@ function WorkspaceOperationLogViewer({
       </button>
       {open && (
         <div className="rounded-md border border-border bg-background/70 p-2">
-          {isLoading && <div className="text-xs text-muted-foreground">Loading log...</div>}
+          {isLoading && (
+            <div className="text-xs text-muted-foreground">Loading log...</div>
+          )}
           {error && (
             <div className="text-xs text-destructive">
-              {error instanceof Error ? error.message : "Failed to load workspace operation log"}
+              {error instanceof Error
+                ? error.message
+                : "Failed to load workspace operation log"}
             </div>
           )}
           {!isLoading && !error && chunks.length === 0 && (
-            <div className="text-xs text-muted-foreground">No persisted log lines.</div>
+            <div className="text-xs text-muted-foreground">
+              No persisted log lines.
+            </div>
           )}
           {chunks.length > 0 && (
             <div className="max-h-64 overflow-y-auto rounded bg-neutral-100 p-2 font-mono text-xs dark:bg-neutral-950">
               {chunks.map((chunk, index) => (
                 <div key={`${chunk.ts}-${index}`} className="flex gap-2">
                   <span className="shrink-0 text-neutral-500">
-                    {new Date(chunk.ts).toLocaleTimeString("en-US", { hour12: false })}
+                    {new Date(chunk.ts).toLocaleTimeString("en-US", {
+                      hour12: false,
+                    })}
                   </span>
                   <span
                     className={cn(
@@ -651,7 +807,9 @@ function WorkspaceOperationLogViewer({
                   >
                     [{chunk.stream}]
                   </span>
-                  <span className="whitespace-pre-wrap break-all">{redactPathText(chunk.chunk, censorUsernameInLogs)}</span>
+                  <span className="whitespace-pre-wrap break-all">
+                    {redactPathText(chunk.chunk, censorUsernameInLogs)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -680,13 +838,19 @@ function WorkspaceOperationsSection({
         {operations.map((operation) => {
           const metadata = asRecord(operation.metadata);
           return (
-            <div key={operation.id} className="rounded-md border border-border/70 bg-background/70 p-3 space-y-2">
+            <div
+              key={operation.id}
+              className="rounded-md border border-border/70 bg-background/70 p-3 space-y-2"
+            >
               <div className="flex flex-wrap items-center gap-2">
-                <div className="text-sm font-medium">{workspaceOperationPhaseLabel(operation.phase)}</div>
+                <div className="text-sm font-medium">
+                  {workspaceOperationPhaseLabel(operation.phase)}
+                </div>
                 <WorkspaceOperationStatusBadge status={operation.status} />
                 <div className="text-(length:--text-micro) text-muted-foreground">
                   {relativeTime(operation.startedAt)}
-                  {operation.finishedAt && ` to ${relativeTime(operation.finishedAt)}`}
+                  {operation.finishedAt &&
+                    ` to ${relativeTime(operation.finishedAt)}`}
                 </div>
               </div>
               {operation.command && (
@@ -701,47 +865,84 @@ function WorkspaceOperationsSection({
                   <span className="font-mono">{operation.cwd}</span>
                 </div>
               )}
-              {(asNonEmptyString(metadata?.branchName)
-                || asNonEmptyString(metadata?.baseRef)
-                || asNonEmptyString(metadata?.worktreePath)
-                || asNonEmptyString(metadata?.repoRoot)
-                || asNonEmptyString(metadata?.cleanupAction)) && (
+              {(asNonEmptyString(metadata?.branchName) ||
+                asNonEmptyString(metadata?.baseRef) ||
+                asNonEmptyString(metadata?.worktreePath) ||
+                asNonEmptyString(metadata?.repoRoot) ||
+                asNonEmptyString(metadata?.cleanupAction)) && (
                 <div className="grid gap-1 text-xs sm:grid-cols-2">
                   {asNonEmptyString(metadata?.branchName) && (
-                    <div><span className="text-muted-foreground">Branch: </span><span className="font-mono">{metadata?.branchName as string}</span></div>
+                    <div>
+                      <span className="text-muted-foreground">Branch: </span>
+                      <span className="font-mono">
+                        {metadata?.branchName as string}
+                      </span>
+                    </div>
                   )}
                   {asNonEmptyString(metadata?.baseRef) && (
-                    <div><span className="text-muted-foreground">Base ref: </span><span className="font-mono">{metadata?.baseRef as string}</span></div>
+                    <div>
+                      <span className="text-muted-foreground">Base ref: </span>
+                      <span className="font-mono">
+                        {metadata?.baseRef as string}
+                      </span>
+                    </div>
                   )}
                   {asNonEmptyString(metadata?.worktreePath) && (
-                    <div className="break-all"><span className="text-muted-foreground">Worktree: </span><span className="font-mono">{metadata?.worktreePath as string}</span></div>
+                    <div className="break-all">
+                      <span className="text-muted-foreground">Worktree: </span>
+                      <span className="font-mono">
+                        {metadata?.worktreePath as string}
+                      </span>
+                    </div>
                   )}
                   {asNonEmptyString(metadata?.repoRoot) && (
-                    <div className="break-all"><span className="text-muted-foreground">Repo root: </span><span className="font-mono">{metadata?.repoRoot as string}</span></div>
+                    <div className="break-all">
+                      <span className="text-muted-foreground">Repo root: </span>
+                      <span className="font-mono">
+                        {metadata?.repoRoot as string}
+                      </span>
+                    </div>
                   )}
                   {asNonEmptyString(metadata?.cleanupAction) && (
-                    <div><span className="text-muted-foreground">Cleanup: </span><span className="font-mono">{metadata?.cleanupAction as string}</span></div>
+                    <div>
+                      <span className="text-muted-foreground">Cleanup: </span>
+                      <span className="font-mono">
+                        {metadata?.cleanupAction as string}
+                      </span>
+                    </div>
                   )}
                 </div>
               )}
               {typeof metadata?.created === "boolean" && (
                 <div className="text-xs text-muted-foreground">
-                  {metadata.created ? "Created by this run" : "Reused existing workspace"}
+                  {metadata.created
+                    ? "Created by this run"
+                    : "Reused existing workspace"}
                 </div>
               )}
               {operation.stderrExcerpt && operation.stderrExcerpt.trim() && (
                 <div>
-                  <div className="mb-1 text-xs text-red-700 dark:text-red-300">stderr excerpt</div>
+                  <div className="mb-1 text-xs text-red-700 dark:text-red-300">
+                    stderr excerpt
+                  </div>
                   <pre className="rounded-md bg-red-50 p-2 text-xs whitespace-pre-wrap break-all text-red-800 dark:bg-neutral-950 dark:text-red-100">
-                    {redactPathText(operation.stderrExcerpt, censorUsernameInLogs)}
+                    {redactPathText(
+                      operation.stderrExcerpt,
+                      censorUsernameInLogs,
+                    )}
                   </pre>
                 </div>
               )}
               {operation.stdoutExcerpt && operation.stdoutExcerpt.trim() && (
                 <div>
-                  <div className="mb-1 text-xs text-muted-foreground">stdout excerpt</div>
+                  <div className="mb-1 text-xs text-muted-foreground">
+                    stdout excerpt
+                  </div>
                   <pre className="rounded-md bg-neutral-100 p-2 text-xs whitespace-pre-wrap break-all dark:bg-neutral-950">
-                    {redactPathText(operation.stdoutExcerpt, censorUsernameInLogs)}
+                    {redactPathText(
+                      operation.stdoutExcerpt,
+                      censorUsernameInLogs,
+                    )}
                   </pre>
                 </div>
               )}
@@ -760,7 +961,12 @@ function WorkspaceOperationsSection({
 }
 
 export function AgentDetail() {
-  const { companyPrefix, agentId, tab: urlTab, runId: urlRunId } = useParams<{
+  const {
+    companyPrefix,
+    agentId,
+    tab: urlTab,
+    runId: urlRunId,
+  } = useParams<{
     companyPrefix?: string;
     agentId: string;
     tab?: string;
@@ -772,10 +978,15 @@ export function AgentDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [actionError, setActionError] = useState<string | null>(null);
-  const [dismissedLeftAgentIds, setDismissedLeftAgentIds] = useState<Set<string>>(() => new Set());
-  const activeView: AgentDetailView = urlRunId ? "run-detail"
+  const [dismissedLeftAgentIds, setDismissedLeftAgentIds] = useState<
+    Set<string>
+  >(() => new Set());
+  const activeView: AgentDetailView = urlRunId
+    ? "run-detail"
     : parseAgentDetailView(urlTab ?? null);
-  const legacyAuditSection = !urlRunId ? agentLegacyAuditSection(urlTab ?? null) : null;
+  const legacyAuditSection = !urlRunId
+    ? agentLegacyAuditSection(urlTab ?? null)
+    : null;
   const legacyView = urlRunId
     ? "runs"
     : legacyAuditSection === "runs"
@@ -801,26 +1012,46 @@ export function AgentDetail() {
   const routeCompanyId = useMemo(() => {
     if (!companyPrefix) return null;
     const requestedPrefix = companyPrefix.toUpperCase();
-    return companies.find((company) => company.issuePrefix.toUpperCase() === requestedPrefix)?.id ?? null;
+    return (
+      companies.find(
+        (company) => company.issuePrefix.toUpperCase() === requestedPrefix,
+      )?.id ?? null
+    );
   }, [companies, companyPrefix]);
   const lookupCompanyId = routeCompanyId ?? selectedCompanyId ?? undefined;
-  const canFetchAgent = routeAgentRef.length > 0 && (isUuidLike(routeAgentRef) || Boolean(lookupCompanyId));
-  const setSaveConfigAction = useCallback((fn: (() => void) | null) => { saveConfigActionRef.current = fn; }, []);
-  const setCancelConfigAction = useCallback((fn: (() => void) | null) => { cancelConfigActionRef.current = fn; }, []);
+  const canFetchAgent =
+    routeAgentRef.length > 0 &&
+    (isUuidLike(routeAgentRef) || Boolean(lookupCompanyId));
+  const setSaveConfigAction = useCallback((fn: (() => void) | null) => {
+    saveConfigActionRef.current = fn;
+  }, []);
+  const setCancelConfigAction = useCallback((fn: (() => void) | null) => {
+    cancelConfigActionRef.current = fn;
+  }, []);
   const prepareAgentNavigation = useCallback(() => {
     return confirmAgentConfigNavigation(configDirty);
   }, [configDirty]);
-  const { data: agent, isLoading, error } = useQuery<AgentDetailRecord>({
-    queryKey: [...queryKeys.agents.detail(routeAgentRef), lookupCompanyId ?? null],
+  const {
+    data: agent,
+    isLoading,
+    error,
+  } = useQuery<AgentDetailRecord>({
+    queryKey: [
+      ...queryKeys.agents.detail(routeAgentRef),
+      lookupCompanyId ?? null,
+    ],
     queryFn: () => agentsApi.get(routeAgentRef, lookupCompanyId),
     enabled: canFetchAgent,
   });
   const resolvedCompanyId = agent?.companyId ?? selectedCompanyId;
   const canonicalAgentRef = agent ? agentRouteRef(agent) : routeAgentRef;
-  const handleLegacyTabChange = useCallback((next: string) => {
-    if (!prepareAgentNavigation()) return;
-    navigate(`/agents/${canonicalAgentRef || routeAgentRef}/${next}`);
-  }, [canonicalAgentRef, navigate, prepareAgentNavigation, routeAgentRef]);
+  const handleLegacyTabChange = useCallback(
+    (next: string) => {
+      if (!prepareAgentNavigation()) return;
+      navigate(`/agents/${canonicalAgentRef || routeAgentRef}/${next}`);
+    },
+    [canonicalAgentRef, navigate, prepareAgentNavigation, routeAgentRef],
+  );
   const agentLookupRef = agent?.id ?? routeAgentRef;
   const resolvedAgentId = agent?.id ?? null;
   const { data: boardAccess } = useQuery({
@@ -842,14 +1073,16 @@ export function AgentDetail() {
     queryFn: () => instanceSettingsApi.getExperimental(),
     enabled: !!resolvedCompanyId,
   });
-  const builtInAgentsEnabled = experimentalSettings?.enableBuiltInAgents === true;
+  const builtInAgentsEnabled =
+    experimentalSettings?.enableBuiltInAgents === true;
   const { data: builtInStates } = useQuery({
     queryKey: queryKeys.builtInAgents.list(resolvedCompanyId!),
     queryFn: () => builtInAgentsApi.list(resolvedCompanyId!),
     enabled: !!resolvedCompanyId && builtInAgentsEnabled,
   });
   const builtInState = builtInAgentsEnabled
-    ? builtInStates?.find((entry) => entry.agentId === resolvedAgentId) ?? null
+    ? (builtInStates?.find((entry) => entry.agentId === resolvedAgentId) ??
+      null)
     : null;
   const builtInFeatureLabel = builtInState
     ? builtInState.definition.featureKeys
@@ -857,75 +1090,120 @@ export function AgentDetail() {
         .join(", ")
     : "";
   const invalidateBuiltIn = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.builtInAgents.list(resolvedCompanyId!) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.builtInAgents.list(resolvedCompanyId!),
+    });
     if (resolvedAgentId) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(resolvedAgentId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(resolvedAgentId),
+      });
     }
-    queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(routeAgentRef) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.agents.detail(routeAgentRef),
+    });
   }, [queryClient, resolvedCompanyId, resolvedAgentId, routeAgentRef]);
 
   const resetBuiltIn = useMutation({
-    mutationFn: () => builtInAgentsApi.reset(resolvedCompanyId!, builtInState!.definition.key),
+    mutationFn: () =>
+      builtInAgentsApi.reset(resolvedCompanyId!, builtInState!.definition.key),
     onSuccess: invalidateBuiltIn,
   });
 
   const [showBuiltInConfigure, setShowBuiltInConfigure] = useState(false);
   const resetBuiltInResource = useMutation({
     mutationFn: (kind: BuiltInManagedResourceKind) =>
-      builtInAgentsApi.reset(resolvedCompanyId!, builtInState!.definition.key, [kind]),
+      builtInAgentsApi.reset(resolvedCompanyId!, builtInState!.definition.key, [
+        kind,
+      ]),
     onSuccess: invalidateBuiltIn,
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to update bundle resource");
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update bundle resource",
+      );
     },
   });
   const runBuiltInRoutine = useMutation({
     mutationFn: (routineKey: string) =>
-      builtInAgentsApi.runRoutine(resolvedCompanyId!, builtInState!.definition.key, routineKey),
+      builtInAgentsApi.runRoutine(
+        resolvedCompanyId!,
+        builtInState!.definition.key,
+        routineKey,
+      ),
     onSuccess: invalidateBuiltIn,
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to run built-in routine");
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to run built-in routine",
+      );
     },
   });
   const enableBuiltInSchedule = useMutation({
     mutationFn: (routineKey: string) =>
-      builtInAgentsApi.enableRoutineSchedule(resolvedCompanyId!, builtInState!.definition.key, routineKey),
+      builtInAgentsApi.enableRoutineSchedule(
+        resolvedCompanyId!,
+        builtInState!.definition.key,
+        routineKey,
+      ),
     onSuccess: invalidateBuiltIn,
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to enable routine schedule");
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to enable routine schedule",
+      );
     },
   });
   const disableBuiltInSchedule = useMutation({
     mutationFn: (routineKey: string) =>
-      builtInAgentsApi.disableRoutineSchedule(resolvedCompanyId!, builtInState!.definition.key, routineKey),
+      builtInAgentsApi.disableRoutineSchedule(
+        resolvedCompanyId!,
+        builtInState!.definition.key,
+        routineKey,
+      ),
     onSuccess: invalidateBuiltIn,
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to disable routine schedule");
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to disable routine schedule",
+      );
     },
   });
-  const builtInRoutineActionPending =
-    runBuiltInRoutine.isPending
-      ? "run"
-      : enableBuiltInSchedule.isPending
-        ? "enable"
-        : disableBuiltInSchedule.isPending
-          ? "disable"
-          : null;
+  const builtInRoutineActionPending = runBuiltInRoutine.isPending
+    ? "run"
+    : enableBuiltInSchedule.isPending
+      ? "enable"
+      : disableBuiltInSchedule.isPending
+        ? "disable"
+        : null;
 
   const { data: runtimeState } = useQuery({
     queryKey: queryKeys.agents.runtimeState(resolvedAgentId ?? routeAgentRef),
-    queryFn: () => agentsApi.runtimeState(resolvedAgentId!, resolvedCompanyId ?? undefined),
+    queryFn: () =>
+      agentsApi.runtimeState(resolvedAgentId!, resolvedCompanyId ?? undefined),
     enabled: Boolean(resolvedAgentId) && needsOverviewData,
   });
 
   const { data: heartbeats } = useQuery({
     queryKey: queryKeys.heartbeats(resolvedCompanyId!, agent?.id ?? undefined),
-    queryFn: () => heartbeatsApi.list(resolvedCompanyId!, agent?.id ?? undefined),
+    queryFn: () =>
+      heartbeatsApi.list(resolvedCompanyId!, agent?.id ?? undefined),
     enabled: !!resolvedCompanyId && !!agent?.id && shouldLoadHeartbeats,
   });
 
   const { data: allIssues } = useQuery({
-    queryKey: [...queryKeys.issues.list(resolvedCompanyId!), "participant-agent", resolvedAgentId ?? "__none__"],
-    queryFn: () => issuesApi.list(resolvedCompanyId!, { participantAgentId: resolvedAgentId! }),
+    queryKey: [
+      ...queryKeys.issues.list(resolvedCompanyId!),
+      "participant-agent",
+      resolvedAgentId ?? "__none__",
+    ],
+    queryFn: () =>
+      issuesApi.list(resolvedCompanyId!, {
+        participantAgentId: resolvedAgentId!,
+      }),
     enabled: !!resolvedCompanyId && !!resolvedAgentId && needsOverviewData,
   });
 
@@ -937,7 +1215,8 @@ export function AgentDetail() {
 
   const { data: skillSnapshot } = useQuery({
     queryKey: queryKeys.agents.skills(resolvedAgentId ?? "__none__"),
-    queryFn: () => agentsApi.skills(resolvedAgentId!, resolvedCompanyId ?? undefined),
+    queryFn: () =>
+      agentsApi.skills(resolvedAgentId!, resolvedCompanyId ?? undefined),
     enabled: Boolean(resolvedCompanyId && resolvedAgentId && needsOverviewData),
   });
 
@@ -948,17 +1227,32 @@ export function AgentDetail() {
   });
 
   const assignedIssues = useMemo(
-    () => [...(allIssues ?? [])].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    () =>
+      [...(allIssues ?? [])].sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      ),
     [allIssues],
   );
-  const reportsToAgent = (allAgents ?? []).find((a) => a.id === agent?.reportsTo);
-  const directReports = (allAgents ?? []).filter((a) => a.reportsTo === agent?.id && a.status !== "terminated");
+  const reportsToAgent = (allAgents ?? []).find(
+    (a) => a.id === agent?.reportsTo,
+  );
+  const directReports = (allAgents ?? []).filter(
+    (a) => a.reportsTo === agent?.id && a.status !== "terminated",
+  );
   const overviewSkillNames = useMemo(() => {
-    const namesByKey = new Map((overviewCompanySkills ?? []).map((skill) => [skill.key, skill.name]));
-    return (skillSnapshot?.desiredSkills ?? []).map((key) => namesByKey.get(key) ?? key);
+    const namesByKey = new Map(
+      (overviewCompanySkills ?? []).map((skill) => [skill.key, skill.name]),
+    );
+    return (skillSnapshot?.desiredSkills ?? []).map(
+      (key) => namesByKey.get(key) ?? key,
+    );
   }, [overviewCompanySkills, skillSnapshot?.desiredSkills]);
   const mobileLiveRun = useMemo(
-    () => (heartbeats ?? []).find((r) => r.status === "running" || r.status === "queued") ?? null,
+    () =>
+      (heartbeats ?? []).find(
+        (r) => r.status === "running" || r.status === "queued",
+      ) ?? null,
     [heartbeats],
   );
 
@@ -966,17 +1260,30 @@ export function AgentDetail() {
     if (!agent) return;
     if (urlRunId) {
       if (routeAgentRef !== canonicalAgentRef) {
-        navigate(`/agents/${canonicalAgentRef}/runs/${urlRunId}`, { replace: true });
+        navigate(`/agents/${canonicalAgentRef}/runs/${urlRunId}`, {
+          replace: true,
+        });
       }
       return;
     }
     if (legacyAuditSection) return;
     const canonicalTab = activeView === "run-detail" ? "overview" : activeView;
     if (routeAgentRef !== canonicalAgentRef || urlTab !== canonicalTab) {
-      navigate(agentDetailHref(canonicalAgentRef, canonicalTab), { replace: true });
+      navigate(agentDetailHref(canonicalAgentRef, canonicalTab), {
+        replace: true,
+      });
       return;
     }
-  }, [agent, routeAgentRef, canonicalAgentRef, urlRunId, urlTab, activeView, legacyAuditSection, navigate]);
+  }, [
+    agent,
+    routeAgentRef,
+    canonicalAgentRef,
+    urlRunId,
+    urlTab,
+    activeView,
+    legacyAuditSection,
+    navigate,
+  ]);
 
   useEffect(() => {
     if (!agent?.companyId || agent.companyId === selectedCompanyId) return;
@@ -988,21 +1295,37 @@ export function AgentDetail() {
   // which is surfaced via the pending-approval banner below.
   const agentAction = useMutation({
     mutationFn: async (action: "approve") => {
-      if (!agentLookupRef) return Promise.reject(new Error("No agent reference"));
+      if (!agentLookupRef)
+        return Promise.reject(new Error("No agent reference"));
       if (action === "approve") {
-        return agentsApi.approve(agentLookupRef, resolvedCompanyId ?? undefined);
+        return agentsApi.approve(
+          agentLookupRef,
+          resolvedCompanyId ?? undefined,
+        );
       }
     },
     onSuccess: () => {
       setActionError(null);
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(routeAgentRef) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agentLookupRef) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.runtimeState(agentLookupRef) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.taskSessions(agentLookupRef) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(routeAgentRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agentLookupRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.runtimeState(agentLookupRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.taskSessions(agentLookupRef),
+      });
       if (resolvedCompanyId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(resolvedCompanyId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.list(resolvedCompanyId),
+        });
         if (agent?.id) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.heartbeats(resolvedCompanyId, agent.id) });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.heartbeats(resolvedCompanyId, agent.id),
+          });
         }
       }
     },
@@ -1012,29 +1335,52 @@ export function AgentDetail() {
   });
 
   const updateIcon = useMutation({
-    mutationFn: (icon: string) => agentsApi.update(agentLookupRef, { icon }, resolvedCompanyId ?? undefined),
+    mutationFn: (icon: string) =>
+      agentsApi.update(
+        agentLookupRef,
+        { icon },
+        resolvedCompanyId ?? undefined,
+      ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(routeAgentRef) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agentLookupRef) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(routeAgentRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agentLookupRef),
+      });
       if (resolvedCompanyId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(resolvedCompanyId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.list(resolvedCompanyId),
+        });
       }
     },
   });
 
   const updatePermissions = useMutation({
     mutationFn: (permissions: AgentPermissionUpdate) =>
-      agentsApi.updatePermissions(agentLookupRef, permissions, resolvedCompanyId ?? undefined),
+      agentsApi.updatePermissions(
+        agentLookupRef,
+        permissions,
+        resolvedCompanyId ?? undefined,
+      ),
     onSuccess: () => {
       setActionError(null);
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(routeAgentRef) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agentLookupRef) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(routeAgentRef),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agentLookupRef),
+      });
       if (resolvedCompanyId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(resolvedCompanyId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.list(resolvedCompanyId),
+        });
       }
     },
     onError: (err) => {
-      setActionError(err instanceof Error ? err.message : "Failed to update permissions");
+      setActionError(
+        err instanceof Error ? err.message : "Failed to update permissions",
+      );
     },
   });
 
@@ -1046,19 +1392,32 @@ export function AgentDetail() {
     if (activeView === "overview" && !urlRunId) {
       crumbs.push({ label: agentName });
     } else {
-      crumbs.push({ label: agentName, href: agentDetailHref(canonicalAgentRef) });
+      crumbs.push({
+        label: agentName,
+        href: agentDetailHref(canonicalAgentRef),
+      });
       if (urlRunId) {
-        crumbs.push({ label: "Runs", href: agent?.id ? agentScopedAuditHref(agent.id, "runs") : undefined });
+        crumbs.push({
+          label: "Runs",
+          href: agent?.id ? agentScopedAuditHref(agent.id, "runs") : undefined,
+        });
         crumbs.push({ label: `Run ${urlRunId.slice(0, 8)}` });
       } else {
-        const item = AGENT_DETAIL_NAVIGATION
-          .flatMap((section) => section.items)
-          .find((candidate) => candidate.value === activeView);
+        const item = AGENT_DETAIL_NAVIGATION.flatMap(
+          (section) => section.items,
+        ).find((candidate) => candidate.value === activeView);
         crumbs.push({ label: item?.label ?? "Overview" });
       }
     }
     setBreadcrumbs(crumbs);
-  }, [setBreadcrumbs, agent, routeAgentRef, canonicalAgentRef, activeView, urlRunId]);
+  }, [
+    setBreadcrumbs,
+    agent,
+    routeAgentRef,
+    canonicalAgentRef,
+    activeView,
+    urlRunId,
+  ]);
 
   useEffect(() => {
     closePanel();
@@ -1076,11 +1435,14 @@ export function AgentDetail() {
   }, [resolvedAgentId, agentMembershipState]);
 
   useBeforeUnload(
-    useCallback((event) => {
-      if (!configDirty) return;
-      event.preventDefault();
-      event.returnValue = "";
-    }, [configDirty]),
+    useCallback(
+      (event) => {
+        if (!configDirty) return;
+        event.preventDefault();
+        event.returnValue = "";
+      },
+      [configDirty],
+    ),
   );
 
   useEffect(() => {
@@ -1119,7 +1481,8 @@ export function AgentDetail() {
     }
 
     document.addEventListener("click", handleDocumentClick, true);
-    return () => document.removeEventListener("click", handleDocumentClick, true);
+    return () =>
+      document.removeEventListener("click", handleDocumentClick, true);
   }, [configDirty, prepareAgentNavigation]);
 
   useEffect(() => {
@@ -1144,7 +1507,11 @@ export function AgentDetail() {
       if (prepareAgentNavigation()) return;
 
       event.stopImmediatePropagation();
-      restoring = restoreAgentConfigHistoryEntry(window.history, currentEntry, event.state?.idx);
+      restoring = restoreAgentConfigHistoryEntry(
+        window.history,
+        currentEntry,
+        event.state?.idx,
+      );
     }
 
     window.addEventListener("popstate", handlePopState, true);
@@ -1155,28 +1522,47 @@ export function AgentDetail() {
   if (error) return <p className="text-sm text-destructive">{error.message}</p>;
   if (!agent) return null;
   if (!urlRunId && legacyAuditSection) {
-    return <Navigate to={agentScopedAuditHref(agent.id, legacyAuditSection)} replace />;
+    return (
+      <Navigate
+        to={agentScopedAuditHref(agent.id, legacyAuditSection)}
+        replace
+      />
+    );
   }
   if (!urlRunId && !urlTab) {
     return <Navigate to={agentDetailHref(canonicalAgentRef)} replace />;
   }
   const isPendingApproval = agent.status === "pending_approval";
-  const hasInvalidOrgChain = agent.orgChainHealth?.status === "invalid_org_chain";
-  const pausedEscalationWarning = !hasInvalidOrgChain ? agent.orgChainHealth?.escalationWarning ?? null : null;
-  const showConfigActionBar = (
-    activeView === "runtime" || activeView === "instructions" || activeView === "secrets"
-  );
-  const showLeftAgentNotice = agentMembershipState === "left" && !dismissedLeftAgentIds.has(agent.id);
+  const hasInvalidOrgChain =
+    agent.orgChainHealth?.status === "invalid_org_chain";
+  const pausedEscalationWarning = !hasInvalidOrgChain
+    ? (agent.orgChainHealth?.escalationWarning ?? null)
+    : null;
+  const showConfigActionBar =
+    activeView === "runtime" ||
+    activeView === "instructions" ||
+    activeView === "secrets";
+  const showLeftAgentNotice =
+    agentMembershipState === "left" && !dismissedLeftAgentIds.has(agent.id);
   const agentMembershipPending =
     membershipMutation.isPending &&
     membershipMutation.variables?.resourceType === "agent" &&
     membershipMutation.variables.resourceId === agent.id;
   const agentStarred = isStarred(membershipsQuery.data, "agent", agent.id);
-  const agentStarPending = agentMembershipPending && membershipMutation.variables?.starred !== undefined;
-  const agentJoinLeavePending = agentMembershipPending && membershipMutation.variables?.starred === undefined;
+  const agentStarPending =
+    agentMembershipPending &&
+    membershipMutation.variables?.starred !== undefined;
+  const agentJoinLeavePending =
+    agentMembershipPending &&
+    membershipMutation.variables?.starred === undefined;
 
   return (
-    <div className={cn("agent-settings-content mx-auto max-w-5xl space-y-8", `agent-settings-${activeView}`)}>
+    <div
+      className={cn(
+        "agent-settings-content mx-auto max-w-5xl space-y-8",
+        `agent-settings-${activeView}`,
+      )}
+    >
       {showLeftAgentNotice ? (
         <div className="flex items-center gap-3 border border-yellow-300/35 bg-yellow-300/10 px-3 py-2 text-sm text-yellow-900 dark:text-yellow-100">
           <p className="min-w-0 flex-1">
@@ -1186,26 +1572,36 @@ export function AgentDetail() {
             compact
             state="left"
             pending={agentJoinLeavePending}
-            pendingState={agentJoinLeavePending ? membershipMutation.variables?.state : null}
+            pendingState={
+              agentJoinLeavePending ? membershipMutation.variables?.state : null
+            }
             resourceName={agent.name}
-            onJoin={() => membershipMutation.mutate({
-              resourceType: "agent",
-              resourceId: agent.id,
-              resourceName: agent.name,
-              state: "joined",
-            })}
-            onLeave={() => membershipMutation.mutate({
-              resourceType: "agent",
-              resourceId: agent.id,
-              resourceName: agent.name,
-              state: "left",
-            })}
+            onJoin={() =>
+              membershipMutation.mutate({
+                resourceType: "agent",
+                resourceId: agent.id,
+                resourceName: agent.name,
+                state: "joined",
+              })
+            }
+            onLeave={() =>
+              membershipMutation.mutate({
+                resourceType: "agent",
+                resourceId: agent.id,
+                resourceName: agent.name,
+                state: "left",
+              })
+            }
           />
           <button
             type="button"
             className="h-6 w-6 shrink-0 text-yellow-900/70 hover:text-yellow-900 dark:text-yellow-100/70 dark:hover:text-yellow-100"
             aria-label="Dismiss agent membership notice"
-            onClick={() => setDismissedLeftAgentIds((current) => new Set(current).add(agent.id))}
+            onClick={() =>
+              setDismissedLeftAgentIds((current) =>
+                new Set(current).add(agent.id),
+              )
+            }
           >
             ×
           </button>
@@ -1216,7 +1612,9 @@ export function AgentDetail() {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0 space-y-1">
             <p className="font-medium">Escalation path is paused</p>
-            <p className="text-amber-900/90 dark:text-amber-100/90">{pausedEscalationWarning}</p>
+            <p className="text-amber-900/90 dark:text-amber-100/90">
+              {pausedEscalationWarning}
+            </p>
           </div>
         </div>
       ) : null}
@@ -1226,16 +1624,20 @@ export function AgentDetail() {
           <div className="min-w-0 space-y-1">
             <p className="font-medium">Invalid reporting chain</p>
             <p className="text-amber-900/90 dark:text-amber-100/90">
-              {agent.name} cannot accept tasks or start runs until its reporting chain is repaired.
+              {agent.name} cannot accept tasks or start runs until its reporting
+              chain is repaired.
             </p>
             <p className="break-words font-mono text-xs text-amber-900/80 dark:text-amber-100/80">
               {formatOrgChainHealthPath(agent)}
             </p>
             {agent.orgChainHealth?.repairGuidance ? (
-              <p className="text-amber-900/85 dark:text-amber-100/85">{agent.orgChainHealth.repairGuidance}</p>
+              <p className="text-amber-900/85 dark:text-amber-100/85">
+                {agent.orgChainHealth.repairGuidance}
+              </p>
             ) : (
               <p className="text-amber-900/85 dark:text-amber-100/85">
-                Assign this agent to an active manager/root, or explicitly pause or terminate the affected agent/subtree.
+                Assign this agent to an active manager/root, or explicitly pause
+                or terminate the affected agent/subtree.
               </p>
             )}
           </div>
@@ -1244,16 +1646,48 @@ export function AgentDetail() {
       {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-5 border-b border-border pb-6">
         <div className="flex min-w-0 items-center gap-4">
-          <div role="img" aria-label={`${agent.name} avatar`} className="shrink-0">
-            <AgentCharacter agent={agent} state={characterStateForAgent(agent.status)} size={96} trackingScope="page" />
+          <div
+            role="img"
+            aria-label={`${agent.name} avatar`}
+            className="shrink-0"
+          >
+            <AgentCharacter
+              agent={agent}
+              state={characterStateForAgent(agent.status)}
+              size={96}
+              trackingScope="page"
+            />
           </div>
           <div className="min-w-0 space-y-1">
-            <div className="flex items-center gap-2"><h1 className="truncate text-2xl font-semibold tracking-tight">{agent.name}</h1><PrimaryAgentIndicator agentId={agent.id} companyId={agent.companyId} /></div>
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-2xl font-semibold tracking-tight">
+                {agent.name}
+              </h1>
+              <PrimaryAgentIndicator
+                agentId={agent.id}
+                companyId={agent.companyId}
+              />
+            </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {agent.adapterType === "claude_local" || agent.adapterType === "codex_local"
-                ? <img src={`/brands/${agent.adapterType === "claude_local" ? "claude" : "codex"}-color.svg`} className="size-4" alt="" />
-                : null}
-              <span>{getAdapterDisplay(agent.adapterType === "taskcore_runner" && agent.adapterConfig.provider === "openai_dot" ? "openai_dot" : agent.adapterType).label}</span><span>·</span>
+              {agent.adapterType === "claude_local" ||
+              agent.adapterType === "codex_local" ? (
+                <img
+                  src={`/brands/${agent.adapterType === "claude_local" ? "claude" : "codex"}-color.svg`}
+                  className="size-4"
+                  alt=""
+                />
+              ) : null}
+              <span>
+                {
+                  getAdapterDisplay(
+                    agent.adapterType === "taskcore_runner" &&
+                      agent.adapterConfig.provider === "openai_dot"
+                      ? "openai_dot"
+                      : agent.adapterType,
+                  ).label
+                }
+              </span>
+              <span>·</span>
               <span>{agent.title || roleLabels[agent.role] || agent.role}</span>
             </div>
             <SetPrimaryAgentButton agent={agent} />
@@ -1265,12 +1699,14 @@ export function AgentDetail() {
             starred={agentStarred}
             pending={agentStarPending}
             resourceName={agent.name}
-            onToggle={(next) => membershipMutation.mutate({
-              resourceType: "agent",
-              resourceId: agent.id,
-              resourceName: agent.name,
-              starred: next,
-            })}
+            onToggle={(next) =>
+              membershipMutation.mutate({
+                resourceType: "agent",
+                resourceId: agent.id,
+                resourceName: agent.name,
+                starred: next,
+              })
+            }
           />
           <AgentActionButtons
             agent={agent}
@@ -1284,7 +1720,9 @@ export function AgentDetail() {
             hasPendingNavigationChanges={configDirty}
             onBeforeNavigate={prepareAgentNavigation}
             onActionError={setActionError}
-            onTerminateSuccess={() => navigate("/agents/all", { replace: true })}
+            onTerminateSuccess={() =>
+              navigate("/agents/all", { replace: true })
+            }
             hideTerminate={Boolean(builtInState)}
             pauseConfirm={
               builtInState
@@ -1292,9 +1730,10 @@ export function AgentDetail() {
                     title: `Pause the ${builtInState.definition.displayName}?`,
                     description: (
                       <>
-                        {builtInFeatureLabel} depends on this agent. While paused,{" "}
-                        {builtInFeatureLabel.toLowerCase()} generation is skipped and the{" "}
-                        {builtInFeatureLabel} page shows a warning.
+                        {builtInFeatureLabel} depends on this agent. While
+                        paused, {builtInFeatureLabel.toLowerCase()} generation
+                        is skipped and the {builtInFeatureLabel} page shows a
+                        warning.
                       </>
                     ),
                   }
@@ -1310,7 +1749,9 @@ export function AgentDetail() {
                   <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
                 </span>
-                <span className="text-(length:--text-micro) font-medium text-blue-600 dark:text-blue-400">Live</span>
+                <span className="text-(length:--text-micro) font-medium text-blue-600 dark:text-blue-400">
+                  Live
+                </span>
               </Link>
             )}
           </AgentActionButtons>
@@ -1332,9 +1773,9 @@ export function AgentDetail() {
             </Button>
           }
         >
-          Ships with Taskcore and powers <strong>{builtInFeatureLabel}</strong>. Configure it like
-          any agent — model, instructions, budget. It can be paused but not deleted; pausing it
-          pauses {builtInFeatureLabel}.
+          Ships with Taskcore and powers <strong>{builtInFeatureLabel}</strong>.
+          Configure it like any agent — model, instructions, budget. It can be
+          paused but not deleted; pausing it pauses {builtInFeatureLabel}.
         </InlineBanner>
       )}
 
@@ -1345,9 +1786,17 @@ export function AgentDetail() {
           onConfigure={() => setShowBuiltInConfigure(true)}
           onResetResource={(kind) => resetBuiltInResource.mutate(kind)}
           onRunRoutine={(routineKey) => runBuiltInRoutine.mutate(routineKey)}
-          onEnableSchedule={(routineKey) => enableBuiltInSchedule.mutate(routineKey)}
-          onDisableSchedule={(routineKey) => disableBuiltInSchedule.mutate(routineKey)}
-          resettingResource={resetBuiltInResource.isPending ? resetBuiltInResource.variables ?? null : null}
+          onEnableSchedule={(routineKey) =>
+            enableBuiltInSchedule.mutate(routineKey)
+          }
+          onDisableSchedule={(routineKey) =>
+            disableBuiltInSchedule.mutate(routineKey)
+          }
+          resettingResource={
+            resetBuiltInResource.isPending
+              ? (resetBuiltInResource.variables ?? null)
+              : null
+          }
           routineActionPending={builtInRoutineActionPending}
         />
       )}
@@ -1365,11 +1814,12 @@ export function AgentDetail() {
         />
       )}
 
-
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
       {isPendingApproval && (
         <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/30 dark:text-amber-200">
-          <span>This agent is pending board approval and cannot be invoked yet.</span>
+          <span>
+            This agent is pending board approval and cannot be invoked yet.
+          </span>
           <Button
             variant="outline"
             size="sm"
@@ -1382,7 +1832,15 @@ export function AgentDetail() {
         </div>
       )}
 
-      {activeView !== "run-detail" && activeView !== "channels" && <h2 className="text-xl font-semibold">{activeView === "secrets" ? "Secrets & variables" : AGENT_DETAIL_NAVIGATION.flatMap(section => section.items).find(item => item.value === activeView)?.label}</h2>}
+      {activeView !== "run-detail" && activeView !== "channels" && (
+        <h2 className="text-xl font-semibold">
+          {activeView === "secrets"
+            ? "Secrets & variables"
+            : AGENT_DETAIL_NAVIGATION.flatMap((section) => section.items).find(
+                (item) => item.value === activeView,
+              )?.label}
+        </h2>
+      )}
 
       {/* View content */}
       {activeView === "overview" && (
@@ -1399,16 +1857,22 @@ export function AgentDetail() {
       )}
 
       {activeView === "instructions" && (
-        <div><PromptsTab
-          agent={agent}
-          companyId={resolvedCompanyId ?? undefined}
-          showSaveNotice={false}
-          onDirtyChange={setConfigDirty}
-          onSaveActionChange={setSaveConfigAction}
-          onCancelActionChange={setCancelConfigAction}
-          onSavingChange={setConfigSaving}
-        />
-        {resolvedCompanyId && <AgentConnectionInstructions companyId={resolvedCompanyId} agentId={agent.id} />}
+        <div>
+          <PromptsTab
+            agent={agent}
+            companyId={resolvedCompanyId ?? undefined}
+            showSaveNotice={false}
+            onDirtyChange={setConfigDirty}
+            onSaveActionChange={setSaveConfigAction}
+            onCancelActionChange={setCancelConfigAction}
+            onSavingChange={setConfigSaving}
+          />
+          {resolvedCompanyId && (
+            <AgentConnectionInstructions
+              companyId={resolvedCompanyId}
+              agentId={agent.id}
+            />
+          )}
         </div>
       )}
 
@@ -1477,12 +1941,18 @@ export function AgentDetail() {
 
       {activeView === "api-keys" && (
         <div className="max-w-3xl">
-          <KeysTab agentId={agent.id} companyId={resolvedCompanyId ?? undefined} />
+          <KeysTab
+            agentId={agent.id}
+            companyId={resolvedCompanyId ?? undefined}
+          />
         </div>
       )}
 
       {activeView === "revisions" && (
-        <AgentRevisionsTab agent={agent} companyId={resolvedCompanyId ?? undefined} />
+        <AgentRevisionsTab
+          agent={agent}
+          companyId={resolvedCompanyId ?? undefined}
+        />
       )}
 
       {activeView === "run-detail" && (
@@ -1497,21 +1967,49 @@ export function AgentDetail() {
         />
       )}
 
-      {showConfigActionBar && <footer className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background py-4">
-        <p role="status" className="text-xs text-muted-foreground">{configSaving ? "Saving changes…" : configDirty ? "You have unsaved changes." : ""}</p>
-        <div className="flex gap-2">
-          <Button variant="ghost" disabled={!configDirty || configSaving} onClick={() => cancelConfigActionRef.current?.()}>Discard</Button>
-          <Button disabled={!configDirty || configSaving} onClick={() => {Promise.resolve(saveConfigActionRef.current?.()).catch(() => {});}}>{configSaving ? "Saving…" : "Save changes"}</Button>
-        </div>
-      </footer>}
-
+      {showConfigActionBar && (
+        <footer className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background py-4">
+          <p role="status" className="text-xs text-muted-foreground">
+            {configSaving
+              ? "Saving changes…"
+              : configDirty
+                ? "You have unsaved changes."
+                : ""}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              disabled={!configDirty || configSaving}
+              onClick={() => cancelConfigActionRef.current?.()}
+            >
+              Discard
+            </Button>
+            <Button
+              disabled={!configDirty || configSaving}
+              onClick={() => {
+                Promise.resolve(saveConfigActionRef.current?.()).catch(
+                  () => {},
+                );
+              }}
+            >
+              {configSaving ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
 
 /* ---- Helper components ---- */
 
-function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
+function SummaryRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-muted-foreground text-xs">{label}</span>
@@ -1520,7 +2018,12 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-export type LatestRunIssue = { id: string; title: string; status: string; identifier?: string | null };
+export type LatestRunIssue = {
+  id: string;
+  title: string;
+  status: string;
+  identifier?: string | null;
+};
 
 /**
  * The id of the issue a run works on, read from its context snapshot. Newer
@@ -1568,12 +2071,15 @@ function LatestRunCard({
   const sorted = useMemo(
     () =>
       [...runs].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       ),
-    [runs]
+    [runs],
   );
 
-  const liveRun = sorted.find((r) => r.status === "running" || r.status === "queued");
+  const liveRun = sorted.find(
+    (r) => r.status === "running" || r.status === "queued",
+  );
   const run = liveRun ?? sorted[0];
 
   // The assigned-issues list this card resolves against is bounded (server page
@@ -1582,7 +2088,8 @@ function LatestRunCard({
   // directly so the running row always links to the task rather than falling
   // back to run metadata. `enabled` keeps this a no-op for the common case.
   const snapshotIssueId = run ? getRunSnapshotIssueId(run) : undefined;
-  const needsFallbackFetch = !!snapshotIssueId && !issuesById.has(snapshotIssueId);
+  const needsFallbackFetch =
+    !!snapshotIssueId && !issuesById.has(snapshotIssueId);
   const { data: fallbackIssue } = useQuery({
     queryKey: queryKeys.issues.detail(snapshotIssueId ?? "__none__"),
     queryFn: () => issuesApi.get(snapshotIssueId as string),
@@ -1592,8 +2099,12 @@ function LatestRunCard({
 
   const summaryRaw = run
     ? run.resultJson
-      ? String((run.resultJson as Record<string, unknown>).summary ?? (run.resultJson as Record<string, unknown>).result ?? "")
-      : run.error ?? ""
+      ? String(
+          (run.resultJson as Record<string, unknown>).summary ??
+            (run.resultJson as Record<string, unknown>).result ??
+            "",
+        )
+      : (run.error ?? "")
     : "";
 
   // Extract a clean 2-3 line excerpt: first non-empty, non-header, non-list-mark lines
@@ -1603,7 +2114,15 @@ function LatestRunCard({
       .replace(/^#{1,6}\s+/gm, "")
       .split("\n")
       .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith("---") && !l.startsWith("|") && !l.startsWith("```") && !/^[-*>]/.test(l) && !/^\d+\./.test(l));
+      .filter(
+        (l) =>
+          l.length > 0 &&
+          !l.startsWith("---") &&
+          !l.startsWith("|") &&
+          !l.startsWith("```") &&
+          !/^[-*>]/.test(l) &&
+          !/^\d+\./.test(l),
+      );
     const excerpt: string[] = [];
     let chars = 0;
     for (const line of lines) {
@@ -1628,17 +2147,21 @@ function LatestRunCard({
           identifier: fallbackIssue.identifier,
         })
       : issuesById;
-  const { task, runHref, rowHref } = resolveLatestRunNavigation(run, agentId, effectiveIssuesById);
-  const statusInfo = runStatusIcons[run.status] ?? { icon: Clock, color: "text-neutral-400" };
+  const { task, runHref, rowHref } = resolveLatestRunNavigation(
+    run,
+    agentId,
+    effectiveIssuesById,
+  );
+  const statusInfo = runStatusIcons[run.status] ?? {
+    icon: Clock,
+    color: "text-neutral-400",
+  };
   const StatusIcon = statusInfo.icon;
 
   return (
     <div className="space-y-3">
       <div className="flex w-full items-center justify-between">
-        <Link
-          to={runHref}
-          className="no-underline"
-        >
+        <Link to={runHref} className="no-underline">
           <h3 className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-foreground">
             {isLive && (
               <span className="relative flex h-2 w-2">
@@ -1658,11 +2181,19 @@ function LatestRunCard({
         to={rowHref}
         className={cn(
           "block border rounded-lg p-4 space-y-2 w-full no-underline transition-colors hover:bg-muted/50 cursor-pointer",
-          isLive ? "border-blue-500/30 shadow-(--shadow-extract-14)" : "border-border"
+          isLive
+            ? "border-blue-500/30 shadow-(--shadow-extract-14)"
+            : "border-border",
         )}
       >
         <div className="flex items-center gap-2">
-          <StatusIcon className={cn("h-3.5 w-3.5", statusInfo.color, run.status === "running" && "animate-spin")} />
+          <StatusIcon
+            className={cn(
+              "h-3.5 w-3.5",
+              statusInfo.color,
+              run.status === "running" && "animate-spin",
+            )}
+          />
           <StatusBadge status={run.status} />
           {task ? (
             <>
@@ -1674,24 +2205,36 @@ function LatestRunCard({
             </>
           ) : (
             <>
-              <span className="font-mono text-xs text-muted-foreground">{run.id.slice(0, 8)}</span>
-              <Badge variant="ghost" className={cn(
-                "px-1.5 text-(length:--text-nano)",
-                run.invocationSource === "timer" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                  : run.invocationSource === "assignment" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
-                  : run.invocationSource === "on_demand" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300"
-                  : "bg-muted text-muted-foreground"
-              )}>
+              <span className="font-mono text-xs text-muted-foreground">
+                {run.id.slice(0, 8)}
+              </span>
+              <Badge
+                variant="ghost"
+                className={cn(
+                  "px-1.5 text-(length:--text-nano)",
+                  run.invocationSource === "timer"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                    : run.invocationSource === "assignment"
+                      ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
+                      : run.invocationSource === "on_demand"
+                        ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300"
+                        : "bg-muted text-muted-foreground",
+                )}
+              >
                 {sourceLabels[run.invocationSource] ?? run.invocationSource}
               </Badge>
             </>
           )}
-          <span className="ml-auto text-xs text-muted-foreground">{relativeTime(run.createdAt)}</span>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {relativeTime(run.createdAt)}
+          </span>
         </div>
 
         {summary && (
           <div className="overflow-hidden max-h-16">
-            <MarkdownBody className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{summary}</MarkdownBody>
+            <MarkdownBody className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+              {summary}
+            </MarkdownBody>
           </div>
         )}
       </Link>
@@ -1725,86 +2268,188 @@ export function AgentOverview({
     for (const issue of assignedIssues) map.set(issue.id, issue);
     return map;
   }, [assignedIssues]);
-  const configuredModel = asNonEmptyString(agent.adapterConfig?.model)
-    ?? asNonEmptyString(agent.adapterConfig?.modelName)
-    ?? asNonEmptyString(agent.runtimeConfig?.model)
-    ?? "Adapter default";
+  const configuredModel =
+    asNonEmptyString(agent.adapterConfig?.model) ??
+    asNonEmptyString(agent.adapterConfig?.modelName) ??
+    asNonEmptyString(agent.runtimeConfig?.model) ??
+    "Adapter default";
   const lastRun = runs[0] ?? null;
   const identity = useQuery({
-    queryKey: [...queryKeys.agents.identity(agent.id), lastRun?.id, lastRun?.status],
+    queryKey: [
+      ...queryKeys.agents.identity(agent.id),
+      lastRun?.id,
+      lastRun?.status,
+    ],
     queryFn: () => agentsApi.getIdentity(agent.id, agent.companyId),
   });
   return (
     <div className="space-y-6">
-      <LatestRunCard runs={runs} agentId={agentRouteId} issuesById={issuesById} />
+      <LatestRunCard
+        runs={runs}
+        agentId={agentRouteId}
+        issuesById={issuesById}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-lg border border-border p-4" aria-labelledby="agent-identity-heading">
+        <section
+          className="rounded-lg border border-border p-4"
+          aria-labelledby="agent-identity-heading"
+        >
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 id="agent-identity-heading" className="text-sm font-medium">Identity</h3>
+            <h3 id="agent-identity-heading" className="text-sm font-medium">
+              Identity
+            </h3>
             <StatusBadge status={agent.status} />
           </div>
           <div className="space-y-3">
-            <SummaryRow label="Role"><span className="text-sm">{roleLabels[agent.role] ?? agent.role}</span></SummaryRow>
-            <SummaryRow label="Title"><span className="text-sm">{agent.title ?? "Not set"}</span></SummaryRow>
+            <SummaryRow label="Role">
+              <span className="text-sm">
+                {roleLabels[agent.role] ?? agent.role}
+              </span>
+            </SummaryRow>
+            <SummaryRow label="Title">
+              <span className="text-sm">{agent.title ?? "Not set"}</span>
+            </SummaryRow>
             <SummaryRow label="Reports to">
               {reportsToAgent ? (
-                <Link className="text-sm hover:underline" to={agentDetailHref(agentRouteRef(reportsToAgent))}>
+                <Link
+                  className="text-sm hover:underline"
+                  to={agentDetailHref(agentRouteRef(reportsToAgent))}
+                >
                   {reportsToAgent.name}
                 </Link>
-              ) : <span className="text-sm">Board</span>}
+              ) : (
+                <span className="text-sm">Board</span>
+              )}
             </SummaryRow>
-            <SummaryRow label="Direct reports"><span className="text-sm tabular-nums">{directReportCount}</span></SummaryRow>
+            <SummaryRow label="Direct reports">
+              <span className="text-sm tabular-nums">{directReportCount}</span>
+            </SummaryRow>
             <SummaryRow label="Public key">
-              {identity.isPending ? <span className="text-sm text-muted-foreground">Loading…</span>
-                : identity.isError ? <span className="text-sm text-destructive">Could not load public key</span>
-                : identity.data ? (
-                  <CopyText text={identity.data.publicKeyPem} ariaLabel="Copy public key" title="Copy public key">
-                    <span className="font-mono text-sm">{identity.data.keyId.slice(0, 19)}…</span>
-                  </CopyText>
-                ) : (
-                  <div className="text-sm">
-                    <div>Not created yet</div>
-                    <div className="text-xs text-muted-foreground">Created automatically on the next managed run</div>
+              {identity.isPending ? (
+                <span className="text-sm text-muted-foreground">Loading…</span>
+              ) : identity.isError ? (
+                <span className="text-sm text-destructive">
+                  Could not load public key
+                </span>
+              ) : identity.data ? (
+                <CopyText
+                  text={identity.data.publicKeyPem}
+                  ariaLabel="Copy public key"
+                  title="Copy public key"
+                >
+                  <span className="font-mono text-sm">
+                    {identity.data.keyId.slice(0, 19)}…
+                  </span>
+                </CopyText>
+              ) : (
+                <div className="text-sm">
+                  <div>Not created yet</div>
+                  <div className="text-xs text-muted-foreground">
+                    Created automatically on the next managed run
                   </div>
-                )}
+                </div>
+              )}
             </SummaryRow>
           </div>
         </section>
 
-        <section className="rounded-lg border border-border p-4" aria-labelledby="agent-runtime-heading">
+        <section
+          className="rounded-lg border border-border p-4"
+          aria-labelledby="agent-runtime-heading"
+        >
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 id="agent-runtime-heading" className="text-sm font-medium">Harness / Runtime</h3>
-            <Link className="text-xs text-muted-foreground hover:text-foreground" to={agentDetailHref(agentRouteId, "runtime")}>Configure</Link>
+            <h3 id="agent-runtime-heading" className="text-sm font-medium">
+              Harness / Runtime
+            </h3>
+            <Link
+              className="text-xs text-muted-foreground hover:text-foreground"
+              to={agentDetailHref(agentRouteId, "runtime")}
+            >
+              Configure
+            </Link>
           </div>
           <div className="space-y-3">
-            <SummaryRow label="Adapter"><span className="text-sm">{getAdapterDisplay(agent.adapterType === "taskcore_runner" && agent.adapterConfig.provider === "openai_dot" ? "openai_dot" : agent.adapterType).label}</span></SummaryRow>
-            <SummaryRow label="Model"><span className="max-w-64 truncate text-sm font-mono">{configuredModel}</span></SummaryRow>
-            <SummaryRow label="Session"><span className="max-w-64 truncate text-sm font-mono">{runtimeState?.sessionDisplayId ?? runtimeState?.sessionId ?? "No session"}</span></SummaryRow>
+            <SummaryRow label="Adapter">
+              <span className="text-sm">
+                {
+                  getAdapterDisplay(
+                    agent.adapterType === "taskcore_runner" &&
+                      agent.adapterConfig.provider === "openai_dot"
+                      ? "openai_dot"
+                      : agent.adapterType,
+                  ).label
+                }
+              </span>
+            </SummaryRow>
+            <SummaryRow label="Model">
+              <span className="max-w-64 truncate text-sm font-mono">
+                {configuredModel}
+              </span>
+            </SummaryRow>
+            <SummaryRow label="Session">
+              <span className="max-w-64 truncate text-sm font-mono">
+                {runtimeState?.sessionDisplayId ??
+                  runtimeState?.sessionId ??
+                  "No session"}
+              </span>
+            </SummaryRow>
             <SummaryRow label="Last run">
-              <span className="text-sm">{lastRun ? `${lastRun.status} · ${relativeTime(lastRun.createdAt)}` : "No runs"}</span>
+              <span className="text-sm">
+                {lastRun
+                  ? `${lastRun.status} · ${relativeTime(lastRun.createdAt)}`
+                  : "No runs"}
+              </span>
             </SummaryRow>
           </div>
         </section>
 
-        <section className="rounded-lg border border-border p-4" aria-labelledby="agent-capabilities-heading">
-          <h3 id="agent-capabilities-heading" className="mb-3 text-sm font-medium">Capabilities</h3>
+        <section
+          className="rounded-lg border border-border p-4"
+          aria-labelledby="agent-capabilities-heading"
+        >
+          <h3
+            id="agent-capabilities-heading"
+            className="mb-3 text-sm font-medium"
+          >
+            Capabilities
+          </h3>
           {agent.capabilities?.trim() ? (
-            <MarkdownBody className="text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{agent.capabilities}</MarkdownBody>
+            <MarkdownBody className="text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+              {agent.capabilities}
+            </MarkdownBody>
           ) : (
-            <p className="text-sm text-muted-foreground">No capability summary has been added.</p>
+            <p className="text-sm text-muted-foreground">
+              No capability summary has been added.
+            </p>
           )}
         </section>
 
-        <section className="rounded-lg border border-border p-4" aria-labelledby="agent-skills-heading">
+        <section
+          className="rounded-lg border border-border p-4"
+          aria-labelledby="agent-skills-heading"
+        >
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 id="agent-skills-heading" className="text-sm font-medium">Skills</h3>
-            <Link className="text-xs text-muted-foreground hover:text-foreground" to={agentDetailHref(agentRouteId, "skills")}>Manage</Link>
+            <h3 id="agent-skills-heading" className="text-sm font-medium">
+              Skills
+            </h3>
+            <Link
+              className="text-xs text-muted-foreground hover:text-foreground"
+              to={agentDetailHref(agentRouteId, "skills")}
+            >
+              Manage
+            </Link>
           </div>
           {skillNames.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {skillNames.slice(0, 8).map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
-              {skillNames.length > 8 ? <Badge variant="outline">+{skillNames.length - 8} more</Badge> : null}
+              {skillNames.slice(0, 8).map((skill) => (
+                <Badge key={skill} variant="secondary">
+                  {skill}
+                </Badge>
+              ))}
+              {skillNames.length > 8 ? (
+                <Badge variant="outline">+{skillNames.length - 8} more</Badge>
+              ) : null}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No skills enabled.</p>
@@ -1812,9 +2457,14 @@ export function AgentOverview({
         </section>
       </div>
 
-      <section className="space-y-3" aria-labelledby="agent-recent-tasks-heading">
+      <section
+        className="space-y-3"
+        aria-labelledby="agent-recent-tasks-heading"
+      >
         <div className="flex items-center justify-between">
-          <h3 id="agent-recent-tasks-heading" className="text-sm font-medium">Recent Tasks</h3>
+          <h3 id="agent-recent-tasks-heading" className="text-sm font-medium">
+            Recent Tasks
+          </h3>
           <Link
             to={`/issues?participantAgentId=${agent.id}`}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -1831,7 +2481,11 @@ export function AgentOverview({
                 key={issue.id}
                 issue={issue}
                 presentation="task"
-                metadata={<span className="text-xs text-muted-foreground">{relativeTime(issue.updatedAt)}</span>}
+                metadata={
+                  <span className="text-xs text-muted-foreground">
+                    {relativeTime(issue.updatedAt)}
+                  </span>
+                }
                 showDivider
               />
             ))}
@@ -1844,18 +2498,25 @@ export function AgentOverview({
         )}
       </section>
 
-      <section className="space-y-3" aria-labelledby="agent-audit-links-heading">
-        <h3 id="agent-audit-links-heading" className="text-sm font-medium">Audit</h3>
+      <section
+        className="space-y-3"
+        aria-labelledby="agent-audit-links-heading"
+      >
+        <h3 id="agent-audit-links-heading" className="text-sm font-medium">
+          Audit
+        </h3>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {(["activity", "runs", "costs", "budgets"] as const).map((section) => (
-            <Link
-              key={section}
-              to={agentScopedAuditHref(agent.id, section)}
-              className="rounded-lg border border-border px-3 py-2 text-sm font-medium capitalize hover:bg-accent"
-            >
-              {section}
-            </Link>
-          ))}
+          {(["activity", "runs", "costs", "budgets"] as const).map(
+            (section) => (
+              <Link
+                key={section}
+                to={agentScopedAuditHref(agent.id, section)}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-medium capitalize hover:bg-accent"
+              >
+                {section}
+              </Link>
+            ),
+          )}
         </div>
       </section>
     </div>
@@ -1903,12 +2564,27 @@ export function AgentRevisionsTab({
   });
 
   const rollbackConfig = useMutation({
-    mutationFn: (revisionId: string) => agentsApi.rollbackConfigRevision(agent.id, revisionId, companyId),
+    mutationFn: (revisionId: string) =>
+      agentsApi.rollbackConfigRevision(agent.id, revisionId, companyId),
     onSuccess: (updated) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.configRevisions(agent.id) });
-      if (!syncAgentRouteAfterRename(queryClient, navigate, agent, updated, "revisions")) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.urlKey) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.configRevisions(agent.id),
+      });
+      if (
+        !syncAgentRouteAfterRename(
+          queryClient,
+          navigate,
+          agent,
+          updated,
+          "revisions",
+        )
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.detail(agent.urlKey),
+        });
       }
     },
   });
@@ -1917,14 +2593,21 @@ export function AgentRevisionsTab({
     <div className="max-w-3xl space-y-3">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-sm font-medium">Configuration Revisions</h3>
-        <span className="text-xs text-muted-foreground">{configRevisions?.length ?? 0} total</span>
+        <span className="text-xs text-muted-foreground">
+          {configRevisions?.length ?? 0} total
+        </span>
       </div>
       {(configRevisions ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">No configuration revisions yet.</p>
+        <p className="text-sm text-muted-foreground">
+          No configuration revisions yet.
+        </p>
       ) : (
         <div className="space-y-2">
           {(configRevisions ?? []).map((revision) => (
-            <div key={revision.id} className="space-y-2 rounded-md border border-border p-3">
+            <div
+              key={revision.id}
+              className="space-y-2 rounded-md border border-border p-3"
+            >
               <div className="flex items-center justify-between gap-3">
                 <div className="text-xs text-muted-foreground">
                   <span className="font-mono">{revision.id.slice(0, 8)}</span>
@@ -1943,7 +2626,10 @@ export function AgentRevisionsTab({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Changed: {revision.changedKeys.length > 0 ? revision.changedKeys.join(", ") : "no tracked changes"}
+                Changed:{" "}
+                {revision.changedKeys.length > 0
+                  ? revision.changedKeys.join(", ")
+                  : "no tracked changes"}
               </p>
             </div>
           ))}
@@ -1974,7 +2660,10 @@ export function ConfigurationTab({
   onSaveActionChange: (save: (() => void) | null) => void;
   onCancelActionChange: (cancel: (() => void) | null) => void;
   onSavingChange: (saving: boolean) => void;
-  updatePermissions: { mutate: (permissions: AgentPermissionUpdate) => void; isPending: boolean };
+  updatePermissions: {
+    mutate: (permissions: AgentPermissionUpdate) => void;
+    isPending: boolean;
+  };
   hidePromptTemplate?: boolean;
   hideInstructionsFile?: boolean;
   content?: "runtime" | "permissions" | "secrets";
@@ -1984,46 +2673,85 @@ export function ConfigurationTab({
   const navigate = useNavigate();
   const { tab: urlTab } = useParams<{ tab?: string }>();
   const { pushToast } = useToastActions();
-  const [awaitingRefreshAfterSave, setAwaitingRefreshAfterSave] = useState(false);
+  const [awaitingRefreshAfterSave, setAwaitingRefreshAfterSave] =
+    useState(false);
   const lastAgentRef = useRef(agent);
 
-  const catalogProvider = agent.adapterType === "taskcore_runner" ? String(agent.adapterConfig.provider ?? "codex") : undefined;
+  const catalogProvider =
+    agent.adapterType === "taskcore_runner"
+      ? String(agent.adapterConfig.provider ?? "codex")
+      : undefined;
   const { data: adapterModels } = useQuery({
-    queryKey:
-      companyId
-        ? queryKeys.agents.adapterModels(companyId, agent.adapterType, null, catalogProvider)
-        : ["agents", "none", "adapter-models", agent.adapterType],
-    queryFn: () => agentsApi.adapterModels(companyId!, agent.adapterType, { provider: catalogProvider }),
+    queryKey: companyId
+      ? queryKeys.agents.adapterModels(
+          companyId,
+          agent.adapterType,
+          null,
+          catalogProvider,
+        )
+      : ["agents", "none", "adapter-models", agent.adapterType],
+    queryFn: () =>
+      agentsApi.adapterModels(companyId!, agent.adapterType, {
+        provider: catalogProvider,
+      }),
     enabled: Boolean(companyId) && content === "runtime",
   });
 
-  const lowTrustSelected = getTrustPreset(agent.permissions) === "low_trust_review";
+  const lowTrustSelected =
+    getTrustPreset(agent.permissions) === "low_trust_review";
 
-  const { data: boundaryProjects, isLoading: boundaryProjectsLoading } = useQuery({
-    queryKey: companyId ? queryKeys.projects.list(companyId) : ["projects", "__low-trust-disabled"],
-    queryFn: () => projectsApi.list(companyId!),
-    enabled: Boolean(companyId && lowTrustSelected) && content === "permissions",
-  });
+  const { data: boundaryProjects, isLoading: boundaryProjectsLoading } =
+    useQuery({
+      queryKey: companyId
+        ? queryKeys.projects.list(companyId)
+        : ["projects", "__low-trust-disabled"],
+      queryFn: () => projectsApi.list(companyId!),
+      enabled:
+        Boolean(companyId && lowTrustSelected) && content === "permissions",
+    });
 
   const { data: boundaryIssues, isLoading: boundaryIssuesLoading } = useQuery({
     queryKey: companyId
       ? [...queryKeys.issues.list(companyId), "low-trust-boundary-candidates"]
       : ["issues", "__low-trust-disabled"],
-    queryFn: () => issuesApi.list(companyId!, { limit: 100, sortField: "updated", sortDir: "desc" }),
-    enabled: Boolean(companyId && lowTrustSelected) && content === "permissions",
+    queryFn: () =>
+      issuesApi.list(companyId!, {
+        limit: 100,
+        sortField: "updated",
+        sortDir: "desc",
+      }),
+    enabled:
+      Boolean(companyId && lowTrustSelected) && content === "permissions",
   });
 
   const updateAgent = useMutation({
-    mutationFn: (data: Record<string, unknown>) => agentsApi.update(agent.id, data, companyId),
+    mutationFn: (data: Record<string, unknown>) =>
+      agentsApi.update(agent.id, data, companyId),
     onMutate: () => {
       setAwaitingRefreshAfterSave(true);
     },
     onSuccess: (updated) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.configRevisions(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(agent.companyId) });
-      if (!syncAgentRouteAfterRename(queryClient, navigate, agent, updated, urlTab ?? content)) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.urlKey) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.configRevisions(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.list(agent.companyId),
+      });
+      if (
+        !syncAgentRouteAfterRename(
+          queryClient,
+          navigate,
+          agent,
+          updated,
+          urlTab ?? content,
+        )
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.agents.detail(agent.urlKey),
+        });
       }
       pushToast({ title: "Agent saved", tone: "success" });
     },
@@ -2045,7 +2773,9 @@ export function ConfigurationTab({
     }
     lastAgentRef.current = agent;
   }, [agent, awaitingRefreshAfterSave]);
-  const isConfigSaving = content !== "permissions" && (updateAgent.isPending || awaitingRefreshAfterSave);
+  const isConfigSaving =
+    content !== "permissions" &&
+    (updateAgent.isPending || awaitingRefreshAfterSave);
 
   useEffect(() => {
     onSavingChange(isConfigSaving);
@@ -2076,113 +2806,136 @@ export function ConfigurationTab({
 
   return (
     <div className="agent-settings-form space-y-6">
-      {content !== "permissions" ? <AgentConfigForm
-        mode="edit"
-        agent={agent}
-        onSave={(patch) => updateAgent.mutateAsync(patch)}
-        isSaving={isConfigSaving}
-        adapterModels={adapterModels}
-        onDirtyChange={onDirtyChange}
-        onSaveActionChange={onSaveActionChange}
-        onCancelActionChange={onCancelActionChange}
-        hideInlineSave
-        hidePromptTemplate={hidePromptTemplate}
-        hideInstructionsFile={hideInstructionsFile}
-        content={content === "runtime" ? "configuration" : "secrets"}
-        sectionLayout="cards"
-        environmentVariablesPlacement="configuration"
-        compactTestFeedback
-        sectionOrder={["identity", "adapter", "configuration", "environment", "environment-variables", "run-policy"]}
-        sectionTitles={{ adapter: "Adapter", configuration: "Configuration", identity: "Agent identity" }}
-        canConfigureProviderTrace={canConfigureProviderTrace}
-      /> : null}
+      {content !== "permissions" ? (
+        <AgentConfigForm
+          mode="edit"
+          agent={agent}
+          onSave={(patch) => updateAgent.mutateAsync(patch)}
+          isSaving={isConfigSaving}
+          adapterModels={adapterModels}
+          onDirtyChange={onDirtyChange}
+          onSaveActionChange={onSaveActionChange}
+          onCancelActionChange={onCancelActionChange}
+          hideInlineSave
+          hidePromptTemplate={hidePromptTemplate}
+          hideInstructionsFile={hideInstructionsFile}
+          content={content === "runtime" ? "configuration" : "secrets"}
+          sectionLayout="cards"
+          environmentVariablesPlacement="configuration"
+          compactTestFeedback
+          sectionOrder={[
+            "identity",
+            "adapter",
+            "configuration",
+            "environment",
+            "environment-variables",
+            "run-policy",
+          ]}
+          sectionTitles={{
+            adapter: "Adapter",
+            configuration: "Configuration",
+            identity: "Agent identity",
+          }}
+          canConfigureProviderTrace={canConfigureProviderTrace}
+        />
+      ) : null}
 
+      {content === "permissions" ? (
+        <TrustPresetSection
+          permissions={agent.permissions}
+          disabled={updatePermissions.isPending}
+          companyId={companyId}
+          projectCandidates={(boundaryProjects ?? []).map((project) => ({
+            id: project.id,
+            label: project.name,
+          }))}
+          issueCandidates={(boundaryIssues ?? []).map((issue) => ({
+            id: issue.id,
+            label: `${issue.identifier ?? issue.id.slice(0, 8)} · ${issue.title}`,
+          }))}
+          candidatesLoading={boundaryProjectsLoading || boundaryIssuesLoading}
+          onChange={(nextPermissions) =>
+            updatePermissions.mutate({
+              canCreateAgents,
+              canCreateSkills,
+              canAssignTasks,
+              ...buildPermissionsForTrustPreset(
+                nextPermissions,
+                nextPermissions.trustPreset === "low_trust_review"
+                  ? "low_trust_review"
+                  : "standard",
+              ),
+            })
+          }
+        />
+      ) : null}
 
-      {content === "permissions" ? <TrustPresetSection
-        permissions={agent.permissions}
-        disabled={updatePermissions.isPending}
-        companyId={companyId}
-        projectCandidates={(boundaryProjects ?? []).map((project) => ({
-          id: project.id,
-          label: project.name,
-        }))}
-        issueCandidates={(boundaryIssues ?? []).map((issue) => ({
-          id: issue.id,
-          label: `${issue.identifier ?? issue.id.slice(0, 8)} · ${issue.title}`,
-        }))}
-        candidatesLoading={boundaryProjectsLoading || boundaryIssuesLoading}
-        onChange={(nextPermissions) =>
-          updatePermissions.mutate({
-            canCreateAgents,
-            canCreateSkills,
-            canAssignTasks,
-            ...buildPermissionsForTrustPreset(nextPermissions, nextPermissions.trustPreset === "low_trust_review" ? "low_trust_review" : "standard"),
-          })
-        }
-      /> : null}
-
-      {content === "permissions" ? <div>
-        <h3 className="text-sm font-medium mb-3">Permissions</h3>
-        <div className="border border-border rounded-lg p-4 space-y-4">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <div className="space-y-1">
-              <div>Can create new agents</div>
-              <p className="text-xs text-muted-foreground">
-                Lets this agent create or hire agents. This also grants task assignment authority.
-              </p>
+      {content === "permissions" ? (
+        <div>
+          <h3 className="text-sm font-medium mb-3">Permissions</h3>
+          <div className="border border-border rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <div className="space-y-1">
+                <div>Can create new agents</div>
+                <p className="text-xs text-muted-foreground">
+                  Lets this agent create or hire agents. This also grants task
+                  assignment authority.
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={canCreateAgents}
+                onCheckedChange={() =>
+                  updatePermissions.mutate({
+                    canCreateAgents: !canCreateAgents,
+                    canCreateSkills,
+                    canAssignTasks: !canCreateAgents ? true : canAssignTasks,
+                  })
+                }
+                disabled={updatePermissions.isPending}
+              />
             </div>
-            <ToggleSwitch
-              checked={canCreateAgents}
-              onCheckedChange={() =>
-                updatePermissions.mutate({
-                  canCreateAgents: !canCreateAgents,
-                  canCreateSkills,
-                  canAssignTasks: !canCreateAgents ? true : canAssignTasks,
-                })
-              }
-              disabled={updatePermissions.isPending}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <div className="space-y-1">
-              <div>Can create/import skills</div>
-              <p className="text-xs text-muted-foreground">
-                Lets this agent install, import, create, and scan organization skills without creating agents.
-              </p>
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <div className="space-y-1">
+                <div>Can create/import skills</div>
+                <p className="text-xs text-muted-foreground">
+                  Lets this agent install, import, create, and scan organization
+                  skills without creating agents.
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={canCreateSkills}
+                onCheckedChange={() =>
+                  updatePermissions.mutate({
+                    canCreateAgents,
+                    canCreateSkills: !canCreateSkills,
+                    canAssignTasks,
+                  })
+                }
+                disabled={updatePermissions.isPending}
+              />
             </div>
-            <ToggleSwitch
-              checked={canCreateSkills}
-              onCheckedChange={() =>
-                updatePermissions.mutate({
-                  canCreateAgents,
-                  canCreateSkills: !canCreateSkills,
-                  canAssignTasks,
-                })
-              }
-              disabled={updatePermissions.isPending}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <div className="space-y-1">
-              <div>Can assign tasks</div>
-              <p className="text-xs text-muted-foreground">
-                {taskAssignHint}
-              </p>
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <div className="space-y-1">
+                <div>Can assign tasks</div>
+                <p className="text-xs text-muted-foreground">
+                  {taskAssignHint}
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={canAssignTasks}
+                onCheckedChange={() =>
+                  updatePermissions.mutate({
+                    canCreateAgents,
+                    canCreateSkills,
+                    canAssignTasks: !canAssignTasks,
+                  })
+                }
+                disabled={updatePermissions.isPending || taskAssignLocked}
+              />
             </div>
-            <ToggleSwitch
-              checked={canAssignTasks}
-              onCheckedChange={() =>
-                updatePermissions.mutate({
-                  canCreateAgents,
-                  canCreateSkills,
-                  canAssignTasks: !canAssignTasks,
-                })
-              }
-              disabled={updatePermissions.isPending || taskAssignLocked}
-            />
           </div>
         </div>
-      </div> : null}
+      ) : null}
     </div>
   );
 }
@@ -2210,13 +2963,17 @@ export function PromptsTab({
   const { selectedCompanyId } = useCompany();
   const { isMobile } = useSidebar();
   const [selectedFile, setSelectedFileState] = useState<string>("AGENTS.md");
-  const [instructionMode, setInstructionMode] = useState<"read" | "edit" | "raw">("read");
+  const [instructionMode, setInstructionMode] = useState<
+    "read" | "edit" | "raw"
+  >("read");
   const [showFilePanel, setShowFilePanel] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const draftBaseRevisionRef = useRef<string | null | undefined>(undefined);
   const draftBaseHashRef = useRef<string | null | undefined>(undefined);
   const [candidateRunId, setCandidateRunId] = useState<string | null>(null);
-  const [readOnlyCandidateRunId, setReadOnlyCandidateRunId] = useState<string | null>(null);
+  const [readOnlyCandidateRunId, setReadOnlyCandidateRunId] = useState<
+    string | null
+  >(null);
   const candidateAgentRef = useRef(agent.id);
   candidateAgentRef.current = agent.id;
   const [bundleDraft, setBundleDraft] = useState<{
@@ -2229,7 +2986,9 @@ export function PromptsTab({
   const [pendingFiles, setPendingFiles] = useState<string[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [filePanelWidth, setFilePanelWidth] = useState(260);
-  const [instructionPaneWidth, setInstructionPaneWidth] = useState<number | null>(null);
+  const [instructionPaneWidth, setInstructionPaneWidth] = useState<
+    number | null
+  >(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [awaitingRefresh, setAwaitingRefresh] = useState(false);
   const lastFileVersionRef = useRef<string | null>(null);
@@ -2281,11 +3040,13 @@ export function PromptsTab({
   });
 
   const persistedMode = bundle?.mode ?? "managed";
-  const persistedRootPath = persistedMode === "managed"
-    ? (bundle?.managedRootPath ?? bundle?.rootPath ?? "")
-    : (bundle?.rootPath ?? "");
+  const persistedRootPath =
+    persistedMode === "managed"
+      ? (bundle?.managedRootPath ?? bundle?.rootPath ?? "")
+      : (bundle?.rootPath ?? "");
   const currentMode = bundleDraft?.mode ?? persistedMode;
-  const currentEntryFile = bundleDraft?.entryFile ?? bundle?.entryFile ?? "AGENTS.md";
+  const currentEntryFile =
+    bundleDraft?.entryFile ?? bundle?.entryFile ?? "AGENTS.md";
   const currentRootPath = bundleDraft?.rootPath ?? persistedRootPath;
   const fileOptions = useMemo(
     () => bundle?.files.map((file) => file.path) ?? [],
@@ -2298,22 +3059,33 @@ export function PromptsTab({
     currentRootPath === persistedRootPath,
   );
   const visibleFilePaths = useMemo(
-    () => bundleMatchesDraft
-      ? [...new Set([currentEntryFile, ...fileOptions, ...pendingFiles])]
-      : [currentEntryFile, ...pendingFiles],
+    () =>
+      bundleMatchesDraft
+        ? [...new Set([currentEntryFile, ...fileOptions, ...pendingFiles])]
+        : [currentEntryFile, ...pendingFiles],
     [bundleMatchesDraft, currentEntryFile, fileOptions, pendingFiles],
   );
   const fileTree = useMemo(
-    () => buildFileTree(Object.fromEntries(visibleFilePaths.map((filePath) => [filePath, ""]))),
+    () =>
+      buildFileTree(
+        Object.fromEntries(visibleFilePaths.map((filePath) => [filePath, ""])),
+      ),
     [visibleFilePaths],
   );
   const selectedOrEntryFile = selectedFile || currentEntryFile;
-  const selectedFileExists = bundleMatchesDraft && fileOptions.includes(selectedOrEntryFile);
-  const selectedFileSummary = bundle?.files.find((file) => file.path === selectedOrEntryFile) ?? null;
+  const selectedFileExists =
+    bundleMatchesDraft && fileOptions.includes(selectedOrEntryFile);
+  const selectedFileSummary =
+    bundle?.files.find((file) => file.path === selectedOrEntryFile) ?? null;
 
-  const { data: selectedFileDetail, isLoading: fileLoading, error: fileError } = useQuery({
+  const {
+    data: selectedFileDetail,
+    isLoading: fileLoading,
+    error: fileError,
+  } = useQuery({
     queryKey: queryKeys.agents.instructionsFile(agent.id, selectedOrEntryFile),
-    queryFn: () => agentsApi.instructionsFile(agent.id, selectedOrEntryFile, companyId),
+    queryFn: () =>
+      agentsApi.instructionsFile(agent.id, selectedOrEntryFile, companyId),
     enabled: Boolean(companyId && isLocal && selectedFileExists),
     refetchInterval: draft === null ? 5000 : false,
   });
@@ -2325,20 +3097,35 @@ export function PromptsTab({
   });
   // Whole-folder failures belong to their run's diagnostics. They have no
   // preserved edits to resolve and do not describe the current saved files.
-  const preservedCandidates = candidates.data?.filter((candidate) => candidate.contract !== "agent_files") ?? [];
+  const preservedCandidates =
+    candidates.data?.filter(
+      (candidate) => candidate.contract !== "agent_files",
+    ) ?? [];
   const loadCandidate = useMutation({
     mutationFn: async (candidate: AgentInstructionCandidate) => {
-      if (candidate.content === null) throw new Error("These instruction edits have not been retrieved yet.");
-      const file = await agentsApi.instructionsFile(agent.id, candidate.entryFile, companyId).catch((error) => {
-        if (error instanceof ApiError && error.status === 404 && candidate.baseRevisionId === null) return null;
-        throw error;
-      });
+      if (candidate.content === null)
+        throw new Error("These instruction edits have not been retrieved yet.");
+      const file = await agentsApi
+        .instructionsFile(agent.id, candidate.entryFile, companyId)
+        .catch((error) => {
+          if (
+            error instanceof ApiError &&
+            error.status === 404 &&
+            candidate.baseRevisionId === null
+          )
+            return null;
+          throw error;
+        });
       return { candidate, file, agentId: agent.id };
     },
     onSuccess: ({ candidate, file, agentId: requestedAgentId }) => {
       if (candidateAgentRef.current !== requestedAgentId) return;
       setSelectedFile(candidate.entryFile);
-      if (file) queryClient.setQueryData(queryKeys.agents.instructionsFile(agent.id, candidate.entryFile), file);
+      if (file)
+        queryClient.setQueryData(
+          queryKeys.agents.instructionsFile(agent.id, candidate.entryFile),
+          file,
+        );
       draftBaseRevisionRef.current = file?.revision?.id ?? null;
       setCandidateRunId(candidate.runId);
       setDraft(candidate.content);
@@ -2346,8 +3133,17 @@ export function PromptsTab({
     },
   });
   const resolveCandidate = useMutation({
-    mutationFn: async (data: { runId: string; content: string; baseRevisionId: string | null }) => ({
-      file: await agentsApi.resolveInstructionCandidate(agent.id, data.runId, { content: data.content, baseRevisionId: data.baseRevisionId }, companyId),
+    mutationFn: async (data: {
+      runId: string;
+      content: string;
+      baseRevisionId: string | null;
+    }) => ({
+      file: await agentsApi.resolveInstructionCandidate(
+        agent.id,
+        data.runId,
+        { content: data.content, baseRevisionId: data.baseRevisionId },
+        companyId,
+      ),
       agentId: agent.id,
     }),
     onSuccess: ({ file, agentId: requestedAgentId }) => {
@@ -2356,21 +3152,40 @@ export function PromptsTab({
       setCandidateRunId(null);
       draftBaseRevisionRef.current = undefined;
       draftBaseHashRef.current = undefined;
-      queryClient.setQueryData(queryKeys.agents.instructionsFile(agent.id, file.path), file);
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.instructionsBundle(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.instructionCandidates(agent.id) });
+      queryClient.setQueryData(
+        queryKeys.agents.instructionsFile(agent.id, file.path),
+        file,
+      );
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.instructionsBundle(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.instructionCandidates(agent.id),
+      });
     },
   });
 
   const refreshCandidateBase = useMutation({
     mutationFn: async () => ({
-      file: await agentsApi.instructionsFile(agent.id, selectedOrEntryFile, companyId),
-      agentId: agent.id, runId: candidateRunId,
+      file: await agentsApi.instructionsFile(
+        agent.id,
+        selectedOrEntryFile,
+        companyId,
+      ),
+      agentId: agent.id,
+      runId: candidateRunId,
     }),
     onSuccess: ({ file, agentId: requestedAgentId, runId }) => {
-      if (candidateAgentRef.current !== requestedAgentId || candidateRunId !== runId) return;
+      if (
+        candidateAgentRef.current !== requestedAgentId ||
+        candidateRunId !== runId
+      )
+        return;
       draftBaseRevisionRef.current = file.revision?.id ?? null;
-      queryClient.setQueryData(queryKeys.agents.instructionsFile(agent.id, file.path), file);
+      queryClient.setQueryData(
+        queryKeys.agents.instructionsFile(agent.id, file.path),
+        file,
+      );
       resolveCandidate.reset();
     },
   });
@@ -2387,16 +3202,27 @@ export function PromptsTab({
     },
     onSuccess: () => {
       setAwaitingRefresh(true);
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.instructionsBundle(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.urlKey) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.instructionsBundle(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agent.urlKey),
+      });
     },
     onError: () => setAwaitingRefresh(false),
   });
 
   const saveFile = useMutation({
-    mutationFn: (data: { path: string; content: string; baseRevisionId?: string | null; baseHash?: string | null; clearLegacyPromptTemplate?: boolean }) =>
-      agentsApi.saveInstructionsFile(agent.id, data, companyId),
+    mutationFn: (data: {
+      path: string;
+      content: string;
+      baseRevisionId?: string | null;
+      baseHash?: string | null;
+      clearLegacyPromptTemplate?: boolean;
+    }) => agentsApi.saveInstructionsFile(agent.id, data, companyId),
     onMutate: () => {
       editorInteractedRef.current = false;
     },
@@ -2404,43 +3230,92 @@ export function PromptsTab({
       setDraft(null);
       draftBaseRevisionRef.current = undefined;
       draftBaseHashRef.current = undefined;
-      queryClient.setQueryData(queryKeys.agents.instructionsFile(agent.id, variables.path), file);
+      queryClient.setQueryData(
+        queryKeys.agents.instructionsFile(agent.id, variables.path),
+        file,
+      );
       // Keep the selected file present while the refreshed bundle is in flight.
       // Otherwise removing its pending placeholder briefly selects AGENTS.md.
-      queryClient.setQueryData<AgentInstructionsBundle>(queryKeys.agents.instructionsBundle(agent.id), previous => previous ? {
-        ...previous, files: [...previous.files.filter(item => item.path !== file.path), {
-          path: file.path, size: file.size, language: file.language, markdown: file.markdown,
-          isEntryFile: file.isEntryFile, editable: file.editable, deprecated: file.deprecated,
-          virtual: file.virtual, binary: file.binary, contentHash: file.contentHash,
-        }],
-      } : previous);
+      queryClient.setQueryData<AgentInstructionsBundle>(
+        queryKeys.agents.instructionsBundle(agent.id),
+        (previous) =>
+          previous
+            ? {
+                ...previous,
+                files: [
+                  ...previous.files.filter((item) => item.path !== file.path),
+                  {
+                    path: file.path,
+                    size: file.size,
+                    language: file.language,
+                    markdown: file.markdown,
+                    isEntryFile: file.isEntryFile,
+                    editable: file.editable,
+                    deprecated: file.deprecated,
+                    virtual: file.virtual,
+                    binary: file.binary,
+                    contentHash: file.contentHash,
+                  },
+                ],
+              }
+            : previous,
+      );
       setPendingFiles((prev) => prev.filter((f) => f !== variables.path));
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.instructionsBundle(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.instructionsFile(agent.id, variables.path) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.urlKey) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.instructionsBundle(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.instructionsFile(agent.id, variables.path),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agent.urlKey),
+      });
     },
     onError: () => setAwaitingRefresh(false),
   });
 
   const deleteFile = useMutation({
-    mutationFn: (relativePath: string) => agentsApi.deleteInstructionsFile(agent.id, relativePath, companyId, bundle?.files.find(file => file.path === relativePath)?.contentHash),
+    mutationFn: (relativePath: string) =>
+      agentsApi.deleteInstructionsFile(
+        agent.id,
+        relativePath,
+        companyId,
+        bundle?.files.find((file) => file.path === relativePath)?.contentHash,
+      ),
     onMutate: () => {
       editorInteractedRef.current = false;
       setAwaitingRefresh(true);
     },
     onSuccess: (_, relativePath) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.instructionsBundle(agent.id) });
-      queryClient.removeQueries({ queryKey: queryKeys.agents.instructionsFile(agent.id, relativePath) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agent.urlKey) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.instructionsBundle(agent.id),
+      });
+      queryClient.removeQueries({
+        queryKey: queryKeys.agents.instructionsFile(agent.id, relativePath),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agent.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.detail(agent.urlKey),
+      });
     },
     onError: () => setAwaitingRefresh(false),
   });
 
   const uploadMarkdownImage = useMutation({
-    mutationFn: async ({ file, namespace }: { file: File; namespace: string }) => {
-      if (!selectedCompanyId) throw new Error("Select an organization to upload images");
+    mutationFn: async ({
+      file,
+      namespace,
+    }: {
+      file: File;
+      namespace: string;
+    }) => {
+      if (!selectedCompanyId)
+        throw new Error("Select an organization to upload images");
       return assetsApi.uploadImage(selectedCompanyId, file, namespace);
     },
   });
@@ -2456,10 +3331,24 @@ export function PromptsTab({
       if (selectedFile !== bundle.entryFile) setSelectedFile(bundle.entryFile);
       return;
     }
-    if (!availablePaths.includes(selectedFile) && selectedFile !== currentEntryFile && !pendingFiles.includes(selectedFile)) {
-      setSelectedFile(availablePaths.includes(bundle.entryFile) ? bundle.entryFile : availablePaths[0]!);
+    if (
+      !availablePaths.includes(selectedFile) &&
+      selectedFile !== currentEntryFile &&
+      !pendingFiles.includes(selectedFile)
+    ) {
+      setSelectedFile(
+        availablePaths.includes(bundle.entryFile)
+          ? bundle.entryFile
+          : availablePaths[0]!,
+      );
     }
-  }, [bundle, bundleMatchesDraft, currentEntryFile, pendingFiles, selectedFile]);
+  }, [
+    bundle,
+    bundleMatchesDraft,
+    currentEntryFile,
+    pendingFiles,
+    selectedFile,
+  ]);
 
   useEffect(() => {
     const nextExpanded = new Set<string>();
@@ -2471,7 +3360,9 @@ export function PromptsTab({
         nextExpanded.add(currentPath);
       }
     }
-    setExpandedDirs((current) => (setsEqual(current, nextExpanded) ? current : nextExpanded));
+    setExpandedDirs((current) =>
+      setsEqual(current, nextExpanded) ? current : nextExpanded,
+    );
   }, [visibleFilePaths]);
 
   useEffect(() => {
@@ -2482,7 +3373,8 @@ export function PromptsTab({
     const element = containerRef.current;
     if (!element) return;
 
-    const updateWidth = () => setInstructionPaneWidth(element.getBoundingClientRect().width);
+    const updateWidth = () =>
+      setInstructionPaneWidth(element.getBoundingClientRect().width);
     updateWidth();
 
     if (typeof ResizeObserver === "undefined") return;
@@ -2495,9 +3387,10 @@ export function PromptsTab({
   }, [bundleLoading, isMobile, visibleFilePaths.length]);
 
   useEffect(() => {
-    const versionKey = selectedFileExists && selectedFileDetail
-      ? `${selectedFileDetail.path}:${selectedFileDetail.content}`
-      : `draft:${currentMode}:${currentRootPath}:${selectedOrEntryFile}`;
+    const versionKey =
+      selectedFileExists && selectedFileDetail
+        ? `${selectedFileDetail.path}:${selectedFileDetail.content}`
+        : `draft:${currentMode}:${currentRootPath}:${selectedOrEntryFile}`;
     if (awaitingRefresh) {
       setAwaitingRefresh(false);
       setBundleDraft(null);
@@ -2509,7 +3402,14 @@ export function PromptsTab({
       if (draftBaseRevisionRef.current === undefined) setDraft(null);
       lastFileVersionRef.current = versionKey;
     }
-  }, [awaitingRefresh, currentMode, currentRootPath, selectedFileDetail, selectedFileExists, selectedOrEntryFile]);
+  }, [
+    awaitingRefresh,
+    currentMode,
+    currentRootPath,
+    selectedFileDetail,
+    selectedFileExists,
+    selectedOrEntryFile,
+  ]);
 
   useEffect(() => {
     if (!bundle) return;
@@ -2530,9 +3430,17 @@ export function PromptsTab({
       entryFile: currentEntryFile,
       selectedFile: selectedOrEntryFile,
     };
-  }, [bundle, currentEntryFile, currentMode, currentRootPath, selectedOrEntryFile]);
+  }, [
+    bundle,
+    currentEntryFile,
+    currentMode,
+    currentRootPath,
+    selectedOrEntryFile,
+  ]);
 
-  const currentContent = selectedFileExists ? (selectedFileDetail?.content ?? "") : "";
+  const currentContent = selectedFileExists
+    ? (selectedFileDetail?.content ?? "")
+    : "";
   const displayValue = draft ?? currentContent;
   const useMarkdownEditor = shouldUseMarkdownInstructionsEditor({
     selectedFileExists,
@@ -2542,53 +3450,91 @@ export function PromptsTab({
   });
   const bundleDirty = Boolean(
     bundleDraft &&
-      (
-        bundleDraft.mode !== persistedMode ||
-        bundleDraft.rootPath !== persistedRootPath ||
-        bundleDraft.entryFile !== (bundle?.entryFile ?? "AGENTS.md")
-      ),
+    (bundleDraft.mode !== persistedMode ||
+      bundleDraft.rootPath !== persistedRootPath ||
+      bundleDraft.entryFile !== (bundle?.entryFile ?? "AGENTS.md")),
   );
   const fileDirty = draft !== null && draft !== currentContent;
   const isDirty = bundleDirty || fileDirty || candidateRunId !== null;
-  const isSaving = updateBundle.isPending || saveFile.isPending || resolveCandidate.isPending || loadCandidate.isPending || refreshCandidateBase.isPending || deleteFile.isPending || awaitingRefresh;
-
-  useEffect(() => { onSavingChange(isSaving); }, [onSavingChange, isSaving]);
-  useEffect(() => { onDirtyChange(isDirty); }, [onDirtyChange, isDirty]);
-
-  useEffect(() => () => {
-    onSaveActionChange(null);
-    onCancelActionChange(null);
-    onDirtyChange(false);
-    onSavingChange(false);
-  }, [onCancelActionChange, onDirtyChange, onSaveActionChange, onSavingChange]);
+  const isSaving =
+    updateBundle.isPending ||
+    saveFile.isPending ||
+    resolveCandidate.isPending ||
+    loadCandidate.isPending ||
+    refreshCandidateBase.isPending ||
+    deleteFile.isPending ||
+    awaitingRefresh;
 
   useEffect(() => {
-    onSaveActionChange(isDirty ? () => {
-      const save = async () => {
-        const shouldClearLegacy =
-          Boolean(bundle?.legacyPromptTemplateActive) || Boolean(bundle?.legacyBootstrapPromptTemplateActive);
-        if (bundleDirty && bundleDraft) {
-          await updateBundle.mutateAsync({
-            mode: bundleDraft.mode,
-            rootPath: bundleDraft.mode === "external" ? bundleDraft.rootPath : null,
-            entryFile: bundleDraft.entryFile,
-          });
-        }
-        if (candidateRunId) {
-          await resolveCandidate.mutateAsync({ runId: candidateRunId, content: displayValue,
-            baseRevisionId: draftBaseRevisionRef.current ?? null });
-        } else if (fileDirty) {
-          await saveFile.mutateAsync({
-            path: selectedOrEntryFile,
-            content: displayValue,
-            ...(bundle?.persistence === "agent_files" ? { baseHash: draftBaseHashRef.current !== undefined ? draftBaseHashRef.current : selectedFileDetail?.contentHash ?? null } : {}),
-            ...(selectedOrEntryFile === currentEntryFile && currentMode === "managed" ? { baseRevisionId: draftBaseRevisionRef.current !== undefined ? draftBaseRevisionRef.current : selectedFileDetail?.revision?.id ?? null } : {}),
-            clearLegacyPromptTemplate: shouldClearLegacy,
-          });
-        }
-      };
-      void save().catch(() => undefined);
-    } : null);
+    onSavingChange(isSaving);
+  }, [onSavingChange, isSaving]);
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [onDirtyChange, isDirty]);
+
+  useEffect(
+    () => () => {
+      onSaveActionChange(null);
+      onCancelActionChange(null);
+      onDirtyChange(false);
+      onSavingChange(false);
+    },
+    [onCancelActionChange, onDirtyChange, onSaveActionChange, onSavingChange],
+  );
+
+  useEffect(() => {
+    onSaveActionChange(
+      isDirty
+        ? () => {
+            const save = async () => {
+              const shouldClearLegacy =
+                Boolean(bundle?.legacyPromptTemplateActive) ||
+                Boolean(bundle?.legacyBootstrapPromptTemplateActive);
+              if (bundleDirty && bundleDraft) {
+                await updateBundle.mutateAsync({
+                  mode: bundleDraft.mode,
+                  rootPath:
+                    bundleDraft.mode === "external"
+                      ? bundleDraft.rootPath
+                      : null,
+                  entryFile: bundleDraft.entryFile,
+                });
+              }
+              if (candidateRunId) {
+                await resolveCandidate.mutateAsync({
+                  runId: candidateRunId,
+                  content: displayValue,
+                  baseRevisionId: draftBaseRevisionRef.current ?? null,
+                });
+              } else if (fileDirty) {
+                await saveFile.mutateAsync({
+                  path: selectedOrEntryFile,
+                  content: displayValue,
+                  ...(bundle?.persistence === "agent_files"
+                    ? {
+                        baseHash:
+                          draftBaseHashRef.current !== undefined
+                            ? draftBaseHashRef.current
+                            : (selectedFileDetail?.contentHash ?? null),
+                      }
+                    : {}),
+                  ...(selectedOrEntryFile === currentEntryFile &&
+                  currentMode === "managed"
+                    ? {
+                        baseRevisionId:
+                          draftBaseRevisionRef.current !== undefined
+                            ? draftBaseRevisionRef.current
+                            : (selectedFileDetail?.revision?.id ?? null),
+                      }
+                    : {}),
+                  clearLegacyPromptTemplate: shouldClearLegacy,
+                });
+              }
+            };
+            void save().catch(() => undefined);
+          }
+        : null,
+    );
   }, [
     bundle,
     bundleDirty,
@@ -2608,45 +3554,61 @@ export function PromptsTab({
   ]);
 
   useEffect(() => {
-    onCancelActionChange(isDirty ? () => {
-      draftBaseRevisionRef.current = undefined;
-      draftBaseHashRef.current = undefined;
-      setCandidateRunId(null);
-      resolveCandidate.reset();
-      setDraft(null);
-      if (bundle) {
-        setBundleDraft({
-          mode: persistedMode,
-          rootPath: persistedRootPath,
-          entryFile: bundle.entryFile,
-        });
-      }
-    } : null);
-  }, [bundle, isDirty, onCancelActionChange, persistedMode, persistedRootPath, resolveCandidate]);
+    onCancelActionChange(
+      isDirty
+        ? () => {
+            draftBaseRevisionRef.current = undefined;
+            draftBaseHashRef.current = undefined;
+            setCandidateRunId(null);
+            resolveCandidate.reset();
+            setDraft(null);
+            if (bundle) {
+              setBundleDraft({
+                mode: persistedMode,
+                rootPath: persistedRootPath,
+                entryFile: bundle.entryFile,
+              });
+            }
+          }
+        : null,
+    );
+  }, [
+    bundle,
+    isDirty,
+    onCancelActionChange,
+    persistedMode,
+    persistedRootPath,
+    resolveCandidate,
+  ]);
 
-  const handleSeparatorDrag = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWidth = filePanelWidth;
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const delta = moveEvent.clientX - startX;
-      const next = Math.max(180, Math.min(500, startWidth + delta));
-      setFilePanelWidth(next);
-    };
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  }, [filePanelWidth]);
+  const handleSeparatorDrag = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      const startX = event.clientX;
+      const startWidth = filePanelWidth;
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const delta = moveEvent.clientX - startX;
+        const next = Math.max(180, Math.min(500, startWidth + delta));
+        setFilePanelWidth(next);
+      };
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [filePanelWidth],
+  );
 
   const instructionsSideBySide =
-    !isMobile && instructionPaneWidth !== null && instructionPaneWidth >= filePanelWidth + 520;
+    !isMobile &&
+    instructionPaneWidth !== null &&
+    instructionPaneWidth >= filePanelWidth + 520;
 
   if (!isLocal) {
     return (
@@ -2667,15 +3629,22 @@ export function PromptsTab({
       {(bundle?.warnings ?? []).length > 0 && (
         <div className="space-y-2">
           {(bundle?.warnings ?? []).map((warning) => (
-            <div key={warning} className="rounded-md border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-xs text-sky-900 dark:text-sky-100">
+            <div
+              key={warning}
+              className="rounded-md border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-xs text-sky-900 dark:text-sky-100"
+            >
               {warning}
             </div>
           ))}
         </div>
       )}
-      {showSaveNotice && <p className="text-xs text-muted-foreground">
-        Saved instructions affect the next run. Active runs keep the instructions they started with, and instruction changes may start a fresh adapter session.
-      </p>}
+      {showSaveNotice && (
+        <p className="text-xs text-muted-foreground">
+          Saved instructions affect the next run. Active runs keep the
+          instructions they started with, and instruction changes may start a
+          fresh adapter session.
+        </p>
+      )}
 
       <Collapsible defaultOpen={currentMode === "external"}>
         <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group">
@@ -2693,7 +3662,9 @@ export function PromptsTab({
                       <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="right" sideOffset={4}>
-                      Managed: Taskcore stores and serves the instructions bundle. External: you provide a path on disk where the instructions live.
+                      Managed: Taskcore stores and serves the instructions
+                      bundle. External: you provide a path on disk where the
+                      instructions live.
                     </TooltipContent>
                   </Tooltip>
                 </span>
@@ -2727,13 +3698,22 @@ export function PromptsTab({
                     variant={currentMode === "external" ? "default" : "outline"}
                     onClick={() => {
                       const externalBundle = externalBundleRef.current;
-                      const nextEntryFile = externalBundle?.entryFile ?? currentEntryFile ?? "AGENTS.md";
+                      const nextEntryFile =
+                        externalBundle?.entryFile ??
+                        currentEntryFile ??
+                        "AGENTS.md";
                       setBundleDraft({
                         mode: "external",
-                        rootPath: externalBundle?.rootPath ?? (bundle?.mode === "external" ? (bundle.rootPath ?? "") : ""),
+                        rootPath:
+                          externalBundle?.rootPath ??
+                          (bundle?.mode === "external"
+                            ? (bundle.rootPath ?? "")
+                            : ""),
                         entryFile: nextEntryFile,
                       });
-                      setSelectedFile(externalBundle?.selectedFile ?? nextEntryFile);
+                      setSelectedFile(
+                        externalBundle?.selectedFile ?? nextEntryFile,
+                      );
                     }}
                   >
                     External
@@ -2748,13 +3728,20 @@ export function PromptsTab({
                       <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="right" sideOffset={4}>
-                      The absolute directory on disk where the instructions bundle lives. In managed mode this is set by Taskcore automatically.
+                      The absolute directory on disk where the instructions
+                      bundle lives. In managed mode this is set by Taskcore
+                      automatically.
                     </TooltipContent>
                   </Tooltip>
                 </span>
                 {currentMode === "managed" ? (
                   <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground pt-1.5">
-                    <span className="min-w-0 truncate" title={currentRootPath || undefined}>{currentRootPath || "(managed)"}</span>
+                    <span
+                      className="min-w-0 truncate"
+                      title={currentRootPath || undefined}
+                    >
+                      {currentRootPath || "(managed)"}
+                    </span>
                     {currentRootPath && (
                       <CopyText text={currentRootPath} className="shrink-0">
                         <Copy className="h-3.5 w-3.5" />
@@ -2797,7 +3784,8 @@ export function PromptsTab({
                       <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="right" sideOffset={4}>
-                      The main file the agent reads first when loading instructions. Defaults to AGENTS.md.
+                      The main file the agent reads first when loading
+                      instructions. Defaults to AGENTS.md.
                     </TooltipContent>
                   </Tooltip>
                 </span>
@@ -2805,9 +3793,10 @@ export function PromptsTab({
                   value={currentEntryFile}
                   onChange={(event) => {
                     const nextEntryFile = event.target.value || "AGENTS.md";
-                    const nextSelectedFile = selectedOrEntryFile === currentEntryFile
-                      ? nextEntryFile
-                      : selectedOrEntryFile;
+                    const nextSelectedFile =
+                      selectedOrEntryFile === currentEntryFile
+                        ? nextEntryFile
+                        : selectedOrEntryFile;
                     if (currentMode === "external") {
                       externalBundleRef.current = {
                         rootPath: currentRootPath,
@@ -2815,7 +3804,8 @@ export function PromptsTab({
                         selectedFile: nextSelectedFile,
                       };
                     }
-                    if (selectedOrEntryFile === currentEntryFile) setSelectedFile(nextEntryFile);
+                    if (selectedOrEntryFile === currentEntryFile)
+                      setSelectedFile(nextEntryFile);
                     setBundleDraft({
                       mode: currentMode,
                       rootPath: currentRootPath,
@@ -2835,15 +3825,19 @@ export function PromptsTab({
         className="grid min-w-0 gap-3"
         style={
           instructionsSideBySide
-            ? { gridTemplateColumns: `${filePanelWidth}px 0.5rem minmax(0, 1fr)` }
+            ? {
+                gridTemplateColumns: `${filePanelWidth}px 0.5rem minmax(0, 1fr)`,
+              }
             : undefined
         }
       >
-        <div className={cn(
-          "min-w-0 w-full border border-border rounded-lg p-3 space-y-3",
-          isMobile && showFilePanel && "block",
-          isMobile && !showFilePanel && "hidden",
-        )}>
+        <div
+          className={cn(
+            "min-w-0 w-full border border-border rounded-lg p-3 space-y-3",
+            isMobile && showFilePanel && "block",
+            isMobile && !showFilePanel && "hidden",
+          )}
+        >
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium">Files</h4>
             <div className="flex items-center gap-1">
@@ -2897,7 +3891,9 @@ export function PromptsTab({
                   onClick={() => {
                     const candidate = newFilePath.trim();
                     if (!candidate || candidate.includes("..")) return;
-                    setPendingFiles((prev) => prev.includes(candidate) ? prev : [...prev, candidate]);
+                    setPendingFiles((prev) =>
+                      prev.includes(candidate) ? prev : [...prev, candidate],
+                    );
                     setSelectedFile(candidate);
                     setDraft("");
                     setNewFilePath("");
@@ -2926,12 +3922,14 @@ export function PromptsTab({
             selectedFile={selectedOrEntryFile}
             expandedDirs={expandedDirs}
             checkedFiles={new Set()}
-            onToggleDir={(dirPath) => setExpandedDirs((current) => {
-              const next = new Set(current);
-              if (next.has(dirPath)) next.delete(dirPath);
-              else next.add(dirPath);
-              return next;
-            })}
+            onToggleDir={(dirPath) =>
+              setExpandedDirs((current) => {
+                const next = new Set(current);
+                if (next.has(dirPath)) next.delete(dirPath);
+                else next.add(dirPath);
+                return next;
+              })
+            }
             onSelectFile={(filePath) => {
               setSelectedFile(filePath);
               setInstructionMode("read");
@@ -2942,7 +3940,9 @@ export function PromptsTab({
             showCheckboxes={false}
             wrapLabels
             renderFileExtra={(node) => {
-              const file = bundle?.files.find((entry) => entry.path === node.path);
+              const file = bundle?.files.find(
+                (entry) => entry.path === node.path,
+              );
               if (!file) return null;
               if (file.deprecated) {
                 return (
@@ -2953,7 +3953,8 @@ export function PromptsTab({
                       </span>
                     </TooltipTrigger>
                     <TooltipContent side="right" sideOffset={4}>
-                      Legacy inline prompt — this deprecated virtual file preserves the old promptTemplate content
+                      Legacy inline prompt — this deprecated virtual file
+                      preserves the old promptTemplate content
                     </TooltipContent>
                   </Tooltip>
                 );
@@ -2975,7 +3976,12 @@ export function PromptsTab({
           />
         )}
 
-        <div className={cn("min-w-0 w-full overflow-hidden border border-border rounded-lg p-4 space-y-3", isMobile && showFilePanel && "hidden")}>
+        <div
+          className={cn(
+            "min-w-0 w-full overflow-hidden border border-border rounded-lg p-4 space-y-3",
+            isMobile && showFilePanel && "hidden",
+          )}
+        >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               {isMobile && (
@@ -2990,7 +3996,9 @@ export function PromptsTab({
                 </Button>
               )}
               <div className="min-w-0">
-                <h4 className="text-sm font-medium font-mono truncate">{selectedOrEntryFile}</h4>
+                <h4 className="text-sm font-medium font-mono truncate">
+                  {selectedOrEntryFile}
+                </h4>
                 <p className="text-xs text-muted-foreground">
                   {selectedFileExists
                     ? selectedFileSummary?.deprecated
@@ -3001,7 +4009,11 @@ export function PromptsTab({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center rounded-md border border-border p-0.5" role="group" aria-label="Instruction file view">
+              <div
+                className="flex items-center rounded-md border border-border p-0.5"
+                role="group"
+                aria-label="Instruction file view"
+              >
                 {(["read", "edit", "raw"] as const).map((mode) => (
                   <Button
                     key={mode}
@@ -3027,89 +4039,224 @@ export function PromptsTab({
                   <Copy className="h-3.5 w-3.5" />
                 </CopyText>
               )}
-              {selectedFileExists && !selectedFileSummary?.deprecated && selectedOrEntryFile !== currentEntryFile && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    if (confirm(`Delete ${selectedOrEntryFile}?`)) {
-                      deleteFile.mutate(selectedOrEntryFile, {
-                        onSuccess: () => {
-                          setSelectedFile(currentEntryFile);
-                          setDraft(null);
-                        },
-                      });
-                    }
-                  }}
-                  disabled={deleteFile.isPending}
-                >
-                  Delete
-                </Button>
-              )}
+              {selectedFileExists &&
+                !selectedFileSummary?.deprecated &&
+                selectedOrEntryFile !== currentEntryFile && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (confirm(`Delete ${selectedOrEntryFile}?`)) {
+                        deleteFile.mutate(selectedOrEntryFile, {
+                          onSuccess: () => {
+                            setSelectedFile(currentEntryFile);
+                            setDraft(null);
+                          },
+                        });
+                      }
+                    }}
+                    disabled={deleteFile.isPending}
+                  >
+                    Delete
+                  </Button>
+                )}
             </div>
           </div>
 
           {currentMode === "managed" && preservedCandidates.length > 0 && (
             <div className="space-y-3">
               <p className="text-sm font-medium">Preserved instruction edits</p>
-              <p className="text-sm text-muted-foreground">Older instruction-only sessions have edits to review.</p>
+              <p className="text-sm text-muted-foreground">
+                Older instruction-only sessions have edits to review.
+              </p>
               {preservedCandidates.map((candidate) => (
-                <div key={candidate.runId} className="flex flex-wrap items-center gap-3">
-                  <span className="font-mono text-xs text-muted-foreground">{candidate.runId.slice(0, 8)}</span>
-                  <span className="text-sm text-muted-foreground">{candidate.entryFile} · {formatDate(candidate.createdAt)}</span>
-                  <Button type="button" variant="outline" size="sm"
-                    disabled={candidate.content === null || (candidate.entryFile === currentEntryFile && (isDirty || isSaving))}
-                    aria-expanded={candidate.entryFile !== currentEntryFile ? readOnlyCandidateRunId === candidate.runId : undefined}
+                <div
+                  key={candidate.runId}
+                  className="flex flex-wrap items-center gap-3"
+                >
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {candidate.runId.slice(0, 8)}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {candidate.entryFile} · {formatDate(candidate.createdAt)}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      candidate.content === null ||
+                      (candidate.entryFile === currentEntryFile &&
+                        (isDirty || isSaving))
+                    }
+                    aria-expanded={
+                      candidate.entryFile !== currentEntryFile
+                        ? readOnlyCandidateRunId === candidate.runId
+                        : undefined
+                    }
                     onClick={() => {
                       if (candidate.entryFile !== currentEntryFile) {
-                        setReadOnlyCandidateRunId((current) => current === candidate.runId ? null : candidate.runId);
+                        setReadOnlyCandidateRunId((current) =>
+                          current === candidate.runId ? null : candidate.runId,
+                        );
                       } else {
                         loadCandidate.mutate(candidate);
                       }
-                    }}>Review preserved edits</Button>
-                  {candidate.errorMessage && <p className="text-sm text-muted-foreground">{candidate.errorMessage}</p>}
-                  {candidate.entryFile !== currentEntryFile && <p className="text-sm text-muted-foreground">The instruction entry changed. These edits remain preserved for the original file.</p>}
-                  {candidate.entryFile !== currentEntryFile && candidate.content !== null && readOnlyCandidateRunId === candidate.runId && (
-                    <div role="region" aria-label={`Preserved edits for ${candidate.entryFile}`} className="w-full space-y-3">
-                      <p className="text-sm text-muted-foreground">Read only: {candidate.entryFile}. To keep any of these edits in {currentEntryFile}, copy them and edit the current entry explicitly.</p>
-                      <CopyText text={candidate.content} ariaLabel={`Copy preserved edits for ${candidate.entryFile}`}
-                        className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground">
-                        <Copy className="h-3.5 w-3.5" />Copy preserved edits
-                      </CopyText>
-                      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-3 font-mono text-sm">{candidate.content}</pre>
-                    </div>
+                    }}
+                  >
+                    Review preserved edits
+                  </Button>
+                  {candidate.errorMessage && (
+                    <p className="text-sm text-muted-foreground">
+                      {candidate.errorMessage}
+                    </p>
                   )}
+                  {candidate.entryFile !== currentEntryFile && (
+                    <p className="text-sm text-muted-foreground">
+                      The instruction entry changed. These edits remain
+                      preserved for the original file.
+                    </p>
+                  )}
+                  {candidate.entryFile !== currentEntryFile &&
+                    candidate.content !== null &&
+                    readOnlyCandidateRunId === candidate.runId && (
+                      <div
+                        role="region"
+                        aria-label={`Preserved edits for ${candidate.entryFile}`}
+                        className="w-full space-y-3"
+                      >
+                        <p className="text-sm text-muted-foreground">
+                          Read only: {candidate.entryFile}. To keep any of these
+                          edits in {currentEntryFile}, copy them and edit the
+                          current entry explicitly.
+                        </p>
+                        <CopyText
+                          text={candidate.content}
+                          ariaLabel={`Copy preserved edits for ${candidate.entryFile}`}
+                          className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          Copy preserved edits
+                        </CopyText>
+                        <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-3 font-mono text-sm">
+                          {candidate.content}
+                        </pre>
+                      </div>
+                    )}
                 </div>
               ))}
             </div>
           )}
-          {candidateRunId && <div role="status" className="space-y-3">
-            <p className="text-sm text-muted-foreground">Reviewing preserved edits. Save to apply your resolved draft and close this preserved edit.</p>
-            <details><summary className="cursor-pointer text-sm text-muted-foreground">Compare current instructions</summary>
-              <pre className="whitespace-pre-wrap break-words rounded-md border border-border p-3 font-mono text-sm">{currentContent}</pre>
-            </details>
-            {draftBaseRevisionRef.current !== (selectedFileDetail?.revision?.id ?? null) && <p className="text-sm text-destructive">The current instructions changed after this draft was loaded. Refresh the current revision, compare the instructions, and save your resolved draft again.</p>}
-            {(resolveCandidate.error || draftBaseRevisionRef.current !== (selectedFileDetail?.revision?.id ?? null)) && <Button type="button" variant="outline" size="sm" disabled={isSaving} onClick={() => refreshCandidateBase.mutate()}>Refresh current revision</Button>}
-          </div>}
-          {(candidates.error || loadCandidate.error || resolveCandidate.error || refreshCandidateBase.error) && <p role="alert" className="text-sm text-destructive">{(candidates.error ?? loadCandidate.error ?? resolveCandidate.error ?? refreshCandidateBase.error)?.message} Your preserved edits remain available.</p>}
-          {(saveFile.error || fileError || updateBundle.error) && <p role="alert" className="text-sm text-destructive">{(saveFile.error ?? fileError ?? updateBundle.error)?.message} Your unsaved edits are retained.</p>}
-          {selectedFileDetail?.receipt?.materialization === "pending" && <p role="status" className="text-sm text-muted-foreground">Revision saved. The instruction file still needs to be rebuilt from the saved revision.</p>}
-          {selectedFileDetail?.revision && currentMode === "managed" && bundle?.persistence !== "agent_files" && <InstructionHistory
-            key={selectedOrEntryFile} agentId={agent.id} companyId={companyId} path={selectedOrEntryFile}
-            currentRevisionId={selectedFileDetail.revision.id} disabled={isDirty || isSaving}
-            onRestored={(file) => {
-              setDraft(null);
-              draftBaseRevisionRef.current = undefined;
-              draftBaseHashRef.current = undefined;
-              queryClient.setQueryData(queryKeys.agents.instructionsFile(agent.id, selectedOrEntryFile), file);
-              queryClient.invalidateQueries({ queryKey: queryKeys.agents.instructionsBundle(agent.id) });
-            }}
-          />}
+          {candidateRunId && (
+            <div role="status" className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Reviewing preserved edits. Save to apply your resolved draft and
+                close this preserved edit.
+              </p>
+              <details>
+                <summary className="cursor-pointer text-sm text-muted-foreground">
+                  Compare current instructions
+                </summary>
+                <pre className="whitespace-pre-wrap break-words rounded-md border border-border p-3 font-mono text-sm">
+                  {currentContent}
+                </pre>
+              </details>
+              {draftBaseRevisionRef.current !==
+                (selectedFileDetail?.revision?.id ?? null) && (
+                <p className="text-sm text-destructive">
+                  The current instructions changed after this draft was loaded.
+                  Refresh the current revision, compare the instructions, and
+                  save your resolved draft again.
+                </p>
+              )}
+              {(resolveCandidate.error ||
+                draftBaseRevisionRef.current !==
+                  (selectedFileDetail?.revision?.id ?? null)) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSaving}
+                  onClick={() => refreshCandidateBase.mutate()}
+                >
+                  Refresh current revision
+                </Button>
+              )}
+            </div>
+          )}
+          {(candidates.error ||
+            loadCandidate.error ||
+            resolveCandidate.error ||
+            refreshCandidateBase.error) && (
+            <p role="alert" className="text-sm text-destructive">
+              {
+                (
+                  candidates.error ??
+                  loadCandidate.error ??
+                  resolveCandidate.error ??
+                  refreshCandidateBase.error
+                )?.message
+              }{" "}
+              Your preserved edits remain available.
+            </p>
+          )}
+          {(saveFile.error || fileError || updateBundle.error) && (
+            <p role="alert" className="text-sm text-destructive">
+              {(saveFile.error ?? fileError ?? updateBundle.error)?.message}{" "}
+              Your unsaved edits are retained.
+            </p>
+          )}
+          {selectedFileDetail?.receipt?.materialization === "pending" && (
+            <p role="status" className="text-sm text-muted-foreground">
+              Revision saved. The instruction file still needs to be rebuilt
+              from the saved revision.
+            </p>
+          )}
+          {selectedFileDetail?.revision &&
+            currentMode === "managed" &&
+            bundle?.persistence !== "agent_files" && (
+              <InstructionHistory
+                key={selectedOrEntryFile}
+                agentId={agent.id}
+                companyId={companyId}
+                path={selectedOrEntryFile}
+                currentRevisionId={selectedFileDetail.revision.id}
+                disabled={isDirty || isSaving}
+                onRestored={(file) => {
+                  setDraft(null);
+                  draftBaseRevisionRef.current = undefined;
+                  draftBaseHashRef.current = undefined;
+                  queryClient.setQueryData(
+                    queryKeys.agents.instructionsFile(
+                      agent.id,
+                      selectedOrEntryFile,
+                    ),
+                    file,
+                  );
+                  queryClient.invalidateQueries({
+                    queryKey: queryKeys.agents.instructionsBundle(agent.id),
+                  });
+                }}
+              />
+            )}
           {selectedFileDetail?.binary ? (
             <div className="space-y-3 rounded-md border border-border p-4">
-              <p className="text-sm text-muted-foreground">This file is preserved with the agent directory. Download it to view its contents.</p>
-              <a className="text-sm text-primary underline" href={agentsApi.downloadInstructionsFile(agent.id, selectedOrEntryFile, companyId)} download>Download {selectedOrEntryFile}</a>
+              <p className="text-sm text-muted-foreground">
+                This file is preserved with the agent directory. Download it to
+                view its contents.
+              </p>
+              <a
+                className="text-sm text-primary underline"
+                href={agentsApi.downloadInstructionsFile(
+                  agent.id,
+                  selectedOrEntryFile,
+                  companyId,
+                )}
+                download
+              >
+                Download {selectedOrEntryFile}
+              </a>
             </div>
           ) : selectedFileExists && fileLoading && !selectedFileDetail ? (
             <PromptEditorSkeleton />
@@ -3121,10 +4268,14 @@ export function PromptsTab({
                     {displayValue}
                   </MarkdownBody>
                 ) : (
-                  <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7">{displayValue}</pre>
+                  <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7">
+                    {displayValue}
+                  </pre>
                 )
               ) : (
-                <p className="text-sm text-muted-foreground">This instruction file is empty.</p>
+                <p className="text-sm text-muted-foreground">
+                  This instruction file is empty.
+                </p>
               )}
             </div>
           ) : instructionMode === "raw" ? (
@@ -3148,8 +4299,12 @@ export function PromptsTab({
                 value={displayValue}
                 onChange={(value) => {
                   if (!editorInteractedRef.current) return;
-                  if (draftBaseRevisionRef.current === undefined) draftBaseRevisionRef.current = selectedFileDetail?.revision?.id ?? null;
-                  if (draftBaseHashRef.current === undefined) draftBaseHashRef.current = selectedFileDetail?.contentHash ?? null;
+                  if (draftBaseRevisionRef.current === undefined)
+                    draftBaseRevisionRef.current =
+                      selectedFileDetail?.revision?.id ?? null;
+                  if (draftBaseHashRef.current === undefined)
+                    draftBaseHashRef.current =
+                      selectedFileDetail?.contentHash ?? null;
                   setDraft(value ?? "");
                 }}
                 placeholder="# Agent instructions"
@@ -3157,7 +4312,10 @@ export function PromptsTab({
                 contentClassName="min-h-(--sz-420px) max-w-full break-words text-sm leading-7"
                 imageUploadHandler={async (file) => {
                   const namespace = `agents/${agent.id}/instructions/${selectedOrEntryFile.replaceAll("/", "-")}`;
-                  const asset = await uploadMarkdownImage.mutateAsync({ file, namespace });
+                  const asset = await uploadMarkdownImage.mutateAsync({
+                    file,
+                    namespace,
+                  });
                   return asset.contentPath;
                 }}
               />
@@ -3167,8 +4325,12 @@ export function PromptsTab({
               aria-label="Instruction file editor"
               value={displayValue}
               onChange={(event) => {
-                if (draftBaseRevisionRef.current === undefined) draftBaseRevisionRef.current = selectedFileDetail?.revision?.id ?? null;
-                  if (draftBaseHashRef.current === undefined) draftBaseHashRef.current = selectedFileDetail?.contentHash ?? null;
+                if (draftBaseRevisionRef.current === undefined)
+                  draftBaseRevisionRef.current =
+                    selectedFileDetail?.revision?.id ?? null;
+                if (draftBaseHashRef.current === undefined)
+                  draftBaseHashRef.current =
+                    selectedFileDetail?.contentHash ?? null;
                 setDraft(event.target.value);
               }}
               className="min-h-(--sz-420px) w-full min-w-0 rounded-md border border-border bg-transparent px-3 py-2 font-mono text-sm outline-none"
@@ -3177,7 +4339,6 @@ export function PromptsTab({
           )}
         </div>
       </div>
-
     </div>
   );
 }
@@ -3238,38 +4399,74 @@ function PromptEditorSkeleton() {
 
 /* ---- Runs Tab ---- */
 
-function RunListItem({ run, isSelected, agentId }: { run: HeartbeatRun; isSelected: boolean; agentId: string }) {
-  const statusInfo = runStatusIcons[run.status] ?? { icon: Clock, color: "text-neutral-400" };
+function RunListItem({
+  run,
+  isSelected,
+  agentId,
+}: {
+  run: HeartbeatRun;
+  isSelected: boolean;
+  agentId: string;
+}) {
+  const statusInfo = runStatusIcons[run.status] ?? {
+    icon: Clock,
+    color: "text-neutral-400",
+  };
   const StatusIcon = statusInfo.icon;
   const metrics = runMetrics(run);
   const summary = run.resultJson
-    ? String((run.resultJson as Record<string, unknown>).summary ?? (run.resultJson as Record<string, unknown>).result ?? "")
-    : run.error ?? "";
+    ? String(
+        (run.resultJson as Record<string, unknown>).summary ??
+          (run.resultJson as Record<string, unknown>).result ??
+          "",
+      )
+    : (run.error ?? "");
   const sourceResolvedFold = readSourceResolvedWatchdogFold(run.resultJson);
 
   return (
     <Link
-      to={isSelected ? `/agents/${agentId}/runs` : `/agents/${agentId}/runs/${run.id}`}
+      to={
+        isSelected
+          ? `/agents/${agentId}/runs`
+          : `/agents/${agentId}/runs/${run.id}`
+      }
       className={cn(
         "flex flex-col gap-1 w-full px-3 py-2.5 text-left border-b border-border last:border-b-0 transition-colors no-underline text-inherit",
         isSelected ? "bg-accent/40" : "hover:bg-accent/20",
       )}
     >
       <div className="flex items-center gap-2">
-        <StatusIcon className={cn("h-3.5 w-3.5 shrink-0", statusInfo.color, run.status === "running" && "animate-spin")} />
+        <StatusIcon
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            statusInfo.color,
+            run.status === "running" && "animate-spin",
+          )}
+        />
         <span className="font-mono text-xs text-muted-foreground">
           {run.id.slice(0, 8)}
         </span>
-        <Badge variant="ghost" className={cn(
-          "px-1.5 text-(length:--text-nano)",
-          run.invocationSource === "timer" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-            : run.invocationSource === "assignment" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
-            : run.invocationSource === "on_demand" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300"
-            : "bg-muted text-muted-foreground"
-        )}>
+        <Badge
+          variant="ghost"
+          className={cn(
+            "px-1.5 text-(length:--text-nano)",
+            run.invocationSource === "timer"
+              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+              : run.invocationSource === "assignment"
+                ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
+                : run.invocationSource === "on_demand"
+                  ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300"
+                  : "bg-muted text-muted-foreground",
+          )}
+        >
           {sourceLabels[run.invocationSource] ?? run.invocationSource}
         </Badge>
-        {sourceResolvedFold ? <SourceResolvedFoldBadge showIcon={false} className="shrink-0 text-(length:--text-nano) py-0" /> : null}
+        {sourceResolvedFold ? (
+          <SourceResolvedFoldBadge
+            showIcon={false}
+            className="shrink-0 text-(length:--text-nano) py-0"
+          />
+        ) : null}
         <span className="ml-auto text-(length:--text-micro) text-muted-foreground shrink-0">
           {relativeTime(run.createdAt)}
         </span>
@@ -3281,7 +4478,9 @@ function RunListItem({ run, isSelected, agentId }: { run: HeartbeatRun; isSelect
       )}
       {(metrics.totalTokens > 0 || metrics.cost > 0) && (
         <div className="flex items-center gap-2 pl-5.5 text-(length:--text-micro) text-muted-foreground tabular-nums">
-          {metrics.totalTokens > 0 && <span>{formatTokens(metrics.totalTokens)} tok</span>}
+          {metrics.totalTokens > 0 && (
+            <span>{formatTokens(metrics.totalTokens)} tok</span>
+          )}
           {metrics.cost > 0 && <span>${metrics.cost.toFixed(3)}</span>}
         </div>
       )}
@@ -3314,11 +4513,13 @@ function RunsTab({
 
   // Sort by created descending
   const sorted = [...runs].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   // On mobile, don't auto-select so the list shows first; on desktop, auto-select latest
-  const effectiveRunId = isMobile ? selectedRunId : (selectedRunId ?? sorted[0]?.id ?? null);
+  const effectiveRunId = isMobile
+    ? selectedRunId
+    : (selectedRunId ?? sorted[0]?.id ?? null);
   const selectedRun = sorted.find((r) => r.id === effectiveRunId) ?? null;
 
   // Mobile: show either run list OR run detail with back button
@@ -3333,14 +4534,25 @@ function RunsTab({
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to runs
           </Link>
-          <RunDetail key={selectedRun.id} run={selectedRun} agentRouteId={agentRouteId} adapterType={adapterType} adapterConfig={adapterConfig} />
+          <RunDetail
+            key={selectedRun.id}
+            run={selectedRun}
+            agentRouteId={agentRouteId}
+            adapterType={adapterType}
+            adapterConfig={adapterConfig}
+          />
         </div>
       );
     }
     return (
       <div className="border border-border rounded-lg overflow-x-hidden">
         {sorted.map((run) => (
-          <RunListItem key={run.id} run={run} isSelected={false} agentId={agentRouteId} />
+          <RunListItem
+            key={run.id}
+            run={run}
+            isSelected={false}
+            agentId={agentRouteId}
+          />
         ))}
       </div>
     );
@@ -3350,21 +4562,37 @@ function RunsTab({
   return (
     <div className="flex gap-0">
       {/* Left: run list — border stretches full height, content sticks */}
-      <div className={cn(
-        "shrink-0 border border-border rounded-lg",
-        selectedRun ? "w-72" : "w-full",
-      )}>
-        <div className="sticky top-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 2rem)" }}>
-        {sorted.map((run) => (
-          <RunListItem key={run.id} run={run} isSelected={run.id === effectiveRunId} agentId={agentRouteId} />
-        ))}
+      <div
+        className={cn(
+          "shrink-0 border border-border rounded-lg",
+          selectedRun ? "w-72" : "w-full",
+        )}
+      >
+        <div
+          className="sticky top-4 overflow-y-auto"
+          style={{ maxHeight: "calc(100vh - 2rem)" }}
+        >
+          {sorted.map((run) => (
+            <RunListItem
+              key={run.id}
+              run={run}
+              isSelected={run.id === effectiveRunId}
+              agentId={agentRouteId}
+            />
+          ))}
         </div>
       </div>
 
       {/* Right: run detail — natural height, page scrolls */}
       {selectedRun && (
         <div className="flex-1 min-w-0 pl-4">
-          <RunDetail key={selectedRun.id} run={selectedRun} agentRouteId={agentRouteId} adapterType={adapterType} adapterConfig={adapterConfig} />
+          <RunDetail
+            key={selectedRun.id}
+            run={selectedRun}
+            agentRouteId={agentRouteId}
+            adapterType={adapterType}
+            adapterConfig={adapterConfig}
+          />
         </div>
       )}
     </div>
@@ -3373,30 +4601,60 @@ function RunsTab({
 
 /* ---- Run Detail (expanded) ---- */
 
-export function AgentFileRunNotice({ resultJson }: { resultJson: HeartbeatRun["resultJson"] }) {
+export function AgentFileRunNotice({
+  resultJson,
+}: {
+  resultJson: HeartbeatRun["resultJson"];
+}) {
   const save = asRecord(resultJson?.instructionSave);
   const storageWarning = asNonEmptyString(save?.storageWarning);
   const error = asNonEmptyString(save?.errorMessage);
-  const syncFailure = save?.contract === "agent_files" && save.state === "unavailable" && error;
+  const syncFailure =
+    save?.contract === "agent_files" && save.state === "unavailable" && error;
   // A quota rejection is already explained by the storage warning. A separate
   // I/O failure must stay visible even when storage was full at run start.
-  const showSyncFailure = syncFailure && (!storageWarning || save?.errorCode !== "AGENT_FILES_LIMIT_EXCEEDED");
-  return <>
-    {storageWarning && <InlineBanner tone="warning" title="Agent storage warning" compact>{storageWarning}</InlineBanner>}
-    {showSyncFailure && <InlineBanner tone="warning" title="Agent file sync failed for this run" compact>{error}</InlineBanner>}
-  </>;
+  const showSyncFailure =
+    syncFailure &&
+    (!storageWarning || save?.errorCode !== "AGENT_FILES_LIMIT_EXCEEDED");
+  return (
+    <>
+      {storageWarning && (
+        <InlineBanner tone="warning" title="Agent storage warning" compact>
+          {storageWarning}
+        </InlineBanner>
+      )}
+      {showSyncFailure && (
+        <InlineBanner
+          tone="warning"
+          title="Agent file sync failed for this run"
+          compact
+        >
+          {error}
+        </InlineBanner>
+      )}
+    </>
+  );
 }
 
-function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }: { run: HeartbeatRun; agentRouteId: string; adapterType: string; adapterConfig: Record<string, unknown> }) {
+function RunDetail({
+  run: initialRun,
+  agentRouteId,
+  adapterType,
+  adapterConfig,
+}: {
+  run: HeartbeatRun;
+  agentRouteId: string;
+  adapterType: string;
+  adapterConfig: Record<string, unknown>;
+}) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: hydratedRun } = useQuery({
     queryKey: queryKeys.runDetail(initialRun.id),
     queryFn: () => heartbeatsApi.get(initialRun.id),
     enabled: Boolean(initialRun.id),
-    refetchInterval: (query) => runDetailRefetchIntervalMs(
-      (query.state.data ?? initialRun).status,
-    ),
+    refetchInterval: (query) =>
+      runDetailRefetchIntervalMs((query.state.data ?? initialRun).status),
   });
   const run = hydratedRun ?? initialRun;
   const { data: boardAccess } = useQuery({
@@ -3436,10 +4694,13 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
     );
     return entry?.user?.name ?? entry?.user?.email ?? null;
   }, [run.responsibleUserId, userDirectory]);
-  const responsibleDenialCode = isResponsibleUserDenialCode(run.errorCode) ? run.errorCode : null;
+  const responsibleDenialCode = isResponsibleUserDenialCode(run.errorCode)
+    ? run.errorCode
+    : null;
   const [sessionOpen, setSessionOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [claudeLoginResult, setClaudeLoginResult] = useState<ClaudeLoginResult | null>(null);
+  const [claudeLoginResult, setClaudeLoginResult] =
+    useState<ClaudeLoginResult | null>(null);
 
   useEffect(() => {
     setClaudeLoginResult(null);
@@ -3448,10 +4709,13 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
   const cancelRun = useMutation({
     mutationFn: () => heartbeatsApi.cancel(run.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.heartbeats(run.companyId, run.agentId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.heartbeats(run.companyId, run.agentId),
+      });
     },
   });
-  const canResumeLostRun = run.errorCode === "process_lost" && run.status === "failed";
+  const canResumeLostRun =
+    run.errorCode === "process_lost" && run.status === "failed";
   const resumePayload = useMemo(() => {
     const payload: Record<string, unknown> = {
       resumeFromRunId: run.id,
@@ -3461,7 +4725,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
     const issueId = asNonEmptyString(context.issueId);
     const taskId = asNonEmptyString(context.taskId);
     const taskKey = asNonEmptyString(context.taskKey);
-    const commentId = asNonEmptyString(context.wakeCommentId) ?? asNonEmptyString(context.commentId);
+    const commentId =
+      asNonEmptyString(context.wakeCommentId) ??
+      asNonEmptyString(context.commentId);
     if (issueId) payload.issueId = issueId;
     if (taskId) payload.taskId = taskId;
     if (taskKey) payload.taskKey = taskKey;
@@ -3470,25 +4736,33 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
   }, [run.contextSnapshot, run.id]);
   const resumeRun = useMutation({
     mutationFn: async () => {
-      const result = await agentsApi.wakeup(run.agentId, {
-        source: "on_demand",
-        triggerDetail: "manual",
-        reason: "resume_process_lost_run",
-        payload: resumePayload,
-      }, run.companyId);
+      const result = await agentsApi.wakeup(
+        run.agentId,
+        {
+          source: "on_demand",
+          triggerDetail: "manual",
+          reason: "resume_process_lost_run",
+          payload: resumePayload,
+        },
+        run.companyId,
+      );
       if (!("id" in result)) {
         throw new Error(result.message ?? "Resume request was skipped.");
       }
       return result;
     },
     onSuccess: (resumedRun) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.heartbeats(run.companyId, run.agentId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.heartbeats(run.companyId, run.agentId),
+      });
       navigate(`/agents/${agentRouteId}/runs/${resumedRun.id}`);
     },
   });
 
-  const canRetryRun = (run.status === "failed" || run.status === "timed_out")
-    && run.execution?.phase !== "recovery_needed" && !run.execution?.successorRunId;
+  const canRetryRun =
+    (run.status === "failed" || run.status === "timed_out") &&
+    run.execution?.phase !== "recovery_needed" &&
+    !run.execution?.successorRunId;
   const retryPayload = useMemo(() => {
     const payload: Record<string, unknown> = {};
     const context = asRecord(run.contextSnapshot);
@@ -3506,7 +4780,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
       return agentsApi.retryFailedRun(run.agentId, run.id, run.companyId);
     },
     onSuccess: (newRun) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.heartbeats(run.companyId, run.agentId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.heartbeats(run.companyId, run.agentId),
+      });
       if (newRun.runId)
         navigate(`/agents/${agentRouteId}/runs/${newRun.runId}`);
       else if (newRun.issueId) navigate(`/issues/${newRun.issueId}`);
@@ -3515,13 +4791,17 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
 
   const rerunWithTrace = useMutation({
     mutationFn: async () => {
-      const result = await agentsApi.wakeup(run.agentId, {
-        source: "on_demand",
-        triggerDetail: "manual",
-        reason: "rerun_with_provider_trace",
-        payload: retryPayload,
-        debug: { providerTrace: "raw" },
-      }, run.companyId);
+      const result = await agentsApi.wakeup(
+        run.agentId,
+        {
+          source: "on_demand",
+          triggerDetail: "manual",
+          reason: "rerun_with_provider_trace",
+          payload: retryPayload,
+          debug: { providerTrace: "raw" },
+        },
+        run.companyId,
+      );
       if (!("id" in result)) {
         throw new Error(result.message ?? "Trace re-run was skipped.");
       }
@@ -3529,7 +4809,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
     },
     onSuccess: (newRun) => {
       setInspectorOpen(false);
-      queryClient.invalidateQueries({ queryKey: queryKeys.heartbeats(run.companyId, run.agentId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.heartbeats(run.companyId, run.agentId),
+      });
       navigate(`/agents/${agentRouteId}/runs/${newRun.id}`);
     },
   });
@@ -3539,19 +4821,28 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
     queryFn: () => activityApi.issuesForRun(run.id),
   });
   const touchedIssueIds = useMemo(
-    () => Array.from(new Set((touchedIssues ?? []).map((issue) => issue.issueId))),
+    () =>
+      Array.from(new Set((touchedIssues ?? []).map((issue) => issue.issueId))),
     [touchedIssues],
   );
 
   const clearSessionsForTouchedIssues = useMutation({
     mutationFn: async () => {
       if (touchedIssueIds.length === 0) return 0;
-      await Promise.all(touchedIssueIds.map((issueId) => agentsApi.resetSession(run.agentId, issueId, run.companyId)));
+      await Promise.all(
+        touchedIssueIds.map((issueId) =>
+          agentsApi.resetSession(run.agentId, issueId, run.companyId),
+        ),
+      );
       return touchedIssueIds.length;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.runtimeState(run.agentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.taskSessions(run.agentId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.runtimeState(run.agentId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.taskSessions(run.agentId),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.runIssues(run.id) });
     },
   });
@@ -3563,10 +4854,14 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
     },
   });
 
-  const isRunning = run.status === "running" && !!run.startedAt && !run.finishedAt;
+  const isRunning =
+    run.status === "running" && !!run.startedAt && !run.finishedAt;
   const [elapsedSec, setElapsedSec] = useState<number>(() => {
     if (!run.startedAt) return 0;
-    return Math.max(0, Math.round((Date.now() - new Date(run.startedAt).getTime()) / 1000));
+    return Math.max(
+      0,
+      Math.round((Date.now() - new Date(run.startedAt).getTime()) / 1000),
+    );
   });
 
   useEffect(() => {
@@ -3579,16 +4874,37 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
     return () => clearInterval(id);
   }, [isRunning, run.startedAt]);
 
-  const timeFormat: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
-  const startTime = run.startedAt ? new Date(run.startedAt).toLocaleTimeString("en-US", timeFormat) : null;
-  const endTime = run.finishedAt ? new Date(run.finishedAt).toLocaleTimeString("en-US", timeFormat) : null;
-  const durationSec = run.startedAt && run.finishedAt
-    ? Math.round((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000)
+  const timeFormat: Intl.DateTimeFormatOptions = {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  };
+  const startTime = run.startedAt
+    ? new Date(run.startedAt).toLocaleTimeString("en-US", timeFormat)
     : null;
+  const endTime = run.finishedAt
+    ? new Date(run.finishedAt).toLocaleTimeString("en-US", timeFormat)
+    : null;
+  const durationSec =
+    run.startedAt && run.finishedAt
+      ? Math.round(
+          (new Date(run.finishedAt).getTime() -
+            new Date(run.startedAt).getTime()) /
+            1000,
+        )
+      : null;
   const displayDurationSec = durationSec ?? (isRunning ? elapsedSec : null);
-  const hasMetrics = metrics.input > 0 || metrics.output > 0 || metrics.cached > 0 || metrics.cost > 0;
+  const hasMetrics =
+    metrics.input > 0 ||
+    metrics.output > 0 ||
+    metrics.cached > 0 ||
+    metrics.cost > 0;
   const hasSession = !!(run.sessionIdBefore || run.sessionIdAfter);
-  const sessionChanged = run.sessionIdBefore && run.sessionIdAfter && run.sessionIdBefore !== run.sessionIdAfter;
+  const sessionChanged =
+    run.sessionIdBefore &&
+    run.sessionIdAfter &&
+    run.sessionIdBefore !== run.sessionIdAfter;
   const sessionId = run.sessionIdAfter || run.sessionIdBefore;
   const hasNonZeroExit = run.exitCode !== null && run.exitCode !== 0;
 
@@ -3659,7 +4975,8 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
                 runId={run.id}
                 enabled={taskcoreDeveloperMode && canUseProviderTrace}
               />
-              {canUseProviderTrace && !["queued", "running"].includes(run.status) ? (
+              {canUseProviderTrace &&
+              !["queued", "running"].includes(run.status) ? (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -3668,24 +4985,31 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
                   disabled={rerunWithTrace.isPending}
                 >
                   <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                  {rerunWithTrace.isPending ? "Starting…" : "Re-run with provider trace"}
+                  {rerunWithTrace.isPending
+                    ? "Starting…"
+                    : "Re-run with provider trace"}
                 </Button>
               ) : null}
             </div>
             {/* Adapter type · provider · model */}
             {(() => {
-              const displayProvider = metrics.provider
-                ?? asNonEmptyString(adapterConfig?.provider);
-              const displayModel = metrics.model
-                ?? asNonEmptyString(adapterConfig?.model);
-              if (!adapterType && !displayProvider && !displayModel) return null;
+              const displayProvider =
+                metrics.provider ?? asNonEmptyString(adapterConfig?.provider);
+              const displayModel =
+                metrics.model ?? asNonEmptyString(adapterConfig?.model);
+              if (!adapterType && !displayProvider && !displayModel)
+                return null;
               return (
                 <div className="text-(length:--text-micro) text-muted-foreground font-mono flex items-center gap-1.5 flex-wrap">
                   {adapterType && (
-                    <span className="bg-muted rounded px-1.5 py-0.5 text-(length:--text-nano) font-medium uppercase tracking-wide">{adapterType.replace(/_/g, " ")}</span>
+                    <span className="bg-muted rounded px-1.5 py-0.5 text-(length:--text-nano) font-medium uppercase tracking-wide">
+                      {adapterType.replace(/_/g, " ")}
+                    </span>
                   )}
                   {displayProvider && displayModel && (
-                    <span>{displayProvider}/{displayModel}</span>
+                    <span>
+                      {displayProvider}/{displayModel}
+                    </span>
                   )}
                   {!displayProvider && displayModel && (
                     <span>{displayModel}</span>
@@ -3705,22 +5029,49 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
               </div>
             )}
             {Boolean(run.identityHistory?.length) && (
-              <details className="text-xs text-muted-foreground" data-testid="run-identity-history">
-                <summary className="cursor-pointer">GitHub identity history</summary>
+              <details
+                className="text-xs text-muted-foreground"
+                data-testid="run-identity-history"
+              >
+                <summary className="cursor-pointer">
+                  GitHub identity history
+                </summary>
                 <ol className="mt-2 space-y-2">
                   {run.identityHistory!.map((identity) => {
-                    const person = userDirectory?.users.find((entry) => entry.principalId === identity.responsibleUserId);
+                    const person = userDirectory?.users.find(
+                      (entry) =>
+                        entry.principalId === identity.responsibleUserId,
+                    );
                     return (
                       <li key={identity.id}>
-                        <span className="text-foreground">{person?.user?.name ?? person?.user?.email ?? identity.responsibleUserId ?? "No responsible person"}</span>
-                        {" · "}{identity.cause}{" · "}{identity.status}
+                        <span className="text-foreground">
+                          {person?.user?.name ??
+                            person?.user?.email ??
+                            identity.responsibleUserId ??
+                            "No responsible person"}
+                        </span>
+                        {" · "}
+                        {identity.cause}
+                        {" · "}
+                        {identity.status}
                         {identity.github ? (
                           <span className="block">
-                            {identity.github.login ? `@${identity.github.login} · ` : ""}
-                            {identity.github.source ? `${identity.github.source} · ` : ""}
-                            {identity.github.status}{identity.github.reason ? `: ${identity.github.reason}` : ""}
+                            {identity.github.login
+                              ? `@${identity.github.login} · `
+                              : ""}
+                            {identity.github.source
+                              ? `${identity.github.source} · `
+                              : ""}
+                            {identity.github.status}
+                            {identity.github.reason
+                              ? `: ${identity.github.reason}`
+                              : ""}
                           </span>
-                        ) : <span className="block">No GitHub operation recorded</span>}
+                        ) : (
+                          <span className="block">
+                            No GitHub operation recorded
+                          </span>
+                        )}
                       </li>
                     );
                   })}
@@ -3729,28 +5080,39 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
             )}
             {resumeRun.isError && (
               <div className="text-xs text-destructive">
-                {resumeRun.error instanceof Error ? resumeRun.error.message : "Failed to resume run"}
+                {resumeRun.error instanceof Error
+                  ? resumeRun.error.message
+                  : "Failed to resume run"}
               </div>
             )}
             {retryRun.isError && (
               <div className="text-xs text-destructive">
-                {retryRun.error instanceof Error ? retryRun.error.message : "Failed to retry run"}
+                {retryRun.error instanceof Error
+                  ? retryRun.error.message
+                  : "Failed to retry run"}
               </div>
             )}
             {startTime && (
               <div className="space-y-0.5">
                 <div className="text-sm font-mono">
                   {startTime}
-                  {endTime && <span className="text-muted-foreground"> &rarr; </span>}
+                  {endTime && (
+                    <span className="text-muted-foreground"> &rarr; </span>
+                  )}
                   {endTime}
                 </div>
                 <div className="text-(length:--text-micro) text-muted-foreground">
                   {relativeTime(run.startedAt!)}
-                  {run.finishedAt && <> &rarr; {relativeTime(run.finishedAt)}</>}
+                  {run.finishedAt && (
+                    <> &rarr; {relativeTime(run.finishedAt)}</>
+                  )}
                 </div>
                 {displayDurationSec !== null && (
                   <div className="text-xs text-muted-foreground">
-                    Duration: {displayDurationSec >= 60 ? `${Math.floor(displayDurationSec / 60)}m ${displayDurationSec % 60}s` : `${displayDurationSec}s`}
+                    Duration:{" "}
+                    {displayDurationSec >= 60
+                      ? `${Math.floor(displayDurationSec / 60)}m ${displayDurationSec % 60}s`
+                      : `${displayDurationSec}s`}
                   </div>
                 )}
               </div>
@@ -3758,57 +5120,66 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
             <AgentFileRunNotice resultJson={run.resultJson} />
             {run.error && (
               <div className="text-xs">
-                <span className="text-red-600 dark:text-red-400">{run.error}</span>
-                {run.errorCode && <span className="text-muted-foreground ml-1">({run.errorCode})</span>}
-              </div>
-            )}
-            {run.errorCode === "claude_auth_required" && adapterType === "claude_local" && (
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={() => runClaudeLogin.mutate()}
-                  disabled={runClaudeLogin.isPending}
-                >
-                  {runClaudeLogin.isPending ? "Running claude login..." : "Login to Claude Code"}
-                </Button>
-                {runClaudeLogin.isError && (
-                  <p className="text-xs text-destructive">
-                    {runClaudeLogin.error instanceof Error
-                      ? runClaudeLogin.error.message
-                      : "Failed to run Claude login"}
-                  </p>
-                )}
-                {claudeLoginResult?.loginUrl && (
-                  <p className="text-xs">
-                    Login URL:
-                    <a
-                      href={claudeLoginResult.loginUrl}
-                      className="text-blue-600 underline underline-offset-2 ml-1 break-all dark:text-blue-400"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {claudeLoginResult.loginUrl}
-                    </a>
-                  </p>
-                )}
-                {claudeLoginResult && (
-                  <>
-                    {!!claudeLoginResult.stdout && (
-                      <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-foreground overflow-x-auto whitespace-pre-wrap">
-                        {claudeLoginResult.stdout}
-                      </pre>
-                    )}
-                    {!!claudeLoginResult.stderr && (
-                      <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap">
-                        {claudeLoginResult.stderr}
-                      </pre>
-                    )}
-                  </>
+                <span className="text-red-600 dark:text-red-400">
+                  {run.error}
+                </span>
+                {run.errorCode && (
+                  <span className="text-muted-foreground ml-1">
+                    ({run.errorCode})
+                  </span>
                 )}
               </div>
             )}
+            {run.errorCode === "claude_auth_required" &&
+              adapterType === "claude_local" && (
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => runClaudeLogin.mutate()}
+                    disabled={runClaudeLogin.isPending}
+                  >
+                    {runClaudeLogin.isPending
+                      ? "Running claude login..."
+                      : "Login to Claude Code"}
+                  </Button>
+                  {runClaudeLogin.isError && (
+                    <p className="text-xs text-destructive">
+                      {runClaudeLogin.error instanceof Error
+                        ? runClaudeLogin.error.message
+                        : "Failed to run Claude login"}
+                    </p>
+                  )}
+                  {claudeLoginResult?.loginUrl && (
+                    <p className="text-xs">
+                      Login URL:
+                      <a
+                        href={claudeLoginResult.loginUrl}
+                        className="text-blue-600 underline underline-offset-2 ml-1 break-all dark:text-blue-400"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {claudeLoginResult.loginUrl}
+                      </a>
+                    </p>
+                  )}
+                  {claudeLoginResult && (
+                    <>
+                      {!!claudeLoginResult.stdout && (
+                        <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-foreground overflow-x-auto whitespace-pre-wrap">
+                          {claudeLoginResult.stdout}
+                        </pre>
+                      )}
+                      {!!claudeLoginResult.stderr && (
+                        <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap">
+                          {claudeLoginResult.stderr}
+                        </pre>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             {responsibleDenialCode && (
               <ResponsibleUserDenialNotice
                 code={responsibleDenialCode}
@@ -3818,7 +5189,11 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
             {hasNonZeroExit && (
               <div className="text-xs text-red-600 dark:text-red-400">
                 Exit code {run.exitCode}
-                {run.signal && <span className="text-muted-foreground ml-1">(signal: {run.signal})</span>}
+                {run.signal && (
+                  <span className="text-muted-foreground ml-1">
+                    (signal: {run.signal})
+                  </span>
+                )}
               </div>
             )}
             <RunRetryDetails run={run} agentRouteId={agentRouteId} />
@@ -3829,19 +5204,27 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
             <div className="border-t sm:border-t-0 sm:border-l border-border p-4 grid grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-3 content-center tabular-nums">
               <div>
                 <div className="text-xs text-muted-foreground">Input</div>
-                <div className="text-sm font-medium font-mono">{formatTokens(metrics.input)}</div>
+                <div className="text-sm font-medium font-mono">
+                  {formatTokens(metrics.input)}
+                </div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Output</div>
-                <div className="text-sm font-medium font-mono">{formatTokens(metrics.output)}</div>
+                <div className="text-sm font-medium font-mono">
+                  {formatTokens(metrics.output)}
+                </div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Cached</div>
-                <div className="text-sm font-medium font-mono">{formatTokens(metrics.cached)}</div>
+                <div className="text-sm font-medium font-mono">
+                  {formatTokens(metrics.cached)}
+                </div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Cost</div>
-                <div className="text-sm font-medium font-mono">{metrics.cost > 0 ? `$${metrics.cost.toFixed(4)}` : "-"}</div>
+                <div className="text-sm font-medium font-mono">
+                  {metrics.cost > 0 ? `$${metrics.cost.toFixed(4)}` : "-"}
+                </div>
               </div>
             </div>
           )}
@@ -3854,16 +5237,28 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
               className="flex items-center gap-1.5 w-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setSessionOpen((v) => !v)}
             >
-              <ChevronRight className={cn("h-3 w-3 transition-transform", sessionOpen && "rotate-90")} />
+              <ChevronRight
+                className={cn(
+                  "h-3 w-3 transition-transform",
+                  sessionOpen && "rotate-90",
+                )}
+              />
               Session
-              {sessionChanged && <span className="text-yellow-400 ml-1">(changed)</span>}
+              {sessionChanged && (
+                <span className="text-yellow-400 ml-1">(changed)</span>
+              )}
             </button>
             {sessionOpen && (
               <div className="px-4 pb-3 space-y-1 text-xs">
                 {run.sessionIdBefore && (
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground w-12">{sessionChanged ? "Before" : "ID"}</span>
-                    <CopyText text={run.sessionIdBefore} className="font-mono" />
+                    <span className="text-muted-foreground w-12">
+                      {sessionChanged ? "Before" : "ID"}
+                    </span>
+                    <CopyText
+                      text={run.sessionIdBefore}
+                      className="font-mono"
+                    />
                   </div>
                 )}
                 {sessionChanged && run.sessionIdAfter && (
@@ -3909,7 +5304,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
       {/* Issues touched by this run */}
       {touchedIssues && touchedIssues.length > 0 && (
         <div className="space-y-2">
-          <span className="text-xs font-medium text-muted-foreground">Tasks Touched ({touchedIssues.length})</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Tasks Touched ({touchedIssues.length})
+          </span>
           <div className="border border-border rounded-lg divide-y divide-border">
             {touchedIssues.map((issue) => (
               <Link
@@ -3921,7 +5318,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
                   <StatusBadge status={issue.status} />
                   <span className="truncate">{issue.title}</span>
                 </div>
-                <span className="font-mono text-muted-foreground shrink-0 ml-2">{issue.identifier ?? issue.issueId.slice(0, 8)}</span>
+                <span className="font-mono text-muted-foreground shrink-0 ml-2">
+                  {issue.identifier ?? issue.issueId.slice(0, 8)}
+                </span>
               </Link>
             ))}
           </div>
@@ -3931,16 +5330,24 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
       {/* stderr excerpt for failed runs */}
       {run.stderrExcerpt && (
         <div className="space-y-1">
-          <span className="text-xs font-medium text-red-600 dark:text-red-400">stderr</span>
-          <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap">{run.stderrExcerpt}</pre>
+          <span className="text-xs font-medium text-red-600 dark:text-red-400">
+            stderr
+          </span>
+          <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap">
+            {run.stderrExcerpt}
+          </pre>
         </div>
       )}
 
       {/* stdout excerpt when no log is available */}
       {run.stdoutExcerpt && !run.logRef && (
         <div className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">stdout</span>
-          <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-foreground overflow-x-auto whitespace-pre-wrap">{run.stdoutExcerpt}</pre>
+          <span className="text-xs font-medium text-muted-foreground">
+            stdout
+          </span>
+          <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-3 text-xs font-mono text-foreground overflow-x-auto whitespace-pre-wrap">
+            {run.stdoutExcerpt}
+          </pre>
         </div>
       )}
 
@@ -3948,7 +5355,9 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
         const fold = readSourceResolvedWatchdogFold(run.resultJson);
         if (!fold) return null;
         if (run.status === "failed" || run.status === "timed_out") return null;
-        return <SourceResolvedFoldCallout fold={fold} finalizedAt={run.finishedAt} />;
+        return (
+          <SourceResolvedFoldCallout fold={fold} finalizedAt={run.finishedAt} />
+        );
       })()}
 
       {/* Log viewer */}
@@ -3971,7 +5380,13 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
 
 /* ---- Log Viewer ---- */
 
-export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: string }) {
+export function LogViewer({
+  run,
+  adapterType,
+}: {
+  run: HeartbeatRun;
+  adapterType: string;
+}) {
   const { visible } = usePageVisibility();
   const [events, setEvents] = useState<HeartbeatRunEvent[]>([]);
   const [logLines, setLogLines] = useState<RunLogChunk[]>([]);
@@ -3980,11 +5395,18 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
   const [logError, setLogError] = useState<string | null>(null);
   const [logOffset, setLogOffsetState] = useState(0);
   const logOffsetRef = useRef(0);
-  const setLogOffset = useCallback((next: number | ((previous: number) => number)) => {
-    logOffsetRef.current = typeof next === "function" ? next(logOffsetRef.current) : next;
-    setLogOffsetState(logOffsetRef.current);
-  }, []);
-  const logMergeRefs = useRef({ seenChunkKeys: new Set<string>(), trimmedSeqFloorByRun: new Map<string, number>() });
+  const setLogOffset = useCallback(
+    (next: number | ((previous: number) => number)) => {
+      logOffsetRef.current =
+        typeof next === "function" ? next(logOffsetRef.current) : next;
+      setLogOffsetState(logOffsetRef.current);
+    },
+    [],
+  );
+  const logMergeRefs = useRef({
+    seenChunkKeys: new Set<string>(),
+    trimmedSeqFloorByRun: new Map<string, number>(),
+  });
   const [hasMoreLog, setHasMoreLog] = useState(false);
   const [loadingMoreLog, setLoadingMoreLog] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -3995,7 +5417,10 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
   const seenProgressLogLineKeysRef = useRef<Set<string>>(new Set());
   const scrollContainerRef = useRef<ScrollContainer | null>(null);
   const isFollowingRef = useRef(false);
-  const lastMetricsRef = useRef<{ scrollHeight: number; distanceFromBottom: number }>({
+  const lastMetricsRef = useRef<{
+    scrollHeight: number;
+    distanceFromBottom: number;
+  }>({
     scrollHeight: 0,
     distanceFromBottom: Number.POSITIVE_INFINITY,
   });
@@ -4012,9 +5437,19 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
   }
 
   function appendLogLines(incoming: RunLogChunk[]) {
-    setLogLines((previous) => mergeRunLogChunks(run.id, previous, incoming.map((line) => ({
-      ...line, dedupeKey: `log:${run.id}:${line.ts}:${line.stream}:${line.chunk}`,
-    })), logMergeRefs.current, isLive ? MAX_LIVE_LOG_LINES : Number.POSITIVE_INFINITY).chunks);
+    setLogLines(
+      (previous) =>
+        mergeRunLogChunks(
+          run.id,
+          previous,
+          incoming.map((line) => ({
+            ...line,
+            dedupeKey: `log:${run.id}:${line.ts}:${line.stream}:${line.chunk}`,
+          })),
+          logMergeRefs.current,
+          isLive ? MAX_LIVE_LOG_LINES : Number.POSITIVE_INFINITY,
+        ).chunks,
+    );
   }
 
   function appendLogContent(content: string, finalize = false) {
@@ -4032,11 +5467,19 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
       const trimmed = line.trim();
       if (!trimmed) continue;
       try {
-        const raw = JSON.parse(trimmed) as { ts?: unknown; stream?: unknown; chunk?: unknown; seq?: unknown };
+        const raw = JSON.parse(trimmed) as {
+          ts?: unknown;
+          stream?: unknown;
+          chunk?: unknown;
+          seq?: unknown;
+        };
         const stream =
-          raw.stream === "stderr" || raw.stream === "system" ? raw.stream : "stdout";
+          raw.stream === "stderr" || raw.stream === "system"
+            ? raw.stream
+            : "stdout";
         const chunk = typeof raw.chunk === "string" ? raw.chunk : "";
-        const ts = typeof raw.ts === "string" ? raw.ts : new Date().toISOString();
+        const ts =
+          typeof raw.ts === "string" ? raw.ts : new Date().toISOString();
         if (!chunk) continue;
         parsed.push({ ts, stream, chunk, seq: readChunkSeq(raw.seq) });
       } catch {
@@ -4075,7 +5518,8 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
     const container = getScrollContainer();
     const metrics = readScrollMetrics(container);
     lastMetricsRef.current = metrics;
-    const nearBottom = metrics.distanceFromBottom <= LIVE_SCROLL_BOTTOM_TOLERANCE_PX;
+    const nearBottom =
+      metrics.distanceFromBottom <= LIVE_SCROLL_BOTTOM_TOLERANCE_PX;
     isFollowingRef.current = nearBottom;
     setIsFollowing((prev) => (prev === nearBottom ? prev : nearBottom));
   }, [getScrollContainer]);
@@ -4102,9 +5546,13 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
     updateFollowingState();
 
     if (container === window) {
-      window.addEventListener("scroll", updateFollowingState, { passive: true });
+      window.addEventListener("scroll", updateFollowingState, {
+        passive: true,
+      });
     } else {
-      container.addEventListener("scroll", updateFollowingState, { passive: true });
+      container.addEventListener("scroll", updateFollowingState, {
+        passive: true,
+      });
     }
     window.addEventListener("resize", updateFollowingState);
     return () => {
@@ -4148,7 +5596,10 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
   // Reset only when the log source changes, never when visibility changes.
   useEffect(() => {
     pendingLogLineRef.current = "";
-    logMergeRefs.current = { seenChunkKeys: new Set(), trimmedSeqFloorByRun: new Map() };
+    logMergeRefs.current = {
+      seenChunkKeys: new Set(),
+      trimmedSeqFloorByRun: new Map(),
+    };
     seenProgressLogLineKeysRef.current = new Set();
     setLogLines([]);
     setLogOffset(0);
@@ -4172,7 +5623,11 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
     setLogLoading(true);
     const load = async () => {
       try {
-        const result = await heartbeatsApi.log(run.id, offset, RUN_LOG_PAGE_BYTES);
+        const result = await heartbeatsApi.log(
+          run.id,
+          offset,
+          RUN_LOG_PAGE_BYTES,
+        );
         if (cancelled) return;
         appendLogContent(result.content, result.nextOffset === undefined);
         const next = result.nextOffset ?? offset + result.content.length;
@@ -4184,7 +5639,9 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
             setLogLoading(false);
             return;
           }
-          setLogError(err instanceof Error ? err.message : "Failed to load run log");
+          setLogError(
+            err instanceof Error ? err.message : "Failed to load run log",
+          );
         }
       } finally {
         if (!cancelled) setLogLoading(false);
@@ -4202,13 +5659,19 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
     setLoadingMoreLog(true);
     setLogError(null);
     try {
-      const result = await heartbeatsApi.log(run.id, logOffset, RUN_LOG_PAGE_BYTES);
+      const result = await heartbeatsApi.log(
+        run.id,
+        logOffset,
+        RUN_LOG_PAGE_BYTES,
+      );
       appendLogContent(result.content, result.nextOffset === undefined);
       const next = result.nextOffset ?? logOffset + result.content.length;
       setLogOffset(next);
       setHasMoreLog(result.nextOffset !== undefined);
     } catch (err) {
-      setLogError(err instanceof Error ? err.message : "Failed to load more run log");
+      setLogError(
+        err instanceof Error ? err.message : "Failed to load more run log",
+      );
     } finally {
       setLoadingMoreLog(false);
     }
@@ -4222,7 +5685,8 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
     const interval = setInterval(async () => {
       if (pending || cancelled || !getPageVisibility().visible) return;
       pending = true;
-      const maxSeq = events.length > 0 ? Math.max(...events.map((e) => e.seq)) : 0;
+      const maxSeq =
+        events.length > 0 ? Math.max(...events.map((e) => e.seq)) : 0;
       try {
         const newEvents = await heartbeatsApi.events(run.id, maxSeq, 100);
         if (cancelled) return;
@@ -4321,9 +5785,16 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
           const chunk = typeof payload.chunk === "string" ? payload.chunk : "";
           if (!chunk) return;
           const streamRaw = asNonEmptyString(payload.stream);
-          const stream = streamRaw === "stderr" || streamRaw === "system" ? streamRaw : "stdout";
-          const ts = asNonEmptyString((payload as Record<string, unknown>).ts) ?? event.createdAt;
-          appendLogLines([{ ts, stream, chunk, seq: readChunkSeq(payload.seq) }]);
+          const stream =
+            streamRaw === "stderr" || streamRaw === "system"
+              ? streamRaw
+              : "stdout";
+          const ts =
+            asNonEmptyString((payload as Record<string, unknown>).ts) ??
+            event.createdAt;
+          appendLogLines([
+            { ts, stream, chunk, seq: readChunkSeq(payload.seq) },
+          ]);
           return;
         }
 
@@ -4344,7 +5815,9 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
 
         const streamRaw = asNonEmptyString(payload.stream);
         const stream =
-          streamRaw === "stdout" || streamRaw === "stderr" || streamRaw === "system"
+          streamRaw === "stdout" ||
+          streamRaw === "stderr" ||
+          streamRaw === "system"
             ? streamRaw
             : null;
         const levelRaw = asNonEmptyString(payload.level);
@@ -4400,14 +5873,18 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
     };
   }, [visible, isLive, run.companyId, run.id, run.agentId]);
 
-  const censorUsernameInLogs = useQuery({
-    queryKey: queryKeys.instance.generalSettings,
-    queryFn: () => instanceSettingsApi.getGeneral(),
-  }).data?.censorUsernameInLogs === true;
+  const censorUsernameInLogs =
+    useQuery({
+      queryKey: queryKeys.instance.generalSettings,
+      queryFn: () => instanceSettingsApi.getGeneral(),
+    }).data?.censorUsernameInLogs === true;
 
   const adapterInvokePayload = useMemo(() => {
     const evt = events.find((e) => e.eventType === "adapter.invoke");
-    return redactPathValue(asRecord(evt?.payload ?? null), censorUsernameInLogs);
+    return redactPathValue(
+      asRecord(evt?.payload ?? null),
+      censorUsernameInLogs,
+    );
   }, [censorUsernameInLogs, events]);
 
   // NOTE: adapter is NOT memoized because external adapters replace their
@@ -4464,7 +5941,10 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
         censorUsernameInLogs={censorUsernameInLogs}
       />
       {adapterInvokePayload && (
-        <RunInvocationCard payload={adapterInvokePayload} censorUsernameInLogs={censorUsernameInLogs} />
+        <RunInvocationCard
+          payload={adapterInvokePayload}
+          censorUsernameInLogs={censorUsernameInLogs}
+        />
       )}
 
       <div className="flex items-center justify-between">
@@ -4522,7 +6002,11 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
           mode={transcriptMode}
           streaming={isLive}
           limit={isLive ? LIVE_TRANSCRIPT_RENDER_LIMIT : undefined}
-          emptyMessage={run.logRef ? "Waiting for transcript..." : "No persisted transcript for this run."}
+          emptyMessage={
+            run.logRef
+              ? "Waiting for transcript..."
+              : "No persisted transcript for this run."
+          }
         />
         {hasMoreLog && (
           <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
@@ -4536,7 +6020,8 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
               {loadingMoreLog ? "Loading..." : "Load more log"}
             </Button>
             <span className="text-xs text-muted-foreground">
-              Showing the first {Math.round(logOffset / 1024).toLocaleString("en-US")} KB
+              Showing the first{" "}
+              {Math.round(logOffset / 1024).toLocaleString("en-US")} KB
               {typeof run.logBytes === "number" && run.logBytes > 0
                 ? ` of ${Math.round(run.logBytes / 1024).toLocaleString("en-US")} KB`
                 : ""}
@@ -4553,7 +6038,9 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
 
       {(run.status === "failed" || run.status === "timed_out") && (
         <div className="rounded-lg border border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-950/20 p-3 space-y-2">
-          <div className="text-xs font-medium text-red-700 dark:text-red-300">Failure details</div>
+          <div className="text-xs font-medium text-red-700 dark:text-red-300">
+            Failure details
+          </div>
           {run.error && (
             <div className="text-xs text-red-600 dark:text-red-200">
               <span className="text-red-700 dark:text-red-300">Error: </span>
@@ -4562,7 +6049,9 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
           )}
           {run.stderrExcerpt && run.stderrExcerpt.trim() && (
             <div>
-              <div className="text-xs text-red-700 dark:text-red-300 mb-1">stderr excerpt</div>
+              <div className="text-xs text-red-700 dark:text-red-300 mb-1">
+                stderr excerpt
+              </div>
               <pre className="bg-red-50 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap text-red-800 dark:text-red-100">
                 {redactPathText(run.stderrExcerpt, censorUsernameInLogs)}
               </pre>
@@ -4570,15 +6059,23 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
           )}
           {run.resultJson && (
             <div>
-              <div className="text-xs text-red-700 dark:text-red-300 mb-1">adapter result JSON</div>
+              <div className="text-xs text-red-700 dark:text-red-300 mb-1">
+                adapter result JSON
+              </div>
               <pre className="bg-red-50 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap text-red-800 dark:text-red-100">
-                {JSON.stringify(redactPathValue(run.resultJson, censorUsernameInLogs), null, 2)}
+                {JSON.stringify(
+                  redactPathValue(run.resultJson, censorUsernameInLogs),
+                  null,
+                  2,
+                )}
               </pre>
             </div>
           )}
           {run.stdoutExcerpt && run.stdoutExcerpt.trim() && !run.resultJson && (
             <div>
-              <div className="text-xs text-red-700 dark:text-red-300 mb-1">stdout excerpt</div>
+              <div className="text-xs text-red-700 dark:text-red-300 mb-1">
+                stdout excerpt
+              </div>
               <pre className="bg-red-50 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap text-red-800 dark:text-red-100">
                 {redactPathText(run.stdoutExcerpt, censorUsernameInLogs)}
               </pre>
@@ -4589,27 +6086,41 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
 
       {events.length > 0 && (
         <div>
-          <div className="mb-2 text-xs font-medium text-muted-foreground">Events ({events.length})</div>
+          <div className="mb-2 text-xs font-medium text-muted-foreground">
+            Events ({events.length})
+          </div>
           <div className="bg-neutral-100 dark:bg-neutral-950 rounded-lg p-3 font-mono text-xs space-y-0.5">
             {events.map((evt) => {
-              const color = evt.color
-                ?? (evt.level ? levelColors[evt.level] : null)
-                ?? (evt.stream ? streamColors[evt.stream] : null)
-                ?? "text-foreground";
+              const color =
+                evt.color ??
+                (evt.level ? levelColors[evt.level] : null) ??
+                (evt.stream ? streamColors[evt.stream] : null) ??
+                "text-foreground";
 
               return (
                 <div key={evt.id} className="flex gap-2">
                   <span className="text-neutral-400 dark:text-neutral-600 shrink-0 select-none w-16">
-                    {new Date(evt.createdAt).toLocaleTimeString("en-US", { hour12: false })}
+                    {new Date(evt.createdAt).toLocaleTimeString("en-US", {
+                      hour12: false,
+                    })}
                   </span>
-                  <span className={cn("shrink-0 w-14", evt.stream ? (streamColors[evt.stream] ?? "text-neutral-500") : "text-neutral-500")}>
+                  <span
+                    className={cn(
+                      "shrink-0 w-14",
+                      evt.stream
+                        ? (streamColors[evt.stream] ?? "text-neutral-500")
+                        : "text-neutral-500",
+                    )}
+                  >
                     {evt.stream ? `[${evt.stream}]` : ""}
                   </span>
                   <span className={cn("break-all", color)}>
                     {evt.message
                       ? redactPathText(evt.message, censorUsernameInLogs)
                       : evt.payload
-                        ? JSON.stringify(redactPathValue(evt.payload, censorUsernameInLogs))
+                        ? JSON.stringify(
+                            redactPathValue(evt.payload, censorUsernameInLogs),
+                          )
                         : ""}
                   </span>
                 </div>
@@ -4624,7 +6135,13 @@ export function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType
 
 /* ---- Keys Tab ---- */
 
-export function KeysTab({ agentId, companyId }: { agentId: string; companyId?: string }) {
+export function KeysTab({
+  agentId,
+  companyId,
+}: {
+  agentId: string;
+  companyId?: string;
+}) {
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const [newKeyName, setNewKeyName] = useState("");
@@ -4638,19 +6155,25 @@ export function KeysTab({ agentId, companyId }: { agentId: string; companyId?: s
   });
 
   const createKey = useMutation({
-    mutationFn: () => agentsApi.createKey(agentId, newKeyName.trim() || "Default", companyId),
+    mutationFn: () =>
+      agentsApi.createKey(agentId, newKeyName.trim() || "Default", companyId),
     onSuccess: (data) => {
       setNewToken(data.token);
       setTokenVisible(true);
       setNewKeyName("");
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.keys(agentId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.keys(agentId),
+      });
     },
   });
 
   const revokeKey = useMutation({
-    mutationFn: (keyId: string) => agentsApi.revokeKey(agentId, keyId, companyId),
+    mutationFn: (keyId: string) =>
+      agentsApi.revokeKey(agentId, keyId, companyId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.agents.keys(agentId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agents.keys(agentId),
+      });
     },
   });
 
@@ -4662,7 +6185,11 @@ export function KeysTab({ agentId, companyId }: { agentId: string; companyId?: s
         setTimeout(() => setCopied(false), 2000);
       })
       .catch(() => {
-        pushToast({ title: "Copy failed", body: "Clipboard access is unavailable.", tone: "error" });
+        pushToast({
+          title: "Copy failed",
+          body: "Clipboard access is unavailable.",
+          tone: "error",
+        });
       });
   }
 
@@ -4687,7 +6214,11 @@ export function KeysTab({ agentId, companyId }: { agentId: string; companyId?: s
               onClick={() => setTokenVisible((v) => !v)}
               title={tokenVisible ? "Hide" : "Show"}
             >
-              {tokenVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {tokenVisible ? (
+                <EyeOff className="h-3.5 w-3.5" />
+              ) : (
+                <Eye className="h-3.5 w-3.5" />
+              )}
             </Button>
             <Button
               variant="ghost"
@@ -4717,7 +6248,8 @@ export function KeysTab({ agentId, companyId }: { agentId: string; companyId?: s
           Create API Key
         </h3>
         <p className="text-xs text-muted-foreground">
-          API keys allow this agent to authenticate calls to the Taskcore server.
+          API keys allow this agent to authenticate calls to the Taskcore
+          server.
         </p>
         <div className="flex items-center gap-2">
           <Input
@@ -4741,7 +6273,9 @@ export function KeysTab({ agentId, companyId }: { agentId: string; companyId?: s
       </div>
 
       {/* Active keys */}
-      {isLoading && <p className="text-sm text-muted-foreground">Loading keys...</p>}
+      {isLoading && (
+        <p className="text-sm text-muted-foreground">Loading keys...</p>
+      )}
 
       {!isLoading && activeKeys.length === 0 && !newToken && (
         <p className="text-sm text-muted-foreground">No active API keys.</p>
@@ -4754,7 +6288,10 @@ export function KeysTab({ agentId, companyId }: { agentId: string; companyId?: s
           </h3>
           <div className="border border-border rounded-lg divide-y divide-border">
             {activeKeys.map((key: AgentKey) => (
-              <div key={key.id} className="flex items-center justify-between px-4 py-2.5">
+              <div
+                key={key.id}
+                className="flex items-center justify-between px-4 py-2.5"
+              >
                 <div>
                   <span className="text-sm font-medium">{key.name}</span>
                   <span className="text-xs text-muted-foreground ml-3">
@@ -4784,7 +6321,10 @@ export function KeysTab({ agentId, companyId }: { agentId: string; companyId?: s
           </h3>
           <div className="border border-border rounded-lg divide-y divide-border opacity-50">
             {revokedKeys.map((key: AgentKey) => (
-              <div key={key.id} className="flex items-center justify-between px-4 py-2.5">
+              <div
+                key={key.id}
+                className="flex items-center justify-between px-4 py-2.5"
+              >
                 <div>
                   <span className="text-sm line-through">{key.name}</span>
                   <span className="text-xs text-muted-foreground ml-3">

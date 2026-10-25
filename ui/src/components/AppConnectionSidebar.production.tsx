@@ -31,8 +31,13 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
   const { isMobile, setSidebarOpen } = useSidebar();
 
   const connectionQuery = useQuery({
-    queryKey: queryKeys.tools.connection(props.kind === "connection" ? props.connectionId : "__none__"),
-    queryFn: () => toolsApi.getConnection(props.kind === "connection" ? props.connectionId : ""),
+    queryKey: queryKeys.tools.connection(
+      props.kind === "connection" ? props.connectionId : "__none__",
+    ),
+    queryFn: () =>
+      toolsApi.getConnection(
+        props.kind === "connection" ? props.connectionId : "",
+      ),
     enabled: props.kind === "connection" && !!props.connectionId,
   });
   const applicationsQuery = useQuery({
@@ -58,14 +63,22 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
   });
 
   const connection = connectionQuery.data;
-  const application = props.kind === "application"
-    ? (applicationsQuery.data?.applications ?? []).find((app) => app.id === props.applicationId)
-    : null;
-  const appConnections = props.kind === "application"
-    ? (connectionsQuery.data?.connections ?? []).filter((candidate) => candidate.applicationId === props.applicationId)
-    : [];
+  const application =
+    props.kind === "application"
+      ? (applicationsQuery.data?.applications ?? []).find(
+          (app) => app.id === props.applicationId,
+        )
+      : null;
+  const appConnections =
+    props.kind === "application"
+      ? (connectionsQuery.data?.connections ?? []).filter(
+          (candidate) => candidate.applicationId === props.applicationId,
+        )
+      : [];
   const previousConnection = latestArchivedConnection(appConnections);
-  const appName = connection ? humanizeConnectionDisplayName(connection) : application?.name ?? "App";
+  const appName = connection
+    ? humanizeConnectionDisplayName(connection)
+    : (application?.name ?? "App");
   const logoEntry = galleryEntryFor(
     (galleryQuery.data?.apps ?? []) as AppGalleryDisplayEntry[],
     connection,
@@ -73,7 +86,9 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
   );
   const reviewConnectionId = connection?.id ?? previousConnection?.id ?? null;
   const attentionItem = reviewConnectionId
-    ? attentionQuery.data?.apps.find((app) => app.connection.id === reviewConnectionId)
+    ? attentionQuery.data?.apps.find(
+        (app) => app.connection.id === reviewConnectionId,
+      )
     : null;
   const reviewCount =
     (attentionItem?.pendingActionRequestCount ?? 0) +
@@ -93,8 +108,14 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
           <span className="truncate">All apps</span>
         </Link>
         <div className="flex min-w-0 items-center gap-2 px-2 py-1">
-          <AppLogo name={appName} logoUrl={appDefinitionLogoUrl(logoEntry)} size={28} />
-          <span className="flex-1 truncate text-sm font-bold text-foreground">{appName}</span>
+          <AppLogo
+            name={appName}
+            logoUrl={appDefinitionLogoUrl(logoEntry)}
+            size={28}
+          />
+          <span className="flex-1 truncate text-sm font-bold text-foreground">
+            {appName}
+          </span>
         </div>
       </div>
 
@@ -107,7 +128,11 @@ export function AppDetailSidebar(props: AppDetailSidebarProps) {
               label={tab.label}
               icon={tab.icon}
               end
-              badge={tab.key === "review" && reviewCount > 0 ? reviewCount : undefined}
+              badge={
+                tab.key === "review" && reviewCount > 0
+                  ? reviewCount
+                  : undefined
+              }
               badgeTone="danger"
               badgeLabel="needing review"
             />
@@ -130,22 +155,34 @@ function galleryEntryFor(
   application: ToolApplication | undefined,
 ): AppGalleryDisplayEntry | null {
   if (application?.applicationKey) {
-    const keyed = apps.find((app) => appDefinitionSlug(app) === application.applicationKey);
+    const keyed = apps.find(
+      (app) => appDefinitionSlug(app) === application.applicationKey,
+    );
     if (keyed) return keyed;
   }
   const name = (connection?.name ?? application?.name)?.toLowerCase();
   if (!name) return null;
-  return apps.find((app) => appDefinitionName(app).toLowerCase() === name) ??
+  return (
+    apps.find((app) => appDefinitionName(app).toLowerCase() === name) ??
     apps.find((app) => appDefinitionSlug(app) === name) ??
-    null;
+    null
+  );
 }
 
-function latestArchivedConnection(connections: ToolConnection[]): ToolConnection | null {
-  const archived = connections.filter((connection) => connection.status === "archived");
+function latestArchivedConnection(
+  connections: ToolConnection[],
+): ToolConnection | null {
+  const archived = connections.filter(
+    (connection) => connection.status === "archived",
+  );
   if (archived.length === 0) return null;
   return archived.reduce((latest, connection) => {
-    const latestTime = new Date(latest.updatedAt ?? latest.createdAt ?? 0).getTime();
-    const connectionTime = new Date(connection.updatedAt ?? connection.createdAt ?? 0).getTime();
+    const latestTime = new Date(
+      latest.updatedAt ?? latest.createdAt ?? 0,
+    ).getTime();
+    const connectionTime = new Date(
+      connection.updatedAt ?? connection.createdAt ?? 0,
+    ).getTime();
     return connectionTime > latestTime ? connection : latest;
   });
 }

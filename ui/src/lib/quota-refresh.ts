@@ -14,10 +14,23 @@ export function retainQuotaWindows(
   incoming: ProviderQuotaResult[],
 ): ProviderQuotaResult[] {
   return incoming.map((result) => {
-    if (result.ok || (result.errorFamily && invalidCredentials.has(result.errorFamily))) return result;
-    const last = previous?.find((entry) => entry.provider === result.provider && entry.accountKey === result.accountKey);
+    if (
+      result.ok ||
+      (result.errorFamily && invalidCredentials.has(result.errorFamily))
+    )
+      return result;
+    const last = previous?.find(
+      (entry) =>
+        entry.provider === result.provider &&
+        entry.accountKey === result.accountKey,
+    );
     return last?.windows.length
-      ? { ...result, windows: last.windows, source: last.source, capturedAt: last.capturedAt }
+      ? {
+          ...result,
+          windows: last.windows,
+          source: last.source,
+          capturedAt: last.capturedAt,
+        }
       : result;
   });
 }

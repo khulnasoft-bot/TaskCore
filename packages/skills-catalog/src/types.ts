@@ -1,10 +1,12 @@
 export type CatalogSkillKind = "bundled" | "optional";
 
-export type CatalogTrustLevel = "markdown_only" | "assets" | "scripts_executables";
+export type CatalogTrustLevel =
+  "markdown_only" | "assets" | "scripts_executables";
 
 export type CatalogCompatibility = "compatible" | "unknown" | "invalid";
 
-export type CatalogSkillFileKind = "skill" | "markdown" | "reference" | "script" | "asset" | "other";
+export type CatalogSkillFileKind =
+  "skill" | "markdown" | "reference" | "script" | "asset" | "other";
 
 export interface CatalogSkillFile {
   path: string;

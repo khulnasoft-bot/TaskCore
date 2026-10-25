@@ -16,7 +16,10 @@ import { redactSensitiveText } from "../../redaction.js";
 import { issueRecoveryActionService } from "../issue-recovery-actions.js";
 import { reportRunFailure } from "../run-failure-report.js";
 import { isNativeRunnerOwnershipHeld } from "./native-runner-ownership.js";
-import { nativeRestartInterruptedTurnId, type PersistedNativeSession } from "../../vendor/taskcore-runner/index.js";
+import {
+  nativeRestartInterruptedTurnId,
+  type PersistedNativeSession,
+} from "../../vendor/taskcore-runner/index.js";
 
 export type NativeControllerIdentity = {
   bootId: string;
@@ -766,7 +769,9 @@ export async function claimNativeRestartRecoveries(input: {
         checkpointFailed:
           (checkpointRecord.terminal as Record<string, unknown> | undefined)
             ?.runTerminalState === "failed" &&
-          nativeRestartInterruptedTurnId(checkpointRecord as unknown as PersistedNativeSession) === null,
+          nativeRestartInterruptedTurnId(
+            checkpointRecord as unknown as PersistedNativeSession,
+          ) === null,
         providerAttempt: row.coordinator.attempt,
       });
       const ownershipChanged =

@@ -21,7 +21,11 @@ const SANDBOX_TRANSFER_TIMEOUT =
   /RPC call "environmentSync(?:In|Out)" timed out after \d+ms/i;
 
 export function classifyFailure(error: unknown): FailureClass {
-  if (error instanceof ObservedStateTimeout || error instanceof RemoteAdmissionReadError) return error.failureClass;
+  if (
+    error instanceof ObservedStateTimeout ||
+    error instanceof RemoteAdmissionReadError
+  )
+    return error.failureClass;
   const message =
     error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   if (/browser bootstrap failed before task creation/i.test(message))

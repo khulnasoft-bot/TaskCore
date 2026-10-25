@@ -82,7 +82,8 @@ describe("run liveness continuations", () => {
       issueId,
       wakeReason: RUN_LIVENESS_CONTINUATION_REASON,
       livenessContinuationAttempt: 1,
-      livenessContinuationMaxAttempts: DEFAULT_MAX_LIVENESS_CONTINUATION_ATTEMPTS,
+      livenessContinuationMaxAttempts:
+        DEFAULT_MAX_LIVENESS_CONTINUATION_ATTEMPTS,
       livenessContinuationSourceRunId: runId,
       livenessContinuationState: "plan_only",
       livenessContinuationReason: "Planned without acting",
@@ -114,8 +115,10 @@ describe("run liveness continuations", () => {
       issue: issue(),
       agent: agent(),
       livenessState: "advanced",
-      livenessReason: "Run produced concrete action evidence: created an issue comment",
-      nextAction: "Resume the implementation from the remaining acceptance criteria.",
+      livenessReason:
+        "Run produced concrete action evidence: created an issue comment",
+      nextAction:
+        "Resume the implementation from the remaining acceptance criteria.",
       budgetBlocked: false,
       idempotentWakeExists: false,
     });
@@ -140,7 +143,9 @@ describe("run liveness continuations", () => {
 
     expect(decision.kind).toBe("exhausted");
     if (decision.kind !== "exhausted") return;
-    expect(decision.comment).toContain("Bounded liveness continuation exhausted");
+    expect(decision.comment).toContain(
+      "Bounded liveness continuation exhausted",
+    );
     expect(decision.comment).toContain("Attempts used: 2/2");
   });
 

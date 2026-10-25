@@ -9,9 +9,16 @@ afterEach(() => vi.useRealTimers());
 describe("stop confirmation", () => {
   it("waits for embedded ACP acknowledgment even after terminal status", async () => {
     vi.useFakeTimers();
-    const getRun = vi.fn()
-      .mockResolvedValueOnce({ ...run("acp", "cancelled"), resultJson: { executionCancellation: { state: "requested" } } })
-      .mockResolvedValueOnce({ ...run("acp", "cancelled"), resultJson: { executionCancellation: { state: "acknowledged" } } });
+    const getRun = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ...run("acp", "cancelled"),
+        resultJson: { executionCancellation: { state: "requested" } },
+      })
+      .mockResolvedValueOnce({
+        ...run("acp", "cancelled"),
+        resultJson: { executionCancellation: { state: "acknowledged" } },
+      });
     const finished = vi.fn();
     const result = waitForStoppedRuns(["acp"], { getRun }).then(finished);
     await vi.advanceTimersByTimeAsync(0);

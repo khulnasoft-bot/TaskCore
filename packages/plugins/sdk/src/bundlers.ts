@@ -58,7 +58,9 @@ export interface PluginBundlerPresets {
  * The presets intentionally externalize host/runtime deps (`react`, SDK packages)
  * to match the Taskcore plugin loader contract.
  */
-export function createPluginBundlerPresets(input: PluginBundlerPresetInput = {}): PluginBundlerPresets {
+export function createPluginBundlerPresets(
+  input: PluginBundlerPresetInput = {},
+): PluginBundlerPresets {
   const uiExternal = [
     "@taskcore/plugin-sdk/ui",
     "@taskcore/plugin-sdk/ui/hooks",
@@ -99,16 +101,16 @@ export function createPluginBundlerPresets(input: PluginBundlerPresetInput = {})
 
   const esbuildUi = uiEntry
     ? {
-      entryPoints: [uiEntry],
-      outdir: `${outdir}/ui`,
-      bundle: true,
-      format: "esm" as const,
-      platform: "browser" as const,
-      target: "es2022",
-      sourcemap,
-      minify,
-      external: uiExternal,
-    }
+        entryPoints: [uiEntry],
+        outdir: `${outdir}/ui`,
+        bundle: true,
+        format: "esm" as const,
+        platform: "browser" as const,
+        target: "es2022",
+        sourcemap,
+        minify,
+        external: uiExternal,
+      }
     : undefined;
 
   const rollupWorker: RollupLikeConfig = {
@@ -135,15 +137,15 @@ export function createPluginBundlerPresets(input: PluginBundlerPresetInput = {})
 
   const rollupUi = uiEntry
     ? {
-      input: uiEntry,
-      output: {
-        dir: `${outdir}/ui`,
-        format: "es" as const,
-        sourcemap,
-        entryFileNames: "index.js",
-      },
-      external: uiExternal,
-    }
+        input: uiEntry,
+        output: {
+          dir: `${outdir}/ui`,
+          format: "es" as const,
+          sourcemap,
+          entryFileNames: "index.js",
+        },
+        external: uiExternal,
+      }
     : undefined;
 
   return {

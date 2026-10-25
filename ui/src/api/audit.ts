@@ -68,7 +68,8 @@ function buildAuditQuery(filters: AuditActionFilters): URLSearchParams {
   const search = new URLSearchParams();
   if (filters.actorScope) search.set("actorScope", filters.actorScope);
   if (filters.agentId) search.set("agentId", filters.agentId);
-  if (filters.responsibleUserId) search.set("responsibleUserId", filters.responsibleUserId);
+  if (filters.responsibleUserId)
+    search.set("responsibleUserId", filters.responsibleUserId);
   if (filters.runId) search.set("runId", filters.runId);
   if (filters.entityType) search.set("entityType", filters.entityType);
   if (filters.entityId) search.set("entityId", filters.entityId);
@@ -113,7 +114,9 @@ export const auditApi = {
       const body = await res.json().catch(() => null);
       const recovery = tenantSessionRecovery.recoverIfNeeded(res.status, body);
       if (recovery) return recovery;
-      const message = (body as { error?: string } | null)?.error ?? `Export failed: ${res.status}`;
+      const message =
+        (body as { error?: string } | null)?.error ??
+        `Export failed: ${res.status}`;
       throw new Error(message);
     }
     return res.blob();

@@ -66,19 +66,29 @@ describe("pluginLifecycleManager.restartWorker", () => {
     const { handle, workerManager } = makeWorkerManagerStub();
 
     const loader: Partial<PluginLoader> = {
-      hasRuntimeServices: vi.fn().mockReturnValue(true) as PluginLoader["hasRuntimeServices"],
+      hasRuntimeServices: vi
+        .fn()
+        .mockReturnValue(true) as PluginLoader["hasRuntimeServices"],
       loadSingle: vi.fn().mockResolvedValue({
         success: true,
         plugin: pluginRecord,
-        registered: { worker: true, eventSubscriptions: 0, jobs: 0, webhooks: 0, tools: 0 },
+        registered: {
+          worker: true,
+          eventSubscriptions: 0,
+          jobs: 0,
+          webhooks: 0,
+          tools: 0,
+        },
       }) as PluginLoader["loadSingle"],
-      unloadSingle: vi.fn().mockResolvedValue(undefined) as PluginLoader["unloadSingle"],
+      unloadSingle: vi
+        .fn()
+        .mockResolvedValue(undefined) as PluginLoader["unloadSingle"],
     };
 
-    const lifecycle = pluginLifecycleManager(
-      {} as never,
-      { loader: loader as PluginLoader, workerManager },
-    );
+    const lifecycle = pluginLifecycleManager({} as never, {
+      loader: loader as PluginLoader,
+      workerManager,
+    });
     const stopped = vi.fn();
     const started = vi.fn();
     lifecycle.on("plugin.worker_stopped", stopped);
@@ -86,7 +96,10 @@ describe("pluginLifecycleManager.restartWorker", () => {
 
     await lifecycle.restartWorker("plugin-1");
 
-    expect(loader.unloadSingle).toHaveBeenCalledWith("plugin-1", "example.plugin");
+    expect(loader.unloadSingle).toHaveBeenCalledWith(
+      "plugin-1",
+      "example.plugin",
+    );
     expect(loader.loadSingle).toHaveBeenCalledWith("plugin-1");
     // The bare worker handle should NOT be bounced — the loader handles
     // worker (re)start as part of activate.
@@ -102,15 +115,17 @@ describe("pluginLifecycleManager.restartWorker", () => {
     const { handle, workerManager } = makeWorkerManagerStub();
 
     const loader: Partial<PluginLoader> = {
-      hasRuntimeServices: vi.fn().mockReturnValue(false) as PluginLoader["hasRuntimeServices"],
+      hasRuntimeServices: vi
+        .fn()
+        .mockReturnValue(false) as PluginLoader["hasRuntimeServices"],
       loadSingle: vi.fn() as PluginLoader["loadSingle"],
       unloadSingle: vi.fn() as PluginLoader["unloadSingle"],
     };
 
-    const lifecycle = pluginLifecycleManager(
-      {} as never,
-      { loader: loader as PluginLoader, workerManager },
-    );
+    const lifecycle = pluginLifecycleManager({} as never, {
+      loader: loader as PluginLoader,
+      workerManager,
+    });
     const stopped = vi.fn();
     const started = vi.fn();
     lifecycle.on("plugin.worker_stopped", stopped);
@@ -122,8 +137,14 @@ describe("pluginLifecycleManager.restartWorker", () => {
     expect(loader.loadSingle).not.toHaveBeenCalled();
     expect(handle.restart).toHaveBeenCalledTimes(1);
     expect(stopped).toHaveBeenCalledTimes(1);
-    expect(stopped).toHaveBeenCalledWith({ pluginId: "plugin-1", pluginKey: "example.plugin" });
+    expect(stopped).toHaveBeenCalledWith({
+      pluginId: "plugin-1",
+      pluginKey: "example.plugin",
+    });
     expect(started).toHaveBeenCalledTimes(1);
-    expect(started).toHaveBeenCalledWith({ pluginId: "plugin-1", pluginKey: "example.plugin" });
+    expect(started).toHaveBeenCalledWith({
+      pluginId: "plugin-1",
+      pluginKey: "example.plugin",
+    });
   });
 });

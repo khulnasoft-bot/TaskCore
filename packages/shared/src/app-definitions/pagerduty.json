@@ -3,25 +3,19 @@
   "slug": "pagerduty",
   "name": "PagerDuty",
   "description": "Connect PagerDuty's provider-hosted MCP server.",
-  "categories": [
-    "developer"
-  ],
+  "categories": ["developer"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/pagerduty.svg"
   },
-  "urlPatterns": [
-    "https://mcp.pagerduty.com/*"
-  ],
+  "urlPatterns": ["https://mcp.pagerduty.com/*"],
   "docsUrl": "https://support.pagerduty.com/main/docs/pagerduty-mcp-server",
   "methods": [
     {
       "key": "mcp-api-key-us",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.pagerduty.com/mcp"
@@ -57,9 +51,7 @@
       "key": "mcp-api-key-eu",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.eu.pagerduty.com/mcp"

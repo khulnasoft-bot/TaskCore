@@ -22,7 +22,8 @@ type FakeOptions = {
   onError?: (message: unknown) => void;
 };
 
-const BIND_CONFLICT_LOG = 'could not bind IPv4 address "127.0.0.1": Address already in use';
+const BIND_CONFLICT_LOG =
+  'could not bind IPv4 address "127.0.0.1": Address already in use';
 
 function makeFakeCtor(failFirst: number) {
   const constructed: FakeOptions[] = [];
@@ -88,7 +89,9 @@ describe("startEmbeddedPostgresWithRetry", () => {
     const { ctor, constructed } = makeFakeCtor(Number.POSITIVE_INFINITY);
     __setEmbeddedPostgresCtorProviderForTests(async () => ctor);
 
-    await expect(startWithRetry("taskcore-retry-fail-")).rejects.toThrow(/after \d+ attempts/);
+    await expect(startWithRetry("taskcore-retry-fail-")).rejects.toThrow(
+      /after \d+ attempts/,
+    );
 
     // The retry stops at the bound and does not loop forever.
     expect(constructed).toHaveLength(MAX_ATTEMPTS);
@@ -103,7 +106,9 @@ describe("startEmbeddedPostgresWithRetry", () => {
     const { ctor } = makeFakeCtor(Number.POSITIVE_INFINITY);
     __setEmbeddedPostgresCtorProviderForTests(async () => ctor);
 
-    const error = await startWithRetry("taskcore-retry-reason-").catch((caught: unknown) => caught);
+    const error = await startWithRetry("taskcore-retry-reason-").catch(
+      (caught: unknown) => caught,
+    );
 
     expect(error).toBeInstanceOf(Error);
     // The thrown message carries the captured Postgres output, not only the

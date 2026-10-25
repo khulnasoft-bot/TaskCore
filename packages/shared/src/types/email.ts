@@ -7,11 +7,7 @@ export interface EmailEnvelope {
   subject: string;
 }
 export type EmailDeliveryOutcome =
-  | "queued"
-  | "sent"
-  | "delivered"
-  | "failed"
-  | "uncertain";
+  "queued" | "sent" | "delivered" | "failed" | "uncertain";
 export interface EmailMessage extends EmailEnvelope {
   id: string;
   providerMessageId: string;

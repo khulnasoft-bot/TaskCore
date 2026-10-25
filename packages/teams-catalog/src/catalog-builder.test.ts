@@ -24,56 +24,66 @@ const catalogSkills = [
 
 describe("teams catalog manifest", () => {
   afterEach(async () => {
-    await Promise.all(tempDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      tempDirs
+        .splice(0)
+        .map((dir) => fs.rm(dir, { recursive: true, force: true })),
+    );
   });
 
   it("builds stable manifest entries from catalog team directories", async () => {
     const packageDir = await createCatalogPackage();
-    await writeTeam(packageDir, "bundled", "software-development", "product-engineering", {
-      frontmatter: [
-        "name: Product Engineering",
-        "description: Product engineering team for implementation and review work.",
-        "schema: agentcompanies/v1",
-        "key: taskcore/bundled/software-development/product-engineering",
-        "manager: agents/cto/AGENTS.md",
-        "recommendedForCompanyTypes:",
-        "  - software",
-        "tags:",
-        "  - engineering",
-      ],
-      files: {
-        "agents/cto/AGENTS.md": [
-          "---",
-          "name: CTO",
-          "slug: cto",
-          "skills:",
-          "  - github-pr-workflow",
-          "---",
-          "",
-          "Lead engineering.",
-        ].join("\n"),
-        "projects/app/PROJECT.md": [
-          "---",
-          "name: App",
-          "slug: app",
-          "owner: cto",
-          "---",
-          "",
-          "Build the app.",
-        ].join("\n"),
-        "projects/app/tasks/review/TASK.md": [
-          "---",
-          "name: Review",
-          "slug: review",
-          "assignee: cto",
-          "project: app",
-          "recurring: true",
-          "---",
-          "",
-          "Review progress.",
-        ].join("\n"),
+    await writeTeam(
+      packageDir,
+      "bundled",
+      "software-development",
+      "product-engineering",
+      {
+        frontmatter: [
+          "name: Product Engineering",
+          "description: Product engineering team for implementation and review work.",
+          "schema: agentcompanies/v1",
+          "key: taskcore/bundled/software-development/product-engineering",
+          "manager: agents/cto/AGENTS.md",
+          "recommendedForCompanyTypes:",
+          "  - software",
+          "tags:",
+          "  - engineering",
+        ],
+        files: {
+          "agents/cto/AGENTS.md": [
+            "---",
+            "name: CTO",
+            "slug: cto",
+            "skills:",
+            "  - github-pr-workflow",
+            "---",
+            "",
+            "Lead engineering.",
+          ].join("\n"),
+          "projects/app/PROJECT.md": [
+            "---",
+            "name: App",
+            "slug: app",
+            "owner: cto",
+            "---",
+            "",
+            "Build the app.",
+          ].join("\n"),
+          "projects/app/tasks/review/TASK.md": [
+            "---",
+            "name: Review",
+            "slug: review",
+            "assignee: cto",
+            "project: app",
+            "recurring: true",
+            "---",
+            "",
+            "Review progress.",
+          ].join("\n"),
+        },
       },
-    });
+    );
 
     const result = await buildCatalogManifest({
       packageDir,
@@ -113,7 +123,8 @@ describe("teams catalog manifest", () => {
         type: "catalog",
         ref: "github-pr-workflow",
         resolved: true,
-        catalogSkillKey: "taskcore/bundled/software-development/github-pr-workflow",
+        catalogSkillKey:
+          "taskcore/bundled/software-development/github-pr-workflow",
         agentSlugs: ["cto"],
       }),
     ]);
@@ -123,7 +134,9 @@ describe("teams catalog manifest", () => {
       "projects/app/PROJECT.md",
       "projects/app/tasks/review/TASK.md",
     ]);
-    expect(result.manifest.teams[0]!.contentHash).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(result.manifest.teams[0]!.contentHash).toMatch(
+      /^sha256:[a-f0-9]{64}$/,
+    );
   });
 
   it("reports frontmatter, directory, uniqueness, reference, and skill errors together", async () => {
@@ -160,22 +173,44 @@ describe("teams catalog manifest", () => {
         ].join("\n"),
       },
     });
-    await writeTeam(packageDir, "optional", "software-development", "duplicate", {
-      frontmatter: [
-        "name: Duplicate Optional",
-        "description: Optional duplicate slug.",
-        "schema: agentcompanies/v1",
-        "manager: agents/lead/AGENTS.md",
-      ],
-      files: {
-        "agents/lead/AGENTS.md": "---\nname: Lead\nslug: lead\n---\n\nLead.\n",
+    await writeTeam(
+      packageDir,
+      "optional",
+      "software-development",
+      "duplicate",
+      {
+        frontmatter: [
+          "name: Duplicate Optional",
+          "description: Optional duplicate slug.",
+          "schema: agentcompanies/v1",
+          "manager: agents/lead/AGENTS.md",
+        ],
+        files: {
+          "agents/lead/AGENTS.md":
+            "---\nname: Lead\nslug: lead\n---\n\nLead.\n",
+        },
       },
-    });
-    await fs.mkdir(path.join(packageDir, "catalog", "bundled", "software-development", "missing-team"), {
+    );
+    await fs.mkdir(
+      path.join(
+        packageDir,
+        "catalog",
+        "bundled",
+        "software-development",
+        "missing-team",
+      ),
+      {
+        recursive: true,
+      },
+    );
+    await fs.mkdir(path.join(packageDir, "catalog", "misc"), {
       recursive: true,
     });
-    await fs.mkdir(path.join(packageDir, "catalog", "misc"), { recursive: true });
-    await fs.writeFile(path.join(packageDir, "catalog", "misc", "TEAM.md"), "# Misplaced\n", "utf8");
+    await fs.writeFile(
+      path.join(packageDir, "catalog", "misc", "TEAM.md"),
+      "# Misplaced\n",
+      "utf8",
+    );
 
     const result = await buildCatalogManifest({
       packageDir,
@@ -185,18 +220,28 @@ describe("teams catalog manifest", () => {
 
     expect(result.errors).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("catalog/misc/TEAM.md is not under catalog/<bundled|optional>/<category>/<slug>/TEAM.md"),
-        expect.stringContaining("catalog/bundled/software-development/missing-team is missing TEAM.md"),
+        expect.stringContaining(
+          "catalog/misc/TEAM.md is not under catalog/<bundled|optional>/<category>/<slug>/TEAM.md",
+        ),
+        expect.stringContaining(
+          "catalog/bundled/software-development/missing-team is missing TEAM.md",
+        ),
         expect.stringContaining("has invalid category"),
         expect.stringContaining("frontmatter must include description"),
-        expect.stringContaining("key must be taskcore/bundled/Bad_Category/duplicate"),
-        expect.stringContaining("field recommendedForCompanyTypes must be an array of strings"),
+        expect.stringContaining(
+          "key must be taskcore/bundled/Bad_Category/duplicate",
+        ),
+        expect.stringContaining(
+          "field recommendedForCompanyTypes must be an array of strings",
+        ),
         expect.stringContaining("manager must resolve to an AGENTS.md file"),
         expect.stringContaining("reportsTo references unknown agent slug"),
-        expect.stringContaining("skill reference \"missing-skill\" does not resolve"),
+        expect.stringContaining(
+          'skill reference "missing-skill" does not resolve',
+        ),
         expect.stringContaining("assignee references unknown agent slug"),
         expect.stringContaining("project references unknown project slug"),
-        expect.stringContaining("Duplicate catalog slug \"duplicate\""),
+        expect.stringContaining('Duplicate catalog slug "duplicate"'),
       ]),
     );
   });
@@ -211,7 +256,8 @@ describe("teams catalog manifest", () => {
         "manager: agents/reviewer/AGENTS.md",
       ],
       files: {
-        "agents/reviewer/AGENTS.md": "---\nname: Reviewer\nslug: reviewer\n---\n\nReview.\n",
+        "agents/reviewer/AGENTS.md":
+          "---\nname: Reviewer\nslug: reviewer\n---\n\nReview.\n",
       },
     });
     await fs.mkdir(path.join(packageDir, "generated"), { recursive: true });
@@ -249,8 +295,12 @@ describe("teams catalog manifest", () => {
 async function createCatalogPackage() {
   const packageDir = await fs.mkdtemp(path.join(os.tmpdir(), "teams-catalog-"));
   tempDirs.push(packageDir);
-  await fs.mkdir(path.join(packageDir, "catalog", "bundled"), { recursive: true });
-  await fs.mkdir(path.join(packageDir, "catalog", "optional"), { recursive: true });
+  await fs.mkdir(path.join(packageDir, "catalog", "bundled"), {
+    recursive: true,
+  });
+  await fs.mkdir(path.join(packageDir, "catalog", "optional"), {
+    recursive: true,
+  });
   await fs.writeFile(
     path.join(packageDir, "package.json"),
     JSON.stringify({ version: "0.1.0" }),

@@ -145,7 +145,10 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const navigationType = useNavigationType();
-  const isTaskDetailRoute = classifyShellRoute(location.pathname, companyPrefix).isTaskDetail;
+  const isTaskDetailRoute = classifyShellRoute(
+    location.pathname,
+    companyPrefix,
+  ).isTaskDetail;
   const isCompanySettingsRoute = [
     "/company/settings",
     "/company/export",
@@ -691,13 +694,13 @@ export function Layout() {
                 style={
                   isMobile
                     ? ({
-                      "--tc-composer-bottom": mobileNavVisible
+                        "--tc-composer-bottom": mobileNavVisible
                           ? "var(--tc-composer-visible-nav-offset)"
                           : "var(--sz-calc-8)",
-                      "--mobile-nav-motion-duration": mobileNavVisible
+                        "--mobile-nav-motion-duration": mobileNavVisible
                           ? "var(--motion-mobile-nav-enter)"
                           : "var(--motion-mobile-nav-exit)",
-                      "--mobile-nav-motion-ease": mobileNavVisible
+                        "--mobile-nav-motion-ease": mobileNavVisible
                           ? "var(--motion-ease-out-expo)"
                           : "var(--motion-ease-standard)",
                       } as CSSProperties)
@@ -743,7 +746,9 @@ export function Layout() {
           onOpenChange={setShortcutsOpen}
         />
         <ToastViewport />
-        <PluginAppShellOverlays localTrusted={health?.deploymentMode === "local_trusted"} />
+        <PluginAppShellOverlays
+          localTrusted={health?.deploymentMode === "local_trusted"}
+        />
       </div>
     </ChatSetupSidebarProvider>
   );

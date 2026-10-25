@@ -1,11 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { chmod, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { readLocalAiCredentialFile } from "../services/local-ai-credential-file.js";
 let home: string;
-beforeEach(async () => { home = await realpath(await mkdtemp(path.join(os.tmpdir(), "ai-auth-read-"))); });
-afterEach(async () => { await rm(home, { recursive: true, force: true }); });
+beforeEach(async () => {
+  home = await realpath(await mkdtemp(path.join(os.tmpdir(), "ai-auth-read-")));
+});
+afterEach(async () => {
+  await rm(home, { recursive: true, force: true });
+});
 describe("isolated credential file safety", () => {
   it("reads only bounded private regular files", async () => {
     const filename = path.join(home, "credentials.json");
@@ -22,8 +33,14 @@ describe("isolated credential file safety", () => {
     const filename = path.join(home, "credentials.json");
     await writeFile(filename, "fixture", { mode: 0o600 });
     await symlink(filename, path.join(home, "linked.json"));
-    await expect(readLocalAiCredentialFile(path.join(home, "linked.json"))).rejects.toThrow();
+    await expect(
+      readLocalAiCredentialFile(path.join(home, "linked.json")),
+    ).rejects.toThrow();
     await symlink(home, path.join(home, "linked-home"));
-    await expect(readLocalAiCredentialFile(path.join(home, "linked-home", "credentials.json"))).rejects.toThrow();
+    await expect(
+      readLocalAiCredentialFile(
+        path.join(home, "linked-home", "credentials.json"),
+      ),
+    ).rejects.toThrow();
   });
 });

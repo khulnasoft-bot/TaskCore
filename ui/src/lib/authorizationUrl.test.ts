@@ -22,7 +22,11 @@ describe("resolveAuthorizationTarget", () => {
   });
 
   it("accepts an https authorization page and reports its host", () => {
-    expect(resolveAuthorizationTarget("https://auth.example.test/authorize?state=abc")).toEqual({
+    expect(
+      resolveAuthorizationTarget(
+        "https://auth.example.test/authorize?state=abc",
+      ),
+    ).toEqual({
       ok: true,
       url: "https://auth.example.test/authorize?state=abc",
       host: "auth.example.test",
@@ -50,13 +54,19 @@ describe("resolveAuthorizationTarget", () => {
 
   it("allows a loopback authorization server only on a plaintext-http board", () => {
     serveBoardOver("http:");
-    expect(resolveAuthorizationTarget("http://127.0.0.1:8930/authorize").ok).toBe(true);
+    expect(
+      resolveAuthorizationTarget("http://127.0.0.1:8930/authorize").ok,
+    ).toBe(true);
 
     serveBoardOver("https:");
-    expect(resolveAuthorizationTarget("http://127.0.0.1:8930/authorize")).toEqual({
+    expect(
+      resolveAuthorizationTarget("http://127.0.0.1:8930/authorize"),
+    ).toEqual({
       ok: false,
       message: expect.stringContaining("secure"),
     });
-    expect(resolveAuthorizationTarget("https://auth.example.test/authorize").ok).toBe(true);
+    expect(
+      resolveAuthorizationTarget("https://auth.example.test/authorize").ok,
+    ).toBe(true);
   });
 });

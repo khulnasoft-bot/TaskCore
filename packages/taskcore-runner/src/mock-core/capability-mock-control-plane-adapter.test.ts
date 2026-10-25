@@ -174,11 +174,13 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       comments: [{ body: "Fixture work started." }],
       documents: [{ key: "plan", revisions: [{ revision: 1 }] }],
       interactions: [{ kind: "confirmation", status: "pending" }],
-      approvals: [{
-        type: "request_board_approval",
-        status: "pending",
-        comments: [{ body: "Deterministic approval context." }],
-      }],
+      approvals: [
+        {
+          type: "request_board_approval",
+          status: "pending",
+          comments: [{ body: "Deterministic approval context." }],
+        },
+      ],
       artifacts: [{ filename: "report.json" }],
       workProducts: [{ type: "artifact" }],
       workspaceServices: [{ id: "service-1", status: "running" }],
@@ -187,7 +189,11 @@ describe("CapabilityMockControlPlaneAdapter", () => {
     expect(Object.isFrozen(left.snapshot)).toBe(true);
     expect(Object.isFrozen(left.snapshot.tasks)).toBe(true);
     expect(left.snapshot.audit.length).toBeGreaterThanOrEqual(7);
-    expect(left.adapter.decisionRecords().every((decision) => Object.isFrozen(decision))).toBe(true);
+    expect(
+      left.adapter
+        .decisionRecords()
+        .every((decision) => Object.isFrozen(decision)),
+    ).toBe(true);
   });
 
   it("commits a lost-ack command once and returns its stored result on retry", async () => {
@@ -218,9 +224,17 @@ describe("CapabilityMockControlPlaneAdapter", () => {
     const replayed = await adapter.applyCommand(envelope);
     expect(replayed.disposition).toBe("duplicate");
     expect(replayed.stateRevision).toBe(adapter.snapshot().revision);
-    expect(adapter.snapshot().comments.filter((comment) => comment.body === "Exactly once.")).toHaveLength(1);
-    expect(adapter.decisionRecords().map((decision) => decision.outcome)).toContain("faulted");
-    expect(adapter.decisionRecords().map((decision) => decision.outcome)).toContain("duplicate");
+    expect(
+      adapter
+        .snapshot()
+        .comments.filter((comment) => comment.body === "Exactly once."),
+    ).toHaveLength(1);
+    expect(
+      adapter.decisionRecords().map((decision) => decision.outcome),
+    ).toContain("faulted");
+    expect(
+      adapter.decisionRecords().map((decision) => decision.outcome),
+    ).toContain("duplicate");
 
     await expect(
       adapter.applyCommand({
@@ -232,14 +246,16 @@ describe("CapabilityMockControlPlaneAdapter", () => {
 
   it("rolls back every state change when command execution fails", async () => {
     const adapter = seeded({
-      faults: [{
-        id: "lost-create-ack",
-        operation: "apply_command",
-        commandKind: "create_task",
-        effect: "lost_ack",
-        remaining: 1,
-        code: "fixture_create_ack_lost",
-      }],
+      faults: [
+        {
+          id: "lost-create-ack",
+          operation: "apply_command",
+          commandKind: "create_task",
+          effect: "lost_ack",
+          remaining: 1,
+          code: "fixture_create_ack_lost",
+        },
+      ],
     });
     await adapter.start();
     await adapter.openFixtureRun({
@@ -248,11 +264,13 @@ describe("CapabilityMockControlPlaneAdapter", () => {
     });
     const before = adapter.serialize();
 
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "invalid-child",
-      command: { kind: "create_task", title: "" },
-    })).rejects.toMatchObject({ code: "semantic_command_invalid" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "invalid-child",
+        command: { kind: "create_task", title: "" },
+      }),
+    ).rejects.toMatchObject({ code: "semantic_command_invalid" });
 
     expect(adapter.serialize()).toBe(before);
     const corrected = {
@@ -267,19 +285,23 @@ describe("CapabilityMockControlPlaneAdapter", () => {
     await expect(adapter.applyCommand(corrected)).resolves.toMatchObject({
       disposition: "duplicate",
     });
-    expect(adapter.snapshot().tasks.map((task) => task.title)).toContain("Valid child");
+    expect(adapter.snapshot().tasks.map((task) => task.title)).toContain(
+      "Valid child",
+    );
   });
 
   it("preserves retryable command faults until semantic validation succeeds", async () => {
     const adapter = seeded({
-      faults: [{
-        id: "retry-create",
-        operation: "apply_command",
-        commandKind: "create_task",
-        effect: "retryable_error",
-        remaining: 1,
-        code: "fixture_create_temporarily_unavailable",
-      }],
+      faults: [
+        {
+          id: "retry-create",
+          operation: "apply_command",
+          commandKind: "create_task",
+          effect: "retryable_error",
+          remaining: 1,
+          code: "fixture_create_temporarily_unavailable",
+        },
+      ],
     });
     await adapter.start();
     await adapter.openFixtureRun({
@@ -287,11 +309,16 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       capabilities: ["delegation:tasks:create"],
     });
 
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "create-after-validation",
-      command: { kind: "create_task", title: "" },
-    })).rejects.toMatchObject({ code: "semantic_command_invalid", retryable: false });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "create-after-validation",
+        command: { kind: "create_task", title: "" },
+      }),
+    ).rejects.toMatchObject({
+      code: "semantic_command_invalid",
+      retryable: false,
+    });
     expect(adapter.snapshot().faults[0]?.remaining).toBe(1);
 
     const corrected = {
@@ -328,10 +355,16 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       emittedAt: `2026-08-09T00:00:0${sourceSeq}.000Z`,
       payload: {},
     });
-    expect((await adapter.appendEvent(event(2))).highestContiguousSourceSeq).toBe(0);
-    expect((await adapter.appendEvent(event(1))).highestContiguousSourceSeq).toBe(2);
+    expect(
+      (await adapter.appendEvent(event(2))).highestContiguousSourceSeq,
+    ).toBe(0);
+    expect(
+      (await adapter.appendEvent(event(1))).highestContiguousSourceSeq,
+    ).toBe(2);
 
-    const restored = CapabilityMockControlPlaneAdapter.restore(adapter.serialize());
+    const restored = CapabilityMockControlPlaneAdapter.restore(
+      adapter.serialize(),
+    );
     const replay = await restored.replayEvents({
       runId: "run-1",
       sourceInstanceId: "fixture-source",
@@ -343,125 +376,146 @@ describe("CapabilityMockControlPlaneAdapter", () => {
     expect(restored.context("run-1")).toEqual(adapter.context("run-1"));
   });
 
-  it.each(["blocked", "backlog"] as const)("reconciles terminal state and respects a %s dependent", async dependentStatus => {
-    const adapter = new CapabilityMockControlPlaneAdapter({
-      tasks: [
+  it.each(["blocked", "backlog"] as const)(
+    "reconciles terminal state and respects a %s dependent",
+    async (dependentStatus) => {
+      const adapter = new CapabilityMockControlPlaneAdapter({
+        tasks: [
+          {
+            id: "task-1",
+            companyId: "company-1",
+            identifier: "MCK-1",
+            title: "Blocking task",
+            description: null,
+            status: "todo",
+            priority: "high",
+            workMode: "standard",
+            parentId: null,
+            assigneeActorId: "actor-1",
+            checkoutRunId: null,
+            executionRunId: null,
+            startedAt: null,
+            completedAt: null,
+          },
+          {
+            id: "task-2",
+            companyId: "company-1",
+            identifier: "MCK-2",
+            title: "Dependent task",
+            description: null,
+            status: dependentStatus,
+            priority: "high",
+            workMode: "standard",
+            parentId: null,
+            assigneeActorId: "actor-1",
+            checkoutRunId: null,
+            executionRunId: null,
+            startedAt: null,
+            completedAt: null,
+          },
+        ],
+        blockers: [
+          {
+            id: "blocker-1",
+            taskId: "task-2",
+            blockedByTaskId: "task-1",
+            createdAt: "2026-08-09T00:00:00.000Z",
+          },
+        ],
+      });
+      await adapter.start();
+      await adapter.openFixtureRun(OPEN);
+      await adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "finish-1",
+        command: { kind: "finish_task", summary: "Blocking work completed." },
+      });
+
+      const terminal = {
+        schema: "taskcore.prp.terminal.v1" as const,
+        turnTerminalState: "completed" as const,
+        runTerminalState: "succeeded" as const,
+        reportedWorkDisposition: "done" as const,
+      };
+      const result = {
+        schema: "taskcore.run_result.v1" as const,
+        reportedWorkDisposition: "done" as const,
+        summary: "Blocking work completed.",
+        completionClaim: {
+          contractRevision: "capability-v1",
+          objectiveSatisfied: true,
+          criteria: [
+            {
+              criterionId: "objective",
+              status: "satisfied" as const,
+              evidenceRefs: [],
+            },
+          ],
+          remainingWork: [],
+        },
+        evidence: [],
+        verification: [],
+        attentionRequests: [],
+        artifacts: [],
+      };
+      await adapter.appendEvent({
+        schema: "taskcore.prp.event.v1",
+        sourceEventId: "fixture-source:terminal:1",
+        sourceSeq: 1,
+        sourceInstanceId: "fixture-source",
+        sourceKind: "runner",
+        runId: "run-1",
+        normalizedSessionId: "session-1",
+        turnId: "turn-1",
+        eventType: "run.terminal",
+        schemaVersion: 1,
+        priority: 0,
+        emittedAt: "2026-08-09T00:00:10.000Z",
+        payload: terminal,
+      });
+      await adapter.completeRun({ result, terminal });
+
+      const snapshot = adapter.snapshot();
+      expect(snapshot.tasks.find((task) => task.id === "task-1")).toMatchObject(
         {
-          id: "task-1",
-          companyId: "company-1",
-          identifier: "MCK-1",
-          title: "Blocking task",
-          description: null,
-          status: "todo",
-          priority: "high",
-          workMode: "standard",
-          parentId: null,
-          assigneeActorId: "actor-1",
+          status: "done",
           checkoutRunId: null,
           executionRunId: null,
-          startedAt: null,
-          completedAt: null,
         },
-        {
-          id: "task-2",
-          companyId: "company-1",
-          identifier: "MCK-2",
-          title: "Dependent task",
-          description: null,
-          status: dependentStatus,
-          priority: "high",
-          workMode: "standard",
-          parentId: null,
-          assigneeActorId: "actor-1",
-          checkoutRunId: null,
-          executionRunId: null,
-          startedAt: null,
-          completedAt: null,
-        },
-      ],
-      blockers: [
-        {
-          id: "blocker-1",
-          taskId: "task-2",
-          blockedByTaskId: "task-1",
-          createdAt: "2026-08-09T00:00:00.000Z",
-        },
-      ],
-    });
-    await adapter.start();
-    await adapter.openFixtureRun(OPEN);
-    await adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "finish-1",
-      command: { kind: "finish_task", summary: "Blocking work completed." },
-    });
-
-    const terminal = {
-      schema: "taskcore.prp.terminal.v1" as const,
-      turnTerminalState: "completed" as const,
-      runTerminalState: "succeeded" as const,
-      reportedWorkDisposition: "done" as const,
-    };
-    const result = {
-      schema: "taskcore.run_result.v1" as const,
-      reportedWorkDisposition: "done" as const,
-      summary: "Blocking work completed.",
-      completionClaim: {
-        contractRevision: "capability-v1",
-        objectiveSatisfied: true,
-        criteria: [{ criterionId: "objective", status: "satisfied" as const, evidenceRefs: [] }],
-        remainingWork: [],
-      },
-      evidence: [],
-      verification: [],
-      attentionRequests: [],
-      artifacts: [],
-    };
-    await adapter.appendEvent({
-      schema: "taskcore.prp.event.v1",
-      sourceEventId: "fixture-source:terminal:1",
-      sourceSeq: 1,
-      sourceInstanceId: "fixture-source",
-      sourceKind: "runner",
-      runId: "run-1",
-      normalizedSessionId: "session-1",
-      turnId: "turn-1",
-      eventType: "run.terminal",
-      schemaVersion: 1,
-      priority: 0,
-      emittedAt: "2026-08-09T00:00:10.000Z",
-      payload: terminal,
-    });
-    await adapter.completeRun({ result, terminal });
-
-    const snapshot = adapter.snapshot();
-    expect(snapshot.tasks.find((task) => task.id === "task-1")).toMatchObject({
-      status: "done",
-      checkoutRunId: null,
-      executionRunId: null,
-    });
-    expect(snapshot.tasks.find((task) => task.id === "task-2")?.status).toBe(dependentStatus === "backlog" ? "backlog" : "todo");
-    if (dependentStatus === "backlog") {
-      expect(snapshot.blockers).toMatchObject([{ taskId: "task-2", blockedByTaskId: "task-1" }]);
-      expect(snapshot.wakes).toEqual([]);
-    } else {
-      expect(snapshot.blockers).toEqual([]);
-      expect(snapshot.wakes).toMatchObject([
-        { taskId: "task-2", reason: "blockers_resolved", status: "scheduled" },
-      ]);
-    }
-    expect(snapshot.runs[0]?.status).toBe("succeeded");
-  });
+      );
+      expect(snapshot.tasks.find((task) => task.id === "task-2")?.status).toBe(
+        dependentStatus === "backlog" ? "backlog" : "todo",
+      );
+      if (dependentStatus === "backlog") {
+        expect(snapshot.blockers).toMatchObject([
+          { taskId: "task-2", blockedByTaskId: "task-1" },
+        ]);
+        expect(snapshot.wakes).toEqual([]);
+      } else {
+        expect(snapshot.blockers).toEqual([]);
+        expect(snapshot.wakes).toMatchObject([
+          {
+            taskId: "task-2",
+            reason: "blockers_resolved",
+            status: "scheduled",
+          },
+        ]);
+      }
+      expect(snapshot.runs[0]?.status).toBe("succeeded");
+    },
+  );
 
   it("preserves completion faults until a completion passes semantic validation", async () => {
     const adapter = seeded({
-      faults: [{
-        id: "retry-completion",
-        operation: "complete_run",
-        effect: "retryable_error",
-        remaining: 1,
-        code: "completion_temporarily_unavailable",
-      }],
+      faults: [
+        {
+          id: "retry-completion",
+          operation: "complete_run",
+          effect: "retryable_error",
+          remaining: 1,
+          code: "completion_temporarily_unavailable",
+        },
+      ],
     });
     await adapter.start();
     await adapter.openFixtureRun(OPEN);
@@ -503,7 +557,10 @@ describe("CapabilityMockControlPlaneAdapter", () => {
         result: CONTROL_PLANE_CONFORMANCE_RESULT,
         terminal: CONTROL_PLANE_CONFORMANCE_TERMINAL,
       }),
-    ).rejects.toMatchObject({ code: "completion_temporarily_unavailable", retryable: true });
+    ).rejects.toMatchObject({
+      code: "completion_temporarily_unavailable",
+      retryable: true,
+    });
     expect(adapter.snapshot().faults[0]?.remaining).toBe(0);
 
     await adapter.completeRun({
@@ -535,7 +592,10 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       ],
     });
     await adapter.start();
-    await adapter.openFixtureRun({ ...OPEN, capabilities: ["control_plane:budget"] });
+    await adapter.openFixtureRun({
+      ...OPEN,
+      capabilities: ["control_plane:budget"],
+    });
     await adapter.applyCommand({
       runId: "run-1",
       idempotencyKey: "usage-1",
@@ -578,27 +638,36 @@ describe("CapabilityMockControlPlaneAdapter", () => {
           hardStop: true,
         },
       ],
-      faults: [{
-        id: "lost-budget-ack",
-        operation: "apply_command",
-        commandKind: "record_budget_usage",
-        effect: "lost_ack",
-        remaining: 1,
-      }],
+      faults: [
+        {
+          id: "lost-budget-ack",
+          operation: "apply_command",
+          commandKind: "record_budget_usage",
+          effect: "lost_ack",
+          remaining: 1,
+        },
+      ],
     });
     await adapter.start();
-    await adapter.openFixtureRun({ ...OPEN, capabilities: ["control_plane:budget"] });
+    await adapter.openFixtureRun({
+      ...OPEN,
+      capabilities: ["control_plane:budget"],
+    });
     const envelope = {
       runId: "run-1",
       idempotencyKey: "budget-stop-retry",
       command: { kind: "record_budget_usage" as const, cents: 10 },
     };
 
-    await expect(adapter.applyCommand(envelope)).rejects.toMatchObject({ retryable: true });
+    await expect(adapter.applyCommand(envelope)).rejects.toMatchObject({
+      retryable: true,
+    });
     await expect(adapter.applyCommand(envelope)).resolves.toMatchObject({
       disposition: "duplicate",
     });
-    expect(adapter.snapshot().budgets.map((budget) => budget.spentCents)).toEqual([100, 100]);
+    expect(
+      adapter.snapshot().budgets.map((budget) => budget.spentCents),
+    ).toEqual([100, 100]);
     expect(adapter.snapshot().runs[0]?.status).toBe("budget_stopped");
   });
 
@@ -675,11 +744,17 @@ describe("CapabilityMockControlPlaneAdapter", () => {
     await adapter.start();
     await adapter.openFixtureRun(OPEN);
 
-    await expect(adapter.tryApplyCommand({
-      runId: "run-1",
-      idempotencyKey: "cross-task-write",
-      command: { kind: "report_progress", taskId: "task-2", body: "Not allowed." },
-    })).resolves.toMatchObject({
+    await expect(
+      adapter.tryApplyCommand({
+        runId: "run-1",
+        idempotencyKey: "cross-task-write",
+        command: {
+          kind: "report_progress",
+          taskId: "task-2",
+          body: "Not allowed.",
+        },
+      }),
+    ).resolves.toMatchObject({
       ok: false,
       error: { code: "task_scope_violation" },
     });
@@ -689,11 +764,13 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       idempotencyKey: "review-once",
       command: { kind: "request_review", summary: "Ready for review." },
     });
-    await expect(adapter.tryApplyCommand({
-      runId: "run-1",
-      idempotencyKey: "review-twice",
-      command: { kind: "request_review", summary: "Still ready." },
-    })).resolves.toMatchObject({
+    await expect(
+      adapter.tryApplyCommand({
+        runId: "run-1",
+        idempotencyKey: "review-twice",
+        command: { kind: "request_review", summary: "Still ready." },
+      }),
+    ).resolves.toMatchObject({
       ok: false,
       error: { code: "task_transition_illegal" },
     });
@@ -896,75 +973,89 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       ],
     });
 
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "shared-approval-comment",
-      command: {
-        kind: "comment_on_approval",
-        approvalId: "approval-other-task",
-        body: "Scoped from the active task.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied" });
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "shared-approval-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-other-task",
-        decision: "approved",
-        note: "Shared approval is in scope.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied" });
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "active-approval-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-active-task",
-        decision: "approved",
-        note: "Active-task approval is in scope.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied" });
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "terminal-requester-approval-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-terminal-requester",
-        decision: "approved",
-        note: "A terminal task cannot receive the requester continuation.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied" });
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "owned-requester-approval-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-owned-requester",
-        decision: "approved",
-        note: "A task owned by another run cannot receive the continuation.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied" });
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "backlog-requester-approval-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-backlog-requester",
-        decision: "approved",
-        note: "A parked task cannot receive an executable continuation.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied" });
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "unlinked-approval-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-unlinked",
-        decision: "approved",
-        note: "Must remain scoped.",
-      },
-    })).rejects.toMatchObject({ code: "approval_scope_violation" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "shared-approval-comment",
+        command: {
+          kind: "comment_on_approval",
+          approvalId: "approval-other-task",
+          body: "Scoped from the active task.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "shared-approval-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-other-task",
+          decision: "approved",
+          note: "Shared approval is in scope.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "active-approval-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-active-task",
+          decision: "approved",
+          note: "Active-task approval is in scope.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "terminal-requester-approval-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-terminal-requester",
+          decision: "approved",
+          note: "A terminal task cannot receive the requester continuation.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "owned-requester-approval-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-owned-requester",
+          decision: "approved",
+          note: "A task owned by another run cannot receive the continuation.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "backlog-requester-approval-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-backlog-requester",
+          decision: "approved",
+          note: "A parked task cannot receive an executable continuation.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "unlinked-approval-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-unlinked",
+          decision: "approved",
+          note: "Must remain scoped.",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "approval_scope_violation" });
     expect(adapter.snapshot()).toMatchObject({
       approvals: [
         {
@@ -983,61 +1074,77 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       ],
     });
     expect(adapter.snapshot().wakes).toHaveLength(5);
-    expect(adapter.snapshot().wakes).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        actorId: "actor-2",
-        taskId: "task-2",
-        reason: "approval_resolved",
-        payload: { approvalId: "approval-other-task", decision: "approved" },
-      }),
-      ...[
-        "approval-active-task",
-        "approval-terminal-requester",
-        "approval-owned-requester",
-        "approval-backlog-requester",
-      ].map((approvalId) => expect.objectContaining({
-        actorId: "actor-2",
-        reason: "approval_resolved",
-        payload: { approvalId, decision: "approved" },
-      })),
-    ]));
-    const recoveryTaskIds = adapter.snapshot().wakes
-      .filter((wake) => wake.taskId !== "task-2")
+    expect(adapter.snapshot().wakes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorId: "actor-2",
+          taskId: "task-2",
+          reason: "approval_resolved",
+          payload: { approvalId: "approval-other-task", decision: "approved" },
+        }),
+        ...[
+          "approval-active-task",
+          "approval-terminal-requester",
+          "approval-owned-requester",
+          "approval-backlog-requester",
+        ].map((approvalId) =>
+          expect.objectContaining({
+            actorId: "actor-2",
+            reason: "approval_resolved",
+            payload: { approvalId, decision: "approved" },
+          }),
+        ),
+      ]),
+    );
+    const recoveryTaskIds = adapter
+      .snapshot()
+      .wakes.filter((wake) => wake.taskId !== "task-2")
       .map((wake) => wake.taskId);
     expect(recoveryTaskIds).toHaveLength(4);
     for (const taskId of recoveryTaskIds) {
-      expect(adapter.snapshot().tasks.find((candidate) => candidate.id === taskId)).toMatchObject({
+      expect(
+        adapter.snapshot().tasks.find((candidate) => candidate.id === taskId),
+      ).toMatchObject({
         status: "todo",
         assigneeActorId: "actor-2",
         checkoutRunId: null,
         executionRunId: null,
       });
     }
-    expect(adapter.snapshot().tasks.find((candidate) => candidate.id === "task-5")).toMatchObject({
+    expect(
+      adapter.snapshot().tasks.find((candidate) => candidate.id === "task-5"),
+    ).toMatchObject({
       status: "backlog",
       assigneeActorId: "actor-2",
       checkoutRunId: null,
       executionRunId: null,
     });
-    expect(adapter.snapshot().wakes).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ taskId: "task-5" }),
-    ]));
-    const requesterWake = adapter.snapshot().wakes.find((wake) => wake.actorId === "actor-2");
-    expect(requesterWake).toMatchObject({ taskId: "task-2", status: "scheduled" });
-    await expect(adapter.openFixtureRun({
-      ...OPEN,
-      identity: {
-        ...OPEN.identity,
-        runId: "run-requester-wake",
-        sessionId: "session-requester-wake",
-        agentId: "actor-2",
-        issueId: requesterWake!.taskId,
-      },
-      wake: {
-        reason: requesterWake!.reason,
-        payload: requesterWake!.payload,
-      },
-    })).resolves.toMatchObject({
+    expect(adapter.snapshot().wakes).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ taskId: "task-5" })]),
+    );
+    const requesterWake = adapter
+      .snapshot()
+      .wakes.find((wake) => wake.actorId === "actor-2");
+    expect(requesterWake).toMatchObject({
+      taskId: "task-2",
+      status: "scheduled",
+    });
+    await expect(
+      adapter.openFixtureRun({
+        ...OPEN,
+        identity: {
+          ...OPEN.identity,
+          runId: "run-requester-wake",
+          sessionId: "session-requester-wake",
+          agentId: "actor-2",
+          issueId: requesterWake!.taskId,
+        },
+        wake: {
+          reason: requesterWake!.reason,
+          payload: requesterWake!.payload,
+        },
+      }),
+    ).resolves.toMatchObject({
       actor: { id: "actor-2" },
       activeTask: { id: "task-2", checkoutRunId: "run-requester-wake" },
     });
@@ -1115,25 +1222,29 @@ describe("CapabilityMockControlPlaneAdapter", () => {
           completedAt: null,
         },
       ],
-      approvals: [{
-        id: "approval-blocked-requester",
-        companyId: "company-1",
-        taskIds: ["task-1", "task-2"],
-        type: "request_board_approval",
-        status: "pending",
-        requestedByActorId: "actor-2",
-        payload: {},
-        decisionNote: null,
-        comments: [],
-        createdAt: "2026-08-09T00:00:00.000Z",
-        decidedAt: null,
-      }],
-      blockers: [{
-        id: "blocker-requester",
-        taskId: "task-2",
-        blockedByTaskId: "task-3",
-        createdAt: "2026-08-09T00:00:00.000Z",
-      }],
+      approvals: [
+        {
+          id: "approval-blocked-requester",
+          companyId: "company-1",
+          taskIds: ["task-1", "task-2"],
+          type: "request_board_approval",
+          status: "pending",
+          requestedByActorId: "actor-2",
+          payload: {},
+          decisionNote: null,
+          comments: [],
+          createdAt: "2026-08-09T00:00:00.000Z",
+          decidedAt: null,
+        },
+      ],
+      blockers: [
+        {
+          id: "blocker-requester",
+          taskId: "task-2",
+          blockedByTaskId: "task-3",
+          createdAt: "2026-08-09T00:00:00.000Z",
+        },
+      ],
     } satisfies CapabilityFixtureSeed;
     const adapter = seeded(seed);
     await adapter.start();
@@ -1142,16 +1253,18 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       capabilities: ["governance:approvals:decide"],
     });
 
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "blocked-requester-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-blocked-requester",
-        decision: "approved",
-        note: "Record approval without bypassing dependencies.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied" });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "blocked-requester-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-blocked-requester",
+          decision: "approved",
+          note: "Record approval without bypassing dependencies.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
 
     const snapshot = adapter.snapshot();
     expect(snapshot.tasks.find((task) => task.id === "task-2")).toMatchObject({
@@ -1167,7 +1280,9 @@ describe("CapabilityMockControlPlaneAdapter", () => {
     ]);
     expect(snapshot.wakes).toHaveLength(1);
     expect(snapshot.wakes[0]?.taskId).not.toBe("task-2");
-    expect(snapshot.tasks.find((task) => task.id === snapshot.wakes[0]?.taskId)).toMatchObject({
+    expect(
+      snapshot.tasks.find((task) => task.id === snapshot.wakes[0]?.taskId),
+    ).toMatchObject({
       status: "todo",
       assigneeActorId: "actor-2",
       checkoutRunId: null,
@@ -1191,16 +1306,18 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       ...OPEN,
       capabilities: ["governance:approvals:decide"],
     });
-    await expect(completedBlockerAdapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "completed-blocker-requester-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-blocked-requester",
-        decision: "approved",
-        note: "Continue the linked task after its dependency completed.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied" });
+    await expect(
+      completedBlockerAdapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "completed-blocker-requester-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-blocked-requester",
+          decision: "approved",
+          note: "Continue the linked task after its dependency completed.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
 
     const completedBlockerSnapshot = completedBlockerAdapter.snapshot();
     expect(completedBlockerSnapshot.blockers).toEqual([
@@ -1247,13 +1364,20 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       emittedAt: "2026-08-09T00:02:00.000Z",
       payload: { ...CONTROL_PLANE_CONFORMANCE_TERMINAL },
     });
-    await expect(completedBlockerAdapter.completeRun({
-      result: CONTROL_PLANE_CONFORMANCE_RESULT,
-      terminal: CONTROL_PLANE_CONFORMANCE_TERMINAL,
-    })).resolves.toBeUndefined();
+    await expect(
+      completedBlockerAdapter.completeRun({
+        result: CONTROL_PLANE_CONFORMANCE_RESULT,
+        terminal: CONTROL_PLANE_CONFORMANCE_TERMINAL,
+      }),
+    ).resolves.toBeUndefined();
     const terminalSnapshot = completedBlockerAdapter.snapshot();
-    expect(terminalSnapshot.tasks.find((task) => task.id === "task-2"))
-      .toMatchObject({ status: "done", checkoutRunId: null, executionRunId: null });
+    expect(
+      terminalSnapshot.tasks.find((task) => task.id === "task-2"),
+    ).toMatchObject({
+      status: "done",
+      checkoutRunId: null,
+      executionRunId: null,
+    });
     expect(terminalSnapshot.blockers).toEqual([]);
   });
 
@@ -1330,14 +1454,21 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       capabilities: ["dependencies:write"],
     });
 
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "resolved-blocker-cycle-check",
-      command: { kind: "set_dependencies", blockedByTaskIds: ["task-2"] },
-    })).resolves.toMatchObject({ disposition: "applied" });
-    expect(adapter.snapshot().blockers).toEqual(expect.arrayContaining([
-      expect.objectContaining({ taskId: "task-1", blockedByTaskId: "task-2" }),
-    ]));
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "resolved-blocker-cycle-check",
+        command: { kind: "set_dependencies", blockedByTaskIds: ["task-2"] },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied" });
+    expect(adapter.snapshot().blockers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          taskId: "task-1",
+          blockedByTaskId: "task-2",
+        }),
+      ]),
+    );
   });
 
   it("does not schedule approval recovery for an inactive requester", async () => {
@@ -1362,19 +1493,21 @@ describe("CapabilityMockControlPlaneAdapter", () => {
           capabilityGrants: [],
         },
       ],
-      approvals: [{
-        id: "approval-paused-requester",
-        companyId: "company-1",
-        taskIds: ["task-1"],
-        type: "request_board_approval",
-        status: "pending",
-        requestedByActorId: "actor-2",
-        payload: {},
-        decisionNote: null,
-        comments: [],
-        createdAt: "2026-08-09T00:00:00.000Z",
-        decidedAt: null,
-      }],
+      approvals: [
+        {
+          id: "approval-paused-requester",
+          companyId: "company-1",
+          taskIds: ["task-1"],
+          type: "request_board_approval",
+          status: "pending",
+          requestedByActorId: "actor-2",
+          payload: {},
+          decisionNote: null,
+          comments: [],
+          createdAt: "2026-08-09T00:00:00.000Z",
+          decidedAt: null,
+        },
+      ],
     });
     await adapter.start();
     await adapter.openFixtureRun({
@@ -1382,16 +1515,18 @@ describe("CapabilityMockControlPlaneAdapter", () => {
       capabilities: ["governance:approvals:decide"],
     });
 
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "paused-requester-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-paused-requester",
-        decision: "approved",
-        note: "Record the decision without an unusable continuation.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied", scheduledWakeIds: [] });
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "paused-requester-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-paused-requester",
+          decision: "approved",
+          note: "Record the decision without an unusable continuation.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied", scheduledWakeIds: [] });
     expect(adapter.snapshot().tasks).toHaveLength(1);
     expect(adapter.snapshot().wakes).toEqual([]);
   });
@@ -1418,87 +1553,24 @@ describe("CapabilityMockControlPlaneAdapter", () => {
           capabilityGrants: [],
         },
       ],
-      budgets: [{
-        id: "budget-actor-1",
-        scope: "actor",
-        scopeId: "actor-1",
-        limitCents: 1_000,
-        spentCents: 0,
-        hardStop: true,
-      }],
-      approvals: [{
-        id: "approval-budgetless-requester",
-        companyId: "company-1",
-        taskIds: ["task-1"],
-        type: "request_board_approval",
-        status: "pending",
-        requestedByActorId: "actor-2",
-        payload: {},
-        decisionNote: null,
-        comments: [],
-        createdAt: "2026-08-09T00:00:00.000Z",
-        decidedAt: null,
-      }],
-    });
-    await adapter.start();
-    await adapter.openFixtureRun({
-      ...OPEN,
-      capabilities: ["governance:approvals:decide"],
-    });
-
-    await expect(adapter.applyCommand({
-      runId: "run-1",
-      idempotencyKey: "budgetless-requester-decision",
-      command: {
-        kind: "decide_approval",
-        approvalId: "approval-budgetless-requester",
-        decision: "approved",
-        note: "Record governance independently from continuation capacity.",
-      },
-    })).resolves.toMatchObject({ disposition: "applied", scheduledWakeIds: [] });
-
-    expect(adapter.snapshot()).toMatchObject({
-      approvals: [{
-        id: "approval-budgetless-requester",
-        status: "approved",
-        decisionNote: "Record governance independently from continuation capacity.",
-      }],
-      wakes: [],
-    });
-    expect(adapter.snapshot().tasks).toHaveLength(1);
-  });
-
-  it("rejects fixture wake references outside the company actor scope", () => {
-    expect(() => seeded({
-      tasks: [
+      budgets: [
         {
-          id: "task-1",
-          companyId: "company-1",
-          identifier: "MCK-1",
-          title: "Invalid assignee",
-          description: null,
-          status: "todo",
-          priority: "high",
-          workMode: "standard",
-          parentId: null,
-          assigneeActorId: "missing-actor",
-          checkoutRunId: null,
-          executionRunId: null,
-          startedAt: null,
-          completedAt: null,
+          id: "budget-actor-1",
+          scope: "actor",
+          scopeId: "actor-1",
+          limitCents: 1_000,
+          spentCents: 0,
+          hardStop: true,
         },
       ],
-    })).toThrow(/invalid assignee actor/);
-
-    expect(() => seeded({
       approvals: [
         {
-          id: "approval-invalid-requester",
+          id: "approval-budgetless-requester",
           companyId: "company-1",
           taskIds: ["task-1"],
           type: "request_board_approval",
           status: "pending",
-          requestedByActorId: "missing-actor",
+          requestedByActorId: "actor-2",
           payload: {},
           decisionNote: null,
           comments: [],
@@ -1506,16 +1578,96 @@ describe("CapabilityMockControlPlaneAdapter", () => {
           decidedAt: null,
         },
       ],
-    })).toThrow(/invalid requester actor/);
+    });
+    await adapter.start();
+    await adapter.openFixtureRun({
+      ...OPEN,
+      capabilities: ["governance:approvals:decide"],
+    });
 
-    expect(() => seeded({
-      blockers: [{
-        id: "blocker-invalid-task",
-        taskId: "task-1",
-        blockedByTaskId: "missing-task",
-        createdAt: "2026-08-09T00:00:00.000Z",
-      }],
-    })).toThrow(/invalid task reference/);
+    await expect(
+      adapter.applyCommand({
+        runId: "run-1",
+        idempotencyKey: "budgetless-requester-decision",
+        command: {
+          kind: "decide_approval",
+          approvalId: "approval-budgetless-requester",
+          decision: "approved",
+          note: "Record governance independently from continuation capacity.",
+        },
+      }),
+    ).resolves.toMatchObject({ disposition: "applied", scheduledWakeIds: [] });
+
+    expect(adapter.snapshot()).toMatchObject({
+      approvals: [
+        {
+          id: "approval-budgetless-requester",
+          status: "approved",
+          decisionNote:
+            "Record governance independently from continuation capacity.",
+        },
+      ],
+      wakes: [],
+    });
+    expect(adapter.snapshot().tasks).toHaveLength(1);
+  });
+
+  it("rejects fixture wake references outside the company actor scope", () => {
+    expect(() =>
+      seeded({
+        tasks: [
+          {
+            id: "task-1",
+            companyId: "company-1",
+            identifier: "MCK-1",
+            title: "Invalid assignee",
+            description: null,
+            status: "todo",
+            priority: "high",
+            workMode: "standard",
+            parentId: null,
+            assigneeActorId: "missing-actor",
+            checkoutRunId: null,
+            executionRunId: null,
+            startedAt: null,
+            completedAt: null,
+          },
+        ],
+      }),
+    ).toThrow(/invalid assignee actor/);
+
+    expect(() =>
+      seeded({
+        approvals: [
+          {
+            id: "approval-invalid-requester",
+            companyId: "company-1",
+            taskIds: ["task-1"],
+            type: "request_board_approval",
+            status: "pending",
+            requestedByActorId: "missing-actor",
+            payload: {},
+            decisionNote: null,
+            comments: [],
+            createdAt: "2026-08-09T00:00:00.000Z",
+            decidedAt: null,
+          },
+        ],
+      }),
+    ).toThrow(/invalid requester actor/);
+
+    expect(() =>
+      seeded({
+        blockers: [
+          {
+            id: "blocker-invalid-task",
+            taskId: "task-1",
+            blockedByTaskId: "missing-task",
+            createdAt: "2026-08-09T00:00:00.000Z",
+          },
+        ],
+      }),
+    ).toThrow(/invalid task reference/);
   });
 
   it("rejects stale interaction targets and invalid interaction outcomes", async () => {
@@ -1536,7 +1688,9 @@ describe("CapabilityMockControlPlaneAdapter", () => {
         baseRevisionId: null,
       },
     });
-    const firstRevisionId = first.entityRefs.find((ref) => ref.startsWith("revision:"))!.slice(9);
+    const firstRevisionId = first.entityRefs
+      .find((ref) => ref.startsWith("revision:"))!
+      .slice(9);
     const second = await adapter.applyCommand({
       runId: "run-1",
       idempotencyKey: "plan-v2",
@@ -1548,20 +1702,24 @@ describe("CapabilityMockControlPlaneAdapter", () => {
         baseRevisionId: firstRevisionId,
       },
     });
-    const secondRevisionId = second.entityRefs.find((ref) => ref.startsWith("revision:"))!.slice(9);
+    const secondRevisionId = second.entityRefs
+      .find((ref) => ref.startsWith("revision:"))!
+      .slice(9);
 
-    await expect(adapter.tryApplyCommand({
-      runId: "run-1",
-      idempotencyKey: "stale-confirmation",
-      command: {
-        kind: "request_human_input",
-        interactionKind: "confirmation",
-        title: "Confirm",
-        prompt: "Accept?",
-        targetRevisionId: firstRevisionId,
-        continuationPolicy: "wake_assignee",
-      },
-    })).resolves.toMatchObject({
+    await expect(
+      adapter.tryApplyCommand({
+        runId: "run-1",
+        idempotencyKey: "stale-confirmation",
+        command: {
+          kind: "request_human_input",
+          interactionKind: "confirmation",
+          title: "Confirm",
+          prompt: "Accept?",
+          targetRevisionId: firstRevisionId,
+          continuationPolicy: "wake_assignee",
+        },
+      }),
+    ).resolves.toMatchObject({
       ok: false,
       error: { code: "interaction_target_stale" },
     });
@@ -1578,26 +1736,32 @@ describe("CapabilityMockControlPlaneAdapter", () => {
         continuationPolicy: "wake_assignee",
       },
     });
-    const interactionId = interaction.entityRefs.find((ref) => ref.startsWith("interaction:"))!.slice(12);
-    await expect(adapter.tryApplyCommand({
-      runId: "run-1",
-      idempotencyKey: "invalid-confirmation-answer",
-      command: {
-        kind: "resolve_human_input",
-        interactionId,
-        outcome: "answered",
-        result: { answer: "yes" },
-      },
-    })).resolves.toMatchObject({
+    const interactionId = interaction.entityRefs
+      .find((ref) => ref.startsWith("interaction:"))!
+      .slice(12);
+    await expect(
+      adapter.tryApplyCommand({
+        runId: "run-1",
+        idempotencyKey: "invalid-confirmation-answer",
+        command: {
+          kind: "resolve_human_input",
+          interactionId,
+          outcome: "answered",
+          result: { answer: "yes" },
+        },
+      }),
+    ).resolves.toMatchObject({
       ok: false,
       error: { code: "interaction_outcome_invalid" },
     });
   });
 
   it("performs complete mock operations without any Taskcore network request", async () => {
-    const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(
-      new Error("network access is forbidden in the mock control plane"),
-    );
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(
+        new Error("network access is forbidden in the mock control plane"),
+      );
     try {
       const adapter = seeded();
       await adapter.start();
@@ -1607,8 +1771,12 @@ describe("CapabilityMockControlPlaneAdapter", () => {
         idempotencyKey: "offline-progress",
         command: { kind: "report_progress", body: "Committed offline." },
       });
-      const restored = CapabilityMockControlPlaneAdapter.restore(adapter.serialize());
-      expect(restored.snapshot().comments).toMatchObject([{ body: "Committed offline." }]);
+      const restored = CapabilityMockControlPlaneAdapter.restore(
+        adapter.serialize(),
+      );
+      expect(restored.snapshot().comments).toMatchObject([
+        { body: "Committed offline." },
+      ]);
       expect(fetch).not.toHaveBeenCalled();
     } finally {
       fetch.mockRestore();
@@ -1673,16 +1841,20 @@ describe("CapabilityMockControlPlaneAdapter", () => {
         },
       ],
     });
-    await expect(runControlPlanePortConformance({ port: adapter, start: () => adapter.start() }))
-      .resolves.toMatchObject({
-        eventCount: 3,
-        terminalReplayIdempotent: true,
-        openBindingRejected: true,
-        eventIdMutationRejected: true,
-        eventSequenceMutationRejected: true,
-        replayBindingRejected: true,
-        resultMutationRejected: true,
-      });
+    await expect(
+      runControlPlanePortConformance({
+        port: adapter,
+        start: () => adapter.start(),
+      }),
+    ).resolves.toMatchObject({
+      eventCount: 3,
+      terminalReplayIdempotent: true,
+      openBindingRejected: true,
+      eventIdMutationRejected: true,
+      eventSequenceMutationRejected: true,
+      replayBindingRejected: true,
+      resultMutationRejected: true,
+    });
   });
 
   it("uses stable typed errors for retryable scripted failures", async () => {

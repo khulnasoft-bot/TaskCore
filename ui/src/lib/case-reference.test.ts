@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseCaseReferenceFromHref, remarkLinkCaseReferences } from "./case-reference";
+import {
+  parseCaseReferenceFromHref,
+  remarkLinkCaseReferences,
+} from "./case-reference";
 
 describe("parseCaseReferenceFromHref", () => {
   it("linkifies a bare case identifier to the case detail path", () => {
@@ -20,7 +23,9 @@ describe("parseCaseReferenceFromHref", () => {
 
   it("respects the known-prefix allowlist when provided", () => {
     expect(parseCaseReferenceFromHref("FOO-C1", new Set(["PAP"]))).toBeNull();
-    expect(parseCaseReferenceFromHref("PAP-C1", new Set(["PAP"]))?.identifier).toBe("PAP-C1");
+    expect(
+      parseCaseReferenceFromHref("PAP-C1", new Set(["PAP"]))?.identifier,
+    ).toBe("PAP-C1");
   });
 
   it("stays permissive when no prefixes are known", () => {
@@ -40,24 +45,40 @@ describe("remarkLinkCaseReferences", () => {
       ],
     };
     remarkLinkCaseReferences()(tree as never);
-    const paragraph = (tree.children[0] as { children: Array<{ type: string; url?: string }> });
+    const paragraph = tree.children[0] as {
+      children: Array<{ type: string; url?: string }>;
+    };
     const link = paragraph.children.find((c) => c.type === "link");
     expect(link?.url).toBe("/cases/PAP-C7");
     // Surrounding text is preserved on both sides.
-    expect(paragraph.children[0]).toMatchObject({ type: "text", value: "see " });
-    expect(paragraph.children.at(-1)).toMatchObject({ type: "text", value: " for details" });
+    expect(paragraph.children[0]).toMatchObject({
+      type: "text",
+      value: "see ",
+    });
+    expect(paragraph.children.at(-1)).toMatchObject({
+      type: "text",
+      value: " for details",
+    });
   });
 
   it("rewrites inline code that is exactly a case identifier", () => {
     const tree = {
       type: "root",
       children: [
-        { type: "paragraph", children: [{ type: "inlineCode", value: "PAP-C42" }] },
+        {
+          type: "paragraph",
+          children: [{ type: "inlineCode", value: "PAP-C42" }],
+        },
       ],
     };
     remarkLinkCaseReferences()(tree as never);
-    const paragraph = tree.children[0] as { children: Array<{ type: string; url?: string }> };
-    expect(paragraph.children[0]).toMatchObject({ type: "link", url: "/cases/PAP-C42" });
+    const paragraph = tree.children[0] as {
+      children: Array<{ type: string; url?: string }>;
+    };
+    expect(paragraph.children[0]).toMatchObject({
+      type: "link",
+      url: "/cases/PAP-C42",
+    });
   });
 
   it("does not descend into existing links", () => {
@@ -72,7 +93,10 @@ describe("remarkLinkCaseReferences", () => {
       ],
     };
     remarkLinkCaseReferences()(tree as never);
-    const link = tree.children[0] as { url: string; children: Array<{ type: string }> };
+    const link = tree.children[0] as {
+      url: string;
+      children: Array<{ type: string }>;
+    };
     expect(link.url).toBe("https://example.com");
     expect(link.children[0]!.type).toBe("text");
   });

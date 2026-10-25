@@ -35,19 +35,25 @@ export type RoutineContextualNavItem = {
   icon: LucideIcon;
 };
 
-export const ROUTINE_CONTEXTUAL_NAV_ITEMS: readonly RoutineContextualNavItem[] = [
-  { view: "overview", label: "Overview", icon: LayoutDashboard },
-  { view: "triggers", label: "Triggers", icon: CalendarClock },
-  { view: "variables", label: "Variables", icon: Braces },
-  { view: "delivery", label: "Delivery", icon: Send },
-  { view: "secrets", label: "Secrets", icon: KeyRound },
-];
+export const ROUTINE_CONTEXTUAL_NAV_ITEMS: readonly RoutineContextualNavItem[] =
+  [
+    { view: "overview", label: "Overview", icon: LayoutDashboard },
+    { view: "triggers", label: "Triggers", icon: CalendarClock },
+    { view: "variables", label: "Variables", icon: Braces },
+    { view: "delivery", label: "Delivery", icon: Send },
+    { view: "secrets", label: "Secrets", icon: KeyRound },
+  ];
 
-export function isRoutineDetailView(value: string | null | undefined): value is RoutineDetailView {
+export function isRoutineDetailView(
+  value: string | null | undefined,
+): value is RoutineDetailView {
   return ROUTINE_DETAIL_VIEWS.includes(value as RoutineDetailView);
 }
 
-export function routineDetailHref(routineId: string, view: RoutineDetailView = "overview") {
+export function routineDetailHref(
+  routineId: string,
+  view: RoutineDetailView = "overview",
+) {
   return `/routines/${routineId}/${view}`;
 }
 
@@ -58,7 +64,8 @@ export function resolveRoutineDetailDestination(input: {
   legacyTab?: string | null;
 }) {
   const requested = input.legacyTab ?? input.section;
-  if (isRoutineDetailView(requested)) return routineDetailHref(input.routineId, requested);
+  if (isRoutineDetailView(requested))
+    return routineDetailHref(input.routineId, requested);
   return routineDetailHref(input.routineId, "overview");
 }
 
@@ -87,7 +94,10 @@ export function RoutineContextualSidebar({
       showHeader={false}
       className="border-r border-border bg-background"
     >
-      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-2" aria-label="Routine navigation">
+      <nav
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-2"
+        aria-label="Routine navigation"
+      >
         <div className="flex flex-col gap-0.5">
           {ROUTINE_CONTEXTUAL_NAV_ITEMS.map((item) => (
             <SidebarNavItem

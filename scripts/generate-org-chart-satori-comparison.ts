@@ -29,8 +29,20 @@ const ORGS: Record<string, OrgNode> = {
     role: "Chief Executive",
     status: "active",
     reports: [
-      { id: "eng1", name: "Engineer", role: "Engineering", status: "active", reports: [] },
-      { id: "des1", name: "Designer", role: "Design", status: "active", reports: [] },
+      {
+        id: "eng1",
+        name: "Engineer",
+        role: "Engineering",
+        status: "active",
+        reports: [],
+      },
+      {
+        id: "des1",
+        name: "Designer",
+        role: "Design",
+        status: "active",
+        reports: [],
+      },
     ],
   },
   med: {
@@ -45,11 +57,41 @@ const ORGS: Record<string, OrgNode> = {
         role: "Technology",
         status: "active",
         reports: [
-          { id: "eng1", name: "ClaudeCoder", role: "Engineering", status: "active", reports: [] },
-          { id: "eng2", name: "CodexCoder", role: "Engineering", status: "active", reports: [] },
-          { id: "eng3", name: "SparkCoder", role: "Engineering", status: "active", reports: [] },
-          { id: "eng4", name: "CursorCoder", role: "Engineering", status: "active", reports: [] },
-          { id: "qa1", name: "QA", role: "Quality", status: "active", reports: [] },
+          {
+            id: "eng1",
+            name: "ClaudeCoder",
+            role: "Engineering",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "eng2",
+            name: "CodexCoder",
+            role: "Engineering",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "eng3",
+            name: "SparkCoder",
+            role: "Engineering",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "eng4",
+            name: "CursorCoder",
+            role: "Engineering",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "qa1",
+            name: "QA",
+            role: "Quality",
+            status: "active",
+            reports: [],
+          },
         ],
       },
       {
@@ -58,7 +100,13 @@ const ORGS: Record<string, OrgNode> = {
         role: "Marketing",
         status: "active",
         reports: [
-          { id: "des1", name: "Designer", role: "Design", status: "active", reports: [] },
+          {
+            id: "des1",
+            name: "Designer",
+            role: "Design",
+            status: "active",
+            reports: [],
+          },
         ],
       },
     ],
@@ -75,10 +123,34 @@ const ORGS: Record<string, OrgNode> = {
         role: "Technology",
         status: "active",
         reports: [
-          { id: "eng1", name: "Eng 1", role: "Engineering", status: "active", reports: [] },
-          { id: "eng2", name: "Eng 2", role: "Engineering", status: "active", reports: [] },
-          { id: "eng3", name: "Eng 3", role: "Engineering", status: "active", reports: [] },
-          { id: "qa1", name: "QA", role: "Quality", status: "active", reports: [] },
+          {
+            id: "eng1",
+            name: "Eng 1",
+            role: "Engineering",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "eng2",
+            name: "Eng 2",
+            role: "Engineering",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "eng3",
+            name: "Eng 3",
+            role: "Engineering",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "qa1",
+            name: "QA",
+            role: "Quality",
+            status: "active",
+            reports: [],
+          },
         ],
       },
       {
@@ -87,8 +159,20 @@ const ORGS: Record<string, OrgNode> = {
         role: "Marketing",
         status: "active",
         reports: [
-          { id: "des1", name: "Designer", role: "Design", status: "active", reports: [] },
-          { id: "wrt1", name: "Content", role: "Engineering", status: "active", reports: [] },
+          {
+            id: "des1",
+            name: "Designer",
+            role: "Design",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "wrt1",
+            name: "Content",
+            role: "Engineering",
+            status: "active",
+            reports: [],
+          },
         ],
       },
       {
@@ -97,7 +181,13 @@ const ORGS: Record<string, OrgNode> = {
         role: "Finance",
         status: "active",
         reports: [
-          { id: "fin1", name: "Analyst", role: "Finance", status: "active", reports: [] },
+          {
+            id: "fin1",
+            name: "Analyst",
+            role: "Finance",
+            status: "active",
+            reports: [],
+          },
         ],
       },
       {
@@ -106,21 +196,62 @@ const ORGS: Record<string, OrgNode> = {
         role: "Operations",
         status: "active",
         reports: [
-          { id: "ops1", name: "Ops 1", role: "Operations", status: "active", reports: [] },
-          { id: "ops2", name: "Ops 2", role: "Operations", status: "active", reports: [] },
-          { id: "devops1", name: "DevOps", role: "Operations", status: "active", reports: [] },
+          {
+            id: "ops1",
+            name: "Ops 1",
+            role: "Operations",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "ops2",
+            name: "Ops 2",
+            role: "Operations",
+            status: "active",
+            reports: [],
+          },
+          {
+            id: "devops1",
+            name: "DevOps",
+            role: "Operations",
+            status: "active",
+            reports: [],
+          },
         ],
       },
     ],
   },
 };
 
-const STYLE_META: Record<OrgChartStyle, { name: string; vibe: string; bestFor: string }> = {
-  monochrome: { name: "Monochrome", vibe: "Vercel — zero color noise, dark", bestFor: "GitHub READMEs, developer docs" },
-  nebula: { name: "Nebula", vibe: "Glassmorphism — cosmic gradient", bestFor: "Hero sections, marketing" },
-  circuit: { name: "Circuit", vibe: "Linear/Raycast — indigo traces", bestFor: "Product pages, dev tools" },
-  warmth: { name: "Warmth", vibe: "Airbnb — light, colored avatars", bestFor: "Light-mode READMEs, presentations" },
-  schematic: { name: "Schematic", vibe: "Blueprint — grid bg, monospace", bestFor: "Technical docs, infra diagrams" },
+const STYLE_META: Record<
+  OrgChartStyle,
+  { name: string; vibe: string; bestFor: string }
+> = {
+  monochrome: {
+    name: "Monochrome",
+    vibe: "Vercel — zero color noise, dark",
+    bestFor: "GitHub READMEs, developer docs",
+  },
+  nebula: {
+    name: "Nebula",
+    vibe: "Glassmorphism — cosmic gradient",
+    bestFor: "Hero sections, marketing",
+  },
+  circuit: {
+    name: "Circuit",
+    vibe: "Linear/Raycast — indigo traces",
+    bestFor: "Product pages, dev tools",
+  },
+  warmth: {
+    name: "Warmth",
+    vibe: "Airbnb — light, colored avatars",
+    bestFor: "Light-mode READMEs, presentations",
+  },
+  schematic: {
+    name: "Schematic",
+    vibe: "Blueprint — grid bg, monospace",
+    bestFor: "Technical docs, infra diagrams",
+  },
 };
 
 // ── Main ─────────────────────────────────────────────────────────
@@ -148,7 +279,9 @@ async function main() {
         results.push(pngFile);
         console.log(`  ✓ ${pngFile}`);
       } catch (e) {
-        console.log(`  ⚠ PNG failed for ${style}-${size}: ${(e as Error).message}`);
+        console.log(
+          `  ⚠ PNG failed for ${style}-${size}: ${(e as Error).message}`,
+        );
       }
     }
   }

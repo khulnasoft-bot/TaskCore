@@ -76,24 +76,47 @@ describe("secret validators", () => {
   });
 
   it("requires secret rotation payloads to include rotation input", () => {
-    expect(() => rotateSecretSchema.parse({})).toThrow(/requires value, externalRef/);
-    expect(() => rotateUserSecretValueSchema.parse({})).toThrow(/requires value, externalRef/);
-    expect(() => rotateUserSecretValueSchema.parse({ providerVersionRef: null })).toThrow(/requires value, externalRef/);
-    expect(() => rotateUserSecretValueSchema.parse({ providerConfigId: null })).toThrow(/requires value, externalRef/);
-    expect(() => rotateUserSecretValueSchema.parse({ externalRef: "" })).toThrow();
-    expect(() => rotateUserSecretValueSchema.parse({ providerVersionRef: "" })).toThrow();
+    expect(() => rotateSecretSchema.parse({})).toThrow(
+      /requires value, externalRef/,
+    );
+    expect(() => rotateUserSecretValueSchema.parse({})).toThrow(
+      /requires value, externalRef/,
+    );
+    expect(() =>
+      rotateUserSecretValueSchema.parse({ providerVersionRef: null }),
+    ).toThrow(/requires value, externalRef/);
+    expect(() =>
+      rotateUserSecretValueSchema.parse({ providerConfigId: null }),
+    ).toThrow(/requires value, externalRef/);
+    expect(() =>
+      rotateUserSecretValueSchema.parse({ externalRef: "" }),
+    ).toThrow();
+    expect(() =>
+      rotateUserSecretValueSchema.parse({ providerVersionRef: "" }),
+    ).toThrow();
     expect(rotateUserSecretValueSchema.parse({ value: "new-secret" })).toEqual({
       value: "new-secret",
     });
-    expect(rotateUserSecretValueSchema.parse({ providerVersionRef: "version-2" })).toEqual({
+    expect(
+      rotateUserSecretValueSchema.parse({ providerVersionRef: "version-2" }),
+    ).toEqual({
       providerVersionRef: "version-2",
     });
   });
 
   it("rejects empty external selectors in user secret patches", () => {
-    expect(() => updateUserSecretValueSchema.parse({ externalRef: "" })).toThrow();
-    expect(() => updateUserSecretValueSchema.parse({ providerVersionRef: "" })).toThrow();
-    expect(updateUserSecretValueSchema.parse({ externalRef: null, providerVersionRef: null })).toEqual({
+    expect(() =>
+      updateUserSecretValueSchema.parse({ externalRef: "" }),
+    ).toThrow();
+    expect(() =>
+      updateUserSecretValueSchema.parse({ providerVersionRef: "" }),
+    ).toThrow();
+    expect(
+      updateUserSecretValueSchema.parse({
+        externalRef: null,
+        providerVersionRef: null,
+      }),
+    ).toEqual({
       externalRef: null,
       providerVersionRef: null,
     });
@@ -105,7 +128,8 @@ describe("secret validators", () => {
         name: "OpenAI API Key",
         managedMode: "taskcore_managed",
         value: "secret-value",
-        externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/other",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/other",
       }),
     ).toThrow(/Managed secrets cannot set externalRef/);
   });
@@ -114,7 +138,8 @@ describe("secret validators", () => {
     const parsed = createSecretSchema.parse({
       name: "Shared Secret",
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/other",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/other",
     });
 
     expect(parsed.externalRef).toContain(":secret:shared/other");
@@ -157,7 +182,8 @@ describe("secret validators", () => {
     });
 
     expect(parsed.provider).toBe("vault");
-    if (parsed.provider !== "vault") throw new Error("Expected vault provider payload");
+    if (parsed.provider !== "vault")
+      throw new Error("Expected vault provider payload");
     expect(parsed.config.address).toBe("https://vault.example.com");
   });
 
@@ -166,15 +192,18 @@ describe("secret validators", () => {
     "https://vault.example.com?token=hvs.x",
     "https://vault.example.com#token=hvs.x",
     "https://vault.example.com/v1/secret",
-  ])("rejects credential-bearing or non-origin Vault addresses: %s", (address) => {
-    expect(() =>
-      createSecretProviderConfigSchema.parse({
-        provider: "vault",
-        displayName: "Vault draft",
-        config: { address },
-      }),
-    ).toThrow(/origin-only HTTP\(S\) URL/i);
-  });
+  ])(
+    "rejects credential-bearing or non-origin Vault addresses: %s",
+    (address) => {
+      expect(() =>
+        createSecretProviderConfigSchema.parse({
+          provider: "vault",
+          displayName: "Vault draft",
+          config: { address },
+        }),
+      ).toThrow(/origin-only HTTP\(S\) URL/i);
+    },
+  );
 
   it("rejects unsafe Vault addresses in provider payload validation used by updates", () => {
     expect(() =>
@@ -211,7 +240,8 @@ describe("secret validators", () => {
         providerConfigId: "11111111-1111-4111-8111-111111111111",
         secrets: [
           {
-            externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
+            externalRef:
+              "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
             name: "OpenAI API key",
             key: "OPENAI_API_KEY",
             description: "  Operator-entered Taskcore description  ",

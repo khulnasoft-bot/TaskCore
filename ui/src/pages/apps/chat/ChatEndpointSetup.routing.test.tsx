@@ -54,13 +54,25 @@ describe("Chat connector setup routing", () => {
   it("keeps both chooser actions usable with decorative identity icons", () => {
     const onChat = vi.fn();
     const onTools = vi.fn();
-    flushSync(() => root.render(
-      <ChatConnectionPurpose provider="slack" onChat={onChat} onTools={onTools} />,
-    ));
+    flushSync(() =>
+      root.render(
+        <ChatConnectionPurpose
+          provider="slack"
+          onChat={onChat}
+          onTools={onTools}
+        />,
+      ),
+    );
     const buttons = Array.from(container.querySelectorAll("button"));
-    const chat = buttons.find(button => button.textContent?.includes("Chat with an agent"))!;
-    const tools = buttons.find(button => button.textContent?.includes("Use this connection as an agent tool"))!;
-    expect(chat.querySelector('[data-slot="agent-avatar"][aria-hidden="true"]')).not.toBeNull();
+    const chat = buttons.find((button) =>
+      button.textContent?.includes("Chat with an agent"),
+    )!;
+    const tools = buttons.find((button) =>
+      button.textContent?.includes("Use this connection as an agent tool"),
+    )!;
+    expect(
+      chat.querySelector('[data-slot="agent-avatar"][aria-hidden="true"]'),
+    ).not.toBeNull();
     expect(chat.querySelector("img")?.getAttribute("alt")).toBe("");
     expect(tools.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
     expect(chat.getAttribute("type")).toBe("button");
@@ -87,6 +99,8 @@ describe("Chat connector setup routing", () => {
     render(`provider=github&${search}`);
     expect(container.textContent).toContain("GitHub bot setup");
     expect(container.textContent).not.toContain("Choose how to connect");
-    expect(container.querySelector("output")?.textContent).toBe(`/apps/chat/connect?provider=github&${search}`);
+    expect(container.querySelector("output")?.textContent).toBe(
+      `/apps/chat/connect?provider=github&${search}`,
+    );
   });
 });

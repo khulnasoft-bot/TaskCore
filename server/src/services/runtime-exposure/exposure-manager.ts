@@ -19,7 +19,10 @@
  *    never mutate an unknown/manual mapping or the primary `:443` route (the
  *    broker's `list` never returns those, and remove requires an owned handle).
  */
-import type { RuntimeExposureConfigInput, RuntimeExposureStatus } from "@taskcore/shared";
+import type {
+  RuntimeExposureConfigInput,
+  RuntimeExposureStatus,
+} from "@taskcore/shared";
 import {
   buildRuntimeExposureHealthUrl,
   buildRuntimeExposureUrl,
@@ -110,7 +113,10 @@ export async function reserveExposure(
     const result = await deps.broker.reserve(input.runtimeId, requested);
     const requestedPorts = new Set(requested.map((listener) => listener.port));
     const returnedPorts = new Set(result.reservedPorts);
-    if (requestedPorts.size !== returnedPorts.size || ![...requestedPorts].every((port) => returnedPorts.has(port))) {
+    if (
+      requestedPorts.size !== returnedPorts.size ||
+      ![...requestedPorts].every((port) => returnedPorts.has(port))
+    ) {
       await safeRemove(deps.broker, input.runtimeId, result.handle);
       status.state = "failed";
       status.lastError = "broker returned unexpected reserved ports";
@@ -163,7 +169,9 @@ export function buildListenerRequests(
   config: RuntimeExposureConfigInput,
   appPort: number,
 ): BrokerListenerRequest[] {
-  const listeners: BrokerListenerRequest[] = [{ purpose: "app", port: appPort }];
+  const listeners: BrokerListenerRequest[] = [
+    { purpose: "app", port: appPort },
+  ];
   if (config.includeTaskcoreViteHmr) {
     listeners.push({ purpose: "vite_hmr", port: deriveViteHmrPort(appPort) });
   }
@@ -201,7 +209,9 @@ export async function provisionExposure(
   // Explain a provable off-loopback bind before the broker denies it, so the
   // failure names the port and the address instead of only the code.
   if (deps.diagnoseListenerBinds) {
-    const violation = await deps.diagnoseListenerBinds(requested.map((listener) => listener.port));
+    const violation = await deps.diagnoseListenerBinds(
+      requested.map((listener) => listener.port),
+    );
     if (violation) {
       status.state = "failed";
       status.lastError = "listener_ownership_mismatch";
@@ -218,14 +228,21 @@ export async function provisionExposure(
   } catch (error) {
     status.state = "failed";
     status.lastError = brokerErrorCode(error);
-    return { status, handle: input.handle, errorDetail: brokerErrorDetail(error) };
+    return {
+      status,
+      handle: input.handle,
+      errorDetail: brokerErrorDetail(error),
+    };
   }
 
   // The broker must return exactly the ports we asked for (same-number). A
   // mismatch is a contract violation: tear the mapping back down and fail.
   const requestedPorts = new Set(requested.map((l) => l.port));
   const returnedPorts = new Set(publicPorts);
-  if (requestedPorts.size !== returnedPorts.size || ![...requestedPorts].every((p) => returnedPorts.has(p))) {
+  if (
+    requestedPorts.size !== returnedPorts.size ||
+    ![...requestedPorts].every((p) => returnedPorts.has(p))
+  ) {
     await safeRemove(deps.broker, input.runtimeId, handle);
     status.state = "failed";
     status.lastError = "broker returned unexpected public ports";
@@ -236,7 +253,10 @@ export async function provisionExposure(
   // was provisioned even while probing.
   // fail-closed: never report ready until an external, cert-validating probe
   // succeeds. Keep the handle so the caller can retry or clean up.
-  const healthUrl = buildRuntimeExposureHealthUrl(input.hostname, input.appPort);
+  const healthUrl = buildRuntimeExposureHealthUrl(
+    input.hostname,
+    input.appPort,
+  );
   let healthy = false;
   try {
     healthy = await deps.probeHealth(healthUrl);
@@ -370,7 +390,11 @@ export async function reconcileExposures(
 }
 
 /** Best-effort remove used on rollback paths; swallows broker errors. */
-async function safeRemove(broker: BrokerClient, runtimeId: string, handle: string): Promise<void> {
+async function safeRemove(
+  broker: BrokerClient,
+  runtimeId: string,
+  handle: string,
+): Promise<void> {
   try {
     await broker.remove(runtimeId, handle);
   } catch {

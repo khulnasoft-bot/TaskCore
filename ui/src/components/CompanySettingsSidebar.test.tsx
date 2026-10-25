@@ -31,13 +31,9 @@ vi.mock("@/lib/router", () => ({
       {children}
     </button>
   ),
-  NavLink: ({
-    children,
-    to,
-  }: {
-    children: React.ReactNode;
-    to: string;
-  }) => <a href={to}>{children}</a>,
+  NavLink: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 
 vi.mock("@/context/CompanyContext", () => ({
@@ -55,7 +51,8 @@ vi.mock("@/context/SidebarContext", () => ({
 }));
 
 vi.mock("./SidebarNavItem", () => ({
-  SidebarNavExpandedProvider: ({ children }: { children: React.ReactNode }) => children,
+  SidebarNavExpandedProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
   SidebarNavItem: (props: {
     to: string;
     label: string;
@@ -142,28 +139,38 @@ describe("CompanySettingsSidebar", () => {
 
     expect(container.textContent).not.toContain("Taskcore");
     expect(container.textContent).not.toContain("Settings");
-    expect(container.querySelector('[aria-label="Back from Settings"]')).toBeNull();
-    const settingsSurface = container.querySelector('[data-contextual-sidebar="settings"]');
-    expect(settingsSurface?.classList).toContain("primary-sidebar-surface");
-    expect(container.querySelector('[data-slot="contextual-sidebar-nav"]')?.className).toBe(
-      primarySidebarStyles.nav,
+    expect(
+      container.querySelector('[aria-label="Back from Settings"]'),
+    ).toBeNull();
+    const settingsSurface = container.querySelector(
+      '[data-contextual-sidebar="settings"]',
     );
-    const settingsHeader = container.querySelector('[data-slot="settings-sidebar-header"]');
+    expect(settingsSurface?.classList).toContain("primary-sidebar-surface");
+    expect(
+      container.querySelector('[data-slot="contextual-sidebar-nav"]')
+        ?.className,
+    ).toBe(primarySidebarStyles.nav);
+    const settingsHeader = container.querySelector(
+      '[data-slot="settings-sidebar-header"]',
+    );
     expect(settingsHeader?.classList).toContain("h-(--sz-60px)");
     expect(settingsHeader?.classList).toContain("items-center");
     expect(settingsHeader?.textContent).toContain("Back to app");
-    const backGroup = container.querySelector('[data-slot="settings-back-group"]');
+    const backGroup = container.querySelector(
+      '[data-slot="settings-back-group"]',
+    );
     expect(backGroup?.classList).toContain("w-full");
     for (const className of primarySidebarStyles.group.split(" ")) {
       expect(backGroup?.classList).toContain(className);
     }
-    expect(container.querySelector('[data-slot="contextual-sidebar-group"]')?.className).toBe(
-      primarySidebarStyles.group,
-    );
+    expect(
+      container.querySelector('[data-slot="contextual-sidebar-group"]')
+        ?.className,
+    ).toBe(primarySidebarStyles.group);
     expect(container.textContent).toContain("Back to app");
-    expect(container.querySelector('nav[aria-label="Settings"]')?.textContent).not.toContain(
-      "Back to app",
-    );
+    expect(
+      container.querySelector('nav[aria-label="Settings"]')?.textContent,
+    ).not.toContain("Back to app");
     expect(container.textContent).not.toContain("Company Settings");
     expect(container.textContent).not.toContain("Instance Settings");
     expect(container.textContent).toContain("General");
@@ -236,11 +243,13 @@ describe("CompanySettingsSidebar", () => {
         end: true,
       }),
     );
-    expect(new Set(
-      sidebarNavItemMock.mock.calls
-        .filter(([props]) => props.label === "General")
-        .map(([props]) => props.to),
-    )).toEqual(new Set(["/company/settings"]));
+    expect(
+      new Set(
+        sidebarNavItemMock.mock.calls
+          .filter(([props]) => props.label === "General")
+          .map(([props]) => props.to),
+      ),
+    ).toEqual(new Set(["/company/settings"]));
     expect(sidebarNavItemMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "/company/settings/instance/plugins",
@@ -355,7 +364,9 @@ describe("CompanySettingsSidebar", () => {
     await flushReact();
 
     const pluginLinks = Array.from(
-      container.querySelectorAll<HTMLAnchorElement>('a[href^="/company/settings/instance/plugins/"]'),
+      container.querySelectorAll<HTMLAnchorElement>(
+        'a[href^="/company/settings/instance/plugins/"]',
+      ),
     );
     expect(pluginLinks.map((link) => link.getAttribute("href"))).toEqual([
       "/company/settings/instance/plugins/linear",
@@ -384,7 +395,11 @@ describe("CompanySettingsSidebar operator-hidden entries", () => {
       joinRequests: 0,
     });
     mockPluginsApi.list.mockResolvedValue([]);
-    mockUsePluginSlots.mockReturnValue({ slots: [], isLoading: false, errorMessage: null });
+    mockUsePluginSlots.mockReturnValue({
+      slots: [],
+      isLoading: false,
+      errorMessage: null,
+    });
   });
 
   afterEach(() => {
@@ -393,9 +408,14 @@ describe("CompanySettingsSidebar operator-hidden entries", () => {
     vi.clearAllMocks();
   });
 
-  async function renderSidebar(hiddenSettings?: string[], cloud?: { managed: boolean }) {
+  async function renderSidebar(
+    hiddenSettings?: string[],
+    cloud?: { managed: boolean },
+  ) {
     const root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     queryClient.setQueryData(queryKeys.health, {
       status: "ok",
       ...(hiddenSettings ? { hiddenSettings } : {}),

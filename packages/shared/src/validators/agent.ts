@@ -9,20 +9,28 @@ import {
 } from "../constants.js";
 import { agentAdapterTypeSchema } from "../adapter-type.js";
 import { envConfigSchema } from "./secret.js";
-import { trustAuthorizationPolicySchema, trustPresetSchema } from "./trust-policy.js";
+import {
+  trustAuthorizationPolicySchema,
+  trustPresetSchema,
+} from "./trust-policy.js";
 import { agentDesiredSkillSelectionSchema } from "./adapter-skills.js";
 import { objectWithoutDefaults } from "./partial.js";
 
-export const agentPermissionsSchema = z.object({
-  // No schema default: the server derives the default (enabled unless the
-  // permissions record marks the agent low-trust) when the field is omitted.
-  canCreateAgents: z.boolean().optional(),
-  canCreateSkills: z.boolean().optional().default(true),
-  trustPreset: trustPresetSchema.optional(),
-  authorizationPolicy: trustAuthorizationPolicySchema.optional(),
-}).catchall(z.unknown());
+export const agentPermissionsSchema = z
+  .object({
+    // No schema default: the server derives the default (enabled unless the
+    // permissions record marks the agent low-trust) when the field is omitted.
+    canCreateAgents: z.boolean().optional(),
+    canCreateSkills: z.boolean().optional().default(true),
+    trustPreset: trustPresetSchema.optional(),
+    authorizationPolicy: trustAuthorizationPolicySchema.optional(),
+  })
+  .catchall(z.unknown());
 
-export const agentInstructionsBundleModeSchema = z.enum(["managed", "external"]);
+export const agentInstructionsBundleModeSchema = z.enum([
+  "managed",
+  "external",
+]);
 
 export const updateAgentInstructionsBundleSchema = z.object({
   mode: agentInstructionsBundleModeSchema.optional(),
@@ -31,58 +39,80 @@ export const updateAgentInstructionsBundleSchema = z.object({
   clearLegacyPromptTemplate: z.boolean().optional().default(false),
 });
 
-export type UpdateAgentInstructionsBundle = z.infer<typeof updateAgentInstructionsBundleSchema>;
+export type UpdateAgentInstructionsBundle = z.infer<
+  typeof updateAgentInstructionsBundleSchema
+>;
 
-export const upsertAgentInstructionsFileSchema = z.object({
-  path: z.string().min(1).max(512),
-  content: z.string().max(1024 * 1024),
-  baseRevisionId: z.string().uuid().nullable().optional(),
-  baseHash: z.string().regex(/^[a-f0-9]{64}$/).nullable().optional(),
-  clearLegacyPromptTemplate: z.boolean().optional().default(false),
-}).strict();
+export const upsertAgentInstructionsFileSchema = z
+  .object({
+    path: z.string().min(1).max(512),
+    content: z.string().max(1024 * 1024),
+    baseRevisionId: z.string().uuid().nullable().optional(),
+    baseHash: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .nullable()
+      .optional(),
+    clearLegacyPromptTemplate: z.boolean().optional().default(false),
+  })
+  .strict();
 
-export const restoreAgentInstructionSchema = z.object({
-  path: z.string().min(1).max(512),
-  revisionId: z.string().uuid(),
-  baseRevisionId: z.string().uuid(),
-}).strict();
+export const restoreAgentInstructionSchema = z
+  .object({
+    path: z.string().min(1).max(512),
+    revisionId: z.string().uuid(),
+    baseRevisionId: z.string().uuid(),
+  })
+  .strict();
 
-export type UpsertAgentInstructionsFile = z.infer<typeof upsertAgentInstructionsFileSchema>;
+export type UpsertAgentInstructionsFile = z.infer<
+  typeof upsertAgentInstructionsFileSchema
+>;
 
-const adapterConfigSchema = z.record(z.string(), z.unknown()).superRefine((value, ctx) => {
-  const envValue = value.env;
-  if (envValue === undefined) return;
-  const parsed = envConfigSchema.safeParse(envValue);
-  if (!parsed.success) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "adapterConfig.env must be a map of valid env bindings",
-      path: ["env"],
-    });
-  }
-});
+const adapterConfigSchema = z
+  .record(z.string(), z.unknown())
+  .superRefine((value, ctx) => {
+    const envValue = value.env;
+    if (envValue === undefined) return;
+    const parsed = envConfigSchema.safeParse(envValue);
+    if (!parsed.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "adapterConfig.env must be a map of valid env bindings",
+        path: ["env"],
+      });
+    }
+  });
 
 export const createAgentInstructionsBundleSchema = z.object({
   entryFile: z.string().trim().min(1).optional(),
-  files: z.record(z.string(), z.string()).refine((files) => Object.keys(files).length > 0, {
-    message: "instructionsBundle.files must contain at least one file",
-  }),
+  files: z
+    .record(z.string(), z.string())
+    .refine((files) => Object.keys(files).length > 0, {
+      message: "instructionsBundle.files must contain at least one file",
+    }),
 });
 
-export const agentRuntimeConfigSchema = z.object({
-  aiConnection: aiConnectionBindingSchema.optional(),
-  debug: z.object({
-    providerTrace: z.literal("raw").optional(),
-  }).strict().optional(),
-}).catchall(z.unknown()).superRefine((value, ctx) => {
-  if (Object.prototype.hasOwnProperty.call(value, "modelProfiles")) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["modelProfiles"],
-      message: "runtimeConfig.modelProfiles is no longer supported",
-    });
-  }
-});
+export const agentRuntimeConfigSchema = z
+  .object({
+    aiConnection: aiConnectionBindingSchema.optional(),
+    debug: z
+      .object({
+        providerTrace: z.literal("raw").optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .catchall(z.unknown())
+  .superRefine((value, ctx) => {
+    if (Object.prototype.hasOwnProperty.call(value, "modelProfiles")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["modelProfiles"],
+        message: "runtimeConfig.modelProfiles is no longer supported",
+      });
+    }
+  });
 
 export const createAgentSchema = z.object({
   name: z.string().min(1),
@@ -120,21 +150,33 @@ export const createAgentSchema = z.object({
 
 export type CreateAgent = z.infer<typeof createAgentSchema>;
 
-export const builtInAgentProvisionSchema = z.object({
-  adapterType: agentAdapterTypeSchema.optional(),
-  adapterConfig: adapterConfigSchema.optional(),
-  budgetMonthlyCents: z.number().int().nonnegative().optional(),
-}).strict();
+export const builtInAgentProvisionSchema = z
+  .object({
+    adapterType: agentAdapterTypeSchema.optional(),
+    adapterConfig: adapterConfigSchema.optional(),
+    budgetMonthlyCents: z.number().int().nonnegative().optional(),
+  })
+  .strict();
 
 export type BuiltInAgentProvision = z.infer<typeof builtInAgentProvisionSchema>;
 
-export const builtInAgentEmptyMutationSchema = z.object({}).strict().default({});
+export const builtInAgentEmptyMutationSchema = z
+  .object({})
+  .strict()
+  .default({});
 
-export type BuiltInAgentEmptyMutation = z.infer<typeof builtInAgentEmptyMutationSchema>;
+export type BuiltInAgentEmptyMutation = z.infer<
+  typeof builtInAgentEmptyMutationSchema
+>;
 
-export const builtInAgentResetSchema = z.object({
-  resources: z.array(z.enum(["agent", "instructions", "skill", "routine"])).optional(),
-}).strict().default({});
+export const builtInAgentResetSchema = z
+  .object({
+    resources: z
+      .array(z.enum(["agent", "instructions", "skill", "routine"]))
+      .optional(),
+  })
+  .strict()
+  .default({});
 
 export type BuiltInAgentReset = z.infer<typeof builtInAgentResetSchema>;
 
@@ -166,35 +208,47 @@ export const updateAgentInstructionsPathSchema = z.object({
   adapterConfigKey: z.string().trim().min(1).optional(),
 });
 
-export type UpdateAgentInstructionsPath = z.infer<typeof updateAgentInstructionsPathSchema>;
+export type UpdateAgentInstructionsPath = z.infer<
+  typeof updateAgentInstructionsPathSchema
+>;
 
-export const taskBridgeAgentKeyScopeSchema = z.object({
-  kind: z.literal("task_bridge"),
-  projectId: z.string().guid().optional().nullable(),
-  projectIds: z.array(z.string().guid()).max(50).optional(),
-  parentIssueId: z.string().guid().optional().nullable(),
-  parentIssueIds: z.array(z.string().guid()).max(50).optional(),
-  allowedAssigneeAgentIds: z.array(z.string().guid()).max(50).optional(),
-}).strict().superRefine((value, ctx) => {
-  const hasProjectBoundary = Boolean(value.projectId) || Boolean(value.projectIds?.length);
-  const hasParentBoundary = Boolean(value.parentIssueId) || Boolean(value.parentIssueIds?.length);
-  if (!hasProjectBoundary && !hasParentBoundary) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "task_bridge keys require at least one project or parent issue boundary",
-      path: ["projectId"],
-    });
-  }
-});
+export const taskBridgeAgentKeyScopeSchema = z
+  .object({
+    kind: z.literal("task_bridge"),
+    projectId: z.string().guid().optional().nullable(),
+    projectIds: z.array(z.string().guid()).max(50).optional(),
+    parentIssueId: z.string().guid().optional().nullable(),
+    parentIssueIds: z.array(z.string().guid()).max(50).optional(),
+    allowedAssigneeAgentIds: z.array(z.string().guid()).max(50).optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const hasProjectBoundary =
+      Boolean(value.projectId) || Boolean(value.projectIds?.length);
+    const hasParentBoundary =
+      Boolean(value.parentIssueId) || Boolean(value.parentIssueIds?.length);
+    if (!hasProjectBoundary && !hasParentBoundary) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "task_bridge keys require at least one project or parent issue boundary",
+        path: ["projectId"],
+      });
+    }
+  });
 
-export const standardAgentKeyScopeSchema = z.object({
-  kind: z.literal("standard"),
-}).strict();
+export const standardAgentKeyScopeSchema = z
+  .object({
+    kind: z.literal("standard"),
+  })
+  .strict();
 
-export const skillTestAgentKeyScopeSchema = z.object({
-  kind: z.literal("skill_test"),
-  issueId: z.string().guid(),
-}).strict();
+export const skillTestAgentKeyScopeSchema = z
+  .object({
+    kind: z.literal("skill_test"),
+    issueId: z.string().guid(),
+  })
+  .strict();
 
 export const agentApiKeyScopeSchema = z.union([
   standardAgentKeyScopeSchema,
@@ -203,8 +257,12 @@ export const agentApiKeyScopeSchema = z.union([
 ]);
 
 export type AgentApiKeyScope = z.infer<typeof agentApiKeyScopeSchema>;
-export type TaskBridgeAgentKeyScope = z.infer<typeof taskBridgeAgentKeyScopeSchema>;
-export type SkillTestAgentKeyScope = z.infer<typeof skillTestAgentKeyScopeSchema>;
+export type TaskBridgeAgentKeyScope = z.infer<
+  typeof taskBridgeAgentKeyScopeSchema
+>;
+export type SkillTestAgentKeyScope = z.infer<
+  typeof skillTestAgentKeyScopeSchema
+>;
 
 export function normalizeAgentApiKeyScope(value: unknown): AgentApiKeyScope {
   const parsed = agentApiKeyScopeSchema.safeParse(value);
@@ -220,7 +278,12 @@ export type CreateAgentKey = z.infer<typeof createAgentKeySchema>;
 
 export const agentMineInboxQuerySchema = z.object({
   userId: z.string().trim().min(1),
-  status: z.string().trim().min(1).optional().default(INBOX_MINE_ISSUE_STATUS_FILTER),
+  status: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .default(INBOX_MINE_ISSUE_STATUS_FILTER),
 });
 
 export type AgentMineInboxQuery = z.infer<typeof agentMineInboxQuerySchema>;
@@ -261,21 +324,25 @@ export const testAdapterEnvironmentSchema = z.object({
   /** Saved agent whose redacted environment entries are restored for this probe. */
   agentId: z.string().guid().optional(),
   /** One-shot provider keys for a probe. Never persist these in agent config. */
-  testCredentials: z.object({
-    ANTHROPIC_API_KEY: z.string().max(16384),
-    OPENAI_API_KEY: z.string().max(16384),
-    OPENROUTER_API_KEY: z.string().max(16384),
-    GEMINI_API_KEY: z.string().max(16384),
-    XAI_API_KEY: z.string().max(16384),
-    GROQ_API_KEY: z.string().max(16384),
-    OPENCODE_API_KEY: z.string().max(16384),
-    CURSOR_API_KEY: z.string().max(16384),
-    KIMI_MODEL_API_KEY: z.string().max(16384),
-    API_SERVER_KEY: z.string().max(16384),
-    ZAI_API_KEY: z.string().max(16384),
-    KIMI_API_KEY: z.string().max(16384),
-    MINIMAX_API_KEY: z.string().max(16384),
-  }).partial().strict().optional(),
+  testCredentials: z
+    .object({
+      ANTHROPIC_API_KEY: z.string().max(16384),
+      OPENAI_API_KEY: z.string().max(16384),
+      OPENROUTER_API_KEY: z.string().max(16384),
+      GEMINI_API_KEY: z.string().max(16384),
+      XAI_API_KEY: z.string().max(16384),
+      GROQ_API_KEY: z.string().max(16384),
+      OPENCODE_API_KEY: z.string().max(16384),
+      CURSOR_API_KEY: z.string().max(16384),
+      KIMI_MODEL_API_KEY: z.string().max(16384),
+      API_SERVER_KEY: z.string().max(16384),
+      ZAI_API_KEY: z.string().max(16384),
+      KIMI_API_KEY: z.string().max(16384),
+      MINIMAX_API_KEY: z.string().max(16384),
+    })
+    .partial()
+    .strict()
+    .optional(),
   adapterConfig: adapterConfigSchema.optional().default({}),
   /**
    * Optional environment to run the adapter test inside. When omitted, the
@@ -286,7 +353,9 @@ export const testAdapterEnvironmentSchema = z.object({
   environmentId: z.string().guid().optional().nullable(),
 });
 
-export type TestAdapterEnvironment = z.infer<typeof testAdapterEnvironmentSchema>;
+export type TestAdapterEnvironment = z.infer<
+  typeof testAdapterEnvironmentSchema
+>;
 
 export const updateAgentPermissionsSchema = z.object({
   canCreateAgents: z.boolean(),
@@ -296,10 +365,16 @@ export const updateAgentPermissionsSchema = z.object({
   authorizationPolicy: trustAuthorizationPolicySchema.optional(),
 });
 
-export type UpdateAgentPermissions = z.infer<typeof updateAgentPermissionsSchema>;
+export type UpdateAgentPermissions = z.infer<
+  typeof updateAgentPermissionsSchema
+>;
 
-export const resolveAgentInstructionCandidateSchema = z.object({
-  baseRevisionId: z.string().uuid().nullable(),
-  content: z.string().max(1024 * 1024),
-}).strict();
-export type ResolveAgentInstructionCandidate = z.infer<typeof resolveAgentInstructionCandidateSchema>;
+export const resolveAgentInstructionCandidateSchema = z
+  .object({
+    baseRevisionId: z.string().uuid().nullable(),
+    content: z.string().max(1024 * 1024),
+  })
+  .strict();
+export type ResolveAgentInstructionCandidate = z.infer<
+  typeof resolveAgentInstructionCandidateSchema
+>;

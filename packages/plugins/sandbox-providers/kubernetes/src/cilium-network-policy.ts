@@ -13,23 +13,31 @@ export interface BuildCiliumNetworkPolicyInput {
 // push to agent pods — agents make outbound (egress) callbacks to
 // taskcore-server on port 3100. If server→agent push is ever needed, add a
 // targeted ingress rule scoped to the taskcore-server endpoint selector.
-export function buildCiliumNetworkPolicyManifest(input: BuildCiliumNetworkPolicyInput): Record<string, unknown> {
+export function buildCiliumNetworkPolicyManifest(
+  input: BuildCiliumNetworkPolicyInput,
+): Record<string, unknown> {
   const egress: Record<string, unknown>[] = [];
 
-  if (input.includeBaseRules !== false) egress.push({
-    toEndpoints: [
-      { matchLabels: { "k8s:io.kubernetes.pod.namespace": "kube-system", "k8s-app": "kube-dns" } },
-    ],
-    toPorts: [
-      {
-        ports: [
-          { port: "53", protocol: "UDP" },
-          { port: "53", protocol: "TCP" },
-        ],
-        rules: { dns: [{ matchPattern: "*" }] },
-      },
-    ],
-  });
+  if (input.includeBaseRules !== false)
+    egress.push({
+      toEndpoints: [
+        {
+          matchLabels: {
+            "k8s:io.kubernetes.pod.namespace": "kube-system",
+            "k8s-app": "kube-dns",
+          },
+        },
+      ],
+      toPorts: [
+        {
+          ports: [
+            { port: "53", protocol: "UDP" },
+            { port: "53", protocol: "TCP" },
+          ],
+          rules: { dns: [{ matchPattern: "*" }] },
+        },
+      ],
+    });
 
   if (input.egressAllowFqdns.length > 0) {
     egress.push({
@@ -38,17 +46,18 @@ export function buildCiliumNetworkPolicyManifest(input: BuildCiliumNetworkPolicy
     });
   }
 
-  if (input.includeBaseRules !== false) egress.push({
-    toEndpoints: [
-      {
-        matchLabels: {
-          "k8s:io.kubernetes.pod.namespace": input.taskcoreServerNamespace,
-          app: "taskcore-server",
+  if (input.includeBaseRules !== false)
+    egress.push({
+      toEndpoints: [
+        {
+          matchLabels: {
+            "k8s:io.kubernetes.pod.namespace": input.taskcoreServerNamespace,
+            app: "taskcore-server",
+          },
         },
-      },
-    ],
-    toPorts: [{ ports: [{ port: "3100", protocol: "TCP" }] }],
-  });
+      ],
+      toPorts: [{ ports: [{ port: "3100", protocol: "TCP" }] }],
+    });
 
   if (input.egressAllowCidrs.length > 0) {
     egress.push({
@@ -63,10 +72,14 @@ export function buildCiliumNetworkPolicyManifest(input: BuildCiliumNetworkPolicy
       name: input.name ?? "taskcore-egress-fqdn",
       namespace: input.namespace,
       labels: { "taskcore.io/managed-by": "taskcore-k8s-plugin" },
-      ...(input.ownerReferences ? { ownerReferences: input.ownerReferences } : {}),
+      ...(input.ownerReferences
+        ? { ownerReferences: input.ownerReferences }
+        : {}),
     },
     spec: {
-      endpointSelector: { matchLabels: input.endpointSelector ?? { "taskcore.io/role": "agent" } },
+      endpointSelector: {
+        matchLabels: input.endpointSelector ?? { "taskcore.io/role": "agent" },
+      },
       egress,
     },
   };

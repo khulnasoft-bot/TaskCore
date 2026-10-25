@@ -188,53 +188,59 @@ describe("Codex value and workspace boundaries", () => {
     expect(isCodexSemanticTool("taskcore_block")).toBe(true);
     expect(isCodexSemanticTool("shell")).toBe(false);
     expect(codexToolAcceptsDisposition("taskcore_finish", "done")).toBe(true);
-    expect(codexToolAcceptsDisposition("taskcore_finish", "yielded")).toBe(true);
+    expect(codexToolAcceptsDisposition("taskcore_finish", "yielded")).toBe(
+      true,
+    );
     expect(codexToolAcceptsDisposition("taskcore_finish", "blocked")).toBe(
       false,
     );
-    expect(codexToolAcceptsDisposition("taskcore_block", "blocked")).toBe(
-      true,
-    );
+    expect(codexToolAcceptsDisposition("taskcore_block", "blocked")).toBe(true);
     expect(codexToolAcceptsDisposition("unknown_tool", "done")).toBe(false);
-    expect(codexToolAcceptsResult("taskcore_finish", {
-      schema: "taskcore.run_result.v1",
-      reportedWorkDisposition: "yielded",
-      summary: "Waiting for the next response.",
-      completionClaim: {
-        contractRevision: "1",
-        objectiveSatisfied: false,
-        criteria: [],
-        remainingWork: [{ description: "Wait for the response.", blocksCompletion: true }],
-      },
-      evidence: [],
-      verification: [],
-      attentionRequests: [],
-      artifacts: [],
-      continuation: {
-        kind: "response_wake",
-        summary: "Resume after the response.",
-        idempotencyKey: "response-wake-1",
-      },
-    })).toBe(true);
-    expect(codexToolAcceptsResult("taskcore_finish", {
-      schema: "taskcore.run_result.v1",
-      reportedWorkDisposition: "yielded",
-      summary: "Continue immediately.",
-      completionClaim: {
-        contractRevision: "1",
-        objectiveSatisfied: false,
-        criteria: [],
-        remainingWork: [{ description: "Continue.", blocksCompletion: true }],
-      },
-      evidence: [],
-      verification: [],
-      attentionRequests: [],
-      artifacts: [],
-      continuation: {
-        kind: "same_agent",
+    expect(
+      codexToolAcceptsResult("taskcore_finish", {
+        schema: "taskcore.run_result.v1",
+        reportedWorkDisposition: "yielded",
+        summary: "Waiting for the next response.",
+        completionClaim: {
+          contractRevision: "1",
+          objectiveSatisfied: false,
+          criteria: [],
+          remainingWork: [
+            { description: "Wait for the response.", blocksCompletion: true },
+          ],
+        },
+        evidence: [],
+        verification: [],
+        attentionRequests: [],
+        artifacts: [],
+        continuation: {
+          kind: "response_wake",
+          summary: "Resume after the response.",
+          idempotencyKey: "response-wake-1",
+        },
+      }),
+    ).toBe(true);
+    expect(
+      codexToolAcceptsResult("taskcore_finish", {
+        schema: "taskcore.run_result.v1",
+        reportedWorkDisposition: "yielded",
         summary: "Continue immediately.",
-        idempotencyKey: "same-agent-1",
-      },
-    })).toBe(false);
+        completionClaim: {
+          contractRevision: "1",
+          objectiveSatisfied: false,
+          criteria: [],
+          remainingWork: [{ description: "Continue.", blocksCompletion: true }],
+        },
+        evidence: [],
+        verification: [],
+        attentionRequests: [],
+        artifacts: [],
+        continuation: {
+          kind: "same_agent",
+          summary: "Continue immediately.",
+          idempotencyKey: "same-agent-1",
+        },
+      }),
+    ).toBe(false);
   });
 });

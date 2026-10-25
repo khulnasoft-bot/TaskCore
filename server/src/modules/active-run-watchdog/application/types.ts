@@ -80,7 +80,8 @@ export type RunProcessMetadata = {
 export type RunProcessCleanupOutcome =
   | {
       attempted: false;
-      outcome: "skipped_non_local_adapter" | "no_process_metadata" | "not_running";
+      outcome:
+        "skipped_non_local_adapter" | "no_process_metadata" | "not_running";
       adapterType: string;
       pid?: number | null;
       processGroupId?: number | null;
@@ -113,8 +114,7 @@ export type FoldSourceResolvedRunInput = {
 };
 
 export type FoldOutcome =
-  | { kind: "folded"; evaluationIssueId: string | null }
-  | { kind: "stale" };
+  { kind: "folded"; evaluationIssueId: string | null } | { kind: "stale" };
 
 export type WatchdogDecisionActor =
   | { type: "board"; userId?: string | null; runId?: string | null }

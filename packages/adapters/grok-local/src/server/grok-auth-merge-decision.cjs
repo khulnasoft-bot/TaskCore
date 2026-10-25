@@ -16,13 +16,15 @@ const GROK_IDENTITY_KEY_RE =
 // it is `readExpiry`'s job, kept separate so a caller can compare two already
 // -parsed shapes without touching the filesystem (see `decide` below).
 function parseAuthValue(raw) {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return { kind: "unusable" };
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+    return { kind: "unusable" };
   const keys = Object.keys(raw);
   if (keys.length !== 1) return { kind: "unusable" };
   const [identityKey] = keys;
   if (!GROK_IDENTITY_KEY_RE.test(identityKey)) return { kind: "unusable" };
   const value = raw[identityKey];
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return { kind: "unusable" };
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return { kind: "unusable" };
   const key = value.key;
   const refreshToken = value.refresh_token;
   const hasUsableValue =
@@ -44,7 +46,8 @@ function parseAuthFile(filePath) {
   return parseAuthValue(parsed);
 }
 
-const ISO_8601_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+const ISO_8601_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 // Below this magnitude a numeric `expires_at` is epoch seconds; at or above
 // it, epoch milliseconds. A modern epoch-seconds instant is around 1.7e9; a
 // modern epoch-millisecond instant is around 1.7e12, so this threshold never
@@ -58,7 +61,8 @@ const EPOCH_SECONDS_MAX = 1e12;
 //     milliseconds number).
 //   - otherwise `ms` holds the decoded epoch-millisecond value.
 function readExpiry(raw) {
-  if (raw === undefined || raw === null) return { present: false, unreadable: false, ms: null };
+  if (raw === undefined || raw === null)
+    return { present: false, unreadable: false, ms: null };
   if (typeof raw === "string") {
     if (ISO_8601_RE.test(raw)) {
       const ms = Date.parse(raw);

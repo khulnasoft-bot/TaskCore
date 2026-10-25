@@ -2,7 +2,11 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { applyPendingMigrations, closeRegisteredClients, ensurePostgresDatabase } from "./client.js";
+import {
+  applyPendingMigrations,
+  closeRegisteredClients,
+  ensurePostgresDatabase,
+} from "./client.js";
 import {
   createEmbeddedPostgresLogBuffer,
   formatEmbeddedPostgresError,
@@ -44,7 +48,8 @@ export type EmbeddedPostgresTestDatabase = {
   cleanup(): Promise<void>;
 };
 
-let embeddedPostgresSupportPromise: Promise<EmbeddedPostgresTestSupport> | null = null;
+let embeddedPostgresSupportPromise: Promise<EmbeddedPostgresTestSupport> | null =
+  null;
 
 const DEFAULT_TASKCORE_EMBEDDED_POSTGRES_PORT = 54329;
 
@@ -56,7 +61,11 @@ function getReservedTestPorts(): Set<number> {
       .split(",")
       .map((value) => Number.parseInt(value.trim(), 10)),
   ];
-  return new Set(configuredPorts.filter((port) => Number.isInteger(port) && port > 0 && port <= 65535));
+  return new Set(
+    configuredPorts.filter(
+      (port) => Number.isInteger(port) && port > 0 && port <= 65535,
+    ),
+  );
 }
 
 type EmbeddedPostgresCtorProvider = () => Promise<EmbeddedPostgresCtor>;
@@ -67,7 +76,8 @@ async function loadEmbeddedPostgresCtor(): Promise<EmbeddedPostgresCtor> {
   return mod.default as EmbeddedPostgresCtor;
 }
 
-let embeddedPostgresCtorProvider: EmbeddedPostgresCtorProvider = loadEmbeddedPostgresCtor;
+let embeddedPostgresCtorProvider: EmbeddedPostgresCtorProvider =
+  loadEmbeddedPostgresCtor;
 
 // Test seam. Replace the embedded-postgres constructor provider so a test can
 // simulate a failed start without the native runtime. Pass `null` to restore
@@ -133,7 +143,12 @@ async function createEmbeddedPostgresTestInstance(tempDirPrefix: string) {
     onError: (message) => logBuffer.append(message),
   });
 
-  return { dataDir, port, instance, getRecentLogs: () => logBuffer.getRecentLogs() };
+  return {
+    dataDir,
+    port,
+    instance,
+    getRecentLogs: () => logBuffer.getRecentLogs(),
+  };
 }
 
 function cleanupEmbeddedPostgresTestDirs(dataDir: string) {
@@ -213,12 +228,20 @@ async function startEmbeddedPostgresWithRetry(tempDirPrefix: string): Promise<{
 }> {
   let lastError = new Error("embedded Postgres startup failed");
 
-  for (let attempt = 1; attempt <= EMBEDDED_POSTGRES_START_MAX_ATTEMPTS; attempt += 1) {
+  for (
+    let attempt = 1;
+    attempt <= EMBEDDED_POSTGRES_START_MAX_ATTEMPTS;
+    attempt += 1
+  ) {
     const created = await createEmbeddedPostgresTestInstance(tempDirPrefix);
     try {
       await created.instance.initialise();
       await created.instance.start();
-      return { port: created.port, dataDir: created.dataDir, instance: created.instance };
+      return {
+        port: created.port,
+        dataDir: created.dataDir,
+        instance: created.instance,
+      };
     } catch (error) {
       lastError = formatEmbeddedPostgresError(error, {
         fallbackMessage: "embedded Postgres startup failed",
@@ -240,14 +263,19 @@ async function startEmbeddedPostgresWithRetry(tempDirPrefix: string): Promise<{
 // Test-only accessors. Production callers use `startEmbeddedPostgresTestDatabase`
 // or `getEmbeddedPostgresTestSupport`. A test drives the bounded retry directly
 // so it does not need a real Postgres connection.
-export const __startEmbeddedPostgresWithRetryForTests = startEmbeddedPostgresWithRetry;
-export const __embeddedPostgresStartMaxAttemptsForTests = EMBEDDED_POSTGRES_START_MAX_ATTEMPTS;
+export const __startEmbeddedPostgresWithRetryForTests =
+  startEmbeddedPostgresWithRetry;
+export const __embeddedPostgresStartMaxAttemptsForTests =
+  EMBEDDED_POSTGRES_START_MAX_ATTEMPTS;
 
 async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSupport> {
-  let started: { dataDir: string; instance: EmbeddedPostgresInstance } | null = null;
+  let started: { dataDir: string; instance: EmbeddedPostgresInstance } | null =
+    null;
 
   try {
-    started = await startEmbeddedPostgresWithRetry("taskcore-embedded-postgres-probe-");
+    started = await startEmbeddedPostgresWithRetry(
+      "taskcore-embedded-postgres-probe-",
+    );
     return { supported: true };
   } catch (error) {
     return {
@@ -259,7 +287,9 @@ async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSuppo
   } finally {
     if (started) {
       const { dataDir, instance } = started;
-      await stopEmbeddedPostgresBounded(instance, () => cleanupEmbeddedPostgresTestDirs(dataDir));
+      await stopEmbeddedPostgresBounded(instance, () =>
+        cleanupEmbeddedPostgresTestDirs(dataDir),
+      );
     }
   }
 }
@@ -276,7 +306,8 @@ export async function startEmbeddedPostgresTestDatabase(
 ): Promise<EmbeddedPostgresTestDatabase> {
   // The bounded retry hardens the cluster start against the port race. It throws
   // with the real Postgres output if every attempt fails.
-  const { port, dataDir, instance } = await startEmbeddedPostgresWithRetry(tempDirPrefix);
+  const { port, dataDir, instance } =
+    await startEmbeddedPostgresWithRetry(tempDirPrefix);
 
   try {
     const adminConnectionString = `postgres://taskcore:taskcore@127.0.0.1:${port}/postgres`;
@@ -293,11 +324,15 @@ export async function startEmbeddedPostgresTestDatabase(
         // but a queued write on that connection still fires later and finds
         // a null socket.
         await closeRegisteredClients(connectionString);
-        await stopEmbeddedPostgresBounded(instance, () => cleanupEmbeddedPostgresTestDirs(dataDir));
+        await stopEmbeddedPostgresBounded(instance, () =>
+          cleanupEmbeddedPostgresTestDirs(dataDir),
+        );
       },
     };
   } catch (error) {
-    await stopEmbeddedPostgresBounded(instance, () => cleanupEmbeddedPostgresTestDirs(dataDir));
+    await stopEmbeddedPostgresBounded(instance, () =>
+      cleanupEmbeddedPostgresTestDirs(dataDir),
+    );
     throw new Error(
       `Failed to start embedded PostgreSQL test database: ${
         formatEmbeddedPostgresError(error, {

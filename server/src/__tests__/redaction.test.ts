@@ -3,14 +3,31 @@ import { describe, expect, it } from "vitest";
 
 describe("explicit diagnostic credential forms", () => {
   it("masks qualified credential fields while preserving metadata", () => {
-    expect(redactEventPayload({ authorizationHeader: "abcdefghijkl", apiKeyProduction: "sensitivevalue", credentialHandling: "harness", tokenPolicy: "least privilege" }))
-      .toEqual({ authorizationHeader: "***REDACTED***", apiKeyProduction: "***REDACTED***", credentialHandling: "harness", tokenPolicy: "least privilege" });
+    expect(
+      redactEventPayload({
+        authorizationHeader: "abcdefghijkl",
+        apiKeyProduction: "sensitivevalue",
+        credentialHandling: "harness",
+        tokenPolicy: "least privilege",
+      }),
+    ).toEqual({
+      authorizationHeader: "***REDACTED***",
+      apiKeyProduction: "***REDACTED***",
+      credentialHandling: "harness",
+      tokenPolicy: "least privilege",
+    });
   });
   it("masks standalone bearer values and whitespace-prefixed JSON token headers", () => {
     const jwt = `${Buffer.from(' {"alg":"HS256","typ":"JWT"}').toString("base64url")}.abcdefghijk.abcdefghijkl`;
-    expect(redactSensitiveText("provider said Bearer abcdefghijkl")).not.toContain("abcdefghijkl");
-    expect(redactEventPayload({ diagnostic: jwt })?.diagnostic).toBe("***REDACTED***");
-    expect(redactSensitiveText("Use bearer authentication and bearer tokens.")).toBe("Use bearer authentication and bearer tokens.");
+    expect(
+      redactSensitiveText("provider said Bearer abcdefghijkl"),
+    ).not.toContain("abcdefghijkl");
+    expect(redactEventPayload({ diagnostic: jwt })?.diagnostic).toBe(
+      "***REDACTED***",
+    );
+    expect(
+      redactSensitiveText("Use bearer authentication and bearer tokens."),
+    ).toBe("Use bearer authentication and bearer tokens.");
   });
 });
 import {
@@ -35,9 +52,20 @@ describe("redaction", () => {
     };
     expect(sanitizeRecord(input)).toEqual(input);
     expect(redactSensitiveText(input.body)).toBe(input.body);
-    expect(sanitizeRecord({ credentials: { provider: "opaque-value" }, passwordValue: "opaque-value", authorization_code: "opaque-value" }))
-      .toEqual({ credentials: REDACTED_EVENT_VALUE, passwordValue: REDACTED_EVENT_VALUE, authorization_code: REDACTED_EVENT_VALUE });
-    expect(redactSensitiveText("--token-budget 4000 SECRET_STORAGE=vault")).toBe("--token-budget 4000 SECRET_STORAGE=vault");
+    expect(
+      sanitizeRecord({
+        credentials: { provider: "opaque-value" },
+        passwordValue: "opaque-value",
+        authorization_code: "opaque-value",
+      }),
+    ).toEqual({
+      credentials: REDACTED_EVENT_VALUE,
+      passwordValue: REDACTED_EVENT_VALUE,
+      authorization_code: REDACTED_EVENT_VALUE,
+    });
+    expect(
+      redactSensitiveText("--token-budget 4000 SECRET_STORAGE=vault"),
+    ).toBe("--token-budget 4000 SECRET_STORAGE=vault");
   });
 
   it("keeps the discriminator allowlist in exact PRP v1 schema parity", () => {
@@ -74,7 +102,9 @@ describe("redaction", () => {
     ) as { properties: { eventType: { enum: string[] } } };
     const v1Types = new Set(v1.properties.eventType.enum);
     expect([...PRP_V2_EVENT_TYPES]).toEqual(
-      v2.properties.eventType.enum.filter((eventType) => !v1Types.has(eventType)),
+      v2.properties.eventType.enum.filter(
+        (eventType) => !v1Types.has(eventType),
+      ),
     );
   });
 
@@ -99,10 +129,15 @@ describe("redaction", () => {
   });
 
   it("preserves current PRP v2 session discriminators", () => {
-    const schema = JSON.parse(readFileSync(
-      new URL("../../../packages/taskcore-runner/protocol/schemas/event-v2.schema.json", import.meta.url),
-      "utf8",
-    )) as { properties: { eventType: { enum: string[] } } };
+    const schema = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../../packages/taskcore-runner/protocol/schemas/event-v2.schema.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ) as { properties: { eventType: { enum: string[] } } };
     for (const eventType of schema.properties.eventType.enum) {
       const event = {
         schema: "taskcore.prp.event.v2",
@@ -147,8 +182,12 @@ describe("redaction", () => {
       },
     });
     expect(
-      ((secretPayload?.prpEvent as Record<string, unknown>).payload as Record<string, unknown>)
-        .authorization,
+      (
+        (secretPayload?.prpEvent as Record<string, unknown>).payload as Record<
+          string,
+          unknown
+        >
+      ).authorization,
     ).toBe(REDACTED_EVENT_VALUE);
   });
 
@@ -257,7 +296,12 @@ describe("redaction", () => {
         providerValue: input.nested.providerValue,
       },
     });
-    expect(sanitizeRecord({ schema: "taskcore.native-execution-input.v4", runtimeSchema: "taskcore.native-model-envelope.v2" })).toEqual({
+    expect(
+      sanitizeRecord({
+        schema: "taskcore.native-execution-input.v4",
+        runtimeSchema: "taskcore.native-model-envelope.v2",
+      }),
+    ).toEqual({
       schema: "taskcore.native-execution-input.v4",
       runtimeSchema: "taskcore.native-model-envelope.v2",
     });
@@ -823,7 +867,9 @@ second-line\" status=401`,
   });
 
   it("redacts adapter configs that have no env block", () => {
-    expect(redactAgentAdapterConfig({ command: "pnpm agent:run", apiKey: "secret" })).toEqual({
+    expect(
+      redactAgentAdapterConfig({ command: "pnpm agent:run", apiKey: "secret" }),
+    ).toEqual({
       command: "pnpm agent:run",
       apiKey: REDACTED_EVENT_VALUE,
     });

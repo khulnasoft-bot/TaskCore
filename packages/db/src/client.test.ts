@@ -22,7 +22,9 @@ import {
 
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 async function createTempDatabase(): Promise<string> {
   const db = await startEmbeddedPostgresTestDatabase("taskcore-db-client-");
@@ -48,17 +50,20 @@ const userVisibleUpdatedAtTables = new Set([
 ]);
 
 const migrationUpdatedAtUpdateAllowlist = new Map<string, ReadonlySet<string>>([
-  [
-    "0105_instance_scoped_environments.sql",
-    new Set(["issues"]),
-  ],
+  ["0105_instance_scoped_environments.sql", new Set(["issues"])],
   [
     "0131_repair_run_responsible_user_context_refs.sql",
     new Set(["heartbeat_runs"]),
   ],
   [
     "0135_repair_run_responsible_user_updated_at_sweep.sql",
-    new Set(["companies", "heartbeat_runs", "issues", "routine_runs", "routines"]),
+    new Set([
+      "companies",
+      "heartbeat_runs",
+      "issues",
+      "routine_runs",
+      "routines",
+    ]),
   ],
 ]);
 
@@ -66,7 +71,8 @@ function findUserVisibleUpdatedAtBackfillViolations(
   migrationFile: string,
   content: string,
 ): string[] {
-  const allowedTables = migrationUpdatedAtUpdateAllowlist.get(migrationFile) ?? new Set<string>();
+  const allowedTables =
+    migrationUpdatedAtUpdateAllowlist.get(migrationFile) ?? new Set<string>();
   const violations: string[] = [];
 
   for (const statement of content.split("--> statement-breakpoint")) {
@@ -116,10 +122,14 @@ describeEmbeddedPostgres("createDb pool defaults", () => {
     cleanups.push(async () => {
       await db.$client.end({ timeout: 1 });
     });
-    const [self] = await db.$client`select application_name from pg_stat_activity where pid = pg_backend_pid()`;
+    const [self] =
+      await db.$client`select application_name from pg_stat_activity where pid = pg_backend_pid()`;
     expect(self?.application_name).toBe(DEFAULT_DATABASE_APPLICATION_NAME);
 
-    const shortLived = createDb(url, { applicationName: "taskcore-idle-test", idleTimeoutSeconds: 1 });
+    const shortLived = createDb(url, {
+      applicationName: "taskcore-idle-test",
+      idleTimeoutSeconds: 1,
+    });
     cleanups.push(async () => {
       await shortLived.$client.end({ timeout: 1 });
     });
@@ -148,14 +158,19 @@ describeEmbeddedPostgres("resetPostgresDatabase", () => {
 
     const setupSql = postgres(connectionString, { max: 1, onnotice: () => {} });
     try {
-      await setupSql.unsafe(`CREATE TABLE stale_reseed_target_only (id integer PRIMARY KEY)`);
+      await setupSql.unsafe(
+        `CREATE TABLE stale_reseed_target_only (id integer PRIMARY KEY)`,
+      );
     } finally {
       await setupSql.end();
     }
 
     await resetPostgresDatabase(adminUrl.toString(), databaseName);
 
-    const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
     try {
       const rows = await verifySql.unsafe<{ stale_table: string | null }[]>(
         `SELECT to_regclass('public.stale_reseed_target_only')::text AS stale_table`,
@@ -175,36 +190,59 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
     await ensurePostgresDatabase(clusterUrl.toString(), databaseName);
     clusterUrl.pathname = "/" + databaseName;
     const connectionString = clusterUrl.toString();
-    const prefixFolder = await fs.promises.mkdtemp(join(tmpdir(), "taskcore-migration-prefix-"));
-    cleanups.push(() => fs.promises.rm(prefixFolder, { recursive: true, force: true }));
+    const prefixFolder = await fs.promises.mkdtemp(
+      join(tmpdir(), "taskcore-migration-prefix-"),
+    );
+    cleanups.push(() =>
+      fs.promises.rm(prefixFolder, { recursive: true, force: true }),
+    );
     await fs.promises.mkdir(join(prefixFolder, "meta"));
-    const journal = JSON.parse(await fs.promises.readFile(new URL("./migrations/meta/_journal.json", import.meta.url), "utf8"));
-    journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 255);
-    await fs.promises.writeFile(join(prefixFolder, "meta/_journal.json"), JSON.stringify(journal));
+    const journal = JSON.parse(
+      await fs.promises.readFile(
+        new URL("./migrations/meta/_journal.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    journal.entries = journal.entries.filter(
+      (entry: { idx: number }) => entry.idx < 255,
+    );
+    await fs.promises.writeFile(
+      join(prefixFolder, "meta/_journal.json"),
+      JSON.stringify(journal),
+    );
     for (const entry of journal.entries) {
-      await fs.promises.copyFile(new URL(`./migrations/${entry.tag}.sql`, import.meta.url), join(prefixFolder, `${entry.tag}.sql`));
+      await fs.promises.copyFile(
+        new URL(`./migrations/${entry.tag}.sql`, import.meta.url),
+        join(prefixFolder, `${entry.tag}.sql`),
+      );
     }
     const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
     try {
       await migrate(drizzle(sql), { migrationsFolder: prefixFolder });
       await sql`ALTER TABLE "tool_connections" DROP CONSTRAINT "tool_connections_transport_check"`;
       await applyPendingMigrations(connectionString);
-      expect((await inspectMigrations(connectionString)).status).toBe("upToDate");
+      expect((await inspectMigrations(connectionString)).status).toBe(
+        "upToDate",
+      );
       const [constraint] = await sql<{ definition: string }[]>`
         SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint
         WHERE conrelid = 'tool_connections'::regclass AND conname = 'tool_connections_transport_check'
       `;
       expect(constraint?.definition).toContain("chat_sdk");
       expect(constraint?.definition).toContain("runtime_auth");
-    } finally { await sql.end(); }
+    } finally {
+      await sql.end();
+    }
   }, 30_000);
 
   it("upgrades renumbered recovery migrations and replays their schema idempotently", async () => {
     const connectionString = await createTempDatabase();
     await applyPendingMigrations(connectionString);
     const recoveryFiles = [
-      "0250_exotic_dakota_north.sql", "0251_narrow_mastermind.sql",
-      "0252_friendly_kate_bishop.sql", "0253_real_firebrand.sql",
+      "0250_exotic_dakota_north.sql",
+      "0251_narrow_mastermind.sql",
+      "0252_friendly_kate_bishop.sql",
+      "0253_real_firebrand.sql",
       "0254_military_calypso.sql",
     ];
     const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
@@ -214,7 +252,10 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
       for (const file of recoveryFiles) {
         const hash = await migrationHash(file);
         await sql`UPDATE "drizzle"."__drizzle_migrations" SET created_at = 1788825600000 WHERE hash = ${hash}`;
-        const source = await fs.promises.readFile(new URL(`./migrations/${file}`, import.meta.url), "utf8");
+        const source = await fs.promises.readFile(
+          new URL(`./migrations/${file}`, import.meta.url),
+          "utf8",
+        );
         for (const statement of source.split("--> statement-breakpoint")) {
           if (statement.trim()) await sql.unsafe(statement);
         }
@@ -224,13 +265,17 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
         await sql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = ${hash}`;
       }
       await applyPendingMigrations(connectionString);
-      expect((await inspectMigrations(connectionString)).status).toBe("upToDate");
+      expect((await inspectMigrations(connectionString)).status).toBe(
+        "upToDate",
+      );
       for (const file of recoveryFiles) {
         const hash = await migrationHash(file);
-        const rows = await sql`SELECT id FROM "drizzle"."__drizzle_migrations" WHERE hash = ${hash}`;
+        const rows =
+          await sql`SELECT id FROM "drizzle"."__drizzle_migrations" WHERE hash = ${hash}`;
         expect(rows).toHaveLength(1);
       }
-      const indexes = await sql`SELECT indexname FROM pg_indexes WHERE indexname = 'heartbeat_runs_native_replacement_predecessor_uq'`;
+      const indexes =
+        await sql`SELECT indexname FROM pg_indexes WHERE indexname = 'heartbeat_runs_native_replacement_predecessor_uq'`;
       expect(indexes).toHaveLength(1);
     } finally {
       await sql.end();
@@ -238,9 +283,12 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
   }, 30_000);
 
   it("rejects unallowlisted migration backfills that bump updated_at on user-visible tables", async () => {
-    const entries = await fs.promises.readdir(new URL("./migrations", import.meta.url), {
-      withFileTypes: true,
-    });
+    const entries = await fs.promises.readdir(
+      new URL("./migrations", import.meta.url),
+      {
+        withFileTypes: true,
+      },
+    );
     const violations: string[] = [];
 
     for (const entry of entries) {
@@ -249,7 +297,9 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
         new URL(`./migrations/${entry.name}`, import.meta.url),
         "utf8",
       );
-      violations.push(...findUserVisibleUpdatedAtBackfillViolations(entry.name, content));
+      violations.push(
+        ...findUserVisibleUpdatedAtBackfillViolations(entry.name, content),
+      );
     }
 
     expect(violations).toEqual([]);
@@ -266,150 +316,147 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
     ).toEqual(['9999_bad_backfill.sql: UPDATE "issues" sets updated_at']);
   });
 
-  it(
-    "applies an inserted earlier migration without replaying later legacy migrations",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("applies an inserted earlier migration without replaying later legacy migrations", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const richMagnetoHash = await migrationHash("0030_rich_magneto.sql");
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const richMagnetoHash = await migrationHash("0030_rich_magneto.sql");
 
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${richMagnetoHash}'`,
-        );
-        await sql.unsafe(`DROP TABLE "company_logos"`);
-      } finally {
-        await sql.end();
-      }
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${richMagnetoHash}'`,
+      );
+      await sql.unsafe(`DROP TABLE "company_logos"`);
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0030_rich_magneto.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0030_rich_magneto.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const rows = await verifySql.unsafe<{ table_name: string }[]>(
-          `
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const rows = await verifySql.unsafe<{ table_name: string }[]>(
+        `
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = 'public'
               AND table_name IN ('company_logos', 'execution_workspaces')
             ORDER BY table_name
           `,
-        );
-        expect(rows.map((row) => row.table_name)).toEqual([
-          "company_logos",
-          "execution_workspaces",
-        ]);
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
+      );
+      expect(rows.map((row) => row.table_name)).toEqual([
+        "company_logos",
+        "execution_workspaces",
+      ]);
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
 
-  it(
-    "replays migration 0044 safely when its schema changes already exist",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("replays migration 0044 safely when its schema changes already exist", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const illegalToadHash = await migrationHash("0044_illegal_toad.sql");
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const illegalToadHash = await migrationHash("0044_illegal_toad.sql");
 
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${illegalToadHash}'`,
-        );
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${illegalToadHash}'`,
+      );
 
-        const columns = await sql.unsafe<{ column_name: string }[]>(
-          `
+      const columns = await sql.unsafe<{ column_name: string }[]>(
+        `
             SELECT column_name
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'instance_settings'
               AND column_name = 'general'
           `,
-        );
-        expect(columns).toHaveLength(1);
-      } finally {
-        await sql.end();
-      }
+      );
+      expect(columns).toHaveLength(1);
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0044_illegal_toad.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0044_illegal_toad.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
-    },
-    20_000,
-  );
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
+  }, 20_000);
 
-  it(
-    "enforces a unique board_api_keys.key_hash after migration 0044",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("enforces a unique board_api_keys.key_hash after migration 0044", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        await sql.unsafe(`
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      await sql.unsafe(`
           INSERT INTO "user" ("id", "name", "email", "email_verified", "created_at", "updated_at")
           VALUES ('user-1', 'User One', 'user@example.com', true, now(), now())
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "board_api_keys" ("id", "user_id", "name", "key_hash", "created_at")
           VALUES ('00000000-0000-0000-0000-000000000001', 'user-1', 'Key One', 'dup-hash', now())
         `);
-        await expect(
-          sql.unsafe(`
+      await expect(
+        sql.unsafe(`
             INSERT INTO "board_api_keys" ("id", "user_id", "name", "key_hash", "created_at")
             VALUES ('00000000-0000-0000-0000-000000000002', 'user-1', 'Key Two', 'dup-hash', now())
           `),
-        ).rejects.toThrow();
-      } finally {
-        await sql.end();
-      }
-    },
-    20_000,
-  );
+      ).rejects.toThrow();
+    } finally {
+      await sql.end();
+    }
+  }, 20_000);
 
-  it(
-    "replays migration 0046 safely when document revision columns already exist",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("replays migration 0046 safely when document revision columns already exist", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const smoothSentinelsHash = await migrationHash("0046_smooth_sentinels.sql");
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const smoothSentinelsHash = await migrationHash(
+        "0046_smooth_sentinels.sql",
+      );
 
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${smoothSentinelsHash}'`,
-        );
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${smoothSentinelsHash}'`,
+      );
 
-        const columns = await sql.unsafe<{ column_name: string; is_nullable: string; column_default: string | null }[]>(
-          `
+      const columns = await sql.unsafe<
+        {
+          column_name: string;
+          is_nullable: string;
+          column_default: string | null;
+        }[]
+      >(
+        `
             SELECT column_name, is_nullable, column_default
             FROM information_schema.columns
             WHERE table_schema = 'public'
@@ -417,28 +464,37 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
               AND column_name IN ('title', 'format')
             ORDER BY column_name
           `,
-        );
-        expect(columns).toHaveLength(2);
-      } finally {
-        await sql.end();
-      }
+      );
+      expect(columns).toHaveLength(2);
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0046_smooth_sentinels.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0046_smooth_sentinels.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const columns = await verifySql.unsafe<{ column_name: string; is_nullable: string; column_default: string | null }[]>(
-          `
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const columns = await verifySql.unsafe<
+        {
+          column_name: string;
+          is_nullable: string;
+          column_default: string | null;
+        }[]
+      >(
+        `
             SELECT column_name, is_nullable, column_default
             FROM information_schema.columns
             WHERE table_schema = 'public'
@@ -446,56 +502,56 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
               AND column_name IN ('title', 'format')
             ORDER BY column_name
           `,
-        );
-        expect(columns).toEqual([
-          expect.objectContaining({
-            column_name: "format",
-            is_nullable: "NO",
-          }),
-          expect.objectContaining({
-            column_name: "title",
-            is_nullable: "YES",
-          }),
-        ]);
-        expect(columns[0]?.column_default).toContain("'markdown'");
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
+      );
+      expect(columns).toEqual([
+        expect.objectContaining({
+          column_name: "format",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          column_name: "title",
+          is_nullable: "YES",
+        }),
+      ]);
+      expect(columns[0]?.column_default).toContain("'markdown'");
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
 
-  it(
-    "replays migration 0047 safely when feedback tables and run columns already exist",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("replays migration 0047 safely when feedback tables and run columns already exist", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const overjoyedGrootHash = await migrationHash("0047_overjoyed_groot.sql");
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const overjoyedGrootHash = await migrationHash(
+        "0047_overjoyed_groot.sql",
+      );
 
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${overjoyedGrootHash}'`,
-        );
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${overjoyedGrootHash}'`,
+      );
 
-        const tables = await sql.unsafe<{ table_name: string }[]>(
-          `
+      const tables = await sql.unsafe<{ table_name: string }[]>(
+        `
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = 'public'
               AND table_name IN ('feedback_exports', 'feedback_votes')
             ORDER BY table_name
           `,
-        );
-        expect(tables.map((row) => row.table_name)).toEqual([
-          "feedback_exports",
-          "feedback_votes",
-        ]);
+      );
+      expect(tables.map((row) => row.table_name)).toEqual([
+        "feedback_exports",
+        "feedback_votes",
+      ]);
 
-        const columns = await sql.unsafe<{ table_name: string; column_name: string }[]>(
-          `
+      const columns = await sql.unsafe<
+        { table_name: string; column_name: string }[]
+      >(
+        `
             SELECT table_name, column_name
             FROM information_schema.columns
             WHERE table_schema = 'public'
@@ -511,28 +567,31 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
               )
             ORDER BY table_name, column_name
           `,
-        );
-        expect(columns).toHaveLength(6);
-      } finally {
-        await sql.end();
-      }
+      );
+      expect(columns).toHaveLength(6);
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0047_overjoyed_groot.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0047_overjoyed_groot.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const constraints = await verifySql.unsafe<{ conname: string }[]>(
-          `
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const constraints = await verifySql.unsafe<{ conname: string }[]>(
+        `
             SELECT conname
             FROM pg_constraint
             WHERE conname IN (
@@ -544,283 +603,291 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             )
             ORDER BY conname
           `,
-        );
-        expect(constraints.map((row) => row.conname)).toEqual([
-          "feedback_exports_company_id_companies_id_fk",
-          "feedback_exports_feedback_vote_id_feedback_votes_id_fk",
-          "feedback_exports_issue_id_issues_id_fk",
-          "feedback_votes_company_id_companies_id_fk",
-          "feedback_votes_issue_id_issues_id_fk",
-        ]);
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
+      );
+      expect(constraints.map((row) => row.conname)).toEqual([
+        "feedback_exports_company_id_companies_id_fk",
+        "feedback_exports_feedback_vote_id_feedback_votes_id_fk",
+        "feedback_exports_issue_id_issues_id_fk",
+        "feedback_votes_company_id_companies_id_fk",
+        "feedback_votes_issue_id_issues_id_fk",
+      ]);
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
 
-  it(
-    "replays migration 0048 safely when routines.variables already exists",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("replays migration 0048 safely when routines.variables already exists", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const flashyMarrowHash = await migrationHash("0048_flashy_marrow.sql");
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const flashyMarrowHash = await migrationHash("0048_flashy_marrow.sql");
 
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${flashyMarrowHash}'`,
-        );
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${flashyMarrowHash}'`,
+      );
 
-        const columns = await sql.unsafe<{ column_name: string }[]>(
-          `
+      const columns = await sql.unsafe<{ column_name: string }[]>(
+        `
             SELECT column_name
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'routines'
               AND column_name = 'variables'
           `,
-        );
-        expect(columns).toHaveLength(1);
-      } finally {
-        await sql.end();
-      }
+      );
+      expect(columns).toHaveLength(1);
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0048_flashy_marrow.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0048_flashy_marrow.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const columns = await verifySql.unsafe<{ column_name: string; is_nullable: string; data_type: string }[]>(
-          `
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const columns = await verifySql.unsafe<
+        { column_name: string; is_nullable: string; data_type: string }[]
+      >(
+        `
             SELECT column_name, is_nullable, data_type
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'routines'
               AND column_name = 'variables'
           `,
-        );
-        expect(columns).toEqual([
-          expect.objectContaining({
-            column_name: "variables",
-            is_nullable: "NO",
-            data_type: "jsonb",
-          }),
-        ]);
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
+      );
+      expect(columns).toEqual([
+        expect.objectContaining({
+          column_name: "variables",
+          is_nullable: "NO",
+          data_type: "jsonb",
+        }),
+      ]);
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
 
-  it(
-    "replays migration 0050 safely when projects.env already exists",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("replays migration 0050 safely when projects.env already exists", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const stiffLuckmanHash = await migrationHash("0050_stiff_luckman.sql");
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const stiffLuckmanHash = await migrationHash("0050_stiff_luckman.sql");
 
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${stiffLuckmanHash}'`,
-        );
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${stiffLuckmanHash}'`,
+      );
 
-        const columns = await sql.unsafe<{ column_name: string }[]>(
-          `
+      const columns = await sql.unsafe<{ column_name: string }[]>(
+        `
             SELECT column_name
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'projects'
               AND column_name = 'env'
           `,
-        );
-        expect(columns).toHaveLength(1);
-      } finally {
-        await sql.end();
-      }
+      );
+      expect(columns).toHaveLength(1);
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0050_stiff_luckman.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0050_stiff_luckman.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const columns = await verifySql.unsafe<{ column_name: string; is_nullable: string; data_type: string }[]>(
-          `
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const columns = await verifySql.unsafe<
+        { column_name: string; is_nullable: string; data_type: string }[]
+      >(
+        `
             SELECT column_name, is_nullable, data_type
             FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'projects'
               AND column_name = 'env'
           `,
-        );
-        expect(columns).toEqual([
-          expect.objectContaining({
-            column_name: "env",
-            is_nullable: "YES",
-            data_type: "jsonb",
-          }),
-        ]);
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
+      );
+      expect(columns).toEqual([
+        expect.objectContaining({
+          column_name: "env",
+          is_nullable: "YES",
+          data_type: "jsonb",
+        }),
+      ]);
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
 
-  it(
-    "replays migration 0059 safely when plugin_database_namespaces already exists",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("replays migration 0059 safely when plugin_database_namespaces already exists", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const pluginNamespacesHash = await migrationHash(
-          "0059_plugin_database_namespaces.sql",
-        );
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const pluginNamespacesHash = await migrationHash(
+        "0059_plugin_database_namespaces.sql",
+      );
 
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${pluginNamespacesHash}'`,
-        );
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${pluginNamespacesHash}'`,
+      );
 
-        const tables = await sql.unsafe<{ table_name: string }[]>(
-          `
+      const tables = await sql.unsafe<{ table_name: string }[]>(
+        `
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = 'public'
               AND table_name IN ('plugin_database_namespaces', 'plugin_migrations')
             ORDER BY table_name
           `,
-        );
-        expect(tables.map((row) => row.table_name)).toEqual([
-          "plugin_database_namespaces",
-          "plugin_migrations",
-        ]);
-      } finally {
-        await sql.end();
-      }
+      );
+      expect(tables.map((row) => row.table_name)).toEqual([
+        "plugin_database_namespaces",
+        "plugin_migrations",
+      ]);
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0059_plugin_database_namespaces.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0059_plugin_database_namespaces.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const indexes = await verifySql.unsafe<{ indexname: string }[]>(
-          `
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const indexes = await verifySql.unsafe<{ indexname: string }[]>(
+        `
             SELECT indexname
             FROM pg_indexes
             WHERE schemaname = 'public'
               AND tablename IN ('plugin_database_namespaces', 'plugin_migrations')
             ORDER BY indexname
           `,
-        );
-        expect(indexes.map((row) => row.indexname)).toEqual(
-          expect.arrayContaining([
-            "plugin_database_namespaces_namespace_idx",
-            "plugin_database_namespaces_plugin_idx",
-            "plugin_database_namespaces_status_idx",
-            "plugin_migrations_plugin_idx",
-            "plugin_migrations_plugin_key_idx",
-            "plugin_migrations_status_idx",
-          ]),
-        );
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
-
-  it(
-    "replays the built-in managed resources migration after the legacy 0136 journal entry",
-    async () => {
-      const connectionString = await createTempDatabase();
-
-      await applyPendingMigrations(connectionString);
-
-      const builtInResourcesHash = await migrationHash(
-        "0140_built_in_managed_resources.sql",
       );
-      const legacyBuiltInResourcesHash = createHash("sha256")
-        .update("legacy 0136_built_in_managed_resources.sql")
-        .digest("hex");
+      expect(indexes.map((row) => row.indexname)).toEqual(
+        expect.arrayContaining([
+          "plugin_database_namespaces_namespace_idx",
+          "plugin_database_namespaces_plugin_idx",
+          "plugin_database_namespaces_status_idx",
+          "plugin_migrations_plugin_idx",
+          "plugin_migrations_plugin_key_idx",
+          "plugin_migrations_status_idx",
+        ]),
+      );
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${builtInResourcesHash}'`,
-        );
-        await sql.unsafe(
-          `
+  it("replays the built-in managed resources migration after the legacy 0136 journal entry", async () => {
+    const connectionString = await createTempDatabase();
+
+    await applyPendingMigrations(connectionString);
+
+    const builtInResourcesHash = await migrationHash(
+      "0140_built_in_managed_resources.sql",
+    );
+    const legacyBuiltInResourcesHash = createHash("sha256")
+      .update("legacy 0136_built_in_managed_resources.sql")
+      .digest("hex");
+
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${builtInResourcesHash}'`,
+      );
+      await sql.unsafe(
+        `
             INSERT INTO "drizzle"."__drizzle_migrations" ("hash", "created_at")
             VALUES ('${legacyBuiltInResourcesHash}', 1783555200000)
           `,
-        );
-        await sql.unsafe(`
+      );
+      await sql.unsafe(`
           ALTER TABLE "built_in_managed_resources"
           DROP CONSTRAINT IF EXISTS "built_in_managed_resources_company_id_companies_id_fk"
         `);
-        await sql.unsafe(`DROP INDEX IF EXISTS "built_in_managed_resources_company_idx"`);
-        await sql.unsafe(`DROP INDEX IF EXISTS "built_in_managed_resources_resource_idx"`);
-        await sql.unsafe(`DROP INDEX IF EXISTS "built_in_managed_resources_company_bundle_resource_uq"`);
-      } finally {
-        await sql.end();
-      }
+      await sql.unsafe(
+        `DROP INDEX IF EXISTS "built_in_managed_resources_company_idx"`,
+      );
+      await sql.unsafe(
+        `DROP INDEX IF EXISTS "built_in_managed_resources_resource_idx"`,
+      );
+      await sql.unsafe(
+        `DROP INDEX IF EXISTS "built_in_managed_resources_company_bundle_resource_uq"`,
+      );
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0140_built_in_managed_resources.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0140_built_in_managed_resources.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const finalState = await inspectMigrations(connectionString);
-      expect(finalState.status).toBe("upToDate");
+    const finalState = await inspectMigrations(connectionString);
+    expect(finalState.status).toBe("upToDate");
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const rows = await verifySql.unsafe<{
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const rows = await verifySql.unsafe<
+        {
           foreign_key_exists: boolean;
           company_index_exists: boolean;
           resource_index_exists: boolean;
           unique_index_exists: boolean;
-        }[]>(`
+        }[]
+      >(`
           SELECT
             EXISTS (
               SELECT 1
@@ -856,33 +923,29 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
                 AND c.relname = 'built_in_managed_resources_company_bundle_resource_uq'
             ) AS "unique_index_exists"
         `);
-        expect(rows[0]).toEqual({
-          foreign_key_exists: true,
-          company_index_exists: true,
-          resource_index_exists: true,
-          unique_index_exists: true,
-        });
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
+      expect(rows[0]).toEqual({
+        foreign_key_exists: true,
+        company_index_exists: true,
+        resource_index_exists: true,
+        unique_index_exists: true,
+      });
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
 
-  it(
-    "replays migration 0134 without bumping issue updated_at for inbox archives",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("replays migration 0134 without bumping issue updated_at for inbox archives", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const runResponsibleUserHash = await migrationHash(
-          "0134_run_responsible_user_invariant.sql",
-        );
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const runResponsibleUserHash = await migrationHash(
+        "0134_run_responsible_user_invariant.sql",
+      );
 
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "companies" ("id", "name", "issue_prefix", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000120',
@@ -892,7 +955,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-03-26T09:00:00.000Z'
           )
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "company_memberships" (
             "id",
             "company_id",
@@ -914,7 +977,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-03-26T09:00:00.000Z'
           )
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "issues" (
             "id",
             "company_id",
@@ -934,7 +997,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-03-26T10:00:00.000Z'
           )
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "issue_inbox_archives" (
             "id",
             "company_id",
@@ -954,29 +1017,34 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-03-26T12:00:00.000Z'
           )
         `);
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${runResponsibleUserHash}'`,
-        );
-      } finally {
-        await sql.end();
-      }
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${runResponsibleUserHash}'`,
+      );
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0134_run_responsible_user_invariant.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0134_run_responsible_user_invariant.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const rows = await verifySql.unsafe<{
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const rows = await verifySql.unsafe<
+        {
           responsible_user_id: string | null;
           updated_at: Date;
           inbox_archive_still_current: boolean;
-        }[]>(`
+        }[]
+      >(`
           SELECT
             i."responsible_user_id",
             i."updated_at",
@@ -991,30 +1059,28 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           FROM "issues" AS i
           WHERE i."id" = '00000000-0000-0000-0000-000000000122'
         `);
-        expect(rows).toHaveLength(1);
-        expect(rows[0]?.responsible_user_id).toBe("owner-user");
-        expect(rows[0]?.updated_at.toISOString()).toBe("2026-03-26T10:00:00.000Z");
-        expect(rows[0]?.inbox_archive_still_current).toBe(true);
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
-
-  it(
-    "replays migration 0135 to repair updated_at sweeps and no-op when clean",
-    async () => {
-      const connectionString = await createTempDatabase();
-
-      await applyPendingMigrations(connectionString);
-
-      const repairSweepHash = await migrationHash(
-        "0135_repair_run_responsible_user_updated_at_sweep.sql",
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.responsible_user_id).toBe("owner-user");
+      expect(rows[0]?.updated_at.toISOString()).toBe(
+        "2026-03-26T10:00:00.000Z",
       );
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        await sql.unsafe(`
+      expect(rows[0]?.inbox_archive_still_current).toBe(true);
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
+
+  it("replays migration 0135 to repair updated_at sweeps and no-op when clean", async () => {
+    const connectionString = await createTempDatabase();
+
+    await applyPendingMigrations(connectionString);
+
+    const repairSweepHash = await migrationHash(
+      "0135_repair_run_responsible_user_updated_at_sweep.sql",
+    );
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      await sql.unsafe(`
           INSERT INTO "companies" ("id", "name", "issue_prefix", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000240',
@@ -1024,7 +1090,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-02T09:00:00.000Z'
           )
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "issues" ("id", "company_id", "title", "status", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000241',
@@ -1035,25 +1101,30 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-02T10:00:00.000Z'
           )
         `);
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${repairSweepHash}'`,
-        );
-      } finally {
-        await sql.end();
-      }
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${repairSweepHash}'`,
+      );
+    } finally {
+      await sql.end();
+    }
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const afterCleanReplay = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const cleanRows = await afterCleanReplay.unsafe<{ updated_at: Date }[]>(`
+    const afterCleanReplay = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const cleanRows = await afterCleanReplay.unsafe<{ updated_at: Date }[]>(`
           SELECT "updated_at"
           FROM "issues"
           WHERE "id" = '00000000-0000-0000-0000-000000000241'
         `);
-        expect(cleanRows[0]?.updated_at.toISOString()).toBe("2026-04-02T10:00:00.000Z");
+      expect(cleanRows[0]?.updated_at.toISOString()).toBe(
+        "2026-04-02T10:00:00.000Z",
+      );
 
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "companies" ("id", "name", "issue_prefix", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000250',
@@ -1063,7 +1134,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "agents" ("id", "company_id", "name", "role", "adapter_type", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000251',
@@ -1075,7 +1146,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-01-02T00:00:00.000Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "issues" ("id", "company_id", "title", "status", "created_at", "updated_at")
           SELECT
             ('10000000-0000-0000-0000-' || lpad(gs::text, 12, '0'))::uuid,
@@ -1086,14 +1157,14 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           FROM generate_series(1, 101) AS gs
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           UPDATE "issues"
           SET
             "status" = 'done',
             "completed_at" = '2026-04-03T12:00:00.123456Z'
           WHERE "id" = '10000000-0000-0000-0000-000000000003'
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "issue_comments" ("id", "company_id", "issue_id", "body", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000252',
@@ -1104,7 +1175,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-03-02T16:45:00.000Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "heartbeat_runs" (
             "id",
             "company_id",
@@ -1126,7 +1197,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "heartbeat_runs" (
             "id",
             "company_id",
@@ -1148,7 +1219,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "routines" (
             "id",
             "company_id",
@@ -1168,7 +1239,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "routines" (
             "id",
             "company_id",
@@ -1188,7 +1259,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "routine_runs" (
             "id",
             "company_id",
@@ -1210,7 +1281,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "routine_runs" (
             "id",
             "company_id",
@@ -1232,7 +1303,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "companies" ("id", "name", "issue_prefix", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000260',
@@ -1242,7 +1313,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "agents" ("id", "company_id", "name", "role", "adapter_type", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000261',
@@ -1254,7 +1325,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-01-05T00:10:00.000Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "issues" ("id", "company_id", "title", "status", "created_at", "updated_at")
           VALUES (
             '20000000-0000-0000-0000-000000000001',
@@ -1265,7 +1336,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(`
+      await afterCleanReplay.unsafe(`
           INSERT INTO "heartbeat_runs" (
             "id",
             "company_id",
@@ -1287,21 +1358,26 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '2026-04-03T12:00:00.123456Z'
           )
         `);
-        await afterCleanReplay.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${repairSweepHash}'`,
-        );
-      } finally {
-        await afterCleanReplay.end();
-      }
+      await afterCleanReplay.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${repairSweepHash}'`,
+      );
+    } finally {
+      await afterCleanReplay.end();
+    }
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const afterRepair = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const repairedRows = await afterRepair.unsafe<{
+    const afterRepair = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const repairedRows = await afterRepair.unsafe<
+        {
           subject: string;
           updated_at: Date;
-        }[]>(`
+        }[]
+      >(`
           SELECT 'company' AS subject, "updated_at"
           FROM "companies"
           WHERE "id" = '00000000-0000-0000-0000-000000000250'
@@ -1355,67 +1431,70 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           WHERE "id" = '00000000-0000-0000-0000-000000000258'
           ORDER BY subject
         `);
-        const repaired = Object.fromEntries(
-          repairedRows.map((row) => [row.subject, row.updated_at.toISOString()]),
-        );
-        expect(repaired).toEqual({
-          company: "2026-01-01T00:00:00.000Z",
-          heartbeat_run: "2026-02-10T10:30:00.000Z",
-          heartbeat_run_with_output: "2026-04-03T12:00:00.123Z",
-          issue_with_comment: "2026-03-02T16:45:00.000Z",
-          issue_with_state_activity: "2026-04-03T12:00:00.123Z",
-          issue_without_comment: "2026-02-01T00:02:00.000Z",
-          other_company: "2026-04-03T12:00:00.123Z",
-          other_heartbeat_run: "2026-04-03T12:00:00.123Z",
-          other_issue: "2026-04-03T12:00:00.123Z",
-          routine: "2026-03-21T11:00:00.000Z",
-          routine_run_with_trigger: "2026-04-03T12:00:00.123Z",
-          routine_with_activity: "2026-04-03T12:00:00.123Z",
-          routine_run: "2026-02-12T12:00:00.000Z",
-        });
+      const repaired = Object.fromEntries(
+        repairedRows.map((row) => [row.subject, row.updated_at.toISOString()]),
+      );
+      expect(repaired).toEqual({
+        company: "2026-01-01T00:00:00.000Z",
+        heartbeat_run: "2026-02-10T10:30:00.000Z",
+        heartbeat_run_with_output: "2026-04-03T12:00:00.123Z",
+        issue_with_comment: "2026-03-02T16:45:00.000Z",
+        issue_with_state_activity: "2026-04-03T12:00:00.123Z",
+        issue_without_comment: "2026-02-01T00:02:00.000Z",
+        other_company: "2026-04-03T12:00:00.123Z",
+        other_heartbeat_run: "2026-04-03T12:00:00.123Z",
+        other_issue: "2026-04-03T12:00:00.123Z",
+        routine: "2026-03-21T11:00:00.000Z",
+        routine_run_with_trigger: "2026-04-03T12:00:00.123Z",
+        routine_with_activity: "2026-04-03T12:00:00.123Z",
+        routine_run: "2026-02-12T12:00:00.000Z",
+      });
 
-        await afterRepair.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${repairSweepHash}'`,
-        );
-      } finally {
-        await afterRepair.end();
-      }
+      await afterRepair.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${repairSweepHash}'`,
+      );
+    } finally {
+      await afterRepair.end();
+    }
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const afterSecondRun = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const secondRunRows = await afterSecondRun.unsafe<{ updated_at: Date }[]>(`
+    const afterSecondRun = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const secondRunRows = await afterSecondRun.unsafe<
+        { updated_at: Date }[]
+      >(`
           SELECT "updated_at"
           FROM "issues"
           WHERE "id" = '10000000-0000-0000-0000-000000000001'
         `);
-        expect(secondRunRows[0]?.updated_at.toISOString()).toBe("2026-03-02T16:45:00.000Z");
-      } finally {
-        await afterSecondRun.end();
-      }
-    },
-    20_000,
-  );
+      expect(secondRunRows[0]?.updated_at.toISOString()).toBe(
+        "2026-03-02T16:45:00.000Z",
+      );
+    } finally {
+      await afterSecondRun.end();
+    }
+  }, 20_000);
 
-  it(
-    "replays the run responsible user repair migration when heartbeat run issue refs are identifiers",
-    async () => {
-      const connectionString = await createTempDatabase();
+  it("replays the run responsible user repair migration when heartbeat run issue refs are identifiers", async () => {
+    const connectionString = await createTempDatabase();
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const runResponsibleUserRepairHash = await migrationHash(
-          "0131_repair_run_responsible_user_context_refs.sql",
-        );
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      const runResponsibleUserRepairHash = await migrationHash(
+        "0131_repair_run_responsible_user_context_refs.sql",
+      );
 
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "companies" ("id", "name", "issue_prefix", "created_at", "updated_at")
           VALUES ('00000000-0000-0000-0000-000000000130', 'Migration Test Co', 'TST130', now(), now())
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "company_memberships" (
             "id",
             "company_id",
@@ -1437,7 +1516,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             now()
           )
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "agents" ("id", "company_id", "name", "role", "adapter_type", "created_at", "updated_at")
           VALUES (
             '00000000-0000-0000-0000-000000000132',
@@ -1449,7 +1528,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             now()
           )
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "issues" (
             "id",
             "company_id",
@@ -1471,7 +1550,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             now()
           )
         `);
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO "heartbeat_runs" (
             "id",
             "company_id",
@@ -1493,102 +1572,123 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             now()
           )
         `);
-        await sql.unsafe(
-          `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${runResponsibleUserRepairHash}'`,
-        );
-      } finally {
-        await sql.end();
-      }
+      await sql.unsafe(
+        `DELETE FROM "drizzle"."__drizzle_migrations" WHERE hash = '${runResponsibleUserRepairHash}'`,
+      );
+    } finally {
+      await sql.end();
+    }
 
-      const pendingState = await inspectMigrations(connectionString);
-      expect(pendingState).toMatchObject({
-        status: "needsMigrations",
-        pendingMigrations: ["0131_repair_run_responsible_user_context_refs.sql"],
-        reason: "pending-migrations",
-      });
+    const pendingState = await inspectMigrations(connectionString);
+    expect(pendingState).toMatchObject({
+      status: "needsMigrations",
+      pendingMigrations: ["0131_repair_run_responsible_user_context_refs.sql"],
+      reason: "pending-migrations",
+    });
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const runs = await verifySql.unsafe<{ responsible_user_id: string | null }[]>(`
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const runs = await verifySql.unsafe<
+        { responsible_user_id: string | null }[]
+      >(`
           SELECT "responsible_user_id"
           FROM "heartbeat_runs"
           WHERE "id" = '00000000-0000-0000-0000-000000000134'
         `);
-        expect(runs).toEqual([{ responsible_user_id: "issue-user" }]);
+      expect(runs).toEqual([{ responsible_user_id: "issue-user" }]);
+    } finally {
+      await verifySql.end();
+    }
+  }, 20_000);
 
-      } finally {
-        await verifySql.end();
-      }
-    },
-    20_000,
-  );
-
-  it(
-    "preserves legacy runs while adding native persistence and replay-safe status versioning",
-    async () => {
-      const clusterUrl = await createTempDatabase();
-      await ensurePostgresDatabase(clusterUrl, "native_legacy");
-      const legacyUrl = new URL(clusterUrl);
-      legacyUrl.pathname = "/native_legacy";
-      const connectionString = legacyUrl.href;
-      cleanups.push(() => closeRegisteredClients(connectionString));
-      const directory = await fs.promises.mkdtemp(join(tmpdir(), "taskcore-native-prior-migrations-"));
-      cleanups.push(() => fs.promises.rm(directory, { recursive: true, force: true }));
-      const migrationsRoot = new URL("./migrations/", import.meta.url);
-      const journal = JSON.parse(await fs.promises.readFile(new URL("meta/_journal.json", migrationsRoot), "utf8"));
-      const priorEntries = journal.entries.filter((entry: { idx: number }) => entry.idx < 227);
-      await fs.promises.mkdir(join(directory, "meta"));
-      for (const entry of priorEntries) {
-        await fs.promises.copyFile(new URL(`${entry.tag}.sql`, migrationsRoot), join(directory, `${entry.tag}.sql`));
-      }
-      await fs.promises.writeFile(join(directory, "meta/_journal.json"), JSON.stringify({ ...journal, entries: priorEntries }));
-
-      const nativePersistenceHash = await migrationHash("0227_modern_pandemic.sql");
-      const eventSequenceUniquenessHash = await migrationHash(
-        "0235_heartbeat_run_event_sequence_uniqueness.sql",
+  it("preserves legacy runs while adding native persistence and replay-safe status versioning", async () => {
+    const clusterUrl = await createTempDatabase();
+    await ensurePostgresDatabase(clusterUrl, "native_legacy");
+    const legacyUrl = new URL(clusterUrl);
+    legacyUrl.pathname = "/native_legacy";
+    const connectionString = legacyUrl.href;
+    cleanups.push(() => closeRegisteredClients(connectionString));
+    const directory = await fs.promises.mkdtemp(
+      join(tmpdir(), "taskcore-native-prior-migrations-"),
+    );
+    cleanups.push(() =>
+      fs.promises.rm(directory, { recursive: true, force: true }),
+    );
+    const migrationsRoot = new URL("./migrations/", import.meta.url);
+    const journal = JSON.parse(
+      await fs.promises.readFile(
+        new URL("meta/_journal.json", migrationsRoot),
+        "utf8",
+      ),
+    );
+    const priorEntries = journal.entries.filter(
+      (entry: { idx: number }) => entry.idx < 227,
+    );
+    await fs.promises.mkdir(join(directory, "meta"));
+    for (const entry of priorEntries) {
+      await fs.promises.copyFile(
+        new URL(`${entry.tag}.sql`, migrationsRoot),
+        join(directory, `${entry.tag}.sql`),
       );
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      const companyId = "10000000-0000-4000-8000-000000000227";
-      const agentId = "20000000-0000-4000-8000-000000000227";
-      const runId = "30000000-0000-4000-8000-000000000227";
-      const issueId = "40000000-0000-4000-8000-000000000227";
-      const contractId = "50000000-0000-4000-8000-000000000227";
-      const resultId = "60000000-0000-4000-8000-000000000227";
-      const assessmentId = "70000000-0000-4000-8000-000000000227";
-      const decisionId = "80000000-0000-4000-8000-000000000227";
-      const otherCompanyId = "11000000-0000-4000-8000-000000000227";
-      const otherAgentId = "21000000-0000-4000-8000-000000000227";
-      const otherRunId = "31000000-0000-4000-8000-000000000227";
-      const otherIssueId = "41000000-0000-4000-8000-000000000227";
-      const otherContractId = "51000000-0000-4000-8000-000000000227";
-      const otherResultId = "61000000-0000-4000-8000-000000000227";
-      const otherAssessmentId = "71000000-0000-4000-8000-000000000227";
-      const otherDecisionId = "81000000-0000-4000-8000-000000000227";
+    }
+    await fs.promises.writeFile(
+      join(directory, "meta/_journal.json"),
+      JSON.stringify({ ...journal, entries: priorEntries }),
+    );
 
-      try {
-        // Build the real pre-native schema. Downgrading the latest schema by
-        // dropping its unique index is invalid once later tenant FKs use it.
-        await migrate(drizzle(sql), { migrationsFolder: directory });
-        expect(await sql`SELECT to_regclass('public.native_run_results') AS native_results`).toEqual([{ native_results: null }]);
-        await sql`
+    const nativePersistenceHash = await migrationHash(
+      "0227_modern_pandemic.sql",
+    );
+    const eventSequenceUniquenessHash = await migrationHash(
+      "0235_heartbeat_run_event_sequence_uniqueness.sql",
+    );
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    const companyId = "10000000-0000-4000-8000-000000000227";
+    const agentId = "20000000-0000-4000-8000-000000000227";
+    const runId = "30000000-0000-4000-8000-000000000227";
+    const issueId = "40000000-0000-4000-8000-000000000227";
+    const contractId = "50000000-0000-4000-8000-000000000227";
+    const resultId = "60000000-0000-4000-8000-000000000227";
+    const assessmentId = "70000000-0000-4000-8000-000000000227";
+    const decisionId = "80000000-0000-4000-8000-000000000227";
+    const otherCompanyId = "11000000-0000-4000-8000-000000000227";
+    const otherAgentId = "21000000-0000-4000-8000-000000000227";
+    const otherRunId = "31000000-0000-4000-8000-000000000227";
+    const otherIssueId = "41000000-0000-4000-8000-000000000227";
+    const otherContractId = "51000000-0000-4000-8000-000000000227";
+    const otherResultId = "61000000-0000-4000-8000-000000000227";
+    const otherAssessmentId = "71000000-0000-4000-8000-000000000227";
+    const otherDecisionId = "81000000-0000-4000-8000-000000000227";
+
+    try {
+      // Build the real pre-native schema. Downgrading the latest schema by
+      // dropping its unique index is invalid once later tenant FKs use it.
+      await migrate(drizzle(sql), { migrationsFolder: directory });
+      expect(
+        await sql`SELECT to_regclass('public.native_run_results') AS native_results`,
+      ).toEqual([{ native_results: null }]);
+      await sql`
           INSERT INTO companies (id, name, issue_prefix)
           VALUES (${companyId}, 'Native persistence fixture', 'NPF')
         `;
-        await sql`
+      await sql`
           INSERT INTO agents (id, company_id, name)
           VALUES (${agentId}, ${companyId}, 'Legacy migration agent')
         `;
-        await sql`
+      await sql`
           INSERT INTO heartbeat_runs (id, company_id, agent_id, status)
           VALUES (${runId}, ${companyId}, ${agentId}, 'succeeded')
         `;
-        await sql`
+      await sql`
           INSERT INTO issues (id, company_id, title, status)
           VALUES (${issueId}, ${companyId}, 'Legacy migration issue', 'in_progress')
         `;
-        await sql.unsafe(`
+      await sql.unsafe(`
           INSERT INTO heartbeat_run_events
             (company_id, run_id, agent_id, seq, event_type, stream, level, message, payload, created_at)
           VALUES
@@ -1597,15 +1697,19 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             ('${companyId}', '${runId}', '${agentId}', 5, 'legacy.log', 'stderr', 'warn', 'duplicate-five', '{"bytes":"gamma-5b"}'::jsonb, '2026-08-01T00:00:03.000Z'),
             ('${companyId}', '${runId}', '${agentId}', 9, 'legacy.end', 'system', 'info', 'nine', '{"bytes":"delta-9"}'::jsonb, '2026-08-01T00:00:04.000Z')
         `);
-      } finally {
-        await sql.end();
-      }
+    } finally {
+      await sql.end();
+    }
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const events = await verifySql.unsafe<{
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const events = await verifySql.unsafe<
+        {
           seq: string;
           event_type: string;
           stream: string;
@@ -1613,65 +1717,74 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           message: string;
           payload: { bytes: string };
           created_at: Date;
-        }[]>(`
+        }[]
+      >(`
           SELECT seq, event_type, stream, level, message, payload, created_at
           FROM heartbeat_run_events
           WHERE run_id = '${runId}'
           ORDER BY id
         `);
-        // 0235 preserves every legacy event while moving only duplicate
-        // sequence values above the old run maximum before installing the
-        // durable (run_id, seq) uniqueness invariant.
-        expect(events.map((event) => Number(event.seq))).toEqual([1, 5, 10, 9]);
-        expect(events.map(({ seq: _seq, ...event }) => ({
+      // 0235 preserves every legacy event while moving only duplicate
+      // sequence values above the old run maximum before installing the
+      // durable (run_id, seq) uniqueness invariant.
+      expect(events.map((event) => Number(event.seq))).toEqual([1, 5, 10, 9]);
+      expect(
+        events.map(({ seq: _seq, ...event }) => ({
           ...event,
           created_at: event.created_at.toISOString(),
-        }))).toEqual([
-          {
-            event_type: "legacy.start",
-            stream: "system",
-            level: "info",
-            message: "one",
-            payload: { bytes: "alpha-1" },
-            created_at: "2026-08-01T00:00:01.000Z",
-          },
-          {
-            event_type: "legacy.log",
-            stream: "stdout",
-            level: "info",
-            message: "first-five",
-            payload: { bytes: "beta-5a" },
-            created_at: "2026-08-01T00:00:02.000Z",
-          },
-          {
-            event_type: "legacy.log",
-            stream: "stderr",
-            level: "warn",
-            message: "duplicate-five",
-            payload: { bytes: "gamma-5b" },
-            created_at: "2026-08-01T00:00:03.000Z",
-          },
-          {
-            event_type: "legacy.end",
-            stream: "system",
-            level: "info",
-            message: "nine",
-            payload: { bytes: "delta-9" },
-            created_at: "2026-08-01T00:00:04.000Z",
-          },
-        ]);
+        })),
+      ).toEqual([
+        {
+          event_type: "legacy.start",
+          stream: "system",
+          level: "info",
+          message: "one",
+          payload: { bytes: "alpha-1" },
+          created_at: "2026-08-01T00:00:01.000Z",
+        },
+        {
+          event_type: "legacy.log",
+          stream: "stdout",
+          level: "info",
+          message: "first-five",
+          payload: { bytes: "beta-5a" },
+          created_at: "2026-08-01T00:00:02.000Z",
+        },
+        {
+          event_type: "legacy.log",
+          stream: "stderr",
+          level: "warn",
+          message: "duplicate-five",
+          payload: { bytes: "gamma-5b" },
+          created_at: "2026-08-01T00:00:03.000Z",
+        },
+        {
+          event_type: "legacy.end",
+          stream: "system",
+          level: "info",
+          message: "nine",
+          payload: { bytes: "delta-9" },
+          created_at: "2026-08-01T00:00:04.000Z",
+        },
+      ]);
 
-        const runs = await verifySql.unsafe<{ runtime_mode: string; next_event_seq: string }[]>(`
+      const runs = await verifySql.unsafe<
+        { runtime_mode: string; next_event_seq: string }[]
+      >(`
           SELECT runtime_mode, next_event_seq
           FROM heartbeat_runs
           WHERE id = '${runId}'
         `);
-        expect(runs.map((run) => ({
+      expect(
+        runs.map((run) => ({
           runtimeMode: run.runtime_mode,
           nextEventSeq: Number(run.next_event_seq),
-        }))).toEqual([{ runtimeMode: "legacy", nextEventSeq: 11 }]);
+        })),
+      ).toEqual([{ runtimeMode: "legacy", nextEventSeq: 11 }]);
 
-        const nativeRowsBefore = await verifySql.unsafe<{ table_name: string; row_count: number }[]>(`
+      const nativeRowsBefore = await verifySql.unsafe<
+        { table_name: string; row_count: number }[]
+      >(`
           SELECT 'completion_contracts' AS table_name, count(*)::int AS row_count FROM completion_contracts
           UNION ALL SELECT 'native_run_results', count(*)::int FROM native_run_results
           UNION ALL SELECT 'native_run_finalizations', count(*)::int FROM native_run_finalizations
@@ -1680,17 +1793,17 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           UNION ALL SELECT 'status_decision_effects', count(*)::int FROM status_decision_effects
           ORDER BY table_name
         `);
-        expect(nativeRowsBefore.every((row) => row.row_count === 0)).toBe(true);
+      expect(nativeRowsBefore.every((row) => row.row_count === 0)).toBe(true);
 
-        await verifySql`
+      await verifySql`
           INSERT INTO companies (id, name, issue_prefix)
           VALUES (${otherCompanyId}, 'Other native persistence fixture', 'ONP')
         `;
-        await verifySql`
+      await verifySql`
           INSERT INTO agents (id, company_id, name)
           VALUES (${otherAgentId}, ${otherCompanyId}, 'Other native migration agent')
         `;
-        await verifySql`
+      await verifySql`
           INSERT INTO heartbeat_runs (
             id, company_id, agent_id, status, native_issue_id, completion_contract_id
           ) VALUES (
@@ -1698,17 +1811,17 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             ${otherIssueId}, ${otherContractId}
           )
         `;
-        await verifySql`
+      await verifySql`
           INSERT INTO issues (id, company_id, title, status)
           VALUES (${otherIssueId}, ${otherCompanyId}, 'Other native issue', 'in_progress')
         `;
-        await verifySql`
+      await verifySql`
           UPDATE heartbeat_runs
           SET native_issue_id = ${issueId}, completion_contract_id = ${contractId}
           WHERE id = ${runId}
         `;
 
-        await expect(verifySql`
+      await expect(verifySql`
           INSERT INTO completion_contracts (
             company_id, issue_id, revision, schema_version, policy_version,
             risk, completion_authority, incomplete_criteria_policy, contract_json,
@@ -1720,7 +1833,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `).rejects.toThrow(/completion_contracts_issue_company_fk/);
 
-        await verifySql`
+      await verifySql`
           INSERT INTO completion_contracts (
             id, company_id, issue_id, revision, schema_version, policy_version,
             risk, completion_authority, incomplete_criteria_policy, contract_json,
@@ -1731,7 +1844,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             'contract-sha', 'system', 'migration-test'
           )
         `;
-        await verifySql`
+      await verifySql`
           INSERT INTO completion_contracts (
             id, company_id, issue_id, revision, schema_version, policy_version,
             risk, completion_authority, incomplete_criteria_policy, contract_json,
@@ -1744,7 +1857,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `;
 
-        await expect(verifySql`
+      await expect(verifySql`
           INSERT INTO native_run_results (
             company_id, issue_id, run_id, completion_contract_id,
             server_fingerprint, schema_status, result_json, canonical_sha256
@@ -1755,7 +1868,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `).rejects.toThrow(/native_run_results_run_contract_owner_fk/);
 
-        await expect(verifySql`
+      await expect(verifySql`
           INSERT INTO native_run_results (
             company_id, issue_id, run_id, completion_contract_id,
             server_fingerprint, schema_status, result_json, canonical_sha256
@@ -1766,7 +1879,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `).rejects.toThrow(/native_run_results_run_contract_owner_fk/);
 
-        await verifySql`
+      await verifySql`
           INSERT INTO native_run_results (
             id, company_id, issue_id, run_id, completion_contract_id,
             server_fingerprint, schema_status, result_json, canonical_sha256
@@ -1775,7 +1888,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             'result-fingerprint', 'valid', ${JSON.stringify({ summary: "done" })}::jsonb, 'result-sha'
           )
         `;
-        await verifySql`
+      await verifySql`
           INSERT INTO native_run_results (
             id, company_id, issue_id, run_id, completion_contract_id,
             server_fingerprint, schema_status, result_json, canonical_sha256
@@ -1786,7 +1899,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `;
 
-        await expect(verifySql`
+      await expect(verifySql`
           INSERT INTO work_assessments (
             company_id, issue_id, run_id, contract_id, result_id,
             trigger_kind, trigger_actor_company_id, prior_issue_status,
@@ -1799,7 +1912,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `).rejects.toThrow(/work_assessments_result_owner_fk/);
 
-        await expect(verifySql`
+      await expect(verifySql`
           INSERT INTO work_assessments (
             company_id, issue_id, run_id, contract_id, result_id,
             trigger_kind, trigger_actor_company_id, prior_issue_status,
@@ -1812,7 +1925,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `).rejects.toThrow(/work_assessments_trigger_actor_company_check/);
 
-        await verifySql`
+      await verifySql`
           INSERT INTO work_assessments (
             id, company_id, issue_id, run_id, contract_id, result_id,
             trigger_kind, trigger_actor_company_id, prior_issue_status,
@@ -1823,7 +1936,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             ${JSON.stringify({ disposition: "done" })}::jsonb, 'assessment-input-sha'
           )
         `;
-        await verifySql`
+      await verifySql`
           INSERT INTO work_assessments (
             id, company_id, issue_id, run_id, contract_id, result_id,
             trigger_kind, trigger_actor_company_id, prior_issue_status,
@@ -1836,7 +1949,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `;
 
-        await expect(verifySql`
+      await expect(verifySql`
           INSERT INTO status_decisions (
             company_id, issue_id, run_id, assessment_id, decision_version,
             policy_version, from_status, to_status, reason_code,
@@ -1848,7 +1961,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `).rejects.toThrow(/status_decisions_assessment_owner_fk/);
 
-        await verifySql`
+      await verifySql`
           INSERT INTO status_decisions (
             id, company_id, issue_id, run_id, assessment_id, decision_version,
             policy_version, from_status, to_status, reason_code,
@@ -1859,7 +1972,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             ${JSON.stringify({ toStatus: "done" })}::jsonb, 'decision-sha'
           )
         `;
-        await verifySql`
+      await verifySql`
           INSERT INTO status_decisions (
             id, company_id, issue_id, run_id, assessment_id, decision_version,
             policy_version, from_status, to_status, reason_code,
@@ -1872,7 +1985,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `;
 
-        await expect(verifySql`
+      await expect(verifySql`
           INSERT INTO status_decision_effects (
             company_id, issue_id, decision_id, ordinal, effect_kind,
             target_type, idempotency_key, payload
@@ -1882,7 +1995,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `).rejects.toThrow(/status_decision_effects_decision_owner_fk/);
 
-        await verifySql`
+      await verifySql`
           INSERT INTO status_decision_effects (
             company_id, issue_id, decision_id, ordinal, effect_kind,
             target_type, idempotency_key, payload
@@ -1892,7 +2005,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `;
 
-        await expect(verifySql`
+      await expect(verifySql`
           INSERT INTO native_run_finalizations (
             run_id, company_id, issue_id, phase, result_id, assessment_id, decision_id
           ) VALUES (
@@ -1901,7 +2014,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `).rejects.toThrow(/native_run_finalizations_decision_owner_fk/);
 
-        await verifySql`
+      await verifySql`
           INSERT INTO native_run_finalizations (
             run_id, company_id, issue_id, phase, result_id, assessment_id, decision_id
           ) VALUES (
@@ -1909,37 +2022,48 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           )
         `;
 
-        await verifySql`UPDATE issues SET title = 'Renamed legacy issue' WHERE id = ${issueId}`;
-        await verifySql`UPDATE issues SET status = 'done' WHERE id = ${issueId}`;
-        const issues = await verifySql.unsafe<{ status: string; status_version: string }[]>(`
+      await verifySql`UPDATE issues SET title = 'Renamed legacy issue' WHERE id = ${issueId}`;
+      await verifySql`UPDATE issues SET status = 'done' WHERE id = ${issueId}`;
+      const issues = await verifySql.unsafe<
+        { status: string; status_version: string }[]
+      >(`
           SELECT status, status_version
           FROM issues
           WHERE id = '${issueId}'
         `);
-        expect(issues.map((issue) => ({
+      expect(
+        issues.map((issue) => ({
           status: issue.status,
           statusVersion: Number(issue.status_version),
-        }))).toEqual([{ status: "done", statusVersion: 1 }]);
+        })),
+      ).toEqual([{ status: "done", statusVersion: 1 }]);
 
-        await verifySql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${nativePersistenceHash}`;
-        await verifySql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${eventSequenceUniquenessHash}`;
-      } finally {
-        await verifySql.end();
-      }
+      await verifySql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${nativePersistenceHash}`;
+      await verifySql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${eventSequenceUniquenessHash}`;
+    } finally {
+      await verifySql.end();
+    }
 
-      await expect(applyPendingMigrations(connectionString)).resolves.toBeUndefined();
-      await expect(inspectMigrations(connectionString)).resolves.toMatchObject({
-        status: "upToDate",
-      });
+    await expect(
+      applyPendingMigrations(connectionString),
+    ).resolves.toBeUndefined();
+    await expect(inspectMigrations(connectionString)).resolves.toMatchObject({
+      status: "upToDate",
+    });
 
-      const replaySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const replayed = await replaySql.unsafe<{
+    const replaySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const replayed = await replaySql.unsafe<
+        {
           status_version: string;
           next_event_seq: string;
           trigger_count: number;
           finalization_count: number;
-        }[]>(`
+        }[]
+      >(`
           SELECT
             issue.status_version,
             run.next_event_seq,
@@ -1958,69 +2082,63 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           CROSS JOIN heartbeat_runs run
           WHERE issue.id = '${issueId}' AND run.id = '${runId}'
         `);
-        expect(replayed.map((row) => ({
+      expect(
+        replayed.map((row) => ({
           statusVersion: Number(row.status_version),
           nextEventSeq: Number(row.next_event_seq),
           triggerCount: row.trigger_count,
           finalizationCount: row.finalization_count,
-        }))).toEqual([{
+        })),
+      ).toEqual([
+        {
           statusVersion: 1,
           nextEventSeq: 11,
           triggerCount: 1,
           finalizationCount: 1,
-        }]);
-      } finally {
-        await replaySql.end();
-      }
-    },
-    60_000,
-  );
+        },
+      ]);
+    } finally {
+      await replaySql.end();
+    }
+  }, 60_000);
 
-  it(
-    "replays the idempotent provider trace migration",
-    async () => {
-      const connectionString = await createTempDatabase();
-      await applyPendingMigrations(connectionString);
-      const hash = await migrationHash(
-        "0234_provider_trace_records.sql",
-      );
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        await sql`
+  it("replays the idempotent provider trace migration", async () => {
+    const connectionString = await createTempDatabase();
+    await applyPendingMigrations(connectionString);
+    const hash = await migrationHash("0234_provider_trace_records.sql");
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+    try {
+      await sql`
           DELETE FROM "drizzle"."__drizzle_migrations"
           WHERE "hash" = ${hash}
         `;
-      } finally {
-        await sql.end();
-      }
+    } finally {
+      await sql.end();
+    }
 
-      await expect(
-        applyPendingMigrations(connectionString),
-      ).resolves.toBeUndefined();
-      await expect(inspectMigrations(connectionString)).resolves.toMatchObject({
-        status: "upToDate",
-      });
-    },
-    30_000,
-  );
+    await expect(
+      applyPendingMigrations(connectionString),
+    ).resolves.toBeUndefined();
+    await expect(inspectMigrations(connectionString)).resolves.toMatchObject({
+      status: "upToDate",
+    });
+  }, 30_000);
 
-  it(
-    "removes retired model profiles from live records and configuration revisions",
-    async () => {
-      const connectionString = await createTempDatabase();
-      await applyPendingMigrations(connectionString);
-      const hash = await migrationHash("0236_remove_cheap_model_profiles.sql");
-      const companyId = "10000000-0000-4000-8000-000000000236";
-      const agentId = "20000000-0000-4000-8000-000000000236";
-      const issueId = "30000000-0000-4000-8000-000000000236";
-      const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
+  it("removes retired model profiles from live records and configuration revisions", async () => {
+    const connectionString = await createTempDatabase();
+    await applyPendingMigrations(connectionString);
+    const hash = await migrationHash("0236_remove_cheap_model_profiles.sql");
+    const companyId = "10000000-0000-4000-8000-000000000236";
+    const agentId = "20000000-0000-4000-8000-000000000236";
+    const issueId = "30000000-0000-4000-8000-000000000236";
+    const sql = postgres(connectionString, { max: 1, onnotice: () => {} });
 
-      try {
-        await sql`
+    try {
+      await sql`
           INSERT INTO companies (id, name, issue_prefix)
           VALUES (${companyId}, 'Model profile migration fixture', 'MPF')
         `;
-        await sql`
+      await sql`
           INSERT INTO agents (id, company_id, name, runtime_config)
           VALUES (
             ${agentId},
@@ -2029,7 +2147,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '{"heartbeat":{"enabled":true},"modelProfiles":{"cheap":{"model":"legacy"}}}'::jsonb
           )
         `;
-        await sql`
+      await sql`
           INSERT INTO issues (id, company_id, title, assignee_adapter_overrides)
           VALUES (
             ${issueId},
@@ -2038,7 +2156,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '{"modelProfile":"cheap","workingDirectory":"/workspace"}'::jsonb
           )
         `;
-        await sql`
+      await sql`
           INSERT INTO agent_config_revisions (
             company_id,
             agent_id,
@@ -2054,24 +2172,29 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
             '{"name":"Legacy model profile agent","runtimeConfig":{"modelProfiles":{"cheap":{"model":"legacy-after"}},"heartbeat":{"enabled":false}}}'::jsonb
           )
         `;
-        await sql`
+      await sql`
           DELETE FROM "drizzle"."__drizzle_migrations"
           WHERE "hash" = ${hash}
         `;
-      } finally {
-        await sql.end();
-      }
+    } finally {
+      await sql.end();
+    }
 
-      await applyPendingMigrations(connectionString);
+    await applyPendingMigrations(connectionString);
 
-      const verifySql = postgres(connectionString, { max: 1, onnotice: () => {} });
-      try {
-        const [result] = await verifySql.unsafe<{
+    const verifySql = postgres(connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
+    try {
+      const [result] = await verifySql.unsafe<
+        {
           runtime_config: Record<string, unknown>;
           assignee_adapter_overrides: Record<string, unknown> | null;
           before_config: Record<string, unknown>;
           after_config: Record<string, unknown>;
-        }[]>(`
+        }[]
+      >(`
           SELECT
             agent.runtime_config,
             issue.assignee_adapter_overrides,
@@ -2083,20 +2206,20 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
           WHERE agent.id = '${agentId}' AND issue.id = '${issueId}'
         `);
 
-        expect(result.runtime_config).toEqual({ heartbeat: { enabled: true } });
-        expect(result.assignee_adapter_overrides).toEqual({ workingDirectory: "/workspace" });
-        expect(result.before_config).toEqual({
-          name: "Legacy model profile agent",
-          runtimeConfig: { heartbeat: { enabled: true } },
-        });
-        expect(result.after_config).toEqual({
-          name: "Legacy model profile agent",
-          runtimeConfig: { heartbeat: { enabled: false } },
-        });
-      } finally {
-        await verifySql.end();
-      }
-    },
-    30_000,
-  );
+      expect(result.runtime_config).toEqual({ heartbeat: { enabled: true } });
+      expect(result.assignee_adapter_overrides).toEqual({
+        workingDirectory: "/workspace",
+      });
+      expect(result.before_config).toEqual({
+        name: "Legacy model profile agent",
+        runtimeConfig: { heartbeat: { enabled: true } },
+      });
+      expect(result.after_config).toEqual({
+        name: "Legacy model profile agent",
+        runtimeConfig: { heartbeat: { enabled: false } },
+      });
+    } finally {
+      await verifySql.end();
+    }
+  }, 30_000);
 });

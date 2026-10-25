@@ -25,30 +25,42 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("Vercel Connect credential adapter", () => {
   it("canonicalizes Taskcore's loopback callback to Vercel's accepted localhost form", () => {
-    expect(vercelConnectCallbackUrl(
-      "http://127.0.0.1:3200/api/tools/oauth/callback?stale=1#fragment",
-      "one-time-state",
-    )).toBe("http://localhost:3200/api/tools/vercel-connect/callback?state=one-time-state");
-    expect(vercelConnectCallbackUrl(
-      "https://taskcore.example/api/tools/oauth/callback",
-      "one-time-state",
-    )).toBe("https://taskcore.example/api/tools/vercel-connect/callback?state=one-time-state");
+    expect(
+      vercelConnectCallbackUrl(
+        "http://127.0.0.1:3200/api/tools/oauth/callback?stale=1#fragment",
+        "one-time-state",
+      ),
+    ).toBe(
+      "http://localhost:3200/api/tools/vercel-connect/callback?state=one-time-state",
+    );
+    expect(
+      vercelConnectCallbackUrl(
+        "https://taskcore.example/api/tools/oauth/callback",
+        "one-time-state",
+      ),
+    ).toBe(
+      "https://taskcore.example/api/tools/vercel-connect/callback?state=one-time-state",
+    );
   });
 
   it("gates new setup separately from runtime credential availability", () => {
-    expect(vercelConnectIntegrationStatus({
-      TASKCORE_VERCEL_CONNECT_ENABLED: "false",
-      TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN: "bootstrap-token",
-    } as NodeJS.ProcessEnv)).toMatchObject({
+    expect(
+      vercelConnectIntegrationStatus({
+        TASKCORE_VERCEL_CONNECT_ENABLED: "false",
+        TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN: "bootstrap-token",
+      } as NodeJS.ProcessEnv),
+    ).toMatchObject({
       enabled: false,
       configured: true,
       authentication: "access_token",
     });
-    expect(vercelConnectIntegrationStatus({
-      TASKCORE_VERCEL_CONNECT_ENABLED: "true",
-      VERCEL_OIDC_TOKEN: "workload-token",
-      TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN: "fallback-token",
-    } as NodeJS.ProcessEnv)).toMatchObject({
+    expect(
+      vercelConnectIntegrationStatus({
+        TASKCORE_VERCEL_CONNECT_ENABLED: "true",
+        VERCEL_OIDC_TOKEN: "workload-token",
+        TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN: "fallback-token",
+      } as NodeJS.ProcessEnv),
+    ).toMatchObject({
       enabled: true,
       configured: true,
       authentication: "workload_oidc",
@@ -56,13 +68,20 @@ describe("Vercel Connect credential adapter", () => {
   });
 
   it("prefers workload OIDC over the access-token fallback", () => {
-    expect(vercelConnectSdkOptions({
-      VERCEL_OIDC_TOKEN: "workload-token",
-      TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN: "stale-fallback-token",
-    } as NodeJS.ProcessEnv)).toEqual({});
-    expect(vercelConnectSdkOptions({
-      TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN: "fallback-token",
-    } as NodeJS.ProcessEnv, true)).toEqual({
+    expect(
+      vercelConnectSdkOptions({
+        VERCEL_OIDC_TOKEN: "workload-token",
+        TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN: "stale-fallback-token",
+      } as NodeJS.ProcessEnv),
+    ).toEqual({});
+    expect(
+      vercelConnectSdkOptions(
+        {
+          TASKCORE_VERCEL_CONNECT_ACCESS_TOKEN: "fallback-token",
+        } as NodeJS.ProcessEnv,
+        true,
+      ),
+    ).toEqual({
       vercelToken: "fallback-token",
       forceRefresh: true,
     });
@@ -79,26 +98,42 @@ describe("Vercel Connect credential adapter", () => {
     };
     const first = deriveVercelConnectSubject(base);
     expect(first).toEqual(deriveVercelConnectSubject(base));
-    expect(first.subject).toMatchObject({ type: "user", id: expect.stringMatching(/^pc_/) });
-    expect(deriveVercelConnectSubject({ ...base, companyId: "company-two" }).subject).not.toEqual(first.subject);
-    expect(deriveVercelConnectSubject({ ...base, subjectUserId: "user-two" }).subject).not.toEqual(first.subject);
+    expect(first.subject).toMatchObject({
+      type: "user",
+      id: expect.stringMatching(/^pc_/),
+    });
+    expect(
+      deriveVercelConnectSubject({ ...base, companyId: "company-two" }).subject,
+    ).not.toEqual(first.subject);
+    expect(
+      deriveVercelConnectSubject({ ...base, subjectUserId: "user-two" })
+        .subject,
+    ).not.toEqual(first.subject);
   });
 
   it("uses app subjects without reusable browser-provided identifiers", () => {
     const appCredential = { ...credential, principalMode: "app" as const };
-    expect(deriveVercelConnectSubject({
-      credential: appCredential,
-      connectionId: "connection-one",
-      companyId: "company-one",
-      grantKind: "organization",
-    })).toEqual({ subject: { type: "app" } });
-    expect(vercelTokenRequest({
-      credential: appCredential,
-      connectionId: "connection-one",
-      companyId: "company-one",
-      resources: ["https://mcp.posthog.com/mcp"],
-      grant: { kind: "organization", subjectUserId: null, externalCredential: null },
-    })).toMatchObject({
+    expect(
+      deriveVercelConnectSubject({
+        credential: appCredential,
+        connectionId: "connection-one",
+        companyId: "company-one",
+        grantKind: "organization",
+      }),
+    ).toEqual({ subject: { type: "app" } });
+    expect(
+      vercelTokenRequest({
+        credential: appCredential,
+        connectionId: "connection-one",
+        companyId: "company-one",
+        resources: ["https://mcp.posthog.com/mcp"],
+        grant: {
+          kind: "organization",
+          subjectUserId: null,
+          externalCredential: null,
+        },
+      }),
+    ).toMatchObject({
       connector: "posthog-taskcore",
       subject: { type: "app" },
       resources: ["https://mcp.posthog.com/mcp"],
@@ -114,7 +149,11 @@ describe("Vercel Connect credential adapter", () => {
         token: "provider-bearer-must-not-persist",
         tokenId: "stk_123",
         expiresAt: Date.parse("2026-08-26T13:00:00.000Z"),
-        connector: { id: "scl_posthog", uid: "posthog-taskcore", type: "api-key" },
+        connector: {
+          id: "scl_posthog",
+          uid: "posthog-taskcore",
+          type: "api-key",
+        },
         installationId: "installation-1",
         tenantId: "project-1",
         claims: { email: "private@example.com" },

@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { isCursorUnknownSessionError, parseCursorJsonl } from "@taskcore/adapter-cursor-local/server";
+import {
+  isCursorUnknownSessionError,
+  parseCursorJsonl,
+} from "@taskcore/adapter-cursor-local/server";
 import { parseCursorStdoutLine } from "@taskcore/adapter-cursor-local/ui";
 import { printCursorStreamEvent } from "@taskcore/adapter-cursor-local/cli";
 
@@ -10,36 +13,53 @@ describe("cursor parser", () => {
     { type: "result", usage: { input_tokens: 0 } },
     { type: "result", usage: { input_tokens: -1, output_tokens: 0 } },
     { type: "step_finish", part: {} },
-  ])("does not treat absent or malformed counters as reported zeroes (%j)", event => {
-    const parsed = parseCursorJsonl(JSON.stringify(event));
-    expect(parsed.usageReported).toBe(false);
-    expect(parsed.usageComplete).toBe(false);
-    expect(parsed.costUsd).toBeNull();
-  });
+  ])(
+    "does not treat absent or malformed counters as reported zeroes (%j)",
+    (event) => {
+      const parsed = parseCursorJsonl(JSON.stringify(event));
+      expect(parsed.usageReported).toBe(false);
+      expect(parsed.usageComplete).toBe(false);
+      expect(parsed.costUsd).toBeNull();
+    },
+  );
 
   it.each([
     { type: "result", usage: { input_tokens: 0, output_tokens: 0 } },
     { type: "result", usage: { inputTokens: 0, outputTokens: 0 } },
     { type: "step_finish", part: { tokens: { input: 0, output: 0 } } },
-  ])("preserves explicitly reported zero counters (%j)", event => {
+  ])("preserves explicitly reported zero counters (%j)", (event) => {
     expect(parseCursorJsonl(JSON.stringify(event))).toMatchObject({
-      usageReported: true, usageComplete: true,
+      usageReported: true,
+      usageComplete: true,
       usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 },
     });
   });
 
   it("keeps known partial usage without claiming a complete total", () => {
-    const parsed = parseCursorJsonl([
-      { type: "step_finish", part: { tokens: { input: 20, output: 5 } } },
-      { type: "result" },
-    ].map(event => JSON.stringify(event)).join("\n"));
-    expect(parsed).toMatchObject({ usageReported: true, usageComplete: false,
-      usage: { inputTokens: 20, outputTokens: 5 }, costUsd: null });
+    const parsed = parseCursorJsonl(
+      [
+        { type: "step_finish", part: { tokens: { input: 20, output: 5 } } },
+        { type: "result" },
+      ]
+        .map((event) => JSON.stringify(event))
+        .join("\n"),
+    );
+    expect(parsed).toMatchObject({
+      usageReported: true,
+      usageComplete: false,
+      usage: { inputTokens: 20, outputTokens: 5 },
+      costUsd: null,
+    });
   });
 
   it("extracts session, summary, usage, cost, and terminal error message", () => {
     const stdout = [
-      JSON.stringify({ type: "system", subtype: "init", session_id: "chat_123", model: "gpt-5" }),
+      JSON.stringify({
+        type: "system",
+        subtype: "init",
+        session_id: "chat_123",
+        model: "gpt-5",
+      }),
       JSON.stringify({
         type: "assistant",
         message: {
@@ -94,7 +114,9 @@ describe("cursor parser", () => {
 
 describe("cursor stale session detection", () => {
   it("treats missing/unknown session messages as an unknown session error", () => {
-    expect(isCursorUnknownSessionError("", "unknown session id chat_123")).toBe(true);
+    expect(isCursorUnknownSessionError("", "unknown session id chat_123")).toBe(
+      true,
+    );
     expect(isCursorUnknownSessionError("", "chat abc not found")).toBe(true);
   });
 });
@@ -112,7 +134,12 @@ describe("cursor ui stdout parser", () => {
               { type: "output_text", text: "I will run a command." },
               { type: "thinking", text: "Checking repository state" },
               { type: "tool_call", name: "bash", input: { command: "ls -1" } },
-              { type: "tool_result", tool_use_id: "tool_1", output: "AGENTS.md\n", status: "ok" },
+              {
+                type: "tool_result",
+                tool_use_id: "tool_1",
+                output: "AGENTS.md\n",
+                status: "ok",
+              },
             ],
           },
         }),
@@ -122,7 +149,13 @@ describe("cursor ui stdout parser", () => {
       { kind: "assistant", ts, text: "I will run a command." },
       { kind: "thinking", ts, text: "Checking repository state" },
       { kind: "tool_call", ts, name: "bash", input: { command: "ls -1" } },
-      { kind: "tool_result", ts, toolUseId: "tool_1", content: "AGENTS.md\n", isError: false },
+      {
+        kind: "tool_result",
+        ts,
+        toolUseId: "tool_1",
+        content: "AGENTS.md\n",
+        isError: false,
+      },
     ]);
   });
 
@@ -172,7 +205,8 @@ describe("cursor ui stdout parser", () => {
 
   it("compacts shellToolCall and shell tool result for run log", () => {
     const ts = "2026-03-05T00:00:00.000Z";
-    const longCommand = "curl -s -X POST \"$TASKCORE_API_URL/api/issues/abc/checkout\" -H \"Authorization: Bearer $TASKCORE_API_KEY\"";
+    const longCommand =
+      'curl -s -X POST "$TASKCORE_API_URL/api/issues/abc/checkout" -H "Authorization: Bearer $TASKCORE_API_KEY"';
 
     expect(
       parseCursorStdoutLine(
@@ -230,7 +264,7 @@ describe("cursor ui stdout parser", () => {
         kind: "tool_result",
         ts,
         toolUseId: "call_shell_1",
-        content: "exit 0\n<stdout>\n{\"id\":\"abc\",\"status\":\"in_progress\"}",
+        content: 'exit 0\n<stdout>\n{"id":"abc","status":"in_progress"}',
         isError: false,
       },
     ]);
@@ -261,7 +295,9 @@ describe("cursor ui stdout parser", () => {
         }),
         ts,
       ),
-    ).toEqual([{ kind: "thinking", ts, text: "planning next command", delta: true }]);
+    ).toEqual([
+      { kind: "thinking", ts, text: "planning next command", delta: true },
+    ]);
 
     expect(
       parseCursorStdoutLine(
@@ -272,7 +308,14 @@ describe("cursor ui stdout parser", () => {
         }),
         ts,
       ),
-    ).toEqual([{ kind: "thinking", ts, text: " with preserved leading space", delta: true }]);
+    ).toEqual([
+      {
+        kind: "thinking",
+        ts,
+        text: " with preserved leading space",
+        delta: true,
+      },
+    ]);
 
     expect(
       parseCursorStdoutLine(
@@ -288,7 +331,15 @@ describe("cursor ui stdout parser", () => {
         }),
         ts,
       ),
-    ).toEqual([{ kind: "tool_call", ts, name: "readToolCall", toolUseId: "call_1", input: { path: "README.md" } }]);
+    ).toEqual([
+      {
+        kind: "tool_call",
+        ts,
+        name: "readToolCall",
+        toolUseId: "call_1",
+        input: { path: "README.md" },
+      },
+    ]);
 
     expect(
       parseCursorStdoutLine(
@@ -326,7 +377,12 @@ describe("cursor cli formatter", () => {
 
     try {
       printCursorStreamEvent(
-        JSON.stringify({ type: "system", subtype: "init", session_id: "chat_abc", model: "gpt-5" }),
+        JSON.stringify({
+          type: "system",
+          subtype: "init",
+          session_id: "chat_abc",
+          model: "gpt-5",
+        }),
         false,
       );
       printCursorStreamEvent(
@@ -359,7 +415,9 @@ describe("cursor cli formatter", () => {
         JSON.stringify({
           type: "assistant",
           message: {
-            content: [{ type: "tool_call", name: "bash", input: { command: "ls -1" } }],
+            content: [
+              { type: "tool_call", name: "bash", input: { command: "ls -1" } },
+            ],
           },
         }),
         false,
@@ -368,7 +426,9 @@ describe("cursor cli formatter", () => {
         JSON.stringify({
           type: "assistant",
           message: {
-            content: [{ type: "tool_result", output: "AGENTS.md", status: "ok" }],
+            content: [
+              { type: "tool_result", output: "AGENTS.md", status: "ok" },
+            ],
           },
         }),
         false,
@@ -437,11 +497,21 @@ describe("cursor cli formatter", () => {
   });
 });
 
-
 describe("Cursor price completeness", () => {
   it("preserves reported zero and keeps a partially priced stream unpriced", () => {
-    expect(parseCursorJsonl(JSON.stringify({ type: "result", cost_usd: 0 })).costUsd).toBe(0);
-    expect(parseCursorJsonl(JSON.stringify({ type: "result" })).costUsd).toBeNull();
-    expect(parseCursorJsonl([JSON.stringify({ type: "step_finish", part: { cost: 1 } }), JSON.stringify({ type: "step_finish", part: {} })].join("\n")).costUsd).toBeNull();
+    expect(
+      parseCursorJsonl(JSON.stringify({ type: "result", cost_usd: 0 })).costUsd,
+    ).toBe(0);
+    expect(
+      parseCursorJsonl(JSON.stringify({ type: "result" })).costUsd,
+    ).toBeNull();
+    expect(
+      parseCursorJsonl(
+        [
+          JSON.stringify({ type: "step_finish", part: { cost: 1 } }),
+          JSON.stringify({ type: "step_finish", part: {} }),
+        ].join("\n"),
+      ).costUsd,
+    ).toBeNull();
   });
 });

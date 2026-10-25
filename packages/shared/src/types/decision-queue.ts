@@ -43,7 +43,8 @@ export interface DecisionQueue {
   updatedAt: Date;
 }
 
-export type DecisionTriageDecideBy = "today" | "this_week" | "whenever" | string;
+export type DecisionTriageDecideBy =
+  "today" | "this_week" | "whenever" | string;
 
 export interface DecisionTriage {
   id: string;

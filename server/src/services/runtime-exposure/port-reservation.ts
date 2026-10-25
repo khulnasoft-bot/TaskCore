@@ -168,7 +168,9 @@ function emptyIdentity(): ExposureOwnerIdentity {
  * contribute nothing at all. The `port` column is what still names the pair the
  * lease paid for.
  */
-export function collectRowExposurePorts(row: PersistedExposureRowSnapshot): Set<number> {
+export function collectRowExposurePorts(
+  row: PersistedExposureRowSnapshot,
+): Set<number> {
   const ports = new Set<number>();
   for (const listener of row.exposure?.listeners ?? []) {
     if (Number.isInteger(listener.targetPort)) ports.add(listener.targetPort);
@@ -203,19 +205,30 @@ export function buildExposureReservationLedger(
 ): ExposureReservationLedger {
   const reservationByPort = new Map<number, ExposurePortReservation>();
 
-  const record = (port: number, source: ExposureReservationSource, owner: ExposureOwnerIdentity) => {
+  const record = (
+    port: number,
+    source: ExposureReservationSource,
+    owner: ExposureOwnerIdentity,
+  ) => {
     if (!Number.isInteger(port)) return;
     const existing = reservationByPort.get(port);
-    if (existing && RESERVATION_SOURCE_RANK[existing.source] <= RESERVATION_SOURCE_RANK[source]) return;
+    if (
+      existing &&
+      RESERVATION_SOURCE_RANK[existing.source] <=
+        RESERVATION_SOURCE_RANK[source]
+    )
+      return;
     reservationByPort.set(port, { port, source, owner });
   };
 
   const activeLeases = new Set(input.activeExecutionWorkspaceIds ?? []);
 
-  for (const port of input.quarantinedPorts ?? []) record(port, "quarantine", emptyIdentity());
+  for (const port of input.quarantinedPorts ?? [])
+    record(port, "quarantine", emptyIdentity());
   // An in-flight claim has no identity yet by construction — the claiming start
   // has not persisted a row. It still must block a concurrent allocator.
-  for (const port of input.inFlightClaimedPorts ?? []) record(port, "in_memory_runtime", emptyIdentity());
+  for (const port of input.inFlightClaimedPorts ?? [])
+    record(port, "in_memory_runtime", emptyIdentity());
 
   for (const runtime of input.inMemoryRuntimes ?? []) {
     const owner: ExposureOwnerIdentity = {
@@ -230,25 +243,37 @@ export function buildExposureReservationLedger(
   // Broker mappings identify a runtime, not a workspace; resolve the workspace
   // from the persisted rows when we can so a conflict can name it.
   const rows = [...(input.persistedRows ?? [])];
-  const identityByRuntimeId = new Map(rows.map((row) => [row.id, rowIdentity(row)]));
+  const identityByRuntimeId = new Map(
+    rows.map((row) => [row.id, rowIdentity(row)]),
+  );
   for (const mapping of input.brokerMappings ?? []) {
     record(
       mapping.port,
       "broker_mapping",
-      identityByRuntimeId.get(mapping.runtimeId)
-        ?? { ...emptyIdentity(), runtimeServiceId: mapping.runtimeId },
+      identityByRuntimeId.get(mapping.runtimeId) ?? {
+        ...emptyIdentity(),
+        runtimeServiceId: mapping.runtimeId,
+      },
     );
   }
 
   for (const row of rows) {
-    const leaseOpen = Boolean(row.executionWorkspaceId) && activeLeases.has(row.executionWorkspaceId!);
+    const leaseOpen =
+      Boolean(row.executionWorkspaceId) &&
+      activeLeases.has(row.executionWorkspaceId!);
     const claimsExposure = rowClaimsLiveExposure(row);
     if (!leaseOpen && !claimsExposure) continue;
-    const source: ExposureReservationSource = claimsExposure ? "persisted_exposure" : "leased_workspace";
-    for (const port of collectRowExposurePorts(row)) record(port, source, rowIdentity(row));
+    const source: ExposureReservationSource = claimsExposure
+      ? "persisted_exposure"
+      : "leased_workspace";
+    for (const port of collectRowExposurePorts(row))
+      record(port, source, rowIdentity(row));
   }
 
-  return { reservationByPort, reservedPorts: new Set(reservationByPort.keys()) };
+  return {
+    reservationByPort,
+    reservedPorts: new Set(reservationByPort.keys()),
+  };
 }
 
 /**
@@ -270,13 +295,17 @@ export function isExposureAdoptionPermitted(
 ): boolean {
   if (!holder) return true;
   if (
-    holder.runtimeServiceId !== null
-    && claimant.runtimeServiceId !== null
-    && holder.runtimeServiceId === claimant.runtimeServiceId
+    holder.runtimeServiceId !== null &&
+    claimant.runtimeServiceId !== null &&
+    holder.runtimeServiceId === claimant.runtimeServiceId
   ) {
     return true;
   }
-  if (holder.executionWorkspaceId === null || claimant.executionWorkspaceId === null) return false;
+  if (
+    holder.executionWorkspaceId === null ||
+    claimant.executionWorkspaceId === null
+  )
+    return false;
   return holder.executionWorkspaceId === claimant.executionWorkspaceId;
 }
 
@@ -323,7 +352,13 @@ export function findExposurePairConflict(
     const reservation = input.ledger.reservationByPort.get(port);
     if (!reservation) continue;
     if (reservation.source === "quarantine") {
-      return { code: "quarantined_port", port, claimant: input.claimant, holder: null, source: "quarantine" };
+      return {
+        code: "quarantined_port",
+        port,
+        claimant: input.claimant,
+        holder: null,
+        source: "quarantine",
+      };
     }
     if (!isExposureAdoptionPermitted(reservation.owner, input.claimant)) {
       return {
@@ -374,9 +409,11 @@ export function findExposurePairConflict(
 function describeIdentity(identity: ExposureOwnerIdentity | null): string {
   if (!identity) return "an unidentified owner";
   const parts: string[] = [];
-  if (identity.executionWorkspaceId) parts.push(`execution workspace ${identity.executionWorkspaceId}`);
+  if (identity.executionWorkspaceId)
+    parts.push(`execution workspace ${identity.executionWorkspaceId}`);
   if (identity.issueId) parts.push(`issue ${identity.issueId}`);
-  if (identity.runtimeServiceId) parts.push(`runtime service ${identity.runtimeServiceId}`);
+  if (identity.runtimeServiceId)
+    parts.push(`runtime service ${identity.runtimeServiceId}`);
   if (identity.projectWorkspaceId && parts.length === 0) {
     parts.push(`project workspace ${identity.projectWorkspaceId}`);
   }
@@ -384,10 +421,12 @@ function describeIdentity(identity: ExposureOwnerIdentity | null): string {
 }
 
 const CONFLICT_REASONS: Record<ExposurePortConflictCode, string> = {
-  quarantined_port: "is quarantined after an ambiguous exposure cleanup and can never be reused",
+  quarantined_port:
+    "is quarantined after an ambiguous exposure cleanup and can never be reused",
   reserved_by_other_workspace: "is reserved by",
   listener_owned_by_other_workspace: "has a live loopback listener owned by",
-  serve_mapping_owned_by_other_workspace: "is published by a Tailscale Serve mapping owned by",
+  serve_mapping_owned_by_other_workspace:
+    "is published by a Tailscale Serve mapping owned by",
 };
 
 /**
@@ -395,14 +434,17 @@ const CONFLICT_REASONS: Record<ExposurePortConflictCode, string> = {
  * workspace/issue identity: a bare "port unavailable" is what made the original
  * incident take a manual `tailscale serve status` read to attribute.
  */
-export function describeExposurePortConflict(conflict: ExposurePortConflict): string {
+export function describeExposurePortConflict(
+  conflict: ExposurePortConflict,
+): string {
   const subject = `port ${conflict.port}`;
   if (conflict.code === "quarantined_port") {
     return `${subject} ${CONFLICT_REASONS.quarantined_port}`;
   }
-  const suffix = conflict.source === "leased_workspace"
-    ? " (the lane is stopped, but its lease is still open)"
-    : "";
+  const suffix =
+    conflict.source === "leased_workspace"
+      ? " (the lane is stopped, but its lease is still open)"
+      : "";
   return `${subject} ${CONFLICT_REASONS[conflict.code]} ${describeIdentity(conflict.holder)}${suffix}`;
 }
 
@@ -411,7 +453,9 @@ export class ExposurePortOwnershipConflictError extends Error {
   readonly code = "exposure_port_ownership_conflict" as const;
 
   constructor(readonly conflict: ExposurePortConflict) {
-    super(`HTTPS exposure allocation denied: ${describeExposurePortConflict(conflict)}`);
+    super(
+      `HTTPS exposure allocation denied: ${describeExposurePortConflict(conflict)}`,
+    );
     this.name = "ExposurePortOwnershipConflictError";
   }
 }
@@ -447,44 +491,66 @@ export function findExposureReservationDrift(
   input: FindExposureReservationDriftInput,
 ): ExposureReservationDrift[] {
   const rows = [...input.persistedRows];
-  const identityByRuntimeId = new Map(rows.map((row) => [row.id, rowIdentity(row)]));
+  const identityByRuntimeId = new Map(
+    rows.map((row) => [row.id, rowIdentity(row)]),
+  );
   const mappingOwnerByPort = new Map<number, ExposureOwnerIdentity>();
   for (const mapping of input.brokerMappings ?? []) {
     mappingOwnerByPort.set(
       mapping.port,
-      identityByRuntimeId.get(mapping.runtimeId)
-        ?? { ...emptyIdentity(), runtimeServiceId: mapping.runtimeId },
+      identityByRuntimeId.get(mapping.runtimeId) ?? {
+        ...emptyIdentity(),
+        runtimeServiceId: mapping.runtimeId,
+      },
     );
   }
 
   const drift: ExposureReservationDrift[] = [];
   for (const row of rows) {
-    const dormant = row.status === "stopped" || row.status === "failed" || !rowClaimsLiveExposure(row);
+    const dormant =
+      row.status === "stopped" ||
+      row.status === "failed" ||
+      !rowClaimsLiveExposure(row);
     if (!dormant) continue;
     const owner = rowIdentity(row);
     for (const port of collectRowExposurePorts(row)) {
       const mappingOwner = mappingOwnerByPort.get(port) ?? null;
       if (mappingOwner && mappingOwner.runtimeServiceId !== row.id) {
-        drift.push({ runtimeServiceId: row.id, owner, port, reason: "serve_mapping", conflictingOwner: mappingOwner });
+        drift.push({
+          runtimeServiceId: row.id,
+          owner,
+          port,
+          reason: "serve_mapping",
+          conflictingOwner: mappingOwner,
+        });
         continue;
       }
       if (!input.livePorts?.has(port)) continue;
       const listenerOwner = input.listenerOwners?.get(port) ?? null;
       if (listenerOwner && listenerOwner.runtimeServiceId === row.id) continue;
-      drift.push({ runtimeServiceId: row.id, owner, port, reason: "live_listener", conflictingOwner: listenerOwner });
+      drift.push({
+        runtimeServiceId: row.id,
+        owner,
+        port,
+        reason: "live_listener",
+        conflictingOwner: listenerOwner,
+      });
     }
   }
   return drift;
 }
 
 /** Human-readable drift line for reconciliation logs and operator evidence. */
-export function describeExposureReservationDrift(entry: ExposureReservationDrift): string {
-  const held = entry.reason === "serve_mapping"
-    ? "is still published by a Tailscale Serve mapping"
-    : "still has a live loopback listener";
+export function describeExposureReservationDrift(
+  entry: ExposureReservationDrift,
+): string {
+  const held =
+    entry.reason === "serve_mapping"
+      ? "is still published by a Tailscale Serve mapping"
+      : "still has a live loopback listener";
   return (
-    `runtime service ${entry.runtimeServiceId} (${describeIdentity(entry.owner)}) is recorded stopped/removed, `
-    + `but its reserved port ${entry.port} ${held} owned by ${describeIdentity(entry.conflictingOwner)}`
+    `runtime service ${entry.runtimeServiceId} (${describeIdentity(entry.owner)}) is recorded stopped/removed, ` +
+    `but its reserved port ${entry.port} ${held} owned by ${describeIdentity(entry.conflictingOwner)}`
   );
 }
 
@@ -511,8 +577,12 @@ export class ExposurePortPairClaims {
   }
 
   /** Claim both ports, or neither. Returns false when either is already held. */
-  claim(pair: { appPort: number; hmrPort: number }, nowMs: number = Date.now()): boolean {
-    if (this.isHeld(pair.appPort, nowMs) || this.isHeld(pair.hmrPort, nowMs)) return false;
+  claim(
+    pair: { appPort: number; hmrPort: number },
+    nowMs: number = Date.now(),
+  ): boolean {
+    if (this.isHeld(pair.appPort, nowMs) || this.isHeld(pair.hmrPort, nowMs))
+      return false;
     this.heldUntilByPort.set(pair.appPort, nowMs + this.ttlMs);
     this.heldUntilByPort.set(pair.hmrPort, nowMs + this.ttlMs);
     return true;

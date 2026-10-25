@@ -1,5 +1,9 @@
 import { isAiAuthenticationRepairable } from "./ai-auth-failure.js";
-import type { HeartbeatRunStatus, IssueStatus, RunLivenessState } from "@taskcore/shared";
+import type {
+  HeartbeatRunStatus,
+  IssueStatus,
+  RunLivenessState,
+} from "@taskcore/shared";
 
 export type RunLivenessActionability =
   | "runnable"
@@ -67,7 +71,8 @@ const PLANNING_ONLY_RE =
 const NEXT_STEPS_RE = /^\s*(?:next steps?|plan)\s*:/im;
 const BLOCKER_RE =
   /\b(?:blocked|can't proceed|cannot proceed|unable to proceed|waiting on|need(?:s|ed)? .{0,80}\b(?:approval|access|credential|credentials|secret|api key|token|input|clarification)|requires? .{0,80}\b(?:approval|access|credential|credentials|secret|api key|token|input|clarification))\b/i;
-const NEGATED_BLOCKER_RE = /\b(?:not blocked|no blocker|no blockers|unblocked)\b/i;
+const NEGATED_BLOCKER_RE =
+  /\b(?:not blocked|no blocker|no blockers|unblocked)\b/i;
 const APPROVAL_REQUIRED_RE =
   /\b(?:approval required|requires? .{0,80}\bapproval|need(?:s|ed)? .{0,80}\bapproval|waiting on .{0,80}\bapproval|pending approval|board approval|human approval|user approval|operator approval)\b/i;
 const EXTERNAL_BLOCKER_RE =
@@ -76,19 +81,25 @@ const MANAGER_REVIEW_RE =
   /\b(?:manager review|human review|manual review|security review|escalate|production deploy|deploy(?:ing)? to production|deploy(?:ing)? to prod|prod deploy|production access|rotate .{0,40}\b(?:secret|key|token)|delete .{0,40}\bproduction|security-sensitive|credentialed operation|budget-sensitive|cost approval|spend approval)\b/i;
 const RUNNABLE_RE =
   /\b(?:(?:run|rerun|execute)\s+(?:pnpm|npm|yarn|bun|vitest|jest|pytest|cargo|go test|curl|tests?|typecheck|build|lint|package|verification)|(?:inspect|check|review|look|investigate|analy[sz]e|open|read|start|begin|continue|implement|fix|test|update|create|add|write|verify|validate|report)\b)/i;
-const UNMANAGED_BACKGROUND_TASK_STOP_REASON = "unmanaged_background_task_stopped";
-const UNMANAGED_BACKGROUND_TASK_LIVENESS_REASON = "unmanaged background task stopped; no durable live path";
+const UNMANAGED_BACKGROUND_TASK_STOP_REASON =
+  "unmanaged_background_task_stopped";
+const UNMANAGED_BACKGROUND_TASK_LIVENESS_REASON =
+  "unmanaged background task stopped; no durable live path";
 
 function compactReason(reason: string) {
   return reason.length <= 500 ? reason : `${reason.slice(0, 497)}...`;
 }
 
 function normalizeCount(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : 0;
 }
 
 function normalizeContinuationAttempt(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : 0;
 }
 
 function readText(value: unknown): string | null {
@@ -97,18 +108,26 @@ function readText(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function hasUnmanagedBackgroundTaskEvidence(resultJson: Record<string, unknown> | null | undefined) {
+function hasUnmanagedBackgroundTaskEvidence(
+  resultJson: Record<string, unknown> | null | undefined,
+) {
   if (!resultJson) return false;
-  if (resultJson.stopReason === UNMANAGED_BACKGROUND_TASK_STOP_REASON) return true;
+  if (resultJson.stopReason === UNMANAGED_BACKGROUND_TASK_STOP_REASON)
+    return true;
   const evidence = resultJson.unmanagedBackgroundTask;
-  if (!evidence || typeof evidence !== "object" || Array.isArray(evidence)) return false;
+  if (!evidence || typeof evidence !== "object" || Array.isArray(evidence))
+    return false;
   const record = evidence as Record<string, unknown>;
-  return record.stopped === true &&
+  return (
+    record.stopped === true &&
     (record.stopReason === UNMANAGED_BACKGROUND_TASK_STOP_REASON ||
-      record.reason === UNMANAGED_BACKGROUND_TASK_LIVENESS_REASON);
+      record.reason === UNMANAGED_BACKGROUND_TASK_LIVENESS_REASON)
+  );
 }
 
-function resultFinalText(resultJson: Record<string, unknown> | null | undefined) {
+function resultFinalText(
+  resultJson: Record<string, unknown> | null | undefined,
+) {
   if (!resultJson) return "";
   return [
     readText(resultJson.nextAction),
@@ -123,10 +142,7 @@ function resultFinalText(resultJson: Record<string, unknown> | null | undefined)
 
 function resultRawText(resultJson: Record<string, unknown> | null | undefined) {
   if (!resultJson) return "";
-  return [
-    readText(resultJson.stdout),
-    readText(resultJson.stderr),
-  ]
+  return [readText(resultJson.stdout), readText(resultJson.stderr)]
     .filter((value): value is string => Boolean(value))
     .join("\n");
 }
@@ -168,29 +184,51 @@ export function hasUsefulOutput(input: RunLivenessClassificationInput) {
 export function declaredBlocker(input: RunLivenessClassificationInput) {
   if (input.issue?.status === "blocked") return true;
   const actionability = classifyRunActionability(input);
-  return actionability === "blocked_external" || actionability === "approval_required";
+  return (
+    actionability === "blocked_external" ||
+    actionability === "approval_required"
+  );
 }
 
 export function looksLikePlanningOnly(input: RunLivenessClassificationInput) {
   const text = actionabilityText(input);
   if (!text) return false;
-  return PLANNING_ONLY_RE.test(text) || NEXT_STEPS_RE.test(text) || /^\s*next(?: steps?| action)?\s*:/im.test(text);
+  return (
+    PLANNING_ONLY_RE.test(text) ||
+    NEXT_STEPS_RE.test(text) ||
+    /^\s*next(?: steps?| action)?\s*:/im.test(text)
+  );
 }
 
-function normalizeEvidence(evidence: Partial<RunLivenessEvidenceInput> | null | undefined): RunLivenessEvidenceInput {
+function normalizeEvidence(
+  evidence: Partial<RunLivenessEvidenceInput> | null | undefined,
+): RunLivenessEvidenceInput {
   return {
     issueCommentsCreated: normalizeCount(evidence?.issueCommentsCreated),
-    documentRevisionsCreated: normalizeCount(evidence?.documentRevisionsCreated),
-    planDocumentRevisionsCreated: normalizeCount(evidence?.planDocumentRevisionsCreated),
+    documentRevisionsCreated: normalizeCount(
+      evidence?.documentRevisionsCreated,
+    ),
+    planDocumentRevisionsCreated: normalizeCount(
+      evidence?.planDocumentRevisionsCreated,
+    ),
     workProductsCreated: normalizeCount(evidence?.workProductsCreated),
-    workspaceOperationsCreated: normalizeCount(evidence?.workspaceOperationsCreated),
+    workspaceOperationsCreated: normalizeCount(
+      evidence?.workspaceOperationsCreated,
+    ),
     activityEventsCreated: normalizeCount(evidence?.activityEventsCreated),
-    toolOrActionEventsCreated: normalizeCount(evidence?.toolOrActionEventsCreated),
-    latestEvidenceAt: evidence?.latestEvidenceAt instanceof Date ? evidence.latestEvidenceAt : null,
+    toolOrActionEventsCreated: normalizeCount(
+      evidence?.toolOrActionEventsCreated,
+    ),
+    latestEvidenceAt:
+      evidence?.latestEvidenceAt instanceof Date
+        ? evidence.latestEvidenceAt
+        : null,
   };
 }
 
-export function hasConcreteActionEvidence(evidence: Partial<RunLivenessEvidenceInput> | null | undefined) {
+export function hasConcreteActionEvidence(
+  evidence: Partial<RunLivenessEvidenceInput> | null | undefined,
+) {
   const normalized = normalizeEvidence(evidence);
   // Workspace creation is setup evidence, not task progress by itself. It can
   // appear in reasons alongside durable activity, but it must not prevent a
@@ -207,12 +245,18 @@ export function hasConcreteActionEvidence(evidence: Partial<RunLivenessEvidenceI
 
 function evidenceReason(evidence: RunLivenessEvidenceInput) {
   const parts: string[] = [];
-  if (evidence.issueCommentsCreated > 0) parts.push(`${evidence.issueCommentsCreated} issue comment(s)`);
-  if (evidence.documentRevisionsCreated > 0) parts.push(`${evidence.documentRevisionsCreated} document revision(s)`);
-  if (evidence.workProductsCreated > 0) parts.push(`${evidence.workProductsCreated} work product(s)`);
-  if (evidence.workspaceOperationsCreated > 0) parts.push(`${evidence.workspaceOperationsCreated} workspace operation(s)`);
-  if (evidence.activityEventsCreated > 0) parts.push(`${evidence.activityEventsCreated} activity event(s)`);
-  if (evidence.toolOrActionEventsCreated > 0) parts.push(`${evidence.toolOrActionEventsCreated} tool/action event(s)`);
+  if (evidence.issueCommentsCreated > 0)
+    parts.push(`${evidence.issueCommentsCreated} issue comment(s)`);
+  if (evidence.documentRevisionsCreated > 0)
+    parts.push(`${evidence.documentRevisionsCreated} document revision(s)`);
+  if (evidence.workProductsCreated > 0)
+    parts.push(`${evidence.workProductsCreated} work product(s)`);
+  if (evidence.workspaceOperationsCreated > 0)
+    parts.push(`${evidence.workspaceOperationsCreated} workspace operation(s)`);
+  if (evidence.activityEventsCreated > 0)
+    parts.push(`${evidence.activityEventsCreated} activity event(s)`);
+  if (evidence.toolOrActionEventsCreated > 0)
+    parts.push(`${evidence.toolOrActionEventsCreated} tool/action event(s)`);
   return parts.join(", ");
 }
 
@@ -224,9 +268,15 @@ function isNoisyTranscriptLine(line: string) {
   const trimmed = line.trim();
   if (!trimmed) return true;
   return (
-    /^(?:command|status|exit_code|tool|tool_call|tool_result|stdout|stderr|event|payload|session|cwd|ref_id)\s*:/i.test(trimmed) ||
-    /^(?:\{|\[).{0,80}(?:tool|event|stdout|stderr|cmd|command|payload)/i.test(trimmed) ||
-    /^\$?\s*(?:rg|sed|cat|ls|git|pnpm|npm|yarn|curl|node|python)\b/i.test(trimmed)
+    /^(?:command|status|exit_code|tool|tool_call|tool_result|stdout|stderr|event|payload|session|cwd|ref_id)\s*:/i.test(
+      trimmed,
+    ) ||
+    /^(?:\{|\[).{0,80}(?:tool|event|stdout|stderr|cmd|command|payload)/i.test(
+      trimmed,
+    ) ||
+    /^\$?\s*(?:rg|sed|cat|ls|git|pnpm|npm|yarn|curl|node|python)\b/i.test(
+      trimmed,
+    )
   );
 }
 
@@ -282,14 +332,22 @@ function extractNextAction(input: RunLivenessClassificationInput) {
   return null;
 }
 
-export function classifyRunActionability(input: RunLivenessClassificationInput): RunLivenessActionability {
+export function classifyRunActionability(
+  input: RunLivenessClassificationInput,
+): RunLivenessActionability {
   const text = actionabilityText(input);
   if (!text) return "unknown";
   if (NEGATED_BLOCKER_RE.test(text)) {
     return RUNNABLE_RE.test(text) ? "runnable" : "unknown";
   }
   if (APPROVAL_REQUIRED_RE.test(text)) return "approval_required";
-  if (EXTERNAL_BLOCKER_RE.test(text) || BLOCKER_RE.test(text) && /\b(?:credential|secret|api key|token|access|input|clarification)\b/i.test(text)) {
+  if (
+    EXTERNAL_BLOCKER_RE.test(text) ||
+    (BLOCKER_RE.test(text) &&
+      /\b(?:credential|secret|api key|token|access|input|clarification)\b/i.test(
+        text,
+      ))
+  ) {
     return "blocked_external";
   }
   if (MANAGER_REVIEW_RE.test(text)) return "manager_review";
@@ -297,9 +355,13 @@ export function classifyRunActionability(input: RunLivenessClassificationInput):
   return "unknown";
 }
 
-export function classifyRunLiveness(input: RunLivenessClassificationInput): RunLivenessClassification {
+export function classifyRunLiveness(
+  input: RunLivenessClassificationInput,
+): RunLivenessClassification {
   const evidence = normalizeEvidence(input.evidence);
-  const continuationAttempt = normalizeContinuationAttempt(input.continuationAttempt);
+  const continuationAttempt = normalizeContinuationAttempt(
+    input.continuationAttempt,
+  );
   const actionability = classifyRunActionability(input);
   const nextAction = extractNextAction(input);
   const issueStatus = input.issue?.status ?? null;
@@ -307,31 +369,60 @@ export function classifyRunLiveness(input: RunLivenessClassificationInput): RunL
   const concreteEvidence = hasConcreteActionEvidence(evidence);
   // This is a diagnostic only. Requested deliverables (including plans) do not
   // select a work mode; only the persisted field grants the planning exemption.
-  const planExempt = input.issue?.workMode === "planning" || evidence.planDocumentRevisionsCreated > 0;
-  const lastUsefulActionAt = concreteEvidence ? evidence.latestEvidenceAt : null;
+  const planExempt =
+    input.issue?.workMode === "planning" ||
+    evidence.planDocumentRevisionsCreated > 0;
+  const lastUsefulActionAt = concreteEvidence
+    ? evidence.latestEvidenceAt
+    : null;
 
-  const output = (state: RunLivenessState, reason: string, nextAction: string | null = null): RunLivenessClassification => ({
+  const output = (
+    state: RunLivenessState,
+    reason: string,
+    nextAction: string | null = null,
+  ): RunLivenessClassification => ({
     livenessState: state,
     livenessReason: compactReason(reason),
     continuationAttempt,
-    lastUsefulActionAt: state === "advanced" || state === "completed" || state === "blocked" ? lastUsefulActionAt : null,
+    lastUsefulActionAt:
+      state === "advanced" || state === "completed" || state === "blocked"
+        ? lastUsefulActionAt
+        : null,
     nextAction,
     actionability,
   });
 
   if (input.runStatus === "interrupted") {
-    return output("needs_followup", input.errorCode ? `Run interrupted (${input.errorCode})` : "Run interrupted");
+    return output(
+      "needs_followup",
+      input.errorCode
+        ? `Run interrupted (${input.errorCode})`
+        : "Run interrupted",
+    );
   }
 
-  if (input.runStatus === "failed" && input.authenticationRepairRequested && isAiAuthenticationRepairable(input)) {
-    return output("blocked", "Waiting for provider authentication repair", "Complete the connection request to continue this task");
+  if (
+    input.runStatus === "failed" &&
+    input.authenticationRepairRequested &&
+    isAiAuthenticationRepairable(input)
+  ) {
+    return output(
+      "blocked",
+      "Waiting for provider authentication repair",
+      "Complete the connection request to continue this task",
+    );
   }
 
   if (input.runStatus !== "succeeded") {
     if (hasUnmanagedBackgroundTaskEvidence(input.resultJson)) {
       return output("failed", UNMANAGED_BACKGROUND_TASK_LIVENESS_REASON);
     }
-    return output("failed", input.errorCode ? `Run ended with ${input.runStatus} (${input.errorCode})` : `Run ended with ${input.runStatus}`);
+    return output(
+      "failed",
+      input.errorCode
+        ? `Run ended with ${input.runStatus} (${input.errorCode})`
+        : `Run ended with ${input.runStatus}`,
+    );
   }
 
   if (issueStatus === "done" || issueStatus === "cancelled") {
@@ -339,30 +430,57 @@ export function classifyRunLiveness(input: RunLivenessClassificationInput): RunL
   }
 
   if (declaredBlocker(input)) {
-    return output("blocked", issueStatus === "blocked" ? "Issue status is blocked" : "Run output declared a concrete blocker", nextAction);
+    return output(
+      "blocked",
+      issueStatus === "blocked"
+        ? "Issue status is blocked"
+        : "Run output declared a concrete blocker",
+      nextAction,
+    );
   }
 
   if (!usefulOutput && !concreteEvidence) {
-    return output("empty_response", "Run succeeded without useful output or concrete action evidence");
+    return output(
+      "empty_response",
+      "Run succeeded without useful output or concrete action evidence",
+    );
   }
 
   if (concreteEvidence) {
-    return output("advanced", `Run produced concrete action evidence: ${evidenceReason(evidence)}`);
+    return output(
+      "advanced",
+      `Run produced concrete action evidence: ${evidenceReason(evidence)}`,
+    );
   }
 
   if (planExempt && usefulOutput) {
-    return output("advanced", "Explicit planning mode or a saved plan revision is exempt from plan-only classification");
+    return output(
+      "advanced",
+      "Explicit planning mode or a saved plan revision is exempt from plan-only classification",
+    );
   }
 
   if (looksLikePlanningOnly(input) || nextAction) {
     if (actionability === "runnable") {
-      return output("plan_only", "Run described runnable future work without concrete action evidence", nextAction);
+      return output(
+        "plan_only",
+        "Run described runnable future work without concrete action evidence",
+        nextAction,
+      );
     }
-    return output("needs_followup", "Run described future work that is not safe to auto-continue", nextAction);
+    return output(
+      "needs_followup",
+      "Run described future work that is not safe to auto-continue",
+      nextAction,
+    );
   }
 
   if (usefulOutput) {
-    return output("needs_followup", "Run produced useful output but no concrete action evidence", nextAction);
+    return output(
+      "needs_followup",
+      "Run produced useful output but no concrete action evidence",
+      nextAction,
+    );
   }
 
   return output("empty_response", "Run succeeded without useful output");

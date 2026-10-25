@@ -4,7 +4,8 @@ import {
   issueExecutionWorkspaceModeForExistingWorkspace,
 } from "./project-workspace-defaults";
 
-export type IssueWorkspaceSelection = ExecutionWorkspaceMode | "reuse_existing" | null;
+export type IssueWorkspaceSelection =
+  ExecutionWorkspaceMode | "reuse_existing" | null;
 
 type IssueWorkspaceSelectionSource = Pick<
   Issue,
@@ -14,7 +15,9 @@ type IssueWorkspaceSelectionSource = Pick<
   | "currentExecutionWorkspace"
 >;
 
-type ProjectWorkspaceSelectionSource = Parameters<typeof defaultExecutionWorkspaceModeForProject>[0];
+type ProjectWorkspaceSelectionSource = Parameters<
+  typeof defaultExecutionWorkspaceModeForProject
+>[0];
 
 export interface WorkspaceSelectionUpdate extends Record<string, unknown> {
   executionWorkspacePreference: IssueWorkspaceSelection;
@@ -35,22 +38,23 @@ export function currentWorkspaceSelection(
   project: ProjectWorkspaceSelectionSource,
 ): IssueWorkspaceSelection {
   const persistedMode =
-    issue.currentExecutionWorkspace?.mode
-    ?? issue.executionWorkspaceSettings?.mode
-    ?? issue.executionWorkspacePreference;
+    issue.currentExecutionWorkspace?.mode ??
+    issue.executionWorkspaceSettings?.mode ??
+    issue.executionWorkspacePreference;
 
   if (
-    issue.executionWorkspaceId
-    && (persistedMode === "isolated_workspace" || persistedMode === "operator_branch")
+    issue.executionWorkspaceId &&
+    (persistedMode === "isolated_workspace" ||
+      persistedMode === "operator_branch")
   ) {
     return "reuse_existing";
   }
 
-  return (
-    issue.executionWorkspacePreference
-    ?? issue.executionWorkspaceSettings?.mode
-    ?? defaultExecutionWorkspaceModeForProject(project)
-  ) as IssueWorkspaceSelection;
+  return (issue.executionWorkspacePreference ??
+    issue.executionWorkspaceSettings?.mode ??
+    defaultExecutionWorkspaceModeForProject(
+      project,
+    )) as IssueWorkspaceSelection;
 }
 
 /** Returns null when the selection is incomplete and cannot be saved. */
@@ -73,9 +77,10 @@ export function buildWorkspaceSelectionUpdate(
     executionWorkspacePreference: selection,
     executionWorkspaceId: selection === "reuse_existing" ? workspaceId! : null,
     executionWorkspaceSettings: {
-      mode: selection === "reuse_existing"
-        ? issueExecutionWorkspaceModeForExistingWorkspace(reusedWorkspaceMode)
-        : selection,
+      mode:
+        selection === "reuse_existing"
+          ? issueExecutionWorkspaceModeForExistingWorkspace(reusedWorkspaceMode)
+          : selection,
       environmentId: null,
     },
   };

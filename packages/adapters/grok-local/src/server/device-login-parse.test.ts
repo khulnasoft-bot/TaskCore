@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseGrokDeviceLoginPrompt } from "./device-login-parse.js";
 
-const fixturesDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "__fixtures__");
+const fixturesDir = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "__fixtures__",
+);
 
 function readFixture(name: string): string {
   return readFileSync(path.join(fixturesDir, name), "utf8");
@@ -30,7 +33,9 @@ function buildPrompt(code: string, urlCode: string = code): string {
 
 describe("parseGrokDeviceLoginPrompt", () => {
   it("parse_returns_url_and_code_from_the_captured_fixture", () => {
-    const result = parseGrokDeviceLoginPrompt(readFixture("device-login-prompt.txt"));
+    const result = parseGrokDeviceLoginPrompt(
+      readFixture("device-login-prompt.txt"),
+    );
     expect(result).not.toBeNull();
     expect(result?.url).toBe(`${ORIGIN}${PATH}?user_code=XXXX-XXXX`);
     expect(result?.code).toBe("XXXX-XXXX");

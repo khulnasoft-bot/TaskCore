@@ -37,7 +37,8 @@ const rl = readline.createInterface({
 rl.on("line", (line) => {
   if (!line.trim()) return;
   const message = JSON.parse(line);
-  const method = message && typeof message.method === "string" ? message.method : null;
+  const method =
+    message && typeof message.method === "string" ? message.method : null;
 
   if (method === "initialize") {
     send({
@@ -49,7 +50,8 @@ rl.on("line", (line) => {
   }
 
   if (method === "environmentExecute") {
-    const invocationId = message.taskcoreInvocation && message.taskcoreInvocation.id;
+    const invocationId =
+      message.taskcoreInvocation && message.taskcoreInvocation.id;
     const forgeableId = previousInvocationId;
     previousInvocationId = invocationId;
     const params = message.params ?? {};

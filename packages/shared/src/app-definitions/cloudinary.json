@@ -3,17 +3,13 @@
   "slug": "cloudinary",
   "name": "Cloudinary",
   "description": "Connect Cloudinary's provider-hosted MCP server.",
-  "categories": [
-    "content"
-  ],
+  "categories": ["content"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/cloudinary.svg",
     "darkLogoUrl": "/brands/apps/cloudinary-dark.svg"
   },
-  "urlPatterns": [
-    "https://asset-management.mcp.cloudinary.com/*"
-  ],
+  "urlPatterns": ["https://asset-management.mcp.cloudinary.com/*"],
   "docsUrl": "https://cloudinary.com/documentation/cloudinary_llm_mcp",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,9 +17,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://asset-management.mcp.cloudinary.com/mcp",

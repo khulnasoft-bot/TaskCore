@@ -5,7 +5,11 @@ import { privateHostnameGuard } from "../middleware/private-hostname-guard.js";
 
 const unknownHostname = "blocked-host.invalid";
 
-function createApp(opts: { enabled: boolean; allowedHostnames?: string[]; bindHost?: string }) {
+function createApp(opts: {
+  enabled: boolean;
+  allowedHostnames?: string[];
+  bindHost?: string;
+}) {
   const app = express();
   app.use(
     privateHostnameGuard({
@@ -26,29 +30,45 @@ function createApp(opts: { enabled: boolean; allowedHostnames?: string[]; bindHo
 describe("privateHostnameGuard", () => {
   it("allows requests when disabled", async () => {
     const app = createApp({ enabled: false });
-    const res = await request(app).get("/api/health").set("Host", "dotta-macbook-pro:3100");
+    const res = await request(app)
+      .get("/api/health")
+      .set("Host", "dotta-macbook-pro:3100");
     expect(res.status).toBe(200);
   });
 
   it("allows loopback hostnames", async () => {
     const app = createApp({ enabled: true });
-    const res = await request(app).get("/api/health").set("Host", "localhost:3100");
+    const res = await request(app)
+      .get("/api/health")
+      .set("Host", "localhost:3100");
     expect(res.status).toBe(200);
   });
 
   it("allows explicitly configured hostnames", async () => {
-    const app = createApp({ enabled: true, allowedHostnames: ["dotta-macbook-pro"] });
-    const res = await request(app).get("/api/health").set("Host", "dotta-macbook-pro:3100");
+    const app = createApp({
+      enabled: true,
+      allowedHostnames: ["dotta-macbook-pro"],
+    });
+    const res = await request(app)
+      .get("/api/health")
+      .set("Host", "dotta-macbook-pro:3100");
     expect(res.status).toBe(200);
   });
 
   it("blocks unknown hostnames with a static remediation command", async () => {
-    const app = createApp({ enabled: true, allowedHostnames: ["some-other-host"] });
-    const res = await request(app).get("/api/health").set("Host", `${unknownHostname}:3100`);
+    const app = createApp({
+      enabled: true,
+      allowedHostnames: ["some-other-host"],
+    });
+    const res = await request(app)
+      .get("/api/health")
+      .set("Host", `${unknownHostname}:3100`);
     expect(res.status).toBe(403);
     // The remediation command carries a static `<host>` placeholder. It never
     // interpolates the request Host header into the command.
-    expect(res.body?.error).toContain("run npx taskcore allowed-hostname <host>");
+    expect(res.body?.error).toContain(
+      "run npx taskcore allowed-hostname <host>",
+    );
     expect(res.body?.error).not.toContain(unknownHostname);
   });
 
@@ -60,7 +80,8 @@ describe("privateHostnameGuard", () => {
     });
     const req = {
       path: "/dashboard",
-      header: (name: string) => (name.toLowerCase() === "host" ? `${unknownHostname}:3100` : undefined),
+      header: (name: string) =>
+        name.toLowerCase() === "host" ? `${unknownHostname}:3100` : undefined,
       accepts: () => "html",
     } as any;
     const res = {
@@ -78,7 +99,9 @@ describe("privateHostnameGuard", () => {
     expect(res.send).toHaveBeenCalledWith(
       expect.stringContaining("run npx taskcore allowed-hostname <host>"),
     );
-    expect(res.send).not.toHaveBeenCalledWith(expect.stringContaining(unknownHostname));
+    expect(res.send).not.toHaveBeenCalledWith(
+      expect.stringContaining(unknownHostname),
+    );
   }, 20_000);
 
   it("does not reflect a hostile Host header into the remediation command", async () => {
@@ -88,10 +111,15 @@ describe("privateHostnameGuard", () => {
     // operator or an agent cannot paste an attacker-controlled span into a
     // shell. Use a harmless, nonexistent command name inside the span.
     const hostileHost = "evil$(echo marker)host";
-    const app = createApp({ enabled: true, allowedHostnames: ["some-other-host"] });
+    const app = createApp({
+      enabled: true,
+      allowedHostnames: ["some-other-host"],
+    });
     const res = await request(app).get("/api/health").set("Host", hostileHost);
     expect(res.status).toBe(403);
-    expect(res.body?.error).toContain("run npx taskcore allowed-hostname <host>");
+    expect(res.body?.error).toContain(
+      "run npx taskcore allowed-hostname <host>",
+    );
     expect(res.body?.error).not.toContain("evil");
     expect(res.body?.error).not.toContain("$(");
     expect(res.body?.error).not.toContain("marker");

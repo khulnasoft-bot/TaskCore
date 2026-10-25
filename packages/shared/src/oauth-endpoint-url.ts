@@ -28,7 +28,8 @@
  * boundary cannot fail the navigation boundary, or vice versa.
  */
 
-export type OAuthEndpointKind = "authorization" | "token" | "registration" | "metadata";
+export type OAuthEndpointKind =
+  "authorization" | "token" | "registration" | "metadata";
 
 export type OAuthEndpointUrlRejection =
   | "missing"
@@ -62,7 +63,8 @@ export type OAuthEndpointUrlCheck =
 function isLoopbackIpv4(hostname: string): boolean {
   const parts = hostname.split(".");
   if (parts.length !== 4) return false;
-  if (!parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)) return false;
+  if (!parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255))
+    return false;
   return parts[0] === "127";
 }
 
@@ -84,9 +86,15 @@ function normalizedOrigin(value: string): string | null {
   }
 }
 
-function insecureTransportAllowed(parsed: URL, options: OAuthEndpointUrlOptions): boolean {
-  if (options.allowInsecureLoopback && isLoopbackHost(parsed.hostname)) return true;
-  return (options.allowInsecureOrigins ?? []).some((origin) => normalizedOrigin(origin) === parsed.origin);
+function insecureTransportAllowed(
+  parsed: URL,
+  options: OAuthEndpointUrlOptions,
+): boolean {
+  if (options.allowInsecureLoopback && isLoopbackHost(parsed.hostname))
+    return true;
+  return (options.allowInsecureOrigins ?? []).some(
+    (origin) => normalizedOrigin(origin) === parsed.origin,
+  );
 }
 
 /**
@@ -114,15 +122,22 @@ export function checkOAuthEndpointUrl(
   // A `javascript:`/`data:` URL has no host, and neither does something like
   // `http:relative` — without an authority there is no origin to trust.
   if (!parsed.hostname) return { ok: false, reason: "malformed" };
-  if (parsed.protocol === "http:" && !insecureTransportAllowed(parsed, options)) {
+  if (
+    parsed.protocol === "http:" &&
+    !insecureTransportAllowed(parsed, options)
+  ) {
     return { ok: false, reason: "insecure_transport" };
   }
-  if (parsed.username || parsed.password) return { ok: false, reason: "embedded_credentials" };
+  if (parsed.username || parsed.password)
+    return { ok: false, reason: "embedded_credentials" };
   if (parsed.hash) return { ok: false, reason: "fragment" };
   return { ok: true, url: parsed.toString(), host: parsed.host };
 }
 
-export function isSafeOAuthEndpointUrl(value: unknown, options: OAuthEndpointUrlOptions = {}): boolean {
+export function isSafeOAuthEndpointUrl(
+  value: unknown,
+  options: OAuthEndpointUrlOptions = {},
+): boolean {
   return checkOAuthEndpointUrl(value, options).ok;
 }
 

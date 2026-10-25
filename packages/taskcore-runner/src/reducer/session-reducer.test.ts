@@ -14,7 +14,10 @@ import {
   type SessionSnapshot,
 } from "./session-reducer.js";
 
-const fixtureDirectory = new URL("../../protocol/fixtures/replay/", import.meta.url);
+const fixtureDirectory = new URL(
+  "../../protocol/fixtures/replay/",
+  import.meta.url,
+);
 const fixtureNames = [
   "happy-path",
   "failed-run",
@@ -42,7 +45,10 @@ async function loadFixture(name: string): Promise<PrpFixture> {
 
 async function loadGolden(name: string): Promise<SessionSnapshot> {
   return JSON.parse(
-    await readFile(new URL(`golden/${name}.snapshot.json`, fixtureDirectory), "utf8"),
+    await readFile(
+      new URL(`golden/${name}.snapshot.json`, fixtureDirectory),
+      "utf8",
+    ),
   ) as SessionSnapshot;
 }
 
@@ -105,7 +111,10 @@ describe("deterministic PRP session reducer", () => {
       payload: { requestId: "request_interrupted_permission" },
     };
 
-    const snapshot = reduceSessionEvents(createSessionSnapshot(fixture), [created, resolved]);
+    const snapshot = reduceSessionEvents(createSessionSnapshot(fixture), [
+      created,
+      resolved,
+    ]);
 
     expect(snapshot.requests[0]).toMatchObject({ type: "permission" });
     expect(snapshot.timeline.map((entry) => entry.summary)).toEqual([
@@ -114,19 +123,61 @@ describe("deterministic PRP session reducer", () => {
     ]);
   });
 
-  it.each(["expired", "cancelled"] as const)("replays authoritative ACP request %s before terminal without leaving an actionable prompt", async status => {
-    const fixture = await loadFixture("interrupted-run");
-    const base = fixture.events.find(event => event.eventType === "runtime_request.created")!;
-    const created: PrpEvent = { ...base, sourceEventId: "acpx-created", sourceSeq: 1 };
-    const ended: PrpEvent = { ...base, sourceEventId: "acpx-ended", sourceSeq: 2,
-      eventType: `runtime_request.${status}`,
-      payload: { requestId: "request_interrupted_permission", requestKind: "permission_approval", requestType: "permission",
-        reason: status === "expired" ? "provider_process_lost" : "explicit_cancellation", replayAllowed: false } };
-    const terminal: PrpEvent = { ...base, sourceEventId: "acpx-terminal", sourceSeq: 3, eventType: "run.terminal",
-      payload: { schema: "taskcore.prp.terminal.v1", status: "failed", turnTerminalState: "failed", runTerminalState: "failed", reportedWorkDisposition: "unknown" } };
-    const events = [created, ended, terminal];
-    const result = reduceSessionEvents(createSessionSnapshot(fixture), events);
-    expect(result.requests).toEqual([expect.objectContaining({ requestId: "request_interrupted_permission", status })]);
-    expect(reduceSessionEvents(result, events).requests).toEqual(result.requests);
-  });
+  it.each(["expired", "cancelled"] as const)(
+    "replays authoritative ACP request %s before terminal without leaving an actionable prompt",
+    async (status) => {
+      const fixture = await loadFixture("interrupted-run");
+      const base = fixture.events.find(
+        (event) => event.eventType === "runtime_request.created",
+      )!;
+      const created: PrpEvent = {
+        ...base,
+        sourceEventId: "acpx-created",
+        sourceSeq: 1,
+      };
+      const ended: PrpEvent = {
+        ...base,
+        sourceEventId: "acpx-ended",
+        sourceSeq: 2,
+        eventType: `runtime_request.${status}`,
+        payload: {
+          requestId: "request_interrupted_permission",
+          requestKind: "permission_approval",
+          requestType: "permission",
+          reason:
+            status === "expired"
+              ? "provider_process_lost"
+              : "explicit_cancellation",
+          replayAllowed: false,
+        },
+      };
+      const terminal: PrpEvent = {
+        ...base,
+        sourceEventId: "acpx-terminal",
+        sourceSeq: 3,
+        eventType: "run.terminal",
+        payload: {
+          schema: "taskcore.prp.terminal.v1",
+          status: "failed",
+          turnTerminalState: "failed",
+          runTerminalState: "failed",
+          reportedWorkDisposition: "unknown",
+        },
+      };
+      const events = [created, ended, terminal];
+      const result = reduceSessionEvents(
+        createSessionSnapshot(fixture),
+        events,
+      );
+      expect(result.requests).toEqual([
+        expect.objectContaining({
+          requestId: "request_interrupted_permission",
+          status,
+        }),
+      ]);
+      expect(reduceSessionEvents(result, events).requests).toEqual(
+        result.requests,
+      );
+    },
+  );
 });

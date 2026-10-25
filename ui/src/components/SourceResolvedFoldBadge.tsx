@@ -24,7 +24,12 @@ export function SourceResolvedFoldBadge({
       title={title}
       aria-label="Source-resolved watchdog fold"
     >
-      {showIcon ? <Sparkles className="h-3 w-3 text-emerald-700 dark:text-emerald-300" aria-hidden /> : null}
+      {showIcon ? (
+        <Sparkles
+          className="h-3 w-3 text-emerald-700 dark:text-emerald-300"
+          aria-hidden
+        />
+      ) : null}
       Source-resolved
     </span>
   );

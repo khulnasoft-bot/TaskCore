@@ -2,7 +2,13 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { companies, companyMemberships, createDb, issues, principalPermissionGrants } from "@taskcore/db";
+import {
+  companies,
+  companyMemberships,
+  createDb,
+  issues,
+  principalPermissionGrants,
+} from "@taskcore/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
@@ -12,7 +18,9 @@ import { issueRoutes } from "../routes/issues.js";
 import { ensureHumanRoleDefaultGrants } from "../services/principal-access-compatibility.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -22,10 +30,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("issue list routes updatedSince filter", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-list-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-list-routes-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -150,7 +162,9 @@ describeEmbeddedPostgres("issue list routes updatedSince filter", () => {
       .query({ updatedSince: since.toISOString(), limit: "20" });
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.map((issue: { id: string }) => issue.id)).toEqual([freshIssueId]);
+    expect(res.body.map((issue: { id: string }) => issue.id)).toEqual([
+      freshIssueId,
+    ]);
   });
 
   it("returns 400 for a malformed updatedSince timestamp", async () => {

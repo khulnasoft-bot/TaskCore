@@ -20,10 +20,10 @@ experiments, or a separate eval package.
 
 Ownership is:
 
-| Owner | Stable responsibility |
-|---|---|
-| Taskcore App | PRP schemas and fixtures, canonical semantic catalog and dispatcher, runnerd/client interfaces, `ControlPlanePort`, the production binding, deterministic mock, and mock/real parity fixtures |
-| Eval consumers | Scenario corpus, provider configuration, experiment reports, and provider-backed orchestration |
+| Owner          | Stable responsibility                                                                                                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Taskcore App   | PRP schemas and fixtures, canonical semantic catalog and dispatcher, runnerd/client interfaces, `ControlPlanePort`, the production binding, deterministic mock, and mock/real parity fixtures |
+| Eval consumers | Scenario corpus, provider configuration, experiment reports, and provider-backed orchestration                                                                                                |
 
 The production binding remains App code at
 `server/src/services/native-runtime/taskcore-control-plane-port.ts`. It
@@ -32,12 +32,12 @@ the server, database, UI, or CLI.
 
 Public runner exports are:
 
-| Export | Stability and purpose |
-|---|---|
-| `@taskcore/taskcore-runner` | Runtime contracts, runner clients/backends, PRP validation/replay, canonical catalog/dispatcher, and compatibility preflight |
-| `@taskcore/taskcore-runner/evals` | Versioned native-attempt/build metadata, compatibility negotiation, and explicit runnerd artifact resolution |
-| `@taskcore/taskcore-runner/testing` | Deterministic mocks, PRP port conformance, and provider-neutral semantic conformance kit |
-| `./browser`, `./react`, `./standalone`, `./styles.css` | Existing explicitly named UI/standalone consumers |
+| Export                                                 | Stability and purpose                                                                                                        |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `@taskcore/taskcore-runner`                            | Runtime contracts, runner clients/backends, PRP validation/replay, canonical catalog/dispatcher, and compatibility preflight |
+| `@taskcore/taskcore-runner/evals`                      | Versioned native-attempt/build metadata, compatibility negotiation, and explicit runnerd artifact resolution                 |
+| `@taskcore/taskcore-runner/testing`                    | Deterministic mocks, PRP port conformance, and provider-neutral semantic conformance kit                                     |
+| `./browser`, `./react`, `./standalone`, `./styles.css` | Existing explicitly named UI/standalone consumers                                                                            |
 
 Mock adapters and conformance constants are no longer package-root exports.
 Tests and external conformance consumers must use `./testing`. Scenario
@@ -78,18 +78,18 @@ No arrow points from App runtime to an external eval repository.
 Package semver describes distribution compatibility. Independently versioned
 contracts are published in `TASKCORE_RUNNER_COMPATIBILITY`:
 
-| Component | Current contract | Compatibility rule |
-|---|---:|---|
-| Canonical catalog | 1 | Operation removals, renames, placement changes, or incompatible schemas require a new contract version |
-| PRP | 1 | Highest overlapping required protocol version; no overlap fails closed |
-| Runner client | 1 | Breaking runnerd/client interface changes require a new version |
-| runnerd artifact | 2 | Binary metadata/package disagreement or digest mismatch fails before launch |
-| Harness driver | 1 | Breaking descriptor/config/session/conformance behavior requires a new version |
-| Native execution | 1 | Breaking App attempt-bundle semantics require a new schema version and converter |
-| Evals integration | 1 | Breaking package/binary/catalog/driver join behavior requires a new version |
-| Control-plane adapter | 1 | Breaking `ControlPlanePort` or production-binding expectations require a new version |
-| Testkit | 1 | Breaking mock seed, vector, observation, or conformance behavior requires a new version |
-| Eval corpus | 1 | Runner declares a supported inclusive corpus-version range; out-of-range bundles fail before execution |
+| Component             | Current contract | Compatibility rule                                                                                     |
+| --------------------- | ---------------: | ------------------------------------------------------------------------------------------------------ |
+| Canonical catalog     |                1 | Operation removals, renames, placement changes, or incompatible schemas require a new contract version |
+| PRP                   |                1 | Highest overlapping required protocol version; no overlap fails closed                                 |
+| Runner client         |                1 | Breaking runnerd/client interface changes require a new version                                        |
+| runnerd artifact      |                2 | Binary metadata/package disagreement or digest mismatch fails before launch                            |
+| Harness driver        |                1 | Breaking descriptor/config/session/conformance behavior requires a new version                         |
+| Native execution      |                1 | Breaking App attempt-bundle semantics require a new schema version and converter                       |
+| Evals integration     |                1 | Breaking package/binary/catalog/driver join behavior requires a new version                            |
+| Control-plane adapter |                1 | Breaking `ControlPlanePort` or production-binding expectations require a new version                   |
+| Testkit               |                1 | Breaking mock seed, vector, observation, or conformance behavior requires a new version                |
+| Eval corpus           |                1 | Runner declares a supported inclusive corpus-version range; out-of-range bundles fail before execution |
 
 `assertTaskcoreRunnerCompatibility` performs a fail-closed preflight. It emits
 `taskcore_runner_incompatible` with stable issue codes for component mismatch,

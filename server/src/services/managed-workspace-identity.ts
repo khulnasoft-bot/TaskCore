@@ -14,7 +14,10 @@
 import path from "node:path";
 import { and, eq } from "drizzle-orm";
 import { authUsers, companyMemberships, type Db } from "@taskcore/db";
-import type { WorkspaceReadiness, WorkspaceReadinessProbeResult } from "@taskcore/shared";
+import type {
+  WorkspaceReadiness,
+  WorkspaceReadinessProbeResult,
+} from "@taskcore/shared";
 import {
   deriveWorkspaceHandoffKey,
   deriveWorkspaceReadinessToken,
@@ -58,7 +61,9 @@ export type ManagedWorkspaceIdentity = {
  * worktree provisioned before the pointer existed, and the two agree by
  * construction for anything Taskcore provisioned.
  */
-export function resolveManagedWorkspaceInstanceId(workspaceCwd: string): string | null {
+export function resolveManagedWorkspaceInstanceId(
+  workspaceCwd: string,
+): string | null {
   const recorded = readWorktreeInstanceId(workspaceCwd);
   if (recorded) return recorded;
   const derived = deriveWorktreeInstanceId(workspaceCwd);
@@ -79,15 +84,25 @@ export function resolveManagedWorkspaceIdentity(input: {
   const root = resolveWorkspaceHandoffRootSecret(input.env ?? process.env);
   if (!root) return null;
 
-  const instanceId = resolveManagedWorkspaceInstanceId(path.resolve(workspaceCwd));
+  const instanceId = resolveManagedWorkspaceInstanceId(
+    path.resolve(workspaceCwd),
+  );
   if (!instanceId) return null;
 
   return {
     instanceId,
     executionWorkspaceId,
     companyId,
-    handoffKey: deriveWorkspaceHandoffKey({ rootSecret: root.secret, instanceId, executionWorkspaceId }),
-    readinessToken: deriveWorkspaceReadinessToken({ rootSecret: root.secret, instanceId, executionWorkspaceId }),
+    handoffKey: deriveWorkspaceHandoffKey({
+      rootSecret: root.secret,
+      instanceId,
+      executionWorkspaceId,
+    }),
+    readinessToken: deriveWorkspaceReadinessToken({
+      rootSecret: root.secret,
+      instanceId,
+      executionWorkspaceId,
+    }),
     secretSource: root.source,
   };
 }
@@ -99,7 +114,9 @@ export function resolveManagedWorkspaceIdentity(input: {
  * receives the root secret, so a compromised workspace cannot mint a ticket for
  * a sibling workspace.
  */
-export function buildManagedWorkspaceGuestEnv(identity: ManagedWorkspaceIdentity): Record<string, string> {
+export function buildManagedWorkspaceGuestEnv(
+  identity: ManagedWorkspaceIdentity,
+): Record<string, string> {
   return {
     [WORKSPACE_HANDOFF_KEY_ENV_KEY]: identity.handoffKey,
     [WORKSPACE_READINESS_TOKEN_ENV_KEY]: identity.readinessToken,
@@ -108,17 +125,20 @@ export function buildManagedWorkspaceGuestEnv(identity: ManagedWorkspaceIdentity
   };
 }
 
-function isWorkspaceReadinessShape(value: unknown): value is WorkspaceReadiness {
+function isWorkspaceReadinessShape(
+  value: unknown,
+): value is WorkspaceReadiness {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Record<string, unknown>;
   return (
-    typeof candidate.state === "string"
-    && typeof candidate.databaseReady === "boolean"
-    && typeof candidate.cloneDataReady === "boolean"
-    && typeof candidate.authHandoffReady === "boolean"
-    && (typeof candidate.authHandoffUserId === "string" || candidate.authHandoffUserId === null)
-    && typeof candidate.seedState === "string"
-    && (typeof candidate.companyId === "string" || candidate.companyId === null)
+    typeof candidate.state === "string" &&
+    typeof candidate.databaseReady === "boolean" &&
+    typeof candidate.cloneDataReady === "boolean" &&
+    typeof candidate.authHandoffReady === "boolean" &&
+    (typeof candidate.authHandoffUserId === "string" ||
+      candidate.authHandoffUserId === null) &&
+    typeof candidate.seedState === "string" &&
+    (typeof candidate.companyId === "string" || candidate.companyId === null)
   );
 }
 
@@ -145,11 +165,14 @@ export async function probeManagedWorkspaceReadiness(input: {
         ...(input.handoffSubject
           ? {
               [WORKSPACE_READINESS_USER_ID_HEADER]: input.handoffSubject.userId,
-              [WORKSPACE_READINESS_USER_EMAIL_HEADER]: input.handoffSubject.email,
+              [WORKSPACE_READINESS_USER_EMAIL_HEADER]:
+                input.handoffSubject.email,
             }
           : {}),
       },
-      signal: AbortSignal.timeout(input.timeoutMs ?? WORKSPACE_READINESS_PROBE_TIMEOUT_MS),
+      signal: AbortSignal.timeout(
+        input.timeoutMs ?? WORKSPACE_READINESS_PROBE_TIMEOUT_MS,
+      ),
     });
   } catch (error) {
     return {
@@ -160,21 +183,34 @@ export async function probeManagedWorkspaceReadiness(input: {
     };
   }
 
-  const payload = await response.json().catch(() => null) as
-    | { status?: unknown; workspace?: unknown }
-    | null;
+  const payload = (await response.json().catch(() => null)) as {
+    status?: unknown;
+    workspace?: unknown;
+  } | null;
 
   if (!response.ok) {
-    const readiness = isWorkspaceReadinessShape(payload?.workspace) ? payload.workspace : null;
-    return { ok: false, reason: "http_error", readiness, detail: `HTTP ${response.status}` };
+    const readiness = isWorkspaceReadinessShape(payload?.workspace)
+      ? payload.workspace
+      : null;
+    return {
+      ok: false,
+      reason: "http_error",
+      readiness,
+      detail: `HTTP ${response.status}`,
+    };
   }
   if (payload?.status !== "ok") {
-    return { ok: false, reason: "unhealthy_payload", readiness: null, detail: String(payload?.status ?? "missing") };
+    return {
+      ok: false,
+      reason: "unhealthy_payload",
+      readiness: null,
+      detail: String(payload?.status ?? "missing"),
+    };
   }
   if (
-    payload.workspace
-    && typeof payload.workspace === "object"
-    && !("companyId" in payload.workspace)
+    payload.workspace &&
+    typeof payload.workspace === "object" &&
+    !("companyId" in payload.workspace)
   ) {
     // A guest that implements readiness but predates the company binding is not
     // a legacy transport-only guest. Treat the partial contract as an identity
@@ -187,10 +223,10 @@ export async function probeManagedWorkspaceReadiness(input: {
     };
   }
   if (
-    input.handoffSubject
-    && payload.workspace
-    && typeof payload.workspace === "object"
-    && !("authHandoffUserId" in payload.workspace)
+    input.handoffSubject &&
+    payload.workspace &&
+    typeof payload.workspace === "object" &&
+    !("authHandoffUserId" in payload.workspace)
   ) {
     return {
       ok: false,
@@ -202,14 +238,19 @@ export async function probeManagedWorkspaceReadiness(input: {
   if (!isWorkspaceReadinessShape(payload.workspace)) {
     // Either the token was rejected or the guest predates this contract. Both
     // mean the control plane cannot prove user readiness, so neither may publish.
-    return { ok: false, reason: "readiness_missing", readiness: null, detail: null };
+    return {
+      ok: false,
+      reason: "readiness_missing",
+      readiness: null,
+      detail: null,
+    };
   }
 
   const readiness = payload.workspace;
   if (
-    readiness.instanceId !== input.identity.instanceId
-    || readiness.executionWorkspaceId !== input.identity.executionWorkspaceId
-    || readiness.companyId !== input.identity.companyId
+    readiness.instanceId !== input.identity.instanceId ||
+    readiness.executionWorkspaceId !== input.identity.executionWorkspaceId ||
+    readiness.companyId !== input.identity.companyId
   ) {
     return {
       ok: false,
@@ -218,10 +259,22 @@ export async function probeManagedWorkspaceReadiness(input: {
       detail: `expected ${input.identity.instanceId}/${input.identity.executionWorkspaceId}/${input.identity.companyId}, got ${readiness.instanceId}/${readiness.executionWorkspaceId}/${readiness.companyId}`,
     };
   }
-  if (!readiness.databaseReady || !readiness.cloneDataReady || !readiness.authHandoffReady) {
-    return { ok: false, reason: "not_ready", readiness, detail: readiness.failurePhase };
+  if (
+    !readiness.databaseReady ||
+    !readiness.cloneDataReady ||
+    !readiness.authHandoffReady
+  ) {
+    return {
+      ok: false,
+      reason: "not_ready",
+      readiness,
+      detail: readiness.failurePhase,
+    };
   }
-  if (input.handoffSubject && readiness.authHandoffUserId !== input.handoffSubject.userId) {
+  if (
+    input.handoffSubject &&
+    readiness.authHandoffUserId !== input.handoffSubject.userId
+  ) {
     return {
       ok: false,
       reason: "identity_mismatch",
@@ -264,7 +317,10 @@ export async function probeManagedWorkspaceHandoffSubjects(input: {
   identity: ManagedWorkspaceIdentity;
   fetchImpl?: typeof fetch;
 }): Promise<WorkspaceReadinessProbeResult> {
-  const subjects = await listManagedWorkspaceHandoffSubjects(input.db, input.identity.companyId);
+  const subjects = await listManagedWorkspaceHandoffSubjects(
+    input.db,
+    input.identity.companyId,
+  );
   if (subjects.length === 0) {
     return {
       ok: false,
@@ -273,12 +329,16 @@ export async function probeManagedWorkspaceHandoffSubjects(input: {
       detail: "no active board user is eligible for workspace login handoff",
     };
   }
-  const results = await Promise.all(subjects.map((handoffSubject) => probeManagedWorkspaceReadiness({
-    healthUrl: input.healthUrl,
-    identity: input.identity,
-    fetchImpl: input.fetchImpl,
-    handoffSubject,
-  })));
+  const results = await Promise.all(
+    subjects.map((handoffSubject) =>
+      probeManagedWorkspaceReadiness({
+        healthUrl: input.healthUrl,
+        identity: input.identity,
+        fetchImpl: input.fetchImpl,
+        handoffSubject,
+      }),
+    ),
+  );
   return results.find((result) => !result.ok) ?? results[0]!;
 }
 
@@ -302,7 +362,10 @@ export type WorkspaceReadinessGateMode = "auto" | "strict";
 export function resolveWorkspaceReadinessGateMode(
   env: NodeJS.ProcessEnv = process.env,
 ): WorkspaceReadinessGateMode {
-  return env.TASKCORE_WORKSPACE_READINESS_GATE?.trim().toLowerCase() === "strict" ? "strict" : "auto";
+  return env.TASKCORE_WORKSPACE_READINESS_GATE?.trim().toLowerCase() ===
+    "strict"
+    ? "strict"
+    : "auto";
 }
 
 /**
@@ -346,8 +409,14 @@ export async function waitForManagedWorkspaceReadiness(input: {
   sleep?: (ms: number) => Promise<void>;
 }): Promise<WorkspaceReadinessProbeResult> {
   const now = input.now ?? Date.now;
-  const sleep = input.sleep ?? ((ms: number) => new Promise<void>((resolve) => { setTimeout(resolve, ms); }));
-  const deadline = now() + (input.timeoutMs ?? WORKSPACE_READINESS_GATE_TIMEOUT_MS);
+  const sleep =
+    input.sleep ??
+    ((ms: number) =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, ms);
+      }));
+  const deadline =
+    now() + (input.timeoutMs ?? WORKSPACE_READINESS_GATE_TIMEOUT_MS);
   let last: WorkspaceReadinessProbeResult = {
     ok: false,
     reason: "unreachable",
@@ -360,7 +429,12 @@ export async function waitForManagedWorkspaceReadiness(input: {
       identity: input.identity,
       fetchImpl: input.fetchImpl,
     });
-    if (last.ok || last.reason === "identity_mismatch" || last.reason === "readiness_missing") return last;
+    if (
+      last.ok ||
+      last.reason === "identity_mismatch" ||
+      last.reason === "readiness_missing"
+    )
+      return last;
     if (now() >= deadline) return last;
     await sleep(WORKSPACE_READINESS_GATE_INTERVAL_MS);
   }

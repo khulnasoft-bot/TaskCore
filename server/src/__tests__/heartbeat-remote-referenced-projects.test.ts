@@ -10,7 +10,10 @@ import {
   type ResolveAdditionalRunWorkspacesOptions,
   type ResolvedAdditionalWorkspace,
 } from "../services/heartbeat.ts";
-import type { AuthorizationActor, AuthorizationDecision } from "../services/authorization.ts";
+import type {
+  AuthorizationActor,
+  AuthorizationDecision,
+} from "../services/authorization.ts";
 
 // These tests exercise the remote gate in `resolveAdditionalRunWorkspaces` with fully injected
 // dependencies (no database). The function reads mentions through `issues.findMentionedProjectIds`,
@@ -41,7 +44,9 @@ const listByIdsStub: ResolveAdditionalRunWorkspacesOptions["projects"] = {
     ids.map(
       (id) =>
         ({ id, name: `Project ${id}`, status: "in_progress" }) as Awaited<
-          ReturnType<ResolveAdditionalRunWorkspacesOptions["projects"]["listByIds"]>
+          ReturnType<
+            ResolveAdditionalRunWorkspacesOptions["projects"]["listByIds"]
+          >
         >[number],
     ),
 };
@@ -56,12 +61,16 @@ const mentionsStub = (
 // Records every `project:read` authorization call and answers via the supplied resolver.
 const recordingAccess = (
   resolve: (projectId: string) => AuthorizationDecision,
-): { decidedProjectIds: string[]; access: ResolveAdditionalRunWorkspacesOptions["access"] } => {
+): {
+  decidedProjectIds: string[];
+  access: ResolveAdditionalRunWorkspacesOptions["access"];
+} => {
   const decidedProjectIds: string[] = [];
   const access: ResolveAdditionalRunWorkspacesOptions["access"] = {
     decide: async (input) => {
       const resource = input.resource;
-      const projectId = resource.type === "project" ? (resource.projectId ?? "") : "";
+      const projectId =
+        resource.type === "project" ? (resource.projectId ?? "") : "";
       decidedProjectIds.push(projectId);
       return resolve(projectId);
     },
@@ -92,7 +101,10 @@ const recordingResolveProjectWorkspace = (): {
 const baseOpts = (
   companyId: string,
   overrides: Partial<ResolveAdditionalRunWorkspacesOptions> &
-    Pick<ResolveAdditionalRunWorkspacesOptions, "issues" | "access" | "resolveProjectWorkspace">,
+    Pick<
+      ResolveAdditionalRunWorkspacesOptions,
+      "issues" | "access" | "resolveProjectWorkspace"
+    >,
 ): ResolveAdditionalRunWorkspacesOptions => ({
   enabled: true,
   companyId,
@@ -107,7 +119,9 @@ describe("remote referenced-project kill switch", () => {
     expect(isMultiProjectWorkspaceSyncRemoteEnabled({})).toBe(true);
     // The targeted kill switch: an explicit false value (the rollback path) disables it.
     expect(
-      isMultiProjectWorkspaceSyncRemoteEnabled({ [MULTI_PROJECT_WORKSPACE_SYNC_REMOTE_ENV]: "" }),
+      isMultiProjectWorkspaceSyncRemoteEnabled({
+        [MULTI_PROJECT_WORKSPACE_SYNC_REMOTE_ENV]: "",
+      }),
     ).toBe(false);
     expect(
       isMultiProjectWorkspaceSyncRemoteEnabled({
@@ -115,14 +129,20 @@ describe("remote referenced-project kill switch", () => {
       }),
     ).toBe(false);
     expect(
-      isMultiProjectWorkspaceSyncRemoteEnabled({ [MULTI_PROJECT_WORKSPACE_SYNC_REMOTE_ENV]: "0" }),
+      isMultiProjectWorkspaceSyncRemoteEnabled({
+        [MULTI_PROJECT_WORKSPACE_SYNC_REMOTE_ENV]: "0",
+      }),
     ).toBe(false);
     expect(
-      isMultiProjectWorkspaceSyncRemoteEnabled({ [MULTI_PROJECT_WORKSPACE_SYNC_REMOTE_ENV]: "off" }),
+      isMultiProjectWorkspaceSyncRemoteEnabled({
+        [MULTI_PROJECT_WORKSPACE_SYNC_REMOTE_ENV]: "off",
+      }),
     ).toBe(false);
     // Any other value keeps the remote path on.
     expect(
-      isMultiProjectWorkspaceSyncRemoteEnabled({ [MULTI_PROJECT_WORKSPACE_SYNC_REMOTE_ENV]: "true" }),
+      isMultiProjectWorkspaceSyncRemoteEnabled({
+        [MULTI_PROJECT_WORKSPACE_SYNC_REMOTE_ENV]: "true",
+      }),
     ).toBe(true);
   });
 
@@ -145,7 +165,8 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     const anchorProjectId = randomUUID();
     const mentionedProjectId = randomUUID();
     const { decidedProjectIds, access } = recordingAccess(() => decision(true));
-    const { stagedProjectIds, resolveProjectWorkspace } = recordingResolveProjectWorkspace();
+    const { stagedProjectIds, resolveProjectWorkspace } =
+      recordingResolveProjectWorkspace();
 
     const result = await resolveAdditionalRunWorkspaces(
       issueId,
@@ -163,9 +184,9 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     // The run authorized the referenced project against the run actor and staged its workspace.
     expect(decidedProjectIds).toEqual([mentionedProjectId]);
     expect(stagedProjectIds).toEqual([mentionedProjectId]);
-    expect(result.additionalWorkspaces.map((workspace) => workspace.projectId)).toEqual([
-      mentionedProjectId,
-    ]);
+    expect(
+      result.additionalWorkspaces.map((workspace) => workspace.projectId),
+    ).toEqual([mentionedProjectId]);
     expect(result.failures).toEqual([]);
   });
 
@@ -175,7 +196,8 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     const anchorProjectId = randomUUID();
     const mentionedProjectId = randomUUID();
     const { decidedProjectIds, access } = recordingAccess(() => decision(true));
-    const { stagedProjectIds, resolveProjectWorkspace } = recordingResolveProjectWorkspace();
+    const { stagedProjectIds, resolveProjectWorkspace } =
+      recordingResolveProjectWorkspace();
 
     const result = await resolveAdditionalRunWorkspaces(
       issueId,
@@ -195,7 +217,9 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     expect(stagedProjectIds).toEqual([]);
     expect(result.additionalWorkspaces).toEqual([]);
     // The whole referenced set is still counted as a staging-layer drop.
-    expect(result.failures).toEqual([{ projectId: mentionedProjectId, reason: "staging" }]);
+    expect(result.failures).toEqual([
+      { projectId: mentionedProjectId, reason: "staging" },
+    ]);
   });
 
   it("drops referenced projects on an SSH target whether the remote flag is on or off", async () => {
@@ -205,8 +229,11 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     const mentionedProjectId = randomUUID();
 
     for (const remoteReferencedSyncEnabled of [true, false]) {
-      const { decidedProjectIds, access } = recordingAccess(() => decision(true));
-      const { stagedProjectIds, resolveProjectWorkspace } = recordingResolveProjectWorkspace();
+      const { decidedProjectIds, access } = recordingAccess(() =>
+        decision(true),
+      );
+      const { stagedProjectIds, resolveProjectWorkspace } =
+        recordingResolveProjectWorkspace();
 
       const result = await resolveAdditionalRunWorkspaces(
         issueId,
@@ -225,7 +252,9 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
       expect(decidedProjectIds).toEqual([]);
       expect(stagedProjectIds).toEqual([]);
       expect(result.additionalWorkspaces).toEqual([]);
-      expect(result.failures).toEqual([{ projectId: mentionedProjectId, reason: "staging" }]);
+      expect(result.failures).toEqual([
+        { projectId: mentionedProjectId, reason: "staging" },
+      ]);
     }
   });
 
@@ -239,7 +268,8 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     const { decidedProjectIds, access } = recordingAccess((projectId) =>
       decision(projectId === readableProjectId),
     );
-    const { stagedProjectIds, resolveProjectWorkspace } = recordingResolveProjectWorkspace();
+    const { stagedProjectIds, resolveProjectWorkspace } =
+      recordingResolveProjectWorkspace();
 
     const result = await resolveAdditionalRunWorkspaces(
       issueId,
@@ -257,11 +287,13 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     // Both projects were authorized against the run actor, but only the readable one was staged.
     expect(decidedProjectIds).toEqual([readableProjectId, unreadableProjectId]);
     expect(stagedProjectIds).toEqual([readableProjectId]);
-    expect(result.additionalWorkspaces.map((workspace) => workspace.projectId)).toEqual([
-      readableProjectId,
-    ]);
+    expect(
+      result.additionalWorkspaces.map((workspace) => workspace.projectId),
+    ).toEqual([readableProjectId]);
     // The denied project is a first-class authorization failure.
-    expect(result.failures).toEqual([{ projectId: unreadableProjectId, reason: "authorization" }]);
+    expect(result.failures).toEqual([
+      { projectId: unreadableProjectId, reason: "authorization" },
+    ]);
   });
 
   it("never authorizes the anchor project on a sandbox target", async () => {
@@ -302,7 +334,8 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
       () => randomUUID(),
     );
     const { access } = recordingAccess(() => decision(true));
-    const { stagedProjectIds, resolveProjectWorkspace } = recordingResolveProjectWorkspace();
+    const { stagedProjectIds, resolveProjectWorkspace } =
+      recordingResolveProjectWorkspace();
 
     const result = await resolveAdditionalRunWorkspaces(
       issueId,
@@ -318,11 +351,18 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     );
 
     // The cap bounds how many additional projects a sandbox run materializes.
-    expect(stagedProjectIds).toHaveLength(MAX_RUN_REFERENCED_ADDITIONAL_PROJECTS);
-    expect(result.additionalWorkspaces).toHaveLength(MAX_RUN_REFERENCED_ADDITIONAL_PROJECTS);
+    expect(stagedProjectIds).toHaveLength(
+      MAX_RUN_REFERENCED_ADDITIONAL_PROJECTS,
+    );
+    expect(result.additionalWorkspaces).toHaveLength(
+      MAX_RUN_REFERENCED_ADDITIONAL_PROJECTS,
+    );
     // The one project past the cap is a first-class resolution failure.
     expect(result.failures).toEqual([
-      { projectId: mentionedProjectIds[MAX_RUN_REFERENCED_ADDITIONAL_PROJECTS], reason: "resolution" },
+      {
+        projectId: mentionedProjectIds[MAX_RUN_REFERENCED_ADDITIONAL_PROJECTS],
+        reason: "resolution",
+      },
     ]);
   });
 
@@ -336,7 +376,9 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
       { length: MAX_RUN_REFERENCED_CANDIDATE_EVALUATIONS + 5 },
       () => randomUUID(),
     );
-    const { decidedProjectIds, access } = recordingAccess(() => decision(false));
+    const { decidedProjectIds, access } = recordingAccess(() =>
+      decision(false),
+    );
     const { resolveProjectWorkspace } = recordingResolveProjectWorkspace();
 
     const result = await resolveAdditionalRunWorkspaces(
@@ -353,7 +395,9 @@ describe("resolveAdditionalRunWorkspaces remote gate", () => {
     );
 
     // The evaluation cap bounds authorization decisions even under a denied-mention flood.
-    expect(decidedProjectIds).toHaveLength(MAX_RUN_REFERENCED_CANDIDATE_EVALUATIONS);
+    expect(decidedProjectIds).toHaveLength(
+      MAX_RUN_REFERENCED_CANDIDATE_EVALUATIONS,
+    );
     expect(result.additionalWorkspaces).toEqual([]);
   });
 });

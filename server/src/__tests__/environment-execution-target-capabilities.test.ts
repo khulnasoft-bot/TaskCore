@@ -5,7 +5,8 @@ const { mockResolveEnvironmentDriverConfigForRuntime } = vi.hoisted(() => ({
 }));
 
 vi.mock("../services/environment-config.js", () => ({
-  resolveEnvironmentDriverConfigForRuntime: mockResolveEnvironmentDriverConfigForRuntime,
+  resolveEnvironmentDriverConfigForRuntime:
+    mockResolveEnvironmentDriverConfigForRuntime,
 }));
 
 import type { EffectiveExecutionCapabilities } from "@taskcore/adapter-utils/execution-target";
@@ -80,7 +81,11 @@ async function buildSandboxTarget(input: {
     db: {} as never,
     companyId: "company-1",
     adapterType: "codex_local",
-    environment: { id: "env-1", driver: "sandbox", config: { provider: "daytona" } },
+    environment: {
+      id: "env-1",
+      driver: "sandbox",
+      config: { provider: "daytona" },
+    },
     leaseId: "lease-1",
     leaseMetadata: { remoteCwd: "/work" },
     lease: { id: "lease-1", leasePolicy: "reuse_by_environment" } as never,
@@ -104,7 +109,9 @@ describe("resolveEnvironmentExecutionTarget effective capability snapshot", () =
       config: { provider: "daytona", reuseLease: true, timeoutMs: 30_000 },
     });
 
-    const resolveCapabilities = vi.fn(async () => Object.freeze({ ...SNAPSHOT }));
+    const resolveCapabilities = vi.fn(async () =>
+      Object.freeze({ ...SNAPSHOT }),
+    );
     const environmentRuntime = {
       supportsSync: () => false,
       resolveCapabilities,
@@ -114,7 +121,11 @@ describe("resolveEnvironmentExecutionTarget effective capability snapshot", () =
       db: {} as never,
       companyId: "company-1",
       adapterType: "codex_local",
-      environment: { id: "env-1", driver: "sandbox", config: { provider: "daytona" } },
+      environment: {
+        id: "env-1",
+        driver: "sandbox",
+        config: { provider: "daytona" },
+      },
       leaseId: "lease-1",
       leaseMetadata: { remoteCwd: "/work" },
       lease: { id: "lease-1", leasePolicy: "reuse_by_environment" } as never,
@@ -130,7 +141,8 @@ describe("resolveEnvironmentExecutionTarget effective capability snapshot", () =
 
     // The snapshot is read-only: it is frozen, so a write does not change it.
     expect(Object.isFrozen(target.effectiveCapabilities)).toBe(true);
-    const snapshot = target.effectiveCapabilities as EffectiveExecutionCapabilities;
+    const snapshot =
+      target.effectiveCapabilities as EffectiveExecutionCapabilities;
     try {
       (snapshot as { reusableLeases: boolean }).reusableLeases = false;
     } catch {
@@ -149,7 +161,11 @@ describe("resolveEnvironmentExecutionTarget effective capability snapshot", () =
       db: {} as never,
       companyId: "company-1",
       adapterType: "codex_local",
-      environment: { id: "env-1", driver: "sandbox", config: { provider: "daytona" } },
+      environment: {
+        id: "env-1",
+        driver: "sandbox",
+        config: { provider: "daytona" },
+      },
       leaseId: "lease-1",
       leaseMetadata: {},
       lease: null,
@@ -230,7 +246,11 @@ describe("resolveEnvironmentExecutionTarget effective capability snapshot", () =
       // until the Rust WSS transport lands. A supported direct adapter exercises
       // the same host-owned acquisition contract without widening rollout here.
       adapterType: "codex_local",
-      environment: { id: "env-1", driver: "sandbox", config: { provider: "daytona" } },
+      environment: {
+        id: "env-1",
+        driver: "sandbox",
+        config: { provider: "daytona" },
+      },
       leaseId: "lease-row-1",
       leaseMetadata: {
         remoteCwd: "/work",
@@ -263,7 +283,10 @@ describe("effective snapshot gates the sync decision", () => {
   });
 
   it("exposes the native sync hooks when the snapshot grants both sync verbs", async () => {
-    const { target } = await buildSandboxTarget({ snapshot: FULL_GRANT, supportsSync: true });
+    const { target } = await buildSandboxTarget({
+      snapshot: FULL_GRANT,
+      supportsSync: true,
+    });
     expect(target.runner?.syncIn).toBeTypeOf("function");
     expect(target.runner?.syncOut).toBeTypeOf("function");
   });
@@ -280,7 +303,10 @@ describe("effective snapshot gates the sync decision", () => {
   });
 
   it("still requires supportsSync even when the snapshot grants native sync", async () => {
-    const { target } = await buildSandboxTarget({ snapshot: FULL_GRANT, supportsSync: false });
+    const { target } = await buildSandboxTarget({
+      snapshot: FULL_GRANT,
+      supportsSync: false,
+    });
     expect(target.runner?.syncIn).toBeUndefined();
     expect(target.runner?.syncOut).toBeUndefined();
   });
@@ -295,7 +321,10 @@ describe("effective snapshot carries the concurrent-sync capability", () => {
   });
 
   it("carries the concurrent-sync opt-in on the snapshot and the runner", async () => {
-    const { target } = await buildSandboxTarget({ snapshot: FULL_GRANT, supportsSync: true });
+    const { target } = await buildSandboxTarget({
+      snapshot: FULL_GRANT,
+      supportsSync: true,
+    });
     expect(target.effectiveCapabilities?.concurrentSyncOperations).toBe(true);
     expect(target.runner?.allowConcurrentSyncOperations).toBe(true);
   });
@@ -335,7 +364,10 @@ describe("effective snapshot carries the session-output-streaming capability", (
   });
 
   it("carries incremental session output when the snapshot grants it (stream on)", async () => {
-    const { target } = await buildSandboxTarget({ snapshot: FULL_GRANT, supportsSync: false });
+    const { target } = await buildSandboxTarget({
+      snapshot: FULL_GRANT,
+      supportsSync: false,
+    });
     expect(target.effectiveCapabilities?.incrementalSessionOutput).toBe(true);
   });
 
@@ -373,8 +405,15 @@ describe("effective snapshot gates the persistent-session execution decision", (
   });
 
   it("forces the persistent session when the snapshot grants persistent process sessions", async () => {
-    const { target, execute } = await buildSandboxTarget({ snapshot: FULL_GRANT, supportsSync: false });
-    await target.runner?.execute({ command: "node", args: ["agent.js"], useSession: true });
+    const { target, execute } = await buildSandboxTarget({
+      snapshot: FULL_GRANT,
+      supportsSync: false,
+    });
+    await target.runner?.execute({
+      command: "node",
+      args: ["agent.js"],
+      useSession: true,
+    });
     const call = execute.mock.calls[0]![0] as { forceSession?: boolean };
     expect(call.forceSession).toBe(true);
   });
@@ -386,7 +425,11 @@ describe("effective snapshot gates the persistent-session execution decision", (
       snapshot: { ...FULL_GRANT, persistentProcessSessions: false },
       supportsSync: false,
     });
-    await target.runner?.execute({ command: "node", args: ["agent.js"], useSession: true });
+    await target.runner?.execute({
+      command: "node",
+      args: ["agent.js"],
+      useSession: true,
+    });
     const call = execute.mock.calls[0]![0] as { forceSession?: boolean };
     expect(call.forceSession).toBe(false);
   });
@@ -428,7 +471,11 @@ describe("a rejected capability resolution fails closed for persistent-session b
       supportsSync: false,
       rejectResolution: true,
     });
-    await target.runner?.execute({ command: "node", args: ["agent.js"], useSession: true });
+    await target.runner?.execute({
+      command: "node",
+      args: ["agent.js"],
+      useSession: true,
+    });
     const call = execute.mock.calls[0]![0] as { forceSession?: boolean };
     expect(call.forceSession).toBe(false);
   });

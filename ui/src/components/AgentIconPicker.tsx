@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
-import {
-  type LucideIcon,
-} from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import { AGENT_ICON_NAMES, type AgentIconName } from "@taskcore/shared";
 import {
   Popover,
@@ -30,12 +28,18 @@ interface AgentIconPickerProps {
   children: React.ReactNode;
 }
 
-export function AgentIconPicker({ value, onChange, children }: AgentIconPickerProps) {
+export function AgentIconPicker({
+  value,
+  onChange,
+  children,
+}: AgentIconPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    const entries = AGENT_ICON_NAMES.map((name) => [name, AGENT_ICONS[name]] as const);
+    const entries = AGENT_ICON_NAMES.map(
+      (name) => [name, AGENT_ICONS[name]] as const,
+    );
     if (!search) return entries;
     const q = search.toLowerCase();
     return entries.filter(([name]) => name.includes(q));
@@ -63,7 +67,8 @@ export function AgentIconPicker({ value, onChange, children }: AgentIconPickerPr
               }}
               className={cn(
                 "flex items-center justify-center h-8 w-8 rounded hover:bg-accent transition-colors",
-                (value ?? DEFAULT_ICON) === name && "bg-accent ring-1 ring-primary"
+                (value ?? DEFAULT_ICON) === name &&
+                  "bg-accent ring-1 ring-primary",
               )}
               title={name}
             >
@@ -71,7 +76,9 @@ export function AgentIconPicker({ value, onChange, children }: AgentIconPickerPr
             </button>
           ))}
           {filtered.length === 0 && (
-            <p className="col-span-7 text-xs text-muted-foreground text-center py-2">No icons match</p>
+            <p className="col-span-7 text-xs text-muted-foreground text-center py-2">
+              No icons match
+            </p>
           )}
         </div>
       </PopoverContent>

@@ -1,7 +1,10 @@
-export type DecisionTrainingSourceKind = "interaction" | "approval" | "execution_decision";
+export type DecisionTrainingSourceKind =
+  "interaction" | "approval" | "execution_decision";
 
-export const DECISION_TRAINING_RETENTION_POLICY = "scrub_deleted_comments_v1" as const;
-export type DecisionTrainingRetentionPolicy = typeof DECISION_TRAINING_RETENTION_POLICY;
+export const DECISION_TRAINING_RETENTION_POLICY =
+  "scrub_deleted_comments_v1" as const;
+export type DecisionTrainingRetentionPolicy =
+  typeof DECISION_TRAINING_RETENTION_POLICY;
 
 export interface DecisionTrainingNotesHistoryEntry {
   author: string;

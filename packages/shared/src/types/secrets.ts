@@ -49,7 +49,8 @@ export interface EnvUserSecretRefBinding {
 }
 
 // Backward-compatible: legacy plaintext string values are still accepted.
-export type EnvBinding = string | EnvPlainBinding | EnvSecretRefBinding | EnvUserSecretRefBinding;
+export type EnvBinding =
+  string | EnvPlainBinding | EnvSecretRefBinding | EnvUserSecretRefBinding;
 
 export type AgentEnvConfig = Record<string, EnvBinding>;
 
@@ -303,7 +304,8 @@ export interface SecretAccessEvent {
   createdAt: Date;
 }
 
-export type RemoteSecretImportCandidateStatus = "ready" | "duplicate" | "conflict";
+export type RemoteSecretImportCandidateStatus =
+  "ready" | "duplicate" | "conflict";
 
 export interface RemoteSecretImportConflict {
   type: "exact_reference" | "name" | "key" | "provider_guardrail";
@@ -357,11 +359,7 @@ export interface RemoteSecretImportResult {
 
 export type SecretProposalKind = "secret" | "binding";
 export type SecretProposalStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "withdrawn"
-  | "expired";
+  "pending" | "approved" | "rejected" | "withdrawn" | "expired";
 
 /** Minimal agent reference surfaced on a proposal (proposer / binding target). */
 export interface SecretProposalAgentRef {

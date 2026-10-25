@@ -11,7 +11,8 @@ export function classifyWaitingBlocker(
   blocker: IssueRelationIssueSummary,
   liveIssueIds: ReadonlySet<string>,
 ): WaitingBlockerStatus {
-  if (blocker.status === "done" || blocker.status === "cancelled") return "done";
+  if (blocker.status === "done" || blocker.status === "cancelled")
+    return "done";
   if (liveIssueIds.has(blocker.id)) return "running";
   return "queued";
 }
@@ -34,9 +35,13 @@ export function orderWaitingBlockers(
   liveIssueIds: ReadonlySet<string>,
 ): WaitingBlockerStep[] {
   return blockers
-    .map((blocker) => ({ blocker, status: classifyWaitingBlocker(blocker, liveIssueIds) }))
+    .map((blocker) => ({
+      blocker,
+      status: classifyWaitingBlocker(blocker, liveIssueIds),
+    }))
     .sort((a, b) => {
-      const rank = WAITING_BLOCKER_RANK[a.status] - WAITING_BLOCKER_RANK[b.status];
+      const rank =
+        WAITING_BLOCKER_RANK[a.status] - WAITING_BLOCKER_RANK[b.status];
       if (rank !== 0) return rank;
       const aKey = a.blocker.identifier ?? a.blocker.id;
       const bKey = b.blocker.identifier ?? b.blocker.id;
@@ -44,7 +49,9 @@ export function orderWaitingBlockers(
     });
 }
 
-export function isAssignedBacklogBlocker(blocker: IssueRelationIssueSummary): boolean {
+export function isAssignedBacklogBlocker(
+  blocker: IssueRelationIssueSummary,
+): boolean {
   return blocker.status === "backlog" && Boolean(blocker.assigneeAgentId);
 }
 

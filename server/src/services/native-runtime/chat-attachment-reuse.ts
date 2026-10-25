@@ -103,9 +103,7 @@ type AuthorizedConversation = {
 };
 
 export type ExternalChatResponseWaitAuthorization =
-  | "authorized"
-  | "revoked"
-  | "not_applicable";
+  "authorized" | "revoked" | "not_applicable";
 
 type AuthorizationLockMode = "blocking" | "nonblocking" | "read";
 
@@ -414,8 +412,14 @@ export async function authorizeChatConversationForBoundRun(
 ): Promise<AuthorizedConversation> {
   let context = record(contextSnapshot);
   if (context.source === "issue.interaction.respond") {
-    const answer = await resolveExternalChatQuestionResponse(tx, binding, context, lockMode);
-    if (!answer) throw new Error("taskcore_runner_chat_attachment_binding_denied");
+    const answer = await resolveExternalChatQuestionResponse(
+      tx,
+      binding,
+      context,
+      lockMode,
+    );
+    if (!answer)
+      throw new Error("taskcore_runner_chat_attachment_binding_denied");
     context = answer.authorizationContext;
   }
   const source = typeof context.source === "string" ? context.source : "";
@@ -662,9 +666,7 @@ export async function resolveExternalChatResponseWaitAuthorizationInTransaction(
     run.status !== "running" ||
     issue.assigneeAgentId !== binding.agentId ||
     issue.executionRunId !== binding.runId ||
-    ["paused", "terminated", "pending_approval", "error"].includes(
-      actor.status,
-    )
+    ["paused", "terminated", "pending_approval", "error"].includes(actor.status)
   ) {
     return "revoked";
   }
@@ -1280,9 +1282,7 @@ async function readSourceBytes(
       total += buffer.length;
       if (total > source.byteSize || total > MAX_ATTACHMENT_BYTES) {
         object.stream.destroy();
-        throw new Error(
-          "taskcore_runner_chat_attachment_source_size_mismatch",
-        );
+        throw new Error("taskcore_runner_chat_attachment_source_size_mismatch");
       }
       chunks.push(buffer);
     }
@@ -1396,8 +1396,7 @@ export async function prepareReusedChatAttachment(input: {
       ),
     )
     .limit(1);
-  if (!issue)
-    throw new Error("taskcore_runner_chat_attachment_binding_denied");
+  if (!issue) throw new Error("taskcore_runner_chat_attachment_binding_denied");
   const storage = input.storage ?? getStorageService();
   const storageTimeoutMs =
     typeof input.storageTimeoutMs === "number" &&

@@ -92,9 +92,7 @@ describe("createCoalescedAsyncTrigger", () => {
 
   it("contains an error and remains available to the recovery poll", async () => {
     const failure = new Error("publication scan failed");
-    const run = vi
-      .fn(async () => undefined)
-      .mockRejectedValueOnce(failure);
+    const run = vi.fn(async () => undefined).mockRejectedValueOnce(failure);
     const onError = vi.fn();
     const trigger = createCoalescedAsyncTrigger({
       run,
@@ -296,22 +294,26 @@ describe("chat publication commit signals", () => {
       globallyObserved.push(`${event.companyId}:${event.type}`);
     });
     try {
-      expect(publishChatPublicationCommitSignal({
-        companyId: "publication-signal-company",
-        issueId: "publication-signal-issue",
-        runId: "publication-signal-run",
-        agentId: "publication-signal-agent",
-        seq: 7,
-        eventType: "tool.execution.started",
-      })).toBe(true);
-      expect(publishChatPublicationCommitSignal({
-        companyId: "publication-signal-company",
-        issueId: "publication-signal-issue",
-        runId: "publication-signal-run",
-        agentId: "publication-signal-agent",
-        seq: 8,
-        eventType: "provider.notice",
-      })).toBe(false);
+      expect(
+        publishChatPublicationCommitSignal({
+          companyId: "publication-signal-company",
+          issueId: "publication-signal-issue",
+          runId: "publication-signal-run",
+          agentId: "publication-signal-agent",
+          seq: 7,
+          eventType: "tool.execution.started",
+        }),
+      ).toBe(true);
+      expect(
+        publishChatPublicationCommitSignal({
+          companyId: "publication-signal-company",
+          issueId: "publication-signal-issue",
+          runId: "publication-signal-run",
+          agentId: "publication-signal-agent",
+          seq: 8,
+          eventType: "provider.notice",
+        }),
+      ).toBe(false);
       publishLiveEvent({
         companyId: "publication-signal-company",
         type: "heartbeat.run.status",
@@ -341,13 +343,15 @@ describe("chat publication commit signals", () => {
       },
     );
     try {
-      expect(publishChatPublicationCommitSignal({
-        companyId: "publication-signal-listener-failure",
-        issueId: "publication-signal-issue",
-        runId: "publication-signal-run",
-        agentId: "publication-signal-agent",
-        eventType: "run.presentation.resolved",
-      })).toBe(false);
+      expect(
+        publishChatPublicationCommitSignal({
+          companyId: "publication-signal-listener-failure",
+          issueId: "publication-signal-issue",
+          runId: "publication-signal-run",
+          agentId: "publication-signal-agent",
+          eventType: "run.presentation.resolved",
+        }),
+      ).toBe(false);
     } finally {
       unsubscribe();
     }

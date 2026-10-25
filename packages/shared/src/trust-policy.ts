@@ -13,7 +13,8 @@ export const LOW_TRUST_TOOL_CLASSES = [
   "tests.local",
 ] as const;
 
-export type LowTrustToolClass = (typeof LOW_TRUST_TOOL_CLASSES)[number] | string;
+export type LowTrustToolClass =
+  (typeof LOW_TRUST_TOOL_CLASSES)[number] | string;
 
 export interface LowTrustOutputPromotionTarget {
   type: "issue";
@@ -44,7 +45,10 @@ export interface AssignmentAuthorizationPolicy extends Record<string, unknown> {
   protectedAgentRequiresApproval?: boolean;
 }
 
-export interface ProtectedAgentAuthorizationPolicy extends Record<string, unknown> {
+export interface ProtectedAgentAuthorizationPolicy extends Record<
+  string,
+  unknown
+> {
   /** Hard-block assignment until a company administrator removes the block. */
   blockAssignment?: boolean;
   blockReason?: string;
@@ -62,7 +66,8 @@ export interface TrustAuthorizationPolicy extends Record<string, unknown> {
   protectedAgent?: ProtectedAgentAuthorizationPolicy;
 }
 
-export type SourceTrustArtifactKind = "issue" | "comment" | "document" | "work_product";
+export type SourceTrustArtifactKind =
+  "issue" | "comment" | "document" | "work_product";
 
 export type SourceTrustDisposition = "quarantined" | "promoted";
 

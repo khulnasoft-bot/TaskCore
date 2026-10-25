@@ -3,12 +3,29 @@
   "$id": "https://taskcore.dev/schemas/prp/v1/workspace-file-reference.schema.json",
   "title": "Taskcore workspace file reference",
   "type": "object",
-  "required": ["schema", "referenceId", "source", "path", "displayName", "mediaType", "presentation", "line", "preview", "previewTruncated", "contentDigest"],
+  "required": [
+    "schema",
+    "referenceId",
+    "source",
+    "path",
+    "displayName",
+    "mediaType",
+    "presentation",
+    "line",
+    "preview",
+    "previewTruncated",
+    "contentDigest"
+  ],
   "properties": {
     "schema": { "const": "taskcore.workspace.file_reference.v1" },
     "referenceId": { "type": "string", "minLength": 1, "maxLength": 240 },
     "source": { "enum": ["harness_reported", "runner_verified"] },
-    "path": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
     "displayName": { "type": "string", "minLength": 1, "maxLength": 255 },
     "mediaType": { "type": ["string", "null"], "maxLength": 160 },
     "presentation": { "enum": ["document", "code", "image", "generic"] },

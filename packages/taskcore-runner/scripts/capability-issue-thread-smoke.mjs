@@ -17,15 +17,17 @@ import { once } from "node:events";
 import { createCapabilityCookieJar } from "./capability-cookie-jar.mjs";
 import { createCapabilityIssueThreadMiddleware } from "./capability-issue-thread-server.mjs";
 
-const { readCapabilityTurnStream, CAPABILITY_TURN_STREAM_ACCEPT } = await import(
-  new URL("../dist/live/index.js", import.meta.url).href
-);
+const { readCapabilityTurnStream, CAPABILITY_TURN_STREAM_ACCEPT } =
+  await import(new URL("../dist/live/index.js", import.meta.url).href);
 
 /** Runs one turn over the NDJSON stream and returns its settled payload. */
 async function runTurn(jar, body) {
   const response = await jar.fetch("/api/capability/ui/message", {
     method: "POST",
-    headers: { "content-type": "application/json", accept: CAPABILITY_TURN_STREAM_ACCEPT },
+    headers: {
+      "content-type": "application/json",
+      accept: CAPABILITY_TURN_STREAM_ACCEPT,
+    },
     body: JSON.stringify(body),
   });
   if (!response.ok) throw new Error(`turn failed with HTTP ${response.status}`);
@@ -48,7 +50,9 @@ const CREDENTIAL_PATTERNS = [
 
 function credentialLeaks(value) {
   const serialized = JSON.stringify(value);
-  return CREDENTIAL_PATTERNS.filter((pattern) => pattern.test(serialized)).map(String);
+  return CREDENTIAL_PATTERNS.filter((pattern) => pattern.test(serialized)).map(
+    String,
+  );
 }
 
 function assert(condition, message) {
@@ -86,14 +90,18 @@ async function main() {
   const assertions = {};
   let sessionId = null;
   try {
-    const created = await (await jar.fetch("/api/capability/ui/session")).json();
+    const created = await (
+      await jar.fetch("/api/capability/ui/session")
+    ).json();
     sessionId = created.sessionId;
-    assertions.sessionCreated = typeof sessionId === "string" && sessionId.length > 0;
+    assertions.sessionCreated =
+      typeof sessionId === "string" && sessionId.length > 0;
     assertions.liveIdentity =
       created.view.identity.agentLabel === "Real Codex" &&
       created.view.identity.runnerLabel === "Real runnerd" &&
       created.view.identity.controlPlaneLabel === "Mock Taskcore";
-    assertions.mockIdentifier = created.view.issue.identifier.startsWith("MCK-");
+    assertions.mockIdentifier =
+      created.view.issue.identifier.startsWith("MCK-");
     assertions.toolsProjected = created.view.evidence.tools.length >= 0;
 
     const first = await runTurn(jar, {
@@ -108,33 +116,44 @@ async function main() {
     });
     assertions.turnStreamed = first.frames >= 2;
     const firstItems = first.view.turns.flatMap((turn) => turn.items);
-    assertions.userMessageRendered = firstItems.some((item) => item.kind === "user_message");
-    assertions.toolActivityRendered = firstItems.some((item) => item.kind === "tool_activity");
+    assertions.userMessageRendered = firstItems.some(
+      (item) => item.kind === "user_message",
+    );
+    assertions.toolActivityRendered = firstItems.some(
+      (item) => item.kind === "tool_activity",
+    );
     assertions.durableCommentRendered = firstItems.some(
       (item) => item.kind === "durable_comment",
     );
-    assertions.authorizationRecorded = first.view.evidence.authorization.length > 0;
+    assertions.authorizationRecorded =
+      first.view.evidence.authorization.length > 0;
     assertions.callsRecorded = first.view.evidence.calls.length > 0;
-    assertions.controlPlaneWithheld = (first.view.evidence.tools[0]?.rows ?? []).some(
-      (row) => row.disposition === "control_plane_owned",
-    );
+    assertions.controlPlaneWithheld = (
+      first.view.evidence.tools[0]?.rows ?? []
+    ).some((row) => row.disposition === "control_plane_owned");
 
     const second = await runTurn(jar, {
       sessionId,
       message: "Summarise the mock task in one line.",
     }).catch((error) => {
       if (turnError instanceof Error) {
-        throw new Error(`live issue-thread second turn failed; provider methods=${JSON.stringify(turnErrorMethods)}`, { cause: turnError });
+        throw new Error(
+          `live issue-thread second turn failed; provider methods=${JSON.stringify(turnErrorMethods)}`,
+          { cause: turnError },
+        );
       }
       throw error;
     });
-    assertions.multiTurnThread = second.view.turns.length > first.view.turns.length;
+    assertions.multiTurnThread =
+      second.view.turns.length > first.view.turns.length;
     assertions.composerReady = second.view.composer.state === "ready";
 
     assertions.noCredentialInView = credentialLeaks(second.view).length === 0;
     // A browser without this run's capability must not reach this session.
     const stranger = createCapabilityCookieJar(origin);
-    const foreign = await stranger.fetch(`/api/capability/ui/session?sessionId=${sessionId}`);
+    const foreign = await stranger.fetch(
+      `/api/capability/ui/session?sessionId=${sessionId}`,
+    );
     await foreign.text();
     assertions.crossSessionDenied = foreign.status === 404;
 
@@ -155,8 +174,12 @@ async function main() {
         )}\n`,
       );
     }
-    assert(failures.length === 0, `${failures.map(([name]) => name).join(", ")}`);
-    if (!asJson) process.stdout.write("Capability issue-thread live smoke passed.\n");
+    assert(
+      failures.length === 0,
+      `${failures.map(([name]) => name).join(", ")}`,
+    );
+    if (!asJson)
+      process.stdout.write("Capability issue-thread live smoke passed.\n");
   } finally {
     await middleware.close();
     server.close();

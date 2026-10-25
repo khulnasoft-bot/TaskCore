@@ -51,75 +51,127 @@ describe("execution workspace policy helpers", () => {
   it("resolves shared-workspace concurrency from issue override, project policy, then auto", () => {
     expect(
       resolveSharedWorkspaceConcurrency({
-        projectPolicy: { enabled: true, sharedWorkspaceConcurrency: "serialize" },
+        projectPolicy: {
+          enabled: true,
+          sharedWorkspaceConcurrency: "serialize",
+        },
         issueSettings: { sharedWorkspaceConcurrency: "allow" },
       }),
     ).toBe("allow");
     expect(
       resolveSharedWorkspaceConcurrency({
-        projectPolicy: { enabled: true, sharedWorkspaceConcurrency: "serialize" },
+        projectPolicy: {
+          enabled: true,
+          sharedWorkspaceConcurrency: "serialize",
+        },
         issueSettings: null,
       }),
     ).toBe("serialize");
     expect(
       resolveSharedWorkspaceConcurrency({
-        projectPolicy: { enabled: false, sharedWorkspaceConcurrency: "serialize" },
+        projectPolicy: {
+          enabled: false,
+          sharedWorkspaceConcurrency: "serialize",
+        },
         issueSettings: null,
       }),
     ).toBe("auto");
-    expect(resolveSharedWorkspaceConcurrency({ projectPolicy: null, issueSettings: null })).toBe("auto");
+    expect(
+      resolveSharedWorkspaceConcurrency({
+        projectPolicy: null,
+        issueSettings: null,
+      }),
+    ).toBe("auto");
   });
 
   it("validates the shared-workspace concurrency enum on project and issue settings", () => {
-    expect(projectExecutionWorkspacePolicySchema.parse({
-      enabled: true,
-      sharedWorkspaceConcurrency: "auto",
-    }).sharedWorkspaceConcurrency).toBe("auto");
-    expect(issueExecutionWorkspaceSettingsSchema.parse({
-      sharedWorkspaceConcurrency: "allow",
-    }).sharedWorkspaceConcurrency).toBe("allow");
-    expect(projectExecutionWorkspacePolicySchema.safeParse({
-      enabled: true,
-      sharedWorkspaceConcurrency: "parallel",
-    }).success).toBe(false);
+    expect(
+      projectExecutionWorkspacePolicySchema.parse({
+        enabled: true,
+        sharedWorkspaceConcurrency: "auto",
+      }).sharedWorkspaceConcurrency,
+    ).toBe("auto");
+    expect(
+      issueExecutionWorkspaceSettingsSchema.parse({
+        sharedWorkspaceConcurrency: "allow",
+      }).sharedWorkspaceConcurrency,
+    ).toBe("allow");
+    expect(
+      projectExecutionWorkspacePolicySchema.safeParse({
+        enabled: true,
+        sharedWorkspaceConcurrency: "parallel",
+      }).success,
+    ).toBe(false);
   });
 
   it("accepts an existing-branch pin only with isolated mode and a git_worktree strategy", () => {
-    expect(issueExecutionWorkspaceSettingsSchema.parse({
-      mode: "isolated_workspace",
-      workspaceStrategy: {
-        type: "git_worktree",
-        existingBranch: "PAP-14380-salvage-pap-9514",
-      },
-    }).workspaceStrategy?.existingBranch).toBe("PAP-14380-salvage-pap-9514");
+    expect(
+      issueExecutionWorkspaceSettingsSchema.parse({
+        mode: "isolated_workspace",
+        workspaceStrategy: {
+          type: "git_worktree",
+          existingBranch: "PAP-14380-salvage-pap-9514",
+        },
+      }).workspaceStrategy?.existingBranch,
+    ).toBe("PAP-14380-salvage-pap-9514");
 
     // Fail closed at the contract layer: an exact-branch pin outside an
     // isolated git worktree could silently land in the shared checkout.
-    expect(issueExecutionWorkspaceSettingsSchema.safeParse({
-      workspaceStrategy: { type: "git_worktree", existingBranch: "some-branch" },
-    }).success).toBe(false);
-    expect(issueExecutionWorkspaceSettingsSchema.safeParse({
-      mode: "shared_workspace",
-      workspaceStrategy: { type: "git_worktree", existingBranch: "some-branch" },
-    }).success).toBe(false);
-    expect(issueExecutionWorkspaceSettingsSchema.safeParse({
-      mode: "isolated_workspace",
-      workspaceStrategy: { type: "project_primary", existingBranch: "some-branch" },
-    }).success).toBe(false);
-    expect(issueExecutionWorkspaceSettingsSchema.safeParse({
-      mode: "isolated_workspace",
-      workspaceStrategy: {
-        type: "git_worktree",
-        existingBranch: "some-branch",
-        branchTemplate: "{{issue.identifier}}-{{slug}}",
-      },
-    }).success).toBe(false);
-
-    for (const invalidBranch of ["-leading-dash", "a..b", "has space", "ends/", "back\\slash", "a.lock", "../escape"]) {
-      expect(issueExecutionWorkspaceSettingsSchema.safeParse({
+    expect(
+      issueExecutionWorkspaceSettingsSchema.safeParse({
+        workspaceStrategy: {
+          type: "git_worktree",
+          existingBranch: "some-branch",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      issueExecutionWorkspaceSettingsSchema.safeParse({
+        mode: "shared_workspace",
+        workspaceStrategy: {
+          type: "git_worktree",
+          existingBranch: "some-branch",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      issueExecutionWorkspaceSettingsSchema.safeParse({
         mode: "isolated_workspace",
-        workspaceStrategy: { type: "git_worktree", existingBranch: invalidBranch },
-      }).success).toBe(false);
+        workspaceStrategy: {
+          type: "project_primary",
+          existingBranch: "some-branch",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      issueExecutionWorkspaceSettingsSchema.safeParse({
+        mode: "isolated_workspace",
+        workspaceStrategy: {
+          type: "git_worktree",
+          existingBranch: "some-branch",
+          branchTemplate: "{{issue.identifier}}-{{slug}}",
+        },
+      }).success,
+    ).toBe(false);
+
+    for (const invalidBranch of [
+      "-leading-dash",
+      "a..b",
+      "has space",
+      "ends/",
+      "back\\slash",
+      "a.lock",
+      "../escape",
+    ]) {
+      expect(
+        issueExecutionWorkspaceSettingsSchema.safeParse({
+          mode: "isolated_workspace",
+          workspaceStrategy: {
+            type: "git_worktree",
+            existingBranch: invalidBranch,
+          },
+        }).success,
+      ).toBe(false);
     }
   });
 
@@ -127,9 +179,15 @@ describe("execution workspace policy helpers", () => {
     expect(
       parseIssueExecutionWorkspaceSettings({
         mode: "isolated_workspace",
-        workspaceStrategy: { type: "git_worktree", existingBranch: " PAP-14754-run-redaction " },
+        workspaceStrategy: {
+          type: "git_worktree",
+          existingBranch: " PAP-14754-run-redaction ",
+        },
       })?.workspaceStrategy,
-    ).toEqual({ type: "git_worktree", existingBranch: "PAP-14754-run-redaction" });
+    ).toEqual({
+      type: "git_worktree",
+      existingBranch: "PAP-14754-run-redaction",
+    });
   });
 
   it("centralizes unrunnable isolated worktree detection", () => {
@@ -316,7 +374,12 @@ describe("execution workspace policy helpers", () => {
       enabled = true,
     ) {
       return buildExecutionWorkspaceAdapterConfig({
-        agentConfig: { workspaceStrategy: { type: "git_worktree", provisionCommand: "agent-setup" } },
+        agentConfig: {
+          workspaceStrategy: {
+            type: "git_worktree",
+            provisionCommand: "agent-setup",
+          },
+        },
         projectPolicy: parseProjectExecutionWorkspacePolicy({
           enabled,
           defaultMode: "isolated_workspace",
@@ -332,18 +395,25 @@ describe("execution workspace policy helpers", () => {
     }
 
     it("retains project hooks when an issue changes only its base branch", () => {
-      expect(resolveStrategy({ type: "git_worktree", baseRef: "origin/release" })).toEqual({
+      expect(
+        resolveStrategy({ type: "git_worktree", baseRef: "origin/release" }),
+      ).toEqual({
         ...projectStrategy,
         baseRef: "origin/release",
       });
     });
 
-    it.each(["npm run issue-setup", "", null])("honors an explicit provisioning override of %j", (provisionCommand) => {
-      expect(resolveStrategy({ type: "git_worktree", provisionCommand })).toEqual({
-        ...projectStrategy,
-        provisionCommand,
-      });
-    });
+    it.each(["npm run issue-setup", "", null])(
+      "honors an explicit provisioning override of %j",
+      (provisionCommand) => {
+        expect(
+          resolveStrategy({ type: "git_worktree", provisionCommand }),
+        ).toEqual({
+          ...projectStrategy,
+          provisionCommand,
+        });
+      },
+    );
 
     it("preserves explicit null clears through persisted JSON parsing", () => {
       const strategy = {
@@ -358,12 +428,20 @@ describe("execution workspace policy helpers", () => {
       expect(resolveStrategy(strategy)).toEqual(strategy);
     });
 
-    it.each(["cloud_sandbox", "adapter_managed", "project_primary"])("does not carry project hooks into %s", (type) => {
-      expect(resolveStrategy({ type })).toEqual({ type });
-    });
+    it.each(["cloud_sandbox", "adapter_managed", "project_primary"])(
+      "does not carry project hooks into %s",
+      (type) => {
+        expect(resolveStrategy({ type })).toEqual({ type });
+      },
+    );
 
     it("does not inherit a disabled project strategy", () => {
-      expect(resolveStrategy({ type: "git_worktree", baseRef: "origin/release" }, false)).toEqual({
+      expect(
+        resolveStrategy(
+          { type: "git_worktree", baseRef: "origin/release" },
+          false,
+        ),
+      ).toEqual({
         type: "git_worktree",
         baseRef: "origin/release",
       });
@@ -374,43 +452,59 @@ describe("execution workspace policy helpers", () => {
     });
 
     it("keeps project hooks for an exact branch pin without inheriting a branch template", () => {
-      const resolved = resolveStrategy({ type: "git_worktree", existingBranch: "fix/existing" });
+      const resolved = resolveStrategy({
+        type: "git_worktree",
+        existingBranch: "fix/existing",
+      });
       expect(resolved).toEqual({
         ...projectStrategy,
         branchTemplate: undefined,
         existingBranch: "fix/existing",
       });
-      expect(issueExecutionWorkspaceSettingsSchema.safeParse({
-        mode: "isolated_workspace",
-        workspaceStrategy: resolved,
-      }).success).toBe(true);
+      expect(
+        issueExecutionWorkspaceSettingsSchema.safeParse({
+          mode: "isolated_workspace",
+          workspaceStrategy: resolved,
+        }).success,
+      ).toBe(true);
     });
 
     it("does not mutate the project or issue strategy", () => {
-      const issueStrategy = { type: "git_worktree" as const, baseRef: "origin/release" };
+      const issueStrategy = {
+        type: "git_worktree" as const,
+        baseRef: "origin/release",
+      };
       const result = buildExecutionWorkspaceAdapterConfig({
         agentConfig: {},
-        projectPolicy: { enabled: true, workspaceStrategy: Object.freeze({ ...projectStrategy }) },
+        projectPolicy: {
+          enabled: true,
+          workspaceStrategy: Object.freeze({ ...projectStrategy }),
+        },
         issueSettings: { workspaceStrategy: Object.freeze(issueStrategy) },
         mode: "isolated_workspace",
         legacyUseProjectWorkspace: null,
       });
       expect(result.workspaceStrategy).not.toBe(issueStrategy);
-      expect(issueStrategy).toEqual({ type: "git_worktree", baseRef: "origin/release" });
+      expect(issueStrategy).toEqual({
+        type: "git_worktree",
+        baseRef: "origin/release",
+      });
       expect(projectStrategy.baseRef).toBe("origin/main");
     });
   });
 
   it("preserves project authorization policy for trust-preset resolution", () => {
-    expect(parseProjectExecutionWorkspacePolicy({
-      enabled: true,
-      authorizationPolicy: {
-        trustBoundary: {
-          mode: "low_trust_review",
-          projectIds: ["33333333-3333-4333-8333-333333333333"],
+    expect(
+      parseProjectExecutionWorkspacePolicy({
+        enabled: true,
+        authorizationPolicy: {
+          trustBoundary: {
+            mode: "low_trust_review",
+            projectIds: ["33333333-3333-4333-8333-333333333333"],
+          },
         },
-      },
-    })?.authorizationPolicy).toEqual({
+      })?.authorizationPolicy,
+    ).toEqual({
       trustBoundary: {
         mode: "low_trust_review",
         projectIds: ["33333333-3333-4333-8333-333333333333"],
@@ -420,7 +514,10 @@ describe("execution workspace policy helpers", () => {
 
   it("clears managed workspace strategy when issue opts out to project primary or agent default", () => {
     const baseConfig = {
-      workspaceStrategy: { type: "git_worktree", branchTemplate: "{{issue.identifier}}" },
+      workspaceStrategy: {
+        type: "git_worktree",
+        branchTemplate: "{{issue.identifier}}",
+      },
       workspaceRuntime: { services: [{ name: "web" }] },
     };
 
@@ -520,11 +617,20 @@ describe("execution workspace policy helpers", () => {
       },
     };
 
-    expect(selectEnvironmentExecutionWorkspaceSettings(parsedSettings, false)).toEqual({
+    expect(
+      selectEnvironmentExecutionWorkspaceSettings(parsedSettings, false),
+    ).toEqual({
       networkEgress: parsedSettings.networkEgress,
     });
-    expect(selectEnvironmentExecutionWorkspaceSettings(parsedSettings, true)).toEqual(parsedSettings);
-    expect(selectEnvironmentExecutionWorkspaceSettings({ mode: "isolated_workspace" }, false)).toBeNull();
+    expect(
+      selectEnvironmentExecutionWorkspaceSettings(parsedSettings, true),
+    ).toEqual(parsedSettings);
+    expect(
+      selectEnvironmentExecutionWorkspaceSettings(
+        { mode: "isolated_workspace" },
+        false,
+      ),
+    ).toBeNull();
   });
 
   it("prefers the agent default environment", () => {
@@ -611,13 +717,27 @@ describe("execution workspace policy helpers", () => {
   });
 
   it("maps persisted execution workspace modes back to issue settings", () => {
-    expect(issueExecutionWorkspaceModeForPersistedWorkspace("isolated_workspace")).toBe("isolated_workspace");
-    expect(issueExecutionWorkspaceModeForPersistedWorkspace("operator_branch")).toBe("operator_branch");
-    expect(issueExecutionWorkspaceModeForPersistedWorkspace("shared_workspace")).toBe("shared_workspace");
-    expect(issueExecutionWorkspaceModeForPersistedWorkspace("adapter_managed")).toBe("agent_default");
-    expect(issueExecutionWorkspaceModeForPersistedWorkspace("cloud_sandbox")).toBe("agent_default");
-    expect(issueExecutionWorkspaceModeForPersistedWorkspace(null)).toBe("agent_default");
-    expect(issueExecutionWorkspaceModeForPersistedWorkspace(undefined)).toBe("agent_default");
+    expect(
+      issueExecutionWorkspaceModeForPersistedWorkspace("isolated_workspace"),
+    ).toBe("isolated_workspace");
+    expect(
+      issueExecutionWorkspaceModeForPersistedWorkspace("operator_branch"),
+    ).toBe("operator_branch");
+    expect(
+      issueExecutionWorkspaceModeForPersistedWorkspace("shared_workspace"),
+    ).toBe("shared_workspace");
+    expect(
+      issueExecutionWorkspaceModeForPersistedWorkspace("adapter_managed"),
+    ).toBe("agent_default");
+    expect(
+      issueExecutionWorkspaceModeForPersistedWorkspace("cloud_sandbox"),
+    ).toBe("agent_default");
+    expect(issueExecutionWorkspaceModeForPersistedWorkspace(null)).toBe(
+      "agent_default",
+    );
+    expect(issueExecutionWorkspaceModeForPersistedWorkspace(undefined)).toBe(
+      "agent_default",
+    );
   });
 
   it("disables project execution workspace policy when the instance flag is off", () => {
@@ -670,17 +790,22 @@ describe("operator default isolated execution workspaces", () => {
   it("keeps a project without a configured workspace on its existing behavior", () => {
     const projectPolicy = withDefault(null, false);
     expect(projectPolicy).toBeNull();
-    expect(resolveExecutionWorkspaceMode({
-      projectPolicy,
-      issueSettings: null,
-      legacyUseProjectWorkspace: null,
-    })).toBe("shared_workspace");
-    expect(withDefault({ enabled: true, defaultMode: "isolated_workspace" }, false))
-      .toEqual({ enabled: true, defaultMode: "isolated_workspace" });
+    expect(
+      resolveExecutionWorkspaceMode({
+        projectPolicy,
+        issueSettings: null,
+        legacyUseProjectWorkspace: null,
+      }),
+    ).toBe("shared_workspace");
+    expect(
+      withDefault({ enabled: true, defaultMode: "isolated_workspace" }, false),
+    ).toEqual({ enabled: true, defaultMode: "isolated_workspace" });
   });
 
   it("never overrides a policy the project already stores", () => {
-    expect(withDefault({ enabled: true, defaultMode: "shared_workspace" })).toEqual({
+    expect(
+      withDefault({ enabled: true, defaultMode: "shared_workspace" }),
+    ).toEqual({
       enabled: true,
       defaultMode: "shared_workspace",
     });
@@ -726,7 +851,9 @@ describe("operator default isolated execution workspaces", () => {
       mode,
       legacyUseProjectWorkspace: null,
     });
-    expect(resolveEffectiveWorkspaceStrategyType(mode, config)).toBe("git_worktree");
+    expect(resolveEffectiveWorkspaceStrategyType(mode, config)).toBe(
+      "git_worktree",
+    );
   });
 
   it("does not strand a project-less task as an unrunnable worktree", () => {

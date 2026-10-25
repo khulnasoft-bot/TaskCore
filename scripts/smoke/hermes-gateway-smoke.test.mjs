@@ -5,10 +5,29 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const joinScript = path.join(repoRoot, "scripts", "smoke", "hermes-gateway-join.sh");
-const e2eScript = path.join(repoRoot, "scripts", "smoke", "hermes-gateway-e2e.sh");
-const entrypointScript = path.join(repoRoot, "docker", "hermes-gateway-smoke", "entrypoint.sh");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+);
+const joinScript = path.join(
+  repoRoot,
+  "scripts",
+  "smoke",
+  "hermes-gateway-join.sh",
+);
+const e2eScript = path.join(
+  repoRoot,
+  "scripts",
+  "smoke",
+  "hermes-gateway-e2e.sh",
+);
+const entrypointScript = path.join(
+  repoRoot,
+  "docker",
+  "hermes-gateway-smoke",
+  "entrypoint.sh",
+);
 
 function run(command, args, options = {}) {
   return spawnSync(command, args, {
@@ -43,7 +62,9 @@ function extractFunction(scriptText, name) {
 
 function runBashFunctions(scriptPath, functionNames, body) {
   const scriptText = fs.readFileSync(scriptPath, "utf8");
-  const functions = functionNames.map((name) => extractFunction(scriptText, name)).join("\n\n");
+  const functions = functionNames
+    .map((name) => extractFunction(scriptText, name))
+    .join("\n\n");
   return run("bash", ["-c", `set -euo pipefail\n${functions}\n${body}`]);
 }
 

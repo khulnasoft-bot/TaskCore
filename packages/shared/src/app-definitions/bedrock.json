@@ -3,9 +3,7 @@
   "slug": "bedrock",
   "name": "Amazon Bedrock",
   "description": "Use Claude through Amazon Bedrock with a Bedrock API key and AWS region.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "branding": {
     "logoUrl": "/brands/apps/bedrock.svg"
   },
@@ -21,13 +19,8 @@
         "provider": "anthropic",
         "method": "api_key"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use Claude through Amazon Bedrock with a Bedrock API key and AWS region.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3",
@@ -47,7 +40,5 @@
       }
     }
   ],
-  "tags": [
-    "model-provider"
-  ]
+  "tags": ["model-provider"]
 }

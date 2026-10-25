@@ -115,7 +115,12 @@ describe("blockedInbox", () => {
   });
 
   it("ranks severity critical first and low last", () => {
-    const order: IssueBlockedInboxSeverity[] = ["critical", "high", "medium", "low"];
+    const order: IssueBlockedInboxSeverity[] = [
+      "critical",
+      "high",
+      "medium",
+      "low",
+    ];
     const ranks = order.map((s) => blockedSeverityRank(s));
     expect([...ranks].sort((a, b) => a - b)).toEqual(ranks);
   });
@@ -188,7 +193,10 @@ describe("blockedInbox", () => {
       "external_wait",
     ]);
     const stalled = groups.find((g) => g.variant === "stalled")!;
-    expect(stalled.rows.map((r) => r.issue.id)).toEqual(["stalled-2", "stalled-1"]);
+    expect(stalled.rows.map((r) => r.issue.id)).toEqual([
+      "stalled-2",
+      "stalled-1",
+    ]);
   });
 
   it("sortBlockedInboxRows supports recent and longest-stopped ordering", () => {
@@ -216,17 +224,15 @@ describe("blockedInbox", () => {
       ),
     ]);
 
-    expect(sortBlockedInboxRows(rows, "most_recent").map((row) => row.issue.id)).toEqual([
-      "recent",
-      "middle",
-      "old",
-    ]);
-    expect(sortBlockedInboxRows(rows, "longest_stopped").map((row) => row.issue.id)).toEqual([
-      "old",
-      "middle",
-      "recent",
-    ]);
-    expect(compareBlockedRows(rows[0], rows[1], "most_recent")).toBeGreaterThan(0);
+    expect(
+      sortBlockedInboxRows(rows, "most_recent").map((row) => row.issue.id),
+    ).toEqual(["recent", "middle", "old"]);
+    expect(
+      sortBlockedInboxRows(rows, "longest_stopped").map((row) => row.issue.id),
+    ).toEqual(["old", "middle", "recent"]);
+    expect(compareBlockedRows(rows[0], rows[1], "most_recent")).toBeGreaterThan(
+      0,
+    );
   });
 
   it("blockedRowMatchesSearch matches title, identifier, owner, action and reason", () => {
@@ -266,10 +272,20 @@ describe("blockedInbox", () => {
   it("formatStoppedAge produces stable buckets", () => {
     const now = new Date("2026-05-10T00:00:00.000Z").getTime();
     expect(formatStoppedAge(null)).toBe("stopped");
-    expect(formatStoppedAge("2026-05-09T23:59:30.000Z", now)).toBe("stopped just now");
-    expect(formatStoppedAge("2026-05-09T23:30:00.000Z", now)).toBe("stopped 30m");
-    expect(formatStoppedAge("2026-05-09T20:00:00.000Z", now)).toBe("stopped 4h");
-    expect(formatStoppedAge("2026-05-07T00:00:00.000Z", now)).toBe("stopped 3d");
-    expect(formatStoppedAge("2026-04-15T00:00:00.000Z", now)).toBe("stopped 3w");
+    expect(formatStoppedAge("2026-05-09T23:59:30.000Z", now)).toBe(
+      "stopped just now",
+    );
+    expect(formatStoppedAge("2026-05-09T23:30:00.000Z", now)).toBe(
+      "stopped 30m",
+    );
+    expect(formatStoppedAge("2026-05-09T20:00:00.000Z", now)).toBe(
+      "stopped 4h",
+    );
+    expect(formatStoppedAge("2026-05-07T00:00:00.000Z", now)).toBe(
+      "stopped 3d",
+    );
+    expect(formatStoppedAge("2026-04-15T00:00:00.000Z", now)).toBe(
+      "stopped 3w",
+    );
   });
 });

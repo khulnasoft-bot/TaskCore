@@ -13,7 +13,9 @@ import {
 
 describe("task views registry (PAP-670)", () => {
   it("covers every legacy Inbox tab and task status preset exactly once", () => {
-    const keys = TASK_VIEW_GROUPS.flatMap((group) => group.views.map((view) => view.key));
+    const keys = TASK_VIEW_GROUPS.flatMap((group) =>
+      group.views.map((view) => view.key),
+    );
     expect(keys).toEqual([...TASK_VIEW_KEYS]);
     expect(new Set(keys).size).toBe(keys.length);
   });
@@ -21,7 +23,13 @@ describe("task views registry (PAP-670)", () => {
   it("routes My-work views to the inbox surface with a tab, and organization views to the task list with statuses", () => {
     const [myWork, organization] = TASK_VIEW_GROUPS;
 
-    expect(myWork.views.map((view) => view.inboxTab)).toEqual(["mine", "unread", "blocked", "recent", "all"]);
+    expect(myWork.views.map((view) => view.inboxTab)).toEqual([
+      "mine",
+      "unread",
+      "blocked",
+      "recent",
+      "all",
+    ]);
     for (const view of myWork.views) {
       expect(view.surface).toBe("inbox");
       expect(view.statuses).toBeUndefined();
@@ -33,7 +41,12 @@ describe("task views registry (PAP-670)", () => {
       expect(Array.isArray(view.statuses)).toBe(true);
     }
     expect(taskView("all").statuses).toEqual([]);
-    expect(taskView("active").statuses).toEqual(["todo", "in_progress", "in_review", "blocked"]);
+    expect(taskView("active").statuses).toEqual([
+      "todo",
+      "in_progress",
+      "in_review",
+      "blocked",
+    ]);
     expect(taskView("backlog").statuses).toEqual(["backlog"]);
     expect(taskView("done").statuses).toEqual(["done", "cancelled"]);
   });
@@ -78,7 +91,9 @@ describe("resolveInitialTaskView", () => {
 
   it("falls back to the last-used view on a bare /issues", () => {
     expect(resolveInitialTaskView(null, false, "backlog")).toBe("backlog");
-    expect(resolveInitialTaskView("nonsense", false, "backlog")).toBe("backlog");
+    expect(resolveInitialTaskView("nonsense", false, "backlog")).toBe(
+      "backlog",
+    );
     expect(resolveInitialTaskView(null, false, DEFAULT_TASK_VIEW)).toBe("mine");
   });
 

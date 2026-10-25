@@ -10,7 +10,10 @@ import {
   readWorktreeSeedManifest,
   worktreeInitCommand,
 } from "../../../cli/src/commands/worktree.ts";
-import { realizeExecutionWorkspace, resolveRuntimeProvisionCommand } from "../services/workspace-runtime.ts";
+import {
+  realizeExecutionWorkspace,
+  resolveRuntimeProvisionCommand,
+} from "../services/workspace-runtime.ts";
 
 const execFileAsync = promisify(execFile);
 const cleanup: string[] = [];
@@ -24,24 +27,41 @@ async function runGit(cwd: string, args: string[]) {
 async function writeConfig(configPath: string, instanceId: string) {
   const instanceRoot = path.dirname(configPath);
   await fs.mkdir(path.dirname(configPath), { recursive: true });
-  await fs.writeFile(configPath, `${JSON.stringify({
-    $meta: { version: 1, updatedAt: "2026-08-19T00:00:00.000Z", source: "configure" },
-    database: {
-      mode: "embedded-postgres",
-      embeddedPostgresDataDir: path.join(instanceRoot, "db"),
-      embeddedPostgresPort: 54329,
-      backup: { enabled: false, intervalMinutes: 60, retentionDays: 30, dir: path.join(instanceRoot, "backups") },
-    },
-    logging: { mode: "file", logDir: path.join(instanceRoot, "logs") },
-    server: {
-      deploymentMode: "local_trusted",
-      exposure: "private",
-      host: "127.0.0.1",
-      port: 3100,
-      allowedHostnames: [],
-      serveUi: true,
-    },
-  }, null, 2)}\n`, "utf8");
+  await fs.writeFile(
+    configPath,
+    `${JSON.stringify(
+      {
+        $meta: {
+          version: 1,
+          updatedAt: "2026-08-19T00:00:00.000Z",
+          source: "configure",
+        },
+        database: {
+          mode: "embedded-postgres",
+          embeddedPostgresDataDir: path.join(instanceRoot, "db"),
+          embeddedPostgresPort: 54329,
+          backup: {
+            enabled: false,
+            intervalMinutes: 60,
+            retentionDays: 30,
+            dir: path.join(instanceRoot, "backups"),
+          },
+        },
+        logging: { mode: "file", logDir: path.join(instanceRoot, "logs") },
+        server: {
+          deploymentMode: "local_trusted",
+          exposure: "private",
+          host: "127.0.0.1",
+          port: 3100,
+          allowedHostnames: [],
+          serveUi: true,
+        },
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
   await fs.writeFile(
     path.join(path.dirname(configPath), ".env"),
     `TASKCORE_INSTANCE_ID=${instanceId}\n`,
@@ -83,7 +103,8 @@ function verifiedSeedResult() {
 afterEach(async () => {
   if (originalConfig === undefined) delete process.env.TASKCORE_CONFIG;
   else process.env.TASKCORE_CONFIG = originalConfig;
-  if (originalWorktreesDir === undefined) delete process.env.TASKCORE_WORKTREES_DIR;
+  if (originalWorktreesDir === undefined)
+    delete process.env.TASKCORE_WORKTREES_DIR;
   else process.env.TASKCORE_WORKTREES_DIR = originalWorktreesDir;
   for (const dir of cleanup.splice(0)) {
     await fs.rm(dir, { recursive: true, force: true });
@@ -92,7 +113,11 @@ afterEach(async () => {
 
 describe("managed worktree seed source through the server spawn path", () => {
   it("preserves an explicitly empty instance during managed startup before its first database boot", async () => {
-    const tempRoot = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-server-empty-worktree-")));
+    const tempRoot = await fs.realpath(
+      await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-server-empty-worktree-"),
+      ),
+    );
     cleanup.push(tempRoot);
     const baseCwd = path.join(tempRoot, "source");
     const cwd = path.join(tempRoot, "empty");
@@ -100,15 +125,27 @@ describe("managed worktree seed source through the server spawn path", () => {
     await writeConfig(sourceConfigPath, "registered-source");
     await fs.mkdir(cwd, { recursive: true });
     await fs.mkdir(path.join(baseCwd, "scripts"), { recursive: true });
-    await fs.writeFile(path.join(baseCwd, "scripts", "provision-worktree-runtime.sh"), "#!/usr/bin/env bash\n");
+    await fs.writeFile(
+      path.join(baseCwd, "scripts", "provision-worktree-runtime.sh"),
+      "#!/usr/bin/env bash\n",
+    );
     const originalCwd = process.cwd();
     const originalEnv = { ...process.env };
     try {
       process.chdir(cwd);
-      await worktreeInitCommand({ empty: true, fromConfig: sourceConfigPath, home: path.join(tempRoot, "instances") });
+      await worktreeInitCommand({
+        empty: true,
+        fromConfig: sourceConfigPath,
+        home: path.join(tempRoot, "instances"),
+      });
       const configPath = path.join(cwd, ".taskcore", "config.json");
       const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
-      const startup = await execFileAsync(process.execPath, [path.join(repoRoot, "cli/node_modules/tsx/dist/cli.mjs"), "--eval", `
+      const startup = await execFileAsync(
+        process.execPath,
+        [
+          path.join(repoRoot, "cli/node_modules/tsx/dist/cli.mjs"),
+          "--eval",
+          `
         void (async () => {
           const fs = await import('node:fs');
           const dotenv = (await import(${JSON.stringify(pathToFileURL(path.join(repoRoot, "server/node_modules/dotenv/lib/main.js")).href)})).default;
@@ -123,48 +160,97 @@ describe("managed worktree seed source through the server spawn path", () => {
             savedActions: repaired.TASKCORE_TOOL_ACTION_SIGNING_SECRET === saved.TASKCORE_TOOL_ACTION_SIGNING_SECRET
           }));
         })();
-      `], { cwd, env: { ...process.env, TASKCORE_CONFIG: configPath, TASKCORE_AGENT_JWT_SECRET: "source-jwt", TASKCORE_TOOL_ACTION_SIGNING_SECRET: "source-actions", BETTER_AUTH_SECRET: "source-auth" } });
-      expect(JSON.parse(startup.stdout.trim().split("\n").at(-1)!)).toEqual({ jwt: true, actions: true, auth: true, savedActions: true });
+      `,
+        ],
+        {
+          cwd,
+          env: {
+            ...process.env,
+            TASKCORE_CONFIG: configPath,
+            TASKCORE_AGENT_JWT_SECRET: "source-jwt",
+            TASKCORE_TOOL_ACTION_SIGNING_SECRET: "source-actions",
+            BETTER_AUTH_SECRET: "source-auth",
+          },
+        },
+      );
+      expect(JSON.parse(startup.stdout.trim().split("\n").at(-1)!)).toEqual({
+        jwt: true,
+        actions: true,
+        auth: true,
+        savedActions: true,
+      });
       const workspace = {
-        baseCwd, cwd, source: "project_primary" as const, projectId: "project-1",
-        workspaceId: "project-workspace-1", repoUrl: null, repoRef: "HEAD",
-        strategy: "git_worktree" as const, branchName: null, worktreePath: cwd,
-        warnings: [], created: false,
+        baseCwd,
+        cwd,
+        source: "project_primary" as const,
+        projectId: "project-1",
+        workspaceId: "project-workspace-1",
+        repoUrl: null,
+        repoRef: "HEAD",
+        strategy: "git_worktree" as const,
+        branchName: null,
+        worktreePath: cwd,
+        warnings: [],
+        created: false,
       };
-      expect(resolveRuntimeProvisionCommand({ config: {}, workspace })).toBe("");
-      expect(resolveRuntimeProvisionCommand({ config: { runtimeProvisionCommand: "./install-dependencies.sh" }, workspace }))
-        .toBe("./install-dependencies.sh");
+      expect(resolveRuntimeProvisionCommand({ config: {}, workspace })).toBe(
+        "",
+      );
+      expect(
+        resolveRuntimeProvisionCommand({
+          config: { runtimeProvisionCommand: "./install-dependencies.sh" },
+          workspace,
+        }),
+      ).toBe("./install-dependencies.sh");
       process.env.TASKCORE_WORKSPACE_BASE_CWD = baseCwd;
       process.env.TASKCORE_PROJECT_WORKSPACE_ID = "project-workspace-1";
       process.env.TASKCORE_SEED_EXPECTED_COMPANY_ID = "company-1";
       const seedDatabase = vi.fn(async () => verifiedSeedResult());
       const inspectLegacyDatabase = vi.fn(async () => null);
-      await expect(ensureWorktreeSeeded({ config: configPath }, { seedDatabase, inspectLegacyDatabase }))
-        .resolves.toEqual({ seeded: false, reason: "explicitly_empty" });
+      await expect(
+        ensureWorktreeSeeded(
+          { config: configPath },
+          { seedDatabase, inspectLegacyDatabase },
+        ),
+      ).resolves.toEqual({ seeded: false, reason: "explicitly_empty" });
       expect(seedDatabase).not.toHaveBeenCalled();
       expect(inspectLegacyDatabase).not.toHaveBeenCalled();
-      const provisionScript = fileURLToPath(new URL("../../../scripts/provision-worktree-runtime.sh", import.meta.url));
+      const provisionScript = fileURLToPath(
+        new URL(
+          "../../../scripts/provision-worktree-runtime.sh",
+          import.meta.url,
+        ),
+      );
       const provision = await execFileAsync("bash", [provisionScript], {
         cwd,
         env: { ...process.env, TASKCORE_WORKSPACE_CWD: cwd },
       });
       expect(provision.stderr).toContain("explicitly empty");
       expect(readWorktreeSeedManifest(configPath)).toBeNull();
-      await expect(fs.stat(path.join(cwd, ".taskcore", "seed-pending"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(
+        fs.stat(path.join(cwd, ".taskcore", "seed-pending")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
       process.chdir(originalCwd);
-      for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+      for (const key of Object.keys(process.env))
+        if (!(key in originalEnv)) delete process.env[key];
       Object.assign(process.env, originalEnv);
     }
   });
 
   it("re-derives an ambient-instance manifest written before provisioning", async () => {
-    const tempRoot = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-server-seed-source-")));
+    const tempRoot = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-server-seed-source-")),
+    );
     cleanup.push(tempRoot);
     const repoRoot = path.join(tempRoot, "repo");
     const hooksDir = path.join(tempRoot, "hooks");
     const ambientConfigPath = path.join(tempRoot, "ambient", "config.json");
-    const registeredConfigPath = path.join(repoRoot, ".taskcore", "config.json");
+    const registeredConfigPath = path.join(
+      repoRoot,
+      ".taskcore",
+      "config.json",
+    );
     const worktreeHome = path.join(tempRoot, "worktree-home");
 
     await fs.mkdir(repoRoot, { recursive: true });
@@ -172,13 +258,26 @@ describe("managed worktree seed source through the server spawn path", () => {
     await runGit(repoRoot, ["config", "user.email", "taskcore@example.com"]);
     await runGit(repoRoot, ["config", "user.name", "Taskcore Test"]);
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
-    await fs.writeFile(path.join(repoRoot, "README.md"), "server spawn regression\n", "utf8");
+    await fs.writeFile(
+      path.join(repoRoot, "README.md"),
+      "server spawn regression\n",
+      "utf8",
+    );
     await fs.copyFile(
-      fileURLToPath(new URL("../../../scripts/provision-worktree.sh", import.meta.url)),
+      fileURLToPath(
+        new URL("../../../scripts/provision-worktree.sh", import.meta.url),
+      ),
       path.join(repoRoot, "scripts", "provision-worktree.sh"),
     );
-    await fs.chmod(path.join(repoRoot, "scripts", "provision-worktree.sh"), 0o755);
-    await runGit(repoRoot, ["add", "README.md", "scripts/provision-worktree.sh"]);
+    await fs.chmod(
+      path.join(repoRoot, "scripts", "provision-worktree.sh"),
+      0o755,
+    );
+    await runGit(repoRoot, [
+      "add",
+      "README.md",
+      "scripts/provision-worktree.sh",
+    ]);
     await runGit(repoRoot, ["commit", "-qm", "Add managed provision script"]);
     await writeConfig(registeredConfigPath, "registered-source");
     await writeConfig(ambientConfigPath, "ambient-instance");
@@ -199,7 +298,7 @@ const cwd = process.cwd();
 if (cwd === ${JSON.stringify(repoRoot)}) process.exit(0);
 const stateDir = path.join(cwd, ".taskcore");
 const normalized = path.basename(cwd).trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/-+/g, "-").replace(/^[-_]+|[-_]+$/g, "");
-const instanceId = \`${"${(normalized || \"worktree\").slice(0, 48)}"}-\${crypto.createHash("sha256").update(path.resolve(cwd)).digest("hex").slice(0, 12)}\`;
+const instanceId = \`${'${(normalized || "worktree").slice(0, 48)}'}-\${crypto.createHash("sha256").update(path.resolve(cwd)).digest("hex").slice(0, 12)}\`;
 const targetConfigPath = path.join(stateDir, "config.json");
 const instanceRoot = path.join(process.env.TASKCORE_WORKTREES_DIR, "instances", instanceId);
 fs.mkdirSync(stateDir, { recursive: true });
@@ -274,22 +373,38 @@ fs.writeFileSync(path.join(stateDir, "seed-manifest.json"), JSON.stringify({
       agent: { id: "agent-1", name: "Coder", companyId: "company-1" },
     });
 
-    expect(readWorktreeSeedManifest(path.join(workspace.cwd, ".taskcore", "config.json"))).toMatchObject({
+    expect(
+      readWorktreeSeedManifest(
+        path.join(workspace.cwd, ".taskcore", "config.json"),
+      ),
+    ).toMatchObject({
       source: { instanceId: "ambient-instance", configPath: ambientConfigPath },
       state: "pending",
     });
 
-    await expect(ensureWorktreeSeeded({
-      config: path.join(workspace.cwd, ".taskcore", "config.json"),
-      registeredBaseWorkspaceCwd: repoRoot,
-      registeredProjectWorkspaceId: "project-workspace-1",
-      expectedCompanyId: "company-1",
-    }, {
-      seedDatabase: async () => verifiedSeedResult(),
-    })).resolves.toMatchObject({ seeded: true, reason: "seeded" });
+    await expect(
+      ensureWorktreeSeeded(
+        {
+          config: path.join(workspace.cwd, ".taskcore", "config.json"),
+          registeredBaseWorkspaceCwd: repoRoot,
+          registeredProjectWorkspaceId: "project-workspace-1",
+          expectedCompanyId: "company-1",
+        },
+        {
+          seedDatabase: async () => verifiedSeedResult(),
+        },
+      ),
+    ).resolves.toMatchObject({ seeded: true, reason: "seeded" });
 
-    expect(readWorktreeSeedManifest(path.join(workspace.cwd, ".taskcore", "config.json"))).toMatchObject({
-      source: { instanceId: "registered-source", configPath: registeredConfigPath },
+    expect(
+      readWorktreeSeedManifest(
+        path.join(workspace.cwd, ".taskcore", "config.json"),
+      ),
+    ).toMatchObject({
+      source: {
+        instanceId: "registered-source",
+        configPath: registeredConfigPath,
+      },
       state: "verified",
       phase: "complete",
     });

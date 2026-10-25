@@ -72,7 +72,9 @@ export function resolveAdapterTestEnvironmentId(input: {
     resolved === null ||
     input.visibleEnvironmentIds.includes(resolved);
   const landsOnLocal =
-    resolved === null || resolved === localDefaultId || !resolvedNamesVisibleEnvironment;
+    resolved === null ||
+    resolved === localDefaultId ||
+    !resolvedNamesVisibleEnvironment;
   if (!landsOnLocal) {
     return resolved;
   }
@@ -122,7 +124,8 @@ export function resolveLocalDefaultEnvironmentId(
   if (!environments) return null;
   const local = environments.find(
     (environment) =>
-      environment.driver === "local" && environment.metadata?.defaultForInstance === true,
+      environment.driver === "local" &&
+      environment.metadata?.defaultForInstance === true,
   );
   return local?.id ?? null;
 }

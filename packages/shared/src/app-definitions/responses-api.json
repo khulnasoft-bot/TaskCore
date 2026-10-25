@@ -3,9 +3,7 @@
   "slug": "responses-api",
   "name": "Responses API",
   "description": "Connect any compatible harness to an OpenAI Responses-compatible provider or gateway, including Emissary.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "branding": {
     "logoUrl": "/brands/apps/api-key-generic.svg"
   },
@@ -21,13 +19,8 @@
         "provider": "openai",
         "method": "api_key"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Connect any compatible harness to an OpenAI Responses-compatible provider or gateway, including Emissary.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3",
@@ -47,7 +40,5 @@
       }
     }
   ],
-  "tags": [
-    "model-provider"
-  ]
+  "tags": ["model-provider"]
 }

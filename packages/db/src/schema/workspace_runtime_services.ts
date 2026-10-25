@@ -20,11 +20,23 @@ export const workspaceRuntimeServices = pgTable(
   "workspace_runtime_services",
   {
     id: uuid("id").primaryKey(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
-    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
-    projectWorkspaceId: uuid("project_workspace_id").references(() => projectWorkspaces.id, { onDelete: "set null" }),
-    executionWorkspaceId: uuid("execution_workspace_id").references(() => executionWorkspaces.id, { onDelete: "set null" }),
-    issueId: uuid("issue_id").references(() => issues.id, { onDelete: "set null" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    projectWorkspaceId: uuid("project_workspace_id").references(
+      () => projectWorkspaces.id,
+      { onDelete: "set null" },
+    ),
+    executionWorkspaceId: uuid("execution_workspace_id").references(
+      () => executionWorkspaces.id,
+      { onDelete: "set null" },
+    ),
+    issueId: uuid("issue_id").references(() => issues.id, {
+      onDelete: "set null",
+    }),
     scopeType: text("scope_type").notNull(),
     scopeId: text("scope_id"),
     serviceName: text("service_name").notNull(),
@@ -37,10 +49,19 @@ export const workspaceRuntimeServices = pgTable(
     url: text("url"),
     provider: text("provider").notNull(),
     providerRef: text("provider_ref"),
-    ownerAgentId: uuid("owner_agent_id").references(() => agents.id, { onDelete: "set null" }),
-    startedByRunId: uuid("started_by_run_id").references(() => heartbeatRuns.id, { onDelete: "set null" }),
-    lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
-    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    ownerAgentId: uuid("owner_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
+    startedByRunId: uuid("started_by_run_id").references(
+      () => heartbeatRuns.id,
+      { onDelete: "set null" },
+    ),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     stoppedAt: timestamp("stopped_at", { withTimezone: true }),
     stopPolicy: jsonb("stop_policy").$type<Record<string, unknown>>(),
     // Structured opt-in `tailscale_https` exposure state (PAP-17049/17050).
@@ -53,29 +74,28 @@ export const workspaceRuntimeServices = pgTable(
     exposureHandle: text("exposure_handle"),
     backendUrl: text("backend_url"),
     healthStatus: text("health_status").notNull().default("unknown"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    companyWorkspaceStatusIdx: index("workspace_runtime_services_company_workspace_status_idx").on(
-      table.companyId,
-      table.projectWorkspaceId,
-      table.status,
+    companyWorkspaceStatusIdx: index(
+      "workspace_runtime_services_company_workspace_status_idx",
+    ).on(table.companyId, table.projectWorkspaceId, table.status),
+    companyExecutionWorkspaceStatusIdx: index(
+      "workspace_runtime_services_company_execution_workspace_status_idx",
+    ).on(table.companyId, table.executionWorkspaceId, table.status),
+    companyProjectStatusIdx: index(
+      "workspace_runtime_services_company_project_status_idx",
+    ).on(table.companyId, table.projectId, table.status),
+    runIdx: index("workspace_runtime_services_run_idx").on(
+      table.startedByRunId,
     ),
-    companyExecutionWorkspaceStatusIdx: index("workspace_runtime_services_company_execution_workspace_status_idx").on(
-      table.companyId,
-      table.executionWorkspaceId,
-      table.status,
-    ),
-    companyProjectStatusIdx: index("workspace_runtime_services_company_project_status_idx").on(
-      table.companyId,
-      table.projectId,
-      table.status,
-    ),
-    runIdx: index("workspace_runtime_services_run_idx").on(table.startedByRunId),
-    companyUpdatedIdx: index("workspace_runtime_services_company_updated_idx").on(
-      table.companyId,
-      table.updatedAt,
-    ),
+    companyUpdatedIdx: index(
+      "workspace_runtime_services_company_updated_idx",
+    ).on(table.companyId, table.updatedAt),
   }),
 );

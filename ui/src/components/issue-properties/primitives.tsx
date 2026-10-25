@@ -93,7 +93,10 @@ export function PropertyChip({
     <Badge
       variant="outline"
       // Badge chassis; keep this chip's truncation + normal weight + start alignment.
-      className={cn("max-w-full min-w-0 justify-start truncate font-normal", className)}
+      className={cn(
+        "max-w-full min-w-0 justify-start truncate font-normal",
+        className,
+      )}
       style={style}
       title={title ?? (typeof children === "string" ? children : undefined)}
     >

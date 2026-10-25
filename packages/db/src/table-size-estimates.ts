@@ -146,8 +146,8 @@ function bucketForEstimatedRows(estimatedRows: number): TableSizeBucket {
   return "small";
 }
 
-export const TABLE_SIZE_ESTIMATES: readonly TableSizeEstimate[] = LOCAL_TABLE_ROW_COUNTS.map(
-  ({ table, localRows }) => {
+export const TABLE_SIZE_ESTIMATES: readonly TableSizeEstimate[] =
+  LOCAL_TABLE_ROW_COUNTS.map(({ table, localRows }) => {
     const estimatedRows = localRows * TABLE_SIZE_ESTIMATE_FACTOR;
     return {
       table,
@@ -156,14 +156,16 @@ export const TABLE_SIZE_ESTIMATES: readonly TableSizeEstimate[] = LOCAL_TABLE_RO
       estimatedRows,
       bucket: bucketForEstimatedRows(estimatedRows),
     };
-  },
-);
+  });
 
-export const TABLE_SIZE_ESTIMATES_BY_TABLE: ReadonlyMap<string, TableSizeEstimate> = new Map(
-  TABLE_SIZE_ESTIMATES.map((estimate) => [estimate.table, estimate]),
-);
+export const TABLE_SIZE_ESTIMATES_BY_TABLE: ReadonlyMap<
+  string,
+  TableSizeEstimate
+> = new Map(TABLE_SIZE_ESTIMATES.map((estimate) => [estimate.table, estimate]));
 
-export function getTableSizeEstimate(table: string): TableSizeEstimate | undefined {
+export function getTableSizeEstimate(
+  table: string,
+): TableSizeEstimate | undefined {
   return TABLE_SIZE_ESTIMATES_BY_TABLE.get(table);
 }
 

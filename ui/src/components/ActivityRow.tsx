@@ -6,17 +6,31 @@ import { IssueReferenceActivitySummary } from "./IssueReferenceActivitySummary";
 import { timeAgo } from "../lib/timeAgo";
 import { cn } from "../lib/utils";
 import { formatActivityVerb } from "../lib/activity-format";
-import { deriveProjectUrlKey, type ActivityEvent, type Agent } from "@taskcore/shared";
+import {
+  deriveProjectUrlKey,
+  type ActivityEvent,
+  type Agent,
+} from "@taskcore/shared";
 import type { CompanyUserProfile } from "../lib/company-members";
 
-function entityLink(entityType: string, entityId: string, name?: string | null): string | null {
+function entityLink(
+  entityType: string,
+  entityId: string,
+  name?: string | null,
+): string | null {
   switch (entityType) {
-    case "issue": return `/issues/${name ?? entityId}`;
-    case "agent": return `/agents/${entityId}`;
-    case "project": return `/projects/${deriveProjectUrlKey(name, entityId)}`;
-    case "goal": return `/goals/${entityId}`;
-    case "approval": return `/approvals/${entityId}`;
-    default: return null;
+    case "issue":
+      return `/issues/${name ?? entityId}`;
+    case "agent":
+      return `/agents/${entityId}`;
+    case "project":
+      return `/projects/${deriveProjectUrlKey(name, entityId)}`;
+    case "goal":
+      return `/goals/${entityId}`;
+    case "approval":
+      return `/approvals/${entityId}`;
+    default:
+      return null;
   }
 }
 
@@ -29,35 +43,65 @@ interface ActivityRowProps {
   className?: string;
 }
 
-export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, entityTitleMap, className }: ActivityRowProps) {
-  const verb = formatActivityVerb(event.action, event.details, { agentMap, userProfileMap });
+export function ActivityRow({
+  event,
+  agentMap,
+  userProfileMap,
+  entityNameMap,
+  entityTitleMap,
+  className,
+}: ActivityRowProps) {
+  const verb = formatActivityVerb(event.action, event.details, {
+    agentMap,
+    userProfileMap,
+  });
 
   const isHeartbeatEvent = event.entityType === "heartbeat_run";
   const heartbeatAgentId = isHeartbeatEvent
-    ? (event.details as Record<string, unknown> | null)?.agentId as string | undefined
+    ? ((event.details as Record<string, unknown> | null)?.agentId as
+        string | undefined)
     : undefined;
 
   const name = isHeartbeatEvent
-    ? (heartbeatAgentId ? entityNameMap.get(`agent:${heartbeatAgentId}`) : null)
+    ? heartbeatAgentId
+      ? entityNameMap.get(`agent:${heartbeatAgentId}`)
+      : null
     : entityNameMap.get(`${event.entityType}:${event.entityId}`);
 
-  const entityTitle = entityTitleMap?.get(`${event.entityType}:${event.entityId}`)
-    ?? (event.entityType === "issue" && typeof event.details?.issueTitle === "string" ? event.details.issueTitle : undefined);
+  const entityTitle =
+    entityTitleMap?.get(`${event.entityType}:${event.entityId}`) ??
+    (event.entityType === "issue" &&
+    typeof event.details?.issueTitle === "string"
+      ? event.details.issueTitle
+      : undefined);
 
-  const link = isHeartbeatEvent && heartbeatAgentId
-    ? `/agents/${heartbeatAgentId}/runs/${event.entityId}`
-    : entityLink(event.entityType, event.entityId, name);
+  const link =
+    isHeartbeatEvent && heartbeatAgentId
+      ? `/agents/${heartbeatAgentId}/runs/${event.entityId}`
+      : entityLink(event.entityType, event.entityId, name);
 
-  const actor = event.actorType === "agent" ? agentMap.get(event.actorId) : null;
-  const userProfile = event.actorType === "user" ? userProfileMap?.get(event.actorId) : null;
-  const actorName = actor?.name ?? (event.actorType === "system" ? "System" : userProfile?.label ?? (event.actorType === "user" ? "Board" : event.actorId || "Unknown"));
+  const actor =
+    event.actorType === "agent" ? agentMap.get(event.actorId) : null;
+  const userProfile =
+    event.actorType === "user" ? userProfileMap?.get(event.actorId) : null;
+  const actorName =
+    actor?.name ??
+    (event.actorType === "system"
+      ? "System"
+      : (userProfile?.label ??
+        (event.actorType === "user" ? "Board" : event.actorId || "Unknown")));
   const actorAvatarUrl = userProfile?.image ?? null;
 
   const inner = (
     <div className="space-y-2">
       <div className="flex items-start gap-2 @xl:grid @xl:grid-cols-(--dashboard-activity-list-columns) @xl:items-baseline">
         {event.actorType === "agent" ? (
-          <AgentAvatar agent={actor} name={actorName} size={24} className="@xl:self-center" />
+          <AgentAvatar
+            agent={actor}
+            name={actorName}
+            size={24}
+            className="@xl:self-center"
+          />
         ) : (
           <Avatar size="sm" aria-hidden="true" className="@xl:self-center">
             {actorAvatarUrl && <AvatarImage src={actorAvatarUrl} alt="" />}
@@ -67,16 +111,26 @@ export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, en
         <div className="flex min-w-0 flex-1 flex-col gap-1 @xl:contents">
           <div className="flex min-w-0 items-baseline gap-2 @xl:contents">
             <p className="flex h-6 min-w-0 flex-1 items-center gap-1.5">
-              <span className="max-w-1/2 shrink-0 truncate" title={`${actorName} ${verb}`}>
+              <span
+                className="max-w-1/2 shrink-0 truncate"
+                title={`${actorName} ${verb}`}
+              >
                 <span>{actorName}</span>{" "}
                 <span className="text-muted-foreground">{verb}</span>
               </span>
               {event.entityType === "issue" ? (
-                <span className="min-w-0 flex-1 truncate" title={entityTitle}>{entityTitle}</span>
+                <span className="min-w-0 flex-1 truncate" title={entityTitle}>
+                  {entityTitle}
+                </span>
               ) : (
                 <span className="min-w-0 flex-1 truncate">
                   {name && <span className="font-medium">{name}</span>}
-                  {entityTitle && <span className="text-muted-foreground"> — {entityTitle}</span>}
+                  {entityTitle && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — {entityTitle}
+                    </span>
+                  )}
                 </span>
               )}
             </p>
@@ -103,15 +157,14 @@ export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, en
 
   if (link) {
     return (
-      <Link to={link} className={cn(classes, "no-underline text-inherit block")}>
+      <Link
+        to={link}
+        className={cn(classes, "no-underline text-inherit block")}
+      >
         {inner}
       </Link>
     );
   }
 
-  return (
-    <div className={classes}>
-      {inner}
-    </div>
-  );
+  return <div className={classes}>{inner}</div>;
 }

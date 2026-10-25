@@ -31,7 +31,9 @@ export interface AuditEvent {
 export function sanitizeField(value: string): string {
   // eslint-disable-next-line no-control-regex
   const stripped = value.replace(/[\x00-\x1f\x7f]/g, " ");
-  return stripped.length > MAX_FIELD_LEN ? `${stripped.slice(0, MAX_FIELD_LEN)}…` : stripped;
+  return stripped.length > MAX_FIELD_LEN
+    ? `${stripped.slice(0, MAX_FIELD_LEN)}…`
+    : stripped;
 }
 
 export function formatAuditLine(event: AuditEvent): string {
@@ -47,8 +49,12 @@ export function formatAuditLine(event: AuditEvent): string {
     decision: event.decision,
     reasonCode: event.reasonCode,
     reason: sanitizeField(event.reason),
-    beforeDigest: event.beforeDigest ? sanitizeField(event.beforeDigest) : undefined,
-    afterDigest: event.afterDigest ? sanitizeField(event.afterDigest) : undefined,
+    beforeDigest: event.beforeDigest
+      ? sanitizeField(event.beforeDigest)
+      : undefined,
+    afterDigest: event.afterDigest
+      ? sanitizeField(event.afterDigest)
+      : undefined,
     cliExitCategory: event.cliExitCategory,
     recovery: event.recovery,
   };

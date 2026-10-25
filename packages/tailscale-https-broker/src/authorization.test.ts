@@ -15,13 +15,21 @@ const policy = {
 
 describe("authorizePeer (complete mediation)", () => {
   it("accepts the exact allowlisted identity", () => {
-    expect(() => authorizePeer({ uid: 999, gid: 987, pid: 1 }, policy)).not.toThrow();
+    expect(() =>
+      authorizePeer({ uid: 999, gid: 987, pid: 1 }, policy),
+    ).not.toThrow();
   });
 
   it("rejects wrong uid, wrong gid, and missing creds", () => {
-    expect(() => authorizePeer({ uid: 1000, gid: 987, pid: 1 }, policy)).toThrow(AuthorizationError);
-    expect(() => authorizePeer({ uid: 999, gid: 100, pid: 1 }, policy)).toThrow(/gid/);
-    expect(() => authorizePeer({ uid: Number.NaN, gid: 987, pid: 1 }, policy)).toThrow();
+    expect(() =>
+      authorizePeer({ uid: 1000, gid: 987, pid: 1 }, policy),
+    ).toThrow(AuthorizationError);
+    expect(() => authorizePeer({ uid: 999, gid: 100, pid: 1 }, policy)).toThrow(
+      /gid/,
+    );
+    expect(() =>
+      authorizePeer({ uid: Number.NaN, gid: 987, pid: 1 }, policy),
+    ).toThrow();
   });
 });
 
@@ -52,24 +60,45 @@ describe("authorizeRemoval (ownership binding)", () => {
   const peer = { uid: 999, gid: 987, pid: 42 };
 
   it("authorizes an exact handle + runtime + peer match", () => {
-    expect(authorizeRemoval([lease], { runtimeId: lease.runtimeId, handle: lease.handle }, peer)).toBe(lease);
+    expect(
+      authorizeRemoval(
+        [lease],
+        { runtimeId: lease.runtimeId, handle: lease.handle },
+        peer,
+      ),
+    ).toBe(lease);
   });
 
   it("rejects random/stale handles", () => {
     expect(() =>
-      authorizeRemoval([lease], { runtimeId: lease.runtimeId, handle: "random-handle-xxxxxx" }, peer),
+      authorizeRemoval(
+        [lease],
+        { runtimeId: lease.runtimeId, handle: "random-handle-xxxxxx" },
+        peer,
+      ),
     ).toThrow(/invalid_handle|stale/);
   });
 
   it("rejects runtime A removing runtime B's lease", () => {
     expect(() =>
-      authorizeRemoval([lease], { runtimeId: "00000000-0000-0000-0000-000000000000", handle: lease.handle }, peer),
+      authorizeRemoval(
+        [lease],
+        {
+          runtimeId: "00000000-0000-0000-0000-000000000000",
+          handle: lease.handle,
+        },
+        peer,
+      ),
     ).toThrow(/runtime/);
   });
 
   it("rejects a wrong peer identity even with the right handle", () => {
     expect(() =>
-      authorizeRemoval([lease], { runtimeId: lease.runtimeId, handle: lease.handle }, { uid: 1000, gid: 987, pid: 7 }),
+      authorizeRemoval(
+        [lease],
+        { runtimeId: lease.runtimeId, handle: lease.handle },
+        { uid: 1000, gid: 987, pid: 7 },
+      ),
     ).toThrow(/peer/);
   });
 });

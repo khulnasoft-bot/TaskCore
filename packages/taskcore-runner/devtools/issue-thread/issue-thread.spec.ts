@@ -20,7 +20,11 @@ function route(slug: string, params: Record<string, string> = {}): string {
 }
 
 /** Every route settles on a data attribute, never on a timeout (§10.1). */
-async function open(page: Page, slug: string, params: Record<string, string> = {}) {
+async function open(
+  page: Page,
+  slug: string,
+  params: Record<string, string> = {},
+) {
   await page.goto(route(slug, params));
   await expect(page.locator('[data-thread-state="settled"]')).toBeVisible();
 }
@@ -34,10 +38,22 @@ interface AxeViolation {
 async function seriousAxeViolations(page: Page): Promise<AxeViolation[]> {
   await page.addScriptTag({ path: AXE_PATH });
   const violations = await page.evaluate(async () => {
-    const axe = (window as unknown as { axe: { run: (context: unknown, options: unknown) => Promise<{ violations: AxeViolation[] }> } }).axe;
+    const axe = (
+      window as unknown as {
+        axe: {
+          run: (
+            context: unknown,
+            options: unknown,
+          ) => Promise<{ violations: AxeViolation[] }>;
+        };
+      }
+    ).axe;
     const results = await axe.run(document, {
       resultTypes: ["violations"],
-      runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
+      runOnly: {
+        type: "tag",
+        values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
+      },
     });
     return results.violations.map((violation) => ({
       id: violation.id,
@@ -46,20 +62,30 @@ async function seriousAxeViolations(page: Page): Promise<AxeViolation[]> {
     }));
   });
   return (violations as unknown as AxeViolation[]).filter(
-    (violation) => violation.impact === "serious" || violation.impact === "critical",
+    (violation) =>
+      violation.impact === "serious" || violation.impact === "critical",
   );
 }
 
 test.describe("Capability issue thread", () => {
-  test("loads the bundled sans and mono faces before the thread settles", async ({ page }) => {
+  test("loads the bundled sans and mono faces before the thread settles", async ({
+    page,
+  }) => {
     await open(page, "thread-baseline");
 
     const probe = await page.evaluate(async () => {
-      const normalizeFamily = (family: string) => family.trim().replace(/^['"]|['"]$/g, "");
+      const normalizeFamily = (family: string) =>
+        family.trim().replace(/^['"]|['"]$/g, "");
       const styles = getComputedStyle(document.documentElement);
-      const sansFamily = normalizeFamily(styles.getPropertyValue("--pit-font-sans").split(",")[0]);
-      const monoFamily = normalizeFamily(styles.getPropertyValue("--pit-font-mono").split(",")[0]);
-      const symbolFamily = normalizeFamily(styles.getPropertyValue("--pit-font-symbols"));
+      const sansFamily = normalizeFamily(
+        styles.getPropertyValue("--pit-font-sans").split(",")[0],
+      );
+      const monoFamily = normalizeFamily(
+        styles.getPropertyValue("--pit-font-mono").split(",")[0],
+      );
+      const symbolFamily = normalizeFamily(
+        styles.getPropertyValue("--pit-font-symbols"),
+      );
       await document.fonts.load(`400 16px "${symbolFamily}"`, "◐⏳\uFE0E");
       const statuses = (family: string) =>
         [...document.fonts]
@@ -79,7 +105,10 @@ test.describe("Capability issue thread", () => {
         monoWeightsLoaded: [400, 700].every((weight) =>
           document.fonts.check(`${weight} 16px "${monoFamily}"`, "TASK-17003"),
         ),
-        symbolsLoaded: document.fonts.check(`400 16px "${symbolFamily}"`, "◐⏳\uFE0E"),
+        symbolsLoaded: document.fonts.check(
+          `400 16px "${symbolFamily}"`,
+          "◐⏳\uFE0E",
+        ),
       };
     });
 
@@ -96,53 +125,86 @@ test.describe("Capability issue thread", () => {
     });
   });
 
-  test("baseline thread renders identity, turns, and the §3 item types", async ({ page }) => {
+  test("baseline thread renders identity, turns, and the §3 item types", async ({
+    page,
+  }) => {
     await open(page, "thread-baseline");
 
-    await expect(page.locator('[data-session-mode="fake"]').first()).toBeVisible();
+    await expect(
+      page.locator('[data-session-mode="fake"]').first(),
+    ).toBeVisible();
     const chips = page.getByTestId("identity-chips");
     await expect(chips.getByTestId("agent-chip")).toHaveText("Fake agent");
-    await expect(chips.getByTestId("runner-chip")).toContainText("In-process runner");
-    await expect(chips.getByTestId("control-plane-chip")).toHaveText("Mock Taskcore");
+    await expect(chips.getByTestId("runner-chip")).toContainText(
+      "In-process runner",
+    );
+    await expect(chips.getByTestId("control-plane-chip")).toHaveText(
+      "Mock Taskcore",
+    );
 
     await expect(page.locator("h1")).toHaveCount(1);
-    await expect(page.locator('[data-turn-id]')).toHaveCount(3);
-    for (const kind of ["user_message", "agent_message", "durable_comment", "tool_activity"]) {
-      await expect(page.locator(`[data-thread-item="${kind}"]`).first()).toBeVisible();
+    await expect(page.locator("[data-turn-id]")).toHaveCount(3);
+    for (const kind of [
+      "user_message",
+      "agent_message",
+      "durable_comment",
+      "tool_activity",
+    ]) {
+      await expect(
+        page.locator(`[data-thread-item="${kind}"]`).first(),
+      ).toBeVisible();
     }
     await expect(page.locator('[data-composer-state="ready"]')).toHaveCount(1);
   });
 
-  test("a durable progress comment is visually distinct from model prose", async ({ page }) => {
+  test("a durable progress comment is visually distinct from model prose", async ({
+    page,
+  }) => {
     await open(page, "thread-baseline");
     await expect(
-      page.locator('[data-thread-item="durable_comment"]').getByText("Recorded to mock thread"),
+      page
+        .locator('[data-thread-item="durable_comment"]')
+        .getByText("Recorded to mock thread"),
     ).toBeVisible();
     await expect(
-      page.locator('[data-thread-item="agent_message"]').first().getByText("Recorded to mock thread"),
+      page
+        .locator('[data-thread-item="agent_message"]')
+        .first()
+        .getByText("Recorded to mock thread"),
     ).toHaveCount(0);
   });
 
-  test("tool strips are collapsed disclosures that deep-link into Evidence", async ({ page }) => {
+  test("tool strips are collapsed disclosures that deep-link into Evidence", async ({
+    page,
+  }) => {
     await open(page, "thread-baseline");
     const strip = page.locator('[data-tool-strip="get_task_context"]').first();
     await expect(strip).not.toHaveAttribute("open", "");
     await strip.locator("summary").click();
     await expect(strip).toHaveAttribute("open", "");
 
-    await page.getByRole("button", { name: "View in Evidence" }).first().click();
+    await page
+      .getByRole("button", { name: "View in Evidence" })
+      .first()
+      .click();
     const panel = page.getByTestId("evidence-panel");
     await expect(panel).toBeVisible();
-    await expect(panel.locator('[data-record-id="call-1"][data-highlighted="true"]')).toBeVisible();
+    await expect(
+      panel.locator('[data-record-id="call-1"][data-highlighted="true"]'),
+    ).toBeVisible();
   });
 
-  test("a pending question card resolves inline and releases the composer", async ({ page }) => {
+  test("a pending question card resolves inline and releases the composer", async ({
+    page,
+  }) => {
     await open(page, "interaction-question-pending");
 
     await expect(page.locator('[data-composer-state="waiting"]')).toBeVisible();
     const card = page.locator('[data-interaction-id="ix-questions-01"]');
     await expect(card).toHaveAttribute("data-interaction-state", "pending");
-    await expect(card.getByTestId("interaction-state-chip")).toContainText("Waiting for you");
+    await expect(card.getByTestId("interaction-state-chip")).toContainText(
+      "Waiting for you",
+    );
 
     // The submit is rejected until every required question is answered.
     await card.getByRole("button", { name: "Submit answers" }).click();
@@ -153,16 +215,24 @@ test.describe("Capability issue thread", () => {
     await card.getByRole("button", { name: "Submit answers" }).click();
 
     await expect(card).toHaveAttribute("data-interaction-state", "answered");
-    await expect(card.getByTestId("interaction-state-chip")).toContainText("Answered");
-    await expect(page.locator('[data-composer-state="ready"]').first()).toBeVisible();
+    await expect(card.getByTestId("interaction-state-chip")).toContainText(
+      "Answered",
+    );
+    await expect(
+      page.locator('[data-composer-state="ready"]').first(),
+    ).toBeVisible();
   });
 
   test("a revision-bound confirmation names its target and requires a reject reason", async ({
     page,
   }) => {
     await open(page, "interaction-confirmation-pending");
-    const card = page.locator('[data-interaction-id="ix-confirmation-plan-01"]');
-    await expect(card.getByTestId("interaction-target")).toHaveText("plan · r4");
+    const card = page.locator(
+      '[data-interaction-id="ix-confirmation-plan-01"]',
+    );
+    await expect(card.getByTestId("interaction-target")).toHaveText(
+      "plan · r4",
+    );
 
     await card.getByRole("button", { name: "Request changes" }).click();
     await expect(card.getByRole("alert")).toContainText("reason is required");
@@ -178,7 +248,13 @@ test.describe("Capability issue thread", () => {
     page,
   }) => {
     await open(page, "interaction-resolved-mixed");
-    for (const state of ["answered", "accepted", "rejected", "stale_target", "superseded_by_comment"]) {
+    for (const state of [
+      "answered",
+      "accepted",
+      "rejected",
+      "stale_target",
+      "superseded_by_comment",
+    ]) {
       await expect(
         page.locator(`[data-interaction-state="${state}"]`),
         `missing ${state}`,
@@ -186,16 +262,22 @@ test.describe("Capability issue thread", () => {
     }
     // Expired treatments keep their controls removed but stay reachable.
     await expect(
-      page.locator('[data-interaction-state="stale_target"] button', { hasText: "Approve" }),
+      page.locator('[data-interaction-state="stale_target"] button', {
+        hasText: "Approve",
+      }),
     ).toHaveCount(0);
     await expect(
-      page.locator('[data-interaction-state="stale_target"]').getByRole("button", {
-        name: "View request evidence",
-      }),
+      page
+        .locator('[data-interaction-state="stale_target"]')
+        .getByRole("button", {
+          name: "View request evidence",
+        }),
     ).toBeVisible();
   });
 
-  test("the deliverable strip and card report one size in one unit", async ({ page }) => {
+  test("the deliverable strip and card report one size in one unit", async ({
+    page,
+  }) => {
     await open(page, "deliverable-registered");
     const card = page.locator('[data-thread-item="deliverable"]');
     await expect(card).toContainText("18.0 kB");
@@ -213,10 +295,17 @@ test.describe("Capability issue thread", () => {
     );
     await expect(page.getByTestId("evidence-toggle")).toContainText("(1)");
 
-    await page.locator('[data-thread-item="denial"]').getByRole("button", { name: "View in Evidence" }).click();
-    const record = page.getByTestId("evidence-panel").locator('[data-record-id="authz-deny-1"]');
+    await page
+      .locator('[data-thread-item="denial"]')
+      .getByRole("button", { name: "View in Evidence" })
+      .click();
+    const record = page
+      .getByTestId("evidence-panel")
+      .locator('[data-record-id="authz-deny-1"]');
     await expect(record).toHaveAttribute("data-allowed", "false");
-    await expect(record).toContainText("denied: missing grant su:read_or_write");
+    await expect(record).toContainText(
+      "denied: missing grant su:read_or_write",
+    );
   });
 
   test("Evidence exposes eight sections, a turn selector, and the withheld control-plane list", async ({
@@ -232,41 +321,61 @@ test.describe("Capability issue thread", () => {
     await expect(
       panel.locator('[data-evidence-section="tools"] button').first(),
     ).toHaveAttribute("aria-expanded", "true");
-    await expect(panel.getByText("Control plane (not exposed to the agent)")).toBeVisible();
     await expect(
-      panel.locator('[data-disposition="control_plane_owned"]', { hasText: "create_task" }),
+      panel.getByText("Control plane (not exposed to the agent)"),
+    ).toBeVisible();
+    await expect(
+      panel.locator('[data-disposition="control_plane_owned"]', {
+        hasText: "create_task",
+      }),
     ).toBeVisible();
     await expect(panel.getByText("Agent tool — always")).toBeVisible();
     await expect(panel.getByText("Agent tool — granted")).toBeVisible();
-
   });
 
-  test("tool exposure groups are deduplicated, foldable, and open catalog details", async ({ page }) => {
+  test("tool exposure groups are deduplicated, foldable, and open catalog details", async ({
+    page,
+  }) => {
     await open(page, "debug-panel-open", { panel: "tools" });
     const panel = page.getByTestId("evidence-panel");
     const always = panel.getByRole("button", { name: /Agent tool — always/ });
     await expect(always).toHaveCount(1);
     await always.click();
-    await expect(panel.getByRole("button", { name: /get_task_context/ })).toHaveCount(0);
+    await expect(
+      panel.getByRole("button", { name: /get_task_context/ }),
+    ).toHaveCount(0);
     await always.click();
     await panel.getByRole("button", { name: /get_task_context/ }).click();
-    const dialog = page.getByRole("dialog", { name: "Get active task context" });
-    await expect(dialog).toContainText("Read the active mock task, actor, wake, ancestors, budget, and interaction results.");
+    const dialog = page.getByRole("dialog", {
+      name: "Get active task context",
+    });
+    await expect(dialog).toContainText(
+      "Read the active mock task, actor, wake, ancestors, budget, and interaction results.",
+    );
     await expect(dialog).toContainText("Input schema");
     await dialog.getByRole("button", { name: "Close tool details" }).click();
     await expect(dialog).toHaveCount(0);
   });
 
-  test("Evidence records link back to their thread anchor", async ({ page }) => {
+  test("Evidence records link back to their thread anchor", async ({
+    page,
+  }) => {
     await open(page, "debug-panel-open", { panel: "calls" });
     const panel = page.getByTestId("evidence-panel");
-    await panel.locator('[data-record-id="call-1"]').getByRole("button", { name: "Show in thread" }).click();
-    await expect(page.locator('[data-tool-strip="get_task_context"]')).toBeInViewport();
+    await panel
+      .locator('[data-record-id="call-1"]')
+      .getByRole("button", { name: "Show in thread" })
+      .click();
+    await expect(
+      page.locator('[data-tool-strip="get_task_context"]'),
+    ).toBeInViewport();
   });
 
   test("the splitter resizes the panel from the keyboard", async ({ page }) => {
     await open(page, "debug-panel-open", { panel: "tools" });
-    const splitter = page.getByRole("separator", { name: "Resize the evidence panel" });
+    const splitter = page.getByRole("separator", {
+      name: "Resize the evidence panel",
+    });
     const before = await splitter.getAttribute("aria-valuenow");
     await splitter.focus();
     await page.keyboard.press("ArrowLeft");
@@ -275,21 +384,30 @@ test.describe("Capability issue thread", () => {
 
   test("the splitter drag makes the DevTools panel wider", async ({ page }) => {
     await open(page, "debug-panel-open", { panel: "tools" });
-    const splitter = page.getByRole("separator", { name: "Resize the evidence panel" });
+    const splitter = page.getByRole("separator", {
+      name: "Resize the evidence panel",
+    });
     const panel = page.getByTestId("evidence-panel");
     const handle = await splitter.boundingBox();
     const before = await panel.boundingBox();
     expect(handle).not.toBeNull();
     expect(before).not.toBeNull();
-    await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+    await page.mouse.move(
+      handle!.x + handle!.width / 2,
+      handle!.y + handle!.height / 2,
+    );
     await page.mouse.down();
-    await page.mouse.move(handle!.x - 140, handle!.y + handle!.height / 2, { steps: 5 });
+    await page.mouse.move(handle!.x - 140, handle!.y + handle!.height / 2, {
+      steps: 5,
+    });
     await page.mouse.up();
     const after = await panel.boundingBox();
     expect(after!.width).toBeGreaterThan(before!.width + 100);
   });
 
-  test("reset is confirmed, escapable, and clears the thread", async ({ page }) => {
+  test("reset is confirmed, escapable, and clears the thread", async ({
+    page,
+  }) => {
     await open(page, "disposition-terminal");
     await page.getByTestId("reset-button").click();
     const dialog = page.getByTestId("reset-dialog");
@@ -305,28 +423,44 @@ test.describe("Capability issue thread", () => {
       .getByTestId("reset-dialog")
       .getByRole("button", { name: "Reset scenario", exact: true })
       .click();
-    await expect(page.locator('[data-thread-item="disposition"]')).toHaveCount(0);
-    await expect(page.locator('[data-composer-state="ready"]').first()).toBeVisible();
+    await expect(page.locator('[data-thread-item="disposition"]')).toHaveCount(
+      0,
+    );
+    await expect(
+      page.locator('[data-composer-state="ready"]').first(),
+    ).toBeVisible();
   });
 
   test("stop keeps the partial turn and marks it", async ({ page }) => {
     await open(page, "turn-streaming");
-    await expect(page.locator('[data-composer-state="streaming"]')).toBeVisible();
+    await expect(
+      page.locator('[data-composer-state="streaming"]'),
+    ).toBeVisible();
     await expect(page.getByTestId("composer-stop")).toBeVisible();
-    await expect(page.locator('[data-composer-state="streaming"] textarea')).toBeEnabled();
+    await expect(
+      page.locator('[data-composer-state="streaming"] textarea'),
+    ).toBeEnabled();
 
     await page.getByTestId("composer-stop").click();
     await expect(page.getByTestId("stopped-marker")).toBeVisible();
-    await expect(page.locator('[data-thread-item="agent_message"]').last()).toContainText(
-      "Two dependent tasks are still open",
-    );
+    await expect(
+      page.locator('[data-thread-item="agent_message"]').last(),
+    ).toContainText("Two dependent tasks are still open");
   });
 
-  test("reconnect pins an amber banner and disables the composer", async ({ page }) => {
+  test("reconnect pins an amber banner and disables the composer", async ({
+    page,
+  }) => {
     await open(page, "reconnect-banner");
-    await expect(page.getByTestId("reconnect-banner")).toContainText("attempt 2");
-    await expect(page.locator('[data-composer-state="reconnecting"]')).toBeVisible();
-    await expect(page.locator('[data-composer-state="reconnecting"] textarea')).toBeDisabled();
+    await expect(page.getByTestId("reconnect-banner")).toContainText(
+      "attempt 2",
+    );
+    await expect(
+      page.locator('[data-composer-state="reconnecting"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-composer-state="reconnecting"] textarea'),
+    ).toBeDisabled();
 
     await page.getByRole("button", { name: "Retry now" }).click();
     await expect(page.getByText("Reconnected")).toBeVisible();
@@ -334,13 +468,23 @@ test.describe("Capability issue thread", () => {
 
   test("replay is read-only and labelled as fake-derived", async ({ page }) => {
     await open(page, "replay-mode");
-    await expect(page.getByTestId("agent-chip")).toContainText("Replay · fake source");
-    await expect(page.getByTestId("composer-reason")).toHaveText("Replay is read-only");
-    await expect(page.getByTestId("replay-strip")).toContainText("Replay 12/18");
-    await expect(page.locator('[data-composer-state="disabled"] textarea')).toBeDisabled();
+    await expect(page.getByTestId("agent-chip")).toContainText(
+      "Replay · fake source",
+    );
+    await expect(page.getByTestId("composer-reason")).toHaveText(
+      "Replay is read-only",
+    );
+    await expect(page.getByTestId("replay-strip")).toContainText(
+      "Replay 12/18",
+    );
+    await expect(
+      page.locator('[data-composer-state="disabled"] textarea'),
+    ).toBeDisabled();
   });
 
-  test("the replay strip steps, advances, and plays through to the end", async ({ page }) => {
+  test("the replay strip steps, advances, and plays through to the end", async ({
+    page,
+  }) => {
     await open(page, "replay-mode");
     const strip = page.getByTestId("replay-strip");
     const progress = page.getByRole("progressbar", { name: "Replay progress" });
@@ -362,11 +506,19 @@ test.describe("Capability issue thread", () => {
     await expect(page.getByTestId("replay-next-turn")).toBeDisabled();
   });
 
-  test("a terminal disposition keeps the composer available", async ({ page }) => {
+  test("a terminal disposition keeps the composer available", async ({
+    page,
+  }) => {
     await open(page, "disposition-terminal");
-    await expect(page.locator('[data-thread-item="disposition"]')).toContainText("Done");
+    await expect(
+      page.locator('[data-thread-item="disposition"]'),
+    ).toContainText("Done");
     await expect(page.locator("#composer-input")).toBeEnabled();
-    await expect(page.getByText("This task is done. You can still continue the conversation.")).toBeVisible();
+    await expect(
+      page.getByText(
+        "This task is done. You can still continue the conversation.",
+      ),
+    ).toBeVisible();
   });
 
   test("composer drafts survive a refresh", async ({ page }) => {
@@ -374,10 +526,14 @@ test.describe("Capability issue thread", () => {
     await page.locator("#composer-input").fill("Draft that must survive F5.");
     await page.reload();
     await expect(page.locator('[data-thread-state="settled"]')).toBeVisible();
-    await expect(page.locator("#composer-input")).toHaveValue("Draft that must survive F5.");
+    await expect(page.locator("#composer-input")).toHaveValue(
+      "Draft that must survive F5.",
+    );
   });
 
-  test("mobile keeps the thread usable with no horizontal page scroll", async ({ page }) => {
+  test("mobile keeps the thread usable with no horizontal page scroll", async ({
+    page,
+  }) => {
     await page.setViewportSize(MOBILE);
     await open(page, "turn-streaming");
 
@@ -394,20 +550,28 @@ test.describe("Capability issue thread", () => {
 
     await page.getByTestId("segment-evidence").click();
     await expect(page.getByTestId("evidence-panel")).toBeVisible();
-    await expect(page.getByTestId("evidence-panel")).toHaveAttribute("data-layout", "segment");
+    await expect(page.getByTestId("evidence-panel")).toHaveAttribute(
+      "data-layout",
+      "segment",
+    );
   });
 
-  test("mobile surfaces the denial count on the Evidence segment", async ({ page }) => {
+  test("mobile surfaces the denial count on the Evidence segment", async ({
+    page,
+  }) => {
     await page.setViewportSize(MOBILE);
     await open(page, "denial-optional-tool");
     await expect(page.getByTestId("segment-denial-badge")).toHaveText("1");
   });
 
-  test("every actionable control meets the 44px touch target on mobile", async ({ page }) => {
+  test("every actionable control meets the 44px touch target on mobile", async ({
+    page,
+  }) => {
     await page.setViewportSize(MOBILE);
     await open(page, "interaction-question-pending");
     const undersized = await page.evaluate(() => {
-      const selectors = "button:not([hidden]), select, textarea, [role='radio']";
+      const selectors =
+        "button:not([hidden]), select, textarea, [role='radio']";
       return [...document.querySelectorAll(selectors)]
         .filter((node) => {
           const element = node as HTMLElement;
@@ -432,7 +596,9 @@ test.describe("Capability issue thread", () => {
   test("opening Evidence moves focus to its heading", async ({ page }) => {
     await open(page, "thread-baseline");
     await page.getByTestId("evidence-toggle").click();
-    await expect(page.getByRole("heading", { name: "Developer tools" })).toBeFocused();
+    await expect(
+      page.getByRole("heading", { name: "Developer tools" }),
+    ).toBeFocused();
   });
 
   test("Escape closes the desktop overlay sheet and returns focus to its toggle", async ({
@@ -446,14 +612,18 @@ test.describe("Capability issue thread", () => {
 
     const panel = page.getByTestId("evidence-panel");
     await expect(panel).toHaveAttribute("data-layout", "overlay");
-    await expect(page.getByRole("heading", { name: "Developer tools" })).toBeFocused();
+    await expect(
+      page.getByRole("heading", { name: "Developer tools" }),
+    ).toBeFocused();
 
     await page.keyboard.press("Escape");
     await expect(panel).toHaveCount(0);
     await expect(page.getByTestId("evidence-toggle")).toBeFocused();
   });
 
-  test("resolving an interaction card moves focus to its state chip", async ({ page }) => {
+  test("resolving an interaction card moves focus to its state chip", async ({
+    page,
+  }) => {
     await open(page, "interaction-question-pending");
     const card = page.locator('[data-interaction-id="ix-questions-01"]');
 
@@ -465,22 +635,40 @@ test.describe("Capability issue thread", () => {
     await expect(card.getByTestId("interaction-state-chip")).toBeFocused();
   });
 
-  test("the waiting composer anchor focuses the pending card", async ({ page }) => {
+  test("the waiting composer anchor focuses the pending card", async ({
+    page,
+  }) => {
     await open(page, "interaction-question-pending");
     await page.getByTestId("pending-anchor").click();
-    await expect(page.locator('[data-interaction-id="ix-questions-01"]')).toBeInViewport();
+    await expect(
+      page.locator('[data-interaction-id="ix-questions-01"]'),
+    ).toBeInViewport();
   });
 
   for (const slug of CAPABILITY_UI_SHOT_SLUGS) {
-    test(`axe reports no serious or critical violation on ${slug} (desktop)`, async ({ page }) => {
+    test(`axe reports no serious or critical violation on ${slug} (desktop)`, async ({
+      page,
+    }) => {
       await page.setViewportSize(DESKTOP);
-      await open(page, slug, slug === "debug-panel-open" ? { panel: "authorization" } : {});
+      await open(
+        page,
+        slug,
+        slug === "debug-panel-open" ? { panel: "authorization" } : {},
+      );
       expect(await seriousAxeViolations(page)).toEqual([]);
     });
 
-    test(`axe reports no serious or critical violation on ${slug} (mobile)`, async ({ page }) => {
+    test(`axe reports no serious or critical violation on ${slug} (mobile)`, async ({
+      page,
+    }) => {
       await page.setViewportSize(MOBILE);
-      await open(page, slug, slug === "debug-panel-open" ? { panel: "authorization", seg: "evidence" } : {});
+      await open(
+        page,
+        slug,
+        slug === "debug-panel-open"
+          ? { panel: "authorization", seg: "evidence" }
+          : {},
+      );
       expect(await seriousAxeViolations(page)).toEqual([]);
     });
   }
@@ -502,21 +690,54 @@ const DEVTOOLS_API = "**/api/capability/ui/devtools?*";
 function devtoolsPayload() {
   const state = {
     company: { id: "company-1", name: "Mock Taskcore" },
-    actors: [], tasks: [], comments: [], interactions: [], approvals: [], artifacts: [],
-    workProducts: [], blockers: [], workspaceServices: [], budgets: [], runs: [], wakes: [],
-    audit: [], decisions: [], idempotency: [], faults: [],
-    documents: [{
-      id: "document-1",
-      key: "plan",
-      title: "Runner plan",
-      revisions: [{ id: "revision-1", revision: 1, body: "# Real document body\n\nInspectable from DevTools.", changeSummary: "Initial draft", createdAt: "2026-08-10T12:00:00.000Z" }],
-    }],
+    actors: [],
+    tasks: [],
+    comments: [],
+    interactions: [],
+    approvals: [],
+    artifacts: [],
+    workProducts: [],
+    blockers: [],
+    workspaceServices: [],
+    budgets: [],
+    runs: [],
+    wakes: [],
+    audit: [],
+    decisions: [],
+    idempotency: [],
+    faults: [],
+    documents: [
+      {
+        id: "document-1",
+        key: "plan",
+        title: "Runner plan",
+        revisions: [
+          {
+            id: "revision-1",
+            revision: 1,
+            body: "# Real document body\n\nInspectable from DevTools.",
+            changeSummary: "Initial draft",
+            createdAt: "2026-08-10T12:00:00.000Z",
+          },
+        ],
+      },
+    ],
   };
   return {
     schema: "taskcore.capability.devtools.v1",
     currentRevision: 4,
-    revisions: [{ revision: 4, at: "2026-08-10T12:00:00.000Z", turnId: "turn-1", operationId: "write_document", state }],
-    protocol: [], runtime: {}, authority: {},
+    revisions: [
+      {
+        revision: 4,
+        at: "2026-08-10T12:00:00.000Z",
+        turnId: "turn-1",
+        operationId: "write_document",
+        state,
+      },
+    ],
+    protocol: [],
+    runtime: {},
+    authority: {},
   };
 }
 
@@ -526,7 +747,8 @@ function cleanRoomView(identifier: string, withTurn: boolean) {
     turnId: "turn-0",
     category: "session",
     outcome: "no_real_taskcore_request",
-    reason: "Real Taskcore API requests: 0. Child TASKCORE_* environment keys: none.",
+    reason:
+      "Real Taskcore API requests: 0. Child TASKCORE_* environment keys: none.",
     stateRevision: 3,
     threadAnchorId: null,
   };
@@ -539,7 +761,8 @@ function cleanRoomView(identifier: string, withTurn: boolean) {
       runnerLabel: "Real runnerd",
       runnerAttached: true,
       controlPlaneLabel: "Mock Taskcore",
-      controlPlaneTooltip: "All issue records are mock. No real Taskcore API is reachable.",
+      controlPlaneTooltip:
+        "All issue records are mock. No real Taskcore API is reachable.",
       replaySource: null,
     },
     issue: {
@@ -592,7 +815,12 @@ function cleanRoomView(identifier: string, withTurn: boolean) {
           },
         ]
       : [],
-    composer: { state: "ready", helper: null, reason: null, pendingInteractionId: null },
+    composer: {
+      state: "ready",
+      helper: null,
+      reason: null,
+      pendingInteractionId: null,
+    },
     evidence: {
       tools: [],
       calls: [],
@@ -656,10 +884,13 @@ function turnStreamBody(payload: unknown, interim: unknown[] = []): string {
 async function stubCleanRoom(page: Page, identifiers: string[]) {
   let opened = 0;
   await page.route(CLEAN_ROOM_API, async (route) => {
-    const requestedSessionId = new URL(route.request().url()).searchParams.get("sessionId");
-    const identifier = requestedSessionId?.replace(/^session-/, "")
-      ?? identifiers[Math.min(opened, identifiers.length - 1)]
-      ?? "MCK-1000";
+    const requestedSessionId = new URL(route.request().url()).searchParams.get(
+      "sessionId",
+    );
+    const identifier =
+      requestedSessionId?.replace(/^session-/, "") ??
+      identifiers[Math.min(opened, identifiers.length - 1)] ??
+      "MCK-1000";
     if (requestedSessionId === null) opened += 1;
     await route.fulfill({
       status: route.request().method() === "POST" ? 201 : 200,
@@ -677,7 +908,9 @@ async function openCleanRoom(page: Page, identifiers: string[] = ["MCK-1000"]) {
 }
 
 test.describe("Capability clean-room chat", () => {
-  test("the landing surface offers a clean-room entry that needs no scenario", async ({ page }) => {
+  test("the landing surface offers a clean-room entry that needs no scenario", async ({
+    page,
+  }) => {
     await open(page, "thread-baseline");
     const entry = page.getByTestId("surface-chat-link");
     await expect(entry).toBeVisible();
@@ -685,7 +918,9 @@ test.describe("Capability clean-room chat", () => {
     await expect(entry).toContainText("New chat");
   });
 
-  test("a new chat opens a blank live thread with no scenario controls", async ({ page }) => {
+  test("a new chat opens a blank live thread with no scenario controls", async ({
+    page,
+  }) => {
     await openCleanRoom(page);
 
     await expect(page).toHaveTitle("🫧 Mock Taskcore · Issue thread");
@@ -698,8 +933,12 @@ test.describe("Capability clean-room chat", () => {
 
     const chips = page.getByTestId("identity-chips");
     await expect(chips.getByTestId("agent-chip")).toHaveText("Real Codex");
-    await expect(chips.getByTestId("runner-chip")).toContainText("Real runnerd");
-    await expect(chips.getByTestId("control-plane-chip")).toHaveText("Mock Taskcore");
+    await expect(chips.getByTestId("runner-chip")).toContainText(
+      "Real runnerd",
+    );
+    await expect(chips.getByTestId("control-plane-chip")).toHaveText(
+      "Mock Taskcore",
+    );
     await expect(page.locator('[data-composer-state="ready"]')).toHaveCount(1);
   });
 
@@ -707,7 +946,10 @@ test.describe("Capability clean-room chat", () => {
     await openCleanRoom(page);
 
     await expect(page.locator(".pit-panel")).toHaveCount(0);
-    await expect(page.getByTestId("evidence-toggle")).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("evidence-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
 
     await page.getByTestId("evidence-toggle").click();
     await expect(page.locator(".pit-panel")).toBeVisible();
@@ -715,9 +957,15 @@ test.describe("Capability clean-room chat", () => {
     await expect(page.getByText("Real Taskcore API requests: 0")).toBeVisible();
   });
 
-  test("documents written to company state are readable in DevTools", async ({ page }) => {
+  test("documents written to company state are readable in DevTools", async ({
+    page,
+  }) => {
     await page.route(DEVTOOLS_API, async (route) => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(devtoolsPayload()) });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(devtoolsPayload()),
+      });
     });
     await openCleanRoom(page);
     await page.getByTestId("evidence-toggle").click();
@@ -726,13 +974,21 @@ test.describe("Capability clean-room chat", () => {
     await expect(tabs.first()).toHaveText(/Evidence/);
     await expect(tabs.nth(1)).toHaveText(/Timeline/);
     await expect(panel.locator(".pit-devtools-tabs .pit-icon")).toHaveCount(8);
-    const centerOffsets = await tabs.evaluateAll((elements) => elements.map((element) => {
-      const icon = element.querySelector(".pit-tab-glyph")?.getBoundingClientRect();
-      const label = element.querySelector(".pit-tab-glyph + span")?.getBoundingClientRect();
-      return icon === undefined || label === undefined
-        ? Number.POSITIVE_INFINITY
-        : Math.abs((icon.top + icon.height / 2) - (label.top + label.height / 2));
-    }));
+    const centerOffsets = await tabs.evaluateAll((elements) =>
+      elements.map((element) => {
+        const icon = element
+          .querySelector(".pit-tab-glyph")
+          ?.getBoundingClientRect();
+        const label = element
+          .querySelector(".pit-tab-glyph + span")
+          ?.getBoundingClientRect();
+        return icon === undefined || label === undefined
+          ? Number.POSITIVE_INFINITY
+          : Math.abs(
+              icon.top + icon.height / 2 - (label.top + label.height / 2),
+            );
+      }),
+    );
     expect(Math.max(...centerOffsets)).toBeLessThanOrEqual(1);
     await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
     await expect(panel.locator("#evidence-turn-selector")).toBeVisible();
@@ -741,11 +997,15 @@ test.describe("Capability clean-room chat", () => {
     await panel.getByRole("tab", { name: /Evidence/ }).click();
     await expect(panel.locator("#evidence-turn-selector")).toBeVisible();
     await page.getByRole("tab", { name: /Documents/ }).click();
-    await expect(page.getByRole("heading", { name: "Runner plan" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Runner plan" }),
+    ).toBeVisible();
     await expect(page.getByText("Inspectable from DevTools.")).toBeVisible();
   });
 
-  test("Runner events expand completely while stream deltas stay grouped", async ({ page }) => {
+  test("Runner events expand completely while stream deltas stay grouped", async ({
+    page,
+  }) => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.route(CLEAN_ROOM_API, async (route) => {
       const payload = cleanRoomPayload("MCK-1000");
@@ -792,7 +1052,9 @@ test.describe("Capability clean-room chat", () => {
     await group.locator(":scope > summary").click();
     await expect(group.locator(".pit-runner-event")).toHaveCount(2);
     await group.locator(".pit-runner-event").first().locator("summary").click();
-    await expect(group.locator(".pit-runner-event").first()).toContainText("assistant_delta");
+    await expect(group.locator(".pit-runner-event").first()).toContainText(
+      "assistant_delta",
+    );
   });
 
   test("a sent message renders the live turn it produced", async ({ page }) => {
@@ -811,13 +1073,21 @@ test.describe("Capability clean-room chat", () => {
       });
     });
 
-    await page.locator("#composer-input").fill("Read this issue and record a status.");
+    await page
+      .locator("#composer-input")
+      .fill("Read this issue and record a status.");
     await page.getByTestId("composer-send").click();
 
     await expect(page.getByTestId("clean-room-empty")).toHaveCount(0);
-    await expect(page.locator('[data-thread-item="user_message"]')).toBeVisible();
-    await expect(page.locator('[data-thread-item="agent_message"]')).toBeVisible();
-    await expect(page.locator('[data-tool-strip="report_progress"]')).toBeVisible();
+    await expect(
+      page.locator('[data-thread-item="user_message"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-thread-item="agent_message"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-tool-strip="report_progress"]'),
+    ).toBeVisible();
   });
 
   test("New chat visibly rotates the mock identity", async ({ page }) => {
@@ -839,7 +1109,9 @@ test.describe("Capability clean-room chat", () => {
     await expect(page.locator("#composer-input")).toBeEnabled();
   });
 
-  test("a failed live start reports the failure instead of a fixture", async ({ page }) => {
+  test("a failed live start reports the failure instead of a fixture", async ({
+    page,
+  }) => {
     await page.addInitScript(() => window.localStorage.clear());
     await page.route(CLEAN_ROOM_API, async (route) => {
       await route.fulfill({
@@ -847,7 +1119,8 @@ test.describe("Capability clean-room chat", () => {
         contentType: "application/json",
         body: JSON.stringify({
           error: "capability_issue_thread_unavailable",
-          message: "taskcore-runnerd exited before the Codex app-server was ready",
+          message:
+            "taskcore-runnerd exited before the Codex app-server was ready",
         }),
       });
     });
@@ -869,7 +1142,9 @@ test.describe("Capability clean-room chat", () => {
     await expect(page.getByTestId("clean-room-empty")).toBeVisible();
     await expect(page.locator("#composer-input")).toBeVisible();
     const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
 
@@ -877,12 +1152,16 @@ test.describe("Capability clean-room chat", () => {
     await expect(page.locator(".pit-panel")).toBeVisible();
     expect(
       await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
       ),
     ).toBeLessThanOrEqual(0);
   });
 
-  test("axe reports no serious or critical violation on the clean room", async ({ page }) => {
+  test("axe reports no serious or critical violation on the clean room", async ({
+    page,
+  }) => {
     await page.setViewportSize(DESKTOP);
     await openCleanRoom(page);
     expect(await seriousAxeViolations(page)).toEqual([]);
@@ -906,7 +1185,9 @@ test.describe("Capability clean-room chat", () => {
 
 const PENDING_ANNOUNCEMENT = "A request is waiting for your answer.";
 
-function questionsItem(state: "pending" | "answered" | "withdrawn"): CapabilityThreadItem {
+function questionsItem(
+  state: "pending" | "answered" | "withdrawn",
+): CapabilityThreadItem {
   return {
     kind: "interaction",
     id: "item-ix-1",
@@ -931,9 +1212,15 @@ function questionsItem(state: "pending" | "answered" | "withdrawn"): CapabilityT
     state,
     target: null,
     stateLabel:
-      state === "pending" ? "Waiting for you" : state === "answered" ? "Answered" : "Withdrawn",
+      state === "pending"
+        ? "Waiting for you"
+        : state === "answered"
+          ? "Answered"
+          : "Withdrawn",
     resolvedSummary:
-      state === "answered" ? ["Should the runner own process cleanup? Yes — runner owns it"] : [],
+      state === "answered"
+        ? ["Should the runner own process cleanup? Yes — runner owns it"]
+        : [],
     reason: null,
     supersededBy: null,
     evidenceRef: { section: "authorization", recordId: "authz-ix-1" },
@@ -949,7 +1236,9 @@ function interactionView(
   const view = JSON.parse(
     JSON.stringify(cleanRoomView(identifier, true)),
   ) as CapabilityIssueThreadSnapshot;
-  view.turns[0].items.push(questionsItem(options.withdrawn === true ? "withdrawn" : state));
+  view.turns[0].items.push(
+    questionsItem(options.withdrawn === true ? "withdrawn" : state),
+  );
   if (options.extraTurn === true) {
     view.turns.push({
       id: "turn-2",
@@ -985,7 +1274,12 @@ function interactionView(
           reason: null,
           pendingInteractionId: "ix-questions-01",
         }
-      : { state: "ready", helper: null, reason: null, pendingInteractionId: null };
+      : {
+          state: "ready",
+          helper: null,
+          reason: null,
+          pendingInteractionId: null,
+        };
   return view;
 }
 
@@ -1006,7 +1300,9 @@ async function openWithPendingRequest(page: Page) {
 }
 
 test.describe("pending-request live region", () => {
-  test("the pending announcement is dropped once the request is answered", async ({ page }) => {
+  test("the pending announcement is dropped once the request is answered", async ({
+    page,
+  }) => {
     await openWithPendingRequest(page);
 
     const live = page.getByTestId("thread-live-region");
@@ -1054,7 +1350,9 @@ test.describe("pending-request live region", () => {
     await expect(live).not.toContainText(PENDING_ANNOUNCEMENT);
   });
 
-  test("a request withdrawn server-side replaces the pending announcement", async ({ page }) => {
+  test("a request withdrawn server-side replaces the pending announcement", async ({
+    page,
+  }) => {
     // Nobody answers here: the request goes away while the session is
     // reconnecting, so the correction has to come from the settled snapshot.
     await page.addInitScript(() => window.localStorage.clear());
@@ -1086,9 +1384,13 @@ test.describe("pending-request live region", () => {
     });
     await page.getByRole("button", { name: "Retry now" }).click();
 
-    await expect(page.locator('[data-interaction-state="withdrawn"]')).toBeVisible();
+    await expect(
+      page.locator('[data-interaction-state="withdrawn"]'),
+    ).toBeVisible();
     await expect(live).not.toContainText(PENDING_ANNOUNCEMENT);
-    await expect(live).toHaveText("The pending request is resolved. Withdrawn.");
+    await expect(live).toHaveText(
+      "The pending request is resolved. Withdrawn.",
+    );
   });
 });
 
@@ -1111,35 +1413,49 @@ const STREAM_REPLY =
 async function openStreamingCleanRoom(page: Page): Promise<void> {
   await page.addInitScript(() => window.localStorage.clear());
   await page.goto(`${STREAM_ORIGIN}/#/chat`);
-  await expect(page.locator('[data-thread-state="settled"]')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[data-thread-state="settled"]')).toBeVisible({
+    timeout: 60_000,
+  });
 }
 
 test.describe("Capability streamed live turn", () => {
-  test("shows sanitized thinking progress before assistant text arrives", async ({ page }) => {
+  test("shows sanitized thinking progress before assistant text arrives", async ({
+    page,
+  }) => {
     await openStreamingCleanRoom(page);
 
-    await page.locator("#composer-input").fill("Show progress while you inspect this issue.");
+    await page
+      .locator("#composer-input")
+      .fill("Show progress while you inspect this issue.");
     await page.getByTestId("composer-send").click();
     const liveActivity = page.getByTestId("live-activity");
     await expect(liveActivity).toBeVisible();
 
-    const progress = page.locator('[data-thread-item="progress_activity"][data-activity="thinking"]');
+    const progress = page.locator(
+      '[data-thread-item="progress_activity"][data-activity="thinking"]',
+    );
     await expect(progress).toBeVisible({ timeout: 30_000 });
     await expect(progress).toHaveAttribute("data-status", "running");
     await expect(progress).toContainText("Thinking");
     await expect(liveActivity).toContainText(/Reasoning|Thinking|Codex/);
-    await expect(page.locator('[data-thread-item="agent_message"]')).toHaveCount(0);
+    await expect(
+      page.locator('[data-thread-item="agent_message"]'),
+    ).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText(
       "PRIVATE reasoning text must never reach the browser.",
     );
 
-    await expect(page.locator('[data-thread-item="agent_message"]')).toContainText(STREAM_REPLY, {
+    await expect(
+      page.locator('[data-thread-item="agent_message"]'),
+    ).toContainText(STREAM_REPLY, {
       timeout: 60_000,
     });
     await expect(progress).toHaveAttribute("data-status", "complete");
   });
 
-  test("one assistant card grows while the turn POST is still open", async ({ page }) => {
+  test("one assistant card grows while the turn POST is still open", async ({
+    page,
+  }) => {
     await openStreamingCleanRoom(page);
 
     const states: Array<{ id: string; body: string }> = [];
@@ -1151,19 +1467,27 @@ test.describe("Capability streamed live turn", () => {
     const sampler = (async () => {
       while (!turnFinished) {
         const sample = await page.evaluate(() => {
-          const card = document.querySelector('[data-thread-item="agent_message"]');
+          const card = document.querySelector(
+            '[data-thread-item="agent_message"]',
+          );
           const app = document.querySelector(".pit-app");
           return {
             id: card?.id ?? null,
             body: card?.querySelector(".pit-card-body")?.textContent ?? null,
             threadState: app?.getAttribute("data-thread-state") ?? null,
             composer:
-              document.querySelector("[data-composer-state]")?.getAttribute("data-composer-state") ??
-              null,
+              document
+                .querySelector("[data-composer-state]")
+                ?.getAttribute("data-composer-state") ?? null,
           };
         });
-        if (sample.id !== null && sample.body !== null && sample.body.length > 0) {
-          if (states.at(-1)?.body !== sample.body) states.push({ id: sample.id, body: sample.body });
+        if (
+          sample.id !== null &&
+          sample.body !== null &&
+          sample.body.length > 0
+        ) {
+          if (states.at(-1)?.body !== sample.body)
+            states.push({ id: sample.id, body: sample.body });
           if (sample.body !== STREAM_REPLY) {
             pendingWhileGrowing += 1;
             if (sample.threadState === "settled") settledWhileGrowing += 1;
@@ -1173,11 +1497,15 @@ test.describe("Capability streamed live turn", () => {
       }
     })();
 
-    await page.locator("#composer-input").fill("Read this issue and record a status.");
+    await page
+      .locator("#composer-input")
+      .fill("Read this issue and record a status.");
     await page.getByTestId("composer-send").click();
 
     // The whole reply only appears at the end; the card gets there in pieces.
-    await expect(page.locator('[data-thread-item="agent_message"]')).toContainText(STREAM_REPLY, {
+    await expect(
+      page.locator('[data-thread-item="agent_message"]'),
+    ).toContainText(STREAM_REPLY, {
       timeout: 60_000,
     });
     turnFinished = true;
@@ -1199,36 +1527,51 @@ test.describe("Capability streamed live turn", () => {
     // Settled arrives only after the terminal frame.
     await expect(page.locator('[data-thread-state="settled"]')).toBeVisible();
     await expect(page.locator('[data-composer-state="ready"]')).toHaveCount(1);
-    await expect(page.locator('[data-thread-item="agent_message"]')).toHaveCount(1);
-    await expect(page.locator('[data-thread-item="agent_message"]')).toHaveAttribute(
-      "data-streaming",
-      "false",
-    );
+    await expect(
+      page.locator('[data-thread-item="agent_message"]'),
+    ).toHaveCount(1);
+    await expect(
+      page.locator('[data-thread-item="agent_message"]'),
+    ).toHaveAttribute("data-streaming", "false");
   });
 
-  test("Stop interrupts the streamed turn and keeps the partial reply", async ({ page }) => {
+  test("Stop interrupts the streamed turn and keeps the partial reply", async ({
+    page,
+  }) => {
     await openStreamingCleanRoom(page);
 
-    await page.locator("#composer-input").fill("Start a long answer so I can stop it.");
+    await page
+      .locator("#composer-input")
+      .fill("Start a long answer so I can stop it.");
     await page.getByTestId("composer-send").click();
 
     const card = page.locator('[data-thread-item="agent_message"]');
     await expect(card).toBeVisible({ timeout: 30_000 });
     await expect(card).toHaveAttribute("data-streaming", "true");
-    const partial = ((await card.locator(".pit-card-body").textContent()) ?? "").trim();
+    const partial = (
+      (await card.locator(".pit-card-body").textContent()) ?? ""
+    ).trim();
     expect(partial.length).toBeGreaterThan(0);
     expect(STREAM_REPLY.startsWith(partial)).toBe(true);
 
     await page.getByTestId("composer-stop").click();
 
     // The stopped turn settles on what it had said, and nothing lands later.
-    await expect(page.locator('[data-thread-state="settled"]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-thread-state="settled"]')).toBeVisible({
+      timeout: 30_000,
+    });
     await expect(page.getByTestId("stopped-marker")).toBeVisible();
-    const stopped = ((await card.locator(".pit-card-body").textContent()) ?? "").trim();
+    const stopped = (
+      (await card.locator(".pit-card-body").textContent()) ?? ""
+    ).trim();
     expect(STREAM_REPLY.startsWith(stopped)).toBe(true);
     expect(stopped).not.toBe(STREAM_REPLY);
     await page.waitForTimeout(1_500);
-    expect(((await card.locator(".pit-card-body").textContent()) ?? "").trim()).toBe(stopped);
-    await expect(page.locator('[data-thread-item="agent_message"]')).toHaveCount(1);
+    expect(
+      ((await card.locator(".pit-card-body").textContent()) ?? "").trim(),
+    ).toBe(stopped);
+    await expect(
+      page.locator('[data-thread-item="agent_message"]'),
+    ).toHaveCount(1);
   });
 });

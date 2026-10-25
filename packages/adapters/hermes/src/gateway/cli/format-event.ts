@@ -1,4 +1,7 @@
-export function printHermesGatewayStreamEvent(line: string, debug: boolean): void {
+export function printHermesGatewayStreamEvent(
+  line: string,
+  debug: boolean,
+): void {
   const trimmed = line.trim();
   if (!trimmed) return;
   if (trimmed.startsWith("[hermes-gateway:event]")) {

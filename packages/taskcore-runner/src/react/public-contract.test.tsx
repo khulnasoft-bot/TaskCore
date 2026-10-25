@@ -39,29 +39,45 @@ const toolEntry: TranscriptEntry = {
   key: "item:command-1",
   position: 2,
   role: "tool",
-  item: { itemId: "command-1", kind: "commandExecution", status: "completed", text: "hello" },
+  item: {
+    itemId: "command-1",
+    kind: "commandExecution",
+    status: "completed",
+    text: "hello",
+  },
   interrupted: false,
   streaming: false,
   toolName: "printf hello",
   input: "printf hello",
   output: "hello",
   failure: null,
-  debugEvents: [{
-    source: "codex-app-server",
-    sourceSeq: 3,
-    sourceEventId: "event-3",
-    eventType: "item.completed",
-    emittedAt: "2026-08-09T00:00:00.000Z",
-    turnId: "turn-1",
-    itemId: "command-1",
-    payload: { item: { type: "commandExecution", command: "printf hello", aggregatedOutput: "hello" } },
-  }],
+  debugEvents: [
+    {
+      source: "codex-app-server",
+      sourceSeq: 3,
+      sourceEventId: "event-3",
+      eventType: "item.completed",
+      emittedAt: "2026-08-09T00:00:00.000Z",
+      turnId: "turn-1",
+      itemId: "command-1",
+      payload: {
+        item: {
+          type: "commandExecution",
+          command: "printf hello",
+          aggregatedOutput: "hello",
+        },
+      },
+    },
+  ],
 };
 
 describe("public React contracts", () => {
   it("renders reducer-backed transcript semantics and the item renderer seam", () => {
     const html = renderToStaticMarkup(
-      <Conversation entries={entries} renderItemBody={(entry) => <mark>{entry.text}</mark>} />,
+      <Conversation
+        entries={entries}
+        renderItemBody={(entry) => <mark>{entry.text}</mark>}
+      />,
     );
     expect(html).toContain('data-slot="conversation"');
     expect(html).toContain('role="log"');
@@ -86,7 +102,13 @@ describe("public React contracts", () => {
       turnId: "turn-1",
     };
     const html = renderToStaticMarkup(
-      <ol><RequestCard request={request} onResolve={() => undefined} renderRequestDetail={() => <code>custom detail</code>} /></ol>,
+      <ol>
+        <RequestCard
+          request={request}
+          onResolve={() => undefined}
+          renderRequestDetail={() => <code>custom detail</code>}
+        />
+      </ol>,
     );
     expect(html).toContain('data-slot="request-card"');
     expect(html).toContain("custom detail");
@@ -105,9 +127,19 @@ describe("public React contracts", () => {
 
   it("exposes composer slots and canonical session timeline without a parallel model", () => {
     const composer = renderToStaticMarkup(
-      <Composer state="idle" value="hello" onValueChange={() => undefined} onSubmit={() => undefined} onStop={() => undefined} leadingActions={<span>leading</span>} trailingActions={<span>trailing</span>} />,
+      <Composer
+        state="idle"
+        value="hello"
+        onValueChange={() => undefined}
+        onSubmit={() => undefined}
+        onStop={() => undefined}
+        leadingActions={<span>leading</span>}
+        trailingActions={<span>trailing</span>}
+      />,
     );
-    const timeline = renderToStaticMarkup(<SessionTimeline snapshot={null} state={null} />);
+    const timeline = renderToStaticMarkup(
+      <SessionTimeline snapshot={null} state={null} />,
+    );
     expect(composer).toContain('data-slot="composer"');
     expect(composer).toContain("leading");
     expect(composer).toContain("trailing");
@@ -115,11 +147,13 @@ describe("public React contracts", () => {
   });
 
   it("keeps exact failed-item diagnostics in the rendered record", () => {
-    const failedEntries: TranscriptEntry[] = [{
-      ...entries[0]!,
-      item: { ...item, status: "failed", text: "Partial output" },
-      failure: "exact upstream diagnostic",
-    }];
+    const failedEntries: TranscriptEntry[] = [
+      {
+        ...entries[0]!,
+        item: { ...item, status: "failed", text: "Partial output" },
+        failure: "exact upstream diagnostic",
+      },
+    ];
     const html = renderToStaticMarkup(<Conversation entries={failedEntries} />);
     expect(html).toContain('data-testid="item-failure"');
     expect(html).toContain("exact upstream diagnostic");
@@ -134,15 +168,23 @@ describe("public React contracts", () => {
       reportedWorkDisposition: "done",
     });
     const html = renderToStaticMarkup(
-      <Conversation entries={[{
-        ...entries[0]!,
-        item: { ...item, text: response },
-      }]} />,
+      <Conversation
+        entries={[
+          {
+            ...entries[0]!,
+            item: { ...item, text: response },
+          },
+        ]}
+      />,
     );
-    expect(parseStructuredResponse(response)?.summary).toBe("Created the requested file and verified its contents.");
+    expect(parseStructuredResponse(response)?.summary).toBe(
+      "Created the requested file and verified its contents.",
+    );
     expect(html).toContain('data-testid="structured-response"');
     expect(html).toContain("Agent response");
-    expect(html).toContain("Created the requested file and verified its contents.");
+    expect(html).toContain(
+      "Created the requested file and verified its contents.",
+    );
     expect(html).toContain("Completion details");
     expect(html).toContain("Raw protocol payload");
     expect(html).toContain("cat result.txt");

@@ -21,9 +21,16 @@ vi.mock("@/api/file-resources", () => ({
 
 vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: { children: ReactNode; to: string }) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
-  useLocation: () => ({ pathname: "/PAP/issues/PAP-1", search: "", hash: "", state: null }),
+  useLocation: () => ({
+    pathname: "/PAP/issues/PAP-1",
+    search: "",
+    hash: "",
+    state: null,
+  }),
   useNavigate: () => mockNavigate,
   useCaseHref: () => (identifier: string) => `/cases/${identifier}`,
 }));
@@ -61,7 +68,9 @@ async function waitForExpectation(assertion: () => void) {
   await vi.waitFor(assertion);
 }
 
-function resource(overrides: Partial<ResolvedWorkspaceResource> = {}): ResolvedWorkspaceResource {
+function resource(
+  overrides: Partial<ResolvedWorkspaceResource> = {},
+): ResolvedWorkspaceResource {
   return {
     kind: "file",
     provider: "git_worktree",
@@ -76,7 +85,10 @@ function resource(overrides: Partial<ResolvedWorkspaceResource> = {}): ResolvedW
   };
 }
 
-function openable(path: string, overrides: Partial<ResolvedWorkspaceResource> = {}): WorkspaceFileAvailabilityResult {
+function openable(
+  path: string,
+  overrides: Partial<ResolvedWorkspaceResource> = {},
+): WorkspaceFileAvailabilityResult {
   return {
     query: { path, workspace: "auto", projectId: null, workspaceId: null },
     openable: true,
@@ -84,7 +96,10 @@ function openable(path: string, overrides: Partial<ResolvedWorkspaceResource> = 
   };
 }
 
-function unavailable(path: string, reason: string): WorkspaceFileAvailabilityResult {
+function unavailable(
+  path: string,
+  reason: string,
+): WorkspaceFileAvailabilityResult {
   return {
     query: { path, workspace: "auto", projectId: null, workspaceId: null },
     openable: false,
@@ -93,20 +108,26 @@ function unavailable(path: string, reason: string): WorkspaceFileAvailabilityRes
   };
 }
 
-function respondWith(results: WorkspaceFileAvailabilityResult[]): WorkspaceFileAvailabilityResponse {
+function respondWith(
+  results: WorkspaceFileAvailabilityResult[],
+): WorkspaceFileAvailabilityResponse {
   return { kind: "workspace_file_availability", results };
 }
 
 /** Echo every requested path back as openable. */
 function echoOpenable(_issueId: string, queries: FileResourceQuery[]) {
-  return Promise.resolve(respondWith(queries.map((query) => openable(query.path))));
+  return Promise.resolve(
+    respondWith(queries.map((query) => openable(query.path))),
+  );
 }
 
 let container: HTMLDivElement;
 let root: Root;
 
 function render(children: ReactNode) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   act(() => {
     root.render(
       <QueryClientProvider client={queryClient}>
@@ -142,10 +163,19 @@ afterEach(() => {
 
 describe("WorkspaceFileMarkdownBody availability gating", () => {
   it("renders plain inline code until the batch confirms the reference", async () => {
-    let resolveBatch: ((value: WorkspaceFileAvailabilityResponse) => void) | undefined;
-    mockAvailability.mockReturnValue(new Promise((resolve) => { resolveBatch = resolve; }));
+    let resolveBatch:
+      ((value: WorkspaceFileAvailabilityResponse) => void) | undefined;
+    mockAvailability.mockReturnValue(
+      new Promise((resolve) => {
+        resolveBatch = resolve;
+      }),
+    );
 
-    render(<WorkspaceFileMarkdownBody>{"Check `ui/src/a.ts:42` please."}</WorkspaceFileMarkdownBody>);
+    render(
+      <WorkspaceFileMarkdownBody>
+        {"Check `ui/src/a.ts:42` please."}
+      </WorkspaceFileMarkdownBody>,
+    );
 
     // Pending: no chip, no icon, no button role — just code.
     expect(chips()).toHaveLength(0);
@@ -153,26 +183,36 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
     expect(container.querySelector("svg")).toBeNull();
     expect(container.querySelector('[role="button"]')).toBeNull();
 
-    await waitForExpectation(() => expect(mockAvailability).toHaveBeenCalledTimes(1));
+    await waitForExpectation(() =>
+      expect(mockAvailability).toHaveBeenCalledTimes(1),
+    );
     act(() => resolveBatch!(respondWith([openable("ui/src/a.ts")])));
 
-    await waitForExpectation(() => expect(chipPaths()).toEqual(["ui/src/a.ts"]));
+    await waitForExpectation(() =>
+      expect(chipPaths()).toEqual(["ui/src/a.ts"]),
+    );
   });
 
   it("keeps unavailable, denied, and unsupported references as plain code", async () => {
-    mockAvailability.mockResolvedValue(respondWith([
-      unavailable("ui/src/missing.ts", "not_found"),
-      unavailable("ui/src/denied.ts", "forbidden"),
-      unavailable("ui/src/remote.ts", "unsupported_resource"),
-    ]));
+    mockAvailability.mockResolvedValue(
+      respondWith([
+        unavailable("ui/src/missing.ts", "not_found"),
+        unavailable("ui/src/denied.ts", "forbidden"),
+        unavailable("ui/src/remote.ts", "unsupported_resource"),
+      ]),
+    );
 
     render(
       <WorkspaceFileMarkdownBody>
-        {"See `ui/src/missing.ts:1`, `ui/src/denied.ts:2` and `ui/src/remote.ts:3`."}
+        {
+          "See `ui/src/missing.ts:1`, `ui/src/denied.ts:2` and `ui/src/remote.ts:3`."
+        }
       </WorkspaceFileMarkdownBody>,
     );
 
-    await waitForExpectation(() => expect(mockAvailability).toHaveBeenCalledTimes(1));
+    await waitForExpectation(() =>
+      expect(mockAvailability).toHaveBeenCalledTimes(1),
+    );
     await new Promise((resolve) => window.setTimeout(resolve, 0));
     expect(chips()).toHaveLength(0);
     expect(container.querySelectorAll("code")).toHaveLength(3);
@@ -181,9 +221,15 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
   it("fails closed when the availability batch errors", async () => {
     mockAvailability.mockRejectedValue(new Error("boom"));
 
-    render(<WorkspaceFileMarkdownBody>{"Check `ui/src/a.ts:42`."}</WorkspaceFileMarkdownBody>);
+    render(
+      <WorkspaceFileMarkdownBody>
+        {"Check `ui/src/a.ts:42`."}
+      </WorkspaceFileMarkdownBody>,
+    );
 
-    await waitForExpectation(() => expect(mockAvailability).toHaveBeenCalledTimes(1));
+    await waitForExpectation(() =>
+      expect(mockAvailability).toHaveBeenCalledTimes(1),
+    );
     await new Promise((resolve) => window.setTimeout(resolve, 0));
     expect(chips()).toHaveLength(0);
     expect(container.querySelector("code")?.textContent).toBe("ui/src/a.ts:42");
@@ -194,9 +240,15 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
 
     render(
       <>
-        <WorkspaceFileMarkdownBody>{"First `ui/src/a.ts:1`."}</WorkspaceFileMarkdownBody>
-        <WorkspaceFileMarkdownBody>{"Second `ui/src/a.ts:1` again."}</WorkspaceFileMarkdownBody>
-        <WorkspaceFileMarkdownBody>{"Third `ui/src/a.ts:9` at another line."}</WorkspaceFileMarkdownBody>
+        <WorkspaceFileMarkdownBody>
+          {"First `ui/src/a.ts:1`."}
+        </WorkspaceFileMarkdownBody>
+        <WorkspaceFileMarkdownBody>
+          {"Second `ui/src/a.ts:1` again."}
+        </WorkspaceFileMarkdownBody>
+        <WorkspaceFileMarkdownBody>
+          {"Third `ui/src/a.ts:9` at another line."}
+        </WorkspaceFileMarkdownBody>
       </>,
     );
 
@@ -205,13 +257,21 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
     // three references collapse to a single query.
     expect(mockAvailability).toHaveBeenCalledTimes(1);
     expect(mockAvailability.mock.calls[0]![1]).toEqual([
-      { path: "ui/src/a.ts", workspace: "auto", projectId: null, workspaceId: null },
+      {
+        path: "ui/src/a.ts",
+        workspace: "auto",
+        projectId: null,
+        workspaceId: null,
+      },
     ]);
   });
 
   it("chunks more than 100 unique references", async () => {
     mockAvailability.mockImplementation(echoOpenable);
-    const paths = Array.from({ length: 150 }, (_, index) => `ui/src/file-${index}.ts`);
+    const paths = Array.from(
+      { length: 150 },
+      (_, index) => `ui/src/file-${index}.ts`,
+    );
 
     render(
       <WorkspaceFileMarkdownBody>
@@ -219,8 +279,12 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
       </WorkspaceFileMarkdownBody>,
     );
 
-    await waitForExpectation(() => expect(mockAvailability).toHaveBeenCalledTimes(2));
-    const sizes = mockAvailability.mock.calls.map((call) => (call[1] as FileResourceQuery[]).length);
+    await waitForExpectation(() =>
+      expect(mockAvailability).toHaveBeenCalledTimes(2),
+    );
+    const sizes = mockAvailability.mock.calls.map(
+      (call) => (call[1] as FileResourceQuery[]).length,
+    );
     expect(sizes).toEqual([100, 50]);
     await waitForExpectation(() => expect(chips()).toHaveLength(150));
   });
@@ -229,17 +293,22 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
     let activeRequests = 0;
     let maxActiveRequests = 0;
     const resolveRequests: Array<() => void> = [];
-    mockAvailability.mockImplementation((_issueId: string, queries: FileResourceQuery[]) => {
-      activeRequests += 1;
-      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
-      return new Promise<WorkspaceFileAvailabilityResponse>((resolve) => {
-        resolveRequests.push(() => {
-          activeRequests -= 1;
-          resolve(respondWith(queries.map((query) => openable(query.path))));
+    mockAvailability.mockImplementation(
+      (_issueId: string, queries: FileResourceQuery[]) => {
+        activeRequests += 1;
+        maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+        return new Promise<WorkspaceFileAvailabilityResponse>((resolve) => {
+          resolveRequests.push(() => {
+            activeRequests -= 1;
+            resolve(respondWith(queries.map((query) => openable(query.path))));
+          });
         });
-      });
-    });
-    const paths = Array.from({ length: 250 }, (_, index) => `ui/src/file-${index}.ts`);
+      },
+    );
+    const paths = Array.from(
+      { length: 250 },
+      (_, index) => `ui/src/file-${index}.ts`,
+    );
 
     render(
       <WorkspaceFileMarkdownBody>
@@ -247,12 +316,16 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
       </WorkspaceFileMarkdownBody>,
     );
 
-    await waitForExpectation(() => expect(mockAvailability).toHaveBeenCalledTimes(2));
+    await waitForExpectation(() =>
+      expect(mockAvailability).toHaveBeenCalledTimes(2),
+    );
     await new Promise((resolve) => window.setTimeout(resolve, 0));
     expect(maxActiveRequests).toBe(2);
 
     act(() => resolveRequests[0]!());
-    await waitForExpectation(() => expect(mockAvailability).toHaveBeenCalledTimes(3));
+    await waitForExpectation(() =>
+      expect(mockAvailability).toHaveBeenCalledTimes(3),
+    );
     expect(activeRequests).toBe(2);
     expect(maxActiveRequests).toBe(2);
 
@@ -267,9 +340,15 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
   it("checks only unseen references when a new comment arrives", async () => {
     mockAvailability.mockImplementation(echoOpenable);
 
-    const first = <WorkspaceFileMarkdownBody>{"First `ui/src/a.ts:1`."}</WorkspaceFileMarkdownBody>;
+    const first = (
+      <WorkspaceFileMarkdownBody>
+        {"First `ui/src/a.ts:1`."}
+      </WorkspaceFileMarkdownBody>
+    );
     const queryClient = render(first);
-    await waitForExpectation(() => expect(chipPaths()).toEqual(["ui/src/a.ts"]));
+    await waitForExpectation(() =>
+      expect(chipPaths()).toEqual(["ui/src/a.ts"]),
+    );
     expect(mockAvailability).toHaveBeenCalledTimes(1);
 
     act(() => {
@@ -278,34 +357,54 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
           <ThemeProvider>
             <FileViewerProvider issueId={ISSUE_ID}>
               {first}
-              <WorkspaceFileMarkdownBody>{"New `ui/src/a.ts:1` and `ui/src/b.ts:2`."}</WorkspaceFileMarkdownBody>
+              <WorkspaceFileMarkdownBody>
+                {"New `ui/src/a.ts:1` and `ui/src/b.ts:2`."}
+              </WorkspaceFileMarkdownBody>
             </FileViewerProvider>
           </ThemeProvider>
         </QueryClientProvider>,
       );
     });
 
-    await waitForExpectation(() => expect(mockAvailability).toHaveBeenCalledTimes(2));
+    await waitForExpectation(() =>
+      expect(mockAvailability).toHaveBeenCalledTimes(2),
+    );
     expect(mockAvailability.mock.calls[1]![1]).toEqual([
-      { path: "ui/src/b.ts", workspace: "auto", projectId: null, workspaceId: null },
+      {
+        path: "ui/src/b.ts",
+        workspace: "auto",
+        projectId: null,
+        workspaceId: null,
+      },
     ]);
   });
 
   it("binds the confirmed project workspace to the chip and opens it on click", async () => {
-    mockAvailability.mockResolvedValue(respondWith([
-      {
-        query: { path: "ui/src/a.ts", workspace: "auto", projectId: null, workspaceId: null },
-        openable: true,
-        resource: resource({
-          workspaceKind: "project_workspace",
-          workspaceId: WORKSPACE_ID,
-          projectId: PROJECT_ID,
-          projectName: "Taskcore App",
-        }),
-      },
-    ]));
+    mockAvailability.mockResolvedValue(
+      respondWith([
+        {
+          query: {
+            path: "ui/src/a.ts",
+            workspace: "auto",
+            projectId: null,
+            workspaceId: null,
+          },
+          openable: true,
+          resource: resource({
+            workspaceKind: "project_workspace",
+            workspaceId: WORKSPACE_ID,
+            projectId: PROJECT_ID,
+            projectName: "Taskcore App",
+          }),
+        },
+      ]),
+    );
 
-    render(<WorkspaceFileMarkdownBody>{"Check `ui/src/a.ts:42`."}</WorkspaceFileMarkdownBody>);
+    render(
+      <WorkspaceFileMarkdownBody>
+        {"Check `ui/src/a.ts:42`."}
+      </WorkspaceFileMarkdownBody>,
+    );
     await waitForExpectation(() => expect(chips()).toHaveLength(1));
 
     const chip = chips()[0] as HTMLAnchorElement;
@@ -317,7 +416,13 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
     expect(search.get("workspaceId")).toBe(WORKSPACE_ID);
 
     act(() => {
-      chip.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+      chip.dispatchEvent(
+        new window.MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      );
     });
 
     expect(mockNavigate).toHaveBeenCalled();
@@ -331,7 +436,9 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
 
   it("still batches under StrictMode's remount", async () => {
     mockAvailability.mockImplementation(echoOpenable);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
 
     act(() => {
       root.render(
@@ -339,7 +446,9 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <FileViewerProvider issueId={ISSUE_ID}>
-                <WorkspaceFileMarkdownBody>{"Check `ui/src/a.ts:42`."}</WorkspaceFileMarkdownBody>
+                <WorkspaceFileMarkdownBody>
+                  {"Check `ui/src/a.ts:42`."}
+                </WorkspaceFileMarkdownBody>
               </FileViewerProvider>
             </ThemeProvider>
           </QueryClientProvider>
@@ -347,22 +456,34 @@ describe("WorkspaceFileMarkdownBody availability gating", () => {
       );
     });
 
-    await waitForExpectation(() => expect(chipPaths()).toEqual(["ui/src/a.ts"]));
+    await waitForExpectation(() =>
+      expect(chipPaths()).toEqual(["ui/src/a.ts"]),
+    );
     expect(mockAvailability).toHaveBeenCalledTimes(1);
   });
 
   it("rechecks after the issue's file resources are invalidated", async () => {
     mockAvailability.mockImplementation(echoOpenable);
-    const queryClient = render(<WorkspaceFileMarkdownBody>{"Check `ui/src/a.ts:1`."}</WorkspaceFileMarkdownBody>);
+    const queryClient = render(
+      <WorkspaceFileMarkdownBody>
+        {"Check `ui/src/a.ts:1`."}
+      </WorkspaceFileMarkdownBody>,
+    );
     await waitForExpectation(() => expect(chips()).toHaveLength(1));
     expect(mockAvailability).toHaveBeenCalledTimes(1);
 
-    mockAvailability.mockResolvedValue(respondWith([unavailable("ui/src/a.ts", "not_found")]));
+    mockAvailability.mockResolvedValue(
+      respondWith([unavailable("ui/src/a.ts", "not_found")]),
+    );
     act(() => {
-      void queryClient.invalidateQueries({ queryKey: ["issues", "file-resources", ISSUE_ID] });
+      void queryClient.invalidateQueries({
+        queryKey: ["issues", "file-resources", ISSUE_ID],
+      });
     });
 
-    await waitForExpectation(() => expect(mockAvailability).toHaveBeenCalledTimes(2));
+    await waitForExpectation(() =>
+      expect(mockAvailability).toHaveBeenCalledTimes(2),
+    );
     await waitForExpectation(() => expect(chips()).toHaveLength(0));
   });
 });

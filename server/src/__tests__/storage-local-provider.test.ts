@@ -7,7 +7,9 @@ import { promises as fs } from "node:fs";
 import { createLocalDiskStorageProvider } from "../storage/local-disk-provider.js";
 import { createStorageService } from "../storage/service.js";
 
-async function readStreamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+async function readStreamToBuffer(
+  stream: NodeJS.ReadableStream,
+): Promise<Buffer> {
   const chunks: Buffer[] = [];
   for await (const chunk of stream) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
@@ -19,7 +21,9 @@ describe("local disk storage provider", () => {
   const tempRoots: string[] = [];
 
   afterEach(async () => {
-    await Promise.all(tempRoots.map((root) => fs.rm(root, { recursive: true, force: true })));
+    await Promise.all(
+      tempRoots.map((root) => fs.rm(root, { recursive: true, force: true })),
+    );
     tempRoots.length = 0;
   });
 
@@ -50,18 +54,41 @@ describe("local disk storage provider", () => {
     const service = createStorageService(createLocalDiskStorageProvider(root));
     const bytes = Buffer.from("streamed response");
     const sha256 = createHash("sha256").update(bytes).digest("hex");
-    const stored = await service.putFile({ companyId: "company-1", namespace: "runner-api", originalFilename: "response.txt",
-      contentType: "text/plain", body: Readable.from([bytes.subarray(0, 4), bytes.subarray(4)]), byteSize: bytes.length, sha256 });
+    const stored = await service.putFile({
+      companyId: "company-1",
+      namespace: "runner-api",
+      originalFilename: "response.txt",
+      contentType: "text/plain",
+      body: Readable.from([bytes.subarray(0, 4), bytes.subarray(4)]),
+      byteSize: bytes.length,
+      sha256,
+    });
     expect(stored).toMatchObject({ byteSize: bytes.length, sha256 });
-    expect(await readStreamToBuffer((await service.getObject("company-1", stored.objectKey)).stream)).toEqual(bytes);
+    expect(
+      await readStreamToBuffer(
+        (await service.getObject("company-1", stored.objectKey)).stream,
+      ),
+    ).toEqual(bytes);
   });
 
   it("removes partial local uploads when their source fails", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-storage-"));
     tempRoots.push(root);
     const provider = createLocalDiskStorageProvider(root);
-    const body = Readable.from((async function* () { yield Buffer.from("partial"); throw new Error("source failed"); })());
-    await expect(provider.putObject({ objectKey: "company-1/failed", contentType: "text/plain", contentLength: 20, body })).rejects.toThrow("source failed");
+    const body = Readable.from(
+      (async function* () {
+        yield Buffer.from("partial");
+        throw new Error("source failed");
+      })(),
+    );
+    await expect(
+      provider.putObject({
+        objectKey: "company-1/failed",
+        contentType: "text/plain",
+        contentLength: 20,
+        body,
+      }),
+    ).rejects.toThrow("source failed");
     expect(await fs.readdir(path.join(root, "company-1"))).toEqual([]);
   });
 
@@ -78,7 +105,9 @@ describe("local disk storage provider", () => {
       body: Buffer.from("0123456789", "utf8"),
     });
 
-    const fetched = await service.getObject("company-1", stored.objectKey, { range: { start: 2, end: 5 } });
+    const fetched = await service.getObject("company-1", stored.objectKey, {
+      range: { start: 2, end: 5 },
+    });
     const fetchedBody = await readStreamToBuffer(fetched.stream);
 
     expect(fetchedBody.toString("utf8")).toBe("2345");
@@ -98,7 +127,9 @@ describe("local disk storage provider", () => {
       body: Buffer.from("hello", "utf8"),
     });
 
-    await expect(service.getObject("company-b", stored.objectKey)).rejects.toMatchObject({ status: 403 });
+    await expect(
+      service.getObject("company-b", stored.objectKey),
+    ).rejects.toMatchObject({ status: 403 });
   });
 
   it("delete is idempotent", async () => {
@@ -116,6 +147,8 @@ describe("local disk storage provider", () => {
 
     await service.deleteObject("company-1", stored.objectKey);
     await service.deleteObject("company-1", stored.objectKey);
-    await expect(service.getObject("company-1", stored.objectKey)).rejects.toMatchObject({ status: 404 });
+    await expect(
+      service.getObject("company-1", stored.objectKey),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });

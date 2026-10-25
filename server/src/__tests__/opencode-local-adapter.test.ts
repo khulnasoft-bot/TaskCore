@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { isOpenCodeUnknownSessionError, parseOpenCodeJsonl } from "@taskcore/adapter-opencode-local/server";
+import {
+  isOpenCodeUnknownSessionError,
+  parseOpenCodeJsonl,
+} from "@taskcore/adapter-opencode-local/server";
 import { parseOpenCodeStdoutLine } from "@taskcore/adapter-opencode-local/ui";
 import { printOpenCodeStreamEvent } from "@taskcore/adapter-opencode-local/cli";
 

@@ -18,11 +18,15 @@ import { instanceGeneralSettingsSchema } from "./validators/instance.js";
 
 describe("hideable setting keys", () => {
   it("derives one key per experimental flag and has no duplicates", () => {
-    const experimental = HIDEABLE_SETTING_KEYS.filter(
-      (key) => key.startsWith("instance.experimental."),
+    const experimental = HIDEABLE_SETTING_KEYS.filter((key) =>
+      key.startsWith("instance.experimental."),
     );
-    expect(experimental).toEqual(INSTANCE_FEATURE_KEYS.map(experimentalSettingKey));
-    expect(new Set(HIDEABLE_SETTING_KEYS).size).toBe(HIDEABLE_SETTING_KEYS.length);
+    expect(experimental).toEqual(
+      INSTANCE_FEATURE_KEYS.map(experimentalSettingKey),
+    );
+    expect(new Set(HIDEABLE_SETTING_KEYS).size).toBe(
+      HIDEABLE_SETTING_KEYS.length,
+    );
   });
 
   it("covers every top-level company settings page except the General root", () => {
@@ -43,7 +47,9 @@ describe("hideable setting keys", () => {
     const uiOnly = new Set<string>(UI_ONLY_GENERAL_SECTIONS);
     for (const section of HIDEABLE_GENERAL_SECTIONS) {
       if (uiOnly.has(section)) continue;
-      expect(generalFields).toContain(section.slice("instance.general.".length));
+      expect(generalFields).toContain(
+        section.slice("instance.general.".length),
+      );
     }
   });
 });
@@ -51,54 +57,96 @@ describe("hideable setting keys", () => {
 describe("parseHiddenSettingsList", () => {
   it("expands the experimental wildcard into concrete keys without hiding the page", () => {
     const parsed = parseHiddenSettingsList("instance.experimental.*");
-    expect(parsed).toEqual({ hidden: INSTANCE_FEATURE_KEYS.map(experimentalSettingKey), unknown: [] });
+    expect(parsed).toEqual({
+      hidden: INSTANCE_FEATURE_KEYS.map(experimentalSettingKey),
+      unknown: [],
+    });
     expect(parsed.hidden).not.toContain("instance.experimental");
   });
 
   it("allows only named exceptions, independent of order or duplicates", () => {
     const exception = "!instance.experimental.enableEnvironments";
-    for (const raw of [`instance.experimental.*, ${exception}, ${exception}`, `${exception},instance.experimental.*`]) {
+    for (const raw of [
+      `instance.experimental.*, ${exception}, ${exception}`,
+      `${exception},instance.experimental.*`,
+    ]) {
       const parsed = parseHiddenSettingsList(raw);
       expect(parsed).toEqual({
-        hidden: INSTANCE_FEATURE_KEYS.filter((key) => key !== "enableEnvironments").map(experimentalSettingKey),
+        hidden: INSTANCE_FEATURE_KEYS.filter(
+          (key) => key !== "enableEnvironments",
+        ).map(experimentalSettingKey),
         unknown: [],
       });
     }
   });
 
   it("keeps explicit hides and parent page restrictions stronger than exceptions", () => {
-    for (const restriction of ["instance.experimental.enableEnvironments", "instance.experimental"]) {
+    for (const restriction of [
+      "instance.experimental.enableEnvironments",
+      "instance.experimental",
+    ]) {
       for (const raw of [
         `instance.experimental.*,!instance.experimental.enableEnvironments,${restriction}`,
         `${restriction},!instance.experimental.enableEnvironments,instance.experimental.*`,
       ]) {
         const { hidden } = parseHiddenSettingsList(raw);
-        expect(hidesExperimentalSetting(new Set(hidden), "enableEnvironments")).toBe(true);
+        expect(
+          hidesExperimentalSetting(new Set(hidden), "enableEnvironments"),
+        ).toBe(true);
         expect(new Set(hidden).size).toBe(hidden.length);
       }
     }
   });
 
   it("ignores unknown or out-of-scope exceptions without opening any controls", () => {
-    const parsed = parseHiddenSettingsList("instance.experimental.*,!instance.experimental.enableTypo,!instance.plugins,!instance.experimental,!instance.experimental.*");
-    expect(parsed.hidden).toEqual(INSTANCE_FEATURE_KEYS.map(experimentalSettingKey));
-    expect(parsed.unknown).toEqual(["!instance.experimental.enableTypo", "!instance.plugins", "!instance.experimental", "!instance.experimental.*"]);
+    const parsed = parseHiddenSettingsList(
+      "instance.experimental.*,!instance.experimental.enableTypo,!instance.plugins,!instance.experimental,!instance.experimental.*",
+    );
+    expect(parsed.hidden).toEqual(
+      INSTANCE_FEATURE_KEYS.map(experimentalSettingKey),
+    );
+    expect(parsed.unknown).toEqual([
+      "!instance.experimental.enableTypo",
+      "!instance.plugins",
+      "!instance.experimental",
+      "!instance.experimental.*",
+    ]);
   });
 
   it("does not use exceptions to override individual restrictions without a wildcard", () => {
-    expect(parseHiddenSettingsList("!instance.experimental.enableEnvironments").hidden).toEqual([]);
-    expect(parseHiddenSettingsList("instance.experimental.enableEnvironments,!instance.experimental.enableEnvironments").hidden)
-      .toEqual(["instance.experimental.enableEnvironments"]);
+    expect(
+      parseHiddenSettingsList("!instance.experimental.enableEnvironments")
+        .hidden,
+    ).toEqual([]);
+    expect(
+      parseHiddenSettingsList(
+        "instance.experimental.enableEnvironments,!instance.experimental.enableEnvironments",
+      ).hidden,
+    ).toEqual(["instance.experimental.enableEnvironments"]);
   });
 
   it("accepts workspace controls independently of experimental flags", () => {
-    expect(parseHiddenSettingsList("workspaces.isolation")).toEqual({ hidden: ["workspaces.isolation"], unknown: [] });
-    expect(hidesExperimentalSetting(new Set(["workspaces.isolation"]), "enableIsolatedWorkspaces")).toBe(false);
+    expect(parseHiddenSettingsList("workspaces.isolation")).toEqual({
+      hidden: ["workspaces.isolation"],
+      unknown: [],
+    });
+    expect(
+      hidesExperimentalSetting(
+        new Set(["workspaces.isolation"]),
+        "enableIsolatedWorkspaces",
+      ),
+    ).toBe(false);
   });
 
   it("returns nothing hidden for undefined or empty input", () => {
-    expect(parseHiddenSettingsList(undefined)).toEqual({ hidden: [], unknown: [] });
-    expect(parseHiddenSettingsList(" , ,")).toEqual({ hidden: [], unknown: [] });
+    expect(parseHiddenSettingsList(undefined)).toEqual({
+      hidden: [],
+      unknown: [],
+    });
+    expect(parseHiddenSettingsList(" , ,")).toEqual({
+      hidden: [],
+      unknown: [],
+    });
   });
 
   it("splits known from unknown keys, trims, and deduplicates", () => {
@@ -122,16 +170,24 @@ describe("membership helpers", () => {
   );
 
   it("answers company-page membership", () => {
-    const companyHidden = new Set(parseHiddenSettingsList("company.import,company.secrets").hidden);
+    const companyHidden = new Set(
+      parseHiddenSettingsList("company.import,company.secrets").hidden,
+    );
     expect(hidesCompanyPage(companyHidden, "company.import")).toBe(true);
     expect(hidesCompanyPage(companyHidden, "company.secrets")).toBe(true);
     expect(hidesCompanyPage(companyHidden, "company.export")).toBe(false);
   });
 
   it("answers company-section membership independently of the parent page", () => {
-    const sectionHidden = new Set(parseHiddenSettingsList("company.secrets.vaults").hidden);
-    expect(hidesCompanySection(sectionHidden, "company.secrets.vaults")).toBe(true);
-    expect(hidesCompanySection(sectionHidden, "company.secrets.proposals")).toBe(false);
+    const sectionHidden = new Set(
+      parseHiddenSettingsList("company.secrets.vaults").hidden,
+    );
+    expect(hidesCompanySection(sectionHidden, "company.secrets.vaults")).toBe(
+      true,
+    );
+    expect(
+      hidesCompanySection(sectionHidden, "company.secrets.proposals"),
+    ).toBe(false);
     expect(hidesCompanyPage(sectionHidden, "company.secrets")).toBe(false);
   });
 
@@ -145,14 +201,24 @@ describe("membership helpers", () => {
   it("answers page, section, and experimental membership", () => {
     expect(hidesInstancePage(hidden, "instance.plugins")).toBe(true);
     expect(hidesInstancePage(hidden, "instance.adapters")).toBe(false);
-    expect(hidesGeneralSection(hidden, "instance.general.censorUsernameInLogs")).toBe(true);
-    expect(hidesGeneralSection(hidden, "instance.general.backupRetention")).toBe(false);
+    expect(
+      hidesGeneralSection(hidden, "instance.general.censorUsernameInLogs"),
+    ).toBe(true);
+    expect(
+      hidesGeneralSection(hidden, "instance.general.backupRetention"),
+    ).toBe(false);
     expect(hidesExperimentalSetting(hidden, "enableEnvironments")).toBe(true);
-    expect(hidesExperimentalSetting(hidden, "enableIsolatedWorkspaces")).toBe(false);
+    expect(hidesExperimentalSetting(hidden, "enableIsolatedWorkspaces")).toBe(
+      false,
+    );
   });
 
   it("treats a hidden Experimental page as hiding every toggle", () => {
-    const pageHidden = new Set(parseHiddenSettingsList("instance.experimental").hidden);
-    expect(hidesExperimentalSetting(pageHidden, "enableEnvironments")).toBe(true);
+    const pageHidden = new Set(
+      parseHiddenSettingsList("instance.experimental").hidden,
+    );
+    expect(hidesExperimentalSetting(pageHidden, "enableEnvironments")).toBe(
+      true,
+    );
   });
 });

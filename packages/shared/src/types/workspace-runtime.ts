@@ -2,10 +2,7 @@ import type { TrustAuthorizationPolicy } from "../trust-policy.js";
 import type { RuntimeExposureStatus } from "./runtime-exposure.js";
 
 export type ExecutionWorkspaceStrategyType =
-  | "project_primary"
-  | "git_worktree"
-  | "adapter_managed"
-  | "cloud_sandbox";
+  "project_primary" | "git_worktree" | "adapter_managed" | "cloud_sandbox";
 
 export type ProjectExecutionWorkspaceDefaultMode =
   | "shared_workspace"
@@ -24,28 +21,16 @@ export type ExecutionWorkspaceMode =
 export type SharedWorkspaceConcurrency = "auto" | "serialize" | "allow";
 
 export type ExecutionWorkspaceProviderType =
-  | "local_fs"
-  | "git_worktree"
-  | "adapter_managed"
-  | "cloud_sandbox";
+  "local_fs" | "git_worktree" | "adapter_managed" | "cloud_sandbox";
 
 export type ExecutionWorkspaceStatus =
-  | "active"
-  | "idle"
-  | "in_review"
-  | "archived"
-  | "cleanup_failed";
+  "active" | "idle" | "in_review" | "archived" | "cleanup_failed";
 
 export type ExecutionWorkspaceDeliveryState =
-  | "merged_via_pr"
-  | "merged_by_ancestry"
-  | "unmerged"
-  | "unknown";
+  "merged_via_pr" | "merged_by_ancestry" | "unmerged" | "unknown";
 
 export type ExecutionWorkspaceCloseReadinessState =
-  | "ready"
-  | "ready_with_warnings"
-  | "blocked";
+  "ready" | "ready_with_warnings" | "blocked";
 
 export type ExecutionWorkspaceCloseActionKind =
   | "archive_record"
@@ -57,7 +42,10 @@ export type ExecutionWorkspaceCloseActionKind =
   | "remove_local_directory";
 
 export type WorkspaceRuntimeDesiredState = "running" | "stopped" | "manual";
-export type WorkspaceRuntimeServiceStateMap = Record<string, WorkspaceRuntimeDesiredState>;
+export type WorkspaceRuntimeServiceStateMap = Record<
+  string,
+  WorkspaceRuntimeDesiredState
+>;
 export type WorkspaceCommandKind = "service" | "job";
 
 export interface WorkspaceCommandSource {
@@ -195,7 +183,13 @@ export interface IssueExecutionWorkspaceSettings {
 export interface ExecutionWorkspaceSummary {
   id: string;
   name: string;
-  mode: Exclude<ExecutionWorkspaceMode, "inherit" | "reuse_existing" | "agent_default"> | "adapter_managed" | "cloud_sandbox";
+  mode:
+    | Exclude<
+        ExecutionWorkspaceMode,
+        "inherit" | "reuse_existing" | "agent_default"
+      >
+    | "adapter_managed"
+    | "cloud_sandbox";
   status: ExecutionWorkspaceStatus;
   cwd: string | null;
   branchName: string | null;
@@ -265,7 +259,13 @@ export interface ExecutionWorkspace {
   projectId: string;
   projectWorkspaceId: string | null;
   sourceIssueId: string | null;
-  mode: Exclude<ExecutionWorkspaceMode, "inherit" | "reuse_existing" | "agent_default"> | "adapter_managed" | "cloud_sandbox";
+  mode:
+    | Exclude<
+        ExecutionWorkspaceMode,
+        "inherit" | "reuse_existing" | "agent_default"
+      >
+    | "adapter_managed"
+    | "cloud_sandbox";
   strategyType: ExecutionWorkspaceStrategyType;
   name: string;
   status: ExecutionWorkspaceStatus;

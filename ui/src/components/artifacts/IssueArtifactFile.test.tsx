@@ -14,13 +14,11 @@ vi.mock("@/lib/artifact-card-data", async (importOriginal) => ({
 
 describe("CSV preview consent", () => {
   it("does not fetch any CSV until its preview is requested", async () => {
-    const load = vi
-      .mocked(loadArtifactCsv)
-      .mockResolvedValue({
-        columns: ["Name"],
-        rows: [["Actual row"]],
-        truncated: false,
-      });
+    const load = vi.mocked(loadArtifactCsv).mockResolvedValue({
+      columns: ["Name"],
+      rows: [["Actual row"]],
+      truncated: false,
+    });
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -54,7 +52,9 @@ describe("CSV preview consent", () => {
         ),
       );
       expect(load).not.toHaveBeenCalled();
-      const open = container.querySelector<HTMLButtonElement>('button[aria-label="Open in tab: Data 0"]');
+      const open = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="Open in tab: Data 0"]',
+      );
       await act(async () => open!.click());
       expect(openText).toHaveBeenCalledWith("attachment-0", "report-0.csv");
       expect(load).not.toHaveBeenCalled();
@@ -72,10 +72,16 @@ describe("CSV preview consent", () => {
         expect.any(AbortSignal),
       );
       expect(container.textContent).toContain("View data");
-      const download = container.querySelector<HTMLAnchorElement>('a[download="report-0.csv"]');
+      const download = container.querySelector<HTMLAnchorElement>(
+        'a[download="report-0.csv"]',
+      );
       expect(download?.textContent).toBe("Download file");
-      expect(download?.getAttribute("href")).toBe("/api/attachments/csv-0/content?download=1");
-      const openAfterPreview = container.querySelector<HTMLButtonElement>('button[aria-label="Open in tab: Data 0"]');
+      expect(download?.getAttribute("href")).toBe(
+        "/api/attachments/csv-0/content?download=1",
+      );
+      const openAfterPreview = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="Open in tab: Data 0"]',
+      );
       await act(async () => openAfterPreview!.click());
       expect(openText).toHaveBeenCalledTimes(2);
     } finally {

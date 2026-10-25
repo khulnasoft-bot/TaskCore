@@ -1,4 +1,9 @@
-import type { Approval, HeartbeatRun, Issue, JoinRequest } from "@taskcore/shared";
+import type {
+  Approval,
+  HeartbeatRun,
+  Issue,
+  JoinRequest,
+} from "@taskcore/shared";
 import { describe, expect, it } from "vitest";
 import {
   getInboxWorkItemKey,
@@ -6,10 +11,7 @@ import {
   type InboxWorkItem,
 } from "./inbox";
 import { INBOX_ARCHIVE_CONFIRMATION_GRACE_MS } from "./inboxArchiveCache";
-import {
-  captureInboxOrderPin,
-  reconcileInboxOrderPin,
-} from "./inboxOrderPin";
+import { captureInboxOrderPin, reconcileInboxOrderPin } from "./inboxOrderPin";
 
 function issue(id: string, title = id): Issue {
   return {
@@ -41,7 +43,10 @@ function sectionKeys(sections: readonly InboxGroupedSection[]): string[] {
   return sections.map((value) => value.key);
 }
 
-function workItemSection(key: string, displayItems: InboxWorkItem[]): InboxGroupedSection {
+function workItemSection(
+  key: string,
+  displayItems: InboxWorkItem[],
+): InboxGroupedSection {
   return {
     key,
     label: key,
@@ -52,7 +57,9 @@ function workItemSection(key: string, displayItems: InboxWorkItem[]): InboxGroup
 }
 
 function rowIds(value: InboxGroupedSection): string[] {
-  return value.displayItems.map((item) => item.kind === "issue" ? item.issue.id : "non-issue");
+  return value.displayItems.map((item) =>
+    item.kind === "issue" ? item.issue.id : "non-issue",
+  );
 }
 
 describe("inboxOrderPin", () => {
@@ -72,7 +79,10 @@ describe("inboxOrderPin", () => {
     ];
     const result = reconcileInboxOrderPin(pin, fresh, 100);
 
-    expect(sectionKeys(result.sections)).toEqual(["parent-group", "neighbor-group"]);
+    expect(sectionKeys(result.sections)).toEqual([
+      "parent-group",
+      "neighbor-group",
+    ]);
     expect(rowIds(result.sections[0]!)).toEqual([parent.id]);
     expect(result.sections[0]!.childrenByIssueId.get(parent.id)).toEqual([]);
   });
@@ -93,7 +103,9 @@ describe("inboxOrderPin", () => {
 
     expect(sectionKeys(result.sections)).toEqual(["neighbor-group"]);
     expect(rowIds(result.sections[0]!)).toEqual([neighbor.id]);
-    expect(result.pin.sections.map((value) => [value.key, value.missingSince])).toEqual([
+    expect(
+      result.pin.sections.map((value) => [value.key, value.missingSince]),
+    ).toEqual([
       ["archived-group", 200],
       ["neighbor-group", null],
     ]);
@@ -103,8 +115,14 @@ describe("inboxOrderPin", () => {
     const first = issue("first");
     const restored = issue("restored");
     const last = issue("last");
-    const pin = captureInboxOrderPin([section("group", [first, restored, last])]);
-    const archived = reconcileInboxOrderPin(pin, [section("group", [last, first])], 1_000);
+    const pin = captureInboxOrderPin([
+      section("group", [first, restored, last]),
+    ]);
+    const archived = reconcileInboxOrderPin(
+      pin,
+      [section("group", [last, first])],
+      1_000,
+    );
 
     expect(rowIds(archived.sections[0]!)).toEqual([first.id, last.id]);
 
@@ -114,16 +132,30 @@ describe("inboxOrderPin", () => {
       1_000 + INBOX_ARCHIVE_CONFIRMATION_GRACE_MS - 1,
     );
 
-    expect(rowIds(undone.sections[0]!)).toEqual([first.id, restored.id, last.id]);
-    expect(undone.pin.sections[0]!.rows.every((entry) => entry.missingSince === null)).toBe(true);
+    expect(rowIds(undone.sections[0]!)).toEqual([
+      first.id,
+      restored.id,
+      last.id,
+    ]);
+    expect(
+      undone.pin.sections[0]!.rows.every(
+        (entry) => entry.missingSince === null,
+      ),
+    ).toBe(true);
   });
 
   it("treats a row restored after the grace window as a new algorithmic insertion", () => {
     const first = issue("first");
     const expired = issue("expired");
     const last = issue("last");
-    const pin = captureInboxOrderPin([section("group", [first, expired, last])]);
-    const archived = reconcileInboxOrderPin(pin, [section("group", [last, first])], 1_000);
+    const pin = captureInboxOrderPin([
+      section("group", [first, expired, last]),
+    ]);
+    const archived = reconcileInboxOrderPin(
+      pin,
+      [section("group", [last, first])],
+      1_000,
+    );
 
     const restored = reconcileInboxOrderPin(
       archived.pin,
@@ -131,7 +163,11 @@ describe("inboxOrderPin", () => {
       1_000 + INBOX_ARCHIVE_CONFIRMATION_GRACE_MS,
     );
 
-    expect(rowIds(restored.sections[0]!)).toEqual([first.id, last.id, expired.id]);
+    expect(rowIds(restored.sections[0]!)).toEqual([
+      first.id,
+      last.id,
+      expired.id,
+    ]);
   });
 
   it("inserts new rows and groups algorithmically without reordering existing entries", () => {
@@ -155,16 +191,32 @@ describe("inboxOrderPin", () => {
       300,
     );
 
-    expect(sectionKeys(result.sections)).toEqual(["existing", "new-group", "neighbor"]);
-    expect(rowIds(result.sections[0]!)).toEqual([first.id, inserted.id, last.id]);
+    expect(sectionKeys(result.sections)).toEqual([
+      "existing",
+      "new-group",
+      "neighbor",
+    ]);
+    expect(rowIds(result.sections[0]!)).toEqual([
+      first.id,
+      inserted.id,
+      last.id,
+    ]);
   });
 
   it("uses fresh row content while retaining the pinned order", () => {
     const first = issue("first", "Old first");
     const last = issue("last", "Old last");
     const pin = captureInboxOrderPin([section("group", [first, last])]);
-    const freshLast = { ...last, title: "Updated last", status: "in_progress" } as Issue;
-    const freshFirst = { ...first, title: "Updated first", status: "blocked" } as Issue;
+    const freshLast = {
+      ...last,
+      title: "Updated last",
+      status: "in_progress",
+    } as Issue;
+    const freshFirst = {
+      ...first,
+      title: "Updated first",
+      status: "blocked",
+    } as Issue;
 
     const result = reconcileInboxOrderPin(
       pin,
@@ -205,15 +257,17 @@ describe("inboxOrderPin", () => {
 
     const result = reconcileInboxOrderPin(
       pin,
-      [workItemSection("mixed", [
-        { ...joinRequest, timestamp: 4 },
-        { ...failedRun, timestamp: 5 },
-        {
-          ...approval,
-          timestamp: 6,
-          approval: { ...approval.approval, status: "approved" } as Approval,
-        },
-      ])],
+      [
+        workItemSection("mixed", [
+          { ...joinRequest, timestamp: 4 },
+          { ...failedRun, timestamp: 5 },
+          {
+            ...approval,
+            timestamp: 6,
+            approval: { ...approval.approval, status: "approved" } as Approval,
+          },
+        ]),
+      ],
       500,
     );
 

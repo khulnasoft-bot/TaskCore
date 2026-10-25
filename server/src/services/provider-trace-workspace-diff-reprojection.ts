@@ -53,36 +53,57 @@ export function projectCodexWorkspaceDiffsFromTrace(
   entries: Record<string, unknown>[],
 ): WorkspaceDiffTraceProjection {
   const revisions = new Map<string, number>();
-  const turns = new Map<string, { turnId: string; payload: WorkspaceDiffPayload }>();
+  const turns = new Map<
+    string,
+    { turnId: string; payload: WorkspaceDiffPayload }
+  >();
   const skipReasons: WorkspaceDiffReprojectionSkipReason[] = [];
 
   for (const entry of entries) {
-    if (entry.kind !== "frame" || entry.direction !== "provider_to_client") continue;
-    const frameId = Number.isSafeInteger(entry.frameId) ? Number(entry.frameId) : undefined;
+    if (entry.kind !== "frame" || entry.direction !== "provider_to_client")
+      continue;
+    const frameId = Number.isSafeInteger(entry.frameId)
+      ? Number(entry.frameId)
+      : undefined;
     let message: Record<string, unknown>;
     try {
-      if (typeof entry.rawBase64 !== "string") throw new Error("missing frame bytes");
-      message = record(JSON.parse(Buffer.from(entry.rawBase64, "base64").toString("utf8")));
+      if (typeof entry.rawBase64 !== "string")
+        throw new Error("missing frame bytes");
+      message = record(
+        JSON.parse(Buffer.from(entry.rawBase64, "base64").toString("utf8")),
+      );
     } catch {
-      skipReasons.push({ reason: "malformed_frame", ...(frameId ? { frameId } : {}) });
+      skipReasons.push({
+        reason: "malformed_frame",
+        ...(frameId ? { frameId } : {}),
+      });
       continue;
     }
     if (message.method !== "turn/diff/updated") continue;
     const params = record(message.params);
     const turnId = stableTurnId(params.turnId);
     if (turnId === null) {
-      skipReasons.push({ reason: "missing_turn_id", ...(frameId ? { frameId } : {}) });
+      skipReasons.push({
+        reason: "missing_turn_id",
+        ...(frameId ? { frameId } : {}),
+      });
       continue;
     }
     const patch = typeof params.diff === "string" ? params.diff : "";
     const files = parseCodexTurnDiff(patch);
     if (patch.trim().length > 0 && files.length === 0) {
-      skipReasons.push({ reason: "malformed_diff", turnId, ...(frameId ? { frameId } : {}) });
+      skipReasons.push({
+        reason: "malformed_diff",
+        turnId,
+        ...(frameId ? { frameId } : {}),
+      });
       continue;
     }
     const revision = (revisions.get(turnId) ?? 0) + 1;
     revisions.set(turnId, revision);
-    const unknown = files.some((file) => file.additions === null || file.deletions === null);
+    const unknown = files.some(
+      (file) => file.additions === null || file.deletions === null,
+    );
     turns.set(turnId, {
       turnId,
       payload: {
@@ -94,8 +115,12 @@ export function projectCodexWorkspaceDiffsFromTrace(
         files,
         totals: {
           files: files.length,
-          additions: unknown ? null : files.reduce((sum, file) => sum + (file.additions ?? 0), 0),
-          deletions: unknown ? null : files.reduce((sum, file) => sum + (file.deletions ?? 0), 0),
+          additions: unknown
+            ? null
+            : files.reduce((sum, file) => sum + (file.additions ?? 0), 0),
+          deletions: unknown
+            ? null
+            : files.reduce((sum, file) => sum + (file.deletions ?? 0), 0),
         },
         patchArtifactRef: null,
       },
@@ -118,10 +143,15 @@ export async function persistReprojectedWorkspaceDiffs(
   const existing = await db
     .select({ payload: heartbeatRunEvents.payload })
     .from(heartbeatRunEvents)
-    .where(and(
-      eq(heartbeatRunEvents.runId, input.runId),
-      inArray(heartbeatRunEvents.eventType, ["workspace.change.updated", "workspace.diff.recorded"]),
-    ));
+    .where(
+      and(
+        eq(heartbeatRunEvents.runId, input.runId),
+        inArray(heartbeatRunEvents.eventType, [
+          "workspace.change.updated",
+          "workspace.diff.recorded",
+        ]),
+      ),
+    );
   const recordedChangeSets = new Set(
     existing.flatMap((row) => {
       const payload = record(row.payload);

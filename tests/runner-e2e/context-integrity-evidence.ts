@@ -20,5 +20,9 @@ export async function emitContextIntegrityFinalEvidence(input: {
     runEvents: input.runEvents,
     runLogs: input.runLogs,
   });
-  await input.capture("final-state", "Context integrity final state", "final-state.png");
+  await input.capture(
+    "final-state",
+    "Context integrity final state",
+    "final-state.png",
+  );
 }

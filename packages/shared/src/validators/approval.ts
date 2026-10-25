@@ -21,7 +21,9 @@ export const requestApprovalRevisionSchema = z.object({
   decisionNote: multilineTextSchema.optional().nullable(),
 });
 
-export type RequestApprovalRevision = z.infer<typeof requestApprovalRevisionSchema>;
+export type RequestApprovalRevision = z.infer<
+  typeof requestApprovalRevisionSchema
+>;
 
 export const resubmitApprovalSchema = z.object({
   payload: z.record(z.string(), z.unknown()).optional(),

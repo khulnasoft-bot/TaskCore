@@ -15,7 +15,11 @@ export const catalogTeamTrustLevelSchema = z.enum([
   "external_sources",
 ]);
 
-export const catalogTeamCompatibilitySchema = z.enum(["compatible", "unknown", "invalid"]);
+export const catalogTeamCompatibilitySchema = z.enum([
+  "compatible",
+  "unknown",
+  "invalid",
+]);
 
 export const catalogTeamFileKindSchema = z.enum([
   "team",
@@ -63,7 +67,14 @@ export const catalogTeamEnvInputSummarySchema = z.object({
 });
 
 export const catalogTeamSourceRefSchema = z.object({
-  type: z.enum(["skills_sh", "github", "url", "local_path", "agent_package", "include"]),
+  type: z.enum([
+    "skills_sh",
+    "github",
+    "url",
+    "local_path",
+    "agent_package",
+    "include",
+  ]),
   ref: z.string().min(1),
   pinned: z.boolean(),
 });
@@ -127,27 +138,38 @@ export const catalogTeamFileDetailSchema = z.object({
   markdown: z.boolean(),
 });
 
-export const catalogTeamSourcePolicySchema = z.object({
-  allowExternalSources: z.boolean().optional(),
-  allowUnpinnedOptionalSources: z.boolean().optional(),
-  allowLocalPathSources: z.boolean().optional(),
-}).strict();
+export const catalogTeamSourcePolicySchema = z
+  .object({
+    allowExternalSources: z.boolean().optional(),
+    allowUnpinnedOptionalSources: z.boolean().optional(),
+    allowLocalPathSources: z.boolean().optional(),
+  })
+  .strict();
 
-export const catalogTeamPreviewSchema = z.object({
-  targetManagerAgentId: z.string().min(1).nullable().optional(),
-  targetManagerSlug: z.string().min(1).nullable().optional(),
-  include: portabilityIncludeSchema.omit({ company: true }).strict().optional(),
-  agents: portabilityAgentSelectionSchema.optional(),
-  collisionStrategy: portabilityCollisionStrategySchema.optional(),
-  nameOverrides: z.record(z.string().min(1), z.string().min(1)).optional(),
-  selectedFiles: z.array(z.string().min(1)).optional(),
-  sourcePolicy: catalogTeamSourcePolicySchema.optional(),
-}).strict();
+export const catalogTeamPreviewSchema = z
+  .object({
+    targetManagerAgentId: z.string().min(1).nullable().optional(),
+    targetManagerSlug: z.string().min(1).nullable().optional(),
+    include: portabilityIncludeSchema
+      .omit({ company: true })
+      .strict()
+      .optional(),
+    agents: portabilityAgentSelectionSchema.optional(),
+    collisionStrategy: portabilityCollisionStrategySchema.optional(),
+    nameOverrides: z.record(z.string().min(1), z.string().min(1)).optional(),
+    selectedFiles: z.array(z.string().min(1)).optional(),
+    sourcePolicy: catalogTeamSourcePolicySchema.optional(),
+  })
+  .strict();
 
-export const catalogTeamInstallSchema = catalogTeamPreviewSchema.extend({
-  adapterOverrides: z.record(z.string().min(1), portabilityAdapterOverrideSchema).optional(),
-  secretValues: z.record(z.string().min(1), z.string()).optional(),
-}).strict();
+export const catalogTeamInstallSchema = catalogTeamPreviewSchema
+  .extend({
+    adapterOverrides: z
+      .record(z.string().min(1), portabilityAdapterOverrideSchema)
+      .optional(),
+    secretValues: z.record(z.string().min(1), z.string()).optional(),
+  })
+  .strict();
 
 export const catalogTeamSkillPreparationSchema = z.object({
   type: catalogTeamSkillRequirementTypeSchema,

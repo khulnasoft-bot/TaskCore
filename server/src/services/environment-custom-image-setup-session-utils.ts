@@ -11,11 +11,19 @@ export function readCustomImageSetupSessionCompanyId(session: {
 
 export function readNullableDate(value: unknown): Date | null {
   if (!value) return null;
-  const date = value instanceof Date ? value : typeof value === "string" ? new Date(value) : null;
+  const date =
+    value instanceof Date
+      ? value
+      : typeof value === "string"
+        ? new Date(value)
+        : null;
   return date && !Number.isNaN(date.getTime()) ? date : null;
 }
 
-export function readFutureDate(value: Date | string | null | undefined, now: Date): Date | null {
+export function readFutureDate(
+  value: Date | string | null | undefined,
+  now: Date,
+): Date | null {
   const date = readNullableDate(value);
   return date && date.getTime() > now.getTime() ? date : null;
 }

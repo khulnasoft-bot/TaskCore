@@ -14,7 +14,11 @@ import {
 } from "./workspace-runtime.js";
 
 /** A persisted, running, pre-feature Taskcore App dev runtime. */
-function httpOnlyRunningRow(overrides: Partial<Parameters<typeof decideManagedRuntimeExposureBackfill>[0]> = {}) {
+function httpOnlyRunningRow(
+  overrides: Partial<
+    Parameters<typeof decideManagedRuntimeExposureBackfill>[0]
+  > = {},
+) {
   return {
     mode: "auto" as const,
     brokerAvailable: true,
@@ -38,66 +42,105 @@ describe("decideManagedRuntimeExposureBackfill", () => {
 
   it("reprovisions a service that is mid-start as well as one already running", () => {
     for (const status of ["provisioning", "starting", "running"]) {
-      expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ status })).action).toBe("reprovision");
+      expect(
+        decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ status }))
+          .action,
+      ).toBe("reprovision");
     }
   });
 
   it("leaves a stopped service to pick the default up on its next start", () => {
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ status: "stopped" }))).toEqual({
+    expect(
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ status: "stopped" }),
+      ),
+    ).toEqual({
       action: "keep",
       reason: "stopped_defaults_on_next_start",
     });
   });
 
   it("preserves a deliberate opt-out", () => {
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ declaredIntent: "disabled" }))).toEqual({
+    expect(
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ declaredIntent: "disabled" }),
+      ),
+    ).toEqual({
       action: "keep",
       reason: "deliberate_opt_out",
     });
   });
 
   it("is idempotent: a row that already carries exposure state is never re-driven", () => {
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ hasExposure: true }))).toEqual({
+    expect(
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ hasExposure: true }),
+      ),
+    ).toEqual({
       action: "keep",
       reason: "already_exposed",
     });
     // Repeated deploys see the same row and must keep converging on "keep".
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ hasExposure: true })).action).toBe("keep");
+    expect(
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ hasExposure: true }),
+      ).action,
+    ).toBe("keep");
   });
 
   it("leaves unmanaged and custom services alone", () => {
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({
-      serviceName: "preview",
-      command: "pnpm vite",
-    }))).toEqual({ action: "keep", reason: "unmanaged_or_custom_service" });
+    expect(
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({
+          serviceName: "preview",
+          command: "pnpm vite",
+        }),
+      ),
+    ).toEqual({ action: "keep", reason: "unmanaged_or_custom_service" });
   });
 
   it("leaves external (non local_process) runtime services alone", () => {
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ provider: "external" }))).toEqual({
+    expect(
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ provider: "external" }),
+      ),
+    ).toEqual({
       action: "keep",
       reason: "not_a_managed_local_process",
     });
   });
 
   it("does nothing when the automatic default is switched off", () => {
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ mode: "off" }))).toEqual({
+    expect(
+      decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ mode: "off" })),
+    ).toEqual({
       action: "keep",
       reason: "https_default_disabled",
     });
   });
 
   it("skips the backfill when the host broker is unavailable, unless forced", () => {
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ brokerAvailable: false }))).toEqual({
+    expect(
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ brokerAvailable: false }),
+      ),
+    ).toEqual({
       action: "keep",
       reason: "broker_unavailable",
     });
     expect(
-      decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ brokerAvailable: false, mode: "force" })).action,
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ brokerAvailable: false, mode: "force" }),
+      ).action,
     ).toBe("reprovision");
   });
 
   it("never takes down a row it cannot restart from a configured entry", () => {
-    expect(decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ declaredIntent: null }))).toEqual({
+    expect(
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ declaredIntent: null }),
+      ),
+    ).toEqual({
       action: "keep",
       reason: "no_configured_service_entry",
     });
@@ -105,16 +148,20 @@ describe("decideManagedRuntimeExposureBackfill", () => {
 
   it("reprovisions an explicit opt-in that is somehow running without exposure", () => {
     expect(
-      decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({ declaredIntent: "enabled" })).action,
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({ declaredIntent: "enabled" }),
+      ).action,
     ).toBe("reprovision");
   });
 
   it("checks the opt-out before broker availability so an opt-out never depends on host state", () => {
     expect(
-      decideManagedRuntimeExposureBackfill(httpOnlyRunningRow({
-        declaredIntent: "disabled",
-        brokerAvailable: false,
-      })).reason,
+      decideManagedRuntimeExposureBackfill(
+        httpOnlyRunningRow({
+          declaredIntent: "disabled",
+          brokerAvailable: false,
+        }),
+      ).reason,
     ).toBe("deliberate_opt_out");
   });
 });
@@ -136,7 +183,9 @@ describe("decideStaleExposureReclaim", () => {
   it("defers instead of removing when the broker cannot be reached", () => {
     // Unreachable broker proves nothing. Fail closed toward preservation: a
     // mapping we cannot attribute must never be deleted on a guess.
-    expect(decideStaleExposureReclaim({ runtimeId: RUNTIME, ownedListeners: null })).toEqual({
+    expect(
+      decideStaleExposureReclaim({ runtimeId: RUNTIME, ownedListeners: null }),
+    ).toEqual({
       action: "defer",
       reason: "broker_unreachable",
     });
@@ -146,7 +195,9 @@ describe("decideStaleExposureReclaim", () => {
     // The 12:28:19 row: 3 days old, claiming a pair that had since been recycled.
     // Nothing of ours is published under this runtime, so there is nothing to
     // remove — only local bookkeeping to tidy.
-    expect(decideStaleExposureReclaim({ runtimeId: RUNTIME, ownedListeners: [] })).toEqual({
+    expect(
+      decideStaleExposureReclaim({ runtimeId: RUNTIME, ownedListeners: [] }),
+    ).toEqual({
       action: "clear_bookkeeping",
       reason: "not_owned_by_broker",
     });
@@ -175,7 +226,10 @@ describe("decideStaleExposureReclaim", () => {
     expect(
       decideStaleExposureReclaim({
         runtimeId: RUNTIME,
-        ownedListeners: [{ runtimeId: OTHER_RUNTIME, port: 42000 }, { runtimeId: OTHER_RUNTIME, port: 52000 }],
+        ownedListeners: [
+          { runtimeId: OTHER_RUNTIME, port: 42000 },
+          { runtimeId: OTHER_RUNTIME, port: 52000 },
+        ],
       }).action,
     ).toBe("clear_bookkeeping");
   });

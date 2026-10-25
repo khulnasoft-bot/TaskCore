@@ -17,7 +17,8 @@ const clipboardWriteTextMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/api/access", () => ({
   accessApi: {
-    listInvites: (companyId: string, options?: unknown) => listInvitesMock(companyId, options),
+    listInvites: (companyId: string, options?: unknown) =>
+      listInvitesMock(companyId, options),
     createCompanyInvite: (companyId: string, input: unknown) =>
       createCompanyInviteMock(companyId, input),
     revokeInvite: (inviteId: string) => revokeInviteMock(inviteId),
@@ -85,13 +86,18 @@ describe("InvitesSection", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
 
-    listInvitesMock.mockImplementation((_companyId: string, options?: { limit?: number; offset?: number }) => {
-      const limit = options?.limit ?? 20;
-      const offset = options?.offset ?? 0;
-      const invites = inviteHistory.slice(offset, offset + limit);
-      const nextOffset = offset + invites.length < inviteHistory.length ? offset + invites.length : null;
-      return Promise.resolve({ invites, nextOffset });
-    });
+    listInvitesMock.mockImplementation(
+      (_companyId: string, options?: { limit?: number; offset?: number }) => {
+        const limit = options?.limit ?? 20;
+        const offset = options?.offset ?? 0;
+        const invites = inviteHistory.slice(offset, offset + limit);
+        const nextOffset =
+          offset + invites.length < inviteHistory.length
+            ? offset + invites.length
+            : null;
+        return Promise.resolve({ invites, nextOffset });
+      },
+    );
 
     createCompanyInviteMock.mockImplementation(() => {
       return Promise.resolve({
@@ -138,7 +144,9 @@ describe("InvitesSection", () => {
 
     expect(container.textContent).toContain("Invite a person");
     expect(container.textContent).not.toContain("Invite an agent");
-    expect(container.textContent).not.toContain("Generate agent onboarding prompt");
+    expect(container.textContent).not.toContain(
+      "Generate agent onboarding prompt",
+    );
     expect(container.textContent).toContain("Invite history");
     expect(container.textContent).toContain("Board User 25");
     expect(container.textContent).toContain("Board User 21");
@@ -155,14 +163,21 @@ describe("InvitesSection", () => {
 
     expect(container.textContent).toContain("Choose a role");
     expect(container.textContent).toContain("Each invite link is single-use.");
-    expect(container.textContent).toContain("Can create agents, invite users, assign tasks, and approve join requests.");
-    expect(container.textContent).toContain("Everything in Admin, plus managing members.");
-    expect(container.textContent).not.toContain("permission grants");
-    expect(listInvitesMock).toHaveBeenCalledWith("company-1", { limit: 5, offset: 0 });
-
-    const viewMoreButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "View more",
+    expect(container.textContent).toContain(
+      "Can create agents, invite users, assign tasks, and approve join requests.",
     );
+    expect(container.textContent).toContain(
+      "Everything in Admin, plus managing members.",
+    );
+    expect(container.textContent).not.toContain("permission grants");
+    expect(listInvitesMock).toHaveBeenCalledWith("company-1", {
+      limit: 5,
+      offset: 0,
+    });
+
+    const viewMoreButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent === "View more");
 
     await act(async () => {
       viewMoreButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -170,20 +185,29 @@ describe("InvitesSection", () => {
     await flushReact();
     await flushReact();
 
-    expect(listInvitesMock).toHaveBeenCalledWith("company-1", { limit: 5, offset: 5 });
+    expect(listInvitesMock).toHaveBeenCalledWith("company-1", {
+      limit: 5,
+      offset: 5,
+    });
     expect(container.textContent).toContain("Board User 20");
     expect(container.textContent).toContain("Board User 16");
     expect(container.textContent).toContain("View more");
 
     await act(async () => {
-      const viewerRadio = container.querySelector('input[type="radio"][value="viewer"]') as HTMLInputElement | null;
+      const viewerRadio = container.querySelector(
+        'input[type="radio"][value="viewer"]',
+      ) as HTMLInputElement | null;
       viewerRadio?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       viewerRadio?.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
     const buttons = Array.from(container.querySelectorAll("button"));
-    const createButton = buttons.find((button) => button.textContent === "Create invite");
-    const revokeButton = buttons.find((button) => button.textContent === "Revoke");
+    const createButton = buttons.find(
+      (button) => button.textContent === "Create invite",
+    );
+    const revokeButton = buttons.find(
+      (button) => button.textContent === "Revoke",
+    );
 
     expect(createButton).toBeTruthy();
     expect(revokeButton).toBeTruthy();
@@ -199,13 +223,16 @@ describe("InvitesSection", () => {
       humanRole: "viewer",
       agentMessage: null,
     });
-    expect(clipboardWriteTextMock).toHaveBeenCalledWith("https://taskcore.local/invite/new-token");
-    expect(container.textContent).toContain("Latest invite link");
-    expect(container.textContent).toContain("This URL includes the current Taskcore domain returned by the server.");
-    expect(container.querySelector('input[aria-label="Latest invite URL"]')).toHaveProperty(
-      "value",
+    expect(clipboardWriteTextMock).toHaveBeenCalledWith(
       "https://taskcore.local/invite/new-token",
     );
+    expect(container.textContent).toContain("Latest invite link");
+    expect(container.textContent).toContain(
+      "This URL includes the current Taskcore domain returned by the server.",
+    );
+    expect(
+      container.querySelector('input[aria-label="Latest invite URL"]'),
+    ).toHaveProperty("value", "https://taskcore.local/invite/new-token");
     expect(container.textContent).toContain("Copy link");
     // The inviter opening their own single-use link is never what they
     // mean, so the section deliberately offers no "Open invite" action.
@@ -216,9 +243,9 @@ describe("InvitesSection", () => {
       tone: "success",
     });
 
-    const copyLinkButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Copy link",
-    );
+    const copyLinkButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent === "Copy link");
 
     await act(async () => {
       copyLinkButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -281,7 +308,9 @@ describe("InvitesSection", () => {
     await flushReact();
     await flushReact();
 
-    const inviteInput = container.querySelector('input[aria-label="Latest invite URL"]') as HTMLInputElement | null;
+    const inviteInput = container.querySelector(
+      'input[aria-label="Latest invite URL"]',
+    ) as HTMLInputElement | null;
     expect(inviteInput?.value).toBe("https://taskcore.local/invite/new-token");
     expect(document.execCommand).toHaveBeenCalledWith("copy");
     expect(pushToastMock).toHaveBeenCalledWith({
@@ -300,7 +329,10 @@ describe("InvitesSection", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    queryClient.setQueryData(["access", "invites", "company-1", "all"], inviteHistory.slice(0, 2));
+    queryClient.setQueryData(
+      ["access", "invites", "company-1", "all"],
+      inviteHistory.slice(0, 2),
+    );
 
     await act(async () => {
       root.render(
@@ -316,8 +348,13 @@ describe("InvitesSection", () => {
 
     expect(container.textContent).toContain("Board User 25");
     expect(container.textContent).not.toContain("Board User 20");
-    expect(listInvitesMock).toHaveBeenCalledWith("company-1", { limit: 5, offset: 0 });
-    expect(queryClient.getQueryData(queryKeys.access.invites("company-1", "all", 5))).toMatchObject({
+    expect(listInvitesMock).toHaveBeenCalledWith("company-1", {
+      limit: 5,
+      offset: 0,
+    });
+    expect(
+      queryClient.getQueryData(queryKeys.access.invites("company-1", "all", 5)),
+    ).toMatchObject({
       pages: [
         {
           invites: expect.any(Array),

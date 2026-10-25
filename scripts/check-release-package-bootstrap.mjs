@@ -9,7 +9,9 @@ function normalizePath(filePath) {
 }
 
 function classifyNpmViewFailure(output) {
-  return /\bE404\b|404 Not Found|could not be found/i.test(output) ? "missing" : "registry_error";
+  return /\bE404\b|404 Not Found|could not be found/i.test(output)
+    ? "missing"
+    : "registry_error";
 }
 
 function inspectNpmPackage(packageName) {
@@ -35,15 +37,20 @@ function inspectNpmPackage(packageName) {
 
   return {
     status: "registry_error",
-    detail: output || `npm view exited with status ${result.status ?? "unknown"}`,
+    detail:
+      output || `npm view exited with status ${result.status ?? "unknown"}`,
   };
 }
 
 function readGitFileAtRevision(revision, filePath) {
-  const result = spawnSync("git", ["show", `${revision}:${normalizePath(filePath)}`], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const result = spawnSync(
+    "git",
+    ["show", `${revision}:${normalizePath(filePath)}`],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
 
   if (result.error) {
     throw result.error;
@@ -62,7 +69,9 @@ function readGitFileAtRevision(revision, filePath) {
     return null;
   }
 
-  throw new Error(`failed to read ${filePath} at ${revision}:\n${output || "git show failed"}`);
+  throw new Error(
+    `failed to read ${filePath} at ${revision}:\n${output || "git show failed"}`,
+  );
 }
 
 function getBaseReleaseState(
@@ -72,21 +81,34 @@ function getBaseReleaseState(
 ) {
   if (!revision) return null;
 
-  const manifestText = readFileAtRevision(revision, "scripts/release-package-manifest.json");
+  const manifestText = readFileAtRevision(
+    revision,
+    "scripts/release-package-manifest.json",
+  );
 
   if (manifestText) {
     const manifestEntries = JSON.parse(manifestText);
 
     if (!Array.isArray(manifestEntries)) {
-      throw new Error(`expected scripts/release-package-manifest.json at ${revision} to contain an array`);
+      throw new Error(
+        `expected scripts/release-package-manifest.json at ${revision} to contain an array`,
+      );
     }
 
     return {
       source: "manifest",
       byDir: new Map(
         manifestEntries
-          .filter((entry) => entry?.publishFromCi === true && typeof entry.dir === "string" && typeof entry.name === "string")
-          .map((entry) => [entry.dir, { name: entry.name, publishFromCi: true }]),
+          .filter(
+            (entry) =>
+              entry?.publishFromCi === true &&
+              typeof entry.dir === "string" &&
+              typeof entry.name === "string",
+          )
+          .map((entry) => [
+            entry.dir,
+            { name: entry.name, publishFromCi: true },
+          ]),
       ),
     };
   }
@@ -94,7 +116,10 @@ function getBaseReleaseState(
   const byDir = new Map();
 
   for (const pkg of releasePackages) {
-    const packageJsonText = readFileAtRevision(revision, `${pkg.dir}/package.json`);
+    const packageJsonText = readFileAtRevision(
+      revision,
+      `${pkg.dir}/package.json`,
+    );
     if (!packageJsonText) continue;
 
     const basePackage = JSON.parse(packageJsonText);
@@ -118,7 +143,9 @@ function collectReleasePackagesForChangedPaths(
   baseReleaseState = null,
 ) {
   const normalizedChangedPaths = changedPaths.map(normalizePath);
-  const manifestFileChanged = normalizedChangedPaths.includes("scripts/release-package-manifest.json");
+  const manifestFileChanged = normalizedChangedPaths.includes(
+    "scripts/release-package-manifest.json",
+  );
   const changedReleasePackages = [];
   const seen = new Set();
 
@@ -129,7 +156,10 @@ function collectReleasePackagesForChangedPaths(
     const basePackage = baseReleaseState?.byDir.get(pkg.dir);
     const newlyReleaseEnabled =
       manifestFileChanged &&
-      (!baseReleaseState || !basePackage || basePackage.publishFromCi !== true || basePackage.name !== pkg.name);
+      (!baseReleaseState ||
+        !basePackage ||
+        basePackage.publishFromCi !== true ||
+        basePackage.name !== pkg.name);
     const isRelevant = packageJsonChanged || newlyReleaseEnabled;
 
     if (!isRelevant) continue;
@@ -144,11 +174,20 @@ function collectReleasePackagesForChangedPaths(
 
 function main(changedPaths) {
   const releasePackages = buildReleasePackagePlan();
-  const baseReleaseState = getBaseReleaseState(process.env.TASKCORE_RELEASE_BOOTSTRAP_BASE_SHA, releasePackages);
-  const changedReleasePackages = collectReleasePackagesForChangedPaths(changedPaths, releasePackages, baseReleaseState);
+  const baseReleaseState = getBaseReleaseState(
+    process.env.TASKCORE_RELEASE_BOOTSTRAP_BASE_SHA,
+    releasePackages,
+  );
+  const changedReleasePackages = collectReleasePackagesForChangedPaths(
+    changedPaths,
+    releasePackages,
+    baseReleaseState,
+  );
 
   if (changedReleasePackages.length === 0) {
-    process.stdout.write("No release-enabled package manifests changed in this PR.\n");
+    process.stdout.write(
+      "No release-enabled package manifests changed in this PR.\n",
+    );
     return;
   }
 
@@ -187,7 +226,9 @@ function main(changedPaths) {
       )
       .join("\n- ");
 
-    throw new Error(`release package bootstrap check could not verify npm state:\n- ${details}`);
+    throw new Error(
+      `release package bootstrap check could not verify npm state:\n- ${details}`,
+    );
   }
 
   process.stdout.write(
@@ -195,7 +236,12 @@ function main(changedPaths) {
   );
 }
 
-if (process.argv[1] && normalizePath(process.argv[1]).endsWith("scripts/check-release-package-bootstrap.mjs")) {
+if (
+  process.argv[1] &&
+  normalizePath(process.argv[1]).endsWith(
+    "scripts/check-release-package-bootstrap.mjs",
+  )
+) {
   main(process.argv.slice(2));
 }
 

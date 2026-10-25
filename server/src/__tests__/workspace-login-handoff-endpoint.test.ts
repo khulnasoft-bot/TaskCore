@@ -44,16 +44,20 @@ type MemoryStore = Record<string, Record<string, unknown>[]>;
  * asks for existence — so the stub answers with rows, not a count.
  */
 function stubDb(activeMembershipCount: number) {
-  const rows = Array.from({ length: Math.max(0, activeMembershipCount) }, (_, index) => ({
-    id: `membership-${index}`,
-  }));
+  const rows = Array.from(
+    { length: Math.max(0, activeMembershipCount) },
+    (_, index) => ({
+      id: `membership-${index}`,
+    }),
+  );
   return {
     select: vi.fn(() => {
       const chain: Record<string, unknown> = {};
       for (const method of ["from", "where", "innerJoin", "limit", "orderBy"]) {
         chain[method] = vi.fn(() => chain);
       }
-      chain.then = (resolve: (value: unknown) => unknown) => Promise.resolve(rows).then(resolve);
+      chain.then = (resolve: (value: unknown) => unknown) =>
+        Promise.resolve(rows).then(resolve);
       return chain;
     }),
   } as unknown as Db;
@@ -67,7 +71,12 @@ function createApp(input: {
   expectedCompanyId?: string | null;
   key?: string | null;
 }) {
-  const store: MemoryStore = { user: [], session: [], account: [], verification: [] };
+  const store: MemoryStore = {
+    user: [],
+    session: [],
+    account: [],
+    verification: [],
+  };
   store.user!.push({
     id: USER_ID,
     email: USER_EMAIL,
@@ -89,13 +98,20 @@ function createApp(input: {
         db: stubDb(input.activeMembershipCount ?? 1),
         resolveExpectedIdentity: () => ({
           key: input.key === undefined ? KEY : input.key,
-          instanceId: input.expectedInstanceId === undefined ? INSTANCE_ID : input.expectedInstanceId,
+          instanceId:
+            input.expectedInstanceId === undefined
+              ? INSTANCE_ID
+              : input.expectedInstanceId,
           executionWorkspaceId:
             input.expectedExecutionWorkspaceId === undefined
               ? EXECUTION_WORKSPACE_ID
               : input.expectedExecutionWorkspaceId,
-          companyId: input.expectedCompanyId === undefined ? COMPANY_ID : input.expectedCompanyId,
-          origin: input.expectedOrigin === undefined ? ORIGIN : input.expectedOrigin,
+          companyId:
+            input.expectedCompanyId === undefined
+              ? COMPANY_ID
+              : input.expectedCompanyId,
+          origin:
+            input.expectedOrigin === undefined ? ORIGIN : input.expectedOrigin,
         }),
       }),
     ],
@@ -108,7 +124,9 @@ function createApp(input: {
   return { app, store };
 }
 
-function mintTicket(overrides: Partial<Parameters<typeof issueWorkspaceHandoffTicket>[0]> = {}) {
+function mintTicket(
+  overrides: Partial<Parameters<typeof issueWorkspaceHandoffTicket>[0]> = {},
+) {
   return issueWorkspaceHandoffTicket({
     key: KEY,
     userId: USER_ID,
@@ -124,7 +142,9 @@ function mintTicket(overrides: Partial<Parameters<typeof issueWorkspaceHandoffTi
 
 function exchange(app: express.Express, ticket: string | null) {
   const path = `/api/auth/workspace-handoff/exchange${
-    ticket === null ? "" : `?${WORKSPACE_HANDOFF_TICKET_QUERY_PARAM}=${encodeURIComponent(ticket)}`
+    ticket === null
+      ? ""
+      : `?${WORKSPACE_HANDOFF_TICKET_QUERY_PARAM}=${encodeURIComponent(ticket)}`
   }`;
   return request(app).get(path);
 }
@@ -146,12 +166,17 @@ afterEach(() => {
 describe("GET /api/auth/workspace-handoff/exchange", () => {
   it("redirects to the requested board path and sets exactly one session cookie", async () => {
     const { app, store } = createApp({});
-    const response = await exchange(app, mintTicket({ next: "/PAP/issues/PAP-17572" }));
+    const response = await exchange(
+      app,
+      mintTicket({ next: "/PAP/issues/PAP-17572" }),
+    );
 
     expect(response.status).toBe(302);
     expect(response.headers.location).toBe(`${ORIGIN}/PAP/issues/PAP-17572`);
     // The ticket must not survive into the landing URL, the cache, or the referrer.
-    expect(response.headers.location).not.toContain(WORKSPACE_HANDOFF_TICKET_QUERY_PARAM);
+    expect(response.headers.location).not.toContain(
+      WORKSPACE_HANDOFF_TICKET_QUERY_PARAM,
+    );
     expect(response.headers["cache-control"]).toContain("no-store");
     expect(response.headers["referrer-policy"]).toBe("no-referrer");
     expect(sessionCookies(response)).toHaveLength(1);
@@ -173,7 +198,10 @@ describe("GET /api/auth/workspace-handoff/exchange", () => {
 
   it("sends a rejected ticket to the labeled credential fallback with no session", async () => {
     const { app, store } = createApp({});
-    const expired = mintTicket({ now: new Date(Date.now() - 10 * 60_000), ttlSeconds: 30 });
+    const expired = mintTicket({
+      now: new Date(Date.now() - 10 * 60_000),
+      ttlSeconds: 30,
+    });
     const response = await exchange(app, expired);
 
     expect(response.status).toBe(302);
@@ -187,14 +215,21 @@ describe("GET /api/auth/workspace-handoff/exchange", () => {
   it("rejects a ticket for a cloned user with no active membership", async () => {
     const { app, store } = createApp({ activeMembershipCount: 0 });
     const response = await exchange(app, mintTicket());
-    expect(response.headers.location).toContain("workspaceHandoffError=missing_membership");
+    expect(response.headers.location).toContain(
+      "workspaceHandoffError=missing_membership",
+    );
     expect(store.session).toHaveLength(0);
   });
 
   it("rejects a ticket naming a user that did not survive the clone", async () => {
     const { app, store } = createApp({});
-    const response = await exchange(app, mintTicket({ userId: "user-that-was-not-cloned" }));
-    expect(response.headers.location).toContain("workspaceHandoffError=unknown_user");
+    const response = await exchange(
+      app,
+      mintTicket({ userId: "user-that-was-not-cloned" }),
+    );
+    expect(response.headers.location).toContain(
+      "workspaceHandoffError=unknown_user",
+    );
     expect(store.session).toHaveLength(0);
   });
 
@@ -202,33 +237,54 @@ describe("GET /api/auth/workspace-handoff/exchange", () => {
     const { app, store } = createApp({});
     // A ticket minted for the attacker's host must fail even when the request
     // arrives claiming to be that host.
-    const spoofedTicket = mintTicket({ origin: "https://attacker.example.com" });
+    const spoofedTicket = mintTicket({
+      origin: "https://attacker.example.com",
+    });
     const response = await exchange(app, spoofedTicket)
       .set("host", "attacker.example.com")
       .set("x-forwarded-host", "attacker.example.com")
       .set("x-forwarded-proto", "https")
       .set("x-forwarded-for", "203.0.113.7");
 
-    expect(response.headers.location).toContain("workspaceHandoffError=origin_mismatch");
+    expect(response.headers.location).toContain(
+      "workspaceHandoffError=origin_mismatch",
+    );
     expect(sessionCookies(response)).toHaveLength(0);
     expect(store.session).toHaveLength(0);
   });
 
   it("rejects a ticket bound to another workspace, instance, or company on this host", async () => {
     const { app } = createApp({});
-    const otherWorkspace = await exchange(app, mintTicket({ executionWorkspaceId: "ews-sibling" }));
-    expect(otherWorkspace.headers.location).toContain("workspaceHandoffError=workspace_mismatch");
+    const otherWorkspace = await exchange(
+      app,
+      mintTicket({ executionWorkspaceId: "ews-sibling" }),
+    );
+    expect(otherWorkspace.headers.location).toContain(
+      "workspaceHandoffError=workspace_mismatch",
+    );
 
-    const otherInstance = await exchange(app, mintTicket({ instanceId: "another-instance" }));
-    expect(otherInstance.headers.location).toContain("workspaceHandoffError=instance_mismatch");
+    const otherInstance = await exchange(
+      app,
+      mintTicket({ instanceId: "another-instance" }),
+    );
+    expect(otherInstance.headers.location).toContain(
+      "workspaceHandoffError=instance_mismatch",
+    );
 
-    const otherCompany = await exchange(app, mintTicket({ companyId: "company-sibling" }));
-    expect(otherCompany.headers.location).toContain("workspaceHandoffError=company_mismatch");
+    const otherCompany = await exchange(
+      app,
+      mintTicket({ companyId: "company-sibling" }),
+    );
+    expect(otherCompany.headers.location).toContain(
+      "workspaceHandoffError=company_mismatch",
+    );
   });
 
   it("rejects a missing or garbage ticket", async () => {
     const { app } = createApp({});
-    expect((await exchange(app, null)).headers.location).toContain("workspaceHandoffError=malformed");
+    expect((await exchange(app, null)).headers.location).toContain(
+      "workspaceHandoffError=malformed",
+    );
     expect((await exchange(app, "wh1.aaaa.bbbb")).headers.location).toContain(
       "workspaceHandoffError=bad_signature",
     );
@@ -245,7 +301,9 @@ describe("GET /api/auth/workspace-handoff/exchange", () => {
     const { app, store } = createApp({ expectedOrigin: null });
     const response = await exchange(app, mintTicket());
     expect(response.status).toBe(302);
-    expect(response.headers.location).toContain("workspaceHandoffError=origin_mismatch");
+    expect(response.headers.location).toContain(
+      "workspaceHandoffError=origin_mismatch",
+    );
     expect(store.session).toHaveLength(0);
   });
 });

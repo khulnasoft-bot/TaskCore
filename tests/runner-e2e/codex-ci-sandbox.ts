@@ -5,9 +5,12 @@ import path from "node:path";
 import type { MatrixExecution } from "./types.js";
 
 export function requiresCodexCiSandbox(execution: MatrixExecution): boolean {
-  return execution.environment.id === "local"
-    && execution.profile.generation === "native"
-    && (execution.profile.provider === "codex" || execution.profile.id === "runner-acpx-codex");
+  return (
+    execution.environment.id === "local" &&
+    execution.profile.generation === "native" &&
+    (execution.profile.provider === "codex" ||
+      execution.profile.id === "runner-acpx-codex")
+  );
 }
 
 /** Probe the existing Linux sandbox before spending provider credentials.

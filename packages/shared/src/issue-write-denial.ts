@@ -144,10 +144,8 @@ export function describeIssueWriteDenial(
           `Issue writes are open by default, but only for tasks the actor can already ` +
           `read. ${issue} is not visible to ${actor}, so its comment, update, child, and ` +
           `assignment channels are all closed — the wall is visibility, not the write itself.`,
-        whoCanAct:
-          `${assignee}, and any agent or board member the task is visible to.`,
-        sanctionedPath:
-          `Ask the board to widen visibility for ${actor}, or ${CHILD_ISSUE_PATH}.`,
+        whoCanAct: `${assignee}, and any agent or board member the task is visible to.`,
+        sanctionedPath: `Ask the board to widen visibility for ${actor}, or ${CHILD_ISSUE_PATH}.`,
       };
 
     case "issue_write_actor_class_excluded":
@@ -161,17 +159,19 @@ export function describeIssueWriteDenial(
           `Default-open issue writes are a standard-trust privilege. Low-trust, ` +
           `skill-test, and task-bridge scopes keep their existing tight walls, so ` +
           `${actor} cannot write to ${issue} no matter who it acts for.`,
-        whoCanAct:
-          `A standard-trust agent in this company, or a board member.`,
+        whoCanAct: `A standard-trust agent in this company, or a board member.`,
         sanctionedPath:
           `Report the request upward and let a standard-trust agent make the write — ` +
           `actor-class scope cannot be widened per task.`,
       };
 
     case "issue_write_responsible_user_ceiling": {
-      const ceiling = describeResponsibleUserDenial("RESPONSIBLE_USER_UNAUTHORIZED", {
-        userName: context.responsibleUserName,
-      });
+      const ceiling = describeResponsibleUserDenial(
+        "RESPONSIBLE_USER_UNAUTHORIZED",
+        {
+          userName: context.responsibleUserName,
+        },
+      );
       return {
         code,
         status: 403,
@@ -179,16 +179,18 @@ export function describeIssueWriteDenial(
         boundary: "Responsible-user ceiling",
         title: ceiling.title,
         description: `${ceiling.description} The write to ${issue} was refused for that reason.`,
-        whoCanAct:
-          `${responsible} once authorized, or anyone already permitted to write to ${issue}.`,
+        whoCanAct: `${responsible} once authorized, or anyone already permitted to write to ${issue}.`,
         sanctionedPath: ceiling.recommendedAction,
       };
     }
 
     case "issue_write_responsible_user_unavailable": {
-      const unavailable = describeResponsibleUserDenial("RESPONSIBLE_USER_UNAVAILABLE", {
-        userName: context.responsibleUserName,
-      });
+      const unavailable = describeResponsibleUserDenial(
+        "RESPONSIBLE_USER_UNAVAILABLE",
+        {
+          userName: context.responsibleUserName,
+        },
+      );
       return {
         code,
         status: 403,
@@ -214,8 +216,7 @@ export function describeIssueWriteDenial(
           `${assignee} has ${issue} checked out and a run is live. Checkout and run ` +
           `ownership stay assignee-scoped even though writes are open, so field edits ` +
           `belong to the run that holds the lock until it finishes.`,
-        whoCanAct:
-          `${assignee}'s live run, or an agent holding the manage-active-checkouts permission.`,
+        whoCanAct: `${assignee}'s live run, or an agent holding the manage-active-checkouts permission.`,
         sanctionedPath:
           `Comment instead of patching — comments stay open and wake ${assignee} — or ` +
           `wait for the run to release the lock and retry.`,
@@ -236,8 +237,7 @@ export function describeIssueWriteDenial(
           `updates combined${attempt !== null ? `; this was attempt ${attempt}` : ""}. The cap ` +
           `bounds runaway comment sprays and loops — it is a rate backstop, not a ` +
           `permission decision, so ${actor} is still allowed to write to ${issue}.`,
-        whoCanAct:
-          `${actor} on its next heartbeat run, or ${assignee} on ${issue} directly.`,
+        whoCanAct: `${actor} on its next heartbeat run, or ${assignee} on ${issue} directly.`,
         sanctionedPath:
           `Consolidate what is left into one comment on your own task, or end the run and ` +
           `continue on the next heartbeat — the budget resets per run.`,
@@ -259,7 +259,6 @@ export function describeIssueWriteDenial(
         sanctionedPath:
           `Send the \`X-Taskcore-Run-Id\` header with your current run (\`$TASKCORE_RUN_ID\`) ` +
           `and retry.`,
-
       };
 
     case "issue_write_attribution_spoof_rejected":
@@ -273,8 +272,7 @@ export function describeIssueWriteDenial(
           `\`onBehalfOfUserId\` is derived from the authenticated actor, never from the ` +
           `request body — an agent cannot pick the human whose authority it rides. The ` +
           `attempt was recorded in the audit log.`,
-        whoCanAct:
-          `${actor} itself: the write is allowed, only the chosen attribution is not.`,
+        whoCanAct: `${actor} itself: the write is allowed, only the chosen attribution is not.`,
         sanctionedPath:
           `Remove \`onBehalfOfUserId\` from the request and retry; the server fills in ` +
           `${responsible} from your run.`,

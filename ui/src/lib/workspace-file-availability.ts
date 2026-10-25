@@ -1,4 +1,7 @@
-import type { ResolvedWorkspaceResource, WorkspaceFileSelector } from "@taskcore/shared";
+import type {
+  ResolvedWorkspaceResource,
+  WorkspaceFileSelector,
+} from "@taskcore/shared";
 import type { ParsedWorkspaceFileRef } from "./workspace-file-parser";
 
 /** Server cap on `POST /file-resources/availability` (`queries` max length). */
@@ -33,9 +36,13 @@ export type WorkspaceFileAvailability =
   | { state: "unavailable"; reason: string | null }
   | { state: "openable"; target: WorkspaceFileAvailabilityTarget };
 
-export const WORKSPACE_FILE_AVAILABILITY_PENDING: WorkspaceFileAvailability = { state: "pending" };
+export const WORKSPACE_FILE_AVAILABILITY_PENDING: WorkspaceFileAvailability = {
+  state: "pending",
+};
 
-export function workspaceFileAvailabilityRef(ref: ParsedWorkspaceFileRef): WorkspaceFileAvailabilityRef {
+export function workspaceFileAvailabilityRef(
+  ref: ParsedWorkspaceFileRef,
+): WorkspaceFileAvailabilityRef {
   return {
     path: ref.path,
     workspace: ref.workspace ?? "auto",
@@ -49,8 +56,15 @@ export function workspaceFileAvailabilityRef(ref: ParsedWorkspaceFileRef): Works
  * (`[workspace, projectId, workspaceId, path]`) so responses can be matched back
  * to the requests that produced them without relying on array order.
  */
-export function workspaceFileAvailabilityKey(ref: WorkspaceFileAvailabilityRef): string {
-  return JSON.stringify([ref.workspace, ref.projectId, ref.workspaceId, ref.path]);
+export function workspaceFileAvailabilityKey(
+  ref: WorkspaceFileAvailabilityRef,
+): string {
+  return JSON.stringify([
+    ref.workspace,
+    ref.projectId,
+    ref.workspaceId,
+    ref.path,
+  ]);
 }
 
 /** Split a deduplicated ref list into request-sized chunks. */
@@ -74,7 +88,11 @@ export function chunkWorkspaceFileAvailabilityRefs<T>(
 export function workspaceFileAvailabilityTarget(
   resource: ResolvedWorkspaceResource,
 ): WorkspaceFileAvailabilityTarget {
-  if (resource.workspaceKind === "project_workspace" && resource.projectId && resource.workspaceId) {
+  if (
+    resource.workspaceKind === "project_workspace" &&
+    resource.projectId &&
+    resource.workspaceId
+  ) {
     return {
       workspace: "project",
       projectId: resource.projectId,
@@ -83,7 +101,8 @@ export function workspaceFileAvailabilityTarget(
     };
   }
   return {
-    workspace: resource.workspaceKind === "project_workspace" ? "project" : "execution",
+    workspace:
+      resource.workspaceKind === "project_workspace" ? "project" : "execution",
     projectId: null,
     workspaceId: null,
     projectName: resource.projectName ?? null,
@@ -103,5 +122,8 @@ export function workspaceFileAvailabilityFromResult(result: {
   if (!result.openable || !result.resource) {
     return { state: "unavailable", reason: result.unavailableReason ?? null };
   }
-  return { state: "openable", target: workspaceFileAvailabilityTarget(result.resource) };
+  return {
+    state: "openable",
+    target: workspaceFileAvailabilityTarget(result.resource),
+  };
 }

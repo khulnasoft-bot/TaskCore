@@ -12,8 +12,14 @@ import test from "node:test";
 const repoRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const scriptPath = join(repoRoot, "scripts", "service-onboard-smoke.sh");
 const script = readFileSync(scriptPath, "utf8");
-const smokeWorkflow = readFileSync(join(repoRoot, ".github", "workflows", "release-smoke.yml"), "utf8");
-const releaseWorkflow = readFileSync(join(repoRoot, ".github", "workflows", "release.yml"), "utf8");
+const smokeWorkflow = readFileSync(
+  join(repoRoot, ".github", "workflows", "release-smoke.yml"),
+  "utf8",
+);
+const releaseWorkflow = readFileSync(
+  join(repoRoot, ".github", "workflows", "release.yml"),
+  "utf8",
+);
 
 test("smoke script is executable and parses", () => {
   accessSync(scriptPath, constants.X_OK);
@@ -39,7 +45,10 @@ test("release-smoke workflow runs the service leg against the input version", ()
   assert.match(smokeWorkflow, /^  smoke_service:$/m);
   assert.match(smokeWorkflow, /scripts\/service-onboard-smoke\.sh/);
   const serviceJob = smokeWorkflow.split(/^  smoke:$/m)[0];
-  assert.match(serviceJob, /TASKCORE_VERSION: \$\{\{ inputs\.taskcore_version \}\}/);
+  assert.match(
+    serviceJob,
+    /TASKCORE_VERSION: \$\{\{ inputs\.taskcore_version \}\}/,
+  );
   // Diagnostics must survive the run: cleanup stays off in CI and the
   // artifact name cannot collide with the Docker job's upload.
   assert.match(serviceJob, /SMOKE_CLEANUP: "false"/);
@@ -47,6 +56,12 @@ test("release-smoke workflow runs the service leg against the input version", ()
 });
 
 test("nightly and beta smokes still route through the reusable workflow", () => {
-  const calls = releaseWorkflow.match(/uses: \.\/\.github\/workflows\/release-smoke\.yml/g) ?? [];
-  assert.ok(calls.length >= 2, "smoke_nightly and smoke_beta must call release-smoke.yml so smoke_service gates them");
+  const calls =
+    releaseWorkflow.match(
+      /uses: \.\/\.github\/workflows\/release-smoke\.yml/g,
+    ) ?? [];
+  assert.ok(
+    calls.length >= 2,
+    "smoke_nightly and smoke_beta must call release-smoke.yml so smoke_service gates them",
+  );
 });

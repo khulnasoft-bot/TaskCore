@@ -3,16 +3,12 @@
   "slug": "embat",
   "name": "Embat",
   "description": "Connect Embat's provider-hosted MCP server.",
-  "categories": [
-    "commerce"
-  ],
+  "categories": ["commerce"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/embat.svg"
   },
-  "urlPatterns": [
-    "https://tellme.embat.io/*"
-  ],
+  "urlPatterns": ["https://tellme.embat.io/*"],
   "docsUrl": "https://tellme.embat.io/.well-known/oauth-protected-resource/mcp",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,18 +16,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://tellme.embat.io/mcp",
-        "scopesHint": [
-          "email",
-          "offline_access",
-          "openid",
-          "profile"
-        ]
+        "scopesHint": ["email", "offline_access", "openid", "profile"]
       },
       "guidanceMd": "Connect Embat in the browser. An Embat account; pilot the connection because provider setup documentation is sparse.",
       "riskTier": "S4",

@@ -7,10 +7,10 @@ another.
 
 ## Three actors, always separate
 
-| Actor | What it is in Capability | What it is **not** |
-| --- | --- | --- |
-| **Real Codex** | A real Codex app-server session driving the turn loop. The agent has no Taskcore skill; it sees only the semantic tools the scenario exposes. | Not a scripted stand-in, and not a Taskcore-aware agent. |
-| **Real runnerd** | The real package-local `taskcore-runnerd` binary. It owns the Codex child process group and proxies newline-delimited JSON-RPC over stdio. | Not an in-process fake and not the production Taskcore runtime. |
+| Actor             | What it is in Capability                                                                                                                                 | What it is **not**                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Real Codex**    | A real Codex app-server session driving the turn loop. The agent has no Taskcore skill; it sees only the semantic tools the scenario exposes.            | Not a scripted stand-in, and not a Taskcore-aware agent.                                                |
+| **Real runnerd**  | The real package-local `taskcore-runnerd` binary. It owns the Codex child process group and proxies newline-delimited JSON-RPC over stdio.               | Not an in-process fake and not the production Taskcore runtime.                                         |
 | **Mock Taskcore** | The deterministic in-process `ControlPlanePort` adapter. It holds every issue, comment, document, interaction, approval, and audit record as mock state. | Not the Taskcore control plane, database, or API. No request leaves the process for a Taskcore service. |
 
 The live surface renders a `Real Codex`, `Real runnerd`, and `Mock Taskcore`
@@ -77,11 +77,11 @@ Live mode is reachable from both primary surfaces:
 
 ## Eligibility summary
 
-| Evidence | Eligible for |
-| --- | --- |
-| Scripted / `mode=fake` run | 106-case conformance, replay determinism, screenshot matrix, contract proofs |
-| Live Codex run on the final build | Revision 3/4 final acceptance criteria that require a real provider turn |
-| Revision 2 preview (build `da0d32d74a`, historical URL) | Historical comparison only — **not** eligible for final acceptance |
+| Evidence                                                | Eligible for                                                                 |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Scripted / `mode=fake` run                              | 106-case conformance, replay determinism, screenshot matrix, contract proofs |
+| Live Codex run on the final build                       | Revision 3/4 final acceptance criteria that require a real provider turn     |
+| Revision 2 preview (build `da0d32d74a`, historical URL) | Historical comparison only — **not** eligible for final acceptance           |
 
 See the [live runnerd and Codex loop](capability-live-runnerd-codex.md) reference
 for the session API and verification commands behind each row above.

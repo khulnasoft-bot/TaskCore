@@ -90,7 +90,9 @@ describe("SkillFolderRail", () => {
 
   it("uses the wider default and persists drag resizing", () => {
     const rail = container.firstElementChild as HTMLDivElement;
-    const separator = container.querySelector('[role="separator"]') as HTMLDivElement;
+    const separator = container.querySelector(
+      '[role="separator"]',
+    ) as HTMLDivElement;
     expect(rail.style.width).toBe("288px");
     separator.setPointerCapture = vi.fn();
 
@@ -101,14 +103,18 @@ describe("SkillFolderRail", () => {
     });
 
     expect(rail.style.width).toBe("320px");
-    expect(window.localStorage.getItem("taskcore.skills.folderRail.width")).toBe("320");
+    expect(
+      window.localStorage.getItem("taskcore.skills.folderRail.width"),
+    ).toBe("320");
   });
 
   it("keeps virtual and folder counts on the same grid column", () => {
-    const allRow = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("All skills"));
-    const myLabel = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("My Skills"));
+    const allRow = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("All skills"),
+    );
+    const myLabel = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("My Skills"),
+    );
     const myRow = myLabel?.parentElement;
 
     expect(allRow?.className).toContain("grid-cols-(--gtc-folder-row-actions)");
@@ -118,14 +124,17 @@ describe("SkillFolderRail", () => {
   });
 
   it("selects and toggles a folder when its row label is clicked", () => {
-    const myLabel = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("My Skills"));
+    const myLabel = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("My Skills"),
+    );
 
     expect(container.textContent).not.toContain("Ada");
     flushSync(() => myLabel?.click());
 
     expect(onSelect).toHaveBeenCalledWith("my-root");
     expect(container.textContent).toContain("Ada");
-    expect(container.querySelector('[aria-label="Collapse folder"]')).not.toBeNull();
+    expect(
+      container.querySelector('[aria-label="Collapse folder"]'),
+    ).not.toBeNull();
   });
 });

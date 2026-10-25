@@ -32,7 +32,9 @@ function summaryCount(label: string, count: number): string {
   return `${label} ${count}${count === 1 ? " action" : ""}`;
 }
 
-export function formatActionPermissionSummary(summary: ActionPermissionSummary): string {
+export function formatActionPermissionSummary(
+  summary: ActionPermissionSummary,
+): string {
   return [
     summaryCount("Allowed for", summary.allowedCount),
     summaryCount("Ask first for", summary.askFirstCount),

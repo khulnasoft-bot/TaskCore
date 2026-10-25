@@ -21,10 +21,16 @@ import {
 import { documentAnnotationService } from "../services/document-annotations.js";
 import { documentService } from "../services/documents.js";
 import { buildTaskcoreWakePayload } from "../services/heartbeat.js";
-import { buildDocumentReviewContext, buildPlanReviewContext, PLAN_REVIEW_CONTEXT_LIMITS } from "../services/plan-review-context.js";
+import {
+  buildDocumentReviewContext,
+  buildPlanReviewContext,
+  PLAN_REVIEW_CONTEXT_LIMITS,
+} from "../services/plan-review-context.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -46,10 +52,14 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
   let db!: ReturnType<typeof createDb>;
   let annotations!: ReturnType<typeof documentAnnotationService>;
   let docs!: ReturnType<typeof documentService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-document-annotations-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-document-annotations-",
+    );
     db = createDb(tempDb.connectionString);
     annotations = documentAnnotationService(db);
     docs = documentService(db);
@@ -72,7 +82,9 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
     await tempDb?.cleanup();
   });
 
-  async function createIssueWithDocument(workMode: "planning" | "standard" = "planning") {
+  async function createIssueWithDocument(
+    workMode: "planning" | "standard" = "planning",
+  ) {
     const companyId = randomUUID();
     const issueId = randomUUID();
 
@@ -151,8 +163,17 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
           baseRevisionId: document.latestRevisionId!,
           baseRevisionNumber: document.latestRevisionNumber,
           selector: {
-            quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-            position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+            quote: {
+              exact: "selected text",
+              prefix: "Alpha ",
+              suffix: " omega",
+            },
+            position: {
+              normalizedStart: 6,
+              normalizedEnd: 19,
+              markdownStart: 6,
+              markdownEnd: 19,
+            },
           },
           body: "Please review this text",
         },
@@ -209,7 +230,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: document.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: "Linked annotation body",
         issueCommentId: issueComment.id,
@@ -226,7 +252,10 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
     expect(cleanup.deletedCommentIds).toEqual([thread.comments[0]!.id]);
     expect(cleanup.resolvedThreadIds).toEqual([thread.id]);
     await expect(
-      db.select().from(documentAnnotationComments).where(eq(documentAnnotationComments.id, thread.comments[0]!.id)),
+      db
+        .select()
+        .from(documentAnnotationComments)
+        .where(eq(documentAnnotationComments.id, thread.comments[0]!.id)),
     ).resolves.toHaveLength(0);
     const [updatedThread] = await db
       .select()
@@ -260,8 +289,17 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
           baseRevisionId: document.latestRevisionId!,
           baseRevisionNumber: document.latestRevisionNumber,
           selector: {
-            quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-            position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+            quote: {
+              exact: "selected text",
+              prefix: "Alpha ",
+              suffix: " omega",
+            },
+            position: {
+              normalizedStart: 6,
+              normalizedEnd: 19,
+              markdownStart: 6,
+              markdownEnd: 19,
+            },
           },
           body: "Do not link this annotation to a deleted comment",
           issueCommentId: issueComment.id,
@@ -273,7 +311,9 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
       message: "Linked issue comment must belong to this issue",
     });
 
-    await expect(db.select().from(documentAnnotationComments)).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(documentAnnotationComments),
+    ).resolves.toHaveLength(0);
   });
 
   it("does not report already-resolved empty threads as newly resolved during linked comment cleanup", async () => {
@@ -297,7 +337,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: document.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: "Linked annotation body",
         issueCommentId: issueComment.id,
@@ -307,7 +352,11 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
 
     await db
       .update(documentAnnotationThreads)
-      .set({ status: "resolved", resolvedByUserId: "board-user", resolvedAt: new Date("2026-06-05T03:05:00.000Z") })
+      .set({
+        status: "resolved",
+        resolvedByUserId: "board-user",
+        resolvedAt: new Date("2026-06-05T03:05:00.000Z"),
+      })
       .where(eq(documentAnnotationThreads.id, thread.id));
 
     const cleanup = await annotations.cleanupForIssueCommentDeletion(
@@ -331,7 +380,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: document.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: longBody,
       },
@@ -345,7 +399,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: document.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: "Already resolved",
       },
@@ -384,7 +443,9 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
       },
       truncated: true,
     });
-    expect(context?.threads.map((thread) => thread.id)).toEqual([openThread.id]);
+    expect(context?.threads.map((thread) => thread.id)).toEqual([
+      openThread.id,
+    ]);
     expect(context?.threads[0]).toMatchObject({
       status: "open",
       anchorState: "active",
@@ -470,17 +531,20 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
       },
     });
 
-    await expect(buildPlanReviewContext({
-      db,
-      companyId,
-      issueId: otherIssueId,
-      issueWorkMode: "standard",
-      interactionId: interaction.id,
-    })).resolves.toBeNull();
+    await expect(
+      buildPlanReviewContext({
+        db,
+        companyId,
+        issueId: otherIssueId,
+        issueWorkMode: "standard",
+        interactionId: interaction.id,
+      }),
+    ).resolves.toBeNull();
   });
 
   it("includes open plan annotations for standard-mode issue comment wakes", async () => {
-    const { companyId, issueId, document } = await createIssueWithDocument("standard");
+    const { companyId, issueId, document } =
+      await createIssueWithDocument("standard");
     const thread = await annotations.createThread(
       issueId,
       "plan",
@@ -489,7 +553,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: document.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: "Please incorporate this plan annotation in standard mode.",
       },
@@ -551,7 +620,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: document.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: "Please split this plan step before creating child issues.",
       },
@@ -631,8 +705,10 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
   });
 
   it("fails closed when an annotation delta comment id points at a different issue", async () => {
-    const { companyId, issueId, document } = await createIssueWithDocument("standard");
-    const { issueId: otherIssueId, document: otherDocument } = await createIssueWithDocument("standard");
+    const { companyId, issueId, document } =
+      await createIssueWithDocument("standard");
+    const { issueId: otherIssueId, document: otherDocument } =
+      await createIssueWithDocument("standard");
     const otherThread = await annotations.createThread(
       otherIssueId,
       "plan",
@@ -641,7 +717,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: otherDocument.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: "Different issue annotation comment.",
       },
@@ -663,7 +744,8 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
   });
 
   it("includes plan review context for same-issue annotation deltas on standard issues", async () => {
-    const { companyId, issueId, document } = await createIssueWithDocument("standard");
+    const { companyId, issueId, document } =
+      await createIssueWithDocument("standard");
     const thread = await annotations.createThread(
       issueId,
       "plan",
@@ -672,7 +754,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: document.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: "Direct same-issue annotation comment.",
       },
@@ -727,7 +814,12 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
         baseRevisionNumber: document.latestRevisionNumber,
         selector: {
           quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-          position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+          position: {
+            normalizedStart: 6,
+            normalizedEnd: 19,
+            markdownStart: 6,
+            markdownEnd: 19,
+          },
         },
         body: "The plan needs a concrete QA owner.",
       },
@@ -801,37 +893,60 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
 
   it("groups non-plan annotations by most recently updated document and applies global caps", async () => {
     const { companyId, issueId } = await createIssueWithDocument("standard");
-    const older = (await docs.upsertIssueDocument({
-      issueId,
-      key: "qa-evidence",
-      title: "QA evidence",
-      format: "markdown",
-      body: "Alpha selected text omega",
-    })).document;
-    const newer = (await docs.upsertIssueDocument({
-      issueId,
-      key: "run-summary",
-      title: "Run summary",
-      format: "markdown",
-      body: "Alpha selected text omega",
-    })).document;
-    await db.update(issueDocuments)
+    const older = (
+      await docs.upsertIssueDocument({
+        issueId,
+        key: "qa-evidence",
+        title: "QA evidence",
+        format: "markdown",
+        body: "Alpha selected text omega",
+      })
+    ).document;
+    const newer = (
+      await docs.upsertIssueDocument({
+        issueId,
+        key: "run-summary",
+        title: "Run summary",
+        format: "markdown",
+        body: "Alpha selected text omega",
+      })
+    ).document;
+    await db
+      .update(issueDocuments)
       .set({ updatedAt: new Date("2026-06-01T00:00:00.000Z") })
       .where(eq(issueDocuments.documentId, older.id));
-    await db.update(issueDocuments)
+    await db
+      .update(issueDocuments)
       .set({ updatedAt: new Date("2026-06-02T00:00:00.000Z") })
       .where(eq(issueDocuments.documentId, newer.id));
 
-    for (let index = 0; index < PLAN_REVIEW_CONTEXT_LIMITS.maxThreads + 1; index += 1) {
+    for (
+      let index = 0;
+      index < PLAN_REVIEW_CONTEXT_LIMITS.maxThreads + 1;
+      index += 1
+    ) {
       await annotations.createThread(
         issueId,
         index === 0 ? "run-summary" : "qa-evidence",
         {
-          baseRevisionId: index === 0 ? newer.latestRevisionId! : older.latestRevisionId!,
-          baseRevisionNumber: index === 0 ? newer.latestRevisionNumber : older.latestRevisionNumber,
+          baseRevisionId:
+            index === 0 ? newer.latestRevisionId! : older.latestRevisionId!,
+          baseRevisionNumber:
+            index === 0
+              ? newer.latestRevisionNumber
+              : older.latestRevisionNumber,
           selector: {
-            quote: { exact: "selected text", prefix: "Alpha ", suffix: " omega" },
-            position: { normalizedStart: 6, normalizedEnd: 19, markdownStart: 6, markdownEnd: 19 },
+            quote: {
+              exact: "selected text",
+              prefix: "Alpha ",
+              suffix: " omega",
+            },
+            position: {
+              normalizedStart: 6,
+              normalizedEnd: 19,
+              markdownStart: 6,
+              markdownEnd: 19,
+            },
           },
           body: `Annotation ${index}`,
         },
@@ -846,7 +961,10 @@ describeEmbeddedPostgres("documentAnnotationService", () => {
       includeForIssueComment: true,
     });
 
-    expect(context?.documents.map((document) => document.documentKey)).toEqual(["run-summary", "qa-evidence"]);
+    expect(context?.documents.map((document) => document.documentKey)).toEqual([
+      "run-summary",
+      "qa-evidence",
+    ]);
     expect(context?.totals).toMatchObject({
       openThreadCount: PLAN_REVIEW_CONTEXT_LIMITS.maxThreads + 1,
       includedThreadCount: PLAN_REVIEW_CONTEXT_LIMITS.maxThreads,

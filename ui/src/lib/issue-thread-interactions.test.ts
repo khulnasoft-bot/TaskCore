@@ -32,7 +32,10 @@ const resolverPolicyFields = {
   effectiveResolverPolicy: "anyone",
   resolverPolicyProvenance: "inherited",
   effectiveResolverPolicySource: "requested",
-  legacyResolverPolicyAliases: { requested: "board_or_agents", effective: "board_or_agents" },
+  legacyResolverPolicyAliases: {
+    requested: "board_or_agents",
+    effective: "board_or_agents",
+  },
 } as const;
 
 describe("buildSuggestedTaskTree", () => {
@@ -58,7 +61,11 @@ describe("buildSuggestedTaskTree", () => {
     expect(roots[0]?.task.clientKey).toBe("root");
     expect(roots[0]?.children[0]?.task.clientKey).toBe("child");
     expect(countSuggestedTaskNodes(roots[0]!)).toBe(3);
-    expect(collectSuggestedTaskClientKeys(roots[0]!)).toEqual(["root", "child", "grandchild"]);
+    expect(collectSuggestedTaskClientKeys(roots[0]!)).toEqual([
+      "root",
+      "child",
+      "grandchild",
+    ]);
   });
 });
 
@@ -75,31 +82,41 @@ describe("issue thread interaction helpers", () => {
       updatedAt: "2026-04-06T12:00:00.000Z",
       result: null,
     } as const;
-    expect(interactionReplacesComposerSkip({
-      ...base,
-      kind: "request_confirmation",
-      payload: { version: 1, prompt: "Proceed?" },
-    } as IssueThreadInteraction)).toBe(true);
-    expect(interactionReplacesComposerSkip({
-      ...base,
-      kind: "request_checkbox_confirmation",
-      payload: { version: 1, prompt: "Select", options: [] },
-    } as IssueThreadInteraction)).toBe(true);
-    expect(interactionReplacesComposerSkip({
-      ...base,
-      kind: "suggest_tasks",
-      payload: { version: 1, tasks: [] },
-    } as IssueThreadInteraction)).toBe(true);
-    expect(interactionReplacesComposerSkip({
-      ...base,
-      kind: "ask_user_questions",
-      payload: { version: 1, questions: [] },
-    } as IssueThreadInteraction)).toBe(false);
-    expect(interactionReplacesComposerSkip({
-      ...base,
-      kind: "request_item_verdicts",
-      payload: { version: 1, prompt: "Review", items: [] },
-    } as IssueThreadInteraction)).toBe(false);
+    expect(
+      interactionReplacesComposerSkip({
+        ...base,
+        kind: "request_confirmation",
+        payload: { version: 1, prompt: "Proceed?" },
+      } as IssueThreadInteraction),
+    ).toBe(true);
+    expect(
+      interactionReplacesComposerSkip({
+        ...base,
+        kind: "request_checkbox_confirmation",
+        payload: { version: 1, prompt: "Select", options: [] },
+      } as IssueThreadInteraction),
+    ).toBe(true);
+    expect(
+      interactionReplacesComposerSkip({
+        ...base,
+        kind: "suggest_tasks",
+        payload: { version: 1, tasks: [] },
+      } as IssueThreadInteraction),
+    ).toBe(true);
+    expect(
+      interactionReplacesComposerSkip({
+        ...base,
+        kind: "ask_user_questions",
+        payload: { version: 1, questions: [] },
+      } as IssueThreadInteraction),
+    ).toBe(false);
+    expect(
+      interactionReplacesComposerSkip({
+        ...base,
+        kind: "request_item_verdicts",
+        payload: { version: 1, prompt: "Review", items: [] },
+      } as IssueThreadInteraction),
+    ).toBe(false);
   });
 
   it("formats successor-turn answer delivery with canonical prompts and labels", () => {
@@ -116,16 +133,52 @@ describe("issue thread interaction helpers", () => {
       payload: {
         version: 1,
         questions: [
-          { id: "purpose", prompt: "What is it for?", selectionMode: "single", options: [] },
-          { id: "runtime", prompt: "Which runtime?", selectionMode: "single", options: [{ id: "node", label: "Node.js" }] },
-          { id: "features", prompt: "Which features?", selectionMode: "multi", options: [{ id: "logs", label: "Request logs" }] },
+          {
+            id: "purpose",
+            prompt: "What is it for?",
+            selectionMode: "single",
+            options: [],
+          },
+          {
+            id: "runtime",
+            prompt: "Which runtime?",
+            selectionMode: "single",
+            options: [{ id: "node", label: "Node.js" }],
+          },
+          {
+            id: "features",
+            prompt: "Which features?",
+            selectionMode: "multi",
+            options: [{ id: "logs", label: "Request logs" }],
+          },
         ],
         questionSet: {
           schema: "taskcore.question_set.v1",
           questions: [
-            { id: "purpose", header: "Purpose", prompt: "What is it for?", required: true, answerMode: "text" },
-            { id: "runtime", header: "Runtime", prompt: "Which runtime?", required: true, answerMode: "single_select", options: [{ id: "node", label: "Node.js" }] },
-            { id: "features", header: "Features", prompt: "Which features?", required: false, answerMode: "multi_select", options: [{ id: "logs", label: "Request logs" }], customAnswer: { enabled: true, label: "Other" } },
+            {
+              id: "purpose",
+              header: "Purpose",
+              prompt: "What is it for?",
+              required: true,
+              answerMode: "text",
+            },
+            {
+              id: "runtime",
+              header: "Runtime",
+              prompt: "Which runtime?",
+              required: true,
+              answerMode: "single_select",
+              options: [{ id: "node", label: "Node.js" }],
+            },
+            {
+              id: "features",
+              header: "Features",
+              prompt: "Which features?",
+              required: false,
+              answerMode: "multi_select",
+              options: [{ id: "logs", label: "Request logs" }],
+              customAnswer: { enabled: true, label: "Other" },
+            },
           ],
         },
       },
@@ -139,137 +192,149 @@ describe("issue thread interaction helpers", () => {
       },
     } satisfies AskUserQuestionsInteraction;
 
-    expect(buildAnsweredQuestionsDeliveryText(interaction)).toBe([
-      "Answered questions",
-      "",
-      "- Purpose — What is it for?: Internal API",
-      "- Runtime — Which runtime?: Node.js",
-      "- Features — Which features?: Request logs, Metrics",
-    ].join("\n"));
+    expect(buildAnsweredQuestionsDeliveryText(interaction)).toBe(
+      [
+        "Answered questions",
+        "",
+        "- Purpose — What is it for?: Internal API",
+        "- Runtime — Which runtime?: Node.js",
+        "- Features — Which features?: Request logs, Metrics",
+      ].join("\n"),
+    );
   });
 
   it("summarizes task and question interactions", () => {
-    expect(buildIssueThreadInteractionSummary({
-      id: "interaction-1",
-      companyId: "company-1",
-      issueId: "issue-1",
-      kind: "suggest_tasks",
-      status: "pending",
-      continuationPolicy: "wake_assignee",
-      ...resolverPolicyFields,
-      createdAt: "2026-04-06T12:00:00.000Z",
-      updatedAt: "2026-04-06T12:00:00.000Z",
-      payload: {
-        version: 1,
-        tasks: [
-          { clientKey: "task-1", title: "One" },
-          { clientKey: "task-2", title: "Two" },
-        ],
-      },
-    })).toBe("Suggested 2 tasks");
+    expect(
+      buildIssueThreadInteractionSummary({
+        id: "interaction-1",
+        companyId: "company-1",
+        issueId: "issue-1",
+        kind: "suggest_tasks",
+        status: "pending",
+        continuationPolicy: "wake_assignee",
+        ...resolverPolicyFields,
+        createdAt: "2026-04-06T12:00:00.000Z",
+        updatedAt: "2026-04-06T12:00:00.000Z",
+        payload: {
+          version: 1,
+          tasks: [
+            { clientKey: "task-1", title: "One" },
+            { clientKey: "task-2", title: "Two" },
+          ],
+        },
+      }),
+    ).toBe("Suggested 2 tasks");
 
-    expect(buildIssueThreadInteractionSummary({
-      id: "interaction-accepted",
-      companyId: "company-1",
-      issueId: "issue-1",
-      kind: "suggest_tasks",
-      status: "accepted",
-      continuationPolicy: "wake_assignee",
-      ...resolverPolicyFields,
-      createdAt: "2026-04-06T12:00:00.000Z",
-      updatedAt: "2026-04-06T12:00:00.000Z",
-      payload: {
-        version: 1,
-        tasks: [
-          { clientKey: "task-1", title: "One" },
-          { clientKey: "task-2", title: "Two" },
-        ],
-      },
-      result: {
-        version: 1,
-        createdTasks: [{ clientKey: "task-1", issueId: "child-1" }],
-        skippedClientKeys: ["task-2"],
-      },
-    })).toBe("Accepted 1 of 2 tasks");
+    expect(
+      buildIssueThreadInteractionSummary({
+        id: "interaction-accepted",
+        companyId: "company-1",
+        issueId: "issue-1",
+        kind: "suggest_tasks",
+        status: "accepted",
+        continuationPolicy: "wake_assignee",
+        ...resolverPolicyFields,
+        createdAt: "2026-04-06T12:00:00.000Z",
+        updatedAt: "2026-04-06T12:00:00.000Z",
+        payload: {
+          version: 1,
+          tasks: [
+            { clientKey: "task-1", title: "One" },
+            { clientKey: "task-2", title: "Two" },
+          ],
+        },
+        result: {
+          version: 1,
+          createdTasks: [{ clientKey: "task-1", issueId: "child-1" }],
+          skippedClientKeys: ["task-2"],
+        },
+      }),
+    ).toBe("Accepted 1 of 2 tasks");
 
-    expect(buildIssueThreadInteractionSummary({
-      id: "interaction-2",
-      companyId: "company-1",
-      issueId: "issue-1",
-      kind: "ask_user_questions",
-      status: "pending",
-      continuationPolicy: "wake_assignee",
-      ...resolverPolicyFields,
-      createdAt: "2026-04-06T12:00:00.000Z",
-      updatedAt: "2026-04-06T12:00:00.000Z",
-      payload: {
-        version: 1,
-        questions: [
-          {
-            id: "question-1",
-            prompt: "Pick one",
-            selectionMode: "single",
-            options: [{ id: "option-1", label: "Option 1" }],
-          },
-        ],
-      },
-    })).toBe("Asked 1 question");
+    expect(
+      buildIssueThreadInteractionSummary({
+        id: "interaction-2",
+        companyId: "company-1",
+        issueId: "issue-1",
+        kind: "ask_user_questions",
+        status: "pending",
+        continuationPolicy: "wake_assignee",
+        ...resolverPolicyFields,
+        createdAt: "2026-04-06T12:00:00.000Z",
+        updatedAt: "2026-04-06T12:00:00.000Z",
+        payload: {
+          version: 1,
+          questions: [
+            {
+              id: "question-1",
+              prompt: "Pick one",
+              selectionMode: "single",
+              options: [{ id: "option-1", label: "Option 1" }],
+            },
+          ],
+        },
+      }),
+    ).toBe("Asked 1 question");
 
-    expect(buildIssueThreadInteractionSummary({
-      id: "interaction-answered",
-      companyId: "company-1",
-      issueId: "issue-1",
-      kind: "ask_user_questions",
-      status: "answered",
-      continuationPolicy: "wake_assignee",
-      ...resolverPolicyFields,
-      createdAt: "2026-04-06T12:00:00.000Z",
-      updatedAt: "2026-04-06T12:00:00.000Z",
-      payload: {
-        version: 1,
-        questions: [
-          {
-            id: "question-1",
-            prompt: "Pick one",
-            selectionMode: "single",
-            options: [{ id: "option-1", label: "Option 1" }],
-          },
-        ],
-      },
-      result: {
-        version: 1,
-        answers: [{ questionId: "question-1", optionIds: ["option-1"] }],
-      },
-    })).toBe("Answered 1 question");
+    expect(
+      buildIssueThreadInteractionSummary({
+        id: "interaction-answered",
+        companyId: "company-1",
+        issueId: "issue-1",
+        kind: "ask_user_questions",
+        status: "answered",
+        continuationPolicy: "wake_assignee",
+        ...resolverPolicyFields,
+        createdAt: "2026-04-06T12:00:00.000Z",
+        updatedAt: "2026-04-06T12:00:00.000Z",
+        payload: {
+          version: 1,
+          questions: [
+            {
+              id: "question-1",
+              prompt: "Pick one",
+              selectionMode: "single",
+              options: [{ id: "option-1", label: "Option 1" }],
+            },
+          ],
+        },
+        result: {
+          version: 1,
+          answers: [{ questionId: "question-1", optionIds: ["option-1"] }],
+        },
+      }),
+    ).toBe("Answered 1 question");
 
-    expect(buildIssueThreadInteractionSummary({
-      id: "interaction-expired",
-      companyId: "company-1",
-      issueId: "issue-1",
-      kind: "ask_user_questions",
-      status: "expired",
-      continuationPolicy: "wake_assignee",
-      ...resolverPolicyFields,
-      createdAt: "2026-04-06T12:00:00.000Z",
-      updatedAt: "2026-04-06T12:05:00.000Z",
-      payload: {
-        version: 1,
-        questions: [
-          {
-            id: "question-1",
-            prompt: "Pick one",
-            selectionMode: "single",
-            options: [{ id: "option-1", label: "Option 1" }],
-          },
-        ],
-      },
-      result: {
-        version: 1,
-        answers: [],
-        expirationReason: "superseded_by_comment",
-        commentId: "11111111-1111-4111-8111-111111111111",
-      },
-    })).toBe("Question expired after comment");
+    expect(
+      buildIssueThreadInteractionSummary({
+        id: "interaction-expired",
+        companyId: "company-1",
+        issueId: "issue-1",
+        kind: "ask_user_questions",
+        status: "expired",
+        continuationPolicy: "wake_assignee",
+        ...resolverPolicyFields,
+        createdAt: "2026-04-06T12:00:00.000Z",
+        updatedAt: "2026-04-06T12:05:00.000Z",
+        payload: {
+          version: 1,
+          questions: [
+            {
+              id: "question-1",
+              prompt: "Pick one",
+              selectionMode: "single",
+              options: [{ id: "option-1", label: "Option 1" }],
+            },
+          ],
+        },
+        result: {
+          version: 1,
+          answers: [],
+          expirationReason: "superseded_by_comment",
+          commentId: "11111111-1111-4111-8111-111111111111",
+        },
+      }),
+    ).toBe("Question expired after comment");
   });
 
   it("summarizes checkbox confirmation interactions by count", () => {
@@ -293,26 +358,37 @@ describe("issue thread interaction helpers", () => {
       },
     };
 
-    expect(buildIssueThreadInteractionSummary({ ...base, status: "pending" }))
-      .toBe("Requested a selection from 3 options");
+    expect(
+      buildIssueThreadInteractionSummary({ ...base, status: "pending" }),
+    ).toBe("Requested a selection from 3 options");
 
-    expect(buildIssueThreadInteractionSummary({
-      ...base,
-      status: "accepted",
-      result: { version: 1, outcome: "accepted", selectedOptionIds: ["a", "c"] },
-    })).toBe("Confirmed 2 of 3 options");
+    expect(
+      buildIssueThreadInteractionSummary({
+        ...base,
+        status: "accepted",
+        result: {
+          version: 1,
+          outcome: "accepted",
+          selectedOptionIds: ["a", "c"],
+        },
+      }),
+    ).toBe("Confirmed 2 of 3 options");
 
-    expect(buildIssueThreadInteractionSummary({
-      ...base,
-      status: "accepted",
-      result: { version: 1, outcome: "accepted", selectedOptionIds: [] },
-    })).toBe("Confirmed with no options selected");
+    expect(
+      buildIssueThreadInteractionSummary({
+        ...base,
+        status: "accepted",
+        result: { version: 1, outcome: "accepted", selectedOptionIds: [] },
+      }),
+    ).toBe("Confirmed with no options selected");
 
-    expect(buildIssueThreadInteractionSummary({
-      ...base,
-      status: "expired",
-      result: { version: 1, outcome: "stale_target" },
-    })).toBe("Selection expired after target changed");
+    expect(
+      buildIssueThreadInteractionSummary({
+        ...base,
+        status: "expired",
+        result: { version: 1, outcome: "stale_target" },
+      }),
+    ).toBe("Selection expired after target changed");
   });
 
   it("uses a confirmation's explicit rejection action in its receipt", () => {
@@ -329,22 +405,26 @@ describe("issue thread interaction helpers", () => {
       result: { version: 1 as const, outcome: "rejected" as const },
     };
 
-    expect(buildIssueThreadInteractionSummary({
-      ...base,
-      payload: {
-        version: 1 as const,
-        prompt: "Is this task ready to complete?",
-        rejectLabel: "Continue work",
-      },
-    })).toBe("Selected “Continue work”");
+    expect(
+      buildIssueThreadInteractionSummary({
+        ...base,
+        payload: {
+          version: 1 as const,
+          prompt: "Is this task ready to complete?",
+          rejectLabel: "Continue work",
+        },
+      }),
+    ).toBe("Selected “Continue work”");
 
-    expect(buildIssueThreadInteractionSummary({
-      ...base,
-      payload: {
-        version: 1 as const,
-        prompt: "Proceed?",
-      },
-    })).toBe("Declined request");
+    expect(
+      buildIssueThreadInteractionSummary({
+        ...base,
+        payload: {
+          version: 1 as const,
+          prompt: "Proceed?",
+        },
+      }),
+    ).toBe("Declined request");
   });
 
   it("maps selected checkbox option ids back to labels", () => {
@@ -358,7 +438,11 @@ describe("issue thread interaction helpers", () => {
           { id: "c", label: "Charlie" },
         ],
       },
-      result: { version: 1, outcome: "accepted", selectedOptionIds: ["c", "a", "missing"] },
+      result: {
+        version: 1,
+        outcome: "accepted",
+        selectedOptionIds: ["c", "a", "missing"],
+      },
     });
 
     expect(labels).toEqual(["Charlie", "Alpha"]);
@@ -387,26 +471,30 @@ describe("issue thread interaction helpers", () => {
   });
 
   it("does not return unsafe custom target hrefs from accepted payloads", () => {
-    expect(getRequestConfirmationTargetHref({
-      issueId: "issue-1",
-      target: {
-        type: "custom",
-        key: "unsafe-target",
-        label: "Unsafe target",
-        href: "file:///tmp/x",
-      },
-    })).toBeNull();
+    expect(
+      getRequestConfirmationTargetHref({
+        issueId: "issue-1",
+        target: {
+          type: "custom",
+          key: "unsafe-target",
+          label: "Unsafe target",
+          href: "file:///tmp/x",
+        },
+      }),
+    ).toBeNull();
 
-    expect(getRequestConfirmationTargetHref({
-      issueId: "issue-1",
-      target: {
-        type: "issue_document",
-        issueId: "issue-2",
-        key: "plan",
-        revisionId: "11111111-1111-4111-8111-111111111111",
-        href: "slack://channel?id=1",
-      },
-    })).toBe("/issues/issue-2#document-plan");
+    expect(
+      getRequestConfirmationTargetHref({
+        issueId: "issue-1",
+        target: {
+          type: "issue_document",
+          issueId: "issue-2",
+          key: "plan",
+          revisionId: "11111111-1111-4111-8111-111111111111",
+          href: "slack://channel?id=1",
+        },
+      }),
+    ).toBe("/issues/issue-2#document-plan");
   });
 
   it("maps stored option ids back to labels for answered summaries", () => {
@@ -470,41 +558,84 @@ describe("per-item verdict helpers", () => {
         outcome: "resolved",
         complete: false,
         items: [
-          { id: "a", verdict: "approve", resolvedByUserId: "u", resolvedAt: "2026-04-06T12:01:00.000Z" },
-          { id: "c", verdict: "reject", reason: "no", resolvedByUserId: "u", resolvedAt: "2026-04-06T12:01:00.000Z" },
+          {
+            id: "a",
+            verdict: "approve",
+            resolvedByUserId: "u",
+            resolvedAt: "2026-04-06T12:01:00.000Z",
+          },
+          {
+            id: "c",
+            verdict: "reject",
+            reason: "no",
+            resolvedByUserId: "u",
+            resolvedAt: "2026-04-06T12:01:00.000Z",
+          },
         ],
       },
     });
-    expect(progress).toMatchObject({ total: 3, decided: 2, approved: 1, rejected: 1, deferred: 0 });
+    expect(progress).toMatchObject({
+      total: 3,
+      decided: 2,
+      approved: 1,
+      rejected: 1,
+      deferred: 0,
+    });
     expect(progress.pendingItemIds).toEqual(["b"]);
   });
 
   it("summarizes pending, complete, and superseded verdict cards", () => {
-    expect(buildIssueThreadInteractionSummary(verdictInteraction())).toBe("0 of 3 decided");
+    expect(buildIssueThreadInteractionSummary(verdictInteraction())).toBe(
+      "0 of 3 decided",
+    );
 
-    expect(buildIssueThreadInteractionSummary(verdictInteraction({
-      status: "answered",
-      result: {
-        version: 1,
-        outcome: "resolved",
-        complete: true,
-        items: [
-          { id: "a", verdict: "approve", resolvedByUserId: "u", resolvedAt: "2026-04-06T12:01:00.000Z" },
-          { id: "b", verdict: "approve", resolvedByUserId: "u", resolvedAt: "2026-04-06T12:01:00.000Z" },
-          { id: "c", verdict: "reject", reason: "no", resolvedByUserId: "u", resolvedAt: "2026-04-06T12:01:00.000Z" },
-        ],
-      },
-    }))).toBe("3 decided · 2 approved · 1 rejected");
+    expect(
+      buildIssueThreadInteractionSummary(
+        verdictInteraction({
+          status: "answered",
+          result: {
+            version: 1,
+            outcome: "resolved",
+            complete: true,
+            items: [
+              {
+                id: "a",
+                verdict: "approve",
+                resolvedByUserId: "u",
+                resolvedAt: "2026-04-06T12:01:00.000Z",
+              },
+              {
+                id: "b",
+                verdict: "approve",
+                resolvedByUserId: "u",
+                resolvedAt: "2026-04-06T12:01:00.000Z",
+              },
+              {
+                id: "c",
+                verdict: "reject",
+                reason: "no",
+                resolvedByUserId: "u",
+                resolvedAt: "2026-04-06T12:01:00.000Z",
+              },
+            ],
+          },
+        }),
+      ),
+    ).toBe("3 decided · 2 approved · 1 rejected");
 
-    expect(buildIssueThreadInteractionSummary(verdictInteraction({
-      status: "expired",
-      result: {
-        version: 1,
-        outcome: "superseded_by_comment",
-        complete: false,
-        items: [],
-      },
-    }))).toBe("Verdicts expired after comment");
+    expect(
+      buildIssueThreadInteractionSummary(
+        verdictInteraction({
+          status: "expired",
+          result: {
+            version: 1,
+            outcome: "superseded_by_comment",
+            complete: false,
+            items: [],
+          },
+        }),
+      ),
+    ).toBe("Verdicts expired after comment");
   });
 });
 
@@ -531,94 +662,134 @@ describe("isDegenerateAskUserQuestions", () => {
   });
 
   it("flags a question with a blank / whitespace-only prompt", () => {
-    expect(isDegenerateAskUserQuestions(askInteraction([
-      {
-        id: "q1",
-        prompt: "   ",
-        selectionMode: "single",
-        options: [
-          { id: "a", label: "A" },
-          { id: "b", label: "B" },
-        ],
-      },
-    ]))).toBe(true);
+    expect(
+      isDegenerateAskUserQuestions(
+        askInteraction([
+          {
+            id: "q1",
+            prompt: "   ",
+            selectionMode: "single",
+            options: [
+              { id: "a", label: "A" },
+              { id: "b", label: "B" },
+            ],
+          },
+        ]),
+      ),
+    ).toBe(true);
   });
 
   it("keeps a single fixed-option question: it is answerable (select + submit)", () => {
     // A lone fixed option is still resolvable — the user selects it and submits —
     // so it must render. Hiding it would strand a pending interaction the
     // assignee is waiting on.
-    expect(isDegenerateAskUserQuestions(askInteraction([
-      {
-        id: "q1",
-        prompt: "Test",
-        selectionMode: "single",
-        options: [{ id: "a", label: "A" }],
-      },
-    ]))).toBe(false);
+    expect(
+      isDegenerateAskUserQuestions(
+        askInteraction([
+          {
+            id: "q1",
+            prompt: "Test",
+            selectionMode: "single",
+            options: [{ id: "a", label: "A" }],
+          },
+        ]),
+      ),
+    ).toBe(false);
   });
 
   it("flags a question with no options at all", () => {
-    expect(isDegenerateAskUserQuestions(askInteraction([
-      { id: "q1", prompt: "Anything?", selectionMode: "single", options: [] },
-    ]))).toBe(true);
+    expect(
+      isDegenerateAskUserQuestions(
+        askInteraction([
+          {
+            id: "q1",
+            prompt: "Anything?",
+            selectionMode: "single",
+            options: [],
+          },
+        ]),
+      ),
+    ).toBe(true);
   });
 
   it("keeps a legitimate yes/no question (2 options)", () => {
-    expect(isDegenerateAskUserQuestions(askInteraction([
-      {
-        id: "q1",
-        prompt: "Ship it?",
-        selectionMode: "single",
-        options: [
-          { id: "yes", label: "Yes" },
-          { id: "no", label: "No" },
-        ],
-      },
-    ]))).toBe(false);
+    expect(
+      isDegenerateAskUserQuestions(
+        askInteraction([
+          {
+            id: "q1",
+            prompt: "Ship it?",
+            selectionMode: "single",
+            options: [
+              { id: "yes", label: "Yes" },
+              { id: "no", label: "No" },
+            ],
+          },
+        ]),
+      ),
+    ).toBe(false);
   });
 
   it("keeps a multi-select question (>= 2 options)", () => {
-    expect(isDegenerateAskUserQuestions(askInteraction([
-      {
-        id: "q1",
-        prompt: "Pick platforms",
-        selectionMode: "multi",
-        options: [
-          { id: "web", label: "Web" },
-          { id: "ios", label: "iOS" },
-          { id: "android", label: "Android" },
-        ],
-      },
-    ]))).toBe(false);
+    expect(
+      isDegenerateAskUserQuestions(
+        askInteraction([
+          {
+            id: "q1",
+            prompt: "Pick platforms",
+            selectionMode: "multi",
+            options: [
+              { id: "web", label: "Web" },
+              { id: "ios", label: "iOS" },
+              { id: "android", label: "Android" },
+            ],
+          },
+        ]),
+      ),
+    ).toBe(false);
   });
 
   it("keeps a question whose only choice is a first-class free-text option (PAP-419)", () => {
-    expect(isDegenerateAskUserQuestions(askInteraction([
-      {
-        id: "q1",
-        prompt: "Describe your goal",
-        selectionMode: "single",
-        options: [{ id: "other", label: "I'll describe it", freeText: true }],
-      },
-    ]))).toBe(false);
+    expect(
+      isDegenerateAskUserQuestions(
+        askInteraction([
+          {
+            id: "q1",
+            prompt: "Describe your goal",
+            selectionMode: "single",
+            options: [
+              { id: "other", label: "I'll describe it", freeText: true },
+            ],
+          },
+        ]),
+      ),
+    ).toBe(false);
   });
 
   it("is degenerate only when EVERY question is degenerate", () => {
     // One real question keeps the whole card, even next to a degenerate one
     // (here: a question with no options and no free-text).
-    expect(isDegenerateAskUserQuestions(askInteraction([
-      { id: "q1", prompt: "Anything?", selectionMode: "single", options: [] },
-      {
-        id: "q2",
-        prompt: "Ship it?",
-        selectionMode: "single",
-        options: [
-          { id: "yes", label: "Yes" },
-          { id: "no", label: "No" },
-        ],
-      },
-    ]))).toBe(false);
+    expect(
+      isDegenerateAskUserQuestions(
+        askInteraction([
+          {
+            id: "q1",
+            prompt: "Anything?",
+            selectionMode: "single",
+            options: [],
+          },
+          {
+            id: "q2",
+            prompt: "Ship it?",
+            selectionMode: "single",
+            options: [
+              { id: "yes", label: "Yes" },
+              { id: "no", label: "No" },
+            ],
+          },
+        ]),
+      ),
+    ).toBe(false);
   });
 
   it("ignores non-ask_user_questions interactions", () => {
@@ -639,7 +810,9 @@ describe("isDegenerateAskUserQuestions", () => {
 });
 
 describe("isSupersededByNewerSiblingInteraction", () => {
-  function askInteraction(overrides: Partial<AskUserQuestionsInteraction>): AskUserQuestionsInteraction {
+  function askInteraction(
+    overrides: Partial<AskUserQuestionsInteraction>,
+  ): AskUserQuestionsInteraction {
     return {
       id: "interaction-ask",
       companyId: "company-1",
@@ -652,7 +825,14 @@ describe("isSupersededByNewerSiblingInteraction", () => {
       updatedAt: "2026-04-06T12:00:00.000Z",
       payload: {
         version: 1,
-        questions: [{ id: "q", prompt: "t", selectionMode: "single", options: [{ id: "L", label: "L" }] }],
+        questions: [
+          {
+            id: "q",
+            prompt: "t",
+            selectionMode: "single",
+            options: [{ id: "L", label: "L" }],
+          },
+        ],
       },
       ...overrides,
     } as AskUserQuestionsInteraction;
@@ -716,13 +896,26 @@ describe("isSupersededByNewerSiblingInteraction", () => {
   });
 });
 
-
 describe("interaction readiness polling", () => {
   it("uses a fast cadence only for pending preparation and preserves the idle fallback", () => {
-    const preparing = { ...pendingRequestConfirmationInteraction, acceptanceBlocker: "workspace_sync_pending" as const };
-    expect(interactionReadinessRefetchInterval([preparing], 20_000)).toBe(2_000);
-    expect(interactionReadinessRefetchInterval([pendingRequestConfirmationInteraction], 20_000)).toBe(20_000);
-    expect(interactionReadinessRefetchInterval([{ ...preparing, status: "expired" }])).toBe(false);
+    const preparing = {
+      ...pendingRequestConfirmationInteraction,
+      acceptanceBlocker: "workspace_sync_pending" as const,
+    };
+    expect(interactionReadinessRefetchInterval([preparing], 20_000)).toBe(
+      2_000,
+    );
+    expect(
+      interactionReadinessRefetchInterval(
+        [pendingRequestConfirmationInteraction],
+        20_000,
+      ),
+    ).toBe(20_000);
+    expect(
+      interactionReadinessRefetchInterval([
+        { ...preparing, status: "expired" },
+      ]),
+    ).toBe(false);
     expect(interactionReadinessRefetchInterval(undefined)).toBe(false);
   });
 });

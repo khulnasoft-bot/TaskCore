@@ -1,6 +1,10 @@
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { buildFilterChips, type FilterChipLookups, type SearchFilters } from "@/lib/search-filters";
+import {
+  buildFilterChips,
+  type FilterChipLookups,
+  type SearchFilters,
+} from "@/lib/search-filters";
 
 export function SearchFilterChips({
   filters,
@@ -17,9 +21,16 @@ export function SearchFilterChips({
   if (chips.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5" data-testid="search-filter-chips">
+    <div
+      className="flex flex-wrap items-center gap-1.5"
+      data-testid="search-filter-chips"
+    >
       {chips.map((chip) => (
-        <Badge key={chip.id} variant="secondary" className="gap-1 pr-1 font-normal">
+        <Badge
+          key={chip.id}
+          variant="secondary"
+          className="gap-1 pr-1 font-normal"
+        >
           <span className="truncate">{chip.label}</span>
           <button
             type="button"

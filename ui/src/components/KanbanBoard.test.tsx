@@ -4,7 +4,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { Issue, IssueStatus } from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getKanbanColumnTone, KanbanBoard, resolveKanbanTargetStatus } from "./KanbanBoard";
+import {
+  getKanbanColumnTone,
+  KanbanBoard,
+  resolveKanbanTargetStatus,
+} from "./KanbanBoard";
 
 vi.mock("@/lib/router", () => ({
   Link: ({
@@ -16,7 +20,9 @@ vi.mock("@/lib/router", () => ({
     to: string;
     disableIssueQuicklook?: boolean;
   }) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -76,18 +82,26 @@ function createIssue(index: number, status: IssueStatus): Issue {
 }
 
 function createIssues(count: number, status: IssueStatus): Issue[] {
-  return Array.from({ length: count }, (_, index) => createIssue(index + 1, status));
+  return Array.from({ length: count }, (_, index) =>
+    createIssue(index + 1, status),
+  );
 }
 
 function renderBoard(
-  props: Partial<React.ComponentProps<typeof KanbanBoard>> & { issues: Issue[] },
+  props: Partial<React.ComponentProps<typeof KanbanBoard>> & {
+    issues: Issue[];
+  },
 ) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   mountedRoots.push(root);
 
-  const render = (nextProps: Partial<React.ComponentProps<typeof KanbanBoard>> & { issues: Issue[] }) => {
+  const render = (
+    nextProps: Partial<React.ComponentProps<typeof KanbanBoard>> & {
+      issues: Issue[];
+    },
+  ) => {
     act(() => {
       root.render(
         <KanbanBoard
@@ -133,9 +147,9 @@ describe("KanbanBoard", () => {
     expect(container.textContent).toContain("Issue 50");
     expect(container.textContent).not.toContain("Issue 51");
 
-    const showMoreButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Show 10 more"),
-    );
+    const showMoreButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Show 10 more"));
     expect(showMoreButton).toBeTruthy();
 
     act(() => {
@@ -154,9 +168,9 @@ describe("KanbanBoard", () => {
       revealIncrement: 50,
     });
 
-    const showMoreButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Show 10 more"),
-    );
+    const showMoreButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Show 10 more"));
     expect(showMoreButton).toBeTruthy();
 
     act(() => {
@@ -204,7 +218,9 @@ describe("KanbanBoard", () => {
       issues: createIssues(1, "cancelled"),
     });
 
-    const card = container.querySelector('a[href="/issues/PAP-1"]')?.parentElement;
+    const card = container.querySelector(
+      'a[href="/issues/PAP-1"]',
+    )?.parentElement;
 
     expect(card?.className).toContain("bg-muted/35");
     expect(card?.className).toContain("opacity-80");
@@ -223,13 +239,12 @@ describe("KanbanBoard", () => {
   });
 
   it("resolves drop targets from status rails and cards", () => {
-    const issues = [
-      createIssue(1, "todo"),
-      createIssue(2, "blocked"),
-    ];
+    const issues = [createIssue(1, "todo"), createIssue(2, "blocked")];
 
     expect(resolveKanbanTargetStatus("done", issues)).toBe("done");
-    expect(resolveKanbanTargetStatus("issue-blocked-2", issues)).toBe("blocked");
+    expect(resolveKanbanTargetStatus("issue-blocked-2", issues)).toBe(
+      "blocked",
+    );
     expect(resolveKanbanTargetStatus("missing", issues)).toBeNull();
   });
 });

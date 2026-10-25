@@ -14,7 +14,9 @@ describe("issue workspace selection", () => {
   });
 
   it("builds a new isolated workspace update", () => {
-    expect(buildWorkspaceSelectionUpdate("isolated_workspace", null, null)).toEqual({
+    expect(
+      buildWorkspaceSelectionUpdate("isolated_workspace", null, null),
+    ).toEqual({
       executionWorkspacePreference: "isolated_workspace",
       executionWorkspaceId: null,
       executionWorkspaceSettings: {
@@ -25,7 +27,13 @@ describe("issue workspace selection", () => {
   });
 
   it("builds a reuse-existing update with the reused workspace mode", () => {
-    expect(buildWorkspaceSelectionUpdate("reuse_existing", "workspace-1", "operator_branch")).toEqual({
+    expect(
+      buildWorkspaceSelectionUpdate(
+        "reuse_existing",
+        "workspace-1",
+        "operator_branch",
+      ),
+    ).toEqual({
       executionWorkspacePreference: "reuse_existing",
       executionWorkspaceId: "workspace-1",
       executionWorkspaceSettings: {
@@ -36,11 +44,19 @@ describe("issue workspace selection", () => {
   });
 
   it("does not build a reuse-existing update without a workspace id", () => {
-    expect(buildWorkspaceSelectionUpdate("reuse_existing", null, "isolated_workspace")).toBeNull();
+    expect(
+      buildWorkspaceSelectionUpdate(
+        "reuse_existing",
+        null,
+        "isolated_workspace",
+      ),
+    ).toBeNull();
   });
 
   it("keeps the old card's shared-workspace payload available", () => {
-    expect(buildWorkspaceSelectionUpdate("shared_workspace", null, null)).toEqual({
+    expect(
+      buildWorkspaceSelectionUpdate("shared_workspace", null, null),
+    ).toEqual({
       executionWorkspacePreference: "shared_workspace",
       executionWorkspaceId: null,
       executionWorkspaceSettings: {
@@ -51,11 +67,16 @@ describe("issue workspace selection", () => {
   });
 
   it("presents a bound isolated workspace as reuse existing", () => {
-    expect(currentWorkspaceSelection({
-      executionWorkspaceId: "workspace-1",
-      executionWorkspacePreference: "isolated_workspace",
-      executionWorkspaceSettings: { mode: "isolated_workspace" },
-      currentExecutionWorkspace: null,
-    }, null)).toBe("reuse_existing");
+    expect(
+      currentWorkspaceSelection(
+        {
+          executionWorkspaceId: "workspace-1",
+          executionWorkspacePreference: "isolated_workspace",
+          executionWorkspaceSettings: { mode: "isolated_workspace" },
+          currentExecutionWorkspace: null,
+        },
+        null,
+      ),
+    ).toBe("reuse_existing");
   });
 });

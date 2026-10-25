@@ -2,7 +2,11 @@ import { AgentAvatar } from "@/components/AgentAvatar";
 import { Link } from "@/lib/router";
 import { timeAgo } from "../lib/timeAgo";
 import { cn } from "../lib/utils";
-import { deriveProjectUrlKey, type ActivityEvent, type Agent } from "@taskcore/shared";
+import {
+  deriveProjectUrlKey,
+  type ActivityEvent,
+  type Agent,
+} from "@taskcore/shared";
 import { issueStatusIcon, issueStatusIconDefault } from "../lib/status-colors";
 import {
   FileText,
@@ -31,7 +35,9 @@ import { Card } from "@/components/ui/card";
 type VerbContext = "pinned" | "chronological";
 
 function humanize(value: unknown): string {
-  return typeof value === "string" ? value.replace(/_/g, " ") : String(value ?? "");
+  return typeof value === "string"
+    ? value.replace(/_/g, " ")
+    : String(value ?? "");
 }
 
 /** One verb per action. Pinned context (Tier 0) swaps a couple of verbs to
@@ -46,10 +52,15 @@ function formatVerb(
       return "opened";
     case "issue.updated": {
       const status = details?.status;
-      if (status === "in_review" && details?.externalConversationState === "waiting") return "moved to idle";
+      if (
+        status === "in_review" &&
+        details?.externalConversationState === "waiting"
+      )
+        return "moved to idle";
       if (typeof status === "string") return `moved to ${humanize(status)}`;
       const priority = details?.priority;
-      if (typeof priority === "string") return `set priority to ${humanize(priority)} on`;
+      if (typeof priority === "string")
+        return `set priority to ${humanize(priority)} on`;
       return "updated";
     }
     case "issue.document_created":
@@ -79,7 +90,9 @@ function formatVerb(
       return "deleted";
 
     case "approval.created":
-      return context === "pinned" ? "needs approval on" : "requested approval on";
+      return context === "pinned"
+        ? "needs approval on"
+        : "requested approval on";
     case "approval.approved":
       return "approved";
     case "approval.rejected":
@@ -142,7 +155,11 @@ function deriveTaskStatus(
       return "todo";
     case "issue.updated": {
       const status = details?.status;
-      if (status === "in_review" && details?.externalConversationState === "waiting") return "idle";
+      if (
+        status === "in_review" &&
+        details?.externalConversationState === "waiting"
+      )
+        return "idle";
       return typeof status === "string" ? status : null;
     }
     case "issue.document_created":
@@ -167,7 +184,13 @@ function deriveTaskStatus(
 /* ------------------------------------------------------------------ */
 
 type IconSpec =
-  | { kind: "lucide"; Icon: LucideIcon; color: string; filled?: boolean; spin?: boolean }
+  | {
+      kind: "lucide";
+      Icon: LucideIcon;
+      color: string;
+      filled?: boolean;
+      spin?: boolean;
+    }
   | { kind: "status-circle"; status: string };
 
 function getIconSpec(
@@ -180,7 +203,12 @@ function getIconSpec(
   // Heartbeat — animated when active, static otherwise
   if (action.startsWith("heartbeat.")) {
     if (isActive && action === "heartbeat.invoked") {
-      return { kind: "lucide", Icon: Loader2, color: "text-blue-600 dark:text-blue-400", spin: true };
+      return {
+        kind: "lucide",
+        Icon: Loader2,
+        color: "text-blue-600 dark:text-blue-400",
+        spin: true,
+      };
     }
     return { kind: "lucide", Icon: Loader2, color: "text-muted-foreground" };
   }
@@ -189,41 +217,85 @@ function getIconSpec(
   // Rendered unfilled so the stroke glyph (check / alert / slash) stays visible.
   switch (action) {
     case "approval.created":
-      return { kind: "lucide", Icon: CircleAlert, color: "text-amber-600 dark:text-amber-400" };
+      return {
+        kind: "lucide",
+        Icon: CircleAlert,
+        color: "text-amber-600 dark:text-amber-400",
+      };
     case "approval.approved":
-      return { kind: "lucide", Icon: CircleCheck, color: "text-green-600 dark:text-green-400" };
+      return {
+        kind: "lucide",
+        Icon: CircleCheck,
+        color: "text-green-600 dark:text-green-400",
+      };
     case "approval.rejected":
-      return { kind: "lucide", Icon: CircleSlash, color: "text-red-600 dark:text-red-400" };
+      return {
+        kind: "lucide",
+        Icon: CircleSlash,
+        color: "text-red-600 dark:text-red-400",
+      };
     case "approval.revision_requested":
-      return { kind: "lucide", Icon: PencilLine, color: "text-amber-600 dark:text-amber-400", filled: true };
+      return {
+        kind: "lucide",
+        Icon: PencilLine,
+        color: "text-amber-600 dark:text-amber-400",
+        filled: true,
+      };
   }
 
   // Agent
   switch (action) {
     case "agent.created":
-      return { kind: "lucide", Icon: UserPlus, color: "text-purple-600 dark:text-purple-400" };
+      return {
+        kind: "lucide",
+        Icon: UserPlus,
+        color: "text-purple-600 dark:text-purple-400",
+      };
     case "agent.paused":
-      return { kind: "lucide", Icon: PauseCircle, color: "text-muted-foreground" };
+      return {
+        kind: "lucide",
+        Icon: PauseCircle,
+        color: "text-muted-foreground",
+      };
     case "agent.resumed":
-      return { kind: "lucide", Icon: PlayCircle, color: "text-muted-foreground" };
+      return {
+        kind: "lucide",
+        Icon: PlayCircle,
+        color: "text-muted-foreground",
+      };
     case "agent.updated":
     case "agent.terminated":
       return { kind: "lucide", Icon: Settings, color: "text-muted-foreground" };
   }
 
   // Document on issue
-  if (action === "issue.document_created" || action === "issue.document_updated") {
-    return { kind: "lucide", Icon: FileText, color: "text-blue-600 dark:text-blue-400" };
+  if (
+    action === "issue.document_created" ||
+    action === "issue.document_updated"
+  ) {
+    return {
+      kind: "lucide",
+      Icon: FileText,
+      color: "text-blue-600 dark:text-blue-400",
+    };
   }
 
   // Work product / artifact on issue
   if (action.startsWith("issue.work_product_")) {
-    return { kind: "lucide", Icon: Package, color: "text-indigo-600 dark:text-indigo-400" };
+    return {
+      kind: "lucide",
+      Icon: Package,
+      color: "text-indigo-600 dark:text-indigo-400",
+    };
   }
 
   // Comments
   if (action === "issue.commented" || action === "issue.comment_added") {
-    return { kind: "lucide", Icon: MessageCircle, color: "text-muted-foreground" };
+    return {
+      kind: "lucide",
+      Icon: MessageCircle,
+      color: "text-muted-foreground",
+    };
   }
 
   // Issue check-out
@@ -248,8 +320,15 @@ function StatusCircle({ status }: { status: string }) {
   const colorClass = issueStatusIcon[status] ?? issueStatusIconDefault;
   const isFilled = status === "done";
   return (
-    <span className={cn("relative inline-flex h-4 w-4 shrink-0 rounded-full border-2", colorClass)}>
-      {isFilled && <span className="absolute inset-0 m-auto h-2 w-2 rounded-full bg-current" />}
+    <span
+      className={cn(
+        "relative inline-flex h-4 w-4 shrink-0 rounded-full border-2",
+        colorClass,
+      )}
+    >
+      {isFilled && (
+        <span className="absolute inset-0 m-auto h-2 w-2 rounded-full bg-current" />
+      )}
     </span>
   );
 }
@@ -291,7 +370,8 @@ function resolveContent(
   entityTitleMap: Map<string, string> | undefined,
 ): CardContent {
   const details = event.details as Record<string, unknown> | null;
-  const actor = event.actorType === "agent" ? agentMap.get(event.actorId) ?? null : null;
+  const actor =
+    event.actorType === "agent" ? (agentMap.get(event.actorId) ?? null) : null;
   const actorName =
     actor?.name ??
     (event.actorType === "system"
@@ -300,7 +380,8 @@ function resolveContent(
         ? "Board"
         : event.actorId || "Unknown");
 
-  const entityTitle = entityTitleMap?.get(`${event.entityType}:${event.entityId}`) ?? null;
+  const entityTitle =
+    entityTitleMap?.get(`${event.entityType}:${event.entityId}`) ?? null;
 
   const isHeartbeatEvent = event.entityType === "heartbeat_run";
   const heartbeatAgentId = isHeartbeatEvent
@@ -308,36 +389,40 @@ function resolveContent(
     : undefined;
   const entityName = isHeartbeatEvent
     ? heartbeatAgentId
-      ? entityNameMap.get(`agent:${heartbeatAgentId}`) ?? null
+      ? (entityNameMap.get(`agent:${heartbeatAgentId}`) ?? null)
       : null
-    : entityNameMap.get(`${event.entityType}:${event.entityId}`) ?? null;
+    : (entityNameMap.get(`${event.entityType}:${event.entityId}`) ?? null);
 
   const docKey = details?.key as string | undefined;
   const isDocEvent =
-    event.action === "issue.document_created" || event.action === "issue.document_updated";
+    event.action === "issue.document_created" ||
+    event.action === "issue.document_updated";
   const issueSlug = entityName ?? event.entityId;
   const hiredAgentId = details?.hiredAgentId as string | undefined;
   const approvalAgentId = details?.requestedByAgentId as string | undefined;
-  const approvalAgentName = approvalAgentId ? agentMap.get(approvalAgentId)?.name ?? null : null;
+  const approvalAgentName = approvalAgentId
+    ? (agentMap.get(approvalAgentId)?.name ?? null)
+    : null;
   const approvalType = details?.type as string | undefined;
 
-  const link = isHeartbeatEvent && heartbeatAgentId
-    ? `/agents/${heartbeatAgentId}/runs/${event.entityId}`
-    : event.entityType === "issue"
-      ? isDocEvent && docKey
-        ? `/issues/${issueSlug}#document-${encodeURIComponent(docKey)}`
-        : `/issues/${issueSlug}`
-      : event.entityType === "agent"
-        ? `/agents/${event.entityId}`
-        : event.entityType === "approval"
-          ? event.action === "approval.approved" && hiredAgentId
-            ? `/agents/${hiredAgentId}`
-            : `/approvals/${event.entityId}`
-          : event.entityType === "project"
-            ? `/projects/${deriveProjectUrlKey(entityName, event.entityId)}`
-            : event.entityType === "goal"
-              ? `/goals/${event.entityId}`
-              : null;
+  const link =
+    isHeartbeatEvent && heartbeatAgentId
+      ? `/agents/${heartbeatAgentId}/runs/${event.entityId}`
+      : event.entityType === "issue"
+        ? isDocEvent && docKey
+          ? `/issues/${issueSlug}#document-${encodeURIComponent(docKey)}`
+          : `/issues/${issueSlug}`
+        : event.entityType === "agent"
+          ? `/agents/${event.entityId}`
+          : event.entityType === "approval"
+            ? event.action === "approval.approved" && hiredAgentId
+              ? `/agents/${hiredAgentId}`
+              : `/approvals/${event.entityId}`
+            : event.entityType === "project"
+              ? `/projects/${deriveProjectUrlKey(entityName, event.entityId)}`
+              : event.entityType === "goal"
+                ? `/goals/${event.entityId}`
+                : null;
 
   let identifier: string | null = null;
   let identifierMono = true;
@@ -358,7 +443,8 @@ function resolveContent(
     }
     title = entityTitle;
   } else if (event.entityType === "agent") {
-    identifier = (details?.name as string | undefined) ?? entityName ?? event.entityId;
+    identifier =
+      (details?.name as string | undefined) ?? entityName ?? event.entityId;
     title = null;
   } else if (isHeartbeatEvent) {
     identifier = entityName;
@@ -382,8 +468,11 @@ function resolveContent(
 function ActorGlyph({ content }: { content: CardContent }) {
   if (content.actorType === "agent") {
     return (
-      <AgentAvatar agent={content.actor} size={16}
-        className="h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
+      <AgentAvatar
+        agent={content.actor}
+        size={16}
+        className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+      />
     );
   }
   if (content.actorType === "user") {
@@ -426,11 +515,22 @@ export function FeedCard({
   className,
 }: FeedCardProps) {
   const details = event.details as Record<string, unknown> | null;
-  const content = resolveContent(event, agentMap, entityNameMap, entityTitleMap);
-  const verb = formatVerb(event.action, details, isPinned ? "pinned" : "chronological");
+  const content = resolveContent(
+    event,
+    agentMap,
+    entityNameMap,
+    entityTitleMap,
+  );
+  const verb = formatVerb(
+    event.action,
+    details,
+    isPinned ? "pinned" : "chronological",
+  );
   const iconSpec = getIconSpec(event, details, isActive);
 
-  const mutedTextBase = isMuted ? "text-muted-foreground/70" : "text-(--hex-959596)";
+  const mutedTextBase = isMuted
+    ? "text-muted-foreground/70"
+    : "text-(--hex-959596)";
   const mutedTextHover = isMuted ? "" : "group-hover:text-white";
 
   const card = (
@@ -439,21 +539,31 @@ export function FeedCard({
       className={cn(
         "flex-row group ml-3 mr-3 md:ml-0 my-2 w-(--sz-calc-1) md:w-(--sz-calc-2) items-center gap-2 p-(--sz-18px) text-xs",
         "transition-(--tp-background-color-border-color) duration-150",
-        content.link && "cursor-pointer hover:bg-accent hover:border-muted-foreground/30",
+        content.link &&
+          "cursor-pointer hover:bg-accent hover:border-muted-foreground/30",
         className,
       )}
     >
       <EntityIcon spec={iconSpec} />
       <ActorGlyph content={content} />
       <span className="flex min-w-0 flex-1 items-baseline gap-1 truncate">
-        <span data-fc="actor" className={cn("font-medium", mutedTextBase, mutedTextHover)}>
+        <span
+          data-fc="actor"
+          className={cn("font-medium", mutedTextBase, mutedTextHover)}
+        >
           {content.actorName}
         </span>
-        <span data-fc="verb" className={mutedTextBase}>{verb}</span>
+        <span data-fc="verb" className={mutedTextBase}>
+          {verb}
+        </span>
         {content.identifier && (
           <span
             data-fc="id"
-            className={cn(content.identifierMono && "font-mono", mutedTextBase, mutedTextHover)}
+            className={cn(
+              content.identifierMono && "font-mono",
+              mutedTextBase,
+              mutedTextHover,
+            )}
           >
             {content.identifier}
           </span>

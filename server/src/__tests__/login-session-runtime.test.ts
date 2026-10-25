@@ -38,7 +38,9 @@ function fakeWorkerSession() {
 
 // A verified binding for one login session. The runtime builds it after it
 // acquires the lease. The tests set the server-controlled session home.
-function makeBinding(overrides: Partial<LoginPtySessionBinding> = {}): LoginPtySessionBinding {
+function makeBinding(
+  overrides: Partial<LoginPtySessionBinding> = {},
+): LoginPtySessionBinding {
   return {
     companyId: "company-1",
     environmentId: "env-1",
@@ -95,7 +97,9 @@ describe("createWorkerBoundLoginPtyOpener", () => {
     });
 
     await expect(
-      openLivePtySession(makeBinding({ lease: { id: "lease-1", metadata: {} } as never })),
+      openLivePtySession(
+        makeBinding({ lease: { id: "lease-1", metadata: {} } as never }),
+      ),
     ).rejects.toThrow();
     expect(openLoginPtySession).not.toHaveBeenCalled();
   });
@@ -107,7 +111,9 @@ describe("createWorkerBoundLoginPtyOpener", () => {
     });
 
     await expect(
-      openLivePtySession(makeBinding({ adapterType: "gemini_local" as AgentAdapterType })),
+      openLivePtySession(
+        makeBinding({ adapterType: "gemini_local" as AgentAdapterType }),
+      ),
     ).rejects.toThrow();
     expect(openLoginPtySession).not.toHaveBeenCalled();
   });
@@ -155,7 +161,11 @@ describe("createProductionLoginSessionRuntime lease-acquisition gate", () => {
       config: { provider: "daytona" },
     });
     mockEnvironmentService.updateLeaseMetadata.mockResolvedValue(undefined);
-    const lease = { id: "lease-1", providerLeaseId: "provider-lease-1", metadata: {} };
+    const lease = {
+      id: "lease-1",
+      providerLeaseId: "provider-lease-1",
+      metadata: {},
+    };
     const acquireRunLease = vi.fn(async () => ({
       lease,
       environment: { id: "env-1", driver: "sandbox" },
@@ -167,7 +177,10 @@ describe("createProductionLoginSessionRuntime lease-acquisition gate", () => {
       assertProviderSupportsLoginPty,
     });
 
-    const acquired = await runtime.acquireLoginLease({ ...acquireInput, sessionId: randomUUID() });
+    const acquired = await runtime.acquireLoginLease({
+      ...acquireInput,
+      sessionId: randomUUID(),
+    });
 
     expect(assertProviderSupportsLoginPty).toHaveBeenCalledWith("env-1");
     // The gate passed, so the runtime acquired the provider lease after it.

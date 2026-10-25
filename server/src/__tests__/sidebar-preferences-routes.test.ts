@@ -81,7 +81,9 @@ describe("sidebar preference routes", () => {
       orderedIds: ORDERED_IDS,
       updatedAt: null,
     });
-    expect(mockSidebarPreferenceService.getCompanyOrder).toHaveBeenCalledWith("user-1");
+    expect(mockSidebarPreferenceService.getCompanyOrder).toHaveBeenCalledWith(
+      "user-1",
+    );
   });
 
   it("updates company rail order for board users", async () => {
@@ -98,7 +100,9 @@ describe("sidebar preference routes", () => {
       .send({ orderedIds: ORDERED_IDS });
 
     expect(res.status).toBe(200);
-    expect(mockSidebarPreferenceService.upsertCompanyOrder).toHaveBeenCalledWith("user-1", ORDERED_IDS);
+    expect(
+      mockSidebarPreferenceService.upsertCompanyOrder,
+    ).toHaveBeenCalledWith("user-1", ORDERED_IDS);
   });
 
   it("returns project order for companies the board user can access", async () => {
@@ -110,10 +114,15 @@ describe("sidebar preference routes", () => {
       companyIds: ["company-1"],
     });
 
-    const res = await request(app).get("/api/companies/company-1/sidebar-preferences/me");
+    const res = await request(app).get(
+      "/api/companies/company-1/sidebar-preferences/me",
+    );
 
     expect(res.status).toBe(200);
-    expect(mockSidebarPreferenceService.getProjectOrder).toHaveBeenCalledWith("company-1", "user-1");
+    expect(mockSidebarPreferenceService.getProjectOrder).toHaveBeenCalledWith(
+      "company-1",
+      "user-1",
+    );
   });
 
   it("logs project order updates for company-scoped writes", async () => {
@@ -131,7 +140,9 @@ describe("sidebar preference routes", () => {
       .send({ orderedIds: ORDERED_IDS });
 
     expect(res.status).toBe(200);
-    expect(mockSidebarPreferenceService.upsertProjectOrder).toHaveBeenCalledWith("company-1", "user-1", ORDERED_IDS);
+    expect(
+      mockSidebarPreferenceService.upsertProjectOrder,
+    ).toHaveBeenCalledWith("company-1", "user-1", ORDERED_IDS);
     expect(mockLogActivity).toHaveBeenCalledWith(
       {} as never,
       expect.objectContaining({
@@ -154,7 +165,9 @@ describe("sidebar preference routes", () => {
       companyIds: ["company-2"],
     });
 
-    const res = await request(app).get("/api/companies/company-1/sidebar-preferences/me");
+    const res = await request(app).get(
+      "/api/companies/company-1/sidebar-preferences/me",
+    );
 
     expect(res.status).toBe(403);
     expect(mockSidebarPreferenceService.getProjectOrder).not.toHaveBeenCalled();

@@ -39,12 +39,12 @@ for the authorized Live console browser surface.
 
 ## 2. Existing package-local primitives — REUSE
 
-| Component | Decision | Notes |
-|---|---|---|
-| `ui/button.tsx` | Reuse | Add `ui-button--danger` and `ui-button--ghost` class variants (CSS only) for Stop / Cancel actions. |
-| `ui/badge.tsx` | Reuse | Status badges for turn/request/connection states. |
-| `ui/card.tsx` | Reuse | Base for request cards, manifest rows, inspector panels. |
-| `ui/textarea.tsx` | Reuse | Composer input (wrapped with auto-grow behavior). |
+| Component         | Decision | Notes                                                                                               |
+| ----------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `ui/button.tsx`   | Reuse    | Add `ui-button--danger` and `ui-button--ghost` class variants (CSS only) for Stop / Cancel actions. |
+| `ui/badge.tsx`    | Reuse    | Status badges for turn/request/connection states.                                                   |
+| `ui/card.tsx`     | Reuse    | Base for request cards, manifest rows, inspector panels.                                            |
+| `ui/textarea.tsx` | Reuse    | Composer input (wrapped with auto-grow behavior).                                                   |
 
 ## 3. Vercel AI Elements — decisions per primitive
 
@@ -56,52 +56,52 @@ re-typed to reducer snapshots and restyled to tokens.
 
 **ADAPT (5):**
 
-| Primitive | Adapted as | What we keep | What we change |
-|---|---|---|---|
-| `Conversation` | `ui/conversation.tsx` | stick-to-bottom semantics, "jump to latest" affordance, `role="log"` | drop `use-stick-to-bottom` dep — implement with a scroll listener + `scrollTo`; wire unseen-count from reducer timeline length |
-| `Message` | `ui/message.tsx` | role-based alignment/grouping anatomy, avatar-less compact variant | props become `SessionItemSnapshot`; roles extended with `reasoning`/`tool`/`system`; no AI SDK message parts |
-| `PromptInput` | `ui/composer.tsx` | textarea + action-row anatomy, submit-on-Enter, status-driven submit button | add Send/Steer/Stop tri-state from interaction map §1–§3; no attachments, no model picker, no AI SDK `sendMessage` |
-| `Reasoning` | `ui/reasoning-item.tsx` | collapsible streaming reasoning with auto-open-while-streaming, duration caption | rebuild on `<details>`/summary with ARIA disclosure; content = plain streamed text (no markdown dep) |
-| `Tool` | `ui/tool-item.tsx` | collapsible tool block: header (name + status badge) / input / output sections | status enum mapped from canonical item/turn events, not AI SDK `ToolUIPart` states; payloads render in `<pre>` |
+| Primitive      | Adapted as              | What we keep                                                                     | What we change                                                                                                                 |
+| -------------- | ----------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Conversation` | `ui/conversation.tsx`   | stick-to-bottom semantics, "jump to latest" affordance, `role="log"`             | drop `use-stick-to-bottom` dep — implement with a scroll listener + `scrollTo`; wire unseen-count from reducer timeline length |
+| `Message`      | `ui/message.tsx`        | role-based alignment/grouping anatomy, avatar-less compact variant               | props become `SessionItemSnapshot`; roles extended with `reasoning`/`tool`/`system`; no AI SDK message parts                   |
+| `PromptInput`  | `ui/composer.tsx`       | textarea + action-row anatomy, submit-on-Enter, status-driven submit button      | add Send/Steer/Stop tri-state from interaction map §1–§3; no attachments, no model picker, no AI SDK `sendMessage`             |
+| `Reasoning`    | `ui/reasoning-item.tsx` | collapsible streaming reasoning with auto-open-while-streaming, duration caption | rebuild on `<details>`/summary with ARIA disclosure; content = plain streamed text (no markdown dep)                           |
+| `Tool`         | `ui/tool-item.tsx`      | collapsible tool block: header (name + status badge) / input / output sections   | status enum mapped from canonical item/turn events, not AI SDK `ToolUIPart` states; payloads render in `<pre>`                 |
 
 **REJECT (with reasons; revisit in SDK where noted):**
 
-| Primitive | Reason |
-|---|---|
-| `Response` (streamed markdown) | pulls `streamdown`/markdown pipeline; tracer renders exact text — markdown prettification can hide protocol truth. SDK candidate for the SDK console. |
-| `CodeBlock` | needs `shiki` highlighting dep; `<pre>` + mono token suffices for a tracer. SDK candidate. |
-| `Actions` (retry/like/copy row) | retry/regenerate/vote have no protocol backing; copy-to-clipboard is implemented locally in the inspector. |
-| `Branch` | message branching does not exist in the PRP session model. |
-| `Sources` / `InlineCitation` | no citation events in the protocol. |
-| `Task` | overlapping with adapted `Tool`; subagent lineage uses the tree (map §6), not a task widget. |
-| `ChainOfThought` | duplicate of `Reasoning` at higher visual weight. |
-| `Context` (token/cost meter) | usage belongs in the inspector Session tab as plain data; a persistent meter overweights cost in a tracer. SDK candidate. |
-| `Artifact`, `WebPreview`, `Image`, `Attachments`, `OpenIn`, `Suggestion`, `Queue` | no protocol counterpart in Live console; adopting them would invent affordances the runner cannot honor (fabricated-controls rule). |
-| `Loader`/`Shimmer` | trivially replaced by a token-compliant CSS pulse honoring `prefers-reduced-motion`. |
+| Primitive                                                                         | Reason                                                                                                                                                |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Response` (streamed markdown)                                                    | pulls `streamdown`/markdown pipeline; tracer renders exact text — markdown prettification can hide protocol truth. SDK candidate for the SDK console. |
+| `CodeBlock`                                                                       | needs `shiki` highlighting dep; `<pre>` + mono token suffices for a tracer. SDK candidate.                                                            |
+| `Actions` (retry/like/copy row)                                                   | retry/regenerate/vote have no protocol backing; copy-to-clipboard is implemented locally in the inspector.                                            |
+| `Branch`                                                                          | message branching does not exist in the PRP session model.                                                                                            |
+| `Sources` / `InlineCitation`                                                      | no citation events in the protocol.                                                                                                                   |
+| `Task`                                                                            | overlapping with adapted `Tool`; subagent lineage uses the tree (map §6), not a task widget.                                                          |
+| `ChainOfThought`                                                                  | duplicate of `Reasoning` at higher visual weight.                                                                                                     |
+| `Context` (token/cost meter)                                                      | usage belongs in the inspector Session tab as plain data; a persistent meter overweights cost in a tracer. SDK candidate.                             |
+| `Artifact`, `WebPreview`, `Image`, `Attachments`, `OpenIn`, `Suggestion`, `Queue` | no protocol counterpart in Live console; adopting them would invent affordances the runner cannot honor (fabricated-controls rule).                   |
+| `Loader`/`Shimmer`                                                                | trivially replaced by a token-compliant CSS pulse honoring `prefers-reduced-motion`.                                                                  |
 
 ## 4. shadcn/ui — decisions per primitive
 
 **ADAPT (6):**
 
-| Primitive | Adapted as | Implementation note |
-|---|---|---|
-| `Tabs` | `ui/tabs.tsx` | inspector tabs + mobile segments; WAI-ARIA tabs pattern, roving tabindex, no radix |
-| `DropdownMenu` (menu-button subset) | `ui/menu.tsx` | Goal menu (§5) — five fixed items; menu-button ARIA pattern; no radix portal |
-| `Dialog` | `ui/dialog.tsx` | native `<dialog>` element (`showModal()` gives focus trap + `Escape` for free); used by Set goal… and reset confirm |
-| `Tooltip` | `ui/tooltip.tsx` | hover/focus tooltip for diagnostics; content mirrored to `aria-describedby` per map A5 (tooltip is never the only channel) |
-| `Alert` | `ui/banner.tsx` | reconnect / pending-request / replay banners; tone variants from status tokens |
-| `Separator`, `Kbd` | folded into `styles.css` | pure CSS (`ui-separator`, `ui-kbd`) — no component file needed |
+| Primitive                           | Adapted as               | Implementation note                                                                                                        |
+| ----------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `Tabs`                              | `ui/tabs.tsx`            | inspector tabs + mobile segments; WAI-ARIA tabs pattern, roving tabindex, no radix                                         |
+| `DropdownMenu` (menu-button subset) | `ui/menu.tsx`            | Goal menu (§5) — five fixed items; menu-button ARIA pattern; no radix portal                                               |
+| `Dialog`                            | `ui/dialog.tsx`          | native `<dialog>` element (`showModal()` gives focus trap + `Escape` for free); used by Set goal… and reset confirm        |
+| `Tooltip`                           | `ui/tooltip.tsx`         | hover/focus tooltip for diagnostics; content mirrored to `aria-describedby` per map A5 (tooltip is never the only channel) |
+| `Alert`                             | `ui/banner.tsx`          | reconnect / pending-request / replay banners; tone variants from status tokens                                             |
+| `Separator`, `Kbd`                  | folded into `styles.css` | pure CSS (`ui-separator`, `ui-kbd`) — no component file needed                                                             |
 
 **REJECT:**
 
-| Primitive | Reason |
-|---|---|
-| `Command` (cmdk palette) | the goal surface has five fixed verbs — a searchable palette adds a dep and search UI for nothing (Hick's law works in our favor with a plain menu). Revisit only if goal/command vocabulary grows in SDK+. |
-| `ScrollArea` | custom scrollbars are cosmetic; native scrolling is more accessible and free. |
-| `Accordion`/`Collapsible` | native `<details>` covers reasoning/tool/observation disclosures. |
-| `Sheet`/`Drawer`, `Popover`, `Select`, `Switch`, `Progress`, `Skeleton`, `Toast`/`Sonner` | no Live console surface needs them; toasts specifically are rejected because failures must live in the transcript record, not ephemeral notifications (map §1.5). |
-| `Table` | inspector uses definition lists / simple grids; sortable tables are not needed. |
-| `Sidebar` | the existing app-shell layout already provides rails; adopting the shadcn sidebar would restructure the proven shell. |
+| Primitive                                                                                 | Reason                                                                                                                                                                                                      |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Command` (cmdk palette)                                                                  | the goal surface has five fixed verbs — a searchable palette adds a dep and search UI for nothing (Hick's law works in our favor with a plain menu). Revisit only if goal/command vocabulary grows in SDK+. |
+| `ScrollArea`                                                                              | custom scrollbars are cosmetic; native scrolling is more accessible and free.                                                                                                                               |
+| `Accordion`/`Collapsible`                                                                 | native `<details>` covers reasoning/tool/observation disclosures.                                                                                                                                           |
+| `Sheet`/`Drawer`, `Popover`, `Select`, `Switch`, `Progress`, `Skeleton`, `Toast`/`Sonner` | no Live console surface needs them; toasts specifically are rejected because failures must live in the transcript record, not ephemeral notifications (map §1.5).                                           |
+| `Table`                                                                                   | inspector uses definition lists / simple grids; sortable tables are not needed.                                                                                                                             |
+| `Sidebar`                                                                                 | the existing app-shell layout already provides rails; adopting the shadcn sidebar would restructure the proven shell.                                                                                       |
 
 ## 5. Token additions (system change, one commit)
 

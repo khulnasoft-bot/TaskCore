@@ -1,5 +1,16 @@
 import { withAgentAppearance } from "@taskcore/shared";
-import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import {
   activityLog,
@@ -98,10 +109,14 @@ function normalizeOffset(value: number | undefined) {
   return Math.max(0, Math.floor(value ?? 0));
 }
 
-export function normalizeTimelineWindow(input: { from?: Date; to?: Date }, now = new Date()) {
+export function normalizeTimelineWindow(
+  input: { from?: Date; to?: Date },
+  now = new Date(),
+) {
   const rawTo = input.to ?? now;
   const to = rawTo.getTime() > now.getTime() ? now : rawTo;
-  const requestedFrom = input.from ?? new Date(to.getTime() - DEFAULT_WINDOW_MS);
+  const requestedFrom =
+    input.from ?? new Date(to.getTime() - DEFAULT_WINDOW_MS);
   let from = requestedFrom;
   let capped = false;
   if (to.getTime() - from.getTime() > MAX_WINDOW_MS) {
@@ -120,7 +135,9 @@ function dateIso(value: Date | null | undefined) {
 }
 
 function readString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function readNumber(value: unknown) {
@@ -141,9 +158,16 @@ function readUsageToken(source: Record<string, unknown>, ...keys: string[]) {
 }
 
 function normalizeRunUsage(usageJson: unknown): RunUsage | null {
-  if (!usageJson || typeof usageJson !== "object" || Array.isArray(usageJson)) return null;
+  if (!usageJson || typeof usageJson !== "object" || Array.isArray(usageJson))
+    return null;
   const source = usageJson as Record<string, unknown>;
-  const inputTokens = readUsageToken(source, "inputTokens", "input_tokens", "rawInputTokens", "raw_input_tokens");
+  const inputTokens = readUsageToken(
+    source,
+    "inputTokens",
+    "input_tokens",
+    "rawInputTokens",
+    "raw_input_tokens",
+  );
   const cachedInputTokens = readUsageToken(
     source,
     "cachedInputTokens",
@@ -151,9 +175,17 @@ function normalizeRunUsage(usageJson: unknown): RunUsage | null {
     "cacheReadInputTokens",
     "cache_read_input_tokens",
   );
-  const outputTokens = readUsageToken(source, "outputTokens", "output_tokens", "rawOutputTokens", "raw_output_tokens");
+  const outputTokens = readUsageToken(
+    source,
+    "outputTokens",
+    "output_tokens",
+    "rawOutputTokens",
+    "raw_output_tokens",
+  );
   const totalTokens = inputTokens + cachedInputTokens + outputTokens;
-  return totalTokens > 0 ? { inputTokens, cachedInputTokens, outputTokens, totalTokens } : null;
+  return totalTokens > 0
+    ? { inputTokens, cachedInputTokens, outputTokens, totalTokens }
+    : null;
 }
 
 function maybeUuidList(ids: Iterable<string>) {
@@ -179,18 +211,20 @@ export function workTimelineService(db: Db) {
     const allowedRows: IssueRow[] = [];
     for (let index = 0; index < rows.length; index += ACL_FILTER_CONCURRENCY) {
       const batch = rows.slice(index, index + ACL_FILTER_CONCURRENCY);
-      const decisions = await Promise.all(batch.map(async (issue) => ({
-        issue,
-        allowed: await canReadIssue({
-          id: issue.id,
-          companyId: issue.companyId,
-          projectId: issue.projectId,
-          parentId: issue.parentId,
-          assigneeAgentId: issue.assigneeAgentId,
-          assigneeUserId: issue.assigneeUserId,
-          status: issue.status,
-        }),
-      })));
+      const decisions = await Promise.all(
+        batch.map(async (issue) => ({
+          issue,
+          allowed: await canReadIssue({
+            id: issue.id,
+            companyId: issue.companyId,
+            projectId: issue.projectId,
+            parentId: issue.parentId,
+            assigneeAgentId: issue.assigneeAgentId,
+            assigneeUserId: issue.assigneeUserId,
+            status: issue.status,
+          }),
+        })),
+      );
       for (const decision of decisions) {
         if (decision.allowed) allowedRows.push(decision.issue);
       }
@@ -198,7 +232,11 @@ export function workTimelineService(db: Db) {
     return allowedRows;
   }
 
-  async function collectIssueIds(input: WorkTimelineQuery, from: Date, to: Date) {
+  async function collectIssueIds(
+    input: WorkTimelineQuery,
+    from: Date,
+    to: Date,
+  ) {
     const ids = new Set<string>();
 
     if (input.issueId) {
@@ -230,7 +268,11 @@ export function workTimelineService(db: Db) {
     for (const row of recentlyTouched) ids.add(row.id);
 
     const runContextRows = await db
-      .select({ issueId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'issueId'` })
+      .select({
+        issueId: sql<
+          string | null
+        >`${heartbeatRuns.contextSnapshot} ->> 'issueId'`,
+      })
       .from(heartbeatRuns)
       .where(
         and(
@@ -282,8 +324,14 @@ export function workTimelineService(db: Db) {
         and(
           eq(issueThreadInteractions.companyId, input.companyId),
           or(
-            and(gte(issueThreadInteractions.createdAt, from), lte(issueThreadInteractions.createdAt, to)),
-            and(gte(issueThreadInteractions.resolvedAt, from), lte(issueThreadInteractions.resolvedAt, to)),
+            and(
+              gte(issueThreadInteractions.createdAt, from),
+              lte(issueThreadInteractions.createdAt, to),
+            ),
+            and(
+              gte(issueThreadInteractions.resolvedAt, from),
+              lte(issueThreadInteractions.resolvedAt, to),
+            ),
           ),
         ),
       )
@@ -342,67 +390,82 @@ export function workTimelineService(db: Db) {
       );
   }
 
-  async function applyUserLens(input: WorkTimelineQuery, rows: IssueRow[], from: Date, to: Date) {
+  async function applyUserLens(
+    input: WorkTimelineQuery,
+    rows: IssueRow[],
+    from: Date,
+    to: Date,
+  ) {
     if (!input.userId) return rows;
 
     const byId = new Map(rows.map((issue) => [issue.id, issue]));
     const selected = new Set<string>();
     for (const issue of rows) {
-      if (issue.createdByUserId === input.userId || issue.assigneeUserId === input.userId) selected.add(issue.id);
+      if (
+        issue.createdByUserId === input.userId ||
+        issue.assigneeUserId === input.userId
+      )
+        selected.add(issue.id);
     }
 
-    const [commentRows, approvalRows, interactionRows, activityRows] = await Promise.all([
-      db
-        .select({ issueId: issueComments.issueId })
-        .from(issueComments)
-        .where(
-          and(
-            eq(issueComments.companyId, input.companyId),
-            eq(issueComments.authorUserId, input.userId),
-            isNull(issueComments.deletedAt),
-            gte(issueComments.createdAt, from),
-            lte(issueComments.createdAt, to),
+    const [commentRows, approvalRows, interactionRows, activityRows] =
+      await Promise.all([
+        db
+          .select({ issueId: issueComments.issueId })
+          .from(issueComments)
+          .where(
+            and(
+              eq(issueComments.companyId, input.companyId),
+              eq(issueComments.authorUserId, input.userId),
+              isNull(issueComments.deletedAt),
+              gte(issueComments.createdAt, from),
+              lte(issueComments.createdAt, to),
+            ),
           ),
-        ),
-      db
-        .select({ issueId: issueApprovals.issueId })
-        .from(issueApprovals)
-        .innerJoin(approvals, eq(issueApprovals.approvalId, approvals.id))
-        .where(
-          and(
-            eq(issueApprovals.companyId, input.companyId),
-            eq(approvals.decidedByUserId, input.userId),
-            gte(approvals.decidedAt, from),
-            lte(approvals.decidedAt, to),
+        db
+          .select({ issueId: issueApprovals.issueId })
+          .from(issueApprovals)
+          .innerJoin(approvals, eq(issueApprovals.approvalId, approvals.id))
+          .where(
+            and(
+              eq(issueApprovals.companyId, input.companyId),
+              eq(approvals.decidedByUserId, input.userId),
+              gte(approvals.decidedAt, from),
+              lte(approvals.decidedAt, to),
+            ),
           ),
-        ),
-      db
-        .select({ issueId: issueThreadInteractions.issueId })
-        .from(issueThreadInteractions)
-        .where(
-          and(
-            eq(issueThreadInteractions.companyId, input.companyId),
-            eq(issueThreadInteractions.resolvedByUserId, input.userId),
-            gte(issueThreadInteractions.resolvedAt, from),
-            lte(issueThreadInteractions.resolvedAt, to),
+        db
+          .select({ issueId: issueThreadInteractions.issueId })
+          .from(issueThreadInteractions)
+          .where(
+            and(
+              eq(issueThreadInteractions.companyId, input.companyId),
+              eq(issueThreadInteractions.resolvedByUserId, input.userId),
+              gte(issueThreadInteractions.resolvedAt, from),
+              lte(issueThreadInteractions.resolvedAt, to),
+            ),
           ),
-        ),
-      db
-        .select({ issueId: activityLog.entityId })
-        .from(activityLog)
-        .where(
-          and(
-            eq(activityLog.companyId, input.companyId),
-            eq(activityLog.actorType, "user"),
-            eq(activityLog.actorId, input.userId),
-            eq(activityLog.entityType, "issue"),
-            gte(activityLog.createdAt, from),
-            lte(activityLog.createdAt, to),
+        db
+          .select({ issueId: activityLog.entityId })
+          .from(activityLog)
+          .where(
+            and(
+              eq(activityLog.companyId, input.companyId),
+              eq(activityLog.actorType, "user"),
+              eq(activityLog.actorId, input.userId),
+              eq(activityLog.entityType, "issue"),
+              gte(activityLog.createdAt, from),
+              lte(activityLog.createdAt, to),
+            ),
           ),
-        ),
-    ]);
+      ]);
 
-    for (const row of [...commentRows, ...approvalRows, ...interactionRows, ...activityRows]) {
+    for (const row of [
+      ...commentRows,
+      ...approvalRows,
+      ...interactionRows,
+      ...activityRows,
+    ]) {
       selected.add(row.issueId);
     }
 
@@ -410,14 +473,22 @@ export function workTimelineService(db: Db) {
     while (changed) {
       changed = false;
       for (const issue of rows) {
-        if (issue.parentId && selected.has(issue.parentId) && !selected.has(issue.id)) {
+        if (
+          issue.parentId &&
+          selected.has(issue.parentId) &&
+          !selected.has(issue.id)
+        ) {
           selected.add(issue.id);
           changed = true;
         }
       }
     }
 
-    return rows.filter((issue) => selected.has(issue.id) || byId.get(issue.parentId ?? "") && selected.has(issue.parentId ?? ""));
+    return rows.filter(
+      (issue) =>
+        selected.has(issue.id) ||
+        (byId.get(issue.parentId ?? "") && selected.has(issue.parentId ?? "")),
+    );
   }
 
   async function loadActorMaps(companyId: string, actorIds: Set<string>) {
@@ -431,15 +502,29 @@ export function workTimelineService(db: Db) {
     const [agentRows, userRows] = await Promise.all([
       agentIds.length > 0
         ? db
-          .select({ id: agents.id, name: agents.name, icon: agents.icon, appearance: agents.appearance })
-          .from(agents)
-          .where(and(eq(agents.companyId, companyId), inArray(agents.id, maybeUuidList(agentIds))))
+            .select({
+              id: agents.id,
+              name: agents.name,
+              icon: agents.icon,
+              appearance: agents.appearance,
+            })
+            .from(agents)
+            .where(
+              and(
+                eq(agents.companyId, companyId),
+                inArray(agents.id, maybeUuidList(agentIds)),
+              ),
+            )
         : [],
       userIds.length > 0
         ? db
-          .select({ id: authUsers.id, name: authUsers.name, image: authUsers.image })
-          .from(authUsers)
-          .where(inArray(authUsers.id, maybeUuidList(userIds)))
+            .select({
+              id: authUsers.id,
+              name: authUsers.name,
+              image: authUsers.image,
+            })
+            .from(authUsers)
+            .where(inArray(authUsers.id, maybeUuidList(userIds)))
         : [],
     ]);
 
@@ -461,7 +546,9 @@ export function workTimelineService(db: Db) {
     return null;
   }
 
-  async function getTimeline(input: WorkTimelineQuery): Promise<WorkTimelineResult> {
+  async function getTimeline(
+    input: WorkTimelineQuery,
+  ): Promise<WorkTimelineResult> {
     const { from, to, capped } = normalizeTimelineWindow(input);
     const limit = normalizeLimit(input.limit);
     const offset = normalizeOffset(input.offset);
@@ -469,8 +556,13 @@ export function workTimelineService(db: Db) {
     const candidateIssueIds = await collectIssueIds(input, from, to);
     const loadedIssues = await loadIssues(input, candidateIssueIds);
     const userScopedIssues = await applyUserLens(input, loadedIssues, from, to);
-    const accessibleIssues = await filterReadableIssues(userScopedIssues, input.canReadIssue);
-    const sortedIssues = accessibleIssues.sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+    const accessibleIssues = await filterReadableIssues(
+      userScopedIssues,
+      input.canReadIssue,
+    );
+    const sortedIssues = accessibleIssues.sort(
+      (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
+    );
     const pagedIssues = sortedIssues.slice(offset, offset + limit);
     const issueById = new Map(sortedIssues.map((issue) => [issue.id, issue]));
     const readableIssueIds = pagedIssues.map((issue) => issue.id);
@@ -481,7 +573,12 @@ export function workTimelineService(db: Db) {
         spans: [],
         events: [],
         edges: [],
-        pagination: { limit, offset, totalIssues: sortedIssues.length, hasMore: offset + limit < sortedIssues.length },
+        pagination: {
+          limit,
+          offset,
+          totalIssues: sortedIssues.length,
+          hasMore: offset + limit < sortedIssues.length,
+        },
         window: { from: from.toISOString(), to: to.toISOString(), capped },
       };
     }
@@ -513,8 +610,14 @@ export function workTimelineService(db: Db) {
       }
 
       const parent = issue.parentId ? issueById.get(issue.parentId) : null;
-      const parentActorId = parent ? actorForIssueAssignee(parent) ?? actorForIssueCreator(parent) : null;
-      if (parentActorId && assigneeActorId && parentActorId !== assigneeActorId) {
+      const parentActorId = parent
+        ? (actorForIssueAssignee(parent) ?? actorForIssueCreator(parent))
+        : null;
+      if (
+        parentActorId &&
+        assigneeActorId &&
+        parentActorId !== assigneeActorId
+      ) {
         actorIds.add(parentActorId);
         edges.push({
           fromActorId: parentActorId,
@@ -532,12 +635,21 @@ export function workTimelineService(db: Db) {
       }
     }
 
-    const [contextRunRows, activityRunRows, commentRows, approvalRows, interactionRows, logRows] = await Promise.all([
+    const [
+      contextRunRows,
+      activityRunRows,
+      commentRows,
+      approvalRows,
+      interactionRows,
+      logRows,
+    ] = await Promise.all([
       db
         .select({
           runId: heartbeatRuns.id,
           agentId: heartbeatRuns.agentId,
-          issueId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'issueId'`,
+          issueId: sql<
+            string | null
+          >`${heartbeatRuns.contextSnapshot} ->> 'issueId'`,
           status: heartbeatRuns.status,
           startedAt: heartbeatRuns.startedAt,
           finishedAt: heartbeatRuns.finishedAt,
@@ -552,7 +664,10 @@ export function workTimelineService(db: Db) {
           and(
             eq(heartbeatRuns.companyId, input.companyId),
             runOverlapsWindow(from, to),
-            inArray(sql<string>`${heartbeatRuns.contextSnapshot} ->> 'issueId'`, readableIssueIds),
+            inArray(
+              sql<string>`${heartbeatRuns.contextSnapshot} ->> 'issueId'`,
+              readableIssueIds,
+            ),
           ),
         ),
       db
@@ -634,8 +749,14 @@ export function workTimelineService(db: Db) {
             eq(issueThreadInteractions.companyId, input.companyId),
             inArray(issueThreadInteractions.issueId, readableIssueIds),
             or(
-              and(gte(issueThreadInteractions.createdAt, from), lte(issueThreadInteractions.createdAt, to)),
-              and(gte(issueThreadInteractions.resolvedAt, from), lte(issueThreadInteractions.resolvedAt, to)),
+              and(
+                gte(issueThreadInteractions.createdAt, from),
+                lte(issueThreadInteractions.createdAt, to),
+              ),
+              and(
+                gte(issueThreadInteractions.resolvedAt, from),
+                lte(issueThreadInteractions.resolvedAt, to),
+              ),
             ),
           ),
         ),
@@ -662,7 +783,12 @@ export function workTimelineService(db: Db) {
 
     const spanByRunId = new Map<string, WorkTimelineSpan>();
     for (const row of [...contextRunRows, ...activityRunRows]) {
-      if (!row.issueId || !issueById.has(row.issueId) || spanByRunId.has(row.runId)) continue;
+      if (
+        !row.issueId ||
+        !issueById.has(row.issueId) ||
+        spanByRunId.has(row.runId)
+      )
+        continue;
       const runActorId = actorId("agent", row.agentId);
       actorIds.add(runActorId);
       spanByRunId.set(row.runId, {
@@ -689,7 +815,12 @@ export function workTimelineService(db: Db) {
           ? actorId("user", row.authorUserId)
           : actorId("system", "system");
       actorIds.add(commentActorId);
-      events.push({ actorId: commentActorId, kind: "commented", issueId: row.issueId, at: row.createdAt.toISOString() });
+      events.push({
+        actorId: commentActorId,
+        kind: "commented",
+        issueId: row.issueId,
+        at: row.createdAt.toISOString(),
+      });
     }
 
     for (const row of approvalRows) {
@@ -729,18 +860,31 @@ export function workTimelineService(db: Db) {
     }
 
     for (const row of logRows) {
-      const logActorType = row.actorType === "agent" || row.actorType === "user" || row.actorType === "plugin"
-        ? row.actorType
-        : "system";
+      const logActorType =
+        row.actorType === "agent" ||
+        row.actorType === "user" ||
+        row.actorType === "plugin"
+          ? row.actorType
+          : "system";
       const fromActorId = actorId(logActorType, row.actorId);
       actorIds.add(fromActorId);
       if (row.action.includes("assign")) {
-        events.push({ actorId: fromActorId, kind: "assigned", issueId: row.issueId, at: row.createdAt.toISOString() });
-        const details = row.details && typeof row.details === "object" && !Array.isArray(row.details)
-          ? row.details as Record<string, unknown>
-          : {};
-        const targetAgentId = readString(details.assigneeAgentId) ?? readString(details.toAgentId);
-        const targetUserId = readString(details.assigneeUserId) ?? readString(details.toUserId);
+        events.push({
+          actorId: fromActorId,
+          kind: "assigned",
+          issueId: row.issueId,
+          at: row.createdAt.toISOString(),
+        });
+        const details =
+          row.details &&
+          typeof row.details === "object" &&
+          !Array.isArray(row.details)
+            ? (row.details as Record<string, unknown>)
+            : {};
+        const targetAgentId =
+          readString(details.assigneeAgentId) ?? readString(details.toAgentId);
+        const targetUserId =
+          readString(details.assigneeUserId) ?? readString(details.toUserId);
         const toActorId = targetAgentId
           ? actorId("agent", targetAgentId)
           : targetUserId
@@ -765,18 +909,37 @@ export function workTimelineService(db: Db) {
       if (type === "agent") {
         const agent = actorMaps.agents.get(rawId);
         const identity = withAgentAppearance(agent ?? { id: rawId });
-        return { id, type, name: agent?.name ?? "Unknown agent", avatar: identity.avatarUrl, appearance: identity.appearance, avatarUrl: identity.avatarUrl };
+        return {
+          id,
+          type,
+          name: agent?.name ?? "Unknown agent",
+          avatar: identity.avatarUrl,
+          appearance: identity.appearance,
+          avatarUrl: identity.avatarUrl,
+        };
       }
       if (type === "user") {
         const user = actorMaps.users.get(rawId);
-        return { id, type, name: user?.name ?? rawId, avatar: user?.image ?? null };
+        return {
+          id,
+          type,
+          name: user?.name ?? rawId,
+          avatar: user?.image ?? null,
+        };
       }
-      return { id, type, name: type === "plugin" ? rawId : "System", avatar: null };
+      return {
+        id,
+        type,
+        name: type === "plugin" ? rawId : "System",
+        avatar: null,
+      };
     });
 
     return {
       actors,
-      spans: Array.from(spanByRunId.values()).sort((left, right) => left.start.localeCompare(right.start)),
+      spans: Array.from(spanByRunId.values()).sort((left, right) =>
+        left.start.localeCompare(right.start),
+      ),
       events: events.sort((left, right) => left.at.localeCompare(right.at)),
       edges: edges.sort((left, right) => left.at.localeCompare(right.at)),
       pagination: {

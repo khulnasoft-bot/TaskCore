@@ -31,12 +31,13 @@ export async function resolveIssueReviewRequester(
       details: activityLog.details,
     })
     .from(activityLog)
-    .where(and(
-      eq(activityLog.companyId, issue.companyId),
-      eq(activityLog.entityType, "issue"),
-      eq(activityLog.entityId, issue.id),
-      eq(activityLog.action, "issue.updated"),
-      sql`(
+    .where(
+      and(
+        eq(activityLog.companyId, issue.companyId),
+        eq(activityLog.entityType, "issue"),
+        eq(activityLog.entityId, issue.id),
+        eq(activityLog.action, "issue.updated"),
+        sql`(
         (
           ${activityLog.details} ->> 'status' = 'in_review'
           AND ${activityLog.details} -> '_previous' ->> 'status' IS NOT NULL
@@ -49,22 +50,36 @@ export async function resolveIssueReviewRequester(
           AND ${activityLog.details} -> 'changes' -> 'status' ->> 'from' <> 'in_review'
         )
       )`,
-    ))
+      ),
+    )
     .orderBy(desc(activityLog.createdAt), desc(activityLog.id))
     .limit(1)
     .then((rows) => rows[0] ?? null);
 
   if (transition?.actorType === "agent" || transition?.actorType === "user") {
-    const reviewInteractionId = typeof transition.details?.reviewInteractionId === "string"
-      ? transition.details.reviewInteractionId
-      : null;
-    return { type: transition.actorType, id: transition.actorId, reviewInteractionId };
+    const reviewInteractionId =
+      typeof transition.details?.reviewInteractionId === "string"
+        ? transition.details.reviewInteractionId
+        : null;
+    return {
+      type: transition.actorType,
+      id: transition.actorId,
+      reviewInteractionId,
+    };
   }
   if (issue.createdByAgentId && !issue.createdByUserId) {
-    return { type: "agent", id: issue.createdByAgentId, reviewInteractionId: null };
+    return {
+      type: "agent",
+      id: issue.createdByAgentId,
+      reviewInteractionId: null,
+    };
   }
   if (issue.createdByUserId && !issue.createdByAgentId) {
-    return { type: "user", id: issue.createdByUserId, reviewInteractionId: null };
+    return {
+      type: "user",
+      id: issue.createdByUserId,
+      reviewInteractionId: null,
+    };
   }
   return null;
 }
@@ -82,14 +97,20 @@ export async function isIssueReviewVerdictInteraction(
 ): Promise<boolean> {
   const requester = await resolveIssueReviewRequester(db, input.issue);
   if (!requester) return false;
-  if (requester.reviewInteractionId && requester.reviewInteractionId !== input.interaction.id) return false;
+  if (
+    requester.reviewInteractionId &&
+    requester.reviewInteractionId !== input.interaction.id
+  )
+    return false;
   // Older review transitions did not persist the interaction binding. In that
   // case, an unattributed confirmation is ambiguous and must fail closed.
   // Confirmations attributed to an unrelated writer remain independently
   // resolvable, while requester-created confirmations inherit the issue policy.
-  if (!requester.reviewInteractionId
-    && !input.interaction.createdByAgentId
-    && !input.interaction.createdByUserId) {
+  if (
+    !requester.reviewInteractionId &&
+    !input.interaction.createdByAgentId &&
+    !input.interaction.createdByUserId
+  ) {
     return true;
   }
   return requester.type === "agent"
@@ -116,7 +137,8 @@ export async function assertIssueReviewVerdictActorAllowed(
         code: "review_policy_denied",
         policy,
         allowedActor: "authenticated_user_with_issue_write_access",
-        remediation: "Have an authenticated user with issue write access submit the verdict.",
+        remediation:
+          "Have an authenticated user with issue write access submit the verdict.",
       },
     );
   }
@@ -129,11 +151,13 @@ export async function assertIssueReviewVerdictActorAllowed(
         code: "review_policy_denied",
         policy,
         allowedActor: "writer_other_than_review_requester",
-        remediation: "Move the issue out of and back into `in_review` to record a requester before another writer submits the verdict.",
+        remediation:
+          "Move the issue out of and back into `in_review` to record a requester before another writer submits the verdict.",
       },
     );
   }
-  if (requester.type !== input.actor.type || requester.id !== input.actor.id) return;
+  if (requester.type !== input.actor.type || requester.id !== input.actor.id)
+    return;
 
   throw forbidden(
     "Review policy `not_creator` requires someone other than the writer who moved the issue into `in_review` to approve or reject it.",
@@ -141,7 +165,8 @@ export async function assertIssueReviewVerdictActorAllowed(
       code: "review_policy_denied",
       policy,
       allowedActor: "writer_other_than_review_requester",
-      remediation: "Have another writer with issue write access submit the verdict.",
+      remediation:
+        "Have another writer with issue write access submit the verdict.",
     },
   );
 }

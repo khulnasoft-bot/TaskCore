@@ -22,13 +22,18 @@ import {
   userSecretDeclarations,
   userSecretDefinitions,
 } from "@taskcore/db";
-import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
+import {
+  getEmbeddedPostgresTestSupport,
+  startEmbeddedPostgresTestDatabase,
+} from "./helpers/embedded-postgres.js";
 import { errorHandler } from "../middleware/index.js";
 import { agentRoutes } from "../routes/agents.js";
 import { secretService } from "../services/secrets.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -42,9 +47,15 @@ type Db = ReturnType<typeof createDb>;
 
 // The fixed Claude Code OAuth binding. It is a user-secret reference to the
 // fixed key. Any other shape is a replacement or a weaker binding.
-const FIXED_CLAUDE_OAUTH_BINDING = { type: "user_secret_ref", key: "CLAUDE_CODE_OAUTH_TOKEN" } as const;
+const FIXED_CLAUDE_OAUTH_BINDING = {
+  type: "user_secret_ref",
+  key: "CLAUDE_CODE_OAUTH_TOKEN",
+} as const;
 
-function agentActor(companyId: string, agentId: string): Express.Request["actor"] {
+function agentActor(
+  companyId: string,
+  agentId: string,
+): Express.Request["actor"] {
   return { type: "agent", agentId, companyId, source: "agent_jwt" };
 }
 
@@ -68,14 +79,24 @@ function createApp(db: Db, actor: Express.Request["actor"]) {
 
 describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
   let db!: Db;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
-  const secretsTmpDir = path.join(os.tmpdir(), `taskcore-agent-hire-auth-inheritance-${randomUUID()}`);
+  const secretsTmpDir = path.join(
+    os.tmpdir(),
+    `taskcore-agent-hire-auth-inheritance-${randomUUID()}`,
+  );
 
   beforeAll(async () => {
     mkdirSync(secretsTmpDir, { recursive: true });
-    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(secretsTmpDir, "master.key");
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-agent-hire-auth-inheritance-");
+    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(
+      secretsTmpDir,
+      "master.key",
+    );
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-agent-hire-auth-inheritance-",
+    );
     db = createDb(tempDb.connectionString);
   }, 60_000);
 
@@ -116,7 +137,11 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     return companyId;
   }
 
-  async function seedParentAgent(companyId: string, adapterType: string, env: Record<string, unknown>) {
+  async function seedParentAgent(
+    companyId: string,
+    adapterType: string,
+    env: Record<string, unknown>,
+  ) {
     const [row] = await db
       .insert(agents)
       .values({
@@ -144,13 +169,24 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     return { type: "secret_ref" as const, secretId, ...extra };
   }
 
-  function hire(actor: Express.Request["actor"], companyId: string, payload: Record<string, unknown>) {
+  function hire(
+    actor: Express.Request["actor"],
+    companyId: string,
+    payload: Record<string, unknown>,
+  ) {
     const app = createApp(db, actor);
-    return request(app).post(`/api/companies/${companyId}/agent-hires`).send(payload);
+    return request(app)
+      .post(`/api/companies/${companyId}/agent-hires`)
+      .send(payload);
   }
 
   function childEnvOf(res: request.Response): Record<string, unknown> {
-    return ((res.body.agent?.adapterConfig as { env?: Record<string, unknown> } | undefined)?.env) ?? {};
+    return (
+      (
+        res.body.agent?.adapterConfig as
+          { env?: Record<string, unknown> } | undefined
+      )?.env ?? {}
+    );
   }
 
   it("inherits the parent secret_ref for a codex_local hire with no env, and derives the child binding", async () => {
@@ -167,7 +203,10 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     });
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
-    expect(childEnvOf(res).OPENAI_API_KEY).toMatchObject({ type: "secret_ref", secretId: secret.id });
+    expect(childEnvOf(res).OPENAI_API_KEY).toMatchObject({
+      type: "secret_ref",
+      secretId: secret.id,
+    });
 
     const bindings = await db
       .select()
@@ -201,7 +240,11 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     });
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
-    expect(childEnvOf(res).OPENAI_API_KEY).toMatchObject({ type: "secret_ref", secretId: secret.id, version: 3 });
+    expect(childEnvOf(res).OPENAI_API_KEY).toMatchObject({
+      type: "secret_ref",
+      secretId: secret.id,
+      version: 3,
+    });
 
     const bindings = await db
       .select()
@@ -262,7 +305,10 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     });
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
-    expect(childEnvOf(res).XAI_API_KEY).toMatchObject({ type: "secret_ref", secretId: secret.id });
+    expect(childEnvOf(res).XAI_API_KEY).toMatchObject({
+      type: "secret_ref",
+      secretId: secret.id,
+    });
   });
 
   it("inherits a claude_local parent's ANTHROPIC_API_KEY reference", async () => {
@@ -279,7 +325,10 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     });
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
-    expect(childEnvOf(res).ANTHROPIC_API_KEY).toMatchObject({ type: "secret_ref", secretId: secret.id });
+    expect(childEnvOf(res).ANTHROPIC_API_KEY).toMatchObject({
+      type: "secret_ref",
+      secretId: secret.id,
+    });
   });
 
   it("keeps the child-supplied ANTHROPIC_API_KEY and inherits no Claude credential at all", async () => {
@@ -300,7 +349,10 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
 
     expect(res.status, JSON.stringify(res.body)).toBe(201);
     const childEnv = childEnvOf(res);
-    expect(childEnv.ANTHROPIC_API_KEY).toMatchObject({ type: "secret_ref", secretId: childSecret.id });
+    expect(childEnv.ANTHROPIC_API_KEY).toMatchObject({
+      type: "secret_ref",
+      secretId: childSecret.id,
+    });
     expect(childEnv.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
   });
 
@@ -340,7 +392,10 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
   it("does not inherit a codex_local credential from a hiring agent in another company", async () => {
     const parentCompanyId = await seedCompany();
     const targetCompanyId = await seedCompany();
-    const secret = await createCompanySecret(parentCompanyId, "sk-openai-other-company");
+    const secret = await createCompanySecret(
+      parentCompanyId,
+      "sk-openai-other-company",
+    );
     const parent = await seedParentAgent(parentCompanyId, "codex_local", {
       OPENAI_API_KEY: secretRef(secret.id),
     });
@@ -348,33 +403,50 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     // The actor claims the target company, but the named hiring agent belongs
     // to a different company. The route must reject the request and must
     // never copy the other company's credential reference.
-    const res = await hire(agentActor(targetCompanyId, parent.id), targetCompanyId, {
-      name: "Codex Cross-Company Child",
-      role: "engineer",
-      adapterType: "codex_local",
-    });
+    const res = await hire(
+      agentActor(targetCompanyId, parent.id),
+      targetCompanyId,
+      {
+        name: "Codex Cross-Company Child",
+        role: "engineer",
+        adapterType: "codex_local",
+      },
+    );
 
     expect(res.status).toBe(403);
-    const children = await db.select().from(agents).where(eq(agents.companyId, targetCompanyId));
+    const children = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.companyId, targetCompanyId));
     expect(children).toHaveLength(0);
   });
 
   it("does not inherit a grok_local credential from a hiring agent in another company", async () => {
     const parentCompanyId = await seedCompany();
     const targetCompanyId = await seedCompany();
-    const secret = await createCompanySecret(parentCompanyId, "xai-other-company");
+    const secret = await createCompanySecret(
+      parentCompanyId,
+      "xai-other-company",
+    );
     const parent = await seedParentAgent(parentCompanyId, "grok_local", {
       XAI_API_KEY: secretRef(secret.id),
     });
 
-    const res = await hire(agentActor(targetCompanyId, parent.id), targetCompanyId, {
-      name: "Grok Cross-Company Child",
-      role: "engineer",
-      adapterType: "grok_local",
-    });
+    const res = await hire(
+      agentActor(targetCompanyId, parent.id),
+      targetCompanyId,
+      {
+        name: "Grok Cross-Company Child",
+        role: "engineer",
+        adapterType: "grok_local",
+      },
+    );
 
     expect(res.status).toBe(403);
-    const children = await db.select().from(agents).where(eq(agents.companyId, targetCompanyId));
+    const children = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.companyId, targetCompanyId));
     expect(children).toHaveLength(0);
   });
 
@@ -382,18 +454,27 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     const parentCompanyId = await seedCompany();
     const targetCompanyId = await seedCompany();
     const parent = await seedParentAgent(parentCompanyId, "claude_local", {
-      ANTHROPIC_API_KEY: secretRef((await createCompanySecret(parentCompanyId, "ant-other-company")).id),
+      ANTHROPIC_API_KEY: secretRef(
+        (await createCompanySecret(parentCompanyId, "ant-other-company")).id,
+      ),
       CLAUDE_CODE_OAUTH_TOKEN: { ...FIXED_CLAUDE_OAUTH_BINDING, version: 1 },
     });
 
-    const res = await hire(agentActor(targetCompanyId, parent.id), targetCompanyId, {
-      name: "Claude Cross-Company Child",
-      role: "engineer",
-      adapterType: "claude_local",
-    });
+    const res = await hire(
+      agentActor(targetCompanyId, parent.id),
+      targetCompanyId,
+      {
+        name: "Claude Cross-Company Child",
+        role: "engineer",
+        adapterType: "claude_local",
+      },
+    );
 
     expect(res.status).toBe(403);
-    const children = await db.select().from(agents).where(eq(agents.companyId, targetCompanyId));
+    const children = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.companyId, targetCompanyId));
     expect(children).toHaveLength(0);
   });
 
@@ -413,7 +494,8 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     expect(res.status, JSON.stringify(res.body)).toBe(201);
     const childEnv = childEnvOf(res);
     // A bare environment string persists as a `plain` binding.
-    const codexHome = childEnv.CODEX_HOME as { type: string; value: string } | undefined;
+    const codexHome = childEnv.CODEX_HOME as
+      { type: string; value: string } | undefined;
     expect(codexHome?.type).toBe("plain");
     expect(codexHome?.value.length ?? 0).toBeGreaterThan(0);
   });
@@ -466,7 +548,10 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     const companyId = await seedCompany();
     const parent = await seedParentAgent(companyId, "taskcore_runner", {});
     const res = await hire(userActor(), companyId, {
-      name: "Board Inheritance Attempt", role: "engineer", adapterType: "taskcore_runner", inheritRuntimeFrom: "caller",
+      name: "Board Inheritance Attempt",
+      role: "engineer",
+      adapterType: "taskcore_runner",
+      inheritRuntimeFrom: "caller",
     });
     expect(res.status).toBe(403);
     expect(parent.adapterType).toBe("taskcore_runner");
@@ -476,7 +561,10 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     const companyId = await seedCompany();
     const parent = await seedParentAgent(companyId, "codex_local", {});
     const res = await hire(agentActor(companyId, parent.id), companyId, {
-      name: "Legacy Inheritance Attempt", role: "engineer", adapterType: "taskcore_runner", inheritRuntimeFrom: "caller",
+      name: "Legacy Inheritance Attempt",
+      role: "engineer",
+      adapterType: "taskcore_runner",
+      inheritRuntimeFrom: "caller",
     });
     expect(res.status).toBe(422);
     expect(res.body.error).toContain("taskcore_runner adapter");
@@ -485,60 +573,133 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
   it("rejects native runtime inheritance across companies", async () => {
     const parentCompanyId = await seedCompany();
     const targetCompanyId = await seedCompany();
-    const parent = await seedParentAgent(parentCompanyId, "taskcore_runner", { provider: "codex", model: "gpt-5.6-sol" });
-    const res = await hire(agentActor(targetCompanyId, parent.id), targetCompanyId, {
-      name: "Cross Company Inheritance Attempt", role: "engineer", adapterType: "taskcore_runner", inheritRuntimeFrom: "caller",
+    const parent = await seedParentAgent(parentCompanyId, "taskcore_runner", {
+      provider: "codex",
+      model: "gpt-5.6-sol",
     });
+    const res = await hire(
+      agentActor(targetCompanyId, parent.id),
+      targetCompanyId,
+      {
+        name: "Cross Company Inheritance Attempt",
+        role: "engineer",
+        adapterType: "taskcore_runner",
+        inheritRuntimeFrom: "caller",
+      },
+    );
     expect(res.status).toBe(403);
-    expect(await db.select().from(agents).where(eq(agents.companyId, targetCompanyId))).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(agents)
+        .where(eq(agents.companyId, targetCompanyId)),
+    ).toHaveLength(0);
   });
 
   it("records only inherited safe settings in an approval snapshot", async () => {
     const companyId = await seedCompany();
-    await db.update(companies).set({ requireBoardApprovalForNewAgents: true }).where(eq(companies.id, companyId));
+    await db
+      .update(companies)
+      .set({ requireBoardApprovalForNewAgents: true })
+      .where(eq(companies.id, companyId));
     const parent = await seedParentAgent(companyId, "taskcore_runner", {});
-    await db.update(agents).set({ adapterConfig: {
-      provider: "acpx", acpxAgent: "claude", model: "claude-sonnet-5", acpxPermissionMode: "approve-all",
-      env: { ANTHROPIC_API_KEY: secretRef("parent-secret") }, cwd: "/private/parent",
-      invocationLimits: { maxIterations: 3, credentials: "never-copy" },
-    } }).where(eq(agents.id, parent.id));
+    await db
+      .update(agents)
+      .set({
+        adapterConfig: {
+          provider: "acpx",
+          acpxAgent: "claude",
+          model: "claude-sonnet-5",
+          acpxPermissionMode: "approve-all",
+          env: { ANTHROPIC_API_KEY: secretRef("parent-secret") },
+          cwd: "/private/parent",
+          invocationLimits: { maxIterations: 3, credentials: "never-copy" },
+        },
+      })
+      .where(eq(agents.id, parent.id));
     const res = await hire(agentActor(companyId, parent.id), companyId, {
-      name: "Approval Snapshot Child", role: "engineer", adapterType: "taskcore_runner", inheritRuntimeFrom: "caller",
+      name: "Approval Snapshot Child",
+      role: "engineer",
+      adapterType: "taskcore_runner",
+      inheritRuntimeFrom: "caller",
     });
     expect(res.status).toBe(201);
     expect(res.body.agent.status).toBe("pending_approval");
     expect(res.body.approval.payload.inheritRuntimeFrom).toBeUndefined();
-    expect(res.body.approval.payload.adapterConfig).toMatchObject({ provider: "acpx", acpxAgent: "claude", acpxPermissionMode: "approve-all" });
+    expect(res.body.approval.payload.adapterConfig).toMatchObject({
+      provider: "acpx",
+      acpxAgent: "claude",
+      acpxPermissionMode: "approve-all",
+    });
     expect(res.body.approval.payload.adapterConfig.env).toBeUndefined();
     expect(res.body.approval.payload.adapterConfig.cwd).toBeUndefined();
-    expect(res.body.approval.payload.adapterConfig.invocationLimits).toEqual({ maxIterations: 3 });
+    expect(res.body.approval.payload.adapterConfig.invocationLimits).toEqual({
+      maxIterations: 3,
+    });
   });
 
   it.each([
-    ["claude_managed", "managedProfileId", "managedAgentsRetentionAcknowledged", "Managed Agent"],
-    ["aws_agentcore", "agentCoreProfileId", "agentCoreRetentionAcknowledged", "Remote Agent"],
-  ])("revalidates the inherited %s company profile before creating a hire", async (provider, profileKey, retentionKey, label) => {
-    const companyId = await seedCompany();
-    const parent = await seedParentAgent(companyId, "taskcore_runner", {});
-    await db.update(agents).set({ adapterConfig: {
-      provider, [profileKey]: randomUUID(), [retentionKey]: true,
-    } }).where(eq(agents.id, parent.id));
-    const res = await hire(agentActor(companyId, parent.id), companyId, {
-      name: "Missing Profile Child", role: "engineer", adapterType: "taskcore_runner", inheritRuntimeFrom: "caller",
-    });
-    expect(res.status, JSON.stringify(res.body)).toBe(404);
-    expect(res.body.error).toBe(`${label} profile not found`);
-    expect(await db.select().from(agents).where(eq(agents.companyId, companyId))).toHaveLength(1);
-  });
+    [
+      "claude_managed",
+      "managedProfileId",
+      "managedAgentsRetentionAcknowledged",
+      "Managed Agent",
+    ],
+    [
+      "aws_agentcore",
+      "agentCoreProfileId",
+      "agentCoreRetentionAcknowledged",
+      "Remote Agent",
+    ],
+  ])(
+    "revalidates the inherited %s company profile before creating a hire",
+    async (provider, profileKey, retentionKey, label) => {
+      const companyId = await seedCompany();
+      const parent = await seedParentAgent(companyId, "taskcore_runner", {});
+      await db
+        .update(agents)
+        .set({
+          adapterConfig: {
+            provider,
+            [profileKey]: randomUUID(),
+            [retentionKey]: true,
+          },
+        })
+        .where(eq(agents.id, parent.id));
+      const res = await hire(agentActor(companyId, parent.id), companyId, {
+        name: "Missing Profile Child",
+        role: "engineer",
+        adapterType: "taskcore_runner",
+        inheritRuntimeFrom: "caller",
+      });
+      expect(res.status, JSON.stringify(res.body)).toBe(404);
+      expect(res.body.error).toBe(`${label} profile not found`);
+      expect(
+        await db.select().from(agents).where(eq(agents.companyId, companyId)),
+      ).toHaveLength(1);
+    },
+  );
 
   it("validates and preserves an inherited caller default environment", async () => {
     const companyId = await seedCompany();
     const parent = await seedParentAgent(companyId, "taskcore_runner", {});
     const environmentId = randomUUID();
-    await db.insert(environments).values({ id: environmentId, name: `Local ${environmentId}`, driver: "local" });
-    await db.update(agents).set({ defaultEnvironmentId: environmentId }).where(eq(agents.id, parent.id));
+    await db
+      .insert(environments)
+      .values({
+        id: environmentId,
+        name: `Local ${environmentId}`,
+        driver: "local",
+      });
+    await db
+      .update(agents)
+      .set({ defaultEnvironmentId: environmentId })
+      .where(eq(agents.id, parent.id));
     const res = await hire(agentActor(companyId, parent.id), companyId, {
-      name: "Invalid Environment Child", role: "engineer", adapterType: "taskcore_runner", inheritRuntimeFrom: "caller",
+      name: "Invalid Environment Child",
+      role: "engineer",
+      adapterType: "taskcore_runner",
+      inheritRuntimeFrom: "caller",
     });
     expect(res.status, JSON.stringify(res.body)).toBe(201);
     expect(res.body.agent.defaultEnvironmentId).toBe(environmentId);
@@ -580,7 +741,12 @@ describeEmbeddedPostgres("hired agent provider credential inheritance", () => {
     const hireActivity = await db
       .select()
       .from(activityLog)
-      .where(and(eq(activityLog.companyId, companyId), eq(activityLog.action, "agent.hire_created")));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.action, "agent.hire_created"),
+        ),
+      );
     expect(hireActivity).toHaveLength(1);
     const detailsText = JSON.stringify(hireActivity[0]!.details);
     expect(detailsText).not.toContain("adapterConfig");

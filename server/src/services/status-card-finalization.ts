@@ -9,7 +9,11 @@ import type { IssueStatus } from "@taskcore/shared";
 // summary on its own — so we release the card's `generatingIssueId` claim in all
 // three cases. The board tile keys "run in flight" off `generatingIssueId`, so
 // clearing it here is what flips a wedged card back to offering "Run now".
-const STALLED_GENERATION_STATUSES = new Set<IssueStatus>(["done", "cancelled", "blocked"]);
+const STALLED_GENERATION_STATUSES = new Set<IssueStatus>([
+  "done",
+  "cancelled",
+  "blocked",
+]);
 
 interface StalledGenerationIssue {
   id: string;
@@ -20,7 +24,9 @@ interface StalledGenerationIssue {
 }
 
 function failureReasonForIssue(issue: StalledGenerationIssue) {
-  const label = issue.identifier ? `${issue.identifier}: ${issue.title}` : issue.title;
+  const label = issue.identifier
+    ? `${issue.identifier}: ${issue.title}`
+    : issue.title;
   if (issue.status === "cancelled") {
     return `Status-card generation task ${label} was cancelled before writing a summary.`;
   }

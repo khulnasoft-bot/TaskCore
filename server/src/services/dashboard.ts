@@ -1,6 +1,13 @@
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { agents, approvals, companies, costEvents, heartbeatRuns, issues } from "@taskcore/db";
+import {
+  agents,
+  approvals,
+  companies,
+  costEvents,
+  heartbeatRuns,
+  issues,
+} from "@taskcore/db";
 import { notFound } from "../errors.js";
 import { budgetService } from "./budgets.js";
 import { executionIssueCondition } from "./issue-visibility.js";
@@ -17,10 +24,16 @@ export function getUtcMonthStart(date: Date): Date {
 }
 
 function getRecentUtcDateKeys(now: Date, days: number): string[] {
-  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const todayUtc = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
   return Array.from({ length: days }, (_, index) => {
     const dayOffset = index - (days - 1);
-    return formatUtcDateKey(new Date(todayUtc + dayOffset * 24 * 60 * 60 * 1000));
+    return formatUtcDateKey(
+      new Date(todayUtc + dayOffset * 24 * 60 * 60 * 1000),
+    );
   });
 }
 
@@ -30,31 +43,46 @@ export function dashboardService(db: Db) {
     summary: async (companyId: string) => {
       // This lookup only reads the company row. Rebuild it after a transient
       // disconnect; do not replay the later summary or budget workflows.
-      const company = await retryIdempotentDatabaseOperation(() => db
-        .select()
-        .from(companies)
-        .where(eq(companies.id, companyId))
-        .then((rows) => rows[0] ?? null));
+      const company = await retryIdempotentDatabaseOperation(() =>
+        db
+          .select()
+          .from(companies)
+          .where(eq(companies.id, companyId))
+          .then((rows) => rows[0] ?? null),
+      );
 
       if (!company) throw notFound("Company not found");
 
-      const agentRows = await retryIdempotentDatabaseOperation(() => db
-        .select({ status: agents.status, count: sql<number>`count(*)` })
-        .from(agents)
-        .where(eq(agents.companyId, companyId))
-        .groupBy(agents.status));
+      const agentRows = await retryIdempotentDatabaseOperation(() =>
+        db
+          .select({ status: agents.status, count: sql<number>`count(*)` })
+          .from(agents)
+          .where(eq(agents.companyId, companyId))
+          .groupBy(agents.status),
+      );
 
-      const taskRows = await retryIdempotentDatabaseOperation(() => db
-        .select({ status: issues.status, count: sql<number>`count(*)` })
-        .from(issues)
-        .where(and(eq(issues.companyId, companyId), executionIssueCondition()))
-        .groupBy(issues.status));
+      const taskRows = await retryIdempotentDatabaseOperation(() =>
+        db
+          .select({ status: issues.status, count: sql<number>`count(*)` })
+          .from(issues)
+          .where(
+            and(eq(issues.companyId, companyId), executionIssueCondition()),
+          )
+          .groupBy(issues.status),
+      );
 
-      const pendingApprovals = await retryIdempotentDatabaseOperation(() => db
-        .select({ count: sql<number>`count(*)` })
-        .from(approvals)
-        .where(and(eq(approvals.companyId, companyId), eq(approvals.status, "pending")))
-        .then((rows) => Number(rows[0]?.count ?? 0)));
+      const pendingApprovals = await retryIdempotentDatabaseOperation(() =>
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(approvals)
+          .where(
+            and(
+              eq(approvals.companyId, companyId),
+              eq(approvals.status, "pending"),
+            ),
+          )
+          .then((rows) => Number(rows[0]?.count ?? 0)),
+      );
 
       const agentCounts: Record<string, number> = {
         active: 0,
@@ -80,25 +108,31 @@ export function dashboardService(db: Db) {
         if (row.status === "in_progress") taskCounts.inProgress += count;
         if (row.status === "blocked") taskCounts.blocked += count;
         if (row.status === "done") taskCounts.done += count;
-        if (row.status !== "done" && row.status !== "cancelled") taskCounts.open += count;
+        if (row.status !== "done" && row.status !== "cancelled")
+          taskCounts.open += count;
       }
 
       const now = new Date();
       const monthStart = getUtcMonthStart(now);
-      const runActivityDays = getRecentUtcDateKeys(now, DASHBOARD_RUN_ACTIVITY_DAYS);
+      const runActivityDays = getRecentUtcDateKeys(
+        now,
+        DASHBOARD_RUN_ACTIVITY_DAYS,
+      );
       const runActivityStart = new Date(`${runActivityDays[0]}T00:00:00.000Z`);
-      const [{ monthSpend }] = await retryIdempotentDatabaseOperation(() => db
-        .select({
-          monthSpend: sql<number>`coalesce(sum(${costEvents.costCents}), 0)::double precision`,
-        })
-        .from(costEvents)
-        .where(
-          and(
-            eq(costEvents.companyId, companyId),
-            gte(costEvents.occurredAt, monthStart),
-            lte(costEvents.occurredAt, now),
+      const [{ monthSpend }] = await retryIdempotentDatabaseOperation(() =>
+        db
+          .select({
+            monthSpend: sql<number>`coalesce(sum(${costEvents.costCents}), 0)::double precision`,
+          })
+          .from(costEvents)
+          .where(
+            and(
+              eq(costEvents.companyId, companyId),
+              gte(costEvents.occurredAt, monthStart),
+              lte(costEvents.occurredAt, now),
+            ),
           ),
-        ));
+      );
 
       const monthSpendCents = Number(monthSpend);
       // Per-day run breakdown. A run is "recovered" when its retry chain later
@@ -110,7 +144,8 @@ export function dashboardService(db: Db) {
       // created after the run it retries, so ancestors of an out-of-window
       // child are themselves out of window and invisible to the membership
       // test below. Unbounded, the seed walks every run the company ever had.
-      const runActivityRows = (await retryIdempotentDatabaseOperation(() => db.execute(sql`
+      const runActivityRows = (await retryIdempotentDatabaseOperation(() =>
+        db.execute(sql`
         WITH RECURSIVE recovered_runs(id) AS (
           SELECT parent.id
           FROM ${heartbeatRuns} AS child
@@ -135,7 +170,8 @@ export function dashboardService(db: Db) {
         WHERE run.company_id = ${companyId}
           AND run.created_at >= ${runActivityStart.toISOString()}::timestamptz
         GROUP BY date, run.status, run.error_code, recovered
-      `))) as unknown as Iterable<{
+      `),
+      )) as unknown as Iterable<{
         date: string;
         status: string;
         error_code: string | null;
@@ -163,7 +199,10 @@ export function dashboardService(db: Db) {
         const count = Number(row.count);
         const status = String(row.status);
         // Postgres booleans can arrive as JS boolean or "t"/"true" depending on driver.
-        const recovered = row.recovered === true || row.recovered === "t" || row.recovered === "true";
+        const recovered =
+          row.recovered === true ||
+          row.recovered === "t" ||
+          row.recovered === "true";
         if (status === "succeeded") {
           bucket.succeeded += count;
         } else if (status === "failed" || status === "timed_out") {
@@ -175,7 +214,8 @@ export function dashboardService(db: Db) {
               typeof row.error_code === "string" && row.error_code.length > 0
                 ? row.error_code
                 : "unknown";
-            bucket.failedByErrorCode[code] = (bucket.failedByErrorCode[code] ?? 0) + count;
+            bucket.failedByErrorCode[code] =
+              (bucket.failedByErrorCode[code] ?? 0) + count;
           }
         } else {
           bucket.other += count;

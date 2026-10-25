@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { deriveCompanySlug, deriveNamespaceName, newRunUlidDns, taskcoreLabels } from "../../src/utils.js";
+import {
+  deriveCompanySlug,
+  deriveNamespaceName,
+  newRunUlidDns,
+  taskcoreLabels,
+} from "../../src/utils.js";
 
 describe("deriveCompanySlug", () => {
   it("lowercases and replaces non-alphanumerics", () => {
@@ -37,7 +42,9 @@ describe("deriveCompanySlug", () => {
 
 describe("deriveNamespaceName", () => {
   it("concatenates prefix and slug", () => {
-    expect(deriveNamespaceName("taskcore-", "acme-co")).toBe("taskcore-acme-co");
+    expect(deriveNamespaceName("taskcore-", "acme-co")).toBe(
+      "taskcore-acme-co",
+    );
   });
 });
 
@@ -50,7 +57,12 @@ describe("newRunUlidDns", () => {
 
 describe("taskcoreLabels", () => {
   it("returns canonical label map", () => {
-    const labels = taskcoreLabels({ runId: "r1", agentId: "a1", companyId: "c1", adapterType: "claude_local" });
+    const labels = taskcoreLabels({
+      runId: "r1",
+      agentId: "a1",
+      companyId: "c1",
+      adapterType: "claude_local",
+    });
     expect(labels["taskcore.io/run-id"]).toBe("r1");
     expect(labels["taskcore.io/agent-id"]).toBe("a1");
     expect(labels["taskcore.io/company-id"]).toBe("c1");

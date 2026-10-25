@@ -1,11 +1,43 @@
 import { z } from "zod";
 
-export const companySkillSourceTypeSchema = z.enum(["local_path", "github", "url", "catalog", "skills_sh"]);
-export const companySkillTrustLevelSchema = z.enum(["markdown_only", "assets", "scripts_executables"]);
-export const companySkillCompatibilitySchema = z.enum(["compatible", "unknown", "invalid"]);
-export const companySkillSourceBadgeSchema = z.enum(["taskcore", "github", "local", "url", "catalog", "skills_sh"]);
-export const companySkillSharingScopeSchema = z.enum(["private", "company", "public_link"]);
-export const companySkillListSortSchema = z.enum(["alphabetical", "recent", "installs", "stars", "agents", "forks"]);
+export const companySkillSourceTypeSchema = z.enum([
+  "local_path",
+  "github",
+  "url",
+  "catalog",
+  "skills_sh",
+]);
+export const companySkillTrustLevelSchema = z.enum([
+  "markdown_only",
+  "assets",
+  "scripts_executables",
+]);
+export const companySkillCompatibilitySchema = z.enum([
+  "compatible",
+  "unknown",
+  "invalid",
+]);
+export const companySkillSourceBadgeSchema = z.enum([
+  "taskcore",
+  "github",
+  "local",
+  "url",
+  "catalog",
+  "skills_sh",
+]);
+export const companySkillSharingScopeSchema = z.enum([
+  "private",
+  "company",
+  "public_link",
+]);
+export const companySkillListSortSchema = z.enum([
+  "alphabetical",
+  "recent",
+  "installs",
+  "stars",
+  "agents",
+  "forks",
+]);
 export const companySkillListIncludeSchema = z.enum(["lastEditor"]);
 
 export const companySkillFileInventoryEntrySchema = z.object({
@@ -13,11 +45,12 @@ export const companySkillFileInventoryEntrySchema = z.object({
   kind: z.enum(["skill", "markdown", "reference", "script", "asset", "other"]),
 });
 
-export const companySkillVersionFileInventoryEntrySchema = companySkillFileInventoryEntrySchema.extend({
-  content: z.string(),
-  encoding: z.enum(["utf8", "base64"]).optional(),
-  executable: z.boolean().optional(),
-});
+export const companySkillVersionFileInventoryEntrySchema =
+  companySkillFileInventoryEntrySchema.extend({
+    content: z.string(),
+    encoding: z.enum(["utf8", "base64"]).optional(),
+    executable: z.boolean().optional(),
+  });
 
 export const companySkillSchema = z.object({
   id: z.string().guid(),
@@ -64,12 +97,15 @@ export const companySkillListItemSchema = companySkillSchema.extend({
   originHash: z.string().nullable(),
   packageName: z.string().nullable(),
   packageVersion: z.string().nullable(),
-  lastEditor: z.object({
-    kind: z.enum(["user", "agent"]),
-    id: z.string().min(1),
-    name: z.string().nullable(),
-    imageUrl: z.string().nullable(),
-  }).nullable().optional(),
+  lastEditor: z
+    .object({
+      kind: z.enum(["user", "agent"]),
+      id: z.string().min(1),
+      name: z.string().nullable(),
+      imageUrl: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const companySkillUsageAgentSchema = z.object({
@@ -78,9 +114,12 @@ export const companySkillUsageAgentSchema = z.object({
   urlKey: z.string().min(1),
   adapterType: z.string().min(1),
   desired: z.boolean(),
-  actualState: z.string().nullable().describe(
-    "Runtime adapter skill state when explicitly fetched; company skill detail reads return null without probing agent runtimes.",
-  ),
+  actualState: z
+    .string()
+    .nullable()
+    .describe(
+      "Runtime adapter skill state when explicitly fetched; company skill detail reads return null without probing agent runtimes.",
+    ),
   versionId: z.string().guid().nullable(),
 });
 
@@ -93,16 +132,17 @@ export const companySkillOriginalSummarySchema = z.object({
   sourceRef: z.string().nullable(),
 });
 
-export const companySkillForkSummarySchema = companySkillOriginalSummarySchema.extend({
-  key: z.string().min(1),
-  forkedFromSkillId: z.string().guid().nullable(),
-  forkedFromCompanyId: z.string().guid().nullable(),
-  currentVersionId: z.string().guid().nullable(),
-  createdByCurrentActor: z.boolean(),
-  diverged: z.boolean(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-});
+export const companySkillForkSummarySchema =
+  companySkillOriginalSummarySchema.extend({
+    key: z.string().min(1),
+    forkedFromSkillId: z.string().guid().nullable(),
+    forkedFromCompanyId: z.string().guid().nullable(),
+    currentVersionId: z.string().guid().nullable(),
+    createdByCurrentActor: z.boolean(),
+    diverged: z.boolean(),
+    createdAt: z.coerce.date(),
+    updatedAt: z.coerce.date(),
+  });
 
 export const companySkillListQuerySchema = z.object({
   q: z.string().min(1).optional(),
@@ -125,7 +165,9 @@ export const companySkillVersionSchema = z.object({
   companySkillId: z.string().guid(),
   revisionNumber: z.number().int().positive(),
   label: z.string().nullable(),
-  fileInventory: z.array(companySkillVersionFileInventoryEntrySchema).default([]),
+  fileInventory: z
+    .array(companySkillVersionFileInventoryEntrySchema)
+    .default([]),
   authorAgentId: z.string().guid().nullable(),
   authorUserId: z.string().nullable(),
   createdAt: z.coerce.date(),
@@ -143,9 +185,11 @@ export const companySkillDetailSchema = companySkillSchema.extend({
   starredByCurrentActor: z.boolean(),
 });
 
-export const companySkillVersionCreateSchema = z.object({
-  label: z.string().trim().min(1).nullable().optional(),
-}).default({});
+export const companySkillVersionCreateSchema = z
+  .object({
+    label: z.string().trim().min(1).nullable().optional(),
+  })
+  .default({});
 
 export const companySkillStarResultSchema = z.object({
   skillId: z.string().guid(),
@@ -175,12 +219,14 @@ export const companySkillCommentUpdateSchema = z.object({
   body: z.string().min(1),
 });
 
-export const companySkillForkSchema = z.object({
-  name: z.string().min(1).nullable().optional(),
-  slug: z.string().min(1).nullable().optional(),
-  sharingScope: companySkillSharingScopeSchema.optional(),
-  reassignAgentIds: z.array(z.string().guid()).optional(),
-}).default({});
+export const companySkillForkSchema = z
+  .object({
+    name: z.string().min(1).nullable().optional(),
+    slug: z.string().min(1).nullable().optional(),
+    sharingScope: companySkillSharingScopeSchema.optional(),
+    reassignAgentIds: z.array(z.string().guid()).optional(),
+  })
+  .default({});
 
 export const companySkillForkReassignmentSchema = z.object({
   agentId: z.string().guid(),
@@ -203,7 +249,10 @@ export const companySkillForkPrecheckResultSchema = z.object({
 });
 
 export const companySkillRenameSchema = z.object({
-  name: z.string().min(1).regex(/^[^\r\n]+$/, "Name must be a single line"),
+  name: z
+    .string()
+    .min(1)
+    .regex(/^[^\r\n]+$/, "Name must be a single line"),
   slug: z.string().min(1).nullable().optional(),
 });
 
@@ -215,16 +264,18 @@ export const companySkillRenameResultSchema = z.object({
   reassignments: z.array(companySkillForkReassignmentSchema),
 });
 
-export const companySkillUpdateSchema = z.object({
-  description: z.string().nullable().optional(),
-  iconUrl: z.string().nullable().optional(),
-  color: z.string().nullable().optional(),
-  tagline: z.string().max(120).nullable().optional(),
-  authorName: z.string().nullable().optional(),
-  homepageUrl: z.string().nullable().optional(),
-  categories: z.array(z.string().min(1)).optional(),
-  sharingScope: companySkillSharingScopeSchema.optional(),
-}).default({});
+export const companySkillUpdateSchema = z
+  .object({
+    description: z.string().nullable().optional(),
+    iconUrl: z.string().nullable().optional(),
+    color: z.string().nullable().optional(),
+    tagline: z.string().max(120).nullable().optional(),
+    authorName: z.string().nullable().optional(),
+    homepageUrl: z.string().nullable().optional(),
+    categories: z.array(z.string().min(1)).optional(),
+    sharingScope: companySkillSharingScopeSchema.optional(),
+  })
+  .default({});
 
 export const companySkillUpdateStatusSchema = z.object({
   supported: z.boolean(),
@@ -236,13 +287,15 @@ export const companySkillUpdateStatusSchema = z.object({
   installedHash: z.string().nullable(),
   originHash: z.string().nullable(),
   userModifiedAt: z.string().nullable(),
-  updateHoldReason: z.enum([
-    "local_modifications",
-    "audit_hard_stop",
-    "origin_unavailable",
-    "compatibility_invalid",
-    "operator_hold",
-  ]).nullable(),
+  updateHoldReason: z
+    .enum([
+      "local_modifications",
+      "audit_hard_stop",
+      "origin_unavailable",
+      "compatibility_invalid",
+      "operator_hold",
+    ])
+    .nullable(),
   auditVerdict: z.enum(["pass", "warning", "fail"]).nullable(),
   auditCodes: z.array(z.string()),
 });
@@ -265,13 +318,17 @@ export const companySkillAuditResultSchema = z.object({
   scanVersion: z.string().min(1),
 });
 
-export const companySkillInstallUpdateSchema = z.object({
-  force: z.boolean().optional(),
-}).default({});
+export const companySkillInstallUpdateSchema = z
+  .object({
+    force: z.boolean().optional(),
+  })
+  .default({});
 
-export const companySkillResetSchema = z.object({
-  force: z.boolean().optional(),
-}).default({});
+export const companySkillResetSchema = z
+  .object({
+    force: z.boolean().optional(),
+  })
+  .default({});
 
 export const companySkillImportSchema = z.object({
   source: z.string().min(1),
@@ -281,11 +338,15 @@ export const companySkillProjectScanRequestSchema = z.object({
   projectIds: z.array(z.string().guid()).optional(),
   workspaceIds: z.array(z.string().guid()).optional(),
   mode: z.enum(["import", "preview"]).optional(),
-  selection: z.array(z.object({
-    workspaceId: z.string().guid(),
-    path: z.string().min(1),
-    slug: z.string().min(1).optional(),
-  })).optional(),
+  selection: z
+    .array(
+      z.object({
+        workspaceId: z.string().guid(),
+        path: z.string().min(1),
+        slug: z.string().min(1).optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const companySkillProjectBrowseRequestSchema = z.object({
@@ -404,7 +465,13 @@ export const companySkillFileDeleteSchema = z.object({
   target: z.enum(["file", "folder"]),
 });
 
-export const companySkillTestRunStatusSchema = z.enum(["queued", "running", "succeeded", "failed", "cancelled"]);
+export const companySkillTestRunStatusSchema = z.enum([
+  "queued",
+  "running",
+  "succeeded",
+  "failed",
+  "cancelled",
+]);
 
 export const companySkillTestInputSchema = z.object({
   id: z.string().guid(),
@@ -423,12 +490,14 @@ export const companySkillTestInputCreateSchema = z.object({
   content: z.string().min(1),
 });
 
-export const companySkillTestInputUpdateSchema = z.object({
-  name: z.string().trim().min(1).optional(),
-  content: z.string().min(1).optional(),
-}).refine((value) => value.name !== undefined || value.content !== undefined, {
-  message: "At least one field is required",
-});
+export const companySkillTestInputUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).optional(),
+    content: z.string().min(1).optional(),
+  })
+  .refine((value) => value.name !== undefined || value.content !== undefined, {
+    message: "At least one field is required",
+  });
 
 export const companySkillTestRunTemplateSchema = z.object({
   id: z.string().min(1),
@@ -452,25 +521,39 @@ export const companySkillTestRunTemplateCreateSchema = z.object({
   body: z.string().min(1).max(20_000),
 });
 
-export const companySkillTestRunTemplateUpdateSchema = z.object({
-  name: z.string().trim().min(1).max(120).optional(),
-  description: z.string().trim().max(500).nullable().optional(),
-  body: z.string().min(1).max(20_000).optional(),
-}).refine(
-  (value) => value.name !== undefined || value.description !== undefined || value.body !== undefined,
-  { message: "At least one field is required" },
-);
+export const companySkillTestRunTemplateUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    description: z.string().trim().max(500).nullable().optional(),
+    body: z.string().min(1).max(20_000).optional(),
+  })
+  .refine(
+    (value) =>
+      value.name !== undefined ||
+      value.description !== undefined ||
+      value.body !== undefined,
+    { message: "At least one field is required" },
+  );
 
-export const companySkillTestRunTemplateSnapshotSchema = z.object({
-  templateId: z.string().min(1).nullable(),
-  templateName: z.string().min(1).nullable(),
-  templateBody: z.string().min(1).max(20_000).nullable(),
-}).refine(
-  (value) =>
-    (value.templateId === null && value.templateName === null && value.templateBody === null)
-    || (value.templateId !== null && value.templateName !== null && value.templateBody !== null),
-  { message: "Template snapshot must be all null or include id, name, and body" },
-);
+export const companySkillTestRunTemplateSnapshotSchema = z
+  .object({
+    templateId: z.string().min(1).nullable(),
+    templateName: z.string().min(1).nullable(),
+    templateBody: z.string().min(1).max(20_000).nullable(),
+  })
+  .refine(
+    (value) =>
+      (value.templateId === null &&
+        value.templateName === null &&
+        value.templateBody === null) ||
+      (value.templateId !== null &&
+        value.templateName !== null &&
+        value.templateBody !== null),
+    {
+      message:
+        "Template snapshot must be all null or include id, name, and body",
+    },
+  );
 
 export const companySkillTestRunCostSummarySchema = z.object({
   costCents: z.number().nonnegative(),
@@ -508,18 +591,22 @@ export const companySkillTestRunSchema = z.object({
   taskExpired: z.boolean(),
 });
 
-export const companySkillTestRunCreateSchema = z.object({
-  inputId: z.string().guid().nullable().optional(),
-  content: z.string().min(1).nullable().optional(),
-  agentId: z.string().guid(),
-  templateId: z.string().min(1).nullable().optional(),
-  templateSnapshot: companySkillTestRunTemplateSnapshotSchema.nullable().optional(),
-  // Re-run pins the viewed run's skill version instead of the live head, so the
-  // new run reproduces the same snapshots (golden-path step 5).
-  skillVersionId: z.string().guid().nullable().optional(),
-}).refine((value) => Boolean(value.inputId) || Boolean(value.content?.trim()), {
-  message: "inputId or content is required",
-});
+export const companySkillTestRunCreateSchema = z
+  .object({
+    inputId: z.string().guid().nullable().optional(),
+    content: z.string().min(1).nullable().optional(),
+    agentId: z.string().guid(),
+    templateId: z.string().min(1).nullable().optional(),
+    templateSnapshot: companySkillTestRunTemplateSnapshotSchema
+      .nullable()
+      .optional(),
+    // Re-run pins the viewed run's skill version instead of the live head, so the
+    // new run reproduces the same snapshots (golden-path step 5).
+    skillVersionId: z.string().guid().nullable().optional(),
+  })
+  .refine((value) => Boolean(value.inputId) || Boolean(value.content?.trim()), {
+    message: "inputId or content is required",
+  });
 
 export const companySkillTestRunListQuerySchema = z.object({
   inputId: z.string().guid().optional(),
@@ -600,24 +687,54 @@ export const companySkillInstallCatalogResultSchema = z.object({
 
 export type CompanySkillImport = z.infer<typeof companySkillImportSchema>;
 export type CompanySkillListQuery = z.infer<typeof companySkillListQuerySchema>;
-export type CompanySkillProjectScan = z.infer<typeof companySkillProjectScanRequestSchema>;
-export type CompanySkillProjectBrowse = z.infer<typeof companySkillProjectBrowseRequestSchema>;
+export type CompanySkillProjectScan = z.infer<
+  typeof companySkillProjectScanRequestSchema
+>;
+export type CompanySkillProjectBrowse = z.infer<
+  typeof companySkillProjectBrowseRequestSchema
+>;
 export type CompanySkillCreate = z.infer<typeof companySkillCreateSchema>;
-export type CompanySkillFileUpdate = z.infer<typeof companySkillFileUpdateSchema>;
-export type CompanySkillFileDelete = z.infer<typeof companySkillFileDeleteSchema>;
-export type CompanySkillTestInputCreate = z.infer<typeof companySkillTestInputCreateSchema>;
-export type CompanySkillTestInputUpdate = z.infer<typeof companySkillTestInputUpdateSchema>;
-export type CompanySkillTestRunTemplateCreate = z.infer<typeof companySkillTestRunTemplateCreateSchema>;
-export type CompanySkillTestRunTemplateUpdate = z.infer<typeof companySkillTestRunTemplateUpdateSchema>;
-export type CompanySkillTestRunCreate = z.infer<typeof companySkillTestRunCreateSchema>;
-export type CompanySkillTestRunListQuery = z.infer<typeof companySkillTestRunListQuerySchema>;
-export type CompanySkillVersionCreate = z.infer<typeof companySkillVersionCreateSchema>;
-export type CompanySkillCommentCreate = z.infer<typeof companySkillCommentCreateSchema>;
-export type CompanySkillCommentUpdate = z.infer<typeof companySkillCommentUpdateSchema>;
+export type CompanySkillFileUpdate = z.infer<
+  typeof companySkillFileUpdateSchema
+>;
+export type CompanySkillFileDelete = z.infer<
+  typeof companySkillFileDeleteSchema
+>;
+export type CompanySkillTestInputCreate = z.infer<
+  typeof companySkillTestInputCreateSchema
+>;
+export type CompanySkillTestInputUpdate = z.infer<
+  typeof companySkillTestInputUpdateSchema
+>;
+export type CompanySkillTestRunTemplateCreate = z.infer<
+  typeof companySkillTestRunTemplateCreateSchema
+>;
+export type CompanySkillTestRunTemplateUpdate = z.infer<
+  typeof companySkillTestRunTemplateUpdateSchema
+>;
+export type CompanySkillTestRunCreate = z.infer<
+  typeof companySkillTestRunCreateSchema
+>;
+export type CompanySkillTestRunListQuery = z.infer<
+  typeof companySkillTestRunListQuerySchema
+>;
+export type CompanySkillVersionCreate = z.infer<
+  typeof companySkillVersionCreateSchema
+>;
+export type CompanySkillCommentCreate = z.infer<
+  typeof companySkillCommentCreateSchema
+>;
+export type CompanySkillCommentUpdate = z.infer<
+  typeof companySkillCommentUpdateSchema
+>;
 export type CompanySkillFork = z.infer<typeof companySkillForkSchema>;
 export type CompanySkillRename = z.infer<typeof companySkillRenameSchema>;
 export type CompanySkillUpdate = z.infer<typeof companySkillUpdateSchema>;
 export type CatalogSkillListQuery = z.infer<typeof catalogSkillListQuerySchema>;
-export type CompanySkillInstallCatalog = z.infer<typeof companySkillInstallCatalogSchema>;
-export type CompanySkillInstallUpdate = z.infer<typeof companySkillInstallUpdateSchema>;
+export type CompanySkillInstallCatalog = z.infer<
+  typeof companySkillInstallCatalogSchema
+>;
+export type CompanySkillInstallUpdate = z.infer<
+  typeof companySkillInstallUpdateSchema
+>;
 export type CompanySkillReset = z.infer<typeof companySkillResetSchema>;

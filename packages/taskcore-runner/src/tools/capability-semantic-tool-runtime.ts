@@ -42,8 +42,13 @@ export interface CapabilitySemanticToolRuntimeOptions {
     operationId: string;
     input: Record<string, CapabilityJsonValue>;
     idempotencyKey: string;
-  }) => Promise<Pick<CapabilityExpiredExtensionReceipt, "value" | "entityRefs"> | null> |
-    Pick<CapabilityExpiredExtensionReceipt, "value" | "entityRefs"> | null;
+  }) =>
+    | Promise<Pick<
+        CapabilityExpiredExtensionReceipt,
+        "value" | "entityRefs"
+      > | null>
+    | Pick<CapabilityExpiredExtensionReceipt, "value" | "entityRefs">
+    | null;
   now?: () => number;
 }
 
@@ -117,9 +122,13 @@ export class CapabilitySemanticToolRuntime {
     this.#adapter = options.adapter;
     this.#runId = options.runId;
     this.#scenarioGrants = [...new Set(options.scenarioGrants ?? [])].sort();
-    this.#policy = options.policy === undefined ? undefined : structuredClone(options.policy);
+    this.#policy =
+      options.policy === undefined
+        ? undefined
+        : structuredClone(options.policy);
     this.#resolveSecretValue = options.resolveSecretValue;
-    this.#resolveExpiredExtensionReceipt = options.resolveExpiredExtensionReceipt;
+    this.#resolveExpiredExtensionReceipt =
+      options.resolveExpiredExtensionReceipt;
     this.#now = options.now ?? Date.now;
     let adapterState = RUNTIME_STATE_BY_ADAPTER.get(options.adapter);
     if (adapterState === undefined) {
@@ -172,13 +181,23 @@ export class CapabilitySemanticToolRuntime {
     const value = structuredClone(receipt.value);
     const entityRefs = [...new Set(receipt.entityRefs ?? [])].sort();
 
-    for (let attempt = 0; attempt < RUNTIME_COMPLETION_CAS_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < RUNTIME_COMPLETION_CAS_ATTEMPTS;
+      attempt += 1
+    ) {
       const durable = this.#adapter.loadSemanticToolRuntime(this.#runId);
       const extension = durable?.extensions.find(
         (candidate) => candidate.key === key,
       );
-      if (durable === null || extension === undefined || extension.input !== input) {
-        throw new Error("expired extension receipt does not match durable execution");
+      if (
+        durable === null ||
+        extension === undefined ||
+        extension.input !== input
+      ) {
+        throw new Error(
+          "expired extension receipt does not match durable execution",
+        );
       }
       if (
         extension.status !== "pending" &&
@@ -186,7 +205,9 @@ export class CapabilitySemanticToolRuntime {
       ) {
         const durableResult = durable.operationResults[extension.resultId];
         if (durableResult === undefined) {
-          throw new Error("completed extension receipt omitted its operation result");
+          throw new Error(
+            "completed extension receipt omitted its operation result",
+          );
         }
         // The original authorized executor may publish while trusted recovery
         // is resolving the expired lease. Its durable completion is already
@@ -224,10 +245,12 @@ export class CapabilitySemanticToolRuntime {
       let resultId: string;
       do {
         resultId = `tool-result-${++resultSequence}`;
-      } while (Object.prototype.hasOwnProperty.call(
-        replacement.operationResults,
-        resultId,
-      ));
+      } while (
+        Object.prototype.hasOwnProperty.call(
+          replacement.operationResults,
+          resultId,
+        )
+      );
       const execution: ExtensionExecution = {
         value,
         commandResult: null,
@@ -246,11 +269,14 @@ export class CapabilitySemanticToolRuntime {
             }
           : candidate,
       );
-      if (!this.#adapter.compareAndSwapSemanticToolRuntime(
-        this.#runId,
-        durable,
-        replacement,
-      )) continue;
+      if (
+        !this.#adapter.compareAndSwapSemanticToolRuntime(
+          this.#runId,
+          durable,
+          replacement,
+        )
+      )
+        continue;
       this.#state.resultSequence = resultSequence;
       this.#adoptReconciledExtension(key, input, resultId, execution);
       return { resultId };
@@ -259,7 +285,9 @@ export class CapabilitySemanticToolRuntime {
   }
 
   /** Returns only the result shape allowed to cross observable boundaries. */
-  async invoke(invocation: CapabilityToolInvocation): Promise<CapabilityToolInvocationResult> {
+  async invoke(
+    invocation: CapabilityToolInvocation,
+  ): Promise<CapabilityToolInvocationResult> {
     return (await this.#invoke(invocation, false)).observableResult;
   }
 
@@ -267,14 +295,18 @@ export class CapabilitySemanticToolRuntime {
    * Invokes a tool for provider delivery. The raw result remains in a capsule
    * that serializes and clones as the redacted observable result.
    */
-  async invokeForModel(invocation: CapabilityToolInvocation): Promise<CapabilityModelToolDelivery> {
+  async invokeForModel(
+    invocation: CapabilityToolInvocation,
+  ): Promise<CapabilityModelToolDelivery> {
     const result = await this.#invoke(invocation, true);
-    const modelResult = result.modelResult !== undefined
-      ? result.modelResult
-      : !result.observableResult.ok
-        ? result.observableResult
-        : undefined;
-    if (modelResult === undefined) throw new Error("model delivery result was not produced");
+    const modelResult =
+      result.modelResult !== undefined
+        ? result.modelResult
+        : !result.observableResult.ok
+          ? result.observableResult
+          : undefined;
+    if (modelResult === undefined)
+      throw new Error("model delivery result was not produced");
     return new CapabilityModelToolDeliveryImpl(
       result.observableResult,
       modelResult,
@@ -299,57 +331,98 @@ export class CapabilitySemanticToolRuntime {
         observableResult: this.#denial(
           invocation.operationId,
           authorization,
-          authorization.outcome === "absent" ? "operation_absent" : "policy_denied",
+          authorization.outcome === "absent"
+            ? "operation_absent"
+            : "policy_denied",
         ),
       };
     }
 
     const descriptor = capabilitySemanticTool(invocation.operationId)!;
-    const validationIssues = validateJsonSchema(descriptor.inputSchema, invocation.input);
+    const validationIssues = validateJsonSchema(
+      descriptor.inputSchema,
+      invocation.input,
+    );
     if (validationIssues.length > 0) {
       const denied = this.#authorization.denyInvocation(
         invocation.operationId,
         context,
         "input_schema_invalid",
       );
-      return { observableResult: this.#denial(invocation.operationId, denied, "input_invalid") };
+      return {
+        observableResult: this.#denial(
+          invocation.operationId,
+          denied,
+          "input_invalid",
+        ),
+      };
     }
-    if (descriptor.idempotency === "required" && !invocation.idempotencyKey?.trim()) {
+    if (
+      descriptor.idempotency === "required" &&
+      !invocation.idempotencyKey?.trim()
+    ) {
       const denied = this.#authorization.denyInvocation(
         invocation.operationId,
         context,
         "idempotency_key_required",
       );
-      return { observableResult: this.#denial(invocation.operationId, denied, "input_invalid") };
+      return {
+        observableResult: this.#denial(
+          invocation.operationId,
+          denied,
+          "input_invalid",
+        ),
+      };
     }
-    if (invocation.operationId === "decide_approval" && this.#isSelfApproval(invocation.input)) {
+    if (
+      invocation.operationId === "decide_approval" &&
+      this.#isSelfApproval(invocation.input)
+    ) {
       const denied = this.#authorization.denyInvocation(
         invocation.operationId,
         context,
         "self_approval_conflict",
       );
-      return { observableResult: this.#denial(invocation.operationId, denied, "policy_denied") };
+      return {
+        observableResult: this.#denial(
+          invocation.operationId,
+          denied,
+          "policy_denied",
+        ),
+      };
     }
 
     const beforeRevision = this.#adapter.snapshot().revision;
     try {
-      const extensionIdempotencyKey = descriptor.mockCommandMapping.kind === "mock_extension" &&
+      const extensionIdempotencyKey =
+        descriptor.mockCommandMapping.kind === "mock_extension" &&
         descriptor.idempotency === "required"
-        ? `${this.#runId}:${invocation.operationId}:${invocation.idempotencyKey!.trim()}`
-        : null;
-      const canonicalInput = extensionIdempotencyKey === null
-        ? null
-        : canonicalJson(invocation.input);
-      const cachedExtension = extensionIdempotencyKey === null
-        ? undefined
-        : this.#state.extensionIdempotency.get(extensionIdempotencyKey);
-      if (cachedExtension !== undefined && cachedExtension.input !== canonicalInput) {
+          ? `${this.#runId}:${invocation.operationId}:${invocation.idempotencyKey!.trim()}`
+          : null;
+      const canonicalInput =
+        extensionIdempotencyKey === null
+          ? null
+          : canonicalJson(invocation.input);
+      const cachedExtension =
+        extensionIdempotencyKey === null
+          ? undefined
+          : this.#state.extensionIdempotency.get(extensionIdempotencyKey);
+      if (
+        cachedExtension !== undefined &&
+        cachedExtension.input !== canonicalInput
+      ) {
         const denied = this.#authorization.denyInvocation(
           invocation.operationId,
           context,
           "idempotency_key_conflict",
         );
-        return { observableResult: this.#denial(invocation.operationId, denied, "input_invalid") };
+        return {
+          observableResult: this.#denial(
+            invocation.operationId,
+            denied,
+            "input_invalid",
+          ),
+        };
       }
       let execution: ExtensionExecution;
       let resultId: string | null;
@@ -440,8 +513,13 @@ export class CapabilitySemanticToolRuntime {
             durableExtension = durableState?.extensions.find(
               (extension) => extension.key === extensionIdempotencyKey,
             );
-            if (durableState === null || durableExtension?.status !== "completed") {
-              throw new Error("indeterminate extension recovery did not publish a durable receipt");
+            if (
+              durableState === null ||
+              durableExtension?.status !== "completed"
+            ) {
+              throw new Error(
+                "indeterminate extension recovery did not publish a durable receipt",
+              );
             }
           }
           if (durableExtension.status === "pending") {
@@ -459,12 +537,8 @@ export class CapabilitySemanticToolRuntime {
                 ),
               };
             }
-            if (
-              durableExtension.phase === "executing"
-            ) {
-              const recovered = await this.#resolveExpiredExtension(
-                invocation,
-              );
+            if (durableExtension.phase === "executing") {
+              const recovered = await this.#resolveExpiredExtension(invocation);
               if (!recovered) {
                 this.#markExpiredExtensionIndeterminate(
                   extensionIdempotencyKey,
@@ -489,7 +563,10 @@ export class CapabilitySemanticToolRuntime {
                   ),
                 };
               }
-              if (durableState === null || durableExtension?.status !== "completed") {
+              if (
+                durableState === null ||
+                durableExtension?.status !== "completed"
+              ) {
                 const denied = this.#authorization.denyInvocation(
                   invocation.operationId,
                   context,
@@ -506,12 +583,14 @@ export class CapabilitySemanticToolRuntime {
             }
           }
           if (durableExtension.status === "pending") {
-            if (!this.#startExtensionExecution(
-              extensionIdempotencyKey,
-              idempotencyRecord,
-              descriptor,
-              invocation,
-            )) {
+            if (
+              !this.#startExtensionExecution(
+                extensionIdempotencyKey,
+                idempotencyRecord,
+                descriptor,
+                invocation,
+              )
+            ) {
               const denied = this.#authorization.denyInvocation(
                 invocation.operationId,
                 context,
@@ -527,18 +606,25 @@ export class CapabilitySemanticToolRuntime {
             }
           } else {
             if (durableExtension.input !== idempotencyRecord.input) {
-              throw new Error("durable extension input changed during recovery");
+              throw new Error(
+                "durable extension input changed during recovery",
+              );
             }
             const completed = {
               resultId: durableExtension.resultId,
               value: structuredClone(durableExtension.execution),
             };
-            const durableResult = durableState.operationResults[completed.resultId];
+            const durableResult =
+              durableState.operationResults[completed.resultId];
             if (durableResult === undefined) {
-              throw new Error("durable extension receipt omitted its operation result");
+              throw new Error(
+                "durable extension receipt omitted its operation result",
+              );
             }
             idempotencyRecord.completed = structuredClone(completed);
-            idempotencyRecord.execution = Promise.resolve(structuredClone(completed));
+            idempotencyRecord.execution = Promise.resolve(
+              structuredClone(completed),
+            );
             idempotencyRecord.ownerId = null;
             idempotencyRecord.leaseExpiresAtMs = 0;
             this.#state.operationResults.set(
@@ -562,10 +648,19 @@ export class CapabilitySemanticToolRuntime {
         execution = await this.#execute(descriptor, invocation);
         resultId = execution.commandResult?.commandId ?? null;
       }
-      let observableValue = redactForBoundary(descriptor, execution.value, "output");
-      let observableCommandResult = execution.commandResult === null
-        ? null
-        : redactForBoundary(descriptor, toJsonValue(execution.commandResult), "output") as CapabilityToolSuccess["commandResult"];
+      let observableValue = redactForBoundary(
+        descriptor,
+        execution.value,
+        "output",
+      );
+      let observableCommandResult =
+        execution.commandResult === null
+          ? null
+          : (redactForBoundary(
+              descriptor,
+              toJsonValue(execution.commandResult),
+              "output",
+            ) as CapabilityToolSuccess["commandResult"]);
       if (
         extensionIdempotencyKey !== null &&
         extensionRecord !== null &&
@@ -612,13 +707,14 @@ export class CapabilitySemanticToolRuntime {
         resultId = published.resultId;
         execution = structuredClone(published.value);
         observableValue = structuredClone(published.observableValue);
-        observableCommandResult = execution.commandResult === null
-          ? null
-          : redactForBoundary(
-              descriptor,
-              toJsonValue(execution.commandResult),
-              "output",
-            ) as CapabilityToolSuccess["commandResult"];
+        observableCommandResult =
+          execution.commandResult === null
+            ? null
+            : (redactForBoundary(
+                descriptor,
+                toJsonValue(execution.commandResult),
+                "output",
+              ) as CapabilityToolSuccess["commandResult"]);
         completed.resultId = published.resultId;
         completed.value = structuredClone(published.value);
         this.#stopExtensionExecutionLease(extensionRecord);
@@ -640,8 +736,12 @@ export class CapabilitySemanticToolRuntime {
         resultId = this.#persistSequencedOperationResult(observableValue);
         sequencedResultPersisted = true;
       }
-      if (resultId === null) throw new Error("semantic tool result id was not allocated");
-      this.#state.operationResults.set(resultId, structuredClone(observableValue));
+      if (resultId === null)
+        throw new Error("semantic tool result id was not allocated");
+      this.#state.operationResults.set(
+        resultId,
+        structuredClone(observableValue),
+      );
       if (extensionIdempotencyKey === null && !sequencedResultPersisted) {
         this.#persistState();
       }
@@ -662,7 +762,10 @@ export class CapabilitySemanticToolRuntime {
         operationId: invocation.operationId,
         operationResultId: resultId,
         value: structuredClone(execution.value),
-        commandResult: execution.commandResult === null ? null : structuredClone(execution.commandResult),
+        commandResult:
+          execution.commandResult === null
+            ? null
+            : structuredClone(execution.commandResult),
         authorization: finalAuthorization,
       });
       return { observableResult, modelResult };
@@ -672,7 +775,13 @@ export class CapabilitySemanticToolRuntime {
         context,
         "mock_operation_rejected",
       );
-      return { observableResult: this.#denial(invocation.operationId, denied, "operation_unsupported") };
+      return {
+        observableResult: this.#denial(
+          invocation.operationId,
+          denied,
+          "operation_unsupported",
+        ),
+      };
     }
   }
 
@@ -713,7 +822,10 @@ export class CapabilitySemanticToolRuntime {
     if (!idempotencyKey) return false;
     const recoveryInput = {
       operationId: invocation.operationId,
-      input: structuredClone(invocation.input) as Record<string, CapabilityJsonValue>,
+      input: structuredClone(invocation.input) as Record<
+        string,
+        CapabilityJsonValue
+      >,
       idempotencyKey,
     };
     const key = `${this.#runId}:${invocation.operationId}:${idempotencyKey}`;
@@ -733,7 +845,10 @@ export class CapabilitySemanticToolRuntime {
             entityRefs: [...extension.preparedExecution.entityRefs],
           }
         : null;
-    if (observed === null && this.#resolveExpiredExtensionReceipt !== undefined) {
+    if (
+      observed === null &&
+      this.#resolveExpiredExtensionReceipt !== undefined
+    ) {
       observed = await this.#resolveExpiredExtensionReceipt(recoveryInput);
     }
     if (observed === null) {
@@ -776,9 +891,15 @@ export class CapabilitySemanticToolRuntime {
     key: string,
     record: ExtensionIdempotencyRecord,
   ): void {
-    for (let attempt = 0; attempt < RUNTIME_PERSIST_CAS_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < RUNTIME_PERSIST_CAS_ATTEMPTS;
+      attempt += 1
+    ) {
       const durable = this.#adapter.loadSemanticToolRuntime(this.#runId);
-      const extension = durable?.extensions.find((candidate) => candidate.key === key);
+      const extension = durable?.extensions.find(
+        (candidate) => candidate.key === key,
+      );
       if (
         durable === null ||
         extension === undefined ||
@@ -800,11 +921,14 @@ export class CapabilitySemanticToolRuntime {
             }
           : candidate,
       );
-      if (!this.#adapter.compareAndSwapSemanticToolRuntime(
-        this.#runId,
-        durable,
-        replacement,
-      )) continue;
+      if (
+        !this.#adapter.compareAndSwapSemanticToolRuntime(
+          this.#runId,
+          durable,
+          replacement,
+        )
+      )
+        continue;
       this.#stopExtensionExecutionLease(record);
       record.ownerId = null;
       record.leaseExpiresAtMs = 0;
@@ -822,9 +946,15 @@ export class CapabilitySemanticToolRuntime {
     const ownerId = globalThis.crypto.randomUUID();
     let leaseExpiresAtMs = 0;
     let acquired = false;
-    for (let attempt = 0; attempt < RUNTIME_PERSIST_CAS_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < RUNTIME_PERSIST_CAS_ATTEMPTS;
+      attempt += 1
+    ) {
       const durable = this.#adapter.loadSemanticToolRuntime(this.#runId);
-      const existing = durable?.extensions.find((candidate) => candidate.key === key);
+      const existing = durable?.extensions.find(
+        (candidate) => candidate.key === key,
+      );
       if (
         existing !== undefined &&
         (existing.status !== "pending" ||
@@ -835,14 +965,17 @@ export class CapabilitySemanticToolRuntime {
         return false;
       }
       leaseExpiresAtMs = this.#now() + EXTENSION_EXECUTION_LEASE_MS;
-      const replacement: CapabilitySemanticToolRuntimeSnapshot = durable === null
-        ? {
-            schema: "taskcore.capability.semantic-tool-runtime.v1",
-            resultSequence: this.#state.resultSequence,
-            operationResults: Object.fromEntries(this.#state.operationResults),
-            extensions: [],
-          }
-        : structuredClone(durable);
+      const replacement: CapabilitySemanticToolRuntimeSnapshot =
+        durable === null
+          ? {
+              schema: "taskcore.capability.semantic-tool-runtime.v1",
+              resultSequence: this.#state.resultSequence,
+              operationResults: Object.fromEntries(
+                this.#state.operationResults,
+              ),
+              extensions: [],
+            }
+          : structuredClone(durable);
       const pending = {
         key,
         input: record.input,
@@ -856,11 +989,13 @@ export class CapabilitySemanticToolRuntime {
       );
       if (existingIndex === -1) replacement.extensions.push(pending);
       else replacement.extensions[existingIndex] = pending;
-      if (this.#adapter.compareAndSwapSemanticToolRuntime(
-        this.#runId,
-        durable,
-        replacement,
-      )) {
+      if (
+        this.#adapter.compareAndSwapSemanticToolRuntime(
+          this.#runId,
+          durable,
+          replacement,
+        )
+      ) {
         this.#state.resultSequence = Math.max(
           this.#state.resultSequence,
           replacement.resultSequence,
@@ -895,10 +1030,12 @@ export class CapabilitySemanticToolRuntime {
       this.#scheduleFailedExtensionCleanup(key, record);
       return false;
     }
-    const execution = Promise.resolve(structuredClone(preparedExecution)).then((value) => ({
-      resultId: value.commandResult?.commandId ?? this.#nextResultId(),
-      value,
-    }));
+    const execution = Promise.resolve(structuredClone(preparedExecution)).then(
+      (value) => ({
+        resultId: value.commandResult?.commandId ?? this.#nextResultId(),
+        value,
+      }),
+    );
     record.execution = execution;
     record.leaseHeartbeat = setInterval(() => {
       try {
@@ -942,12 +1079,13 @@ export class CapabilitySemanticToolRuntime {
     cleanup();
   }
 
-  #removeFailedExtensionLease(
-    key: string,
-    failedOwnerId: string,
-  ): boolean {
+  #removeFailedExtensionLease(key: string, failedOwnerId: string): boolean {
     try {
-      for (let attempt = 0; attempt < RUNTIME_PERSIST_CAS_ATTEMPTS; attempt += 1) {
+      for (
+        let attempt = 0;
+        attempt < RUNTIME_PERSIST_CAS_ATTEMPTS;
+        attempt += 1
+      ) {
         const current = this.#adapter.loadSemanticToolRuntime(this.#runId);
         const currentExtension = current?.extensions.find(
           (candidate) => candidate.key === key,
@@ -963,11 +1101,14 @@ export class CapabilitySemanticToolRuntime {
         withoutFailedLease.extensions = withoutFailedLease.extensions.filter(
           (candidate) => candidate.key !== key,
         );
-        if (this.#adapter.compareAndSwapSemanticToolRuntime(
-          this.#runId,
-          current,
-          withoutFailedLease,
-        )) return true;
+        if (
+          this.#adapter.compareAndSwapSemanticToolRuntime(
+            this.#runId,
+            current,
+            withoutFailedLease,
+          )
+        )
+          return true;
       }
     } catch {
       return false;
@@ -980,9 +1121,15 @@ export class CapabilitySemanticToolRuntime {
     record: ExtensionIdempotencyRecord,
     preparedExecution: ExtensionExecution | undefined,
   ): boolean {
-    for (let attempt = 0; attempt < RUNTIME_PERSIST_CAS_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < RUNTIME_PERSIST_CAS_ATTEMPTS;
+      attempt += 1
+    ) {
       const durable = this.#adapter.loadSemanticToolRuntime(this.#runId);
-      const extension = durable?.extensions.find((candidate) => candidate.key === key);
+      const extension = durable?.extensions.find(
+        (candidate) => candidate.key === key,
+      );
       if (
         durable === null ||
         extension?.status !== "pending" ||
@@ -1005,11 +1152,14 @@ export class CapabilitySemanticToolRuntime {
             }
           : candidate,
       );
-      if (!this.#adapter.compareAndSwapSemanticToolRuntime(
-        this.#runId,
-        durable,
-        replacement,
-      )) continue;
+      if (
+        !this.#adapter.compareAndSwapSemanticToolRuntime(
+          this.#runId,
+          durable,
+          replacement,
+        )
+      )
+        continue;
       record.leaseExpiresAtMs = leaseExpiresAtMs;
       return true;
     }
@@ -1021,23 +1171,34 @@ export class CapabilitySemanticToolRuntime {
     record: ExtensionIdempotencyRecord,
   ): boolean {
     if (record.ownerId === null) return false;
-    for (let attempt = 0; attempt < RUNTIME_PERSIST_CAS_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < RUNTIME_PERSIST_CAS_ATTEMPTS;
+      attempt += 1
+    ) {
       const durable = this.#adapter.loadSemanticToolRuntime(this.#runId);
-      const extension = durable?.extensions.find((candidate) => candidate.key === key);
-      if (durable === null || extension?.status !== "pending" ||
-        extension.ownerId !== record.ownerId) return false;
+      const extension = durable?.extensions.find(
+        (candidate) => candidate.key === key,
+      );
+      if (
+        durable === null ||
+        extension?.status !== "pending" ||
+        extension.ownerId !== record.ownerId
+      )
+        return false;
       const replacement = structuredClone(durable);
       const leaseExpiresAtMs = this.#now() + EXTENSION_EXECUTION_LEASE_MS;
       replacement.extensions = replacement.extensions.map((candidate) =>
-        candidate.key === key
-          ? { ...candidate, leaseExpiresAtMs }
-          : candidate,
+        candidate.key === key ? { ...candidate, leaseExpiresAtMs } : candidate,
       );
-      if (!this.#adapter.compareAndSwapSemanticToolRuntime(
-        this.#runId,
-        durable,
-        replacement,
-      )) continue;
+      if (
+        !this.#adapter.compareAndSwapSemanticToolRuntime(
+          this.#runId,
+          durable,
+          replacement,
+        )
+      )
+        continue;
       record.leaseExpiresAtMs = leaseExpiresAtMs;
       return true;
     }
@@ -1057,9 +1218,15 @@ export class CapabilitySemanticToolRuntime {
     // Execution already happened. Retry only the durable completion merge so
     // a lease heartbeat or unrelated snapshot update cannot discard its
     // receipt or cause the operation to execute again.
-    for (let attempt = 0; attempt < RUNTIME_COMPLETION_CAS_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < RUNTIME_COMPLETION_CAS_ATTEMPTS;
+      attempt += 1
+    ) {
       const durable = this.#adapter.loadSemanticToolRuntime(this.#runId);
-      const extension = durable?.extensions.find((candidate) => candidate.key === key);
+      const extension = durable?.extensions.find(
+        (candidate) => candidate.key === key,
+      );
       if (durable === null || extension === undefined) return null;
       if (extension.status === "completed") {
         const durableResult = durable.operationResults[extension.resultId];
@@ -1071,8 +1238,11 @@ export class CapabilitySemanticToolRuntime {
             }
           : null;
       }
-      if (extension.status !== "pending" || record.ownerId === null ||
-        extension.ownerId !== record.ownerId) {
+      if (
+        extension.status !== "pending" ||
+        record.ownerId === null ||
+        extension.ownerId !== record.ownerId
+      ) {
         return null;
       }
       const replacement = structuredClone(durable);
@@ -1081,10 +1251,8 @@ export class CapabilitySemanticToolRuntime {
         existingResult !== undefined &&
         canonicalJson(existingResult) !== canonicalJson(observableValue)
       ) {
-        replacement.resultSequence = Math.max(
-          replacement.resultSequence,
-          this.#state.resultSequence,
-        ) + 1;
+        replacement.resultSequence =
+          Math.max(replacement.resultSequence, this.#state.resultSequence) + 1;
         completed.resultId = `tool-result-${replacement.resultSequence}`;
         this.#state.resultSequence = replacement.resultSequence;
       }
@@ -1092,7 +1260,8 @@ export class CapabilitySemanticToolRuntime {
         replacement.resultSequence,
         this.#state.resultSequence,
       );
-      replacement.operationResults[completed.resultId] = structuredClone(observableValue);
+      replacement.operationResults[completed.resultId] =
+        structuredClone(observableValue);
       replacement.extensions = replacement.extensions.map((candidate) =>
         candidate.key === key
           ? {
@@ -1104,11 +1273,13 @@ export class CapabilitySemanticToolRuntime {
             }
           : candidate,
       );
-      if (this.#adapter.compareAndSwapSemanticToolRuntime(
-        this.#runId,
-        durable,
-        replacement,
-      )) {
+      if (
+        this.#adapter.compareAndSwapSemanticToolRuntime(
+          this.#runId,
+          durable,
+          replacement,
+        )
+      ) {
         return {
           resultId: completed.resultId,
           value: structuredClone(completed.value),
@@ -1204,73 +1375,88 @@ export class CapabilitySemanticToolRuntime {
           structuredClone(value),
         ]),
       ),
-      extensions: [...this.#state.extensionIdempotency]
-        .map(([key, record]) =>
-          record.completed === undefined
-            ? record.recoveryFailure === undefined
-              ? {
-                  key,
-                  input: record.input,
-                  status: "pending" as const,
-                  ...(record.ownerId === null ? {} : { ownerId: record.ownerId }),
-                  leaseExpiresAtMs: record.leaseExpiresAtMs,
-                }
-              : {
-                  key,
-                  input: record.input,
-                  status: "indeterminate" as const,
-                  reason: record.recoveryFailure,
-                }
+      extensions: [...this.#state.extensionIdempotency].map(([key, record]) =>
+        record.completed === undefined
+          ? record.recoveryFailure === undefined
+            ? {
+                key,
+                input: record.input,
+                status: "pending" as const,
+                ...(record.ownerId === null ? {} : { ownerId: record.ownerId }),
+                leaseExpiresAtMs: record.leaseExpiresAtMs,
+              }
             : {
                 key,
                 input: record.input,
-                status: "completed" as const,
-                resultId: record.completed.resultId,
-                execution: structuredClone(record.completed.value),
-              },
-        ),
+                status: "indeterminate" as const,
+                reason: record.recoveryFailure,
+              }
+          : {
+              key,
+              input: record.input,
+              status: "completed" as const,
+              resultId: record.completed.resultId,
+              execution: structuredClone(record.completed.value),
+            },
+      ),
     };
   }
 
   #persistSequencedOperationResult(value: CapabilityJsonValue): string {
-    for (let attempt = 0; attempt < RUNTIME_PERSIST_CAS_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < RUNTIME_PERSIST_CAS_ATTEMPTS;
+      attempt += 1
+    ) {
       const durable = this.#adapter.loadSemanticToolRuntime(this.#runId);
-      const replacement = durable === null
-        ? this.#localSnapshot()
-        : structuredClone(durable);
-      const sequence = Math.max(
-        replacement.resultSequence,
-        this.#state.resultSequence,
-      ) + 1;
+      const replacement =
+        durable === null ? this.#localSnapshot() : structuredClone(durable);
+      const sequence =
+        Math.max(replacement.resultSequence, this.#state.resultSequence) + 1;
       const resultId = `tool-result-${sequence}`;
       replacement.resultSequence = sequence;
       replacement.operationResults[resultId] = structuredClone(value);
-      if (!this.#adapter.compareAndSwapSemanticToolRuntime(
-        this.#runId,
-        durable,
-        replacement,
-      )) continue;
+      if (
+        !this.#adapter.compareAndSwapSemanticToolRuntime(
+          this.#runId,
+          durable,
+          replacement,
+        )
+      )
+        continue;
       this.#state.resultSequence = sequence;
       this.#state.operationResults.set(resultId, structuredClone(value));
       return resultId;
     }
-    throw new Error("durable semantic tool runtime changed during result allocation");
+    throw new Error(
+      "durable semantic tool runtime changed during result allocation",
+    );
   }
 
   #persistState(): void {
     const localSnapshot = this.#localSnapshot();
-    for (let attempt = 0; attempt < RUNTIME_PERSIST_CAS_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < RUNTIME_PERSIST_CAS_ATTEMPTS;
+      attempt += 1
+    ) {
       const durable = this.#adapter.loadSemanticToolRuntime(this.#runId);
-      const replacement = durable === null
-        ? structuredClone(localSnapshot)
-        : structuredClone(durable);
+      const replacement =
+        durable === null
+          ? structuredClone(localSnapshot)
+          : structuredClone(durable);
       replacement.resultSequence = Math.max(
         replacement.resultSequence,
         localSnapshot.resultSequence,
       );
-      for (const [resultId, value] of Object.entries(localSnapshot.operationResults)) {
+      for (const [resultId, value] of Object.entries(
+        localSnapshot.operationResults,
+      )) {
         const existing = replacement.operationResults[resultId];
-        if (existing !== undefined && canonicalJson(existing) !== canonicalJson(value)) {
+        if (
+          existing !== undefined &&
+          canonicalJson(existing) !== canonicalJson(value)
+        ) {
           throw new Error("durable semantic tool result id was reused");
         }
         replacement.operationResults[resultId] = structuredClone(value);
@@ -1278,11 +1464,13 @@ export class CapabilitySemanticToolRuntime {
       // Extension leases and completed receipts use their own CAS path. A
       // general invocation must preserve the latest durable copy instead of
       // replacing it with a stale restored adapter snapshot.
-      if (this.#adapter.compareAndSwapSemanticToolRuntime(
-        this.#runId,
-        durable,
-        replacement,
-      )) {
+      if (
+        this.#adapter.compareAndSwapSemanticToolRuntime(
+          this.#runId,
+          durable,
+          replacement,
+        )
+      ) {
         this.#state.resultSequence = replacement.resultSequence;
         return;
       }
@@ -1293,22 +1481,38 @@ export class CapabilitySemanticToolRuntime {
   async #execute(
     descriptor: CapabilitySemanticToolDescriptor,
     invocation: CapabilityToolInvocation,
-  ): Promise<{ value: CapabilityJsonValue; commandResult: CapabilityToolSuccess["commandResult"]; entityRefs: string[] }> {
+  ): Promise<{
+    value: CapabilityJsonValue;
+    commandResult: CapabilityToolSuccess["commandResult"];
+    entityRefs: string[];
+  }> {
     const input = asObject(invocation.input);
     switch (descriptor.mockCommandMapping.kind) {
       case "context_read":
-        return { value: toJsonValue(this.#adapter.context(this.#runId)), commandResult: null, entityRefs: [] };
+        return {
+          value: toJsonValue(this.#adapter.context(this.#runId)),
+          commandResult: null,
+          entityRefs: [],
+        };
       case "snapshot_read":
         return {
-          value: this.#snapshotProjection(descriptor.mockCommandMapping.projection, input),
+          value: this.#snapshotProjection(
+            descriptor.mockCommandMapping.projection,
+            input,
+          ),
           commandResult: null,
           entityRefs: [],
         };
       case "operation_result": {
         const id = requireString(input.operationResultId);
         const result = this.#state.operationResults.get(id);
-        if (result === undefined) throw new Error("operation result is not available");
-        return { value: structuredClone(result), commandResult: null, entityRefs: [] };
+        if (result === undefined)
+          throw new Error("operation result is not available");
+        return {
+          value: structuredClone(result),
+          commandResult: null,
+          entityRefs: [],
+        };
       }
       case "semantic_command": {
         const command = commandForOperation(descriptor.operationId, input);
@@ -1333,15 +1537,17 @@ export class CapabilitySemanticToolRuntime {
     descriptor: CapabilitySemanticToolDescriptor,
     input: Record<string, CapabilityJsonValue>,
   ): Promise<ExtensionExecution> {
-    const extension = descriptor.mockCommandMapping.kind === "mock_extension"
-      ? descriptor.mockCommandMapping.extension
-      : "";
+    const extension =
+      descriptor.mockCommandMapping.kind === "mock_extension"
+        ? descriptor.mockCommandMapping.extension
+        : "";
     if (extension === "secrets.value") {
       // Secret reads are explicitly non-idempotent and never enter the durable
       // extension lease path, which also keeps secret values out of receipts.
       const name = requireString(input.name);
       const value = await this.#resolveSecretValue?.(name);
-      if (value === null || value === undefined) throw new Error("secret is not available");
+      if (value === null || value === undefined)
+        throw new Error("secret is not available");
       return { value: { name, value }, commandResult: null, entityRefs: [] };
     }
     return this.#prepareBuiltInExtensionExecution(descriptor, input);
@@ -1351,9 +1557,11 @@ export class CapabilitySemanticToolRuntime {
     descriptor: CapabilitySemanticToolDescriptor,
     input: Record<string, CapabilityJsonValue>,
   ): ExtensionExecution {
-    switch (descriptor.mockCommandMapping.kind === "mock_extension"
-      ? descriptor.mockCommandMapping.extension
-      : "") {
+    switch (
+      descriptor.mockCommandMapping.kind === "mock_extension"
+        ? descriptor.mockCommandMapping.extension
+        : ""
+    ) {
       case "discovery.projects":
       case "discovery.goals":
       case "cases.list":
@@ -1410,13 +1618,16 @@ export class CapabilitySemanticToolRuntime {
           value: {
             status: 200,
             body: null,
-            warning: "TEST-ONLY mock request; no control plane or network was contacted.",
+            warning:
+              "TEST-ONLY mock request; no control plane or network was contacted.",
           },
           commandResult: null,
           entityRefs: [],
         };
       case "secrets.value":
-        throw new Error("non-idempotent secret reads cannot enter durable extension execution");
+        throw new Error(
+          "non-idempotent secret reads cannot enter durable extension execution",
+        );
       default:
         throw new Error("mock extension is not implemented");
     }
@@ -1430,44 +1641,77 @@ export class CapabilitySemanticToolRuntime {
     const context = this.#adapter.context(this.#runId);
     switch (projection) {
       case "active_task_history":
-        return toJsonValue(snapshot.comments.filter((comment) => comment.taskId === context.activeTask.id));
+        return toJsonValue(
+          snapshot.comments.filter(
+            (comment) => comment.taskId === context.activeTask.id,
+          ),
+        );
       case "active_task_documents":
-        return toJsonValue(snapshot.documents
-          .filter((document) => document.taskId === context.activeTask.id)
-          .map(({ id, key, title, format, latestRevisionId, revisions }) => ({
-            id, key, title, format, latestRevisionId, revisionCount: revisions.length,
-          })));
+        return toJsonValue(
+          snapshot.documents
+            .filter((document) => document.taskId === context.activeTask.id)
+            .map(({ id, key, title, format, latestRevisionId, revisions }) => ({
+              id,
+              key,
+              title,
+              format,
+              latestRevisionId,
+              revisionCount: revisions.length,
+            })),
+        );
       case "active_task_document": {
         const key = requireString(input.key);
         const document = snapshot.documents.find(
-          (candidate) => candidate.taskId === context.activeTask.id && candidate.key === key,
+          (candidate) =>
+            candidate.taskId === context.activeTask.id && candidate.key === key,
         );
-        if (document === undefined) throw new Error("document is not available");
+        if (document === undefined)
+          throw new Error("document is not available");
         return toJsonValue(document);
       }
       case "active_task_document_revisions": {
         const key = requireString(input.key);
         const document = snapshot.documents.find(
-          (candidate) => candidate.taskId === context.activeTask.id && candidate.key === key,
+          (candidate) =>
+            candidate.taskId === context.activeTask.id && candidate.key === key,
         );
-        if (document === undefined) throw new Error("document is not available");
+        if (document === undefined)
+          throw new Error("document is not available");
         return toJsonValue(document.revisions);
       }
       case "company_tasks": {
-        const query = typeof input.query === "string" ? input.query.toLowerCase() : "";
+        const query =
+          typeof input.query === "string" ? input.query.toLowerCase() : "";
         const status = typeof input.status === "string" ? input.status : null;
-        return toJsonValue(snapshot.tasks.filter(
-          (task) =>
-            (query === "" || `${task.identifier} ${task.title} ${task.description ?? ""}`.toLowerCase().includes(query)) &&
-            (status === null || task.status === status),
-        ));
+        return toJsonValue(
+          snapshot.tasks.filter(
+            (task) =>
+              (query === "" ||
+                `${task.identifier} ${task.title} ${task.description ?? ""}`
+                  .toLowerCase()
+                  .includes(query)) &&
+              (status === null || task.status === status),
+          ),
+        );
       }
       case "company_actors":
-        return toJsonValue(snapshot.actors.map(({ id, companyId, name, role, status }) => ({ id, companyId, name, role, status })));
+        return toJsonValue(
+          snapshot.actors.map(({ id, companyId, name, role, status }) => ({
+            id,
+            companyId,
+            name,
+            role,
+            status,
+          })),
+        );
       case "company_approvals":
         return toJsonValue(snapshot.approvals);
       case "active_task_workspace":
-        return toJsonValue(snapshot.workspaceServices.filter((service) => service.taskId === context.activeTask.id));
+        return toJsonValue(
+          snapshot.workspaceServices.filter(
+            (service) => service.taskId === context.activeTask.id,
+          ),
+        );
       default:
         throw new Error("snapshot projection is not implemented");
     }
@@ -1496,7 +1740,9 @@ export class CapabilitySemanticToolRuntime {
     const approvalId = asObject(input).approvalId;
     if (typeof approvalId !== "string") return false;
     const actorId = this.#adapter.context(this.#runId).actor.id;
-    const approval = this.#adapter.snapshot().approvals.find((candidate) => candidate.id === approvalId);
+    const approval = this.#adapter
+      .snapshot()
+      .approvals.find((candidate) => candidate.id === approvalId);
     return approval?.requestedByActorId === actorId;
   }
 
@@ -1510,9 +1756,10 @@ export class CapabilitySemanticToolRuntime {
       ok: false,
       error: {
         code,
-        message: code === "operation_absent"
-          ? "The requested semantic operation is not available."
-          : "The requested semantic operation was not executed.",
+        message:
+          code === "operation_absent"
+            ? "The requested semantic operation is not available."
+            : "The requested semantic operation was not executed.",
         operationId,
         reason: authorization.reason,
       },
@@ -1540,20 +1787,34 @@ function commandForOperation(
     case "request_review":
       return { kind: "request_review", summary: requireString(input.summary) };
     case "create_skill":
-      return { kind: "create_skill", name: requireString(input.name),
+      return {
+        kind: "create_skill",
+        name: requireString(input.name),
         slug: typeof input.slug === "string" ? input.slug : undefined,
-        description: requireString(input.description), markdown: requireString(input.markdown) };
+        description: requireString(input.description),
+        markdown: requireString(input.markdown),
+      };
     case "update_skill":
-      return { kind: "update_skill", skillId: requireString(input.skillId),
-        expectedVersionId: requireString(input.expectedVersionId), markdown: requireString(input.markdown) };
+      return {
+        kind: "update_skill",
+        skillId: requireString(input.skillId),
+        expectedVersionId: requireString(input.expectedVersionId),
+        markdown: requireString(input.markdown),
+      };
     case "write_document":
       return {
         kind: "write_document",
         key: requireString(input.key),
         title: requireString(input.title),
         body: requireString(input.body, true),
-        baseRevisionId: input.baseRevisionId === null ? null : requireString(input.baseRevisionId),
-        changeSummary: typeof input.changeSummary === "string" ? input.changeSummary : undefined,
+        baseRevisionId:
+          input.baseRevisionId === null
+            ? null
+            : requireString(input.baseRevisionId),
+        changeSummary:
+          typeof input.changeSummary === "string"
+            ? input.changeSummary
+            : undefined,
       };
     case "request_human_input":
       return {
@@ -1562,9 +1823,11 @@ function commandForOperation(
         title: requireString(input.title),
         prompt: requireString(input.prompt),
         payload: input.payload,
-        targetRevisionId: input.targetRevisionId === null || input.targetRevisionId === undefined
-          ? input.targetRevisionId
-          : requireString(input.targetRevisionId),
+        targetRevisionId:
+          input.targetRevisionId === null ||
+          input.targetRevisionId === undefined
+            ? input.targetRevisionId
+            : requireString(input.targetRevisionId),
         continuationPolicy: requireString(input.continuationPolicy) as never,
       };
     case "register_deliverable":
@@ -1582,17 +1845,41 @@ function commandForOperation(
         kind: "create_task",
         status: input.status as "backlog" | "todo" | undefined,
         title: requireString(input.title),
-        description: typeof input.description === "string" ? input.description : undefined,
-        assigneeActorId: typeof input.assigneeActorId === "string" ? input.assigneeActorId : undefined,
-        priority: typeof input.priority === "string" ? input.priority as never : undefined,
+        description:
+          typeof input.description === "string" ? input.description : undefined,
+        assigneeActorId:
+          typeof input.assigneeActorId === "string"
+            ? input.assigneeActorId
+            : undefined,
+        priority:
+          typeof input.priority === "string"
+            ? (input.priority as never)
+            : undefined,
         blockedByTaskIds: optionalStringArray(input.blockedByTaskIds),
       };
     case "reassign_task":
-      return { kind: "reassign_task", targetTaskId: requireString(input.taskId), assigneeActorId: requireString(input.assigneeActorId), expectedAssigneeActorId: input.expectedAssigneeActorId === null ? null : requireString(input.expectedAssigneeActorId), expectedStatusVersion: Number(input.expectedStatusVersion), reason: requireString(input.reason) };
+      return {
+        kind: "reassign_task",
+        targetTaskId: requireString(input.taskId),
+        assigneeActorId: requireString(input.assigneeActorId),
+        expectedAssigneeActorId:
+          input.expectedAssigneeActorId === null
+            ? null
+            : requireString(input.expectedAssigneeActorId),
+        expectedStatusVersion: Number(input.expectedStatusVersion),
+        reason: requireString(input.reason),
+      };
     case "set_dependencies":
-      return { kind: "set_dependencies", blockedByTaskIds: optionalStringArray(input.blockedByTaskIds) ?? [] };
+      return {
+        kind: "set_dependencies",
+        blockedByTaskIds: optionalStringArray(input.blockedByTaskIds) ?? [],
+      };
     case "request_approval":
-      return { kind: "request_approval", approvalType: requireString(input.approvalType), payload: input.payload ?? {} };
+      return {
+        kind: "request_approval",
+        approvalType: requireString(input.approvalType),
+        payload: input.payload ?? {},
+      };
     case "decide_approval":
       return {
         kind: "decide_approval",
@@ -1601,7 +1888,11 @@ function commandForOperation(
         note: requireString(input.note),
       };
     case "comment_on_approval":
-      return { kind: "comment_on_approval", approvalId: requireString(input.approvalId), body: requireString(input.body) };
+      return {
+        kind: "comment_on_approval",
+        approvalId: requireString(input.approvalId),
+        body: requireString(input.body),
+      };
     case "control_workspace_service":
       return {
         kind: "control_workspace_service",
@@ -1614,36 +1905,73 @@ function commandForOperation(
   }
 }
 
-export function validateJsonSchema(schema: CapabilityJsonSchema, value: CapabilityJsonValue, path = "$" ): string[] {
+export function validateJsonSchema(
+  schema: CapabilityJsonSchema,
+  value: CapabilityJsonValue,
+  path = "$",
+): string[] {
   if (schema.oneOf !== undefined) {
-    return schema.oneOf.some((candidate) => validateJsonSchema(candidate, value, path).length === 0)
+    return schema.oneOf.some(
+      (candidate) => validateJsonSchema(candidate, value, path).length === 0,
+    )
       ? []
       : [`${path} does not match any allowed shape`];
   }
-  if (schema.type !== undefined && !matchesType(schema.type, value)) return [`${path} must be ${schema.type}`];
-  if (schema.enum !== undefined && !schema.enum.some((candidate) => JSON.stringify(candidate) === JSON.stringify(value))) {
+  if (schema.type !== undefined && !matchesType(schema.type, value))
+    return [`${path} must be ${schema.type}`];
+  if (
+    schema.enum !== undefined &&
+    !schema.enum.some(
+      (candidate) => JSON.stringify(candidate) === JSON.stringify(value),
+    )
+  ) {
     return [`${path} must be an allowed value`];
   }
-  if (typeof value === "string" && schema.minLength !== undefined && value.length < schema.minLength) {
+  if (
+    typeof value === "string" &&
+    schema.minLength !== undefined &&
+    value.length < schema.minLength
+  ) {
     return [`${path} is too short`];
   }
-  if (typeof value === "number" && schema.minimum !== undefined && value < schema.minimum) {
+  if (
+    typeof value === "number" &&
+    schema.minimum !== undefined &&
+    value < schema.minimum
+  ) {
     return [`${path} is below the minimum`];
   }
   if (Array.isArray(value) && schema.items !== undefined) {
-    return value.flatMap((item, index) => validateJsonSchema(schema.items!, item, `${path}[${index}]`));
+    return value.flatMap((item, index) =>
+      validateJsonSchema(schema.items!, item, `${path}[${index}]`),
+    );
   }
-  if (schema.type === "object" && typeof value === "object" && value !== null && !Array.isArray(value)) {
+  if (
+    schema.type === "object" &&
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  ) {
     const object = value as Record<string, CapabilityJsonValue>;
     const issues = (schema.required ?? [])
       .filter((key) => !(key in object))
       .map((key) => `${path}.${key} is required`);
     for (const [key, child] of Object.entries(object)) {
       const childSchema = schema.properties?.[key];
-      if (childSchema !== undefined) issues.push(...validateJsonSchema(childSchema, child, `${path}.${key}`));
-      else if (schema.additionalProperties === false) issues.push(`${path}.${key} is not allowed`);
+      if (childSchema !== undefined)
+        issues.push(
+          ...validateJsonSchema(childSchema, child, `${path}.${key}`),
+        );
+      else if (schema.additionalProperties === false)
+        issues.push(`${path}.${key} is not allowed`);
       else if (typeof schema.additionalProperties === "object") {
-        issues.push(...validateJsonSchema(schema.additionalProperties, child, `${path}.${key}`));
+        issues.push(
+          ...validateJsonSchema(
+            schema.additionalProperties,
+            child,
+            `${path}.${key}`,
+          ),
+        );
       }
     }
     return issues;
@@ -1651,14 +1979,25 @@ export function validateJsonSchema(schema: CapabilityJsonSchema, value: Capabili
   return [];
 }
 
-function matchesType(type: NonNullable<CapabilityJsonSchema["type"]>, value: CapabilityJsonValue): boolean {
-  if (Array.isArray(type)) return type.some((candidate) => matchesType(candidate, value));
+function matchesType(
+  type: NonNullable<CapabilityJsonSchema["type"]>,
+  value: CapabilityJsonValue,
+): boolean {
+  if (Array.isArray(type))
+    return type.some((candidate) => matchesType(candidate, value));
   switch (type) {
-    case "null": return value === null;
-    case "array": return Array.isArray(value);
-    case "object": return typeof value === "object" && value !== null && !Array.isArray(value);
-    case "integer": return typeof value === "number" && Number.isSafeInteger(value);
-    default: return typeof value === type;
+    case "null":
+      return value === null;
+    case "array":
+      return Array.isArray(value);
+    case "object":
+      return (
+        typeof value === "object" && value !== null && !Array.isArray(value)
+      );
+    case "integer":
+      return typeof value === "number" && Number.isSafeInteger(value);
+    default:
+      return typeof value === type;
   }
 }
 
@@ -1688,31 +2027,43 @@ function replaceJsonPath(
   const root = structuredClone(value);
   let cursor: CapabilityJsonValue = root;
   for (const segment of segments.slice(0, -1)) {
-    if (typeof cursor !== "object" || cursor === null || Array.isArray(cursor)) return root;
+    if (typeof cursor !== "object" || cursor === null || Array.isArray(cursor))
+      return root;
     const next: CapabilityJsonValue | undefined = cursor[segment];
     if (next === undefined) return root;
     cursor = next;
   }
-  if (typeof cursor !== "object" || cursor === null || Array.isArray(cursor)) return root;
+  if (typeof cursor !== "object" || cursor === null || Array.isArray(cursor))
+    return root;
   const leaf = segments.at(-1)!;
   if (!(leaf in cursor)) return root;
   cursor[leaf] = replacement;
   return root;
 }
 
-function optionalStringArray(value: CapabilityJsonValue | undefined): string[] | undefined {
+function optionalStringArray(
+  value: CapabilityJsonValue | undefined,
+): string[] | undefined {
   if (value === undefined) return undefined;
-  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) throw new Error("expected string array");
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string"))
+    throw new Error("expected string array");
   return value as string[];
 }
 
-function requireString(value: CapabilityJsonValue | undefined, allowEmpty = false): string {
-  if (typeof value !== "string" || (!allowEmpty && value.length === 0)) throw new Error("expected string");
+function requireString(
+  value: CapabilityJsonValue | undefined,
+  allowEmpty = false,
+): string {
+  if (typeof value !== "string" || (!allowEmpty && value.length === 0))
+    throw new Error("expected string");
   return value;
 }
 
-function asObject(value: CapabilityJsonValue): Record<string, CapabilityJsonValue> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("expected object input");
+function asObject(
+  value: CapabilityJsonValue,
+): Record<string, CapabilityJsonValue> {
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    throw new Error("expected object input");
   return value;
 }
 
@@ -1723,15 +2074,17 @@ function toJsonValue(value: unknown): CapabilityJsonValue {
 function canonicalJson(value: CapabilityJsonValue): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   if (typeof value === "object" && value !== null) {
-    return `{${Object.keys(value).sort().map((key) =>
-      `${JSON.stringify(key)}:${canonicalJson(value[key]!)}`
-    ).join(",")}}`;
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key]!)}`)
+      .join(",")}}`;
   }
   return JSON.stringify(value);
 }
 
 function deepFreeze<T>(value: T): T {
-  if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
+  if (typeof value !== "object" || value === null || Object.isFrozen(value))
+    return value;
   Object.freeze(value);
   for (const child of Object.values(value)) deepFreeze(child);
   return value;

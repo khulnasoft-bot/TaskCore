@@ -29,14 +29,28 @@ export const pluginDatabaseNamespaces = pgTable(
       .references(() => plugins.id, { onDelete: "cascade" }),
     pluginKey: text("plugin_key").notNull(),
     namespaceName: text("namespace_name").notNull(),
-    namespaceMode: text("namespace_mode").$type<PluginDatabaseNamespaceMode>().notNull().default("schema"),
-    status: text("status").$type<PluginDatabaseNamespaceStatus>().notNull().default("active"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    namespaceMode: text("namespace_mode")
+      .$type<PluginDatabaseNamespaceMode>()
+      .notNull()
+      .default("schema"),
+    status: text("status")
+      .$type<PluginDatabaseNamespaceStatus>()
+      .notNull()
+      .default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    pluginIdx: uniqueIndex("plugin_database_namespaces_plugin_idx").on(table.pluginId),
-    namespaceIdx: uniqueIndex("plugin_database_namespaces_namespace_idx").on(table.namespaceName),
+    pluginIdx: uniqueIndex("plugin_database_namespaces_plugin_idx").on(
+      table.pluginId,
+    ),
+    namespaceIdx: uniqueIndex("plugin_database_namespaces_namespace_idx").on(
+      table.namespaceName,
+    ),
     statusIdx: index("plugin_database_namespaces_status_idx").on(table.status),
   }),
 );
@@ -60,7 +74,9 @@ export const pluginMigrations = pgTable(
     checksum: text("checksum").notNull(),
     pluginVersion: text("plugin_version").notNull(),
     status: text("status").$type<PluginDatabaseMigrationStatus>().notNull(),
-    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     appliedAt: timestamp("applied_at", { withTimezone: true }),
     errorMessage: text("error_message"),
   },

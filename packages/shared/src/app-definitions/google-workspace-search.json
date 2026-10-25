@@ -3,17 +3,12 @@
   "slug": "google-workspace-search",
   "name": "Google Workspace Search",
   "description": "Search Gmail, Drive, Calendar, and Chat through one read-only Google Workspace search tool.",
-  "categories": [
-    "data",
-    "productivity"
-  ],
+  "categories": ["data", "productivity"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/google-workspace-search.svg"
   },
-  "urlPatterns": [
-    "https://workspacemcp.googleapis.com/*"
-  ],
+  "urlPatterns": ["https://workspacemcp.googleapis.com/*"],
   "docsUrl": "https://developers.google.com/workspace/guides/universal-search-mcp",
   "setupPrerequisite": {
     "title": "Google Developer Preview access required",
@@ -40,13 +35,8 @@
         "label": "Search Workspace",
         "description": "Search Gmail, Drive, Calendar, and Chat without write access."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "platform_shared"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["platform_shared"],
       "whenToUse": "Use Taskcore-managed OAuth for cross-product Workspace search.",
       "defaults": {
         "serverUrl": "https://workspacemcp.googleapis.com/mcp/v1",
@@ -74,13 +64,8 @@
         "label": "Search Workspace",
         "description": "Search Gmail, Drive, Calendar, and Chat without write access."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a customer-owned OAuth client for cross-product Workspace search.",
       "defaults": {
         "serverUrl": "https://workspacemcp.googleapis.com/mcp/v1",

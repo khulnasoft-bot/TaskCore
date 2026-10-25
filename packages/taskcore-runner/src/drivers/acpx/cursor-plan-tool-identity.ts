@@ -3,15 +3,24 @@ import type { AcpxExtensionInput } from "./profile-extensions.js";
 
 // Match the sidecar's provider identity boundary before Rust's opaque tool ID.
 export function cursorToolIdentity(value: string): string {
-  if (Buffer.byteLength(value) <= 240 && !/[\u0000-\u001f\u007f-\u009f]/.test(value)) return value;
+  if (
+    Buffer.byteLength(value) <= 240 &&
+    !/[\u0000-\u001f\u007f-\u009f]/.test(value)
+  )
+    return value;
   return `acpx-tool-${createHash("sha256").update("taskcore.acpx.provider-identity.v1\0tool\0").update(value).digest("hex")}`;
 }
 
 /** Only the admitted native Cursor plan extension can attest a parent tool. */
-export function cursorPlanToolIdentity(agent: string | null | undefined, input: AcpxExtensionInput): string | undefined {
-  if (agent !== "cursor" || input.method !== "cursor/create_plan") return undefined;
+export function cursorPlanToolIdentity(
+  agent: string | null | undefined,
+  input: AcpxExtensionInput,
+): string | undefined {
+  if (agent !== "cursor" || input.method !== "cursor/create_plan")
+    return undefined;
   const value = input.details?.toolCallId;
-  if (typeof value !== "string" || !value.trim() || value.length > 1_000) throw new Error("Cursor plan omitted its bounded tool identity");
+  if (typeof value !== "string" || !value.trim() || value.length > 1_000)
+    throw new Error("Cursor plan omitted its bounded tool identity");
   return cursorToolIdentity(value);
 }
 

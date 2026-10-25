@@ -7,7 +7,10 @@ import type {
   CapabilityThreadItem,
   CapabilityThreadTurn,
 } from "../../../src/issue-thread/types";
-import { InteractionCard, type CapabilityInteractionResponse } from "./InteractionCard";
+import {
+  InteractionCard,
+  type CapabilityInteractionResponse,
+} from "./InteractionCard";
 import { Chip, StatusBadge, Timestamp, formatBytes } from "./primitives";
 
 export interface EvalAssertion {
@@ -19,26 +22,66 @@ export interface EvalAssertion {
   definition: Record<string, unknown>;
 }
 
-export function EvalAssertions({ assertions }: { assertions: EvalAssertion[] }) {
+export function EvalAssertions({
+  assertions,
+}: {
+  assertions: EvalAssertion[];
+}) {
   const [selected, setSelected] = useState<EvalAssertion | null>(null);
   if (assertions.length === 0) return null;
   return (
     <>
       <div className="pit-inline-assertions" aria-label="Eval assertions">
         {assertions.map((assertion) => (
-          <button type="button" key={assertion.id} data-passed={assertion.passed} onClick={() => setSelected(assertion)}>
-            <strong>{assertion.passed ? "✓ PASS" : "✕ FAIL"} · {assertion.title}</strong>
+          <button
+            type="button"
+            key={assertion.id}
+            data-passed={assertion.passed}
+            onClick={() => setSelected(assertion)}
+          >
+            <strong>
+              {assertion.passed ? "✓ PASS" : "✕ FAIL"} · {assertion.title}
+            </strong>
             <span>{assertion.detail}</span>
           </button>
         ))}
       </div>
       {selected !== null ? (
-        <div className="pit-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null); }}>
-          <div className="pit-dialog pit-eval-check-dialog" role="dialog" aria-modal="true" aria-labelledby="eval-check-title">
-            <header className="pit-tool-dialog-head"><div><span className="pit-card-meta">Eval assertion · {selected.id}</span><h2 id="eval-check-title">{selected.title}</h2></div><button type="button" className="pit-icon-button" aria-label="Close assertion" onClick={() => setSelected(null)}>×</button></header>
+        <div
+          className="pit-dialog-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelected(null);
+          }}
+        >
+          <div
+            className="pit-dialog pit-eval-check-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="eval-check-title"
+          >
+            <header className="pit-tool-dialog-head">
+              <div>
+                <span className="pit-card-meta">
+                  Eval assertion · {selected.id}
+                </span>
+                <h2 id="eval-check-title">{selected.title}</h2>
+              </div>
+              <button
+                type="button"
+                className="pit-icon-button"
+                aria-label="Close assertion"
+                onClick={() => setSelected(null)}
+              >
+                ×
+              </button>
+            </header>
             <p>{selected.description}</p>
-            <p className="pit-card-meta">Observed result</p><p>{selected.detail}</p>
-            <p className="pit-card-meta">Original case definition</p><pre className="pit-code">{JSON.stringify(selected.definition, null, 2)}</pre>
+            <p className="pit-card-meta">Observed result</p>
+            <p>{selected.detail}</p>
+            <p className="pit-card-meta">Original case definition</p>
+            <pre className="pit-code">
+              {JSON.stringify(selected.definition, null, 2)}
+            </pre>
           </div>
         </div>
       ) : null}
@@ -60,7 +103,10 @@ function MarkdownBody({ children }: { children: string }) {
 }
 
 export interface ThreadCallbacks {
-  onOpenEvidence: (section: CapabilityEvidenceSectionId, recordId: string) => void;
+  onOpenEvidence: (
+    section: CapabilityEvidenceSectionId,
+    recordId: string,
+  ) => void;
   onRespond: (response: CapabilityInteractionResponse) => void;
   focusInteractionId: string | null;
 }
@@ -87,7 +133,9 @@ function ToolStrip({
         <span className="pit-visually-hidden">{item.status}</span>
         <span className="pit-activity-operation">{item.operationId}</span>
         <span className="pit-activity-description">{item.summary}</span>
-        <span className="pit-activity-caret" aria-hidden="true">›</span>
+        <span className="pit-activity-caret" aria-hidden="true">
+          ›
+        </span>
       </summary>
       <div className="pit-activity-detail">
         <p className="pit-card-meta">Sanitized tool input and result</p>
@@ -99,7 +147,10 @@ function ToolStrip({
           type="button"
           className="pit-link-button"
           onClick={() =>
-            callbacks.onOpenEvidence(item.evidenceRef.section, item.evidenceRef.recordId)
+            callbacks.onOpenEvidence(
+              item.evidenceRef.section,
+              item.evidenceRef.recordId,
+            )
           }
         >
           View in Evidence
@@ -129,14 +180,20 @@ function ProgressItem({
         </span>
         <span className="pit-activity-operation">{item.label}</span>
         <span className="pit-activity-description">{item.summary}</span>
-        <span className="pit-activity-caret" aria-hidden="true">›</span>
+        <span className="pit-activity-caret" aria-hidden="true">
+          ›
+        </span>
       </summary>
       <div className="pit-activity-detail">
         {Object.entries(item.details).map(([name, value]) =>
           name === "withheld" ? null : (
             <div className="pit-activity-field" key={name}>
               <span>{name}</span>
-              <pre className="pit-code">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre>
+              <pre className="pit-code">
+                {typeof value === "string"
+                  ? value
+                  : JSON.stringify(value, null, 2)}
+              </pre>
             </div>
           ),
         )}
@@ -151,51 +208,185 @@ function ProgressItem({
 }
 
 function valueRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
-function ProviderActivity({ item, callbacks }: {
+function ProviderActivity({
+  item,
+  callbacks,
+}: {
   item: Extract<CapabilityThreadItem, { kind: "provider_activity" }>;
   callbacks: ThreadCallbacks;
 }) {
   const payload = valueRecord(item.payload);
-  const steps = Array.isArray(payload.steps) ? payload.steps.map(valueRecord) : [];
-  const children = Array.isArray(payload.children) ? payload.children.map(valueRecord) : [];
-  const sources = Array.isArray(payload.sources) ? payload.sources.map(valueRecord) : [];
+  const steps = Array.isArray(payload.steps)
+    ? payload.steps.map(valueRecord)
+    : [];
+  const children = Array.isArray(payload.children)
+    ? payload.children.map(valueRecord)
+    : [];
+  const sources = Array.isArray(payload.sources)
+    ? payload.sources.map(valueRecord)
+    : [];
   const output = typeof payload.output === "string" ? payload.output : "";
-  const glyph = item.status === "running" ? "⏳" : item.status === "failed" ? "✕" : item.status === "interrupted" ? "■" : "✓";
+  const glyph =
+    item.status === "running"
+      ? "⏳"
+      : item.status === "failed"
+        ? "✕"
+        : item.status === "interrupted"
+          ? "■"
+          : "✓";
   return (
-    <details id={item.id} className="pit-activity-item pit-provider-activity" data-thread-item="provider_activity" data-family={item.family} data-status={item.status} open={item.status === "running"}>
-      <summary className="pit-activity-summary"><span className="pit-activity-glyph" aria-hidden="true">{glyph}</span><span className="pit-activity-operation">{item.title}</span><span className="pit-activity-description">{item.summary}</span><span className="pit-activity-caret" aria-hidden="true">›</span></summary>
+    <details
+      id={item.id}
+      className="pit-activity-item pit-provider-activity"
+      data-thread-item="provider_activity"
+      data-family={item.family}
+      data-status={item.status}
+      open={item.status === "running"}
+    >
+      <summary className="pit-activity-summary">
+        <span className="pit-activity-glyph" aria-hidden="true">
+          {glyph}
+        </span>
+        <span className="pit-activity-operation">{item.title}</span>
+        <span className="pit-activity-description">{item.summary}</span>
+        <span className="pit-activity-caret" aria-hidden="true">
+          ›
+        </span>
+      </summary>
       <div className="pit-activity-detail">
-        {steps.length > 0 ? <ol className="pit-provider-plan">{steps.map((step, index) => <li key={String(step.stepId ?? index)} data-plan-status={String(step.status ?? "pending")}><span aria-hidden="true">{step.status === "completed" ? "✓" : step.status === "blocked" ? "!" : step.status === "in_progress" ? "◐" : "○"}</span>{String(step.body ?? "")}</li>)}</ol> : null}
-        {children.length > 0 ? <ul className="pit-provider-tree">{children.map((child, index) => <li key={String(child.childId ?? index)}><strong>{String(child.role ?? "Child agent")}</strong><span>{String(child.status ?? "unknown")}</span><small>{String(child.summary ?? "")}</small></li>)}</ul> : null}
-        {sources.length > 0 ? <ul className="pit-provider-sources">{sources.map((source, index) => { const url = typeof source.url === "string" && /^https?:\/\//.test(source.url) ? source.url : null; return <li key={String(source.sourceId ?? index)}>{url === null ? <span>{String(source.title ?? "Unavailable source")}</span> : <a href={url} target="_blank" rel="noreferrer">{String(source.title ?? url)}</a>}<small>Provider-reported</small></li>; })}</ul> : null}
-        {output.length > 0 ? <pre className="pit-provider-output" aria-label="Command output">{output}</pre> : null}
-        {item.family === "provider_notice" && Array.isArray(payload.details) ? <dl className="pit-provider-fields">{payload.details.slice(0, 64).map((value, index) => { const detail = valueRecord(value); return <div key={index}><dt>{String(detail.name ?? "Detail")}</dt><dd>{String(detail.value ?? "")}</dd></div>; })}</dl> : null}
-        {item.family === "model_identity" ? <dl className="pit-provider-fields"><dt>Requested</dt><dd>{String(payload.requestedModel ?? "—")}</dd><dt>Effective</dt><dd>{String(payload.effectiveModel ?? "—")}</dd></dl> : null}
-        {item.family === "artifact" && typeof payload.reference === "string" ? <button type="button" className="pit-link-button">Open {payload.reference}</button> : null}
-        <button type="button" className="pit-link-button" onClick={() => callbacks.onOpenEvidence(item.evidenceRef.section, item.evidenceRef.recordId)}>View in Evidence</button>
+        {steps.length > 0 ? (
+          <ol className="pit-provider-plan">
+            {steps.map((step, index) => (
+              <li
+                key={String(step.stepId ?? index)}
+                data-plan-status={String(step.status ?? "pending")}
+              >
+                <span aria-hidden="true">
+                  {step.status === "completed"
+                    ? "✓"
+                    : step.status === "blocked"
+                      ? "!"
+                      : step.status === "in_progress"
+                        ? "◐"
+                        : "○"}
+                </span>
+                {String(step.body ?? "")}
+              </li>
+            ))}
+          </ol>
+        ) : null}
+        {children.length > 0 ? (
+          <ul className="pit-provider-tree">
+            {children.map((child, index) => (
+              <li key={String(child.childId ?? index)}>
+                <strong>{String(child.role ?? "Child agent")}</strong>
+                <span>{String(child.status ?? "unknown")}</span>
+                <small>{String(child.summary ?? "")}</small>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {sources.length > 0 ? (
+          <ul className="pit-provider-sources">
+            {sources.map((source, index) => {
+              const url =
+                typeof source.url === "string" &&
+                /^https?:\/\//.test(source.url)
+                  ? source.url
+                  : null;
+              return (
+                <li key={String(source.sourceId ?? index)}>
+                  {url === null ? (
+                    <span>{String(source.title ?? "Unavailable source")}</span>
+                  ) : (
+                    <a href={url} target="_blank" rel="noreferrer">
+                      {String(source.title ?? url)}
+                    </a>
+                  )}
+                  <small>Provider-reported</small>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        {output.length > 0 ? (
+          <pre className="pit-provider-output" aria-label="Command output">
+            {output}
+          </pre>
+        ) : null}
+        {item.family === "provider_notice" && Array.isArray(payload.details) ? (
+          <dl className="pit-provider-fields">
+            {payload.details.slice(0, 64).map((value, index) => {
+              const detail = valueRecord(value);
+              return (
+                <div key={index}>
+                  <dt>{String(detail.name ?? "Detail")}</dt>
+                  <dd>{String(detail.value ?? "")}</dd>
+                </div>
+              );
+            })}
+          </dl>
+        ) : null}
+        {item.family === "model_identity" ? (
+          <dl className="pit-provider-fields">
+            <dt>Requested</dt>
+            <dd>{String(payload.requestedModel ?? "—")}</dd>
+            <dt>Effective</dt>
+            <dd>{String(payload.effectiveModel ?? "—")}</dd>
+          </dl>
+        ) : null}
+        {item.family === "artifact" && typeof payload.reference === "string" ? (
+          <button type="button" className="pit-link-button">
+            Open {payload.reference}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="pit-link-button"
+          onClick={() =>
+            callbacks.onOpenEvidence(
+              item.evidenceRef.section,
+              item.evidenceRef.recordId,
+            )
+          }
+        >
+          View in Evidence
+        </button>
       </div>
     </details>
   );
 }
 
 function FileDiff({ diff }: { diff: string | null }) {
-  if (diff === null) return <p className="pit-workspace-binary">Binary or oversized file; textual diff unavailable.</p>;
+  if (diff === null)
+    return (
+      <p className="pit-workspace-binary">
+        Binary or oversized file; textual diff unavailable.
+      </p>
+    );
   return (
     <pre className="pit-workspace-diff" aria-label="Unified file diff">
       {diff.split("\n").map((line, index) => (
         <span
           key={`${index}:${line}`}
-          data-diff-line={line.startsWith("+") && !line.startsWith("+++")
-            ? "addition"
-            : line.startsWith("-") && !line.startsWith("---")
-              ? "deletion"
-              : line.startsWith("@@")
-                ? "hunk"
-                : "context"}
-        >{line || " "}{"\n"}</span>
+          data-diff-line={
+            line.startsWith("+") && !line.startsWith("+++")
+              ? "addition"
+              : line.startsWith("-") && !line.startsWith("---")
+                ? "deletion"
+                : line.startsWith("@@")
+                  ? "hunk"
+                  : "context"
+          }
+        >
+          {line || " "}
+          {"\n"}
+        </span>
       ))}
     </pre>
   );
@@ -213,31 +404,64 @@ function WorkspaceChanges({
   const selected = files.find((file) => file.path === selectedPath) ?? null;
   const stats = (file: (typeof files)[number]) => (
     <span className="pit-workspace-stats">
-      {file.additions === null ? null : <span data-stat="add">+{file.additions}</span>}
-      {file.deletions === null ? null : <span data-stat="delete">-{file.deletions}</span>}
+      {file.additions === null ? null : (
+        <span data-stat="add">+{file.additions}</span>
+      )}
+      {file.deletions === null ? null : (
+        <span data-stat="delete">-{file.deletions}</span>
+      )}
     </span>
   );
 
   return (
     <>
-      <article id={item.id} className="pit-workspace-card" data-thread-item="workspace_changes">
+      <article
+        id={item.id}
+        className="pit-workspace-card"
+        data-thread-item="workspace_changes"
+      >
         <header className="pit-workspace-head">
-          <span className="pit-workspace-icon" aria-hidden="true">▣</span>
+          <span className="pit-workspace-icon" aria-hidden="true">
+            ▣
+          </span>
           <span>
-            <strong>{item.changeSet.complete ? "Edited" : "Editing"} {files.length} file{files.length === 1 ? "" : "s"}</strong>
-            <small>{item.changeSet.source === "runner_verified" ? "Verified from workspace" : "Reported by harness"}</small>
+            <strong>
+              {item.changeSet.complete ? "Edited" : "Editing"} {files.length}{" "}
+              file{files.length === 1 ? "" : "s"}
+            </strong>
+            <small>
+              {item.changeSet.source === "runner_verified"
+                ? "Verified from workspace"
+                : "Reported by harness"}
+            </small>
           </span>
           <span className="pit-workspace-total">
-            {item.changeSet.totals.additions === null ? null : <span data-stat="add">+{item.changeSet.totals.additions}</span>}
-            {item.changeSet.totals.deletions === null ? null : <span data-stat="delete">-{item.changeSet.totals.deletions}</span>}
+            {item.changeSet.totals.additions === null ? null : (
+              <span data-stat="add">+{item.changeSet.totals.additions}</span>
+            )}
+            {item.changeSet.totals.deletions === null ? null : (
+              <span data-stat="delete">-{item.changeSet.totals.deletions}</span>
+            )}
           </span>
-          <button type="button" className="pit-workspace-review" onClick={() => setSelectedPath(files[0]?.path ?? null)}>Review</button>
+          <button
+            type="button"
+            className="pit-workspace-review"
+            onClick={() => setSelectedPath(files[0]?.path ?? null)}
+          >
+            Review
+          </button>
         </header>
         <div className="pit-workspace-files">
           {visible.map((file) => (
-            <button type="button" key={`${file.operation}:${file.path}`} onClick={() => setSelectedPath(file.path)}>
+            <button
+              type="button"
+              key={`${file.operation}:${file.path}`}
+              onClick={() => setSelectedPath(file.path)}
+            >
               <span className="pit-workspace-path">
-                {file.previousPath === null ? file.path : `${file.previousPath} → ${file.path}`}
+                {file.previousPath === null
+                  ? file.path
+                  : `${file.previousPath} → ${file.path}`}
                 <small>{file.operation.replace("_", " ")}</small>
               </span>
               {stats(file)}
@@ -245,25 +469,63 @@ function WorkspaceChanges({
           ))}
         </div>
         {files.length > 3 ? (
-          <button type="button" className="pit-workspace-more" onClick={() => setExpanded((value) => !value)}>
-            {expanded ? "Show fewer files" : `Show ${files.length - 3} more files`} <span aria-hidden="true">⌄</span>
+          <button
+            type="button"
+            className="pit-workspace-more"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded
+              ? "Show fewer files"
+              : `Show ${files.length - 3} more files`}{" "}
+            <span aria-hidden="true">⌄</span>
           </button>
         ) : null}
       </article>
       {selected !== null ? (
-        <div className="pit-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedPath(null); }}>
-          <div className="pit-dialog pit-workspace-dialog" role="dialog" aria-modal="true" aria-labelledby="workspace-diff-title">
+        <div
+          className="pit-dialog-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedPath(null);
+          }}
+        >
+          <div
+            className="pit-dialog pit-workspace-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="workspace-diff-title"
+          >
             <header className="pit-tool-dialog-head">
               <div>
-                <span className="pit-card-meta">{selected.operation.replace("_", " ")} · workspace diff</span>
+                <span className="pit-card-meta">
+                  {selected.operation.replace("_", " ")} · workspace diff
+                </span>
                 <h2 id="workspace-diff-title">{selected.path}</h2>
               </div>
               {stats(selected)}
-              <button type="button" className="pit-icon-button" aria-label="Close diff" onClick={() => setSelectedPath(null)}>×</button>
+              <button
+                type="button"
+                className="pit-icon-button"
+                aria-label="Close diff"
+                onClick={() => setSelectedPath(null)}
+              >
+                ×
+              </button>
             </header>
             {files.length > 1 ? (
-              <nav className="pit-workspace-file-nav" aria-label="Changed files">
-                {files.map((file) => <button type="button" key={file.path} data-selected={file.path === selected.path} onClick={() => setSelectedPath(file.path)}>{file.path}</button>)}
+              <nav
+                className="pit-workspace-file-nav"
+                aria-label="Changed files"
+              >
+                {files.map((file) => (
+                  <button
+                    type="button"
+                    key={file.path}
+                    data-selected={file.path === selected.path}
+                    onClick={() => setSelectedPath(file.path)}
+                  >
+                    {file.path}
+                  </button>
+                ))}
               </nav>
             ) : null}
             <FileDiff diff={selected.diff} />
@@ -283,37 +545,84 @@ function WorkspaceFileReference({
   const extension = item.reference.path.includes(".")
     ? item.reference.path.split(".").at(-1)?.toUpperCase()
     : "FILE";
-  const presentation = item.reference.presentation === "document"
-    ? "Document"
-    : item.reference.presentation === "code"
-      ? "Code"
-      : item.reference.presentation === "image"
-        ? "Image"
-        : "File";
+  const presentation =
+    item.reference.presentation === "document"
+      ? "Document"
+      : item.reference.presentation === "code"
+        ? "Code"
+        : item.reference.presentation === "image"
+          ? "Image"
+          : "File";
   return (
     <>
-      <article id={item.id} className="pit-file-reference-card" data-thread-item="workspace_file_reference">
-        <span className="pit-file-reference-icon" aria-hidden="true">▤</span>
+      <article
+        id={item.id}
+        className="pit-file-reference-card"
+        data-thread-item="workspace_file_reference"
+      >
+        <span className="pit-file-reference-icon" aria-hidden="true">
+          ▤
+        </span>
         <span className="pit-file-reference-copy">
           <strong>{item.reference.displayName}</strong>
-          <small>{presentation} · {extension}{item.reference.line === null ? "" : ` · line ${item.reference.line}`}</small>
+          <small>
+            {presentation} · {extension}
+            {item.reference.line === null
+              ? ""
+              : ` · line ${item.reference.line}`}
+          </small>
         </span>
-        <button type="button" className="pit-workspace-review" onClick={() => setOpen(true)}>Open</button>
+        <button
+          type="button"
+          className="pit-workspace-review"
+          onClick={() => setOpen(true)}
+        >
+          Open
+        </button>
       </article>
       {open ? (
-        <div className="pit-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
-          <div className="pit-dialog pit-file-reference-dialog" role="dialog" aria-modal="true" aria-labelledby="workspace-file-title">
+        <div
+          className="pit-dialog-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+        >
+          <div
+            className="pit-dialog pit-file-reference-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="workspace-file-title"
+          >
             <header className="pit-tool-dialog-head">
-              <div><span className="pit-card-meta">{item.reference.path}</span><h2 id="workspace-file-title">{item.reference.displayName}</h2></div>
-              <button type="button" className="pit-icon-button" aria-label="Close file" onClick={() => setOpen(false)}>×</button>
+              <div>
+                <span className="pit-card-meta">{item.reference.path}</span>
+                <h2 id="workspace-file-title">{item.reference.displayName}</h2>
+              </div>
+              <button
+                type="button"
+                className="pit-icon-button"
+                aria-label="Close file"
+                onClick={() => setOpen(false)}
+              >
+                ×
+              </button>
             </header>
             <div className="pit-file-reference-preview">
-              {item.reference.preview === null
-                ? <p className="pit-workspace-binary">Preview unavailable. The reference remains recorded with its normalized workspace path.</p>
-                : item.reference.presentation === "document"
-                  ? <MarkdownBody>{item.reference.preview}</MarkdownBody>
-                  : <pre className="pit-code">{item.reference.preview}</pre>}
-              {item.reference.previewTruncated ? <p className="pit-withheld-note">Preview truncated by the runner.</p> : null}
+              {item.reference.preview === null ? (
+                <p className="pit-workspace-binary">
+                  Preview unavailable. The reference remains recorded with its
+                  normalized workspace path.
+                </p>
+              ) : item.reference.presentation === "document" ? (
+                <MarkdownBody>{item.reference.preview}</MarkdownBody>
+              ) : (
+                <pre className="pit-code">{item.reference.preview}</pre>
+              )}
+              {item.reference.previewTruncated ? (
+                <p className="pit-withheld-note">
+                  Preview truncated by the runner.
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -371,7 +680,11 @@ function ThreadItemView({
 
     case "durable_comment":
       return (
-        <article id={item.id} className="pit-card" data-thread-item="durable_comment">
+        <article
+          id={item.id}
+          className="pit-card"
+          data-thread-item="durable_comment"
+        >
           <div className="pit-card-head">
             <span className="pit-card-author">{item.author}</span>
             <Timestamp value={item.at} />
@@ -388,7 +701,10 @@ function ThreadItemView({
             type="button"
             className="pit-link-button"
             onClick={() =>
-              callbacks.onOpenEvidence(item.evidenceRef.section, item.evidenceRef.recordId)
+              callbacks.onOpenEvidence(
+                item.evidenceRef.section,
+                item.evidenceRef.recordId,
+              )
             }
           >
             View in Evidence
@@ -413,7 +729,12 @@ function ThreadItemView({
 
     case "denial":
       return (
-        <div id={item.id} className="pit-strip pit-denial" data-status="denied" data-thread-item="denial">
+        <div
+          id={item.id}
+          className="pit-strip pit-denial"
+          data-status="denied"
+          data-thread-item="denial"
+        >
           <div className="pit-strip-button">
             <span className="pit-strip-glyph" aria-hidden="true">
               ✕
@@ -428,7 +749,10 @@ function ThreadItemView({
               type="button"
               className="pit-link-button"
               onClick={() =>
-                callbacks.onOpenEvidence(item.evidenceRef.section, item.evidenceRef.recordId)
+                callbacks.onOpenEvidence(
+                  item.evidenceRef.section,
+                  item.evidenceRef.recordId,
+                )
               }
             >
               View in Evidence
@@ -444,7 +768,10 @@ function ThreadItemView({
           autoFocus={callbacks.focusInteractionId === item.interactionId}
           onRespond={callbacks.onRespond}
           onOpenEvidence={(section, recordId) =>
-            callbacks.onOpenEvidence(section as CapabilityEvidenceSectionId, recordId)
+            callbacks.onOpenEvidence(
+              section as CapabilityEvidenceSectionId,
+              recordId,
+            )
           }
         />
       );
@@ -459,7 +786,9 @@ function ThreadItemView({
           </div>
           <div className="pit-card-body">
             <span className="pit-card-meta" data-testid="revision-chain">
-              {item.revisionFrom === null ? `r${item.revisionTo}` : `r${item.revisionFrom} → r${item.revisionTo}`}
+              {item.revisionFrom === null
+                ? `r${item.revisionTo}`
+                : `r${item.revisionFrom} → r${item.revisionTo}`}
             </span>
             {" · "}
             {item.author}
@@ -477,7 +806,10 @@ function ThreadItemView({
             type="button"
             className="pit-link-button"
             onClick={() =>
-              callbacks.onOpenEvidence(item.evidenceRef.section, item.evidenceRef.recordId)
+              callbacks.onOpenEvidence(
+                item.evidenceRef.section,
+                item.evidenceRef.recordId,
+              )
             }
           >
             View diff
@@ -487,21 +819,29 @@ function ThreadItemView({
 
     case "deliverable":
       return (
-        <article id={item.id} className="pit-card" data-thread-item="deliverable">
+        <article
+          id={item.id}
+          className="pit-card"
+          data-thread-item="deliverable"
+        >
           <div className="pit-card-head">
             <span className="pit-card-author">{item.filename}</span>
             <Timestamp value={item.at} />
           </div>
           <div className="pit-card-body">
             <span className="pit-card-meta">
-              {item.deliverableKind} · {formatBytes(item.byteSize)} · registered by {item.registeredBy}
+              {item.deliverableKind} · {formatBytes(item.byteSize)} · registered
+              by {item.registeredBy}
             </span>
           </div>
           <button
             type="button"
             className="pit-link-button"
             onClick={() =>
-              callbacks.onOpenEvidence(item.evidenceRef.section, item.evidenceRef.recordId)
+              callbacks.onOpenEvidence(
+                item.evidenceRef.section,
+                item.evidenceRef.recordId,
+              )
             }
           >
             Download {item.filename}
@@ -511,7 +851,11 @@ function ThreadItemView({
 
     case "dependency":
       return (
-        <article id={item.id} className="pit-card" data-thread-item="dependency">
+        <article
+          id={item.id}
+          className="pit-card"
+          data-thread-item="dependency"
+        >
           <div className="pit-card-head">
             <span className="pit-card-author">Delegation</span>
             <Timestamp value={item.at} />
@@ -519,7 +863,8 @@ function ThreadItemView({
           <ul className="pit-summary-list">
             {item.createdTasks.map((task) => (
               <li key={task.identifier}>
-                <span className="pit-record-title">{task.identifier}</span> {task.title}
+                <span className="pit-record-title">{task.identifier}</span>{" "}
+                {task.title}
               </li>
             ))}
             {item.blockerEdges.map((edge) => (
@@ -531,7 +876,11 @@ function ThreadItemView({
 
     case "disposition":
       return (
-        <article id={item.id} className="pit-card pit-terminal-card" data-thread-item="disposition">
+        <article
+          id={item.id}
+          className="pit-card pit-terminal-card"
+          data-thread-item="disposition"
+        >
           <div className="pit-card-head">
             <StatusBadge status={item.status} />
             <span className="pit-card-meta">{item.operationId}</span>
@@ -553,7 +902,10 @@ function ThreadItemView({
             type="button"
             className="pit-link-button"
             onClick={() =>
-              callbacks.onOpenEvidence(item.evidenceRef.section, item.evidenceRef.recordId)
+              callbacks.onOpenEvidence(
+                item.evidenceRef.section,
+                item.evidenceRef.recordId,
+              )
             }
           >
             Details
@@ -583,13 +935,18 @@ export function TurnGroup({
   );
 
   return (
-    <section className="pit-turn" data-turn-id={turn.id} aria-label={`Turn ${turn.ordinal}`}>
+    <section
+      className="pit-turn"
+      data-turn-id={turn.id}
+      aria-label={`Turn ${turn.ordinal}`}
+    >
       <h2 className="pit-turn-header">
         <span className="pit-turn-label">
-          Turn {turn.ordinal} · {turn.mode} · {turn.mode === "replay" && turn.toolCallCount === 0
+          Turn {turn.ordinal} · {turn.mode} ·{" "}
+          {turn.mode === "replay" && turn.toolCallCount === 0
             ? "no recorded tool calls"
-            : `${turn.toolCallCount} tool call${turn.toolCallCount === 1 ? "" : "s"}`} ·{" "}
-          {new Date(turn.at).toISOString().slice(11, 19)}
+            : `${turn.toolCallCount} tool call${turn.toolCallCount === 1 ? "" : "s"}`}{" "}
+          · {new Date(turn.at).toISOString().slice(11, 19)}
         </span>
         {turn.stoppedByUser ? (
           <span className="pit-stopped-marker" data-testid="stopped-marker">
@@ -597,12 +954,14 @@ export function TurnGroup({
           </span>
         ) : null}
       </h2>
-      {turn.items.map((item, index) => hiddenStripIndexes.has(index) ? null : (
-        <div className="pit-eval-item" key={item.id}>
-          <ThreadItemView item={item} callbacks={callbacks} />
-          <EvalAssertions assertions={assertions[item.id] ?? []} />
-        </div>
-      ))}
+      {turn.items.map((item, index) =>
+        hiddenStripIndexes.has(index) ? null : (
+          <div className="pit-eval-item" key={item.id}>
+            <ThreadItemView item={item} callbacks={callbacks} />
+            <EvalAssertions assertions={assertions[item.id] ?? []} />
+          </div>
+        ),
+      )}
       {hiddenStripIndexes.size > 0 ? (
         <button
           type="button"

@@ -1,4 +1,14 @@
-import { mkdtemp, readdir, rm, mkdir, writeFile, readFile, appendFile, symlink, stat } from "node:fs/promises";
+import {
+  mkdtemp,
+  readdir,
+  rm,
+  mkdir,
+  writeFile,
+  readFile,
+  appendFile,
+  symlink,
+  stat,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -100,15 +110,36 @@ describe("native workspace sync durable metadata", () => {
 
   it("refuses a different sandbox before preparing restart workspace sync", async () => {
     const select = vi.fn();
-    await expect(prepareNativeWorkspaceSync({
-      db: { select } as never, runId: "run", companyId: "company", workspaceId: "workspace",
-      workspaceLocalDir: "/tmp/local-workspace", lease: { id: "lease", providerLeaseId: "replacement" } as never,
-      target: { kind: "remote", transport: "sandbox", remoteCwd: "/workspace", providerKey: "daytona",
-        sandboxLeaseAcquisition: { outcome: "replacement", providerLeaseId: "replacement" } } as never,
-      restartRecovery: { kind: "reattach_remote_runner", runId: "run", leaseOwner: "controller", controllerGeneration: 2,
-        providerAttempt: 1, restartKind: "graceful", recoveryRequestId: null,
-        remote: { providerLeaseId: "original", remoteCwd: "/workspace" } },
-    })).rejects.toThrow("native_remote_recovery_lease_mismatch");
+    await expect(
+      prepareNativeWorkspaceSync({
+        db: { select } as never,
+        runId: "run",
+        companyId: "company",
+        workspaceId: "workspace",
+        workspaceLocalDir: "/tmp/local-workspace",
+        lease: { id: "lease", providerLeaseId: "replacement" } as never,
+        target: {
+          kind: "remote",
+          transport: "sandbox",
+          remoteCwd: "/workspace",
+          providerKey: "daytona",
+          sandboxLeaseAcquisition: {
+            outcome: "replacement",
+            providerLeaseId: "replacement",
+          },
+        } as never,
+        restartRecovery: {
+          kind: "reattach_remote_runner",
+          runId: "run",
+          leaseOwner: "controller",
+          controllerGeneration: 2,
+          providerAttempt: 1,
+          restartKind: "graceful",
+          recoveryRequestId: null,
+          remote: { providerLeaseId: "original", remoteCwd: "/workspace" },
+        },
+      }),
+    ).rejects.toThrow("native_remote_recovery_lease_mismatch");
     expect(select).not.toHaveBeenCalled();
   });
 
@@ -152,122 +183,185 @@ describe("native workspace sync durable metadata", () => {
     ).toThrow("native_workspace_sync_descriptor_digest_invalid");
   });
 
-  it.each(["corrupt", "symlink", "foreign"] as const)("persists compact v2 manifests and rejects %s recovery storage", async (tamper) => {
-    const taskcoreHome = await mkdtemp(path.join(os.tmpdir(), "taskcore-native-manifest-"));
-    cleanupDirs.push(taskcoreHome);
-    process.env.TASKCORE_HOME = taskcoreHome;
-    process.env.TASKCORE_INSTANCE_ID = "manifest-test";
-    const workspace = path.join(taskcoreHome, "workspace");
-    await mkdir(workspace);
-    await writeFile(path.join(workspace, "private-filename-雪"), "baseline");
-    const baseline = await captureDirectorySnapshot(workspace, { diskBacked: true });
-    const initial = serializeDirectorySnapshot(baseline);
-    if (initial.version !== 2) throw new Error("Expected a disk baseline");
-    const scratch = initial.entries.filePath;
-    const runId = "manifest-run";
-    const stateDir = path.dirname(nativeWorkspaceSyncInternals.durableSeedPaths(runId).workspaceArchivePath);
-    await mkdir(stateDir, { recursive: true });
-    await nativeWorkspaceSyncInternals.persistSnapshotManifests(runId, { baseline, gitSnapshot: null });
-    await expect(stat(scratch)).rejects.toMatchObject({ code: "ENOENT" });
-    const serialized = serializeDirectorySnapshot(baseline);
-    if (serialized.version !== 2) throw new Error("Expected v2");
-    const descriptor = {
-      schema: "taskcore.native-workspace-sync/v2" as const,
-      binding: { runId, companyId: "company", workspaceId: "workspace", leaseId: "lease", providerLeaseId: "sandbox", localCwd: workspace, remoteCwd: "/workspace" },
-      state: "prepared" as const, baselineSha256: directorySnapshotSha256(baseline),
-      baseline: serialized, gitSnapshot: null, seed: null,
-      createdAt: new Date().toISOString(), finalizedAt: null, finalHostSha256: null, resourceDisposition: null,
-    };
-    let reference = await nativeWorkspaceSyncInternals.writeDescriptor(descriptor);
-    const raw = await readFile(nativeWorkspaceSyncInternals.descriptorPath(runId, reference.descriptorSha256), "utf8");
-    expect(raw.length).toBeLessThan(4096);
-    expect(raw).not.toContain("private-filename");
-    const recovered = await nativeWorkspaceSyncInternals.readDescriptor({ runId, reference });
-    expect(recovered.baseline.entries.get("private-filename-雪")).toMatchObject({ kind: "file" });
-    await disposeDirectorySnapshot(recovered.baseline);
-    if (tamper === "corrupt") {
-      await appendFile(serialized.entries.filePath, "corrupt");
-    } else if (tamper === "symlink") {
-      const copy = path.join(taskcoreHome, "copied.sqlite");
-      await writeFile(copy, await readFile(serialized.entries.filePath));
-      await rm(serialized.entries.filePath);
-      await symlink(copy, serialized.entries.filePath);
-    } else {
-      descriptor.baseline.entries.filePath = path.join(taskcoreHome, "foreign.sqlite");
-      reference = await nativeWorkspaceSyncInternals.writeDescriptor(descriptor);
-    }
-    await expect(nativeWorkspaceSyncInternals.readDescriptor({ runId, reference })).rejects.toThrow();
-    await cleanupNativeWorkspaceSync(runId);
-    await expect(stat(stateDir)).rejects.toMatchObject({ code: "ENOENT" });
-  });
-
-  it.each([false, true])("writes one immutable descriptor when the same state is replayed (multiple repositories: %s)", async (multipleRepositories) => {
-    const taskcoreHome = await mkdtemp(
-      path.join(os.tmpdir(), "taskcore-native-workspace-sync-"),
-    );
-    cleanupDirs.push(taskcoreHome);
-    process.env.TASKCORE_HOME = taskcoreHome;
-    process.env.TASKCORE_INSTANCE_ID = "descriptor-test";
-    const baseline = {
-      exclude: [".taskcore-runtime"],
-      entries: new Map([
-        [
-          "continuity.txt",
-          { kind: "file" as const, mode: 0o644, hash: digest },
-        ],
-      ]),
-    };
-    const descriptor = {
-      schema: "taskcore.native-workspace-sync/v1" as const,
-      binding: {
-        runId: "run-idempotent",
-        companyId: "company-1",
-        workspaceId: "workspace-1",
-        leaseId: "lease-1",
-        providerLeaseId: "sandbox-1",
-        localCwd: path.join(taskcoreHome, "workspace"),
-        remoteCwd: "/workspace",
-      },
-      state: "prepared" as const,
-      baselineSha256: directorySnapshotSha256(baseline),
-      baseline: serializeDirectorySnapshot(baseline),
-      gitSnapshot: multipleRepositories ? {
-        headCommit: "a".repeat(40), branchName: "main", overlayPaths: [], deletedPaths: [], ignoredPaths: [],
-        repositories: [{ path: ".taskcore-repositories/backend", snapshot: {
-          headCommit: "b".repeat(40), branchName: "backend-work", overlayPaths: ["dirty.txt"], deletedPaths: [], ignoredPaths: ["secret.txt"],
-        } }],
-      } : null,
-      seed: null,
-      createdAt: "2026-01-01T00:00:00.000Z",
-      finalizedAt: null,
-      finalHostSha256: null,
-      resourceDisposition: "keep_running" as const,
-    };
-
-    const first =
-      await nativeWorkspaceSyncInternals.writeDescriptor(descriptor);
-    const second =
-      await nativeWorkspaceSyncInternals.writeDescriptor(descriptor);
-
-    expect(second).toEqual(first);
-    const files = await readdir(
-      path.dirname(
+  it.each(["corrupt", "symlink", "foreign"] as const)(
+    "persists compact v2 manifests and rejects %s recovery storage",
+    async (tamper) => {
+      const taskcoreHome = await mkdtemp(
+        path.join(os.tmpdir(), "taskcore-native-manifest-"),
+      );
+      cleanupDirs.push(taskcoreHome);
+      process.env.TASKCORE_HOME = taskcoreHome;
+      process.env.TASKCORE_INSTANCE_ID = "manifest-test";
+      const workspace = path.join(taskcoreHome, "workspace");
+      await mkdir(workspace);
+      await writeFile(path.join(workspace, "private-filename-雪"), "baseline");
+      const baseline = await captureDirectorySnapshot(workspace, {
+        diskBacked: true,
+      });
+      const initial = serializeDirectorySnapshot(baseline);
+      if (initial.version !== 2) throw new Error("Expected a disk baseline");
+      const scratch = initial.entries.filePath;
+      const runId = "manifest-run";
+      const stateDir = path.dirname(
+        nativeWorkspaceSyncInternals.durableSeedPaths(runId)
+          .workspaceArchivePath,
+      );
+      await mkdir(stateDir, { recursive: true });
+      await nativeWorkspaceSyncInternals.persistSnapshotManifests(runId, {
+        baseline,
+        gitSnapshot: null,
+      });
+      await expect(stat(scratch)).rejects.toMatchObject({ code: "ENOENT" });
+      const serialized = serializeDirectorySnapshot(baseline);
+      if (serialized.version !== 2) throw new Error("Expected v2");
+      const descriptor = {
+        schema: "taskcore.native-workspace-sync/v2" as const,
+        binding: {
+          runId,
+          companyId: "company",
+          workspaceId: "workspace",
+          leaseId: "lease",
+          providerLeaseId: "sandbox",
+          localCwd: workspace,
+          remoteCwd: "/workspace",
+        },
+        state: "prepared" as const,
+        baselineSha256: directorySnapshotSha256(baseline),
+        baseline: serialized,
+        gitSnapshot: null,
+        seed: null,
+        createdAt: new Date().toISOString(),
+        finalizedAt: null,
+        finalHostSha256: null,
+        resourceDisposition: null,
+      };
+      let reference =
+        await nativeWorkspaceSyncInternals.writeDescriptor(descriptor);
+      const raw = await readFile(
         nativeWorkspaceSyncInternals.descriptorPath(
-          descriptor.binding.runId,
-          first.descriptorSha256,
+          runId,
+          reference.descriptorSha256,
         ),
-      ),
-    );
-    expect(files.filter((file) => file.endsWith(".json"))).toEqual([
-      `descriptor.${first.descriptorSha256}.json`,
-    ]);
-    await expect(
-      nativeWorkspaceSyncInternals.readDescriptor({
-        runId: descriptor.binding.runId,
-        reference: first,
-      }),
-    ).resolves.toMatchObject({ descriptor });
-  });
+        "utf8",
+      );
+      expect(raw.length).toBeLessThan(4096);
+      expect(raw).not.toContain("private-filename");
+      const recovered = await nativeWorkspaceSyncInternals.readDescriptor({
+        runId,
+        reference,
+      });
+      expect(
+        recovered.baseline.entries.get("private-filename-雪"),
+      ).toMatchObject({ kind: "file" });
+      await disposeDirectorySnapshot(recovered.baseline);
+      if (tamper === "corrupt") {
+        await appendFile(serialized.entries.filePath, "corrupt");
+      } else if (tamper === "symlink") {
+        const copy = path.join(taskcoreHome, "copied.sqlite");
+        await writeFile(copy, await readFile(serialized.entries.filePath));
+        await rm(serialized.entries.filePath);
+        await symlink(copy, serialized.entries.filePath);
+      } else {
+        descriptor.baseline.entries.filePath = path.join(
+          taskcoreHome,
+          "foreign.sqlite",
+        );
+        reference =
+          await nativeWorkspaceSyncInternals.writeDescriptor(descriptor);
+      }
+      await expect(
+        nativeWorkspaceSyncInternals.readDescriptor({ runId, reference }),
+      ).rejects.toThrow();
+      await cleanupNativeWorkspaceSync(runId);
+      await expect(stat(stateDir)).rejects.toMatchObject({ code: "ENOENT" });
+    },
+  );
+
+  it.each([false, true])(
+    "writes one immutable descriptor when the same state is replayed (multiple repositories: %s)",
+    async (multipleRepositories) => {
+      const taskcoreHome = await mkdtemp(
+        path.join(os.tmpdir(), "taskcore-native-workspace-sync-"),
+      );
+      cleanupDirs.push(taskcoreHome);
+      process.env.TASKCORE_HOME = taskcoreHome;
+      process.env.TASKCORE_INSTANCE_ID = "descriptor-test";
+      const baseline = {
+        exclude: [".taskcore-runtime"],
+        entries: new Map([
+          [
+            "continuity.txt",
+            { kind: "file" as const, mode: 0o644, hash: digest },
+          ],
+        ]),
+      };
+      const descriptor = {
+        schema: "taskcore.native-workspace-sync/v1" as const,
+        binding: {
+          runId: "run-idempotent",
+          companyId: "company-1",
+          workspaceId: "workspace-1",
+          leaseId: "lease-1",
+          providerLeaseId: "sandbox-1",
+          localCwd: path.join(taskcoreHome, "workspace"),
+          remoteCwd: "/workspace",
+        },
+        state: "prepared" as const,
+        baselineSha256: directorySnapshotSha256(baseline),
+        baseline: serializeDirectorySnapshot(baseline),
+        gitSnapshot: multipleRepositories
+          ? {
+              headCommit: "a".repeat(40),
+              branchName: "main",
+              overlayPaths: [],
+              deletedPaths: [],
+              ignoredPaths: [],
+              repositories: [
+                {
+                  path: ".taskcore-repositories/backend",
+                  snapshot: {
+                    headCommit: "b".repeat(40),
+                    branchName: "backend-work",
+                    overlayPaths: ["dirty.txt"],
+                    deletedPaths: [],
+                    ignoredPaths: ["secret.txt"],
+                  },
+                },
+              ],
+            }
+          : null,
+        seed: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        finalizedAt: null,
+        finalHostSha256: null,
+        resourceDisposition: "keep_running" as const,
+      };
+
+      const first =
+        await nativeWorkspaceSyncInternals.writeDescriptor(descriptor);
+      const second =
+        await nativeWorkspaceSyncInternals.writeDescriptor(descriptor);
+
+      expect(second).toEqual(first);
+      const files = await readdir(
+        path.dirname(
+          nativeWorkspaceSyncInternals.descriptorPath(
+            descriptor.binding.runId,
+            first.descriptorSha256,
+          ),
+        ),
+      );
+      expect(files.filter((file) => file.endsWith(".json"))).toEqual([
+        `descriptor.${first.descriptorSha256}.json`,
+      ]);
+      await expect(
+        nativeWorkspaceSyncInternals.readDescriptor({
+          runId: descriptor.binding.runId,
+          reference: first,
+        }),
+      ).resolves.toMatchObject({ descriptor });
+    },
+  );
 
   it("repairs finalized remote and lease stamps after an interrupted commit", async () => {
     const taskcoreHome = await mkdtemp(

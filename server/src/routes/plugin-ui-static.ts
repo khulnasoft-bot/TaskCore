@@ -118,10 +118,13 @@ export function resolvePluginUiDir(
   if (packagePath) {
     const resolvedPackagePath = path.resolve(packagePath);
     if (fs.existsSync(resolvedPackagePath)) {
-      const uiDirFromPackagePath = path.resolve(resolvedPackagePath, entrypointsUi);
+      const uiDirFromPackagePath = path.resolve(
+        resolvedPackagePath,
+        entrypointsUi,
+      );
       if (
-        uiDirFromPackagePath.startsWith(resolvedPackagePath)
-        && fs.existsSync(uiDirFromPackagePath)
+        uiDirFromPackagePath.startsWith(resolvedPackagePath) &&
+        fs.existsSync(uiDirFromPackagePath)
       ) {
         return uiDirFromPackagePath;
       }
@@ -133,7 +136,11 @@ export function resolvePluginUiDir(
   let packageRoot: string;
   if (packageName.startsWith("@")) {
     // Scoped package: @scope/name -> node_modules/@scope/name
-    packageRoot = path.join(localPluginDir, "node_modules", ...packageName.split("/"));
+    packageRoot = path.join(
+      localPluginDir,
+      "node_modules",
+      ...packageName.split("/"),
+    );
   } else {
     packageRoot = path.join(localPluginDir, "node_modules", packageName);
   }
@@ -207,7 +214,10 @@ export interface PluginUiStaticRouteOptions {
  * @param options - Configuration options
  * @returns Express router
  */
-export function pluginUiStaticRoutes(db: Db, options: PluginUiStaticRouteOptions) {
+export function pluginUiStaticRoutes(
+  db: Db,
+  options: PluginUiStaticRouteOptions,
+) {
   const router = Router();
   const registry = pluginRegistryService(db);
   const log = logger.child({ service: "plugin-ui-static" });
@@ -236,7 +246,7 @@ export function pluginUiStaticRoutes(db: Db, options: PluginUiStaticRouteOptions
     const rawParam = req.params.filePath;
     const rawFilePath = Array.isArray(rawParam)
       ? rawParam.join("/")
-      : rawParam as string | undefined;
+      : (rawParam as string | undefined);
 
     if (!rawFilePath || rawFilePath.length === 0) {
       res.status(400).json({ error: "File path is required" });
@@ -286,7 +296,8 @@ export function pluginUiStaticRoutes(db: Db, options: PluginUiStaticRouteOptions
     ) {
       throw badRequest('"companyId" must be a string when provided');
     }
-    const companyId = typeof rawCompanyId === "string" ? rawCompanyId.trim() : "";
+    const companyId =
+      typeof rawCompanyId === "string" ? rawCompanyId.trim() : "";
     if (companyId) {
       assertCompanyAccess(req, companyId);
     }
@@ -295,12 +306,15 @@ export function pluginUiStaticRoutes(db: Db, options: PluginUiStaticRouteOptions
     // local dev server when a plugin author has configured hot-reload.
     // See PLUGIN_SPEC.md §27.2 — Local Development Workflow
     try {
-      const configRow = companyId ? await registry.getConfig(plugin.id, companyId) : null;
+      const configRow = companyId
+        ? await registry.getConfig(plugin.id, companyId)
+        : null;
       const devUiUrl =
         configRow &&
         typeof configRow === "object" &&
         "configJson" in configRow &&
-        (configRow as { configJson: Record<string, unknown> }).configJson?.devUiUrl;
+        (configRow as { configJson: Record<string, unknown> }).configJson
+          ?.devUiUrl;
 
       if (typeof devUiUrl === "string" && devUiUrl.length > 0) {
         // Dev proxy is only available in development mode
@@ -334,11 +348,19 @@ export function pluginUiStaticRoutes(db: Db, options: PluginUiStaticRouteOptions
           }
 
           // Proxy the request to the dev server
-          const targetUrl = new URL(rawFilePath, devUiUrl.endsWith("/") ? devUiUrl : devUiUrl + "/");
+          const targetUrl = new URL(
+            rawFilePath,
+            devUiUrl.endsWith("/") ? devUiUrl : devUiUrl + "/",
+          );
 
           // SSRF protection: only allow http/https and localhost targets for dev proxy
-          if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
-            res.status(400).json({ error: "devUiUrl must use http or https protocol" });
+          if (
+            targetUrl.protocol !== "http:" &&
+            targetUrl.protocol !== "https:"
+          ) {
+            res
+              .status(400)
+              .json({ error: "devUiUrl must use http or https protocol" });
             return;
           }
 
@@ -369,7 +391,9 @@ export function pluginUiStaticRoutes(db: Db, options: PluginUiStaticRouteOptions
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 10_000);
             try {
-              const upstream = await fetch(targetUrl.href, { signal: controller.signal });
+              const upstream = await fetch(targetUrl.href, {
+                signal: controller.signal,
+              });
               if (!upstream.ok) {
                 res.status(upstream.status).json({
                   error: `Dev server returned ${upstream.status}`,
@@ -392,7 +416,10 @@ export function pluginUiStaticRoutes(db: Db, options: PluginUiStaticRouteOptions
               {
                 pluginId: plugin.id,
                 devUiUrl,
-                err: proxyErr instanceof Error ? proxyErr.message : String(proxyErr),
+                err:
+                  proxyErr instanceof Error
+                    ? proxyErr.message
+                    : String(proxyErr),
               },
               "plugin-ui-static: failed to proxy to devUiUrl, falling back to static",
             );
@@ -414,7 +441,11 @@ export function pluginUiStaticRoutes(db: Db, options: PluginUiStaticRouteOptions
 
     if (!uiDir) {
       log.warn(
-        { pluginId: plugin.id, pluginKey: plugin.pluginKey, packageName: plugin.packageName },
+        {
+          pluginId: plugin.id,
+          pluginKey: plugin.pluginKey,
+          packageName: plugin.packageName,
+        },
         "plugin-ui-static: UI directory not found on disk",
       );
       res.status(404).json({ error: "Plugin UI directory not found" });

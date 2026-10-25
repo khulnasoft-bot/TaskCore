@@ -556,11 +556,13 @@ const RESOLVE_ISSUE_RECOVERY_ACTION_OUTCOMES = [
   "cancelled",
 ] as const;
 
-export const retryWorkspaceExportSchema = z.object({
-  actionId: z.string().guid(),
-  runId: z.string().guid(),
-  repairNote: z.string().trim().min(20).max(12000),
-}).strict();
+export const retryWorkspaceExportSchema = z
+  .object({
+    actionId: z.string().guid(),
+    runId: z.string().guid(),
+    repairNote: z.string().trim().min(20).max(12000),
+  })
+  .strict();
 
 export const resolveIssueRecoveryActionSchema = z
   .object({
@@ -570,7 +572,12 @@ export const resolveIssueRecoveryActionSchema = z
         providerStopped: z.literal(true),
         actionOutcome: z.enum(["completed", "not_performed", "mixed"]),
         outcomeEvidence: z.string().trim().min(20).max(12000),
-        workspaceRepairEvidence: z.string().trim().min(20).max(12000).optional(),
+        workspaceRepairEvidence: z
+          .string()
+          .trim()
+          .min(20)
+          .max(12000)
+          .optional(),
       })
       .strict()
       .optional(),
@@ -800,7 +807,11 @@ function requireTitleOrDescription(
   ctx: z.RefinementCtx,
 ) {
   if (!value.title?.trim() && !value.description?.trim()) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["title"], message: "Provide a title or task description" });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["title"],
+      message: "Provide a title or task description",
+    });
   }
 }
 
@@ -810,13 +821,17 @@ export const createIssueSchema = withCreateIssueStatusDefault(
     ...createIssueDuplicateGuardSchema,
     ...onboardingFirstTaskMarkerSchema,
   }),
-).superRefine(requireBlockedStatusForUnblockDescriptor).superRefine(requireTitleOrDescription);
+)
+  .superRefine(requireBlockedStatusForUnblockDescriptor)
+  .superRefine(requireTitleOrDescription);
 
-export const setIssueTitleSchema = z.object({
-  title: z.string().trim().min(1).max(240),
-  onlyIfProvisional: z.boolean().optional().default(false),
-  idempotencyKey: z.string().trim().min(1).max(240).optional(),
-}).strict();
+export const setIssueTitleSchema = z
+  .object({
+    title: z.string().trim().min(1).max(240),
+    onlyIfProvisional: z.boolean().optional().default(false),
+    idempotencyKey: z.string().trim().min(1).max(240).optional(),
+  })
+  .strict();
 
 export type SetIssueTitle = z.input<typeof setIssueTitleSchema>;
 
@@ -846,7 +861,9 @@ export const createChildIssueSchema = withCreateIssueStatusDefault(
         .optional(),
       blockParentUntilDone: z.boolean().optional().default(false),
     }),
-).superRefine(requireBlockedStatusForUnblockDescriptor).superRefine(requireTitleOrDescription);
+)
+  .superRefine(requireBlockedStatusForUnblockDescriptor)
+  .superRefine(requireTitleOrDescription);
 
 export type CreateChildIssue = z.infer<typeof createChildIssueSchema>;
 
@@ -1042,14 +1059,17 @@ export const issueCommentMetadataSchema = z
       .max(160)
       .nullable()
       .optional(),
-    recovery: z.object({
-      kind: z.literal("disposition_repair_escalated"),
-      actionId: z.string().guid(),
-      attemptCount: z.number().int().nonnegative(),
-      maxAttempts: z.number().int().positive(),
-      reason: z.string().trim().min(1).max(160),
-      assigneeAgentId: z.string().guid().nullable(),
-    }).strict().optional(),
+    recovery: z
+      .object({
+        kind: z.literal("disposition_repair_escalated"),
+        actionId: z.string().guid(),
+        attemptCount: z.number().int().nonnegative(),
+        maxAttempts: z.number().int().positive(),
+        reason: z.string().trim().min(1).max(160),
+        assigneeAgentId: z.string().guid().nullable(),
+      })
+      .strict()
+      .optional(),
     sections: z.array(issueCommentMetadataSectionSchema).min(1).max(20),
   })
   .strict();
@@ -1115,17 +1135,40 @@ const connectionIntentBrandAssetSchema = z
 
 export const connectionIntentPayloadSchema = z
   .object({
-    accessRequest: z.object({
-      connectionId: z.string().guid(),
-      connectionName: z.string().trim().min(1).max(160),
-      tools: z.array(z.object({
-        catalogEntryId: z.string().guid(),
-        toolName: z.string().trim().min(1).max(160),
-        versionHash: z.string().min(1).max(256),
-        permission: z.enum(["allowed", "ask_first"]),
-      }).strict()).min(1).max(20).refine(tools => new Set(tools.map(tool => tool.catalogEntryId)).size === tools.length, "Requested tools must be unique"),
-    }).strict().optional(),
-    upstreamService: z.object({ slug: z.string().min(1).max(120), name: z.string().min(1).max(160), selectionInteractionId: z.string().guid().optional() }).strict().optional(),
+    accessRequest: z
+      .object({
+        connectionId: z.string().guid(),
+        connectionName: z.string().trim().min(1).max(160),
+        tools: z
+          .array(
+            z
+              .object({
+                catalogEntryId: z.string().guid(),
+                toolName: z.string().trim().min(1).max(160),
+                versionHash: z.string().min(1).max(256),
+                permission: z.enum(["allowed", "ask_first"]),
+              })
+              .strict(),
+          )
+          .min(1)
+          .max(20)
+          .refine(
+            (tools) =>
+              new Set(tools.map((tool) => tool.catalogEntryId)).size ===
+              tools.length,
+            "Requested tools must be unique",
+          ),
+      })
+      .strict()
+      .optional(),
+    upstreamService: z
+      .object({
+        slug: z.string().min(1).max(120),
+        name: z.string().min(1).max(160),
+        selectionInteractionId: z.string().guid().optional(),
+      })
+      .strict()
+      .optional(),
     purpose: z.enum(["ai", "channel"]).optional(),
     version: z.literal(1),
     serviceSlug: z.string().trim().min(1).max(120),
@@ -1922,55 +1965,90 @@ const createIssueThreadInteractionCommon = {
 
 // Validate dual representations on creation, not when reading historical rows.
 // Otherwise a partial canonical form can hide required storage questions.
-const createLegacyAskUserQuestionsPayloadSchema = askUserQuestionsPayloadSchema.superRefine((value, ctx) => {
-  if (!value.questionSet) return;
-  const shown = new Set(value.questionSet.questions.map((question) => question.id));
-  const stored = new Set(value.questions.map((question) => question.id));
-  if (shown.size !== stored.size || [...shown].some((id) => !stored.has(id))) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["questionSet", "questions"],
-      message: "questionSet must present every questions entry with the same question IDs. Include choice questions as well as text questions; a partial form hides required answers.",
-    });
-  }
-  const storedById = new Map(value.questions.map((question) => [question.id, question]));
-  for (const [index, question] of value.questionSet.questions.entries()) {
-    const storage = storedById.get(question.id);
-    if (!storage) continue;
-    const mismatch = (field: string) => ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["questionSet", "questions", index, field],
-      message: `questionSet ${field} must match the corresponding questions entry.`,
-    });
-    if (question.prompt.trim() !== storage.prompt) mismatch("prompt");
-    // An omitted storage flag adds no constraint; an explicit flag must agree.
-    if (storage.required !== undefined && question.required !== storage.required) mismatch("required");
-    const mode = question.answerMode === "multi_select" ? "multi" : "single";
-    if (storage.selectionMode !== mode) mismatch("answerMode");
-    if (question.answerMode === "text") {
-      if (storage.options.length !== 1 || !storage.options[0].freeText) mismatch("answerMode");
-    } else {
-      // Text/custom-answer sentinels are storage compatibility, not visible choices.
-      const choices = storage.options.filter((option) => !option.freeText);
-      const canonical = new Map((question.options ?? []).map((option) => [option.id, option.label.trim()]));
-      if (choices.length !== canonical.size || choices.some((option) => canonical.get(option.id) !== option.label)) mismatch("options");
-      const allowsCustomAnswer = storage.allowOther === true || storage.options.some((option) => option.freeText);
-      if (Boolean(question.customAnswer?.enabled) !== allowsCustomAnswer) mismatch("customAnswer");
+const createLegacyAskUserQuestionsPayloadSchema =
+  askUserQuestionsPayloadSchema.superRefine((value, ctx) => {
+    if (!value.questionSet) return;
+    const shown = new Set(
+      value.questionSet.questions.map((question) => question.id),
+    );
+    const stored = new Set(value.questions.map((question) => question.id));
+    if (
+      shown.size !== stored.size ||
+      [...shown].some((id) => !stored.has(id))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["questionSet", "questions"],
+        message:
+          "questionSet must present every questions entry with the same question IDs. Include choice questions as well as text questions; a partial form hides required answers.",
+      });
     }
-  }
-});
+    const storedById = new Map(
+      value.questions.map((question) => [question.id, question]),
+    );
+    for (const [index, question] of value.questionSet.questions.entries()) {
+      const storage = storedById.get(question.id);
+      if (!storage) continue;
+      const mismatch = (field: string) =>
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["questionSet", "questions", index, field],
+          message: `questionSet ${field} must match the corresponding questions entry.`,
+        });
+      if (question.prompt.trim() !== storage.prompt) mismatch("prompt");
+      // An omitted storage flag adds no constraint; an explicit flag must agree.
+      if (
+        storage.required !== undefined &&
+        question.required !== storage.required
+      )
+        mismatch("required");
+      const mode = question.answerMode === "multi_select" ? "multi" : "single";
+      if (storage.selectionMode !== mode) mismatch("answerMode");
+      if (question.answerMode === "text") {
+        if (storage.options.length !== 1 || !storage.options[0].freeText)
+          mismatch("answerMode");
+      } else {
+        // Text/custom-answer sentinels are storage compatibility, not visible choices.
+        const choices = storage.options.filter((option) => !option.freeText);
+        const canonical = new Map(
+          (question.options ?? []).map((option) => [
+            option.id,
+            option.label.trim(),
+          ]),
+        );
+        if (
+          choices.length !== canonical.size ||
+          choices.some((option) => canonical.get(option.id) !== option.label)
+        )
+          mismatch("options");
+        const allowsCustomAnswer =
+          storage.allowOther === true ||
+          storage.options.some((option) => option.freeText);
+        if (Boolean(question.customAnswer?.enabled) !== allowsCustomAnswer)
+          mismatch("customAnswer");
+      }
+    }
+  });
 
 const createAskUserQuestionsPayloadSchema = z.union([
   createLegacyAskUserQuestionsPayloadSchema,
-  z.object({
-    ...askUserQuestionsPayloadFields,
-    // Do not discard an explicitly supplied conflicting compatibility form.
-    questions: z.never().optional(),
-    questionSet: taskcoreQuestionSetPayloadSchema,
-  }).transform(({ questions: _questions, ...value }): z.input<typeof createLegacyAskUserQuestionsPayloadSchema> => ({
-    ...questionSetToAskUserQuestionsPayload(value.questionSet),
-    ...value,
-  })).pipe(createLegacyAskUserQuestionsPayloadSchema),
+  z
+    .object({
+      ...askUserQuestionsPayloadFields,
+      // Do not discard an explicitly supplied conflicting compatibility form.
+      questions: z.never().optional(),
+      questionSet: taskcoreQuestionSetPayloadSchema,
+    })
+    .transform(
+      ({
+        questions: _questions,
+        ...value
+      }): z.input<typeof createLegacyAskUserQuestionsPayloadSchema> => ({
+        ...questionSetToAskUserQuestionsPayload(value.questionSet),
+        ...value,
+      }),
+    )
+    .pipe(createLegacyAskUserQuestionsPayloadSchema),
 ]);
 
 export const createIssueThreadInteractionSchema = z.discriminatedUnion("kind", [
@@ -2095,21 +2173,39 @@ export type AcceptIssueThreadInteraction = z.infer<
 >;
 
 /** Records an agent's interpretation of a real user reply without widening resolver permissions. */
-export const resolveConfirmationFromCommentSchema = z.object({
-  commentId: z.string().guid(),
-  decision: z.enum(["accept", "reject"]),
-  selectedOptionIds: z.array(z.string().trim().min(1).max(120))
-    .max(REQUEST_CHECKBOX_CONFIRMATION_OPTION_LIMIT).optional(),
-  reason: z.string().trim().max(4000).optional(),
-}).strict().superRefine((value, ctx) => {
-  if (value.decision === "reject" && value.selectedOptionIds !== undefined) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["selectedOptionIds"], message: "Selections apply only to acceptance" });
-  }
-  if (value.selectedOptionIds && new Set(value.selectedOptionIds).size !== value.selectedOptionIds.length) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["selectedOptionIds"], message: "Selections must be unique" });
-  }
-});
-export type ResolveConfirmationFromComment = z.infer<typeof resolveConfirmationFromCommentSchema>;
+export const resolveConfirmationFromCommentSchema = z
+  .object({
+    commentId: z.string().guid(),
+    decision: z.enum(["accept", "reject"]),
+    selectedOptionIds: z
+      .array(z.string().trim().min(1).max(120))
+      .max(REQUEST_CHECKBOX_CONFIRMATION_OPTION_LIMIT)
+      .optional(),
+    reason: z.string().trim().max(4000).optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.decision === "reject" && value.selectedOptionIds !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["selectedOptionIds"],
+        message: "Selections apply only to acceptance",
+      });
+    }
+    if (
+      value.selectedOptionIds &&
+      new Set(value.selectedOptionIds).size !== value.selectedOptionIds.length
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["selectedOptionIds"],
+        message: "Selections must be unique",
+      });
+    }
+  });
+export type ResolveConfirmationFromComment = z.infer<
+  typeof resolveConfirmationFromCommentSchema
+>;
 
 export const rejectIssueThreadInteractionSchema = z.object({
   reason: z.string().trim().max(4000).optional(),

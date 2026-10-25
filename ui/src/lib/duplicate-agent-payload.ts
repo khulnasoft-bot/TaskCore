@@ -32,7 +32,9 @@ type DuplicateAgentSource = Pick<
   | "metadata"
 >;
 
-function cloneRecord(value: Record<string, unknown> | null | undefined): Record<string, unknown> {
+function cloneRecord(
+  value: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
   if (!value) return {};
   return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 }

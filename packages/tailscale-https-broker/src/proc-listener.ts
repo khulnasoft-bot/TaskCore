@@ -33,7 +33,13 @@ export function parseProcNetTable(content: string): ProcListenerRow[] {
     const uid = Number.parseInt(cols[7], 10);
     const inode = cols[9];
     const [addr, port] = local.split(":");
-    rows.push({ localAddressHex: addr, localPortHex: port, state: stateHex, uid, inode });
+    rows.push({
+      localAddressHex: addr,
+      localPortHex: port,
+      state: stateHex,
+      uid,
+      inode,
+    });
   }
   return rows;
 }
@@ -93,20 +99,34 @@ export function listenerFactsForPort(
   let present = false;
   let loopbackOnly = true;
   for (const row of tcp) {
-    if (row.localPortHex.toUpperCase() !== wantHex || row.state !== TCP_STATE_LISTEN) continue;
+    if (
+      row.localPortHex.toUpperCase() !== wantHex ||
+      row.state !== TCP_STATE_LISTEN
+    )
+      continue;
     present = true;
     uids.push(row.uid);
     inodes.push(row.inode);
-    if (isWildcardHex(row.localAddressHex) || !isLoopbackIpv4Hex(row.localAddressHex)) {
+    if (
+      isWildcardHex(row.localAddressHex) ||
+      !isLoopbackIpv4Hex(row.localAddressHex)
+    ) {
       loopbackOnly = false;
     }
   }
   for (const row of tcp6) {
-    if (row.localPortHex.toUpperCase() !== wantHex || row.state !== TCP_STATE_LISTEN) continue;
+    if (
+      row.localPortHex.toUpperCase() !== wantHex ||
+      row.state !== TCP_STATE_LISTEN
+    )
+      continue;
     present = true;
     uids.push(row.uid);
     inodes.push(row.inode);
-    if (isWildcardHex(row.localAddressHex) || !isLoopbackIpv6Hex(row.localAddressHex)) {
+    if (
+      isWildcardHex(row.localAddressHex) ||
+      !isLoopbackIpv6Hex(row.localAddressHex)
+    ) {
       loopbackOnly = false;
     }
   }
@@ -135,7 +155,8 @@ export function createProcListenerVerifier(expectedUid: number) {
     return {
       present: facts.present,
       loopbackOnly: facts.loopbackOnly,
-      ownerUidMatches: facts.present && facts.uids.every((uid) => uid === expectedUid),
+      ownerUidMatches:
+        facts.present && facts.uids.every((uid) => uid === expectedUid),
       inodes: facts.inodes,
     };
   };

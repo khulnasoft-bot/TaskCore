@@ -9,14 +9,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IssueContinuationHandoff } from "./IssueContinuationHandoff";
 
 vi.mock("./MarkdownBody", () => ({
-  MarkdownBody: ({ children, className }: { children: string; className?: string }) => (
-    <div className={className}>{children}</div>
-  ),
+  MarkdownBody: ({
+    children,
+    className,
+  }: {
+    children: string;
+    className?: string;
+  }) => <div className={className}>{children}</div>,
 }));
 
 vi.mock("@/components/ui/button", () => ({
-  Button: ({ children, onClick, type = "button", ...props }: ComponentProps<"button">) => (
-    <button type={type} onClick={onClick} {...props}>{children}</button>
+  Button: ({
+    children,
+    onClick,
+    type = "button",
+    ...props
+  }: ComponentProps<"button">) => (
+    <button type={type} onClick={onClick} {...props}>
+      {children}
+    </button>
   ),
 }));
 
@@ -72,10 +83,14 @@ describe("IssueContinuationHandoff", () => {
 
     expect(container.textContent).toContain("Continuation Summary");
     expect(container.textContent).toContain("handoff");
-    expect(container.textContent).not.toContain("Resume from the activity tab.");
+    expect(container.textContent).not.toContain(
+      "Resume from the activity tab.",
+    );
 
-    const copyButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.getAttribute("aria-label") === "Continue with an agent");
+    const copyButton = Array.from(container.querySelectorAll("button")).find(
+      (button) =>
+        button.getAttribute("aria-label") === "Continue with an agent",
+    );
     expect(copyButton).toBeTruthy();
 
     await act(async () => {
@@ -84,7 +99,9 @@ describe("IssueContinuationHandoff", () => {
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(handoff.body);
     expect(container.textContent).toContain("Copied");
-    expect(document.querySelector('pre[aria-label="Setup prompt"]')?.textContent).toBe(handoff.body);
+    expect(
+      document.querySelector('pre[aria-label="Setup prompt"]')?.textContent,
+    ).toBe(handoff.body);
 
     await act(async () => {
       root.unmount();
@@ -97,10 +114,19 @@ describe("IssueContinuationHandoff", () => {
     Element.prototype.scrollIntoView = scrollIntoView;
 
     await act(async () => {
-      root.render(<IssueContinuationHandoff document={createHandoffDocument()} focusSignal={1} />);
+      root.render(
+        <IssueContinuationHandoff
+          document={createHandoffDocument()}
+          focusSignal={1}
+        />,
+      );
     });
 
-    expect(container.querySelector(`#document-${ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY}`)).toBeTruthy();
+    expect(
+      container.querySelector(
+        `#document-${ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY}`,
+      ),
+    ).toBeTruthy();
     expect(container.textContent).toContain("Resume from the activity tab.");
     expect(scrollIntoView).toHaveBeenCalled();
 

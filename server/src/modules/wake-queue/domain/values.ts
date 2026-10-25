@@ -15,13 +15,21 @@ export function parseObject(value: unknown): Record<string, unknown> {
 
 export const WORKSPACE_VALIDATION_FAILURE_CODE = "workspace_validation_failed";
 export const CONFIGURATION_INCOMPLETE_FAILURE_CODE = "configuration_incomplete";
-export const EXECUTION_REVIEW_PARTICIPANT_RECOVERY_RETRY_REASON = "execution_review_participant_recovery";
+export const EXECUTION_REVIEW_PARTICIPANT_RECOVERY_RETRY_REASON =
+  "execution_review_participant_recovery";
 
-export function isWorkspaceValidationFailedRun(run: { errorCode: string | null }): boolean {
+export function isWorkspaceValidationFailedRun(run: {
+  errorCode: string | null;
+}): boolean {
   return run.errorCode === WORKSPACE_VALIDATION_FAILURE_CODE;
 }
 
-export function isConfigurationIncompleteFailedRun(run: { errorCode: string | null }): boolean {
-  return run.errorCode === CONFIGURATION_INCOMPLETE_FAILURE_CODE || run.errorCode === "model_not_found" ||
-    run.errorCode === "native_provider_model_rejected";
+export function isConfigurationIncompleteFailedRun(run: {
+  errorCode: string | null;
+}): boolean {
+  return (
+    run.errorCode === CONFIGURATION_INCOMPLETE_FAILURE_CODE ||
+    run.errorCode === "model_not_found" ||
+    run.errorCode === "native_provider_model_rejected"
+  );
 }

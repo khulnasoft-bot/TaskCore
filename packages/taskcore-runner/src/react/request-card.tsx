@@ -2,7 +2,10 @@ import * as React from "react";
 
 import { Badge } from "./components/badge.js";
 import { Button } from "./components/button.js";
-import { runtimeRequestSubmission, type TranscriptRequestEntry } from "../browser/transcript-model.js";
+import {
+  runtimeRequestSubmission,
+  type TranscriptRequestEntry,
+} from "../browser/transcript-model.js";
 
 const KIND_LABELS: Record<string, string> = {
   command_approval: "Command",
@@ -60,10 +63,13 @@ export function RequestCard({
   const answerId = React.useId();
   const kindLabel = KIND_LABELS[request.requestKind] ?? "Request";
   const pending = request.status === "pending";
-  const isInput = request.requestKind === "user_input" || request.requestKind === "elicitation";
+  const isInput =
+    request.requestKind === "user_input" ||
+    request.requestKind === "elicitation";
   const payload = detailBlock(request.details);
-  const detail = renderRequestDetail?.(request)
-    ?? (payload === null ? null : <pre className="pcr-payload">{payload}</pre>);
+  const detail =
+    renderRequestDetail?.(request) ??
+    (payload === null ? null : <pre className="pcr-payload">{payload}</pre>);
 
   React.useEffect(() => {
     if (!pending) setResolving(false);
@@ -87,7 +93,8 @@ export function RequestCard({
         <details>
           <summary className="pcr-request-summary">
             <span>
-              {kindLabel} · {request.status === "resolved"
+              {kindLabel} ·{" "}
+              {request.status === "resolved"
                 ? `resolved — ${ACTION_LABELS[request.resolvedAction ?? ""] ?? request.resolvedAction ?? "unknown"}`
                 : request.status === "expired"
                   ? "expired before response"
@@ -98,7 +105,9 @@ export function RequestCard({
           <p className="pcr-request-prompt">{request.prompt}</p>
           <p className="pcr-request-meta">
             <code>{request.requestId}</code>
-            {request.resolvedAt === null ? null : <time dateTime={request.resolvedAt}>{request.resolvedAt}</time>}
+            {request.resolvedAt === null ? null : (
+              <time dateTime={request.resolvedAt}>{request.resolvedAt}</time>
+            )}
           </p>
           {detail}
         </details>
@@ -150,7 +159,9 @@ export function RequestCard({
                     ? ""
                     : "pcr-button--secondary"
             }
-            disabled={resolving || (action === "submit" && answer.trim().length === 0)}
+            disabled={
+              resolving || (action === "submit" && answer.trim().length === 0)
+            }
             data-testid={`request-action-${action}`}
             onClick={() =>
               submit(

@@ -7,29 +7,48 @@ import {
   isInteractionAudienceDenial,
 } from "./interaction-resolution-error";
 
-const addressedAudience = { shortSummary: "Only CodexCoder or the board can respond", isOpen: false };
-const humanOnlyAudience = { shortSummary: "Only the board can respond", isOpen: false };
+const addressedAudience = {
+  shortSummary: "Only CodexCoder or the board can respond",
+  isOpen: false,
+};
+const humanOnlyAudience = {
+  shortSummary: "Only the board can respond",
+  isOpen: false,
+};
 const openAudience = { shortSummary: "Anyone can respond", isOpen: true };
 
 /** Shapes an `ApiError` the way `errorHandler` serializes an `HttpError`. */
 function denial(status: number, code: string, message: string) {
-  return new ApiError(message, status, { error: message, code, details: { code } });
+  return new ApiError(message, status, {
+    error: message,
+    code,
+    details: { code },
+  });
 }
 
 describe("interactionResolutionErrorCode", () => {
   it("reads the top-level code the API returns", () => {
-    expect(interactionResolutionErrorCode(denial(403, "interaction_human_only", "human-only"))).toBe(
-      "interaction_human_only",
-    );
+    expect(
+      interactionResolutionErrorCode(
+        denial(403, "interaction_human_only", "human-only"),
+      ),
+    ).toBe("interaction_human_only");
   });
 
   it("falls back to the code nested in details", () => {
-    const error = new ApiError("nope", 403, { error: "nope", details: { code: "interaction_addressee_mismatch" } });
-    expect(interactionResolutionErrorCode(error)).toBe("interaction_addressee_mismatch");
+    const error = new ApiError("nope", 403, {
+      error: "nope",
+      details: { code: "interaction_addressee_mismatch" },
+    });
+    expect(interactionResolutionErrorCode(error)).toBe(
+      "interaction_addressee_mismatch",
+    );
   });
 
   it("returns null for an error with no structured body", () => {
-    expect(interactionResolutionErrorCode(new Error("network down"))).toBeNull();
+    expect(
+      interactionResolutionErrorCode(new Error("network down")),
+    ).toBeNull();
   });
 });
 
@@ -43,24 +62,40 @@ describe("isInteractionAudienceDenial", () => {
       "interaction_run_attribution_required",
       "interaction_scope_denied",
     ]) {
-      expect(isInteractionAudienceDenial(denial(403, code, "denied"))).toBe(true);
+      expect(isInteractionAudienceDenial(denial(403, code, "denied"))).toBe(
+        true,
+      );
     }
   });
 
   it("treats an uncoded 403 as an authorization refusal", () => {
-    expect(isInteractionAudienceDenial(new ApiError("Forbidden", 403, { error: "Forbidden" }))).toBe(true);
+    expect(
+      isInteractionAudienceDenial(
+        new ApiError("Forbidden", 403, { error: "Forbidden" }),
+      ),
+    ).toBe(true);
   });
 
   it("does not treat a server fault or a settled card as an audience denial", () => {
-    expect(isInteractionAudienceDenial(new ApiError("boom", 500, { error: "boom" }))).toBe(false);
-    expect(isInteractionAudienceDenial(denial(409, "interaction_already_resolved", "already resolved"))).toBe(false);
+    expect(
+      isInteractionAudienceDenial(new ApiError("boom", 500, { error: "boom" })),
+    ).toBe(false);
+    expect(
+      isInteractionAudienceDenial(
+        denial(409, "interaction_already_resolved", "already resolved"),
+      ),
+    ).toBe(false);
   });
 });
 
 describe("describeInteractionResolutionFailure", () => {
   it("keeps the server denial reason and names who can respond", () => {
     const failure = describeInteractionResolutionFailure(
-      denial(403, "interaction_human_only", "This issue-thread interaction is human-only"),
+      denial(
+        403,
+        "interaction_human_only",
+        "This issue-thread interaction is human-only",
+      ),
       humanOnlyAudience,
     );
 
@@ -88,7 +123,11 @@ describe("describeInteractionResolutionFailure", () => {
 
   it("still explains a denial when no audience is known", () => {
     const failure = describeInteractionResolutionFailure(
-      denial(403, "interaction_creator_excluded", "This issue-thread interaction requires a resolver other than its creator"),
+      denial(
+        403,
+        "interaction_creator_excluded",
+        "This issue-thread interaction requires a resolver other than its creator",
+      ),
       null,
     );
 
@@ -111,7 +150,9 @@ describe("describeInteractionResolutionFailure", () => {
     );
 
     expect(failure.kind).toBe("audience_denied");
-    expect(failure.message).toBe("Only the addressed agent can resolve this interaction.");
+    expect(failure.message).toBe(
+      "Only the addressed agent can resolve this interaction.",
+    );
     expect(failure.message).not.toMatch(/anyone can respond/i);
   });
 
@@ -121,45 +162,71 @@ describe("describeInteractionResolutionFailure", () => {
       openAudience,
     );
 
-    expect(failure).toMatchObject({ kind: "audience_denied", code: null, message: "Forbidden." });
+    expect(failure).toMatchObject({
+      kind: "audience_denied",
+      code: null,
+      message: "Forbidden.",
+    });
     expect(failure.message).not.toMatch(/resolver audience/i);
     expect(failure.message).not.toMatch(/try again/i);
   });
 
   it("restates the refusal without claiming an audience cause when a 403 says nothing", () => {
-    const failure = describeInteractionResolutionFailure(new ApiError("", 403, null), null);
+    const failure = describeInteractionResolutionFailure(
+      new ApiError("", 403, null),
+      null,
+    );
 
-    expect(failure.message).toBe("You do not have permission to respond to this card.");
+    expect(failure.message).toBe(
+      "You do not have permission to respond to this card.",
+    );
     expect(failure.message).not.toMatch(/resolver audience/i);
   });
 
   it("does not ask for a retry when the card has already moved on", () => {
     const failure = describeInteractionResolutionFailure(
-      denial(409, "interaction_superseded", "This confirmation was superseded by a newer request"),
+      denial(
+        409,
+        "interaction_superseded",
+        "This confirmation was superseded by a newer request",
+      ),
       humanOnlyAudience,
     );
 
     expect(failure.kind).toBe("settled");
-    expect(failure.message).toBe("This confirmation was superseded by a newer request.");
+    expect(failure.message).toBe(
+      "This confirmation was superseded by a newer request.",
+    );
     expect(failure.message).not.toMatch(/try again/i);
   });
 
   it("keeps the retry prompt for a genuinely transient failure", () => {
     expect(
-      describeInteractionResolutionFailure(new ApiError("Request failed: 503", 503, null), humanOnlyAudience),
-    ).toMatchObject({ kind: "transient", message: "Request failed: 503. Try again." });
+      describeInteractionResolutionFailure(
+        new ApiError("Request failed: 503", 503, null),
+        humanOnlyAudience,
+      ),
+    ).toMatchObject({
+      kind: "transient",
+      message: "Request failed: 503. Try again.",
+    });
   });
 
   it("falls back to generic copy when nothing explains the failure", () => {
-    expect(describeInteractionResolutionFailure(undefined, null)).toMatchObject({
-      kind: "transient",
-      message: "Couldn't submit. Try again.",
-    });
+    expect(describeInteractionResolutionFailure(undefined, null)).toMatchObject(
+      {
+        kind: "transient",
+        message: "Couldn't submit. Try again.",
+      },
+    );
   });
 
   it("leaves punctuation the server already wrote alone", () => {
     expect(
-      interactionResolutionErrorMessage(denial(403, "interaction_human_only", "Agents cannot resolve this."), null),
+      interactionResolutionErrorMessage(
+        denial(403, "interaction_human_only", "Agents cannot resolve this."),
+        null,
+      ),
     ).toBe("Agents cannot resolve this.");
   });
 });

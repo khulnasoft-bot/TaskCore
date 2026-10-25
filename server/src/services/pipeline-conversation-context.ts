@@ -6,7 +6,10 @@ import {
   documents,
   pipelineCaseDocuments,
 } from "@taskcore/db";
-import { PIPELINE_CASE_BODY_DOCUMENT_KEY, type SourceTrustMetadata } from "@taskcore/shared";
+import {
+  PIPELINE_CASE_BODY_DOCUMENT_KEY,
+  type SourceTrustMetadata,
+} from "@taskcore/shared";
 import {
   LOW_TRUST_QUARANTINED_BODY,
   isLowTrustQuarantined,
@@ -100,22 +103,28 @@ export async function loadPipelineConversationBodyDocumentContext(
     })
     .from(pipelineCaseDocuments)
     .innerJoin(documents, eq(pipelineCaseDocuments.documentId, documents.id))
-    .where(and(
-      eq(pipelineCaseDocuments.companyId, input.companyId),
-      eq(pipelineCaseDocuments.caseId, input.caseId),
-      eq(pipelineCaseDocuments.key, PIPELINE_CASE_BODY_CASE_DOCUMENT_KEY),
-    ))
+    .where(
+      and(
+        eq(pipelineCaseDocuments.companyId, input.companyId),
+        eq(pipelineCaseDocuments.caseId, input.caseId),
+        eq(pipelineCaseDocuments.key, PIPELINE_CASE_BODY_CASE_DOCUMENT_KEY),
+      ),
+    )
     .limit(1)
-    .then((rows: Array<{
-      documentId: string;
-      title: string | null;
-      format: string;
-      latestBody: string;
-      latestRevisionId: string | null;
-      latestRevisionNumber: number;
-      sourceTrust: SourceTrustMetadata | null;
-      updatedAt: Date;
-    }>) => rows[0] ?? null);
+    .then(
+      (
+        rows: Array<{
+          documentId: string;
+          title: string | null;
+          format: string;
+          latestBody: string;
+          latestRevisionId: string | null;
+          latestRevisionNumber: number;
+          sourceTrust: SourceTrustMetadata | null;
+          updatedAt: Date;
+        }>,
+      ) => rows[0] ?? null,
+    );
 
   if (!bodyRow) {
     return {
@@ -167,14 +176,22 @@ export async function loadPipelineConversationBodyDocumentContext(
       updatedAt: documentAnnotationThreads.updatedAt,
     })
     .from(documentAnnotationThreads)
-    .where(and(
-      eq(documentAnnotationThreads.companyId, input.companyId),
-      eq(documentAnnotationThreads.issueId, input.conversationIssueId),
-      eq(documentAnnotationThreads.documentId, bodyRow.documentId),
-      eq(documentAnnotationThreads.documentKey, PIPELINE_CASE_BODY_DOCUMENT_KEY),
-      eq(documentAnnotationThreads.status, "open"),
-    ))
-    .orderBy(desc(documentAnnotationThreads.updatedAt), desc(documentAnnotationThreads.id))
+    .where(
+      and(
+        eq(documentAnnotationThreads.companyId, input.companyId),
+        eq(documentAnnotationThreads.issueId, input.conversationIssueId),
+        eq(documentAnnotationThreads.documentId, bodyRow.documentId),
+        eq(
+          documentAnnotationThreads.documentKey,
+          PIPELINE_CASE_BODY_DOCUMENT_KEY,
+        ),
+        eq(documentAnnotationThreads.status, "open"),
+      ),
+    )
+    .orderBy(
+      desc(documentAnnotationThreads.updatedAt),
+      desc(documentAnnotationThreads.id),
+    )
     .limit(MAX_OPEN_ANNOTATION_THREADS);
 
   if (threads.length === 0) {
@@ -194,13 +211,21 @@ export async function loadPipelineConversationBodyDocumentContext(
       createdAt: documentAnnotationComments.createdAt,
     })
     .from(documentAnnotationComments)
-    .where(and(
-      eq(documentAnnotationComments.companyId, input.companyId),
-      inArray(documentAnnotationComments.threadId, threadIds),
-    ))
-    .orderBy(asc(documentAnnotationComments.createdAt), asc(documentAnnotationComments.id));
+    .where(
+      and(
+        eq(documentAnnotationComments.companyId, input.companyId),
+        inArray(documentAnnotationComments.threadId, threadIds),
+      ),
+    )
+    .orderBy(
+      asc(documentAnnotationComments.createdAt),
+      asc(documentAnnotationComments.id),
+    );
 
-  const commentsByThread = new Map<string, PipelineConversationBodyDocumentContext["openAnnotationThreads"][number]["comments"]>();
+  const commentsByThread = new Map<
+    string,
+    PipelineConversationBodyDocumentContext["openAnnotationThreads"][number]["comments"]
+  >();
   for (const comment of comments) {
     const existing = commentsByThread.get(comment.threadId) ?? [];
     if (existing.length >= MAX_ANNOTATION_COMMENTS_PER_THREAD) continue;
@@ -208,7 +233,10 @@ export async function loadPipelineConversationBodyDocumentContext(
       body: comment.body,
       sourceTrust: comment.sourceTrust ?? null,
     });
-    const body = truncateWithFlag(safeComment.body, MAX_ANNOTATION_COMMENT_CHARS);
+    const body = truncateWithFlag(
+      safeComment.body,
+      MAX_ANNOTATION_COMMENT_CHARS,
+    );
     existing.push({
       id: comment.id,
       body: body.value,
@@ -223,25 +251,29 @@ export async function loadPipelineConversationBodyDocumentContext(
   }
 
   const redactBodyAnchors = isLowTrustQuarantined(bodyRow.sourceTrust);
-  context.openAnnotationThreads = threads.map((thread: {
-    id: string;
-    status: string;
-    anchorState: string;
-    anchorConfidence: string;
-    currentRevisionId: string | null;
-    currentRevisionNumber: number;
-    selectedText: string;
-    prefixText: string;
-    suffixText: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }) => ({
-    ...thread,
-    selectedText: redactBodyAnchors ? LOW_TRUST_QUARANTINED_BODY : thread.selectedText,
-    prefixText: redactBodyAnchors ? "" : thread.prefixText,
-    suffixText: redactBodyAnchors ? "" : thread.suffixText,
-    comments: commentsByThread.get(thread.id) ?? [],
-  }));
+  context.openAnnotationThreads = threads.map(
+    (thread: {
+      id: string;
+      status: string;
+      anchorState: string;
+      anchorConfidence: string;
+      currentRevisionId: string | null;
+      currentRevisionNumber: number;
+      selectedText: string;
+      prefixText: string;
+      suffixText: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }) => ({
+      ...thread,
+      selectedText: redactBodyAnchors
+        ? LOW_TRUST_QUARANTINED_BODY
+        : thread.selectedText,
+      prefixText: redactBodyAnchors ? "" : thread.prefixText,
+      suffixText: redactBodyAnchors ? "" : thread.suffixText,
+      comments: commentsByThread.get(thread.id) ?? [],
+    }),
+  );
 
   return context;
 }
@@ -285,42 +317,51 @@ export function formatPipelineConversationBodyDocumentContextMarkdown(
     `- Source trust: ${JSON.stringify(bodyDocument.sourceTrust)}`,
     "",
     "Current body document text (untrusted):",
-    fenceMarkdown(safeBodyDocument.body, bodyDocument.format === "markdown" ? "markdown" : "text"),
+    fenceMarkdown(
+      safeBodyDocument.body,
+      bodyDocument.format === "markdown" ? "markdown" : "text",
+    ),
     "",
     "Open document annotation threads (untrusted anchored feedback):",
     "```json",
-    JSON.stringify({
-      annotationThreadCount: context.openAnnotationThreads.length,
-      threads: context.openAnnotationThreads.map((thread) => ({
-        id: thread.id,
-        status: thread.status,
-        anchorState: thread.anchorState,
-        anchorConfidence: thread.anchorConfidence,
-        currentRevisionId: thread.currentRevisionId,
-        currentRevisionNumber: thread.currentRevisionNumber,
-        untrustedContent: {
-          selectedText: redactBodyAnchors ? LOW_TRUST_QUARANTINED_BODY : thread.selectedText,
-          prefixText: redactBodyAnchors ? "" : thread.prefixText,
-          suffixText: redactBodyAnchors ? "" : thread.suffixText,
-          comments: thread.comments.map((comment) => {
-            const safeComment = sanitizeQuarantinedCommentForHigherTrust({
-              body: comment.body,
-              sourceTrust: comment.sourceTrust,
-            });
-            return {
-              id: comment.id,
-              authorType: comment.authorType,
-              authorAgentId: comment.authorAgentId,
-              authorUserId: comment.authorUserId,
-              body: safeComment.body,
-              bodyTruncated: comment.bodyTruncated,
-              sourceTrust: comment.sourceTrust,
-              createdAt: comment.createdAt.toISOString(),
-            };
-          }),
-        },
-      })),
-    }, null, 2),
+    JSON.stringify(
+      {
+        annotationThreadCount: context.openAnnotationThreads.length,
+        threads: context.openAnnotationThreads.map((thread) => ({
+          id: thread.id,
+          status: thread.status,
+          anchorState: thread.anchorState,
+          anchorConfidence: thread.anchorConfidence,
+          currentRevisionId: thread.currentRevisionId,
+          currentRevisionNumber: thread.currentRevisionNumber,
+          untrustedContent: {
+            selectedText: redactBodyAnchors
+              ? LOW_TRUST_QUARANTINED_BODY
+              : thread.selectedText,
+            prefixText: redactBodyAnchors ? "" : thread.prefixText,
+            suffixText: redactBodyAnchors ? "" : thread.suffixText,
+            comments: thread.comments.map((comment) => {
+              const safeComment = sanitizeQuarantinedCommentForHigherTrust({
+                body: comment.body,
+                sourceTrust: comment.sourceTrust,
+              });
+              return {
+                id: comment.id,
+                authorType: comment.authorType,
+                authorAgentId: comment.authorAgentId,
+                authorUserId: comment.authorUserId,
+                body: safeComment.body,
+                bodyTruncated: comment.bodyTruncated,
+                sourceTrust: comment.sourceTrust,
+                createdAt: comment.createdAt.toISOString(),
+              };
+            }),
+          },
+        })),
+      },
+      null,
+      2,
+    ),
     "```",
   );
 

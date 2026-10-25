@@ -6,7 +6,11 @@ const MAX_CANDIDATES_PER_POOL = 1_000;
 const ACTIVE_STATUSES = ["queued", "running"];
 
 /** Select recent dashboard cards without ranking the company's full run history. */
-export async function selectDashboardRunIds(db: Db, companyId: string, limit: number): Promise<string[]> {
+export async function selectDashboardRunIds(
+  db: Db,
+  companyId: string,
+  limit: number,
+): Promise<string[]> {
   if (limit <= 0) return [];
 
   const columns = {
@@ -16,21 +20,34 @@ export async function selectDashboardRunIds(db: Db, companyId: string, limit: nu
     issueId: sql<string | null>`${heartbeatRuns.contextSnapshot} ->> 'issueId'`,
   };
   const [activeRuns, recentRuns] = await Promise.all([
-    db.select(columns)
+    db
+      .select(columns)
       .from(heartbeatRuns)
-      .where(and(eq(heartbeatRuns.companyId, companyId), inArray(heartbeatRuns.status, ACTIVE_STATUSES)))
+      .where(
+        and(
+          eq(heartbeatRuns.companyId, companyId),
+          inArray(heartbeatRuns.status, ACTIVE_STATUSES),
+        ),
+      )
       .orderBy(desc(heartbeatRuns.createdAt), desc(heartbeatRuns.id))
       .limit(MAX_CANDIDATES_PER_POOL),
-    db.select(columns)
+    db
+      .select(columns)
       .from(heartbeatRuns)
       .where(eq(heartbeatRuns.companyId, companyId))
       .orderBy(desc(heartbeatRuns.createdAt), desc(heartbeatRuns.id))
       .limit(MAX_CANDIDATES_PER_POOL),
   ]);
 
-  const candidates = [...new Map([...activeRuns, ...recentRuns].map((run) => [run.id, run])).values()];
+  const candidates = [
+    ...new Map(
+      [...activeRuns, ...recentRuns].map((run) => [run.id, run]),
+    ).values(),
+  ];
   candidates.sort((a, b) => {
-    const activeOrder = Number(ACTIVE_STATUSES.includes(b.status)) - Number(ACTIVE_STATUSES.includes(a.status));
+    const activeOrder =
+      Number(ACTIVE_STATUSES.includes(b.status)) -
+      Number(ACTIVE_STATUSES.includes(a.status));
     if (activeOrder !== 0) return activeOrder;
     const createdOrder = b.createdAt.getTime() - a.createdAt.getTime();
     return createdOrder || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);

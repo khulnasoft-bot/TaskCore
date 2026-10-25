@@ -48,25 +48,29 @@ async function assertSafeTree(root: string, child = ""): Promise<void> {
 function safeMaterializationTarget(root: string, runtimeName: string): string {
   const segments = runtimeName.split("/");
   if (
-    runtimeName.startsWith("/")
-    || runtimeName.includes("\\")
-    || runtimeName.includes("\0")
-    || segments.some((segment) => /[<>:"|?*\u0000-\u001f\u007f]/u.test(segment))
-    || segments.some((segment) => !segment || segment === "." || segment === "..")
-    || segments.some((segment) => !segment.replace(/[ .]+$/u, ""))
-    || segments.some(isWin32ReservedPathSegment)
+    runtimeName.startsWith("/") ||
+    runtimeName.includes("\\") ||
+    runtimeName.includes("\0") ||
+    segments.some((segment) => /[<>:"|?*\u0000-\u001f\u007f]/u.test(segment)) ||
+    segments.some(
+      (segment) => !segment || segment === "." || segment === "..",
+    ) ||
+    segments.some((segment) => !segment.replace(/[ .]+$/u, "")) ||
+    segments.some(isWin32ReservedPathSegment)
   ) {
     throw new Error("runtime context skill name must be a safe relative path");
   }
   const target = resolve(root, runtimeName);
   const relation = relative(resolve(root), target);
   if (
-    relation === ""
-    || relation === ".."
-    || relation.startsWith(`..${sep}`)
-    || isAbsolute(relation)
+    relation === "" ||
+    relation === ".." ||
+    relation.startsWith(`..${sep}`) ||
+    isAbsolute(relation)
   ) {
-    throw new Error("runtime context skill name must stay inside the skills home");
+    throw new Error(
+      "runtime context skill name must stay inside the skills home",
+    );
   }
   return target;
 }
@@ -99,9 +103,9 @@ function portableRuntimeNameKey(runtimeName: string): string {
 async function protectStagedTree(root: string): Promise<void> {
   const rootHandle = await open(
     root,
-    constants.O_RDONLY
-      | (constants.O_NOFOLLOW ?? 0)
-      | (constants.O_DIRECTORY ?? 0),
+    constants.O_RDONLY |
+      (constants.O_NOFOLLOW ?? 0) |
+      (constants.O_DIRECTORY ?? 0),
   );
   try {
     const opened = await rootHandle.stat();
@@ -121,7 +125,9 @@ async function protectStagedTree(root: string): Promise<void> {
       try {
         const openedChild = await childHandle.stat();
         if (!openedChild.isFile()) {
-          throw new Error("staged runtime context asset must be a regular file");
+          throw new Error(
+            "staged runtime context asset must be a regular file",
+          );
         }
         await childHandle.chmod(openedChild.mode & 0o555);
       } finally {
@@ -140,9 +146,9 @@ async function protectStagedTree(root: string): Promise<void> {
 async function unprotectMaterializedTree(root: string): Promise<void> {
   const rootHandle = await open(
     root,
-    constants.O_RDONLY
-      | (constants.O_NOFOLLOW ?? 0)
-      | (constants.O_DIRECTORY ?? 0),
+    constants.O_RDONLY |
+      (constants.O_NOFOLLOW ?? 0) |
+      (constants.O_DIRECTORY ?? 0),
   );
   try {
     const opened = await rootHandle.stat();
@@ -165,7 +171,9 @@ async function unprotectMaterializedTree(root: string): Promise<void> {
       try {
         const openedChild = await childHandle.stat();
         if (!openedChild.isFile()) {
-          throw new Error("materialized runtime context asset must be a regular file");
+          throw new Error(
+            "materialized runtime context asset must be a regular file",
+          );
         }
         await childHandle.chmod(0o600);
       } finally {
@@ -197,9 +205,8 @@ async function removeMaterializedTree(
 export async function releaseMaterializedNativeRuntimeSkills(
   skillsHome: string,
 ): Promise<void> {
-  await removeMaterializedTree(
-    skillsHome,
-    (path) => rm(path, { recursive: true, force: true }),
+  await removeMaterializedTree(skillsHome, (path) =>
+    rm(path, { recursive: true, force: true }),
   );
 }
 
@@ -248,9 +255,7 @@ export async function materializeNativeRuntimeSkills(
     },
   );
   if (skillsHomeExists) {
-    throw new Error(
-      "runtime context skills home must be a fresh destination",
-    );
+    throw new Error("runtime context skills home must be a fresh destination");
   }
 
   const parent = dirname(skillsHome);
@@ -281,7 +286,9 @@ export async function materializeNativeRuntimeSkills(
   } catch (error) {
     // Cleanup is best effort and must not replace the publication failure that
     // explains why no runtime snapshot was installed.
-    await removeMaterializedTree(stagingHome, removeTree).catch(() => undefined);
+    await removeMaterializedTree(stagingHome, removeTree).catch(
+      () => undefined,
+    );
     throw error;
   }
 }
@@ -308,23 +315,44 @@ async function readSourceCodexAuth(sourceAuth: string): Promise<Buffer | null> {
 }
 
 /** Copy only Taskcore's value-free provider projection, never host tools or hooks. */
-async function managedCodexProviderConfig(sourceHome?: string | null): Promise<string> {
+async function managedCodexProviderConfig(
+  sourceHome?: string | null,
+): Promise<string> {
   if (!sourceHome?.trim()) return "";
   const source = await readSourceCodexAuth(join(sourceHome, "config.toml"));
   if (!source) return "";
   let parsed;
-  try { parsed = parseToml(source.toString("utf8")); } catch { return ""; }
+  try {
+    parsed = parseToml(source.toString("utf8"));
+  } catch {
+    return "";
+  }
   if (parsed.model_provider !== "taskcore") return "";
-  const providers = parsed.model_providers as Record<string, unknown> | undefined;
+  const providers = parsed.model_providers as
+    Record<string, unknown> | undefined;
   const provider = providers?.taskcore as Record<string, unknown> | undefined;
-  if (!provider || typeof provider.base_url !== "string" || provider.wire_api !== "responses"
-    || provider.requires_openai_auth !== false
-    || (provider.env_key !== undefined && provider.env_key !== "TASKCORE_AI_PROVIDER_KEY")) {
+  if (
+    !provider ||
+    typeof provider.base_url !== "string" ||
+    provider.wire_api !== "responses" ||
+    provider.requires_openai_auth !== false ||
+    (provider.env_key !== undefined &&
+      provider.env_key !== "TASKCORE_AI_PROVIDER_KEY")
+  ) {
     throw new Error("Invalid managed Codex provider configuration");
   }
   const url = new URL(provider.base_url);
-  if (url.username || url.password || url.search || url.hash
-    || (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))) {
+  if (
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    (url.protocol !== "https:" &&
+      !(
+        url.protocol === "http:" &&
+        ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+      ))
+  ) {
     throw new Error("Invalid managed Codex provider URL");
   }
   return `model_provider = "taskcore"\n[model_providers.taskcore]\nname = "Taskcore connection"\nbase_url = ${JSON.stringify(provider.base_url)}\nwire_api = "responses"\nrequires_openai_auth = false\n${provider.env_key ? 'env_key = "TASKCORE_AI_PROVIDER_KEY"\n' : ""}`;
@@ -342,30 +370,36 @@ export async function prepareIsolatedCodexHome(input: {
     join(input.codexHome, "skills"),
   );
 
-  const providerConfig = await managedCodexProviderConfig(input.sourceCodexHome);
+  const providerConfig = await managedCodexProviderConfig(
+    input.sourceCodexHome,
+  );
   const configPath = join(input.codexHome, "config.toml");
   await rm(configPath, { force: true });
-  await writeFile(configPath, [
-    providerConfig,
-    // Codex shell snapshots serialize the provider process environment. The
-    // native runner injects short-lived provider and MCP bindings, so a
-    // snapshot would turn ephemeral credentials into durable session state.
-    "[features]",
-    "shell_snapshot = false",
-    "",
-    ...(input.nativeMcp
-      ? [
-          `[mcp_servers.${JSON.stringify(input.nativeMcp.name)}]`,
-          `url = ${JSON.stringify(input.nativeMcp.url)}`,
-          // This endpoint is Taskcore's authenticated policy gateway, not an
-          // upstream server. It enforces connection grants and human approvals
-          // for every operation; the provider must deliver calls to that gate.
-          'default_tools_approval_mode = "approve"',
-          `http_headers = { Authorization = ${JSON.stringify(`Bearer ${input.nativeMcp.token}`)} }`,
-          "",
-        ]
-      : []),
-  ].join("\n"), { mode: 0o600 });
+  await writeFile(
+    configPath,
+    [
+      providerConfig,
+      // Codex shell snapshots serialize the provider process environment. The
+      // native runner injects short-lived provider and MCP bindings, so a
+      // snapshot would turn ephemeral credentials into durable session state.
+      "[features]",
+      "shell_snapshot = false",
+      "",
+      ...(input.nativeMcp
+        ? [
+            `[mcp_servers.${JSON.stringify(input.nativeMcp.name)}]`,
+            `url = ${JSON.stringify(input.nativeMcp.url)}`,
+            // This endpoint is Taskcore's authenticated policy gateway, not an
+            // upstream server. It enforces connection grants and human approvals
+            // for every operation; the provider must deliver calls to that gate.
+            'default_tools_approval_mode = "approve"',
+            `http_headers = { Authorization = ${JSON.stringify(`Bearer ${input.nativeMcp.token}`)} }`,
+            "",
+          ]
+        : []),
+    ].join("\n"),
+    { mode: 0o600 },
+  );
 
   const targetAuth = join(input.codexHome, "auth.json");
   await rm(targetAuth, { force: true });
@@ -375,11 +409,9 @@ export async function prepareIsolatedCodexHome(input: {
     // The pinned Codex app-server authenticates API-key automation through its
     // login cache rather than the CLI-only CODEX_API_KEY path. Keep this file
     // owner-only in the disposable session home.
-    await writeFile(
-      targetAuth,
-      JSON.stringify({ OPENAI_API_KEY: apiKey }),
-      { mode: 0o600 },
-    );
+    await writeFile(targetAuth, JSON.stringify({ OPENAI_API_KEY: apiKey }), {
+      mode: 0o600,
+    });
     await chmod(targetAuth, 0o600);
     return;
   }

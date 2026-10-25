@@ -27,7 +27,11 @@ import { fileURLToPath } from "node:url";
  * resource carry no oracle and belong on the allowlist below.
  */
 
-const ROUTES_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "routes");
+const ROUTES_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "routes",
+);
 
 // "<file>:<variable>" call sites where the companyId is request input, not a
 // discovered resource — no existence oracle to close. Add new entries only
@@ -41,17 +45,26 @@ const GATE_LOOKBACK_LINES = 12;
 
 function findUngatedSites() {
   const ungated: string[] = [];
-  for (const file of readdirSync(ROUTES_DIR).filter((name) => name.endsWith(".ts"))) {
+  for (const file of readdirSync(ROUTES_DIR).filter((name) =>
+    name.endsWith(".ts"),
+  )) {
     if (file === "authz.ts") continue;
     const lines = readFileSync(join(ROUTES_DIR, file), "utf8").split("\n");
     lines.forEach((line, index) => {
-      const match = line.match(/assertCompanyAccess\(req,\s*(\w+)\.companyId\)/);
+      const match = line.match(
+        /assertCompanyAccess\(req,\s*(\w+)\.companyId\)/,
+      );
       if (!match) return;
       const variable = match[1];
       const lookback = lines
         .slice(Math.max(0, index - GATE_LOOKBACK_LINES), index)
         .join("\n");
-      if (new RegExp(`hasCompanyAccess\\(req,\\s*${variable}\\.companyId\\)`).test(lookback)) return;
+      if (
+        new RegExp(
+          `hasCompanyAccess\\(req,\\s*${variable}\\.companyId\\)`,
+        ).test(lookback)
+      )
+        return;
       if (REQUEST_INPUT_ALLOWLIST.has(`${file}:${variable}`)) return;
       ungated.push(`${file}:${index + 1} (${variable}.companyId)`);
     });
@@ -64,11 +77,11 @@ describe("cross-tenant existence oracle guard", () => {
     const ungated = findUngatedSites();
     expect(
       ungated,
-      "assertCompanyAccess on a looked-up resource without a hasCompanyAccess 404 gate "
-        + "reintroduces the cross-tenant existence oracle (403 vs 404). "
-        + "Apply the two-step pattern documented on hasCompanyAccess in routes/authz.ts, "
-        + "or — only if the companyId is request input — add the site to REQUEST_INPUT_ALLOWLIST. "
-        + `Offending sites: ${ungated.join(", ")}`,
+      "assertCompanyAccess on a looked-up resource without a hasCompanyAccess 404 gate " +
+        "reintroduces the cross-tenant existence oracle (403 vs 404). " +
+        "Apply the two-step pattern documented on hasCompanyAccess in routes/authz.ts, " +
+        "or — only if the companyId is request input — add the site to REQUEST_INPUT_ALLOWLIST. " +
+        `Offending sites: ${ungated.join(", ")}`,
     ).toEqual([]);
   });
 
@@ -77,10 +90,17 @@ describe("cross-tenant existence oracle guard", () => {
     for (const entry of REQUEST_INPUT_ALLOWLIST) {
       const [file, variable] = entry.split(":");
       const source = readFileSync(join(ROUTES_DIR, file!), "utf8");
-      if (!new RegExp(`assertCompanyAccess\\(req,\\s*${variable}\\.companyId\\)`).test(source)) {
+      if (
+        !new RegExp(
+          `assertCompanyAccess\\(req,\\s*${variable}\\.companyId\\)`,
+        ).test(source)
+      ) {
         stale.push(entry);
       }
     }
-    expect(stale, `Allowlist entries no longer present in the code: ${stale.join(", ")}`).toEqual([]);
+    expect(
+      stale,
+      `Allowlist entries no longer present in the code: ${stale.join(", ")}`,
+    ).toEqual([]);
   });
 });

@@ -84,7 +84,10 @@ vi.mock("./SidebarNavItem", () => ({
   }) => {
     sidebarNavItemMock(props);
     return (
-      <div data-to={props.to} data-active={props.to === currentPath.value ? "true" : "false"}>
+      <div
+        data-to={props.to}
+        data-active={props.to === currentPath.value ? "true" : "false"}
+      >
         {props.label}
         {props.badge ? ` ${props.badge}` : ""}
       </div>
@@ -137,19 +140,33 @@ describe("AppConnectionSidebar", () => {
     currentPath.value = "/apps/conn-1/permissions";
     mockToolsApi.getConnection.mockResolvedValue(connection());
     mockToolsApi.listApplications.mockResolvedValue({
-      applications: [{
-        id: "app-1",
-        applicationKey: "github",
-        name: "GitHub",
-        description: "GitHub app",
-        status: "active",
-      }],
+      applications: [
+        {
+          id: "app-1",
+          applicationKey: "github",
+          name: "GitHub",
+          description: "GitHub app",
+          status: "active",
+        },
+      ],
     });
     mockToolsApi.listConnections.mockResolvedValue({
-      connections: [connection({ id: "archived-1", applicationId: "app-1", status: "archived" })],
+      connections: [
+        connection({
+          id: "archived-1",
+          applicationId: "app-1",
+          status: "archived",
+        }),
+      ],
     });
     mockToolsApi.listGallery.mockResolvedValue({
-      apps: [{ key: "github", name: "GitHub", logoUrl: "https://example.test/github.png" }],
+      apps: [
+        {
+          key: "github",
+          name: "GitHub",
+          logoUrl: "https://example.test/github.png",
+        },
+      ],
     });
     mockToolsApi.listAppsAttention.mockResolvedValue({
       apps: [
@@ -172,7 +189,9 @@ describe("AppConnectionSidebar", () => {
     vi.clearAllMocks();
   });
 
-  async function renderSidebar(element = <AppDetailSidebar kind="connection" connectionId="conn-1" />) {
+  async function renderSidebar(
+    element = <AppDetailSidebar kind="connection" connectionId="conn-1" />,
+  ) {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -190,109 +209,236 @@ describe("AppConnectionSidebar", () => {
   it("renders the consolidated connected app tabs", async () => {
     await renderSidebar();
 
-    expect(container.querySelector('a[href="/apps"]')?.textContent).toContain("All connectors");
+    expect(container.querySelector('a[href="/apps"]')?.textContent).toContain(
+      "All connectors",
+    );
     expect(container.textContent).toContain("GitHub");
     expect(container.querySelectorAll("[data-to]").length).toBe(2);
-    expect(sidebarNavItemMock).toHaveBeenCalledWith(expect.objectContaining({ to: "/apps/conn-1/review", label: "Review", badge: 3, badgeTone: "danger" }));
-    expect(sidebarNavItemMock).toHaveBeenCalledWith(expect.objectContaining({ to: "/apps/conn-1/permissions", label: "Permissions", end: true }));
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Test" }));
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Activity" }));
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Advanced" }));
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Setup" }));
+    expect(sidebarNavItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "/apps/conn-1/review",
+        label: "Review",
+        badge: 3,
+        badgeTone: "danger",
+      }),
+    );
+    expect(sidebarNavItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "/apps/conn-1/permissions",
+        label: "Permissions",
+        end: true,
+      }),
+    );
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Test" }),
+    );
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Activity" }),
+    );
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Advanced" }),
+    );
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Setup" }),
+    );
   });
 
   it("marks the current tab active through the nav item target", async () => {
     await renderSidebar();
 
-    expect(container.querySelector('[data-to="/apps/conn-1/permissions"]')?.getAttribute("data-active")).toBe("true");
-    expect(container.querySelector('[data-to="/apps/conn-1/setup"]')).toBeNull();
+    expect(
+      container
+        .querySelector('[data-to="/apps/conn-1/permissions"]')
+        ?.getAttribute("data-active"),
+    ).toBe("true");
+    expect(
+      container.querySelector('[data-to="/apps/conn-1/setup"]'),
+    ).toBeNull();
   });
 
   it("shows only pool settings and keeps connector branding after a pool is renamed", async () => {
-    const entry = aiConnectionRouterAppDefinition("example.pool", { name: "AI connection pool", description: "Use saved connections" });
-    mockToolsApi.getConnection.mockResolvedValue(connection({ name: "Research accounts", config: { aiRouter: { pluginKey: "example.pool" } } }));
+    const entry = aiConnectionRouterAppDefinition("example.pool", {
+      name: "AI connection pool",
+      description: "Use saved connections",
+    });
+    mockToolsApi.getConnection.mockResolvedValue(
+      connection({
+        name: "Research accounts",
+        config: { aiRouter: { pluginKey: "example.pool" } },
+      }),
+    );
     mockToolsApi.listApplications.mockResolvedValue({ applications: [] });
     mockToolsApi.listGallery.mockResolvedValue({ apps: [entry] });
     await renderSidebar();
     expect(container.querySelectorAll("[data-to]")).toHaveLength(1);
-    expect(sidebarNavItemMock).toHaveBeenCalledWith(expect.objectContaining({ to: "/apps/conn-1/permissions", label: "Settings", end: true }));
-    expect(container.querySelector("[data-app-logo]")?.getAttribute("data-logo-url")).toBe(entry.branding.logoUrl);
+    expect(sidebarNavItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "/apps/conn-1/permissions",
+        label: "Settings",
+        end: true,
+      }),
+    );
+    expect(
+      container.querySelector("[data-app-logo]")?.getAttribute("data-logo-url"),
+    ).toBe(entry.branding.logoUrl);
     expect(container.textContent).not.toContain("Review");
   });
 
   it("uses the application key for a customized connection display name", async () => {
-    mockToolsApi.getConnection.mockResolvedValue(connection({ name: "Dotta's GitHub" }));
+    mockToolsApi.getConnection.mockResolvedValue(
+      connection({ name: "Dotta's GitHub" }),
+    );
 
     await renderSidebar();
 
-    expect(container.querySelector("[data-app-logo]")?.getAttribute("data-brand-key")).toBe("github");
-    expect(container.querySelector("[data-app-logo]")?.getAttribute("data-allow-remote-fallback")).toBe("true");
+    expect(
+      container
+        .querySelector("[data-app-logo]")
+        ?.getAttribute("data-brand-key"),
+    ).toBe("github");
+    expect(
+      container
+        .querySelector("[data-app-logo]")
+        ?.getAttribute("data-allow-remote-fallback"),
+    ).toBe("true");
   });
 
   it("keeps remote fallback disabled until the stable application key resolves", async () => {
     let resolveApplications!: (value: {
-      applications: Array<{ id: string; applicationKey: string; name: string; status: string }>;
+      applications: Array<{
+        id: string;
+        applicationKey: string;
+        name: string;
+        status: string;
+      }>;
     }) => void;
-    mockToolsApi.getConnection.mockResolvedValue(connection({ name: "Dotta's source control" }));
-    mockToolsApi.listApplications.mockReturnValueOnce(new Promise((resolve) => {
-      resolveApplications = resolve;
-    }));
+    mockToolsApi.getConnection.mockResolvedValue(
+      connection({ name: "Dotta's source control" }),
+    );
+    mockToolsApi.listApplications.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveApplications = resolve;
+      }),
+    );
 
     await renderSidebar();
 
-    expect(container.querySelector("[data-app-logo]")?.getAttribute("data-brand-key")).toBe("");
-    expect(container.querySelector("[data-app-logo]")?.getAttribute("data-allow-remote-fallback")).toBe("false");
+    expect(
+      container
+        .querySelector("[data-app-logo]")
+        ?.getAttribute("data-brand-key"),
+    ).toBe("");
+    expect(
+      container
+        .querySelector("[data-app-logo]")
+        ?.getAttribute("data-allow-remote-fallback"),
+    ).toBe("false");
 
     await act(async () => {
       resolveApplications({
-        applications: [{ id: "app-1", applicationKey: "github", name: "GitHub", status: "active" }],
+        applications: [
+          {
+            id: "app-1",
+            applicationKey: "github",
+            name: "GitHub",
+            status: "active",
+          },
+        ],
       });
     });
     await flushReact();
 
-    expect(container.querySelector("[data-app-logo]")?.getAttribute("data-brand-key")).toBe("github");
-    expect(container.querySelector("[data-app-logo]")?.getAttribute("data-allow-remote-fallback")).toBe("true");
+    expect(
+      container
+        .querySelector("[data-app-logo]")
+        ?.getAttribute("data-brand-key"),
+    ).toBe("github");
+    expect(
+      container
+        .querySelector("[data-app-logo]")
+        ?.getAttribute("data-allow-remote-fallback"),
+    ).toBe("true");
   });
 
   it("allows remote fallback after application identity lookup fails", async () => {
-    mockToolsApi.listApplications.mockRejectedValueOnce(new Error("Application lookup unavailable"));
+    mockToolsApi.listApplications.mockRejectedValueOnce(
+      new Error("Application lookup unavailable"),
+    );
 
     await renderSidebar();
 
-    expect(container.querySelector("[data-app-logo]")?.getAttribute("data-allow-remote-fallback")).toBe("true");
+    expect(
+      container
+        .querySelector("[data-app-logo]")
+        ?.getAttribute("data-allow-remote-fallback"),
+    ).toBe("true");
   });
 
   it("keeps a customized connection logo when application identity lookup fails", async () => {
-    mockToolsApi.getConnection.mockResolvedValue(connection({
-      name: "Dotta's source control",
-      config: { sourceTemplateKey: "github" },
-    }));
-    mockToolsApi.listApplications.mockRejectedValueOnce(new Error("Application lookup unavailable"));
+    mockToolsApi.getConnection.mockResolvedValue(
+      connection({
+        name: "Dotta's source control",
+        config: { sourceTemplateKey: "github" },
+      }),
+    );
+    mockToolsApi.listApplications.mockRejectedValueOnce(
+      new Error("Application lookup unavailable"),
+    );
 
     await renderSidebar();
 
     const logo = container.querySelector("[data-app-logo]");
     expect(logo?.getAttribute("data-brand-key")).toBe("github");
-    expect(logo?.getAttribute("data-logo-url")).toBe("https://example.test/github.png");
+    expect(logo?.getAttribute("data-logo-url")).toBe(
+      "https://example.test/github.png",
+    );
     expect(logo?.getAttribute("data-allow-remote-fallback")).toBe("true");
   });
 
   it("renders application-mode tabs under the not-connected app route", async () => {
     currentPath.value = "/apps/app/app-1/review";
 
-    await renderSidebar(<AppDetailSidebar kind="application" applicationId="app-1" />);
+    await renderSidebar(
+      <AppDetailSidebar kind="application" applicationId="app-1" />,
+    );
 
-    expect(container.querySelector('a[href="/apps"]')?.textContent).toContain("All connectors");
+    expect(container.querySelector('a[href="/apps"]')?.textContent).toContain(
+      "All connectors",
+    );
     expect(container.textContent).toContain("GitHub");
     expect(mockToolsApi.getConnection).not.toHaveBeenCalled();
-    expect(sidebarNavItemMock).toHaveBeenCalledWith(expect.objectContaining({ to: "/apps/app/app-1/review", label: "Review", end: true }));
-    expect(sidebarNavItemMock).toHaveBeenCalledWith(expect.objectContaining({ to: "/apps/app/app-1/permissions", label: "Permissions", end: true }));
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Activity" }));
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Advanced" }));
-    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(expect.objectContaining({ label: "Setup" }));
-    expect(container.querySelector('[data-to="/apps/app/app-1/review"]')?.getAttribute("data-active")).toBe("true");
+    expect(sidebarNavItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "/apps/app/app-1/review",
+        label: "Review",
+        end: true,
+      }),
+    );
+    expect(sidebarNavItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "/apps/app/app-1/permissions",
+        label: "Permissions",
+        end: true,
+      }),
+    );
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Activity" }),
+    );
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Advanced" }),
+    );
+    expect(sidebarNavItemMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ label: "Setup" }),
+    );
+    expect(
+      container
+        .querySelector('[data-to="/apps/app/app-1/review"]')
+        ?.getAttribute("data-active"),
+    ).toBe("true");
     // Testing is part of Permissions and Activity lives in the company Audit feed.
-    expect(container.querySelector('[data-to="/apps/app/app-1/test"]')).toBeNull();
+    expect(
+      container.querySelector('[data-to="/apps/app/app-1/test"]'),
+    ).toBeNull();
     expect(container.querySelectorAll("[data-to]").length).toBe(2);
   });
 
@@ -304,7 +450,9 @@ describe("AppConnectionSidebar", () => {
     await renderSidebar();
 
     expect(container.textContent).toContain("App");
-    expect(container.querySelector('a[href="/apps"]')?.textContent).toContain("All connectors");
+    expect(container.querySelector('a[href="/apps"]')?.textContent).toContain(
+      "All connectors",
+    );
     expect(container.querySelectorAll("[data-to]").length).toBe(2);
   });
 
@@ -314,10 +462,14 @@ describe("AppConnectionSidebar", () => {
     mockToolsApi.listGallery.mockResolvedValue({ apps: [] });
     mockToolsApi.listAppsAttention.mockResolvedValue({ apps: [], totals: {} });
 
-    await renderSidebar(<AppDetailSidebar kind="application" applicationId="missing-app" />);
+    await renderSidebar(
+      <AppDetailSidebar kind="application" applicationId="missing-app" />,
+    );
 
     expect(container.textContent).toContain("App");
-    expect(container.querySelector('a[href="/apps"]')?.textContent).toContain("All connectors");
+    expect(container.querySelector('a[href="/apps"]')?.textContent).toContain(
+      "All connectors",
+    );
     expect(container.querySelectorAll("[data-to]").length).toBe(2);
   });
 });

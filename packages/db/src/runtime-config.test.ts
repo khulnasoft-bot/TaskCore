@@ -30,19 +30,23 @@ afterEach(() => {
 
 describe("resolveDatabaseTarget", () => {
   it("uses DATABASE_URL from process env first", () => {
-    process.env.DATABASE_URL = "postgres://env-user:env-pass@db.example.com:5432/taskcore";
+    process.env.DATABASE_URL =
+      "postgres://env-user:env-pass@db.example.com:5432/taskcore";
 
     const target = resolveDatabaseTarget();
 
     expect(target).toMatchObject({
       mode: "postgres",
-      connectionString: "postgres://env-user:env-pass@db.example.com:5432/taskcore",
+      connectionString:
+        "postgres://env-user:env-pass@db.example.com:5432/taskcore",
       source: "DATABASE_URL",
     });
   });
 
   it("uses DATABASE_URL from repo-local .taskcore/.env", () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-db-runtime-"));
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-db-runtime-"),
+    );
     const projectDir = path.join(tempDir, "repo");
     fs.mkdirSync(projectDir, { recursive: true });
     process.chdir(projectDir);
@@ -59,19 +63,23 @@ describe("resolveDatabaseTarget", () => {
 
     expect(target).toMatchObject({
       mode: "postgres",
-      connectionString: "postgres://file-user:file-pass@db.example.com:6543/taskcore",
+      connectionString:
+        "postgres://file-user:file-pass@db.example.com:6543/taskcore",
       source: "taskcore-env",
     });
   });
 
   it("uses config postgres connection string when configured", () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-db-runtime-"));
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-db-runtime-"),
+    );
     const configPath = path.join(tempDir, "instance", "config.json");
     process.env.TASKCORE_CONFIG = configPath;
     writeJson(configPath, {
       database: {
         mode: "postgres",
-        connectionString: "postgres://cfg-user:cfg-pass@db.example.com:5432/taskcore",
+        connectionString:
+          "postgres://cfg-user:cfg-pass@db.example.com:5432/taskcore",
       },
     });
 
@@ -79,13 +87,16 @@ describe("resolveDatabaseTarget", () => {
 
     expect(target).toMatchObject({
       mode: "postgres",
-      connectionString: "postgres://cfg-user:cfg-pass@db.example.com:5432/taskcore",
+      connectionString:
+        "postgres://cfg-user:cfg-pass@db.example.com:5432/taskcore",
       source: "config.database.connectionString",
     });
   });
 
   it("falls back to embedded postgres settings from config", () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-db-runtime-"));
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-db-runtime-"),
+    );
     const configPath = path.join(tempDir, "instance", "config.json");
     process.env.TASKCORE_CONFIG = configPath;
     writeJson(configPath, {

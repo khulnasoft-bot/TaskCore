@@ -60,7 +60,10 @@ import {
   isExternalChatWaitAuthorizationContention,
   resolveExternalChatResponseWaitAuthorization,
 } from "./chat-attachment-reuse.js";
-import { attestReviewedExternalChatRun, buildTaskcoreWakePayload } from "../heartbeat.js";
+import {
+  attestReviewedExternalChatRun,
+  buildTaskcoreWakePayload,
+} from "../heartbeat.js";
 import { questionResponseDeliveryValues } from "../question-response-delivery.js";
 import { resolveExternalChatQuestionResponse } from "./external-chat-question-response.js";
 import { materializeExternalChatQuestionResponseInput } from "./external-chat-question-response-input.js";
@@ -412,8 +415,7 @@ describe("native external-chat response wait", () => {
       testStartedAt?: Date;
     } = {},
   ) {
-    const testStartedAt =
-      options.testStartedAt ?? new Date(Date.now() - 5_000);
+    const testStartedAt = options.testStartedAt ?? new Date(Date.now() - 5_000);
     const receivedAt = options.receivedAt ?? new Date(Date.now() - 4_000);
     const processedAt = options.processedAt ?? new Date(Date.now() - 3_000);
     const generation = options.generation ?? 1;
@@ -457,8 +459,8 @@ describe("native external-chat response wait", () => {
     },
     responseKind: "button" | "form" = "button",
   ) {
-    const fixture = target?.fixture ?? await seedWaitTurn(provider);
-    const gate = target?.gate ?? await seedPriorCompletionReview(fixture);
+    const fixture = target?.fixture ?? (await seedWaitTurn(provider));
+    const gate = target?.gate ?? (await seedPriorCompletionReview(fixture));
     const [current] = await db
       .select()
       .from(heartbeatRuns)
@@ -673,7 +675,11 @@ describe("native external-chat response wait", () => {
     };
     await db
       .update(heartbeatRuns)
-      .set({ wakeupRequestId: wakeId, contextSnapshot: context, status: "running" })
+      .set({
+        wakeupRequestId: wakeId,
+        contextSnapshot: context,
+        status: "running",
+      })
       .where(eq(heartbeatRuns.id, fixture.runId));
     return {
       ...fixture,
@@ -932,15 +938,13 @@ describe("native external-chat response wait", () => {
       const fixture = await seedGitHubBoardAnsweredTurn();
       if (change === "different_user") {
         const otherUser = `other-${randomUUID()}`;
-        await db
-          .insert(companyMemberships)
-          .values({
-            companyId: fixture.companyId,
-            principalType: "user",
-            principalId: otherUser,
-            status: "active",
-            membershipRole: "member",
-          });
+        await db.insert(companyMemberships).values({
+          companyId: fixture.companyId,
+          principalType: "user",
+          principalId: otherUser,
+          status: "active",
+          membershipRole: "member",
+        });
         await db
           .update(issueThreadInteractions)
           .set({ resolvedByUserId: otherUser })
@@ -1010,23 +1014,21 @@ describe("native external-chat response wait", () => {
           .set({ state: "pending", publishedAt: null, providerMessageId: null })
           .where(eq(chatPublications.id, fixture.publicationId));
       if (change === "provider_action")
-        await db
-          .insert(chatActions)
-          .values({
-            companyId: fixture.companyId,
-            endpointId: fixture.endpointId,
-            conversationId: fixture.conversationId,
-            principalId: fixture.principalId,
-            kind: "question_answer",
-            status: "processed",
-            providerActionId: randomUUID(),
-            payload: {
-              version: 1,
-              interactionId: fixture.interactionId,
-              publicationId: fixture.publicationId,
-            },
-            result: {},
-          });
+        await db.insert(chatActions).values({
+          companyId: fixture.companyId,
+          endpointId: fixture.endpointId,
+          conversationId: fixture.conversationId,
+          principalId: fixture.principalId,
+          kind: "question_answer",
+          status: "processed",
+          providerActionId: randomUUID(),
+          payload: {
+            version: 1,
+            interactionId: fixture.interactionId,
+            publicationId: fixture.publicationId,
+          },
+          result: {},
+        });
       if (change === "deleted_source")
         await db
           .update(issueComments)
@@ -1114,30 +1116,63 @@ describe("native external-chat response wait", () => {
     },
   );
 
-  it.each(["valid", "wrong_task", "revoked_identity", "wrong_answer_actor"] as const)(
+  it.each([
+    "valid",
+    "wrong_task",
+    "revoked_identity",
+    "wrong_answer_actor",
+  ] as const)(
     "attests legacy Slack question continuations only with the durable source binding: %s",
     async (condition) => {
       const fixture = await seedAnsweredChatTurn("slack");
-      const [source] = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, fixture.sourceRunId));
+      const [source] = await db
+        .select()
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, fixture.sourceRunId));
       const context = source!.contextSnapshot as Record<string, unknown>;
-      await db.update(heartbeatRuns).set({
-        runtimeMode: "legacy", nativeIssueId: null,
-        contextSnapshot: { ...context, taskcoreWake: {
-          ...(context.taskcoreWake as Record<string, unknown>),
-          issue: { id: condition === "wrong_task" ? randomUUID() : fixture.issueId },
-        } },
-      }).where(eq(heartbeatRuns.id, fixture.sourceRunId));
+      await db
+        .update(heartbeatRuns)
+        .set({
+          runtimeMode: "legacy",
+          nativeIssueId: null,
+          contextSnapshot: {
+            ...context,
+            taskcoreWake: {
+              ...(context.taskcoreWake as Record<string, unknown>),
+              issue: {
+                id: condition === "wrong_task" ? randomUUID() : fixture.issueId,
+              },
+            },
+          },
+        })
+        .where(eq(heartbeatRuns.id, fixture.sourceRunId));
       if (condition === "revoked_identity") {
-        await db.update(chatIdentityLinks).set({ status: "revoked" }).where(eq(chatIdentityLinks.principalId, fixture.principalId));
+        await db
+          .update(chatIdentityLinks)
+          .set({ status: "revoked" })
+          .where(eq(chatIdentityLinks.principalId, fixture.principalId));
       }
       if (condition === "wrong_answer_actor") {
-        await db.update(agentWakeupRequests).set({ requestedByActorId: "another-user" }).where(eq(agentWakeupRequests.id, fixture.wakeId));
+        await db
+          .update(agentWakeupRequests)
+          .set({ requestedByActorId: "another-user" })
+          .where(eq(agentWakeupRequests.id, fixture.wakeId));
       }
-      expect(await attestReviewedExternalChatRun({ db, ...fixture, contextSnapshot: fixture.context })).toBe(condition === "valid");
+      expect(
+        await attestReviewedExternalChatRun({
+          db,
+          ...fixture,
+          contextSnapshot: fixture.context,
+        }),
+      ).toBe(condition === "valid");
       if (condition === "valid") {
-        expect(fixture.context.taskcoreExternalChatQuestionResponse).toMatchObject({ interactionId: fixture.interactionId });
+        expect(
+          fixture.context.taskcoreExternalChatQuestionResponse,
+        ).toMatchObject({ interactionId: fixture.interactionId });
       } else {
-        expect(fixture.context.taskcoreExternalChatQuestionResponse).toBeUndefined();
+        expect(
+          fixture.context.taskcoreExternalChatQuestionResponse,
+        ).toBeUndefined();
       }
     },
   );
@@ -1154,14 +1189,12 @@ describe("native external-chat response wait", () => {
         contextSnapshot: fixture.context,
       }),
     ).toBe(true);
-    expect(fixture.context.taskcoreExternalChatQuestionResponse).toMatchObject(
-      {
-        schema: "taskcore.external_chat_question_response.v1",
-        interactionId: fixture.interactionId,
-        sourceRunId: fixture.sourceRunId,
-        responseDeliveryId: fixture.responseDeliveryId,
-      },
-    );
+    expect(fixture.context.taskcoreExternalChatQuestionResponse).toMatchObject({
+      schema: "taskcore.external_chat_question_response.v1",
+      interactionId: fixture.interactionId,
+      sourceRunId: fixture.sourceRunId,
+      responseDeliveryId: fixture.responseDeliveryId,
+    });
     fixture.context.taskcoreExternalChatExecutionBound = true;
     fixture.context.taskcoreWake = await buildTaskcoreWakePayload({
       db,
@@ -1434,7 +1467,9 @@ describe("native external-chat response wait", () => {
           interaction as unknown as AskUserQuestionsInteraction,
         ).payloadSha256,
       })
-      .where(eq(issueQuestionResponseDeliveries.id, fixture.responseDeliveryId));
+      .where(
+        eq(issueQuestionResponseDeliveries.id, fixture.responseDeliveryId),
+      );
     await expect(
       attestReviewedExternalChatRun({
         db,
@@ -1490,8 +1525,7 @@ describe("native external-chat response wait", () => {
         } else {
           const fields = Array.isArray(payload.fields) ? payload.fields : [];
           const first = fields[0] as
-            | { options?: Array<{ optionId?: string }> }
-            | undefined;
+            { options?: Array<{ optionId?: string }> } | undefined;
           if (!first?.options?.[0])
             throw new Error("Expected modal select field");
           first.options[0].optionId = "forged-option";
@@ -1870,9 +1904,13 @@ describe("native external-chat response wait", () => {
     expect(fixture.context.source).toBe("issue.interaction.respond");
     expect(fixture.context.wakeCommentIds).toEqual([fixture.commentId]);
     const responses = await materializeExternalChatQuestionResponseInput({
-      db, binding: fixture, contextSnapshot: fixture.context,
+      db,
+      binding: fixture,
+      contextSnapshot: fixture.context,
     });
-    expect(responses.map((response) => response.interactionId)).toEqual(resolved!.interactionIds);
+    expect(responses.map((response) => response.interactionId)).toEqual(
+      resolved!.interactionIds,
+    );
     const resultJson = await finishReviewResponse(fixture);
     expect(
       await authorizeNativeChatReviewPresentation(db, {
@@ -2098,13 +2136,11 @@ describe("native external-chat response wait", () => {
           .select()
           .from(chatActions)
           .where(eq(chatActions.id, parent.actionId));
-        await db
-          .insert(chatActions)
-          .values({
-            ...action!,
-            id: randomUUID(),
-            providerActionId: "duplicate-parent-response",
-          });
+        await db.insert(chatActions).values({
+          ...action!,
+          id: randomUUID(),
+          providerActionId: "duplicate-parent-response",
+        });
       }
       if (kind === "revoked_parent_principal")
         await db
@@ -2120,7 +2156,10 @@ describe("native external-chat response wait", () => {
         // Deliberately corrupt historical data; normal writes reject this rebind.
         await db.transaction(async (tx) => {
           await tx.execute(sql`set local session_replication_role = replica`);
-          await tx.update(heartbeatRuns).set({ nativeIssueId: fixture.sourceRunId }).where(eq(heartbeatRuns.id, parent.runId));
+          await tx
+            .update(heartbeatRuns)
+            .set({ nativeIssueId: fixture.sourceRunId })
+            .where(eq(heartbeatRuns.id, parent.runId));
         });
       }
       if (kind === "source_cycle") {
@@ -2255,34 +2294,28 @@ describe("native external-chat response wait", () => {
       if (kind === "different_responder") {
         // A legitimate linked second responder must not inherit the original author's scope.
         const principalId = randomUUID();
-        await db
-          .insert(chatExternalPrincipals)
-          .values({
-            id: principalId,
-            companyId: fixture.companyId,
-            provider: "telegram",
-            providerAccountId: "telegram-bot",
-            externalId: "second-user",
-            kind: "user",
-          });
-        await db
-          .insert(chatIdentityLinks)
-          .values({
-            companyId: fixture.companyId,
-            endpointId: fixture.endpointId,
-            principalId,
-            taskcoreUserId: "second-user",
-            status: "linked",
-          });
-        await db
-          .insert(companyMemberships)
-          .values({
-            companyId: fixture.companyId,
-            principalType: "user",
-            principalId: "second-user",
-            status: "active",
-            membershipRole: "member",
-          });
+        await db.insert(chatExternalPrincipals).values({
+          id: principalId,
+          companyId: fixture.companyId,
+          provider: "telegram",
+          providerAccountId: "telegram-bot",
+          externalId: "second-user",
+          kind: "user",
+        });
+        await db.insert(chatIdentityLinks).values({
+          companyId: fixture.companyId,
+          endpointId: fixture.endpointId,
+          principalId,
+          taskcoreUserId: "second-user",
+          status: "linked",
+        });
+        await db.insert(companyMemberships).values({
+          companyId: fixture.companyId,
+          principalType: "user",
+          principalId: "second-user",
+          status: "active",
+          membershipRole: "member",
+        });
         await db
           .update(chatActions)
           .set({ principalId })
@@ -2345,13 +2378,11 @@ describe("native external-chat response wait", () => {
           .select()
           .from(chatActions)
           .where(eq(chatActions.id, fixture.actionId));
-        await db
-          .insert(chatActions)
-          .values({
-            ...action!,
-            id: randomUUID(),
-            providerActionId: "duplicate-response",
-          });
+        await db.insert(chatActions).values({
+          ...action!,
+          id: randomUUID(),
+          providerActionId: "duplicate-response",
+        });
       }
       if (kind === "source_issue" || kind === "source_batch") {
         const [source] = await db
@@ -2606,9 +2637,7 @@ describe("native external-chat response wait", () => {
       release();
       await Promise.allSettled([holder, reader]);
     }
-    expect(await reader).toBe(
-      "taskcore_runner_chat_attachment_binding_denied",
-    );
+    expect(await reader).toBe("taskcore_runner_chat_attachment_binding_denied");
   });
 
   async function seedPriorCompletionReview(
@@ -2670,7 +2699,13 @@ describe("native external-chat response wait", () => {
       reportedWorkDisposition: "needs_review" as const,
     };
     delete result.continuation;
-    result.attentionRequests = [{ kind: "review", ownerClass: "human", summary: "Approve the prepared response before continuing." }];
+    result.attentionRequests = [
+      {
+        kind: "review",
+        ownerClass: "human",
+        summary: "Approve the prepared response before continuing.",
+      },
+    ];
     const terminal = {
       ...(accepted!.resultJson.terminal as PrpTerminalState),
       reportedWorkDisposition: "needs_review" as const,
@@ -2941,27 +2976,23 @@ describe("native external-chat response wait", () => {
         failureScope === "next_run" ? fixture.issueId : randomUUID();
       const laterRunId = randomUUID();
       if (laterIssueId !== fixture.issueId) {
-        await db
-          .insert(issues)
-          .values({
-            id: laterIssueId,
-            companyId: fixture.companyId,
-            title: "Concurrent task",
-            status: "in_progress",
-            assigneeAgentId: fixture.agentId,
-          });
-      }
-      await db
-        .insert(heartbeatRuns)
-        .values({
-          id: laterRunId,
+        await db.insert(issues).values({
+          id: laterIssueId,
           companyId: fixture.companyId,
-          agentId: fixture.agentId,
-          runtimeMode: "native",
-          nativeIssueId: laterIssueId,
-          status: "running",
-          startedAt: new Date(),
+          title: "Concurrent task",
+          status: "in_progress",
+          assigneeAgentId: fixture.agentId,
         });
+      }
+      await db.insert(heartbeatRuns).values({
+        id: laterRunId,
+        companyId: fixture.companyId,
+        agentId: fixture.agentId,
+        runtimeMode: "native",
+        nativeIssueId: laterIssueId,
+        status: "running",
+        startedAt: new Date(),
+      });
       await db
         .update(issues)
         .set({ executionRunId: laterRunId })
@@ -3556,24 +3587,28 @@ describe("native external-chat response wait", () => {
           .set({ status: "accepted" })
           .where(eq(issueThreadInteractions.id, gate.id));
       const presentationSignals: Array<Record<string, unknown>> = [];
-      const visibilityChecks: Array<Promise<Array<{ runId: string | null }>>> = [];
+      const visibilityChecks: Array<Promise<Array<{ runId: string | null }>>> =
+        [];
       const unsubscribe = subscribeAllCompanyLiveEvents((event) => {
         if (
           event.companyId !== fixture.companyId ||
           event.type !== "heartbeat.run.event" ||
           event.payload.runId !== fixture.runId ||
           event.payload.eventType !== "run.presentation.resolved"
-        ) return;
+        )
+          return;
         presentationSignals.push(event.payload);
         visibilityChecks.push(
           db
             .select({ runId: issueComments.createdByRunId })
             .from(issueComments)
-            .where(and(
-              eq(issueComments.createdByRunId, fixture.runId),
-              eq(issueComments.authorType, "agent"),
-              ne(issueComments.id, selectedComment.id),
-            )),
+            .where(
+              and(
+                eq(issueComments.createdByRunId, fixture.runId),
+                eq(issueComments.authorType, "agent"),
+                ne(issueComments.id, selectedComment.id),
+              ),
+            ),
         );
       });
       try {
@@ -3629,12 +3664,14 @@ describe("native external-chat response wait", () => {
         expect(presentationSignals).toEqual([]);
         expect(visibilityChecks).toEqual([]);
       } else {
-        expect(presentationSignals).toEqual([{
-          runId: fixture.runId,
-          agentId: fixture.agentId,
-          issueId: fixture.issueId,
-          eventType: "run.presentation.resolved",
-        }]);
+        expect(presentationSignals).toEqual([
+          {
+            runId: fixture.runId,
+            agentId: fixture.agentId,
+            issueId: fixture.issueId,
+            eventType: "run.presentation.resolved",
+          },
+        ]);
         await expect(Promise.all(visibilityChecks)).resolves.toEqual([
           [{ runId: fixture.runId }],
         ]);
@@ -3794,16 +3831,14 @@ describe("native external-chat response wait", () => {
     const fixture = await seedWaitTurn();
     await seedPriorCompletionReview(fixture);
     await finishReviewResponse(fixture);
-    await db
-      .insert(workspaceOperations)
-      .values({
-        companyId: fixture.companyId,
-        issueId: fixture.issueId,
-        heartbeatRunId: fixture.runId,
-        phase: "workspace_finalize",
-        status: "succeeded",
-        finishedAt: new Date(),
-      });
+    await db.insert(workspaceOperations).values({
+      companyId: fixture.companyId,
+      issueId: fixture.issueId,
+      heartbeatRunId: fixture.runId,
+      phase: "workspace_finalize",
+      status: "succeeded",
+      finishedAt: new Date(),
+    });
     const [before] = await db
       .select()
       .from(heartbeatRuns)
@@ -3920,18 +3955,24 @@ describe("native external-chat response wait", () => {
       ).resolves.toBe("revoked");
     };
 
-    await expectRevoked("received before the current test", async (fixture, times) => {
-      await db
-        .update(chatDeliveries)
-        .set({ receivedAt: new Date(times.testStartedAt.getTime() - 1) })
-        .where(eq(chatDeliveries.id, fixture.deliveryId));
-    });
-    await expectRevoked("processed before the current test", async (fixture, times) => {
-      await db
-        .update(chatDeliveries)
-        .set({ processedAt: new Date(times.testStartedAt.getTime() - 1) })
-        .where(eq(chatDeliveries.id, fixture.deliveryId));
-    });
+    await expectRevoked(
+      "received before the current test",
+      async (fixture, times) => {
+        await db
+          .update(chatDeliveries)
+          .set({ receivedAt: new Date(times.testStartedAt.getTime() - 1) })
+          .where(eq(chatDeliveries.id, fixture.deliveryId));
+      },
+    );
+    await expectRevoked(
+      "processed before the current test",
+      async (fixture, times) => {
+        await db
+          .update(chatDeliveries)
+          .set({ processedAt: new Date(times.testStartedAt.getTime() - 1) })
+          .where(eq(chatDeliveries.id, fixture.deliveryId));
+      },
+    );
     await expectRevoked("prior runtime generation", async (fixture) => {
       await db
         .update(chatDeliveries)

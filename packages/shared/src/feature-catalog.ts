@@ -28,7 +28,9 @@ type ExperimentalSettings = z.infer<typeof instanceExperimentalSettingsSchema>;
  * (activation timestamps, numeric tuning values) are excluded.
  */
 export type InstanceFeatureKey = {
-  [K in keyof ExperimentalSettings]: ExperimentalSettings[K] extends boolean ? K : never;
+  [K in keyof ExperimentalSettings]: ExperimentalSettings[K] extends boolean
+    ? K
+    : never;
 }[keyof ExperimentalSettings];
 
 export interface FeatureCatalogEntry {
@@ -41,7 +43,10 @@ export interface FeatureCatalogEntry {
   selfHostedDefault: boolean;
 }
 
-export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalogEntry> = {
+export const INSTANCE_FEATURE_CATALOG: Record<
+  InstanceFeatureKey,
+  FeatureCatalogEntry
+> = {
   enableEnvironments: {
     title: "Environments",
     description:
@@ -52,8 +57,11 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
   },
   enableAiConnectionRouters: {
     title: "AI connection routers",
-    description: "Allow experimental plugin connections to choose task-pinned accounts and harnesses.",
-    tier: "managed", cloudDefault: false, selfHostedDefault: false,
+    description:
+      "Allow experimental plugin connections to choose task-pinned accounts and harnesses.",
+    tier: "managed",
+    cloudDefault: false,
+    selfHostedDefault: false,
   },
   enableNativeRunner: {
     title: "Taskcore Runner",
@@ -115,14 +123,16 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
   },
   enablePublicMcp: {
     title: "Assistant connections (MCP)",
-    description: "Let external assistants connect as a person to review work, delegate tasks, add feedback, and follow results.",
+    description:
+      "Let external assistants connect as a person to review work, delegate tasks, add feedback, and follow results.",
     tier: "managed",
     cloudDefault: false,
     selfHostedDefault: false,
   },
   enableOpenAiDot: {
     title: "OpenAI Dot",
-    description: "Add OpenAI Dot as a standalone agent choice with its own experimental opt-in. Requires Assistant connections (MCP) and an authenticated instance with a public HTTPS URL.",
+    description:
+      "Add OpenAI Dot as a standalone agent choice with its own experimental opt-in. Requires Assistant connections (MCP) and an authenticated instance with a public HTTPS URL.",
     tier: "managed",
     cloudDefault: false,
     selfHostedDefault: false,
@@ -137,21 +147,24 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
   },
   enableMemoryConnectors: {
     title: "Memory connectors",
-    description: "Show experimental Mem0, Zep, Supermemory, Cognee, and Honcho setup. Existing connections keep running when hidden.",
+    description:
+      "Show experimental Mem0, Zep, Supermemory, Cognee, and Honcho setup. Existing connections keep running when hidden.",
     tier: "managed",
     cloudDefault: false,
     selfHostedDefault: false,
   },
   enableMcpAggregators: {
     title: "MCP aggregators (compatibility)",
-    description: "Deprecated compatibility key. MCP aggregators are always enabled; stored and managed values are ignored.",
+    description:
+      "Deprecated compatibility key. MCP aggregators are always enabled; stored and managed values are ignored.",
     tier: "managed",
     cloudDefault: true,
     selfHostedDefault: true,
   },
   enablePipelines: {
     title: "Pipelines",
-    description: "Enable pipeline definitions and pipeline-driven case production surfaces.",
+    description:
+      "Enable pipeline definitions and pipeline-driven case production surfaces.",
     tier: "managed",
     cloudDefault: false,
     selfHostedDefault: false,
@@ -198,7 +211,8 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
   },
   enableIssuePlanDecompositions: {
     title: "Task Plan Decomposition",
-    description: "Show accepted-plan decomposition history on task detail pages.",
+    description:
+      "Show accepted-plan decomposition history on task detail pages.",
     tier: "managed",
     cloudDefault: false,
     selfHostedDefault: false,
@@ -245,7 +259,8 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
   },
   enableBetaSkills: {
     title: "Beta skills",
-    description: "Allow agents to pin beta releases of the Taskcore core skill.",
+    description:
+      "Allow agents to pin beta releases of the Taskcore core skill.",
     tier: "preference",
     cloudDefault: false,
     selfHostedDefault: false,
@@ -268,7 +283,8 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
   },
   enableGoalsSidebarLink: {
     title: "Goals Sidebar Link",
-    description: "Restore the Goals item in the main sidebar while the goals surface is being evaluated.",
+    description:
+      "Restore the Goals item in the main sidebar while the goals surface is being evaluated.",
     tier: "preference",
     cloudDefault: false,
     selfHostedDefault: false,
@@ -363,7 +379,9 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
   },
 };
 
-export const INSTANCE_FEATURE_KEYS = Object.keys(INSTANCE_FEATURE_CATALOG).sort() as InstanceFeatureKey[];
+export const INSTANCE_FEATURE_KEYS = Object.keys(
+  INSTANCE_FEATURE_CATALOG,
+).sort() as InstanceFeatureKey[];
 
 /**
  * Shape of the `feature-catalog.json` release artifact the cloud harness
@@ -379,9 +397,13 @@ export const featureCatalogArtifactSchema = z
   })
   .strict();
 
-export type FeatureCatalogArtifact = z.infer<typeof featureCatalogArtifactSchema>;
+export type FeatureCatalogArtifact = z.infer<
+  typeof featureCatalogArtifactSchema
+>;
 
-export function buildFeatureCatalogArtifact(catalogVersion: string): FeatureCatalogArtifact {
+export function buildFeatureCatalogArtifact(
+  catalogVersion: string,
+): FeatureCatalogArtifact {
   if (catalogVersion.trim().length === 0) {
     throw new Error("catalogVersion must be a non-empty string");
   }

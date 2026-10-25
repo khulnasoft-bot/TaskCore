@@ -22,7 +22,9 @@ afterEach(() => {
 });
 
 async function withTempHome<T>(fn: (homeDir: string) => Promise<T>) {
-  const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-hot-restart-paths-"));
+  const homeDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-hot-restart-paths-"),
+  );
   try {
     return await fn(homeDir);
   } finally {
@@ -150,12 +152,14 @@ describe("hot-restart path compatibility", () => {
   });
 
   it("surfaces supported-platform process identity probe failures", async () => {
-    await expect(readProcessStartedAt(791, {
-      platform: "darwin",
-      runCommand: async () => {
-        throw new Error("ps unavailable");
-      },
-    })).rejects.toThrow("ps unavailable");
+    await expect(
+      readProcessStartedAt(791, {
+        platform: "darwin",
+        runCommand: async () => {
+          throw new Error("ps unavailable");
+        },
+      }),
+    ).rejects.toThrow("ps unavailable");
   });
 
   it("distinguishes recycled PIDs and rejects unknown live claim classification", () => {
@@ -171,84 +175,106 @@ describe("hot-restart path compatibility", () => {
       preflightActiveRunIds: [],
     };
 
-    expect(isObservedHotRestartTargetAlive(intent, {
-      alive: true,
-      startedAt: "2026-08-01T01:00:00.000Z",
-      replacement: {
-        previousServerPid: 123,
-        previousServerIdentity: "server-boot-a",
-      },
-    })).toBe(true);
-    expect(isObservedHotRestartTargetAlive(intent, {
-      alive: true,
-      startedAt: null,
-      replacement: {
-        previousServerPid: 123,
-        previousServerIdentity: "server-boot-b",
-      },
-    })).toBe(false);
+    expect(
+      isObservedHotRestartTargetAlive(intent, {
+        alive: true,
+        startedAt: "2026-08-01T01:00:00.000Z",
+        replacement: {
+          previousServerPid: 123,
+          previousServerIdentity: "server-boot-a",
+        },
+      }),
+    ).toBe(true);
+    expect(
+      isObservedHotRestartTargetAlive(intent, {
+        alive: true,
+        startedAt: null,
+        replacement: {
+          previousServerPid: 123,
+          previousServerIdentity: "server-boot-b",
+        },
+      }),
+    ).toBe(false);
 
     const legacyIntent = {
       ...intent,
       previousServerIdentity: null,
       previousServerStartedAt: null,
     };
-    expect(isObservedHotRestartTargetAlive(legacyIntent, {
-      alive: true,
-      startedAt: "2026-08-01T01:06:00.000Z",
-    })).toBe(false);
-    expect(() => isObservedHotRestartTargetAlive(legacyIntent, {
-      alive: true,
-      startedAt: null,
-    })).toThrow("Cannot establish process identity");
-    expect(isObservedHotRestartTargetAlive(legacyIntent, {
-      alive: true,
-      startedAt: null,
-      replacement: {
-        previousServerPid: 123,
-        previousServerIdentity: "2026-08-01T01:04:00.000Z",
-      },
-    })).toBe(true);
-    expect(isObservedHotRestartTargetAlive(legacyIntent, {
-      alive: true,
-      startedAt: null,
-      replacement: {
-        previousServerPid: 123,
-        previousServerIdentity: "2026-08-01T01:06:00.000Z",
-      },
-    })).toBe(false);
-    expect(isObservedHotRestartTargetAlive(legacyIntent, {
-      alive: true,
-      startedAt: null,
-      replacement: {
-        previousServerPid: 123,
-        previousServerIdentity: null,
-        previousServerStartedAt: "2026-08-01T01:04:00.000Z",
-      },
-    })).toBe(true);
-    expect(isObservedHotRestartTargetAlive(legacyIntent, {
-      alive: true,
-      startedAt: null,
-      replacement: {
-        previousServerPid: 123,
-        previousServerIdentity: null,
-        previousServerStartedAt: "2026-08-01T01:06:00.000Z",
-      },
-    })).toBe(false);
+    expect(
+      isObservedHotRestartTargetAlive(legacyIntent, {
+        alive: true,
+        startedAt: "2026-08-01T01:06:00.000Z",
+      }),
+    ).toBe(false);
+    expect(() =>
+      isObservedHotRestartTargetAlive(legacyIntent, {
+        alive: true,
+        startedAt: null,
+      }),
+    ).toThrow("Cannot establish process identity");
+    expect(
+      isObservedHotRestartTargetAlive(legacyIntent, {
+        alive: true,
+        startedAt: null,
+        replacement: {
+          previousServerPid: 123,
+          previousServerIdentity: "2026-08-01T01:04:00.000Z",
+        },
+      }),
+    ).toBe(true);
+    expect(
+      isObservedHotRestartTargetAlive(legacyIntent, {
+        alive: true,
+        startedAt: null,
+        replacement: {
+          previousServerPid: 123,
+          previousServerIdentity: "2026-08-01T01:06:00.000Z",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isObservedHotRestartTargetAlive(legacyIntent, {
+        alive: true,
+        startedAt: null,
+        replacement: {
+          previousServerPid: 123,
+          previousServerIdentity: null,
+          previousServerStartedAt: "2026-08-01T01:04:00.000Z",
+        },
+      }),
+    ).toBe(true);
+    expect(
+      isObservedHotRestartTargetAlive(legacyIntent, {
+        alive: true,
+        startedAt: null,
+        replacement: {
+          previousServerPid: 123,
+          previousServerIdentity: null,
+          previousServerStartedAt: "2026-08-01T01:06:00.000Z",
+        },
+      }),
+    ).toBe(false);
   });
 
   it("refuses to create an unidentifiable process claim", async () => {
     await withTempHome(async (homeDir) => {
-      await expect(writeHotRestartIntent({
-        homeDir,
-        previousServerPid: 2_147_483_647,
-        previousServerStartedAt: null,
-      })).rejects.toThrow("process start time are unavailable");
+      await expect(
+        writeHotRestartIntent({
+          homeDir,
+          previousServerPid: 2_147_483_647,
+          previousServerStartedAt: null,
+        }),
+      ).rejects.toThrow("process start time are unavailable");
 
-      await expect(fs.stat(resolveHotRestartIntentPath(homeDir))).rejects.toMatchObject({
+      await expect(
+        fs.stat(resolveHotRestartIntentPath(homeDir)),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
-      await expect(fs.stat(resolveLegacyHotRestartIntentPath(homeDir))).rejects.toMatchObject({
+      await expect(
+        fs.stat(resolveLegacyHotRestartIntentPath(homeDir)),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
     });
@@ -265,12 +291,14 @@ describe("hot-restart path compatibility", () => {
       });
 
       process.env.TASKCORE_INSTANCE_ID = "green";
-      await expect(writeHotRestartIntent({
-        homeDir,
-        previousServerPid: process.pid,
-        previousServerIdentity: "server-boot-b",
-        requestedByRunId: "green-deploy",
-      })).resolves.toMatchObject({
+      await expect(
+        writeHotRestartIntent({
+          homeDir,
+          previousServerPid: process.pid,
+          previousServerIdentity: "server-boot-b",
+          requestedByRunId: "green-deploy",
+        }),
+      ).resolves.toMatchObject({
         previousServerIdentity: "server-boot-b",
         requestedByRunId: "green-deploy",
       });
@@ -289,8 +317,12 @@ describe("hot-restart path compatibility", () => {
         requestedByRunId: "blue-deploy",
         preflightActiveRunIds: ["blue-run"],
       });
-      await expect(fs.stat(resolveHotRestartIntentPath(homeDir))).resolves.toBeDefined();
-      await expect(fs.stat(resolveLegacyHotRestartIntentPath(homeDir))).resolves.toBeDefined();
+      await expect(
+        fs.stat(resolveHotRestartIntentPath(homeDir)),
+      ).resolves.toBeDefined();
+      await expect(
+        fs.stat(resolveLegacyHotRestartIntentPath(homeDir)),
+      ).resolves.toBeDefined();
 
       const unrelatedLegacyIntent = {
         version: 1,
@@ -316,7 +348,9 @@ describe("hot-restart path compatibility", () => {
         requestedByRunId: "blue-deploy",
         preflightActiveRunIds: ["blue-run"],
       });
-      expect((await readHotRestartIntent(homeDir))?.shutdownSnapshot).toBeUndefined();
+      expect(
+        (await readHotRestartIntent(homeDir))?.shutdownSnapshot,
+      ).toBeUndefined();
     });
   });
 
@@ -352,7 +386,11 @@ describe("hot-restart path compatibility", () => {
         requestedAt: new Date("2026-08-01T03:30:00.000Z"),
         preflightActiveRunIds: ["blue-run"],
       });
-      await fs.writeFile(resolveLegacyHotRestartIntentPath(homeDir), "not-json", "utf8");
+      await fs.writeFile(
+        resolveLegacyHotRestartIntentPath(homeDir),
+        "not-json",
+        "utf8",
+      );
 
       await expect(readHotRestartIntent(homeDir)).resolves.toMatchObject({
         previousServerPid: 304,
@@ -372,13 +410,15 @@ describe("hot-restart path compatibility", () => {
       });
 
       process.env.TASKCORE_INSTANCE_ID = "green";
-      await expect(writeHotRestartIntent({
-        homeDir,
-        previousServerPid: 502,
-        previousServerStartedAt: "2026-08-01T03:00:00.000Z",
-        requestedAt: new Date("2026-08-01T03:40:01.000Z"),
-        requestedByRunId: "green-deploy",
-      })).rejects.toMatchObject({ code: "EEXIST" });
+      await expect(
+        writeHotRestartIntent({
+          homeDir,
+          previousServerPid: 502,
+          previousServerStartedAt: "2026-08-01T03:00:00.000Z",
+          requestedAt: new Date("2026-08-01T03:40:01.000Z"),
+          requestedByRunId: "green-deploy",
+        }),
+      ).rejects.toMatchObject({ code: "EEXIST" });
 
       const legacyIntent = JSON.parse(
         await fs.readFile(resolveLegacyHotRestartIntentPath(homeDir), "utf8"),
@@ -387,7 +427,9 @@ describe("hot-restart path compatibility", () => {
         previousServerPid: process.pid,
         requestedByRunId: "blue-deploy",
       });
-      await expect(fs.stat(resolveHotRestartIntentPath(homeDir))).rejects.toMatchObject({
+      await expect(
+        fs.stat(resolveHotRestartIntentPath(homeDir)),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
     });
@@ -405,12 +447,14 @@ describe("hot-restart path compatibility", () => {
       });
 
       process.env.TASKCORE_INSTANCE_ID = "green";
-      await expect(writeHotRestartIntent({
-        homeDir,
-        previousServerPid: process.pid,
-        requestedAt: new Date("2026-08-01T03:51:00.000Z"),
-        requestedByRunId: "green-deploy",
-      })).resolves.toMatchObject({ requestedByRunId: "green-deploy" });
+      await expect(
+        writeHotRestartIntent({
+          homeDir,
+          previousServerPid: process.pid,
+          requestedAt: new Date("2026-08-01T03:51:00.000Z"),
+          requestedByRunId: "green-deploy",
+        }),
+      ).resolves.toMatchObject({ requestedByRunId: "green-deploy" });
 
       await expect(readHotRestartIntent(homeDir)).resolves.toMatchObject({
         previousServerPid: process.pid,
@@ -440,11 +484,13 @@ describe("hot-restart path compatibility", () => {
       );
 
       process.env.TASKCORE_INSTANCE_ID = "green";
-      await expect(writeHotRestartIntent({
-        homeDir,
-        previousServerPid: process.pid,
-        requestedByRunId: "green-deploy",
-      })).resolves.toMatchObject({ requestedByRunId: "green-deploy" });
+      await expect(
+        writeHotRestartIntent({
+          homeDir,
+          previousServerPid: process.pid,
+          requestedByRunId: "green-deploy",
+        }),
+      ).resolves.toMatchObject({ requestedByRunId: "green-deploy" });
 
       await expect(readHotRestartIntent(homeDir)).resolves.toMatchObject({
         requestedByRunId: "green-deploy",
@@ -465,11 +511,13 @@ describe("hot-restart path compatibility", () => {
       vi.useFakeTimers({ now: Date.now() + 10 * 60_000 });
       try {
         process.env.TASKCORE_INSTANCE_ID = "green";
-        await expect(writeHotRestartIntent({
-          homeDir,
-          previousServerPid: process.pid,
-          requestedByRunId: "green-deploy",
-        })).rejects.toMatchObject({ code: "EEXIST" });
+        await expect(
+          writeHotRestartIntent({
+            homeDir,
+            previousServerPid: process.pid,
+            requestedByRunId: "green-deploy",
+          }),
+        ).rejects.toMatchObject({ code: "EEXIST" });
       } finally {
         vi.useRealTimers();
       }
@@ -500,7 +548,9 @@ describe("hot-restart path compatibility", () => {
       const legacyIntent = JSON.parse(
         await fs.readFile(resolveLegacyHotRestartIntentPath(homeDir), "utf8"),
       ) as Record<string, unknown>;
-      expect(legacyIntent).toMatchObject({ requestedByRunId: "replacement-deploy" });
+      expect(legacyIntent).toMatchObject({
+        requestedByRunId: "replacement-deploy",
+      });
       await expect(readHotRestartIntent(homeDir)).resolves.toMatchObject({
         requestedByRunId: "replacement-deploy",
       });
@@ -508,28 +558,32 @@ describe("hot-restart path compatibility", () => {
   });
 
   it("treats every preflight run omitted from the shutdown snapshot as missing", () => {
-    expect(findMissingHotRestartSnapshotRunIds({
-      version: 1,
-      requestedAt: "2026-08-01T04:00:00.000Z",
-      previousServerPid: 404,
-      previousServerVersion: "old-version",
-      drainRequired: false,
-      requestedByRunId: null,
-      preflightActiveRunIds: ["captured-run", "missing-run"],
-      shutdownSnapshot: {
-        capturedAt: "2026-08-01T04:00:01.000Z",
-        signal: "SIGTERM",
-        activeRuns: [{
-          runId: "captured-run",
-          companyId: "company",
-          agentId: "agent",
-          adapterType: "codex_local",
-          status: "running",
-          processPid: 405,
-          processGroupId: null,
-          issueId: "issue",
-        }],
-      },
-    })).toEqual(["missing-run"]);
+    expect(
+      findMissingHotRestartSnapshotRunIds({
+        version: 1,
+        requestedAt: "2026-08-01T04:00:00.000Z",
+        previousServerPid: 404,
+        previousServerVersion: "old-version",
+        drainRequired: false,
+        requestedByRunId: null,
+        preflightActiveRunIds: ["captured-run", "missing-run"],
+        shutdownSnapshot: {
+          capturedAt: "2026-08-01T04:00:01.000Z",
+          signal: "SIGTERM",
+          activeRuns: [
+            {
+              runId: "captured-run",
+              companyId: "company",
+              agentId: "agent",
+              adapterType: "codex_local",
+              status: "running",
+              processPid: 405,
+              processGroupId: null,
+              issueId: "issue",
+            },
+          ],
+        },
+      }),
+    ).toEqual(["missing-run"]);
   });
 });

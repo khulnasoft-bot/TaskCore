@@ -6,19 +6,14 @@ const MAX_PENDING_RECORDS = 1_024;
 
 type TraceRecord = Record<string, unknown>;
 type ProviderTraceDirection =
-  | "client_to_provider"
-  | "provider_to_client"
-  | "provider_stderr";
+  "client_to_provider" | "provider_to_client" | "provider_stderr";
 type ProviderTraceDisposition =
-  | "mapped"
-  | "generic"
-  | "ignored"
-  | "rejected"
-  | "operator_only";
+  "mapped" | "generic" | "ignored" | "rejected" | "operator_only";
 type ProviderTraceFieldMapping = {
   inputPath?: string;
   outputPath?: string;
-  action: "copied" | "renamed" | "normalized" | "derived" | "dropped" | "redacted";
+  action:
+    "copied" | "renamed" | "normalized" | "derived" | "dropped" | "redacted";
   reason?: string;
 };
 
@@ -63,7 +58,8 @@ export class ProviderTraceFileSink {
 
   addSensitiveValues(values: readonly (string | undefined)[]): void {
     for (const value of values) {
-      if (value?.includes("-----BEGIN PRIVATE KEY-----")) this.#hasPrivateIdentity = true;
+      if (value?.includes("-----BEGIN PRIVATE KEY-----"))
+        this.#hasPrivateIdentity = true;
       if (value) this.#sensitiveValues.add(value);
     }
   }
@@ -76,7 +72,9 @@ export class ProviderTraceFileSink {
   }): number | null {
     if (this.#closed) return null;
     const raw = this.#redact(
-      typeof input.raw === "string" ? Buffer.from(input.raw) : Buffer.from(input.raw),
+      typeof input.raw === "string"
+        ? Buffer.from(input.raw)
+        : Buffer.from(input.raw),
     );
     if (this.#capturedBytes + raw.byteLength > this.#maxBytes) {
       this.#truncated = true;
@@ -141,7 +139,9 @@ export class ProviderTraceFileSink {
       kind: "trace_status",
       status,
       acknowledgedDebugSequence,
-      reason: reason ?? (this.#truncated ? "provider_trace_max_bytes_exceeded" : null),
+      reason:
+        reason ??
+        (this.#truncated ? "provider_trace_max_bytes_exceeded" : null),
     });
     this.#closed = true;
     await this.#draining;
@@ -185,7 +185,8 @@ export class ProviderTraceFileSink {
   #redact(raw: Buffer): Buffer {
     // Raw frames may split a private key at any byte boundary. Keep trace
     // routing/timing metadata, but never spool raw content for identity runs.
-    if (this.#hasPrivateIdentity) return Buffer.from("[REDACTED: agent identity runtime]");
+    if (this.#hasPrivateIdentity)
+      return Buffer.from("[REDACTED: agent identity runtime]");
     if (this.#sensitiveValues.size === 0) return raw;
     let value = raw.toString("utf8");
     for (const sensitive of [...this.#sensitiveValues].sort(
@@ -204,9 +205,10 @@ export async function createProviderTraceFileSink(input: {
   maxBytes?: string | number;
 }): Promise<ProviderTraceFileSink | null> {
   if (!input.path) return null;
-  const maxBytes = typeof input.maxBytes === "number"
-    ? input.maxBytes
-    : Number.parseInt(input.maxBytes ?? "", 10);
+  const maxBytes =
+    typeof input.maxBytes === "number"
+      ? input.maxBytes
+      : Number.parseInt(input.maxBytes ?? "", 10);
   // Keep one descriptor for the sink lifetime. This prevents a path swap
   // between permission hardening, replay inspection, and later appends.
   const file = await open(input.path, "a+", 0o600);
@@ -245,7 +247,10 @@ export async function createProviderTraceFileSink(input: {
     file,
     provider: input.provider,
     channel: input.channel,
-    maxBytes: Number.isSafeInteger(maxBytes) && maxBytes > 0 ? maxBytes : DEFAULT_MAX_BYTES,
+    maxBytes:
+      Number.isSafeInteger(maxBytes) && maxBytes > 0
+        ? maxBytes
+        : DEFAULT_MAX_BYTES,
     nextFrameId,
     nextDebugSequence,
     capturedBytes,

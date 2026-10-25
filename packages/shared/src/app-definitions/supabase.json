@@ -3,16 +3,12 @@
   "slug": "supabase",
   "name": "Supabase",
   "description": "Connect Supabase's provider-hosted MCP server.",
-  "categories": [
-    "data"
-  ],
+  "categories": ["data"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/supabase.svg"
   },
-  "urlPatterns": [
-    "https://mcp.supabase.com/*"
-  ],
+  "urlPatterns": ["https://mcp.supabase.com/*"],
   "docsUrl": "https://supabase.com/docs/guides/ai-tools/mcp",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,9 +16,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.supabase.com/mcp",
@@ -92,17 +86,13 @@
           }
         }
       ],
-      "requiredResourceFilters": [
-        "project"
-      ]
+      "requiredResourceFilters": ["project"]
     },
     {
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.supabase.com/mcp"
@@ -174,9 +164,7 @@
           }
         }
       ],
-      "requiredResourceFilters": [
-        "project"
-      ]
+      "requiredResourceFilters": ["project"]
     }
   ]
 }

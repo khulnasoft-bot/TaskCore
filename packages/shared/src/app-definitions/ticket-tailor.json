@@ -3,17 +3,13 @@
   "slug": "ticket-tailor",
   "name": "Ticket Tailor",
   "description": "Connect Ticket Tailor's provider-hosted MCP server.",
-  "categories": [
-    "commerce"
-  ],
+  "categories": ["commerce"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/ticket-tailor.svg",
     "darkLogoUrl": "/brands/apps/ticket-tailor-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.tickettailor.ai/*"
-  ],
+  "urlPatterns": ["https://mcp.tickettailor.ai/*"],
   "docsUrl": "https://developers.tickettailor.com/docs/mcp/authentication/",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,9 +17,7 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.tickettailor.ai/mcp"

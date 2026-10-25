@@ -43,11 +43,7 @@
     "instructionAdmission": "synchronous-protocol-guard-v1",
     "acpxPatchSha256": "79aad2d688b03362e8cfcbf7a08f78a8383869f6882a9c9ed66f1d18efb94f2b",
     "sessionModeAdmission": "native-config-ack-recovery-bound-v1",
-    "sessionModes": [
-      "agent",
-      "plan",
-      "ask"
-    ],
+    "sessionModes": ["agent", "plan", "ask"],
     "defaultSessionMode": "agent",
     "sharedRuntimeContract": "taskcore.acpx-runtime-contract.v1"
   }

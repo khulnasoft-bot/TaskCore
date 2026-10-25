@@ -73,8 +73,13 @@ vi.mock("../services/workspace-runtime.js", () => ({
 
 function registerModuleMocks() {
   vi.doMock("../services/activity-log.js", async () => ({
-    ...await vi.importActual<typeof import("../services/activity-log.js")>("../services/activity-log.js"),
-    persistActivity: async (db: unknown, input: unknown) => { await mockLogActivity(db, input); return { activity: { id: "activity" }, publication: null }; },
+    ...(await vi.importActual<typeof import("../services/activity-log.js")>(
+      "../services/activity-log.js",
+    )),
+    persistActivity: async (db: unknown, input: unknown) => {
+      await mockLogActivity(db, input);
+      return { activity: { id: "activity" }, publication: null };
+    },
     publishActivity: vi.fn(),
   }));
   vi.doMock("../telemetry.js", () => ({
@@ -110,8 +115,12 @@ function registerModuleMocks() {
 
 async function createApp() {
   const [{ projectRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/projects.js")>("../routes/projects.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/projects.js")>(
+      "../routes/projects.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -127,7 +136,12 @@ async function createApp() {
     next();
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  app.use("/api", projectRoutes({ transaction: async (effect: (tx: unknown) => unknown) => effect({}) } as any));
+  app.use(
+    "/api",
+    projectRoutes({
+      transaction: async (effect: (tx: unknown) => unknown) => effect({}),
+    } as any),
+  );
   app.use(errorHandler);
   return app;
 }
@@ -208,13 +222,18 @@ describe("project workspace host-path floor", () => {
       explanation: "Allowed by test mock.",
     });
     mockGetTelemetryClient.mockReturnValue({ track: vi.fn() });
-    mockProjectService.resolveByReference.mockResolvedValue({ ambiguous: false, project: null });
+    mockProjectService.resolveByReference.mockResolvedValue({
+      ambiguous: false,
+      project: null,
+    });
     mockProjectService.getById.mockResolvedValue(buildProject());
     mockProjectService.create.mockResolvedValue(buildProject());
     mockProjectService.createWorkspace.mockResolvedValue(buildWorkspace());
     mockProjectService.updateWorkspace.mockResolvedValue(buildWorkspace());
     mockProjectService.listWorkspaces.mockResolvedValue([buildWorkspace()]);
-    mockSecretService.normalizeEnvBindingsForPersistence.mockImplementation(async (_companyId, env) => env);
+    mockSecretService.normalizeEnvBindingsForPersistence.mockImplementation(
+      async (_companyId, env) => env,
+    );
     setManagedSandboxOnly(false);
   });
 
@@ -257,7 +276,9 @@ describe("project workspace host-path floor", () => {
 
   it("still allows clearing a stale cwd when the policy is on", async () => {
     setManagedSandboxOnly(true);
-    mockProjectService.updateWorkspace.mockResolvedValue(buildWorkspace({ cwd: null }));
+    mockProjectService.updateWorkspace.mockResolvedValue(
+      buildWorkspace({ cwd: null }),
+    );
     const app = await createApp();
     const res = await request(app)
       .patch("/api/projects/project-1/workspaces/workspace-1")
@@ -309,7 +330,10 @@ describe("project workspace host-path floor", () => {
       .post("/api/companies/company-1/projects")
       .send({
         name: "Project",
-        workspace: { name: "Primary", repoUrl: "https://github.com/khulnasoft/taskcore" },
+        workspace: {
+          name: "Primary",
+          repoUrl: "https://github.com/khulnasoft/taskcore",
+        },
       });
 
     expect([200, 201], JSON.stringify(res.body)).toContain(res.status);

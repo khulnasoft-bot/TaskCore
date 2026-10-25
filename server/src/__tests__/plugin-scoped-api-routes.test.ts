@@ -1,7 +1,10 @@
 import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { pluginManifestV1Schema, type TaskcorePluginManifestV1 } from "@taskcore/shared";
+import {
+  pluginManifestV1Schema,
+  type TaskcorePluginManifestV1,
+} from "@taskcore/shared";
 
 const mockRegistry = vi.hoisted(() => ({
   getById: vi.fn(),
@@ -38,7 +41,9 @@ vi.mock("../services/live-events.js", () => ({
   publishGlobalLiveEvent: vi.fn(),
 }));
 
-function manifest(apiRoutes: NonNullable<TaskcorePluginManifestV1["apiRoutes"]>): TaskcorePluginManifestV1 {
+function manifest(
+  apiRoutes: NonNullable<TaskcorePluginManifestV1["apiRoutes"]>,
+): TaskcorePluginManifestV1 {
   return {
     id: "taskcore.scoped-api-test",
     apiVersion: 1,
@@ -66,7 +71,11 @@ async function createApp(input: {
 
   const workerManager = {
     isRunning: vi.fn().mockReturnValue(input.workerRunning ?? true),
-    call: vi.fn().mockResolvedValue(input.workerResult ?? { status: 200, body: { ok: true } }),
+    call: vi
+      .fn()
+      .mockResolvedValue(
+        input.workerResult ?? { status: 200, body: { ok: true } },
+      ),
   };
 
   mockRegistry.getById.mockResolvedValue(input.plugin ?? null);
@@ -142,20 +151,31 @@ describe("plugin scoped API routes", () => {
     });
 
     const res = await request(app)
-      .get(`/api/plugins/${pluginId}/api/companies/acme/summary?companyId=${companyId}&view=compact`)
+      .get(
+        `/api/plugins/${pluginId}/api/companies/acme/summary?companyId=${companyId}&view=compact`,
+      )
       .set("Authorization", "Bearer should-not-forward");
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ handled: true });
-    expect(workerManager.call).toHaveBeenCalledWith(pluginId, "handleApiRequest", expect.objectContaining({
-      routeKey: "summary.get",
-      method: "GET",
-      params: { companySlug: "acme" },
-      query: { companyId, view: "compact" },
-      companyId,
-      actor: expect.objectContaining({ actorType: "user", actorId: "user-1" }),
-    }));
-    expect(workerManager.call.mock.calls[0]?.[2].headers.authorization).toBeUndefined();
+    expect(workerManager.call).toHaveBeenCalledWith(
+      pluginId,
+      "handleApiRequest",
+      expect.objectContaining({
+        routeKey: "summary.get",
+        method: "GET",
+        params: { companySlug: "acme" },
+        query: { companyId, view: "compact" },
+        companyId,
+        actor: expect.objectContaining({
+          actorType: "user",
+          actorId: "user-1",
+        }),
+      }),
+    );
+    expect(
+      workerManager.call.mock.calls[0]?.[2].headers.authorization,
+    ).toBeUndefined();
   });
 
   it("only forwards allowlisted response headers from plugin routes", async () => {
@@ -194,8 +214,9 @@ describe("plugin scoped API routes", () => {
       },
     });
 
-    const res = await request(app)
-      .get(`/api/plugins/${pluginId}/api/companies/acme/summary?companyId=${companyId}`);
+    const res = await request(app).get(
+      `/api/plugins/${pluginId}/api/companies/acme/summary?companyId=${companyId}`,
+    );
 
     expect(res.status).toBe(200);
     expect(res.headers["cache-control"]).toBe("no-store");
@@ -243,14 +264,22 @@ describe("plugin scoped API routes", () => {
       .send({ step: "next" });
 
     expect(res.status).toBe(200);
-    expect(mockIssueService.assertCheckoutOwner).toHaveBeenCalledWith(issueId, agentId, runId);
-    expect(workerManager.call).toHaveBeenCalledWith(pluginId, "handleApiRequest", expect.objectContaining({
-      routeKey: "issue.advance",
-      params: { issueId },
-      body: { step: "next" },
-      actor: expect.objectContaining({ actorType: "agent", agentId, runId }),
-      companyId,
-    }));
+    expect(mockIssueService.assertCheckoutOwner).toHaveBeenCalledWith(
+      issueId,
+      agentId,
+      runId,
+    );
+    expect(workerManager.call).toHaveBeenCalledWith(
+      pluginId,
+      "handleApiRequest",
+      expect.objectContaining({
+        routeKey: "issue.advance",
+        params: { issueId },
+        body: { step: "next" },
+        actor: expect.objectContaining({ actorType: "agent", agentId, runId }),
+        companyId,
+      }),
+    );
   });
 
   it("allows non-assignee agents on in-progress required checkout routes without claiming checkout ownership", async () => {
@@ -293,13 +322,21 @@ describe("plugin scoped API routes", () => {
 
     expect(res.status).toBe(200);
     expect(mockIssueService.assertCheckoutOwner).not.toHaveBeenCalled();
-    expect(workerManager.call).toHaveBeenCalledWith(pluginId, "handleApiRequest", expect.objectContaining({
-      routeKey: "issue.advance",
-      params: { issueId },
-      body: { step: "next" },
-      actor: expect.objectContaining({ actorType: "agent", agentId: peerAgentId, runId }),
-      companyId,
-    }));
+    expect(workerManager.call).toHaveBeenCalledWith(
+      pluginId,
+      "handleApiRequest",
+      expect.objectContaining({
+        routeKey: "issue.advance",
+        params: { issueId },
+        body: { step: "next" },
+        actor: expect.objectContaining({
+          actorType: "agent",
+          agentId: peerAgentId,
+          runId,
+        }),
+        companyId,
+      }),
+    );
   });
 
   it("rejects checkout-protected agent routes without a run id before worker dispatch", async () => {
@@ -361,7 +398,9 @@ describe("plugin scoped API routes", () => {
       status: "in_progress",
       assigneeAgentId: agentId,
     });
-    const conflict = new Error("Issue run ownership conflict") as Error & { status?: number };
+    const conflict = new Error("Issue run ownership conflict") as Error & {
+      status?: number;
+    };
     conflict.status = 409;
     mockIssueService.assertCheckoutOwner.mockRejectedValue(conflict);
     const { app, workerManager } = await createApp({
@@ -414,8 +453,9 @@ describe("plugin scoped API routes", () => {
       },
     });
 
-    const res = await request(app)
-      .get(`/api/plugins/${pluginId}/api/summary?companyId=${companyId}`);
+    const res = await request(app).get(
+      `/api/plugins/${pluginId}/api/summary?companyId=${companyId}`,
+    );
 
     expect(res.status).toBe(503);
     expect(res.body.error).toContain("disabled");
@@ -449,8 +489,9 @@ describe("plugin scoped API routes", () => {
       workerRunning: false,
     });
 
-    const res = await request(app)
-      .get(`/api/plugins/${pluginId}/api/summary?companyId=${companyId}`);
+    const res = await request(app).get(
+      `/api/plugins/${pluginId}/api/summary?companyId=${companyId}`,
+    );
 
     expect(res.status).toBe(503);
     expect(res.body.error).toContain("worker is not running");
@@ -458,20 +499,22 @@ describe("plugin scoped API routes", () => {
   });
 
   it("rejects manifest routes that try to claim core API paths", () => {
-    const result = pluginManifestV1Schema.safeParse(manifest([
-      {
-        routeKey: "bad.shadow",
-        method: "POST",
-        path: "/api/issues/:issueId",
-        auth: "board",
-        capability: "api.routes.register",
-      },
-    ]));
+    const result = pluginManifestV1Schema.safeParse(
+      manifest([
+        {
+          routeKey: "bad.shadow",
+          method: "POST",
+          path: "/api/issues/:issueId",
+          auth: "board",
+          capability: "api.routes.register",
+        },
+      ]),
+    );
 
     expect(result.success).toBe(false);
     if (result.success) throw new Error("Expected manifest validation to fail");
-    expect(result.error.issues.map((issue) => issue.message).join("\n")).toContain(
-      "path must stay inside the plugin api namespace",
-    );
+    expect(
+      result.error.issues.map((issue) => issue.message).join("\n"),
+    ).toContain("path must stay inside the plugin api namespace");
   });
 });

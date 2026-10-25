@@ -12,12 +12,19 @@ export function useExecutionPolicy(value: unknown) {
     // Schema diagnostics can contain the original data. Report only a closed
     // field category, once per mounted component, through the existing gate.
     const field = result.error.issues[0]?.path[0];
-    const category = field === "stages" ? "stages"
-      : field === "monitor" ? "monitor"
-        : field === "authorizationPolicy" ? "authorization"
-          : field === "reviewPreset" ? "review_preset"
-            : "policy";
-    captureBrowserException(new Error(`Invalid task execution policy (${category})`));
+    const category =
+      field === "stages"
+        ? "stages"
+        : field === "monitor"
+          ? "monitor"
+          : field === "authorizationPolicy"
+            ? "authorization"
+            : field === "reviewPreset"
+              ? "review_preset"
+              : "policy";
+    captureBrowserException(
+      new Error(`Invalid task execution policy (${category})`),
+    );
   }, [result]);
   return result;
 }

@@ -109,11 +109,14 @@ export interface IssueRewakeCandidateInput {
  * Whether a wake is even a candidate for throttling. Wakes that carry new
  * information or an explicit operator escalation always pass.
  */
-export function isThrottleCandidateIssueRewake(input: IssueRewakeCandidateInput): boolean {
+export function isThrottleCandidateIssueRewake(
+  input: IssueRewakeCandidateInput,
+): boolean {
   if (input.forceFreshSession) return false;
   // Explicit resume is an operator privilege, not an actor-class escape hatch.
   // Agent-authored resume comments remain subject to the normal rewake throttle.
-  if (input.hasExplicitResume && input.requestedByActorType !== "agent") return false;
+  if (input.hasExplicitResume && input.requestedByActorType !== "agent")
+    return false;
   if (input.wakeCommentId) return input.requestedByActorType === "agent";
   if (input.reason === null) return true;
   return THROTTLED_ISSUE_REWAKE_REASONS.has(input.reason);
@@ -146,16 +149,25 @@ export type IssueRewakeThrottleDecision =
     };
 
 export function computeIssueRewakeCooldownMs(noProgressStreak: number): number {
-  const doublings = Math.max(0, noProgressStreak - ISSUE_REWAKE_NO_PROGRESS_THRESHOLD);
+  const doublings = Math.max(
+    0,
+    noProgressStreak - ISSUE_REWAKE_NO_PROGRESS_THRESHOLD,
+  );
   // Guard the exponent so an absurd streak can't overflow into Infinity.
   const factor = 2 ** Math.min(doublings, 16);
-  return Math.min(ISSUE_REWAKE_BASE_COOLDOWN_MS * factor, ISSUE_REWAKE_MAX_COOLDOWN_MS);
+  return Math.min(
+    ISSUE_REWAKE_BASE_COOLDOWN_MS * factor,
+    ISSUE_REWAKE_MAX_COOLDOWN_MS,
+  );
 }
 
-export function evaluateIssueRewakeThrottle(input: IssueRewakeThrottleInput): IssueRewakeThrottleDecision {
+export function evaluateIssueRewakeThrottle(
+  input: IssueRewakeThrottleInput,
+): IssueRewakeThrottleDecision {
   const runs = input.recentTerminalRuns;
   if (runs.length === 0) return { blocked: false, noProgressStreak: 0 };
-  if (input.hasNewIssueInputSinceLastRun) return { blocked: false, noProgressStreak: 0 };
+  if (input.hasNewIssueInputSinceLastRun)
+    return { blocked: false, noProgressStreak: 0 };
 
   let noProgressStreak = 0;
   for (const run of runs) {
@@ -176,7 +188,13 @@ export function evaluateIssueRewakeThrottle(input: IssueRewakeThrottleInput): Is
   const cooldownMs = computeIssueRewakeCooldownMs(noProgressStreak);
   const nextAllowedAt = new Date(lastRunFinishedAt.getTime() + cooldownMs);
   if (input.now.getTime() < nextAllowedAt.getTime()) {
-    return { blocked: true, noProgressStreak, cooldownMs, lastRunFinishedAt, nextAllowedAt };
+    return {
+      blocked: true,
+      noProgressStreak,
+      cooldownMs,
+      lastRunFinishedAt,
+      nextAllowedAt,
+    };
   }
   return { blocked: false, noProgressStreak };
 }

@@ -27,8 +27,14 @@ vi.mock("@/context/CompanyContext", () => ({
 }));
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => <a href={to}>{children}</a>,
-  useLocation: () => ({ pathname: "/PAP/company/settings/permissions", search: "", hash: "" }),
+  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
+    <a href={to}>{children}</a>
+  ),
+  useLocation: () => ({
+    pathname: "/PAP/company/settings/permissions",
+    search: "",
+    hash: "",
+  }),
   useParams: () => mockParams,
 }));
 
@@ -110,9 +116,9 @@ describe("CompanySettingsPluginPage", () => {
   it("mounts the matching company settings slot with company context", async () => {
     const root = await renderPage(container);
 
-    expect(container.querySelector('[data-testid="plugin-slot-mount"]')?.textContent).toBe(
-      "Permissions:company-1:PAP",
-    );
+    expect(
+      container.querySelector('[data-testid="plugin-slot-mount"]')?.textContent,
+    ).toBe("Permissions:company-1:PAP");
     expect(mockSetBreadcrumbs).toHaveBeenCalledWith([
       { label: "Settings", href: "/company/settings" },
       { label: "Permissions" },

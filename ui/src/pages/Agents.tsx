@@ -16,7 +16,10 @@ import { useSidebar } from "../context/SidebarContext";
 import { useStreamlinedUiEnabled } from "../hooks/useStreamlinedUiEnabled";
 import { queryKeys } from "../lib/queryKeys";
 import { isPlatformManagedEnvironment } from "../lib/managed-sandbox-environment";
-import { AgentStatusBadge, AgentStatusCapsule } from "../components/StatusBadge";
+import {
+  AgentStatusBadge,
+  AgentStatusCapsule,
+} from "../components/StatusBadge";
 import { EntityRow } from "../components/EntityRow";
 import { BuiltInLifecycleChip } from "../components/BuiltInAgentBadges";
 import { EmptyState } from "../components/EmptyState";
@@ -27,12 +30,20 @@ import { PageTabBar } from "../components/PageTabBar";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Bot, Plus, List, Network } from "lucide-react";
-import { AGENT_ROLE_LABELS, type Agent, type Environment, type EnvironmentCapabilities } from "@taskcore/shared";
+import {
+  AGENT_ROLE_LABELS,
+  type Agent,
+  type Environment,
+  type EnvironmentCapabilities,
+} from "@taskcore/shared";
 import {
   resourceMembershipState,
   useResourceMemberships,
 } from "../hooks/useResourceMemberships";
-import { usePublishSharedQueryData, useSharedPollingQuery } from "../hooks/useSharedPolling";
+import {
+  usePublishSharedQueryData,
+  useSharedPollingQuery,
+} from "../hooks/useSharedPolling";
 
 import { getAdapterLabel } from "../adapters/adapter-display-registry";
 
@@ -46,7 +57,13 @@ const ConfigureBuiltInAgentModal = lazy(() =>
   })),
 );
 
-export const AGENT_FILTER_TABS = ["all", "active", "paused", "error", "builtin"] as const;
+export const AGENT_FILTER_TABS = [
+  "all",
+  "active",
+  "paused",
+  "error",
+  "builtin",
+] as const;
 type FilterTab = (typeof AGENT_FILTER_TABS)[number];
 
 const AGENT_FILTER_TAB_ITEMS: { value: FilterTab; label: string }[] = [
@@ -86,13 +103,18 @@ const HIDDEN_AGENT_STATUSES = new Set(["terminated", "pending_approval"]);
 
 function matchesFilter(status: string, tab: FilterTab): boolean {
   if (tab === "all") return true;
-  if (tab === "active") return status === "active" || status === "running" || status === "idle";
+  if (tab === "active")
+    return status === "active" || status === "running" || status === "idle";
   if (tab === "paused") return status === "paused";
   if (tab === "error") return status === "error";
   return true;
 }
 
-function filterAgents(agents: Agent[], tab: FilterTab, builtInAgentIds: Set<string>): Agent[] {
+function filterAgents(
+  agents: Agent[],
+  tab: FilterTab,
+  builtInAgentIds: Set<string>,
+): Agent[] {
   return agents
     .filter((a) => {
       if (HIDDEN_AGENT_STATUSES.has(a.status)) return false;
@@ -119,9 +141,10 @@ function getSandboxProviderLabel(
   environment: Environment,
   capabilities?: EnvironmentCapabilities | null,
 ): string {
-  const provider = typeof environment.config.provider === "string"
-    ? environment.config.provider.trim()
-    : "";
+  const provider =
+    typeof environment.config.provider === "string"
+      ? environment.config.provider.trim()
+      : "";
   if (!provider) return "Sandbox";
   return capabilities?.sandboxProviders?.[provider]?.displayName ?? provider;
 }
@@ -145,7 +168,9 @@ function describeEnvironment(
   };
 }
 
-function describeMissingEnvironment(environmentId: string): EnvironmentDescriptor {
+function describeMissingEnvironment(
+  environmentId: string,
+): EnvironmentDescriptor {
   return {
     label: "Unknown environment",
     detail: environmentId.slice(0, 8),
@@ -159,7 +184,8 @@ function resolveAgentEnvironment(
   instanceDefaultEnvironmentId: string | null,
   capabilities?: EnvironmentCapabilities | null,
 ): EnvironmentDescriptor {
-  const environmentId = agent.defaultEnvironmentId ?? instanceDefaultEnvironmentId;
+  const environmentId =
+    agent.defaultEnvironmentId ?? instanceDefaultEnvironmentId;
   if (!environmentId) return localEnvironmentDescriptor;
   const environment = environmentsById.get(environmentId);
   return environment
@@ -167,7 +193,11 @@ function resolveAgentEnvironment(
     : describeMissingEnvironment(environmentId);
 }
 
-function filterOrgTree(nodes: OrgNode[], tab: FilterTab, builtInAgentIds: Set<string>): OrgNode[] {
+function filterOrgTree(
+  nodes: OrgNode[],
+  tab: FilterTab,
+  builtInAgentIds: Set<string>,
+): OrgNode[] {
   return nodes
     .reduce<OrgNode[]>((acc, node) => {
       const filteredReports = filterOrgTree(node.reports, tab, builtInAgentIds);
@@ -177,9 +207,10 @@ function filterOrgTree(nodes: OrgNode[], tab: FilterTab, builtInAgentIds: Set<st
         acc.push(...filteredReports);
         return acc;
       }
-      const nodeMatches = tab === "builtin"
-        ? builtInAgentIds.has(node.id)
-        : matchesFilter(node.status, tab);
+      const nodeMatches =
+        tab === "builtin"
+          ? builtInAgentIds.has(node.id)
+          : matchesFilter(node.status, tab);
       if (nodeMatches || filteredReports.length > 0) {
         acc.push({ ...node, reports: filteredReports });
       }
@@ -190,7 +221,9 @@ function filterOrgTree(nodes: OrgNode[], tab: FilterTab, builtInAgentIds: Set<st
 
 export type AgentsView = "list" | "org";
 
-export function Agents({ initialView = "list" }: { initialView?: AgentsView } = {}) {
+export function Agents({
+  initialView = "list",
+}: { initialView?: AgentsView } = {}) {
   const agentChat = useAgentChatEnabled();
   const { selectedCompanyId } = useCompany();
   const { openNewAgent } = useDialogActions();
@@ -200,8 +233,12 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
   const { isMobile } = useSidebar();
   const { enabled: streamlinedUiEnabled } = useStreamlinedUiEnabled();
   const pathSegment = location.pathname.split("/").pop() ?? "all";
-  const requestedTab: FilterTab = isFilterTab(pathSegment) ? pathSegment : "all";
-  const [view, setView] = useState<AgentsView>(() => streamlinedUiEnabled ? initialView : "org");
+  const requestedTab: FilterTab = isFilterTab(pathSegment)
+    ? pathSegment
+    : "all";
+  const [view, setView] = useState<AgentsView>(() =>
+    streamlinedUiEnabled ? initialView : "org",
+  );
   const forceListView = !streamlinedUiEnabled && isMobile;
   const effectiveView: AgentsView = forceListView ? "list" : view;
 
@@ -214,10 +251,15 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
     queryFn: () => instanceSettingsApi.get(),
     enabled: !!selectedCompanyId,
   });
-  const builtInAgentsEnabled = instanceSettings?.experimental.enableBuiltInAgents === true;
-  const tab: FilterTab = requestedTab === "builtin" && !builtInAgentsEnabled ? "all" : requestedTab;
+  const builtInAgentsEnabled =
+    instanceSettings?.experimental.enableBuiltInAgents === true;
+  const tab: FilterTab =
+    requestedTab === "builtin" && !builtInAgentsEnabled ? "all" : requestedTab;
   const visibleTabItems = useMemo(
-    () => AGENT_FILTER_TAB_ITEMS.filter((item) => item.value !== "builtin" || builtInAgentsEnabled),
+    () =>
+      AGENT_FILTER_TAB_ITEMS.filter(
+        (item) => item.value !== "builtin" || builtInAgentsEnabled,
+      ),
     [builtInAgentsEnabled],
   );
 
@@ -234,10 +276,18 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
     }
     return map;
   }, [builtInAgents, builtInAgentsEnabled]);
-  const builtInAgentIds = useMemo(() => new Set(builtInByAgentId.keys()), [builtInByAgentId]);
-  const [configureState, setConfigureState] = useState<BuiltInAgentState | null>(null);
+  const builtInAgentIds = useMemo(
+    () => new Set(builtInByAgentId.keys()),
+    [builtInByAgentId],
+  );
+  const [configureState, setConfigureState] =
+    useState<BuiltInAgentState | null>(null);
 
-  const { data: agents, isLoading, error } = useQuery({
+  const {
+    data: agents,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId!),
     queryFn: () => agentsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
@@ -249,7 +299,8 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
     enabled: !!selectedCompanyId && effectiveView === "org",
   });
 
-  const environmentsEnabled = instanceSettings?.experimental.enableEnvironments === true;
+  const environmentsEnabled =
+    instanceSettings?.experimental.enableEnvironments === true;
 
   const { data: environments } = useQuery({
     queryKey: queryKeys.environments.list(selectedCompanyId!),
@@ -263,7 +314,10 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
     enabled: !!selectedCompanyId && environmentsEnabled,
   });
 
-  const runsQueryKey = [...queryKeys.liveRuns(selectedCompanyId!), "agents-page"] as const;
+  const runsQueryKey = [
+    ...queryKeys.liveRuns(selectedCompanyId!),
+    "agents-page",
+  ] as const;
   const sharedRuns = useSharedPollingQuery({
     companyId: selectedCompanyId,
     resourceKey: "live-runs:agents-page",
@@ -298,7 +352,8 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
 
   const environmentsById = useMemo(() => {
     const map = new Map<string, Environment>();
-    for (const environment of environments ?? []) map.set(environment.id, environment);
+    for (const environment of environments ?? [])
+      map.set(environment.id, environment);
     return map;
   }, [environments]);
 
@@ -316,20 +371,38 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
       );
     }
     return map;
-  }, [agents, environmentsById, environmentCapabilities, instanceSettings?.defaultEnvironmentId]);
+  }, [
+    agents,
+    environmentsById,
+    environmentCapabilities,
+    instanceSettings?.defaultEnvironmentId,
+  ]);
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Agents" }]);
   }, [setBreadcrumbs]);
 
   useEffect(() => {
-    if (selectedCompanyId && requestedTab === "builtin" && instanceSettings && !builtInAgentsEnabled) {
+    if (
+      selectedCompanyId &&
+      requestedTab === "builtin" &&
+      instanceSettings &&
+      !builtInAgentsEnabled
+    ) {
       navigate("/agents/all", { replace: true });
     }
-  }, [builtInAgentsEnabled, instanceSettings, navigate, requestedTab, selectedCompanyId]);
+  }, [
+    builtInAgentsEnabled,
+    instanceSettings,
+    navigate,
+    requestedTab,
+    selectedCompanyId,
+  ]);
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Bot} message="Select an organization to view agents." />;
+    return (
+      <EmptyState icon={Bot} message="Select an organization to view agents." />
+    );
   }
 
   if (isLoading) {
@@ -338,46 +411,57 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
 
   const filtered = filterAgents(agents ?? [], tab, builtInAgentIds);
   const filteredOrg = filterOrgTree(orgTree ?? [], tab, builtInAgentIds);
-  const environmentDataLoading = environmentsEnabled && environments === undefined;
-  const showEnvironmentColumn = environmentsEnabled && (environments === undefined || environments.length > 1);
-  const resolveRenderedEnvironment = (agentId: string) => (
+  const environmentDataLoading =
+    environmentsEnabled && environments === undefined;
+  const showEnvironmentColumn =
+    environmentsEnabled &&
+    (environments === undefined || environments.length > 1);
+  const resolveRenderedEnvironment = (agentId: string) =>
     environmentDataLoading
       ? loadingEnvironmentDescriptor
-      : environmentByAgentId.get(agentId) ?? localEnvironmentDescriptor
-  );
+      : (environmentByAgentId.get(agentId) ?? localEnvironmentDescriptor);
 
   const renderAgentRow = (agent: Agent) => {
-    const hasInvalidOrgChain = agent.orgChainHealth?.status === "invalid_org_chain";
+    const hasInvalidOrgChain =
+      agent.orgChainHealth?.status === "invalid_org_chain";
     const builtInState = builtInByAgentId.get(agent.id);
-    const showBuiltInLifecycle = builtInState?.status === "needs_setup" || builtInState?.status === "pending_approval";
+    const showBuiltInLifecycle =
+      builtInState?.status === "needs_setup" ||
+      builtInState?.status === "pending_approval";
     // Keep lifecycle controls with the metadata only when the content area
     // has enough room; the sidebar can leave less space than the viewport suggests.
-    const builtInCluster = builtInState && showBuiltInLifecycle ? (
-      <>
-        <BuiltInLifecycleChip status={builtInState.status} />
-        {builtInState.status === "needs_setup" && (
-          <span
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            <Button
-              size="xs"
-              variant="outline"
-              onClick={() => setConfigureState(builtInState)}
+    const builtInCluster =
+      builtInState && showBuiltInLifecycle ? (
+        <>
+          <BuiltInLifecycleChip status={builtInState.status} />
+          {builtInState.status === "needs_setup" && (
+            <span
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
             >
-              Set up
-            </Button>
-          </span>
-        )}
-      </>
-    ) : null;
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => setConfigureState(builtInState)}
+              >
+                Set up
+              </Button>
+            </span>
+          )}
+        </>
+      ) : null;
     return (
       <EntityRow
         key={agent.id}
         title={agent.name}
-        titleAccessory={<PrimaryAgentIndicator agentId={agent.id} companyId={agent.companyId} />}
+        titleAccessory={
+          <PrimaryAgentIndicator
+            agentId={agent.id}
+            companyId={agent.companyId}
+          />
+        }
         titleClassName="flex-1 @5xl:flex-none @5xl:w-56"
         titleTextClassName="truncate"
         subtitleClassName="truncate"
@@ -386,18 +470,28 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
         className={cn(
           "group py-3",
           agent.pausedAt && tab !== "paused" ? "opacity-50" : "",
-          resourceMembershipState(membershipsQuery.data, "agent", agent.id) === "left" ? "sm:text-foreground/55" : "",
+          resourceMembershipState(membershipsQuery.data, "agent", agent.id) ===
+            "left"
+            ? "sm:text-foreground/55"
+            : "",
         )}
-        leading={hasInvalidOrgChain ? (
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" aria-label="Invalid reporting chain" />
-        ) : (
-          <AgentAvatar agent={agent} size={32} />
-        )}
-        secondaryRow={builtInCluster && (
-          <div className="@5xl:hidden flex flex-wrap items-center gap-1.5">
-            {builtInCluster}
-          </div>
-        )}
+        leading={
+          hasInvalidOrgChain ? (
+            <AlertTriangle
+              className="h-3.5 w-3.5 text-amber-500"
+              aria-label="Invalid reporting chain"
+            />
+          ) : (
+            <AgentAvatar agent={agent} size={32} />
+          )
+        }
+        secondaryRow={
+          builtInCluster && (
+            <div className="@5xl:hidden flex flex-wrap items-center gap-1.5">
+              {builtInCluster}
+            </div>
+          )
+        }
         meta={
           <div className="flex items-center gap-3">
             {builtInCluster && (
@@ -417,7 +511,19 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
         metaSpacerClassName="hidden @5xl:block"
         trailing={
           <div className="flex items-center gap-3">
-            {agentChat.enabled && <Button variant="ghost" size="sm" onClick={event => { event.preventDefault(); event.stopPropagation(); navigate(`/chats/${agentRouteRef(agent)}`); }}>Chat</Button>}
+            {agentChat.enabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  navigate(`/chats/${agentRouteRef(agent)}`);
+                }}
+              >
+                Chat
+              </Button>
+            )}
             <div className="hidden sm:flex items-center gap-3">
               {liveRunByAgent.has(agent.id) && (
                 <LiveRunIndicator
@@ -437,12 +543,14 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
   };
 
   return (
-    <div className={cn(
-      "@container",
-      effectiveView === "org"
-        ? "flex h-full min-h-0 flex-col gap-4"
-        : "space-y-4",
-    )}>
+    <div
+      className={cn(
+        "@container",
+        effectiveView === "org"
+          ? "flex h-full min-h-0 flex-col gap-4"
+          : "space-y-4",
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={tab} onValueChange={(v) => navigate(`/agents/${v}`)}>
           <PageTabBar
@@ -452,7 +560,12 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
           />
         </Tabs>
         <div className="flex items-center gap-2">
-          {!forceListView ? <div className="flex items-center overflow-hidden rounded-md border border-border" role="group" aria-label="Agent view">
+          {!forceListView ? (
+            <div
+              className="flex items-center overflow-hidden rounded-md border border-border"
+              role="group"
+              aria-label="Agent view"
+            >
               <Button
                 type="button"
                 size="icon-sm"
@@ -477,7 +590,8 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
               >
                 <Network className="h-3.5 w-3.5" />
               </Button>
-          </div> : null}
+            </div>
+          ) : null}
           <Button size="sm" variant="outline" onClick={openNewAgent}>
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             New Agent
@@ -486,7 +600,9 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-muted-foreground">{filtered.length} agent{filtered.length !== 1 ? "s" : ""}</p>
+        <p className="text-xs text-muted-foreground">
+          {filtered.length} agent{filtered.length !== 1 ? "s" : ""}
+        </p>
       )}
 
       {error && <p className="text-sm text-destructive">{error.message}</p>}
@@ -502,27 +618,31 @@ export function Agents({ initialView = "list" }: { initialView?: AgentsView } = 
 
       {/* List view */}
       {effectiveView === "list" && filtered.length > 0 && (
-        <div>
-          {filtered.map(renderAgentRow)}
-        </div>
+        <div>{filtered.map(renderAgentRow)}</div>
       )}
 
-      {effectiveView === "list" && agents && agents.length > 0 && filtered.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">
-          No agents match the selected status.
-        </p>
-      )}
+      {effectiveView === "list" &&
+        agents &&
+        agents.length > 0 &&
+        filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No agents match the selected status.
+          </p>
+        )}
 
       {/* Org chart view */}
       {effectiveView === "org" && filteredOrg.length > 0 && (
         <OrgChart embedded orgTree={filteredOrg} agents={agents ?? []} />
       )}
 
-      {effectiveView === "org" && orgTree && orgTree.length > 0 && filteredOrg.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">
-          No agents match the selected status.
-        </p>
-      )}
+      {effectiveView === "org" &&
+        orgTree &&
+        orgTree.length > 0 &&
+        filteredOrg.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No agents match the selected status.
+          </p>
+        )}
 
       {effectiveView === "org" && orgTree && orgTree.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
@@ -572,9 +692,17 @@ function OrgTreeNode({
 }) {
   const agent = agentMap.get(node.id);
   const builtInState = builtInByAgentId.get(node.id);
-  const showBuiltInLifecycle = builtInState?.status === "needs_setup" || builtInState?.status === "pending_approval";
-  const hasInvalidOrgChain = Boolean(agent && agent.orgChainHealth?.status === "invalid_org_chain");
-  const membershipState = resourceMembershipState(memberships, "agent", node.id);
+  const showBuiltInLifecycle =
+    builtInState?.status === "needs_setup" ||
+    builtInState?.status === "pending_approval";
+  const hasInvalidOrgChain = Boolean(
+    agent && agent.orgChainHealth?.status === "invalid_org_chain",
+  );
+  const membershipState = resourceMembershipState(
+    memberships,
+    "agent",
+    node.id,
+  );
 
   return (
     <div style={{ paddingLeft: depth * 24 }}>
@@ -587,7 +715,10 @@ function OrgTreeNode({
         )}
       >
         {hasInvalidOrgChain ? (
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Invalid reporting chain" />
+          <AlertTriangle
+            className="h-3.5 w-3.5 shrink-0 text-amber-500"
+            aria-label="Invalid reporting chain"
+          />
         ) : (
           <AgentAvatar agent={agent ?? node} size={24} />
         )}
@@ -612,7 +743,11 @@ function OrgTreeNode({
                     e.stopPropagation();
                   }}
                 >
-                  <Button size="xs" variant="outline" onClick={() => onConfigureBuiltIn(builtInState)}>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={() => onConfigureBuiltIn(builtInState)}
+                  >
                     Set up
                   </Button>
                 </span>
@@ -647,7 +782,8 @@ function OrgTreeNode({
                   environment={
                     environmentDataLoading
                       ? loadingEnvironmentDescriptor
-                      : environmentByAgentId.get(agent.id) ?? localEnvironmentDescriptor
+                      : (environmentByAgentId.get(agent.id) ??
+                        localEnvironmentDescriptor)
                   }
                   showEnvironment={showEnvironment}
                 />
@@ -710,13 +846,19 @@ function AgentMetaColumns({
         >
           {model ?? "—"}
         </div>
-        <div className="truncate font-mono text-(length:--text-micro) text-muted-foreground/70" title={adapterLabel}>
+        <div
+          className="truncate font-mono text-(length:--text-micro) text-muted-foreground/70"
+          title={adapterLabel}
+        >
           {adapterLabel}
         </div>
       </div>
       {showEnvironment && (
         <div className="w-44 min-w-0 leading-tight">
-          <div className="truncate text-xs text-muted-foreground" title={environment.title}>
+          <div
+            className="truncate text-xs text-muted-foreground"
+            title={environment.title}
+          >
             {environment.label}
           </div>
           <div className="truncate text-(length:--text-micro) text-muted-foreground/70">

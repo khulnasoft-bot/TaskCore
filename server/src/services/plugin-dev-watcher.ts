@@ -74,7 +74,10 @@ function shouldIgnorePath(filename: string | null | undefined): boolean {
 
 export function resolvePluginWatchTargets(
   packagePath: string,
-  fsDeps?: Pick<PluginDevWatcherFsDeps, "existsSync" | "readFileSync" | "readdirSync" | "statSync">,
+  fsDeps?: Pick<
+    PluginDevWatcherFsDeps,
+    "existsSync" | "readFileSync" | "readdirSync" | "statSync"
+  >,
 ): PluginWatchTarget[] {
   const fileExists = fsDeps?.existsSync ?? existsSync;
   const readFile = fsDeps?.readFileSync ?? readFileSync;
@@ -83,10 +86,15 @@ export function resolvePluginWatchTargets(
   const absPath = path.resolve(packagePath);
   const targets = new Map<string, PluginWatchTarget>();
 
-  function addWatchTarget(targetPath: string, recursive: boolean, kind?: "file" | "dir"): void {
+  function addWatchTarget(
+    targetPath: string,
+    recursive: boolean,
+    kind?: "file" | "dir",
+  ): void {
     const resolved = path.resolve(targetPath);
     if (!fileExists(resolved)) return;
-    const inferredKind = kind ?? (statFile(resolved).isDirectory() ? "dir" : "file");
+    const inferredKind =
+      kind ?? (statFile(resolved).isDirectory() ? "dir" : "file");
 
     const existing = targets.get(resolved);
     if (existing) {
@@ -121,7 +129,9 @@ export function resolvePluginWatchTargets(
 
   let packageJson: PluginPackageJson | null = null;
   try {
-    packageJson = JSON.parse(readFile(packageJsonPath, "utf8")) as PluginPackageJson;
+    packageJson = JSON.parse(
+      readFile(packageJsonPath, "utf8"),
+    ) as PluginPackageJson;
   } catch {
     packageJson = null;
   }
@@ -130,7 +140,9 @@ export function resolvePluginWatchTargets(
     packageJson?.taskcorePlugin?.manifest,
     packageJson?.taskcorePlugin?.worker,
     packageJson?.taskcorePlugin?.ui,
-  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+  ].filter(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  );
 
   if (entrypointPaths.length === 0) {
     addRuntimeFilesFromDir(path.join(absPath, "dist"));
@@ -219,7 +231,10 @@ export function createPluginDevWatcher(
           setTimeout(() => {
             debounceTimers.delete(pluginId);
             log.info(
-              { pluginId, changedFile: relativePath || path.basename(changedPath) },
+              {
+                pluginId,
+                changedFile: relativePath || path.basename(changedPath),
+              },
               "plugin-dev-watcher: file change detected, restarting worker",
             );
 

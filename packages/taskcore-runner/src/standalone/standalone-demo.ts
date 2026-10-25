@@ -26,7 +26,8 @@ export interface StandaloneStandaloneDemoInput {
   killSwitchEnabled: boolean;
 }
 
-export type StandaloneStandaloneAdapterKind = "native_demo_adapter" | "legacy_demo_adapter";
+export type StandaloneStandaloneAdapterKind =
+  "native_demo_adapter" | "legacy_demo_adapter";
 
 export interface StandaloneStandaloneAdapter extends ControlPlanePort {
   readonly kind: StandaloneStandaloneAdapterKind;
@@ -43,7 +44,8 @@ export interface StandaloneStandaloneAdapterFactories {
 export interface StandaloneStandaloneDemoResult {
   schema: "taskcore.runner.standalone.standalone-demo.v1";
   resolvedMode: "native" | "legacy";
-  resolutionReason: "feature_flag_disabled" | "kill_switch_enabled" | "native_demo_enabled";
+  resolutionReason:
+    "feature_flag_disabled" | "kill_switch_enabled" | "native_demo_enabled";
   adapter: "native_demo_adapter" | "legacy_demo_adapter";
   nativeAdapterInvocationCount: number;
   legacyAdapterInvocationCount: number;
@@ -53,7 +55,10 @@ export interface StandaloneStandaloneDemoResult {
     highestContiguousSourceSeq: number;
     eventTypes: string[];
   };
-  reducer: Pick<SessionSnapshot, "integrity" | "sessionState" | "turnState" | "runPhase"> & {
+  reducer: Pick<
+    SessionSnapshot,
+    "integrity" | "sessionState" | "turnState" | "runPhase"
+  > & {
     timelineCount: number;
     runTerminalState: string | null;
   };
@@ -64,15 +69,17 @@ export interface StandaloneStandaloneDemoResult {
   };
 }
 
-export function resolveStandaloneStandaloneMode(input: StandaloneStandaloneDemoInput): Pick<
-  StandaloneStandaloneDemoResult,
-  "resolvedMode" | "resolutionReason"
-> {
+export function resolveStandaloneStandaloneMode(
+  input: StandaloneStandaloneDemoInput,
+): Pick<StandaloneStandaloneDemoResult, "resolvedMode" | "resolutionReason"> {
   if (input.killSwitchEnabled) {
     return { resolvedMode: "legacy", resolutionReason: "kill_switch_enabled" };
   }
   if (!input.featureFlagEnabled) {
-    return { resolvedMode: "legacy", resolutionReason: "feature_flag_disabled" };
+    return {
+      resolvedMode: "legacy",
+      resolutionReason: "feature_flag_disabled",
+    };
   }
   return { resolvedMode: "native", resolutionReason: "native_demo_enabled" };
 }
@@ -104,11 +111,15 @@ class StandaloneDemoAdapter implements StandaloneStandaloneAdapter {
     return this.#adapter.appendEvent(event);
   }
 
-  replayEvents(input: ReplayControlPlaneEventsInput): Promise<ReplayedControlPlaneEvents> {
+  replayEvents(
+    input: ReplayControlPlaneEventsInput,
+  ): Promise<ReplayedControlPlaneEvents> {
     return this.#adapter.replayEvents(input);
   }
 
-  completeRun(result: NativeRunResult | CompleteControlPlaneRunInput): Promise<void> {
+  completeRun(
+    result: NativeRunResult | CompleteControlPlaneRunInput,
+  ): Promise<void> {
     return this.#adapter.completeRun(result);
   }
 }
@@ -131,9 +142,10 @@ export async function runStandaloneStandaloneDemo(
   factories: StandaloneStandaloneAdapterFactories = DEFAULT_ADAPTER_FACTORIES,
 ): Promise<StandaloneStandaloneDemoResult> {
   const resolution = resolveStandaloneStandaloneMode(input);
-  const adapter = resolution.resolvedMode === "native"
-    ? factories.createNativeAdapter()
-    : factories.createLegacyAdapter();
+  const adapter =
+    resolution.resolvedMode === "native"
+      ? factories.createNativeAdapter()
+      : factories.createLegacyAdapter();
   const conformance = await runControlPlanePortConformance({
     port: adapter,
     start: () => adapter.start(),
@@ -156,7 +168,13 @@ export async function runStandaloneStandaloneDemo(
       capabilities: {
         schema: "taskcore.prp.capabilities.v1",
         sessionReusePolicy: "new_per_run",
-        driver: { kind: resolution.resolvedMode === "native" ? "native-demo" : "legacy-demo", version: "1" },
+        driver: {
+          kind:
+            resolution.resolvedMode === "native"
+              ? "native-demo"
+              : "legacy-demo",
+          version: "1",
+        },
         steer: true,
         interrupt: true,
         resume: true,
@@ -173,13 +191,17 @@ export async function runStandaloneStandaloneDemo(
     schema: "taskcore.runner.standalone.standalone-demo.v1",
     ...resolution,
     adapter: adapter.kind,
-    nativeAdapterInvocationCount: adapter.kind === "native_demo_adapter" ? adapter.invocationCount() : 0,
-    legacyAdapterInvocationCount: adapter.kind === "legacy_demo_adapter" ? adapter.invocationCount() : 0,
+    nativeAdapterInvocationCount:
+      adapter.kind === "native_demo_adapter" ? adapter.invocationCount() : 0,
+    legacyAdapterInvocationCount:
+      adapter.kind === "legacy_demo_adapter" ? adapter.invocationCount() : 0,
     conformance,
     replay: {
       eventCount: CONTROL_PLANE_CONFORMANCE_EVENTS.length,
       highestContiguousSourceSeq: conformance.highestContiguousSourceSeq,
-      eventTypes: CONTROL_PLANE_CONFORMANCE_EVENTS.map((event) => event.eventType),
+      eventTypes: CONTROL_PLANE_CONFORMANCE_EVENTS.map(
+        (event) => event.eventType,
+      ),
     },
     reducer: {
       integrity: snapshot.integrity,

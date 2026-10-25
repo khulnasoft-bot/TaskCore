@@ -7,31 +7,46 @@ import { createPromptContextFixture } from "@taskcore/adapter-utils/test-fixture
 
 const ensureRuntimeInstalledMock = vi.hoisted(() => vi.fn(async () => {}));
 const ensureCommandMock = vi.hoisted(() => vi.fn(async () => {}));
-const prepareRuntimeMock = vi.hoisted(() => vi.fn(async () => ({
-  workspaceRemoteDir: null,
-  restoreWorkspace: async () => {},
-})));
+const prepareRuntimeMock = vi.hoisted(() =>
+  vi.fn(async () => ({
+    workspaceRemoteDir: null,
+    restoreWorkspace: async () => {},
+  })),
+);
 const resolveCommandForLogsMock = vi.hoisted(() => vi.fn(async () => "kimi"));
 const runProcessMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@taskcore/adapter-utils/execution-target", () => ({
   adapterExecutionTargetIsRemote: () => false,
   adapterExecutionTargetRemoteCwd: (_target: unknown, cwd: string) => cwd,
-  overrideAdapterExecutionTargetRemoteCwd: (target: unknown, _cwd: string) => target,
+  overrideAdapterExecutionTargetRemoteCwd: (target: unknown, _cwd: string) =>
+    target,
   adapterExecutionTargetSessionIdentity: () => ({ kind: "local" }),
   adapterExecutionTargetSessionMatches: () => true,
   adapterExecutionTargetUsesManagedHome: () => false,
   adapterExecutionTargetUsesTaskcoreBridge: () => false,
   describeAdapterExecutionTarget: () => "local",
   ensureAdapterExecutionTargetCommandResolvable: ensureCommandMock,
-  ensureAdapterExecutionTargetRuntimeCommandInstalled: ensureRuntimeInstalledMock,
+  ensureAdapterExecutionTargetRuntimeCommandInstalled:
+    ensureRuntimeInstalledMock,
   prepareAdapterExecutionTargetRuntime: prepareRuntimeMock,
-  readAdapterExecutionTarget: ({ executionTarget }: { executionTarget?: unknown }) => executionTarget ?? { kind: "local" },
+  readAdapterExecutionTarget: ({
+    executionTarget,
+  }: {
+    executionTarget?: unknown;
+  }) => executionTarget ?? { kind: "local" },
   readAdapterExecutionTargetHomeDir: async () => null,
   resolveAdapterExecutionTargetCommandForLogs: resolveCommandForLogsMock,
-  resolveAdapterExecutionTargetTimeoutSec: (_target: unknown, timeoutSec: number) => timeoutSec,
+  resolveAdapterExecutionTargetTimeoutSec: (
+    _target: unknown,
+    timeoutSec: number,
+  ) => timeoutSec,
   runAdapterExecutionTargetProcess: runProcessMock,
-  runAdapterExecutionTargetShellCommand: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+  runAdapterExecutionTargetShellCommand: async () => ({
+    exitCode: 0,
+    stdout: "",
+    stderr: "",
+  }),
   startAdapterExecutionTargetTaskcoreBridge: async () => null,
 }));
 
@@ -45,7 +60,10 @@ async function makeTempRoot() {
   return root;
 }
 
-function makeContext(root: string, overrides: Partial<AdapterExecutionContext> = {}): AdapterExecutionContext {
+function makeContext(
+  root: string,
+  overrides: Partial<AdapterExecutionContext> = {},
+): AdapterExecutionContext {
   const ctx: AdapterExecutionContext = {
     runId: "run-1",
     agent: {
@@ -94,18 +112,30 @@ describe("kimi_local execute", () => {
   });
 
   afterEach(async () => {
-    await Promise.all(tempRoots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true })));
+    await Promise.all(
+      tempRoots
+        .splice(0)
+        .map((root) => fs.rm(root, { recursive: true, force: true })),
+    );
   });
 
   it("runs kimi headless with stream-json and captures the session id from the meta event", async () => {
     const root = await makeTempRoot();
     let seenArgs: string[] = [];
     let seenEnv: Record<string, string> = {};
-    runProcessMock.mockImplementation(async (_runId, _target, _command, args, options) => {
-      seenArgs = args;
-      seenEnv = options.env;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, args, options) => {
+        seenArgs = args;
+        seenEnv = options.env;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
+      },
+    );
 
     const result = await execute(makeContext(root));
 
@@ -134,23 +164,29 @@ describe("kimi_local execute", () => {
     const root = await makeTempRoot();
     const fixture = createPromptContextFixture();
     let deliveredPrompt = "";
-    runProcessMock.mockImplementation(async (_runId, _target, _command, args) => {
-      deliveredPrompt = String(args.at(-1) ?? "");
-      return {
-        exitCode: 0,
-        signal: null,
-        timedOut: false,
-        stdout: KIMI_STDOUT,
-        stderr: "",
-      };
-    });
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, args) => {
+        deliveredPrompt = String(args.at(-1) ?? "");
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
+      },
+    );
 
-    await execute(makeContext(root, {
-      context: fixture,
-    }));
+    await execute(
+      makeContext(root, {
+        context: fixture,
+      }),
+    );
 
     expect(deliveredPrompt).toContain(fixture.taskcoreTaskMarkdownAssignment);
-    expect(deliveredPrompt.indexOf("Append the same ledger entry.")).toBeLessThan(
+    expect(
+      deliveredPrompt.indexOf("Append the same ledger entry."),
+    ).toBeLessThan(
       deliveredPrompt.lastIndexOf("Append the same ledger entry."),
     );
     expect(deliveredPrompt.indexOf("comment-first")).toBeLessThan(
@@ -159,27 +195,53 @@ describe("kimi_local execute", () => {
     expect(deliveredPrompt.indexOf("comment-second")).toBeLessThan(
       deliveredPrompt.indexOf("comment-scope"),
     );
-    expect(deliveredPrompt).toContain("Change the final scope to the launch checklist.");
+    expect(deliveredPrompt).toContain(
+      "Change the final scope to the launch checklist.",
+    );
   });
 
   it("forwards streamed stdout lines to onEvent as assistant + tool_call runtime events", async () => {
     const root = await makeTempRoot();
-    const events: Array<{ eventType: string; message?: string; payload?: Record<string, unknown> }> = [];
+    const events: Array<{
+      eventType: string;
+      message?: string;
+      payload?: Record<string, unknown>;
+    }> = [];
     const stream =
       `${JSON.stringify({ role: "assistant", content: "Here is my plan" })}\n` +
       `${JSON.stringify({
         role: "assistant",
         content: "running",
-        tool_calls: [{ type: "function", id: "t1", function: { name: "Bash", arguments: "{}" } }],
+        tool_calls: [
+          {
+            type: "function",
+            id: "t1",
+            function: { name: "Bash", arguments: "{}" },
+          },
+        ],
       })}\n`;
-    runProcessMock.mockImplementation(async (_runId, _target, _command, _args, options) => {
-      // Split mid-line so the wrapper's newline buffering is exercised across chunks.
-      await options.onLog("stdout", stream.slice(0, 20));
-      await options.onLog("stdout", stream.slice(20));
-      return { exitCode: 0, signal: null, timedOut: false, stdout: stream, stderr: "" };
-    });
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, _args, options) => {
+        // Split mid-line so the wrapper's newline buffering is exercised across chunks.
+        await options.onLog("stdout", stream.slice(0, 20));
+        await options.onLog("stdout", stream.slice(20));
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: stream,
+          stderr: "",
+        };
+      },
+    );
 
-    await execute(makeContext(root, { onEvent: async (event) => { events.push(event); } }));
+    await execute(
+      makeContext(root, {
+        onEvent: async (event) => {
+          events.push(event);
+        },
+      }),
+    );
 
     expect(events).toContainEqual({
       eventType: "assistant",
@@ -187,37 +249,78 @@ describe("kimi_local execute", () => {
       message: "Here is my plan",
       payload: { content: "Here is my plan" },
     });
-    expect(events).toContainEqual({ eventType: "tool_call", stream: "stdout", payload: { toolName: "Bash" } });
+    expect(events).toContainEqual({
+      eventType: "tool_call",
+      stream: "stdout",
+      payload: { toolName: "Bash" },
+    });
   });
 
   it("forwards the final stdout line to onEvent even without a trailing newline", async () => {
     const root = await makeTempRoot();
-    const events: Array<{ eventType: string; payload?: Record<string, unknown> }> = [];
+    const events: Array<{
+      eventType: string;
+      payload?: Record<string, unknown>;
+    }> = [];
     // Kimi can close stdout after a valid event with no trailing newline; the
     // forwarder must flush it so the last tool call reaches live status.
     const stream = `${JSON.stringify({
       role: "assistant",
-      tool_calls: [{ type: "function", id: "t9", function: { name: "Read", arguments: "{}" } }],
+      tool_calls: [
+        {
+          type: "function",
+          id: "t9",
+          function: { name: "Read", arguments: "{}" },
+        },
+      ],
     })}`;
-    runProcessMock.mockImplementation(async (_runId, _target, _command, _args, options) => {
-      await options.onLog("stdout", stream);
-      return { exitCode: 0, signal: null, timedOut: false, stdout: stream, stderr: "" };
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, _args, options) => {
+        await options.onLog("stdout", stream);
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: stream,
+          stderr: "",
+        };
+      },
+    );
+
+    await execute(
+      makeContext(root, {
+        onEvent: async (event) => {
+          events.push(event);
+        },
+      }),
+    );
+
+    expect(events).toContainEqual({
+      eventType: "tool_call",
+      stream: "stdout",
+      payload: { toolName: "Read" },
     });
-
-    await execute(makeContext(root, { onEvent: async (event) => { events.push(event); } }));
-
-    expect(events).toContainEqual({ eventType: "tool_call", stream: "stdout", payload: { toolName: "Read" } });
   });
 
   it("passes -m only when a model is configured", async () => {
     const root = await makeTempRoot();
     let seenArgs: string[] = [];
-    runProcessMock.mockImplementation(async (_runId, _target, _command, args) => {
-      seenArgs = args;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, args) => {
+        seenArgs = args;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
+      },
+    );
 
-    await execute(makeContext(root, { config: { cwd: root, model: "kimi-code/k3" } }));
+    await execute(
+      makeContext(root, { config: { cwd: root, model: "kimi-code/k3" } }),
+    );
 
     expect(seenArgs).toContain("-m");
     expect(seenArgs[seenArgs.indexOf("-m") + 1]).toBe("kimi-code/k3");
@@ -226,19 +329,29 @@ describe("kimi_local execute", () => {
   it("resumes with -r when the stored session cwd matches the run cwd", async () => {
     const root = await makeTempRoot();
     let seenArgs: string[] = [];
-    runProcessMock.mockImplementation(async (_runId, _target, _command, args) => {
-      seenArgs = args;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
-
-    await execute(makeContext(root, {
-      runtime: {
-        sessionId: "session_abc-123",
-        sessionParams: { sessionId: "session_abc-123", cwd: root },
-        sessionDisplayId: "session_abc-123",
-        taskKey: null,
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, args) => {
+        seenArgs = args;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
       },
-    }));
+    );
+
+    await execute(
+      makeContext(root, {
+        runtime: {
+          sessionId: "session_abc-123",
+          sessionParams: { sessionId: "session_abc-123", cwd: root },
+          sessionDisplayId: "session_abc-123",
+          taskKey: null,
+        },
+      }),
+    );
 
     expect(seenArgs).toContain("-r");
     expect(seenArgs[seenArgs.indexOf("-r") + 1]).toBe("session_abc-123");
@@ -247,19 +360,32 @@ describe("kimi_local execute", () => {
   it("starts a fresh session when the stored session cwd differs", async () => {
     const root = await makeTempRoot();
     let seenArgs: string[] = [];
-    runProcessMock.mockImplementation(async (_runId, _target, _command, args) => {
-      seenArgs = args;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
-
-    await execute(makeContext(root, {
-      runtime: {
-        sessionId: "session_abc-123",
-        sessionParams: { sessionId: "session_abc-123", cwd: "/some/other/dir" },
-        sessionDisplayId: "session_abc-123",
-        taskKey: null,
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, args) => {
+        seenArgs = args;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
       },
-    }));
+    );
+
+    await execute(
+      makeContext(root, {
+        runtime: {
+          sessionId: "session_abc-123",
+          sessionParams: {
+            sessionId: "session_abc-123",
+            cwd: "/some/other/dir",
+          },
+          sessionDisplayId: "session_abc-123",
+          taskKey: null,
+        },
+      }),
+    );
 
     expect(seenArgs).not.toContain("-r");
   });
@@ -268,29 +394,47 @@ describe("kimi_local execute", () => {
     const root = await makeTempRoot();
     const fixture = createPromptContextFixture();
     const seenArgLists: string[][] = [];
-    runProcessMock.mockImplementation(async (_runId, _target, _command, args) => {
-      seenArgLists.push(args);
-      if (seenArgLists.length === 1) {
-        return { exitCode: 1, signal: null, timedOut: false, stdout: "", stderr: "Error: unknown session 'session_stale'" };
-      }
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
-
-    const result = await execute(makeContext(root, {
-      runtime: {
-        sessionId: "session_stale",
-        sessionParams: { sessionId: "session_stale", cwd: root },
-        sessionDisplayId: "session_stale",
-        taskKey: null,
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, args) => {
+        seenArgLists.push(args);
+        if (seenArgLists.length === 1) {
+          return {
+            exitCode: 1,
+            signal: null,
+            timedOut: false,
+            stdout: "",
+            stderr: "Error: unknown session 'session_stale'",
+          };
+        }
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
       },
-      config: { cwd: root, bootstrapPromptTemplate: "BOOTSTRAP {{run.id}}" },
-      context: fixture,
-    }));
+    );
+
+    const result = await execute(
+      makeContext(root, {
+        runtime: {
+          sessionId: "session_stale",
+          sessionParams: { sessionId: "session_stale", cwd: root },
+          sessionDisplayId: "session_stale",
+          taskKey: null,
+        },
+        config: { cwd: root, bootstrapPromptTemplate: "BOOTSTRAP {{run.id}}" },
+        context: fixture,
+      }),
+    );
 
     expect(runProcessMock).toHaveBeenCalledTimes(2);
     expect(seenArgLists[0]).toContain("-r");
     expect(seenArgLists[1]).not.toContain("-r");
-    expect(seenArgLists[1].at(-1)).toContain(fixture.taskcoreTaskMarkdownAssignment);
+    expect(seenArgLists[1].at(-1)).toContain(
+      fixture.taskcoreTaskMarkdownAssignment,
+    );
     expect(seenArgLists[1].at(-1)).toContain("BOOTSTRAP run-1");
     expect(seenArgLists[1].at(-1)).toContain("comment-first");
     expect(result).toMatchObject({ exitCode: 0, sessionId: "session_abc-123" });
@@ -323,7 +467,9 @@ describe("kimi_local execute", () => {
       stderr: "",
     }));
 
-    const result = await execute(makeContext(root, { config: { cwd: root, timeoutSec: 5 } }));
+    const result = await execute(
+      makeContext(root, { config: { cwd: root, timeoutSec: 5 } }),
+    );
 
     expect(result.timedOut).toBe(true);
     expect(result.usageComplete).toBe(true);
@@ -352,22 +498,32 @@ describe("kimi_local execute", () => {
   it("preserves user-configured headless env values", async () => {
     const root = await makeTempRoot();
     let seenEnv: Record<string, string> = {};
-    runProcessMock.mockImplementation(async (_runId, _target, _command, _args, options) => {
-      seenEnv = options.env;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
-
-    await execute(makeContext(root, {
-      config: {
-        cwd: root,
-        env: {
-          CI: "0",
-          NO_COLOR: "0",
-          KIMI_CODE_NO_AUTO_UPDATE: "0",
-          TERM: "xterm-256color",
-        },
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, _args, options) => {
+        seenEnv = options.env;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
       },
-    }));
+    );
+
+    await execute(
+      makeContext(root, {
+        config: {
+          cwd: root,
+          env: {
+            CI: "0",
+            NO_COLOR: "0",
+            KIMI_CODE_NO_AUTO_UPDATE: "0",
+            TERM: "xterm-256color",
+          },
+        },
+      }),
+    );
 
     expect(seenEnv.CI).toBe("0");
     expect(seenEnv.NO_COLOR).toBe("0");
@@ -375,28 +531,53 @@ describe("kimi_local execute", () => {
     expect(seenEnv.TERM).toBe("xterm-256color");
   });
 
-  it.each(["kimi-code/k3", "kimi-code/k3-256k", "kimi-code/kimi-for-coding"])("forwards configured effort for %s", async (model) => {
-    const root = await makeTempRoot();
-    let seenEnv: Record<string, string> = {};
-    runProcessMock.mockImplementation(async (_runId, _target, _command, _args, options) => {
-      seenEnv = options.env;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
+  it.each(["kimi-code/k3", "kimi-code/k3-256k", "kimi-code/kimi-for-coding"])(
+    "forwards configured effort for %s",
+    async (model) => {
+      const root = await makeTempRoot();
+      let seenEnv: Record<string, string> = {};
+      runProcessMock.mockImplementation(
+        async (_runId, _target, _command, _args, options) => {
+          seenEnv = options.env;
+          return {
+            exitCode: 0,
+            signal: null,
+            timedOut: false,
+            stdout: KIMI_STDOUT,
+            stderr: "",
+          };
+        },
+      );
 
-    await execute(makeContext(root, { config: { cwd: root, model, effort: "high" } }));
+      await execute(
+        makeContext(root, { config: { cwd: root, model, effort: "high" } }),
+      );
 
-    expect(seenEnv.KIMI_MODEL_THINKING_EFFORT).toBe("high");
-  });
+      expect(seenEnv.KIMI_MODEL_THINKING_EFFORT).toBe("high");
+    },
+  );
 
   it("maps the medium effort tier onto high since Kimi has no medium", async () => {
     const root = await makeTempRoot();
     let seenEnv: Record<string, string> = {};
-    runProcessMock.mockImplementation(async (_runId, _target, _command, _args, options) => {
-      seenEnv = options.env;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, _args, options) => {
+        seenEnv = options.env;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
+      },
+    );
 
-    await execute(makeContext(root, { config: { cwd: root, model: "kimi-code/k3", effort: "medium" } }));
+    await execute(
+      makeContext(root, {
+        config: { cwd: root, model: "kimi-code/k3", effort: "medium" },
+      }),
+    );
 
     expect(seenEnv.KIMI_MODEL_THINKING_EFFORT).toBe("high");
   });
@@ -404,14 +585,28 @@ describe("kimi_local execute", () => {
   it("does not forward effort for models without support_efforts", async () => {
     const root = await makeTempRoot();
     let seenEnv: Record<string, string> = {};
-    runProcessMock.mockImplementation(async (_runId, _target, _command, _args, options) => {
-      seenEnv = options.env;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, _args, options) => {
+        seenEnv = options.env;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
+      },
+    );
 
-    await execute(makeContext(root, {
-      config: { cwd: root, model: "kimi-code/kimi-for-coding-highspeed", effort: "high" },
-    }));
+    await execute(
+      makeContext(root, {
+        config: {
+          cwd: root,
+          model: "kimi-code/kimi-for-coding-highspeed",
+          effort: "high",
+        },
+      }),
+    );
 
     expect(seenEnv.KIMI_MODEL_THINKING_EFFORT).toBeUndefined();
   });
@@ -421,15 +616,28 @@ describe("kimi_local execute", () => {
     const instructionsDir = path.join(root, "instructions");
     await fs.mkdir(instructionsDir, { recursive: true });
     const instructionsFilePath = path.join(instructionsDir, "AGENTS.md");
-    await fs.writeFile(instructionsFilePath, "# Role\nYou are the lead agent.\n");
+    await fs.writeFile(
+      instructionsFilePath,
+      "# Role\nYou are the lead agent.\n",
+    );
 
     let seenArgs: string[] = [];
-    runProcessMock.mockImplementation(async (_runId, _target, _command, args) => {
-      seenArgs = args;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, args) => {
+        seenArgs = args;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
+      },
+    );
 
-    await execute(makeContext(root, { config: { cwd: root, instructionsFilePath } }));
+    await execute(
+      makeContext(root, { config: { cwd: root, instructionsFilePath } }),
+    );
 
     expect(seenArgs).toContain("--add-dir");
     expect(seenArgs[seenArgs.indexOf("--add-dir") + 1]).toBe(instructionsDir);
@@ -442,14 +650,26 @@ describe("kimi_local execute", () => {
   it("loads the operational skill when no optional skills are configured", async () => {
     const root = await makeTempRoot();
     let seenArgs: string[] = [];
-    runProcessMock.mockImplementation(async (_runId, _target, _command, args) => {
-      seenArgs = args;
-      return { exitCode: 0, signal: null, timedOut: false, stdout: KIMI_STDOUT, stderr: "" };
-    });
+    runProcessMock.mockImplementation(
+      async (_runId, _target, _command, args) => {
+        seenArgs = args;
+        return {
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: KIMI_STDOUT,
+          stderr: "",
+        };
+      },
+    );
 
-    await execute(makeContext(root, { config: { cwd: root, model: "kimi-code/k3" } }));
+    await execute(
+      makeContext(root, { config: { cwd: root, model: "kimi-code/k3" } }),
+    );
 
     expect(seenArgs).toContain("--skills-dir");
-    expect(seenArgs[seenArgs.indexOf("--skills-dir") + 1]).toContain("taskcore-kimi-skills-");
+    expect(seenArgs[seenArgs.indexOf("--skills-dir") + 1]).toContain(
+      "taskcore-kimi-skills-",
+    );
   });
 });

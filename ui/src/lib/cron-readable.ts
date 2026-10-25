@@ -5,7 +5,15 @@
  * Falls back to the raw expression when it can't confidently describe it.
  */
 
-const DOW_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DOW_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 function pad2(value: number): string {
   return value.toString().padStart(2, "0");
@@ -34,7 +42,9 @@ function describeDayOfWeek(dow: string): string | null {
   return `every ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-export function describeCron(expression: string | null | undefined): string | null {
+export function describeCron(
+  expression: string | null | undefined,
+): string | null {
   if (!expression) return null;
   const trimmed = expression.trim();
   const fields = trimmed.split(/\s+/);
@@ -44,18 +54,36 @@ export function describeCron(expression: string | null | undefined): string | nu
 
   // Every N minutes
   const everyMinutes = minute.match(/^\*\/(\d+)$/);
-  if (everyMinutes && hour === "*" && dom === "*" && month === "*" && dow === "*") {
+  if (
+    everyMinutes &&
+    hour === "*" &&
+    dom === "*" &&
+    month === "*" &&
+    dow === "*"
+  ) {
     return `Every ${everyMinutes[1]} minutes`;
   }
 
   // Every N hours, on the minute
   const everyHours = hour.match(/^\*\/(\d+)$/);
-  if (everyHours && /^\d+$/.test(minute) && dom === "*" && month === "*" && dow === "*") {
+  if (
+    everyHours &&
+    /^\d+$/.test(minute) &&
+    dom === "*" &&
+    month === "*" &&
+    dow === "*"
+  ) {
     return `Every ${everyHours[1]} hours at :${pad2(Number(minute))}`;
   }
 
   // Hourly
-  if (/^\d+$/.test(minute) && hour === "*" && dom === "*" && month === "*" && dow === "*") {
+  if (
+    /^\d+$/.test(minute) &&
+    hour === "*" &&
+    dom === "*" &&
+    month === "*" &&
+    dow === "*"
+  ) {
     return `Every hour at :${pad2(Number(minute))}`;
   }
 
@@ -68,7 +96,8 @@ export function describeCron(expression: string | null | undefined): string | nu
     }
     if (dom === "*") {
       const dowText = describeDayOfWeek(dow);
-      if (dowText) return `${dowText[0].toUpperCase()}${dowText.slice(1)} at ${time}`;
+      if (dowText)
+        return `${dowText[0].toUpperCase()}${dowText.slice(1)} at ${time}`;
     }
     if (/^\d+$/.test(dom) && (dow === "*" || dow === "?")) {
       return `Day ${dom} of every month at ${time}`;

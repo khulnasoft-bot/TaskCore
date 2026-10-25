@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { parseIssuePathIdFromPath, parseIssueReferenceFromHref, remarkLinkIssueReferences } from "./issue-reference";
+import {
+  parseIssuePathIdFromPath,
+  parseIssueReferenceFromHref,
+  remarkLinkIssueReferences,
+} from "./issue-reference";
 
-type TreeNode = { type: string; value?: string; url?: string; children?: TreeNode[] };
+type TreeNode = {
+  type: string;
+  value?: string;
+  url?: string;
+  children?: TreeNode[];
+};
 
 function paragraph(value: string): TreeNode {
-  return { type: "root", children: [{ type: "paragraph", children: [{ type: "text", value }] }] };
+  return {
+    type: "root",
+    children: [{ type: "paragraph", children: [{ type: "text", value }] }],
+  };
 }
 
 function paragraphChildren(tree: TreeNode): TreeNode[] {
@@ -22,30 +34,56 @@ describe("issue-reference", () => {
   });
 
   it("keeps anchors and queries in navigation, outside the issue lookup ID", () => {
-    for (const suffix of ["#document-output", "#comment-123", "?view=chat#document-output"]) {
-      expect(parseIssuePathIdFromPath(`/PAP/issues/pap-1271${suffix}`)).toBe("PAP-1271");
-      expect(parseIssueReferenceFromHref(`/PAP/issues/pap-1271${suffix}`)).toEqual({
-        issuePathId: "PAP-1271", href: `/issues/PAP-1271${suffix}`,
+    for (const suffix of [
+      "#document-output",
+      "#comment-123",
+      "?view=chat#document-output",
+    ]) {
+      expect(parseIssuePathIdFromPath(`/PAP/issues/pap-1271${suffix}`)).toBe(
+        "PAP-1271",
+      );
+      expect(
+        parseIssueReferenceFromHref(`/PAP/issues/pap-1271${suffix}`),
+      ).toEqual({
+        issuePathId: "PAP-1271",
+        href: `/issues/PAP-1271${suffix}`,
       });
       expect(parseIssueReferenceFromHref(`issue://PAP-1271${suffix}`)).toEqual({
-        issuePathId: "PAP-1271", href: `/issues/PAP-1271${suffix}`,
+        issuePathId: "PAP-1271",
+        href: `/issues/PAP-1271${suffix}`,
       });
     }
   });
 
   it("does not treat full issue URLs as internal issue paths", () => {
-    expect(parseIssuePathIdFromPath("http://localhost:3100/PAP/issues/PAP-1179")).toBeNull();
-    expect(parseIssuePathIdFromPath("http://remote.example.test:3103/PAPA/issues/PAPA-115#comment-850083f3-24de-43e7-a8cd-bc01f7cc9f0d")).toBeNull();
+    expect(
+      parseIssuePathIdFromPath("http://localhost:3100/PAP/issues/PAP-1179"),
+    ).toBeNull();
+    expect(
+      parseIssuePathIdFromPath(
+        "http://remote.example.test:3103/PAPA/issues/PAPA-115#comment-850083f3-24de-43e7-a8cd-bc01f7cc9f0d",
+      ),
+    ).toBeNull();
   });
 
   it("does not treat GitHub issue URLs as internal Taskcore issue links", () => {
-    expect(parseIssuePathIdFromPath("https://github.com/khulnasoft/taskcore/issues/1778")).toBeNull();
-    expect(parseIssueReferenceFromHref("https://github.com/khulnasoft/taskcore/issues/1778")).toBeNull();
+    expect(
+      parseIssuePathIdFromPath(
+        "https://github.com/khulnasoft/taskcore/issues/1778",
+      ),
+    ).toBeNull();
+    expect(
+      parseIssueReferenceFromHref(
+        "https://github.com/khulnasoft/taskcore/issues/1778",
+      ),
+    ).toBeNull();
   });
 
   it("ignores placeholder issue paths", () => {
     expect(parseIssuePathIdFromPath("/issues/:id")).toBeNull();
-    expect(parseIssuePathIdFromPath("http://localhost:3100/issues/:id")).toBeNull();
+    expect(
+      parseIssuePathIdFromPath("http://localhost:3100/issues/:id"),
+    ).toBeNull();
     expect(parseIssueReferenceFromHref("/issues/:id")).toBeNull();
   });
 
@@ -80,21 +118,31 @@ describe("issue-reference", () => {
   });
 
   it("preserves absolute Taskcore issue URLs so origin, port, and hash are not lost", () => {
-    expect(parseIssueReferenceFromHref("http://localhost:3100/PAP/issues/PAP-1179")).toBeNull();
-    expect(parseIssueReferenceFromHref("http://remote.example.test:3103/PAPA/issues/PAPA-115#comment-850083f3-24de-43e7-a8cd-bc01f7cc9f0d")).toBeNull();
+    expect(
+      parseIssueReferenceFromHref("http://localhost:3100/PAP/issues/PAP-1179"),
+    ).toBeNull();
+    expect(
+      parseIssueReferenceFromHref(
+        "http://remote.example.test:3103/PAPA/issues/PAPA-115#comment-850083f3-24de-43e7-a8cd-bc01f7cc9f0d",
+      ),
+    ).toBeNull();
   });
 
   it("ignores literal route placeholder paths", () => {
     expect(parseIssueReferenceFromHref("/issues/:id")).toBeNull();
-    expect(parseIssueReferenceFromHref("http://localhost:3100/api/issues/:id")).toBeNull();
+    expect(
+      parseIssueReferenceFromHref("http://localhost:3100/api/issues/:id"),
+    ).toBeNull();
   });
 
   describe("known-prefix gating", () => {
     it("links a bare identifier whose prefix is known", () => {
-      expect(parseIssueReferenceFromHref("PAP-1271", new Set(["PAP"]))).toEqual({
-        issuePathId: "PAP-1271",
-        href: "/issues/PAP-1271",
-      });
+      expect(parseIssueReferenceFromHref("PAP-1271", new Set(["PAP"]))).toEqual(
+        {
+          issuePathId: "PAP-1271",
+          href: "/issues/PAP-1271",
+        },
+      );
     });
 
     it("matches the prefix case-insensitively", () => {
@@ -105,7 +153,9 @@ describe("issue-reference", () => {
     });
 
     it("does not link a bare identifier whose prefix is unknown (e.g. a Jira key)", () => {
-      expect(parseIssueReferenceFromHref("JIRA-456", new Set(["PAP"]))).toBeNull();
+      expect(
+        parseIssueReferenceFromHref("JIRA-456", new Set(["PAP"])),
+      ).toBeNull();
     });
 
     it("stays permissive when no prefix set is supplied", () => {
@@ -123,14 +173,18 @@ describe("issue-reference", () => {
     });
 
     it("never gates explicit issue:// scheme references", () => {
-      expect(parseIssueReferenceFromHref("issue://ACME-9", new Set(["PAP"]))).toEqual({
+      expect(
+        parseIssueReferenceFromHref("issue://ACME-9", new Set(["PAP"])),
+      ).toEqual({
         issuePathId: "ACME-9",
         href: "/issues/ACME-9",
       });
     });
 
     it("never gates explicit /issues/ path references", () => {
-      expect(parseIssueReferenceFromHref("/ACME/issues/ACME-9", new Set(["PAP"]))).toEqual({
+      expect(
+        parseIssueReferenceFromHref("/ACME/issues/ACME-9", new Set(["PAP"])),
+      ).toEqual({
         issuePathId: "ACME-9",
         href: "/issues/ACME-9",
       });
@@ -145,7 +199,11 @@ describe("issue-reference", () => {
       const children = paragraphChildren(tree);
       expect(children).toEqual([
         { type: "text", value: "See " },
-        { type: "link", url: "/issues/PAP-1", children: [{ type: "text", value: "PAP-1" }] },
+        {
+          type: "link",
+          url: "/issues/PAP-1",
+          children: [{ type: "text", value: "PAP-1" }],
+        },
         { type: "text", value: " and JIRA-2 today." },
       ]);
     });
@@ -154,8 +212,13 @@ describe("issue-reference", () => {
       const tree = paragraph("See PAP-1 and JIRA-2.");
       remarkLinkIssueReferences()(tree);
 
-      const links = paragraphChildren(tree).filter((node) => node.type === "link");
-      expect(links.map((node) => node.url)).toEqual(["/issues/PAP-1", "/issues/JIRA-2"]);
+      const links = paragraphChildren(tree).filter(
+        (node) => node.type === "link",
+      );
+      expect(links.map((node) => node.url)).toEqual([
+        "/issues/PAP-1",
+        "/issues/JIRA-2",
+      ]);
     });
   });
 });

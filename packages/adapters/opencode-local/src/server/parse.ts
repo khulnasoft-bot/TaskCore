@@ -1,4 +1,8 @@
-import { asString, parseJson, parseObject } from "@taskcore/adapter-utils/server-utils";
+import {
+  asString,
+  parseJson,
+  parseObject,
+} from "@taskcore/adapter-utils/server-utils";
 
 function errorText(value: unknown): string {
   if (typeof value === "string") return value;
@@ -63,15 +67,39 @@ export function createOpenCodeJsonlParser() {
         const part = parseObject(event.part);
         const tokens = parseObject(part.tokens);
         const cache = parseObject(tokens.cache);
-        const counts = [tokens.input, tokens.output, cache.read === undefined ? 0 : cache.read, cache.write === undefined ? 0 : cache.write, tokens.reasoning === undefined ? 0 : tokens.reasoning];
-        if (counts.every(value => typeof value === "number" && Number.isSafeInteger(value) && value >= 0)) {
-          const [input, output, cached, written, reasoning] = counts as number[];
-          const next = { inputTokens: usage.inputTokens + input + written,
-            outputTokens: usage.outputTokens + output + reasoning, cachedInputTokens: usage.cachedInputTokens + cached };
-          if (Object.values(next).every(Number.isSafeInteger)) { Object.assign(usage, next); usageReported = true; }
-          else missingUsage = true;
+        const counts = [
+          tokens.input,
+          tokens.output,
+          cache.read === undefined ? 0 : cache.read,
+          cache.write === undefined ? 0 : cache.write,
+          tokens.reasoning === undefined ? 0 : tokens.reasoning,
+        ];
+        if (
+          counts.every(
+            (value) =>
+              typeof value === "number" &&
+              Number.isSafeInteger(value) &&
+              value >= 0,
+          )
+        ) {
+          const [input, output, cached, written, reasoning] =
+            counts as number[];
+          const next = {
+            inputTokens: usage.inputTokens + input + written,
+            outputTokens: usage.outputTokens + output + reasoning,
+            cachedInputTokens: usage.cachedInputTokens + cached,
+          };
+          if (Object.values(next).every(Number.isSafeInteger)) {
+            Object.assign(usage, next);
+            usageReported = true;
+          } else missingUsage = true;
         } else missingUsage = true;
-        if (typeof part.cost === "number" && Number.isFinite(part.cost) && part.cost >= 0) costUsd = (costUsd ?? 0) + part.cost;
+        if (
+          typeof part.cost === "number" &&
+          Number.isFinite(part.cost) &&
+          part.cost >= 0
+        )
+          costUsd = (costUsd ?? 0) + part.cost;
         else missingCost = true;
         continue;
       }
@@ -106,7 +134,10 @@ export function createOpenCodeJsonlParser() {
   };
 }
 
-export function isOpenCodeUnknownSessionError(stdout: string, stderr: string): boolean {
+export function isOpenCodeUnknownSessionError(
+  stdout: string,
+  stderr: string,
+): boolean {
   const haystack = `${stdout}\n${stderr}`
     .split(/\r?\n/)
     .map((line) => line.trim())

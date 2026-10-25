@@ -39,13 +39,16 @@ describe("model pricing", () => {
     ["openrouter/z-ai/glm-5.3", 1.4, 0.14, 4.4],
     ["openrouter/deepseek/deepseek-v4-flash-0731", 0.14, 0.028, 0.28],
     ["openrouter/openai/gpt-6-astra", 10, 1, 50],
-  ])("pins the provider list price for %s", (model, input, cachedInput, output) => {
-    expect(
-      estimateModelCostNanodollars(model, {
-        inputTokens: 1_000,
-        cachedInputTokens: 400,
-        outputTokens: 100,
-      }).ratesUsdPerMillionTokens,
-    ).toEqual({ input, cachedInput, output });
-  });
+  ])(
+    "pins the provider list price for %s",
+    (model, input, cachedInput, output) => {
+      expect(
+        estimateModelCostNanodollars(model, {
+          inputTokens: 1_000,
+          cachedInputTokens: 400,
+          outputTokens: 100,
+        }).ratesUsdPerMillionTokens,
+      ).toEqual({ input, cachedInput, output });
+    },
+  );
 });

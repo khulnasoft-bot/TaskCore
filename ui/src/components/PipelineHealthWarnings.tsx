@@ -23,7 +23,10 @@ function WarningMessage({ warning }: { warning: PipelineHealthWarning }) {
       {warning.href ? (
         <>
           {" "}
-          <Link to={warning.href} className="font-medium underline underline-offset-2">
+          <Link
+            to={warning.href}
+            className="font-medium underline underline-offset-2"
+          >
             {warning.hrefLabel ?? "Open"}
           </Link>
         </>
@@ -57,7 +60,10 @@ export function PipelineHealthBar({
         className,
       )}
     >
-      <h2 id="pipeline-health-bar-heading" className="flex items-center gap-2 text-sm font-semibold">
+      <h2
+        id="pipeline-health-bar-heading"
+        className="flex items-center gap-2 text-sm font-semibold"
+      >
         <AlertTriangle className="h-4 w-4 shrink-0" />
         <span>Some steps won't run yet — {warningCount(warnings.length)}</span>
       </h2>
@@ -65,11 +71,15 @@ export function PipelineHealthBar({
         {shown.map((warning, index) => {
           const body = (
             <>
-              <span className="font-medium">{warning.stageName}:</span> <WarningMessage warning={warning} />
+              <span className="font-medium">{warning.stageName}:</span>{" "}
+              <WarningMessage warning={warning} />
             </>
           );
           return (
-            <li key={`${warning.stageId}-${warning.code}-${index}`} className="list-disc">
+            <li
+              key={`${warning.stageId}-${warning.code}-${index}`}
+              className="list-disc"
+            >
               {warning.href ? (
                 <span>{body}</span>
               ) : onSelectStage ? (
@@ -80,7 +90,10 @@ export function PipelineHealthBar({
                   onClick={() => onSelectStage(warning.stageId)}
                 >
                   <span className="min-w-0 flex-1">{body}</span>
-                  <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 opacity-70" aria-hidden="true" />
+                  <ChevronRight
+                    className="mt-0.5 h-3 w-3 shrink-0 opacity-70"
+                    aria-hidden="true"
+                  />
                 </button>
               ) : (
                 <span>{body}</span>

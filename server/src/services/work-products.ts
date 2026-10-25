@@ -1,6 +1,11 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { executionWorkspaces, heartbeatRunEvents, issueWorkProducts, workspaceRuntimeServices } from "@taskcore/db";
+import {
+  executionWorkspaces,
+  heartbeatRunEvents,
+  issueWorkProducts,
+  workspaceRuntimeServices,
+} from "@taskcore/db";
 import type { IssueWorkProduct } from "@taskcore/shared";
 import { unprocessable } from "../errors.js";
 import { insertRowsInChunks } from "./batch-insert.js";
@@ -28,16 +33,18 @@ async function validateExecutionWorkspace(
   const [workspace] = await tx
     .select({ id: executionWorkspaces.id })
     .from(executionWorkspaces)
-    .where(and(
-      eq(executionWorkspaces.id, executionWorkspaceId),
-      eq(executionWorkspaces.companyId, companyId),
-    ))
+    .where(
+      and(
+        eq(executionWorkspaces.id, executionWorkspaceId),
+        eq(executionWorkspaces.companyId, companyId),
+      ),
+    )
     // Keep a concurrent delete from invalidating the reference before the write.
     .for("key share");
   if (!workspace) {
     throw unprocessable(
       "executionWorkspaceId must identify an execution workspace in this company. " +
-      "Project workspace IDs are not execution workspace IDs. Omit this field when no execution workspace is available.",
+        "Project workspace IDs are not execution workspace IDs. Omit this field when no execution workspace is available.",
     );
   }
 }
@@ -49,25 +56,43 @@ export interface WorkProductDiffSummary {
 }
 
 function nonNegativeInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null;
 }
 
-export function workProductDiffSummaryFromEventPayload(payload: unknown): WorkProductDiffSummary | null {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+export function workProductDiffSummaryFromEventPayload(
+  payload: unknown,
+): WorkProductDiffSummary | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload))
+    return null;
   const outer = payload as Record<string, unknown>;
-  const wrappedEvent = outer.prpEvent && typeof outer.prpEvent === "object" && !Array.isArray(outer.prpEvent)
-    ? outer.prpEvent as Record<string, unknown>
-    : null;
-  const eventPayload = wrappedEvent?.payload ?? (outer.schema === "taskcore.prp.event.v1" ? outer.payload : outer);
-  if (!eventPayload || typeof eventPayload !== "object" || Array.isArray(eventPayload)) return null;
+  const wrappedEvent =
+    outer.prpEvent &&
+    typeof outer.prpEvent === "object" &&
+    !Array.isArray(outer.prpEvent)
+      ? (outer.prpEvent as Record<string, unknown>)
+      : null;
+  const eventPayload =
+    wrappedEvent?.payload ??
+    (outer.schema === "taskcore.prp.event.v1" ? outer.payload : outer);
+  if (
+    !eventPayload ||
+    typeof eventPayload !== "object" ||
+    Array.isArray(eventPayload)
+  )
+    return null;
   const totals = (eventPayload as Record<string, unknown>).totals;
-  if (!totals || typeof totals !== "object" || Array.isArray(totals)) return null;
+  if (!totals || typeof totals !== "object" || Array.isArray(totals))
+    return null;
   const values = totals as Record<string, unknown>;
   const changedFiles = nonNegativeInteger(values.files);
   if (changedFiles === null) return null;
   return {
-    additions: values.additions === null ? null : nonNegativeInteger(values.additions),
-    deletions: values.deletions === null ? null : nonNegativeInteger(values.deletions),
+    additions:
+      values.additions === null ? null : nonNegativeInteger(values.additions),
+    deletions:
+      values.deletions === null ? null : nonNegativeInteger(values.deletions),
     changedFiles,
   };
 }
@@ -89,41 +114,57 @@ export async function refreshPullRequestWorkProductMetadata(
   products: IssueWorkProduct[],
   resolvePullRequestDetails: PullRequestMergeDetailsResolver,
 ): Promise<IssueWorkProduct[]> {
-  return await Promise.all(products.map(async (product) => {
-    if (product.type !== "pull_request") return product;
-    const metadata = product.metadata ?? {};
-    const repo = typeof metadata.repo === "string" ? metadata.repo
-      : typeof metadata.repository === "string" ? metadata.repository : null;
-    const number = nonNegativeInteger(metadata.number);
-    const references = extractGitHubPullRequestReferences([
-      product.url,
-      typeof metadata.url === "string" ? metadata.url : null,
-      repo && number ? `${repo}#${number}` : null,
-    ]);
-    const reference = references[0];
-    if (!reference) return product;
-    try {
-      const details = await resolvePullRequestDetails(product.companyId, reference);
-      if (!details.workProductState) return product;
-      return {
-        ...product,
-        metadata: {
-          ...metadata,
-          repo: repo ?? `${reference.owner}/${reference.repo}`,
-          number: number ?? reference.number,
-          ...(details.baseRef ? { baseRef: details.baseRef } : {}),
-          ...(details.headRef ? { headRef: details.headRef } : {}),
-          ...(nonNegativeInteger(details.additions) === null ? {} : { additions: details.additions }),
-          ...(nonNegativeInteger(details.deletions) === null ? {} : { deletions: details.deletions }),
-          ...(nonNegativeInteger(details.changedFiles) === null ? {} : { changedFiles: details.changedFiles }),
-          state: details.workProductState,
-          draft: details.workProductState === "draft" || details.draft === true,
-        },
-      };
-    } catch {
-      return product;
-    }
-  }));
+  return await Promise.all(
+    products.map(async (product) => {
+      if (product.type !== "pull_request") return product;
+      const metadata = product.metadata ?? {};
+      const repo =
+        typeof metadata.repo === "string"
+          ? metadata.repo
+          : typeof metadata.repository === "string"
+            ? metadata.repository
+            : null;
+      const number = nonNegativeInteger(metadata.number);
+      const references = extractGitHubPullRequestReferences([
+        product.url,
+        typeof metadata.url === "string" ? metadata.url : null,
+        repo && number ? `${repo}#${number}` : null,
+      ]);
+      const reference = references[0];
+      if (!reference) return product;
+      try {
+        const details = await resolvePullRequestDetails(
+          product.companyId,
+          reference,
+        );
+        if (!details.workProductState) return product;
+        return {
+          ...product,
+          metadata: {
+            ...metadata,
+            repo: repo ?? `${reference.owner}/${reference.repo}`,
+            number: number ?? reference.number,
+            ...(details.baseRef ? { baseRef: details.baseRef } : {}),
+            ...(details.headRef ? { headRef: details.headRef } : {}),
+            ...(nonNegativeInteger(details.additions) === null
+              ? {}
+              : { additions: details.additions }),
+            ...(nonNegativeInteger(details.deletions) === null
+              ? {}
+              : { deletions: details.deletions }),
+            ...(nonNegativeInteger(details.changedFiles) === null
+              ? {}
+              : { changedFiles: details.changedFiles }),
+            state: details.workProductState,
+            draft:
+              details.workProductState === "draft" || details.draft === true,
+          },
+        };
+      } catch {
+        return product;
+      }
+    }),
+  );
 }
 
 function toIssueWorkProduct(row: IssueWorkProductRow): IssueWorkProduct {
@@ -175,20 +216,31 @@ export function reconcileRuntimeServiceWorkProducts(
   }>,
 ): IssueWorkProduct[] {
   if (products.length === 0) return products;
-  const liveById = new Map(liveRuntimeServices.map((service) => [service.id, service]));
+  const liveById = new Map(
+    liveRuntimeServices.map((service) => [service.id, service]),
+  );
   return products.map((product) => {
-    if (product.type !== "runtime_service" || !product.runtimeServiceId) return product;
+    if (product.type !== "runtime_service" || !product.runtimeServiceId)
+      return product;
     const live = liveById.get(product.runtimeServiceId);
     if (!live) {
       return product.status === "closed" && product.healthStatus === "unhealthy"
         ? product
         : { ...product, status: "closed", healthStatus: "unhealthy" };
     }
-    const isServing = live.status === "running" && live.healthStatus === "healthy";
+    const isServing =
+      live.status === "running" && live.healthStatus === "healthy";
     const url = live.url ?? product.url;
     const status = live.status === "running" ? product.status : "closed";
-    const healthStatus: IssueWorkProduct["healthStatus"] = isServing ? "healthy" : "unhealthy";
-    if (product.url === url && product.status === status && product.healthStatus === healthStatus) return product;
+    const healthStatus: IssueWorkProduct["healthStatus"] = isServing
+      ? "healthy"
+      : "unhealthy";
+    if (
+      product.url === url &&
+      product.status === status &&
+      product.healthStatus === healthStatus
+    )
+      return product;
     return { ...product, url, status, healthStatus };
   });
 }
@@ -200,43 +252,71 @@ export function workProductService(
     resolveCommitDetails?: GitHubCommitDiffDetailsResolver;
   } = {},
 ) {
-  const resolvePullRequestDetails = opts.resolvePullRequestDetails ?? createPullRequestMergeDetailsResolver(db);
-  const resolveCommitDetails = opts.resolveCommitDetails ?? createGitHubCommitDiffDetailsResolver(db);
+  const resolvePullRequestDetails =
+    opts.resolvePullRequestDetails ?? createPullRequestMergeDetailsResolver(db);
+  const resolveCommitDetails =
+    opts.resolveCommitDetails ?? createGitHubCommitDiffDetailsResolver(db);
   return {
-    listForIssue: async (issueId: string, options: { refreshPullRequests?: boolean } = {}) => {
+    listForIssue: async (
+      issueId: string,
+      options: { refreshPullRequests?: boolean } = {},
+    ) => {
       const rows = await db
         .select()
         .from(issueWorkProducts)
         .where(eq(issueWorkProducts.issueId, issueId))
-        .orderBy(desc(issueWorkProducts.isPrimary), desc(issueWorkProducts.updatedAt));
+        .orderBy(
+          desc(issueWorkProducts.isPrimary),
+          desc(issueWorkProducts.updatedAt),
+        );
       const products = rows.map(toIssueWorkProduct);
       const runtimeServiceIds = products
-        .map((product) => (product.type === "runtime_service" ? product.runtimeServiceId : null))
+        .map((product) =>
+          product.type === "runtime_service" ? product.runtimeServiceId : null,
+        )
         .filter((value): value is string => Boolean(value));
-      const reconciled = runtimeServiceIds.length === 0
-        ? products
-        : reconcileRuntimeServiceWorkProducts(products, await db
-            .select({
-              id: workspaceRuntimeServices.id,
-              url: workspaceRuntimeServices.url,
-              status: workspaceRuntimeServices.status,
-              healthStatus: workspaceRuntimeServices.healthStatus,
-            })
-            .from(workspaceRuntimeServices)
-            .where(inArray(workspaceRuntimeServices.id, [...new Set(runtimeServiceIds)])));
+      const reconciled =
+        runtimeServiceIds.length === 0
+          ? products
+          : reconcileRuntimeServiceWorkProducts(
+              products,
+              await db
+                .select({
+                  id: workspaceRuntimeServices.id,
+                  url: workspaceRuntimeServices.url,
+                  status: workspaceRuntimeServices.status,
+                  healthStatus: workspaceRuntimeServices.healthStatus,
+                })
+                .from(workspaceRuntimeServices)
+                .where(
+                  inArray(workspaceRuntimeServices.id, [
+                    ...new Set(runtimeServiceIds),
+                  ]),
+                ),
+            );
       return options.refreshPullRequests
-        ? refreshPullRequestWorkProductMetadata(reconciled, resolvePullRequestDetails)
+        ? refreshPullRequestWorkProductMetadata(
+            reconciled,
+            resolvePullRequestDetails,
+          )
         : reconciled;
     },
 
-    latestRunDiffSummary: async (runId: string): Promise<WorkProductDiffSummary | null> => {
+    latestRunDiffSummary: async (
+      runId: string,
+    ): Promise<WorkProductDiffSummary | null> => {
       const rows = await db
         .select({ payload: heartbeatRunEvents.payload })
         .from(heartbeatRunEvents)
-        .where(and(
-          eq(heartbeatRunEvents.runId, runId),
-          inArray(heartbeatRunEvents.eventType, ["workspace.change.updated", "workspace.diff.recorded"]),
-        ))
+        .where(
+          and(
+            eq(heartbeatRunEvents.runId, runId),
+            inArray(heartbeatRunEvents.eventType, [
+              "workspace.change.updated",
+              "workspace.diff.recorded",
+            ]),
+          ),
+        )
         .orderBy(desc(heartbeatRunEvents.seq))
         .limit(20);
       for (const row of rows) {
@@ -248,7 +328,11 @@ export function workProductService(
 
     resolveCommitDiffSummary: async (
       companyId: string,
-      input: { provider: string; url?: string | null; metadata?: Record<string, unknown> | null },
+      input: {
+        provider: string;
+        url?: string | null;
+        metadata?: Record<string, unknown> | null;
+      },
     ): Promise<WorkProductDiffSummary | null> => {
       if (input.provider.toLowerCase() !== "github") return null;
       const metadata = input.metadata ?? {};
@@ -258,7 +342,9 @@ export function workProductService(
         input.url,
         repo && sha ? `${repo}@${sha}` : null,
       ]);
-      return reference ? await resolveCommitDetails(companyId, reference) : null;
+      return reference
+        ? await resolveCommitDetails(companyId, reference)
+        : null;
     },
 
     getById: async (id: string) => {
@@ -270,9 +356,20 @@ export function workProductService(
       return row ? toIssueWorkProduct(row) : null;
     },
 
-    createForIssue: async (issueId: string, companyId: string, data: Omit<typeof issueWorkProducts.$inferInsert, "issueId" | "companyId">) => {
+    createForIssue: async (
+      issueId: string,
+      companyId: string,
+      data: Omit<
+        typeof issueWorkProducts.$inferInsert,
+        "issueId" | "companyId"
+      >,
+    ) => {
       const row = await db.transaction(async (tx) => {
-        await validateExecutionWorkspace(tx, companyId, data.executionWorkspaceId);
+        await validateExecutionWorkspace(
+          tx,
+          companyId,
+          data.executionWorkspaceId,
+        );
         if (data.isPrimary) {
           await tx
             .update(issueWorkProducts)
@@ -298,7 +395,10 @@ export function workProductService(
       return row ? toIssueWorkProduct(row) : null;
     },
 
-    update: async (id: string, patch: Partial<typeof issueWorkProducts.$inferInsert>) => {
+    update: async (
+      id: string,
+      patch: Partial<typeof issueWorkProducts.$inferInsert>,
+    ) => {
       const row = await db.transaction(async (tx) => {
         const existing = await tx
           .select()
@@ -307,7 +407,11 @@ export function workProductService(
           .then((rows) => rows[0] ?? null);
         if (!existing) return null;
 
-        await validateExecutionWorkspace(tx, existing.companyId, patch.executionWorkspaceId);
+        await validateExecutionWorkspace(
+          tx,
+          existing.companyId,
+          patch.executionWorkspaceId,
+        );
 
         if (patch.isPrimary === true) {
           await tx
@@ -340,11 +444,14 @@ export function workProductService(
      * imported rows themselves. We reproduce "last primary wins" within each
      * (issue, type) group and insert the whole batch in chunked statements.
      */
-    createManyForImport: async (rows: ImportIssueWorkProductRow[]): Promise<void> => {
+    createManyForImport: async (
+      rows: ImportIssueWorkProductRow[],
+    ): Promise<void> => {
       if (rows.length === 0) return;
       const lastPrimaryIndexByGroup = new Map<string, number>();
       rows.forEach((row, index) => {
-        if (row.isPrimary) lastPrimaryIndexByGroup.set(`${row.issueId}:${row.type}`, index);
+        if (row.isPrimary)
+          lastPrimaryIndexByGroup.set(`${row.issueId}:${row.type}`, index);
       });
       const values = rows.map((row, index) => ({
         companyId: row.companyId,

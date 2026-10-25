@@ -1,6 +1,10 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { agents, companySkillPolicies, principalPermissionGrants } from "@taskcore/db";
+import {
+  agents,
+  companySkillPolicies,
+  principalPermissionGrants,
+} from "@taskcore/db";
 import {
   normalizeSkillPolicySourceLocator,
   skillPolicyDocumentSchema,
@@ -29,7 +33,9 @@ const OPEN_DEFAULT_POLICY: EffectiveSkillPolicy = {
   materialized: false,
 };
 
-function effectivePolicyFromRow(row: typeof companySkillPolicies.$inferSelect): EffectiveSkillPolicy {
+function effectivePolicyFromRow(
+  row: typeof companySkillPolicies.$inferSelect,
+): EffectiveSkillPolicy {
   const document = skillPolicyDocumentSchema.parse({
     schemaVersion: row.schemaVersion,
     defaultEffect: row.defaultEffect,
@@ -42,28 +48,59 @@ function normalizeRole(role: string | null) {
   return role?.trim().toLowerCase() || null;
 }
 
-function subjectMatches(rule: SkillPolicyRule, principal: SkillPolicyPrincipal) {
+function subjectMatches(
+  rule: SkillPolicyRule,
+  principal: SkillPolicyPrincipal,
+) {
   if (rule.subject.type === "all_agents") return principal.type === "agent";
   if (rule.subject.type === "agents") {
-    return principal.type === "agent" && rule.subject.agentIds.includes(principal.id);
+    return (
+      principal.type === "agent" && rule.subject.agentIds.includes(principal.id)
+    );
   }
   const role = normalizeRole(principal.role);
-  return Boolean(role && rule.subject.roles.some((candidate) => normalizeRole(candidate) === role));
+  return Boolean(
+    role &&
+    rule.subject.roles.some((candidate) => normalizeRole(candidate) === role),
+  );
 }
 
-function resourceMatches(rule: SkillPolicyRule, resource: SkillPolicyEvaluationResource) {
+function resourceMatches(
+  rule: SkillPolicyRule,
+  resource: SkillPolicyEvaluationResource,
+) {
   const selector = rule.resources;
   if (!selector) return true;
-  if (selector.skillIds && (!resource.skillId || !selector.skillIds.includes(resource.skillId))) return false;
-  if (selector.skillKeys && (!resource.skillKey || !selector.skillKeys.includes(resource.skillKey))) return false;
-  if (selector.sourceTypes && (!resource.sourceType || !selector.sourceTypes.includes(resource.sourceType))) return false;
+  if (
+    selector.skillIds &&
+    (!resource.skillId || !selector.skillIds.includes(resource.skillId))
+  )
+    return false;
+  if (
+    selector.skillKeys &&
+    (!resource.skillKey || !selector.skillKeys.includes(resource.skillKey))
+  )
+    return false;
+  if (
+    selector.sourceTypes &&
+    (!resource.sourceType ||
+      !selector.sourceTypes.includes(resource.sourceType))
+  )
+    return false;
   if (selector.sourceLocators) {
     // Compare in canonical form on both sides: rules written before locator
     // normalization existed are stored raw, and callers may pass un-normalized
     // resources; strict equality on mixed forms would silently skip deny rules.
-    const resourceLocator = resource.sourceLocator ? normalizeSkillPolicySourceLocator(resource.sourceLocator) : null;
+    const resourceLocator = resource.sourceLocator
+      ? normalizeSkillPolicySourceLocator(resource.sourceLocator)
+      : null;
     if (!resourceLocator) return false;
-    if (!selector.sourceLocators.some((locator) => normalizeSkillPolicySourceLocator(locator) === resourceLocator)) {
+    if (
+      !selector.sourceLocators.some(
+        (locator) =>
+          normalizeSkillPolicySourceLocator(locator) === resourceLocator,
+      )
+    ) {
       return false;
     }
   }
@@ -83,11 +120,15 @@ function decision(
     reason,
     policyRevision: revision,
     matchedRuleId,
-    remediation: allowed ? null : "Contact a company administrator to change the skill policy.",
+    remediation: allowed
+      ? null
+      : "Contact a company administrator to change the skill policy.",
   };
 }
 
-export function normalizeSkillPolicySourceType(sourceType: string | null | undefined): SkillPolicySourceType {
+export function normalizeSkillPolicySourceType(
+  sourceType: string | null | undefined,
+): SkillPolicySourceType {
   switch (sourceType?.trim().toLowerCase()) {
     case "local_path":
     case "workspace":
@@ -121,7 +162,10 @@ export function companySkillPolicyService(db: Db) {
     return row ? effectivePolicyFromRow(row) : { ...OPEN_DEFAULT_POLICY };
   }
 
-  async function resolveAgentPrincipal(companyId: string, agentId: string): Promise<SkillPolicyPrincipal> {
+  async function resolveAgentPrincipal(
+    companyId: string,
+    agentId: string,
+  ): Promise<SkillPolicyPrincipal> {
     const agent = await db
       .select({ id: agents.id, companyId: agents.companyId, role: agents.role })
       .from(agents)
@@ -136,17 +180,25 @@ export function companySkillPolicyService(db: Db) {
     return { type: "agent", id: agent.id, role: agent.role };
   }
 
-  async function hasLegacyBroadMutationGrant(companyId: string, principal: SkillPolicyPrincipal) {
+  async function hasLegacyBroadMutationGrant(
+    companyId: string,
+    principal: SkillPolicyPrincipal,
+  ) {
     const principalType = principal.type === "agent" ? "agent" : "user";
     const row = await db
       .select({ permissionKey: principalPermissionGrants.permissionKey })
       .from(principalPermissionGrants)
-      .where(and(
-        eq(principalPermissionGrants.companyId, companyId),
-        eq(principalPermissionGrants.principalType, principalType),
-        eq(principalPermissionGrants.principalId, principal.id),
-        inArray(principalPermissionGrants.permissionKey, ["skills:create", "skills:suggest-changes"]),
-      ))
+      .where(
+        and(
+          eq(principalPermissionGrants.companyId, companyId),
+          eq(principalPermissionGrants.principalType, principalType),
+          eq(principalPermissionGrants.principalId, principal.id),
+          inArray(principalPermissionGrants.permissionKey, [
+            "skills:create",
+            "skills:suggest-changes",
+          ]),
+        ),
+      )
       .limit(1)
       .then((rows) => rows[0] ?? null);
     return Boolean(row);
@@ -164,10 +216,16 @@ export function companySkillPolicyService(db: Db) {
     }
     const resource = input.resource ?? {};
     const matchingRule = [...policy.rules]
-      .sort((left, right) => left.priority - right.priority || left.id.localeCompare(right.id))
-      .find((rule) => rule.actions.includes(input.action)
-        && subjectMatches(rule, input.principal)
-        && resourceMatches(rule, resource));
+      .sort(
+        (left, right) =>
+          left.priority - right.priority || left.id.localeCompare(right.id),
+      )
+      .find(
+        (rule) =>
+          rule.actions.includes(input.action) &&
+          subjectMatches(rule, input.principal) &&
+          resourceMatches(rule, resource),
+      );
     if (matchingRule) {
       return decision(
         matchingRule.effect === "allow",
@@ -180,17 +238,33 @@ export function companySkillPolicyService(db: Db) {
     // These grants historically authorized the full company-skill mutation surface.
     // Preserve that broad scope only as a default-deny compatibility fallback;
     // explicit policy rules and platform invariants still take precedence.
-    if (policy.defaultEffect === "deny" && await hasLegacyBroadMutationGrant(input.companyId, input.principal)) {
-      return decision(true, input.action, "legacy_compatibility", policy.revision);
+    if (
+      policy.defaultEffect === "deny" &&
+      (await hasLegacyBroadMutationGrant(input.companyId, input.principal))
+    ) {
+      return decision(
+        true,
+        input.action,
+        "legacy_compatibility",
+        policy.revision,
+      );
     }
-    return decision(policy.defaultEffect === "allow", input.action, "policy_default", policy.revision);
+    return decision(
+      policy.defaultEffect === "allow",
+      input.action,
+      "policy_default",
+      policy.revision,
+    );
   }
 
   async function replace(input: {
     companyId: string;
     expectedRevision: number;
     policy: SkillPolicyDocument;
-    activity: Omit<LogActivityInput, "companyId" | "action" | "entityType" | "entityId" | "details">;
+    activity: Omit<
+      LogActivityInput,
+      "companyId" | "action" | "entityType" | "entityId" | "details"
+    >;
   }) {
     return db.transaction(async (tx) => {
       const transactionDb = tx as unknown as Db;
@@ -220,10 +294,12 @@ export function companySkillPolicyService(db: Db) {
         const updated = await tx
           .update(companySkillPolicies)
           .set(values)
-          .where(and(
-            eq(companySkillPolicies.companyId, input.companyId),
-            eq(companySkillPolicies.revision, currentRevision),
-          ))
+          .where(
+            and(
+              eq(companySkillPolicies.companyId, input.companyId),
+              eq(companySkillPolicies.revision, currentRevision),
+            ),
+          )
           .returning({ revision: companySkillPolicies.revision })
           .then((rows) => rows[0] ?? null);
         if (!updated) {
@@ -259,13 +335,20 @@ export function companySkillPolicyService(db: Db) {
           ruleCount: policy.rules.length,
         },
       });
-      return { ...policy, revision: nextRevision, materialized: true } satisfies EffectiveSkillPolicy;
+      return {
+        ...policy,
+        revision: nextRevision,
+        materialized: true,
+      } satisfies EffectiveSkillPolicy;
     });
   }
 
   async function reset(input: {
     companyId: string;
-    activity: Omit<LogActivityInput, "companyId" | "action" | "entityType" | "entityId" | "details">;
+    activity: Omit<
+      LogActivityInput,
+      "companyId" | "action" | "entityType" | "entityId" | "details"
+    >;
   }) {
     return db.transaction(async (tx) => {
       const transactionDb = tx as unknown as Db;

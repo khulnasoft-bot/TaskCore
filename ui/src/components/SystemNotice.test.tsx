@@ -108,7 +108,13 @@ describe("SystemNotice", () => {
         detailsDefaultOpen
         metadata={[
           {
-            rows: [{ kind: "text", label: "Suggested action", value: "Pick a disposition" }],
+            rows: [
+              {
+                kind: "text",
+                label: "Suggested action",
+                value: "Pick a disposition",
+              },
+            ],
           },
         ]}
       />,
@@ -161,7 +167,9 @@ describe("SystemNotice", () => {
       />,
     );
 
-    const links = Array.from(node.querySelectorAll("a")).map((a) => a.getAttribute("href"));
+    const links = Array.from(node.querySelectorAll("a")).map((a) =>
+      a.getAttribute("href"),
+    );
     expect(links).toContain("/PAP/issues/PAP-3440");
     expect(links).toContain("/PAP/agents/cto");
     expect(links).toContain("/PAP/agents/codexcoder/runs/9cdba892");

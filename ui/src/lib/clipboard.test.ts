@@ -54,11 +54,17 @@ describe("copyTextToClipboard", () => {
     expect(textarea.value).toBe("ssh agent@host");
     expect(textarea.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(textarea.select).toHaveBeenCalled();
-    expect(textarea.setSelectionRange).toHaveBeenCalledWith(0, "ssh agent@host".length);
+    expect(textarea.setSelectionRange).toHaveBeenCalledWith(
+      0,
+      "ssh agent@host".length,
+    );
     expect(doc.execCommand).toHaveBeenCalledWith("copy");
     // Regression guard: Safari silently no-ops execCommand copy from a
     // `readonly` or `opacity: 0` textarea, so the fallback must use neither.
-    expect(textarea.setAttribute).not.toHaveBeenCalledWith("readonly", expect.anything());
+    expect(textarea.setAttribute).not.toHaveBeenCalledWith(
+      "readonly",
+      expect.anything(),
+    );
     expect(textarea.style.opacity).toBeUndefined();
   });
 

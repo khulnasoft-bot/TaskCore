@@ -34,7 +34,10 @@ describe("kv demo HTTP server", () => {
     const { base } = await startServer();
     const client = await mcpClient(base);
 
-    await client.callTool({ name: "kv_set", arguments: { key: "color", value: "blue" } });
+    await client.callTool({
+      name: "kv_set",
+      arguments: { key: "color", value: "blue" },
+    });
 
     const res = await fetch(`${base}/api/state`);
     expect(res.status).toBe(200);
@@ -50,7 +53,10 @@ describe("kv demo HTTP server", () => {
   it("serves an HTML values table at GET / that includes written keys", async () => {
     const { base } = await startServer();
     const client = await mcpClient(base);
-    await client.callTool({ name: "kv_set", arguments: { key: "fruit", value: "mango" } });
+    await client.callTool({
+      name: "kv_set",
+      arguments: { key: "fruit", value: "mango" },
+    });
     await client.close();
 
     const res = await fetch(`${base}/`);
@@ -67,7 +73,11 @@ describe("kv demo HTTP server", () => {
     expect((await fetch(`${base}/api/state`)).status).toBe(401);
     expect((await fetch(`${base}/api/state?token=${token}`)).status).toBe(401);
     expect(
-      (await fetch(`${base}/api/state`, { headers: { authorization: `Bearer ${token}` } })).status,
+      (
+        await fetch(`${base}/api/state`, {
+          headers: { authorization: `Bearer ${token}` },
+        })
+      ).status,
     ).toBe(200);
 
     const page = await (await fetch(`${base}/`)).text();
@@ -75,7 +85,10 @@ describe("kv demo HTTP server", () => {
     expect(page).toContain("#token=YOUR_TOKEN");
 
     const client = await mcpClient(base, { authorization: `Bearer ${token}` });
-    await client.callTool({ name: "kv_set", arguments: { key: "k", value: "v" } });
+    await client.callTool({
+      name: "kv_set",
+      arguments: { key: "k", value: "v" },
+    });
     const stateResponse = await fetch(`${base}/api/state`, {
       headers: { authorization: `Bearer ${token}` },
     });

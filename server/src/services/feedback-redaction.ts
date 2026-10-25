@@ -10,7 +10,8 @@ export type FeedbackRedactionState = {
   counts: Map<string, number>;
 };
 
-type PatternReplacement = string | ((match: string, ...args: string[]) => string);
+type PatternReplacement =
+  string | ((match: string, ...args: string[]) => string);
 
 type RedactionPattern = {
   kind: string;
@@ -49,12 +50,14 @@ const FREE_TEXT_PATTERNS: RedactionPattern[] = [
   },
   {
     kind: "jwt",
-    regex: /\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?\b/g,
+    regex:
+      /\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?\b/g,
     replacement: "[REDACTED_JWT]",
   },
   {
     kind: "dsn",
-    regex: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|kafka|nats|mssql):\/\/[^\s<>'")]+/gi,
+    regex:
+      /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|kafka|nats|mssql):\/\/[^\s<>'")]+/gi,
     replacement: "[REDACTED_CONNECTION_STRING]",
   },
   {
@@ -144,7 +147,13 @@ export function sanitizeFeedbackValue(
   }
   if (Array.isArray(value)) {
     return value.map((entry, index) =>
-      sanitizeFeedbackValue(entry, state, `${fieldPath}[${index}]`, maxStringLength));
+      sanitizeFeedbackValue(
+        entry,
+        state,
+        `${fieldPath}[${index}]`,
+        maxStringLength,
+      ),
+    );
   }
   if (!isPlainRecord(value)) {
     return value;
@@ -158,19 +167,30 @@ export function sanitizeFeedbackValue(
 
   const output: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(structurallySanitized)) {
-    output[key] = sanitizeFeedbackValue(entry, state, `${fieldPath}.${key}`, maxStringLength);
+    output[key] = sanitizeFeedbackValue(
+      entry,
+      state,
+      `${fieldPath}.${key}`,
+      maxStringLength,
+    );
   }
   return output;
 }
 
-export function finalizeFeedbackRedactionSummary(state: FeedbackRedactionState) {
+export function finalizeFeedbackRedactionSummary(
+  state: FeedbackRedactionState,
+) {
   return {
     strategy: "deterministic_feedback_v2",
     redactedFields: Array.from(state.redactedFields).sort(),
     truncatedFields: Array.from(state.truncatedFields).sort(),
     omittedFields: Array.from(state.omittedFields).sort(),
     notes: Array.from(state.notes).sort(),
-    counts: Object.fromEntries(Array.from(state.counts.entries()).sort(([left], [right]) => left.localeCompare(right))),
+    counts: Object.fromEntries(
+      Array.from(state.counts.entries()).sort(([left], [right]) =>
+        left.localeCompare(right),
+      ),
+    ),
   } satisfies Record<string, unknown>;
 }
 

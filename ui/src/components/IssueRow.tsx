@@ -1,6 +1,10 @@
 import { requiresExecutionReconciliation } from "@taskcore/shared";
 import type { ReactNode } from "react";
-import type { ExternalObjectSummary, Issue, IssueRecoveryAction } from "@taskcore/shared";
+import type {
+  ExternalObjectSummary,
+  Issue,
+  IssueRecoveryAction,
+} from "@taskcore/shared";
 import { Link } from "@/lib/router";
 import { Archive, Flag } from "lucide-react";
 import {
@@ -189,22 +193,31 @@ export function IssueRow({
       />
     </button>
   );
-  const selectedStatusClass = selected ? "!text-muted-foreground !border-muted-foreground" : undefined;
+  const selectedStatusClass = selected
+    ? "!text-muted-foreground !border-muted-foreground"
+    : undefined;
   const detailState = withIssueDetailHeaderSeed(issueLinkState, issue);
   const hasChecklistStep = checklistStepNumber !== null;
   const checklistStep = hasChecklistStep ? (
-    <span className="shrink-0 font-mono text-xs text-muted-foreground" aria-hidden="true">
+    <span
+      className="shrink-0 font-mono text-xs text-muted-foreground"
+      aria-hidden="true"
+    >
       {checklistStepNumber}.
     </span>
   ) : null;
   const recoveryAction = issue.activeRecoveryAction ?? null;
   // The row already carries the issue's own scheduled retry, so the chip can tell a retry the
   // scheduler is actually running from one whose due time simply passed.
-  const recoveryIndicator = recoveryAction && !requiresExecutionReconciliation(recoveryAction.cause)
-    ? renderRecoveryChip(recoveryAction, selected, { scheduledRetry: issue.scheduledRetry ?? null })
-    : null;
+  const recoveryIndicator =
+    recoveryAction && !requiresExecutionReconciliation(recoveryAction.cause)
+      ? renderRecoveryChip(recoveryAction, selected, {
+          scheduledRetry: issue.scheduledRetry ?? null,
+        })
+      : null;
   const parkedBlockerIndicator = hasAssignedBacklogBlocker(issue.blockedBy) ? (
-    <Badge variant="outline"
+    <Badge
+      variant="outline"
       data-testid="issue-row-parked-blocker"
       className="[&>svg]:size-2.5 ml-1.5 gap-0.5 border-amber-500/60 bg-amber-500/15 text-(length:--text-nano) text-amber-700 dark:text-amber-300"
       title="Blocked by parked work — at least one assigned blocker is in backlog and will not wake its assignee."
@@ -238,10 +251,14 @@ export function IssueRow({
           data-inbox-issue-link
           id={checklistRowId}
           aria-current={checklistCurrentStep ? "step" : undefined}
-          onClickCapture={() => rememberIssueDetailLocationState(issuePathId, detailState)}
+          onClickCapture={() =>
+            rememberIssueDetailLocationState(issuePathId, detailState)
+          }
           className="absolute inset-0 rounded-lg no-underline text-inherit focus-visible:z-10 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring"
         >
-          <span className="sr-only">Open {identifier}: {issue.title}</span>
+          <span className="sr-only">
+            Open {identifier}: {issue.title}
+          </span>
         </Link>
 
         {showUnreadSlot ? (
@@ -253,39 +270,44 @@ export function IssueRow({
           </span>
         ) : null}
 
-        <span data-slot="task-row-leading" className="flex shrink-0 items-start self-stretch gap-1 pt-px sm:items-center sm:pt-0">
+        <span
+          data-slot="task-row-leading"
+          className="flex shrink-0 items-start self-stretch gap-1 pt-px sm:items-center sm:pt-0"
+        >
           {treeGuides > 0
             ? Array.from({ length: treeGuides }, (_, level) => {
-              const gapForChevron = chevronInGuide && level === treeGuides - 1;
-              return (
-                <span
-                  key={`task-guide-${level}`}
-                  data-slot="task-row-tree-guide"
-                  aria-hidden="true"
-                  className="relative block w-4 shrink-0 self-stretch"
-                >
+                const gapForChevron =
+                  chevronInGuide && level === treeGuides - 1;
+                return (
                   <span
-                    data-slot="task-row-tree-connector"
-                    className="absolute -inset-y-3 left-7 w-px bg-background"
+                    key={`task-guide-${level}`}
+                    data-slot="task-row-tree-guide"
+                    aria-hidden="true"
+                    className="relative block w-4 shrink-0 self-stretch"
                   >
-                    {gapForChevron ? (
-                      <span className="absolute inset-0 flex flex-col">
-                        <span className="flex-1 bg-border" />
-                        <span className="h-3.5 shrink-0" />
-                        <span className="flex-1 bg-border" />
-                      </span>
-                    ) : (
-                      <span className="absolute inset-0 bg-border" />
-                    )}
+                    <span
+                      data-slot="task-row-tree-connector"
+                      className="absolute -inset-y-3 left-7 w-px bg-background"
+                    >
+                      {gapForChevron ? (
+                        <span className="absolute inset-0 flex flex-col">
+                          <span className="flex-1 bg-border" />
+                          <span className="h-3.5 shrink-0" />
+                          <span className="flex-1 bg-border" />
+                        </span>
+                      ) : (
+                        <span className="absolute inset-0 bg-border" />
+                      )}
+                    </span>
                   </span>
-                </span>
-              );
-            })
+                );
+              })
             : null}
           {leadingControl}
           {statusSlot ?? (
             <StatusIcon
-              status={issue.status} externalConversationState={issue.externalConversationState}
+              status={issue.status}
+              externalConversationState={issue.externalConversationState}
               blockerAttention={issue.blockerAttention}
               size="md"
               className={selectedStatusClass}
@@ -295,7 +317,10 @@ export function IssueRow({
         </span>
 
         <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-          <span data-slot="task-row-title-cluster" className="flex min-w-0 flex-1 items-baseline gap-1.5 sm:items-center">
+          <span
+            data-slot="task-row-title-cluster"
+            className="flex min-w-0 flex-1 items-baseline gap-1.5 sm:items-center"
+          >
             <span
               data-slot="task-row-title"
               className={cn(
@@ -304,7 +329,8 @@ export function IssueRow({
                 titleClassName,
               )}
             >
-              {issue.title}{titleSuffix}
+              {issue.title}
+              {titleSuffix}
             </span>
             {recoveryIndicator}
             {mobileTitleMeta ? (
@@ -314,10 +340,14 @@ export function IssueRow({
             ) : null}
           </span>
           {checklistDependencyChips ? (
-            <span className="flex flex-wrap gap-1">{checklistDependencyChips}</span>
+            <span className="flex flex-wrap gap-1">
+              {checklistDependencyChips}
+            </span>
           ) : null}
           {mobileMeta ? (
-            <span className="text-xs text-muted-foreground sm:hidden">{mobileMeta}</span>
+            <span className="text-xs text-muted-foreground sm:hidden">
+              {mobileMeta}
+            </span>
           ) : null}
         </span>
 
@@ -326,19 +356,45 @@ export function IssueRow({
           className="ml-auto hidden min-w-0 shrink-0 items-center gap-2 sm:flex"
         >
           {externalObjectSummary ? (
-            <ExternalObjectStatusSummary summary={externalObjectSummary} compact />
+            <ExternalObjectStatusSummary
+              summary={externalObjectSummary}
+              compact
+            />
           ) : null}
-          {metadata ? <span data-slot="task-row-metadata" className="min-w-0">{metadata}</span> : null}
+          {metadata ? (
+            <span data-slot="task-row-metadata" className="min-w-0">
+              {metadata}
+            </span>
+          ) : null}
           {desktopTrailing}
-          {actions ? <span data-slot="task-row-actions" className="flex shrink-0 items-center gap-1">{actions}</span> : null}
-          {onArchive ? <InboxArchiveButton onArchive={onArchive} disabled={archiveDisabled} compact /> : null}
+          {actions ? (
+            <span
+              data-slot="task-row-actions"
+              className="flex shrink-0 items-center gap-1"
+            >
+              {actions}
+            </span>
+          ) : null}
+          {onArchive ? (
+            <InboxArchiveButton
+              onArchive={onArchive}
+              disabled={archiveDisabled}
+              compact
+            />
+          ) : null}
           {showIdentifier ? (
-            <span data-slot="task-row-identifier" className="w-20 shrink-0 text-right font-mono text-xs text-muted-foreground">
+            <span
+              data-slot="task-row-identifier"
+              className="w-20 shrink-0 text-right font-mono text-xs text-muted-foreground"
+            >
               {identifier}
             </span>
           ) : null}
           {trailingMeta ? (
-            <span data-slot="task-row-timestamp" className="w-24 shrink-0 truncate text-right text-xs text-muted-foreground">
+            <span
+              data-slot="task-row-timestamp"
+              className="w-24 shrink-0 truncate text-right text-xs text-muted-foreground"
+            >
               {trailingMeta}
             </span>
           ) : null}
@@ -375,26 +431,45 @@ export function IssueRow({
         data-inbox-issue-link
         id={checklistRowId}
         aria-current={checklistCurrentStep ? "step" : undefined}
-        onClickCapture={() => rememberIssueDetailLocationState(issuePathId, detailState)}
+        onClickCapture={() =>
+          rememberIssueDetailLocationState(issuePathId, detailState)
+        }
         className={cn(
           // Overlay Link keeps ONLY positioning + focus ring so header controls
           // stay clickable above it; visual washes belong on the root above.
           "absolute inset-0 rounded-lg no-underline text-inherit focus-visible:z-10 focus-visible:outline-none focus-visible:ring-(length:--rad-3) focus-visible:ring-ring",
         )}
       >
-        <span className="sr-only">Open {identifier}: {issue.title}</span>
+        <span className="sr-only">
+          Open {identifier}: {issue.title}
+        </span>
       </Link>
       <span className="flex shrink-0 items-center gap-1 pt-px sm:hidden">
-        {mobileLeading ?? <StatusIcon status={issue.status} externalConversationState={issue.externalConversationState} blockerAttention={issue.blockerAttention} size="md" className={selectedStatusClass} />}
+        {mobileLeading ?? (
+          <StatusIcon
+            status={issue.status}
+            externalConversationState={issue.externalConversationState}
+            blockerAttention={issue.blockerAttention}
+            size="md"
+            className={selectedStatusClass}
+          />
+        )}
         {parkedBlockerIndicator}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1 sm:contents">
-        <span data-slot="task-row-title-cluster" className="flex min-w-0 items-start gap-1.5 sm:order-2 sm:flex-1 sm:items-center">
+        <span
+          data-slot="task-row-title-cluster"
+          className="flex min-w-0 items-start gap-1.5 sm:order-2 sm:flex-1 sm:items-center"
+        >
           <span
             data-slot="task-row-title"
-            className={cn("min-w-0 line-clamp-2 text-sm sm:truncate sm:line-clamp-none", titleClassName)}
+            className={cn(
+              "min-w-0 line-clamp-2 text-sm sm:truncate sm:line-clamp-none",
+              titleClassName,
+            )}
           >
-            {issue.title}{titleSuffix}
+            {issue.title}
+            {titleSuffix}
           </span>
           {recoveryIndicator}
         </span>
@@ -419,38 +494,43 @@ export function IssueRow({
           ) : null}
           {treeGuides > 0
             ? Array.from({ length: treeGuides }, (_, level) => {
-              // The innermost guide lands on THIS row's own chevron column; if
-              // the row has a chevron, break the line around it so it isn't
-              // crossed out.
-              const gapForChevron = chevronInGuide && level === treeGuides - 1;
-              return (
-              // Tree guide: occupies the same flex slot as the parent's
-              // chevron column so the line lands under the parent's status
-              // column; stretched past the row padding so consecutive rows
-              // read as one continuous line.
-              <span key={`guide-${level}`} aria-hidden="true" className="relative hidden w-4 shrink-0 self-stretch sm:block">
-                {/* The connector drops from under the ancestor's STATUS icon,
+                // The innermost guide lands on THIS row's own chevron column; if
+                // the row has a chevron, break the line around it so it isn't
+                // crossed out.
+                const gapForChevron =
+                  chevronInGuide && level === treeGuides - 1;
+                return (
+                  // Tree guide: occupies the same flex slot as the parent's
+                  // chevron column so the line lands under the parent's status
+                  // column; stretched past the row padding so consecutive rows
+                  // read as one continuous line.
+                  <span
+                    key={`guide-${level}`}
+                    aria-hidden="true"
+                    className="relative hidden w-4 shrink-0 self-stretch sm:block"
+                  >
+                    {/* The connector drops from under the ancestor's STATUS icon,
                     not its chevron: the status column sits one level (w-4 slot
                     + gap-2 = 2rem) right of this guide slot's left edge.
                     bg-background underlay: dark-mode --border is translucent,
                     so overlapping row segments would stack brighter without
                     an opaque base. */}
-                <span className="absolute -inset-y-3 left-8 w-px bg-background">
-                  {gapForChevron ? (
-                    // Two border segments centering a 14px (h-3.5) transparent
-                    // gap for the row's own chevron.
-                    <span className="absolute inset-0 flex flex-col">
-                      <span className="flex-1 bg-border" />
-                      <span className="h-3.5 shrink-0" />
-                      <span className="flex-1 bg-border" />
+                    <span className="absolute -inset-y-3 left-8 w-px bg-background">
+                      {gapForChevron ? (
+                        // Two border segments centering a 14px (h-3.5) transparent
+                        // gap for the row's own chevron.
+                        <span className="absolute inset-0 flex flex-col">
+                          <span className="flex-1 bg-border" />
+                          <span className="h-3.5 shrink-0" />
+                          <span className="flex-1 bg-border" />
+                        </span>
+                      ) : (
+                        <span className="absolute inset-0 bg-border" />
+                      )}
                     </span>
-                  ) : (
-                    <span className="absolute inset-0 bg-border" />
-                  )}
-                </span>
-              </span>
-              );
-            })
+                  </span>
+                );
+              })
             : null}
           {desktopLeadingSpacer ? (
             <span className="hidden w-3.5 shrink-0 sm:block" />
@@ -458,7 +538,13 @@ export function IssueRow({
           {desktopMetaLeading ?? (
             <>
               <span className="hidden shrink-0 items-center gap-1 sm:inline-flex">
-                <StatusIcon status={issue.status} externalConversationState={issue.externalConversationState} blockerAttention={issue.blockerAttention} size="md" className={selectedStatusClass} />
+                <StatusIcon
+                  status={issue.status}
+                  externalConversationState={issue.externalConversationState}
+                  blockerAttention={issue.blockerAttention}
+                  size="md"
+                  className={selectedStatusClass}
+                />
               </span>
               {checklistStep}
               <span className="shrink-0 font-mono text-xs text-muted-foreground">
@@ -469,25 +555,38 @@ export function IssueRow({
           )}
           {mobileMeta ? (
             <>
-              <span className="text-xs text-muted-foreground sm:hidden" aria-hidden="true">
+              <span
+                className="text-xs text-muted-foreground sm:hidden"
+                aria-hidden="true"
+              >
                 &middot;
               </span>
-              <span className="text-xs text-muted-foreground sm:hidden">{mobileMeta}</span>
+              <span className="text-xs text-muted-foreground sm:hidden">
+                {mobileMeta}
+              </span>
             </>
           ) : null}
         </span>
       </span>
-      {(onArchive || desktopTrailing || trailingMeta || externalObjectSummary) ? (
+      {onArchive || desktopTrailing || trailingMeta || externalObjectSummary ? (
         <span className="ml-auto hidden shrink-0 items-center gap-2 sm:order-3 sm:flex sm:gap-3">
           {onArchive ? (
-            <InboxArchiveButton onArchive={onArchive} disabled={archiveDisabled} />
+            <InboxArchiveButton
+              onArchive={onArchive}
+              disabled={archiveDisabled}
+            />
           ) : null}
           {externalObjectSummary ? (
-            <ExternalObjectStatusSummary summary={externalObjectSummary} compact />
+            <ExternalObjectStatusSummary
+              summary={externalObjectSummary}
+              compact
+            />
           ) : null}
           {desktopTrailing}
           {trailingMeta ? (
-            <span className="text-xs text-muted-foreground">{trailingMeta}</span>
+            <span className="text-xs text-muted-foreground">
+              {trailingMeta}
+            </span>
           ) : null}
         </span>
       ) : null}
@@ -516,7 +615,8 @@ function renderRecoveryChip(
   const label = recoveryChipLabel(state, action.kind, lineage);
   const detail = lineage ? formatRecoveryLineageSummary(lineage) : null;
   return (
-    <Badge variant="outline"
+    <Badge
+      variant="outline"
       data-testid="issue-row-recovery-indicator"
       data-recovery-state={state}
       data-recovery-kind={action.kind}
@@ -528,9 +628,11 @@ function renderRecoveryChip(
         tone.className,
         selected ? "!border-muted-foreground !text-muted-foreground" : null,
       )}
-      title={detail
-        ? `${label} — ${detail}. Open the source task to act.`
-        : `${label} — open the source task to act.`}
+      title={
+        detail
+          ? `${label} — ${detail}. Open the source task to act.`
+          : `${label} — open the source task to act.`
+      }
     >
       <Icon className="h-2.5 w-2.5" aria-hidden />
       {label}

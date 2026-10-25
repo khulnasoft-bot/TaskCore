@@ -36,7 +36,12 @@ describe("Runner event grouping", () => {
       record(5, "assistant_delta", "turn-2"),
     ]);
 
-    expect(groups.map((group) => [group.event, group.records.map((entry) => entry.ordinal)])).toEqual([
+    expect(
+      groups.map((group) => [
+        group.event,
+        group.records.map((entry) => entry.ordinal),
+      ]),
+    ).toEqual([
       [null, [1]],
       ["assistant_delta", [2, 4]],
       ["reasoning_delta", [3]],
@@ -51,6 +56,10 @@ describe("Runner event grouping", () => {
     ]);
 
     expect(groups).toHaveLength(2);
-    expect(groups.every((group) => group.event === null && group.records.length === 1)).toBe(true);
+    expect(
+      groups.every(
+        (group) => group.event === null && group.records.length === 1,
+      ),
+    ).toBe(true);
   });
 });

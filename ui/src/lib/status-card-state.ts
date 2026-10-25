@@ -23,7 +23,10 @@ export type StatusCardLifecycle =
  * stale (pending changes) → fresh.
  */
 export function deriveStatusCardLifecycle(
-  card: Pick<StatusCard, "state" | "archivedAt" | "generatingIssueId" | "pendingChangeCount">,
+  card: Pick<
+    StatusCard,
+    "state" | "archivedAt" | "generatingIssueId" | "pendingChangeCount"
+  >,
 ): StatusCardLifecycle {
   if (card.archivedAt) return "archived";
   if (card.state === "compiling") return "compiling";
@@ -98,14 +101,16 @@ export const STATUS_CARD_LIFECYCLE_PRESENTATION: Record<
   paused_hours: {
     label: "Paused — hours",
     dotClassName: "bg-orange-400",
-    description: "Outside active hours; changes batch into one update at window open.",
+    description:
+      "Outside active hours; changes batch into one update at window open.",
     dashedBorder: false,
     keepsLastSummary: true,
   },
   archived: {
     label: "Archived",
     dotClassName: "bg-muted-foreground/50",
-    description: "No auto-updates and no watches. Restore to start watching again.",
+    description:
+      "No auto-updates and no watches. Restore to start watching again.",
     dashedBorder: false,
     keepsLastSummary: true,
   },

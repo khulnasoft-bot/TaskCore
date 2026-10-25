@@ -44,7 +44,9 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 function stringValue(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function sentenceCase(value: string): string {
@@ -52,7 +54,9 @@ function sentenceCase(value: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-export function parseStructuredResponse(text: string): StructuredResponse | null {
+export function parseStructuredResponse(
+  text: string,
+): StructuredResponse | null {
   const trimmed = text.trim();
   if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return null;
   try {
@@ -62,20 +66,31 @@ export function parseStructuredResponse(text: string): StructuredResponse | null
     const claim = record(raw.completionClaim);
     const remainingWork = Array.isArray(claim.remainingWork)
       ? claim.remainingWork
-        .map((entry) => stringValue(entry) ?? stringValue(record(entry).summary) ?? stringValue(record(entry).description))
-        .filter((entry): entry is string => entry !== null)
+          .map(
+            (entry) =>
+              stringValue(entry) ??
+              stringValue(record(entry).summary) ??
+              stringValue(record(entry).description),
+          )
+          .filter((entry): entry is string => entry !== null)
       : [];
     const verification = Array.isArray(raw.verification)
       ? raw.verification.flatMap((entry) => {
-        const current = record(entry);
-        const label = stringValue(current.commandOrCheck) ?? stringValue(current.summary);
-        return label === null ? [] : [{ label, status: stringValue(current.status) }];
-      })
+          const current = record(entry);
+          const label =
+            stringValue(current.commandOrCheck) ?? stringValue(current.summary);
+          return label === null
+            ? []
+            : [{ label, status: stringValue(current.status) }];
+        })
       : [];
     return {
       summary,
       disposition: stringValue(raw.reportedWorkDisposition),
-      objectiveSatisfied: typeof claim.objectiveSatisfied === "boolean" ? claim.objectiveSatisfied : null,
+      objectiveSatisfied:
+        typeof claim.objectiveSatisfied === "boolean"
+          ? claim.objectiveSatisfied
+          : null,
       remainingWork,
       verification,
       raw,
@@ -85,12 +100,17 @@ export function parseStructuredResponse(text: string): StructuredResponse | null
   }
 }
 
-function useProgressiveText(text: string, streaming: boolean): { text: string; active: boolean } {
+function useProgressiveText(
+  text: string,
+  streaming: boolean,
+): { text: string; active: boolean } {
   const progressiveRef = React.useRef(streaming);
   if (streaming) progressiveRef.current = true;
   const targetRef = React.useRef(text);
   targetRef.current = text;
-  const [displayed, setDisplayed] = React.useState(() => streaming ? "" : text);
+  const [displayed, setDisplayed] = React.useState(() =>
+    streaming ? "" : text,
+  );
 
   React.useEffect(() => {
     if (!targetRef.current.startsWith(displayed)) {
@@ -103,7 +123,9 @@ function useProgressiveText(text: string, streaming: boolean): { text: string; a
       setDisplayed(targetRef.current);
       return undefined;
     }
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true) {
+    if (
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+    ) {
       setDisplayed(targetRef.current);
       return undefined;
     }
@@ -118,21 +140,36 @@ function useProgressiveText(text: string, streaming: boolean): { text: string; a
     return () => window.clearInterval(timer);
   }, []);
 
-  return { text: displayed, active: streaming || displayed.length < text.length };
+  return {
+    text: displayed,
+    active: streaming || displayed.length < text.length,
+  };
 }
 
-function StructuredResponseBody({ response }: { response: StructuredResponse }) {
-  const positive = response.objectiveSatisfied === true || response.disposition === "done";
-  const hasCompletionDetails = response.verification.length > 0 || response.remainingWork.length > 0;
+function StructuredResponseBody({
+  response,
+}: {
+  response: StructuredResponse;
+}) {
+  const positive =
+    response.objectiveSatisfied === true || response.disposition === "done";
+  const hasCompletionDetails =
+    response.verification.length > 0 || response.remainingWork.length > 0;
   return (
-    <div className="pcr-response" data-slot="structured-response" data-testid="structured-response">
+    <div
+      className="pcr-response"
+      data-slot="structured-response"
+      data-testid="structured-response"
+    >
       <div className="pcr-response-heading">
         <div>
           <p className="pcr-eyebrow">Agent response</p>
           <p className="pcr-response-summary">{response.summary}</p>
         </div>
         {response.disposition === null ? null : (
-          <Badge tone={positive ? "success" : "accent"}>{sentenceCase(response.disposition)}</Badge>
+          <Badge tone={positive ? "success" : "accent"}>
+            {sentenceCase(response.disposition)}
+          </Badge>
         )}
       </div>
       <details className="pcr-response-details">
@@ -144,7 +181,9 @@ function StructuredResponseBody({ response }: { response: StructuredResponse }) 
               <ul className="pcr-response-checks">
                 {response.verification.map((entry, index) => (
                   <li key={`${entry.label}:${index}`}>
-                    <span aria-hidden="true">{entry.status === "passed" ? "✓" : "•"}</span>
+                    <span aria-hidden="true">
+                      {entry.status === "passed" ? "✓" : "•"}
+                    </span>
                     <span>{entry.label}</span>
                   </li>
                 ))}
@@ -155,14 +194,22 @@ function StructuredResponseBody({ response }: { response: StructuredResponse }) 
             <div className="pcr-response-section">
               <p className="pcr-response-label">Remaining</p>
               <ul className="pcr-response-list">
-                {response.remainingWork.map((entry, index) => <li key={`${entry}:${index}`}>{entry}</li>)}
+                {response.remainingWork.map((entry, index) => (
+                  <li key={`${entry}:${index}`}>{entry}</li>
+                ))}
               </ul>
             </div>
           )}
-          {hasCompletionDetails ? null : <p className="pcr-response-empty-detail">No additional completion notes.</p>}
+          {hasCompletionDetails ? null : (
+            <p className="pcr-response-empty-detail">
+              No additional completion notes.
+            </p>
+          )}
           <details className="pcr-response-debug">
             <summary>Raw protocol payload</summary>
-            <pre className="pcr-payload">{JSON.stringify(response.raw, null, 2)}</pre>
+            <pre className="pcr-payload">
+              {JSON.stringify(response.raw, null, 2)}
+            </pre>
           </details>
         </div>
       </details>
@@ -181,25 +228,41 @@ export function Message({
   renderItemBody,
   children,
 }: MessageProps) {
-  const structured = role === "assistant" && item !== undefined && !streaming
-    ? parseStructuredResponse(item.text)
-    : null;
-  const body = item === undefined
-    ? (children ?? text ?? "")
-    : (renderItemBody?.(item) ?? (structured === null
-      ? <MessageText text={item.text} streaming={streaming} />
-      : <StructuredResponseBody response={structured} />));
+  const structured =
+    role === "assistant" && item !== undefined && !streaming
+      ? parseStructuredResponse(item.text)
+      : null;
+  const body =
+    item === undefined
+      ? (children ?? text ?? "")
+      : (renderItemBody?.(item) ??
+        (structured === null ? (
+          <MessageText text={item.text} streaming={streaming} />
+        ) : (
+          <StructuredResponseBody response={structured} />
+        )));
   return (
     <article
       data-slot="message"
       data-role={role}
-      data-state={failed ? "failed" : interrupted ? "interrupted" : streaming ? "streaming" : "settled"}
+      data-state={
+        failed
+          ? "failed"
+          : interrupted
+            ? "interrupted"
+            : streaming
+              ? "streaming"
+              : "settled"
+      }
       className="pcr-message"
     >
       <p className="pcr-message-role">{ROLE_LABELS[role]}</p>
       <div className="pcr-message-body">{body}</div>
       {failure === null ? null : (
-        <pre className="pcr-payload pcr-payload--danger" data-testid="item-failure">
+        <pre
+          className="pcr-payload pcr-payload--danger"
+          data-testid="item-failure"
+        >
           {failure}
         </pre>
       )}
@@ -212,12 +275,20 @@ export function Message({
   );
 }
 
-export function MessageText({ text, streaming }: { text: string; streaming: boolean }) {
+export function MessageText({
+  text,
+  streaming,
+}: {
+  text: string;
+  streaming: boolean;
+}) {
   const progressive = useProgressiveText(text, streaming);
   return (
     <p className="pcr-message-text">
       {progressive.text}
-      {progressive.active ? <span className="pcr-stream-cursor" aria-hidden="true" /> : null}
+      {progressive.active ? (
+        <span className="pcr-stream-cursor" aria-hidden="true" />
+      ) : null}
     </p>
   );
 }

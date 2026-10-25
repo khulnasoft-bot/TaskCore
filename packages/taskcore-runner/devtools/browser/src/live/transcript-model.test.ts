@@ -74,19 +74,26 @@ async function drive(
   const pump = (async () => {
     for await (const event of session.events()) events.push(event);
   })();
-  const { turnId } = await session.startTurn({ message: { role: "user", text: "Go." } });
+  const { turnId } = await session.startTurn({
+    message: { role: "user", text: "Go." },
+  });
   if (interact !== undefined) await interact(session, turnId);
   await new Promise<void>((resolve) => setTimeout(resolve, 60));
   await session.close({ reason: "test" });
   await pump;
   return {
     events,
-    snapshot: events.reduce(applyPrpEvent, seed(`run-${manifestId}`, `session-${manifestId}`)),
+    snapshot: events.reduce(
+      applyPrpEvent,
+      seed(`run-${manifestId}`, `session-${manifestId}`),
+    ),
   };
 }
 
 function kinds(entries: readonly TranscriptEntry[]): string[] {
-  return entries.map((entry) => (entry.kind === "item" ? `item:${entry.role}` : entry.kind));
+  return entries.map((entry) =>
+    entry.kind === "item" ? `item:${entry.role}` : entry.kind,
+  );
 }
 
 describe("transcriptRole", () => {
@@ -114,17 +121,24 @@ describe("buildTranscript", () => {
     const user = entries[0];
     expect(user.kind === "user" && user.text).toBe("Go.");
     const tool = entries[2];
-    expect(tool.kind === "item" && tool.input).toBe("docs/live-console-protocol-server.md");
+    expect(tool.kind === "item" && tool.input).toBe(
+      "docs/live-console-protocol-server.md",
+    );
     expect(tool.kind === "item" && tool.output).toContain("server-sent events");
   });
 
   it("marks an interrupted item and never claims it completed cleanly", async () => {
-    const { events, snapshot } = await drive("interrupt-during-tool", async (session, turnId) => {
-      await new Promise<void>((resolve) => setTimeout(resolve, 20));
-      await session.interrupt?.({ turnId });
-    });
+    const { events, snapshot } = await drive(
+      "interrupt-during-tool",
+      async (session, turnId) => {
+        await new Promise<void>((resolve) => setTimeout(resolve, 20));
+        await session.interrupt?.({ turnId });
+      },
+    );
     const entries = buildTranscript(snapshot, events);
-    const tool = entries.find((entry) => entry.kind === "item" && entry.role === "tool");
+    const tool = entries.find(
+      (entry) => entry.kind === "item" && entry.role === "tool",
+    );
     expect(tool?.kind === "item" && tool.interrupted).toBe(true);
     expect(tool?.kind === "item" && tool.output).toBeNull();
     const turn = entries.find((entry) => entry.kind === "turn");
@@ -132,19 +146,25 @@ describe("buildTranscript", () => {
   });
 
   it("keeps a resolved request in the record with the chosen action", async () => {
-    const { events, snapshot } = await drive("approvals", async (session, turnId) => {
-      await new Promise<void>((resolve) => setTimeout(resolve, 20));
-      await session.resolveRuntimeRequest?.({
-        requestId: "request-command",
-        turnId,
-        resolution: { action: "accept_for_session" },
-      });
-    });
+    const { events, snapshot } = await drive(
+      "approvals",
+      async (session, turnId) => {
+        await new Promise<void>((resolve) => setTimeout(resolve, 20));
+        await session.resolveRuntimeRequest?.({
+          requestId: "request-command",
+          turnId,
+          resolution: { action: "accept_for_session" },
+        });
+      },
+    );
     const request = buildTranscript(snapshot, events).find(
-      (entry) => entry.kind === "request" && entry.requestId === "request-command",
+      (entry) =>
+        entry.kind === "request" && entry.requestId === "request-command",
     );
     expect(request?.kind === "request" && request.status).toBe("resolved");
-    expect(request?.kind === "request" && request.resolvedAction).toBe("accept_for_session");
+    expect(request?.kind === "request" && request.resolvedAction).toBe(
+      "accept_for_session",
+    );
     expect(request?.kind === "request" && request.actions).toEqual([
       "accept",
       "accept_for_session",
@@ -158,7 +178,9 @@ describe("buildTranscript", () => {
     const failed = buildTranscript(snapshot, events).find(
       (entry) => entry.kind === "item" && entry.failure !== null,
     );
-    expect(failed?.kind === "item" && failed.failure).toContain("cannot find module");
+    expect(failed?.kind === "item" && failed.failure).toContain(
+      "cannot find module",
+    );
   });
 
   it("keeps a replayed prefix a real prefix of the finished transcript", async () => {
@@ -170,7 +192,10 @@ describe("buildTranscript", () => {
     for (let cut = 1; cut <= events.length; cut += 1) {
       const prefix = events.slice(0, cut);
       const stepped = buildTranscript(
-        prefix.reduce(applyPrpEvent, seed("run-completion", "session-completion")),
+        prefix.reduce(
+          applyPrpEvent,
+          seed("run-completion", "session-completion"),
+        ),
         prefix,
       );
       expect(stepped.length).toBeLessThanOrEqual(full.length);
@@ -181,7 +206,10 @@ describe("buildTranscript", () => {
     }
     expect(
       buildTranscript(
-        events.reduce(applyPrpEvent, seed("run-completion", "session-completion")),
+        events.reduce(
+          applyPrpEvent,
+          seed("run-completion", "session-completion"),
+        ),
         events,
       ),
     ).toEqual(full);
@@ -200,11 +228,15 @@ describe("composerState", () => {
   it("shows exactly one state per protocol situation", () => {
     expect(composerState(base)).toBe("idle");
     expect(composerState({ ...base, submitting: true })).toBe("submitting");
-    expect(composerState({ ...base, activeTurnId: "turn-1" })).toBe("active-turn");
-    expect(composerState({ ...base, interrupting: true, activeTurnId: "turn-1" })).toBe(
-      "interrupting",
+    expect(composerState({ ...base, activeTurnId: "turn-1" })).toBe(
+      "active-turn",
     );
-    expect(composerState({ ...base, connection: "disconnected" })).toBe("disconnected");
+    expect(
+      composerState({ ...base, interrupting: true, activeTurnId: "turn-1" }),
+    ).toBe("interrupting");
+    expect(composerState({ ...base, connection: "disconnected" })).toBe(
+      "disconnected",
+    );
     expect(composerState({ ...base, sessionState: "closed" })).toBe("terminal");
   });
 
@@ -226,7 +258,9 @@ describe("goalAvailability", () => {
       {
         ...FULL,
         goals: false,
-        unsupported: ["Goal operations unsupported: app-server 0.132.0 does not advertise goals"],
+        unsupported: [
+          "Goal operations unsupported: app-server 0.132.0 does not advertise goals",
+        ],
       },
       null,
     );
@@ -238,11 +272,17 @@ describe("goalAvailability", () => {
   it("disables only the verbs that are invalid for the current goal state", () => {
     const active = goalAvailability(FULL, "active");
     expect(active.find((row) => row.operation === "pause")?.enabled).toBe(true);
-    expect(active.find((row) => row.operation === "resume")?.enabled).toBe(false);
+    expect(active.find((row) => row.operation === "resume")?.enabled).toBe(
+      false,
+    );
 
     const paused = goalAvailability(FULL, "paused");
-    expect(paused.find((row) => row.operation === "resume")?.enabled).toBe(true);
-    expect(paused.find((row) => row.operation === "pause")?.enabled).toBe(false);
+    expect(paused.find((row) => row.operation === "resume")?.enabled).toBe(
+      true,
+    );
+    expect(paused.find((row) => row.operation === "pause")?.enabled).toBe(
+      false,
+    );
 
     const none = goalAvailability(FULL, null);
     expect(none.find((row) => row.operation === "set")?.enabled).toBe(true);
@@ -271,15 +311,18 @@ describe("runtimeRequestSubmission", () => {
         parseHarnessRuntimeRequestResolution(
           requestKind,
           runtimeRequestSubmission(requestKind, answer),
-        )).not.toThrow();
+        ),
+      ).not.toThrow();
       // ...and the other kind's body is rejected, which is what the browser
       // used to send for elicitation.
-      const wrongKind = requestKind === "user_input" ? "elicitation" : "user_input";
+      const wrongKind =
+        requestKind === "user_input" ? "elicitation" : "user_input";
       expect(() =>
         parseHarnessRuntimeRequestResolution(
           requestKind,
           runtimeRequestSubmission(wrongKind, answer),
-        )).toThrow(/rejected its resolution/);
+        ),
+      ).toThrow(/rejected its resolution/);
     }
   });
 });
@@ -287,7 +330,11 @@ describe("runtimeRequestSubmission", () => {
 describe("capabilityRows", () => {
   it("gives every unsupported capability a diagnostic string", () => {
     const rows = capabilityRows({ ...FULL, goals: false, usage: false });
-    expect(rows.filter((row) => !row.supported).every((row) => row.diagnostic !== null)).toBe(true);
+    expect(
+      rows
+        .filter((row) => !row.supported)
+        .every((row) => row.diagnostic !== null),
+    ).toBe(true);
     expect(rows.find((row) => row.name === "steer")?.supported).toBe(true);
   });
 });

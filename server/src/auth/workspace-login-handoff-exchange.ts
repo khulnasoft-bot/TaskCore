@@ -29,9 +29,10 @@ export type WorkspaceHandoffClonedIdentity = {
 
 export type WorkspaceHandoffExchangeDeps = {
   /** Resolve the cloned user by the id the ticket names, scoped to its company. */
-  findClonedIdentity: (
-    input: { userId: string; companyId: string },
-  ) => Promise<WorkspaceHandoffClonedIdentity | null>;
+  findClonedIdentity: (input: {
+    userId: string;
+    companyId: string;
+  }) => Promise<WorkspaceHandoffClonedIdentity | null>;
   /**
    * Record the nonce, returning false when it was already recorded.
    * Must be atomic: this is the only defense against a same-window replay.
@@ -51,7 +52,11 @@ export type WorkspaceHandoffExchangeFailureReason =
 
 export type WorkspaceHandoffExchangeResult =
   | { ok: true; redirectTo: string; payload: WorkspaceHandoffTicketPayload }
-  | { ok: false; reason: WorkspaceHandoffExchangeFailureReason; payload: WorkspaceHandoffTicketPayload | null };
+  | {
+      ok: false;
+      reason: WorkspaceHandoffExchangeFailureReason;
+      payload: WorkspaceHandoffTicketPayload | null;
+    };
 
 /**
  * HTTP status for a failed exchange.
@@ -60,7 +65,9 @@ export type WorkspaceHandoffExchangeResult =
  * a key); everything else is a rejected credential and answers 401 so an
  * attacker cannot distinguish "wrong workspace" from "expired" by status alone.
  */
-export function workspaceHandoffFailureStatus(reason: WorkspaceHandoffExchangeFailureReason): number {
+export function workspaceHandoffFailureStatus(
+  reason: WorkspaceHandoffExchangeFailureReason,
+): number {
   if (reason === "not_configured") return 503;
   if (reason === "session_failed") return 500;
   return 401;
@@ -71,8 +78,14 @@ export function workspaceHandoffFailureStatus(reason: WorkspaceHandoffExchangeFa
  * caller needing a fresh ticket. The UI turns these into an explicit
  * "clone is incomplete" state instead of a generic sign-in error.
  */
-export function isWorkspaceHandoffRepairReason(reason: WorkspaceHandoffExchangeFailureReason): boolean {
-  return reason === "unknown_user" || reason === "missing_membership" || reason === "user_mismatch";
+export function isWorkspaceHandoffRepairReason(
+  reason: WorkspaceHandoffExchangeFailureReason,
+): boolean {
+  return (
+    reason === "unknown_user" ||
+    reason === "missing_membership" ||
+    reason === "user_mismatch"
+  );
 }
 
 export async function exchangeWorkspaceHandoffTicket(input: {
@@ -93,17 +106,25 @@ export async function exchangeWorkspaceHandoffTicket(input: {
     expected: input.expected,
     now: input.now,
   });
-  if (!verification.ok) return { ok: false, reason: verification.reason, payload: null };
+  if (!verification.ok)
+    return { ok: false, reason: verification.reason, payload: null };
   const payload = verification.payload;
 
-  const identity = await input.deps.findClonedIdentity({ userId: payload.sub, companyId: payload.cid });
+  const identity = await input.deps.findClonedIdentity({
+    userId: payload.sub,
+    companyId: payload.cid,
+  });
   if (!identity) return { ok: false, reason: "unknown_user", payload };
   // The email is bound into the signature, so a mismatch means the clone drifted
   // from the source instance (a reused id after a reseed), not a forged ticket.
-  if ((identity.email ?? "").trim().toLowerCase() !== payload.email.trim().toLowerCase()) {
+  if (
+    (identity.email ?? "").trim().toLowerCase() !==
+    payload.email.trim().toLowerCase()
+  ) {
     return { ok: false, reason: "user_mismatch", payload };
   }
-  if (!identity.hasActiveMembership) return { ok: false, reason: "missing_membership", payload };
+  if (!identity.hasActiveMembership)
+    return { ok: false, reason: "missing_membership", payload };
 
   // Reserve last: an identity failure must stay retryable after a repair, while a
   // ticket that got far enough to mint a session is burned even if that mint fails.

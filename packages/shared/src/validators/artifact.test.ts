@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { companyArtifactsQuerySchema, companyArtifactsResponseSchema } from "./artifact.js";
+import {
+  companyArtifactsQuerySchema,
+  companyArtifactsResponseSchema,
+} from "./artifact.js";
 
 const issue = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -50,8 +53,12 @@ describe("companyArtifactsQuerySchema", () => {
   });
 
   it("rejects invalid grouped artifact query parameters", () => {
-    expect(() => companyArtifactsQuerySchema.parse({ groupBy: "agent" })).toThrow();
-    expect(() => companyArtifactsQuerySchema.parse({ groupIssueId: "PAP-1" })).toThrow();
+    expect(() =>
+      companyArtifactsQuerySchema.parse({ groupBy: "agent" }),
+    ).toThrow();
+    expect(() =>
+      companyArtifactsQuerySchema.parse({ groupIssueId: "PAP-1" }),
+    ).toThrow();
   });
 });
 

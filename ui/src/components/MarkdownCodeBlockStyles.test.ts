@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest";
 
 import { codeBlockActionStyle } from "./MarkdownBody";
 
-const stylesheet = readFileSync(fileURLToPath(new URL("../index.css", import.meta.url)), "utf8");
+const stylesheet = readFileSync(
+  fileURLToPath(new URL("../index.css", import.meta.url)),
+  "utf8",
+);
 
 function cssBlock(selector: string): string {
   const start = stylesheet.indexOf(`${selector} {`);
@@ -12,8 +15,13 @@ function cssBlock(selector: string): string {
 
   const bodyStart = stylesheet.indexOf("{", start);
   const bodyEnd = stylesheet.indexOf("\n}", bodyStart);
-  expect(bodyStart, `Missing CSS block start: ${selector}`).toBeGreaterThanOrEqual(0);
-  expect(bodyEnd, `Missing CSS block end: ${selector}`).toBeGreaterThan(bodyStart);
+  expect(
+    bodyStart,
+    `Missing CSS block start: ${selector}`,
+  ).toBeGreaterThanOrEqual(0);
+  expect(bodyEnd, `Missing CSS block end: ${selector}`).toBeGreaterThan(
+    bodyStart,
+  );
 
   return stylesheet.slice(bodyStart + 1, bodyEnd);
 }
@@ -53,11 +61,16 @@ describe("markdown code block styles", () => {
   });
 
   it("keeps every themed code surface free of hardcoded colors", () => {
-    for (const selector of [".taskcore-markdown pre", ".taskcore-mdxeditor-content pre", ".taskcore-markdown"]) {
+    for (const selector of [
+      ".taskcore-markdown pre",
+      ".taskcore-mdxeditor-content pre",
+      ".taskcore-markdown",
+    ]) {
       // Any hex literal, or an rgb()/hsl() literal, re-pins the surface to one mode.
-      expect(cssBlock(selector), `${selector} must not hardcode a color`).not.toMatch(
-        /#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i,
-      );
+      expect(
+        cssBlock(selector),
+        `${selector} must not hardcode a color`,
+      ).not.toMatch(/#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i);
     }
   });
 

@@ -18,7 +18,9 @@ export async function testAgentSetup(input: {
     ...(input.agentId ? { agentId: input.agentId } : {}),
     ...(input.aiConnection ? { aiConnection: input.aiConnection } : {}),
     adapterConfig: input.adapterConfig,
-    ...(input.testCredentials ? { testCredentials: input.testCredentials } : {}),
+    ...(input.testCredentials
+      ? { testCredentials: input.testCredentials }
+      : {}),
     environmentId: input.environmentId,
   };
   const runtime = await agentsApi.testEnvironment(
@@ -33,7 +35,9 @@ export async function testAgentSetup(input: {
       (check) => check.code === ADAPTER_AUTH_MISSING_CHECK_CODE,
     ) ||
     runtime.checks.some((check) => check.code.includes("hello_probe")) ||
-    !["claude_local", "codex_local", "grok_local"].includes(input.providerAdapter)
+    !["claude_local", "codex_local", "grok_local"].includes(
+      input.providerAdapter,
+    )
   )
     return runtime;
   const provider = await agentsApi.testEnvironment(
@@ -44,7 +48,8 @@ export async function testAgentSetup(input: {
       adapterConfig: {
         ...input.adapterConfig,
         engine: "cli",
-        ...(input.adapterType === "taskcore_runner" && input.providerAdapter === "grok_local"
+        ...(input.adapterType === "taskcore_runner" &&
+        input.providerAdapter === "grok_local"
           ? { command: "/opt/taskcore/providers/grok/1.0.13/grok" }
           : {}),
       },

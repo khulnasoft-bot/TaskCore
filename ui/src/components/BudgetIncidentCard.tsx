@@ -4,7 +4,13 @@ import { AlertOctagon, ArrowUpRight, PauseCircle } from "lucide-react";
 import { formatCents } from "../lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 function centsInputValue(value: number) {
@@ -37,7 +43,9 @@ export function BudgetIncidentCard({
   isMutating?: boolean;
 }) {
   const [draftAmount, setDraftAmount] = useState(
-    centsInputValue(Math.max(incident.amountObserved + 1000, incident.amountLimit)),
+    centsInputValue(
+      Math.max(incident.amountObserved + 1000, incident.amountLimit),
+    ),
   );
   const parsed = parseDollarInput(draftAmount);
   const stateLabel = incidentStateLabel(incident);
@@ -51,13 +59,20 @@ export function BudgetIncidentCard({
               <div className="text-(length:--text-micro) uppercase tracking-(--tracking-caps) text-red-700/90 dark:text-red-200/80">
                 {incident.scopeType} hard stop
               </div>
-              <Badge variant={incident.status === "resolved" ? "outline" : "secondary"}>
+              <Badge
+                variant={
+                  incident.status === "resolved" ? "outline" : "secondary"
+                }
+              >
                 {stateLabel}
               </Badge>
             </div>
-            <CardTitle className="mt-1 text-base text-red-950 dark:text-red-50">{incident.scopeName}</CardTitle>
+            <CardTitle className="mt-1 text-base text-red-950 dark:text-red-50">
+              {incident.scopeName}
+            </CardTitle>
             <CardDescription className="mt-1 text-red-900/75 dark:text-red-100/70">
-              {incident.thresholdType === "hard" && incident.amountObserved < incident.amountLimit
+              {incident.thresholdType === "hard" &&
+              incident.amountObserved < incident.amountLimit
                 ? `Accounting is incomplete. Known spend is ${formatCents(incident.amountObserved)}; review pending or unpriced usage in the budget policy.`
                 : `Spending reached ${formatCents(incident.amountObserved)} against a limit of ${formatCents(incident.amountLimit)}.`}
             </CardDescription>
@@ -90,7 +105,11 @@ export function BudgetIncidentCard({
             />
             <Button
               className="gap-2"
-              disabled={isMutating || parsed === null || parsed <= incident.amountObserved}
+              disabled={
+                isMutating ||
+                parsed === null ||
+                parsed <= incident.amountObserved
+              }
               onClick={() => {
                 if (typeof parsed === "number") onRaiseAndResume(parsed);
               }}
@@ -107,7 +126,12 @@ export function BudgetIncidentCard({
         </div>
 
         <div className="flex justify-end">
-          <Button variant="ghost" className="text-muted-foreground" disabled={isMutating} onClick={onKeepPaused}>
+          <Button
+            variant="ghost"
+            className="text-muted-foreground"
+            disabled={isMutating}
+            onClick={onKeepPaused}
+          >
             Keep paused
           </Button>
         </div>

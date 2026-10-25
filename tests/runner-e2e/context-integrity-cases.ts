@@ -5,18 +5,28 @@ export const CONTEXT_INTEGRITY_CASES = [
   "assigned-skill-explicit-invocation",
 ] as const;
 
-export const TASKCORE_DOCUMENT_CASE = "assigned-skill-taskcore-document" as const;
-export type ContextIntegrityCase = (typeof CONTEXT_INTEGRITY_CASES)[number] | typeof TASKCORE_DOCUMENT_CASE;
+export const TASKCORE_DOCUMENT_CASE =
+  "assigned-skill-taskcore-document" as const;
+export type ContextIntegrityCase =
+  (typeof CONTEXT_INTEGRITY_CASES)[number] | typeof TASKCORE_DOCUMENT_CASE;
 export function isAssignedSkillContext(id: string): boolean {
-  return id === "assigned-skill-explicit-invocation" || id === TASKCORE_DOCUMENT_CASE;
+  return (
+    id === "assigned-skill-explicit-invocation" || id === TASKCORE_DOCUMENT_CASE
+  );
 }
 
 export function contextIntegrityScenario(id: string, nonce: string) {
-  if (!CONTEXT_INTEGRITY_CASES.includes(id as (typeof CONTEXT_INTEGRITY_CASES)[number]) && id !== TASKCORE_DOCUMENT_CASE)
+  if (
+    !CONTEXT_INTEGRITY_CASES.includes(
+      id as (typeof CONTEXT_INTEGRITY_CASES)[number],
+    ) &&
+    id !== TASKCORE_DOCUMENT_CASE
+  )
     throw new Error(`Unknown context-integrity case: ${id}`);
   const marker = `CONTEXT_OK_${nonce.replace(/[^a-z0-9]/gi, "")}`;
   const repeated = "Append an entry for every request, even identical wording.";
-  const changed = "Change the final scope to the launch checklist and preserve every earlier entry.";
+  const changed =
+    "Change the final scope to the launch checklist and preserve every earlier entry.";
   return {
     id: id as ContextIntegrityCase,
     marker,
@@ -37,7 +47,12 @@ export function contextIntegrityScenario(id: string, nonce: string) {
 function contextIntegrityTask(id: ContextIntegrityCase): RunnerTaskFixture {
   return {
     id,
-    label: id === "ordered-comment-continuation" ? "Ordered comment continuation" : id === TASKCORE_DOCUMENT_CASE ? "Explicit Taskcore document delivery" : "Assigned skill invocation",
+    label:
+      id === "ordered-comment-continuation"
+        ? "Ordered comment continuation"
+        : id === TASKCORE_DOCUMENT_CASE
+          ? "Explicit Taskcore document delivery"
+          : "Assigned skill invocation",
     groups: ["context-integrity"],
     workMode: "standard",
     flow: "context_integrity",
@@ -51,5 +66,8 @@ function contextIntegrityTask(id: ContextIntegrityCase): RunnerTaskFixture {
   };
 }
 
-export const contextIntegrityTasks: readonly RunnerTaskFixture[] = CONTEXT_INTEGRITY_CASES.map(contextIntegrityTask);
-export const taskcoreDocumentTask = contextIntegrityTask(TASKCORE_DOCUMENT_CASE);
+export const contextIntegrityTasks: readonly RunnerTaskFixture[] =
+  CONTEXT_INTEGRITY_CASES.map(contextIntegrityTask);
+export const taskcoreDocumentTask = contextIntegrityTask(
+  TASKCORE_DOCUMENT_CASE,
+);

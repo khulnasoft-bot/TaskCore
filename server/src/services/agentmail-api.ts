@@ -46,12 +46,30 @@ export interface AgentmailScope {
 // Only these documented codes may leave the provider boundary. The other
 // response fields (including `fix`) can contain addresses, URLs, or credentials.
 const providerErrorCodes = [
-  "missing_authorization", "invalid_token_type", "unknown_api_key", "unauthorized",
-  "missing_permission", "permission_escalation", "unrestricted_key_required", "forbidden",
-  "validation_error", "not_found", "unprocessable", "query_range_too_wide",
-  "already_exists", "resource_taken", "limit_exceeded", "domain_not_verified",
-  "conflict", "race_condition", "resource_deleting", "cannot_delete", "message_rejected",
-  "rate_limit_exceeded", "service_unavailable", "internal_error",
+  "missing_authorization",
+  "invalid_token_type",
+  "unknown_api_key",
+  "unauthorized",
+  "missing_permission",
+  "permission_escalation",
+  "unrestricted_key_required",
+  "forbidden",
+  "validation_error",
+  "not_found",
+  "unprocessable",
+  "query_range_too_wide",
+  "already_exists",
+  "resource_taken",
+  "limit_exceeded",
+  "domain_not_verified",
+  "conflict",
+  "race_condition",
+  "resource_deleting",
+  "cannot_delete",
+  "message_rejected",
+  "rate_limit_exceeded",
+  "service_unavailable",
+  "internal_error",
 ] as const;
 type ProviderErrorCode = (typeof providerErrorCodes)[number] | "unknown";
 const providerOperations = [
@@ -70,11 +88,17 @@ const providerOperations = [
   ["GET", /^\/inboxes\/[^/]+\/threads\/[^/]+$/, "get_thread"],
   ["POST", /^\/inboxes\/[^/]+\/messages\/send$/, "send_message"],
   ["POST", /^\/inboxes\/[^/]+\/messages\/[^/]+\/reply$/, "reply_message"],
-  ["GET", /^\/inboxes\/[^/]+\/messages\/[^/]+\/attachments\/[^/]+$/, "get_attachment"],
+  [
+    "GET",
+    /^\/inboxes\/[^/]+\/messages\/[^/]+\/attachments\/[^/]+$/,
+    "get_attachment",
+  ],
 ] as const;
 type ProviderOperation = (typeof providerOperations)[number][2] | "request";
 
-async function readProviderErrorCode(response: Response): Promise<ProviderErrorCode> {
+async function readProviderErrorCode(
+  response: Response,
+): Promise<ProviderErrorCode> {
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -93,9 +117,10 @@ async function readProviderErrorCode(response: Response): Promise<ProviderErrorC
           parts.push(part.value);
         }
         const body: unknown = JSON.parse(Buffer.concat(parts).toString("utf8"));
-        const code = body && typeof body === "object" && !Array.isArray(body)
-          ? (body as Record<string, unknown>).code
-          : undefined;
+        const code =
+          body && typeof body === "object" && !Array.isArray(body)
+            ? (body as Record<string, unknown>).code
+            : undefined;
         return providerErrorCodes.find((known) => known === code) ?? "unknown";
       })(),
       new Promise<ProviderErrorCode>((resolve) => {
@@ -119,7 +144,9 @@ export class AgentmailApiError extends Error {
     readonly providerCode: ProviderErrorCode = "unknown",
   ) {
     // Provider bodies may contain credentials or private mail. Never log them.
-    super(`AgentMail request failed (${status}) [operation=${operation}, code=${providerCode}]`);
+    super(
+      `AgentMail request failed (${status}) [operation=${operation}, code=${providerCode}]`,
+    );
   }
 }
 export const AGENTMAIL_EVENTS = [
@@ -158,7 +185,9 @@ export function emailReplyRecipients(
       seen.add(key);
       return true;
     });
-  const replyTargets = message.replyTo?.length ? message.replyTo : [message.from];
+  const replyTargets = message.replyTo?.length
+    ? message.replyTo
+    : [message.from];
   const to = unique([...replyTargets, ...(replyAll ? message.to : [])]);
   const cc = unique(replyAll ? (message.cc ?? []) : []);
   return { to, cc, bcc: [], reply_all: false };
@@ -172,9 +201,9 @@ export function isAutomaticEmail(message: AgentmailMessage): boolean {
   );
   return Boolean(
     (headers["auto-submitted"] && headers["auto-submitted"] !== "no") ||
-      /^(bulk|list|junk)$/.test(headers.precedence ?? "") ||
-      headers["x-autoreply"] ||
-      headers["x-autorespond"],
+    /^(bulk|list|junk)$/.test(headers.precedence ?? "") ||
+    headers["x-autoreply"] ||
+    headers["x-autorespond"],
   );
 }
 export function isFilteredEmail(message: AgentmailMessage): boolean {
@@ -253,9 +282,12 @@ export function agentmailApi(apiKey: string, fetchImpl: typeof fetch = fetch) {
         : Date.parse(retryAfter ?? "") - Date.now();
       throw new AgentmailApiError(
         response.status,
-        Math.max(1000, Math.min(300_000, Number.isFinite(delay) ? delay : 1000)),
-        providerOperations.find(([verb, route]) =>
-          verb === method && route.test(path.split("?")[0]),
+        Math.max(
+          1000,
+          Math.min(300_000, Number.isFinite(delay) ? delay : 1000),
+        ),
+        providerOperations.find(
+          ([verb, route]) => verb === method && route.test(path.split("?")[0]),
         )?.[2] ?? "request",
         await readProviderErrorCode(response),
       );
@@ -288,12 +320,18 @@ export function agentmailApi(apiKey: string, fetchImpl: typeof fetch = fetch) {
       // Do not GET a speculative inbox ID. Live AgentMail caches missing inbox
       // lookups, so checking a free name can make key creation return 404 after
       // the inbox is created. Listing avoids priming that negative lookup.
-      const { inboxes } = await request<{ inboxes: AgentmailInbox[] }>("/inboxes?limit=100");
+      const { inboxes } = await request<{ inboxes: AgentmailInbox[] }>(
+        "/inboxes?limit=100",
+      );
       // An absent entry can be outside this page or credential's scope. Only
       // creation is authoritative; never claim an unlisted address is free.
       return {
         address,
-        status: inboxes.some(inbox => inbox.inbox_id.toLowerCase() === address.toLowerCase()) ? "taken" : "unknown",
+        status: inboxes.some(
+          (inbox) => inbox.inbox_id.toLowerCase() === address.toLowerCase(),
+        )
+          ? "taken"
+          : "unknown",
       };
     },
     listInboxes: () =>

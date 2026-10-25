@@ -36,7 +36,11 @@ import {
  * and what it finally says is exactly what was streamed.
  */
 
-const DELTAS = ["Reading the ", "clean-room issue ", "and recording a status."] as const;
+const DELTAS = [
+  "Reading the ",
+  "clean-room issue ",
+  "and recording a status.",
+] as const;
 const FINAL_TEXT = DELTAS.join("");
 
 /** Single-slot signal: the test releases one provider step at a time. */
@@ -72,7 +76,8 @@ class AsyncNotifications implements AsyncIterable<CodexRpcNotification> {
 
   close(): void {
     this.#closed = true;
-    for (const waiter of this.#waiters.splice(0)) waiter({ value: undefined, done: true });
+    for (const waiter of this.#waiters.splice(0))
+      waiter({ value: undefined, done: true });
   }
 
   [Symbol.asyncIterator](): AsyncIterator<CodexRpcNotification> {
@@ -93,20 +98,45 @@ class GatedTransport implements CodexAppServerTransport {
 
   constructor(readonly gate: Gate) {}
 
-  async request(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if (method === "initialize") return { user: { sessionId: "provider-session" } };
-    if (method === "thread/start" || method === "thread/read" || method === "thread/resume") {
-      return { thread: { id: "provider-thread", sessionId: "provider-session" } };
+  async request(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (method === "initialize")
+      return { user: { sessionId: "provider-session" } };
+    if (
+      method === "thread/start" ||
+      method === "thread/read" ||
+      method === "thread/resume"
+    ) {
+      return {
+        thread: { id: "provider-thread", sessionId: "provider-session" },
+      };
     }
     if (method === "turn/start") {
       void this.#runTurn("turn-1");
       return { turn: { id: "turn-1", status: "inProgress" } };
     }
     if (method === "turn/interrupt") {
-      this.queue.push({ method: "rawResponse/completed", params: { threadId: "provider-thread", turnId: String(params.turnId), usage: { inputTokens: 3, outputTokens: 1, cachedInputTokens: 0, reasoningOutputTokens: 0 } } });
+      this.queue.push({
+        method: "rawResponse/completed",
+        params: {
+          threadId: "provider-thread",
+          turnId: String(params.turnId),
+          usage: {
+            inputTokens: 3,
+            outputTokens: 1,
+            cachedInputTokens: 0,
+            reasoningOutputTokens: 0,
+          },
+        },
+      });
       this.queue.push({
         method: "turn/completed",
-        params: { threadId: "provider-thread", turn: { id: String(params.turnId), status: "interrupted" } },
+        params: {
+          threadId: "provider-thread",
+          turn: { id: String(params.turnId), status: "interrupted" },
+        },
       });
       return {};
     }
@@ -127,13 +157,23 @@ class GatedTransport implements CodexAppServerTransport {
   }
 
   processInfo() {
-    return { pid: 7100, processGroupId: 7100, startedAt: "2026-08-01T00:00:00.000Z", exited: this.#closed, exitCode: null, signal: null };
+    return {
+      pid: 7100,
+      processGroupId: 7100,
+      startedAt: "2026-08-01T00:00:00.000Z",
+      exited: this.#closed,
+      exitCode: null,
+      signal: null,
+    };
   }
 
   async #runTurn(turnId: string): Promise<void> {
     this.queue.push({
       method: "turn/started",
-      params: { threadId: "provider-thread", turn: { id: turnId, status: "inProgress" } },
+      params: {
+        threadId: "provider-thread",
+        turn: { id: turnId, status: "inProgress" },
+      },
     });
     for (const delta of DELTAS) {
       await this.gate.wait();
@@ -151,10 +191,25 @@ class GatedTransport implements CodexAppServerTransport {
         item: { id: "message-1", type: "agentMessage", text: FINAL_TEXT },
       },
     });
-    this.queue.push({ method: "rawResponse/completed", params: { threadId: "provider-thread", turnId, usage: { inputTokens: 3, outputTokens: 1, cachedInputTokens: 0, reasoningOutputTokens: 0 } } });
+    this.queue.push({
+      method: "rawResponse/completed",
+      params: {
+        threadId: "provider-thread",
+        turnId,
+        usage: {
+          inputTokens: 3,
+          outputTokens: 1,
+          cachedInputTokens: 0,
+          reasoningOutputTokens: 0,
+        },
+      },
+    });
     this.queue.push({
       method: "turn/completed",
-      params: { threadId: "provider-thread", turn: { id: turnId, status: "completed" } },
+      params: {
+        threadId: "provider-thread",
+        turn: { id: turnId, status: "completed" },
+      },
     });
   }
 }
@@ -172,7 +227,10 @@ function gatedTransportFactory(gate: Gate): CapabilityLiveTransportFactory {
       diagnostics: [],
     };
     options.onEvidence?.(evidence);
-    return { transport: new GatedTransport(gate), evidence: () => ({ ...evidence }) };
+    return {
+      transport: new GatedTransport(gate),
+      evidence: () => ({ ...evidence }),
+    };
   };
 }
 
@@ -180,10 +238,17 @@ async function openGatedSession(gate: Gate): Promise<{
   session: CapabilityLiveSession;
   close: () => Promise<void>;
 }> {
-  const service = new CapabilityLiveSessionService({ transportFactory: gatedTransportFactory(gate) });
-  const { input } = createCapabilityCleanRoomSessionInput({ workingDirectory: process.cwd() });
+  const service = new CapabilityLiveSessionService({
+    transportFactory: gatedTransportFactory(gate),
+  });
+  const { input } = createCapabilityCleanRoomSessionInput({
+    workingDirectory: process.cwd(),
+  });
   const session = await service.create(input);
-  return { session, close: () => service.shutdown(session.id, "test complete") };
+  return {
+    session,
+    close: () => service.shutdown(session.id, "test complete"),
+  };
 }
 
 /** Runs the event loop until `ready` holds, so no assertion waits on a delay. */
@@ -206,13 +271,37 @@ function assistantText(view: CapabilityIssueThreadSnapshot): string {
 
 describe("Capability turn stream framing", () => {
   it("round-trips frames split across arbitrary chunk boundaries", () => {
-    const frames: Array<CapabilityTurnStreamFrame<{ text: string }, { done: boolean }>> = [
-      { schema: CAPABILITY_TURN_STREAM_SCHEMA, type: "frame", seq: 1, reason: "open", turnId: null, view: { text: "" } },
-      { schema: CAPABILITY_TURN_STREAM_SCHEMA, type: "frame", seq: 2, reason: "delta", turnId: "t", view: { text: "ab\ncd" } },
-      { schema: CAPABILITY_TURN_STREAM_SCHEMA, type: "settled", seq: 3, payload: { done: true } },
+    const frames: Array<
+      CapabilityTurnStreamFrame<{ text: string }, { done: boolean }>
+    > = [
+      {
+        schema: CAPABILITY_TURN_STREAM_SCHEMA,
+        type: "frame",
+        seq: 1,
+        reason: "open",
+        turnId: null,
+        view: { text: "" },
+      },
+      {
+        schema: CAPABILITY_TURN_STREAM_SCHEMA,
+        type: "frame",
+        seq: 2,
+        reason: "delta",
+        turnId: "t",
+        view: { text: "ab\ncd" },
+      },
+      {
+        schema: CAPABILITY_TURN_STREAM_SCHEMA,
+        type: "settled",
+        seq: 3,
+        payload: { done: true },
+      },
     ];
     const wire = frames.map(encodeCapabilityTurnStreamFrame).join("");
-    const decoder = createCapabilityTurnStreamDecoder<{ text: string }, { done: boolean }>();
+    const decoder = createCapabilityTurnStreamDecoder<
+      { text: string },
+      { done: boolean }
+    >();
     const decoded = [];
     // One character at a time is the worst case a socket can produce.
     for (const character of wire) decoded.push(...decoder.push(character));
@@ -251,7 +340,6 @@ describe("Capability turn stream framing", () => {
     expect(() => truncated.flush()).toThrow(/before a terminal frame/);
   });
 
-
   /**
    * The buffered-frame limit is named in bytes. It used to be enforced with
    * `String#length`, so a frame of three-byte characters could reach about
@@ -259,16 +347,34 @@ describe("Capability turn stream framing", () => {
    */
   it("enforces the frame limit in encoded bytes, not code units", () => {
     // Well under the cap by code units, well over it by encoded bytes.
-    const multiByte = "€".repeat(Math.ceil((CAPABILITY_TURN_STREAM_MAX_FRAME_BYTES / 3) * 1.2));
+    const multiByte = "€".repeat(
+      Math.ceil((CAPABILITY_TURN_STREAM_MAX_FRAME_BYTES / 3) * 1.2),
+    );
 
-    expect(multiByte.length).toBeLessThan(CAPABILITY_TURN_STREAM_MAX_FRAME_BYTES);
-    expect(capabilityUtf8ByteLength(multiByte)).toBeGreaterThan(CAPABILITY_TURN_STREAM_MAX_FRAME_BYTES);
-    expect(() => createCapabilityTurnStreamDecoder().push(multiByte)).toThrow(/frame limit/);
+    expect(multiByte.length).toBeLessThan(
+      CAPABILITY_TURN_STREAM_MAX_FRAME_BYTES,
+    );
+    expect(capabilityUtf8ByteLength(multiByte)).toBeGreaterThan(
+      CAPABILITY_TURN_STREAM_MAX_FRAME_BYTES,
+    );
+    expect(() => createCapabilityTurnStreamDecoder().push(multiByte)).toThrow(
+      /frame limit/,
+    );
   });
 
   it("counts encoded bytes the way TextEncoder does, including surrogate pairs", () => {
-    for (const sample of ["", "ascii", "é", "€", "𝄞", "a€𝄞z", "\u{1F600}\u{1F601}"]) {
-      expect(capabilityUtf8ByteLength(sample)).toBe(new TextEncoder().encode(sample).length);
+    for (const sample of [
+      "",
+      "ascii",
+      "é",
+      "€",
+      "𝄞",
+      "a€𝄞z",
+      "\u{1F600}\u{1F601}",
+    ]) {
+      expect(capabilityUtf8ByteLength(sample)).toBe(
+        new TextEncoder().encode(sample).length,
+      );
     }
     // A lone surrogate is what a chunk boundary can leave in the buffer; it
     // must be counted, not crash the count.
@@ -283,7 +389,10 @@ describe("Capability turn stream framing", () => {
       // The wire between the server and the client: every live event is
       // projected, framed, and handed back through the decoder, so what the
       // assertions inspect is what a browser would have received.
-      const decoder = createCapabilityTurnStreamDecoder<CapabilityIssueThreadSnapshot, { text: string }>();
+      const decoder = createCapabilityTurnStreamDecoder<
+        CapabilityIssueThreadSnapshot,
+        { text: string }
+      >();
       const clientStates: string[] = [];
       let terminalSeen = false;
       let statesBeforeTerminal = 0;
@@ -303,7 +412,10 @@ describe("Capability turn stream framing", () => {
         });
         // Split every frame so the decoder is exercised on partial chunks.
         const half = Math.floor(wire.length / 2);
-        for (const frame of [...decoder.push(wire.slice(0, half)), ...decoder.push(wire.slice(half))]) {
+        for (const frame of [
+          ...decoder.push(wire.slice(0, half)),
+          ...decoder.push(wire.slice(half)),
+        ]) {
           if (frame.type !== "frame") continue;
           clientStates.push(assistantText(frame.view));
           if (!terminalSeen) statesBeforeTerminal += 1;
@@ -332,7 +444,9 @@ describe("Capability turn stream framing", () => {
       for (let index = 1; index < nonEmpty.length; index += 1) {
         // Monotonic: a later state always contains its predecessor as a prefix.
         expect(nonEmpty[index]!.startsWith(nonEmpty[index - 1]!)).toBe(true);
-        expect(nonEmpty[index]!.length).toBeGreaterThanOrEqual(nonEmpty[index - 1]!.length);
+        expect(nonEmpty[index]!.length).toBeGreaterThanOrEqual(
+          nonEmpty[index - 1]!.length,
+        );
       }
       // The intermediate states are real prefixes of the reply, not one
       // finished block delivered late.
@@ -348,12 +462,16 @@ describe("Capability turn stream framing", () => {
       }
       // Ordered: sequence numbers never repeat or go backwards.
       const sequences = events.map((event) => event.seq);
-      expect(sequences).toEqual([...sequences].sort((left, right) => left - right));
+      expect(sequences).toEqual(
+        [...sequences].sort((left, right) => left - right),
+      );
       expect(new Set(sequences).size).toBe(sequences.length);
 
       // The settled transcript holds exactly one assistant entry, so the
       // streamed draft was finalised rather than duplicated.
-      const finalView = projectCapabilityIssueThread({ snapshot: result.snapshot });
+      const finalView = projectCapabilityIssueThread({
+        snapshot: result.snapshot,
+      });
       const messages = finalView.turns
         .flatMap((turn) => turn.items)
         .filter((item) => item.kind === "agent_message");
@@ -373,9 +491,10 @@ describe("Capability turn stream framing", () => {
       gate.release();
       // Wait for the first delta to reach the transcript before interrupting.
       await settle(
-        () => assistantText(
-          projectCapabilityIssueThread({ snapshot: session.snapshot() }),
-        ).trim() === DELTAS[0]!.trim(),
+        () =>
+          assistantText(
+            projectCapabilityIssueThread({ snapshot: session.snapshot() }),
+          ).trim() === DELTAS[0]!.trim(),
         1_000,
       );
       await session.interrupt("operator stopped the turn");
@@ -390,9 +509,11 @@ describe("Capability turn stream framing", () => {
       gate.release();
       gate.release();
       await new Promise((resolve) => setTimeout(resolve, 5));
-      expect(assistantText(projectCapabilityIssueThread({ snapshot: session.snapshot() }))).toBe(
-        DELTAS[0]!.trim(),
-      );
+      expect(
+        assistantText(
+          projectCapabilityIssueThread({ snapshot: session.snapshot() }),
+        ),
+      ).toBe(DELTAS[0]!.trim());
     } finally {
       await close();
     }
@@ -417,9 +538,11 @@ describe("Capability turn stream framing", () => {
     ].join("");
     const body = new Response(wire);
     const views: string[] = [];
-    const payload = await readCapabilityTurnStream<{ text: string }, { text: string }>(
-      body as unknown as { body: never },
-      (frame) => views.push(frame.view.text),
+    const payload = await readCapabilityTurnStream<
+      { text: string },
+      { text: string }
+    >(body as unknown as { body: never }, (frame) =>
+      views.push(frame.view.text),
     );
 
     expect(views).toEqual(["partial"]);
@@ -436,7 +559,10 @@ describe("Capability turn stream framing", () => {
     });
 
     await expect(
-      readCapabilityTurnStream(new Response(wire) as unknown as { body: never }, () => undefined),
+      readCapabilityTurnStream(
+        new Response(wire) as unknown as { body: never },
+        () => undefined,
+      ),
     ).rejects.toThrow(/the provider went away/);
   });
 });

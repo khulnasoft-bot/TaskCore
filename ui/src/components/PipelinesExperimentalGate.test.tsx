@@ -16,7 +16,11 @@ vi.mock("@/api/instanceSettings", () => ({
 
 vi.mock("@/lib/router", () => ({
   Navigate: ({ to, replace }: { to: string; replace?: boolean }) => (
-    <div data-testid="navigate" data-to={to} data-replace={String(replace ?? false)} />
+    <div
+      data-testid="navigate"
+      data-to={to}
+      data-replace={String(replace ?? false)}
+    />
   ),
 }));
 
@@ -64,28 +68,40 @@ describe("PipelinesExperimentalGate", () => {
   });
 
   it("redirects to the dashboard when pipelines are disabled", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enablePipelines: false });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enablePipelines: false,
+    });
     await renderGate();
 
     const navigate = container.querySelector('[data-testid="navigate"]');
     expect(navigate?.getAttribute("data-to")).toBe("/dashboard");
     expect(navigate?.getAttribute("data-replace")).toBe("true");
-    expect(container.querySelector('[data-testid="pipeline-content"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="pipeline-content"]'),
+    ).toBeNull();
   });
 
   it("renders pipeline routes when pipelines are enabled", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enablePipelines: true });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enablePipelines: true,
+    });
     await renderGate();
 
-    expect(container.querySelector('[data-testid="pipeline-content"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="pipeline-content"]'),
+    ).not.toBeNull();
     expect(container.querySelector('[data-testid="navigate"]')).toBeNull();
   });
 
   it("renders nothing while the flag is loading", async () => {
-    mockInstanceSettingsApi.getExperimental.mockImplementation(() => new Promise(() => {}));
+    mockInstanceSettingsApi.getExperimental.mockImplementation(
+      () => new Promise(() => {}),
+    );
     await renderGate();
 
     expect(container.querySelector('[data-testid="navigate"]')).toBeNull();
-    expect(container.querySelector('[data-testid="pipeline-content"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="pipeline-content"]'),
+    ).toBeNull();
   });
 });

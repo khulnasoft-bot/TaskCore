@@ -80,7 +80,10 @@ export class BrokerClientError extends Error {
  * it as an interface lets tests inject a fake broker with zero sockets.
  */
 export interface BrokerClient {
-  reserve(runtimeId: string, listeners: BrokerListenerRequest[]): Promise<BrokerReserveResult>;
+  reserve(
+    runtimeId: string,
+    listeners: BrokerListenerRequest[],
+  ): Promise<BrokerReserveResult>;
   expose(runtimeId: string, handle: string): Promise<BrokerExposeResult>;
   remove(runtimeId: string, handle: string): Promise<BrokerRemoveResult>;
   list(): Promise<BrokerOwnedListener[]>;
@@ -138,9 +141,15 @@ export class UnixBrokerClient implements BrokerClient {
       !Array.isArray(response.reservedPorts) ||
       !response.reservedPorts.every((p) => Number.isInteger(p))
     ) {
-      throw new BrokerClientError("malformed_response", "reserve response missing handle/reservedPorts");
+      throw new BrokerClientError(
+        "malformed_response",
+        "reserve response missing handle/reservedPorts",
+      );
     }
-    return { handle: response.handle, reservedPorts: response.reservedPorts as number[] };
+    return {
+      handle: response.handle,
+      reservedPorts: response.reservedPorts as number[],
+    };
   }
 
   async expose(runtimeId: string, handle: string): Promise<BrokerExposeResult> {
@@ -156,9 +165,15 @@ export class UnixBrokerClient implements BrokerClient {
       !Array.isArray(response.publicPorts) ||
       !response.publicPorts.every((p) => Number.isInteger(p))
     ) {
-      throw new BrokerClientError("malformed_response", "expose response missing handle/publicPorts");
+      throw new BrokerClientError(
+        "malformed_response",
+        "expose response missing handle/publicPorts",
+      );
     }
-    return { handle: response.handle, publicPorts: response.publicPorts as number[] };
+    return {
+      handle: response.handle,
+      publicPorts: response.publicPorts as number[],
+    };
   }
 
   async remove(runtimeId: string, handle: string): Promise<BrokerRemoveResult> {
@@ -169,8 +184,14 @@ export class UnixBrokerClient implements BrokerClient {
       runtimeId,
       handle,
     });
-    if (!Array.isArray(response.removedPorts) || !response.removedPorts.every((p) => Number.isInteger(p))) {
-      throw new BrokerClientError("malformed_response", "remove response missing removedPorts");
+    if (
+      !Array.isArray(response.removedPorts) ||
+      !response.removedPorts.every((p) => Number.isInteger(p))
+    ) {
+      throw new BrokerClientError(
+        "malformed_response",
+        "remove response missing removedPorts",
+      );
     }
     return { removedPorts: response.removedPorts as number[] };
   }
@@ -182,7 +203,10 @@ export class UnixBrokerClient implements BrokerClient {
       requestId: nextRequestId(),
     });
     if (!Array.isArray(response.listeners)) {
-      throw new BrokerClientError("malformed_response", "list response missing listeners");
+      throw new BrokerClientError(
+        "malformed_response",
+        "list response missing listeners",
+      );
     }
     return response.listeners.map((entry): BrokerOwnedListener => {
       const listener = entry as Record<string, unknown>;
@@ -191,7 +215,10 @@ export class UnixBrokerClient implements BrokerClient {
         !Number.isInteger(listener.port) ||
         (listener.purpose !== "app" && listener.purpose !== "vite_hmr")
       ) {
-        throw new BrokerClientError("malformed_response", "list returned a malformed listener");
+        throw new BrokerClientError(
+          "malformed_response",
+          "list returned a malformed listener",
+        );
       }
       return {
         runtimeId: listener.runtimeId,
@@ -205,7 +232,12 @@ export class UnixBrokerClient implements BrokerClient {
   private roundTrip(request: unknown): Promise<Record<string, unknown>> {
     const body = Buffer.from(JSON.stringify(request), "utf8");
     if (body.byteLength > MAX_REQUEST_BYTES) {
-      return Promise.reject(new BrokerClientError("request_too_large", "broker request exceeds size limit"));
+      return Promise.reject(
+        new BrokerClientError(
+          "request_too_large",
+          "broker request exceeds size limit",
+        ),
+      );
     }
     const frame = Buffer.allocUnsafe(LENGTH_PREFIX_BYTES + body.byteLength);
     frame.writeUInt32BE(body.byteLength, 0);
@@ -228,23 +260,43 @@ export class UnixBrokerClient implements BrokerClient {
       };
 
       const timer = setTimeout(() => {
-        done(() => reject(new BrokerClientError("cli_timeout", "broker request timed out")));
+        done(() =>
+          reject(
+            new BrokerClientError("cli_timeout", "broker request timed out"),
+          ),
+        );
       }, this.timeoutMs);
       timer.unref?.();
 
       socket.on("error", (err: Error) => {
-        done(() => reject(new BrokerClientError("transport_error", err.message)));
+        done(() =>
+          reject(new BrokerClientError("transport_error", err.message)),
+        );
       });
 
       socket.on("close", () => {
         // Closed before a full response was parsed.
-        done(() => reject(new BrokerClientError("transport_error", "broker closed connection early")));
+        done(() =>
+          reject(
+            new BrokerClientError(
+              "transport_error",
+              "broker closed connection early",
+            ),
+          ),
+        );
       });
 
       socket.on("data", (chunk: Buffer) => {
         received += chunk.byteLength;
         if (received > LENGTH_PREFIX_BYTES + MAX_RESPONSE_BYTES) {
-          done(() => reject(new BrokerClientError("malformed_response", "broker response exceeds size limit")));
+          done(() =>
+            reject(
+              new BrokerClientError(
+                "malformed_response",
+                "broker response exceeds size limit",
+              ),
+            ),
+          );
           return;
         }
         chunks.push(chunk);
@@ -253,32 +305,67 @@ export class UnixBrokerClient implements BrokerClient {
           if (buf.byteLength < LENGTH_PREFIX_BYTES) return;
           expected = buf.readUInt32BE(0);
           if (expected > MAX_RESPONSE_BYTES) {
-            done(() => reject(new BrokerClientError("malformed_response", "broker response length invalid")));
+            done(() =>
+              reject(
+                new BrokerClientError(
+                  "malformed_response",
+                  "broker response length invalid",
+                ),
+              ),
+            );
             return;
           }
         }
         if (buf.byteLength < LENGTH_PREFIX_BYTES + expected) return;
-        const payload = buf.subarray(LENGTH_PREFIX_BYTES, LENGTH_PREFIX_BYTES + expected).toString("utf8");
+        const payload = buf
+          .subarray(LENGTH_PREFIX_BYTES, LENGTH_PREFIX_BYTES + expected)
+          .toString("utf8");
         let parsed: unknown;
         try {
           parsed = JSON.parse(payload);
         } catch {
-          done(() => reject(new BrokerClientError("malformed_response", "broker response is not valid JSON")));
+          done(() =>
+            reject(
+              new BrokerClientError(
+                "malformed_response",
+                "broker response is not valid JSON",
+              ),
+            ),
+          );
           return;
         }
-        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-          done(() => reject(new BrokerClientError("malformed_response", "broker response is not an object")));
+        if (
+          typeof parsed !== "object" ||
+          parsed === null ||
+          Array.isArray(parsed)
+        ) {
+          done(() =>
+            reject(
+              new BrokerClientError(
+                "malformed_response",
+                "broker response is not an object",
+              ),
+            ),
+          );
           return;
         }
         const obj = parsed as Record<string, unknown>;
         if (obj.ok === false) {
-          const code = typeof obj.code === "string" ? obj.code : "internal_error";
+          const code =
+            typeof obj.code === "string" ? obj.code : "internal_error";
           const message = typeof obj.message === "string" ? obj.message : code;
           done(() => reject(new BrokerClientError(code, message)));
           return;
         }
         if (obj.ok !== true) {
-          done(() => reject(new BrokerClientError("malformed_response", "broker response missing ok flag")));
+          done(() =>
+            reject(
+              new BrokerClientError(
+                "malformed_response",
+                "broker response missing ok flag",
+              ),
+            ),
+          );
           return;
         }
         done(() => resolve(obj));

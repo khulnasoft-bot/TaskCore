@@ -28,7 +28,10 @@ export function AuthPage() {
   const errorId = "auth-error";
 
   const nextPath = useMemo(
-    () => tenantSignInReturnPath(searchParams.get("next") || getRememberedInvitePath() || "/"),
+    () =>
+      tenantSignInReturnPath(
+        searchParams.get("next") || getRememberedInvitePath() || "/",
+      ),
     [searchParams],
   );
   const healthQuery = useQuery({
@@ -36,7 +39,11 @@ export function AuthPage() {
     queryFn: () => healthApi.get(),
     retry: false,
   });
-  const { data: session, isLoading: isSessionLoading, error: sessionError } = useQuery({
+  const {
+    data: session,
+    isLoading: isSessionLoading,
+    error: sessionError,
+  } = useQuery({
     queryKey: queryKeys.auth.session,
     queryFn: () => authApi.getSession(),
     retry: false,
@@ -80,7 +87,8 @@ export function AuthPage() {
   const canSubmit =
     email.trim().length > 0 &&
     password.trim().length > 0 &&
-    (mode === "sign_in" || (name.trim().length > 0 && password.trim().length >= 8));
+    (mode === "sign_in" ||
+      (name.trim().length > 0 && password.trim().length >= 8));
 
   if (healthQuery.isLoading || isSessionLoading || session) {
     return (
@@ -92,7 +100,11 @@ export function AuthPage() {
 
   // A health/session failure must not be mistaken for a self-hosted instance.
   if (healthQuery.error || sessionError) {
-    return <p role="alert" className="p-6 text-sm text-destructive">Unable to check sign-in. Refresh and try again.</p>;
+    return (
+      <p role="alert" className="p-6 text-sm text-destructive">
+        Unable to check sign-in. Refresh and try again.
+      </p>
+    );
   }
 
   if (healthQuery.data?.cloud) {
@@ -112,7 +124,9 @@ export function AuthPage() {
           </div>
 
           <h1 className="text-xl font-semibold">
-            {mode === "sign_in" ? "Sign in to Taskcore" : "Create your Taskcore account"}
+            {mode === "sign_in"
+              ? "Sign in to Taskcore"
+              : "Create your Taskcore account"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "sign_in"
@@ -123,7 +137,11 @@ export function AuthPage() {
           <form
             className="mt-6 space-y-4"
             method="post"
-            action={mode === "sign_up" ? "/api/auth/sign-up/email" : "/api/auth/sign-in/email"}
+            action={
+              mode === "sign_up"
+                ? "/api/auth/sign-up/email"
+                : "/api/auth/sign-in/email"
+            }
             onSubmit={(event) => {
               event.preventDefault();
               if (mutation.isPending) return;
@@ -136,7 +154,12 @@ export function AuthPage() {
           >
             {mode === "sign_up" && (
               <div>
-                <label htmlFor="name" className="text-xs text-muted-foreground mb-1 block">Name</label>
+                <label
+                  htmlFor="name"
+                  className="text-xs text-muted-foreground mb-1 block"
+                >
+                  Name
+                </label>
                 <input
                   id="name"
                   name="name"
@@ -153,7 +176,12 @@ export function AuthPage() {
               </div>
             )}
             <div>
-              <label htmlFor="email" className="text-xs text-muted-foreground mb-1 block">Email</label>
+              <label
+                htmlFor="email"
+                className="text-xs text-muted-foreground mb-1 block"
+              >
+                Email
+              </label>
               <input
                 id="email"
                 name="email"
@@ -170,7 +198,12 @@ export function AuthPage() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="text-xs text-muted-foreground mb-1 block">Password</label>
+              <label
+                htmlFor="password"
+                className="text-xs text-muted-foreground mb-1 block"
+              >
+                Password
+              </label>
               <input
                 id="password"
                 name="password"
@@ -178,7 +211,9 @@ export function AuthPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                autoComplete={mode === "sign_in" ? "current-password" : "new-password"}
+                autoComplete={
+                  mode === "sign_in" ? "current-password" : "new-password"
+                }
                 required
                 aria-required="true"
                 aria-invalid={error ? true : undefined}
@@ -205,7 +240,9 @@ export function AuthPage() {
           </form>
 
           <div className="mt-5 text-sm text-muted-foreground">
-            {mode === "sign_in" ? "Need an account?" : "Already have an account?"}{" "}
+            {mode === "sign_in"
+              ? "Need an account?"
+              : "Already have an account?"}{" "}
             <button
               type="button"
               className="font-medium text-foreground underline underline-offset-2"

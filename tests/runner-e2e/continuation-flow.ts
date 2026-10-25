@@ -1,12 +1,29 @@
 import { validResumeQuestionForm } from "./question-resume-scoring.js";
-import { gradeLifecycleBaseline, type LifecycleCheckpoint } from "./lifecycle-baseline.js";
-import { lifecycleLiveCase, lifecycleLiveContinuation, gradeLifecycleNarrative } from "./lifecycle-live-cases.js";
-import { prepareLegacyContinuationSkill, prepareContinuationBudget } from "./continuation-fixtures.js";
+import {
+  gradeLifecycleBaseline,
+  type LifecycleCheckpoint,
+} from "./lifecycle-baseline.js";
+import {
+  lifecycleLiveCase,
+  lifecycleLiveContinuation,
+  gradeLifecycleNarrative,
+} from "./lifecycle-live-cases.js";
+import {
+  prepareLegacyContinuationSkill,
+  prepareContinuationBudget,
+} from "./continuation-fixtures.js";
 import { captureFirstTaskAttachments } from "./first-task-attachments.js";
-import { answerableRuntimeRunIds, isSingleClaudeQuestion } from "./runtime-question-readiness.js";
+import {
+  answerableRuntimeRunIds,
+  isSingleClaudeQuestion,
+} from "./runtime-question-readiness.js";
 import { expect, type Page } from "@playwright/test";
 import path from "node:path";
-import { continuationAnswerCommitted, continuationInitialReady, continuationCheckpointReady } from "./continuation-readiness.js";
+import {
+  continuationAnswerCommitted,
+  continuationInitialReady,
+  continuationCheckpointReady,
+} from "./continuation-readiness.js";
 import { captureLoadedContinuation } from "./continuation-screenshot.js";
 import { seedContinuationContext } from "./continuation-workspace.js";
 import { pollUntil, type RunnerApi } from "./api.js";
@@ -54,7 +71,8 @@ export async function runContinuationFlow(input: {
     ? lifecycleLiveContinuation(execution.task.id, input.nonce)
     : continuationScenario(execution.task.id, input.nonce);
   const checkpoints: LifecycleCheckpoint[] = [];
-  let budgetGuard: Awaited<ReturnType<typeof prepareContinuationBudget>> | undefined;
+  let budgetGuard:
+    Awaited<ReturnType<typeof prepareContinuationBudget>> | undefined;
   let issue: Row | undefined;
   let runs: Row[] = [];
   let checks: ReturnType<typeof gradeContinuation> = [];
@@ -71,7 +89,11 @@ export async function runContinuationFlow(input: {
     return { issue, runs };
   }
   let pausedRuntimeRunIds = new Set<string>();
-  async function settle(prior: Set<string>, requireQuestion = false, answeredInteractionId?: string) {
+  async function settle(
+    prior: Set<string>,
+    requireQuestion = false,
+    answeredInteractionId?: string,
+  ) {
     let stable = "";
     const previousPaused = pausedRuntimeRunIds;
     await pollUntil({
@@ -79,27 +101,50 @@ export async function runContinuationFlow(input: {
       deadlineAt: input.deadlineAt,
       intervalMs: 1000,
       load: async () => ({
-        ...await refresh(),
-        interactions: await api.get<Row[]>(`/api/issues/${issue!.id}/interactions`),
+        ...(await refresh()),
+        interactions: await api.get<Row[]>(
+          `/api/issues/${issue!.id}/interactions`,
+        ),
       }),
       accept: (state) => {
         const paused = answerableRuntimeRunIds(state.interactions);
         const idle =
-          continuationAnswerCommitted(state.interactions, answeredInteractionId) &&
+          continuationAnswerCommitted(
+            state.interactions,
+            answeredInteractionId,
+          ) &&
           continuationCheckpointReady({
-            issue: { status: state.issue.status, executionRunId: state.issue.executionRunId },
-            runs: state.runs.map(r => ({ id: r.id, status: r.status, runtimeMode: r.runtimeMode })),
+            issue: {
+              status: state.issue.status,
+              executionRunId: state.issue.executionRunId,
+            },
+            runs: state.runs.map((r) => ({
+              id: r.id,
+              status: r.status,
+              runtimeMode: r.runtimeMode,
+            })),
             interactions: state.interactions,
           }) &&
-          state.runs.some((r) => !prior.has(r.id) || previousPaused.has(r.id)) &&
-          state.runs.every((r) => ["succeeded", "failed", "timed_out", "cancelled"].includes(r.status) ||
-            (r.status === "running" && paused.has(r.id))) &&
+          state.runs.some(
+            (r) => !prior.has(r.id) || previousPaused.has(r.id),
+          ) &&
+          state.runs.every(
+            (r) =>
+              ["succeeded", "failed", "timed_out", "cancelled"].includes(
+                r.status,
+              ) ||
+              (r.status === "running" && paused.has(r.id)),
+          ) &&
           !state.issue.scheduledRetry &&
           !state.issue.activeRecoveryAction &&
           (!requireQuestion || continuationInitialReady(state.interactions));
         const key = idle
-          ? JSON.stringify([state.issue.status, state.issue.executionRunId,
-              state.runs.map(r => [r.id, r.status]), state.interactions.map(i => [i.id, i.status])])
+          ? JSON.stringify([
+              state.issue.status,
+              state.issue.executionRunId,
+              state.runs.map((r) => [r.id, r.status]),
+              state.interactions.map((i) => [i.id, i.status]),
+            ])
           : "";
         const ready = !!key && key === stable;
         stable = key;
@@ -171,11 +216,13 @@ export async function runContinuationFlow(input: {
     });
     await input.evidence("api-state.json", checkpoints.at(-1));
     await open();
-    await captureLoadedContinuation(page, String(issue!.title), () => input.capture(
-      phase,
-      `Continuation: ${phase}`,
-      continuationScreenshotFile(phase),
-    ));
+    await captureLoadedContinuation(page, String(issue!.title), () =>
+      input.capture(
+        phase,
+        `Continuation: ${phase}`,
+        continuationScreenshotFile(phase),
+      ),
+    );
   }
   async function answer(choice?: string) {
     const interactions = await api.get<Row[]>(
@@ -187,26 +234,57 @@ export async function runContinuationFlow(input: {
     expect(questions, "one real question must be shown").toHaveLength(1);
     const set = chatQuestionPresentation(questions[0].payload);
     if (scenario.id === "question-answer-resume") {
-      expect(validResumeQuestionForm(checkpoints.at(-1)!, questions[0], !!choice), "a verified native question path and the requested form").toBe(true);
+      expect(
+        validResumeQuestionForm(checkpoints.at(-1)!, questions[0], !!choice),
+        "a verified native question path and the requested form",
+      ).toBe(true);
     } else if (scenario.id === "provider-question-bridge") {
-      expect(isSingleClaudeQuestion(set.questions), "one choice question with only the optional provider Other field").toBe(true);
-    } else expect(set.questions, "ask only the requested next question").toHaveLength(1);
+      expect(
+        isSingleClaudeQuestion(set.questions),
+        "one choice question with only the optional provider Other field",
+      ).toBe(true);
+    } else
+      expect(
+        set.questions,
+        "ask only the requested next question",
+      ).toHaveLength(1);
     const before = new Set(runs.map((r) => r.id));
     if (choice) {
-      expect(set.questions[0].answerMode, "choices must use radio controls").toBe("single_select");
-      const options = questions[0].payload.questionSet?.questions[0]?.options
-        ?? questions[0].payload.questions[0]?.options ?? [];
-      expect(new Set(options.map((o: Row) => String(o.label).trim().toLowerCase())).size).toBeGreaterThanOrEqual(2);
-      await page.getByRole("radio", { name: new RegExp(`^${choice}\\b`, "i") }).last().click();
+      expect(
+        set.questions[0].answerMode,
+        "choices must use radio controls",
+      ).toBe("single_select");
+      const options =
+        questions[0].payload.questionSet?.questions[0]?.options ??
+        questions[0].payload.questions[0]?.options ??
+        [];
+      expect(
+        new Set(options.map((o: Row) => String(o.label).trim().toLowerCase()))
+          .size,
+      ).toBeGreaterThanOrEqual(2);
+      await page
+        .getByRole("radio", { name: new RegExp(`^${choice}\\b`, "i") })
+        .last()
+        .click();
     } else {
-      expect(set.questions[0].answerMode, "open answers must render a text field, not a choice question").toBe("text");
-      await page.getByTestId("question-text-answer-composer").last()
-        .locator('[contenteditable="true"],textarea').first().fill(scenario.answer);
+      expect(
+        set.questions[0].answerMode,
+        "open answers must render a text field, not a choice question",
+      ).toBe("text");
+      await page
+        .getByTestId("question-text-answer-composer")
+        .last()
+        .locator('[contenteditable="true"],textarea')
+        .first()
+        .fill(scenario.answer);
     }
     // Claude may add a separate optional Other field after its choice page.
     // Navigate every rendered page before submitting; do not invent an answer.
     for (let index = 1; index < set.questions.length; index += 1) {
-      await page.getByRole("button", { name: "Next", exact: true }).last().click();
+      await page
+        .getByRole("button", { name: "Next", exact: true })
+        .last()
+        .click();
     }
     await page
       .getByRole("button", {
@@ -232,8 +310,17 @@ export async function runContinuationFlow(input: {
     expect(c.issue.status, "waiting is not complete").not.toBe("done");
   }
   try {
-    budgetGuard = await prepareContinuationBudget(api, fixtures.company.id, fixtures.agent.id);
-    if (execution.profile.generation === "legacy") await prepareLegacyContinuationSkill(api, fixtures.company.id, fixtures.agent.id);
+    budgetGuard = await prepareContinuationBudget(
+      api,
+      fixtures.company.id,
+      fixtures.agent.id,
+    );
+    if (execution.profile.generation === "legacy")
+      await prepareLegacyContinuationSkill(
+        api,
+        fixtures.company.id,
+        fixtures.agent.id,
+      );
     await api.patch("/api/instance/settings/experimental", {
       enableClassicTaskInterface: false,
     });
@@ -259,7 +346,9 @@ export async function runContinuationFlow(input: {
     await snapshot("initial");
     assertWaiting();
     if (scenario.id === "untrusted-evidence") {
-      const parentRun = runs.find((r) => r.contextSnapshot?.issueId === issue!.id);
+      const parentRun = runs.find(
+        (r) => r.contextSnapshot?.issueId === issue!.id,
+      );
       await seedContinuationContext({
         isolatedRoot: path.dirname(input.workspacePath),
         recordedCwd: parentRun?.contextSnapshot?.taskcoreWorkspace?.cwd,
@@ -270,12 +359,17 @@ export async function runContinuationFlow(input: {
       await input.restart();
       await open();
     }
-    if (["question-tool-documentation", "question-answer-resume"].includes(scenario.id)) {
+    if (
+      ["question-tool-documentation", "question-answer-resume"].includes(
+        scenario.id,
+      )
+    ) {
       await answer("Afternoon");
       await snapshot("answered");
       assertWaiting();
       await answer();
-    } else if (scenario.id === "provider-question-bridge") await answer(scenario.marker);
+    } else if (scenario.id === "provider-question-bridge")
+      await answer(scenario.marker);
     else if (scenario.id === "revision-preserves-approval")
       await reply(scenario.revision);
     else await answer();
@@ -294,11 +388,14 @@ export async function runContinuationFlow(input: {
       runtimeMode: execution.profile.expectedRuntimeMode,
     });
     checks.push(...gradeLifecycleBaseline(checkpoints));
-    if (lifecycleProbe) checks.push(gradeLifecycleNarrative({
-      narrative: lifecycleProbe.narrative,
-      agentId: fixtures.agent.id,
-      initial: checkpoints.find(c => c.phase === "initial"),
-    }));
+    if (lifecycleProbe)
+      checks.push(
+        gradeLifecycleNarrative({
+          narrative: lifecycleProbe.narrative,
+          agentId: fixtures.agent.id,
+          initial: checkpoints.find((c) => c.phase === "initial"),
+        }),
+      );
     if (issue) input.observe(issue, runs, checks);
     await input.evidence("continuation.json", {
       ...scenario,

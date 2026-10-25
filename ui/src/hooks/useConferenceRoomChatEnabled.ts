@@ -1,5 +1,9 @@
 import { useContext } from "react";
-import { QueryClient, QueryClientContext, useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientContext,
+  useQuery,
+} from "@tanstack/react-query";
 import { instanceSettingsApi } from "@/api/instanceSettings";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -28,7 +32,10 @@ function getDetachedClient(): QueryClient {
  * (`{ enabled: false, loaded: true }`) instead of throwing, so widely shared
  * leaf components like StatusIcon stay mountable in isolation.
  */
-export function useConferenceRoomChatEnabled(): { enabled: boolean; loaded: boolean } {
+export function useConferenceRoomChatEnabled(): {
+  enabled: boolean;
+  loaded: boolean;
+} {
   const contextClient = useContext(QueryClientContext);
   const { data, isFetched } = useQuery(
     {
@@ -41,5 +48,8 @@ export function useConferenceRoomChatEnabled(): { enabled: boolean; loaded: bool
   if (!contextClient) {
     return { enabled: false, loaded: true };
   }
-  return { enabled: data?.enableConferenceRoomChat === true, loaded: isFetched };
+  return {
+    enabled: data?.enableConferenceRoomChat === true,
+    loaded: isFetched,
+  };
 }

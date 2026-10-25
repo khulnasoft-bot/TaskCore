@@ -73,7 +73,9 @@ describe("logger translateTime respects TZ environment variable", () => {
     await import("../middleware/logger.js");
 
     expect(mockTransport).not.toHaveBeenCalled();
-    expect(mockPino).toHaveBeenCalledWith(expect.objectContaining({ level: "info" }));
+    expect(mockPino).toHaveBeenCalledWith(
+      expect.objectContaining({ level: "info" }),
+    );
   });
 
   it("SYS: prefix produces timezone-sensitive output: UTC epoch formats differently under UTC vs UTC+8", () => {

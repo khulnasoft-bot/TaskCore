@@ -5,10 +5,22 @@ import { join, resolve } from "node:path";
  * Copy manifests and pack rules unchanged; npm still selects the tarball files.
  * Bundled packages need their dependency tree, so keep their existing pack path.
  */
-export async function withInstalledPackagePackInput(packageRoot, scratchRoot, pack) {
-  const manifest = JSON.parse(await readFile(resolve(packageRoot, "package.json"), "utf8"));
-  const hasBundle = [manifest.bundleDependencies, manifest.bundledDependencies].some(
-    value => value !== undefined && value !== false && !(Array.isArray(value) && value.length === 0),
+export async function withInstalledPackagePackInput(
+  packageRoot,
+  scratchRoot,
+  pack,
+) {
+  const manifest = JSON.parse(
+    await readFile(resolve(packageRoot, "package.json"), "utf8"),
+  );
+  const hasBundle = [
+    manifest.bundleDependencies,
+    manifest.bundledDependencies,
+  ].some(
+    (value) =>
+      value !== undefined &&
+      value !== false &&
+      !(Array.isArray(value) && value.length === 0),
   );
   if (hasBundle) return pack(packageRoot, false);
 
@@ -21,7 +33,8 @@ export async function withInstalledPackagePackInput(packageRoot, scratchRoot, pa
       recursive: true,
       dereference: false,
       verbatimSymlinks: true,
-      filter: source => resolve(source) !== resolve(packageRoot, "node_modules"),
+      filter: (source) =>
+        resolve(source) !== resolve(packageRoot, "node_modules"),
     });
     return await pack(input, true);
   } finally {

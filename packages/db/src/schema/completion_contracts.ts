@@ -16,7 +16,9 @@ export const completionContracts = pgTable(
   "completion_contracts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    companyId: uuid("company_id").notNull().references(() => companies.id),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
     issueId: uuid("issue_id").notNull(),
     revision: integer("revision").notNull(),
     schemaVersion: text("schema_version").notNull(),
@@ -24,11 +26,15 @@ export const completionContracts = pgTable(
     risk: text("risk").notNull(),
     completionAuthority: text("completion_authority").notNull(),
     incompleteCriteriaPolicy: text("incomplete_criteria_policy").notNull(),
-    contractJson: jsonb("contract_json").$type<Record<string, unknown>>().notNull(),
+    contractJson: jsonb("contract_json")
+      .$type<Record<string, unknown>>()
+      .notNull(),
     canonicalSha256: text("canonical_sha256").notNull(),
     createdByActorType: text("created_by_actor_type").notNull(),
     createdByActorId: text("created_by_actor_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     supersedesContractId: uuid("supersedes_contract_id"),
   },
   (table) => ({

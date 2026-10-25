@@ -7,7 +7,10 @@ import {
 } from "../services/cloud-runtime-identity.js";
 
 /** Endpoint → method → the one action a control assertion must name to take it. */
-const ACTIONS_BY_ENDPOINT: Record<string, Record<string, CloudControlAction>> = {
+const ACTIONS_BY_ENDPOINT: Record<
+  string,
+  Record<string, CloudControlAction>
+> = {
   "/api/instance/task-drain": {
     GET: "task-drain:read",
     POST: "task-drain:start",
@@ -42,7 +45,10 @@ export function cloudControlMiddleware(): RequestHandler {
     }
     // Express's non-strict routing treats a trailing slash as the same
     // route; the endpoint check must agree with it.
-    const normalizedPath = req.path.length > 1 && req.path.endsWith("/") ? req.path.slice(0, -1) : req.path;
+    const normalizedPath =
+      req.path.length > 1 && req.path.endsWith("/")
+        ? req.path.slice(0, -1)
+        : req.path;
     const expectedAction = ACTIONS_BY_ENDPOINT[normalizedPath]?.[req.method];
     if (!expectedAction) {
       res.status(400).json({ error: "cloud_control_wrong_endpoint" });

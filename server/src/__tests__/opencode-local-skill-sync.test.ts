@@ -16,7 +16,11 @@ describe("opencode local skill sync", () => {
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
-    await Promise.all(Array.from(cleanupDirs).map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      Array.from(cleanupDirs).map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -37,12 +41,22 @@ describe("opencode local skill sync", () => {
 
     const before = await listOpenCodeSkills(ctx);
     expect(before.mode).toBe("persistent");
-    expect(before.warnings).toContain("OpenCode currently uses the shared Claude skills home (~/.claude/skills).");
+    expect(before.warnings).toContain(
+      "OpenCode currently uses the shared Claude skills home (~/.claude/skills).",
+    );
     expect(before.desiredSkills).toContain(taskcoreKey);
-    expect(before.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("missing");
+    expect(
+      before.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("missing");
 
     const after = await syncOpenCodeSkills(ctx, [taskcoreKey]);
-    expect(after.entries.find((entry) => entry.key === taskcoreKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".claude", "skills", "taskcore"))).isSymbolicLink()).toBe(true);
+    expect(
+      after.entries.find((entry) => entry.key === taskcoreKey)?.state,
+    ).toBe("installed");
+    expect(
+      (
+        await fs.lstat(path.join(home, ".claude", "skills", "taskcore"))
+      ).isSymbolicLink(),
+    ).toBe(true);
   });
 });

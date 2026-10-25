@@ -1,9 +1,25 @@
 import { recoverLegacyUnsafeWorkspaceExports } from "./native-workspace-export-recovery.js";
 import { hasPendingNativeChildCompletion } from "./native-child-completion-delivery.js";
-import { dismissAutomaticCompletionReviews, decisionHasRetiredAutomaticReview } from "./automatic-completion-reviews.js";
+import {
+  dismissAutomaticCompletionReviews,
+  decisionHasRetiredAutomaticReview,
+} from "./automatic-completion-reviews.js";
 import { logger } from "../../middleware/logger.js";
 import { createHash, randomUUID } from "node:crypto";
-import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import {
   completionContracts,
@@ -70,7 +86,7 @@ export type NativeReconciliationFacts = {
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -80,7 +96,10 @@ export function resolveNativeReconciliationStatus(input: {
   priorIssueStatus: NativeAuthoritativeIssueStatus;
   agentId: string;
 }): NativeStatusDecision {
-  const preserve = (reasonCode: string, effects: NativeStatusDecision["effects"]): NativeStatusDecision => ({
+  const preserve = (
+    reasonCode: string,
+    effects: NativeStatusDecision["effects"],
+  ): NativeStatusDecision => ({
     policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
     statusAction: "preserve",
     toStatus: input.priorIssueStatus,
@@ -88,35 +107,47 @@ export function resolveNativeReconciliationStatus(input: {
     unblockDescriptor: null,
     effects,
   });
-  const continuation = (reasonCode: string, effects: NativeStatusDecision["effects"] = []): NativeStatusDecision => ({
+  const continuation = (
+    reasonCode: string,
+    effects: NativeStatusDecision["effects"] = [],
+  ): NativeStatusDecision => ({
     policyVersion: NATIVE_STATUS_ARBITER_POLICY_VERSION,
     statusAction: "in_progress",
     toStatus: "in_progress",
     reasonCode,
     unblockDescriptor: null,
-    effects: [{
-      kind: "enqueue_continuation",
-      continuationKind: "same_agent",
-      summary: `Continue native reconciliation after ${reasonCode}.`,
-      idempotencyKey: `native-reconciliation:${reasonCode}`,
-      agentId: input.agentId,
-    }, ...effects],
+    effects: [
+      {
+        kind: "enqueue_continuation",
+        continuationKind: "same_agent",
+        summary: `Continue native reconciliation after ${reasonCode}.`,
+        idempotencyKey: `native-reconciliation:${reasonCode}`,
+        agentId: input.agentId,
+      },
+      ...effects,
+    ],
   });
 
   if (input.facts.equivalentAttentionFamily) {
-    return preserve("attention_duplicate_suppressed", [{ kind: "link_canonical_request" }]);
+    return preserve("attention_duplicate_suppressed", [
+      { kind: "link_canonical_request" },
+    ]);
   }
 
   if (input.facts.callerMaterialConflict) {
-    return preserve("structured_result_replay_conflict", [{
-      kind: "record_finalization_error",
-      cause: "structured_result_replay_conflict",
-      nextAction: "Use a fresh canonical result identity.",
-      agentId: input.agentId,
-    }]);
+    return preserve("structured_result_replay_conflict", [
+      {
+        kind: "record_finalization_error",
+        cause: "structured_result_replay_conflict",
+        nextAction: "Use a fresh canonical result identity.",
+        agentId: input.agentId,
+      },
+    ]);
   }
   if (input.facts.authoritativeStatusChanged) {
-    return preserve("prior_status_terminal_preserved", [{ kind: "append_superseding_assessment" }]);
+    return preserve("prior_status_terminal_preserved", [
+      { kind: "append_superseding_assessment" },
+    ]);
   }
   if (input.facts.statusVersionAdvanced) {
     return preserve("arbitration_conflict_reloaded", [
@@ -145,10 +176,13 @@ export function resolveNativeReconciliationStatus(input: {
       effects: [{ kind: "release_checkout" }],
     };
   }
-  if (input.facts.dependencyResolved) return continuation("dependency_resolved");
+  if (input.facts.dependencyResolved)
+    return continuation("dependency_resolved");
   if (input.facts.authorizedResume) return continuation("authorized_resume");
   if ((input.facts.undeliveredEffectCount ?? 0) > 0) {
-    return continuation("live_continuation_registered", [{ kind: "dispatch_pending_effect" }]);
+    return continuation("live_continuation_registered", [
+      { kind: "dispatch_pending_effect" },
+    ]);
   }
   if (input.facts.workspaceOperationPending) {
     return {
@@ -157,7 +191,10 @@ export function resolveNativeReconciliationStatus(input: {
       toStatus: "done",
       reasonCode: "completion_contract_satisfied",
       unblockDescriptor: null,
-      effects: [{ kind: "resume_workspace_operation" }, { kind: "release_checkout" }],
+      effects: [
+        { kind: "resume_workspace_operation" },
+        { kind: "release_checkout" },
+      ],
     };
   }
   if (input.facts.canonicalReplay) {
@@ -377,11 +414,16 @@ export async function claimNativeSessionResumptions(input: {
     const leaseOwner = `${input.runnerInstanceId}:resume:${randomUUID()}`;
     let terminalRunToEmit: typeof heartbeatRuns.$inferSelect | null = null;
     const claimed = await input.db.transaction(async (tx) => {
-      const row = await tx.select({
-        run: heartbeatRuns,
-        coordinator: nativeRunFinalizations,
-      }).from(heartbeatRuns)
-        .innerJoin(nativeRunFinalizations, eq(nativeRunFinalizations.runId, heartbeatRuns.id))
+      const row = await tx
+        .select({
+          run: heartbeatRuns,
+          coordinator: nativeRunFinalizations,
+        })
+        .from(heartbeatRuns)
+        .innerJoin(
+          nativeRunFinalizations,
+          eq(nativeRunFinalizations.runId, heartbeatRuns.id),
+        )
         .where(eq(heartbeatRuns.id, candidate.runId))
         .for("update")
         .limit(1)
@@ -410,8 +452,9 @@ export async function claimNativeSessionResumptions(input: {
       const originalFailureCode =
         typeof failureDetail.originalFailureCode === "string"
           ? failureDetail.originalFailureCode
-          : row.run.errorCode ?? row.coordinator.failureCode
-            ?? "native_session_interrupted";
+          : (row.run.errorCode ??
+            row.coordinator.failureCode ??
+            "native_session_interrupted");
       const providerEvent = await tx
         .select({ id: heartbeatRunEvents.id })
         .from(heartbeatRunEvents)
@@ -433,60 +476,73 @@ export async function claimNativeSessionResumptions(input: {
         .then((rows) => rows[0] ?? null);
       const checkpointRecord = record(checkpoint);
       const checkpointHasProviderIdentity =
-        (typeof checkpointRecord.providerSessionId === "string"
-          && checkpointRecord.providerSessionId.length > 0)
-        || Object.keys(record(checkpointRecord.providerIdentity)).length > 0;
+        (typeof checkpointRecord.providerSessionId === "string" &&
+          checkpointRecord.providerSessionId.length > 0) ||
+        Object.keys(record(checkpointRecord.providerIdentity)).length > 0;
       const bootstrapRetry =
-        !!persistedInput
-        && !checkpoint
-        && !providerEvent
-        && failureDetail.recoveryMode === "bootstrap_retry"
-        && failureDetail.providerSessionEstablished === false;
+        !!persistedInput &&
+        !checkpoint &&
+        !providerEvent &&
+        failureDetail.recoveryMode === "bootstrap_retry" &&
+        failureDetail.providerSessionEstablished === false;
       if (
-        !persistedInput
-        || (!checkpoint && !bootstrapRetry)
-        || (!!checkpoint && !checkpointHasProviderIdentity)
+        !persistedInput ||
+        (!checkpoint && !bootstrapRetry) ||
+        (!!checkpoint && !checkpointHasProviderIdentity)
       ) {
         const failureCode = originalFailureCode;
-        await tx.update(nativeRunFinalizations).set({
-          phase: "terminal_failure",
-          leaseOwner: null,
-          leaseExpiresAt: null,
-          failureCode,
-          failureDetail: {
-            ...failureDetail,
-            originalFailureCode,
-            recoveryMode: "ambiguous_state",
-            providerSessionEstablished:
-              checkpointHasProviderIdentity || providerEvent !== null,
-            recoveryOwner: { kind: "board" },
-            nextAction: "Inspect the original provider failure; durable state is missing or ambiguous and opening a replacement provider session is forbidden.",
-          },
-          nextAttemptAt: null,
-          updatedAt: now,
-        }).where(eq(nativeRunFinalizations.runId, row.run.id));
-        const [updatedRun] = await tx.update(heartbeatRuns).set({
-          status: "failed",
-          finishedAt: now,
-          nativePhase: "terminal_failure",
-          nativePhaseUpdatedAt: now,
-          errorCode: failureCode,
-          error: typeof failureDetail.message === "string"
-            ? failureDetail.message
-            : "Persisted native session state is ambiguous and cannot be resumed safely",
-          updatedAt: now,
-        }).where(eq(heartbeatRuns.id, row.run.id)).returning();
+        await tx
+          .update(nativeRunFinalizations)
+          .set({
+            phase: "terminal_failure",
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            failureCode,
+            failureDetail: {
+              ...failureDetail,
+              originalFailureCode,
+              recoveryMode: "ambiguous_state",
+              providerSessionEstablished:
+                checkpointHasProviderIdentity || providerEvent !== null,
+              recoveryOwner: { kind: "board" },
+              nextAction:
+                "Inspect the original provider failure; durable state is missing or ambiguous and opening a replacement provider session is forbidden.",
+            },
+            nextAttemptAt: null,
+            updatedAt: now,
+          })
+          .where(eq(nativeRunFinalizations.runId, row.run.id));
+        const [updatedRun] = await tx
+          .update(heartbeatRuns)
+          .set({
+            status: "failed",
+            finishedAt: now,
+            nativePhase: "terminal_failure",
+            nativePhaseUpdatedAt: now,
+            errorCode: failureCode,
+            error:
+              typeof failureDetail.message === "string"
+                ? failureDetail.message
+                : "Persisted native session state is ambiguous and cannot be resumed safely",
+            updatedAt: now,
+          })
+          .where(eq(heartbeatRuns.id, row.run.id))
+          .returning();
         // Only a genuine transition into "failed" is a new terminal failure.
         // A candidate that is already "failed" (the filter above admits
         // both "running" and "failed") must not send a second Sentry event.
         terminalRunToEmit =
-          updatedRun && updatedRun.status !== row.run.status ? updatedRun : null;
+          updatedRun && updatedRun.status !== row.run.status
+            ? updatedRun
+            : null;
         await issueService(tx as unknown as Db).update(
           row.coordinator.issueId,
           { status: "blocked" },
           tx,
         );
-        await issueRecoveryActionService(tx as unknown as Db).upsertSourceScoped({
+        await issueRecoveryActionService(
+          tx as unknown as Db,
+        ).upsertSourceScoped({
           companyId: row.run.companyId,
           sourceIssueId: row.coordinator.issueId,
           kind: "active_run_watchdog",
@@ -494,7 +550,9 @@ export async function claimNativeSessionResumptions(input: {
           ownerAgentId: null,
           returnOwnerAgentId: row.run.agentId,
           cause: failureCode,
-          fingerprint: createHash("sha256").update(`${row.run.id}:${failureCode}`).digest("hex"),
+          fingerprint: createHash("sha256")
+            .update(`${row.run.id}:${failureCode}`)
+            .digest("hex"),
           evidence: {
             runId: row.run.id,
             hasEnvelope: !!persistedInput,
@@ -502,7 +560,8 @@ export async function claimNativeSessionResumptions(input: {
             providerEventsExist: providerEvent !== null,
             originalFailureCode,
           },
-          nextAction: "Inspect the original provider failure and explicitly resolve recovery; do not open a duplicate provider session.",
+          nextAction:
+            "Inspect the original provider failure and explicitly resolve recovery; do not open a duplicate provider session.",
           wakePolicy: null,
           maxAttempts: 3,
           supersedeOnIdentityChange: true,
@@ -511,28 +570,38 @@ export async function claimNativeSessionResumptions(input: {
       }
 
       const leaseExpiresAt = new Date(now.getTime() + 20 * 60_000);
-      const updated = await tx.update(nativeRunFinalizations).set({
-        phase: "observed",
-        leaseOwner,
-        leaseExpiresAt,
-        failureCode: null,
-        failureDetail: null,
-        nextAttemptAt: null,
-        updatedAt: now,
-      }).where(and(
-        eq(nativeRunFinalizations.runId, row.run.id),
-        eq(nativeRunFinalizations.phase, row.coordinator.phase),
-      )).returning({ runId: nativeRunFinalizations.runId }).then((rows) => rows[0] ?? null);
+      const updated = await tx
+        .update(nativeRunFinalizations)
+        .set({
+          phase: "observed",
+          leaseOwner,
+          leaseExpiresAt,
+          failureCode: null,
+          failureDetail: null,
+          nextAttemptAt: null,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(nativeRunFinalizations.runId, row.run.id),
+            eq(nativeRunFinalizations.phase, row.coordinator.phase),
+          ),
+        )
+        .returning({ runId: nativeRunFinalizations.runId })
+        .then((rows) => rows[0] ?? null);
       if (!updated) return false;
-      await tx.update(heartbeatRuns).set({
-        status: "running",
-        finishedAt: null,
-        error: null,
-        errorCode: null,
-        nativePhase: "observed",
-        nativePhaseUpdatedAt: now,
-        updatedAt: now,
-      }).where(eq(heartbeatRuns.id, row.run.id));
+      await tx
+        .update(heartbeatRuns)
+        .set({
+          status: "running",
+          finishedAt: null,
+          error: null,
+          errorCode: null,
+          nativePhase: "observed",
+          nativePhaseUpdatedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(heartbeatRuns.id, row.run.id));
       return true;
     });
     // Telemetry is best-effort background work; it must not delay claiming
@@ -564,12 +633,18 @@ export async function reconcileNativeFinalizations(
     logger.warn({ err }, "Historical unsafe export recovery remains pending");
   });
   await dismissObsoleteNativePolicyReviews(db, runIds).catch((err) => {
-    logger.warn({ err }, "Obsolete native policy review lookup failed; continuing native reconciliation");
+    logger.warn(
+      { err },
+      "Obsolete native policy review lookup failed; continuing native reconciliation",
+    );
   });
   if (runIds?.length) {
-    const scopes = await db.select({ issueId: nativeRunFinalizations.issueId }).from(nativeRunFinalizations)
+    const scopes = await db
+      .select({ issueId: nativeRunFinalizations.issueId })
+      .from(nativeRunFinalizations)
       .where(inArray(nativeRunFinalizations.runId, runIds));
-    for (const scope of scopes) await dismissAutomaticCompletionReviews(db, scope.issueId);
+    for (const scope of scopes)
+      await dismissAutomaticCompletionReviews(db, scope.issueId);
   } else {
     await dismissAutomaticCompletionReviews(db);
   }
@@ -590,35 +665,53 @@ export async function reconcileNativeFinalizations(
       contextSnapshot: heartbeatRuns.contextSnapshot,
     })
     .from(heartbeatRuns)
-    .innerJoin(nativeRunFinalizations, eq(nativeRunFinalizations.runId, heartbeatRuns.id))
-    .innerJoin(issues, and(
-      eq(issues.id, nativeRunFinalizations.issueId),
-      eq(issues.companyId, heartbeatRuns.companyId),
-    ))
-    .where(and(
-      eq(heartbeatRuns.runtimeMode, "native"),
-      isNotNull(nativeRunFinalizations.resultId),
-      notInArray(nativeRunFinalizations.phase, ["terminal_failure"]),
-      or(
-        isNull(nativeRunFinalizations.nextAttemptAt),
-        lte(nativeRunFinalizations.nextAttemptAt, new Date()),
+    .innerJoin(
+      nativeRunFinalizations,
+      eq(nativeRunFinalizations.runId, heartbeatRuns.id),
+    )
+    .innerJoin(
+      issues,
+      and(
+        eq(issues.id, nativeRunFinalizations.issueId),
+        eq(issues.companyId, heartbeatRuns.companyId),
       ),
-      or(
-        isNull(nativeRunFinalizations.leaseOwner),
-        isNull(nativeRunFinalizations.leaseExpiresAt),
-        lte(nativeRunFinalizations.leaseExpiresAt, new Date()),
+    )
+    .where(
+      and(
+        eq(heartbeatRuns.runtimeMode, "native"),
+        isNotNull(nativeRunFinalizations.resultId),
+        notInArray(nativeRunFinalizations.phase, ["terminal_failure"]),
+        or(
+          isNull(nativeRunFinalizations.nextAttemptAt),
+          lte(nativeRunFinalizations.nextAttemptAt, new Date()),
+        ),
+        or(
+          isNull(nativeRunFinalizations.leaseOwner),
+          isNull(nativeRunFinalizations.leaseExpiresAt),
+          lte(nativeRunFinalizations.leaseExpiresAt, new Date()),
+        ),
+        ...(runIds && runIds.length > 0
+          ? [inArray(heartbeatRuns.id, runIds)]
+          : []),
       ),
-      ...(runIds && runIds.length > 0 ? [inArray(heartbeatRuns.id, runIds)] : []),
-    ));
+    );
   const results = [];
   for (const row of rows) {
     const pendingEffects = row.decisionId
-      ? await db.select({ id: statusDecisionEffects.id }).from(statusDecisionEffects).where(and(
-          eq(statusDecisionEffects.companyId, row.companyId),
-          eq(statusDecisionEffects.issueId, row.issueId),
-          eq(statusDecisionEffects.decisionId, row.decisionId),
-          inArray(statusDecisionEffects.deliveryState, ["pending", "failed"]),
-        ))
+      ? await db
+          .select({ id: statusDecisionEffects.id })
+          .from(statusDecisionEffects)
+          .where(
+            and(
+              eq(statusDecisionEffects.companyId, row.companyId),
+              eq(statusDecisionEffects.issueId, row.issueId),
+              eq(statusDecisionEffects.decisionId, row.decisionId),
+              inArray(statusDecisionEffects.deliveryState, [
+                "pending",
+                "failed",
+              ]),
+            ),
+          )
       : [];
     if (row.decisionId && pendingEffects.length > 0) {
       const decision = resolveNativeReconciliationStatus({
@@ -626,7 +719,11 @@ export async function reconcileNativeFinalizations(
         priorIssueStatus: row.issueStatus as NativeAuthoritativeIssueStatus,
         agentId: row.agentId,
       });
-      if (!decision.effects.some((effect) => effect.kind === "dispatch_pending_effect")) {
+      if (
+        !decision.effects.some(
+          (effect) => effect.kind === "dispatch_pending_effect",
+        )
+      ) {
         throw new Error("native_reconciliation_pending_effect_policy_missing");
       }
       const deliveredEffectIds = await dispatchPendingNativeStatusEffects({
@@ -636,41 +733,66 @@ export async function reconcileNativeFinalizations(
         decisionId: row.decisionId,
         runId: row.runId,
       });
-      results.push({ runId: row.runId, phase: "committed", deliveredEffectIds });
+      results.push({
+        runId: row.runId,
+        phase: "committed",
+        deliveredEffectIds,
+      });
       continue;
     }
     if (row.assessmentId) {
-      const assessment = await db.select({
-        id: workAssessments.id,
-        contractId: workAssessments.contractId,
-        resultId: workAssessments.resultId,
-        policyVersion: workAssessments.policyVersion,
-        priorIssueStatus: workAssessments.priorIssueStatus,
-        priorStatusVersion: workAssessments.priorStatusVersion,
-        priorDecisionId: workAssessments.priorDecisionId,
-        assessmentJson: workAssessments.assessmentJson,
-        createdAt: workAssessments.createdAt,
-      }).from(workAssessments).where(and(
-        eq(workAssessments.id, row.assessmentId),
-        eq(workAssessments.companyId, row.companyId),
-        eq(workAssessments.issueId, row.issueId),
-      )).limit(1).then((entries) => entries[0] ?? null);
+      const assessment = await db
+        .select({
+          id: workAssessments.id,
+          contractId: workAssessments.contractId,
+          resultId: workAssessments.resultId,
+          policyVersion: workAssessments.policyVersion,
+          priorIssueStatus: workAssessments.priorIssueStatus,
+          priorStatusVersion: workAssessments.priorStatusVersion,
+          priorDecisionId: workAssessments.priorDecisionId,
+          assessmentJson: workAssessments.assessmentJson,
+          createdAt: workAssessments.createdAt,
+        })
+        .from(workAssessments)
+        .where(
+          and(
+            eq(workAssessments.id, row.assessmentId),
+            eq(workAssessments.companyId, row.companyId),
+            eq(workAssessments.issueId, row.issueId),
+          ),
+        )
+        .limit(1)
+        .then((entries) => entries[0] ?? null);
       const changedEvidence = assessment
-        ? await db.select({ id: issueWorkProducts.id }).from(issueWorkProducts).where(and(
-            eq(issueWorkProducts.companyId, row.companyId),
-            eq(issueWorkProducts.issueId, row.issueId),
-            or(
-              gt(issueWorkProducts.createdAt, assessment.createdAt),
-              gt(issueWorkProducts.updatedAt, assessment.createdAt),
-            ),
-          )).limit(1).then((entries) => entries[0] ?? null)
+        ? await db
+            .select({ id: issueWorkProducts.id })
+            .from(issueWorkProducts)
+            .where(
+              and(
+                eq(issueWorkProducts.companyId, row.companyId),
+                eq(issueWorkProducts.issueId, row.issueId),
+                or(
+                  gt(issueWorkProducts.createdAt, assessment.createdAt),
+                  gt(issueWorkProducts.updatedAt, assessment.createdAt),
+                ),
+              ),
+            )
+            .limit(1)
+            .then((entries) => entries[0] ?? null)
         : null;
       const currentDecision = row.decisionId
-        ? await db.select().from(statusDecisions).where(and(
-            eq(statusDecisions.id, row.decisionId),
-            eq(statusDecisions.companyId, row.companyId),
-            eq(statusDecisions.issueId, row.issueId),
-          )).limit(1).then((entries) => entries[0] ?? null)
+        ? await db
+            .select()
+            .from(statusDecisions)
+            .where(
+              and(
+                eq(statusDecisions.id, row.decisionId),
+                eq(statusDecisions.companyId, row.companyId),
+                eq(statusDecisions.issueId, row.issueId),
+              ),
+            )
+            .limit(1)
+            .then((entries) => entries[0] ?? null)
         : null;
       const currentDecisionJson = record(currentDecision?.decisionJson);
       if (row.coordinatorPhase === "committed") {
@@ -678,7 +800,9 @@ export async function reconcileNativeFinalizations(
         // erase its accepted, still-authorized response. Repair presentation
         // before the status-only early return below, without rerunning work.
         await repairCommittedNativeChatResponse(db, {
-          companyId: row.companyId, issueId: row.issueId, runId: row.runId,
+          companyId: row.companyId,
+          issueId: row.issueId,
+          runId: row.runId,
         });
       }
       if (
@@ -700,54 +824,87 @@ export async function reconcileNativeFinalizations(
           assessmentId: row.assessmentId,
         });
       }
-      if (row.coordinatorPhase === "committed" && row.decisionId && !currentDecision) {
+      if (
+        row.coordinatorPhase === "committed" &&
+        row.decisionId &&
+        !currentDecision
+      ) {
         throw new Error("native_committed_decision_missing");
       }
-      const supersededCommittedDecision = row.coordinatorPhase === "committed"
-        && row.decisionId !== null
-        && row.issueDecisionId !== null
-        && row.issueDecisionId !== row.decisionId
-        && !(
-          currentDecisionJson.statusAction === "preserve"
-          && assessment?.priorDecisionId === row.issueDecisionId
+      const supersededCommittedDecision =
+        row.coordinatorPhase === "committed" &&
+        row.decisionId !== null &&
+        row.issueDecisionId !== null &&
+        row.issueDecisionId !== row.decisionId &&
+        !(
+          currentDecisionJson.statusAction === "preserve" &&
+          assessment?.priorDecisionId === row.issueDecisionId
         );
       if (supersededCommittedDecision) continue;
-      const persistedProjectedVersion = Number(currentDecisionJson.projectedStatusVersion);
+      const persistedProjectedVersion = Number(
+        currentDecisionJson.projectedStatusVersion,
+      );
       const expectedProjectedVersion = currentDecision
         ? Number.isFinite(persistedProjectedVersion)
           ? persistedProjectedVersion
-          : Number(currentDecision.decisionVersion) - (currentDecisionJson.statusAction === "preserve" ? 1 : 0)
+          : Number(currentDecision.decisionVersion) -
+            (currentDecisionJson.statusAction === "preserve" ? 1 : 0)
         : null;
-      const issueMatchesCurrentDecision = !!assessment
-        && !!currentDecision
-        && row.issueDecisionId === row.decisionId
-        && currentDecision.assessmentId === assessment.id
-        && currentDecision.toStatus === row.issueStatus
-        && expectedProjectedVersion === Number(row.issueStatusVersion);
-      const authoritativeStatusChanged = !!assessment && !issueMatchesCurrentDecision && (
-        assessment.priorIssueStatus !== row.issueStatus
-        || Number(assessment.priorStatusVersion) !== Number(row.issueStatusVersion)
-      );
-      const retiredAutomaticReview = issueMatchesCurrentDecision && currentDecision
-        ? await decisionHasRetiredAutomaticReview(db, currentDecision) : false;
+      const issueMatchesCurrentDecision =
+        !!assessment &&
+        !!currentDecision &&
+        row.issueDecisionId === row.decisionId &&
+        currentDecision.assessmentId === assessment.id &&
+        currentDecision.toStatus === row.issueStatus &&
+        expectedProjectedVersion === Number(row.issueStatusVersion);
+      const authoritativeStatusChanged =
+        !!assessment &&
+        !issueMatchesCurrentDecision &&
+        (assessment.priorIssueStatus !== row.issueStatus ||
+          Number(assessment.priorStatusVersion) !==
+            Number(row.issueStatusVersion));
+      const retiredAutomaticReview =
+        issueMatchesCurrentDecision && currentDecision
+          ? await decisionHasRetiredAutomaticReview(db, currentDecision)
+          : false;
       let reassessment = null;
       let resultRow = null;
       let contractRow = null;
-      if (assessment && (authoritativeStatusChanged || changedEvidence || retiredAutomaticReview)) {
+      if (
+        assessment &&
+        (authoritativeStatusChanged ||
+          changedEvidence ||
+          retiredAutomaticReview)
+      ) {
         [resultRow, contractRow] = await Promise.all([
-          db.select().from(nativeRunResults).where(and(
-            eq(nativeRunResults.id, assessment.resultId),
-            eq(nativeRunResults.companyId, row.companyId),
-            eq(nativeRunResults.issueId, row.issueId),
-            eq(nativeRunResults.runId, row.runId),
-          )).limit(1).then((entries) => entries[0] ?? null),
-          db.select().from(completionContracts).where(and(
-            eq(completionContracts.id, assessment.contractId),
-            eq(completionContracts.companyId, row.companyId),
-            eq(completionContracts.issueId, row.issueId),
-          )).limit(1).then((entries) => entries[0] ?? null),
+          db
+            .select()
+            .from(nativeRunResults)
+            .where(
+              and(
+                eq(nativeRunResults.id, assessment.resultId),
+                eq(nativeRunResults.companyId, row.companyId),
+                eq(nativeRunResults.issueId, row.issueId),
+                eq(nativeRunResults.runId, row.runId),
+              ),
+            )
+            .limit(1)
+            .then((entries) => entries[0] ?? null),
+          db
+            .select()
+            .from(completionContracts)
+            .where(
+              and(
+                eq(completionContracts.id, assessment.contractId),
+                eq(completionContracts.companyId, row.companyId),
+                eq(completionContracts.issueId, row.issueId),
+              ),
+            )
+            .limit(1)
+            .then((entries) => entries[0] ?? null),
         ]);
-        if (!resultRow || !contractRow) throw new Error("native_reconciliation_evidence_binding_missing");
+        if (!resultRow || !contractRow)
+          throw new Error("native_reconciliation_evidence_binding_missing");
         reassessment = await classifyNativeEvidence({
           db,
           companyId: row.companyId,
@@ -758,10 +915,11 @@ export async function reconcileNativeFinalizations(
         });
       }
       const previousAssessment = record(assessment?.assessmentJson);
-      const newEvidenceSatisfiesContract = !!changedEvidence
-        && previousAssessment.allCriteriaSatisfied !== true
-        && reassessment?.allCriteriaSatisfied === true
-        && reassessment.verificationPassed === true;
+      const newEvidenceSatisfiesContract =
+        !!changedEvidence &&
+        previousAssessment.allCriteriaSatisfied !== true &&
+        reassessment?.allCriteriaSatisfied === true &&
+        reassessment.verificationPassed === true;
       const facts: NativeReconciliationFacts = authoritativeStatusChanged
         ? { authoritativeStatusChanged: true }
         : newEvidenceSatisfiesContract
@@ -772,30 +930,84 @@ export async function reconcileNativeFinalizations(
           throw new Error("native_reconciliation_reassessment_missing");
         }
         const currentIssue = retiredAutomaticReview
-          ? await db.select().from(issues).where(and(eq(issues.id, row.issueId), eq(issues.companyId, row.companyId))).then((entries) => entries[0])
+          ? await db
+              .select()
+              .from(issues)
+              .where(
+                and(
+                  eq(issues.id, row.issueId),
+                  eq(issues.companyId, row.companyId),
+                ),
+              )
+              .then((entries) => entries[0])
           : null;
-        const readiness = retiredAutomaticReview ? await issueService(db).getDependencyReadiness(row.issueId, db) : null;
-        const currentRun = retiredAutomaticReview ? await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, row.runId)).then((entries) => entries[0]) : null;
+        const readiness = retiredAutomaticReview
+          ? await issueService(db).getDependencyReadiness(row.issueId, db)
+          : null;
+        const currentRun = retiredAutomaticReview
+          ? await db
+              .select()
+              .from(heartbeatRuns)
+              .where(eq(heartbeatRuns.id, row.runId))
+              .then((entries) => entries[0])
+          : null;
         // Never replay an old result over a new run or a later task contract.
-        const latestContract = retiredAutomaticReview ? await db.select({ id: completionContracts.id }).from(completionContracts)
-          .where(and(eq(completionContracts.companyId, row.companyId), eq(completionContracts.issueId, row.issueId)))
-          .orderBy(desc(completionContracts.revision)).limit(1).then((entries) => entries[0]) : null;
-        if (retiredAutomaticReview && (!currentIssue || currentRun?.status !== "succeeded"
-          || latestContract?.id !== contractRow.id
-          || (currentIssue.executionRunId && currentIssue.executionRunId !== row.runId))) continue;
+        const latestContract = retiredAutomaticReview
+          ? await db
+              .select({ id: completionContracts.id })
+              .from(completionContracts)
+              .where(
+                and(
+                  eq(completionContracts.companyId, row.companyId),
+                  eq(completionContracts.issueId, row.issueId),
+                ),
+              )
+              .orderBy(desc(completionContracts.revision))
+              .limit(1)
+              .then((entries) => entries[0])
+          : null;
+        if (
+          retiredAutomaticReview &&
+          (!currentIssue ||
+            currentRun?.status !== "succeeded" ||
+            latestContract?.id !== contractRow.id ||
+            (currentIssue.executionRunId &&
+              currentIssue.executionRunId !== row.runId))
+        )
+          continue;
         // A committed decision proves the original barrier passed. If a later
         // workspace operation exists, do not ignore a pending or failed retry.
-        const reviewBarrier = retiredAutomaticReview ? await db.select({ status: workspaceOperations.status })
-          .from(workspaceOperations).where(and(eq(workspaceOperations.companyId, row.companyId),
-            eq(workspaceOperations.heartbeatRunId, row.runId), eq(workspaceOperations.phase, "workspace_finalize")))
-          .orderBy(desc(workspaceOperations.createdAt)).limit(1).then((entries) => entries[0]) : null;
+        const reviewBarrier = retiredAutomaticReview
+          ? await db
+              .select({ status: workspaceOperations.status })
+              .from(workspaceOperations)
+              .where(
+                and(
+                  eq(workspaceOperations.companyId, row.companyId),
+                  eq(workspaceOperations.heartbeatRunId, row.runId),
+                  eq(workspaceOperations.phase, "workspace_finalize"),
+                ),
+              )
+              .orderBy(desc(workspaceOperations.createdAt))
+              .limit(1)
+              .then((entries) => entries[0])
+          : null;
         if (reviewBarrier && reviewBarrier.status !== "succeeded") continue;
         const childCompletionRecipient = {
-          companyId: row.companyId, issueId: row.issueId, agentId: row.agentId, runId: row.runId,
-          sourceIntentId: typeof record(row.contextSnapshot).nativeStatusWakeIntentId === "string"
-            ? record(row.contextSnapshot).nativeStatusWakeIntentId as string : null,
+          companyId: row.companyId,
+          issueId: row.issueId,
+          agentId: row.agentId,
+          runId: row.runId,
+          sourceIntentId:
+            typeof record(row.contextSnapshot).nativeStatusWakeIntentId ===
+            "string"
+              ? (record(row.contextSnapshot).nativeStatusWakeIntentId as string)
+              : null,
         };
-        const hasPendingChildCompletion = await hasPendingNativeChildCompletion(db, childCompletionRecipient);
+        const hasPendingChildCompletion = await hasPendingNativeChildCompletion(
+          db,
+          childCompletionRecipient,
+        );
         const reassessmentRow = await recordNativeWorkAssessment({
           db,
           companyId: row.companyId,
@@ -813,21 +1025,38 @@ export async function reconcileNativeFinalizations(
           assessment: reassessment,
           supersedesAssessmentId: assessment.id,
         });
-        const decision = retiredAutomaticReview && currentIssue
-          ? resolveNativeFinalizerStatus({
-              hasPendingChildCompletion,
-              assessment: reassessment, terminalState: "succeeded", workspaceFinalizeStatus: "succeeded",
-              governanceGate: await pendingNativeGovernance({ db, companyId: row.companyId, issueId: row.issueId,
-                runId: row.runId, executionState: record(currentIssue.executionState) }),
-              completionClaimPolicyAccepted: contractRow.risk === "low" && contractRow.completionAuthority === "agent_claim_policy",
-              hasUnresolvedIssueBlockers: (readiness?.unresolvedBlockerCount ?? 0) > 0,
-              reviewOwnerUserId: currentIssue.responsibleUserId ?? currentIssue.createdByUserId,
-              priorIssueStatus: row.issueStatus as NativeAuthoritativeIssueStatus, agentId: row.agentId,
-            })
-          : resolveNativeReconciliationStatus({
-              facts: { ...facts, hasPendingChildCompletion },
-              priorIssueStatus: row.issueStatus as NativeAuthoritativeIssueStatus, agentId: row.agentId,
-            });
+        const decision =
+          retiredAutomaticReview && currentIssue
+            ? resolveNativeFinalizerStatus({
+                hasPendingChildCompletion,
+                assessment: reassessment,
+                terminalState: "succeeded",
+                workspaceFinalizeStatus: "succeeded",
+                governanceGate: await pendingNativeGovernance({
+                  db,
+                  companyId: row.companyId,
+                  issueId: row.issueId,
+                  runId: row.runId,
+                  executionState: record(currentIssue.executionState),
+                }),
+                completionClaimPolicyAccepted:
+                  contractRow.risk === "low" &&
+                  contractRow.completionAuthority === "agent_claim_policy",
+                hasUnresolvedIssueBlockers:
+                  (readiness?.unresolvedBlockerCount ?? 0) > 0,
+                reviewOwnerUserId:
+                  currentIssue.responsibleUserId ??
+                  currentIssue.createdByUserId,
+                priorIssueStatus:
+                  row.issueStatus as NativeAuthoritativeIssueStatus,
+                agentId: row.agentId,
+              })
+            : resolveNativeReconciliationStatus({
+                facts: { ...facts, hasPendingChildCompletion },
+                priorIssueStatus:
+                  row.issueStatus as NativeAuthoritativeIssueStatus,
+                agentId: row.agentId,
+              });
         let committed: Awaited<ReturnType<typeof commitNativeStatusDecision>>;
         try {
           committed = await commitNativeStatusDecision({
@@ -840,10 +1069,14 @@ export async function reconcileNativeFinalizations(
             priorStatusVersion: Number(row.issueStatusVersion),
             priorDecisionId: row.issueDecisionId,
             decision,
-            requireNoPendingChildCompletion: decision.statusAction === "done" ? childCompletionRecipient : undefined,
-            supersedesCommittedDecisionId: row.coordinatorPhase === "committed"
-              ? row.decisionId ?? undefined
-              : undefined,
+            requireNoPendingChildCompletion:
+              decision.statusAction === "done"
+                ? childCompletionRecipient
+                : undefined,
+            supersedesCommittedDecisionId:
+              row.coordinatorPhase === "committed"
+                ? (row.decisionId ?? undefined)
+                : undefined,
           });
         } catch (error) {
           if (error instanceof NativeStatusRaceError) continue;
@@ -859,12 +1092,15 @@ export async function reconcileNativeFinalizations(
         continue;
       }
     }
-    const barrier = await db.select({ status: workspaceOperations.status })
+    const barrier = await db
+      .select({ status: workspaceOperations.status })
       .from(workspaceOperations)
-      .where(and(
-        eq(workspaceOperations.heartbeatRunId, row.runId),
-        eq(workspaceOperations.phase, "workspace_finalize"),
-      ))
+      .where(
+        and(
+          eq(workspaceOperations.heartbeatRunId, row.runId),
+          eq(workspaceOperations.phase, "workspace_finalize"),
+        ),
+      )
       .orderBy(desc(workspaceOperations.createdAt))
       .limit(1)
       .then((entries) => entries[0] ?? null);
@@ -874,8 +1110,14 @@ export async function reconcileNativeFinalizations(
         priorIssueStatus: row.issueStatus as NativeAuthoritativeIssueStatus,
         agentId: row.agentId,
       });
-      if (!recoveryDecision.effects.some((effect) => effect.kind === "resume_workspace_operation")) {
-        throw new Error("native_reconciliation_workspace_resume_policy_missing");
+      if (
+        !recoveryDecision.effects.some(
+          (effect) => effect.kind === "resume_workspace_operation",
+        )
+      ) {
+        throw new Error(
+          "native_reconciliation_workspace_resume_policy_missing",
+        );
       }
       const operation = await resumeNativeWorkspaceFinalization({
         db,
@@ -1004,12 +1246,14 @@ export async function reconcileNativeFinalizations(
           .catch(() => undefined);
       }
     } catch (error) {
-      results.push(await recordNativeFinalizationFailure({
-        db,
-        runId: row.runId,
-        error,
-        projectRunStatus: true,
-      }));
+      results.push(
+        await recordNativeFinalizationFailure({
+          db,
+          runId: row.runId,
+          error,
+          projectRunStatus: true,
+        }),
+      );
     }
   }
   return results;

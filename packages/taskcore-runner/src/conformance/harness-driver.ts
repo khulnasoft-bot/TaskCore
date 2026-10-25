@@ -5,7 +5,10 @@ import {
   type HarnessDriver,
   type HarnessDriverDescriptor,
 } from "../contracts/harness-driver.js";
-import { validatePrpEvent, type PrpEvent } from "../protocol/replay-contract.js";
+import {
+  validatePrpEvent,
+  type PrpEvent,
+} from "../protocol/replay-contract.js";
 
 export const HARNESS_DRIVER_CONFORMANCE_FIXTURE_SCHEMA =
   "taskcore-runner/harness-driver-conformance-fixture/v1" as const;
@@ -63,7 +66,10 @@ function text(value: unknown, path: string): string {
 }
 
 function strings(value: unknown, path: string): string[] {
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== "string")
+  ) {
     throw new Error(`${path} must be an array of strings`);
   }
   return [...value] as string[];
@@ -80,12 +86,28 @@ export function parseHarnessDriverConformanceFixture(
   }
   return {
     schema: HARNESS_DRIVER_CONFORMANCE_FIXTURE_SCHEMA,
-    validConfig: structuredClone(record(fixture.validConfig, "fixture.validConfig")),
-    invalidConfig: structuredClone(record(fixture.invalidConfig, "fixture.invalidConfig")),
-    completionMessage: text(fixture.completionMessage, "fixture.completionMessage"),
-    interruptMessage: text(fixture.interruptMessage, "fixture.interruptMessage"),
-    requiredCapabilities: strings(fixture.requiredCapabilities, "fixture.requiredCapabilities"),
-    unsupportedFeatures: strings(fixture.unsupportedFeatures, "fixture.unsupportedFeatures"),
+    validConfig: structuredClone(
+      record(fixture.validConfig, "fixture.validConfig"),
+    ),
+    invalidConfig: structuredClone(
+      record(fixture.invalidConfig, "fixture.invalidConfig"),
+    ),
+    completionMessage: text(
+      fixture.completionMessage,
+      "fixture.completionMessage",
+    ),
+    interruptMessage: text(
+      fixture.interruptMessage,
+      "fixture.interruptMessage",
+    ),
+    requiredCapabilities: strings(
+      fixture.requiredCapabilities,
+      "fixture.requiredCapabilities",
+    ),
+    unsupportedFeatures: strings(
+      fixture.unsupportedFeatures,
+      "fixture.unsupportedFeatures",
+    ),
   };
 }
 
@@ -97,7 +119,9 @@ export async function loadHarnessDriverConformanceFixture(
   );
 }
 
-async function collectEvents(events: AsyncIterable<PrpEvent>): Promise<PrpEvent[]> {
+async function collectEvents(
+  events: AsyncIterable<PrpEvent>,
+): Promise<PrpEvent[]> {
   const collected: PrpEvent[] = [];
   for await (const event of events) {
     const validation = validatePrpEvent(event);
@@ -116,19 +140,28 @@ export async function runHarnessDriverConformance(input: {
   driver: HarnessDriver;
   fixture?: HarnessDriverConformanceFixture;
 }): Promise<HarnessDriverConformanceReport> {
-  const fixture = input.fixture ?? await loadHarnessDriverConformanceFixture();
+  const fixture =
+    input.fixture ?? (await loadHarnessDriverConformanceFixture());
   const descriptor = await input.driver.descriptor();
   if (!descriptor.kind || !descriptor.displayName || !descriptor.version) {
     throw new Error("driver descriptor is missing stable identity fields");
   }
   for (const capability of fixture.requiredCapabilities) {
-    if (descriptor.capabilities[capability as keyof typeof descriptor.capabilities] !== true) {
-      throw new Error(`driver capability ${capability} is required by conformance V1`);
+    if (
+      descriptor.capabilities[
+        capability as keyof typeof descriptor.capabilities
+      ] !== true
+    ) {
+      throw new Error(
+        `driver capability ${capability} is required by conformance V1`,
+      );
     }
   }
   for (const unsupported of fixture.unsupportedFeatures) {
     if (!descriptor.capabilities.unsupported?.includes(unsupported)) {
-      throw new Error(`driver must explicitly describe unsupported feature ${unsupported}`);
+      throw new Error(
+        `driver must explicitly describe unsupported feature ${unsupported}`,
+      );
     }
   }
 
@@ -138,7 +171,9 @@ export async function runHarnessDriverConformance(input: {
   const valid = await input.driver.validateConfig(fixture.validConfig);
   const invalid = await input.driver.validateConfig(fixture.invalidConfig);
   if (!valid.ok || invalid.ok || invalid.issues.length === 0) {
-    throw new Error("driver config validation did not accept valid and reject invalid input");
+    throw new Error(
+      "driver config validation did not accept valid and reject invalid input",
+    );
   }
 
   const completeSession = await input.driver.openSession({
@@ -146,51 +181,78 @@ export async function runHarnessDriverConformance(input: {
     normalizedSessionId: "session_driver_conformance_complete",
     workingDirectory: "/deterministic/conformance",
   });
-  await completeSession.startTurn({ message: { role: "user", text: fixture.completionMessage } });
+  await completeSession.startTurn({
+    message: { role: "user", text: fixture.completionMessage },
+  });
   const completeEvents = await collectEvents(completeSession.events());
-  const semanticInputs = completeEvents.filter((event) => event.eventType === "mcp_app.tool_input");
-  const semanticResults = completeEvents.filter((event) => event.eventType === "mcp_app.tool_result");
-  if (semanticInputs.length === 0 || semanticInputs.length !== semanticResults.length) {
-    throw new Error("driver conformance requires paired semantic tool input/result events");
+  const semanticInputs = completeEvents.filter(
+    (event) => event.eventType === "mcp_app.tool_input",
+  );
+  const semanticResults = completeEvents.filter(
+    (event) => event.eventType === "mcp_app.tool_result",
+  );
+  if (
+    semanticInputs.length === 0 ||
+    semanticInputs.length !== semanticResults.length
+  ) {
+    throw new Error(
+      "driver conformance requires paired semantic tool input/result events",
+    );
   }
   const snapshot = await completeSession.snapshot();
-  if (snapshot.semanticResult === undefined || snapshot.semanticResult === null) {
-    throw new Error("completed driver session did not persist a semantic result");
+  if (
+    snapshot.semanticResult === undefined ||
+    snapshot.semanticResult === null
+  ) {
+    throw new Error(
+      "completed driver session did not persist a semantic result",
+    );
   }
   const usage = await completeSession.usage?.();
   if (usage === undefined || usage === null) {
-    throw new Error("driver conformance requires a deterministic usage snapshot");
+    throw new Error(
+      "driver conformance requires a deterministic usage snapshot",
+    );
   }
   const transcript = await completeSession.transcript?.();
   if (
-    transcript === undefined
-    || !transcript.complete
-    || transcript.eventCount !== completeEvents.length
-    || transcript.events.length !== completeEvents.length
-    || transcript.omissionReason !== null
+    transcript === undefined ||
+    !transcript.complete ||
+    transcript.eventCount !== completeEvents.length ||
+    transcript.events.length !== completeEvents.length ||
+    transcript.omissionReason !== null
   ) {
-    throw new Error("driver conformance transcript is incomplete or inconsistent");
+    throw new Error(
+      "driver conformance transcript is incomplete or inconsistent",
+    );
   }
   if (input.driver.recoverSession === undefined) {
-    throw new Error("driver declares resume but does not expose session recovery");
+    throw new Error(
+      "driver declares resume but does not expose session recovery",
+    );
   }
   const recovery = await input.driver.recoverSession(snapshot, {
     signal: new AbortController().signal,
   });
   if (
-    !recovery.recovered
-    || recovery.session === undefined
-    || recovery.session.ids().driverSessionId !== snapshot.driverSessionId
+    !recovery.recovered ||
+    recovery.session === undefined ||
+    recovery.session.ids().driverSessionId !== snapshot.driverSessionId
   ) {
-    throw new Error("driver did not recover the persisted conformance session identity");
+    throw new Error(
+      "driver did not recover the persisted conformance session identity",
+    );
   }
   const recoveredSnapshot = await recovery.session.snapshot();
   if (
-    recoveredSnapshot.runId !== snapshot.runId
-    || recoveredSnapshot.normalizedSessionId !== snapshot.normalizedSessionId
-    || recoveredSnapshot.semanticResult?.fingerprint !== snapshot.semanticResult?.fingerprint
+    recoveredSnapshot.runId !== snapshot.runId ||
+    recoveredSnapshot.normalizedSessionId !== snapshot.normalizedSessionId ||
+    recoveredSnapshot.semanticResult?.fingerprint !==
+      snapshot.semanticResult?.fingerprint
   ) {
-    throw new Error("driver recovery did not preserve the persisted conformance state");
+    throw new Error(
+      "driver recovery did not preserve the persisted conformance state",
+    );
   }
   await recovery.session.close({ reason: "conformance_recovery_complete" });
   await completeSession.close({ reason: "conformance_complete" });
@@ -206,15 +268,25 @@ export async function runHarnessDriverConformance(input: {
   if (interruptedSession.interrupt === undefined) {
     throw new Error("driver conformance requires interrupt support");
   }
-  await interruptedSession.interrupt({ turnId, reason: "conformance_interrupt" });
+  await interruptedSession.interrupt({
+    turnId,
+    reason: "conformance_interrupt",
+  });
   const interruptedEvents = await collectEvents(interruptedSession.events());
   if (
-    !interruptedEvents.some((event) => event.eventType === "turn.interrupted")
-    || !interruptedEvents.some((event) =>
-      event.eventType === "run.terminal"
-      && record(event.payload, "terminal payload").runTerminalState === "cancelled")
+    !interruptedEvents.some(
+      (event) => event.eventType === "turn.interrupted",
+    ) ||
+    !interruptedEvents.some(
+      (event) =>
+        event.eventType === "run.terminal" &&
+        record(event.payload, "terminal payload").runTerminalState ===
+          "cancelled",
+    )
   ) {
-    throw new Error("driver interrupt did not produce an explicit cancelled terminal");
+    throw new Error(
+      "driver interrupt did not produce an explicit cancelled terminal",
+    );
   }
   await interruptedSession.close({ reason: "conformance_cancel", force: true });
 

@@ -10,26 +10,43 @@ const roots: string[] = [];
 
 afterEach(async () => {
   const { rm } = await import("node:fs/promises");
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  await Promise.all(
+    roots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
+  );
 });
 
 describe("ProviderTraceFileSink", () => {
   it("omits raw identity-run frames even when a key is split into single-byte deltas", async () => {
-    const root = await mkdtemp(join(tmpdir(), "taskcore-provider-trace-identity-"));
+    const root = await mkdtemp(
+      join(tmpdir(), "taskcore-provider-trace-identity-"),
+    );
     roots.push(root);
     const tracePath = join(root, "provider.ndjson");
-    const sink = await createProviderTraceFileSink({ path: tracePath, provider: "opencode", channel: "test" });
-    const key = "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIExamplePrivateMaterial\n-----END PRIVATE KEY-----\n";
-    sink!.addSensitiveValues([key]);
-    for (const delta of key) sink!.frame({
-      direction: "provider_to_client", raw: JSON.stringify({ delta }), transport: "sse",
+    const sink = await createProviderTraceFileSink({
+      path: tracePath,
+      provider: "opencode",
+      channel: "test",
     });
+    const key =
+      "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIExamplePrivateMaterial\n-----END PRIVATE KEY-----\n";
+    sink!.addSensitiveValues([key]);
+    for (const delta of key)
+      sink!.frame({
+        direction: "provider_to_client",
+        raw: JSON.stringify({ delta }),
+        transport: "sse",
+      });
     await sink!.finish();
-    const records = (await readFile(tracePath, "utf8")).trim().split("\n").map(line => JSON.parse(line));
-    const frames = records.filter(record => record.kind === "frame");
+    const records = (await readFile(tracePath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const frames = records.filter((record) => record.kind === "frame");
     expect(frames).toHaveLength(key.length);
-    for (const frame of frames) expect(Buffer.from(frame.rawBase64, "base64").toString())
-      .toBe("[REDACTED: agent identity runtime]");
+    for (const frame of frames)
+      expect(Buffer.from(frame.rawBase64, "base64").toString()).toBe(
+        "[REDACTED: agent identity runtime]",
+      );
   });
 
   it("hardens an existing file before it appends provider frames", async () => {
@@ -50,7 +67,9 @@ describe("ProviderTraceFileSink", () => {
   });
 
   it("redacts registered credentials before raw frames reach disk", async () => {
-    const root = await mkdtemp(join(tmpdir(), "taskcore-provider-trace-secret-"));
+    const root = await mkdtemp(
+      join(tmpdir(), "taskcore-provider-trace-secret-"),
+    );
     roots.push(root);
     const tracePath = join(root, "provider.ndjson");
     const sink = await createProviderTraceFileSink({
@@ -69,9 +88,13 @@ describe("ProviderTraceFileSink", () => {
     const trace = await readFile(tracePath, "utf8");
     expect(trace).not.toContain("provider-secret");
     expect(trace).not.toContain("bridge-secret");
-    const frame = JSON.parse(trace.trim().split("\n")[0]!) as Record<string, unknown>;
-    expect(Buffer.from(String(frame.rawBase64), "base64").toString("utf8"))
-      .toBe("credential=[REDACTED] authorization=[REDACTED]");
+    const frame = JSON.parse(trace.trim().split("\n")[0]!) as Record<
+      string,
+      unknown
+    >;
+    expect(
+      Buffer.from(String(frame.rawBase64), "base64").toString("utf8"),
+    ).toBe("credential=[REDACTED] authorization=[REDACTED]");
   });
 });
 

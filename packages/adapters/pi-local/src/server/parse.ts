@@ -1,4 +1,9 @@
-import { asNumber, asString, parseJson, parseObject } from "@taskcore/adapter-utils/server-utils";
+import {
+  asNumber,
+  asString,
+  parseJson,
+  parseObject,
+} from "@taskcore/adapter-utils/server-utils";
 
 interface ParsedPiOutput {
   sawAgentEnd: boolean;
@@ -12,15 +17,24 @@ interface ParsedPiOutput {
     costUsd: number | null;
   };
   finalMessage: string | null;
-  toolCalls: Array<{ toolCallId: string; toolName: string; args: unknown; result: string | null; isError: boolean }>;
+  toolCalls: Array<{
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+    result: string | null;
+    isError: boolean;
+  }>;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
-function extractTextContent(content: string | Array<{ type: string; text?: string }>): string {
+function extractTextContent(
+  content: string | Array<{ type: string; text?: string }>,
+): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   return content
@@ -52,10 +66,15 @@ export function createPiJsonlParser() {
 
   let missingCost = false;
   function addCost(value: unknown) {
-    if (typeof value === "number" && Number.isFinite(value) && value >= 0) result.usage.costUsd = (result.usage.costUsd ?? 0) + value;
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0)
+      result.usage.costUsd = (result.usage.costUsd ?? 0) + value;
     else missingCost = true;
   }
-  let currentToolCall: { toolCallId: string; toolName: string; args: unknown } | null = null;
+  let currentToolCall: {
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+  } | null = null;
 
   return (stdout: string) => {
     for (const rawLine of stdout.split(/\r?\n/)) {
@@ -69,20 +88,31 @@ export function createPiJsonlParser() {
 
       // Pi can exit successfully after a provider failure. The terminal assistant
       // message carries that failure in both message_end and turn_end envelopes.
-      const terminalMessages = eventType === "agent_end"
-        ? (Array.isArray(event.messages) ? event.messages : [])
-        : eventType === "message_end" || eventType === "turn_end"
-          ? [event.message]
-          : [];
+      const terminalMessages =
+        eventType === "agent_end"
+          ? Array.isArray(event.messages)
+            ? event.messages
+            : []
+          : eventType === "message_end" || eventType === "turn_end"
+            ? [event.message]
+            : [];
       for (const rawMessage of terminalMessages) {
         const message = asRecord(rawMessage);
-        if (message?.role !== "assistant" || message.stopReason !== "error") continue;
-        const error = asString(message.errorMessage, "").trim() || "Pi provider request failed.";
+        if (message?.role !== "assistant" || message.stopReason !== "error")
+          continue;
+        const error =
+          asString(message.errorMessage, "").trim() ||
+          "Pi provider request failed.";
         if (!result.errors.includes(error)) result.errors.push(error);
       }
 
       // RPC protocol messages - skip these (internal implementation detail)
-      if (eventType === "response" || eventType === "extension_ui_request" || eventType === "extension_ui_response" || eventType === "extension_error") {
+      if (
+        eventType === "response" ||
+        eventType === "extension_ui_request" ||
+        eventType === "extension_ui_response" ||
+        eventType === "extension_error"
+      ) {
         continue;
       }
 
@@ -93,11 +123,13 @@ export function createPiJsonlParser() {
 
       if (eventType === "agent_end") {
         result.sawAgentEnd = true;
-        const messages = event.messages as Array<Record<string, unknown>> | undefined;
+        const messages = event.messages as
+          Array<Record<string, unknown>> | undefined;
         if (messages && messages.length > 0) {
           const lastMessage = messages[messages.length - 1];
           if (lastMessage?.role === "assistant") {
-            const content = lastMessage.content as string | Array<{ type: string; text?: string }>;
+            const content = lastMessage.content as
+              string | Array<{ type: string; text?: string }>;
             result.finalMessage = extractTextContent(content);
           }
         }
@@ -108,7 +140,10 @@ export function createPiJsonlParser() {
         const succeeded = event.success === true;
         if (!succeeded) {
           const finalError = asString(event.finalError, "").trim();
-          result.errors.push(finalError || "Pi exhausted automatic retries without producing a response.");
+          result.errors.push(
+            finalError ||
+              "Pi exhausted automatic retries without producing a response.",
+          );
         }
         continue;
       }
@@ -121,7 +156,8 @@ export function createPiJsonlParser() {
       if (eventType === "turn_end") {
         const message = asRecord(event.message);
         if (message) {
-          const content = message.content as string | Array<{ type: string; text?: string }>;
+          const content = message.content as
+            string | Array<{ type: string; text?: string }>;
           const text = extractTextContent(content);
           if (text) {
             result.finalMessage = text;
@@ -131,7 +167,8 @@ export function createPiJsonlParser() {
           // Extract usage and cost from assistant message
           const usage = asRecord(message.usage);
           if (usage) {
-            result.usage.inputTokens += asNumber(usage.input, 0) + asNumber(usage.cacheWrite, 0);
+            result.usage.inputTokens +=
+              asNumber(usage.input, 0) + asNumber(usage.cacheWrite, 0);
             result.usage.outputTokens += asNumber(usage.output, 0);
             result.usage.cachedInputTokens += asNumber(usage.cacheRead, 0);
 
@@ -142,7 +179,8 @@ export function createPiJsonlParser() {
         }
 
         // Tool results are in toolResults array
-        const toolResults = event.toolResults as Array<Record<string, unknown>> | undefined;
+        const toolResults = event.toolResults as
+          Array<Record<string, unknown>> | undefined;
         if (toolResults) {
           for (const tr of toolResults) {
             const toolCallId = asString(tr.toolCallId, "");
@@ -150,9 +188,12 @@ export function createPiJsonlParser() {
             const isError = tr.isError === true;
 
             // Find matching tool call by toolCallId
-            const existingCall = result.toolCalls.find((tc) => tc.toolCallId === toolCallId);
+            const existingCall = result.toolCalls.find(
+              (tc) => tc.toolCallId === toolCallId,
+            );
             if (existingCall) {
-              existingCall.result = typeof content === "string" ? content : JSON.stringify(content);
+              existingCall.result =
+                typeof content === "string" ? content : JSON.stringify(content);
               existingCall.isError = isError;
             }
           }
@@ -211,9 +252,14 @@ export function createPiJsonlParser() {
         const isError = event.isError === true;
 
         // Find the tool call by toolCallId (not toolName, to handle multiple calls to same tool)
-        const existingCall = result.toolCalls.find((tc) => tc.toolCallId === toolCallId);
+        const existingCall = result.toolCalls.find(
+          (tc) => tc.toolCallId === toolCallId,
+        );
         if (existingCall) {
-          existingCall.result = typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult);
+          existingCall.result =
+            typeof toolResult === "string"
+              ? toolResult
+              : JSON.stringify(toolResult);
           existingCall.isError = isError;
         }
         currentToolCall = null;
@@ -225,9 +271,17 @@ export function createPiJsonlParser() {
         const usage = asRecord(event.usage);
         if (usage) {
           // Support both Pi format (input/output/cacheRead) and generic format (inputTokens/outputTokens/cachedInputTokens)
-          result.usage.inputTokens += asNumber(usage.inputTokens ?? usage.input, 0) + asNumber(usage.cacheWrite, 0);
-          result.usage.outputTokens += asNumber(usage.outputTokens ?? usage.output, 0);
-          result.usage.cachedInputTokens += asNumber(usage.cachedInputTokens ?? usage.cacheRead, 0);
+          result.usage.inputTokens +=
+            asNumber(usage.inputTokens ?? usage.input, 0) +
+            asNumber(usage.cacheWrite, 0);
+          result.usage.outputTokens += asNumber(
+            usage.outputTokens ?? usage.output,
+            0,
+          );
+          result.usage.cachedInputTokens += asNumber(
+            usage.cachedInputTokens ?? usage.cacheRead,
+            0,
+          );
 
           // Cost may be in usage.costUsd (direct) or usage.cost.total (Pi format)
           const cost = asRecord(usage.cost);
@@ -237,16 +291,27 @@ export function createPiJsonlParser() {
     }
 
     if (missingCost) result.usage.costUsd = null;
-    return { ...result, usage: { ...result.usage }, messages: [...result.messages], errors: [...result.errors], toolCalls: [...result.toolCalls] };
+    return {
+      ...result,
+      usage: { ...result.usage },
+      messages: [...result.messages],
+      errors: [...result.errors],
+      toolCalls: [...result.toolCalls],
+    };
   };
 }
 
-export function isPiUnknownSessionError(stdout: string, stderr: string): boolean {
+export function isPiUnknownSessionError(
+  stdout: string,
+  stderr: string,
+): boolean {
   const haystack = `${stdout}\n${stderr}`
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .join("\n");
 
-  return /unknown\s+session|session\s+not\s+found|session\s+.*\s+not\s+found|no\s+session/i.test(haystack);
+  return /unknown\s+session|session\s+not\s+found|session\s+.*\s+not\s+found|no\s+session/i.test(
+    haystack,
+  );
 }

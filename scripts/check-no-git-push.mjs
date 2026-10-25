@@ -78,10 +78,19 @@ function stripLineComment(line) {
     }
     const isEscaped = backslashes % 2 === 1;
 
-    if (!inDouble && !inBacktick && char === "'" && !isEscaped) inSingle = !inSingle;
-    else if (!inSingle && !inBacktick && char === '"' && !isEscaped) inDouble = !inDouble;
-    else if (!inSingle && !inDouble && char === "`" && !isEscaped) inBacktick = !inBacktick;
-    else if (!inSingle && !inDouble && !inBacktick && char === "/" && line[index + 1] === "/") {
+    if (!inDouble && !inBacktick && char === "'" && !isEscaped)
+      inSingle = !inSingle;
+    else if (!inSingle && !inBacktick && char === '"' && !isEscaped)
+      inDouble = !inDouble;
+    else if (!inSingle && !inDouble && char === "`" && !isEscaped)
+      inBacktick = !inBacktick;
+    else if (
+      !inSingle &&
+      !inDouble &&
+      !inBacktick &&
+      char === "/" &&
+      line[index + 1] === "/"
+    ) {
       return line.slice(0, index);
     }
   }
@@ -99,7 +108,8 @@ export function findGitPushOffenses(text) {
     if (!lineMatchesGitPush(stripped)) continue;
 
     const previousLine = index > 0 ? lines[index - 1] : "";
-    const isAllowed = line.includes(ALLOW_MARKER) || previousLine.includes(ALLOW_MARKER);
+    const isAllowed =
+      line.includes(ALLOW_MARKER) || previousLine.includes(ALLOW_MARKER);
     if (isAllowed) continue;
 
     offenses.push({ lineNumber: index + 1, line: line.trimEnd() });
@@ -109,7 +119,8 @@ export function findGitPushOffenses(text) {
 }
 
 function shouldScanFile(relativePath) {
-  if (SKIP_FILENAME_SUFFIXES.some((suffix) => relativePath.endsWith(suffix))) return false;
+  if (SKIP_FILENAME_SUFFIXES.some((suffix) => relativePath.endsWith(suffix)))
+    return false;
   const extension = path.extname(relativePath);
   return SCANNABLE_EXTENSIONS.has(extension);
 }
@@ -140,7 +151,10 @@ export function collectScannableFiles(absoluteRoot, repoRoot) {
         continue;
       }
       const absolute = path.join(current, entry.name);
-      const relative = path.relative(repoRoot, absolute).split(path.sep).join("/");
+      const relative = path
+        .relative(repoRoot, absolute)
+        .split(path.sep)
+        .join("/");
       if (shouldScanFile(relative)) results.push({ absolute, relative });
     }
   }
@@ -148,7 +162,12 @@ export function collectScannableFiles(absoluteRoot, repoRoot) {
   return results;
 }
 
-export function runCheck({ repoRoot, scanRoots = DEFAULT_SCAN_ROOTS, log = console.log, error = console.error } = {}) {
+export function runCheck({
+  repoRoot,
+  scanRoots = DEFAULT_SCAN_ROOTS,
+  log = console.log,
+  error = console.error,
+} = {}) {
   const allOffenses = [];
 
   for (const scanRoot of scanRoots) {
@@ -169,7 +188,9 @@ export function runCheck({ repoRoot, scanRoots = DEFAULT_SCAN_ROOTS, log = conso
   }
 
   if (allOffenses.length > 0) {
-    error("ERROR: `git push` (or equivalent remote-mutating git command) found in adapter/runtime code:\n");
+    error(
+      "ERROR: `git push` (or equivalent remote-mutating git command) found in adapter/runtime code:\n",
+    );
     for (const offense of allOffenses) {
       error(`  ${offense.relative}:${offense.lineNumber}: ${offense.line}`);
     }
@@ -182,12 +203,17 @@ export function runCheck({ repoRoot, scanRoots = DEFAULT_SCAN_ROOTS, log = conso
     return 1;
   }
 
-  log(`  ✓  No unapproved \`git push\` invocations found in adapter/runtime code.`);
+  log(
+    `  ✓  No unapproved \`git push\` invocations found in adapter/runtime code.`,
+  );
   return 0;
 }
 
 function isMainModule() {
-  return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  return (
+    process.argv[1] &&
+    path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+  );
 }
 
 if (isMainModule()) {

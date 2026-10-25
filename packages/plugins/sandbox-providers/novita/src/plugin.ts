@@ -30,7 +30,9 @@ export interface NovitaDriverConfig {
 }
 
 function parseOptionalString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function parsePositiveInteger(value: unknown, fallback: number): number {
@@ -39,12 +41,15 @@ function parsePositiveInteger(value: unknown, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : fallback;
 }
 
-export function parseNovitaDriverConfig(raw: Record<string, unknown>): NovitaDriverConfig {
+export function parseNovitaDriverConfig(
+  raw: Record<string, unknown>,
+): NovitaDriverConfig {
   return {
     apiKey: parseOptionalString(raw.apiKey),
     domain: parseOptionalString(raw.domain),
     template: parseOptionalString(raw.template),
-    requestedCwd: parseOptionalString(raw.requestedCwd) ?? "/home/user/taskcore-workspace",
+    requestedCwd:
+      parseOptionalString(raw.requestedCwd) ?? "/home/user/taskcore-workspace",
     timeoutMs: parsePositiveInteger(raw.timeoutMs, 300_000),
     requestTimeoutMs: parsePositiveInteger(raw.requestTimeoutMs, 30_000),
     secure: typeof raw.secure === "boolean" ? raw.secure : null,
@@ -56,7 +61,9 @@ export function parseNovitaDriverConfig(raw: Record<string, unknown>): NovitaDri
 function validateNovitaDriverConfig(config: NovitaDriverConfig): string[] {
   const errors: string[] = [];
   if (!config.apiKey && !process.env.NOVITA_API_KEY?.trim()) {
-    errors.push("Novita sandbox environments require an API key in config or NOVITA_API_KEY.");
+    errors.push(
+      "Novita sandbox environments require an API key in config or NOVITA_API_KEY.",
+    );
   }
   if (!config.requestedCwd.startsWith("/")) {
     errors.push("requestedCwd must be an absolute path.");
@@ -73,7 +80,9 @@ function validateNovitaDriverConfig(config: NovitaDriverConfig): string[] {
 function resolveApiKey(config: NovitaDriverConfig): string {
   const apiKey = config.apiKey ?? process.env.NOVITA_API_KEY?.trim() ?? "";
   if (!apiKey) {
-    throw new Error("Novita sandbox environments require an API key in config or NOVITA_API_KEY.");
+    throw new Error(
+      "Novita sandbox environments require an API key in config or NOVITA_API_KEY.",
+    );
   }
   return apiKey;
 }
@@ -122,30 +131,33 @@ export function buildShellCommand(input: {
     }
   }
 
-  const exports = envEntries.map(([key, value]) => `export ${key}=${shellQuote(value)};`);
+  const exports = envEntries.map(
+    ([key, value]) => `export ${key}=${shellQuote(value)};`,
+  );
   const argv = [input.command, ...(input.args ?? [])].map(shellQuote).join(" ");
   const stdinPath = typeof input.stdin === "string" ? buildStdinPath() : null;
-  const stdin = stdinPath ? `printf '%s' ${singleQuoteForPrintf(input.stdin ?? "")} > ${shellQuote(stdinPath)}` : "";
+  const stdin = stdinPath
+    ? `printf '%s' ${singleQuoteForPrintf(input.stdin ?? "")} > ${shellQuote(stdinPath)}`
+    : "";
   const cwd = input.cwd?.trim() || "/";
   const commandLines = stdinPath
     ? [
-      "set +e",
-      `${argv} < ${shellQuote(stdinPath)}`,
-      "status=$?",
-      `rm -f ${shellQuote(stdinPath)}`,
-      "exit $status",
-    ]
+        "set +e",
+        `${argv} < ${shellQuote(stdinPath)}`,
+        "status=$?",
+        `rm -f ${shellQuote(stdinPath)}`,
+        "exit $status",
+      ]
     : [`exec ${argv}`];
-  return [
-    "set -e",
-    stdin,
-    `cd ${shellQuote(cwd)}`,
-    ...exports,
-    ...commandLines,
-  ].filter(Boolean).join("\n");
+  return ["set -e", stdin, `cd ${shellQuote(cwd)}`, ...exports, ...commandLines]
+    .filter(Boolean)
+    .join("\n");
 }
 
-async function createSandbox(params: PluginEnvironmentAcquireLeaseParams | PluginEnvironmentProbeParams, config: NovitaDriverConfig) {
+async function createSandbox(
+  params: PluginEnvironmentAcquireLeaseParams | PluginEnvironmentProbeParams,
+  config: NovitaDriverConfig,
+) {
   const metadata = {
     "taskcore-provider": "novita",
     "taskcore-company-id": params.companyId,
@@ -181,7 +193,10 @@ async function getSandboxOrNull(config: NovitaDriverConfig, sandboxId: string) {
   }
 }
 
-async function detectShellCommand(sandbox: Sandbox, config: NovitaDriverConfig): Promise<"bash" | "sh"> {
+async function detectShellCommand(
+  sandbox: Sandbox,
+  config: NovitaDriverConfig,
+): Promise<"bash" | "sh"> {
   try {
     const result = await sandbox.commands.run(
       "if command -v bash >/dev/null 2>&1; then printf bash; else printf sh; fi",
@@ -193,7 +208,11 @@ async function detectShellCommand(sandbox: Sandbox, config: NovitaDriverConfig):
   }
 }
 
-async function ensureWorkspace(sandbox: Sandbox, remoteCwd: string, config: NovitaDriverConfig) {
+async function ensureWorkspace(
+  sandbox: Sandbox,
+  remoteCwd: string,
+  config: NovitaDriverConfig,
+) {
   await sandbox.commands.run(`mkdir -p ${shellQuote(remoteCwd)}`, {
     cwd: "/",
     timeoutMs: config.requestTimeoutMs,
@@ -225,12 +244,18 @@ async function releaseSandbox(config: NovitaDriverConfig, sandboxId: string) {
   const sandbox = await getSandboxOrNull(config, sandboxId);
   if (!sandbox) return;
   if (config.reuseLease) {
-    await sandbox.betaPause({ requestTimeoutMs: config.requestTimeoutMs }).catch(async () => {
-      await sandbox.kill({ requestTimeoutMs: config.requestTimeoutMs }).catch(() => undefined);
-    });
+    await sandbox
+      .betaPause({ requestTimeoutMs: config.requestTimeoutMs })
+      .catch(async () => {
+        await sandbox
+          .kill({ requestTimeoutMs: config.requestTimeoutMs })
+          .catch(() => undefined);
+      });
     return;
   }
-  await sandbox.kill({ requestTimeoutMs: config.requestTimeoutMs }).catch(() => undefined);
+  await sandbox
+    .kill({ requestTimeoutMs: config.requestTimeoutMs })
+    .catch(() => undefined);
 }
 
 async function executeInSandbox(
@@ -269,7 +294,10 @@ async function executeInSandbox(
       error?: string;
       timedOut?: boolean;
     };
-    if (typeof commandError.exitCode === "number" || commandError.timedOut === true) {
+    if (
+      typeof commandError.exitCode === "number" ||
+      commandError.timedOut === true
+    ) {
       return {
         exitCode: commandError.exitCode ?? 124,
         signal: null,
@@ -330,7 +358,9 @@ const plugin = definePlugin({
           }),
         };
       } finally {
-        await sandbox.kill({ requestTimeoutMs: config.requestTimeoutMs }).catch(() => undefined);
+        await sandbox
+          .kill({ requestTimeoutMs: config.requestTimeoutMs })
+          .catch(() => undefined);
       }
     } catch (error) {
       return {
@@ -368,7 +398,9 @@ const plugin = definePlugin({
         }),
       };
     } catch (error) {
-      await sandbox.kill({ requestTimeoutMs: config.requestTimeoutMs }).catch(() => undefined);
+      await sandbox
+        .kill({ requestTimeoutMs: config.requestTimeoutMs })
+        .catch(() => undefined);
       throw error;
     }
   },
@@ -396,9 +428,14 @@ const plugin = definePlugin({
         },
       };
     }
-    await sandbox.setTimeout(config.timeoutMs, { requestTimeoutMs: config.requestTimeoutMs }).catch(() => undefined);
+    await sandbox
+      .setTimeout(config.timeoutMs, {
+        requestTimeoutMs: config.requestTimeoutMs,
+      })
+      .catch(() => undefined);
     const remoteCwd =
-      typeof params.leaseMetadata?.remoteCwd === "string" && params.leaseMetadata.remoteCwd.trim().length > 0
+      typeof params.leaseMetadata?.remoteCwd === "string" &&
+      params.leaseMetadata.remoteCwd.trim().length > 0
         ? params.leaseMetadata.remoteCwd.trim()
         : config.requestedCwd;
     await ensureWorkspace(sandbox, remoteCwd, config);
@@ -429,7 +466,9 @@ const plugin = definePlugin({
     if (!params.providerLeaseId) return;
     const config = parseNovitaDriverConfig(params.config);
     const sandbox = await getSandboxOrNull(config, params.providerLeaseId);
-    await sandbox?.kill({ requestTimeoutMs: config.requestTimeoutMs }).catch(() => undefined);
+    await sandbox
+      ?.kill({ requestTimeoutMs: config.requestTimeoutMs })
+      .catch(() => undefined);
   },
 
   async onEnvironmentRealizeWorkspace(
@@ -437,12 +476,18 @@ const plugin = definePlugin({
   ): Promise<PluginEnvironmentRealizeWorkspaceResult> {
     const config = parseNovitaDriverConfig(params.config);
     const remoteCwd =
-      typeof params.lease.metadata?.remoteCwd === "string" && params.lease.metadata.remoteCwd.trim().length > 0
+      typeof params.lease.metadata?.remoteCwd === "string" &&
+      params.lease.metadata.remoteCwd.trim().length > 0
         ? params.lease.metadata.remoteCwd.trim()
-        : params.workspace.remotePath ?? params.workspace.localPath ?? config.requestedCwd;
+        : (params.workspace.remotePath ??
+          params.workspace.localPath ??
+          config.requestedCwd);
 
     if (params.lease.providerLeaseId) {
-      const sandbox = await getSandboxOrNull(config, params.lease.providerLeaseId);
+      const sandbox = await getSandboxOrNull(
+        config,
+        params.lease.providerLeaseId,
+      );
       if (sandbox) {
         await ensureWorkspace(sandbox, remoteCwd, config);
       }
@@ -470,7 +515,10 @@ const plugin = definePlugin({
       };
     }
     const config = parseNovitaDriverConfig(params.config);
-    const sandbox = await getSandboxOrNull(config, params.lease.providerLeaseId);
+    const sandbox = await getSandboxOrNull(
+      config,
+      params.lease.providerLeaseId,
+    );
     if (!sandbox) {
       return {
         exitCode: 1,

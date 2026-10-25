@@ -17,14 +17,18 @@ export const WORKTREE_INSTANCE_ROOT_METADATA_KEY = "worktreeInstanceRoot";
 
 export function deriveWorktreeInstanceId(workspacePath: string): string {
   const resolvedWorkspacePath = path.resolve(workspacePath);
-  const normalized = path.basename(resolvedWorkspacePath)
+  const normalized = path
+    .basename(resolvedWorkspacePath)
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^[-_]+|[-_]+$/g, "");
   const prefix = (normalized || "worktree").slice(0, 48);
-  const pathHash = createHash("sha256").update(resolvedWorkspacePath).digest("hex").slice(0, 12);
+  const pathHash = createHash("sha256")
+    .update(resolvedWorkspacePath)
+    .digest("hex")
+    .slice(0, 12);
   return `${prefix}-${pathHash}`;
 }
 
@@ -67,7 +71,10 @@ export type WorktreeInstanceCleanupDependencies = {
 
 export type EmbeddedPostgresStopDependencies = {
   processIsAlive: (pid: number) => boolean;
-  readVerifiedPostgresCommand: (pid: number, dataDir: string) => Promise<string | null>;
+  readVerifiedPostgresCommand: (
+    pid: number,
+    dataDir: string,
+  ) => Promise<string | null>;
   signalProcess: (pid: number, signal: NodeJS.Signals) => void;
   wait: (milliseconds: number) => Promise<unknown>;
 };
@@ -88,11 +95,19 @@ const defaultPostgresStopDependencies: EmbeddedPostgresStopDependencies = {
 
 function isStrictChildPath(candidatePath: string, rootPath: string): boolean {
   const relative = path.relative(rootPath, candidatePath);
-  return relative.length > 0 && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+  return (
+    relative.length > 0 &&
+    relative !== ".." &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative)
+  );
 }
 
 async function pathExists(value: string): Promise<boolean> {
-  return fs.lstat(value).then(() => true).catch(() => false);
+  return fs
+    .lstat(value)
+    .then(() => true)
+    .catch(() => false);
 }
 
 function processIsAlive(pid: number): boolean {
@@ -104,7 +119,10 @@ function processIsAlive(pid: number): boolean {
   }
 }
 
-async function readVerifiedPostgresCommand(pid: number, dataDir: string): Promise<string | null> {
+async function readVerifiedPostgresCommand(
+  pid: number,
+  dataDir: string,
+): Promise<string | null> {
   if (process.platform === "linux") {
     const commandLinePath = `/proc/${pid}/cmdline`;
     let commandLine: string;
@@ -117,27 +135,45 @@ async function readVerifiedPostgresCommand(pid: number, dataDir: string): Promis
     const args = commandLine.split("\0").filter(Boolean);
     const executable = path.basename(args[0] ?? "");
     const dataDirFlagIndex = args.indexOf("-D");
-    const configuredDataDir = dataDirFlagIndex >= 0 ? args[dataDirFlagIndex + 1] : null;
+    const configuredDataDir =
+      dataDirFlagIndex >= 0 ? args[dataDirFlagIndex + 1] : null;
     if (!executable.includes("postgres") || !configuredDataDir) {
-      throw new Error(`Refusing to signal process ${pid}: it is not the expected embedded PostgreSQL process.`);
+      throw new Error(
+        `Refusing to signal process ${pid}: it is not the expected embedded PostgreSQL process.`,
+      );
     }
-    const canonicalConfiguredDataDir = await fs.realpath(configuredDataDir).catch(() => path.resolve(configuredDataDir));
+    const canonicalConfiguredDataDir = await fs
+      .realpath(configuredDataDir)
+      .catch(() => path.resolve(configuredDataDir));
     if (canonicalConfiguredDataDir !== dataDir) {
-      throw new Error(`Refusing to signal process ${pid}: its PostgreSQL data directory does not match ${dataDir}.`);
+      throw new Error(
+        `Refusing to signal process ${pid}: its PostgreSQL data directory does not match ${dataDir}.`,
+      );
     }
     return args.join(" ");
   }
 
   if (process.platform === "win32") {
-    throw new Error(`Refusing to signal process ${pid}: safe PostgreSQL process verification is unavailable on Windows.`);
+    throw new Error(
+      `Refusing to signal process ${pid}: safe PostgreSQL process verification is unavailable on Windows.`,
+    );
   }
 
   try {
-    const { stdout } = await execFileAsync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8" });
+    const { stdout } = await execFileAsync(
+      "ps",
+      ["-p", String(pid), "-o", "command="],
+      { encoding: "utf8" },
+    );
     const command = stdout.trim();
     if (!command) return null;
-    if (!/(?:^|\/)postgres(?:\s|$)/.test(command) || !command.includes(dataDir)) {
-      throw new Error(`Refusing to signal process ${pid}: it is not the expected embedded PostgreSQL process.`);
+    if (
+      !/(?:^|\/)postgres(?:\s|$)/.test(command) ||
+      !command.includes(dataDir)
+    ) {
+      throw new Error(
+        `Refusing to signal process ${pid}: it is not the expected embedded PostgreSQL process.`,
+      );
     }
     return command;
   } catch (error) {
@@ -151,7 +187,7 @@ export async function stopEmbeddedPostgresIfRunning(
   dependencies: EmbeddedPostgresStopDependencies = defaultPostgresStopDependencies,
 ): Promise<boolean> {
   const postmasterPidPath = path.join(dataDir, "postmaster.pid");
-  if (!await pathExists(postmasterPidPath)) return false;
+  if (!(await pathExists(postmasterPidPath))) return false;
 
   const canonicalDataDir = await fs.realpath(dataDir);
   const pidContents = await fs.readFile(postmasterPidPath, "utf8");
@@ -159,15 +195,25 @@ export async function stopEmbeddedPostgresIfRunning(
   const pid = Number(pidLines[0]?.trim());
   const recordedDataDir = pidLines[1]?.trim();
   if (!Number.isInteger(pid) || pid <= 0 || !recordedDataDir) {
-    throw new Error(`Refusing to remove ${dataDir}: its postmaster.pid is malformed.`);
+    throw new Error(
+      `Refusing to remove ${dataDir}: its postmaster.pid is malformed.`,
+    );
   }
 
-  const canonicalRecordedDataDir = await fs.realpath(recordedDataDir).catch(() => path.resolve(recordedDataDir));
+  const canonicalRecordedDataDir = await fs
+    .realpath(recordedDataDir)
+    .catch(() => path.resolve(recordedDataDir));
   if (canonicalRecordedDataDir !== canonicalDataDir) {
-    throw new Error(`Refusing to remove ${dataDir}: postmaster.pid points at a different PostgreSQL data directory.`);
+    throw new Error(
+      `Refusing to remove ${dataDir}: postmaster.pid points at a different PostgreSQL data directory.`,
+    );
   }
   if (!dependencies.processIsAlive(pid)) return false;
-  if (await dependencies.readVerifiedPostgresCommand(pid, canonicalDataDir) === null) return false;
+  if (
+    (await dependencies.readVerifiedPostgresCommand(pid, canonicalDataDir)) ===
+    null
+  )
+    return false;
 
   try {
     dependencies.signalProcess(pid, "SIGINT");
@@ -180,10 +226,14 @@ export async function stopEmbeddedPostgresIfRunning(
     if (!dependencies.processIsAlive(pid)) return true;
     await dependencies.wait(100);
   }
-  throw new Error(`Embedded PostgreSQL process ${pid} did not stop within ${POSTGRES_STOP_TIMEOUT_MS}ms.`);
+  throw new Error(
+    `Embedded PostgreSQL process ${pid} did not stop within ${POSTGRES_STOP_TIMEOUT_MS}ms.`,
+  );
 }
 
-export async function readWorktreeInstancePointer(workspacePath: string): Promise<WorktreeInstancePointer | null> {
+export async function readWorktreeInstancePointer(
+  workspacePath: string,
+): Promise<WorktreeInstancePointer | null> {
   const envPath = path.join(workspacePath, ".taskcore", ".env");
   try {
     return {
@@ -196,9 +246,16 @@ export async function readWorktreeInstancePointer(workspacePath: string): Promis
   }
 }
 
-function resolveConfiguredInstanceRoot(pointer: WorktreeInstancePointer, expectedInstanceId?: string):
+function resolveConfiguredInstanceRoot(
+  pointer: WorktreeInstancePointer,
+  expectedInstanceId?: string,
+):
   | { instanceRoot: string; instanceId: string }
-  | { warning: string; instanceRoot: string | null; refusalReason: string | null } {
+  | {
+      warning: string;
+      instanceRoot: string | null;
+      refusalReason: string | null;
+    } {
   const env = parseEnvContents(pointer.envContents);
   const configuredHome = env.TASKCORE_HOME?.trim();
   const instanceId = env.TASKCORE_INSTANCE_ID?.trim();
@@ -235,9 +292,9 @@ function resolveConfiguredInstanceRoot(pointer: WorktreeInstancePointer, expecte
 function resolveManagedInstancesDir(worktreesDir?: string): string {
   const managedWorktreesDir = path.resolve(
     expandHomePrefix(
-      worktreesDir?.trim()
-      || process.env.TASKCORE_WORKTREES_DIR?.trim()
-      || path.join(os.homedir(), ".taskcore-worktrees"),
+      worktreesDir?.trim() ||
+        process.env.TASKCORE_WORKTREES_DIR?.trim() ||
+        path.join(os.homedir(), ".taskcore-worktrees"),
     ),
   );
   return path.join(managedWorktreesDir, "instances");
@@ -273,8 +330,12 @@ export async function cleanupWorktreeInstanceArtifacts(input: {
   worktreesDir?: string;
   dependencies?: WorktreeInstanceCleanupDependencies;
 }): Promise<WorktreeInstanceCleanupResult> {
-  const configured = resolveConfiguredInstanceRoot(input.pointer, input.expectedInstanceId);
-  if ("warning" in configured && !configured.warning) return { status: "not_configured" };
+  const configured = resolveConfiguredInstanceRoot(
+    input.pointer,
+    input.expectedInstanceId,
+  );
+  if ("warning" in configured && !configured.warning)
+    return { status: "not_configured" };
 
   const managedInstancesDir = resolveManagedInstancesDir(input.worktreesDir);
   const managedWorktreesDir = path.dirname(managedInstancesDir);
@@ -301,17 +362,29 @@ export async function cleanupWorktreeInstanceArtifacts(input: {
   };
 
   if ("warning" in configured) {
-    await recordRefusal({ refusalReason: configured.refusalReason }, configured.warning);
-    return { status: "refused", instanceRoot: configured.instanceRoot, warning: configured.warning };
+    await recordRefusal(
+      { refusalReason: configured.refusalReason },
+      configured.warning,
+    );
+    return {
+      status: "refused",
+      instanceRoot: configured.instanceRoot,
+      warning: configured.warning,
+    };
   }
 
-  if (!configuredInstanceRoot || !isStrictChildPath(configuredInstanceRoot, managedInstancesDir)) {
+  if (
+    !configuredInstanceRoot ||
+    !isStrictChildPath(configuredInstanceRoot, managedInstancesDir)
+  ) {
     warning ||= `Refusing to remove instance directory "${configuredInstanceRoot ?? "unknown"}" because it is outside "${managedInstancesDir}".`;
     await recordRefusal({ refusalReason: "outside_managed_instances_dir" });
     return { status: "refused", instanceRoot: configuredInstanceRoot, warning };
   }
 
-  const expectedInstanceRoot = input.expectedInstanceRoot ? path.resolve(input.expectedInstanceRoot) : null;
+  const expectedInstanceRoot = input.expectedInstanceRoot
+    ? path.resolve(input.expectedInstanceRoot)
+    : null;
   if (!expectedInstanceRoot) {
     warning = `Refusing to remove instance directory "${configuredInstanceRoot}" because execution workspace ${input.workspaceId} has no persisted instance root.`;
     await recordRefusal({ refusalReason: "persisted_instance_root_missing" });
@@ -326,7 +399,7 @@ export async function cleanupWorktreeInstanceArtifacts(input: {
     return { status: "refused", instanceRoot: configuredInstanceRoot, warning };
   }
 
-  if (!await pathExists(configuredInstanceRoot)) {
+  if (!(await pathExists(configuredInstanceRoot))) {
     return { status: "already_absent", instanceRoot: configuredInstanceRoot };
   }
 
@@ -334,7 +407,11 @@ export async function cleanupWorktreeInstanceArtifacts(input: {
   let canonicalManagedInstancesDir: string;
   let canonicalInstanceRoot: string;
   try {
-    [canonicalManagedWorktreesDir, canonicalManagedInstancesDir, canonicalInstanceRoot] = await Promise.all([
+    [
+      canonicalManagedWorktreesDir,
+      canonicalManagedInstancesDir,
+      canonicalInstanceRoot,
+    ] = await Promise.all([
       fs.realpath(managedWorktreesDir),
       fs.realpath(managedInstancesDir),
       fs.realpath(configuredInstanceRoot),
@@ -345,7 +422,10 @@ export async function cleanupWorktreeInstanceArtifacts(input: {
     return { status: "refused", instanceRoot: configuredInstanceRoot, warning };
   }
 
-  if (canonicalManagedInstancesDir !== path.join(canonicalManagedWorktreesDir, "instances")) {
+  if (
+    canonicalManagedInstancesDir !==
+    path.join(canonicalManagedWorktreesDir, "instances")
+  ) {
     warning = `Refusing to remove instance directory "${configuredInstanceRoot}" because the managed instances directory resolves outside "${canonicalManagedWorktreesDir}".`;
     await recordRefusal({
       canonicalInstanceRoot,
@@ -368,17 +448,20 @@ export async function cleanupWorktreeInstanceArtifacts(input: {
   const dependencies = input.dependencies ?? defaultCleanupDependencies;
   let postgresStopped = false;
   const cleanup = async () => {
-    postgresStopped = await dependencies.stopEmbeddedPostgres(path.join(canonicalInstanceRoot, "db"));
-    const [currentManagedInstancesDir, currentInstanceRoot] = await Promise.all([
-      fs.realpath(managedInstancesDir),
-      fs.realpath(configuredInstanceRoot),
-    ]);
+    postgresStopped = await dependencies.stopEmbeddedPostgres(
+      path.join(canonicalInstanceRoot, "db"),
+    );
+    const [currentManagedInstancesDir, currentInstanceRoot] = await Promise.all(
+      [fs.realpath(managedInstancesDir), fs.realpath(configuredInstanceRoot)],
+    );
     if (
-      currentManagedInstancesDir !== canonicalManagedInstancesDir
-      || currentInstanceRoot !== canonicalInstanceRoot
-      || !isStrictChildPath(currentInstanceRoot, currentManagedInstancesDir)
+      currentManagedInstancesDir !== canonicalManagedInstancesDir ||
+      currentInstanceRoot !== canonicalInstanceRoot ||
+      !isStrictChildPath(currentInstanceRoot, currentManagedInstancesDir)
     ) {
-      throw new Error(`Refusing to remove instance directory "${configuredInstanceRoot}" because its canonical path changed during cleanup.`);
+      throw new Error(
+        `Refusing to remove instance directory "${configuredInstanceRoot}" because its canonical path changed during cleanup.`,
+      );
     }
     await dependencies.removeInstanceRoot(currentInstanceRoot);
   };
@@ -407,5 +490,9 @@ export async function cleanupWorktreeInstanceArtifacts(input: {
     await cleanup();
   }
 
-  return { status: "removed", instanceRoot: canonicalInstanceRoot, postgresStopped };
+  return {
+    status: "removed",
+    instanceRoot: canonicalInstanceRoot,
+    postgresStopped,
+  };
 }

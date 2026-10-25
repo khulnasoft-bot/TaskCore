@@ -1,4 +1,7 @@
-import type { HarnessDriver, HarnessSession } from "../contracts/harness-driver.js";
+import type {
+  HarnessDriver,
+  HarnessSession,
+} from "../contracts/harness-driver.js";
 import {
   isSkilllessCodexContext,
   type CodexResultDecision,
@@ -64,10 +67,15 @@ function prpCapabilities(
 function contextFrom(events: PrpEvent[]) {
   const event = events.find(
     (candidate) =>
-      candidate.eventType === "session.started" || candidate.eventType === "session.resumed",
+      candidate.eventType === "session.started" ||
+      candidate.eventType === "session.resumed",
   );
   const context = event?.payload.context;
-  if (typeof context !== "object" || context === null || Array.isArray(context)) {
+  if (
+    typeof context !== "object" ||
+    context === null ||
+    Array.isArray(context)
+  ) {
     throw new Error("Harness session did not emit its model-context snapshot");
   }
   return context as CodexRunTrace["context"];
@@ -88,7 +96,8 @@ function dispositionIssues(
       issues.push({
         code: "invalid_disposition",
         path: "/reportedWorkDisposition",
-        message: "done requires a satisfied objective and criteria with no blocking work or blocker",
+        message:
+          "done requires a satisfied objective and criteria with no blocking work or blocker",
       });
     }
   } else if (result.reportedWorkDisposition === "needs_review") {
@@ -96,7 +105,8 @@ function dispositionIssues(
       issues.push({
         code: "invalid_disposition",
         path: "/reportedWorkDisposition",
-        message: "needs_review requires an attention request and must not include a blocker",
+        message:
+          "needs_review requires an attention request and must not include a blocker",
       });
     }
   } else if (result.reportedWorkDisposition === "blocked") {
@@ -108,7 +118,8 @@ function dispositionIssues(
       issues.push({
         code: "invalid_disposition",
         path: "/reportedWorkDisposition",
-        message: "blocked requires an unsatisfied objective, blocker details, and blocking remaining work",
+        message:
+          "blocked requires an unsatisfied objective, blocker details, and blocking remaining work",
       });
     }
   } else if (result.reportedWorkDisposition === "yielded") {
@@ -119,7 +130,8 @@ function dispositionIssues(
       issues.push({
         code: "invalid_disposition",
         path: "/reportedWorkDisposition",
-        message: "yielded requires a response_wake or monitor continuation and must not include a blocker",
+        message:
+          "yielded requires a response_wake or monitor continuation and must not include a blocker",
       });
     }
   } else {
@@ -152,7 +164,10 @@ export function validateCodexResultProposal(
 
   const result = schema.result;
   const issues: CodexResultValidationIssue[] = [];
-  if (result.completionClaim.contractRevision !== envelope.completionContract.revision) {
+  if (
+    result.completionClaim.contractRevision !==
+    envelope.completionContract.revision
+  ) {
     issues.push({
       code: "contract_revision_mismatch",
       path: "/completionClaim/contractRevision",
@@ -160,10 +175,15 @@ export function validateCodexResultProposal(
     });
   }
 
-  const expectedIds = new Set(envelope.completionContract.criteria.map((criterion) => criterion.id));
+  const expectedIds = new Set(
+    envelope.completionContract.criteria.map((criterion) => criterion.id),
+  );
   const observed = new Map<string, number>();
   result.completionClaim.criteria.forEach((criterion, index) => {
-    observed.set(criterion.criterionId, (observed.get(criterion.criterionId) ?? 0) + 1);
+    observed.set(
+      criterion.criterionId,
+      (observed.get(criterion.criterionId) ?? 0) + 1,
+    );
     if (!expectedIds.has(criterion.criterionId)) {
       issues.push({
         code: "unknown_criterion",
@@ -215,7 +235,8 @@ async function consumeToTurnTerminal(
       consume(),
       new Promise<never>((_, reject) => {
         timer = setTimeout(
-          () => reject(new Error(`Codex tracer timed out after ${timeoutMs}ms`)),
+          () =>
+            reject(new Error(`Codex tracer timed out after ${timeoutMs}ms`)),
           timeoutMs,
         );
       }),
@@ -226,12 +247,17 @@ async function consumeToTurnTerminal(
 }
 
 function isTurnTerminal(event: PrpEvent): boolean {
-  return ["turn.completed", "turn.failed", "turn.interrupted", "turn.cancelled"].includes(
-    event.eventType,
-  );
+  return [
+    "turn.completed",
+    "turn.failed",
+    "turn.interrupted",
+    "turn.cancelled",
+  ].includes(event.eventType);
 }
 
-function runtimeTerminal(event: PrpEvent): Pick<PrpTerminalState, "turnTerminalState" | "runTerminalState"> {
+function runtimeTerminal(
+  event: PrpEvent,
+): Pick<PrpTerminalState, "turnTerminalState" | "runTerminalState"> {
   if (event.eventType === "turn.completed") {
     return { turnTerminalState: "completed", runTerminalState: "succeeded" };
   }
@@ -249,7 +275,8 @@ function sourceSequenceContinuous(events: PrpEvent[]): boolean {
   for (const event of events) {
     const key = `${event.sourceKind}:${event.sourceInstanceId}`;
     const previous = cursors.get(key);
-    if (previous !== undefined && event.sourceSeq !== previous + 1) return false;
+    if (previous !== undefined && event.sourceSeq !== previous + 1)
+      return false;
     cursors.set(key, event.sourceSeq);
   }
   return true;
@@ -261,7 +288,9 @@ export function replayPersistedCodexEvents(
   metadata: CodexRunMetadata,
 ) {
   if (!metadata.identity.driverSessionId) {
-    throw new Error("Persisted Codex replay requires a driver session identity");
+    throw new Error(
+      "Persisted Codex replay requires a driver session identity",
+    );
   }
   if (Buffer.byteLength(serialized) > MAX_PERSISTED_CODEX_BYTES) {
     throw new Error("Persisted Codex event stream exceeded its byte limit");
@@ -277,7 +306,10 @@ export function replayPersistedCodexEvents(
   const sourceSequences = new Map<string, number>();
   let runTerminalCount = 0;
   for (const line of lines) {
-    if (line.length === 0 || Buffer.byteLength(line) > MAX_PERSISTED_CODEX_LINE_BYTES) {
+    if (
+      line.length === 0 ||
+      Buffer.byteLength(line) > MAX_PERSISTED_CODEX_LINE_BYTES
+    ) {
       throw new Error("Persisted Codex event line was empty or oversized");
     }
     let candidate: unknown;
@@ -287,13 +319,16 @@ export function replayPersistedCodexEvents(
       throw new Error("Persisted Codex event line was malformed JSON");
     }
     const validation = validatePrpEvent(candidate);
-    if (!validation.ok) throw new Error("Persisted Codex event failed schema validation");
+    if (!validation.ok)
+      throw new Error("Persisted Codex event failed schema validation");
     const event = validation.event;
     if (
       event.runId !== metadata.identity.runId ||
       event.normalizedSessionId !== metadata.identity.normalizedSessionId
     ) {
-      throw new Error("Persisted Codex event identity did not match the opened run");
+      throw new Error(
+        "Persisted Codex event identity did not match the opened run",
+      );
     }
     if (sourceEventIds.has(event.sourceEventId)) {
       throw new Error("Persisted Codex event id was duplicated");
@@ -312,7 +347,9 @@ export function replayPersistedCodexEvents(
     events.push(event);
   }
   if (runTerminalCount !== 1) {
-    throw new Error("Persisted Codex event stream requires exactly one run terminal");
+    throw new Error(
+      "Persisted Codex event stream requires exactly one run terminal",
+    );
   }
   return events.reduce(
     applyPrpEvent,
@@ -331,9 +368,12 @@ export function replayPersistedCodexEvents(
  * Small in-memory Codex mock core. The driver reports provider facts; this
  * controller validates semantic proposals and alone emits the run terminal.
  */
-export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise<CodexRunTrace> {
+export async function runCodexCodexTracer(
+  input: CodexCodexTracerInput,
+): Promise<CodexRunTrace> {
   const runId = input.runId ?? "codex-safe-run";
-  const normalizedSessionId = input.normalizedSessionId ?? "codex-normalized-session";
+  const normalizedSessionId =
+    input.normalizedSessionId ?? "codex-normalized-session";
   const descriptor = await input.driver.descriptor();
   const capabilities = prpCapabilities(descriptor);
   const metadata: CodexRunMetadata = {
@@ -360,25 +400,36 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
   const turnStarted = new Promise<void>((resolve) => {
     signalTurnStarted = resolve;
   });
-  const consuming = consumeToTurnTerminal(session, input.timeoutMs ?? 180_000, (event) => {
-    if (event.eventType === "turn.started") signalTurnStarted?.();
-  });
+  const consuming = consumeToTurnTerminal(
+    session,
+    input.timeoutMs ?? 180_000,
+    (event) => {
+      if (event.eventType === "turn.started") signalTurnStarted?.();
+    },
+  );
 
   try {
     const turn = await session.startTurn({
-      message: input.message ?? { role: "user", text: "Complete the supplied task envelope." },
+      message: input.message ?? {
+        role: "user",
+        text: "Complete the supplied task envelope.",
+      },
     });
     if (input.steer !== undefined || input.interrupt) {
       await Promise.race([
         turnStarted,
         consuming.then(() => {
-          throw new Error("Harness turn reached terminal state before accepting the control command");
+          throw new Error(
+            "Harness turn reached terminal state before accepting the control command",
+          );
         }),
       ]);
     }
     if (input.steer !== undefined) {
       if (!descriptor.capabilities.steering || session.steer === undefined) {
-        capabilityDiagnostics.push("steering is unavailable by driver capability contract");
+        capabilityDiagnostics.push(
+          "steering is unavailable by driver capability contract",
+        );
       } else {
         try {
           await session.steer({
@@ -391,11 +442,19 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
       }
     }
     if (input.interrupt) {
-      if (!descriptor.capabilities.interruption || session.interrupt === undefined) {
-        capabilityDiagnostics.push("interruption is unavailable by driver capability contract");
+      if (
+        !descriptor.capabilities.interruption ||
+        session.interrupt === undefined
+      ) {
+        capabilityDiagnostics.push(
+          "interruption is unavailable by driver capability contract",
+        );
       } else {
         try {
-          await session.interrupt({ turnId: turn.turnId, reason: "Codex tutorial interrupt" });
+          await session.interrupt({
+            turnId: turn.turnId,
+            reason: "Codex tutorial interrupt",
+          });
         } catch (error) {
           capabilityDiagnostics.push(`interruption degraded: ${String(error)}`);
         }
@@ -407,32 +466,38 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
     const identity = {
       ...metadata.identity,
       driverSessionId: ids.driverSessionId,
-      ...(ids.providerSessionId ? { providerSessionId: ids.providerSessionId } : {}),
+      ...(ids.providerSessionId
+        ? { providerSessionId: ids.providerSessionId }
+        : {}),
     };
     metadata.identity = identity;
 
     const proposals = providerEvents.filter(
       (event) => event.eventType === "run.result.proposed",
     );
-    const proposedResult = proposals.length === 1 ? structuredClone(proposals[0]!.payload) : null;
+    const proposedResult =
+      proposals.length === 1 ? structuredClone(proposals[0]!.payload) : null;
     const proposalDecision: CodexResultDecision =
       proposals.length === 1
         ? validateCodexResultProposal(proposedResult, input.taskEnvelope)
         : {
             status: "rejected",
             result: null,
-            issues: [{
-              code: "schema_validation",
-              path: "/run.result.proposed",
-              message:
-                proposals.length === 0
-                  ? "the completed turn emitted no semantic proposal"
-                  : "the completed turn emitted multiple semantic proposals",
-            }],
+            issues: [
+              {
+                code: "schema_validation",
+                path: "/run.result.proposed",
+                message:
+                  proposals.length === 0
+                    ? "the completed turn emitted no semantic proposal"
+                    : "the completed turn emitted multiple semantic proposals",
+              },
+            ],
           };
 
     let controlSequence = 0;
-    const controlPlaneInstanceId = input.controlPlaneInstanceId ?? "mock-core-codex";
+    const controlPlaneInstanceId =
+      input.controlPlaneInstanceId ?? "mock-core-codex";
     const controlEvent = (
       eventType: PrpEvent["eventType"],
       payload: Record<string, unknown>,
@@ -449,7 +514,10 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
       ...(refs.itemId ? { itemId: refs.itemId } : {}),
       eventType,
       schemaVersion: 1,
-      priority: eventType === "run.terminal" || eventType.startsWith("run.result.") ? 0 : 1,
+      priority:
+        eventType === "run.terminal" || eventType.startsWith("run.result.")
+          ? 0
+          : 1,
       emittedAt: new Date().toISOString(),
       payload,
     });
@@ -460,10 +528,12 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
       }),
     );
     const providerTerminal = providerEvents.findLast(isTurnTerminal);
-    if (providerTerminal === undefined) throw new Error("turn terminal invariant failed");
+    if (providerTerminal === undefined)
+      throw new Error("turn terminal invariant failed");
     const providerRuntime = runtimeTerminal(providerTerminal);
     const resultAccepted =
-      proposalDecision.status === "accepted" && providerRuntime.runTerminalState === "succeeded";
+      proposalDecision.status === "accepted" &&
+      providerRuntime.runTerminalState === "succeeded";
     const resultDecision: CodexResultDecision = resultAccepted
       ? proposalDecision
       : proposalDecision.status === "rejected"
@@ -471,11 +541,13 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
         : {
             status: "rejected",
             result: null,
-            issues: [{
-              code: "schema_validation",
-              path: "/turn/terminal",
-              message: `the provider turn ended as ${providerRuntime.turnTerminalState}`,
-            }],
+            issues: [
+              {
+                code: "schema_validation",
+                path: "/turn/terminal",
+                message: `the provider turn ended as ${providerRuntime.turnTerminalState}`,
+              },
+            ],
           };
     controlEvents.push(
       resultAccepted
@@ -495,17 +567,26 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
     // A provider may complete its turn after proposing a result that the
     // controller cannot accept. Preserve the provider's turn fact, but never
     // promote a rejected semantic result to a successful run.
-    const runtime = resultDecision.status === "accepted" || providerRuntime.runTerminalState === "cancelled"
-      ? providerRuntime
-      : { ...providerRuntime, runTerminalState: "failed" as const };
-    controlEvents.push(controlEvent("run.terminal", {
-      schema: "taskcore.prp.terminal.v1",
-      ...runtime,
-      reportedWorkDisposition:
-        resultDecision.status === "accepted" && runtime.runTerminalState === "succeeded"
-          ? resultDecision.result.reportedWorkDisposition
-          : "yielded",
-    }, providerTerminal.turnId ? { turnId: providerTerminal.turnId } : {}));
+    const runtime =
+      resultDecision.status === "accepted" ||
+      providerRuntime.runTerminalState === "cancelled"
+        ? providerRuntime
+        : { ...providerRuntime, runTerminalState: "failed" as const };
+    controlEvents.push(
+      controlEvent(
+        "run.terminal",
+        {
+          schema: "taskcore.prp.terminal.v1",
+          ...runtime,
+          reportedWorkDisposition:
+            resultDecision.status === "accepted" &&
+            runtime.runTerminalState === "succeeded"
+              ? resultDecision.result.reportedWorkDisposition
+              : "yielded",
+        },
+        providerTerminal.turnId ? { turnId: providerTerminal.turnId } : {},
+      ),
+    );
     const events = [...providerEvents, ...controlEvents];
 
     const liveSnapshot = events.reduce(
@@ -517,16 +598,24 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
       }),
     );
     const persistedEvents = `${events.map((event) => JSON.stringify(event)).join("\n")}\n`;
-    const replaySnapshot = replayPersistedCodexEvents(persistedEvents, metadata);
+    const replaySnapshot = replayPersistedCodexEvents(
+      persistedEvents,
+      metadata,
+    );
     const context = contextFrom(events);
-    const terminalCount = events.filter((event) => event.eventType === "run.terminal").length;
+    const terminalCount = events.filter(
+      (event) => event.eventType === "run.terminal",
+    ).length;
     const turnTerminalCount = events.filter(isTurnTerminal).length;
     const decisionCount = events.filter(
       (event) =>
-        event.eventType === "run.result.accepted" || event.eventType === "run.result.rejected",
+        event.eventType === "run.result.accepted" ||
+        event.eventType === "run.result.rejected",
     ).length;
     const serialized = JSON.stringify(context).toLowerCase();
-    const itemEvents = events.filter((event) => event.eventType.startsWith("item."));
+    const itemEvents = events.filter((event) =>
+      event.eventType.startsWith("item."),
+    );
     const providerSessionId = ids.providerSessionId ?? null;
     return {
       schema: "taskcore.runner.codex.trace.v1",
@@ -545,12 +634,20 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
             event.eventType === "harness.diagnostic" ||
             event.eventType === "run.result.rejected",
         )
-        .map((event) => String(event.payload.message ?? event.payload.reasonCode ?? event.payload.code ?? "diagnostic")),
+        .map((event) =>
+          String(
+            event.payload.message ??
+              event.payload.reasonCode ??
+              event.payload.code ??
+              "diagnostic",
+          ),
+        ),
       assertions: {
         exactlyOneTerminalResult:
           terminalCount === 1 && turnTerminalCount === 1 && decisionCount === 1,
         proposalAccepted: resultDecision.status === "accepted",
-        liveReplayParity: JSON.stringify(liveSnapshot) === JSON.stringify(replaySnapshot),
+        liveReplayParity:
+          JSON.stringify(liveSnapshot) === JSON.stringify(replaySnapshot),
         stableIdentity:
           providerSessionId !== null &&
           runId.length > 0 &&
@@ -559,11 +656,13 @@ export async function runCodexCodexTracer(input: CodexCodexTracerInput): Promise
           providerSessionId.length > 0 &&
           events.every(
             (event) =>
-              event.runId === runId && event.normalizedSessionId === normalizedSessionId,
+              event.runId === runId &&
+              event.normalizedSessionId === normalizedSessionId,
           ),
         sourceSequenceContinuous: sourceSequenceContinuous(events),
         stableItemIdentity: itemEvents.every(
-          (event) => typeof event.itemId === "string" && event.itemId.length > 0,
+          (event) =>
+            typeof event.itemId === "string" && event.itemId.length > 0,
         ),
         contextIsSkillless: isSkilllessCodexContext(context, {
           dynamicTools: descriptor.capabilities.dynamicTools === true,

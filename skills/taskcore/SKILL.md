@@ -180,7 +180,14 @@ In Agent Chat, Taskcore addresses the question to the conversation owner automat
     "version": 1,
     "questionSet": {
       "schema": "taskcore.question_set.v1",
-      "questions": [{ "id": "detail", "prompt": "What should I know?", "answerMode": "text", "required": true }]
+      "questions": [
+        {
+          "id": "detail",
+          "prompt": "What should I know?",
+          "answerMode": "text",
+          "required": true
+        }
+      ]
     }
   }
 }
@@ -339,14 +346,14 @@ A card is a coordination record, not a grant of authority. Getting an interactio
 
 Five issue-thread interaction kinds are supported. Pick the smallest kind that fits the decision shape:
 
-| Kind                            | When to use                                                                                  | When **not** to use                                                                                |
-| ------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `request_confirmation`          | Single yes/no decision bound to a target (e.g. accept a plan revision, approve a launch).    | Multi-select choices, free-form answers, or proposing tasks a responder can pick from.             |
-| `request_checkbox_confirmation` | A responder selects any subset of a known list (up to 200 options) and then confirms or rejects. | Yes/no decisions (use `request_confirmation`), or proposing new tasks (use `suggest_tasks`).        |
-| `request_item_verdicts`         | A responder approves/rejects/defers individual known items, potentially over multiple submits. | One-shot multi-select decisions (use `request_checkbox_confirmation`) or task creation choices.    |
-| `ask_user_questions`            | Short structured form: a handful of typed questions, each with answers/options/text.         | Selecting many items from a long list, or single accept/reject decisions.                          |
-| `suggest_tasks`                 | Proposing concrete tasks for a responder to accept; accepted tasks become real subtasks.     | Confirming a plan or an arbitrary selection. Tasks are the unit; not arbitrary ids.                |
-| `decision`                      | Effects span other issues, create a cross-issue bundle, or must stand alone from one thread. | The response belongs only to the current issue; use an issue-thread interaction instead.           |
+| Kind                            | When to use                                                                                      | When **not** to use                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `request_confirmation`          | Single yes/no decision bound to a target (e.g. accept a plan revision, approve a launch).        | Multi-select choices, free-form answers, or proposing tasks a responder can pick from.          |
+| `request_checkbox_confirmation` | A responder selects any subset of a known list (up to 200 options) and then confirms or rejects. | Yes/no decisions (use `request_confirmation`), or proposing new tasks (use `suggest_tasks`).    |
+| `request_item_verdicts`         | A responder approves/rejects/defers individual known items, potentially over multiple submits.   | One-shot multi-select decisions (use `request_checkbox_confirmation`) or task creation choices. |
+| `ask_user_questions`            | Short structured form: a handful of typed questions, each with answers/options/text.             | Selecting many items from a long list, or single accept/reject decisions.                       |
+| `suggest_tasks`                 | Proposing concrete tasks for a responder to accept; accepted tasks become real subtasks.         | Confirming a plan or an arbitrary selection. Tasks are the unit; not arbitrary ids.             |
+| `decision`                      | Effects span other issues, create a cross-issue bundle, or must stand alone from one thread.     | The response belongs only to the current issue; use an issue-thread interaction instead.        |
 
 Routing rule: **same issue → issue-thread interaction; other issues or bundles → decision**.
 
@@ -375,7 +382,12 @@ Create a decision from an issue-scoped agent run with `POST /api/companies/{comp
       "id": "reassign",
       "label": "Reassign",
       "effects": [
-        { "type": "assign_issue", "targetIssueId": "{issueId}", "staleness": "strict", "assigneeAgentId": "{agentId}" }
+        {
+          "type": "assign_issue",
+          "targetIssueId": "{issueId}",
+          "staleness": "strict",
+          "assigneeAgentId": "{agentId}"
+        }
       ]
     },
     { "id": "leave", "label": "Leave unchanged", "effects": [] }
@@ -404,7 +416,18 @@ Bundle related cross-issue decisions with `POST /api/companies/{companyId}/decis
       "body": "Move the issue to the recovery owner.",
       "ruleKey": "routing.reassign",
       "options": [
-        { "id": "reassign", "label": "Reassign", "effects": [{ "type": "assign_issue", "targetIssueId": "{issueId}", "staleness": "strict", "assigneeAgentId": "{agentId}" }] },
+        {
+          "id": "reassign",
+          "label": "Reassign",
+          "effects": [
+            {
+              "type": "assign_issue",
+              "targetIssueId": "{issueId}",
+              "staleness": "strict",
+              "assigneeAgentId": "{agentId}"
+            }
+          ]
+        },
         { "id": "leave", "label": "Leave unchanged", "effects": [] }
       ],
       "idempotencyKey": "decision:{originIssueId}:routing.reassign:v1"
@@ -414,7 +437,18 @@ Bundle related cross-issue decisions with `POST /api/companies/{companyId}/decis
       "body": "Remove the resolved dependency from the blocked issue.",
       "ruleKey": "blockers.clear_obsolete",
       "options": [
-        { "id": "clear", "label": "Clear blocker", "effects": [{ "type": "resolve_blocker", "targetIssueId": "{issueId}", "staleness": "strict", "removeBlockedByIssueIds": ["{blockerIssueId}"] }] },
+        {
+          "id": "clear",
+          "label": "Clear blocker",
+          "effects": [
+            {
+              "type": "resolve_blocker",
+              "targetIssueId": "{issueId}",
+              "staleness": "strict",
+              "removeBlockedByIssueIds": ["{blockerIssueId}"]
+            }
+          ]
+        },
         { "id": "keep", "label": "Keep blocker", "effects": [] }
       ],
       "idempotencyKey": "decision:{originIssueId}:blockers.clear_obsolete:v1"
@@ -654,7 +688,12 @@ Save a requested markdown task document with `PUT /api/issues/{issueId}/document
 For a new report, use:
 
 ```json
-{"title":"Report","format":"markdown","body":"The completed report text","baseRevisionId":null}
+{
+  "title": "Report",
+  "format": "markdown",
+  "body": "The completed report text",
+  "baseRevisionId": null
+}
 ```
 
 If the task is accessible but `GET /api/issues/{issueId}/documents/report` returns `404 Document not found`, the document has not been created yet. Create it with PUT; that GET response does not mean document writes are unavailable. For an existing document, read its body and `latestRevisionId`, then send the revised body with `baseRevisionId` set to that revision. On `409`, fetch and reconcile the latest document before retrying.
@@ -694,30 +733,30 @@ If `plan` already exists, first `GET /api/issues/{issueId}/documents/plan` and r
 
 ## Key Endpoints (Hot Routes)
 
-| Action                                | Endpoint                                                                                                                        |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| My identity                           | `GET /api/agents/me`                                                                                                            |
-| My compact inbox                      | `GET /api/agents/me/inbox-lite`                                                                                                 |
-| My assignments                        | `GET /api/companies/:companyId/issues?assigneeAgentId=:id&status=todo,in_progress,in_review,blocked`                            |
-| Checkout task                         | `POST /api/issues/:issueId/checkout`                                                                                            |
-| Get task + ancestors                  | `GET /api/issues/:issueId`                                                                                                      |
-| Compact heartbeat context             | `GET /api/issues/:issueId/heartbeat-context`                                                                                    |
-| Update task                           | `PATCH /api/issues/:issueId` (optional `comment` field)                                                                         |
-| Get comments / delta / single         | `GET /api/issues/:issueId/comments[?after=:commentId&order=asc]` • `/comments/:commentId`                                       |
-| Add comment                           | `POST /api/issues/:issueId/comments`                                                                                            |
+| Action                                | Endpoint                                                                                                                                 |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| My identity                           | `GET /api/agents/me`                                                                                                                     |
+| My compact inbox                      | `GET /api/agents/me/inbox-lite`                                                                                                          |
+| My assignments                        | `GET /api/companies/:companyId/issues?assigneeAgentId=:id&status=todo,in_progress,in_review,blocked`                                     |
+| Checkout task                         | `POST /api/issues/:issueId/checkout`                                                                                                     |
+| Get task + ancestors                  | `GET /api/issues/:issueId`                                                                                                               |
+| Compact heartbeat context             | `GET /api/issues/:issueId/heartbeat-context`                                                                                             |
+| Update task                           | `PATCH /api/issues/:issueId` (optional `comment` field)                                                                                  |
+| Get comments / delta / single         | `GET /api/issues/:issueId/comments[?after=:commentId&order=asc]` • `/comments/:commentId`                                                |
+| Add comment                           | `POST /api/issues/:issueId/comments`                                                                                                     |
 | Issue-thread interactions             | `GET\|POST /api/issues/:issueId/interactions` • `POST /api/issues/:issueId/interactions/:interactionId/{accept,reject,respond,withdraw}` |
-| Create subtask                        | `POST /api/companies/:companyId/issues`                                                                                         |
-| Release task                          | `POST /api/issues/:issueId/release`                                                                                             |
-| Search issues                         | `GET /api/companies/:companyId/issues?q=search+term`                                                                            |
-| Issue documents (list/get/put)        | `GET\|PUT /api/issues/:issueId/documents[/:key]`                                                                                |
-| Create approval                       | `POST /api/companies/:companyId/approvals`                                                                                      |
-| Upload attachment (multipart, `file`) | `POST /api/companies/:companyId/issues/:issueId/attachments`                                                                    |
-| List / get / delete attachment        | `GET /api/issues/:issueId/attachments` • `GET\|DELETE /api/attachments/:attachmentId[/content]`                                 |
-| Execution workspace + runtime         | `GET /api/execution-workspaces/:id` • `POST …/runtime-services/:action`                                                         |
-| Set agent instructions path           | `PATCH /api/agents/:agentId/instructions-path`                                                                                  |
-| List agents                           | `GET /api/companies/:companyId/agents`                                                                                          |
-| Secret proposals                      | `POST\|GET /api/agents/me/secret-proposals` • `DELETE /api/agents/me/secret-proposals/:id`                                  |
-| Dashboard                             | `GET /api/companies/:companyId/dashboard`                                                                                       |
+| Create subtask                        | `POST /api/companies/:companyId/issues`                                                                                                  |
+| Release task                          | `POST /api/issues/:issueId/release`                                                                                                      |
+| Search issues                         | `GET /api/companies/:companyId/issues?q=search+term`                                                                                     |
+| Issue documents (list/get/put)        | `GET\|PUT /api/issues/:issueId/documents[/:key]`                                                                                         |
+| Create approval                       | `POST /api/companies/:companyId/approvals`                                                                                               |
+| Upload attachment (multipart, `file`) | `POST /api/companies/:companyId/issues/:issueId/attachments`                                                                             |
+| List / get / delete attachment        | `GET /api/issues/:issueId/attachments` • `GET\|DELETE /api/attachments/:attachmentId[/content]`                                          |
+| Execution workspace + runtime         | `GET /api/execution-workspaces/:id` • `POST …/runtime-services/:action`                                                                  |
+| Set agent instructions path           | `PATCH /api/agents/:agentId/instructions-path`                                                                                           |
+| List agents                           | `GET /api/companies/:companyId/agents`                                                                                                   |
+| Secret proposals                      | `POST\|GET /api/agents/me/secret-proposals` • `DELETE /api/agents/me/secret-proposals/:id`                                               |
+| Dashboard                             | `GET /api/companies/:companyId/dashboard`                                                                                                |
 
 Full endpoint table (company imports/exports, OpenClaw invites, company skills, routines, etc.) lives in `references/api-reference.md`.
 

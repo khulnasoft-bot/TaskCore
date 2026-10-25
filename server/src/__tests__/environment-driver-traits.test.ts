@@ -8,7 +8,10 @@ import {
 // The exact trait table this phase moves each of the four consumers onto. Each
 // value is the value the current per-consumer driver-name condition produces
 // today, so this table proves the refactor changes no decision.
-const EXPECTED_TRAITS: Record<string, Omit<EnvironmentDriverTraits, "driver">> = {
+const EXPECTED_TRAITS: Record<
+  string,
+  Omit<EnvironmentDriverTraits, "driver">
+> = {
   local: {
     realizesWorkspace: true,
     runsWorkspaceOffHost: false,
@@ -38,12 +41,19 @@ const EXPECTED_TRAITS: Record<string, Omit<EnvironmentDriverTraits, "driver">> =
 describe("environment driver traits", () => {
   for (const [driver, expected] of Object.entries(EXPECTED_TRAITS)) {
     it(`carries the exact trait row for "${driver}"`, () => {
-      const traits = ENVIRONMENT_DRIVER_TRAITS[driver as keyof typeof ENVIRONMENT_DRIVER_TRAITS];
+      const traits =
+        ENVIRONMENT_DRIVER_TRAITS[
+          driver as keyof typeof ENVIRONMENT_DRIVER_TRAITS
+        ];
       expect(traits.driver).toBe(driver);
       expect(traits.realizesWorkspace).toBe(expected.realizesWorkspace);
       expect(traits.runsWorkspaceOffHost).toBe(expected.runsWorkspaceOffHost);
-      expect(traits.confinesStagedProjects).toBe(expected.confinesStagedProjects);
-      expect(traits.hasLeaseCapabilityModel).toBe(expected.hasLeaseCapabilityModel);
+      expect(traits.confinesStagedProjects).toBe(
+        expected.confinesStagedProjects,
+      );
+      expect(traits.hasLeaseCapabilityModel).toBe(
+        expected.hasLeaseCapabilityModel,
+      );
     });
   }
 
@@ -55,7 +65,9 @@ describe("environment driver traits", () => {
   });
 
   it("getEnvironmentDriverTraits resolves a registered driver", () => {
-    expect(getEnvironmentDriverTraits("sandbox")?.hasLeaseCapabilityModel).toBe(true);
+    expect(getEnvironmentDriverTraits("sandbox")?.hasLeaseCapabilityModel).toBe(
+      true,
+    );
     expect(getEnvironmentDriverTraits("plugin")?.realizesWorkspace).toBe(false);
   });
 

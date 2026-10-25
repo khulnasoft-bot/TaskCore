@@ -19,10 +19,15 @@ import {
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
 import { companySearchExtractService } from "../services/company-search-extract.js";
-import { issueReadSqlCondition, type AuthorizationActor } from "../services/authorization.js";
+import {
+  issueReadSqlCondition,
+  type AuthorizationActor,
+} from "../services/authorization.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -46,26 +51,48 @@ describe("extract-search query validation", () => {
     expect(parsed.kind).toBe("url");
     expect(parsed.scope).toBe("comments");
     expect(parsed.status).toEqual(["in_progress", "in_review"]);
-    expect(parsed.matchesPerIssue).toBe(COMPANY_SEARCH_EXTRACT_MAX_MATCHES_PER_ISSUE);
-    expect(() => companySearchExtractQuerySchema.parse({ contains: ".*", kind: "regex" })).toThrow();
-    expect(() => companySearchExtractQuerySchema.parse({ contains: "x" })).toThrow();
-    expect(() => companySearchExtractQuerySchema.parse({ contains: "needle", limit: "201" })).toThrow();
-    expect(() => companySearchExtractQuerySchema.parse({ contains: "needle", matchesPerIssue: "201" })).toThrow();
-    expect(() => companySearchExtractQuerySchema.parse({
-      contains: "needle",
-      updatedWithin: "30d",
-      updatedAfter: "2026-01-01T00:00:00.000Z",
-    })).toThrow();
+    expect(parsed.matchesPerIssue).toBe(
+      COMPANY_SEARCH_EXTRACT_MAX_MATCHES_PER_ISSUE,
+    );
+    expect(() =>
+      companySearchExtractQuerySchema.parse({ contains: ".*", kind: "regex" }),
+    ).toThrow();
+    expect(() =>
+      companySearchExtractQuerySchema.parse({ contains: "x" }),
+    ).toThrow();
+    expect(() =>
+      companySearchExtractQuerySchema.parse({
+        contains: "needle",
+        limit: "201",
+      }),
+    ).toThrow();
+    expect(() =>
+      companySearchExtractQuerySchema.parse({
+        contains: "needle",
+        matchesPerIssue: "201",
+      }),
+    ).toThrow();
+    expect(() =>
+      companySearchExtractQuerySchema.parse({
+        contains: "needle",
+        updatedWithin: "30d",
+        updatedAfter: "2026-01-01T00:00:00.000Z",
+      }),
+    ).toThrow();
   });
 });
 
 describeEmbeddedPostgres("companySearchExtractService", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof companySearchExtractService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-company-search-extract-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-company-search-extract-",
+    );
     db = createDb(tempDb.connectionString);
     svc = companySearchExtractService(db);
   }, 20_000);
@@ -94,7 +121,10 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
     return companyId;
   }
 
-  async function createIssue(companyId: string, values: Partial<typeof issues.$inferInsert> = {}) {
+  async function createIssue(
+    companyId: string,
+    values: Partial<typeof issues.$inferInsert> = {},
+  ) {
     const id = values.id ?? randomUUID();
     await db.insert(issues).values({
       id,
@@ -136,13 +166,20 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
       key: "plan",
     });
 
-    const result = await svc.extract(companyId, companySearchExtractQuerySchema.parse({
-      contains: "github.com/khulnasoft/taskcore/pull",
-      kind: "url",
-    }));
+    const result = await svc.extract(
+      companyId,
+      companySearchExtractQuerySchema.parse({
+        contains: "github.com/khulnasoft/taskcore/pull",
+        kind: "url",
+      }),
+    );
 
     expect(result.results).toHaveLength(1);
-    expect(result.results[0]?.matches.map((match) => match.value)).toEqual([firstUrl, secondUrl, thirdUrl]);
+    expect(result.results[0]?.matches.map((match) => match.value)).toEqual([
+      firstUrl,
+      secondUrl,
+      thirdUrl,
+    ]);
     expect(result.results[0]?.matches.map((match) => match.field)).toEqual([
       "description",
       "comment",
@@ -176,13 +213,18 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
       key: "plan",
     });
 
-    const result = await svc.extract(companyId, companySearchExtractQuerySchema.parse({
-      contains: "github.com/khulnasoft/taskcore/pull",
-      kind: "url",
-      scope: "all",
-    }));
+    const result = await svc.extract(
+      companyId,
+      companySearchExtractQuerySchema.parse({
+        contains: "github.com/khulnasoft/taskcore/pull",
+        kind: "url",
+        scope: "all",
+      }),
+    );
 
-    expect(result.results[0]?.matches.map((match) => [match.field, match.value])).toEqual([
+    expect(
+      result.results[0]?.matches.map((match) => [match.field, match.value]),
+    ).toEqual([
       ["title", titleUrl],
       ["description", descriptionUrl],
       ["document_title", documentTitleUrl],
@@ -212,11 +254,14 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
       updatedAt: new Date(now - 24 * 60 * 60 * 1000),
     });
 
-    const result = await svc.extract(companyId, companySearchExtractQuerySchema.parse({
-      contains: "needle",
-      updatedWithin: "30d",
-      status: "in_review",
-    }));
+    const result = await svc.extract(
+      companyId,
+      companySearchExtractQuerySchema.parse({
+        contains: "needle",
+        updatedWithin: "30d",
+        status: "in_review",
+      }),
+    );
 
     expect(result.results.map((row) => row.issueId)).toEqual([recentId]);
   });
@@ -229,13 +274,20 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
     );
     await createIssue(companyId, { description: urls.join(" ") });
 
-    const result = await svc.extract(companyId, companySearchExtractQuerySchema.parse({
-      contains: "github.com/khulnasoft/taskcore/pull",
-      kind: "url",
-    }));
+    const result = await svc.extract(
+      companyId,
+      companySearchExtractQuerySchema.parse({
+        contains: "github.com/khulnasoft/taskcore/pull",
+        kind: "url",
+      }),
+    );
 
-    expect(result.matchesPerIssue).toBe(COMPANY_SEARCH_EXTRACT_DEFAULT_MATCHES_PER_ISSUE);
-    expect(result.results[0]?.matches).toHaveLength(COMPANY_SEARCH_EXTRACT_DEFAULT_MATCHES_PER_ISSUE);
+    expect(result.matchesPerIssue).toBe(
+      COMPANY_SEARCH_EXTRACT_DEFAULT_MATCHES_PER_ISSUE,
+    );
+    expect(result.results[0]?.matches).toHaveLength(
+      COMPANY_SEARCH_EXTRACT_DEFAULT_MATCHES_PER_ISSUE,
+    );
     expect(result.results[0]?.matchesTruncated).toBe(true);
     expect(result.truncated).toBe(true);
   });
@@ -248,13 +300,18 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
     );
     await createIssue(companyId, { description: urls.join(" ") });
 
-    const result = await svc.extract(companyId, companySearchExtractQuerySchema.parse({
-      contains: "github.com/khulnasoft/taskcore/pull",
-      kind: "url",
-      matchesPerIssue: COMPANY_SEARCH_EXTRACT_MAX_MATCHES_PER_ISSUE,
-    }));
+    const result = await svc.extract(
+      companyId,
+      companySearchExtractQuerySchema.parse({
+        contains: "github.com/khulnasoft/taskcore/pull",
+        kind: "url",
+        matchesPerIssue: COMPANY_SEARCH_EXTRACT_MAX_MATCHES_PER_ISSUE,
+      }),
+    );
 
-    expect(result.matchesPerIssue).toBe(COMPANY_SEARCH_EXTRACT_MAX_MATCHES_PER_ISSUE);
+    expect(result.matchesPerIssue).toBe(
+      COMPANY_SEARCH_EXTRACT_MAX_MATCHES_PER_ISSUE,
+    );
     expect(result.results[0]?.matches).toHaveLength(urls.length);
     expect(result.results[0]?.matchesTruncated).toBe(false);
     expect(result.truncated).toBe(false);
@@ -265,7 +322,10 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
     const otherCompanyId = await createCompany("Other");
     await createIssue(otherCompanyId, { description: "needle" });
 
-    const result = await svc.extract(companyId, companySearchExtractQuerySchema.parse({ contains: "needle" }));
+    const result = await svc.extract(
+      companyId,
+      companySearchExtractQuerySchema.parse({ contains: "needle" }),
+    );
 
     expect(result.results).toEqual([]);
   });
@@ -279,7 +339,7 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
       principalId: viewerId,
       membershipRole: "operator",
       status: "active",
-});
+    });
     const visibleIssueId = await createIssue(companyId, {
       identifier: "EXT-PUBLIC",
       description: "privacy-leak-needle",
@@ -301,7 +361,9 @@ describeEmbeddedPostgres("companySearchExtractService", () => {
 
     const result = await svc.extract(
       companyId,
-      companySearchExtractQuerySchema.parse({ contains: "privacy-leak-needle" }),
+      companySearchExtractQuerySchema.parse({
+        contains: "privacy-leak-needle",
+      }),
       { issueReadCondition: await issueReadSqlCondition(db, actor) },
     );
 

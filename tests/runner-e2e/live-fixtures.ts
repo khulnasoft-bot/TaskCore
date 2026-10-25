@@ -117,11 +117,16 @@ export async function setupLiveFixtures(input: {
       async setup() {
         return api.post<PluginRecord>("/api/plugins/install", {
           packageName: process.env.TASKCORE_RUNNER_E2E_INSTALLED_CLI
-            ? installedReleaseDaytonaPlugin(process.env.TASKCORE_RUNNER_E2E_INSTALLED_CLI, process.env.TASKCORE_RUNNER_E2E_INSTALLED_DAYTONA_PLUGIN, process.env.TASKCORE_RUNNER_E2E_INSTALLED_DAYTONA_PLUGIN_VERSION)
+            ? installedReleaseDaytonaPlugin(
+                process.env.TASKCORE_RUNNER_E2E_INSTALLED_CLI,
+                process.env.TASKCORE_RUNNER_E2E_INSTALLED_DAYTONA_PLUGIN,
+                process.env
+                  .TASKCORE_RUNNER_E2E_INSTALLED_DAYTONA_PLUGIN_VERSION,
+              )
             : path.resolve(
-            import.meta.dirname,
-            "../../packages/plugins/sandbox-providers/daytona",
-          ),
+                import.meta.dirname,
+                "../../packages/plugins/sandbox-providers/daytona",
+              ),
           isLocalPath: true,
         });
       },
@@ -139,10 +144,20 @@ export async function setupLiveFixtures(input: {
       return api.post<CompanyRecord>("/api/companies", {
         name: `Runner E2E ${execution.id} ${input.executionNonce}`,
         description: "Ephemeral paid full-stack runner acceptance fixture",
-        budgetMonthlyCents: ["native-completion", "native-instruction-consolidation", "native-connection-guidance"].includes(execution.suite.id)
-          || (execution.suite.id === "everyday-workflows" && ["hire-reuse", "delegate-feedback"].includes(execution.task.id)) ? NATIVE_COMPLETION_BUDGET_CENTS
-          : execution.suite.id === "task-titles" ? TASK_TITLE_BUDGET_CENTS
-          : execution.suite.id === "stock-harness" ? 1_000 : 0,
+        budgetMonthlyCents:
+          [
+            "native-completion",
+            "native-instruction-consolidation",
+            "native-connection-guidance",
+          ].includes(execution.suite.id) ||
+          (execution.suite.id === "everyday-workflows" &&
+            ["hire-reuse", "delegate-feedback"].includes(execution.task.id))
+            ? NATIVE_COMPLETION_BUDGET_CENTS
+            : execution.suite.id === "task-titles"
+              ? TASK_TITLE_BUDGET_CENTS
+              : execution.suite.id === "stock-harness"
+                ? 1_000
+                : 0,
       });
     },
     async teardown() {
@@ -190,11 +205,14 @@ export async function setupLiveFixtures(input: {
         const raw = input.credentials.GROK_AUTH_JSON;
         if (!raw) throw new Error("Missing credential GROK_AUTH_JSON");
         return stageGrokSubscriptionFixture({
-          raw, companyId: value<CompanyRecord>(resolved, "company").id,
+          raw,
+          companyId: value<CompanyRecord>(resolved, "company").id,
           environment: process.env,
         });
       },
-      async teardown(remove) { await remove(); },
+      async teardown(remove) {
+        await remove();
+      },
     });
   }
 
@@ -241,7 +259,10 @@ export async function setupLiveFixtures(input: {
     },
   });
 
-  const managedHiring = isManagedHiringCase(execution.suite.id, execution.task.id);
+  const managedHiring = isManagedHiringCase(
+    execution.suite.id,
+    execution.task.id,
+  );
   if (managedHiring) {
     registry.register<ManagedAccountFixture>({
       id: "ai-connection",
@@ -249,10 +270,16 @@ export async function setupLiveFixtures(input: {
       async setup(resolved) {
         const company = value<CompanyRecord>(resolved, "company");
         const key = execution.profile.credential;
-        const provider = key === "ANTHROPIC_API_KEY" ? "anthropic"
-          : key === "OPENROUTER_API_KEY" ? "openrouter"
-          : key === "OPENAI_API_KEY" ? "openai" : null;
-        if (!provider) throw new Error(`Unsupported managed hiring credential ${key}`);
+        const provider =
+          key === "ANTHROPIC_API_KEY"
+            ? "anthropic"
+            : key === "OPENROUTER_API_KEY"
+              ? "openrouter"
+              : key === "OPENAI_API_KEY"
+                ? "openai"
+                : null;
+        if (!provider)
+          throw new Error(`Unsupported managed hiring credential ${key}`);
         const apiKey = input.credentials[key];
         if (!apiKey) throw new Error(`Missing credential ${key}`);
         const account = await api.postSensitive<{ connectionId: string }>(
@@ -295,8 +322,13 @@ export async function setupLiveFixtures(input: {
         secretRefs,
         executionId: input.executionNonce,
       });
-      if (["stock-harness", "native-connection-guidance"].includes(execution.suite.id)
-        || (execution.suite.id === "everyday-workflows" && ["hire-reuse", "delegate-feedback"].includes(execution.task.id))) {
+      if (
+        ["stock-harness", "native-connection-guidance"].includes(
+          execution.suite.id,
+        ) ||
+        (execution.suite.id === "everyday-workflows" &&
+          ["hire-reuse", "delegate-feedback"].includes(execution.task.id))
+      ) {
         agent.budgetMonthlyCents = 1_000;
       }
       if (managedHiring) {
@@ -319,8 +351,11 @@ export async function setupLiveFixtures(input: {
     },
   });
 
-  if (execution.task.flow === "warm_three_turn"
-    || (execution.suite.id === "extended-harnesses" && execution.task.id === "file-edit-validate")) {
+  if (
+    execution.task.flow === "warm_three_turn" ||
+    (execution.suite.id === "extended-harnesses" &&
+      execution.task.id === "file-edit-validate")
+  ) {
     registry.register<ProjectRecord>({
       id: "project",
       dependencies: ["company", "environment"],

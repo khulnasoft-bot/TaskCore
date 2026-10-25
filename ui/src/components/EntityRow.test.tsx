@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { EntityRow } from "./EntityRow";
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: React.ComponentProps<"a"> & { to: string }) => (
+  Link: ({
+    children,
+    to,
+    ...props
+  }: React.ComponentProps<"a"> & { to: string }) => (
     <a href={to} {...props}>
       {children}
     </a>

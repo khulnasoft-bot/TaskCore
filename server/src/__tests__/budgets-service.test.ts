@@ -1,6 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   agents,
   approvals,
@@ -27,14 +36,20 @@ vi.mock("../services/activity-log.js", () => ({
 // cost-accounting-reliability.test.ts, including transaction and retry paths.
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("budgetService release gate enforcement", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-budgets-service-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-budgets-service-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -133,14 +148,18 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
       })
       .returning();
 
-    const softEvent = await insertCostEvent({ companyId, agentId, costCents: 80 });
+    const softEvent = await insertCostEvent({
+      companyId,
+      agentId,
+      costCents: 80,
+    });
     await service.evaluateCostEvent(softEvent);
     await service.evaluateCostEvent(softEvent);
 
-    let incidentRows = await db
-      .select()
-      .from(budgetIncidents);
-    expect(incidentRows.filter((incident) => incident.thresholdType === "soft")).toHaveLength(1);
+    let incidentRows = await db.select().from(budgetIncidents);
+    expect(
+      incidentRows.filter((incident) => incident.thresholdType === "soft"),
+    ).toHaveLength(1);
     expect(incidentRows[0]).toMatchObject({
       companyId,
       policyId: policy!.id,
@@ -156,21 +175,34 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
     const [agentBeforeHardStop] = await db
       .select({ status: agents.status, pauseReason: agents.pauseReason })
       .from(agents);
-    expect(agentBeforeHardStop).toEqual({ status: "active", pauseReason: null });
+    expect(agentBeforeHardStop).toEqual({
+      status: "active",
+      pauseReason: null,
+    });
 
-    const hardEvent = await insertCostEvent({ companyId, agentId, costCents: 25 });
+    const hardEvent = await insertCostEvent({
+      companyId,
+      agentId,
+      costCents: 25,
+    });
     await service.evaluateCostEvent(hardEvent);
     await service.evaluateCostEvent(hardEvent);
 
-    incidentRows = await db
-      .select()
-      .from(budgetIncidents);
-    expect(incidentRows.filter((incident) => incident.thresholdType === "soft")).toHaveLength(1);
-    expect(incidentRows.filter((incident) => incident.thresholdType === "hard")).toHaveLength(1);
-    expect(incidentRows.find((incident) => incident.thresholdType === "soft")).toMatchObject({
+    incidentRows = await db.select().from(budgetIncidents);
+    expect(
+      incidentRows.filter((incident) => incident.thresholdType === "soft"),
+    ).toHaveLength(1);
+    expect(
+      incidentRows.filter((incident) => incident.thresholdType === "hard"),
+    ).toHaveLength(1);
+    expect(
+      incidentRows.find((incident) => incident.thresholdType === "soft"),
+    ).toMatchObject({
       status: "resolved",
     });
-    expect(incidentRows.find((incident) => incident.thresholdType === "hard")).toMatchObject({
+    expect(
+      incidentRows.find((incident) => incident.thresholdType === "hard"),
+    ).toMatchObject({
       amountLimit: 100,
       amountObserved: 105,
       status: "open",
@@ -184,12 +216,28 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
     });
 
     const [agentAfterHardStop] = await db
-      .select({ status: agents.status, pauseReason: agents.pauseReason, pausedAt: agents.pausedAt })
+      .select({
+        status: agents.status,
+        pauseReason: agents.pauseReason,
+        pausedAt: agents.pausedAt,
+      })
       .from(agents);
-    expect(agentAfterHardStop).toMatchObject({ status: "paused", pauseReason: "budget" });
+    expect(agentAfterHardStop).toMatchObject({
+      status: "paused",
+      pauseReason: "budget",
+    });
     expect(agentAfterHardStop?.pausedAt).toBeInstanceOf(Date);
     expect(cancelWorkForScope).toHaveBeenCalledTimes(2);
-    expect(cancelWorkForScope).toHaveBeenCalledWith({ companyId, scopeType: "agent", scopeId: agentId, createdBefore: expect.any(Date), enforcement: { policyId: expect.any(String), version: expect.any(Number) } });
+    expect(cancelWorkForScope).toHaveBeenCalledWith({
+      companyId,
+      scopeType: "agent",
+      scopeId: agentId,
+      createdBefore: expect.any(Date),
+      enforcement: {
+        policyId: expect.any(String),
+        version: expect.any(Number),
+      },
+    });
 
     const block = await service.getInvocationBlock(companyId, agentId);
     expect(block).toEqual({
@@ -200,8 +248,16 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
     });
 
     const telemetryCalls = mockLogActivity.mock.calls.map(([, input]) => input);
-    expect(telemetryCalls.filter((call) => call.action === "budget.soft_threshold_crossed")).toHaveLength(1);
-    expect(telemetryCalls.filter((call) => call.action === "budget.hard_threshold_crossed")).toHaveLength(1);
+    expect(
+      telemetryCalls.filter(
+        (call) => call.action === "budget.soft_threshold_crossed",
+      ),
+    ).toHaveLength(1);
+    expect(
+      telemetryCalls.filter(
+        (call) => call.action === "budget.hard_threshold_crossed",
+      ),
+    ).toHaveLength(1);
     expect(telemetryCalls).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -228,7 +284,9 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
       ]),
     );
     for (const call of telemetryCalls) {
-      expect(JSON.stringify(call.details)).not.toContain("SECRET_TOKEN_SHOULD_NOT_LEAK");
+      expect(JSON.stringify(call.details)).not.toContain(
+        "SECRET_TOKEN_SHOULD_NOT_LEAK",
+      );
       expect(call.details).not.toHaveProperty("prompt");
       expect(call.details).not.toHaveProperty("message");
     }
@@ -237,13 +295,19 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
   it("distinguishes a company budget pause from a manual company pause", async () => {
     const { companyId, agentId } = await createBudgetFixture();
     const service = budgetService(db);
-    await db.update(companies).set({ status: "paused", pauseReason: "budget" }).where(eq(companies.id, companyId));
+    await db
+      .update(companies)
+      .set({ status: "paused", pauseReason: "budget" })
+      .where(eq(companies.id, companyId));
     expect(await service.getInvocationBlock(companyId, agentId)).toMatchObject({
       scopeType: "company",
       scopeId: companyId,
       reason: "Budget pause requires a policy or an explicit operator resume.",
     });
-    await db.update(companies).set({ pauseReason: null }).where(eq(companies.id, companyId));
+    await db
+      .update(companies)
+      .set({ pauseReason: null })
+      .where(eq(companies.id, companyId));
     expect(await service.getInvocationBlock(companyId, agentId)).toMatchObject({
       scopeType: "company",
       scopeId: companyId,
@@ -268,15 +332,22 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
       isActive: true,
     });
 
-    const event = await insertCostEvent({ companyId, agentId, projectId, costCents: 125 });
+    const event = await insertCostEvent({
+      companyId,
+      agentId,
+      projectId,
+      costCents: 125,
+    });
     await service.evaluateCostEvent(event);
     await service.evaluateCostEvent(event);
 
-    const incidentRows = await db
-      .select()
-      .from(budgetIncidents);
-    expect(incidentRows.filter((incident) => incident.thresholdType === "hard")).toHaveLength(1);
-    const hardIncident = incidentRows.find((incident) => incident.thresholdType === "hard")!;
+    const incidentRows = await db.select().from(budgetIncidents);
+    expect(
+      incidentRows.filter((incident) => incident.thresholdType === "hard"),
+    ).toHaveLength(1);
+    const hardIncident = incidentRows.find(
+      (incident) => incident.thresholdType === "hard",
+    )!;
     expect(hardIncident).toMatchObject({
       companyId,
       scopeType: "project",
@@ -287,11 +358,23 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
     });
 
     const [projectAfterHardStop] = await db
-      .select({ pauseReason: projects.pauseReason, pausedAt: projects.pausedAt })
+      .select({
+        pauseReason: projects.pauseReason,
+        pausedAt: projects.pausedAt,
+      })
       .from(projects);
     expect(projectAfterHardStop?.pauseReason).toBe("budget");
     expect(projectAfterHardStop?.pausedAt).toBeInstanceOf(Date);
-    expect(cancelWorkForScope).toHaveBeenCalledWith({ companyId, scopeType: "project", scopeId: projectId, createdBefore: expect.any(Date), enforcement: { policyId: expect.any(String), version: expect.any(Number) } });
+    expect(cancelWorkForScope).toHaveBeenCalledWith({
+      companyId,
+      scopeType: "project",
+      scopeId: projectId,
+      createdBefore: expect.any(Date),
+      enforcement: {
+        policyId: expect.any(String),
+        version: expect.any(Number),
+      },
+    });
 
     const overviewWhileBlocked = await service.overview(companyId);
     expect(overviewWhileBlocked.pausedProjectCount).toBe(1);
@@ -318,26 +401,41 @@ describeEmbeddedPostgres("budgetService release gate enforcement", () => {
       ),
     ).rejects.toThrow("New budget must exceed current observed spend");
 
-    expect(await service.getInvocationBlock(companyId, agentId, { projectId })).toEqual({
+    expect(
+      await service.getInvocationBlock(companyId, agentId, { projectId }),
+    ).toEqual({
       scopeType: "project",
       scopeId: projectId,
       scopeName: "Budget Project",
-      reason: "Project cannot start work because its budget hard-stop is still exceeded.",
+      reason:
+        "Project cannot start work because its budget hard-stop is still exceeded.",
     });
 
     const resolved = await service.resolveIncident(
       companyId,
       hardIncident.id,
-      { action: "raise_budget_and_resume", amount: 175, decisionNote: "Approved release-gate budget raise." },
+      {
+        action: "raise_budget_and_resume",
+        amount: 175,
+        decisionNote: "Approved release-gate budget raise.",
+      },
       "board-user",
     );
-    expect(resolved).toMatchObject({ status: "resolved", approvalStatus: "approved" });
+    expect(resolved).toMatchObject({
+      status: "resolved",
+      approvalStatus: "approved",
+    });
 
     const [projectAfterResume] = await db
-      .select({ pauseReason: projects.pauseReason, pausedAt: projects.pausedAt })
+      .select({
+        pauseReason: projects.pauseReason,
+        pausedAt: projects.pausedAt,
+      })
       .from(projects);
     expect(projectAfterResume).toEqual({ pauseReason: null, pausedAt: null });
-    expect(await service.getInvocationBlock(companyId, agentId, { projectId })).toBeNull();
+    expect(
+      await service.getInvocationBlock(companyId, agentId, { projectId }),
+    ).toBeNull();
 
     const overviewAfterResume = await service.overview(companyId);
     expect(overviewAfterResume.pausedProjectCount).toBe(0);

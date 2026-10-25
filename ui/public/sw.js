@@ -8,28 +8,37 @@ const BUILD_ID = "__TASKCORE_BUILD_ID__";
 // Separate this allowlisted cache from older workers that cached arbitrary URLs.
 const CACHE_NAME = `taskcore-public-assets-${BUILD_ID}`;
 const privateRequests = new Set();
-const privateCacheControl = /(?:^|,)\s*(?:no-store|private)(?:\s*(?:,|=)|\s*$)/i;
+const privateCacheControl =
+  /(?:^|,)\s*(?:no-store|private)(?:\s*(?:,|=)|\s*$)/i;
 
 // Static recovery only: never cache or embed authenticated page content here.
 function offlineNavigationResponse() {
-  return new Response(`<!doctype html>
+  return new Response(
+    `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark"><title>Taskcore is offline</title></head>
 <body><main><h1>Taskcore is offline</h1>
 <p>Check your connection, then reload this page to try again.</p>
 <button type="button" onclick="window.location.reload()">Reload page</button>
-</main></body></html>`, {
-    status: 503,
-    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
-  });
+</main></body></html>`,
+    {
+      status: 503,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }
 
 async function evictRequest(request) {
-  await Promise.all((await caches.keys()).map(async (key) => {
-    const cache = await caches.open(key);
-    await cache.delete(request, { ignoreVary: true });
-  }));
+  await Promise.all(
+    (await caches.keys()).map(async (key) => {
+      const cache = await caches.open(key);
+      await cache.delete(request, { ignoreVary: true });
+    }),
+  );
 }
 
 self.addEventListener("install", () => {
@@ -38,9 +47,9 @@ self.addEventListener("install", () => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((key) => caches.delete(key)))
-    )
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key)))),
   );
   self.clients.claim();
 });
@@ -55,7 +64,9 @@ self.addEventListener("fetch", (event) => {
   // Only immutable Vite build assets have a public offline-cache contract.
   // Never infer that application/extension responses are public from absent
   // headers, or from an in-memory classification lost when this worker restarts.
-  const publicAsset = url.origin === self.location.origin && !url.search &&
+  const publicAsset =
+    url.origin === self.location.origin &&
+    !url.search &&
     /^\/assets\/[^/]+-[a-zA-Z0-9_-]{8,}\.[a-zA-Z0-9.]+$/.test(url.pathname);
 
   // Explicitly private requests must bypass BOTH cache writes and offline
@@ -73,8 +84,10 @@ self.addEventListener("fetch", (event) => {
   // Passing their requests through fetch/respondWith can return a bodyless 304
   // to the module loader on reload and leave the app root empty. They are not
   // build assets and have no offline contract, so leave them to the browser.
-  if (url.origin === self.location.origin &&
-      /^\/(?:@fs|@vite|@id|src|node_modules)\//.test(url.pathname)) {
+  if (
+    url.origin === self.location.origin &&
+    /^\/(?:@fs|@vite|@id|src|node_modules)\//.test(url.pathname)
+  ) {
     return;
   }
 
@@ -88,26 +101,43 @@ self.addEventListener("fetch", (event) => {
           // if storage is unavailable so offline fallback still fails closed.
           privateRequests.add(request.url);
           await evictRequest(request).catch(() => {});
-        } else if (response.ok && publicAsset && !privateRequests.has(request.url)) {
+        } else if (
+          response.ok &&
+          publicAsset &&
+          !privateRequests.has(request.url)
+        ) {
           const clone = response.clone();
-          await caches.open(CACHE_NAME).then(async (cache) => {
-            await cache.put(request, clone);
-            // A concurrent response may have revoked this URL during put().
-            if (privateRequests.has(request.url)) await cache.delete(request, { ignoreVary: true });
-          }).catch(() => {});
+          await caches
+            .open(CACHE_NAME)
+            .then(async (cache) => {
+              await cache.put(request, clone);
+              // A concurrent response may have revoked this URL during put().
+              if (privateRequests.has(request.url))
+                await cache.delete(request, { ignoreVary: true });
+            })
+            .catch(() => {});
         }
         return response;
       })
       .catch(async () => {
         if (privateRequests.has(request.url)) return Response.error();
-        if (!publicAsset) return request.mode === "navigate" ? offlineNavigationResponse() : Response.error();
+        if (!publicAsset)
+          return request.mode === "navigate"
+            ? offlineNavigationResponse()
+            : Response.error();
         // Restrict lookup to this policy's cache; old arbitrary-response caches
         // must not become fallback candidates if activation cleanup fails.
         try {
           const cached = await (await caches.open(CACHE_NAME)).match(request);
-          if (cached && !privateCacheControl.test(cached.headers.get("cache-control") ?? "")) return cached;
-        } catch { /* Unavailable cache storage is an offline miss. */ }
+          if (
+            cached &&
+            !privateCacheControl.test(cached.headers.get("cache-control") ?? "")
+          )
+            return cached;
+        } catch {
+          /* Unavailable cache storage is an offline miss. */
+        }
         return Response.error();
-      })
+      }),
   );
 });

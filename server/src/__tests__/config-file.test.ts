@@ -36,7 +36,9 @@ describe("readConfigFile", () => {
   let configPath: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-config-file-test-"));
+    tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-config-file-test-"),
+    );
     configPath = path.join(tempDir, "config.json");
     process.env.TASKCORE_CONFIG = configPath;
   });
@@ -60,7 +62,9 @@ describe("readConfigFile", () => {
     fs.writeFileSync(configPath, "{");
 
     expect(() => readConfigFile()).toThrow(
-      new RegExp(`Invalid Taskcore config at ${escapeRegExp(configPath)}: failed to read or parse JSON`),
+      new RegExp(
+        `Invalid Taskcore config at ${escapeRegExp(configPath)}: failed to read or parse JSON`,
+      ),
     );
   });
 
@@ -72,7 +76,9 @@ describe("readConfigFile", () => {
 
     writeConfig(configPath, config);
 
-    expect(() => readConfigFile()).toThrow(/Invalid Taskcore config .* \$meta\.source:/);
+    expect(() => readConfigFile()).toThrow(
+      /Invalid Taskcore config .* \$meta\.source:/,
+    );
   });
 
   it("parses a valid config file", () => {

@@ -15,7 +15,10 @@ import {
   projectAccessMembers,
   projects,
 } from "@taskcore/db";
-import { companySearchQuerySchema, COMPANY_SEARCH_MAX_QUERY_LENGTH } from "@taskcore/shared";
+import {
+  companySearchQuerySchema,
+  COMPANY_SEARCH_MAX_QUERY_LENGTH,
+} from "@taskcore/shared";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
@@ -25,11 +28,16 @@ import {
   companySearchBranchFetchLimit,
   companySearchService,
 } from "../services/company-search.js";
-import { issueReadSqlCondition, projectReadSqlCondition } from "../services/authorization.js";
+import {
+  issueReadSqlCondition,
+  projectReadSqlCondition,
+} from "../services/authorization.js";
 import { issueService } from "../services/issues.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -55,32 +63,64 @@ describe("company search query validation", () => {
     expect(parsed.priority).toEqual(["critical", "low"]);
     expect(parsed.sort).toBe("priority");
     expect(parsed.updatedWithin).toBe("7d");
-    expect(() => companySearchQuerySchema.parse({ q: "needle", limit: "500" })).toThrow();
-    expect(() => companySearchQuerySchema.parse({ q: "needle", offset: "9000" })).toThrow();
-    expect(() => companySearchQuerySchema.parse({ q: "needle", scope: "not-a-scope" })).toThrow();
-    expect(() => companySearchQuerySchema.parse({ q: "needle", status: "not-a-status" })).toThrow();
-    expect(() => companySearchQuerySchema.parse({ q: "needle", priority: "urgent" })).toThrow();
-    expect(() => companySearchQuerySchema.parse({ q: "needle", sort: "oldest" })).toThrow();
-    expect(() => companySearchQuerySchema.parse({ q: "needle", updatedWithin: "forever" })).toThrow();
-    expect(() => companySearchQuerySchema.parse({ q: "needle", projectId: "not-a-uuid" })).toThrow();
+    expect(() =>
+      companySearchQuerySchema.parse({ q: "needle", limit: "500" }),
+    ).toThrow();
+    expect(() =>
+      companySearchQuerySchema.parse({ q: "needle", offset: "9000" }),
+    ).toThrow();
+    expect(() =>
+      companySearchQuerySchema.parse({ q: "needle", scope: "not-a-scope" }),
+    ).toThrow();
+    expect(() =>
+      companySearchQuerySchema.parse({ q: "needle", status: "not-a-status" }),
+    ).toThrow();
+    expect(() =>
+      companySearchQuerySchema.parse({ q: "needle", priority: "urgent" }),
+    ).toThrow();
+    expect(() =>
+      companySearchQuerySchema.parse({ q: "needle", sort: "oldest" }),
+    ).toThrow();
+    expect(() =>
+      companySearchQuerySchema.parse({ q: "needle", updatedWithin: "forever" }),
+    ).toThrow();
+    expect(() =>
+      companySearchQuerySchema.parse({ q: "needle", projectId: "not-a-uuid" }),
+    ).toThrow();
   });
 
   it("includes offset in the internal per-branch fetch window", () => {
-    const lowOffset = companySearchQuerySchema.parse({ q: "needle", limit: "50", offset: "0" });
-    const highOffset = companySearchQuerySchema.parse({ q: "needle", limit: "50", offset: "200" });
+    const lowOffset = companySearchQuerySchema.parse({
+      q: "needle",
+      limit: "50",
+      offset: "0",
+    });
+    const highOffset = companySearchQuerySchema.parse({
+      q: "needle",
+      limit: "50",
+      offset: "200",
+    });
 
-    expect(companySearchBranchFetchLimit(lowOffset.limit, lowOffset.offset)).toBe(51);
-    expect(companySearchBranchFetchLimit(highOffset.limit, highOffset.offset)).toBe(COMPANY_SEARCH_BRANCH_FETCH_LIMIT);
+    expect(
+      companySearchBranchFetchLimit(lowOffset.limit, lowOffset.offset),
+    ).toBe(51);
+    expect(
+      companySearchBranchFetchLimit(highOffset.limit, highOffset.offset),
+    ).toBe(COMPANY_SEARCH_BRANCH_FETCH_LIMIT);
   });
 });
 
 describeEmbeddedPostgres("companySearchService", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof companySearchService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-company-search-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-company-search-",
+    );
     db = createDb(tempDb.connectionString);
     svc = companySearchService(db);
     await db.execute(sql.raw("CREATE EXTENSION IF NOT EXISTS pg_trgm"));
@@ -114,7 +154,10 @@ describeEmbeddedPostgres("companySearchService", () => {
     return companyId;
   }
 
-  async function createIssue(companyId: string, values: Partial<typeof issues.$inferInsert> = {}) {
+  async function createIssue(
+    companyId: string,
+    values: Partial<typeof issues.$inferInsert> = {},
+  ) {
     const id = values.id ?? randomUUID();
     await db.insert(issues).values({
       id,
@@ -130,7 +173,10 @@ describeEmbeddedPostgres("companySearchService", () => {
     return id;
   }
 
-  async function createAgent(companyId: string, values: Partial<typeof agents.$inferInsert> = {}) {
+  async function createAgent(
+    companyId: string,
+    values: Partial<typeof agents.$inferInsert> = {},
+  ) {
     const id = values.id ?? randomUUID();
     await db.insert(agents).values({
       id,
@@ -144,7 +190,10 @@ describeEmbeddedPostgres("companySearchService", () => {
     return id;
   }
 
-  async function createProject(companyId: string, values: Partial<typeof projects.$inferInsert> = {}) {
+  async function createProject(
+    companyId: string,
+    values: Partial<typeof projects.$inferInsert> = {},
+  ) {
     const id = values.id ?? randomUUID();
     await db.insert(projects).values({
       id,
@@ -156,7 +205,10 @@ describeEmbeddedPostgres("companySearchService", () => {
     return id;
   }
 
-  async function createLabel(companyId: string, values: Partial<typeof labels.$inferInsert> = {}) {
+  async function createLabel(
+    companyId: string,
+    values: Partial<typeof labels.$inferInsert> = {},
+  ) {
     const id = values.id ?? randomUUID();
     await db.insert(labels).values({
       id,
@@ -173,12 +225,18 @@ describeEmbeddedPostgres("companySearchService", () => {
     const agentId = await createAgent(companyId, { name: "Mibile" });
     const projectId = await createProject(companyId, { name: "Mibile" });
     const taskId = await createIssue(companyId, { title: "Mobile navigation" });
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "mibile" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "mibile" }),
+    );
     const ids = result.results.map((row) => row.id);
     expect(ids).toContain(taskId);
     expect(ids.indexOf(agentId)).toBeLessThan(ids.indexOf(taskId));
     expect(ids.indexOf(projectId)).toBeLessThan(ids.indexOf(taskId));
-    expect((await svc.search(companyId, companySearchQuerySchema.parse({ q: '""' }))).results).toEqual([]);
+    expect(
+      (await svc.search(companyId, companySearchQuerySchema.parse({ q: '""' })))
+        .results,
+    ).toEqual([]);
   });
 
   it("ranks exact issue identifiers before weaker title matches", async () => {
@@ -192,7 +250,10 @@ describeEmbeddedPostgres("companySearchService", () => {
       title: "TST-42 mentioned in title only",
     });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "TST-42" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "TST-42" }),
+    );
 
     expect(result.results[0]?.id).toBe(exactId);
     expect(result.results[0]?.matchedFields).toContain("identifier");
@@ -217,7 +278,10 @@ describeEmbeddedPostgres("companySearchService", () => {
       updatedAt: new Date(base + 1_000),
     });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "alpha beta", scope: "issues" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "alpha beta", scope: "issues" }),
+    );
 
     expect(result.results.map((row) => row.id)).toEqual([phraseId, allTokenId]);
     expect(result.results.map((row) => row.id)).not.toContain(partialTokenId);
@@ -238,14 +302,27 @@ describeEmbeddedPostgres("companySearchService", () => {
       body: "The ranking snippet should explain why this thread matched.",
     });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "checkout snippet" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "checkout snippet" }),
+    );
     const match = result.results.find((item) => item.id === issueId);
 
     expect(match).toBeTruthy();
-    expect(match?.matchedFields).toEqual(expect.arrayContaining(["title", "comment"]));
+    expect(match?.matchedFields).toEqual(
+      expect.arrayContaining(["title", "comment"]),
+    );
     expect(match?.href).toContain(`#comment-${commentId}`);
-    expect(match?.snippets.some((snippet) => snippet.field === "comment" && /snippet/i.test(snippet.text))).toBe(true);
-    expect(match?.snippets.find((snippet) => snippet.field === "comment")?.highlights.length).toBeGreaterThan(0);
+    expect(
+      match?.snippets.some(
+        (snippet) =>
+          snippet.field === "comment" && /snippet/i.test(snippet.text),
+      ),
+    ).toBe(true);
+    expect(
+      match?.snippets.find((snippet) => snippet.field === "comment")?.highlights
+        .length,
+    ).toBeGreaterThan(0);
     expect(result.countsByType.comment).toBe(1);
   });
 
@@ -260,7 +337,8 @@ describeEmbeddedPostgres("companySearchService", () => {
       id: documentId,
       companyId,
       title: "Hermes Parser Plan",
-      latestBody: "The external adapter parser should be discovered from the plugin package.",
+      latestBody:
+        "The external adapter parser should be discovered from the plugin package.",
       format: "markdown",
     });
     await db.insert(issueDocuments).values({
@@ -270,15 +348,26 @@ describeEmbeddedPostgres("companySearchService", () => {
       key: "plan",
     });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "Hermes parser", scope: "documents" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({
+        q: "Hermes parser",
+        scope: "documents",
+      }),
+    );
 
     expect(result.results).toHaveLength(1);
     expect(result.results[0]?.id).toBe(issueId);
     expect(result.results[0]?.matchedFields).toContain("document");
     expect(result.results[0]?.href).toContain("#document-plan");
     expect(result.results[0]?.snippet).toMatch(/parser/i);
-    expect(result.results[0]?.snippets[0]).toMatchObject({ field: "document", label: "Hermes Parser Plan" });
-    expect(result.results[0]?.snippets[0]?.highlights.length).toBeGreaterThan(0);
+    expect(result.results[0]?.snippets[0]).toMatchObject({
+      field: "document",
+      label: "Hermes Parser Plan",
+    });
+    expect(result.results[0]?.snippets[0]?.highlights.length).toBeGreaterThan(
+      0,
+    );
     expect(result.countsByType.document).toBe(1);
   });
 
@@ -305,7 +394,10 @@ describeEmbeddedPostgres("companySearchService", () => {
       key: "brief",
     });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "comet-tail", scope: "artifacts" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "comet-tail", scope: "artifacts" }),
+    );
 
     expect(result.results).toHaveLength(1);
     expect(result.results[0]).toMatchObject({
@@ -318,18 +410,28 @@ describeEmbeddedPostgres("companySearchService", () => {
       }),
     });
     expect(result.results[0]?.snippet).toMatch(/comet tail/i);
-    expect(result.countsByType).toEqual({ issue: 0, comment: 0, document: 0, artifact: 1, agent: 0, project: 0 });
+    expect(result.countsByType).toEqual({
+      issue: 0,
+      comment: 0,
+      document: 0,
+      artifact: 1,
+      agent: 0,
+      project: 0,
+    });
   });
 
   it("does not pass high-offset search fetch windows through to artifact query validation", async () => {
     const companyId = await createCompany();
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({
-      q: "artifact",
-      scope: "artifacts",
-      limit: "50",
-      offset: "75",
-    }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({
+        q: "artifact",
+        scope: "artifacts",
+        limit: "50",
+        offset: "75",
+      }),
+    );
 
     expect(result.results).toEqual([]);
     expect(result.countsByType.artifact).toBe(0);
@@ -338,7 +440,9 @@ describeEmbeddedPostgres("companySearchService", () => {
   it("applies issue filters before sorting and pagination", async () => {
     const companyId = await createCompany();
     const agentId = await createAgent(companyId, { name: "Needle engineer" });
-    const projectId = await createProject(companyId, { name: "Needle project" });
+    const projectId = await createProject(companyId, {
+      name: "Needle project",
+    });
     const labelId = await createLabel(companyId, { name: "Needle label" });
     const base = new Date("2026-01-01T00:00:00.000Z").getTime();
     const newestMatch = await createIssue(companyId, {
@@ -374,18 +478,21 @@ describeEmbeddedPostgres("companySearchService", () => {
       { companyId, issueId: statusDecoy, labelId },
     ]);
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({
-      q: "needle",
-      status: "todo",
-      priority: "high",
-      assigneeAgentId: agentId,
-      projectId,
-      labelId,
-      updatedAfter: new Date(base + 1_000).toISOString(),
-      sort: "updated",
-      limit: "1",
-      offset: "1",
-    }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({
+        q: "needle",
+        status: "todo",
+        priority: "high",
+        assigneeAgentId: agentId,
+        projectId,
+        labelId,
+        updatedAfter: new Date(base + 1_000).toISOString(),
+        sort: "updated",
+        limit: "1",
+        offset: "1",
+      }),
+    );
 
     expect(result.results.map((row) => row.id)).toEqual([olderMatch]);
     expect(result.countsByType.issue).toBe(2);
@@ -414,11 +521,14 @@ describeEmbeddedPostgres("companySearchService", () => {
     await createAgent(companyId, { name: "Todo" });
     await createProject(companyId, { name: "Todo" });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({
-      q: "",
-      status: "todo",
-      assigneeAgentId: agentId,
-    }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({
+        q: "",
+        status: "todo",
+        assigneeAgentId: agentId,
+      }),
+    );
 
     expect(result.results.map((row) => row.id)).toEqual([matchingIssue]);
     expect(result.countsByType.issue).toBe(1);
@@ -429,10 +539,19 @@ describeEmbeddedPostgres("companySearchService", () => {
 
   it("returns zero-result loosen data and suppresses agent/project rows while issue filters are active", async () => {
     const companyId = await createCompany();
-    await createAgent(companyId, { name: "Needle agent", capabilities: "Needle capabilities" });
-    await createProject(companyId, { name: "Needle project", description: "Needle roadmap" });
+    await createAgent(companyId, {
+      name: "Needle agent",
+      capabilities: "Needle capabilities",
+    });
+    await createProject(companyId, {
+      name: "Needle project",
+      description: "Needle roadmap",
+    });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "needle", status: "todo" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "needle", status: "todo" }),
+    );
 
     expect(result.results).toEqual([]);
     expect(result.countsByType.agent).toBe(0);
@@ -440,7 +559,12 @@ describeEmbeddedPostgres("companySearchService", () => {
     expect(result.zeroResults).toMatchObject({
       unfilteredTotal: 2,
       loosenSuggestions: [
-        { filter: "status", values: ["todo"], resultCount: 2, additionalCount: 2 },
+        {
+          filter: "status",
+          values: ["todo"],
+          resultCount: 2,
+          additionalCount: 2,
+        },
       ],
     });
   });
@@ -478,13 +602,28 @@ describeEmbeddedPostgres("companySearchService", () => {
       },
     ]);
     await db.insert(issueDocuments).values([
-      { companyId, issueId: visibleIssueId, documentId: visibleDocumentId, key: "visible" },
-      { companyId, issueId: hiddenIssueId, documentId: hiddenDocumentId, key: "hidden" },
+      {
+        companyId,
+        issueId: visibleIssueId,
+        documentId: visibleDocumentId,
+        key: "visible",
+      },
+      {
+        companyId,
+        issueId: hiddenIssueId,
+        documentId: hiddenDocumentId,
+        key: "hidden",
+      },
     ]);
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "artifact", scope: "artifacts" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "artifact", scope: "artifacts" }),
+    );
 
-    expect(result.results.map((row) => row.artifact?.issueId)).toEqual([visibleIssueId]);
+    expect(result.results.map((row) => row.artifact?.issueId)).toEqual([
+      visibleIssueId,
+    ]);
     expect(result.countsByType.artifact).toBe(1);
   });
 
@@ -510,7 +649,10 @@ describeEmbeddedPostgres("companySearchService", () => {
       title: "Other company needle",
     });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "needle" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "needle" }),
+    );
 
     expect(result.results.map((item) => item.id)).toEqual([visibleId]);
   });
@@ -552,7 +694,10 @@ describeEmbeddedPostgres("companySearchService", () => {
     });
 
     for (const q of ["%", "_", "\\"]) {
-      const result = await svc.search(companyId, companySearchQuerySchema.parse({ q }));
+      const result = await svc.search(
+        companyId,
+        companySearchQuerySchema.parse({ q }),
+      );
       expect(result.results, `q=${q}`).toEqual([]);
     }
   });
@@ -642,43 +787,81 @@ describeEmbeddedPostgres("companySearchService", () => {
       name: "1000 Launch Plan",
     });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "100%" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "100%" }),
+    );
     const ids = result.results.map((row) => row.id);
 
-    expect(ids).toEqual(expect.arrayContaining([
-      issueMatchId,
-      commentMatchId,
-      documentMatchIssueId,
-      agentMatchId,
-      projectMatchId,
-    ]));
-    expect(ids).not.toEqual(expect.arrayContaining([
-      issueDecoyId,
-      commentDecoyId,
-      documentDecoyIssueId,
-      agentDecoyId,
-      projectDecoyId,
-    ]));
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        issueMatchId,
+        commentMatchId,
+        documentMatchIssueId,
+        agentMatchId,
+        projectMatchId,
+      ]),
+    );
+    expect(ids).not.toEqual(
+      expect.arrayContaining([
+        issueDecoyId,
+        commentDecoyId,
+        documentDecoyIssueId,
+        agentDecoyId,
+        projectDecoyId,
+      ]),
+    );
   });
 
   it("applies offset after merging cross-type result ranking", async () => {
     const companyId = await createCompany();
     const base = new Date("2026-01-01T00:00:00.000Z").getTime();
     const agentIds = await Promise.all([
-      createAgent(companyId, { name: "Needle agent 1", updatedAt: new Date(base + 6_000) }),
-      createAgent(companyId, { name: "Needle agent 2", updatedAt: new Date(base + 5_000) }),
-      createAgent(companyId, { name: "Needle agent 3", updatedAt: new Date(base + 4_000) }),
+      createAgent(companyId, {
+        name: "Needle agent 1",
+        updatedAt: new Date(base + 6_000),
+      }),
+      createAgent(companyId, {
+        name: "Needle agent 2",
+        updatedAt: new Date(base + 5_000),
+      }),
+      createAgent(companyId, {
+        name: "Needle agent 3",
+        updatedAt: new Date(base + 4_000),
+      }),
     ]);
     const projectIds = await Promise.all([
-      createProject(companyId, { name: "Needle project 1", updatedAt: new Date(base + 3_000) }),
-      createProject(companyId, { name: "Needle project 2", updatedAt: new Date(base + 2_000) }),
-      createProject(companyId, { name: "Needle project 3", updatedAt: new Date(base + 1_000) }),
+      createProject(companyId, {
+        name: "Needle project 1",
+        updatedAt: new Date(base + 3_000),
+      }),
+      createProject(companyId, {
+        name: "Needle project 2",
+        updatedAt: new Date(base + 2_000),
+      }),
+      createProject(companyId, {
+        name: "Needle project 3",
+        updatedAt: new Date(base + 1_000),
+      }),
     ]);
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "needle", limit: "2", offset: "2" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "needle", limit: "2", offset: "2" }),
+    );
 
-    expect(result.results.map((row) => row.id)).toEqual([agentIds[2], projectIds[0]]);
-    expect(result.countsByType).toEqual({ issue: 0, comment: 0, document: 0, artifact: 0, agent: 3, project: 3 });
+    expect(result.results.map((row) => row.id)).toEqual([
+      agentIds[2],
+      projectIds[0],
+    ]);
+    expect(result.countsByType).toEqual({
+      issue: 0,
+      comment: 0,
+      document: 0,
+      artifact: 0,
+      agent: 3,
+      project: 3,
+    });
     expect(result.hasMore).toBe(true);
   });
 
@@ -694,7 +877,10 @@ describeEmbeddedPostgres("companySearchService", () => {
     });
 
     for (const q of ["foo_bar", "c:\\tmp"]) {
-      const result = await svc.search(companyId, companySearchQuerySchema.parse({ q, scope: "issues" }));
+      const result = await svc.search(
+        companyId,
+        companySearchQuerySchema.parse({ q, scope: "issues" }),
+      );
       const ids = result.results.map((row) => row.id);
       expect(ids, `q=${q}`).toContain(literalId);
       expect(ids, `q=${q}`).not.toContain(decoyId);
@@ -705,76 +891,177 @@ describeEmbeddedPostgres("companySearchService", () => {
     const companyId = await createCompany();
     const target = await createIssue(companyId, { title: "Improve mobile UI" });
     await createIssue(companyId, { title: "Build billing reports" });
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "UI" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "UI" }),
+    );
     expect(result.results.map((row) => row.id)).toEqual([target]);
   });
 
   it("keeps typo fallback inside the requested filters", async () => {
     const companyId = await createCompany();
     await createIssue(companyId, { title: "Mibile API", status: "done" });
-    const target = await createIssue(companyId, { title: "Mobile API", status: "todo" });
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "mibile api", status: "todo" }));
+    const target = await createIssue(companyId, {
+      title: "Mobile API",
+      status: "todo",
+    });
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "mibile api", status: "todo" }),
+    );
     expect(result.results.map((row) => row.id)).toEqual([target]);
   });
 
   it("keeps exact title hits on the task and chooses the most complete context evidence", async () => {
     const companyId = await createCompany();
     const task = await createIssue(companyId, { title: "Aurora callback" });
-    await db.insert(issueComments).values({ companyId, issueId: task, body: "Aurora callback is mentioned here too." });
-    const exact = await svc.search(companyId, companySearchQuerySchema.parse({ q: "Aurora callback" }));
+    await db
+      .insert(issueComments)
+      .values({
+        companyId,
+        issueId: task,
+        body: "Aurora callback is mentioned here too.",
+      });
+    const exact = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "Aurora callback" }),
+    );
     expect(exact.results[0]?.href).not.toContain("#comment-");
 
-    const holder = await createIssue(companyId, { title: "Connection investigation" });
-    await db.insert(issueComments).values({ companyId, issueId: holder, body: "Aurora was discussed.", updatedAt: new Date("2026-06-01") });
+    const holder = await createIssue(companyId, {
+      title: "Connection investigation",
+    });
+    await db
+      .insert(issueComments)
+      .values({
+        companyId,
+        issueId: holder,
+        body: "Aurora was discussed.",
+        updatedAt: new Date("2026-06-01"),
+      });
     const strongest = randomUUID();
-    await db.insert(issueComments).values({ id: strongest, companyId, issueId: holder,
-      body: "Aurora loses the callback state.", updatedAt: new Date("2026-01-01") });
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "aurora state callback" }));
+    await db
+      .insert(issueComments)
+      .values({
+        id: strongest,
+        companyId,
+        issueId: holder,
+        body: "Aurora loses the callback state.",
+        updatedAt: new Date("2026-01-01"),
+      });
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "aurora state callback" }),
+    );
     expect(result.results[0]?.href).toContain(`#comment-${strongest}`);
     expect(result.results[0]?.snippet).toContain("state");
   });
 
-  it.each(["comment", "document"] as const)("preserves %s evidence when title and identifier both match", async (source) => {
-    const companyId = await createCompany();
-    const task = await createIssue(companyId, {
-      identifier: "CTX-123", title: "CTX callback investigation", description: "CTX callback details",
-    });
-    const sourceId = randomUUID();
-    if (source === "comment") {
-      await db.insert(issueComments).values({ id: sourceId, companyId, issueId: task, body: "The missing signal is quasar." });
-    } else {
-      await db.insert(documents).values({ id: sourceId, companyId, title: "Investigation plan", latestBody: "The missing signal is quasar.", format: "markdown" });
-      await db.insert(issueDocuments).values({ companyId, issueId: task, documentId: sourceId, key: "plan" });
-    }
+  it.each(["comment", "document"] as const)(
+    "preserves %s evidence when title and identifier both match",
+    async (source) => {
+      const companyId = await createCompany();
+      const task = await createIssue(companyId, {
+        identifier: "CTX-123",
+        title: "CTX callback investigation",
+        description: "CTX callback details",
+      });
+      const sourceId = randomUUID();
+      if (source === "comment") {
+        await db
+          .insert(issueComments)
+          .values({
+            id: sourceId,
+            companyId,
+            issueId: task,
+            body: "The missing signal is quasar.",
+          });
+      } else {
+        await db
+          .insert(documents)
+          .values({
+            id: sourceId,
+            companyId,
+            title: "Investigation plan",
+            latestBody: "The missing signal is quasar.",
+            format: "markdown",
+          });
+        await db
+          .insert(issueDocuments)
+          .values({
+            companyId,
+            issueId: task,
+            documentId: sourceId,
+            key: "plan",
+          });
+      }
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "CTX quasar" }));
-    const match = result.results.find((row) => row.id === task)!;
-    expect(match.matchedFields).toEqual(expect.arrayContaining(["identifier", "title", source]));
-    expect(match.score).toBeGreaterThanOrEqual(2000);
-    expect(match.score).toBeLessThan(3000);
-    expect(match.snippets).toHaveLength(2);
-    expect(match.snippets[0]).toMatchObject({ field: source, text: expect.stringContaining("quasar") });
-    expect(match.snippet).toContain("quasar");
-    expect(match.href).toContain(source === "comment" ? `#comment-${sourceId}` : "#document-plan");
-  });
+      const result = await svc.search(
+        companyId,
+        companySearchQuerySchema.parse({ q: "CTX quasar" }),
+      );
+      const match = result.results.find((row) => row.id === task)!;
+      expect(match.matchedFields).toEqual(
+        expect.arrayContaining(["identifier", "title", source]),
+      );
+      expect(match.score).toBeGreaterThanOrEqual(2000);
+      expect(match.score).toBeLessThan(3000);
+      expect(match.snippets).toHaveLength(2);
+      expect(match.snippets[0]).toMatchObject({
+        field: source,
+        text: expect.stringContaining("quasar"),
+      });
+      expect(match.snippet).toContain("quasar");
+      expect(match.href).toContain(
+        source === "comment" ? `#comment-${sourceId}` : "#document-plan",
+      );
+    },
+  );
 
   it("reflects edits, deleted comments and document updates immediately", async () => {
     const companyId = await createCompany();
-    const task = await createIssue(companyId, { title: "Old uniquequartz title" });
-    const find = () => svc.search(companyId, companySearchQuerySchema.parse({ q: '"uniquequartz"' }));
+    const task = await createIssue(companyId, {
+      title: "Old uniquequartz title",
+    });
+    const find = () =>
+      svc.search(
+        companyId,
+        companySearchQuerySchema.parse({ q: '"uniquequartz"' }),
+      );
     expect((await find()).results.map((row) => row.id)).toEqual([task]);
-    await db.update(issues).set({ title: "New title" }).where(sql`${issues.id} = ${task}`);
+    await db
+      .update(issues)
+      .set({ title: "New title" })
+      .where(sql`${issues.id} = ${task}`);
     expect((await find()).results).toEqual([]);
     const comment = randomUUID();
-    await db.insert(issueComments).values({ id: comment, companyId, issueId: task, body: "uniquequartz" });
+    await db
+      .insert(issueComments)
+      .values({ id: comment, companyId, issueId: task, body: "uniquequartz" });
     expect((await find()).results.map((row) => row.id)).toEqual([task]);
-    await db.update(issueComments).set({ deletedAt: new Date() }).where(sql`${issueComments.id} = ${comment}`);
+    await db
+      .update(issueComments)
+      .set({ deletedAt: new Date() })
+      .where(sql`${issueComments.id} = ${comment}`);
     expect((await find()).results).toEqual([]);
     const doc = randomUUID();
-    await db.insert(documents).values({ id: doc, companyId, title: "Findings", latestBody: "uniquequartz", format: "markdown" });
-    await db.insert(issueDocuments).values({ companyId, issueId: task, documentId: doc, key: "plan" });
+    await db
+      .insert(documents)
+      .values({
+        id: doc,
+        companyId,
+        title: "Findings",
+        latestBody: "uniquequartz",
+        format: "markdown",
+      });
+    await db
+      .insert(issueDocuments)
+      .values({ companyId, issueId: task, documentId: doc, key: "plan" });
     expect((await find()).results.map((row) => row.id)).toEqual([task]);
-    await db.update(documents).set({ latestBody: "Updated findings" }).where(sql`${documents.id} = ${doc}`);
+    await db
+      .update(documents)
+      .set({ latestBody: "Updated findings" })
+      .where(sql`${documents.id} = ${doc}`);
     expect((await find()).results).toEqual([]);
   });
 
@@ -785,7 +1072,10 @@ describeEmbeddedPostgres("companySearchService", () => {
       title: "Onboarding wizard polish",
     });
 
-    const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: "onbordng wizard" }));
+    const result = await svc.search(
+      companyId,
+      companySearchQuerySchema.parse({ q: "onbordng wizard" }),
+    );
 
     expect(result.results[0]?.id).toBe(issueId);
     expect(result.results[0]?.matchedFields).toContain("title");
@@ -806,17 +1096,27 @@ describeEmbeddedPostgres("companySearchService", () => {
       title: "Refactor billing reports",
     });
 
-    const transpositionCases: Array<{ query: string; expectedId: string; rejected: string }> = [
+    const transpositionCases: Array<{
+      query: string;
+      expectedId: string;
+      rejected: string;
+    }> = [
       { query: "serach", expectedId: searchIssueId, rejected: otherIssueId },
       { query: "mibile", expectedId: mobileIssueId, rejected: otherIssueId },
       { query: "mobail", expectedId: mobileIssueId, rejected: otherIssueId },
     ];
 
     for (const { query, expectedId, rejected } of transpositionCases) {
-      const result = await svc.search(companyId, companySearchQuerySchema.parse({ q: query }));
+      const result = await svc.search(
+        companyId,
+        companySearchQuerySchema.parse({ q: query }),
+      );
       const ids = result.results.map((row) => row.id);
       expect(ids, `query=${query}`).toContain(expectedId);
-      expect(ids, `query=${query} should not match unrelated issue`).not.toContain(rejected);
+      expect(
+        ids,
+        `query=${query} should not match unrelated issue`,
+      ).not.toContain(rejected);
     }
   });
 
@@ -828,7 +1128,9 @@ describeEmbeddedPostgres("companySearchService", () => {
       const ownerId = `owner-${randomUUID()}`;
       const otherId = `other-${randomUUID()}`;
       const granteeId = `grantee-${randomUUID()}`;
-      const openId = await createIssue(companyId, { title: "privacy needle open" });
+      const openId = await createIssue(companyId, {
+        title: "privacy needle open",
+      });
       const privateId = randomUUID();
       await createIssue(companyId, {
         id: privateId,
@@ -836,7 +1138,7 @@ describeEmbeddedPostgres("companySearchService", () => {
         visibility: "private",
         privacyRootIssueId: privateId,
         responsibleUserId: ownerId,
-});
+      });
       await db.insert(issueAccessGrants).values({
         issueId: privateId,
         subjectType: "user",
@@ -846,30 +1148,41 @@ describeEmbeddedPostgres("companySearchService", () => {
       });
 
       const issuesSvc = issueService(db);
-      const conditionFor = (userId: string) => issueReadSqlCondition(db, {
-        type: "board",
-        userId,
-        source: "session",
-      });
+      const conditionFor = (userId: string) =>
+        issueReadSqlCondition(db, {
+          type: "board",
+          userId,
+          source: "session",
+        });
       const otherCondition = await conditionFor(otherId);
       const ownerCondition = await conditionFor(ownerId);
       const granteeCondition = await conditionFor(granteeId);
 
-      await expect(issuesSvc.list(companyId, { readCondition: otherCondition })).resolves.toMatchObject([
-        { id: openId },
-      ]);
-      await expect(issuesSvc.count(companyId, { readCondition: otherCondition })).resolves.toBe(1);
-      await expect(issuesSvc.count(companyId, { readCondition: ownerCondition })).resolves.toBe(2);
-      await expect(issuesSvc.count(companyId, { readCondition: granteeCondition })).resolves.toBe(2);
+      await expect(
+        issuesSvc.list(companyId, { readCondition: otherCondition }),
+      ).resolves.toMatchObject([{ id: openId }]);
+      await expect(
+        issuesSvc.count(companyId, { readCondition: otherCondition }),
+      ).resolves.toBe(1);
+      await expect(
+        issuesSvc.count(companyId, { readCondition: ownerCondition }),
+      ).resolves.toBe(2);
+      await expect(
+        issuesSvc.count(companyId, { readCondition: granteeCondition }),
+      ).resolves.toBe(2);
 
       const result = await svc.search(
         companyId,
-        companySearchQuerySchema.parse({ q: "privacy needle", scope: "issues" }),
+        companySearchQuerySchema.parse({
+          q: "privacy needle",
+          scope: "issues",
+        }),
         { issueReadCondition: otherCondition },
       );
       expect(result.results.map((row) => row.id)).toEqual([openId]);
     } finally {
-      if (previousMode === undefined) delete process.env.TASKCORE_ISSUE_PRIVACY_MODE;
+      if (previousMode === undefined)
+        delete process.env.TASKCORE_ISSUE_PRIVACY_MODE;
       else process.env.TASKCORE_ISSUE_PRIVACY_MODE = previousMode;
     }
   });
@@ -881,7 +1194,9 @@ describeEmbeddedPostgres("companySearchService", () => {
       const companyId = await createCompany();
       const memberId = `member-${randomUUID()}`;
       const outsiderId = `outsider-${randomUUID()}`;
-      const openId = await createProject(companyId, { name: "privacy project open" });
+      const openId = await createProject(companyId, {
+        name: "privacy project open",
+      });
       const privateId = await createProject(companyId, {
         name: "privacy project private",
         visibility: "private",
@@ -892,12 +1207,16 @@ describeEmbeddedPostgres("companySearchService", () => {
         subjectType: "user",
         subjectId: memberId,
       });
-      const conditionFor = (userId: string) => projectReadSqlCondition(db, {
-        type: "board",
-        userId,
-        source: "session",
+      const conditionFor = (userId: string) =>
+        projectReadSqlCondition(db, {
+          type: "board",
+          userId,
+          source: "session",
+        });
+      const query = companySearchQuerySchema.parse({
+        q: "privacy project",
+        scope: "projects",
       });
-      const query = companySearchQuerySchema.parse({ q: "privacy project", scope: "projects" });
       const outsiderResult = await svc.search(companyId, query, {
         projectReadCondition: await conditionFor(outsiderId),
       });
@@ -907,10 +1226,13 @@ describeEmbeddedPostgres("companySearchService", () => {
       const memberResult = await svc.search(companyId, query, {
         projectReadCondition: await conditionFor(memberId),
       });
-      expect(memberResult.results.map((row) => row.id)).toEqual(expect.arrayContaining([openId, privateId]));
+      expect(memberResult.results.map((row) => row.id)).toEqual(
+        expect.arrayContaining([openId, privateId]),
+      );
       expect(memberResult.countsByType.project).toBe(2);
     } finally {
-      if (previousMode === undefined) delete process.env.TASKCORE_ISSUE_PRIVACY_MODE;
+      if (previousMode === undefined)
+        delete process.env.TASKCORE_ISSUE_PRIVACY_MODE;
       else process.env.TASKCORE_ISSUE_PRIVACY_MODE = previousMode;
     }
   });

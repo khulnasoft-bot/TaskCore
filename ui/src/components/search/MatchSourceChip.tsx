@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
-export type MatchSourceChipKind = "title" | "identifier" | "comment" | "document";
+export type MatchSourceChipKind =
+  "title" | "identifier" | "comment" | "document";
 
 const chipStyles: Record<MatchSourceChipKind, string> = {
   title:
@@ -29,7 +30,12 @@ export interface MatchSourceChipProps {
 
 // design-allow(pill-pattern): --chip-match-* domain token family (DESIGN.md domain tier); a
 // deliberately separate chip system, not a Badge.
-export function MatchSourceChip({ kind, count, label, className }: MatchSourceChipProps) {
+export function MatchSourceChip({
+  kind,
+  count,
+  label,
+  className,
+}: MatchSourceChipProps) {
   const text = label ?? chipLabels[kind];
   const showCount = typeof count === "number" && count > 1;
   return (

@@ -19,9 +19,20 @@ describe("static SPA fallback HTML", () => {
   it("ignores retired snippet settings in managed and self-hosted static HTML", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-cloud-html-"));
     tempDirs.push(dir);
-    fs.writeFileSync(path.join(dir, "index.html"), "<html><body>App</body></html>");
-    vi.stubEnv("TASKCORE_CLOUD_UI_SNIPPET", '<script src="https://example.com/chat.js"></script>');
-    vi.stubEnv("TASKCORE_CLOUD_UI_SNIPPET_B64", Buffer.from('<script src="https://example.com/legacy.js"></script>').toString("base64"));
+    fs.writeFileSync(
+      path.join(dir, "index.html"),
+      "<html><body>App</body></html>",
+    );
+    vi.stubEnv(
+      "TASKCORE_CLOUD_UI_SNIPPET",
+      '<script src="https://example.com/chat.js"></script>',
+    );
+    vi.stubEnv(
+      "TASKCORE_CLOUD_UI_SNIPPET_B64",
+      Buffer.from(
+        '<script src="https://example.com/legacy.js"></script>',
+      ).toString("base64"),
+    );
     vi.stubEnv("TASKCORE_CLOUD_TENANT_SERVER_TOKEN", undefined);
     vi.stubEnv("TASKCORE_MANAGED_CONFIG", undefined);
     expect(readBrandedStaticIndexHtml(dir)).not.toContain("chat.js");
@@ -32,7 +43,9 @@ describe("static SPA fallback HTML", () => {
   });
 
   it("serves the current index.html instead of reusing stale asset hashes", async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "taskcore-static-index-"));
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-static-index-"),
+    );
     tempDirs.push(tempDir);
     const indexPath = path.join(tempDir, "index.html");
     const app = express();
@@ -49,7 +62,9 @@ describe("static SPA fallback HTML", () => {
       '<html><body><script type="module" src="/assets/index-old.js"></script></body></html>',
       "utf8",
     );
-    await expect(request(app).get("/PAP/issues/PAP-9939")).resolves.toMatchObject({
+    await expect(
+      request(app).get("/PAP/issues/PAP-9939"),
+    ).resolves.toMatchObject({
       text: expect.stringContaining("/assets/index-old.js"),
     });
 

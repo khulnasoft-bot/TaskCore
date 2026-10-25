@@ -46,7 +46,9 @@ interface ModalDriverConfig {
 }
 
 function parseOptionalString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function parseOptionalNumber(value: unknown): number | null {
@@ -64,7 +66,9 @@ function parseStringArray(value: unknown): string[] | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export function parseDriverConfig(raw: Record<string, unknown>): ModalDriverConfig {
+export function parseDriverConfig(
+  raw: Record<string, unknown>,
+): ModalDriverConfig {
   const sandboxTimeoutMsRaw = parseOptionalNumber(raw.sandboxTimeoutMs);
   const execTimeoutMsRaw = parseOptionalNumber(raw.execTimeoutMs);
   const idleTimeoutMsRaw = parseOptionalNumber(raw.idleTimeoutMs);
@@ -76,10 +80,15 @@ export function parseDriverConfig(raw: Record<string, unknown>): ModalDriverConf
     environment: parseOptionalString(raw.environment),
     workdir: parseOptionalString(raw.workdir) ?? DEFAULT_WORKDIR,
     sandboxTimeoutMs:
-      sandboxTimeoutMsRaw != null ? Math.trunc(sandboxTimeoutMsRaw) : DEFAULT_SANDBOX_TIMEOUT_MS,
-    idleTimeoutMs: idleTimeoutMsRaw != null ? Math.trunc(idleTimeoutMsRaw) : null,
+      sandboxTimeoutMsRaw != null
+        ? Math.trunc(sandboxTimeoutMsRaw)
+        : DEFAULT_SANDBOX_TIMEOUT_MS,
+    idleTimeoutMs:
+      idleTimeoutMsRaw != null ? Math.trunc(idleTimeoutMsRaw) : null,
     execTimeoutMs:
-      execTimeoutMsRaw != null ? Math.trunc(execTimeoutMsRaw) : DEFAULT_EXEC_TIMEOUT_MS,
+      execTimeoutMsRaw != null
+        ? Math.trunc(execTimeoutMsRaw)
+        : DEFAULT_EXEC_TIMEOUT_MS,
     blockNetwork: raw.blockNetwork === true,
     cidrAllowlist: parseStringArray(raw.cidrAllowlist),
     reuseLease: raw.reuseLease === true,
@@ -90,7 +99,9 @@ function isMultipleOf1000(value: number): boolean {
   return value > 0 && value % 1000 === 0;
 }
 
-function resolveAuth(config: ModalDriverConfig): { tokenId: string; tokenSecret: string } | null {
+function resolveAuth(
+  config: ModalDriverConfig,
+): { tokenId: string; tokenSecret: string } | null {
   // The plugin worker runs in a child process that does not inherit host env
   // vars (see PluginWorkerManager.spawnProcess), so MODAL_TOKEN_ID /
   // MODAL_TOKEN_SECRET cannot be read here. Credentials must come from the
@@ -99,7 +110,9 @@ function resolveAuth(config: ModalDriverConfig): { tokenId: string; tokenSecret:
   const tokenSecret = config.tokenSecret ?? "";
   if (!tokenId && !tokenSecret) return null;
   if (!tokenId || !tokenSecret) {
-    throw new Error("Modal sandbox environments require both tokenId and tokenSecret to be configured.");
+    throw new Error(
+      "Modal sandbox environments require both tokenId and tokenSecret to be configured.",
+    );
   }
   return { tokenId, tokenSecret };
 }
@@ -117,7 +130,10 @@ function createModalClient(config: ModalDriverConfig): ModalClient {
   return new ModalClient(params);
 }
 
-async function resolveApp(client: ModalClient, config: ModalDriverConfig): Promise<App> {
+async function resolveApp(
+  client: ModalClient,
+  config: ModalDriverConfig,
+): Promise<App> {
   return await client.apps.fromName(config.appName, {
     createIfMissing: true,
     environment: config.environment ?? undefined,
@@ -174,7 +190,9 @@ async function createSandboxFor(
     await sandbox.setTags(tags);
   } catch (error) {
     // setTags is best-effort metadata; surface but do not block lease creation.
-    console.warn(`Failed to set tags on Modal sandbox ${sandbox.sandboxId}: ${formatErrorMessage(error)}`);
+    console.warn(
+      `Failed to set tags on Modal sandbox ${sandbox.sandboxId}: ${formatErrorMessage(error)}`,
+    );
   }
   return sandbox;
 }
@@ -236,13 +254,19 @@ function buildLoginShellScript(input: {
   const envArgs = Object.entries(env)
     .filter((entry): entry is [string, string] => typeof entry[1] === "string")
     .map(([key, value]) => `${key}=${shellQuote(value)}`);
-  const commandParts = [shellQuote(input.command), ...input.args.map(shellQuote)].join(" ");
+  const commandParts = [
+    shellQuote(input.command),
+    ...input.args.map(shellQuote),
+  ].join(" ");
   const redirected = input.stdinPath
     ? `${commandParts} < ${shellQuote(input.stdinPath)}`
     : commandParts;
-  const finalLine = envArgs.length > 0 ? `exec env ${envArgs.join(" ")} ${redirected}` : `exec ${redirected}`;
+  const finalLine =
+    envArgs.length > 0
+      ? `exec env ${envArgs.join(" ")} ${redirected}`
+      : `exec ${redirected}`;
   const lines = [
-    'if [ -f /etc/profile ]; then . /etc/profile >/dev/null 2>&1 || true; fi',
+    "if [ -f /etc/profile ]; then . /etc/profile >/dev/null 2>&1 || true; fi",
     'if [ -f "$HOME/.profile" ]; then . "$HOME/.profile" >/dev/null 2>&1 || true; fi',
     'if [ -f "$HOME/.bash_profile" ]; then . "$HOME/.bash_profile" >/dev/null 2>&1 || true; elif [ -f "$HOME/.bashrc" ]; then . "$HOME/.bashrc" >/dev/null 2>&1 || true; fi',
     'if [ -f "$HOME/.zprofile" ]; then . "$HOME/.zprofile" >/dev/null 2>&1 || true; fi',
@@ -254,11 +278,18 @@ function buildLoginShellScript(input: {
   return lines.join(" && ");
 }
 
-async function ensureRemoteWorkspace(sandbox: Sandbox, remoteCwd: string): Promise<void> {
+async function ensureRemoteWorkspace(
+  sandbox: Sandbox,
+  remoteCwd: string,
+): Promise<void> {
   // Use a one-shot exec to mkdir -p; Modal does not expose a direct
   // filesystem mkdir helper and creating a file via `open()` does not create
   // intermediate directories.
-  const proc = await sandbox.exec(["sh", "-lc", `mkdir -p ${shellQuote(remoteCwd)}`]);
+  const proc = await sandbox.exec([
+    "sh",
+    "-lc",
+    `mkdir -p ${shellQuote(remoteCwd)}`,
+  ]);
   const exitCode = await proc.wait();
   if (exitCode !== 0) {
     throw new Error(
@@ -267,7 +298,11 @@ async function ensureRemoteWorkspace(sandbox: Sandbox, remoteCwd: string): Promi
   }
 }
 
-async function stageStdin(sandbox: Sandbox, stdin: string, remotePath: string): Promise<void> {
+async function stageStdin(
+  sandbox: Sandbox,
+  stdin: string,
+  remotePath: string,
+): Promise<void> {
   const file = await sandbox.open(remotePath, "w");
   try {
     await file.write(new TextEncoder().encode(stdin));
@@ -277,12 +312,19 @@ async function stageStdin(sandbox: Sandbox, stdin: string, remotePath: string): 
   }
 }
 
-async function deleteStdinPath(sandbox: Sandbox, remotePath: string): Promise<void> {
+async function deleteStdinPath(
+  sandbox: Sandbox,
+  remotePath: string,
+): Promise<void> {
   // Best-effort cleanup of the staged stdin file. We swallow errors because
   // it is fine for the file to outlive the sandbox if it is going to be
   // terminated, and a missing rm tool would otherwise mask the real result.
   try {
-    const proc = await sandbox.exec(["sh", "-lc", `rm -f ${shellQuote(remotePath)}`]);
+    const proc = await sandbox.exec([
+      "sh",
+      "-lc",
+      `rm -f ${shellQuote(remotePath)}`,
+    ]);
     await proc.wait();
   } catch {
     // ignore
@@ -316,7 +358,9 @@ async function getSandboxOrNull(
   }
 }
 
-function warnIfUnsupportedNode(logger: { warn: (msg: string) => void } | undefined): void {
+function warnIfUnsupportedNode(
+  logger: { warn: (msg: string) => void } | undefined,
+): void {
   const major = Number.parseInt(process.versions.node.split(".")[0] ?? "0", 10);
   if (Number.isFinite(major) && major < 24) {
     const message = `Modal sandbox provider is running on Node ${process.versions.node}; Taskcore requires Node 24+. Upgrade the host runtime before using this plugin.`;
@@ -324,8 +368,15 @@ function warnIfUnsupportedNode(logger: { warn: (msg: string) => void } | undefin
   }
 }
 
-function leaseRemoteCwd(metadata: Record<string, unknown> | undefined, fallback: string): string {
-  if (metadata && typeof metadata.remoteCwd === "string" && metadata.remoteCwd.trim().length > 0) {
+function leaseRemoteCwd(
+  metadata: Record<string, unknown> | undefined,
+  fallback: string,
+): string {
+  if (
+    metadata &&
+    typeof metadata.remoteCwd === "string" &&
+    metadata.remoteCwd.trim().length > 0
+  ) {
     return metadata.remoteCwd.trim();
   }
   return fallback;
@@ -366,20 +417,33 @@ const plugin = definePlugin({
       config.idleTimeoutMs != null &&
       (config.idleTimeoutMs < 1000 || !isMultipleOf1000(config.idleTimeoutMs))
     ) {
-      errors.push("idleTimeoutMs must be a positive multiple of 1000 when provided.");
+      errors.push(
+        "idleTimeoutMs must be a positive multiple of 1000 when provided.",
+      );
     }
-    if (config.execTimeoutMs < 1000 || !isMultipleOf1000(config.execTimeoutMs)) {
+    if (
+      config.execTimeoutMs < 1000 ||
+      !isMultipleOf1000(config.execTimeoutMs)
+    ) {
       errors.push("execTimeoutMs must be a positive multiple of 1000.");
     }
-    if (config.blockNetwork && config.cidrAllowlist && config.cidrAllowlist.length > 0) {
+    if (
+      config.blockNetwork &&
+      config.cidrAllowlist &&
+      config.cidrAllowlist.length > 0
+    ) {
       errors.push("cidrAllowlist cannot be combined with blockNetwork.");
     }
     const hasTokenId = Boolean(config.tokenId);
     const hasTokenSecret = Boolean(config.tokenSecret);
     if (hasTokenId !== hasTokenSecret) {
-      errors.push("tokenId and tokenSecret must both be provided when either is set.");
+      errors.push(
+        "tokenId and tokenSecret must both be provided when either is set.",
+      );
     } else if (!hasTokenId) {
-      errors.push("Modal sandbox environments require tokenId and tokenSecret.");
+      errors.push(
+        "Modal sandbox environments require tokenId and tokenSecret.",
+      );
     }
 
     if (errors.length > 0) {
@@ -503,7 +567,12 @@ const plugin = definePlugin({
         await ensureRemoteWorkspace(sandbox, config.workdir);
         return {
           providerLeaseId: sandbox.sandboxId,
-          metadata: leaseMetadata({ config, sandbox, remoteCwd: config.workdir, resumedLease: true }),
+          metadata: leaseMetadata({
+            config,
+            sandbox,
+            remoteCwd: config.workdir,
+            resumedLease: true,
+          }),
         };
       } catch (error) {
         // If we just resumed and workspace setup blew up, treat as a lease
@@ -568,7 +637,10 @@ const plugin = definePlugin({
     if (params.lease.providerLeaseId) {
       const client = createModalClient(config);
       try {
-        const sandbox = await getSandboxOrNull(client, params.lease.providerLeaseId);
+        const sandbox = await getSandboxOrNull(
+          client,
+          params.lease.providerLeaseId,
+        );
         if (sandbox) {
           await ensureRemoteWorkspace(sandbox, remoteCwd);
         }
@@ -596,12 +668,17 @@ const plugin = definePlugin({
     const config = parseDriverConfig(params.config);
     const client = createModalClient(config);
     const callerTimeoutMs =
-      params.timeoutMs != null && Number.isFinite(params.timeoutMs) && params.timeoutMs > 0
+      params.timeoutMs != null &&
+      Number.isFinite(params.timeoutMs) &&
+      params.timeoutMs > 0
         ? Math.max(1000, Math.trunc(params.timeoutMs / 1000) * 1000)
         : config.execTimeoutMs;
 
     try {
-      const sandbox = await getSandboxOrNull(client, params.lease.providerLeaseId);
+      const sandbox = await getSandboxOrNull(
+        client,
+        params.lease.providerLeaseId,
+      );
       if (!sandbox) {
         return {
           exitCode: 1,
@@ -610,9 +687,10 @@ const plugin = definePlugin({
           stderr: "Modal sandbox lease is no longer available.\n",
         };
       }
-      const stdinPath = params.stdin != null
-        ? `/tmp/taskcore-stdin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-        : null;
+      const stdinPath =
+        params.stdin != null
+          ? `/tmp/taskcore-stdin-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+          : null;
       try {
         if (stdinPath && params.stdin != null) {
           await stageStdin(sandbox, params.stdin, stdinPath);
@@ -637,7 +715,10 @@ const plugin = definePlugin({
           stderr,
         };
       } catch (error) {
-        if (error instanceof TimeoutError || error instanceof SandboxTimeoutError) {
+        if (
+          error instanceof TimeoutError ||
+          error instanceof SandboxTimeoutError
+        ) {
           return {
             exitCode: null,
             timedOut: true,

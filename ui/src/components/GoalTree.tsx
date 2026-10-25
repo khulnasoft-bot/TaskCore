@@ -20,7 +20,14 @@ interface GoalNodeProps {
   onSelect?: (goal: Goal) => void;
 }
 
-function GoalNode({ goal, children, allGoals, depth, goalLink, onSelect }: GoalNodeProps) {
+function GoalNode({
+  goal,
+  children,
+  allGoals,
+  depth,
+  goalLink,
+  onSelect,
+}: GoalNodeProps) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = children.length > 0;
   const link = goalLink?.(goal);
@@ -39,13 +46,18 @@ function GoalNode({ goal, children, allGoals, depth, goalLink, onSelect }: GoalN
           aria-expanded={expanded}
         >
           <ChevronRight
-            className={cn("h-3 w-3 transition-transform", expanded && "rotate-90")}
+            className={cn(
+              "h-3 w-3 transition-transform",
+              expanded && "rotate-90",
+            )}
           />
         </button>
       ) : (
         <span className="w-4" />
       )}
-      <span className="text-xs text-muted-foreground capitalize">{goal.level}</span>
+      <span className="text-xs text-muted-foreground capitalize">
+        {goal.level}
+      </span>
       <span className="flex-1 truncate">{goal.title}</span>
       <StatusBadge status={goal.status} />
     </>

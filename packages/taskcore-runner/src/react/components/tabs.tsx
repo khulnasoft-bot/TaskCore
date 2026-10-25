@@ -33,7 +33,10 @@ export function Tabs({
     const next = items[normalizedIndex];
     if (next === undefined) return;
     onSelect(next.id);
-    const button = listRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[normalizedIndex];
+    const button =
+      listRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[
+        normalizedIndex
+      ];
     button?.focus();
   }
 

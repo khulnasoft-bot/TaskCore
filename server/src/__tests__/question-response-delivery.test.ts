@@ -292,22 +292,45 @@ describeEmbeddedPostgres("question response delivery", () => {
     const seeded = await seed({ successorStatus: "running" });
     const steer = vi.fn().mockResolvedValue({ turnId: "unexpected" });
     const wakeup = vi.fn().mockImplementation(async () => {
-      await db.insert(agentWakeupRequests).values({ companyId: seeded.companyId, agentId: seeded.agentId,
-        source: "automation", reason: "issue_commented", status: "deferred_issue_execution",
-        idempotencyKey: `question-response:${seeded.interaction.id}`,
-        payload: { issueId: seeded.issueId, mutation: "interaction", interactionId: seeded.interaction.id,
-          interactionStatus: "answered" } });
+      await db
+        .insert(agentWakeupRequests)
+        .values({
+          companyId: seeded.companyId,
+          agentId: seeded.agentId,
+          source: "automation",
+          reason: "issue_commented",
+          status: "deferred_issue_execution",
+          idempotencyKey: `question-response:${seeded.interaction.id}`,
+          payload: {
+            issueId: seeded.issueId,
+            mutation: "interaction",
+            interactionId: seeded.interaction.id,
+            interactionStatus: "answered",
+          },
+        });
       return null;
     });
-    const service = questionResponseDeliveryService(db, { heartbeat: { wakeup } as never, steer });
+    const service = questionResponseDeliveryService(db, {
+      heartbeat: { wakeup } as never,
+      steer,
+    });
     const first = await service.deliver(seeded.interaction.id);
     const second = await service.deliver(seeded.interaction.id);
     expect(steer).not.toHaveBeenCalled();
     expect(wakeup).toHaveBeenCalledTimes(1);
-    expect(wakeup).toHaveBeenCalledWith(seeded.agentId, expect.objectContaining({
-      payload: expect.objectContaining({ interactionId: seeded.interaction.id, interactionStatus: "answered" }),
-    }));
-    expect(first).toMatchObject({ status: "fallback_queued", mode: "wake_fallback" });
+    expect(wakeup).toHaveBeenCalledWith(
+      seeded.agentId,
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          interactionId: seeded.interaction.id,
+          interactionStatus: "answered",
+        }),
+      }),
+    );
+    expect(first).toMatchObject({
+      status: "fallback_queued",
+      mode: "wake_fallback",
+    });
     expect(second).toMatchObject({ mode: "wake_fallback", duplicate: true });
   });
 

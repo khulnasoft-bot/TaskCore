@@ -23,7 +23,11 @@ describe("direct eval provider runtime", () => {
   });
 
   it("bounds AgentCore admission by both the turn budget and delivery timeout", () => {
-    expect(evalProviderTransportOptions("aws_agentcore", 180_000)).toEqual({ turnStartTimeoutMs: 125_000 });
-    expect(evalProviderTransportOptions("aws_agentcore", 10_000)).toEqual({ turnStartTimeoutMs: 10_000 });
+    expect(evalProviderTransportOptions("aws_agentcore", 180_000)).toEqual({
+      turnStartTimeoutMs: 125_000,
+    });
+    expect(evalProviderTransportOptions("aws_agentcore", 10_000)).toEqual({
+      turnStartTimeoutMs: 10_000,
+    });
   });
 });

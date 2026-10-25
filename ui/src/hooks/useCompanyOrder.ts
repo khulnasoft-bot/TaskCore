@@ -12,7 +12,10 @@ function areEqual(a: string[], b: string[]) {
   return true;
 }
 
-function sortCompaniesByOrder(companies: Company[], orderedIds: string[]): Company[] {
+function sortCompaniesByOrder(
+  companies: Company[],
+  orderedIds: string[],
+): Company[] {
   if (companies.length === 0) return [];
   if (orderedIds.length === 0) return companies;
 
@@ -32,7 +35,9 @@ function sortCompaniesByOrder(companies: Company[], orderedIds: string[]): Compa
 }
 
 function buildOrderIds(companies: Company[], orderedIds: string[]) {
-  return sortCompaniesByOrder(companies, orderedIds).map((company) => company.id);
+  return sortCompaniesByOrder(companies, orderedIds).map(
+    (company) => company.id,
+  );
 }
 
 type UseCompanyOrderParams = {
@@ -53,15 +58,20 @@ export function useCompanyOrder({ companies, userId }: UseCompanyOrderParams) {
     enabled: Boolean(userId),
   });
 
-  const [orderedIds, setOrderedIds] = useState<string[]>(() => buildOrderIds(companies, []));
+  const [orderedIds, setOrderedIds] = useState<string[]>(() =>
+    buildOrderIds(companies, []),
+  );
 
   useEffect(() => {
     const nextIds = buildOrderIds(companies, data?.orderedIds ?? []);
-    setOrderedIds((current) => (areEqual(current, nextIds) ? current : nextIds));
+    setOrderedIds((current) =>
+      areEqual(current, nextIds) ? current : nextIds,
+    );
   }, [companies, data?.orderedIds]);
 
   const mutation = useMutation({
-    mutationFn: (nextIds: string[]) => sidebarPreferencesApi.updateCompanyOrder({ orderedIds: nextIds }),
+    mutationFn: (nextIds: string[]) =>
+      sidebarPreferencesApi.updateCompanyOrder({ orderedIds: nextIds }),
     onSuccess: (preference) => {
       queryClient.setQueryData(queryKey, preference);
     },
@@ -80,13 +90,21 @@ export function useCompanyOrder({ companies, userId }: UseCompanyOrderParams) {
         if (!filtered.includes(company.id)) filtered.push(company.id);
       }
 
-      setOrderedIds((current) => (areEqual(current, filtered) ? current : filtered));
+      setOrderedIds((current) =>
+        areEqual(current, filtered) ? current : filtered,
+      );
       if (!userId) return;
 
-      queryClient.setQueryData(queryKey, (current: { orderedIds?: string[]; updatedAt?: Date | null } | undefined) => ({
-        orderedIds: filtered,
-        updatedAt: current?.updatedAt ?? null,
-      }));
+      queryClient.setQueryData(
+        queryKey,
+        (
+          current:
+            { orderedIds?: string[]; updatedAt?: Date | null } | undefined,
+        ) => ({
+          orderedIds: filtered,
+          updatedAt: current?.updatedAt ?? null,
+        }),
+      );
       mutation.mutate(filtered);
     },
     [companies, mutation, queryClient, queryKey, userId],

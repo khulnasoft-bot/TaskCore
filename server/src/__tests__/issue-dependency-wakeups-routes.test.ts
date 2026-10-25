@@ -1,9 +1,7 @@
 import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  buildIssueBlockersResolvedWakeStateKey,
-} from "../services/issue-dependency-wakeups.ts";
+import { buildIssueBlockersResolvedWakeStateKey } from "../services/issue-dependency-wakeups.ts";
 
 // The first test in this suite imports the large `routes/issues.ts` module
 // through `vi.importActual` inside `createApp`. `vi.resetModules()` in
@@ -17,7 +15,9 @@ import {
 vi.setConfig({ testTimeout: 30000 });
 
 const mockWakeup = vi.hoisted(() => vi.fn(async () => undefined));
-const mockFindExistingIssueBlockersResolvedWakeForReadyState = vi.hoisted(() => vi.fn(async () => null));
+const mockFindExistingIssueBlockersResolvedWakeForReadyState = vi.hoisted(() =>
+  vi.fn(async () => null),
+);
 const mockIssueService = vi.hoisted(() => ({
   getAncestors: vi.fn(),
   getById: vi.fn(),
@@ -53,7 +53,9 @@ vi.mock("../services/index.js", () => ({
   companySkillService: () => ({
     completeTestRunForIssue: vi.fn(async () => null),
   }),
-  documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+  documentAnnotationService: () => ({
+    remapOpenThreadsForDocument: async () => [],
+  }),
   documentService: () => ({
     getIssueDocumentPayload: vi.fn(async () => ({})),
   }),
@@ -113,9 +115,9 @@ vi.mock("../services/index.js", () => ({
 }));
 
 vi.mock("../services/issue-dependency-wakeups.js", async () => {
-  const actual = await vi.importActual<typeof import("../services/issue-dependency-wakeups.js")>(
-    "../services/issue-dependency-wakeups.js",
-  );
+  const actual = await vi.importActual<
+    typeof import("../services/issue-dependency-wakeups.js")
+  >("../services/issue-dependency-wakeups.js");
   return {
     ...actual,
     findExistingIssueBlockersResolvedWakeForReadyState:
@@ -136,11 +138,17 @@ async function createApp() {
     select: vi.fn(() => ({
       from: vi.fn(() => query),
     })),
-    transaction: async (callback: (tx: Record<string, never>) => Promise<unknown>) => callback({}),
+    transaction: async (
+      callback: (tx: Record<string, never>) => Promise<unknown>,
+    ) => callback({}),
   };
   const [{ issueRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/issues.js")>(
+      "../routes/issues.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -166,16 +174,23 @@ describe("issue dependency wakeups in issue routes", () => {
     vi.doUnmock("../routes/authz.js");
     vi.doUnmock("../middleware/index.js");
     vi.clearAllMocks();
-    mockFindExistingIssueBlockersResolvedWakeForReadyState.mockResolvedValue(null);
+    mockFindExistingIssueBlockersResolvedWakeForReadyState.mockResolvedValue(
+      null,
+    );
     mockIssueService.getAncestors.mockResolvedValue([]);
-    mockIssueService.getByIdForUpdate.mockImplementation(async () => mockIssueService.getById());
+    mockIssueService.getByIdForUpdate.mockImplementation(async () =>
+      mockIssueService.getById(),
+    );
     mockIssueService.getComment.mockResolvedValue(null);
     mockIssueService.getCommentCursor.mockResolvedValue({
       totalComments: 0,
       latestCommentId: null,
       latestCommentAt: null,
     });
-    mockIssueService.getRelationSummaries.mockResolvedValue({ blockedBy: [], blocks: [] });
+    mockIssueService.getRelationSummaries.mockResolvedValue({
+      blockedBy: [],
+      blocks: [],
+    });
     mockIssueService.getDependencyReadiness.mockResolvedValue({
       issueId: "issue-1",
       blockerIssueIds: [],
@@ -186,7 +201,9 @@ describe("issue dependency wakeups in issue routes", () => {
       isDependencyReady: true,
     });
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
-    mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(null);
+    mockIssueService.getWakeableParentAfterChildCompletion.mockResolvedValue(
+      null,
+    );
   });
 
   it("wakes dependents when the final blocker transitions to done", async () => {
@@ -232,7 +249,9 @@ describe("issue dependency wakeups in issue routes", () => {
       },
     ]);
 
-    const res = await request(await createApp()).patch("/api/issues/issue-1").send({ status: "done" });
+    const res = await request(await createApp())
+      .patch("/api/issues/issue-1")
+      .send({ status: "done" });
     expect(res.status).toBe(200);
     await vi.waitFor(() => {
       expect(mockWakeup).toHaveBeenCalledWith(
@@ -300,7 +319,10 @@ describe("issue dependency wakeups in issue routes", () => {
       .send({
         status: "blocked",
         blockedByIssueIds: [childIssueId],
-        unblockDescriptor: { owner: "board", action: "Review the restored dependency" },
+        unblockDescriptor: {
+          owner: "board",
+          action: "Review the restored dependency",
+        },
       });
 
     expect(res.status).toBe(200);
@@ -388,7 +410,9 @@ describe("issue dependency wakeups in issue routes", () => {
       childIssueSummaryTruncated: false,
     });
 
-    const res = await request(await createApp()).patch("/api/issues/child-1").send({ status: "done" });
+    const res = await request(await createApp())
+      .patch("/api/issues/child-1")
+      .send({ status: "done" });
     expect(res.status).toBe(200);
     await vi.waitFor(() => {
       expect(mockWakeup).toHaveBeenCalledWith(
@@ -399,12 +423,18 @@ describe("issue dependency wakeups in issue routes", () => {
             issueId: "parent-1",
             completedChildIssueId: "child-1",
             childIssueSummaries: expect.arrayContaining([
-              expect.objectContaining({ identifier: "PAP-101", summary: "Last child finished." }),
+              expect.objectContaining({
+                identifier: "PAP-101",
+                summary: "Last child finished.",
+              }),
             ]),
           }),
           contextSnapshot: expect.objectContaining({
             childIssueSummaries: expect.arrayContaining([
-              expect.objectContaining({ identifier: "PAP-100", summary: "First child finished." }),
+              expect.objectContaining({
+                identifier: "PAP-100",
+                summary: "First child finished.",
+              }),
             ]),
           }),
         }),
@@ -438,18 +468,22 @@ describe("issue dependency wakeups in issue routes", () => {
     const reviewIssueId = "11111111-1111-4111-8111-111111111111";
     const releaseIssueId = "22222222-2222-4222-8222-222222222222";
     const releaseBlockedAt = new Date("2026-08-01T15:00:00.000Z");
-    mockIssueService.getById.mockResolvedValue(issueRecord({
-      id: reviewIssueId,
-      identifier: "PAP-REVIEW",
-      title: "Review",
-      status: "in_progress",
-    }));
-    mockIssueService.update.mockResolvedValue(issueRecord({
-      id: reviewIssueId,
-      identifier: "PAP-REVIEW",
-      title: "Review",
-      status: "done",
-    }));
+    mockIssueService.getById.mockResolvedValue(
+      issueRecord({
+        id: reviewIssueId,
+        identifier: "PAP-REVIEW",
+        title: "Review",
+        status: "in_progress",
+      }),
+    );
+    mockIssueService.update.mockResolvedValue(
+      issueRecord({
+        id: reviewIssueId,
+        identifier: "PAP-REVIEW",
+        title: "Review",
+        status: "done",
+      }),
+    );
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([
       {
         id: releaseIssueId,
@@ -459,10 +493,14 @@ describe("issue dependency wakeups in issue routes", () => {
       },
     ]);
 
-    const res = await request(await createApp()).patch(`/api/issues/${reviewIssueId}`).send({ status: "done" });
+    const res = await request(await createApp())
+      .patch(`/api/issues/${reviewIssueId}`)
+      .send({ status: "done" });
     expect(res.status).toBe(200);
     await vi.waitFor(() => {
-      expect(mockFindExistingIssueBlockersResolvedWakeForReadyState).toHaveBeenCalledWith(
+      expect(
+        mockFindExistingIssueBlockersResolvedWakeForReadyState,
+      ).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           companyId: "company-1",
@@ -493,18 +531,22 @@ describe("issue dependency wakeups in issue routes", () => {
 
   it("does not enqueue a second wake when the blocker is already done", async () => {
     const reviewIssueId = "11111111-1111-4111-8111-111111111111";
-    mockIssueService.getById.mockResolvedValue(issueRecord({
-      id: reviewIssueId,
-      identifier: "PAP-REVIEW",
-      title: "Review",
-      status: "done",
-    }));
-    mockIssueService.update.mockResolvedValue(issueRecord({
-      id: reviewIssueId,
-      identifier: "PAP-REVIEW",
-      title: "Review",
-      status: "done",
-    }));
+    mockIssueService.getById.mockResolvedValue(
+      issueRecord({
+        id: reviewIssueId,
+        identifier: "PAP-REVIEW",
+        title: "Review",
+        status: "done",
+      }),
+    );
+    mockIssueService.update.mockResolvedValue(
+      issueRecord({
+        id: reviewIssueId,
+        identifier: "PAP-REVIEW",
+        title: "Review",
+        status: "done",
+      }),
+    );
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([
       {
         id: "22222222-2222-4222-8222-222222222222",
@@ -514,11 +556,15 @@ describe("issue dependency wakeups in issue routes", () => {
       },
     ]);
 
-    const res = await request(await createApp()).patch(`/api/issues/${reviewIssueId}`).send({ status: "done" });
+    const res = await request(await createApp())
+      .patch(`/api/issues/${reviewIssueId}`)
+      .send({ status: "done" });
     expect(res.status).toBe(200);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(mockWakeup).not.toHaveBeenCalled();
-    expect(mockIssueService.listWakeableBlockedDependents).not.toHaveBeenCalled();
+    expect(
+      mockIssueService.listWakeableBlockedDependents,
+    ).not.toHaveBeenCalled();
   });
 
   it("wakes a QA-like chain one dependent at a time after each blocker completes", async () => {
@@ -529,18 +575,22 @@ describe("issue dependency wakeups in issue routes", () => {
     const qaBlockedAt = new Date("2026-08-02T10:05:00.000Z");
     const app = await createApp();
 
-    mockIssueService.getById.mockResolvedValue(issueRecord({
-      id: reviewIssueId,
-      identifier: "PAP-REVIEW",
-      title: "Review",
-      status: "in_progress",
-    }));
-    mockIssueService.update.mockResolvedValue(issueRecord({
-      id: reviewIssueId,
-      identifier: "PAP-REVIEW",
-      title: "Review",
-      status: "done",
-    }));
+    mockIssueService.getById.mockResolvedValue(
+      issueRecord({
+        id: reviewIssueId,
+        identifier: "PAP-REVIEW",
+        title: "Review",
+        status: "in_progress",
+      }),
+    );
+    mockIssueService.update.mockResolvedValue(
+      issueRecord({
+        id: reviewIssueId,
+        identifier: "PAP-REVIEW",
+        title: "Review",
+        status: "done",
+      }),
+    );
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([
       {
         id: releaseIssueId,
@@ -550,7 +600,13 @@ describe("issue dependency wakeups in issue routes", () => {
       },
     ]);
 
-    expect((await request(app).patch(`/api/issues/${reviewIssueId}`).send({ status: "done" })).status).toBe(200);
+    expect(
+      (
+        await request(app)
+          .patch(`/api/issues/${reviewIssueId}`)
+          .send({ status: "done" })
+      ).status,
+    ).toBe(200);
     await vi.waitFor(() => {
       expect(mockWakeup).toHaveBeenCalledTimes(1);
     });
@@ -568,21 +624,25 @@ describe("issue dependency wakeups in issue routes", () => {
 
     mockWakeup.mockClear();
     mockFindExistingIssueBlockersResolvedWakeForReadyState.mockClear();
-    mockIssueService.getById.mockResolvedValue(issueRecord({
-      id: releaseIssueId,
-      identifier: "PAP-RELEASE",
-      title: "Release",
-      status: "blocked",
-      assigneeAgentId: "agent-release",
-      blockedTransitionAt: releaseBlockedAt,
-    }));
-    mockIssueService.update.mockResolvedValue(issueRecord({
-      id: releaseIssueId,
-      identifier: "PAP-RELEASE",
-      title: "Release",
-      status: "done",
-      assigneeAgentId: "agent-release",
-    }));
+    mockIssueService.getById.mockResolvedValue(
+      issueRecord({
+        id: releaseIssueId,
+        identifier: "PAP-RELEASE",
+        title: "Release",
+        status: "blocked",
+        assigneeAgentId: "agent-release",
+        blockedTransitionAt: releaseBlockedAt,
+      }),
+    );
+    mockIssueService.update.mockResolvedValue(
+      issueRecord({
+        id: releaseIssueId,
+        identifier: "PAP-RELEASE",
+        title: "Release",
+        status: "done",
+        assigneeAgentId: "agent-release",
+      }),
+    );
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([
       {
         id: qaIssueId,
@@ -592,7 +652,13 @@ describe("issue dependency wakeups in issue routes", () => {
       },
     ]);
 
-    expect((await request(app).patch(`/api/issues/${releaseIssueId}`).send({ status: "done" })).status).toBe(200);
+    expect(
+      (
+        await request(app)
+          .patch(`/api/issues/${releaseIssueId}`)
+          .send({ status: "done" })
+      ).status,
+    ).toBe(200);
     await vi.waitFor(() => {
       expect(mockWakeup).toHaveBeenCalledTimes(1);
     });
@@ -610,28 +676,35 @@ describe("issue dependency wakeups in issue routes", () => {
         }),
       }),
     );
-    expect(mockWakeup).not.toHaveBeenCalledWith("agent-release", expect.anything());
+    expect(mockWakeup).not.toHaveBeenCalledWith(
+      "agent-release",
+      expect.anything(),
+    );
   });
 
   it("restores a blocked-and-ready dependent under the new blocked cycle key", async () => {
     const parentIssueId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     const childIssueId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
     const blockedTransitionAt = new Date("2026-08-03T18:00:00.000Z");
-    mockIssueService.getById.mockResolvedValue(issueRecord({
-      id: parentIssueId,
-      identifier: "PAP-200",
-      title: "Blocked after completion",
-      status: "done",
-      assigneeAgentId: "agent-2",
-    }));
-    mockIssueService.update.mockResolvedValue(issueRecord({
-      id: parentIssueId,
-      identifier: "PAP-200",
-      title: "Blocked after completion",
-      status: "blocked",
-      assigneeAgentId: "agent-2",
-      blockedTransitionAt,
-    }));
+    mockIssueService.getById.mockResolvedValue(
+      issueRecord({
+        id: parentIssueId,
+        identifier: "PAP-200",
+        title: "Blocked after completion",
+        status: "done",
+        assigneeAgentId: "agent-2",
+      }),
+    );
+    mockIssueService.update.mockResolvedValue(
+      issueRecord({
+        id: parentIssueId,
+        identifier: "PAP-200",
+        title: "Blocked after completion",
+        status: "blocked",
+        assigneeAgentId: "agent-2",
+        blockedTransitionAt,
+      }),
+    );
     mockIssueService.getDependencyReadiness.mockResolvedValue({
       issueId: parentIssueId,
       blockerIssueIds: [childIssueId],
@@ -647,12 +720,17 @@ describe("issue dependency wakeups in issue routes", () => {
       .send({
         status: "blocked",
         blockedByIssueIds: [childIssueId],
-        unblockDescriptor: { owner: "board", action: "Review the restored dependency" },
+        unblockDescriptor: {
+          owner: "board",
+          action: "Review the restored dependency",
+        },
       });
 
     expect(res.status).toBe(200);
     await vi.waitFor(() => {
-      expect(mockFindExistingIssueBlockersResolvedWakeForReadyState).toHaveBeenCalledWith(
+      expect(
+        mockFindExistingIssueBlockersResolvedWakeForReadyState,
+      ).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           dependentIssueId: parentIssueId,
@@ -678,11 +756,15 @@ describe("issue dependency wakeups in issue routes", () => {
   });
 
   it("does not emit a dependency wake when an unresolved or cancelled blocker remains", async () => {
-    mockIssueService.getById.mockResolvedValue(issueRecord({ status: "in_progress" }));
+    mockIssueService.getById.mockResolvedValue(
+      issueRecord({ status: "in_progress" }),
+    );
     mockIssueService.update.mockResolvedValue(issueRecord({ status: "done" }));
     mockIssueService.listWakeableBlockedDependents.mockResolvedValue([]);
 
-    const res = await request(await createApp()).patch("/api/issues/issue-1").send({ status: "done" });
+    const res = await request(await createApp())
+      .patch("/api/issues/issue-1")
+      .send({ status: "done" });
     expect(res.status).toBe(200);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(mockWakeup).not.toHaveBeenCalled();

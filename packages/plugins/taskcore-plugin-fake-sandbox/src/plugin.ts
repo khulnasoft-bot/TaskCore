@@ -50,7 +50,13 @@ interface FakeSetupState {
   image: string;
   sourceTemplateRef: string | null;
   expiresAt: string | null;
-  status: "waiting_for_user" | "capturing" | "promoted" | "cancelled" | "timed_out" | "failed";
+  status:
+    | "waiting_for_user"
+    | "capturing"
+    | "promoted"
+    | "cancelled"
+    | "timed_out"
+    | "failed";
   capturedTemplateRef: string | null;
 }
 
@@ -67,14 +73,22 @@ interface FakeTemplateState {
 const leases = new Map<string, FakeLeaseState>();
 const setupSessions = new Map<string, FakeSetupState>();
 const templates = new Map<string, FakeTemplateState>();
-const DEFAULT_FAKE_SANDBOX_PATH = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+const DEFAULT_FAKE_SANDBOX_PATH =
+  "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
 const FAKE_SANDBOX_SIGKILL_GRACE_MS = 250;
-const REDACTED_FAKE_SSH_COMMAND = "ssh sandbox@[fake-setup-host-redacted] -p [fake-port-redacted]";
+const REDACTED_FAKE_SSH_COMMAND =
+  "ssh sandbox@[fake-setup-host-redacted] -p [fake-port-redacted]";
 
 function parseConfig(raw: Record<string, unknown>): FakeDriverConfig {
   return {
-    image: typeof raw.image === "string" && raw.image.trim().length > 0 ? raw.image.trim() : "fake:latest",
-    timeoutMs: typeof raw.timeoutMs === "number" && Number.isFinite(raw.timeoutMs) ? raw.timeoutMs : 300_000,
+    image:
+      typeof raw.image === "string" && raw.image.trim().length > 0
+        ? raw.image.trim()
+        : "fake:latest",
+    timeoutMs:
+      typeof raw.timeoutMs === "number" && Number.isFinite(raw.timeoutMs)
+        ? raw.timeoutMs
+        : 300_000,
     reuseLease: raw.reuseLease === true,
   };
 }
@@ -84,7 +98,9 @@ async function createLeaseState(input: {
   image: string;
   reuseLease: boolean;
 }): Promise<FakeLeaseState> {
-  const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-fake-sandbox-"));
+  const rootDir = await mkdtemp(
+    path.join(os.tmpdir(), "taskcore-fake-sandbox-"),
+  );
   const remoteCwd = path.join(rootDir, "workspace");
   await mkdir(remoteCwd, { recursive: true });
   const state = {
@@ -112,7 +128,10 @@ function encodeRefPart(value: string): string {
   return encodeURIComponent(value).replace(/%/g, "_");
 }
 
-function buildSetupProviderLeaseId(environmentId: string, sessionId: string): string {
+function buildSetupProviderLeaseId(
+  environmentId: string,
+  sessionId: string,
+): string {
   return `fake-plugin-setup://${encodeRefPart(environmentId)}/${encodeRefPart(sessionId)}`;
 }
 
@@ -144,7 +163,9 @@ function setupConnectionSummary(): PluginEnvironmentInteractiveSetupSession["con
   };
 }
 
-function setupConnectionPayload(expiresAt: string | null): PluginEnvironmentInteractiveSetupSession["connectionPayload"] {
+function setupConnectionPayload(
+  expiresAt: string | null,
+): PluginEnvironmentInteractiveSetupSession["connectionPayload"] {
   return {
     type: "ssh",
     command: REDACTED_FAKE_SSH_COMMAND,
@@ -164,7 +185,10 @@ function presentSetupSession(
     providerLeaseId: state.providerLeaseId,
     status: state.status,
     connectionSummary: canConnect ? setupConnectionSummary() : null,
-    connectionPayload: canConnect && options.includeConnectionPayload ? setupConnectionPayload(state.expiresAt) : null,
+    connectionPayload:
+      canConnect && options.includeConnectionPayload
+        ? setupConnectionPayload(state.expiresAt)
+        : null,
     expiresAt: state.expiresAt,
     metadata: setupMetadata(state),
   };
@@ -178,7 +202,9 @@ function cancelStatusFromReason(
   return "cancelled";
 }
 
-async function removeLease(providerLeaseId: string | null | undefined): Promise<void> {
+async function removeLease(
+  providerLeaseId: string | null | undefined,
+): Promise<void> {
   if (!providerLeaseId) return;
   const state = leases.get(providerLeaseId);
   leases.delete(providerLeaseId);
@@ -191,15 +217,23 @@ function buildCommandLine(command: string, args: string[] | undefined): string {
   return [command, ...(args ?? [])].join(" ");
 }
 
-function buildCommandEnvironment(explicitEnv: Record<string, string> | undefined): Record<string, string> {
+function buildCommandEnvironment(
+  explicitEnv: Record<string, string> | undefined,
+): Record<string, string> {
   return {
     PATH: explicitEnv?.PATH ?? DEFAULT_FAKE_SANDBOX_PATH,
     ...(explicitEnv ?? {}),
   };
 }
 
-async function runCommand(params: PluginEnvironmentExecuteParams, timeoutMs: number): Promise<PluginEnvironmentExecuteResult> {
-  const cwd = typeof params.cwd === "string" && params.cwd.length > 0 ? params.cwd : process.cwd();
+async function runCommand(
+  params: PluginEnvironmentExecuteParams,
+  timeoutMs: number,
+): Promise<PluginEnvironmentExecuteResult> {
+  const cwd =
+    typeof params.cwd === "string" && params.cwd.length > 0
+      ? params.cwd
+      : process.cwd();
   const startedAt = new Date().toISOString();
 
   return await new Promise((resolve, reject) => {
@@ -213,15 +247,16 @@ async function runCommand(params: PluginEnvironmentExecuteParams, timeoutMs: num
     let stderr = "";
     let timedOut = false;
     let killTimer: NodeJS.Timeout | null = null;
-    const timer = timeoutMs > 0
-      ? setTimeout(() => {
-          timedOut = true;
-          child.kill("SIGTERM");
-          killTimer = setTimeout(() => {
-            child.kill("SIGKILL");
-          }, FAKE_SANDBOX_SIGKILL_GRACE_MS);
-        }, timeoutMs)
-      : null;
+    const timer =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            timedOut = true;
+            child.kill("SIGTERM");
+            killTimer = setTimeout(() => {
+              child.kill("SIGKILL");
+            }, FAKE_SANDBOX_SIGKILL_GRACE_MS);
+          }, timeoutMs)
+        : null;
 
     child.stdout?.on("data", (chunk) => {
       stdout += String(chunk);
@@ -300,11 +335,13 @@ const plugin = definePlugin({
       ? `fake-plugin://${params.environmentId}`
       : `fake-plugin://${params.runId}/${randomUUID()}`;
     const existing = leases.get(providerLeaseId);
-    const state = existing ?? await createLeaseState({
-      providerLeaseId,
-      image: config.image,
-      reuseLease: config.reuseLease,
-    });
+    const state =
+      existing ??
+      (await createLeaseState({
+        providerLeaseId,
+        image: config.image,
+        reuseLease: config.reuseLease,
+      }));
 
     return {
       providerLeaseId,
@@ -320,11 +357,13 @@ const plugin = definePlugin({
   ): Promise<PluginEnvironmentLease> {
     const config = parseConfig(params.config);
     const existing = leases.get(params.providerLeaseId);
-    const state = existing ?? await createLeaseState({
-      providerLeaseId: params.providerLeaseId,
-      image: config.image,
-      reuseLease: config.reuseLease,
-    });
+    const state =
+      existing ??
+      (await createLeaseState({
+        providerLeaseId: params.providerLeaseId,
+        image: config.image,
+        reuseLease: config.reuseLease,
+      }));
 
     return {
       providerLeaseId: state.providerLeaseId,
@@ -358,7 +397,9 @@ const plugin = definePlugin({
       : null;
     const remoteCwd =
       state?.remoteCwd ??
-      (typeof params.lease.metadata?.remoteCwd === "string" ? params.lease.metadata.remoteCwd : null) ??
+      (typeof params.lease.metadata?.remoteCwd === "string"
+        ? params.lease.metadata.remoteCwd
+        : null) ??
       params.workspace.remotePath ??
       params.workspace.localPath ??
       path.join(os.tmpdir(), "taskcore-fake-sandbox-workspace");
@@ -385,7 +426,10 @@ const plugin = definePlugin({
     params: PluginEnvironmentStartInteractiveSetupParams,
   ): Promise<PluginEnvironmentInteractiveSetupSession> {
     const config = parseConfig(params.config);
-    const providerLeaseId = buildSetupProviderLeaseId(params.environmentId, params.sessionId);
+    const providerLeaseId = buildSetupProviderLeaseId(
+      params.environmentId,
+      params.sessionId,
+    );
     const state = setupSessions.get(providerLeaseId) ?? {
       providerLeaseId,
       environmentId: params.environmentId,
@@ -403,7 +447,9 @@ const plugin = definePlugin({
   async onEnvironmentGetInteractiveSetup(
     params: PluginEnvironmentGetInteractiveSetupParams,
   ): Promise<PluginEnvironmentInteractiveSetupSession> {
-    const state = params.providerLeaseId ? setupSessions.get(params.providerLeaseId) : undefined;
+    const state = params.providerLeaseId
+      ? setupSessions.get(params.providerLeaseId)
+      : undefined;
     if (!state) {
       return {
         providerLeaseId: params.providerLeaseId,
@@ -416,19 +462,29 @@ const plugin = definePlugin({
         },
       };
     }
-    return presentSetupSession(state, { includeConnectionPayload: params.includeConnectionPayload === true });
+    return presentSetupSession(state, {
+      includeConnectionPayload: params.includeConnectionPayload === true,
+    });
   },
 
   async onEnvironmentCaptureTemplate(
     params: PluginEnvironmentCaptureTemplateParams,
   ): Promise<PluginEnvironmentCaptureTemplateResult> {
     const config = parseConfig(params.config);
-    const state = params.providerLeaseId ? setupSessions.get(params.providerLeaseId) : undefined;
+    const state = params.providerLeaseId
+      ? setupSessions.get(params.providerLeaseId)
+      : undefined;
     if (!state) {
       throw new Error("Fake setup session not found.");
     }
-    if (state.status === "cancelled" || state.status === "timed_out" || state.status === "failed") {
-      throw new Error(`Fake setup session cannot be captured from status ${state.status}.`);
+    if (
+      state.status === "cancelled" ||
+      state.status === "timed_out" ||
+      state.status === "failed"
+    ) {
+      throw new Error(
+        `Fake setup session cannot be captured from status ${state.status}.`,
+      );
     }
 
     state.status = "capturing";
@@ -465,7 +521,9 @@ const plugin = definePlugin({
     params: PluginEnvironmentCancelInteractiveSetupParams,
   ): Promise<PluginEnvironmentCancelInteractiveSetupResult> {
     const status = cancelStatusFromReason(params.reason);
-    const state = params.providerLeaseId ? setupSessions.get(params.providerLeaseId) : undefined;
+    const state = params.providerLeaseId
+      ? setupSessions.get(params.providerLeaseId)
+      : undefined;
     if (state) {
       state.status = status;
       await removeLease(state.providerLeaseId);

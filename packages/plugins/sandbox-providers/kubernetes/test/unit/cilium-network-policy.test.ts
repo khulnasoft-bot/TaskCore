@@ -17,7 +17,9 @@ describe("buildCiliumNetworkPolicyManifest", () => {
 
   it("targets agent pods by role label", () => {
     const cnp = buildCiliumNetworkPolicyManifest(baseInput);
-    expect(cnp.spec.endpointSelector.matchLabels["taskcore.io/role"]).toBe("agent");
+    expect(cnp.spec.endpointSelector.matchLabels["taskcore.io/role"]).toBe(
+      "agent",
+    );
   });
 
   it("includes an FQDN allow rule for each adapter FQDN", () => {
@@ -25,26 +27,29 @@ describe("buildCiliumNetworkPolicyManifest", () => {
       ...baseInput,
       egressAllowFqdns: ["api.anthropic.com", "api.openai.com"],
     });
-    const fqdnRule = cnp.spec.egress.find((e: { toFQDNs?: { matchName: string }[] }) => e.toFQDNs);
+    const fqdnRule = cnp.spec.egress.find(
+      (e: { toFQDNs?: { matchName: string }[] }) => e.toFQDNs,
+    );
     expect(fqdnRule).toBeDefined();
-    expect(fqdnRule.toFQDNs.map((f: { matchName: string }) => f.matchName).sort()).toEqual([
-      "api.anthropic.com",
-      "api.openai.com",
-    ]);
+    expect(
+      fqdnRule.toFQDNs.map((f: { matchName: string }) => f.matchName).sort(),
+    ).toEqual(["api.anthropic.com", "api.openai.com"]);
   });
 
   it("permits DNS to kube-dns explicitly so FQDN resolution can happen", () => {
     const cnp = buildCiliumNetworkPolicyManifest(baseInput);
-    const dnsRule = cnp.spec.egress.find((e: { toPorts?: { ports: { port: string }[] }[] }) =>
-      e.toPorts?.some((tp) => tp.ports.some((p) => p.port === "53")),
+    const dnsRule = cnp.spec.egress.find(
+      (e: { toPorts?: { ports: { port: string }[] }[] }) =>
+        e.toPorts?.some((tp) => tp.ports.some((p) => p.port === "53")),
     );
     expect(dnsRule).toBeDefined();
   });
 
   it("includes a rule for taskcore-server callback", () => {
     const cnp = buildCiliumNetworkPolicyManifest(baseInput);
-    const cb = cnp.spec.egress.find((e: { toEndpoints?: { matchLabels: Record<string, string> }[] }) =>
-      e.toEndpoints?.some((ep) => ep.matchLabels.app === "taskcore-server"),
+    const cb = cnp.spec.egress.find(
+      (e: { toEndpoints?: { matchLabels: Record<string, string> }[] }) =>
+        e.toEndpoints?.some((ep) => ep.matchLabels.app === "taskcore-server"),
     );
     expect(cb).toBeDefined();
   });
@@ -54,7 +59,9 @@ describe("buildCiliumNetworkPolicyManifest", () => {
       ...baseInput,
       egressAllowCidrs: ["10.0.0.0/8"],
     });
-    const cidrRule = cnp.spec.egress.find((e: { toCIDRSet?: { cidr: string }[] }) => e.toCIDRSet);
+    const cidrRule = cnp.spec.egress.find(
+      (e: { toCIDRSet?: { cidr: string }[] }) => e.toCIDRSet,
+    );
     expect(cidrRule.toCIDRSet[0].cidr).toBe("10.0.0.0/8");
   });
 
@@ -64,13 +71,17 @@ describe("buildCiliumNetworkPolicyManifest", () => {
       name: "pc-run-egress",
       endpointSelector: { "taskcore.io/run-id": "run-123" },
       includeBaseRules: false,
-      ownerReferences: [{ apiVersion: "batch/v1", kind: "Job", name: "pc-run", uid: "uid-1" }],
+      ownerReferences: [
+        { apiVersion: "batch/v1", kind: "Job", name: "pc-run", uid: "uid-1" },
+      ],
       egressAllowFqdns: ["github.com", "pypi.org"],
     });
 
     expect(cnp.metadata.name).toBe("pc-run-egress");
     expect(cnp.metadata.ownerReferences).toHaveLength(1);
-    expect(cnp.spec.endpointSelector.matchLabels).toEqual({ "taskcore.io/run-id": "run-123" });
+    expect(cnp.spec.endpointSelector.matchLabels).toEqual({
+      "taskcore.io/run-id": "run-123",
+    });
     expect(cnp.spec.egress).toHaveLength(1);
   });
 });

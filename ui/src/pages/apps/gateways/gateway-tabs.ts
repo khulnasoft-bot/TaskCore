@@ -19,7 +19,9 @@ export function gatewayTabHref(gatewayId: string, tab: GatewayTabKey): string {
   return `/apps/gateways/${gatewayId}/${tab}`;
 }
 
-export function isGatewayTabKey(value: string | undefined): value is GatewayTabKey {
+export function isGatewayTabKey(
+  value: string | undefined,
+): value is GatewayTabKey {
   return GATEWAY_TABS.some((tab) => tab.key === value);
 }
 

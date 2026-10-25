@@ -19,7 +19,9 @@ export function resolveBrowserBuildCommit(
   }
 }
 
-export function readBrowserBuildCommit(repositoryDirectory: string): string | null {
+export function readBrowserBuildCommit(
+  repositoryDirectory: string,
+): string | null {
   return resolveBrowserBuildCommit(process.env.TASKCORE_BUILD_COMMIT, () =>
     execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: repositoryDirectory,

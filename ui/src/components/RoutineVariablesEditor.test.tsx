@@ -4,7 +4,10 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import type { RoutineVariable } from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RoutineVariablesEditor, RoutineVariablesHint } from "./RoutineVariablesEditor";
+import {
+  RoutineVariablesEditor,
+  RoutineVariablesHint,
+} from "./RoutineVariablesEditor";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -50,7 +53,8 @@ describe("RoutineVariablesEditor", () => {
       );
     });
 
-    const dateInput = container.querySelector<HTMLInputElement>('input[type="date"]');
+    const dateInput =
+      container.querySelector<HTMLInputElement>('input[type="date"]');
     expect(dateInput?.value).toBe("2026-06-26");
 
     flushUi(() => root.unmount());
@@ -63,14 +67,18 @@ describe("RoutineVariablesEditor", () => {
       root.render(<RoutineVariablesHint />);
     });
 
-    const helpButton = document.querySelector<HTMLButtonElement>('button[aria-label="Show variable help"]');
+    const helpButton = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Show variable help"]',
+    );
     expect(helpButton).toBeTruthy();
 
     flushUi(() => {
       helpButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(document.body.textContent).toContain("Variable names ending in capital Date");
+    expect(document.body.textContent).toContain(
+      "Variable names ending in capital Date",
+    );
     expect(document.body.textContent).toContain("startDate");
 
     flushUi(() => root.unmount());

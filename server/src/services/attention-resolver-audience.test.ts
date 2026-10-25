@@ -36,19 +36,28 @@ describe("attention feed resolver audience", () => {
   });
 
   it("names the addressed agent", () => {
-    expect(interactionResolverAudience(row({ addresseeAgentId: "agent-codex" }), agentName))
-      .toMatchObject({ addresseeAgentId: "agent-codex", addresseeName: "CodexCoder" });
+    expect(
+      interactionResolverAudience(
+        row({ addresseeAgentId: "agent-codex" }),
+        agentName,
+      ),
+    ).toMatchObject({
+      addresseeAgentId: "agent-codex",
+      addresseeName: "CodexCoder",
+    });
   });
 
   it("reports the company cap that narrowed the requested audience", () => {
-    expect(interactionResolverAudience(
-      row({
-        requestedResolverPolicy: "anyone",
-        effectiveResolverPolicy: "human_only",
-        effectiveResolverPolicySource: "company_cap",
-      }),
-      agentName,
-    )).toMatchObject({
+    expect(
+      interactionResolverAudience(
+        row({
+          requestedResolverPolicy: "anyone",
+          effectiveResolverPolicy: "human_only",
+          effectiveResolverPolicySource: "company_cap",
+        }),
+        agentName,
+      ),
+    ).toMatchObject({
       requestedResolverPolicy: "anyone",
       effectiveResolverPolicy: "human_only",
       effectiveResolverPolicySource: "company_cap",
@@ -58,14 +67,16 @@ describe("attention feed resolver audience", () => {
   it("keeps a pre-migration board_or_agents row restricted, matching the evaluator", () => {
     // The queue must not read `Anyone` while the resolution routes still treat
     // the card as creator-excluded.
-    expect(interactionResolverAudience(
-      row({
-        requestedResolverPolicy: "board_or_agents",
-        effectiveResolverPolicy: "board_or_agents",
-        resolverPolicyProvenance: "legacy_inherited_restriction",
-      }),
-      agentName,
-    )).toMatchObject({
+    expect(
+      interactionResolverAudience(
+        row({
+          requestedResolverPolicy: "board_or_agents",
+          effectiveResolverPolicy: "board_or_agents",
+          resolverPolicyProvenance: "legacy_inherited_restriction",
+        }),
+        agentName,
+      ),
+    ).toMatchObject({
       requestedResolverPolicy: "not_creator",
       effectiveResolverPolicy: "not_creator",
       resolverPolicyProvenance: "legacy_inherited_restriction",
@@ -73,15 +84,17 @@ describe("attention feed resolver audience", () => {
   });
 
   it("infers legacy provenance for a row written before the column existed", () => {
-    expect(interactionResolverAudience(
-      row({
-        requestedResolverPolicy: "board_only",
-        effectiveResolverPolicy: "board_only",
-        resolverPolicyProvenance: null,
-        effectiveResolverPolicySource: null,
-      }),
-      agentName,
-    )).toMatchObject({
+    expect(
+      interactionResolverAudience(
+        row({
+          requestedResolverPolicy: "board_only",
+          effectiveResolverPolicy: "board_only",
+          resolverPolicyProvenance: null,
+          effectiveResolverPolicySource: null,
+        }),
+        agentName,
+      ),
+    ).toMatchObject({
       requestedResolverPolicy: "human_only",
       effectiveResolverPolicy: "human_only",
       resolverPolicyProvenance: "legacy_inherited_restriction",
@@ -90,10 +103,12 @@ describe("attention feed resolver audience", () => {
   });
 
   it("leaves an unknown agent unnamed rather than inventing a responder", () => {
-    expect(interactionResolverAudience(
-      row({ addresseeAgentId: "agent-deleted", createdByAgentId: null }),
-      agentName,
-    )).toMatchObject({
+    expect(
+      interactionResolverAudience(
+        row({ addresseeAgentId: "agent-deleted", createdByAgentId: null }),
+        agentName,
+      ),
+    ).toMatchObject({
       addresseeName: null,
       createdByAgentId: null,
       createdByAgentName: null,

@@ -2,7 +2,11 @@
 
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
-import type { CompanySecret, EnvBinding, UserSecretDefinition } from "@taskcore/shared";
+import type {
+  CompanySecret,
+  EnvBinding,
+  UserSecretDefinition,
+} from "@taskcore/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EnvironmentVariablesEditor } from "./environment-variables-editor";
 
@@ -51,7 +55,9 @@ afterEach(() => {
   container.remove();
 });
 
-function render(props: Partial<React.ComponentProps<typeof EnvironmentVariablesEditor>>) {
+function render(
+  props: Partial<React.ComponentProps<typeof EnvironmentVariablesEditor>>,
+) {
   root = createRoot(container);
   return act(() => {
     root.render(
@@ -69,11 +75,17 @@ function render(props: Partial<React.ComponentProps<typeof EnvironmentVariablesE
 describe("EnvironmentVariablesEditor user secret binding", () => {
   it("renders an existing user_secret_ref as a User secret row with the definition and requirement", async () => {
     const value: Record<string, EnvBinding> = {
-      GH_TOKEN: { type: "user_secret_ref", key: "PERSONAL_GH_TOKEN", required: true },
+      GH_TOKEN: {
+        type: "user_secret_ref",
+        key: "PERSONAL_GH_TOKEN",
+        required: true,
+      },
     };
     await render({ value, userSecretDefinitions: [definition] });
 
-    const keyInput = container.querySelector<HTMLInputElement>('input[placeholder="KEY"]');
+    const keyInput = container.querySelector<HTMLInputElement>(
+      'input[placeholder="KEY"]',
+    );
     expect(keyInput?.value).toBe("GH_TOKEN");
     // Radix Select triggers render the selected label as text.
     expect(container.textContent).toContain("User secret");
@@ -83,11 +95,19 @@ describe("EnvironmentVariablesEditor user secret binding", () => {
 
   it("explains user-secret bindings when a user secret row is present", async () => {
     await render({
-      value: { GH_TOKEN: { type: "user_secret_ref", key: "PERSONAL_GH_TOKEN", required: true } },
+      value: {
+        GH_TOKEN: {
+          type: "user_secret_ref",
+          key: "PERSONAL_GH_TOKEN",
+          required: true,
+        },
+      },
       userSecretDefinitions: [definition],
     });
     expect(container.textContent).toContain("Personal GitHub token");
-    expect(container.textContent).toContain("User secrets resolve from the user responsible for the run.");
+    expect(container.textContent).toContain(
+      "User secrets resolve from the user responsible for the run.",
+    );
   });
 
   it("keeps working for company secrets when no user definitions are provided", async () => {
@@ -120,7 +140,9 @@ describe("EnvironmentVariablesEditor user secret binding", () => {
     };
     await render({ value, secrets: [secret] });
 
-    const keyInput = container.querySelector<HTMLInputElement>('input[placeholder="KEY"]');
+    const keyInput = container.querySelector<HTMLInputElement>(
+      'input[placeholder="KEY"]',
+    );
     expect(keyInput?.value).toBe("API_KEY");
     expect(container.textContent).toContain("API key");
   });

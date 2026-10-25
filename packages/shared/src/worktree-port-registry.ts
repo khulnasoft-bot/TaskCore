@@ -140,16 +140,16 @@ function readRegistryLockOwner(lockPath: string): RegistryLockOwner | null {
         fs.readFileSync(path.join(lockPath, ownerFile), "utf8"),
       ) as Partial<RegistryLockOwner>;
       if (
-        parsed.version === 1
-        && Number.isInteger(parsed.pid)
-        && (parsed.pid ?? 0) > 0
-        && typeof parsed.processIdentity === "string"
-        && parsed.processIdentity.length > 0
-        && Number.isInteger(parsed.probePort)
-        && (parsed.probePort ?? 0) > 0
-        && (parsed.probePort ?? 0) <= 65_535
-        && typeof parsed.token === "string"
-        && parsed.token.length > 0
+        parsed.version === 1 &&
+        Number.isInteger(parsed.pid) &&
+        (parsed.pid ?? 0) > 0 &&
+        typeof parsed.processIdentity === "string" &&
+        parsed.processIdentity.length > 0 &&
+        Number.isInteger(parsed.probePort) &&
+        (parsed.probePort ?? 0) > 0 &&
+        (parsed.probePort ?? 0) <= 65_535 &&
+        typeof parsed.token === "string" &&
+        parsed.token.length > 0
       ) {
         return parsed as RegistryLockOwner;
       }
@@ -160,7 +160,10 @@ function readRegistryLockOwner(lockPath: string): RegistryLockOwner | null {
   return null;
 }
 
-function writeRegistryLockOwner(lockPath: string, owner: RegistryLockOwner): void {
+function writeRegistryLockOwner(
+  lockPath: string,
+  owner: RegistryLockOwner,
+): void {
   const contents = `${JSON.stringify(owner)}\n`;
   for (const ownerFile of [
     WORKTREE_PORT_REGISTRY_LOCK_OWNER_FILE,
@@ -178,7 +181,11 @@ function isProcessAlive(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    return !(error instanceof Error && "code" in error && error.code === "ESRCH");
+    return !(
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "ESRCH"
+    );
   }
 }
 
@@ -189,10 +196,15 @@ function readProcessIdentity(pid: number): string | null {
       const stat = fs.readFileSync(`/proc/${pid}/stat`, "utf8");
       const commandEnd = stat.lastIndexOf(")");
       if (commandEnd < 0) return null;
-      const fields = stat.slice(commandEnd + 1).trim().split(/\s+/);
+      const fields = stat
+        .slice(commandEnd + 1)
+        .trim()
+        .split(/\s+/);
       const startTicks = fields[19];
       if (!startTicks) return null;
-      const bootId = fs.readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim();
+      const bootId = fs
+        .readFileSync("/proc/sys/kernel/random/boot_id", "utf8")
+        .trim();
       return bootId ? `linux:${bootId}:${startTicks}` : null;
     } catch {
       return null;
@@ -201,12 +213,16 @@ function readProcessIdentity(pid: number): string | null {
 
   try {
     if (process.platform === "win32") {
-      const ticks = execFileSync("powershell.exe", [
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        `(Get-Process -Id ${pid}).StartTime.ToUniversalTime().Ticks`,
-      ], { encoding: "utf8", windowsHide: true }).trim();
+      const ticks = execFileSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `(Get-Process -Id ${pid}).StartTime.ToUniversalTime().Ticks`,
+        ],
+        { encoding: "utf8", windowsHide: true },
+      ).trim();
       return ticks ? `win32:${ticks}` : null;
     }
     const startedAt = execFileSync("ps", ["-o", "lstart=", "-p", String(pid)], {
@@ -230,7 +246,12 @@ function probeRegistryLockOwner(owner: RegistryLockOwner): boolean {
       token: owner.token,
     },
   });
-  Atomics.wait(control, 0, 0, WORKTREE_PORT_REGISTRY_LOCK_PROBE_TIMEOUT_MS + 250);
+  Atomics.wait(
+    control,
+    0,
+    0,
+    WORKTREE_PORT_REGISTRY_LOCK_PROBE_TIMEOUT_MS + 250,
+  );
   const isOwner = Atomics.load(control, 0) === 1;
   void worker.terminate();
   return isOwner;
@@ -247,7 +268,8 @@ function removeStaleRegistryLock(lockPath: string): boolean {
       if (owner.processIdentity === currentIdentity) return false;
     }
     const currentOwner = readRegistryLockOwner(lockPath);
-    if (owner ? currentOwner?.token !== owner.token : currentOwner !== null) return false;
+    if (owner ? currentOwner?.token !== owner.token : currentOwner !== null)
+      return false;
     const currentAgeMs = Date.now() - fs.statSync(lockPath).mtimeMs;
     if (currentAgeMs <= WORKTREE_PORT_REGISTRY_LOCK_STALE_MS) return false;
     fs.rmSync(lockPath, { recursive: true, force: true });
@@ -257,7 +279,10 @@ function removeStaleRegistryLock(lockPath: string): boolean {
   }
 }
 
-function startRegistryLockHeartbeat(lockPath: string, token: string): RegistryLockLease {
+function startRegistryLockHeartbeat(
+  lockPath: string,
+  token: string,
+): RegistryLockLease {
   const control = new Int32Array(new SharedArrayBuffer(12));
   const worker = new Worker(REGISTRY_LOCK_HEARTBEAT_SOURCE, {
     eval: true,
@@ -277,12 +302,16 @@ function startRegistryLockHeartbeat(lockPath: string, token: string): RegistryLo
   Atomics.wait(control, 0, 0, 2_000);
   if (Atomics.load(control, 0) !== 1) {
     void worker.terminate();
-    throw new Error(`Failed to start worktree port reservation lock heartbeat at ${lockPath}`);
+    throw new Error(
+      `Failed to start worktree port reservation lock heartbeat at ${lockPath}`,
+    );
   }
   const probePort = Atomics.load(control, 2);
   if (probePort <= 0) {
     void worker.terminate();
-    throw new Error(`Failed to start worktree port reservation lock probe at ${lockPath}`);
+    throw new Error(
+      `Failed to start worktree port reservation lock probe at ${lockPath}`,
+    );
   }
   return { token, worker, control, probePort };
 }
@@ -297,7 +326,10 @@ function stopRegistryLockHeartbeat(lease: RegistryLockLease): void {
   void lease.worker.terminate();
 }
 
-function acquireRegistryLock(lockPath: string, deadline: number): RegistryLockLease | null {
+function acquireRegistryLock(
+  lockPath: string,
+  deadline: number,
+): RegistryLockLease | null {
   try {
     fs.mkdirSync(lockPath);
     const token = `${process.pid}-${randomUUID()}`;
@@ -305,7 +337,9 @@ function acquireRegistryLock(lockPath: string, deadline: number): RegistryLockLe
     try {
       const processIdentity = readProcessIdentity(process.pid);
       if (!processIdentity) {
-        throw new Error("Cannot determine worktree port reservation lock owner identity");
+        throw new Error(
+          "Cannot determine worktree port reservation lock owner identity",
+        );
       }
       const owner: RegistryLockOwner = {
         version: 1,
@@ -316,7 +350,10 @@ function acquireRegistryLock(lockPath: string, deadline: number): RegistryLockLe
       };
       writeRegistryLockOwner(lockPath, owner);
       lease = startRegistryLockHeartbeat(lockPath, token);
-      writeRegistryLockOwner(lockPath, { ...owner, probePort: lease.probePort });
+      writeRegistryLockOwner(lockPath, {
+        ...owner,
+        probePort: lease.probePort,
+      });
       return lease;
     } catch (error) {
       if (lease) stopRegistryLockHeartbeat(lease);
@@ -328,7 +365,9 @@ function acquireRegistryLock(lockPath: string, deadline: number): RegistryLockLe
     if (code !== "EEXIST") throw error;
     if (removeStaleRegistryLock(lockPath)) return null;
     if (Date.now() >= deadline) {
-      throw new Error(`Timed out waiting for worktree port reservation lock at ${lockPath}`);
+      throw new Error(
+        `Timed out waiting for worktree port reservation lock at ${lockPath}`,
+      );
     }
     return null;
   }
@@ -343,7 +382,10 @@ function releaseRegistryLock(lockPath: string, lease: RegistryLockLease): void {
   fs.rmSync(lockPath, { recursive: true, force: true });
 }
 
-export function withWorktreePortRegistryLockSync<T>(homeDir: string, run: () => T): T {
+export function withWorktreePortRegistryLockSync<T>(
+  homeDir: string,
+  run: () => T,
+): T {
   const lockPath = resolveRegistryLockPath(homeDir);
   const deadline = Date.now() + WORKTREE_PORT_REGISTRY_LOCK_TIMEOUT_MS;
   let lease: RegistryLockLease | null = null;
@@ -383,11 +425,17 @@ export function readWorktreePortRegistry(homeDir: string): Set<string> {
   if (!fs.existsSync(registryPath)) return new Set();
 
   try {
-    const parsed = JSON.parse(fs.readFileSync(registryPath, "utf8")) as Partial<WorktreePortRegistry>;
-    if (parsed.version !== 1 || !Array.isArray(parsed.configPaths)) return new Set();
+    const parsed = JSON.parse(
+      fs.readFileSync(registryPath, "utf8"),
+    ) as Partial<WorktreePortRegistry>;
+    if (parsed.version !== 1 || !Array.isArray(parsed.configPaths))
+      return new Set();
     return new Set(
       parsed.configPaths
-        .filter((configPath): configPath is string => typeof configPath === "string" && configPath.length > 0)
+        .filter(
+          (configPath): configPath is string =>
+            typeof configPath === "string" && configPath.length > 0,
+        )
         .map((configPath) => path.resolve(configPath)),
     );
   } catch {
@@ -395,10 +443,15 @@ export function readWorktreePortRegistry(homeDir: string): Set<string> {
   }
 }
 
-export function writeWorktreePortRegistry(homeDir: string, configPaths: Iterable<string>): void {
+export function writeWorktreePortRegistry(
+  homeDir: string,
+  configPaths: Iterable<string>,
+): void {
   fs.mkdirSync(homeDir, { recursive: true });
   const registryPath = path.resolve(homeDir, WORKTREE_PORT_REGISTRY_FILE);
-  const persistedPaths = Array.from(new Set(Array.from(configPaths, (configPath) => path.resolve(configPath))))
+  const persistedPaths = Array.from(
+    new Set(Array.from(configPaths, (configPath) => path.resolve(configPath))),
+  )
     .filter((configPath) => fs.existsSync(configPath))
     .sort();
   const registry: WorktreePortRegistry = {
@@ -406,6 +459,8 @@ export function writeWorktreePortRegistry(homeDir: string, configPaths: Iterable
     configPaths: persistedPaths,
   };
   const temporaryPath = `${registryPath}.${process.pid}.tmp`;
-  fs.writeFileSync(temporaryPath, `${JSON.stringify(registry, null, 2)}\n`, { mode: 0o600 });
+  fs.writeFileSync(temporaryPath, `${JSON.stringify(registry, null, 2)}\n`, {
+    mode: 0o600,
+  });
   fs.renameSync(temporaryPath, registryPath);
 }

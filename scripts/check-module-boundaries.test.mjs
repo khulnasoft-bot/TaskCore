@@ -3,18 +3,29 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { extractImportSpecifiers, scanModuleBoundaries } from "./check-module-boundaries.mjs";
+import {
+  extractImportSpecifiers,
+  scanModuleBoundaries,
+} from "./check-module-boundaries.mjs";
 
 test("extractImportSpecifiers recognizes supported TypeScript dependency forms", () => {
   assert.deepEqual(
-    extractImportSpecifiers([
-      'import type { Db } from "@taskcore/db";',
-      'export { helper } from "./helper.js";',
-      'const adapter = await import("../adapters/postgres.js");',
-      'const postgres = require("postgres");',
-      'import fs = require("node:fs");',
-    ].join("\n")),
-    ["@taskcore/db", "./helper.js", "../adapters/postgres.js", "postgres", "node:fs"],
+    extractImportSpecifiers(
+      [
+        'import type { Db } from "@taskcore/db";',
+        'export { helper } from "./helper.js";',
+        'const adapter = await import("../adapters/postgres.js");',
+        'const postgres = require("postgres");',
+        'import fs = require("node:fs");',
+      ].join("\n"),
+    ),
+    [
+      "@taskcore/db",
+      "./helper.js",
+      "../adapters/postgres.js",
+      "postgres",
+      "node:fs",
+    ],
   );
 });
 
@@ -29,12 +40,15 @@ test("scanModuleBoundaries rejects outward dependencies and module-internal impo
   };
 
   try {
-    write("modules/watchdog/domain/policy.ts", [
-      'import { eq } from "drizzle-orm";',
-      'import { service } from "../../../services/example.js";',
-      'import { parse } from "../../../adapters/utils.js";',
-      'import { run } from "../application/run.js";',
-    ].join("\n"));
+    write(
+      "modules/watchdog/domain/policy.ts",
+      [
+        'import { eq } from "drizzle-orm";',
+        'import { service } from "../../../services/example.js";',
+        'import { parse } from "../../../adapters/utils.js";',
+        'import { run } from "../application/run.js";',
+      ].join("\n"),
+    );
     write(
       "modules/watchdog/application/run.ts",
       [
@@ -45,26 +59,47 @@ test("scanModuleBoundaries rejects outward dependencies and module-internal impo
         'import db = require("@taskcore/db");',
       ].join("\n"),
     );
-    write("modules/watchdog/adapters/postgres.ts", 'import { eq } from "drizzle-orm";\n');
-    write("modules/watchdog/index.ts", 'export { run } from "./application/run.js";\n');
-    write("services/example.ts", 'import { run } from "../modules/watchdog/application/run.js";\n');
+    write(
+      "modules/watchdog/adapters/postgres.ts",
+      'import { eq } from "drizzle-orm";\n',
+    );
+    write(
+      "modules/watchdog/index.ts",
+      'export { run } from "./application/run.js";\n',
+    );
+    write(
+      "services/example.ts",
+      'import { run } from "../modules/watchdog/application/run.js";\n',
+    );
 
     const violations = scanModuleBoundaries({ serverSrc, modulesRoot });
     assert.deepEqual(
       violations.map(({ specifier, reason }) => ({ specifier, reason })),
       [
-        { specifier: "../adapters/postgres.js", reason: "application cannot import concrete adapters" },
+        {
+          specifier: "../adapters/postgres.js",
+          reason: "application cannot import concrete adapters",
+        },
         {
           specifier: "../../../adapters/application-utils.js",
           reason: "application cannot import concrete adapters",
         },
-        { specifier: "../../../errors.js", reason: "application cannot import HTTP error helpers" },
+        {
+          specifier: "../../../errors.js",
+          reason: "application cannot import HTTP error helpers",
+        },
         {
           specifier: "../../../services/example.js",
           reason: "application cannot import server services or routes",
         },
-        { specifier: "@taskcore/db", reason: "application cannot import database packages" },
-        { specifier: "drizzle-orm", reason: "domain cannot import database packages" },
+        {
+          specifier: "@taskcore/db",
+          reason: "application cannot import database packages",
+        },
+        {
+          specifier: "drizzle-orm",
+          reason: "domain cannot import database packages",
+        },
         {
           specifier: "../../../services/example.js",
           reason: "domain cannot import server services, routes, or adapters",
@@ -73,7 +108,10 @@ test("scanModuleBoundaries rejects outward dependencies and module-internal impo
           specifier: "../../../adapters/utils.js",
           reason: "domain cannot import server services, routes, or adapters",
         },
-        { specifier: "../application/run.js", reason: "domain cannot depend on outer module layers" },
+        {
+          specifier: "../application/run.js",
+          reason: "domain cannot depend on outer module layers",
+        },
         {
           specifier: "../modules/watchdog/application/run.js",
           reason: "imports inside module watchdog instead of its index",

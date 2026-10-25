@@ -25,10 +25,15 @@ import {
 import { companySkillService } from "../services/company-skills.ts";
 import { heartbeatService } from "../services/heartbeat.ts";
 import { instanceSettingsService } from "../services/instance-settings.ts";
-import { registerServerAdapter, unregisterServerAdapter } from "../adapters/index.ts";
+import {
+  registerServerAdapter,
+  unregisterServerAdapter,
+} from "../adapters/index.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 const TEST_ADAPTER_TYPE = "runtime_skill_capture";
 
 if (!embeddedPostgresSupport.supported) {
@@ -53,7 +58,9 @@ async function waitForRunToFinish(
 
 describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let oldTaskcoreHome: string | undefined;
   let oldTaskcoreApiUrl: string | undefined;
   let taskcoreHome: string | null = null;
@@ -67,10 +74,14 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
   const cleanupDirs = new Set<string>();
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("heartbeat-runtime-skills-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "heartbeat-runtime-skills-",
+    );
     db = createDb(tempDb.connectionString);
     oldTaskcoreHome = process.env.TASKCORE_HOME;
-    taskcoreHome = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-runtime-skills-home-"));
+    taskcoreHome = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-runtime-skills-home-"),
+    );
     process.env.TASKCORE_HOME = taskcoreHome;
     // The server normalizes TASKCORE_API_URL into its own env at boot
     // (server/src/index.ts); heartbeat gateway delivery requires it, so pin
@@ -88,7 +99,8 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
         await ctx.onLog("stdout", `${serializedRuntimeInput}\n`);
         capturedRuns.push({
           agentId: ctx.agent.id,
-          skills: (ctx.config.taskcoreRuntimeSkills ?? []) as TaskcoreSkillEntry[],
+          skills: (ctx.config.taskcoreRuntimeSkills ??
+            []) as TaskcoreSkillEntry[],
           mcpServers: ctx.runtimeMcp?.getServers() ?? [],
           config: ctx.config,
           serializedRuntimeInput,
@@ -111,9 +123,12 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
 
   afterEach(async () => {
     capturedRuns.length = 0;
-    await instanceSettingsService(db).updateExperimental({ enableBetaSkills: false });
+    await instanceSettingsService(db).updateExperimental({
+      enableBetaSkills: false,
+    });
     await new Promise((resolve) => setTimeout(resolve, 100));
-    await db.execute(sql.raw(`
+    await db.execute(
+      sql.raw(`
       TRUNCATE TABLE
         "activity_log",
         "environment_leases",
@@ -127,8 +142,13 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
         "agents",
         "companies"
       RESTART IDENTITY CASCADE
-    `));
-    await Promise.all(Array.from(cleanupDirs, (dir) => fs.rm(dir, { recursive: true, force: true })));
+    `),
+    );
+    await Promise.all(
+      Array.from(cleanupDirs, (dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -151,7 +171,9 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
     const secondAgentId = randomUUID();
     const issuePrefix = `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
     const skillKey = `company/${companyId}/runtime-coach`;
-    const skillDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-versioned-runtime-skill-"));
+    const skillDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-versioned-runtime-skill-"),
+    );
     cleanupDirs.add(skillDir);
 
     await db.insert(companies).values({
@@ -161,7 +183,11 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
       requireBoardApprovalForNewAgents: false,
       defaultResponsibleUserId: "responsible-user",
     });
-    await fs.writeFile(path.join(skillDir, "SKILL.md"), "# Runtime Coach\n\nVersion one.\n", "utf8");
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      "# Runtime Coach\n\nVersion one.\n",
+      "utf8",
+    );
     await db.insert(companySkills).values({
       id: skillId,
       companyId,
@@ -185,10 +211,17 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
       { label: "v1" },
       { type: "user", userId: "board" },
     );
-    await fs.writeFile(path.join(skillDir, "SKILL.md"), "# Runtime Coach\n\nVersion two.\n", "utf8");
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      "# Runtime Coach\n\nVersion two.\n",
+      "utf8",
+    );
     await db
       .update(companySkills)
-      .set({ markdown: "# Runtime Coach\n\nVersion two.\n", updatedAt: new Date() })
+      .set({
+        markdown: "# Runtime Coach\n\nVersion two.\n",
+        updatedAt: new Date(),
+      })
       .where(eq(companySkills.id, skillId));
     const versionTwo = await skills.createVersion(
       companyId,
@@ -234,18 +267,34 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
     await settings.updateExperimental({ enableBetaSkills: true });
 
     const heartbeat = heartbeatService(db);
-    const firstRun = await heartbeat.invoke(firstAgentId, "on_demand", {}, "manual");
+    const firstRun = await heartbeat.invoke(
+      firstAgentId,
+      "on_demand",
+      {},
+      "manual",
+    );
     expect(firstRun).not.toBeNull();
-    expect((await waitForRunToFinish(heartbeat, firstRun!.id))?.status).toBe("succeeded");
+    expect((await waitForRunToFinish(heartbeat, firstRun!.id))?.status).toBe(
+      "succeeded",
+    );
 
-    const secondRun = await heartbeat.invoke(secondAgentId, "on_demand", {}, "manual");
+    const secondRun = await heartbeat.invoke(
+      secondAgentId,
+      "on_demand",
+      {},
+      "manual",
+    );
     expect(secondRun).not.toBeNull();
-    expect((await waitForRunToFinish(heartbeat, secondRun!.id))?.status).toBe("succeeded");
+    expect((await waitForRunToFinish(heartbeat, secondRun!.id))?.status).toBe(
+      "succeeded",
+    );
 
-    const firstSkill = capturedRuns.find((run) => run.agentId === firstAgentId)?.skills
-      .find((entry) => entry.key === skillKey);
-    const secondSkill = capturedRuns.find((run) => run.agentId === secondAgentId)?.skills
-      .find((entry) => entry.key === skillKey);
+    const firstSkill = capturedRuns
+      .find((run) => run.agentId === firstAgentId)
+      ?.skills.find((entry) => entry.key === skillKey);
+    const secondSkill = capturedRuns
+      .find((run) => run.agentId === secondAgentId)
+      ?.skills.find((entry) => entry.key === skillKey);
 
     expect(firstSkill).toMatchObject({
       key: skillKey,
@@ -259,18 +308,27 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
       currentVersionId: versionTwo.id,
       sourceStatus: "available",
     });
-    await expect(fs.readFile(path.join(firstSkill!.source, "SKILL.md"), "utf8"))
-      .resolves.toContain("Version one.");
-    await expect(fs.readFile(path.join(secondSkill!.source, "SKILL.md"), "utf8"))
-      .resolves.toContain("Version two.");
+    await expect(
+      fs.readFile(path.join(firstSkill!.source, "SKILL.md"), "utf8"),
+    ).resolves.toContain("Version one.");
+    await expect(
+      fs.readFile(path.join(secondSkill!.source, "SKILL.md"), "utf8"),
+    ).resolves.toContain("Version two.");
 
     const firstSkillFile = path.join(firstSkill!.source, "SKILL.md");
     const oldMtime = new Date("2024-01-01T00:00:00.000Z");
     await fs.utimes(firstSkillFile, oldMtime, oldMtime);
 
-    const repeatRun = await heartbeat.invoke(firstAgentId, "on_demand", {}, "manual");
+    const repeatRun = await heartbeat.invoke(
+      firstAgentId,
+      "on_demand",
+      {},
+      "manual",
+    );
     expect(repeatRun).not.toBeNull();
-    expect((await waitForRunToFinish(heartbeat, repeatRun!.id))?.status).toBe("succeeded");
+    expect((await waitForRunToFinish(heartbeat, repeatRun!.id))?.status).toBe(
+      "succeeded",
+    );
     const repeatedSkill = capturedRuns
       .filter((run) => run.agentId === firstAgentId)
       .at(-1)
@@ -280,12 +338,21 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
       versionId: versionOne.id,
       sourceStatus: "available",
     });
-    expect((await fs.stat(firstSkillFile)).mtime.toISOString()).toBe(oldMtime.toISOString());
+    expect((await fs.stat(firstSkillFile)).mtime.toISOString()).toBe(
+      oldMtime.toISOString(),
+    );
 
     await settings.updateExperimental({ enableBetaSkills: false });
-    const defaultRun = await heartbeat.invoke(firstAgentId, "on_demand", {}, "manual");
+    const defaultRun = await heartbeat.invoke(
+      firstAgentId,
+      "on_demand",
+      {},
+      "manual",
+    );
     expect(defaultRun).not.toBeNull();
-    expect((await waitForRunToFinish(heartbeat, defaultRun!.id))?.status).toBe("succeeded");
+    expect((await waitForRunToFinish(heartbeat, defaultRun!.id))?.status).toBe(
+      "succeeded",
+    );
     const defaultSkill = capturedRuns
       .filter((run) => run.agentId === firstAgentId)
       .at(-1)
@@ -296,8 +363,9 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
       currentVersionId: versionTwo.id,
       sourceStatus: "available",
     });
-    await expect(fs.readFile(path.join(defaultSkill!.source, "SKILL.md"), "utf8"))
-      .resolves.toContain("Version two.");
+    await expect(
+      fs.readFile(path.join(defaultSkill!.source, "SKILL.md"), "utf8"),
+    ).resolves.toContain("Version two.");
     const storedPreference = await db
       .select({ adapterConfig: agents.adapterConfig })
       .from(agents)
@@ -310,9 +378,16 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
     });
 
     await settings.updateExperimental({ enableBetaSkills: true });
-    const restoredRun = await heartbeat.invoke(firstAgentId, "on_demand", {}, "manual");
+    const restoredRun = await heartbeat.invoke(
+      firstAgentId,
+      "on_demand",
+      {},
+      "manual",
+    );
     expect(restoredRun).not.toBeNull();
-    expect((await waitForRunToFinish(heartbeat, restoredRun!.id))?.status).toBe("succeeded");
+    expect((await waitForRunToFinish(heartbeat, restoredRun!.id))?.status).toBe(
+      "succeeded",
+    );
     const restoredSkill = capturedRuns
       .filter((run) => run.agentId === firstAgentId)
       .at(-1)
@@ -322,8 +397,9 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
       currentVersionId: versionTwo.id,
       sourceStatus: "available",
     });
-    await expect(fs.readFile(path.join(restoredSkill!.source, "SKILL.md"), "utf8"))
-      .resolves.toContain("Version one.");
+    await expect(
+      fs.readFile(path.join(restoredSkill!.source, "SKILL.md"), "utf8"),
+    ).resolves.toContain("Version one.");
   });
 
   it("delivers installed connections without exposing gateway bearers in adapter config or logs", async () => {
@@ -347,41 +423,50 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
       runtimeConfig: {},
       permissions: {},
     });
-    const [application] = await db.insert(toolApplications).values({
-      companyId,
-      applicationKey: `runtime-${randomUUID().slice(0, 8)}`,
-      name: "Runtime MCP",
-      type: "mcp_http",
-      status: "active",
-    }).returning();
-    const [installed, uninstalled] = await db.insert(toolConnections).values([
-      {
+    const [application] = await db
+      .insert(toolApplications)
+      .values({
         companyId,
-        applicationId: application!.id,
-        name: "Installed Runtime MCP",
-        uid: `test/${randomUUID()}`,
-        transport: "mcp_remote",
+        applicationKey: `runtime-${randomUUID().slice(0, 8)}`,
+        name: "Runtime MCP",
+        type: "mcp_http",
         status: "active",
-        enabled: true,
-        config: { url: "https://installed.example.test/mcp" },
-      },
-      {
+      })
+      .returning();
+    const [installed, uninstalled] = await db
+      .insert(toolConnections)
+      .values([
+        {
+          companyId,
+          applicationId: application!.id,
+          name: "Installed Runtime MCP",
+          uid: `test/${randomUUID()}`,
+          transport: "mcp_remote",
+          status: "active",
+          enabled: true,
+          config: { url: "https://installed.example.test/mcp" },
+        },
+        {
+          companyId,
+          applicationId: application!.id,
+          name: "Uninstalled Runtime MCP",
+          uid: `test/${randomUUID()}`,
+          transport: "mcp_remote",
+          status: "active",
+          enabled: true,
+          config: { url: "https://uninstalled.example.test/mcp" },
+        },
+      ])
+      .returning();
+    const [profile] = await db
+      .insert(toolProfiles)
+      .values({
         companyId,
-        applicationId: application!.id,
-        name: "Uninstalled Runtime MCP",
-        uid: `test/${randomUUID()}`,
-        transport: "mcp_remote",
-        status: "active",
-        enabled: true,
-        config: { url: "https://uninstalled.example.test/mcp" },
-      },
-    ]).returning();
-    const [profile] = await db.insert(toolProfiles).values({
-      companyId,
-      profileKey: `app:${installed!.id}`,
-      name: installed!.name,
-      defaultAction: "deny",
-    }).returning();
+        profileKey: `app:${installed!.id}`,
+        name: installed!.name,
+        defaultAction: "deny",
+      })
+      .returning();
     await db.insert(toolProfileEntries).values({
       companyId,
       profileId: profile!.id,
@@ -406,7 +491,9 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
     const heartbeat = heartbeatService(db);
     const run = await heartbeat.invoke(agentId, "on_demand", {}, "manual");
     expect(run).not.toBeNull();
-    expect((await waitForRunToFinish(heartbeat, run!.id))?.status).toBe("succeeded");
+    expect((await waitForRunToFinish(heartbeat, run!.id))?.status).toBe(
+      "succeeded",
+    );
 
     const captured = capturedRuns.find((entry) => entry.agentId === agentId);
     expect(captured?.mcpServers).toHaveLength(1);
@@ -418,12 +505,16 @@ describeEmbeddedPostgres("heartbeat runtime skill version pins", () => {
     });
     const runtimeProfiles = await db.select().from(toolProfiles);
     const runtimeProfile = runtimeProfiles.find((entry) =>
-      entry.profileKey.startsWith(`native:${agentId}:`)
+      entry.profileKey.startsWith(`native:${agentId}:`),
     );
     expect(runtimeProfile).toBeDefined();
-    const runtimeEntries = await db.select().from(toolProfileEntries)
+    const runtimeEntries = await db
+      .select()
+      .from(toolProfileEntries)
       .where(eq(toolProfileEntries.profileId, runtimeProfile!.id));
-    expect(runtimeEntries.map((entry) => entry.connectionId)).toEqual([installed!.id]);
+    expect(runtimeEntries.map((entry) => entry.connectionId)).toEqual([
+      installed!.id,
+    ]);
     expect(JSON.stringify(captured?.mcpServers)).not.toContain(uninstalled!.id);
     const bearer = captured?.mcpServers[0]?.token;
     expect(bearer).toMatch(/^pcgw_/);

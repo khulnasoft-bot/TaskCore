@@ -30,7 +30,9 @@ describe("chat publication projection", () => {
   });
 
   it("redacts common credentials and private connection material", () => {
-    const slackTokenCanary = ["xoxb", "1234567890", "abcdefghijklmnop"].join("-");
+    const slackTokenCanary = ["xoxb", "1234567890", "abcdefghijklmnop"].join(
+      "-",
+    );
     const openAiKeyCanary = ["sk", "proj", "abcdefghijklmnopqrstuv"].join("-");
     const input = [
       `token: ${slackTokenCanary}`,
@@ -55,7 +57,9 @@ describe("chat publication projection", () => {
         "visit https://example.com/a?signature=abc#fragment, or javascript:alert(1).",
     );
 
-    expect(projected).toContain("[the report](https://docs.example.com/report)");
+    expect(projected).toContain(
+      "[the report](https://docs.example.com/report)",
+    );
     expect(projected).toContain("https://example.com/a");
     expect(projected).not.toContain("secret");
     expect(projected).not.toContain("signature");
@@ -64,11 +68,13 @@ describe("chat publication projection", () => {
   });
 
   it("accepts only public HTTPS display links", () => {
-    expect(sanitizeExternalChatUrl("https://example.com/path?q=secret#part")).toBe(
-      "https://example.com/path",
-    );
+    expect(
+      sanitizeExternalChatUrl("https://example.com/path?q=secret#part"),
+    ).toBe("https://example.com/path");
     expect(sanitizeExternalChatUrl("http://example.com/path")).toBeNull();
-    expect(sanitizeExternalChatUrl("https://user:secret@example.com/path")).toBeNull();
+    expect(
+      sanitizeExternalChatUrl("https://user:secret@example.com/path"),
+    ).toBeNull();
     expect(sanitizeExternalChatUrl("file:///etc/passwd")).toBeNull();
     expect(sanitizeExternalChatUrl("https://localhost/private")).toBeNull();
     expect(sanitizeExternalChatUrl("https://192.168.1.8/private")).toBeNull();
@@ -84,9 +90,9 @@ describe("chat publication projection", () => {
   });
 
   it("uses a safe fallback if only private material remains", () => {
-    expect(projectSafeChatPublicationText("<thinking>all private</thinking>")).toBe(
-      "Update available in Taskcore.",
-    );
+    expect(
+      projectSafeChatPublicationText("<thinking>all private</thinking>"),
+    ).toBe("Update available in Taskcore.");
   });
 
   it("projects a classified payload with deduplicated attachments and a closed card schema", () => {
@@ -104,7 +110,12 @@ describe("chat publication projection", () => {
           title: "Choose a path",
           body: "Do not leak token: super-secret-value",
           actions: [
-            { type: "callback", actionId: "choice.one", label: "First", style: "primary" },
+            {
+              type: "callback",
+              actionId: "choice.one",
+              label: "First",
+              style: "primary",
+            },
             {
               type: "link",
               label: "Open Taskcore",
@@ -127,7 +138,12 @@ describe("chat publication projection", () => {
         title: "Choose a path",
         body: "Do not leak token: [REDACTED]",
         actions: [
-          { type: "callback", actionId: "choice.one", label: "First", style: "primary" },
+          {
+            type: "callback",
+            actionId: "choice.one",
+            label: "First",
+            style: "primary",
+          },
           {
             type: "link",
             label: "Open Taskcore",
@@ -158,7 +174,9 @@ describe("chat publication projection", () => {
           card: {
             kind: "confirmation",
             title: "Proceed?",
-            actions: [{ type: "callback", actionId: "bad action id", label: "Yes" }],
+            actions: [
+              { type: "callback", actionId: "bad action id", label: "Yes" },
+            ],
           },
         },
       }),
@@ -175,7 +193,12 @@ describe("chat publication projection", () => {
             kind: "confirmation",
             title: "Proceed?",
             actions: [
-              { type: "callback", actionId: "approve", label: "Yes", style: "rainbow" },
+              {
+                type: "callback",
+                actionId: "approve",
+                label: "Yes",
+                style: "rainbow",
+              },
             ],
           },
         },

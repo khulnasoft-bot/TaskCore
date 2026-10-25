@@ -11,7 +11,9 @@ describe("assertLegacyAgentInviteAdapterType", () => {
     expect(() => assertLegacyAgentInviteAdapterType("taskcore_runner")).toThrow(
       "Taskcore Runner is not available through agent invite onboarding.",
     );
-    expect(() => assertLegacyAgentInviteAdapterType("claude_local")).not.toThrow();
+    expect(() =>
+      assertLegacyAgentInviteAdapterType("claude_local"),
+    ).not.toThrow();
     expect(() => assertLegacyAgentInviteAdapterType(null)).not.toThrow();
   });
 });

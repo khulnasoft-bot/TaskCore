@@ -61,11 +61,17 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
     renderNotice();
     const button = toggleButton();
     expect(button.getAttribute("aria-expanded")).toBe("false");
-    expect(button.textContent).toContain("Task paused — a secret/config binding is missing");
+    expect(button.textContent).toContain(
+      "Task paused — a secret/config binding is missing",
+    );
     expect(button.textContent).toContain("5m ago");
-    expect(container.textContent).not.toContain("source-scoped recovery action");
+    expect(container.textContent).not.toContain(
+      "source-scoped recovery action",
+    );
     expect(
-      container.querySelector('[data-testid="task-chat-system-notice-details"]'),
+      container.querySelector(
+        '[data-testid="task-chat-system-notice-details"]',
+      ),
     ).toBeNull();
   });
 
@@ -74,23 +80,34 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
       metadata: {
         version: 1,
         sections: [
-          { title: "Failure", rows: [{ type: "code", label: "Code", code: "configuration_incomplete" }] },
+          {
+            title: "Failure",
+            rows: [
+              { type: "code", label: "Code", code: "configuration_incomplete" },
+            ],
+          },
         ],
       },
     });
     flushSync(() => toggleButton().click());
 
     expect(toggleButton().getAttribute("aria-expanded")).toBe("true");
-    const details = container.querySelector('[data-testid="task-chat-system-notice-details"]');
+    const details = container.querySelector(
+      '[data-testid="task-chat-system-notice-details"]',
+    );
     expect(details).not.toBeNull();
-    expect(details!.textContent).toContain("required secret/env bindings are missing");
+    expect(details!.textContent).toContain(
+      "required secret/env bindings are missing",
+    );
     expect(details!.textContent).toContain("Failure");
     expect(details!.textContent).toContain("configuration_incomplete");
 
     // Collapses back — presentation-only fold, nothing lost.
     flushSync(() => toggleButton().click());
     expect(
-      container.querySelector('[data-testid="task-chat-system-notice-details"]'),
+      container.querySelector(
+        '[data-testid="task-chat-system-notice-details"]',
+      ),
     ).toBeNull();
   });
 
@@ -101,14 +118,24 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
         sections: [
           {
             title: "Run",
-            rows: [{ type: "run_link", label: "Source run", runId: "run-1", agentId: "agent-1", title: "failed" }],
+            rows: [
+              {
+                type: "run_link",
+                label: "Source run",
+                runId: "run-1",
+                agentId: "agent-1",
+                title: "failed",
+              },
+            ],
           },
         ],
       },
     });
     flushSync(() => toggleButton().click());
 
-    expect(container.querySelector('a[href="/agents/agent-1/runs/run-1"]')).not.toBeNull();
+    expect(
+      container.querySelector('a[href="/agents/agent-1/runs/run-1"]'),
+    ).not.toBeNull();
   });
 
   it("respects presentation.detailsDefaultOpen", () => {
@@ -123,7 +150,9 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
     expect(toggleButton().getAttribute("aria-expanded")).toBe("true");
     expect(toggleButton().textContent).toContain("Run recovery");
     expect(
-      container.querySelector('[data-testid="task-chat-system-notice-details"]'),
+      container.querySelector(
+        '[data-testid="task-chat-system-notice-details"]',
+      ),
     ).not.toBeNull();
   });
 
@@ -155,7 +184,11 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
                 label: "Branch",
                 value: "fix/workspace-ready-notice",
               },
-              { type: "key_value", label: "CWD", value: "/worktrees/workspace-ready-notice" },
+              {
+                type: "key_value",
+                label: "CWD",
+                value: "/worktrees/workspace-ready-notice",
+              },
             ],
           },
         ],
@@ -163,9 +196,10 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
     });
 
     expect(toggleButton().getAttribute("aria-expanded")).toBe("false");
-    expect(container.querySelector('[data-testid="task-chat-system-notice"]')?.className).toContain(
-      "items-start",
-    );
+    expect(
+      container.querySelector('[data-testid="task-chat-system-notice"]')
+        ?.className,
+    ).toContain("items-start");
     expect(toggleButton().textContent).toContain(
       "Workspace ready · fix/workspace-ready-notice",
     );
@@ -173,10 +207,14 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
 
     flushSync(() => toggleButton().click());
 
-    const details = container.querySelector('[data-testid="task-chat-system-notice-details"]');
+    const details = container.querySelector(
+      '[data-testid="task-chat-system-notice-details"]',
+    );
     expect(details?.textContent).toContain("Workspace");
     expect(details?.textContent?.match(/git_worktree/g)).toHaveLength(1);
-    expect(details?.textContent?.match(/fix\/workspace-ready-notice/g)).toHaveLength(1);
+    expect(
+      details?.textContent?.match(/fix\/workspace-ready-notice/g),
+    ).toHaveLength(1);
     expect(details?.textContent).toContain("/worktrees/workspace-ready-notice");
     expect(details?.querySelector(".taskcore-markdown")).toBeNull();
   });
@@ -232,10 +270,14 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
       '[data-testid="task-chat-system-notice-details"]',
     );
     expect(
-      details?.querySelector('[data-testid="task-chat-no-live-path-try-again"]'),
+      details?.querySelector(
+        '[data-testid="task-chat-no-live-path-try-again"]',
+      ),
     ).not.toBeNull();
     expect(
-      container.querySelectorAll('[data-testid="task-chat-no-live-path-try-again"]'),
+      container.querySelectorAll(
+        '[data-testid="task-chat-no-live-path-try-again"]',
+      ),
     ).toHaveLength(1);
   });
 
@@ -275,7 +317,9 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
       { onTryAgainNoLiveExecutionPath: vi.fn() },
     );
     expect(
-      container.querySelector('[data-testid="task-chat-no-live-path-try-again"]'),
+      container.querySelector(
+        '[data-testid="task-chat-no-live-path-try-again"]',
+      ),
     ).toBeNull();
   });
 
@@ -290,7 +334,9 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
     expect(button.textContent).toContain("System update");
     expect(button.textContent).toContain("Workspace ready.");
     expect(button.querySelector("code")).toBeNull();
-    expect(container.textContent).not.toContain("/tmp/taskcore/worktrees/PAP-91");
+    expect(container.textContent).not.toContain(
+      "/tmp/taskcore/worktrees/PAP-91",
+    );
 
     flushSync(() => button.click());
     expect(container.textContent).toContain("/tmp/taskcore/worktrees/PAP-91");
@@ -299,11 +345,20 @@ describe("TaskChatSystemNotice (PAP-443)", () => {
   it("ignores malformed metadata while preserving expandable raw detail", () => {
     renderNotice({
       text: "Workspace ready. Runtime metadata could not be decoded.",
-      metadata: { version: 1, sections: "malformed" } as unknown as TaskChatMessageItem["metadata"],
+      metadata: {
+        version: 1,
+        sections: "malformed",
+      } as unknown as TaskChatMessageItem["metadata"],
     });
 
     expect(() => flushSync(() => toggleButton().click())).not.toThrow();
-    expect(container.querySelector('[data-testid="task-chat-system-notice-details"]')).not.toBeNull();
-    expect(container.textContent).toContain("Runtime metadata could not be decoded");
+    expect(
+      container.querySelector(
+        '[data-testid="task-chat-system-notice-details"]',
+      ),
+    ).not.toBeNull();
+    expect(container.textContent).toContain(
+      "Runtime metadata could not be decoded",
+    );
   });
 });

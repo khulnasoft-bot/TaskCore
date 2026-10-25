@@ -30,11 +30,15 @@ export const pluginLogs = pgTable(
       .notNull()
       .references(() => plugins.id, { onDelete: "cascade" }),
     /** Company scope — NULL for instance-level logs. */
-    companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id").references(() => companies.id, {
+      onDelete: "cascade",
+    }),
     level: text("level").notNull().default("info"),
     message: text("message").notNull(),
     meta: jsonb("meta").$type<Record<string, unknown>>(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     pluginTimeIdx: index("plugin_logs_plugin_time_idx").on(

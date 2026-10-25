@@ -30,7 +30,11 @@ import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
 
 import { NativeSessionProtocolIntegrityError } from "../contracts/native-session-backend.js";
-import { ACPX_CREDENTIAL_BINDING_ENV, ACPX_CREDENTIAL_NAMES, CLAUDE_ROUTING_ENV_KEYS } from "../drivers/acpx/environment.js";
+import {
+  ACPX_CREDENTIAL_BINDING_ENV,
+  ACPX_CREDENTIAL_NAMES,
+  CLAUDE_ROUTING_ENV_KEYS,
+} from "../drivers/acpx/environment.js";
 import { githubCredentialEnvironment } from "../github-credential-environment.js";
 import {
   validatePrpEvent,
@@ -56,7 +60,9 @@ const maxFrameBytes = 1024 * 1024;
 const maxCommandBytes = Math.floor((maxFrameBytes - 4 * 1024) / 2);
 const maxCommands = 500;
 class CommandJournalLimitError extends Error {
-  constructor(readonly code: "command_payload_too_large" | "command_journal_full") {
+  constructor(
+    readonly code: "command_payload_too_large" | "command_journal_full",
+  ) {
     super(`Durable PRP command journal bound exceeded: ${code}.`);
   }
 }
@@ -614,9 +620,10 @@ function unsettledSemanticInput(
         canonicalJson(expectedCorrelation) ||
       (command.payload.inputDigest === undefined
         ? canonicalJson(command.payload.input) !== canonicalJson(semantic.input)
-        : command.payload.inputDigest !== canonicalDigest(semantic.input)
-          || (command.payload.input !== undefined
-            && canonicalJson(command.payload.input) !== canonicalJson(semantic.input)))
+        : command.payload.inputDigest !== canonicalDigest(semantic.input) ||
+          (command.payload.input !== undefined &&
+            canonicalJson(command.payload.input) !==
+              canonicalJson(semantic.input)))
     );
   } catch {
     // Malformed retained evidence cannot establish settled authority, and
@@ -702,7 +709,8 @@ function isStoredCoreState(
       (command, index) =>
         isRecord(command) &&
         (command.schema === "taskcore.prp.command.v1" ||
-          command.schema === "taskcore.prp.command.v2" || command.schema === "taskcore.prp.command.v3") &&
+          command.schema === "taskcore.prp.command.v2" ||
+          command.schema === "taskcore.prp.command.v3") &&
         typeof command.commandId === "string" &&
         stableIdPattern.test(command.commandId) &&
         command.commandId.length <= 160 &&
@@ -1621,7 +1629,9 @@ export class DurablePrpControlPlane {
   async drainPendingConnectionProcessing(): Promise<void> {
     const assertIngressStopped = () => {
       if (this.#server !== null || this.#connections.size !== 0)
-        throw new Error("Connection processing drain requires stopped ingress.");
+        throw new Error(
+          "Connection processing drain requires stopped ingress.",
+        );
     };
     assertIngressStopped();
     while (this.#connectionProcessing.size > 0) {
@@ -1634,8 +1644,14 @@ export class DurablePrpControlPlane {
    * external effect keeps its committed input pending for reconciliation;
    * it must never overwrite the successor controller's durable state. */
   retireSemanticToolCallbacks(): void {
-    if (this.#server !== null || this.#connections.size !== 0 || this.#connectionProcessing.size !== 0) {
-      throw new Error("Semantic callback retirement requires drained, stopped ingress.");
+    if (
+      this.#server !== null ||
+      this.#connections.size !== 0 ||
+      this.#connectionProcessing.size !== 0
+    ) {
+      throw new Error(
+        "Semantic callback retirement requires drained, stopped ingress.",
+      );
     }
     this.#semanticCallbacksRetired = true;
   }
@@ -1689,7 +1705,11 @@ export class DurablePrpControlPlane {
         };
       }),
       deliveries: this.#store.state.commands
-        .filter((command) => command.type === "semantic_tool.result" && command.status !== "completed")
+        .filter(
+          (command) =>
+            command.type === "semantic_tool.result" &&
+            command.status !== "completed",
+        )
         .map((command) => ({
           commandId: command.commandId,
           callId: command.payload.callId,
@@ -1972,9 +1992,12 @@ export class DurablePrpControlPlane {
     }
     const controllerSeq = this.#store.state.commands.length + 1;
     const command: DurableRecoveryCoreCommand = {
-      schema: type === "external_provider.operation" ? "taskcore.prp.command.v3" : type.startsWith("session.goal.")
-        ? "taskcore.prp.command.v2"
-        : "taskcore.prp.command.v1",
+      schema:
+        type === "external_provider.operation"
+          ? "taskcore.prp.command.v3"
+          : type.startsWith("session.goal.")
+            ? "taskcore.prp.command.v2"
+            : "taskcore.prp.command.v1",
       commandId:
         commandId ?? `command_prp_${controllerSeq.toString().padStart(8, "0")}`,
       controllerSeq,
@@ -2253,7 +2276,8 @@ export class DurablePrpControlPlane {
       connection.replayOnly ||
       this.#store.state.warmTransition ||
       connection.terminalLifecycleCommandId !== null
-    ) return;
+    )
+      return;
     // Repeating a request after a lost reply replays the persisted expiry.
     // It never extends a credential twice for the same observed generation.
     if (expectedExpiry === lease.expiresAtUnixMs) {
@@ -3296,18 +3320,47 @@ export class DurablePrpControlPlane {
       // changed the outside world. Never redispatch it on event replay. Only
       // the original admitted callback may publish its result; missing outcome
       // evidence stays pending for authoritative reconciliation.
-      if (existing === undefined && !alreadyQueued && !this.#pendingSemanticCalls.has(commandId)) {
+      if (
+        existing === undefined &&
+        !alreadyQueued &&
+        !this.#pendingSemanticCalls.has(commandId)
+      ) {
         this.#pendingSemanticCalls.add(commandId);
-        const recordFailure = (stage: "persist_result" | "dispatch", error: unknown) => {
+        const recordFailure = (
+          stage: "persist_result" | "dispatch",
+          error: unknown,
+        ) => {
           this.#semanticResultPersistenceFailed = true;
           // Keep diagnostics bounded and content-free. Exception messages can
           // contain tool bodies or credentials; retain only known error codes.
-          const storageCode = error && typeof error === "object" && "code" in error ? error.code : null;
-          const code = error instanceof CommandJournalLimitError ? error.code
-            : typeof storageCode === "string" && ["ENOSPC", "EDQUOT", "EACCES", "EPERM", "EIO", "EROFS"].includes(storageCode)
-              ? storageCode : stage === "dispatch" ? "dispatcher_rejected" : "result_persistence_failed";
-          this.#semanticResultFailures.push({ callId: call.callId, operationId: call.operationId, stage, code });
-          this.#semanticResultFailures = this.#semanticResultFailures.slice(-20);
+          const storageCode =
+            error && typeof error === "object" && "code" in error
+              ? error.code
+              : null;
+          const code =
+            error instanceof CommandJournalLimitError
+              ? error.code
+              : typeof storageCode === "string" &&
+                  [
+                    "ENOSPC",
+                    "EDQUOT",
+                    "EACCES",
+                    "EPERM",
+                    "EIO",
+                    "EROFS",
+                  ].includes(storageCode)
+                ? storageCode
+                : stage === "dispatch"
+                  ? "dispatcher_rejected"
+                  : "result_persistence_failed";
+          this.#semanticResultFailures.push({
+            callId: call.callId,
+            operationId: call.operationId,
+            stage,
+            code,
+          });
+          this.#semanticResultFailures =
+            this.#semanticResultFailures.slice(-20);
           this.disconnectActiveRunner();
         };
         const queueResult = (result: unknown, isError: boolean): void => {
@@ -3319,7 +3372,12 @@ export class DurablePrpControlPlane {
             const { input, ...metadata } = call;
             this.queueCommand(
               "semantic_tool.result",
-              { ...metadata, inputDigest: canonicalDigest(input), result, isError },
+              {
+                ...metadata,
+                inputDigest: canonicalDigest(input),
+                result,
+                isError,
+              },
               commandId,
               true,
             );
@@ -3336,11 +3394,17 @@ export class DurablePrpControlPlane {
           )
           .catch((error: unknown) => {
             if (error instanceof SemanticToolNotDispatchedError) {
-              queueResult({ error: {
-                code: "semantic_tool_not_dispatched",
-                retryable: false,
-                message: "The turn stopped before this operation was dispatched.",
-              } }, true);
+              queueResult(
+                {
+                  error: {
+                    code: "semantic_tool_not_dispatched",
+                    retryable: false,
+                    message:
+                      "The turn stopped before this operation was dispatched.",
+                  },
+                },
+                true,
+              );
               return;
             }
             // A rejected dispatcher promise does not prove that its effect
@@ -3385,7 +3449,7 @@ const runnerPlatformEnvironmentKeys = [
 ] as const;
 
 const runnerExplicitProviderEnvironmentKeys = [
-  ...ACPX_CREDENTIAL_NAMES.claude.filter(name => !name.startsWith("AWS_")),
+  ...ACPX_CREDENTIAL_NAMES.claude.filter((name) => !name.startsWith("AWS_")),
   ...CLAUDE_ROUTING_ENV_KEYS,
   "TASKCORE_AI_PROVIDER_KEY",
   "TASKCORE_AI_PROVIDER_URL",
@@ -3451,10 +3515,15 @@ function runnerEnvironment(
     }
     if (explicitSource.CLAUDE_CODE_USE_BEDROCK === "1") {
       for (const key of ["AWS_BEARER_TOKEN_BEDROCK"] as const) {
-        if (explicitSource[key] !== undefined) environment[key] = explicitSource[key];
+        if (explicitSource[key] !== undefined)
+          environment[key] = explicitSource[key];
       }
     }
-    Object.assign(environment, githubCredentialEnvironment(explicitSource), configuredEnvironment(explicitSource));
+    Object.assign(
+      environment,
+      githubCredentialEnvironment(explicitSource),
+      configuredEnvironment(explicitSource),
+    );
   }
   return environment;
 }

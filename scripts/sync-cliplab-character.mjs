@@ -8,7 +8,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const source = path.join(root, "ui/src/assets/cliplab/onboarding.character.json");
+const source = path.join(
+  root,
+  "ui/src/assets/cliplab/onboarding.character.json",
+);
 const target = path.join(root, "packages/shared/src/cliplab/character.ts");
 const definition = JSON.parse(readFileSync(source, "utf8"));
 const body = `// Generated from ui/src/assets/cliplab/onboarding.character.json by scripts/sync-cliplab-character.mjs. Do not edit.
@@ -19,8 +22,17 @@ export const TASKCORE_CHARACTER: Definition = ${JSON.stringify(definition, null,
 `;
 if (process.argv.includes("--check")) {
   let current = "";
-  try { current = readFileSync(target, "utf8"); } catch { /* missing counts as drift */ }
-  if (current !== body) { console.error(`packages/shared/src/cliplab/character.ts is out of date; run node scripts/sync-cliplab-character.mjs`); process.exit(1); }
+  try {
+    current = readFileSync(target, "utf8");
+  } catch {
+    /* missing counts as drift */
+  }
+  if (current !== body) {
+    console.error(
+      `packages/shared/src/cliplab/character.ts is out of date; run node scripts/sync-cliplab-character.mjs`,
+    );
+    process.exit(1);
+  }
   console.log("cliplab character in sync");
 } else {
   writeFileSync(target, body);

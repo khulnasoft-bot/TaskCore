@@ -43,7 +43,8 @@ const FILTER_LABEL: Record<CapabilityActivityFilter, string> = {
   parity: "Parity",
 };
 
-type SectionName = "exposure" | "calls" | "authorization" | "control" | "diff" | "parity";
+type SectionName =
+  "exposure" | "calls" | "authorization" | "control" | "diff" | "parity";
 
 const SECTION_FILTER: Record<SectionName, CapabilityActivityFilter> = {
   exposure: "tools",
@@ -77,7 +78,11 @@ export function ActivityStream({
   const newest = artifact.turns[artifact.turns.length - 1]?.turn ?? 0;
   return (
     <div className="pcr7-activity" data-testid="activity-stream">
-      <div className="pcr7-activity-filters" role="group" aria-label="Activity filter">
+      <div
+        className="pcr7-activity-filters"
+        role="group"
+        aria-label="Activity filter"
+      >
         {CAPABILITY_ACTIVITY_FILTERS.map((value) => (
           <button
             key={value}
@@ -99,11 +104,14 @@ export function ActivityStream({
             key={turn.turn}
             turn={turn}
             entries={artifact.timeline.filter(
-              (entry) => entry.turn === turn.turn && entry.sequence <= revealedSequence,
+              (entry) =>
+                entry.turn === turn.turn && entry.sequence <= revealedSequence,
             )}
             running={running}
             filter={filter}
-            open={openTurn === null ? turn.turn === newest : openTurn === turn.turn}
+            open={
+              openTurn === null ? turn.turn === newest : openTurn === turn.turn
+            }
             onToggle={() => onOpenTurn(turn.turn)}
             onBackToChat={onBackToChat}
             showBackToChat={showBackToChat}
@@ -111,7 +119,9 @@ export function ActivityStream({
         );
       })}
 
-      {artifact.turns.some((turn) => turn.lastSequence > revealedSequence) ? null : (
+      {artifact.turns.some(
+        (turn) => turn.lastSequence > revealedSequence,
+      ) ? null : (
         <SessionGroup artifact={artifact} filter={filter} />
       )}
     </div>
@@ -138,9 +148,12 @@ export function ActivityTurnGroup({
   showBackToChat: boolean;
 }) {
   const calls = entries.filter(
-    (entry) => entry.kind === "semantic_call" || entry.kind === "semantic_result",
+    (entry) =>
+      entry.kind === "semantic_call" || entry.kind === "semantic_result",
   );
-  const controlPlane = entries.filter((entry) => entry.kind === "control_plane_action");
+  const controlPlane = entries.filter(
+    (entry) => entry.kind === "control_plane_action",
+  );
   const authorizationSequences = new Set(
     entries.flatMap((entry) =>
       entry.kind === "semantic_call" || entry.kind === "semantic_result"
@@ -149,7 +162,9 @@ export function ActivityTurnGroup({
     ),
   );
   const authorizationRecords = running
-    ? turn.authorizationRecords.filter((record) => authorizationSequences.has(record.sequence))
+    ? turn.authorizationRecords.filter((record) =>
+        authorizationSequences.has(record.sequence),
+      )
     : turn.authorizationRecords;
   const visibleCounts = running
     ? {
@@ -184,7 +199,9 @@ export function ActivityTurnGroup({
           onClick={onToggle}
         >
           <span>
-            {turn.turn === 0 ? "Session seed" : `Turn ${turn.turn}${running ? " · running" : ""}`}
+            {turn.turn === 0
+              ? "Session seed"
+              : `Turn ${turn.turn}${running ? " · running" : ""}`}
           </span>
           <span className="pcr7-muted">
             {running ? runningSummary(visibleCounts) : summaryText(visibleTurn)}
@@ -192,7 +209,10 @@ export function ActivityTurnGroup({
         </button>
       </h3>
       {open ? (
-        <div className="pcr7-activity-group-body" id={`activity-turn-body-${turn.turn}`}>
+        <div
+          className="pcr7-activity-group-body"
+          id={`activity-turn-body-${turn.turn}`}
+        >
           {turn.prompt === null ? null : (
             <p className="pcr7-activity-prompt">
               <span className="pcr7-label pcr7-block">Prompt</span>
@@ -203,21 +223,31 @@ export function ActivityTurnGroup({
           {visible("exposure") ? (
             <Section name="exposure" turn={turn.turn} title="Exposed tools">
               <p className="pcr7-muted">
-                Always {turn.exposure.always.length} · Optional {turn.exposure.optional.length} ·
-                Control plane — no tool {turn.exposure.controlPlane.length}
+                Always {turn.exposure.always.length} · Optional{" "}
+                {turn.exposure.optional.length} · Control plane — no tool{" "}
+                {turn.exposure.controlPlane.length}
               </p>
               <details className="pcr7-facet">
-                <summary className="pcr7-facet-summary">Full exposure decision</summary>
+                <summary className="pcr7-facet-summary">
+                  Full exposure decision
+                </summary>
                 <ExposureList exposure={turn.exposure} />
               </details>
             </Section>
           ) : null}
 
           {visible("calls") && calls.length > 0 ? (
-            <Section name="calls" turn={turn.turn} title={`Calls and results (${calls.length})`}>
+            <Section
+              name="calls"
+              turn={turn.turn}
+              title={`Calls and results (${calls.length})`}
+            >
               <ol className="pcr7-activity-calls">
                 {calls.map((entry) => (
-                  <li key={entry.sequence} data-testid={`activity-call-${entry.sequence}`}>
+                  <li
+                    key={entry.sequence}
+                    data-testid={`activity-call-${entry.sequence}`}
+                  >
                     <TimelineEntryBody entry={entry} />
                   </li>
                 ))}
@@ -243,7 +273,10 @@ export function ActivityTurnGroup({
             >
               <ol className="pcr7-activity-calls">
                 {controlPlane.map((entry) => (
-                  <li key={entry.sequence} data-testid={`activity-control-${entry.sequence}`}>
+                  <li
+                    key={entry.sequence}
+                    data-testid={`activity-control-${entry.sequence}`}
+                  >
                     <TimelineEntryBody entry={entry} />
                   </li>
                 ))}
@@ -259,7 +292,10 @@ export function ActivityTurnGroup({
 
           {visible("parity") && !running ? (
             <Section name="parity" turn={turn.turn} title="Parity">
-              <span className="pcr7-visually-hidden" data-testid={`activity-parity-${turn.turn}`}>
+              <span
+                className="pcr7-visually-hidden"
+                data-testid={`activity-parity-${turn.turn}`}
+              >
                 Turn {turn.turn} parity {turn.parity.verdict.replace("_", " ")}
               </span>
               <ParityPanel parity={turn.parity} />
@@ -324,7 +360,10 @@ function TurnDiff({ turn }: { turn: CapabilityChatTurn }) {
         Revision {turn.diff.beforeRevision} → {turn.diff.afterRevision}
       </p>
       {changed.length === 0 ? (
-        <p className="pcr7-muted" data-testid={`activity-diff-unchanged-${turn.turn}`}>
+        <p
+          className="pcr7-muted"
+          data-testid={`activity-diff-unchanged-${turn.turn}`}
+        >
           No control-plane state changed in this turn.
         </p>
       ) : (
@@ -341,7 +380,8 @@ function TurnDiff({ turn }: { turn: CapabilityChatTurn }) {
                   <ul className="pcr7-exposure">
                     {row.fields.map((field) => (
                       <li key={field.field}>
-                        <Mono>{field.field}</Mono>: <Mono>{field.before ?? "—"}</Mono> →{" "}
+                        <Mono>{field.field}</Mono>:{" "}
+                        <Mono>{field.before ?? "—"}</Mono> →{" "}
                         <Mono>{field.after ?? "—"}</Mono>
                       </li>
                     ))}
@@ -353,16 +393,22 @@ function TurnDiff({ turn }: { turn: CapabilityChatTurn }) {
         ))
       )}
       {unchanged.length === 0 ? null : (
-        <p className="pcr7-muted" data-testid={`activity-diff-unchanged-list-${turn.turn}`}>
+        <p
+          className="pcr7-muted"
+          data-testid={`activity-diff-unchanged-list-${turn.turn}`}
+        >
           Unchanged: {unchanged.map((domain) => domain.domain).join(", ")}
         </p>
       )}
       {turn.reconciliationEvents.length === 0 ? null : (
-        <ul className="pcr7-exposure" data-testid={`activity-reconciliation-${turn.turn}`}>
+        <ul
+          className="pcr7-exposure"
+          data-testid={`activity-reconciliation-${turn.turn}`}
+        >
           {turn.reconciliationEvents.map((event) => (
             <li key={event.sequence}>
-              <Badge tone="neutral">Control plane</Badge> <Mono>{event.action}</Mono> —{" "}
-              {event.summary}
+              <Badge tone="neutral">Control plane</Badge>{" "}
+              <Mono>{event.action}</Mono> — {event.summary}
             </li>
           ))}
         </ul>
@@ -383,17 +429,28 @@ function SessionGroup({
   artifact: CapabilityChatSessionArtifact;
   filter: CapabilityActivityFilter;
 }) {
-  const restraint = artifact.timeline.find((entry) => entry.kind === "system_note");
+  const restraint = artifact.timeline.find(
+    (entry) => entry.kind === "system_note",
+  );
   const changed = artifact.diff.domains.filter((domain) => domain.changed);
   return (
-    <section className="pcr7-activity-group" data-testid="activity-session" data-open="true">
+    <section
+      className="pcr7-activity-group"
+      data-testid="activity-session"
+      data-open="true"
+    >
       <h3 className="pcr7-activity-group-title">Session</h3>
       <div className="pcr7-activity-group-body">
         {filter === "all" || filter === "diff" ? (
-          <section className="pcr7-activity-section" data-testid="activity-session-diff">
+          <section
+            className="pcr7-activity-section"
+            data-testid="activity-session-diff"
+          >
             <h4 className="pcr7-label">Cumulative diff against the seed</h4>
             {changed.length === 0 ? (
-              <p className="pcr7-muted">No control-plane state changed in this session.</p>
+              <p className="pcr7-muted">
+                No control-plane state changed in this session.
+              </p>
             ) : (
               <ul className="pcr7-exposure">
                 {changed.map((domain) => (
@@ -407,9 +464,15 @@ function SessionGroup({
         ) : null}
 
         {filter === "all" || filter === "parity" ? (
-          <section className="pcr7-activity-section" data-testid="activity-session-parity">
+          <section
+            className="pcr7-activity-section"
+            data-testid="activity-session-parity"
+          >
             <h4 className="pcr7-label">Session parity</h4>
-            <span className="pcr7-visually-hidden" data-testid="activity-session-verdict">
+            <span
+              className="pcr7-visually-hidden"
+              data-testid="activity-session-verdict"
+            >
               Session parity {artifact.parity.verdict.replace("_", " ")}
             </span>
             <ParityPanel parity={artifact.parity} />
@@ -427,7 +490,9 @@ function SessionGroup({
 }
 
 /** Denials the board has not opened yet, surfaced on the mobile segment chip. */
-export function activityDenialCount(artifact: CapabilityChatSessionArtifact): number {
+export function activityDenialCount(
+  artifact: CapabilityChatSessionArtifact,
+): number {
   return artifact.turns.reduce((total, turn) => total + turn.counts.denied, 0);
 }
 
@@ -435,8 +500,9 @@ export function ActivityEmptyState() {
   return (
     <EmptyState title="Pick a scenario to start a session.">
       <p className="pcr7-muted">
-        Every turn's exposure, calls, authorization decisions, control-plane actions, state diff, and
-        parity verdict appear here as the conversation happens.
+        Every turn's exposure, calls, authorization decisions, control-plane
+        actions, state diff, and parity verdict appear here as the conversation
+        happens.
       </p>
     </EmptyState>
   );

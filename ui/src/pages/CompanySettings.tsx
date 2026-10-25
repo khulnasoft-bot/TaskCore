@@ -25,10 +25,7 @@ import {
   type GovernanceSelectValue,
 } from "../components/InteractionGovernancePanel";
 import { CompanyPatternIcon } from "../components/CompanyPatternIcon";
-import {
-  Field,
-  ToggleField,
-} from "../components/agent-config-primitives";
+import { Field, ToggleField } from "../components/agent-config-primitives";
 import { InstanceGeneralSettings } from "./InstanceGeneralSettings";
 
 export function CompanySettings() {
@@ -36,7 +33,7 @@ export function CompanySettings() {
     companies,
     selectedCompany,
     selectedCompanyId,
-    setSelectedCompanyId
+    setSelectedCompanyId,
   } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
@@ -51,7 +48,9 @@ export function CompanySettings() {
   const [description, setDescription] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
-  const [governance, setGovernance] = useState<InteractionResolverGovernance>({});
+  const [governance, setGovernance] = useState<InteractionResolverGovernance>(
+    {},
+  );
 
   // Sync local state from selected company
   useEffect(() => {
@@ -68,32 +67,32 @@ export function CompanySettings() {
       description !== (selectedCompany.description ?? ""));
 
   const generalMutation = useMutation({
-    mutationFn: (data: {
-      name: string;
-      description: string | null;
-    }) => companiesApi.update(selectedCompanyId!, data),
+    mutationFn: (data: { name: string; description: string | null }) =>
+      companiesApi.update(selectedCompanyId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-    }
+    },
   });
 
   const settingsMutation = useMutation({
     mutationFn: (requireApproval: boolean) =>
       companiesApi.update(selectedCompanyId!, {
-        requireBoardApprovalForNewAgents: requireApproval
+        requireBoardApprovalForNewAgents: requireApproval,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-    }
+    },
   });
 
   const governanceMutation = useMutation({
     mutationFn: (next: InteractionResolverGovernance) =>
-      companiesApi.update(selectedCompanyId!, { interactionResolverGovernance: next }),
+      companiesApi.update(selectedCompanyId!, {
+        interactionResolverGovernance: next,
+      }),
     onSuccess: (company) => {
       setGovernance(company.interactionResolverGovernance ?? {});
       queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-    }
+    },
   });
 
   function handleGovernanceChange(
@@ -115,19 +114,24 @@ export function CompanySettings() {
     mutationFn: (file: File) =>
       assetsApi
         .uploadCompanyLogo(selectedCompanyId!, file)
-        .then((asset) => companiesApi.update(selectedCompanyId!, { logoAssetId: asset.assetId })),
+        .then((asset) =>
+          companiesApi.update(selectedCompanyId!, {
+            logoAssetId: asset.assetId,
+          }),
+        ),
     onSuccess: (company) => {
       syncLogoState(company.logoUrl);
       setLogoUploadError(null);
-    }
+    },
   });
 
   const clearLogoMutation = useMutation({
-    mutationFn: () => companiesApi.update(selectedCompanyId!, { logoAssetId: null }),
+    mutationFn: () =>
+      companiesApi.update(selectedCompanyId!, { logoAssetId: null }),
     onSuccess: (company) => {
       setLogoUploadError(null);
       syncLogoState(company.logoUrl);
-    }
+    },
   });
 
   function handleLogoFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -172,7 +176,9 @@ export function CompanySettings() {
           dedupeKey: `company-archive-departure:${companyId}`,
         });
         setSelectedCompanyId(departure.company.id);
-        navigate(`/${departure.company.issuePrefix}/dashboard`, { replace: true });
+        navigate(`/${departure.company.issuePrefix}/dashboard`, {
+          replace: true,
+        });
       } else {
         toastActions?.pushToast({
           title: `${archivedName} is archived`,
@@ -180,28 +186,31 @@ export function CompanySettings() {
           tone: "info",
           dedupeKey: `company-archive-departure:${companyId}`,
         });
-        navigate(`/${archived?.issuePrefix ?? ""}/companies`, { replace: true });
+        navigate(`/${archived?.issuePrefix ?? ""}/companies`, {
+          replace: true,
+        });
       }
       await queryClient.invalidateQueries({
-        queryKey: queryKeys.companies.all
+        queryKey: queryKeys.companies.all,
       });
       await queryClient.invalidateQueries({
-        queryKey: queryKeys.companies.stats
+        queryKey: queryKeys.companies.stats,
       });
-    }
+    },
   });
 
   useEffect(() => {
     setBreadcrumbs([
       { label: selectedCompany?.name ?? "Company", href: "/dashboard" },
-      { label: "Settings" }
+      { label: "Settings" },
     ]);
   }, [setBreadcrumbs, selectedCompany?.name]);
 
   if (!selectedCompany) {
     return (
       <div className="text-sm text-muted-foreground">
-        No organization selected. Select an organization from the switcher above.
+        No organization selected. Select an organization from the switcher
+        above.
       </div>
     );
   }
@@ -209,7 +218,7 @@ export function CompanySettings() {
   function handleSaveGeneral() {
     generalMutation.mutate({
       name: companyName.trim(),
-      description: description.trim() || null
+      description: description.trim() || null,
     });
   }
 
@@ -226,7 +235,10 @@ export function CompanySettings() {
           General
         </div>
         <div className="space-y-3">
-          <Field label="Organization name" hint="The display name for your organization.">
+          <Field
+            label="Organization name"
+            hint="The display name for your organization."
+          >
             <input
               className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
               type="text"
@@ -235,8 +247,8 @@ export function CompanySettings() {
             />
             {isCloudManaged && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Renaming can change this company's task ID prefix. Existing task IDs are
-                renumbered and old task links stop resolving.
+                Renaming can change this company's task ID prefix. Existing task
+                IDs are renumbered and old task links stop resolving.
               </p>
             )}
           </Field>
@@ -289,7 +301,9 @@ export function CompanySettings() {
                         onClick={handleClearLogo}
                         disabled={clearLogoMutation.isPending}
                       >
-                        {clearLogoMutation.isPending ? "Removing..." : "Remove logo"}
+                        {clearLogoMutation.isPending
+                          ? "Removing..."
+                          : "Remove logo"}
                       </Button>
                     </div>
                   )}
@@ -307,7 +321,9 @@ export function CompanySettings() {
                     </span>
                   )}
                   {logoUploadMutation.isPending && (
-                    <span className="text-xs text-muted-foreground">Uploading logo...</span>
+                    <span className="text-xs text-muted-foreground">
+                      Uploading logo...
+                    </span>
                   )}
                 </div>
               </Field>
@@ -332,15 +348,18 @@ export function CompanySettings() {
           {generalMutation.isError && (
             <span className="text-xs text-destructive">
               {generalMutation.error instanceof Error
-                  ? generalMutation.error.message
-                  : "Failed to save"}
+                ? generalMutation.error.message
+                : "Failed to save"}
             </span>
           )}
         </div>
       )}
 
       {/* Hiring */}
-      <div className="max-w-2xl space-y-4" data-testid="company-settings-team-section">
+      <div
+        className="max-w-2xl space-y-4"
+        data-testid="company-settings-team-section"
+      >
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Hiring
         </div>
@@ -356,7 +375,12 @@ export function CompanySettings() {
       </div>
 
       {/* Interaction governance */}
-      {selectedCompanyId && <DecisionModelSettingsSection key={selectedCompanyId} companyId={selectedCompanyId} />}
+      {selectedCompanyId && (
+        <DecisionModelSettingsSection
+          key={selectedCompanyId}
+          companyId={selectedCompanyId}
+        />
+      )}
 
       <InteractionGovernancePanel
         governance={governance}
@@ -380,8 +404,8 @@ export function CompanySettings() {
         </div>
         <div className="space-y-3 bg-destructive/5 px-4 py-4">
           <p className="text-sm text-muted-foreground">
-            Archive this organization to hide it from the sidebar. This persists in
-            the database.
+            Archive this organization to hide it from the sidebar. This persists
+            in the database.
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -394,7 +418,7 @@ export function CompanySettings() {
               onClick={() => {
                 if (!selectedCompanyId) return;
                 const confirmed = window.confirm(
-                  `Archive organization "${selectedCompany.name}"? It will be hidden from the sidebar.`
+                  `Archive organization "${selectedCompany.name}"? It will be hidden from the sidebar.`,
                 );
                 if (!confirmed) return;
                 archiveMutation.mutate({ companyId: selectedCompanyId });
@@ -403,8 +427,8 @@ export function CompanySettings() {
               {archiveMutation.isPending
                 ? "Archiving..."
                 : selectedCompany.status === "archived"
-                ? "Already archived"
-                : "Archive organization"}
+                  ? "Already archived"
+                  : "Archive organization"}
             </Button>
             {archiveMutation.isError && (
               <span className="text-xs text-destructive">

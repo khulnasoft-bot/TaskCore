@@ -32,7 +32,18 @@
 //     testable.
 
 import { randomBytes } from "node:crypto";
-import { and, eq, gt, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import { adapterAuthSessions } from "@taskcore/db";
 import type { AgentAdapterType } from "@taskcore/shared";
@@ -92,10 +103,8 @@ export function isTerminalSessionState(state: SetupTokenSessionState): boolean {
  * `promoting` claim — so it is excluded: a durable cancel never interrupts a
  * write in progress. `stored` and every terminal state are excluded too.
  */
-export const SETUP_TOKEN_CANCELLABLE_STATES: readonly SetupTokenSessionState[] = [
-  "starting",
-  "awaiting_code",
-];
+export const SETUP_TOKEN_CANCELLABLE_STATES: readonly SetupTokenSessionState[] =
+  ["starting", "awaiting_code"];
 
 /**
  * The immutable owner scope of a session. The service builds the scope once at
@@ -123,11 +132,15 @@ export interface SetupTokenSessionScope {
   // stored value under the captured version instead of a first write. It is not
   // part of the session identity: the non-start routes rebuild the scope without
   // it, so the full-scope match ignores it (see `resolveOwned`).
-  confirmedOverwrite?: { expectedSecretId: string; expectedLatestVersion: number } | null;
+  confirmedOverwrite?: {
+    expectedSecretId: string;
+    expectedLatestVersion: number;
+  } | null;
 }
 
 /** The terminal outcome of the live login process. */
-export type SetupTokenLoginOutcome = "success" | "failure" | "timeout" | "cancelled";
+export type SetupTokenLoginOutcome =
+  "success" | "failure" | "timeout" | "cancelled";
 
 /**
  * The live login process the service drives for one session. A production
@@ -205,7 +218,10 @@ export interface SetupTokenLease {
  * expiry no later than the session deadline through the `deadline` field.
  */
 export interface SetupTokenLeaseManager {
-  acquire(input: { scope: SetupTokenSessionScope; deadline: number }): Promise<SetupTokenLease>;
+  acquire(input: {
+    scope: SetupTokenSessionScope;
+    deadline: number;
+  }): Promise<SetupTokenLease>;
   release(lease: SetupTokenLease): Promise<void>;
   /** Releases a lease by id. The startup reaper uses this after a restart. */
   releaseById(leaseId: string): Promise<void>;
@@ -256,7 +272,10 @@ export interface SetupTokenCleanupStore {
    * Marks the state only when the full owner scope and the session id match. The
    * write never updates a row by the session id alone.
    */
-  markState(identity: SetupTokenCleanupIdentity, state: SetupTokenSessionState): Promise<void>;
+  markState(
+    identity: SetupTokenCleanupIdentity,
+    state: SetupTokenSessionState,
+  ): Promise<void>;
   /**
    * Deletes the record only when the full owner scope and the session id match.
    * The delete never removes a row by the session id alone, so a cross-scope
@@ -277,7 +296,9 @@ export interface SetupTokenCleanupStore {
    * already-consumed claim. It never reads the state or the expiry in a separate
    * step. The agent-service transaction calls this method.
    */
-  consumeStoredClaim(identity: SetupTokenCleanupIdentity): Promise<SetupTokenCleanupRecord | null>;
+  consumeStoredClaim(
+    identity: SetupTokenCleanupIdentity,
+  ): Promise<SetupTokenCleanupRecord | null>;
   /**
    * Cancels the exact durable row with one conditional write. The predicate
    * matches the full owner scope, the session id, and one of
@@ -300,7 +321,10 @@ export interface SetupTokenCleanupStore {
    * row.
    */
   findActiveDurable(
-    key: Pick<SetupTokenCleanupIdentity, "companyId" | "ownerUserId" | "adapterType">,
+    key: Pick<
+      SetupTokenCleanupIdentity,
+      "companyId" | "ownerUserId" | "adapterType"
+    >,
     now: number,
   ): Promise<SetupTokenCleanupRecord | null>;
 }
@@ -345,7 +369,9 @@ export async function reapSetupTokenLeases(
       released += 1;
     } catch {
       failed += 1;
-      log("[taskcore] Setup-token reaper: a lease release failed; it stays retryable.");
+      log(
+        "[taskcore] Setup-token reaper: a lease release failed; it stays retryable.",
+      );
     }
   }
   return { released, failed };
@@ -382,14 +408,20 @@ export const DEFAULT_SETUP_TOKEN_RETENTION_MS = 60_000;
 // The fixed, non-secret error texts. The route returns these verbatim and
 // echoes no input. A missing session and a cross-scope session share one text,
 // so a caller cannot tell them apart.
-export const SETUP_TOKEN_SESSION_NOT_FOUND = "Setup-token login session not found.";
-export const SETUP_TOKEN_SUBMIT_CONFLICT = "The setup-token login session cannot accept this code.";
-export const SETUP_TOKEN_RATE_LIMITED = "Too many setup-token login attempts. Try again later.";
-export const SETUP_TOKEN_CAP_EXCEEDED = "Too many active setup-token login sessions.";
+export const SETUP_TOKEN_SESSION_NOT_FOUND =
+  "Setup-token login session not found.";
+export const SETUP_TOKEN_SUBMIT_CONFLICT =
+  "The setup-token login session cannot accept this code.";
+export const SETUP_TOKEN_RATE_LIMITED =
+  "Too many setup-token login attempts. Try again later.";
+export const SETUP_TOKEN_CAP_EXCEEDED =
+  "Too many active setup-token login sessions.";
 // The fixed error for a completion that is not ready. The session is not
 // `completed` with a stored secret yet. It leaks no session state.
-export const SETUP_TOKEN_TOKEN_UNAVAILABLE = "The setup-token is not available for this session.";
-export const SETUP_TOKEN_START_FAILED = "The setup-token login session could not start.";
+export const SETUP_TOKEN_TOKEN_UNAVAILABLE =
+  "The setup-token is not available for this session.";
+export const SETUP_TOKEN_START_FAILED =
+  "The setup-token login session could not start.";
 // The fixed error for a sandbox provider that does not advertise the setup-token
 // login capability. Only a provider that implements the setup-token
 // pseudo-terminal methods can host the login. The route returns this specific,
@@ -397,10 +429,12 @@ export const SETUP_TOKEN_START_FAILED = "The setup-token login session could not
 // session row, a lease, or a pseudo-terminal.
 export const SETUP_TOKEN_PROVIDER_UNSUPPORTED =
   "The sandbox provider does not support the Claude setup-token login.";
-export const SETUP_TOKEN_PROVIDER_UNSUPPORTED_CODE = "setup_token_provider_unsupported";
+export const SETUP_TOKEN_PROVIDER_UNSUPPORTED_CODE =
+  "setup_token_provider_unsupported";
 // The fixed error for a failed owner-bound secret write. It carries no token and
 // no storage detail, so it leaks no secret.
-export const SETUP_TOKEN_STORAGE_FAILED = "The setup-token login could not store the credential.";
+export const SETUP_TOKEN_STORAGE_FAILED =
+  "The setup-token login could not store the credential.";
 
 /** A typed error the route maps to a fixed status and the fixed text above. */
 export class SetupTokenSessionError extends Error {
@@ -510,7 +544,9 @@ function addressMatchesEntry(address: string, entry: string): boolean {
   const candidate = entry.trim().toLowerCase();
   if (candidate.length === 0) return false;
 
-  const peerV4 = peer.startsWith("::ffff:") ? peer.slice("::ffff:".length) : peer;
+  const peerV4 = peer.startsWith("::ffff:")
+    ? peer.slice("::ffff:".length)
+    : peer;
 
   if (candidate.includes("/")) {
     const [network, prefixText] = candidate.split("/");
@@ -520,7 +556,8 @@ function addressMatchesEntry(address: string, entry: string): boolean {
     if (networkInt === null || peerInt === null) return false;
     if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) return false;
     if (prefix === 0) return true;
-    const mask = prefix === 32 ? 0xffffffff : (0xffffffff << (32 - prefix)) >>> 0;
+    const mask =
+      prefix === 32 ? 0xffffffff : (0xffffffff << (32 - prefix)) >>> 0;
     return (networkInt & mask) === (peerInt & mask);
   }
 
@@ -530,12 +567,17 @@ function addressMatchesEntry(address: string, entry: string): boolean {
   return candidateInt !== null && peerInt !== null && candidateInt === peerInt;
 }
 
-function peerMatchesAllowlist(address: string | undefined, allowlist: string[]): boolean {
+function peerMatchesAllowlist(
+  address: string | undefined,
+  allowlist: string[],
+): boolean {
   if (!address) return false;
   return allowlist.some((entry) => addressMatchesEntry(address, entry));
 }
 
-function forwardedProtoFirstHop(forwardedProto: string | undefined): string | null {
+function forwardedProtoFirstHop(
+  forwardedProto: string | undefined,
+): string | null {
   if (!forwardedProto) return null;
   const first = forwardedProto.split(",")[0]?.trim().toLowerCase();
   return first && first.length > 0 ? first : null;
@@ -571,7 +613,10 @@ export function evaluateConfidentialTransport(
   if (request.socketEncrypted) {
     return { allowed: true, reason: "direct_tls" };
   }
-  if (config.deploymentMode === "local_trusted" && isLoopbackAddress(request.remoteAddress)) {
+  if (
+    config.deploymentMode === "local_trusted" &&
+    isLoopbackAddress(request.remoteAddress)
+  ) {
     return { allowed: true, reason: "local_trusted_loopback" };
   }
   if (config.edgeTlsTerminated === true) {
@@ -602,15 +647,23 @@ export function evaluateConfidentialTransport(
  * runtime, because the runtime guard checks them first. The server logs the
  * returned reason so an operator can see why forwarded requests fail closed.
  */
-export function assessConfidentialStartup(config: ConfidentialTransportConfig): {
+export function assessConfidentialStartup(
+  config: ConfidentialTransportConfig,
+): {
   proxyForwardingEnabled: boolean;
   reason: string;
 } {
   if (config.edgeTlsTerminated === true) {
-    return { proxyForwardingEnabled: true, reason: "edge_tls_termination_declared" };
+    return {
+      proxyForwardingEnabled: true,
+      reason: "edge_tls_termination_declared",
+    };
   }
   if (config.trustedProxies.length > 0) {
-    return { proxyForwardingEnabled: true, reason: "proxy_allowlist_configured" };
+    return {
+      proxyForwardingEnabled: true,
+      reason: "proxy_allowlist_configured",
+    };
   }
   return {
     proxyForwardingEnabled: false,
@@ -765,7 +818,8 @@ export class SetupTokenSessionService {
     this.rateLimiter = options.rateLimiter;
     this.caps = options.caps ?? DEFAULT_SETUP_TOKEN_SESSION_CAPS;
     this.ttlMs = options.ttlMs ?? DEFAULT_SETUP_TOKEN_SESSION_TTL_MS;
-    this.tokenRetentionMs = options.tokenRetentionMs ?? DEFAULT_SETUP_TOKEN_RETENTION_MS;
+    this.tokenRetentionMs =
+      options.tokenRetentionMs ?? DEFAULT_SETUP_TOKEN_RETENTION_MS;
     this.now = options.now ?? Date.now;
     this.generateSessionId = options.generateSessionId ?? defaultSessionId;
     this.log = options.log ?? (() => {});
@@ -793,7 +847,10 @@ export class SetupTokenSessionService {
    * the failure path of {@link onCredential} calls {@link terminateLocked}, the
    * lock-free variant, for this reason.
    */
-  private async withSessionLock<T>(session: StoredSession, fn: () => Promise<T>): Promise<T> {
+  private async withSessionLock<T>(
+    session: StoredSession,
+    fn: () => Promise<T>,
+  ): Promise<T> {
     const prior = session.lock;
     let release: () => void = () => {};
     session.lock = new Promise<void>((resolve) => {
@@ -810,16 +867,23 @@ export class SetupTokenSessionService {
   private countActive(predicate: (session: StoredSession) => boolean): number {
     let count = 0;
     for (const session of this.sessions.values()) {
-      if (!isTerminalSessionState(session.state) && predicate(session)) count += 1;
+      if (!isTerminalSessionState(session.state) && predicate(session))
+        count += 1;
     }
     return count;
   }
 
-  private static incrementCount(counts: Map<string, number>, key: string): void {
+  private static incrementCount(
+    counts: Map<string, number>,
+    key: string,
+  ): void {
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
-  private static decrementCount(counts: Map<string, number>, key: string): void {
+  private static decrementCount(
+    counts: Map<string, number>,
+    key: string,
+  ): void {
     const next = (counts.get(key) ?? 0) - 1;
     if (next > 0) {
       counts.set(key, next);
@@ -831,9 +895,14 @@ export class SetupTokenSessionService {
   /** Builds the company, owner, and adapter slot key. The reservation and the
    *  database active-slot unique index share this identity. */
   private static slotKey(
-    scope: Pick<SetupTokenSessionScope, "companyId" | "ownerUserId" | "adapterType">,
+    scope: Pick<
+      SetupTokenSessionScope,
+      "companyId" | "ownerUserId" | "adapterType"
+    >,
   ): string {
-    return [scope.companyId, scope.ownerUserId, scope.adapterType].join("\u0000");
+    return [scope.companyId, scope.ownerUserId, scope.adapterType].join(
+      "\u0000",
+    );
   }
 
   /**
@@ -851,11 +920,16 @@ export class SetupTokenSessionService {
     if ((this.reservedBySlot.get(slotKey) ?? 0) >= this.caps.perOwner) {
       throw new SetupTokenSessionError(429, SETUP_TOKEN_CAP_EXCEEDED);
     }
-    if ((this.reservedByCompany.get(scope.companyId) ?? 0) >= this.caps.perCompany) {
+    if (
+      (this.reservedByCompany.get(scope.companyId) ?? 0) >= this.caps.perCompany
+    ) {
       throw new SetupTokenSessionError(429, SETUP_TOKEN_CAP_EXCEEDED);
     }
     SetupTokenSessionService.incrementCount(this.reservedBySlot, slotKey);
-    SetupTokenSessionService.incrementCount(this.reservedByCompany, scope.companyId);
+    SetupTokenSessionService.incrementCount(
+      this.reservedByCompany,
+      scope.companyId,
+    );
     return {
       released: false,
       companyId: scope.companyId,
@@ -872,8 +946,14 @@ export class SetupTokenSessionService {
   private releaseReservation(reservation: CapReservation): void {
     if (reservation.released) return;
     reservation.released = true;
-    SetupTokenSessionService.decrementCount(this.reservedBySlot, reservation.slotKey);
-    SetupTokenSessionService.decrementCount(this.reservedByCompany, reservation.companyId);
+    SetupTokenSessionService.decrementCount(
+      this.reservedBySlot,
+      reservation.slotKey,
+    );
+    SetupTokenSessionService.decrementCount(
+      this.reservedByCompany,
+      reservation.companyId,
+    );
   }
 
   /**
@@ -882,8 +962,12 @@ export class SetupTokenSessionService {
    * persists the non-secret cleanup record, and starts the one live process.
    * It returns the opaque session id and no token.
    */
-  async start(scope: SetupTokenSessionScope): Promise<{ sessionId: string; state: SetupTokenSessionState }> {
-    const rate = this.rateLimiter.consume(`${scope.companyId}:${scope.ownerUserId}`);
+  async start(
+    scope: SetupTokenSessionScope,
+  ): Promise<{ sessionId: string; state: SetupTokenSessionState }> {
+    const rate = this.rateLimiter.consume(
+      `${scope.companyId}:${scope.ownerUserId}`,
+    );
     if (!rate.allowed) {
       throw new SetupTokenSessionError(429, SETUP_TOKEN_RATE_LIMITED);
     }
@@ -996,7 +1080,9 @@ export class SetupTokenSessionService {
     session.loginUrl = prompt.url;
     if (session.state === "starting") {
       session.state = "awaiting_code";
-      void this.store.markState(this.identityOf(session), "awaiting_code").catch(() => {});
+      void this.store
+        .markState(this.identityOf(session), "awaiting_code")
+        .catch(() => {});
     }
   }
 
@@ -1033,7 +1119,10 @@ export class SetupTokenSessionService {
    * the rejection ends the login as a failure and the process never reports
    * success.
    */
-  private async onCredential(session: StoredSession, token: string): Promise<void> {
+  private async onCredential(
+    session: StoredSession,
+    token: string,
+  ): Promise<void> {
     await this.withSessionLock(session, async () => {
       // A cancel or an expiry won the lock first and set a terminal state. Do not
       // write the secret for a terminal session. Fail closed with the fixed,
@@ -1045,7 +1134,11 @@ export class SetupTokenSessionService {
         // The writer transitions the durable row to `stored` and writes the
         // secret in one transaction. A zero-row transition or a storage failure
         // rejects and rolls back both.
-        await this.completeCredential({ scope: session.scope, sessionId: session.id, token });
+        await this.completeCredential({
+          scope: session.scope,
+          sessionId: session.id,
+          token,
+        });
       } catch {
         await this.terminateLocked(session, "failed");
         throw new SetupTokenSessionError(500, SETUP_TOKEN_STORAGE_FAILED);
@@ -1065,7 +1158,10 @@ export class SetupTokenSessionService {
    * tell them apart. The scope match makes a cross-company, a cross-owner, and a
    * cross-adapter session return the same not-found error as a missing session.
    */
-  private resolveOwned(sessionId: string, scope: SetupTokenSessionScope): StoredSession {
+  private resolveOwned(
+    sessionId: string,
+    scope: SetupTokenSessionScope,
+  ): StoredSession {
     const session = this.sessions.get(sessionId);
     if (
       !session ||
@@ -1114,7 +1210,10 @@ export class SetupTokenSessionService {
    * projects the descriptor: the public status response drops the login URL; the
    * owner prompt response returns the login URL behind the transport guard.
    */
-  describeOwned(sessionId: string, scope: SetupTokenSessionScope): SetupTokenSessionDescriptor {
+  describeOwned(
+    sessionId: string,
+    scope: SetupTokenSessionScope,
+  ): SetupTokenSessionDescriptor {
     const session = this.resolveOwned(sessionId, scope);
     return {
       sessionId: session.id,
@@ -1122,7 +1221,9 @@ export class SetupTokenSessionService {
       environmentId: session.scope.environmentId,
       deadline: session.deadline,
       loginUrl: session.loginUrl,
-      ...(session.scope.aiConnection ? { aiConnection: session.scope.aiConnection } : {}),
+      ...(session.scope.aiConnection
+        ? { aiConnection: session.scope.aiConnection }
+        : {}),
     };
   }
 
@@ -1131,7 +1232,10 @@ export class SetupTokenSessionService {
    * only in this response (SR-5). The route sets `Cache-Control: no-store` and
    * applies the confidential transport guard before it calls this method.
    */
-  readPrompt(sessionId: string, scope: SetupTokenSessionScope): SetupTokenPromptView {
+  readPrompt(
+    sessionId: string,
+    scope: SetupTokenSessionScope,
+  ): SetupTokenPromptView {
     const session = this.resolveOwned(sessionId, scope);
     return { state: session.state, loginUrl: session.loginUrl };
   }
@@ -1142,13 +1246,19 @@ export class SetupTokenSessionService {
    * one time. It rejects every later submit, including one after an
    * invalid-code retry (SR-3).
    */
-  submitCode(sessionId: string, scope: SetupTokenSessionScope, code: string): { state: SetupTokenSessionState } {
+  submitCode(
+    sessionId: string,
+    scope: SetupTokenSessionScope,
+    code: string,
+  ): { state: SetupTokenSessionState } {
     const session = this.resolveOwned(sessionId, scope);
     if (session.state !== "awaiting_code") {
       throw new SetupTokenSessionError(409, SETUP_TOKEN_SUBMIT_CONFLICT);
     }
     session.state = "submitting";
-    void this.store.markState(this.identityOf(session), "submitting").catch(() => {});
+    void this.store
+      .markState(this.identityOf(session), "submitting")
+      .catch(() => {});
     session.process.submitCode(code);
     return { state: session.state };
   }
@@ -1157,7 +1267,10 @@ export class SetupTokenSessionService {
    * Cancels a session. It stops the direct child before it releases the lease.
    * It is idempotent: a cancel on a terminal session returns the terminal state.
    */
-  async cancel(sessionId: string, scope: SetupTokenSessionScope): Promise<{ state: SetupTokenSessionState }> {
+  async cancel(
+    sessionId: string,
+    scope: SetupTokenSessionScope,
+  ): Promise<{ state: SetupTokenSessionState }> {
     const session = this.resolveOwned(sessionId, scope);
     if (isTerminalSessionState(session.state)) {
       return { state: session.state };
@@ -1181,7 +1294,10 @@ export class SetupTokenSessionService {
    * reject.
    */
   async findActiveByScope(
-    key: Pick<SetupTokenSessionScope, "companyId" | "ownerUserId" | "adapterType">,
+    key: Pick<
+      SetupTokenSessionScope,
+      "companyId" | "ownerUserId" | "adapterType"
+    >,
   ): Promise<SetupTokenSessionDescriptor | null> {
     for (const session of this.sessions.values()) {
       if (isTerminalSessionState(session.state)) continue;
@@ -1220,7 +1336,10 @@ export class SetupTokenSessionService {
    */
   async cancelByScope(
     sessionId: string,
-    key: Pick<SetupTokenSessionScope, "companyId" | "ownerUserId" | "adapterType">,
+    key: Pick<
+      SetupTokenSessionScope,
+      "companyId" | "ownerUserId" | "adapterType"
+    >,
   ): Promise<{ state: SetupTokenSessionState }> {
     const session = this.sessions.get(sessionId);
     if (
@@ -1232,7 +1351,10 @@ export class SetupTokenSessionService {
       return this.cancel(sessionId, session.scope);
     }
     const identity: SetupTokenCleanupIdentity = { sessionId, ...key };
-    const cancelled = await this.store.cancelDurable(identity, SETUP_TOKEN_CANCELLABLE_STATES);
+    const cancelled = await this.store.cancelDurable(
+      identity,
+      SETUP_TOKEN_CANCELLABLE_STATES,
+    );
     if (!cancelled) {
       throw new SetupTokenSessionError(404, SETUP_TOKEN_SESSION_NOT_FOUND);
     }
@@ -1244,7 +1366,10 @@ export class SetupTokenSessionService {
    * the lease. The harness can call it, and the deadline timer calls the same
    * path internally.
    */
-  async expire(sessionId: string, scope: SetupTokenSessionScope): Promise<{ state: SetupTokenSessionState }> {
+  async expire(
+    sessionId: string,
+    scope: SetupTokenSessionScope,
+  ): Promise<{ state: SetupTokenSessionState }> {
     const session = this.resolveOwned(sessionId, scope);
     if (isTerminalSessionState(session.state)) {
       return { state: session.state };
@@ -1271,7 +1396,10 @@ export class SetupTokenSessionService {
    * claim; the agent-create transaction consumes it. The route sets
    * `Cache-Control: no-store` before it calls this method.
    */
-  completeSession(sessionId: string, scope: SetupTokenSessionScope): SetupTokenCompletionView {
+  completeSession(
+    sessionId: string,
+    scope: SetupTokenSessionScope,
+  ): SetupTokenCompletionView {
     const session = this.resolveOwned(sessionId, scope);
     if (session.state !== "completed" || !session.secretStored) {
       throw new SetupTokenSessionError(409, SETUP_TOKEN_TOKEN_UNAVAILABLE);
@@ -1286,8 +1414,13 @@ export class SetupTokenSessionService {
    * write (complete mediation). The order stops the child before the lease
    * release on every terminal path.
    */
-  private async terminate(session: StoredSession, state: SetupTokenSessionState): Promise<void> {
-    await this.withSessionLock(session, () => this.terminateLocked(session, state));
+  private async terminate(
+    session: StoredSession,
+    state: SetupTokenSessionState,
+  ): Promise<void> {
+    await this.withSessionLock(session, () =>
+      this.terminateLocked(session, state),
+    );
   }
 
   /**
@@ -1301,15 +1434,22 @@ export class SetupTokenSessionService {
    * terminal API report the completed state after a successful write, rather than
    * erase it.
    */
-  private async terminateLocked(session: StoredSession, state: SetupTokenSessionState): Promise<void> {
+  private async terminateLocked(
+    session: StoredSession,
+    state: SetupTokenSessionState,
+  ): Promise<void> {
     if (isTerminalSessionState(session.state)) return;
-    const resolved: SetupTokenSessionState = session.secretStored ? "completed" : state;
+    const resolved: SetupTokenSessionState = session.secretStored
+      ? "completed"
+      : state;
     session.state = resolved;
     session.abort.abort();
     try {
       session.process.stop();
     } catch {
-      this.log("[taskcore] Setup-token session: the process stop step errored.");
+      this.log(
+        "[taskcore] Setup-token session: the process stop step errored.",
+      );
     }
     await this.runCleanup(session, resolved);
   }
@@ -1319,17 +1459,20 @@ export class SetupTokenSessionService {
    * under the per-session lock. A cancel or an expire already set the state, so
    * this call is a no-op then.
    */
-  private async onProcessDone(session: StoredSession, outcome: SetupTokenLoginOutcome): Promise<void> {
+  private async onProcessDone(
+    session: StoredSession,
+    outcome: SetupTokenLoginOutcome,
+  ): Promise<void> {
     await this.withSessionLock(session, async () => {
       if (isTerminalSessionState(session.state) && session.cleanupDone) return;
       const state: SetupTokenSessionState =
         outcome === "success"
           ? "completed"
           : outcome === "timeout"
-          ? "timed_out"
-          : outcome === "cancelled"
-          ? "cancelled"
-          : "failed";
+            ? "timed_out"
+            : outcome === "cancelled"
+              ? "cancelled"
+              : "failed";
       if (!isTerminalSessionState(session.state)) {
         session.state = state;
       }
@@ -1350,7 +1493,10 @@ export class SetupTokenSessionService {
    * sandbox lease at once. It retains the in-memory session for the retention
    * window, so the owner can read the completion once.
    */
-  private async runCleanup(session: StoredSession, state: SetupTokenSessionState): Promise<void> {
+  private async runCleanup(
+    session: StoredSession,
+    state: SetupTokenSessionState,
+  ): Promise<void> {
     if (session.cleanupDone) return;
     session.cleanupDone = true;
     // Release the capacity reservation as the session reaches a terminal state.
@@ -1368,21 +1514,29 @@ export class SetupTokenSessionService {
       try {
         await this.store.markState(this.identityOf(session), state);
       } catch {
-        this.log("[taskcore] Setup-token session: the cleanup record update failed; it stays retryable.");
+        this.log(
+          "[taskcore] Setup-token session: the cleanup record update failed; it stays retryable.",
+        );
       }
     }
     await this.releaseLeaseSafely(session.lease);
     if (storedClaim) {
       // Keep the durable row as the stored-session claim. Retain the in-memory
       // session for the owner to read the completion one time.
-      session.retentionTimer = setTimeout(() => this.purgeRetained(session.id), this.tokenRetentionMs);
-      if (typeof session.retentionTimer.unref === "function") session.retentionTimer.unref();
+      session.retentionTimer = setTimeout(
+        () => this.purgeRetained(session.id),
+        this.tokenRetentionMs,
+      );
+      if (typeof session.retentionTimer.unref === "function")
+        session.retentionTimer.unref();
       return;
     }
     try {
       await this.store.remove(this.identityOf(session));
     } catch {
-      this.log("[taskcore] Setup-token session: the cleanup record removal failed; it stays retryable.");
+      this.log(
+        "[taskcore] Setup-token session: the cleanup record removal failed; it stays retryable.",
+      );
     }
     this.sessions.delete(session.id);
   }
@@ -1408,7 +1562,9 @@ export class SetupTokenSessionService {
     } catch {
       // The lease release stays retryable and alertable. The startup reaper
       // releases any lease that a crash or a failure left behind.
-      this.log("[taskcore] Setup-token session: the lease release failed; the reaper retries it.");
+      this.log(
+        "[taskcore] Setup-token session: the lease release failed; the reaper retries it.",
+      );
     }
   }
 
@@ -1420,7 +1576,10 @@ export class SetupTokenSessionService {
    * scheduled reaper calls the same {@link reapSetupTokenLeases} logic.
    */
   async reap(now: number = this.now()): Promise<SetupTokenReapResult> {
-    return reapSetupTokenLeases({ store: this.store, leases: this.leases, log: this.log }, now);
+    return reapSetupTokenLeases(
+      { store: this.store, leases: this.leases, log: this.log },
+      now,
+    );
   }
 
   /**
@@ -1428,7 +1587,9 @@ export class SetupTokenSessionService {
    * stops each direct child before it releases each lease (SR-4).
    */
   async shutdown(): Promise<void> {
-    const live = [...this.sessions.values()].filter((s) => !isTerminalSessionState(s.state));
+    const live = [...this.sessions.values()].filter(
+      (s) => !isTerminalSessionState(s.state),
+    );
     for (const session of live) {
       await this.terminate(session, "cancelled");
     }
@@ -1483,7 +1644,10 @@ function setupTokenScopeMatch(identity: SetupTokenCleanupIdentity) {
     eq(adapterAuthSessions.publicSessionId, identity.sessionId),
     eq(adapterAuthSessions.companyId, identity.companyId),
     eq(adapterAuthSessions.startedByUserId, identity.ownerUserId),
-    eq(adapterAuthSessions.adapterType, identity.adapterType as AgentAdapterType),
+    eq(
+      adapterAuthSessions.adapterType,
+      identity.adapterType as AgentAdapterType,
+    ),
   );
 }
 
@@ -1492,11 +1656,8 @@ function setupTokenScopeMatch(identity: SetupTokenCleanupIdentity) {
  * The atomic claim writer transitions a row to `stored` only from one of these
  * states. It never transitions a terminal, an already-`stored`, or a foreign row.
  */
-export const SETUP_TOKEN_STORED_PREDECESSOR_STATES: readonly SetupTokenSessionState[] = [
-  "starting",
-  "awaiting_code",
-  "submitting",
-];
+export const SETUP_TOKEN_STORED_PREDECESSOR_STATES: readonly SetupTokenSessionState[] =
+  ["starting", "awaiting_code", "submitting"];
 
 /**
  * Transitions the exact session row to `stored` with one conditional update. The
@@ -1521,7 +1682,9 @@ export async function transitionSetupTokenSessionToStored(
     .where(
       and(
         setupTokenScopeMatch(identity),
-        inArray(adapterAuthSessions.status, [...SETUP_TOKEN_STORED_PREDECESSOR_STATES]),
+        inArray(adapterAuthSessions.status, [
+          ...SETUP_TOKEN_STORED_PREDECESSOR_STATES,
+        ]),
         gt(adapterAuthSessions.expiresAt, sql`clock_timestamp()`),
         isNull(adapterAuthSessions.boundAt),
       ),
@@ -1586,7 +1749,9 @@ export function createDbSetupTokenCleanupStore(db: Db): SetupTokenCleanupStore {
           and(
             eq(adapterAuthSessions.adapterType, SETUP_TOKEN_ADAPTER_TYPE),
             or(
-              inArray(adapterAuthSessions.status, [...SETUP_TOKEN_TERMINAL_STATES]),
+              inArray(adapterAuthSessions.status, [
+                ...SETUP_TOKEN_TERMINAL_STATES,
+              ]),
               lte(adapterAuthSessions.expiresAt, new Date(now)),
               isNotNull(adapterAuthSessions.boundAt),
             ),
@@ -1595,7 +1760,9 @@ export function createDbSetupTokenCleanupStore(db: Db): SetupTokenCleanupStore {
       return rows.map(toCleanupRecord);
     },
 
-    async consumeStoredClaim(identity): Promise<SetupTokenCleanupRecord | null> {
+    async consumeStoredClaim(
+      identity,
+    ): Promise<SetupTokenCleanupRecord | null> {
       // One conditional write. The predicate carries the company, the owner, the
       // adapter, the session id, `status = stored`, an unexpired deadline, and an
       // unconsumed marker. It checks the deadline with `clock_timestamp()`, so the
@@ -1604,7 +1771,10 @@ export function createDbSetupTokenCleanupStore(db: Db): SetupTokenCleanupStore {
       // time and returns the row only on a valid consume.
       const changed = await db
         .update(adapterAuthSessions)
-        .set({ boundAt: sql`clock_timestamp()`, updatedAt: sql`clock_timestamp()` })
+        .set({
+          boundAt: sql`clock_timestamp()`,
+          updatedAt: sql`clock_timestamp()`,
+        })
         .where(
           and(
             scopeMatch(identity),
@@ -1618,7 +1788,10 @@ export function createDbSetupTokenCleanupStore(db: Db): SetupTokenCleanupStore {
       return row ? toCleanupRecord(row) : null;
     },
 
-    async cancelDurable(identity, cancellableStates): Promise<SetupTokenCleanupRecord | null> {
+    async cancelDurable(
+      identity,
+      cancellableStates,
+    ): Promise<SetupTokenCleanupRecord | null> {
       // One conditional write. The predicate carries the company, the owner, the
       // adapter, the session id, and one of `cancellableStates`. It never
       // interrupts a `submitting` write, a `stored` claim, or a terminal row.
@@ -1629,7 +1802,12 @@ export function createDbSetupTokenCleanupStore(db: Db): SetupTokenCleanupStore {
           finishedAt: sql`clock_timestamp()`,
           updatedAt: sql`clock_timestamp()`,
         })
-        .where(and(scopeMatch(identity), inArray(adapterAuthSessions.status, [...cancellableStates])))
+        .where(
+          and(
+            scopeMatch(identity),
+            inArray(adapterAuthSessions.status, [...cancellableStates]),
+          ),
+        )
         .returning();
       const row = changed[0];
       return row ? toCleanupRecord(row) : null;
@@ -1646,8 +1824,13 @@ export function createDbSetupTokenCleanupStore(db: Db): SetupTokenCleanupStore {
           and(
             eq(adapterAuthSessions.companyId, key.companyId),
             eq(adapterAuthSessions.startedByUserId, key.ownerUserId),
-            eq(adapterAuthSessions.adapterType, key.adapterType as AgentAdapterType),
-            notInArray(adapterAuthSessions.status, [...SETUP_TOKEN_TERMINAL_STATES]),
+            eq(
+              adapterAuthSessions.adapterType,
+              key.adapterType as AgentAdapterType,
+            ),
+            notInArray(adapterAuthSessions.status, [
+              ...SETUP_TOKEN_TERMINAL_STATES,
+            ]),
             gt(adapterAuthSessions.expiresAt, new Date(now)),
           ),
         )

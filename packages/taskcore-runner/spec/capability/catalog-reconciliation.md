@@ -14,17 +14,17 @@ divergence. **TASK-17039 performed the physical collapse:** the authoritative
 operation list, placement, required claims, and task-mode policy now live once in
 `src/catalog/canonical-operations.ts`, and both catalog modules derive from it —
 neither declares an independent operation list or an independent claim/mode
-policy any longer. Each catalog supplies only its per-surface *presentation*
+policy any longer. Each catalog supplies only its per-surface _presentation_
 (title, description, input/output schema, and the scenario-only mock mapping and
 redaction rules), and a bidirectional parity check fails the build if either
 catalog's presentation set drifts from the canonical surface.
 
 ## The two catalogs
 
-| Catalog | Module | Count | Descriptor | Consumers |
-| --- | --- | --- | --- | --- |
-| Scenario / eval | `src/tools/` | 37 (14 always + 23 optional) | Rich: placement (`disposition`), `sideEffectClass`, `idempotency`, `redaction`, `mockCommandMapping` | `src/scenarios/*`, `src/conformance/*`; package-root default export |
-| Live runtime | `src/semantic-tools/` | 28 (13 always + 15 optional) | Live: `exposure`, `allowedModes`, `disabledByDefault`, provider input/output schemas; runtime dispatcher + policy + redaction | `src/live/*` (live Codex), `src/issue-thread/*`, generated `semantic-tool-contracts.json`; package-root `acceptedCapabilitySemanticTools` |
+| Catalog         | Module                | Count                        | Descriptor                                                                                                                    | Consumers                                                                                                                                 |
+| --------------- | --------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Scenario / eval | `src/tools/`          | 37 (14 always + 23 optional) | Rich: placement (`disposition`), `sideEffectClass`, `idempotency`, `redaction`, `mockCommandMapping`                          | `src/scenarios/*`, `src/conformance/*`; package-root default export                                                                       |
+| Live runtime    | `src/semantic-tools/` | 28 (13 always + 15 optional) | Live: `exposure`, `allowedModes`, `disabledByDefault`, provider input/output schemas; runtime dispatcher + policy + redaction | `src/live/*` (live Codex), `src/issue-thread/*`, generated `semantic-tool-contracts.json`; package-root `acceptedCapabilitySemanticTools` |
 
 Reconciled op-set relationship (pinned by the drift test):
 

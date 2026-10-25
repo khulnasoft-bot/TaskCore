@@ -29,14 +29,23 @@ vi.mock("@/api/agents", () => ({ agentsApi: mockAgentsApi }));
 vi.mock("@/api/auth", () => ({ authApi: mockAuthApi }));
 vi.mock("@/api/issues", () => ({ issuesApi: mockIssuesApi }));
 vi.mock("@/lib/router", () => ({
-  NavLink: ({ children, to, className, ...props }: {
+  NavLink: ({
+    children,
+    to,
+    className,
+    ...props
+  }: {
     children: ReactNode;
     to: string;
     className?: string | ((state: { isActive: boolean }) => string);
   }) => (
     <a
       href={to}
-      className={typeof className === "function" ? className({ isActive: false }) : className}
+      className={
+        typeof className === "function"
+          ? className({ isActive: false })
+          : className
+      }
       {...props}
     >
       {children}
@@ -68,7 +77,12 @@ describe("SidebarRecentTasks", () => {
     root = createRoot(container);
     mockAuthApi.getSession.mockResolvedValue({
       session: { id: "session-1", userId: "user-1" },
-      user: { id: "user-1", name: "Board", email: "board@example.test", image: null },
+      user: {
+        id: "user-1",
+        name: "Board",
+        email: "board@example.test",
+        image: null,
+      },
     });
   });
 
@@ -80,12 +94,17 @@ describe("SidebarRecentTasks", () => {
   });
 
   async function render() {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     await act(async () => {
       root.render(
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <SidebarRecentTasks companyId="company-1" liveIssueIds={new Set(["issue-1"])} />
+            <SidebarRecentTasks
+              companyId="company-1"
+              liveIssueIds={new Set(["issue-1"])}
+            />
           </TooltipProvider>
         </QueryClientProvider>,
       );
@@ -104,18 +123,24 @@ describe("SidebarRecentTasks", () => {
       `button[aria-label="More actions for ${taskTitle}"]`,
     );
     await act(async () => {
-      actions?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      actions?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true }),
+      );
       await Promise.resolve();
     });
   }
 
   function menuItem(label: string) {
-    return Array.from(document.body.querySelectorAll<HTMLElement>('[role="menuitem"]'))
-      .find((item) => item.textContent?.trim() === label);
+    return Array.from(
+      document.body.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    ).find((item) => item.textContent?.trim() === label);
   }
 
   function setInputValue(input: HTMLInputElement, value: string) {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )?.set;
     setter?.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
@@ -127,14 +152,17 @@ describe("SidebarRecentTasks", () => {
   });
 
   it("renders refreshed task text and live state without shifting for a status icon", async () => {
-    recordRecentTask({
-      id: "issue-1",
-      companyId: "company-1",
-      title: "Initial title",
-      identifier: "PAP-1",
-      status: "todo",
-      updatedAt: new Date(1),
-    }, "user-1");
+    recordRecentTask(
+      {
+        id: "issue-1",
+        companyId: "company-1",
+        title: "Initial title",
+        identifier: "PAP-1",
+        status: "todo",
+        updatedAt: new Date(1),
+      },
+      "user-1",
+    );
     mockIssuesApi.get.mockResolvedValue({
       id: "issue-1",
       companyId: "company-1",
@@ -155,13 +183,17 @@ describe("SidebarRecentTasks", () => {
 
     const link = container.querySelector('a[href="/issues/issue-1"]');
     expect(mockIssuesApi.get).toHaveBeenCalledWith("issue-1");
-    expect(queryClient.getQueryData(["issues", "detail", "issue-1"])).toMatchObject({
+    expect(
+      queryClient.getQueryData(["issues", "detail", "issue-1"]),
+    ).toMatchObject({
       title: "Refreshed title",
     });
     expect(link?.textContent).toContain("Refreshed title");
     expect(link?.textContent).toContain("1 live");
     expect(link?.querySelector('[aria-label="In Progress"]')).toBeNull();
-    expect(link?.querySelector('[data-slot="recent-task-icon-spacer"]')).toBeNull();
+    expect(
+      link?.querySelector('[data-slot="recent-task-icon-spacer"]'),
+    ).toBeNull();
     expect(link?.querySelector('[data-slot="sidebar-nav-icon"]')).toBeNull();
     expect(link?.firstElementChild?.textContent).toBe("Refreshed title");
     const actions = container.querySelector<HTMLButtonElement>(
@@ -182,10 +214,19 @@ describe("SidebarRecentTasks", () => {
       updatedAt: new Date(id),
     }));
     tasks.forEach((task) => recordRecentTask(task, "user-1"));
-    mockIssuesApi.get.mockImplementation(async (id: string) => tasks.find((task) => task.id === id));
+    mockIssuesApi.get.mockImplementation(async (id: string) =>
+      tasks.find((task) => task.id === id),
+    );
     const queryClient = await render();
-    const order = () => Array.from(container.querySelectorAll("a")).map((link) => link.getAttribute("href"));
-    const originalOrder = ["/issues/issue-3", "/issues/issue-2", "/issues/issue-1"];
+    const order = () =>
+      Array.from(container.querySelectorAll("a")).map((link) =>
+        link.getAttribute("href"),
+      );
+    const originalOrder = [
+      "/issues/issue-3",
+      "/issues/issue-2",
+      "/issues/issue-1",
+    ];
     expect(order()).toEqual(originalOrder);
     vi.useFakeTimers();
 
@@ -193,27 +234,43 @@ describe("SidebarRecentTasks", () => {
       const task = tasks[index % 2]!;
       await act(async () => {
         queryClient.setQueryData(queryKeys.issues.detail(task.id), {
-          ...task, title: `Updated ${task.id}`, updatedAt: new Date(100 + index),
+          ...task,
+          title: `Updated ${task.id}`,
+          updatedAt: new Date(100 + index),
         });
         await vi.advanceTimersByTimeAsync(0);
       });
-      await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
       expect(order()).toEqual(originalOrder);
       expect(container.textContent).toContain(`Updated ${task.id}`);
     }
 
-    await act(async () => { await vi.advanceTimersByTimeAsync(499); });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(499);
+    });
     expect(order()).toEqual(originalOrder);
-    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    expect(order()).toEqual(["/issues/issue-2", "/issues/issue-1", "/issues/issue-3"]);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(order()).toEqual([
+      "/issues/issue-2",
+      "/issues/issue-1",
+      "/issues/issue-3",
+    ]);
     expect(mockIssuesApi.get).toHaveBeenCalledTimes(3);
     queryClient.clear();
   });
 
   it("adds and removes tasks immediately while an activity reorder is pending", async () => {
     const task = (id: string, recordedAt: number) => ({
-      id, companyId: "company-1", title: id, identifier: id,
-      status: "todo" as const, updatedAt: new Date(recordedAt),
+      id,
+      companyId: "company-1",
+      title: id,
+      identifier: id,
+      status: "todo" as const,
+      updatedAt: new Date(recordedAt),
     });
     recordRecentTask(task("first", 1), "user-1");
     recordRecentTask(task("second", 2), "user-1");
@@ -221,28 +278,43 @@ describe("SidebarRecentTasks", () => {
     const queryClient = await render();
     vi.useFakeTimers();
     act(() => recordRecentTask(task("first", 3), "user-1"));
-    expect(container.querySelector("a")?.getAttribute("href")).toBe("/issues/second");
+    expect(container.querySelector("a")?.getAttribute("href")).toBe(
+      "/issues/second",
+    );
     await act(async () => {
       recordRecentTask(task("new", 4), "user-1");
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(container.querySelector("a")?.getAttribute("href")).toBe("/issues/new");
-    act(() => pruneRecentTasks(getRecentTasksStorageKey("company-1", "user-1"), "company-1", new Set(["second"])));
+    expect(container.querySelector("a")?.getAttribute("href")).toBe(
+      "/issues/new",
+    );
+    act(() =>
+      pruneRecentTasks(
+        getRecentTasksStorageKey("company-1", "user-1"),
+        "company-1",
+        new Set(["second"]),
+      ),
+    );
     expect(container.querySelector('a[href="/issues/second"]')).toBeNull();
-    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
     expect(container.querySelector('a[href="/issues/second"]')).toBeNull();
     queryClient.clear();
   });
 
   it("opens the compact task actions menu from the ellipsis button", async () => {
-    recordRecentTask({
-      id: "issue-1",
-      companyId: "company-1",
-      title: "Menu task",
-      identifier: "PAP-1",
-      status: "todo",
-      updatedAt: new Date(1),
-    }, "user-1");
+    recordRecentTask(
+      {
+        id: "issue-1",
+        companyId: "company-1",
+        title: "Menu task",
+        identifier: "PAP-1",
+        status: "todo",
+        updatedAt: new Date(1),
+      },
+      "user-1",
+    );
     mockIssuesApi.get.mockResolvedValue({
       id: "issue-1",
       companyId: "company-1",
@@ -256,7 +328,9 @@ describe("SidebarRecentTasks", () => {
     await render();
     await openActions("Menu task");
 
-    const menu = document.body.querySelector('[data-slot="dropdown-menu-content"]');
+    const menu = document.body.querySelector(
+      '[data-slot="dropdown-menu-content"]',
+    );
     expect(menu?.textContent).toContain("Rename");
     expect(menu?.textContent).toContain("Archive");
     expect(menu?.textContent).toContain("Pause/Restart");
@@ -264,9 +338,14 @@ describe("SidebarRecentTasks", () => {
 
   it("keeps an idle Slack conversation in recent history and labels it Idle", async () => {
     const issue = {
-      id: "issue-1", companyId: "company-1", title: "Slack conversation", identifier: "PAP-1",
-      status: "in_review" as const, externalConversationState: "waiting" as const,
-      updatedAt: new Date(1), hiddenAt: null,
+      id: "issue-1",
+      companyId: "company-1",
+      title: "Slack conversation",
+      identifier: "PAP-1",
+      status: "in_review" as const,
+      externalConversationState: "waiting" as const,
+      updatedAt: new Date(1),
+      hiddenAt: null,
     };
     recordRecentTask(issue, "user-1");
     mockIssuesApi.get.mockResolvedValue(issue);
@@ -295,7 +374,9 @@ describe("SidebarRecentTasks", () => {
     await render();
     await openActions("Archive me");
     await act(async () => {
-      menuItem("Archive")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      menuItem("Archive")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await Promise.resolve();
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
@@ -303,13 +384,15 @@ describe("SidebarRecentTasks", () => {
     expect(mockIssuesApi.archiveFromInbox).toHaveBeenCalledWith("issue-1");
     expect(mockIssuesApi.update).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Recent Tasks");
-    expect(container.querySelector('a[href="/issues/issue-1"]')?.textContent).toContain(
-      "Archive me",
-    );
-    expect(readRecentTasks(
-      getRecentTasksStorageKey("company-1", "user-1"),
-      "company-1",
-    )).toHaveLength(1);
+    expect(
+      container.querySelector('a[href="/issues/issue-1"]')?.textContent,
+    ).toContain("Archive me");
+    expect(
+      readRecentTasks(
+        getRecentTasksStorageKey("company-1", "user-1"),
+        "company-1",
+      ),
+    ).toHaveLength(1);
   });
 
   it("refreshes task activity after a rename", async () => {
@@ -322,7 +405,11 @@ describe("SidebarRecentTasks", () => {
       hiddenAt: null,
       updatedAt: new Date(1),
     };
-    const renamedIssue = { ...issue, title: "New title", updatedAt: new Date(2) };
+    const renamedIssue = {
+      ...issue,
+      title: "New title",
+      updatedAt: new Date(2),
+    };
     recordRecentTask(issue, "user-1");
     mockIssuesApi.get.mockResolvedValue(issue);
     mockIssuesApi.update.mockResolvedValue(renamedIssue);
@@ -331,23 +418,33 @@ describe("SidebarRecentTasks", () => {
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
     await openActions("Old title");
     await act(async () => {
-      menuItem("Rename")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      menuItem("Rename")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await Promise.resolve();
     });
 
-    const input = document.body.querySelector<HTMLInputElement>('input[aria-label="Task name"]');
+    const input = document.body.querySelector<HTMLInputElement>(
+      'input[aria-label="Task name"]',
+    );
     expect(input).not.toBeNull();
     await act(async () => {
       setInputValue(input!, "New title");
       await Promise.resolve();
     });
     await act(async () => {
-      input?.closest("form")?.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true }));
+      input
+        ?.closest("form")
+        ?.dispatchEvent(
+          new SubmitEvent("submit", { bubbles: true, cancelable: true }),
+        );
       await Promise.resolve();
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
 
-    expect(mockIssuesApi.update).toHaveBeenCalledWith("issue-1", { title: "New title" });
+    expect(mockIssuesApi.update).toHaveBeenCalledWith("issue-1", {
+      title: "New title",
+    });
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: queryKeys.issues.activity("issue-1"),
     });
@@ -386,7 +483,9 @@ describe("SidebarRecentTasks", () => {
     await render();
     await openActions("Toggle work");
     await act(async () => {
-      menuItem("Pause/Restart")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      menuItem("Pause/Restart")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await Promise.resolve();
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
@@ -398,13 +497,19 @@ describe("SidebarRecentTasks", () => {
 
     await openActions("Toggle work");
     await act(async () => {
-      menuItem("Pause/Restart")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      menuItem("Pause/Restart")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await Promise.resolve();
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
-    expect(mockIssuesApi.releaseTreeHold).toHaveBeenCalledWith("issue-1", "hold-1", {
-      reason: "Restarted from Recent Tasks.",
-    });
+    expect(mockIssuesApi.releaseTreeHold).toHaveBeenCalledWith(
+      "issue-1",
+      "hold-1",
+      {
+        reason: "Restarted from Recent Tasks.",
+      },
+    );
     expect(mockAgentsApi.wakeup).toHaveBeenCalledWith(
       "agent-1",
       {
@@ -451,7 +556,9 @@ describe("SidebarRecentTasks", () => {
     await render();
     await openActions("Retry restart");
     await act(async () => {
-      menuItem("Pause/Restart")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      menuItem("Pause/Restart")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await Promise.resolve();
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
@@ -462,7 +569,9 @@ describe("SidebarRecentTasks", () => {
 
     await openActions("Retry restart");
     await act(async () => {
-      menuItem("Pause/Restart")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      menuItem("Pause/Restart")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await Promise.resolve();
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
@@ -486,14 +595,16 @@ describe("SidebarRecentTasks", () => {
     mockIssuesApi.get.mockImplementation(() => new Promise(() => {}));
     await render();
     const storageKey = getRecentTasksStorageKey("company-1", "user-1");
-    const entries = [{
-      id: "issue-2",
-      companyId: "company-1",
-      title: "Cross-tab task",
-      identifier: "PAP-2",
-      status: "todo" as const,
-      recordedAt: 2,
-    }];
+    const entries = [
+      {
+        id: "issue-2",
+        companyId: "company-1",
+        title: "Cross-tab task",
+        identifier: "PAP-2",
+        status: "todo" as const,
+        recordedAt: 2,
+      },
+    ];
 
     await act(async () => {
       window.localStorage.setItem(storageKey, JSON.stringify(entries));
@@ -501,45 +612,74 @@ describe("SidebarRecentTasks", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector('a[href="/issues/issue-2"]')?.textContent).toContain("Cross-tab task");
+    expect(
+      container.querySelector('a[href="/issues/issue-2"]')?.textContent,
+    ).toContain("Cross-tab task");
   });
 
   it("preserves pending restart wake retries from before the snapshot storage migration", async () => {
     const issue = {
-      id: "issue-1", companyId: "company-1", title: "Retry after upgrade", identifier: "PAP-1",
-      status: "in_progress" as const, assigneeAgentId: "agent-1", hiddenAt: null, updatedAt: new Date(1),
+      id: "issue-1",
+      companyId: "company-1",
+      title: "Retry after upgrade",
+      identifier: "PAP-1",
+      status: "in_progress" as const,
+      assigneeAgentId: "agent-1",
+      hiddenAt: null,
+      updatedAt: new Date(1),
     };
-    window.localStorage.setItem("taskcore.recentTasks:company-1:user-1", JSON.stringify([{ ...issue, recordedAt: 1 }]));
-    window.localStorage.setItem("taskcore.recentTasks:company-1:user-1:restart-wake-retry", JSON.stringify([issue.id]));
+    window.localStorage.setItem(
+      "taskcore.recentTasks:company-1:user-1",
+      JSON.stringify([{ ...issue, recordedAt: 1 }]),
+    );
+    window.localStorage.setItem(
+      "taskcore.recentTasks:company-1:user-1:restart-wake-retry",
+      JSON.stringify([issue.id]),
+    );
     mockIssuesApi.get.mockResolvedValue(issue);
-    mockIssuesApi.getTreeControlState.mockResolvedValue({ activePauseHold: null });
+    mockIssuesApi.getTreeControlState.mockResolvedValue({
+      activePauseHold: null,
+    });
     mockAgentsApi.wakeup.mockResolvedValue({ id: "run-1" });
 
     await render();
     await openActions("Retry after upgrade");
     await act(async () => {
-      menuItem("Pause/Restart")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      menuItem("Pause/Restart")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       await Promise.resolve();
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
 
     expect(mockIssuesApi.createTreeHold).not.toHaveBeenCalled();
     expect(mockIssuesApi.releaseTreeHold).not.toHaveBeenCalled();
-    expect(mockAgentsApi.wakeup).toHaveBeenCalledWith("agent-1", expect.objectContaining({
-      reason: "recent_task_restart_retry",
-    }), "company-1");
-    expect(window.localStorage.getItem("taskcore.recentTasks:company-1:user-1:restart-wake-retry")).toBeNull();
+    expect(mockAgentsApi.wakeup).toHaveBeenCalledWith(
+      "agent-1",
+      expect.objectContaining({
+        reason: "recent_task_restart_retry",
+      }),
+      "company-1",
+    );
+    expect(
+      window.localStorage.getItem(
+        "taskcore.recentTasks:company-1:user-1:restart-wake-retry",
+      ),
+    ).toBeNull();
   });
 
   it("prunes tasks that become hidden", async () => {
-    recordRecentTask({
-      id: "issue-hidden",
-      companyId: "company-1",
-      title: "Hidden task",
-      identifier: "PAP-3",
-      status: "todo",
-      updatedAt: new Date(3),
-    }, "user-1");
+    recordRecentTask(
+      {
+        id: "issue-hidden",
+        companyId: "company-1",
+        title: "Hidden task",
+        identifier: "PAP-3",
+        status: "todo",
+        updatedAt: new Date(3),
+      },
+      "user-1",
+    );
     mockIssuesApi.get.mockResolvedValue({
       id: "issue-hidden",
       companyId: "company-1",
@@ -556,10 +696,14 @@ describe("SidebarRecentTasks", () => {
       await new Promise((resolve) => window.setTimeout(resolve, 0));
     });
 
-    expect(container.querySelector('a[href="/issues/issue-hidden"]')).toBeNull();
-    expect(readRecentTasks(
-      getRecentTasksStorageKey("company-1", "user-1"),
-      "company-1",
-    )).toEqual([]);
+    expect(
+      container.querySelector('a[href="/issues/issue-hidden"]'),
+    ).toBeNull();
+    expect(
+      readRecentTasks(
+        getRecentTasksStorageKey("company-1", "user-1"),
+        "company-1",
+      ),
+    ).toEqual([]);
   });
 });

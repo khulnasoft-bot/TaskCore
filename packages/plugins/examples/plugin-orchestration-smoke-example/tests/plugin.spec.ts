@@ -5,7 +5,9 @@ import { createTestHarness } from "@taskcore/plugin-sdk/testing";
 import manifest from "../src/manifest.js";
 import plugin from "../src/worker.js";
 
-function issue(input: Partial<Issue> & Pick<Issue, "id" | "companyId" | "title">): Issue {
+function issue(
+  input: Partial<Issue> & Pick<Issue, "id" | "companyId" | "title">,
+): Issue {
   const now = new Date();
   const { id, companyId, title, ...rest } = input;
   return {
@@ -100,18 +102,30 @@ describe("orchestration smoke plugin", () => {
     expect(result.blockerIssueId).toEqual(expect.any(String));
     expect(result.billingCode).toBe(`plugin-smoke:${rootIssueId}`);
     expect(result.wakeupQueued).toBe(true);
-    expect(result.subtreeIssueIds).toEqual(expect.arrayContaining([rootIssueId, result.childIssueId]));
+    expect(result.subtreeIssueIds).toEqual(
+      expect.arrayContaining([rootIssueId, result.childIssueId]),
+    );
     expect(harness.dbExecutes[0]?.sql).toContain(".smoke_runs");
-    expect(harness.dbQueries.some((entry) => entry.sql.includes("JOIN public.issues"))).toBe(true);
+    expect(
+      harness.dbQueries.some((entry) =>
+        entry.sql.includes("JOIN public.issues"),
+      ),
+    ).toBe(true);
 
-    const relations = await harness.ctx.issues.relations.get(result.childIssueId, companyId);
+    const relations = await harness.ctx.issues.relations.get(
+      result.childIssueId,
+      companyId,
+    );
     expect(relations.blockedBy).toEqual([
       expect.objectContaining({
         id: result.blockerIssueId,
         status: "done",
       }),
     ]);
-    const docs = await harness.ctx.issues.documents.list(result.childIssueId, companyId);
+    const docs = await harness.ctx.issues.documents.list(
+      result.childIssueId,
+      companyId,
+    );
     expect(docs).toEqual([
       expect.objectContaining({
         key: "orchestration-smoke",
@@ -137,23 +151,25 @@ describe("orchestration smoke plugin", () => {
     });
     await plugin.definition.setup(harness.ctx);
 
-    await expect(plugin.definition.onApiRequest?.({
-      routeKey: "initialize",
-      method: "POST",
-      path: `/issues/${rootIssueId}/smoke`,
-      params: { issueId: rootIssueId },
-      query: {},
-      body: { assigneeAgentId: agentId },
-      actor: {
-        actorType: "user",
-        actorId: "board",
-        userId: "board",
-        agentId: null,
-        runId: null,
-      },
-      companyId,
-      headers: {},
-    })).resolves.toMatchObject({
+    await expect(
+      plugin.definition.onApiRequest?.({
+        routeKey: "initialize",
+        method: "POST",
+        path: `/issues/${rootIssueId}/smoke`,
+        params: { issueId: rootIssueId },
+        query: {},
+        body: { assigneeAgentId: agentId },
+        actor: {
+          actorType: "user",
+          actorId: "board",
+          userId: "board",
+          agentId: null,
+          runId: null,
+        },
+        companyId,
+        headers: {},
+      }),
+    ).resolves.toMatchObject({
       status: 201,
       body: expect.objectContaining({
         rootIssueId,

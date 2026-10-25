@@ -18,7 +18,12 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { hidesCompanyPage, type Company } from "@taskcore/shared";
 import { Link, useLocation, useNavigate } from "@/lib/router";
@@ -49,7 +54,8 @@ interface SidebarCompanyMenuProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const TRIGGER_WORKSPACE_ICON_CLASS = "size-5 shrink-0 rounded-md text-(length:--text-micro)";
+const TRIGGER_WORKSPACE_ICON_CLASS =
+  "size-5 shrink-0 rounded-md text-(length:--text-micro)";
 const POPOVER_WORKSPACE_ICON_CLASS =
   "size-(--organization-popover-avatar-size) shrink-0 rounded-lg text-(length:--text-micro)";
 const ORGANIZATION_ROW_CLASS =
@@ -57,12 +63,20 @@ const ORGANIZATION_ROW_CLASS =
 const ORGANIZATION_ACTION_CLASS =
   "h-(--organization-popover-action-row-height) gap-(--organization-popover-row-gap) rounded-lg px-2.5 py-0 text-(length:--text-compact) font-medium leading-(--organization-popover-action-line-height) text-foreground focus:bg-accent/50 focus:text-foreground";
 
-function WorkspaceIcon({ company, inPopover = false }: { company: Company; inPopover?: boolean }) {
+function WorkspaceIcon({
+  company,
+  inPopover = false,
+}: {
+  company: Company;
+  inPopover?: boolean;
+}) {
   return (
     <CompanyPatternIcon
       companyName={company.name}
       logoUrl={company.logoUrl}
-      className={inPopover ? POPOVER_WORKSPACE_ICON_CLASS : TRIGGER_WORKSPACE_ICON_CLASS}
+      className={
+        inPopover ? POPOVER_WORKSPACE_ICON_CLASS : TRIGGER_WORKSPACE_ICON_CLASS
+      }
     />
   );
 }
@@ -152,11 +166,19 @@ export function SidebarCompanyMenu(props: SidebarCompanyMenuProps = {}) {
   );
 }
 
-function BuiltinCompanyMenu({ open: controlledOpen, onOpenChange }: SidebarCompanyMenuProps) {
+function BuiltinCompanyMenu({
+  open: controlledOpen,
+  onOpenChange,
+}: SidebarCompanyMenuProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [isEditingOrder, setIsEditingOrder] = useState(false);
-  const { companies, selectedCompany, setSelectedCompanyId, companyListUnavailable, retryCompanies } =
-    useCompany();
+  const {
+    companies,
+    selectedCompany,
+    setSelectedCompanyId,
+    companyListUnavailable,
+    retryCompanies,
+  } = useCompany();
   const { openOnboarding } = useDialogActions();
   const { isMobile, setSidebarOpen, collapsed, peeking } = useSidebar();
   const rail = collapsed && !peeking;
@@ -188,7 +210,8 @@ function BuiltinCompanyMenu({ open: controlledOpen, onOpenChange }: SidebarCompa
   });
 
   // Keep invitation links hidden until the operator policy is known.
-  const { hidden: hiddenSettings, loaded: hiddenSettingsLoaded } = useHiddenSettings();
+  const { hidden: hiddenSettings, loaded: hiddenSettingsLoaded } =
+    useHiddenSettings();
   const showInvitePeople =
     hiddenSettingsLoaded &&
     !hidesCompanyPage(hiddenSettings, "company.members") &&
@@ -213,11 +236,13 @@ function BuiltinCompanyMenu({ open: controlledOpen, onOpenChange }: SidebarCompa
 
   function selectCompany(company: Company) {
     const pathPrefix = location.pathname.split("/")[1]?.toUpperCase();
-    const isCompanyRoute = sidebarCompanies.some((sidebarCompany) => (
-      sidebarCompany.issuePrefix.toUpperCase() === pathPrefix
-    ));
-    const shouldLeaveCurrentRoute = company.id !== selectedCompany?.id
-      && (location.pathname.startsWith("/instance/") || isCompanyRoute);
+    const isCompanyRoute = sidebarCompanies.some(
+      (sidebarCompany) =>
+        sidebarCompany.issuePrefix.toUpperCase() === pathPrefix,
+    );
+    const shouldLeaveCurrentRoute =
+      company.id !== selectedCompany?.id &&
+      (location.pathname.startsWith("/instance/") || isCompanyRoute);
 
     setSelectedCompanyId(company.id);
     setOpen(false);
@@ -273,7 +298,9 @@ function BuiltinCompanyMenu({ open: controlledOpen, onOpenChange }: SidebarCompa
           }
         >
           <span className="flex min-w-0 flex-1 items-center gap-2">
-            {selectedCompany ? <WorkspaceIcon company={selectedCompany} /> : null}
+            {selectedCompany ? (
+              <WorkspaceIcon company={selectedCompany} />
+            ) : null}
             {/* The header has room for ~110px of name beside the collapse
                 control (~142px on mobile, which hides it) — search moved to
                 the nav to buy that width. A name that still
@@ -288,7 +315,9 @@ function BuiltinCompanyMenu({ open: controlledOpen, onOpenChange }: SidebarCompa
               {currentName ?? `Select ${switcherNoun}`}
             </span>
           </span>
-          {!rail && <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />}
+          {!rail && (
+            <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -340,7 +369,9 @@ function BuiltinCompanyMenu({ open: controlledOpen, onOpenChange }: SidebarCompa
             // offer the way back.
             companyListUnavailable ? (
               <>
-                <DropdownMenuItem disabled>Couldn&apos;t load companies</DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                  Couldn&apos;t load companies
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={(event) => {
                     // Keep the menu open so the result of the retry is visible.
@@ -367,7 +398,9 @@ function BuiltinCompanyMenu({ open: controlledOpen, onOpenChange }: SidebarCompa
               <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
                 <Plus className="size-4" />
               </span>
-              <span className="min-w-0 flex-1 truncate">Create organization</span>
+              <span className="min-w-0 flex-1 truncate">
+                Create organization
+              </span>
             </DropdownMenuItem>
           )}
           {showInvitePeople ? (

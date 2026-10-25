@@ -21,15 +21,23 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 // sandboxed) run process env plumbing is not guaranteed to carry the key, so we
 // resolve it here. Unresolvable placeholders are left intact; an env var set to
 // an empty string counts as unresolvable (the placeholder stays for Pi to try).
-function expandEnvPlaceholders<T>(value: T, resolve: (name: string) => string | undefined): T {
+function expandEnvPlaceholders<T>(
+  value: T,
+  resolve: (name: string) => string | undefined,
+): T {
   if (typeof value === "string") {
-    return value.replace(/\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, name: string) => {
-      const resolved = resolve(name);
-      return resolved !== undefined && resolved.length > 0 ? resolved : match;
-    }) as unknown as T;
+    return value.replace(
+      /\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g,
+      (match, name: string) => {
+        const resolved = resolve(name);
+        return resolved !== undefined && resolved.length > 0 ? resolved : match;
+      },
+    ) as unknown as T;
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => expandEnvPlaceholders(entry, resolve)) as unknown as T;
+    return value.map((entry) =>
+      expandEnvPlaceholders(entry, resolve),
+    ) as unknown as T;
   }
   if (isPlainObject(value)) {
     const out: Record<string, unknown> = {};
@@ -62,7 +70,8 @@ function parseProviderConfig(
     if (!isPlainObject(parsed)) {
       return {
         providers: null,
-        warning: "TASKCORE_PI_PROVIDERS is set but is not a JSON object; custom providers ignored.",
+        warning:
+          "TASKCORE_PI_PROVIDERS is set but is not a JSON object; custom providers ignored.",
       };
     }
     // Only keep provider entries that are themselves objects; surface the ones
@@ -70,19 +79,22 @@ function parseProviderConfig(
     const providers: Record<string, unknown> = {};
     const skipped: string[] = [];
     for (const [key, value] of Object.entries(parsed)) {
-      if (isPlainObject(value)) providers[key] = expandEnvPlaceholders(value, resolveEnv);
+      if (isPlainObject(value))
+        providers[key] = expandEnvPlaceholders(value, resolveEnv);
       else skipped.push(key);
     }
     return {
       providers: Object.keys(providers).length > 0 ? providers : null,
-      warning: skipped.length > 0
-        ? `TASKCORE_PI_PROVIDERS: skipped provider(s) with non-object values: ${skipped.join(", ")}.`
-        : null,
+      warning:
+        skipped.length > 0
+          ? `TASKCORE_PI_PROVIDERS: skipped provider(s) with non-object values: ${skipped.join(", ")}.`
+          : null,
     };
   } catch {
     return {
       providers: null,
-      warning: "TASKCORE_PI_PROVIDERS contains invalid JSON; custom providers ignored.",
+      warning:
+        "TASKCORE_PI_PROVIDERS contains invalid JSON; custom providers ignored.",
     };
   }
 }
@@ -107,7 +119,8 @@ function parseProviderConfig(
 export async function preparePiRuntimeConfig(input: {
   env: Record<string, string>;
 }): Promise<PreparedPiRuntimeConfig> {
-  const resolveEnv = (name: string): string | undefined => input.env[name] ?? process.env[name];
+  const resolveEnv = (name: string): string | undefined =>
+    input.env[name] ?? process.env[name];
   const { providers, warning } = parseProviderConfig(
     input.env.TASKCORE_PI_PROVIDERS ?? process.env.TASKCORE_PI_PROVIDERS,
     resolveEnv,
@@ -121,7 +134,9 @@ export async function preparePiRuntimeConfig(input: {
     };
   }
 
-  const agentConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-pi-agent-config-"));
+  const agentConfigDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-pi-agent-config-"),
+  );
   try {
     await fs.writeFile(
       path.join(agentConfigDir, "models.json"),
@@ -131,7 +146,9 @@ export async function preparePiRuntimeConfig(input: {
   } catch (err) {
     // Never leak the temp dir when the write fails (e.g. disk-full): the
     // caller only receives the cleanup handle on success.
-    await fs.rm(agentConfigDir, { recursive: true, force: true }).catch(() => undefined);
+    await fs
+      .rm(agentConfigDir, { recursive: true, force: true })
+      .catch(() => undefined);
     throw err;
   }
 

@@ -29,11 +29,13 @@ function encodeJson(value: Record<string, unknown>) {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
 }
 
-function assertion(input: {
-  claims?: Record<string, unknown>;
-  header?: Record<string, unknown>;
-  signingKey?: KeyObject;
-} = {}) {
+function assertion(
+  input: {
+    claims?: Record<string, unknown>;
+    header?: Record<string, unknown>;
+    signingKey?: KeyObject;
+  } = {},
+) {
   const iat = Math.floor(NOW.getTime() / 1000);
   const header = encodeJson({
     alg: "EdDSA",
@@ -62,7 +64,10 @@ function assertion(input: {
   return `${header}.${payload}.${signature}`;
 }
 
-function verifyAssertion(compactJws: string, overrides: Partial<NodeJS.ProcessEnv> = {}) {
+function verifyAssertion(
+  compactJws: string,
+  overrides: Partial<NodeJS.ProcessEnv> = {},
+) {
   return verifyCloudRuntimeIdentityAssertion({
     compactJws,
     env: { ...env, ...overrides },
@@ -94,17 +99,30 @@ describe("verifyCloudRuntimeIdentityAssertion", () => {
 
   it("rejects forged signatures and unknown signing keys", () => {
     const attacker = generateKeyPairSync("ed25519");
-    expect(() => verifyAssertion(assertion({ signingKey: attacker.privateKey }))).toThrow("signature is invalid");
-    expect(() => verifyAssertion(assertion({ header: { kid: "unknown" } }))).toThrow("unknown signing key");
+    expect(() =>
+      verifyAssertion(assertion({ signingKey: attacker.privateKey })),
+    ).toThrow("signature is invalid");
+    expect(() =>
+      verifyAssertion(assertion({ header: { kid: "unknown" } })),
+    ).toThrow("unknown signing key");
   });
 
   it.each([
     ["expired", { exp: Math.floor(NOW.getTime() / 1000) - 1 }],
     ["wrong audience", { aud: "someone-else" }],
     ["cross-stack", { sub: "stack-someone-else" }],
-    ["wrong pool origin", { previousOrigin: "https://someone-else.staging.taskcore.app" }],
-    ["non-HTTPS destination", { canonicalOrigin: "http://gonzo.staging.taskcore.app" }],
-    ["path-bearing destination", { canonicalOrigin: `${CANONICAL_ORIGIN}/GON` }],
+    [
+      "wrong pool origin",
+      { previousOrigin: "https://someone-else.staging.taskcore.app" },
+    ],
+    [
+      "non-HTTPS destination",
+      { canonicalOrigin: "http://gonzo.staging.taskcore.app" },
+    ],
+    [
+      "path-bearing destination",
+      { canonicalOrigin: `${CANONICAL_ORIGIN}/GON` },
+    ],
     ["slug mismatch", { stackSlug: "kermit" }],
     ["partial claims", { claimId: undefined }],
   ])("rejects %s assertions", (_label, claims) => {
@@ -118,6 +136,8 @@ describe("verifyCloudRuntimeIdentityAssertion", () => {
       ...JSON.parse(Buffer.from(payload!, "base64url").toString("utf8")),
       canonicalOrigin: "https://attacker.example.com",
     });
-    expect(() => verifyAssertion(`${header}.${altered}.${signature}`)).toThrow("signature is invalid");
+    expect(() => verifyAssertion(`${header}.${altered}.${signature}`)).toThrow(
+      "signature is invalid",
+    );
   });
 });

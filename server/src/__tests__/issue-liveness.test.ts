@@ -43,7 +43,9 @@ const manager = agent({
   reportsTo: null,
 });
 
-const blocks = [{ companyId, blockerIssueId: blockerId, blockedIssueId: blockedId }];
+const blocks = [
+  { companyId, blockerIssueId: blockerId, blockedIssueId: blockedId },
+];
 
 describe("issue graph liveness classifier", () => {
   it("detects a PAP-1703-style blocked chain with an unassigned blocker and stable incident key", () => {
@@ -144,9 +146,20 @@ describe("issue graph liveness classifier", () => {
       agents: [
         agent(),
         manager,
-        agent({ id: "blocker-agent", name: "Blocker Agent", reportsTo: managerId }),
+        agent({
+          id: "blocker-agent",
+          name: "Blocker Agent",
+          reportsTo: managerId,
+        }),
       ],
-      queuedWakeRequests: [{ companyId, issueId: blockerId, agentId: "blocker-agent", status: "queued" }],
+      queuedWakeRequests: [
+        {
+          companyId,
+          issueId: blockerId,
+          agentId: "blocker-agent",
+          status: "queued",
+        },
+      ],
     });
 
     expect(findings).toEqual([]);
@@ -168,7 +181,11 @@ describe("issue graph liveness classifier", () => {
       agents: [
         agent(),
         manager,
-        agent({ id: "blocker-agent", name: "Blocker Agent", reportsTo: managerId }),
+        agent({
+          id: "blocker-agent",
+          name: "Blocker Agent",
+          reportsTo: managerId,
+        }),
       ],
     });
 
@@ -201,22 +218,46 @@ describe("issue graph liveness classifier", () => {
       agents: [
         agent(),
         manager,
-        agent({ id: "blocker-agent", name: "Blocker Agent", reportsTo: managerId }),
+        agent({
+          id: "blocker-agent",
+          name: "Blocker Agent",
+          reportsTo: managerId,
+        }),
       ],
     };
 
-    expect(classifyIssueGraphLiveness({
-      ...baseInput,
-      issues: [issue(), { ...backlogBlocker, assigneeAgentId: null, assigneeUserId: "board-user-1" }],
-    })).toEqual([]);
-    expect(classifyIssueGraphLiveness({
-      ...baseInput,
-      activeRuns: [{ companyId, issueId: blockerId, agentId: "blocker-agent", status: "running" }],
-    })).toEqual([]);
-    expect(classifyIssueGraphLiveness({
-      ...baseInput,
-      openRecoveryIssues: [{ companyId, issueId: blockerId, status: "todo" }],
-    })).toEqual([]);
+    expect(
+      classifyIssueGraphLiveness({
+        ...baseInput,
+        issues: [
+          issue(),
+          {
+            ...backlogBlocker,
+            assigneeAgentId: null,
+            assigneeUserId: "board-user-1",
+          },
+        ],
+      }),
+    ).toEqual([]);
+    expect(
+      classifyIssueGraphLiveness({
+        ...baseInput,
+        activeRuns: [
+          {
+            companyId,
+            issueId: blockerId,
+            agentId: "blocker-agent",
+            status: "running",
+          },
+        ],
+      }),
+    ).toEqual([]);
+    expect(
+      classifyIssueGraphLiveness({
+        ...baseInput,
+        openRecoveryIssues: [{ companyId, issueId: blockerId, status: "todo" }],
+      }),
+    ).toEqual([]);
   });
 
   it("does not flag an unassigned blocker that already has an active execution path", () => {
@@ -233,7 +274,9 @@ describe("issue graph liveness classifier", () => {
       ],
       relations: blocks,
       agents: [agent(), manager],
-      activeRuns: [{ companyId, issueId: blockerId, agentId: coderId, status: "running" }],
+      activeRuns: [
+        { companyId, issueId: blockerId, agentId: coderId, status: "running" },
+      ],
     });
 
     expect(findings).toEqual([]);
@@ -252,7 +295,11 @@ describe("issue graph liveness classifier", () => {
         }),
       ],
       relations: blocks,
-      agents: [agent(), manager, agent({ id: "blocker-agent", name: "Paused", status: "paused" })],
+      agents: [
+        agent(),
+        manager,
+        agent({ id: "blocker-agent", name: "Paused", status: "paused" }),
+      ],
     });
     expect(cancelled[0]?.state).toBe("blocked_by_cancelled_issue");
 
@@ -268,7 +315,11 @@ describe("issue graph liveness classifier", () => {
         }),
       ],
       relations: blocks,
-      agents: [agent(), manager, agent({ id: "blocker-agent", name: "Paused", status: "paused" })],
+      agents: [
+        agent(),
+        manager,
+        agent({ id: "blocker-agent", name: "Paused", status: "paused" }),
+      ],
     });
     expect(paused[0]?.state).toBe("blocked_by_uninvokable_assignee");
   });
@@ -286,7 +337,11 @@ describe("issue graph liveness classifier", () => {
         }),
       ],
       relations: blocks,
-      agents: [agent(), manager, agent({ id: "blocker-agent", name: "Cancelled owner" })],
+      agents: [
+        agent(),
+        manager,
+        agent({ id: "blocker-agent", name: "Cancelled owner" }),
+      ],
     });
 
     expect(findings).toHaveLength(1);
@@ -310,7 +365,11 @@ describe("issue graph liveness classifier", () => {
         }),
       ],
       relations: blocks,
-      agents: [agent(), manager, agent({ id: "blocker-agent", name: "Cancelled owner" })],
+      agents: [
+        agent(),
+        manager,
+        agent({ id: "blocker-agent", name: "Cancelled owner" }),
+      ],
     });
 
     expect(findings).toHaveLength(1);
@@ -333,16 +392,32 @@ describe("issue graph liveness classifier", () => {
       agents: [
         agent(),
         manager,
-        agent({ id: "qa-2", name: "QA 2", status: "active", reportsTo: "cto-2" }),
-        agent({ id: "cto-2", name: "CTO 2", status: "terminated", reportsTo: "ceo-2" }),
-        agent({ id: "ceo-2", name: "CEO 2", status: "terminated", reportsTo: null }),
+        agent({
+          id: "qa-2",
+          name: "QA 2",
+          status: "active",
+          reportsTo: "cto-2",
+        }),
+        agent({
+          id: "cto-2",
+          name: "CTO 2",
+          status: "terminated",
+          reportsTo: "ceo-2",
+        }),
+        agent({
+          id: "ceo-2",
+          name: "CEO 2",
+          status: "terminated",
+          reportsTo: null,
+        }),
       ],
     });
 
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatchObject({
       state: "blocked_by_uninvokable_assignee",
-      reason: "PAP-1703 is blocked by PAP-1704, but its assignee is in an invalid org chain.",
+      reason:
+        "PAP-1703 is blocked by PAP-1704, but its assignee is in an invalid org chain.",
       recommendedOwnerAgentId: managerId,
     });
   });
@@ -406,7 +481,11 @@ describe("issue graph liveness classifier", () => {
       ],
       relations: [
         { companyId, blockerIssueId: phaseIssueId, blockedIssueId: "pap-2239" },
-        { companyId, blockerIssueId: reviewLeafId, blockedIssueId: phaseIssueId },
+        {
+          companyId,
+          blockerIssueId: reviewLeafId,
+          blockedIssueId: phaseIssueId,
+        },
       ],
       agents: [agent(), manager],
     });
@@ -493,32 +572,56 @@ describe("issue graph liveness classifier", () => {
       },
       {
         name: "user owner",
-        issue: { ...baseReviewIssue, assigneeAgentId: null, assigneeUserId: "board-user-1" },
+        issue: {
+          ...baseReviewIssue,
+          assigneeAgentId: null,
+          assigneeUserId: "board-user-1",
+        },
       },
       {
         name: "active run",
         issue: baseReviewIssue,
-        activeRuns: [{ companyId, issueId: reviewIssueId, agentId: coderId, status: "running" }],
+        activeRuns: [
+          {
+            companyId,
+            issueId: reviewIssueId,
+            agentId: coderId,
+            status: "running",
+          },
+        ],
       },
       {
         name: "queued wake",
         issue: baseReviewIssue,
-        queuedWakeRequests: [{ companyId, issueId: reviewIssueId, agentId: coderId, status: "queued" }],
+        queuedWakeRequests: [
+          {
+            companyId,
+            issueId: reviewIssueId,
+            agentId: coderId,
+            status: "queued",
+          },
+        ],
       },
       {
         name: "pending interaction",
         issue: baseReviewIssue,
-        pendingInteractions: [{ companyId, issueId: reviewIssueId, status: "pending" }],
+        pendingInteractions: [
+          { companyId, issueId: reviewIssueId, status: "pending" },
+        ],
       },
       {
         name: "pending approval",
         issue: baseReviewIssue,
-        pendingApprovals: [{ companyId, issueId: reviewIssueId, status: "pending" }],
+        pendingApprovals: [
+          { companyId, issueId: reviewIssueId, status: "pending" },
+        ],
       },
       {
         name: "open recovery issue",
         issue: baseReviewIssue,
-        openRecoveryIssues: [{ companyId, issueId: reviewIssueId, status: "todo" }],
+        openRecoveryIssues: [
+          { companyId, issueId: reviewIssueId, status: "todo" },
+        ],
       },
     ];
 
@@ -588,9 +691,22 @@ describe("issue graph liveness classifier", () => {
           assigneeAgentId: coderId,
         }),
       ],
-      relations: [{ companyId, blockerIssueId: activeBlockerId, blockedIssueId: reviewIssueId }],
+      relations: [
+        {
+          companyId,
+          blockerIssueId: activeBlockerId,
+          blockedIssueId: reviewIssueId,
+        },
+      ],
       agents: [agent(), manager],
-      activeRuns: [{ companyId, issueId: activeBlockerId, agentId: coderId, status: "running" }],
+      activeRuns: [
+        {
+          companyId,
+          issueId: activeBlockerId,
+          agentId: coderId,
+          status: "running",
+        },
+      ],
     });
 
     expect(findings).toHaveLength(1);
@@ -617,8 +733,16 @@ describe("issue graph liveness classifier", () => {
       ],
       relations: [],
       agents: [agent(), manager],
-      pendingInteractions: [{ companyId: "other-company", issueId: reviewIssueId, status: "pending" }],
-      openRecoveryIssues: [{ companyId: "other-company", issueId: reviewIssueId, status: "todo" }],
+      pendingInteractions: [
+        {
+          companyId: "other-company",
+          issueId: reviewIssueId,
+          status: "pending",
+        },
+      ],
+      openRecoveryIssues: [
+        { companyId: "other-company", issueId: reviewIssueId, status: "todo" },
+      ],
     });
 
     expect(findings).toHaveLength(1);

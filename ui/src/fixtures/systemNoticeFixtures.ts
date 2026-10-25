@@ -52,7 +52,8 @@ const HANDOFF_METADATA: SystemNoticeMetadataSection[] = [
       {
         kind: "text",
         label: "Normalized cause",
-        value: "Run completed without issuing a disposition for an in_progress task.",
+        value:
+          "Run completed without issuing a disposition for an in_progress task.",
       },
     ],
   },
@@ -78,7 +79,8 @@ const REQUIRED_METADATA: SystemNoticeMetadataSection[] = [
       {
         kind: "text",
         label: "Next step",
-        value: "Pick done, blocked, or in_review and post a one-line rationale.",
+        value:
+          "Pick done, blocked, or in_review and post a one-line rationale.",
       },
     ],
   },

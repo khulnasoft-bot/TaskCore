@@ -3,5 +3,10 @@ export function skillVersionSelectionMap(
   options: { versionPinsEnabled?: boolean } = {},
 ) {
   const versionPinsEnabled = options.versionPinsEnabled ?? true;
-  return new Map(entries.map((entry) => [entry.key, versionPinsEnabled ? entry.versionId : null] as const));
+  return new Map(
+    entries.map(
+      (entry) =>
+        [entry.key, versionPinsEnabled ? entry.versionId : null] as const,
+    ),
+  );
 }

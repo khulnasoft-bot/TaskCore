@@ -19,7 +19,11 @@ export async function waitForWarmAttachmentReadiness(input: {
     await input.waitForConnection(deadline);
     const snapshot = await input.snapshot(deadline);
     probes += 1;
-    if (snapshot.warmAttachReady !== true && JSON.stringify(snapshot.warmAttachBlockers) !== JSON.stringify(lastBlockers)) {
+    if (
+      snapshot.warmAttachReady !== true &&
+      JSON.stringify(snapshot.warmAttachBlockers) !==
+        JSON.stringify(lastBlockers)
+    ) {
       input.onBlocked?.(snapshot.warmAttachBlockers);
     }
     lastBlockers = snapshot.warmAttachBlockers;
@@ -29,8 +33,16 @@ export async function waitForWarmAttachmentReadiness(input: {
     } else {
       consecutiveReadyProbes = 0;
     }
-    const delayMs = snapshot.warmAttachReady === true || probes < 8 ? 25 : blockedDelayMs;
-    await new Promise<void>(resolve => setTimeout(resolve, Math.min(delayMs, Math.max(0, deadline - Date.now()))));
+    const delayMs =
+      snapshot.warmAttachReady === true || probes < 8 ? 25 : blockedDelayMs;
+    await new Promise<void>((resolve) =>
+      setTimeout(
+        resolve,
+        Math.min(delayMs, Math.max(0, deadline - Date.now())),
+      ),
+    );
   }
-  throw new Error(`native_runner_warm_attachment_not_quiescent: ${JSON.stringify(lastBlockers)}`);
+  throw new Error(
+    `native_runner_warm_attachment_not_quiescent: ${JSON.stringify(lastBlockers)}`,
+  );
 }

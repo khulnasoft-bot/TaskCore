@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "../lib/utils";
-import { MarkdownBody, type MarkdownExternalReferenceMap } from "./MarkdownBody";
-import { MarkdownEditor, type MarkdownEditorRef, type MentionOption } from "./MarkdownEditor";
+import {
+  MarkdownBody,
+  type MarkdownExternalReferenceMap,
+} from "./MarkdownBody";
+import {
+  MarkdownEditor,
+  type MarkdownEditorRef,
+  type MentionOption,
+} from "./MarkdownEditor";
 import { useAutosaveIndicator } from "../hooks/useAutosaveIndicator";
 import { FoldCurtain } from "./FoldCurtain";
 
@@ -38,7 +45,10 @@ const pad = "px-1 -mx-1";
 const markdownPad = "px-1";
 const AUTOSAVE_DEBOUNCE_MS = 900;
 
-export function queueContainedBlurCommit(container: HTMLDivElement, onCommit: () => void) {
+export function queueContainedBlurCommit(
+  container: HTMLDivElement,
+  onCommit: () => void,
+) {
   let frameId = requestAnimationFrame(() => {
     frameId = requestAnimationFrame(() => {
       frameId = 0;
@@ -72,13 +82,17 @@ export function InlineEditor({
   onEditingChange,
 }: InlineEditorProps) {
   const [editing, setEditing] = useState(false);
-  const [multilineEditing, setMultilineEditing] = useState(multiline && defaultEditing);
+  const [multilineEditing, setMultilineEditing] = useState(
+    multiline && defaultEditing,
+  );
   const [multilineFocused, setMultilineFocused] = useState(false);
   const [draft, setDraft] = useState(value);
   const lastPropValueRef = useRef(value);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const markdownRef = useRef<MarkdownEditorRef>(null);
-  const autosaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const blurCommitFrameRef = useRef<(() => void) | null>(null);
   const pendingFocusFrameRef = useRef<number | null>(null);
   const justEnteredEditRef = useRef(multiline && defaultEditing);
@@ -166,24 +180,32 @@ export function InlineEditor({
     hasBeenFocusedRef.current = false;
     setMultilineEditing(false);
     onEditingChange?.(false);
-  }, [multiline, multilineEditing, multilineFocused, autosaveState, onEditingChange]);
+  }, [
+    multiline,
+    multilineEditing,
+    multilineFocused,
+    autosaveState,
+    onEditingChange,
+  ]);
 
-
-  const commit = useCallback(async (nextValue = draft) => {
-    const valueToSave = nextValue.trim();
-    const valueChanged = valueToSave !== value;
-    const shouldSave = nullable
-      ? valueChanged
-      : Boolean(valueToSave && valueChanged);
-    if (shouldSave) {
-      await Promise.resolve(onSave(valueToSave));
-    } else {
-      setDraft(value);
-    }
-    if (!multiline) {
-      setEditing(false);
-    }
-  }, [draft, multiline, nullable, onSave, value]);
+  const commit = useCallback(
+    async (nextValue = draft) => {
+      const valueToSave = nextValue.trim();
+      const valueChanged = valueToSave !== value;
+      const shouldSave = nullable
+        ? valueChanged
+        : Boolean(valueToSave && valueChanged);
+      if (shouldSave) {
+        await Promise.resolve(onSave(valueToSave));
+      } else {
+        setDraft(value);
+      }
+      if (!multiline) {
+        setEditing(false);
+      }
+    },
+    [draft, multiline, nullable, onSave, value],
+  );
 
   /** Multiline blur/submit: show autosave indicator when persisting */
   const finalizeMultilineBlurOrSubmit = useCallback(() => {
@@ -207,17 +229,20 @@ export function InlineEditor({
     blurCommitFrameRef.current = null;
   }, []);
 
-  const scheduleBlurCommit = useCallback((container: HTMLDivElement) => {
-    cancelPendingBlurCommit();
-    blurCommitFrameRef.current = queueContainedBlurCommit(container, () => {
-      blurCommitFrameRef.current = null;
-      if (autosaveDebounceRef.current) {
-        clearTimeout(autosaveDebounceRef.current);
-      }
-      setMultilineFocused(false);
-      finalizeMultilineBlurOrSubmit();
-    });
-  }, [cancelPendingBlurCommit, finalizeMultilineBlurOrSubmit]);
+  const scheduleBlurCommit = useCallback(
+    (container: HTMLDivElement) => {
+      cancelPendingBlurCommit();
+      blurCommitFrameRef.current = queueContainedBlurCommit(container, () => {
+        blurCommitFrameRef.current = null;
+        if (autosaveDebounceRef.current) {
+          clearTimeout(autosaveDebounceRef.current);
+        }
+        setMultilineFocused(false);
+        finalizeMultilineBlurOrSubmit();
+      });
+    },
+    [cancelPendingBlurCommit, finalizeMultilineBlurOrSubmit],
+  );
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !multiline) {
@@ -268,10 +293,22 @@ export function InlineEditor({
         clearTimeout(autosaveDebounceRef.current);
       }
     };
-  }, [autosaveState, commit, draft, markDirty, multiline, multilineFocused, nullable, reset, runSave, value]);
+  }, [
+    autosaveState,
+    commit,
+    draft,
+    markDirty,
+    multiline,
+    multilineFocused,
+    nullable,
+    reset,
+    runSave,
+    value,
+  ]);
 
   if (multiline) {
-    const previewValue = autosaveState === "saved" || autosaveState === "idle" ? draft : value;
+    const previewValue =
+      autosaveState === "saved" || autosaveState === "idle" ? draft : value;
     const hasValue = Boolean(previewValue.trim());
     const showEditor = multilineEditing || multilineFocused || !hasValue;
 
@@ -284,11 +321,19 @@ export function InlineEditor({
       };
       return (
         <div
-          className={cn(markdownPad, "rounded transition-colors hover:bg-accent/20")}
+          className={cn(
+            markdownPad,
+            "rounded transition-colors hover:bg-accent/20",
+          )}
           onClick={(event) => {
             if (event.defaultPrevented) return;
             const target = event.target as HTMLElement | null;
-            if (target && target.closest("a,button,[data-mention-kind],[data-radix-popper-content-wrapper]")) {
+            if (
+              target &&
+              target.closest(
+                "a,button,[data-mention-kind],[data-radix-popper-content-wrapper]",
+              )
+            ) {
               return;
             }
             enterEditMode();
@@ -336,12 +381,17 @@ export function InlineEditor({
           // Ignore focus events where the active element isn't actually inside
           // the wrapper (React 19 can emit a synthetic focus after a blur).
           const active = document.activeElement;
-          if (!(active instanceof Node) || !event.currentTarget.contains(active)) return;
+          if (
+            !(active instanceof Node) ||
+            !event.currentTarget.contains(active)
+          )
+            return;
           cancelPendingBlurCommit();
           setMultilineFocused(true);
         }}
         onBlurCapture={(event) => {
-          if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+          if (event.currentTarget.contains(event.relatedTarget as Node | null))
+            return;
           if (pendingFocusFrameRef.current !== null) {
             cancelAnimationFrame(pendingFocusFrameRef.current);
             pendingFocusFrameRef.current = null;
@@ -369,7 +419,9 @@ export function InlineEditor({
           <span
             className={cn(
               "text-(length:--text-micro) transition-opacity duration-150",
-              autosaveState === "error" ? "text-destructive" : "text-muted-foreground",
+              autosaveState === "error"
+                ? "text-destructive"
+                : "text-muted-foreground",
               autosaveState === "idle" ? "opacity-0" : "opacity-100",
             )}
           >
@@ -387,7 +439,6 @@ export function InlineEditor({
   }
 
   if (editing) {
-
     return (
       <textarea
         ref={inputRef}
@@ -404,7 +455,7 @@ export function InlineEditor({
         className={cn(
           "w-full bg-transparent rounded outline-none resize-none overflow-hidden",
           pad,
-          className
+          className,
         )}
       />
     );

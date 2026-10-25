@@ -12,10 +12,20 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Db } from "@taskcore/db";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+  realpathSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { distributionBundleDigest, distributionPluginActivationGuard, readDistributionPluginCatalog } from "../services/distribution-plugin-catalog.js";
+import {
+  distributionBundleDigest,
+  distributionPluginActivationGuard,
+  readDistributionPluginCatalog,
+} from "../services/distribution-plugin-catalog.js";
 
 const mockRegistry = vi.hoisted(() => ({
   getById: vi.fn(),
@@ -82,7 +92,11 @@ function createRuntimeServices() {
 function createLoader(runtimeServices: PluginRuntimeServices) {
   return pluginLoader(
     {} as unknown as Db,
-    { localPluginDir: "/nonexistent/local-plugins", enableLocalFilesystem: false, enableNpmDiscovery: false },
+    {
+      localPluginDir: "/nonexistent/local-plugins",
+      enableLocalFilesystem: false,
+      enableNpmDiscovery: false,
+    },
     runtimeServices,
   );
 }
@@ -98,7 +112,11 @@ describe("pluginLoader.loadAll error retry", () => {
       if (status === "error") return [erroredPlugin];
       return [];
     });
-    mockRegistry.updateStatus.mockResolvedValue({ ...erroredPlugin, status: "ready", lastError: null });
+    mockRegistry.updateStatus.mockResolvedValue({
+      ...erroredPlugin,
+      status: "ready",
+      lastError: null,
+    });
 
     const runtimeServices = createRuntimeServices();
     const loader = createLoader(runtimeServices);
@@ -106,7 +124,10 @@ describe("pluginLoader.loadAll error retry", () => {
     const result = await loader.loadAll();
 
     // The flip precedes activation, and clears the stale error.
-    expect(mockRegistry.updateStatus).toHaveBeenCalledExactlyOnceWith(erroredPlugin.id, { status: "ready" });
+    expect(mockRegistry.updateStatus).toHaveBeenCalledExactlyOnceWith(
+      erroredPlugin.id,
+      { status: "ready" },
+    );
     // The retried plugin joins the boot batch; its package is unresolvable, so
     // the attempt fails and re-records a fresh error via markError.
     expect(result.total).toBe(1);
@@ -138,7 +159,10 @@ describe("pluginLoader.loadAll error retry", () => {
     const result = await loader.loadAll();
 
     // The failed flip skips the retry but never aborts the boot load.
-    expect(mockRegistry.updateStatus).toHaveBeenCalledExactlyOnceWith(erroredPlugin.id, { status: "ready" });
+    expect(mockRegistry.updateStatus).toHaveBeenCalledExactlyOnceWith(
+      erroredPlugin.id,
+      { status: "ready" },
+    );
     expect(result.total).toBe(1);
     expect(result.results[0]?.plugin.id).toBe(readyPlugin.id);
   });
@@ -154,27 +178,77 @@ describe("pluginLoader.loadAll error retry", () => {
   });
 
   it("rejects distribution capability escalation before saving a runtime refresh or starting a worker", async () => {
-    const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), "distribution-refresh-")));
+    const root = realpathSync(
+      mkdtempSync(path.join(os.tmpdir(), "distribution-refresh-")),
+    );
     try {
       const packageRoot = path.join(root, "distribution", "example");
       mkdirSync(path.join(packageRoot, "dist"), { recursive: true });
-      const plugin = createPluginRecord({ status: "ready", packagePath: packageRoot });
-      const replacement = { ...plugin.manifestJson, categories: ["ui"], capabilities: ["issues.read"] };
-      writeFileSync(path.join(packageRoot, "package.json"), JSON.stringify({ name: plugin.packageName, version: "1.0.0", type: "module", taskcorePlugin: { manifest: "dist/manifest.js", worker: "dist/worker.js" } }));
-      writeFileSync(path.join(packageRoot, "dist/manifest.js"), `export default ${JSON.stringify(replacement)};`);
-      writeFileSync(path.join(packageRoot, "dist/worker.js"), "throw new Error('unapproved worker must not start');");
-      writeFileSync(path.join(root, "distribution/catalog.json"), JSON.stringify({ schemaVersion: 1, plugins: [{ key: "example", pluginKey: plugin.pluginKey, version: "1.0.0", directory: "example", digest: distributionBundleDigest(packageRoot) }] }));
+      const plugin = createPluginRecord({
+        status: "ready",
+        packagePath: packageRoot,
+      });
+      const replacement = {
+        ...plugin.manifestJson,
+        categories: ["ui"],
+        capabilities: ["issues.read"],
+      };
+      writeFileSync(
+        path.join(packageRoot, "package.json"),
+        JSON.stringify({
+          name: plugin.packageName,
+          version: "1.0.0",
+          type: "module",
+          taskcorePlugin: {
+            manifest: "dist/manifest.js",
+            worker: "dist/worker.js",
+          },
+        }),
+      );
+      writeFileSync(
+        path.join(packageRoot, "dist/manifest.js"),
+        `export default ${JSON.stringify(replacement)};`,
+      );
+      writeFileSync(
+        path.join(packageRoot, "dist/worker.js"),
+        "throw new Error('unapproved worker must not start');",
+      );
+      writeFileSync(
+        path.join(root, "distribution/catalog.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          plugins: [
+            {
+              key: "example",
+              pluginKey: plugin.pluginKey,
+              version: "1.0.0",
+              directory: "example",
+              digest: distributionBundleDigest(packageRoot),
+            },
+          ],
+        }),
+      );
       const runtime = createRuntimeServices();
       const startWorker = vi.fn();
       runtime.workerManager.startWorker = startWorker;
       mockRegistry.getById.mockResolvedValue(plugin);
-      const loader = pluginLoader({} as Db, {
-        localPluginDir: root,
-        assertPackageActivation: distributionPluginActivationGuard(root, readDistributionPluginCatalog(root, []), ["example"]),
-      }, runtime);
+      const loader = pluginLoader(
+        {} as Db,
+        {
+          localPluginDir: root,
+          assertPackageActivation: distributionPluginActivationGuard(
+            root,
+            readDistributionPluginCatalog(root, []),
+            ["example"],
+          ),
+        },
+        runtime,
+      );
       const result = await loader.loadSingle(plugin.id);
       expect(result.success).toBe(false);
-      expect(result.error).toContain("capabilities require approval: issues.read");
+      expect(result.error).toContain(
+        "capabilities require approval: issues.read",
+      );
       expect(mockRegistry.update).not.toHaveBeenCalled();
       expect(startWorker).not.toHaveBeenCalled();
     } finally {
@@ -183,24 +257,52 @@ describe("pluginLoader.loadAll error retry", () => {
   });
 
   it("does not import an npm fallback for a removed distribution install", async () => {
-    const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), "distribution-removal-")));
+    const root = realpathSync(
+      mkdtempSync(path.join(os.tmpdir(), "distribution-removal-")),
+    );
     try {
-      const packageRoot = path.join(root, "node_modules/@example/broken-plugin");
+      const packageRoot = path.join(
+        root,
+        "node_modules/@example/broken-plugin",
+      );
       mkdirSync(packageRoot, { recursive: true });
-      const plugin = createPluginRecord({ status: "ready", packagePath: path.join(root, "distribution/removed") });
-      writeFileSync(path.join(packageRoot, "package.json"), JSON.stringify({ name: plugin.packageName, type: "module", taskcorePlugin: { manifest: "manifest.js" } }));
-      writeFileSync(path.join(packageRoot, "manifest.js"), "throw new Error('fallback manifest must never import');");
+      const plugin = createPluginRecord({
+        status: "ready",
+        packagePath: path.join(root, "distribution/removed"),
+      });
+      writeFileSync(
+        path.join(packageRoot, "package.json"),
+        JSON.stringify({
+          name: plugin.packageName,
+          type: "module",
+          taskcorePlugin: { manifest: "manifest.js" },
+        }),
+      );
+      writeFileSync(
+        path.join(packageRoot, "manifest.js"),
+        "throw new Error('fallback manifest must never import');",
+      );
       const runtime = createRuntimeServices();
       const startWorker = vi.fn();
       runtime.workerManager.startWorker = startWorker;
       mockRegistry.getById.mockResolvedValue(plugin);
-      const loader = pluginLoader({} as Db, {
-        localPluginDir: root,
-        assertPackageActivation: distributionPluginActivationGuard(root, [], []),
-      }, runtime);
+      const loader = pluginLoader(
+        {} as Db,
+        {
+          localPluginDir: root,
+          assertPackageActivation: distributionPluginActivationGuard(
+            root,
+            [],
+            [],
+          ),
+        },
+        runtime,
+      );
       const result = await loader.loadSingle(plugin.id);
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Distribution plugin is absent or not selected");
+      expect(result.error).toContain(
+        "Distribution plugin is absent or not selected",
+      );
       expect(mockRegistry.update).not.toHaveBeenCalled();
       expect(startWorker).not.toHaveBeenCalled();
     } finally {

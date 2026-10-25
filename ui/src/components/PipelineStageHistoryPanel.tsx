@@ -7,7 +7,11 @@ import { queryKeys } from "../lib/queryKeys";
 import { useToastActions } from "../context/ToastContext";
 import { timeAgo } from "../lib/timeAgo";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "../lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -38,9 +42,13 @@ export function PipelineStageHistoryPanel({
     queryKey: queryKeys.pipelines.documentRevisions(pipelineId, documentKey),
     queryFn: async () => {
       try {
-        return await pipelinesApi.listDocumentRevisions(pipelineId, documentKey);
+        return await pipelinesApi.listDocumentRevisions(
+          pipelineId,
+          documentKey,
+        );
       } catch (error) {
-        if (error instanceof ApiError && error.status === 404) return [] as PipelineDocumentRevision[];
+        if (error instanceof ApiError && error.status === 404)
+          return [] as PipelineDocumentRevision[];
         throw error;
       }
     },
@@ -48,11 +56,19 @@ export function PipelineStageHistoryPanel({
   });
 
   const restore = useMutation({
-    mutationFn: (revisionId: string) => pipelinesApi.restoreDocumentRevision(pipelineId, documentKey, revisionId),
+    mutationFn: (revisionId: string) =>
+      pipelinesApi.restoreDocumentRevision(pipelineId, documentKey, revisionId),
     onSuccess: async (result) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.pipelines.document(pipelineId, documentKey) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.pipelines.documentRevisions(pipelineId, documentKey) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.pipelines.document(pipelineId, documentKey),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.pipelines.documentRevisions(
+            pipelineId,
+            documentKey,
+          ),
+        }),
       ]);
       onRestored(result.revision.body, result.revision.id);
       pushToast({
@@ -64,7 +80,10 @@ export function PipelineStageHistoryPanel({
     onError: (error) => {
       pushToast({
         title: "Failed to restore revision",
-        body: error instanceof Error ? error.message : "Taskcore could not restore the revision.",
+        body:
+          error instanceof Error
+            ? error.message
+            : "Taskcore could not restore the revision.",
         tone: "error",
       });
     },
@@ -73,13 +92,19 @@ export function PipelineStageHistoryPanel({
   const revisions = revisionsQuery.data ?? [];
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="overflow-hidden rounded-lg border border-border/70">
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className="overflow-hidden rounded-lg border border-border/70"
+    >
       <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-left">
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-muted-foreground" />
           <div>
             <p className="text-sm font-medium">History</p>
-            <p className="text-xs text-muted-foreground">Past versions of these instructions.</p>
+            <p className="text-xs text-muted-foreground">
+              Past versions of these instructions.
+            </p>
           </div>
         </div>
         {open ? (
@@ -94,13 +119,19 @@ export function PipelineStageHistoryPanel({
             No history yet. Save the instructions to create the first revision.
           </p>
         ) : revisionsQuery.isLoading ? (
-          <p className="px-4 py-3 text-xs text-muted-foreground">Loading revisions…</p>
+          <p className="px-4 py-3 text-xs text-muted-foreground">
+            Loading revisions…
+          </p>
         ) : revisionsQuery.error ? (
           <p className="px-4 py-3 text-xs text-destructive">
-            {revisionsQuery.error instanceof Error ? revisionsQuery.error.message : "Could not load revisions."}
+            {revisionsQuery.error instanceof Error
+              ? revisionsQuery.error.message
+              : "Could not load revisions."}
           </p>
         ) : revisions.length === 0 ? (
-          <p className="px-4 py-3 text-xs text-muted-foreground">No revisions recorded yet.</p>
+          <p className="px-4 py-3 text-xs text-muted-foreground">
+            No revisions recorded yet.
+          </p>
         ) : (
           <ul className="divide-y divide-border/70">
             {revisions.map((revision) => {
@@ -108,20 +139,28 @@ export function PipelineStageHistoryPanel({
               return (
                 <li
                   key={revision.id}
-                  className={cn("flex items-center justify-between gap-3 px-4 py-2.5", isCurrent && "bg-accent/30")}
+                  className={cn(
+                    "flex items-center justify-between gap-3 px-4 py-2.5",
+                    isCurrent && "bg-accent/30",
+                  )}
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium">
                       Revision {revision.revisionNumber}
                       {isCurrent ? (
-                        <Badge variant="ghost" className="ml-2 bg-muted text-(length:--text-micro) text-muted-foreground">
+                        <Badge
+                          variant="ghost"
+                          className="ml-2 bg-muted text-(length:--text-micro) text-muted-foreground"
+                        >
                           Current
                         </Badge>
                       ) : null}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {timeAgo(revision.createdAt)}
-                      {revision.changeSummary ? ` · ${revision.changeSummary}` : ""}
+                      {revision.changeSummary
+                        ? ` · ${revision.changeSummary}`
+                        : ""}
                     </p>
                   </div>
                   {isCurrent ? null : (

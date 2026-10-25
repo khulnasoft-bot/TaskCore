@@ -17,14 +17,18 @@ const updateApplicationMock = vi.hoisted(() => vi.fn());
 const mockAgentsList = vi.hoisted(() => vi.fn());
 const mockNavigate = vi.hoisted(() => vi.fn());
 const navigateComponentMock = vi.hoisted(() => vi.fn());
-const mockParams = vi.hoisted(() => ({ applicationId: "app-1", tab: "permissions" as string | undefined }));
+const mockParams = vi.hoisted(() => ({
+  applicationId: "app-1",
+  tab: "permissions" as string | undefined,
+}));
 
 vi.mock("@/api/tools", () => ({
   toolsApi: {
     listApplications: (companyId: string) => listApplicationsMock(companyId),
     listConnections: (companyId: string) => listConnectionsMock(companyId),
     listGallery: (companyId: string) => listGalleryMock(companyId),
-    listConnectionGrants: (connectionId: string) => listConnectionGrantsMock(connectionId),
+    listConnectionGrants: (connectionId: string) =>
+      listConnectionGrantsMock(connectionId),
     listConnectionActivity: (connectionId: string, limit: number) =>
       listConnectionActivityMock(connectionId, limit),
     listActionRequests: (companyId: string, status: string) =>
@@ -56,8 +60,17 @@ vi.mock("@/lib/router", () => ({
     navigateComponentMock({ to, replace });
     return <div data-navigate-to={to} />;
   },
-  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    to,
+    children,
+    ...props
+  }: {
+    to: string;
+    children: React.ReactNode;
+  }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -157,9 +170,19 @@ describe("AppNotConnected", () => {
     listApplicationsMock.mockResolvedValue({ applications: [application()] });
     listConnectionsMock.mockResolvedValue({ connections: [connection()] });
     listGalleryMock.mockResolvedValue({
-      apps: [{ key: "github", name: "GitHub", logoUrl: "https://example.test/github.png" }],
+      apps: [
+        {
+          key: "github",
+          name: "GitHub",
+          logoUrl: "https://example.test/github.png",
+        },
+      ],
     });
-    listConnectionActivityMock.mockResolvedValue({ events: [], issues: {}, actionRequests: {} });
+    listConnectionActivityMock.mockResolvedValue({
+      events: [],
+      issues: {},
+      actionRequests: {},
+    });
     listConnectionGrantsMock.mockResolvedValue({
       connection: { id: "conn-old", uid: "conn-old" },
       grants: [],
@@ -178,7 +201,9 @@ describe("AppNotConnected", () => {
     listActionRequestsMock.mockResolvedValue({ actionRequests: [] });
     listUserDirectoryMock.mockResolvedValue({ users: [] });
     mockAgentsList.mockResolvedValue([]);
-    updateApplicationMock.mockResolvedValue(application({ status: "archived" }));
+    updateApplicationMock.mockResolvedValue(
+      application({ status: "archived" }),
+    );
   });
 
   afterEach(() => {
@@ -189,7 +214,9 @@ describe("AppNotConnected", () => {
   });
 
   async function renderPage() {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     await act(async () => {
       root.render(
@@ -206,7 +233,10 @@ describe("AppNotConnected", () => {
 
     await renderPage();
 
-    expect(navigateComponentMock).toHaveBeenCalledWith({ to: "/apps/app/app-1/permissions", replace: true });
+    expect(navigateComponentMock).toHaveBeenCalledWith({
+      to: "/apps/app/app-1/permissions",
+      replace: true,
+    });
     expect(listApplicationsMock).not.toHaveBeenCalled();
   });
 
@@ -218,7 +248,10 @@ describe("AppNotConnected", () => {
 
     await renderPage();
 
-    expect(navigateComponentMock).toHaveBeenCalledWith({ to: "/apps/conn-live/permissions", replace: true });
+    expect(navigateComponentMock).toHaveBeenCalledWith({
+      to: "/apps/conn-live/permissions",
+      replace: true,
+    });
   });
 
   it("redirects a provider application to its live connection Permissions page", async () => {
@@ -247,20 +280,27 @@ describe("AppNotConnected", () => {
           status: "active",
           createdByUserId: "user-1",
         }),
-        connection({ id: "conn-two", applicationId: "app-2", name: "Notion team", status: "active" }),
+        connection({
+          id: "conn-two",
+          applicationId: "app-2",
+          name: "Notion team",
+          status: "active",
+        }),
       ],
     });
     listUserDirectoryMock.mockResolvedValue({
-      users: [{
-        principalId: "user-1",
-        status: "active",
-        user: {
-          id: "user-1",
-          name: "Dotta",
-          email: "dotta@example.com",
-          image: "https://example.com/dotta.png",
+      users: [
+        {
+          principalId: "user-1",
+          status: "active",
+          user: {
+            id: "user-1",
+            name: "Dotta",
+            email: "dotta@example.com",
+            image: "https://example.com/dotta.png",
+          },
         },
-      }],
+      ],
     });
 
     await renderPage();
@@ -290,8 +330,16 @@ describe("AppNotConnected", () => {
     });
     listConnectionsMock.mockResolvedValue({
       connections: [
-        connection({ id: "conn-old", applicationId: "app-1", status: "archived" }),
-        connection({ id: "conn-live", applicationId: "app-2", status: "active" }),
+        connection({
+          id: "conn-old",
+          applicationId: "app-1",
+          status: "archived",
+        }),
+        connection({
+          id: "conn-live",
+          applicationId: "app-2",
+          status: "active",
+        }),
       ],
     });
 
@@ -305,15 +353,18 @@ describe("AppNotConnected", () => {
   it.each([
     ["review", "Nothing is waiting for your OK right now."],
     ["permissions", "Permissions paused"],
-  ])("renders the %s tab with persistent app identity", async (tab, expectedText) => {
-    mockParams.tab = tab;
+  ])(
+    "renders the %s tab with persistent app identity",
+    async (tab, expectedText) => {
+      mockParams.tab = tab;
 
-    await renderPage();
+      await renderPage();
 
-    expect(container.textContent).toContain("GitHub");
-    expect(container.textContent).toContain("Not connected");
-    expect(container.textContent).toContain(expectedText);
-  });
+      expect(container.textContent).toContain("GitHub");
+      expect(container.textContent).toContain("Not connected");
+      expect(container.textContent).toContain(expectedText);
+    },
+  );
 
   it.each([
     ["setup", "/apps/app/app-1/permissions"],
@@ -326,21 +377,30 @@ describe("AppNotConnected", () => {
     expect(navigateComponentMock).toHaveBeenCalledWith({ to, replace: true });
   });
 
-  it.each(["permissions", "review"])("shows reconnect directly below the header on %s", async (tab) => {
-    mockParams.tab = tab;
+  it.each(["permissions", "review"])(
+    "shows reconnect directly below the header on %s",
+    async (tab) => {
+      mockParams.tab = tab;
 
-    await renderPage();
+      await renderPage();
 
-    expect(container.textContent).toContain("Needs attention");
-    expect(container.textContent).toContain("Add a working GitHub key to restore access.");
-    expect(Array.from(container.querySelectorAll("button")).some(
-      (button) => button.textContent?.trim() === "Reconnect",
-    )).toBe(true);
-  });
+      expect(container.textContent).toContain("Needs attention");
+      expect(container.textContent).toContain(
+        "Add a working GitHub key to restore access.",
+      );
+      expect(
+        Array.from(container.querySelectorAll("button")).some(
+          (button) => button.textContent?.trim() === "Reconnect",
+        ),
+      ).toBe(true);
+    },
+  );
 
   it("carries the retained identity into the reconnect flow", async () => {
     listConnectionsMock.mockResolvedValue({
-      connections: [connection({ credentialPolicy: "per_user", createdByUserId: "user-1" })],
+      connections: [
+        connection({ credentialPolicy: "per_user", createdByUserId: "user-1" }),
+      ],
     });
 
     await renderPage();
@@ -374,14 +434,22 @@ describe("AppNotConnected", () => {
 
   it("prefills a custom MCP reconnect from the stored transport URL", async () => {
     listApplicationsMock.mockResolvedValue({
-      applications: [application({ applicationKey: "custom-mcp", name: "Bla", metadata: null })],
+      applications: [
+        application({
+          applicationKey: "custom-mcp",
+          name: "Bla",
+          metadata: null,
+        }),
+      ],
     });
     listConnectionsMock.mockResolvedValue({
-      connections: [connection({
-        name: "Bla",
-        config: { url: "http://127.0.0.1:49287" },
-        transportConfig: { url: "http://127.0.0.1:49287" },
-      })],
+      connections: [
+        connection({
+          name: "Bla",
+          config: { url: "http://127.0.0.1:49287" },
+          transportConfig: { url: "http://127.0.0.1:49287" },
+        }),
+      ],
     });
     listGalleryMock.mockResolvedValue({ apps: [] });
 
@@ -399,17 +467,21 @@ describe("AppNotConnected", () => {
 
   it("does not offer a removed personal reconnect to someone other than its fixed owner", async () => {
     listConnectionsMock.mockResolvedValue({
-      connections: [connection({ credentialPolicy: "per_user", createdByUserId: "user-2" })],
+      connections: [
+        connection({ credentialPolicy: "per_user", createdByUserId: "user-2" }),
+      ],
     });
     listConnectionGrantsMock.mockResolvedValue({
       connection: { id: "conn-old", uid: "conn-old" },
-      grants: [{
-        id: "grant-user-2",
-        kind: "user",
-        subjectUserId: "user-2",
-        status: "revoked",
-        credentialSecretRefs: [],
-      }],
+      grants: [
+        {
+          id: "grant-user-2",
+          kind: "user",
+          subjectUserId: "user-2",
+          status: "revoked",
+          credentialSecretRefs: [],
+        },
+      ],
       capabilities: {
         canConfigure: true,
         canCreateOrganizationGrant: true,
@@ -425,9 +497,13 @@ describe("AppNotConnected", () => {
 
     await renderPage();
 
-    expect(container.textContent).toContain("The person this connection belongs to must reconnect it.");
-    expect(Array.from(container.querySelectorAll("button")).some(
-      (button) => button.textContent?.trim() === "Reconnect",
-    )).toBe(false);
+    expect(container.textContent).toContain(
+      "The person this connection belongs to must reconnect it.",
+    );
+    expect(
+      Array.from(container.querySelectorAll("button")).some(
+        (button) => button.textContent?.trim() === "Reconnect",
+      ),
+    ).toBe(false);
   });
 });

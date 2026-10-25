@@ -1,4 +1,7 @@
-import { TaskChatExpansionState, useTaskChatExpansion } from "./expansion-state";
+import {
+  TaskChatExpansionState,
+  useTaskChatExpansion,
+} from "./expansion-state";
 import { useContext, useEffect, type ReactNode } from "react";
 import { Brain, ChevronRight, CircleEllipsis } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,20 +52,20 @@ export function TaskChatActivityPhase({
     defaultOpen ||
     (autoOpen &&
       (item.active ||
-      item.items.some(
-        (child) =>
-          (child.kind === "thinking" && child.streaming) ||
-          (child.kind === "tool" && child.status === "in_progress") ||
-          (child.kind === "protocol" &&
-            child.surface === "provider_activity" &&
-            child.status === "running") ||
-          (child.kind === "protocol" &&
-            child.surface === "workspace_change" &&
-            !child.complete) ||
-          (child.kind === "protocol" &&
-            child.surface === "runtime_request" &&
-            child.status === "pending"),
-      )));
+        item.items.some(
+          (child) =>
+            (child.kind === "thinking" && child.streaming) ||
+            (child.kind === "tool" && child.status === "in_progress") ||
+            (child.kind === "protocol" &&
+              child.surface === "provider_activity" &&
+              child.status === "running") ||
+            (child.kind === "protocol" &&
+              child.surface === "workspace_change" &&
+              !child.complete) ||
+            (child.kind === "protocol" &&
+              child.surface === "runtime_request" &&
+              child.status === "pending"),
+        )));
   const [open, setOpen] = useTaskChatExpansion(item.id, shouldAutoOpen);
   const expansionMemory = useContext(TaskChatExpansionState);
   useEffect(() => {

@@ -26,10 +26,23 @@ import { TASK_WATCHDOG_ORIGIN_KIND } from "./task-watchdog-scope.js";
 
 const TASK_WATCHDOG_STOP_FINGERPRINT_PREFIX = "task_watchdog_stop:";
 const TASK_WATCHDOG_SUBTREE_MAX_DEPTH = 100;
-const TASK_WATCHDOG_LIVE_RUN_STATUSES = ["queued", "running", "scheduled_retry"] as const;
-const TASK_WATCHDOG_WAKE_REQUEST_STATUSES = ["queued", "deferred_issue_execution"] as const;
+const TASK_WATCHDOG_LIVE_RUN_STATUSES = [
+  "queued",
+  "running",
+  "scheduled_retry",
+] as const;
+const TASK_WATCHDOG_WAKE_REQUEST_STATUSES = [
+  "queued",
+  "deferred_issue_execution",
+] as const;
 const TASK_WATCHDOG_TERMINAL_ISSUE_STATUSES = ["done", "cancelled"] as const;
-const TASK_WATCHDOG_TERMINAL_RUN_STATUSES = ["succeeded", "interrupted", "failed", "cancelled", "timed_out"] as const;
+const TASK_WATCHDOG_TERMINAL_RUN_STATUSES = [
+  "succeeded",
+  "interrupted",
+  "failed",
+  "cancelled",
+  "timed_out",
+] as const;
 // Grace window after an issue is created/assigned during which its first
 // assignment run/wake may have been enqueued but is not yet visible to a
 // watchdog evaluation (the eval can race the issue's own assignment run).
@@ -131,10 +144,13 @@ export type TaskWatchdogMaterialLeaf = Pick<
   | "pendingApprovalIds"
 >;
 
-export type TaskWatchdogWaitsByIssueId = Record<string, {
-  pendingInteractionIds: string[];
-  pendingApprovalIds: string[];
-}>;
+export type TaskWatchdogWaitsByIssueId = Record<
+  string,
+  {
+    pendingInteractionIds: string[];
+    pendingApprovalIds: string[];
+  }
+>;
 
 export type TaskWatchdogStopSnapshot = {
   version: 2;
@@ -143,47 +159,50 @@ export type TaskWatchdogStopSnapshot = {
   waitsByIssueId: TaskWatchdogWaitsByIssueId;
 };
 
-type TaskWatchdogPendingInteractionsByIssueId = Record<string, Array<{
-  id: string;
-  kind: string | null;
-}>>;
+type TaskWatchdogPendingInteractionsByIssueId = Record<
+  string,
+  Array<{
+    id: string;
+    kind: string | null;
+  }>
+>;
 
 export type TaskWatchdogClassifierResult =
   | {
-    state: "not_applicable";
-    reason: string;
-    includedIssueIds: string[];
-  }
+      state: "not_applicable";
+      reason: string;
+      includedIssueIds: string[];
+    }
   | {
-    state: "live";
-    reason: string;
-    includedIssueIds: string[];
-    liveIssueIds: string[];
-  }
+      state: "live";
+      reason: string;
+      includedIssueIds: string[];
+      liveIssueIds: string[];
+    }
   | {
-    state: "pending_first_run";
-    reason: string;
-    includedIssueIds: string[];
-    pendingIssueIds: string[];
-  }
+      state: "pending_first_run";
+      reason: string;
+      includedIssueIds: string[];
+      pendingIssueIds: string[];
+    }
   | {
-    state: "already_reviewed";
-    reason: string;
-    includedIssueIds: string[];
-    stopFingerprint: string;
-    stoppedLeaves: TaskWatchdogStoppedLeaf[];
-    stopSnapshot: TaskWatchdogStopSnapshot;
-    pendingInteractionsByIssueId: TaskWatchdogPendingInteractionsByIssueId;
-  }
+      state: "already_reviewed";
+      reason: string;
+      includedIssueIds: string[];
+      stopFingerprint: string;
+      stoppedLeaves: TaskWatchdogStoppedLeaf[];
+      stopSnapshot: TaskWatchdogStopSnapshot;
+      pendingInteractionsByIssueId: TaskWatchdogPendingInteractionsByIssueId;
+    }
   | {
-    state: "stopped";
-    reason: string;
-    includedIssueIds: string[];
-    stopFingerprint: string;
-    stoppedLeaves: TaskWatchdogStoppedLeaf[];
-    stopSnapshot: TaskWatchdogStopSnapshot;
-    pendingInteractionsByIssueId: TaskWatchdogPendingInteractionsByIssueId;
-  };
+      state: "stopped";
+      reason: string;
+      includedIssueIds: string[];
+      stopFingerprint: string;
+      stoppedLeaves: TaskWatchdogStoppedLeaf[];
+      stopSnapshot: TaskWatchdogStopSnapshot;
+      pendingInteractionsByIssueId: TaskWatchdogPendingInteractionsByIssueId;
+    };
 
 export type TaskWatchdogClassifierInput = {
   watchdog: TaskWatchdogClassifierConfig;
@@ -226,13 +245,17 @@ export type TaskWatchdogServiceDeps = {
   enqueueWakeup?: TaskWatchdogWakeup;
 };
 
-function normalizeInstructions(value: string | null | undefined): string | null {
+function normalizeInstructions(
+  value: string | null | undefined,
+): string | null {
   if (value == null) return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export function summarizeIssueWatchdog(row: IssueWatchdogRow): IssueWatchdogSummary {
+export function summarizeIssueWatchdog(
+  row: IssueWatchdogRow,
+): IssueWatchdogSummary {
   return {
     id: row.id,
     companyId: row.companyId,
@@ -263,7 +286,9 @@ function toIssueWatchdog(row: IssueWatchdogRow): IssueWatchdog {
   };
 }
 
-function issueUpdatedAtIso(issue: Pick<TaskWatchdogClassifierIssue, "updatedAt">) {
+function issueUpdatedAtIso(
+  issue: Pick<TaskWatchdogClassifierIssue, "updatedAt">,
+) {
   return issue.updatedAt instanceof Date
     ? issue.updatedAt.toISOString()
     : new Date(String(issue.updatedAt)).toISOString();
@@ -271,21 +296,31 @@ function issueUpdatedAtIso(issue: Pick<TaskWatchdogClassifierIssue, "updatedAt">
 
 function optionalIso(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
-  const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  const ms =
+    value instanceof Date ? value.getTime() : new Date(value).getTime();
   if (!Number.isFinite(ms)) return null;
   return new Date(ms).toISOString();
 }
 
 function toEpochMs(value: Date | string | null | undefined): number | null {
   if (value == null) return null;
-  const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  const ms =
+    value instanceof Date ? value.getTime() : new Date(value).getTime();
   return Number.isFinite(ms) ? ms : null;
 }
 
-function pathIssueIds(paths: TaskWatchdogClassifierPath[] | undefined, companyId: string) {
+function pathIssueIds(
+  paths: TaskWatchdogClassifierPath[] | undefined,
+  companyId: string,
+) {
   return new Set(
     (paths ?? [])
-      .filter((path) => path.companyId === companyId && typeof path.issueId === "string" && path.issueId.length > 0)
+      .filter(
+        (path) =>
+          path.companyId === companyId &&
+          typeof path.issueId === "string" &&
+          path.issueId.length > 0,
+      )
       .map((path) => path.issueId as string),
   );
 }
@@ -338,7 +373,8 @@ function parseStopSnapshot(value: unknown): TaskWatchdogStopSnapshot | null {
     !Array.isArray(candidate.materialLeaves) ||
     !candidate.waitsByIssueId ||
     typeof candidate.waitsByIssueId !== "object"
-  ) return null;
+  )
+    return null;
   return candidate as TaskWatchdogStopSnapshot;
 }
 
@@ -349,30 +385,44 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value, (_key, val) =>
     val && typeof val === "object" && !Array.isArray(val)
       ? Object.fromEntries(
-        Object.entries(val as Record<string, unknown>).sort(([left], [right]) =>
-          left < right ? -1 : left > right ? 1 : 0
-        ),
-      )
-      : val);
+          Object.entries(val as Record<string, unknown>).sort(
+            ([left], [right]) => (left < right ? -1 : left > right ? 1 : 0),
+          ),
+        )
+      : val,
+  );
 }
 
 function isShrinkOfReviewedSnapshot(
   current: TaskWatchdogStopSnapshot,
   reviewed: TaskWatchdogStopSnapshot | null | undefined,
 ) {
-  if (!reviewed || canonicalJson(current.waitsByIssueId) !== canonicalJson(reviewed.waitsByIssueId)) return false;
-  const reviewedLeaves = new Map(reviewed.materialLeaves.map((leaf) => [leaf.issueId, leaf]));
+  if (
+    !reviewed ||
+    canonicalJson(current.waitsByIssueId) !==
+      canonicalJson(reviewed.waitsByIssueId)
+  )
+    return false;
+  const reviewedLeaves = new Map(
+    reviewed.materialLeaves.map((leaf) => [leaf.issueId, leaf]),
+  );
   return current.materialLeaves.every((leaf) => {
     const previous = reviewedLeaves.get(leaf.issueId);
     return previous != null && canonicalJson(previous) === canonicalJson(leaf);
   });
 }
 
-export function classifyTaskWatchdogSubtree(input: TaskWatchdogClassifierInput): TaskWatchdogClassifierResult {
+export function classifyTaskWatchdogSubtree(
+  input: TaskWatchdogClassifierInput,
+): TaskWatchdogClassifierResult {
   const issuesById = new Map(input.issues.map((issue) => [issue.id, issue]));
   const root = issuesById.get(input.watchdog.issueId);
   if (!root || root.companyId !== input.watchdog.companyId) {
-    return { state: "not_applicable", reason: "Watched issue is missing.", includedIssueIds: [] };
+    return {
+      state: "not_applicable",
+      reason: "Watched issue is missing.",
+      includedIssueIds: [],
+    };
   }
   if (root.originKind === TASK_WATCHDOG_ORIGIN_KIND) {
     return {
@@ -384,7 +434,8 @@ export function classifyTaskWatchdogSubtree(input: TaskWatchdogClassifierInput):
 
   const childrenByParentId = new Map<string, TaskWatchdogClassifierIssue[]>();
   for (const issue of input.issues) {
-    if (issue.companyId !== input.watchdog.companyId || !issue.parentId) continue;
+    if (issue.companyId !== input.watchdog.companyId || !issue.parentId)
+      continue;
     const list = childrenByParentId.get(issue.parentId) ?? [];
     list.push(issue);
     childrenByParentId.set(issue.parentId, list);
@@ -403,7 +454,11 @@ export function classifyTaskWatchdogSubtree(input: TaskWatchdogClassifierInput):
   };
   visit(root);
   if (included.length === 0) {
-    return { state: "not_applicable", reason: "Watched subtree has no non-watchdog issues.", includedIssueIds: [] };
+    return {
+      state: "not_applicable",
+      reason: "Watched subtree has no non-watchdog issues.",
+      includedIssueIds: [],
+    };
   }
 
   const includedIds = included.map((issue) => issue.id);
@@ -416,7 +471,8 @@ export function classifyTaskWatchdogSubtree(input: TaskWatchdogClassifierInput):
   if (uniqueLiveIssueIds.length > 0) {
     return {
       state: "live",
-      reason: "At least one issue in the watched subtree has a live run, queued wake, or scheduled retry.",
+      reason:
+        "At least one issue in the watched subtree has a live run, queued wake, or scheduled retry.",
       includedIssueIds: includedIds,
       liveIssueIds: uniqueLiveIssueIds,
     };
@@ -471,21 +527,58 @@ export function classifyTaskWatchdogSubtree(input: TaskWatchdogClassifierInput):
   const nonTerminalIssues = included
     .filter((issue) => !isTerminalIssueStatus(issue.status))
     .sort((left, right) => left.id.localeCompare(right.id));
-  const waitsByIssueId = Object.fromEntries(nonTerminalIssues
-    .map((issue) => [issue.id, {
-      pendingInteractionIds: waitingPathIds(input.pendingInteractions, input.watchdog.companyId, issue.id),
-      pendingApprovalIds: waitingPathIds(input.pendingApprovals, input.watchdog.companyId, issue.id),
-    }] as const)
-    .filter(([, waits]) => waits.pendingInteractionIds.length > 0 || waits.pendingApprovalIds.length > 0));
-  const pendingInteractionsByIssueId = Object.fromEntries(nonTerminalIssues
-    .map((issue) => [issue.id, (input.pendingInteractions ?? [])
-      .filter((path) => path.companyId === input.watchdog.companyId && path.issueId === issue.id)
-      .map((path) => ({ id: path.id ?? `${path.status}:${path.issueId}`, kind: path.kind ?? null }))
-      .sort((left, right) => left.id.localeCompare(right.id))] as const)
-    .filter(([, waits]) => waits.length > 0));
+  const waitsByIssueId = Object.fromEntries(
+    nonTerminalIssues
+      .map(
+        (issue) =>
+          [
+            issue.id,
+            {
+              pendingInteractionIds: waitingPathIds(
+                input.pendingInteractions,
+                input.watchdog.companyId,
+                issue.id,
+              ),
+              pendingApprovalIds: waitingPathIds(
+                input.pendingApprovals,
+                input.watchdog.companyId,
+                issue.id,
+              ),
+            },
+          ] as const,
+      )
+      .filter(
+        ([, waits]) =>
+          waits.pendingInteractionIds.length > 0 ||
+          waits.pendingApprovalIds.length > 0,
+      ),
+  );
+  const pendingInteractionsByIssueId = Object.fromEntries(
+    nonTerminalIssues
+      .map(
+        (issue) =>
+          [
+            issue.id,
+            (input.pendingInteractions ?? [])
+              .filter(
+                (path) =>
+                  path.companyId === input.watchdog.companyId &&
+                  path.issueId === issue.id,
+              )
+              .map((path) => ({
+                id: path.id ?? `${path.status}:${path.issueId}`,
+                kind: path.kind ?? null,
+              }))
+              .sort((left, right) => left.id.localeCompare(right.id)),
+          ] as const,
+      )
+      .filter(([, waits]) => waits.length > 0),
+  );
 
   const leaves = included
-    .filter((issue) => (includedChildrenByParentId.get(issue.id) ?? []).length === 0)
+    .filter(
+      (issue) => (includedChildrenByParentId.get(issue.id) ?? []).length === 0,
+    )
     .filter((issue) => !isTerminalIssueStatus(issue.status))
     .sort((left, right) => left.id.localeCompare(right.id))
     .map((issue) => ({
@@ -495,9 +588,19 @@ export function classifyTaskWatchdogSubtree(input: TaskWatchdogClassifierInput):
       status: issue.status,
       assigneeAgentId: issue.assigneeAgentId,
       assigneeUserId: issue.assigneeUserId,
-      blockerIssueIds: [...new Set(blockersByIssueId.get(issue.id) ?? [])].sort(),
-      pendingInteractionIds: waitingPathIds(input.pendingInteractions, input.watchdog.companyId, issue.id),
-      pendingApprovalIds: waitingPathIds(input.pendingApprovals, input.watchdog.companyId, issue.id),
+      blockerIssueIds: [
+        ...new Set(blockersByIssueId.get(issue.id) ?? []),
+      ].sort(),
+      pendingInteractionIds: waitingPathIds(
+        input.pendingInteractions,
+        input.watchdog.companyId,
+        issue.id,
+      ),
+      pendingApprovalIds: waitingPathIds(
+        input.pendingApprovals,
+        input.watchdog.companyId,
+        issue.id,
+      ),
       updatedAt: issueUpdatedAtIso(issue),
       latestCommentAt: optionalIso(issue.latestCommentAt),
       latestDocumentAt: optionalIso(issue.latestDocumentAt),
@@ -519,11 +622,15 @@ export function classifyTaskWatchdogSubtree(input: TaskWatchdogClassifierInput):
 
   if (
     input.watchdog.lastReviewedFingerprint === stopFingerprint ||
-    isShrinkOfReviewedSnapshot(currentStopSnapshot, input.watchdog.lastReviewedStopSnapshot)
+    isShrinkOfReviewedSnapshot(
+      currentStopSnapshot,
+      input.watchdog.lastReviewedStopSnapshot,
+    )
   ) {
     return {
       state: "already_reviewed",
-      reason: "The current stopped subtree fingerprint was already reviewed by the watchdog.",
+      reason:
+        "The current stopped subtree fingerprint was already reviewed by the watchdog.",
       includedIssueIds: includedIds,
       stopFingerprint,
       stoppedLeaves: leaves,
@@ -543,7 +650,11 @@ export function classifyTaskWatchdogSubtree(input: TaskWatchdogClassifierInput):
   };
 }
 
-async function assertWatchedIssue(dbOrTx: any, companyId: string, issueId: string) {
+async function assertWatchedIssue(
+  dbOrTx: any,
+  companyId: string,
+  issueId: string,
+) {
   const issue = await dbOrTx
     .select({ id: issues.id, companyId: issues.companyId })
     .from(issues)
@@ -553,7 +664,11 @@ async function assertWatchedIssue(dbOrTx: any, companyId: string, issueId: strin
   return issue;
 }
 
-async function assertWatchdogAgentInvokable(dbOrTx: any, companyId: string, agentId: string) {
+async function assertWatchdogAgentInvokable(
+  dbOrTx: any,
+  companyId: string,
+  agentId: string,
+) {
   const agent = await dbOrTx
     .select({
       id: agents.id,
@@ -564,19 +679,29 @@ async function assertWatchdogAgentInvokable(dbOrTx: any, companyId: string, agen
     })
     .from(agents)
     .where(eq(agents.id, agentId))
-    .then((rows: Array<{
-      id: string;
-      companyId: string;
-      name: string;
-      reportsTo: string | null;
-      status: string;
-    }>) => rows[0] ?? null);
+    .then(
+      (
+        rows: Array<{
+          id: string;
+          companyId: string;
+          name: string;
+          reportsTo: string | null;
+          status: string;
+        }>,
+      ) => rows[0] ?? null,
+    );
   if (!agent || agent.companyId !== companyId) {
     throw notFound("Watchdog agent not found");
   }
-  const invokability = await evaluateAgentInvokabilityFromDb(dbOrTx as Db, agent);
+  const invokability = await evaluateAgentInvokabilityFromDb(
+    dbOrTx as Db,
+    agent,
+  );
   if (!invokability.invokable) {
-    throw conflict("Cannot assign watchdog to an agent that is not invokable", invokability);
+    throw conflict(
+      "Cannot assign watchdog to an agent that is not invokable",
+      invokability,
+    );
   }
   return agent;
 }
@@ -587,21 +712,27 @@ function readNonEmptyString(value: unknown): string | null {
 
 function issueIdFromRunContext(contextSnapshot: unknown) {
   const context = parseObject(contextSnapshot);
-  return readNonEmptyString(context.issueId) ?? readNonEmptyString(context.taskId);
+  return (
+    readNonEmptyString(context.issueId) ?? readNonEmptyString(context.taskId)
+  );
 }
 
 function issueIdFromWakePayload(payload: unknown) {
   const parsed = parseObject(payload);
   const nested = parseObject(parsed._taskcoreWakeContext);
-  return readNonEmptyString(parsed.issueId) ??
+  return (
+    readNonEmptyString(parsed.issueId) ??
     readNonEmptyString(parsed.taskId) ??
     readNonEmptyString(nested.issueId) ??
-    readNonEmptyString(nested.taskId);
+    readNonEmptyString(nested.taskId)
+  );
 }
 
 function normalizeStopFingerprint(value: string | null | undefined) {
   const trimmed = value?.trim();
-  return trimmed?.startsWith(TASK_WATCHDOG_STOP_FINGERPRINT_PREFIX) ? trimmed : null;
+  return trimmed?.startsWith(TASK_WATCHDOG_STOP_FINGERPRINT_PREFIX)
+    ? trimmed
+    : null;
 }
 
 function stopFingerprintFromText(value: string | null | undefined) {
@@ -609,11 +740,19 @@ function stopFingerprintFromText(value: string | null | undefined) {
   return normalizeStopFingerprint(match?.[0] ?? null);
 }
 
-function reviewedFingerprintForWatchdogIssue(issue: Pick<IssueRow, "originFingerprint" | "description">) {
-  return normalizeStopFingerprint(issue.originFingerprint) ?? stopFingerprintFromText(issue.description);
+function reviewedFingerprintForWatchdogIssue(
+  issue: Pick<IssueRow, "originFingerprint" | "description">,
+) {
+  return (
+    normalizeStopFingerprint(issue.originFingerprint) ??
+    stopFingerprintFromText(issue.description)
+  );
 }
 
-function taskWatchdogWakeIdempotencyKey(watchdogId: string, stopFingerprint: string) {
+function taskWatchdogWakeIdempotencyKey(
+  watchdogId: string,
+  stopFingerprint: string,
+) {
   return `task_watchdog:${watchdogId}:${stopFingerprint}`;
 }
 
@@ -624,22 +763,30 @@ function buildStoppedFingerprintComment(input: {
   pendingInteractionsByIssueId: TaskWatchdogPendingInteractionsByIssueId;
   resumed: boolean;
 }) {
-  const shortId = (id: string) => id.length > 8 ? `${id.slice(0, 8)}…` : id;
+  const shortId = (id: string) => (id.length > 8 ? `${id.slice(0, 8)}…` : id);
   const leafLines = input.stoppedLeaves.slice(0, 12).map((leaf) => {
     const interactionKinds = new Map(
-      (input.pendingInteractionsByIssueId[leaf.issueId] ?? []).map((wait) => [wait.id, wait.kind]),
+      (input.pendingInteractionsByIssueId[leaf.issueId] ?? []).map((wait) => [
+        wait.id,
+        wait.kind,
+      ]),
     );
     const waits = [
-      ...leaf.pendingInteractionIds.map((id) => `${interactionKinds.get(id) ?? "interaction"} ${shortId(id)}`),
+      ...leaf.pendingInteractionIds.map(
+        (id) => `${interactionKinds.get(id) ?? "interaction"} ${shortId(id)}`,
+      ),
       ...leaf.pendingApprovalIds.map((id) => `approval ${shortId(id)}`),
     ];
     return `- ${leaf.identifier ?? leaf.issueId}: ${leaf.status}${waits.length > 0 ? ` (pending ${waits.join(", ")})` : ""}`;
   });
-  const more = input.stoppedLeaves.length > leafLines.length
-    ? `\n- ...and ${input.stoppedLeaves.length - leafLines.length} more stopped leaves`
-    : "";
+  const more =
+    input.stoppedLeaves.length > leafLines.length
+      ? `\n- ...and ${input.stoppedLeaves.length - leafLines.length} more stopped leaves`
+      : "";
   return [
-    input.resumed ? "Task watchdog resumed for stopped subtree." : "Task watchdog started for stopped subtree.",
+    input.resumed
+      ? "Task watchdog resumed for stopped subtree."
+      : "Task watchdog started for stopped subtree.",
     "",
     `Watched issue: ${input.sourceIssue.identifier ?? input.sourceIssue.id}`,
     `Stopped fingerprint: \`${input.stopFingerprint}\``,
@@ -647,7 +794,9 @@ function buildStoppedFingerprintComment(input: {
     "Stopped leaves:",
     ...(leafLines.length > 0 ? leafLines : ["- No leaf issues found."]),
     more,
-  ].filter((line) => line !== "").join("\n");
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
 }
 
 function stoppedFingerprintMetadata(input: {
@@ -657,7 +806,10 @@ function stoppedFingerprintMetadata(input: {
   resumed: boolean;
 }) {
   const pendingWaitCount = Object.values(input.waitsByIssueId).reduce(
-    (count, waits) => count + waits.pendingInteractionIds.length + waits.pendingApprovalIds.length,
+    (count, waits) =>
+      count +
+      waits.pendingInteractionIds.length +
+      waits.pendingApprovalIds.length,
     0,
   );
   return {
@@ -666,10 +818,26 @@ function stoppedFingerprintMetadata(input: {
       {
         title: "Task Watchdog",
         rows: [
-          { type: "text" as const, label: "Watched issue", text: input.sourceIssueId },
-          { type: "text" as const, label: "Stopped fingerprint", text: input.stopFingerprint },
-          { type: "text" as const, label: "Pending waits", text: String(pendingWaitCount) },
-          { type: "text" as const, label: "Resume intent", text: input.resumed ? "true" : "false" },
+          {
+            type: "text" as const,
+            label: "Watched issue",
+            text: input.sourceIssueId,
+          },
+          {
+            type: "text" as const,
+            label: "Stopped fingerprint",
+            text: input.stopFingerprint,
+          },
+          {
+            type: "text" as const,
+            label: "Pending waits",
+            text: String(pendingWaitCount),
+          },
+          {
+            type: "text" as const,
+            label: "Resume intent",
+            text: input.resumed ? "true" : "false",
+          },
         ],
       },
     ],
@@ -693,9 +861,11 @@ function watchdogWakeContext(input: {
       watchedIssueTitle: input.sourceIssue.title,
       stopFingerprint: input.classification.stopFingerprint,
       pendingInteractions: input.classification.pendingInteractionsByIssueId,
-      pendingApprovals: Object.fromEntries(Object.entries(input.classification.stopSnapshot.waitsByIssueId)
-        .filter(([, waits]) => waits.pendingApprovalIds.length > 0)
-        .map(([issueId, waits]) => [issueId, waits.pendingApprovalIds])),
+      pendingApprovals: Object.fromEntries(
+        Object.entries(input.classification.stopSnapshot.waitsByIssueId)
+          .filter(([, waits]) => waits.pendingApprovalIds.length > 0)
+          .map(([issueId, waits]) => [issueId, waits.pendingApprovalIds]),
+      ),
       capabilities: {
         targetScope: {
           watchedIssueId: input.sourceIssue.id,
@@ -740,13 +910,21 @@ function isTerminalIssueStatus(status: string) {
   );
 }
 
-function isWatchdogReviewDisposition(issue: Pick<
-  IssueRow,
-  "status" | "assigneeUserId" | "executionState" | "monitorNextCheckAt"
->, hasPendingReviewPath: boolean) {
+function isWatchdogReviewDisposition(
+  issue: Pick<
+    IssueRow,
+    "status" | "assigneeUserId" | "executionState" | "monitorNextCheckAt"
+  >,
+  hasPendingReviewPath: boolean,
+) {
   if (issue.status === "done" || issue.status === "blocked") return true;
   if (issue.status !== "in_review") return false;
-  return Boolean(issue.assigneeUserId || issue.executionState || issue.monitorNextCheckAt || hasPendingReviewPath);
+  return Boolean(
+    issue.assigneeUserId ||
+    issue.executionState ||
+    issue.monitorNextCheckAt ||
+    hasPendingReviewPath,
+  );
 }
 
 function isUniqueConstraintConflict(error: unknown, constraintName: string) {
@@ -764,13 +942,20 @@ function isUniqueConstraintConflict(error: unknown, constraintName: string) {
       message?: string;
     };
     if (typed.code === "23505") hasUniqueCode = true;
-    if (typed.constraint === constraintName || typed.constraint_name === constraintName) hasConstraint = true;
+    if (
+      typed.constraint === constraintName ||
+      typed.constraint_name === constraintName
+    )
+      hasConstraint = true;
     if (typed.message) messages.push(typed.message);
     if (typed.cause) queue.push(typed.cause);
   }
   const message = messages.join("\n");
-  return (hasUniqueCode || message.includes("duplicate key value violates unique constraint")) &&
-    (hasConstraint || message.includes(constraintName));
+  return (
+    (hasUniqueCode ||
+      message.includes("duplicate key value violates unique constraint")) &&
+    (hasConstraint || message.includes(constraintName))
+  );
 }
 
 function isActiveTaskWatchdogUniqueConflict(error: unknown) {
@@ -816,7 +1001,12 @@ export async function upsertIssueWatchdogForIssue(
   const existing = await dbOrTx
     .select()
     .from(issueWatchdogs)
-    .where(and(eq(issueWatchdogs.companyId, companyId), eq(issueWatchdogs.issueId, issueId)))
+    .where(
+      and(
+        eq(issueWatchdogs.companyId, companyId),
+        eq(issueWatchdogs.issueId, issueId),
+      ),
+    )
     .then((rows: IssueWatchdogRow[]) => rows[0] ?? null);
 
   if (existing) {
@@ -848,19 +1038,33 @@ export async function upsertIssueWatchdogForIssue(
       const winner = await dbOrTx
         .select()
         .from(issueWatchdogs)
-        .where(and(eq(issueWatchdogs.companyId, companyId), eq(issueWatchdogs.issueId, issueId)))
+        .where(
+          and(
+            eq(issueWatchdogs.companyId, companyId),
+            eq(issueWatchdogs.issueId, issueId),
+          ),
+        )
         .then((rows: IssueWatchdogRow[]) => rows[0] ?? null);
       if (!winner) throw error;
       const updated = await updateIssueWatchdogRow(dbOrTx, winner, input, now);
       return { row: updated, created: false };
     });
-  return { watchdog: toIssueWatchdog(insertResult.row), created: insertResult.created };
+  return {
+    watchdog: toIssueWatchdog(insertResult.row),
+    created: insertResult.created,
+  };
 }
 
-export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) {
+export function taskWatchdogService(
+  db: Db,
+  deps: TaskWatchdogServiceDeps = {},
+) {
   const issuesSvc = issueService(db);
 
-  async function loadWatchdogSubtreeIssues(companyId: string, watchedIssueId: string) {
+  async function loadWatchdogSubtreeIssues(
+    companyId: string,
+    watchedIssueId: string,
+  ) {
     const rows = await db.execute(sql`
       WITH RECURSIVE watched_issues AS (
         SELECT
@@ -921,8 +1125,14 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
     return (Array.isArray(rows) ? rows : []) as TaskWatchdogClassifierIssue[];
   }
 
-  async function collectClassifierInput(companyId: string, watchdog: IssueWatchdogRow) {
-    const issueRows = await loadWatchdogSubtreeIssues(companyId, watchdog.issueId);
+  async function collectClassifierInput(
+    companyId: string,
+    watchdog: IssueWatchdogRow,
+  ) {
+    const issueRows = await loadWatchdogSubtreeIssues(
+      companyId,
+      watchdog.issueId,
+    );
     const subtreeIssueIds = issueRows.map((issue) => issue.id);
     if (subtreeIssueIds.length === 0) {
       return {
@@ -958,14 +1168,22 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
           contextSnapshot: heartbeatRuns.contextSnapshot,
         })
         .from(heartbeatRuns)
-        .where(and(
-          eq(heartbeatRuns.companyId, companyId),
-          inArray(heartbeatRuns.status, [...TASK_WATCHDOG_LIVE_RUN_STATUSES]),
-          or(
-            inArray(sql`${heartbeatRuns.contextSnapshot}->>'issueId'`, subtreeIssueIds),
-            inArray(sql`${heartbeatRuns.contextSnapshot}->>'taskId'`, subtreeIssueIds),
+        .where(
+          and(
+            eq(heartbeatRuns.companyId, companyId),
+            inArray(heartbeatRuns.status, [...TASK_WATCHDOG_LIVE_RUN_STATUSES]),
+            or(
+              inArray(
+                sql`${heartbeatRuns.contextSnapshot}->>'issueId'`,
+                subtreeIssueIds,
+              ),
+              inArray(
+                sql`${heartbeatRuns.contextSnapshot}->>'taskId'`,
+                subtreeIssueIds,
+              ),
+            ),
           ),
-        )),
+        ),
       db
         .select({
           companyId: issues.companyId,
@@ -975,12 +1193,14 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
         })
         .from(issues)
         .innerJoin(heartbeatRuns, eq(issues.executionRunId, heartbeatRuns.id))
-        .where(and(
-          eq(issues.companyId, companyId),
-          inArray(issues.id, subtreeIssueIds),
-          visibleIssueCondition(),
-          inArray(heartbeatRuns.status, [...TASK_WATCHDOG_LIVE_RUN_STATUSES]),
-        )),
+        .where(
+          and(
+            eq(issues.companyId, companyId),
+            inArray(issues.id, subtreeIssueIds),
+            visibleIssueCondition(),
+            inArray(heartbeatRuns.status, [...TASK_WATCHDOG_LIVE_RUN_STATUSES]),
+          ),
+        ),
       db
         .select({
           companyId: agentWakeupRequests.companyId,
@@ -989,16 +1209,32 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
           payload: agentWakeupRequests.payload,
         })
         .from(agentWakeupRequests)
-        .where(and(
-          eq(agentWakeupRequests.companyId, companyId),
-          inArray(agentWakeupRequests.status, [...TASK_WATCHDOG_WAKE_REQUEST_STATUSES]),
-          or(
-            inArray(sql`${agentWakeupRequests.payload}->>'issueId'`, subtreeIssueIds),
-            inArray(sql`${agentWakeupRequests.payload}->>'taskId'`, subtreeIssueIds),
-            inArray(sql`${agentWakeupRequests.payload}->'_taskcoreWakeContext'->>'issueId'`, subtreeIssueIds),
-            inArray(sql`${agentWakeupRequests.payload}->'_taskcoreWakeContext'->>'taskId'`, subtreeIssueIds),
+        .where(
+          and(
+            eq(agentWakeupRequests.companyId, companyId),
+            inArray(agentWakeupRequests.status, [
+              ...TASK_WATCHDOG_WAKE_REQUEST_STATUSES,
+            ]),
+            or(
+              inArray(
+                sql`${agentWakeupRequests.payload}->>'issueId'`,
+                subtreeIssueIds,
+              ),
+              inArray(
+                sql`${agentWakeupRequests.payload}->>'taskId'`,
+                subtreeIssueIds,
+              ),
+              inArray(
+                sql`${agentWakeupRequests.payload}->'_taskcoreWakeContext'->>'issueId'`,
+                subtreeIssueIds,
+              ),
+              inArray(
+                sql`${agentWakeupRequests.payload}->'_taskcoreWakeContext'->>'taskId'`,
+                subtreeIssueIds,
+              ),
+            ),
           ),
-        )),
+        ),
       db
         .select({
           companyId: issueRelations.companyId,
@@ -1006,11 +1242,13 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
           blockedIssueId: issueRelations.relatedIssueId,
         })
         .from(issueRelations)
-        .where(and(
-          eq(issueRelations.companyId, companyId),
-          eq(issueRelations.type, "blocks"),
-          inArray(issueRelations.relatedIssueId, subtreeIssueIds),
-        )),
+        .where(
+          and(
+            eq(issueRelations.companyId, companyId),
+            eq(issueRelations.type, "blocks"),
+            inArray(issueRelations.relatedIssueId, subtreeIssueIds),
+          ),
+        ),
       db
         .select({
           companyId: issueThreadInteractions.companyId,
@@ -1020,11 +1258,13 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
           status: issueThreadInteractions.status,
         })
         .from(issueThreadInteractions)
-        .where(and(
-          eq(issueThreadInteractions.companyId, companyId),
-          inArray(issueThreadInteractions.issueId, subtreeIssueIds),
-          eq(issueThreadInteractions.status, "pending"),
-        )),
+        .where(
+          and(
+            eq(issueThreadInteractions.companyId, companyId),
+            inArray(issueThreadInteractions.issueId, subtreeIssueIds),
+            eq(issueThreadInteractions.status, "pending"),
+          ),
+        ),
       db
         .select({
           companyId: issueApprovals.companyId,
@@ -1034,22 +1274,26 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
         })
         .from(issueApprovals)
         .innerJoin(approvals, eq(issueApprovals.approvalId, approvals.id))
-        .where(and(
-          eq(issueApprovals.companyId, companyId),
-          inArray(issueApprovals.issueId, subtreeIssueIds),
-          inArray(approvals.status, ["pending", "revision_requested"]),
-        )),
+        .where(
+          and(
+            eq(issueApprovals.companyId, companyId),
+            inArray(issueApprovals.issueId, subtreeIssueIds),
+            inArray(approvals.status, ["pending", "revision_requested"]),
+          ),
+        ),
       db
         .select({
           issueId: issueComments.issueId,
           latestAt: sql<Date | null>`MAX(${issueComments.updatedAt})`,
         })
         .from(issueComments)
-        .where(and(
-          eq(issueComments.companyId, companyId),
-          inArray(issueComments.issueId, subtreeIssueIds),
-          isNull(issueComments.deletedAt),
-        ))
+        .where(
+          and(
+            eq(issueComments.companyId, companyId),
+            inArray(issueComments.issueId, subtreeIssueIds),
+            isNull(issueComments.deletedAt),
+          ),
+        )
         .groupBy(issueComments.issueId),
       db
         .select({
@@ -1057,10 +1301,12 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
           latestAt: sql<Date | null>`MAX(${issueDocuments.updatedAt})`,
         })
         .from(issueDocuments)
-        .where(and(
-          eq(issueDocuments.companyId, companyId),
-          inArray(issueDocuments.issueId, subtreeIssueIds),
-        ))
+        .where(
+          and(
+            eq(issueDocuments.companyId, companyId),
+            inArray(issueDocuments.issueId, subtreeIssueIds),
+          ),
+        )
         .groupBy(issueDocuments.issueId),
       db
         .select({
@@ -1068,15 +1314,23 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
           latestAt: sql<Date | null>`MAX(${issueWorkProducts.updatedAt})`,
         })
         .from(issueWorkProducts)
-        .where(and(
-          eq(issueWorkProducts.companyId, companyId),
-          inArray(issueWorkProducts.issueId, subtreeIssueIds),
-        ))
+        .where(
+          and(
+            eq(issueWorkProducts.companyId, companyId),
+            inArray(issueWorkProducts.issueId, subtreeIssueIds),
+          ),
+        )
         .groupBy(issueWorkProducts.issueId),
     ]);
-    const latestCommentByIssueId = new Map(commentActivityRows.map((row) => [row.issueId, row.latestAt]));
-    const latestDocumentByIssueId = new Map(documentActivityRows.map((row) => [row.issueId, row.latestAt]));
-    const latestWorkProductByIssueId = new Map(workProductActivityRows.map((row) => [row.issueId, row.latestAt]));
+    const latestCommentByIssueId = new Map(
+      commentActivityRows.map((row) => [row.issueId, row.latestAt]),
+    );
+    const latestDocumentByIssueId = new Map(
+      documentActivityRows.map((row) => [row.issueId, row.latestAt]),
+    );
+    const latestWorkProductByIssueId = new Map(
+      workProductActivityRows.map((row) => [row.issueId, row.latestAt]),
+    );
 
     const evaluatedAt = new Date();
     const evaluatedAtMs = evaluatedAt.getTime();
@@ -1087,15 +1341,23 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       .filter((row) => {
         if (isTerminalIssueStatus(row.status)) return false;
         const createdAtMs = toEpochMs(row.createdAt);
-        return createdAtMs != null && evaluatedAtMs - createdAtMs < TASK_WATCHDOG_FIRST_RUN_GRACE_MS;
+        return (
+          createdAtMs != null &&
+          evaluatedAtMs - createdAtMs < TASK_WATCHDOG_FIRST_RUN_GRACE_MS
+        );
       })
       .map((row) => row.id);
-    const completedRunIssueIds = await collectCompletedRunIssueIds(companyId, freshIssueIds);
+    const completedRunIssueIds = await collectCompletedRunIssueIds(
+      companyId,
+      freshIssueIds,
+    );
 
     return {
       watchdog: {
         ...summarizeIssueWatchdog(watchdog),
-        lastReviewedStopSnapshot: parseStopSnapshot(watchdog.lastReviewedStopSnapshot),
+        lastReviewedStopSnapshot: parseStopSnapshot(
+          watchdog.lastReviewedStopSnapshot,
+        ),
       },
       issues: issueRows.map((issue) => ({
         ...issue,
@@ -1103,12 +1365,14 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
         latestDocumentAt: latestDocumentByIssueId.get(issue.id) ?? null,
         latestWorkProductAt: latestWorkProductByIssueId.get(issue.id) ?? null,
       })),
-      activeRuns: activeRunRows.map((row) => ({
-        companyId: row.companyId,
-        agentId: row.agentId,
-        status: row.status,
-        issueId: issueIdFromRunContext(row.contextSnapshot),
-      })).concat(activeIssueRunRows),
+      activeRuns: activeRunRows
+        .map((row) => ({
+          companyId: row.companyId,
+          agentId: row.agentId,
+          status: row.status,
+          issueId: issueIdFromRunContext(row.contextSnapshot),
+        }))
+        .concat(activeIssueRunRows),
       queuedWakeRequests: wakeRows.map((row) => ({
         companyId: row.companyId,
         agentId: row.agentId,
@@ -1127,30 +1391,47 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
   // Returns the subset of `issueIds` that already have at least one run in a
   // terminal status. Such issues have demonstrably executed, so a stopped
   // subtree is genuine and must not be masked by the pending-first-run guard.
-  async function collectCompletedRunIssueIds(companyId: string, issueIds: string[]) {
+  async function collectCompletedRunIssueIds(
+    companyId: string,
+    issueIds: string[],
+  ) {
     if (issueIds.length === 0) return [];
     const candidates = new Set(issueIds);
     const [contextRuns, executionRuns] = await Promise.all([
       db
         .select({ contextSnapshot: heartbeatRuns.contextSnapshot })
         .from(heartbeatRuns)
-        .where(and(
-          eq(heartbeatRuns.companyId, companyId),
-          inArray(heartbeatRuns.status, [...TASK_WATCHDOG_TERMINAL_RUN_STATUSES]),
-          or(
-            inArray(sql`${heartbeatRuns.contextSnapshot}->>'issueId'`, issueIds),
-            inArray(sql`${heartbeatRuns.contextSnapshot}->>'taskId'`, issueIds),
+        .where(
+          and(
+            eq(heartbeatRuns.companyId, companyId),
+            inArray(heartbeatRuns.status, [
+              ...TASK_WATCHDOG_TERMINAL_RUN_STATUSES,
+            ]),
+            or(
+              inArray(
+                sql`${heartbeatRuns.contextSnapshot}->>'issueId'`,
+                issueIds,
+              ),
+              inArray(
+                sql`${heartbeatRuns.contextSnapshot}->>'taskId'`,
+                issueIds,
+              ),
+            ),
           ),
-        )),
+        ),
       db
         .select({ issueId: issues.id })
         .from(issues)
         .innerJoin(heartbeatRuns, eq(issues.executionRunId, heartbeatRuns.id))
-        .where(and(
-          eq(issues.companyId, companyId),
-          inArray(issues.id, issueIds),
-          inArray(heartbeatRuns.status, [...TASK_WATCHDOG_TERMINAL_RUN_STATUSES]),
-        )),
+        .where(
+          and(
+            eq(issues.companyId, companyId),
+            inArray(issues.id, issueIds),
+            inArray(heartbeatRuns.status, [
+              ...TASK_WATCHDOG_TERMINAL_RUN_STATUSES,
+            ]),
+          ),
+        ),
     ]);
     const completed = new Set<string>();
     for (const row of contextRuns) {
@@ -1163,16 +1444,21 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
     return [...completed];
   }
 
-  async function findTaskWatchdogIssue(companyId: string, watchedIssueId: string) {
+  async function findTaskWatchdogIssue(
+    companyId: string,
+    watchedIssueId: string,
+  ) {
     return db
       .select()
       .from(issues)
-      .where(and(
-        eq(issues.companyId, companyId),
-        eq(issues.originKind, TASK_WATCHDOG_ORIGIN_KIND),
-        eq(issues.originId, watchedIssueId),
-        visibleIssueCondition(),
-      ))
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.originKind, TASK_WATCHDOG_ORIGIN_KIND),
+          eq(issues.originId, watchedIssueId),
+          visibleIssueCondition(),
+        ),
+      )
       .orderBy(asc(issues.createdAt), asc(issues.id))
       .limit(1)
       .then((rows) => rows[0] ?? null);
@@ -1183,36 +1469,44 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       db
         .select({ id: heartbeatRuns.id })
         .from(heartbeatRuns)
-        .where(and(
-          eq(heartbeatRuns.companyId, companyId),
-          inArray(heartbeatRuns.status, [...TASK_WATCHDOG_LIVE_RUN_STATUSES]),
-          sql`(${heartbeatRuns.contextSnapshot}->>'issueId' = ${issueId}
+        .where(
+          and(
+            eq(heartbeatRuns.companyId, companyId),
+            inArray(heartbeatRuns.status, [...TASK_WATCHDOG_LIVE_RUN_STATUSES]),
+            sql`(${heartbeatRuns.contextSnapshot}->>'issueId' = ${issueId}
             OR ${heartbeatRuns.contextSnapshot}->>'taskId' = ${issueId})`,
-        ))
+          ),
+        )
         .limit(1)
         .then((rows) => rows[0] ?? null),
       db
         .select({ id: heartbeatRuns.id })
         .from(issues)
         .innerJoin(heartbeatRuns, eq(issues.executionRunId, heartbeatRuns.id))
-        .where(and(
-          eq(issues.companyId, companyId),
-          eq(issues.id, issueId),
-          inArray(heartbeatRuns.status, [...TASK_WATCHDOG_LIVE_RUN_STATUSES]),
-        ))
+        .where(
+          and(
+            eq(issues.companyId, companyId),
+            eq(issues.id, issueId),
+            inArray(heartbeatRuns.status, [...TASK_WATCHDOG_LIVE_RUN_STATUSES]),
+          ),
+        )
         .limit(1)
         .then((rows) => rows[0] ?? null),
       db
         .select({ id: agentWakeupRequests.id })
         .from(agentWakeupRequests)
-        .where(and(
-          eq(agentWakeupRequests.companyId, companyId),
-          inArray(agentWakeupRequests.status, [...TASK_WATCHDOG_WAKE_REQUEST_STATUSES]),
-          sql`(${agentWakeupRequests.payload}->>'issueId' = ${issueId}
+        .where(
+          and(
+            eq(agentWakeupRequests.companyId, companyId),
+            inArray(agentWakeupRequests.status, [
+              ...TASK_WATCHDOG_WAKE_REQUEST_STATUSES,
+            ]),
+            sql`(${agentWakeupRequests.payload}->>'issueId' = ${issueId}
             OR ${agentWakeupRequests.payload}->>'taskId' = ${issueId}
             OR ${agentWakeupRequests.payload}->'_taskcoreWakeContext'->>'issueId' = ${issueId}
             OR ${agentWakeupRequests.payload}->'_taskcoreWakeContext'->>'taskId' = ${issueId})`,
-        ))
+          ),
+        )
         .limit(1)
         .then((rows) => rows[0] ?? null),
     ]);
@@ -1225,9 +1519,16 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
   ) {
     if (!watchdogIssue) return false;
     if (watchdogIssue.originFingerprint !== stopFingerprint) return false;
-    if (isTerminalIssueStatus(watchdogIssue.status) || watchdogIssue.status === "backlog") return false;
+    if (
+      isTerminalIssueStatus(watchdogIssue.status) ||
+      watchdogIssue.status === "backlog"
+    )
+      return false;
     if (watchdogIssue.status === "in_review") {
-      const hasPendingReviewPath = await watchdogIssueHasPendingReviewPath(watchdogIssue.companyId, watchdogIssue.id);
+      const hasPendingReviewPath = await watchdogIssueHasPendingReviewPath(
+        watchdogIssue.companyId,
+        watchdogIssue.id,
+      );
       return isWatchdogReviewDisposition(watchdogIssue, hasPendingReviewPath);
     }
     return true;
@@ -1235,59 +1536,89 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
 
   async function watchdogIssueNeedsFreshWake(watchdogIssue: IssueRow) {
     if (watchdogIssue.status !== "in_review") return false;
-    const hasPendingReviewPath = await watchdogIssueHasPendingReviewPath(watchdogIssue.companyId, watchdogIssue.id);
+    const hasPendingReviewPath = await watchdogIssueHasPendingReviewPath(
+      watchdogIssue.companyId,
+      watchdogIssue.id,
+    );
     return !isWatchdogReviewDisposition(watchdogIssue, hasPendingReviewPath);
   }
 
-  async function watchdogIssueHasPendingReviewPath(companyId: string, issueId: string) {
+  async function watchdogIssueHasPendingReviewPath(
+    companyId: string,
+    issueId: string,
+  ) {
     const [interaction, approval] = await Promise.all([
       db
         .select({ id: issueThreadInteractions.id })
         .from(issueThreadInteractions)
-        .where(and(
-          eq(issueThreadInteractions.companyId, companyId),
-          eq(issueThreadInteractions.issueId, issueId),
-          eq(issueThreadInteractions.status, "pending"),
-        ))
+        .where(
+          and(
+            eq(issueThreadInteractions.companyId, companyId),
+            eq(issueThreadInteractions.issueId, issueId),
+            eq(issueThreadInteractions.status, "pending"),
+          ),
+        )
         .limit(1)
         .then((rows) => rows[0] ?? null),
       db
         .select({ id: approvals.id })
         .from(issueApprovals)
         .innerJoin(approvals, eq(issueApprovals.approvalId, approvals.id))
-        .where(and(
-          eq(issueApprovals.companyId, companyId),
-          eq(issueApprovals.issueId, issueId),
-          inArray(approvals.status, ["pending", "revision_requested"]),
-        ))
+        .where(
+          and(
+            eq(issueApprovals.companyId, companyId),
+            eq(issueApprovals.issueId, issueId),
+            inArray(approvals.status, ["pending", "revision_requested"]),
+          ),
+        )
         .limit(1)
         .then((rows) => rows[0] ?? null),
     ]);
     return Boolean(interaction || approval);
   }
 
-  async function markTerminalWatchdogIssueReviewed(watchdog: IssueWatchdogRow, opts: { runId?: string | null } = {}) {
-    if (!watchdog.watchdogIssueId || !watchdog.lastObservedFingerprint) return watchdog;
+  async function markTerminalWatchdogIssueReviewed(
+    watchdog: IssueWatchdogRow,
+    opts: { runId?: string | null } = {},
+  ) {
+    if (!watchdog.watchdogIssueId || !watchdog.lastObservedFingerprint)
+      return watchdog;
     const watchdogIssue = await db
       .select()
       .from(issues)
-      .where(and(eq(issues.companyId, watchdog.companyId), eq(issues.id, watchdog.watchdogIssueId)))
+      .where(
+        and(
+          eq(issues.companyId, watchdog.companyId),
+          eq(issues.id, watchdog.watchdogIssueId),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
     if (!watchdogIssue) return watchdog;
-    const hasPendingReviewPath = watchdogIssue.status === "in_review"
-      ? await watchdogIssueHasPendingReviewPath(watchdog.companyId, watchdogIssue.id)
-      : false;
-    if (!isWatchdogReviewDisposition(watchdogIssue, hasPendingReviewPath)) return watchdog;
-    const reviewedFingerprint = reviewedFingerprintForWatchdogIssue(watchdogIssue);
+    const hasPendingReviewPath =
+      watchdogIssue.status === "in_review"
+        ? await watchdogIssueHasPendingReviewPath(
+            watchdog.companyId,
+            watchdogIssue.id,
+          )
+        : false;
+    if (!isWatchdogReviewDisposition(watchdogIssue, hasPendingReviewPath))
+      return watchdog;
+    const reviewedFingerprint =
+      reviewedFingerprintForWatchdogIssue(watchdogIssue);
     if (!reviewedFingerprint) return watchdog;
-    const observedSnapshot = parseStopSnapshot(watchdog.lastObservedStopSnapshot);
-    const reviewedStopSnapshot = observedSnapshot?.fingerprint === reviewedFingerprint
-      ? observedSnapshot
-      : null;
+    const observedSnapshot = parseStopSnapshot(
+      watchdog.lastObservedStopSnapshot,
+    );
+    const reviewedStopSnapshot =
+      observedSnapshot?.fingerprint === reviewedFingerprint
+        ? observedSnapshot
+        : null;
     if (
       watchdog.lastReviewedFingerprint === reviewedFingerprint &&
-      canonicalJson(parseStopSnapshot(watchdog.lastReviewedStopSnapshot)) === canonicalJson(reviewedStopSnapshot)
-    ) return watchdog;
+      canonicalJson(parseStopSnapshot(watchdog.lastReviewedStopSnapshot)) ===
+        canonicalJson(reviewedStopSnapshot)
+    )
+      return watchdog;
     const [updated] = await db
       .update(issueWatchdogs)
       .set({
@@ -1328,37 +1659,56 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
   }) {
     const existing = input.watchdog.watchdogIssueId
       ? await db
-        .select()
-        .from(issues)
-        .where(and(
-          eq(issues.companyId, input.watchdog.companyId),
-          eq(issues.id, input.watchdog.watchdogIssueId),
-          visibleIssueCondition(),
-        ))
-        .then((rows) => rows[0] ?? null)
+          .select()
+          .from(issues)
+          .where(
+            and(
+              eq(issues.companyId, input.watchdog.companyId),
+              eq(issues.id, input.watchdog.watchdogIssueId),
+              visibleIssueCondition(),
+            ),
+          )
+          .then((rows) => rows[0] ?? null)
       : null;
-    const fallback = existing ?? await findTaskWatchdogIssue(input.watchdog.companyId, input.sourceIssue.id);
+    const fallback =
+      existing ??
+      (await findTaskWatchdogIssue(
+        input.watchdog.companyId,
+        input.sourceIssue.id,
+      ));
 
     if (fallback) {
-      const shouldReopen = isTerminalIssueStatus(fallback.status) ||
+      const shouldReopen =
+        isTerminalIssueStatus(fallback.status) ||
         fallback.status === "backlog" ||
-        await watchdogIssueNeedsFreshWake(fallback);
+        (await watchdogIssueNeedsFreshWake(fallback));
       const watchdogIssue = shouldReopen
-        ? await issuesSvc.update(fallback.id, {
-          status: "todo",
-          assigneeAgentId: input.watchdog.watchdogAgentId,
-          parentId: input.sourceIssue.id,
-          projectId: input.sourceIssue.projectId,
-          goalId: input.sourceIssue.goalId,
-          billingCode: input.sourceIssue.billingCode,
-          originFingerprint: input.classification.stopFingerprint,
-        }) ?? fallback
+        ? ((await issuesSvc.update(fallback.id, {
+            status: "todo",
+            assigneeAgentId: input.watchdog.watchdogAgentId,
+            parentId: input.sourceIssue.id,
+            projectId: input.sourceIssue.projectId,
+            goalId: input.sourceIssue.goalId,
+            billingCode: input.sourceIssue.billingCode,
+            originFingerprint: input.classification.stopFingerprint,
+          })) ?? fallback)
         : fallback;
-      if (!shouldReopen && watchdogIssue.originFingerprint !== input.classification.stopFingerprint) {
+      if (
+        !shouldReopen &&
+        watchdogIssue.originFingerprint !== input.classification.stopFingerprint
+      ) {
         await db
           .update(issues)
-          .set({ originFingerprint: input.classification.stopFingerprint, updatedAt: new Date() })
-          .where(and(eq(issues.companyId, input.watchdog.companyId), eq(issues.id, watchdogIssue.id)));
+          .set({
+            originFingerprint: input.classification.stopFingerprint,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(issues.companyId, input.watchdog.companyId),
+              eq(issues.id, watchdogIssue.id),
+            ),
+          );
         watchdogIssue.originFingerprint = input.classification.stopFingerprint;
       }
       await issuesSvc.addComment(
@@ -1367,7 +1717,8 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
           sourceIssue: input.sourceIssue,
           stopFingerprint: input.classification.stopFingerprint,
           stoppedLeaves: input.classification.stoppedLeaves,
-          pendingInteractionsByIssueId: input.classification.pendingInteractionsByIssueId,
+          pendingInteractionsByIssueId:
+            input.classification.pendingInteractionsByIssueId,
           resumed: true,
         }),
         { runId: input.runId ?? null },
@@ -1384,7 +1735,8 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       return watchdogIssue;
     }
 
-    const created = await issuesSvc.create(input.sourceIssue.companyId, {
+    const created = await issuesSvc
+      .create(input.sourceIssue.companyId, {
         title: `Watchdog review for ${input.sourceIssue.identifier ?? input.sourceIssue.title}`,
         description: [
           "Task watchdog review issue.",
@@ -1408,7 +1760,10 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       })
       .catch(async (error: unknown) => {
         if (!isActiveTaskWatchdogUniqueConflict(error)) throw error;
-        const winner = await findTaskWatchdogIssue(input.watchdog.companyId, input.sourceIssue.id);
+        const winner = await findTaskWatchdogIssue(
+          input.watchdog.companyId,
+          input.sourceIssue.id,
+        );
         if (!winner) throw error;
         return winner;
       });
@@ -1418,7 +1773,8 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
         sourceIssue: input.sourceIssue,
         stopFingerprint: input.classification.stopFingerprint,
         stoppedLeaves: input.classification.stoppedLeaves,
-        pendingInteractionsByIssueId: input.classification.pendingInteractionsByIssueId,
+        pendingInteractionsByIssueId:
+          input.classification.pendingInteractionsByIssueId,
         resumed: false,
       }),
       { runId: input.runId ?? null },
@@ -1435,28 +1791,47 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
     return created;
   }
 
-  async function evaluateWatchdog(row: IssueWatchdogRow, opts: { runId?: string | null } = {}) {
+  async function evaluateWatchdog(
+    row: IssueWatchdogRow,
+    opts: { runId?: string | null } = {},
+  ) {
     const watchdog = await markTerminalWatchdogIssueReviewed(row, opts);
     const sourceIssue = await db
       .select()
       .from(issues)
-      .where(and(eq(issues.companyId, watchdog.companyId), eq(issues.id, watchdog.issueId), visibleIssueCondition()))
+      .where(
+        and(
+          eq(issues.companyId, watchdog.companyId),
+          eq(issues.id, watchdog.issueId),
+          visibleIssueCondition(),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
     if (!sourceIssue || sourceIssue.originKind === TASK_WATCHDOG_ORIGIN_KIND) {
-      return { state: "skipped" as const, reason: "watched_issue_not_applicable" };
+      return {
+        state: "skipped" as const,
+        reason: "watched_issue_not_applicable",
+      };
     }
 
     const input = await collectClassifierInput(watchdog.companyId, watchdog);
     const classification = classifyTaskWatchdogSubtree(input);
     if (classification.state !== "stopped") {
-      return { state: classification.state, reason: classification.reason, classification };
+      return {
+        state: classification.state,
+        reason: classification.reason,
+        classification,
+      };
     }
 
-    const existingWatchdogIssueId = watchdog.watchdogIssueId ?? (await findTaskWatchdogIssue(
-      watchdog.companyId,
-      sourceIssue.id,
-    ))?.id ?? null;
-    if (existingWatchdogIssueId && await hasLivePathForIssue(watchdog.companyId, existingWatchdogIssueId)) {
+    const existingWatchdogIssueId =
+      watchdog.watchdogIssueId ??
+      (await findTaskWatchdogIssue(watchdog.companyId, sourceIssue.id))?.id ??
+      null;
+    if (
+      existingWatchdogIssueId &&
+      (await hasLivePathForIssue(watchdog.companyId, existingWatchdogIssueId))
+    ) {
       await db
         .update(issueWatchdogs)
         .set({
@@ -1466,24 +1841,36 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
           updatedAt: new Date(),
         })
         .where(eq(issueWatchdogs.id, watchdog.id));
-      return { state: "watchdog_live" as const, classification, watchdogIssueId: existingWatchdogIssueId };
+      return {
+        state: "watchdog_live" as const,
+        classification,
+        watchdogIssueId: existingWatchdogIssueId,
+      };
     }
     const existingWatchdogIssue = existingWatchdogIssueId
       ? await db
-        .select()
-        .from(issues)
-        .where(and(
-          eq(issues.companyId, watchdog.companyId),
-          eq(issues.id, existingWatchdogIssueId),
-          visibleIssueCondition(),
-        ))
-        .then((rows) => rows[0] ?? null)
+          .select()
+          .from(issues)
+          .where(
+            and(
+              eq(issues.companyId, watchdog.companyId),
+              eq(issues.id, existingWatchdogIssueId),
+              visibleIssueCondition(),
+            ),
+          )
+          .then((rows) => rows[0] ?? null)
       : null;
-    if (await sameFingerprintWatchdogReviewIsStillOpen(existingWatchdogIssue, classification.stopFingerprint)) {
+    if (
+      await sameFingerprintWatchdogReviewIsStillOpen(
+        existingWatchdogIssue,
+        classification.stopFingerprint,
+      )
+    ) {
       if (
         watchdog.watchdogIssueId !== existingWatchdogIssue!.id ||
         watchdog.lastObservedFingerprint !== classification.stopFingerprint ||
-        canonicalJson(parseStopSnapshot(watchdog.lastObservedStopSnapshot)) !== canonicalJson(classification.stopSnapshot)
+        canonicalJson(parseStopSnapshot(watchdog.lastObservedStopSnapshot)) !==
+          canonicalJson(classification.stopSnapshot)
       ) {
         await db
           .update(issueWatchdogs)
@@ -1548,15 +1935,18 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
     });
     const wake = deps.enqueueWakeup
       ? await deps.enqueueWakeup(watchdog.watchdogAgentId, {
-        source: "automation",
-        triggerDetail: "system",
-        reason: "task_watchdog_stopped_subtree",
-        payload: context,
-        contextSnapshot: context,
-        idempotencyKey: taskWatchdogWakeIdempotencyKey(watchdog.id, classification.stopFingerprint),
-        requestedByActorType: "system",
-        requestedByActorId: null,
-      })
+          source: "automation",
+          triggerDetail: "system",
+          reason: "task_watchdog_stopped_subtree",
+          payload: context,
+          contextSnapshot: context,
+          idempotencyKey: taskWatchdogWakeIdempotencyKey(
+            watchdog.id,
+            classification.stopFingerprint,
+          ),
+          requestedByActorType: "system",
+          requestedByActorId: null,
+        })
       : null;
 
     return {
@@ -1571,13 +1961,18 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
     return db
       .select()
       .from(issueWatchdogs)
-      .where(and(
-        eq(issueWatchdogs.status, "active"),
-        ...(companyId ? [eq(issueWatchdogs.companyId, companyId)] : []),
-      ));
+      .where(
+        and(
+          eq(issueWatchdogs.status, "active"),
+          ...(companyId ? [eq(issueWatchdogs.companyId, companyId)] : []),
+        ),
+      );
   }
 
-  async function activeWatchdogsForIssueAndAncestors(companyId: string, issueId: string) {
+  async function activeWatchdogsForIssueAndAncestors(
+    companyId: string,
+    issueId: string,
+  ) {
     const ancestorRows = await db.execute(sql`
       WITH RECURSIVE ancestors(id, parent_id, depth) AS (
         SELECT id, parent_id, 0
@@ -1598,17 +1993,23 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       SELECT id FROM ancestors
     `);
     const ancestorIds = (Array.isArray(ancestorRows) ? ancestorRows : [])
-      .map((row) => typeof row === "object" && row !== null ? (row as Record<string, unknown>).id : null)
+      .map((row) =>
+        typeof row === "object" && row !== null
+          ? (row as Record<string, unknown>).id
+          : null,
+      )
       .filter((id): id is string => typeof id === "string");
     if (ancestorIds.length === 0) return [];
     return db
       .select()
       .from(issueWatchdogs)
-      .where(and(
-        eq(issueWatchdogs.companyId, companyId),
-        eq(issueWatchdogs.status, "active"),
-        inArray(issueWatchdogs.issueId, ancestorIds),
-      ));
+      .where(
+        and(
+          eq(issueWatchdogs.companyId, companyId),
+          eq(issueWatchdogs.status, "active"),
+          inArray(issueWatchdogs.issueId, ancestorIds),
+        ),
+      );
   }
 
   async function revalidateMutationScope(scope: {
@@ -1621,52 +2022,65 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
     if (!scope.stopFingerprint) {
       return {
         allowed: false as const,
-        reason: "Task-watchdog run context is missing the stopped fingerprint required for mutation revalidation.",
+        reason:
+          "Task-watchdog run context is missing the stopped fingerprint required for mutation revalidation.",
       };
     }
 
     const watchdog = await db
       .select()
       .from(issueWatchdogs)
-      .where(and(
-        eq(issueWatchdogs.id, scope.watchdogId),
-        eq(issueWatchdogs.companyId, scope.companyId),
-        eq(issueWatchdogs.issueId, scope.watchedIssueId),
-        eq(issueWatchdogs.status, "active"),
-      ))
+      .where(
+        and(
+          eq(issueWatchdogs.id, scope.watchdogId),
+          eq(issueWatchdogs.companyId, scope.companyId),
+          eq(issueWatchdogs.issueId, scope.watchedIssueId),
+          eq(issueWatchdogs.status, "active"),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
     if (!watchdog) {
       return {
         allowed: false as const,
-        reason: "Task-watchdog run context is not backed by an active persisted watchdog.",
+        reason:
+          "Task-watchdog run context is not backed by an active persisted watchdog.",
       };
     }
 
     const input = await collectClassifierInput(watchdog.companyId, watchdog);
     const classification = classifyTaskWatchdogSubtree(input);
-    if (classification.state === "stopped" && classification.stopFingerprint === scope.stopFingerprint) {
+    if (
+      classification.state === "stopped" &&
+      classification.stopFingerprint === scope.stopFingerprint
+    ) {
       return { allowed: true as const, classification };
     }
 
     return {
       allowed: false as const,
-      reason: classification.state === "stopped"
-        ? "Task-watchdog review is stale because the watched subtree stop fingerprint changed; refresh the source state before mutating it."
-        : "Task-watchdog review is stale because the watched subtree now has a live, waiting, already-reviewed, or not-applicable path; refresh the source state before mutating it.",
+      reason:
+        classification.state === "stopped"
+          ? "Task-watchdog review is stale because the watched subtree stop fingerprint changed; refresh the source state before mutating it."
+          : "Task-watchdog review is stale because the watched subtree now has a live, waiting, already-reviewed, or not-applicable path; refresh the source state before mutating it.",
       classification,
     };
   }
 
   return {
-    getActiveForIssue: async (companyId: string, issueId: string): Promise<IssueWatchdog | null> => {
+    getActiveForIssue: async (
+      companyId: string,
+      issueId: string,
+    ): Promise<IssueWatchdog | null> => {
       const row = await db
         .select()
         .from(issueWatchdogs)
-        .where(and(
-          eq(issueWatchdogs.companyId, companyId),
-          eq(issueWatchdogs.issueId, issueId),
-          eq(issueWatchdogs.status, "active"),
-        ))
+        .where(
+          and(
+            eq(issueWatchdogs.companyId, companyId),
+            eq(issueWatchdogs.issueId, issueId),
+            eq(issueWatchdogs.status, "active"),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
       return row ? toIssueWatchdog(row) : null;
     },
@@ -1680,12 +2094,19 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       const rows = await dbOrTx
         .select()
         .from(issueWatchdogs)
-        .where(and(
-          eq(issueWatchdogs.companyId, companyId),
-          inArray(issueWatchdogs.issueId, [...new Set(issueIds)]),
-          eq(issueWatchdogs.status, "active"),
-        ));
-      return new Map(rows.map((row: IssueWatchdogRow) => [row.issueId, summarizeIssueWatchdog(row)]));
+        .where(
+          and(
+            eq(issueWatchdogs.companyId, companyId),
+            inArray(issueWatchdogs.issueId, [...new Set(issueIds)]),
+            eq(issueWatchdogs.status, "active"),
+          ),
+        );
+      return new Map(
+        rows.map((row: IssueWatchdogRow) => [
+          row.issueId,
+          summarizeIssueWatchdog(row),
+        ]),
+      );
     },
 
     upsertForIssue: async (
@@ -1705,7 +2126,12 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       const existing = await db
         .select()
         .from(issueWatchdogs)
-        .where(and(eq(issueWatchdogs.companyId, companyId), eq(issueWatchdogs.issueId, issueId)))
+        .where(
+          and(
+            eq(issueWatchdogs.companyId, companyId),
+            eq(issueWatchdogs.issueId, issueId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
       if (!existing || existing.status === "disabled") return null;
       const [updated] = await db
@@ -1722,25 +2148,30 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       return toIssueWatchdog(updated);
     },
 
-    reconcileTaskWatchdogs: async (opts: {
-      companyId?: string | null;
-      runId?: string | null;
-      issueCreatedAtGte?: Date | null;
-    } = {}) => {
+    reconcileTaskWatchdogs: async (
+      opts: {
+        companyId?: string | null;
+        runId?: string | null;
+        issueCreatedAtGte?: Date | null;
+      } = {},
+    ) => {
       let rows = await listActiveWatchdogsForCompany(opts.companyId ?? null);
       if (opts.issueCreatedAtGte) {
         const watchdogIssueIds = [...new Set(rows.map((row) => row.issueId))];
         const eligibleIssueIds = new Set(
           watchdogIssueIds.length === 0
             ? []
-            : (await db
-                .select({ id: issues.id })
-                .from(issues)
-                .where(and(
-                  inArray(issues.id, watchdogIssueIds),
-                  gte(issues.createdAt, opts.issueCreatedAtGte),
-                )))
-                .map((issue) => issue.id),
+            : (
+                await db
+                  .select({ id: issues.id })
+                  .from(issues)
+                  .where(
+                    and(
+                      inArray(issues.id, watchdogIssueIds),
+                      gte(issues.createdAt, opts.issueCreatedAtGte),
+                    ),
+                  )
+              ).map((issue) => issue.id),
         );
         rows = rows.filter((row) => eligibleIssueIds.has(row.issueId));
       }
@@ -1755,7 +2186,9 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       };
       for (const row of rows) {
         result.checked += 1;
-        const evaluated = await evaluateWatchdog(row, { runId: opts.runId ?? null });
+        const evaluated = await evaluateWatchdog(row, {
+          runId: opts.runId ?? null,
+        });
         if (evaluated.state === "triggered") {
           result.triggered += 1;
           result.watchdogIssueIds.push(evaluated.watchdogIssueId);
@@ -1781,7 +2214,10 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       issueId: string,
       opts: { runId?: string | null } = {},
     ) => {
-      const rows = await activeWatchdogsForIssueAndAncestors(companyId, issueId);
+      const rows = await activeWatchdogsForIssueAndAncestors(
+        companyId,
+        issueId,
+      );
       const result = {
         checked: 0,
         triggered: 0,
@@ -1791,7 +2227,9 @@ export function taskWatchdogService(db: Db, deps: TaskWatchdogServiceDeps = {}) 
       };
       for (const row of rows) {
         result.checked += 1;
-        const evaluated = await evaluateWatchdog(row, { runId: opts.runId ?? null });
+        const evaluated = await evaluateWatchdog(row, {
+          runId: opts.runId ?? null,
+        });
         if (evaluated.state === "triggered") {
           result.triggered += 1;
           result.watchdogIssueIds.push(evaluated.watchdogIssueId);

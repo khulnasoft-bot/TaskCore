@@ -10,7 +10,12 @@ export function cloudWarmStandbyMiddleware(
 ) {
   const router = Router();
   router.use("/api/health", (req, res, next) => {
-    if (isStandby() && !req.headers.upgrade && (req.method === "GET" || req.method === "HEAD") && req.path === "/") {
+    if (
+      isStandby() &&
+      !req.headers.upgrade &&
+      (req.method === "GET" || req.method === "HEAD") &&
+      req.path === "/"
+    ) {
       req.actor = { type: "none", source: "none" };
       health(req, res, next);
       return;
@@ -20,10 +25,18 @@ export function cloudWarmStandbyMiddleware(
   router.use((req, res, next) => {
     if (!isStandby()) return next();
     req.actor = { type: "none", source: "none" };
-    const unavailable = () => res.status(503).json({ error: "workspace_unclaimed" });
-    const isProtocolPath = /^\/(?:api|mcp)(?:\/|$)/i.test(req.path)
-      || /^\/\.well-known\/oauth-(?:protected-resource|authorization-server)(?:\/|$)/i.test(req.path);
-    if (isProtocolPath || req.headers.upgrade || (req.method !== "GET" && req.method !== "HEAD")) {
+    const unavailable = () =>
+      res.status(503).json({ error: "workspace_unclaimed" });
+    const isProtocolPath =
+      /^\/(?:api|mcp)(?:\/|$)/i.test(req.path) ||
+      /^\/\.well-known\/oauth-(?:protected-resource|authorization-server)(?:\/|$)/i.test(
+        req.path,
+      );
+    if (
+      isProtocolPath ||
+      req.headers.upgrade ||
+      (req.method !== "GET" && req.method !== "HEAD")
+    ) {
       unavailable();
       return;
     }
@@ -38,6 +51,8 @@ export function cloudWarmStandbyMiddleware(
 }
 
 /** Node 24.9+ routes rejected upgrades through the guarded HTTP request path. */
-export function cloudWarmStandbyServerOptions(isStandby: CloudWarmStandby): ServerOptions {
+export function cloudWarmStandbyServerOptions(
+  isStandby: CloudWarmStandby,
+): ServerOptions {
   return { shouldUpgradeCallback: () => !isStandby() };
 }

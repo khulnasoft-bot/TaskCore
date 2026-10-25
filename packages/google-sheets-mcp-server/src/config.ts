@@ -48,14 +48,19 @@ function parseArgs(argv: string[]): GoogleSheetsMcpConfigInput {
       index += 1;
       return next;
     };
-    if (arg === "--service-account-json") input.serviceAccountJson = readValue();
-    if (arg === "--service-account-json-path") input.serviceAccountJsonPath = readValue();
-    if (arg === "--allowed-spreadsheet-ids") input.allowedSpreadsheetIds = readValue();
+    if (arg === "--service-account-json")
+      input.serviceAccountJson = readValue();
+    if (arg === "--service-account-json-path")
+      input.serviceAccountJsonPath = readValue();
+    if (arg === "--allowed-spreadsheet-ids")
+      input.allowedSpreadsheetIds = readValue();
   }
   return input;
 }
 
-function parseAllowedSpreadsheetIds(raw: string | string[] | null | undefined): string[] {
+function parseAllowedSpreadsheetIds(
+  raw: string | string[] | null | undefined,
+): string[] {
   const values = Array.isArray(raw) ? raw : String(raw ?? "").split(/[\n,]/g);
   const ids = values.map((value) => value.trim()).filter(Boolean);
   return Array.from(new Set(ids));
@@ -75,7 +80,10 @@ function normalizeBindHost(raw: string | null | undefined): string {
 }
 
 function isLoopbackBindHost(host: string): boolean {
-  const normalized = host.trim().toLowerCase().replace(/^\[(.*)\]$/, "$1");
+  const normalized = host
+    .trim()
+    .toLowerCase()
+    .replace(/^\[(.*)\]$/, "$1");
   if (normalized === "localhost" || normalized === "::1") return true;
   if (isIP(normalized) === 4) {
     return normalized.split(".")[0] === "127";
@@ -83,7 +91,10 @@ function isLoopbackBindHost(host: string): boolean {
   return false;
 }
 
-function readServiceAccountJson(input: GoogleSheetsMcpConfigInput): { raw: string; source: string } {
+function readServiceAccountJson(input: GoogleSheetsMcpConfigInput): {
+  raw: string;
+  source: string;
+} {
   const explicitPath = input.serviceAccountJsonPath?.trim();
   if (explicitPath) {
     return { raw: readFileSync(explicitPath, "utf8"), source: explicitPath };
@@ -103,8 +114,12 @@ function readServiceAccountJson(input: GoogleSheetsMcpConfigInput): { raw: strin
   return { raw: readFileSync(inlineOrPath, "utf8"), source: inlineOrPath };
 }
 
-export function createGoogleSheetsMcpConfig(input: GoogleSheetsMcpConfigInput): GoogleSheetsMcpConfig {
-  const allowedSpreadsheetIds = parseAllowedSpreadsheetIds(input.allowedSpreadsheetIds);
+export function createGoogleSheetsMcpConfig(
+  input: GoogleSheetsMcpConfigInput,
+): GoogleSheetsMcpConfig {
+  const allowedSpreadsheetIds = parseAllowedSpreadsheetIds(
+    input.allowedSpreadsheetIds,
+  );
   if (allowedSpreadsheetIds.length === 0) {
     throw new Error("At least one allowed spreadsheet ID is required.");
   }
@@ -114,7 +129,9 @@ export function createGoogleSheetsMcpConfig(input: GoogleSheetsMcpConfigInput): 
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(`Invalid Google Sheets service-account JSON from ${source}.`);
+    throw new Error(
+      `Invalid Google Sheets service-account JSON from ${source}.`,
+    );
   }
 
   const serviceAccount = serviceAccountSchema.parse(parsed);
@@ -129,11 +146,15 @@ export function createGoogleSheetsMcpConfig(input: GoogleSheetsMcpConfigInput): 
   };
 }
 
-export function createGoogleSheetsMcpHttpConfig(input: GoogleSheetsMcpHttpConfigInput): GoogleSheetsMcpHttpConfig {
+export function createGoogleSheetsMcpHttpConfig(
+  input: GoogleSheetsMcpHttpConfigInput,
+): GoogleSheetsMcpHttpConfig {
   const token = input.token?.trim();
   const host = normalizeBindHost(input.host);
   if (!token && !isLoopbackBindHost(host)) {
-    throw new Error("GOOGLE_SHEETS_MCP_TOKEN is required when GOOGLE_SHEETS_MCP_HOST is not loopback.");
+    throw new Error(
+      "GOOGLE_SHEETS_MCP_TOKEN is required when GOOGLE_SHEETS_MCP_HOST is not loopback.",
+    );
   }
   return {
     mcpConfig: createGoogleSheetsMcpConfig(input),
@@ -149,11 +170,15 @@ export function readConfigFromEnv(
 ): GoogleSheetsMcpConfig {
   const args = parseArgs(argv);
   return createGoogleSheetsMcpConfig({
-    serviceAccountJson: args.serviceAccountJson ?? env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON,
-    serviceAccountJsonPath: args.serviceAccountJsonPath ?? env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON_PATH,
-    allowedSpreadsheetIds: args.allowedSpreadsheetIds
-      ?? env.GOOGLE_SHEETS_ALLOWED_SPREADSHEET_IDS
-      ?? env.GOOGLE_SHEETS_SPREADSHEET_IDS,
+    serviceAccountJson:
+      args.serviceAccountJson ?? env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON,
+    serviceAccountJsonPath:
+      args.serviceAccountJsonPath ??
+      env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON_PATH,
+    allowedSpreadsheetIds:
+      args.allowedSpreadsheetIds ??
+      env.GOOGLE_SHEETS_ALLOWED_SPREADSHEET_IDS ??
+      env.GOOGLE_SHEETS_SPREADSHEET_IDS,
   });
 }
 
@@ -163,11 +188,15 @@ export function readHttpConfigFromEnv(
 ): GoogleSheetsMcpHttpConfig {
   const args = parseArgs(argv);
   return createGoogleSheetsMcpHttpConfig({
-    serviceAccountJson: args.serviceAccountJson ?? env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON,
-    serviceAccountJsonPath: args.serviceAccountJsonPath ?? env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON_PATH,
-    allowedSpreadsheetIds: args.allowedSpreadsheetIds
-      ?? env.GOOGLE_SHEETS_ALLOWED_SPREADSHEET_IDS
-      ?? env.GOOGLE_SHEETS_SPREADSHEET_IDS,
+    serviceAccountJson:
+      args.serviceAccountJson ?? env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON,
+    serviceAccountJsonPath:
+      args.serviceAccountJsonPath ??
+      env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON_PATH,
+    allowedSpreadsheetIds:
+      args.allowedSpreadsheetIds ??
+      env.GOOGLE_SHEETS_ALLOWED_SPREADSHEET_IDS ??
+      env.GOOGLE_SHEETS_SPREADSHEET_IDS,
     port: env.PORT ?? env.GOOGLE_SHEETS_MCP_PORT,
     host: env.GOOGLE_SHEETS_MCP_HOST,
     token: env.GOOGLE_SHEETS_MCP_TOKEN,

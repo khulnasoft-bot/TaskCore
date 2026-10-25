@@ -20,7 +20,10 @@
 import type { Db } from "@taskcore/db";
 import type { InstanceExecutionMode } from "@taskcore/shared";
 import { logger } from "../middleware/logger.js";
-import { environmentService, type KubernetesEnvironmentConfigInput } from "./environments.js";
+import {
+  environmentService,
+  type KubernetesEnvironmentConfigInput,
+} from "./environments.js";
 import { instanceSettingsService } from "./instance-settings.js";
 import { parseAdapterRegistryEnv } from "./adapter-registry-bootstrap.js";
 
@@ -139,18 +142,26 @@ export function parseExecutionPolicyBootstrapEnv(
 export async function applyExecutionPolicyBootstrap(
   db: Db,
   bootstrap: ExecutionPolicyBootstrap,
-): Promise<{ executionMode: InstanceExecutionMode; companiesConfigured: number }> {
+): Promise<{
+  executionMode: InstanceExecutionMode;
+  companiesConfigured: number;
+}> {
   const instanceSettings = instanceSettingsService(db);
   const environments = environmentService(db);
 
-  await instanceSettings.updateGeneral({ executionMode: bootstrap.executionMode });
+  await instanceSettings.updateGeneral({
+    executionMode: bootstrap.executionMode,
+  });
 
   const companyIds = await instanceSettings.listCompanyIds();
   let configured = 0;
   const failedCompanyIds: string[] = [];
   for (const companyId of companyIds) {
     try {
-      await environments.ensureKubernetesEnvironment(companyId, bootstrap.kubernetesConfig);
+      await environments.ensureKubernetesEnvironment(
+        companyId,
+        bootstrap.kubernetesConfig,
+      );
       configured += 1;
     } catch (err) {
       logger.error(
@@ -178,7 +189,10 @@ export async function applyExecutionPolicyBootstrap(
     );
   }
 
-  return { executionMode: bootstrap.executionMode, companiesConfigured: configured };
+  return {
+    executionMode: bootstrap.executionMode,
+    companiesConfigured: configured,
+  };
 }
 
 /**
@@ -187,7 +201,10 @@ export async function applyExecutionPolicyBootstrap(
 export async function bootstrapExecutionPolicyFromEnv(
   db: Db,
   env: ExecutionPolicyBootstrapEnv = process.env,
-): Promise<{ executionMode: InstanceExecutionMode; companiesConfigured: number } | null> {
+): Promise<{
+  executionMode: InstanceExecutionMode;
+  companiesConfigured: number;
+} | null> {
   const bootstrap = parseExecutionPolicyBootstrapEnv(env);
   if (!bootstrap) return null;
   return applyExecutionPolicyBootstrap(db, bootstrap);

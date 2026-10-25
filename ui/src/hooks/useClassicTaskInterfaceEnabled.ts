@@ -1,5 +1,9 @@
 import { useContext } from "react";
-import { QueryClient, QueryClientContext, useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientContext,
+  useQuery,
+} from "@tanstack/react-query";
 import { instanceSettingsApi } from "@/api/instanceSettings";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -25,7 +29,10 @@ function getDetachedClient(): QueryClient {
  * view is what renders unless the classic opt-in is provably on. `loaded`
  * lets hosts that care distinguish "flag is off" from "flag not yet known".
  */
-export function useClassicTaskInterfaceEnabled(): { enabled: boolean; loaded: boolean } {
+export function useClassicTaskInterfaceEnabled(): {
+  enabled: boolean;
+  loaded: boolean;
+} {
   const contextClient = useContext(QueryClientContext);
   const { data, isFetched } = useQuery(
     {
@@ -38,5 +45,8 @@ export function useClassicTaskInterfaceEnabled(): { enabled: boolean; loaded: bo
   if (!contextClient) {
     return { enabled: false, loaded: true };
   }
-  return { enabled: data?.enableClassicTaskInterface === true, loaded: isFetched };
+  return {
+    enabled: data?.enableClassicTaskInterface === true,
+    loaded: isFetched,
+  };
 }

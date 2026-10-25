@@ -136,20 +136,35 @@ describe("buildIssueSiblingNavigation", () => {
   });
 
   it("hides navigation for root issues without children or hidden current issues", () => {
-    expect(buildIssueSiblingNavigation(siblingIssue("1", "2026-04-01T00:00:00.000Z", [], { parentId: null }), []))
-      .toBeNull();
-    expect(buildIssueSiblingNavigation(siblingIssue("1", "2026-04-01T00:00:00.000Z", [], { parentId: null }), [
-      siblingIssue("2", "2026-04-02T00:00:00.000Z", [], { parentId: null }),
-    ])).toBeNull();
-    expect(buildIssueSiblingNavigation(siblingIssue("1", "2026-04-01T00:00:00.000Z", [], { hiddenAt: new Date() }), []))
-      .toBeNull();
+    expect(
+      buildIssueSiblingNavigation(
+        siblingIssue("1", "2026-04-01T00:00:00.000Z", [], { parentId: null }),
+        [],
+      ),
+    ).toBeNull();
+    expect(
+      buildIssueSiblingNavigation(
+        siblingIssue("1", "2026-04-01T00:00:00.000Z", [], { parentId: null }),
+        [siblingIssue("2", "2026-04-02T00:00:00.000Z", [], { parentId: null })],
+      ),
+    ).toBeNull();
+    expect(
+      buildIssueSiblingNavigation(
+        siblingIssue("1", "2026-04-01T00:00:00.000Z", [], {
+          hiddenAt: new Date(),
+        }),
+        [],
+      ),
+    ).toBeNull();
   });
 
   it("hides navigation when the current issue is the only visible child", () => {
     const current = siblingIssue("1", "2026-04-01T00:00:00.000Z");
     const navigation = buildIssueSiblingNavigation(current, [
       current,
-      siblingIssue("2", "2026-04-02T00:00:00.000Z", [], { hiddenAt: new Date() }),
+      siblingIssue("2", "2026-04-02T00:00:00.000Z", [], {
+        hiddenAt: new Date(),
+      }),
     ]);
 
     expect(navigation).toBeNull();
@@ -175,11 +190,17 @@ describe("buildIssueSiblingNavigation", () => {
   });
 
   it("uses the first direct child as next when a root issue has no sibling next", () => {
-    const current = siblingIssue("1", "2026-04-01T00:00:00.000Z", [], { parentId: null });
-    const navigation = buildIssueSiblingNavigation(current, [], [
-      siblingIssue("3", "2026-04-03T00:00:00.000Z", ["2"], { parentId: "1" }),
-      siblingIssue("2", "2026-04-02T00:00:00.000Z", [], { parentId: "1" }),
-    ]);
+    const current = siblingIssue("1", "2026-04-01T00:00:00.000Z", [], {
+      parentId: null,
+    });
+    const navigation = buildIssueSiblingNavigation(
+      current,
+      [],
+      [
+        siblingIssue("3", "2026-04-03T00:00:00.000Z", ["2"], { parentId: "1" }),
+        siblingIssue("2", "2026-04-02T00:00:00.000Z", [], { parentId: "1" }),
+      ],
+    );
 
     expect(navigation).toMatchObject({
       previous: null,
@@ -189,13 +210,14 @@ describe("buildIssueSiblingNavigation", () => {
 
   it("uses the first direct child as next when the current sibling is last", () => {
     const current = siblingIssue("2", "2026-04-02T00:00:00.000Z");
-    const navigation = buildIssueSiblingNavigation(current, [
-      siblingIssue("1", "2026-04-01T00:00:00.000Z"),
+    const navigation = buildIssueSiblingNavigation(
       current,
-    ], [
-      siblingIssue("4", "2026-04-04T00:00:00.000Z", ["3"], { parentId: "2" }),
-      siblingIssue("3", "2026-04-03T00:00:00.000Z", [], { parentId: "2" }),
-    ]);
+      [siblingIssue("1", "2026-04-01T00:00:00.000Z"), current],
+      [
+        siblingIssue("4", "2026-04-04T00:00:00.000Z", ["3"], { parentId: "2" }),
+        siblingIssue("3", "2026-04-03T00:00:00.000Z", [], { parentId: "2" }),
+      ],
+    );
 
     expect(navigation).toMatchObject({
       previous: { id: "1" },

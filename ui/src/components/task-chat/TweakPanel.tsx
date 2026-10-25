@@ -16,7 +16,9 @@ const OVERRIDES_KEY = "tc-tweak-overrides";
 
 function readComputed(name: string): string {
   if (typeof document === "undefined") return "";
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
 }
 
 function loadSession<T>(key: string, fallback: T): T {
@@ -100,7 +102,10 @@ export function TweakPanel() {
 
   const onHeaderPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragRef.current) return;
-    const next = { x: e.clientX - dragRef.current.dx, y: e.clientY - dragRef.current.dy };
+    const next = {
+      x: e.clientX - dragRef.current.dx,
+      y: e.clientY - dragRef.current.dy,
+    };
     setPos(next);
   }, []);
 
@@ -141,7 +146,12 @@ export function TweakPanel() {
         <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
         <span>Motion tweak panel</span>
         <div className="ml-auto flex items-center gap-1">
-          <button type="button" title="Reset all" onClick={resetAll} className="rounded p-0.5 hover:bg-accent">
+          <button
+            type="button"
+            title="Reset all"
+            onClick={resetAll}
+            className="rounded p-0.5 hover:bg-accent"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
           <button
@@ -150,7 +160,11 @@ export function TweakPanel() {
             onClick={() => setMinimized((m) => !m)}
             className="rounded p-0.5 hover:bg-accent"
           >
-            {minimized ? <Plus className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+            {minimized ? (
+              <Plus className="h-3.5 w-3.5" />
+            ) : (
+              <Minus className="h-3.5 w-3.5" />
+            )}
           </button>
         </div>
       </div>
@@ -159,14 +173,24 @@ export function TweakPanel() {
         <div className="max-h-(--sz-tweak-panel-max) overflow-y-auto p-2">
           {MOTION_TOKEN_GROUPS.map((group) => (
             <div key={group} className="mb-3">
-              <p className="mb-1 text-(length:--text-nano) font-semibold uppercase tracking-wide text-muted-foreground">{group}</p>
+              <p className="mb-1 text-(length:--text-nano) font-semibold uppercase tracking-wide text-muted-foreground">
+                {group}
+              </p>
               <div className="flex flex-col gap-2">
                 {grouped[group].map((t) => (
-                  <div key={t.name} data-token={t.name} className="flex flex-col gap-1">
+                  <div
+                    key={t.name}
+                    data-token={t.name}
+                    className="flex flex-col gap-1"
+                  >
                     <div className="flex items-center justify-between text-(length:--text-micro)">
-                      <span className="truncate font-mono text-muted-foreground">{t.name.replace("--motion-", "")}</span>
+                      <span className="truncate font-mono text-muted-foreground">
+                        {t.name.replace("--motion-", "")}
+                      </span>
                       <span className="ml-2 shrink-0 tabular-nums">
-                        {t.kind === "time" ? `${Math.round(parseCssTimeMs(values[t.name] ?? "0"))}ms` : ""}
+                        {t.kind === "time"
+                          ? `${Math.round(parseCssTimeMs(values[t.name] ?? "0"))}ms`
+                          : ""}
                       </span>
                     </div>
                     {t.kind === "time" ? (
@@ -176,8 +200,12 @@ export function TweakPanel() {
                         min={t.min ?? 0}
                         max={t.max ?? 1000}
                         step={t.step ?? 10}
-                        value={Math.round(parseCssTimeMs(values[t.name] ?? "0"))}
-                        onChange={(e) => setToken(t.name, `${e.target.value}ms`)}
+                        value={Math.round(
+                          parseCssTimeMs(values[t.name] ?? "0"),
+                        )}
+                        onChange={(e) =>
+                          setToken(t.name, `${e.target.value}ms`)
+                        }
                         className="h-1.5 w-full"
                       />
                     ) : (
@@ -187,8 +215,12 @@ export function TweakPanel() {
                         onChange={(e) => setToken(t.name, e.target.value)}
                         className="w-full rounded border border-border bg-background px-1 py-0.5 text-(length:--text-micro)"
                       >
-                        {EASING_PRESETS.every((p) => p.value !== (values[t.name] ?? "")) && values[t.name] ? (
-                          <option value={values[t.name]}>{values[t.name]}</option>
+                        {EASING_PRESETS.every(
+                          (p) => p.value !== (values[t.name] ?? ""),
+                        ) && values[t.name] ? (
+                          <option value={values[t.name]}>
+                            {values[t.name]}
+                          </option>
                         ) : null}
                         {EASING_PRESETS.map((p) => (
                           <option key={p.value} value={p.value}>
@@ -227,7 +259,10 @@ export function TweakPanel() {
                 }}
               />
               {/* Focusing the box copies it silently; say so, or the click looks inert. */}
-              <p className="mt-1 text-(length:--text-nano) text-muted-foreground" aria-live="polite">
+              <p
+                className="mt-1 text-(length:--text-nano) text-muted-foreground"
+                aria-live="polite"
+              >
                 {exportCopy.copied
                   ? "Copied to clipboard"
                   : exportCopy.failed
@@ -248,6 +283,8 @@ export function TweakPanel() {
  * the panel's own export.
  */
 export function buildTweakExport(values: Record<string, string>): string {
-  const lines = MOTION_TOKENS.map((t) => `  ${t.name}: ${values[t.name] ?? MOTION_TOKEN_EXPORT_FALLBACK};`);
+  const lines = MOTION_TOKENS.map(
+    (t) => `  ${t.name}: ${values[t.name] ?? MOTION_TOKEN_EXPORT_FALLBACK};`,
+  );
   return `:root {\n${lines.join("\n")}\n}\n`;
 }

@@ -6,18 +6,33 @@ import type { ToolResult } from "./tools.js";
 function makeClient(): GoogleSheetsClient {
   return {
     listSpreadsheets: vi.fn().mockResolvedValue([
-      { spreadsheetId: "sheet-1", title: "Budget", spreadsheetUrl: "https://docs.google.com/spreadsheets/d/sheet-1" },
+      {
+        spreadsheetId: "sheet-1",
+        title: "Budget",
+        spreadsheetUrl: "https://docs.google.com/spreadsheets/d/sheet-1",
+      },
     ]),
     getSpreadsheetInfo: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
       title: "Budget",
       spreadsheetUrl: "https://docs.google.com/spreadsheets/d/sheet-1",
-      sheets: [{ sheetId: 0, title: "Sheet1", index: 0, rowCount: 100, columnCount: 20 }],
+      sheets: [
+        {
+          sheetId: 0,
+          title: "Sheet1",
+          index: 0,
+          rowCount: 100,
+          columnCount: 20,
+        },
+      ],
     }),
     readValues: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
       range: "Sheet1!A1:B2",
-      values: [["name", "amount"], ["paper", 12]],
+      values: [
+        ["name", "amount"],
+        ["paper", 12],
+      ],
     }),
     searchRows: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
@@ -41,7 +56,13 @@ function makeClient(): GoogleSheetsClient {
     }),
     addSheetTab: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
-      sheet: { sheetId: 7, title: "New", index: 1, rowCount: 100, columnCount: 26 },
+      sheet: {
+        sheetId: 7,
+        title: "New",
+        index: 1,
+        rowCount: 100,
+        columnCount: 26,
+      },
     }),
     clearValues: vi.fn().mockResolvedValue({
       spreadsheetId: "sheet-1",
@@ -60,7 +81,10 @@ function tools(client = makeClient()) {
   return createToolDefinitions({
     client,
     allowedSpreadsheetIds: ["sheet-1"],
-    secretRedactions: ["secret-client@example.test", "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"],
+    secretRedactions: [
+      "secret-client@example.test",
+      "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----",
+    ],
   });
 }
 
@@ -79,9 +103,17 @@ describe("Google Sheets MCP tools", () => {
   it("annotates tools with read, write, and destructive MCP risk hints", () => {
     const byName = new Map(tools().map((tool) => [tool.name, tool]));
 
-    expect(byName.get("read_values")?.annotations).toMatchObject({ readOnlyHint: true });
-    expect(byName.get("append_rows")?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
-    expect(byName.get("delete_rows")?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
+    expect(byName.get("read_values")?.annotations).toMatchObject({
+      readOnlyHint: true,
+    });
+    expect(byName.get("append_rows")?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: false,
+    });
+    expect(byName.get("delete_rows")?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: true,
+    });
   });
 
   it("lists only allowlisted spreadsheets", async () => {
@@ -117,14 +149,46 @@ describe("Google Sheets MCP tools", () => {
   });
 
   it.each([
-    ["get_spreadsheet_info", { spreadsheetId: "sheet-1" }, "getSpreadsheetInfo"],
-    ["read_values", { spreadsheetId: "sheet-1", range: "Sheet1!A1:B2" }, "readValues"],
-    ["search_rows", { spreadsheetId: "sheet-1", range: "Sheet1!A1:B2", query: "paper" }, "searchRows"],
-    ["append_rows", { spreadsheetId: "sheet-1", range: "Sheet1!A:B", values: [["pen", 5]] }, "appendRows"],
-    ["update_values", { spreadsheetId: "sheet-1", range: "Sheet1!A2:B2", values: [["pen", 6]] }, "updateValues"],
-    ["add_sheet_tab", { spreadsheetId: "sheet-1", title: "New" }, "addSheetTab"],
-    ["clear_values", { spreadsheetId: "sheet-1", range: "Sheet1!A2:B2" }, "clearValues"],
-    ["delete_rows", { spreadsheetId: "sheet-1", sheetId: 0, startIndex: 1, endIndex: 3 }, "deleteRows"],
+    [
+      "get_spreadsheet_info",
+      { spreadsheetId: "sheet-1" },
+      "getSpreadsheetInfo",
+    ],
+    [
+      "read_values",
+      { spreadsheetId: "sheet-1", range: "Sheet1!A1:B2" },
+      "readValues",
+    ],
+    [
+      "search_rows",
+      { spreadsheetId: "sheet-1", range: "Sheet1!A1:B2", query: "paper" },
+      "searchRows",
+    ],
+    [
+      "append_rows",
+      { spreadsheetId: "sheet-1", range: "Sheet1!A:B", values: [["pen", 5]] },
+      "appendRows",
+    ],
+    [
+      "update_values",
+      { spreadsheetId: "sheet-1", range: "Sheet1!A2:B2", values: [["pen", 6]] },
+      "updateValues",
+    ],
+    [
+      "add_sheet_tab",
+      { spreadsheetId: "sheet-1", title: "New" },
+      "addSheetTab",
+    ],
+    [
+      "clear_values",
+      { spreadsheetId: "sheet-1", range: "Sheet1!A2:B2" },
+      "clearValues",
+    ],
+    [
+      "delete_rows",
+      { spreadsheetId: "sheet-1", sheetId: 0, startIndex: 1, endIndex: 3 },
+      "deleteRows",
+    ],
   ])("runs happy path for %s", async (toolName, input, clientMethod) => {
     const client = makeClient();
     const response = await getTool(toolName, client).execute(input);
@@ -135,7 +199,9 @@ describe("Google Sheets MCP tools", () => {
 
   it("surfaces malformed Google range errors as tool errors", async () => {
     const client = makeClient();
-    vi.mocked(client.readValues).mockRejectedValueOnce(new Error("Unable to parse range: Sheet1!bad"));
+    vi.mocked(client.readValues).mockRejectedValueOnce(
+      new Error("Unable to parse range: Sheet1!bad"),
+    );
 
     const response = await getTool("read_values", client).execute({
       spreadsheetId: "sheet-1",
@@ -149,7 +215,9 @@ describe("Google Sheets MCP tools", () => {
   it("does not echo service-account key material in tool errors", async () => {
     const client = makeClient();
     vi.mocked(client.readValues).mockRejectedValueOnce(
-      new Error("Auth failed for secret-client@example.test using -----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"),
+      new Error(
+        "Auth failed for secret-client@example.test using -----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----",
+      ),
     );
 
     const response = await getTool("read_values", client).execute({

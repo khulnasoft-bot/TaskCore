@@ -29,12 +29,18 @@ const mockOpenNewProject = vi.hoisted(() => vi.fn());
 const mockPushToast = vi.hoisted(() => vi.fn());
 const mockSetSidebarOpen = vi.hoisted(() => vi.fn());
 const mockPersistOrder = vi.hoisted(() => vi.fn());
-const mockSidebarState = vi.hoisted(() => ({ isMobile: false, collapsed: false, peeking: false }));
+const mockSidebarState = vi.hoisted(() => ({
+  isMobile: false,
+  collapsed: false,
+  peeking: false,
+}));
 const mockPointerState = vi.hoisted(() => ({ fine: true }));
 
 vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: { children: ReactNode; to: string }) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
   NavLink: ({
     children,
@@ -48,13 +54,22 @@ vi.mock("@/lib/router", () => ({
   }) => (
     <a
       href={to}
-      className={typeof className === "function" ? className({ isActive: false }) : className}
+      className={
+        typeof className === "function"
+          ? className({ isActive: false })
+          : className
+      }
       {...props}
     >
       {children}
     </a>
   ),
-  useLocation: () => ({ pathname: "/PAP/projects/bravo/issues", search: "", hash: "", state: null }),
+  useLocation: () => ({
+    pathname: "/PAP/projects/bravo/issues",
+    search: "",
+    hash: "",
+    state: null,
+  }),
 }));
 
 vi.mock("../context/CompanyContext", () => ({
@@ -113,7 +128,8 @@ vi.mock("../hooks/useProjectOrder", () => ({
     const curatedOrder = ["project-b", "project-a", "project-c"];
     return {
       orderedProjects: [...projects].sort(
-        (left, right) => curatedOrder.indexOf(left.id) - curatedOrder.indexOf(right.id),
+        (left, right) =>
+          curatedOrder.indexOf(left.id) - curatedOrder.indexOf(right.id),
       ),
       persistOrder: mockPersistOrder,
     };
@@ -199,11 +215,15 @@ function projectLinkLabels(container: HTMLElement) {
 }
 
 async function openProjectsMenu(container: HTMLElement) {
-  const trigger = container.querySelector('button[aria-label="Projects section actions"]');
+  const trigger = container.querySelector(
+    'button[aria-label="Projects section actions"]',
+  );
   expect(trigger).not.toBeNull();
 
   await act(async () => {
-    trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+    trigger?.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
     trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   await flushReact();
@@ -214,15 +234,18 @@ async function openProjectMenu(label = "Open actions for Alpha") {
   expect(trigger).not.toBeNull();
 
   await act(async () => {
-    trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+    trigger?.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
     trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
   await flushReact();
 }
 
 async function chooseSortMode(label: string) {
-  const item = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-radio-item"]'))
-    .find((element) => element.textContent?.includes(label));
+  const item = Array.from(
+    document.body.querySelectorAll('[data-slot="dropdown-menu-radio-item"]'),
+  ).find((element) => element.textContent?.includes(label));
   expect(item).toBeTruthy();
 
   await act(async () => {
@@ -242,7 +265,10 @@ describe("SidebarProjects", () => {
     document.body.appendChild(container);
     root = null;
     queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
     localStorage.clear();
     mockSidebarState.isMobile = false;
@@ -252,9 +278,10 @@ describe("SidebarProjects", () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
-        matches: query.includes("(hover: hover)") && query.includes("(pointer: fine)")
-          ? mockPointerState.fine
-          : false,
+        matches:
+          query.includes("(hover: hover)") && query.includes("(pointer: fine)")
+            ? mockPointerState.fine
+            : false,
         media: query,
         onchange: null,
         addEventListener: vi.fn(),
@@ -301,22 +328,26 @@ describe("SidebarProjects", () => {
       documentStarredAt: {},
       updatedAt: null,
     };
-    mockResourceMembershipsApi.listMine.mockImplementation(() => Promise.resolve(memberships));
-    mockResourceMembershipsApi.updateProject.mockImplementation((_companyId, projectId, data) => {
-      memberships = {
-        ...memberships,
-        projectMemberships: {
-          ...memberships.projectMemberships,
-          [projectId]: data.state,
-        },
-        updatedAt: new Date(),
-      };
-      return Promise.resolve({
-        resourceType: "project",
-        resourceId: projectId,
-        state: data.state,
-      });
-    });
+    mockResourceMembershipsApi.listMine.mockImplementation(() =>
+      Promise.resolve(memberships),
+    );
+    mockResourceMembershipsApi.updateProject.mockImplementation(
+      (_companyId, projectId, data) => {
+        memberships = {
+          ...memberships,
+          projectMemberships: {
+            ...memberships.projectMemberships,
+            [projectId]: data.state,
+          },
+          updatedAt: new Date(),
+        };
+        return Promise.resolve({
+          resourceType: "project",
+          resourceId: projectId,
+          state: data.state,
+        });
+      },
+    );
   });
 
   afterEach(async () => {
@@ -370,23 +401,35 @@ describe("SidebarProjects", () => {
     // Project names stay in the a11y tree but kept in flow (zero-width, clipped)
     // so rows stay 1:1 tall with the expanded state (PAP-10676); rows become
     // tooltip triggers and the per-row actions dropdown is dropped.
-    const nameSpan = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "Bravo");
+    const nameSpan = Array.from(container.querySelectorAll("span")).find(
+      (el) => el.textContent === "Bravo",
+    );
     expect(nameSpan?.className).not.toContain("sr-only");
     expect(nameSpan?.className).toContain("w-0");
     expect(nameSpan?.className).toContain("overflow-hidden");
     const projectLink = container.querySelector('a[href^="/projects/"]');
-    expect(projectLink?.parentElement?.getAttribute("data-slot")).toBe("tooltip-trigger");
-    expect(container.querySelector('button[aria-label="Open actions for Bravo"]')).toBeNull();
+    expect(projectLink?.parentElement?.getAttribute("data-slot")).toBe(
+      "tooltip-trigger",
+    );
+    expect(
+      container.querySelector('button[aria-label="Open actions for Bravo"]'),
+    ).toBeNull();
     // The section header collapses to a divider (no section menu trigger).
-    expect(container.querySelector('button[aria-label="Projects section actions"]')).toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Projects section actions"]'),
+    ).toBeNull();
   });
 
   it("keeps top mode in curated order and renders plugin project slots", async () => {
     await renderSidebarProjects();
 
     expect(projectLinkLabels(container)).toEqual(["Bravo", "Alpha", "Charlie"]);
-    expect(container.querySelector('[data-testid="project-slot-project-b"]')).toBeTruthy();
-    expect(container.querySelector('[aria-roledescription="sortable"]')).toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="project-slot-project-b"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('[aria-roledescription="sortable"]'),
+    ).toBeTruthy();
   });
 
   it("uses plain project rows for top mode on mobile", async () => {
@@ -395,7 +438,9 @@ describe("SidebarProjects", () => {
     await renderSidebarProjects();
 
     expect(projectLinkLabels(container)).toEqual(["Bravo", "Alpha", "Charlie"]);
-    expect(container.querySelector('[aria-roledescription="sortable"]')).toBeNull();
+    expect(
+      container.querySelector('[aria-roledescription="sortable"]'),
+    ).toBeNull();
   });
 
   it("uses plain project rows for top mode on coarse pointer screens", async () => {
@@ -404,30 +449,40 @@ describe("SidebarProjects", () => {
     await renderSidebarProjects();
 
     expect(projectLinkLabels(container)).toEqual(["Bravo", "Alpha", "Charlie"]);
-    expect(container.querySelector('[aria-roledescription="sortable"]')).toBeNull();
+    expect(
+      container.querySelector('[aria-roledescription="sortable"]'),
+    ).toBeNull();
   });
 
   it("uses the heading for section menu and the plus button for project creation", async () => {
     await renderSidebarProjects();
 
-    const sectionMenuTrigger = container.querySelector('button[aria-label="Projects section actions"]');
+    const sectionMenuTrigger = container.querySelector(
+      'button[aria-label="Projects section actions"]',
+    );
     expect(sectionMenuTrigger?.textContent).toContain("Projects");
     expect(sectionMenuTrigger?.querySelector("svg")).toBeNull();
 
-    const newProjectButton = container.querySelector('button[aria-label="New project"]');
+    const newProjectButton = container.querySelector(
+      'button[aria-label="New project"]',
+    );
     expect(newProjectButton).toBeTruthy();
     await act(async () => {
-      newProjectButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      newProjectButton?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     expect(mockOpenNewProject).toHaveBeenCalledTimes(1);
 
     await openProjectsMenu(container);
 
-    const newProjectItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("New project"));
+    const newProjectItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("New project"));
     expect(newProjectItem).toBeFalsy();
-    const browseLink = Array.from(document.body.querySelectorAll("a"))
-      .find((element) => element.textContent?.includes("Browse projects"));
+    const browseLink = Array.from(document.body.querySelectorAll("a")).find(
+      (element) => element.textContent?.includes("Browse projects"),
+    );
     expect(browseLink?.getAttribute("href")).toBe("/projects");
   });
 
@@ -437,7 +492,9 @@ describe("SidebarProjects", () => {
     await chooseSortMode("Alphabetical");
 
     expect(projectLinkLabels(container)).toEqual(["Alpha", "Bravo", "Charlie"]);
-    expect(localStorage.getItem("taskcore.projectSortMode:company-1:user-1")).toBe("alphabetical");
+    expect(
+      localStorage.getItem("taskcore.projectSortMode:company-1:user-1"),
+    ).toBe("alphabetical");
   });
 
   it("sorts recent projects by updated time descending", async () => {
@@ -450,9 +507,11 @@ describe("SidebarProjects", () => {
 
   it("filters left projects only after membership state loads", async () => {
     let resolveMemberships!: (value: unknown) => void;
-    mockResourceMembershipsApi.listMine.mockReturnValue(new Promise((resolve) => {
-      resolveMemberships = resolve;
-    }));
+    mockResourceMembershipsApi.listMine.mockReturnValue(
+      new Promise((resolve) => {
+        resolveMemberships = resolve;
+      }),
+    );
 
     await renderSidebarProjects();
     expect(projectLinkLabels(container)).toEqual(["Bravo", "Alpha", "Charlie"]);
@@ -473,8 +532,9 @@ describe("SidebarProjects", () => {
     await renderSidebarProjects();
     await openProjectMenu();
 
-    const leaveItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
-      .find((element) => element.textContent?.includes("Leave project"));
+    const leaveItem = Array.from(
+      document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'),
+    ).find((element) => element.textContent?.includes("Leave project"));
     expect(leaveItem).toBeTruthy();
 
     await act(async () => {

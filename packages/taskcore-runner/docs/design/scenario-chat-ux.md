@@ -191,13 +191,13 @@ route (§9), never protocol state.
 
 ## 5. Actor distinction (binding summary)
 
-| Actor | Surface | Marker |
-| --- | --- | --- |
-| User | `--pcr-accent-surface` bubble, right-aligned | — |
-| Model output | `--pcr-card` message card, left-aligned | streaming caret |
-| Agent tool work | `--pcr-surface-raised` collapsed card, conversation-indented | mono operation + disposition badge |
-| Control plane | `--pcr-muted` full-width strip | “Control plane” badge + gutter glyph |
-| Denied (any) | `--pcr-danger-surface` in place | Deny icon + text |
+| Actor           | Surface                                                      | Marker                               |
+| --------------- | ------------------------------------------------------------ | ------------------------------------ |
+| User            | `--pcr-accent-surface` bubble, right-aligned                 | —                                    |
+| Model output    | `--pcr-card` message card, left-aligned                      | streaming caret                      |
+| Agent tool work | `--pcr-surface-raised` collapsed card, conversation-indented | mono operation + disposition badge   |
+| Control plane   | `--pcr-muted` full-width strip                               | “Control plane” badge + gutter glyph |
+| Denied (any)    | `--pcr-danger-surface` in place                              | Deny icon + text                     |
 
 No view — chat, activity, expanded detail — may render a fact without its
 actor attribution. If a record ever lacks attribution, that is a 7C artifact
@@ -215,18 +215,18 @@ trade against persisting conversation content).
 
 ## 7. States that must be designed, not defaulted
 
-| State | Surface | Rendering |
-| --- | --- | --- |
-| No scenario selected | Chat + activity | Intro card (corpus stats + “Pick a scenario to start chatting” + three example deep links); activity rail shows the 7F corpus summary. No dead panels. |
-| Seeded, no turns | Chat | Turn-0 control-plane strips render immediately (checkout, exposure); composer focused and ready in Codex mode; primed hint in Replay mode (“Replay the scripted session, or switch to Codex (bounded)”). |
-| Turn streaming | All | Model card streams; composer in `active-turn` (Steer + Stop); the pending turn’s activity group shows a live-updating header (“Turn 3 · running”); controls that would corrupt the run (Reset, Replay, mode switch, scenario switch) disable with reasons. |
-| Turn failed (harness/driver error) | Chat | Danger strip in place with the exact diagnostic and a “Retry turn” affordance; the partial activity group stays visible and is labeled partial. Never silently reset. |
-| Denied operation | Chat + activity | §3/§4 danger rendering; the Activity segment chip counts denials. |
-| Relay unavailable | Session header + composer | Codex option disabled with reason; Replay mode fully usable; composer disabled-reason names the relay, not a generic error. |
-| Session terminal | Composer | `terminal` state with its existing hint (“This session is closed. Replay it or reset the session state.”). |
-| Reset confirm | Dialog | §2; focus returns to the composer after either outcome. |
-| Long JSON / long code / long unbroken strings | Everywhere | `overflow-wrap: anywhere` on prose and key-value values; `pre` blocks may scroll **internally** (x) with a visible affordance, but the page never scrolls horizontally at any viewport ≥ 320px — the 7F `min-w-0` discipline is a hard gate at 390×844. |
-| Unknown case ID in route | Chat | The 7F named error card (“No scenario named …”) — not a silent home fallback (closes 7F revision 10’s accepted gap for chat routes). |
+| State                                         | Surface                   | Rendering                                                                                                                                                                                                                                                  |
+| --------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No scenario selected                          | Chat + activity           | Intro card (corpus stats + “Pick a scenario to start chatting” + three example deep links); activity rail shows the 7F corpus summary. No dead panels.                                                                                                     |
+| Seeded, no turns                              | Chat                      | Turn-0 control-plane strips render immediately (checkout, exposure); composer focused and ready in Codex mode; primed hint in Replay mode (“Replay the scripted session, or switch to Codex (bounded)”).                                                   |
+| Turn streaming                                | All                       | Model card streams; composer in `active-turn` (Steer + Stop); the pending turn’s activity group shows a live-updating header (“Turn 3 · running”); controls that would corrupt the run (Reset, Replay, mode switch, scenario switch) disable with reasons. |
+| Turn failed (harness/driver error)            | Chat                      | Danger strip in place with the exact diagnostic and a “Retry turn” affordance; the partial activity group stays visible and is labeled partial. Never silently reset.                                                                                      |
+| Denied operation                              | Chat + activity           | §3/§4 danger rendering; the Activity segment chip counts denials.                                                                                                                                                                                          |
+| Relay unavailable                             | Session header + composer | Codex option disabled with reason; Replay mode fully usable; composer disabled-reason names the relay, not a generic error.                                                                                                                                |
+| Session terminal                              | Composer                  | `terminal` state with its existing hint (“This session is closed. Replay it or reset the session state.”).                                                                                                                                                 |
+| Reset confirm                                 | Dialog                    | §2; focus returns to the composer after either outcome.                                                                                                                                                                                                    |
+| Long JSON / long code / long unbroken strings | Everywhere                | `overflow-wrap: anywhere` on prose and key-value values; `pre` blocks may scroll **internally** (x) with a visible affordance, but the page never scrolls horizontally at any viewport ≥ 320px — the 7F `min-w-0` discipline is a hard gate at 390×844.    |
+| Unknown case ID in route                      | Chat                      | The 7F named error card (“No scenario named …”) — not a silent home fallback (closes 7F revision 10’s accepted gap for chat routes).                                                                                                                       |
 
 ## 8. Touch, keyboard, focus, accessibility
 
@@ -281,7 +281,7 @@ Hash routing, extending the 7F scheme:
 
 - **Reuse first.** The chat column composes the SDK chat kit
   (`conversation`, `message`, `tool-item`, `reasoning-item`, `Composer`,
-  `Dialog`, `Badge`, `Banner`) — `RunnerConsoleApp` itself is *not* the
+  `Dialog`, `Badge`, `Banner`) — `RunnerConsoleApp` itself is _not_ the
   shell (same 7F ruling: compose parts, don’t adopt the console’s
   session-timeline IA). The activity stream composes the existing explorer
   components: `ExposureList`, `AuthorizationTable`, `StateDiff`,
@@ -318,13 +318,13 @@ Evidence lands in `.taskcore-local/evidence/capability/` as
 from §9 routes after `data-chat-state="settled"`. Mobile captures must show
 the correct active segment and no horizontal scrollbar.
 
-| # | Slug | Route | Expected visible evidence |
-| --- | --- | --- | --- |
-| 1 | `chat-home` | `#/chat` | Picker + chat intro; no dead panels. |
-| 2 | `chat-session` | `#/chat/ix-checkbox-01?replay=fake` | Turn-0 control-plane strips; user/model/tool/control-plane grammars all distinguishable; turn activity strips with counts; composer in its mode-correct state; desktop shows the activity rail with the newest turn expanded. |
-| 3 | `chat-denied` | `#/chat/ap-mcp-gate-01?replay=fake&view=activity&turn=2` | Denied call on danger surface in both conversation and authorization section; missing claim + reason; Activity segment chip counting the deny (mobile). |
-| 4 | `chat-activity-diff` | `#/chat/ix-checkbox-01?replay=fake&view=activity&turn=3` | Turn group with exposure counts, calls, authorization, control-plane rows, per-turn state diff (changed vs unchanged domains), reconciliation/wake row, turn parity verdict. |
-| 5 | `chat-streaming` | `#/chat/ap-mcp-gate-01?replay=fake&stage=streaming` | Streaming model card, composer `active-turn` (Steer/Stop), pending activity group header, disabled session controls with reasons. Exempt from pixel determinism; capture once per viewport. |
+| #   | Slug                 | Route                                                    | Expected visible evidence                                                                                                                                                                                                     |
+| --- | -------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `chat-home`          | `#/chat`                                                 | Picker + chat intro; no dead panels.                                                                                                                                                                                          |
+| 2   | `chat-session`       | `#/chat/ix-checkbox-01?replay=fake`                      | Turn-0 control-plane strips; user/model/tool/control-plane grammars all distinguishable; turn activity strips with counts; composer in its mode-correct state; desktop shows the activity rail with the newest turn expanded. |
+| 3   | `chat-denied`        | `#/chat/ap-mcp-gate-01?replay=fake&view=activity&turn=2` | Denied call on danger surface in both conversation and authorization section; missing claim + reason; Activity segment chip counting the deny (mobile).                                                                       |
+| 4   | `chat-activity-diff` | `#/chat/ix-checkbox-01?replay=fake&view=activity&turn=3` | Turn group with exposure counts, calls, authorization, control-plane rows, per-turn state diff (changed vs unchanged domains), reconciliation/wake row, turn parity verdict.                                                  |
+| 5   | `chat-streaming`     | `#/chat/ap-mcp-gate-01?replay=fake&stage=streaming`      | Streaming model card, composer `active-turn` (Steer/Stop), pending activity group header, disabled session controls with reasons. Exempt from pixel determinism; capture once per viewport.                                   |
 
 The scripted fixtures for `ix-checkbox-01` and `ap-mcp-gate-01` chat
 sessions are new 7I fixtures (the 7F fake-agent plans are single-shot, not
@@ -408,10 +408,10 @@ recorded. Notes where the ruling needed evidence beyond the text:
   answer (Forgiveness; visibility of system status).
 - **3 (`stage=streaming` route) — the route and wait-target approach are
   accepted**; hand-staged captures were a race and a deterministic stage is
-  the right fix. The *current staging depth* fails §7 and the shot-5 matrix
+  the right fix. The _current staging depth_ fails §7 and the shot-5 matrix
   row — see revisions 12–13.
 - **7 (`turn=3`) — accepted.** The mock core wakes on interaction
-  *resolution*, not request; a board-owned resolution producing the real
+  _resolution_, not request; a board-owned resolution producing the real
   `wake.scheduled` row demonstrates the phase's point without fabricating a
   wake. Shot 4's evidence confirms the reconciliation row renders in the
   turn diff, badged Control plane.

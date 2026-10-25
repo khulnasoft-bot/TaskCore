@@ -3,7 +3,10 @@ import type {
   HarnessDriverDescriptor,
 } from "../../contracts/harness-driver.js";
 import type { NativeAcpxPermissionMode } from "../../contracts/native-execution.js";
-import type { NativeSessionCapabilities, NativeTurnControlCapabilities } from "../../contracts/types.js";
+import type {
+  NativeSessionCapabilities,
+  NativeTurnControlCapabilities,
+} from "../../contracts/types.js";
 import { providerFamilyCapabilities } from "../../provider-events.js";
 import {
   ACPX_DRIVER_KIND,
@@ -14,7 +17,14 @@ import {
 
 import { ACPX_CAPABILITY_PROFILES } from "./capability-profiles.js";
 
-const ACPX_AGENTS = ["claude", "codex", "grok", "pi", "cursor", "copilot"] as const;
+const ACPX_AGENTS = [
+  "claude",
+  "codex",
+  "grok",
+  "pi",
+  "cursor",
+  "copilot",
+] as const;
 const ACPX_PERMISSION_MODES = [
   "approve-all",
   "approve-taskcore",
@@ -37,7 +47,9 @@ export function acpxCapabilities(
   const profile = ACPX_CAPABILITY_PROFILES[agent];
   return {
     resume: profile.recovery === "session-load",
-    toolRefreshOnResume: profile.recovery === "session-load" && profile.toolRefreshOnResume === true,
+    toolRefreshOnResume:
+      profile.recovery === "session-load" &&
+      profile.toolRefreshOnResume === true,
     typedEvents: true,
     typedEventFamilies: providerFamilyCapabilities({
       plan: profile.plans === "semantic-only" ? "unsupported" : "available",
@@ -55,11 +67,16 @@ export function acpxCapabilities(
     reconciliation: true,
     usage: profile.usage === "reported",
     dynamicTools: true,
-    runtimeRequestResolution: profile.permissions === "interactive" || profile.questions === "form",
+    runtimeRequestResolution:
+      profile.permissions === "interactive" || profile.questions === "form",
     runtimeRequestHandoff: true,
     goals: false,
     threadLineage: false,
-    unsupported: [...(controls?.steering ? [] : ["steering"]), "goals", "threadLineage"],
+    unsupported: [
+      ...(controls?.steering ? [] : ["steering"]),
+      "goals",
+      "threadLineage",
+    ],
   };
 }
 
@@ -107,7 +124,11 @@ export function validateAcpxDriverConfig(
     );
   }
   if (ACPX_CAPABILITY_PROFILES[agent].qualification !== "qualified") {
-    return invalid("agent", "qualification_pending", `${ACPX_CAPABILITY_PROFILES[agent].displayName} requires local and Daytona qualification before use.`);
+    return invalid(
+      "agent",
+      "qualification_pending",
+      `${ACPX_CAPABILITY_PROFILES[agent].displayName} requires local and Daytona qualification before use.`,
+    );
   }
   const model = text(config.model);
   try {

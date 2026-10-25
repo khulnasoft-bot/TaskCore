@@ -1,7 +1,17 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Maximize2, Minimize2, PanelRightClose, PanelRightOpen, X } from "lucide-react";
+import {
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  PanelRightOpen,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { SidePanelContentMode, SidePanelPresentation } from "./types";
 import { useScrollbarWhileScrolling } from "./use-scrollbar-while-scrolling";
@@ -58,13 +68,17 @@ export function SidePanelFrame({
       )}
       style={style}
     >
-      {(header || trailingControls) ? (
-        <header className={cn(
-          "flex h-(--side-panel-header-height) min-w-0 shrink-0 items-center gap-1 px-2",
-        )}>
+      {header || trailingControls ? (
+        <header
+          className={cn(
+            "flex h-(--side-panel-header-height) min-w-0 shrink-0 items-center gap-1 px-2",
+          )}
+        >
           <div className="flex min-w-0 flex-1 self-stretch">{header}</div>
           {trailingControls ? (
-            <div className="flex shrink-0 items-center gap-1">{trailingControls}</div>
+            <div className="flex shrink-0 items-center gap-1">
+              {trailingControls}
+            </div>
           ) : null}
         </header>
       ) : null}
@@ -80,16 +94,23 @@ export function SidePanelFrame({
         )}
       >
         {contentMode === "prose" ? (
-          <div data-side-panel-prose-content="true" className="mx-auto w-full max-w-4xl px-6 py-4">
+          <div
+            data-side-panel-prose-content="true"
+            className="mx-auto w-full max-w-4xl px-6 py-4"
+          >
             {children}
           </div>
-        ) : children}
+        ) : (
+          children
+        )}
       </div>
       {footer ? (
-        <footer className={cn(
-          "shrink-0",
-          headerSize !== "task-detail" && "border-t border-border",
-        )}>
+        <footer
+          className={cn(
+            "shrink-0",
+            headerSize !== "task-detail" && "border-t border-border",
+          )}
+        >
           {footer}
         </footer>
       ) : null}
@@ -125,7 +146,11 @@ export function SidePanelToggleButton({
             className,
           )}
         >
-          {open ? <PanelRightClose aria-hidden /> : <PanelRightOpen aria-hidden />}
+          {open ? (
+            <PanelRightClose aria-hidden />
+          ) : (
+            <PanelRightOpen aria-hidden />
+          )}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">

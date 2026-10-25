@@ -54,8 +54,16 @@ describe("runner semantic MCP bridge", () => {
       result: {
         tools: [
           { name: "documents.read" },
-          { name: "taskcore_finish", description: PRP_COMPLETION_TOOL_DESCRIPTION, inputSchema: PRP_COMPLETION_RESULT_PROVIDER_INPUT_SCHEMA },
-          { name: "taskcore_block", description: PRP_BLOCK_TOOL_DESCRIPTION, inputSchema: PRP_BLOCK_RESULT_PROVIDER_INPUT_SCHEMA },
+          {
+            name: "taskcore_finish",
+            description: PRP_COMPLETION_TOOL_DESCRIPTION,
+            inputSchema: PRP_COMPLETION_RESULT_PROVIDER_INPUT_SCHEMA,
+          },
+          {
+            name: "taskcore_block",
+            description: PRP_BLOCK_TOOL_DESCRIPTION,
+            inputSchema: PRP_BLOCK_RESULT_PROVIDER_INPUT_SCHEMA,
+          },
         ],
       },
     });

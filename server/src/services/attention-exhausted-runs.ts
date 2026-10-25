@@ -1,5 +1,10 @@
 import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
-import { agents, heartbeatRunEvents, heartbeatRuns, type Db } from "@taskcore/db";
+import {
+  agents,
+  heartbeatRunEvents,
+  heartbeatRuns,
+  type Db,
+} from "@taskcore/db";
 
 export function listAttentionExhaustedRuns(db: Db, companyId: string) {
   // Recovery can revisit an exhausted run. Deduplicate its historical events
@@ -11,11 +16,13 @@ export function listAttentionExhaustedRuns(db: Db, companyId: string) {
       message: heartbeatRunEvents.message,
     })
     .from(heartbeatRunEvents)
-    .where(and(
-      eq(heartbeatRunEvents.companyId, companyId),
-      eq(heartbeatRunEvents.eventType, "lifecycle"),
-      sql`${heartbeatRunEvents.message} like 'Bounded retry exhausted%'`,
-    ))
+    .where(
+      and(
+        eq(heartbeatRunEvents.companyId, companyId),
+        eq(heartbeatRunEvents.eventType, "lifecycle"),
+        sql`${heartbeatRunEvents.message} like 'Bounded retry exhausted%'`,
+      ),
+    )
     .orderBy(asc(heartbeatRunEvents.runId), desc(heartbeatRunEvents.id))
     .as("latest_exhaustion");
 
@@ -42,11 +49,13 @@ export function listAttentionExhaustedRuns(db: Db, companyId: string) {
     .from(heartbeatRuns)
     .innerJoin(agents, eq(heartbeatRuns.agentId, agents.id))
     .innerJoin(latestExhaustion, eq(latestExhaustion.runId, heartbeatRuns.id))
-    .where(and(
-      eq(heartbeatRuns.companyId, companyId),
-      eq(agents.companyId, companyId),
-      notInArray(agents.status, ["terminated"]),
-      inArray(heartbeatRuns.status, ["failed", "timed_out"]),
-    ))
+    .where(
+      and(
+        eq(heartbeatRuns.companyId, companyId),
+        eq(agents.companyId, companyId),
+        notInArray(agents.status, ["terminated"]),
+        inArray(heartbeatRuns.status, ["failed", "timed_out"]),
+      ),
+    )
     .orderBy(desc(heartbeatRuns.createdAt), desc(latestExhaustion.eventId));
 }

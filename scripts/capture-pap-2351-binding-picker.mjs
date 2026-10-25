@@ -39,7 +39,10 @@ function startStaticServer(rootDir) {
     const server = http.createServer(async (req, res) => {
       try {
         const urlPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
-        let filePath = path.join(rootDir, urlPath === "/" ? "index.html" : urlPath);
+        let filePath = path.join(
+          rootDir,
+          urlPath === "/" ? "index.html" : urlPath,
+        );
         let stat;
         try {
           stat = await fs.stat(filePath);

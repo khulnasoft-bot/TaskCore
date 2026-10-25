@@ -8,7 +8,14 @@ import type {
   SummarySlotRevision,
   SummarySlotScopeKind,
 } from "@taskcore/shared";
-import { Bot, Clock3, History, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import {
+  Bot,
+  Clock3,
+  History,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 
 import { agentsApi } from "@/api/agents";
 import { builtInAgentsApi, type BuiltInAgentState } from "@/api/builtInAgents";
@@ -21,7 +28,14 @@ import { useSummaryDraftStream } from "@/components/useSummaryDraftStream";
 import { useCompanyLiveEvent } from "@/context/LiveUpdatesProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { queryKeys } from "@/lib/queryKeys";
 import { cn, formatDateTime, relativeTime } from "@/lib/utils";
 
@@ -55,7 +69,9 @@ function formatRevisionTimestamp(date: Date | string) {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
-  }).format(new Date(date)).replace(",", "");
+  })
+    .format(new Date(date))
+    .replace(",", "");
 }
 
 function revisionOptionLabel(revision: SummarySlotRevision) {
@@ -66,9 +82,9 @@ function latestRevisionOptionLabel(
   document: SummarySlotDocument,
   revision: SummarySlotRevision | null,
 ) {
-  return `Latest (Rev ${document.latestRevisionNumber}) - ${
-    formatRevisionTimestamp(revision?.createdAt ?? document.updatedAt)
-  }`;
+  return `Latest (Rev ${document.latestRevisionNumber}) - ${formatRevisionTimestamp(
+    revision?.createdAt ?? document.updatedAt,
+  )}`;
 }
 
 interface LiveGenerationStatus {
@@ -78,7 +94,9 @@ interface LiveGenerationStatus {
 }
 
 function readPayloadString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 /**
@@ -87,7 +105,9 @@ function readPayloadString(value: unknown): string | null {
  * assistant snippet, then the active tool name. Returns null when nothing
  * has streamed yet so the card falls back to its static generating text.
  */
-export function resolveGenerationStatusLine(status: LiveGenerationStatus | null): string | null {
+export function resolveGenerationStatusLine(
+  status: LiveGenerationStatus | null,
+): string | null {
   if (!status) return null;
   if (status.message) return status.message;
   if (status.lastAssistantSnippet) return status.lastAssistantSnippet;
@@ -101,7 +121,9 @@ export function resolveGenerationStatusLine(status: LiveGenerationStatus | null)
  * generating issue. Resets whenever the tracked generation changes, and stays
  * null (static fallback) when no events arrive.
  */
-function useGenerationStatus(generatingIssueId: string | null): LiveGenerationStatus | null {
+function useGenerationStatus(
+  generatingIssueId: string | null,
+): LiveGenerationStatus | null {
   const [status, setStatus] = useState<LiveGenerationStatus | null>(null);
 
   useEffect(() => {
@@ -125,9 +147,9 @@ function useGenerationStatus(generatingIssueId: string | null): LiveGenerationSt
 
 function setupState(state: BuiltInAgentState | undefined) {
   if (!state) return null;
-  return state.status === "not_provisioned"
-    || state.status === "needs_setup"
-    || state.status === "pending_approval"
+  return state.status === "not_provisioned" ||
+    state.status === "needs_setup" ||
+    state.status === "pending_approval"
     ? state
     : null;
 }
@@ -142,7 +164,9 @@ export function SummarySlotCard({
   className,
 }: SummarySlotCardProps) {
   const queryClient = useQueryClient();
-  const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(null);
+  const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(
+    null,
+  );
   const [configureOpen, setConfigureOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const selector: SummarySlotSelector | null = companyId
@@ -154,7 +178,8 @@ export function SummarySlotCard({
     queryFn: () => instanceSettingsApi.getExperimental(),
   });
   const summariesEnabled = experimentalQuery.data?.enableSummaries === true;
-  const builtInAgentsEnabled = experimentalQuery.data?.enableBuiltInAgents === true;
+  const builtInAgentsEnabled =
+    experimentalQuery.data?.enableBuiltInAgents === true;
 
   const builtInAgentsQuery = useQuery({
     queryKey: queryKeys.builtInAgents.list(companyId ?? "__none__"),
@@ -169,10 +194,20 @@ export function SummarySlotCard({
   const needsSetup = setupState(summarizerState);
 
   const slotQueryKey = selector
-    ? queryKeys.summarySlots.detail(selector.companyId, selector.scopeKind, selector.slotKey, selector.scopeId)
+    ? queryKeys.summarySlots.detail(
+        selector.companyId,
+        selector.scopeKind,
+        selector.slotKey,
+        selector.scopeId,
+      )
     : queryKeys.summarySlots.detail("__none__", scopeKind, slotKey, scopeId);
   const revisionsQueryKey = selector
-    ? queryKeys.summarySlots.revisions(selector.companyId, selector.scopeKind, selector.slotKey, selector.scopeId)
+    ? queryKeys.summarySlots.revisions(
+        selector.companyId,
+        selector.scopeKind,
+        selector.slotKey,
+        selector.scopeId,
+      )
     : queryKeys.summarySlots.revisions("__none__", scopeKind, slotKey, scopeId);
 
   const slotQuery = useQuery({
@@ -180,7 +215,8 @@ export function SummarySlotCard({
     queryFn: () => summarySlotsApi.get(selector!),
     enabled: Boolean(selector && summariesEnabled),
     retry: false,
-    refetchInterval: (query) => query.state.data?.slot?.status === "generating" ? 3_000 : false,
+    refetchInterval: (query) =>
+      query.state.data?.slot?.status === "generating" ? 3_000 : false,
   });
 
   const revisionsQuery = useQuery({
@@ -201,15 +237,22 @@ export function SummarySlotCard({
       ]);
     },
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Summary generation could not be started.");
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Summary generation could not be started.",
+      );
     },
   });
 
   const resumeSummarizer = useMutation({
-    mutationFn: (agentId: string) => agentsApi.resume(agentId, companyId ?? undefined),
+    mutationFn: (agentId: string) =>
+      agentsApi.resume(agentId, companyId ?? undefined),
     onSuccess: async () => {
       if (companyId) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.builtInAgents.list(companyId) });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.builtInAgents.list(companyId),
+        });
       }
     },
   });
@@ -217,33 +260,47 @@ export function SummarySlotCard({
   const revisions = revisionsQuery.data?.revisions ?? [];
   const latestDocument = slotQuery.data?.document ?? null;
   const selectedRevision = useMemo(
-    () => revisions.find((revision) => revision.id === selectedRevisionId) ?? null,
+    () =>
+      revisions.find((revision) => revision.id === selectedRevisionId) ?? null,
     [revisions, selectedRevisionId],
   );
   const latestRevision = latestDocument
-    ? revisions.find((revision) => revision.id === latestDocument.latestRevisionId) ?? null
+    ? (revisions.find(
+        (revision) => revision.id === latestDocument.latestRevisionId,
+      ) ?? null)
     : null;
-  const historicalRevision = selectedRevision && selectedRevision.id !== latestDocument?.latestRevisionId
-    ? selectedRevision
-    : null;
+  const historicalRevision =
+    selectedRevision && selectedRevision.id !== latestDocument?.latestRevisionId
+      ? selectedRevision
+      : null;
   const displayedBody = historicalRevision?.body ?? latestDocument?.body ?? "";
   const displayingHistoricalRevision = Boolean(historicalRevision);
-  const historicalRevisionOptions = (latestDocument
-    ? revisions.filter((revision) => revision.id !== latestDocument.latestRevisionId)
-    : revisions)
+  const historicalRevisionOptions = (
+    latestDocument
+      ? revisions.filter(
+          (revision) => revision.id !== latestDocument.latestRevisionId,
+        )
+      : revisions
+  )
     .toSorted((left, right) => right.revisionNumber - left.revisionNumber)
     .slice(0, MAX_REVISION_OPTIONS - (latestDocument ? 1 : 0));
-  const revisionSelectValue = historicalRevision?.id ?? LATEST_REVISION_SELECT_VALUE;
-  const latestSelectLabel = latestDocument ? latestRevisionOptionLabel(latestDocument, latestRevision) : "Latest";
+  const revisionSelectValue =
+    historicalRevision?.id ?? LATEST_REVISION_SELECT_VALUE;
+  const latestSelectLabel = latestDocument
+    ? latestRevisionOptionLabel(latestDocument, latestRevision)
+    : "Latest";
   const generatingIssue = slotQuery.data?.generatingIssue ?? null;
-  const liveStatusLine = resolveGenerationStatusLine(useGenerationStatus(generatingIssue?.id ?? null));
+  const liveStatusLine = resolveGenerationStatusLine(
+    useGenerationStatus(generatingIssue?.id ?? null),
+  );
   const draftStream = useSummaryDraftStream(companyId, generatingIssue);
   // The token-streamed STATUS line is more responsive than the server-derived
   // progress snippet; prefer it and fall back to the Phase 1 status line.
   const generationStatusLine = draftStream.statusLine ?? liveStatusLine;
-  const isGenerating = slotQuery.data?.slot?.status === "generating"
-    && generatingIssue
-    && !TERMINAL_ISSUE_STATUSES.has(generatingIssue.status);
+  const isGenerating =
+    slotQuery.data?.slot?.status === "generating" &&
+    generatingIssue &&
+    !TERMINAL_ISSUE_STATUSES.has(generatingIssue.status);
   const generationFailed = slotQuery.data?.slot?.status === "failed";
   const canGenerateFirstSummary = summarizerState?.status === "ready";
 
@@ -259,13 +316,24 @@ export function SummarySlotCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Sparkles className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <Sparkles
+              className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             <h2 className="text-sm font-semibold">{title}</h2>
-            {isGenerating ? <Badge variant="secondary">Generating</Badge> : null}
-            {displayingHistoricalRevision ? <Badge variant="outline">Historical revision</Badge> : null}
-            {latestDocument && !displayingHistoricalRevision ? <Badge variant="outline">Latest revision</Badge> : null}
+            {isGenerating ? (
+              <Badge variant="secondary">Generating</Badge>
+            ) : null}
+            {displayingHistoricalRevision ? (
+              <Badge variant="outline">Historical revision</Badge>
+            ) : null}
+            {latestDocument && !displayingHistoricalRevision ? (
+              <Badge variant="outline">Latest revision</Badge>
+            ) : null}
           </div>
-          {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+          {description ? (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {displayingHistoricalRevision ? (
@@ -284,9 +352,15 @@ export function SummarySlotCard({
               size="sm"
               variant="outline"
               onClick={startGeneration}
-              disabled={!selector || generateMutation.isPending || Boolean(isGenerating)}
+              disabled={
+                !selector || generateMutation.isPending || Boolean(isGenerating)
+              }
             >
-              {generateMutation.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+              {generateMutation.isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <RefreshCw />
+              )}
               Refresh
             </Button>
           ) : null}
@@ -309,13 +383,18 @@ export function SummarySlotCard({
                     : "Set up the Summarizer"}
                 </p>
                 <p className="text-muted-foreground">
-                  Summaries are generated by Taskcore's built-in Summarizer agent. Configure its adapter and model
-                  before requesting this summary.
+                  Summaries are generated by Taskcore's built-in Summarizer
+                  agent. Configure its adapter and model before requesting this
+                  summary.
                 </p>
               </div>
             </div>
             {needsSetup.status === "pending_approval" ? null : (
-              <Button type="button" size="sm" onClick={() => setConfigureOpen(true)}>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setConfigureOpen(true)}
+              >
                 Set up Summarizer
               </Button>
             )}
@@ -332,7 +411,9 @@ export function SummarySlotCard({
         </>
       ) : null}
 
-      {!needsSetup && summarizerState?.status === "paused" && summarizerState.agent ? (
+      {!needsSetup &&
+      summarizerState?.status === "paused" &&
+      summarizerState.agent ? (
         <InlineBanner
           tone="warning"
           title="Summarizer is paused"
@@ -340,14 +421,18 @@ export function SummarySlotCard({
             <Button
               type="button"
               size="sm"
-              onClick={() => summarizerState.agent && resumeSummarizer.mutate(summarizerState.agent.id)}
+              onClick={() =>
+                summarizerState.agent &&
+                resumeSummarizer.mutate(summarizerState.agent.id)
+              }
               disabled={resumeSummarizer.isPending}
             >
               {resumeSummarizer.isPending ? "Resuming..." : "Resume agent"}
             </Button>
           }
         >
-          Existing summaries remain readable, but new summaries will not be generated until the agent resumes.
+          Existing summaries remain readable, but new summaries will not be
+          generated until the agent resumes.
         </InlineBanner>
       ) : null}
 
@@ -362,12 +447,19 @@ export function SummarySlotCard({
           tone="warning"
           title="Summary could not be loaded"
           actions={
-            <Button type="button" size="sm" variant="outline" onClick={() => void slotQuery.refetch()}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void slotQuery.refetch()}
+            >
               Retry
             </Button>
           }
         >
-          {slotQuery.error instanceof Error ? slotQuery.error.message : "Try loading the summary again."}
+          {slotQuery.error instanceof Error
+            ? slotQuery.error.message
+            : "Try loading the summary again."}
         </InlineBanner>
       ) : null}
 
@@ -386,7 +478,8 @@ export function SummarySlotCard({
             </Button>
           }
         >
-          {slotQuery.data?.slot?.failureReason ?? "The generation task ended before writing a summary."}
+          {slotQuery.data?.slot?.failureReason ??
+            "The generation task ended before writing a summary."}
         </InlineBanner>
       ) : null}
 
@@ -425,7 +518,10 @@ export function SummarySlotCard({
             ) : null}
             <p className="text-muted-foreground">
               Summarizer is working in{" "}
-              <Link className="underline" to={`/issues/${generatingIssue.identifier ?? generatingIssue.id}`}>
+              <Link
+                className="underline"
+                to={`/issues/${generatingIssue.identifier ?? generatingIssue.id}`}
+              >
                 {issueLabel(generatingIssue)}
               </Link>
               .
@@ -434,11 +530,17 @@ export function SummarySlotCard({
         </div>
       ) : null}
 
-      {!slotQuery.isError && !latestDocument && !isGenerating && !generationFailed && canGenerateFirstSummary ? (
+      {!slotQuery.isError &&
+      !latestDocument &&
+      !isGenerating &&
+      !generationFailed &&
+      canGenerateFirstSummary ? (
         <div className="flex flex-col items-start gap-3 rounded-lg border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1 text-sm">
             <p className="font-medium text-foreground">No summary yet</p>
-            <p className="text-muted-foreground">Generate a concise status snapshot for this surface.</p>
+            <p className="text-muted-foreground">
+              Generate a concise status snapshot for this surface.
+            </p>
           </div>
           <Button
             type="button"
@@ -446,7 +548,11 @@ export function SummarySlotCard({
             onClick={startGeneration}
             disabled={!selector || generateMutation.isPending}
           >
-            {generateMutation.isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
+            {generateMutation.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Sparkles />
+            )}
             {generateMutation.isPending ? "Generating..." : "Generate summary"}
           </Button>
         </div>
@@ -459,22 +565,39 @@ export function SummarySlotCard({
           </MarkdownBody>
 
           <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span title={formatDateTime(historicalRevision?.createdAt ?? latestRevision?.createdAt ?? latestDocument.updatedAt)}>
-              Updated {relativeTime(historicalRevision?.createdAt ?? latestRevision?.createdAt ?? latestDocument.updatedAt)}
+            <span
+              title={formatDateTime(
+                historicalRevision?.createdAt ??
+                  latestRevision?.createdAt ??
+                  latestDocument.updatedAt,
+              )}
+            >
+              Updated{" "}
+              {relativeTime(
+                historicalRevision?.createdAt ??
+                  latestRevision?.createdAt ??
+                  latestDocument.updatedAt,
+              )}
             </span>
 
             {revisions.length > 1 ? (
               <Select
                 value={revisionSelectValue}
                 onValueChange={(value) => {
-                  setSelectedRevisionId(value === LATEST_REVISION_SELECT_VALUE ? null : value);
+                  setSelectedRevisionId(
+                    value === LATEST_REVISION_SELECT_VALUE ? null : value,
+                  );
                 }}
               >
                 <SelectTrigger
                   size="sm"
                   className="h-auto border-0 bg-transparent p-0 text-xs shadow-none hover:text-foreground focus-visible:ring-0"
                   aria-label="Select summary revision"
-                  title={historicalRevision ? revisionOptionLabel(historicalRevision) : latestSelectLabel}
+                  title={
+                    historicalRevision
+                      ? revisionOptionLabel(historicalRevision)
+                      : latestSelectLabel
+                  }
                 >
                   <SelectValue>
                     <History className="size-3.5" aria-hidden="true" />
@@ -482,10 +605,15 @@ export function SummarySlotCard({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent align="end" position="popper">
-                  <SelectItem value={LATEST_REVISION_SELECT_VALUE} className="text-xs">
+                  <SelectItem
+                    value={LATEST_REVISION_SELECT_VALUE}
+                    className="text-xs"
+                  >
                     {latestSelectLabel}
                   </SelectItem>
-                  {historicalRevisionOptions.length > 0 ? <SelectSeparator /> : null}
+                  {historicalRevisionOptions.length > 0 ? (
+                    <SelectSeparator />
+                  ) : null}
                   {historicalRevisionOptions.map((revision) => (
                     <SelectItem
                       key={revision.id}

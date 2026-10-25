@@ -40,9 +40,7 @@ describe("runner provider-ingress WebSocket wire", () => {
 
   it("delivers one terminal close to both PRP authority and reconnect ownership", () => {
     const socket = new FakeSocket();
-    const wire = new WsJsonWireConnection(
-      socket as unknown as WebSocket,
-    );
+    const wire = new WsJsonWireConnection(socket as unknown as WebSocket);
     const authorityClose = vi.fn();
     const reconnectClose = vi.fn();
     wire.onClose(authorityClose);
@@ -62,9 +60,7 @@ describe("runner provider-ingress WebSocket wire", () => {
 
   it("replays a close to a listener registered after the socket ended", () => {
     const socket = new FakeSocket();
-    const wire = new WsJsonWireConnection(
-      socket as unknown as WebSocket,
-    );
+    const wire = new WsJsonWireConnection(socket as unknown as WebSocket);
     socket.emit("close", 1001, Buffer.from("sandbox restart"));
     const listener = vi.fn();
     wire.onClose(listener);

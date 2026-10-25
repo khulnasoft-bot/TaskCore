@@ -11,7 +11,9 @@ vi.mock("./issues.js", () => ({
 
 type SelectRow = Record<string, unknown>;
 
-function createSelectChain(rows: SelectRow[] | ((table: unknown) => SelectRow[])) {
+function createSelectChain(
+  rows: SelectRow[] | ((table: unknown) => SelectRow[]),
+) {
   return {
     from(table: unknown) {
       const selectedRows = typeof rows === "function" ? rows(table) : rows;
@@ -48,8 +50,13 @@ function createFakeDb(args: {
   const db: any = {
     select: vi.fn(() => {
       selectCallCount += 1;
-      const rows = selectCallCount === 1 ? [interactionRow] : (args.parentRows ?? []);
-      return createSelectChain(table => getTableName(table as never) === "issues" ? [{ status: "in_progress" }] : rows);
+      const rows =
+        selectCallCount === 1 ? [interactionRow] : (args.parentRows ?? []);
+      return createSelectChain((table) =>
+        getTableName(table as never) === "issues"
+          ? [{ status: "in_progress" }]
+          : rows,
+      );
     }),
     update: vi.fn((table: unknown) => ({
       set(values: Record<string, unknown>) {
@@ -59,7 +66,11 @@ function createFakeDb(args: {
               toolActionRequestUpdates.push(values);
               return Promise.resolve(undefined);
             }
-            if ("status" in values || "result" in values || "resolvedAt" in values) {
+            if (
+              "status" in values ||
+              "result" in values ||
+              "resolvedAt" in values
+            ) {
               interactionUpdates.push(values);
               interactionRow = { ...interactionRow, ...values };
               return {
@@ -80,7 +91,8 @@ function createFakeDb(args: {
         inserts.push({ table: getTableName(table as never), values });
       },
     })),
-    transaction: async (callback: (tx: typeof db) => Promise<void>) => callback(db),
+    transaction: async (callback: (tx: typeof db) => Promise<void>) =>
+      callback(db),
   };
 
   return {
@@ -100,22 +112,81 @@ describe("issueThreadInteractionService", () => {
   });
 
   it.each([
-    ["ask_user_questions", undefined, {}, "anyone", "anyone", "inherited", "requested"],
-    ["suggest_tasks", undefined, {}, "anyone", "anyone", "inherited", "requested"],
-    ["request_confirmation", "board_or_agents", {}, "anyone", "anyone", "explicit", "requested"],
-    ["request_confirmation", "board_only", {}, "human_only", "human_only", "explicit", "requested"],
-    ["request_checkbox_confirmation", undefined, { request_checkbox_confirmation: { defaultPolicy: "not_creator" } }, "not_creator", "not_creator", "inherited", "requested"],
-    ["request_item_verdicts", "anyone", { request_item_verdicts: { cap: "not_creator" } }, "anyone", "not_creator", "explicit", "company_cap"],
+    [
+      "ask_user_questions",
+      undefined,
+      {},
+      "anyone",
+      "anyone",
+      "inherited",
+      "requested",
+    ],
+    [
+      "suggest_tasks",
+      undefined,
+      {},
+      "anyone",
+      "anyone",
+      "inherited",
+      "requested",
+    ],
+    [
+      "request_confirmation",
+      "board_or_agents",
+      {},
+      "anyone",
+      "anyone",
+      "explicit",
+      "requested",
+    ],
+    [
+      "request_confirmation",
+      "board_only",
+      {},
+      "human_only",
+      "human_only",
+      "explicit",
+      "requested",
+    ],
+    [
+      "request_checkbox_confirmation",
+      undefined,
+      { request_checkbox_confirmation: { defaultPolicy: "not_creator" } },
+      "not_creator",
+      "not_creator",
+      "inherited",
+      "requested",
+    ],
+    [
+      "request_item_verdicts",
+      "anyone",
+      { request_item_verdicts: { cap: "not_creator" } },
+      "anyone",
+      "not_creator",
+      "explicit",
+      "company_cap",
+    ],
   ] as const)(
     "resolves %s requested/default/cap policy snapshots",
-    async (kind, requested, governance, expectedRequested, expectedEffective, expectedProvenance, expectedSource) => {
-      const { resolveInteractionPolicy } = await import("./issue-thread-interactions.js");
-      expect(resolveInteractionPolicy({
-        kind,
-        requested,
-        governance,
-        hasToolAction: false,
-      })).toEqual({
+    async (
+      kind,
+      requested,
+      governance,
+      expectedRequested,
+      expectedEffective,
+      expectedProvenance,
+      expectedSource,
+    ) => {
+      const { resolveInteractionPolicy } =
+        await import("./issue-thread-interactions.js");
+      expect(
+        resolveInteractionPolicy({
+          kind,
+          requested,
+          governance,
+          hasToolAction: false,
+        }),
+      ).toEqual({
         requestedResolverPolicy: expectedRequested,
         effectiveResolverPolicy: expectedEffective,
         resolverPolicyProvenance: expectedProvenance,
@@ -125,13 +196,21 @@ describe("issueThreadInteractionService", () => {
   );
 
   it("always clamps tool-action confirmations to human-only", async () => {
-    const { resolveInteractionPolicy } = await import("./issue-thread-interactions.js");
-    expect(resolveInteractionPolicy({
-      kind: "request_confirmation",
-      requested: "board_or_agents",
-      governance: { request_confirmation: { defaultPolicy: "board_or_agents", cap: "board_or_agents" } },
-      hasToolAction: true,
-    })).toEqual({
+    const { resolveInteractionPolicy } =
+      await import("./issue-thread-interactions.js");
+    expect(
+      resolveInteractionPolicy({
+        kind: "request_confirmation",
+        requested: "board_or_agents",
+        governance: {
+          request_confirmation: {
+            defaultPolicy: "board_or_agents",
+            cap: "board_or_agents",
+          },
+        },
+        hasToolAction: true,
+      }),
+    ).toEqual({
       requestedResolverPolicy: "anyone",
       effectiveResolverPolicy: "human_only",
       resolverPolicyProvenance: "explicit",
@@ -140,7 +219,8 @@ describe("issueThreadInteractionService", () => {
   });
 
   it("create reuses an existing interaction for the same idempotency key", async () => {
-    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const { issueThreadInteractionService } =
+      await import("./issue-thread-interactions.js");
 
     const existingRow = {
       id: "interaction-1",
@@ -183,23 +263,27 @@ describe("issueThreadInteractionService", () => {
     };
 
     const svc = issueThreadInteractionService(db as never);
-    const created = await svc.create({
-      id: "11111111-1111-4111-8111-111111111111",
-      companyId: "company-1",
-    }, {
-      kind: "suggest_tasks",
-      idempotencyKey: "run-1:suggest",
-      sourceRunId: "22222222-2222-4222-8222-222222222222",
-      title: "Break the work down",
-      summary: "Created from the current agent run.",
-      continuationPolicy: "wake_assignee",
-      payload: {
-        version: 1,
-        tasks: [{ clientKey: "task-1", title: "One" }],
+    const created = await svc.create(
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        companyId: "company-1",
       },
-    }, {
-      agentId: "agent-1",
-    });
+      {
+        kind: "suggest_tasks",
+        idempotencyKey: "run-1:suggest",
+        sourceRunId: "22222222-2222-4222-8222-222222222222",
+        title: "Break the work down",
+        summary: "Created from the current agent run.",
+        continuationPolicy: "wake_assignee",
+        payload: {
+          version: 1,
+          tasks: [{ clientKey: "task-1", title: "One" }],
+        },
+      },
+      {
+        agentId: "agent-1",
+      },
+    );
 
     expect(created.id).toBe("interaction-1");
     expect(created.idempotencyKey).toBe("run-1:suggest");
@@ -207,7 +291,8 @@ describe("issueThreadInteractionService", () => {
   });
 
   it("answerQuestions normalizes duplicate option ids and persists answered results", async () => {
-    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const { issueThreadInteractionService } =
+      await import("./issue-thread-interactions.js");
 
     const interactionRow = {
       id: "interaction-2",
@@ -256,18 +341,23 @@ describe("issueThreadInteractionService", () => {
     const state = createFakeDb({ interactionRow });
     const svc = issueThreadInteractionService(state.db as never);
 
-    const result = await svc.answerQuestions({
-      id: "11111111-1111-4111-8111-111111111111",
-      companyId: "company-1",
-    }, "interaction-2", {
-      answers: [
-        { questionId: "scope", optionIds: ["phase-1"] },
-        { questionId: "extras", optionIds: ["docs", "tests", "docs"] },
-      ],
-      summaryMarkdown: "Phase 1 with tests and docs.",
-    }, {
-      userId: "local-board",
-    });
+    const result = await svc.answerQuestions(
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        companyId: "company-1",
+      },
+      "interaction-2",
+      {
+        answers: [
+          { questionId: "scope", optionIds: ["phase-1"] },
+          { questionId: "extras", optionIds: ["docs", "tests", "docs"] },
+        ],
+        summaryMarkdown: "Phase 1 with tests and docs.",
+      },
+      {
+        userId: "local-board",
+      },
+    );
 
     expect(result.status).toBe("answered");
     expect(result.result).toEqual({
@@ -293,80 +383,174 @@ describe("issueThreadInteractionService", () => {
   });
 
   it("withdraws a pending interaction with attribution and rejects repeats", async () => {
-    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const { issueThreadInteractionService } =
+      await import("./issue-thread-interactions.js");
     const interactionRow = {
-      id: "interaction-withdraw", companyId: "company-1", issueId: "11111111-1111-4111-8111-111111111111",
-      kind: "request_confirmation", status: "pending", continuationPolicy: "wake_assignee",
-      sourceCommentId: null, sourceRunId: null, title: null, summary: null,
-      createdByAgentId: "agent-1", createdByUserId: null, resolvedByAgentId: null, resolvedByUserId: null,
-      payload: { version: 1, prompt: "Proceed?" }, result: null, resolvedAt: null,
-      createdAt: new Date("2026-07-25T10:00:00.000Z"), updatedAt: new Date("2026-07-25T10:00:00.000Z"),
+      id: "interaction-withdraw",
+      companyId: "company-1",
+      issueId: "11111111-1111-4111-8111-111111111111",
+      kind: "request_confirmation",
+      status: "pending",
+      continuationPolicy: "wake_assignee",
+      sourceCommentId: null,
+      sourceRunId: null,
+      title: null,
+      summary: null,
+      createdByAgentId: "agent-1",
+      createdByUserId: null,
+      resolvedByAgentId: null,
+      resolvedByUserId: null,
+      payload: { version: 1, prompt: "Proceed?" },
+      result: null,
+      resolvedAt: null,
+      createdAt: new Date("2026-07-25T10:00:00.000Z"),
+      updatedAt: new Date("2026-07-25T10:00:00.000Z"),
     };
     const state = createFakeDb({ interactionRow });
     const svc = issueThreadInteractionService(state.db as never);
-    const withdrawn = await svc.withdrawInteraction({ id: interactionRow.issueId, companyId: "company-1" }, interactionRow.id, { reason: "Replanning" }, { agentId: "agent-1" });
-    expect(withdrawn.status).toBe("cancelled");
-    expect(withdrawn.result).toEqual({ version: 1, outcome: "withdrawn", reason: "Replanning" });
-    expect(withdrawn.resolvedByAgentId).toBe("agent-1");
-    expect(state.toolActionRequestUpdates).toHaveLength(1);
-    expect(state.toolActionRequestUpdates[0]).toMatchObject({ status: "cancelled", resolvedByAgentId: "agent-1" });
-    const resolvedState = createFakeDb({ interactionRow: { ...interactionRow, status: "accepted" } });
-    const resolvedSvc = issueThreadInteractionService(resolvedState.db as never);
-    await expect(resolvedSvc.withdrawInteraction(
+    const withdrawn = await svc.withdrawInteraction(
       { id: interactionRow.issueId, companyId: "company-1" },
       interactionRow.id,
-      {},
+      { reason: "Replanning" },
       { agentId: "agent-1" },
-    )).rejects.toMatchObject({ status: 409 });
+    );
+    expect(withdrawn.status).toBe("cancelled");
+    expect(withdrawn.result).toEqual({
+      version: 1,
+      outcome: "withdrawn",
+      reason: "Replanning",
+    });
+    expect(withdrawn.resolvedByAgentId).toBe("agent-1");
+    expect(state.toolActionRequestUpdates).toHaveLength(1);
+    expect(state.toolActionRequestUpdates[0]).toMatchObject({
+      status: "cancelled",
+      resolvedByAgentId: "agent-1",
+    });
+    const resolvedState = createFakeDb({
+      interactionRow: { ...interactionRow, status: "accepted" },
+    });
+    const resolvedSvc = issueThreadInteractionService(
+      resolvedState.db as never,
+    );
+    await expect(
+      resolvedSvc.withdrawInteraction(
+        { id: interactionRow.issueId, companyId: "company-1" },
+        interactionRow.id,
+        {},
+        { agentId: "agent-1" },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
   });
 
   it("refuses withdrawal when the linked tool action is already executing", async () => {
-    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const { issueThreadInteractionService } =
+      await import("./issue-thread-interactions.js");
     const interactionRow = {
-      id: "interaction-executing", companyId: "company-1", issueId: "11111111-1111-4111-8111-111111111111",
-      kind: "request_confirmation", status: "pending", continuationPolicy: "wake_assignee",
-      sourceCommentId: null, sourceRunId: null, title: null, summary: null,
-      createdByAgentId: "agent-1", createdByUserId: null, resolvedByAgentId: null, resolvedByUserId: null,
-      payload: { version: 1, prompt: "Proceed?" }, result: null, resolvedAt: null,
-      createdAt: new Date("2026-07-25T10:00:00.000Z"), updatedAt: new Date("2026-07-25T10:00:00.000Z"),
+      id: "interaction-executing",
+      companyId: "company-1",
+      issueId: "11111111-1111-4111-8111-111111111111",
+      kind: "request_confirmation",
+      status: "pending",
+      continuationPolicy: "wake_assignee",
+      sourceCommentId: null,
+      sourceRunId: null,
+      title: null,
+      summary: null,
+      createdByAgentId: "agent-1",
+      createdByUserId: null,
+      resolvedByAgentId: null,
+      resolvedByUserId: null,
+      payload: { version: 1, prompt: "Proceed?" },
+      result: null,
+      resolvedAt: null,
+      createdAt: new Date("2026-07-25T10:00:00.000Z"),
+      updatedAt: new Date("2026-07-25T10:00:00.000Z"),
     };
-    const state = createFakeDb({ interactionRow, parentRows: [{ id: "action-request-1" }] });
+    const state = createFakeDb({
+      interactionRow,
+      parentRows: [{ id: "action-request-1" }],
+    });
     const svc = issueThreadInteractionService(state.db as never);
-    await expect(svc.withdrawInteraction(
-      { id: interactionRow.issueId, companyId: "company-1" },
-      interactionRow.id,
-      {},
-      { agentId: "agent-1" },
-    )).rejects.toMatchObject({ status: 409 });
+    await expect(
+      svc.withdrawInteraction(
+        { id: interactionRow.issueId, companyId: "company-1" },
+        interactionRow.id,
+        {},
+        { agentId: "agent-1" },
+      ),
+    ).rejects.toMatchObject({ status: 409 });
     expect(state.interactionUpdates).toHaveLength(0);
   });
 
   it("expires pending interactions when the issue is terminal", async () => {
-    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const { issueThreadInteractionService } =
+      await import("./issue-thread-interactions.js");
     const interactionRow = {
-      id: "interaction-close", companyId: "company-1", issueId: "11111111-1111-4111-8111-111111111111",
-      kind: "ask_user_questions", status: "pending", continuationPolicy: "wake_assignee",
-      sourceCommentId: null, sourceRunId: null, title: null, summary: null,
-      createdByAgentId: "agent-1", createdByUserId: null, resolvedByAgentId: null, resolvedByUserId: null,
-      payload: { version: 1, questions: [{ id: "q", prompt: "Q?", selectionMode: "single", options: [{ id: "a", label: "A" }] }] },
-      result: null, resolvedAt: null, createdAt: new Date("2026-07-25T10:00:00.000Z"), updatedAt: new Date("2026-07-25T10:00:00.000Z"),
+      id: "interaction-close",
+      companyId: "company-1",
+      issueId: "11111111-1111-4111-8111-111111111111",
+      kind: "ask_user_questions",
+      status: "pending",
+      continuationPolicy: "wake_assignee",
+      sourceCommentId: null,
+      sourceRunId: null,
+      title: null,
+      summary: null,
+      createdByAgentId: "agent-1",
+      createdByUserId: null,
+      resolvedByAgentId: null,
+      resolvedByUserId: null,
+      payload: {
+        version: 1,
+        questions: [
+          {
+            id: "q",
+            prompt: "Q?",
+            selectionMode: "single",
+            options: [{ id: "a", label: "A" }],
+          },
+        ],
+      },
+      result: null,
+      resolvedAt: null,
+      createdAt: new Date("2026-07-25T10:00:00.000Z"),
+      updatedAt: new Date("2026-07-25T10:00:00.000Z"),
     };
     const state = createFakeDb({ interactionRow });
     const svc = issueThreadInteractionService(state.db as never);
-    const expired = await svc.expirePendingInteractionsForTerminalIssue({ id: interactionRow.issueId, companyId: "company-1", status: "done" });
+    const expired = await svc.expirePendingInteractionsForTerminalIssue({
+      id: interactionRow.issueId,
+      companyId: "company-1",
+      status: "done",
+    });
     expect(expired).toHaveLength(1);
     expect(expired[0]?.status).toBe("expired");
-    expect(expired[0]?.result).toMatchObject({ version: 1, outcome: "issue_closed", answers: [] });
+    expect(expired[0]?.result).toMatchObject({
+      version: 1,
+      outcome: "issue_closed",
+      answers: [],
+    });
     expect(state.toolActionRequestUpdates).toHaveLength(0);
   });
 
   it("expires the linked tool action request when a terminal issue closes a confirmation card", async () => {
-    const { issueThreadInteractionService } = await import("./issue-thread-interactions.js");
+    const { issueThreadInteractionService } =
+      await import("./issue-thread-interactions.js");
     const interactionRow = {
-      id: "interaction-tool", companyId: "company-1", issueId: "11111111-1111-4111-8111-111111111111",
-      kind: "request_confirmation", status: "pending", continuationPolicy: "wake_assignee",
-      sourceCommentId: null, sourceRunId: null, title: null, summary: null,
-      createdByAgentId: "agent-1", createdByUserId: null, resolvedByAgentId: null, resolvedByUserId: null,
+      id: "interaction-tool",
+      companyId: "company-1",
+      issueId: "11111111-1111-4111-8111-111111111111",
+      kind: "request_confirmation",
+      status: "pending",
+      continuationPolicy: "wake_assignee",
+      sourceCommentId: null,
+      sourceRunId: null,
+      title: null,
+      summary: null,
+      createdByAgentId: "agent-1",
+      createdByUserId: null,
+      resolvedByAgentId: null,
+      resolvedByUserId: null,
       payload: {
         version: 1,
         prompt: "Run the parked tool call?",
@@ -386,17 +570,30 @@ describe("issueThreadInteractionService", () => {
           expiresAt: "2026-07-25T11:00:00.000Z",
         },
       },
-      result: null, resolvedAt: null, createdAt: new Date("2026-07-25T10:00:00.000Z"), updatedAt: new Date("2026-07-25T10:00:00.000Z"),
+      result: null,
+      resolvedAt: null,
+      createdAt: new Date("2026-07-25T10:00:00.000Z"),
+      updatedAt: new Date("2026-07-25T10:00:00.000Z"),
     };
     const state = createFakeDb({ interactionRow });
     const svc = issueThreadInteractionService(state.db as never);
     const expired = await svc.expirePendingInteractionsForTerminalIssue(
-      { id: interactionRow.issueId, companyId: "company-1", status: "cancelled" },
+      {
+        id: interactionRow.issueId,
+        companyId: "company-1",
+        status: "cancelled",
+      },
       { userId: "local-board" },
     );
     expect(expired).toHaveLength(1);
-    expect(expired[0]?.result).toMatchObject({ version: 1, outcome: "issue_closed" });
+    expect(expired[0]?.result).toMatchObject({
+      version: 1,
+      outcome: "issue_closed",
+    });
     expect(state.toolActionRequestUpdates).toHaveLength(1);
-    expect(state.toolActionRequestUpdates[0]).toMatchObject({ status: "expired", resolvedByUserId: "local-board" });
+    expect(state.toolActionRequestUpdates[0]).toMatchObject({
+      status: "expired",
+      resolvedByUserId: "local-board",
+    });
   });
 });

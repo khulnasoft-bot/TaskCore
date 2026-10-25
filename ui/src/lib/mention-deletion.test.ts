@@ -29,7 +29,9 @@ describe("mention deletion", () => {
       const root = $getRoot();
       const paragraph = $createParagraphNode();
       const before = $createTextNode("Hello ");
-      const mention = $createLinkNode(buildAgentMentionHref("agent-123", "code"));
+      const mention = $createLinkNode(
+        buildAgentMentionHref("agent-123", "code"),
+      );
       const mentionText = $createTextNode("@QA");
       const after = $createTextNode(" world");
 
@@ -45,7 +47,9 @@ describe("mention deletion", () => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       if (!$isRangeSelection(selection)) {
-        throw new Error("Expected range selection after backward mention deletion");
+        throw new Error(
+          "Expected range selection after backward mention deletion",
+        );
       }
       expect(selection.isCollapsed()).toBe(true);
       expect(selection.anchor.getNode().is(before)).toBe(true);
@@ -60,7 +64,9 @@ describe("mention deletion", () => {
       const root = $getRoot();
       const paragraph = $createParagraphNode();
       const before = $createTextNode("Hello ");
-      const mention = $createLinkNode(buildAgentMentionHref("agent-123", "code"));
+      const mention = $createLinkNode(
+        buildAgentMentionHref("agent-123", "code"),
+      );
       const mentionText = $createTextNode("@QA");
       const after = $createTextNode(" world");
 
@@ -76,7 +82,9 @@ describe("mention deletion", () => {
       const selection = $getSelection();
       expect($isRangeSelection(selection)).toBe(true);
       if (!$isRangeSelection(selection)) {
-        throw new Error("Expected range selection after forward mention deletion");
+        throw new Error(
+          "Expected range selection after forward mention deletion",
+        );
       }
       expect(selection.isCollapsed()).toBe(true);
       expect(selection.anchor.getNode().is(after)).toBe(true);

@@ -1,7 +1,11 @@
 import type { Db } from "@taskcore/db";
 import { issues, heartbeatRuns } from "@taskcore/db";
 import { and, eq } from "drizzle-orm";
-import { canActorReadExecutionWorkspace, type AuthorizationActor, type AuthorizationDecision } from "./authorization.js";
+import {
+  canActorReadExecutionWorkspace,
+  type AuthorizationActor,
+  type AuthorizationDecision,
+} from "./authorization.js";
 
 type RunIssueBinding = {
   companyId: string;
@@ -57,7 +61,7 @@ export async function canActorReadHeartbeatRun(
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
@@ -83,7 +87,10 @@ function pickTokenUsage(value: unknown) {
   if (!usage) return null;
   const picked = {
     inputTokens: firstFinite(usage.inputTokens, usage.input_tokens),
-    cachedInputTokens: firstFinite(usage.cachedInputTokens, usage.cached_input_tokens),
+    cachedInputTokens: firstFinite(
+      usage.cachedInputTokens,
+      usage.cached_input_tokens,
+    ),
     outputTokens: firstFinite(usage.outputTokens, usage.output_tokens),
     totalTokens: firstFinite(usage.totalTokens, usage.total_tokens),
   };
@@ -91,10 +98,18 @@ function pickTokenUsage(value: unknown) {
 }
 
 function runDurationMs(row: Record<string, unknown>) {
-  const startedAt = row.startedAt instanceof Date ? row.startedAt : new Date(String(row.startedAt ?? ""));
-  const finishedAt = row.finishedAt instanceof Date ? row.finishedAt : new Date(String(row.finishedAt ?? ""));
+  const startedAt =
+    row.startedAt instanceof Date
+      ? row.startedAt
+      : new Date(String(row.startedAt ?? ""));
+  const finishedAt =
+    row.finishedAt instanceof Date
+      ? row.finishedAt
+      : new Date(String(row.finishedAt ?? ""));
   if (Number.isNaN(startedAt.getTime())) return null;
-  const endMs = Number.isNaN(finishedAt.getTime()) ? Date.now() : finishedAt.getTime();
+  const endMs = Number.isNaN(finishedAt.getTime())
+    ? Date.now()
+    : finishedAt.getTime();
   return Math.max(0, endMs - startedAt.getTime());
 }
 
@@ -102,7 +117,9 @@ function runDurationMs(row: Record<string, unknown>) {
  * Locked list-row disclosure for an issue-bound run the actor cannot read.
  * Keep only identity, timing, status, and budget-oversight fields.
  */
-export function redactHeartbeatRunListRow<T extends Record<string, unknown> & { id: string }>(row: T) {
+export function redactHeartbeatRunListRow<
+  T extends Record<string, unknown> & { id: string },
+>(row: T) {
   const usage = asRecord(row.usageJson);
   const result = asRecord(row.resultJson);
   const costUsd = firstFinite(
@@ -129,12 +146,14 @@ export function redactHeartbeatRunListRow<T extends Record<string, unknown> & { 
     updatedAt: row.updatedAt,
     durationMs: runDurationMs(row),
     costUsd,
-    usageJson: pickTokenUsage(row.usageJson ?? {
-      inputTokens: row.inputTokens,
-      cachedInputTokens: row.cachedInputTokens,
-      outputTokens: row.outputTokens,
-      totalTokens: row.totalTokens,
-    }),
+    usageJson: pickTokenUsage(
+      row.usageJson ?? {
+        inputTokens: row.inputTokens,
+        cachedInputTokens: row.cachedInputTokens,
+        outputTokens: row.outputTokens,
+        totalTokens: row.totalTokens,
+      },
+    ),
     redacted: true,
   };
 }
@@ -144,26 +163,64 @@ export async function canActorReadWorkspaceOperation(
   db: Db,
   access: Parameters<typeof canActorReadHeartbeatRun>[1],
   actor: AuthorizationActor,
-  operation: { companyId: string; issueId?: string | null; heartbeatRunId?: string | null; executionWorkspaceId?: string | null; metadata?: Record<string, unknown> | null },
+  operation: {
+    companyId: string;
+    issueId?: string | null;
+    heartbeatRunId?: string | null;
+    executionWorkspaceId?: string | null;
+    metadata?: Record<string, unknown> | null;
+  },
 ): Promise<boolean> {
   const sourceIds = (key: string, current?: string | null) => {
     const history = asRecord(operation.metadata?.[key]);
-    return new Set([...Object.keys(history ?? {}), ...(current ? [current] : [])]);
+    return new Set([
+      ...Object.keys(history ?? {}),
+      ...(current ? [current] : []),
+    ]);
   };
   const issueIds = sourceIds("_issuePrivacySources", operation.issueId);
   const runIds = sourceIds("_runPrivacySources", operation.heartbeatRunId);
   for (const issueId of issueIds) {
-    if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(issueId)) return false;
-    if (!(await canActorReadHeartbeatRun(db, access, actor, { companyId: operation.companyId, scopeKind: "issue", issueId }))) return false;
+    if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(issueId))
+      return false;
+    if (
+      !(await canActorReadHeartbeatRun(db, access, actor, {
+        companyId: operation.companyId,
+        scopeKind: "issue",
+        issueId,
+      }))
+    )
+      return false;
   }
   for (const runId of runIds) {
-    if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(runId)) return false;
-    const [run] = await db.select().from(heartbeatRuns)
-      .where(and(eq(heartbeatRuns.id, runId), eq(heartbeatRuns.companyId, operation.companyId))).limit(1);
-    if (!run || !(await canActorReadHeartbeatRun(db, access, actor, run))) return false;
+    if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(runId))
+      return false;
+    const [run] = await db
+      .select()
+      .from(heartbeatRuns)
+      .where(
+        and(
+          eq(heartbeatRuns.id, runId),
+          eq(heartbeatRuns.companyId, operation.companyId),
+        ),
+      )
+      .limit(1);
+    if (!run || !(await canActorReadHeartbeatRun(db, access, actor, run)))
+      return false;
   }
   if (operation.executionWorkspaceId) {
-    if (!(await canActorReadExecutionWorkspace(db, actor, operation.executionWorkspaceId))) return false;
+    if (
+      !(await canActorReadExecutionWorkspace(
+        db,
+        actor,
+        operation.executionWorkspaceId,
+      ))
+    )
+      return false;
   }
-  return issueIds.size > 0 || runIds.size > 0 || Boolean(operation.executionWorkspaceId);
+  return (
+    issueIds.size > 0 ||
+    runIds.size > 0 ||
+    Boolean(operation.executionWorkspaceId)
+  );
 }

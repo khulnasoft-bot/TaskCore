@@ -1,5 +1,11 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+} from "node:fs";
 import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
@@ -8,7 +14,13 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AdapterRuntimeServiceReport } from "@taskcore/adapter-utils";
 import type { Db } from "@taskcore/db";
-import { executionWorkspaces, issueComments, issues, projectWorkspaces, workspaceRuntimeServices } from "@taskcore/db";
+import {
+  executionWorkspaces,
+  issueComments,
+  issues,
+  projectWorkspaces,
+  workspaceRuntimeServices,
+} from "@taskcore/db";
 import {
   DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
   deriveViteHmrPort,
@@ -33,10 +45,18 @@ import {
   type WorkspaceRuntimeServiceStateMap,
 } from "@taskcore/shared";
 import { and, desc, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
-import { asNumber, asString, parseObject, renderTemplate } from "../adapters/utils.js";
+import {
+  asNumber,
+  asString,
+  parseObject,
+  renderTemplate,
+} from "../adapters/utils.js";
 import { conflict } from "../errors.js";
 import { resolveHomeAwarePath } from "../home-paths.js";
-import { hasVerifiedWorktreeSeedManifest, isVerifiedWorktreeSeedManifest } from "../worktree-seed-manifest.js";
+import {
+  hasVerifiedWorktreeSeedManifest,
+  isVerifiedWorktreeSeedManifest,
+} from "../worktree-seed-manifest.js";
 import {
   buildManagedWorkspaceGuestEnv,
   logManagedWorkspaceReadinessRejection,
@@ -61,8 +81,14 @@ import {
   touchLocalServiceRegistryRecord,
   writeLocalServiceRegistryRecord,
 } from "./local-service-supervisor.js";
-import { workspaceOperationService, type WorkspaceOperationRecorder } from "./workspace-operations.js";
-import { executionWorkspaceService, readExecutionWorkspaceConfig } from "./execution-workspaces.js";
+import {
+  workspaceOperationService,
+  type WorkspaceOperationRecorder,
+} from "./workspace-operations.js";
+import {
+  executionWorkspaceService,
+  readExecutionWorkspaceConfig,
+} from "./execution-workspaces.js";
 import { isRuntimeOwnedGitBranch } from "./execution-workspace-branch-ownership.js";
 import { logActivity } from "./activity-log.js";
 import { readProjectWorkspaceRuntimeConfig } from "./project-workspace-runtime-config.js";
@@ -79,14 +105,20 @@ import {
   WORKTREE_INSTANCE_ROOT_METADATA_KEY,
   type WorktreeInstancePointer,
 } from "./workspace-instance-cleanup.js";
-import { UnixBrokerClient, type BrokerClient } from "./runtime-exposure/broker-client.js";
+import {
+  UnixBrokerClient,
+  type BrokerClient,
+} from "./runtime-exposure/broker-client.js";
 import {
   deprovisionExposure,
   provisionExposure,
   reserveExposure,
   type ExposureManagerDeps,
 } from "./runtime-exposure/exposure-manager.js";
-import { diagnoseRuntimeListenerBinds, readListenerBindFacts } from "./runtime-exposure/loopback-listener.js";
+import {
+  diagnoseRuntimeListenerBinds,
+  readListenerBindFacts,
+} from "./runtime-exposure/loopback-listener.js";
 import { allocateExposurePortPair } from "./runtime-exposure/port-pair.js";
 import {
   buildExposureReservationLedger,
@@ -149,7 +181,9 @@ export type GitRemoteAuthInvocation = {
   secretName?: string | null;
 };
 
-export type GitRemoteAuthProvider = (remoteUrl: string) => Promise<GitRemoteAuthInvocation | null>;
+export type GitRemoteAuthProvider = (
+  remoteUrl: string,
+) => Promise<GitRemoteAuthInvocation | null>;
 
 export interface ExecutionWorkspaceIssueRef {
   id: string;
@@ -272,11 +306,20 @@ const exposurePortPairClaims = new ExposurePortPairClaims();
  * is the only terminal state; everything else — including `idle` — is a lane an
  * operator or agent can still return to, so its port pair stays reserved.
  */
-const OPEN_EXECUTION_WORKSPACE_LEASE_STATUSES = ["active", "idle", "in_review"] as const;
+const OPEN_EXECUTION_WORKSPACE_LEASE_STATUSES = [
+  "active",
+  "idle",
+  "in_review",
+] as const;
 const DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES = 256 * 1024;
 export const WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS = 32;
-const ACTIVE_RUNTIME_PORT_RESERVATION_STATUSES = ["provisioning", "starting", "running"] as const;
-const DEFAULT_TAILSCALE_BROKER_SOCKET = "/run/taskcore-tailscale-broker/broker.sock";
+const ACTIVE_RUNTIME_PORT_RESERVATION_STATUSES = [
+  "provisioning",
+  "starting",
+  "running",
+] as const;
+const DEFAULT_TAILSCALE_BROKER_SOCKET =
+  "/run/taskcore-tailscale-broker/broker.sock";
 
 class RuntimeServicePortBindCollision extends Error {
   readonly port: number;
@@ -293,7 +336,11 @@ class RuntimeServicePortBindCollision extends Error {
    */
   readonly exposureReallocatable: boolean;
 
-  constructor(port: number, diagnosis: string | null = null, exposureReallocatable = false) {
+  constructor(
+    port: number,
+    diagnosis: string | null = null,
+    exposureReallocatable = false,
+  ) {
     super(
       `Runtime service could not bind allocated port ${port}` +
         (diagnosis ? ` (${diagnosis})` : ""),
@@ -329,7 +376,10 @@ async function isLoopbackPortAvailable(port: number): Promise<boolean> {
 }
 
 function resolveTailscaleBrokerSocketPath(): string {
-  return process.env.TASKCORE_TAILSCALE_BROKER_SOCKET?.trim() || DEFAULT_TAILSCALE_BROKER_SOCKET;
+  return (
+    process.env.TASKCORE_TAILSCALE_BROKER_SOCKET?.trim() ||
+    DEFAULT_TAILSCALE_BROKER_SOCKET
+  );
 }
 
 function defaultWorkspaceRuntimeExposureDeps(): WorkspaceRuntimeExposureDeps {
@@ -369,7 +419,9 @@ function defaultWorkspaceRuntimeExposureDeps(): WorkspaceRuntimeExposureDeps {
 let workspaceRuntimeExposureDeps = defaultWorkspaceRuntimeExposureDeps();
 
 /** Test-only seam; resetRuntimeServicesForTests restores production defaults. */
-export function setWorkspaceRuntimeExposureDepsForTests(deps: WorkspaceRuntimeExposureDeps) {
+export function setWorkspaceRuntimeExposureDepsForTests(
+  deps: WorkspaceRuntimeExposureDeps,
+) {
   workspaceRuntimeExposureDeps = deps;
 }
 
@@ -453,10 +505,19 @@ async function resolveRuntimeServiceExposure(input: {
 
   const mode = resolveManagedRuntimeHttpsMode();
   if (mode === "off") return null;
-  if (!isManagedHttpsDefaultCandidate({ serviceName: input.serviceName, command: input.command })) {
+  if (
+    !isManagedHttpsDefaultCandidate({
+      serviceName: input.serviceName,
+      command: input.command,
+    })
+  ) {
     return null;
   }
-  if (mode !== "force" && !(await workspaceRuntimeExposureDeps.isBrokerAvailable())) return null;
+  if (
+    mode !== "force" &&
+    !(await workspaceRuntimeExposureDeps.isBrokerAvailable())
+  )
+    return null;
   return { config: DEFAULT_TAILSCALE_HTTPS_EXPOSURE, origin: "default" };
 }
 
@@ -541,7 +602,10 @@ function stableStringify(value: unknown): string {
   }
   if (value && typeof value === "object") {
     const rec = value as Record<string, unknown>;
-    return `{${Object.keys(rec).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(rec[key])}`).join(",")}}`;
+    return `{${Object.keys(rec)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(rec[key])}`)
+      .join(",")}}`;
   }
   return JSON.stringify(value);
 }
@@ -575,12 +639,19 @@ function isLinkedGitWorktreeCheckout(rootDir: string) {
   const stat = lstatSync(gitMetadataPath);
   if (!stat.isFile()) return false;
 
-  return readFileSync(gitMetadataPath, "utf8").trimStart().startsWith("gitdir:");
+  return readFileSync(gitMetadataPath, "utf8")
+    .trimStart()
+    .startsWith("gitdir:");
 }
 
 function discoverWorkspacePackagePaths(rootDir: string): Map<string, string> {
   const packagePaths = new Map<string, string>();
-  const ignoredDirNames = new Set([".git", ".taskcore", "dist", "node_modules"]);
+  const ignoredDirNames = new Set([
+    ".git",
+    ".taskcore",
+    "dist",
+    "node_modules",
+  ]);
 
   function visit(dirPath: string) {
     if (!existsSync(dirPath)) return;
@@ -608,27 +679,40 @@ function discoverWorkspacePackagePaths(rootDir: string): Map<string, string> {
   return packagePaths;
 }
 
-function findServerWorkspaceLinkMismatches(rootDir: string): WorkspaceLinkMismatch[] {
+function findServerWorkspaceLinkMismatches(
+  rootDir: string,
+): WorkspaceLinkMismatch[] {
   const serverPackageJsonPath = path.join(rootDir, "server", "package.json");
   if (!existsSync(serverPackageJsonPath)) return [];
 
   const serverPackageJson = readJsonFile(serverPackageJsonPath);
   const dependencies = {
     ...(serverPackageJson.dependencies as Record<string, unknown> | undefined),
-    ...(serverPackageJson.devDependencies as Record<string, unknown> | undefined),
+    ...(serverPackageJson.devDependencies as
+      Record<string, unknown> | undefined),
   };
   const workspacePackagePaths = discoverWorkspacePackagePaths(rootDir);
   const mismatches: WorkspaceLinkMismatch[] = [];
 
   for (const [packageName, version] of Object.entries(dependencies)) {
-    if (typeof version !== "string" || !version.startsWith("workspace:")) continue;
+    if (typeof version !== "string" || !version.startsWith("workspace:"))
+      continue;
 
     const expectedPath = workspacePackagePaths.get(packageName);
     if (!expectedPath) continue;
-    const normalizedExpectedPath = existsSync(expectedPath) ? path.resolve(realpathSync(expectedPath)) : path.resolve(expectedPath);
+    const normalizedExpectedPath = existsSync(expectedPath)
+      ? path.resolve(realpathSync(expectedPath))
+      : path.resolve(expectedPath);
 
-    const linkPath = path.join(rootDir, "server", "node_modules", ...packageName.split("/"));
-    const actualPath = existsSync(linkPath) ? path.resolve(realpathSync(linkPath)) : null;
+    const linkPath = path.join(
+      rootDir,
+      "server",
+      "node_modules",
+      ...packageName.split("/"),
+    );
+    const actualPath = existsSync(linkPath)
+      ? path.resolve(realpathSync(linkPath))
+      : null;
     if (actualPath === normalizedExpectedPath) continue;
 
     mismatches.push({
@@ -655,7 +739,10 @@ export async function ensureServerWorkspaceLinksCurrent(
   if (mismatches.length === 0) return;
 
   if (opts?.onLog) {
-    await opts.onLog("stdout", "[runtime] detected stale workspace package links for server; relinking dependencies...\n");
+    await opts.onLog(
+      "stdout",
+      "[runtime] detected stale workspace package links for server; relinking dependencies...\n",
+    );
     for (const mismatch of mismatches) {
       await opts.onLog(
         "stdout",
@@ -665,7 +752,12 @@ export async function ensureServerWorkspaceLinksCurrent(
   }
 
   for (const mismatch of mismatches) {
-    const linkPath = path.join(workspaceRoot, "server", "node_modules", ...mismatch.packageName.split("/"));
+    const linkPath = path.join(
+      workspaceRoot,
+      "server",
+      "node_modules",
+      ...mismatch.packageName.split("/"),
+    );
     await fs.mkdir(path.dirname(linkPath), { recursive: true });
     await fs.rm(linkPath, { recursive: true, force: true });
     await fs.symlink(mismatch.expectedPath, linkPath);
@@ -679,7 +771,9 @@ export async function ensureServerWorkspaceLinksCurrent(
   );
 }
 
-export function sanitizeRuntimeServiceBaseEnv(baseEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+export function sanitizeRuntimeServiceBaseEnv(
+  baseEnv: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...baseEnv };
   for (const key of Object.keys(env)) {
     if (key.startsWith("TASKCORE_")) {
@@ -725,7 +819,10 @@ function stableRuntimeServiceId(input: {
   return `${input.adapterType}-${digest}`;
 }
 
-function toRuntimeServiceRef(record: RuntimeServiceRecord, overrides?: Partial<RuntimeServiceRef>): RuntimeServiceRef {
+function toRuntimeServiceRef(
+  record: RuntimeServiceRecord,
+  overrides?: Partial<RuntimeServiceRef>,
+): RuntimeServiceRef {
   return {
     id: record.id,
     companyId: record.companyId,
@@ -758,7 +855,10 @@ function toRuntimeServiceRef(record: RuntimeServiceRecord, overrides?: Partial<R
   };
 }
 
-function sanitizeSlugPart(value: string | null | undefined, fallback: string): string {
+function sanitizeSlugPart(
+  value: string | null | undefined,
+  fallback: string,
+): string {
   const raw = (value ?? "").trim().toLowerCase();
   const normalized = raw
     .replace(/[^a-z0-9_-]+/g, "-")
@@ -767,14 +867,20 @@ function sanitizeSlugPart(value: string | null | undefined, fallback: string): s
   return normalized.length > 0 ? normalized : fallback;
 }
 
-function renderWorkspaceTemplate(template: string, input: {
-  issue: ExecutionWorkspaceIssueRef | null;
-  agent: ExecutionWorkspaceAgentRef;
-  projectId: string | null;
-  repoRef: string | null;
-}) {
+function renderWorkspaceTemplate(
+  template: string,
+  input: {
+    issue: ExecutionWorkspaceIssueRef | null;
+    agent: ExecutionWorkspaceAgentRef;
+    projectId: string | null;
+    repoRef: string | null;
+  },
+) {
   const issueIdentifier = input.issue?.identifier ?? input.issue?.id ?? "issue";
-  const slug = sanitizeSlugPart(input.issue?.title, sanitizeSlugPart(issueIdentifier, "issue"));
+  const slug = sanitizeSlugPart(
+    input.issue?.title,
+    sanitizeSlugPart(issueIdentifier, "issue"),
+  );
   return renderTemplate(template, {
     issue: {
       id: input.issue?.id ?? "",
@@ -796,12 +902,14 @@ function renderWorkspaceTemplate(template: string, input: {
 }
 
 function sanitizeBranchName(value: string): string {
-  return value
-    .trim()
-    .replace(/[^A-Za-z0-9._/-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^[-/.]+|[-/.]+$/g, "")
-    .slice(0, 120) || "taskcore-work";
+  return (
+    value
+      .trim()
+      .replace(/[^A-Za-z0-9._/-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^[-/.]+|[-/.]+$/g, "")
+      .slice(0, 120) || "taskcore-work"
+  );
 }
 
 function isAbsolutePath(value: string) {
@@ -817,17 +925,23 @@ function resolveConfiguredPath(value: string, baseDir: string): string {
 
 function formatCommandForDisplay(command: string, args: string[]) {
   return [command, ...args]
-    .map((part) => (/^[A-Za-z0-9_./:-]+$/.test(part) ? part : JSON.stringify(part)))
+    .map((part) =>
+      /^[A-Za-z0-9_./:-]+$/.test(part) ? part : JSON.stringify(part),
+    )
     .join(" ");
 }
 
 function trimToLastBytes(value: string, limit: number) {
   const byteLength = Buffer.byteLength(value, "utf8");
   if (byteLength <= limit) return value;
-  return Buffer.from(value, "utf8").subarray(byteLength - limit).toString("utf8");
+  return Buffer.from(value, "utf8")
+    .subarray(byteLength - limit)
+    .toString("utf8");
 }
 
-function createProcessOutputCapture(maxBytes: number): ProcessOutputAccumulator {
+function createProcessOutputCapture(
+  maxBytes: number,
+): ProcessOutputAccumulator {
   const limit = Math.max(1, Math.trunc(maxBytes));
   let text = "";
   let truncated = false;
@@ -890,8 +1004,12 @@ async function executeProcess(input: {
       stdio: ["ignore", "pipe", "pipe"],
       env: input.env ?? process.env,
     });
-    const stdout = createProcessOutputCapture(input.maxStdoutBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES);
-    const stderr = createProcessOutputCapture(input.maxStderrBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES);
+    const stdout = createProcessOutputCapture(
+      input.maxStdoutBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES,
+    );
+    const stderr = createProcessOutputCapture(
+      input.maxStderrBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES,
+    );
     child.stdout?.on("data", (chunk) => {
       stdout.append(String(chunk));
     });
@@ -914,7 +1032,11 @@ async function executeProcess(input: {
   };
 }
 
-async function runGit(args: string[], cwd: string, opts?: { env?: NodeJS.ProcessEnv }): Promise<string> {
+async function runGit(
+  args: string[],
+  cwd: string,
+  opts?: { env?: NodeJS.ProcessEnv },
+): Promise<string> {
   const proc = await executeProcess({
     command: "git",
     args,
@@ -922,7 +1044,11 @@ async function runGit(args: string[], cwd: string, opts?: { env?: NodeJS.Process
     env: opts?.env,
   });
   if (proc.code !== 0) {
-    throw new Error(proc.stderr.trim() || proc.stdout.trim() || `git ${args.join(" ")} failed`);
+    throw new Error(
+      proc.stderr.trim() ||
+        proc.stdout.trim() ||
+        `git ${args.join(" ")} failed`,
+    );
   }
   return proc.stdout.trim();
 }
@@ -952,7 +1078,9 @@ function gitErrorIncludes(error: unknown, needle: string) {
   return message.toLowerCase().includes(needle.toLowerCase());
 }
 
-function parseRemoteTrackingRef(ref: string): { remote: string; branch: string } | null {
+function parseRemoteTrackingRef(
+  ref: string,
+): { remote: string; branch: string } | null {
   const trimmed = ref.trim();
   const refsRemotesPrefix = "refs/remotes/";
   const normalized = trimmed.startsWith(refsRemotesPrefix)
@@ -974,20 +1102,29 @@ export async function refreshRemoteTrackingBaseRef(
   const remoteTracking = parseRemoteTrackingRef(baseRef);
   if (!remoteTracking) return [];
 
-  const remoteUrl = await runGit(["remote", "get-url", remoteTracking.remote], repoRoot)
+  const remoteUrl = await runGit(
+    ["remote", "get-url", remoteTracking.remote],
+    repoRoot,
+  )
     .then((value) => value.trim() || null)
     .catch(() => null);
   if (!remoteUrl) return [];
 
-  const auth = resolveGitAuth ? await resolveGitAuth(remoteUrl).catch(() => null) : null;
+  const auth = resolveGitAuth
+    ? await resolveGitAuth(remoteUrl).catch(() => null)
+    : null;
   try {
-    await runGit([
-      ...(auth?.configArgs ?? []),
-      "fetch",
-      "--prune",
-      remoteTracking.remote,
-      `+refs/heads/${remoteTracking.branch}:refs/remotes/${remoteTracking.remote}/${remoteTracking.branch}`,
-    ], repoRoot, auth ? { env: { ...process.env, ...auth.env } } : undefined);
+    await runGit(
+      [
+        ...(auth?.configArgs ?? []),
+        "fetch",
+        "--prune",
+        remoteTracking.remote,
+        `+refs/heads/${remoteTracking.branch}:refs/remotes/${remoteTracking.remote}/${remoteTracking.branch}`,
+      ],
+      repoRoot,
+      auth ? { env: { ...process.env, ...auth.env } } : undefined,
+    );
     return [];
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : String(error);
@@ -999,18 +1136,30 @@ export async function refreshRemoteTrackingBaseRef(
     const authNote = auth
       ? ` The fetch authenticated with ${auth.secretName ? `the ${auth.secretName} company-secret GitHub credential` : "the server-environment GitHub credential"}, which may have been rejected.`
       : "";
-    return [`Could not refresh base ref ${baseRef} before preparing the execution workspace: ${message}${authNote}`];
+    return [
+      `Could not refresh base ref ${baseRef} before preparing the execution workspace: ${message}${authNote}`,
+    ];
   }
 }
 
-async function resolveBaseRefSha(repoRoot: string, baseRef: string): Promise<string | null> {
-  return await runGit(["rev-parse", "--verify", `${baseRef}^{commit}`], repoRoot).catch(() => null);
+async function resolveBaseRefSha(
+  repoRoot: string,
+  baseRef: string,
+): Promise<string | null> {
+  return await runGit(
+    ["rev-parse", "--verify", `${baseRef}^{commit}`],
+    repoRoot,
+  ).catch(() => null);
 }
 
-function readRecordedBaseRefSha(metadata: Record<string, unknown> | null | undefined): string | null {
+function readRecordedBaseRefSha(
+  metadata: Record<string, unknown> | null | undefined,
+): string | null {
   const snapshot = parseObject(metadata?.baseRefSnapshot);
   const resolvedSha = snapshot.resolvedSha;
-  return typeof resolvedSha === "string" && resolvedSha.trim().length > 0 ? resolvedSha.trim() : null;
+  return typeof resolvedSha === "string" && resolvedSha.trim().length > 0
+    ? resolvedSha.trim()
+    : null;
 }
 
 export async function inspectExecutionWorkspaceBaseDrift(input: {
@@ -1033,25 +1182,40 @@ export async function inspectExecutionWorkspaceBaseDrift(input: {
 
   const warnings = input.skipRefresh
     ? []
-    : await refreshRemoteTrackingBaseRef(input.repoRoot, baseRef, input.resolveGitAuth);
+    : await refreshRemoteTrackingBaseRef(
+        input.repoRoot,
+        baseRef,
+        input.resolveGitAuth,
+      );
   const currentBaseRefSha = await resolveBaseRefSha(input.repoRoot, baseRef);
   if (!currentBaseRefSha) {
-    warnings.push(`Could not resolve base ref ${baseRef} while checking execution workspace freshness.`);
+    warnings.push(
+      `Could not resolve base ref ${baseRef} while checking execution workspace freshness.`,
+    );
     return { warnings, currentBaseRefSha: null, branchBaseRefSha: null };
   }
 
-  const branchBaseRefSha = await runGit(["merge-base", "HEAD", baseRef], input.worktreePath).catch(() => null);
+  const branchBaseRefSha = await runGit(
+    ["merge-base", "HEAD", baseRef],
+    input.worktreePath,
+  ).catch(() => null);
   if (!branchBaseRefSha) {
-    warnings.push(`Could not compare execution workspace ${input.branchName ?? "branch"} against base ref ${baseRef}.`);
+    warnings.push(
+      `Could not compare execution workspace ${input.branchName ?? "branch"} against base ref ${baseRef}.`,
+    );
     return { warnings, currentBaseRefSha, branchBaseRefSha: null };
   }
 
   if (branchBaseRefSha !== currentBaseRefSha) {
-    const behindCountRaw = await runGit(["rev-list", "--count", `HEAD..${baseRef}`], input.worktreePath).catch(() => "");
+    const behindCountRaw = await runGit(
+      ["rev-list", "--count", `HEAD..${baseRef}`],
+      input.worktreePath,
+    ).catch(() => "");
     const behindCount = Number.parseInt(behindCountRaw, 10);
-    const behindText = Number.isFinite(behindCount) && behindCount > 0
-      ? `${behindCount} commit${behindCount === 1 ? "" : "s"}`
-      : "newer commits";
+    const behindText =
+      Number.isFinite(behindCount) && behindCount > 0
+        ? `${behindCount} commit${behindCount === 1 ? "" : "s"}`
+        : "newer commits";
     const recordedText = input.recordedBaseRefSha
       ? `recorded base ${formatShortSha(input.recordedBaseRefSha)}`
       : `merge-base ${formatShortSha(branchBaseRefSha)}`;
@@ -1063,25 +1227,39 @@ export async function inspectExecutionWorkspaceBaseDrift(input: {
   return { warnings, currentBaseRefSha, branchBaseRefSha };
 }
 
-async function localBranchExists(repoRoot: string, branch: string): Promise<boolean> {
-  return runGit(["show-ref", "--verify", "--quiet", `refs/heads/${branch}`], repoRoot)
+async function localBranchExists(
+  repoRoot: string,
+  branch: string,
+): Promise<boolean> {
+  return runGit(
+    ["show-ref", "--verify", "--quiet", `refs/heads/${branch}`],
+    repoRoot,
+  )
     .then(() => true)
     .catch(() => false);
 }
 
-async function remoteExists(repoRoot: string, remote: string): Promise<boolean> {
+async function remoteExists(
+  repoRoot: string,
+  remote: string,
+): Promise<boolean> {
   return runGit(["remote", "get-url", remote], repoRoot)
     .then(() => true)
     .catch(() => false);
 }
 
-const GIT_WORKTREE_BRANCH_INCOHERENCE_REASON = "git_worktree_branch_incoherence";
+const GIT_WORKTREE_BRANCH_INCOHERENCE_REASON =
+  "git_worktree_branch_incoherence";
 
-type GitWorktreeCleanliness = SharedGitWorktreeBranchIncoherenceEvidence["cleanliness"];
+type GitWorktreeCleanliness =
+  SharedGitWorktreeBranchIncoherenceEvidence["cleanliness"];
 
-type GitWorktreeBranchIncoherenceEvidence = SharedGitWorktreeBranchIncoherenceEvidence;
+type GitWorktreeBranchIncoherenceEvidence =
+  SharedGitWorktreeBranchIncoherenceEvidence;
 
-type GitWorktreeBranchContention = NonNullable<GitWorktreeBranchIncoherenceEvidence["contention"]>;
+type GitWorktreeBranchContention = NonNullable<
+  GitWorktreeBranchIncoherenceEvidence["contention"]
+>;
 
 type GitWorktreeBranchCoherenceResult = {
   branchName: string | null;
@@ -1123,7 +1301,10 @@ const GIT_IN_PROGRESS_OPERATION_MARKERS: ReadonlyArray<{
   { operation: "bisect", marker: "BISECT_LOG" },
 ];
 
-const GIT_IN_PROGRESS_OPERATION_LABELS: Record<GitWorktreeInProgressOperation, string> = {
+const GIT_IN_PROGRESS_OPERATION_LABELS: Record<
+  GitWorktreeInProgressOperation,
+  string
+> = {
   rebase: "rebase",
   merge: "merge",
   cherry_pick: "cherry-pick",
@@ -1133,7 +1314,10 @@ const GIT_IN_PROGRESS_OPERATION_LABELS: Record<GitWorktreeInProgressOperation, s
 
 // `--quit` clears the interrupted operation's state directory without touching
 // the working tree or moving HEAD, unlike `--abort` which resets both.
-const GIT_IN_PROGRESS_OPERATION_QUIT_ARGS: Record<GitWorktreeInProgressOperation, string[]> = {
+const GIT_IN_PROGRESS_OPERATION_QUIT_ARGS: Record<
+  GitWorktreeInProgressOperation,
+  string[]
+> = {
   rebase: ["rebase", "--quit"],
   merge: ["merge", "--quit"],
   cherry_pick: ["cherry-pick", "--quit"],
@@ -1145,7 +1329,10 @@ async function detectGitWorktreeInProgressOperation(
   worktreePath: string,
 ): Promise<GitWorktreeInProgressOperation | null> {
   for (const { operation, marker } of GIT_IN_PROGRESS_OPERATION_MARKERS) {
-    const markerPath = await runGit(["rev-parse", "--git-path", marker], worktreePath).catch(() => null);
+    const markerPath = await runGit(
+      ["rev-parse", "--git-path", marker],
+      worktreePath,
+    ).catch(() => null);
     if (!markerPath) continue;
     if (existsSync(path.resolve(worktreePath, markerPath))) return operation;
   }
@@ -1169,22 +1356,37 @@ function sampleDirtyStatusPaths(statusLines: string[] | null) {
 }
 
 function formatUtcBranchTimestamp(date = new Date()) {
-  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  return date
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
 }
 
-function buildDirtyQuarantineRescueBranch(sourceIssue: ExecutionWorkspaceIssueRef | null) {
-  const issueComponent = sanitizeBranchName(sourceIssue?.identifier ?? sourceIssue?.id ?? "issue");
-  return sanitizeBranchName(`taskcore/rescue/${issueComponent}/${formatUtcBranchTimestamp()}`);
+function buildDirtyQuarantineRescueBranch(
+  sourceIssue: ExecutionWorkspaceIssueRef | null,
+) {
+  const issueComponent = sanitizeBranchName(
+    sourceIssue?.identifier ?? sourceIssue?.id ?? "issue",
+  );
+  return sanitizeBranchName(
+    `taskcore/rescue/${issueComponent}/${formatUtcBranchTimestamp()}`,
+  );
 }
 
-function formatIssueReference(issueId: string | null | undefined, identifier: string | null | undefined) {
+function formatIssueReference(
+  issueId: string | null | undefined,
+  identifier: string | null | undefined,
+) {
   if (!identifier) return issueId ? `\`${issueId}\`` : "`unknown`";
   const match = identifier.match(/^([A-Z]+)-\d+$/);
   if (!match) return `\`${identifier}\``;
   return `[${identifier}](/${match[1]}/issues/${identifier})`;
 }
 
-async function readIssueCompanyId(db: Db, issueId: string | null | undefined): Promise<string | null> {
+async function readIssueCompanyId(
+  db: Db,
+  issueId: string | null | undefined,
+): Promise<string | null> {
   if (!issueId) return null;
   return db
     .select({ companyId: issues.companyId })
@@ -1215,20 +1417,26 @@ function executionWorkspaceUsesInheritedProjectRuntimeServices(
   row: typeof executionWorkspaces.$inferSelect,
 ) {
   if (row.mode !== "shared_workspace" || !row.projectWorkspaceId) return false;
-  return !readExecutionWorkspaceConfig((row.metadata as Record<string, unknown> | null) ?? null)?.workspaceRuntime;
+  return !readExecutionWorkspaceConfig(
+    (row.metadata as Record<string, unknown> | null) ?? null,
+  )?.workspaceRuntime;
 }
 
 async function findActiveRuntimeServiceBlockingDirtyQuarantine(input: {
   db: Db;
   workspace: typeof executionWorkspaces.$inferSelect;
 }) {
-  const inheritedProjectWorkspaceId = executionWorkspaceUsesInheritedProjectRuntimeServices(input.workspace)
-    ? input.workspace.projectWorkspaceId
-    : null;
+  const inheritedProjectWorkspaceId =
+    executionWorkspaceUsesInheritedProjectRuntimeServices(input.workspace)
+      ? input.workspace.projectWorkspaceId
+      : null;
   const serviceScopeCondition = inheritedProjectWorkspaceId
     ? and(
         eq(workspaceRuntimeServices.companyId, input.workspace.companyId),
-        eq(workspaceRuntimeServices.projectWorkspaceId, inheritedProjectWorkspaceId),
+        eq(
+          workspaceRuntimeServices.projectWorkspaceId,
+          inheritedProjectWorkspaceId,
+        ),
         eq(workspaceRuntimeServices.scopeType, "project_workspace"),
       )
     : and(
@@ -1244,8 +1452,16 @@ async function findActiveRuntimeServiceBlockingDirtyQuarantine(input: {
       scopeType: workspaceRuntimeServices.scopeType,
     })
     .from(workspaceRuntimeServices)
-    .where(and(serviceScopeCondition, ne(workspaceRuntimeServices.status, "stopped")))
-    .orderBy(desc(workspaceRuntimeServices.updatedAt), desc(workspaceRuntimeServices.createdAt))
+    .where(
+      and(
+        serviceScopeCondition,
+        ne(workspaceRuntimeServices.status, "stopped"),
+      ),
+    )
+    .orderBy(
+      desc(workspaceRuntimeServices.updatedAt),
+      desc(workspaceRuntimeServices.createdAt),
+    )
     .limit(1);
   return service ?? null;
 }
@@ -1257,7 +1473,8 @@ async function assertDirtyQuarantineRuntimeServicesStopped(input: {
 }) {
   if (!input.executionWorkspaceId) {
     input.evidence.safeRepair.eligible = false;
-    input.evidence.safeRepair.reason = "dirty quarantine repair requires an execution workspace id for runtime-service checks";
+    input.evidence.safeRepair.reason =
+      "dirty quarantine repair requires an execution workspace id for runtime-service checks";
     throw branchIncoherenceValidationFailure(input.evidence);
   }
 
@@ -1267,7 +1484,8 @@ async function assertDirtyQuarantineRuntimeServicesStopped(input: {
     .where(eq(executionWorkspaces.id, input.executionWorkspaceId));
   if (!workspace) {
     input.evidence.safeRepair.eligible = false;
-    input.evidence.safeRepair.reason = "dirty quarantine repair requires a persisted execution workspace for runtime-service checks";
+    input.evidence.safeRepair.reason =
+      "dirty quarantine repair requires a persisted execution workspace for runtime-service checks";
     throw branchIncoherenceValidationFailure(input.evidence);
   }
 
@@ -1278,14 +1496,15 @@ async function assertDirtyQuarantineRuntimeServicesStopped(input: {
   if (!activeService) return;
 
   input.evidence.safeRepair.eligible = false;
-  input.evidence.safeRepair.reason =
-    `dirty quarantine repair requires runtime service "${activeService.serviceName}" (${activeService.id}) to be stopped; current status is ${activeService.status}`;
+  input.evidence.safeRepair.reason = `dirty quarantine repair requires runtime service "${activeService.serviceName}" (${activeService.id}) to be stopped; current status is ${activeService.status}`;
   throw branchIncoherenceValidationFailure(input.evidence);
 }
 
 async function assertGitIndexIsUnlocked(worktreePath: string) {
-  const indexLockPath = await runGit(["rev-parse", "--git-path", "index.lock"], worktreePath)
-    .catch(() => null);
+  const indexLockPath = await runGit(
+    ["rev-parse", "--git-path", "index.lock"],
+    worktreePath,
+  ).catch(() => null);
   if (indexLockPath && existsSync(indexLockPath)) {
     throw new Error(`git index lock exists at ${indexLockPath}`);
   }
@@ -1302,18 +1521,20 @@ function fingerprintWorkspaceBranchIncoherence(input: {
   actualHeadSha: string | null;
 }) {
   const digest = createHash("sha256")
-    .update(stableStringify({
-      version: 1,
-      reason: GIT_WORKTREE_BRANCH_INCOHERENCE_REASON,
-      sourceIssueId: input.sourceIssueId,
-      executionWorkspaceId: input.executionWorkspaceId,
-      worktreePath: path.resolve(input.worktreePath),
-      expectedBranch: input.expectedBranch,
-      actualBranch: input.actualBranch,
-      cleanliness: input.cleanliness,
-      expectedHeadSha: input.expectedHeadSha,
-      actualHeadSha: input.actualHeadSha,
-    }))
+    .update(
+      stableStringify({
+        version: 1,
+        reason: GIT_WORKTREE_BRANCH_INCOHERENCE_REASON,
+        sourceIssueId: input.sourceIssueId,
+        executionWorkspaceId: input.executionWorkspaceId,
+        worktreePath: path.resolve(input.worktreePath),
+        expectedBranch: input.expectedBranch,
+        actualBranch: input.actualBranch,
+        cleanliness: input.cleanliness,
+        expectedHeadSha: input.expectedHeadSha,
+        actualHeadSha: input.actualHeadSha,
+      }),
+    )
     .digest("hex");
   return `workspace_incoherence:v1:sha256:${digest}`;
 }
@@ -1327,7 +1548,12 @@ async function getGitWorktreeBranchAncestryVerdict(input: {
 
   const proc = await executeProcess({
     command: "git",
-    args: ["merge-base", "--is-ancestor", input.expectedHeadSha, input.actualHeadSha],
+    args: [
+      "merge-base",
+      "--is-ancestor",
+      input.expectedHeadSha,
+      input.actualHeadSha,
+    ],
     cwd: input.repoRoot,
   }).catch(() => null);
   if (!proc) return "unknown";
@@ -1374,30 +1600,54 @@ async function inspectGitWorktreeBranchIncoherence(input: {
     cwd: input.worktreePath,
     operation: "workspace_runtime.branch_incoherence_status",
     fairnessKeys: [
-      ...(input.executionWorkspaceId ? [`workspace:${input.executionWorkspaceId}`] : []),
+      ...(input.executionWorkspaceId
+        ? [`workspace:${input.executionWorkspaceId}`]
+        : []),
       ...(input.sourceIssue?.id ? [`issue:${input.sourceIssue.id}`] : []),
     ],
   }).catch(() => null);
-  const statusLines = status === null
-    ? null
-    : status.split(/\r?\n/).map((line) => line.trimEnd()).filter((line) => line.trim().length > 0);
+  const statusLines =
+    status === null
+      ? null
+      : status
+          .split(/\r?\n/)
+          .map((line) => line.trimEnd())
+          .filter((line) => line.trim().length > 0);
   const dirtyPathSample = sampleDirtyStatusPaths(statusLines);
   const cleanliness: GitWorktreeCleanliness =
     status === null ? "unknown" : status.trim().length > 0 ? "dirty" : "clean";
-  const inProgressOperation = await detectGitWorktreeInProgressOperation(input.worktreePath);
+  const inProgressOperation = await detectGitWorktreeInProgressOperation(
+    input.worktreePath,
+  );
   const expectedHeadSha = await runGit(
-    ["rev-parse", "--verify", `refs/heads/${input.expectedBranchName}^{commit}`],
+    [
+      "rev-parse",
+      "--verify",
+      `refs/heads/${input.expectedBranchName}^{commit}`,
+    ],
     input.repoRoot,
   ).catch(() => null);
-  const actualHeadSha = await runGit(["rev-parse", "HEAD"], input.worktreePath).catch(() => null);
+  const actualHeadSha = await runGit(
+    ["rev-parse", "HEAD"],
+    input.worktreePath,
+  ).catch(() => null);
   const actualBranchExists = input.actualBranchName
     ? await localBranchExists(input.repoRoot, input.actualBranchName)
     : null;
-  const registered = await findRegisteredGitWorktreeByPath(input.repoRoot, input.worktreePath);
-  const actualBranchRef = input.actualBranchName ? `refs/heads/${input.actualBranchName}` : null;
+  const registered = await findRegisteredGitWorktreeByPath(
+    input.repoRoot,
+    input.worktreePath,
+  );
+  const actualBranchRef = input.actualBranchName
+    ? `refs/heads/${input.actualBranchName}`
+    : null;
   const registeredBranchRef = registered?.branch ?? null;
-  const registeredBranchMatchesHead = Boolean(registered && registeredBranchRef === actualBranchRef);
-  const sameHead = Boolean(expectedHeadSha && actualHeadSha && expectedHeadSha === actualHeadSha);
+  const registeredBranchMatchesHead = Boolean(
+    registered && registeredBranchRef === actualBranchRef,
+  );
+  const sameHead = Boolean(
+    expectedHeadSha && actualHeadSha && expectedHeadSha === actualHeadSha,
+  );
   const expectedBranchExists = Boolean(expectedHeadSha);
   const ancestryVerdict = await getGitWorktreeBranchAncestryVerdict({
     repoRoot: input.repoRoot,
@@ -1416,7 +1666,10 @@ async function inspectGitWorktreeBranchIncoherence(input: {
     ? `${basePlainLanguageReason} An interrupted git ${GIT_IN_PROGRESS_OPERATION_LABELS[inProgressOperation]} is still in progress in this worktree.`
     : basePlainLanguageReason;
   const canCheckoutRecordedBranch =
-    cleanliness === "clean" && expectedBranchExists && sameHead && registeredBranchMatchesHead;
+    cleanliness === "clean" &&
+    expectedBranchExists &&
+    sameHead &&
+    registeredBranchMatchesHead;
   const canAdoptForwardActualBranch =
     cleanliness === "clean" &&
     expectedBranchExists &&
@@ -1432,7 +1685,9 @@ async function inspectGitWorktreeBranchIncoherence(input: {
     !sameHead &&
     registeredBranchMatchesHead;
   const eligible =
-    canCheckoutRecordedBranch || canAdoptForwardActualBranch || canAttachRecordedBranchToDetachedHead;
+    canCheckoutRecordedBranch ||
+    canAdoptForwardActualBranch ||
+    canAttachRecordedBranchToDetachedHead;
   const safeRepairReason = eligible
     ? canCheckoutRecordedBranch
       ? "clean worktree and expected branch points at the current HEAD"
@@ -1445,13 +1700,13 @@ async function inspectGitWorktreeBranchIncoherence(input: {
         : "worktree is not clean"
       : !registered
         ? "worktree path is not registered"
-      : !registeredBranchMatchesHead
-        ? "registered worktree branch does not match HEAD"
-      : !expectedBranchExists
-        ? "expected branch does not exist"
-        : !sameHead
-          ? "expected branch and current HEAD differ"
-          : "safe repair could not be proven";
+        : !registeredBranchMatchesHead
+          ? "registered worktree branch does not match HEAD"
+          : !expectedBranchExists
+            ? "expected branch does not exist"
+            : !sameHead
+              ? "expected branch and current HEAD differ"
+              : "safe repair could not be proven";
   const fingerprint = fingerprintWorkspaceBranchIncoherence({
     sourceIssueId: input.sourceIssue?.id ?? null,
     executionWorkspaceId: input.executionWorkspaceId ?? null,
@@ -1508,7 +1763,9 @@ async function inspectGitWorktreeBranchIncoherence(input: {
   };
 }
 
-function branchIncoherenceValidationFailure(evidence: GitWorktreeBranchIncoherenceEvidence) {
+function branchIncoherenceValidationFailure(
+  evidence: GitWorktreeBranchIncoherenceEvidence,
+) {
   return new WorkspaceRuntimeValidationFailure(
     `Execution workspace git worktree expected branch "${evidence.expectedBranch}" but found "${formatBranchForMessage(evidence.actualBranch)}" at "${evidence.worktreePath}". Safe repair ${evidence.safeRepair.succeeded ? "succeeded" : "was not completed"}: ${evidence.safeRepair.reason}.`,
     {
@@ -1517,7 +1774,9 @@ function branchIncoherenceValidationFailure(evidence: GitWorktreeBranchIncoheren
   );
 }
 
-function formatDirtyQuarantineContentionRefusal(contention: GitWorktreeBranchContention) {
+function formatDirtyQuarantineContentionRefusal(
+  contention: GitWorktreeBranchContention,
+) {
   const activeRunText = contention.activeRun
     ? ` with active run ${contention.activeRun.id}`
     : " with no active run";
@@ -1545,9 +1804,10 @@ function formatDirtyQuarantineAuditComment(input: {
   sourceIssue: ExecutionWorkspaceIssueRef | null;
   claimant: GitWorktreeBranchContention | null;
 }) {
-  const dirtySample = input.evidence.dirtyPathSample.length > 0
-    ? input.evidence.dirtyPathSample.map((entry) => `\`${entry}\``).join(", ")
-    : "`none captured`";
+  const dirtySample =
+    input.evidence.dirtyPathSample.length > 0
+      ? input.evidence.dirtyPathSample.map((entry) => `\`${entry}\``).join(", ")
+      : "`none captured`";
   return [
     "Execution workspace dirty worktree quarantined before restore.",
     "",
@@ -1561,7 +1821,9 @@ function formatDirtyQuarantineAuditComment(input: {
     `- Dirty file count: \`${input.fileCount}\``,
     `- Dirty path sample: ${dirtySample}`,
     ...(input.evidence.inProgressOperation
-      ? [`- Interrupted operation: \`git ${GIT_IN_PROGRESS_OPERATION_LABELS[input.evidence.inProgressOperation]}\` (state cleared after rescue; resolution preserved on the rescue branch)`]
+      ? [
+          `- Interrupted operation: \`git ${GIT_IN_PROGRESS_OPERATION_LABELS[input.evidence.inProgressOperation]}\` (state cleared after rescue; resolution preserved on the rescue branch)`,
+        ]
       : []),
     `- Fingerprint: \`${input.evidence.fingerprint}\``,
     input.claimant
@@ -1579,7 +1841,10 @@ async function writeDirtyQuarantineAuditComments(input: {
   rescueCommitSha: string;
   fileCount: number;
   heartbeatRunId: string | null;
-}): Promise<{ sourceAuditCommentId: string | null; claimantAuditCommentId: string | null }> {
+}): Promise<{
+  sourceAuditCommentId: string | null;
+  claimantAuditCommentId: string | null;
+}> {
   const body = formatDirtyQuarantineAuditComment({
     evidence: input.evidence,
     rescueBranch: input.rescueBranch,
@@ -1652,8 +1917,13 @@ async function logDirtyQuarantineActivity(input: {
     actorId: "workspace_runtime",
     runId: input.heartbeatRunId,
     action: "execution_workspace.dirty_worktree_quarantined",
-    entityType: input.evidence.executionWorkspaceId ? "execution_workspace" : "issue",
-    entityId: input.evidence.executionWorkspaceId ?? input.evidence.sourceIssueId ?? input.companyId,
+    entityType: input.evidence.executionWorkspaceId
+      ? "execution_workspace"
+      : "issue",
+    entityId:
+      input.evidence.executionWorkspaceId ??
+      input.evidence.sourceIssueId ??
+      input.companyId,
     details: {
       reason: GIT_WORKTREE_BRANCH_INCOHERENCE_REASON,
       sourceIssueId: input.evidence.sourceIssueId,
@@ -1711,8 +1981,7 @@ async function recordDirtyQuarantineOperation(input: {
     },
     run: async () => ({
       status: "succeeded",
-      system:
-        `Quarantined dirty git worktree state on ${input.rescueBranch} (${formatShortSha(input.rescueCommitSha)}) and restored recorded branch ${input.evidence.expectedBranch}.\n`,
+      system: `Quarantined dirty git worktree state on ${input.rescueBranch} (${formatShortSha(input.rescueCommitSha)}) and restored recorded branch ${input.evidence.expectedBranch}.\n`,
     }),
   });
 }
@@ -1729,10 +1998,14 @@ async function quarantineDirtyWorktreeBranchIncoherence(input: {
   phase?: "worktree_prepare" | "workspace_finalize";
   recorder?: WorkspaceOperationRecorder | null;
 }): Promise<DirtyQuarantineRepairResult> {
-  const companyId = await readIssueCompanyId(input.db, input.evidence.sourceIssueId);
+  const companyId = await readIssueCompanyId(
+    input.db,
+    input.evidence.sourceIssueId,
+  );
   if (!companyId) {
     input.evidence.safeRepair.eligible = false;
-    input.evidence.safeRepair.reason = "dirty quarantine repair requires a source issue company for audit";
+    input.evidence.safeRepair.reason =
+      "dirty quarantine repair requires a source issue company for audit";
     throw branchIncoherenceValidationFailure(input.evidence);
   }
 
@@ -1746,12 +2019,14 @@ async function quarantineDirtyWorktreeBranchIncoherence(input: {
   input.evidence.contention = freshContention;
   if (freshContention) {
     input.evidence.safeRepair.eligible = false;
-    input.evidence.safeRepair.reason = formatDirtyQuarantineContentionRefusal(freshContention);
+    input.evidence.safeRepair.reason =
+      formatDirtyQuarantineContentionRefusal(freshContention);
     throw branchIncoherenceValidationFailure(input.evidence);
   }
 
   const rescueBranch = buildDirtyQuarantineRescueBranch(input.sourceIssue);
-  const fileCount = input.evidence.statusEntryCount ?? input.evidence.dirtyPathSample.length;
+  const fileCount =
+    input.evidence.statusEntryCount ?? input.evidence.dirtyPathSample.length;
   const baseMetadata = {
     repoRoot: input.repoRoot,
     worktreePath: input.worktreePath,
@@ -1808,7 +2083,10 @@ async function quarantineDirtyWorktreeBranchIncoherence(input: {
       successMessage: `Committed dirty git worktree state to rescue branch ${rescueBranch}\n`,
       failureLabel: "git commit dirty workspace rescue",
     });
-    const rescueCommitSha = await runGit(["rev-parse", "HEAD"], input.worktreePath);
+    const rescueCommitSha = await runGit(
+      ["rev-parse", "HEAD"],
+      input.worktreePath,
+    );
     await recordGitOperation(input.recorder, {
       phase: input.phase ?? "worktree_prepare",
       args: ["checkout", input.expectedBranchName],
@@ -1827,10 +2105,14 @@ async function quarantineDirtyWorktreeBranchIncoherence(input: {
     // branch is checked out, which wedges the next git command in the
     // worktree. The rescue commit above already preserved the in-flight
     // resolution, so clearing the state metadata here loses nothing.
-    let clearedInProgressOperation: GitWorktreeInProgressOperation | null = null;
-    const lingeringOperation = await detectGitWorktreeInProgressOperation(input.worktreePath);
+    let clearedInProgressOperation: GitWorktreeInProgressOperation | null =
+      null;
+    const lingeringOperation = await detectGitWorktreeInProgressOperation(
+      input.worktreePath,
+    );
     if (lingeringOperation) {
-      const operationLabel = GIT_IN_PROGRESS_OPERATION_LABELS[lingeringOperation];
+      const operationLabel =
+        GIT_IN_PROGRESS_OPERATION_LABELS[lingeringOperation];
       const quitArgs = GIT_IN_PROGRESS_OPERATION_QUIT_ARGS[lingeringOperation];
       await recordGitOperation(input.recorder, {
         phase: input.phase ?? "worktree_prepare",
@@ -1843,22 +2125,24 @@ async function quarantineDirtyWorktreeBranchIncoherence(input: {
         successMessage: `Cleared interrupted git ${operationLabel} state after dirty workspace rescue ${rescueBranch}\n`,
         failureLabel: `git ${quitArgs.join(" ")}`,
       });
-      const stillInProgress = await detectGitWorktreeInProgressOperation(input.worktreePath);
+      const stillInProgress = await detectGitWorktreeInProgressOperation(
+        input.worktreePath,
+      );
       if (stillInProgress) {
         input.evidence.safeRepair.succeeded = false;
-        input.evidence.safeRepair.reason =
-          `dirty quarantine repair could not clear the interrupted git ${GIT_IN_PROGRESS_OPERATION_LABELS[stillInProgress]} state`;
+        input.evidence.safeRepair.reason = `dirty quarantine repair could not clear the interrupted git ${GIT_IN_PROGRESS_OPERATION_LABELS[stillInProgress]} state`;
         throw branchIncoherenceValidationFailure(input.evidence);
       }
       clearedInProgressOperation = lingeringOperation;
     }
 
-    const repairedBranch = await runGit(["symbolic-ref", "--quiet", "--short", "HEAD"], input.worktreePath)
-      .catch(() => null);
+    const repairedBranch = await runGit(
+      ["symbolic-ref", "--quiet", "--short", "HEAD"],
+      input.worktreePath,
+    ).catch(() => null);
     if (repairedBranch !== input.expectedBranchName) {
       input.evidence.safeRepair.succeeded = false;
-      input.evidence.safeRepair.reason =
-        `dirty quarantine repair checked out ${formatBranchForMessage(repairedBranch)} instead of ${input.expectedBranchName}`;
+      input.evidence.safeRepair.reason = `dirty quarantine repair checked out ${formatBranchForMessage(repairedBranch)} instead of ${input.expectedBranchName}`;
       throw branchIncoherenceValidationFailure(input.evidence);
     }
     const repairedStatus = await runExpensiveGitStatus({
@@ -1866,13 +2150,16 @@ async function quarantineDirtyWorktreeBranchIncoherence(input: {
       cwd: input.worktreePath,
       operation: "workspace_runtime.dirty_quarantine_verify",
       fairnessKeys: [
-        ...(input.executionWorkspaceId ? [`workspace:${input.executionWorkspaceId}`] : []),
+        ...(input.executionWorkspaceId
+          ? [`workspace:${input.executionWorkspaceId}`]
+          : []),
         ...(input.sourceIssue?.id ? [`issue:${input.sourceIssue.id}`] : []),
       ],
     });
     if (repairedStatus.trim().length > 0) {
       input.evidence.safeRepair.succeeded = false;
-      input.evidence.safeRepair.reason = "dirty quarantine repair completed but the worktree is still dirty";
+      input.evidence.safeRepair.reason =
+        "dirty quarantine repair completed but the worktree is still dirty";
       throw branchIncoherenceValidationFailure(input.evidence);
     }
 
@@ -1917,7 +2204,10 @@ async function quarantineDirtyWorktreeBranchIncoherence(input: {
     };
   } catch (error) {
     if (rescueBranchCreated && !expectedBranchRestored) {
-      await runGit(["checkout", input.expectedBranchName], input.worktreePath).catch(() => null);
+      await runGit(
+        ["checkout", input.expectedBranchName],
+        input.worktreePath,
+      ).catch(() => null);
     }
     if (error instanceof WorkspaceRuntimeValidationFailure) throw error;
     input.evidence.safeRepair.succeeded = false;
@@ -2029,20 +2319,19 @@ export async function reconcilePendingForwardBranchAfterPersistence(input: {
   reconcileOperationPhase?: "worktree_prepare" | "workspace_finalize";
   recorder?: WorkspaceOperationRecorder | null;
 }) {
-  const result = await executionWorkspaceService(input.db).reconcileExecutionWorkspaceBranch(
-    input.executionWorkspaceId,
-    {
-      mode: "forward",
-      reason: input.pending.reason,
-      alternateRecoveryFingerprints: [input.pending.prePersistenceFingerprint],
-      actor: {
-        actorType: "system",
-        actorId: "workspace_runtime",
-        agentId: null,
-        runId: input.heartbeatRunId ?? null,
-      },
+  const result = await executionWorkspaceService(
+    input.db,
+  ).reconcileExecutionWorkspaceBranch(input.executionWorkspaceId, {
+    mode: "forward",
+    reason: input.pending.reason,
+    alternateRecoveryFingerprints: [input.pending.prePersistenceFingerprint],
+    actor: {
+      actorType: "system",
+      actorId: "workspace_runtime",
+      agentId: null,
+      runId: input.heartbeatRunId ?? null,
     },
-  );
+  });
   await logForwardBranchReconcileActivity({
     db: input.db,
     companyId: result.workspace.companyId,
@@ -2097,13 +2386,22 @@ export async function ensureGitWorktreeBranchCoherent(input: {
   recorder?: WorkspaceOperationRecorder | null;
 }): Promise<GitWorktreeBranchCoherenceResult> {
   const expectedBranchName = input.expectedBranchName?.trim();
-  if (!expectedBranchName) return { branchName: null, reconciledForward: false, warnings: [] };
+  if (!expectedBranchName)
+    return { branchName: null, reconciledForward: false, warnings: [] };
 
-  const currentBranch = input.actualBranchName !== undefined
-    ? input.actualBranchName
-    : await runGit(["symbolic-ref", "--quiet", "--short", "HEAD"], input.worktreePath).catch(() => null);
+  const currentBranch =
+    input.actualBranchName !== undefined
+      ? input.actualBranchName
+      : await runGit(
+          ["symbolic-ref", "--quiet", "--short", "HEAD"],
+          input.worktreePath,
+        ).catch(() => null);
   if (currentBranch === expectedBranchName) {
-    return { branchName: expectedBranchName, reconciledForward: false, warnings: [] };
+    return {
+      branchName: expectedBranchName,
+      reconciledForward: false,
+      warnings: [],
+    };
   }
 
   const evidence = await inspectGitWorktreeBranchIncoherence({
@@ -2116,22 +2414,30 @@ export async function ensureGitWorktreeBranchCoherent(input: {
     executionWorkspaceId: input.executionWorkspaceId ?? null,
   });
 
-  if (evidence.cleanliness === "dirty" && input.enableWorkspaceDirtyQuarantineRepair === true) {
+  if (
+    evidence.cleanliness === "dirty" &&
+    input.enableWorkspaceDirtyQuarantineRepair === true
+  ) {
     if (!input.db) {
-      evidence.safeRepair.reason = "dirty quarantine repair requires database access for claimant checks and audit";
+      evidence.safeRepair.reason =
+        "dirty quarantine repair requires database access for claimant checks and audit";
       throw branchIncoherenceValidationFailure(evidence);
     }
     if (!evidence.provenance.registeredPathFound) {
-      evidence.safeRepair.reason = "dirty quarantine repair requires a registered git worktree path";
+      evidence.safeRepair.reason =
+        "dirty quarantine repair requires a registered git worktree path";
       throw branchIncoherenceValidationFailure(evidence);
     }
     if (!evidence.provenance.expectedBranchExists) {
-      evidence.safeRepair.reason = "dirty quarantine repair requires the recorded branch to exist";
+      evidence.safeRepair.reason =
+        "dirty quarantine repair requires the recorded branch to exist";
       throw branchIncoherenceValidationFailure(evidence);
     }
     if (evidence.contention) {
       evidence.safeRepair.eligible = false;
-      evidence.safeRepair.reason = formatDirtyQuarantineContentionRefusal(evidence.contention);
+      evidence.safeRepair.reason = formatDirtyQuarantineContentionRefusal(
+        evidence.contention,
+      );
       throw branchIncoherenceValidationFailure(evidence);
     }
     await assertDirtyQuarantineRuntimeServicesStopped({
@@ -2141,7 +2447,8 @@ export async function ensureGitWorktreeBranchCoherent(input: {
     });
     evidence.safeRepair.eligible = true;
     evidence.safeRepair.attempted = true;
-    evidence.safeRepair.reason = "dirty worktree can be quarantined on a rescue branch before restoring the recorded branch";
+    evidence.safeRepair.reason =
+      "dirty worktree can be quarantined on a rescue branch before restoring the recorded branch";
     const result = await quarantineDirtyWorktreeBranchIncoherence({
       db: input.db,
       repoRoot: input.repoRoot,
@@ -2180,7 +2487,8 @@ export async function ensureGitWorktreeBranchCoherent(input: {
     input.enableWorkspaceBranchReconcileForward === true &&
     evidence.cleanliness === "clean" &&
     currentBranch &&
-    ((evidence.provenance.ancestryVerdict === "ancestor" && !evidence.provenance.sameHead) ||
+    ((evidence.provenance.ancestryVerdict === "ancestor" &&
+      !evidence.provenance.sameHead) ||
       recordedBranchMissingButAdoptable)
   ) {
     const reason = evidence.provenance.expectedBranchExists
@@ -2188,28 +2496,29 @@ export async function ensureGitWorktreeBranchCoherent(input: {
       : "Automatic forward reconciliation: the recorded branch no longer exists, so Taskcore adopted the clean checked-out branch.";
     if (input.executionWorkspaceId && input.persistForwardReconcile !== false) {
       if (!input.db) {
-        evidence.safeRepair.reason = "forward reconciliation requires database access to update the execution workspace record";
+        evidence.safeRepair.reason =
+          "forward reconciliation requires database access to update the execution workspace record";
         throw branchIncoherenceValidationFailure(evidence);
       }
       try {
-        const result = await executionWorkspaceService(input.db).reconcileExecutionWorkspaceBranch(
-          input.executionWorkspaceId,
-          {
-            mode: "forward",
-            reason,
-            actor: {
-              actorType: "system",
-              actorId: "workspace_runtime",
-              agentId: null,
-              runId: input.heartbeatRunId ?? null,
-            },
+        const result = await executionWorkspaceService(
+          input.db,
+        ).reconcileExecutionWorkspaceBranch(input.executionWorkspaceId, {
+          mode: "forward",
+          reason,
+          actor: {
+            actorType: "system",
+            actorId: "workspace_runtime",
+            agentId: null,
+            runId: input.heartbeatRunId ?? null,
           },
-        );
+        });
         await logForwardBranchReconcileActivity({
           db: input.db,
           companyId: result.workspace.companyId,
           executionWorkspaceId: result.workspace.id,
-          sourceIssueId: result.workspace.sourceIssueId ?? evidence.sourceIssueId ?? null,
+          sourceIssueId:
+            result.workspace.sourceIssueId ?? evidence.sourceIssueId ?? null,
           runId: input.heartbeatRunId ?? null,
           mode: "forward",
           reason,
@@ -2231,7 +2540,8 @@ export async function ensureGitWorktreeBranchCoherent(input: {
           expectedBranchName: result.inspection.fromBranch,
           actualBranchName: result.inspection.toBranch,
           executionWorkspaceId: result.workspace.id,
-          sourceIssueId: result.workspace.sourceIssueId ?? evidence.sourceIssueId ?? null,
+          sourceIssueId:
+            result.workspace.sourceIssueId ?? evidence.sourceIssueId ?? null,
           fingerprint: result.inspection.fingerprint,
           expectedHeadSha: result.inspection.fromSha,
           actualHeadSha: result.inspection.toSha,
@@ -2240,16 +2550,20 @@ export async function ensureGitWorktreeBranchCoherent(input: {
           auditCommentId: result.auditCommentId,
           recoveryActionId: result.recoveryAction?.id ?? null,
         });
-        return { branchName: result.inspection.toBranch, reconciledForward: true, warnings: [] };
+        return {
+          branchName: result.inspection.toBranch,
+          reconciledForward: true,
+          warnings: [],
+        };
       } catch (error) {
-        evidence.safeRepair.reason =
-          `forward reconciliation failed: ${error instanceof Error ? error.message : String(error)}`;
+        evidence.safeRepair.reason = `forward reconciliation failed: ${error instanceof Error ? error.message : String(error)}`;
         throw branchIncoherenceValidationFailure(evidence);
       }
     }
 
     if (!input.db) {
-      evidence.safeRepair.reason = "forward reconciliation adoption requires database access to audit after workspace realization";
+      evidence.safeRepair.reason =
+        "forward reconciliation adoption requires database access to audit after workspace realization";
       throw branchIncoherenceValidationFailure(evidence);
     }
     return {
@@ -2270,8 +2584,7 @@ export async function ensureGitWorktreeBranchCoherent(input: {
   }
 
   evidence.safeRepair.attempted = true;
-  const warningPrefix =
-    `Execution workspace branch metadata was self-healed from "${expectedBranchName}" to "${formatBranchForMessage(currentBranch)}" at ${input.worktreePath}.`;
+  const warningPrefix = `Execution workspace branch metadata was self-healed from "${expectedBranchName}" to "${formatBranchForMessage(currentBranch)}" at ${input.worktreePath}.`;
   if (
     currentBranch &&
     evidence.provenance.actualBranchExists === true &&
@@ -2279,7 +2592,8 @@ export async function ensureGitWorktreeBranchCoherent(input: {
     !evidence.provenance.sameHead
   ) {
     evidence.safeRepair.succeeded = true;
-    evidence.safeRepair.reason = "clean worktree adopted the checked-out branch because it is forward of the recorded branch";
+    evidence.safeRepair.reason =
+      "clean worktree adopted the checked-out branch because it is forward of the recorded branch";
     return {
       branchName: currentBranch,
       reconciledForward: false,
@@ -2298,7 +2612,12 @@ export async function ensureGitWorktreeBranchCoherent(input: {
     try {
       await recordGitOperation(input.recorder, {
         phase: "worktree_prepare",
-        args: ["checkout", "-B", expectedBranchName, evidence.provenance.actualHeadSha],
+        args: [
+          "checkout",
+          "-B",
+          expectedBranchName,
+          evidence.provenance.actualHeadSha,
+        ],
         cwd: input.worktreePath,
         metadata: {
           repoRoot: input.repoRoot,
@@ -2320,8 +2639,10 @@ export async function ensureGitWorktreeBranchCoherent(input: {
       throw branchIncoherenceValidationFailure(evidence);
     }
 
-    const repairedBranch = await runGit(["symbolic-ref", "--quiet", "--short", "HEAD"], input.worktreePath)
-      .catch(() => null);
+    const repairedBranch = await runGit(
+      ["symbolic-ref", "--quiet", "--short", "HEAD"],
+      input.worktreePath,
+    ).catch(() => null);
     if (repairedBranch !== expectedBranchName) {
       evidence.safeRepair.succeeded = false;
       evidence.safeRepair.reason = `reattach completed but HEAD is ${formatBranchForMessage(repairedBranch)}`;
@@ -2329,7 +2650,8 @@ export async function ensureGitWorktreeBranchCoherent(input: {
     }
 
     evidence.safeRepair.succeeded = true;
-    evidence.safeRepair.reason = "clean detached worktree HEAD was reattached to the recorded branch";
+    evidence.safeRepair.reason =
+      "clean detached worktree HEAD was reattached to the recorded branch";
     return {
       branchName: expectedBranchName,
       reconciledForward: false,
@@ -2363,8 +2685,10 @@ export async function ensureGitWorktreeBranchCoherent(input: {
     throw branchIncoherenceValidationFailure(evidence);
   }
 
-  const repairedBranch = await runGit(["symbolic-ref", "--quiet", "--short", "HEAD"], input.worktreePath)
-    .catch(() => null);
+  const repairedBranch = await runGit(
+    ["symbolic-ref", "--quiet", "--short", "HEAD"],
+    input.worktreePath,
+  ).catch(() => null);
   if (repairedBranch !== expectedBranchName) {
     evidence.safeRepair.succeeded = false;
     evidence.safeRepair.reason = `checkout completed but HEAD is ${formatBranchForMessage(repairedBranch)}`;
@@ -2413,7 +2737,9 @@ export class UnresolvedWorkspaceBaseRefError extends Error {
   }
 }
 
-export function isUnresolvedWorkspaceBaseRefError(error: unknown): error is UnresolvedWorkspaceBaseRefError {
+export function isUnresolvedWorkspaceBaseRefError(
+  error: unknown,
+): error is UnresolvedWorkspaceBaseRefError {
   return error instanceof UnresolvedWorkspaceBaseRefError;
 }
 
@@ -2452,11 +2778,17 @@ async function resolveAuthoritativeBaseRef(
   resolveGitAuth?: GitRemoteAuthProvider | null,
 ): Promise<AuthoritativeBaseRefResolution> {
   const warnings: string[] = [];
-  const detectOrHead = async () => (await detectDefaultBranch(repoRoot, resolveGitAuth)) ?? "HEAD";
+  const detectOrHead = async () =>
+    (await detectDefaultBranch(repoRoot, resolveGitAuth)) ?? "HEAD";
 
   const configured = configuredBaseRef?.trim();
   if (!configured || configured === "HEAD") {
-    return { resolved: true, baseRef: await detectOrHead(), warnings, refreshed: false };
+    return {
+      resolved: true,
+      baseRef: await detectOrHead(),
+      warnings,
+      refreshed: false,
+    };
   }
 
   // A remote-tracking ref supplied directly (for example `origin/fix/foo`).
@@ -2470,11 +2802,15 @@ async function resolveAuthoritativeBaseRef(
   // let a name like `fix/foo` fall through to the remote-only branch handling
   // below.
   const remoteTracking = parseRemoteTrackingRef(configured);
-  if (remoteTracking && await resolveBaseRefSha(repoRoot, configured)) {
+  if (remoteTracking && (await resolveBaseRefSha(repoRoot, configured))) {
     return { resolved: true, baseRef: configured, warnings, refreshed: false };
   }
-  if (remoteTracking && await remoteExists(repoRoot, remoteTracking.remote)) {
-    const fetchWarnings = await refreshRemoteTrackingBaseRef(repoRoot, configured, resolveGitAuth);
+  if (remoteTracking && (await remoteExists(repoRoot, remoteTracking.remote))) {
+    const fetchWarnings = await refreshRemoteTrackingBaseRef(
+      repoRoot,
+      configured,
+      resolveGitAuth,
+    );
     warnings.push(...fetchWarnings);
     if (await resolveBaseRefSha(repoRoot, configured)) {
       return { resolved: true, baseRef: configured, warnings, refreshed: true };
@@ -2498,9 +2834,20 @@ async function resolveAuthoritativeBaseRef(
     const remoteCandidate = `origin/${configured}`;
     // Refresh here and keep the warnings; the caller skips its own refresh of
     // the returned ref (see `refreshed`) so we never fetch the same ref twice.
-    warnings.push(...await refreshRemoteTrackingBaseRef(repoRoot, remoteCandidate, resolveGitAuth));
+    warnings.push(
+      ...(await refreshRemoteTrackingBaseRef(
+        repoRoot,
+        remoteCandidate,
+        resolveGitAuth,
+      )),
+    );
     if (await resolveBaseRefSha(repoRoot, remoteCandidate)) {
-      return { resolved: true, baseRef: remoteCandidate, warnings, refreshed: true };
+      return {
+        resolved: true,
+        baseRef: remoteCandidate,
+        warnings,
+        refreshed: true,
+      };
     }
     if (await remoteExists(repoRoot, "origin")) {
       warnings.push(
@@ -2518,10 +2865,19 @@ async function resolveAuthoritativeBaseRef(
     return { resolved: true, baseRef: configured, warnings, refreshed: false };
   }
   const remoteCandidate = `origin/${configured}`;
-  const fetchWarnings = await refreshRemoteTrackingBaseRef(repoRoot, remoteCandidate, resolveGitAuth);
+  const fetchWarnings = await refreshRemoteTrackingBaseRef(
+    repoRoot,
+    remoteCandidate,
+    resolveGitAuth,
+  );
   warnings.push(...fetchWarnings);
   if (await resolveBaseRefSha(repoRoot, remoteCandidate)) {
-    return { resolved: true, baseRef: remoteCandidate, warnings, refreshed: true };
+    return {
+      resolved: true,
+      baseRef: remoteCandidate,
+      warnings,
+      refreshed: true,
+    };
   }
   return {
     resolved: false,
@@ -2550,7 +2906,9 @@ async function refreshUnstartedWorktreeToBase(input: {
     return { refreshed: false, baseRefSha: null };
   }
 
-  const headSha = await runGit(["rev-parse", "HEAD"], input.worktreePath).catch(() => null);
+  const headSha = await runGit(["rev-parse", "HEAD"], input.worktreePath).catch(
+    () => null,
+  );
   if (!headSha) {
     return { refreshed: false, baseRefSha: null };
   }
@@ -2562,8 +2920,15 @@ async function refreshUnstartedWorktreeToBase(input: {
     ["rev-list", "--count", `${input.currentBaseRefSha}..HEAD`],
     input.worktreePath,
   ).catch(() => null);
-  const commitsPastBase = commitsPastBaseRaw === null ? null : Number.parseInt(commitsPastBaseRaw, 10);
-  if (commitsPastBase === null || !Number.isFinite(commitsPastBase) || commitsPastBase > 0) {
+  const commitsPastBase =
+    commitsPastBaseRaw === null
+      ? null
+      : Number.parseInt(commitsPastBaseRaw, 10);
+  if (
+    commitsPastBase === null ||
+    !Number.isFinite(commitsPastBase) ||
+    commitsPastBase > 0
+  ) {
     return { refreshed: false, baseRefSha: null };
   }
 
@@ -2574,9 +2939,7 @@ async function refreshUnstartedWorktreeToBase(input: {
     args: ["status", "--porcelain", "--untracked-files=all"],
     cwd: input.worktreePath,
     operation: "workspace_runtime.base_refresh_clean_guard",
-    fairnessKeys: [
-      ...(input.branchName ? [`branch:${input.branchName}`] : []),
-    ],
+    fairnessKeys: [...(input.branchName ? [`branch:${input.branchName}`] : [])],
   }).catch(() => null);
   if (status === null || status.trim().length > 0) {
     return { refreshed: false, baseRefSha: null };
@@ -2602,7 +2965,6 @@ async function refreshUnstartedWorktreeToBase(input: {
   return { refreshed: true, baseRefSha: input.currentBaseRefSha };
 }
 
-
 type GitWorktreeListEntry = {
   worktree: string;
   branch: string | null;
@@ -2611,7 +2973,7 @@ type GitWorktreeListEntry = {
 export type ManagedGitWorktreeBranchInspection = {
   valid: boolean;
   reason: string | null;
-  reasonCode: typeof MANAGED_GIT_WORKTREE_REASON_CODES[number] | null;
+  reasonCode: (typeof MANAGED_GIT_WORKTREE_REASON_CODES)[number] | null;
   inspectionDiagnostic?: ManagedGitInspectionDiagnostic;
   repoRoot: string | null;
   worktreePath: string;
@@ -2652,14 +3014,24 @@ function parseGitWorktreeListPorcelain(raw: string): GitWorktreeListEntry[] {
 }
 
 async function resolveGitOwnerRepoRoot(cwd: string): Promise<string> {
-  const checkoutRoot = path.resolve(await runGit(["rev-parse", "--show-toplevel"], cwd));
-  const commonDir = await runGit(["rev-parse", "--git-common-dir"], checkoutRoot).catch(() => null);
+  const checkoutRoot = path.resolve(
+    await runGit(["rev-parse", "--show-toplevel"], cwd),
+  );
+  const commonDir = await runGit(
+    ["rev-parse", "--git-common-dir"],
+    checkoutRoot,
+  ).catch(() => null);
   if (!commonDir) return checkoutRoot;
   return path.dirname(path.resolve(checkoutRoot, commonDir));
 }
 
-async function findRegisteredGitWorktreeByBranch(repoRoot: string, branchName: string): Promise<string | null> {
-  const raw = await runGit(["worktree", "list", "--porcelain"], repoRoot).catch(() => null);
+async function findRegisteredGitWorktreeByBranch(
+  repoRoot: string,
+  branchName: string,
+): Promise<string | null> {
+  const raw = await runGit(["worktree", "list", "--porcelain"], repoRoot).catch(
+    () => null,
+  );
   if (!raw) return null;
 
   const expectedBranchRef = `refs/heads/${branchName}`;
@@ -2671,13 +3043,20 @@ async function findRegisteredGitWorktreeByBranch(repoRoot: string, branchName: s
   return null;
 }
 
-async function findRegisteredGitWorktreeByPath(repoRoot: string, worktreePath: string): Promise<GitWorktreeListEntry | null> {
-  const raw = await runGit(["worktree", "list", "--porcelain"], repoRoot).catch(() => null);
+async function findRegisteredGitWorktreeByPath(
+  repoRoot: string,
+  worktreePath: string,
+): Promise<GitWorktreeListEntry | null> {
+  const raw = await runGit(["worktree", "list", "--porcelain"], repoRoot).catch(
+    () => null,
+  );
   if (!raw) return null;
 
   const expectedPath = await resolvePathForWorktreeComparison(worktreePath);
   for (const entry of parseGitWorktreeListPorcelain(raw)) {
-    if (await resolvePathForWorktreeComparison(entry.worktree) === expectedPath) {
+    if (
+      (await resolvePathForWorktreeComparison(entry.worktree)) === expectedPath
+    ) {
       return entry;
     }
   }
@@ -2685,7 +3064,9 @@ async function findRegisteredGitWorktreeByPath(repoRoot: string, worktreePath: s
 }
 
 async function isGitCheckout(cwd: string): Promise<boolean> {
-  return Boolean(await runGit(["rev-parse", "--git-dir"], cwd).catch(() => null));
+  return Boolean(
+    await runGit(["rev-parse", "--git-dir"], cwd).catch(() => null),
+  );
 }
 
 async function detectDefaultBranch(
@@ -2716,7 +3097,10 @@ async function detectDefaultBranch(
   for (const candidate of ["origin/master", "origin/main", "main", "master"]) {
     try {
       await refreshRemoteTrackingBaseRef(repoRoot, candidate, resolveGitAuth);
-      await runGit(["rev-parse", "--verify", `${candidate}^{commit}`], repoRoot);
+      await runGit(
+        ["rev-parse", "--verify", `${candidate}^{commit}`],
+        repoRoot,
+      );
       return candidate;
     } catch {
       // Not found — try next
@@ -2727,32 +3111,57 @@ async function detectDefaultBranch(
 }
 
 async function directoryExists(value: string) {
-  return fs.stat(value).then((stats) => stats.isDirectory()).catch(() => false);
+  return fs
+    .stat(value)
+    .then((stats) => stats.isDirectory())
+    .catch(() => false);
 }
 
-async function resolvePathForWorktreeComparison(value: string): Promise<string> {
+async function resolvePathForWorktreeComparison(
+  value: string,
+): Promise<string> {
   const resolved = path.resolve(value);
-  return fs.realpath(resolved).then((realPath) => path.resolve(realPath)).catch(() => resolved);
+  return fs
+    .realpath(resolved)
+    .then((realPath) => path.resolve(realPath))
+    .catch(() => resolved);
 }
 
-async function listLinkedGitWorktreePaths(repoRoot: string): Promise<
-  { paths: Set<string>; diagnostic?: never } | { paths?: never; diagnostic: ManagedGitInspectionDiagnostic }
+async function listLinkedGitWorktreePaths(
+  repoRoot: string,
+): Promise<
+  | { paths: Set<string>; diagnostic?: never }
+  | { paths?: never; diagnostic: ManagedGitInspectionDiagnostic }
 > {
   let proc: Awaited<ReturnType<typeof executeProcess>>;
   try {
-    proc = await executeProcess({ command: "git", args: ["worktree", "list", "--porcelain"], cwd: repoRoot });
+    proc = await executeProcess({
+      command: "git",
+      args: ["worktree", "list", "--porcelain"],
+      cwd: repoRoot,
+    });
   } catch (error) {
-    return { diagnostic: readManagedGitInspectionDiagnostic({
-      command: "worktree_list", failure: "spawn_failed", errorCode: (error as NodeJS.ErrnoException)?.code,
-    })! };
+    return {
+      diagnostic: readManagedGitInspectionDiagnostic({
+        command: "worktree_list",
+        failure: "spawn_failed",
+        errorCode: (error as NodeJS.ErrnoException)?.code,
+      })!,
+    };
   }
   if (proc.code !== 0) {
-    return { diagnostic: readManagedGitInspectionDiagnostic({
-      command: "worktree_list", failure: "nonzero_exit", exitCode: proc.code,
-    })! };
+    return {
+      diagnostic: readManagedGitInspectionDiagnostic({
+        command: "worktree_list",
+        failure: "nonzero_exit",
+        exitCode: proc.code,
+      })!,
+    };
   }
   if (proc.stdoutTruncated) {
-    return { diagnostic: { command: "worktree_list", failure: "output_truncated" } };
+    return {
+      diagnostic: { command: "worktree_list", failure: "output_truncated" },
+    };
   }
   const paths = new Set<string>();
   for (const line of proc.stdout.split("\n")) {
@@ -2769,15 +3178,18 @@ export async function inspectManagedGitWorktreeBranch(input: {
   expectedBranchName: string | null | undefined;
   repoRoot?: string | null;
 }): Promise<ManagedGitWorktreeBranchInspection> {
-  const worktreePath = await resolvePathForWorktreeComparison(input.worktreePath);
-  const expectedBranchName = asString(input.expectedBranchName, "").trim() || null;
+  const worktreePath = await resolvePathForWorktreeComparison(
+    input.worktreePath,
+  );
+  const expectedBranchName =
+    asString(input.expectedBranchName, "").trim() || null;
   const base = {
     worktreePath,
     expectedBranchName,
     actualBranchName: null,
   };
 
-  if (!await directoryExists(worktreePath)) {
+  if (!(await directoryExists(worktreePath))) {
     return {
       ...base,
       valid: false,
@@ -2821,7 +3233,10 @@ export async function inspectManagedGitWorktreeBranch(input: {
     };
   }
 
-  const worktreeTopLevel = await runGit(["rev-parse", "--show-toplevel"], worktreePath).catch(() => null);
+  const worktreeTopLevel = await runGit(
+    ["rev-parse", "--show-toplevel"],
+    worktreePath,
+  ).catch(() => null);
   if (!worktreeTopLevel || path.resolve(worktreeTopLevel) !== worktreePath) {
     return {
       ...base,
@@ -2864,12 +3279,15 @@ async function validateLinkedGitWorktree(input: {
 }): Promise<
   | { valid: true }
   | {
-    valid: false;
-    reason: string;
-    reasonCode: Exclude<ManagedGitWorktreeBranchInspection["reasonCode"], null>;
-    actualBranchName?: string | null;
-    inspectionDiagnostic?: ManagedGitInspectionDiagnostic;
-  }
+      valid: false;
+      reason: string;
+      reasonCode: Exclude<
+        ManagedGitWorktreeBranchInspection["reasonCode"],
+        null
+      >;
+      actualBranchName?: string | null;
+      inspectionDiagnostic?: ManagedGitInspectionDiagnostic;
+    }
 > {
   const inspection = await inspectManagedGitWorktreeBranch({
     repoRoot: input.repoRoot,
@@ -2883,11 +3301,15 @@ async function validateLinkedGitWorktree(input: {
         reason: inspection.reason ?? "unknown git worktree mismatch",
         reasonCode: inspection.reasonCode ?? "not_a_git_checkout",
         actualBranchName: inspection.actualBranchName,
-        ...(inspection.inspectionDiagnostic ? { inspectionDiagnostic: inspection.inspectionDiagnostic } : {}),
+        ...(inspection.inspectionDiagnostic
+          ? { inspectionDiagnostic: inspection.inspectionDiagnostic }
+          : {}),
       };
 }
 
-export function formatManagedGitWorktreeBranchInspection(input: ManagedGitWorktreeBranchInspection) {
+export function formatManagedGitWorktreeBranchInspection(
+  input: ManagedGitWorktreeBranchInspection,
+) {
   return {
     valid: input.valid,
     reason: input.reason,
@@ -2896,7 +3318,9 @@ export function formatManagedGitWorktreeBranchInspection(input: ManagedGitWorktr
     worktreePath: input.worktreePath,
     expectedBranchName: input.expectedBranchName,
     actualBranchName: input.actualBranchName,
-    ...(input.inspectionDiagnostic ? { inspectionDiagnostic: input.inspectionDiagnostic } : {}),
+    ...(input.inspectionDiagnostic
+      ? { inspectionDiagnostic: input.inspectionDiagnostic }
+      : {}),
   };
 }
 
@@ -2936,7 +3360,8 @@ function quoteShellArg(value: string) {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-const BUILTIN_WORKSPACE_PROVISION_COMMAND = "bash ./scripts/provision-worktree.sh";
+const BUILTIN_WORKSPACE_PROVISION_COMMAND =
+  "bash ./scripts/provision-worktree.sh";
 
 function resolveWorkspaceProvisionCommand(
   strategy: Record<string, unknown>,
@@ -2987,11 +3412,15 @@ async function runWorkspaceCommand(input: {
     cwd: input.cwd,
     env: input.env,
   });
-  if (proc.stdout && input.onLog) await input.onLog("stdout", `[runtime-provision] ${proc.stdout}`);
-  if (proc.stderr && input.onLog) await input.onLog("stderr", `[runtime-provision] ${proc.stderr}`);
+  if (proc.stdout && input.onLog)
+    await input.onLog("stdout", `[runtime-provision] ${proc.stdout}`);
+  if (proc.stderr && input.onLog)
+    await input.onLog("stderr", `[runtime-provision] ${proc.stderr}`);
   if (proc.code === 0) return;
 
-  const details = [proc.stderr.trim(), proc.stdout.trim()].filter(Boolean).join("\n");
+  const details = [proc.stderr.trim(), proc.stdout.trim()]
+    .filter(Boolean)
+    .join("\n");
   throw new Error(
     details.length > 0
       ? `${input.label} failed: ${details}`
@@ -3036,7 +3465,7 @@ async function recordGitOperation(
         exitCode: result.code,
         stdout: result.stdout,
         stderr: result.stderr,
-        system: result.code === 0 ? input.successMessage ?? null : null,
+        system: result.code === 0 ? (input.successMessage ?? null) : null,
         metadata:
           result.stdoutTruncated || result.stderrTruncated
             ? {
@@ -3064,7 +3493,11 @@ async function recordGitOperation(
 async function recordWorkspaceCommandOperation(
   recorder: WorkspaceOperationRecorder | null | undefined,
   input: {
-    phase: "workspace_provision" | "workspace_seed" | "workspace_runtime_provision" | "workspace_teardown";
+    phase:
+      | "workspace_provision"
+      | "workspace_seed"
+      | "workspace_runtime_provision"
+      | "workspace_teardown";
     command: string;
     resolvedCommand?: string;
     cwd: string;
@@ -3096,28 +3529,35 @@ async function recordWorkspaceCommandOperation(
         cwd: input.cwd,
         env: input.env,
       });
-      const seedEvidence = input.phase === "workspace_seed"
-        ? readWorkspaceSeedOperationEvidence(input.cwd)
-        : null;
+      const seedEvidence =
+        input.phase === "workspace_seed"
+          ? readWorkspaceSeedOperationEvidence(input.cwd)
+          : null;
       stdout = result.stdout;
       stderr = [result.stderr, seedEvidence?.error].filter(Boolean).join("\n");
-      code = result.code === 0 && seedEvidence && !seedEvidence.verified ? 1 : result.code;
-      if (result.stdout && input.onLog) await input.onLog("stdout", `[runtime-provision] ${result.stdout}`);
-      if (stderr && input.onLog) await input.onLog("stderr", `[runtime-provision] ${stderr}`);
-      const truncationMetadata = result.stdoutTruncated || result.stderrTruncated
-        ? {
-            stdoutTruncated: result.stdoutTruncated,
-            stderrTruncated: result.stderrTruncated,
-            stdoutBytes: result.stdoutBytes,
-            stderrBytes: result.stderrBytes,
-          }
-        : null;
+      code =
+        result.code === 0 && seedEvidence && !seedEvidence.verified
+          ? 1
+          : result.code;
+      if (result.stdout && input.onLog)
+        await input.onLog("stdout", `[runtime-provision] ${result.stdout}`);
+      if (stderr && input.onLog)
+        await input.onLog("stderr", `[runtime-provision] ${stderr}`);
+      const truncationMetadata =
+        result.stdoutTruncated || result.stderrTruncated
+          ? {
+              stdoutTruncated: result.stdoutTruncated,
+              stderrTruncated: result.stderrTruncated,
+              stdoutBytes: result.stdoutBytes,
+              stderrBytes: result.stderrBytes,
+            }
+          : null;
       return {
         status: code === 0 ? "succeeded" : "failed",
         exitCode: code,
         stdout: result.stdout,
         stderr,
-        system: code === 0 ? input.successMessage ?? null : null,
+        system: code === 0 ? (input.successMessage ?? null) : null,
         metadata: seedEvidence
           ? { ...seedEvidence.metadata, ...(truncationMetadata ?? {}) }
           : truncationMetadata,
@@ -3146,9 +3586,15 @@ async function provisionExecutionWorktree(input: {
   created: boolean;
   recorder?: WorkspaceOperationRecorder | null;
 }) {
-  const provisionCommand = resolveWorkspaceProvisionCommand(input.strategy, input.repoRoot);
+  const provisionCommand = resolveWorkspaceProvisionCommand(
+    input.strategy,
+    input.repoRoot,
+  );
   if (!provisionCommand) return;
-  const resolvedProvisionCommand = resolveRepoManagedWorkspaceCommand(provisionCommand, input.repoRoot);
+  const resolvedProvisionCommand = resolveRepoManagedWorkspaceCommand(
+    provisionCommand,
+    input.repoRoot,
+  );
 
   await recordWorkspaceCommandOperation(input.recorder, {
     phase: "workspace_provision",
@@ -3170,7 +3616,10 @@ async function provisionExecutionWorktree(input: {
       worktreePath: input.worktreePath,
       branchName: input.branchName,
       created: input.created,
-      resolvedCommand: resolvedProvisionCommand === provisionCommand ? null : resolvedProvisionCommand,
+      resolvedCommand:
+        resolvedProvisionCommand === provisionCommand
+          ? null
+          : resolvedProvisionCommand,
     },
     successMessage: `Provisioned workspace at ${input.worktreePath}\n`,
   });
@@ -3211,15 +3660,20 @@ async function resolveGitRepoRootForWorkspaceCleanup(
 ): Promise<string | null> {
   if (projectWorkspaceCwd) {
     const resolvedProjectWorkspaceCwd = path.resolve(projectWorkspaceCwd);
-    const gitDir = await runGit(["rev-parse", "--git-common-dir"], resolvedProjectWorkspaceCwd)
-      .catch(() => null);
+    const gitDir = await runGit(
+      ["rev-parse", "--git-common-dir"],
+      resolvedProjectWorkspaceCwd,
+    ).catch(() => null);
     if (gitDir) {
       const resolvedGitDir = path.resolve(resolvedProjectWorkspaceCwd, gitDir);
       return path.dirname(resolvedGitDir);
     }
   }
 
-  const gitDir = await runGit(["rev-parse", "--git-common-dir"], worktreePath).catch(() => null);
+  const gitDir = await runGit(
+    ["rev-parse", "--git-common-dir"],
+    worktreePath,
+  ).catch(() => null);
   if (!gitDir) return null;
   const resolvedGitDir = path.resolve(worktreePath, gitDir);
   return path.dirname(resolvedGitDir);
@@ -3243,7 +3697,10 @@ export async function realizeExecutionWorkspace(input: {
 }): Promise<RealizedExecutionWorkspace> {
   const rawStrategy = parseObject(input.config.workspaceStrategy);
   const strategyType = asString(rawStrategy.type, "project_primary");
-  const requestedExistingBranch = asString(rawStrategy.existingBranch, "").trim();
+  const requestedExistingBranch = asString(
+    rawStrategy.existingBranch,
+    "",
+  ).trim();
   if (strategyType !== "git_worktree") {
     if (requestedExistingBranch) {
       throw new WorkspaceRuntimeValidationFailure(
@@ -3278,7 +3735,12 @@ export async function realizeExecutionWorkspace(input: {
     // resets it, and any mismatch below fails closed instead of falling back
     // to a derived branch or the shared checkout.
     const existingBranchSha = await runGit(
-      ["rev-parse", "--verify", "--quiet", `refs/heads/${requestedExistingBranch}`],
+      [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        `refs/heads/${requestedExistingBranch}`,
+      ],
       repoRoot,
     ).catch(() => null);
     if (!existingBranchSha) {
@@ -3295,7 +3757,10 @@ export async function realizeExecutionWorkspace(input: {
     }
     branchName = requestedExistingBranch;
   } else {
-    const branchTemplate = asString(rawStrategy.branchTemplate, "{{issue.identifier}}-{{slug}}");
+    const branchTemplate = asString(
+      rawStrategy.branchTemplate,
+      "{{issue.identifier}}-{{slug}}",
+    );
     const renderedBranch = renderWorkspaceTemplate(branchTemplate, {
       issue: input.issue,
       agent: input.agent,
@@ -3321,40 +3786,61 @@ export async function realizeExecutionWorkspace(input: {
       },
     );
   }
-  let pendingForwardBranchReconcile: PendingForwardBranchReconcile | null = null;
-  const configuredBaseRef = typeof rawStrategy.baseRef === "string" && rawStrategy.baseRef.length > 0
-    ? rawStrategy.baseRef
-    : input.base.repoRef ?? null;
-  const baseRefResolution = await resolveAuthoritativeBaseRef(repoRoot, configuredBaseRef, input.resolveGitAuth);
+  let pendingForwardBranchReconcile: PendingForwardBranchReconcile | null =
+    null;
+  const configuredBaseRef =
+    typeof rawStrategy.baseRef === "string" && rawStrategy.baseRef.length > 0
+      ? rawStrategy.baseRef
+      : (input.base.repoRef ?? null);
+  const baseRefResolution = await resolveAuthoritativeBaseRef(
+    repoRoot,
+    configuredBaseRef,
+    input.resolveGitAuth,
+  );
   // Keep a usable base ref for the reuse and drift paths even when the ref is
   // unresolved: those paths tolerate a null base-ref SHA and never run
   // `git worktree add -b <branch> <baseRef>`. Only the fresh-create path below
   // stops on an unresolved ref. `baseRefAlreadyRefreshed` is true for the
   // unresolved case because the resolver already attempted the fetch.
-  const baseRef = baseRefResolution.resolved ? baseRefResolution.baseRef : baseRefResolution.requestedRef;
+  const baseRef = baseRefResolution.resolved
+    ? baseRefResolution.baseRef
+    : baseRefResolution.requestedRef;
   const baseRefResolutionWarnings = baseRefResolution.warnings;
-  const baseRefAlreadyRefreshed = baseRefResolution.resolved ? baseRefResolution.refreshed : true;
+  const baseRefAlreadyRefreshed = baseRefResolution.resolved
+    ? baseRefResolution.refreshed
+    : true;
   const baseRefreshWarnings = [
     ...baseRefResolutionWarnings,
-    ...(baseRefAlreadyRefreshed ? [] : await refreshRemoteTrackingBaseRef(repoRoot, baseRef, input.resolveGitAuth)),
+    ...(baseRefAlreadyRefreshed
+      ? []
+      : await refreshRemoteTrackingBaseRef(
+          repoRoot,
+          baseRef,
+          input.resolveGitAuth,
+        )),
   ];
   const currentBaseRefSha = await resolveBaseRefSha(repoRoot, baseRef);
 
   await fs.mkdir(worktreeParentDir, { recursive: true });
 
-  async function reuseExistingWorktree(reusablePath: string, effectiveBranchName = branchName, extraWarnings: string[] = []) {
+  async function reuseExistingWorktree(
+    reusablePath: string,
+    effectiveBranchName = branchName,
+    extraWarnings: string[] = [],
+  ) {
     // An exact-branch attach must never move the requested branch, so skip
     // the unstarted-worktree fast-forward that template-derived reuse gets.
-    const refresh = currentBaseRefSha && !requestedExistingBranch
-      ? await refreshUnstartedWorktreeToBase({
-          repoRoot,
-          worktreePath: reusablePath,
-          branchName: effectiveBranchName,
-          baseRef,
-          currentBaseRefSha,
-          recorder: input.recorder ?? null,
-        })
-      : { refreshed: false, baseRefSha: null };
+    const refresh =
+      currentBaseRefSha && !requestedExistingBranch
+        ? await refreshUnstartedWorktreeToBase({
+            repoRoot,
+            worktreePath: reusablePath,
+            branchName: effectiveBranchName,
+            baseRef,
+            currentBaseRefSha,
+            recorder: input.recorder ?? null,
+          })
+        : { refreshed: false, baseRefSha: null };
     const baseDrift = await inspectExecutionWorkspaceBaseDrift({
       repoRoot,
       worktreePath: reusablePath,
@@ -3402,7 +3888,11 @@ export async function realizeExecutionWorkspace(input: {
       cwd: reusablePath,
       branchName: effectiveBranchName,
       worktreePath: reusablePath,
-      warnings: [...extraWarnings, ...baseRefreshWarnings, ...baseDrift.warnings],
+      warnings: [
+        ...extraWarnings,
+        ...baseRefreshWarnings,
+        ...baseDrift.warnings,
+      ],
       created: false,
       // A fresh realization may still land on the worktree recorded by a
       // previous heartbeat. Preserve that branch's ownership only when the
@@ -3410,10 +3900,13 @@ export async function realizeExecutionWorkspace(input: {
       // remains operator-owned by contract; every mismatch likewise fails
       // safe and leaves the branch behind during terminal cleanup.
       branchCreatedByRuntime:
-        !requestedExistingBranch
-        && input.recordedBranchOwnership?.branchName === effectiveBranchName
-        && input.recordedBranchOwnership.createdByRuntime === true,
-      baseRefSha: refresh.baseRefSha ?? baseDrift.branchBaseRefSha ?? baseDrift.currentBaseRefSha,
+        !requestedExistingBranch &&
+        input.recordedBranchOwnership?.branchName === effectiveBranchName &&
+        input.recordedBranchOwnership.createdByRuntime === true,
+      baseRefSha:
+        refresh.baseRefSha ??
+        baseDrift.branchBaseRefSha ??
+        baseDrift.currentBaseRefSha,
       pendingForwardBranchReconcile,
     };
   }
@@ -3424,7 +3917,11 @@ export async function realizeExecutionWorkspace(input: {
       worktreePath: reusablePath,
       expectedBranchName: branchName,
     }).catch(() => null);
-    if (validation && !validation.valid && validation.reasonCode === "branch_mismatch") {
+    if (
+      validation &&
+      !validation.valid &&
+      validation.reasonCode === "branch_mismatch"
+    ) {
       if (requestedExistingBranch) {
         // Exact-branch mode never reconciles a mismatched checkout onto
         // another branch; the caller fails closed with the mismatch reason.
@@ -3439,15 +3936,18 @@ export async function realizeExecutionWorkspace(input: {
         sourceIssue: input.issue,
         executionWorkspaceId: null,
         heartbeatRunId: input.heartbeatRunId ?? null,
-        enableWorkspaceBranchReconcileForward: input.enableWorkspaceBranchReconcileForward === true,
-        enableWorkspaceDirtyQuarantineRepair: input.enableWorkspaceDirtyQuarantineRepair === true,
+        enableWorkspaceBranchReconcileForward:
+          input.enableWorkspaceBranchReconcileForward === true,
+        enableWorkspaceDirtyQuarantineRepair:
+          input.enableWorkspaceDirtyQuarantineRepair === true,
         reconcileOperationPhase: "worktree_prepare",
         recorder: input.recorder ?? null,
       });
       const effectiveBranchName = coherence.branchName ?? branchName;
       if (coherence.reconciledForward) {
         branchName = effectiveBranchName;
-        pendingForwardBranchReconcile = coherence.pendingForwardBranchReconcile ?? null;
+        pendingForwardBranchReconcile =
+          coherence.pendingForwardBranchReconcile ?? null;
       }
       const nextValidation = await validateLinkedGitWorktree({
         repoRoot,
@@ -3467,48 +3967,67 @@ export async function realizeExecutionWorkspace(input: {
   if (existingWorktree) {
     const reusable = await validateReusableWorktree(worktreePath);
     if (reusable.validation?.valid) {
-      return await reuseExistingWorktree(worktreePath, reusable.branchName, reusable.warnings);
+      return await reuseExistingWorktree(
+        worktreePath,
+        reusable.branchName,
+        reusable.warnings,
+      );
     }
     const validation = reusable.validation;
-    const reason = validation && !validation.valid ? ` (${validation.reason})` : "";
+    const reason =
+      validation && !validation.valid ? ` (${validation.reason})` : "";
     if (requestedExistingBranch) {
       throw new WorkspaceRuntimeValidationFailure(
         `Workspace strategy pins existing branch "${requestedExistingBranch}", but the worktree path "${worktreePath}" already exists and is not a reusable checkout of that branch${reason}. Repair or remove that worktree, then retry; exact-branch realization never reconciles it onto another branch.`,
         {
           workspaceValidation: {
             reason: "existing_branch_worktree_not_reusable",
-            reasonCode: validation && !validation.valid ? validation.reasonCode : null,
+            reasonCode:
+              validation && !validation.valid ? validation.reasonCode : null,
             requestedExistingBranch,
             worktreePath,
           },
         },
       );
     }
-    throw new Error(`Configured worktree path "${worktreePath}" already exists and is not a reusable git worktree${reason}.`);
+    throw new Error(
+      `Configured worktree path "${worktreePath}" already exists and is not a reusable git worktree${reason}.`,
+    );
   }
 
-  const registeredBranchWorktree = await findRegisteredGitWorktreeByBranch(repoRoot, branchName);
+  const registeredBranchWorktree = await findRegisteredGitWorktreeByBranch(
+    repoRoot,
+    branchName,
+  );
   if (registeredBranchWorktree) {
     const reusable = await validateReusableWorktree(registeredBranchWorktree);
     if (reusable.validation?.valid) {
-      return await reuseExistingWorktree(registeredBranchWorktree, reusable.branchName, reusable.warnings);
+      return await reuseExistingWorktree(
+        registeredBranchWorktree,
+        reusable.branchName,
+        reusable.warnings,
+      );
     }
     const validation = reusable.validation;
-    const reason = validation && !validation.valid ? ` (${validation.reason})` : "";
+    const reason =
+      validation && !validation.valid ? ` (${validation.reason})` : "";
     if (requestedExistingBranch) {
       throw new WorkspaceRuntimeValidationFailure(
         `Workspace strategy pins existing branch "${requestedExistingBranch}", which is already checked out at "${registeredBranchWorktree}", but that worktree is not reusable${reason}. Repair or remove that worktree, then retry.`,
         {
           workspaceValidation: {
             reason: "existing_branch_worktree_not_reusable",
-            reasonCode: validation && !validation.valid ? validation.reasonCode : null,
+            reasonCode:
+              validation && !validation.valid ? validation.reasonCode : null,
             requestedExistingBranch,
             worktreePath: registeredBranchWorktree,
           },
         },
       );
     }
-    throw new Error(`Registered worktree for branch "${branchName}" at "${registeredBranchWorktree}" is not reusable${reason}.`);
+    throw new Error(
+      `Registered worktree for branch "${branchName}" at "${registeredBranchWorktree}" is not reusable${reason}.`,
+    );
   }
 
   if (requestedExistingBranch) {
@@ -3530,7 +4049,10 @@ export async function realizeExecutionWorkspace(input: {
         failureLabel: `git worktree add ${worktreePath}`,
       });
     } catch (attachError) {
-      const message = attachError instanceof Error ? attachError.message : String(attachError);
+      const message =
+        attachError instanceof Error
+          ? attachError.message
+          : String(attachError);
       throw new WorkspaceRuntimeValidationFailure(
         `Could not attach existing branch "${requestedExistingBranch}" as a git worktree at "${worktreePath}": ${message}`,
         {
@@ -3627,8 +4149,11 @@ export async function realizeExecutionWorkspace(input: {
       if (!gitErrorIncludes(attachError, "already checked out")) {
         throw attachError;
       }
-      const reusablePath = await findRegisteredGitWorktreeByBranch(repoRoot, branchName);
-      if (!reusablePath || !await isGitCheckout(reusablePath)) {
+      const reusablePath = await findRegisteredGitWorktreeByBranch(
+        repoRoot,
+        branchName,
+      );
+      if (!reusablePath || !(await isGitCheckout(reusablePath))) {
         throw attachError;
       }
       return await reuseExistingWorktree(reusablePath);
@@ -3688,13 +4213,22 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
   recorder?: WorkspaceOperationRecorder | null;
   resolveGitAuth?: GitRemoteAuthProvider | null;
 }): Promise<RealizedExecutionWorkspace | null> {
-  const cwd = asString(input.workspace.cwd ?? input.workspace.providerRef, "").trim();
+  const cwd = asString(
+    input.workspace.cwd ?? input.workspace.providerRef,
+    "",
+  ).trim();
   if (!cwd) return null;
 
-  const strategy = input.workspace.strategyType === "git_worktree" ? "git_worktree" : "project_primary";
+  const strategy =
+    input.workspace.strategyType === "git_worktree"
+      ? "git_worktree"
+      : "project_primary";
   const realized: RealizedExecutionWorkspace = {
     baseCwd: input.base.baseCwd,
-    source: input.workspace.mode === "shared_workspace" ? "project_primary" : "task_session",
+    source:
+      input.workspace.mode === "shared_workspace"
+        ? "project_primary"
+        : "task_session",
     projectId: input.workspace.projectId ?? input.base.projectId,
     workspaceId: input.workspace.projectWorkspaceId ?? input.base.workspaceId,
     repoUrl: input.workspace.repoUrl ?? input.base.repoUrl,
@@ -3703,7 +4237,8 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
     strategy,
     cwd,
     branchName: input.workspace.branchName ?? null,
-    worktreePath: strategy === "git_worktree" ? (input.workspace.providerRef ?? cwd) : null,
+    worktreePath:
+      strategy === "git_worktree" ? (input.workspace.providerRef ?? cwd) : null,
     warnings: [],
     created: false,
     // Only the versioned ownership record introduced with branch-level
@@ -3713,10 +4248,13 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
     branchCreatedByRuntime: isRuntimeOwnedGitBranch(input.workspace.metadata),
     baseRefSha: readRecordedBaseRefSha(input.workspace.metadata),
   };
-  const provisionCommand = asString(input.workspace.config?.provisionCommand, "").trim();
+  const provisionCommand = asString(
+    input.workspace.config?.provisionCommand,
+    "",
+  ).trim();
 
   if (strategy !== "git_worktree") {
-    if (!await directoryExists(cwd)) {
+    if (!(await directoryExists(cwd))) {
       return null;
     }
     return realized;
@@ -3733,7 +4271,7 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
       "Cannot rebuild the git worktree: the base project checkout path is empty.",
     );
   }
-  if (!await directoryExists(baseCwd)) {
+  if (!(await directoryExists(baseCwd))) {
     throw new Error(
       "Cannot rebuild the git worktree: the base project checkout directory does not exist.",
     );
@@ -3744,7 +4282,10 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
     const reuseBaseRef = input.workspace.baseRef ?? input.base.repoRef ?? null;
     const reuseWorktreePath = realized.worktreePath ?? cwd;
     const repairWarnings: string[] = [];
-    if (await isGitCheckout(reuseWorktreePath) && realized.branchCreatedByRuntime) {
+    if (
+      (await isGitCheckout(reuseWorktreePath)) &&
+      realized.branchCreatedByRuntime
+    ) {
       // Branch-coherence repair may check out another branch, adopt a forward
       // branch, or move the recorded ref from a detached HEAD. Those repairs
       // are valid only for a branch that this runtime created. An attached
@@ -3758,8 +4299,10 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
         sourceIssue: input.issue,
         executionWorkspaceId: input.workspace.id ?? null,
         heartbeatRunId: input.heartbeatRunId ?? null,
-        enableWorkspaceBranchReconcileForward: input.enableWorkspaceBranchReconcileForward === true,
-        enableWorkspaceDirtyQuarantineRepair: input.enableWorkspaceDirtyQuarantineRepair === true,
+        enableWorkspaceBranchReconcileForward:
+          input.enableWorkspaceBranchReconcileForward === true,
+        enableWorkspaceDirtyQuarantineRepair:
+          input.enableWorkspaceDirtyQuarantineRepair === true,
         persistForwardReconcile: false,
         reconcileOperationPhase: "worktree_prepare",
         recorder: input.recorder ?? null,
@@ -3768,7 +4311,8 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
         realized.branchName = coherence.branchName;
       }
       if (coherence.reconciledForward) {
-        realized.pendingForwardBranchReconcile = coherence.pendingForwardBranchReconcile ?? null;
+        realized.pendingForwardBranchReconcile =
+          coherence.pendingForwardBranchReconcile ?? null;
       }
       repairWarnings.push(...coherence.warnings);
     }
@@ -3786,27 +4330,36 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
             reasonCode: validation.reasonCode,
             worktreePath: reuseWorktreePath,
             executionWorkspaceId: input.workspace.id ?? null,
-            ...(validation.inspectionDiagnostic ? { inspectionDiagnostic: validation.inspectionDiagnostic } : {}),
+            ...(validation.inspectionDiagnostic
+              ? { inspectionDiagnostic: validation.inspectionDiagnostic }
+              : {}),
           },
         },
       );
     }
     const baseRefreshWarnings = reuseBaseRef
-      ? await refreshRemoteTrackingBaseRef(repoRoot, reuseBaseRef, input.resolveGitAuth)
+      ? await refreshRemoteTrackingBaseRef(
+          repoRoot,
+          reuseBaseRef,
+          input.resolveGitAuth,
+        )
       : [];
-    const currentBaseRefSha = reuseBaseRef ? await resolveBaseRefSha(repoRoot, reuseBaseRef) : null;
+    const currentBaseRefSha = reuseBaseRef
+      ? await resolveBaseRefSha(repoRoot, reuseBaseRef)
+      : null;
     // An unstarted-worktree refresh can fast-forward the checked-out branch.
     // Never run it for an attached operator-owned ref.
-    const refresh = realized.branchCreatedByRuntime && reuseBaseRef && currentBaseRefSha
-      ? await refreshUnstartedWorktreeToBase({
-          repoRoot,
-          worktreePath: reuseWorktreePath,
-          branchName: realized.branchName,
-          baseRef: reuseBaseRef,
-          currentBaseRefSha,
-          recorder: input.recorder ?? null,
-        })
-      : { refreshed: false, baseRefSha: null };
+    const refresh =
+      realized.branchCreatedByRuntime && reuseBaseRef && currentBaseRefSha
+        ? await refreshUnstartedWorktreeToBase({
+            repoRoot,
+            worktreePath: reuseWorktreePath,
+            branchName: realized.branchName,
+            baseRef: reuseBaseRef,
+            currentBaseRefSha,
+            recorder: input.recorder ?? null,
+          })
+        : { refreshed: false, baseRefSha: null };
     const baseDrift = await inspectExecutionWorkspaceBaseDrift({
       repoRoot,
       worktreePath: reuseWorktreePath,
@@ -3815,8 +4368,16 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
       recordedBaseRefSha,
       skipRefresh: true,
     });
-    realized.warnings = [...repairWarnings, ...baseRefreshWarnings, ...baseDrift.warnings];
-    realized.baseRefSha = refresh.baseRefSha ?? recordedBaseRefSha ?? baseDrift.branchBaseRefSha ?? baseDrift.currentBaseRefSha;
+    realized.warnings = [
+      ...repairWarnings,
+      ...baseRefreshWarnings,
+      ...baseDrift.warnings,
+    ];
+    realized.baseRefSha =
+      refresh.baseRefSha ??
+      recordedBaseRefSha ??
+      baseDrift.branchBaseRefSha ??
+      baseDrift.currentBaseRefSha;
     await provisionExecutionWorktree({
       strategy: {
         type: "git_worktree",
@@ -3837,16 +4398,24 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
   const worktreePath = realized.worktreePath ?? cwd;
   const branchName = asString(input.workspace.branchName, "").trim();
   if (!branchName) {
-    throw new Error(`Execution workspace "${cwd}" is missing and cannot be restored because no branch name is recorded.`);
+    throw new Error(
+      `Execution workspace "${cwd}" is missing and cannot be restored because no branch name is recorded.`,
+    );
   }
 
   await fs.mkdir(path.dirname(worktreePath), { recursive: true });
   await runGit(["worktree", "prune"], repoRoot).catch(() => {});
   const restoreBaseRef = input.workspace.baseRef ?? input.base.repoRef ?? null;
   const restoreRefreshWarnings = restoreBaseRef
-    ? await refreshRemoteTrackingBaseRef(repoRoot, restoreBaseRef, input.resolveGitAuth)
+    ? await refreshRemoteTrackingBaseRef(
+        repoRoot,
+        restoreBaseRef,
+        input.resolveGitAuth,
+      )
     : [];
-  const restoreCurrentBaseRefSha = restoreBaseRef ? await resolveBaseRefSha(repoRoot, restoreBaseRef) : null;
+  const restoreCurrentBaseRefSha = restoreBaseRef
+    ? await resolveBaseRefSha(repoRoot, restoreBaseRef)
+    : null;
 
   let created = false;
   try {
@@ -3868,9 +4437,9 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
     });
   } catch (error) {
     if (
-      !gitErrorIncludes(error, "invalid reference")
-      && !gitErrorIncludes(error, "not a commit")
-      && !gitErrorIncludes(error, "unknown revision")
+      !gitErrorIncludes(error, "invalid reference") &&
+      !gitErrorIncludes(error, "not a commit") &&
+      !gitErrorIncludes(error, "unknown revision")
     ) {
       throw error;
     }
@@ -3879,7 +4448,10 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
         `Execution workspace "${worktreePath}" cannot be restored because its operator-owned branch "${branchName}" no longer exists.`,
       );
     }
-    const baseRef = input.workspace.baseRef ?? await detectDefaultBranch(repoRoot) ?? "HEAD";
+    const baseRef =
+      input.workspace.baseRef ??
+      (await detectDefaultBranch(repoRoot)) ??
+      "HEAD";
     const recreatedBaseRefSha = await resolveBaseRefSha(repoRoot, baseRef);
     await recordGitOperation(input.recorder, {
       phase: "worktree_prepare",
@@ -3932,30 +4504,43 @@ export async function ensurePersistedExecutionWorkspaceAvailable(input: {
     created,
     branchCreatedByRuntime: realized.branchCreatedByRuntime || created,
     baseRefSha:
-      recordedBaseRefSha
-      ?? (created ? restoreCurrentBaseRefSha : baseDrift.branchBaseRefSha)
-      ?? baseDrift.currentBaseRefSha,
+      recordedBaseRefSha ??
+      (created ? restoreCurrentBaseRefSha : baseDrift.branchBaseRefSha) ??
+      baseDrift.currentBaseRefSha,
   };
 }
 
 export async function acquireGitWorktreeCleanupLock(worktreePath: string) {
-  const branchRef = await runGit(["symbolic-ref", "--quiet", "HEAD"], worktreePath).catch(() => null);
+  const branchRef = await runGit(
+    ["symbolic-ref", "--quiet", "HEAD"],
+    worktreePath,
+  ).catch(() => null);
   const rawLocks = await Promise.all([
-    runGit(["rev-parse", "--git-path", "index.lock"], worktreePath)
-      .then((lockPath) => ({ kind: "index" as const, lockPath })),
-    runGit(["rev-parse", "--git-path", "HEAD.lock"], worktreePath)
-      .then((lockPath) => ({ kind: "head" as const, lockPath })),
+    runGit(["rev-parse", "--git-path", "index.lock"], worktreePath).then(
+      (lockPath) => ({ kind: "index" as const, lockPath }),
+    ),
+    runGit(["rev-parse", "--git-path", "HEAD.lock"], worktreePath).then(
+      (lockPath) => ({ kind: "head" as const, lockPath }),
+    ),
     ...(branchRef
-      ? [runGit(["rev-parse", "--git-path", `${branchRef}.lock`], worktreePath)
-          .then((lockPath) => ({ kind: "branch" as const, lockPath }))]
+      ? [
+          runGit(
+            ["rev-parse", "--git-path", `${branchRef}.lock`],
+            worktreePath,
+          ).then((lockPath) => ({ kind: "branch" as const, lockPath })),
+        ]
       : []),
   ]);
-  const locks = [...new Map(rawLocks.map(({ kind, lockPath }) => {
-    const resolvedLockPath = path.isAbsolute(lockPath)
-      ? lockPath
-      : path.resolve(worktreePath, lockPath);
-    return [resolvedLockPath, { kind, lockPath: resolvedLockPath }];
-  })).values()];
+  const locks = [
+    ...new Map(
+      rawLocks.map(({ kind, lockPath }) => {
+        const resolvedLockPath = path.isAbsolute(lockPath)
+          ? lockPath
+          : path.resolve(worktreePath, lockPath);
+        return [resolvedLockPath, { kind, lockPath: resolvedLockPath }];
+      }),
+    ).values(),
+  ];
   const lockHandles: Array<{
     handle: fs.FileHandle;
     kind: "index" | "head" | "branch";
@@ -4003,11 +4588,16 @@ async function deleteGitBranchAtVerifiedTip(input: {
   recorder?: WorkspaceOperationRecorder | null;
   metadata: Record<string, unknown>;
 }) {
-  const commonDirRaw = await runGit(["rev-parse", "--git-common-dir"], input.repoRoot);
+  const commonDirRaw = await runGit(
+    ["rev-parse", "--git-common-dir"],
+    input.repoRoot,
+  );
   const commonDir = path.isAbsolute(commonDirRaw)
     ? commonDirRaw
     : path.resolve(input.repoRoot, commonDirRaw);
-  const detachedGitDir = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-branch-delete-"));
+  const detachedGitDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-branch-delete-"),
+  );
   const detachedWorktree = `${detachedGitDir}-worktree`;
 
   try {
@@ -4016,8 +4606,16 @@ async function deleteGitBranchAtVerifiedTip(input: {
     // at the delivered SHA additionally lets squash/cross-branch deliveries
     // delete only the exact branch history that was verified before cleanup.
     await Promise.all([
-      fs.writeFile(path.join(detachedGitDir, "HEAD"), `${input.expectedHeadSha}\n`, "utf8"),
-      fs.writeFile(path.join(detachedGitDir, "commondir"), `${commonDir}\n`, "utf8"),
+      fs.writeFile(
+        path.join(detachedGitDir, "HEAD"),
+        `${input.expectedHeadSha}\n`,
+        "utf8",
+      ),
+      fs.writeFile(
+        path.join(detachedGitDir, "commondir"),
+        `${commonDir}\n`,
+        "utf8",
+      ),
     ]);
     await recordGitOperation(input.recorder, {
       phase: "worktree_cleanup",
@@ -4034,7 +4632,9 @@ async function deleteGitBranchAtVerifiedTip(input: {
       failureLabel: `git branch -d ${input.branchName}`,
     });
   } finally {
-    await fs.rm(detachedGitDir, { recursive: true, force: true }).catch(() => {});
+    await fs
+      .rm(detachedGitDir, { recursive: true, force: true })
+      .catch(() => {});
   }
 }
 
@@ -4067,12 +4667,13 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
 }) {
   const warnings: string[] = [];
   const workspacePath = input.workspace.providerRef ?? input.workspace.cwd;
-  const repoRoot = input.workspace.providerType === "git_worktree" && workspacePath
-    ? await resolveGitRepoRootForWorkspaceCleanup(
-      workspacePath,
-      input.projectWorkspace?.cwd ?? null,
-    )
-    : null;
+  const repoRoot =
+    input.workspace.providerType === "git_worktree" && workspacePath
+      ? await resolveGitRepoRootForWorkspaceCleanup(
+          workspacePath,
+          input.projectWorkspace?.cwd ?? null,
+        )
+      : null;
   const cleanupEnv = buildExecutionWorkspaceCleanupEnv({
     workspace: input.workspace,
     projectWorkspaceCwd: input.projectWorkspace?.cwd ?? null,
@@ -4086,9 +4687,12 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
     expectedWorktreeInstanceId = deriveWorktreeInstanceId(workspacePath);
     try {
       // Capture the pointer before custom cleanup commands can remove the repo-local env file.
-      worktreeInstancePointer = await readWorktreeInstancePointer(workspacePath);
+      worktreeInstancePointer =
+        await readWorktreeInstancePointer(workspacePath);
     } catch (err) {
-      warnings.push(`Could not read worktree instance pointer: ${err instanceof Error ? err.message : String(err)}`);
+      warnings.push(
+        `Could not read worktree instance pointer: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
   // Local-directory ownership keeps the historical createdByRuntime signal.
@@ -4096,16 +4700,19 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
   // with branch-level ownership semantics. Unmarked legacy rows fail closed:
   // their worktrees are removable, but their branch refs are operator-owned.
   const createdByRuntime = input.workspace.metadata?.createdByRuntime === true;
-  const branchCreatedByRuntime = isRuntimeOwnedGitBranch(input.workspace.metadata);
-  const cleanupCommands = input.runCleanupCommands === false
-    ? []
-    : [
-        input.cleanupCommand ?? null,
-        input.projectWorkspace?.cleanupCommand ?? null,
-        input.teardownCommand ?? null,
-      ]
-        .map((value) => asString(value, "").trim())
-        .filter(Boolean);
+  const branchCreatedByRuntime = isRuntimeOwnedGitBranch(
+    input.workspace.metadata,
+  );
+  const cleanupCommands =
+    input.runCleanupCommands === false
+      ? []
+      : [
+          input.cleanupCommand ?? null,
+          input.projectWorkspace?.cleanupCommand ?? null,
+          input.teardownCommand ?? null,
+        ]
+          .map((value) => asString(value, "").trim())
+          .filter(Boolean);
 
   for (const command of cleanupCommands) {
     try {
@@ -4141,14 +4748,18 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
         workspacePath,
         expectedInstanceId: expectedWorktreeInstanceId,
         expectedInstanceRoot:
-          typeof input.workspace.metadata?.[WORKTREE_INSTANCE_ROOT_METADATA_KEY] === "string"
+          typeof input.workspace.metadata?.[
+            WORKTREE_INSTANCE_ROOT_METADATA_KEY
+          ] === "string"
             ? input.workspace.metadata[WORKTREE_INSTANCE_ROOT_METADATA_KEY]
             : null,
         recorder: input.recorder,
       });
       if (result.status === "refused") warnings.push(result.warning);
     } catch (err) {
-      warnings.push(`Failed to clean worktree instance: ${err instanceof Error ? err.message : String(err)}`);
+      warnings.push(
+        `Failed to clean worktree instance: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -4156,7 +4767,9 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
     const worktreeExists = await directoryExists(workspacePath);
     if (worktreeExists) {
       if (!repoRoot) {
-        warnings.push(`Could not resolve git repo root for "${workspacePath}".`);
+        warnings.push(
+          `Could not resolve git repo root for "${workspacePath}".`,
+        );
       } else {
         try {
           await input.assertSafeToCleanup?.();
@@ -4185,7 +4798,9 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
     }
     if (branchCreatedByRuntime && input.workspace.branchName) {
       if (!repoRoot) {
-        warnings.push(`Could not resolve git repo root to delete branch "${input.workspace.branchName}".`);
+        warnings.push(
+          `Could not resolve git repo root to delete branch "${input.workspace.branchName}".`,
+        );
       } else {
         try {
           await input.beforeBranchDelete?.();
@@ -4215,21 +4830,29 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
           }
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          warnings.push(`Skipped deleting branch "${input.workspace.branchName}": ${message}`);
+          warnings.push(
+            `Skipped deleting branch "${input.workspace.branchName}": ${message}`,
+          );
         }
       }
     }
-  } else if (input.workspace.providerType === "local_fs" && createdByRuntime && workspacePath) {
-    const projectWorkspaceCwd = input.projectWorkspace?.cwd ? path.resolve(input.projectWorkspace.cwd) : null;
+  } else if (
+    input.workspace.providerType === "local_fs" &&
+    createdByRuntime &&
+    workspacePath
+  ) {
+    const projectWorkspaceCwd = input.projectWorkspace?.cwd
+      ? path.resolve(input.projectWorkspace.cwd)
+      : null;
     const resolvedWorkspacePath = path.resolve(workspacePath);
     const containsProjectWorkspace = projectWorkspaceCwd
-      ? (
-          resolvedWorkspacePath === projectWorkspaceCwd ||
-          projectWorkspaceCwd.startsWith(`${resolvedWorkspacePath}${path.sep}`)
-        )
+      ? resolvedWorkspacePath === projectWorkspaceCwd ||
+        projectWorkspaceCwd.startsWith(`${resolvedWorkspacePath}${path.sep}`)
       : false;
     if (containsProjectWorkspace) {
-      warnings.push(`Refusing to remove path "${workspacePath}" because it contains the project workspace.`);
+      warnings.push(
+        `Refusing to remove path "${workspacePath}" because it contains the project workspace.`,
+      );
     } else {
       await input.assertSafeToCleanup?.();
       await fs.rm(resolvedWorkspacePath, { recursive: true, force: true });
@@ -4252,9 +4875,7 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
     }
   }
 
-  const cleaned =
-    !workspacePath ||
-    !(await directoryExists(workspacePath));
+  const cleaned = !workspacePath || !(await directoryExists(workspacePath));
 
   return {
     cleanedPath: workspacePath,
@@ -4292,7 +4913,10 @@ function reservePortIfFree(port: number, now = Date.now()): boolean {
  * instead of racing to bind and then hanging on a readiness probe it can never satisfy.
  * A start already holding the port from its own allocation must not be refused by itself.
  */
-export function claimRuntimeServiceBindPort(bindPort: number, alreadyReservedPort: number | null) {
+export function claimRuntimeServiceBindPort(
+  bindPort: number,
+  alreadyReservedPort: number | null,
+) {
   if (bindPort === alreadyReservedPort) return true;
   return reservePortIfFree(bindPort);
 }
@@ -4331,7 +4955,10 @@ async function probeEphemeralPort(): Promise<number> {
  * A lane that is stopped, torn down, and reported `removed` still owns its
  * pair until the workspace itself is released (PAP-17419).
  */
-async function readActiveExecutionWorkspaceLeases(db: Db | undefined, companyId: string): Promise<Set<string>> {
+async function readActiveExecutionWorkspaceLeases(
+  db: Db | undefined,
+  companyId: string,
+): Promise<Set<string>> {
   if (!db) return new Set<string>();
   const rows = await db
     .select({ id: executionWorkspaces.id })
@@ -4339,7 +4966,9 @@ async function readActiveExecutionWorkspaceLeases(db: Db | undefined, companyId:
     .where(
       and(
         eq(executionWorkspaces.companyId, companyId),
-        inArray(executionWorkspaces.status, [...OPEN_EXECUTION_WORKSPACE_LEASE_STATUSES]),
+        inArray(executionWorkspaces.status, [
+          ...OPEN_EXECUTION_WORKSPACE_LEASE_STATUSES,
+        ]),
         isNull(executionWorkspaces.closedAt),
       ),
     );
@@ -4373,27 +5002,27 @@ async function buildCompanyExposureReservationLedger(input: {
 
   const persistedRows: PersistedExposureRowSnapshot[] = input.db
     ? (
-      await input.db
-        .select({
-          id: workspaceRuntimeServices.id,
-          status: workspaceRuntimeServices.status,
-          port: workspaceRuntimeServices.port,
-          exposure: workspaceRuntimeServices.exposure,
-          executionWorkspaceId: workspaceRuntimeServices.executionWorkspaceId,
-          projectWorkspaceId: workspaceRuntimeServices.projectWorkspaceId,
-          issueId: workspaceRuntimeServices.issueId,
-        })
-        .from(workspaceRuntimeServices)
-        .where(eq(workspaceRuntimeServices.companyId, input.companyId))
-    ).map((row) => ({
-      id: row.id,
-      status: row.status,
-      port: row.port,
-      exposure: row.exposure,
-      executionWorkspaceId: row.executionWorkspaceId,
-      projectWorkspaceId: row.projectWorkspaceId,
-      issueId: row.issueId,
-    }))
+        await input.db
+          .select({
+            id: workspaceRuntimeServices.id,
+            status: workspaceRuntimeServices.status,
+            port: workspaceRuntimeServices.port,
+            exposure: workspaceRuntimeServices.exposure,
+            executionWorkspaceId: workspaceRuntimeServices.executionWorkspaceId,
+            projectWorkspaceId: workspaceRuntimeServices.projectWorkspaceId,
+            issueId: workspaceRuntimeServices.issueId,
+          })
+          .from(workspaceRuntimeServices)
+          .where(eq(workspaceRuntimeServices.companyId, input.companyId))
+      ).map((row) => ({
+        id: row.id,
+        status: row.status,
+        port: row.port,
+        exposure: row.exposure,
+        executionWorkspaceId: row.executionWorkspaceId,
+        projectWorkspaceId: row.projectWorkspaceId,
+        issueId: row.issueId,
+      }))
     : [];
 
   return buildExposureReservationLedger({
@@ -4401,7 +5030,10 @@ async function buildCompanyExposureReservationLedger(input: {
     inMemoryRuntimes,
     brokerMappings: input.brokerMappings ?? [],
     quarantinedPorts: quarantinedRuntimeExposurePorts,
-    activeExecutionWorkspaceIds: await readActiveExecutionWorkspaceLeases(input.db, input.companyId),
+    activeExecutionWorkspaceIds: await readActiveExecutionWorkspaceLeases(
+      input.db,
+      input.companyId,
+    ),
     inFlightClaimedPorts: exposurePortPairClaims.activePorts(),
   });
 }
@@ -4442,7 +5074,12 @@ async function detectPersistedExposureReservationDrift(input: {
   // walk the whole dedicated range.
   const candidatePorts = new Set<number>();
   for (const row of snapshots) {
-    if (row.status !== "stopped" && row.status !== "failed" && row.exposure && row.exposure.state !== "removed") {
+    if (
+      row.status !== "stopped" &&
+      row.status !== "failed" &&
+      row.exposure &&
+      row.exposure.state !== "removed"
+    ) {
       continue;
     }
     for (const port of collectRowExposurePorts(row)) candidatePorts.add(port);
@@ -4451,7 +5088,9 @@ async function detectPersistedExposureReservationDrift(input: {
   const livePorts = new Set<number>();
   for (const port of candidatePorts) {
     // "Not bindable" is the liveness signal the rest of this module already uses.
-    const available = await workspaceRuntimeExposureDeps.isPortAvailable(port).catch(() => true);
+    const available = await workspaceRuntimeExposureDeps
+      .isPortAvailable(port)
+      .catch(() => true);
     if (!available) livePorts.add(port);
   }
 
@@ -4467,10 +5106,15 @@ async function detectPersistedExposureReservationDrift(input: {
 }
 
 /** Taskcore-owned Serve mappings, or null when the broker cannot be read. */
-async function readBrokerExposureMappings(): Promise<BrokerMappingSnapshot[] | null> {
+async function readBrokerExposureMappings(): Promise<
+  BrokerMappingSnapshot[] | null
+> {
   try {
     const owned = await workspaceRuntimeExposureDeps.broker.list();
-    return owned.map((listener) => ({ runtimeId: listener.runtimeId, port: listener.port }));
+    return owned.map((listener) => ({
+      runtimeId: listener.runtimeId,
+      port: listener.port,
+    }));
   } catch {
     return null;
   }
@@ -4484,7 +5128,9 @@ async function readBrokerExposureMappings(): Promise<BrokerMappingSnapshot[] | n
  * Attribution goes through this process's own runtime records: a pid we did not
  * start is by definition not ours to adopt.
  */
-async function readExposureListenerOwners(ports: number[]): Promise<Map<number, ExposureOwnerIdentity | null>> {
+async function readExposureListenerOwners(
+  ports: number[],
+): Promise<Map<number, ExposureOwnerIdentity | null>> {
   const owners = new Map<number, ExposureOwnerIdentity | null>();
   for (const port of ports) {
     const ownerPid = await readLocalServicePortOwner(port).catch(() => null);
@@ -4493,7 +5139,8 @@ async function readExposureListenerOwners(ports: number[]): Promise<Map<number, 
     for (const record of runtimeServicesById.values()) {
       const recordPid = record.child?.pid ?? null;
       if (recordPid === null) continue;
-      if (recordPid !== ownerPid && record.processGroupId !== ownerPid) continue;
+      if (recordPid !== ownerPid && record.processGroupId !== ownerPid)
+        continue;
       identity = {
         runtimeServiceId: record.id,
         executionWorkspaceId: record.executionWorkspaceId,
@@ -4516,7 +5163,12 @@ async function allocateAndReserveExposure(input: {
   claimant: ExposureOwnerIdentity;
   /** Port this runtime already used, preserved when it is still safe to use. */
   preferredAppPort?: number | null;
-}): Promise<{ appPort: number; hmrPort: number; status: RuntimeExposureStatus; handle: string }> {
+}): Promise<{
+  appPort: number;
+  hmrPort: number;
+  status: RuntimeExposureStatus;
+  handle: string;
+}> {
   const brokerMappings = await readBrokerExposureMappings();
   const ledger = await buildCompanyExposureReservationLedger({
     db: input.db,
@@ -4527,7 +5179,10 @@ async function allocateAndReserveExposure(input: {
   // an unreadable broker must not silently downgrade to "no mapping exists".
   const serveMappingOwners = new Map<number, ExposureOwnerIdentity | null>();
   for (const mapping of brokerMappings ?? []) {
-    serveMappingOwners.set(mapping.port, ledger.reservationByPort.get(mapping.port)?.owner ?? null);
+    serveMappingOwners.set(
+      mapping.port,
+      ledger.reservationByPort.get(mapping.port)?.owner ?? null,
+    );
   }
 
   // Reserve only what this claimant may NOT have. A leaseholder restarting its
@@ -4536,11 +5191,18 @@ async function allocateAndReserveExposure(input: {
   // Quarantined ports are withheld from everyone, including the owner.
   const reserved = new Set<number>();
   for (const [port, reservation] of ledger.reservationByPort) {
-    if (reservation.source === "quarantine" || !isExposureAdoptionPermitted(reservation.owner, input.claimant)) {
+    if (
+      reservation.source === "quarantine" ||
+      !isExposureAdoptionPermitted(reservation.owner, input.claimant)
+    ) {
       reserved.add(port);
     }
   }
-  const retryable = new Set(["reservation_conflict", "manual_mapping_present", "quarantined"]);
+  const retryable = new Set([
+    "reservation_conflict",
+    "manual_mapping_present",
+    "quarantined",
+  ]);
   const claimed: Array<{ appPort: number; hmrPort: number }> = [];
   let preferredAppPort = input.preferredAppPort ?? null;
   try {
@@ -4562,7 +5224,10 @@ async function allocateAndReserveExposure(input: {
         pair,
         claimant: input.claimant,
         ledger,
-        listenerOwners: await readExposureListenerOwners([pair.appPort, pair.hmrPort]),
+        listenerOwners: await readExposureListenerOwners([
+          pair.appPort,
+          pair.hmrPort,
+        ]),
         serveMappingOwners,
       });
       if (conflict) throw new ExposurePortOwnershipConflictError(conflict);
@@ -4575,10 +5240,17 @@ async function allocateAndReserveExposure(input: {
       if (result.handle) {
         // Keep this pair's claim; the caller releases it on stop/teardown.
         claimed.pop();
-        return { appPort: pair.appPort, hmrPort: pair.hmrPort, status: result.status, handle: result.handle };
+        return {
+          appPort: pair.appPort,
+          hmrPort: pair.hmrPort,
+          status: result.status,
+          handle: result.handle,
+        };
       }
       if (!result.status.lastError || !retryable.has(result.status.lastError)) {
-        throw new Error(`HTTPS exposure reservation failed: ${result.status.lastError ?? "unknown broker error"}`);
+        throw new Error(
+          `HTTPS exposure reservation failed: ${result.status.lastError ?? "unknown broker error"}`,
+        );
       }
       reserved.add(pair.appPort);
       reserved.add(pair.hmrPort);
@@ -4701,7 +5373,8 @@ export function classifyExposureHostCollisions(input: {
   for (const state of input.ports) {
     const guestOwnsPort =
       input.childPid != null &&
-      (state.ownerPid === input.childPid || state.ownerProcessGroupId === input.childPid);
+      (state.ownerPid === input.childPid ||
+        state.ownerProcessGroupId === input.childPid);
     if (state.named && state.listenerPresent && !guestOwnsPort) {
       hostCollisionPorts.push(state.port);
     }
@@ -4720,7 +5393,10 @@ async function readReservedRuntimePorts(input: {
   const otherWorkspaceCondition = input.executionWorkspaceId
     ? or(
         isNull(workspaceRuntimeServices.executionWorkspaceId),
-        ne(workspaceRuntimeServices.executionWorkspaceId, input.executionWorkspaceId),
+        ne(
+          workspaceRuntimeServices.executionWorkspaceId,
+          input.executionWorkspaceId,
+        ),
       )
     : undefined;
   const rows = await input.db
@@ -4728,13 +5404,15 @@ async function readReservedRuntimePorts(input: {
     .from(workspaceRuntimeServices)
     .where(
       and(
-        inArray(workspaceRuntimeServices.status, [...ACTIVE_RUNTIME_PORT_RESERVATION_STATUSES]),
+        inArray(workspaceRuntimeServices.status, [
+          ...ACTIVE_RUNTIME_PORT_RESERVATION_STATUSES,
+        ]),
         gte(workspaceRuntimeServices.port, lowerBound),
         lte(workspaceRuntimeServices.port, upperBound),
         otherWorkspaceCondition,
       ),
     );
-  return new Set(rows.flatMap((row) => row.port === null ? [] : [row.port]));
+  return new Set(rows.flatMap((row) => (row.port === null ? [] : [row.port])));
 }
 
 async function buildRuntimePortAllocationConflict(input: {
@@ -4744,34 +5422,46 @@ async function buildRuntimePortAllocationConflict(input: {
   preferredPort: number;
   attemptedPorts: number[];
 }) {
-  const conflictRows = input.db && input.attemptedPorts.length > 0
-    ? await input.db
-        .select({
-          port: workspaceRuntimeServices.port,
-          executionWorkspaceId: workspaceRuntimeServices.executionWorkspaceId,
-          projectWorkspaceId: workspaceRuntimeServices.projectWorkspaceId,
-        })
-        .from(workspaceRuntimeServices)
-        .where(
-          and(
-            eq(workspaceRuntimeServices.companyId, input.companyId),
-            inArray(workspaceRuntimeServices.status, [...ACTIVE_RUNTIME_PORT_RESERVATION_STATUSES]),
-            inArray(workspaceRuntimeServices.port, input.attemptedPorts),
-            input.executionWorkspaceId
-              ? or(
-                  isNull(workspaceRuntimeServices.executionWorkspaceId),
-                  ne(workspaceRuntimeServices.executionWorkspaceId, input.executionWorkspaceId),
-                )
-              : undefined,
-          ),
-        )
-    : [];
-  const attemptedRank = new Map(input.attemptedPorts.map((port, index) => [port, index]));
-  const authorizedConflict = conflictRows
-    .sort((left, right) =>
-      (attemptedRank.get(left.port ?? -1) ?? Number.MAX_SAFE_INTEGER)
-      - (attemptedRank.get(right.port ?? -1) ?? Number.MAX_SAFE_INTEGER))
-    .find((row) => row.executionWorkspaceId || row.projectWorkspaceId) ?? null;
+  const conflictRows =
+    input.db && input.attemptedPorts.length > 0
+      ? await input.db
+          .select({
+            port: workspaceRuntimeServices.port,
+            executionWorkspaceId: workspaceRuntimeServices.executionWorkspaceId,
+            projectWorkspaceId: workspaceRuntimeServices.projectWorkspaceId,
+          })
+          .from(workspaceRuntimeServices)
+          .where(
+            and(
+              eq(workspaceRuntimeServices.companyId, input.companyId),
+              inArray(workspaceRuntimeServices.status, [
+                ...ACTIVE_RUNTIME_PORT_RESERVATION_STATUSES,
+              ]),
+              inArray(workspaceRuntimeServices.port, input.attemptedPorts),
+              input.executionWorkspaceId
+                ? or(
+                    isNull(workspaceRuntimeServices.executionWorkspaceId),
+                    ne(
+                      workspaceRuntimeServices.executionWorkspaceId,
+                      input.executionWorkspaceId,
+                    ),
+                  )
+                : undefined,
+            ),
+          )
+      : [];
+  const attemptedRank = new Map(
+    input.attemptedPorts.map((port, index) => [port, index]),
+  );
+  const authorizedConflict =
+    conflictRows
+      .sort(
+        (left, right) =>
+          (attemptedRank.get(left.port ?? -1) ?? Number.MAX_SAFE_INTEGER) -
+          (attemptedRank.get(right.port ?? -1) ?? Number.MAX_SAFE_INTEGER),
+      )
+      .find((row) => row.executionWorkspaceId || row.projectWorkspaceId) ??
+    null;
   const remediation =
     "Stop the conflicting managed service or configure a different preferred port, then retry the start.";
 
@@ -4782,10 +5472,16 @@ async function buildRuntimePortAllocationConflict(input: {
       port: input.preferredPort,
       attemptedPortCount: input.attemptedPorts.length,
       ...(authorizedConflict?.executionWorkspaceId
-        ? { conflictingExecutionWorkspaceId: authorizedConflict.executionWorkspaceId }
+        ? {
+            conflictingExecutionWorkspaceId:
+              authorizedConflict.executionWorkspaceId,
+          }
         : {}),
       ...(authorizedConflict?.projectWorkspaceId
-        ? { conflictingProjectWorkspaceId: authorizedConflict.projectWorkspaceId }
+        ? {
+            conflictingProjectWorkspaceId:
+              authorizedConflict.projectWorkspaceId,
+          }
         : {}),
       remediation,
     },
@@ -4807,16 +5503,18 @@ async function allocateIsolatedWorkspacePort(input: {
   const candidates: number[] = [];
   const addCandidate = (port: number | null) => {
     if (
-      port === null
-      || port < input.preferredPort
-      || port > lastPort
-      || input.excludedPorts.has(port)
-      || candidates.includes(port)
-    ) return;
+      port === null ||
+      port < input.preferredPort ||
+      port > lastPort ||
+      input.excludedPorts.has(port) ||
+      candidates.includes(port)
+    )
+      return;
     candidates.push(port);
   };
   addCandidate(input.stoppedPort);
-  for (let port = input.preferredPort; port <= lastPort; port += 1) addCandidate(port);
+  for (let port = input.preferredPort; port <= lastPort; port += 1)
+    addCandidate(port);
 
   const reservedPorts = await readReservedRuntimePorts({
     db: input.db,
@@ -4832,13 +5530,12 @@ async function allocateIsolatedWorkspacePort(input: {
     if (await canBindRuntimePort(port)) return port;
     releasePortReservation(port);
   }
-  const attemptedPorts = [
-    ...input.excludedPorts,
-    ...candidates,
-  ].filter((port, index, ports) =>
-    port >= input.preferredPort
-    && port <= lastPort
-    && ports.indexOf(port) === index);
+  const attemptedPorts = [...input.excludedPorts, ...candidates].filter(
+    (port, index, ports) =>
+      port >= input.preferredPort &&
+      port <= lastPort &&
+      ports.indexOf(port) === index,
+  );
 
   throw await buildRuntimePortAllocationConflict({
     db: input.db,
@@ -4848,7 +5545,6 @@ async function allocateIsolatedWorkspacePort(input: {
     attemptedPorts,
   });
 }
-
 
 /**
  * Allocate a loopback port that no other in-flight managed start already holds and that no
@@ -4860,7 +5556,8 @@ export async function allocateRuntimeServicePort(overrides?: {
   portOwnerLookup?: (port: number) => Promise<number | null>;
 }): Promise<number> {
   const probe = overrides?.probe ?? probeEphemeralPort;
-  const portOwnerLookup = overrides?.portOwnerLookup ?? readLocalServicePortOwner;
+  const portOwnerLookup =
+    overrides?.portOwnerLookup ?? readLocalServicePortOwner;
   let lastCandidate: number | null = null;
   for (let attempt = 0; attempt < PORT_ALLOCATION_ATTEMPTS; attempt += 1) {
     const candidate = await probe();
@@ -4878,8 +5575,8 @@ export async function allocateRuntimeServicePort(overrides?: {
     releasePortReservation(candidate);
   }
   throw new Error(
-    `Could not allocate a free loopback port for a managed runtime service after ${PORT_ALLOCATION_ATTEMPTS} attempts`
-      + `${lastCandidate ? ` (last candidate ${lastCandidate})` : ""}.`,
+    `Could not allocate a free loopback port for a managed runtime service after ${PORT_ALLOCATION_ATTEMPTS} attempts` +
+      `${lastCandidate ? ` (last candidate ${lastCandidate})` : ""}.`,
   );
 }
 
@@ -4944,12 +5641,18 @@ function resolveRuntimeServiceReuseIdentity(input: {
   reuseKey: string | null;
 } {
   const serviceName = asString(input.service.name, "service");
-  const lifecycle = asString(input.service.lifecycle, "shared") === "ephemeral" ? "ephemeral" : "shared";
+  const lifecycle =
+    asString(input.service.lifecycle, "shared") === "ephemeral"
+      ? "ephemeral"
+      : "shared";
   const command = asString(input.service.command, "");
   const serviceCwdTemplate = asString(input.service.cwd, ".");
   const portConfig = parseObject(input.service.port);
   const envConfig = parseObject(input.service.env);
-  const explicitPort = asNumber(portConfig.value, asNumber(input.service.port, 0));
+  const explicitPort = asNumber(
+    portConfig.value,
+    asNumber(input.service.port, 0),
+  );
   const identityPort = explicitPort > 0 ? explicitPort : null;
   const templateData = buildTemplateData({
     workspace: input.workspace,
@@ -4958,12 +5661,17 @@ function resolveRuntimeServiceReuseIdentity(input: {
     adapterEnv: input.adapterEnv,
     port: identityPort,
   });
-  const serviceCwd = resolveConfiguredPath(renderTemplate(serviceCwdTemplate, templateData), input.workspace.cwd);
+  const serviceCwd = resolveConfiguredPath(
+    renderTemplate(serviceCwdTemplate, templateData),
+    input.workspace.cwd,
+  );
   const renderedEnv = renderRuntimeServiceEnv({
     envConfig,
     templateData,
   });
-  const envFingerprint = createHash("sha256").update(stableStringify(renderedEnv)).digest("hex");
+  const envFingerprint = createHash("sha256")
+    .update(stableStringify(renderedEnv))
+    .digest("hex");
   const reuseKey =
     lifecycle === "shared"
       ? createHash("sha256")
@@ -5003,10 +5711,10 @@ function resolveWorkspaceCommandExecution(input: {
   adapterEnv: Record<string, string>;
 }) {
   const name =
-    asString(input.command.name, "")
-    || asString(input.command.label, "")
-    || asString(input.command.title, "")
-    || "workspace command";
+    asString(input.command.name, "") ||
+    asString(input.command.label, "") ||
+    asString(input.command.title, "") ||
+    "workspace command";
   const command = asString(input.command.command, "");
   const templateData = buildTemplateData({
     workspace: input.workspace,
@@ -5083,16 +5791,26 @@ function resolveServiceScopeId(input: {
   scopeType: "project_workspace" | "execution_workspace" | "run" | "agent";
   scopeId: string | null;
 } {
-  const scopeTypeRaw = asString(input.service.reuseScope, input.service.lifecycle === "shared" ? "project_workspace" : "run");
+  const scopeTypeRaw = asString(
+    input.service.reuseScope,
+    input.service.lifecycle === "shared" ? "project_workspace" : "run",
+  );
   const scopeType =
     scopeTypeRaw === "project_workspace" ||
     scopeTypeRaw === "execution_workspace" ||
     scopeTypeRaw === "agent"
       ? scopeTypeRaw
       : "run";
-  if (scopeType === "project_workspace") return { scopeType, scopeId: input.workspace.workspaceId ?? input.workspace.projectId };
+  if (scopeType === "project_workspace")
+    return {
+      scopeType,
+      scopeId: input.workspace.workspaceId ?? input.workspace.projectId,
+    };
   if (scopeType === "execution_workspace") {
-    return { scopeType, scopeId: input.executionWorkspaceId ?? input.workspace.cwd };
+    return {
+      scopeType,
+      scopeId: input.executionWorkspaceId ?? input.workspace.cwd,
+    };
   }
   if (scopeType === "agent") return { scopeType, scopeId: input.agent.id };
   return { scopeType: "run" as const, scopeId: input.runId };
@@ -5101,16 +5819,22 @@ function resolveServiceScopeId(input: {
 function looksLikeWorkspaceDevServerCommand(command: string) {
   const normalized = command.trim().toLowerCase();
   if (!normalized) return false;
-  return /(?:^|\s)(?:pnpm|npm|yarn|bun)\s+(?:run\s+)?dev(?:\s|$)/.test(normalized);
+  return /(?:^|\s)(?:pnpm|npm|yarn|bun)\s+(?:run\s+)?dev(?:\s|$)/.test(
+    normalized,
+  );
 }
 
-export function resolveWorkspaceRuntimeReadinessTimeoutSec(service: Record<string, unknown>) {
+export function resolveWorkspaceRuntimeReadinessTimeoutSec(
+  service: Record<string, unknown>,
+) {
   const readiness = parseObject(service.readiness);
   const explicitTimeoutSec = asNumber(readiness.timeoutSec, 0);
   if (explicitTimeoutSec > 0) {
     return Math.max(1, explicitTimeoutSec);
   }
-  return looksLikeWorkspaceDevServerCommand(asString(service.command, "")) ? 90 : 30;
+  return looksLikeWorkspaceDevServerCommand(asString(service.command, ""))
+    ? 90
+    : 30;
 }
 
 /**
@@ -5139,7 +5863,9 @@ export async function waitForRuntimeServiceReadiness(input: {
     command: input.command,
   });
   if (!readinessUrl) {
-    throw new Error(`Readiness check failed: could not resolve health URL for ${input.url}`);
+    throw new Error(
+      `Readiness check failed: could not resolve health URL for ${input.url}`,
+    );
   }
   const fetchImpl = input.fetchImpl ?? fetch;
   const now = input.now ?? Date.now;
@@ -5151,10 +5877,15 @@ export async function waitForRuntimeServiceReadiness(input: {
   let lastCause: unknown;
   let probes = 0;
   while (now() < deadline) {
-    const probeBudgetMs = Math.max(1, Math.min(RUNTIME_SERVICE_READINESS_PROBE_TIMEOUT_MS, deadline - now()));
+    const probeBudgetMs = Math.max(
+      1,
+      Math.min(RUNTIME_SERVICE_READINESS_PROBE_TIMEOUT_MS, deadline - now()),
+    );
     probes += 1;
     try {
-      const response = await fetchImpl(readinessUrl, { signal: AbortSignal.timeout(probeBudgetMs) });
+      const response = await fetchImpl(readinessUrl, {
+        signal: AbortSignal.timeout(probeBudgetMs),
+      });
       if (response.ok) return;
       lastError = `received HTTP ${response.status}`;
       lastCause = undefined;
@@ -5181,26 +5912,38 @@ async function waitForAllocatedPortBind(input: {
   port: number;
   child: ChildProcess;
 }) {
-  const deadline = Date.now() + resolveWorkspaceRuntimeReadinessTimeoutSec(input.service) * 1000;
+  const deadline =
+    Date.now() +
+    resolveWorkspaceRuntimeReadinessTimeoutSec(input.service) * 1000;
   while (Date.now() < deadline) {
     if (input.child.exitCode !== null || input.child.signalCode !== null) {
-      throw new Error("service process exited before binding its allocated port");
+      throw new Error(
+        "service process exited before binding its allocated port",
+      );
     }
 
     const ownerPid = await readLocalServicePortOwner(input.port);
     if (ownerPid) {
       const childPid = input.child.pid ?? null;
-      if (!childPid || !(await isLocalServiceProcessOwnedBy(ownerPid, childPid))) {
+      if (
+        !childPid ||
+        !(await isLocalServiceProcessOwnedBy(ownerPid, childPid))
+      ) {
         throw new RuntimeServicePortBindCollision(input.port);
       }
       // Require the same launched process group to retain ownership across a stability delay.
       // Cwd matching alone is insufficient because sibling services can share a workspace.
       await delay(250);
       if (input.child.exitCode !== null || input.child.signalCode !== null) {
-        throw new Error("service process exited after losing its allocated port");
+        throw new Error(
+          "service process exited after losing its allocated port",
+        );
       }
       const stableOwnerPid = await readLocalServicePortOwner(input.port);
-      if (!stableOwnerPid || !(await isLocalServiceProcessOwnedBy(stableOwnerPid, childPid))) {
+      if (
+        !stableOwnerPid ||
+        !(await isLocalServiceProcessOwnedBy(stableOwnerPid, childPid))
+      ) {
         throw new RuntimeServicePortBindCollision(input.port);
       }
       return;
@@ -5212,29 +5955,42 @@ async function waitForAllocatedPortBind(input: {
     if (await hasLoopbackPortListener(input.port)) {
       await delay(250);
       if (input.child.exitCode !== null || input.child.signalCode !== null) {
-        throw new Error("service process exited after losing its allocated port");
+        throw new Error(
+          "service process exited after losing its allocated port",
+        );
       }
       const stableOwnerPid = await readLocalServicePortOwner(input.port);
       const childPid = input.child.pid ?? null;
-      if (stableOwnerPid && childPid && await isLocalServiceProcessOwnedBy(stableOwnerPid, childPid)) return;
+      if (
+        stableOwnerPid &&
+        childPid &&
+        (await isLocalServiceProcessOwnedBy(stableOwnerPid, childPid))
+      )
+        return;
       throw new RuntimeServicePortBindCollision(input.port);
     }
     await delay(50);
   }
-  throw new Error(`Runtime service did not bind allocated port ${input.port} before timeout`);
-}
-
-function isTaskcoreDevRuntimeService(input: { serviceName?: string | null; command?: string | null }) {
-  const serviceName = (input.serviceName ?? "").trim().toLowerCase();
-  const command = (input.command ?? "").trim().toLowerCase();
-  return (
-    serviceName === "taskcore-dev"
-    || serviceName === "taskcore-dev-once"
-    || (command.includes("dev:once") && command.includes("tailscale-auth"))
+  throw new Error(
+    `Runtime service did not bind allocated port ${input.port} before timeout`,
   );
 }
 
-export const MANAGED_RUNTIME_PUBLIC_URL_ENV = "TASKCORE_MANAGED_RUNTIME_PUBLIC_URL";
+function isTaskcoreDevRuntimeService(input: {
+  serviceName?: string | null;
+  command?: string | null;
+}) {
+  const serviceName = (input.serviceName ?? "").trim().toLowerCase();
+  const command = (input.command ?? "").trim().toLowerCase();
+  return (
+    serviceName === "taskcore-dev" ||
+    serviceName === "taskcore-dev-once" ||
+    (command.includes("dev:once") && command.includes("tailscale-auth"))
+  );
+}
+
+export const MANAGED_RUNTIME_PUBLIC_URL_ENV =
+  "TASKCORE_MANAGED_RUNTIME_PUBLIC_URL";
 
 const EXPLICIT_RUNTIME_ORIGIN_ENV_KEYS = [
   "TASKCORE_PUBLIC_URL",
@@ -5244,8 +6000,16 @@ const EXPLICIT_RUNTIME_ORIGIN_ENV_KEYS = [
 ] as const;
 
 function isLoopbackRuntimeHostname(hostname: string) {
-  const normalized = hostname.trim().toLowerCase().replace(/^\[|\]$/g, "");
-  if (normalized === "localhost" || normalized.endsWith(".localhost") || normalized === "::1") return true;
+  const normalized = hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
+  if (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized === "::1"
+  )
+    return true;
   if (net.isIP(normalized) !== 4) return false;
   const firstOctet = Number(normalized.split(".")[0]);
   return firstOctet === 127;
@@ -5253,9 +6017,9 @@ function isLoopbackRuntimeHostname(hostname: string) {
 
 function managedRuntimeOriginError(serviceName: string, reason: string) {
   return new Error(
-    `Runtime service "${serviceName}" cannot derive a browser-reachable OAuth callback origin: ${reason}. `
-    + "Configure TASKCORE_PUBLIC_URL or BETTER_AUTH_URL for this service, or publish an HTTPS expose.urlTemplate "
-    + "that the operator's browser can reach (loopback HTTP is also supported).",
+    `Runtime service "${serviceName}" cannot derive a browser-reachable OAuth callback origin: ${reason}. ` +
+      "Configure TASKCORE_PUBLIC_URL or BETTER_AUTH_URL for this service, or publish an HTTPS expose.urlTemplate " +
+      "that the operator's browser can reach (loopback HTTP is also supported).",
   );
 }
 
@@ -5271,7 +6035,8 @@ function trustedRuntimeHostnameBoundary(
   const markerPrefix = "taskcore-runtime-template-";
   const safeTemplate = urlTemplate.replace(
     /{{\s*([a-zA-Z0-9_.-]+)\s*}}/g,
-    (_match, path: string) => path === "port" ? "443" : `${markerPrefix}${markerIndex++}`,
+    (_match, path: string) =>
+      path === "port" ? "443" : `${markerPrefix}${markerIndex++}`,
   );
   let parsed: URL;
   try {
@@ -5282,18 +6047,24 @@ function trustedRuntimeHostnameBoundary(
   if (parsed.username || parsed.password) return null;
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
 
-  const hostname = parsed.hostname.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  const hostname = parsed.hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
   const markers = [...hostname.matchAll(/taskcore-runtime-template-\d+/g)];
   const lastMarker = markers.at(-1);
   if (!lastMarker || lastMarker.index === undefined) {
     return hostname ? { exactHostname: hostname } : null;
   }
 
-  const hostnameSuffix = hostname.slice(lastMarker.index + lastMarker[0].length);
+  const hostnameSuffix = hostname.slice(
+    lastMarker.index + lastMarker[0].length,
+  );
   // A dynamic non-loopback hostname needs at least a stable two-label domain
   // after the final interpolation. This binds rendered branch/workspace values
   // to the operator-configured domain instead of trusting URL parsing alone.
-  if (!hostnameSuffix.startsWith(".") || !hostnameSuffix.slice(1).includes(".")) return null;
+  if (!hostnameSuffix.startsWith(".") || !hostnameSuffix.slice(1).includes("."))
+    return null;
   return { hostnameSuffix };
 }
 
@@ -5309,45 +6080,66 @@ export function resolveManagedTaskcoreRuntimePublicOrigin(input: {
   exposedUrlTemplate?: string | null;
 }) {
   if (!isTaskcoreDevRuntimeService(input)) return null;
-  if (EXPLICIT_RUNTIME_ORIGIN_ENV_KEYS.some((key) => input.environment[key]?.trim())) return null;
+  if (
+    EXPLICIT_RUNTIME_ORIGIN_ENV_KEYS.some((key) =>
+      input.environment[key]?.trim(),
+    )
+  )
+    return null;
   if (!input.exposedUrl) {
-    throw managedRuntimeOriginError(input.serviceName, "the managed service does not report an exposed URL");
+    throw managedRuntimeOriginError(
+      input.serviceName,
+      "the managed service does not report an exposed URL",
+    );
   }
 
   let parsed: URL;
   try {
     parsed = new URL(input.exposedUrl);
   } catch {
-    throw managedRuntimeOriginError(input.serviceName, "the managed service reports an invalid exposed URL");
+    throw managedRuntimeOriginError(
+      input.serviceName,
+      "the managed service reports an invalid exposed URL",
+    );
   }
 
   if (parsed.username || parsed.password) {
-    throw managedRuntimeOriginError(input.serviceName, "the exposed URL contains credentials");
+    throw managedRuntimeOriginError(
+      input.serviceName,
+      "the exposed URL contains credentials",
+    );
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw managedRuntimeOriginError(input.serviceName, "the exposed URL must use HTTP or HTTPS");
+    throw managedRuntimeOriginError(
+      input.serviceName,
+      "the exposed URL must use HTTP or HTTPS",
+    );
   }
 
-  const hostname = parsed.hostname.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  const hostname = parsed.hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
   const loopback = isLoopbackRuntimeHostname(hostname);
   if (!hostname || hostname === "0.0.0.0" || hostname === "::") {
-    throw managedRuntimeOriginError(input.serviceName, "the exposed URL uses a bind-only hostname");
+    throw managedRuntimeOriginError(
+      input.serviceName,
+      "the exposed URL uses a bind-only hostname",
+    );
   }
   if (
-    !loopback
-    && (
-      (!hostname.includes(".") && net.isIP(hostname) === 0)
-      || hostname.endsWith(".invalid")
-      || hostname.endsWith(".test")
-      || hostname.endsWith(".internal")
-      || hostname.endsWith(".localdomain")
-      || hostname === "example.com"
-      || hostname.endsWith(".example.com")
-      || hostname === "example.net"
-      || hostname.endsWith(".example.net")
-      || hostname === "example.org"
-      || hostname.endsWith(".example.org")
-    )
+    !loopback &&
+    ((!hostname.includes(".") && net.isIP(hostname) === 0) ||
+      hostname.endsWith(".invalid") ||
+      hostname.endsWith(".test") ||
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".localdomain") ||
+      hostname === "example.com" ||
+      hostname.endsWith(".example.com") ||
+      hostname === "example.net" ||
+      hostname.endsWith(".example.net") ||
+      hostname === "example.org" ||
+      hostname.endsWith(".example.org"))
   ) {
     throw managedRuntimeOriginError(
       input.serviceName,
@@ -5355,7 +6147,10 @@ export function resolveManagedTaskcoreRuntimePublicOrigin(input: {
     );
   }
   if (!loopback && parsed.protocol !== "https:") {
-    throw managedRuntimeOriginError(input.serviceName, "non-loopback OAuth callbacks require HTTPS");
+    throw managedRuntimeOriginError(
+      input.serviceName,
+      "non-loopback OAuth callbacks require HTTPS",
+    );
   }
   if (!loopback) {
     const boundary = trustedRuntimeHostnameBoundary(input.exposedUrlTemplate);
@@ -5365,9 +6160,11 @@ export function resolveManagedTaskcoreRuntimePublicOrigin(input: {
         "the exposed URL template does not define a stable hostname boundary",
       );
     }
-    const withinBoundary = "exactHostname" in boundary
-      ? hostname === boundary.exactHostname
-      : hostname.length > boundary.hostnameSuffix.length && hostname.endsWith(boundary.hostnameSuffix);
+    const withinBoundary =
+      "exactHostname" in boundary
+        ? hostname === boundary.exactHostname
+        : hostname.length > boundary.hostnameSuffix.length &&
+          hostname.endsWith(boundary.hostnameSuffix);
     if (!withinBoundary) {
       throw managedRuntimeOriginError(
         input.serviceName,
@@ -5445,12 +6242,17 @@ async function probeManagedWorkspaceRuntimeReadiness(
   const verified = !result.ok
     ? result
     : input.db
-      ? await probeManagedWorkspaceHandoffSubjects({ db: input.db, healthUrl, identity })
+      ? await probeManagedWorkspaceHandoffSubjects({
+          db: input.db,
+          healthUrl,
+          identity,
+        })
       : {
           ok: false as const,
           reason: "not_ready" as const,
           readiness: result.readiness,
-          detail: "control-plane database is unavailable for board identity verification",
+          detail:
+            "control-plane database is unavailable for board identity verification",
         };
   if (verified.ok) return true;
   logManagedWorkspaceReadinessRejection({
@@ -5467,29 +6269,41 @@ async function isRuntimeServiceUrlHealthy(
   url: string | null,
   input?: RuntimeServiceHealthProbeInput,
 ) {
-  const localProbeUrl = input?.provider === "local_process" && input.port && isTaskcoreDevRuntimeService(input)
-    ? `http://127.0.0.1:${input.port}`
-    : null;
+  const localProbeUrl =
+    input?.provider === "local_process" &&
+    input.port &&
+    isTaskcoreDevRuntimeService(input)
+      ? `http://127.0.0.1:${input.port}`
+      : null;
   const probeUrl = localProbeUrl ?? url;
   if (!probeUrl) return true;
   const healthUrl = resolveRuntimeServiceHealthUrl(probeUrl, input);
   if (!healthUrl) return false;
 
-  const readiness = await probeManagedWorkspaceRuntimeReadiness(healthUrl, input ?? {});
+  const readiness = await probeManagedWorkspaceRuntimeReadiness(
+    healthUrl,
+    input ?? {},
+  );
   if (readiness !== null) return readiness;
 
   try {
-    const response = await fetch(healthUrl, { signal: AbortSignal.timeout(2_000) });
+    const response = await fetch(healthUrl, {
+      signal: AbortSignal.timeout(2_000),
+    });
     if (!response.ok) return false;
     if (!isTaskcoreDevRuntimeService(input ?? {})) return true;
-    const payload = await response.json().catch(() => null) as { status?: unknown } | null;
+    const payload = (await response.json().catch(() => null)) as {
+      status?: unknown;
+    } | null;
     return payload?.status === "ok";
   } catch {
     return false;
   }
 }
 
-function toPersistedWorkspaceRuntimeService(record: RuntimeServiceRecord): typeof workspaceRuntimeServices.$inferInsert {
+function toPersistedWorkspaceRuntimeService(
+  record: RuntimeServiceRecord,
+): typeof workspaceRuntimeServices.$inferInsert {
   return {
     id: record.id,
     companyId: record.companyId,
@@ -5523,7 +6337,10 @@ function toPersistedWorkspaceRuntimeService(record: RuntimeServiceRecord): typeo
   };
 }
 
-async function persistRuntimeServiceRecord(db: Db | undefined, record: RuntimeServiceRecord) {
+async function persistRuntimeServiceRecord(
+  db: Db | undefined,
+  record: RuntimeServiceRecord,
+) {
   if (!db) return;
   const values = toPersistedWorkspaceRuntimeService(record);
   await db
@@ -5595,9 +6412,10 @@ async function findStoppedRuntimeServiceReuseCandidate(input: {
     if (row) return row;
   }
 
-  const scopeIdCondition = input.scopeId === null
-    ? isNull(workspaceRuntimeServices.scopeId)
-    : eq(workspaceRuntimeServices.scopeId, input.scopeId);
+  const scopeIdCondition =
+    input.scopeId === null
+      ? isNull(workspaceRuntimeServices.scopeId)
+      : eq(workspaceRuntimeServices.scopeId, input.scopeId);
   const row = await input.db
     .select({
       id: workspaceRuntimeServices.id,
@@ -5647,7 +6465,7 @@ export function normalizeAdapterManagedRuntimeServices(input: {
       (scopeType === "project_workspace"
         ? input.workspace.workspaceId
         : scopeType === "execution_workspace"
-          ? input.executionWorkspaceId ?? input.workspace.cwd
+          ? (input.executionWorkspaceId ?? input.workspace.cwd)
           : scopeType === "agent"
             ? input.agent.id
             : input.runId) ??
@@ -5657,7 +6475,11 @@ export function normalizeAdapterManagedRuntimeServices(input: {
     const lifecycle = report.lifecycle ?? "ephemeral";
     const healthStatus =
       report.healthStatus ??
-      (status === "running" ? "healthy" : status === "failed" ? "unhealthy" : "unknown");
+      (status === "running"
+        ? "healthy"
+        : status === "failed"
+          ? "unhealthy"
+          : "unknown");
     return {
       id: stableRuntimeServiceId({
         adapterType: input.adapterType,
@@ -5671,7 +6493,8 @@ export function normalizeAdapterManagedRuntimeServices(input: {
       }),
       companyId: input.agent.companyId,
       projectId: report.projectId ?? input.workspace.projectId,
-      projectWorkspaceId: report.projectWorkspaceId ?? input.workspace.workspaceId,
+      projectWorkspaceId:
+        report.projectWorkspaceId ?? input.workspace.workspaceId,
       executionWorkspaceId: input.executionWorkspaceId ?? null,
       issueId: report.issueId ?? input.issue?.id ?? null,
       serviceName,
@@ -5740,7 +6563,8 @@ function readRuntimeProvisionCommand(config: Record<string, unknown>) {
   ).trim();
 }
 
-const BUILTIN_WORKSPACE_SEED_COMMAND = "bash ./scripts/provision-worktree-runtime.sh";
+const BUILTIN_WORKSPACE_SEED_COMMAND =
+  "bash ./scripts/provision-worktree-runtime.sh";
 
 type RuntimeProvisionKind = "workspace_seed" | "runtime_dependencies";
 
@@ -5749,10 +6573,18 @@ function readWorkspaceSeedOperationEvidence(worktreePath: string): {
   error: string | null;
   metadata: Record<string, unknown>;
 } {
-  const manifestPath = path.join(worktreePath, ".taskcore", "seed-manifest.json");
+  const manifestPath = path.join(
+    worktreePath,
+    ".taskcore",
+    "seed-manifest.json",
+  );
   try {
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
-    const state = typeof manifest.state === "string" ? manifest.state : "unknown";
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    const state =
+      typeof manifest.state === "string" ? manifest.state : "unknown";
     const phase = typeof manifest.phase === "string" ? manifest.phase : null;
     const verified = isVerifiedWorktreeSeedManifest(manifest);
     return {
@@ -5772,7 +6604,8 @@ function readWorkspaceSeedOperationEvidence(worktreePath: string): {
   } catch {
     return {
       verified: false,
-      error: "Workspace seed command returned without a readable seed manifest.",
+      error:
+        "Workspace seed command returned without a readable seed manifest.",
       metadata: {
         provisionKind: "workspace_seed",
         seedState: existsSync(manifestPath) ? "unreadable" : "absent",
@@ -5800,7 +6633,8 @@ export function resolveRuntimeProvisionCommand(input: {
     "scripts",
     "provision-worktree-runtime.sh",
   );
-  const needsSeed = !existsSync(manifestPath) || !hasVerifiedWorktreeSeedManifest(manifestPath);
+  const needsSeed =
+    !existsSync(manifestPath) || !hasVerifiedWorktreeSeedManifest(manifestPath);
   if (!needsSeed || !existsSync(provisionScript)) {
     return "";
   }
@@ -5830,7 +6664,9 @@ function runtimeProvisionWorkspaceKey(input: StartLocalRuntimeServiceInput) {
       : `cwd:${path.resolve(input.workspace.cwd)}`;
 }
 
-async function runRuntimeProvisionWithWorkspaceMutex(input: StartLocalRuntimeServiceInput) {
+async function runRuntimeProvisionWithWorkspaceMutex(
+  input: StartLocalRuntimeServiceInput,
+) {
   const command = asString(input.runtimeProvisionCommand, "").trim();
   if (!command) return;
 
@@ -5841,15 +6677,23 @@ async function runRuntimeProvisionWithWorkspaceMutex(input: StartLocalRuntimeSer
     return;
   }
 
-  const recorder = input.recorder ?? (input.db
-    ? workspaceOperationService(input.db).createRecorder({
-        companyId: input.agent.companyId,
-        heartbeatRunId: input.startedByRunId === undefined ? input.runId : input.startedByRunId,
-        executionWorkspaceId: input.executionWorkspaceId ?? null,
-        issueId: input.issue?.id ?? null,
-      })
-    : null);
-  const resolvedCommand = resolveRepoManagedWorkspaceCommand(command, input.workspace.baseCwd);
+  const recorder =
+    input.recorder ??
+    (input.db
+      ? workspaceOperationService(input.db).createRecorder({
+          companyId: input.agent.companyId,
+          heartbeatRunId:
+            input.startedByRunId === undefined
+              ? input.runId
+              : input.startedByRunId,
+          executionWorkspaceId: input.executionWorkspaceId ?? null,
+          issueId: input.issue?.id ?? null,
+        })
+      : null);
+  const resolvedCommand = resolveRepoManagedWorkspaceCommand(
+    command,
+    input.workspace.baseCwd,
+  );
   const workspaceSeed = input.runtimeProvisionKind === "workspace_seed";
   const promise = recordWorkspaceCommandOperation(recorder, {
     phase: workspaceSeed ? "workspace_seed" : "workspace_runtime_provision",
@@ -5917,7 +6761,8 @@ function createProvisioningRuntimeServiceRecord(
     provider: "local_process",
     providerRef: null,
     ownerAgentId: input.agent.id ?? null,
-    startedByRunId: input.startedByRunId === undefined ? input.runId : input.startedByRunId,
+    startedByRunId:
+      input.startedByRunId === undefined ? input.runId : input.startedByRunId,
     lastUsedAt: nowIso,
     startedAt: nowIso,
     stoppedAt: null,
@@ -5939,9 +6784,13 @@ function createProvisioningRuntimeServiceRecord(
   };
 }
 
-async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): Promise<LocalRuntimeServiceStart> {
-  const leaseRunId = input.leaseRunId === undefined ? input.runId : input.leaseRunId;
-  const startedByRunId = input.startedByRunId === undefined ? input.runId : input.startedByRunId;
+async function spawnLocalRuntimeService(
+  input: StartLocalRuntimeServiceInput,
+): Promise<LocalRuntimeServiceStart> {
+  const leaseRunId =
+    input.leaseRunId === undefined ? input.runId : input.leaseRunId;
+  const startedByRunId =
+    input.startedByRunId === undefined ? input.runId : input.startedByRunId;
   const identity = resolveRuntimeServiceReuseIdentity({
     service: input.service,
     workspace: input.workspace,
@@ -5954,7 +6803,8 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
   const serviceName = identity.serviceName;
   const lifecycle = identity.lifecycle;
   const declaredCommand = identity.command;
-  if (!declaredCommand) throw new Error(`Runtime service "${serviceName}" is missing command`);
+  if (!declaredCommand)
+    throw new Error(`Runtime service "${serviceName}" is missing command`);
   const portConfig = parseObject(input.service.port);
   const envConfig = identity.envConfig;
   const envFingerprint = identity.envFingerprint;
@@ -5979,14 +6829,16 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
   // flags: `--bind` means something else entirely to an unrelated service (the
   // HTTPS probe canaries pass it to `python3 -m http.server`), and appending
   // flags a command cannot parse would make it exit on startup.
-  const command = exposureConfig ? forceLoopbackBindInCommand(declaredCommand) : declaredCommand;
+  const command = exposureConfig
+    ? forceLoopbackBindInCommand(declaredCommand)
+    : declaredCommand;
   const portType = asString(portConfig.type, "");
   const canAllocateFixedPort = Boolean(
-    !exposureConfig
-    && input.allowFixedPortFallback
-    && input.db
-    && input.executionWorkspaceId
-    && explicitPort > 0,
+    !exposureConfig &&
+    input.allowFixedPortFallback &&
+    input.db &&
+    input.executionWorkspaceId &&
+    explicitPort > 0,
   );
   const stoppedReuseCandidate = await findStoppedRuntimeServiceReuseCandidate({
     db: input.db,
@@ -6010,8 +6862,8 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
     const identityExpose = parseObject(input.service.expose);
     const identityReadiness = parseObject(input.service.readiness);
     const identityUrlTemplate =
-      asString(identityExpose.urlTemplate, "")
-      || asString(identityReadiness.urlTemplate, "");
+      asString(identityExpose.urlTemplate, "") ||
+      asString(identityReadiness.urlTemplate, "");
     const identityBackendUrl = identityUrlTemplate
       ? renderTemplate(identityUrlTemplate, identityTemplateData)
       : null;
@@ -6029,18 +6881,21 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
         reuseKey: input.reuseKey,
       },
     });
-    fixedPortRegistryMatch = Boolean(await findAdoptableLocalService({
-      serviceKey: identityServiceKey,
-      profileKind: "workspace-runtime",
-      serviceName,
-      command,
-      cwd: identity.serviceCwd,
-      envFingerprint: serviceIdentityFingerprint,
-      port: identityPort,
-      url: identityBackendUrl,
-    }));
+    fixedPortRegistryMatch = Boolean(
+      await findAdoptableLocalService({
+        serviceKey: identityServiceKey,
+        profileKind: "workspace-runtime",
+        serviceName,
+        command,
+        cwd: identity.serviceCwd,
+        envFingerprint: serviceIdentityFingerprint,
+        port: identityPort,
+        url: identityBackendUrl,
+      }),
+    );
   }
-  const runtimeId = input.runtimeServiceId ?? stoppedReuseCandidate?.id ?? randomUUID();
+  const runtimeId =
+    input.runtimeServiceId ?? stoppedReuseCandidate?.id ?? randomUUID();
   // An exposed runtime always takes its port from the dedicated broker range, so
   // a configured or previously used port is a *preference*, not a constraint. It
   // is honored when it is already an allowlisted app port whose HMR companion is
@@ -6062,7 +6917,9 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
           projectWorkspaceId: input.workspace.workspaceId,
           issueId: input.issue?.id ?? null,
         },
-        preferredAppPort: stoppedReuseCandidate?.port ?? (explicitPort > 0 ? explicitPort : null),
+        preferredAppPort:
+          stoppedReuseCandidate?.port ??
+          (explicitPort > 0 ? explicitPort : null),
       })
     : null;
   // Loopback port this start claimed in-process for its own duration (PAP-17249). A bare
@@ -6074,11 +6931,11 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
   let port: number | null = reservedExposure?.appPort ?? null;
   if (!reservedExposure && portType === "auto") {
     if (
-      stoppedReuseCandidate?.port
-      && !input.excludedPorts?.has(stoppedReuseCandidate.port)
+      stoppedReuseCandidate?.port &&
+      !input.excludedPorts?.has(stoppedReuseCandidate.port) &&
       // Reserving the reuse candidate keeps two concurrent starts of the same stopped service
       // from both deciding the old port is free.
-      && reservePortIfFree(stoppedReuseCandidate.port)
+      reservePortIfFree(stoppedReuseCandidate.port)
     ) {
       if (await canBindRuntimePort(stoppedReuseCandidate.port)) {
         port = stoppedReuseCandidate.port;
@@ -6087,7 +6944,11 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
         releasePortReservation(stoppedReuseCandidate.port);
       }
     }
-    for (let attempt = 0; port === null && attempt < WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      port === null && attempt < WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS;
+      attempt += 1
+    ) {
       // Reserves its candidate in-process and re-checks it for a live owner before returning.
       const candidate = await allocateRuntimeServicePort();
       if (input.excludedPorts?.has(candidate)) {
@@ -6098,13 +6959,21 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
       reservedPort = candidate;
     }
     if (port === null) {
-      throw conflict("No safe automatically allocated runtime service port is available.", {
-        code: "workspace_runtime_port_allocation_exhausted",
-        attemptedPortCount: WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS,
-        remediation: "Retry the start or configure a different runtime service port.",
-      });
+      throw conflict(
+        "No safe automatically allocated runtime service port is available.",
+        {
+          code: "workspace_runtime_port_allocation_exhausted",
+          attemptedPortCount: WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS,
+          remediation:
+            "Retry the start or configure a different runtime service port.",
+        },
+      );
     }
-  } else if (!reservedExposure && canAllocateFixedPort && fixedPortRegistryMatch) {
+  } else if (
+    !reservedExposure &&
+    canAllocateFixedPort &&
+    fixedPortRegistryMatch
+  ) {
     port = explicitPort;
   } else if (!reservedExposure && canAllocateFixedPort) {
     port = await allocateIsolatedWorkspacePort({
@@ -6140,7 +7009,9 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
         appPort: reservedExposure.appPort,
         hmrPort: reservedExposure.hmrPort,
       });
-      throw new Error("HTTPS exposure failed: Tailscale MagicDNS hostname unavailable");
+      throw new Error(
+        "HTTPS exposure failed: Tailscale MagicDNS hostname unavailable",
+      );
     }
   }
   const templateData = buildTemplateData({
@@ -6153,9 +7024,14 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
   const serviceCwd =
     port === identityPort
       ? identity.serviceCwd
-      : resolveConfiguredPath(renderTemplate(asString(input.service.cwd, "."), templateData), input.workspace.cwd);
+      : resolveConfiguredPath(
+          renderTemplate(asString(input.service.cwd, "."), templateData),
+          input.workspace.cwd,
+        );
   const runtimeEnvOverrides: Record<string, string> = { ...input.adapterEnv };
-  for (const [key, value] of Object.entries(renderRuntimeServiceEnv({ envConfig, templateData }))) {
+  for (const [key, value] of Object.entries(
+    renderRuntimeServiceEnv({ envConfig, templateData }),
+  )) {
     runtimeEnvOverrides[key] = value;
   }
   const env: Record<string, string> = {
@@ -6170,8 +7046,8 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
   const uiDevMiddlewareHasTransport =
     !exposureConfig || exposureConfig.includeTaskcoreViteHmr;
   if (
-    uiDevMiddlewareHasTransport
-    && isTaskcoreDevRuntimeService({ serviceName, command })
+    uiDevMiddlewareHasTransport &&
+    isTaskcoreDevRuntimeService({ serviceName, command })
   ) {
     env.TASKCORE_UI_DEV_MIDDLEWARE ??= "true";
   }
@@ -6184,7 +7060,10 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
   // the Taskcore dev runtime whether or not it is HTTPS-exposed, because the
   // password-independent login handoff and the protected readiness probe are
   // both needed for a plain-HTTP loopback workspace too (PAP-17572).
-  const managedWorkspaceIdentity = isTaskcoreDevRuntimeService({ serviceName, command })
+  const managedWorkspaceIdentity = isTaskcoreDevRuntimeService({
+    serviceName,
+    command,
+  })
     ? resolveManagedWorkspaceIdentity({
         workspaceCwd: input.workspace.cwd,
         executionWorkspaceId: input.executionWorkspaceId ?? null,
@@ -6217,12 +7096,15 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
   const expose = parseObject(input.service.expose);
   const readiness = parseObject(input.service.readiness);
   const urlTemplate =
-    asString(expose.urlTemplate, "") ||
-    asString(readiness.urlTemplate, "");
-  const backendUrl = urlTemplate ? renderTemplate(urlTemplate, templateData) : null;
+    asString(expose.urlTemplate, "") || asString(readiness.urlTemplate, "");
+  const backendUrl = urlTemplate
+    ? renderTemplate(urlTemplate, templateData)
+    : null;
   let url = exposureConfig ? null : backendUrl;
   const readinessUrlTemplate = asString(readiness.urlTemplate, "");
-  const readinessUrl = readinessUrlTemplate ? renderTemplate(readinessUrlTemplate, templateData) : null;
+  const readinessUrl = readinessUrlTemplate
+    ? renderTemplate(readinessUrlTemplate, templateData)
+    : null;
   const managedRuntimePublicOrigin = resolveManagedTaskcoreRuntimePublicOrigin({
     serviceName,
     command,
@@ -6252,26 +7134,30 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
       reuseKey: input.reuseKey,
     },
   });
-  const adoptedRecord = exposureConfig ? null : await findAdoptableLocalService({
-    serviceKey,
-    profileKind: "workspace-runtime",
-    serviceName,
-    command,
-    cwd: serviceCwd,
-    envFingerprint: serviceIdentityFingerprint,
-    port: port ?? identityPort,
-    url: backendUrl,
-  });
+  const adoptedRecord = exposureConfig
+    ? null
+    : await findAdoptableLocalService({
+        serviceKey,
+        profileKind: "workspace-runtime",
+        serviceName,
+        command,
+        cwd: serviceCwd,
+        envFingerprint: serviceIdentityFingerprint,
+        port: port ?? identityPort,
+        url: backendUrl,
+      });
   if (adoptedRecord) {
     const adoptedUrl = adoptedRecord.url ?? backendUrl;
-    if (!(await isRuntimeServiceUrlHealthy(adoptedUrl, {
-      db: input.db,
-      serviceName,
-      command,
-      cwd: input.workspace.cwd,
-      executionWorkspaceId: input.executionWorkspaceId ?? null,
-      companyId: input.agent.companyId,
-    }))) {
+    if (
+      !(await isRuntimeServiceUrlHealthy(adoptedUrl, {
+        db: input.db,
+        serviceName,
+        command,
+        cwd: input.workspace.cwd,
+        executionWorkspaceId: input.executionWorkspaceId ?? null,
+        companyId: input.agent.companyId,
+      }))
+    ) {
       await terminateLocalService(adoptedRecord);
       await removeLocalServiceRegistryRecord(adoptedRecord.serviceKey);
     } else {
@@ -6338,7 +7224,9 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
       const ownerIsInWorkspace = ownerCwd
         ? await isLocalServiceProcessInWorkspace(ownerCwd, serviceCwd)
         : null;
-      const ownerDescription = ownerCwd ? `pid ${ownerPid} (cwd: ${ownerCwd})` : `pid ${ownerPid} (cwd unavailable)`;
+      const ownerDescription = ownerCwd
+        ? `pid ${ownerPid} (cwd: ${ownerCwd})`
+        : `pid ${ownerPid} (cwd unavailable)`;
       releasePortReservation(reservedPort);
       if (ownerIsInWorkspace === false) {
         throw new Error(
@@ -6361,7 +7249,8 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
       );
     }
   }
-  const claimedIdentityPort = conflictPort && conflictPort !== reservedPort ? conflictPort : null;
+  const claimedIdentityPort =
+    conflictPort && conflictPort !== reservedPort ? conflictPort : null;
 
   const nowIso = new Date().toISOString();
   const record: RuntimeServiceRecord = {
@@ -6455,15 +7344,19 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
     // descriptors are closed. Waiting for it makes the startup log excerpt
     // deterministic instead of racing the final validation line.
     child.once("close", (code, signal) => {
-      reject(new Error(
-        `service process exited before readiness (code ${code ?? "unknown"}, signal ${signal ?? "none"})`,
-      ));
+      reject(
+        new Error(
+          `service process exited before readiness (code ${code ?? "unknown"}, signal ${signal ?? "none"})`,
+        ),
+      );
     });
   });
   const readServiceOutputExcerpt = async () => {
     try {
       const contents = await fs.readFile(serviceLog.logPath);
-      return contents.subarray(Math.max(serviceLog.startOffset, contents.length - 4096)).toString("utf8");
+      return contents
+        .subarray(Math.max(serviceLog.startOffset, contents.length - 4096))
+        .toString("utf8");
     } catch {
       return "";
     }
@@ -6502,7 +7395,9 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
     ? exposureConfig
       ? [
           port,
-          ...(exposureConfig.includeTaskcoreViteHmr ? [deriveViteHmrPort(port)] : []),
+          ...(exposureConfig.includeTaskcoreViteHmr
+            ? [deriveViteHmrPort(port)]
+            : []),
         ]
       : canAllocateFixedPort
         ? [port]
@@ -6519,214 +7414,267 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
         // URL (a MagicDNS name), which only ever answered because the guest was
         // wrongly bound to the wildcard (PAP-17256).
         url: exposureConfig ? rewriteUrlHostToLoopback(backendUrl) : backendUrl,
-        readinessUrl: exposureConfig ? rewriteUrlHostToLoopback(readinessUrl) : readinessUrl,
+        readinessUrl: exposureConfig
+          ? rewriteUrlHostToLoopback(readinessUrl)
+          : readinessUrl,
       }),
       ...ownershipCheckedPorts.map((ownedPort) =>
-        waitForAllocatedPortBind({ service: input.service, port: ownedPort, child })
+        waitForAllocatedPortBind({
+          service: input.service,
+          port: ownedPort,
+          child,
+        }),
       ),
     ]).then(() => undefined),
     spawnErrorPromise,
     earlyExitPromise,
-  ]).then(async () => {
-    releasePortReservation(reservedPort);
-    releasePortReservation(claimedIdentityPort);
-    if (record.exposureConfig && record.exposureHandle && record.port) {
-      const provisioned = await provisionExposure(workspaceRuntimeExposureDeps, {
-        runtimeId: record.id,
-        config: record.exposureConfig,
-        handle: record.exposureHandle,
-        hostname: exposureHostname!,
-        appPort: record.port,
-      });
-      record.exposure = provisioned.status;
-      record.exposureHandle = provisioned.handle;
-      record.url = provisioned.status.publicUrl;
-      await persistRuntimeServiceRecord(record.db, record);
-      if (provisioned.status.state !== "ready" || !record.url) {
-        // Carry the reason, not just the code: a bare `listener_ownership_mismatch`
-        // in the operation log is what made PAP-17254 undiagnosable (PAP-17256).
-        const code = provisioned.status.lastError ?? "unknown error";
-        throw new Error(
-          `HTTPS exposure failed: ${code}${provisioned.errorDetail ? ` — ${provisioned.errorDetail}` : ""}`,
+  ])
+    .then(async () => {
+      releasePortReservation(reservedPort);
+      releasePortReservation(claimedIdentityPort);
+      if (record.exposureConfig && record.exposureHandle && record.port) {
+        const provisioned = await provisionExposure(
+          workspaceRuntimeExposureDeps,
+          {
+            runtimeId: record.id,
+            config: record.exposureConfig,
+            handle: record.exposureHandle,
+            hostname: exposureHostname!,
+            appPort: record.port,
+          },
         );
-      }
-    }
-    // Transport readiness only proves a listener answered. A managed workspace
-    // must additionally satisfy the protected readiness contract — own database,
-    // cloned rows, login handoff, and matching instance/workspace identity —
-    // before it may be published as running/healthy (PAP-17572).
-    if (managedWorkspaceIdentity) {
-      const publishHealthUrl = resolveRuntimeServiceHealthUrl(
-        record.port ? `http://127.0.0.1:${record.port}` : rewriteUrlHostToLoopback(record.url ?? backendUrl),
-        { serviceName, command },
-      );
-      if (!publishHealthUrl) {
-        throw new Error("Managed workspace readiness gate could not resolve a health URL");
-      }
-      let gate = await waitForManagedWorkspaceReadiness({
-        healthUrl: publishHealthUrl,
-        identity: managedWorkspaceIdentity,
-      });
-      if (gate.ok) {
-        if (!record.db) {
-          throw new Error("Managed workspace readiness gate could not resolve the control-plane database");
-        }
-        gate = await probeManagedWorkspaceHandoffSubjects({
-          db: record.db,
-          healthUrl: publishHealthUrl,
-          identity: managedWorkspaceIdentity,
-        });
-      }
-      if (!gate.ok) {
-        logManagedWorkspaceReadinessRejection({
-          executionWorkspaceId: managedWorkspaceIdentity.executionWorkspaceId,
-          healthUrl: publishHealthUrl,
-          result: gate,
-        });
-        if (shouldBlockPublicationOnReadiness(gate)) {
+        record.exposure = provisioned.status;
+        record.exposureHandle = provisioned.handle;
+        record.url = provisioned.status.publicUrl;
+        await persistRuntimeServiceRecord(record.db, record);
+        if (provisioned.status.state !== "ready" || !record.url) {
+          // Carry the reason, not just the code: a bare `listener_ownership_mismatch`
+          // in the operation log is what made PAP-17254 undiagnosable (PAP-17256).
+          const code = provisioned.status.lastError ?? "unknown error";
           throw new Error(
-            `Workspace is not ready to publish (${gate.reason}${gate.detail ? `: ${gate.detail}` : ""})`,
+            `HTTPS exposure failed: ${code}${provisioned.errorDetail ? ` — ${provisioned.errorDetail}` : ""}`,
           );
         }
       }
-    }
-    record.status = "running";
-    record.healthStatus = "healthy";
-    record.lastUsedAt = new Date().toISOString();
-    record.stoppedAt = null;
-    const serviceOutputExcerpt = await readServiceOutputExcerpt();
-    if (serviceOutputExcerpt && input.onLog) {
-      await input.onLog("stdout", `[service:${serviceName}] ${serviceOutputExcerpt}`);
-    }
-    await touchLocalServiceRegistryRecord(record.serviceKey, {
-      runtimeServiceId: record.id,
-      lastSeenAt: record.lastUsedAt,
-    });
-  }).catch(async (err) => {
-    releasePortReservation(reservedPort);
-    releasePortReservation(claimedIdentityPort);
-    const failureMessage = err instanceof Error ? err.message : String(err);
-    const serviceOutputExcerpt = await readServiceOutputExcerpt();
-    const bindCollision = !exposureConfig && (
-      err instanceof RuntimeServicePortBindCollision || Boolean(
-        port
-        && (input.allowFixedPortFallback || portType === "auto")
-        && /(?:EADDRINUSE|address already in use)/i.test(`${failureMessage}\n${serviceOutputExcerpt}`),
-      )
-    );
-    // An exposed guest that exits with EADDRINUSE on its ASSIGNED port lost the
-    // port after allocation. Only the assigned app or HMR port is re-allocatable
-    // from the dedicated broker range, so quarantine and re-allocation apply only
-    // when the failure names one of those ports. An unrelated auxiliary-port
-    // conflict (a different port the guest also bound) leaves the valid pair
-    // intact and surfaces as a terminal error, not a quarantine that burns the
-    // bounded retries.
-    const exposureAssignedPorts: number[] =
-      exposureConfig && port
-        ? [port, ...(exposureConfig.includeTaskcoreViteHmr ? [deriveViteHmrPort(port)] : [])]
-        : [];
-    const collisionText = `${failureMessage}\n${serviceOutputExcerpt}`;
-    const exposureNamedPorts = exposureAssignedPorts.filter((candidate) =>
-      eaddrinuseTextNamesPort(collisionText, candidate),
-    );
-    // The guest owns its own output, so an assigned-port EADDRINUSE line is a
-    // claim, not proof. A managed guest can print a synthetic EADDRINUSE line for
-    // its assigned port with no host listener behind it. A quarantine on that text
-    // alone would burn the shared exposure-port pool across repeated starts. So the
-    // runtime reads live host listener state and quarantines only after it confirms
-    // that a real host listener owns the port.
-    const exposureTextNamesAssignedPort = Boolean(
-      exposureConfig && port && exposureNamedPorts.length > 0,
-    );
-    let exposureCollisionDiagnosis: string | null = null;
-    let exposureHostCollision = false;
-    if (exposureTextNamesAssignedPort) {
-      const facts: string[] = [];
-      const hostStates: ExposurePortHostState[] = [];
-      for (const collisionPort of exposureAssignedPorts) {
-        // `readLocalServicePortOwner` reads lsof and returns the listener pid, so a
-        // non-null pid also proves a present listener. `readListenerBindFacts` reads
-        // /proc for the same presence signal and the bound addresses.
-        const ownerPid = await readLocalServicePortOwner(collisionPort).catch(() => null);
-        const bind = await readListenerBindFacts(collisionPort).catch(() => null);
-        // Read the owner process group id too. The guest runs as a shell process
-        // group leader, so the real dev server usually binds the port from a
-        // descendant. The classify step matches the shell pid against the owner pgid
-        // to keep a guest descendant from looking like an external owner.
-        const ownerProcessGroupId =
-          ownerPid != null ? await readLocalServiceProcessGroupId(ownerPid).catch(() => null) : null;
-        hostStates.push({
-          port: collisionPort,
-          named: exposureNamedPorts.includes(collisionPort),
-          listenerPresent: Boolean(bind?.present) || ownerPid != null,
-          ownerPid,
-          ownerProcessGroupId,
+      // Transport readiness only proves a listener answered. A managed workspace
+      // must additionally satisfy the protected readiness contract — own database,
+      // cloned rows, login handoff, and matching instance/workspace identity —
+      // before it may be published as running/healthy (PAP-17572).
+      if (managedWorkspaceIdentity) {
+        const publishHealthUrl = resolveRuntimeServiceHealthUrl(
+          record.port
+            ? `http://127.0.0.1:${record.port}`
+            : rewriteUrlHostToLoopback(record.url ?? backendUrl),
+          { serviceName, command },
+        );
+        if (!publishHealthUrl) {
+          throw new Error(
+            "Managed workspace readiness gate could not resolve a health URL",
+          );
+        }
+        let gate = await waitForManagedWorkspaceReadiness({
+          healthUrl: publishHealthUrl,
+          identity: managedWorkspaceIdentity,
         });
-        const boundTo = bind?.present ? bind.addresses.join(", ") : "no listener";
-        facts.push(`port ${collisionPort} bound to ${boundTo}, owner pid ${ownerPid ?? "none"}`);
+        if (gate.ok) {
+          if (!record.db) {
+            throw new Error(
+              "Managed workspace readiness gate could not resolve the control-plane database",
+            );
+          }
+          gate = await probeManagedWorkspaceHandoffSubjects({
+            db: record.db,
+            healthUrl: publishHealthUrl,
+            identity: managedWorkspaceIdentity,
+          });
+        }
+        if (!gate.ok) {
+          logManagedWorkspaceReadinessRejection({
+            executionWorkspaceId: managedWorkspaceIdentity.executionWorkspaceId,
+            healthUrl: publishHealthUrl,
+            result: gate,
+          });
+          if (shouldBlockPublicationOnReadiness(gate)) {
+            throw new Error(
+              `Workspace is not ready to publish (${gate.reason}${gate.detail ? `: ${gate.detail}` : ""})`,
+            );
+          }
+        }
       }
-      exposureHostCollision = classifyExposureHostCollisions({
-        childPid: child.pid ?? null,
-        ports: hostStates,
-      }).hostCollision;
-      exposureCollisionDiagnosis = facts.join("; ");
-    }
-    // Quarantine the whole assigned pair, not only the named port. The broker
-    // allocates the app and HMR ports as one unit, so a re-allocation must skip
-    // both to land on the next free pair.
-    const exposureCollisionPorts: number[] = exposureHostCollision ? exposureAssignedPorts : [];
-    if (child.pid) {
-      await terminateLocalService({
-        pid: child.pid,
-        processGroupId: child.pid,
-        port,
-      });
-    }
-    await cleanupRecordExposure(record, { preserveFailure: true });
-    record.status = "stopped";
-    record.healthStatus = "unhealthy";
-    record.lastUsedAt = new Date().toISOString();
-    record.stoppedAt = new Date().toISOString();
-    await removeLocalServiceRegistryRecord(record.serviceKey).catch(() => undefined);
-    if (exposureConfig) {
-      await persistRuntimeServiceRecord(record.db, record).catch(() => undefined);
-    }
-    if (bindCollision && port) throw new RuntimeServicePortBindCollision(port);
-    if (exposureHostCollision && port) {
-      // A verified host listener holds the assigned exposure port. Quarantine the
-      // pair so the bounded re-allocation never re-offers it, then throw a retryable
-      // collision. `startLocalRuntimeService` re-runs allocation, which skips the
-      // quarantined pair and takes the next free pair inside the dedicated range.
-      // This hardens a real host that races an external process for a range port.
-      for (const collisionPort of exposureCollisionPorts) {
-        quarantinedRuntimeExposurePorts.add(collisionPort);
-      }
-      if (input.onLog) {
+      record.status = "running";
+      record.healthStatus = "healthy";
+      record.lastUsedAt = new Date().toISOString();
+      record.stoppedAt = null;
+      const serviceOutputExcerpt = await readServiceOutputExcerpt();
+      if (serviceOutputExcerpt && input.onLog) {
         await input.onLog(
-          "stderr",
-          `[service:${serviceName}] exposure port ${port} collided during startup (EADDRINUSE); `
-            + `${exposureCollisionDiagnosis ?? "owner unavailable"}. `
-            + `Quarantined pair ${exposureCollisionPorts.join("/")} and reallocating.\n`,
-        ).catch(() => undefined);
+          "stdout",
+          `[service:${serviceName}] ${serviceOutputExcerpt}`,
+        );
       }
-      throw new RuntimeServicePortBindCollision(port, exposureCollisionDiagnosis, true);
-    }
-    const deploymentBindConflict = /local_trusted requires server\.bind=loopback/i.test(
-      `${failureMessage}\n${serviceOutputExcerpt}`,
-    );
-    // The guest reported an assigned-port EADDRINUSE, but no host listener owned
-    // the port. Explain that the runtime did not quarantine the pair, so a future
-    // occurrence needs no diagnostic cycle and the pool stays intact.
-    const unverifiedExposureCollision = exposureTextNamesAssignedPort && !exposureHostCollision;
-    const actionableFailure = deploymentBindConflict
-      ? `${failureMessage} | deployment/bind conflict: local_trusted requires server.bind=loopback; the managed runtime requested an incompatible bind mode`
-      : unverifiedExposureCollision
-        ? `${failureMessage} | exposure port collision not verified: the guest reported EADDRINUSE on assigned port ${exposureNamedPorts.join("/")}, but no host listener owns it (${exposureCollisionDiagnosis ?? "owner unavailable"}); the runtime did not quarantine the pair`
-        : failureMessage;
-    throw new Error(
-      `Failed to start runtime service "${serviceName}": ${actionableFailure}${serviceOutputExcerpt ? ` | output: ${serviceOutputExcerpt.trim()}` : ""}`,
-    );
-  });
+      await touchLocalServiceRegistryRecord(record.serviceKey, {
+        runtimeServiceId: record.id,
+        lastSeenAt: record.lastUsedAt,
+      });
+    })
+    .catch(async (err) => {
+      releasePortReservation(reservedPort);
+      releasePortReservation(claimedIdentityPort);
+      const failureMessage = err instanceof Error ? err.message : String(err);
+      const serviceOutputExcerpt = await readServiceOutputExcerpt();
+      const bindCollision =
+        !exposureConfig &&
+        (err instanceof RuntimeServicePortBindCollision ||
+          Boolean(
+            port &&
+            (input.allowFixedPortFallback || portType === "auto") &&
+            /(?:EADDRINUSE|address already in use)/i.test(
+              `${failureMessage}\n${serviceOutputExcerpt}`,
+            ),
+          ));
+      // An exposed guest that exits with EADDRINUSE on its ASSIGNED port lost the
+      // port after allocation. Only the assigned app or HMR port is re-allocatable
+      // from the dedicated broker range, so quarantine and re-allocation apply only
+      // when the failure names one of those ports. An unrelated auxiliary-port
+      // conflict (a different port the guest also bound) leaves the valid pair
+      // intact and surfaces as a terminal error, not a quarantine that burns the
+      // bounded retries.
+      const exposureAssignedPorts: number[] =
+        exposureConfig && port
+          ? [
+              port,
+              ...(exposureConfig.includeTaskcoreViteHmr
+                ? [deriveViteHmrPort(port)]
+                : []),
+            ]
+          : [];
+      const collisionText = `${failureMessage}\n${serviceOutputExcerpt}`;
+      const exposureNamedPorts = exposureAssignedPorts.filter((candidate) =>
+        eaddrinuseTextNamesPort(collisionText, candidate),
+      );
+      // The guest owns its own output, so an assigned-port EADDRINUSE line is a
+      // claim, not proof. A managed guest can print a synthetic EADDRINUSE line for
+      // its assigned port with no host listener behind it. A quarantine on that text
+      // alone would burn the shared exposure-port pool across repeated starts. So the
+      // runtime reads live host listener state and quarantines only after it confirms
+      // that a real host listener owns the port.
+      const exposureTextNamesAssignedPort = Boolean(
+        exposureConfig && port && exposureNamedPorts.length > 0,
+      );
+      let exposureCollisionDiagnosis: string | null = null;
+      let exposureHostCollision = false;
+      if (exposureTextNamesAssignedPort) {
+        const facts: string[] = [];
+        const hostStates: ExposurePortHostState[] = [];
+        for (const collisionPort of exposureAssignedPorts) {
+          // `readLocalServicePortOwner` reads lsof and returns the listener pid, so a
+          // non-null pid also proves a present listener. `readListenerBindFacts` reads
+          // /proc for the same presence signal and the bound addresses.
+          const ownerPid = await readLocalServicePortOwner(collisionPort).catch(
+            () => null,
+          );
+          const bind = await readListenerBindFacts(collisionPort).catch(
+            () => null,
+          );
+          // Read the owner process group id too. The guest runs as a shell process
+          // group leader, so the real dev server usually binds the port from a
+          // descendant. The classify step matches the shell pid against the owner pgid
+          // to keep a guest descendant from looking like an external owner.
+          const ownerProcessGroupId =
+            ownerPid != null
+              ? await readLocalServiceProcessGroupId(ownerPid).catch(() => null)
+              : null;
+          hostStates.push({
+            port: collisionPort,
+            named: exposureNamedPorts.includes(collisionPort),
+            listenerPresent: Boolean(bind?.present) || ownerPid != null,
+            ownerPid,
+            ownerProcessGroupId,
+          });
+          const boundTo = bind?.present
+            ? bind.addresses.join(", ")
+            : "no listener";
+          facts.push(
+            `port ${collisionPort} bound to ${boundTo}, owner pid ${ownerPid ?? "none"}`,
+          );
+        }
+        exposureHostCollision = classifyExposureHostCollisions({
+          childPid: child.pid ?? null,
+          ports: hostStates,
+        }).hostCollision;
+        exposureCollisionDiagnosis = facts.join("; ");
+      }
+      // Quarantine the whole assigned pair, not only the named port. The broker
+      // allocates the app and HMR ports as one unit, so a re-allocation must skip
+      // both to land on the next free pair.
+      const exposureCollisionPorts: number[] = exposureHostCollision
+        ? exposureAssignedPorts
+        : [];
+      if (child.pid) {
+        await terminateLocalService({
+          pid: child.pid,
+          processGroupId: child.pid,
+          port,
+        });
+      }
+      await cleanupRecordExposure(record, { preserveFailure: true });
+      record.status = "stopped";
+      record.healthStatus = "unhealthy";
+      record.lastUsedAt = new Date().toISOString();
+      record.stoppedAt = new Date().toISOString();
+      await removeLocalServiceRegistryRecord(record.serviceKey).catch(
+        () => undefined,
+      );
+      if (exposureConfig) {
+        await persistRuntimeServiceRecord(record.db, record).catch(
+          () => undefined,
+        );
+      }
+      if (bindCollision && port)
+        throw new RuntimeServicePortBindCollision(port);
+      if (exposureHostCollision && port) {
+        // A verified host listener holds the assigned exposure port. Quarantine the
+        // pair so the bounded re-allocation never re-offers it, then throw a retryable
+        // collision. `startLocalRuntimeService` re-runs allocation, which skips the
+        // quarantined pair and takes the next free pair inside the dedicated range.
+        // This hardens a real host that races an external process for a range port.
+        for (const collisionPort of exposureCollisionPorts) {
+          quarantinedRuntimeExposurePorts.add(collisionPort);
+        }
+        if (input.onLog) {
+          await input
+            .onLog(
+              "stderr",
+              `[service:${serviceName}] exposure port ${port} collided during startup (EADDRINUSE); ` +
+                `${exposureCollisionDiagnosis ?? "owner unavailable"}. ` +
+                `Quarantined pair ${exposureCollisionPorts.join("/")} and reallocating.\n`,
+            )
+            .catch(() => undefined);
+        }
+        throw new RuntimeServicePortBindCollision(
+          port,
+          exposureCollisionDiagnosis,
+          true,
+        );
+      }
+      const deploymentBindConflict =
+        /local_trusted requires server\.bind=loopback/i.test(
+          `${failureMessage}\n${serviceOutputExcerpt}`,
+        );
+      // The guest reported an assigned-port EADDRINUSE, but no host listener owned
+      // the port. Explain that the runtime did not quarantine the pair, so a future
+      // occurrence needs no diagnostic cycle and the pool stays intact.
+      const unverifiedExposureCollision =
+        exposureTextNamesAssignedPort && !exposureHostCollision;
+      const actionableFailure = deploymentBindConflict
+        ? `${failureMessage} | deployment/bind conflict: local_trusted requires server.bind=loopback; the managed runtime requested an incompatible bind mode`
+        : unverifiedExposureCollision
+          ? `${failureMessage} | exposure port collision not verified: the guest reported EADDRINUSE on assigned port ${exposureNamedPorts.join("/")}, but no host listener owns it (${exposureCollisionDiagnosis ?? "owner unavailable"}); the runtime did not quarantine the pair`
+          : failureMessage;
+      throw new Error(
+        `Failed to start runtime service "${serviceName}": ${actionableFailure}${serviceOutputExcerpt ? ` | output: ${serviceOutputExcerpt.trim()}` : ""}`,
+      );
+    });
 
   return { record, readiness: readinessPromise };
 }
@@ -6734,9 +7682,13 @@ async function spawnLocalRuntimeService(input: StartLocalRuntimeServiceInput): P
 async function prepareRuntimeProvisioning(
   input: StartLocalRuntimeServiceInput,
 ): Promise<RuntimeServiceRecord | null> {
-  const runtimeProvisionCommand = asString(input.runtimeProvisionCommand, "").trim();
+  const runtimeProvisionCommand = asString(
+    input.runtimeProvisionCommand,
+    "",
+  ).trim();
   if (!runtimeProvisionCommand) return null;
-  const coordinator = input.provisionCoordinator ?? createRuntimeProvisionCoordinator();
+  const coordinator =
+    input.provisionCoordinator ?? createRuntimeProvisionCoordinator();
   if (coordinator.promise) {
     await coordinator.promise;
     return null;
@@ -6751,8 +7703,14 @@ async function prepareRuntimeProvisioning(
     scopeType: input.scopeType,
     scopeId: input.scopeId,
   });
-  if (!identity.command) throw new Error(`Runtime service "${identity.serviceName}" is missing command`);
-  const provisioningRecord = createProvisioningRuntimeServiceRecord(input, identity);
+  if (!identity.command)
+    throw new Error(
+      `Runtime service "${identity.serviceName}" is missing command`,
+    );
+  const provisioningRecord = createProvisioningRuntimeServiceRecord(
+    input,
+    identity,
+  );
   await persistRuntimeServiceRecord(input.db, provisioningRecord);
   if (input.onLog) {
     await input.onLog(
@@ -6774,7 +7732,9 @@ async function prepareRuntimeProvisioning(
     provisioningRecord.healthStatus = "unhealthy";
     provisioningRecord.lastUsedAt = nowIso;
     provisioningRecord.stoppedAt = nowIso;
-    await persistRuntimeServiceRecord(input.db, provisioningRecord).catch(() => undefined);
+    await persistRuntimeServiceRecord(input.db, provisioningRecord).catch(
+      () => undefined,
+    );
     if (input.onLog) {
       await input.onLog(
         "stderr",
@@ -6789,15 +7749,22 @@ async function startLocalRuntimeService(
   input: StartLocalRuntimeServiceInput,
   options?: { deferReadiness?: boolean },
 ): Promise<LocalRuntimeServiceStart> {
-  const runtimeProvisionCommand = asString(input.runtimeProvisionCommand, "").trim();
-  const provisioningRecord = input.preparedProvisioningRecord === undefined
-    ? await prepareRuntimeProvisioning(input)
-    : input.preparedProvisioningRecord;
+  const runtimeProvisionCommand = asString(
+    input.runtimeProvisionCommand,
+    "",
+  ).trim();
+  const provisioningRecord =
+    input.preparedProvisioningRecord === undefined
+      ? await prepareRuntimeProvisioning(input)
+      : input.preparedProvisioningRecord;
   let started: LocalRuntimeServiceStart | null = null;
   const excludedPorts = new Set(input.excludedPorts ?? []);
   const portConfig = parseObject(input.service.port);
   const portType = asString(portConfig.type, "");
-  const explicitPort = asNumber(portConfig.value, asNumber(input.service.port, 0));
+  const explicitPort = asNumber(
+    portConfig.value,
+    asNumber(input.service.port, 0),
+  );
   const fixedPortFallbackEnabled = Boolean(
     input.allowFixedPortFallback && portType !== "auto" && explicitPort > 0,
   );
@@ -6805,7 +7772,11 @@ async function startLocalRuntimeService(
   const deferReadiness = Boolean(options?.deferReadiness);
 
   try {
-    for (let attempt = 0; attempt < WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS;
+      attempt += 1
+    ) {
       try {
         started = await spawnLocalRuntimeService({
           ...input,
@@ -6815,7 +7786,11 @@ async function startLocalRuntimeService(
         if (runtimeProvisionCommand) {
           await persistRuntimeServiceRecord(input.db, started.record);
         }
-        if (provisioningRecord && started.record.id !== provisioningRecord.id && input.db) {
+        if (
+          provisioningRecord &&
+          started.record.id !== provisioningRecord.id &&
+          input.db
+        ) {
           await input.db
             .delete(workspaceRuntimeServices)
             .where(eq(workspaceRuntimeServices.id, provisioningRecord.id));
@@ -6826,8 +7801,8 @@ async function startLocalRuntimeService(
         return started;
       } catch (error) {
         if (
-          !(error instanceof RuntimeServicePortBindCollision)
-          || !(retryBindCollisions || error.exposureReallocatable)
+          !(error instanceof RuntimeServicePortBindCollision) ||
+          !(retryBindCollisions || error.exposureReallocatable)
         ) {
           throw error;
         }
@@ -6845,19 +7820,29 @@ async function startLocalRuntimeService(
         attemptedPorts: [...excludedPorts],
       });
     }
-    throw conflict("No safe automatically allocated runtime service port is available.", {
-      code: "workspace_runtime_port_allocation_exhausted",
-      attemptedPortCount: excludedPorts.size,
-      remediation: "Retry the start or configure a different runtime service port.",
-    });
+    throw conflict(
+      "No safe automatically allocated runtime service port is available.",
+      {
+        code: "workspace_runtime_port_allocation_exhausted",
+        attemptedPortCount: excludedPorts.size,
+        remediation:
+          "Retry the start or configure a different runtime service port.",
+      },
+    );
   } catch (error) {
-    if (!started && provisioningRecord && provisioningRecord.status === "starting") {
+    if (
+      !started &&
+      provisioningRecord &&
+      provisioningRecord.status === "starting"
+    ) {
       const nowIso = new Date().toISOString();
       provisioningRecord.status = "failed";
       provisioningRecord.healthStatus = "unhealthy";
       provisioningRecord.lastUsedAt = nowIso;
       provisioningRecord.stoppedAt = nowIso;
-      await persistRuntimeServiceRecord(input.db, provisioningRecord).catch(() => undefined);
+      await persistRuntimeServiceRecord(input.db, provisioningRecord).catch(
+        () => undefined,
+      );
     }
     throw error;
   }
@@ -6867,7 +7852,10 @@ function scheduleIdleStop(record: RuntimeServiceRecord) {
   clearIdleTimer(record);
   const stopType = asString(record.stopPolicy?.type, "manual");
   if (stopType !== "idle_timeout") return;
-  const idleSeconds = Math.max(1, asNumber(record.stopPolicy?.idleSeconds, 1800));
+  const idleSeconds = Math.max(
+    1,
+    asNumber(record.stopPolicy?.idleSeconds, 1800),
+  );
   record.idleTimer = setTimeout(() => {
     stopRuntimeService(record.id).catch(() => undefined);
   }, idleSeconds * 1000);
@@ -6885,19 +7873,30 @@ async function cleanupRecordExposure(
     handle: record.exposureHandle,
     ports,
   });
-  for (const port of result.quarantinedPorts) quarantinedRuntimeExposurePorts.add(port);
+  for (const port of result.quarantinedPorts)
+    quarantinedRuntimeExposurePorts.add(port);
   // Drop the in-process pair claim on teardown. The *lease* reservation is what
   // still protects the pair from another workspace (PAP-17419) — this only
   // releases the short-lived hold that keeps concurrent allocators apart, and
   // keeping it would block this very lane's own restart.
   if (record.port !== null && isRuntimeExposureAppPort(record.port)) {
-    exposurePortPairClaims.release({ appPort: record.port, hmrPort: deriveViteHmrPort(record.port) });
+    exposurePortPairClaims.release({
+      appPort: record.port,
+      hmrPort: deriveViteHmrPort(record.port),
+    });
   }
   if (result.status.state === "removed") {
     record.exposureHandle = null;
-    record.exposure = options?.preserveFailure && previous.state === "failed"
-      ? { ...previous, publicUrl: null, updatedAt: new Date().toISOString() }
-      : { ...previous, state: "removed", publicUrl: null, lastError: null, updatedAt: new Date().toISOString() };
+    record.exposure =
+      options?.preserveFailure && previous.state === "failed"
+        ? { ...previous, publicUrl: null, updatedAt: new Date().toISOString() }
+        : {
+            ...previous,
+            state: "removed",
+            publicUrl: null,
+            lastError: null,
+            updatedAt: new Date().toISOString(),
+          };
   } else {
     record.exposure = {
       ...previous,
@@ -6939,7 +7938,10 @@ async function stopRuntimeService(serviceId: string) {
   record.lastUsedAt = new Date().toISOString();
   record.stoppedAt = new Date().toISOString();
   runtimeServicesById.delete(serviceId);
-  if (record.reuseKey && runtimeServicesByReuseKey.get(record.reuseKey) === record.id) {
+  if (
+    record.reuseKey &&
+    runtimeServicesByReuseKey.get(record.reuseKey) === record.id
+  ) {
     runtimeServicesByReuseKey.delete(record.reuseKey);
   }
   await removeLocalServiceRegistryRecord(record.serviceKey);
@@ -6995,8 +7997,15 @@ async function markPersistedRuntimeServicesStoppedForExecutionWorkspace(input: {
     .from(workspaceRuntimeServices)
     .where(
       and(
-        eq(workspaceRuntimeServices.executionWorkspaceId, input.executionWorkspaceId),
-        inArray(workspaceRuntimeServices.status, ["provisioning", "starting", "running"]),
+        eq(
+          workspaceRuntimeServices.executionWorkspaceId,
+          input.executionWorkspaceId,
+        ),
+        inArray(workspaceRuntimeServices.status, [
+          "provisioning",
+          "starting",
+          "running",
+        ]),
       ),
     );
   for (const row of exposureRows) {
@@ -7006,7 +8015,8 @@ async function markPersistedRuntimeServicesStoppedForExecutionWorkspace(input: {
       handle: row.exposureHandle,
       ports: row.exposure.listeners.map((listener) => listener.targetPort),
     });
-    for (const port of cleanup.quarantinedPorts) quarantinedRuntimeExposurePorts.add(port);
+    for (const port of cleanup.quarantinedPorts)
+      quarantinedRuntimeExposurePorts.add(port);
     const exposure: RuntimeExposureStatus = {
       ...row.exposure,
       state: cleanup.status.state,
@@ -7018,7 +8028,8 @@ async function markPersistedRuntimeServicesStoppedForExecutionWorkspace(input: {
       .update(workspaceRuntimeServices)
       .set({
         exposure,
-        exposureHandle: cleanup.status.state === "removed" ? null : row.exposureHandle,
+        exposureHandle:
+          cleanup.status.state === "removed" ? null : row.exposureHandle,
         url: null,
       })
       .where(eq(workspaceRuntimeServices.id, row.id));
@@ -7034,8 +8045,15 @@ async function markPersistedRuntimeServicesStoppedForExecutionWorkspace(input: {
     })
     .where(
       and(
-        eq(workspaceRuntimeServices.executionWorkspaceId, input.executionWorkspaceId),
-        inArray(workspaceRuntimeServices.status, ["provisioning", "starting", "running"]),
+        eq(
+          workspaceRuntimeServices.executionWorkspaceId,
+          input.executionWorkspaceId,
+        ),
+        inArray(workspaceRuntimeServices.status, [
+          "provisioning",
+          "starting",
+          "running",
+        ]),
       ),
     );
 }
@@ -7078,7 +8096,9 @@ export function decideStaleExposureReclaim(input: {
   if (input.ownedListeners === null) {
     return { action: "defer", reason: "broker_unreachable" };
   }
-  const owned = input.ownedListeners.some((listener) => listener.runtimeId === input.runtimeId);
+  const owned = input.ownedListeners.some(
+    (listener) => listener.runtimeId === input.runtimeId,
+  );
   return owned
     ? { action: "reclaim", reason: "owned_by_broker" }
     : { action: "clear_bookkeeping", reason: "not_owned_by_broker" };
@@ -7149,7 +8169,8 @@ async function cleanupPersistedExposureRows(
       handle: row.exposureHandle,
       ports: row.exposure.listeners.map((listener) => listener.targetPort),
     });
-    for (const port of cleanup.quarantinedPorts) quarantinedRuntimeExposurePorts.add(port);
+    for (const port of cleanup.quarantinedPorts)
+      quarantinedRuntimeExposurePorts.add(port);
     await db
       .update(workspaceRuntimeServices)
       .set({
@@ -7161,13 +8182,17 @@ async function cleanupPersistedExposureRows(
           lastError: cleanup.status.lastError,
           updatedAt: new Date().toISOString(),
         },
-        exposureHandle: cleanup.status.state === "removed" ? null : row.exposureHandle,
+        exposureHandle:
+          cleanup.status.state === "removed" ? null : row.exposureHandle,
       })
       .where(eq(workspaceRuntimeServices.id, row.id));
   }
 }
 
-function registerRuntimeService(db: Db | undefined, record: RuntimeServiceRecord) {
+function registerRuntimeService(
+  db: Db | undefined,
+  record: RuntimeServiceRecord,
+) {
   record.db = db;
   runtimeServicesById.set(record.id, record);
   if (record.reuseKey) {
@@ -7179,11 +8204,15 @@ function registerRuntimeService(db: Db | undefined, record: RuntimeServiceRecord
     if (!current) return;
     clearIdleTimer(current);
     current.status = code === 0 || signal === "SIGTERM" ? "stopped" : "failed";
-    current.healthStatus = current.status === "failed" ? "unhealthy" : "unknown";
+    current.healthStatus =
+      current.status === "failed" ? "unhealthy" : "unknown";
     current.lastUsedAt = new Date().toISOString();
     current.stoppedAt = new Date().toISOString();
     runtimeServicesById.delete(current.id);
-    if (current.reuseKey && runtimeServicesByReuseKey.get(current.reuseKey) === current.id) {
+    if (
+      current.reuseKey &&
+      runtimeServicesByReuseKey.get(current.reuseKey) === current.id
+    ) {
       runtimeServicesByReuseKey.delete(current.reuseKey);
     }
     void (async () => {
@@ -7208,11 +8237,14 @@ function registerRuntimeService(db: Db | undefined, record: RuntimeServiceRecord
 }
 
 function readRuntimeServiceEntries(config: Record<string, unknown>) {
-  return listWorkspaceServiceCommandDefinitions(parseObject(config.workspaceRuntime))
-    .map((command) => command.rawConfig);
+  return listWorkspaceServiceCommandDefinitions(
+    parseObject(config.workspaceRuntime),
+  ).map((command) => command.rawConfig);
 }
 
-export function listConfiguredRuntimeServiceEntries(config: Record<string, unknown>) {
+export function listConfiguredRuntimeServiceEntries(
+  config: Record<string, unknown>,
+) {
   return readRuntimeServiceEntries(config);
 }
 
@@ -7227,8 +8259,12 @@ function readConfiguredServiceStates(config: Record<string, unknown>) {
   return states;
 }
 
-function readDesiredRuntimeState(value: unknown): WorkspaceRuntimeDesiredState | null {
-  return value === "running" || value === "stopped" || value === "manual" ? value : null;
+function readDesiredRuntimeState(
+  value: unknown,
+): WorkspaceRuntimeDesiredState | null {
+  return value === "running" || value === "stopped" || value === "manual"
+    ? value
+    : null;
 }
 
 export function buildWorkspaceRuntimeDesiredStatePatch(input: {
@@ -7242,14 +8278,17 @@ export function buildWorkspaceRuntimeDesiredStatePatch(input: {
   serviceStates: WorkspaceRuntimeServiceStateMap | null;
 } {
   const configuredServices = listConfiguredRuntimeServiceEntries(input.config);
-  const fallbackState: WorkspaceRuntimeDesiredState = readDesiredRuntimeState(input.currentDesiredState) ?? "stopped";
+  const fallbackState: WorkspaceRuntimeDesiredState =
+    readDesiredRuntimeState(input.currentDesiredState) ?? "stopped";
   const nextServiceStates: WorkspaceRuntimeServiceStateMap = {};
 
   for (let index = 0; index < configuredServices.length; index += 1) {
-    nextServiceStates[String(index)] = input.currentServiceStates?.[String(index)] ?? fallbackState;
+    nextServiceStates[String(index)] =
+      input.currentServiceStates?.[String(index)] ?? fallbackState;
   }
 
-  const nextState: WorkspaceRuntimeDesiredState = input.action === "stop" ? "stopped" : "running";
+  const nextState: WorkspaceRuntimeDesiredState =
+    input.action === "stop" ? "stopped" : "running";
   const applyActionState = (index: number) => {
     const key = String(index);
     // Manual services are intentionally left under operator control even when
@@ -7261,11 +8300,16 @@ export function buildWorkspaceRuntimeDesiredStatePatch(input: {
     for (let index = 0; index < configuredServices.length; index += 1) {
       applyActionState(index);
     }
-  } else if (input.serviceIndex >= 0 && input.serviceIndex < configuredServices.length) {
+  } else if (
+    input.serviceIndex >= 0 &&
+    input.serviceIndex < configuredServices.length
+  ) {
     applyActionState(input.serviceIndex);
   }
 
-  const desiredState = Object.values(nextServiceStates).some((state) => state === "running")
+  const desiredState = Object.values(nextServiceStates).some(
+    (state) => state === "running",
+  )
     ? "running"
     : Object.values(nextServiceStates).some((state) => state === "manual")
       ? "manual"
@@ -7273,7 +8317,8 @@ export function buildWorkspaceRuntimeDesiredStatePatch(input: {
 
   return {
     desiredState,
-    serviceStates: Object.keys(nextServiceStates).length > 0 ? nextServiceStates : null,
+    serviceStates:
+      Object.keys(nextServiceStates).length > 0 ? nextServiceStates : null,
   };
 }
 
@@ -7285,8 +8330,10 @@ function selectRuntimeServiceEntries(input: {
   serviceStates?: WorkspaceRuntimeServiceStateMap | null;
 }) {
   const entries = listConfiguredRuntimeServiceEntries(input.config);
-  const states = input.serviceStates ?? readConfiguredServiceStates(input.config);
-  const fallbackState: WorkspaceRuntimeDesiredState = readDesiredRuntimeState(input.defaultDesiredState) ?? "stopped";
+  const states =
+    input.serviceStates ?? readConfiguredServiceStates(input.config);
+  const fallbackState: WorkspaceRuntimeDesiredState =
+    readDesiredRuntimeState(input.defaultDesiredState) ?? "stopped";
 
   return entries.filter((_, index) => {
     if (input.serviceIndex !== undefined && input.serviceIndex !== null) {
@@ -7336,7 +8383,8 @@ async function ensureRuntimeServicesForRunInvocation(
   const rawServices = selectRuntimeServiceEntries({
     config: input.config,
     respectDesiredStates: true,
-    defaultDesiredState: readDesiredRuntimeState(input.config.desiredState) ?? "running",
+    defaultDesiredState:
+      readDesiredRuntimeState(input.config.desiredState) ?? "running",
     serviceStates: readConfiguredServiceStates(input.config),
   });
   const acquiredServiceIds: string[] = [];
@@ -7422,8 +8470,12 @@ async function ensureRuntimeServicesForRunInvocation(
   return refs;
 }
 
-async function withRuntimeStartMutex<T>(ownerKey: string, start: () => Promise<T>): Promise<T> {
-  const previous = runtimeControlStartByOwner.get(ownerKey) ?? Promise.resolve();
+async function withRuntimeStartMutex<T>(
+  ownerKey: string,
+  start: () => Promise<T>,
+): Promise<T> {
+  const previous =
+    runtimeControlStartByOwner.get(ownerKey) ?? Promise.resolve();
   let release!: () => void;
   const current = new Promise<void>((resolve) => {
     release = resolve;
@@ -7435,7 +8487,8 @@ async function withRuntimeStartMutex<T>(ownerKey: string, start: () => Promise<T
     return await start();
   } finally {
     release();
-    if (runtimeControlStartByOwner.get(ownerKey) === queued) runtimeControlStartByOwner.delete(ownerKey);
+    if (runtimeControlStartByOwner.get(ownerKey) === queued)
+      runtimeControlStartByOwner.delete(ownerKey);
   }
 }
 
@@ -7448,9 +8501,10 @@ function resolveRuntimeStartMutexPlan(input: {
   agent: ExecutionWorkspaceAgentRef;
   adapterEnv: Record<string, string>;
 }) {
-  const fallbackOwnerId = input.executionWorkspaceId
-    ?? input.workspace.workspaceId
-    ?? path.resolve(input.workspace.cwd);
+  const fallbackOwnerId =
+    input.executionWorkspaceId ??
+    input.workspace.workspaceId ??
+    path.resolve(input.workspace.cwd);
   const replacementReuseKeys: string[] = [];
   const keys = input.services.map((service) => {
     const { scopeType, scopeId } = resolveServiceScopeId({
@@ -7474,8 +8528,9 @@ function resolveRuntimeStartMutexPlan(input: {
     // reuse identity. For an initial start, retain owner-level concurrency so
     // the exposure allocator's in-flight pair claims remain authoritative.
     if (
-      reuseKey
-      && (runtimeServicesByReuseKey.has(reuseKey) || runtimeReplacementClaimsByReuseKey.has(reuseKey))
+      reuseKey &&
+      (runtimeServicesByReuseKey.has(reuseKey) ||
+        runtimeReplacementClaimsByReuseKey.has(reuseKey))
     ) {
       runtimeReplacementClaimsByReuseKey.set(
         reuseKey,
@@ -7518,7 +8573,8 @@ export async function ensureRuntimeServicesForRun(
   const services = selectRuntimeServiceEntries({
     config: input.config,
     respectDesiredStates: true,
-    defaultDesiredState: readDesiredRuntimeState(input.config.desiredState) ?? "running",
+    defaultDesiredState:
+      readDesiredRuntimeState(input.config.desiredState) ?? "running",
     serviceStates: readConfiguredServiceStates(input.config),
   });
   const mutexPlan = resolveRuntimeStartMutexPlan({
@@ -7531,9 +8587,8 @@ export async function ensureRuntimeServicesForRun(
     adapterEnv: input.adapterEnv,
   });
   try {
-    return await withRuntimeStartMutexes(
-      mutexPlan.ownerKeys,
-      () => ensureRuntimeServicesForRunInvocation(input),
+    return await withRuntimeStartMutexes(mutexPlan.ownerKeys, () =>
+      ensureRuntimeServicesForRunInvocation(input),
     );
   } finally {
     releaseRuntimeReplacementClaims(mutexPlan.replacementReuseKeys);
@@ -7584,7 +8639,8 @@ async function startRuntimeServicesForWorkspaceControlUnlocked(
   const refs: RuntimeServiceRef[] = [];
   const pendingReadiness: PendingRuntimeServiceReadiness[] = [];
   const startedServiceIds: string[] = [];
-  const requestedRuntimeServiceId = rawServices.length === 1 ? input.runtimeServiceId : null;
+  const requestedRuntimeServiceId =
+    rawServices.length === 1 ? input.runtimeServiceId : null;
 
   for (const service of rawServices) {
     const { scopeType, scopeId } = resolveServiceScopeId({
@@ -7607,9 +8663,17 @@ async function startRuntimeServicesForWorkspaceControlUnlocked(
 
     if (reuseKey) {
       const existing = await findHealthyRunningRuntimeService(reuseKey);
-      if (existing && (!requestedRuntimeServiceId || existing.id === requestedRuntimeServiceId)) {
+      if (
+        existing &&
+        (!requestedRuntimeServiceId ||
+          existing.id === requestedRuntimeServiceId)
+      ) {
         const prepared = options?.preparedProvisioning;
-        if (prepared?.service === service && prepared.record.id !== existing.id && persistenceDb) {
+        if (
+          prepared?.service === service &&
+          prepared.record.id !== existing.id &&
+          persistenceDb
+        ) {
           await persistenceDb
             .delete(workspaceRuntimeServices)
             .where(eq(workspaceRuntimeServices.id, prepared.record.id));
@@ -7664,7 +8728,11 @@ async function startRuntimeServicesForWorkspaceControlUnlocked(
     await persistRuntimeServiceRecord(persistenceDb, started.record);
     refs.push(toRuntimeServiceRef(started.record));
 
-    if (options?.deferReadiness && started.record.status === "starting" && !started.record.reused) {
+    if (
+      options?.deferReadiness &&
+      started.record.status === "starting" &&
+      !started.record.reused
+    ) {
       // Attach a rejection handler immediately; the caller awaits the same promise after
       // the DB transaction commits, but transaction failures may skip that wait path.
       started.readiness.catch(() => undefined);
@@ -7692,8 +8760,12 @@ async function lockWorkspaceRuntimeStartParents(
         ),
       )
       .for("update");
-    if (!lockedExecutionWorkspace) throw new Error("Execution workspace not found before starting runtime services");
-    allowFixedPortFallback = lockedExecutionWorkspace.mode === "isolated_workspace";
+    if (!lockedExecutionWorkspace)
+      throw new Error(
+        "Execution workspace not found before starting runtime services",
+      );
+    allowFixedPortFallback =
+      lockedExecutionWorkspace.mode === "isolated_workspace";
   }
 
   if (input.workspace.workspaceId) {
@@ -7707,7 +8779,10 @@ async function lockWorkspaceRuntimeStartParents(
         ),
       )
       .for("update");
-    if (!lockedProjectWorkspace) throw new Error("Project workspace not found before starting runtime services");
+    if (!lockedProjectWorkspace)
+      throw new Error(
+        "Project workspace not found before starting runtime services",
+      );
   }
 
   return allowFixedPortFallback;
@@ -7720,16 +8795,27 @@ function canRetryDeferredPortBindCollision(
   const portConfig = parseObject(service.port);
   const portType = asString(portConfig.type, "");
   const explicitPort = asNumber(portConfig.value, asNumber(service.port, 0));
-  return portType === "auto" || Boolean(allowFixedPortFallback && explicitPort > 0);
+  return (
+    portType === "auto" || Boolean(allowFixedPortFallback && explicitPort > 0)
+  );
 }
 
-async function discardFailedDeferredRuntimeStart(db: Db, record: RuntimeServiceRecord) {
+async function discardFailedDeferredRuntimeStart(
+  db: Db,
+  record: RuntimeServiceRecord,
+) {
   clearIdleTimer(record);
-  if (runtimeServicesById.get(record.id) === record) runtimeServicesById.delete(record.id);
-  if (record.reuseKey && runtimeServicesByReuseKey.get(record.reuseKey) === record.id) {
+  if (runtimeServicesById.get(record.id) === record)
+    runtimeServicesById.delete(record.id);
+  if (
+    record.reuseKey &&
+    runtimeServicesByReuseKey.get(record.reuseKey) === record.id
+  ) {
     runtimeServicesByReuseKey.delete(record.reuseKey);
   }
-  await removeLocalServiceRegistryRecord(record.serviceKey).catch(() => undefined);
+  await removeLocalServiceRegistryRecord(record.serviceKey).catch(
+    () => undefined,
+  );
   await persistRuntimeServiceRecord(db, record);
 }
 
@@ -7740,23 +8826,25 @@ async function startRuntimeServicesForWorkspaceControlInvocation(
     config: input.config,
     serviceIndex: input.serviceIndex,
     respectDesiredStates: input.respectDesiredStates,
-    defaultDesiredState: readDesiredRuntimeState(input.config.desiredState) ?? "stopped",
+    defaultDesiredState:
+      readDesiredRuntimeState(input.config.desiredState) ?? "stopped",
     serviceStates: readConfiguredServiceStates(input.config),
   });
   const invocationId = input.invocationId ?? randomUUID();
   const runtimeProvision = resolveRuntimeProvision(input);
   const runtimeProvisionCommand = runtimeProvision.command;
   const provisionCoordinator = createRuntimeProvisionCoordinator();
-  const hasHttpsExposure = await anyRuntimeServiceUsesHttpsExposure(rawServices);
+  const hasHttpsExposure =
+    await anyRuntimeServiceUsesHttpsExposure(rawServices);
 
   if (
-    rawServices.length === 0
-    || !input.db
-    || (!input.executionWorkspaceId && !input.workspace.workspaceId)
+    rawServices.length === 0 ||
+    !input.db ||
+    (!input.executionWorkspaceId && !input.workspace.workspaceId) ||
     // The reservation row must commit before the backend binds. Keeping this
     // path outside the parent-row transaction avoids a crash window where the
     // broker lease exists but the DB transaction has not committed its handle.
-    || hasHttpsExposure
+    hasHttpsExposure
   ) {
     const batch = await startRuntimeServicesForWorkspaceControlUnlocked(
       input,
@@ -7833,7 +8921,10 @@ async function startRuntimeServicesForWorkspaceControlInvocation(
 
     await input.db.transaction(async (tx) => {
       const txDb = tx as unknown as Db;
-      allowFixedPortFallback = await lockWorkspaceRuntimeStartParents(txDb, input);
+      allowFixedPortFallback = await lockWorkspaceRuntimeStartParents(
+        txDb,
+        input,
+      );
 
       // Branch reconciliation takes these same parent row locks before mutating
       // a recorded branch. Persisting a `starting` service row before commit closes
@@ -7870,18 +8961,31 @@ async function startRuntimeServicesForWorkspaceControlInvocation(
         } catch (error) {
           await discardFailedDeferredRuntimeStart(input.db, pending.record);
           if (
-            !(error instanceof RuntimeServicePortBindCollision)
-            || !canRetryDeferredPortBindCollision(pending.service, allowFixedPortFallback)
+            !(error instanceof RuntimeServicePortBindCollision) ||
+            !canRetryDeferredPortBindCollision(
+              pending.service,
+              allowFixedPortFallback,
+            )
           ) {
             throw error;
           }
 
           excludedPorts.add(error.port);
-          if (excludedPorts.size >= WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS) {
+          if (
+            excludedPorts.size >= WORKSPACE_RUNTIME_PORT_ALLOCATION_ATTEMPTS
+          ) {
             const portConfig = parseObject(pending.service.port);
             const portType = asString(portConfig.type, "");
-            const preferredPort = asNumber(portConfig.value, asNumber(pending.service.port, 0));
-            if (allowFixedPortFallback && portType !== "auto" && preferredPort > 0 && input.executionWorkspaceId) {
+            const preferredPort = asNumber(
+              portConfig.value,
+              asNumber(pending.service.port, 0),
+            );
+            if (
+              allowFixedPortFallback &&
+              portType !== "auto" &&
+              preferredPort > 0 &&
+              input.executionWorkspaceId
+            ) {
               throw await buildRuntimePortAllocationConflict({
                 db: input.db,
                 companyId: input.actor.companyId,
@@ -7890,11 +8994,15 @@ async function startRuntimeServicesForWorkspaceControlInvocation(
                 attemptedPorts: [...excludedPorts],
               });
             }
-            throw conflict("No safe automatically allocated runtime service port is available.", {
-              code: "workspace_runtime_port_allocation_exhausted",
-              attemptedPortCount: excludedPorts.size,
-              remediation: "Retry the start or configure a different runtime service port.",
-            });
+            throw conflict(
+              "No safe automatically allocated runtime service port is available.",
+              {
+                code: "workspace_runtime_port_allocation_exhausted",
+                attemptedPortCount: excludedPorts.size,
+                remediation:
+                  "Retry the start or configure a different runtime service port.",
+              },
+            );
           }
 
           const failedRecordId = pending.record.id;
@@ -7906,8 +9014,14 @@ async function startRuntimeServicesForWorkspaceControlInvocation(
           let retryAllowsFixedPortFallback = false;
           await input.db.transaction(async (tx) => {
             const txDb = tx as unknown as Db;
-            retryAllowsFixedPortFallback = await lockWorkspaceRuntimeStartParents(txDb, input);
-            if (!canRetryDeferredPortBindCollision(pending!.service, retryAllowsFixedPortFallback)) {
+            retryAllowsFixedPortFallback =
+              await lockWorkspaceRuntimeStartParents(txDb, input);
+            if (
+              !canRetryDeferredPortBindCollision(
+                pending!.service,
+                retryAllowsFixedPortFallback,
+              )
+            ) {
               throw error;
             }
             retryBatch = await startRuntimeServicesForWorkspaceControlUnlocked(
@@ -7931,8 +9045,11 @@ async function startRuntimeServicesForWorkspaceControlInvocation(
             }
           }
           const replacementRef = retryBatch.refs[0];
-          const failedRefIndex = startBatch.refs.findIndex((ref) => ref.id === failedRecordId);
-          if (replacementRef && failedRefIndex >= 0) startBatch.refs[failedRefIndex] = replacementRef;
+          const failedRefIndex = startBatch.refs.findIndex(
+            (ref) => ref.id === failedRecordId,
+          );
+          if (replacementRef && failedRefIndex >= 0)
+            startBatch.refs[failedRefIndex] = replacementRef;
           pending = retryBatch.pendingReadiness[0] ?? null;
         }
       }
@@ -7952,7 +9069,10 @@ async function startRuntimeServicesForWorkspaceControlInvocation(
       preparedProvisioning.record.healthStatus = "unhealthy";
       preparedProvisioning.record.lastUsedAt = nowIso;
       preparedProvisioning.record.stoppedAt = nowIso;
-      await persistRuntimeServiceRecord(input.db, preparedProvisioning.record).catch(() => undefined);
+      await persistRuntimeServiceRecord(
+        input.db,
+        preparedProvisioning.record,
+      ).catch(() => undefined);
     }
     throw error;
   }
@@ -7965,7 +9085,8 @@ export async function startRuntimeServicesForWorkspaceControl(
     config: input.config,
     serviceIndex: input.serviceIndex,
     respectDesiredStates: input.respectDesiredStates,
-    defaultDesiredState: readDesiredRuntimeState(input.config.desiredState) ?? "stopped",
+    defaultDesiredState:
+      readDesiredRuntimeState(input.config.desiredState) ?? "stopped",
     serviceStates: readConfiguredServiceStates(input.config),
   });
   const invocationId = input.invocationId ?? "workspace_control";
@@ -7979,9 +9100,8 @@ export async function startRuntimeServicesForWorkspaceControl(
     adapterEnv: input.adapterEnv,
   });
   try {
-    return await withRuntimeStartMutexes(
-      mutexPlan.ownerKeys,
-      () => startRuntimeServicesForWorkspaceControlInvocation(input),
+    return await withRuntimeStartMutexes(mutexPlan.ownerKeys, () =>
+      startRuntimeServicesForWorkspaceControlInvocation(input),
     );
   } finally {
     releaseRuntimeReplacementClaims(mutexPlan.replacementReuseKeys);
@@ -7996,16 +9116,20 @@ export async function releaseRuntimeServicesForRun(runId: string) {
     if (!record) continue;
     record.leaseRunIds.delete(runId);
     record.lastUsedAt = new Date().toISOString();
-    const stopType = asString(record.stopPolicy?.type, record.lifecycle === "ephemeral" ? "on_run_finish" : "manual");
+    const stopType = asString(
+      record.stopPolicy?.type,
+      record.lifecycle === "ephemeral" ? "on_run_finish" : "manual",
+    );
     await persistRuntimeServiceRecord(record.db, record);
     if (record.leaseRunIds.size === 0) {
-      const detachedUnhealthySharedRuntime = record.healthStatus === "unhealthy"
-        && Boolean(record.reuseKey)
-        && runtimeServicesByReuseKey.get(record.reuseKey!) !== record.id;
+      const detachedUnhealthySharedRuntime =
+        record.healthStatus === "unhealthy" &&
+        Boolean(record.reuseKey) &&
+        runtimeServicesByReuseKey.get(record.reuseKey!) !== record.id;
       if (
-        record.lifecycle === "ephemeral"
-        || stopType === "on_run_finish"
-        || detachedUnhealthySharedRuntime
+        record.lifecycle === "ephemeral" ||
+        stopType === "on_run_finish" ||
+        detachedUnhealthySharedRuntime
       ) {
         await stopRuntimeService(serviceId);
         continue;
@@ -8021,11 +9145,14 @@ export async function stopRuntimeServicesForExecutionWorkspace(input: {
   workspaceCwd?: string | null;
   runtimeServiceId?: string | null;
 }) {
-  const normalizedWorkspaceCwd = input.workspaceCwd ? path.resolve(input.workspaceCwd) : null;
+  const normalizedWorkspaceCwd = input.workspaceCwd
+    ? path.resolve(input.workspaceCwd)
+    : null;
   const matchingServiceIds = Array.from(runtimeServicesById.values())
     .filter((record) => {
       if (input.runtimeServiceId) return record.id === input.runtimeServiceId;
-      if (record.executionWorkspaceId === input.executionWorkspaceId) return true;
+      if (record.executionWorkspaceId === input.executionWorkspaceId)
+        return true;
       if (!normalizedWorkspaceCwd || !record.cwd) return false;
       const resolvedCwd = path.resolve(record.cwd);
       return (
@@ -8078,7 +9205,10 @@ export async function stopRuntimeServicesForProjectWorkspace(input: {
   const matchingServiceIds = Array.from(runtimeServicesById.values())
     .filter((record) => {
       if (input.runtimeServiceId) return record.id === input.runtimeServiceId;
-      return record.projectWorkspaceId === input.projectWorkspaceId && record.scopeType === "project_workspace";
+      return (
+        record.projectWorkspaceId === input.projectWorkspaceId &&
+        record.scopeType === "project_workspace"
+      );
     })
     .map((record) => record.id);
 
@@ -8091,9 +9221,16 @@ export async function stopRuntimeServicesForProjectWorkspace(input: {
     const exposureCondition = input.runtimeServiceId
       ? eq(workspaceRuntimeServices.id, input.runtimeServiceId)
       : and(
-          eq(workspaceRuntimeServices.projectWorkspaceId, input.projectWorkspaceId),
+          eq(
+            workspaceRuntimeServices.projectWorkspaceId,
+            input.projectWorkspaceId,
+          ),
           eq(workspaceRuntimeServices.scopeType, "project_workspace"),
-          inArray(workspaceRuntimeServices.status, ["provisioning", "starting", "running"]),
+          inArray(workspaceRuntimeServices.status, [
+            "provisioning",
+            "starting",
+            "running",
+          ]),
         );
     const exposureRows = await input.db
       .select({
@@ -8113,9 +9250,7 @@ export async function stopRuntimeServicesForProjectWorkspace(input: {
         lastUsedAt: now,
         updatedAt: now,
       })
-      .where(
-        exposureCondition,
-      );
+      .where(exposureCondition);
   }
 }
 
@@ -8124,20 +9259,30 @@ export async function listWorkspaceRuntimeServicesForProjectWorkspaces(
   companyId: string,
   projectWorkspaceIds: string[],
 ) {
-  if (projectWorkspaceIds.length === 0) return new Map<string, typeof workspaceRuntimeServices.$inferSelect[]>();
+  if (projectWorkspaceIds.length === 0)
+    return new Map<string, (typeof workspaceRuntimeServices.$inferSelect)[]>();
   const rows = await db
     .select()
     .from(workspaceRuntimeServices)
     .where(
       and(
         eq(workspaceRuntimeServices.companyId, companyId),
-        inArray(workspaceRuntimeServices.projectWorkspaceId, projectWorkspaceIds),
+        inArray(
+          workspaceRuntimeServices.projectWorkspaceId,
+          projectWorkspaceIds,
+        ),
         eq(workspaceRuntimeServices.scopeType, "project_workspace"),
       ),
     )
-    .orderBy(desc(workspaceRuntimeServices.updatedAt), desc(workspaceRuntimeServices.createdAt));
+    .orderBy(
+      desc(workspaceRuntimeServices.updatedAt),
+      desc(workspaceRuntimeServices.createdAt),
+    );
 
-  const grouped = new Map<string, typeof workspaceRuntimeServices.$inferSelect[]>();
+  const grouped = new Map<
+    string,
+    (typeof workspaceRuntimeServices.$inferSelect)[]
+  >();
   for (const row of rows) {
     if (!row.projectWorkspaceId) continue;
     const existing = grouped.get(row.projectWorkspaceId);
@@ -8152,7 +9297,11 @@ export async function listWorkspaceRuntimeServicesForProjectWorkspaces(
  * A row in one of these states is what the backfill has to reprovision; a
  * `stopped` row simply picks the default up on its next start.
  */
-const LIVE_RUNTIME_SERVICE_STATUSES = new Set(["provisioning", "starting", "running"]);
+const LIVE_RUNTIME_SERVICE_STATUSES = new Set([
+  "provisioning",
+  "starting",
+  "running",
+]);
 
 export type ManagedRuntimeExposureBackfillDecision = {
   action: "keep" | "reprovision";
@@ -8183,14 +9332,23 @@ export function decideManagedRuntimeExposureBackfill(input: {
   hasExposure: boolean;
   declaredIntent: RuntimeExposureIntent | null;
 }): ManagedRuntimeExposureBackfillDecision {
-  if (input.mode === "off") return { action: "keep", reason: "https_default_disabled" };
-  if (input.provider !== "local_process") return { action: "keep", reason: "not_a_managed_local_process" };
+  if (input.mode === "off")
+    return { action: "keep", reason: "https_default_disabled" };
+  if (input.provider !== "local_process")
+    return { action: "keep", reason: "not_a_managed_local_process" };
   // Idempotence: a row that already carries exposure state is never re-driven,
   // so repeated deploys and restarts converge instead of churning listeners.
   if (input.hasExposure) return { action: "keep", reason: "already_exposed" };
-  if (input.declaredIntent === "disabled") return { action: "keep", reason: "deliberate_opt_out" };
-  if (input.declaredIntent === null) return { action: "keep", reason: "no_configured_service_entry" };
-  if (!isManagedHttpsDefaultCandidate({ serviceName: input.serviceName, command: input.command })) {
+  if (input.declaredIntent === "disabled")
+    return { action: "keep", reason: "deliberate_opt_out" };
+  if (input.declaredIntent === null)
+    return { action: "keep", reason: "no_configured_service_entry" };
+  if (
+    !isManagedHttpsDefaultCandidate({
+      serviceName: input.serviceName,
+      command: input.command,
+    })
+  ) {
     return { action: "keep", reason: "unmanaged_or_custom_service" };
   }
   if (input.mode !== "force" && !input.brokerAvailable) {
@@ -8212,26 +9370,51 @@ async function buildPersistedRuntimeExposureIntentLookup(db: Db) {
     db.select().from(projectWorkspaces),
     db.select().from(executionWorkspaces),
   ]);
-  const projectRuntimeById = new Map(projectWorkspaceRows.map((row) => [
-    row.id,
-    readProjectWorkspaceRuntimeConfig((row.metadata as Record<string, unknown> | null) ?? null)?.workspaceRuntime ?? null,
-  ] as const));
-  const executionRuntimeById = new Map(executionWorkspaceRows.map((row) => [
-    row.id,
-    readExecutionWorkspaceConfig((row.metadata as Record<string, unknown> | null) ?? null)?.workspaceRuntime
-      ?? (row.projectWorkspaceId ? projectRuntimeById.get(row.projectWorkspaceId) ?? null : null),
-  ] as const));
+  const projectRuntimeById = new Map(
+    projectWorkspaceRows.map(
+      (row) =>
+        [
+          row.id,
+          readProjectWorkspaceRuntimeConfig(
+            (row.metadata as Record<string, unknown> | null) ?? null,
+          )?.workspaceRuntime ?? null,
+        ] as const,
+    ),
+  );
+  const executionRuntimeById = new Map(
+    executionWorkspaceRows.map(
+      (row) =>
+        [
+          row.id,
+          readExecutionWorkspaceConfig(
+            (row.metadata as Record<string, unknown> | null) ?? null,
+          )?.workspaceRuntime ??
+            (row.projectWorkspaceId
+              ? (projectRuntimeById.get(row.projectWorkspaceId) ?? null)
+              : null),
+        ] as const,
+    ),
+  );
 
   return (row: {
     serviceName: string;
     projectWorkspaceId: string | null;
     executionWorkspaceId: string | null;
   }): RuntimeExposureIntent | null => {
-    const runtime = (row.executionWorkspaceId ? executionRuntimeById.get(row.executionWorkspaceId) : null)
-      ?? (row.projectWorkspaceId ? projectRuntimeById.get(row.projectWorkspaceId) ?? null : null);
+    const runtime =
+      (row.executionWorkspaceId
+        ? executionRuntimeById.get(row.executionWorkspaceId)
+        : null) ??
+      (row.projectWorkspaceId
+        ? (projectRuntimeById.get(row.projectWorkspaceId) ?? null)
+        : null);
     if (!runtime) return null;
-    const entries = listConfiguredRuntimeServiceEntries({ workspaceRuntime: runtime });
-    const entry = entries.find((candidate) => asString(candidate.name, "service") === row.serviceName);
+    const entries = listConfiguredRuntimeServiceEntries({
+      workspaceRuntime: runtime,
+    });
+    const entry = entries.find(
+      (candidate) => asString(candidate.name, "service") === row.serviceName,
+    );
     if (!entry) return null;
     return readRuntimeExposureIntent(parseObject(entry.expose));
   };
@@ -8245,13 +9428,22 @@ export async function refreshPersistedRuntimeServiceHealth(input: {
 }) {
   const ownershipCondition = input.projectWorkspaceId
     ? or(
-        eq(workspaceRuntimeServices.executionWorkspaceId, input.executionWorkspaceId),
+        eq(
+          workspaceRuntimeServices.executionWorkspaceId,
+          input.executionWorkspaceId,
+        ),
         and(
-          eq(workspaceRuntimeServices.projectWorkspaceId, input.projectWorkspaceId),
+          eq(
+            workspaceRuntimeServices.projectWorkspaceId,
+            input.projectWorkspaceId,
+          ),
           eq(workspaceRuntimeServices.scopeType, "project_workspace"),
         ),
       )
-    : eq(workspaceRuntimeServices.executionWorkspaceId, input.executionWorkspaceId);
+    : eq(
+        workspaceRuntimeServices.executionWorkspaceId,
+        input.executionWorkspaceId,
+      );
   const rows = await input.db
     .select({
       id: workspaceRuntimeServices.id,
@@ -8266,32 +9458,48 @@ export async function refreshPersistedRuntimeServiceHealth(input: {
       companyId: workspaceRuntimeServices.companyId,
     })
     .from(workspaceRuntimeServices)
-    .where(and(
-      eq(workspaceRuntimeServices.companyId, input.companyId),
-      eq(workspaceRuntimeServices.provider, "local_process"),
-      eq(workspaceRuntimeServices.status, "running"),
-      ownershipCondition,
-    ));
-  const results = await Promise.all(rows.map(async (row) => ({
-    row,
-    healthStatus: await isRuntimeServiceUrlHealthy(row.url, { ...row, db: input.db })
-      ? "healthy" as const
-      : "unhealthy" as const,
-  })));
-  await Promise.all(results.map(async ({ row, healthStatus }) => {
-    const liveRecord = runtimeServicesById.get(row.id);
-    if (liveRecord) liveRecord.healthStatus = healthStatus;
-    if (row.healthStatus === healthStatus) return;
-    await input.db.update(workspaceRuntimeServices).set({ healthStatus, updatedAt: new Date() }).where(and(
-      eq(workspaceRuntimeServices.id, row.id),
-      eq(workspaceRuntimeServices.companyId, input.companyId),
-      eq(workspaceRuntimeServices.status, "running"),
-    ));
-  }));
+    .where(
+      and(
+        eq(workspaceRuntimeServices.companyId, input.companyId),
+        eq(workspaceRuntimeServices.provider, "local_process"),
+        eq(workspaceRuntimeServices.status, "running"),
+        ownershipCondition,
+      ),
+    );
+  const results = await Promise.all(
+    rows.map(async (row) => ({
+      row,
+      healthStatus: (await isRuntimeServiceUrlHealthy(row.url, {
+        ...row,
+        db: input.db,
+      }))
+        ? ("healthy" as const)
+        : ("unhealthy" as const),
+    })),
+  );
+  await Promise.all(
+    results.map(async ({ row, healthStatus }) => {
+      const liveRecord = runtimeServicesById.get(row.id);
+      if (liveRecord) liveRecord.healthStatus = healthStatus;
+      if (row.healthStatus === healthStatus) return;
+      await input.db
+        .update(workspaceRuntimeServices)
+        .set({ healthStatus, updatedAt: new Date() })
+        .where(
+          and(
+            eq(workspaceRuntimeServices.id, row.id),
+            eq(workspaceRuntimeServices.companyId, input.companyId),
+            eq(workspaceRuntimeServices.status, "running"),
+          ),
+        );
+    }),
+  );
   return {
     checked: results.length,
-    healthy: results.filter((result) => result.healthStatus === "healthy").length,
-    unhealthy: results.filter((result) => result.healthStatus === "unhealthy").length,
+    healthy: results.filter((result) => result.healthStatus === "healthy")
+      .length,
+    unhealthy: results.filter((result) => result.healthStatus === "unhealthy")
+      .length,
   };
 }
 
@@ -8302,27 +9510,40 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
     .where(
       and(
         eq(workspaceRuntimeServices.provider, "local_process"),
-        inArray(workspaceRuntimeServices.status, ["provisioning", "starting", "running", "stopped"]),
+        inArray(workspaceRuntimeServices.status, [
+          "provisioning",
+          "starting",
+          "running",
+          "stopped",
+        ]),
       ),
     );
 
   // Backfill inputs, resolved once per startup rather than per row.
   const httpsMode = resolveManagedRuntimeHttpsMode();
-  const brokerAvailable = httpsMode === "off"
-    ? false
-    : await workspaceRuntimeExposureDeps.isBrokerAvailable().catch(() => false);
-  const readDeclaredExposureIntent = await buildPersistedRuntimeExposureIntentLookup(db);
+  const brokerAvailable =
+    httpsMode === "off"
+      ? false
+      : await workspaceRuntimeExposureDeps
+          .isBrokerAvailable()
+          .catch(() => false);
+  const readDeclaredExposureIntent =
+    await buildPersistedRuntimeExposureIntentLookup(db);
 
-  let ownedExposureListeners: Awaited<ReturnType<BrokerClient["list"]>> | null = [];
+  let ownedExposureListeners: Awaited<ReturnType<BrokerClient["list"]>> | null =
+    [];
   // Also fetch when a row merely *reserves* a dedicated-range port. The row that
   // matters most to PAP-17419 is exactly the one with `exposure.state ===
   // "removed"`: it claims nothing, yet its leased pair can still be mapped by
   // someone else. Skipping the broker read for those rows is what let a false
   // `removed` go unnoticed.
-  if (rows.some((row) => (
-    (row.exposure && row.exposure.state !== "removed")
-    || (row.port !== null && isRuntimeExposureAppPort(row.port))
-  ))) {
+  if (
+    rows.some(
+      (row) =>
+        (row.exposure && row.exposure.state !== "removed") ||
+        (row.port !== null && isRuntimeExposureAppPort(row.port)),
+    )
+  ) {
     try {
       ownedExposureListeners = await workspaceRuntimeExposureDeps.broker.list();
     } catch {
@@ -8330,14 +9551,19 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
     }
   }
 
-  const exposureReservationDrift = await detectPersistedExposureReservationDrift({
-    rows,
-    ownedListeners: ownedExposureListeners,
-  });
-  const companyIdByRowId = new Map(rows.map((row) => [row.id, row.companyId] as const));
+  const exposureReservationDrift =
+    await detectPersistedExposureReservationDrift({
+      rows,
+      ownedListeners: ownedExposureListeners,
+    });
+  const companyIdByRowId = new Map(
+    rows.map((row) => [row.id, row.companyId] as const),
+  );
   for (const entry of exposureReservationDrift) {
     const description = describeExposureReservationDrift(entry);
-    console.warn(`[workspace-runtime] exposure reservation drift: ${description}`);
+    console.warn(
+      `[workspace-runtime] exposure reservation drift: ${description}`,
+    );
     const companyId = companyIdByRowId.get(entry.runtimeServiceId);
     if (!companyId) continue;
     await logActivity(db, {
@@ -8345,7 +9571,9 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
       actorType: "system",
       actorId: "workspace_runtime",
       action: "workspace_runtime.exposure_reservation_drift",
-      entityType: entry.owner.executionWorkspaceId ? "execution_workspace" : "workspace_runtime_service",
+      entityType: entry.owner.executionWorkspaceId
+        ? "execution_workspace"
+        : "workspace_runtime_service",
       entityId: entry.owner.executionWorkspaceId ?? entry.runtimeServiceId,
       issueId: entry.owner.issueId,
       details: {
@@ -8354,8 +9582,10 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
         port: entry.port,
         reason: entry.reason,
         executionWorkspaceId: entry.owner.executionWorkspaceId,
-        conflictingExecutionWorkspaceId: entry.conflictingOwner?.executionWorkspaceId ?? null,
-        conflictingRuntimeServiceId: entry.conflictingOwner?.runtimeServiceId ?? null,
+        conflictingExecutionWorkspaceId:
+          entry.conflictingOwner?.executionWorkspaceId ?? null,
+        conflictingRuntimeServiceId:
+          entry.conflictingOwner?.runtimeServiceId ?? null,
       },
     }).catch(() => undefined);
   }
@@ -8364,7 +9594,9 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
   let adopted = 0;
   let stopped = 0;
   let backfilled = 0;
-  const driftedRuntimeServiceIds = new Set(exposureReservationDrift.map((entry) => entry.runtimeServiceId));
+  const driftedRuntimeServiceIds = new Set(
+    exposureReservationDrift.map((entry) => entry.runtimeServiceId),
+  );
   for (const row of rows) {
     // PAP-17419: this row's reserved pair is live, or Serve-mapped, under an
     // identity that is not this row's. Every branch below is unsafe for such a
@@ -8378,7 +9610,11 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
       reconciled += 1;
       continue;
     }
-    if (row.status === "stopped" && row.exposure && row.exposure.state !== "removed") {
+    if (
+      row.status === "stopped" &&
+      row.exposure &&
+      row.exposure.state !== "removed"
+    ) {
       // This branch is a GLOBAL sweep: `rows` spans every execution workspace and
       // company on the host, at any age, and it runs on every server start. It
       // used to issue a broker removal for each stale row on the row's authority
@@ -8388,28 +9624,41 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
       // this function has already fetched, instead of trusting the row.
       await cleanupPersistedExposureRows(
         db,
-        [{ id: row.id, exposure: row.exposure, exposureHandle: row.exposureHandle }],
+        [
+          {
+            id: row.id,
+            exposure: row.exposure,
+            exposureHandle: row.exposureHandle,
+          },
+        ],
         { ownedListeners: ownedExposureListeners },
       );
       reconciled += 1;
       continue;
     }
-    const rowExposureListeners = ownedExposureListeners?.filter((listener) => listener.runtimeId === row.id) ?? [];
-    const exposureMappingMatches = !row.exposure || (
-      row.exposure.state === "ready"
-      && Boolean(row.exposureHandle)
-      && rowExposureListeners.length === row.exposure.listeners.length
-      && row.exposure.listeners.every((expected) => rowExposureListeners.some((actual) => (
-        actual.port === expected.targetPort && actual.purpose === expected.purpose
-      )))
-    );
-    const exposureHealthMatches = !row.exposure || (
-      exposureMappingMatches
-      && Boolean(row.exposure.publicUrl)
-      && await workspaceRuntimeExposureDeps.probeHealth(
-        new URL("/api/health", row.exposure.publicUrl!).toString(),
-      )
-    );
+    const rowExposureListeners =
+      ownedExposureListeners?.filter(
+        (listener) => listener.runtimeId === row.id,
+      ) ?? [];
+    const exposureMappingMatches =
+      !row.exposure ||
+      (row.exposure.state === "ready" &&
+        Boolean(row.exposureHandle) &&
+        rowExposureListeners.length === row.exposure.listeners.length &&
+        row.exposure.listeners.every((expected) =>
+          rowExposureListeners.some(
+            (actual) =>
+              actual.port === expected.targetPort &&
+              actual.purpose === expected.purpose,
+          ),
+        ));
+    const exposureHealthMatches =
+      !row.exposure ||
+      (exposureMappingMatches &&
+        Boolean(row.exposure.publicUrl) &&
+        (await workspaceRuntimeExposureDeps.probeHealth(
+          new URL("/api/health", row.exposure.publicUrl!).toString(),
+        )));
     // Pre-feature rows carry no exposure state at all. An eligible one that is
     // still serving plain HTTP must not be adopted as-is, or the deploy would
     // leave `http://taskcore-dev:<port>` as the canonical URL forever. Stopping
@@ -8434,14 +9683,13 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
       profileKind: "workspace-runtime",
     });
     if (
-      adoptedRecord
-      && (
-        adoptedRecord.command !== row.command
-        || adoptedRecord.serviceName !== row.serviceName
-        || adoptedRecord.envFingerprint !== (row.reuseKey ?? "")
-        || adoptedRecord.port !== (row.port ?? null)
-        || (row.cwd !== null && path.resolve(adoptedRecord.cwd) !== path.resolve(row.cwd))
-      )
+      adoptedRecord &&
+      (adoptedRecord.command !== row.command ||
+        adoptedRecord.serviceName !== row.serviceName ||
+        adoptedRecord.envFingerprint !== (row.reuseKey ?? "") ||
+        adoptedRecord.port !== (row.port ?? null) ||
+        (row.cwd !== null &&
+          path.resolve(adoptedRecord.cwd) !== path.resolve(row.cwd)))
     ) {
       await removeLocalServiceRegistryRecord(adoptedRecord.serviceKey);
       adoptedRecord = null;
@@ -8487,15 +9735,21 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
       // busy at startup. One timeout is not enough evidence to terminate it.
       // Confirm an unhealthy verdict with a second probe after a short bounded
       // delay, the same way the reuse path protects a shared runtime.
-      let adoptedHealthy = await isRuntimeServiceUrlHealthy(adoptedUrl, adoptedHealthInput);
+      let adoptedHealthy = await isRuntimeServiceUrlHealthy(
+        adoptedUrl,
+        adoptedHealthInput,
+      );
       if (!adoptedHealthy) {
         await delay(250);
-        adoptedHealthy = await isRuntimeServiceUrlHealthy(adoptedUrl, adoptedHealthInput);
+        adoptedHealthy = await isRuntimeServiceUrlHealthy(
+          adoptedUrl,
+          adoptedHealthInput,
+        );
       }
       if (
-        backfillDecision.action === "reprovision"
-        || !exposureHealthMatches
-        || !adoptedHealthy
+        backfillDecision.action === "reprovision" ||
+        !exposureHealthMatches ||
+        !adoptedHealthy
       ) {
         if (backfillDecision.action === "reprovision") backfilled += 1;
         await terminateLocalService(adoptedRecord);
@@ -8525,7 +9779,8 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
           lastUsedAt: new Date().toISOString(),
           startedAt: row.startedAt.toISOString(),
           stoppedAt: null,
-          stopPolicy: (row.stopPolicy as Record<string, unknown> | null) ?? null,
+          stopPolicy:
+            (row.stopPolicy as Record<string, unknown> | null) ?? null,
           healthStatus: "healthy",
           exposure: row.exposure ?? null,
           reused: true,
@@ -8566,7 +9821,8 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
         handle: stoppedExposureHandle,
         ports: stoppedExposure.listeners.map((listener) => listener.targetPort),
       });
-      for (const port of cleanup.quarantinedPorts) quarantinedRuntimeExposurePorts.add(port);
+      for (const port of cleanup.quarantinedPorts)
+        quarantinedRuntimeExposurePorts.add(port);
       stoppedExposure = {
         ...stoppedExposure,
         state: cleanup.status.state,
@@ -8584,7 +9840,10 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
         // A row queued for HTTPS backfill drops its HTTP URL now rather than
         // keeping it until the restart succeeds: if the restart fails, the
         // fail-closed contract says show no URL, not a working HTTP one.
-        url: stoppedExposure || backfillDecision.action === "reprovision" ? null : row.url,
+        url:
+          stoppedExposure || backfillDecision.action === "reprovision"
+            ? null
+            : row.url,
         exposure: stoppedExposure,
         exposureHandle: stoppedExposureHandle,
         stoppedAt: now,
@@ -8592,10 +9851,11 @@ export async function reconcilePersistedRuntimeServicesOnStartup(db: Db) {
         updatedAt: now,
       })
       .where(eq(workspaceRuntimeServices.id, row.id));
-    const registryRecord = await findLocalServiceRegistryRecordByRuntimeServiceId({
-      runtimeServiceId: row.id,
-      profileKind: "workspace-runtime",
-    });
+    const registryRecord =
+      await findLocalServiceRegistryRecordByRuntimeServiceId({
+        runtimeServiceId: row.id,
+        profileKind: "workspace-runtime",
+      });
     if (registryRecord) {
       await removeLocalServiceRegistryRecord(registryRecord.serviceKey);
     }
@@ -8631,14 +9891,21 @@ export async function restartDesiredRuntimeServicesOnStartup(db: Db) {
   let restarted = 0;
   let failed = 0;
 
-  const projectWorkspaceRows = await db
-    .select()
-    .from(projectWorkspaces);
-  const projectWorkspaceRowsById = new Map(projectWorkspaceRows.map((row) => [row.id, row] as const));
+  const projectWorkspaceRows = await db.select().from(projectWorkspaces);
+  const projectWorkspaceRowsById = new Map(
+    projectWorkspaceRows.map((row) => [row.id, row] as const),
+  );
 
   for (const row of projectWorkspaceRows) {
-    const runtimeConfig = readProjectWorkspaceRuntimeConfig((row.metadata as Record<string, unknown> | null) ?? null);
-    if (runtimeConfig?.desiredState !== "running" || !runtimeConfig.workspaceRuntime || !row.cwd) continue;
+    const runtimeConfig = readProjectWorkspaceRuntimeConfig(
+      (row.metadata as Record<string, unknown> | null) ?? null,
+    );
+    if (
+      runtimeConfig?.desiredState !== "running" ||
+      !runtimeConfig.workspaceRuntime ||
+      !row.cwd
+    )
+      continue;
 
     try {
       const refs = await startRuntimeServicesForWorkspaceControl({
@@ -8668,7 +9935,8 @@ export async function restartDesiredRuntimeServicesOnStartup(db: Db) {
         adapterEnv: {},
         respectDesiredStates: true,
       });
-      if (refs.length > 0) restarted += refs.filter((ref) => !ref.reused).length;
+      if (refs.length > 0)
+        restarted += refs.filter((ref) => !ref.reused).length;
     } catch {
       failed += 1;
     }
@@ -8677,17 +9945,33 @@ export async function restartDesiredRuntimeServicesOnStartup(db: Db) {
   const executionWorkspaceRows = await db
     .select()
     .from(executionWorkspaces)
-    .where(inArray(executionWorkspaces.status, ["active", "idle", "in_review", "cleanup_failed"]));
+    .where(
+      inArray(executionWorkspaces.status, [
+        "active",
+        "idle",
+        "in_review",
+        "cleanup_failed",
+      ]),
+    );
 
   for (const row of executionWorkspaceRows) {
-    const config = readExecutionWorkspaceConfig((row.metadata as Record<string, unknown> | null) ?? null);
+    const config = readExecutionWorkspaceConfig(
+      (row.metadata as Record<string, unknown> | null) ?? null,
+    );
     const inheritedRuntimeConfig = row.projectWorkspaceId
-      ? readProjectWorkspaceRuntimeConfig(
-          (projectWorkspaceRowsById.get(row.projectWorkspaceId)?.metadata as Record<string, unknown> | null) ?? null,
-        )?.workspaceRuntime ?? null
+      ? (readProjectWorkspaceRuntimeConfig(
+          (projectWorkspaceRowsById.get(row.projectWorkspaceId)
+            ?.metadata as Record<string, unknown> | null) ?? null,
+        )?.workspaceRuntime ?? null)
       : null;
-    const effectiveRuntimeConfig = config?.workspaceRuntime ?? inheritedRuntimeConfig;
-    if (config?.desiredState !== "running" || !effectiveRuntimeConfig || !row.cwd) continue;
+    const effectiveRuntimeConfig =
+      config?.workspaceRuntime ?? inheritedRuntimeConfig;
+    if (
+      config?.desiredState !== "running" ||
+      !effectiveRuntimeConfig ||
+      !row.cwd
+    )
+      continue;
 
     try {
       const refs = await startRuntimeServicesForWorkspaceControl({
@@ -8702,12 +9986,18 @@ export async function restartDesiredRuntimeServicesOnStartup(db: Db) {
           : null,
         workspace: {
           baseCwd: row.cwd,
-          source: row.mode === "shared_workspace" ? "project_primary" : "task_session",
+          source:
+            row.mode === "shared_workspace"
+              ? "project_primary"
+              : "task_session",
           projectId: row.projectId,
           workspaceId: row.projectWorkspaceId ?? null,
           repoUrl: row.repoUrl ?? null,
           repoRef: row.baseRef ?? null,
-          strategy: row.strategyType === "git_worktree" ? "git_worktree" : "project_primary",
+          strategy:
+            row.strategyType === "git_worktree"
+              ? "git_worktree"
+              : "project_primary",
           cwd: row.cwd,
           branchName: row.branchName ?? null,
           worktreePath: row.strategyType === "git_worktree" ? row.cwd : null,
@@ -8727,7 +10017,8 @@ export async function restartDesiredRuntimeServicesOnStartup(db: Db) {
         adapterEnv: {},
         respectDesiredStates: true,
       });
-      if (refs.length > 0) restarted += refs.filter((ref) => !ref.reused).length;
+      if (refs.length > 0)
+        restarted += refs.filter((ref) => !ref.reused).length;
     } catch {
       failed += 1;
     }
@@ -8752,7 +10043,12 @@ export async function persistAdapterManagedRuntimeServices(input: {
   const existingRows = await input.db
     .select()
     .from(workspaceRuntimeServices)
-    .where(inArray(workspaceRuntimeServices.id, refs.map((ref) => ref.id)));
+    .where(
+      inArray(
+        workspaceRuntimeServices.id,
+        refs.map((ref) => ref.id),
+      ),
+    );
   const existingById = new Map(existingRows.map((row) => [row.id, row]));
 
   for (const ref of refs) {
@@ -8866,31 +10162,50 @@ export function buildWorkspaceReadyMetadata(
   const workspaceRows: IssueCommentMetadata["sections"][number]["rows"] = [
     { type: "key_value", label: "Strategy", value: input.workspace.strategy },
     ...(input.workspace.branchName
-      ? [{ type: "key_value" as const, label: "Branch", value: input.workspace.branchName }]
+      ? [
+          {
+            type: "key_value" as const,
+            label: "Branch",
+            value: input.workspace.branchName,
+          },
+        ]
       : []),
     { type: "key_value", label: "CWD", value: input.workspace.cwd },
-    ...(input.workspace.worktreePath && input.workspace.worktreePath !== input.workspace.cwd
-      ? [{ type: "key_value" as const, label: "Worktree", value: input.workspace.worktreePath }]
+    ...(input.workspace.worktreePath &&
+    input.workspace.worktreePath !== input.workspace.cwd
+      ? [
+          {
+            type: "key_value" as const,
+            label: "Worktree",
+            value: input.workspace.worktreePath,
+          },
+        ]
       : []),
   ];
-  const serviceRows: IssueCommentMetadata["sections"][number]["rows"] = input.runtimeServices.map(
-    (service) => ({
+  const serviceRows: IssueCommentMetadata["sections"][number]["rows"] =
+    input.runtimeServices.map((service) => ({
       type: "key_value",
       label: workspaceReadyServiceLabel(service.serviceName),
       value: `${service.url ?? "running"}${service.reused ? " (reused)" : ""}`,
-    }),
-  );
+    }));
 
   return {
     version: 1,
     sections: [
       { title: "Workspace", rows: workspaceRows },
-      ...(serviceRows.length > 0 ? [{ title: "Services", rows: serviceRows }] : []),
+      ...(serviceRows.length > 0
+        ? [{ title: "Services", rows: serviceRows }]
+        : []),
       ...(input.workspace.warnings.length > 0
-        ? [{
-            title: "Warnings",
-            rows: input.workspace.warnings.map((warning) => ({ type: "text" as const, text: warning })),
-          }]
+        ? [
+            {
+              title: "Warnings",
+              rows: input.workspace.warnings.map((warning) => ({
+                type: "text" as const,
+                text: warning,
+              })),
+            },
+          ]
         : []),
     ],
   };
@@ -8899,16 +10214,22 @@ export function buildWorkspaceReadyMetadata(
 export function buildWorkspaceReadyComment(input: WorkspaceReadyCommentInput) {
   const lines = ["## Workspace Ready", ""];
   lines.push(`- Strategy: \`${input.workspace.strategy}\``);
-  if (input.workspace.branchName) lines.push(`- Branch: \`${input.workspace.branchName}\``);
+  if (input.workspace.branchName)
+    lines.push(`- Branch: \`${input.workspace.branchName}\``);
   lines.push(`- CWD: \`${input.workspace.cwd}\``);
-  if (input.workspace.worktreePath && input.workspace.worktreePath !== input.workspace.cwd) {
+  if (
+    input.workspace.worktreePath &&
+    input.workspace.worktreePath !== input.workspace.cwd
+  ) {
     lines.push(`- Worktree: \`${input.workspace.worktreePath}\``);
   }
   for (const warning of input.workspace.warnings) {
     lines.push(`- Warning: ${warning}`);
   }
   for (const service of input.runtimeServices) {
-    const detail = service.url ? `${service.serviceName}: ${service.url}` : `${service.serviceName}: running`;
+    const detail = service.url
+      ? `${service.serviceName}: ${service.url}`
+      : `${service.serviceName}: running`;
     const suffix = service.reused ? " (reused)" : "";
     lines.push(`- Service: ${detail}${suffix}`);
   }

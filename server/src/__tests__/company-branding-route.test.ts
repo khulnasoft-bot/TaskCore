@@ -78,8 +78,12 @@ function createCompany() {
 
 async function createApp(actor: Record<string, unknown>) {
   const [{ companyRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/companies.js")>("../routes/companies.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/companies.js")>(
+      "../routes/companies.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -308,10 +312,14 @@ describe("PATCH /api/companies/:companyId", () => {
       .send({ name: "New Name" });
 
     expect(res.status).toBe(200);
-    expect(mockCompanyService.update).toHaveBeenCalledWith("company-1", { name: "New Name" }, expect.objectContaining({
-      actorType: "agent",
-      actorId: "agent-1",
-    }));
+    expect(mockCompanyService.update).toHaveBeenCalledWith(
+      "company-1",
+      { name: "New Name" },
+      expect.objectContaining({
+        actorType: "agent",
+        actorId: "agent-1",
+      }),
+    );
   });
 
   it("rejects CEO agent attempts to update lifecycle, budget, consent, or prefix fields", async () => {
@@ -330,16 +338,14 @@ describe("PATCH /api/companies/:companyId", () => {
       runId: "run-1",
     });
 
-    const res = await request(app)
-      .patch("/api/companies/company-1")
-      .send({
-        status: "archived",
-        budgetMonthlyCents: 1000,
-        spentMonthlyCents: 500,
-        requireBoardApprovalForNewAgents: true,
-        feedbackDataSharingEnabled: true,
-        issuePrefix: "BAD",
-      });
+    const res = await request(app).patch("/api/companies/company-1").send({
+      status: "archived",
+      budgetMonthlyCents: 1000,
+      spentMonthlyCents: 500,
+      requireBoardApprovalForNewAgents: true,
+      feedbackDataSharingEnabled: true,
+      issuePrefix: "BAD",
+    });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("Validation error");
@@ -365,9 +371,13 @@ describe("PATCH /api/companies/:companyId", () => {
       .send({ status: "paused" });
 
     expect(res.status).toBe(200);
-    expect(mockCompanyService.update).toHaveBeenCalledWith("company-1", { status: "paused" }, expect.objectContaining({
-      actorType: "user",
-      actorId: "user-1",
-    }));
+    expect(mockCompanyService.update).toHaveBeenCalledWith(
+      "company-1",
+      { status: "paused" },
+      expect.objectContaining({
+        actorType: "user",
+        actorId: "user-1",
+      }),
+    );
   });
 });

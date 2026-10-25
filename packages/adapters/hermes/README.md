@@ -33,16 +33,16 @@ This adapter provides:
 
 ### Hermes Agent Capabilities
 
-| Feature | Claude Code | Codex | Hermes Agent |
-|---------|------------|-------|-------------|
-| Persistent memory | ❌ | ❌ | ✅ Remembers across sessions |
-| Native tools | ~5 | ~5 | 30+ (terminal, file, web, browser, vision, git, etc.) |
-| Skills system | ❌ | ❌ | ✅ 80+ loadable skills |
-| Session search | ❌ | ❌ | ✅ FTS5 search over past conversations |
-| Sub-agent delegation | ❌ | ❌ | ✅ Parallel sub-tasks |
-| Context compression | ❌ | ❌ | ✅ Auto-compresses long conversations |
-| MCP client | ❌ | ❌ | ✅ Connect to any MCP server |
-| Multi-provider | Anthropic only | OpenAI only | ✅ 8 providers out of the box |
+| Feature              | Claude Code    | Codex       | Hermes Agent                                          |
+| -------------------- | -------------- | ----------- | ----------------------------------------------------- |
+| Persistent memory    | ❌             | ❌          | ✅ Remembers across sessions                          |
+| Native tools         | ~5             | ~5          | 30+ (terminal, file, web, browser, vision, git, etc.) |
+| Skills system        | ❌             | ❌          | ✅ 80+ loadable skills                                |
+| Session search       | ❌             | ❌          | ✅ FTS5 search over past conversations                |
+| Sub-agent delegation | ❌             | ❌          | ✅ Parallel sub-tasks                                 |
+| Context compression  | ❌             | ❌          | ✅ Auto-compresses long conversations                 |
+| MCP client           | ❌             | ❌          | ✅ Connect to any MCP server                          |
+| Multi-provider       | Anthropic only | OpenAI only | ✅ 8 providers out of the box                         |
 
 ## Installation
 
@@ -218,60 +218,60 @@ Create issues in Taskcore and assign them to your Hermes agent. On each heartbea
 
 ### Core
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `model` | string | `anthropic/claude-sonnet-4` | Model in `provider/model` format |
-| `provider` | string | *(auto-detected)* | API provider: `auto`, `openrouter`, `nous`, `openai-codex`, `zai`, `kimi-coding`, `minimax`, `minimax-cn` |
-| `timeoutSec` | number | `300` | Execution timeout in seconds |
-| `graceSec` | number | `10` | Grace period before SIGKILL |
+| Field        | Type   | Default                     | Description                                                                                               |
+| ------------ | ------ | --------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `model`      | string | `anthropic/claude-sonnet-4` | Model in `provider/model` format                                                                          |
+| `provider`   | string | _(auto-detected)_           | API provider: `auto`, `openrouter`, `nous`, `openai-codex`, `zai`, `kimi-coding`, `minimax`, `minimax-cn` |
+| `timeoutSec` | number | `300`                       | Execution timeout in seconds                                                                              |
+| `graceSec`   | number | `10`                        | Grace period before SIGKILL                                                                               |
 
 ### Tools
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `toolsets` | string | *(all)* | Comma-separated toolsets to enable (e.g. `"terminal,file,web"`) |
+| Field      | Type   | Default | Description                                                     |
+| ---------- | ------ | ------- | --------------------------------------------------------------- |
+| `toolsets` | string | _(all)_ | Comma-separated toolsets to enable (e.g. `"terminal,file,web"`) |
 
 Available toolsets: `terminal`, `file`, `web`, `browser`, `code_execution`, `vision`, `mcp`, `creative`, `productivity`
 
 ### Session & Workspace
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `cwd` | string | *(assigned task workspace)* | Absolute working directory override. Without an override, use Taskcore's resolved task workspace. |
-| `persistSession` | boolean | `true` | Resume sessions across heartbeats |
-| `worktreeMode` | boolean | `false` | Git worktree isolation |
-| `checkpoints` | boolean | `false` | Enable filesystem checkpoints for rollback |
+| Field            | Type    | Default                     | Description                                                                                       |
+| ---------------- | ------- | --------------------------- | ------------------------------------------------------------------------------------------------- |
+| `cwd`            | string  | _(assigned task workspace)_ | Absolute working directory override. Without an override, use Taskcore's resolved task workspace. |
+| `persistSession` | boolean | `true`                      | Resume sessions across heartbeats                                                                 |
+| `worktreeMode`   | boolean | `false`                     | Git worktree isolation                                                                            |
+| `checkpoints`    | boolean | `false`                     | Enable filesystem checkpoints for rollback                                                        |
 
 ### Advanced
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `hermesCommand` | string | `hermes` | Custom CLI binary path |
-| `verbose` | boolean | `false` | Enable verbose output |
-| `quiet` | boolean | `true` | Quiet mode (clean output, no banner/spinner) |
-| `extraArgs` | string[] | `[]` | Additional CLI arguments |
-| `env` | object | `{}` | Extra environment variables |
-| `promptTemplate` | string | *(built-in)* | Custom prompt template |
-| `taskcoreApiUrl` | string | `http://127.0.0.1:3100/api` | Taskcore API base URL |
+| Field            | Type     | Default                     | Description                                  |
+| ---------------- | -------- | --------------------------- | -------------------------------------------- |
+| `hermesCommand`  | string   | `hermes`                    | Custom CLI binary path                       |
+| `verbose`        | boolean  | `false`                     | Enable verbose output                        |
+| `quiet`          | boolean  | `true`                      | Quiet mode (clean output, no banner/spinner) |
+| `extraArgs`      | string[] | `[]`                        | Additional CLI arguments                     |
+| `env`            | object   | `{}`                        | Extra environment variables                  |
+| `promptTemplate` | string   | _(built-in)_                | Custom prompt template                       |
+| `taskcoreApiUrl` | string   | `http://127.0.0.1:3100/api` | Taskcore API base URL                        |
 
 ### Prompt Template Variables
 
 Use `{{variable}}` syntax in `promptTemplate`:
 
-| Variable | Description |
-|----------|-------------|
-| `{{agentId}}` | Taskcore agent ID |
-| `{{agentName}}` | Agent display name |
-| `{{companyId}}` | Company ID |
-| `{{companyName}}` | Company name |
-| `{{runId}}` | Current heartbeat run ID |
-| `{{taskId}}` | Assigned task/issue ID |
-| `{{taskTitle}}` | Task title |
-| `{{taskBody}}` | Task instructions |
-| `{{projectName}}` | Project name |
-| `{{taskcoreApiUrl}}` | Taskcore API base URL |
-| `{{commentId}}` | Comment ID (when woken by a comment) |
-| `{{wakeReason}}` | Reason this run was triggered |
+| Variable             | Description                          |
+| -------------------- | ------------------------------------ |
+| `{{agentId}}`        | Taskcore agent ID                    |
+| `{{agentName}}`      | Agent display name                   |
+| `{{companyId}}`      | Company ID                           |
+| `{{companyName}}`    | Company name                         |
+| `{{runId}}`          | Current heartbeat run ID             |
+| `{{taskId}}`         | Assigned task/issue ID               |
+| `{{taskTitle}}`      | Task title                           |
+| `{{taskBody}}`       | Task instructions                    |
+| `{{projectName}}`    | Project name                         |
+| `{{taskcoreApiUrl}}` | Taskcore API base URL                |
+| `{{commentId}}`      | Comment ID (when woken by a comment) |
+| `{{wakeReason}}`     | Reason this run was triggered        |
 
 Conditional sections:
 

@@ -18,7 +18,9 @@ type EncodingPreference = {
   q: number;
 };
 
-function parseAcceptEncoding(value: string | string[] | undefined): EncodingPreference[] {
+function parseAcceptEncoding(
+  value: string | string[] | undefined,
+): EncodingPreference[] {
   const raw = Array.isArray(value) ? value.join(",") : value;
   if (!raw) return [];
 
@@ -37,7 +39,9 @@ function parseAcceptEncoding(value: string | string[] | undefined): EncodingPref
     .filter((entry) => entry.encoding.length > 0);
 }
 
-function selectEncoding(value: string | string[] | undefined): SupportedEncoding | null {
+function selectEncoding(
+  value: string | string[] | undefined,
+): SupportedEncoding | null {
   const preferences = parseAcceptEncoding(value).filter((entry) => entry.q > 0);
   const findQ = (encoding: SupportedEncoding) =>
     preferences.find((entry) => entry.encoding === encoding)?.q ??
@@ -52,14 +56,18 @@ function selectEncoding(value: string | string[] | undefined): SupportedEncoding
 
 function isJsonContentType(value: unknown): boolean {
   const contentType = String(value ?? "").toLowerCase();
-  return contentType.includes("application/json") || contentType.includes("+json");
+  return (
+    contentType.includes("application/json") || contentType.includes("+json")
+  );
 }
 
 function shouldSkipForCacheControl(value: unknown): boolean {
   return /\bno-transform\b/i.test(String(value ?? ""));
 }
 
-function shouldSkipForStreamedResponse(res: Parameters<RequestHandler>[1]): boolean {
+function shouldSkipForStreamedResponse(
+  res: Parameters<RequestHandler>[1],
+): boolean {
   return (
     res.hasHeader("Content-Disposition") ||
     res.hasHeader("Accept-Ranges") ||
@@ -73,7 +81,9 @@ function statusAllowsBody(statusCode: number): boolean {
 
 function shouldPassthroughWrite(res: Parameters<RequestHandler>[1]): boolean {
   const contentType = res.getHeader("Content-Type");
-  const alreadyEncoded = res.hasHeader("Content-Encoding") && String(res.getHeader("Content-Encoding")).toLowerCase() !== "identity";
+  const alreadyEncoded =
+    res.hasHeader("Content-Encoding") &&
+    String(res.getHeader("Content-Encoding")).toLowerCase() !== "identity";
   return (
     // writeHead() may already have committed the response head (better-call
     // does this before streaming the body); headers can no longer change, so
@@ -92,21 +102,29 @@ function weakenStrongEtag(res: Parameters<RequestHandler>[1]): void {
   const etag = res.getHeader("ETag");
   if (etag === undefined) return;
 
-  const weaken = (value: string) => /^W\//i.test(value) ? value : `W/${value}`;
+  const weaken = (value: string) =>
+    /^W\//i.test(value) ? value : `W/${value}`;
   if (Array.isArray(etag)) {
-    res.setHeader("ETag", etag.map((value) => weaken(String(value))));
+    res.setHeader(
+      "ETag",
+      etag.map((value) => weaken(String(value))),
+    );
     return;
   }
 
   res.setHeader("ETag", weaken(String(etag)));
 }
 
-function toBodyBuffer(chunk: unknown, encoding: BufferEncoding | undefined): Buffer {
+function toBodyBuffer(
+  chunk: unknown,
+  encoding: BufferEncoding | undefined,
+): Buffer {
   if (Buffer.isBuffer(chunk)) return chunk;
   // Handlers bridged from web Response streams (e.g. Better Auth via
   // better-call) write Uint8Array chunks; String(chunk) would serialize them
   // as comma-separated byte values and corrupt the body.
-  if (chunk instanceof Uint8Array) return Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+  if (chunk instanceof Uint8Array)
+    return Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength);
   return Buffer.from(String(chunk), encoding);
 }
 
@@ -118,18 +136,24 @@ function normalizeEndArgs(args: unknown[]): {
   const [chunk, encodingOrCallback, callback] = args;
   return {
     chunk,
-    encoding: typeof encodingOrCallback === "string" ? encodingOrCallback as BufferEncoding : undefined,
+    encoding:
+      typeof encodingOrCallback === "string"
+        ? (encodingOrCallback as BufferEncoding)
+        : undefined,
     callback:
       typeof encodingOrCallback === "function"
-        ? encodingOrCallback as () => void
+        ? (encodingOrCallback as () => void)
         : typeof callback === "function"
-          ? callback as () => void
+          ? (callback as () => void)
           : undefined,
   };
 }
 
-export function apiCompression(options: ApiCompressionOptions = {}): RequestHandler {
-  const thresholdBytes = options.thresholdBytes ?? API_COMPRESSION_THRESHOLD_BYTES;
+export function apiCompression(
+  options: ApiCompressionOptions = {},
+): RequestHandler {
+  const thresholdBytes =
+    options.thresholdBytes ?? API_COMPRESSION_THRESHOLD_BYTES;
 
   return (req, res, next) => {
     const selectedEncoding = selectEncoding(req.headers["accept-encoding"]);
@@ -164,18 +188,40 @@ export function apiCompression(options: ApiCompressionOptions = {}): RequestHand
       for (const writeCallback of writeCallbacks.splice(0)) writeCallback();
     };
 
-    res.write = ((chunk: unknown, encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void), callback?: (error?: Error | null) => void) => {
+    res.write = ((
+      chunk: unknown,
+      encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+      callback?: (error?: Error | null) => void,
+    ) => {
       if (passthrough) {
-        return originalWrite(chunk as never, encodingOrCallback as never, callback as never);
+        return originalWrite(
+          chunk as never,
+          encodingOrCallback as never,
+          callback as never,
+        );
       }
       if (shouldPassthroughWrite(res)) {
         beginPassthrough();
-        return originalWrite(chunk as never, encodingOrCallback as never, callback as never);
+        return originalWrite(
+          chunk as never,
+          encodingOrCallback as never,
+          callback as never,
+        );
       }
       if (chunk !== undefined) {
-        chunks.push(toBodyBuffer(chunk, typeof encodingOrCallback === "string" ? encodingOrCallback : undefined));
+        chunks.push(
+          toBodyBuffer(
+            chunk,
+            typeof encodingOrCallback === "string"
+              ? encodingOrCallback
+              : undefined,
+          ),
+        );
       }
-      const writeCallback = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+      const writeCallback =
+        typeof encodingOrCallback === "function"
+          ? encodingOrCallback
+          : callback;
       if (writeCallback) writeCallbacks.push(() => writeCallback(null));
       return true;
     }) as typeof res.write;
@@ -188,7 +234,9 @@ export function apiCompression(options: ApiCompressionOptions = {}): RequestHand
       }
 
       const body = Buffer.concat(chunks);
-      const alreadyEncoded = res.hasHeader("Content-Encoding") && String(res.getHeader("Content-Encoding")).toLowerCase() !== "identity";
+      const alreadyEncoded =
+        res.hasHeader("Content-Encoding") &&
+        String(res.getHeader("Content-Encoding")).toLowerCase() !== "identity";
       const shouldCompress =
         !passthrough &&
         !res.headersSent &&
@@ -207,9 +255,10 @@ export function apiCompression(options: ApiCompressionOptions = {}): RequestHand
 
       void (async () => {
         try {
-          const compressed = selectedEncoding === "gzip"
-            ? await gzipAsync(body)
-            : await deflateAsync(body);
+          const compressed =
+            selectedEncoding === "gzip"
+              ? await gzipAsync(body)
+              : await deflateAsync(body);
           res.vary("Accept-Encoding");
           res.setHeader("Content-Encoding", selectedEncoding);
           res.setHeader("Content-Length", String(compressed.length));
@@ -224,7 +273,9 @@ export function apiCompression(options: ApiCompressionOptions = {}): RequestHand
             originalEnd(body, callback);
             for (const writeCallback of writeCallbacks) writeCallback();
           } catch {
-            res.destroy(error instanceof Error ? error : new Error(String(error)));
+            res.destroy(
+              error instanceof Error ? error : new Error(String(error)),
+            );
           }
         }
       })();

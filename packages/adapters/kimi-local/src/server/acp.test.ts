@@ -7,19 +7,31 @@ import {
 
 describe("resolveKimiExecutionEngine", () => {
   it("defaults to ACP (non-explicit) when engine is unset", () => {
-    expect(resolveKimiExecutionEngine({})).toEqual({ engine: "acp", explicit: false });
+    expect(resolveKimiExecutionEngine({})).toEqual({
+      engine: "acp",
+      explicit: false,
+    });
   });
 
   it("honors an explicit engine=acp", () => {
-    expect(resolveKimiExecutionEngine({ engine: "acp" })).toEqual({ engine: "acp", explicit: true });
+    expect(resolveKimiExecutionEngine({ engine: "acp" })).toEqual({
+      engine: "acp",
+      explicit: true,
+    });
   });
 
   it("honors an explicit engine=cli", () => {
-    expect(resolveKimiExecutionEngine({ engine: "CLI" })).toEqual({ engine: "cli", explicit: true });
+    expect(resolveKimiExecutionEngine({ engine: "CLI" })).toEqual({
+      engine: "cli",
+      explicit: true,
+    });
   });
 
   it("treats unknown values as the non-explicit ACP default", () => {
-    expect(resolveKimiExecutionEngine({ engine: "nonsense" })).toEqual({ engine: "acp", explicit: false });
+    expect(resolveKimiExecutionEngine({ engine: "nonsense" })).toEqual({
+      engine: "acp",
+      explicit: false,
+    });
   });
 });
 
@@ -33,7 +45,10 @@ describe("buildKimiAcpConfig", () => {
   });
 
   it("prefers an explicit agentCommand override", () => {
-    const out = buildKimiAcpConfig({ command: "kimi", agentCommand: "/opt/kimi acp --foo" });
+    const out = buildKimiAcpConfig({
+      command: "kimi",
+      agentCommand: "/opt/kimi acp --foo",
+    });
     expect(out.agentCommand).toBe("/opt/kimi acp --foo");
   });
 
@@ -48,7 +63,11 @@ describe("buildKimiAcpConfig", () => {
   });
 
   it("strips CLI-lane effort so ACP is not sent the unsupported `effort` control", () => {
-    const out = buildKimiAcpConfig({ model: "kimi-code/k3", effort: "high", thinkingEffort: "high" });
+    const out = buildKimiAcpConfig({
+      model: "kimi-code/k3",
+      effort: "high",
+      thinkingEffort: "high",
+    });
     expect("effort" in out).toBe(false);
     expect("thinkingEffort" in out).toBe(false);
   });

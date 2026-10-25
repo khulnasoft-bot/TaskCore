@@ -3,16 +3,28 @@ import { and, desc, eq, sql } from "drizzle-orm";
 
 import type { Db } from "@taskcore/db";
 import { completionContracts } from "@taskcore/db";
-import type { NativeCompletionSource, StrictCompletionContractInput } from "../../vendor/taskcore-runner/index.js";
+import type {
+  NativeCompletionSource,
+  StrictCompletionContractInput,
+} from "../../vendor/taskcore-runner/index.js";
 
 import { nativeSha256 } from "./canonical.js";
 
-export const NATIVE_COMPLETION_CONTRACT_SCHEMA = "taskcore.completion-contract.v1";
+export const NATIVE_COMPLETION_CONTRACT_SCHEMA =
+  "taskcore.completion-contract.v1";
 export const NATIVE_COMPLETION_POLICY_VERSION = "phase6-v4";
 
 /** Canonical persisted receipt includes the policy that governs the contract. */
-export function nativeCompletionContractSha256(row: Pick<typeof completionContracts.$inferSelect,
-  "schemaVersion" | "policyVersion" | "risk" | "completionAuthority" | "contractJson">): string {
+export function nativeCompletionContractSha256(
+  row: Pick<
+    typeof completionContracts.$inferSelect,
+    | "schemaVersion"
+    | "policyVersion"
+    | "risk"
+    | "completionAuthority"
+    | "contractJson"
+  >,
+): string {
   return nativeSha256({
     schemaVersion: row.schemaVersion,
     policyVersion: row.policyVersion,
@@ -28,8 +40,16 @@ type CompletionComment = {
   attachments?: readonly unknown[];
 };
 
-export function nativeCompletionSource(kind: NativeCompletionSource["kind"], id: string, content: string): NativeCompletionSource {
-  return { kind, id, revision: createHash("sha256").update(content.trim()).digest("hex") };
+export function nativeCompletionSource(
+  kind: NativeCompletionSource["kind"],
+  id: string,
+  content: string,
+): NativeCompletionSource {
+  return {
+    kind,
+    id,
+    revision: createHash("sha256").update(content.trim()).digest("hex"),
+  };
 }
 
 /** Select only the server-owned description source for the ordinary objective path. */
@@ -43,7 +63,10 @@ export function nativeImmediateObjectiveSource(input: {
   excluded: boolean;
 }): NativeCompletionSource | null {
   const source = input.objectiveSource;
-  return !input.excluded && source?.kind === "description" && source.id === input.issueId && source.revision
+  return !input.excluded &&
+    source?.kind === "description" &&
+    source.id === input.issueId &&
+    source.revision
     ? { kind: "description", id: source.id, revision: source.revision }
     : null;
 }
@@ -53,20 +76,42 @@ export function nativeCompletionRequestsWithSources(
   comments: readonly CompletionComment[],
   options: { requiredFullWakeCommentCount?: number } = {},
 ): { requests: string[]; sources: Array<NativeCompletionSource | null> } {
-  if (Number.isSafeInteger(options.requiredFullWakeCommentCount) && (options.requiredFullWakeCommentCount ?? 0) > 0) {
-    return { requests: [
-      `Read every server-bound pending external-chat comment with read_current_wake_comments until complete=true, then answer all ${options.requiredFullWakeCommentCount} accepted comments in order without omitting a request. Report any unavailable attachment honestly; metadata alone is not its content.`,
-    ], sources: [null] };
+  if (
+    Number.isSafeInteger(options.requiredFullWakeCommentCount) &&
+    (options.requiredFullWakeCommentCount ?? 0) > 0
+  ) {
+    return {
+      requests: [
+        `Read every server-bound pending external-chat comment with read_current_wake_comments until complete=true, then answer all ${options.requiredFullWakeCommentCount} accepted comments in order without omitting a request. Report any unavailable attachment honestly; metadata alone is not its content.`,
+      ],
+      sources: [null],
+    };
   }
   const entries = comments.flatMap((comment, index) => {
     const body = comment.body.trim();
-    if (body) return [{ request: body, source: comment.id ? nativeCompletionSource("comment", comment.id, body) : null }];
+    if (body)
+      return [
+        {
+          request: body,
+          source: comment.id
+            ? nativeCompletionSource("comment", comment.id, body)
+            : null,
+        },
+      ];
     // A file-only message has an independent inspection requirement.
     return comment.attachments?.length
-      ? [{ request: `Inspect and respond to the attached file(s) on pending comment ${index + 1}.`, source: null }]
+      ? [
+          {
+            request: `Inspect and respond to the attached file(s) on pending comment ${index + 1}.`,
+            source: null,
+          },
+        ]
       : [];
   });
-  return { requests: entries.map((entry) => entry.request), sources: entries.map((entry) => entry.source) };
+  return {
+    requests: entries.map((entry) => entry.request),
+    sources: entries.map((entry) => entry.source),
+  };
 }
 
 export function nativeCompletionRequestsForComments(
@@ -82,8 +127,8 @@ export function resolveNativeCompletionPolicy(issue: {
   const externalReviewRequired =
     issue.reviewPolicy === "human_only" || issue.reviewPolicy === "not_creator";
   return externalReviewRequired
-    ? { risk: "standard", completionAuthority: "server_arbiter" } as const
-    : { risk: "low", completionAuthority: "agent_claim_policy" } as const;
+    ? ({ risk: "standard", completionAuthority: "server_arbiter" } as const)
+    : ({ risk: "low", completionAuthority: "agent_claim_policy" } as const);
 }
 
 export function buildNativeCompletionContract(
@@ -106,22 +151,28 @@ export function buildNativeCompletionContract(
   const hasFollowUp = immediateRequests.length > 0 || Boolean(humanResponseId);
   // Reference existing context rather than copying the brief/history into every
   // follow-up contract. Keep this guidance stable across comments and resumes.
-  const followUpObjective = "Complete the current authorized stage using the task brief and current user direction in the supplied context. Later human direction replaces conflicting scope; preserve other requirements, assigned-skill instructions, and approval gates. Apply authenticated humanResponses only to their question or decision. Clarification is not approval. If acceptance is required, propose or save the requested plan and wait before executing.";
+  const followUpObjective =
+    "Complete the current authorized stage using the task brief and current user direction in the supplied context. Later human direction replaces conflicting scope; preserve other requirements, assigned-skill instructions, and approval gates. Apply authenticated humanResponses only to their question or decision. Clarification is not approval. If acceptance is required, propose or save the requested plan and wait before executing.";
   return {
     revision: String(options.revision ?? 1),
-    objective: hasFollowUp
-      ? followUpObjective
-      : issue.title,
+    objective: hasFollowUp ? followUpObjective : issue.title,
     criteria: hasFollowUp
       ? [
           ...immediateRequests.map((request, index) => ({
-            id: immediateRequests.length === 1 ? "objective" : `pending_comment_${index + 1}`,
+            id:
+              immediateRequests.length === 1
+                ? "objective"
+                : `pending_comment_${index + 1}`,
             requirement: request,
           })),
-          ...(humanResponseId ? [{
-            id: "human_response",
-            requirement: `Apply the server-verified humanResponses entry with id ${JSON.stringify(humanResponseId)} in the supplied current request context, within its question or decision scope and subject to later user direction.`,
-          }] : []),
+          ...(humanResponseId
+            ? [
+                {
+                  id: "human_response",
+                  requirement: `Apply the server-verified humanResponses entry with id ${JSON.stringify(humanResponseId)} in the supplied current request context, within its question or decision scope and subject to later user direction.`,
+                },
+              ]
+            : []),
         ]
       : [
           {
@@ -151,19 +202,23 @@ export async function ensureNativeCompletionContract(input: {
   humanResponseId?: string | null;
 }) {
   return input.db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${[
-      "taskcore:native-completion-contract",
-      input.companyId,
-      input.issue.id,
-    ].join(":")}, 0))`);
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${[
+        "taskcore:native-completion-contract",
+        input.companyId,
+        input.issue.id,
+      ].join(":")}, 0))`,
+    );
     const policy = resolveNativeCompletionPolicy(input.issue);
     const latest = await tx
       .select()
       .from(completionContracts)
-      .where(and(
-        eq(completionContracts.companyId, input.companyId),
-        eq(completionContracts.issueId, input.issue.id),
-      ))
+      .where(
+        and(
+          eq(completionContracts.companyId, input.companyId),
+          eq(completionContracts.issueId, input.issue.id),
+        ),
+      )
       .orderBy(desc(completionContracts.revision))
       .limit(1)
       .then((rows) => rows[0] ?? null);
@@ -181,7 +236,11 @@ export async function ensureNativeCompletionContract(input: {
       contractJson: latestCandidate as unknown as Record<string, unknown>,
     });
     if (latest?.canonicalSha256 === latestCandidateSha256) {
-      return { row: latest, contract: latestCandidate, sources: buildNativeCompletionContractSources(input) };
+      return {
+        row: latest,
+        contract: latestCandidate,
+        sources: buildNativeCompletionContractSources(input),
+      };
     }
 
     const nextRevision = latest ? latest.revision + 1 : 1;
@@ -197,25 +256,31 @@ export async function ensureNativeCompletionContract(input: {
       ...policy,
       contractJson: contract as unknown as Record<string, unknown>,
     });
-    const [row] = await tx.insert(completionContracts).values({
-      companyId: input.companyId,
-      issueId: input.issue.id,
-      revision: nextRevision,
-      schemaVersion: NATIVE_COMPLETION_CONTRACT_SCHEMA,
-      policyVersion: NATIVE_COMPLETION_POLICY_VERSION,
-      ...policy,
-      incompleteCriteriaPolicy: "preserve_non_terminal",
-      contractJson: contract as unknown as Record<string, unknown>,
-      canonicalSha256,
-      createdByActorType: "system",
-      createdByActorId: input.actorId,
-      supersedesContractId: latest?.id ?? null,
-    }).returning();
+    const [row] = await tx
+      .insert(completionContracts)
+      .values({
+        companyId: input.companyId,
+        issueId: input.issue.id,
+        revision: nextRevision,
+        schemaVersion: NATIVE_COMPLETION_CONTRACT_SCHEMA,
+        policyVersion: NATIVE_COMPLETION_POLICY_VERSION,
+        ...policy,
+        incompleteCriteriaPolicy: "preserve_non_terminal",
+        contractJson: contract as unknown as Record<string, unknown>,
+        canonicalSha256,
+        createdByActorType: "system",
+        createdByActorId: input.actorId,
+        supersedesContractId: latest?.id ?? null,
+      })
+      .returning();
     if (!row) throw new Error("native_completion_contract_not_persisted");
-    return { row, contract, sources: buildNativeCompletionContractSources(input) };
+    return {
+      row,
+      contract,
+      sources: buildNativeCompletionContractSources(input),
+    };
   });
 }
-
 
 export function buildNativeCompletionContractSources(input: {
   issue: { id: string; description: string | null };
@@ -225,7 +290,10 @@ export function buildNativeCompletionContractSources(input: {
   immediateRequestSources?: readonly (NativeCompletionSource | null)[];
   humanResponseId?: string | null;
 }): Array<{ id: string; source: NativeCompletionSource }> {
-  const requests = (input.immediateRequests ?? (input.immediateRequest == null ? [] : [input.immediateRequest]))
+  const requests = (
+    input.immediateRequests ??
+    (input.immediateRequest == null ? [] : [input.immediateRequest])
+  )
     .map((body, index) => ({
       body: body.trim(),
       source: input.immediateRequests
@@ -234,12 +302,30 @@ export function buildNativeCompletionContractSources(input: {
     }))
     .filter((entry) => entry.body.length > 0);
   if (requests.length > 0) {
-    return requests.flatMap((entry, index) => entry.source ? [{
-      id: requests.length === 1 ? "objective" : `pending_comment_${index + 1}`,
-      source: entry.source,
-    }] : []);
+    return requests.flatMap((entry, index) =>
+      entry.source
+        ? [
+            {
+              id:
+                requests.length === 1
+                  ? "objective"
+                  : `pending_comment_${index + 1}`,
+              source: entry.source,
+            },
+          ]
+        : [],
+    );
   }
   return !input.humanResponseId?.trim() && input.issue.description?.trim()
-    ? [{ id: "objective", source: nativeCompletionSource("description", input.issue.id, input.issue.description) }]
+    ? [
+        {
+          id: "objective",
+          source: nativeCompletionSource(
+            "description",
+            input.issue.id,
+            input.issue.description,
+          ),
+        },
+      ]
     : [];
 }

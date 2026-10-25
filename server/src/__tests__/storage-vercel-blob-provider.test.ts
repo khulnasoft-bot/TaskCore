@@ -32,7 +32,11 @@ async function readStreamToBuffer(
   return Buffer.concat(chunks);
 }
 
-function blobResult(contentType = "text/plain", content = "hello", size = Buffer.byteLength(content)) {
+function blobResult(
+  contentType = "text/plain",
+  content = "hello",
+  size = Buffer.byteLength(content),
+) {
   return {
     statusCode: 200 as const,
     stream: new ReadableStream<Uint8Array>({

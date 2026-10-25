@@ -17,11 +17,15 @@ export default defineConfig({
   projects: [
     { name: "stories", testIgnore: "agent-personas.spec.ts" },
     {
-      name: "agent-personas", testMatch: "agent-personas.spec.ts", fullyParallel: false,
+      name: "agent-personas",
+      testMatch: "agent-personas.spec.ts",
+      fullyParallel: false,
       snapshotPathTemplate: `${snapshotDir}/agent-personas/{arg}{ext}`,
       use: {
         viewport: { width: 1200, height: 900 },
-        launchOptions: { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] },
+        launchOptions: {
+          args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
+        },
       },
     },
   ],
@@ -30,7 +34,10 @@ export default defineConfig({
   retries: 1,
   workers: 4,
   fullyParallel: true,
-  reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: "playwright-report" }],
+  ],
   expect: {
     toHaveScreenshot: {
       animations: "disabled",

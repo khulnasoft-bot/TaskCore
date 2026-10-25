@@ -60,7 +60,9 @@ vi.mock("@/lib/router", () => ({
 }));
 
 vi.mock("../components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  MarkdownBody: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,7 +90,13 @@ function buildExportPreviewResult() {
       projects: [],
       issues: [],
       envInputs: [],
-      includes: { company: true, agents: true, projects: true, issues: true, skills: false },
+      includes: {
+        company: true,
+        agents: true,
+        projects: true,
+        issues: true,
+        skills: false,
+      },
       company: { name: "Taskcore", description: null },
       schemaVersion: 1,
       generatedAt: "2026-01-01T00:00:00.000Z",
@@ -147,7 +155,9 @@ function buildRichExportPreviewResult() {
   };
 }
 
-function buildFidelityReport(warnings: ExportFidelityReport["warnings"]): ExportFidelityReport {
+function buildFidelityReport(
+  warnings: ExportFidelityReport["warnings"],
+): ExportFidelityReport {
   return {
     schema: "taskcore-export-fidelity-v1",
     companyId: "company-1",
@@ -178,8 +188,13 @@ describe("CompanyExport", () => {
     mockAuthApi.getSession.mockResolvedValue({ user: { id: "user-1" } });
     mockAgentsApi.list.mockResolvedValue([]);
     mockProjectsApi.list.mockResolvedValue([]);
-    mockCompaniesApi.exportPreview.mockResolvedValue(buildExportPreviewResult());
-    mockCompaniesApi.exportBundle.mockResolvedValue({ rootPath: "taskcore", files: {} });
+    mockCompaniesApi.exportPreview.mockResolvedValue(
+      buildExportPreviewResult(),
+    );
+    mockCompaniesApi.exportBundle.mockResolvedValue({
+      rootPath: "taskcore",
+      files: {},
+    });
     mockCompaniesApi.exportFidelity.mockResolvedValue(buildFidelityReport([]));
     Object.assign(URL, {
       createObjectURL: vi.fn(() => "blob:mock"),
@@ -202,7 +217,9 @@ describe("CompanyExport", () => {
 
   async function renderPage() {
     root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     const currentRoot = root;
 
     await act(async () => {
@@ -218,14 +235,16 @@ describe("CompanyExport", () => {
   }
 
   function categoryInput(key: string): HTMLInputElement {
-    const input = container.querySelector<HTMLInputElement>(`input[data-export-category="${key}"]`);
+    const input = container.querySelector<HTMLInputElement>(
+      `input[data-export-category="${key}"]`,
+    );
     if (!input) throw new Error(`No category toggle for ${key}`);
     return input;
   }
 
   function exportButton(): HTMLButtonElement {
-    const button = Array.from(container.querySelectorAll("button")).find((candidate) =>
-      candidate.textContent?.trim().startsWith("Export "),
+    const button = Array.from(container.querySelectorAll("button")).find(
+      (candidate) => candidate.textContent?.trim().startsWith("Export "),
     );
     if (!button) throw new Error("Export button not found");
     return button as HTMLButtonElement;
@@ -247,7 +266,13 @@ describe("CompanyExport", () => {
     expect(mockProjectsApi.list).toHaveBeenCalledWith("company-1");
     expect(mockCompaniesApi.exportPreview).toHaveBeenCalledTimes(1);
     expect(mockCompaniesApi.exportPreview.mock.calls[0]?.[1]).toMatchObject({
-      include: { company: true, agents: true, projects: true, issues: false, skills: true },
+      include: {
+        company: true,
+        agents: true,
+        projects: true,
+        issues: false,
+        skills: true,
+      },
     });
     expect(mockCompaniesApi.exportFidelity).toHaveBeenCalledWith("company-1");
   });
@@ -263,8 +288,8 @@ describe("CompanyExport", () => {
     expect(container.textContent).toContain("Failed to fetch");
     expect(container.textContent).not.toContain("Loading export data");
 
-    const retry = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Retry preview"),
+    const retry = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Retry preview"),
     );
     expect(retry).toBeDefined();
     await clickElement(retry!);
@@ -277,9 +302,21 @@ describe("CompanyExport", () => {
     let resolveSession!: (value: { user: { id: string } }) => void;
     let resolveAgents!: (value: never[]) => void;
     let resolveProjects!: (value: never[]) => void;
-    mockAuthApi.getSession.mockReturnValue(new Promise((resolve) => { resolveSession = resolve; }));
-    mockAgentsApi.list.mockReturnValue(new Promise((resolve) => { resolveAgents = resolve; }));
-    mockProjectsApi.list.mockReturnValue(new Promise((resolve) => { resolveProjects = resolve; }));
+    mockAuthApi.getSession.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSession = resolve;
+      }),
+    );
+    mockAgentsApi.list.mockReturnValue(
+      new Promise((resolve) => {
+        resolveAgents = resolve;
+      }),
+    );
+    mockProjectsApi.list.mockReturnValue(
+      new Promise((resolve) => {
+        resolveProjects = resolve;
+      }),
+    );
 
     await renderPage();
 
@@ -294,16 +331,20 @@ describe("CompanyExport", () => {
   });
 
   it("renders the generated org chart through the independent SVG endpoint", () => {
-    expect(resolveExportPreviewImageSrc({
-      src: "images/org-chart.png",
-      selectedFile: "README.md",
-      allFiles: {},
-      orgChartPreviewUrl: "/api/companies/company-1/org.svg",
-    })).toBe("/api/companies/company-1/org.svg");
+    expect(
+      resolveExportPreviewImageSrc({
+        src: "images/org-chart.png",
+        selectedFile: "README.md",
+        allFiles: {},
+        orgChartPreviewUrl: "/api/companies/company-1/org.svg",
+      }),
+    ).toBe("/api/companies/company-1/org.svg");
   });
 
   it("keeps task history opt-in, then requests all selected files on download", async () => {
-    mockCompaniesApi.exportPreview.mockResolvedValue(buildRichExportPreviewResult());
+    mockCompaniesApi.exportPreview.mockResolvedValue(
+      buildRichExportPreviewResult(),
+    );
 
     await renderPage();
 
@@ -316,10 +357,16 @@ describe("CompanyExport", () => {
     await clickElement(categoryInput("routines"));
     await clickElement(categoryInput("attachments"));
 
-    expect(mockCompaniesApi.exportPreview.mock.calls.some(([, request]) => request.include.issues === true)).toBe(true);
+    expect(
+      mockCompaniesApi.exportPreview.mock.calls.some(
+        ([, request]) => request.include.issues === true,
+      ),
+    ).toBe(true);
     expect(container.textContent).toContain("Exporting 6 of 6 files");
     // The tree is a pure browser now — no per-file checkboxes.
-    expect(container.querySelector('[role="tree"] input[type="checkbox"]')).toBeNull();
+    expect(
+      container.querySelector('[role="tree"] input[type="checkbox"]'),
+    ).toBeNull();
 
     await clickElement(exportButton());
 
@@ -338,16 +385,21 @@ describe("CompanyExport", () => {
   it("keeps controls mounted and aborts a slow task refetch when Tasks is unticked", async () => {
     let requestCount = 0;
     let slowRequestSignal: AbortSignal | undefined;
-    mockCompaniesApi.exportPreview.mockImplementation((_companyId, _request, options) => {
-      requestCount += 1;
-      if (requestCount !== 2) return Promise.resolve(buildRichExportPreviewResult());
-      slowRequestSignal = options?.signal;
-      return new Promise((_resolve, reject) => {
-        options?.signal?.addEventListener("abort", () => {
-          reject(new DOMException("The operation was aborted.", "AbortError"));
+    mockCompaniesApi.exportPreview.mockImplementation(
+      (_companyId, _request, options) => {
+        requestCount += 1;
+        if (requestCount !== 2)
+          return Promise.resolve(buildRichExportPreviewResult());
+        slowRequestSignal = options?.signal;
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener("abort", () => {
+            reject(
+              new DOMException("The operation was aborted.", "AbortError"),
+            );
+          });
         });
-      });
-    });
+      },
+    );
 
     await renderPage();
     await clickElement(categoryInput("tasks"));
@@ -371,22 +423,27 @@ describe("CompanyExport", () => {
   it("lets the user cancel a slow refetch without losing the export surface", async () => {
     let requestCount = 0;
     let slowRequestSignal: AbortSignal | undefined;
-    mockCompaniesApi.exportPreview.mockImplementation((_companyId, _request, options) => {
-      requestCount += 1;
-      if (requestCount === 1) return Promise.resolve(buildRichExportPreviewResult());
-      slowRequestSignal = options?.signal;
-      return new Promise((_resolve, reject) => {
-        options?.signal?.addEventListener("abort", () => {
-          reject(new DOMException("The operation was aborted.", "AbortError"));
+    mockCompaniesApi.exportPreview.mockImplementation(
+      (_companyId, _request, options) => {
+        requestCount += 1;
+        if (requestCount === 1)
+          return Promise.resolve(buildRichExportPreviewResult());
+        slowRequestSignal = options?.signal;
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener("abort", () => {
+            reject(
+              new DOMException("The operation was aborted.", "AbortError"),
+            );
+          });
         });
-      });
-    });
+      },
+    );
 
     await renderPage();
     await clickElement(categoryInput("tasks"));
 
-    const cancel = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Cancel update"),
+    const cancel = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Cancel update"),
     );
     expect(cancel).toBeDefined();
     await clickElement(cancel!);
@@ -399,14 +456,18 @@ describe("CompanyExport", () => {
   });
 
   it("uses the Skills category for preview and bundle generation", async () => {
-    mockCompaniesApi.exportPreview.mockResolvedValue(buildRichExportPreviewResult());
+    mockCompaniesApi.exportPreview.mockResolvedValue(
+      buildRichExportPreviewResult(),
+    );
 
     await renderPage();
     await clickElement(categoryInput("skills"));
 
-    expect(mockCompaniesApi.exportPreview.mock.calls.at(-1)?.[1]).toMatchObject({
-      include: { skills: false },
-    });
+    expect(mockCompaniesApi.exportPreview.mock.calls.at(-1)?.[1]).toMatchObject(
+      {
+        include: { skills: false },
+      },
+    );
     await clickElement(exportButton());
     expect(mockCompaniesApi.exportBundle.mock.calls[0]?.[1]).toMatchObject({
       include: { skills: false },
@@ -414,7 +475,9 @@ describe("CompanyExport", () => {
   });
 
   it("toggling Tasks off drops one-off task files and their blobs but keeps routines", async () => {
-    mockCompaniesApi.exportPreview.mockResolvedValue(buildRichExportPreviewResult());
+    mockCompaniesApi.exportPreview.mockResolvedValue(
+      buildRichExportPreviewResult(),
+    );
 
     await renderPage();
     await clickElement(categoryInput("tasks"));
@@ -426,8 +489,13 @@ describe("CompanyExport", () => {
     // Routines can carry attachments, so Attachments stays enabled while routines remain.
     expect(categoryInput("attachments").disabled).toBe(false);
     // Excluded files render dimmed in the tree browser.
-    expect(container.querySelector('[data-file-tree-path="blobs/aaa111"]')?.className).toContain("opacity-50");
-    expect(container.querySelector('[data-file-tree-path="blobs"]')?.className).toContain("opacity-50");
+    expect(
+      container.querySelector('[data-file-tree-path="blobs/aaa111"]')
+        ?.className,
+    ).toContain("opacity-50");
+    expect(
+      container.querySelector('[data-file-tree-path="blobs"]')?.className,
+    ).toContain("opacity-50");
 
     await clickElement(exportButton());
 
@@ -442,7 +510,9 @@ describe("CompanyExport", () => {
   });
 
   it("disables Attachments once both Tasks and Routines are off", async () => {
-    mockCompaniesApi.exportPreview.mockResolvedValue(buildRichExportPreviewResult());
+    mockCompaniesApi.exportPreview.mockResolvedValue(
+      buildRichExportPreviewResult(),
+    );
 
     await renderPage();
 
@@ -450,18 +520,24 @@ describe("CompanyExport", () => {
     expect(attachments.disabled).toBe(true);
     expect(attachments.checked).toBe(false);
     expect(container.textContent).toContain("Exporting 3 of 6 files");
-    expect(container.querySelector('[data-file-tree-path="tasks"]')?.className).toContain("opacity-50");
+    expect(
+      container.querySelector('[data-file-tree-path="tasks"]')?.className,
+    ).toContain("opacity-50");
   });
 
   it("shows the estimated download size and updates it when a category toggles off", async () => {
-    mockCompaniesApi.exportPreview.mockResolvedValue(buildRichExportPreviewResult());
+    mockCompaniesApi.exportPreview.mockResolvedValue(
+      buildRichExportPreviewResult(),
+    );
 
     await renderPage();
     await clickElement(categoryInput("tasks"));
     await clickElement(categoryInput("attachments"));
 
     const sizeText = () =>
-      container.textContent?.match(/Exporting [\d,]+ of [\d,]+ files \(~([\d.]+ [KMGT]?B)\)/)?.[1] ?? null;
+      container.textContent?.match(
+        /Exporting [\d,]+ of [\d,]+ files \(~([\d.]+ [KMGT]?B)\)/,
+      )?.[1] ?? null;
 
     const initialSize = sizeText();
     expect(initialSize).not.toBeNull();
@@ -476,18 +552,21 @@ describe("CompanyExport", () => {
   });
 
   it("renders the export fidelity panel with blocker and warning messages", async () => {
-    mockCompaniesApi.exportFidelity.mockResolvedValue(buildFidelityReport([
-      {
-        code: "bundle_incompatible",
-        severity: "blocker",
-        message: "Importing this export will fail because the bundle references data this board cannot restore.",
-      },
-      {
-        code: "approvals_not_exported",
-        severity: "warning",
-        message: "3 approvals are not included in the export bundle.",
-      },
-    ]));
+    mockCompaniesApi.exportFidelity.mockResolvedValue(
+      buildFidelityReport([
+        {
+          code: "bundle_incompatible",
+          severity: "blocker",
+          message:
+            "Importing this export will fail because the bundle references data this board cannot restore.",
+        },
+        {
+          code: "approvals_not_exported",
+          severity: "warning",
+          message: "3 approvals are not included in the export bundle.",
+        },
+      ]),
+    );
 
     await renderPage();
 
@@ -496,7 +575,9 @@ describe("CompanyExport", () => {
     expect(container.textContent).toContain(
       "Importing this export will fail because the bundle references data this board cannot restore.",
     );
-    expect(container.textContent).toContain("3 approvals are not included in the export bundle.");
+    expect(container.textContent).toContain(
+      "3 approvals are not included in the export bundle.",
+    );
   });
 
   it("renders no fidelity panel when the report has no warnings", async () => {

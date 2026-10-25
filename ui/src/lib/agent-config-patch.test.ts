@@ -2,7 +2,10 @@
 
 import { describe, expect, it } from "vitest";
 import type { Agent } from "@taskcore/shared";
-import { buildAgentUpdatePatch, type AgentConfigOverlay } from "./agent-config-patch";
+import {
+  buildAgentUpdatePatch,
+  type AgentConfigOverlay,
+} from "./agent-config-patch";
 
 function makeAgent(): Agent {
   return {
@@ -169,7 +172,9 @@ describe("buildAgentUpdatePatch", () => {
       }),
     );
 
-    expect((patch.adapterConfig as Record<string, unknown>).taskcoreSkillSync).toEqual({
+    expect(
+      (patch.adapterConfig as Record<string, unknown>).taskcoreSkillSync,
+    ).toEqual({
       desiredSkills: ["research", "code-review"],
     });
   });

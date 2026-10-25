@@ -143,18 +143,28 @@ describe("navigation-scroll", () => {
     document.documentElement.scrollLeft = 9;
     document.body.scrollTop = 120;
     document.body.scrollLeft = 7;
-    const windowScrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const windowScrollTo = vi
+      .spyOn(window, "scrollTo")
+      .mockImplementation(() => {});
 
     resetNavigationScroll(main);
 
-    expect(main.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: "auto" });
+    expect(main.scrollTo).toHaveBeenCalledWith({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
     expect(main.scrollTop).toBe(0);
     expect(main.scrollLeft).toBe(0);
     expect(document.documentElement.scrollTop).toBe(0);
     expect(document.documentElement.scrollLeft).toBe(0);
     expect(document.body.scrollTop).toBe(0);
     expect(document.body.scrollLeft).toBe(0);
-    expect(windowScrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: "auto" });
+    expect(windowScrollTo).toHaveBeenCalledWith({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
   });
 
   it("remembers and recalls scroll offsets per history key", () => {
@@ -179,7 +189,11 @@ describe("navigation-scroll", () => {
 
     applyMainContentScrollTop(main, 540);
 
-    expect(main.scrollTo).toHaveBeenCalledWith({ top: 540, left: 0, behavior: "auto" });
+    expect(main.scrollTo).toHaveBeenCalledWith({
+      top: 540,
+      left: 0,
+      behavior: "auto",
+    });
     expect(main.scrollTop).toBe(540);
     expect(main.scrollLeft).toBe(0);
 

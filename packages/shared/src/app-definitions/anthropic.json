@@ -3,17 +3,13 @@
   "slug": "anthropic",
   "name": "Anthropic",
   "description": "Use Anthropic APIs with a restricted key.",
-  "categories": [
-    "ai"
-  ],
+  "categories": ["ai"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/anthropic.svg",
     "darkLogoUrl": "/brands/apps/anthropic-dark.svg"
   },
-  "urlPatterns": [
-    "https://api.anthropic.com/*"
-  ],
+  "urlPatterns": ["https://api.anthropic.com/*"],
   "methods": [
     {
       "key": "ai-subscription",
@@ -25,13 +21,8 @@
         "provider": "anthropic",
         "method": "subscription"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Authenticate an agent with this account.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3"
@@ -46,13 +37,8 @@
         "provider": "anthropic",
         "method": "api_key"
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Authenticate an agent with this account.",
       "guidanceMd": "Use your personal account or an explicitly shared company account.",
       "riskTier": "S3",
@@ -72,7 +58,5 @@
       }
     }
   ],
-  "tags": [
-    "model-provider"
-  ]
+  "tags": ["model-provider"]
 }

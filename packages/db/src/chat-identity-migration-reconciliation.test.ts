@@ -506,22 +506,28 @@ const support = await getEmbeddedPostgresTestSupport();
           }>;
           const priorEntries = entries
             .filter(
-              (entry) => entry.idx < 246 || (entry.idx >= 255 && entry.idx <= 268),
+              (entry) =>
+                entry.idx < 246 || (entry.idx >= 255 && entry.idx <= 268),
             )
             .map((entry, index) => ({
               ...entry,
               idx: index,
               // Exact immutable007 chat-history timestamps. Filenames are not
               // persisted by Drizzle; the SQL hash and applied time are.
-              when: entry.idx < 255 ? entry.when : [
-                1788832469741, 1788832471197, 1788832472637,
-                1788832474071, 1788832475492, 1788832476957,
-                1788832478340, 1788832479792, 1788832481237,
-                1788832482645, 1788880065244, 1788930085103,
-                1788934048647, 1788942847296,
-              ][entry.idx - 255]!,
+              when:
+                entry.idx < 255
+                  ? entry.when
+                  : [
+                      1788832469741, 1788832471197, 1788832472637,
+                      1788832474071, 1788832475492, 1788832476957,
+                      1788832478340, 1788832479792, 1788832481237,
+                      1788832482645, 1788880065244, 1788930085103,
+                      1788934048647, 1788942847296,
+                    ][entry.idx - 255]!,
             }));
-          expect(priorEntries.every((entry) => Number.isFinite(entry.when))).toBe(true);
+          expect(
+            priorEntries.every((entry) => Number.isFinite(entry.when)),
+          ).toBe(true);
           await mkdir(join(directory, "meta"));
           for (const entry of priorEntries) {
             await writeFile(
@@ -560,10 +566,13 @@ const support = await getEmbeddedPostgresTestSupport();
             await legacy`SELECT id,hash,created_at::text FROM drizzle.__drizzle_migrations ORDER BY id`;
           const pending = entries
             .filter(
-              (entry) => (entry.idx >= 246 && entry.idx <= 254) || entry.idx > 268,
+              (entry) =>
+                (entry.idx >= 246 && entry.idx <= 254) || entry.idx > 268,
             )
             .map((entry) => `${entry.tag}.sql`);
-          expect(pending).toHaveLength(9 + entries.filter((entry) => entry.idx > 268).length);
+          expect(pending).toHaveLength(
+            9 + entries.filter((entry) => entry.idx > 268).length,
+          );
           expect(await inspectMigrations(legacyUrl.href)).toMatchObject({
             status: "needsMigrations",
             pendingMigrations: pending,

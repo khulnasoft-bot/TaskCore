@@ -52,7 +52,11 @@
     {
       "action": "set",
       "method": "thread/goal/set",
-      "params": { "objective": "Ship the Live console tracer", "status": "active", "tokenBudget": 4096 }
+      "params": {
+        "objective": "Ship the Live console tracer",
+        "status": "active",
+        "tokenBudget": 4096
+      }
     },
     {
       "action": "pause",

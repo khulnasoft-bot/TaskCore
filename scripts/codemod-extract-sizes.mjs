@@ -217,7 +217,10 @@ function registerPctToken(rawNum, sourceNote) {
 // majority and matches Batch 1/2's bare-number convention, e.g. --fs-11).
 function registerRadToken(rawValue, unit, sourceNote) {
   const value = `${rawValue}${unit}`;
-  const name = unit === "px" ? `rad-${safeSuffix(rawValue)}` : `rad-${safeSuffix(rawValue)}${unit}`;
+  const name =
+    unit === "px"
+      ? `rad-${safeSuffix(rawValue)}`
+      : `rad-${safeSuffix(rawValue)}${unit}`;
   if (!radTokens.has(name)) radTokens.set(name, { value, comment: sourceNote });
   return name;
 }
@@ -238,13 +241,15 @@ function registerCalcToken(normalizedValue, sourceNote) {
 
 function registerSafeAreaToken(edge, unescapedValue, sourceNote) {
   const name = `sz-safe-${edge}`;
-  if (!szTokens.has(name)) szTokens.set(name, { value: unescapedValue, comment: sourceNote });
+  if (!szTokens.has(name))
+    szTokens.set(name, { value: unescapedValue, comment: sourceNote });
   return name;
 }
 
 const shadowByValue = new Map(); // unescaped shadow value -> token name
 function registerShadowToken(unescapedValue, sourceNote) {
-  if (shadowByValue.has(unescapedValue)) return shadowByValue.get(unescapedValue);
+  if (shadowByValue.has(unescapedValue))
+    return shadowByValue.get(unescapedValue);
   shadowCounter += 1;
   const name = `shadow-extract-${shadowCounter}`;
   shadowTokens.set(name, { value: unescapedValue, comment: sourceNote });
@@ -333,21 +338,51 @@ const BOUNDARY = String.raw`(?<=^|[\s"'\`{:])`;
 
 const UTILITIES = [
   // width/height/size family
-  { re: new RegExp(`${BOUNDARY}(!?)(w|h|size|min-w|max-w|min-h|max-h)-\\[([^\\]]+)\\]`, "g"), kind: "length" },
+  {
+    re: new RegExp(
+      `${BOUNDARY}(!?)(w|h|size|min-w|max-w|min-h|max-h)-\\[([^\\]]+)\\]`,
+      "g",
+    ),
+    kind: "length",
+  },
   // padding/margin family
-  { re: new RegExp(`${BOUNDARY}(!?)(p|pt|pb|pl|pr|px|py|m|mt|mb|ml|mr|mx|my)-\\[([^\\]]+)\\]`, "g"), kind: "length" },
+  {
+    re: new RegExp(
+      `${BOUNDARY}(!?)(p|pt|pb|pl|pr|px|py|m|mt|mb|ml|mr|mx|my)-\\[([^\\]]+)\\]`,
+      "g",
+    ),
+    kind: "length",
+  },
   // gap family
-  { re: new RegExp(`${BOUNDARY}(!?)(gap|gap-x|gap-y)-\\[([^\\]]+)\\]`, "g"), kind: "length" },
+  {
+    re: new RegExp(`${BOUNDARY}(!?)(gap|gap-x|gap-y)-\\[([^\\]]+)\\]`, "g"),
+    kind: "length",
+  },
   // inset / top / left / right / bottom family
-  { re: new RegExp(`${BOUNDARY}(!?)(inset-x|inset-y|inset|top|left|right|bottom)-\\[([^\\]]+)\\]`, "g"), kind: "length" },
+  {
+    re: new RegExp(
+      `${BOUNDARY}(!?)(inset-x|inset-y|inset|top|left|right|bottom)-\\[([^\\]]+)\\]`,
+      "g",
+    ),
+    kind: "length",
+  },
   // translate family
-  { re: new RegExp(`${BOUNDARY}(!?)(translate-x|translate-y)-\\[([^\\]]+)\\]`, "g"), kind: "length" },
+  {
+    re: new RegExp(
+      `${BOUNDARY}(!?)(translate-x|translate-y)-\\[([^\\]]+)\\]`,
+      "g",
+    ),
+    kind: "length",
+  },
 ];
 
 // Radius: bare `rounded-[...]` and directional `rounded-t/r/b/l/tl/tr/bl/br-[...]`.
 // `rounded-[inherit]` is a KEYWORD (not a numeric literal) — per the batch
 // mandate, skip it (documented in the extraction log / allowlist below).
-const ROUNDED_RE = new RegExp(`${BOUNDARY}(!?)rounded(-(?:tl|tr|bl|br|t|r|b|l))?-\\[([^\\]]+)\\]`, "g");
+const ROUNDED_RE = new RegExp(
+  `${BOUNDARY}(!?)rounded(-(?:tl|tr|bl|br|t|r|b|l))?-\\[([^\\]]+)\\]`,
+  "g",
+);
 
 // Shadow: bare `shadow-[...]`.
 const SHADOW_RE = new RegExp(`${BOUNDARY}(!?)shadow-\\[([^\\]]+)\\]`, "g");
@@ -381,7 +416,10 @@ function rewriteFile(filePath, relPath) {
     if (raw === "inherit") return match; // keyword, not a literal — skip (see log)
     const util = `rounded${dir || ""}`;
     const sourceNote = `Extracted from ${relPath} (${util}-[${raw}]).`;
-    const { tokenRef } = classifyBracketValue(raw, { kind: "radius", sourceNote });
+    const { tokenRef } = classifyBracketValue(raw, {
+      kind: "radius",
+      sourceNote,
+    });
     siteCount++;
     return `${bang}${util}-(${tokenRef})`;
   });
@@ -401,7 +439,10 @@ function rewriteFile(filePath, relPath) {
   // the color-bracket form per the Step-0 spike).
   content = content.replace(RING_RE, (match, bang, raw) => {
     const sourceNote = `Extracted from ${relPath} (ring-[${raw}]).`;
-    const { tokenRef, isVarOnly } = classifyBracketValue(raw, { kind: "radius", sourceNote });
+    const { tokenRef, isVarOnly } = classifyBracketValue(raw, {
+      kind: "radius",
+      sourceNote,
+    });
     siteCount++;
     const hint = isVarOnly ? "" : "length:";
     return `${bang}ring-(${hint}${tokenRef})`;
@@ -410,7 +451,10 @@ function rewriteFile(filePath, relPath) {
   // Outline width (same length-hint treatment; 0 sites exist today).
   content = content.replace(OUTLINE_RE, (match, bang, raw) => {
     const sourceNote = `Extracted from ${relPath} (outline-[${raw}]).`;
-    const { tokenRef, isVarOnly } = classifyBracketValue(raw, { kind: "radius", sourceNote });
+    const { tokenRef, isVarOnly } = classifyBracketValue(raw, {
+      kind: "radius",
+      sourceNote,
+    });
     siteCount++;
     const hint = isVarOnly ? "" : "length:";
     return `${bang}outline-(${hint}${tokenRef})`;
@@ -444,20 +488,34 @@ function main() {
   // ── index.css token block ──────────────────────────────────────────
   const cssPath = resolve(UI_SRC, "index.css");
   const cssOriginal = readFileSync(cssPath, "utf8");
-  const marker = "/* ── Extracted verbatim SIZE/SPACING/RADIUS/SHADOW tokens (Phase 2 Batch 3, design/token-extraction) ── */";
+  const marker =
+    "/* ── Extracted verbatim SIZE/SPACING/RADIUS/SHADOW tokens (Phase 2 Batch 3, design/token-extraction) ── */";
   let cssNext = cssOriginal;
   let cssChanged = false;
 
-  const anyTokens = szTokens.size || radTokens.size || pctTokens.size || shadowTokens.size;
+  const anyTokens =
+    szTokens.size || radTokens.size || pctTokens.size || shadowTokens.size;
   if (!cssOriginal.includes(marker) && anyTokens) {
     const lines = [];
     lines.push(marker);
-    lines.push("/* Batch 3/4: width/height/min/max, padding/margin/gap/inset/translate,");
-    lines.push("   radius, ring/outline-width, and shadow literals, verbatim (no");
-    lines.push("   normalizing — the human scale-collapse decision comes later per");
-    lines.push("   DESIGN.md/TOKEN-AUDIT.md). --sz-* is ONE shared family across");
-    lines.push("   w/h/p/m/gap/inset/translate so identical values dedupe regardless of");
-    lines.push("   which property used them. --rad-* is likewise shared across");
+    lines.push(
+      "/* Batch 3/4: width/height/min/max, padding/margin/gap/inset/translate,",
+    );
+    lines.push(
+      "   radius, ring/outline-width, and shadow literals, verbatim (no",
+    );
+    lines.push(
+      "   normalizing — the human scale-collapse decision comes later per",
+    );
+    lines.push(
+      "   DESIGN.md/TOKEN-AUDIT.md). --sz-* is ONE shared family across",
+    );
+    lines.push(
+      "   w/h/p/m/gap/inset/translate so identical values dedupe regardless of",
+    );
+    lines.push(
+      "   which property used them. --rad-* is likewise shared across",
+    );
     // NOTE: never write a literal "*/" sequence in this prose (e.g. from a
     // "rounded-*" + "/ring" join) — it prematurely closes this CSS block
     // comment and silently corrupts everything after it (caught during this
@@ -467,15 +525,29 @@ function main() {
     // a bare slash-adjacent asterisk.
     lines.push("   rounded, ring, and outline widths.");
     lines.push("");
-    lines.push("   Allowlist (sites intentionally left as hardcoded / functional literals");
+    lines.push(
+      "   Allowlist (sites intentionally left as hardcoded / functional literals",
+    );
     lines.push("   or var()-only passthrough with no new token minted):");
-    lines.push("   - components/ui/scroll-area.tsx (rounded-[inherit]) — CSS keyword, not a");
+    lines.push(
+      "   - components/ui/scroll-area.tsx (rounded-[inherit]) — CSS keyword, not a",
+    );
     lines.push("     literal value; nothing to extract.");
-    lines.push("   - Bracket values that only wrap var(--radix-*-trigger-width/height) or");
-    lines.push("     var(--new-issue-dialog-height) etc. are rewritten to the bare paren");
-    lines.push("     form directly (e.g. w-(--radix-popover-trigger-width)) — these are");
-    lines.push("     runtime library/component variables, not design values, so no new");
-    lines.push("     --sz-* token is minted for them (see TOKEN-AUDIT.md extraction log");
+    lines.push(
+      "   - Bracket values that only wrap var(--radix-*-trigger-width/height) or",
+    );
+    lines.push(
+      "     var(--new-issue-dialog-height) etc. are rewritten to the bare paren",
+    );
+    lines.push(
+      "     form directly (e.g. w-(--radix-popover-trigger-width)) — these are",
+    );
+    lines.push(
+      "     runtime library/component variables, not design values, so no new",
+    );
+    lines.push(
+      "     --sz-* token is minted for them (see TOKEN-AUDIT.md extraction log",
+    );
     lines.push("     for the full site list).");
     lines.push("*/");
     lines.push(":root {");
@@ -507,7 +579,9 @@ function main() {
   console.log(`  New --rad-* tokens:     ${radTokens.size}`);
   console.log(`  New --pct-* tokens:     ${pctTokens.size}`);
   console.log(`  New --shadow-extract-*: ${shadowTokens.size}`);
-  console.log(`  index.css token block:  ${cssChanged ? "added" : "already present or nothing to add (idempotent no-op)"}`);
+  console.log(
+    `  index.css token block:  ${cssChanged ? "added" : "already present or nothing to add (idempotent no-op)"}`,
+  );
   if (changedFiles.length) {
     console.log(`\n  Changed files:`);
     for (const f of changedFiles) console.log(`    - ${f}`);

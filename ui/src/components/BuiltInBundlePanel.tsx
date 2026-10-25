@@ -13,7 +13,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ResourceStatusChip, type ResourceStatusVariant } from "@/components/ResourceStatusChip";
+import {
+  ResourceStatusChip,
+  type ResourceStatusVariant,
+} from "@/components/ResourceStatusChip";
 import { cn } from "@/lib/utils";
 import type {
   BuiltInAgentState,
@@ -48,15 +51,20 @@ function findResource(
 }
 
 /** Readiness chip for a materialized resource. */
-function readinessVariant(resource: BuiltInManagedResourceState): ResourceStatusVariant {
+function readinessVariant(
+  resource: BuiltInManagedResourceState,
+): ResourceStatusVariant {
   if (resource.stockStatus === "missing") return "missing";
   return "ready";
 }
 
 /** Drift chip shown alongside a `ready` readiness chip, or `null`. */
-function driftVariant(resource: BuiltInManagedResourceState): ResourceStatusVariant | null {
+function driftVariant(
+  resource: BuiltInManagedResourceState,
+): ResourceStatusVariant | null {
   if (resource.stockStatus === "missing") return null; // readiness wins; drift suppressed
-  if (resource.stockStatus === "stock_update_available") return "update_available";
+  if (resource.stockStatus === "stock_update_available")
+    return "update_available";
   if (resource.stockStatus === "operator_modified") return "drifted";
   return null;
 }
@@ -127,7 +135,9 @@ function ResourceActionButton({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>{copy.confirmLabel}</AlertDialogAction>
+          <AlertDialogAction onClick={onConfirm}>
+            {copy.confirmLabel}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -163,7 +173,9 @@ function ConfirmActionButton({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>{confirmLabel}</AlertDialogAction>
+          <AlertDialogAction onClick={onConfirm}>
+            {confirmLabel}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -179,14 +191,23 @@ interface BundleRowProps {
   actions?: ReactNode;
 }
 
-function BundleRow({ label, secondary, chips, detail, detailTone = "muted", actions }: BundleRowProps) {
+function BundleRow({
+  label,
+  secondary,
+  chips,
+  detail,
+  detailTone = "muted",
+  actions,
+}: BundleRowProps) {
   return (
     <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">{label}</span>
           {secondary && (
-            <span className="text-(length:--text-micro) text-muted-foreground">{secondary}</span>
+            <span className="text-(length:--text-micro) text-muted-foreground">
+              {secondary}
+            </span>
           )}
           {chips}
         </div>
@@ -194,19 +215,27 @@ function BundleRow({ label, secondary, chips, detail, detailTone = "muted", acti
           <p
             className={cn(
               "text-(length:--text-micro) leading-snug",
-              detailTone === "error" ? "text-red-600 dark:text-red-400" : "text-muted-foreground",
+              detailTone === "error"
+                ? "text-red-600 dark:text-red-400"
+                : "text-muted-foreground",
             )}
           >
             {detail}
           </p>
         )}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
 
-function driftDetail(resource: BuiltInManagedResourceState): string | undefined {
+function driftDetail(
+  resource: BuiltInManagedResourceState,
+): string | undefined {
   switch (resource.stockStatus) {
     case "operator_modified":
       return "You've edited this. Your changes are kept until you reset.";
@@ -274,10 +303,14 @@ export function BuiltInBundlePanel({
   const scheduleEnabled = routine?.scheduleEnabled === true;
   const routineKey = bundle.routine.routineKey;
   const scheduleLabel = bundle.routine.scheduleLabel ?? "Weekly schedule";
-  const proposalIssueRef = routine?.pendingUpdateIssueIdentifier ?? routine?.pendingUpdateIssueId ?? null;
-  const proposalHref = proposalIssueRef && routine?.pendingUpdateInteractionId
-    ? `/issues/${proposalIssueRef}#interaction-${routine.pendingUpdateInteractionId}`
-    : null;
+  const proposalIssueRef =
+    routine?.pendingUpdateIssueIdentifier ??
+    routine?.pendingUpdateIssueId ??
+    null;
+  const proposalHref =
+    proposalIssueRef && routine?.pendingUpdateInteractionId
+      ? `/issues/${proposalIssueRef}#interaction-${routine.pendingUpdateInteractionId}`
+      : null;
 
   const renderResourceRow = (
     kind: BuiltInManagedResourceKind,
@@ -386,25 +419,25 @@ export function BuiltInBundlePanel({
                 )}
                 {scheduleEnabled
                   ? onDisableSchedule && (
-                    <ConfirmActionButton
-                      title="Disable the weekly schedule?"
-                      body="Taskcore will stop future scheduled Reflection Coach runs. Manual Run once remains available."
-                      triggerLabel="Disable schedule"
-                      confirmLabel="Disable schedule"
-                      pending={routineActionPending === "disable"}
-                      onConfirm={() => onDisableSchedule(routineKey)}
-                    />
-                  )
+                      <ConfirmActionButton
+                        title="Disable the weekly schedule?"
+                        body="Taskcore will stop future scheduled Reflection Coach runs. Manual Run once remains available."
+                        triggerLabel="Disable schedule"
+                        confirmLabel="Disable schedule"
+                        pending={routineActionPending === "disable"}
+                        onConfirm={() => onDisableSchedule(routineKey)}
+                      />
+                    )
                   : onEnableSchedule && (
-                    <ConfirmActionButton
-                      title="Enable the weekly schedule?"
-                      body="Taskcore will allow Reflection Coach to create routine tasks on the weekly schedule. It can spend tokens when those tasks run."
-                      triggerLabel="Enable weekly"
-                      confirmLabel="Enable weekly"
-                      pending={routineActionPending === "enable"}
-                      onConfirm={() => onEnableSchedule(routineKey)}
-                    />
-                  )}
+                      <ConfirmActionButton
+                        title="Enable the weekly schedule?"
+                        body="Taskcore will allow Reflection Coach to create routine tasks on the weekly schedule. It can spend tokens when those tasks run."
+                        triggerLabel="Enable weekly"
+                        confirmLabel="Enable weekly"
+                        pending={routineActionPending === "enable"}
+                        onConfirm={() => onEnableSchedule(routineKey)}
+                      />
+                    )}
                 {driftVariant(routine) && (
                   <ResourceActionButton
                     resource={routine}

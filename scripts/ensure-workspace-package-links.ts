@@ -17,7 +17,12 @@ function readJsonFile(filePath: string): Record<string, unknown> {
 
 function discoverWorkspacePackagePaths(rootDir: string): Map<string, string> {
   const packagePaths = new Map<string, string>();
-  const ignoredDirNames = new Set([".git", ".taskcore", "dist", "node_modules"]);
+  const ignoredDirNames = new Set([
+    ".git",
+    ".taskcore",
+    "dist",
+    "node_modules",
+  ]);
 
   function visit(dirPath: string) {
     const packageJsonPath = path.join(dirPath, "package.json");
@@ -52,13 +57,17 @@ const workspaceDirs = Array.from(
   ),
 ).sort();
 
-function findWorkspaceLinkMismatches(workspaceDir: string): WorkspaceLinkMismatch[] {
+function findWorkspaceLinkMismatches(
+  workspaceDir: string,
+): WorkspaceLinkMismatch[] {
   const nodeModulesDir = path.join(repoRoot, workspaceDir, "node_modules");
   if (!existsSync(nodeModulesDir)) {
     return [];
   }
 
-  const packageJson = readJsonFile(path.join(repoRoot, workspaceDir, "package.json"));
+  const packageJson = readJsonFile(
+    path.join(repoRoot, workspaceDir, "package.json"),
+  );
   const dependencies = {
     ...(packageJson.dependencies as Record<string, unknown> | undefined),
     ...(packageJson.devDependencies as Record<string, unknown> | undefined),
@@ -66,13 +75,21 @@ function findWorkspaceLinkMismatches(workspaceDir: string): WorkspaceLinkMismatc
   const mismatches: WorkspaceLinkMismatch[] = [];
 
   for (const [packageName, version] of Object.entries(dependencies)) {
-    if (typeof version !== "string" || !version.startsWith("workspace:")) continue;
+    if (typeof version !== "string" || !version.startsWith("workspace:"))
+      continue;
 
     const expectedPath = workspacePackagePaths.get(packageName);
     if (!expectedPath) continue;
 
-    const linkPath = path.join(repoRoot, workspaceDir, "node_modules", ...packageName.split("/"));
-    const actualPath = existsSync(linkPath) ? path.resolve(realpathSync(linkPath)) : null;
+    const linkPath = path.join(
+      repoRoot,
+      workspaceDir,
+      "node_modules",
+      ...packageName.split("/"),
+    );
+    const actualPath = existsSync(linkPath)
+      ? path.resolve(realpathSync(linkPath))
+      : null;
     if (actualPath === path.resolve(expectedPath)) continue;
 
     mismatches.push({
@@ -90,7 +107,9 @@ async function ensureWorkspaceLinksCurrent(workspaceDir: string) {
   const mismatches = findWorkspaceLinkMismatches(workspaceDir);
   if (mismatches.length === 0) return;
 
-  console.log(`[taskcore] detected stale workspace package links for ${workspaceDir}; relinking dependencies...`);
+  console.log(
+    `[taskcore] detected stale workspace package links for ${workspaceDir}; relinking dependencies...`,
+  );
   for (const mismatch of mismatches) {
     console.log(
       `[taskcore]   ${mismatch.packageName}: ${mismatch.actualPath ?? "missing"} -> ${mismatch.expectedPath}`,
@@ -98,7 +117,12 @@ async function ensureWorkspaceLinksCurrent(workspaceDir: string) {
   }
 
   for (const mismatch of mismatches) {
-    const linkPath = path.join(repoRoot, mismatch.workspaceDir, "node_modules", ...mismatch.packageName.split("/"));
+    const linkPath = path.join(
+      repoRoot,
+      mismatch.workspaceDir,
+      "node_modules",
+      ...mismatch.packageName.split("/"),
+    );
     await fs.mkdir(path.dirname(linkPath), { recursive: true });
     await fs.rm(linkPath, { recursive: true, force: true });
     await fs.symlink(mismatch.expectedPath, linkPath);

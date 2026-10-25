@@ -22,7 +22,8 @@ const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const protocolRoot = resolve(packageRoot, "protocol");
 
 async function fixture(relativePath) {
-  return (await readJson(resolve(protocolRoot, "fixtures", relativePath))).value;
+  return (await readJson(resolve(protocolRoot, "fixtures", relativePath)))
+    .value;
 }
 
 test("all schema IDs are unique and all external references resolve", async () => {
@@ -45,7 +46,11 @@ test("canonical replay fixtures use supported required versions", async () => {
     "interrupted-run.json",
     "source-gap.json",
   ]) {
-    assert.equal(assertReplayFixtureCompatibility(await fixture(`replay/${name}`)).protocolVersion, 1);
+    assert.equal(
+      assertReplayFixtureCompatibility(await fixture(`replay/${name}`))
+        .protocolVersion,
+      1,
+    );
   }
 });
 
@@ -64,53 +69,140 @@ test("unknown required versions and schemas fail closed", async () => {
 
   const eventVersion = structuredClone(await fixture("replay/happy-path.json"));
   eventVersion.events[0].schemaVersion = 3;
-  assert.throws(() => assertReplayFixtureCompatibility(eventVersion), /unsupported_required_version/);
+  assert.throws(
+    () => assertReplayFixtureCompatibility(eventVersion),
+    /unsupported_required_version/,
+  );
 
-  const commandSchema = structuredClone(await fixture("replay/happy-path.json"));
+  const commandSchema = structuredClone(
+    await fixture("replay/happy-path.json"),
+  );
   commandSchema.commands[0].schema = "taskcore.prp.command.v4";
-  assert.throws(() => assertReplayFixtureCompatibility(commandSchema), /unsupported_required_schema/);
+  assert.throws(
+    () => assertReplayFixtureCompatibility(commandSchema),
+    /unsupported_required_schema/,
+  );
 });
 
 test("accepted fixtures satisfy the complete JSON Schemas", async () => {
   const schemas = await loadSchemaCatalog(resolve(protocolRoot, "schemas"));
   const validators = compileProtocolValidators(schemas);
   const happyPath = await fixture("replay/happy-path.json");
-  assert.doesNotThrow(() => assertSchemaInstance(validators.fixture, happyPath, "happy-path"));
+  assert.doesNotThrow(() =>
+    assertSchemaInstance(validators.fixture, happyPath, "happy-path"),
+  );
 
   const missingRequiredField = structuredClone(happyPath);
   delete missingRequiredField.commands[0].commandId;
   assert.throws(
-    () => assertSchemaInstance(validators.fixture, missingRequiredField, "missing-command-id"),
+    () =>
+      assertSchemaInstance(
+        validators.fixture,
+        missingRequiredField,
+        "missing-command-id",
+      ),
     /schema_validation_failed: missing-command-id must be accepted: \/commands\/0 must have required property 'commandId'/,
   );
 
   const unsupported = await fixture("replay/unsupported-required-version.json");
-  assert.doesNotThrow(() => assertSchemaInstance(validators.fixture, unsupported, "required-v2", false));
+  assert.doesNotThrow(() =>
+    assertSchemaInstance(validators.fixture, unsupported, "required-v2", false),
+  );
 });
 
 test("PRP v3 external operations are closed and Dot has no native model or thread", async () => {
   const schemas = await loadSchemaCatalog(resolve(protocolRoot, "schemas"));
   const validators = compileProtocolValidators(schemas);
   const happy = await fixture("replay/happy-path.json");
-  const binding = { companyId: "company", agentId: "agent", bindingId: "binding", bindingGeneration: 1,
-    runId: happy.identity.runId, normalizedSessionId: happy.identity.normalizedSessionId, turnId: "turn", assignmentRevision: 1 };
+  const binding = {
+    companyId: "company",
+    agentId: "agent",
+    bindingId: "binding",
+    bindingGeneration: 1,
+    runId: happy.identity.runId,
+    normalizedSessionId: happy.identity.normalizedSessionId,
+    turnId: "turn",
+    assignmentRevision: 1,
+  };
   const { companyId, agentId, ...commandBinding } = binding;
-  const command = { ...happy.commands[0], schema: "taskcore.prp.command.v3", type: "external_provider.operation",
-    payload: { ...commandBinding, requestId: "request", digest: "sha256:" + "a".repeat(64), action: "tool", input: { name: "write_document", arguments: {} } } };
+  const command = {
+    ...happy.commands[0],
+    schema: "taskcore.prp.command.v3",
+    type: "external_provider.operation",
+    payload: {
+      ...commandBinding,
+      requestId: "request",
+      digest: "sha256:" + "a".repeat(64),
+      action: "tool",
+      input: { name: "write_document", arguments: {} },
+    },
+  };
   assert.equal(validators.commandV3(command), true);
-  assert.equal(validators.commandV3({ ...command, payload: { ...command.payload, apiKey: "hidden" } }), false);
-  assert.equal(validators.commandV3({ ...command, payload: { ...command.payload, input: { ...command.payload.input, unexpected: true } } }), false);
-  const event = { ...happy.events[0], schema: "taskcore.prp.event.v3", schemaVersion: 3,
-    eventType: "external_provider.dispatch_requested", payload: { binding, kind: "authority_revoked", externalStopConfirmed: false } };
+  assert.equal(
+    validators.commandV3({
+      ...command,
+      payload: { ...command.payload, apiKey: "hidden" },
+    }),
+    false,
+  );
+  assert.equal(
+    validators.commandV3({
+      ...command,
+      payload: {
+        ...command.payload,
+        input: { ...command.payload.input, unexpected: true },
+      },
+    }),
+    false,
+  );
+  const event = {
+    ...happy.events[0],
+    schema: "taskcore.prp.event.v3",
+    schemaVersion: 3,
+    eventType: "external_provider.dispatch_requested",
+    payload: {
+      binding,
+      kind: "authority_revoked",
+      externalStopConfirmed: false,
+    },
+  };
   assert.equal(validators.eventV3(event), true);
-  assert.equal(validators.eventV3({ ...event, payload: { ...event.payload, externalStopConfirmed: true } }), false);
-  const replay = { ...happy, protocolVersion: 3, commands: [...happy.commands, command], events: [event, ...happy.events.slice(1)] };
+  assert.equal(
+    validators.eventV3({
+      ...event,
+      payload: { ...event.payload, externalStopConfirmed: true },
+    }),
+    false,
+  );
+  const replay = {
+    ...happy,
+    protocolVersion: 3,
+    commands: [...happy.commands, command],
+    events: [event, ...happy.events.slice(1)],
+  };
   assert.doesNotThrow(() => assertReplayFixtureCompatibility(replay));
   assert.equal(validators.fixture(replay), true);
-  const descriptor = { provider: "openai_dot", driver: "openai_dot_mcp", executionKind: "remote_service", service: "openai_dot", model: null, providerSessionId: null, providerVersion: "unknown" };
+  const descriptor = {
+    provider: "openai_dot",
+    driver: "openai_dot_mcp",
+    executionKind: "remote_service",
+    service: "openai_dot",
+    model: null,
+    providerSessionId: null,
+    providerVersion: "unknown",
+  };
   assert.equal(validators.providerDescriptor(descriptor), true);
-  assert.equal(validators.providerDescriptor({ ...descriptor, model: "invented" }), false);
-  assert.equal(validators.providerDescriptor({ ...descriptor, providerSessionId: "invented-thread" }), false);
+  assert.equal(
+    validators.providerDescriptor({ ...descriptor, model: "invented" }),
+    false,
+  );
+  assert.equal(
+    validators.providerDescriptor({
+      ...descriptor,
+      providerSessionId: "invented-thread",
+    }),
+    false,
+  );
 });
 
 test("provider descriptors require coherent provider, driver, and execution combinations", async () => {
@@ -123,13 +215,20 @@ test("provider descriptors require coherent provider, driver, and execution comb
     executionKind: "local_process",
     providerVersion: "1",
   };
-  assert.doesNotThrow(() => assertSchemaInstance(validators.providerDescriptor, codex, "codex-provider"));
-  assert.throws(
-    () => assertSchemaInstance(
+  assert.doesNotThrow(() =>
+    assertSchemaInstance(
       validators.providerDescriptor,
-      { ...codex, driver: "opencode_server" },
-      "mismatched-provider",
+      codex,
+      "codex-provider",
     ),
+  );
+  assert.throws(
+    () =>
+      assertSchemaInstance(
+        validators.providerDescriptor,
+        { ...codex, driver: "opencode_server" },
+        "mismatched-provider",
+      ),
     /schema_validation_failed: mismatched-provider must be accepted/,
   );
 });
@@ -137,7 +236,9 @@ test("provider descriptors require coherent provider, driver, and execution comb
 test("the Codex question fixture uses stable provider-neutral IDs", async () => {
   const value = await fixture("questions/codex.json");
   assert.doesNotThrow(() => assertCodexQuestionFixture(value));
-  assert.deepEqual(Object.keys(value.canonicalResponse.answers), ["environment"]);
+  assert.deepEqual(Object.keys(value.canonicalResponse.answers), [
+    "environment",
+  ]);
 });
 
 test("the ACPX question fixture enforces its provider-native contract", async () => {
@@ -149,11 +250,15 @@ test("the ACPX question fixture enforces its provider-native contract", async ()
   assert.doesNotThrow(() => assertAcpxQuestionFixture(implicitObjectSchema));
 
   const unionObjectSchema = structuredClone(canonical);
-  unionObjectSchema.nativeRequest.params.requestedSchema.type = ["object", "null"];
+  unionObjectSchema.nativeRequest.params.requestedSchema.type = [
+    "object",
+    "null",
+  ];
   assert.doesNotThrow(() => assertAcpxQuestionFixture(unionObjectSchema));
 
   const malformedRequest = structuredClone(canonical);
-  malformedRequest.nativeRequest.params.requestedSchema.properties.environment.type = "object";
+  malformedRequest.nativeRequest.params.requestedSchema.properties.environment.type =
+    "object";
   assert.throws(
     () => assertAcpxQuestionFixture(malformedRequest),
     /unsupported native property environment/,
@@ -167,8 +272,9 @@ test("the ACPX question fixture enforces its provider-native contract", async ()
   );
 
   const patternBearingQuestion = structuredClone(canonical);
-  const patternBearingProperty = patternBearingQuestion.nativeRequest.params
-    .requestedSchema.properties.environment;
+  const patternBearingProperty =
+    patternBearingQuestion.nativeRequest.params.requestedSchema.properties
+      .environment;
   delete patternBearingProperty.oneOf;
   patternBearingProperty.pattern = "^staging$";
   patternBearingQuestion.canonicalQuestionSet.questions[0] = {
@@ -188,8 +294,8 @@ test("the ACPX question fixture enforces its provider-native contract", async ()
   );
 
   const optionPattern = structuredClone(canonical);
-  optionPattern.nativeRequest.params.requestedSchema.properties.environment
-    .pattern = "^staging$";
+  optionPattern.nativeRequest.params.requestedSchema.properties.environment.pattern =
+    "^staging$";
   assert.doesNotThrow(() => assertAcpxQuestionFixture(optionPattern));
 
   const emptyOptionalAnswer = structuredClone(canonical);
@@ -205,8 +311,8 @@ test("the ACPX question fixture enforces its provider-native contract", async ()
   assert.doesNotThrow(() => assertAcpxQuestionFixture(emptyOptionalAnswer));
 
   const emptyOption = structuredClone(canonical);
-  emptyOption.nativeRequest.params.requestedSchema.properties.environment
-    .oneOf[0].const = "";
+  emptyOption.nativeRequest.params.requestedSchema.properties.environment.oneOf[0].const =
+    "";
   assert.throws(
     () => assertAcpxQuestionFixture(emptyOption),
     /native options must be non-empty bounded strings/,
@@ -250,32 +356,37 @@ test("the ACPX question fixture enforces its provider-native contract", async ()
   );
 
   const arrayWithBothOptionForms = structuredClone(canonical);
-  const environment = arrayWithBothOptionForms.nativeRequest.params
-    .requestedSchema.properties.environment;
+  const environment =
+    arrayWithBothOptionForms.nativeRequest.params.requestedSchema.properties
+      .environment;
   environment.type = "array";
   environment.items = {
     anyOf: environment.oneOf,
     oneOf: [{ const: "wrong", title: "Wrong precedence" }],
   };
   delete environment.oneOf;
-  arrayWithBothOptionForms.canonicalQuestionSet.questions[0].answerMode = "multi_select";
+  arrayWithBothOptionForms.canonicalQuestionSet.questions[0].answerMode =
+    "multi_select";
   arrayWithBothOptionForms.nativeResponse.content.environment = ["staging"];
-  assert.doesNotThrow(() => assertAcpxQuestionFixture(arrayWithBothOptionForms));
+  assert.doesNotThrow(() =>
+    assertAcpxQuestionFixture(arrayWithBothOptionForms),
+  );
 
   const malformedPreferredUnion = structuredClone(arrayWithBothOptionForms);
-  malformedPreferredUnion.nativeRequest.params.requestedSchema.properties
-    .environment.items.anyOf = { const: "staging" };
+  malformedPreferredUnion.nativeRequest.params.requestedSchema.properties.environment.items.anyOf =
+    { const: "staging" };
   assert.throws(
     () => assertAcpxQuestionFixture(malformedPreferredUnion),
     /native array property environment requires options/,
   );
 
   const enumFallback = structuredClone(malformedPreferredUnion);
-  enumFallback.nativeRequest.params.requestedSchema.properties.environment.items = {
-    anyOf: { const: "ignored-malformed-preferred-union" },
-    oneOf: [{ const: "wrong", title: "Wrong alternate union" }],
-    enum: ["staging", "production"],
-  };
+  enumFallback.nativeRequest.params.requestedSchema.properties.environment.items =
+    {
+      anyOf: { const: "ignored-malformed-preferred-union" },
+      oneOf: [{ const: "wrong", title: "Wrong alternate union" }],
+      enum: ["staging", "production"],
+    };
   enumFallback.canonicalQuestionSet.questions[0].options = [
     { id: "option-1", label: "staging" },
     { id: "option-2", label: "production" },
@@ -287,8 +398,8 @@ test("the ACPX question fixture enforces its provider-native contract", async ()
     canonical.nativeRequest.params.requestedSchema.properties.environment,
   );
   const specialPropertyFixture = structuredClone(canonical);
-  const specialProperties = specialPropertyFixture.nativeRequest.params
-    .requestedSchema.properties;
+  const specialProperties =
+    specialPropertyFixture.nativeRequest.params.requestedSchema.properties;
   delete specialProperties.environment;
   Object.defineProperty(specialProperties, specialPropertyName, {
     value: specialProperty,
@@ -303,7 +414,8 @@ test("the ACPX question fixture enforces its provider-native contract", async ()
     .update(specialPropertyName)
     .digest("hex")
     .slice(0, 12)}`;
-  specialPropertyFixture.canonicalQuestionSet.questions[0].id = specialQuestionId;
+  specialPropertyFixture.canonicalQuestionSet.questions[0].id =
+    specialQuestionId;
   specialPropertyFixture.canonicalResponse.answers = {
     [specialQuestionId]: { selectedOptionIds: ["option-1"] },
   };
@@ -374,7 +486,8 @@ test("the ACPX question fixture ignores scalar enums the adapter does not projec
 
   for (const testCase of cases) {
     const value = structuredClone(base);
-    value.nativeRequest.params.requestedSchema.properties.environment = testCase.property;
+    value.nativeRequest.params.requestedSchema.properties.environment =
+      testCase.property;
     value.canonicalQuestionSet.questions[0] = testCase.question;
     value.canonicalResponse.answers[id] = testCase.canonicalAnswer;
     value.nativeResponse.content.environment = testCase.nativeAnswer;
@@ -458,7 +571,9 @@ test("every question adapter fixture satisfies its declared schema", async () =>
     },
     {
       label: "multiple single-select values",
-      answer: { selectedOptionIds: requiredQuestion.options.map((option) => option.id) },
+      answer: {
+        selectedOptionIds: requiredQuestion.options.map((option) => option.id),
+      },
       pattern: /single-select answer .* chooses more than one option/,
     },
     {
@@ -474,9 +589,10 @@ test("every question adapter fixture satisfies its declared schema", async () =>
   ];
   for (const malformedAnswer of malformedAnswers) {
     const malformedResponse = structuredClone(canonical);
-    malformedResponse.canonicalResponse.answers = malformedAnswer.answer === undefined
-      ? {}
-      : { [requiredQuestionId]: malformedAnswer.answer };
+    malformedResponse.canonicalResponse.answers =
+      malformedAnswer.answer === undefined
+        ? {}
+        : { [requiredQuestionId]: malformedAnswer.answer };
     assert.throws(
       () => assertQuestionAdapterFixture(malformedResponse),
       malformedAnswer.pattern,
@@ -634,15 +750,32 @@ test("the cross-language conformance input and output have one stable identity",
   const output = await fixture("conformance-expected-output.json");
   const schemas = await loadSchemaCatalog(resolve(protocolRoot, "schemas"));
   const validators = compileProtocolValidators(schemas);
-  assert.doesNotThrow(() => assertSchemaInstance(validators.conformanceFixture, input, "conformance-input"));
-  assert.doesNotThrow(() => assertSchemaInstance(validators.conformanceOutput, output, "conformance-output"));
+  assert.doesNotThrow(() =>
+    assertSchemaInstance(
+      validators.conformanceFixture,
+      input,
+      "conformance-input",
+    ),
+  );
+  assert.doesNotThrow(() =>
+    assertSchemaInstance(
+      validators.conformanceOutput,
+      output,
+      "conformance-output",
+    ),
+  );
   assert.doesNotThrow(() => assertConformanceFixturePair(input, output));
   assert.equal(input.result.summary, output.result.summary);
 
   const missingSessionId = structuredClone(output);
   delete missingSessionId.runIdentity.sessionId;
   assert.throws(
-    () => assertSchemaInstance(validators.conformanceOutput, missingSessionId, "missing-session-id"),
+    () =>
+      assertSchemaInstance(
+        validators.conformanceOutput,
+        missingSessionId,
+        "missing-session-id",
+      ),
     /schema_validation_failed: missing-session-id must be accepted: \/runIdentity must have required property 'sessionId'/,
   );
 });

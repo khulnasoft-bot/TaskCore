@@ -41,16 +41,29 @@ export function SessionTimeline({
 }) {
   const headingId = React.useId();
   return (
-    <section data-slot="session-timeline" className="pcr-panel" aria-labelledby={headingId}>
-      <h2 id={headingId} className="pcr-panel-title">Session timeline</h2>
+    <section
+      data-slot="session-timeline"
+      className="pcr-panel"
+      aria-labelledby={headingId}
+    >
+      <h2 id={headingId} className="pcr-panel-title">
+        Session timeline
+      </h2>
       <dl className="pcr-identity-grid">
-        <div><dt>Goal</dt><dd>{state?.goal?.objective ?? "No goal set"}</dd></div>
-        <div><dt>State</dt><dd>{snapshot?.sessionState ?? "not started"}</dd></div>
+        <div>
+          <dt>Goal</dt>
+          <dd>{state?.goal?.objective ?? "No goal set"}</dd>
+        </div>
+        <div>
+          <dt>State</dt>
+          <dd>{snapshot?.sessionState ?? "not started"}</dd>
+        </div>
       </dl>
       <ol className="pcr-timeline" data-testid="session-timeline">
         {(snapshot?.timeline ?? []).map((entry) => (
           <li key={entry.sourceEventId}>
-            <code>{entry.sourceSeq}</code><span>{entry.summary}</span>
+            <code>{entry.sourceSeq}</code>
+            <span>{entry.summary}</span>
           </li>
         ))}
       </ol>
@@ -74,7 +87,11 @@ export function ManifestList({
   disabled: boolean;
 }) {
   return (
-    <section data-slot="manifest-list" className="pcr-panel" aria-labelledby="manifest-heading">
+    <section
+      data-slot="manifest-list"
+      className="pcr-panel"
+      aria-labelledby="manifest-heading"
+    >
       <h2 id="manifest-heading" className="pcr-panel-title">
         Demo chats
       </h2>
@@ -94,15 +111,26 @@ export function ManifestList({
                 {manifest.scenarios.map((scenario) => (
                   <Badge key={scenario}>{scenario}</Badge>
                 ))}
-                <Badge tone={lastOutcome[manifest.id] === undefined ? "neutral" : "success"}>
+                <Badge
+                  tone={
+                    lastOutcome[manifest.id] === undefined
+                      ? "neutral"
+                      : "success"
+                  }
+                >
                   {lastOutcome[manifest.id] ?? "not run"}
                 </Badge>
               </span>
             </button>
             {manifest.id === selectedId ? (
               <>
-                <details className="pcr-disclosure" data-testid="expected-observations">
-                  <summary className="pcr-disclosure-summary">Expected observations</summary>
+                <details
+                  className="pcr-disclosure"
+                  data-testid="expected-observations"
+                >
+                  <summary className="pcr-disclosure-summary">
+                    Expected observations
+                  </summary>
                   <ol className="pcr-observation-list">
                     {manifest.expectedObservations.map((observation) => (
                       <li key={observation}>{observation}</li>
@@ -144,14 +172,23 @@ export function ConnectionBlock({
   onScrollToOldestRequest: () => void;
 }) {
   return (
-    <section data-slot="connection-block" className="pcr-panel" aria-labelledby="connection-heading">
+    <section
+      data-slot="connection-block"
+      className="pcr-panel"
+      aria-labelledby="connection-heading"
+    >
       <h2 id="connection-heading" className="pcr-panel-title">
         Session
       </h2>
       <div className="pcr-status-row">
         <span>Connection</span>
-        <Badge tone={CONNECTION_TONE[connection]} data-testid="connection-status">
-          {connection === "reconnecting" ? `reconnecting (attempt ${reconnectAttempt})` : connection}
+        <Badge
+          tone={CONNECTION_TONE[connection]}
+          data-testid="connection-status"
+        >
+          {connection === "reconnecting"
+            ? `reconnecting (attempt ${reconnectAttempt})`
+            : connection}
         </Badge>
       </div>
       <div className="pcr-status-row">
@@ -224,12 +261,19 @@ export function GoalBlock({
     interruption: false,
     structuredResult: false,
   };
-  const availability = goalAvailability(capabilities, state?.goal?.status ?? null);
+  const availability = goalAvailability(
+    capabilities,
+    state?.goal?.status ?? null,
+  );
   const unsupported = capabilities.goals !== true;
   const unsupportedReason = availability[0]?.reason ?? null;
 
   return (
-    <section data-slot="goal-block" className="pcr-panel" aria-labelledby="goal-heading">
+    <section
+      data-slot="goal-block"
+      className="pcr-panel"
+      aria-labelledby="goal-heading"
+    >
       <div className="pcr-panel-header">
         <h2 id="goal-heading" className="pcr-panel-title">
           Goal
@@ -239,7 +283,9 @@ export function GoalBlock({
           label="Goal"
           disabled={unsupported || state === null}
           disabledReason={
-            state === null ? "Start a session before changing the goal." : unsupportedReason
+            state === null
+              ? "Start a session before changing the goal."
+              : unsupportedReason
           }
           items={availability.map((entry) => ({
             id: entry.operation,
@@ -255,13 +301,17 @@ export function GoalBlock({
       </div>
       {state === null ? null : state.goal === null ? (
         <p className="pcr-goal-empty" data-testid="goal-banner">
-          {unsupported ? "Goal operations are unsupported here." : "No goal set"}
+          {unsupported
+            ? "Goal operations are unsupported here."
+            : "No goal set"}
         </p>
       ) : (
         <div className="pcr-goal-banner" data-testid="goal-banner">
           <p className="pcr-goal-objective">{state.goal.objective}</p>
           <div className="pcr-status-row">
-            <Badge tone={state.goal.status === "active" ? "success" : "warning"}>
+            <Badge
+              tone={state.goal.status === "active" ? "success" : "warning"}
+            >
               {state.goal.status}
             </Badge>
             <time dateTime={new Date(state.goal.updatedAt).toISOString()}>
@@ -277,7 +327,11 @@ export function GoalBlock({
         description="The goal is durable on the thread and every change is also a transcript event."
         footer={
           <>
-            <Button type="button" className="pcr-button--quiet" onClick={() => setDialogOpen(false)}>
+            <Button
+              type="button"
+              className="pcr-button--quiet"
+              onClick={() => setDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -324,7 +378,9 @@ export function LineageTree({
 
   function onKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
     const rows = [
-      ...(treeRef.current?.querySelectorAll<HTMLButtonElement>('[role="treeitem"]') ?? []),
+      ...(treeRef.current?.querySelectorAll<HTMLButtonElement>(
+        '[role="treeitem"]',
+      ) ?? []),
     ];
     const index = rows.indexOf(document.activeElement as HTMLButtonElement);
     if (event.key === "ArrowDown") {
@@ -337,7 +393,11 @@ export function LineageTree({
   }
 
   return (
-    <section data-slot="lineage-tree" className="pcr-panel" aria-labelledby="lineage-heading">
+    <section
+      data-slot="lineage-tree"
+      className="pcr-panel"
+      aria-labelledby="lineage-heading"
+    >
       <h2 id="lineage-heading" className="pcr-panel-title">
         Threads
       </h2>
@@ -349,7 +409,9 @@ export function LineageTree({
         data-testid="lineage-tree"
         onKeyDown={onKeyDown}
       >
-        {lineage.length === 0 ? <li className="pcr-tree-empty">No threads yet.</li> : null}
+        {lineage.length === 0 ? (
+          <li className="pcr-tree-empty">No threads yet.</li>
+        ) : null}
         {lineage.map((entry) => (
           <li key={entry.threadId} role="none" data-depth={entry.depth}>
             <button
@@ -359,9 +421,15 @@ export function LineageTree({
               aria-selected={entry.threadId === current}
               className="pcr-tree-row"
               data-testid={`thread-${entry.threadId}`}
-              onClick={() => onSelect(entry.depth === 0 ? null : entry.threadId)}
+              onClick={() =>
+                onSelect(entry.depth === 0 ? null : entry.threadId)
+              }
             >
-              <span className="pcr-state-dot" data-state={entry.status} aria-hidden="true" />
+              <span
+                className="pcr-state-dot"
+                data-state={entry.status}
+                aria-hidden="true"
+              />
               <code>{entry.nickname ?? entry.threadId}</code>
               <span className="pcr-tree-state">
                 {THREAD_STATE_LABEL[entry.status] ?? entry.status}

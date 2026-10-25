@@ -53,7 +53,7 @@ describe("listenViteHmrServer", () => {
     expect(server.address()).toMatchObject({ address: "127.0.0.1" });
 
     await new Promise<void>((resolve, reject) => {
-      server.close((error) => error ? reject(error) : resolve());
+      server.close((error) => (error ? reject(error) : resolve()));
     });
   });
 });

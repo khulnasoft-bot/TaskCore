@@ -64,7 +64,10 @@ describe("Slack transient search provider (not exposed to retaining runtimes)", 
     )[0][1];
     const sent = new URLSearchParams(String(init.body));
     expect(sent.get("action_token")).toBe("verified-event-token");
-    expect(JSON.parse(sent.get("term_clauses")!)).toEqual(["in:<#C1>", "from:<@U1>"]);
+    expect(JSON.parse(sent.get("term_clauses")!)).toEqual([
+      "in:<#C1>",
+      "from:<@U1>",
+    ]);
     expect(sent.get("include_context_messages")).toBe("false");
     expect(JSON.stringify(result)).not.toContain("verified-event-token");
   });
@@ -96,7 +99,9 @@ describe("Slack transient search provider (not exposed to retaining runtimes)", 
     expect(init.headers).toMatchObject({
       authorization: "Bearer personal-token",
     });
-    expect(new URLSearchParams(String(init.body)).has("action_token")).toBe(false);
+    expect(new URLSearchParams(String(init.body)).has("action_token")).toBe(
+      false,
+    );
   });
   it("does not expose file hits outside bot-verified channel shares", async () => {
     const fetched = vi.fn(async (url: RequestInfo | URL) =>

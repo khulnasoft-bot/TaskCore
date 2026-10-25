@@ -98,11 +98,9 @@ describe("Codex paginated history", () => {
     await expect(
       readCodexTurnItems(
         {
-          request: vi
-            .fn()
-            .mockResolvedValue({
-              data: [{ turnId: "other", item: { id: "a" } }],
-            }),
+          request: vi.fn().mockResolvedValue({
+            data: [{ turnId: "other", item: { id: "a" } }],
+          }),
         },
         "thread",
         "one",

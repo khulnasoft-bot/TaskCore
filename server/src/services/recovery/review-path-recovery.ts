@@ -7,10 +7,13 @@ import { withRecoveryContext } from "./status-only-context.js";
 export const ISSUE_REVIEW_PATH_LOST_WAKE_REASON = "issue_review_path_lost";
 export const REVIEW_PATH_RECOVERY_INSTRUCTION =
   "This issue is still in review but its last maintained review path was consumed. Restore a reviewer, interaction, approval, monitor, or other durable waiting path, or choose an explicit disposition. This is the only automatic review-path recovery wake for this fingerprint.";
-const REVIEW_PATH_RECOVERY_IDEMPOTENCY_INDEX = "agent_wakeup_requests_review_path_recovery_idempotency_uq";
+const REVIEW_PATH_RECOVERY_IDEMPOTENCY_INDEX =
+  "agent_wakeup_requests_review_path_recovery_idempotency_uq";
 
 function readNonEmptyString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 export function reviewPathConsumedRefFromRun(input: {
@@ -19,26 +22,37 @@ export function reviewPathConsumedRefFromRun(input: {
   contextSnapshot: Record<string, unknown> | null | undefined;
 }) {
   const context = input.contextSnapshot ?? {};
-  return readNonEmptyString(context.reviewPathConsumedRef)
-    ?? readNonEmptyString(context.interactionId)
-    ?? readNonEmptyString(context.approvalId)
-    ?? (readNonEmptyString(context.wakeReason)?.startsWith("issue_monitor")
+  return (
+    readNonEmptyString(context.reviewPathConsumedRef) ??
+    readNonEmptyString(context.interactionId) ??
+    readNonEmptyString(context.approvalId) ??
+    (readNonEmptyString(context.wakeReason)?.startsWith("issue_monitor")
       ? `monitor:${input.issueId}:${readNonEmptyString(context.clearReason) ?? "cleared"}:${String(context.monitorAttemptCount ?? "unknown")}`
-      : null)
-    ?? input.runId;
+      : null) ??
+    input.runId
+  );
 }
 
 export function buildIssueReviewPathLostIdempotencyKey(input: {
   issueId: string;
   consumedPathRef: string;
 }) {
-  const fingerprint = createHash("sha256").update(input.consumedPathRef).digest("hex").slice(0, 24);
+  const fingerprint = createHash("sha256")
+    .update(input.consumedPathRef)
+    .digest("hex")
+    .slice(0, 24);
   return `${ISSUE_REVIEW_PATH_LOST_WAKE_REASON}:${input.issueId}:${fingerprint}`;
 }
 
-export function isReviewPathRecoveryIdempotencyConflict(error: unknown): boolean {
+export function isReviewPathRecoveryIdempotencyConflict(
+  error: unknown,
+): boolean {
   let current: unknown = error;
-  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth += 1) {
+  for (
+    let depth = 0;
+    depth < 4 && current && typeof current === "object";
+    depth += 1
+  ) {
     const candidate = current as {
       code?: unknown;
       constraint?: unknown;
@@ -48,11 +62,10 @@ export function isReviewPathRecoveryIdempotencyConflict(error: unknown): boolean
     };
     const constraint = candidate.constraint ?? candidate.constraint_name;
     if (
-      candidate.code === "23505"
-      && (
-        constraint === REVIEW_PATH_RECOVERY_IDEMPOTENCY_INDEX
-        || (typeof candidate.message === "string" && candidate.message.includes(REVIEW_PATH_RECOVERY_IDEMPOTENCY_INDEX))
-      )
+      candidate.code === "23505" &&
+      (constraint === REVIEW_PATH_RECOVERY_IDEMPOTENCY_INDEX ||
+        (typeof candidate.message === "string" &&
+          candidate.message.includes(REVIEW_PATH_RECOVERY_IDEMPOTENCY_INDEX)))
     ) {
       return true;
     }
@@ -78,15 +91,17 @@ export function decideIssueReviewPathRecovery(input: {
   reviewAttention: IssueReviewAttention;
   existingWake: boolean;
 }): IssueReviewPathRecoveryDecision {
-  if (!input.assigneeAgentId) return { kind: "skip", reason: "review issue has no agent assignee" };
+  if (!input.assigneeAgentId)
+    return { kind: "skip", reason: "review issue has no agent assignee" };
   if (input.reviewAttention.state !== "stalled") {
     return { kind: "skip", reason: "review issue still has a maintained path" };
   }
 
   const context = input.contextSnapshot ?? {};
   if (
-    readNonEmptyString(context.wakeReason) === ISSUE_REVIEW_PATH_LOST_WAKE_REASON
-    || context.reviewPathRecoveryAttempt === 1
+    readNonEmptyString(context.wakeReason) ===
+      ISSUE_REVIEW_PATH_LOST_WAKE_REASON ||
+    context.reviewPathRecoveryAttempt === 1
   ) {
     return { kind: "skip", reason: "bounded review-path recovery already ran" };
   }
@@ -100,39 +115,51 @@ export function decideIssueReviewPathRecovery(input: {
     issueId: input.issueId,
     consumedPathRef,
   });
-  if (input.existingWake) return { kind: "skip", reason: "review-path recovery wake already exists" };
+  if (input.existingWake)
+    return { kind: "skip", reason: "review-path recovery wake already exists" };
 
-  const source = readNonEmptyString(context.source) ?? "heartbeat.review_path_disposition";
-  const chatCommentIds = boundExternalChatProvider(source) ? extractWakeCommentIds(context) : [];
+  const source =
+    readNonEmptyString(context.source) ?? "heartbeat.review_path_disposition";
+  const chatCommentIds = boundExternalChatProvider(source)
+    ? extractWakeCommentIds(context)
+    : [];
 
-  const payload = withRecoveryContext({
-    issueId: input.issueId,
-    taskId: input.issueId,
-    sourceIssueId: input.issueId,
-    ...(input.sourceRunId ? { sourceRunId: input.sourceRunId } : {}),
-    reviewPathLost: true,
-    reviewPathConsumedRef: consumedPathRef,
-    reviewPathRecoveryAttempt: 1,
-    maxReviewPathRecoveryAttempts: 1,
-    instruction: REVIEW_PATH_RECOVERY_INSTRUCTION,
-  }, "normal_model");
+  const payload = withRecoveryContext(
+    {
+      issueId: input.issueId,
+      taskId: input.issueId,
+      sourceIssueId: input.issueId,
+      ...(input.sourceRunId ? { sourceRunId: input.sourceRunId } : {}),
+      reviewPathLost: true,
+      reviewPathConsumedRef: consumedPathRef,
+      reviewPathRecoveryAttempt: 1,
+      maxReviewPathRecoveryAttempts: 1,
+      instruction: REVIEW_PATH_RECOVERY_INSTRUCTION,
+    },
+    "normal_model",
+  );
 
   return {
     kind: "enqueue",
     idempotencyKey,
     payload,
-    contextSnapshot: withRecoveryContext({
-      ...payload,
-      wakeReason: ISSUE_REVIEW_PATH_LOST_WAKE_REASON,
-      source,
-      // Keep the admitted message references, not the source run's authority.
-      // Dispatch must prove the new run owns this task and recheck current
-      // endpoint, conversation, and principal access for the entire batch.
-      ...(chatCommentIds.length > 0 ? {
-        wakeCommentIds: chatCommentIds,
-        wakeCommentId: chatCommentIds.at(-1),
-        commentId: chatCommentIds.at(-1),
-      } : {}),
-    }, "normal_model"),
+    contextSnapshot: withRecoveryContext(
+      {
+        ...payload,
+        wakeReason: ISSUE_REVIEW_PATH_LOST_WAKE_REASON,
+        source,
+        // Keep the admitted message references, not the source run's authority.
+        // Dispatch must prove the new run owns this task and recheck current
+        // endpoint, conversation, and principal access for the entire batch.
+        ...(chatCommentIds.length > 0
+          ? {
+              wakeCommentIds: chatCommentIds,
+              wakeCommentId: chatCommentIds.at(-1),
+              commentId: chatCommentIds.at(-1),
+            }
+          : {}),
+      },
+      "normal_model",
+    ),
   };
 }

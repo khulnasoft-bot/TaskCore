@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
-import { attachmentDownloadPath, attachmentFilename } from "@/lib/issue-attachments";
+import {
+  attachmentDownloadPath,
+  attachmentFilename,
+} from "@/lib/issue-attachments";
 import { isVideoLikeOutput } from "@/lib/issue-output";
 
 export interface GalleryMediaItem {
@@ -28,9 +31,12 @@ export function ImageGalleryModal({
 }: ImageGalleryModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
-  const setMediaRef = useCallback((node: HTMLImageElement | HTMLVideoElement | null) => {
-    mediaRef.current = node;
-  }, []);
+  const setMediaRef = useCallback(
+    (node: HTMLImageElement | HTMLVideoElement | null) => {
+      mediaRef.current = node;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (open) setCurrentIndex(initialIndex);
@@ -80,7 +86,10 @@ export function ImageGalleryModal({
   const current = items[currentIndex];
   if (!current) return null;
   const filename = attachmentFilename(current);
-  const isVideo = isVideoLikeOutput(current.contentType, current.originalFilename);
+  const isVideo = isVideoLikeOutput(
+    current.contentType,
+    current.originalFilename,
+  );
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -93,7 +102,10 @@ export function ImageGalleryModal({
         >
           {/* Top bar */}
           <div className="flex items-center justify-between px-5 py-3 text-white/80 text-sm shrink-0">
-            <span className="truncate max-w-(--pct-50) font-medium" title={filename}>
+            <span
+              className="truncate max-w-(--pct-50) font-medium"
+              title={filename}
+            >
               {filename}
             </span>
             <div className="flex items-center gap-4">

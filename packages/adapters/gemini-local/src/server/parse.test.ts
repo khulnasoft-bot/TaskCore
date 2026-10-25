@@ -116,7 +116,11 @@ describe("parseGeminiJsonl", () => {
         type: "assistant",
         message: { content: [{ type: "output_text", text: "legacy hello" }] },
       }),
-      JSON.stringify({ type: "result", subtype: "success", result: "legacy hello" }),
+      JSON.stringify({
+        type: "result",
+        subtype: "success",
+        result: "legacy hello",
+      }),
     ].join("\n");
 
     const result = parseGeminiJsonl(stdout);
@@ -151,11 +155,18 @@ describe("parseGeminiJsonl", () => {
 
 describe("isGeminiSessionUnrecoverableError", () => {
   it("matches 'unknown session'", () => {
-    expect(isGeminiSessionUnrecoverableError("", "Error: unknown session 'abc-123'")).toBe(true);
+    expect(
+      isGeminiSessionUnrecoverableError("", "Error: unknown session 'abc-123'"),
+    ).toBe(true);
   });
 
   it("matches 'session ... not found'", () => {
-    expect(isGeminiSessionUnrecoverableError("", "Resumed session abc-123 not found on disk")).toBe(true);
+    expect(
+      isGeminiSessionUnrecoverableError(
+        "",
+        "Resumed session abc-123 not found on disk",
+      ),
+    ).toBe(true);
   });
 
   it("matches 'exceeds the maximum number of tokens' (compression overflow)", () => {
@@ -166,12 +177,17 @@ describe("isGeminiSessionUnrecoverableError", () => {
 
   it("matches 'input token count exceeds'", () => {
     expect(
-      isGeminiSessionUnrecoverableError("", "input token count exceeds maximum"),
+      isGeminiSessionUnrecoverableError(
+        "",
+        "input token count exceeds maximum",
+      ),
     ).toBe(true);
   });
 
   it("does not match unrelated stderr", () => {
-    expect(isGeminiSessionUnrecoverableError("", "Some other error")).toBe(false);
+    expect(isGeminiSessionUnrecoverableError("", "Some other error")).toBe(
+      false,
+    );
   });
 
   it("does not match transient network errors (those go to isGeminiTransientNetworkError)", () => {
@@ -193,7 +209,10 @@ describe("isGeminiTransientNetworkError", () => {
 
   it("matches EAI_AGAIN", () => {
     expect(
-      isGeminiTransientNetworkError("", "Error: getaddrinfo EAI_AGAIN sts.googleapis.com"),
+      isGeminiTransientNetworkError(
+        "",
+        "Error: getaddrinfo EAI_AGAIN sts.googleapis.com",
+      ),
     ).toBe(true);
   });
 
@@ -215,37 +234,97 @@ describe("isGeminiTransientNetworkError", () => {
   });
 });
 
-
 describe("Gemini accounting semantics", () => {
   it.each([
-    [0, "result"], [1.25, "result"], [0, "step_finish"], [1.25, "step_finish"], [0, "usage"], [1.25, "usage"],
-  ] as const)("invalidates an earlier $%s price when a later %s adds unpriced usage", (cost, type) => {
-    const consume = createGeminiJsonlParser();
-    const priced = JSON.stringify({ type: "step_finish", usage: { input_tokens: 10, output_tokens: 2 }, cost });
-    const unpriced = JSON.stringify({ type, usage: { input_tokens: 20, output_tokens: 3 } });
-    expect(consume(priced).costUsd).toBe(cost);
-    const parsed = consume(unpriced);
-    expect(parsed.usage).toEqual({ inputTokens: 30, cachedInputTokens: 0, outputTokens: 5 });
-    expect(parsed.costUsd).toBeNull();
-    expect(parseGeminiJsonl(`${priced}\n${unpriced}`)).toEqual(parsed);
-  });
-  it.each([0, 2.5])("accepts a final reported total of $%s after earlier unpriced usage", (cost) => {
-    const consume = createGeminiJsonlParser();
-    expect(consume(JSON.stringify({ type: "step_finish", usage: { input_tokens: 10 } })).costUsd).toBeNull();
-    expect(consume(JSON.stringify({ type: "result", total_cost_usd: cost })).costUsd).toBe(cost);
-  });
+    [0, "result"],
+    [1.25, "result"],
+    [0, "step_finish"],
+    [1.25, "step_finish"],
+    [0, "usage"],
+    [1.25, "usage"],
+  ] as const)(
+    "invalidates an earlier $%s price when a later %s adds unpriced usage",
+    (cost, type) => {
+      const consume = createGeminiJsonlParser();
+      const priced = JSON.stringify({
+        type: "step_finish",
+        usage: { input_tokens: 10, output_tokens: 2 },
+        cost,
+      });
+      const unpriced = JSON.stringify({
+        type,
+        usage: { input_tokens: 20, output_tokens: 3 },
+      });
+      expect(consume(priced).costUsd).toBe(cost);
+      const parsed = consume(unpriced);
+      expect(parsed.usage).toEqual({
+        inputTokens: 30,
+        cachedInputTokens: 0,
+        outputTokens: 5,
+      });
+      expect(parsed.costUsd).toBeNull();
+      expect(parseGeminiJsonl(`${priced}\n${unpriced}`)).toEqual(parsed);
+    },
+  );
+  it.each([0, 2.5])(
+    "accepts a final reported total of $%s after earlier unpriced usage",
+    (cost) => {
+      const consume = createGeminiJsonlParser();
+      expect(
+        consume(
+          JSON.stringify({ type: "step_finish", usage: { input_tokens: 10 } }),
+        ).costUsd,
+      ).toBeNull();
+      expect(
+        consume(JSON.stringify({ type: "result", total_cost_usd: cost }))
+          .costUsd,
+      ).toBe(cost);
+    },
+  );
   it("retains a reported price when later events add no usage", () => {
     const consume = createGeminiJsonlParser();
-    consume(JSON.stringify({ type: "step_finish", usage: { input_tokens: 10 }, cost: 1.25 }));
-    expect(consume(JSON.stringify({ type: "message", role: "assistant", content: "Done" })).costUsd).toBe(1.25);
-    expect(consume(JSON.stringify({ type: "result", status: "success" })).costUsd).toBe(1.25);
+    consume(
+      JSON.stringify({
+        type: "step_finish",
+        usage: { input_tokens: 10 },
+        cost: 1.25,
+      }),
+    );
+    expect(
+      consume(
+        JSON.stringify({ type: "message", role: "assistant", content: "Done" }),
+      ).costUsd,
+    ).toBe(1.25);
+    expect(
+      consume(JSON.stringify({ type: "result", status: "success" })).costUsd,
+    ).toBe(1.25);
   });
   it("keeps cache reads disjoint and includes thinking tokens in API metadata", () => {
-    const parsed = parseGeminiJsonl(JSON.stringify({ type: "result", usageMetadata: { promptTokenCount: 100, cachedContentTokenCount: 80, candidatesTokenCount: 10, thoughtsTokenCount: 5, totalTokenCount: 115 } }));
-    expect(parsed.usage).toEqual({ inputTokens: 20, cachedInputTokens: 80, outputTokens: 15 });
+    const parsed = parseGeminiJsonl(
+      JSON.stringify({
+        type: "result",
+        usageMetadata: {
+          promptTokenCount: 100,
+          cachedContentTokenCount: 80,
+          candidatesTokenCount: 10,
+          thoughtsTokenCount: 5,
+          totalTokenCount: 115,
+        },
+      }),
+    );
+    expect(parsed.usage).toEqual({
+      inputTokens: 20,
+      cachedInputTokens: 80,
+      outputTokens: 15,
+    });
   });
   it("preserves explicit zero and distinguishes absent prices", () => {
-    expect(parseGeminiJsonl(JSON.stringify({ type: "result", total_cost_usd: 0 })).costUsd).toBe(0);
-    expect(parseGeminiJsonl(JSON.stringify({ type: "result" })).costUsd).toBeNull();
+    expect(
+      parseGeminiJsonl(JSON.stringify({ type: "result", total_cost_usd: 0 }))
+        .costUsd,
+    ).toBe(0);
+    expect(
+      parseGeminiJsonl(JSON.stringify({ type: "result" })).costUsd,
+    ).toBeNull();
   });
 });

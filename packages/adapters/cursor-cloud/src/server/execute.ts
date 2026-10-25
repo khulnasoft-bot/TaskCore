@@ -9,7 +9,11 @@ import {
   type SDKAgent,
   type SDKMessage,
 } from "@cursor/sdk";
-import type { AdapterExecutionContext, AdapterExecutionResult, AdapterInvocationMeta } from "@taskcore/adapter-utils";
+import type {
+  AdapterExecutionContext,
+  AdapterExecutionResult,
+  AdapterInvocationMeta,
+} from "@taskcore/adapter-utils";
 import {
   DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
   DEFAULT_TASKCORE_CONVERSATION_PROMPT_TEMPLATE,
@@ -38,7 +42,13 @@ type CursorCloudSession = {
 };
 
 type CursorCloudEvent =
-  | { type: "cursor_cloud.init"; sessionId: string; agentId: string; runId?: string; model?: string }
+  | {
+      type: "cursor_cloud.init";
+      sessionId: string;
+      agentId: string;
+      runId?: string;
+      model?: string;
+    }
   | { type: "cursor_cloud.status"; status: string; message?: string }
   | { type: "cursor_cloud.message"; message: SDKMessage }
   | {
@@ -52,7 +62,8 @@ type CursorCloudEvent =
     };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -63,9 +74,14 @@ function asStringEnvMap(value: unknown): Record<string, string> {
     if (isForbiddenConfigEnvKey(key)) continue;
     if (typeof entry === "string") {
       env[key] = entry;
-    } else if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
+    } else if (
+      typeof entry === "object" &&
+      entry !== null &&
+      !Array.isArray(entry)
+    ) {
       const rec = entry as Record<string, unknown>;
-      if (rec.type === "plain" && typeof rec.value === "string") env[key] = rec.value;
+      if (rec.type === "plain" && typeof rec.value === "string")
+        env[key] = rec.value;
     }
   }
   return env;
@@ -78,7 +94,9 @@ function normalizeEnvType(raw: string): "cloud" | "pool" | "machine" {
 }
 
 function trimNullable(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function firstNonEmptyLine(text: string): string {
@@ -102,11 +120,15 @@ function toSummary(result: RunResult): string | null {
 }
 
 function formatRunError(err: unknown): string {
-  if (err instanceof Error && err.message.trim().length > 0) return err.message.trim();
+  if (err instanceof Error && err.message.trim().length > 0)
+    return err.message.trim();
   return String(err);
 }
 
-function buildWakeEnv(ctx: AdapterExecutionContext, configEnv: Record<string, string>): Record<string, string> {
+function buildWakeEnv(
+  ctx: AdapterExecutionContext,
+  configEnv: Record<string, string>,
+): Record<string, string> {
   const { runId, agent, context, authToken } = ctx;
   const env: Record<string, string> = {
     ...configEnv,
@@ -122,13 +144,18 @@ function buildWakeEnv(ctx: AdapterExecutionContext, configEnv: Record<string, st
   // Wake context travels in the prompt; a configured copy can exceed spawn limits.
   delete env.TASKCORE_WAKE_PAYLOAD_JSON;
 
-  const wakeTaskId = trimNullable(context.taskId) ?? trimNullable(context.issueId);
+  const wakeTaskId =
+    trimNullable(context.taskId) ?? trimNullable(context.issueId);
   const wakeReason = trimNullable(context.wakeReason);
-  const wakeCommentId = trimNullable(context.wakeCommentId) ?? trimNullable(context.commentId);
+  const wakeCommentId =
+    trimNullable(context.wakeCommentId) ?? trimNullable(context.commentId);
   const approvalId = trimNullable(context.approvalId);
   const approvalStatus = trimNullable(context.approvalStatus);
   const linkedIssueIds = Array.isArray(context.issueIds)
-    ? context.issueIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    ? context.issueIds.filter(
+        (value): value is string =>
+          typeof value === "string" && value.trim().length > 0,
+      )
     : [];
   const issueWorkMode = readTaskcoreIssueWorkModeFromContext(context);
 
@@ -137,7 +164,8 @@ function buildWakeEnv(ctx: AdapterExecutionContext, configEnv: Record<string, st
   if (wakeCommentId) env.TASKCORE_WAKE_COMMENT_ID = wakeCommentId;
   if (approvalId) env.TASKCORE_APPROVAL_ID = approvalId;
   if (approvalStatus) env.TASKCORE_APPROVAL_STATUS = approvalStatus;
-  if (linkedIssueIds.length > 0) env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
+  if (linkedIssueIds.length > 0)
+    env.TASKCORE_LINKED_ISSUE_IDS = linkedIssueIds.join(",");
   if (issueWorkMode) env.TASKCORE_ISSUE_WORK_MODE = issueWorkMode;
   if (authToken) {
     env.TASKCORE_API_KEY = authToken;
@@ -177,7 +205,9 @@ function buildWakeEnv(ctx: AdapterExecutionContext, configEnv: Record<string, st
   // Cursor rejects the entire request when any envVars value is empty.
   // Taskcore may use empty values to unset optional host credentials; remote
   // workers do not inherit those host variables, so omit the empty entries.
-  return Object.fromEntries(Object.entries(env).filter(([, value]) => value.length > 0));
+  return Object.fromEntries(
+    Object.entries(env).filter(([, value]) => value.length > 0),
+  );
 }
 
 async function buildInstructionsPrefix(
@@ -229,7 +259,9 @@ function renderTaskcoreEnvNote(env: Record<string, string>): string {
   ].join("\n");
 }
 
-function readSession(params: Record<string, unknown> | null): CursorCloudSession | null {
+function readSession(
+  params: Record<string, unknown> | null,
+): CursorCloudSession | null {
   if (!params) return null;
   const record = asRecord(params);
   if (!record) return null;
@@ -238,7 +270,8 @@ function readSession(params: Record<string, unknown> | null): CursorCloudSession
     trimNullable(record.agentId) ??
     trimNullable(record.sessionId);
   if (!cursorAgentId) return null;
-  const latestRunId = trimNullable(record.latestRunId) ?? trimNullable(record.runId) ?? undefined;
+  const latestRunId =
+    trimNullable(record.latestRunId) ?? trimNullable(record.runId) ?? undefined;
   const envType = trimNullable(record.envType);
   const envName = trimNullable(record.envName);
   const reposValue = Array.isArray(record.repos) ? record.repos : [];
@@ -273,9 +306,11 @@ function sessionMatches(
   if (session.repos.length !== repos.length) return false;
   return session.repos.every((repo, index) => {
     const next = repos[index];
-    return repo.url === next.url
-      && (repo.startingRef ?? null) === (next.startingRef ?? null)
-      && (repo.prUrl ?? null) === (next.prUrl ?? null);
+    return (
+      repo.url === next.url &&
+      (repo.startingRef ?? null) === (next.startingRef ?? null) &&
+      (repo.prUrl ?? null) === (next.prUrl ?? null)
+    );
   });
 }
 
@@ -313,12 +348,26 @@ function eventLine(event: CursorCloudEvent): string {
   return `${JSON.stringify(event)}\n`;
 }
 
-async function emitMessage(onLog: AdapterExecutionContext["onLog"], message: SDKMessage) {
+async function emitMessage(
+  onLog: AdapterExecutionContext["onLog"],
+  message: SDKMessage,
+) {
   await onLog("stdout", eventLine({ type: "cursor_cloud.message", message }));
 }
 
-async function emitStatus(onLog: AdapterExecutionContext["onLog"], status: string, message?: string) {
-  await onLog("stdout", eventLine({ type: "cursor_cloud.status", status, ...(message ? { message } : {}) }));
+async function emitStatus(
+  onLog: AdapterExecutionContext["onLog"],
+  status: string,
+  message?: string,
+) {
+  await onLog(
+    "stdout",
+    eventLine({
+      type: "cursor_cloud.status",
+      status,
+      ...(message ? { message } : {}),
+    }),
+  );
 }
 
 async function streamRun(run: Run, onLog: AdapterExecutionContext["onLog"]) {
@@ -347,8 +396,11 @@ async function getAttachedRun(input: {
   }
 }
 
-export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
-  const { runId, agent, runtime, config, context, onLog, onMeta, onDispatch } = ctx;
+export async function execute(
+  ctx: AdapterExecutionContext,
+): Promise<AdapterExecutionResult> {
+  const { runId, agent, runtime, config, context, onLog, onMeta, onDispatch } =
+    ctx;
   const envConfig = asStringEnvMap(config.env);
   const apiKey = asString(envConfig.CURSOR_API_KEY, "").trim();
   if (!apiKey) {
@@ -373,7 +425,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       exitCode: 1,
       signal: null,
       timedOut: false,
-      errorMessage: "cursor_cloud requires repoUrl in adapterConfig or workspace context.",
+      errorMessage:
+        "cursor_cloud requires repoUrl in adapterConfig or workspace context.",
       provider: "cursor",
       biller: "cursor",
       billingType: "api",
@@ -385,30 +438,38 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     trimNullable(config.repoStartingRef) ??
     trimNullable(workspace.repoRef) ??
     undefined;
-  const repoPullRequestUrl = trimNullable(config.repoPullRequestUrl) ?? undefined;
+  const repoPullRequestUrl =
+    trimNullable(config.repoPullRequestUrl) ?? undefined;
   const envType = normalizeEnvType(asString(config.runtimeEnvType, "cloud"));
   const envName = trimNullable(config.runtimeEnvName);
   const workOnCurrentBranch = asBoolean(config.workOnCurrentBranch, false);
   const autoCreatePR = asBoolean(config.autoCreatePR, false);
   const skipReviewerRequest = asBoolean(config.skipReviewerRequest, false);
   const model = toModelSelection(asString(config.model, ""));
-  const repos = [{
-    url: repoUrl,
-    ...(repoStartingRef ? { startingRef: repoStartingRef } : {}),
-    ...(repoPullRequestUrl ? { prUrl: repoPullRequestUrl } : {}),
-  }];
+  const repos = [
+    {
+      url: repoUrl,
+      ...(repoStartingRef ? { startingRef: repoStartingRef } : {}),
+      ...(repoPullRequestUrl ? { prUrl: repoPullRequestUrl } : {}),
+    },
+  ];
   const remoteEnv = buildWakeEnv(ctx, envConfig);
-  const session = readSession(runtime.sessionParams) ?? (runtime.sessionId
-    ? {
-        cursorAgentId: runtime.sessionId,
-        runtime: "cloud" as const,
-        repos,
-      }
-    : null);
+  const session =
+    readSession(runtime.sessionParams) ??
+    (runtime.sessionId
+      ? {
+          cursorAgentId: runtime.sessionId,
+          runtime: "cloud" as const,
+          repos,
+        }
+      : null);
   const canReuseSession = sessionMatches(session, envType, envName, repos);
-  const promptTemplate = asString(config.promptTemplate, context.conversationMode === true
-    ? DEFAULT_TASKCORE_CONVERSATION_PROMPT_TEMPLATE
-    : DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE);
+  const promptTemplate = asString(
+    config.promptTemplate,
+    context.conversationMode === true
+      ? DEFAULT_TASKCORE_CONVERSATION_PROMPT_TEMPLATE
+      : DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
+  );
   const bootstrapPromptTemplate = asString(config.bootstrapPromptTemplate, "");
   const templateData = {
     agentId: agent.id,
@@ -421,21 +482,27 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   };
   const instructions = await buildInstructionsPrefix(config, onLog);
   await hydrateFreshSessionHandoff(ctx, { resumedSession: canReuseSession });
-  const { taskContextNote, wakePrompt } = selectTaskcorePromptSections(context, {
-    resumedSession: canReuseSession,
-    includeCommunicationGuidance: false,
-  });
+  const { taskContextNote, wakePrompt } = selectTaskcorePromptSections(
+    context,
+    {
+      resumedSession: canReuseSession,
+      includeCommunicationGuidance: false,
+    },
+  );
   const renderedBootstrapPrompt =
     !canReuseSession && bootstrapPromptTemplate.trim().length > 0
       ? renderTemplate(bootstrapPromptTemplate, templateData).trim()
       : "";
   const renderedPrompt =
-    (canReuseSession && wakePrompt.length > 0) || isTaskcoreRecoveryWakePayload(context.taskcoreWake)
+    (canReuseSession && wakePrompt.length > 0) ||
+    isTaskcoreRecoveryWakePayload(context.taskcoreWake)
       ? ""
       : renderTemplate(promptTemplate, templateData).trim();
   const taskcoreEnvNote = renderTaskcoreEnvNote(remoteEnv);
   const prompt = joinPromptSections([
-    selectInitialCommunicationGuidance(context, { resumedSession: canReuseSession }),
+    selectInitialCommunicationGuidance(context, {
+      resumedSession: canReuseSession,
+    }),
     instructions.prefix,
     renderedBootstrapPrompt,
     wakePrompt,
@@ -443,7 +510,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     taskcoreEnvNote,
     renderedPrompt,
   ]);
-  const sessionHandoffNote = asString(context.taskcoreSessionHandoffMarkdown, "").trim();
+  const sessionHandoffNote = asString(
+    context.taskcoreSessionHandoffMarkdown,
+    "",
+  ).trim();
   const finalPrompt = joinPromptSections([prompt, sessionHandoffNote]);
   const promptMetrics = {
     promptChars: finalPrompt.length,
@@ -510,14 +580,21 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       : null;
 
     if (attachedRun) {
-      await emitStatus(onLog, "running", `Reattached to existing Cursor run ${attachedRun.id}.`);
-      await onLog("stdout", eventLine({
-        type: "cursor_cloud.init",
-        sessionId: attachedRun.agentId,
-        agentId: attachedRun.agentId,
-        runId: attachedRun.id,
-        ...(model?.id ? { model: model.id } : {}),
-      }));
+      await emitStatus(
+        onLog,
+        "running",
+        `Reattached to existing Cursor run ${attachedRun.id}.`,
+      );
+      await onLog(
+        "stdout",
+        eventLine({
+          type: "cursor_cloud.init",
+          sessionId: attachedRun.agentId,
+          agentId: attachedRun.agentId,
+          runId: attachedRun.id,
+          ...(model?.id ? { model: model.id } : {}),
+        }),
+      );
       const priorStreamPromise = streamRun(attachedRun, onLog).catch((err) => {
         streamError = formatRunError(err);
       });
@@ -531,19 +608,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       );
     }
 
-    sdkAgent = canReuseSession && session
-      ? await Agent.resume(session.cursorAgentId, agentOptions)
-      : await Agent.create(agentOptions);
+    sdkAgent =
+      canReuseSession && session
+        ? await Agent.resume(session.cursorAgentId, agentOptions)
+        : await Agent.create(agentOptions);
     run = await sdkAgent.send(finalPrompt, {
       ...(model ? { model } : {}),
     });
-    await onLog("stdout", eventLine({
-      type: "cursor_cloud.init",
-      sessionId: sdkAgent.agentId,
-      agentId: sdkAgent.agentId,
-      runId: run.id,
-      ...(model?.id ? { model: model.id } : {}),
-    }));
+    await onLog(
+      "stdout",
+      eventLine({
+        type: "cursor_cloud.init",
+        sessionId: sdkAgent.agentId,
+        agentId: sdkAgent.agentId,
+        runId: run.id,
+        ...(model?.id ? { model: model.id } : {}),
+      }),
+    );
     await emitStatus(onLog, "running", `Started Cursor run ${run.id}.`);
 
     const streamPromise = streamRun(run, onLog).catch((err) => {
@@ -562,15 +643,20 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     await streamPromise;
 
     const modelId = result.model?.id ?? model?.id ?? null;
-    await onLog("stdout", eventLine({
-      type: "cursor_cloud.result",
-      status: result.status,
-      ...(result.result ? { result: result.result } : {}),
-      ...(modelId ? { model: modelId } : {}),
-      ...(typeof result.durationMs === "number" ? { durationMs: result.durationMs } : {}),
-      ...(result.git ? { git: result.git } : {}),
-      ...(streamError ? { error: streamError } : {}),
-    }));
+    await onLog(
+      "stdout",
+      eventLine({
+        type: "cursor_cloud.result",
+        status: result.status,
+        ...(result.result ? { result: result.result } : {}),
+        ...(modelId ? { model: modelId } : {}),
+        ...(typeof result.durationMs === "number"
+          ? { durationMs: result.durationMs }
+          : {}),
+        ...(result.git ? { git: result.git } : {}),
+        ...(streamError ? { error: streamError } : {}),
+      }),
+    );
 
     const nextSession: CursorCloudSession = {
       cursorAgentId: run.agentId,
@@ -585,7 +671,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       exitCode: isError ? 1 : 0,
       signal: null,
       timedOut: false,
-      errorMessage: isError ? (trimNullable(result.result) ?? streamError ?? `Cursor run ${result.status}`) : null,
+      errorMessage: isError
+        ? (trimNullable(result.result) ??
+          streamError ??
+          `Cursor run ${result.status}`)
+        : null,
       sessionId: run.agentId,
       sessionDisplayId: run.agentId,
       sessionParams: nextSession,
@@ -604,24 +694,30 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         repos,
         ...(result.result ? { result: result.result } : {}),
         ...(result.git ? { git: result.git } : {}),
-        ...(typeof result.durationMs === "number" ? { durationMs: result.durationMs } : {}),
+        ...(typeof result.durationMs === "number"
+          ? { durationMs: result.durationMs }
+          : {}),
         ...(streamError ? { streamError } : {}),
       },
       clearSession: false,
     };
   } catch (err) {
     const error = formatRunError(err);
-    const reason = !model && error.includes("[invalid_model]")
-      ? `${error} Cursor rejected its configured default model. Choose an available default at https://cursor.com/dashboard/cloud-agents or set this agent's model explicitly.`
-      : error.includes("Failed to determine repository default branch")
-        ? `${error} Verify that Cursor's GitHub integration can access ${repoUrl} at https://cursor.com/dashboard/cloud-agents. If the repository has no default branch, configure a starting branch for this agent.`
-        : error;
+    const reason =
+      !model && error.includes("[invalid_model]")
+        ? `${error} Cursor rejected its configured default model. Choose an available default at https://cursor.com/dashboard/cloud-agents or set this agent's model explicitly.`
+        : error.includes("Failed to determine repository default branch")
+          ? `${error} Verify that Cursor's GitHub integration can access ${repoUrl} at https://cursor.com/dashboard/cloud-agents. If the repository has no default branch, configure a starting branch for this agent.`
+          : error;
     if (run) {
-      await onLog("stdout", eventLine({
-        type: "cursor_cloud.result",
-        status: "error",
-        error: reason,
-      }));
+      await onLog(
+        "stdout",
+        eventLine({
+          type: "cursor_cloud.result",
+          status: "error",
+          error: reason,
+        }),
+      );
     }
     return {
       exitCode: 1,
@@ -639,7 +735,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       resultJson: {
         status: "error",
         ...(run ? { cursorRunId: run.id } : {}),
-        ...(session?.cursorAgentId ? { cursorAgentId: session.cursorAgentId } : {}),
+        ...(session?.cursorAgentId
+          ? { cursorAgentId: session.cursorAgentId }
+          : {}),
         error: reason,
       },
     };

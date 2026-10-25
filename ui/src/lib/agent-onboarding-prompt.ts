@@ -69,7 +69,9 @@ After you have connected to Taskcore, review and follow the full onboarding inst
 `;
 }
 
-function buildCandidateOnboardingUrls(input: AgentOnboardingPromptInput): string[] {
+function buildCandidateOnboardingUrls(
+  input: AgentOnboardingPromptInput,
+): string[] {
   const candidates = (input.connectionCandidates ?? [])
     .map((candidate) => candidate.trim())
     .filter(Boolean);
@@ -104,7 +106,9 @@ function buildCandidateOnboardingUrls(input: AgentOnboardingPromptInput): string
   return Array.from(urls);
 }
 
-function buildResolutionTestUrl(input: AgentOnboardingPromptInput): string | null {
+function buildResolutionTestUrl(
+  input: AgentOnboardingPromptInput,
+): string | null {
   const explicit = input.testResolutionUrl?.trim();
   if (explicit) return explicit;
 

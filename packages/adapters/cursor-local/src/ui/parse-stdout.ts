@@ -10,7 +10,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -47,18 +48,25 @@ function formatShellToolResultForLog(result: unknown): string {
   const exitCode = asNumber(success.exitCode, NaN);
   const stdout = asString(success.stdout).trim();
   const stderr = asString(success.stderr).trim();
-  const hasShellShape = Number.isFinite(exitCode) || stdout.length > 0 || stderr.length > 0;
+  const hasShellShape =
+    Number.isFinite(exitCode) || stdout.length > 0 || stderr.length > 0;
   if (!hasShellShape) return stringifyUnknown(result);
 
   const lines: string[] = [];
   if (Number.isFinite(exitCode)) lines.push(`exit ${exitCode}`);
   if (stdout) {
-    const out = stdout.length > SHELL_OUTPUT_TRUNCATE ? stdout.slice(0, SHELL_OUTPUT_TRUNCATE) + "\n... (truncated)" : stdout;
+    const out =
+      stdout.length > SHELL_OUTPUT_TRUNCATE
+        ? stdout.slice(0, SHELL_OUTPUT_TRUNCATE) + "\n... (truncated)"
+        : stdout;
     lines.push("<stdout>");
     lines.push(out);
   }
   if (stderr) {
-    const err = stderr.length > SHELL_OUTPUT_TRUNCATE ? stderr.slice(0, SHELL_OUTPUT_TRUNCATE) + "\n... (truncated)" : stderr;
+    const err =
+      stderr.length > SHELL_OUTPUT_TRUNCATE
+        ? stderr.slice(0, SHELL_OUTPUT_TRUNCATE) + "\n... (truncated)"
+        : stderr;
     lines.push("<stderr>");
     lines.push(err);
   }
@@ -66,7 +74,10 @@ function formatShellToolResultForLog(result: unknown): string {
 }
 
 /** Return compact input for run log when tool is shell/shellToolCall (command only). */
-function compactShellToolInput(rawInput: unknown, payload?: Record<string, unknown>): unknown {
+function compactShellToolInput(
+  rawInput: unknown,
+  payload?: Record<string, unknown>,
+): unknown {
   const cmd = asString(payload?.command ?? asRecord(rawInput)?.command);
   if (cmd) return { command: cmd };
   return rawInput;
@@ -98,7 +109,10 @@ function parseUserMessage(messageRaw: unknown, ts: string): TranscriptEntry[] {
   return entries;
 }
 
-function parseAssistantMessage(messageRaw: unknown, ts: string): TranscriptEntry[] {
+function parseAssistantMessage(
+  messageRaw: unknown,
+  ts: string,
+): TranscriptEntry[] {
   if (typeof messageRaw === "string") {
     const text = messageRaw.trim();
     return text ? [{ kind: "assistant", ts, text }] : [];
@@ -165,7 +179,9 @@ function parseAssistantMessage(messageRaw: unknown, ts: string): TranscriptEntry
         typeof rawOutput === "object" && rawOutput !== null
           ? formatShellToolResultForLog(rawOutput)
           : asString(rawOutput) || stringifyUnknown(rawOutput);
-      const isError = part.is_error === true || asString(part.status).toLowerCase() === "error";
+      const isError =
+        part.is_error === true ||
+        asString(part.status).toLowerCase() === "error";
       entries.push({
         kind: "tool_result",
         ts,
@@ -179,7 +195,10 @@ function parseAssistantMessage(messageRaw: unknown, ts: string): TranscriptEntry
   return entries;
 }
 
-function parseCursorToolCallEvent(event: Record<string, unknown>, ts: string): TranscriptEntry[] {
+function parseCursorToolCallEvent(
+  event: Record<string, unknown>,
+  ts: string,
+): TranscriptEntry[] {
   const subtype = asString(event.subtype).trim().toLowerCase();
   const callId =
     asString(event.call_id) ||
@@ -188,29 +207,50 @@ function parseCursorToolCallEvent(event: Record<string, unknown>, ts: string): T
     "tool_call";
   const toolCall = asRecord(event.tool_call ?? event.toolCall);
   if (!toolCall) {
-    return [{ kind: "system", ts, text: `tool_call${subtype ? ` (${subtype})` : ""}` }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `tool_call${subtype ? ` (${subtype})` : ""}`,
+      },
+    ];
   }
 
   const [toolName] = Object.keys(toolCall);
   if (!toolName) {
-    return [{ kind: "system", ts, text: `tool_call${subtype ? ` (${subtype})` : ""}` }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `tool_call${subtype ? ` (${subtype})` : ""}`,
+      },
+    ];
   }
   const payload = asRecord(toolCall[toolName]) ?? {};
-  const rawInput = payload.args ?? asRecord(payload.function)?.arguments ?? payload;
+  const rawInput =
+    payload.args ?? asRecord(payload.function)?.arguments ?? payload;
   const isShellTool = toolName === "shellToolCall" || toolName === "shell";
-  const input = isShellTool ? compactShellToolInput(rawInput, payload) : rawInput;
+  const input = isShellTool
+    ? compactShellToolInput(rawInput, payload)
+    : rawInput;
 
   if (subtype === "started" || subtype === "start") {
-    return [{
-      kind: "tool_call",
-      ts,
-      name: toolName,
-      toolUseId: callId,
-      input,
-    }];
+    return [
+      {
+        kind: "tool_call",
+        ts,
+        name: toolName,
+        toolUseId: callId,
+        input,
+      },
+    ];
   }
 
-  if (subtype === "completed" || subtype === "complete" || subtype === "finished") {
+  if (
+    subtype === "completed" ||
+    subtype === "complete" ||
+    subtype === "finished"
+  ) {
     const result =
       payload.result ??
       payload.output ??
@@ -230,23 +270,30 @@ function parseCursorToolCallEvent(event: Record<string, unknown>, ts: string): T
           ? formatShellToolResultForLog(result)
           : stringifyUnknown(result)
         : `${toolName} completed`;
-    return [{
-      kind: "tool_result",
-      ts,
-      toolUseId: callId,
-      content,
-      isError,
-    }];
+    return [
+      {
+        kind: "tool_result",
+        ts,
+        toolUseId: callId,
+        content,
+        isError,
+      },
+    ];
   }
 
-  return [{
-    kind: "system",
-    ts,
-    text: `tool_call${subtype ? ` (${subtype})` : ""}: ${toolName}`,
-  }];
+  return [
+    {
+      kind: "system",
+      ts,
+      text: `tool_call${subtype ? ` (${subtype})` : ""}: ${toolName}`,
+    },
+  ];
 }
 
-export function parseCursorStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseCursorStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   const normalized = normalizeCursorStreamLine(line);
   if (!normalized.line) return [];
 
@@ -264,14 +311,25 @@ export function parseCursorStdoutLine(line: string, ts: string): TranscriptEntry
         asString(parsed.session_id) ||
         asString(parsed.sessionId) ||
         asString(parsed.sessionID);
-      return [{ kind: "init", ts, model: asString(parsed.model, "cursor"), sessionId }];
+      return [
+        {
+          kind: "init",
+          ts,
+          model: asString(parsed.model, "cursor"),
+          sessionId,
+        },
+      ];
     }
-    return [{ kind: "system", ts, text: subtype ? `system: ${subtype}` : "system" }];
+    return [
+      { kind: "system", ts, text: subtype ? `system: ${subtype}` : "system" },
+    ];
   }
 
   if (type === "assistant") {
     const entries = parseAssistantMessage(parsed.message, ts);
-    return entries.length > 0 ? entries : [{ kind: "assistant", ts, text: asString(parsed.result) }];
+    return entries.length > 0
+      ? entries
+      : [{ kind: "assistant", ts, text: asString(parsed.result) }];
   }
 
   if (type === "user") {
@@ -285,7 +343,14 @@ export function parseCursorStdoutLine(line: string, ts: string): TranscriptEntry
     const subtype = asString(parsed.subtype).trim().toLowerCase();
     const isDelta = subtype === "delta" || asRecord(parsed.delta) !== null;
     if (!text.trim()) return [];
-    return [{ kind: "thinking", ts, text: isDelta ? text : text.trim(), ...(isDelta ? { delta: true } : {}) }];
+    return [
+      {
+        kind: "thinking",
+        ts,
+        text: isDelta ? text : text.trim(),
+        ...(isDelta ? { delta: true } : {}),
+      },
+    ];
   }
 
   if (type === "tool_call") {
@@ -294,11 +359,20 @@ export function parseCursorStdoutLine(line: string, ts: string): TranscriptEntry
 
   if (type === "result") {
     const usage = asRecord(parsed.usage);
-    const inputTokens = asNumber(usage?.input_tokens, asNumber(usage?.inputTokens));
-    const outputTokens = asNumber(usage?.output_tokens, asNumber(usage?.outputTokens));
+    const inputTokens = asNumber(
+      usage?.input_tokens,
+      asNumber(usage?.inputTokens),
+    );
+    const outputTokens = asNumber(
+      usage?.output_tokens,
+      asNumber(usage?.outputTokens),
+    );
     const cachedTokens = asNumber(
       usage?.cached_input_tokens,
-      asNumber(usage?.cachedInputTokens, asNumber(usage?.cache_read_input_tokens)),
+      asNumber(
+        usage?.cachedInputTokens,
+        asNumber(usage?.cache_read_input_tokens),
+      ),
     );
     const subtype = asString(parsed.subtype, "result");
     const errors = Array.isArray(parsed.errors)
@@ -306,31 +380,46 @@ export function parseCursorStdoutLine(line: string, ts: string): TranscriptEntry
       : [];
     const errorText = asString(parsed.error).trim();
     if (errorText) errors.push(errorText);
-    const isError = parsed.is_error === true || subtype === "error" || subtype === "failed";
+    const isError =
+      parsed.is_error === true || subtype === "error" || subtype === "failed";
 
-    return [{
-      kind: "result",
-      ts,
-      text: asString(parsed.result),
-      inputTokens,
-      outputTokens,
-      cachedTokens,
-      costUsd: asNumber(parsed.total_cost_usd, asNumber(parsed.cost_usd, asNumber(parsed.cost))),
-      subtype,
-      isError,
-      errors,
-    }];
+    return [
+      {
+        kind: "result",
+        ts,
+        text: asString(parsed.result),
+        inputTokens,
+        outputTokens,
+        cachedTokens,
+        costUsd: asNumber(
+          parsed.total_cost_usd,
+          asNumber(parsed.cost_usd, asNumber(parsed.cost)),
+        ),
+        subtype,
+        isError,
+        errors,
+      },
+    ];
   }
 
   if (type === "error") {
-    const message = asString(parsed.message) || stringifyUnknown(parsed.error ?? parsed.detail) || normalized.line;
+    const message =
+      asString(parsed.message) ||
+      stringifyUnknown(parsed.error ?? parsed.detail) ||
+      normalized.line;
     return [{ kind: "stderr", ts, text: message }];
   }
 
   // Compatibility with older stream-json event shapes.
   if (type === "step_start") {
     const sessionId = asString(parsed.sessionID);
-    return [{ kind: "system", ts, text: `step started${sessionId ? ` (${sessionId})` : ""}` }];
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `step started${sessionId ? ` (${sessionId})` : ""}`,
+      },
+    ];
   }
 
   if (type === "text") {
@@ -394,18 +483,20 @@ export function parseCursorStdoutLine(line: string, ts: string): TranscriptEntry
     const tokens = asRecord(part?.tokens);
     const cache = asRecord(tokens?.cache);
     const reason = asString(part?.reason);
-    return [{
-      kind: "result",
-      ts,
-      text: reason,
-      inputTokens: asNumber(tokens?.input),
-      outputTokens: asNumber(tokens?.output),
-      cachedTokens: asNumber(cache?.read),
-      costUsd: asNumber(part?.cost),
-      subtype: reason || "step_finish",
-      isError: reason === "error" || reason === "failed",
-      errors: [],
-    }];
+    return [
+      {
+        kind: "result",
+        ts,
+        text: reason,
+        inputTokens: asNumber(tokens?.input),
+        outputTokens: asNumber(tokens?.output),
+        cachedTokens: asNumber(cache?.read),
+        costUsd: asNumber(part?.cost),
+        subtype: reason || "step_finish",
+        isError: reason === "error" || reason === "failed",
+        errors: [],
+      },
+    ];
   }
 
   return [{ kind: "stdout", ts, text: normalized.line }];

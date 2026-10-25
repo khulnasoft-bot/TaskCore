@@ -39,11 +39,13 @@ function completedResult(): PrpStructuredRunResult {
     completionClaim: {
       contractRevision: envelope.completionContract.revision,
       objectiveSatisfied: true,
-      criteria: [{
-        criterionId: "file",
-        status: "satisfied",
-        evidenceRefs: ["hello.txt"],
-      }],
+      criteria: [
+        {
+          criterionId: "file",
+          status: "satisfied",
+          evidenceRefs: ["hello.txt"],
+        },
+      ],
       remainingWork: [],
     },
     evidence: [{ ref: "hello.txt" }],
@@ -67,10 +69,12 @@ function responseWakeResult(): PrpStructuredRunResult {
         status: "unknown",
         evidenceRefs: [],
       })),
-      remainingWork: [{
-        description: "Wait for the next response.",
-        blocksCompletion: true,
-      }],
+      remainingWork: [
+        {
+          description: "Wait for the next response.",
+          blocksCompletion: true,
+        },
+      ],
     },
     continuation: {
       kind: "response_wake",
@@ -83,7 +87,8 @@ function responseWakeResult(): PrpStructuredRunResult {
 class TraceConformanceDriver implements HarnessDriver {
   constructor(
     private readonly result: PrpStructuredRunResult = completedResult(),
-    private readonly terminalEvent: "turn.completed" | "turn.interrupted" = "turn.completed",
+    private readonly terminalEvent:
+      "turn.completed" | "turn.interrupted" = "turn.completed",
   ) {}
 
   async descriptor() {
@@ -154,7 +159,9 @@ class TraceConformanceDriver implements HarnessDriver {
       eventType,
       schemaVersion: 1,
       priority: eventType === "run.result.proposed" ? 0 : 1,
-      emittedAt: new Date(Date.UTC(2026, 7, 27, 12, 0, sourceSeq)).toISOString(),
+      emittedAt: new Date(
+        Date.UTC(2026, 7, 27, 12, 0, sourceSeq),
+      ).toISOString(),
       payload,
     });
 
@@ -193,20 +200,29 @@ class TraceConformanceDriver implements HarnessDriver {
 
 describe("Codex trace conformance", () => {
   it("accepts only results that satisfy the exact controller envelope", () => {
-    expect(validateCodexResultProposal(completedResult(), envelope)).toMatchObject({
+    expect(
+      validateCodexResultProposal(completedResult(), envelope),
+    ).toMatchObject({
       status: "accepted",
     });
-    expect(validateCodexResultProposal(responseWakeResult(), envelope)).toMatchObject({
+    expect(
+      validateCodexResultProposal(responseWakeResult(), envelope),
+    ).toMatchObject({
       status: "accepted",
     });
-    expect(validateCodexResultProposal({
-      ...responseWakeResult(),
-      continuation: {
-        kind: "same_agent",
-        summary: "Continue immediately.",
-        idempotencyKey: "same-agent-1",
-      },
-    }, envelope)).toMatchObject({
+    expect(
+      validateCodexResultProposal(
+        {
+          ...responseWakeResult(),
+          continuation: {
+            kind: "same_agent",
+            summary: "Continue immediately.",
+            idempotencyKey: "same-agent-1",
+          },
+        },
+        envelope,
+      ),
+    ).toMatchObject({
       status: "rejected",
       issues: [{ code: "invalid_disposition" }],
     });
@@ -219,11 +235,13 @@ describe("Codex trace conformance", () => {
     });
 
     const unknownCriterion = completedResult();
-    unknownCriterion.completionClaim.criteria = [{
-      criterionId: "not-in-envelope",
-      status: "satisfied",
-      evidenceRefs: [],
-    }];
+    unknownCriterion.completionClaim.criteria = [
+      {
+        criterionId: "not-in-envelope",
+        status: "satisfied",
+        evidenceRefs: [],
+      },
+    ];
     const decision = validateCodexResultProposal(unknownCriterion, envelope);
     expect(decision).toMatchObject({ status: "rejected" });
     if (decision.status === "rejected") {
@@ -234,11 +252,15 @@ describe("Codex trace conformance", () => {
   });
 
   it("loads the checked-in provider conformance fixture through validation", async () => {
-    const fixturePath = fileURLToPath(new URL(
-      "../../protocol/fixtures/codex-driver/driver-conformance.json",
-      import.meta.url,
-    ));
-    await expect(loadLiveConsoleConformanceFixture(fixturePath)).resolves.toMatchObject({
+    const fixturePath = fileURLToPath(
+      new URL(
+        "../../protocol/fixtures/codex-driver/driver-conformance.json",
+        import.meta.url,
+      ),
+    );
+    await expect(
+      loadLiveConsoleConformanceFixture(fixturePath),
+    ).resolves.toMatchObject({
       schema: "taskcore.runner.live-console.conformance.v1",
       runtimeRequests: expect.arrayContaining([
         expect.objectContaining({ requestKind: "user_input" }),
@@ -248,72 +270,84 @@ describe("Codex trace conformance", () => {
   });
 
   it("rejects malformed runtime request, goal, and control declarations", async () => {
-    const fixturePath = fileURLToPath(new URL(
-      "../../protocol/fixtures/codex-driver/driver-conformance.json",
-      import.meta.url,
-    ));
+    const fixturePath = fileURLToPath(
+      new URL(
+        "../../protocol/fixtures/codex-driver/driver-conformance.json",
+        import.meta.url,
+      ),
+    );
     const source = JSON.parse(await readFile(fixturePath, "utf8"));
     const directory = await mkdtemp(join(tmpdir(), "taskcore-live-fixture-"));
     const candidatePath = join(directory, "candidate.json");
     try {
       source.runtimeRequests[0].requestKind = "file_approval";
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("invalid runtime request case");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("invalid runtime request case");
 
       source.runtimeRequests[0].requestKind = "command_approval";
       source.runtimeRequests[0].expectedResponse.decision = "decline";
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("invalid runtime request case");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("invalid runtime request case");
 
       source.runtimeRequests[0].expectedResponse.decision = "acceptForSession";
       source.goals[0].method = "thread/goal/wrong";
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("invalid goal operation");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("invalid goal operation");
 
       source.goals[0].method = "thread/goal/get";
       delete source.goals[1].params.objective;
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("invalid goal operation");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("invalid goal operation");
 
       source.goals[1].params.objective = "Ship the Live console tracer";
       source.controls.sameTurnSteer.expected = 42;
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("controls are invalid");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("controls are invalid");
 
       source.controls.sameTurnSteer.expected = "arbitrary_outcome";
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("controls are invalid");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("controls are invalid");
 
       source.controls.sameTurnSteer.expected = "acknowledged";
       source.controls.unsupportedControl = { expected: "queued" };
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("controls are invalid");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("controls are invalid");
 
       delete source.controls.unsupportedControl;
       delete source.controls.sameTurnSteer.turnId;
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("controls are invalid");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("controls are invalid");
 
       source.controls.sameTurnSteer.turnId = "turn-active";
       const spawn = source.lineage.childThread.source.subAgent.thread_spawn;
       delete spawn.parent_thread_id;
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("identity or lineage is incomplete");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("identity or lineage is incomplete");
 
       spawn.parent_thread_id = source.lineage.rootThreadId;
       spawn.agent_path = [""];
       await writeFile(candidatePath, JSON.stringify(source));
-      await expect(loadLiveConsoleConformanceFixture(candidatePath))
-        .rejects.toThrow("identity or lineage is incomplete");
+      await expect(
+        loadLiveConsoleConformanceFixture(candidatePath),
+      ).rejects.toThrow("identity or lineage is incomplete");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -328,8 +362,9 @@ describe("Codex trace conformance", () => {
     });
 
     expect(trace.resultDecision.status).toBe("accepted");
-    expect(trace.events.filter((event) => event.eventType === "run.terminal"))
-      .toHaveLength(1);
+    expect(
+      trace.events.filter((event) => event.eventType === "run.terminal"),
+    ).toHaveLength(1);
     expect(trace.assertions).toEqual({
       exactlyOneTerminalResult: true,
       proposalAccepted: true,
@@ -355,12 +390,13 @@ describe("Codex trace conformance", () => {
     });
 
     expect(trace.resultDecision.status).toBe("rejected");
-    expect(trace.events.find((event) => event.eventType === "run.terminal")?.payload)
-      .toMatchObject({
-        turnTerminalState: "completed",
-        runTerminalState: "failed",
-        reportedWorkDisposition: "yielded",
-      });
+    expect(
+      trace.events.find((event) => event.eventType === "run.terminal")?.payload,
+    ).toMatchObject({
+      turnTerminalState: "completed",
+      runTerminalState: "failed",
+      reportedWorkDisposition: "yielded",
+    });
     expect(trace.liveSnapshot.terminal).toMatchObject({
       turnTerminalState: "completed",
       runTerminalState: "failed",
@@ -379,12 +415,13 @@ describe("Codex trace conformance", () => {
     });
 
     expect(trace.resultDecision.status).toBe("rejected");
-    expect(trace.events.find((event) => event.eventType === "run.terminal")?.payload)
-      .toMatchObject({
-        turnTerminalState: "interrupted",
-        runTerminalState: "cancelled",
-        reportedWorkDisposition: "yielded",
-      });
+    expect(
+      trace.events.find((event) => event.eventType === "run.terminal")?.payload,
+    ).toMatchObject({
+      turnTerminalState: "interrupted",
+      runTerminalState: "cancelled",
+      reportedWorkDisposition: "yielded",
+    });
     expect(trace.replaySnapshot).toEqual(trace.liveSnapshot);
   });
 
@@ -403,15 +440,20 @@ describe("Codex trace conformance", () => {
       issues: [{ path: "/turn/terminal" }],
     });
     expect(trace.assertions.proposalAccepted).toBe(false);
-    expect(trace.events.some((event) => event.eventType === "run.result.accepted")).toBe(false);
-    expect(trace.events.find((event) => event.eventType === "run.result.rejected")?.payload)
-      .toMatchObject({ reasonCode: "provider_turn_did_not_complete" });
-    expect(trace.events.find((event) => event.eventType === "run.terminal")?.payload)
-      .toMatchObject({
-        turnTerminalState: "interrupted",
-        runTerminalState: "cancelled",
-        reportedWorkDisposition: "yielded",
-      });
+    expect(
+      trace.events.some((event) => event.eventType === "run.result.accepted"),
+    ).toBe(false);
+    expect(
+      trace.events.find((event) => event.eventType === "run.result.rejected")
+        ?.payload,
+    ).toMatchObject({ reasonCode: "provider_turn_did_not_complete" });
+    expect(
+      trace.events.find((event) => event.eventType === "run.terminal")?.payload,
+    ).toMatchObject({
+      turnTerminalState: "interrupted",
+      runTerminalState: "cancelled",
+      reportedWorkDisposition: "yielded",
+    });
     expect(trace.replaySnapshot).toEqual(trace.liveSnapshot);
   });
 });

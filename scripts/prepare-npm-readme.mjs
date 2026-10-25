@@ -7,8 +7,7 @@ export function prepareNpmReadme(readme, assetRef) {
     throw new Error("an immutable README asset ref is required");
   }
 
-  const assetBaseUrl =
-    `https://raw.githubusercontent.com/taskcore/taskcore/${assetRef}/doc/assets/`;
+  const assetBaseUrl = `https://raw.githubusercontent.com/taskcore/taskcore/${assetRef}/doc/assets/`;
 
   return readme.replace(
     /((?:src|srcset)=["'])([^"']*)(["'])/g,
@@ -21,7 +20,8 @@ export function prepareNpmReadme(readme, assetRef) {
 }
 
 const isDirectRun =
-  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isDirectRun) {
   const [sourcePath, destinationPath, assetRef] = process.argv.slice(2);

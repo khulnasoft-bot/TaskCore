@@ -1,6 +1,11 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { agentWakeupRequests, agents, heartbeatRuns, issues } from "@taskcore/db";
+import {
+  agentWakeupRequests,
+  agents,
+  heartbeatRuns,
+  issues,
+} from "@taskcore/db";
 import {
   isUuidLike,
   type IssueCommentMetadata,
@@ -16,8 +21,10 @@ import {
   systemNoticePresentation,
 } from "./notice-format.js";
 
-export const FINISH_SUCCESSFUL_RUN_HANDOFF_REASON = "finish_successful_run_handoff";
-export const SUCCESSFUL_RUN_MISSING_STATE_REASON = "successful_run_missing_state";
+export const FINISH_SUCCESSFUL_RUN_HANDOFF_REASON =
+  "finish_successful_run_handoff";
+export const SUCCESSFUL_RUN_MISSING_STATE_REASON =
+  "successful_run_missing_state";
 export const DEFAULT_MAX_SUCCESSFUL_RUN_HANDOFF_ATTEMPTS = 1;
 export const SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY =
   "Taskcore needs a disposition before this issue can continue.";
@@ -48,9 +55,13 @@ const IDEMPOTENT_HANDOFF_WAKE_STATUSES = [
   "claimed",
   "completed",
 ];
-const IDEMPOTENT_HANDOFF_WAKE_STATUS_SET = new Set<string>(IDEMPOTENT_HANDOFF_WAKE_STATUSES);
+const IDEMPOTENT_HANDOFF_WAKE_STATUS_SET = new Set<string>(
+  IDEMPOTENT_HANDOFF_WAKE_STATUSES,
+);
 
-export function isIdempotentFinishSuccessfulRunHandoffWakeStatus(status: string) {
+export function isIdempotentFinishSuccessfulRunHandoffWakeStatus(
+  status: string,
+) {
   return IDEMPOTENT_HANDOFF_WAKE_STATUS_SET.has(status);
 }
 
@@ -66,7 +77,9 @@ export function isIdempotentFinishSuccessfulRunHandoffWakeStatus(status: string)
  * nag based on "issue is stuck in_progress" must consult this first and leave
  * plugin-managed issues to the plugin's own recovery/enforcement path instead.
  */
-export function isPluginManagedIssueLifecycle(issue: { originKind?: string | null }) {
+export function isPluginManagedIssueLifecycle(issue: {
+  originKind?: string | null;
+}) {
   return Boolean(issue.originKind?.startsWith("plugin:"));
 }
 
@@ -86,8 +99,14 @@ type IssueRow = Pick<
   | "originKind"
 >;
 type AgentRow = Pick<typeof agents.$inferSelect, "id" | "companyId" | "status">;
-type NoticeIssue = Pick<typeof issues.$inferSelect, "id" | "identifier" | "title" | "status">;
-type NoticeRun = Pick<typeof heartbeatRuns.$inferSelect, "id" | "status" | "agentId">;
+type NoticeIssue = Pick<
+  typeof issues.$inferSelect,
+  "id" | "identifier" | "title" | "status"
+>;
+type NoticeRun = Pick<
+  typeof heartbeatRuns.$inferSelect,
+  "id" | "status" | "agentId"
+>;
 type NoticeAgent = Pick<typeof agents.$inferSelect, "id" | "name">;
 type NullableNoticeAgent = NoticeAgent | null | undefined;
 type NullableNoticeIssue = NoticeIssue | null | undefined;
@@ -104,10 +123,11 @@ export function noticeMetadataReferencesRecoveryAction(
   recoveryActionId: string,
 ) {
   return (metadata?.sections ?? []).some((section) =>
-    section.rows.some((row) =>
-      row.type === "key_value" &&
-      row.label === "Recovery action" &&
-      row.value === recoveryActionId,
+    section.rows.some(
+      (row) =>
+        row.type === "key_value" &&
+        row.label === "Recovery action" &&
+        row.value === recoveryActionId,
     ),
   );
 }
@@ -144,13 +164,20 @@ const SUCCESSFUL_RUN_HANDOFF_VALID_PATH_SKIP_REASONS = new Set([
 export function isSuccessfulRunHandoffValidPathSkip(
   decision: SuccessfulRunHandoffDecision,
 ): decision is Extract<SuccessfulRunHandoffDecision, { kind: "skip" }> {
-  return decision.kind === "skip" && SUCCESSFUL_RUN_HANDOFF_VALID_PATH_SKIP_REASONS.has(decision.reason);
+  return (
+    decision.kind === "skip" &&
+    SUCCESSFUL_RUN_HANDOFF_VALID_PATH_SKIP_REASONS.has(decision.reason)
+  );
 }
 
 export function isSuccessfulRunHandoffRequiredNoticeBody(body: string) {
   const trimmed = body.trim();
-  return trimmed === SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY ||
-    LEGACY_SUCCESSFUL_RUN_HANDOFF_NOTICE_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
+  return (
+    trimmed === SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY ||
+    LEGACY_SUCCESSFUL_RUN_HANDOFF_NOTICE_PREFIXES.some((prefix) =>
+      trimmed.startsWith(prefix),
+    )
+  );
 }
 
 export function buildSuccessfulRunHandoffRequiredNotice(input: {
@@ -186,9 +213,15 @@ export function buildSuccessfulRunHandoffRequiredNotice(input: {
           rows: [
             runLinkRow("Successful run", input.run),
             keyValueRow("Run status", input.run.status),
-            keyValueRow("Normalized cause", SUCCESSFUL_RUN_MISSING_STATE_REASON),
+            keyValueRow(
+              "Normalized cause",
+              SUCCESSFUL_RUN_MISSING_STATE_REASON,
+            ),
             keyValueRow("Detected progress", input.detectedProgressSummary),
-            keyValueRow("Automatic retry", "one corrective handoff wake queued"),
+            keyValueRow(
+              "Automatic retry",
+              "one corrective handoff wake queued",
+            ),
           ],
         },
       ],
@@ -229,7 +262,10 @@ export function buildSuccessfulRunHandoffExhaustedNotice(input: {
               ? agentLinkRow("Recovery owner", input.recoveryOwner)
               : keyValueRow("Recovery owner", "Board decision required"),
             agentLinkRow("Source assignee", input.sourceAssignee),
-            keyValueRow("Suggested action", "inspect the evidence, then retry the original owner, explicitly reassign, or record a valid issue disposition"),
+            keyValueRow(
+              "Suggested action",
+              "inspect the evidence, then retry the original owner, explicitly reassign, or record a valid issue disposition",
+            ),
           ],
         },
         {
@@ -238,8 +274,14 @@ export function buildSuccessfulRunHandoffExhaustedNotice(input: {
             runLinkRow("Source run", input.sourceRun),
             runLinkRow("Corrective handoff run", input.correctiveRun),
             keyValueRow("Latest issue status", input.latestIssueStatus),
-            keyValueRow("Latest handoff run status", input.latestHandoffRunStatus),
-            keyValueRow("Normalized cause", SUCCESSFUL_RUN_MISSING_STATE_REASON),
+            keyValueRow(
+              "Latest handoff run status",
+              input.latestHandoffRunStatus,
+            ),
+            keyValueRow(
+              "Normalized cause",
+              SUCCESSFUL_RUN_MISSING_STATE_REASON,
+            ),
             keyValueRow("Missing disposition", input.missingDisposition),
           ],
         },
@@ -284,12 +326,14 @@ export async function findExistingFinishSuccessfulRunHandoffWake(
 
 function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
 function readString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function ellipsize(value: string | null, maxLength: number) {
@@ -327,8 +371,10 @@ function fenceUntrustedText(value: string) {
 
 function isCorrectiveHandoffRun(run: HeartbeatRunRow) {
   const context = readRecord(run.contextSnapshot);
-  return context.handoffRequired === true ||
-    readString(context.wakeReason) === FINISH_SUCCESSFUL_RUN_HANDOFF_REASON;
+  return (
+    context.handoffRequired === true ||
+    readString(context.wakeReason) === FINISH_SUCCESSFUL_RUN_HANDOFF_REASON
+  );
 }
 
 // A run woken by source_scoped_recovery_action must not become the source of another
@@ -340,23 +386,30 @@ function isCorrectiveHandoffRun(run: HeartbeatRunRow) {
 // exhausted notice) is the designed exit, not another handoff.
 function isRecoveryActionDrivenRun(run: HeartbeatRunRow) {
   const context = readRecord(run.contextSnapshot);
-  return readString(context.wakeReason) === "source_scoped_recovery_action" ||
-    readString(context.recoveryActionId) !== null;
+  return (
+    readString(context.wakeReason) === "source_scoped_recovery_action" ||
+    readString(context.recoveryActionId) !== null
+  );
 }
 
 function isIssueMonitorMaintenanceRun(run: HeartbeatRunRow) {
   const context = readRecord(run.contextSnapshot);
   const wakeReason = readString(context.wakeReason);
   const source = readString(context.source);
-  return Boolean(wakeReason?.startsWith("issue_monitor") || source?.startsWith("issue.monitor"));
+  return Boolean(
+    wakeReason?.startsWith("issue_monitor") ||
+    source?.startsWith("issue.monitor"),
+  );
 }
 
 function isCommentDrivenWake(run: HeartbeatRunRow) {
   const context = readRecord(run.contextSnapshot);
   const wakeReason = readString(context.wakeReason);
-  return wakeReason === "issue_commented" ||
+  return (
+    wakeReason === "issue_commented" ||
     wakeReason === "issue_comment_mentioned" ||
-    wakeReason === "issue_reopened_via_comment";
+    wakeReason === "issue_reopened_via_comment"
+  );
 }
 
 function isChatDrivenWake(run: HeartbeatRunRow, issue: IssueRow) {
@@ -372,18 +425,24 @@ function isChatDrivenWake(run: HeartbeatRunRow, issue: IssueRow) {
   ) {
     return true;
   }
-  return Array.isArray(context.wakeCommentIds) &&
+  return (
+    Array.isArray(context.wakeCommentIds) &&
     context.wakeCommentIds.some((value) => {
       const id = readString(value);
       return Boolean(id && isUuidLike(id));
-    });
+    })
+  );
 }
 
 function isProductiveSuccessfulRun(input: {
   livenessState: RunLivenessState | null;
   detectedProgressSummary: string | null;
 }) {
-  if (input.livenessState && PRODUCTIVE_SUCCESS_LIVENESS_STATES.has(input.livenessState)) return true;
+  if (
+    input.livenessState &&
+    PRODUCTIVE_SUCCESS_LIVENESS_STATES.has(input.livenessState)
+  )
+    return true;
   return Boolean(input.detectedProgressSummary);
 }
 
@@ -398,9 +457,13 @@ export function buildSuccessfulRunHandoffInstruction(input: {
 }) {
   const issueLabel = input.issueIdentifier ?? "this issue";
   const issueTitle = readInlineUntrustedText(input.issueTitle) ?? "(untitled)";
-  const description = ellipsize(readUntrustedText(input.issueDescription), 1200);
+  const description = ellipsize(
+    readUntrustedText(input.issueDescription),
+    1200,
+  );
   const report = ellipsize(
-    readUntrustedText(input.finalReport) ?? readUntrustedText(input.detectedProgressSummary),
+    readUntrustedText(input.finalReport) ??
+      readUntrustedText(input.detectedProgressSummary),
     2000,
   );
   const nextAction = ellipsize(readUntrustedText(input.nextAction), 500);
@@ -481,16 +544,45 @@ export function decideSuccessfulRunHandoff(input: {
 }): SuccessfulRunHandoffDecision {
   const { run, issue, agent } = input;
 
-  if (run.status !== "succeeded") return { kind: "skip", reason: "source run did not succeed" };
-  if (run.runtimeMode === "native" && (run.nativePhase !== null || run.completionContractId !== null)) {
-    return { kind: "skip", reason: "native semantic finalization owns the issue disposition" };
+  if (run.status !== "succeeded")
+    return { kind: "skip", reason: "source run did not succeed" };
+  if (
+    run.runtimeMode === "native" &&
+    (run.nativePhase !== null || run.completionContractId !== null)
+  ) {
+    return {
+      kind: "skip",
+      reason: "native semantic finalization owns the issue disposition",
+    };
   }
-  if (isCorrectiveHandoffRun(run)) return { kind: "skip", reason: "source run is already a corrective handoff run" };
-  if (isRecoveryActionDrivenRun(run)) return { kind: "skip", reason: "recovery action run owns its own follow-up path" };
-  if (isIssueMonitorMaintenanceRun(run)) return { kind: "skip", reason: "issue monitor run owns its own recovery path" };
-  if (isCommentDrivenWake(run)) return { kind: "skip", reason: "comment-driven wake already owns the next action" };
-  if (run.issueCommentStatus === "retry_queued" || run.issueCommentStatus === "retry_exhausted") {
-    return { kind: "skip", reason: "missing issue comment retry owns the next action" };
+  if (isCorrectiveHandoffRun(run))
+    return {
+      kind: "skip",
+      reason: "source run is already a corrective handoff run",
+    };
+  if (isRecoveryActionDrivenRun(run))
+    return {
+      kind: "skip",
+      reason: "recovery action run owns its own follow-up path",
+    };
+  if (isIssueMonitorMaintenanceRun(run))
+    return {
+      kind: "skip",
+      reason: "issue monitor run owns its own recovery path",
+    };
+  if (isCommentDrivenWake(run))
+    return {
+      kind: "skip",
+      reason: "comment-driven wake already owns the next action",
+    };
+  if (
+    run.issueCommentStatus === "retry_queued" ||
+    run.issueCommentStatus === "retry_exhausted"
+  ) {
+    return {
+      kind: "skip",
+      reason: "missing issue comment retry owns the next action",
+    };
   }
   if (!issue) return { kind: "skip", reason: "issue not found" };
   if (!agent) return { kind: "skip", reason: "agent not found" };
@@ -498,36 +590,87 @@ export function decideSuccessfulRunHandoff(input: {
     return { kind: "skip", reason: "company scope mismatch" };
   }
   if (issue.assigneeAgentId !== run.agentId) {
-    return { kind: "skip", reason: "issue is no longer assigned to the source run agent" };
+    return {
+      kind: "skip",
+      reason: "issue is no longer assigned to the source run agent",
+    };
   }
-  if (issue.assigneeUserId) return { kind: "skip", reason: "issue is human-owned" };
-  if (issue.status !== "in_progress") return { kind: "skip", reason: `issue status ${issue.status} is a valid disposition` };
-  if (isChatDrivenWake(run, issue)) return { kind: "skip", reason: "chat conversation already owns the next action" };
-  if (issue.executionState) return { kind: "skip", reason: "issue has execution policy state" };
+  if (issue.assigneeUserId)
+    return { kind: "skip", reason: "issue is human-owned" };
+  if (issue.status !== "in_progress")
+    return {
+      kind: "skip",
+      reason: `issue status ${issue.status} is a valid disposition`,
+    };
+  if (isChatDrivenWake(run, issue))
+    return {
+      kind: "skip",
+      reason: "chat conversation already owns the next action",
+    };
+  if (issue.executionState)
+    return { kind: "skip", reason: "issue has execution policy state" };
   if (isPluginManagedIssueLifecycle(issue)) {
     return { kind: "skip", reason: "issue lifecycle is owned by a plugin" };
   }
-  if (agent.status === "paused" || agent.status === "terminated" || agent.status === "pending_approval") {
-    return { kind: "skip", reason: `agent status ${agent.status} is not invokable` };
+  if (
+    agent.status === "paused" ||
+    agent.status === "terminated" ||
+    agent.status === "pending_approval"
+  ) {
+    return {
+      kind: "skip",
+      reason: `agent status ${agent.status} is not invokable`,
+    };
   }
   if (input.hasActiveRoutineContinuation) {
-    return { kind: "skip", reason: "active routine continuation owns the next action" };
+    return {
+      kind: "skip",
+      reason: "active routine continuation owns the next action",
+    };
   }
   if (!isProductiveSuccessfulRun(input)) {
-    return { kind: "skip", reason: "successful run did not produce handoff-relevant progress" };
+    return {
+      kind: "skip",
+      reason: "successful run did not produce handoff-relevant progress",
+    };
   }
-  if (input.hasActiveExecutionPath) return { kind: "skip", reason: "issue already has an active execution path" };
-  if (input.hasQueuedWake) return { kind: "skip", reason: "issue already has a queued or deferred wake" };
+  if (input.hasActiveExecutionPath)
+    return {
+      kind: "skip",
+      reason: "issue already has an active execution path",
+    };
+  if (input.hasQueuedWake)
+    return {
+      kind: "skip",
+      reason: "issue already has a queued or deferred wake",
+    };
   if (input.hasPendingInteractionOrApproval) {
-    return { kind: "skip", reason: "pending interaction or approval owns the next action" };
+    return {
+      kind: "skip",
+      reason: "pending interaction or approval owns the next action",
+    };
   }
-  if (input.hasPersistedMonitor) return { kind: "skip", reason: "persisted issue monitor owns the next action" };
-  if (input.hasExplicitBlockerPath) return { kind: "skip", reason: "explicit blocker path owns the next action" };
-  if (input.hasOpenRecoveryIssue) return { kind: "skip", reason: "open recovery issue owns the ambiguity" };
-  if (input.hasPauseHold) return { kind: "skip", reason: "issue is under an active pause hold" };
-  if (input.budgetBlocked) return { kind: "skip", reason: "budget hard stop blocks corrective wake" };
+  if (input.hasPersistedMonitor)
+    return {
+      kind: "skip",
+      reason: "persisted issue monitor owns the next action",
+    };
+  if (input.hasExplicitBlockerPath)
+    return {
+      kind: "skip",
+      reason: "explicit blocker path owns the next action",
+    };
+  if (input.hasOpenRecoveryIssue)
+    return { kind: "skip", reason: "open recovery issue owns the ambiguity" };
+  if (input.hasPauseHold)
+    return { kind: "skip", reason: "issue is under an active pause hold" };
+  if (input.budgetBlocked)
+    return { kind: "skip", reason: "budget hard stop blocks corrective wake" };
   if (input.idempotentWakeExists) {
-    return { kind: "skip", reason: "corrective handoff wake already exists for this source run" };
+    return {
+      kind: "skip",
+      reason: "corrective handoff wake already exists for this source run",
+    };
   }
 
   const instruction = buildSuccessfulRunHandoffInstruction({
@@ -539,24 +682,27 @@ export function decideSuccessfulRunHandoff(input: {
     nextAction: input.nextAction,
     detectedProgressSummary: input.detectedProgressSummary,
   });
-  const payload = withRecoveryContext({
-    issueId: issue.id,
-    taskId: issue.id,
-    sourceIssueId: issue.id,
-    sourceRunId: run.id,
-    handoffRequired: true,
-    handoffReason: SUCCESSFUL_RUN_MISSING_STATE_REASON,
-    missingDisposition: "clear_next_step",
-    validDispositionOptions: [...SUCCESSFUL_RUN_HANDOFF_OPTIONS],
-    detectedProgressSummary: input.detectedProgressSummary,
-    handoffAttempt: 1,
-    maxHandoffAttempts: DEFAULT_MAX_SUCCESSFUL_RUN_HANDOFF_ATTEMPTS,
-    resumeIntent: true,
-    followUpRequested: true,
-    resumeFromRunId: run.id,
-    ...(input.taskKey ? { taskKey: input.taskKey } : {}),
-    instruction,
-  }, "normal_model");
+  const payload = withRecoveryContext(
+    {
+      issueId: issue.id,
+      taskId: issue.id,
+      sourceIssueId: issue.id,
+      sourceRunId: run.id,
+      handoffRequired: true,
+      handoffReason: SUCCESSFUL_RUN_MISSING_STATE_REASON,
+      missingDisposition: "clear_next_step",
+      validDispositionOptions: [...SUCCESSFUL_RUN_HANDOFF_OPTIONS],
+      detectedProgressSummary: input.detectedProgressSummary,
+      handoffAttempt: 1,
+      maxHandoffAttempts: DEFAULT_MAX_SUCCESSFUL_RUN_HANDOFF_ATTEMPTS,
+      resumeIntent: true,
+      followUpRequested: true,
+      resumeFromRunId: run.id,
+      ...(input.taskKey ? { taskKey: input.taskKey } : {}),
+      instruction,
+    },
+    "normal_model",
+  );
 
   return {
     kind: "enqueue",
@@ -567,10 +713,13 @@ export function decideSuccessfulRunHandoff(input: {
     }),
     payload,
     instruction,
-    contextSnapshot: withRecoveryContext({
-      ...payload,
-      wakeReason: FINISH_SUCCESSFUL_RUN_HANDOFF_REASON,
-      livenessState: input.livenessState,
-    }, "normal_model"),
+    contextSnapshot: withRecoveryContext(
+      {
+        ...payload,
+        wakeReason: FINISH_SUCCESSFUL_RUN_HANDOFF_REASON,
+        livenessState: input.livenessState,
+      },
+      "normal_model",
+    ),
   };
 }

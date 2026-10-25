@@ -24,28 +24,51 @@ import {
   selectBundledDependencyPatches,
 } from "./prepare-bundled-package.mjs";
 
-const rootPackage = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+const rootPackage = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8"),
+);
 const adapterUtilsPackage = JSON.parse(
-  await readFile(new URL("../packages/adapter-utils/package.json", import.meta.url), "utf8"),
+  await readFile(
+    new URL("../packages/adapter-utils/package.json", import.meta.url),
+    "utf8",
+  ),
 );
 const runnerPackage = JSON.parse(
-  await readFile(new URL("../packages/taskcore-runner/package.json", import.meta.url), "utf8"),
+  await readFile(
+    new URL("../packages/taskcore-runner/package.json", import.meta.url),
+    "utf8",
+  ),
 );
 const serverPackage = JSON.parse(
   await readFile(new URL("../server/package.json", import.meta.url), "utf8"),
 );
 const dbPackage = JSON.parse(
-  await readFile(new URL("../packages/db/package.json", import.meta.url), "utf8"),
+  await readFile(
+    new URL("../packages/db/package.json", import.meta.url),
+    "utf8",
+  ),
 );
-const releaseScript = await readFile(new URL("./release.sh", import.meta.url), "utf8");
-const releaseLib = await readFile(new URL("./release-lib.sh", import.meta.url), "utf8");
-const buildNpmScript = await readFile(new URL("./build-npm.sh", import.meta.url), "utf8");
+const releaseScript = await readFile(
+  new URL("./release.sh", import.meta.url),
+  "utf8",
+);
+const releaseLib = await readFile(
+  new URL("./release-lib.sh", import.meta.url),
+  "utf8",
+);
+const buildNpmScript = await readFile(
+  new URL("./build-npm.sh", import.meta.url),
+  "utf8",
+);
 const acpxRuntimePatch = await readFile(
   new URL("../patches/acpx@0.13.1.patch", import.meta.url),
   "utf8",
 );
 const claudeAcpPatch = await readFile(
-  new URL("../patches/@agentclientprotocol__claude-agent-acp@0.73.0.patch", import.meta.url),
+  new URL(
+    "../patches/@agentclientprotocol__claude-agent-acp@0.73.0.patch",
+    import.meta.url,
+  ),
   "utf8",
 );
 
@@ -66,13 +89,19 @@ for (const version of ["0.12.0", "0.13.1"]) {
       const body = [];
       let oldLines = 0;
       let newLines = 0;
-      while (index + 1 < lines.length && (oldLines < Number(header[2] ?? 1) || newLines < Number(header[4] ?? 1))) {
+      while (
+        index + 1 < lines.length &&
+        (oldLines < Number(header[2] ?? 1) || newLines < Number(header[4] ?? 1))
+      ) {
         const line = lines[++index];
         // Unified diff's EOF marker is metadata, not a source/destination
         // line, and may occur between the removed and added final lines.
         if (line === "\\ No newline at end of file") continue;
         // Git accepts an empty context line with its optional space omitted.
-        assert.ok(line === "" || /^[ +\-]/.test(line), `invalid unified hunk line: ${line}`);
+        assert.ok(
+          line === "" || /^[ +\-]/.test(line),
+          `invalid unified hunk line: ${line}`,
+        );
         const normalized = line === "" ? " " : line;
         body.push(normalized);
         if (!normalized.startsWith("+")) oldLines += 1;
@@ -125,19 +154,37 @@ test("published packages preserve the patched ACPX runtime", () => {
 });
 
 test("Taskcore Runner pins the qualified ACPX host callbacks", () => {
-  assert.equal(rootPackage.pnpm.patchedDependencies["acpx@0.13.1"], "patches/acpx@0.13.1.patch");
   assert.equal(
-    rootPackage.pnpm.patchedDependencies["@agentclientprotocol/claude-agent-acp@0.73.0"],
+    rootPackage.pnpm.patchedDependencies["acpx@0.13.1"],
+    "patches/acpx@0.13.1.patch",
+  );
+  assert.equal(
+    rootPackage.pnpm.patchedDependencies[
+      "@agentclientprotocol/claude-agent-acp@0.73.0"
+    ],
     "patches/@agentclientprotocol__claude-agent-acp@0.73.0.patch",
   );
   assert.equal(runnerPackage.dependencies.acpx, "0.13.1");
-  assert.equal(runnerPackage.dependencies["@agentclientprotocol/claude-agent-acp"], "0.73.0");
-  assert.equal(runnerPackage.dependencies["@agentclientprotocol/codex-acp"], "1.6.2");
+  assert.equal(
+    runnerPackage.dependencies["@agentclientprotocol/claude-agent-acp"],
+    "0.73.0",
+  );
+  assert.equal(
+    runnerPackage.dependencies["@agentclientprotocol/codex-acp"],
+    "1.6.2",
+  );
   for (const callback of [
-    "spawnEnvironment", "spawnCwd", "spawnAgent", "isPlainStringEnvironment",
-    "onAgentSpawn", "onAgentStderr", "onAgentExit",
-    "onSessionNotification", "onClientOperation",
-  ]) assert.match(acpxRuntimePatch, new RegExp(callback));
+    "spawnEnvironment",
+    "spawnCwd",
+    "spawnAgent",
+    "isPlainStringEnvironment",
+    "onAgentSpawn",
+    "onAgentStderr",
+    "onAgentExit",
+    "onSessionNotification",
+    "onClientOperation",
+  ])
+    assert.match(acpxRuntimePatch, new RegExp(callback));
   assert.match(claudeAcpPatch, /usage: \{/);
   assert.match(claudeAcpPatch, /cache_creation_input_tokens/);
 });
@@ -165,7 +212,11 @@ test("bundled package staging materializes workspace dependency versions", () =>
   const staged = materializePublishManifest({
     name: "@taskcore/example",
     version: "2026.723.0",
-    dependencies: { exact: "workspace:*", caret: "workspace:^", tilde: "workspace:~" },
+    dependencies: {
+      exact: "workspace:*",
+      caret: "workspace:^",
+      tilde: "workspace:~",
+    },
   });
 
   assert.deepEqual(staged.dependencies, {
@@ -189,7 +240,9 @@ test("bundled package staging installs only dependencies included in the tarball
     },
     bundleDependencies: ["embedded-postgres"],
   };
-  const installManifest = createBundledInstallManifest(publishManifest, ["embedded-postgres"]);
+  const installManifest = createBundledInstallManifest(publishManifest, [
+    "embedded-postgres",
+  ]);
 
   assert.deepEqual(installManifest.dependencies, {
     "embedded-postgres": "^18.1.0-beta.16",
@@ -202,7 +255,9 @@ test("bundled package staging installs only dependencies included in the tarball
 });
 
 test("bundled package staging selects only the installed dependency version's patch", (t) => {
-  const destinationDir = mkdtempSync(join(tmpdir(), "taskcore-bundled-patch-selection-"));
+  const destinationDir = mkdtempSync(
+    join(tmpdir(), "taskcore-bundled-patch-selection-"),
+  );
   const installedPackageDir = join(destinationDir, "node_modules", "acpx");
   mkdirSync(installedPackageDir, { recursive: true });
   writeFileSync(
@@ -227,8 +282,15 @@ test("bundled package staging selects only the installed dependency version's pa
 });
 
 test("bundled package patch selection handles scoped package names", (t) => {
-  const destinationDir = mkdtempSync(join(tmpdir(), "taskcore-scoped-patch-selection-"));
-  const installedPackageDir = join(destinationDir, "node_modules", "@example", "runtime");
+  const destinationDir = mkdtempSync(
+    join(tmpdir(), "taskcore-scoped-patch-selection-"),
+  );
+  const installedPackageDir = join(
+    destinationDir,
+    "node_modules",
+    "@example",
+    "runtime",
+  );
   mkdirSync(installedPackageDir, { recursive: true });
   writeFileSync(
     join(installedPackageDir, "package.json"),
@@ -252,7 +314,9 @@ test("bundled package patch selection handles scoped package names", (t) => {
 });
 
 test("bundled package patch selection reports missing installed metadata", (t) => {
-  const destinationDir = mkdtempSync(join(tmpdir(), "taskcore-missing-patch-metadata-"));
+  const destinationDir = mkdtempSync(
+    join(tmpdir(), "taskcore-missing-patch-metadata-"),
+  );
   t.after(() => rmSync(destinationDir, { recursive: true, force: true }));
 
   assert.throws(
@@ -265,7 +329,9 @@ test("bundled package patch selection reports missing installed metadata", (t) =
 });
 
 test("bundled package patch selection rejects an unpatched installed version", (t) => {
-  const destinationDir = mkdtempSync(join(tmpdir(), "taskcore-unmatched-patch-version-"));
+  const destinationDir = mkdtempSync(
+    join(tmpdir(), "taskcore-unmatched-patch-version-"),
+  );
   const installedPackageDir = join(destinationDir, "node_modules", "acpx");
   mkdirSync(installedPackageDir, { recursive: true });
   writeFileSync(
@@ -404,7 +470,10 @@ printf 'patched spawnEnvironment runtime\\n' > "$target/dist/runtime.js"
 });
 
 test("bundled package dry runs preview without querying published versions", () => {
-  assert.match(releaseScript, /run_bundled_npm_pack pack --pack-destination "\$publish_dir"/);
+  assert.match(
+    releaseScript,
+    /run_bundled_npm_pack pack --pack-destination "\$publish_dir"/,
+  );
   assert.match(releaseLib, /BUNDLED_NPM_PACK_VERSION="10\.9\.7"/);
   assert.match(releaseLib, /BUNDLED_NPM_PUBLISH_VERSION="11\.18\.0"/);
   assert.match(
@@ -416,8 +485,14 @@ test("bundled package dry runs preview without querying published versions", () 
     /npx --yes "npm@\$BUNDLED_NPM_PUBLISH_VERSION" "\$@" --ignore-scripts/,
   );
   assert.match(releaseLib, /"\$@" --ignore-scripts --loglevel verbose/);
-  assert.match(releaseLib, /run_bundled_npm_publish publish --tag "\$dist_tag"/);
-  assert.doesNotMatch(releaseLib, /run_bundled_npm_publish publish "\.\/\$tarball"/);
+  assert.match(
+    releaseLib,
+    /run_bundled_npm_publish publish --tag "\$dist_tag"/,
+  );
+  assert.doesNotMatch(
+    releaseLib,
+    /run_bundled_npm_publish publish "\.\/\$tarball"/,
+  );
 });
 
 test("npm builds use corepack instead of requiring a global pnpm", () => {
@@ -425,22 +500,49 @@ test("npm builds use corepack instead of requiring a global pnpm", () => {
   assert.doesNotMatch(buildNpmScript, /^\s*pnpm -r typecheck/m);
 });
 
-
 test("installed ACPX runtime persists and restores optional goal capabilities", () => {
-  const requireRunner = createRequire(new URL("../packages/taskcore-runner/package.json", import.meta.url));
-  const runtimeSource = readFileSync(requireRunner.resolve("acpx/runtime"), "utf8");
+  const requireRunner = createRequire(
+    new URL("../packages/taskcore-runner/package.json", import.meta.url),
+  );
+  const runtimeSource = readFileSync(
+    requireRunner.resolve("acpx/runtime"),
+    "utf8",
+  );
   const start = runtimeSource.indexOf("function persistedGoalCapability(");
   const end = runtimeSource.indexOf("function planUpdateEvent(", start);
-  assert.ok(start >= 0 && end > start, "the installed patch must define both goal helpers");
-  const helpers = runInNewContext(runtimeSource.slice(start, end) + ";({ persistedGoalCapability, restoredGoalCapability })", {
-    isRecord: (value) => value !== null && typeof value === "object" && !Array.isArray(value),
-  });
+  assert.ok(
+    start >= 0 && end > start,
+    "the installed patch must define both goal helpers",
+  );
+  const helpers = runInNewContext(
+    runtimeSource.slice(start, end) +
+      ";({ persistedGoalCapability, restoredGoalCapability })",
+    {
+      isRecord: (value) =>
+        value !== null && typeof value === "object" && !Array.isArray(value),
+    },
+  );
   assert.equal(helpers.persistedGoalCapability(undefined), undefined);
   assert.equal(helpers.restoredGoalCapability(undefined), undefined);
-  const goal = { version: 1, controlMethod: "_session/goal", actions: ["set", "pause", "clear"] };
-  const saved = JSON.parse(JSON.stringify(helpers.persistedGoalCapability(goal)));
+  const goal = {
+    version: 1,
+    controlMethod: "_session/goal",
+    actions: ["set", "pause", "clear"],
+  };
+  const saved = JSON.parse(
+    JSON.stringify(helpers.persistedGoalCapability(goal)),
+  );
   assert.equal(saved.control_method, "_session/goal");
-  assert.deepEqual(JSON.parse(JSON.stringify(helpers.restoredGoalCapability(saved))), goal);
-  assert.equal(helpers.persistedGoalCapability({ ...goal, version: 2 }), undefined);
-  assert.equal(helpers.persistedGoalCapability({ ...goal, actions: ["set"] }), undefined);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(helpers.restoredGoalCapability(saved))),
+    goal,
+  );
+  assert.equal(
+    helpers.persistedGoalCapability({ ...goal, version: 2 }),
+    undefined,
+  );
+  assert.equal(
+    helpers.persistedGoalCapability({ ...goal, actions: ["set"] }),
+    undefined,
+  );
 });

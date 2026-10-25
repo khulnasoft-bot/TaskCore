@@ -1,5 +1,8 @@
 import { setTaskMonitorInputSchema } from "../protocol-actions/set-task-monitor.js";
-import { listProjectsDescription, listProjectsInputSchema } from "../protocol-actions/list-projects.js";
+import {
+  listProjectsDescription,
+  listProjectsInputSchema,
+} from "../protocol-actions/list-projects.js";
 import { setTaskTitleAction } from "../protocol-actions/set-task-title.js";
 import { reassignTaskAction } from "../protocol-actions/reassign-task.js";
 import type {
@@ -11,16 +14,16 @@ import type {
 import { createSkillAction } from "../protocol-actions/create-skill.js";
 import { searchApiAction } from "../protocol-actions/search-api.js";
 import { callApiAction } from "../protocol-actions/call-api.js";
-import { projectIconSchema, projectRepositoryUrlSchema } from "../protocol-actions/create-project.js";
+import {
+  projectIconSchema,
+  projectRepositoryUrlSchema,
+} from "../protocol-actions/create-project.js";
 
 const ALL_MODES = ["standard", "ask", "planning", "skill_test"] as const;
 const WORK_MODES = ["standard", "planning", "skill_test"] as const;
 const STANDARD_MODE = ["standard", "skill_test"] as const;
 
-const text = (
-  description: string,
-  maxLength = 20_000,
-): TaskcoreJsonSchema => ({
+const text = (description: string, maxLength = 20_000): TaskcoreJsonSchema => ({
   type: "string",
   description,
   minLength: 1,
@@ -113,18 +116,24 @@ function descriptor(input: DescriptorInput): TaskcoreSemanticActionDescriptor {
 }
 
 const descriptors: readonly TaskcoreSemanticActionDescriptor[] = [
-  descriptor({ ...createSkillAction.live.descriptor, placement: "optional", effect: "write" }),
-  ...[searchApiAction, callApiAction].map(action => descriptor({
-    operationId: action.id,
-    title: action.live.descriptor.title,
-    description: action.live.descriptor.description,
+  descriptor({
+    ...createSkillAction.live.descriptor,
     placement: "optional",
-    effect: action.id === "search_api" ? "read" : "write",
-    requiredClaims: action.live.descriptor.requiredClaims,
-    allowedModes: action.live.descriptor.allowedModes,
-    inputSchema: action.live.descriptor.inputSchema,
-    outputSchema: action.live.descriptor.outputSchema,
-  })),
+    effect: "write",
+  }),
+  ...[searchApiAction, callApiAction].map((action) =>
+    descriptor({
+      operationId: action.id,
+      title: action.live.descriptor.title,
+      description: action.live.descriptor.description,
+      placement: "optional",
+      effect: action.id === "search_api" ? "read" : "write",
+      requiredClaims: action.live.descriptor.requiredClaims,
+      allowedModes: action.live.descriptor.allowedModes,
+      inputSchema: action.live.descriptor.inputSchema,
+      outputSchema: action.live.descriptor.outputSchema,
+    }),
+  ),
   descriptor({
     operationId: "get_task_context",
     title: "Get active task context",
@@ -348,12 +357,31 @@ const descriptors: readonly TaskcoreSemanticActionDescriptor[] = [
       {
         name: text("Name for the new teammate.", 200),
         role: {
-          enum: ["ceo", "cto", "cmo", "cfo", "security", "engineer", "designer", "pm", "qa", "devops", "researcher", "general"],
+          enum: [
+            "ceo",
+            "cto",
+            "cmo",
+            "cfo",
+            "security",
+            "engineer",
+            "designer",
+            "pm",
+            "qa",
+            "devops",
+            "researcher",
+            "general",
+          ],
           default: "general",
         },
         title: nullableText("Optional teammate title.", 300),
-        capabilities: nullableText("Optional concise capability summary.", 2_000),
-        instructions: nullableText("Optional persona or task instructions.", 20_000),
+        capabilities: nullableText(
+          "Optional concise capability summary.",
+          2_000,
+        ),
+        instructions: nullableText(
+          "Optional persona or task instructions.",
+          20_000,
+        ),
       },
       ["name"],
     ),
@@ -452,7 +480,9 @@ const descriptors: readonly TaskcoreSemanticActionDescriptor[] = [
     outputSchema: operationReceipt,
   }),
   descriptor({
-    ...reassignTaskAction.live.descriptor, placement: "optional", effect: "write",
+    ...reassignTaskAction.live.descriptor,
+    placement: "optional",
+    effect: "write",
   }),
   descriptor({
     operationId: "set_dependencies",
@@ -482,33 +512,58 @@ const descriptors: readonly TaskcoreSemanticActionDescriptor[] = [
   descriptor({
     operationId: "list_project_repositories",
     title: "List available repositories",
-    description: "List authorized repositories with stable IDs and names. Consider appropriate repositories before creating a project; never invent IDs.",
+    description:
+      "List authorized repositories with stable IDs and names. Consider appropriate repositories before creating a project; never invent IDs.",
     placement: "optional",
     inputSchema: object({}),
   }),
   descriptor({
     operationId: "create_project",
     title: "Create project",
-    description: "Create a project after considering existing projects and available repositories. repositoryIds and repositoryUrls accept multiple existing repositories. Use HTTPS GitHub repositoryUrls when an accessible repo is not in the catalog; this registers project repositories, not remote GitHub repositories. Non-code projects may omit repositories. Cannot combine repositoryIds/repositoryUrls with workspace. Reuse the idempotency key on retries.",
-    placement: "optional", effect: "write", allowedModes: STANDARD_MODE,
-    inputSchema: object({
-      ...idempotency, name: text("Project name.", 500), description: nullableText("Project outcome and context."),
-      repositoryIds: stringArray("Authorized repository IDs from list_project_repositories; may contain multiple repositories."),
-      repositoryUrls: {
-        type: "array", items: projectRepositoryUrlSchema, maxItems: 100, uniqueItems: true,
-        description: "Existing HTTPS GitHub repository URLs, including repos absent from the catalog.",
+    description:
+      "Create a project after considering existing projects and available repositories. repositoryIds and repositoryUrls accept multiple existing repositories. Use HTTPS GitHub repositoryUrls when an accessible repo is not in the catalog; this registers project repositories, not remote GitHub repositories. Non-code projects may omit repositories. Cannot combine repositoryIds/repositoryUrls with workspace. Reuse the idempotency key on retries.",
+    placement: "optional",
+    effect: "write",
+    allowedModes: STANDARD_MODE,
+    inputSchema: object(
+      {
+        ...idempotency,
+        name: text("Project name.", 500),
+        description: nullableText("Project outcome and context."),
+        repositoryIds: stringArray(
+          "Authorized repository IDs from list_project_repositories; may contain multiple repositories.",
+        ),
+        repositoryUrls: {
+          type: "array",
+          items: projectRepositoryUrlSchema,
+          maxItems: 100,
+          uniqueItems: true,
+          description:
+            "Existing HTTPS GitHub repository URLs, including repos absent from the catalog.",
+        },
+        workspace: openObject,
+        status: {
+          enum: ["backlog", "planned", "in_progress", "completed", "cancelled"],
+        },
+        goalId: nullableText("Goal ID."),
+        goalIds: stringArray("Goal IDs."),
+        leadAgentId: nullableText("Lead agent ID."),
+        targetDate: nullableText("Target date."),
+        color: nullableText("Project color."),
+        icon: projectIconSchema,
+        env: openObject,
+        executionWorkspacePolicy: openObject,
+        archivedAt: nullableText("Archive timestamp."),
       },
-      workspace: openObject, status: { enum: ["backlog", "planned", "in_progress", "completed", "cancelled"] },
-      goalId: nullableText("Goal ID."), goalIds: stringArray("Goal IDs."), leadAgentId: nullableText("Lead agent ID."),
-      targetDate: nullableText("Target date."), color: nullableText("Project color."), icon: projectIconSchema,
-      env: openObject, executionWorkspacePolicy: openObject, archivedAt: nullableText("Archive timestamp."),
-    }, ["idempotencyKey", "name"]),
+      ["idempotencyKey", "name"],
+    ),
     outputSchema: openObject,
   }),
   descriptor({
     operationId: "create_task",
     title: "Create task",
-    description: "Create an assigned task. In a conversation, create a project task with no parent; otherwise create a child of the active task. Include initialPlan to persist its plan before execution. Set status to backlog when the user wants to save or plan work without starting it; backlog tasks never wake an agent. Omitted status means todo, subject to blockers.",
+    description:
+      "Create an assigned task. In a conversation, create a project task with no parent; otherwise create a child of the active task. Include initialPlan to persist its plan before execution. Set status to backlog when the user wants to save or plan work without starting it; backlog tasks never wake an agent. Omitted status means todo, subject to blockers.",
     placement: "optional",
     effect: "write",
     requiredClaims: ["delegation:tasks:create"],
@@ -518,11 +573,23 @@ const descriptors: readonly TaskcoreSemanticActionDescriptor[] = [
         ...idempotency,
         title: text("Task title.", 500),
         projectId: nullableText("Project identifier for the new task."),
-        initialPlan: nullableText("Remaining execution steps to persist as the task plan. Exclude completed planning, approval, and handoff steps; cite the source plan revision and approval. A copied plan is not a new approval gate."),
+        initialPlan: nullableText(
+          "Remaining execution steps to persist as the task plan. Exclude completed planning, approval, and handoff steps; cite the source plan revision and approval. A copied plan is not a new approval gate.",
+        ),
         description: nullableText("Child task description."),
-        assigneeActorId: nullableText("Optional actor assignee. Mutually exclusive with assigneeUserId.", 200),
-        assigneeUserId: nullableText("Company person ID from list_people. Mutually exclusive with assigneeActorId.", 200),
-        status: { enum: ["backlog", "todo"], description: "Initial status. Use backlog to save work without execution. Defaults to todo (blocked when dependencies are unresolved)." },
+        assigneeActorId: nullableText(
+          "Optional actor assignee. Mutually exclusive with assigneeUserId.",
+          200,
+        ),
+        assigneeUserId: nullableText(
+          "Company person ID from list_people. Mutually exclusive with assigneeActorId.",
+          200,
+        ),
+        status: {
+          enum: ["backlog", "todo"],
+          description:
+            "Initial status. Use backlog to save work without execution. Defaults to todo (blocked when dependencies are unresolved).",
+        },
         priority: { enum: ["critical", "high", "medium", "low"] },
         blockedByTaskIds: stringArray("Initial blocker task identifiers."),
       },
@@ -586,10 +653,16 @@ const descriptors: readonly TaskcoreSemanticActionDescriptor[] = [
     outputSchema: operationReceipt,
   }),
   descriptor({
-    operationId: "set_task_monitor", title: "Set task monitor",
-    description: "Schedule, replace or clear a persisted one-shot monitor on an owned task.",
-    placement: "optional", effect: "write", requiredClaims: [], allowedModes: ["standard"],
-    inputSchema: setTaskMonitorInputSchema, outputSchema: openObject,
+    operationId: "set_task_monitor",
+    title: "Set task monitor",
+    description:
+      "Schedule, replace or clear a persisted one-shot monitor on an owned task.",
+    placement: "optional",
+    effect: "write",
+    requiredClaims: [],
+    allowedModes: ["standard"],
+    inputSchema: setTaskMonitorInputSchema,
+    outputSchema: openObject,
   }),
   descriptor({
     operationId: "schedule_wake",

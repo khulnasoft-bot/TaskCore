@@ -3,7 +3,15 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   activityLog,
   companies,
@@ -35,7 +43,8 @@ vi.mock("../telemetry.js", () => ({
 
 const { toolAccessService } = await import("../services/tool-access.js");
 const { secretService } = await import("../services/secrets.js");
-const { instanceSettingsService } = await import("../services/instance-settings.js");
+const { instanceSettingsService } =
+  await import("../services/instance-settings.js");
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported
@@ -92,7 +101,10 @@ const mcpTool = (name: string) => ({
 function remoteMcpFixture() {
   const requests: { url: string; headers: Headers }[] = [];
   const remoteHttpRequest = async (url: string, init: RequestInit) => {
-    const body = JSON.parse(String(init.body)) as { id: number; method: string };
+    const body = JSON.parse(String(init.body)) as {
+      id: number;
+      method: string;
+    };
     requests.push({ url, headers: new Headers(init.headers) });
     if (body.method === "initialize") {
       return Response.json(
@@ -165,8 +177,9 @@ async function insertRetiredComposioRecords(db: Db, companyId: string) {
 
 describeEmbeddedPostgres("connector lifecycle telemetry (tool-access)", () => {
   let db!: Db;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null =
-    null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let keyDir: string | null = null;
 
   beforeAll(async () => {
@@ -216,7 +229,10 @@ describeEmbeddedPostgres("connector lifecycle telemetry (tool-access)", () => {
     await svc.createConnection(company.id, {
       name: "GitHub fixture",
       transport: "mcp_remote",
-      config: { url: "https://fixture.example/mcp", sourceTemplateKey: "github" },
+      config: {
+        url: "https://fixture.example/mcp",
+        sourceTemplateKey: "github",
+      },
       enabled: true,
       status: "active",
     });
@@ -308,8 +324,14 @@ describeEmbeddedPostgres("connector lifecycle telemetry (tool-access)", () => {
     );
     // Connect commits a draft; the finish step is the committed draft -> active
     // transition, so it is the one `gallery` update this setup reports.
-    expect(connected.connection).toMatchObject({ status: "draft", enabled: false });
-    expect(finished.connection).toMatchObject({ status: "active", enabled: true });
+    expect(connected.connection).toMatchObject({
+      status: "draft",
+      enabled: false,
+    });
+    expect(finished.connection).toMatchObject({
+      status: "active",
+      enabled: true,
+    });
     const updated = updatedEvents();
     expect(updated).toHaveLength(1);
     expect(updated[0]?.[1]).toMatchObject({
@@ -387,7 +409,12 @@ describeEmbeddedPostgres("connector lifecycle telemetry (tool-access)", () => {
     const svc = service();
     const [application] = await db
       .insert(toolApplications)
-      .values({ companyId: company.id, name: "Composio", type: "mcp_remote", status: "active" })
+      .values({
+        companyId: company.id,
+        name: "Composio",
+        type: "mcp_remote",
+        status: "active",
+      })
       .returning();
     const [connection] = await db
       .insert(toolConnections)
@@ -439,7 +466,10 @@ describeEmbeddedPostgres("connector lifecycle telemetry (tool-access)", () => {
       { grantKind: "user" },
       actor,
     );
-    expect(finished.connection).toMatchObject({ status: "active", enabled: true });
+    expect(finished.connection).toMatchObject({
+      status: "active",
+      enabled: true,
+    });
     const updated = updatedEvents();
     // Exactly one transition: finalize's own write. The finish step it calls
     // afterwards re-reads an already-active row and stays silent.
@@ -455,12 +485,17 @@ describeEmbeddedPostgres("connector lifecycle telemetry (tool-access)", () => {
       enabled: true,
     });
     expect(createdEvents()).toHaveLength(0);
-    expect(JSON.stringify(track.mock.calls)).not.toContain("fixture-access-token");
+    expect(JSON.stringify(track.mock.calls)).not.toContain(
+      "fixture-access-token",
+    );
   }, 30_000);
 
   it("retained legacy broker records emit only their explicit removal, distinguishable by transport", async () => {
     const company = await createCompany(db);
-    const { parent, child } = await insertRetiredComposioRecords(db, company.id);
+    const { parent, child } = await insertRetiredComposioRecords(
+      db,
+      company.id,
+    );
     const svc = service();
     track.mockClear();
 

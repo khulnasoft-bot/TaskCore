@@ -284,7 +284,10 @@ for (const adapter of ["process", "taskcore_runner"] as const) {
 
       let dispatchedAt = 0;
       page.on("request", (req) => {
-        if (req.method() === "POST" && req.url().endsWith(`/heartbeat-runs/${parentRun.id}/cancel`))
+        if (
+          req.method() === "POST" &&
+          req.url().endsWith(`/heartbeat-runs/${parentRun.id}/cancel`)
+        )
           dispatchedAt = Date.now();
       });
       const clickedAt = Date.now();
@@ -293,10 +296,17 @@ for (const adapter of ["process", "taskcore_runner"] as const) {
       await expect(
         page.getByRole("button", { name: "Dismiss notification" }),
       ).toHaveCount(0);
-      await expect.poll(async () =>
-        (await json(await request.get(`/api/heartbeat-runs/${parentRun.id}`))).status,
-        { timeout: 35_000 },
-      ).toBe("cancelled");
+      await expect
+        .poll(
+          async () =>
+            (
+              await json(
+                await request.get(`/api/heartbeat-runs/${parentRun.id}`),
+              )
+            ).status,
+          { timeout: 35_000 },
+        )
+        .toBe("cancelled");
       const stoppedAt = Date.now();
       expect(dispatchedAt - clickedAt).toBeLessThan(2000);
       expect(dispatchedAt).toBeGreaterThan(0);
@@ -327,18 +337,38 @@ for (const adapter of ["process", "taskcore_runner"] as const) {
         contentType: "application/json",
       });
       expect(
-        (await json(await request.get(`/api/issues/${parent.id}/tree-control/state`))).activePauseHold,
+        (
+          await json(
+            await request.get(`/api/issues/${parent.id}/tree-control/state`),
+          )
+        ).activePauseHold,
       ).toBeNull();
-      expect((await json(await request.get(`/api/heartbeat-runs/${childRun.id}`))).status).toBe("running");
+      expect(
+        (await json(await request.get(`/api/heartbeat-runs/${childRun.id}`)))
+          .status,
+      ).toBe("running");
       await expect(editor).toBeVisible();
-      await expect(page.getByText("Subtree is paused.", { exact: true })).toHaveCount(0);
+      await expect(
+        page.getByText("Subtree is paused.", { exact: true }),
+      ).toHaveCount(0);
       // Pausing future work is a separate, explicit subtree action.
       await menu(page, "Pause subtree");
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await expect.poll(async () => (await json(await request.get(`/api/heartbeat-runs/${childRun.id}`))).status,
-        { timeout: 35_000 }).toBe("cancelled");
+      await expect
+        .poll(
+          async () =>
+            (
+              await json(
+                await request.get(`/api/heartbeat-runs/${childRun.id}`),
+              )
+            ).status,
+          { timeout: 35_000 },
+        )
+        .toBe("cancelled");
       if (adapter === "process") {
-        await expect.poll(() => processAlive(childRun.processPid), { timeout: 3000 }).toBe(false);
+        await expect
+          .poll(() => processAlive(childRun.processPid), { timeout: 3000 })
+          .toBe(false);
       }
       expect(
         (
@@ -386,8 +416,12 @@ for (const adapter of ["process", "taskcore_runner"] as const) {
       if (adapter === "process") {
         // Legacy processes lack runner stop/action proof, so releasing the hold
         // preserves their recovery gate until the fixture reconciles them.
-        expect(await json(await request.get(`/api/issues/${parent.id}/live-runs`))).toEqual([]);
-        expect(await json(await request.get(`/api/issues/${child.id}/live-runs`))).toEqual([]);
+        expect(
+          await json(await request.get(`/api/issues/${parent.id}/live-runs`)),
+        ).toEqual([]);
+        expect(
+          await json(await request.get(`/api/issues/${child.id}/live-runs`)),
+        ).toEqual([]);
         await reconcileDemoExecution(request, parent.id, parentRun.id);
         await reconcileDemoExecution(request, child.id, childRun.id);
       }
@@ -398,11 +432,22 @@ for (const adapter of ["process", "taskcore_runner"] as const) {
       expect(resumedParentRun.id).not.toBe(parentRun.id);
       expect(resumedChildRun.id).not.toBe(childRun.id);
       if (adapter === "taskcore_runner") {
-        await expect.poll(async () => {
-          const calls = await readFile(process.env.TASKCORE_STOP_CODEX_LOG!, "utf8");
-          return calls.split("turn/start").length - 1;
-        }, { timeout: 30_000 }).toBeGreaterThanOrEqual(5);
-        await page.screenshot({ path: testInfo.outputPath("native-resumed.png"), fullPage: true });
+        await expect
+          .poll(
+            async () => {
+              const calls = await readFile(
+                process.env.TASKCORE_STOP_CODEX_LOG!,
+                "utf8",
+              );
+              return calls.split("turn/start").length - 1;
+            },
+            { timeout: 30_000 },
+          )
+          .toBeGreaterThanOrEqual(5);
+        await page.screenshot({
+          path: testInfo.outputPath("native-resumed.png"),
+          fullPage: true,
+        });
       }
       await menu(page, "Pause subtree");
       await expect(page.getByRole("dialog")).toHaveCount(0);

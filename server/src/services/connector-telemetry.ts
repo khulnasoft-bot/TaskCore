@@ -73,7 +73,9 @@ export function invocationOrigin(
   return isTestOrigin ? "setup_test" : invocation.actorType;
 }
 
-function isToolPurpose(connection: Pick<ToolConnectionRow, "connectionPurpose">): boolean {
+function isToolPurpose(
+  connection: Pick<ToolConnectionRow, "connectionPurpose">,
+): boolean {
   return connection.connectionPurpose === "tool";
 }
 
@@ -215,7 +217,9 @@ export async function emitConnectionInvoked(
       transport: connection.transport,
       status: invocation.status,
       origin: invocationOrigin(invocation),
-      ...(durationSeconds === undefined ? {} : { duration_seconds: durationSeconds }),
+      ...(durationSeconds === undefined
+        ? {}
+        : { duration_seconds: durationSeconds }),
     });
   } catch (err) {
     logger.warn(

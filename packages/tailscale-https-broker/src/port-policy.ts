@@ -7,8 +7,10 @@
 export const DEFAULT_APP_PORT_MIN = 42000;
 export const DEFAULT_APP_PORT_MAX = 42999;
 export const DEFAULT_HMR_PORT_OFFSET = 10000;
-export const DEFAULT_HMR_PORT_MIN = DEFAULT_APP_PORT_MIN + DEFAULT_HMR_PORT_OFFSET;
-export const DEFAULT_HMR_PORT_MAX = DEFAULT_APP_PORT_MAX + DEFAULT_HMR_PORT_OFFSET;
+export const DEFAULT_HMR_PORT_MIN =
+  DEFAULT_APP_PORT_MIN + DEFAULT_HMR_PORT_OFFSET;
+export const DEFAULT_HMR_PORT_MAX =
+  DEFAULT_APP_PORT_MAX + DEFAULT_HMR_PORT_OFFSET;
 
 export function defaultIsAllowedPort(port: number): boolean {
   if (!Number.isInteger(port)) return false;
@@ -33,14 +35,20 @@ export function parseProtectedPorts(raw: string | undefined): number[] {
   const ports = new Set<number>();
   for (const token of tokens) {
     if (!/^[0-9]{1,5}$/.test(token)) {
-      throw new Error(`BROKER_PROTECTED_PORTS contains a non-numeric entry: ${JSON.stringify(token)}`);
+      throw new Error(
+        `BROKER_PROTECTED_PORTS contains a non-numeric entry: ${JSON.stringify(token)}`,
+      );
     }
     const port = Number(token);
     if (port < 1 || port > 65535) {
-      throw new Error(`BROKER_PROTECTED_PORTS contains an out-of-range port: ${token}`);
+      throw new Error(
+        `BROKER_PROTECTED_PORTS contains an out-of-range port: ${token}`,
+      );
     }
     if (port === 443) {
-      throw new Error("BROKER_PROTECTED_PORTS must not list 443; the primary route is always protected");
+      throw new Error(
+        "BROKER_PROTECTED_PORTS must not list 443; the primary route is always protected",
+      );
     }
     ports.add(port);
   }

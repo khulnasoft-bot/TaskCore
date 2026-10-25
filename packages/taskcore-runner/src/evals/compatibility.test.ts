@@ -21,7 +21,8 @@ function compatible(): TaskcoreRunnerEvalCompatibilityRequirement {
       binaryName: "taskcore-runnerd",
       packageName: "@taskcore/taskcore-runner",
       packageVersion: TASKCORE_RUNNER_BUILD_METADATA.package.version,
-      binaryContractVersion: TASKCORE_RUNNER_BUILD_METADATA.contracts.runnerdArtifact,
+      binaryContractVersion:
+        TASKCORE_RUNNER_BUILD_METADATA.contracts.runnerdArtifact,
       nativeExecutionVersion: 1,
       harnessDriverVersion: 1,
       prp: { name: "taskcore.runner", minimumVersion: 1, maximumVersion: 1 },
@@ -34,7 +35,12 @@ function compatible(): TaskcoreRunnerEvalCompatibilityRequirement {
     },
     driver: {
       contractVersion: 1,
-      requiredCapabilities: ["typedEvents", "interruption", "usage", "dynamicTools"],
+      requiredCapabilities: [
+        "typedEvents",
+        "interruption",
+        "usage",
+        "dynamicTools",
+      ],
       descriptor: {
         kind: "taskcore-deterministic",
         displayName: "Deterministic",
@@ -56,11 +62,15 @@ function compatible(): TaskcoreRunnerEvalCompatibilityRequirement {
 
 describe("Taskcore Evals integration compatibility", () => {
   it("keeps build metadata synchronized with package semver", () => {
-    const packageJson = JSON.parse(readFileSync(
-      fileURLToPath(new URL("../../package.json", import.meta.url)),
-      "utf8",
-    ));
-    expect(TASKCORE_RUNNER_BUILD_METADATA.package.version).toBe(packageJson.version);
+    const packageJson = JSON.parse(
+      readFileSync(
+        fileURLToPath(new URL("../../package.json", import.meta.url)),
+        "utf8",
+      ),
+    );
+    expect(TASKCORE_RUNNER_BUILD_METADATA.package.version).toBe(
+      packageJson.version,
+    );
   });
 
   it("negotiates package, binary, PRP, catalog, and driver V1", () => {
@@ -80,9 +90,17 @@ describe("Taskcore Evals integration compatibility", () => {
     requirement.runnerd.nativeExecutionVersion = 2;
     requirement.runnerd.harnessDriverVersion = 2;
     requirement.nativeExecutionVersion = 2;
-    const unsupportedVersion = TASKCORE_RUNNER_BUILD_METADATA.prp.maximumVersion + 1;
-    requirement.prp = { minimumVersion: unsupportedVersion, maximumVersion: unsupportedVersion };
-    requirement.runnerd.prp = { name: "taskcore.runner", minimumVersion: unsupportedVersion, maximumVersion: unsupportedVersion };
+    const unsupportedVersion =
+      TASKCORE_RUNNER_BUILD_METADATA.prp.maximumVersion + 1;
+    requirement.prp = {
+      minimumVersion: unsupportedVersion,
+      maximumVersion: unsupportedVersion,
+    };
+    requirement.runnerd.prp = {
+      name: "taskcore.runner",
+      minimumVersion: unsupportedVersion,
+      maximumVersion: unsupportedVersion,
+    };
     requirement.catalog = { version: 2, sha256: `sha256:${"0".repeat(64)}` };
     requirement.driver.contractVersion = 2;
     requirement.driver.descriptor.capabilities.dynamicTools = false;
@@ -92,19 +110,24 @@ describe("Taskcore Evals integration compatibility", () => {
       throw new Error("expected compatibility failure");
     } catch (error) {
       expect(error).toBeInstanceOf(TaskcoreRunnerEvalCompatibilityError);
-      expect((error as TaskcoreRunnerEvalCompatibilityError).issues.map((item) => item.code))
-        .toEqual([
-          "package_version_mismatch",
-          "binary_package_version_mismatch",
-          "binary_contract_version_mismatch",
-          "native_execution_version_mismatch",
-          "prp_version_no_overlap",
-          "catalog_version_mismatch",
-          "catalog_digest_mismatch",
-          "driver_contract_version_mismatch",
-          "driver_capability_unsupported",
-        ]);
-      expect((error as Error).message).toContain("runnerd was built for package 8.0.0");
+      expect(
+        (error as TaskcoreRunnerEvalCompatibilityError).issues.map(
+          (item) => item.code,
+        ),
+      ).toEqual([
+        "package_version_mismatch",
+        "binary_package_version_mismatch",
+        "binary_contract_version_mismatch",
+        "native_execution_version_mismatch",
+        "prp_version_no_overlap",
+        "catalog_version_mismatch",
+        "catalog_digest_mismatch",
+        "driver_contract_version_mismatch",
+        "driver_capability_unsupported",
+      ]);
+      expect((error as Error).message).toContain(
+        "runnerd was built for package 8.0.0",
+      );
     }
   });
 
@@ -114,7 +137,9 @@ describe("Taskcore Evals integration compatibility", () => {
 
     expect(() => assertTaskcoreRunnerEvalCompatibility(requirement)).toThrow(
       expect.objectContaining({
-        issues: [expect.objectContaining({ code: "driver_protocol_version_mismatch" })],
+        issues: [
+          expect.objectContaining({ code: "driver_protocol_version_mismatch" }),
+        ],
       }),
     );
   });

@@ -7,8 +7,16 @@ import { cn, formatShortDate } from "../lib/utils";
 import { timeAgo } from "../lib/timeAgo";
 import { useCopyAction, useCopyToast } from "../lib/use-copy-action";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -24,7 +32,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, Copy, MoreHorizontal, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import {
+  Check,
+  Copy,
+  MoreHorizontal,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+} from "lucide-react";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -181,10 +196,14 @@ export function IssueChatFeedbackButtons({
   activeVote: FeedbackVoteValue | null;
   sharingPreference: FeedbackDataSharingPreference;
   termsUrl: string | null;
-  onVote: (vote: FeedbackVoteValue, options?: { allowSharing?: boolean; reason?: string }) => Promise<void>;
+  onVote: (
+    vote: FeedbackVoteValue,
+    options?: { allowSharing?: boolean; reason?: string },
+  ) => Promise<void>;
 }) {
   const [isSaving, setIsSaving] = useState(false);
-  const [optimisticVote, setOptimisticVote] = useState<FeedbackVoteValue | null>(null);
+  const [optimisticVote, setOptimisticVote] =
+    useState<FeedbackVoteValue | null>(null);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [downvoteReason, setDownvoteReason] = useState("");
   const [pendingSharingDialog, setPendingSharingDialog] = useState<{
@@ -194,7 +213,8 @@ export function IssueChatFeedbackButtons({
   const visibleVote = optimisticVote ?? activeVote ?? null;
 
   useEffect(() => {
-    if (optimisticVote && activeVote === optimisticVote) setOptimisticVote(null);
+    if (optimisticVote && activeVote === optimisticVote)
+      setOptimisticVote(null);
   }, [activeVote, optimisticVote]);
 
   async function doVote(
@@ -287,7 +307,9 @@ export function IssueChatFeedbackButtons({
           </button>
         </PopoverTrigger>
         <PopoverContent side="top" align="start" className="w-80 p-3">
-          <div className="mb-2 text-sm font-medium">What could have been better?</div>
+          <div className="mb-2 text-sm font-medium">
+            What could have been better?
+          </div>
           <Textarea
             value={downvoteReason}
             onChange={(event) => setDownvoteReason(event.target.value)}
@@ -333,17 +355,19 @@ export function IssueChatFeedbackButtons({
           <DialogHeader>
             <DialogTitle>Save your feedback sharing preference</DialogTitle>
             <DialogDescription>
-              Choose whether voted AI outputs can be shared with Taskcore Labs. This
-              answer becomes the default for future thumbs up and thumbs down votes.
+              Choose whether voted AI outputs can be shared with Taskcore Labs.
+              This answer becomes the default for future thumbs up and thumbs
+              down votes.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>This vote is always saved locally.</p>
             <p>
-              Choose <span className="font-medium text-foreground">Always allow</span> to share
-              this vote and future voted AI outputs. Choose{" "}
-              <span className="font-medium text-foreground">Don't allow</span> to keep this vote
-              and future votes local.
+              Choose{" "}
+              <span className="font-medium text-foreground">Always allow</span>{" "}
+              to share this vote and future voted AI outputs. Choose{" "}
+              <span className="font-medium text-foreground">Don't allow</span>{" "}
+              to keep this vote and future votes local.
             </p>
             <p>You can change this later in Settings &gt; General.</p>
             {termsUrl ? (
@@ -366,7 +390,9 @@ export function IssueChatFeedbackButtons({
                 if (!pendingSharingDialog) return;
                 void doVote(
                   pendingSharingDialog.vote,
-                  pendingSharingDialog.reason ? { reason: pendingSharingDialog.reason } : undefined,
+                  pendingSharingDialog.reason
+                    ? { reason: pendingSharingDialog.reason }
+                    : undefined,
                 ).then(() => setPendingSharingDialog(null));
               }}
             >
@@ -379,7 +405,9 @@ export function IssueChatFeedbackButtons({
                 if (!pendingSharingDialog) return;
                 void doVote(pendingSharingDialog.vote, {
                   allowSharing: true,
-                  ...(pendingSharingDialog.reason ? { reason: pendingSharingDialog.reason } : {}),
+                  ...(pendingSharingDialog.reason
+                    ? { reason: pendingSharingDialog.reason }
+                    : {}),
                 }).then(() => setPendingSharingDialog(null));
               }}
             >

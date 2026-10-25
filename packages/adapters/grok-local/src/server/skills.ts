@@ -15,17 +15,26 @@ const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 async function buildGrokSkillSnapshot(
   config: Record<string, unknown>,
 ): Promise<AdapterSkillSnapshot> {
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries);
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    availableEntries,
+  );
   return buildRuntimeMountedSkillSnapshot({
     adapterType: "grok_local",
     availableEntries,
     desiredSkills,
-    configuredDetail: "Will be copied into `.claude/skills` in the execution workspace on the next run.",
+    configuredDetail:
+      "Will be copied into `.claude/skills` in the execution workspace on the next run.",
   });
 }
 
-export async function listGrokSkills(ctx: AdapterSkillContext): Promise<AdapterSkillSnapshot> {
+export async function listGrokSkills(
+  ctx: AdapterSkillContext,
+): Promise<AdapterSkillSnapshot> {
   return buildGrokSkillSnapshot(ctx.config);
 }
 

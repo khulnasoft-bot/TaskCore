@@ -150,10 +150,20 @@ describe("iMessage Photon channel control plane", () => {
       grantedByUserId: userId,
     });
     const f = photonFixture();
-    const allocation = shared ? {
-      inspection: { projectId: "project", projectName: "Test shared", allocation: "shared" as const, eligible: true, lines: [] },
-      tokens: new Map<string, string>(), sharedToken: "shared-project-token", expiresIn: 300,
-    } : await f.cloud.allocation("project", "secret");
+    const allocation = shared
+      ? {
+          inspection: {
+            projectId: "project",
+            projectName: "Test shared",
+            allocation: "shared" as const,
+            eligible: true,
+            lines: [],
+          },
+          tokens: new Map<string, string>(),
+          sharedToken: "shared-project-token",
+          expiresIn: 300,
+        }
+      : await f.cloud.allocation("project", "secret");
     vi.spyOn(PhotonCloudClient.prototype, "allocation").mockResolvedValue(
       allocation,
     );
@@ -260,7 +270,9 @@ describe("iMessage Photon channel control plane", () => {
       endpoint.id,
       {
         action: "configure",
-        photon: shared ? { allocation: "shared", projectId: "project" } : { projectId: "project", lineId: "line" },
+        photon: shared
+          ? { allocation: "shared", projectId: "project" }
+          : { projectId: "project", lineId: "line" },
         credentials: { projectSecret: "secret" },
       },
       userId,
@@ -366,8 +378,15 @@ describe("iMessage Photon channel control plane", () => {
   it("supports shared project DMs while rejecting groups, duplicate ownership and allocation changes", async () => {
     const t = await setup(true);
     const snapshot = await t.service.get(t.endpoint.id);
-    expect(snapshot).toMatchObject({ photonAllocation: "shared", botExternalId: "photon-project:project", botUsername: null, allowGroupChats: false });
-    await expect(t.service.update(t.endpoint.id, { allowGroupChats: true }, t.userId)).rejects.toThrow(/direct messages only/);
+    expect(snapshot).toMatchObject({
+      photonAllocation: "shared",
+      botExternalId: "photon-project:project",
+      botUsername: null,
+      allowGroupChats: false,
+    });
+    await expect(
+      t.service.update(t.endpoint.id, { allowGroupChats: true }, t.userId),
+    ).rejects.toThrow(/direct messages only/);
     const group = photonChat("iMessage;+;shared-group", true);
     t.chats.set(group.guid, group);
     await t.deliver(photonEvent(10, group));
@@ -377,12 +396,43 @@ describe("iMessage Photon channel control plane", () => {
     expect(conversation.externalThreadId).toContain("shared-");
     await t.qualify();
     expect(t.f.client.groups.subscribeEvents).not.toHaveBeenCalled();
-    const duplicate = await t.service.create(t.companyId, { provider: "imessage-photon", assignedAgentId: t.agentId }, t.userId);
-    expect(await t.service.inspectPhoton(duplicate.id, {projectId: "project", projectSecret: "secret"})).toMatchObject({ allocation: "shared", eligible: false });
-    await expect(t.service.configure(duplicate.id, { action: "configure", photon: { allocation: "shared", projectId: "project" }, credentials: { projectSecret: "secret" } }, t.userId)).rejects.toThrow(/already/);
+    const duplicate = await t.service.create(
+      t.companyId,
+      { provider: "imessage-photon", assignedAgentId: t.agentId },
+      t.userId,
+    );
+    expect(
+      await t.service.inspectPhoton(duplicate.id, {
+        projectId: "project",
+        projectSecret: "secret",
+      }),
+    ).toMatchObject({ allocation: "shared", eligible: false });
+    await expect(
+      t.service.configure(
+        duplicate.id,
+        {
+          action: "configure",
+          photon: { allocation: "shared", projectId: "project" },
+          credentials: { projectSecret: "secret" },
+        },
+        t.userId,
+      ),
+    ).rejects.toThrow(/already/);
     const restarted = await t.restart();
-    expect((await restarted.listConversations(t.endpoint.id))[0].id).toBe(conversation.id);
-    await expect(restarted.configure(t.endpoint.id, { action: "reconnect", photon: { projectId: "project", lineId: "line" }, credentials: { projectSecret: "secret" } }, t.userId)).rejects.toThrow(/allocation|identity|different/);
+    expect((await restarted.listConversations(t.endpoint.id))[0].id).toBe(
+      conversation.id,
+    );
+    await expect(
+      restarted.configure(
+        t.endpoint.id,
+        {
+          action: "reconnect",
+          photon: { projectId: "project", lineId: "line" },
+          credentials: { projectSecret: "secret" },
+        },
+        t.userId,
+      ),
+    ).rejects.toThrow(/allocation|identity|different/);
   });
   it("distinguishes setup validation from provider outages without replacing credentials", async () => {
     const t = await setup();
@@ -394,14 +444,28 @@ describe("iMessage Photon channel control plane", () => {
       ["network", 503],
       ["invalid_response", 502],
     ] as const) {
-      allocation.mockRejectedValueOnce(new PhotonError(code, `Safe Photon ${code} message`));
-      await expect(t.service.inspectPhoton(t.endpoint.id, {
-        projectId: "project", projectSecret: "replacement",
-      })).rejects.toMatchObject({ status, details: { code: `photon_${code}` } });
-      allocation.mockRejectedValueOnce(new PhotonError(code, `Safe Photon ${code} message`));
-      await expect(t.service.configure(t.endpoint.id, {
-        action: "reconnect", credentials: { projectSecret: "replacement" },
-      }, t.userId)).rejects.toMatchObject({ status, details: { code: `photon_${code}` } });
+      allocation.mockRejectedValueOnce(
+        new PhotonError(code, `Safe Photon ${code} message`),
+      );
+      await expect(
+        t.service.inspectPhoton(t.endpoint.id, {
+          projectId: "project",
+          projectSecret: "replacement",
+        }),
+      ).rejects.toMatchObject({ status, details: { code: `photon_${code}` } });
+      allocation.mockRejectedValueOnce(
+        new PhotonError(code, `Safe Photon ${code} message`),
+      );
+      await expect(
+        t.service.configure(
+          t.endpoint.id,
+          {
+            action: "reconnect",
+            credentials: { projectSecret: "replacement" },
+          },
+          t.userId,
+        ),
+      ).rejects.toMatchObject({ status, details: { code: `photon_${code}` } });
     }
     await t.start();
     await t.qualify();
@@ -479,91 +543,108 @@ describe("iMessage Photon channel control plane", () => {
     expect(await t.service.listConversations(t.endpoint.id)).toHaveLength(1);
     await t.deliver(photonEvent(4, group, "Fresh group request"));
     expect(await t.service.listConversations(t.endpoint.id)).toHaveLength(2);
-    const conversation = (await t.service.listConversations(t.endpoint.id)).find((row) => !row.isDirectMessage)!;
-    await issueService(db).update(conversation.issueId, { status: "done", actorUserId: t.userId });
-    await t.deliver(photonEvent(5, group, "A group follow-up after completion"));
+    const conversation = (
+      await t.service.listConversations(t.endpoint.id)
+    ).find((row) => !row.isDirectMessage)!;
+    await issueService(db).update(conversation.issueId, {
+      status: "done",
+      actorUserId: t.userId,
+    });
+    await t.deliver(
+      photonEvent(5, group, "A group follow-up after completion"),
+    );
     const conversations = await t.service.listConversations(t.endpoint.id);
     expect(conversations).toHaveLength(2);
-    expect(conversations.find((row) => !row.isDirectMessage)).toMatchObject({ id: conversation.id, issueId: conversation.issueId, state: "active" });
+    expect(conversations.find((row) => !row.isDirectMessage)).toMatchObject({
+      id: conversation.id,
+      issueId: conversation.issueId,
+      state: "active",
+    });
   }, 30_000);
-  it.each([true, false])("resolves an authorized exact poll vote once, including setup (qualified=%s)", async (qualified) => {
-    const t = await setup();
-    const conversation = await t.start();
-    if (qualified) await t.qualify();
-    const interaction = await issueThreadInteractionService(db).create(
-      { id: conversation.issueId, companyId: t.companyId },
-      {
-        kind: "ask_user_questions",
-        continuationPolicy: "none",
-        payload: {
-          version: 1,
-          questions: [
-            {
-              id: "q",
-              prompt: "Choose",
-              selectionMode: "single",
-              required: true,
-              allowOther: false,
-              options: [
-                { id: "one", label: "Same" },
-                { id: "two", label: "Same" },
-              ],
-            },
-          ],
+  it.each([true, false])(
+    "resolves an authorized exact poll vote once, including setup (qualified=%s)",
+    async (qualified) => {
+      const t = await setup();
+      const conversation = await t.start();
+      if (qualified) await t.qualify();
+      const interaction = await issueThreadInteractionService(db).create(
+        { id: conversation.issueId, companyId: t.companyId },
+        {
+          kind: "ask_user_questions",
+          continuationPolicy: "none",
+          payload: {
+            version: 1,
+            questions: [
+              {
+                id: "q",
+                prompt: "Choose",
+                selectionMode: "single",
+                required: true,
+                allowOther: false,
+                options: [
+                  { id: "one", label: "Same" },
+                  { id: "two", label: "Same" },
+                ],
+              },
+            ],
+          },
         },
-      },
-      { agentId: t.agentId },
-    );
-    await t.service.processPendingPublications();
-    expect(t.f.polls.size).toBe(1);
-    const poll = [...t.f.polls.values()][0];
-    const vote = {
-      type: "poll.changed",
-      sequence: 5,
-      chatGuid: t.f.chat.guid,
-      occurredAt: new Date(),
-      isFromMe: false,
-      actor: { address: "+15555550199", service: "iMessage" },
-      pollMessageGuid: poll.pollMessageGuid,
-      delta: {
-        type: "voted",
-        optionIdentifier: poll.options[1].optionIdentifier,
-      },
-    } as LiveEvent;
-    await t.deliver(vote);
-    expect(
-      (
+        { agentId: t.agentId },
+      );
+      await t.service.processPendingPublications();
+      expect(t.f.polls.size).toBe(1);
+      const poll = [...t.f.polls.values()][0];
+      const vote = {
+        type: "poll.changed",
+        sequence: 5,
+        chatGuid: t.f.chat.guid,
+        occurredAt: new Date(),
+        isFromMe: false,
+        actor: { address: "+15555550199", service: "iMessage" },
+        pollMessageGuid: poll.pollMessageGuid,
+        delta: {
+          type: "voted",
+          optionIdentifier: poll.options[1].optionIdentifier,
+        },
+      } as LiveEvent;
+      await t.deliver(vote);
+      expect(
+        (
+          await issueThreadInteractionService(db).listForIssue(
+            conversation.issueId,
+          )
+        )[0].status,
+      ).toBe("pending");
+      await t.deliver({
+        ...vote,
+        sequence: 6,
+        actor: { address: "+15555550101", service: "iMessage" },
+      } as LiveEvent);
+      const resolved = (
         await issueThreadInteractionService(db).listForIssue(
           conversation.issueId,
         )
-      )[0].status,
-    ).toBe("pending");
-    await t.deliver({
-      ...vote,
-      sequence: 6,
-      actor: { address: "+15555550101", service: "iMessage" },
-    } as LiveEvent);
-    const resolved = (
-      await issueThreadInteractionService(db).listForIssue(conversation.issueId)
-    )[0];
-    expect(resolved.status).toBe("answered");
-    expect(resolved.result).toMatchObject({
-      answers: [{ questionId: "q", optionIds: ["two"] }],
-    });
-    await t.deliver({
-      ...vote,
-      sequence: 7,
-      actor: { address: "+15555550101", service: "iMessage" },
-    } as LiveEvent);
-    expect(
-      await db
-        .select()
-        .from(issueQuestionResponseDeliveries)
-        .where(
-          eq(issueQuestionResponseDeliveries.interactionId, interaction.id),
-        ),
-    ).toHaveLength(1);
-  }, 30_000);
+      )[0];
+      expect(resolved.status).toBe("answered");
+      expect(resolved.result).toMatchObject({
+        answers: [{ questionId: "q", optionIds: ["two"] }],
+      });
+      await t.deliver({
+        ...vote,
+        sequence: 7,
+        actor: { address: "+15555550101", service: "iMessage" },
+      } as LiveEvent);
+      expect(
+        await db
+          .select()
+          .from(issueQuestionResponseDeliveries)
+          .where(
+            eq(issueQuestionResponseDeliveries.interactionId, interaction.id),
+          ),
+      ).toHaveLength(1);
+    },
+    30_000,
+  );
   it("keeps multi-question drafts separate for two linked group participants", async () => {
     const t = await setup();
     await t.start();
@@ -658,8 +739,11 @@ describe("iMessage Photon channel control plane", () => {
       )[0].status,
     ).toBe("pending");
     await t.service.processPendingPublications();
-    expect(t.f.client.messages.sendText.mock.calls.some((call) =>
-      call[1].includes(`Send /answer ${ref}.2 <answer> to correct it.`))).toBe(true);
+    expect(
+      t.f.client.messages.sendText.mock.calls.some((call) =>
+        call[1].includes(`Send /answer ${ref}.2 <answer> to correct it.`),
+      ),
+    ).toBe(true);
     await t.deliver(photonEvent(9, group, `/answer ${ref}.2 Alice B`));
     await t.deliver(photonEvent(10, group, `/submit ${ref}`));
     const resolved = (
@@ -851,47 +935,99 @@ describe("iMessage Photon channel control plane", () => {
     ).toHaveLength(1);
   }, 30_000);
 
-  it.each([false, true])("keeps completed DM replies on one task through restart and publishes committed comments live (shared=%s)", async (shared) => {
-    const t = await setup(shared);
-    const original = await t.start();
-    await t.qualify();
-    await issueService(db).update(original.issueId, { status: "done", actorUserId: t.userId });
-    // Recover rows that the previous implementation marked completed without
-    // an explicit control. A restart must not require an SDK chat cache.
-    await db.update(chatConversations).set({ state: "completed" }).where(eq(chatConversations.id, original.id));
-    const service = await t.restart();
-    const visibleComments: Promise<unknown>[] = [];
-    const unsubscribe = subscribeCompanyLiveEvents(t.companyId, (event) => {
-      if (event.type === "activity.logged" && event.payload.action === "issue.comment_added") {
-        expect(event.payload.entityId).toBe(original.issueId);
-        const details = event.payload.details as { commentId: string };
-        visibleComments.push(db.select().from(issueComments).where(eq(issueComments.id, details.commentId)));
+  it.each([false, true])(
+    "keeps completed DM replies on one task through restart and publishes committed comments live (shared=%s)",
+    async (shared) => {
+      const t = await setup(shared);
+      const original = await t.start();
+      await t.qualify();
+      await issueService(db).update(original.issueId, {
+        status: "done",
+        actorUserId: t.userId,
+      });
+      // Recover rows that the previous implementation marked completed without
+      // an explicit control. A restart must not require an SDK chat cache.
+      await db
+        .update(chatConversations)
+        .set({ state: "completed" })
+        .where(eq(chatConversations.id, original.id));
+      const service = await t.restart();
+      const visibleComments: Promise<unknown>[] = [];
+      const unsubscribe = subscribeCompanyLiveEvents(t.companyId, (event) => {
+        if (
+          event.type === "activity.logged" &&
+          event.payload.action === "issue.comment_added"
+        ) {
+          expect(event.payload.entityId).toBe(original.issueId);
+          const details = event.payload.details as { commentId: string };
+          visibleComments.push(
+            db
+              .select()
+              .from(issueComments)
+              .where(eq(issueComments.id, details.commentId)),
+          );
+        }
+      });
+      try {
+        const followUp = photonEvent(3, t.f.chat, "Continue our conversation");
+        await t.deliver(followUp);
+        await t.deliver(followUp);
+        expect(await service.listConversations(t.endpoint.id)).toMatchObject([
+          { id: original.id, issueId: original.issueId, state: "active" },
+        ]);
+        expect(
+          (
+            await db
+              .select()
+              .from(issues)
+              .where(eq(issues.id, original.issueId))
+          )[0].status,
+        ).toBe("todo");
+        expect(t.wakeup).toHaveBeenCalledTimes(2);
+        expect(visibleComments).toHaveLength(1);
+        expect(await visibleComments[0]).toMatchObject([
+          {
+            issueId: original.issueId,
+            body: "Continue our conversation",
+            metadata: { sourceChannel: "imessage-photon" },
+          },
+        ]);
+        expect(
+          await db
+            .select()
+            .from(activityLog)
+            .where(
+              and(
+                eq(activityLog.entityId, original.issueId),
+                eq(activityLog.action, "issue.comment_added"),
+              ),
+            ),
+        ).toHaveLength(2);
+      } finally {
+        unsubscribe();
       }
-    });
-    try {
-      const followUp = photonEvent(3, t.f.chat, "Continue our conversation");
-      await t.deliver(followUp);
-      await t.deliver(followUp);
-      expect(await service.listConversations(t.endpoint.id)).toMatchObject([{ id: original.id, issueId: original.issueId, state: "active" }]);
-      expect((await db.select().from(issues).where(eq(issues.id, original.issueId)))[0].status).toBe("todo");
-      expect(t.wakeup).toHaveBeenCalledTimes(2);
-      expect(visibleComments).toHaveLength(1);
-      expect(await visibleComments[0]).toMatchObject([{ issueId: original.issueId, body: "Continue our conversation", metadata: { sourceChannel: "imessage-photon" } }]);
-      expect(await db.select().from(activityLog).where(and(eq(activityLog.entityId, original.issueId), eq(activityLog.action, "issue.comment_added")))).toHaveLength(2);
-    } finally {
-      unsubscribe();
-    }
-    await issueService(db).update(original.issueId, { status: "done", actorUserId: t.userId });
-    await t.deliver(photonEvent(4, t.f.chat, "/status"));
-    await service.processPendingPublications();
-    expect(t.f.client.messages.sendText.mock.calls.some((call) => call[1].includes(original.issueIdentifier!))).toBe(true);
-    await t.deliver(photonEvent(5, t.f.chat, "/new"));
-    await service.processPendingPublications();
-    await t.deliver(photonEvent(6, t.f.chat, "An explicitly new task"));
-    const conversations = await service.listConversations(t.endpoint.id);
-    expect(conversations).toHaveLength(2);
-    expect(conversations.find((row) => row.id !== original.id)?.issueId).not.toBe(original.issueId);
-  }, 30_000);
+      await issueService(db).update(original.issueId, {
+        status: "done",
+        actorUserId: t.userId,
+      });
+      await t.deliver(photonEvent(4, t.f.chat, "/status"));
+      await service.processPendingPublications();
+      expect(
+        t.f.client.messages.sendText.mock.calls.some((call) =>
+          call[1].includes(original.issueIdentifier!),
+        ),
+      ).toBe(true);
+      await t.deliver(photonEvent(5, t.f.chat, "/new"));
+      await service.processPendingPublications();
+      await t.deliver(photonEvent(6, t.f.chat, "An explicitly new task"));
+      const conversations = await service.listConversations(t.endpoint.id);
+      expect(conversations).toHaveLength(2);
+      expect(
+        conversations.find((row) => row.id !== original.id)?.issueId,
+      ).not.toBe(original.issueId);
+    },
+    30_000,
+  );
 
   it("preserves reply context, rejects old quoted controls, and starts a new generation after close", async () => {
     const t = await setup();
@@ -988,7 +1124,10 @@ describe("iMessage Photon channel control plane", () => {
     const calls = get.mock.calls.length;
     await t.deliver(photonEvent(7, group, "Late event after removal"));
     expect(get).toHaveBeenCalledTimes(calls);
-    const undiscovered = photonChat("iMessage;+;undiscovered-removed-group", true);
+    const undiscovered = photonChat(
+      "iMessage;+;undiscovered-removed-group",
+      true,
+    );
     await t.deliver({
       type: "group.changed",
       chatGuid: undiscovered.guid,
@@ -1002,213 +1141,200 @@ describe("iMessage Photon channel control plane", () => {
     } as LiveEvent);
     await t.deliver(photonEvent(9, undiscovered, "Late undiscovered event"));
     expect(get).toHaveBeenCalledTimes(calls);
-    expect((await t.service.listResources(t.endpoint.id)).filter(
-      (row) => row.type === "group_chat" && row.availability === "unavailable",
-    )).toHaveLength(2);
-  }, 30_000);
-  it.each(["active", "verifying"] as const)("reconstructs native continuation authority for a linked group responder (%s)", async (endpointStatus) => {
-    const t = await setup();
-    await t.start();
-    await t.qualify();
-    const group = photonChat("iMessage;+;native-group", true);
-    group.participants.push({ address: "+15555550102", service: "iMessage" });
-    t.chats.set(group.guid, group);
-    await t.deliver(photonEvent(3, group));
-    const resource = (await t.service.listResources(t.endpoint.id)).find(
-      (row) => row.type === "group_chat",
-    )!;
-    await t.service.replaceResources(
-      t.endpoint.id,
-      [{ id: resource.id, enabled: true }],
-      t.userId,
-    );
-    await t.deliver(photonEvent(4, group));
-    const conversation = (
-      await t.service.listConversations(t.endpoint.id)
-    ).find((row) => !row.isDirectMessage)!;
-    const second = randomUUID();
-    await db.insert(authUsers).values({
-      id: second,
-      name: "Responder",
-      email: `${second}@example.com`,
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    await db.insert(companyMemberships).values({
-      companyId: t.companyId,
-      principalType: "user",
-      principalId: second,
-      status: "active",
-      membershipRole: "operator",
-    });
-    const discover = photonEvent(5, group);
-    Object.assign(discover.message, {
-      sender: { address: "+15555550102", service: "iMessage" },
-    });
-    await t.deliver(discover);
-    await t.link("+15555550102", second);
-    const [sourceLink] = await db
-      .select()
-      .from(chatMessageLinks)
-      .where(
-        and(
-          eq(chatMessageLinks.endpointId, t.endpoint.id),
-          eq(chatMessageLinks.providerMessageId, "message-4"),
-        ),
-      );
-    const sourceRunId = randomUUID();
-    const sourceCommentId = sourceLink.commentId!;
-    await db.insert(heartbeatRuns).values({
-      id: sourceRunId,
-      companyId: t.companyId,
-      agentId: t.agentId,
-      status: "succeeded",
-      runtimeMode: "native",
-      nativeIssueId: conversation.issueId,
-      contextSnapshot: {
-        source: "chat:imessage-photon",
-        issueId: conversation.issueId,
-        wakeCommentId: sourceCommentId,
-        wakeCommentIds: [sourceCommentId],
-        taskcoreExternalChatExecutionBound: true,
-        taskcoreWake: {
-          externalChatProvider: "imessage-photon",
-          externalChatExecutionBound: true,
-        },
-      },
-    });
-    const interaction = await issueThreadInteractionService(db).create(
-      { id: conversation.issueId, companyId: t.companyId },
-      {
-        kind: "ask_user_questions",
-        continuationPolicy: "wake_assignee",
-        sourceRunId,
-        sourceCommentId,
-        payload: {
-          version: 1,
-          questions: [
-            {
-              id: "priority",
-              prompt: "Priority?",
-              selectionMode: "single",
-              required: true,
-              allowOther: false,
-              options: [
-                { id: "one", label: "One" },
-                { id: "two", label: "Two" },
-              ],
-            },
-          ],
-        },
-      },
-      { agentId: t.agentId, runId: sourceRunId },
-    );
-    await t.service.processPendingPublications();
-    if (endpointStatus === "verifying") {
-      await db.update(chatEndpoints).set({status: "verifying", setup: sql`jsonb_set(${chatEndpoints.setup}, '{step}', '"test"')`}).where(eq(chatEndpoints.id, t.endpoint.id));
-    }
-    const [action] = await db
-      .select()
-      .from(chatActions)
-      .where(
-        and(
-          eq(chatActions.endpointId, t.endpoint.id),
-          eq(chatActions.kind, "photon_interaction"),
-          eq(
-            sql<string>`${chatActions.payload}->>'interactionId'`,
-            interaction.id,
-          ),
-        ),
-      );
-    const reply = photonEvent(
-      6,
-      group,
-      `/answer ${action.payload.reference} 2`,
-    );
-    Object.assign(reply.message, {
-      sender: { address: "+15555550102", service: "iMessage" },
-    });
-    await t.deliver(reply);
     expect(
-      (
-        await issueThreadInteractionService(db).listForIssue(
-          conversation.issueId,
-        )
-      )[0].resolvedByUserId,
-    ).toBe(second);
-    const runId = randomUUID(),
-      wakeId = randomUUID();
-    const context = {
-      source: "issue.interaction.respond",
-      issueId: conversation.issueId,
-      wakeReason: "issue_commented",
-      interactionId: interaction.id,
-      interactionKind: "ask_user_questions",
-      interactionStatus: "answered",
-      sourceRunId,
-      sourceCommentId,
-      wakeCommentId: sourceCommentId,
-      wakeCommentIds: [sourceCommentId],
-      externalChatContinuation: true,
-    };
-    await db.insert(agentWakeupRequests).values({
-      id: wakeId,
-      companyId: t.companyId,
-      agentId: t.agentId,
-      source: "automation",
-      status: "running",
-      runId,
-      requestedByActorType: "user",
-      requestedByActorId: second,
-      idempotencyKey: `question-response:${interaction.id}`,
-      payload: context,
-    });
-    await db.insert(heartbeatRuns).values({
-      id: runId,
-      companyId: t.companyId,
-      agentId: t.agentId,
-      status: "running",
-      runtimeMode: "native",
-      nativeIssueId: conversation.issueId,
-      wakeupRequestId: wakeId,
-      contextSnapshot: context,
-    });
-    await db
-      .update(issueQuestionResponseDeliveries)
-      .set({
-        status: "fallback_queued",
-        deliveryMode: "wake_fallback",
-        targetRunId: runId,
-      })
-      .where(eq(issueQuestionResponseDeliveries.interactionId, interaction.id));
-    const proof = await resolveExternalChatQuestionResponse(
-      db,
-      {
+      (await t.service.listResources(t.endpoint.id)).filter(
+        (row) =>
+          row.type === "group_chat" && row.availability === "unavailable",
+      ),
+    ).toHaveLength(2);
+  }, 30_000);
+  it.each(["active", "verifying"] as const)(
+    "reconstructs native continuation authority for a linked group responder (%s)",
+    async (endpointStatus) => {
+      const t = await setup();
+      await t.start();
+      await t.qualify();
+      const group = photonChat("iMessage;+;native-group", true);
+      group.participants.push({ address: "+15555550102", service: "iMessage" });
+      t.chats.set(group.guid, group);
+      await t.deliver(photonEvent(3, group));
+      const resource = (await t.service.listResources(t.endpoint.id)).find(
+        (row) => row.type === "group_chat",
+      )!;
+      await t.service.replaceResources(
+        t.endpoint.id,
+        [{ id: resource.id, enabled: true }],
+        t.userId,
+      );
+      await t.deliver(photonEvent(4, group));
+      const conversation = (
+        await t.service.listConversations(t.endpoint.id)
+      ).find((row) => !row.isDirectMessage)!;
+      const second = randomUUID();
+      await db.insert(authUsers).values({
+        id: second,
+        name: "Responder",
+        email: `${second}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await db.insert(companyMemberships).values({
+        companyId: t.companyId,
+        principalType: "user",
+        principalId: second,
+        status: "active",
+        membershipRole: "operator",
+      });
+      const discover = photonEvent(5, group);
+      Object.assign(discover.message, {
+        sender: { address: "+15555550102", service: "iMessage" },
+      });
+      await t.deliver(discover);
+      await t.link("+15555550102", second);
+      const [sourceLink] = await db
+        .select()
+        .from(chatMessageLinks)
+        .where(
+          and(
+            eq(chatMessageLinks.endpointId, t.endpoint.id),
+            eq(chatMessageLinks.providerMessageId, "message-4"),
+          ),
+        );
+      const sourceRunId = randomUUID();
+      const sourceCommentId = sourceLink.commentId!;
+      await db.insert(heartbeatRuns).values({
+        id: sourceRunId,
         companyId: t.companyId,
         agentId: t.agentId,
-        issueId: conversation.issueId,
-        runId,
-      },
-      context,
-      "read",
-      true,
-    );
-    expect(proof).toMatchObject({
-      provider: "imessage-photon",
-      marker: { sourceCommentId, conversationId: conversation.id },
-    });
-    await db
-      .update(chatIdentityLinks)
-      .set({ status: "revoked" })
-      .where(
-        and(
-          eq(chatIdentityLinks.endpointId, t.endpoint.id),
-          eq(chatIdentityLinks.taskcoreUserId, second),
-        ),
+        status: "succeeded",
+        runtimeMode: "native",
+        nativeIssueId: conversation.issueId,
+        contextSnapshot: {
+          source: "chat:imessage-photon",
+          issueId: conversation.issueId,
+          wakeCommentId: sourceCommentId,
+          wakeCommentIds: [sourceCommentId],
+          taskcoreExternalChatExecutionBound: true,
+          taskcoreWake: {
+            externalChatProvider: "imessage-photon",
+            externalChatExecutionBound: true,
+          },
+        },
+      });
+      const interaction = await issueThreadInteractionService(db).create(
+        { id: conversation.issueId, companyId: t.companyId },
+        {
+          kind: "ask_user_questions",
+          continuationPolicy: "wake_assignee",
+          sourceRunId,
+          sourceCommentId,
+          payload: {
+            version: 1,
+            questions: [
+              {
+                id: "priority",
+                prompt: "Priority?",
+                selectionMode: "single",
+                required: true,
+                allowOther: false,
+                options: [
+                  { id: "one", label: "One" },
+                  { id: "two", label: "Two" },
+                ],
+              },
+            ],
+          },
+        },
+        { agentId: t.agentId, runId: sourceRunId },
       );
-    expect(
-      await resolveExternalChatQuestionResponse(
+      await t.service.processPendingPublications();
+      if (endpointStatus === "verifying") {
+        await db
+          .update(chatEndpoints)
+          .set({
+            status: "verifying",
+            setup: sql`jsonb_set(${chatEndpoints.setup}, '{step}', '"test"')`,
+          })
+          .where(eq(chatEndpoints.id, t.endpoint.id));
+      }
+      const [action] = await db
+        .select()
+        .from(chatActions)
+        .where(
+          and(
+            eq(chatActions.endpointId, t.endpoint.id),
+            eq(chatActions.kind, "photon_interaction"),
+            eq(
+              sql<string>`${chatActions.payload}->>'interactionId'`,
+              interaction.id,
+            ),
+          ),
+        );
+      const reply = photonEvent(
+        6,
+        group,
+        `/answer ${action.payload.reference} 2`,
+      );
+      Object.assign(reply.message, {
+        sender: { address: "+15555550102", service: "iMessage" },
+      });
+      await t.deliver(reply);
+      expect(
+        (
+          await issueThreadInteractionService(db).listForIssue(
+            conversation.issueId,
+          )
+        )[0].resolvedByUserId,
+      ).toBe(second);
+      const runId = randomUUID(),
+        wakeId = randomUUID();
+      const context = {
+        source: "issue.interaction.respond",
+        issueId: conversation.issueId,
+        wakeReason: "issue_commented",
+        interactionId: interaction.id,
+        interactionKind: "ask_user_questions",
+        interactionStatus: "answered",
+        sourceRunId,
+        sourceCommentId,
+        wakeCommentId: sourceCommentId,
+        wakeCommentIds: [sourceCommentId],
+        externalChatContinuation: true,
+      };
+      await db.insert(agentWakeupRequests).values({
+        id: wakeId,
+        companyId: t.companyId,
+        agentId: t.agentId,
+        source: "automation",
+        status: "running",
+        runId,
+        requestedByActorType: "user",
+        requestedByActorId: second,
+        idempotencyKey: `question-response:${interaction.id}`,
+        payload: context,
+      });
+      await db.insert(heartbeatRuns).values({
+        id: runId,
+        companyId: t.companyId,
+        agentId: t.agentId,
+        status: "running",
+        runtimeMode: "native",
+        nativeIssueId: conversation.issueId,
+        wakeupRequestId: wakeId,
+        contextSnapshot: context,
+      });
+      await db
+        .update(issueQuestionResponseDeliveries)
+        .set({
+          status: "fallback_queued",
+          deliveryMode: "wake_fallback",
+          targetRunId: runId,
+        })
+        .where(
+          eq(issueQuestionResponseDeliveries.interactionId, interaction.id),
+        );
+      const proof = await resolveExternalChatQuestionResponse(
         db,
         {
           companyId: t.companyId,
@@ -1219,9 +1345,37 @@ describe("iMessage Photon channel control plane", () => {
         context,
         "read",
         true,
-      ),
-    ).toBeNull();
-  }, 30_000);
+      );
+      expect(proof).toMatchObject({
+        provider: "imessage-photon",
+        marker: { sourceCommentId, conversationId: conversation.id },
+      });
+      await db
+        .update(chatIdentityLinks)
+        .set({ status: "revoked" })
+        .where(
+          and(
+            eq(chatIdentityLinks.endpointId, t.endpoint.id),
+            eq(chatIdentityLinks.taskcoreUserId, second),
+          ),
+        );
+      expect(
+        await resolveExternalChatQuestionResponse(
+          db,
+          {
+            companyId: t.companyId,
+            agentId: t.agentId,
+            issueId: conversation.issueId,
+            runId,
+          },
+          context,
+          "read",
+          true,
+        ),
+      ).toBeNull();
+    },
+    30_000,
+  );
   it("fences checkpoint writes in the transaction that verifies receiver ownership", async () => {
     const t = await setup();
     await t.start();

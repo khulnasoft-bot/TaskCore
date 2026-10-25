@@ -14,9 +14,15 @@ describe("recoveryChipLabel", () => {
   });
 
   it("falls back to the generic label for other needed kinds", () => {
-    expect(recoveryChipLabel("needed", "missing_disposition")).toBe("Recovery needed");
-    expect(recoveryChipLabel("needed", "stranded_assigned_issue")).toBe("Recovery needed");
-    expect(recoveryChipLabel("needed", "issue_graph_liveness")).toBe("Recovery needed");
+    expect(recoveryChipLabel("needed", "missing_disposition")).toBe(
+      "Recovery needed",
+    );
+    expect(recoveryChipLabel("needed", "stranded_assigned_issue")).toBe(
+      "Recovery needed",
+    );
+    expect(recoveryChipLabel("needed", "issue_graph_liveness")).toBe(
+      "Recovery needed",
+    );
   });
 
   it("adds the attempt budget to an in-progress chip when a lineage is supplied", () => {
@@ -28,18 +34,30 @@ describe("recoveryChipLabel", () => {
         retryAt: "2099-01-01T00:00:00.000Z",
       },
     });
-    expect(recoveryChipLabel("in_progress", "deliberate_wait_without_target", lineage)).toBe(
-      "Recovery in progress · 2/5",
-    );
+    expect(
+      recoveryChipLabel(
+        "in_progress",
+        "deliberate_wait_without_target",
+        lineage,
+      ),
+    ).toBe("Recovery in progress · 2/5");
   });
 
   it("keeps the plain label when no attempt has been spent yet", () => {
     const lineage = readRecoveryRetryLineage({
-      wakePolicy: { type: "bounded_owner_disposition_repair", attempt: 0, maxAttempts: 5 },
+      wakePolicy: {
+        type: "bounded_owner_disposition_repair",
+        attempt: 0,
+        maxAttempts: 5,
+      },
     });
-    expect(recoveryChipLabel("in_progress", "deliberate_wait_without_target", lineage)).toBe(
-      "Recovery in progress",
-    );
+    expect(
+      recoveryChipLabel(
+        "in_progress",
+        "deliberate_wait_without_target",
+        lineage,
+      ),
+    ).toBe("Recovery in progress");
   });
 
   it("does not override the chip label for non-needed states", () => {
@@ -63,11 +81,14 @@ describe("deriveRecoveryDisplayState", () => {
   };
 
   it("classifies workspace_validation active as needed", () => {
-    expect(deriveRecoveryDisplayState({ ...base, kind: "workspace_validation" })).toBe(
-      "needed",
-    );
     expect(
-      deriveActiveRecoveryDisplayState({ ...base, kind: "workspace_validation" }),
+      deriveRecoveryDisplayState({ ...base, kind: "workspace_validation" }),
+    ).toBe("needed");
+    expect(
+      deriveActiveRecoveryDisplayState({
+        ...base,
+        kind: "workspace_validation",
+      }),
     ).toBe("needed");
   });
 
@@ -137,51 +158,119 @@ describe("deriveRecoveryDisplayState", () => {
     it("shows a missed native finalization retry as recovery needed", () => {
       const state = deriveRecoveryDisplayState(action, { now });
       expect(state).toBe("needed");
-      expect(recoveryChipLabel(state as "needed", action.kind)).toBe("Recovery needed");
+      expect(recoveryChipLabel(state as "needed", action.kind)).toBe(
+        "Recovery needed",
+      );
     });
 
     it("describes a future finalization retry as recovery, not an active agent turn", () => {
-      expect(deriveRecoveryDisplayState({
-        ...action,
-        wakePolicy: { ...action.wakePolicy, notBefore: "2026-09-27T02:01:00.000Z" },
-      }, { now })).toBe("in_progress");
+      expect(
+        deriveRecoveryDisplayState(
+          {
+            ...action,
+            wakePolicy: {
+              ...action.wakePolicy,
+              notBefore: "2026-09-27T02:01:00.000Z",
+            },
+          },
+          { now },
+        ),
+      ).toBe("in_progress");
     });
 
-    it.each(["queued", "running"] as const)("uses the API's %s finalization projection without a scheduled retry", (status) => {
-      expect(deriveRecoveryDisplayState({
-        ...action,
-        nativeRunActivity: { runId: "finalizing-run", status, workspaceOperationId: null },
-      }, { now })).toBe("in_progress");
-      expect(deriveRecoveryDisplayState({
-        ...action,
-        nativeRunActivity: { runId: "different-run", status, workspaceOperationId: null },
-      }, { now })).toBe("needed");
-    });
-
-    it("does not borrow an unrelated legacy retry to claim native finalization activity", () => {
-      expect(deriveRecoveryDisplayState(action, {
-        now, scheduledRetry: { runId: "finalizing-run", status: "running" },
-      })).toBe("needed");
-    });
-
-    it.each([null, { kind: "resume_native_run" }, { kind: "resume_native_run", notBefore: "invalid" }])(
-      "does not claim observation without a usable finalization retry (%j)",
-      (wakePolicy) => {
-        expect(deriveRecoveryDisplayState({ ...action, wakePolicy }, { now })).toBe("needed");
+    it.each(["queued", "running"] as const)(
+      "uses the API's %s finalization projection without a scheduled retry",
+      (status) => {
+        expect(
+          deriveRecoveryDisplayState(
+            {
+              ...action,
+              nativeRunActivity: {
+                runId: "finalizing-run",
+                status,
+                workspaceOperationId: null,
+              },
+            },
+            { now },
+          ),
+        ).toBe("in_progress");
+        expect(
+          deriveRecoveryDisplayState(
+            {
+              ...action,
+              nativeRunActivity: {
+                runId: "different-run",
+                status,
+                workspaceOperationId: null,
+              },
+            },
+            { now },
+          ),
+        ).toBe("needed");
       },
     );
 
-    it.each(["active", "escalated"] as const)("shows a board-admitted export as progress despite prior %s repair ownership", (status) => {
-      expect(deriveRecoveryDisplayState({
-        ...action, status, ownerType: "board", attemptCount: 3,
-        nativeRunActivity: { runId: "finalizing-run", status: "running", workspaceOperationId: "export-operation" },
-      }, { now })).toBe("in_progress");
+    it("does not borrow an unrelated legacy retry to claim native finalization activity", () => {
+      expect(
+        deriveRecoveryDisplayState(action, {
+          now,
+          scheduledRetry: { runId: "finalizing-run", status: "running" },
+        }),
+      ).toBe("needed");
     });
 
+    it.each([
+      null,
+      { kind: "resume_native_run" },
+      { kind: "resume_native_run", notBefore: "invalid" },
+    ])(
+      "does not claim observation without a usable finalization retry (%j)",
+      (wakePolicy) => {
+        expect(
+          deriveRecoveryDisplayState({ ...action, wakePolicy }, { now }),
+        ).toBe("needed");
+      },
+    );
+
+    it.each(["active", "escalated"] as const)(
+      "shows a board-admitted export as progress despite prior %s repair ownership",
+      (status) => {
+        expect(
+          deriveRecoveryDisplayState(
+            {
+              ...action,
+              status,
+              ownerType: "board",
+              attemptCount: 3,
+              nativeRunActivity: {
+                runId: "finalizing-run",
+                status: "running",
+                workspaceOperationId: "export-operation",
+              },
+            },
+            { now },
+          ),
+        ).toBe("in_progress");
+      },
+    );
+
     it("keeps exhausted retries and board-owned failures actionable", () => {
-      const wakePolicy = { ...action.wakePolicy, notBefore: "2026-09-27T02:01:00.000Z" };
-      expect(deriveRecoveryDisplayState({ ...action, wakePolicy, attemptCount: 3 }, { now })).toBe("needed");
-      expect(deriveRecoveryDisplayState({ ...action, wakePolicy, ownerType: "board" }, { now })).toBe("needed");
+      const wakePolicy = {
+        ...action.wakePolicy,
+        notBefore: "2026-09-27T02:01:00.000Z",
+      };
+      expect(
+        deriveRecoveryDisplayState(
+          { ...action, wakePolicy, attemptCount: 3 },
+          { now },
+        ),
+      ).toBe("needed");
+      expect(
+        deriveRecoveryDisplayState(
+          { ...action, wakePolicy, ownerType: "board" },
+          { now },
+        ),
+      ).toBe("needed");
     });
   });
 
@@ -295,7 +384,11 @@ describe("deriveRecoveryDisplayState", () => {
     expect(
       deriveRecoveryDisplayState({
         ...waitBase,
-        wakePolicy: { type: "bounded_owner_disposition_repair", attempt: 1, maxAttempts: 5 },
+        wakePolicy: {
+          type: "bounded_owner_disposition_repair",
+          attempt: 1,
+          maxAttempts: 5,
+        },
       }),
     ).toBe("needed");
   });
@@ -316,16 +409,33 @@ describe("deriveRecoveryDisplayState", () => {
 
   it("does not change kinds that carry no bounded lineage", () => {
     expect(
-      deriveRecoveryDisplayState({ ...base, wakePolicy: { type: "wake_owner" } }),
+      deriveRecoveryDisplayState({
+        ...base,
+        wakePolicy: { type: "wake_owner" },
+      }),
     ).toBe("needed");
     expect(
-      deriveRecoveryDisplayState({ ...base, outcome: "delegated", wakePolicy: null }),
+      deriveRecoveryDisplayState({
+        ...base,
+        outcome: "delegated",
+        wakePolicy: null,
+      }),
     ).toBe("in_progress");
   });
 });
 
 // Historical unsafe exports are recovered by the control plane without a task warning.
-it.each(["active", "escalated", "resolved"] as const)("hides historical unsafe recovery chips: %s", status => {
-  expect(deriveActiveRecoveryDisplayState({ status, kind: "active_run_watchdog", outcome: null,
-    cause: "native_workspace_sync_out_unsafe_archive", ownerType: "board" })).toBeNull();
-});
+it.each(["active", "escalated", "resolved"] as const)(
+  "hides historical unsafe recovery chips: %s",
+  (status) => {
+    expect(
+      deriveActiveRecoveryDisplayState({
+        status,
+        kind: "active_run_watchdog",
+        outcome: null,
+        cause: "native_workspace_sync_out_unsafe_archive",
+        ownerType: "board",
+      }),
+    ).toBeNull();
+  },
+);

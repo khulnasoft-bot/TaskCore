@@ -52,13 +52,22 @@ describe("Slack access and publication boundaries", () => {
   it("treats missing channels as access denials without hiding provider failures", async () => {
     for (const code of ["slack_channel_not_found", "slack_not_in_channel"]) {
       const api = apiFor({});
-      api.mockRejectedValue(unprocessable("Slack rejected the lookup", { code }));
-      await expect(authorizeSlackChannel(authority, api, "C1")).rejects.toMatchObject({ status: 403 });
+      api.mockRejectedValue(
+        unprocessable("Slack rejected the lookup", { code }),
+      );
+      await expect(
+        authorizeSlackChannel(authority, api, "C1"),
+      ).rejects.toMatchObject({ status: 403 });
     }
-    for (const error of [tooManyRequests("Rate limited"), unprocessable("Missing scope", { code: "slack_missing_scope" })]) {
+    for (const error of [
+      tooManyRequests("Rate limited"),
+      unprocessable("Missing scope", { code: "slack_missing_scope" }),
+    ]) {
       const api = apiFor({});
       api.mockRejectedValue(error);
-      await expect(authorizeSlackChannel(authority, api, "C1")).rejects.toBe(error);
+      await expect(authorizeSlackChannel(authority, api, "C1")).rejects.toBe(
+        error,
+      );
     }
   });
   it("reads a public shared channel without checking the enabled response destination", async () => {
@@ -185,16 +194,33 @@ describe("Slack contracts and transport", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
   it("encodes Slack arguments like the official SDK, with nested values as JSON fields", async () => {
-    const fetcher = vi.fn().mockImplementation(async () => Response.json({ ok: true }));
+    const fetcher = vi
+      .fn()
+      .mockImplementation(async () => Response.json({ ok: true }));
     await slackClient("bot-secret", fetcher)("conversations.list", {
-      types: "public_channel,private_channel,mpim,im", limit: 50, exclude_archived: true, cursor: undefined,
+      types: "public_channel,private_channel,mpim,im",
+      limit: 50,
+      exclude_archived: true,
+      cursor: undefined,
     });
-    expect(fetcher.mock.calls[0][1].headers["content-type"]).toContain("application/x-www-form-urlencoded");
-    expect(Object.fromEntries(new URLSearchParams(fetcher.mock.calls[0][1].body))).toEqual({
-      types: "public_channel,private_channel,mpim,im", limit: "50", exclude_archived: "true",
+    expect(fetcher.mock.calls[0][1].headers["content-type"]).toContain(
+      "application/x-www-form-urlencoded",
+    );
+    expect(
+      Object.fromEntries(new URLSearchParams(fetcher.mock.calls[0][1].body)),
+    ).toEqual({
+      types: "public_channel,private_channel,mpim,im",
+      limit: "50",
+      exclude_archived: "true",
     });
-    await slackClient("bot-secret", fetcher)("files.completeUploadExternal", { files: [{ id: "F123", title: "Test & review" }] });
-    expect(JSON.parse(new URLSearchParams(fetcher.mock.calls[1][1].body).get("files")!)).toEqual([{ id: "F123", title: "Test & review" }]);
+    await slackClient("bot-secret", fetcher)("files.completeUploadExternal", {
+      files: [{ id: "F123", title: "Test & review" }],
+    });
+    expect(
+      JSON.parse(
+        new URLSearchParams(fetcher.mock.calls[1][1].body).get("files")!,
+      ),
+    ).toEqual([{ id: "F123", title: "Test & review" }]);
   });
   it("reports missing scopes without exposing raw provider errors or credentials", async () => {
     const fetcher = vi.fn().mockResolvedValue(

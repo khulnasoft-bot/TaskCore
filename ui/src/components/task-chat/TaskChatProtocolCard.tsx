@@ -396,7 +396,9 @@ function WorkspaceChangeCard({ item }: { item: TaskChatWorkspaceChangeItem }) {
   const stats = [
     item.totals.additions == null ? null : `+${item.totals.additions}`,
     item.totals.deletions == null ? null : `−${item.totals.deletions}`,
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
   const summary = item.complete
     ? `${fileLabel} changed${stats ? ` · ${stats}` : ""}`
     : "Workspace changes in progress";
@@ -1019,7 +1021,9 @@ function ResourceCard({
   item: Extract<TaskChatProtocolItem, { surface: "resource" }>;
 }) {
   if (item.resourceKind === "deliverable" && item.workProduct) {
-    return <RichWorkProductCard workProduct={item.workProduct} href={item.href} />;
+    return (
+      <RichWorkProductCard workProduct={item.workProduct} href={item.href} />
+    );
   }
   const Icon =
     item.resourceKind === "document"

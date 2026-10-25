@@ -1,4 +1,12 @@
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import {
+  createReadStream,
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+} from "node:fs";
 import { basename, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { spawn } from "node:child_process";
@@ -75,17 +83,24 @@ const BACKUP_DATA_CURSOR_ROWS = 100;
 const BACKUP_CLI_STDERR_BYTES = 64 * 1024;
 const BACKUP_BREAKPOINT_DETECT_BYTES = 64 * 1024;
 
-const STATEMENT_BREAKPOINT = "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900";
+const STATEMENT_BREAKPOINT =
+  "-- taskcore statement breakpoint 69f6f3f1-42fd-46a6-bf17-d1d85f8f3900";
 
 function sanitizeRestoreErrorMessage(error: unknown): string {
   if (error && typeof error === "object") {
     const record = error as Record<string, unknown>;
-    const firstLine = typeof record.message === "string"
-      ? record.message.split(/\r?\n/, 1)[0]?.trim()
-      : "";
-    const detail = typeof record.detail === "string" ? record.detail.trim() : "";
-    const severity = typeof record.severity === "string" ? record.severity.trim() : "";
-    const message = firstLine || detail || (error instanceof Error ? error.message : String(error));
+    const firstLine =
+      typeof record.message === "string"
+        ? record.message.split(/\r?\n/, 1)[0]?.trim()
+        : "";
+    const detail =
+      typeof record.detail === "string" ? record.detail.trim() : "";
+    const severity =
+      typeof record.severity === "string" ? record.severity.trim() : "";
+    const message =
+      firstLine ||
+      detail ||
+      (error instanceof Error ? error.message : String(error));
     return severity ? `${severity}: ${message}` : message;
   }
   return error instanceof Error ? error.message : String(error);
@@ -100,10 +115,14 @@ function timestamp(date: Date = new Date()): string {
  * ISO week key for grouping backups by calendar week (ISO 8601).
  */
 function isoWeekKey(date: Date): string {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  const weekNo = Math.ceil(
+    ((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
+  );
   return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
 }
 
@@ -124,12 +143,18 @@ function monthlyRetentionCutoff(nowMs: number, monthlyMonths: number): number {
  * - Monthly tier: keep the NEWEST backup per calendar month for `monthlyMonths` months
  * - Everything else is deleted
  */
-function pruneOldBackups(backupDir: string, retention: BackupRetentionPolicy, filenamePrefix: string): number {
+function pruneOldBackups(
+  backupDir: string,
+  retention: BackupRetentionPolicy,
+  filenamePrefix: string,
+): number {
   if (!existsSync(backupDir)) return 0;
 
   const now = Date.now();
-  const dailyCutoff = now - Math.max(1, retention.dailyDays) * 24 * 60 * 60 * 1000;
-  const weeklyCutoff = now - Math.max(1, retention.weeklyWeeks) * 7 * 24 * 60 * 60 * 1000;
+  const dailyCutoff =
+    now - Math.max(1, retention.dailyDays) * 24 * 60 * 60 * 1000;
+  const weeklyCutoff =
+    now - Math.max(1, retention.weeklyWeeks) * 7 * 24 * 60 * 60 * 1000;
   const monthlyCutoff = monthlyRetentionCutoff(now, retention.monthlyMonths);
 
   type BackupEntry = { name: string; fullPath: string; mtimeMs: number };
@@ -218,7 +243,9 @@ function normalizeTableSelector(value: string): string {
   return trimmed.includes(".") ? trimmed : tableKey("public", trimmed);
 }
 
-function normalizeNullifyColumnMap(values: Record<string, string[]> | undefined): Map<string, Set<string>> {
+function normalizeNullifyColumnMap(
+  values: Record<string, string[]> | undefined,
+): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
   if (!values) return out;
   for (const [tableName, columns] of Object.entries(values)) {
@@ -237,7 +264,7 @@ function normalizeNullifyColumnMap(values: Record<string, string[]> | undefined)
 }
 
 function quoteIdentifier(value: string): string {
-  return `"${value.replaceAll("\"", "\"\"")}"`;
+  return `"${value.replaceAll('"', '""')}"`;
 }
 
 function quoteQualifiedName(schemaName: string, objectName: string): string {
@@ -255,18 +282,21 @@ function nonSystemSchemaPredicate(identifier: string): string {
 }
 
 function hasBackupTransforms(opts: RunDatabaseBackupOptions): boolean {
-  return (opts.excludeTables?.length ?? 0) > 0 ||
-    Object.keys(opts.nullifyColumns ?? {}).length > 0;
+  return (
+    (opts.excludeTables?.length ?? 0) > 0 ||
+    Object.keys(opts.nullifyColumns ?? {}).length > 0
+  );
 }
 
 function formatPostgresArrayElement(value: unknown): string {
   if (value === null || value === undefined) return "NULL";
   if (Array.isArray(value)) return formatPostgresArrayLiteral(value);
-  const raw = value instanceof Date
-    ? value.toISOString()
-    : typeof value === "object"
-      ? JSON.stringify(value)
-      : String(value);
+  const raw =
+    value instanceof Date
+      ? value.toISOString()
+      : typeof value === "object"
+        ? JSON.stringify(value)
+        : String(value);
   if (raw.length === 0 || /^null$/i.test(raw) || /[{}\s,"\\]/.test(raw)) {
     return `"${raw.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
   }
@@ -291,33 +321,50 @@ function formatSqlValue(
   if (typeof val === "boolean") return val ? "true" : "false";
   if (typeof val === "number") return String(val);
   if (val instanceof Date) return formatSqlLiteral(val.toISOString());
-  if (Array.isArray(val)) return formatSqlLiteral(formatPostgresArrayLiteral(val));
+  if (Array.isArray(val))
+    return formatSqlLiteral(formatPostgresArrayLiteral(val));
   if (typeof val === "object") return formatSqlLiteral(JSON.stringify(val));
   return formatSqlLiteral(String(val));
 }
 
-function appendCapturedStderr(previous: string, chunk: Buffer | string): string {
-  const next = previous + (Buffer.isBuffer(chunk) ? chunk.toString("utf8") : chunk);
+function appendCapturedStderr(
+  previous: string,
+  chunk: Buffer | string,
+): string {
+  const next =
+    previous + (Buffer.isBuffer(chunk) ? chunk.toString("utf8") : chunk);
   if (Buffer.byteLength(next, "utf8") <= BACKUP_CLI_STDERR_BYTES) return next;
-  return Buffer.from(next, "utf8").subarray(-BACKUP_CLI_STDERR_BYTES).toString("utf8");
+  return Buffer.from(next, "utf8")
+    .subarray(-BACKUP_CLI_STDERR_BYTES)
+    .toString("utf8");
 }
 
-async function waitForChildExit(child: ReturnType<typeof spawn>, label: string): Promise<void> {
+async function waitForChildExit(
+  child: ReturnType<typeof spawn>,
+  label: string,
+): Promise<void> {
   let stderr = "";
   child.stderr?.on("data", (chunk) => {
     stderr = appendCapturedStderr(stderr, chunk);
   });
 
-  const result = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
+  const result = await new Promise<{
+    code: number | null;
+    signal: NodeJS.Signals | null;
+  }>((resolve, reject) => {
     child.once("error", reject);
     child.once("exit", (code, signal) => resolve({ code, signal }));
   });
 
   if (result.signal) {
-    throw new Error(`${label} exited via ${result.signal}${stderr.trim() ? `: ${stderr.trim()}` : ""}`);
+    throw new Error(
+      `${label} exited via ${result.signal}${stderr.trim() ? `: ${stderr.trim()}` : ""}`,
+    );
   }
   if (result.code !== 0) {
-    throw new Error(`${label} failed with exit code ${result.code ?? "unknown"}${stderr.trim() ? `: ${stderr.trim()}` : ""}`);
+    throw new Error(
+      `${label} failed with exit code ${result.code ?? "unknown"}${stderr.trim() ? `: ${stderr.trim()}` : ""}`,
+    );
   }
 }
 
@@ -356,7 +403,10 @@ async function runPgDumpBackup(opts: {
   ]);
 }
 
-async function restoreWithPsql(opts: RunDatabaseRestoreOptions, connectTimeout: number): Promise<void> {
+async function restoreWithPsql(
+  opts: RunDatabaseRestoreOptions,
+  connectTimeout: number,
+): Promise<void> {
   const psqlBin = process.env.TASKCORE_PSQL_PATH || "psql";
   const child = spawn(
     psqlBin,
@@ -398,7 +448,8 @@ async function hasStatementBreakpoints(backupFile: string): Promise<boolean> {
     for await (const chunk of stream) {
       text += Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
       if (text.includes(STATEMENT_BREAKPOINT)) return true;
-      if (Buffer.byteLength(text, "utf8") >= BACKUP_BREAKPOINT_DETECT_BYTES) return false;
+      if (Buffer.byteLength(text, "utf8") >= BACKUP_BREAKPOINT_DETECT_BYTES)
+        return false;
     }
     return text.includes(STATEMENT_BREAKPOINT);
   } finally {
@@ -407,7 +458,9 @@ async function hasStatementBreakpoints(backupFile: string): Promise<boolean> {
   }
 }
 
-async function* readRestoreStatements(backupFile: string): AsyncGenerator<string> {
+async function* readRestoreStatements(
+  backupFile: string,
+): AsyncGenerator<string> {
   const raw = createReadStream(backupFile);
   const stream = backupFile.endsWith(".gz") ? raw.pipe(createGunzip()) : raw;
   stream.setEncoding("utf8");
@@ -446,7 +499,10 @@ async function* readRestoreStatements(backupFile: string): AsyncGenerator<string
   }
 }
 
-export function createBufferedTextFileWriter(filePath: string, maxBufferedBytes = DEFAULT_BACKUP_WRITE_BUFFER_BYTES) {
+export function createBufferedTextFileWriter(
+  filePath: string,
+  maxBufferedBytes = DEFAULT_BACKUP_WRITE_BUFFER_BYTES,
+) {
   const filePromise = openFile(filePath, "w");
   const flushThreshold = Math.max(1, Math.trunc(maxBufferedBytes));
   let bufferedLines: string[] = [];
@@ -528,16 +584,26 @@ export function createBufferedTextFileWriter(filePath: string, maxBufferedBytes 
   };
 }
 
-export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise<RunDatabaseBackupResult> {
+export async function runDatabaseBackup(
+  opts: RunDatabaseBackupOptions,
+): Promise<RunDatabaseBackupResult> {
   const filenamePrefix = opts.filenamePrefix ?? "taskcore";
   const retention = opts.retention;
-  const connectTimeout = Math.max(1, Math.trunc(opts.connectTimeoutSeconds ?? 5));
+  const connectTimeout = Math.max(
+    1,
+    Math.trunc(opts.connectTimeoutSeconds ?? 5),
+  );
   const backupEngine = opts.backupEngine ?? "auto";
   let effectiveBackupEngine = backupEngine;
   const canUsePgDump = !hasBackupTransforms(opts);
   const excludedTableNames = normalizeTableNameSet(opts.excludeTables);
-  const nullifiedColumnsByTable = normalizeNullifyColumnMap(opts.nullifyColumns);
-  let sql = postgres(opts.connectionString, { max: 1, connect_timeout: connectTimeout });
+  const nullifiedColumnsByTable = normalizeNullifyColumnMap(
+    opts.nullifyColumns,
+  );
+  let sql = postgres(opts.connectionString, {
+    max: 1,
+    connect_timeout: connectTimeout,
+  });
   let sqlClosed = false;
   const closeSql = async () => {
     if (sqlClosed) return;
@@ -548,12 +614,18 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
   // Initial and final sleep checks can run within the same second. A failed
   // second checkpoint must never overwrite the first verified recovery point.
   const checkpointSuffix = opts.verifyBeforePrune ? `-${randomUUID()}` : "";
-  const sqlFile = resolve(opts.backupDir, `${filenamePrefix}-${timestamp()}${checkpointSuffix}.sql`);
+  const sqlFile = resolve(
+    opts.backupDir,
+    `${filenamePrefix}-${timestamp()}${checkpointSuffix}.sql`,
+  );
   const backupFile = `${sqlFile}.gz`;
   const writer = createBufferedTextFileWriter(sqlFile);
 
   try {
-    if (backupEngine === "pg_dump" || (backupEngine === "auto" && canUsePgDump)) {
+    if (
+      backupEngine === "pg_dump" ||
+      (backupEngine === "auto" && canUsePgDump)
+    ) {
       await sql`SELECT 1`;
       let dumped = false;
       try {
@@ -566,13 +638,20 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
         dumped = true;
       } catch (error) {
         if (existsSync(backupFile)) {
-          try { unlinkSync(backupFile); } catch { /* ignore */ }
+          try {
+            unlinkSync(backupFile);
+          } catch {
+            /* ignore */
+          }
         }
         if (backupEngine === "pg_dump") {
           throw error;
         }
         effectiveBackupEngine = "javascript";
-        sql = postgres(opts.connectionString, { max: 1, connect_timeout: connectTimeout });
+        sql = postgres(opts.connectionString, {
+          max: 1,
+          connect_timeout: connectTimeout,
+        });
         sqlClosed = false;
       }
       if (dumped) {
@@ -582,7 +661,11 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
         await writer.abort();
         const sizeBytes = statSync(backupFile).size;
         await opts.verifyBeforePrune?.(backupFile);
-        const prunedCount = pruneOldBackups(opts.backupDir, retention, filenamePrefix);
+        const prunedCount = pruneOldBackups(
+          opts.backupDir,
+          retention,
+          filenamePrefix,
+        );
         return { backupFile, sizeBytes, prunedCount };
       }
     }
@@ -615,11 +698,19 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
       ORDER BY table_schema, table_name
     `;
     const tables = allTables;
-    const includedTableNames = new Set(tables.map(({ schema_name, tablename }) => tableKey(schema_name, tablename)));
-    const includedSchemas = new Set(tables.map(({ schema_name }) => schema_name));
+    const includedTableNames = new Set(
+      tables.map(({ schema_name, tablename }) =>
+        tableKey(schema_name, tablename),
+      ),
+    );
+    const includedSchemas = new Set(
+      tables.map(({ schema_name }) => schema_name),
+    );
 
     // Get all enums
-    const enums = await sql<{ schema_name: string; typname: string; labels: string[] }[]>`
+    const enums = await sql<
+      { schema_name: string; typname: string; labels: string[] }[]
+    >`
       SELECT n.nspname AS schema_name, t.typname, array_agg(e.enumlabel ORDER BY e.enumsortorder) AS labels
       FROM pg_type t
       JOIN pg_enum e ON t.oid = e.enumtypid
@@ -674,23 +765,35 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
       ORDER BY n.nspname, seq.relname
     `;
     const sequences = [...allSequences, ...identitySequences].filter(
-      (seq) => !seq.owner_table || includedTableNames.has(tableKey(seq.owner_schema ?? "public", seq.owner_table)),
+      (seq) =>
+        !seq.owner_table ||
+        includedTableNames.has(
+          tableKey(seq.owner_schema ?? "public", seq.owner_table),
+        ),
     );
 
     const schemas = new Set<string>(includedSchemas);
     for (const seq of sequences) schemas.add(seq.sequence_schema);
-    const extraSchemas = [...schemas].filter((schemaName) => schemaName !== "public");
+    const extraSchemas = [...schemas].filter(
+      (schemaName) => schemaName !== "public",
+    );
     if (extraSchemas.length > 0) {
       emit("-- Schemas");
       for (const schemaName of extraSchemas) {
-        emitStatement(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(schemaName)};`);
+        emitStatement(
+          `CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(schemaName)};`,
+        );
       }
       emit("");
     }
 
     for (const e of enums) {
-      const labels = e.labels.map((l) => `'${l.replace(/'/g, "''")}'`).join(", ");
-      emitStatement(`CREATE TYPE ${quoteQualifiedName(e.schema_name, e.typname)} AS ENUM (${labels});`);
+      const labels = e.labels
+        .map((l) => `'${l.replace(/'/g, "''")}'`)
+        .join(", ");
+      emitStatement(
+        `CREATE TYPE ${quoteQualifiedName(e.schema_name, e.typname)} AS ENUM (${labels});`,
+      );
     }
     if (enums.length > 0) emit("");
 
@@ -715,9 +818,14 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
 
     if (sequences.length > 0) {
       emit("-- Sequences");
-      for (const seq of sequences.filter(seq => !seq.is_identity)) {
-        const qualifiedSequenceName = quoteQualifiedName(seq.sequence_schema, seq.sequence_name);
-        emitStatement(`DROP SEQUENCE IF EXISTS ${qualifiedSequenceName} CASCADE;`);
+      for (const seq of sequences.filter((seq) => !seq.is_identity)) {
+        const qualifiedSequenceName = quoteQualifiedName(
+          seq.sequence_schema,
+          seq.sequence_name,
+        );
+        emitStatement(
+          `DROP SEQUENCE IF EXISTS ${qualifiedSequenceName} CASCADE;`,
+        );
         emitStatement(
           `CREATE SEQUENCE ${qualifiedSequenceName} AS ${seq.data_type} INCREMENT BY ${seq.increment} MINVALUE ${seq.minimum_value} MAXVALUE ${seq.maximum_value} START WITH ${seq.start_value}${seq.cycle_option === "YES" ? " CYCLE" : " NO CYCLE"};`,
         );
@@ -728,19 +836,21 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     // Get full CREATE TABLE DDL via column info
     for (const { schema_name, tablename } of tables) {
       const qualifiedTableName = quoteQualifiedName(schema_name, tablename);
-      const columns = await sql<{
-        column_name: string;
-        data_type: string;
-        udt_schema: string;
-        udt_name: string;
-        is_nullable: string;
-        column_default: string | null;
-        is_identity: string;
-        identity_generation: "ALWAYS" | "BY DEFAULT" | null;
-        character_maximum_length: number | null;
-        numeric_precision: number | null;
-        numeric_scale: number | null;
-      }[]>`
+      const columns = await sql<
+        {
+          column_name: string;
+          data_type: string;
+          udt_schema: string;
+          udt_name: string;
+          is_nullable: string;
+          column_default: string | null;
+          is_identity: string;
+          identity_generation: "ALWAYS" | "BY DEFAULT" | null;
+          character_maximum_length: number | null;
+          numeric_precision: number | null;
+          numeric_scale: number | null;
+        }[]
+      >`
         SELECT column_name, data_type, udt_schema, udt_name, is_nullable, column_default, is_identity, identity_generation,
                character_maximum_length, numeric_precision, numeric_scale
         FROM information_schema.columns
@@ -758,14 +868,18 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
           typeStr = quoteQualifiedName(col.udt_schema, col.udt_name);
         } else if (col.data_type === "ARRAY") {
           const elementType = col.udt_name.replace(/^_/, "");
-          typeStr = col.udt_schema === "pg_catalog"
-            ? `${elementType}[]`
-            : `${quoteQualifiedName(col.udt_schema, elementType)}[]`;
+          typeStr =
+            col.udt_schema === "pg_catalog"
+              ? `${elementType}[]`
+              : `${quoteQualifiedName(col.udt_schema, elementType)}[]`;
         } else if (col.data_type === "character varying") {
           typeStr = col.character_maximum_length
             ? `varchar(${col.character_maximum_length})`
             : "varchar";
-        } else if (col.data_type === "numeric" && col.numeric_precision != null) {
+        } else if (
+          col.data_type === "numeric" &&
+          col.numeric_precision != null
+        ) {
           typeStr =
             col.numeric_scale != null
               ? `numeric(${col.numeric_precision}, ${col.numeric_scale})`
@@ -776,17 +890,28 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
 
         let def = `  "${col.column_name}" ${typeStr}`;
         if (col.is_identity === "YES") {
-          const sequence = sequences.find(seq => seq.is_identity && seq.owner_schema === schema_name
-            && seq.owner_table === tablename && seq.owner_column === col.column_name);
-          if (!sequence || !col.identity_generation) throw new Error(`Missing identity sequence for ${schema_name}.${tablename}.${col.column_name}`);
+          const sequence = sequences.find(
+            (seq) =>
+              seq.is_identity &&
+              seq.owner_schema === schema_name &&
+              seq.owner_table === tablename &&
+              seq.owner_column === col.column_name,
+          );
+          if (!sequence || !col.identity_generation)
+            throw new Error(
+              `Missing identity sequence for ${schema_name}.${tablename}.${col.column_name}`,
+            );
           def += ` GENERATED ${col.identity_generation} AS IDENTITY (SEQUENCE NAME ${quoteQualifiedName(sequence.sequence_schema, sequence.sequence_name)} START WITH ${sequence.start_value} INCREMENT BY ${sequence.increment} MINVALUE ${sequence.minimum_value} MAXVALUE ${sequence.maximum_value} ${sequence.cycle_option === "YES" ? "CYCLE" : "NO CYCLE"})`;
-        } else if (col.column_default != null) def += ` DEFAULT ${col.column_default}`;
+        } else if (col.column_default != null)
+          def += ` DEFAULT ${col.column_default}`;
         if (col.is_nullable === "NO") def += " NOT NULL";
         colDefs.push(def);
       }
 
       // Primary key
-      const pk = await sql<{ constraint_name: string; column_names: string[] }[]>`
+      const pk = await sql<
+        { constraint_name: string; column_names: string[] }[]
+      >`
         SELECT c.conname AS constraint_name,
                array_agg(a.attname ORDER BY array_position(c.conkey, a.attnum)) AS column_names
         FROM pg_constraint c
@@ -798,7 +923,9 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
       `;
       for (const p of pk) {
         const cols = p.column_names.map((c) => `"${c}"`).join(", ");
-        colDefs.push(`  CONSTRAINT "${p.constraint_name}" PRIMARY KEY (${cols})`);
+        colDefs.push(
+          `  CONSTRAINT "${p.constraint_name}" PRIMARY KEY (${cols})`,
+        );
       }
 
       emit(`CREATE TABLE ${qualifiedTableName} (`);
@@ -808,7 +935,9 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
       emit("");
     }
 
-    const ownedSequences = sequences.filter((seq) => !seq.is_identity && seq.owner_table && seq.owner_column);
+    const ownedSequences = sequences.filter(
+      (seq) => !seq.is_identity && seq.owner_table && seq.owner_column,
+    );
     if (ownedSequences.length > 0) {
       emit("-- Sequence ownership");
       for (const seq of ownedSequences) {
@@ -820,12 +949,14 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     }
 
     // Unique constraints must exist before foreign keys that reference them.
-    const allUniqueConstraints = await sql<{
-      constraint_name: string;
-      schema_name: string;
-      tablename: string;
-      column_names: string[];
-    }[]>`
+    const allUniqueConstraints = await sql<
+      {
+        constraint_name: string;
+        schema_name: string;
+        tablename: string;
+        column_names: string[];
+      }[]
+    >`
       SELECT c.conname AS constraint_name,
              n.nspname AS schema_name,
              t.relname AS tablename,
@@ -839,13 +970,17 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
       GROUP BY c.conname, n.nspname, t.relname
       ORDER BY n.nspname, t.relname, c.conname
     `;
-    const uniques = allUniqueConstraints.filter((entry) => includedTableNames.has(tableKey(entry.schema_name, entry.tablename)));
+    const uniques = allUniqueConstraints.filter((entry) =>
+      includedTableNames.has(tableKey(entry.schema_name, entry.tablename)),
+    );
 
     if (uniques.length > 0) {
       emit("-- Unique constraints");
       for (const u of uniques) {
         const cols = u.column_names.map((c) => `"${c}"`).join(", ");
-        emitStatement(`ALTER TABLE ${quoteQualifiedName(u.schema_name, u.tablename)} ADD CONSTRAINT "${u.constraint_name}" UNIQUE (${cols});`);
+        emitStatement(
+          `ALTER TABLE ${quoteQualifiedName(u.schema_name, u.tablename)} ADD CONSTRAINT "${u.constraint_name}" UNIQUE (${cols});`,
+        );
       }
       emit("");
     }
@@ -853,17 +988,19 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     // Collect foreign keys now. Emit them after routines and standalone indexes
     // because PostgreSQL permits a non-constraint unique index to be the target
     // of a foreign key.
-    const allForeignKeys = await sql<{
-      constraint_name: string;
-      source_schema: string;
-      source_table: string;
-      source_columns: string[];
-      target_schema: string;
-      target_table: string;
-      target_columns: string[];
-      update_rule: string;
-      delete_rule: string;
-    }[]>`
+    const allForeignKeys = await sql<
+      {
+        constraint_name: string;
+        source_schema: string;
+        source_table: string;
+        source_columns: string[];
+        target_schema: string;
+        target_table: string;
+        target_columns: string[];
+        update_rule: string;
+        delete_rule: string;
+      }[]
+    >`
       SELECT
         c.conname AS constraint_name,
         srcn.nspname AS source_schema,
@@ -888,8 +1025,9 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
       ORDER BY srcn.nspname, src.relname, c.conname
     `;
     const fks = allForeignKeys.filter(
-      (fk) => includedTableNames.has(tableKey(fk.source_schema, fk.source_table))
-        && includedTableNames.has(tableKey(fk.target_schema, fk.target_table)),
+      (fk) =>
+        includedTableNames.has(tableKey(fk.source_schema, fk.source_table)) &&
+        includedTableNames.has(tableKey(fk.target_schema, fk.target_table)),
     );
 
     // JavaScript backups are used when a worktree seed filters or transforms
@@ -920,7 +1058,9 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     }
 
     // Indexes (non-primary, non-unique-constraint)
-    const allIndexes = await sql<{ schema_name: string; tablename: string; indexdef: string }[]>`
+    const allIndexes = await sql<
+      { schema_name: string; tablename: string; indexdef: string }[]
+    >`
       SELECT schemaname AS schema_name, tablename, indexdef
       FROM pg_indexes
       WHERE ${sql.unsafe(nonSystemSchemaPredicate("schemaname"))}
@@ -931,7 +1071,9 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
         )
       ORDER BY schemaname, tablename, indexname
     `;
-    const indexes = allIndexes.filter((entry) => includedTableNames.has(tableKey(entry.schema_name, entry.tablename)));
+    const indexes = allIndexes.filter((entry) =>
+      includedTableNames.has(tableKey(entry.schema_name, entry.tablename)),
+    );
 
     if (indexes.length > 0) {
       emit("-- Indexes");
@@ -957,9 +1099,15 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     for (const { schema_name, tablename } of tables) {
       const currentTableKey = tableKey(schema_name, tablename);
       const qualifiedTableName = quoteQualifiedName(schema_name, tablename);
-      const overrideIdentity = identitySequences.some(seq => seq.owner_schema === schema_name && seq.owner_table === tablename);
-      const count = await sql.unsafe<{ n: number }[]>(`SELECT count(*)::int AS n FROM ${qualifiedTableName}`);
-      if (excludedTableNames.has(currentTableKey) || (count[0]?.n ?? 0) === 0) continue;
+      const overrideIdentity = identitySequences.some(
+        (seq) =>
+          seq.owner_schema === schema_name && seq.owner_table === tablename,
+      );
+      const count = await sql.unsafe<{ n: number }[]>(
+        `SELECT count(*)::int AS n FROM ${qualifiedTableName}`,
+      );
+      if (excludedTableNames.has(currentTableKey) || (count[0]?.n ?? 0) === 0)
+        continue;
 
       // Get column info for this table
       const cols = await sql<{ column_name: string; data_type: string }[]>`
@@ -972,17 +1120,26 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
 
       emit(`-- Data for: ${schema_name}.${tablename} (${count[0]!.n} rows)`);
 
-      const nullifiedColumns = nullifiedColumnsByTable.get(currentTableKey) ?? new Set<string>();
-      if (effectiveBackupEngine !== "javascript" && nullifiedColumns.size === 0) {
+      const nullifiedColumns =
+        nullifiedColumnsByTable.get(currentTableKey) ?? new Set<string>();
+      if (
+        effectiveBackupEngine !== "javascript" &&
+        nullifiedColumns.size === 0
+      ) {
         emit(`COPY ${qualifiedTableName} (${colNames}) FROM stdin;`);
         await writer.writeRaw("\n");
-        const copySql = postgres(opts.connectionString, { max: 1, connect_timeout: connectTimeout });
+        const copySql = postgres(opts.connectionString, {
+          max: 1,
+          connect_timeout: connectTimeout,
+        });
         try {
           const copyStream = await copySql
             .unsafe(`COPY ${qualifiedTableName} (${colNames}) TO STDOUT`)
             .readable();
           for await (const chunk of copyStream) {
-            await writer.writeRaw(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+            await writer.writeRaw(
+              Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)),
+            );
           }
         } finally {
           await copySql.end();
@@ -1000,20 +1157,29 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
       for await (const rows of rowCursor) {
         for (const row of rows) {
           const values = row.map((rawValue, index) =>
-            formatSqlValue(rawValue, cols[index]?.column_name, nullifiedColumns, cols[index]?.data_type),
+            formatSqlValue(
+              rawValue,
+              cols[index]?.column_name,
+              nullifiedColumns,
+              cols[index]?.data_type,
+            ),
           );
-          emitStatement(`INSERT INTO ${qualifiedTableName} (${colNames})${overrideIdentity ? " OVERRIDING SYSTEM VALUE" : ""} VALUES (${values.join(", ")});`);
+          emitStatement(
+            `INSERT INTO ${qualifiedTableName} (${colNames})${overrideIdentity ? " OVERRIDING SYSTEM VALUE" : ""} VALUES (${values.join(", ")});`,
+          );
         }
         await writer.drain();
       }
       emit("");
     }
 
-    const allTriggers = await sql<{
-      schema_name: string;
-      tablename: string;
-      definition: string;
-    }[]>`
+    const allTriggers = await sql<
+      {
+        schema_name: string;
+        tablename: string;
+        definition: string;
+      }[]
+    >`
       SELECT
         n.nspname AS schema_name,
         c.relname AS tablename,
@@ -1025,9 +1191,9 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
         AND ${sql.unsafe(nonSystemSchemaPredicate("n.nspname"))}
       ORDER BY n.nspname, c.relname, t.tgname
     `;
-    const triggers = allTriggers.filter((entry) => (
-      includedTableNames.has(tableKey(entry.schema_name, entry.tablename))
-    ));
+    const triggers = allTriggers.filter((entry) =>
+      includedTableNames.has(tableKey(entry.schema_name, entry.tablename)),
+    );
     if (triggers.length > 0) {
       emit("-- Triggers");
       for (const trigger of triggers) {
@@ -1040,15 +1206,19 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
     if (sequences.length > 0) {
       emit("-- Sequence values");
       for (const seq of sequences) {
-        const qualifiedSequenceName = quoteQualifiedName(seq.sequence_schema, seq.sequence_name);
-        const val = await sql.unsafe<{ last_value: string; is_called: boolean }[]>(
-          `SELECT last_value::text, is_called FROM ${qualifiedSequenceName}`,
+        const qualifiedSequenceName = quoteQualifiedName(
+          seq.sequence_schema,
+          seq.sequence_name,
         );
+        const val = await sql.unsafe<
+          { last_value: string; is_called: boolean }[]
+        >(`SELECT last_value::text, is_called FROM ${qualifiedSequenceName}`);
         const skipSequenceValue =
-          seq.owner_table !== null
-            && excludedTableNames.has(seq.owner_table);
+          seq.owner_table !== null && excludedTableNames.has(seq.owner_table);
         if (val[0] && !skipSequenceValue) {
-          emitStatement(`SELECT setval('${qualifiedSequenceName.replaceAll("'", "''")}', ${val[0].last_value}, ${val[0].is_called ? "true" : "false"});`);
+          emitStatement(
+            `SELECT setval('${qualifiedSequenceName.replaceAll("'", "''")}', ${val[0].last_value}, ${val[0].is_called ? "true" : "false"});`,
+          );
         }
       }
       emit("");
@@ -1067,7 +1237,11 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
 
     const sizeBytes = statSync(backupFile).size;
     await opts.verifyBeforePrune?.(backupFile);
-    const prunedCount = pruneOldBackups(opts.backupDir, retention, filenamePrefix);
+    const prunedCount = pruneOldBackups(
+      opts.backupDir,
+      retention,
+      filenamePrefix,
+    );
 
     return {
       backupFile,
@@ -1077,10 +1251,18 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
   } catch (error) {
     await writer.abort();
     if (existsSync(backupFile)) {
-      try { unlinkSync(backupFile); } catch { /* ignore */ }
+      try {
+        unlinkSync(backupFile);
+      } catch {
+        /* ignore */
+      }
     }
     if (existsSync(sqlFile)) {
-      try { unlinkSync(sqlFile); } catch { /* ignore */ }
+      try {
+        unlinkSync(sqlFile);
+      } catch {
+        /* ignore */
+      }
     }
     throw error;
   } finally {
@@ -1088,8 +1270,13 @@ export async function runDatabaseBackup(opts: RunDatabaseBackupOptions): Promise
   }
 }
 
-export async function runDatabaseRestore(opts: RunDatabaseRestoreOptions): Promise<void> {
-  const connectTimeout = Math.max(1, Math.trunc(opts.connectTimeoutSeconds ?? 5));
+export async function runDatabaseRestore(
+  opts: RunDatabaseRestoreOptions,
+): Promise<void> {
+  const connectTimeout = Math.max(
+    1,
+    Math.trunc(opts.connectTimeoutSeconds ?? 5),
+  );
   let psqlRestoreError: unknown = null;
   try {
     await restoreWithPsql(opts, connectTimeout);
@@ -1103,7 +1290,10 @@ export async function runDatabaseRestore(opts: RunDatabaseRestoreOptions): Promi
     }
   }
 
-  const sql = postgres(opts.connectionString, { max: 1, connect_timeout: connectTimeout });
+  const sql = postgres(opts.connectionString, {
+    max: 1,
+    connect_timeout: connectTimeout,
+  });
 
   try {
     await sql`SELECT 1`;
@@ -1111,13 +1301,19 @@ export async function runDatabaseRestore(opts: RunDatabaseRestoreOptions): Promi
       await sql.unsafe(statement).execute();
     }
   } catch (error) {
-    const statementPreview = typeof error === "object" && error !== null && typeof (error as Record<string, unknown>).query === "string"
-      ? String((error as Record<string, unknown>).query)
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .find((line) => line.length > 0 && !line.startsWith("--"))
-      : null;
-    const psqlMessage = psqlRestoreError === null ? "" : `; psql error: ${sanitizeRestoreErrorMessage(psqlRestoreError)}`;
+    const statementPreview =
+      typeof error === "object" &&
+      error !== null &&
+      typeof (error as Record<string, unknown>).query === "string"
+        ? String((error as Record<string, unknown>).query)
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .find((line) => line.length > 0 && !line.startsWith("--"))
+        : null;
+    const psqlMessage =
+      psqlRestoreError === null
+        ? ""
+        : `; psql error: ${sanitizeRestoreErrorMessage(psqlRestoreError)}`;
     throw new Error(
       `Failed to restore ${basename(opts.backupFile)}: ${sanitizeRestoreErrorMessage(error)}${statementPreview ? ` [statement: ${statementPreview.slice(0, 120)}]` : ""}${psqlMessage}`,
     );
@@ -1126,8 +1322,13 @@ export async function runDatabaseRestore(opts: RunDatabaseRestoreOptions): Promi
   }
 }
 
-export function formatDatabaseBackupResult(result: RunDatabaseBackupResult): string {
+export function formatDatabaseBackupResult(
+  result: RunDatabaseBackupResult,
+): string {
   const size = formatBackupSize(result.sizeBytes);
-  const pruned = result.prunedCount > 0 ? `; pruned ${result.prunedCount} old backup(s)` : "";
+  const pruned =
+    result.prunedCount > 0
+      ? `; pruned ${result.prunedCount} old backup(s)`
+      : "";
   return `${result.backupFile} (${size}${pruned})`;
 }

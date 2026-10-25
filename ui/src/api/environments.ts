@@ -68,9 +68,7 @@ export interface EnvironmentCustomImageRollbackResult {
 }
 
 export type EnvironmentCustomImageRelinkClassification =
-  | "knob_only"
-  | "boot_source_drift"
-  | "unclassified";
+  "knob_only" | "boot_source_drift" | "unclassified";
 
 export interface EnvironmentCustomImageRelinkResult {
   template: EnvironmentCustomImageTemplate;
@@ -89,7 +87,10 @@ export interface EnvironmentCustomImageDriftedPath {
  * that passed the secret containment check; excluded paths carry the name only.
  */
 export interface EnvironmentCustomImageRelinkConflict {
-  classification: Exclude<EnvironmentCustomImageRelinkClassification, "knob_only">;
+  classification: Exclude<
+    EnvironmentCustomImageRelinkClassification,
+    "knob_only"
+  >;
   driftedPaths: EnvironmentCustomImageDriftedPath[];
 }
 
@@ -107,45 +108,63 @@ export interface EnvironmentSecretRefDescriptor {
 }
 
 export const environmentsApi = {
-  list: (companyId: string) => api.get<Environment[]>(`/companies/${companyId}/environments`),
+  list: (companyId: string) =>
+    api.get<Environment[]>(`/companies/${companyId}/environments`),
   capabilities: (companyId: string) =>
-    api.get<EnvironmentCapabilities>(`/companies/${companyId}/environments/capabilities`),
-  lease: (leaseId: string) => api.get<EnvironmentLease>(`/environment-leases/${leaseId}`),
+    api.get<EnvironmentCapabilities>(
+      `/companies/${companyId}/environments/capabilities`,
+    ),
+  lease: (leaseId: string) =>
+    api.get<EnvironmentLease>(`/environment-leases/${leaseId}`),
   secretRefs: (environmentId: string) =>
-    api.get<{ refs: EnvironmentSecretRefDescriptor[] }>(`/environments/${environmentId}/secret-refs`),
+    api.get<{ refs: EnvironmentSecretRefDescriptor[] }>(
+      `/environments/${environmentId}/secret-refs`,
+    ),
   deleteBlastRadius: (environmentId: string) =>
-    api.get<EnvironmentDeleteBlastRadius>(`/environments/${environmentId}/delete-blast-radius`),
+    api.get<EnvironmentDeleteBlastRadius>(
+      `/environments/${environmentId}/delete-blast-radius`,
+    ),
   // The flag consents to destroying the environment's reusable sandbox leases
   // inline so the delete can proceed; without it the server rejects with 409
   // while such leases exist.
-  remove: (environmentId: string, options: { destroyReusableSandboxLeases?: boolean } = {}) =>
+  remove: (
+    environmentId: string,
+    options: { destroyReusableSandboxLeases?: boolean } = {},
+  ) =>
     api.delete<Environment & { destroyedReusableSandboxLeaseCount?: number }>(
       options.destroyReusableSandboxLeases
         ? `/environments/${environmentId}?destroyReusableSandboxLeases=true`
         : `/environments/${environmentId}`,
     ),
-  create: (companyId: string, body: {
-    name: string;
-    description?: string | null;
-    driver: "local" | "ssh" | "sandbox" | "plugin";
-    config?: Record<string, unknown>;
-    metadata?: Record<string, unknown> | null;
-  }) => api.post<Environment>(`/companies/${companyId}/environments`, body),
-  update: (environmentId: string, body: {
-    name?: string;
-    description?: string | null;
-    driver?: "local" | "ssh" | "sandbox" | "plugin";
-    status?: "active" | "archived";
-    config?: Record<string, unknown>;
-    // The only field accepted on platform-managed environments (the server
-    // write floor admits envVars-only patches there).
-    envVars?: Environment["envVars"];
-    metadata?: Record<string, unknown> | null;
-    // Secret-context company for env var / config writes. Without it the
-    // server can only infer a company from existing bindings or a
-    // single-membership actor, and fails closed otherwise — a fresh
-    // environment with no bindings needs the explicit context.
-  }, companyId?: string | null) =>
+  create: (
+    companyId: string,
+    body: {
+      name: string;
+      description?: string | null;
+      driver: "local" | "ssh" | "sandbox" | "plugin";
+      config?: Record<string, unknown>;
+      metadata?: Record<string, unknown> | null;
+    },
+  ) => api.post<Environment>(`/companies/${companyId}/environments`, body),
+  update: (
+    environmentId: string,
+    body: {
+      name?: string;
+      description?: string | null;
+      driver?: "local" | "ssh" | "sandbox" | "plugin";
+      status?: "active" | "archived";
+      config?: Record<string, unknown>;
+      // The only field accepted on platform-managed environments (the server
+      // write floor admits envVars-only patches there).
+      envVars?: Environment["envVars"];
+      metadata?: Record<string, unknown> | null;
+      // Secret-context company for env var / config writes. Without it the
+      // server can only infer a company from existing bindings or a
+      // single-membership actor, and fails closed otherwise — a fresh
+      // environment with no bindings needs the explicit context.
+    },
+    companyId?: string | null,
+  ) =>
     api.patch<EnvironmentUpdateResult>(
       companyId
         ? `/environments/${environmentId}?${companyIdQuery(companyId)}`
@@ -159,13 +178,20 @@ export const environmentsApi = {
         : `/environments/${environmentId}/probe`,
       {},
     ),
-  probeConfig: (companyId: string, body: {
-    name?: string;
-    driver: "local" | "ssh" | "sandbox" | "plugin";
-    description?: string | null;
-    config?: Record<string, unknown>;
-    metadata?: Record<string, unknown> | null;
-  }) => api.post<EnvironmentProbeResult>(`/companies/${companyId}/environments/probe-config`, body),
+  probeConfig: (
+    companyId: string,
+    body: {
+      name?: string;
+      driver: "local" | "ssh" | "sandbox" | "plugin";
+      description?: string | null;
+      config?: Record<string, unknown>;
+      metadata?: Record<string, unknown> | null;
+    },
+  ) =>
+    api.post<EnvironmentProbeResult>(
+      `/companies/${companyId}/environments/probe-config`,
+      body,
+    ),
   customImageTemplate: (environmentId: string, companyId: string) =>
     api.get<EnvironmentCustomImageOverview>(
       `/environments/${environmentId}/custom-image-template?${companyIdQuery(companyId)}`,

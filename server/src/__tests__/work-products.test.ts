@@ -6,7 +6,9 @@ import {
   workProductService,
 } from "../services/work-products.ts";
 
-function createWorkProductRow(overrides: Partial<Record<string, unknown>> = {}) {
+function createWorkProductRow(
+  overrides: Partial<Record<string, unknown>> = {},
+) {
   const now = new Date("2026-03-17T00:00:00.000Z");
   return {
     id: "work-product-1",
@@ -41,7 +43,12 @@ describe("workProductService", () => {
     });
 
     expect(summary).toEqual({ changedFiles: 3, additions: 17, deletions: 5 });
-    expect(enrichWorkProductMetadataWithDiff({ repo: "khulnasoft/taskcore" }, summary)).toEqual({
+    expect(
+      enrichWorkProductMetadataWithDiff(
+        { repo: "khulnasoft/taskcore" },
+        summary,
+      ),
+    ).toEqual({
       repo: "khulnasoft/taskcore",
       changedFiles: 3,
       additions: 17,
@@ -90,7 +97,10 @@ describe("workProductService", () => {
       changedFiles: 4,
     }));
 
-    const [refreshed] = await refreshPullRequestWorkProductMetadata([product], resolve);
+    const [refreshed] = await refreshPullRequestWorkProductMetadata(
+      [product],
+      resolve,
+    );
 
     expect(resolve).toHaveBeenCalledWith("company-1", {
       host: "github.com",
@@ -113,33 +123,61 @@ describe("workProductService", () => {
   it.each([
     { url: "https://github.com/example/private-repo/pull/42" },
     { repository: "example/private-repo", number: 42 },
-  ])("refreshes a PR whose identity is stored only in metadata: %j", async (metadata) => {
-    const product = createWorkProductRow({ url: null, metadata }) as any;
-    const resolve = vi.fn(async () => ({ state: "merged" as const, workProductState: "merged" as const, headRef: null, headSha: null }));
-    const [refreshed] = await refreshPullRequestWorkProductMetadata([product], resolve);
-    expect(resolve).toHaveBeenCalledWith("company-1", {
-      host: "github.com", owner: "example", repo: "private-repo", number: 42,
-    });
-    expect(refreshed.metadata).toMatchObject({ state: "merged" });
-    expect(product.metadata).toEqual(metadata);
-  });
+  ])(
+    "refreshes a PR whose identity is stored only in metadata: %j",
+    async (metadata) => {
+      const product = createWorkProductRow({ url: null, metadata }) as any;
+      const resolve = vi.fn(async () => ({
+        state: "merged" as const,
+        workProductState: "merged" as const,
+        headRef: null,
+        headSha: null,
+      }));
+      const [refreshed] = await refreshPullRequestWorkProductMetadata(
+        [product],
+        resolve,
+      );
+      expect(resolve).toHaveBeenCalledWith("company-1", {
+        host: "github.com",
+        owner: "example",
+        repo: "private-repo",
+        number: 42,
+      });
+      expect(refreshed.metadata).toMatchObject({ state: "merged" });
+      expect(product.metadata).toEqual(metadata);
+    },
+  );
 
   it("retains the saved PR when the provider cannot access it", async () => {
-    const product = createWorkProductRow({ url: null, metadata: { url: "https://github.com/example/private-repo/pull/42" } }) as any;
-    const resolve = vi.fn(async () => { throw new Error("Not found"); });
-    const [refreshed] = await refreshPullRequestWorkProductMetadata([product], resolve);
+    const product = createWorkProductRow({
+      url: null,
+      metadata: { url: "https://github.com/example/private-repo/pull/42" },
+    }) as any;
+    const resolve = vi.fn(async () => {
+      throw new Error("Not found");
+    });
+    const [refreshed] = await refreshPullRequestWorkProductMetadata(
+      [product],
+      resolve,
+    );
     expect(refreshed).toBe(product);
   });
 
   it("resolves GitHub commit stats when runner diff events are unavailable", async () => {
-    const resolveCommitDetails = vi.fn(async () => ({ additions: 13, deletions: 2, changedFiles: 3 }));
+    const resolveCommitDetails = vi.fn(async () => ({
+      additions: 13,
+      deletions: 2,
+      changedFiles: 3,
+    }));
     const svc = workProductService({} as any, { resolveCommitDetails });
 
-    await expect(svc.resolveCommitDiffSummary("company-1", {
-      provider: "github",
-      url: "https://github.com/khulnasoft/taskcore/commit/9c12ae7b41e5",
-      metadata: null,
-    })).resolves.toEqual({ additions: 13, deletions: 2, changedFiles: 3 });
+    await expect(
+      svc.resolveCommitDiffSummary("company-1", {
+        provider: "github",
+        url: "https://github.com/khulnasoft/taskcore/commit/9c12ae7b41e5",
+        metadata: null,
+      }),
+    ).resolves.toEqual({ additions: 13, deletions: 2, changedFiles: 3 });
     expect(resolveCommitDetails).toHaveBeenCalledWith("company-1", {
       host: "github.com",
       owner: "taskcore",
@@ -162,7 +200,10 @@ describe("workProductService", () => {
       update: txUpdate,
       insert: txInsert,
     };
-    const transaction = vi.fn(async (callback: (input: typeof tx) => Promise<unknown>) => await callback(tx));
+    const transaction = vi.fn(
+      async (callback: (input: typeof tx) => Promise<unknown>) =>
+        await callback(tx),
+    );
 
     const svc = workProductService({ transaction } as any);
     const result = await svc.createForIssue("issue-1", "company-1", {
@@ -189,7 +230,9 @@ describe("workProductService", () => {
 
     const updateReturning = vi
       .fn()
-      .mockResolvedValue([createWorkProductRow({ reviewState: "ready_for_review" })]);
+      .mockResolvedValue([
+        createWorkProductRow({ reviewState: "ready_for_review" }),
+      ]);
     const updateWhere = vi.fn(() => ({ returning: updateReturning }));
     const updateSet = vi.fn(() => ({ where: updateWhere }));
     const txUpdate = vi.fn(() => ({ set: updateSet }));
@@ -198,7 +241,10 @@ describe("workProductService", () => {
       select: txSelect,
       update: txUpdate,
     };
-    const transaction = vi.fn(async (callback: (input: typeof tx) => Promise<unknown>) => await callback(tx));
+    const transaction = vi.fn(
+      async (callback: (input: typeof tx) => Promise<unknown>) =>
+        await callback(tx),
+    );
 
     const svc = workProductService({ transaction } as any);
     const result = await svc.update("work-product-1", {

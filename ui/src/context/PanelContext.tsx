@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
 import type { SidePanelContentMode } from "@/components/side-panel";
 
 const STORAGE_KEY = "taskcore:panel-visible";
@@ -7,7 +13,10 @@ interface PanelContextValue {
   panelContent: ReactNode | null;
   panelContentMode: SidePanelContentMode;
   panelVisible: boolean;
-  openPanel: (content: ReactNode, options?: { contentMode?: SidePanelContentMode }) => void;
+  openPanel: (
+    content: ReactNode,
+    options?: { contentMode?: SidePanelContentMode },
+  ) => void;
   closePanel: () => void;
   setPanelVisible: (visible: boolean) => void;
   togglePanelVisible: () => void;
@@ -43,7 +52,8 @@ function writePreference(visible: boolean) {
 
 export function PanelProvider({ children }: { children: ReactNode }) {
   const [panelContent, setPanelContent] = useState<ReactNode | null>(null);
-  const [panelContentMode, setPanelContentMode] = useState<SidePanelContentMode>("padded");
+  const [panelContentMode, setPanelContentMode] =
+    useState<SidePanelContentMode>("padded");
   const [panelVisible, setPanelVisibleState] = useState(readPreference);
   const [panelMaximizeRequested, setPanelMaximizeRequested] = useState(false);
 
@@ -55,10 +65,13 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     setPanelMaximizeRequested(false);
   }, []);
 
-  const openPanel = useCallback((content: ReactNode, options?: { contentMode?: SidePanelContentMode }) => {
-    setPanelContent(content);
-    setPanelContentMode(options?.contentMode ?? "padded");
-  }, []);
+  const openPanel = useCallback(
+    (content: ReactNode, options?: { contentMode?: SidePanelContentMode }) => {
+      setPanelContent(content);
+      setPanelContentMode(options?.contentMode ?? "padded");
+    },
+    [],
+  );
 
   const closePanel = useCallback(() => {
     setPanelContent(null);

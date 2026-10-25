@@ -20,9 +20,17 @@ describe("classifySkillDenial", () => {
   });
 
   it("returns null for transient errors so the caller keeps the retry toast (State D)", () => {
-    expect(classifySkillDenial(apiError(409, { code: "issue_run_conflict" }))).toBeNull();
-    expect(classifySkillDenial(apiError(500, { error: "Internal error" }))).toBeNull();
-    expect(classifySkillDenial(apiError(422, { error: "This skill does not support updates." }))).toBeNull();
+    expect(
+      classifySkillDenial(apiError(409, { code: "issue_run_conflict" })),
+    ).toBeNull();
+    expect(
+      classifySkillDenial(apiError(500, { error: "Internal error" })),
+    ).toBeNull();
+    expect(
+      classifySkillDenial(
+        apiError(422, { error: "This skill does not support updates." }),
+      ),
+    ).toBeNull();
   });
 
   it("classifies the redacted mutation denial payload as State B (policy)", () => {
@@ -31,25 +39,38 @@ describe("classifySkillDenial", () => {
         code: SKILL_POLICY_DENIAL_CODE,
         reason: "explicit_rule",
         action: "skills.install",
-        remediation: "Contact a company administrator to change the skill policy.",
+        remediation:
+          "Contact a company administrator to change the skill policy.",
       }),
       "Installing external skills",
     );
     expect(denial).not.toBeNull();
     expect(denial?.state).toBe("policy");
-    expect(denial?.title).toBe("Installing external skills is restricted by your organization policy.");
-    expect(denial?.remediation).toBe("Contact a company administrator to change the skill policy.");
+    expect(denial?.title).toBe(
+      "Installing external skills is restricted by your organization policy.",
+    );
+    expect(denial?.remediation).toBe(
+      "Contact a company administrator to change the skill policy.",
+    );
   });
 
   it("recognises a policy denial from reason alone (policy_default) and falls back to default remediation", () => {
-    const denial = classifySkillDenial(apiError(403, { reason: "policy_default" }));
+    const denial = classifySkillDenial(
+      apiError(403, { reason: "policy_default" }),
+    );
     expect(denial?.state).toBe("policy");
-    expect(denial?.title).toBe("This action is restricted by your organization policy.");
-    expect(denial?.remediation).toContain("administrator can change the skill policy");
+    expect(denial?.title).toBe(
+      "This action is restricted by your organization policy.",
+    );
+    expect(denial?.remediation).toContain(
+      "administrator can change the skill policy",
+    );
   });
 
   it("classifies the policy-admin requirement as State C (platform_admin)", () => {
-    const denial = classifySkillDenial(apiError(403, { code: SKILL_POLICY_ADMIN_CODE }));
+    const denial = classifySkillDenial(
+      apiError(403, { code: SKILL_POLICY_ADMIN_CODE }),
+    );
     expect(denial?.state).toBe("platform_admin");
     expect(denial?.title).toContain("administration access");
   });
@@ -57,7 +78,9 @@ describe("classifySkillDenial", () => {
   it.each(SKILL_PLATFORM_INVARIANT_CODES)(
     "classifies platform invariant %s as State C",
     (code) => {
-      const denial = classifySkillDenial(apiError(403, { code, reason: "platform_invariant" }));
+      const denial = classifySkillDenial(
+        apiError(403, { code, reason: "platform_invariant" }),
+      );
       expect(denial?.state).toBe("platform");
       expect(denial?.title.length).toBeGreaterThan(0);
       expect(denial?.remediation.length).toBeGreaterThan(0);
@@ -72,11 +95,15 @@ describe("classifySkillDenial", () => {
         remediation: "Import from an approved managed-skill root.",
       }),
     );
-    expect(denial?.remediation).toBe("Import from an approved managed-skill root.");
+    expect(denial?.remediation).toBe(
+      "Import from an approved managed-skill root.",
+    );
   });
 
   it("treats reason=platform_invariant without a known code as a generic safety block", () => {
-    const denial = classifySkillDenial(apiError(403, { reason: "platform_invariant" }));
+    const denial = classifySkillDenial(
+      apiError(403, { reason: "platform_invariant" }),
+    );
     expect(denial?.state).toBe("platform");
     expect(denial?.title).toContain("platform safety rule");
   });

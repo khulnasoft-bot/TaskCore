@@ -32,7 +32,9 @@ for (const job of jobs) {
   child.stdout.on("data", (d) => process.stdout.write(prefix(job.name, d)));
   child.stderr.on("data", (d) => process.stderr.write(prefix(job.name, d)));
   child.on("exit", (code, signal) => {
-    process.stderr.write(prefix(job.name, `exited (code=${code} signal=${signal})\n`));
+    process.stderr.write(
+      prefix(job.name, `exited (code=${code} signal=${signal})\n`),
+    );
     stopAll(code ?? 1);
   });
   children.push({ name: job.name, child });

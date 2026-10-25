@@ -9,7 +9,8 @@ export type WorkspaceOperationPhase =
   | "worktree_cleanup"
   | "workspace_finalize";
 
-export type WorkspaceOperationStatus = "running" | "succeeded" | "failed" | "skipped";
+export type WorkspaceOperationStatus =
+  "running" | "succeeded" | "failed" | "skipped";
 
 export interface WorkspaceOperation {
   id: string;

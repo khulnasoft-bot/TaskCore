@@ -26,13 +26,18 @@ export type SourceTrustIssueContext = {
   executionPolicy?: unknown;
 };
 
-export function isLowTrustQuarantined(sourceTrust: SourceTrustMetadata | null | undefined): boolean {
-  return sourceTrust?.preset === LOW_TRUST_REVIEW_PRESET && sourceTrust.disposition === "quarantined";
+export function isLowTrustQuarantined(
+  sourceTrust: SourceTrustMetadata | null | undefined,
+): boolean {
+  return (
+    sourceTrust?.preset === LOW_TRUST_REVIEW_PRESET &&
+    sourceTrust.disposition === "quarantined"
+  );
 }
 
-export function redactQuarantinedBodyForHigherTrust<T extends { body?: string | null; sourceTrust?: SourceTrustMetadata | null }>(
-  value: T,
-): T {
+export function redactQuarantinedBodyForHigherTrust<
+  T extends { body?: string | null; sourceTrust?: SourceTrustMetadata | null },
+>(value: T): T {
   if (!isLowTrustQuarantined(value.sourceTrust)) return value;
   return {
     ...value,
@@ -108,7 +113,12 @@ export async function resolveActorSourceTrustForIssue(input: {
         permissions: agents.permissions,
       })
       .from(agents)
-      .where(and(eq(agents.id, input.actor.agentId), eq(agents.companyId, input.issue.companyId)))
+      .where(
+        and(
+          eq(agents.id, input.actor.agentId),
+          eq(agents.companyId, input.issue.companyId),
+        ),
+      )
       .then((rows) => rows[0] ?? null),
     input.issue.projectId
       ? input.db
@@ -117,7 +127,12 @@ export async function resolveActorSourceTrustForIssue(input: {
             executionWorkspacePolicy: projects.executionWorkspacePolicy,
           })
           .from(projects)
-          .where(and(eq(projects.id, input.issue.projectId), eq(projects.companyId, input.issue.companyId)))
+          .where(
+            and(
+              eq(projects.id, input.issue.projectId),
+              eq(projects.companyId, input.issue.companyId),
+            ),
+          )
           .then((rows) => rows[0] ?? null)
       : Promise.resolve(null),
     input.actor.runId
@@ -128,7 +143,12 @@ export async function resolveActorSourceTrustForIssue(input: {
             contextSnapshot: heartbeatRuns.contextSnapshot,
           })
           .from(heartbeatRuns)
-          .where(and(eq(heartbeatRuns.id, input.actor.runId), eq(heartbeatRuns.companyId, input.issue.companyId)))
+          .where(
+            and(
+              eq(heartbeatRuns.id, input.actor.runId),
+              eq(heartbeatRuns.companyId, input.issue.companyId),
+            ),
+          )
           .then((rows) => rows[0] ?? null)
       : Promise.resolve(null),
   ]);

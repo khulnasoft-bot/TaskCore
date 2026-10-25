@@ -34,7 +34,8 @@ const ACCOUNT_HANDLE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
  * - It does not start with `-` (a leading `-` reads as a command-line option).
  */
 export function toAccountHandle(rawAccountId: string): string | null {
-  if (typeof rawAccountId !== "string" || rawAccountId.length === 0) return null;
+  if (typeof rawAccountId !== "string" || rawAccountId.length === 0)
+    return null;
   if (rawAccountId.trim() !== rawAccountId) return null;
   if (!ACCOUNT_HANDLE_PATTERN.test(rawAccountId)) return null;
   if (rawAccountId.length > ACCOUNT_HANDLE_MAX_LENGTH) return null;

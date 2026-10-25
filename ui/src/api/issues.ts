@@ -40,7 +40,12 @@ import type {
   UpsertIssueWatchdog,
   UpsertIssueDocument,
 } from "@taskcore/shared";
-import { api, ApiError, detachInflightGet, type RequestOptions } from "./client";
+import {
+  api,
+  ApiError,
+  detachInflightGet,
+  type RequestOptions,
+} from "./client";
 import { CommentSubmissionUnknownError } from "../lib/comment-submit-result";
 
 function hasCommentReceipt(value: unknown): boolean {
@@ -142,7 +147,8 @@ function issueListSearchParams(filters?: IssueListFilters) {
     params.set("originKindPrefix", filters.originKindPrefix);
   if (filters?.originId) params.set("originId", filters.originId);
   if (filters?.descendantOf) params.set("descendantOf", filters.descendantOf);
-  if (filters?.createdFromIssueId) params.set("createdFromIssueId", filters.createdFromIssueId);
+  if (filters?.createdFromIssueId)
+    params.set("createdFromIssueId", filters.createdFromIssueId);
   if (filters?.includeRoutineExecutions)
     params.set("includeRoutineExecutions", "true");
   if (filters?.includeBlockedBy) params.set("includeBlockedBy", "true");
@@ -165,12 +171,29 @@ function issueListSearchParams(filters?: IssueListFilters) {
 
 export const issuesApi = {
   /** Fetch every page for bounded task-detail relations, not just the default first page. */
-  listAll: async (companyId: string, filters: Omit<IssueListFilters, "limit" | "offset" | "sortField" | "sortDir" | "afterId" | "attention">, options?: RequestOptions): Promise<Issue[]> => {
+  listAll: async (
+    companyId: string,
+    filters: Omit<
+      IssueListFilters,
+      "limit" | "offset" | "sortField" | "sortDir" | "afterId" | "attention"
+    >,
+    options?: RequestOptions,
+  ): Promise<Issue[]> => {
     const pageSize = 500;
     const tasks = new Map<string, Issue>();
     let afterId: string | undefined;
     for (;;) {
-      const page = await issuesApi.list(companyId, { ...filters, limit: pageSize, sortField: "id", sortDir: "asc", afterId }, options);
+      const page = await issuesApi.list(
+        companyId,
+        {
+          ...filters,
+          limit: pageSize,
+          sortField: "id",
+          sortDir: "asc",
+          afterId,
+        },
+        options,
+      );
       for (const task of page) tasks.set(task.id, task);
       if (page.length < pageSize) return [...tasks.values()];
       afterId = page[page.length - 1]!.id;
@@ -262,7 +285,12 @@ export const issuesApi = {
       `/issues/${id}/inbox-archive`,
     ),
   setTitle: (id: string, data: SetIssueTitle) =>
-    api.put<{ id: string; title: string; titleNeedsGeneration: boolean; changed: boolean }>(`/issues/${id}/title`, data),
+    api.put<{
+      id: string;
+      title: string;
+      titleNeedsGeneration: boolean;
+      changed: boolean;
+    }>(`/issues/${id}/title`, data),
   create: (companyId: string, data: Record<string, unknown>) =>
     api.post<Issue>(`/companies/${companyId}/issues`, data),
   update: (id: string, data: Record<string, unknown>) => {
@@ -278,8 +306,16 @@ export const issuesApi = {
       `/issues/${id}/stalled-review-decision`,
       data,
     ),
-  retryWorkspaceExport: (id: string, data: { actionId: string; runId: string; repairNote: string }) =>
-    api.post<{ runId: string; resultId: string; leaseId: string; status: "queued" }>(`/issues/${id}/recovery-actions/retry-workspace-export`, data),
+  retryWorkspaceExport: (
+    id: string,
+    data: { actionId: string; runId: string; repairNote: string },
+  ) =>
+    api.post<{
+      runId: string;
+      resultId: string;
+      leaseId: string;
+      status: "queued";
+    }>(`/issues/${id}/recovery-actions/retry-workspace-export`, data),
   resolveRecoveryAction: (
     id: string,
     data: {
@@ -396,14 +432,26 @@ export const issuesApi = {
   interruptQueuedComments: (
     id: string,
     data: { queueId: string; targetRunId: string | null; revision: string },
-  ) => api.post<IssueQueuedCommentQueue>(`/issues/${id}/queued-comments/interrupt`, data),
-  interruptLatestQueuedComments: async (id: string, expectedTargetRunId: string | null): Promise<IssueQueuedCommentQueue> => {
+  ) =>
+    api.post<IssueQueuedCommentQueue>(
+      `/issues/${id}/queued-comments/interrupt`,
+      data,
+    ),
+  interruptLatestQueuedComments: async (
+    id: string,
+    expectedTargetRunId: string | null,
+  ): Promise<IssueQueuedCommentQueue> => {
     const queue = await issuesApi.getQueuedComments(id);
-    if (!queue.queueId || (queue.targetRunId && queue.targetRunId !== expectedTargetRunId)) {
+    if (
+      !queue.queueId ||
+      (queue.targetRunId && queue.targetRunId !== expectedTargetRunId)
+    ) {
       throw new Error("The queued messages changed. Refresh and try again.");
     }
     return issuesApi.interruptQueuedComments(id, {
-      queueId: queue.queueId, revision: queue.revision, targetRunId: queue.targetRunId,
+      queueId: queue.queueId,
+      revision: queue.revision,
+      targetRunId: queue.targetRunId,
     });
   },
   steerQueuedComment: (
@@ -593,12 +641,14 @@ export const issuesApi = {
       form,
     );
   },
-  deleteAttachment: (id: string) => api.delete<{ ok: true }>(`/attachments/${id}`),
+  deleteAttachment: (id: string) =>
+    api.delete<{ ok: true }>(`/attachments/${id}`),
   // --- Privacy / sharing (PAP-16066) -------------------------------------
   // Enriched grants for the share sheet: implicit-by-source rows (assignment /
   // project) plus explicit grants, each carrying subjectDisplayName / avatar /
   // agentVisibility from the server enrichment pass.
-  privacyConstraints: (id: string) => api.get<IssuePrivacyConstraints>(`/issues/${id}/privacy-constraints`),
+  privacyConstraints: (id: string) =>
+    api.get<IssuePrivacyConstraints>(`/issues/${id}/privacy-constraints`),
   listAccessGrants: (id: string, options?: RequestOptions) =>
     options
       ? api.get<IssueAccessGrant[]>(`/issues/${id}/access-grants`, options)
@@ -608,7 +658,10 @@ export const issuesApi = {
     data: { subjectType: IssueAccessGrantSubjectType; subjectId: string },
   ) => api.post<IssueAccessGrant>(`/issues/${id}/access-grants`, data),
   revokeAccessGrant: (id: string, grantId: string) =>
-    api.post<IssueAccessGrant>(`/issues/${id}/access-grants/${grantId}/revoke`, {}),
+    api.post<IssueAccessGrant>(
+      `/issues/${id}/access-grants/${grantId}/revoke`,
+      {},
+    ),
   setVisibility: (id: string, visibility: IssueVisibility) =>
     api.patch<IssueUpdateResponse>(`/issues/${id}`, { visibility }),
   listApprovals: (id: string) => api.get<Approval[]>(`/issues/${id}/approvals`),
@@ -616,7 +669,14 @@ export const issuesApi = {
     api.post<Approval[]>(`/issues/${id}/approvals`, { approvalId }),
   unlinkApproval: (id: string, approvalId: string) =>
     api.delete<{ ok: true }>(`/issues/${id}/approvals/${approvalId}`),
-  listWorkProducts: (id: string, options?: { refreshPullRequests?: boolean; signal?: AbortSignal; fresh?: boolean }) => {
+  listWorkProducts: (
+    id: string,
+    options?: {
+      refreshPullRequests?: boolean;
+      signal?: AbortSignal;
+      fresh?: boolean;
+    },
+  ) => {
     const path = `/issues/${id}/work-products${options?.refreshPullRequests ? "?refreshPullRequests=true" : ""}`;
     // Query invalidations must not rejoin a request that read rows before the write.
     if (options?.fresh) detachInflightGet(path);

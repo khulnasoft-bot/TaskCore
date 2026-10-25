@@ -90,7 +90,9 @@ function registerModuleMocks() {
   }));
 
   vi.doMock("../services/documents.js", () => ({
-    documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+    documentAnnotationService: () => ({
+      remapOpenThreadsForDocument: async () => [],
+    }),
     documentService: () => mockDocumentsService,
   }));
 
@@ -119,7 +121,9 @@ function registerModuleMocks() {
     companySkillService: () => ({
       completeTestRunForIssue: vi.fn(async () => null),
     }),
-    documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+    documentAnnotationService: () => ({
+      remapOpenThreadsForDocument: async () => [],
+    }),
     documentService: () => mockDocumentsService,
     executionWorkspaceService: () => ({}),
     feedbackService: () => ({}),
@@ -159,12 +163,14 @@ function createRunContextDb(contextSnapshot: Record<string, unknown>) {
       from: vi.fn(() => ({
         where: vi.fn(() => ({
           then: async (resolve: (rows: unknown[]) => unknown) =>
-            resolve([{
-              id: "run-1",
-              companyId,
-              agentId: "agent-1",
-              contextSnapshot,
-            }]),
+            resolve([
+              {
+                id: "run-1",
+                companyId,
+                agentId: "agent-1",
+                contextSnapshot,
+              },
+            ]),
         })),
       })),
     })),
@@ -182,8 +188,12 @@ async function createApp(
   db: unknown = {},
 ) {
   const [{ issueRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/issues.js")>(
+      "../routes/issues.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -228,7 +238,9 @@ describe("issue document revision routes", () => {
     });
     mockDocumentsService.listIssueDocuments.mockImplementation(
       async (_issueId, options: { includeSystem?: boolean } | undefined) =>
-        options?.includeSystem ? [planDocument, systemDocument] : [planDocument],
+        options?.includeSystem
+          ? [planDocument, systemDocument]
+          : [planDocument],
     );
     mockDocumentsService.listIssueDocumentRevisions.mockResolvedValue([
       {
@@ -278,14 +290,18 @@ describe("issue document revision routes", () => {
       },
     });
     mockInstanceSettingsService.getExperimental.mockResolvedValue({});
-    mockInstanceSettingsService.getGeneral.mockResolvedValue({ feedbackDataSharingPreference: "prompt" });
+    mockInstanceSettingsService.getGeneral.mockResolvedValue({
+      feedbackDataSharingPreference: "prompt",
+    });
     mockInstanceSettingsService.listCompanyIds.mockResolvedValue([companyId]);
     mockRoutineService.syncRunStatusForIssue.mockResolvedValue(undefined);
     mockLogActivity.mockResolvedValue(undefined);
   });
 
   it("returns revision snapshots including title and format", async () => {
-    const res = await request(await createApp()).get(`/api/issues/${issueId}/documents/plan/revisions`);
+    const res = await request(await createApp()).get(
+      `/api/issues/${issueId}/documents/plan/revisions`,
+    );
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
@@ -299,7 +315,9 @@ describe("issue document revision routes", () => {
   });
 
   it("filters system documents by default on the document list route", async () => {
-    const res = await request(await createApp()).get(`/api/issues/${issueId}/documents`);
+    const res = await request(await createApp()).get(
+      `/api/issues/${issueId}/documents`,
+    );
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([expect.objectContaining({ key: "plan" })]);
@@ -319,11 +337,15 @@ describe("issue document revision routes", () => {
 
   it("restores a revision through the append-only route and logs the action", async () => {
     const res = await request(await createApp())
-      .post(`/api/issues/${issueId}/documents/plan/revisions/revision-1/restore`)
+      .post(
+        `/api/issues/${issueId}/documents/plan/revisions/revision-1/restore`,
+      )
       .send({});
 
     expect(res.status).toBe(200);
-    expect(mockDocumentsService.restoreIssueDocumentRevision).toHaveBeenCalledWith({
+    expect(
+      mockDocumentsService.restoreIssueDocumentRevision,
+    ).toHaveBeenCalledWith({
       issueId,
       key: "plan",
       revisionId: "revision-1",
@@ -342,11 +364,13 @@ describe("issue document revision routes", () => {
         }),
       }),
     );
-    expect(res.body).toEqual(expect.objectContaining({
-      key: "plan",
-      title: "Plan v1",
-      latestRevisionNumber: 3,
-    }));
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        key: "plan",
+        title: "Plan v1",
+        latestRevisionNumber: 3,
+      }),
+    );
   });
 
   it("blocks status-only recovery runs from restoring issue documents", async () => {
@@ -359,35 +383,47 @@ describe("issue document revision routes", () => {
       assigneeAgentId: "agent-1",
     });
 
-    const res = await request(await createApp(
-      {
-        type: "agent",
-        agentId: "agent-1",
-        companyId,
-        runId: "run-1",
-        source: "agent_jwt",
-      },
-      createRunContextDb({
-        recoveryIntent: "status_only",
-        allowDeliverableWork: false,
-        allowDocumentUpdates: false,
-        resumeRequiresNormalModel: true,
-      }),
-    ))
-      .post(`/api/issues/${issueId}/documents/plan/revisions/revision-1/restore`)
+    const res = await request(
+      await createApp(
+        {
+          type: "agent",
+          agentId: "agent-1",
+          companyId,
+          runId: "run-1",
+          source: "agent_jwt",
+        },
+        createRunContextDb({
+          recoveryIntent: "status_only",
+          allowDeliverableWork: false,
+          allowDocumentUpdates: false,
+          resumeRequiresNormalModel: true,
+        }),
+      ),
+    )
+      .post(
+        `/api/issues/${issueId}/documents/plan/revisions/revision-1/restore`,
+      )
       .send({});
 
     expect(res.status).toBe(403);
-    expect(res.body.error).toContain("Status-only recovery runs cannot update issue documents");
-    expect(mockDocumentsService.restoreIssueDocumentRevision).not.toHaveBeenCalled();
+    expect(res.body.error).toContain(
+      "Status-only recovery runs cannot update issue documents",
+    );
+    expect(
+      mockDocumentsService.restoreIssueDocumentRevision,
+    ).not.toHaveBeenCalled();
   });
 
   it("rejects invalid document keys before attempting restore", async () => {
     const res = await request(await createApp())
-      .post(`/api/issues/${issueId}/documents/INVALID KEY/revisions/revision-1/restore`)
+      .post(
+        `/api/issues/${issueId}/documents/INVALID KEY/revisions/revision-1/restore`,
+      )
       .send({});
 
     expect(res.status).toBe(400);
-    expect(mockDocumentsService.restoreIssueDocumentRevision).not.toHaveBeenCalled();
+    expect(
+      mockDocumentsService.restoreIssueDocumentRevision,
+    ).not.toHaveBeenCalled();
   });
 });

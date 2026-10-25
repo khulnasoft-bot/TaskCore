@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ExecutionWorkspace, Issue } from "@taskcore/shared";
-import { buildSubIssueDefaults, buildSubIssueDefaultsForViewer } from "./subIssueDefaults";
+import {
+  buildSubIssueDefaults,
+  buildSubIssueDefaultsForViewer,
+} from "./subIssueDefaults";
 
-function makeExecutionWorkspace(overrides: Partial<ExecutionWorkspace> = {}): ExecutionWorkspace {
+function makeExecutionWorkspace(
+  overrides: Partial<ExecutionWorkspace> = {},
+): ExecutionWorkspace {
   return {
     id: "workspace-1",
     companyId: "company-1",

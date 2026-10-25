@@ -1,4 +1,7 @@
-import type { InboxAgentPolicy, UpdateInboxAgentPolicy } from "@taskcore/shared";
+import type {
+  InboxAgentPolicy,
+  UpdateInboxAgentPolicy,
+} from "@taskcore/shared";
 import { api } from "./client";
 
 /**
@@ -8,7 +11,12 @@ import { api } from "./client";
  */
 export const inboxAgentPolicyApi = {
   getMine: (companyId: string) =>
-    api.get<InboxAgentPolicy>(`/companies/${companyId}/users/me/inbox-agent-policy`),
+    api.get<InboxAgentPolicy>(
+      `/companies/${companyId}/users/me/inbox-agent-policy`,
+    ),
   updateMine: (companyId: string, input: UpdateInboxAgentPolicy) =>
-    api.put<InboxAgentPolicy>(`/companies/${companyId}/users/me/inbox-agent-policy`, input),
+    api.put<InboxAgentPolicy>(
+      `/companies/${companyId}/users/me/inbox-agent-policy`,
+      input,
+    ),
 };

@@ -32,7 +32,11 @@ describe("runtime API discovery", () => {
     expect(
       buildRuntimeApiCandidateUrls({
         authPublicBaseUrl: null,
-        allowedHostnames: ["198.51.100.10", "runtime-host.example.test", "203.0.113.42"],
+        allowedHostnames: [
+          "198.51.100.10",
+          "runtime-host.example.test",
+          "203.0.113.42",
+        ],
         bindHost: "0.0.0.0",
         port: 3102,
         networkInterfacesMap: {
@@ -100,10 +104,7 @@ describe("runtime API discovery", () => {
         port: 3102,
         networkInterfacesMap: {},
       }),
-    ).toEqual([
-      "http://127.0.0.1:3102",
-      "http://host.docker.internal:3102",
-    ]);
+    ).toEqual(["http://127.0.0.1:3102", "http://host.docker.internal:3102"]);
   });
 
   it("prefers usable interface hosts and skips link-local addresses", () => {
@@ -150,9 +151,6 @@ describe("runtime API discovery", () => {
           ],
         },
       }),
-    ).toEqual([
-      "192.168.6.178",
-      "fd7a:115c:a1e0::8a3a:a11d",
-    ]);
+    ).toEqual(["192.168.6.178", "fd7a:115c:a1e0::8a3a:a11d"]);
   });
 });

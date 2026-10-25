@@ -2,15 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import manifest from "./manifest.js";
 
-const { MockNotFoundError, MockTimeoutError, MockSandboxTimeoutError } = vi.hoisted(() => {
-  class MockNotFoundError extends Error {}
-  class MockTimeoutError extends Error {}
-  class MockSandboxTimeoutError extends Error {}
-  return { MockNotFoundError, MockTimeoutError, MockSandboxTimeoutError };
-});
+const { MockNotFoundError, MockTimeoutError, MockSandboxTimeoutError } =
+  vi.hoisted(() => {
+    class MockNotFoundError extends Error {}
+    class MockTimeoutError extends Error {}
+    class MockSandboxTimeoutError extends Error {}
+    return { MockNotFoundError, MockTimeoutError, MockSandboxTimeoutError };
+  });
 
 const mockAppFromName = vi.hoisted(() => vi.fn());
-const mockImageFromRegistry = vi.hoisted(() => vi.fn(() => ({ kind: "image" })));
+const mockImageFromRegistry = vi.hoisted(() =>
+  vi.fn(() => ({ kind: "image" })),
+);
 const mockSandboxesCreate = vi.hoisted(() => vi.fn());
 const mockSandboxesFromId = vi.hoisted(() => vi.fn());
 const mockClientClose = vi.hoisted(() => vi.fn());
@@ -59,13 +62,24 @@ function makeFakeProcess(input: {
 
 function createFakeSandbox(overrides: FakeSandboxOverrides = {}) {
   const execCalls: Array<{ argv: string[]; params?: unknown }> = [];
-  const defaultExec = async (_argv: string[], _params?: unknown): Promise<FakeProcess> =>
+  const defaultExec = async (
+    _argv: string[],
+    _params?: unknown,
+  ): Promise<FakeProcess> =>
     makeFakeProcess({ exitCode: 0, stdout: "taskcore-probe" });
-  const exec = vi.fn().mockImplementation(async (argv: string[], params?: unknown) => {
-    execCalls.push({ argv, params });
-    return overrides.execImpl ? overrides.execImpl(argv, params) : defaultExec(argv, params);
-  });
-  const openedFiles: Array<{ path: string; mode: string; written: Uint8Array | null }> = [];
+  const exec = vi
+    .fn()
+    .mockImplementation(async (argv: string[], params?: unknown) => {
+      execCalls.push({ argv, params });
+      return overrides.execImpl
+        ? overrides.execImpl(argv, params)
+        : defaultExec(argv, params);
+    });
+  const openedFiles: Array<{
+    path: string;
+    mode: string;
+    written: Uint8Array | null;
+  }> = [];
   const sandbox = {
     sandboxId: overrides.id ?? "sb-123",
     exec,
@@ -76,11 +90,12 @@ function createFakeSandbox(overrides: FakeSandboxOverrides = {}) {
     detach: vi.fn(),
     poll: vi.fn().mockResolvedValue(null),
     open: vi.fn().mockImplementation(async (path: string, mode: string) => {
-      const entry: { path: string; mode: string; written: Uint8Array | null } = {
-        path,
-        mode,
-        written: null,
-      };
+      const entry: { path: string; mode: string; written: Uint8Array | null } =
+        {
+          path,
+          mode,
+          written: null,
+        };
       openedFiles.push(entry);
       return {
         write: vi.fn().mockImplementation(async (data: Uint8Array) => {
@@ -251,10 +266,12 @@ describe("Modal sandbox provider plugin", () => {
       environment: undefined,
     });
     expect(mockImageFromRegistry).toHaveBeenCalledWith("node:20");
-    expect(sandbox.setTags).toHaveBeenCalledWith(expect.objectContaining({
-      "taskcore-provider": "modal",
-      "taskcore-company-id": "c-1",
-    }));
+    expect(sandbox.setTags).toHaveBeenCalledWith(
+      expect.objectContaining({
+        "taskcore-provider": "modal",
+        "taskcore-company-id": "c-1",
+      }),
+    );
     // First exec is the mkdir for the workspace, second is the probe command.
     expect(sandbox.execCalls[0]?.argv).toEqual([
       "sh",
@@ -342,11 +359,17 @@ describe("Modal sandbox provider plugin", () => {
         resumedLease: false,
       }),
     });
-    expect(sandbox.setTags).toHaveBeenCalledWith(expect.objectContaining({
-      "taskcore-run-id": "run-1",
-      "taskcore-reuse-lease": "true",
-    }));
-    expect(sandbox.execCalls[0]?.argv).toEqual(["sh", "-lc", "mkdir -p '/srv/work'"]);
+    expect(sandbox.setTags).toHaveBeenCalledWith(
+      expect.objectContaining({
+        "taskcore-run-id": "run-1",
+        "taskcore-reuse-lease": "true",
+      }),
+    );
+    expect(sandbox.execCalls[0]?.argv).toEqual([
+      "sh",
+      "-lc",
+      "mkdir -p '/srv/work'",
+    ]);
   });
 
   it("terminates the sandbox if acquire workspace setup throws", async () => {
@@ -415,7 +438,10 @@ describe("Modal sandbox provider plugin", () => {
       providerLeaseId: "sb-missing",
       config: { ...baseConfig, reuseLease: true },
     });
-    expect(lease).toEqual({ providerLeaseId: null, metadata: { expired: true } });
+    expect(lease).toEqual({
+      providerLeaseId: null,
+      metadata: { expired: true },
+    });
   });
 
   it("resumes a reusable lease by reconnecting via fromId", async () => {
@@ -468,7 +494,9 @@ describe("Modal sandbox provider plugin", () => {
   it("detaches reusable leases and terminates ephemeral leases on release", async () => {
     const reusable = createFakeSandbox({ id: "sb-reuse" });
     const ephemeral = createFakeSandbox({ id: "sb-ephem" });
-    mockSandboxesFromId.mockResolvedValueOnce(reusable).mockResolvedValueOnce(ephemeral);
+    mockSandboxesFromId
+      .mockResolvedValueOnce(reusable)
+      .mockResolvedValueOnce(ephemeral);
 
     await plugin.definition.onEnvironmentReleaseLease?.({
       driverKey: "modal",
@@ -611,7 +639,9 @@ describe("Modal sandbox provider plugin", () => {
     expect(sandbox.openedFiles[0]?.path).toMatch(/^\/tmp\/taskcore-stdin-/);
     expect(sandbox.openedFiles[0]?.mode).toBe("w");
     expect(sandbox.openedFiles[0]?.written).not.toBeNull();
-    expect(new TextDecoder().decode(sandbox.openedFiles[0]!.written!)).toBe("input payload");
+    expect(new TextDecoder().decode(sandbox.openedFiles[0]!.written!)).toBe(
+      "input payload",
+    );
 
     // First exec is the user command; second is the rm cleanup.
     const userCall = sandbox.execCalls[0]!;
@@ -664,7 +694,9 @@ describe("Modal sandbox provider plugin", () => {
   it("returns a timedOut result when Modal raises a TimeoutError during exec", async () => {
     const sandbox = createFakeSandbox({
       execImpl: async () =>
-        makeFakeProcess({ throwOnWait: new MockTimeoutError("exec timed out") }),
+        makeFakeProcess({
+          throwOnWait: new MockTimeoutError("exec timed out"),
+        }),
     });
     mockSandboxesFromId.mockResolvedValue(sandbox);
 
@@ -708,11 +740,9 @@ describe("Modal sandbox provider plugin", () => {
 });
 
 describe("modal manifest form defaults", () => {
-  const configSchema = (
-    manifest.environmentDrivers?.[0]?.configSchema as {
-      properties?: Record<string, { format?: string; default?: unknown }>;
-    }
-  );
+  const configSchema = manifest.environmentDrivers?.[0]?.configSchema as {
+    properties?: Record<string, { format?: string; default?: unknown }>;
+  };
   const properties = configSchema.properties ?? {};
 
   it("pre-fills the required app name and image so the form works out of the box", () => {

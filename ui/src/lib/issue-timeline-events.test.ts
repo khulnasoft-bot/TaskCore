@@ -392,20 +392,37 @@ describe("workModeInEffectAt", () => {
   }
 
   it("uses the first change's `from` before any switch happened", () => {
-    expect(workModeInEffectAt(changes, at("2026-03-31T12:00:00.000Z"), "ask")).toBe("standard");
+    expect(
+      workModeInEffectAt(changes, at("2026-03-31T12:00:00.000Z"), "ask"),
+    ).toBe("standard");
   });
 
   it("uses the last switch at or before the timestamp", () => {
-    expect(workModeInEffectAt(changes, at("2026-03-31T12:10:00.000Z"), "standard")).toBe("planning");
-    expect(workModeInEffectAt(changes, at("2026-03-31T12:15:00.000Z"), "standard")).toBe("planning");
-    expect(workModeInEffectAt(changes, at("2026-03-31T12:30:00.000Z"), "standard")).toBe("ask");
+    expect(
+      workModeInEffectAt(changes, at("2026-03-31T12:10:00.000Z"), "standard"),
+    ).toBe("planning");
+    expect(
+      workModeInEffectAt(changes, at("2026-03-31T12:15:00.000Z"), "standard"),
+    ).toBe("planning");
+    expect(
+      workModeInEffectAt(changes, at("2026-03-31T12:30:00.000Z"), "standard"),
+    ).toBe("ask");
   });
 
   it("falls back to the issue's current mode without usable history", () => {
-    expect(workModeInEffectAt([], at("2026-03-31T12:00:00.000Z"), "planning")).toBe("planning");
+    expect(
+      workModeInEffectAt([], at("2026-03-31T12:00:00.000Z"), "planning"),
+    ).toBe("planning");
     expect(
       workModeInEffectAt(
-        [{ id: "evt-x", createdAt: "2026-03-31T12:10:00.000Z", from: null, to: "bogus" }],
+        [
+          {
+            id: "evt-x",
+            createdAt: "2026-03-31T12:10:00.000Z",
+            from: null,
+            to: "bogus",
+          },
+        ],
         at("2026-03-31T12:00:00.000Z"),
         "ask",
       ),

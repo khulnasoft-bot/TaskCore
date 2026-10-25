@@ -14,7 +14,9 @@ interface TerminalGenerationIssue {
 }
 
 function failureReasonForIssue(issue: TerminalGenerationIssue) {
-  const label = issue.identifier ? `${issue.identifier}: ${issue.title}` : issue.title;
+  const label = issue.identifier
+    ? `${issue.identifier}: ${issue.title}`
+    : issue.title;
   return issue.status === "cancelled"
     ? `Summary generation task ${label} was cancelled before writing a summary.`
     : `Summary generation task ${label} finished without writing a summary.`;

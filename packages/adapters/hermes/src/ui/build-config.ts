@@ -12,9 +12,7 @@
 
 import type { CreateConfigValues } from "@taskcore/adapter-utils";
 
-import {
-  DEFAULT_TIMEOUT_SEC,
-} from "../shared/constants.js";
+import { DEFAULT_TIMEOUT_SEC } from "../shared/constants.js";
 
 /**
  * Build a Hermes Agent adapter config from the Taskcore UI form values.

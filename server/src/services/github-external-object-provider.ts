@@ -36,7 +36,9 @@ function isGitHubHost(host: string) {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function asString(value: unknown) {
@@ -48,15 +50,23 @@ function asBoolean(value: unknown) {
 }
 
 function asNonNegativeInteger(value: unknown) {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null;
 }
 
-function asNestedString(record: Record<string, unknown>, key: string, nestedKey: string) {
+function asNestedString(
+  record: Record<string, unknown>,
+  key: string,
+  nestedKey: string,
+) {
   const nested = asRecord(record[key]);
   return nested ? asString(nested[nestedKey]) : null;
 }
 
-function parseGitHubCanonicalUrl(canonical: ExternalObjectCanonicalUrl): GitHubObjectIdentity | null {
+function parseGitHubCanonicalUrl(
+  canonical: ExternalObjectCanonicalUrl,
+): GitHubObjectIdentity | null {
   if (canonical.canonicalIdentity.scheme !== "https") return null;
   const host = canonical.canonicalIdentity.host.toLowerCase();
   if (!isGitHubHost(host)) return null;
@@ -65,7 +75,8 @@ function parseGitHubCanonicalUrl(canonical: ExternalObjectCanonicalUrl): GitHubO
   if (parts.length !== 4) return null;
   const [owner, repo, kind, rawNumber] = parts;
   if (!owner || !repo || !kind || !rawNumber) return null;
-  if (!/^[A-Za-z0-9_.-]+$/.test(owner) || !/^[A-Za-z0-9_.-]+$/.test(repo)) return null;
+  if (!/^[A-Za-z0-9_.-]+$/.test(owner) || !/^[A-Za-z0-9_.-]+$/.test(repo))
+    return null;
   if (!/^[1-9][0-9]*$/.test(rawNumber)) return null;
   if (kind !== "pull" && kind !== "issues") return null;
 
@@ -79,14 +90,20 @@ function parseGitHubCanonicalUrl(canonical: ExternalObjectCanonicalUrl): GitHubO
   };
 }
 
-function parseGitHubObject(object: { externalId: string; sanitizedCanonicalUrl: string | null }): GitHubObjectIdentity | null {
-  const match = /^([^/]+)\/([^/]+)#(pull|issues)\/([1-9][0-9]*)$/.exec(object.externalId);
+function parseGitHubObject(object: {
+  externalId: string;
+  sanitizedCanonicalUrl: string | null;
+}): GitHubObjectIdentity | null {
+  const match = /^([^/]+)\/([^/]+)#(pull|issues)\/([1-9][0-9]*)$/.exec(
+    object.externalId,
+  );
   if (!match) return null;
   let host = "github.com";
   if (object.sanitizedCanonicalUrl) {
     try {
       const url = new URL(object.sanitizedCanonicalUrl);
-      if (isGitHubHost(url.hostname)) host = url.hostname === "www.github.com" ? "github.com" : url.hostname;
+      if (isGitHubHost(url.hostname))
+        host = url.hostname === "www.github.com" ? "github.com" : url.hostname;
     } catch {
       return null;
     }
@@ -110,7 +127,9 @@ function displayTitleFor(identity: GitHubObjectIdentity) {
 }
 
 function displayKeyFor(identity: Pick<GitHubObjectIdentity, "objectType">) {
-  return identity.objectType === "pull_request" ? "GitHub Pull Request" : "GitHub Issue";
+  return identity.objectType === "pull_request"
+    ? "GitHub Pull Request"
+    : "GitHub Issue";
 }
 
 function retryAfterSeconds(response: Response) {
@@ -125,7 +144,9 @@ function retryAfterSeconds(response: Response) {
   return 300;
 }
 
-function failureFromGitHubResponse(response: Response): ExternalObjectResolveResult | null {
+function failureFromGitHubResponse(
+  response: Response,
+): ExternalObjectResolveResult | null {
   if (response.status === 401) {
     return {
       ok: false,
@@ -151,7 +172,8 @@ function failureFromGitHubResponse(response: Response): ExternalObjectResolveRes
       ok: false,
       liveness: "auth_required",
       errorCode: "github_forbidden",
-      errorMessage: "GitHub rejected the configured credentials for this object.",
+      errorMessage:
+        "GitHub rejected the configured credentials for this object.",
       retryAfterSeconds: retryAfterSeconds(response),
     };
   }
@@ -160,7 +182,8 @@ function failureFromGitHubResponse(response: Response): ExternalObjectResolveRes
     return {
       ok: false,
       liveness: "unreachable",
-      errorCode: response.status === 429 ? "github_rate_limited" : "github_unreachable",
+      errorCode:
+        response.status === 429 ? "github_rate_limited" : "github_unreachable",
       errorMessage: `GitHub returned HTTP ${response.status} while refreshing this object.`,
       retryAfterSeconds: retryAfterSeconds(response),
     };
@@ -169,7 +192,10 @@ function failureFromGitHubResponse(response: Response): ExternalObjectResolveRes
   return null;
 }
 
-function notFoundSnapshot(identity: GitHubObjectIdentity, etag: string | null): ExternalObjectResolverSnapshot {
+function notFoundSnapshot(
+  identity: GitHubObjectIdentity,
+  etag: string | null,
+): ExternalObjectResolverSnapshot {
   return {
     displayKey: displayKeyFor(identity),
     iconKey: "github",
@@ -192,11 +218,16 @@ function notFoundSnapshot(identity: GitHubObjectIdentity, etag: string | null): 
   };
 }
 
-function pullRequestSnapshot(identity: GitHubObjectIdentity, body: Record<string, unknown>, etag: string | null): ExternalObjectResolverSnapshot {
+function pullRequestSnapshot(
+  identity: GitHubObjectIdentity,
+  body: Record<string, unknown>,
+  etag: string | null,
+): ExternalObjectResolverSnapshot {
   const title = asString(body.title);
   const state = asString(body.state) ?? "unknown";
   const draft = asBoolean(body.draft) ?? false;
-  const merged = (asBoolean(body.merged) ?? false) || Boolean(asString(body.merged_at));
+  const merged =
+    (asBoolean(body.merged) ?? false) || Boolean(asString(body.merged_at));
   const authorLogin = asNestedString(body, "user", "login");
   const headRef = asNestedString(body, "head", "ref");
   const headSha = asNestedString(body, "head", "sha");
@@ -207,9 +238,12 @@ function pullRequestSnapshot(identity: GitHubObjectIdentity, body: Record<string
   const changedFiles = asNonNegativeInteger(body.changed_files);
 
   let statusKey = state;
-  let statusLabel = state === "open" ? "Open" : state === "closed" ? "Closed" : "Unknown";
-  let statusCategory: ExternalObjectResolverSnapshot["statusCategory"] = state === "open" ? "open" : "unknown";
-  let statusTone: ExternalObjectResolverSnapshot["statusTone"] = state === "open" ? "info" : "neutral";
+  let statusLabel =
+    state === "open" ? "Open" : state === "closed" ? "Closed" : "Unknown";
+  let statusCategory: ExternalObjectResolverSnapshot["statusCategory"] =
+    state === "open" ? "open" : "unknown";
+  let statusTone: ExternalObjectResolverSnapshot["statusTone"] =
+    state === "open" ? "info" : "neutral";
   let isTerminal = false;
 
   if (merged) {
@@ -234,16 +268,18 @@ function pullRequestSnapshot(identity: GitHubObjectIdentity, body: Record<string
   return {
     displayKey: displayKeyFor(identity),
     iconKey: "github",
-    displayTitle: title ? `${displayTitleFor(identity)}: ${title}` : displayTitleFor(identity),
+    displayTitle: title
+      ? `${displayTitleFor(identity)}: ${title}`
+      : displayTitleFor(identity),
     statusKey,
     statusLabel,
     statusIconKey: merged
       ? "git-merge"
       : state === "closed"
-      ? "x-circle"
-      : draft
-      ? "clock"
-      : "git-pull-request",
+        ? "x-circle"
+        : draft
+          ? "clock"
+          : "git-pull-request",
     statusCategory,
     statusTone,
     isTerminal,
@@ -270,29 +306,39 @@ function pullRequestSnapshot(identity: GitHubObjectIdentity, body: Record<string
   };
 }
 
-function issueSnapshot(identity: GitHubObjectIdentity, body: Record<string, unknown>, etag: string | null): ExternalObjectResolverSnapshot {
+function issueSnapshot(
+  identity: GitHubObjectIdentity,
+  body: Record<string, unknown>,
+  etag: string | null,
+): ExternalObjectResolverSnapshot {
   const title = asString(body.title);
   const state = asString(body.state) ?? "unknown";
   const stateReason = asString(body.state_reason);
   const authorLogin = asNestedString(body, "user", "login");
-  const statusKey = state === "closed" && stateReason ? `closed_${stateReason}` : state;
-  const statusLabel = state === "closed"
-    ? stateReason
-      ? `Closed: ${stateReason.replace(/_/g, " ")}`
-      : "Closed"
-    : state === "open"
-    ? "Open"
-    : "Unknown";
+  const statusKey =
+    state === "closed" && stateReason ? `closed_${stateReason}` : state;
+  const statusLabel =
+    state === "closed"
+      ? stateReason
+        ? `Closed: ${stateReason.replace(/_/g, " ")}`
+        : "Closed"
+      : state === "open"
+        ? "Open"
+        : "Unknown";
 
   return {
     displayKey: displayKeyFor(identity),
     iconKey: "github",
-    displayTitle: title ? `${displayTitleFor(identity)}: ${title}` : displayTitleFor(identity),
+    displayTitle: title
+      ? `${displayTitleFor(identity)}: ${title}`
+      : displayTitleFor(identity),
     statusKey,
     statusLabel,
     statusIconKey: state === "closed" ? "circle" : "circle-dot",
-    statusCategory: state === "open" ? "open" : state === "closed" ? "closed" : "unknown",
-    statusTone: state === "open" ? "info" : state === "closed" ? "muted" : "neutral",
+    statusCategory:
+      state === "open" ? "open" : state === "closed" ? "closed" : "unknown",
+    statusTone:
+      state === "open" ? "info" : state === "closed" ? "muted" : "neutral",
     isTerminal: state === "closed",
     remoteVersion: asString(body.updated_at),
     etag,
@@ -317,12 +363,20 @@ async function safeJson(response: Response) {
   }
 }
 
-async function defaultTokenProvider(db: Db, companyId: string, secretNames: readonly string[]) {
+async function defaultTokenProvider(
+  db: Db,
+  companyId: string,
+  secretNames: readonly string[],
+) {
   const secrets = secretService(db);
   for (const secretName of secretNames) {
     const secret = await secrets.getByName(companyId, secretName);
     if (!secret) continue;
-    const token = await secrets.resolveSecretValue(companyId, secret.id, "latest");
+    const token = await secrets.resolveSecretValue(
+      companyId,
+      secret.id,
+      "latest",
+    );
     const trimmed = token.trim();
     if (trimmed) return trimmed;
   }
@@ -335,9 +389,11 @@ export function createGitHubExternalObjectProvider(
 ): { detector: ExternalObjectDetector; resolvers: ExternalObjectResolver[] } {
   const fetchImpl = opts.fetch ?? ghFetch;
   const secretNames = opts.secretNames ?? DEFAULT_GITHUB_TOKEN_SECRET_NAMES;
-  const tokenProvider = Object.prototype.hasOwnProperty.call(opts, "tokenProvider") && opts.tokenProvider !== undefined
-    ? opts.tokenProvider
-    : ((companyId: string) => defaultTokenProvider(db, companyId, secretNames));
+  const tokenProvider =
+    Object.prototype.hasOwnProperty.call(opts, "tokenProvider") &&
+    opts.tokenProvider !== undefined
+      ? opts.tokenProvider
+      : (companyId: string) => defaultTokenProvider(db, companyId, secretNames);
 
   const detector: ExternalObjectDetector = {
     key: "github",
@@ -345,22 +401,26 @@ export function createGitHubExternalObjectProvider(
       return urls.flatMap((canonical) => {
         const identity = parseGitHubCanonicalUrl(canonical);
         if (!identity) return [];
-        return [{
-          canonical,
-          detectorKey: "github",
-          providerKey: "github",
-          objectType: identity.objectType,
-          externalId: externalIdFor(identity),
-          displayKey: displayKeyFor(identity),
-          iconKey: "github",
-          displayTitle: displayTitleFor(identity),
-          confidence: "exact",
-        }];
+        return [
+          {
+            canonical,
+            detectorKey: "github",
+            providerKey: "github",
+            objectType: identity.objectType,
+            externalId: externalIdFor(identity),
+            displayKey: displayKeyFor(identity),
+            iconKey: "github",
+            displayTitle: displayTitleFor(identity),
+            confidence: "exact",
+          },
+        ];
       });
     },
   };
 
-  function resolver(objectType: GitHubObjectIdentity["objectType"]): ExternalObjectResolver {
+  function resolver(
+    objectType: GitHubObjectIdentity["objectType"],
+  ): ExternalObjectResolver {
     return {
       providerKey: "github",
       objectType,
@@ -378,13 +438,17 @@ export function createGitHubExternalObjectProvider(
 
         let token: string | null = null;
         try {
-          token = typeof tokenProvider === "function" ? await tokenProvider(companyId) : tokenProvider;
+          token =
+            typeof tokenProvider === "function"
+              ? await tokenProvider(companyId)
+              : tokenProvider;
         } catch {
           return {
             ok: false,
             liveness: "auth_required",
             errorCode: "github_token_unavailable",
-            errorMessage: "Configured GitHub credentials could not be resolved.",
+            errorMessage:
+              "Configured GitHub credentials could not be resolved.",
             retryAfterSeconds: GITHUB_OBJECT_TTL_SECONDS,
           };
         }
@@ -407,7 +471,8 @@ export function createGitHubExternalObjectProvider(
             ok: false,
             liveness: "unreachable",
             errorCode: "github_fetch_failed",
-            errorMessage: "GitHub could not be reached while refreshing this object.",
+            errorMessage:
+              "GitHub could not be reached while refreshing this object.",
             retryAfterSeconds: GITHUB_OBJECT_TTL_SECONDS,
           };
         }
@@ -442,9 +507,10 @@ export function createGitHubExternalObjectProvider(
 
         return {
           ok: true,
-          snapshot: objectType === "pull_request"
-            ? pullRequestSnapshot(identity, body, etag)
-            : issueSnapshot(identity, body, etag),
+          snapshot:
+            objectType === "pull_request"
+              ? pullRequestSnapshot(identity, body, etag)
+              : issueSnapshot(identity, body, etag),
         };
       },
     };

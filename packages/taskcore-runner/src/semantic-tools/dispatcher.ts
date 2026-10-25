@@ -61,7 +61,10 @@ class SemanticDispatchFailure extends Error {
 }
 
 export class CapabilitySemanticDispatcher {
-  readonly #validators = new Map<CapabilitySemanticOperationId, ValidateFunction>();
+  readonly #validators = new Map<
+    CapabilitySemanticOperationId,
+    ValidateFunction
+  >();
   readonly #records: CapabilitySemanticAuthorizationRecord[] = [];
   #recordCounter = 0;
 
@@ -71,7 +74,10 @@ export class CapabilitySemanticDispatcher {
   ) {
     const ajv = new Ajv2020({ allErrors: true, strict: false });
     for (const descriptor of CAPABILITY_SEMANTIC_TOOL_CATALOG) {
-      this.#validators.set(descriptor.operationId, ajv.compile(descriptor.inputSchema));
+      this.#validators.set(
+        descriptor.operationId,
+        ajv.compile(descriptor.inputSchema),
+      );
     }
   }
 
@@ -95,14 +101,20 @@ export class CapabilitySemanticDispatcher {
     query: string,
     options: { namespace?: string; limit?: number } = {},
   ) {
-    return discoverCapabilityDefinitions(query, this.#policyContext(runId), options);
+    return discoverCapabilityDefinitions(
+      query,
+      this.#policyContext(runId),
+      options,
+    );
   }
 
   authorizationRecords(): readonly CapabilitySemanticAuthorizationRecord[] {
     return deepFreeze(structuredClone(this.#records));
   }
 
-  async dispatch(call: CapabilitySemanticToolCall): Promise<CapabilitySemanticToolResult> {
+  async dispatch(
+    call: CapabilitySemanticToolCall,
+  ): Promise<CapabilitySemanticToolResult> {
     const descriptor = capabilitySemanticToolDescriptor(call.operationId);
     if (descriptor === undefined) {
       return this.#unknownToolDenial(call);
@@ -116,7 +128,12 @@ export class CapabilitySemanticDispatcher {
       call.input,
     );
     if (!invocation.allowed) {
-      const result = this.#denial(call, descriptor.operationId, denialCode(invocation), invocation.reason);
+      const result = this.#denial(
+        call,
+        descriptor.operationId,
+        denialCode(invocation),
+        invocation.reason,
+      );
       this.#record(policyContext, invocation, call.callId, call.input, result);
       return result;
     }
@@ -127,7 +144,12 @@ export class CapabilitySemanticDispatcher {
         "input_invalid",
         "Tool input exceeds safe bounds.",
       );
-      const result = this.#denial(call, descriptor.operationId, denialCode(decision), decision.reason);
+      const result = this.#denial(
+        call,
+        descriptor.operationId,
+        denialCode(decision),
+        decision.reason,
+      );
       this.#record(policyContext, decision, call.callId, call.input, result);
       return result;
     }
@@ -139,7 +161,12 @@ export class CapabilitySemanticDispatcher {
         "input_invalid",
         formatValidationError(validator),
       );
-      const result = this.#denial(call, descriptor.operationId, denialCode(decision), decision.reason);
+      const result = this.#denial(
+        call,
+        descriptor.operationId,
+        denialCode(decision),
+        decision.reason,
+      );
       this.#record(policyContext, decision, call.callId, call.input, result);
       return result;
     }
@@ -161,7 +188,11 @@ export class CapabilitySemanticDispatcher {
       return result;
     } catch (error) {
       const failure = normalizeFailure(error);
-      const decision = deniedDecision(invocation, failure.code, failure.message);
+      const decision = deniedDecision(
+        invocation,
+        failure.code,
+        failure.message,
+      );
       const result = this.#denial(
         call,
         descriptor.operationId,
@@ -177,7 +208,8 @@ export class CapabilitySemanticDispatcher {
 
   #policyContext(runId: string): CapabilitySemanticPolicyContext {
     const context = this.port.context(runId);
-    const scenario = this.options.scenario ?? DEFAULT_CAPABILITY_SCENARIO_POLICY;
+    const scenario =
+      this.options.scenario ?? DEFAULT_CAPABILITY_SCENARIO_POLICY;
     return {
       ...createCapabilitySemanticPolicyContext(
         context,
@@ -186,12 +218,14 @@ export class CapabilitySemanticDispatcher {
           // These descriptors belong to the server's authenticated project
           // authority. This mock command port has no project/repository binding;
           // it must neither advertise nor accept them merely for lacking claims.
-          denyOperations: [...new Set([
-            ...(scenario.denyOperations ?? []),
-            "create_project" as const,
-            "list_project_repositories" as const,
-            "list_projects" as const,
-          ])],
+          denyOperations: [
+            ...new Set([
+              ...(scenario.denyOperations ?? []),
+              "create_project" as const,
+              "list_project_repositories" as const,
+              "list_projects" as const,
+            ]),
+          ],
         },
         this.options.explicitClaims ?? context.capabilities,
       ),
@@ -231,17 +265,28 @@ export class CapabilitySemanticDispatcher {
             })),
         });
       case "read_document": {
-        const document = activeDocument(state.documents, context, requiredString(input.key));
+        const document = activeDocument(
+          state.documents,
+          context,
+          requiredString(input.key),
+        );
         const revision = document.revisions.find(
           (candidate) => candidate.id === document.latestRevisionId,
         );
         if (revision === undefined) {
-          throw new SemanticDispatchFailure("operation_unavailable", "Document revision is missing.");
+          throw new SemanticDispatchFailure(
+            "operation_unavailable",
+            "Document revision is missing.",
+          );
         }
         return readSuccess(state.revision, { document, revision });
       }
       case "list_document_revisions": {
-        const document = activeDocument(state.documents, context, requiredString(input.key));
+        const document = activeDocument(
+          state.documents,
+          context,
+          requiredString(input.key),
+        );
         const limit = optionalNumber(input.limit, 50);
         return readSuccess(state.revision, {
           documentId: document.id,
@@ -251,35 +296,67 @@ export class CapabilitySemanticDispatcher {
       }
       case "list_agents":
         return readSuccess(state.revision, {
-          actors: state.actors.map(({ capabilityGrants: _claims, budgetId: _budget, ...actor }) => actor),
+          actors: state.actors.map(
+            ({ capabilityGrants: _claims, budgetId: _budget, ...actor }) =>
+              actor,
+          ),
         });
       case "get_agent": {
-        const actor = state.actors.find((candidate) => candidate.id === requiredString(input.actorId));
-        if (actor === undefined) throw new SemanticDispatchFailure("operation_unavailable", "Mock actor not found.");
-        const { capabilityGrants: _claims, budgetId: _budget, ...profile } = actor;
+        const actor = state.actors.find(
+          (candidate) => candidate.id === requiredString(input.actorId),
+        );
+        if (actor === undefined)
+          throw new SemanticDispatchFailure(
+            "operation_unavailable",
+            "Mock actor not found.",
+          );
+        const {
+          capabilityGrants: _claims,
+          budgetId: _budget,
+          ...profile
+        } = actor;
         return readSuccess(state.revision, { actor: profile });
       }
       case "search_tasks": {
         const query = optionalString(input.query)?.toLowerCase();
         const statuses = optionalStringArray(input.statuses);
         const limit = optionalNumber(input.limit, 50);
-        const tasks = state.tasks.filter((task) =>
-          (query === undefined || `${task.identifier} ${task.title} ${task.description ?? ""}`.toLowerCase().includes(query)) &&
-          (statuses.length === 0 || statuses.includes(task.status)),
-        ).slice(0, limit);
-        return readSuccess(state.revision, { tasks: tasks.map(task => ({ ...task, statusVersion: task.statusVersion ?? 0 })) });
+        const tasks = state.tasks
+          .filter(
+            (task) =>
+              (query === undefined ||
+                `${task.identifier} ${task.title} ${task.description ?? ""}`
+                  .toLowerCase()
+                  .includes(query)) &&
+              (statuses.length === 0 || statuses.includes(task.status)),
+          )
+          .slice(0, limit);
+        return readSuccess(state.revision, {
+          tasks: tasks.map((task) => ({
+            ...task,
+            statusVersion: task.statusVersion ?? 0,
+          })),
+        });
       }
       case "list_approvals":
         return readSuccess(state.revision, { approvals: state.approvals });
       case "get_approval": {
-        const approval = approvalById(state.approvals, requiredString(input.approvalId));
+        const approval = approvalById(
+          state.approvals,
+          requiredString(input.approvalId),
+        );
         return readSuccess(state.revision, { approval });
       }
       case "get_approval_context": {
-        const approval = approvalById(state.approvals, requiredString(input.approvalId));
+        const approval = approvalById(
+          state.approvals,
+          requiredString(input.approvalId),
+        );
         return readSuccess(state.revision, {
           approval,
-          tasks: state.tasks.filter((task) => approval.taskIds.includes(task.id)),
+          tasks: state.tasks.filter((task) =>
+            approval.taskIds.includes(task.id),
+          ),
         });
       }
       case "get_workspace_runtime":
@@ -324,16 +401,30 @@ export class CapabilitySemanticDispatcher {
     switch (operationId) {
       case "report_progress":
       case "answer_status_question":
-        command = { kind: "report_progress", taskId, body: requiredString(input.body) };
+        command = {
+          kind: "report_progress",
+          taskId,
+          body: requiredString(input.body),
+        };
         break;
       case "create_skill":
-        command = { kind: "create_skill", taskId, name: requiredString(input.name),
+        command = {
+          kind: "create_skill",
+          taskId,
+          name: requiredString(input.name),
           slug: typeof input.slug === "string" ? input.slug : undefined,
-          description: requiredString(input.description), markdown: requiredString(input.markdown) };
+          description: requiredString(input.description),
+          markdown: requiredString(input.markdown),
+        };
         break;
       case "update_skill":
-        command = { kind: "update_skill", taskId, skillId: requiredString(input.skillId),
-          expectedVersionId: requiredString(input.expectedVersionId), markdown: requiredString(input.markdown) };
+        command = {
+          kind: "update_skill",
+          taskId,
+          skillId: requiredString(input.skillId),
+          expectedVersionId: requiredString(input.expectedVersionId),
+          markdown: requiredString(input.markdown),
+        };
         break;
       case "write_document":
         command = {
@@ -350,12 +441,20 @@ export class CapabilitySemanticDispatcher {
         command = {
           kind: "request_human_input",
           taskId,
-          interactionKind: requiredString(input.interactionKind) as Extract<CapabilitySemanticCommand, { kind: "request_human_input" }>["interactionKind"],
+          interactionKind: requiredString(input.interactionKind) as Extract<
+            CapabilitySemanticCommand,
+            { kind: "request_human_input" }
+          >["interactionKind"],
           title: requiredString(input.title),
           prompt: requiredString(input.prompt),
           payload: optionalJson(input.payload),
           targetRevisionId: nullableOptionalString(input.targetRevisionId),
-          continuationPolicy: requiredString(input.continuationPolicy) as Extract<CapabilitySemanticCommand, { kind: "request_human_input" }>["continuationPolicy"],
+          continuationPolicy: requiredString(
+            input.continuationPolicy,
+          ) as Extract<
+            CapabilitySemanticCommand,
+            { kind: "request_human_input" }
+          >["continuationPolicy"],
         };
         break;
       case "register_deliverable":
@@ -371,65 +470,158 @@ export class CapabilitySemanticDispatcher {
         };
         break;
       case "finish_task":
-        command = { kind: "finish_task", taskId, summary: requiredString(input.summary) };
+        command = {
+          kind: "finish_task",
+          taskId,
+          summary: requiredString(input.summary),
+        };
         break;
       case "block_task":
-        command = { kind: "block_task", taskId, reason: requiredString(input.reason), blockedByTaskIds: optionalStringArray(input.blockedByTaskIds) };
+        command = {
+          kind: "block_task",
+          taskId,
+          reason: requiredString(input.reason),
+          blockedByTaskIds: optionalStringArray(input.blockedByTaskIds),
+        };
         break;
       case "request_review":
-        command = { kind: "request_review", taskId, summary: requiredString(input.summary) };
+        command = {
+          kind: "request_review",
+          taskId,
+          summary: requiredString(input.summary),
+        };
         break;
       case "reassign_task":
-        command = { kind: "reassign_task", taskId, targetTaskId: requiredString(input.taskId), assigneeActorId: requiredString(input.assigneeActorId), expectedAssigneeActorId: input.expectedAssigneeActorId === null ? null : requiredString(input.expectedAssigneeActorId), expectedStatusVersion: Number(input.expectedStatusVersion), reason: requiredString(input.reason) };
+        command = {
+          kind: "reassign_task",
+          taskId,
+          targetTaskId: requiredString(input.taskId),
+          assigneeActorId: requiredString(input.assigneeActorId),
+          expectedAssigneeActorId:
+            input.expectedAssigneeActorId === null
+              ? null
+              : requiredString(input.expectedAssigneeActorId),
+          expectedStatusVersion: Number(input.expectedStatusVersion),
+          reason: requiredString(input.reason),
+        };
         break;
       case "set_dependencies":
-        command = { kind: "set_dependencies", taskId, blockedByTaskIds: optionalStringArray(input.blockedByTaskIds) };
+        command = {
+          kind: "set_dependencies",
+          taskId,
+          blockedByTaskIds: optionalStringArray(input.blockedByTaskIds),
+        };
         break;
       case "create_task":
         command = {
           kind: "create_task",
-          status: optionalString(input.status) as "backlog" | "todo" | undefined,
+          status: optionalString(input.status) as
+            "backlog" | "todo" | undefined,
           taskId,
           title: requiredString(input.title),
           description: nullableOptionalString(input.description),
           assigneeActorId: nullableOptionalString(input.assigneeActorId),
-          priority: optionalString(input.priority) as Extract<CapabilitySemanticCommand, { kind: "create_task" }>["priority"],
+          priority: optionalString(input.priority) as Extract<
+            CapabilitySemanticCommand,
+            { kind: "create_task" }
+          >["priority"],
           blockedByTaskIds: optionalStringArray(input.blockedByTaskIds),
         };
         break;
       case "request_approval":
-        command = { kind: "request_approval", taskId, approvalType: requiredString(input.approvalType), payload: optionalJson(input.payload) };
+        command = {
+          kind: "request_approval",
+          taskId,
+          approvalType: requiredString(input.approvalType),
+          payload: optionalJson(input.payload),
+        };
         break;
       case "decide_approval":
-        command = { kind: "decide_approval", taskId, approvalId: requiredString(input.approvalId), decision: requiredString(input.decision) as Extract<CapabilitySemanticCommand, { kind: "decide_approval" }>["decision"], note: requiredString(input.note) };
+        command = {
+          kind: "decide_approval",
+          taskId,
+          approvalId: requiredString(input.approvalId),
+          decision: requiredString(input.decision) as Extract<
+            CapabilitySemanticCommand,
+            { kind: "decide_approval" }
+          >["decision"],
+          note: requiredString(input.note),
+        };
         break;
       case "comment_on_approval":
-        command = { kind: "comment_on_approval", taskId, approvalId: requiredString(input.approvalId), body: requiredString(input.body) };
+        command = {
+          kind: "comment_on_approval",
+          taskId,
+          approvalId: requiredString(input.approvalId),
+          body: requiredString(input.body),
+        };
         break;
       case "control_workspace_service":
-        command = { kind: "control_workspace_service", taskId, serviceId: requiredString(input.serviceId), action: requiredString(input.action) as Extract<CapabilitySemanticCommand, { kind: "control_workspace_service" }>["action"], url: nullableOptionalString(input.url) };
+        command = {
+          kind: "control_workspace_service",
+          taskId,
+          serviceId: requiredString(input.serviceId),
+          action: requiredString(input.action) as Extract<
+            CapabilitySemanticCommand,
+            { kind: "control_workspace_service" }
+          >["action"],
+          url: nullableOptionalString(input.url),
+        };
         break;
       case "schedule_wake":
-        command = { kind: "schedule_wake", taskId, reason: requiredString(input.reason) as Extract<CapabilitySemanticCommand, { kind: "schedule_wake" }>["reason"], payload: optionalJson(input.payload), delayTicks: requiredNumber(input.delayTicks) };
+        command = {
+          kind: "schedule_wake",
+          taskId,
+          reason: requiredString(input.reason) as Extract<
+            CapabilitySemanticCommand,
+            { kind: "schedule_wake" }
+          >["reason"],
+          payload: optionalJson(input.payload),
+          delayTicks: requiredNumber(input.delayTicks),
+        };
         break;
       default:
-        throw new SemanticDispatchFailure("operation_unavailable", "No mock operation is bound to this descriptor.");
+        throw new SemanticDispatchFailure(
+          "operation_unavailable",
+          "No mock operation is bound to this descriptor.",
+        );
     }
-    const outcome = await this.port.tryApplyCommand({ runId, idempotencyKey, command });
+    const outcome = await this.port.tryApplyCommand({
+      runId,
+      idempotencyKey,
+      command,
+    });
     if (operationId === "create_skill" && outcome.ok) {
-      const id = outcome.result.entityRefs.find(ref => ref.startsWith("skill:"))?.slice(6);
-      const skill = this.port.snapshot().skills?.find(candidate => candidate.id === id);
-      if (skill) return readSuccess(outcome.result.stateRevision, {
-        id: skill.id, name: skill.name, slug: skill.slug, description: skill.description,
-        versionId: skill.versionId, studioPath: `/skills/studio/${skill.id}`,
-      });
+      const id = outcome.result.entityRefs
+        .find((ref) => ref.startsWith("skill:"))
+        ?.slice(6);
+      const skill = this.port
+        .snapshot()
+        .skills?.find((candidate) => candidate.id === id);
+      if (skill)
+        return readSuccess(outcome.result.stateRevision, {
+          id: skill.id,
+          name: skill.name,
+          slug: skill.slug,
+          description: skill.description,
+          versionId: skill.versionId,
+          studioPath: `/skills/studio/${skill.id}`,
+        });
     }
     if (operationId === "update_skill" && outcome.ok) {
-      const id = outcome.result.entityRefs.find(ref => ref.startsWith("skill:"))?.slice(6);
-      const skill = this.port.snapshot().skills?.find(candidate => candidate.id === id);
-      if (skill) return readSuccess(outcome.result.stateRevision, {
-        skillId: skill.id, path: "SKILL.md", versionId: skill.versionId, studioPath: `/skills/studio/${skill.id}`,
-      });
+      const id = outcome.result.entityRefs
+        .find((ref) => ref.startsWith("skill:"))
+        ?.slice(6);
+      const skill = this.port
+        .snapshot()
+        .skills?.find((candidate) => candidate.id === id);
+      if (skill)
+        return readSuccess(outcome.result.stateRevision, {
+          skillId: skill.id,
+          path: "SKILL.md",
+          versionId: skill.versionId,
+          studioPath: `/skills/studio/${skill.id}`,
+        });
     }
     return commandOutcome(outcome);
   }
@@ -442,21 +634,25 @@ export class CapabilitySemanticDispatcher {
     result: unknown,
   ): void {
     this.#recordCounter += 1;
-    this.#records.push(deepFreeze({
-      schema: "taskcore.semantic-authorization-record.v1",
-      id: `semantic-auth-${String(this.#recordCounter).padStart(6, "0")}`,
-      runId: context.runId,
-      scenarioId: context.scenario.id,
-      actorId: context.actor.id,
-      taskId: context.task.id,
-      callId,
-      ...decision,
-      input: input === null ? null : redactSemanticValue(input),
-      result: result === null ? null : redactSemanticValue(result),
-    }));
+    this.#records.push(
+      deepFreeze({
+        schema: "taskcore.semantic-authorization-record.v1",
+        id: `semantic-auth-${String(this.#recordCounter).padStart(6, "0")}`,
+        runId: context.runId,
+        scenarioId: context.scenario.id,
+        actorId: context.actor.id,
+        taskId: context.task.id,
+        callId,
+        ...decision,
+        input: input === null ? null : redactSemanticValue(input),
+        result: result === null ? null : redactSemanticValue(result),
+      }),
+    );
   }
 
-  #unknownToolDenial(call: CapabilitySemanticToolCall): CapabilitySemanticToolResult {
+  #unknownToolDenial(
+    call: CapabilitySemanticToolCall,
+  ): CapabilitySemanticToolResult {
     return deepFreeze({
       ok: false,
       operationId: call.operationId,
@@ -508,10 +704,15 @@ function commandOutcome(outcome: CapabilityCommandOutcome): OperationSuccess {
   // receives the operation-specific response contract, whose operationId is
   // already carried by the authenticated semantic result envelope.
   const { commandKind: _commandKind, ...result } = outcome.result;
-  return { result: result as unknown as CapabilityJsonValue, stateRevision: outcome.result.stateRevision };
+  return {
+    result: result as unknown as CapabilityJsonValue,
+    stateRevision: outcome.result.stateRevision,
+  };
 }
 
-function toDefinition(descriptor: CapabilitySemanticToolDescriptor): CapabilitySemanticToolDefinition {
+function toDefinition(
+  descriptor: CapabilitySemanticToolDescriptor,
+): CapabilitySemanticToolDefinition {
   return {
     name: descriptor.operationId,
     description: descriptor.description,
@@ -547,33 +748,52 @@ function denialCode(
 function normalizeFailure(error: unknown): SemanticDispatchFailure {
   return error instanceof SemanticDispatchFailure
     ? error
-    : new SemanticDispatchFailure("operation_unavailable", "The semantic operation failed safely.");
+    : new SemanticDispatchFailure(
+        "operation_unavailable",
+        "The semantic operation failed safely.",
+      );
 }
 
-function formatValidationError(validator: ValidateFunction | undefined): string {
+function formatValidationError(
+  validator: ValidateFunction | undefined,
+): string {
   const issue = validator?.errors?.[0];
-  if (issue === undefined) return "Semantic tool input does not match its stable schema.";
+  if (issue === undefined)
+    return "Semantic tool input does not match its stable schema.";
   return `Semantic tool input ${issue.instancePath || "/"} ${issue.message ?? "is invalid"}.`;
 }
 
 function activeDocument(
-  documents: ReturnType<CapabilitySemanticControlPlane["snapshot"]>["documents"],
+  documents: ReturnType<
+    CapabilitySemanticControlPlane["snapshot"]
+  >["documents"],
   context: CapabilityRunContext,
   key: string,
 ) {
   const document = documents.find(
-    (candidate) => candidate.taskId === context.activeTask.id && candidate.key === key,
+    (candidate) =>
+      candidate.taskId === context.activeTask.id && candidate.key === key,
   );
-  if (document === undefined) throw new SemanticDispatchFailure("operation_unavailable", "Document not found.");
+  if (document === undefined)
+    throw new SemanticDispatchFailure(
+      "operation_unavailable",
+      "Document not found.",
+    );
   return document;
 }
 
 function approvalById(
-  approvals: ReturnType<CapabilitySemanticControlPlane["snapshot"]>["approvals"],
+  approvals: ReturnType<
+    CapabilitySemanticControlPlane["snapshot"]
+  >["approvals"],
   approvalId: string,
 ) {
   const approval = approvals.find((candidate) => candidate.id === approvalId);
-  if (approval === undefined) throw new SemanticDispatchFailure("operation_unavailable", "Approval not found.");
+  if (approval === undefined)
+    throw new SemanticDispatchFailure(
+      "operation_unavailable",
+      "Approval not found.",
+    );
   return approval;
 }
 
@@ -582,7 +802,11 @@ function readSuccess(revision: number, value: unknown): OperationSuccess {
 }
 
 function requiredString(value: unknown): string {
-  if (typeof value !== "string") throw new SemanticDispatchFailure("input_invalid", "Expected string input.");
+  if (typeof value !== "string")
+    throw new SemanticDispatchFailure(
+      "input_invalid",
+      "Expected string input.",
+    );
   return value;
 }
 
@@ -599,7 +823,11 @@ function nullableOptionalString(value: unknown): string | null | undefined {
 }
 
 function requiredNumber(value: unknown): number {
-  if (typeof value !== "number") throw new SemanticDispatchFailure("input_invalid", "Expected number input.");
+  if (typeof value !== "number")
+    throw new SemanticDispatchFailure(
+      "input_invalid",
+      "Expected number input.",
+    );
   return value;
 }
 
@@ -608,17 +836,20 @@ function optionalNumber(value: unknown, fallback: number): number {
 }
 
 function optionalStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function optionalJson(value: unknown): CapabilityJsonValue {
   // Admission already validated JSON shape and bounds. Redaction is for
   // audit copies, never for arguments sent to the control plane.
-  return value === undefined ? {} : value as CapabilityJsonValue;
+  return value === undefined ? {} : (value as CapabilityJsonValue);
 }
 
 function deepFreeze<T>(value: T): T {
-  if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
+  if (typeof value !== "object" || value === null || Object.isFrozen(value))
+    return value;
   Object.freeze(value);
   for (const child of Object.values(value)) deepFreeze(child);
   return value;

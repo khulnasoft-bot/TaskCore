@@ -16,9 +16,19 @@ interface OutputVideoPlayerProps {
  *
  * A fixed 16:9 box reserves height before metadata loads to avoid layout jump.
  */
-export function OutputVideoPlayer({ src, poster, className, title }: OutputVideoPlayerProps) {
+export function OutputVideoPlayer({
+  src,
+  poster,
+  className,
+  title,
+}: OutputVideoPlayerProps) {
   return (
-    <div className={cn("relative w-full overflow-hidden rounded-md bg-black aspect-video", className)}>
+    <div
+      className={cn(
+        "relative w-full overflow-hidden rounded-md bg-black aspect-video",
+        className,
+      )}
+    >
       <video
         src={src}
         poster={poster ?? undefined}

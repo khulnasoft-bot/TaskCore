@@ -64,12 +64,18 @@ export function unescapeBlockquoteMarkers(markdown: string): string {
 
     if (fenceChar) {
       const closeCandidate = stripBlockquotePrefix(line, fenceBlockquoteDepth);
-      const closeMatch = closeCandidate ? FENCE_CLOSE_RE.exec(closeCandidate) : null;
+      const closeMatch = closeCandidate
+        ? FENCE_CLOSE_RE.exec(closeCandidate)
+        : null;
 
       if (closeMatch) {
         const indent = closeMatch[1].length;
         const run = closeMatch[2];
-        if (indent <= fenceCloseIndentMax && run[0] === fenceChar && run.length >= fenceLen) {
+        if (
+          indent <= fenceCloseIndentMax &&
+          run[0] === fenceChar &&
+          run.length >= fenceLen
+        ) {
           fenceChar = "";
           fenceLen = 0;
           fenceBlockquoteDepth = 0;
@@ -94,11 +100,14 @@ export function unescapeBlockquoteMarkers(markdown: string): string {
         const listMarkers = prefix.match(LIST_MARKER_RE) ?? [];
         fenceChar = char;
         fenceLen = run.length;
-        fenceBlockquoteDepth = (prefix.match(BLOCKQUOTE_MARKER_RE) ?? []).length;
+        fenceBlockquoteDepth = (prefix.match(BLOCKQUOTE_MARKER_RE) ?? [])
+          .length;
         // A list's continuation indent includes its marker and following spaces.
         // A closing fence may add CommonMark's normal 0–3 spaces after that.
         fenceCloseIndentMax =
-          (listMarkers.length > 0 ? listMarkers.reduce((sum, marker) => sum + marker.length, 0) : 0) + 3;
+          (listMarkers.length > 0
+            ? listMarkers.reduce((sum, marker) => sum + marker.length, 0)
+            : 0) + 3;
         continue;
       }
     }

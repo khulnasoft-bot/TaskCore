@@ -196,7 +196,10 @@ async function reviewPresentationEvidence(
     return null;
   const [origin, competingInteraction, competingApproval] = await Promise.all([
     db
-      .select({ id: statusDecisions.id, decisionJson: statusDecisions.decisionJson })
+      .select({
+        id: statusDecisions.id,
+        decisionJson: statusDecisions.decisionJson,
+      })
       .from(statusDecisions)
       .innerJoin(
         statusDecisionEffects,
@@ -255,12 +258,18 @@ async function reviewPresentationEvidence(
       .then((rows) => rows[0]),
   ]);
   if (!origin || competingInteraction || competingApproval) return null;
-  const reviewEffects = Array.isArray(origin.decisionJson.effects) ? origin.decisionJson.effects : [];
+  const reviewEffects = Array.isArray(origin.decisionJson.effects)
+    ? origin.decisionJson.effects
+    : [];
   const matchesReviewRequest = reviewEffects.some((value) => {
     const effect = record(value);
-    const requestKey = typeof effect.requestKey === "string" ? effect.requestKey : null;
-    return effect.kind === "bind_reviewer"
-      && gate.idempotencyKey === `native-review:${origin.id}${requestKey ? `:${requestKey}` : ""}`;
+    const requestKey =
+      typeof effect.requestKey === "string" ? effect.requestKey : null;
+    return (
+      effect.kind === "bind_reviewer" &&
+      gate.idempotencyKey ===
+        `native-review:${origin.id}${requestKey ? `:${requestKey}` : ""}`
+    );
   });
   if (!matchesReviewRequest) return null;
   if (await hasChatRunOwnedProviderInteraction(db, input)) return null;

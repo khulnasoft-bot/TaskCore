@@ -207,23 +207,25 @@ export const runnerAcceptanceCases: readonly RunnerAcceptanceCase[] = [
 
 function suiteDefinitionHash() {
   return createHash("sha256")
-    .update(JSON.stringify({
-      profiles: runnerAcceptanceProfiles.map((profile) => ({
-        id: profile.id,
-        adapterType: profile.adapterType,
-        generation: profile.generation,
-        provider: profile.provider,
-        model: profile.model,
-        adapterConfig: profile.adapterConfig,
-        invariants: profile.invariants,
-      })),
-      cases: runnerAcceptanceCases.map((acceptanceCase) => ({
-        id: acceptanceCase.id,
-        revision: acceptanceCase.revision,
-        appliesTo: acceptanceCase.appliesTo,
-        assertions: acceptanceCase.assertions,
-      })),
-    }))
+    .update(
+      JSON.stringify({
+        profiles: runnerAcceptanceProfiles.map((profile) => ({
+          id: profile.id,
+          adapterType: profile.adapterType,
+          generation: profile.generation,
+          provider: profile.provider,
+          model: profile.model,
+          adapterConfig: profile.adapterConfig,
+          invariants: profile.invariants,
+        })),
+        cases: runnerAcceptanceCases.map((acceptanceCase) => ({
+          id: acceptanceCase.id,
+          revision: acceptanceCase.revision,
+          appliesTo: acceptanceCase.appliesTo,
+          assertions: acceptanceCase.assertions,
+        })),
+      }),
+    )
     .digest("hex");
 }
 
@@ -232,19 +234,20 @@ export const runnerAcceptanceSuiteDefinitionHash = suiteDefinitionHash();
 export function buildRunnerAcceptanceMatrix(): RunnerAcceptanceCell[] {
   return runnerAcceptanceProfiles.flatMap((profile) =>
     runnerAcceptanceCases
-      .filter((acceptanceCase) =>
-        acceptanceCase.appliesTo === "all"
-        || acceptanceCase.appliesTo === profile.generation)
+      .filter(
+        (acceptanceCase) =>
+          acceptanceCase.appliesTo === "all" ||
+          acceptanceCase.appliesTo === profile.generation,
+      )
       .map((acceptanceCase) => ({
         id: `${profile.id}.${acceptanceCase.id}`,
         suiteId: "runner-compatibility" as const,
         suiteDefinitionHash: runnerAcceptanceSuiteDefinitionHash,
         profile,
         acceptanceCase,
-        assertions: [...new Set([
-          ...profile.invariants,
-          ...acceptanceCase.assertions,
-        ])],
+        assertions: [
+          ...new Set([...profile.invariants, ...acceptanceCase.assertions]),
+        ],
       })),
   );
 }
@@ -265,38 +268,60 @@ function assertSafeConfig(value: JsonValue, path = "adapterConfig") {
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((entry, index) => assertSafeConfig(entry, `${path}[${index}]`));
+    value.forEach((entry, index) =>
+      assertSafeConfig(entry, `${path}[${index}]`),
+    );
     return;
   }
   if (!value || typeof value !== "object") return;
   for (const [key, entry] of Object.entries(value)) {
-    if (/(?:authorization|api.?key|token|password|secret|credential|env)/i.test(key)) {
-      throw new Error(`Acceptance catalog contains prohibited field ${path}.${key}`);
+    if (
+      /(?:authorization|api.?key|token|password|secret|credential|env)/i.test(
+        key,
+      )
+    ) {
+      throw new Error(
+        `Acceptance catalog contains prohibited field ${path}.${key}`,
+      );
     }
     assertSafeConfig(entry, `${path}.${key}`);
   }
 }
 
 export function validateRunnerAcceptanceCatalog() {
-  const duplicateProfileIds = duplicates(runnerAcceptanceProfiles.map(({ id }) => id));
+  const duplicateProfileIds = duplicates(
+    runnerAcceptanceProfiles.map(({ id }) => id),
+  );
   if (duplicateProfileIds.length > 0) {
-    throw new Error(`Duplicate runner acceptance profile ids: ${duplicateProfileIds.join(", ")}`);
+    throw new Error(
+      `Duplicate runner acceptance profile ids: ${duplicateProfileIds.join(", ")}`,
+    );
   }
-  const duplicateCaseIds = duplicates(runnerAcceptanceCases.map(({ id }) => id));
+  const duplicateCaseIds = duplicates(
+    runnerAcceptanceCases.map(({ id }) => id),
+  );
   if (duplicateCaseIds.length > 0) {
-    throw new Error(`Duplicate runner acceptance case ids: ${duplicateCaseIds.join(", ")}`);
+    throw new Error(
+      `Duplicate runner acceptance case ids: ${duplicateCaseIds.join(", ")}`,
+    );
   }
 
   const expectedDirectBuiltIns = new Set(
-    [...BUILTIN_ADAPTER_TYPES].filter((type) => !excludedBuiltInAdapterTypes.has(type)),
+    [...BUILTIN_ADAPTER_TYPES].filter(
+      (type) => !excludedBuiltInAdapterTypes.has(type),
+    ),
   );
   const catalogedDirectBuiltIns = new Set(
     directAcceptanceProfiles
       .filter(({ adapterScope }) => adapterScope === "built_in")
       .map(({ adapterType }) => adapterType),
   );
-  const missing = [...expectedDirectBuiltIns].filter((type) => !catalogedDirectBuiltIns.has(type));
-  const unexpected = [...catalogedDirectBuiltIns].filter((type) => !expectedDirectBuiltIns.has(type));
+  const missing = [...expectedDirectBuiltIns].filter(
+    (type) => !catalogedDirectBuiltIns.has(type),
+  );
+  const unexpected = [...catalogedDirectBuiltIns].filter(
+    (type) => !expectedDirectBuiltIns.has(type),
+  );
   if (missing.length > 0 || unexpected.length > 0) {
     throw new Error(
       `Direct adapter catalog drift; missing=${missing.join(",") || "none"}; unexpected=${unexpected.join(",") || "none"}`,
@@ -309,9 +334,9 @@ export function validateRunnerAcceptanceCatalog() {
       throw new Error("Pi is outside the acceptance foundation boundary");
     }
     if (
-      profile.provider === "acpx"
-      && profile.adapterConfig.acpxAgent !== "claude"
-      && profile.adapterConfig.acpxAgent !== "codex"
+      profile.provider === "acpx" &&
+      profile.adapterConfig.acpxAgent !== "claude" &&
+      profile.adapterConfig.acpxAgent !== "codex"
     ) {
       throw new Error(`Unqualified ACPX profile ${profile.id}`);
     }
@@ -320,7 +345,9 @@ export function validateRunnerAcceptanceCatalog() {
   const matrix = buildRunnerAcceptanceMatrix();
   const duplicateCellIds = duplicates(matrix.map(({ id }) => id));
   if (duplicateCellIds.length > 0) {
-    throw new Error(`Duplicate runner acceptance cell ids: ${duplicateCellIds.join(", ")}`);
+    throw new Error(
+      `Duplicate runner acceptance cell ids: ${duplicateCellIds.join(", ")}`,
+    );
   }
   return matrix;
 }

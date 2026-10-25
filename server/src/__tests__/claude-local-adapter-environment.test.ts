@@ -3,7 +3,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { runChildProcess } from "@taskcore/adapter-utils/server-utils";
-import { resetClaudeCliCapabilitiesCacheForTests, testEnvironment } from "@taskcore/adapter-claude-local/server";
+import {
+  resetClaudeCliCapabilitiesCacheForTests,
+  testEnvironment,
+} from "@taskcore/adapter-claude-local/server";
 
 const ORIGINAL_ANTHROPIC = process.env.ANTHROPIC_API_KEY;
 const ORIGINAL_BEDROCK = process.env.CLAUDE_CODE_USE_BEDROCK;
@@ -46,7 +49,9 @@ afterEach(() => {
   }
 });
 
-async function writeHelpWithoutEffortClaudeCommand(commandPath: string): Promise<void> {
+async function writeHelpWithoutEffortClaudeCommand(
+  commandPath: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 const argv = process.argv.slice(2);
 if (argv.includes("--help")) {
@@ -86,11 +91,15 @@ function createLocalSandboxRunner() {
           cwd: input.cwd ?? process.cwd(),
           env: input.env ?? {},
           stdin: input.stdin,
-          timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
+          timeoutSec: Math.max(
+            1,
+            Math.ceil((input.timeoutMs ?? 30_000) / 1000),
+          ),
           graceSec: 5,
           onLog: input.onLog ?? (async () => {}),
           onSpawn: input.onSpawn
-            ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+            ? async (meta) =>
+                input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
             : undefined,
         },
       );
@@ -230,7 +239,9 @@ describe("claude_local environment diagnostics", () => {
     const codes = result.checks.map((c) => c.code);
     expect(codes).toContain("claude_bedrock_auth");
     expect(codes).not.toContain("claude_subscription_mode_possible");
-    expect(codes).not.toContain("claude_anthropic_api_key_overrides_subscription");
+    expect(codes).not.toContain(
+      "claude_anthropic_api_key_overrides_subscription",
+    );
   });
 
   it("creates a missing working directory when cwd is absolute", async () => {
@@ -252,7 +263,9 @@ describe("claude_local environment diagnostics", () => {
       },
     });
 
-    expect(result.checks.some((check) => check.code === "claude_cwd_valid")).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "claude_cwd_valid"),
+    ).toBe(true);
     expect(result.checks.some((check) => check.level === "error")).toBe(false);
     const stats = await fs.stat(cwd);
     expect(stats.isDirectory()).toBe(true);
@@ -287,19 +300,28 @@ describe("claude_local environment diagnostics", () => {
       environmentName: "Linux Box",
     });
 
-    expect(result.checks.some((check) => check.code === "claude_cwd_valid")).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "claude_cwd_valid"),
+    ).toBe(true);
     expect(
       result.checks.some(
         (check) =>
           check.code === "claude_cwd_valid" &&
-          check.message === "Working directory is valid: /srv/taskcore/workspace",
+          check.message ===
+            "Working directory is valid: /srv/taskcore/workspace",
       ),
     ).toBe(true);
-    expect(result.checks.some((check) => check.code === "claude_cwd_invalid")).toBe(false);
+    expect(
+      result.checks.some((check) => check.code === "claude_cwd_invalid"),
+    ).toBe(false);
   });
 
   it("uses full permission bypass for sandbox hello probes", async () => {
-    const executeCalls: Array<{ command: string; args?: string[]; env?: Record<string, string> }> = [];
+    const executeCalls: Array<{
+      command: string;
+      args?: string[];
+      env?: Record<string, string>;
+    }> = [];
 
     const result = await testEnvironment({
       companyId: "company-1",
@@ -315,18 +337,29 @@ describe("claude_local environment diagnostics", () => {
         remoteCwd: "/workspace/taskcore",
         runner: {
           execute: async (input) => {
-            executeCalls.push({ command: input.command, args: input.args, env: input.env });
+            executeCalls.push({
+              command: input.command,
+              args: input.args,
+              env: input.env,
+            });
             if (input.command === "claude") {
               return {
                 exitCode: 0,
                 signal: null,
                 timedOut: false,
                 stdout: [
-                  JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "hello" }] } }),
+                  JSON.stringify({
+                    type: "assistant",
+                    message: { content: [{ type: "text", text: "hello" }] },
+                  }),
                   JSON.stringify({
                     type: "result",
                     result: "hello",
-                    usage: { input_tokens: 1, cache_read_input_tokens: 0, output_tokens: 1 },
+                    usage: {
+                      input_tokens: 1,
+                      cache_read_input_tokens: 0,
+                      output_tokens: 1,
+                    },
                   }),
                 ].join("\n"),
                 stderr: "",
@@ -349,7 +382,9 @@ describe("claude_local environment diagnostics", () => {
       environmentName: "QA Cloudflare",
     });
 
-    expect(result.checks.some((check) => check.code === "claude_hello_probe_passed")).toBe(true);
+    expect(
+      result.checks.some((check) => check.code === "claude_hello_probe_passed"),
+    ).toBe(true);
     const probeCall = executeCalls.find((call) => call.command === "claude");
     expect(probeCall?.args).toContain("--dangerously-skip-permissions");
     expect(probeCall?.args).not.toContain("--permission-mode");
@@ -358,7 +393,9 @@ describe("claude_local environment diagnostics", () => {
   });
 
   it("uses the managed Claude config seed for sandbox hello probes", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-envtest-managed-config-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-envtest-managed-config-"),
+    );
     const sourceConfigDir = path.join(root, "host-claude");
     const remoteHome = path.join(root, "remote-home");
     const remoteWorkspace = path.join(root, "remote-workspace");
@@ -367,18 +404,36 @@ describe("claude_local environment diagnostics", () => {
     await fs.mkdir(sourceConfigDir, { recursive: true });
     await fs.mkdir(path.join(remoteHome, ".claude"), { recursive: true });
     await fs.mkdir(remoteWorkspace, { recursive: true });
-    await fs.writeFile(path.join(sourceConfigDir, "settings.json"), JSON.stringify({
-      theme: "dark",
-      permissions: { defaultMode: "bypassPermissions" },
-      hooks: { PreToolUse: [{ matcher: "*" }] },
-      mcpServers: { local: { command: "secret-local-server" } },
-      permissionMode: "dontAsk",
-      skipDangerousModePermissionPrompt: true,
-    }), "utf8");
-    await fs.writeFile(path.join(sourceConfigDir, "CLAUDE.md"), "seed instructions", "utf8");
-    await fs.writeFile(path.join(sourceConfigDir, "credentials.json"), JSON.stringify({ token: "local" }), "utf8");
-    await fs.writeFile(path.join(remoteHome, ".claude", ".credentials.json"), JSON.stringify({ token: "remote" }), "utf8");
-    await fs.writeFile(commandPath, `#!/usr/bin/env node
+    await fs.writeFile(
+      path.join(sourceConfigDir, "settings.json"),
+      JSON.stringify({
+        theme: "dark",
+        permissions: { defaultMode: "bypassPermissions" },
+        hooks: { PreToolUse: [{ matcher: "*" }] },
+        mcpServers: { local: { command: "secret-local-server" } },
+        permissionMode: "dontAsk",
+        skipDangerousModePermissionPrompt: true,
+      }),
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(sourceConfigDir, "CLAUDE.md"),
+      "seed instructions",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(sourceConfigDir, "credentials.json"),
+      JSON.stringify({ token: "local" }),
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(remoteHome, ".claude", ".credentials.json"),
+      JSON.stringify({ token: "remote" }),
+      "utf8",
+    );
+    await fs.writeFile(
+      commandPath,
+      `#!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
 const configDir = process.env.CLAUDE_CONFIG_DIR || "";
@@ -402,7 +457,9 @@ if (fs.readFileSync(path.join(configDir, "CLAUDE.md"), "utf8") !== "seed instruc
 }
 console.log(JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "hello" }] } }));
 console.log(JSON.stringify({ type: "result", result: "hello", usage: { input_tokens: 1, cache_read_input_tokens: 0, output_tokens: 1 } }));
-`, "utf8");
+`,
+      "utf8",
+    );
     await fs.chmod(commandPath, 0o755);
 
     process.env.CLAUDE_CONFIG_DIR = sourceConfigDir;
@@ -428,16 +485,30 @@ console.log(JSON.stringify({ type: "result", result: "hello", usage: { input_tok
         environmentName: "QA Daytona",
       });
 
-      expect(result.checks.some((check) => check.code === "claude_managed_config_dir")).toBe(true);
-      expect(result.checks.some((check) => check.code === "claude_hello_probe_passed")).toBe(true);
-      expect(result.checks.some((check) => check.code === "claude_hello_probe_failed")).toBe(false);
+      expect(
+        result.checks.some(
+          (check) => check.code === "claude_managed_config_dir",
+        ),
+      ).toBe(true);
+      expect(
+        result.checks.some(
+          (check) => check.code === "claude_hello_probe_passed",
+        ),
+      ).toBe(true);
+      expect(
+        result.checks.some(
+          (check) => check.code === "claude_hello_probe_failed",
+        ),
+      ).toBe(false);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
 
   it("warns and omits --effort for sandbox probes when the installed Claude CLI does not advertise it", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-envtest-sandbox-effort-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-envtest-sandbox-effort-"),
+    );
     const workspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "remote-workspace");
     const commandPath = path.join(root, "claude");
@@ -465,8 +536,16 @@ console.log(JSON.stringify({ type: "result", result: "hello", usage: { input_tok
         environmentName: "QA Daytona",
       });
 
-      expect(result.checks.some((check) => check.code === "claude_effort_flag_unsupported")).toBe(true);
-      expect(result.checks.some((check) => check.code === "claude_hello_probe_passed")).toBe(true);
+      expect(
+        result.checks.some(
+          (check) => check.code === "claude_effort_flag_unsupported",
+        ),
+      ).toBe(true);
+      expect(
+        result.checks.some(
+          (check) => check.code === "claude_hello_probe_passed",
+        ),
+      ).toBe(true);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

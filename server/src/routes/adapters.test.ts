@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { AdapterLoginCapability, ServerAdapterModule } from "@taskcore/adapter-utils";
+import type {
+  AdapterLoginCapability,
+  ServerAdapterModule,
+} from "@taskcore/adapter-utils";
 import { requireServerAdapter } from "../adapters/registry.js";
 import { buildAdapterCapabilities } from "./adapters.js";
 
@@ -8,7 +11,9 @@ import { buildAdapterCapabilities } from "./adapters.js";
 // policy. It never carries a function member or a secret. An adapter with no
 // login capability projects no `login` object.
 
-function makeAdapter(overrides: Partial<ServerAdapterModule> = {}): ServerAdapterModule {
+function makeAdapter(
+  overrides: Partial<ServerAdapterModule> = {},
+): ServerAdapterModule {
   return {
     type: "vendor_local",
     execute: async () => {
@@ -30,7 +35,9 @@ const displayedCodeLogin: AdapterLoginCapability = {
 
 describe("buildAdapterCapabilities login projection", () => {
   it("projects the safe scalar login fields", () => {
-    const caps = buildAdapterCapabilities(makeAdapter({ loginCapability: displayedCodeLogin }));
+    const caps = buildAdapterCapabilities(
+      makeAdapter({ loginCapability: displayedCodeLogin }),
+    );
     expect(caps.login).toEqual({
       panelMode: "displayed_code",
       timeoutPolicy: "caller_bounded",

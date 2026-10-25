@@ -8,8 +8,14 @@ const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig({
   resolve: {
     alias: [
-      { find: "@taskcore/taskcore-runner/react", replacement: resolve(packageRoot, "src/react/index.ts") },
-      { find: "@taskcore-runner-local/capability", replacement: resolve(packageRoot, "src/scenarios/index.ts") },
+      {
+        find: "@taskcore/taskcore-runner/react",
+        replacement: resolve(packageRoot, "src/react/index.ts"),
+      },
+      {
+        find: "@taskcore-runner-local/capability",
+        replacement: resolve(packageRoot, "src/scenarios/index.ts"),
+      },
     ],
   },
   test: {

@@ -33,13 +33,8 @@ import {
 } from "lucide-react";
 
 export function Companies() {
-  const {
-    companies,
-    selectedCompanyId,
-    setSelectedCompanyId,
-    loading,
-    error,
-  } = useCompany();
+  const { companies, selectedCompanyId, setSelectedCompanyId, loading, error } =
+    useCompany();
   const { openOnboarding } = useDialogActions();
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
@@ -119,7 +114,11 @@ export function Companies() {
       </div>
 
       <div className="h-6">
-        {loading && <p className="text-sm text-muted-foreground">Loading organizations...</p>}
+        {loading && (
+          <p className="text-sm text-muted-foreground">
+            Loading organizations...
+          </p>
+        )}
         {error && <p className="text-sm text-destructive">{error.message}</p>}
       </div>
 
@@ -134,7 +133,8 @@ export function Companies() {
           const budgetPct =
             company.budgetMonthlyCents > 0
               ? Math.round(
-                  (company.spentMonthlyCents / company.budgetMonthlyCents) * 100,
+                  (company.spentMonthlyCents / company.budgetMonthlyCents) *
+                    100,
                 )
               : 0;
 
@@ -152,7 +152,9 @@ export function Companies() {
               }}
               interactive
               className={`block group text-left p-5 ${
-                selected ? "border-primary ring-1 ring-primary hover:border-primary" : ""
+                selected
+                  ? "border-primary ring-1 ring-primary hover:border-primary"
+                  : ""
               }`}
             >
               {/* Header row: name + menu */}
@@ -181,14 +183,21 @@ export function Companies() {
                       >
                         <Check className="h-3.5 w-3.5 text-green-500" />
                       </Button>
-                      <Button variant="ghost" size="icon-xs" onClick={cancelEdit}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={cancelEdit}
+                      >
                         <X className="h-3.5 w-3.5 text-muted-foreground" />
                       </Button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-base">{company.name}</h3>
-                      <Badge variant="ghost"
+                      <h3 className="font-semibold text-base">
+                        {company.name}
+                      </h3>
+                      <Badge
+                        variant="ghost"
                         className={`text-(length:--text-micro) ${
                           company.status === "active"
                             ? "bg-green-500/10 text-green-600 dark:text-green-400"
@@ -278,9 +287,15 @@ export function Companies() {
                   <DollarSign className="h-3.5 w-3.5" />
                   <span>
                     {formatCents(company.spentMonthlyCents)}
-                    {company.budgetMonthlyCents > 0
-                      ? <> / {formatCents(company.budgetMonthlyCents)} <span className="text-xs">({budgetPct}%)</span></>
-                      : <span className="text-xs ml-1">Unlimited budget</span>}
+                    {company.budgetMonthlyCents > 0 ? (
+                      <>
+                        {" "}
+                        / {formatCents(company.budgetMonthlyCents)}{" "}
+                        <span className="text-xs">({budgetPct}%)</span>
+                      </>
+                    ) : (
+                      <span className="text-xs ml-1">Unlimited budget</span>
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 ml-auto">
@@ -296,7 +311,8 @@ export function Companies() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <p className="text-sm text-destructive font-medium">
-                    Delete this organization and all its data? This cannot be undone.
+                    Delete this organization and all its data? This cannot be
+                    undone.
                   </p>
                   <div className="flex items-center gap-2 ml-4 shrink-0">
                     <Button

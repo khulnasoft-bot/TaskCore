@@ -23,7 +23,9 @@ async function flushReact() {
   });
 }
 
-function makeMediaItem(overrides: Partial<GalleryMediaItem> = {}): GalleryMediaItem {
+function makeMediaItem(
+  overrides: Partial<GalleryMediaItem> = {},
+): GalleryMediaItem {
   return {
     id: "media-1",
     contentPath: "/api/attachments/media-1/content",
@@ -74,10 +76,14 @@ describe("ImageGalleryModal", () => {
     await flushReact();
 
     const renderedVideo = document.body.querySelector("video");
-    expect(renderedVideo?.getAttribute("src")).toBe("/api/attachments/video-1/content");
+    expect(renderedVideo?.getAttribute("src")).toBe(
+      "/api/attachments/video-1/content",
+    );
     expect(renderedVideo?.getAttribute("controls")).not.toBeNull();
     expect(
-      document.body.querySelector('a[aria-label="Download demo.webm"]')?.getAttribute("href"),
+      document.body
+        .querySelector('a[aria-label="Download demo.webm"]')
+        ?.getAttribute("href"),
     ).toBe("/api/attachments/video-1/content?download=1");
   });
 

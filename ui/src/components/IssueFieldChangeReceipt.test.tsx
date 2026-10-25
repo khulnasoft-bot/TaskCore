@@ -52,7 +52,9 @@ describe("IssueFieldChangeReceipt", () => {
     );
 
     expect(html).toContain("Dotta");
-    expect(html).toContain("authorized by default-open write on a visible task");
+    expect(html).toContain(
+      "authorized by default-open write on a visible task",
+    );
   });
 
   it("resolves an assignee change to agent names", () => {
@@ -69,7 +71,8 @@ describe("IssueFieldChangeReceipt", () => {
           },
         })}
         resolveAgentLabel={(id) =>
-          id.startsWith("3108") ? "ClaudeCoder" : "UXDesigner"}
+          id.startsWith("3108") ? "ClaudeCoder" : "UXDesigner"
+        }
       />,
     );
 
@@ -111,11 +114,17 @@ describe("IssueFieldChangeReceipt", () => {
   });
 
   it("renders nothing for events with no receipt", () => {
-    expect(renderToStaticMarkup(<IssueFieldChangeReceipt event={event()} />)).toBe("");
+    expect(
+      renderToStaticMarkup(<IssueFieldChangeReceipt event={event()} />),
+    ).toBe("");
     // Pre-receipt rows carried loose fields but no `changes` receipt.
-    expect(renderToStaticMarkup(
-      <IssueFieldChangeReceipt event={event({ details: { status: "done" } })} />,
-    )).toBe("");
+    expect(
+      renderToStaticMarkup(
+        <IssueFieldChangeReceipt
+          event={event({ details: { status: "done" } })}
+        />,
+      ),
+    ).toBe("");
   });
 
   it("still explains authorization when only a reason was recorded", () => {

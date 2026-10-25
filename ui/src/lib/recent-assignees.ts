@@ -27,7 +27,9 @@ export function getRecentAssigneeIds(): string[] {
 }
 
 export function getRecentAssigneeSelectionIds(companyId?: string): string[] {
-  return readRecentSelectionIds(companyId ? `${STORAGE_KEY}:${companyId}` : STORAGE_KEY).map((id) => {
+  return readRecentSelectionIds(
+    companyId ? `${STORAGE_KEY}:${companyId}` : STORAGE_KEY,
+  ).map((id) => {
     if (id.includes(":")) return id;
     return agentSelectionId(id);
   });
@@ -35,23 +37,37 @@ export function getRecentAssigneeSelectionIds(companyId?: string): string[] {
 
 export function trackRecentAssignee(agentId: string, companyId?: string): void {
   trackRecentSelectionId(STORAGE_KEY, agentSelectionId(agentId));
-  if (companyId) trackRecentSelectionId(`${STORAGE_KEY}:${companyId}`, agentSelectionId(agentId));
+  if (companyId)
+    trackRecentSelectionId(
+      `${STORAGE_KEY}:${companyId}`,
+      agentSelectionId(agentId),
+    );
 }
 
-export function trackRecentAssigneeUser(userId: string, companyId?: string): void {
+export function trackRecentAssigneeUser(
+  userId: string,
+  companyId?: string,
+): void {
   trackRecentSelectionId(STORAGE_KEY, userSelectionId(userId));
-  if (companyId) trackRecentSelectionId(`${STORAGE_KEY}:${companyId}`, userSelectionId(userId));
+  if (companyId)
+    trackRecentSelectionId(
+      `${STORAGE_KEY}:${companyId}`,
+      userSelectionId(userId),
+    );
 }
 
 export function sortAgentsByRecency<T extends { id: string; name: string }>(
   agents: T[],
   recentIds: string[],
 ): T[] {
-  const recentIndex = new Map(recentIds.slice(0, RECENT_SELECTION_DISPLAY_LIMIT).map((id, i) => [id, i]));
+  const recentIndex = new Map(
+    recentIds.slice(0, RECENT_SELECTION_DISPLAY_LIMIT).map((id, i) => [id, i]),
+  );
   return [...agents].sort((a, b) => {
     const aRecent = recentIndex.get(a.id);
     const bRecent = recentIndex.get(b.id);
-    if (aRecent !== undefined && bRecent !== undefined) return aRecent - bRecent;
+    if (aRecent !== undefined && bRecent !== undefined)
+      return aRecent - bRecent;
     if (aRecent !== undefined) return -1;
     if (bRecent !== undefined) return 1;
     return a.name.localeCompare(b.name);

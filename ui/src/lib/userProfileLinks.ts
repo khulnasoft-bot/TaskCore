@@ -24,8 +24,15 @@ function slugifyUserPart(value: string | null | undefined): string | null {
  * candidate that is unique per member, so links to a known user always use
  * it; name and email slugs are only a fallback for sessions with no user id.
  */
-export function userProfilePath(user: ProfileLinkUser | null | undefined): string {
-  const candidates = [user?.id, user?.name, user?.email?.split("@")[0], user?.email];
+export function userProfilePath(
+  user: ProfileLinkUser | null | undefined,
+): string {
+  const candidates = [
+    user?.id,
+    user?.name,
+    user?.email?.split("@")[0],
+    user?.email,
+  ];
   for (const candidate of candidates) {
     const slug = slugifyUserPart(candidate);
     if (slug) return `/u/${slug}`;

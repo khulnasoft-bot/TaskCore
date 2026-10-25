@@ -45,7 +45,9 @@ export const externalObjectCategoryIcon: Record<string, LucideIcon> = {
 export const externalObjectCategoryIconDefault: LucideIcon = CircleDashed;
 
 export function externalObjectIconForCategory(category: string): LucideIcon {
-  return externalObjectCategoryIcon[category] ?? externalObjectCategoryIconDefault;
+  return (
+    externalObjectCategoryIcon[category] ?? externalObjectCategoryIconDefault
+  );
 }
 
 const EXTERNAL_OBJECT_ICON_KEYS: Record<string, LucideIcon> = {
@@ -63,12 +65,16 @@ const EXTERNAL_OBJECT_ICON_KEYS: Record<string, LucideIcon> = {
   "x-circle": XCircle,
 };
 
-export function externalObjectIconForKey(iconKey: string | null | undefined): LucideIcon | null {
+export function externalObjectIconForKey(
+  iconKey: string | null | undefined,
+): LucideIcon | null {
   if (!iconKey) return null;
   return EXTERNAL_OBJECT_ICON_KEYS[iconKey] ?? null;
 }
 
-export function externalObjectIconForLiveness(liveness: string): LucideIcon | null {
+export function externalObjectIconForLiveness(
+  liveness: string,
+): LucideIcon | null {
   if (liveness === "auth_required") return KeyRound;
   if (liveness === "unreachable") return CloudOff;
   return null;
@@ -113,9 +119,14 @@ export function externalObjectDisplayStatusLabel(input: {
 }): string {
   const trimmedStatusLabel = input.statusLabel?.trim();
   if (trimmedStatusLabel) return trimmedStatusLabel;
-  const isGenericUrl = input.providerKey === "url" && input.objectType === "link";
+  const isGenericUrl =
+    input.providerKey === "url" && input.objectType === "link";
   const hasKnownObjectType = Boolean(input.providerKey && input.objectType);
-  if (input.statusCategory === "unknown" && hasKnownObjectType && !isGenericUrl) {
+  if (
+    input.statusCategory === "unknown" &&
+    hasKnownObjectType &&
+    !isGenericUrl
+  ) {
     if (input.liveness === "fresh") return "Status unavailable";
     return externalObjectLivenessLabel(input.liveness);
   }
@@ -135,7 +146,9 @@ const TONE_SEVERITY: Record<string, number> = {
   danger: 5,
 };
 
-export function externalObjectToneSeverity(tone: string | null | undefined): number {
+export function externalObjectToneSeverity(
+  tone: string | null | undefined,
+): number {
   if (!tone) return 0;
   return TONE_SEVERITY[tone] ?? 0;
 }
@@ -171,7 +184,9 @@ const PROVIDER_LABELS: Record<string, string> = {
   asana: "Asana",
 };
 
-export function externalObjectProviderLabel(providerKey: string | null | undefined): string {
+export function externalObjectProviderLabel(
+  providerKey: string | null | undefined,
+): string {
   if (!providerKey) return "External";
   const lookup = PROVIDER_LABELS[providerKey];
   if (lookup) return lookup;
@@ -191,7 +206,9 @@ const OBJECT_TYPE_LABELS: Record<string, string> = {
   url_link: "URL",
 };
 
-export function externalObjectTypeLabel(objectType: string | null | undefined): string {
+export function externalObjectTypeLabel(
+  objectType: string | null | undefined,
+): string {
   if (!objectType) return "object";
   return OBJECT_TYPE_LABELS[objectType] ?? objectType.replace(/_/g, " ");
 }
@@ -212,9 +229,9 @@ export function externalObjectDisplayLabel(
  * success → muted/neutral. Within a tone, items keep their incoming order so
  * server-side ordering (e.g. most recent change first) is preserved.
  */
-export function sortExternalObjectsBySeverity<T extends ExternalObjectSummaryItem>(
-  items: readonly T[],
-): T[] {
+export function sortExternalObjectsBySeverity<
+  T extends ExternalObjectSummaryItem,
+>(items: readonly T[]): T[] {
   return [...items]
     .map((item, index) => ({ item, index }))
     .sort((a, b) => {
@@ -231,7 +248,10 @@ export function sortExternalObjectsBySeverity<T extends ExternalObjectSummaryIte
  * Falls back to `null` when no objects are present or every tone is `muted`.
  */
 export function dominantExternalObjectTone(
-  summary: Pick<ExternalObjectSummary, "highestSeverity" | "objects"> | null | undefined,
+  summary:
+    | Pick<ExternalObjectSummary, "highestSeverity" | "objects">
+    | null
+    | undefined,
 ): ExternalObjectStatusTone | null {
   if (!summary) return null;
   const tone = summary.highestSeverity;
@@ -247,7 +267,10 @@ export function dominantExternalObjectTone(
  * count without double-checking the rollup-hide rule.
  */
 export function externalObjectDominantCount(
-  summary: Pick<ExternalObjectSummary, "highestSeverity" | "objects"> | null | undefined,
+  summary:
+    | Pick<ExternalObjectSummary, "highestSeverity" | "objects">
+    | null
+    | undefined,
 ): number {
   if (!summary) return 0;
   const tone = dominantExternalObjectTone(summary);

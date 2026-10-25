@@ -3,7 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const uiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const uiRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 const fontDir = path.join(uiRoot, "public", "fonts");
 const cssPath = path.join(uiRoot, "src", "index.css");
 
@@ -15,9 +18,16 @@ describe("bundled UI font assets", () => {
 
     for (const fileName of fontFiles) {
       const fontPath = path.join(fontDir, fileName);
-      expect(existsSync(fontPath), `${fileName} should exist in ui/public/fonts`).toBe(true);
-      expect(statSync(fontPath).isFile(), `${fileName} should be a file`).toBe(true);
-      expect(readFileSync(fontPath).subarray(0, 4).toString("ascii")).toBe("wOF2");
+      expect(
+        existsSync(fontPath),
+        `${fileName} should exist in ui/public/fonts`,
+      ).toBe(true);
+      expect(statSync(fontPath).isFile(), `${fileName} should be a file`).toBe(
+        true,
+      );
+      expect(readFileSync(fontPath).subarray(0, 4).toString("ascii")).toBe(
+        "wOF2",
+      );
       expect(css).toContain(`url("/fonts/${fileName}")`);
     }
 

@@ -16,7 +16,9 @@ describe("sandboxed parser worker bootstrap", () => {
   });
 
   it("evaluates parser source in strict mode", () => {
-    expect(getWorkerBootstrapSource()).toContain('\\"use strict\\";\\n{\\n" + msg.source');
+    expect(getWorkerBootstrapSource()).toContain(
+      '\\"use strict\\";\\n{\\n" + msg.source',
+    );
   });
 
   it("does not include the unused parse_batch protocol branch", () => {

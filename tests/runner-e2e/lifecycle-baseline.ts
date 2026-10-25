@@ -31,20 +31,40 @@ const nonempty = (value: unknown): value is string =>
 /** Semantic questions yield the run; provider-native questions instead pause
  * inside it. Only a pending runtime request bound to that running native run
  * permits retaining its execution lock at a waiting checkpoint. */
-function hasHealthyWait(checkpoint: LifecycleCheckpoint, pending: Interaction[]) {
+function hasHealthyWait(
+  checkpoint: LifecycleCheckpoint,
+  pending: Interaction[],
+) {
   const state = checkpoint.lifecycle;
-  if (!state || state.scheduledRetry !== null || state.activeRecoveryAction !== null ||
-      state.monitorNextCheckAt !== null || checkpoint.runs.length === 0) return false;
-  const active = checkpoint.runs.filter(run => run.status !== "succeeded");
+  if (
+    !state ||
+    state.scheduledRetry !== null ||
+    state.activeRecoveryAction !== null ||
+    state.monitorNextCheckAt !== null ||
+    checkpoint.runs.length === 0
+  )
+    return false;
+  const active = checkpoint.runs.filter((run) => run.status !== "succeeded");
   if (active.length === 0)
-    return checkpoint.issue.status === "in_review" && state.executionRunId === null;
+    return (
+      checkpoint.issue.status === "in_review" && state.executionRunId === null
+    );
   if (active.length !== 1) return false;
   const run = active[0];
-  return run.status === "running" && run.runtimeMode === "native" && nonempty(run.id) &&
-    state.executionRunId === run.id && ["in_progress", "in_review"].includes(checkpoint.issue.status) &&
-    pending.some(interaction => interaction.kind === "ask_user_questions" &&
-      nonempty(interaction.id) && interaction.sourceRunId === run.id &&
-      nonempty(interaction.payload?.runtimeRequestId));
+  return (
+    run.status === "running" &&
+    run.runtimeMode === "native" &&
+    nonempty(run.id) &&
+    state.executionRunId === run.id &&
+    ["in_progress", "in_review"].includes(checkpoint.issue.status) &&
+    pending.some(
+      (interaction) =>
+        interaction.kind === "ask_user_questions" &&
+        nonempty(interaction.id) &&
+        interaction.sourceRunId === run.id &&
+        nonempty(interaction.payload?.runtimeRequestId),
+    )
+  );
 }
 
 /** Independent durable-state oracle. It never interprets response prose. */
@@ -64,9 +84,13 @@ export function gradeLifecycleBaseline(checkpoints: LifecycleCheckpoint[]) {
   const first = waiting[0];
   check(
     "lifecycle.task-owner-preserved",
-    nonempty(first?.issue.id) && nonempty(first?.issue.assigneeAgentId) &&
-      checkpoints.every(c => c.issue.id === first.issue.id &&
-        c.issue.assigneeAgentId === first.issue.assigneeAgentId),
+    nonempty(first?.issue.id) &&
+      nonempty(first?.issue.assigneeAgentId) &&
+      checkpoints.every(
+        (c) =>
+          c.issue.id === first.issue.id &&
+          c.issue.assigneeAgentId === first.issue.assigneeAgentId,
+      ),
     "Waiting and resuming retain the same task and assigned agent.",
   );
   for (const c of waiting) {
@@ -129,24 +153,37 @@ export function gradeLifecycleBaseline(checkpoints: LifecycleCheckpoint[]) {
     "Completion has no unresolved interaction.",
   );
   if (first && final) {
-    const questions = new Map(waiting.flatMap(c =>
-      (c.interactions as Interaction[]).filter(i => i.kind === "ask_user_questions" && i.status === "pending")
-        .map(i => [i.id, i] as const)));
+    const questions = new Map(
+      waiting.flatMap((c) =>
+        (c.interactions as Interaction[])
+          .filter(
+            (i) => i.kind === "ask_user_questions" && i.status === "pending",
+          )
+          .map((i) => [i.id, i] as const),
+      ),
+    );
     for (const question of questions.values()) {
-      const answers = (final.interactions as Interaction[]).filter(i => i.id === question.id);
+      const answers = (final.interactions as Interaction[]).filter(
+        (i) => i.id === question.id,
+      );
       check(
         `lifecycle.answer:${question.id}`,
-        nonempty(question.id) && answers.length === 1 &&
-          answers[0].kind === "ask_user_questions" && answers[0].status === "answered",
+        nonempty(question.id) &&
+          answers.length === 1 &&
+          answers[0].kind === "ask_user_questions" &&
+          answers[0].status === "answered",
         "Every observed pending question retains exactly one answered identity, including later questions.",
       );
     }
-    const finalIds = new Set(final.runs.map(r => r.id));
+    const finalIds = new Set(final.runs.map((r) => r.id));
     check(
       "lifecycle.final.preserved-runs",
-      checkpoints.every(c => c.runs.length > 0 && c.runs.every(r => nonempty(r.id)) &&
-        new Set(c.runs.map(r => r.id)).size === c.runs.length) &&
-        waiting.every(c => c.runs.every(r => finalIds.has(r.id))),
+      checkpoints.every(
+        (c) =>
+          c.runs.length > 0 &&
+          c.runs.every((r) => nonempty(r.id)) &&
+          new Set(c.runs.map((r) => r.id)).size === c.runs.length,
+      ) && waiting.every((c) => c.runs.every((r) => finalIds.has(r.id))),
       "All intermediate run receipts survive in the final snapshot without duplicated or empty IDs.",
     );
   }

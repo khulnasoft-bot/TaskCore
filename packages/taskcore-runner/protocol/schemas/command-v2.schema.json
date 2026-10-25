@@ -3,17 +3,41 @@
   "$id": "https://taskcore.dev/schemas/prp/v2/command.schema.json",
   "title": "PRP v2 runner command",
   "type": "object",
-  "required": ["schema", "commandId", "controllerSeq", "type", "issuedAt", "payload"],
+  "required": [
+    "schema",
+    "commandId",
+    "controllerSeq",
+    "type",
+    "issuedAt",
+    "payload"
+  ],
   "properties": {
     "schema": { "const": "taskcore.prp.command.v2" },
     "commandId": { "type": "string", "minLength": 1, "maxLength": 160 },
     "controllerSeq": { "type": "integer", "minimum": 1 },
     "type": {
       "enum": [
-        "run.prepare", "run.attach", "session.open", "turn.start", "turn.steer", "turn.interrupt", "turn.stop",
-        "request.resolve", "interaction.receipt", "semantic_tool.result", "session.snapshot", "session.close",
-        "session.budget.increase", "session.destroy", "run.cancel", "runner.drain", "runner.suspend", "runner.shutdown",
-        "session.goal.get", "session.goal.set", "session.goal.clear"
+        "run.prepare",
+        "run.attach",
+        "session.open",
+        "turn.start",
+        "turn.steer",
+        "turn.interrupt",
+        "turn.stop",
+        "request.resolve",
+        "interaction.receipt",
+        "semantic_tool.result",
+        "session.snapshot",
+        "session.close",
+        "session.budget.increase",
+        "session.destroy",
+        "run.cancel",
+        "runner.drain",
+        "runner.suspend",
+        "runner.shutdown",
+        "session.goal.get",
+        "session.goal.set",
+        "session.goal.clear"
       ]
     },
     "issuedAt": { "type": "string", "format": "date-time" },
@@ -38,8 +62,16 @@
           "payload": {
             "type": "object",
             "properties": {
-              "requestId": { "type": "string", "minLength": 1, "maxLength": 160 },
-              "objective": { "type": "string", "minLength": 1, "maxLength": 4000 },
+              "requestId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "objective": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
               "status": { "enum": ["active", "paused"] },
               "tokenBudget": { "type": ["integer", "null"], "minimum": 1 }
             },

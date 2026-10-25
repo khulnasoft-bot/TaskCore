@@ -1,16 +1,37 @@
 import type { IssuePriority, IssueStatus } from "../constants.js";
 
-export const COMPANY_SEARCH_SCOPES = ["all", "issues", "comments", "documents", "artifacts", "agents", "projects"] as const;
+export const COMPANY_SEARCH_SCOPES = [
+  "all",
+  "issues",
+  "comments",
+  "documents",
+  "artifacts",
+  "agents",
+  "projects",
+] as const;
 export type CompanySearchScope = (typeof COMPANY_SEARCH_SCOPES)[number];
 
-export const COMPANY_SEARCH_SORTS = ["relevance", "updated", "created", "priority"] as const;
+export const COMPANY_SEARCH_SORTS = [
+  "relevance",
+  "updated",
+  "created",
+  "priority",
+] as const;
 export type CompanySearchSort = (typeof COMPANY_SEARCH_SORTS)[number];
 
-export const COMPANY_SEARCH_UPDATED_WITHIN_OPTIONS = ["24h", "7d", "30d", "90d"] as const;
-export type CompanySearchUpdatedWithinOption = (typeof COMPANY_SEARCH_UPDATED_WITHIN_OPTIONS)[number];
+export const COMPANY_SEARCH_UPDATED_WITHIN_OPTIONS = [
+  "24h",
+  "7d",
+  "30d",
+  "90d",
+] as const;
+export type CompanySearchUpdatedWithinOption =
+  (typeof COMPANY_SEARCH_UPDATED_WITHIN_OPTIONS)[number];
 
-export type CompanySearchResultType = "issue" | "artifact" | "agent" | "project";
-export type CompanySearchCountType = CompanySearchResultType | "comment" | "document";
+export type CompanySearchResultType =
+  "issue" | "artifact" | "agent" | "project";
+export type CompanySearchCountType =
+  CompanySearchResultType | "comment" | "document";
 export type CompanySearchIssueFilterKey =
   | "status"
   | "assigneeAgentId"
@@ -110,11 +131,18 @@ export interface CompanySearchResponse {
   hasMore: boolean;
 }
 
-export const COMPANY_SEARCH_EXTRACT_SCOPES = ["all", "issues", "comments", "documents"] as const;
-export type CompanySearchExtractScope = (typeof COMPANY_SEARCH_EXTRACT_SCOPES)[number];
+export const COMPANY_SEARCH_EXTRACT_SCOPES = [
+  "all",
+  "issues",
+  "comments",
+  "documents",
+] as const;
+export type CompanySearchExtractScope =
+  (typeof COMPANY_SEARCH_EXTRACT_SCOPES)[number];
 
 export const COMPANY_SEARCH_EXTRACT_KINDS = ["literal", "url"] as const;
-export type CompanySearchExtractKind = (typeof COMPANY_SEARCH_EXTRACT_KINDS)[number];
+export type CompanySearchExtractKind =
+  (typeof COMPANY_SEARCH_EXTRACT_KINDS)[number];
 
 export type CompanySearchExtractSourceRef =
   | { type: "issue"; issueId: string }
@@ -123,7 +151,8 @@ export type CompanySearchExtractSourceRef =
 
 export interface CompanySearchExtractMatch {
   value: string;
-  field: "title" | "description" | "comment" | "document_title" | "document_body";
+  field:
+    "title" | "description" | "comment" | "document_title" | "document_body";
   label: string;
   excerpt: string;
   excerptTruncated: boolean;

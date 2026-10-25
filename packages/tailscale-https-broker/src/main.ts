@@ -19,13 +19,17 @@ import { createProcListenerVerifier } from "./proc-listener.js";
 import { startSocketServer } from "./socket-server.js";
 import { buildStatusArgv } from "./argv.js";
 import { assertPrimaryIntact, parseServeStatus } from "./serve-config.js";
-import { createTailscaleRunner, isSupportedTailscaleVersion } from "./tailscale-cli.js";
+import {
+  createTailscaleRunner,
+  isSupportedTailscaleVersion,
+} from "./tailscale-cli.js";
 
 function runDoctor(): number {
   const config = loadHostConfig(process.env);
   const runner = createTailscaleRunner();
   const version = runner([config.tailscaleBinPath, "version"]);
-  const versionOk = version.code === 0 && isSupportedTailscaleVersion(version.stdout);
+  const versionOk =
+    version.code === 0 && isSupportedTailscaleVersion(version.stdout);
   const status = runner(buildStatusArgv(config.tailscaleBinPath));
   let primaryOk = false;
   try {
@@ -65,7 +69,8 @@ function main(): void {
     nodeIdentity: config.nodeIdentity,
     // Protected ports are excluded from the allocatable allowlist as well as
     // denied per-op, so a lane can never even reserve one (PAP-17285).
-    isAllowedPort: (port) => defaultIsAllowedPort(port) && !config.protectedPorts.includes(port),
+    isAllowedPort: (port) =>
+      defaultIsAllowedPort(port) && !config.protectedPorts.includes(port),
     protectedPorts: config.protectedPorts,
     deps: {
       runTailscale: createTailscaleRunner(),

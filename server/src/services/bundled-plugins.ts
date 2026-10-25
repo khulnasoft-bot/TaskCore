@@ -2,7 +2,11 @@ import path from "node:path";
 import fs from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import type { TaskcorePluginManifestV1 } from "@taskcore/shared";
-import { assertDistributionManifestCapabilities, readDistributionPluginCatalog, type DistributionPlugin } from "./distribution-plugin-catalog.js";
+import {
+  assertDistributionManifestCapabilities,
+  readDistributionPluginCatalog,
+  type DistributionPlugin,
+} from "./distribution-plugin-catalog.js";
 
 /**
  * Bundled plugin auto-provisioning.
@@ -171,18 +175,31 @@ export function resolveBundledPluginInstalls(
   const resolved: ResolvedBundledPlugin[] = [];
   const seen = new Set<string>();
   const canonicalRoot = canonicalize(opts.catalogRoot);
-  const distributionPlugins = opts.distributionPlugins ?? readDistributionPluginCatalog(opts.catalogRoot, BUNDLED_PLUGIN_CATALOG);
+  const distributionPlugins =
+    opts.distributionPlugins ??
+    readDistributionPluginCatalog(opts.catalogRoot, BUNDLED_PLUGIN_CATALOG);
   for (const key of keys) {
     if (seen.has(key)) continue;
     seen.add(key);
-    const entry = BUNDLED_PLUGIN_CATALOG.find((candidate) => candidate.key === key);
+    const entry = BUNDLED_PLUGIN_CATALOG.find(
+      (candidate) => candidate.key === key,
+    );
     if (!entry) {
-      const distribution = distributionPlugins.find((candidate) => candidate.key === key);
+      const distribution = distributionPlugins.find(
+        (candidate) => candidate.key === key,
+      );
       if (distribution) {
-        resolved.push({ key, pluginKey: distribution.pluginKey, localPath: distribution.localPath, distribution });
+        resolved.push({
+          key,
+          pluginKey: distribution.pluginKey,
+          localPath: distribution.localPath,
+          distribution,
+        });
         continue;
       }
-      const known = BUNDLED_PLUGIN_CATALOG.map((candidate) => candidate.key).join(", ");
+      const known = BUNDLED_PLUGIN_CATALOG.map(
+        (candidate) => candidate.key,
+      ).join(", ");
       throw new Error(
         `bundled plugin auto-install key "${key}" is not in the bundled catalog (known keys: ${known}); refusing to start`,
       );
@@ -193,7 +210,10 @@ export function resolveBundledPluginInstalls(
     const localPath = override
       ? path.resolve(override)
       : path.resolve(opts.catalogRoot, entry.relativePath);
-    if (opts.enforceCatalogRoot && !isInsideRoot(canonicalize(localPath), canonicalRoot)) {
+    if (
+      opts.enforceCatalogRoot &&
+      !isInsideRoot(canonicalize(localPath), canonicalRoot)
+    ) {
       throw new Error(
         `bundled plugin "${key}" resolves to "${localPath}", outside the bundled catalog root "${opts.catalogRoot}"; refusing to start`,
       );
@@ -218,9 +238,17 @@ export interface BundledPluginProvisionerDeps {
     getByKey(pluginKey: string): Promise<RegistryPluginRow | null>;
     update(
       id: string,
-      data: { version?: string; manifest?: TaskcorePluginManifestV1; packagePath?: string; status?: "upgrade_pending" },
+      data: {
+        version?: string;
+        manifest?: TaskcorePluginManifestV1;
+        packagePath?: string;
+        status?: "upgrade_pending";
+      },
     ): Promise<unknown>;
-    updateStatus(id: string, input: { status: "ready"; lastError: string | null }): Promise<unknown>;
+    updateStatus(
+      id: string,
+      input: { status: "ready"; lastError: string | null },
+    ): Promise<unknown>;
   };
   loader: {
     installPlugin(options: { localPath: string }): Promise<{
@@ -270,17 +298,31 @@ async function reconcileBundledPluginManifest(
     // operator's uninstall must be retained, including its status.
     if (install.distribution && existing.status === "uninstalled") return;
     if (!verifiedManifest && !bundleManifestExists(install.localPath)) return;
-    const bundleManifest = verifiedManifest ?? await deps.loader.loadManifest(install.localPath);
+    const bundleManifest =
+      verifiedManifest ?? (await deps.loader.loadManifest(install.localPath));
     if (!bundleManifest) return;
     let requiresApproval = false;
     if (install.distribution) {
       assertDistributionManifestCapabilities(bundleManifest);
       const approved = new Set(existing.manifestJson.capabilities ?? []);
-      requiresApproval = bundleManifest.capabilities.some((capability) => !approved.has(capability));
+      requiresApproval = bundleManifest.capabilities.some(
+        (capability) => !approved.has(capability),
+      );
     }
-    const rebindPackage = install.distribution && existing.packagePath !== install.localPath && existing.status !== "uninstalled";
-    const refreshDistribution = install.distribution && !isDeepStrictEqual(bundleManifest, existing.manifestJson);
-    if (bundleManifest.version === existing.version && !rebindPackage && !requiresApproval && !refreshDistribution) return;
+    const rebindPackage =
+      install.distribution &&
+      existing.packagePath !== install.localPath &&
+      existing.status !== "uninstalled";
+    const refreshDistribution =
+      install.distribution &&
+      !isDeepStrictEqual(bundleManifest, existing.manifestJson);
+    if (
+      bundleManifest.version === existing.version &&
+      !rebindPackage &&
+      !requiresApproval &&
+      !refreshDistribution
+    )
+      return;
     await deps.registry.update(existing.id, {
       version: bundleManifest.version,
       manifest: bundleManifest,
@@ -346,7 +388,10 @@ async function reenableErroredBundledPlugin(
     "bundled plugin is in error status from a previous activation; re-enabling it for this boot",
   );
   try {
-    await deps.registry.updateStatus(existing.id, { status: "ready", lastError: null });
+    await deps.registry.updateStatus(existing.id, {
+      status: "ready",
+      lastError: null,
+    });
     deps.logger.info(
       { pluginId: existing.id, pluginKey: install.pluginKey },
       "bundled plugin reset to ready; the startup loader will activate it",
@@ -386,19 +431,28 @@ export async function ensureBundledPlugins(
   deps: BundledPluginProvisionerDeps,
   opts: { reinstallUninstalled: boolean },
 ): Promise<void> {
-  const bundleManifestExists = deps.bundleManifestExists ?? defaultBundleManifestExists;
+  const bundleManifestExists =
+    deps.bundleManifestExists ?? defaultBundleManifestExists;
   for (const install of installs) {
     try {
       let verifiedManifest: TaskcorePluginManifestV1 | undefined;
       if (install.distribution) {
         const manifest = await deps.loader.loadManifest(install.localPath);
-        if (manifest?.id !== install.pluginKey || manifest.version !== install.distribution.version) {
-          throw new Error("Distribution manifest does not match its catalog identity/version");
+        if (
+          manifest?.id !== install.pluginKey ||
+          manifest.version !== install.distribution.version
+        ) {
+          throw new Error(
+            "Distribution manifest does not match its catalog identity/version",
+          );
         }
         verifiedManifest = manifest;
       }
       const existing = await deps.registry.getByKey(install.pluginKey);
-      if (existing && (existing.status !== "uninstalled" || !opts.reinstallUninstalled)) {
+      if (
+        existing &&
+        (existing.status !== "uninstalled" || !opts.reinstallUninstalled)
+      ) {
         // The bundle ships with the release image, so its manifest is the
         // source of truth for a present plugin. Reconcile the persisted
         // manifest when the shipped bundle declares a different version. Without
@@ -406,7 +460,13 @@ export async function ensureBundledPlugins(
         // existing install, because the auto-install below skips a present
         // plugin. Distribution entries also replace a legacy/npm package path
         // before loadAll resolves the worker. Configuration and status stay put.
-        const reconciledStatus = await reconcileBundledPluginManifest(existing, install, deps, bundleManifestExists, verifiedManifest);
+        const reconciledStatus = await reconcileBundledPluginManifest(
+          existing,
+          install,
+          deps,
+          bundleManifestExists,
+          verifiedManifest,
+        );
         if (reconciledStatus === "upgrade_pending") continue;
         if (existing.status === "error") {
           await reenableErroredBundledPlugin(existing, install, deps);
@@ -431,7 +491,9 @@ export async function ensureBundledPlugins(
         { pluginKey: install.pluginKey, pluginPath: install.localPath },
         "auto-installing bundled plugin",
       );
-      const discovered = await deps.loader.installPlugin({ localPath: install.localPath });
+      const discovered = await deps.loader.installPlugin({
+        localPath: install.localPath,
+      });
       if (!discovered.manifest) {
         deps.logger.error(
           { pluginKey: install.pluginKey },

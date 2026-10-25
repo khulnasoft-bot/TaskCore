@@ -11,7 +11,9 @@ import {
   parseCronToPreset,
 } from "./ScheduleEditor";
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function Harness({
   initial,
@@ -36,7 +38,10 @@ function Harness({
 }
 
 function typeCron(input: HTMLInputElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+  const setter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    "value",
+  )?.set;
   setter?.call(input, value);
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
@@ -81,7 +86,9 @@ describe("ScheduleEditor", () => {
   });
 
   function cronInput() {
-    return container.querySelector<HTMLInputElement>('input[aria-label="Cron expression"]');
+    return container.querySelector<HTMLInputElement>(
+      'input[aria-label="Cron expression"]',
+    );
   }
 
   it("renders unknown valid cron expressions in Custom with the original text", () => {

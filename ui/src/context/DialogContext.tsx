@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { IssueWorkMode } from "@taskcore/shared";
 
 interface NewIssueDefaults {
@@ -77,14 +84,19 @@ const DialogActionsContext = createContext<DialogActionsValue | null>(null);
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [newIssueOpen, setNewIssueOpen] = useState(false);
-  const [newIssueDefaults, setNewIssueDefaults] = useState<NewIssueDefaults>({});
+  const [newIssueDefaults, setNewIssueDefaults] = useState<NewIssueDefaults>(
+    {},
+  );
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newGoalOpen, setNewGoalOpen] = useState(false);
   const [newGoalDefaults, setNewGoalDefaults] = useState<NewGoalDefaults>({});
   const [newAgentOpen, setNewAgentOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [onboardingOptions, setOnboardingOptions] = useState<OnboardingOptions>({});
-  const [onboardingRouteDismissed, setOnboardingRouteDismissed] = useState(false);
+  const [onboardingOptions, setOnboardingOptions] = useState<OnboardingOptions>(
+    {},
+  );
+  const [onboardingRouteDismissed, setOnboardingRouteDismissed] =
+    useState(false);
 
   const openNewIssue = useCallback((defaults: NewIssueDefaults = {}) => {
     setNewIssueDefaults(defaults);

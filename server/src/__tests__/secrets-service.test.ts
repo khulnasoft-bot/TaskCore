@@ -3,10 +3,21 @@ import { mkdirSync, rmSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { MockInstance } from "vitest";
 import { and, eq, sql } from "drizzle-orm";
-import { resolveCodexAuthCacheDir, withAccountHomeSecretMutationLock } from "@taskcore/adapter-codex-local/server";
+import {
+  resolveCodexAuthCacheDir,
+  withAccountHomeSecretMutationLock,
+} from "@taskcore/adapter-codex-local/server";
 import {
   activityLog,
   agents,
@@ -23,14 +34,19 @@ import {
   userSecretDefinitions,
 } from "@taskcore/db";
 import { LOW_TRUST_REVIEW_PRESET } from "@taskcore/shared";
-import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
+import {
+  getEmbeddedPostgresTestSupport,
+  startEmbeddedPostgresTestDatabase,
+} from "./helpers/embedded-postgres.js";
 import { awsSecretsManagerProvider } from "../secrets/aws-secrets-manager-provider.js";
 import { localEncryptedProvider } from "../secrets/local-encrypted-provider.js";
 import { SecretProviderClientError } from "../secrets/types.js";
 import { secretService } from "../services/secrets.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -65,7 +81,9 @@ async function awaitEntryOrOperationFailure(
   label: string,
 ): Promise<void> {
   const failIfOperationSettlesFirst = operation.then(() => {
-    throw new Error(`${label}: the operation settled before it entered its mocked provider method`);
+    throw new Error(
+      `${label}: the operation settled before it entered its mocked provider method`,
+    );
   });
   // Attach a no-op handler so a later rejection here, once `entered` has
   // already won the race below, never surfaces as an unhandled rejection.
@@ -100,13 +118,20 @@ const ENTRY_DETECTION_MAX_WAIT_MS = 3000;
 // one does not, that sample is meaningless, and a wait built from it would
 // silently collapse toward its own one-millisecond floor instead of a real
 // window. Throw here instead, so a broken baseline call fails loudly.
-async function measureUncontendedEntryDurationMs<TArgs extends unknown[], TReturn>(
+async function measureUncontendedEntryDurationMs<
+  TArgs extends unknown[],
+  TReturn,
+>(
   spy: MockInstance<(...args: TArgs) => Promise<TReturn>>,
   original: (...args: TArgs) => Promise<TReturn>,
   triggerUncontendedCall: () => Promise<unknown>,
 ): Promise<number> {
   let worstDurationMs = 0;
-  for (let sample = 0; sample < ENTRY_DETECTION_BASELINE_SAMPLE_COUNT; sample += 1) {
+  for (
+    let sample = 0;
+    sample < ENTRY_DETECTION_BASELINE_SAMPLE_COUNT;
+    sample += 1
+  ) {
     const startedAt = performance.now();
     let entered = false;
     let enteredAt = startedAt;
@@ -135,7 +160,10 @@ async function measureUncontendedEntryDurationMs<TArgs extends unknown[], TRetur
 // sleep-then-check against a single guessed duration. The measured window
 // below is only a ceiling on how long a correctly excluding lock is given
 // to prove the second operation stayed queued.
-function waitEntryDetectionWindow(uncontendedEntryDurationMs: number, violationSignal: Promise<void>): Promise<void> {
+function waitEntryDetectionWindow(
+  uncontendedEntryDurationMs: number,
+  violationSignal: Promise<void>,
+): Promise<void> {
   const waitMs = Math.min(
     Math.max(uncontendedEntryDurationMs, 1) * ENTRY_DETECTION_SAFETY_MULTIPLIER,
     ENTRY_DETECTION_MAX_WAIT_MS,
@@ -148,11 +176,17 @@ describeEmbeddedPostgres("secretService", () => {
   let stopDb: (() => Promise<void>) | null = null;
   let db!: ReturnType<typeof createDb>;
   const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
-  const secretsTmpDir = path.join(os.tmpdir(), `taskcore-secrets-service-${randomUUID()}`);
+  const secretsTmpDir = path.join(
+    os.tmpdir(),
+    `taskcore-secrets-service-${randomUUID()}`,
+  );
 
   beforeAll(async () => {
     mkdirSync(secretsTmpDir, { recursive: true });
-    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(secretsTmpDir, "master.key");
+    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(
+      secretsTmpDir,
+      "master.key",
+    );
     const started = await startEmbeddedPostgresTestDatabase("secrets-service");
     stopDb = started.cleanup;
     db = createDb(started.connectionString);
@@ -201,8 +235,14 @@ describeEmbeddedPostgres("secretService", () => {
   // root, so a test can prove the write-time directory-validity check reads
   // an actual filesystem entry, the same way the production cleanup and the
   // production secret write do.
-  async function makeAccountHomeDir(companyId: string, accountHandle: string): Promise<string> {
-    const accountHomeDir = path.join(resolveCodexAuthCacheDir(undefined, companyId), accountHandle);
+  async function makeAccountHomeDir(
+    companyId: string,
+    accountHandle: string,
+  ): Promise<string> {
+    const accountHomeDir = path.join(
+      resolveCodexAuthCacheDir(undefined, companyId),
+      accountHandle,
+    );
     await mkdir(accountHomeDir, { recursive: true });
     return accountHomeDir;
   }
@@ -223,7 +263,10 @@ describeEmbeddedPostgres("secretService", () => {
     });
   }
 
-  async function seedAgentRun(companyId: string, permissions: Record<string, unknown> = {}) {
+  async function seedAgentRun(
+    companyId: string,
+    permissions: Record<string, unknown> = {},
+  ) {
     const agentId = randomUUID();
     await db.insert(agents).values({
       id: agentId,
@@ -262,7 +305,11 @@ describeEmbeddedPostgres("secretService", () => {
 
     await expect(
       svc.normalizeEnvBindingsForPersistence(companyA, {
-        API_KEY: { type: "secret_ref", secretId: foreignSecret.id, version: "latest" },
+        API_KEY: {
+          type: "secret_ref",
+          secretId: foreignSecret.id,
+          version: "latest",
+        },
       }),
     ).rejects.toThrow(/same company/i);
   });
@@ -325,7 +372,9 @@ describeEmbeddedPostgres("secretService", () => {
     expect(configRows).toHaveLength(1);
     expect(configRows[0]?.companyId).toBe(companyB);
     expect(configRows[0]?.secretId).toBe(secretB.id);
-    expect(rows.filter((row) => row.configPath === "env.EXTRA")).toHaveLength(1);
+    expect(rows.filter((row) => row.configPath === "env.EXTRA")).toHaveLength(
+      1,
+    );
   });
 
   it("replaceSecretRefsForInstanceTarget writes each binding under its own secret's company", async () => {
@@ -352,7 +401,9 @@ describeEmbeddedPostgres("secretService", () => {
       ],
     );
 
-    expect(refs.map((ref) => ref.companyId).sort()).toEqual([companyA, companyB].sort());
+    expect(refs.map((ref) => ref.companyId).sort()).toEqual(
+      [companyA, companyB].sort(),
+    );
     const rows = await db
       .select()
       .from(companySecretBindings)
@@ -363,8 +414,12 @@ describeEmbeddedPostgres("secretService", () => {
         ),
       );
     expect(rows).toHaveLength(2);
-    expect(rows.find((row) => row.configPath === "apiKey")?.companyId).toBe(companyA);
-    expect(rows.find((row) => row.configPath === "privateKeySecretRef")?.companyId).toBe(companyB);
+    expect(rows.find((row) => row.configPath === "apiKey")?.companyId).toBe(
+      companyA,
+    );
+    expect(
+      rows.find((row) => row.configPath === "privateKeySecretRef")?.companyId,
+    ).toBe(companyB);
   });
 
   it("replaceSecretRefsForInstanceTarget rejects unknown secrets without touching existing bindings", async () => {
@@ -489,7 +544,9 @@ describeEmbeddedPostgres("secretService", () => {
     // whichever caller goes first.
     const companyId = await seedCompany();
     const svc = secretService(db);
-    const originalCreateSecret = localEncryptedProvider.createSecret.bind(localEncryptedProvider);
+    const originalCreateSecret = localEncryptedProvider.createSecret.bind(
+      localEncryptedProvider,
+    );
     const createSecretSpy = vi.spyOn(localEncryptedProvider, "createSecret");
 
     // An uncontended create still crosses several asynchronous steps
@@ -544,7 +601,11 @@ describeEmbeddedPostgres("secretService", () => {
       // before the call ever reaches the lock surfaces immediately, at its
       // own throw site, instead of hanging this wait until the test
       // timeout.
-      await awaitEntryOrOperationFailure(firstEntered.promise, firstCreate, "firstCreate");
+      await awaitEntryOrOperationFailure(
+        firstEntered.promise,
+        firstCreate,
+        "firstCreate",
+      );
       secondCreate = svc.create(companyId, {
         name: `hand-named-${randomUUID()}`,
         provider: "local_encrypted",
@@ -557,7 +618,10 @@ describeEmbeddedPostgres("secretService", () => {
       // false failure. A broken lock resolves `secondEntered` on its own,
       // from inside the second call's mocked provider method, the instant
       // it gets there.
-      await waitEntryDetectionWindow(uncontendedEntryDurationMs, secondEntered.promise);
+      await waitEntryDetectionWindow(
+        uncontendedEntryDurationMs,
+        secondEntered.promise,
+      );
       // The lock is still held (we have not released it yet), so the second
       // call must still be queued behind it and must not have entered its
       // provider write.
@@ -576,7 +640,11 @@ describeEmbeddedPostgres("secretService", () => {
     // provider write until the first call's whole locked operation
     // completes. This final order is proof of mutual exclusion, not a
     // timing guess.
-    expect(events).toEqual(["first-provider-enter", "first-provider-exit", "second-provider-enter"]);
+    expect(events).toEqual([
+      "first-provider-enter",
+      "first-provider-exit",
+      "second-provider-enter",
+    ]);
   });
 
   it("serializes a local_encrypted secret rotate against a concurrent create of a different secret in the same company", async () => {
@@ -590,7 +658,9 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "local_encrypted",
       value: "/company/codex-home/acct-b",
     });
-    const originalCreateSecret = localEncryptedProvider.createSecret.bind(localEncryptedProvider);
+    const originalCreateSecret = localEncryptedProvider.createSecret.bind(
+      localEncryptedProvider,
+    );
     const createSecretSpy = vi.spyOn(localEncryptedProvider, "createSecret");
 
     // The contended call below is a create, so measure how long an
@@ -614,21 +684,27 @@ describeEmbeddedPostgres("secretService", () => {
     const rotateWriteGate = new Promise<void>((resolve) => {
       releaseRotateWrite = resolve;
     });
-    const originalCreateVersion = localEncryptedProvider.createVersion.bind(localEncryptedProvider);
-    vi.spyOn(localEncryptedProvider, "createVersion").mockImplementationOnce(async (input) => {
-      events.push("rotate-provider-enter");
-      rotateEntered.resolve();
-      await rotateWriteGate;
-      events.push("rotate-provider-exit");
-      return originalCreateVersion(input);
-    });
+    const originalCreateVersion = localEncryptedProvider.createVersion.bind(
+      localEncryptedProvider,
+    );
+    vi.spyOn(localEncryptedProvider, "createVersion").mockImplementationOnce(
+      async (input) => {
+        events.push("rotate-provider-enter");
+        rotateEntered.resolve();
+        await rotateWriteGate;
+        events.push("rotate-provider-exit");
+        return originalCreateVersion(input);
+      },
+    );
     createSecretSpy.mockImplementationOnce(async (input) => {
       events.push("create-provider-enter");
       createEntered.resolve();
       return originalCreateSecret(input);
     });
 
-    const rotateCall = svc.rotate(existing.id, { value: "/company/codex-home/acct-b-rotated" });
+    const rotateCall = svc.rotate(existing.id, {
+      value: "/company/codex-home/acct-b-rotated",
+    });
     let createCall: ReturnType<typeof svc.create> | undefined;
     let outcomes: PromiseSettledResult<unknown>[] = [];
     try {
@@ -640,7 +716,11 @@ describeEmbeddedPostgres("secretService", () => {
       // before the call ever reaches the lock surfaces immediately, at its
       // own throw site, instead of hanging this wait until the test
       // timeout.
-      await awaitEntryOrOperationFailure(rotateEntered.promise, rotateCall, "rotateCall");
+      await awaitEntryOrOperationFailure(
+        rotateEntered.promise,
+        rotateCall,
+        "rotateCall",
+      );
       createCall = svc.create(companyId, {
         name: `hand-named-${randomUUID()}`,
         provider: "local_encrypted",
@@ -653,7 +733,10 @@ describeEmbeddedPostgres("secretService", () => {
       // false failure. A broken lock resolves `createEntered` on its own,
       // from inside the create call's mocked provider method, the instant
       // it gets there.
-      await waitEntryDetectionWindow(uncontendedEntryDurationMs, createEntered.promise);
+      await waitEntryDetectionWindow(
+        uncontendedEntryDurationMs,
+        createEntered.promise,
+      );
       // The lock is still held (we have not released it yet), so the create
       // call must still be queued behind it and must not have entered its
       // provider write.
@@ -671,7 +754,11 @@ describeEmbeddedPostgres("secretService", () => {
     // The lock enforces this order: the create call cannot start its
     // provider write until the rotate's whole locked operation completes.
     // This final order is proof of mutual exclusion, not a timing guess.
-    expect(events).toEqual(["rotate-provider-enter", "rotate-provider-exit", "create-provider-enter"]);
+    expect(events).toEqual([
+      "rotate-provider-enter",
+      "rotate-provider-exit",
+      "create-provider-enter",
+    ]);
   });
 
   it("locks the parent secret row before its version rows during rotate, so a concurrent credential write-back cannot deadlock with it", async () => {
@@ -700,9 +787,16 @@ describeEmbeddedPostgres("secretService", () => {
       await tx
         .select({ id: companySecretVersions.id })
         .from(companySecretVersions)
-        .where(and(eq(companySecretVersions.secretId, secret.id), eq(companySecretVersions.version, 1)))
+        .where(
+          and(
+            eq(companySecretVersions.secretId, secret.id),
+            eq(companySecretVersions.version, 1),
+          ),
+        )
         .for("update");
-      const [backend] = (await tx.execute(sql`select pg_backend_pid() as pid`)) as unknown as Array<{ pid: number }>;
+      const [backend] = (await tx.execute(
+        sql`select pg_backend_pid() as pid`,
+      )) as unknown as Array<{ pid: number }>;
       holderPidReady.resolve(backend.pid);
       await holderReleased;
     });
@@ -735,11 +829,15 @@ describeEmbeddedPostgres("secretService", () => {
       // that write happen first.
       const probe = await db
         .transaction(async (tx) => {
-          await tx.execute(sql`select 1 from company_secrets where id = ${secret.id} for update nowait`);
+          await tx.execute(
+            sql`select 1 from company_secrets where id = ${secret.id} for update nowait`,
+          );
         })
         .then(() => null)
         .catch((error: unknown) => error);
-      expect(String((probe as { cause?: unknown })?.cause ?? probe)).toMatch(/could not obtain lock/i);
+      expect(String((probe as { cause?: unknown })?.cause ?? probe)).toMatch(
+        /could not obtain lock/i,
+      );
     } finally {
       releaseHolder();
     }
@@ -756,8 +854,13 @@ describeEmbeddedPostgres("secretService", () => {
     // value. It must fail instead.
     const companyId = await seedCompany();
     const svc = secretService(db);
-    const accountHomeDir = await makeAccountHomeDir(companyId, "acct-queued-create");
-    const originalCreateSecret = localEncryptedProvider.createSecret.bind(localEncryptedProvider);
+    const accountHomeDir = await makeAccountHomeDir(
+      companyId,
+      "acct-queued-create",
+    );
+    const originalCreateSecret = localEncryptedProvider.createSecret.bind(
+      localEncryptedProvider,
+    );
     const createSecretSpy = vi.spyOn(localEncryptedProvider, "createSecret");
 
     // The contended call below is a create, so measure how long an
@@ -781,13 +884,17 @@ describeEmbeddedPostgres("secretService", () => {
     const cleanupGate = new Promise<void>((resolve) => {
       releaseCleanup = resolve;
     });
-    const cleanupCall = withAccountHomeSecretMutationLock(undefined, companyId, async () => {
-      events.push("cleanup-enter");
-      cleanupEntered.resolve();
-      await cleanupGate;
-      await rm(accountHomeDir, { recursive: true, force: true });
-      events.push("cleanup-exit");
-    });
+    const cleanupCall = withAccountHomeSecretMutationLock(
+      undefined,
+      companyId,
+      async () => {
+        events.push("cleanup-enter");
+        cleanupEntered.resolve();
+        await cleanupGate;
+        await rm(accountHomeDir, { recursive: true, force: true });
+        events.push("cleanup-exit");
+      },
+    );
     createSecretSpy.mockImplementationOnce(async (input) => {
       events.push("create-provider-enter");
       createEntered.resolve();
@@ -802,7 +909,11 @@ describeEmbeddedPostgres("secretService", () => {
       // cleanup's own promise, so a setup failure that happens before the
       // cleanup ever reaches the lock surfaces immediately, at its own
       // throw site, instead of hanging this wait until the test timeout.
-      await awaitEntryOrOperationFailure(cleanupEntered.promise, cleanupCall, "cleanupCall");
+      await awaitEntryOrOperationFailure(
+        cleanupEntered.promise,
+        cleanupCall,
+        "cleanupCall",
+      );
       createCall = svc.create(companyId, {
         name: `account-home-${randomUUID()}`,
         provider: "local_encrypted",
@@ -817,7 +928,10 @@ describeEmbeddedPostgres("secretService", () => {
       // mocked provider method, the instant it clears the directory check
       // and gets there — the directory still exists until the cleanup
       // (still paused on its own gate) actually removes it.
-      await waitEntryDetectionWindow(uncontendedEntryDurationMs, createEntered.promise);
+      await waitEntryDetectionWindow(
+        uncontendedEntryDurationMs,
+        createEntered.promise,
+      );
       // The lock is still held (we have not released it yet), so the create
       // call must still be queued behind it and must not have entered its
       // provider write.
@@ -844,8 +958,13 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "local_encrypted",
       value: "/some/unrelated/placeholder/value",
     });
-    const accountHomeDir = await makeAccountHomeDir(companyId, "acct-queued-rotate");
-    const originalCreateVersion = localEncryptedProvider.createVersion.bind(localEncryptedProvider);
+    const accountHomeDir = await makeAccountHomeDir(
+      companyId,
+      "acct-queued-rotate",
+    );
+    const originalCreateVersion = localEncryptedProvider.createVersion.bind(
+      localEncryptedProvider,
+    );
     const createVersionSpy = vi.spyOn(localEncryptedProvider, "createVersion");
 
     // The contended call below is a rotate, so measure how long an
@@ -859,7 +978,10 @@ describeEmbeddedPostgres("secretService", () => {
     const uncontendedEntryDurationMs = await measureUncontendedEntryDurationMs(
       createVersionSpy,
       originalCreateVersion,
-      () => svc.rotate(baselineSecret.id, { value: "/some/unrelated/placeholder/baseline-rotated" }),
+      () =>
+        svc.rotate(baselineSecret.id, {
+          value: "/some/unrelated/placeholder/baseline-rotated",
+        }),
     );
 
     const events: string[] = [];
@@ -869,13 +991,17 @@ describeEmbeddedPostgres("secretService", () => {
     const cleanupGate = new Promise<void>((resolve) => {
       releaseCleanup = resolve;
     });
-    const cleanupCall = withAccountHomeSecretMutationLock(undefined, companyId, async () => {
-      events.push("cleanup-enter");
-      cleanupEntered.resolve();
-      await cleanupGate;
-      await rm(accountHomeDir, { recursive: true, force: true });
-      events.push("cleanup-exit");
-    });
+    const cleanupCall = withAccountHomeSecretMutationLock(
+      undefined,
+      companyId,
+      async () => {
+        events.push("cleanup-enter");
+        cleanupEntered.resolve();
+        await cleanupGate;
+        await rm(accountHomeDir, { recursive: true, force: true });
+        events.push("cleanup-exit");
+      },
+    );
     createVersionSpy.mockImplementationOnce(async (input) => {
       events.push("rotate-provider-enter");
       rotateEntered.resolve();
@@ -890,7 +1016,11 @@ describeEmbeddedPostgres("secretService", () => {
       // cleanup's own promise, so a setup failure that happens before the
       // cleanup ever reaches the lock surfaces immediately, at its own
       // throw site, instead of hanging this wait until the test timeout.
-      await awaitEntryOrOperationFailure(cleanupEntered.promise, cleanupCall, "cleanupCall");
+      await awaitEntryOrOperationFailure(
+        cleanupEntered.promise,
+        cleanupCall,
+        "cleanupCall",
+      );
       rotateCall = svc.rotate(existing.id, { value: accountHomeDir });
       // Wait a safety multiple of the measured uncontended entry duration,
       // or until the rotate call itself confirms it reached its provider
@@ -901,7 +1031,10 @@ describeEmbeddedPostgres("secretService", () => {
       // mocked provider method, the instant it clears the directory check
       // and gets there — the directory still exists until the cleanup
       // (still paused on its own gate) actually removes it.
-      await waitEntryDetectionWindow(uncontendedEntryDurationMs, rotateEntered.promise);
+      await waitEntryDetectionWindow(
+        uncontendedEntryDurationMs,
+        rotateEntered.promise,
+      );
       // The lock is still held (we have not released it yet), so the
       // rotate call must still be queued behind it and must not have
       // entered its provider write.
@@ -933,13 +1066,15 @@ describeEmbeddedPostgres("secretService", () => {
     vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue({
       material: {
         scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret",
+        secretId:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret",
         versionId: "aws-version-1",
         source: "managed",
       },
       valueSha256: "value-sha-1",
       fingerprintSha256: "fingerprint-sha-1",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret",
       providerVersionRef: "aws-version-1",
     });
 
@@ -948,11 +1083,15 @@ describeEmbeddedPostgres("secretService", () => {
     const cleanupGate = new Promise<void>((resolve) => {
       releaseCleanup = resolve;
     });
-    const cleanupCall = withAccountHomeSecretMutationLock(undefined, companyId, async () => {
-      events.push("cleanup-enter");
-      await cleanupGate;
-      events.push("cleanup-exit");
-    });
+    const cleanupCall = withAccountHomeSecretMutationLock(
+      undefined,
+      companyId,
+      async () => {
+        events.push("cleanup-enter");
+        await cleanupGate;
+        events.push("cleanup-exit");
+      },
+    );
     // Give the cleanup a chance to acquire the lock before the AWS create
     // starts racing for the same lock.
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -988,25 +1127,29 @@ describeEmbeddedPostgres("secretService", () => {
     vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue({
       material: {
         scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret-rotate",
+        secretId:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret-rotate",
         versionId: "aws-version-1",
         source: "managed",
       },
       valueSha256: "value-sha-1",
       fingerprintSha256: "fingerprint-sha-1",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret-rotate",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret-rotate",
       providerVersionRef: "aws-version-1",
     });
     vi.spyOn(awsSecretsManagerProvider, "createVersion").mockResolvedValue({
       material: {
         scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret-rotate",
+        secretId:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret-rotate",
         versionId: "aws-version-2",
         source: "managed",
       },
       valueSha256: "value-sha-2",
       fingerprintSha256: "fingerprint-sha-2",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret-rotate",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/aws-secret-rotate",
       providerVersionRef: "aws-version-2",
     });
     const existing = await svc.create(companyId, {
@@ -1021,13 +1164,19 @@ describeEmbeddedPostgres("secretService", () => {
     const cleanupGate = new Promise<void>((resolve) => {
       releaseCleanup = resolve;
     });
-    const cleanupCall = withAccountHomeSecretMutationLock(undefined, companyId, async () => {
-      events.push("cleanup-enter");
-      await cleanupGate;
-      events.push("cleanup-exit");
-    });
+    const cleanupCall = withAccountHomeSecretMutationLock(
+      undefined,
+      companyId,
+      async () => {
+        events.push("cleanup-enter");
+        await cleanupGate;
+        events.push("cleanup-exit");
+      },
+    );
     await new Promise((resolve) => setTimeout(resolve, 20));
-    const rotateCall = svc.rotate(existing.id, { value: "rotated-runtime-secret" });
+    const rotateCall = svc.rotate(existing.id, {
+      value: "rotated-runtime-secret",
+    });
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(events).toEqual(["cleanup-enter"]);
 
@@ -1057,16 +1206,22 @@ describeEmbeddedPostgres("secretService", () => {
     const cleanupGate = new Promise<void>((resolve) => {
       releaseCleanup = resolve;
     });
-    const cleanupCall = withAccountHomeSecretMutationLock(undefined, companyId, async () => {
-      await cleanupGate;
-    });
+    const cleanupCall = withAccountHomeSecretMutationLock(
+      undefined,
+      companyId,
+      async () => {
+        await cleanupGate;
+      },
+    );
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     let updateResolved = false;
-    const updateCall = svc.update(secret.id, { status: "archived" }).then((result) => {
-      updateResolved = true;
-      return result;
-    });
+    const updateCall = svc
+      .update(secret.id, { status: "archived" })
+      .then((result) => {
+        updateResolved = true;
+        return result;
+      });
     // The update must stay queued behind the held lock.
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(updateResolved).toBe(false);
@@ -1094,9 +1249,13 @@ describeEmbeddedPostgres("secretService", () => {
     const cleanupGate = new Promise<void>((resolve) => {
       releaseCleanup = resolve;
     });
-    const cleanupCall = withAccountHomeSecretMutationLock(undefined, companyId, async () => {
-      await cleanupGate;
-    });
+    const cleanupCall = withAccountHomeSecretMutationLock(
+      undefined,
+      companyId,
+      async () => {
+        await cleanupGate;
+      },
+    );
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     let removeResolved = false;
@@ -1121,7 +1280,10 @@ describeEmbeddedPostgres("secretService", () => {
     // directory that is still present must keep succeeding, unblocked.
     const companyId = await seedCompany();
     const svc = secretService(db);
-    const accountHomeDir = await makeAccountHomeDir(companyId, "acct-still-present");
+    const accountHomeDir = await makeAccountHomeDir(
+      companyId,
+      "acct-still-present",
+    );
 
     const created = await svc.create(companyId, {
       name: `account-home-${randomUUID()}`,
@@ -1140,19 +1302,26 @@ describeEmbeddedPostgres("secretService", () => {
     // already removed while this call waited for the lock.
     const companyId = await seedCompany();
     const svc = secretService(db);
-    const accountHomeDir = await makeAccountHomeDir(companyId, "acct-queued-adapter-secret");
+    const accountHomeDir = await makeAccountHomeDir(
+      companyId,
+      "acct-queued-adapter-secret",
+    );
 
     const events: string[] = [];
     let releaseCleanup!: () => void;
     const cleanupGate = new Promise<void>((resolve) => {
       releaseCleanup = resolve;
     });
-    const cleanupCall = withAccountHomeSecretMutationLock(undefined, companyId, async () => {
-      events.push("cleanup-enter");
-      await cleanupGate;
-      await rm(accountHomeDir, { recursive: true, force: true });
-      events.push("cleanup-exit");
-    });
+    const cleanupCall = withAccountHomeSecretMutationLock(
+      undefined,
+      companyId,
+      async () => {
+        events.push("cleanup-enter");
+        await cleanupGate;
+        await rm(accountHomeDir, { recursive: true, force: true });
+        events.push("cleanup-exit");
+      },
+    );
     // Give the cleanup a chance to acquire the lock before the adapter
     // config normalization starts racing for the same lock.
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -1182,7 +1351,10 @@ describeEmbeddedPostgres("secretService", () => {
       { apiKey: `plain-api-key-${randomUUID()}` },
       { adapterType: "hermes_gateway" },
     );
-    const apiKeyBinding = (normalized as Record<string, unknown>).apiKey as { type: string; secretId: string };
+    const apiKeyBinding = (normalized as Record<string, unknown>).apiKey as {
+      type: string;
+      secretId: string;
+    };
     expect(apiKeyBinding.type).toBe("secret_ref");
     const secret = await svc.getById(apiKeyBinding.secretId);
     expect(secret?.status).toBe("active");
@@ -1197,21 +1369,25 @@ describeEmbeddedPostgres("secretService", () => {
       value: "runtime-secret",
     });
 
-    await expect(svc.createBinding({
-      companyId,
-      secretId: secret.id,
-      targetType: "project",
-      targetId: randomUUID(),
-      configPath: "access.API_KEY",
-    })).rejects.toThrow(/must target an agent/i);
+    await expect(
+      svc.createBinding({
+        companyId,
+        secretId: secret.id,
+        targetType: "project",
+        targetId: randomUUID(),
+        configPath: "access.API_KEY",
+      }),
+    ).rejects.toThrow(/must target an agent/i);
 
-    await expect(svc.createBinding({
-      companyId,
-      secretId: secret.id,
-      targetType: "agent",
-      targetId: randomUUID(),
-      configPath: "access.invalid-alias",
-    })).rejects.toThrow(/invalid agent secret access alias/i);
+    await expect(
+      svc.createBinding({
+        companyId,
+        secretId: secret.id,
+        targetType: "agent",
+        targetId: randomUUID(),
+        configPath: "access.invalid-alias",
+      }),
+    ).rejects.toThrow(/invalid agent secret access alias/i);
   });
 
   it("resolves env and access bindings through the run-bound agent resolver with dual audit", async () => {
@@ -1240,43 +1416,53 @@ describeEmbeddedPostgres("secretService", () => {
     const redactedValues: string[] = [];
 
     for (const configPath of ["access.API_KEY", "env.API_KEY"]) {
-      await expect(svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
-        agentId,
-        configPath,
-        actorSource: "agent_jwt",
-        heartbeatRunId,
-        registerForRedaction: (value) => redactedValues.push(value),
-      })).resolves.toEqual({ value: "runtime-secret", version: 1 });
+      await expect(
+        svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
+          agentId,
+          configPath,
+          actorSource: "agent_jwt",
+          heartbeatRunId,
+          registerForRedaction: (value) => redactedValues.push(value),
+        }),
+      ).resolves.toEqual({ value: "runtime-secret", version: 1 });
     }
 
     expect(redactedValues).toEqual(["runtime-secret", "runtime-secret"]);
     const events = await svc.listAccessEvents(companyId, secret.id);
     expect(events).toHaveLength(2);
-    expect(events).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        consumerType: "agent_api",
-        consumerId: agentId,
-        configPath: "access.API_KEY",
-        actorType: "agent",
-        actorId: agentId,
-        heartbeatRunId,
-        outcome: "success",
-      }),
-      expect.objectContaining({
-        consumerType: "agent_api",
-        consumerId: agentId,
-        configPath: "env.API_KEY",
-        outcome: "success",
-      }),
-    ]));
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          consumerType: "agent_api",
+          consumerId: agentId,
+          configPath: "access.API_KEY",
+          actorType: "agent",
+          actorId: agentId,
+          heartbeatRunId,
+          outcome: "success",
+        }),
+        expect.objectContaining({
+          consumerType: "agent_api",
+          consumerId: agentId,
+          configPath: "env.API_KEY",
+          outcome: "success",
+        }),
+      ]),
+    );
     const activities = await db
       .select()
       .from(activityLog)
       .where(eq(activityLog.entityId, secret.id));
     expect(activities).toHaveLength(2);
-    expect(activities.every((entry) => entry.action === "secret.value.read")).toBe(true);
-    expect(activities.every((entry) => entry.runId === heartbeatRunId)).toBe(true);
-    expect(JSON.stringify([...events, ...activities])).not.toContain("runtime-secret");
+    expect(
+      activities.every((entry) => entry.action === "secret.value.read"),
+    ).toBe(true);
+    expect(activities.every((entry) => entry.runId === heartbeatRunId)).toBe(
+      true,
+    );
+    expect(JSON.stringify([...events, ...activities])).not.toContain(
+      "runtime-secret",
+    );
   });
 
   it("rejects long-lived, mismatched-run, and unbound agent secret reads", async () => {
@@ -1297,52 +1483,67 @@ describeEmbeddedPostgres("secretService", () => {
     });
     const registerForRedaction = vi.fn();
 
-    await expect(svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
-      agentId,
-      configPath: "access.API_KEY",
-      actorSource: "agent_key",
-      heartbeatRunId,
-      registerForRedaction,
-    })).rejects.toThrow(/run-bound agent token/i);
+    await expect(
+      svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
+        agentId,
+        configPath: "access.API_KEY",
+        actorSource: "agent_key",
+        heartbeatRunId,
+        registerForRedaction,
+      }),
+    ).rejects.toThrow(/run-bound agent token/i);
 
-    await expect(svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
-      agentId,
-      configPath: "access.GRANTED",
-      actorSource: "agent_jwt",
-      keyScope: { kind: "skill_test", issueId: randomUUID() },
-      heartbeatRunId,
-      registerForRedaction,
-    })).rejects.toThrow(/skill-test.*secret/i);
+    await expect(
+      svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
+        agentId,
+        configPath: "access.GRANTED",
+        actorSource: "agent_jwt",
+        keyScope: { kind: "skill_test", issueId: randomUUID() },
+        heartbeatRunId,
+        registerForRedaction,
+      }),
+    ).rejects.toThrow(/skill-test.*secret/i);
 
-    await expect(svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
-      agentId,
-      configPath: "access.API_KEY",
-      actorSource: "agent_jwt",
-      heartbeatRunId: randomUUID(),
-      registerForRedaction,
-    })).rejects.toThrow(/verified heartbeat run/i);
+    await expect(
+      svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
+        agentId,
+        configPath: "access.API_KEY",
+        actorSource: "agent_jwt",
+        heartbeatRunId: randomUUID(),
+        registerForRedaction,
+      }),
+    ).rejects.toThrow(/verified heartbeat run/i);
 
-    await expect(svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
-      agentId,
-      configPath: "access.API_KEY",
-      actorSource: "agent_jwt",
-      heartbeatRunId,
-      registerForRedaction,
-    })).rejects.toThrow(/not granted/i);
+    await expect(
+      svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
+        agentId,
+        configPath: "access.API_KEY",
+        actorSource: "agent_jwt",
+        heartbeatRunId,
+        registerForRedaction,
+      }),
+    ).rejects.toThrow(/not granted/i);
 
-    await db.update(heartbeatRuns).set({ status: "succeeded" }).where(eq(heartbeatRuns.id, heartbeatRunId));
-    await expect(svc.listAgentSecretAccess(companyId, {
-      agentId,
-      actorSource: "agent_jwt",
-      heartbeatRunId,
-    })).rejects.toThrow(/verified heartbeat run/i);
-    await expect(svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
-      agentId,
-      configPath: "access.GRANTED",
-      actorSource: "agent_jwt",
-      heartbeatRunId,
-      registerForRedaction,
-    })).rejects.toThrow(/verified heartbeat run/i);
+    await db
+      .update(heartbeatRuns)
+      .set({ status: "succeeded" })
+      .where(eq(heartbeatRuns.id, heartbeatRunId));
+    await expect(
+      svc.listAgentSecretAccess(companyId, {
+        agentId,
+        actorSource: "agent_jwt",
+        heartbeatRunId,
+      }),
+    ).rejects.toThrow(/verified heartbeat run/i);
+    await expect(
+      svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
+        agentId,
+        configPath: "access.GRANTED",
+        actorSource: "agent_jwt",
+        heartbeatRunId,
+        registerForRedaction,
+      }),
+    ).rejects.toThrow(/verified heartbeat run/i);
 
     expect(registerForRedaction).not.toHaveBeenCalled();
     const events = await svc.listAccessEvents(companyId, secret.id);
@@ -1382,13 +1583,15 @@ describeEmbeddedPostgres("secretService", () => {
       configPath: "access.API_KEY",
     });
 
-    await expect(svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
-      agentId,
-      configPath: "access.API_KEY",
-      actorSource: "agent_jwt",
-      heartbeatRunId,
-      registerForRedaction: vi.fn(),
-    })).rejects.toThrow(/low[_-]trust.*secrets:read/i);
+    await expect(
+      svc.resolveSecretValueForAgentAccess(companyId, secret.id, "latest", {
+        agentId,
+        configPath: "access.API_KEY",
+        actorSource: "agent_jwt",
+        heartbeatRunId,
+        registerForRedaction: vi.fn(),
+      }),
+    ).rejects.toThrow(/low[_-]trust.*secrets:read/i);
 
     expect(await svc.listAccessEvents(companyId, secret.id)).toEqual([]);
   });
@@ -1455,7 +1658,11 @@ describeEmbeddedPostgres("secretService", () => {
       companyId,
       { targetType: "agent", targetId: agent!.id },
       {
-        OPENAI_API_KEY: { type: "secret_ref", secretId: secret.id, version: "latest" },
+        OPENAI_API_KEY: {
+          type: "secret_ref",
+          secretId: secret.id,
+          version: "latest",
+        },
       },
     );
 
@@ -1482,10 +1689,18 @@ describeEmbeddedPostgres("secretService", () => {
       value: "runtime-secret",
     });
     const env = {
-      API_KEY: { type: "secret_ref" as const, secretId: secret.id, version: "latest" as const },
+      API_KEY: {
+        type: "secret_ref" as const,
+        secretId: secret.id,
+        version: "latest" as const,
+      },
     };
 
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "agent", targetId: "agent-1" }, env);
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "agent", targetId: "agent-1" },
+      env,
+    );
 
     await expect(
       svc.resolveEnvBindings(companyId, env, {
@@ -1506,7 +1721,10 @@ describeEmbeddedPostgres("secretService", () => {
     expect(resolved.env.API_KEY).toBe("runtime-secret");
     const events = await svc.listAccessEvents(companyId, secret.id);
     expect(events).toHaveLength(2);
-    expect(events.map((event) => event.outcome).sort()).toEqual(["failure", "success"]);
+    expect(events.map((event) => event.outcome).sort()).toEqual([
+      "failure",
+      "success",
+    ]);
     expect(JSON.stringify(events)).not.toContain("runtime-secret");
   });
 
@@ -1520,7 +1738,11 @@ describeEmbeddedPostgres("secretService", () => {
       value: "runtime-secret",
     });
     const env = {
-      API_KEY: { type: "secret_ref" as const, secretId: secret.id, version: "latest" as const },
+      API_KEY: {
+        type: "secret_ref" as const,
+        secretId: secret.id,
+        version: "latest" as const,
+      },
       PLAIN_VALUE: "not-a-secret",
     };
 
@@ -1541,12 +1763,20 @@ describeEmbeddedPostgres("secretService", () => {
     // Value-free validation: no access events recorded.
     expect(await svc.listAccessEvents(companyId, secret.id)).toHaveLength(0);
 
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "agent", targetId: "agent-1" }, env);
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "agent", targetId: "agent-1" },
+      env,
+    );
 
-    const afterBinding = await svc.collectMissingRuntimeBindings(companyId, env, {
-      consumerType: "agent",
-      consumerId: "agent-1",
-    });
+    const afterBinding = await svc.collectMissingRuntimeBindings(
+      companyId,
+      env,
+      {
+        consumerType: "agent",
+        consumerId: "agent-1",
+      },
+    );
     expect(afterBinding).toEqual([]);
   });
 
@@ -1559,10 +1789,18 @@ describeEmbeddedPostgres("secretService", () => {
       value: "runtime-secret",
     });
     const env = {
-      API_KEY: { type: "secret_ref" as const, secretId: secret.id, version: "latest" as const },
+      API_KEY: {
+        type: "secret_ref" as const,
+        secretId: secret.id,
+        version: "latest" as const,
+      },
     };
 
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "agent", targetId: "agent-1" }, env);
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "agent", targetId: "agent-1" },
+      env,
+    );
     const [binding] = await svc.listBindings(companyId, secret.id);
     expect(binding?.id).toBeTruthy();
 
@@ -1641,10 +1879,18 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "local_encrypted",
     });
     const env = {
-      GITHUB_TOKEN: { type: "user_secret_ref" as const, key: "github_token", version: "latest" as const },
+      GITHUB_TOKEN: {
+        type: "user_secret_ref" as const,
+        key: "github_token",
+        version: "latest" as const,
+      },
     };
 
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "agent", targetId: "agent-1" }, env);
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "agent", targetId: "agent-1" },
+      env,
+    );
     await svc.createCurrentUserSecretValue(companyId, "user-1", {
       definitionKey: "github_token",
       value: "user-one-secret",
@@ -1690,9 +1936,17 @@ describeEmbeddedPostgres("secretService", () => {
       value: "routine-super-secret",
     });
     const env = {
-      ROUTINE_API_KEY: { type: "secret_ref" as const, secretId: secret.id, version: "latest" as const },
+      ROUTINE_API_KEY: {
+        type: "secret_ref" as const,
+        secretId: secret.id,
+        version: "latest" as const,
+      },
     };
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "routine", targetId: "routine-1" }, env);
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "routine", targetId: "routine-1" },
+      env,
+    );
 
     const resolved = await svc.resolveEnvBindings(companyId, env, {
       consumerType: "routine",
@@ -1737,14 +1991,26 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "local_encrypted",
     });
     const env = {
-      GITHUB_TOKEN: { type: "user_secret_ref" as const, key: "github_token", version: "latest" as const },
+      GITHUB_TOKEN: {
+        type: "user_secret_ref" as const,
+        key: "github_token",
+        version: "latest" as const,
+      },
     };
 
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "agent", targetId: "agent-1" }, env);
-    const userOneSecret = await svc.createCurrentUserSecretValue(companyId, "user-1", {
-      definitionKey: "github_token",
-      value: "user-one-secret",
-    });
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "agent", targetId: "agent-1" },
+      env,
+    );
+    const userOneSecret = await svc.createCurrentUserSecretValue(
+      companyId,
+      "user-1",
+      {
+        definitionKey: "github_token",
+        value: "user-one-secret",
+      },
+    );
 
     await expect(
       svc.resolveEnvBindings(companyId, env, {
@@ -1781,7 +2047,11 @@ describeEmbeddedPostgres("secretService", () => {
         required: false,
       },
     };
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "agent", targetId: "agent-optional" }, optionalEnv);
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "agent", targetId: "agent-optional" },
+      optionalEnv,
+    );
     await expect(
       svc.collectMissingRuntimeBindings(companyId, optionalEnv, {
         consumerType: "agent",
@@ -1873,7 +2143,9 @@ describeEmbeddedPostgres("secretService", () => {
       secretKey: userOneSecret.key,
       outcome: "success",
     });
-    expect((await svc.list(companyId)).map((secret) => secret.id)).not.toContain(userOneSecret.id);
+    expect(
+      (await svc.list(companyId)).map((secret) => secret.id),
+    ).not.toContain(userOneSecret.id);
     await expect(
       svc.resolveSecretValue(companyId, userOneSecret.id, "latest", {
         consumerType: "agent",
@@ -1939,7 +2211,9 @@ describeEmbeddedPostgres("secretService", () => {
     };
 
     await expect(
-      svc.resolveAdapterConfigForRuntime(companyId, adapterConfig, undefined, { adapterType: "hermes_gateway" }),
+      svc.resolveAdapterConfigForRuntime(companyId, adapterConfig, undefined, {
+        adapterType: "hermes_gateway",
+      }),
     ).rejects.toMatchObject({
       status: 422,
       details: { code: "responsible_user_missing" },
@@ -1987,7 +2261,9 @@ describeEmbeddedPostgres("secretService", () => {
       }),
     ]);
 
-    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
     const rejected = results.find((result) => result.status === "rejected");
     expect(rejected).toBeTruthy();
     if (rejected?.status === "rejected") {
@@ -2001,7 +2277,11 @@ describeEmbeddedPostgres("secretService", () => {
       .select()
       .from(companySecrets)
       .where(eq(companySecrets.userSecretDefinitionId, definition.id));
-    expect(rows.filter((row) => row.ownerUserId === "user-1" && row.status === "active")).toHaveLength(1);
+    expect(
+      rows.filter(
+        (row) => row.ownerUserId === "user-1" && row.status === "active",
+      ),
+    ).toHaveLength(1);
   });
 
   it("reports current-user secret rollback failures when AWS create cleanup cannot remove the reserved row", async () => {
@@ -2025,7 +2305,8 @@ describeEmbeddedPostgres("secretService", () => {
         code: "access_denied",
         provider: "aws_secrets_manager",
         operation: "createSecret",
-        message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+        message:
+          "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
         rawMessage:
           "AccessDeniedException: arn:aws:sts::123456789012:assumed-role/prod/Taskcore cannot create secret",
       }),
@@ -2041,7 +2322,8 @@ describeEmbeddedPostgres("secretService", () => {
       }),
     ).rejects.toMatchObject({
       status: 500,
-      message: "Secret create failed and Taskcore could not roll back the local secret reservation.",
+      message:
+        "Secret create failed and Taskcore could not roll back the local secret reservation.",
       details: {
         code: "secret_create_rollback_failed",
         provider: "aws_secrets_manager",
@@ -2049,7 +2331,8 @@ describeEmbeddedPostgres("secretService", () => {
         providerConfigId: awsVault.id,
         providerError: {
           status: 403,
-          message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+          message:
+            "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
           details: {
             code: "access_denied",
             requiredCapability: "secretsmanager:CreateSecret",
@@ -2096,7 +2379,9 @@ describeEmbeddedPostgres("secretService", () => {
       providerVersionRef: "aws-version-1",
     });
     vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
-    vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("db activate failed"));
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      new Error("db activate failed"),
+    );
     vi.spyOn(db, "delete").mockImplementationOnce(() => {
       throw new Error("reserved row delete failed");
     });
@@ -2108,7 +2393,8 @@ describeEmbeddedPostgres("secretService", () => {
       }),
     ).rejects.toMatchObject({
       status: 500,
-      message: "Secret create failed and Taskcore could not roll back the local secret reservation.",
+      message:
+        "Secret create failed and Taskcore could not roll back the local secret reservation.",
       details: {
         code: "secret_create_rollback_failed",
         provider: "aws_secrets_manager",
@@ -2142,7 +2428,9 @@ describeEmbeddedPostgres("secretService", () => {
       }),
     ]);
 
-    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
     const rejected = results.find((result) => result.status === "rejected");
     expect(rejected).toBeTruthy();
     if (rejected?.status === "rejected") {
@@ -2156,7 +2444,11 @@ describeEmbeddedPostgres("secretService", () => {
       .select()
       .from(userSecretDefinitions)
       .where(eq(userSecretDefinitions.companyId, companyId));
-    expect(rows.filter((row) => row.key === "github_token" && row.deletedAt === null)).toHaveLength(1);
+    expect(
+      rows.filter(
+        (row) => row.key === "github_token" && row.deletedAt === null,
+      ),
+    ).toHaveLength(1);
   });
 
   it("removes user secret values and provider material when deleting a definition", async () => {
@@ -2176,34 +2468,49 @@ describeEmbeddedPostgres("secretService", () => {
       providerConfigId: awsVault.id,
     });
     let nextVersion = 0;
-    vi.spyOn(awsSecretsManagerProvider, "createSecret").mockImplementation(async (input) => {
-      nextVersion += 1;
-      const externalRef =
-        `arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/${input.context.secretKey}`;
-      return {
-        material: {
-          scheme: "aws_secrets_manager_v1",
-          secretId: externalRef,
-          versionId: `aws-version-${nextVersion}`,
-          source: "managed",
-        },
-        valueSha256: `value-sha-${nextVersion}`,
-        fingerprintSha256: `fingerprint-sha-${nextVersion}`,
-        externalRef,
-        providerVersionRef: `aws-version-${nextVersion}`,
-      };
-    });
-    const deleteSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
-    const userOneSecret = await svc.createCurrentUserSecretValue(companyId, "user-1", {
-      definitionId: definition.id,
-      value: "user-one-secret",
-    });
-    const userTwoSecret = await svc.createCurrentUserSecretValue(companyId, "user-2", {
-      definitionId: definition.id,
-      value: "user-two-secret",
-    });
+    vi.spyOn(awsSecretsManagerProvider, "createSecret").mockImplementation(
+      async (input) => {
+        nextVersion += 1;
+        const externalRef = `arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/${input.context.secretKey}`;
+        return {
+          material: {
+            scheme: "aws_secrets_manager_v1",
+            secretId: externalRef,
+            versionId: `aws-version-${nextVersion}`,
+            source: "managed",
+          },
+          valueSha256: `value-sha-${nextVersion}`,
+          fingerprintSha256: `fingerprint-sha-${nextVersion}`,
+          externalRef,
+          providerVersionRef: `aws-version-${nextVersion}`,
+        };
+      },
+    );
+    const deleteSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockResolvedValue();
+    const userOneSecret = await svc.createCurrentUserSecretValue(
+      companyId,
+      "user-1",
+      {
+        definitionId: definition.id,
+        value: "user-one-secret",
+      },
+    );
+    const userTwoSecret = await svc.createCurrentUserSecretValue(
+      companyId,
+      "user-2",
+      {
+        definitionId: definition.id,
+        value: "user-two-secret",
+      },
+    );
 
-    const removed = await svc.removeUserSecretDefinition(companyId, definition.id, { userId: "admin-user" });
+    const removed = await svc.removeUserSecretDefinition(
+      companyId,
+      definition.id,
+      { userId: "admin-user" },
+    );
     const remainingValues = await db
       .select()
       .from(companySecrets)
@@ -2217,28 +2524,32 @@ describeEmbeddedPostgres("secretService", () => {
     });
     expect(remainingValues).toHaveLength(0);
     expect(deleteSpy).toHaveBeenCalledTimes(2);
-    expect(deleteSpy).toHaveBeenCalledWith(expect.objectContaining({
-      externalRef: userOneSecret.externalRef,
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-      context: {
-        companyId,
-        secretKey: userOneSecret.key,
-        secretName: userOneSecret.name,
-        version: 1,
-      },
-      mode: "delete",
-    }));
-    expect(deleteSpy).toHaveBeenCalledWith(expect.objectContaining({
-      externalRef: userTwoSecret.externalRef,
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-      context: {
-        companyId,
-        secretKey: userTwoSecret.key,
-        secretName: userTwoSecret.name,
-        version: 1,
-      },
-      mode: "delete",
-    }));
+    expect(deleteSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalRef: userOneSecret.externalRef,
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+        context: {
+          companyId,
+          secretKey: userOneSecret.key,
+          secretName: userOneSecret.name,
+          version: 1,
+        },
+        mode: "delete",
+      }),
+    );
+    expect(deleteSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalRef: userTwoSecret.externalRef,
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+        context: {
+          companyId,
+          secretKey: userTwoSecret.key,
+          secretName: userTwoSecret.name,
+          version: 1,
+        },
+        mode: "delete",
+      }),
+    );
   });
 
   it("removes user secret values and provider material when update deletes a definition", async () => {
@@ -2259,20 +2570,28 @@ describeEmbeddedPostgres("secretService", () => {
     vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue({
       material: {
         scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/user-secret",
+        secretId:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/user-secret",
         versionId: "aws-version-1",
         source: "managed",
       },
       valueSha256: "value-sha-1",
       fingerprintSha256: "fingerprint-sha-1",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/user-secret",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/user-secret",
       providerVersionRef: "aws-version-1",
     });
-    const deleteSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
-    const userSecret = await svc.createCurrentUserSecretValue(companyId, "user-1", {
-      definitionId: definition.id,
-      value: "user-one-secret",
-    });
+    const deleteSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockResolvedValue();
+    const userSecret = await svc.createCurrentUserSecretValue(
+      companyId,
+      "user-1",
+      {
+        definitionId: definition.id,
+        value: "user-one-secret",
+      },
+    );
 
     const removed = await svc.updateUserSecretDefinition(
       companyId,
@@ -2292,17 +2611,19 @@ describeEmbeddedPostgres("secretService", () => {
       updatedByUserId: "admin-user",
     });
     expect(remainingValues).toHaveLength(0);
-    expect(deleteSpy).toHaveBeenCalledWith(expect.objectContaining({
-      externalRef: userSecret.externalRef,
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-      context: {
-        companyId,
-        secretKey: userSecret.key,
-        secretName: userSecret.name,
-        version: 1,
-      },
-      mode: "delete",
-    }));
+    expect(deleteSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalRef: userSecret.externalRef,
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+        context: {
+          companyId,
+          secretKey: userSecret.key,
+          secretName: userSecret.name,
+          version: 1,
+        },
+        mode: "delete",
+      }),
+    );
   });
 
   it("treats nullable user-secret value patches as non-rotation updates", async () => {
@@ -2319,12 +2640,17 @@ describeEmbeddedPostgres("secretService", () => {
       value: "user-one-secret",
     });
 
-    const updated = await svc.updateCurrentUserSecretValue(companyId, "user-1", secret.id, {
-      value: null,
-      externalRef: null,
-      providerVersionRef: null,
-      providerConfigId: null,
-    });
+    const updated = await svc.updateCurrentUserSecretValue(
+      companyId,
+      "user-1",
+      secret.id,
+      {
+        value: null,
+        externalRef: null,
+        providerVersionRef: null,
+        providerConfigId: null,
+      },
+    );
 
     expect(updated.latestVersion).toBe(secret.latestVersion);
     expect(updated.status).toBe(secret.status);
@@ -2333,7 +2659,10 @@ describeEmbeddedPostgres("secretService", () => {
       .from(companySecretVersions)
       .where(eq(companySecretVersions.secretId, secret.id));
     expect(versions).toHaveLength(1);
-    expect(versions[0]).toMatchObject({ version: secret.latestVersion, status: "current" });
+    expect(versions[0]).toMatchObject({
+      version: secret.latestVersion,
+      status: "current",
+    });
     expect(versions[0]?.material).toBeTruthy();
   });
 
@@ -2348,18 +2677,26 @@ describeEmbeddedPostgres("secretService", () => {
     });
     const adapterConfig = {
       apiBaseUrl: "http://127.0.0.1:9119/api",
-      apiKey: { type: "user_secret_ref" as const, key: "hermes_api_key", version: "latest" as const },
-    };
-    await svc.syncUserSecretDeclarationsForTarget(companyId, {
-      targetType: "agent",
-      targetId: "agent-1",
-    }, [
-      {
-        definitionKey: "hermes_api_key",
-        configPath: "apiKey",
-        envKey: "apiKey",
+      apiKey: {
+        type: "user_secret_ref" as const,
+        key: "hermes_api_key",
+        version: "latest" as const,
       },
-    ]);
+    };
+    await svc.syncUserSecretDeclarationsForTarget(
+      companyId,
+      {
+        targetType: "agent",
+        targetId: "agent-1",
+      },
+      [
+        {
+          definitionKey: "hermes_api_key",
+          configPath: "apiKey",
+          envKey: "apiKey",
+        },
+      ],
+    );
 
     await expect(
       svc.collectMissingAdapterConfigRuntimeBindings(
@@ -2491,7 +2828,11 @@ describeEmbeddedPostgres("secretService", () => {
       value: "routine-super-secret",
     });
     const env = {
-      ROUTINE_API_KEY: { type: "secret_ref" as const, secretId: secret.id, version: "latest" as const },
+      ROUTINE_API_KEY: {
+        type: "secret_ref" as const,
+        secretId: secret.id,
+        version: "latest" as const,
+      },
     };
     const context = {
       consumerType: "routine" as const,
@@ -2499,16 +2840,31 @@ describeEmbeddedPostgres("secretService", () => {
       actorType: "agent" as const,
       actorId: "agent-1",
     };
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "routine", targetId: "routine-1" }, env);
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "routine", targetId: "routine-1" },
+      env,
+    );
 
     await expect(
-      svc.resolveEnvBindings(companyId, env, { ...context, consumerId: "routine-2" }),
+      svc.resolveEnvBindings(companyId, env, {
+        ...context,
+        consumerId: "routine-2",
+      }),
     ).rejects.toThrow(/not bound/i);
 
-    await db.update(companySecrets).set({ status: "disabled" }).where(eq(companySecrets.id, secret.id));
-    await expect(svc.resolveEnvBindings(companyId, env, context)).rejects.toThrow(/not active/i);
+    await db
+      .update(companySecrets)
+      .set({ status: "disabled" })
+      .where(eq(companySecrets.id, secret.id));
+    await expect(
+      svc.resolveEnvBindings(companyId, env, context),
+    ).rejects.toThrow(/not active/i);
 
-    await db.update(companySecrets).set({ status: "active" }).where(eq(companySecrets.id, secret.id));
+    await db
+      .update(companySecrets)
+      .set({ status: "active" })
+      .where(eq(companySecrets.id, secret.id));
     await expect(
       svc.resolveSecretValue(companyId, secret.id, 999, {
         ...context,
@@ -2520,7 +2876,9 @@ describeEmbeddedPostgres("secretService", () => {
       .update(companySecretVersions)
       .set({ status: "disabled" })
       .where(eq(companySecretVersions.secretId, secret.id));
-    await expect(svc.resolveEnvBindings(companyId, env, context)).rejects.toThrow(/version is not active/i);
+    await expect(
+      svc.resolveEnvBindings(companyId, env, context),
+    ).rejects.toThrow(/version is not active/i);
 
     await db
       .update(companySecretVersions)
@@ -2529,10 +2887,17 @@ describeEmbeddedPostgres("secretService", () => {
     vi.spyOn(localEncryptedProvider, "resolveVersion").mockRejectedValueOnce(
       new Error("provider leaked value routine-super-secret"),
     );
-    await expect(svc.resolveEnvBindings(companyId, env, context)).rejects.toThrow(/provider leaked value/i);
+    await expect(
+      svc.resolveEnvBindings(companyId, env, context),
+    ).rejects.toThrow(/provider leaked value/i);
 
-    await db.update(companySecrets).set({ status: "deleted" }).where(eq(companySecrets.id, secret.id));
-    await expect(svc.resolveEnvBindings(companyId, env, context)).rejects.toThrow(/not found/i);
+    await db
+      .update(companySecrets)
+      .set({ status: "deleted" })
+      .where(eq(companySecrets.id, secret.id));
+    await expect(
+      svc.resolveEnvBindings(companyId, env, context),
+    ).rejects.toThrow(/not found/i);
 
     const events = await svc.listAccessEvents(companyId, secret.id);
     expect(events.map((event) => event.errorCode).sort()).toEqual([
@@ -2572,7 +2937,11 @@ describeEmbeddedPostgres("secretService", () => {
       companyId,
       { targetType: "agent", targetId: "agent-1" },
       {
-        API_KEY: { type: "secret_ref", secretId: envSecret.id, version: "latest" },
+        API_KEY: {
+          type: "secret_ref",
+          secretId: envSecret.id,
+          version: "latest",
+        },
       },
     );
     await svc.syncEnvBindingsForTarget(
@@ -2585,7 +2954,9 @@ describeEmbeddedPostgres("secretService", () => {
       .select()
       .from(companySecretBindings)
       .where(eq(companySecretBindings.targetId, "agent-1"));
-    expect(bindings.map((binding) => binding.configPath)).toEqual(["runtime.token"]);
+    expect(bindings.map((binding) => binding.configPath)).toEqual([
+      "runtime.token",
+    ]);
   });
 
   it("returns resolved secrets even when success metadata writes fail", async () => {
@@ -2597,16 +2968,25 @@ describeEmbeddedPostgres("secretService", () => {
       value: "runtime-secret",
     });
     const env = {
-      API_KEY: { type: "secret_ref" as const, secretId: secret.id, version: "latest" as const },
+      API_KEY: {
+        type: "secret_ref" as const,
+        secretId: secret.id,
+        version: "latest" as const,
+      },
     };
-    await svc.syncEnvBindingsForTarget(companyId, { targetType: "agent", targetId: "agent-1" }, env);
+    await svc.syncEnvBindingsForTarget(
+      companyId,
+      { targetType: "agent", targetId: "agent-1" },
+      env,
+    );
 
     vi.spyOn(db, "update").mockImplementationOnce(
-      () => ({
-        set: () => ({
-          where: () => Promise.reject(new Error("metadata write failed")),
-        }),
-      }) as ReturnType<typeof db.update>,
+      () =>
+        ({
+          set: () => ({
+            where: () => Promise.reject(new Error("metadata write failed")),
+          }),
+        }) as ReturnType<typeof db.update>,
     );
 
     const resolved = await svc.resolveEnvBindings(companyId, env, {
@@ -2633,12 +3013,15 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/test",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/test",
       providerVersionRef: "version-1",
     });
 
     expect(secret.managedMode).toBe("external_reference");
-    expect(secret.externalRef).toBe("arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/test");
+    expect(secret.externalRef).toBe(
+      "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/test",
+    );
 
     const versions = await db
       .select()
@@ -2737,9 +3120,12 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: vault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/external",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/external",
     });
-    const deleteSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
+    const deleteSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockResolvedValue();
 
     const removed = await svc.removeProviderConfig(vault.id);
 
@@ -2793,7 +3179,8 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted",
     });
     await svc.update(deleted.id, { status: "deleted" });
 
@@ -2808,7 +3195,11 @@ describeEmbeddedPostgres("secretService", () => {
     ).rejects.toThrow(/not found/i);
     await expect(
       svc.normalizeEnvBindingsForPersistence(companyId, {
-        API_KEY: { type: "secret_ref", secretId: deleted.id, version: "latest" },
+        API_KEY: {
+          type: "secret_ref",
+          secretId: deleted.id,
+          version: "latest",
+        },
       }),
     ).rejects.toThrow(/not found/i);
   });
@@ -2827,7 +3218,8 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted-patch-target",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted-patch-target",
     });
     await svc.update(deleted.id, { status: "deleted" });
 
@@ -2886,7 +3278,11 @@ describeEmbeddedPostgres("secretService", () => {
       importable: true,
       conflicts: [],
     });
-    expect(result).toMatchObject({ importedCount: 1, skippedCount: 0, errorCount: 0 });
+    expect(result).toMatchObject({
+      importedCount: 1,
+      skippedCount: 0,
+      errorCount: 0,
+    });
   });
 
   it("ignores soft-deleted name and key conflicts during remote import", async () => {
@@ -2903,13 +3299,15 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted-old",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted-old",
     });
     await svc.update(deleted.id, { status: "deleted" });
     vi.spyOn(awsSecretsManagerProvider, "listRemoteSecrets").mockResolvedValue({
       secrets: [
         {
-          externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted-new",
+          externalRef:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted-new",
           name: "Deleted external",
           providerVersionRef: null,
           metadata: {},
@@ -2924,7 +3322,8 @@ describeEmbeddedPostgres("secretService", () => {
       providerConfigId: awsVault.id,
       secrets: [
         {
-          externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted-new",
+          externalRef:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/deleted-new",
           name: "Deleted external",
           key: "deleted-external",
         },
@@ -2936,7 +3335,11 @@ describeEmbeddedPostgres("secretService", () => {
       importable: true,
       conflicts: [],
     });
-    expect(result).toMatchObject({ importedCount: 1, skippedCount: 0, errorCount: 0 });
+    expect(result).toMatchObject({
+      importedCount: 1,
+      skippedCount: 0,
+      errorCount: 0,
+    });
   });
 
   it("rejects provider vaults from another company when creating a secret", async () => {
@@ -2992,31 +3395,41 @@ describeEmbeddedPostgres("secretService", () => {
       },
     });
 
-    const createSpy = vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue({
-      material: {
-        scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/openai-api-key",
-        versionId: "aws-version-1",
-        source: "managed",
-      },
-      valueSha256: "value-sha-1",
-      fingerprintSha256: "fingerprint-sha-1",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/openai-api-key",
-      providerVersionRef: "aws-version-1",
-    });
-    const createVersionSpy = vi.spyOn(awsSecretsManagerProvider, "createVersion").mockResolvedValue({
-      material: {
-        scheme: "aws_secrets_manager_v1",
-        secretId: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/openai-api-key",
-        versionId: "aws-version-2",
-        source: "managed",
-      },
-      valueSha256: "value-sha-2",
-      fingerprintSha256: "fingerprint-sha-2",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/openai-api-key",
-      providerVersionRef: "aws-version-2",
-    });
-    const resolveSpy = vi.spyOn(awsSecretsManagerProvider, "resolveVersion").mockResolvedValue("resolved-secret");
+    const createSpy = vi
+      .spyOn(awsSecretsManagerProvider, "createSecret")
+      .mockResolvedValue({
+        material: {
+          scheme: "aws_secrets_manager_v1",
+          secretId:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/openai-api-key",
+          versionId: "aws-version-1",
+          source: "managed",
+        },
+        valueSha256: "value-sha-1",
+        fingerprintSha256: "fingerprint-sha-1",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/openai-api-key",
+        providerVersionRef: "aws-version-1",
+      });
+    const createVersionSpy = vi
+      .spyOn(awsSecretsManagerProvider, "createVersion")
+      .mockResolvedValue({
+        material: {
+          scheme: "aws_secrets_manager_v1",
+          secretId:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/openai-api-key",
+          versionId: "aws-version-2",
+          source: "managed",
+        },
+        valueSha256: "value-sha-2",
+        fingerprintSha256: "fingerprint-sha-2",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/openai-api-key",
+        providerVersionRef: "aws-version-2",
+      });
+    const resolveSpy = vi
+      .spyOn(awsSecretsManagerProvider, "resolveVersion")
+      .mockResolvedValue("resolved-secret");
 
     const secret = await svc.create(companyId, {
       name: `aws-managed-${randomUUID()}`,
@@ -3024,25 +3437,42 @@ describeEmbeddedPostgres("secretService", () => {
       providerConfigId: awsVault.id,
       value: "runtime-secret",
     });
-    const rotated = await svc.rotate(secret.id, { value: "rotated-runtime-secret" });
-    const resolved = await svc.resolveSecretValue(companyId, rotated.id, "latest");
+    const rotated = await svc.rotate(secret.id, {
+      value: "rotated-runtime-secret",
+    });
+    const resolved = await svc.resolveSecretValue(
+      companyId,
+      rotated.id,
+      "latest",
+    );
 
     expect(resolved).toBe("resolved-secret");
-    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
-      providerConfig: expect.objectContaining({
-        id: awsVault.id,
-        provider: "aws_secrets_manager",
-        config: expect.objectContaining({ region: "us-east-1", namespace: "prod-use1" }),
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerConfig: expect.objectContaining({
+          id: awsVault.id,
+          provider: "aws_secrets_manager",
+          config: expect.objectContaining({
+            region: "us-east-1",
+            namespace: "prod-use1",
+          }),
+        }),
       }),
-    }));
-    expect(createVersionSpy).toHaveBeenCalledWith(expect.objectContaining({
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-    }));
-    expect(resolveSpy).toHaveBeenCalledWith(expect.objectContaining({
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-      providerVersionRef: "aws-version-2",
-    }));
-    expect(JSON.stringify(resolveSpy.mock.calls[0]?.[0])).not.toContain("resolved-secret");
+    );
+    expect(createVersionSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+      }),
+    );
+    expect(resolveSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+        providerVersionRef: "aws-version-2",
+      }),
+    );
+    expect(JSON.stringify(resolveSpy.mock.calls[0]?.[0])).not.toContain(
+      "resolved-secret",
+    );
   });
 
   it("cleans up managed provider secrets when create persistence fails", async () => {
@@ -3067,9 +3497,15 @@ describeEmbeddedPostgres("secretService", () => {
         "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/create-rollback",
       providerVersionRef: "aws-version-1",
     };
-    vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue(prepared);
-    const deleteSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
-    vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("db insert failed"));
+    vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue(
+      prepared,
+    );
+    const deleteSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockResolvedValue();
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      new Error("db insert failed"),
+    );
 
     await expect(
       svc.create(companyId, {
@@ -3081,18 +3517,20 @@ describeEmbeddedPostgres("secretService", () => {
       }),
     ).rejects.toThrow("db insert failed");
 
-    expect(deleteSpy).toHaveBeenCalledWith(expect.objectContaining({
-      material: prepared.material,
-      externalRef: prepared.externalRef,
-      mode: "delete",
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-      context: {
-        companyId,
-        secretKey: "create-rollback",
-        secretName: "Create Rollback",
-        version: 1,
-      },
-    }));
+    expect(deleteSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        material: prepared.material,
+        externalRef: prepared.externalRef,
+        mode: "delete",
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+        context: {
+          companyId,
+          secretKey: "create-rollback",
+          secretName: "Create Rollback",
+          version: 1,
+        },
+      }),
+    );
 
     const persisted = await svc.getByName(companyId, "Create Rollback");
     expect(persisted).toBeNull();
@@ -3122,11 +3560,15 @@ describeEmbeddedPostgres("secretService", () => {
         "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/create-cleanup-handle",
       providerVersionRef: "aws-version-1",
     };
-    vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue(prepared);
+    vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue(
+      prepared,
+    );
     vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockRejectedValue(
       new Error("cleanup failed"),
     );
-    vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("db activate failed"));
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      new Error("db activate failed"),
+    );
 
     await expect(
       svc.create(companyId, {
@@ -3138,7 +3580,8 @@ describeEmbeddedPostgres("secretService", () => {
       }),
     ).rejects.toMatchObject({
       status: 500,
-      message: "Secret create failed and Taskcore could not clean up the remote provider secret.",
+      message:
+        "Secret create failed and Taskcore could not clean up the remote provider secret.",
       details: {
         code: "secret_create_provider_cleanup_failed",
         provider: "aws_secrets_manager",
@@ -3190,9 +3633,13 @@ describeEmbeddedPostgres("secretService", () => {
         "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/create-local-cleanup",
       providerVersionRef: "aws-version-1",
     };
-    vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue(prepared);
+    vi.spyOn(awsSecretsManagerProvider, "createSecret").mockResolvedValue(
+      prepared,
+    );
     vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
-    vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("db activate failed"));
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      new Error("db activate failed"),
+    );
     vi.spyOn(db, "delete").mockImplementationOnce(() => {
       throw new Error("reserved row delete failed");
     });
@@ -3207,7 +3654,8 @@ describeEmbeddedPostgres("secretService", () => {
       }),
     ).rejects.toMatchObject({
       status: 500,
-      message: "Secret create failed and Taskcore could not roll back the local secret reservation.",
+      message:
+        "Secret create failed and Taskcore could not roll back the local secret reservation.",
       details: {
         code: "secret_create_rollback_failed",
         provider: "aws_secrets_manager",
@@ -3267,26 +3715,34 @@ describeEmbeddedPostgres("secretService", () => {
         "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/rotate-rollback",
       providerVersionRef: "aws-version-2",
     };
-    vi.spyOn(awsSecretsManagerProvider, "createVersion").mockResolvedValue(prepared);
-    const deleteSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
-    vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("db rotate failed"));
-
-    await expect(svc.rotate(secret.id, { value: "rotated-runtime-secret" })).rejects.toThrow(
-      "db rotate failed",
+    vi.spyOn(awsSecretsManagerProvider, "createVersion").mockResolvedValue(
+      prepared,
+    );
+    const deleteSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockResolvedValue();
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      new Error("db rotate failed"),
     );
 
-    expect(deleteSpy).toHaveBeenCalledWith(expect.objectContaining({
-      material: prepared.material,
-      externalRef: prepared.externalRef,
-      mode: "archive",
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-      context: {
-        companyId,
-        secretKey: "rotate-rollback",
-        secretName: "Rotate Rollback",
-        version: 2,
-      },
-    }));
+    await expect(
+      svc.rotate(secret.id, { value: "rotated-runtime-secret" }),
+    ).rejects.toThrow("db rotate failed");
+
+    expect(deleteSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        material: prepared.material,
+        externalRef: prepared.externalRef,
+        mode: "archive",
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+        context: {
+          companyId,
+          secretKey: "rotate-rollback",
+          secretName: "Rotate Rollback",
+          version: 2,
+        },
+      }),
+    );
   });
 
   it("keeps a disabled version cleanup handle when rotate rollback cleanup fails", async () => {
@@ -3332,15 +3788,19 @@ describeEmbeddedPostgres("secretService", () => {
         "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod-use1/company/rotate-cleanup-handle",
       providerVersionRef: "aws-version-2",
     };
-    vi.spyOn(awsSecretsManagerProvider, "createVersion").mockResolvedValue(prepared);
+    vi.spyOn(awsSecretsManagerProvider, "createVersion").mockResolvedValue(
+      prepared,
+    );
     vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockRejectedValue(
       new Error("cleanup failed"),
     );
-    vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("db rotate failed"));
-
-    await expect(svc.rotate(secret.id, { value: "rotated-runtime-secret" })).rejects.toThrow(
-      "db rotate failed",
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      new Error("db rotate failed"),
     );
+
+    await expect(
+      svc.rotate(secret.id, { value: "rotated-runtime-secret" }),
+    ).rejects.toThrow("db rotate failed");
 
     const persisted = await svc.getById(secret.id);
     expect(persisted?.latestVersion).toBe(1);
@@ -3349,14 +3809,16 @@ describeEmbeddedPostgres("secretService", () => {
       .select()
       .from(companySecretVersions)
       .where(eq(companySecretVersions.secretId, secret.id));
-    expect(versions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ version: 1, status: "current" }),
-      expect.objectContaining({
-        version: 2,
-        status: "disabled",
-        material: prepared.material,
-      }),
-    ]));
+    expect(versions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ version: 1, status: "current" }),
+        expect.objectContaining({
+          version: 2,
+          status: "disabled",
+          material: prepared.material,
+        }),
+      ]),
+    );
   });
 
   it("rejects generic provider vault reassignment for managed secrets", async () => {
@@ -3394,9 +3856,9 @@ describeEmbeddedPostgres("secretService", () => {
       value: "runtime-secret",
     });
 
-    await expect(svc.update(secret.id, { providerConfigId: secondVault.id })).rejects.toThrow(
-      /managed secrets cannot change provider vault/i,
-    );
+    await expect(
+      svc.update(secret.id, { providerConfigId: secondVault.id }),
+    ).rejects.toThrow(/managed secrets cannot change provider vault/i);
     const persisted = await svc.getById(secret.id);
     expect(persisted?.providerConfigId).toBe(firstVault.id);
   });
@@ -3411,9 +3873,9 @@ describeEmbeddedPostgres("secretService", () => {
     });
 
     await svc.update(secret.id, { status: "disabled" });
-    await expect(svc.rotate(secret.id, { value: "rotated-runtime-secret" })).rejects.toThrow(
-      /non-active/i,
-    );
+    await expect(
+      svc.rotate(secret.id, { value: "rotated-runtime-secret" }),
+    ).rejects.toThrow(/non-active/i);
 
     const stored = await db
       .select({ latestVersion: companySecrets.latestVersion })
@@ -3436,7 +3898,8 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/duplicate",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/duplicate",
     });
     const nameConflict = await svc.create(companyId, {
       name: "Prod Conflict",
@@ -3444,29 +3907,37 @@ describeEmbeddedPostgres("secretService", () => {
       value: "runtime-secret",
     });
 
-    const listSpy = vi.spyOn(awsSecretsManagerProvider, "listRemoteSecrets").mockResolvedValue({
-      nextToken: "next-page",
-      secrets: [
-        {
-          externalRef: duplicate.externalRef!,
-          name: "prod/duplicate",
-          providerVersionRef: null,
-          metadata: { arn: duplicate.externalRef },
-        },
-        {
-          externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/conflict",
-          name: nameConflict.name,
-          providerVersionRef: null,
-          metadata: { arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/conflict" },
-        },
-        {
-          externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/ready",
-          name: "prod/ready",
-          providerVersionRef: null,
-          metadata: { arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/ready" },
-        },
-      ],
-    });
+    const listSpy = vi
+      .spyOn(awsSecretsManagerProvider, "listRemoteSecrets")
+      .mockResolvedValue({
+        nextToken: "next-page",
+        secrets: [
+          {
+            externalRef: duplicate.externalRef!,
+            name: "prod/duplicate",
+            providerVersionRef: null,
+            metadata: { arn: duplicate.externalRef },
+          },
+          {
+            externalRef:
+              "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/conflict",
+            name: nameConflict.name,
+            providerVersionRef: null,
+            metadata: {
+              arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/conflict",
+            },
+          },
+          {
+            externalRef:
+              "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/ready",
+            name: "prod/ready",
+            providerVersionRef: null,
+            metadata: {
+              arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/ready",
+            },
+          },
+        ],
+      });
 
     const preview = await svc.previewRemoteImport(companyId, {
       providerConfigId: awsVault.id,
@@ -3474,11 +3945,13 @@ describeEmbeddedPostgres("secretService", () => {
       pageSize: 25,
     });
 
-    expect(listSpy).toHaveBeenCalledWith(expect.objectContaining({
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-      query: "prod",
-      pageSize: 25,
-    }));
+    expect(listSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+        query: "prod",
+        pageSize: 25,
+      }),
+    );
     expect(preview.nextToken).toBe("next-page");
     expect(preview.candidates.map((candidate) => candidate.status)).toEqual([
       "duplicate",
@@ -3512,31 +3985,40 @@ describeEmbeddedPostgres("secretService", () => {
     const rawProviderMessage =
       "AccessDeniedException: User: arn:aws:sts::123456789012:assumed-role/prod/Taskcore is not authorized to perform secretsmanager:ListSecrets";
 
-    vi.spyOn(awsSecretsManagerProvider, "listRemoteSecrets").mockRejectedValueOnce(
+    vi.spyOn(
+      awsSecretsManagerProvider,
+      "listRemoteSecrets",
+    ).mockRejectedValueOnce(
       new SecretProviderClientError({
         code: "access_denied",
         provider: "aws_secrets_manager",
         operation: "listSecrets",
-        message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+        message:
+          "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
         rawMessage: rawProviderMessage,
       }),
     );
 
     let thrown: unknown;
     try {
-      await svc.previewRemoteImport(companyId, { providerConfigId: awsVault.id });
+      await svc.previewRemoteImport(companyId, {
+        providerConfigId: awsVault.id,
+      });
     } catch (error) {
       thrown = error;
     }
 
     expect(thrown).toMatchObject({
       status: 403,
-      message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+      message:
+        "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
       details: { code: "access_denied" },
     });
     expect(JSON.stringify(thrown)).not.toContain("arn:aws");
     expect(JSON.stringify(thrown)).not.toContain("123456789012");
-    expect(thrown instanceof Error ? thrown.message : String(thrown)).not.toContain("arn:aws");
+    expect(
+      thrown instanceof Error ? thrown.message : String(thrown),
+    ).not.toContain("arn:aws");
   });
 
   it("sanitizes AWS managed secret create failures and removes the reserved row", async () => {
@@ -3555,7 +4037,8 @@ describeEmbeddedPostgres("secretService", () => {
         code: "access_denied",
         provider: "aws_secrets_manager",
         operation: "createSecret",
-        message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+        message:
+          "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
         rawMessage: rawProviderMessage,
       }),
     );
@@ -3576,7 +4059,8 @@ describeEmbeddedPostgres("secretService", () => {
 
     expect(thrown).toMatchObject({
       status: 403,
-      message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+      message:
+        "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
       details: {
         code: "access_denied",
         provider: "aws_secrets_manager",
@@ -3588,7 +4072,9 @@ describeEmbeddedPostgres("secretService", () => {
     });
     expect(JSON.stringify(thrown)).not.toContain("arn:aws");
     expect(JSON.stringify(thrown)).not.toContain("123456789012");
-    expect(thrown instanceof Error ? thrown.message : String(thrown)).not.toContain("arn:aws");
+    expect(
+      thrown instanceof Error ? thrown.message : String(thrown),
+    ).not.toContain("arn:aws");
 
     const persisted = await db
       .select()
@@ -3611,7 +4097,8 @@ describeEmbeddedPostgres("secretService", () => {
         code: "access_denied",
         provider: "aws_secrets_manager",
         operation: "createSecret",
-        message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+        message:
+          "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
         rawMessage:
           "AccessDeniedException: arn:aws:sts::123456789012:assumed-role/prod/Taskcore cannot create secret",
       }),
@@ -3631,7 +4118,8 @@ describeEmbeddedPostgres("secretService", () => {
       }),
     ).rejects.toMatchObject({
       status: 500,
-      message: "Secret create failed and Taskcore could not roll back the local secret reservation.",
+      message:
+        "Secret create failed and Taskcore could not roll back the local secret reservation.",
       details: {
         code: "secret_create_rollback_failed",
         provider: "aws_secrets_manager",
@@ -3639,7 +4127,8 @@ describeEmbeddedPostgres("secretService", () => {
         providerConfigId: awsVault.id,
         providerError: {
           status: 403,
-          message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+          message:
+            "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
           details: {
             code: "access_denied",
             requiredCapability: "secretsmanager:CreateSecret",
@@ -3659,43 +4148,49 @@ describeEmbeddedPostgres("secretService", () => {
   it("previews AWS provider vault discovery from draft config without persisting a provider vault", async () => {
     const companyId = await seedCompany();
     const svc = secretService(db);
-    const discoverSpy = vi.spyOn(awsSecretsManagerProvider, "discoverProviderConfigs").mockResolvedValue({
-      provider: "aws_secrets_manager",
-      nextToken: null,
-      sampledSecretCount: 1,
-      skippedForeignTaskcoreSampleCount: 0,
-      candidates: [
-        {
-          provider: "aws_secrets_manager",
-          displayName: "AWS production",
-          config: {
-            region: "us-east-1",
-            namespace: "prod-use1",
-            secretNamePrefix: "taskcore",
-            kmsKeyId: null,
-            ownerTag: "platform",
-            environmentTag: "production",
-          },
-          sampleCount: 1,
-          samples: [
-            { name: "taskcore/prod-use1/company-1/openai", hasKmsKey: false, tagKeys: ["taskcore:environment"] },
-          ],
-          signals: {
-            namespace: "prod-use1",
-            secretNamePrefix: "taskcore",
-            environmentTag: "production",
-            ownerTag: "platform",
-            kmsKeyId: null,
-            hasKmsKey: false,
+    const discoverSpy = vi
+      .spyOn(awsSecretsManagerProvider, "discoverProviderConfigs")
+      .mockResolvedValue({
+        provider: "aws_secrets_manager",
+        nextToken: null,
+        sampledSecretCount: 1,
+        skippedForeignTaskcoreSampleCount: 0,
+        candidates: [
+          {
+            provider: "aws_secrets_manager",
+            displayName: "AWS production",
+            config: {
+              region: "us-east-1",
+              namespace: "prod-use1",
+              secretNamePrefix: "taskcore",
+              kmsKeyId: null,
+              ownerTag: "platform",
+              environmentTag: "production",
+            },
             sampleCount: 1,
-            taskcoreManagedSampleCount: 0,
-            skippedForeignTaskcoreSampleCount: 0,
+            samples: [
+              {
+                name: "taskcore/prod-use1/company-1/openai",
+                hasKmsKey: false,
+                tagKeys: ["taskcore:environment"],
+              },
+            ],
+            signals: {
+              namespace: "prod-use1",
+              secretNamePrefix: "taskcore",
+              environmentTag: "production",
+              ownerTag: "platform",
+              kmsKeyId: null,
+              hasKmsKey: false,
+              sampleCount: 1,
+              taskcoreManagedSampleCount: 0,
+              skippedForeignTaskcoreSampleCount: 0,
+            },
+            warnings: [],
           },
-          warnings: [],
-        },
-      ],
-      warnings: [],
-    });
+        ],
+        warnings: [],
+      });
 
     const preview = await svc.previewProviderConfigDiscovery(companyId, {
       provider: "aws_secrets_manager",
@@ -3721,7 +4216,9 @@ describeEmbeddedPostgres("secretService", () => {
       namespace: "prod-use1",
     });
     expect(JSON.stringify(preview)).not.toContain("runtime-secret");
-    const persistedVaults = await db.select().from(companySecretProviderConfigs);
+    const persistedVaults = await db
+      .select()
+      .from(companySecretProviderConfigs);
     expect(persistedVaults).toHaveLength(0);
   });
 
@@ -3731,12 +4228,16 @@ describeEmbeddedPostgres("secretService", () => {
     const rawProviderMessage =
       "AccessDeniedException: User: arn:aws:sts::123456789012:assumed-role/prod/Taskcore is not authorized to perform secretsmanager:ListSecrets";
 
-    vi.spyOn(awsSecretsManagerProvider, "discoverProviderConfigs").mockRejectedValueOnce(
+    vi.spyOn(
+      awsSecretsManagerProvider,
+      "discoverProviderConfigs",
+    ).mockRejectedValueOnce(
       new SecretProviderClientError({
         code: "access_denied",
         provider: "aws_secrets_manager",
         operation: "discoverProviderConfigs",
-        message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+        message:
+          "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
         rawMessage: rawProviderMessage,
       }),
     );
@@ -3753,7 +4254,8 @@ describeEmbeddedPostgres("secretService", () => {
 
     expect(thrown).toMatchObject({
       status: 403,
-      message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+      message:
+        "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
       details: {
         code: "access_denied",
         provider: "aws_secrets_manager",
@@ -3771,7 +4273,9 @@ describeEmbeddedPostgres("secretService", () => {
     });
     expect(JSON.stringify(thrown)).not.toContain("arn:aws");
     expect(JSON.stringify(thrown)).not.toContain("123456789012");
-    expect(thrown instanceof Error ? thrown.message : String(thrown)).not.toContain("arn:aws");
+    expect(
+      thrown instanceof Error ? thrown.message : String(thrown),
+    ).not.toContain("arn:aws");
   });
 
   it("writes external reference rotations through the provider when a value is given", async () => {
@@ -3782,7 +4286,8 @@ describeEmbeddedPostgres("secretService", () => {
       displayName: "AWS production",
       config: { region: "us-east-1", namespace: "prod-use1" },
     });
-    const externalRef = "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/neon-admin";
+    const externalRef =
+      "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/neon-admin";
     const secret = await svc.create(companyId, {
       name: `external-${randomUUID()}`,
       provider: "aws_secrets_manager",
@@ -3808,7 +4313,11 @@ describeEmbeddedPostgres("secretService", () => {
       });
     const linkSpy = vi.spyOn(awsSecretsManagerProvider, "linkExternalSecret");
 
-    const rotated = await svc.rotate(secret.id, { value: "new-admin-key" }, { userId: "user-1" });
+    const rotated = await svc.rotate(
+      secret.id,
+      { value: "new-admin-key" },
+      { userId: "user-1" },
+    );
 
     expect(writeSpy).toHaveBeenCalledTimes(1);
     expect(writeSpy.mock.calls[0]?.[0]).toMatchObject({
@@ -3837,7 +4346,8 @@ describeEmbeddedPostgres("secretService", () => {
       displayName: "AWS production",
       config: { region: "us-east-1", namespace: "prod-use1" },
     });
-    const externalRef = "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/rollback";
+    const externalRef =
+      "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/rollback";
     const secret = await svc.create(companyId, {
       name: "External rollback",
       key: "external-rollback",
@@ -3860,26 +4370,35 @@ describeEmbeddedPostgres("secretService", () => {
       externalRef,
       providerVersionRef: null,
     };
-    vi.spyOn(awsSecretsManagerProvider, "updateExternalSecretValue").mockResolvedValueOnce(prepared);
-    const rollbackSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
-    vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("db rotate failed"));
+    vi.spyOn(
+      awsSecretsManagerProvider,
+      "updateExternalSecretValue",
+    ).mockResolvedValueOnce(prepared);
+    const rollbackSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockResolvedValue();
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      new Error("db rotate failed"),
+    );
 
     await expect(svc.rotate(secret.id, { value: "new-value" })).rejects.toThrow(
       "db rotate failed",
     );
 
-    expect(rollbackSpy).toHaveBeenCalledWith(expect.objectContaining({
-      material: prepared.material,
-      externalRef,
-      mode: "archive",
-      providerConfig: expect.objectContaining({ id: awsVault.id }),
-      context: {
-        companyId,
-        secretKey: "external-rollback",
-        secretName: "External rollback",
-        version: 2,
-      },
-    }));
+    expect(rollbackSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        material: prepared.material,
+        externalRef,
+        mode: "archive",
+        providerConfig: expect.objectContaining({ id: awsVault.id }),
+        context: {
+          companyId,
+          secretKey: "external-rollback",
+          secretName: "External rollback",
+          version: 2,
+        },
+      }),
+    );
   });
 
   it("rejects external value rotations that also retarget or pin versions", async () => {
@@ -3895,17 +4414,22 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/neon-admin",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/neon-admin",
     });
 
     await expect(
       svc.rotate(secret.id, {
         value: "new-admin-key",
-        externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/other",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/other",
       }),
     ).rejects.toThrow(/not both/);
     await expect(
-      svc.rotate(secret.id, { value: "new-admin-key", providerVersionRef: "pinned-1" }),
+      svc.rotate(secret.id, {
+        value: "new-admin-key",
+        providerVersionRef: "pinned-1",
+      }),
     ).rejects.toThrow(/cannot pin/i);
   });
 
@@ -3919,9 +4443,9 @@ describeEmbeddedPostgres("secretService", () => {
       externalRef: "kv/data/shared/neon-admin",
     });
 
-    await expect(svc.rotate(secret.id, { value: "new-admin-key" })).rejects.toThrow(
-      /does not support writing values/,
-    );
+    await expect(
+      svc.rotate(secret.id, { value: "new-admin-key" }),
+    ).rejects.toThrow(/does not support writing values/);
   });
 
   it("imports AWS remote references row-by-row without fetching plaintext", async () => {
@@ -3937,7 +4461,8 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/duplicate",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/duplicate",
     });
 
     const resolveSpy = vi.spyOn(awsSecretsManagerProvider, "resolveVersion");
@@ -3952,11 +4477,14 @@ describeEmbeddedPostgres("secretService", () => {
             key: "existing-duplicate",
           },
           {
-            externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
+            externalRef:
+              "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
             name: "OpenAI API key",
             key: "openai-api-key",
             description: "  Operator-entered production OpenAI key  ",
-            providerMetadata: { arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai" },
+            providerMetadata: {
+              arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
+            },
           },
         ],
       },
@@ -3965,10 +4493,18 @@ describeEmbeddedPostgres("secretService", () => {
 
     expect(result.importedCount).toBe(1);
     expect(result.skippedCount).toBe(1);
-    expect(result.results.map((row) => row.status)).toEqual(["skipped", "imported"]);
+    expect(result.results.map((row) => row.status)).toEqual([
+      "skipped",
+      "imported",
+    ]);
     expect(result.results[0]).toMatchObject({
       reason: "exact_reference_duplicate",
-      conflicts: [expect.objectContaining({ type: "exact_reference", existingSecretId: duplicate.id })],
+      conflicts: [
+        expect.objectContaining({
+          type: "exact_reference",
+          existingSecretId: duplicate.id,
+        }),
+      ],
     });
     expect(resolveSpy).not.toHaveBeenCalled();
 
@@ -3982,7 +4518,8 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
       createdByUserId: "user-1",
       providerMetadata: null,
       description: "Operator-entered production OpenAI key",
@@ -4007,12 +4544,16 @@ describeEmbeddedPostgres("secretService", () => {
     });
     const rawProviderMessage =
       "AccessDeniedException: User: arn:aws:sts::123456789012:assumed-role/prod/Taskcore is not authorized to perform secretsmanager:DescribeSecret on arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai";
-    vi.spyOn(awsSecretsManagerProvider, "linkExternalSecret").mockRejectedValueOnce(
+    vi.spyOn(
+      awsSecretsManagerProvider,
+      "linkExternalSecret",
+    ).mockRejectedValueOnce(
       new SecretProviderClientError({
         code: "access_denied",
         provider: "aws_secrets_manager",
         operation: "linkExternalSecret",
-        message: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+        message:
+          "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
         rawMessage: rawProviderMessage,
       }),
     );
@@ -4021,7 +4562,8 @@ describeEmbeddedPostgres("secretService", () => {
       providerConfigId: awsVault.id,
       secrets: [
         {
-          externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
+          externalRef:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
           name: "OpenAI API key",
           key: "openai-api-key",
         },
@@ -4035,13 +4577,16 @@ describeEmbeddedPostgres("secretService", () => {
       results: [
         expect.objectContaining({
           status: "error",
-          reason: "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
+          reason:
+            "AWS Secrets Manager denied the request. Check IAM permissions for this provider vault.",
         }),
       ],
     });
     expect(JSON.stringify(result)).not.toContain(rawProviderMessage);
     expect(JSON.stringify(result.results[0]?.reason)).not.toContain("arn:aws");
-    expect(JSON.stringify(result.results[0]?.reason)).not.toContain("123456789012");
+    expect(JSON.stringify(result.results[0]?.reason)).not.toContain(
+      "123456789012",
+    );
   });
 
   it("rejects Taskcore-managed AWS namespace refs during preview and import commit", async () => {
@@ -4105,7 +4650,10 @@ describeEmbeddedPostgres("secretService", () => {
       results: [expect.objectContaining({ status: "error" })],
     });
     expect(result.results[0]?.reason).toMatch(/Taskcore-managed namespace/i);
-    const imported = await db.select().from(companySecrets).where(eq(companySecrets.key, "foreign-managed-secret"));
+    const imported = await db
+      .select()
+      .from(companySecrets)
+      .where(eq(companySecrets.key, "foreign-managed-secret"));
     expect(imported).toHaveLength(0);
   });
 
@@ -4122,7 +4670,8 @@ describeEmbeddedPostgres("secretService", () => {
       providerConfigId: awsVault.id,
       secrets: [
         {
-          externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
+          externalRef:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
           name: "OpenAI API key",
           key: "openai-api-key",
         },
@@ -4132,7 +4681,8 @@ describeEmbeddedPostgres("secretService", () => {
       providerConfigId: awsVault.id,
       secrets: [
         {
-          externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
+          externalRef:
+            "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/openai",
           name: "OpenAI API key duplicate",
           key: "openai-api-key-duplicate",
         },
@@ -4144,9 +4694,14 @@ describeEmbeddedPostgres("secretService", () => {
       importedCount: 0,
       skippedCount: 1,
       errorCount: 0,
-      results: [expect.objectContaining({ reason: "exact_reference_duplicate" })],
+      results: [
+        expect.objectContaining({ reason: "exact_reference_duplicate" }),
+      ],
     });
-    const imported = await db.select().from(companySecrets).where(eq(companySecrets.providerConfigId, awsVault.id));
+    const imported = await db
+      .select()
+      .from(companySecrets)
+      .where(eq(companySecrets.providerConfigId, awsVault.id));
     expect(imported).toHaveLength(1);
   });
 
@@ -4185,14 +4740,16 @@ describeEmbeddedPostgres("secretService", () => {
 
     await expect(
       svc.update(secret.id, {
-        externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod/company-b/openai-api-key",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod/company-b/openai-api-key",
       }),
     ).rejects.toThrow(/Managed secrets cannot override externalRef/i);
 
     await expect(
       svc.rotate(secret.id, {
         value: "rotated-runtime-secret",
-        externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod/company-b/openai-api-key",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:taskcore/prod/company-b/openai-api-key",
       }),
     ).rejects.toThrow(/Managed secrets cannot override externalRef/i);
   });
@@ -4210,12 +4767,14 @@ describeEmbeddedPostgres("secretService", () => {
       provider: "aws_secrets_manager",
       providerConfigId: awsVault.id,
       managedMode: "external_reference",
-      externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/original",
+      externalRef:
+        "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/original",
     });
 
     await expect(
       svc.update(secret.id, {
-        externalRef: "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/repointed",
+        externalRef:
+          "arn:aws:secretsmanager:us-east-1:123456789012:secret:shared/repointed",
       }),
     ).rejects.toThrow(/cannot be retargeted/i);
 
@@ -4278,7 +4837,9 @@ describeEmbeddedPostgres("secretService", () => {
       status: "current",
     });
 
-    const deleteSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
+    const deleteSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockResolvedValue();
 
     const removed = await svc.remove(secret.id);
     const persisted = await db
@@ -4343,11 +4904,14 @@ describeEmbeddedPostgres("secretService", () => {
       providerVersionRef: "aws-version-1",
       status: "current",
     });
-    vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockRejectedValueOnce(
-      new Error("provider delete failed"),
-    );
+    vi.spyOn(
+      awsSecretsManagerProvider,
+      "deleteOrArchive",
+    ).mockRejectedValueOnce(new Error("provider delete failed"));
 
-    await expect(svc.remove(secret.id)).rejects.toThrow("provider delete failed");
+    await expect(svc.remove(secret.id)).rejects.toThrow(
+      "provider delete failed",
+    );
     const persisted = await db
       .select()
       .from(companySecrets)
@@ -4400,14 +4964,16 @@ describeEmbeddedPostgres("secretService", () => {
       providerVersionRef: "aws-version-1",
       status: "current",
     });
-    const deleteSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockRejectedValueOnce(
-      new SecretProviderClientError({
-        code: "not_found",
-        provider: "aws_secrets_manager",
-        operation: "delete_secret",
-        message: "Secret not found.",
-      }),
-    );
+    const deleteSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockRejectedValueOnce(
+        new SecretProviderClientError({
+          code: "not_found",
+          provider: "aws_secrets_manager",
+          operation: "delete_secret",
+          message: "Secret not found.",
+        }),
+      );
 
     await expect(svc.remove(secretId)).resolves.toMatchObject({ id: secretId });
     const persisted = await db
@@ -4464,9 +5030,13 @@ describeEmbeddedPostgres("secretService", () => {
       status: "current",
     });
     await svc.disableProviderConfig(vault.id);
-    const deleteSpy = vi.spyOn(awsSecretsManagerProvider, "deleteOrArchive").mockResolvedValue();
+    const deleteSpy = vi
+      .spyOn(awsSecretsManagerProvider, "deleteOrArchive")
+      .mockResolvedValue();
 
-    await expect(svc.remove(secret.id)).resolves.toMatchObject({ id: secret.id });
+    await expect(svc.remove(secret.id)).resolves.toMatchObject({
+      id: secret.id,
+    });
     const persisted = await db
       .select()
       .from(companySecrets)
@@ -4487,14 +5057,14 @@ describeEmbeddedPostgres("secretService", () => {
     });
 
     await svc.update(secret.id, { status: "disabled" });
-    await expect(svc.resolveSecretValue(companyId, secret.id, "latest")).rejects.toThrow(
-      /not active/i,
-    );
+    await expect(
+      svc.resolveSecretValue(companyId, secret.id, "latest"),
+    ).rejects.toThrow(/not active/i);
 
     await svc.update(secret.id, { status: "archived" });
-    await expect(svc.resolveSecretValue(companyId, secret.id, "latest")).rejects.toThrow(
-      /not active/i,
-    );
+    await expect(
+      svc.resolveSecretValue(companyId, secret.id, "latest"),
+    ).rejects.toThrow(/not active/i);
   });
 
   it("records audited ephemeral secret access without requiring a persisted binding", async () => {
@@ -4507,13 +5077,18 @@ describeEmbeddedPostgres("secretService", () => {
     });
     await seedCompanyMember(companyId, "user-1");
 
-    const resolved = await svc.resolveSecretValueForEphemeralAccess(companyId, secret.id, "latest", {
-      consumerType: "system",
-      consumerId: "environment-probe-config",
-      configPath: "apiKey",
-      actorType: "user",
-      actorId: "user-1",
-    });
+    const resolved = await svc.resolveSecretValueForEphemeralAccess(
+      companyId,
+      secret.id,
+      "latest",
+      {
+        consumerType: "system",
+        consumerId: "environment-probe-config",
+        configPath: "apiKey",
+        actorType: "user",
+        actorId: "user-1",
+      },
+    );
 
     expect(resolved).toBe("runtime-secret");
     const events = await svc.listAccessEvents(companyId, secret.id);
@@ -4540,14 +5115,19 @@ describeEmbeddedPostgres("secretService", () => {
       value: "runtime-secret",
     });
 
-    const resolved = await svc.resolveSecretValueForEphemeralAccess(companyId, secret.id, "latest", {
-      consumerType: "system",
-      consumerId: "environment-probe-config",
-      configPath: "apiKey",
-      actorType: "user",
-      actorId: "local-board",
-      actorSource: "local_implicit",
-    });
+    const resolved = await svc.resolveSecretValueForEphemeralAccess(
+      companyId,
+      secret.id,
+      "latest",
+      {
+        consumerType: "system",
+        consumerId: "environment-probe-config",
+        configPath: "apiKey",
+        actorType: "user",
+        actorId: "local-board",
+        actorSource: "local_implicit",
+      },
+    );
 
     expect(resolved).toBe("runtime-secret");
   });
@@ -4573,14 +5153,19 @@ describeEmbeddedPostgres("secretService", () => {
       updatedAt: new Date(),
     });
 
-    const resolved = await svc.resolveSecretValueForEphemeralAccess(companyId, secret.id, "latest", {
-      consumerType: "system",
-      consumerId: "environment-probe-config",
-      configPath: "apiKey",
-      actorType: "agent",
-      actorId: agentId,
-      actorSource: "agent_jwt",
-    });
+    const resolved = await svc.resolveSecretValueForEphemeralAccess(
+      companyId,
+      secret.id,
+      "latest",
+      {
+        consumerType: "system",
+        consumerId: "environment-probe-config",
+        configPath: "apiKey",
+        actorType: "agent",
+        actorId: agentId,
+        actorSource: "agent_jwt",
+      },
+    );
 
     expect(resolved).toBe("runtime-secret");
   });

@@ -120,19 +120,48 @@ vi.mock("../lib/recent-assignees", () => ({
 }));
 
 vi.mock("../lib/assignees", () => ({
-  formatAssigneeUserLabel: (userId: string | null | undefined, currentUserId?: string | null, userLabelMap?: Map<string, string>) => {
+  formatAssigneeUserLabel: (
+    userId: string | null | undefined,
+    currentUserId?: string | null,
+    userLabelMap?: Map<string, string>,
+  ) => {
     if (!userId) return null;
-    return userLabelMap?.get(userId) ?? (userId === currentUserId ? "You" : "User");
+    return (
+      userLabelMap?.get(userId) ?? (userId === currentUserId ? "You" : "User")
+    );
   },
-  formatUserLabel: (userId: string | null | undefined, userLabelMap?: Map<string, string>) => {
+  formatUserLabel: (
+    userId: string | null | undefined,
+    userLabelMap?: Map<string, string>,
+  ) => {
     if (!userId) return null;
     return userLabelMap?.get(userId) ?? "User";
   },
 }));
 
 vi.mock("./StatusIcon", () => ({
-  StatusIcon: ({ status, blockerAttention, className, glyphContainerClassName, size }: { status: string; blockerAttention?: Issue["blockerAttention"]; className?: string; glyphContainerClassName?: string; size?: string }) => (
-    <span className={className} data-glyph-container-class={glyphContainerClassName} data-testid="status-icon" data-size={size} data-status-icon-state={blockerAttention?.state}>{status}</span>
+  StatusIcon: ({
+    status,
+    blockerAttention,
+    className,
+    glyphContainerClassName,
+    size,
+  }: {
+    status: string;
+    blockerAttention?: Issue["blockerAttention"];
+    className?: string;
+    glyphContainerClassName?: string;
+    size?: string;
+  }) => (
+    <span
+      className={className}
+      data-glyph-container-class={glyphContainerClassName}
+      data-testid="status-icon"
+      data-size={size}
+      data-status-icon-state={blockerAttention?.state}
+    >
+      {status}
+    </span>
   ),
 }));
 
@@ -141,7 +170,9 @@ vi.mock("./PriorityIcon", () => ({
 }));
 
 vi.mock("./Identity", () => ({
-  Identity: ({ name, shape }: { name: string; shape?: string }) => <span data-shape={shape ?? "circle"}>{name}</span>,
+  Identity: ({ name, shape }: { name: string; shape?: string }) => (
+    <span data-shape={shape ?? "circle"}>{name}</span>
+  ),
 }));
 
 vi.mock("./AgentIconPicker", () => ({
@@ -156,9 +187,25 @@ vi.mock("@/lib/router", () => ({
     disableIssueQuicklook: _disableIssueQuicklook,
     issuePrefetch: _issuePrefetch,
     ...props
-  }: { children: ReactNode; to: string; state?: unknown; disableIssueQuicklook?: boolean; issuePrefetch?: unknown } & ComponentProps<"a">) => <a href={to} {...props}>{children}</a>,
+  }: {
+    children: ReactNode;
+    to: string;
+    state?: unknown;
+    disableIssueQuicklook?: boolean;
+    issuePrefetch?: unknown;
+  } & ComponentProps<"a">) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
   useCaseHref: () => (caseId: string) => `/cases/${caseId}`,
-  useLocation: () => ({ hash: "", pathname: "/", search: "", state: null, key: "test" }),
+  useLocation: () => ({
+    hash: "",
+    pathname: "/",
+    search: "",
+    state: null,
+    key: "test",
+  }),
 }));
 
 vi.mock("@/components/ui/separator", () => ({
@@ -166,18 +213,26 @@ vi.mock("@/components/ui/separator", () => ({
 }));
 
 vi.mock("@/components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  MarkdownBody: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 vi.mock("@/components/IssueDocumentAnnotations", () => ({
-  DocumentAnnotationsCountChip: ({ docKey }: { docKey: string }) => <span data-doc-key={docKey} />,
-  IssueDocumentAnnotations: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DocumentAnnotationsCountChip: ({ docKey }: { docKey: string }) => (
+    <span data-doc-key={docKey} />
+  ),
+  IssueDocumentAnnotations: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 vi.mock("@/components/ui/popover", () => ({
   Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   PopoverTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
-  PopoverContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  PopoverContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,10 +262,16 @@ async function flush() {
  * `PropertyRow` exposes a stable label hook so layout utility changes do not
  * affect tests that need to find the corresponding value slot.
  */
-function findRowTrigger(container: HTMLElement, label: string): HTMLButtonElement | undefined {
+function findRowTrigger(
+  container: HTMLElement,
+  label: string,
+): HTMLButtonElement | undefined {
   const labelSpan = container.querySelector(`[data-property-label="${label}"]`);
   const row = labelSpan?.closest('[data-property-row="true"]');
-  return ((row?.querySelector(`button[aria-label="Edit ${label.toLowerCase()}"]`) ?? row?.querySelector("button")) as HTMLButtonElement | null) ?? undefined;
+  return (
+    ((row?.querySelector(`button[aria-label="Edit ${label.toLowerCase()}"]`) ??
+      row?.querySelector("button")) as HTMLButtonElement | null) ?? undefined
+  );
 }
 
 async function waitForAssertion(assertion: () => void, attempts = 20) {
@@ -286,7 +347,9 @@ function createLabel(overrides: Partial<IssueLabel> = {}): IssueLabel {
   };
 }
 
-function createRuntimeService(overrides: Partial<WorkspaceRuntimeService> = {}): WorkspaceRuntimeService {
+function createRuntimeService(
+  overrides: Partial<WorkspaceRuntimeService> = {},
+): WorkspaceRuntimeService {
   return {
     id: "service-1",
     companyId: "company-1",
@@ -319,7 +382,9 @@ function createRuntimeService(overrides: Partial<WorkspaceRuntimeService> = {}):
   };
 }
 
-function createExecutionWorkspace(overrides: Partial<ExecutionWorkspace> = {}): ExecutionWorkspace {
+function createExecutionWorkspace(
+  overrides: Partial<ExecutionWorkspace> = {},
+): ExecutionWorkspace {
   return {
     id: "workspace-1",
     companyId: "company-1",
@@ -414,7 +479,9 @@ function createProject(overrides: Partial<Project> = {}): Project {
   };
 }
 
-function createExecutionPolicy(overrides: Partial<IssueExecutionPolicy> = {}): IssueExecutionPolicy {
+function createExecutionPolicy(
+  overrides: Partial<IssueExecutionPolicy> = {},
+): IssueExecutionPolicy {
   return {
     mode: "normal",
     commentRequired: true,
@@ -423,7 +490,9 @@ function createExecutionPolicy(overrides: Partial<IssueExecutionPolicy> = {}): I
   };
 }
 
-function createExecutionState(overrides: Partial<IssueExecutionState> = {}): IssueExecutionState {
+function createExecutionState(
+  overrides: Partial<IssueExecutionState> = {},
+): IssueExecutionState {
   return {
     status: "changes_requested",
     currentStageId: "stage-1",
@@ -439,7 +508,11 @@ function createExecutionState(overrides: Partial<IssueExecutionState> = {}): Iss
   };
 }
 
-function renderPropertiesWithQueryClient(container: HTMLDivElement, props: ComponentProps<typeof IssueProperties>, hiddenSettings: string[] = []) {
+function renderPropertiesWithQueryClient(
+  container: HTMLDivElement,
+  props: ComponentProps<typeof IssueProperties>,
+  hiddenSettings: string[] = [],
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -457,7 +530,10 @@ function renderPropertiesWithQueryClient(container: HTMLDivElement, props: Compo
   return { root, queryClient };
 }
 
-function renderProperties(container: HTMLDivElement, props: ComponentProps<typeof IssueProperties>) {
+function renderProperties(
+  container: HTMLDivElement,
+  props: ComponentProps<typeof IssueProperties>,
+) {
   const { root } = renderPropertiesWithQueryClient(container, props);
   return root;
 }
@@ -466,17 +542,30 @@ describe("IssueProperties", () => {
   let container: HTMLDivElement;
 
   it("surfaces saved PR review links even when external objects are unavailable", async () => {
-    mockIssuesApi.listWorkProducts.mockResolvedValue([{
-      id: "pr-1", type: "pull_request", provider: "github", title: "Update runtime probe",
-      url: null, metadata: { url: "https://github.com/example/private-repo/pull/42" },
-      status: "ready_for_review", reviewState: "needs_board_review", updatedAt: new Date(),
-    }]);
+    mockIssuesApi.listWorkProducts.mockResolvedValue([
+      {
+        id: "pr-1",
+        type: "pull_request",
+        provider: "github",
+        title: "Update runtime probe",
+        url: null,
+        metadata: { url: "https://github.com/example/private-repo/pull/42" },
+        status: "ready_for_review",
+        reviewState: "needs_board_review",
+        updatedAt: new Date(),
+      },
+    ]);
     const root = renderProperties(container, {
-      issue: createIssue(), childIssues: [], onUpdate: vi.fn(), inline: true,
+      issue: createIssue(),
+      childIssues: [],
+      onUpdate: vi.fn(),
+      inline: true,
       externalObjectsError: true,
     });
     await waitForAssertion(() => {
-      const link = container.querySelector('a[href="https://github.com/example/private-repo/pull/42"]');
+      const link = container.querySelector(
+        'a[href="https://github.com/example/private-repo/pull/42"]',
+      );
       expect(link?.textContent).toBe("example/private-repo#42");
       expect(container.textContent).toContain("Review requested");
     });
@@ -485,21 +574,45 @@ describe("IssueProperties", () => {
 
   it("refreshes PR state when opening Properties over an already loaded task", async () => {
     const saved = {
-      id: "pr-1", type: "pull_request", provider: "github", title: "Update runtime probe",
-      url: "https://github.com/example/private-repo/pull/42", metadata: {},
-      status: "ready_for_review", reviewState: "needs_board_review", updatedAt: new Date(),
+      id: "pr-1",
+      type: "pull_request",
+      provider: "github",
+      title: "Update runtime probe",
+      url: "https://github.com/example/private-repo/pull/42",
+      metadata: {},
+      status: "ready_for_review",
+      reviewState: "needs_board_review",
+      updatedAt: new Date(),
     };
     mockIssuesApi.listWorkProducts.mockImplementation(async (_id, options) => [
-      options?.refreshPullRequests ? { ...saved, metadata: { state: "merged" } } : saved,
+      options?.refreshPullRequests
+        ? { ...saved, metadata: { state: "merged" } }
+        : saved,
     ]);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    queryClient.setQueryData(queryKeys.issues.workProducts("issue-1"), [{ ...saved, metadata: { state: "merged" } }]);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(queryKeys.issues.workProducts("issue-1"), [
+      { ...saved, metadata: { state: "merged" } },
+    ]);
     const root = createRoot(container);
-    act(() => root.render(<QueryClientProvider client={queryClient}>
-      <IssueProperties issue={createIssue()} childIssues={[]} onUpdate={vi.fn()} inline />
-    </QueryClientProvider>));
+    act(() =>
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <IssueProperties
+            issue={createIssue()}
+            childIssues={[]}
+            onUpdate={vi.fn()}
+            inline
+          />
+        </QueryClientProvider>,
+      ),
+    );
     await waitForAssertion(() => {
-      expect(mockIssuesApi.listWorkProducts).toHaveBeenCalledWith("issue-1", expect.objectContaining({ refreshPullRequests: true }));
+      expect(mockIssuesApi.listWorkProducts).toHaveBeenCalledWith(
+        "issue-1",
+        expect.objectContaining({ refreshPullRequests: true }),
+      );
       expect(container.textContent).toContain("merged");
       expect(container.textContent).not.toContain("Review requested");
     });
@@ -508,19 +621,39 @@ describe("IssueProperties", () => {
 
   it("refreshes PRs on first panel open when the thread uses an identifier cache key", async () => {
     const saved = {
-      id: "pr-1", type: "pull_request", title: "Update runtime probe",
-      url: "https://github.com/example/private-repo/pull/42", metadata: {},
-      status: "ready_for_review", reviewState: "needs_board_review", updatedAt: new Date(),
+      id: "pr-1",
+      type: "pull_request",
+      title: "Update runtime probe",
+      url: "https://github.com/example/private-repo/pull/42",
+      metadata: {},
+      status: "ready_for_review",
+      reviewState: "needs_board_review",
+      updatedAt: new Date(),
     };
     mockIssuesApi.listWorkProducts.mockImplementation(async (_id, options) => [
-      options?.refreshPullRequests ? { ...saved, metadata: { state: "merged" } } : saved,
+      options?.refreshPullRequests
+        ? { ...saved, metadata: { state: "merged" } }
+        : saved,
     ]);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    queryClient.setQueryData(queryKeys.issues.workProducts("PAP-1"), [{ ...saved, metadata: { state: "merged" } }]);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(queryKeys.issues.workProducts("PAP-1"), [
+      { ...saved, metadata: { state: "merged" } },
+    ]);
     const root = createRoot(container);
-    act(() => root.render(<QueryClientProvider client={queryClient}>
-      <IssueProperties issue={createIssue()} childIssues={[]} onUpdate={vi.fn()} inline />
-    </QueryClientProvider>));
+    act(() =>
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <IssueProperties
+            issue={createIssue()}
+            childIssues={[]}
+            onUpdate={vi.fn()}
+            inline
+          />
+        </QueryClientProvider>,
+      ),
+    );
     await waitForAssertion(() => {
       expect(container.textContent).toContain("merged");
       expect(container.textContent).not.toContain("Review requested");
@@ -530,16 +663,33 @@ describe("IssueProperties", () => {
 
   it("shows saved PRs while the first provider refresh is stalled", async () => {
     const saved = {
-      id: "pr-1", type: "pull_request", title: "Update runtime probe",
-      url: "https://github.com/example/private-repo/pull/42", metadata: {},
-      status: "ready_for_review", reviewState: "needs_board_review", updatedAt: new Date(),
+      id: "pr-1",
+      type: "pull_request",
+      title: "Update runtime probe",
+      url: "https://github.com/example/private-repo/pull/42",
+      metadata: {},
+      status: "ready_for_review",
+      reviewState: "needs_board_review",
+      updatedAt: new Date(),
     };
     let finishRefresh!: (products: unknown[]) => void;
-    const refresh = new Promise<unknown[]>((resolve) => { finishRefresh = resolve; });
-    mockIssuesApi.listWorkProducts.mockImplementation(async (_id, options) => options?.refreshPullRequests ? refresh : [saved]);
-    const root = renderProperties(container, { issue: createIssue(), childIssues: [], onUpdate: vi.fn(), inline: true });
+    const refresh = new Promise<unknown[]>((resolve) => {
+      finishRefresh = resolve;
+    });
+    mockIssuesApi.listWorkProducts.mockImplementation(async (_id, options) =>
+      options?.refreshPullRequests ? refresh : [saved],
+    );
+    const root = renderProperties(container, {
+      issue: createIssue(),
+      childIssues: [],
+      onUpdate: vi.fn(),
+      inline: true,
+    });
     await waitForAssertion(() => {
-      expect(mockIssuesApi.listWorkProducts).toHaveBeenCalledWith("issue-1", expect.objectContaining({ refreshPullRequests: true }));
+      expect(mockIssuesApi.listWorkProducts).toHaveBeenCalledWith(
+        "issue-1",
+        expect.objectContaining({ refreshPullRequests: true }),
+      );
       expect(container.querySelector(`a[href="${saved.url}"]`)).not.toBeNull();
       expect(container.textContent).toContain("Review requested");
     });
@@ -552,35 +702,86 @@ describe("IssueProperties", () => {
   });
 
   it.each([
-    { statusLabel: "Open", statusCategory: "open", liveness: "stale", statusIconKey: "git-pull-request", review: true },
-    { statusLabel: "Merged", statusCategory: "succeeded", liveness: "fresh", statusIconKey: "git-merge", review: false },
-    { statusLabel: "Not found", statusCategory: "archived", liveness: "stale", statusIconKey: null, review: true },
-  ] as const)("combines a saved PR with its $statusLabel provider status and freshness", async (provider) => {
-    const canonical = "https://github.com/example/private-repo/pull/42";
-    const savedUrl = `${canonical}?diff=split#discussion_r123`;
-    mockIssuesApi.listWorkProducts.mockResolvedValue([{
-      id: "pr-1", type: "pull_request", title: "Update runtime probe", url: savedUrl,
-      metadata: {}, status: "ready_for_review", reviewState: "needs_board_review", updatedAt: new Date(),
-    }]);
-    const root = renderProperties(container, {
-      issue: createIssue(), childIssues: [], onUpdate: vi.fn(), inline: true,
-      externalObjects: [{
-        pill: { providerKey: "github", objectType: "pull_request", url: canonical, ...provider },
-        mentionCount: 1, sourceLabels: ["Comment"],
-        group: { object: null, mentions: [], mentionCount: 1, sourceLabels: ["Comment"] },
-      }],
-    });
-    await waitForAssertion(() => {
-      const links = container.querySelectorAll('a[href*="/pull/42"]');
-      expect(links).toHaveLength(1);
-      expect(links[0].getAttribute("href")).toBe(savedUrl);
-      const row = links[0].closest("li")!;
-      expect(row.textContent).toContain(provider.statusLabel);
-      expect(row.querySelector("[data-external-liveness]")?.getAttribute("data-external-liveness")).toBe(provider.liveness);
-      expect(row.textContent?.includes("Review requested")).toBe(provider.review);
-    });
-    act(() => root.unmount());
-  });
+    {
+      statusLabel: "Open",
+      statusCategory: "open",
+      liveness: "stale",
+      statusIconKey: "git-pull-request",
+      review: true,
+    },
+    {
+      statusLabel: "Merged",
+      statusCategory: "succeeded",
+      liveness: "fresh",
+      statusIconKey: "git-merge",
+      review: false,
+    },
+    {
+      statusLabel: "Not found",
+      statusCategory: "archived",
+      liveness: "stale",
+      statusIconKey: null,
+      review: true,
+    },
+  ] as const)(
+    "combines a saved PR with its $statusLabel provider status and freshness",
+    async (provider) => {
+      const canonical = "https://github.com/example/private-repo/pull/42";
+      const savedUrl = `${canonical}?diff=split#discussion_r123`;
+      mockIssuesApi.listWorkProducts.mockResolvedValue([
+        {
+          id: "pr-1",
+          type: "pull_request",
+          title: "Update runtime probe",
+          url: savedUrl,
+          metadata: {},
+          status: "ready_for_review",
+          reviewState: "needs_board_review",
+          updatedAt: new Date(),
+        },
+      ]);
+      const root = renderProperties(container, {
+        issue: createIssue(),
+        childIssues: [],
+        onUpdate: vi.fn(),
+        inline: true,
+        externalObjects: [
+          {
+            pill: {
+              providerKey: "github",
+              objectType: "pull_request",
+              url: canonical,
+              ...provider,
+            },
+            mentionCount: 1,
+            sourceLabels: ["Comment"],
+            group: {
+              object: null,
+              mentions: [],
+              mentionCount: 1,
+              sourceLabels: ["Comment"],
+            },
+          },
+        ],
+      });
+      await waitForAssertion(() => {
+        const links = container.querySelectorAll('a[href*="/pull/42"]');
+        expect(links).toHaveLength(1);
+        expect(links[0].getAttribute("href")).toBe(savedUrl);
+        const row = links[0].closest("li")!;
+        expect(row.textContent).toContain(provider.statusLabel);
+        expect(
+          row
+            .querySelector("[data-external-liveness]")
+            ?.getAttribute("data-external-liveness"),
+        ).toBe(provider.liveness);
+        expect(row.textContent?.includes("Review requested")).toBe(
+          provider.review,
+        );
+      });
+      act(() => root.unmount());
+    },
+  );
 
   beforeEach(() => {
     mockSidebarState.isMobile = false;
@@ -599,11 +800,13 @@ describe("IssueProperties", () => {
     mockIssuesApi.listWorkProducts.mockResolvedValue([]);
     mockIssuesApi.listInteractions.mockResolvedValue([]);
     mockIssuesApi.listLabels.mockResolvedValue([]);
-    mockIssuesApi.createLabel.mockResolvedValue(createLabel({
-      id: "label-new",
-      name: "New label",
-      color: "#6366f1",
-    }));
+    mockIssuesApi.createLabel.mockResolvedValue(
+      createLabel({
+        id: "label-new",
+        name: "New label",
+        color: "#6366f1",
+      }),
+    );
     mockIssuesApi.upsertWatchdog.mockResolvedValue({});
     mockIssuesApi.deleteWatchdog.mockResolvedValue({ ok: true });
     mockIssuesApi.unarchiveFromInbox.mockResolvedValue({ ok: true });
@@ -613,12 +816,22 @@ describe("IssueProperties", () => {
         {
           principalId: "user-1",
           status: "active",
-          user: { id: "user-1", name: "Riley Board", email: "riley@example.com", image: null },
+          user: {
+            id: "user-1",
+            name: "Riley Board",
+            email: "riley@example.com",
+            image: null,
+          },
         },
         {
           principalId: "user-2",
           status: "active",
-          user: { id: "user-2", name: "Morgan Product", email: "morgan@example.com", image: null },
+          user: {
+            id: "user-2",
+            name: "Morgan Product",
+            email: "morgan@example.com",
+            image: null,
+          },
         },
       ],
     });
@@ -643,21 +856,35 @@ describe("IssueProperties", () => {
     const surface = container.querySelector(".task-detail-properties");
     expect(surface).not.toBeNull();
     expect(surface?.classList).toContain("pl-4");
-    expect(surface?.querySelectorAll('[data-property-section="true"]').length).toBeGreaterThan(1);
-    expect(surface?.querySelector('[data-property-value="true"]')).not.toBeNull();
+    expect(
+      surface?.querySelectorAll('[data-property-section="true"]').length,
+    ).toBeGreaterThan(1);
+    expect(
+      surface?.querySelector('[data-property-value="true"]'),
+    ).not.toBeNull();
     const statusVisual = surface?.querySelector(
       '[data-property-label="Status"] + [data-property-value="true"] [data-testid="status-icon"]',
     );
     expect(statusVisual).not.toBeNull();
     expect(statusVisual?.getAttribute("data-size")).toBeNull();
-    expect(statusVisual?.getAttribute("data-glyph-container-class")).toContain("size-6");
-    expect(surface?.querySelector('[data-property-section="true"] > div')?.classList)
-      .toContain("text-muted-foreground/70");
-    const projectLabel = surface?.querySelector('[data-property-label="Project"]');
-    const labelsLabel = surface?.querySelector('[data-property-label="Labels"]');
-    if (!projectLabel || !labelsLabel) throw new Error("Expected Project and Labels rows");
-    expect(projectLabel.compareDocumentPosition(labelsLabel) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .toBeTruthy();
+    expect(statusVisual?.getAttribute("data-glyph-container-class")).toContain(
+      "size-6",
+    );
+    expect(
+      surface?.querySelector('[data-property-section="true"] > div')?.classList,
+    ).toContain("text-muted-foreground/70");
+    const projectLabel = surface?.querySelector(
+      '[data-property-label="Project"]',
+    );
+    const labelsLabel = surface?.querySelector(
+      '[data-property-label="Labels"]',
+    );
+    if (!projectLabel || !labelsLabel)
+      throw new Error("Expected Project and Labels rows");
+    expect(
+      projectLabel.compareDocumentPosition(labelsLabel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     act(() => root.unmount());
   });
@@ -681,15 +908,19 @@ describe("IssueProperties", () => {
       assigneeAgentId: null,
       assigneeUserId: null,
     })) as NonNullable<Issue["blocks"]>;
-    const labels = Array.from({ length: 3 }, (_, index) => createLabel({
-      id: `label-${index + 1}`,
-      name: `Label ${index + 1}`,
-    }));
-    const childIssues = Array.from({ length: 3 }, (_, index) => createIssue({
-      id: `child-${index + 1}`,
-      identifier: `SUB-${index + 1}`,
-      title: `Subtask ${index + 1}`,
-    }));
+    const labels = Array.from({ length: 3 }, (_, index) =>
+      createLabel({
+        id: `label-${index + 1}`,
+        name: `Label ${index + 1}`,
+      }),
+    );
+    const childIssues = Array.from({ length: 3 }, (_, index) =>
+      createIssue({
+        id: `child-${index + 1}`,
+        identifier: `SUB-${index + 1}`,
+        title: `Subtask ${index + 1}`,
+      }),
+    );
     const root = renderProperties(container, {
       issue: createIssue({
         blockedBy,
@@ -704,7 +935,9 @@ describe("IssueProperties", () => {
     await flush();
 
     for (const label of ["Labels", "Blocked by", "Blocking", "Subtasks"]) {
-      const labelNode = container.querySelector(`[data-property-label="${label}"]`);
+      const labelNode = container.querySelector(
+        `[data-property-label="${label}"]`,
+      );
       const row = labelNode?.closest('[data-property-row="true"]');
       const value = row?.querySelector('[data-property-value="true"]');
       expect(row?.classList).toContain("items-start");
@@ -715,9 +948,12 @@ describe("IssueProperties", () => {
 
     for (const label of ["Labels", "Blocked by", "Subtasks"]) {
       const trigger = findRowTrigger(container, label);
-      const chipStack = label === "Labels"
-        ? trigger?.querySelector("div")
-        : trigger?.closest('[data-property-value="true"]')?.querySelector(".flex-col");
+      const chipStack =
+        label === "Labels"
+          ? trigger?.querySelector("div")
+          : trigger
+              ?.closest('[data-property-value="true"]')
+              ?.querySelector(".flex-col");
       expect(chipStack?.classList).toContain("flex-col");
       expect(chipStack?.classList).toContain("items-start");
     }
@@ -760,21 +996,45 @@ describe("IssueProperties", () => {
 
     const root = renderProperties(container, {
       issue: createIssue(),
-      childIssues: [createIssue({ id: "child-1", identifier: "PAP-2", title: "Child task" })],
+      childIssues: [
+        createIssue({
+          id: "child-1",
+          identifier: "PAP-2",
+          title: "Child task",
+        }),
+      ],
       onUpdate: vi.fn(),
     });
     await flush();
 
-    const tabs = Array.from(headerSlot.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const tabs = Array.from(
+      headerSlot.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+    );
     const propertiesTab = tabs.find((tab) => tab.textContent === "Properties");
-    const subtasksTab = tabs.find((tab) => tab.textContent?.includes("Subtasks"));
-    const tabItems = Array.from(headerSlot.querySelectorAll<HTMLElement>('[data-slot="task-detail-pane-tab"]'));
-    const tabDividers = Array.from(headerSlot.querySelectorAll<HTMLElement>('[data-slot="task-detail-pane-tab-divider"]'));
-    const subtasksLabel = subtasksTab?.querySelector<HTMLElement>('[title="Subtasks"]');
-    const subtasksCount = Array.from(subtasksTab?.querySelectorAll<HTMLElement>("span") ?? [])
-      .find((span) => span.textContent === "1");
-    const closeSubtasks = headerSlot.querySelector<HTMLButtonElement>('[aria-label="Close Subtasks tab"]');
-    const openClosedTab = headerSlot.querySelector<HTMLButtonElement>('[aria-label="Open closed sidebar tab"]');
+    const subtasksTab = tabs.find((tab) =>
+      tab.textContent?.includes("Subtasks"),
+    );
+    const tabItems = Array.from(
+      headerSlot.querySelectorAll<HTMLElement>(
+        '[data-slot="task-detail-pane-tab"]',
+      ),
+    );
+    const tabDividers = Array.from(
+      headerSlot.querySelectorAll<HTMLElement>(
+        '[data-slot="task-detail-pane-tab-divider"]',
+      ),
+    );
+    const subtasksLabel =
+      subtasksTab?.querySelector<HTMLElement>('[title="Subtasks"]');
+    const subtasksCount = Array.from(
+      subtasksTab?.querySelectorAll<HTMLElement>("span") ?? [],
+    ).find((span) => span.textContent === "1");
+    const closeSubtasks = headerSlot.querySelector<HTMLButtonElement>(
+      '[aria-label="Close Subtasks tab"]',
+    );
+    const openClosedTab = headerSlot.querySelector<HTMLButtonElement>(
+      '[aria-label="Open closed sidebar tab"]',
+    );
 
     expect(propertiesTab?.getAttribute("data-state")).toBe("active");
     expect(subtasksTab?.getAttribute("data-state")).toBe("inactive");
@@ -789,10 +1049,14 @@ describe("IssueProperties", () => {
     expect(subtasksLabel?.classList).toContain("flex-1");
     expect(subtasksLabel?.classList).toContain("overflow-hidden");
     expect(subtasksLabel?.classList).toContain("whitespace-nowrap");
-    expect(subtasksCount?.classList).toContain("group-hover/pane-tab:opacity-0");
+    expect(subtasksCount?.classList).toContain(
+      "group-hover/pane-tab:opacity-0",
+    );
     expect(closeSubtasks?.classList).toContain("opacity-0");
     expect(closeSubtasks?.classList).toContain("right-2.5");
-    expect(closeSubtasks?.classList).toContain("group-hover/pane-tab:opacity-100");
+    expect(closeSubtasks?.classList).toContain(
+      "group-hover/pane-tab:opacity-100",
+    );
     expect(openClosedTab?.classList).toContain("size-6");
     expect(openClosedTab?.classList).not.toContain("ml-1");
     expect(openClosedTab?.disabled).toBe(true);
@@ -803,35 +1067,48 @@ describe("IssueProperties", () => {
     }
 
     await act(async () => {
-      subtasksTab?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      subtasksTab?.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+      );
     });
 
     expect(propertiesTab?.getAttribute("data-state")).toBe("inactive");
     expect(subtasksTab?.getAttribute("data-state")).toBe("active");
 
     await act(async () => closeSubtasks?.click());
-    expect(headerSlot.querySelector('[role="tab"][data-state="active"]')?.textContent).toBe("Properties");
+    expect(
+      headerSlot.querySelector('[role="tab"][data-state="active"]')
+        ?.textContent,
+    ).toBe("Properties");
     expect(headerSlot.textContent).not.toContain("Subtasks");
     expect(openClosedTab?.disabled).toBe(false);
 
     await act(async () => {
-      openClosedTab?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      openClosedTab?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
       openClosedTab?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
     let reopenSubtasks: HTMLElement | undefined;
     await waitForAssertion(() => {
-      reopenSubtasks = Array.from(document.body.querySelectorAll<HTMLElement>('[role="menuitem"]'))
-        .find((item) => item.textContent === "Subtasks");
+      reopenSubtasks = Array.from(
+        document.body.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+      ).find((item) => item.textContent === "Subtasks");
       expect(reopenSubtasks).not.toBeUndefined();
     });
 
     await act(async () => {
-      reopenSubtasks?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      reopenSubtasks?.dispatchEvent(
+        new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+      );
       reopenSubtasks?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
-    expect(headerSlot.querySelector('[role="tab"][data-state="active"]')?.textContent).toContain("Subtasks");
+    expect(
+      headerSlot.querySelector('[role="tab"][data-state="active"]')
+        ?.textContent,
+    ).toContain("Subtasks");
 
     act(() => root.unmount());
   });
@@ -895,8 +1172,14 @@ describe("IssueProperties", () => {
     });
 
     await waitForAssertion(() => {
-      expect(Array.from(container.querySelectorAll("button")).some((button) => button.textContent === "Plan")).toBe(false);
-      expect(container.textContent).not.toContain("This task is in plan mode but no plan document has been written yet.");
+      expect(
+        Array.from(container.querySelectorAll("button")).some(
+          (button) => button.textContent === "Plan",
+        ),
+      ).toBe(false);
+      expect(container.textContent).not.toContain(
+        "This task is in plan mode but no plan document has been written yet.",
+      );
     });
 
     act(() => root.unmount());
@@ -935,7 +1218,10 @@ describe("IssueProperties", () => {
       enableClassicTaskInterface: false,
     });
     mockIssuesApi.getDocument.mockResolvedValue(planDocument);
-    mockIssuesApi.listDocuments.mockResolvedValue([planDocument, artifactDocument]);
+    mockIssuesApi.listDocuments.mockResolvedValue([
+      planDocument,
+      artifactDocument,
+    ]);
     Element.prototype.scrollIntoView = vi.fn();
 
     const props = {
@@ -944,10 +1230,14 @@ describe("IssueProperties", () => {
       onUpdate: vi.fn(),
       inline: true,
     } satisfies ComponentProps<typeof IssueProperties>;
-    const { root, queryClient } = renderPropertiesWithQueryClient(container, props);
+    const { root, queryClient } = renderPropertiesWithQueryClient(
+      container,
+      props,
+    );
     await waitForAssertion(() => {
-      const planTab = Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Plan");
+      const planTab = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "Plan",
+      );
       expect(planTab?.getAttribute("data-state")).toBe("active");
     });
 
@@ -956,17 +1246,24 @@ describe("IssueProperties", () => {
         <QueryClientProvider client={queryClient}>
           <IssueProperties
             {...props}
-            documentDeepLink={{ tab: "artifacts", documentKey: "qa-evidence", requestId: 1 }}
+            documentDeepLink={{
+              tab: "artifacts",
+              documentKey: "qa-evidence",
+              requestId: 1,
+            }}
           />
         </QueryClientProvider>,
       );
     });
 
     await waitForAssertion(() => {
-      const artifactsTab = Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Artifacts");
+      const artifactsTab = Array.from(
+        container.querySelectorAll("button"),
+      ).find((button) => button.textContent === "Artifacts");
       expect(artifactsTab?.getAttribute("data-state")).toBe("active");
-      expect(container.querySelector('button[aria-expanded="true"]')).not.toBeNull();
+      expect(
+        container.querySelector('button[aria-expanded="true"]'),
+      ).not.toBeNull();
     });
     act(() => root.unmount());
   });
@@ -982,16 +1279,27 @@ describe("IssueProperties", () => {
 
     await waitForAssertion(() => {
       // The Triage section still renders the Status row...
-      expect(container.querySelector('[data-property-label="Status"]')).not.toBeNull();
+      expect(
+        container.querySelector('[data-property-label="Status"]'),
+      ).not.toBeNull();
       // ...but the Priority row is gated behind SHOW_TASK_PRIORITY_UI (off).
-      expect(container.querySelector('[data-property-label="Priority"]')).toBeNull();
+      expect(
+        container.querySelector('[data-property-label="Priority"]'),
+      ).toBeNull();
     });
 
     act(() => root.unmount());
   });
 
   it("shows assignee and originating without responsible wording", async () => {
-    mockAgentsApi.list.mockResolvedValue([{ id: "agent-1", name: "CodexCoder", status: "active", adapterType: "codex_local" }]);
+    mockAgentsApi.list.mockResolvedValue([
+      {
+        id: "agent-1",
+        name: "CodexCoder",
+        status: "active",
+        adapterType: "codex_local",
+      },
+    ]);
     const root = renderProperties(container, {
       issue: createIssue({
         assigneeAgentId: "agent-1",
@@ -1013,7 +1321,11 @@ describe("IssueProperties", () => {
       expect(container.textContent).not.toContain("Responsible");
       expect(container.textContent).not.toContain("Kicked off by");
       expect(container.textContent).not.toContain("Created by");
-      expect(container.querySelector('[title="CodexCoder"] [data-slot="agent-avatar"] img')?.getAttribute("src")).toContain("/api/agent-avatars/cap-v1/");
+      expect(
+        container
+          .querySelector('[title="CodexCoder"] [data-slot="agent-avatar"] img')
+          ?.getAttribute("src"),
+      ).toContain("/api/agent-avatars/cap-v1/");
     });
 
     act(() => root.unmount());
@@ -1035,7 +1347,9 @@ describe("IssueProperties", () => {
       expect(container.textContent).toContain("Originating");
       expect(container.textContent).toContain("Riley Board");
       expect(container.textContent).not.toContain("Kicked off by");
-      expect(container.textContent).not.toContain("Kicked off by · responsible");
+      expect(container.textContent).not.toContain(
+        "Kicked off by · responsible",
+      );
       expect(container.textContent).not.toContain("(auto)");
       expect(container.textContent).not.toContain("Created by");
     });
@@ -1044,7 +1358,14 @@ describe("IssueProperties", () => {
   });
 
   it("shows originating agent without responsible wording", async () => {
-    mockAgentsApi.list.mockResolvedValue([{ id: "agent-1", name: "CodexCoder", status: "active", adapterType: "codex_local" }]);
+    mockAgentsApi.list.mockResolvedValue([
+      {
+        id: "agent-1",
+        name: "CodexCoder",
+        status: "active",
+        adapterType: "codex_local",
+      },
+    ]);
     const root = renderProperties(container, {
       issue: createIssue({
         createdByAgentId: "agent-1",
@@ -1064,14 +1385,25 @@ describe("IssueProperties", () => {
       expect(container.textContent).toContain("Unassigned");
       expect(container.textContent).not.toContain("Responsible");
       expect(container.textContent).not.toContain("Kicked off by");
-      expect(container.querySelector('[title="CodexCoder"] [data-slot="agent-avatar"] img')?.getAttribute("src")).toContain("/api/agent-avatars/cap-v1/");
+      expect(
+        container
+          .querySelector('[title="CodexCoder"] [data-slot="agent-avatar"] img')
+          ?.getAttribute("src"),
+      ).toContain("/api/agent-avatars/cap-v1/");
     });
 
     act(() => root.unmount());
   });
 
   it("attributes an agent-created issue to the transitive responsible user with a via affordance", async () => {
-    mockAgentsApi.list.mockResolvedValue([{ id: "agent-1", name: "CodexCoder", status: "active", adapterType: "codex_local" }]);
+    mockAgentsApi.list.mockResolvedValue([
+      {
+        id: "agent-1",
+        name: "CodexCoder",
+        status: "active",
+        adapterType: "codex_local",
+      },
+    ]);
     const root = renderProperties(container, {
       issue: createIssue({
         createdByAgentId: "agent-1",
@@ -1127,8 +1459,13 @@ describe("IssueProperties", () => {
         icon: null,
         status: "active",
         orgChainHealth: { status: "ok" },
-      } as unknown as Parameters<typeof mockAgentsApi.list.mockResolvedValue>[0][number]);
-    mockAgentsApi.list.mockResolvedValue([minimalAgent("agent-1", "ClaudeCoder"), minimalAgent("agent-2", "QA")]);
+      }) as unknown as Parameters<
+        typeof mockAgentsApi.list.mockResolvedValue
+      >[0][number];
+    mockAgentsApi.list.mockResolvedValue([
+      minimalAgent("agent-1", "ClaudeCoder"),
+      minimalAgent("agent-2", "QA"),
+    ]);
     const onUpdate = vi.fn();
     const root = renderProperties(container, {
       issue: createIssue({ assigneeAgentId: "agent-1" }),
@@ -1153,9 +1490,10 @@ describe("IssueProperties", () => {
     await flush();
 
     // Live-run banner + grouped section headers are present.
-    expect(container.querySelector("[data-testid='assignee-running-banner']")?.textContent).toContain(
-      "ClaudeCoder is running",
-    );
+    expect(
+      container.querySelector("[data-testid='assignee-running-banner']")
+        ?.textContent,
+    ).toContain("ClaudeCoder is running");
     expect(container.textContent).toContain("Agents");
     expect(container.textContent).toContain("Board users");
 
@@ -1168,7 +1506,9 @@ describe("IssueProperties", () => {
       qaOption!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
-    expect(container.querySelector("[data-testid='interrupt-assign-confirm']")).not.toBeNull();
+    expect(
+      container.querySelector("[data-testid='interrupt-assign-confirm']"),
+    ).not.toBeNull();
     expect(onUpdate).not.toHaveBeenCalled();
 
     // Confirming applies the reassignment.
@@ -1179,7 +1519,10 @@ describe("IssueProperties", () => {
       confirmBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
-    expect(onUpdate).toHaveBeenCalledWith({ assigneeAgentId: "agent-2", assigneeUserId: null });
+    expect(onUpdate).toHaveBeenCalledWith({
+      assigneeAgentId: "agent-2",
+      assigneeUserId: null,
+    });
 
     act(() => root.unmount());
   });
@@ -1194,7 +1537,9 @@ describe("IssueProperties", () => {
         icon: null,
         status: "active",
         orgChainHealth: { status: "ok" },
-      } as unknown as Parameters<typeof mockAgentsApi.list.mockResolvedValue>[0][number],
+      } as unknown as Parameters<
+        typeof mockAgentsApi.list.mockResolvedValue
+      >[0][number],
     ]);
     const root = renderProperties(container, {
       issue: createIssue(),
@@ -1209,7 +1554,10 @@ describe("IssueProperties", () => {
     expect(searchInput).not.toBeNull();
 
     await act(async () => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       nativeSetter?.call(searchInput, "no");
       searchInput!.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -1219,7 +1567,10 @@ describe("IssueProperties", () => {
     expect(container.textContent).not.toContain("No matches.");
 
     await act(async () => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       nativeSetter?.call(searchInput, "zzzz");
       searchInput!.dispatchEvent(new Event("input", { bubbles: true }));
     });
@@ -1248,8 +1599,9 @@ describe("IssueProperties", () => {
 
     expect(container.textContent).toContain("Subtasks");
 
-    const addButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Add subtask"));
+    const addButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Add subtask"),
+    );
     expect(addButton).not.toBeUndefined();
 
     await act(async () => {
@@ -1265,25 +1617,35 @@ describe("IssueProperties", () => {
     const onAddSubIssue = vi.fn();
     const root = renderProperties(container, {
       issue: createIssue(),
-      childIssues: [createIssue({ id: "child-2", identifier: "PAP-2", title: "Panel child" })],
+      childIssues: [
+        createIssue({
+          id: "child-2",
+          identifier: "PAP-2",
+          title: "Panel child",
+        }),
+      ],
       onAddSubIssue,
       onUpdate: vi.fn(),
       inline: true,
     });
     await flush();
 
-    const subtasksTab = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="tab"]'))
-      .find((button) => button.textContent?.includes("Subtasks"));
+    const subtasksTab = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('button[role="tab"]'),
+    ).find((button) => button.textContent?.includes("Subtasks"));
     expect(subtasksTab).not.toBeUndefined();
     await act(async () => {
-      subtasksTab!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      subtasksTab!.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+      );
     });
     expect(container.textContent).toContain("Panel child");
     expect(container.textContent).toContain("0 of 1 complete");
     expect(container.textContent).toContain("Next action");
     expect(container.querySelector('[data-slot="task-row"]')).not.toBeNull();
-    const addButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Add subtask"));
+    const addButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Add subtask"),
+    );
     await act(async () => addButton!.click());
     expect(onAddSubIssue).toHaveBeenCalledOnce();
 
@@ -1302,7 +1664,9 @@ describe("IssueProperties", () => {
     await waitForAssertion(() => {
       expect(container.textContent).toContain("Watchdog");
       // Empty watchdog uses the uniform muted "None" empty state (ux-spec §6).
-      expect(findRowTrigger(container, "Watchdog")?.textContent).toContain("None");
+      expect(findRowTrigger(container, "Watchdog")?.textContent).toContain(
+        "None",
+      );
     });
 
     act(() => root.unmount());
@@ -1328,50 +1692,91 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.querySelector('[data-status-icon-state="covered"]')?.textContent).toBe("blocked");
+    expect(
+      container.querySelector('[data-status-icon-state="covered"]')
+        ?.textContent,
+    ).toBe("blocked");
 
     act(() => root.unmount());
   });
 
-  it.each([false, true])("keeps relationship badges mounted as queries settle (inline=%s)", async (inline) => {
-    let resolveProjects!: (projects: Project[]) => void;
-    mockProjectsApi.list.mockReturnValue(new Promise<Project[]>((resolve) => { resolveProjects = resolve; }));
-    const onUpdate = vi.fn();
-    const issue = createIssue({
-      blockedBy: [createIssue({ id: "blocker-1", identifier: "PAP-2", status: "in_progress" })],
-    });
-    const props = { issue, childIssues: [], onUpdate, inline, sidePanelContentOnly: true };
-    const { root, queryClient } = renderPropertiesWithQueryClient(container, props);
-    const link = container.querySelector('a[href="/issues/PAP-2"]');
-    const remove = container.querySelector('[aria-label="Remove PAP-2 as blocker"]');
-    expect(link).not.toBeNull();
-    expect(remove).not.toBeNull();
-    await flush();
-    await act(async () => resolveProjects([]));
-    await flush();
-    // A parent page can provide a fresh task object after a query refresh.
-    await act(async () => root.render(
-      <QueryClientProvider client={queryClient}>
-        <IssueProperties {...props} issue={{ ...issue, blockedBy: [...issue.blockedBy!] }} />
-      </QueryClientProvider>,
-    ));
-    expect(container.querySelector('a[href="/issues/PAP-2"]')).toBe(link);
-    expect(container.querySelector('[aria-label="Remove PAP-2 as blocker"]')).toBe(remove);
-    expect(link?.textContent).toContain("in_progress");
-    expect(onUpdate).not.toHaveBeenCalled();
-    expect(container.querySelector('[aria-expanded="true"]')).toBeNull();
-    act(() => root.unmount());
-  });
+  it.each([false, true])(
+    "keeps relationship badges mounted as queries settle (inline=%s)",
+    async (inline) => {
+      let resolveProjects!: (projects: Project[]) => void;
+      mockProjectsApi.list.mockReturnValue(
+        new Promise<Project[]>((resolve) => {
+          resolveProjects = resolve;
+        }),
+      );
+      const onUpdate = vi.fn();
+      const issue = createIssue({
+        blockedBy: [
+          createIssue({
+            id: "blocker-1",
+            identifier: "PAP-2",
+            status: "in_progress",
+          }),
+        ],
+      });
+      const props = {
+        issue,
+        childIssues: [],
+        onUpdate,
+        inline,
+        sidePanelContentOnly: true,
+      };
+      const { root, queryClient } = renderPropertiesWithQueryClient(
+        container,
+        props,
+      );
+      const link = container.querySelector('a[href="/issues/PAP-2"]');
+      const remove = container.querySelector(
+        '[aria-label="Remove PAP-2 as blocker"]',
+      );
+      expect(link).not.toBeNull();
+      expect(remove).not.toBeNull();
+      await flush();
+      await act(async () => resolveProjects([]));
+      await flush();
+      // A parent page can provide a fresh task object after a query refresh.
+      await act(async () =>
+        root.render(
+          <QueryClientProvider client={queryClient}>
+            <IssueProperties
+              {...props}
+              issue={{ ...issue, blockedBy: [...issue.blockedBy!] }}
+            />
+          </QueryClientProvider>,
+        ),
+      );
+      expect(container.querySelector('a[href="/issues/PAP-2"]')).toBe(link);
+      expect(
+        container.querySelector('[aria-label="Remove PAP-2 as blocker"]'),
+      ).toBe(remove);
+      expect(link?.textContent).toContain("in_progress");
+      expect(onUpdate).not.toHaveBeenCalled();
+      expect(container.querySelector('[aria-expanded="true"]')).toBeNull();
+      act(() => root.unmount());
+    },
+  );
 
   it("preserves a locked parent stub without manufacturing a title or navigation link", async () => {
     const root = renderProperties(container, {
-      issue: createIssue({ parentId: "private-parent", ancestors: [{ id: "private-parent", identifier: "PAP-99", locked: true }] as unknown as Issue["ancestors"] }),
+      issue: createIssue({
+        parentId: "private-parent",
+        ancestors: [
+          { id: "private-parent", identifier: "PAP-99", locked: true },
+        ] as unknown as Issue["ancestors"],
+      }),
       childIssues: [],
       onUpdate: vi.fn(),
       inline: true,
     });
     await flush();
-    expect(container.querySelector('[data-testid="locked-issue-chip"]')?.textContent).toContain("PAP-99");
+    expect(
+      container.querySelector('[data-testid="locked-issue-chip"]')?.textContent,
+    ).toContain("PAP-99");
     expect(container.querySelector('a[href="/issues/PAP-99"]')).toBeNull();
     expect(container.querySelector('[title="private-"]')).toBeNull();
     act(() => root.unmount());
@@ -1380,37 +1785,68 @@ describe("IssueProperties", () => {
   it("links relationship status and IDs and removes only the selected blocker with its X", async () => {
     const onUpdate = vi.fn();
     const blockers = [
-      createIssue({ id: "issue-2", identifier: "PAP-2", title: "Existing blocker", status: "in_progress" }),
-      createIssue({ id: "issue-3", identifier: "PAP-3", title: "Keep blocker", status: "todo" }),
+      createIssue({
+        id: "issue-2",
+        identifier: "PAP-2",
+        title: "Existing blocker",
+        status: "in_progress",
+      }),
+      createIssue({
+        id: "issue-3",
+        identifier: "PAP-3",
+        title: "Keep blocker",
+        status: "todo",
+      }),
     ];
     const root = renderProperties(container, {
       issue: createIssue({ blockedBy: blockers }),
-      childIssues: [createIssue({ id: "child-1", identifier: "PAP-4", status: "done" })],
+      childIssues: [
+        createIssue({ id: "child-1", identifier: "PAP-4", status: "done" }),
+      ],
       onUpdate,
       inline: true,
     });
     await flush();
-    const row = container.querySelector('[data-property-label="Blocked by"]')!.closest('[data-property-row]')!;
-    const link = row.querySelector<HTMLAnchorElement>('a[href="/issues/PAP-2"]')!;
+    const row = container
+      .querySelector('[data-property-label="Blocked by"]')!
+      .closest("[data-property-row]")!;
+    const link = row.querySelector<HTMLAnchorElement>(
+      'a[href="/issues/PAP-2"]',
+    )!;
     expect(link).not.toBeNull();
     expect(link.textContent).toContain("in_progress");
     expect(link.closest("button")).toBeNull();
     link.addEventListener("click", (event) => event.preventDefault());
     await act(async () => link.click());
     expect(onUpdate).not.toHaveBeenCalled();
-    expect(container.querySelector('input[aria-label="Search tasks to add as blockers"]')).toBeNull();
-    const remove = row.querySelector<HTMLButtonElement>('button[aria-label="Remove PAP-2 as blocker"]')!;
+    expect(
+      container.querySelector(
+        'input[aria-label="Search tasks to add as blockers"]',
+      ),
+    ).toBeNull();
+    const remove = row.querySelector<HTMLButtonElement>(
+      'button[aria-label="Remove PAP-2 as blocker"]',
+    )!;
     expect(remove.closest("a")).toBeNull();
     await act(async () => remove.click());
-    expect(onUpdate).toHaveBeenCalledExactlyOnceWith({ blockedByIssueIds: ["issue-3"] });
-    expect(container.querySelector('a[href="/issues/PAP-4"]')?.textContent).toContain("done");
+    expect(onUpdate).toHaveBeenCalledExactlyOnceWith({
+      blockedByIssueIds: ["issue-3"],
+    });
+    expect(
+      container.querySelector('a[href="/issues/PAP-4"]')?.textContent,
+    ).toContain("done");
     act(() => root.unmount());
   });
 
   it("edits blockers from the blocked-by relationship flyout", async () => {
     const onUpdate = vi.fn();
     mockIssuesApi.list.mockResolvedValue([
-      createIssue({ id: "issue-3", identifier: "PAP-3", title: "New blocker", status: "todo" }),
+      createIssue({
+        id: "issue-3",
+        identifier: "PAP-3",
+        title: "New blocker",
+        status: "todo",
+      }),
     ]);
 
     const root = renderProperties(container, {
@@ -1434,38 +1870,61 @@ describe("IssueProperties", () => {
     await flush();
 
     const blockerTrigger = findRowTrigger(container, "Blocked by");
-    expect(blockerTrigger?.closest('[data-property-row="true"]')?.textContent).toContain("PAP-2");
+    expect(
+      blockerTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).toContain("PAP-2");
     expect(container.textContent).not.toContain("Add blocker");
-    expect(container.querySelector('input[placeholder="Search tasks..."]')).toBeNull();
+    expect(
+      container.querySelector('input[placeholder="Search tasks..."]'),
+    ).toBeNull();
 
     await act(async () => {
       blockerTrigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    expect(container.querySelector('input[placeholder="Search tasks..."]')).not.toBeNull();
+    expect(
+      container.querySelector('input[placeholder="Search tasks..."]'),
+    ).not.toBeNull();
 
-    const candidateButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("PAP-3 New blocker"));
+    const candidateButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("PAP-3 New blocker"));
     expect(candidateButton).not.toBeUndefined();
 
     await act(async () => {
-      candidateButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      candidateButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
-    expect(onUpdate).toHaveBeenCalledWith({ blockedByIssueIds: ["issue-2", "issue-3"] });
+    expect(onUpdate).toHaveBeenCalledWith({
+      blockedByIssueIds: ["issue-2", "issue-3"],
+    });
 
     act(() => root.unmount());
   });
 
   it("searches all company issues when adding a blocker", async () => {
     const onUpdate = vi.fn();
-    const loadedIssue = createIssue({ id: "issue-3", identifier: "PAP-3", title: "Loaded issue", status: "todo" });
-    const remoteIssue = createIssue({ id: "issue-99", identifier: "PAP-99", title: "Remote blocker", status: "in_progress" });
-    mockIssuesApi.list.mockImplementation((_companyId: string, filters?: { q?: string; limit?: number }) => {
-      if (filters?.q === "remote") return Promise.resolve([remoteIssue]);
-      return Promise.resolve([loadedIssue]);
+    const loadedIssue = createIssue({
+      id: "issue-3",
+      identifier: "PAP-3",
+      title: "Loaded issue",
+      status: "todo",
     });
+    const remoteIssue = createIssue({
+      id: "issue-99",
+      identifier: "PAP-99",
+      title: "Remote blocker",
+      status: "in_progress",
+    });
+    mockIssuesApi.list.mockImplementation(
+      (_companyId: string, filters?: { q?: string; limit?: number }) => {
+        if (filters?.q === "remote") return Promise.resolve([remoteIssue]);
+        return Promise.resolve([loadedIssue]);
+      },
+    );
 
     const root = renderProperties(container, {
       issue: createIssue(),
@@ -1483,27 +1942,38 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const searchInput = container.querySelector('input[aria-label="Search tasks to add as blockers"]') as HTMLInputElement | null;
+    const searchInput = container.querySelector(
+      'input[aria-label="Search tasks to add as blockers"]',
+    ) as HTMLInputElement | null;
     expect(searchInput).not.toBeNull();
 
     await act(async () => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       nativeSetter?.call(searchInput, "remote");
       searchInput!.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
     await waitForAssertion(() => {
-      expect(mockIssuesApi.list).toHaveBeenCalledWith("company-1", { q: "remote", limit: 50 });
+      expect(mockIssuesApi.list).toHaveBeenCalledWith("company-1", {
+        q: "remote",
+        limit: 50,
+      });
       expect(container.textContent).toContain("PAP-99 Remote blocker");
       expect(container.textContent).not.toContain("PAP-3 Loaded issue");
     });
 
-    const candidateButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("PAP-99 Remote blocker"));
+    const candidateButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("PAP-99 Remote blocker"));
     expect(candidateButton).not.toBeUndefined();
 
     await act(async () => {
-      candidateButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      candidateButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({ blockedByIssueIds: ["issue-99"] });
@@ -1550,12 +2020,15 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const selectedBlocker = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("PAP-2 Existing blocker"));
+    const selectedBlocker = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("PAP-2 Existing blocker"));
     expect(selectedBlocker).not.toBeUndefined();
 
     await act(async () => {
-      selectedBlocker!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      selectedBlocker!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({ blockedByIssueIds: ["issue-4"] });
@@ -1596,19 +2069,24 @@ describe("IssueProperties", () => {
     await flush();
 
     const blockerTrigger = findRowTrigger(container, "Blocked by");
-    expect(blockerTrigger?.closest('[data-property-row="true"]')?.textContent).toContain("PAP-2");
+    expect(
+      blockerTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).toContain("PAP-2");
 
     await act(async () => {
       blockerTrigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    const selectedBlocker = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("PAP-2 Existing blocker"));
+    const selectedBlocker = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("PAP-2 Existing blocker"));
     expect(selectedBlocker).not.toBeUndefined();
 
     await act(async () => {
-      selectedBlocker!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      selectedBlocker!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({ blockedByIssueIds: ["issue-4"] });
@@ -1626,11 +2104,13 @@ describe("IssueProperties", () => {
       assigneeAgentId: null,
       assigneeUserId: null,
     })) as NonNullable<Issue["blockedBy"]>;
-    const childIssues = Array.from({ length: 7 }, (_, index) => createIssue({
-      id: `child-${index + 1}`,
-      identifier: `SUB-${index + 1}`,
-      title: `Sub-task ${index + 1}`,
-    }));
+    const childIssues = Array.from({ length: 7 }, (_, index) =>
+      createIssue({
+        id: `child-${index + 1}`,
+        identifier: `SUB-${index + 1}`,
+        title: `Sub-task ${index + 1}`,
+      }),
+    );
     const root = renderProperties(container, {
       issue: createIssue({ blockedBy }),
       childIssues,
@@ -1640,30 +2120,52 @@ describe("IssueProperties", () => {
     await flush();
 
     const blockedByTrigger = findRowTrigger(container, "Blocked by");
-    expect(blockedByTrigger?.closest('[data-property-row="true"]')?.textContent).toContain("BLOCK-1");
-    expect(blockedByTrigger?.closest('[data-property-row="true"]')?.textContent).toContain("BLOCK-2");
-    expect(blockedByTrigger?.closest('[data-property-row="true"]')?.textContent).toContain("+5 more");
-    expect(blockedByTrigger?.closest('[data-property-row="true"]')?.textContent).not.toContain("BLOCK-7");
+    expect(
+      blockedByTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).toContain("BLOCK-1");
+    expect(
+      blockedByTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).toContain("BLOCK-2");
+    expect(
+      blockedByTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).toContain("+5 more");
+    expect(
+      blockedByTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).not.toContain("BLOCK-7");
 
     const subtasksTrigger = findRowTrigger(container, "Subtasks");
-    expect(subtasksTrigger?.closest('[data-property-row="true"]')?.textContent).toContain("SUB-1");
-    expect(subtasksTrigger?.closest('[data-property-row="true"]')?.textContent).toContain("SUB-2");
-    expect(subtasksTrigger?.closest('[data-property-row="true"]')?.textContent).toContain("+5 more");
-    expect(subtasksTrigger?.closest('[data-property-row="true"]')?.textContent).not.toContain("SUB-7");
+    expect(
+      subtasksTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).toContain("SUB-1");
+    expect(
+      subtasksTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).toContain("SUB-2");
+    expect(
+      subtasksTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).toContain("+5 more");
+    expect(
+      subtasksTrigger?.closest('[data-property-row="true"]')?.textContent,
+    ).not.toContain("SUB-7");
 
     await act(async () => {
-      blockedByTrigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      blockedByTrigger!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flush();
 
     expect(container.textContent).toContain("BLOCK-7");
 
     await act(async () => {
-      blockedByTrigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      blockedByTrigger!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flush();
     await act(async () => {
-      subtasksTrigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      subtasksTrigger!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flush();
 
@@ -1702,7 +2204,14 @@ describe("IssueProperties", () => {
           outbound: relatedIssues.map((issue) => ({
             issue,
             mentionCount: 1,
-            sources: [{ kind: "description", sourceRecordId: null, label: "description", matchedText: issue.identifier }],
+            sources: [
+              {
+                kind: "description",
+                sourceRecordId: null,
+                label: "description",
+                matchedText: issue.identifier,
+              },
+            ],
           })),
           inbound: [],
         },
@@ -1720,14 +2229,14 @@ describe("IssueProperties", () => {
     expect(container.textContent).not.toContain("BLOCKING-6");
     expect(container.textContent).not.toContain("RELATED-6");
     expect(
-      Array.from(container.querySelectorAll("button")).filter((button) =>
-        button.textContent?.trim() === "Show 2 more",
+      Array.from(container.querySelectorAll("button")).filter(
+        (button) => button.textContent?.trim() === "Show 2 more",
       ),
     ).toHaveLength(2);
 
-    const expandBlocking = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.trim() === "Show 2 more",
-    );
+    const expandBlocking = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "Show 2 more");
     expect(expandBlocking).not.toBeUndefined();
     await act(async () => {
       expandBlocking!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -1737,8 +2246,8 @@ describe("IssueProperties", () => {
     expect(container.textContent).toContain("BLOCKING-7");
     expect(container.textContent).not.toContain("RELATED-6");
 
-    const expandRelated = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.trim() === "Show 2 more",
+    const expandRelated = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Show 2 more",
     );
     expect(expandRelated).not.toBeUndefined();
     await act(async () => {
@@ -1786,8 +2295,8 @@ describe("IssueProperties", () => {
     expect(container.textContent).toContain("reference-5");
     expect(container.textContent).not.toContain("reference-6");
     expect(container.textContent).toContain("References");
-    const expandUrls = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.trim() === "Show 2 more",
+    const expandUrls = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Show 2 more",
     );
     expect(expandUrls).not.toBeUndefined();
 
@@ -1833,18 +2342,28 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(findRowTrigger(container, "Blocked by")?.closest('[data-property-row="true"]')?.textContent).toContain("BLOCK-1");
-    expect(findRowTrigger(container, "Blocked by")?.closest('[data-property-row="true"]')?.textContent).toContain("+5 more");
+    expect(
+      findRowTrigger(container, "Blocked by")?.closest(
+        '[data-property-row="true"]',
+      )?.textContent,
+    ).toContain("BLOCK-1");
+    expect(
+      findRowTrigger(container, "Blocked by")?.closest(
+        '[data-property-row="true"]',
+      )?.textContent,
+    ).toContain("+5 more");
 
-    const nextBlockedBy = [{
-      id: "next-blocker",
-      identifier: "NEXT-1",
-      title: "Next blocker",
-      status: "todo" as const,
-      priority: "medium" as const,
-      assigneeAgentId: null,
-      assigneeUserId: null,
-    }];
+    const nextBlockedBy = [
+      {
+        id: "next-blocker",
+        identifier: "NEXT-1",
+        title: "Next blocker",
+        status: "todo" as const,
+        priority: "medium" as const,
+        assigneeAgentId: null,
+        assigneeUserId: null,
+      },
+    ];
 
     act(() => {
       root.render(
@@ -1860,9 +2379,21 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(findRowTrigger(container, "Blocked by")?.closest('[data-property-row="true"]')?.textContent).toContain("NEXT-1");
-    expect(findRowTrigger(container, "Blocked by")?.closest('[data-property-row="true"]')?.textContent).not.toContain("BLOCK-1");
-    expect(findRowTrigger(container, "Blocked by")?.closest('[data-property-row="true"]')?.textContent).not.toContain("more");
+    expect(
+      findRowTrigger(container, "Blocked by")?.closest(
+        '[data-property-row="true"]',
+      )?.textContent,
+    ).toContain("NEXT-1");
+    expect(
+      findRowTrigger(container, "Blocked by")?.closest(
+        '[data-property-row="true"]',
+      )?.textContent,
+    ).not.toContain("BLOCK-1");
+    expect(
+      findRowTrigger(container, "Blocked by")?.closest(
+        '[data-property-row="true"]',
+      )?.textContent,
+    ).not.toContain("more");
 
     act(() => root.unmount());
   });
@@ -1884,9 +2415,13 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(mockProjectsApi.list).toHaveBeenCalledWith("company-1", { includeArchived: true });
+    expect(mockProjectsApi.list).toHaveBeenCalledWith("company-1", {
+      includeArchived: true,
+    });
     await waitForAssertion(() => {
-      expect(findRowTrigger(container, "Project")?.textContent).toContain("Archived Project");
+      expect(findRowTrigger(container, "Project")?.textContent).toContain(
+        "Archived Project",
+      );
     });
 
     act(() => root.unmount());
@@ -1908,31 +2443,46 @@ describe("IssueProperties", () => {
       sidePanelContentOnly: true,
     });
     await waitForAssertion(() => {
-      expect(findRowTrigger(container, "Project")?.textContent).toContain("Configured Project");
+      expect(findRowTrigger(container, "Project")?.textContent).toContain(
+        "Configured Project",
+      );
     });
 
     const projectTrigger = findRowTrigger(container, "Project");
-    const projectTile = projectTrigger?.querySelector<HTMLElement>('span.inline-flex[aria-hidden="true"]');
+    const projectTile = projectTrigger?.querySelector<HTMLElement>(
+      'span.inline-flex[aria-hidden="true"]',
+    );
     expect(projectTile?.style.backgroundColor).toBe("rgb(14, 165, 233)");
-    expect(projectTile?.querySelector("svg")?.classList).toContain("lucide-rocket");
+    expect(projectTile?.querySelector("svg")?.classList).toContain(
+      "lucide-rocket",
+    );
 
     act(() => root.unmount());
   });
 
   it("leaves project memory unchanged until task property edits are persisted", async () => {
     localStorage.clear();
-    mockProjectsApi.list.mockResolvedValue([createProject({ name: "Remembered Project" })]);
+    mockProjectsApi.list.mockResolvedValue([
+      createProject({ name: "Remembered Project" }),
+    ]);
     const root = renderProperties(container, {
-      issue: createIssue(), childIssues: [], onUpdate: vi.fn(), inline: true,
+      issue: createIssue(),
+      childIssues: [],
+      onUpdate: vi.fn(),
+      inline: true,
     });
     await flush();
     await act(() => findRowTrigger(container, "Project")!.click());
-    const option = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.trim() === "Remembered Project")!;
+    const option = [
+      ...document.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.trim() === "Remembered Project")!;
     expect(option).toBeDefined();
     act(() => option.click());
     expect(getLastProjectId("company-1")).toBeUndefined();
     await act(() => findRowTrigger(container, "Project")!.click());
-    const none = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.trim() === "No project")!;
+    const none = [
+      ...document.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((button) => button.textContent?.trim() === "No project")!;
     act(() => none.click());
     expect(getLastProjectId("company-1")).toBeUndefined();
     expect(getLastProjectId("company-2")).toBeUndefined();
@@ -1945,7 +2495,13 @@ describe("IssueProperties", () => {
     const serviceUrl = "http://127.0.0.1:62475";
     const updatedWorkspace = createExecutionWorkspace({
       mode: "isolated_workspace",
-      runtimeServices: [createRuntimeService({ url: serviceUrl, status: "stopped", stoppedAt: new Date("2026-04-06T12:06:00.000Z") })],
+      runtimeServices: [
+        createRuntimeService({
+          url: serviceUrl,
+          status: "stopped",
+          stoppedAt: new Date("2026-04-06T12:06:00.000Z"),
+        }),
+      ],
     });
     mockExecutionWorkspacesApi.controlRuntimeCommands.mockResolvedValue({
       workspace: updatedWorkspace,
@@ -1968,7 +2524,13 @@ describe("IssueProperties", () => {
               services: [{ name: "web", command: "pnpm dev" }],
             },
           },
-          runtimeServices: [createRuntimeService({ url: serviceUrl, status: "running", configIndex: 0 })],
+          runtimeServices: [
+            createRuntimeService({
+              url: serviceUrl,
+              status: "running",
+              configIndex: 0,
+            }),
+          ],
         }),
       }),
       childIssues: [],
@@ -1983,7 +2545,9 @@ describe("IssueProperties", () => {
     expect((container.textContent ?? "").indexOf("Workspace")).toBeLessThan(
       (container.textContent ?? "").indexOf("Service"),
     );
-    const stopButton = container.querySelector<HTMLButtonElement>('button[aria-label="Stop"]');
+    const stopButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Stop"]',
+    );
     expect(stopButton).not.toBeUndefined();
     expect(stopButton?.getAttribute("data-size")).toBe("icon-xs");
     expect(stopButton?.getAttribute("data-variant")).toBe("outline");
@@ -1993,10 +2557,15 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(mockExecutionWorkspacesApi.controlRuntimeCommands).toHaveBeenCalledWith(
+    expect(
+      mockExecutionWorkspacesApi.controlRuntimeCommands,
+    ).toHaveBeenCalledWith(
       "workspace-1",
       "stop",
-      expect.objectContaining({ action: "stop", runtimeServiceId: "service-1" }),
+      expect.objectContaining({
+        action: "stop",
+        runtimeServiceId: "service-1",
+      }),
     );
     expect(container.textContent).toContain("Workspace service stopped.");
 
@@ -2015,13 +2584,23 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).toMatch(/CreatedApr 6, 2026, \d{1,2}:34 (AM|PM)/);
-    expect(container.textContent).toMatch(/StartedApr 6, 2026, \d{1,2}:35 (AM|PM)/);
-    expect(container.textContent).toMatch(/CompletedApr 6, 2026, \d{1,2}:36 (AM|PM)/);
+    expect(container.textContent).toMatch(
+      /CreatedApr 6, 2026, \d{1,2}:34 (AM|PM)/,
+    );
+    expect(container.textContent).toMatch(
+      /StartedApr 6, 2026, \d{1,2}:35 (AM|PM)/,
+    );
+    expect(container.textContent).toMatch(
+      /CompletedApr 6, 2026, \d{1,2}:36 (AM|PM)/,
+    );
 
     for (const label of ["Started", "Completed", "Created"]) {
-      const labelNode = container.querySelector(`[data-property-label="${label}"]`);
-      const value = labelNode?.parentElement?.querySelector<HTMLElement>('[data-property-value="true"] > span');
+      const labelNode = container.querySelector(
+        `[data-property-label="${label}"]`,
+      );
+      const value = labelNode?.parentElement?.querySelector<HTMLElement>(
+        '[data-property-value="true"] > span',
+      );
       expect(value?.classList).toContain("min-w-0");
       expect(value?.classList).toContain("truncate");
       expect(value?.classList).toContain("whitespace-nowrap");
@@ -2053,7 +2632,9 @@ describe("IssueProperties", () => {
     );
     expect(container.textContent).not.toContain("View workspace tasks");
     expect(workspaceLink).not.toBeUndefined();
-    expect(workspaceLink?.getAttribute("href")).toBe("/execution-workspaces/workspace-1");
+    expect(workspaceLink?.getAttribute("href")).toBe(
+      "/execution-workspaces/workspace-1",
+    );
 
     act(() => root.unmount());
   });
@@ -2085,12 +2666,16 @@ describe("IssueProperties", () => {
       'button[aria-label="Copy /tmp/taskcore/PAP-1 to clipboard"]',
     );
     expect(branchCopyButton).not.toBeNull();
-    expect(folderCopyButton?.querySelector('[data-middle-truncate="true"]')?.textContent)
-      .toBe("/tmp/taskcore/PAP-1");
+    expect(
+      folderCopyButton?.querySelector('[data-middle-truncate="true"]')
+        ?.textContent,
+    ).toBe("/tmp/taskcore/PAP-1");
     expect(folderCopyButton?.title).toBe("/tmp/taskcore/PAP-1");
 
     await act(async () => {
-      branchCopyButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      branchCopyButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flush();
 
@@ -2111,7 +2696,9 @@ describe("IssueProperties", () => {
         currentExecutionWorkspace: createExecutionWorkspace({
           mode: "shared_workspace",
           projectWorkspaceId: "workspace-main",
-          runtimeServices: [createRuntimeService({ url: serviceUrl, status: "running" })],
+          runtimeServices: [
+            createRuntimeService({ url: serviceUrl, status: "running" }),
+          ],
         }),
       }),
       childIssues: [],
@@ -2121,9 +2708,11 @@ describe("IssueProperties", () => {
 
     expect(container.querySelector(`a[href="${serviceUrl}"]`)).toBeNull();
     expect(container.textContent).not.toContain("View workspace tasks");
-    expect(Array.from(container.querySelectorAll("a")).some(
-      (link) => link.textContent?.trim() === "View workspace",
-    )).toBe(false);
+    expect(
+      Array.from(container.querySelectorAll("a")).some(
+        (link) => link.textContent?.trim() === "View workspace",
+      ),
+    ).toBe(false);
 
     act(() => root.unmount());
   });
@@ -2144,7 +2733,14 @@ describe("IssueProperties", () => {
                 assigneeUserId: null,
               },
               mentionCount: 1,
-              sources: [{ kind: "description", sourceRecordId: null, label: "description", matchedText: "PAP-22" }],
+              sources: [
+                {
+                  kind: "description",
+                  sourceRecordId: null,
+                  label: "description",
+                  matchedText: "PAP-22",
+                },
+              ],
             },
           ],
           inbound: [
@@ -2159,7 +2755,14 @@ describe("IssueProperties", () => {
                 assigneeUserId: null,
               },
               mentionCount: 1,
-              sources: [{ kind: "description", sourceRecordId: null, label: "description", matchedText: "PAP-1" }],
+              sources: [
+                {
+                  kind: "description",
+                  sourceRecordId: null,
+                  label: "description",
+                  matchedText: "PAP-1",
+                },
+              ],
             },
           ],
         },
@@ -2172,10 +2775,13 @@ describe("IssueProperties", () => {
 
     expect(container.textContent).not.toContain("Task ids");
     expect(container.textContent).not.toContain("Related tasks");
-    const referencesTab = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="tab"]'))
-      .find((button) => button.textContent === "References");
+    const referencesTab = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('button[role="tab"]'),
+    ).find((button) => button.textContent === "References");
     await act(async () => {
-      referencesTab!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      referencesTab!.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+      );
     });
     expect(container.textContent).toContain("Referenced");
     expect(container.textContent).toContain("PAP-22");
@@ -2227,7 +2833,14 @@ describe("IssueProperties", () => {
                 assigneeUserId: null,
               },
               mentionCount: 1,
-              sources: [{ kind: "description", sourceRecordId: null, label: "description", matchedText: "PAP-22" }],
+              sources: [
+                {
+                  kind: "description",
+                  sourceRecordId: null,
+                  label: "description",
+                  matchedText: "PAP-22",
+                },
+              ],
             },
             {
               issue: {
@@ -2240,7 +2853,14 @@ describe("IssueProperties", () => {
                 assigneeUserId: null,
               },
               mentionCount: 1,
-              sources: [{ kind: "description", sourceRecordId: null, label: "description", matchedText: "PAP-33" }],
+              sources: [
+                {
+                  kind: "description",
+                  sourceRecordId: null,
+                  label: "description",
+                  matchedText: "PAP-33",
+                },
+              ],
             },
             {
               issue: {
@@ -2253,7 +2873,14 @@ describe("IssueProperties", () => {
                 assigneeUserId: null,
               },
               mentionCount: 1,
-              sources: [{ kind: "description", sourceRecordId: null, label: "description", matchedText: "PAP-44" }],
+              sources: [
+                {
+                  kind: "description",
+                  sourceRecordId: null,
+                  label: "description",
+                  matchedText: "PAP-44",
+                },
+              ],
             },
           ],
           inbound: [],
@@ -2280,7 +2907,16 @@ describe("IssueProperties", () => {
   it("opens the label picker from its relationship value without a redundant add button", async () => {
     const root = renderProperties(container, {
       issue: createIssue({
-        labels: [{ id: "label-1", companyId: "company-1", name: "Bug", color: "#ef4444", createdAt: new Date("2026-04-06T12:00:00.000Z"), updatedAt: new Date("2026-04-06T12:00:00.000Z") }],
+        labels: [
+          {
+            id: "label-1",
+            companyId: "company-1",
+            name: "Bug",
+            color: "#ef4444",
+            createdAt: new Date("2026-04-06T12:00:00.000Z"),
+            updatedAt: new Date("2026-04-06T12:00:00.000Z"),
+          },
+        ],
         labelIds: ["label-1"],
       }),
       childIssues: [],
@@ -2289,11 +2925,16 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.querySelector('button[aria-label="Add label"]')).toBeNull();
-    expect(container.querySelector('input[placeholder="Search labels..."]')).toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Add label"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('input[placeholder="Search labels..."]'),
+    ).toBeNull();
     const labelsTrigger = findRowTrigger(container, "Labels");
     expect(labelsTrigger?.textContent).toContain("Bug");
-    const labelChip = labelsTrigger?.querySelector<HTMLElement>('[title="Bug"]');
+    const labelChip =
+      labelsTrigger?.querySelector<HTMLElement>('[title="Bug"]');
     expect(labelChip?.classList).toContain("border-0");
     expect(labelChip?.style.borderColor).toBe("");
     expect(labelChip?.style.color).not.toBe("");
@@ -2303,7 +2944,9 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.querySelector('input[placeholder="Search labels..."]')).not.toBeNull();
+    expect(
+      container.querySelector('input[placeholder="Search labels..."]'),
+    ).not.toBeNull();
     expect(container.querySelector('button[title="Delete Bug"]')).toBeNull();
 
     act(() => root.unmount());
@@ -2399,8 +3042,9 @@ describe("IssueProperties", () => {
     // Wait for the adapter-models query to resolve so the model options render.
     let modelButton: HTMLButtonElement | undefined;
     await waitForAssertion(() => {
-      modelButton = Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("gpt-6-astra"));
+      modelButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent?.includes("gpt-6-astra"),
+      );
       expect(modelButton).not.toBeUndefined();
     });
 
@@ -2456,20 +3100,27 @@ describe("IssueProperties", () => {
     expect(container.textContent).toContain("Max");
     expect(container.textContent).not.toContain("Minimal");
 
-    const defaultModelButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Default model"));
+    const defaultModelButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Default model"));
     expect(defaultModelButton).not.toBeUndefined();
     await act(async () => {
-      defaultModelButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      defaultModelButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flush();
 
-    const defaultModelOption = Array.from(document.body.querySelectorAll("button"))
+    const defaultModelOption = Array.from(
+      document.body.querySelectorAll("button"),
+    )
       .filter((button) => button.textContent?.trim() === "Default model")
       .at(-1);
     expect(defaultModelOption).not.toBeUndefined();
     await act(async () => {
-      defaultModelOption!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      defaultModelOption!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({
@@ -2518,8 +3169,9 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const primaryLane = Array.from(container.querySelectorAll('button[role="radio"]'))
-      .find((button) => button.textContent?.trim() === "Primary");
+    const primaryLane = Array.from(
+      container.querySelectorAll('button[role="radio"]'),
+    ).find((button) => button.textContent?.trim() === "Primary");
     expect(primaryLane).not.toBeUndefined();
 
     await act(async () => {
@@ -2555,10 +3207,20 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const labelButtons = Array.from(container.querySelectorAll("button"))
-      .filter((button) => button.textContent?.includes("Bug") || button.textContent?.includes("Feature"));
-    const bugButton = labelButtons.find((button) => button.textContent?.includes("Bug") && button.querySelector("svg"));
-    const featureButton = labelButtons.find((button) => button.textContent?.includes("Feature"));
+    const labelButtons = Array.from(
+      container.querySelectorAll("button"),
+    ).filter(
+      (button) =>
+        button.textContent?.includes("Bug") ||
+        button.textContent?.includes("Feature"),
+    );
+    const bugButton = labelButtons.find(
+      (button) =>
+        button.textContent?.includes("Bug") && button.querySelector("svg"),
+    );
+    const featureButton = labelButtons.find((button) =>
+      button.textContent?.includes("Feature"),
+    );
     expect(bugButton).not.toBeUndefined();
     expect(featureButton?.querySelector("svg")).toBeNull();
 
@@ -2568,7 +3230,12 @@ describe("IssueProperties", () => {
   it("allows setting and clearing a parent issue from the properties pane", async () => {
     const onUpdate = vi.fn();
     mockIssuesApi.list.mockResolvedValue([
-      createIssue({ id: "issue-2", identifier: "PAP-2", title: "Candidate parent", status: "in_progress" }),
+      createIssue({
+        id: "issue-2",
+        identifier: "PAP-2",
+        title: "Candidate parent",
+        status: "in_progress",
+      }),
     ]);
 
     const root = renderProperties(container, {
@@ -2588,12 +3255,15 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const candidateButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("PAP-2 Candidate parent"));
+    const candidateButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("PAP-2 Candidate parent"));
     expect(candidateButton).not.toBeUndefined();
 
     await act(async () => {
-      candidateButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      candidateButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({ parentId: "issue-2" });
@@ -2636,16 +3306,21 @@ describe("IssueProperties", () => {
     expect(selectedParentTrigger!.contains(parentLink)).toBe(false);
 
     await act(async () => {
-      selectedParentTrigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      selectedParentTrigger!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
     await flush();
 
-    const clearParentButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("No parent"));
+    const clearParentButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("No parent"));
     expect(clearParentButton).not.toBeUndefined();
 
     await act(async () => {
-      clearParentButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clearParentButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({ parentId: null });
@@ -2673,10 +3348,12 @@ describe("IssueProperties", () => {
       status: "todo",
       priority: "low",
     });
-    mockIssuesApi.list.mockImplementation((_companyId: string, filters?: { q?: string; limit?: number }) => {
-      if (filters?.q === "needle") return Promise.resolve([lowPriorityMatch]);
-      return Promise.resolve([defaultPageCandidate]);
-    });
+    mockIssuesApi.list.mockImplementation(
+      (_companyId: string, filters?: { q?: string; limit?: number }) => {
+        if (filters?.q === "needle") return Promise.resolve([lowPriorityMatch]);
+        return Promise.resolve([defaultPageCandidate]);
+      },
+    );
 
     const root = renderProperties(container, {
       issue: createIssue(),
@@ -2699,28 +3376,43 @@ describe("IssueProperties", () => {
     });
     expect(container.textContent).not.toContain("PAP-900 Low priority needle");
 
-    const searchInput = container.querySelector('input[placeholder="Search tasks..."]') as HTMLInputElement | null;
+    const searchInput = container.querySelector(
+      'input[placeholder="Search tasks..."]',
+    ) as HTMLInputElement | null;
     expect(searchInput).not.toBeNull();
 
     await act(async () => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       nativeSetter?.call(searchInput, "needle");
       searchInput!.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
     // The typed text re-queries the server with `q`, and the low-priority match now appears.
     await waitForAssertion(() => {
-      expect(mockIssuesApi.list).toHaveBeenCalledWith("company-1", { q: "needle", limit: 50 });
+      expect(mockIssuesApi.list).toHaveBeenCalledWith("company-1", {
+        q: "needle",
+        limit: 50,
+      });
       expect(container.textContent).toContain("PAP-900 Low priority needle");
-      expect(container.textContent).not.toContain("PAP-2 High priority candidate");
+      expect(container.textContent).not.toContain(
+        "PAP-2 High priority candidate",
+      );
     });
 
-    const candidateButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("PAP-900 Low priority needle"));
+    const candidateButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) =>
+      button.textContent?.includes("PAP-900 Low priority needle"),
+    );
     expect(candidateButton).not.toBeUndefined();
 
     await act(async () => {
-      candidateButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      candidateButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({ parentId: "issue-900" });
@@ -2745,9 +3437,15 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(findRowTrigger(container, "Reviewers")?.textContent).toContain("None");
-    expect(findRowTrigger(container, "Approvers")?.textContent).toContain("None");
-    expect(container.querySelector('[data-testid="monitor-row-trigger"]')).not.toBeNull();
+    expect(findRowTrigger(container, "Reviewers")?.textContent).toContain(
+      "None",
+    );
+    expect(findRowTrigger(container, "Approvers")?.textContent).toContain(
+      "None",
+    );
+    expect(
+      container.querySelector('[data-testid="monitor-row-trigger"]'),
+    ).not.toBeNull();
 
     act(() => root.unmount());
   });
@@ -2762,7 +3460,14 @@ describe("IssueProperties", () => {
               id: "00000000-0000-4000-8000-000000000010",
               type: "review",
               approvalsNeeded: 1,
-              participants: [{ id: "00000000-0000-4000-8000-000000000012", type: "agent", agentId: "00000000-0000-4000-8000-000000000013", userId: null }],
+              participants: [
+                {
+                  id: "00000000-0000-4000-8000-000000000012",
+                  type: "agent",
+                  agentId: "00000000-0000-4000-8000-000000000013",
+                  userId: null,
+                },
+              ],
             },
           ],
         }),
@@ -2772,12 +3477,15 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const runReviewButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Run review now"));
+    const runReviewButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Run review now"));
     expect(runReviewButton).not.toBeUndefined();
 
     await act(async () => {
-      runReviewButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      runReviewButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     expect(onUpdate).toHaveBeenCalledWith({ status: "in_review" });
@@ -2794,7 +3502,14 @@ describe("IssueProperties", () => {
               id: "00000000-0000-4000-8000-000000000011",
               type: "approval",
               approvalsNeeded: 1,
-              participants: [{ id: "00000000-0000-4000-8000-000000000014", type: "user", agentId: null, userId: "user-1" }],
+              participants: [
+                {
+                  id: "00000000-0000-4000-8000-000000000014",
+                  type: "user",
+                  agentId: null,
+                  userId: "user-1",
+                },
+              ],
             },
           ],
         }),
@@ -2820,7 +3535,14 @@ describe("IssueProperties", () => {
               id: "00000000-0000-4000-8000-000000000010",
               type: "review",
               approvalsNeeded: 1,
-              participants: [{ id: "00000000-0000-4000-8000-000000000012", type: "agent", agentId: "00000000-0000-4000-8000-000000000013", userId: null }],
+              participants: [
+                {
+                  id: "00000000-0000-4000-8000-000000000012",
+                  type: "agent",
+                  agentId: "00000000-0000-4000-8000-000000000013",
+                  userId: null,
+                },
+              ],
             },
           ],
         }),
@@ -2846,7 +3568,14 @@ describe("IssueProperties", () => {
               id: "00000000-0000-4000-8000-000000000010",
               type: "review",
               approvalsNeeded: 1,
-              participants: [{ id: "00000000-0000-4000-8000-000000000012", type: "agent", agentId: "00000000-0000-4000-8000-000000000013", userId: null }],
+              participants: [
+                {
+                  id: "00000000-0000-4000-8000-000000000012",
+                  type: "agent",
+                  agentId: "00000000-0000-4000-8000-000000000013",
+                  userId: null,
+                },
+              ],
             },
           ],
         }),
@@ -2868,7 +3597,9 @@ describe("IssueProperties", () => {
   });
 
   it("renders monitor controls and clears an existing monitor", async () => {
-    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(new Date("2026-04-11T10:00:00.000Z").getTime());
+    const dateNowSpy = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(new Date("2026-04-11T10:00:00.000Z").getTime());
     const onUpdate = vi.fn();
     const root = renderProperties(container, {
       issue: createIssue({
@@ -2910,9 +3641,15 @@ describe("IssueProperties", () => {
     expect(container.textContent).toContain("Monitor");
     expect(container.textContent).toContain("In 2h 30m");
     expect(container.querySelector('input[type="datetime-local"]')).toBeNull();
-    expect(container.querySelector('input[placeholder="What should the agent re-check?"]')).toBeNull();
+    expect(
+      container.querySelector(
+        'input[placeholder="What should the agent re-check?"]',
+      ),
+    ).toBeNull();
 
-    const monitorTrigger = container.querySelector('[data-testid="monitor-row-trigger"]')?.closest("button");
+    const monitorTrigger = container
+      .querySelector('[data-testid="monitor-row-trigger"]')
+      ?.closest("button");
     expect(monitorTrigger).not.toBeUndefined();
 
     await act(async () => {
@@ -2921,10 +3658,16 @@ describe("IssueProperties", () => {
     await flush();
 
     const inputs = Array.from(container.querySelectorAll("input"));
-    const datetimeInput = inputs.find((input) => input.getAttribute("type") === "datetime-local");
-    const textInput = inputs.find((input) => input.getAttribute("placeholder") === "What should the agent re-check?");
-    const clearButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Clear"));
+    const datetimeInput = inputs.find(
+      (input) => input.getAttribute("type") === "datetime-local",
+    );
+    const textInput = inputs.find(
+      (input) =>
+        input.getAttribute("placeholder") === "What should the agent re-check?",
+    );
+    const clearButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Clear"),
+    );
 
     expect(datetimeInput).toBeTruthy();
     expect(textInput).toBeTruthy();
@@ -2948,59 +3691,103 @@ describe("IssueProperties", () => {
     dateNowSpy.mockRestore();
   });
 
-  it.each([true, false])("clears a monitor with omitted stages while preserving independent limits (authorization: %s)", async (withAuthorization) => {
-    const onUpdate = vi.fn();
-    const executionPolicy = {
-      ...(withAuthorization ? { authorizationPolicy: { trustPreset: "standard" } } : {}),
-      maxReviewRounds: 4,
-      monitor: { nextCheckAt: "2099-01-01T12:00:00.000Z", notes: "Check service", scheduledBy: "board" },
-    } as IssueExecutionPolicy;
-    const before = structuredClone(executionPolicy);
-    const root = renderProperties(container, {
-      issue: createIssue({ executionPolicy }), childIssues: [], onUpdate, inline: true,
-    });
-    await flush();
+  it.each([true, false])(
+    "clears a monitor with omitted stages while preserving independent limits (authorization: %s)",
+    async (withAuthorization) => {
+      const onUpdate = vi.fn();
+      const executionPolicy = {
+        ...(withAuthorization
+          ? { authorizationPolicy: { trustPreset: "standard" } }
+          : {}),
+        maxReviewRounds: 4,
+        monitor: {
+          nextCheckAt: "2099-01-01T12:00:00.000Z",
+          notes: "Check service",
+          scheduledBy: "board",
+        },
+      } as IssueExecutionPolicy;
+      const before = structuredClone(executionPolicy);
+      const root = renderProperties(container, {
+        issue: createIssue({ executionPolicy }),
+        childIssues: [],
+        onUpdate,
+        inline: true,
+      });
+      await flush();
 
-    expect(container.textContent).toContain("Reviewers");
-    expect(container.textContent).not.toContain("Execution policy unavailable");
-    const monitorTrigger = container.querySelector('[data-testid="monitor-row-trigger"]')?.closest("button");
-    expect(monitorTrigger).toBeTruthy();
-    await act(async () => { monitorTrigger!.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
-    const clearButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Clear");
-    expect(clearButton).toBeTruthy();
-    await act(async () => { clearButton!.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
+      expect(container.textContent).toContain("Reviewers");
+      expect(container.textContent).not.toContain(
+        "Execution policy unavailable",
+      );
+      const monitorTrigger = container
+        .querySelector('[data-testid="monitor-row-trigger"]')
+        ?.closest("button");
+      expect(monitorTrigger).toBeTruthy();
+      await act(async () => {
+        monitorTrigger!.dispatchEvent(
+          new MouseEvent("click", { bubbles: true }),
+        );
+      });
+      const clearButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "Clear",
+      );
+      expect(clearButton).toBeTruthy();
+      await act(async () => {
+        clearButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
 
-    expect(onUpdate).toHaveBeenCalledWith({ executionPolicy: {
-      mode: "normal", commentRequired: true, stages: [],
-      ...(withAuthorization ? { authorizationPolicy: before.authorizationPolicy } : {}), maxReviewRounds: 4,
-    } });
-    expect(executionPolicy).toEqual(before);
-    act(() => root.unmount());
-  });
+      expect(onUpdate).toHaveBeenCalledWith({
+        executionPolicy: {
+          mode: "normal",
+          commentRequired: true,
+          stages: [],
+          ...(withAuthorization
+            ? { authorizationPolicy: before.authorizationPolicy }
+            : {}),
+          maxReviewRounds: 4,
+        },
+      });
+      expect(executionPolicy).toEqual(before);
+      act(() => root.unmount());
+    },
+  );
 
   it.each([
     { stages: {} },
     { stages: [null] },
     { stages: [{ type: "review", participants: {} }] },
     { monitor: { nextCheckAt: {}, notes: {} } },
-  ])("keeps malformed policies unavailable without exposing destructive edits: %j", async (executionPolicy) => {
-    const onUpdate = vi.fn();
-    const root = renderProperties(container, {
-      issue: createIssue({ executionPolicy: executionPolicy as unknown as IssueExecutionPolicy }),
-      childIssues: [], onUpdate, inline: true,
-    });
-    await flush();
+  ])(
+    "keeps malformed policies unavailable without exposing destructive edits: %j",
+    async (executionPolicy) => {
+      const onUpdate = vi.fn();
+      const root = renderProperties(container, {
+        issue: createIssue({
+          executionPolicy: executionPolicy as unknown as IssueExecutionPolicy,
+        }),
+        childIssues: [],
+        onUpdate,
+        inline: true,
+      });
+      await flush();
 
-    expect(container.textContent).toContain("Execution policy unavailable. Refresh to try again.");
-    expect(container.textContent).toContain("Assignee");
-    expect(container.textContent).not.toContain("No reviewers");
-    expect(container.textContent).not.toContain("No approvers");
-    expect(container.textContent).not.toContain("Run review now");
-    expect(container.querySelector('[data-testid="monitor-row-trigger"]')).toBeNull();
-    expect(container.querySelector('input[type="datetime-local"]')).toBeNull();
-    expect(onUpdate).not.toHaveBeenCalled();
-    act(() => root.unmount());
-  });
+      expect(container.textContent).toContain(
+        "Execution policy unavailable. Refresh to try again.",
+      );
+      expect(container.textContent).toContain("Assignee");
+      expect(container.textContent).not.toContain("No reviewers");
+      expect(container.textContent).not.toContain("No approvers");
+      expect(container.textContent).not.toContain("Run review now");
+      expect(
+        container.querySelector('[data-testid="monitor-row-trigger"]'),
+      ).toBeNull();
+      expect(
+        container.querySelector('input[type="datetime-local"]'),
+      ).toBeNull();
+      expect(onUpdate).not.toHaveBeenCalled();
+      act(() => root.unmount());
+    },
+  );
 
   it("renders scheduled, retrying, due, overdue, cleared, and empty monitor row states", async () => {
     // Anchored to a fixed *local* time, not a fixed UTC instant. The row renders
@@ -3025,24 +3812,37 @@ describe("IssueProperties", () => {
       clearedAt: null,
       clearReason: null,
     };
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     const root = createRoot(container);
-    const monitorRowText = () => container.querySelector('[data-testid="monitor-row-trigger"]')?.textContent;
+    const monitorRowText = () =>
+      container.querySelector('[data-testid="monitor-row-trigger"]')
+        ?.textContent;
     const renderMonitor = (issue: Issue) => {
       act(() => {
         root.render(
           <QueryClientProvider client={queryClient}>
-            <IssueProperties issue={issue} childIssues={[]} onUpdate={vi.fn()} inline />
+            <IssueProperties
+              issue={issue}
+              childIssues={[]}
+              onUpdate={vi.fn()}
+              inline
+            />
           </QueryClientProvider>,
         );
       });
     };
 
-    renderMonitor(createIssue({
-      executionPolicy: createExecutionPolicy({ monitor: { ...baseMonitorState, serviceName: "vercel-deploy" } }),
-      executionState: createExecutionState({ monitor: baseMonitorState }),
-      monitorAttemptCount: 1,
-    }));
+    renderMonitor(
+      createIssue({
+        executionPolicy: createExecutionPolicy({
+          monitor: { ...baseMonitorState, serviceName: "vercel-deploy" },
+        }),
+        executionState: createExecutionState({ monitor: baseMonitorState }),
+        monitorAttemptCount: 1,
+      }),
+    );
     await flush();
     expect(monitorRowText()).toContain("In 2h 12m");
     // The hour is rendered in the machine's timezone, so it is not pinned here:
@@ -3051,53 +3851,81 @@ describe("IssueProperties", () => {
     // exactly, and the countdown above is timezone-independent already.
     expect(monitorRowText()).toContain("Today, 4:08 PM · Attempt 1");
 
-    renderMonitor(createIssue({
-      executionPolicy: createExecutionPolicy({ monitor: { ...baseMonitorState, nextCheckAt: at(252) } }),
-      executionState: createExecutionState({ monitor: { ...baseMonitorState, nextCheckAt: at(132) } }),
-      monitorNextCheckAt: new Date(at(192)),
-    }));
+    renderMonitor(
+      createIssue({
+        executionPolicy: createExecutionPolicy({
+          monitor: { ...baseMonitorState, nextCheckAt: at(252) },
+        }),
+        executionState: createExecutionState({
+          monitor: { ...baseMonitorState, nextCheckAt: at(132) },
+        }),
+        monitorNextCheckAt: new Date(at(192)),
+      }),
+    );
     await flush();
     expect(monitorRowText()).toContain("In 2h 12m");
     expect(monitorRowText()).toContain("Today, 4:08 PM");
 
-    renderMonitor(createIssue({
-      executionPolicy: createExecutionPolicy({ monitor: { ...baseMonitorState, serviceName: "vercel-deploy" } }),
-      executionState: createExecutionState({ monitor: { ...baseMonitorState, attemptCount: 3 } }),
-      monitorAttemptCount: 3,
-    }));
+    renderMonitor(
+      createIssue({
+        executionPolicy: createExecutionPolicy({
+          monitor: { ...baseMonitorState, serviceName: "vercel-deploy" },
+        }),
+        executionState: createExecutionState({
+          monitor: { ...baseMonitorState, attemptCount: 3 },
+        }),
+        monitorAttemptCount: 3,
+      }),
+    );
     await flush();
     expect(monitorRowText()).toContain("Attempt 3");
 
-    renderMonitor(createIssue({
-      executionPolicy: createExecutionPolicy({ monitor: { ...baseMonitorState, nextCheckAt: at(0) } }),
-      executionState: createExecutionState({ monitor: { ...baseMonitorState, nextCheckAt: at(0) } }),
-    }));
+    renderMonitor(
+      createIssue({
+        executionPolicy: createExecutionPolicy({
+          monitor: { ...baseMonitorState, nextCheckAt: at(0) },
+        }),
+        executionState: createExecutionState({
+          monitor: { ...baseMonitorState, nextCheckAt: at(0) },
+        }),
+      }),
+    );
     await flush();
     expect(monitorRowText()).toContain("Due now");
     expect(monitorRowText()).toContain("checking momentarily…");
 
-    renderMonitor(createIssue({
-      executionPolicy: createExecutionPolicy({ monitor: { ...baseMonitorState, nextCheckAt: at(-18) } }),
-      executionState: createExecutionState({ monitor: { ...baseMonitorState, nextCheckAt: at(-18) } }),
-    }));
+    renderMonitor(
+      createIssue({
+        executionPolicy: createExecutionPolicy({
+          monitor: { ...baseMonitorState, nextCheckAt: at(-18) },
+        }),
+        executionState: createExecutionState({
+          monitor: { ...baseMonitorState, nextCheckAt: at(-18) },
+        }),
+      }),
+    );
     await flush();
     expect(monitorRowText()).toContain("Overdue by 18m");
     expect(monitorRowText()).toContain("Today, 1:38 PM · fires on next tick");
 
-    renderMonitor(createIssue({
-      executionPolicy: createExecutionPolicy(),
-      executionState: createExecutionState({ monitor: {
-        ...baseMonitorState,
-        status: "cleared",
-        nextCheckAt: null,
-        lastTriggeredAt: at(-120),
-        attemptCount: 2,
-        clearedAt: at(-116),
-        clearReason: "manual",
-      } }),
-      monitorAttemptCount: 2,
-      monitorLastTriggeredAt: new Date(at(-120)),
-    }));
+    renderMonitor(
+      createIssue({
+        executionPolicy: createExecutionPolicy(),
+        executionState: createExecutionState({
+          monitor: {
+            ...baseMonitorState,
+            status: "cleared",
+            nextCheckAt: null,
+            lastTriggeredAt: at(-120),
+            attemptCount: 2,
+            clearedAt: at(-116),
+            clearReason: "manual",
+          },
+        }),
+        monitorAttemptCount: 2,
+        monitorLastTriggeredAt: new Date(at(-120)),
+      }),
+    );
     await flush();
     expect(monitorRowText()).toContain("Cleared");
     expect(monitorRowText()).toContain("last checked 2h ago · after attempt 2");
@@ -3118,7 +3946,9 @@ describe("IssueProperties", () => {
     icon: null,
     status: "active",
     orgChainHealth: { status: "ok" },
-  } as unknown as Parameters<typeof mockAgentsApi.list.mockResolvedValue>[0][number];
+  } as unknown as Parameters<
+    typeof mockAgentsApi.list.mockResolvedValue
+  >[0][number];
 
   function createWatchdogSummary(overrides: Record<string, unknown> = {}) {
     return {
@@ -3141,8 +3971,7 @@ describe("IssueProperties", () => {
   }
 
   it("shows the empty watchdog state and saves a new watchdog via the API", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
-    });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({});
     mockAgentsApi.list.mockResolvedValue([watchdogAgent]);
     const onUpdate = vi.fn();
     const root = renderProperties(container, {
@@ -3168,8 +3997,10 @@ describe("IssueProperties", () => {
     // Choose the agent through the inline selector, then save.
     let agentOption: HTMLElement | undefined;
     await waitForAssertion(() => {
-      agentOption = Array.from(container.querySelectorAll("button, [role='option']"))
-        .find((node) => node.textContent?.includes("ClaudeCoder")) as HTMLElement | undefined;
+      agentOption = Array.from(
+        container.querySelectorAll("button, [role='option']"),
+      ).find((node) => node.textContent?.includes("ClaudeCoder")) as
+        HTMLElement | undefined;
       expect(agentOption).toBeTruthy();
     });
     // Open the selector if the option is not yet visible, then click it.
@@ -3178,20 +4009,29 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const instructions = Array.from(container.querySelectorAll("textarea"))
-      .find((node) => node.getAttribute("placeholder")?.includes("watchdog"));
+    const instructions = Array.from(
+      container.querySelectorAll("textarea"),
+    ).find((node) => node.getAttribute("placeholder")?.includes("watchdog"));
     expect(instructions).toBeTruthy();
     await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")!.set!;
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype,
+        "value",
+      )!.set!;
       setter.call(instructions!, "Watch the deploy");
       instructions!.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await flush();
 
-    const saveButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => /Set watchdog|Update/.test(button.textContent ?? "") && button.closest("[class*='space-y']"));
-    const finalSave = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent === "Set watchdog" && button !== trigger) ?? saveButton;
+    const saveButton = Array.from(container.querySelectorAll("button")).find(
+      (button) =>
+        /Set watchdog|Update/.test(button.textContent ?? "") &&
+        button.closest("[class*='space-y']"),
+    );
+    const finalSave =
+      Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "Set watchdog" && button !== trigger,
+      ) ?? saveButton;
     expect(finalSave).toBeTruthy();
     await act(async () => {
       finalSave!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -3207,8 +4047,7 @@ describe("IssueProperties", () => {
   });
 
   it("updates cached issue detail when saving a watchdog", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
-    });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({});
     mockAgentsApi.list.mockResolvedValue([watchdogAgent]);
     const savedWatchdog = createWatchdogSummary({
       instructions: "Watch the deploy",
@@ -3237,8 +4076,10 @@ describe("IssueProperties", () => {
 
     let agentOption: HTMLElement | undefined;
     await waitForAssertion(() => {
-      agentOption = Array.from(container.querySelectorAll("button, [role='option']"))
-        .find((node) => node.textContent?.includes("ClaudeCoder")) as HTMLElement | undefined;
+      agentOption = Array.from(
+        container.querySelectorAll("button, [role='option']"),
+      ).find((node) => node.textContent?.includes("ClaudeCoder")) as
+        HTMLElement | undefined;
       expect(agentOption).toBeTruthy();
     });
     await act(async () => {
@@ -3246,23 +4087,25 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const finalSave = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent === "Set watchdog" && button !== trigger);
+    const finalSave = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Set watchdog" && button !== trigger,
+    );
     expect(finalSave).toBeTruthy();
     await act(async () => {
       finalSave!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    expect(queryClient.getQueryData<Issue>(queryKeys.issues.detail(issue.id))?.watchdog)
-      .toEqual(savedWatchdog);
+    expect(
+      queryClient.getQueryData<Issue>(queryKeys.issues.detail(issue.id))
+        ?.watchdog,
+    ).toEqual(savedWatchdog);
 
     act(() => root.unmount());
   });
 
   it("renders an existing watchdog and removes it via the API", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
-    });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({});
     mockAgentsApi.list.mockResolvedValue([watchdogAgent]);
     const onUpdate = vi.fn();
     const issue = createIssue({ watchdog: createWatchdogSummary() });
@@ -3279,15 +4122,17 @@ describe("IssueProperties", () => {
       expect(container.textContent).toContain("ClaudeCoder");
     });
 
-    const trigger = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("ClaudeCoder"));
+    const trigger = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("ClaudeCoder"),
+    );
     await act(async () => {
       trigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    const removeButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Remove"));
+    const removeButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Remove"),
+    );
     expect(removeButton).toBeTruthy();
     await act(async () => {
       removeButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -3295,17 +4140,19 @@ describe("IssueProperties", () => {
     await flush();
 
     expect(mockIssuesApi.deleteWatchdog).toHaveBeenCalledWith("issue-1");
-    expect(queryClient.getQueryData<Issue>(queryKeys.issues.detail(issue.id))?.watchdog)
-      .toBeNull();
+    expect(
+      queryClient.getQueryData<Issue>(queryKeys.issues.detail(issue.id))
+        ?.watchdog,
+    ).toBeNull();
 
     act(() => root.unmount());
   });
 
   it("truncates the watchdog instructions one-line summary in the properties value column", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
-    });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({});
     mockAgentsApi.list.mockResolvedValue([watchdogAgent]);
-    const instructions = "get greptile to stop re-reviewing the same task unless a fresh code change lands";
+    const instructions =
+      "get greptile to stop re-reviewing the same task unless a fresh code change lands";
     const root = renderProperties(container, {
       issue: createIssue({
         watchdog: createWatchdogSummary({ instructions }),
@@ -3320,12 +4167,12 @@ describe("IssueProperties", () => {
     // full instructions live in the popover (surfaced here via the row title).
     let instructionNode: HTMLSpanElement | undefined;
     await waitForAssertion(() => {
-      instructionNode = Array.from(container.querySelectorAll("span"))
-        .find((node) =>
-          node.textContent?.includes("get greptile")
-          && node.className.includes("text-muted-foreground")
-          && !node.className.includes("inline-flex")
-        ) as HTMLSpanElement | undefined;
+      instructionNode = Array.from(container.querySelectorAll("span")).find(
+        (node) =>
+          node.textContent?.includes("get greptile") &&
+          node.className.includes("text-muted-foreground") &&
+          !node.className.includes("inline-flex"),
+      ) as HTMLSpanElement | undefined;
       expect(instructionNode).toBeTruthy();
     });
 
@@ -3334,17 +4181,20 @@ describe("IssueProperties", () => {
     expect(instructionNode!.className).not.toContain("break-words");
 
     const watchdogTrigger = findRowTrigger(container, "Watchdog");
-    expect(watchdogTrigger?.querySelector("[title]")?.getAttribute("title")).toBe(instructions);
+    expect(
+      watchdogTrigger?.querySelector("[title]")?.getAttribute("title"),
+    ).toBe(instructions);
 
     act(() => root.unmount());
   });
 
   it("links to the generated watchdog task when one exists", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
-    });
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({});
     mockAgentsApi.list.mockResolvedValue([watchdogAgent]);
     const root = renderProperties(container, {
-      issue: createIssue({ watchdog: createWatchdogSummary({ watchdogIssueId: "issue-wd" }) }),
+      issue: createIssue({
+        watchdog: createWatchdogSummary({ watchdogIssueId: "issue-wd" }),
+      }),
       childIssues: [
         createIssue({
           id: "issue-wd",
@@ -3361,8 +4211,9 @@ describe("IssueProperties", () => {
     // The link is now an icon-only "open task" affordance (ux-spec: one
     // trailing-action style), so we assert on href + accessible label.
     await waitForAssertion(() => {
-      const link = Array.from(container.querySelectorAll("a"))
-        .find((anchor) => anchor.getAttribute("href") === "/issues/issue-wd");
+      const link = Array.from(container.querySelectorAll("a")).find(
+        (anchor) => anchor.getAttribute("href") === "/issues/issue-wd",
+      );
       expect(link).toBeTruthy();
       expect(link!.getAttribute("aria-label")).toBe("Open watchdog task");
     });
@@ -3479,11 +4330,14 @@ describe("IssueProperties", () => {
     expect(container.textContent).toContain("Merged");
     expect(container.textContent).toContain("Open");
     expect(container.textContent).not.toContain("External objects");
-    const label = Array.from(container.querySelectorAll("span"))
-      .find((span) => span.textContent === "Github PR");
+    const label = Array.from(container.querySelectorAll("span")).find(
+      (span) => span.textContent === "Github PR",
+    );
     expect(label?.querySelector("svg")).toBeTruthy();
-    const pullRequestLink = Array.from(container.querySelectorAll("a"))
-      .find((anchor) => anchor.getAttribute("href") === "https://github.com/acme/web/pull/241");
+    const pullRequestLink = Array.from(container.querySelectorAll("a")).find(
+      (anchor) =>
+        anchor.getAttribute("href") === "https://github.com/acme/web/pull/241",
+    );
     expect(pullRequestLink?.textContent).toContain("PR 241 - Merged");
     expect(pullRequestLink?.textContent).not.toContain("acme/web#241");
     expect(pullRequestLink?.textContent).not.toContain("Github PR");
@@ -3491,17 +4345,31 @@ describe("IssueProperties", () => {
     expect(pullRequestLink?.className).not.toContain("taskcore-mention-chip");
     expect(pullRequestLink?.className).not.toContain("rounded-full");
     expect(pullRequestLink?.className).not.toContain("border");
-    const unrefreshedPullRequestLink = Array.from(container.querySelectorAll("a"))
-      .find((anchor) => anchor.getAttribute("href") === "https://github.com/acme/web/pull/242");
-    expect(unrefreshedPullRequestLink?.textContent).toContain("PR 242 - Not yet refreshed");
-    expect(unrefreshedPullRequestLink?.textContent).not.toContain("Not yet resolved");
+    const unrefreshedPullRequestLink = Array.from(
+      container.querySelectorAll("a"),
+    ).find(
+      (anchor) =>
+        anchor.getAttribute("href") === "https://github.com/acme/web/pull/242",
+    );
+    expect(unrefreshedPullRequestLink?.textContent).toContain(
+      "PR 242 - Not yet refreshed",
+    );
+    expect(unrefreshedPullRequestLink?.textContent).not.toContain(
+      "Not yet resolved",
+    );
 
     act(() => root.unmount());
   });
 
   it("shows agent-archive attribution and unarchive only in the properties pane", async () => {
     mockAgentsApi.list.mockResolvedValue([
-      { id: "agent-9", name: "Gardener", status: "active", adapterType: "codex_local", icon: null },
+      {
+        id: "agent-9",
+        name: "Gardener",
+        status: "active",
+        adapterType: "codex_local",
+        icon: null,
+      },
     ]);
     const root = renderProperties(container, {
       issue: createIssue({
@@ -3521,20 +4389,23 @@ describe("IssueProperties", () => {
       // The value shows just the agent name (the row label already says
       // "Archived"), giving the name the full column width at 320px.
       expect(container.textContent).toContain("Gardener");
-      const unarchive = Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Unarchive"));
+      const unarchive = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent?.includes("Unarchive"),
+      );
       expect(unarchive).toBeTruthy();
     });
 
     // The tooltip must carry the full "Archived by <name> · <time>" phrasing so
     // the attribution is recoverable if a long name truncates at the 320px pane
     // width (PAP-14182 review fix).
-    const attribution = Array.from(container.querySelectorAll("span"))
-      .find((span) => span.getAttribute("title")?.startsWith("Archived by Gardener"));
+    const attribution = Array.from(container.querySelectorAll("span")).find(
+      (span) => span.getAttribute("title")?.startsWith("Archived by Gardener"),
+    );
     expect(attribution).toBeTruthy();
 
-    const unarchiveButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Unarchive"))!;
+    const unarchiveButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("Unarchive"))!;
     await act(async () => {
       unarchiveButton.click();
     });
@@ -3546,9 +4417,17 @@ describe("IssueProperties", () => {
 
   it("surfaces unarchive failures inline", async () => {
     mockAgentsApi.list.mockResolvedValue([
-      { id: "agent-9", name: "Gardener", status: "active", adapterType: "codex_local", icon: null },
+      {
+        id: "agent-9",
+        name: "Gardener",
+        status: "active",
+        adapterType: "codex_local",
+        icon: null,
+      },
     ]);
-    mockIssuesApi.unarchiveFromInbox.mockRejectedValue(new Error("Archive policy denied"));
+    mockIssuesApi.unarchiveFromInbox.mockRejectedValue(
+      new Error("Archive policy denied"),
+    );
     const root = renderProperties(container, {
       issue: createIssue({
         archivedAt: new Date("2026-04-06T12:10:00.000Z"),
@@ -3564,8 +4443,9 @@ describe("IssueProperties", () => {
 
     let unarchiveButton: HTMLButtonElement | undefined;
     await waitForAssertion(() => {
-      unarchiveButton = Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Unarchive"));
+      unarchiveButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent?.includes("Unarchive"),
+      );
       expect(unarchiveButton).toBeTruthy();
     });
     await act(async () => {
@@ -3574,7 +4454,9 @@ describe("IssueProperties", () => {
     await flush();
 
     await waitForAssertion(() => {
-      expect(container.querySelector('[role="alert"]')?.textContent).toContain("Archive policy denied");
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        "Archive policy denied",
+      );
     });
 
     act(() => root.unmount());
@@ -3598,7 +4480,9 @@ describe("IssueProperties", () => {
     });
     expect(container.textContent).not.toContain("Archived by");
     expect(
-      Array.from(container.querySelectorAll("button")).some((button) => button.textContent?.includes("Unarchive")),
+      Array.from(container.querySelectorAll("button")).some((button) =>
+        button.textContent?.includes("Unarchive"),
+      ),
     ).toBe(false);
 
     act(() => root.unmount());
@@ -3608,7 +4492,9 @@ describe("IssueProperties", () => {
   // write access can approve — is what every issue already does, so it shows
   // nothing at all rather than a row reading "Anyone" or "None".
   const findApprovalsRow = () =>
-    container.querySelector('[data-property-label="Approvals"]')?.closest('[data-property-row="true"]') ?? null;
+    container
+      .querySelector('[data-property-label="Approvals"]')
+      ?.closest('[data-property-row="true"]') ?? null;
 
   it("shows no approvals row on an issue that has never set a policy", async () => {
     const root = renderProperties(container, {
@@ -3673,8 +4559,12 @@ describe("IssueProperties", () => {
   });
 
   it("hides the execution workspace picker without an enabled project policy", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: true });
-    mockProjectsApi.list.mockResolvedValue([createProject({ executionWorkspacePolicy: null })]);
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableIsolatedWorkspaces: true,
+    });
+    mockProjectsApi.list.mockResolvedValue([
+      createProject({ executionWorkspacePolicy: null }),
+    ]);
     const root = renderProperties(container, {
       issue: createIssue({ projectId: "project-1" }),
       childIssues: [],
@@ -3684,31 +4574,63 @@ describe("IssueProperties", () => {
 
     await flush();
 
-    expect(container.querySelector('[data-property-label="Execution"]')).toBeNull();
+    expect(
+      container.querySelector('[data-property-label="Execution"]'),
+    ).toBeNull();
     expect(mockExecutionWorkspacesApi.list).not.toHaveBeenCalled();
     act(() => root.unmount());
   });
 
   it("hides workspace selection but keeps the bound workspace accessible", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: true });
-    mockProjectsApi.list.mockResolvedValue([createProject({ executionWorkspacePolicy: { enabled: true, defaultMode: "isolated_workspace" } })]);
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableIsolatedWorkspaces: true,
+    });
+    mockProjectsApi.list.mockResolvedValue([
+      createProject({
+        executionWorkspacePolicy: {
+          enabled: true,
+          defaultMode: "isolated_workspace",
+        },
+      }),
+    ]);
     const onUpdate = vi.fn();
-    const { root } = renderPropertiesWithQueryClient(container, {
-      issue: createIssue({ projectId: "project-1", executionWorkspaceId: "workspace-1", currentExecutionWorkspace: createExecutionWorkspace() }),
-      childIssues: [], onUpdate, inline: true,
-    }, ["workspaces.isolation"]);
+    const { root } = renderPropertiesWithQueryClient(
+      container,
+      {
+        issue: createIssue({
+          projectId: "project-1",
+          executionWorkspaceId: "workspace-1",
+          currentExecutionWorkspace: createExecutionWorkspace(),
+        }),
+        childIssues: [],
+        onUpdate,
+        inline: true,
+      },
+      ["workspaces.isolation"],
+    );
     await flush();
-    expect(container.querySelector('[data-property-label="Execution"]')).toBeNull();
-    expect(container.querySelector('a[href="/execution-workspaces/workspace-1"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-property-label="Execution"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('a[href="/execution-workspaces/workspace-1"]'),
+    ).not.toBeNull();
     expect(onUpdate).not.toHaveBeenCalled();
     act(() => root.unmount());
   });
 
   it("shows the workspace picker with no bound workspace", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: true });
-    mockProjectsApi.list.mockResolvedValue([createProject({
-      executionWorkspacePolicy: { enabled: true, defaultMode: "isolated_workspace" },
-    })]);
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableIsolatedWorkspaces: true,
+    });
+    mockProjectsApi.list.mockResolvedValue([
+      createProject({
+        executionWorkspacePolicy: {
+          enabled: true,
+          defaultMode: "isolated_workspace",
+        },
+      }),
+    ]);
     const root = renderProperties(container, {
       issue: createIssue({ projectId: "project-1" }),
       childIssues: [],
@@ -3717,17 +4639,26 @@ describe("IssueProperties", () => {
     });
 
     await waitForAssertion(() => {
-      expect(findRowTrigger(container, "Execution")?.textContent).toBe("Default");
+      expect(findRowTrigger(container, "Execution")?.textContent).toBe(
+        "Default",
+      );
     });
 
     act(() => root.unmount());
   });
 
   it("saves the exact isolated-workspace payload", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: true });
-    mockProjectsApi.list.mockResolvedValue([createProject({
-      executionWorkspacePolicy: { enabled: true, defaultMode: "shared_workspace" },
-    })]);
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableIsolatedWorkspaces: true,
+    });
+    mockProjectsApi.list.mockResolvedValue([
+      createProject({
+        executionWorkspacePolicy: {
+          enabled: true,
+          defaultMode: "shared_workspace",
+        },
+      }),
+    ]);
     const onUpdate = vi.fn();
     const root = renderProperties(container, {
       issue: createIssue({ projectId: "project-1" }),
@@ -3736,10 +4667,13 @@ describe("IssueProperties", () => {
       inline: true,
     });
 
-    await waitForAssertion(() => expect(findRowTrigger(container, "Execution")).toBeDefined());
+    await waitForAssertion(() =>
+      expect(findRowTrigger(container, "Execution")).toBeDefined(),
+    );
     act(() => findRowTrigger(container, "Execution")!.click());
-    const isolatedOption = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("New isolated workspace"));
+    const isolatedOption = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent?.includes("New isolated workspace"));
     act(() => isolatedOption!.click());
 
     expect(onUpdate).toHaveBeenCalledWith({
@@ -3754,10 +4688,17 @@ describe("IssueProperties", () => {
   });
 
   it("searches reusable workspaces and saves the selected workspace", async () => {
-    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: true });
-    mockProjectsApi.list.mockResolvedValue([createProject({
-      executionWorkspacePolicy: { enabled: true, defaultMode: "shared_workspace" },
-    })]);
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({
+      enableIsolatedWorkspaces: true,
+    });
+    mockProjectsApi.list.mockResolvedValue([
+      createProject({
+        executionWorkspacePolicy: {
+          enabled: true,
+          defaultMode: "shared_workspace",
+        },
+      }),
+    ]);
     const alphaWorkspace = createExecutionWorkspace({
       id: "workspace-alpha",
       name: "Alpha workspace",
@@ -3772,19 +4713,28 @@ describe("IssueProperties", () => {
       branchName: "beta-branch",
       lastUsedAt: new Date(),
     });
-    mockExecutionWorkspacesApi.list.mockResolvedValue([alphaWorkspace, betaWorkspace]);
+    mockExecutionWorkspacesApi.list.mockResolvedValue([
+      alphaWorkspace,
+      betaWorkspace,
+    ]);
     const onUpdate = vi.fn();
     const root = renderProperties(container, {
-      issue: createIssue({ projectId: "project-1", projectWorkspaceId: "workspace-main" }),
+      issue: createIssue({
+        projectId: "project-1",
+        projectWorkspaceId: "workspace-main",
+      }),
       childIssues: [],
       onUpdate,
       inline: true,
     });
 
-    await waitForAssertion(() => expect(findRowTrigger(container, "Execution")).toBeDefined());
+    await waitForAssertion(() =>
+      expect(findRowTrigger(container, "Execution")).toBeDefined(),
+    );
     act(() => findRowTrigger(container, "Execution")!.click());
-    const reuseOption = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Reuse existing workspace"));
+    const reuseOption = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Reuse existing workspace"),
+    );
     act(() => reuseOption!.click());
 
     await waitForAssertion(() => {
@@ -3798,17 +4748,23 @@ describe("IssueProperties", () => {
       reuseEligible: true,
     });
 
-    const search = container.querySelector('input[aria-label="Search reusable workspaces"]') as HTMLInputElement;
+    const search = container.querySelector(
+      'input[aria-label="Search reusable workspaces"]',
+    ) as HTMLInputElement;
     await act(async () => {
-      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
       nativeSetter?.call(search, "Beta");
       search.dispatchEvent(new Event("input", { bubbles: true }));
     });
     expect(container.textContent).not.toContain("Alpha workspace");
     expect(container.textContent).toContain("Beta workspace");
 
-    const betaOption = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Beta workspace"));
+    const betaOption = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Beta workspace"),
+    );
     act(() => betaOption!.click());
     expect(onUpdate).toHaveBeenCalledWith({
       executionWorkspacePreference: "reuse_existing",

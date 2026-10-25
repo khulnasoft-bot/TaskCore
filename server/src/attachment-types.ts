@@ -87,7 +87,10 @@ export function parseAllowedTypes(raw: string | undefined): string[] {
  * Supports exact matches ("application/pdf") and wildcard / prefix
  * patterns ("image/*", "application/vnd.openxmlformats-officedocument.*").
  */
-export function matchesContentType(contentType: string, allowedPatterns: string[]): boolean {
+export function matchesContentType(
+  contentType: string,
+  allowedPatterns: string[],
+): boolean {
   const ct = contentType.toLowerCase();
   return allowedPatterns.some((pattern) => {
     if (pattern === "*") return true;
@@ -98,7 +101,9 @@ export function matchesContentType(contentType: string, allowedPatterns: string[
   });
 }
 
-export function normalizeContentType(contentType: string | null | undefined): string {
+export function normalizeContentType(
+  contentType: string | null | undefined,
+): string {
   // Provider APIs commonly return a complete Content-Type header value (for
   // example Discord uses `text/plain; charset=utf-8`) while Taskcore's
   // allowlist and persisted asset metadata operate on the MIME essence. MIME
@@ -135,9 +140,12 @@ export function normalizeUploadAttachmentContentType(input: {
 }): string {
   const normalized = normalizeContentType(input.contentType);
   if (!GENERIC_ATTACHMENT_CONTENT_TYPES.includes(normalized)) return normalized;
-  const inferred = inferOfficeAttachmentContentTypeFromFilename(input.originalFilename);
+  const inferred = inferOfficeAttachmentContentTypeFromFilename(
+    input.originalFilename,
+  );
   if (!inferred) return normalized;
-  if (input.isAllowedContentType && !input.isAllowedContentType(inferred)) return normalized;
+  if (input.isAllowedContentType && !input.isAllowedContentType(inferred))
+    return normalized;
   return inferred;
 }
 

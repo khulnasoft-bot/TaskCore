@@ -48,7 +48,9 @@ function prependPathEnv(name: string, value: string): void {
   process.env[name] = [value, ...parts].join(path.delimiter);
 }
 
-export async function ensureLinuxSharedLibraryAliases(libDir: string): Promise<string[]> {
+export async function ensureLinuxSharedLibraryAliases(
+  libDir: string,
+): Promise<string[]> {
   const entries = await fs.readdir(libDir, { withFileTypes: true });
   const created: string[] = [];
 
@@ -76,7 +78,12 @@ export async function prepareEmbeddedPostgresNativeRuntime(): Promise<void> {
   const packageRoot = resolveEmbeddedPostgresPackageRoot();
   if (!nativePackageName || !packageRoot) return;
 
-  const nativeRoot = path.resolve(packageRoot, "..", "@embedded-postgres", nativePackageName);
+  const nativeRoot = path.resolve(
+    packageRoot,
+    "..",
+    "@embedded-postgres",
+    nativePackageName,
+  );
   const libDir = path.join(nativeRoot, "native", "lib");
   if (!(await pathExists(libDir))) return;
 

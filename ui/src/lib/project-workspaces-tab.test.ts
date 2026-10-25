@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
-import type { ExecutionWorkspace, Issue, Project, ProjectWorkspace, WorkspaceRuntimeService } from "@taskcore/shared";
+import type {
+  ExecutionWorkspace,
+  Issue,
+  Project,
+  ProjectWorkspace,
+  WorkspaceRuntimeService,
+} from "@taskcore/shared";
 import { buildProjectWorkspaceSummaries } from "./project-workspaces-tab";
 
-function createProjectWorkspace(overrides: Partial<ProjectWorkspace>): ProjectWorkspace {
+function createProjectWorkspace(
+  overrides: Partial<ProjectWorkspace>,
+): ProjectWorkspace {
   return {
     id: overrides.id ?? "workspace-default",
     companyId: overrides.companyId ?? "company-1",
@@ -54,7 +62,8 @@ function createIssue(overrides: Partial<Issue>): Issue {
     billingCode: overrides.billingCode ?? null,
     assigneeAdapterOverrides: overrides.assigneeAdapterOverrides ?? null,
     executionWorkspaceId: overrides.executionWorkspaceId ?? null,
-    executionWorkspacePreference: overrides.executionWorkspacePreference ?? null,
+    executionWorkspacePreference:
+      overrides.executionWorkspacePreference ?? null,
     executionWorkspaceSettings: overrides.executionWorkspaceSettings ?? null,
     startedAt: overrides.startedAt ?? null,
     completedAt: overrides.completedAt ?? null,
@@ -65,7 +74,9 @@ function createIssue(overrides: Partial<Issue>): Issue {
   } as Issue;
 }
 
-function createExecutionWorkspace(overrides: Partial<ExecutionWorkspace>): ExecutionWorkspace {
+function createExecutionWorkspace(
+  overrides: Partial<ExecutionWorkspace>,
+): ExecutionWorkspace {
   return {
     id: overrides.id ?? "exec-1",
     companyId: overrides.companyId ?? "company-1",
@@ -83,7 +94,8 @@ function createExecutionWorkspace(overrides: Partial<ExecutionWorkspace>): Execu
     branchName: overrides.branchName ?? "PAP-893-workspaces-tab",
     providerType: overrides.providerType ?? "git_worktree",
     providerRef: overrides.providerRef ?? null,
-    derivedFromExecutionWorkspaceId: overrides.derivedFromExecutionWorkspaceId ?? null,
+    derivedFromExecutionWorkspaceId:
+      overrides.derivedFromExecutionWorkspaceId ?? null,
     lastUsedAt: overrides.lastUsedAt ?? new Date("2026-03-26T10:00:00Z"),
     openedAt: overrides.openedAt ?? new Date("2026-03-26T09:00:00Z"),
     closedAt: overrides.closedAt ?? null,
@@ -97,7 +109,9 @@ function createExecutionWorkspace(overrides: Partial<ExecutionWorkspace>): Execu
   };
 }
 
-function createRuntimeService(overrides: Partial<WorkspaceRuntimeService> = {}): WorkspaceRuntimeService {
+function createRuntimeService(
+  overrides: Partial<WorkspaceRuntimeService> = {},
+): WorkspaceRuntimeService {
   return {
     id: overrides.id ?? "service-1",
     companyId: overrides.companyId ?? "company-1",
@@ -194,7 +208,9 @@ describe("buildProjectWorkspaceSummaries", () => {
       branchName: "PAP-893-workspaces-tab",
       executionWorkspaceId: "exec-1",
     });
-    expect(summaries[0]?.issues.map((issue) => issue.id)).toEqual(["issue-exec"]);
+    expect(summaries[0]?.issues.map((issue) => issue.id)).toEqual([
+      "issue-exec",
+    ]);
 
     expect(summaries[1]).toMatchObject({
       key: "project:workspace-feature",

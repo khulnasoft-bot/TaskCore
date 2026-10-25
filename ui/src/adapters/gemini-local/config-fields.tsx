@@ -24,46 +24,67 @@ export function GeminiLocalConfigFields({
   managedSandboxOnly,
 }: AdapterConfigFieldsProps) {
   const rawEngine = isCreate
-    ? values!.geminiEngine ?? "auto"
+    ? (values!.geminiEngine ?? "auto")
     : eff("adapterConfig", "engine", String(config.engine ?? "auto"));
-  const engine = rawEngine === "acp" || rawEngine === "cli" ? rawEngine : "auto";
+  const engine =
+    rawEngine === "acp" || rawEngine === "cli" ? rawEngine : "auto";
   const acpSelected = engine === "acp";
 
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       {/*
         The execution engine picks which binary runs on the execution host, and
         the ACP sub-fields below name host paths. The platform-managed
         environment owns both, so the managed-sandbox-only policy hides them.
       */}
-      {!managedSandboxOnly && <Field label="Execution engine" hint="Default uses ACP. If ACP is unavailable, the run fails with a setup error. Choose CLI explicitly to use it.">
-        <select
-          className={inputClass}
-          value={engine}
-          onChange={(e) => {
-            const value = e.target.value === "acp" ? "acp" : e.target.value === "cli" ? "cli" : "auto";
-            isCreate
-              ? set!({ geminiEngine: value })
-              : mark("adapterConfig", "engine", value === "auto" ? undefined : value);
-          }}
+      {!managedSandboxOnly && (
+        <Field
+          label="Execution engine"
+          hint="Default uses ACP. If ACP is unavailable, the run fails with a setup error. Choose CLI explicitly to use it."
         >
-          <option value="auto">Default (ACP)</option>
-          <option value="cli">Gemini CLI</option>
-          <option value="acp">ACP</option>
-        </select>
-      </Field>}
+          <select
+            className={inputClass}
+            value={engine}
+            onChange={(e) => {
+              const value =
+                e.target.value === "acp"
+                  ? "acp"
+                  : e.target.value === "cli"
+                    ? "cli"
+                    : "auto";
+              isCreate
+                ? set!({ geminiEngine: value })
+                : mark(
+                    "adapterConfig",
+                    "engine",
+                    value === "auto" ? undefined : value,
+                  );
+            }}
+          >
+            <option value="auto">Default (ACP)</option>
+            <option value="cli">Gemini CLI</option>
+            <option value="acp">ACP</option>
+          </select>
+        </Field>
+      )}
       {acpSelected && (
         <>
           {!managedSandboxOnly && (
-            <Field configSection="advanced"
+            <Field
+              configSection="advanced"
               label="ACP server command"
               hint="Optional override for the Gemini ACP server command. Defaults to gemini --acp."
             >
               <DraftInput
                 value={
                   isCreate
-                    ? values!.geminiAcpAgentCommand ?? ""
-                    : eff("adapterConfig", "agentCommand", String(config.agentCommand ?? ""))
+                    ? (values!.geminiAcpAgentCommand ?? "")
+                    : eff(
+                        "adapterConfig",
+                        "agentCommand",
+                        String(config.agentCommand ?? ""),
+                      )
                 }
                 onCommit={(v) =>
                   isCreate
@@ -76,16 +97,25 @@ export function GeminiLocalConfigFields({
               />
             </Field>
           )}
-          <Field configSection="runPolicy" label="ACP session mode" hint="Persistent keeps ACP session state between runs. One-shot starts fresh each run.">
+          <Field
+            configSection="runPolicy"
+            label="ACP session mode"
+            hint="Persistent keeps ACP session state between runs. One-shot starts fresh each run."
+          >
             <select
               className={inputClass}
               value={
                 isCreate
-                  ? values!.geminiAcpMode ?? "persistent"
-                  : eff("adapterConfig", "mode", String(config.mode ?? "persistent"))
+                  ? (values!.geminiAcpMode ?? "persistent")
+                  : eff(
+                      "adapterConfig",
+                      "mode",
+                      String(config.mode ?? "persistent"),
+                    )
               }
               onChange={(e) => {
-                const value = e.target.value === "oneshot" ? "oneshot" : "persistent";
+                const value =
+                  e.target.value === "oneshot" ? "oneshot" : "persistent";
                 isCreate
                   ? set!({ geminiAcpMode: value })
                   : mark("adapterConfig", "mode", value);
@@ -103,8 +133,12 @@ export function GeminiLocalConfigFields({
               className={inputClass}
               value={
                 isCreate
-                  ? values!.geminiAcpNonInteractivePermissions ?? "deny"
-                  : eff("adapterConfig", "nonInteractivePermissions", String(config.nonInteractivePermissions ?? "deny"))
+                  ? (values!.geminiAcpNonInteractivePermissions ?? "deny")
+                  : eff(
+                      "adapterConfig",
+                      "nonInteractivePermissions",
+                      String(config.nonInteractivePermissions ?? "deny"),
+                    )
               }
               onChange={(e) => {
                 const value = e.target.value === "fail" ? "fail" : "deny";
@@ -126,8 +160,12 @@ export function GeminiLocalConfigFields({
                 <DraftInput
                   value={
                     isCreate
-                      ? values!.geminiAcpStateDir ?? ""
-                      : eff("adapterConfig", "stateDir", String(config.stateDir ?? ""))
+                      ? (values!.geminiAcpStateDir ?? "")
+                      : eff(
+                          "adapterConfig",
+                          "stateDir",
+                          String(config.stateDir ?? ""),
+                        )
                   }
                   onCommit={(v) =>
                     isCreate
@@ -142,7 +180,8 @@ export function GeminiLocalConfigFields({
               </div>
             </Field>
           )}
-          <Field configSection="runPolicy"
+          <Field
+            configSection="runPolicy"
             label="ACP warm process idle ms"
             hint="Defaults to 0, which closes the ACP process after each run while retaining persistent session state."
           >
@@ -151,7 +190,9 @@ export function GeminiLocalConfigFields({
                 type="number"
                 className={inputClass}
                 value={values!.geminiAcpWarmHandleIdleMs ?? 0}
-                onChange={(e) => set!({ geminiAcpWarmHandleIdleMs: Number(e.target.value) })}
+                onChange={(e) =>
+                  set!({ geminiAcpWarmHandleIdleMs: Number(e.target.value) })
+                }
               />
             ) : (
               <DraftNumberInput
@@ -160,7 +201,9 @@ export function GeminiLocalConfigFields({
                   "warmHandleIdleMs",
                   Number(config.warmHandleIdleMs ?? 0),
                 )}
-                onCommit={(v) => mark("adapterConfig", "warmHandleIdleMs", v || 0)}
+                onCommit={(v) =>
+                  mark("adapterConfig", "warmHandleIdleMs", v || 0)
+                }
                 immediate
                 className={inputClass}
               />
@@ -174,7 +217,7 @@ export function GeminiLocalConfigFields({
             <DraftInput
               value={
                 isCreate
-                  ? values!.instructionsFilePath ?? ""
+                  ? (values!.instructionsFilePath ?? "")
                   : eff(
                       "adapterConfig",
                       "instructionsFilePath",
@@ -184,7 +227,11 @@ export function GeminiLocalConfigFields({
               onCommit={(v) =>
                 isCreate
                   ? set!({ instructionsFilePath: v })
-                  : mark("adapterConfig", "instructionsFilePath", v || undefined)
+                  : mark(
+                      "adapterConfig",
+                      "instructionsFilePath",
+                      v || undefined,
+                    )
               }
               immediate
               className={inputClass}
@@ -194,6 +241,6 @@ export function GeminiLocalConfigFields({
           </div>
         </Field>
       )}
-    </>
-  ));
+    </>,
+  );
 }

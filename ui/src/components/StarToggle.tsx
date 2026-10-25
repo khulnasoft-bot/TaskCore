@@ -112,7 +112,7 @@ export function StarToggle({
       title={error ? "Couldn't save — retry" : undefined}
       className={cn(
         "h-6 w-6 shrink-0",
-        visible ? "opacity-100" : revealClassName ?? DEFAULT_ROW_REVEAL,
+        visible ? "opacity-100" : (revealClassName ?? DEFAULT_ROW_REVEAL),
         className,
       )}
     >

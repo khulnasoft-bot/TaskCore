@@ -37,7 +37,8 @@ export class MobileNavScrollTracker {
       if (direction !== this.direction) this.distance = 0;
       this.direction = direction;
       this.distance += Math.abs(delta);
-      const threshold = direction > 0 ? this.options.hideDistance : this.options.showDistance;
+      const threshold =
+        direction > 0 ? this.options.hideDistance : this.options.showDistance;
       if (this.distance >= threshold) {
         this.visible = direction < 0;
         this.distance = 0;

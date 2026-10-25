@@ -27,12 +27,21 @@ test("parseArgs defaults to a dry run", () => {
 });
 
 test("parseArgs rejects a second package name", () => {
-  assert.throws(() => parseArgs(["@taskcore/a", "@taskcore/b"]), /exactly one package name/);
+  assert.throws(
+    () => parseArgs(["@taskcore/a", "@taskcore/b"]),
+    /exactly one package name/,
+  );
 });
 
 test("parseArgs rejects unknown options", () => {
-  assert.throws(() => parseArgs(["@taskcore/a", "--skip-build"]), /unknown option/);
-  assert.throws(() => parseArgs(["@taskcore/a", "--otp", "123456"]), /unknown option/);
+  assert.throws(
+    () => parseArgs(["@taskcore/a", "--skip-build"]),
+    /unknown option/,
+  );
+  assert.throws(
+    () => parseArgs(["@taskcore/a", "--otp", "123456"]),
+    /unknown option/,
+  );
 });
 
 test("validatePackageName accepts @taskcore scoped names", () => {
@@ -42,8 +51,14 @@ test("validatePackageName accepts @taskcore scoped names", () => {
 
 test("validatePackageName rejects names outside the @taskcore scope", () => {
   assert.throws(() => validatePackageName("left-pad"), /@taskcore scope/);
-  assert.throws(() => validatePackageName("@evil/adapter-kimi-local"), /@taskcore scope/);
-  assert.throws(() => validatePackageName("@taskcore/UPPER"), /@taskcore scope/);
+  assert.throws(
+    () => validatePackageName("@evil/adapter-kimi-local"),
+    /@taskcore scope/,
+  );
+  assert.throws(
+    () => validatePackageName("@taskcore/UPPER"),
+    /@taskcore scope/,
+  );
 });
 
 test("buildPlaceholderFiles produces a publishable manifest at the placeholder version", () => {
@@ -65,7 +80,10 @@ test("buildPlaceholderFiles entry point throws with a pointer to the repo", () =
   assert.match(files["index.js"], /github\.com\/taskcore\/taskcore/);
   // The entry point must be valid JS: evaluating it should throw our message,
   // not a SyntaxError.
-  assert.throws(() => new Function(files["index.js"])(), /placeholder that reserves/);
+  assert.throws(
+    () => new Function(files["index.js"])(),
+    /placeholder that reserves/,
+  );
 });
 
 test("buildPlaceholderFiles README explains the placeholder", () => {
@@ -83,7 +101,13 @@ test("promptOtp re-prompts until a non-empty code is entered", async () => {
 });
 
 test("waitForPackageVisible requires consecutive sightings before reporting success", async () => {
-  const states = [{ exists: false }, { exists: true }, { exists: false }, { exists: true }, { exists: true }];
+  const states = [
+    { exists: false },
+    { exists: true },
+    { exists: false },
+    { exists: true },
+    { exists: true },
+  ];
   let sleeps = 0;
 
   const visible = await waitForPackageVisible("@taskcore/x", {

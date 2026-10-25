@@ -22,14 +22,19 @@ vi.mock("@/lib/router", () => ({
     disableIssueQuicklook: _disableIssueQuicklook,
     issuePrefetch: _issuePrefetch,
     ...props
-  }: React.ComponentProps<"a"> & { disableIssueQuicklook?: boolean; issuePrefetch?: Issue | null }) => (
+  }: React.ComponentProps<"a"> & {
+    disableIssueQuicklook?: boolean;
+    issuePrefetch?: Issue | null;
+  }) => (
     <a className={className} {...props}>
       {children}
     </a>
   ),
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function act(callback: () => void | Promise<void>) {
   let result: void | Promise<void> | undefined;
@@ -114,7 +119,9 @@ function renderWithClient(node: React.ReactNode, container: HTMLDivElement) {
   });
   const root = createRoot(container);
   act(() => {
-    root.render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+    root.render(
+      <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>,
+    );
   });
   return { root, queryClient };
 }
@@ -162,14 +169,16 @@ describe("BlockedInboxView", () => {
   it("shows the empty state when no blocked issues are returned", async () => {
     mockIssuesApi.list.mockResolvedValue([]);
     const { root } = renderWithClient(
-      <BlockedInboxView
-        {...blockedViewProps}
-        presentation="task"
-      />,
+      <BlockedInboxView {...blockedViewProps} presentation="task" />,
       container,
     );
-    await waitFor(() => container.querySelector('[data-testid="blocked-inbox-empty"]') !== null);
-    expect(container.querySelector('[data-testid="blocked-inbox-empty"]')).not.toBeNull();
+    await waitFor(
+      () =>
+        container.querySelector('[data-testid="blocked-inbox-empty"]') !== null,
+    );
+    expect(
+      container.querySelector('[data-testid="blocked-inbox-empty"]'),
+    ).not.toBeNull();
     act(() => root.unmount());
   });
 
@@ -226,17 +235,24 @@ describe("BlockedInboxView", () => {
     );
     await waitFor(() => container.querySelectorAll("a").length === 4);
 
-    expect(container.querySelectorAll('[data-testid^="blocked-inbox-group-"]')).toHaveLength(0);
+    expect(
+      container.querySelectorAll('[data-testid^="blocked-inbox-group-"]'),
+    ).toHaveLength(0);
 
-    const titles = Array.from(container.querySelectorAll("a")).map((a) => a.textContent ?? "");
+    const titles = Array.from(container.querySelectorAll("a")).map(
+      (a) => a.textContent ?? "",
+    );
     expect(titles[0]).toContain("Critical stalled row");
     expect(titles[1]).toContain("Stalled chain row");
 
-    expect(mockIssuesApi.list).toHaveBeenCalledWith("company-1", expect.objectContaining({
-      attention: "blocked",
-      includeBlockedInboxAttention: true,
-      includeBlockedBy: true,
-    }));
+    expect(mockIssuesApi.list).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({
+        attention: "blocked",
+        includeBlockedInboxAttention: true,
+        includeBlockedBy: true,
+      }),
+    );
 
     act(() => root.unmount());
   });
@@ -257,29 +273,42 @@ describe("BlockedInboxView", () => {
     ]);
 
     const { root } = renderWithClient(
-      <BlockedInboxView
-        {...blockedViewProps}
-        presentation="task"
-      />,
+      <BlockedInboxView {...blockedViewProps} presentation="task" />,
       container,
     );
     await waitFor(() => container.querySelector("a") !== null);
 
-    const rowText = container.querySelector("a")?.parentElement?.textContent ?? "";
+    const rowText =
+      container.querySelector("a")?.parentElement?.textContent ?? "";
     expect(rowText.indexOf("Pending board decision")).toBeGreaterThanOrEqual(0);
-    expect(rowText.indexOf("Needs decision")).toBeGreaterThan(rowText.indexOf("Pending board decision"));
-    expect(rowText.indexOf("Board")).toBeGreaterThan(rowText.indexOf("Needs decision"));
+    expect(rowText.indexOf("Needs decision")).toBeGreaterThan(
+      rowText.indexOf("Pending board decision"),
+    );
+    expect(rowText.indexOf("Board")).toBeGreaterThan(
+      rowText.indexOf("Needs decision"),
+    );
     expect(rowText).not.toContain("Accept or reject");
-    expect(container.querySelector('[data-testid="blocked-row-reason-column"]')?.textContent).toContain("Needs decision");
+    expect(
+      container.querySelector('[data-testid="blocked-row-reason-column"]')
+        ?.textContent,
+    ).toContain("Needs decision");
     const taskRow = container.querySelector('[data-slot="task-row"]');
-    const identifier = container.querySelector('[data-slot="task-row-identifier"]');
-    const timestamp = container.querySelector('[data-slot="task-row-timestamp"]');
+    const identifier = container.querySelector(
+      '[data-slot="task-row-identifier"]',
+    );
+    const timestamp = container.querySelector(
+      '[data-slot="task-row-timestamp"]',
+    );
     expect(taskRow).not.toBeNull();
     expect(taskRow?.className).not.toContain("border-b");
     expect(identifier).not.toBeNull();
     expect(timestamp).not.toBeNull();
-    if (!identifier || !timestamp) throw new Error("Expected canonical identifier and timestamp columns");
-    expect(identifier.compareDocumentPosition(timestamp) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    if (!identifier || !timestamp)
+      throw new Error("Expected canonical identifier and timestamp columns");
+    expect(
+      identifier.compareDocumentPosition(timestamp) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
 
     act(() => root.unmount());
   });
@@ -290,7 +319,9 @@ describe("BlockedInboxView", () => {
         "issue-legacy",
         "PAP-41",
         "Legacy blocked row",
-        attention({ owner: { type: "board", agentId: null, userId: null, label: "Board" } }),
+        attention({
+          owner: { type: "board", agentId: null, userId: null, label: "Board" },
+        }),
       ),
     ]);
 
@@ -298,10 +329,14 @@ describe("BlockedInboxView", () => {
       <BlockedInboxView {...blockedViewProps} presentation="legacy" />,
       container,
     );
-    await waitFor(() => container.textContent?.includes("Legacy blocked row") === true);
+    await waitFor(
+      () => container.textContent?.includes("Legacy blocked row") === true,
+    );
 
     expect(container.querySelector('[data-slot="task-row"]')).toBeNull();
-    expect(container.querySelector('[data-testid="blocked-row-age"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="blocked-row-age"]'),
+    ).not.toBeNull();
     const row = container.querySelector("a")?.parentElement;
     expect(row?.className).toContain("border-b");
     expect(row?.textContent).toContain("PAP-41");
@@ -317,7 +352,12 @@ describe("BlockedInboxView", () => {
         "Resume parked work",
         attention({
           reason: "blocked_by_assigned_backlog_issue",
-          owner: { type: "agent", agentId: null, userId: null, label: "Charlie" },
+          owner: {
+            type: "agent",
+            agentId: null,
+            userId: null,
+            label: "Charlie",
+          },
           action: { label: "Resume parked blocker", detail: null },
         }),
       ),
@@ -327,7 +367,12 @@ describe("BlockedInboxView", () => {
         "Other unrelated thing",
         attention({
           reason: "external_owner_action",
-          owner: { type: "external", agentId: null, userId: null, label: "Vendor" },
+          owner: {
+            type: "external",
+            agentId: null,
+            userId: null,
+            label: "Vendor",
+          },
           action: { label: "Awaiting Vendor", detail: null },
         }),
       ),
@@ -335,10 +380,7 @@ describe("BlockedInboxView", () => {
     mockIssuesApi.list.mockResolvedValue(issues);
 
     const { root } = renderWithClient(
-      <BlockedInboxView
-        {...blockedViewProps}
-        searchQuery="charlie"
-      />,
+      <BlockedInboxView {...blockedViewProps} searchQuery="charlie" />,
       container,
     );
     await waitFor(() => container.querySelectorAll("a").length > 0);
@@ -375,7 +417,11 @@ describe("BlockedInboxView", () => {
     );
     await waitFor(() => container.querySelector("a") !== null);
 
-    expect(container.querySelector('[aria-label="Blocked · waiting on 1 active sub-task"]')).not.toBeNull();
+    expect(
+      container.querySelector(
+        '[aria-label="Blocked · waiting on 1 active sub-task"]',
+      ),
+    ).not.toBeNull();
 
     act(() => root.unmount());
   });
@@ -384,16 +430,17 @@ describe("BlockedInboxView", () => {
     mockIssuesApi.list.mockRejectedValue(new Error("network down"));
 
     const { root } = renderWithClient(
-      <BlockedInboxView
-        {...blockedViewProps}
-      />,
+      <BlockedInboxView {...blockedViewProps} />,
       container,
     );
-    await waitFor(() =>
-      container.querySelector('[data-testid="blocked-inbox-error"]') !== null,
+    await waitFor(
+      () =>
+        container.querySelector('[data-testid="blocked-inbox-error"]') !== null,
     );
 
-    const banner = container.querySelector('[data-testid="blocked-inbox-error"]');
+    const banner = container.querySelector(
+      '[data-testid="blocked-inbox-error"]',
+    );
     expect(banner).not.toBeNull();
     expect(banner?.getAttribute("role")).toBe("alert");
     expect(banner?.textContent).toContain("Couldn't load the Blocked tab");

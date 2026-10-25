@@ -25,7 +25,10 @@ function confirmation(
     effectiveResolverPolicy: "anyone",
     resolverPolicyProvenance: "inherited",
     effectiveResolverPolicySource: "requested",
-    legacyResolverPolicyAliases: { requested: "board_or_agents", effective: "board_or_agents" },
+    legacyResolverPolicyAliases: {
+      requested: "board_or_agents",
+      effective: "board_or_agents",
+    },
     createdByAgentId: "agent-1",
     createdByUserId: null,
     resolvedByAgentId: null,
@@ -39,7 +42,9 @@ function confirmation(
   };
 }
 
-function result(outcome: RequestConfirmationResult["outcome"]): RequestConfirmationResult {
+function result(
+  outcome: RequestConfirmationResult["outcome"],
+): RequestConfirmationResult {
   return { version: 1, outcome };
 }
 
@@ -58,12 +63,18 @@ describe("isSuppressedThreadInteraction", () => {
   it("hides confirmations superseded by a comment or a newer request", () => {
     expect(
       isSuppressedThreadInteraction(
-        confirmation({ status: "expired", result: result("superseded_by_comment") }),
+        confirmation({
+          status: "expired",
+          result: result("superseded_by_comment"),
+        }),
       ),
     ).toBe(true);
     expect(
       isSuppressedThreadInteraction(
-        confirmation({ status: "expired", result: result("superseded_by_newer_request") }),
+        confirmation({
+          status: "expired",
+          result: result("superseded_by_newer_request"),
+        }),
       ),
     ).toBe(true);
   });
@@ -108,10 +119,16 @@ describe("isSuppressedThreadInteraction", () => {
   });
 
   it("only suppresses confirmation-family kinds, not questions or suggestions", () => {
-    const superseded = { version: 1, outcome: "superseded_by_comment" } as never;
+    const superseded = {
+      version: 1,
+      outcome: "superseded_by_comment",
+    } as never;
     expect(
       isSuppressedThreadInteraction(
-        confirmation({ kind: "ask_user_questions", result: superseded } as never),
+        confirmation({
+          kind: "ask_user_questions",
+          result: superseded,
+        } as never),
       ),
     ).toBe(false);
     expect(
@@ -124,7 +141,9 @@ describe("isSuppressedThreadInteraction", () => {
 
 describe("interactionThreadAnchorMs", () => {
   it("keeps a pending card at its request-time fallback", () => {
-    expect(interactionThreadAnchorMs(confirmation(), CREATED_MS)).toBe(CREATED_MS);
+    expect(interactionThreadAnchorMs(confirmation(), CREATED_MS)).toBe(
+      CREATED_MS,
+    );
   });
 
   it("places a resolved confirmation at the decision time", () => {
@@ -142,12 +161,14 @@ describe("interactionThreadAnchorMs", () => {
       status: "answered",
       payload: {
         version: 1,
-        questions: [{
-          id: "environment",
-          prompt: "Which environment?",
-          selectionMode: "single",
-          options: [{ id: "production", label: "Production" }],
-        }],
+        questions: [
+          {
+            id: "environment",
+            prompt: "Which environment?",
+            selectionMode: "single",
+            options: [{ id: "production", label: "Production" }],
+          },
+        ],
       },
       result: {
         version: 1,
@@ -155,7 +176,9 @@ describe("interactionThreadAnchorMs", () => {
       },
       resolvedAt: new Date(RESOLVED_MS),
     } as never);
-    expect(interactionThreadAnchorMs(answeredQuestion, CREATED_MS)).toBe(CREATED_MS);
+    expect(interactionThreadAnchorMs(answeredQuestion, CREATED_MS)).toBe(
+      CREATED_MS,
+    );
   });
 
   it("never drags a resolved confirmation above its own request slot", () => {
@@ -169,7 +192,10 @@ describe("interactionThreadAnchorMs", () => {
   });
 
   it("falls back when a resolved card has no resolvedAt yet", () => {
-    const resolved = confirmation({ status: "accepted", result: result("accepted") });
+    const resolved = confirmation({
+      status: "accepted",
+      result: result("accepted"),
+    });
     expect(interactionThreadAnchorMs(resolved, CREATED_MS)).toBe(CREATED_MS);
   });
 });

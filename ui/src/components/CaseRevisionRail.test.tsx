@@ -19,15 +19,25 @@ vi.mock("@/api/cases", async (importOriginal) => ({
   casesApi: mockCasesApi,
 }));
 vi.mock("@/components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: string }) => <div data-testid="md">{children}</div>,
+  MarkdownBody: ({ children }: { children: string }) => (
+    <div data-testid="md">{children}</div>
+  ),
 }));
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 async function flush() {
   for (let i = 0; i < 5; i += 1) {
@@ -39,7 +49,13 @@ async function flush() {
 
 const revisions: CaseDocumentRevisions = {
   key: "body",
-  document: { id: "doc-1", title: "body", format: "markdown", latestRevisionId: "r2", latestRevisionNumber: 2 },
+  document: {
+    id: "doc-1",
+    title: "body",
+    format: "markdown",
+    latestRevisionId: "r2",
+    latestRevisionNumber: 2,
+  },
   revisions: [
     {
       id: "r2",
@@ -53,7 +69,12 @@ const revisions: CaseDocumentRevisions = {
       createdByUserId: null,
       createdByRunId: "run-2",
       actorAgentName: "Cases Agent",
-      issue: { id: "i1", identifier: "PAP-42", title: "Task", status: "in_progress" },
+      issue: {
+        id: "i1",
+        identifier: "PAP-42",
+        title: "Task",
+        status: "in_progress",
+      },
     },
     {
       id: "r1",
@@ -83,7 +104,9 @@ describe("CaseRevisionRail", () => {
 
   async function render() {
     const root = createRoot(container);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     act(() => {
       root.render(
         <QueryClientProvider client={queryClient}>
@@ -105,7 +128,9 @@ describe("CaseRevisionRail", () => {
     expect(text).toContain("polish wording");
     expect(text).toContain("Cases Agent");
     // Latest (rev 2) selected → its body renders; via-issue attribution shown.
-    expect(container.querySelector('[data-testid="md"]')?.textContent).toBe("# Second version");
+    expect(container.querySelector('[data-testid="md"]')?.textContent).toBe(
+      "# Second version",
+    );
     expect(container.querySelector('a[href="/issues/PAP-42"]')).not.toBeNull();
     act(() => root.unmount());
   });
@@ -113,13 +138,17 @@ describe("CaseRevisionRail", () => {
   it("switches the rendered body when an older revision is picked", async () => {
     mockCasesApi.listRevisions.mockResolvedValue(revisions);
     const root = await render();
-    const rev1Button = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("rev 1"),
+    const rev1Button = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("rev 1"),
     );
     expect(rev1Button).toBeTruthy();
-    act(() => rev1Button!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    act(() =>
+      rev1Button!.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
     await flush();
-    expect(container.querySelector('[data-testid="md"]')?.textContent).toBe("# First version");
+    expect(container.querySelector('[data-testid="md"]')?.textContent).toBe(
+      "# First version",
+    );
     act(() => root.unmount());
   });
 });

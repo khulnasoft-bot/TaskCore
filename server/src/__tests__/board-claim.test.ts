@@ -21,11 +21,15 @@ import {
 } from "./helpers/embedded-postgres.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("board claim", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("taskcore-board-claim-");
@@ -33,7 +37,9 @@ describeEmbeddedPostgres("board claim", () => {
   }, 20_000);
 
   afterEach(async () => {
-    await initializeBoardClaimChallenge(db, { deploymentMode: "local_trusted" });
+    await initializeBoardClaimChallenge(db, {
+      deploymentMode: "local_trusted",
+    });
     await db.delete(principalPermissionGrants);
     await db.delete(companyMemberships);
     await db.delete(companies);
@@ -70,7 +76,9 @@ describeEmbeddedPostgres("board claim", () => {
       role: "instance_admin",
     });
 
-    await initializeBoardClaimChallenge(db, { deploymentMode: "authenticated" });
+    await initializeBoardClaimChallenge(db, {
+      deploymentMode: "authenticated",
+    });
     const warningUrl = getBoardClaimWarningUrl("127.0.0.1", 3197);
     expect(warningUrl).toBeTruthy();
 
@@ -95,13 +103,23 @@ describeEmbeddedPostgres("board claim", () => {
       db
         .select()
         .from(instanceUserRoles)
-        .where(and(eq(instanceUserRoles.userId, "local-board"), eq(instanceUserRoles.role, "instance_admin"))),
+        .where(
+          and(
+            eq(instanceUserRoles.userId, "local-board"),
+            eq(instanceUserRoles.role, "instance_admin"),
+          ),
+        ),
     ).resolves.toHaveLength(0);
     await expect(
       db
         .select()
         .from(instanceUserRoles)
-        .where(and(eq(instanceUserRoles.userId, userId), eq(instanceUserRoles.role, "instance_admin"))),
+        .where(
+          and(
+            eq(instanceUserRoles.userId, userId),
+            eq(instanceUserRoles.role, "instance_admin"),
+          ),
+        ),
     ).resolves.toHaveLength(1);
     await expect(
       db

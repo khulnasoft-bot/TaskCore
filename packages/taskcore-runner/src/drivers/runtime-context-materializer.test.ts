@@ -45,10 +45,12 @@ async function makeWritable(root: string): Promise<void> {
 }
 
 afterEach(async () => {
-  await Promise.all(roots.splice(0).map(async (root) => {
-    await makeWritable(root);
-    await rm(root, { recursive: true, force: true });
-  }));
+  await Promise.all(
+    roots.splice(0).map(async (root) => {
+      await makeWritable(root);
+      await rm(root, { recursive: true, force: true });
+    }),
+  );
 });
 
 function context(
@@ -74,48 +76,76 @@ function context(
         totalBytes: 2,
       },
     },
-    skills: [{
-      key: `company/${runtimeName}`,
-      runtimeName,
-      versionId: "version-1",
-      bundle: {
-        schema: NATIVE_RUNTIME_ASSET_SCHEMA,
-        digest,
-        manifestDigest: digest,
-        rootPath: skillRoot,
-        fileCount: 2,
-        totalBytes: 2,
+    skills: [
+      {
+        key: `company/${runtimeName}`,
+        runtimeName,
+        versionId: "version-1",
+        bundle: {
+          schema: NATIVE_RUNTIME_ASSET_SCHEMA,
+          digest,
+          manifestDigest: digest,
+          rootPath: skillRoot,
+          fileCount: 2,
+          totalBytes: 2,
+        },
       },
-    }],
+    ],
     mcp: { assignmentSetId: runtimeName, digest, bindingId: "binding" },
   } satisfies Omit<NativeRuntimeContextSnapshot, "aggregateDigest">;
-  return { ...value, aggregateDigest: canonicalNativeRuntimeContextDigest(value) };
+  return {
+    ...value,
+    aggregateDigest: canonicalNativeRuntimeContextDigest(value),
+  };
 }
 
 describe("runtime context materialization", () => {
   it("restores the legacy working-copy contract without changing its digest or adding new fields", () => {
     const old = context("/skills", "/instructions");
-    old.instructions.workingCopy = { rootPath: "/old-run/copy", entryPath: "AGENTS.md" };
+    old.instructions.workingCopy = {
+      rootPath: "/old-run/copy",
+      entryPath: "AGENTS.md",
+    };
     old.aggregateDigest = canonicalNativeRuntimeContextDigest(old);
-    expect(parseNativeRuntimeContext(JSON.parse(JSON.stringify(old)))).toEqual(old);
-    expect(parseNativeRuntimeContext(old).instructions.workingCopy).not.toHaveProperty("kind");
-    const next = { ...old, instructions: { ...old.instructions, workingCopy: { ...old.instructions.workingCopy, kind: "agent_files" as const } } };
+    expect(parseNativeRuntimeContext(JSON.parse(JSON.stringify(old)))).toEqual(
+      old,
+    );
+    expect(
+      parseNativeRuntimeContext(old).instructions.workingCopy,
+    ).not.toHaveProperty("kind");
+    const next = {
+      ...old,
+      instructions: {
+        ...old.instructions,
+        workingCopy: {
+          ...old.instructions.workingCopy,
+          kind: "agent_files" as const,
+        },
+      },
+    };
     next.aggregateDigest = canonicalNativeRuntimeContextDigest(next);
-    expect(parseNativeRuntimeContext(next).instructions.workingCopy?.kind).toBe("agent_files");
+    expect(parseNativeRuntimeContext(next).instructions.workingCopy?.kind).toBe(
+      "agent_files",
+    );
   });
 
   it("validates native MCP launch bindings before they reach Codex", () => {
     expect(nativeMcpLaunchBinding({})).toBeNull();
-    expect(() => nativeMcpLaunchBinding({
-      TASKCORE_NATIVE_MCP_NAME: "taskcore",
-      TASKCORE_NATIVE_MCP_URL: "http://taskcore.example/mcp",
-      TASKCORE_NATIVE_MCP_TOKEN: "x".repeat(40),
-    })).toThrow("requires HTTPS or loopback HTTP");
-    expect(() => nativeMcpLaunchBinding({
-      TASKCORE_NATIVE_MCP_NAME: "taskcore",
-      TASKCORE_NATIVE_MCP_URL: "https://user:pass@taskcore.example/mcp#secret",
-      TASKCORE_NATIVE_MCP_TOKEN: "x".repeat(40),
-    })).toThrow("contains forbidden URL data");
+    expect(() =>
+      nativeMcpLaunchBinding({
+        TASKCORE_NATIVE_MCP_NAME: "taskcore",
+        TASKCORE_NATIVE_MCP_URL: "http://taskcore.example/mcp",
+        TASKCORE_NATIVE_MCP_TOKEN: "x".repeat(40),
+      }),
+    ).toThrow("requires HTTPS or loopback HTTP");
+    expect(() =>
+      nativeMcpLaunchBinding({
+        TASKCORE_NATIVE_MCP_NAME: "taskcore",
+        TASKCORE_NATIVE_MCP_URL:
+          "https://user:pass@taskcore.example/mcp#secret",
+        TASKCORE_NATIVE_MCP_TOKEN: "x".repeat(40),
+      }),
+    ).toThrow("contains forbidden URL data");
   });
 
   it("copies only assigned skills and writes an isolated MCP config", async () => {
@@ -131,10 +161,7 @@ describe("runtime context materialization", () => {
       mkdir(hostSkills, { recursive: true }),
     ]);
     await writeFile(join(assigned, "SKILL.md"), "# Assigned\n");
-    await writeFile(
-      join(assigned, "references", "support.md"),
-      "support\n",
-    );
+    await writeFile(join(assigned, "references", "support.md"), "support\n");
     await writeFile(join(instructions, "AGENTS.md"), "Instructions\n");
     await writeFile(join(hostSkills, "SKILL.md"), "# Must not leak\n");
 
@@ -149,14 +176,18 @@ describe("runtime context materialization", () => {
       }),
     });
 
-    await expect(readFile(
-      join(codexHome, "skills", "assigned", "references", "support.md"),
-      "utf8",
-    )).resolves.toBe("support\n");
-    await expect(stat(join(codexHome, "skills", "unassigned"))).rejects.toThrow();
+    await expect(
+      readFile(
+        join(codexHome, "skills", "assigned", "references", "support.md"),
+        "utf8",
+      ),
+    ).resolves.toBe("support\n");
+    await expect(
+      stat(join(codexHome, "skills", "unassigned")),
+    ).rejects.toThrow();
     expect(
-      (await stat(join(codexHome, "skills", "assigned", "SKILL.md"))).mode
-      & 0o222,
+      (await stat(join(codexHome, "skills", "assigned", "SKILL.md"))).mode &
+        0o222,
     ).toBe(0);
     const config = await readFile(join(codexHome, "config.toml"), "utf8");
     expect(config).toContain("shell_snapshot = false");
@@ -172,8 +203,13 @@ describe("runtime context materialization", () => {
     const source = join(root, "source");
     const target = join(root, "isolated");
     await mkdir(source);
-    await writeFile(join(source, "auth.json"), '{"OPENAI_API_KEY":"unrelated-key"}');
-    await writeFile(join(source, "config.toml"), `model_provider = "taskcore"
+    await writeFile(
+      join(source, "auth.json"),
+      '{"OPENAI_API_KEY":"unrelated-key"}',
+    );
+    await writeFile(
+      join(source, "config.toml"),
+      `model_provider = "taskcore"
 [model_providers.taskcore]
 name = "Selected connection"
 base_url = "https://openrouter.ai/api/v1"
@@ -184,8 +220,14 @@ env_key = "TASKCORE_AI_PROVIDER_KEY"
 shell_snapshot = true
 [mcp_servers.unassigned]
 command = "untrusted-command"
-`);
-    await prepareIsolatedCodexHome({ context: null, codexHome: target, sourceCodexHome: source, apiKey: "also-unrelated" });
+`,
+    );
+    await prepareIsolatedCodexHome({
+      context: null,
+      codexHome: target,
+      sourceCodexHome: source,
+      apiKey: "also-unrelated",
+    });
     const config = await readFile(join(target, "config.toml"), "utf8");
     expect(config).toContain('model_provider = "taskcore"');
     expect(config).toContain('base_url = "https://openrouter.ai/api/v1"');
@@ -202,7 +244,11 @@ command = "untrusted-command"
     const replacement = join(root, "replacement-source");
     const instructions = join(root, "instructions-source");
     const codexHome = join(root, "codex-home");
-    await Promise.all([mkdir(assigned), mkdir(replacement), mkdir(instructions)]);
+    await Promise.all([
+      mkdir(assigned),
+      mkdir(replacement),
+      mkdir(instructions),
+    ]);
     await writeFile(join(assigned, "SKILL.md"), "# Assigned\n");
     await writeFile(join(replacement, "SKILL.md"), "# Replacement\n");
     await writeFile(join(instructions, "AGENTS.md"), "Instructions\n");
@@ -211,21 +257,25 @@ command = "untrusted-command"
       context: context(assigned, instructions),
       codexHome,
     });
-    await expect(prepareIsolatedCodexHome({
-      context: context(replacement, instructions, "replacement"),
-      codexHome,
-    })).rejects.toThrow("skills home must be a fresh destination");
-    await expect(prepareIsolatedCodexHome({
-      context: null,
-      codexHome,
-    })).rejects.toThrow("skills home must be a fresh destination");
+    await expect(
+      prepareIsolatedCodexHome({
+        context: context(replacement, instructions, "replacement"),
+        codexHome,
+      }),
+    ).rejects.toThrow("skills home must be a fresh destination");
+    await expect(
+      prepareIsolatedCodexHome({
+        context: null,
+        codexHome,
+      }),
+    ).rejects.toThrow("skills home must be a fresh destination");
 
-    await expect(readFile(
-      join(codexHome, "skills", "assigned", "SKILL.md"),
-      "utf8",
-    )).resolves.toBe("# Assigned\n");
-    await expect(stat(join(codexHome, "skills", "replacement"))).rejects
-      .toThrow();
+    await expect(
+      readFile(join(codexHome, "skills", "assigned", "SKILL.md"), "utf8"),
+    ).resolves.toBe("# Assigned\n");
+    await expect(
+      stat(join(codexHome, "skills", "replacement")),
+    ).rejects.toThrow();
   });
 
   it("rejects source symlinks without changing the current assignment", async () => {
@@ -246,14 +296,15 @@ command = "untrusted-command"
       context: context(assigned, instructions),
       codexHome,
     });
-    await expect(prepareIsolatedCodexHome({
-      context: context(unsafe, instructions, "unsafe"),
-      codexHome,
-    })).rejects.toThrow("runtime context asset contains a symlink");
-    await expect(readFile(
-      join(codexHome, "skills", "assigned", "SKILL.md"),
-      "utf8",
-    )).resolves.toBe("# Assigned\n");
+    await expect(
+      prepareIsolatedCodexHome({
+        context: context(unsafe, instructions, "unsafe"),
+        codexHome,
+      }),
+    ).rejects.toThrow("runtime context asset contains a symlink");
+    await expect(
+      readFile(join(codexHome, "skills", "assigned", "SKILL.md"), "utf8"),
+    ).resolves.toBe("# Assigned\n");
   });
 
   it("rejects overlapping portable names without changing the current assignment", async () => {
@@ -263,7 +314,11 @@ command = "untrusted-command"
     const replacement = join(root, "replacement-source");
     const instructions = join(root, "instructions-source");
     const codexHome = join(root, "codex-home");
-    await Promise.all([mkdir(assigned), mkdir(replacement), mkdir(instructions)]);
+    await Promise.all([
+      mkdir(assigned),
+      mkdir(replacement),
+      mkdir(instructions),
+    ]);
     await writeFile(join(assigned, "SKILL.md"), "# Assigned\n");
     await writeFile(join(replacement, "SKILL.md"), "# Replacement\n");
     await writeFile(join(instructions, "AGENTS.md"), "Instructions\n");
@@ -272,7 +327,11 @@ command = "untrusted-command"
       context: context(assigned, instructions),
       codexHome,
     });
-    const replacementContext = context(replacement, instructions, "group/child");
+    const replacementContext = context(
+      replacement,
+      instructions,
+      "group/child",
+    );
     for (const runtimeName of ["group", "GROUP", "group.", "group "]) {
       const collidingSkill = {
         ...replacementContext.skills[0]!,
@@ -289,15 +348,18 @@ command = "untrusted-command"
           aggregateDigest: canonicalNativeRuntimeContextDigest(value),
         };
 
-        await expect(prepareIsolatedCodexHome({
-          context: collidingContext,
-          codexHome,
-        })).rejects.toThrow("skill names must not overlap");
-        await expect(readFile(
-          join(codexHome, "skills", "assigned", "SKILL.md"),
-          "utf8",
-        )).resolves.toBe("# Assigned\n");
-        await expect(stat(join(codexHome, "skills", "group"))).rejects.toThrow();
+        await expect(
+          prepareIsolatedCodexHome({
+            context: collidingContext,
+            codexHome,
+          }),
+        ).rejects.toThrow("skill names must not overlap");
+        await expect(
+          readFile(join(codexHome, "skills", "assigned", "SKILL.md"), "utf8"),
+        ).resolves.toBe("# Assigned\n");
+        await expect(
+          stat(join(codexHome, "skills", "group")),
+        ).rejects.toThrow();
       }
     }
 
@@ -310,13 +372,15 @@ command = "untrusted-command"
       ...replacementContext,
       skills: [...replacementContext.skills, win32AliasedChild],
     };
-    await expect(prepareIsolatedCodexHome({
-      context: {
-        ...value,
-        aggregateDigest: canonicalNativeRuntimeContextDigest(value),
-      },
-      codexHome,
-    })).rejects.toThrow("skill names must not overlap");
+    await expect(
+      prepareIsolatedCodexHome({
+        context: {
+          ...value,
+          aggregateDigest: canonicalNativeRuntimeContextDigest(value),
+        },
+        codexHome,
+      }),
+    ).rejects.toThrow("skill names must not overlap");
   });
 
   it("rejects an existing destination before filesystem mutation", async () => {
@@ -380,18 +444,20 @@ command = "untrusted-command"
     await writeFile(join(assigned, "SKILL.md"), "# Assigned\n");
     await writeFile(join(instructions, "AGENTS.md"), "Instructions\n");
 
-    await expect(materializeNativeRuntimeSkills(
-      context(assigned, instructions),
-      skillsHome,
-      {
-        renameTree: async (source) => {
-          await expect(
-            readFile(join(source, "assigned", "SKILL.md"), "utf8"),
-          ).resolves.toBe("# Assigned\n");
-          throw new Error("simulated publication failure");
+    await expect(
+      materializeNativeRuntimeSkills(
+        context(assigned, instructions),
+        skillsHome,
+        {
+          renameTree: async (source) => {
+            await expect(
+              readFile(join(source, "assigned", "SKILL.md"), "utf8"),
+            ).resolves.toBe("# Assigned\n");
+            throw new Error("simulated publication failure");
+          },
         },
-      },
-    )).rejects.toThrow("simulated publication failure");
+      ),
+    ).rejects.toThrow("simulated publication failure");
 
     await expect(stat(skillsHome)).rejects.toThrow();
     expect(
@@ -411,10 +477,12 @@ command = "untrusted-command"
     await writeFile(join(assigned, "SKILL.md"), "# Assigned\n");
     await writeFile(join(instructions, "AGENTS.md"), "Instructions\n");
 
-    await expect(prepareIsolatedCodexHome({
-      context: context(assigned, instructions, "../outside"),
-      codexHome,
-    })).rejects.toThrow("skill name must be a safe relative path");
+    await expect(
+      prepareIsolatedCodexHome({
+        context: context(assigned, instructions, "../outside"),
+        codexHome,
+      }),
+    ).rejects.toThrow("skill name must be a safe relative path");
     for (const runtimeName of [
       "CON",
       "con.txt",
@@ -436,10 +504,12 @@ command = "untrusted-command"
       "group/...",
       "group/. . ",
     ]) {
-      await expect(prepareIsolatedCodexHome({
-        context: context(assigned, instructions, runtimeName),
-        codexHome,
-      })).rejects.toThrow("skill name must be a safe relative path");
+      await expect(
+        prepareIsolatedCodexHome({
+          context: context(assigned, instructions, runtimeName),
+          codexHome,
+        }),
+      ).rejects.toThrow("skill name must be a safe relative path");
     }
     await expect(stat(join(root, "outside"))).rejects.toThrow();
   });
@@ -469,7 +539,10 @@ command = "untrusted-command"
     );
     expect((await stat(join(codexHome, "auth.json"))).mode & 0o777).toBe(0o600);
 
-    await prepareIsolatedCodexHome({ context: null, codexHome: emptyCodexHome });
+    await prepareIsolatedCodexHome({
+      context: null,
+      codexHome: emptyCodexHome,
+    });
     await expect(stat(join(emptyCodexHome, "auth.json"))).rejects.toThrow();
   });
 
@@ -481,7 +554,9 @@ command = "untrusted-command"
     const sourceHome = join(root, "source-home");
     const secret = join(root, "secret.json");
     await mkdir(sourceHome);
-    await writeFile(join(sourceHome, "auth.json"), "host-auth", { mode: 0o600 });
+    await writeFile(join(sourceHome, "auth.json"), "host-auth", {
+      mode: 0o600,
+    });
 
     await prepareIsolatedCodexHome({
       context: null,

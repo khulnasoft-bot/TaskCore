@@ -41,13 +41,16 @@ if (existsSync(TASKCORE_ENV_FILE_PATH)) {
 
 const CWD_ENV_PATH = resolve(process.cwd(), ".env");
 const cwdEnvExists = existsSync(CWD_ENV_PATH);
-const isSameFile = cwdEnvExists && existsSync(TASKCORE_ENV_FILE_PATH)
-  ? realpathSync(CWD_ENV_PATH) === realpathSync(TASKCORE_ENV_FILE_PATH)
-  : CWD_ENV_PATH === TASKCORE_ENV_FILE_PATH;
-if (shouldLoadWorkingDirectoryEnv({
-  cwdEnvExists,
-  isTaskcoreEnvFile: isSameFile,
-})) {
+const isSameFile =
+  cwdEnvExists && existsSync(TASKCORE_ENV_FILE_PATH)
+    ? realpathSync(CWD_ENV_PATH) === realpathSync(TASKCORE_ENV_FILE_PATH)
+    : CWD_ENV_PATH === TASKCORE_ENV_FILE_PATH;
+if (
+  shouldLoadWorkingDirectoryEnv({
+    cwdEnvExists,
+    isTaskcoreEnvFile: isSameFile,
+  })
+) {
   loadDotenv({ path: CWD_ENV_PATH, override: false, quiet: true });
 }
 
@@ -129,8 +132,9 @@ function detectTailnetBindHost(): string | undefined {
 
 export function loadConfig(): Config {
   const fileConfig = readConfigFile();
-  const fileDatabaseMode =
-    (fileConfig?.database.mode === "postgres" ? "postgres" : "embedded-postgres") as DatabaseMode;
+  const fileDatabaseMode = (
+    fileConfig?.database.mode === "postgres" ? "postgres" : "embedded-postgres"
+  ) as DatabaseMode;
 
   const fileDbUrl =
     fileDatabaseMode === "postgres"
@@ -142,39 +146,58 @@ export function loadConfig(): Config {
 
   const providerFromEnvRaw = process.env.TASKCORE_SECRETS_PROVIDER;
   const providerFromEnv =
-    providerFromEnvRaw && SECRET_PROVIDERS.includes(providerFromEnvRaw as SecretProvider)
+    providerFromEnvRaw &&
+    SECRET_PROVIDERS.includes(providerFromEnvRaw as SecretProvider)
       ? (providerFromEnvRaw as SecretProvider)
       : null;
   const providerFromFile = fileSecrets?.provider;
-  const secretsProvider: SecretProvider = providerFromEnv ?? providerFromFile ?? "local_encrypted";
+  const secretsProvider: SecretProvider =
+    providerFromEnv ?? providerFromFile ?? "local_encrypted";
 
   const storageProviderFromEnvRaw = process.env.TASKCORE_STORAGE_PROVIDER;
   const storageProviderFromEnv =
-    storageProviderFromEnvRaw && STORAGE_PROVIDERS.includes(storageProviderFromEnvRaw as StorageProvider)
+    storageProviderFromEnvRaw &&
+    STORAGE_PROVIDERS.includes(storageProviderFromEnvRaw as StorageProvider)
       ? (storageProviderFromEnvRaw as StorageProvider)
       : null;
-  const storageProvider: StorageProvider = storageProviderFromEnv ?? fileStorage?.provider ?? "local_disk";
+  const storageProvider: StorageProvider =
+    storageProviderFromEnv ?? fileStorage?.provider ?? "local_disk";
   const storageLocalDiskBaseDir = resolveHomeAwarePath(
     process.env.TASKCORE_STORAGE_LOCAL_DIR ??
       fileStorage?.localDisk?.baseDir ??
       resolveDefaultStorageDir(),
   );
-  const storageS3Bucket = process.env.TASKCORE_STORAGE_S3_BUCKET ?? fileStorage?.s3?.bucket ?? "taskcore";
-  const storageS3Region = process.env.TASKCORE_STORAGE_S3_REGION ?? fileStorage?.s3?.region ?? "us-east-1";
-  const storageS3Endpoint = process.env.TASKCORE_STORAGE_S3_ENDPOINT ?? fileStorage?.s3?.endpoint ?? undefined;
-  const storageS3Prefix = process.env.TASKCORE_STORAGE_S3_PREFIX ?? fileStorage?.s3?.prefix ?? "";
+  const storageS3Bucket =
+    process.env.TASKCORE_STORAGE_S3_BUCKET ??
+    fileStorage?.s3?.bucket ??
+    "taskcore";
+  const storageS3Region =
+    process.env.TASKCORE_STORAGE_S3_REGION ??
+    fileStorage?.s3?.region ??
+    "us-east-1";
+  const storageS3Endpoint =
+    process.env.TASKCORE_STORAGE_S3_ENDPOINT ??
+    fileStorage?.s3?.endpoint ??
+    undefined;
+  const storageS3Prefix =
+    process.env.TASKCORE_STORAGE_S3_PREFIX ?? fileStorage?.s3?.prefix ?? "";
   const storageS3ForcePathStyle =
     process.env.TASKCORE_STORAGE_S3_FORCE_PATH_STYLE !== undefined
       ? process.env.TASKCORE_STORAGE_S3_FORCE_PATH_STYLE === "true"
       : (fileStorage?.s3?.forcePathStyle ?? false);
-  const storageVercelBlobAccessFromEnvRaw = process.env.TASKCORE_STORAGE_VERCEL_BLOB_ACCESS;
+  const storageVercelBlobAccessFromEnvRaw =
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_ACCESS;
   const storageVercelBlobAccess: StorageVercelBlobAccess =
     storageVercelBlobAccessFromEnvRaw &&
-    STORAGE_VERCEL_BLOB_ACCESS_MODES.includes(storageVercelBlobAccessFromEnvRaw as StorageVercelBlobAccess)
+    STORAGE_VERCEL_BLOB_ACCESS_MODES.includes(
+      storageVercelBlobAccessFromEnvRaw as StorageVercelBlobAccess,
+    )
       ? (storageVercelBlobAccessFromEnvRaw as StorageVercelBlobAccess)
       : (fileStorage?.vercelBlob?.access ?? "private");
   const storageVercelBlobPrefix =
-    process.env.TASKCORE_STORAGE_VERCEL_BLOB_PREFIX ?? fileStorage?.vercelBlob?.prefix ?? "";
+    process.env.TASKCORE_STORAGE_VERCEL_BLOB_PREFIX ??
+    fileStorage?.vercelBlob?.prefix ??
+    "";
   const storageVercelBlobToken =
     process.env.TASKCORE_STORAGE_VERCEL_BLOB_TOKEN?.trim() ||
     process.env.BLOB_READ_WRITE_TOKEN?.trim() ||
@@ -201,7 +224,9 @@ export function loadConfig(): Config {
   const deploymentExposureFromEnvRaw = process.env.TASKCORE_DEPLOYMENT_EXPOSURE;
   const deploymentExposureFromEnv =
     deploymentExposureFromEnvRaw &&
-    DEPLOYMENT_EXPOSURES.includes(deploymentExposureFromEnvRaw as DeploymentExposure)
+    DEPLOYMENT_EXPOSURES.includes(
+      deploymentExposureFromEnvRaw as DeploymentExposure,
+    )
       ? (deploymentExposureFromEnvRaw as DeploymentExposure)
       : null;
   const deploymentExposure: DeploymentExposure =
@@ -213,13 +238,15 @@ export function loadConfig(): Config {
     bindFromEnvRaw && BIND_MODES.includes(bindFromEnvRaw as BindMode)
       ? (bindFromEnvRaw as BindMode)
       : null;
-  const configuredHost = process.env.HOST ?? fileConfig?.server.host ?? "127.0.0.1";
+  const configuredHost =
+    process.env.HOST ?? fileConfig?.server.host ?? "127.0.0.1";
   const tailnetBindHost = detectTailnetBindHost();
   const bind =
     bindFromEnv ??
     fileConfig?.server.bind ??
     inferBindModeFromHost(configuredHost, { tailnetBindHost });
-  const customBindHost = process.env.TASKCORE_BIND_HOST ?? fileConfig?.server.customBindHost;
+  const customBindHost =
+    process.env.TASKCORE_BIND_HOST ?? fileConfig?.server.customBindHost;
   const authBaseUrlModeFromEnvRaw = process.env.TASKCORE_AUTH_BASE_URL_MODE;
   const authBaseUrlModeFromEnv =
     authBaseUrlModeFromEnvRaw &&
@@ -233,15 +260,21 @@ export function loadConfig(): Config {
     process.env.BETTER_AUTH_BASE_URL,
     publicUrlFromEnv,
     fileConfig?.auth?.publicBaseUrl,
-  ].find((value): value is string => typeof value === "string" && value.trim().length > 0);
-  const managedRuntimePublicUrl = process.env.TASKCORE_MANAGED_RUNTIME_PUBLIC_URL?.trim() || undefined;
-  const authPublicBaseUrlRaw = configuredAuthPublicBaseUrlRaw ?? managedRuntimePublicUrl;
+  ].find(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  );
+  const managedRuntimePublicUrl =
+    process.env.TASKCORE_MANAGED_RUNTIME_PUBLIC_URL?.trim() || undefined;
+  const authPublicBaseUrlRaw =
+    configuredAuthPublicBaseUrlRaw ?? managedRuntimePublicUrl;
   const authPublicBaseUrl = authPublicBaseUrlRaw?.trim() || undefined;
   const authBaseUrlMode: AuthBaseUrlMode =
     authBaseUrlModeFromEnv ??
     (configuredAuthPublicBaseUrlRaw === undefined && managedRuntimePublicUrl
       ? "explicit"
-      : fileConfig?.auth?.baseUrlMode ?? (authPublicBaseUrl ? "explicit" : "auto"));
+      : (fileConfig?.auth?.baseUrlMode ??
+        (authPublicBaseUrl ? "explicit" : "auto")));
   const disableSignUpFromEnv = process.env.TASKCORE_AUTH_DISABLE_SIGN_UP;
   const authDisableSignUp: boolean =
     disableSignUpFromEnv !== undefined
@@ -250,23 +283,25 @@ export function loadConfig(): Config {
   const allowedHostnamesFromEnvRaw = process.env.TASKCORE_ALLOWED_HOSTNAMES;
   const allowedHostnamesFromEnv = allowedHostnamesFromEnvRaw
     ? allowedHostnamesFromEnvRaw
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter((value) => value.length > 0)
+        .split(",")
+        .map((value) => value.trim().toLowerCase())
+        .filter((value) => value.length > 0)
     : null;
   const publicUrlHostname = authPublicBaseUrl
     ? (() => {
-      try {
-        return new URL(authPublicBaseUrl).hostname.trim().toLowerCase();
-      } catch {
-        return null;
-      }
-    })()
+        try {
+          return new URL(authPublicBaseUrl).hostname.trim().toLowerCase();
+        } catch {
+          return null;
+        }
+      })()
     : null;
   const allowedHostnames = Array.from(
     new Set(
       [
-        ...(allowedHostnamesFromEnv ?? fileConfig?.server.allowedHostnames ?? []),
+        ...(allowedHostnamesFromEnv ??
+          fileConfig?.server.allowedHostnames ??
+          []),
         ...(publicUrlHostname ? [publicUrlHostname] : []),
       ]
         .map((value) => value.trim().toLowerCase())
@@ -309,9 +344,9 @@ export function loadConfig(): Config {
     process.env.TASKCORE_WORKSPACE_REAPER_COOLDOWN_DAYS?.trim();
   const workspaceReaperCooldownDaysRaw = Number(workspaceReaperCooldownDaysEnv);
   const workspaceReaperCooldownDays =
-    workspaceReaperCooldownDaysEnv
-      && Number.isFinite(workspaceReaperCooldownDaysRaw)
-      && workspaceReaperCooldownDaysRaw >= 0
+    workspaceReaperCooldownDaysEnv &&
+    Number.isFinite(workspaceReaperCooldownDaysRaw) &&
+    workspaceReaperCooldownDaysRaw >= 0
       ? workspaceReaperCooldownDaysRaw
       : 7;
   const bindValidationErrors = validateConfiguredBindMode({
@@ -352,7 +387,8 @@ export function loadConfig(): Config {
     databaseUrl: process.env.DATABASE_URL ?? fileDbUrl,
     databaseMigrationUrl: process.env.DATABASE_MIGRATION_URL,
     embeddedPostgresDataDir: resolveHomeAwarePath(
-      fileConfig?.database.embeddedPostgresDataDir ?? resolveDefaultEmbeddedPostgresDir(),
+      fileConfig?.database.embeddedPostgresDataDir ??
+        resolveDefaultEmbeddedPostgresDir(),
     ),
     embeddedPostgresPort: fileConfig?.database.embeddedPostgresPort ?? 54329,
     databaseBackupEnabled,
@@ -363,16 +399,15 @@ export function loadConfig(): Config {
     serveUi:
       process.env.SERVE_UI !== undefined
         ? process.env.SERVE_UI === "true"
-        : fileConfig?.server.serveUi ?? true,
+        : (fileConfig?.server.serveUi ?? true),
     uiDevMiddleware: process.env.TASKCORE_UI_DEV_MIDDLEWARE === "true",
     secretsProvider,
     secretsStrictMode,
-    secretsMasterKeyFilePath:
-      resolveHomeAwarePath(
-        process.env.TASKCORE_SECRETS_MASTER_KEY_FILE ??
-          fileSecrets?.localEncrypted.keyFilePath ??
-          resolveDefaultSecretsKeyFilePath(),
-      ),
+    secretsMasterKeyFilePath: resolveHomeAwarePath(
+      process.env.TASKCORE_SECRETS_MASTER_KEY_FILE ??
+        fileSecrets?.localEncrypted.keyFilePath ??
+        resolveDefaultSecretsKeyFilePath(),
+    ),
     storageProvider,
     storageLocalDiskBaseDir,
     storageS3Bucket,
@@ -386,11 +421,18 @@ export function loadConfig(): Config {
     storageVercelBlobStoreId,
     feedbackExportBackendUrl,
     feedbackExportBackendToken,
-    heartbeatSchedulerEnabled: process.env.HEARTBEAT_SCHEDULER_ENABLED !== "false",
-    heartbeatSchedulerIntervalMs: Math.max(10000, Number(process.env.HEARTBEAT_SCHEDULER_INTERVAL_MS) || 30000),
+    heartbeatSchedulerEnabled:
+      process.env.HEARTBEAT_SCHEDULER_ENABLED !== "false",
+    heartbeatSchedulerIntervalMs: Math.max(
+      10000,
+      Number(process.env.HEARTBEAT_SCHEDULER_INTERVAL_MS) || 30000,
+    ),
     companyDeletionEnabled,
     telemetryEnabled: fileConfig?.telemetry?.enabled ?? true,
-    announcementsEnabled: process.env.TASKCORE_ANNOUNCEMENTS_ENABLED !== "false",
-    announcementsFeedUrl: process.env.TASKCORE_ANNOUNCEMENTS_FEED_URL?.trim() || "https://pages.taskcore.ing/announcements/v1/current.json",
+    announcementsEnabled:
+      process.env.TASKCORE_ANNOUNCEMENTS_ENABLED !== "false",
+    announcementsFeedUrl:
+      process.env.TASKCORE_ANNOUNCEMENTS_FEED_URL?.trim() ||
+      "https://pages.taskcore.ing/announcements/v1/current.json",
   };
 }

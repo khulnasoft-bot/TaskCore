@@ -3,7 +3,10 @@ import { resolveMigrationConnection } from "./migration-runtime.js";
 
 const jsonMode = process.argv.includes("--json");
 
-function toError(error: unknown, context = "Migration status check failed"): Error {
+function toError(
+  error: unknown,
+  context = "Migration status check failed",
+): Error {
   if (error instanceof Error) return error;
   if (error === undefined) return new Error(context);
   if (typeof error === "string") return new Error(`${context}: ${error}`);

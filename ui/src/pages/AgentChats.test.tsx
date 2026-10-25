@@ -19,32 +19,61 @@ const state = vi.hoisted(() => ({
   navigate: vi.fn(),
 }));
 
-vi.mock("@/components/primary-agent/PrimaryAgentPresentation", () => ({ usePrimaryAgentPresentation: () => ({ primaryAgentId: state.primaryAgentId, loading: state.primaryLoading }) }));
+vi.mock("@/components/primary-agent/PrimaryAgentPresentation", () => ({
+  usePrimaryAgentPresentation: () => ({
+    primaryAgentId: state.primaryAgentId,
+    loading: state.primaryLoading,
+  }),
+}));
 
-vi.mock("@/context/BreadcrumbContext", () => ({ useBreadcrumbs: () => ({ setBreadcrumbs: vi.fn() }) }));
+vi.mock("@/context/BreadcrumbContext", () => ({
+  useBreadcrumbs: () => ({ setBreadcrumbs: vi.fn() }),
+}));
 vi.mock("@/hooks/useAgentChatNavigation", () => ({
   useAgentChatNavigation: () => ({
     companyId: state.companyId,
     userId: state.userId,
     enabled: true,
     loaded: true,
-    agents: { data: state.agents, isFetched: true, isPending: false, error: null },
-    chats: { data: state.chats, isFetched: state.chatsFetched, isSuccess: state.chatsFetched && !state.chatsError, error: state.chatsError },
-    session: { isFetched: !state.sessionError, isPending: false, error: state.sessionError },
+    agents: {
+      data: state.agents,
+      isFetched: true,
+      isPending: false,
+      error: null,
+    },
+    chats: {
+      data: state.chats,
+      isFetched: state.chatsFetched,
+      isSuccess: state.chatsFetched && !state.chatsError,
+      error: state.chatsError,
+    },
+    session: {
+      isFetched: !state.sessionError,
+      isPending: false,
+      error: state.sessionError,
+    },
   }),
   useOpenAgentChat: () => vi.fn(),
 }));
 vi.mock("@/lib/router", () => ({
   useNavigate: () => state.navigate,
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => <a href={to}>{children}</a>,
+  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
+    <a href={to}>{children}</a>
+  ),
 }));
 vi.mock("@/components/AgentAvatar", () => ({ AgentAvatar: () => null }));
 
 let root: Root;
 let container: HTMLDivElement;
-const agent = (id: string, companyId = "company-a") => ({
-  id, companyId, name: id, urlKey: `${id}-slug`, role: "engineer", status: "idle",
-} as Agent);
+const agent = (id: string, companyId = "company-a") =>
+  ({
+    id,
+    companyId,
+    name: id,
+    urlKey: `${id}-slug`,
+    role: "engineer",
+    status: "idle",
+  }) as Agent;
 
 async function render() {
   await act(async () => root.render(<AgentChats />));
@@ -83,11 +112,15 @@ describe("Chat landing", () => {
     state.primaryAgentId = "alice";
     recordAgentChatVisit("company-a", "user-a", "removed");
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", {
+      replace: true,
+    });
     state.navigate.mockClear();
     recordAgentChatVisit("company-a", "user-a", "bob");
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/bob-slug", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/bob-slug", {
+      replace: true,
+    });
   });
 
   it("waits for the primary without sending anything and preserves the chooser for unavailable primaries", async () => {
@@ -106,7 +139,9 @@ describe("Chat landing", () => {
     recordAgentChatVisit("company-a", "user-a", "alice");
     recordAgentChatVisit("company-a", "user-a", "bob");
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/bob-slug", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/bob-slug", {
+      replace: true,
+    });
     expect(container.textContent).toContain("Opening chat");
   });
 
@@ -116,14 +151,18 @@ describe("Chat landing", () => {
     recordAgentChatVisit("company-b", "user-a", "other-company-agent");
     recordAgentChatVisit("company-a", "user-b", "other-user-agent");
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", {
+      replace: true,
+    });
   });
 
   it("reopens historical chats for agents missing from the active roster", async () => {
     recordAgentChatVisit("company-a", "user-a", "retired-id");
     state.chats = [{ id: "chat-retired", conversationAgentId: "retired-id" }];
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/retired-id", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/retired-id", {
+      replace: true,
+    });
   });
 
   it("waits for history before skipping a recent historical chat", async () => {
@@ -135,7 +174,9 @@ describe("Chat landing", () => {
     state.chatsFetched = true;
     state.chats = [{ id: "chat-retired", conversationAgentId: "retired-id" }];
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/retired-id", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/retired-id", {
+      replace: true,
+    });
   });
 
   it("shows the chooser when no saved chat remains available", async () => {
@@ -150,7 +191,9 @@ describe("Chat landing", () => {
     recordAgentChatVisit("company-a", "user-a", "bob", "deleted-chat");
     state.chats = [{ id: "chat-alice", conversationAgentId: "alice" }];
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", {
+      replace: true,
+    });
   });
 
   it("reopens an active agent when history fails", async () => {
@@ -158,14 +201,18 @@ describe("Chat landing", () => {
     state.chatsFetched = false;
     state.chatsError = new Error("History unavailable");
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", {
+      replace: true,
+    });
   });
 
   it("reopens a visited empty chat without waiting for history", async () => {
     recordAgentChatVisit("company-a", "user-a", "alice", null);
     state.chatsFetched = false;
     await render();
-    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", { replace: true });
+    expect(state.navigate).toHaveBeenCalledWith("/chats/alice-slug", {
+      replace: true,
+    });
   });
 
   it("shows a retry state when identity fails instead of waiting for disabled history", async () => {
@@ -174,6 +221,8 @@ describe("Chat landing", () => {
     state.chatsFetched = false;
     await render();
     expect(state.navigate).not.toHaveBeenCalled();
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Couldn’t load your chats");
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      "Couldn’t load your chats",
+    );
   });
 });

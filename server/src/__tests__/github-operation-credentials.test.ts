@@ -806,32 +806,64 @@ const support = await getEmbeddedPostgresTestSupport();
       await grant(input, "A");
       await grant(input, "B");
       const broker = await createNativeGitHubAccess({
-        scope: input, target: null, cwd: process.cwd(), env: { PATH: process.env.PATH },
-        resolveCredentials: (binding) => resolveGitHubOperationCredentials(db, binding),
+        scope: input,
+        target: null,
+        cwd: process.cwd(),
+        env: { PATH: process.env.PATH },
+        resolveCredentials: (binding) =>
+          resolveGitHubOperationCredentials(db, binding),
       });
-      const post = () => fetch(`${broker.env.TASKCORE_GITHUB_BROKER_URL}/runtime-tools/github/credentials`, {
-        method: "POST", headers: { authorization: `Bearer ${broker.env.TASKCORE_GITHUB_BRIDGE_TOKEN}` },
-      });
+      const post = () =>
+        fetch(
+          `${broker.env.TASKCORE_GITHUB_BROKER_URL}/runtime-tools/github/credentials`,
+          {
+            method: "POST",
+            headers: {
+              authorization: `Bearer ${broker.env.TASKCORE_GITHUB_BRIDGE_TOKEN}`,
+            },
+          },
+        );
       try {
         const releaseA = broker.activate(input);
         const a = await post();
         expect(a.status).toBe(200);
         expect((await a.json()).login).toBe("A");
-        await db.update(heartbeatRuns).set({ status: "succeeded" }).where(eq(heartbeatRuns.id, input.runId));
+        await db
+          .update(heartbeatRuns)
+          .set({ status: "succeeded" })
+          .where(eq(heartbeatRuns.id, input.runId));
         // Even a delayed controller release cannot authorize a finished DB run.
         expect((await post()).status).toBe(403);
         releaseA();
         const next = { ...input, runId: randomUUID() };
-        await db.insert(heartbeatRuns).values({ id: next.runId, companyId: next.companyId, agentId: next.agentId, status: "running", contextSnapshot: { issueId: input.issueId } });
-        await initializeRunIdentity(db, { companyId: input.companyId, runId: next.runId, responsibleUserId: "B", cause: "instruction" });
+        await db
+          .insert(heartbeatRuns)
+          .values({
+            id: next.runId,
+            companyId: next.companyId,
+            agentId: next.agentId,
+            status: "running",
+            contextSnapshot: { issueId: input.issueId },
+          });
+        await initializeRunIdentity(db, {
+          companyId: input.companyId,
+          runId: next.runId,
+          responsibleUserId: "B",
+          cause: "instruction",
+        });
         broker.activate(next);
         const b = await post();
         expect(b.status).toBe(200);
         expect((await b.json()).login).toBe("B");
-        await db.update(connectionGrants).set({ status: "revoked" }).where(eq(connectionGrants.companyId, input.companyId));
+        await db
+          .update(connectionGrants)
+          .set({ status: "revoked" })
+          .where(eq(connectionGrants.companyId, input.companyId));
         const revoked = await post();
         expect((await revoked.json()).env).toEqual({});
-      } finally { await broker.stop(); }
+      } finally {
+        await broker.stop();
+      }
     });
 
     it("requires a run-scoped runtime capability and never accepts browser authentication or supplied identities", async () => {

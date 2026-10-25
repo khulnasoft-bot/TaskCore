@@ -68,7 +68,9 @@ describe("getMentionAwareLinkNodeInit", () => {
     const editor = createTestEditor();
     let renderedUrl: string | undefined;
     editor.update(() => {
-      renderedUrl = $createLinkNode("javascript:alert(1)").sanitizeUrl("javascript:alert(1)");
+      renderedUrl = $createLinkNode("javascript:alert(1)").sanitizeUrl(
+        "javascript:alert(1)",
+      );
     });
     expect(renderedUrl).toBe("about:blank");
   });

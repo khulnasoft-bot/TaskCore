@@ -18,10 +18,15 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 function uniqueNonEmpty(values) {
-  return Array.from(new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)));
+  return Array.from(
+    new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)),
+  );
 }
 
-export function resolveDynamicForbiddenTokens(env = process.env, osModule = os) {
+export function resolveDynamicForbiddenTokens(
+  env = process.env,
+  osModule = os,
+) {
   const candidates = [env.USER, env.LOGNAME, env.USERNAME];
 
   try {
@@ -42,7 +47,11 @@ export function readForbiddenTokensFile(tokensFile) {
     .filter((line) => line && !line.startsWith("#"));
 }
 
-export function resolveForbiddenTokens(tokensFile, env = process.env, osModule = os) {
+export function resolveForbiddenTokens(
+  tokensFile,
+  env = process.env,
+  osModule = os,
+) {
   return uniqueNonEmpty([
     ...resolveDynamicForbiddenTokens(env, osModule),
     ...readForbiddenTokensFile(tokensFile),
@@ -94,8 +103,13 @@ export function runForbiddenTokenCheck({
 }
 
 function resolveRepoPaths(exec = execSync) {
-  const repoRoot = exec("git rev-parse --show-toplevel", { encoding: "utf8" }).trim();
-  const gitDir = exec("git rev-parse --git-dir", { encoding: "utf8", cwd: repoRoot }).trim();
+  const repoRoot = exec("git rev-parse --show-toplevel", {
+    encoding: "utf8",
+  }).trim();
+  const gitDir = exec("git rev-parse --git-dir", {
+    encoding: "utf8",
+    cwd: repoRoot,
+  }).trim();
   return {
     repoRoot,
     tokensFile: resolve(repoRoot, gitDir, "hooks/forbidden-tokens.txt"),
@@ -108,7 +122,9 @@ function main() {
   process.exit(runForbiddenTokenCheck({ repoRoot, tokens }));
 }
 
-const isMainModule = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isMainModule =
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isMainModule) {
   main();

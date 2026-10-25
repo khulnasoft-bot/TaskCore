@@ -27,9 +27,7 @@
       },
       "automaticRetries": 0,
       "nativeTerminalStatus": "completed",
-      "assistantText": [
-        "Upgrade your plan to continue"
-      ],
+      "assistantText": ["Upgrade your plan to continue"],
       "semanticToolInvocations": 0,
       "runnerResult": "eval_orchestration_failure",
       "runnerDiagnostic": "capability_live_usage_missing",
@@ -52,19 +50,11 @@
         "coverage": "unavailable",
         "dashboardBefore": {
           "onDemandUsd": 0,
-          "includedPoolPercent": [
-            0,
-            0,
-            0
-          ]
+          "includedPoolPercent": [0, 0, 0]
         },
         "dashboardAfter": {
           "onDemandUsd": 0,
-          "includedPoolPercent": [
-            0,
-            0,
-            0
-          ]
+          "includedPoolPercent": [0, 0, 0]
         },
         "dashboardLimitation": "Aggregate display unchanged at coarse precision; this does not prove zero metered usage or zero charge."
       }
@@ -612,10 +602,7 @@
       "questionEvidence": {
         "origin": "Taskcore request_human_input semantic tool",
         "pendingQuestionVisible": true,
-        "options": [
-          "Cobalt",
-          "Amber"
-        ],
+        "options": ["Cobalt", "Amber"],
         "serverRestartRequested": true,
         "replacementServerStarted": false,
         "answered": false,
@@ -657,17 +644,8 @@
       "reservedUsd": 2,
       "declaredEnvelopeUsd": 0.5,
       "expectedNativeMethod": "cursor/ask_question",
-      "expectedQuestions": [
-        "single Cobalt/Amber",
-        "multi Cedar/Birch/Maple"
-      ],
-      "expectedAnswer": [
-        "Cobalt",
-        [
-          "Cedar",
-          "Maple"
-        ]
-      ],
+      "expectedQuestions": ["single Cobalt/Amber", "multi Cedar/Birch/Maple"],
+      "expectedAnswer": ["Cobalt", ["Cedar", "Maple"]],
       "semanticTools": [],
       "nativePlanProbe": "not attempted: runtime lacks explicit session/set_mode",
       "scope": "actual native provider -> patched ACPX -> profile normalization -> sidecar runtime input and pipe response acknowledgement; excludes Rust durable replay and browser",
@@ -832,9 +810,7 @@
       "outerTimeoutSec": 180,
       "originalOracleResult": {
         "passed": false,
-        "failures": [
-          "no_observed_delivered_denial_of_write"
-        ]
+        "failures": ["no_observed_delivered_denial_of_write"]
       },
       "offlineOracleResult": {
         "passed": true,
@@ -844,11 +820,7 @@
       "offlineAssessmentSha256": "9d815c4607d4c33328f393d2eb11d25954fcc16d659f42cd22d2e80e22190f8f",
       "permissionEvidence": {
         "nativeRequestId": 0,
-        "offeredOptionIds": [
-          "allow-once",
-          "allow-always",
-          "reject-once"
-        ],
+        "offeredOptionIds": ["allow-once", "allow-always", "reject-once"],
         "selectedOptionId": "reject-once",
         "responseDelivered": true,
         "exactCommandBoundBySameSessionToolCallId": true,

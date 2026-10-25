@@ -54,13 +54,19 @@ export const companySkillsApi = {
     if (query.q) params.set("q", query.q);
     if (query.sort) params.set("sort", query.sort);
     if (query.scope) params.set("scope", query.scope);
-    for (const category of query.categories ?? []) params.append("categories[]", category);
-    for (const include of query.include ?? []) params.append("include[]", include);
+    for (const category of query.categories ?? [])
+      params.append("categories[]", category);
+    for (const include of query.include ?? [])
+      params.append("include[]", include);
     const search = params.toString();
-    return api.get<CompanySkillListItem[]>(`/companies/${encodeURIComponent(companyId)}/skills${search ? `?${search}` : ""}`);
+    return api.get<CompanySkillListItem[]>(
+      `/companies/${encodeURIComponent(companyId)}/skills${search ? `?${search}` : ""}`,
+    );
   },
   categories: (companyId: string) =>
-    api.get<CompanySkillCategoryCount[]>(`/companies/${encodeURIComponent(companyId)}/skills/categories`),
+    api.get<CompanySkillCategoryCount[]>(
+      `/companies/${encodeURIComponent(companyId)}/skills/categories`,
+    ),
   detail: (companyId: string, skillId: string) =>
     api.get<CompanySkillDetail>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}`,
@@ -73,7 +79,11 @@ export const companySkillsApi = {
     api.get<CompanySkillVersion>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/versions/${encodeURIComponent(versionId)}`,
     ),
-  createVersion: (companyId: string, skillId: string, payload: CompanySkillVersionCreateRequest = {}) =>
+  createVersion: (
+    companyId: string,
+    skillId: string,
+    payload: CompanySkillVersionCreateRequest = {},
+  ) =>
     api.post<CompanySkillVersion>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/versions`,
       payload,
@@ -83,7 +93,11 @@ export const companySkillsApi = {
     api.get<CompanySkillTestInput[]>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/test-inputs`,
     ),
-  createTestInput: (companyId: string, skillId: string, payload: CompanySkillTestInputCreateRequest) =>
+  createTestInput: (
+    companyId: string,
+    skillId: string,
+    payload: CompanySkillTestInputCreateRequest,
+  ) =>
     api.post<CompanySkillTestInput>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/test-inputs`,
       payload,
@@ -107,12 +121,19 @@ export const companySkillsApi = {
     api.get<CompanySkillTestRunTemplate[]>(
       `/companies/${encodeURIComponent(companyId)}/skill-test-run-templates`,
     ),
-  createTestRunTemplate: (companyId: string, payload: CompanySkillTestRunTemplateCreateRequest) =>
+  createTestRunTemplate: (
+    companyId: string,
+    payload: CompanySkillTestRunTemplateCreateRequest,
+  ) =>
     api.post<CompanySkillTestRunTemplate>(
       `/companies/${encodeURIComponent(companyId)}/skill-test-run-templates`,
       payload,
     ),
-  updateTestRunTemplate: (companyId: string, templateId: string, payload: CompanySkillTestRunTemplateUpdateRequest) =>
+  updateTestRunTemplate: (
+    companyId: string,
+    templateId: string,
+    payload: CompanySkillTestRunTemplateUpdateRequest,
+  ) =>
     api.patch<CompanySkillTestRunTemplate>(
       `/companies/${encodeURIComponent(companyId)}/skill-test-run-templates/${encodeURIComponent(templateId)}`,
       payload,
@@ -122,7 +143,11 @@ export const companySkillsApi = {
       `/companies/${encodeURIComponent(companyId)}/skill-test-run-templates/${encodeURIComponent(templateId)}`,
     ),
   // --- Skill Studio test runs ---
-  testRuns: (companyId: string, skillId: string, query: CompanySkillTestRunListQuery = {}) => {
+  testRuns: (
+    companyId: string,
+    skillId: string,
+    query: CompanySkillTestRunListQuery = {},
+  ) => {
     const params = new URLSearchParams();
     if (query.inputId) params.set("inputId", query.inputId);
     const search = params.toString();
@@ -134,7 +159,11 @@ export const companySkillsApi = {
     api.get<CompanySkillTestRunDetail>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/test-runs/${encodeURIComponent(runId)}`,
     ),
-  createTestRun: (companyId: string, skillId: string, payload: CompanySkillTestRunCreateRequest) =>
+  createTestRun: (
+    companyId: string,
+    skillId: string,
+    payload: CompanySkillTestRunCreateRequest,
+  ) =>
     api.post<CompanySkillTestRun>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/test-runs`,
       payload,
@@ -157,7 +186,11 @@ export const companySkillsApi = {
     api.delete<CompanySkillStarResult>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/star`,
     ),
-  fork: (companyId: string, skillId: string, payload: CompanySkillForkRequest = {}) =>
+  fork: (
+    companyId: string,
+    skillId: string,
+    payload: CompanySkillForkRequest = {},
+  ) =>
     api.post<CompanySkillForkResult>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/fork`,
       payload,
@@ -170,12 +203,21 @@ export const companySkillsApi = {
     api.get<CompanySkillComment[]>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/comments`,
     ),
-  createComment: (companyId: string, skillId: string, payload: CompanySkillCommentCreateRequest) =>
+  createComment: (
+    companyId: string,
+    skillId: string,
+    payload: CompanySkillCommentCreateRequest,
+  ) =>
     api.post<CompanySkillComment>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/comments`,
       payload,
     ),
-  updateComment: (companyId: string, skillId: string, commentId: string, payload: CompanySkillCommentUpdateRequest) =>
+  updateComment: (
+    companyId: string,
+    skillId: string,
+    commentId: string,
+    payload: CompanySkillCommentUpdateRequest,
+  ) =>
     api.patch<CompanySkillComment>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/comments/${encodeURIComponent(commentId)}`,
       payload,
@@ -192,12 +234,22 @@ export const companySkillsApi = {
     api.get<CompanySkillFileDetail>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/files?path=${encodeURIComponent(relativePath)}`,
     ),
-  updateFile: (companyId: string, skillId: string, path: string, content: string, format: Pick<CompanySkillFileDetail, "encoding" | "executable"> = {}) =>
+  updateFile: (
+    companyId: string,
+    skillId: string,
+    path: string,
+    content: string,
+    format: Pick<CompanySkillFileDetail, "encoding" | "executable"> = {},
+  ) =>
     api.patch<CompanySkillFileDetail>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/files`,
       { path, content, ...format },
     ),
-  deleteFile: (companyId: string, skillId: string, payload: CompanySkillFileDeleteRequest) =>
+  deleteFile: (
+    companyId: string,
+    skillId: string,
+    payload: CompanySkillFileDeleteRequest,
+  ) =>
     api.deleteWithBody<CompanySkillFileDeleteResult>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}/files`,
       payload,
@@ -207,7 +259,11 @@ export const companySkillsApi = {
       `/companies/${encodeURIComponent(companyId)}/skills`,
       payload,
     ),
-  update: (companyId: string, skillId: string, payload: CompanySkillUpdateRequest) =>
+  update: (
+    companyId: string,
+    skillId: string,
+    payload: CompanySkillUpdateRequest,
+  ) =>
     api.patch<CompanySkill>(
       `/companies/${encodeURIComponent(companyId)}/skills/${encodeURIComponent(skillId)}`,
       payload,
@@ -217,12 +273,18 @@ export const companySkillsApi = {
       `/companies/${encodeURIComponent(companyId)}/skills/import`,
       { source },
     ),
-  browseProject: (companyId: string, payload: CompanySkillProjectBrowseRequest) =>
+  browseProject: (
+    companyId: string,
+    payload: CompanySkillProjectBrowseRequest,
+  ) =>
     api.post<CompanySkillProjectBrowseResult>(
       `/companies/${encodeURIComponent(companyId)}/skills/browse-project`,
       payload,
     ),
-  scanProjects: (companyId: string, payload: CompanySkillProjectScanRequest = {}) =>
+  scanProjects: (
+    companyId: string,
+    payload: CompanySkillProjectScanRequest = {},
+  ) =>
     api.post<CompanySkillProjectScanResult>(
       `/companies/${encodeURIComponent(companyId)}/skills/scan-projects`,
       payload,
@@ -242,7 +304,9 @@ export const companySkillsApi = {
     if (query.category) params.set("category", query.category);
     if (query.q) params.set("q", query.q);
     const search = params.toString();
-    return api.get<CatalogSkill[]>(`/skills/catalog${search ? `?${search}` : ""}`);
+    return api.get<CatalogSkill[]>(
+      `/skills/catalog${search ? `?${search}` : ""}`,
+    );
   },
   catalogDetail: (catalogRef: string) =>
     api.get<CatalogSkill>(`/skills/catalog/${encodeURIComponent(catalogRef)}`),
@@ -250,7 +314,10 @@ export const companySkillsApi = {
     api.get<CatalogSkillFileDetail>(
       `/skills/catalog/${encodeURIComponent(catalogRef)}/files?path=${encodeURIComponent(relativePath)}`,
     ),
-  installCatalog: (companyId: string, payload: CompanySkillInstallCatalogRequest) =>
+  installCatalog: (
+    companyId: string,
+    payload: CompanySkillInstallCatalogRequest,
+  ) =>
     api.post<CompanySkillInstallCatalogResult>(
       `/companies/${encodeURIComponent(companyId)}/skills/install-catalog`,
       payload,

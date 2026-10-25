@@ -16,9 +16,7 @@ describe("ACPX sidecar locations", () => {
   it.runIf(sep === "/")(
     "preserves valid host-relative display names without admitting escape",
     () => {
-      const workspace = mkdtempSync(
-        join(tmpdir(), "taskcore-acpx-locations-"),
-      );
+      const workspace = mkdtempSync(join(tmpdir(), "taskcore-acpx-locations-"));
       writeFileSync(join(workspace, "src:main.ts"), "");
       mkdirSync(join(workspace, "a:"));
       writeFileSync(join(workspace, "a:", "foo"), "");
@@ -90,9 +88,7 @@ describe("ACPX sidecar locations", () => {
   it.runIf(sep === "/")(
     "attests a leading backslash as valid POSIX filename data",
     () => {
-      const workspace = mkdtempSync(
-        join(tmpdir(), "taskcore-acpx-locations-"),
-      );
+      const workspace = mkdtempSync(join(tmpdir(), "taskcore-acpx-locations-"));
       writeFileSync(join(workspace, String.raw`\notes.md`), "");
       try {
         expect(
@@ -135,9 +131,7 @@ describe("ACPX sidecar locations", () => {
   it.runIf(sep === "/")(
     "attests scheme-shaped targets after relative and absolute normalization",
     () => {
-      const workspace = mkdtempSync(
-        join(tmpdir(), "taskcore-acpx-locations-"),
-      );
+      const workspace = mkdtempSync(join(tmpdir(), "taskcore-acpx-locations-"));
       const entry = join(workspace, "src:main.ts");
       writeFileSync(entry, "");
       try {

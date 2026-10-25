@@ -24,20 +24,32 @@ describe("import preflight", () => {
     const base = estimateInlineImportBytes({});
     expect(base).toBe(REQUEST_ENVELOPE_ALLOWANCE_BYTES);
     // "COMPANY.md" key = 12 serialized bytes + 2 separators; "12345" = 7 with quotes.
-    expect(estimateInlineImportBytes({ "COMPANY.md": "12345" }) - base).toBe(12 + 2 + 7);
+    expect(estimateInlineImportBytes({ "COMPANY.md": "12345" }) - base).toBe(
+      12 + 2 + 7,
+    );
     // Base64 entries count their object structure and contentType, not just the payload.
-    expect(estimateInlineImportBytes({
-      "blobs/abc": { encoding: "base64", data: "QUJDRA==", contentType: "application/octet-stream" },
-    }) - base).toBe(11 + 2 + (48 + 8 + 24));
+    expect(
+      estimateInlineImportBytes({
+        "blobs/abc": {
+          encoding: "base64",
+          data: "QUJDRA==",
+          contentType: "application/octet-stream",
+        },
+      }) - base,
+    ).toBe(11 + 2 + (48 + 8 + 24));
   });
 
   it("counts UTF-8 bytes of serialized text, not UTF-16 code units", () => {
     const base = estimateInlineImportBytes({});
     // Two CJK characters: String.length is 2, but each is 3 bytes of UTF-8,
     // plus the surrounding JSON quotes the request body will carry.
-    expect(estimateInlineImportBytes({ "COMPANY.md": "汉字" }) - base).toBe(12 + 2 + 8);
+    expect(estimateInlineImportBytes({ "COMPANY.md": "汉字" }) - base).toBe(
+      12 + 2 + 8,
+    );
     // A newline serializes as the two-character escape sequence \n.
-    expect(estimateInlineImportBytes({ "NOTES.md": "a\nb" }) - base).toBe(10 + 2 + 6);
+    expect(estimateInlineImportBytes({ "NOTES.md": "a\nb" }) - base).toBe(
+      10 + 2 + 6,
+    );
   });
 
   it("counts file-path keys so path-heavy packages cannot undercount", () => {
@@ -50,14 +62,20 @@ describe("import preflight", () => {
     const files = {
       "COMPANY.md": '汉字 with\nnewlines and "quotes"',
       "tasks/pap-1/TASK.md": "plain text",
-      "blobs/abc": { encoding: "base64" as const, data: "QUJDRA==", contentType: "image/png" },
+      "blobs/abc": {
+        encoding: "base64" as const,
+        data: "QUJDRA==",
+        contentType: "image/png",
+      },
     };
     const serialized = new TextEncoder().encode(JSON.stringify(files)).length;
     expect(estimateInlineImportBytes(files)).toBeGreaterThanOrEqual(serialized);
   });
 
   it("passes packages under the inline limit", () => {
-    const preflight = buildInlineImportPreflight({ "COMPANY.md": "x".repeat(megabyte) });
+    const preflight = buildInlineImportPreflight({
+      "COMPANY.md": "x".repeat(megabyte),
+    });
     expect(preflight.tooLarge).toBe(false);
     expect(preflight.canDropAttachments).toBe(false);
   });
@@ -84,9 +102,15 @@ describe("import preflight", () => {
   });
 
   it("strips only blob files from the package", () => {
-    expect(stripBlobFiles({
-      "COMPANY.md": "text",
-      "blobs/abc": { encoding: "base64", data: "QQ==", contentType: "application/octet-stream" },
-    })).toEqual({ "COMPANY.md": "text" });
+    expect(
+      stripBlobFiles({
+        "COMPANY.md": "text",
+        "blobs/abc": {
+          encoding: "base64",
+          data: "QQ==",
+          contentType: "application/octet-stream",
+        },
+      }),
+    ).toEqual({ "COMPANY.md": "text" });
   });
 });

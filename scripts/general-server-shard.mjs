@@ -38,7 +38,9 @@ export function defaultSuiteWeight(durations) {
     return FALLBACK_SUITE_WEIGHT_MS;
   }
   const mid = Math.floor(values.length / 2);
-  return values.length % 2 === 1 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+  return values.length % 2 === 1
+    ? values[mid]
+    : (values[mid - 1] + values[mid]) / 2;
 }
 
 // Deterministic longest-processing-time partition: heaviest suite first, each
@@ -46,13 +48,20 @@ export function defaultSuiteWeight(durations) {
 // by shard index, so every runner in the matrix computes the identical
 // partition from the same checkout — that invariant is what makes the shards
 // a complete, non-overlapping cover of the suite set.
-export function partitionGeneralServerSuites(files, shardCount, durations = {}) {
+export function partitionGeneralServerSuites(
+  files,
+  shardCount,
+  durations = {},
+) {
   const fallbackWeight = defaultSuiteWeight(durations);
   const weighted = files
     .map((file) => ({ file, weight: durations[file] ?? fallbackWeight }))
     .sort((a, b) => b.weight - a.weight || a.file.localeCompare(b.file));
 
-  const shards = Array.from({ length: shardCount }, () => ({ files: [], totalWeight: 0 }));
+  const shards = Array.from({ length: shardCount }, () => ({
+    files: [],
+    totalWeight: 0,
+  }));
   for (const { file, weight } of weighted) {
     let target = 0;
     for (let index = 1; index < shards.length; index += 1) {
@@ -70,6 +79,12 @@ export function partitionGeneralServerSuites(files, shardCount, durations = {}) 
   return shards;
 }
 
-export function selectGeneralServerShard(files, shardIndex, shardCount, durations = {}) {
-  return partitionGeneralServerSuites(files, shardCount, durations)[shardIndex].files;
+export function selectGeneralServerShard(
+  files,
+  shardIndex,
+  shardCount,
+  durations = {},
+) {
+  return partitionGeneralServerSuites(files, shardCount, durations)[shardIndex]
+    .files;
 }

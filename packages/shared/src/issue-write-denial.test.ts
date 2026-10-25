@@ -29,7 +29,9 @@ describe("describeIssueWriteDenial", () => {
       const prose = `${copy.description} ${copy.whoCanAct} ${copy.sanctionedPath}`;
       expect(prose, code).not.toMatch(/undefined|null/);
       // Unknown labels degrade to generic nouns, never a bare id.
-      expect(prose, code).toMatch(/this task|this agent|the current assignee|the responsible user/);
+      expect(prose, code).toMatch(
+        /this task|this agent|the current assignee|the responsible user/,
+      );
     }
   });
 
@@ -39,7 +41,9 @@ describe("describeIssueWriteDenial", () => {
       // Surfaces render the boundary inside their own parens — nesting stutters.
       expect(copy.boundary, code).not.toMatch(/[()]/);
       // A title echoed verbatim as its own boundary reads as a mistake.
-      expect(copy.boundary.toLowerCase(), code).not.toBe(copy.title.toLowerCase());
+      expect(copy.boundary.toLowerCase(), code).not.toBe(
+        copy.title.toLowerCase(),
+      );
     }
   });
 
@@ -61,11 +65,14 @@ describe("describeIssueWriteDenial", () => {
   });
 
   it("frames the per-run cap as a rate backstop, not a permission decision", () => {
-    const copy = describeIssueWriteDenial("cross_issue_influence_cap_exceeded", {
-      cap: 20,
-      count: 21,
-      actorLabel: "Fable",
-    });
+    const copy = describeIssueWriteDenial(
+      "cross_issue_influence_cap_exceeded",
+      {
+        cap: 20,
+        count: 21,
+        actorLabel: "Fable",
+      },
+    );
     expect(copy.status).toBe(429);
     expect(copy.tone).toBe("cap");
     expect(copy.boundary).toContain("20");
@@ -81,16 +88,21 @@ describe("describeIssueWriteDenial", () => {
   });
 
   it("gives the run-context denial a copy-pasteable fix", () => {
-    const copy = describeIssueWriteDenial("cross_issue_influence_run_context_required");
+    const copy = describeIssueWriteDenial(
+      "cross_issue_influence_run_context_required",
+    );
     expect(copy.sanctionedPath).toContain("X-Taskcore-Run-Id");
     expect(copy.sanctionedPath).toContain("TASKCORE_RUN_ID");
   });
 
   it("tells a spoof attempt that the write itself was fine", () => {
-    const copy = describeIssueWriteDenial("issue_write_attribution_spoof_rejected", {
-      actorLabel: "Fable",
-      responsibleUserName: "Dotta",
-    });
+    const copy = describeIssueWriteDenial(
+      "issue_write_attribution_spoof_rejected",
+      {
+        actorLabel: "Fable",
+        responsibleUserName: "Dotta",
+      },
+    );
     expect(copy.status).toBe(422);
     expect(copy.whoCanAct).toContain("Fable");
     expect(copy.sanctionedPath).toContain("Dotta");
@@ -108,35 +120,49 @@ describe("describeIssueWriteDenial", () => {
   });
 
   it("reuses responsible-user ceiling copy and keeps on-behalf-of terminology", () => {
-    const ceiling = describeIssueWriteDenial("issue_write_responsible_user_ceiling", {
-      responsibleUserName: "Dotta",
-      issueIdentifier: "TASK-517",
-    });
+    const ceiling = describeIssueWriteDenial(
+      "issue_write_responsible_user_ceiling",
+      {
+        responsibleUserName: "Dotta",
+        issueIdentifier: "TASK-517",
+      },
+    );
     expect(ceiling.title).toBe("Responsible user not authorized");
     expect(ceiling.description).toContain("on behalf");
     expect(ceiling.description).toContain("TASK-517");
     expect(ceiling.description).not.toContain("impersonat");
     expect(ceiling.whoCanAct).toContain("Dotta");
 
-    const unavailable = describeIssueWriteDenial("issue_write_responsible_user_unavailable", {
-      responsibleUserName: "Dotta",
-    });
+    const unavailable = describeIssueWriteDenial(
+      "issue_write_responsible_user_unavailable",
+      {
+        responsibleUserName: "Dotta",
+      },
+    );
     expect(unavailable.title).toBe("Responsible user unavailable");
     expect(unavailable.sanctionedPath).toContain("blocked");
   });
 
   it("falls back to generic phrasing when the responsible user is unknown", () => {
-    const copy = describeIssueWriteDenial("issue_write_responsible_user_ceiling");
+    const copy = describeIssueWriteDenial(
+      "issue_write_responsible_user_ceiling",
+    );
     expect(copy.description).toContain("the responsible user");
   });
 });
 
 describe("issueWriteDenialCodeForResponsibleUserDenial", () => {
   it("bridges both authorization-layer ceiling codes", () => {
-    expect(issueWriteDenialCodeForResponsibleUserDenial("RESPONSIBLE_USER_UNAUTHORIZED"))
-      .toBe("issue_write_responsible_user_ceiling");
-    expect(issueWriteDenialCodeForResponsibleUserDenial("RESPONSIBLE_USER_UNAVAILABLE"))
-      .toBe("issue_write_responsible_user_unavailable");
+    expect(
+      issueWriteDenialCodeForResponsibleUserDenial(
+        "RESPONSIBLE_USER_UNAUTHORIZED",
+      ),
+    ).toBe("issue_write_responsible_user_ceiling");
+    expect(
+      issueWriteDenialCodeForResponsibleUserDenial(
+        "RESPONSIBLE_USER_UNAVAILABLE",
+      ),
+    ).toBe("issue_write_responsible_user_unavailable");
   });
 });
 
@@ -166,10 +192,13 @@ describe("issueWriteDenialApiMessage", () => {
 
 describe("issueWriteDenialResponse", () => {
   it("pairs the status with a machine-readable details payload", () => {
-    const { status, body } = issueWriteDenialResponse("cross_issue_influence_cap_exceeded", {
-      cap: 20,
-      count: 21,
-    });
+    const { status, body } = issueWriteDenialResponse(
+      "cross_issue_influence_cap_exceeded",
+      {
+        cap: 20,
+        count: 21,
+      },
+    );
     expect(status).toBe(429);
     expect(body.details.code).toBe("cross_issue_influence_cap_exceeded");
     expect(body.details.boundary).toContain("20");
@@ -177,8 +206,14 @@ describe("issueWriteDenialResponse", () => {
   });
 
   it("uses the status each code declares", () => {
-    expect(issueWriteDenialResponse("issue_write_assignee_run_lock").status).toBe(409);
-    expect(issueWriteDenialResponse("issue_write_attribution_spoof_rejected").status).toBe(422);
-    expect(issueWriteDenialResponse("issue_write_not_visible").status).toBe(403);
+    expect(
+      issueWriteDenialResponse("issue_write_assignee_run_lock").status,
+    ).toBe(409);
+    expect(
+      issueWriteDenialResponse("issue_write_attribution_spoof_rejected").status,
+    ).toBe(422);
+    expect(issueWriteDenialResponse("issue_write_not_visible").status).toBe(
+      403,
+    );
   });
 });

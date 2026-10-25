@@ -10,10 +10,13 @@ export function connectionOwnerProfile(
   profiles: ReadonlyMap<string, CompanyUserProfile>,
 ): ConnectionOwnerProfile | null {
   if (!connection.createdByUserId) return null;
-  return profiles.get(connection.createdByUserId) ?? {
-    label: connection.createdByUserId === "local-board" ? "Board" : "Board member",
-    image: null,
-  };
+  return (
+    profiles.get(connection.createdByUserId) ?? {
+      label:
+        connection.createdByUserId === "local-board" ? "Board" : "Board member",
+      image: null,
+    }
+  );
 }
 
 function ownerGivenName(label: string): string {
@@ -46,21 +49,33 @@ export function connectionDisplayNameForOwner(
       ? rawName
       : humanizeConnectionDisplayName(connection);
   if (!owner) return connectionName;
-  if (connectionName.trim().toLocaleLowerCase() !== applicationName.trim().toLocaleLowerCase()) {
+  if (
+    connectionName.trim().toLocaleLowerCase() !==
+    applicationName.trim().toLocaleLowerCase()
+  ) {
     return connectionName;
   }
   return `${possessive(ownerGivenName(owner.label))} ${applicationName}`;
 }
 
 /** Use the same owner naming as outbound connections, without changing OAuth client identity. */
-export function assistantConnectionDisplayName(connection: McpConnection): string {
+export function assistantConnectionDisplayName(
+  connection: McpConnection,
+): string {
   const clientName = connection.clientName.trim();
-  const owner = connection.user ? `${possessive(ownerGivenName(connection.user.name))} ` : "";
+  const owner = connection.user
+    ? `${possessive(ownerGivenName(connection.user.name))} `
+    : "";
   return `${owner}${clientName} connection`;
 }
 
-export function ConnectionOwnerIdentity({ owner }: { owner: ConnectionOwnerProfile | null }) {
-  if (!owner) return <span className="text-xs text-muted-foreground">Unknown</span>;
+export function ConnectionOwnerIdentity({
+  owner,
+}: {
+  owner: ConnectionOwnerProfile | null;
+}) {
+  if (!owner)
+    return <span className="text-xs text-muted-foreground">Unknown</span>;
   return (
     <Identity
       name={owner.label}

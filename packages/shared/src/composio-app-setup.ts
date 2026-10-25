@@ -49,16 +49,26 @@ export interface ComposioAppsResponse {
   sync: ComposioAppSyncState;
 }
 
-export const composioAppsSyncSchema = z.object({ force: z.boolean().default(false) }).strict();
+export const composioAppsSyncSchema = z
+  .object({ force: z.boolean().default(false) })
+  .strict();
 
-export const composioAppsRefreshSchema = z.object({
-  toolkits: z.array(z.string().min(1).max(200)).max(64).default([]),
-}).strict();
+export const composioAppsRefreshSchema = z
+  .object({
+    toolkits: z.array(z.string().min(1).max(200)).max(64).default([]),
+  })
+  .strict();
 
 const accountId = z.string().min(1).max(200);
 export const composioAppAccountSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("add") }).strict(),
-  z.object({ action: z.literal("rename"), accountId, alias: z.string().trim().min(1).max(100) }).strict(),
+  z
+    .object({
+      action: z.literal("rename"),
+      accountId,
+      alias: z.string().trim().min(1).max(100),
+    })
+    .strict(),
   z.object({ action: z.literal("remove"), accountId }).strict(),
 ]);
 export type ComposioAppAccountInput = z.infer<typeof composioAppAccountSchema>;

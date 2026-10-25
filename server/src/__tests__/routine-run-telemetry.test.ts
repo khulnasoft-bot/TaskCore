@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   agents,
   companies,
@@ -30,9 +38,9 @@ vi.mock("../telemetry.js", () => ({
 }));
 
 vi.mock("@taskcore/shared/telemetry", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/shared/telemetry")>(
-    "@taskcore/shared/telemetry",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/shared/telemetry")
+  >("@taskcore/shared/telemetry");
   return {
     ...actual,
     trackRoutineRun: mockTrackRoutineRun,
@@ -42,14 +50,20 @@ vi.mock("@taskcore/shared/telemetry", async () => {
 import { routineService } from "../services/routines.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("routine run telemetry", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-routine-telemetry-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-routine-telemetry-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -110,9 +124,11 @@ describeEmbeddedPostgres("routine run telemetry", () => {
       heartbeat: {
         wakeup: async (wakeupAgentId, wakeupOpts) => {
           const issueId =
-            (typeof wakeupOpts.payload?.issueId === "string" && wakeupOpts.payload.issueId)
-            || (typeof wakeupOpts.contextSnapshot?.issueId === "string" && wakeupOpts.contextSnapshot.issueId)
-            || null;
+            (typeof wakeupOpts.payload?.issueId === "string" &&
+              wakeupOpts.payload.issueId) ||
+            (typeof wakeupOpts.contextSnapshot?.issueId === "string" &&
+              wakeupOpts.contextSnapshot.issueId) ||
+            null;
           if (!issueId) return null;
           const queuedRunId = randomUUID();
           await db.insert(heartbeatRuns).values({

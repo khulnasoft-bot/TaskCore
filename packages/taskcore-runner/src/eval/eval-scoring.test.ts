@@ -12,7 +12,9 @@ import {
 } from "../protocol/semantic-tool-receipts.js";
 import type { PrpEvent } from "../protocol/replay-contract.js";
 
-function greenObservation(overrides: Partial<EvalObservation> = {}): EvalObservation {
+function greenObservation(
+  overrides: Partial<EvalObservation> = {},
+): EvalObservation {
   return {
     caseId: "st-1",
     controlPlaneOwned: false,
@@ -29,8 +31,18 @@ function greenObservation(overrides: Partial<EvalObservation> = {}): EvalObserva
       receiptIds: ["receipt-1"],
       terminalPresent: true,
     },
-    efficiency: { latencyMs: 800, totalTokens: 400, costUsd: 0.01, attempts: 1 },
-    budget: { maxLatencyMs: 2000, maxTotalTokens: 1000, maxCostUsd: 0.05, maxAttempts: 2 },
+    efficiency: {
+      latencyMs: 800,
+      totalTokens: 400,
+      costUsd: 0.01,
+      attempts: 1,
+    },
+    budget: {
+      maxLatencyMs: 2000,
+      maxTotalTokens: 1000,
+      maxCostUsd: 0.05,
+      maxAttempts: 2,
+    },
     ...overrides,
   };
 }
@@ -82,7 +94,9 @@ describe("scoreEval — a denied call cannot score a passing outcome", () => {
       OPTIONS,
     );
     expect(card.dimensions.semantic_outcome.score).toBe(0);
-    expect(card.dimensions.semantic_outcome.reasons.join(" ")).toContain("denied");
+    expect(card.dimensions.semantic_outcome.reasons.join(" ")).toContain(
+      "denied",
+    );
     expect(card.overall.passed).toBe(false);
     // The model still chose the right tool, so trajectory stays green — the
     // failure is the operation's effect, not the model's selection.
@@ -137,7 +151,9 @@ describe("scoreEval — the hard-invariant gate", () => {
 
   it("fails the gate when an operation is allowed that should be denied", () => {
     const card = scoreEval(
-      greenObservation({ authorization: { expected: "denied", observed: "allowed" } }),
+      greenObservation({
+        authorization: { expected: "denied", observed: "allowed" },
+      }),
       OPTIONS,
     );
     expect(card.dimensions.hard_invariants.passed).toBe(false);
@@ -147,7 +163,9 @@ describe("scoreEval — the hard-invariant gate", () => {
 describe("scoreEval — dimensions are scored separately (red counterparts)", () => {
   it("drops only semantic_outcome when control-plane state diverges", () => {
     const card = scoreEval(
-      greenObservation({ finalState: { expected: "mutated", observed: "unchanged" } }),
+      greenObservation({
+        finalState: { expected: "mutated", observed: "unchanged" },
+      }),
       OPTIONS,
     );
     expect(card.dimensions.semantic_outcome.score).toBe(0);
@@ -189,25 +207,43 @@ describe("scoreEval — dimensions are scored separately (red counterparts)", ()
     const card = scoreEval(
       greenObservation({
         // run/session present, turn/item/terminal absent, receipt still present.
-        trace: { runId: "run-1", sessionId: "session-1", receiptIds: ["receipt-1"], terminalPresent: false },
+        trace: {
+          runId: "run-1",
+          sessionId: "session-1",
+          receiptIds: ["receipt-1"],
+          terminalPresent: false,
+        },
       }),
       OPTIONS,
     );
     // 3 of 6 checks hold: runId, sessionId, receipt-per-call.
     expect(card.dimensions.trace_completeness.score).toBe(0.5);
-    expect(card.dimensions.trace_completeness.reasons).toContain("trace missing turnId");
-    expect(card.dimensions.trace_completeness.reasons).toContain("trace missing terminal");
+    expect(card.dimensions.trace_completeness.reasons).toContain(
+      "trace missing turnId",
+    );
+    expect(card.dimensions.trace_completeness.reasons).toContain(
+      "trace missing terminal",
+    );
   });
 
   it("flags a missing receipt for an observed call", () => {
     const card = scoreEval(
-      greenObservation({ observedCalls: ["finish_task"], trace: {
-        runId: "run-1", sessionId: "session-1", turnId: "turn-1", itemId: "item-1",
-        receiptIds: [], terminalPresent: true,
-      } }),
+      greenObservation({
+        observedCalls: ["finish_task"],
+        trace: {
+          runId: "run-1",
+          sessionId: "session-1",
+          turnId: "turn-1",
+          itemId: "item-1",
+          receiptIds: [],
+          terminalPresent: true,
+        },
+      }),
       OPTIONS,
     );
-    expect(card.dimensions.trace_completeness.reasons).toContain("trace missing receipt-per-call");
+    expect(card.dimensions.trace_completeness.reasons).toContain(
+      "trace missing receipt-per-call",
+    );
     expect(card.dimensions.trace_completeness.score).toBeCloseTo(5 / 6, 5);
   });
 
@@ -222,7 +258,10 @@ describe("scoreEval — dimensions are scored separately (red counterparts)", ()
       }),
       OPTIONS,
     );
-    expect(card.dimensions.trace_completeness).toMatchObject({ score: 1, passed: true });
+    expect(card.dimensions.trace_completeness).toMatchObject({
+      score: 1,
+      passed: true,
+    });
   });
 
   it("rejects a PRP receipt whose operation does not match the observed call", () => {
@@ -231,10 +270,18 @@ describe("scoreEval — dimensions are scored separately (red counterparts)", ()
     const receipt = payload.semantic_tool as Record<string, unknown>;
     receipt.operationId = "report_progress";
     const card = scoreEval(
-      greenObservation({ trace: { receiptIds: ["legacy-must-not-mask-wire"], terminalPresent: true, wireEvents: events } }),
+      greenObservation({
+        trace: {
+          receiptIds: ["legacy-must-not-mask-wire"],
+          terminalPresent: true,
+          wireEvents: events,
+        },
+      }),
       OPTIONS,
     );
-    expect(card.dimensions.trace_completeness.reasons).toContain("trace missing receipt-per-call");
+    expect(card.dimensions.trace_completeness.reasons).toContain(
+      "trace missing receipt-per-call",
+    );
   });
 
   it("requires a receipt and decision id when a terminal advertises a stop reason", () => {
@@ -247,31 +294,55 @@ describe("scoreEval — dimensions are scored separately (red counterparts)", ()
       retryable: true,
       decisionId: "budget-decision-1",
       limitClass: "actor_monthly",
-      aggregate: { unit: "cents", observed: 5000, limit: 5000, window: "monthly_utc" },
+      aggregate: {
+        unit: "cents",
+        observed: 5000,
+        limit: 5000,
+        window: "monthly_utc",
+      },
     });
     const card = scoreEval(
-      greenObservation({ trace: { receiptIds: [], terminalPresent: false, wireEvents: events } }),
+      greenObservation({
+        trace: { receiptIds: [], terminalPresent: false, wireEvents: events },
+      }),
       OPTIONS,
     );
-    expect(card.dimensions.trace_completeness).toMatchObject({ score: 1, passed: true });
+    expect(card.dimensions.trace_completeness).toMatchObject({
+      score: 1,
+      passed: true,
+    });
 
     delete (terminal.stopReason as Record<string, unknown>).decisionId;
     const invalid = scoreEval(
-      greenObservation({ trace: { receiptIds: [], terminalPresent: false, wireEvents: events } }),
+      greenObservation({
+        trace: { receiptIds: [], terminalPresent: false, wireEvents: events },
+      }),
       OPTIONS,
     );
-    expect(invalid.dimensions.trace_completeness.reasons)
-      .toContain("trace missing stop-reason-receipt");
+    expect(invalid.dimensions.trace_completeness.reasons).toContain(
+      "trace missing stop-reason-receipt",
+    );
   });
 
   it("drops quality_efficiency when a budget is exceeded", () => {
     const card = scoreEval(
-      greenObservation({ efficiency: { latencyMs: 9000, totalTokens: 400, costUsd: 0.01, attempts: 1 } }),
+      greenObservation({
+        efficiency: {
+          latencyMs: 9000,
+          totalTokens: 400,
+          costUsd: 0.01,
+          attempts: 1,
+        },
+      }),
       OPTIONS,
     );
     expect(card.dimensions.quality_efficiency.score).toBe(0.75);
     expect(card.dimensions.quality_efficiency.passed).toBe(false);
-    expect(card.dimensions.quality_efficiency.reasons.some((r) => r.includes("latencyMs"))).toBe(true);
+    expect(
+      card.dimensions.quality_efficiency.reasons.some((r) =>
+        r.includes("latencyMs"),
+      ),
+    ).toBe(true);
   });
 
   it("treats an undeclared budget as satisfied (score 1) but records the note", () => {
@@ -279,7 +350,9 @@ describe("scoreEval — dimensions are scored separately (red counterparts)", ()
     delete obs.budget;
     const card = scoreEval(obs, OPTIONS);
     expect(card.dimensions.quality_efficiency.score).toBe(1);
-    expect(card.dimensions.quality_efficiency.reasons).toContain("no efficiency budget declared");
+    expect(card.dimensions.quality_efficiency.reasons).toContain(
+      "no efficiency budget declared",
+    );
   });
 });
 
@@ -344,13 +417,27 @@ function wireTrace(): PrpEvent[] {
 
 describe("scoreEval — determinism and weighting", () => {
   it("is deterministic for identical observations", () => {
-    const obs = greenObservation({ finalState: { expected: "mutated", observed: "unchanged" } });
-    expect(JSON.stringify(scoreEval(obs, OPTIONS))).toBe(JSON.stringify(scoreEval(obs, OPTIONS)));
+    const obs = greenObservation({
+      finalState: { expected: "mutated", observed: "unchanged" },
+    });
+    expect(JSON.stringify(scoreEval(obs, OPTIONS))).toBe(
+      JSON.stringify(scoreEval(obs, OPTIONS)),
+    );
   });
 
   it("honors custom weights in the overall mean", () => {
-    const obs = greenObservation({ finalState: { expected: "mutated", observed: "unchanged" } });
-    const outcomeHeavy = scoreEval(obs, { ...OPTIONS, weights: { semantic_outcome: 1, trajectory_restraint: 0, trace_completeness: 0, quality_efficiency: 0 } });
+    const obs = greenObservation({
+      finalState: { expected: "mutated", observed: "unchanged" },
+    });
+    const outcomeHeavy = scoreEval(obs, {
+      ...OPTIONS,
+      weights: {
+        semantic_outcome: 1,
+        trajectory_restraint: 0,
+        trace_completeness: 0,
+        quality_efficiency: 0,
+      },
+    });
     // semantic_outcome is 0 and is the only weighted dimension -> overall 0.
     expect(outcomeHeavy.overall.score).toBe(0);
   });
@@ -372,7 +459,16 @@ describe("observation mappers", () => {
         finalState: { expected: "mutated", observed: "mutated" },
         sourceAnchor: "anchor",
       },
-      { trace: { runId: "r", sessionId: "s", turnId: "t", itemId: "i", receiptIds: ["rc"], terminalPresent: true } },
+      {
+        trace: {
+          runId: "r",
+          sessionId: "s",
+          turnId: "t",
+          itemId: "i",
+          receiptIds: ["rc"],
+          terminalPresent: true,
+        },
+      },
     );
     expect(obs.observedCalls).toEqual(["finish_task"]);
     expect(scoreEval(obs, OPTIONS).dimensions.semantic_outcome.score).toBe(1);
@@ -393,10 +489,22 @@ describe("observation mappers", () => {
         finalState: { expected: "unchanged", observed: "unchanged" },
         sourceAnchor: "anchor",
       },
-      { trace: { runId: "r", sessionId: "s", turnId: "t", itemId: "i", receiptIds: [], terminalPresent: true } },
+      {
+        trace: {
+          runId: "r",
+          sessionId: "s",
+          turnId: "t",
+          itemId: "i",
+          receiptIds: [],
+          terminalPresent: true,
+        },
+      },
     );
     expect(obs.observedCalls).toEqual([]);
-    expect(obs.authorization).toEqual({ expected: "denied", observed: "denied" });
+    expect(obs.authorization).toEqual({
+      expected: "denied",
+      observed: "denied",
+    });
   });
 
   it("records an allowed read-only call without requiring state mutation", () => {
@@ -414,11 +522,22 @@ describe("observation mappers", () => {
         finalState: { expected: "unchanged", observed: "unchanged" },
         sourceAnchor: "anchor",
       },
-      { trace: { runId: "r", sessionId: "s", turnId: "t", itemId: "i", receiptIds: ["rc"], terminalPresent: true } },
+      {
+        trace: {
+          runId: "r",
+          sessionId: "s",
+          turnId: "t",
+          itemId: "i",
+          receiptIds: ["rc"],
+          terminalPresent: true,
+        },
+      },
     );
 
     expect(obs.observedCalls).toEqual(["search_tasks"]);
-    expect(scoreEval(obs, OPTIONS).dimensions.trajectory_restraint.score).toBe(1);
+    expect(scoreEval(obs, OPTIONS).dimensions.trajectory_restraint.score).toBe(
+      1,
+    );
   });
 
   it("retains an incorrectly allowed read-only call for forbidden-call scoring", () => {
@@ -436,10 +555,21 @@ describe("observation mappers", () => {
         finalState: { expected: "unchanged", observed: "unchanged" },
         sourceAnchor: "anchor",
       },
-      { trace: { runId: "r", sessionId: "s", turnId: "t", itemId: "i", receiptIds: ["rc"], terminalPresent: true } },
+      {
+        trace: {
+          runId: "r",
+          sessionId: "s",
+          turnId: "t",
+          itemId: "i",
+          receiptIds: ["rc"],
+          terminalPresent: true,
+        },
+      },
     );
 
     expect(obs.observedCalls).toEqual(["search_tasks"]);
-    expect(scoreEval(obs, OPTIONS).dimensions.hard_invariants.passed).toBe(false);
+    expect(scoreEval(obs, OPTIONS).dimensions.hard_invariants.passed).toBe(
+      false,
+    );
   });
 });

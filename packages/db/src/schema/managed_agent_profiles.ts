@@ -34,19 +34,32 @@ export const managedAgentProfiles = pgTable(
     anthropicAgentId: text("anthropic_agent_id").notNull(),
     agentVersion: text("agent_version").notNull(),
     environmentId: text("environment_id").notNull(),
-    betaVersion: text("beta_version").notNull().default("managed-agents-2026-04-01"),
+    betaVersion: text("beta_version")
+      .notNull()
+      .default("managed-agents-2026-04-01"),
     defaultModel: text("default_model").notNull().default("claude-sonnet-5"),
-    defaultMaxListCostCents: integer("default_max_list_cost_cents").notNull().default(100),
+    defaultMaxListCostCents: integer("default_max_list_cost_cents")
+      .notNull()
+      .default(100),
     apiKeySecretId: uuid("api_key_secret_id")
       .notNull()
       .references(() => companySecrets.id, { onDelete: "restrict" }),
     enabled: boolean("enabled").notNull().default(false),
-    retentionAcknowledged: boolean("retention_acknowledged").notNull().default(false),
-    qualification: jsonb("qualification").$type<Record<string, unknown>>().notNull().default({}),
+    retentionAcknowledged: boolean("retention_acknowledged")
+      .notNull()
+      .default(false),
+    qualification: jsonb("qualification")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     qualifiedAt: timestamp("qualified_at", { withTimezone: true }),
     qualifiedRevision: text("qualified_revision"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     companyIdx: index("managed_agent_profiles_company_idx").on(table.companyId),

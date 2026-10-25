@@ -48,8 +48,13 @@ export function DocumentDiffModal({
   revisionsQueryFn?: () => Promise<DocumentRevision[]>;
 }) {
   const { data: revisions } = useQuery({
-    queryKey: revisionsQueryKey ?? queryKeys.issues.documentRevisions(issueId ?? "", documentKey),
-    queryFn: () => revisionsQueryFn ? revisionsQueryFn() : issuesApi.listDocumentRevisions(issueId ?? "", documentKey),
+    queryKey:
+      revisionsQueryKey ??
+      queryKeys.issues.documentRevisions(issueId ?? "", documentKey),
+    queryFn: () =>
+      revisionsQueryFn
+        ? revisionsQueryFn()
+        : issuesApi.listDocumentRevisions(issueId ?? "", documentKey),
     enabled: open,
   });
 
@@ -62,20 +67,29 @@ export function DocumentDiffModal({
   const [leftRevisionId, setLeftRevisionId] = useState<string | null>(null);
   const [rightRevisionId, setRightRevisionId] = useState<string | null>(null);
 
-  const effectiveLeftId = leftRevisionId ?? sortedRevisions.find(
-    (r) => r.revisionNumber === latestRevisionNumber - 1,
-  )?.id ?? null;
+  const effectiveLeftId =
+    leftRevisionId ??
+    sortedRevisions.find((r) => r.revisionNumber === latestRevisionNumber - 1)
+      ?.id ??
+    null;
 
-  const effectiveRightId = rightRevisionId ?? sortedRevisions.find(
-    (r) => r.revisionNumber === latestRevisionNumber,
-  )?.id ?? null;
+  const effectiveRightId =
+    rightRevisionId ??
+    sortedRevisions.find((r) => r.revisionNumber === latestRevisionNumber)
+      ?.id ??
+    null;
 
-  const leftRevision = sortedRevisions.find((r) => r.id === effectiveLeftId) ?? null;
-  const rightRevision = sortedRevisions.find((r) => r.id === effectiveRightId) ?? null;
+  const leftRevision =
+    sortedRevisions.find((r) => r.id === effectiveLeftId) ?? null;
+  const rightRevision =
+    sortedRevisions.find((r) => r.id === effectiveRightId) ?? null;
 
   const leftBody = leftRevision?.body ?? "";
   const rightBody = rightRevision?.body ?? "";
-  const diffRows = useMemo(() => buildLineDiff(leftBody, rightBody), [leftBody, rightBody]);
+  const diffRows = useMemo(
+    () => buildLineDiff(leftBody, rightBody),
+    [leftBody, rightBody],
+  );
 
   const lineClassesByKind: Record<DiffRow["kind"], string> = {
     context: "bg-transparent",
@@ -101,7 +115,12 @@ export function DocumentDiffModal({
 
           <div className="flex items-center gap-4 shrink-0">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-red-500/30 bg-red-500/10 text-(length:--text-nano) uppercase tracking-wider text-red-400">Old</Badge>
+              <Badge
+                variant="outline"
+                className="border-red-500/30 bg-red-500/10 text-(length:--text-nano) uppercase tracking-wider text-red-400"
+              >
+                Old
+              </Badge>
               <Select
                 value={effectiveLeftId ?? ""}
                 onValueChange={(value) => setLeftRevisionId(value)}
@@ -111,7 +130,11 @@ export function DocumentDiffModal({
                 </SelectTrigger>
                 <SelectContent>
                   {sortedRevisions.map((revision) => (
-                    <SelectItem key={revision.id} value={revision.id} className="text-xs">
+                    <SelectItem
+                      key={revision.id}
+                      value={revision.id}
+                      className="text-xs"
+                    >
                       {getRevisionLabel(revision)}
                     </SelectItem>
                   ))}
@@ -119,7 +142,12 @@ export function DocumentDiffModal({
               </Select>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-green-500/30 bg-green-500/10 text-(length:--text-nano) uppercase tracking-wider text-green-400">New</Badge>
+              <Badge
+                variant="outline"
+                className="border-green-500/30 bg-green-500/10 text-(length:--text-nano) uppercase tracking-wider text-green-400"
+              >
+                New
+              </Badge>
               <Select
                 value={effectiveRightId ?? ""}
                 onValueChange={(value) => setRightRevisionId(value)}
@@ -129,7 +157,11 @@ export function DocumentDiffModal({
                 </SelectTrigger>
                 <SelectContent>
                   {sortedRevisions.map((revision) => (
-                    <SelectItem key={revision.id} value={revision.id} className="text-xs">
+                    <SelectItem
+                      key={revision.id}
+                      value={revision.id}
+                      className="text-xs"
+                    >
                       {getRevisionLabel(revision)}
                     </SelectItem>
                   ))}
@@ -141,11 +173,17 @@ export function DocumentDiffModal({
 
         <div className="overflow-auto flex-1 rounded-md border border-border text-xs">
           {!revisions ? (
-            <div className="p-6 text-center text-muted-foreground text-sm">Loading revisions...</div>
+            <div className="p-6 text-center text-muted-foreground text-sm">
+              Loading revisions...
+            </div>
           ) : !leftRevision || !rightRevision ? (
-            <div className="p-6 text-center text-muted-foreground text-sm">Select two revisions to compare.</div>
+            <div className="p-6 text-center text-muted-foreground text-sm">
+              Select two revisions to compare.
+            </div>
           ) : leftRevision.id === rightRevision.id ? (
-            <div className="p-6 text-center text-muted-foreground text-sm">Both sides are the same revision.</div>
+            <div className="p-6 text-center text-muted-foreground text-sm">
+              Both sides are the same revision.
+            </div>
           ) : (
             <div className="font-mono text-xs leading-6">
               <div className="grid grid-cols-(--gtc-1) border-b border-border/60 bg-muted/30 px-3 py-2 text-(length:--text-micro) uppercase tracking-wide text-muted-foreground">

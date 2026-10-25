@@ -19,8 +19,15 @@ import { Identity } from "@/components/Identity";
 import { cn, relativeTime } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
 import { formatActivityVerb } from "@/lib/activity-format";
-import { buildCompanyUserProfileMap, type CompanyUserProfile } from "@/lib/company-members";
-import { auditApi, type AuditActionRecord, type AuditActionFilters } from "@/api/audit";
+import {
+  buildCompanyUserProfileMap,
+  type CompanyUserProfile,
+} from "@/lib/company-members";
+import {
+  auditApi,
+  type AuditActionRecord,
+  type AuditActionFilters,
+} from "@/api/audit";
 import { agentsApi } from "@/api/agents";
 import { accessApi } from "@/api/access";
 import { ApiError } from "@/api/client";
@@ -105,16 +112,21 @@ function AuditActor({
   // attribution (`agentId`) but retains the acting principal (`actorId`), so
   // use that principal to avoid presenting a trivially joinable identity as
   // an anonymous "Agent" in the UI.
-  const actorAgentId = record.agentId
-    ?? (record.actorType === "agent" ? record.actorId : null);
+  const actorAgentId =
+    record.agentId ?? (record.actorType === "agent" ? record.actorId : null);
   const agent = actorAgentId ? agentMap.get(actorAgentId) : null;
   if (agent) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-1.5" title={agent.name}>
+      <span
+        className="inline-flex min-w-0 items-center gap-1.5"
+        title={agent.name}
+      >
         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <AgentAvatar agent={agent} size={16} className="h-3 w-3"/>
+          <AgentAvatar agent={agent} size={16} className="h-3 w-3" />
         </span>
-        <span className="truncate font-medium text-foreground">{agent.name}</span>
+        <span className="truncate font-medium text-foreground">
+          {agent.name}
+        </span>
       </span>
     );
   }
@@ -139,7 +151,9 @@ function AuditActor({
         : record.actorType === "user"
           ? "User"
           : "System";
-  return <Identity name={label} size="sm" className="font-medium text-foreground" />;
+  return (
+    <Identity name={label} size="sm" className="font-medium text-foreground" />
+  );
 }
 
 /**
@@ -155,8 +169,13 @@ function AuditEntityNode({ record }: { record: AuditActionRecord }) {
 
   if (issueRef) {
     return (
-      <Link to={`/issues/${issueRef}`} className="font-medium text-primary hover:underline">
-        {issue?.identifier ? `${issue.identifier}${issue.title ? ` · ${issue.title}` : ""}` : "the task"}
+      <Link
+        to={`/issues/${issueRef}`}
+        className="font-medium text-primary hover:underline"
+      >
+        {issue?.identifier
+          ? `${issue.identifier}${issue.title ? ` · ${issue.title}` : ""}`
+          : "the task"}
       </Link>
     );
   }
@@ -176,24 +195,39 @@ function AuditRow({
   agentMap: Map<string, Agent>;
   userProfileMap: Map<string, CompanyUserProfile>;
 }) {
-  const verb = formatActivityVerb(record.action, record.details, { agentMap, userProfileMap });
-  const responsible = record.responsibleUserId ? userProfileMap.get(record.responsibleUserId) : null;
+  const verb = formatActivityVerb(record.action, record.details, {
+    agentMap,
+    userProfileMap,
+  });
+  const responsible = record.responsibleUserId
+    ? userProfileMap.get(record.responsibleUserId)
+    : null;
   // Suppress the "on behalf of" chip when the human actor *is* the responsible user.
   const showOnBehalf = Boolean(
-    record.responsibleUserId
-      && !(record.actorType === "user" && record.actorId === record.responsibleUserId),
+    record.responsibleUserId &&
+    !(
+      record.actorType === "user" && record.actorId === record.responsibleUserId
+    ),
   );
-  const responsibleLabel = responsible?.label ?? (record.responsibleUserId ? "a user" : null);
+  const responsibleLabel =
+    responsible?.label ?? (record.responsibleUserId ? "a user" : null);
   const excerpt = record.entity.comment?.excerpt?.trim();
   // Show the document key only when it isn't already the linked entity node.
-  const documentKey = record.entity.issue && record.entity.document ? record.entity.document.key : null;
+  const documentKey =
+    record.entity.issue && record.entity.document
+      ? record.entity.document.key
+      : null;
 
   return (
     <li className="px-4 py-3 text-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-foreground">
-            <AuditActor record={record} agentMap={agentMap} userProfileMap={userProfileMap} />
+            <AuditActor
+              record={record}
+              agentMap={agentMap}
+              userProfileMap={userProfileMap}
+            />
             <span className="text-muted-foreground">{verb}</span>
             <AuditEntityNode record={record} />
           </div>
@@ -204,7 +238,10 @@ function AuditRow({
           ) : null}
           {documentKey ? (
             <p className="text-xs text-muted-foreground">
-              Document <span className="font-mono text-(length:--text-micro)">{documentKey}</span>
+              Document{" "}
+              <span className="font-mono text-(length:--text-micro)">
+                {documentKey}
+              </span>
             </p>
           ) : null}
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -221,7 +258,9 @@ function AuditRow({
                 View run
               </Link>
             ) : null}
-            <span className="font-mono text-(length:--text-micro) opacity-70">{record.action}</span>
+            <span className="font-mono text-(length:--text-micro) opacity-70">
+              {record.action}
+            </span>
           </div>
         </div>
         <time
@@ -243,12 +282,17 @@ function AuditUpsell() {
       <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
         <ShieldAlert className="h-10 w-10 text-muted-foreground/50" />
         <div>
-          <p className="text-sm font-medium text-foreground">Agent audit is a Taskcore Enterprise view</p>
+          <p className="text-sm font-medium text-foreground">
+            Agent audit is a Taskcore Enterprise view
+          </p>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            The agent audit log gives you a searchable, exportable record of everything your agents
-            did — every comment, task change, approval, and run — with the responsible person for
-            each action. Ask an administrator to grant you the{" "}
-            <span className="font-mono text-(length:--text-micro)">audit:view_agent_actions</span>{" "}
+            The agent audit log gives you a searchable, exportable record of
+            everything your agents did — every comment, task change, approval,
+            and run — with the responsible person for each action. Ask an
+            administrator to grant you the{" "}
+            <span className="font-mono text-(length:--text-micro)">
+              audit:view_agent_actions
+            </span>{" "}
             permission to view it.
           </p>
         </div>
@@ -272,7 +316,8 @@ export function AuditFeed({
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [exporting, setExporting] = useState(false);
-  const [downgradeRecoveryAttempted, setDowngradeRecoveryAttempted] = useState(false);
+  const [downgradeRecoveryAttempted, setDowngradeRecoveryAttempted] =
+    useState(false);
 
   const agents = useQuery({
     queryKey: queryKeys.agents.list(companyId),
@@ -296,7 +341,9 @@ export function AuditFeed({
   // The per-agent tab keeps the legacy privileged scope because it always
   // carries an attribution filter and must not silently downgrade to the basic
   // tier. Everywhere else the mode picks the scope, defaulting to all actors.
-  const resolvedMode: AuditFeedMode = lockedAgentId ? "agents" : mode ?? "all";
+  const resolvedMode: AuditFeedMode = lockedAgentId
+    ? "agents"
+    : (mode ?? "all");
 
   const filters: AuditActionFilters = {
     actorScope: resolvedMode,
@@ -309,12 +356,12 @@ export function AuditFeed({
   };
 
   const hasActiveFilters = Boolean(
-    (!lockedAgentId && agent !== ALL)
-      || responsibleUser !== ALL
-      || actionDomain !== ALL
-      || entityType !== ALL
-      || dateFrom
-      || dateTo,
+    (!lockedAgentId && agent !== ALL) ||
+    responsibleUser !== ALL ||
+    actionDomain !== ALL ||
+    entityType !== ALL ||
+    dateFrom ||
+    dateTo,
   );
 
   const feed = useInfiniteQuery({
@@ -328,15 +375,23 @@ export function AuditFeed({
       to: filters.to,
     }),
     queryFn: ({ pageParam }) =>
-      auditApi.listAgentActions(companyId, { ...filters, limit: PAGE_SIZE, cursor: pageParam ?? undefined }),
+      auditApi.listAgentActions(companyId, {
+        ...filters,
+        limit: PAGE_SIZE,
+        cursor: pageParam ?? undefined,
+      }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    retry: (count, error) => !(error instanceof ApiError && error.status === 403) && count < 2,
+    retry: (count, error) =>
+      !(error instanceof ApiError && error.status === 403) && count < 2,
   });
 
-  const permissionDenied = feed.error instanceof ApiError && feed.error.status === 403;
-  const hasBasicPage = feed.data?.pages.some((page) => page.accessTier === "basic") ?? false;
-  const hasFullPage = feed.data?.pages.some((page) => page.accessTier === "full") ?? false;
+  const permissionDenied =
+    feed.error instanceof ApiError && feed.error.status === 403;
+  const hasBasicPage =
+    feed.data?.pages.some((page) => page.accessTier === "basic") ?? false;
+  const hasFullPage =
+    feed.data?.pages.some((page) => page.accessTier === "full") ?? false;
 
   // Once the server answers at the basic tier the caller has lost the permission
   // that produced the privileged attribution on the pages already in the cache.
@@ -344,16 +399,16 @@ export function AuditFeed({
   // next to stripped rows — the recovery refetch below may never clear them.
   const items = useMemo(() => {
     const pages = feed.data?.pages ?? [];
-    const visible = hasBasicPage ? pages.filter((page) => page.accessTier !== "full") : pages;
+    const visible = hasBasicPage
+      ? pages.filter((page) => page.accessTier !== "full")
+      : pages;
     return visible.flatMap((page) => page.items);
   }, [feed.data, hasBasicPage]);
   // Access may be revoked between cursor requests. Treat the least-privileged
   // page as authoritative until every cached page has been fetched again.
   const accessTier = hasBasicPage ? "basic" : feed.data?.pages[0]?.accessTier;
   const hasMixedAccessTiers = hasBasicPage && hasFullPage;
-  const canUseAdvancedControls = lockedAgentId
-    ? true
-    : accessTier === "full";
+  const canUseAdvancedControls = lockedAgentId ? true : accessTier === "full";
   // The recovery refetch below gets one shot. If it does not clear the mixed
   // pages — it errored, or it somehow came back mixed again — the cache keeps
   // them, so `hasMixedAccessTiers` would stay true forever. Only call the feed
@@ -366,23 +421,26 @@ export function AuditFeed({
     hasMixedAccessTiers && downgradeRecoveryAttempted && !feed.isFetching,
   );
   const recoveringFromAccessDowngrade = Boolean(
-    !lockedAgentId
-      && !downgradeRecoveryExhausted
-      && ((permissionDenied && hasActiveFilters) || hasMixedAccessTiers),
+    !lockedAgentId &&
+    !downgradeRecoveryExhausted &&
+    ((permissionDenied && hasActiveFilters) || hasMixedAccessTiers),
   );
   // A reader without `audit:view_agent_actions` can still land on the
   // agent-actions mode through an old `/audit` deep link. Drop them into the
   // shared all-activity feed instead of blocking the whole page with the upsell.
   const fallingBackToAllActivity = Boolean(
-    permissionDenied && !lockedAgentId && resolvedMode === "agents" && onModeChange,
+    permissionDenied &&
+    !lockedAgentId &&
+    resolvedMode === "agents" &&
+    onModeChange,
   );
   // The privileged mode is only offered to callers the server already answered
   // at the full tier — everyone else just gets the basic all-activity feed.
   const showModeToggle = Boolean(
-    !lockedAgentId
-      && onModeChange
-      && !fallingBackToAllActivity
-      && (resolvedMode === "agents" || accessTier === "full"),
+    !lockedAgentId &&
+    onModeChange &&
+    !fallingBackToAllActivity &&
+    (resolvedMode === "agents" || accessTier === "full"),
   );
 
   useEffect(() => {
@@ -390,7 +448,10 @@ export function AuditFeed({
   }, [fallingBackToAllActivity, onModeChange]);
 
   useEffect(() => {
-    if (!lockedAgentId && (accessTier === "basic" || recoveringFromAccessDowngrade)) {
+    if (
+      !lockedAgentId &&
+      (accessTier === "basic" || recoveringFromAccessDowngrade)
+    ) {
       setAgent(ALL);
       setResponsibleUser(ALL);
       setActionDomain(ALL);
@@ -398,7 +459,12 @@ export function AuditFeed({
       setDateFrom("");
       setDateTo("");
     }
-  }, [accessTier, hasMixedAccessTiers, lockedAgentId, recoveringFromAccessDowngrade]);
+  }, [
+    accessTier,
+    hasMixedAccessTiers,
+    lockedAgentId,
+    recoveringFromAccessDowngrade,
+  ]);
 
   // Recover from a mid-pagination downgrade with exactly one refetch. `feed`
   // gets a new identity on every render, so an unguarded refetch here re-fires
@@ -444,11 +510,18 @@ export function AuditFeed({
       // Browsers may read blob URLs lazily after click(), so keep the URL alive
       // long enough for the download to start.
       window.setTimeout(() => URL.revokeObjectURL(url), 5_000);
-      pushToast({ title: "Audit exported", body: "Your CSV download has started.", tone: "success" });
+      pushToast({
+        title: "Audit exported",
+        body: "Your CSV download has started.",
+        tone: "success",
+      });
     } catch (error) {
       pushToast({
         title: "Export failed",
-        body: error instanceof Error ? error.message : "Could not export the audit log.",
+        body:
+          error instanceof Error
+            ? error.message
+            : "Could not export the audit log.",
         tone: "error",
       });
     } finally {
@@ -456,7 +529,11 @@ export function AuditFeed({
     }
   };
 
-  if (permissionDenied && !recoveringFromAccessDowngrade && !fallingBackToAllActivity) {
+  if (
+    permissionDenied &&
+    !recoveringFromAccessDowngrade &&
+    !fallingBackToAllActivity
+  ) {
     return <AuditUpsell />;
   }
 
@@ -476,7 +553,10 @@ export function AuditFeed({
       ) : null}
 
       {showModeToggle ? (
-        <Tabs value={resolvedMode} onValueChange={(value) => onModeChange?.(value as AuditFeedMode)}>
+        <Tabs
+          value={resolvedMode}
+          onValueChange={(value) => onModeChange?.(value as AuditFeedMode)}
+        >
           <TabsList aria-label="Activity scope">
             <TabsTrigger value="all">All activity</TabsTrigger>
             <TabsTrigger value="agents">Agent actions</TabsTrigger>
@@ -581,13 +661,17 @@ export function AuditFeed({
         </Card>
       ) : feed.isLoading ? (
         <Card>
-          <CardContent className="py-14 text-center text-sm text-muted-foreground">Loading…</CardContent>
+          <CardContent className="py-14 text-center text-sm text-muted-foreground">
+            Loading…
+          </CardContent>
         </Card>
       ) : feed.error ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
             <p className="text-sm text-muted-foreground">
-              {feed.error instanceof Error ? feed.error.message : "Failed to load the audit log."}
+              {feed.error instanceof Error
+                ? feed.error.message
+                : "Failed to load the audit log."}
             </p>
             <Button variant="outline" size="sm" onClick={() => feed.refetch()}>
               Try again
@@ -600,7 +684,9 @@ export function AuditFeed({
             <ScrollText className="h-10 w-10 text-muted-foreground/40" />
             <div>
               <p className="text-sm font-medium text-foreground">
-                {hasActiveFilters ? "No actions match these filters" : "Nothing here yet"}
+                {hasActiveFilters
+                  ? "No actions match these filters"
+                  : "Nothing here yet"}
               </p>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
                 {hasActiveFilters
@@ -648,7 +734,8 @@ export function AuditFeed({
       ) : null}
 
       <p className="text-xs text-muted-foreground">
-        Recorded by Taskcore — entries can't be edited. Sensitive values are never stored.
+        Recorded by Taskcore — entries can't be edited. Sensitive values are
+        never stored.
       </p>
     </div>
   );

@@ -48,7 +48,10 @@ function mockSentryPackage() {
   const init = vi.fn();
   const captureException = vi.fn(() => "event-id");
   const close = vi.fn(async () => true);
-  const httpIntegration = vi.fn((options: unknown) => ({ name: "Http", ...(options as object) }));
+  const httpIntegration = vi.fn((options: unknown) => ({
+    name: "Http",
+    ...(options as object),
+  }));
   const onUnhandledRejectionIntegration = vi.fn((options: unknown) => ({
     name: "OnUnhandledRejection",
     ...(options as object),
@@ -65,7 +68,13 @@ function mockSentryPackage() {
     checkExactPeerVersions: () => ({ ok: true }),
   }));
 
-  return { init, captureException, close, httpIntegration, onUnhandledRejectionIntegration };
+  return {
+    init,
+    captureException,
+    close,
+    httpIntegration,
+    onUnhandledRejectionIntegration,
+  };
 }
 
 // A representative default-integration list, shaped like the array
@@ -131,21 +140,42 @@ describe("captureException", () => {
     process.env[BACKEND_DSN_ENV] = "https://fixture@example.com/1";
     const sdk = mockSentryPackage();
     const { captureException, sentryReady } = await importFreshSentry();
-    const { CloudPortfolioError } = await import("../services/cloud-portfolio-error.js");
+    const { CloudPortfolioError } =
+      await import("../services/cloud-portfolio-error.js");
     await sentryReady;
-    const error = new CloudPortfolioError("upstream", { phase: "fetch", elapsedMs: 270, upstreamStatus: null }, { code: "ECONNRESET" });
-    Object.assign(error, { cause: new Error("private cause"), headers: { authorization: "private token" } });
-    Object.defineProperty(error, "diagnostics", { value: { token: "private replacement" } });
+    const error = new CloudPortfolioError(
+      "upstream",
+      { phase: "fetch", elapsedMs: 270, upstreamStatus: null },
+      { code: "ECONNRESET" },
+    );
+    Object.assign(error, {
+      cause: new Error("private cause"),
+      headers: { authorization: "private token" },
+    });
+    Object.defineProperty(error, "diagnostics", {
+      value: { token: "private replacement" },
+    });
     captureException(error);
     const unrelated = new Error("unrelated");
     captureException(unrelated);
     expect(sdk.captureException.mock.calls[0]).toEqual([
       expect.objectContaining({ message: error.message, stack: error.stack }),
-      { tags: { error_code: "cloud_portfolio_failure" }, fingerprint: ["{{ default }}"], contexts: {
-        cloud_portfolio: { phase: "fetch", elapsedMs: 270, upstreamStatus: null, networkCode: "ECONNRESET" },
-      } },
+      {
+        tags: { error_code: "cloud_portfolio_failure" },
+        fingerprint: ["{{ default }}"],
+        contexts: {
+          cloud_portfolio: {
+            phase: "fetch",
+            elapsedMs: 270,
+            upstreamStatus: null,
+            networkCode: "ECONNRESET",
+          },
+        },
+      },
     ]);
-    expect(JSON.stringify(sdk.captureException.mock.calls[0])).not.toContain("private");
+    expect(JSON.stringify(sdk.captureException.mock.calls[0])).not.toContain(
+      "private",
+    );
     expect(sdk.captureException.mock.calls[0]![0]).not.toHaveProperty("cause");
     expect(sdk.captureException.mock.calls[1]).toEqual([unrelated]);
   });
@@ -154,12 +184,16 @@ describe("captureException", () => {
     process.env[BACKEND_DSN_ENV] = "https://fixture@example.com/1";
     const sdk = mockSentryPackage();
     const { captureException, sentryReady } = await importFreshSentry();
-    const { AdapterStopTimeoutError } = await import("../services/adapter-stop-timeout.js");
+    const { AdapterStopTimeoutError } =
+      await import("../services/adapter-stop-timeout.js");
     await sentryReady;
     const error = new AdapterStopTimeoutError(60_000, {
       runId: "11111111-1111-4111-8111-111111111111",
-      adapterType: "cursor", runtimeMode: "legacy", abortRequested: true,
-      phase: "instruction_collection", phaseElapsedMs: 60_321,
+      adapterType: "cursor",
+      runtimeMode: "legacy",
+      abortRequested: true,
+      phase: "instruction_collection",
+      phaseElapsedMs: 60_321,
     });
     Object.assign(error, { providerResponse: "private fixture payload" });
     captureException(error);
@@ -167,12 +201,25 @@ describe("captureException", () => {
     captureException(unrelated);
     expect(sdk.captureException.mock.calls[0]).toEqual([
       expect.objectContaining({ message: error.message, stack: error.stack }),
-      { tags: { error_code: "adapter_stop_unconfirmed" }, fingerprint: ["{{ default }}"], contexts: {
-        adapter_stop: { runId: "11111111-1111-4111-8111-111111111111", adapterType: "cursor", runtimeMode: "legacy", abortRequested: true, timeoutMs: 60_000,
-          phase: "instruction_collection", phaseElapsedMs: 60_321 },
-      } },
+      {
+        tags: { error_code: "adapter_stop_unconfirmed" },
+        fingerprint: ["{{ default }}"],
+        contexts: {
+          adapter_stop: {
+            runId: "11111111-1111-4111-8111-111111111111",
+            adapterType: "cursor",
+            runtimeMode: "legacy",
+            abortRequested: true,
+            timeoutMs: 60_000,
+            phase: "instruction_collection",
+            phaseElapsedMs: 60_321,
+          },
+        },
+      },
     ]);
-    expect(JSON.stringify(sdk.captureException.mock.calls[0])).not.toContain("private fixture payload");
+    expect(JSON.stringify(sdk.captureException.mock.calls[0])).not.toContain(
+      "private fixture payload",
+    );
     expect(sdk.captureException.mock.calls[1]).toEqual([unrelated]);
   });
 
@@ -180,17 +227,37 @@ describe("captureException", () => {
     process.env[BACKEND_DSN_ENV] = "https://fixture@example.com/1";
     const sdk = mockSentryPackage();
     const { captureException, sentryReady } = await importFreshSentry();
-    const { AdapterStopTimeoutError } = await import("../services/adapter-stop-timeout.js");
+    const { AdapterStopTimeoutError } =
+      await import("../services/adapter-stop-timeout.js");
     await sentryReady;
-    captureException(new AdapterStopTimeoutError(NaN, {
-      runId: "private fixture payload", adapterType: "private fixture payload", runtimeMode: "private fixture payload",
-      phase: "private fixture payload", phaseElapsedMs: Infinity,
-    }));
-    expect(JSON.stringify(sdk.captureException.mock.calls)).not.toContain("private fixture payload");
-    expect(sdk.captureException.mock.calls[0]).toEqual([expect.any(Error), expect.objectContaining({ contexts: {
-      adapter_stop: { runId: null, adapterType: "unknown", runtimeMode: "unknown", abortRequested: null, timeoutMs: null,
-        phase: "unknown", phaseElapsedMs: null },
-    } })]);
+    captureException(
+      new AdapterStopTimeoutError(NaN, {
+        runId: "private fixture payload",
+        adapterType: "private fixture payload",
+        runtimeMode: "private fixture payload",
+        phase: "private fixture payload",
+        phaseElapsedMs: Infinity,
+      }),
+    );
+    expect(JSON.stringify(sdk.captureException.mock.calls)).not.toContain(
+      "private fixture payload",
+    );
+    expect(sdk.captureException.mock.calls[0]).toEqual([
+      expect.any(Error),
+      expect.objectContaining({
+        contexts: {
+          adapter_stop: {
+            runId: null,
+            adapterType: "unknown",
+            runtimeMode: "unknown",
+            abortRequested: null,
+            timeoutMs: null,
+            phase: "unknown",
+            phaseElapsedMs: null,
+          },
+        },
+      }),
+    ]);
   });
 
   it("is a no-op and does not throw when the gate is closed", async () => {
@@ -241,7 +308,9 @@ describe("errorHandler Sentry capture", () => {
   }
 
   it("captures one event for a 500-level HttpError", () => {
-    const capture = vi.spyOn(sentryModule, "captureException").mockImplementation(() => {});
+    const capture = vi
+      .spyOn(sentryModule, "captureException")
+      .mockImplementation(() => {});
     const req = makeReq();
     const res = makeRes();
     const next = vi.fn() as unknown as NextFunction;
@@ -253,7 +322,9 @@ describe("errorHandler Sentry capture", () => {
   });
 
   it("captures one event for an unknown error", () => {
-    const capture = vi.spyOn(sentryModule, "captureException").mockImplementation(() => {});
+    const capture = vi
+      .spyOn(sentryModule, "captureException")
+      .mockImplementation(() => {});
     const req = makeReq();
     const res = makeRes();
     const next = vi.fn() as unknown as NextFunction;
@@ -265,7 +336,9 @@ describe("errorHandler Sentry capture", () => {
   });
 
   it("captures no event for a Zod validation 400 response", () => {
-    const capture = vi.spyOn(sentryModule, "captureException").mockImplementation(() => {});
+    const capture = vi
+      .spyOn(sentryModule, "captureException")
+      .mockImplementation(() => {});
     const req = makeReq();
     const res = makeRes();
     const next = vi.fn() as unknown as NextFunction;
@@ -288,7 +361,9 @@ describe("errorHandler Sentry capture", () => {
   });
 
   it("passes the Error object only to captureException, never the request-bearing ErrorContext", () => {
-    const capture = vi.spyOn(sentryModule, "captureException").mockImplementation(() => {});
+    const capture = vi
+      .spyOn(sentryModule, "captureException")
+      .mockImplementation(() => {});
     const req = makeReq();
     const res = makeRes();
     const next = vi.fn() as unknown as NextFunction;
@@ -366,7 +441,9 @@ describe("@sentry/node installed at an unsupported version", () => {
         diagnostic: "unused by the Sentry gate; see server/src/sentry.ts",
         detail: {
           missing: [],
-          mismatched: [{ name: "@sentry/node", installed: "9.0.0", expected: "10.71.0" }],
+          mismatched: [
+            { name: "@sentry/node", installed: "9.0.0", expected: "10.71.0" },
+          ],
         },
       }),
     }));
@@ -389,7 +466,8 @@ describe("@sentry/node installed at an unsupported version", () => {
 
 describe("split DSN gating", () => {
   it("opens the gate and passes the backend DSN to Sentry.init when SENTRY_DSN_BACKEND alone is set", async () => {
-    process.env[BACKEND_DSN_ENV] = "https://public-backend@o0.ingest.sentry.io/2";
+    process.env[BACKEND_DSN_ENV] =
+      "https://public-backend@o0.ingest.sentry.io/2";
     const mocks = mockSentryPackage();
 
     const { sentryReady } = await importFreshSentry();
@@ -397,11 +475,14 @@ describe("split DSN gating", () => {
 
     expect(mocks.init).toHaveBeenCalledTimes(1);
     const initOptions = mocks.init.mock.calls[0][0] as { dsn: string };
-    expect(initOptions.dsn).toBe("https://public-backend@o0.ingest.sentry.io/2");
+    expect(initOptions.dsn).toBe(
+      "https://public-backend@o0.ingest.sentry.io/2",
+    );
   });
 
   it("leaves the gate closed and loads no SDK when SENTRY_DSN_FRONTEND alone is set", async () => {
-    process.env[FRONTEND_DSN_ENV] = "https://public-frontend@o0.ingest.sentry.io/1";
+    process.env[FRONTEND_DSN_ENV] =
+      "https://public-frontend@o0.ingest.sentry.io/1";
     const mocks = mockSentryPackage();
 
     const { sentryReady } = await importFreshSentry();
@@ -425,14 +506,18 @@ describe("split DSN gating", () => {
     expect(message).toEqual(expect.stringContaining("SENTRY_DSN"));
     for (const call of warn.mock.calls) {
       for (const arg of call) {
-        expect(String(arg)).not.toContain("https://public-legacy@o0.ingest.sentry.io/3");
+        expect(String(arg)).not.toContain(
+          "https://public-legacy@o0.ingest.sentry.io/3",
+        );
       }
     }
   });
 
   it("logs no warning when both specific variables are set", async () => {
-    process.env[FRONTEND_DSN_ENV] = "https://public-frontend@o0.ingest.sentry.io/1";
-    process.env[BACKEND_DSN_ENV] = "https://public-backend@o0.ingest.sentry.io/2";
+    process.env[FRONTEND_DSN_ENV] =
+      "https://public-frontend@o0.ingest.sentry.io/1";
+    process.env[BACKEND_DSN_ENV] =
+      "https://public-backend@o0.ingest.sentry.io/2";
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     mockSentryPackage();
 
@@ -447,10 +532,15 @@ describe("buildSentryInitOptions", () => {
   it("sets sendDefaultPii false, tracesSampleRate 0, and skipOpenTelemetrySetup true", async () => {
     const { buildSentryInitOptions } = await importFreshSentry();
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
 
     expect(options.sendDefaultPii).toBe(false);
     expect(options.tracesSampleRate).toBe(0);
@@ -464,27 +554,45 @@ describe("buildSentryInitOptions", () => {
       ...(options as object),
     }));
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration,
-    });
-    const resolved = options.integrations(DEFAULT_INTEGRATION_NAMES.map((name) => ({ name })));
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration,
+      },
+    );
+    const resolved = options.integrations(
+      DEFAULT_INTEGRATION_NAMES.map((name) => ({ name })),
+    );
 
-    expect(onUnhandledRejectionIntegration).toHaveBeenCalledWith({ mode: "strict" });
-    const rejectionIntegration = resolved.find((i) => i.name === "OnUnhandledRejection");
+    expect(onUnhandledRejectionIntegration).toHaveBeenCalledWith({
+      mode: "strict",
+    });
+    const rejectionIntegration = resolved.find(
+      (i) => i.name === "OnUnhandledRejection",
+    );
     expect(rejectionIntegration).toMatchObject({ mode: "strict" });
     // The default OnUnhandledRejection entry must not survive alongside it.
-    expect(resolved.filter((i) => i.name === "OnUnhandledRejection")).toHaveLength(1);
+    expect(
+      resolved.filter((i) => i.name === "OnUnhandledRejection"),
+    ).toHaveLength(1);
   });
 
   it("the resolved server integration list holds no Console integration and no ContextLines integration", async () => {
     const { buildSentryInitOptions } = await importFreshSentry();
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
-    const resolved = options.integrations(DEFAULT_INTEGRATION_NAMES.map((name) => ({ name })));
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
+    const resolved = options.integrations(
+      DEFAULT_INTEGRATION_NAMES.map((name) => ({ name })),
+    );
     const names = resolved.map((i) => i.name);
 
     expect(names).not.toContain("Console");
@@ -494,11 +602,18 @@ describe("buildSentryInitOptions", () => {
   it("the resolved server integration list keeps OnUncaughtException, OnUnhandledRejection, LinkedErrors, and RequestData", async () => {
     const { buildSentryInitOptions } = await importFreshSentry();
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
-    const resolved = options.integrations(DEFAULT_INTEGRATION_NAMES.map((name) => ({ name })));
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
+    const resolved = options.integrations(
+      DEFAULT_INTEGRATION_NAMES.map((name) => ({ name })),
+    );
     const names = resolved.map((i) => i.name);
 
     // The full error-capture set the plan requires, not just the four named
@@ -519,13 +634,23 @@ describe("buildSentryInitOptions", () => {
 
   it("turns the outbound HTTP breadcrumb off and keeps the rest of the Http integration", async () => {
     const { buildSentryInitOptions } = await importFreshSentry();
-    const httpIntegration = vi.fn((options: unknown) => ({ name: "Http", ...(options as object) }));
+    const httpIntegration = vi.fn((options: unknown) => ({
+      name: "Http",
+      ...(options as object),
+    }));
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration,
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
-    const resolved = options.integrations(DEFAULT_INTEGRATION_NAMES.map((name) => ({ name })));
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration,
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
+    const resolved = options.integrations(
+      DEFAULT_INTEGRATION_NAMES.map((name) => ({ name })),
+    );
 
     expect(httpIntegration).toHaveBeenCalledWith({ breadcrumbs: false });
     expect(resolved.filter((i) => i.name === "Http")).toHaveLength(1);
@@ -536,10 +661,15 @@ describe("buildSentryInitOptions serverName", () => {
   it("sets serverName to the host name", async () => {
     const { buildSentryInitOptions } = await importFreshSentry();
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
 
     expect(options.serverName).toBe(os.hostname());
   });
@@ -551,10 +681,15 @@ describe("buildSentryInitOptions serverName", () => {
     }));
 
     const { buildSentryInitOptions } = await importFreshSentry();
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
 
     expect(options.serverName).toBe("fixed-test-host");
 
@@ -577,10 +712,15 @@ describe("buildSentryInitOptions serverName", () => {
     process.env[SENTRY_NAME_ENV] = "opaque-operator-id";
     const { buildSentryInitOptions } = await importFreshSentry();
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
 
     expect(options.serverName).toBe("opaque-operator-id");
   });
@@ -589,10 +729,15 @@ describe("buildSentryInitOptions serverName", () => {
     delete process.env[SENTRY_NAME_ENV];
     const { buildSentryInitOptions } = await importFreshSentry();
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
 
     expect(options.serverName).toBe(os.hostname());
   });
@@ -601,10 +746,15 @@ describe("buildSentryInitOptions serverName", () => {
     process.env[SENTRY_NAME_ENV] = "";
     const { buildSentryInitOptions } = await importFreshSentry();
 
-    const options = buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", {
-      httpIntegration: () => ({ name: "Http" }),
-      onUnhandledRejectionIntegration: () => ({ name: "OnUnhandledRejection" }),
-    });
+    const options = buildSentryInitOptions(
+      "https://public@o0.ingest.sentry.io/1",
+      {
+        httpIntegration: () => ({ name: "Http" }),
+        onUnhandledRejectionIntegration: () => ({
+          name: "OnUnhandledRejection",
+        }),
+      },
+    );
 
     expect(options.serverName).toBe(os.hostname());
   });
@@ -632,13 +782,17 @@ describe("buildSentryInitOptions release", () => {
 
   it("uses the server build commit", async () => {
     const { buildSentryInitOptions } = await importFreshSentry();
-    expect(buildSentryInitOptions("test-dsn", integrations).release).toBe(commit);
+    expect(buildSentryInitOptions("test-dsn", integrations).release).toBe(
+      commit,
+    );
   });
 
   it("preserves an operator's explicit release", async () => {
     vi.stubEnv("SENTRY_RELEASE", " custom-release ");
     const { buildSentryInitOptions } = await importFreshSentry();
-    expect(buildSentryInitOptions("test-dsn", integrations).release).toBe("custom-release");
+    expect(buildSentryInitOptions("test-dsn", integrations).release).toBe(
+      "custom-release",
+    );
   });
 
   it("leaves an unknown build unattributed", async () => {
@@ -646,7 +800,9 @@ describe("buildSentryInitOptions release", () => {
     // case, rather than depending on a second factory replacing the first.
     readBuildCommit.mockReturnValue(null);
     const { buildSentryInitOptions } = await importFreshSentry();
-    expect(buildSentryInitOptions("test-dsn", integrations).release).toBeUndefined();
+    expect(
+      buildSentryInitOptions("test-dsn", integrations).release,
+    ).toBeUndefined();
     expect(readBuildCommit).toHaveBeenCalled();
   });
 });
@@ -656,7 +812,8 @@ describe("with @sentry/node mocked", () => {
     process.env[DSN_ENV] = "https://public@o0.ingest.sentry.io/1";
     const mocks = mockSentryPackage();
 
-    const { sentryReady, captureException, shutdownSentry } = await importFreshSentry();
+    const { sentryReady, captureException, shutdownSentry } =
+      await importFreshSentry();
     await sentryReady;
 
     expect(mocks.init).toHaveBeenCalledTimes(1);
@@ -690,12 +847,20 @@ describe("one-project resolution", () => {
         from: () => ({
           where: () =>
             Promise.resolve([
-              { id: "user-1", name: "Jane Example", email: "jane@example.com", image: null },
+              {
+                id: "user-1",
+                name: "Jane Example",
+                email: "jane@example.com",
+                image: null,
+              },
             ]),
         }),
       }),
     };
-    app.use("/api/auth", authRoutes(db as unknown as Parameters<typeof authRoutes>[0]));
+    app.use(
+      "/api/auth",
+      authRoutes(db as unknown as Parameters<typeof authRoutes>[0]),
+    );
     app.use(errorHandler);
     return app;
   }
@@ -727,7 +892,9 @@ const sentryPackage = (() => {
       init(options: Record<string, unknown>): unknown;
       captureException(error: unknown): string;
       httpIntegration(options: { breadcrumbs: boolean }): { name: string };
-      onUnhandledRejectionIntegration(options: { mode: string }): { name: string };
+      onUnhandledRejectionIntegration(options: { mode: string }): {
+        name: string;
+      };
       flush(timeout?: number): Promise<boolean>;
       close(timeout?: number): Promise<boolean>;
     };
@@ -736,142 +903,162 @@ const sentryPackage = (() => {
   }
 })();
 
-describe.skipIf(!sentryPackage)("captured event shape against the real @sentry/node SDK", () => {
-  /**
-   * Initialize the real SDK with this module's exact options, plus a
-   * transport stub so no event leaves the test process, plus `beforeSend`
-   * so the test can inspect the resolved event before it would have been
-   * sent. `beforeSend` is test-only introspection — the module under test
-   * adds no `beforeSend` of its own (constraint: built-in options only).
-   */
-  async function initRealSentryForTest(onEvent: (event: Record<string, unknown>) => void) {
-    const Sentry = sentryPackage!;
-    const { buildSentryInitOptions } = await importFreshSentry();
-    const options = {
-      ...buildSentryInitOptions("https://public@o0.ingest.sentry.io/1", Sentry),
-      transport: () => ({ send: async () => ({}), flush: async () => true }),
-      beforeSend: (event: Record<string, unknown>) => {
-        onEvent(event);
-        return event;
-      },
-    };
-    Sentry.init(options);
-  }
+describe.skipIf(!sentryPackage)(
+  "captured event shape against the real @sentry/node SDK",
+  () => {
+    /**
+     * Initialize the real SDK with this module's exact options, plus a
+     * transport stub so no event leaves the test process, plus `beforeSend`
+     * so the test can inspect the resolved event before it would have been
+     * sent. `beforeSend` is test-only introspection — the module under test
+     * adds no `beforeSend` of its own (constraint: built-in options only).
+     */
+    async function initRealSentryForTest(
+      onEvent: (event: Record<string, unknown>) => void,
+    ) {
+      const Sentry = sentryPackage!;
+      const { buildSentryInitOptions } = await importFreshSentry();
+      const options = {
+        ...buildSentryInitOptions(
+          "https://public@o0.ingest.sentry.io/1",
+          Sentry,
+        ),
+        transport: () => ({ send: async () => ({}), flush: async () => true }),
+        beforeSend: (event: Record<string, unknown>) => {
+          onEvent(event);
+          return event;
+        },
+      };
+      Sentry.init(options);
+    }
 
-  it("attaches the actual build commit to an emitted event", async () => {
-    const commit = "0123456789abcdef0123456789abcdef01234567";
-    vi.stubEnv("TASKCORE_BUILD_COMMIT", commit);
-    vi.stubEnv("SENTRY_RELEASE", "");
-    try {
+    it("attaches the actual build commit to an emitted event", async () => {
+      const commit = "0123456789abcdef0123456789abcdef01234567";
+      vi.stubEnv("TASKCORE_BUILD_COMMIT", commit);
+      vi.stubEnv("SENTRY_RELEASE", "");
+      try {
+        let captured: Record<string, unknown> | null = null;
+        await initRealSentryForTest((event) => {
+          captured = event;
+        });
+        sentryPackage!.captureException(new Error("build attribution check"));
+        await sentryPackage!.flush(2000);
+        expect(captured).toMatchObject({ release: commit });
+        expect(captured).not.toHaveProperty("request");
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it("a server event captured after a console.error call carries no console breadcrumb", async () => {
+      const Sentry = sentryPackage!;
       let captured: Record<string, unknown> | null = null;
-      await initRealSentryForTest((event) => { captured = event; });
-      sentryPackage!.captureException(new Error("build attribution check"));
-      await sentryPackage!.flush(2000);
-      expect(captured).toMatchObject({ release: commit });
-      expect(captured).not.toHaveProperty("request");
-    } finally {
-      vi.unstubAllEnvs();
-    }
-  });
-
-  it("a server event captured after a console.error call carries no console breadcrumb", async () => {
-    const Sentry = sentryPackage!;
-    let captured: Record<string, unknown> | null = null;
-    await initRealSentryForTest((event) => {
-      captured = event;
-    });
-
-    // eslint-disable-next-line no-console
-    console.error("child process stderr: simulated failure");
-    Sentry.captureException(new Error("after console.error"));
-    await Sentry.flush(2000);
-
-    expect(captured).not.toBeNull();
-    expect((captured as Record<string, unknown>).breadcrumbs).toBeUndefined();
-  });
-
-  it("a server event carries no stack-frame source context", async () => {
-    const Sentry = sentryPackage!;
-    let captured: Record<string, unknown> | null = null;
-    await initRealSentryForTest((event) => {
-      captured = event;
-    });
-
-    Sentry.captureException(new Error("stack frame check"));
-    await Sentry.flush(2000);
-
-    const event = captured as unknown as {
-      exception: { values: Array<{ stacktrace: { frames: Array<Record<string, unknown>> } }> };
-    };
-    const frames = event.exception.values[0].stacktrace.frames;
-    expect(frames.length).toBeGreaterThan(0);
-    for (const frame of frames) {
-      expect(frame.context_line).toBeUndefined();
-      expect(frame.pre_context).toBeUndefined();
-      expect(frame.post_context).toBeUndefined();
-    }
-  });
-
-  it("a server event carries no outbound HTTP breadcrumb", async () => {
-    const Sentry = sentryPackage!;
-    let captured: Record<string, unknown> | null = null;
-    await initRealSentryForTest((event) => {
-      captured = event;
-    });
-
-    const server = http.createServer((_req, res) => res.end("ok"));
-    await new Promise<void>((resolve) => server.listen(0, resolve));
-    const port = (server.address() as { port: number }).port;
-    await new Promise<void>((resolve) => {
-      http.get(`http://127.0.0.1:${port}/probe?token=secret`, (res) => {
-        res.resume();
-        res.on("end", resolve);
+      await initRealSentryForTest((event) => {
+        captured = event;
       });
-    });
-    server.close();
 
-    Sentry.captureException(new Error("after outbound http call"));
-    await Sentry.flush(2000);
+      // eslint-disable-next-line no-console
+      console.error("child process stderr: simulated failure");
+      Sentry.captureException(new Error("after console.error"));
+      await Sentry.flush(2000);
 
-    expect((captured as unknown as Record<string, unknown>).breadcrumbs).toBeUndefined();
-  });
-
-  /**
-   * `skipOpenTelemetrySetup: true` (set above) keeps this module out of
-   * Taskcore's separate, independently opt-in OpenTelemetry feature. It
-   * also turns off Sentry's own per-request async-context tracking. The
-   * `RequestData` integration reads the inbound URL, method, headers,
-   * cookies, and query string from that per-request context. With the
-   * context off, a captured event carries no request field — not the
-   * SDK's documented default. This test proves the gap, so the operator
-   * documentation states the true capture set.
-   */
-  it("a server event captured inside a real HTTP request handler carries no request field", async () => {
-    const Sentry = sentryPackage!;
-    let captured: Record<string, unknown> | null = null;
-    await initRealSentryForTest((event) => {
-      captured = event;
+      expect(captured).not.toBeNull();
+      expect((captured as Record<string, unknown>).breadcrumbs).toBeUndefined();
     });
 
-    const server = http.createServer((req, res) => {
-      req.on("data", () => {});
-      req.on("end", () => {
-        Sentry.captureException(new Error("boom from a real request handler"));
-        res.end("ok");
+    it("a server event carries no stack-frame source context", async () => {
+      const Sentry = sentryPackage!;
+      let captured: Record<string, unknown> | null = null;
+      await initRealSentryForTest((event) => {
+        captured = event;
       });
-    });
-    await new Promise<void>((resolve) => server.listen(0, resolve));
-    const port = (server.address() as { port: number }).port;
-    await new Promise<void>((resolve) => {
-      http.get(`http://127.0.0.1:${port}/api/test?foo=bar`, (res) => {
-        res.resume();
-        res.on("end", resolve);
-      });
-    });
-    server.close();
-    await Sentry.flush(2000);
 
-    expect(captured).not.toBeNull();
-    expect((captured as unknown as Record<string, unknown>).request).toBeUndefined();
-  });
-});
+      Sentry.captureException(new Error("stack frame check"));
+      await Sentry.flush(2000);
+
+      const event = captured as unknown as {
+        exception: {
+          values: Array<{
+            stacktrace: { frames: Array<Record<string, unknown>> };
+          }>;
+        };
+      };
+      const frames = event.exception.values[0].stacktrace.frames;
+      expect(frames.length).toBeGreaterThan(0);
+      for (const frame of frames) {
+        expect(frame.context_line).toBeUndefined();
+        expect(frame.pre_context).toBeUndefined();
+        expect(frame.post_context).toBeUndefined();
+      }
+    });
+
+    it("a server event carries no outbound HTTP breadcrumb", async () => {
+      const Sentry = sentryPackage!;
+      let captured: Record<string, unknown> | null = null;
+      await initRealSentryForTest((event) => {
+        captured = event;
+      });
+
+      const server = http.createServer((_req, res) => res.end("ok"));
+      await new Promise<void>((resolve) => server.listen(0, resolve));
+      const port = (server.address() as { port: number }).port;
+      await new Promise<void>((resolve) => {
+        http.get(`http://127.0.0.1:${port}/probe?token=secret`, (res) => {
+          res.resume();
+          res.on("end", resolve);
+        });
+      });
+      server.close();
+
+      Sentry.captureException(new Error("after outbound http call"));
+      await Sentry.flush(2000);
+
+      expect(
+        (captured as unknown as Record<string, unknown>).breadcrumbs,
+      ).toBeUndefined();
+    });
+
+    /**
+     * `skipOpenTelemetrySetup: true` (set above) keeps this module out of
+     * Taskcore's separate, independently opt-in OpenTelemetry feature. It
+     * also turns off Sentry's own per-request async-context tracking. The
+     * `RequestData` integration reads the inbound URL, method, headers,
+     * cookies, and query string from that per-request context. With the
+     * context off, a captured event carries no request field — not the
+     * SDK's documented default. This test proves the gap, so the operator
+     * documentation states the true capture set.
+     */
+    it("a server event captured inside a real HTTP request handler carries no request field", async () => {
+      const Sentry = sentryPackage!;
+      let captured: Record<string, unknown> | null = null;
+      await initRealSentryForTest((event) => {
+        captured = event;
+      });
+
+      const server = http.createServer((req, res) => {
+        req.on("data", () => {});
+        req.on("end", () => {
+          Sentry.captureException(
+            new Error("boom from a real request handler"),
+          );
+          res.end("ok");
+        });
+      });
+      await new Promise<void>((resolve) => server.listen(0, resolve));
+      const port = (server.address() as { port: number }).port;
+      await new Promise<void>((resolve) => {
+        http.get(`http://127.0.0.1:${port}/api/test?foo=bar`, (res) => {
+          res.resume();
+          res.on("end", resolve);
+        });
+      });
+      server.close();
+      await Sentry.flush(2000);
+
+      expect(captured).not.toBeNull();
+      expect(
+        (captured as unknown as Record<string, unknown>).request,
+      ).toBeUndefined();
+    });
+  },
+);

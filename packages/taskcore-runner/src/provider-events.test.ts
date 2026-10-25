@@ -70,18 +70,26 @@ describe("provider-neutral events", () => {
       receivedThreadId: "😀".repeat(244) + "…[truncated]",
       receivedTurnId: null,
     });
-    expect(canonicalProviderEventsFromCodex("error", {
-      classification: "unrelated_information",
-      message: "Provider connection failed",
-    })[0].eventType).toBe("provider.notice.recorded");
+    expect(
+      canonicalProviderEventsFromCodex("error", {
+        classification: "unrelated_information",
+        message: "Provider connection failed",
+      })[0].eventType,
+    ).toBe("provider.notice.recorded");
   });
 
   it("preserves Codex notice summaries with legacy and empty-message fallbacks", () => {
     for (const method of ["configWarning", "deprecationNotice", "warning"]) {
       for (const [params, expected] of [
-        [{ summary: "Repository is not trusted", message: "old message" }, "Repository is not trusted"],
+        [
+          { summary: "Repository is not trusted", message: "old message" },
+          "Repository is not trusted",
+        ],
         [{ summary: " ", message: "Legacy warning" }, "Legacy warning"],
-        [{ details: "Additional warning details" }, "Additional warning details"],
+        [
+          { details: "Additional warning details" },
+          "Additional warning details",
+        ],
         [{}, "Provider notice"],
       ] as const) {
         const [event] = canonicalProviderEventsFromCodex(method, params);
@@ -757,7 +765,11 @@ describe("provider-neutral events", () => {
     expect(statusOnly.payload).not.toHaveProperty("inputUpdated");
     expect(
       canonicalProviderEventsFromAcpxRuntimeEvent(
-        { ...statusOnly.payload, type: "tool_call", inputUpdated: false } as never,
+        {
+          ...statusOnly.payload,
+          type: "tool_call",
+          inputUpdated: false,
+        } as never,
         "fallback",
       )[0]!.payload,
     ).toMatchObject({ inputUpdated: false });
@@ -839,25 +851,42 @@ describe("provider-neutral events", () => {
   });
 });
 
-
 describe("Grok output message boundaries", () => {
   it("keeps streamed chunks together and separates commentary from the post-tool answer", () => {
     const normalize = createGrokMessageNormalizer();
-    expect(normalize({ type: "text_delta", text: "I will " }).messageId).toBe("grok-output-0");
-    expect(normalize({ type: "text_delta", text: "check." }).messageId).toBe("grok-output-0");
+    expect(normalize({ type: "text_delta", text: "I will " }).messageId).toBe(
+      "grok-output-0",
+    );
+    expect(normalize({ type: "text_delta", text: "check." }).messageId).toBe(
+      "grok-output-0",
+    );
     normalize({ type: "tool_call", toolCallId: "tool", status: "pending" });
     normalize({ type: "tool_call", toolCallId: "tool", status: "completed" });
     const thought = { type: "text_delta", stream: "thought", text: "private" };
     expect(normalize(thought)).toBe(thought);
-    expect(normalize({ type: "text_delta", text: "Final" }).messageId).toBe("grok-output-1");
-    expect(normalize({ type: "text_delta", text: " answer" }).messageId).toBe("grok-output-1");
+    expect(normalize({ type: "text_delta", text: "Final" }).messageId).toBe(
+      "grok-output-1",
+    );
+    expect(normalize({ type: "text_delta", text: " answer" }).messageId).toBe(
+      "grok-output-1",
+    );
   });
   it("preserves native IDs and does not invent boundaries for status updates", () => {
     const normalize = createGrokMessageNormalizer();
-    expect(normalize({ type: "text_delta", messageId: "native-id", text: "hi" }).messageId).toBe("native-id");
+    expect(
+      normalize({ type: "text_delta", messageId: "native-id", text: "hi" })
+        .messageId,
+    ).toBe("native-id");
     normalize({ type: "status", text: "working" });
-    expect(normalize({ type: "text_delta", messageId: "native-id", text: " there" }).messageId).toBe("native-id");
-    const reasoning = { type: "text_delta", tag: "agent_thought_chunk", text: "private" };
+    expect(
+      normalize({ type: "text_delta", messageId: "native-id", text: " there" })
+        .messageId,
+    ).toBe("native-id");
+    const reasoning = {
+      type: "text_delta",
+      tag: "agent_thought_chunk",
+      text: "private",
+    };
     expect(normalize(reasoning)).toBe(reasoning);
   });
 });

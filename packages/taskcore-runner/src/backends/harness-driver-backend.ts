@@ -33,7 +33,10 @@ const MAX_RECOVERY_SEMANTIC_RESULT_DEPTH = 128;
 export class HarnessDriverBackend implements NativeSessionBackend {
   readonly #driver: HarnessDriver;
 
-  constructor(driver: HarnessDriver, readonly preparedTaskConstraints?: readonly string[]) {
+  constructor(
+    driver: HarnessDriver,
+    readonly preparedTaskConstraints?: readonly string[],
+  ) {
     this.#driver = driver;
   }
 
@@ -73,7 +76,12 @@ export class HarnessDriverBackend implements NativeSessionBackend {
         .catch(() => undefined);
       throw error;
     }
-    return new HarnessNativeSession(input, session, undefined, (await this.#driver.descriptor()).capabilities.steering);
+    return new HarnessNativeSession(
+      input,
+      session,
+      undefined,
+      (await this.#driver.descriptor()).capabilities.steering,
+    );
   }
 
   async recoverSession(
@@ -379,8 +387,10 @@ function assertProviderSessionIdentity(
   if (
     typeof ids.driverSessionId !== "string" ||
     ids.driverSessionId.trim().length === 0 ||
-    (provider !== "openai_dot_mcp" && (typeof ids.providerSessionId !== "string" || ids.providerSessionId.trim().length === 0))
-    || (provider === "openai_dot_mcp" && ids.providerSessionId !== null)
+    (provider !== "openai_dot_mcp" &&
+      (typeof ids.providerSessionId !== "string" ||
+        ids.providerSessionId.trim().length === 0)) ||
+    (provider === "openai_dot_mcp" && ids.providerSessionId !== null)
   ) {
     throw new Error(
       `provider_initialize_protocol_error: provider=${provider} stage=${stage} missing durable provider session identity`,
@@ -454,8 +464,12 @@ class HarnessNativeSession implements NativeSession {
     return {
       resume: true,
       typedEvents: true,
-      steering: (negotiated?.steering ?? this.#steeringSupported) && this.#session.steer !== undefined,
-      queuedFollowUp: negotiated?.queuedFollowUp === true && this.#session.steer !== undefined,
+      steering:
+        (negotiated?.steering ?? this.#steeringSupported) &&
+        this.#session.steer !== undefined,
+      queuedFollowUp:
+        negotiated?.queuedFollowUp === true &&
+        this.#session.steer !== undefined,
       interruption: this.#session.interrupt !== undefined,
       structuredResult: true,
       read: this.#session.read !== undefined,
@@ -515,7 +529,10 @@ class HarnessNativeSession implements NativeSession {
         // Stop may win publication after the provider result already settled.
         // Preserve that terminal proof, with the operator's cancelled disposition.
         let event = providerEvent;
-        if (this.#explicitlyCancelled && providerEvent.eventType === "turn.completed") {
+        if (
+          this.#explicitlyCancelled &&
+          providerEvent.eventType === "turn.completed"
+        ) {
           event = {
             ...providerEvent,
             eventType: "turn.cancelled",
@@ -526,8 +543,11 @@ class HarnessNativeSession implements NativeSession {
               reason: "cancelled_after_provider_completed",
             },
           };
-        } else if (this.#explicitlyCancelled && providerEvent.eventType === "run.terminal"
-          && providerEvent.payload.runTerminalState === "succeeded") {
+        } else if (
+          this.#explicitlyCancelled &&
+          providerEvent.eventType === "run.terminal" &&
+          providerEvent.payload.runTerminalState === "succeeded"
+        ) {
           event = {
             ...providerEvent,
             payload: {
@@ -546,13 +566,23 @@ class HarnessNativeSession implements NativeSession {
           event.eventType === "turn.failed" ||
           event.eventType === "runtime_request.cancelled" ||
           event.eventType === "runtime_request.expired" ||
-          (event.eventType === "run.terminal" && ["failed", "cancelled"].includes(String(event.payload.runTerminalState))) ||
+          (event.eventType === "run.terminal" &&
+            ["failed", "cancelled"].includes(
+              String(event.payload.runTerminalState),
+            )) ||
           (event.eventType === "item.completed" &&
             event.payload.kind === "interrupt_acknowledgement");
         // Accounting for work already performed survives cancellation. It grants
         // no tool, message, semantic-result, or continuation authority.
-        const isUsageReceipt = event.eventType === "item.completed" && event.payload.kind === "usage";
-        if (this.#explicitlyCancelled && !isCancellationEvent && !isUsageReceipt) continue;
+        const isUsageReceipt =
+          event.eventType === "item.completed" &&
+          event.payload.kind === "usage";
+        if (
+          this.#explicitlyCancelled &&
+          !isCancellationEvent &&
+          !isUsageReceipt
+        )
+          continue;
         sourceInstanceId = event.sourceInstanceId;
         lastSourceSequence = Math.max(lastSourceSequence, event.sourceSeq);
         if (event.eventType === "runtime_request.created") {
@@ -727,8 +757,12 @@ class HarnessNativeSession implements NativeSession {
   }) {
     this.#assertProtocolIntegrity();
     const negotiated = this.#session.turnControlCapabilities?.();
-    const supported = input.mode === "follow_up" ? negotiated?.queuedFollowUp === true : (negotiated?.steering ?? this.#steeringSupported);
-    if (!supported || this.#session.steer === undefined) throw new Error("steering or queued follow-up is unavailable");
+    const supported =
+      input.mode === "follow_up"
+        ? negotiated?.queuedFollowUp === true
+        : (negotiated?.steering ?? this.#steeringSupported);
+    if (!supported || this.#session.steer === undefined)
+      throw new Error("steering or queued follow-up is unavailable");
     return this.#withProtocolIntegrity(() => this.#session.steer!(input));
   }
 
@@ -777,7 +811,9 @@ class HarnessNativeSession implements NativeSession {
     if (this.#session.resolveRuntimeRequest === undefined) {
       throw new Error("native_runtime_request_resolution_unavailable");
     }
-    return this.#withProtocolIntegrity(() => this.#session.resolveRuntimeRequest!(input));
+    return this.#withProtocolIntegrity(() =>
+      this.#session.resolveRuntimeRequest!(input),
+    );
   }
 
   handoffRuntimeRequest(input: {

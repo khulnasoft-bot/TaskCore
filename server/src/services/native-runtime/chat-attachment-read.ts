@@ -74,9 +74,7 @@ export class NativeChatAttachmentReadScope {
         (key) => key !== "sourceCommentId" && key !== "attachmentId",
       )
     ) {
-      throw new Error(
-        "taskcore_runner_chat_attachment_read_arguments_invalid",
-      );
+      throw new Error("taskcore_runner_chat_attachment_read_arguments_invalid");
     }
     if (this.options.executionTargetKind !== "local") {
       throw new Error(

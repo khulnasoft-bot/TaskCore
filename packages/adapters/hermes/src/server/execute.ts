@@ -48,10 +48,7 @@ import {
   VALID_PROVIDERS,
 } from "../shared/constants.js";
 
-import {
-  detectModel,
-  resolveProvider,
-} from "./detect-model.js";
+import { detectModel, resolveProvider } from "./detect-model.js";
 import { reconcileHermesTaskcoreSkills } from "./skills.js";
 
 // ---------------------------------------------------------------------------
@@ -74,7 +71,9 @@ function cfgStringArray(v: unknown): string[] | undefined {
 }
 
 export function resolveHermesCommand(config: Record<string, unknown>): string {
-  return cfgString(config.hermesCommand) || cfgString(config.command) || HERMES_CLI;
+  return (
+    cfgString(config.hermesCommand) || cfgString(config.command) || HERMES_CLI
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -98,14 +97,14 @@ const HERMES_SYSTEM_PROMPT_TEMPLATE = [
   "- Use `curl` from the terminal for Taskcore API calls; browser/web extraction tools may not reach localhost.",
   "- Use `$TASKCORE_API_URL`, `$TASKCORE_API_KEY`, and `$TASKCORE_RUN_ID`; do not hard-code local ports or copy secrets into comments.",
   "- Displayed command logs may redact secrets; rely on environment variables instead of printed token values.",
-  "- Include `-H \"Authorization: Bearer $TASKCORE_API_KEY\"` on API requests.",
-  "- Include `-H \"X-Taskcore-Run-Id: $TASKCORE_RUN_ID\"` on mutating issue requests.",
+  '- Include `-H "Authorization: Bearer $TASKCORE_API_KEY"` on API requests.',
+  '- Include `-H "X-Taskcore-Run-Id: $TASKCORE_RUN_ID"` on mutating issue requests.',
   "- For multiline comments or status updates, preserve newlines with `jq --arg` or a heredoc-fed helper rather than hand-escaping JSON.",
   "",
   "Safe multiline update pattern:",
   "```bash",
-  "api=\"${TASKCORE_API_URL%/}\"",
-  "case \"$api\" in */api) ;; *) api=\"$api/api\" ;; esac",
+  'api="${TASKCORE_API_URL%/}"',
+  'case "$api" in */api) ;; *) api="$api/api" ;; esac',
   "",
   "body=$(cat <<'MD'",
   "Summary line",
@@ -115,17 +114,20 @@ const HERMES_SYSTEM_PROMPT_TEMPLATE = [
   "MD",
   ")",
   "jq -n --arg status done --arg comment \"$body\" '{status:$status, comment:$comment}' | \\",
-  "  curl -sS -X PATCH \"$api/issues/$TASKCORE_TASK_ID\" \\",
-  "    -H \"Authorization: Bearer $TASKCORE_API_KEY\" \\",
-  "    -H \"X-Taskcore-Run-Id: $TASKCORE_RUN_ID\" \\",
-  "    -H \"Content-Type: application/json\" \\",
+  '  curl -sS -X PATCH "$api/issues/$TASKCORE_TASK_ID" \\',
+  '    -H "Authorization: Bearer $TASKCORE_API_KEY" \\',
+  '    -H "X-Taskcore-Run-Id: $TASKCORE_RUN_ID" \\',
+  '    -H "Content-Type: application/json" \\',
   "    --data-binary @-",
   "```",
   "",
   DEFAULT_TASKCORE_AGENT_PROMPT_TEMPLATE,
 ].join("\n");
 
-function renderConditionalSections(template: string, vars: Record<string, unknown>): string {
+function renderConditionalSections(
+  template: string,
+  vars: Record<string, unknown>,
+): string {
   const isTruthy = (key: string) => {
     if (key === "noTask") return !vars.taskId;
     const value = vars[key];
@@ -145,14 +147,26 @@ export function buildPrompt(
 ): string {
   const context = (ctx as any).context || {};
   const template = cfgString(config.promptTemplate);
-  const taskId = cfgString(context.taskId) || cfgString(context.issueId) || cfgString(ctx.config?.taskId);
-  const taskTitle = cfgString(context.taskTitle) || cfgString(ctx.config?.taskTitle) || "";
-  const taskBody = cfgString(context.taskBody) || cfgString(ctx.config?.taskBody) || "";
-  const commentId = cfgString(context.commentId) || cfgString(context.wakeCommentId) || cfgString(ctx.config?.commentId) || "";
-  const wakeReason = cfgString(context.wakeReason) || cfgString(ctx.config?.wakeReason) || "";
+  const taskId =
+    cfgString(context.taskId) ||
+    cfgString(context.issueId) ||
+    cfgString(ctx.config?.taskId);
+  const taskTitle =
+    cfgString(context.taskTitle) || cfgString(ctx.config?.taskTitle) || "";
+  const taskBody =
+    cfgString(context.taskBody) || cfgString(ctx.config?.taskBody) || "";
+  const commentId =
+    cfgString(context.commentId) ||
+    cfgString(context.wakeCommentId) ||
+    cfgString(ctx.config?.commentId) ||
+    "";
+  const wakeReason =
+    cfgString(context.wakeReason) || cfgString(ctx.config?.wakeReason) || "";
   const agentName = ctx.agent?.name || "Hermes Agent";
-  const companyName = cfgString(context.companyName) || cfgString(ctx.config?.companyName) || "";
-  const projectName = cfgString(context.projectName) || cfgString(ctx.config?.projectName) || "";
+  const companyName =
+    cfgString(context.companyName) || cfgString(ctx.config?.companyName) || "";
+  const projectName =
+    cfgString(context.projectName) || cfgString(ctx.config?.projectName) || "";
 
   // Build API URL — ensure it has the /api path
   let taskcoreApiUrl =
@@ -164,15 +178,19 @@ export function buildPrompt(
     taskcoreApiUrl = taskcoreApiUrl.replace(/\/+$/, "") + "/api";
   }
 
-  const { taskContextNote: taskContextMarkdown, wakePrompt } = selectTaskcorePromptSections(context, {
-    resumedSession: options.resumedSession === true,
-    includeCommunicationGuidance: true,
-  });
+  const { taskContextNote: taskContextMarkdown, wakePrompt } =
+    selectTaskcorePromptSections(context, {
+      resumedSession: options.resumedSession === true,
+      includeCommunicationGuidance: true,
+    });
   // Keep the historical variable available to custom templates. Automatic
   // assembly uses the ownership-aware assignment variant below.
-  const taskcoreTaskMarkdown = cfgString(context.taskcoreTaskMarkdown)?.trim() || "";
-  const sessionHandoffMarkdown = cfgString(context.taskcoreSessionHandoffMarkdown)?.trim() || "";
-  const wakePayloadJson = stringifyTaskcoreWakePayload(context.taskcoreWake) || "";
+  const taskcoreTaskMarkdown =
+    cfgString(context.taskcoreTaskMarkdown)?.trim() || "";
+  const sessionHandoffMarkdown =
+    cfgString(context.taskcoreSessionHandoffMarkdown)?.trim() || "";
+  const wakePayloadJson =
+    stringifyTaskcoreWakePayload(context.taskcoreWake) || "";
 
   const vars: Record<string, unknown> = {
     agentId: ctx.agent?.id || "",
@@ -201,9 +219,10 @@ export function buildPrompt(
     taskcoreRunIdEnv: "TASKCORE_RUN_ID",
   };
 
-  const rendered = template && !isTaskcoreRecoveryWakePayload(context.taskcoreWake)
-    ? renderTemplate(renderConditionalSections(template, vars), vars)
-    : "";
+  const rendered =
+    template && !isTaskcoreRecoveryWakePayload(context.taskcoreWake)
+      ? renderTemplate(renderConditionalSections(template, vars), vars)
+      : "";
   return joinPromptSections([
     renderTemplate(HERMES_RUNTIME_IDENTITY_TEMPLATE, vars),
     wakePrompt,
@@ -221,7 +240,8 @@ export function buildPrompt(
 const SESSION_ID_REGEX = /^session_id:\s*(\S+)/m;
 
 /** Regex for legacy session output format */
-const SESSION_ID_REGEX_LEGACY = /session[_ ](?:id|saved)[:\s]+([a-zA-Z0-9_-]+)/i;
+const SESSION_ID_REGEX_LEGACY =
+  /session[_ ](?:id|saved)[:\s]+([a-zA-Z0-9_-]+)/i;
 
 /** Regex to extract token usage from Hermes output. */
 const TOKEN_USAGE_REGEX =
@@ -249,12 +269,19 @@ function cleanResponse(raw: string): string {
     .filter((line) => {
       const t = line.trim();
       if (!t) return true; // keep blank lines for paragraph separation
-      if (t.startsWith("[tool]") || t.startsWith("[hermes]") || t.startsWith("[taskcore]")) return false;
+      if (
+        t.startsWith("[tool]") ||
+        t.startsWith("[hermes]") ||
+        t.startsWith("[taskcore]")
+      )
+        return false;
       if (t.startsWith("session_id:")) return false;
       if (/^\[\d{4}-\d{2}-\d{2}T/.test(t)) return false;
       if (/^\[done\]\s*┊/.test(t)) return false;
-      if (/^┊\s*[\p{Emoji_Presentation}]/u.test(t) && !/^┊\s*💬/.test(t)) return false;
-      if (/^\p{Emoji_Presentation}\s*(Completed|Running|Error)?\s*$/u.test(t)) return false;
+      if (/^┊\s*[\p{Emoji_Presentation}]/u.test(t) && !/^┊\s*💬/.test(t))
+        return false;
+      if (/^\p{Emoji_Presentation}\s*(Completed|Running|Error)?\s*$/u.test(t))
+        return false;
       return true;
     })
     .map((line) => {
@@ -337,7 +364,10 @@ function parseHermesOutput(stdout: string, stderr: string): ParsedOutput {
 export async function execute(
   ctx: AdapterExecutionContext,
 ): Promise<AdapterExecutionResult> {
-  const config = (ctx.config ?? ctx.agent?.adapterConfig ?? {}) as Record<string, unknown>;
+  const config = (ctx.config ?? ctx.agent?.adapterConfig ?? {}) as Record<
+    string,
+    unknown
+  >;
 
   // ── Resolve configuration ──────────────────────────────────────────────
   const hermesCmd = resolveHermesCommand(config);
@@ -345,7 +375,9 @@ export async function execute(
   const timeoutSec = cfgNumber(config.timeoutSec) || DEFAULT_TIMEOUT_SEC;
   const graceSec = cfgNumber(config.graceSec) || DEFAULT_GRACE_SEC;
   const maxTurns = cfgNumber(config.maxTurnsPerRun);
-  const toolsets = cfgString(config.toolsets) || cfgStringArray(config.enabledToolsets)?.join(",");
+  const toolsets =
+    cfgString(config.toolsets) ||
+    cfgStringArray(config.enabledToolsets)?.join(",");
   const extraArgs = cfgStringArray(config.extraArgs);
   const persistSession = cfgBoolean(config.persistSession) !== false;
   const worktreeMode = cfgBoolean(config.worktreeMode) === true;
@@ -368,7 +400,10 @@ export async function execute(
       }
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      await ctx.onLog("stderr", `[hermes] Cannot start without the required Taskcore-managed skills: ${reason}\n`);
+      await ctx.onLog(
+        "stderr",
+        `[hermes] Cannot start without the required Taskcore-managed skills: ${reason}\n`,
+      );
       throw err;
     }
   }
@@ -433,7 +468,9 @@ export async function execute(
 
   // ── Build prompt ───────────────────────────────────────────────────────
   const sessionId = persistSession ? prevSessionId : undefined;
-  const prompt = buildPrompt(ctx, config, { resumedSession: Boolean(sessionId) });
+  const prompt = buildPrompt(ctx, config, {
+    resumedSession: Boolean(sessionId),
+  });
 
   // ── Build command args ─────────────────────────────────────────────────
   // Use -Q (quiet) to get clean output: just response + session_id line
@@ -509,20 +546,31 @@ export async function execute(
 
   // BUG FIX: Read task context from ctx.context (wake context), not ctx.config (adapter config)
   const ctxContext = (ctx as any).context || {};
-  const envTaskId = cfgString(ctxContext.taskId) || cfgString(ctxContext.issueId) || cfgString(ctx.config?.taskId);
+  const envTaskId =
+    cfgString(ctxContext.taskId) ||
+    cfgString(ctxContext.issueId) ||
+    cfgString(ctx.config?.taskId);
   if (envTaskId) env.TASKCORE_TASK_ID = envTaskId;
-  const envWakeReason = cfgString(ctxContext.wakeReason) || cfgString(ctx.config?.wakeReason);
+  const envWakeReason =
+    cfgString(ctxContext.wakeReason) || cfgString(ctx.config?.wakeReason);
   if (envWakeReason) env.TASKCORE_WAKE_REASON = envWakeReason;
-  const envCommentId = cfgString(ctxContext.commentId) || cfgString(ctxContext.wakeCommentId) || cfgString(ctx.config?.commentId);
+  const envCommentId =
+    cfgString(ctxContext.commentId) ||
+    cfgString(ctxContext.wakeCommentId) ||
+    cfgString(ctx.config?.commentId);
   if (envCommentId) env.TASKCORE_WAKE_COMMENT_ID = envCommentId;
 
   // ── Resolve working directory ──────────────────────────────────────────
   const workspace = ctx.context?.taskcoreWorkspace;
-  const workspaceCwd = workspace && typeof workspace === "object"
-    ? cfgString((workspace as Record<string, unknown>).cwd)
-    : undefined;
+  const workspaceCwd =
+    workspace && typeof workspace === "object"
+      ? cfgString((workspace as Record<string, unknown>).cwd)
+      : undefined;
   const cwd =
-    cfgString(config.cwd) || workspaceCwd || cfgString(ctx.config?.workspaceDir) || ".";
+    cfgString(config.cwd) ||
+    workspaceCwd ||
+    cfgString(ctx.config?.workspaceDir) ||
+    ".";
   try {
     await ensureAbsoluteDirectory(cwd);
   } catch {
@@ -535,10 +583,7 @@ export async function execute(
     `[hermes] Starting Hermes Agent (model=${model}, provider=${resolvedProvider} [${resolvedFrom}], timeout=${timeoutSec}s${maxTurns ? `, max_turns=${maxTurns}` : ""})\n`,
   );
   if (sessionId) {
-    await ctx.onLog(
-      "stdout",
-      `[hermes] Resuming session: ${sessionId}\n`,
-    );
+    await ctx.onLog("stdout", `[hermes] Resuming session: ${sessionId}\n`);
   }
 
   // ── Execute ────────────────────────────────────────────────────────────
@@ -552,7 +597,8 @@ export async function execute(
       // - Structured log lines: [timestamp] INFO/DEBUG/WARN: ...
       // - MCP server registration messages
       // - Python import/site noise
-      const isBenign = /^\[?\d{4}[-/]\d{2}[-/]\d{2}T/.test(trimmed) || // structured timestamps
+      const isBenign =
+        /^\[?\d{4}[-/]\d{2}[-/]\d{2}T/.test(trimmed) || // structured timestamps
         /^[A-Z]+:\s+(INFO|DEBUG|WARN|WARNING)\b/.test(trimmed) || // log levels
         /Successfully registered all tools/.test(trimmed) ||
         /MCP [Ss]erver/.test(trimmed) ||
@@ -596,7 +642,11 @@ export async function execute(
 
   if (parsed.errorMessage) {
     executionResult.errorMessage = parsed.errorMessage;
-  } else if (!result.timedOut && typeof result.exitCode === "number" && result.exitCode !== 0) {
+  } else if (
+    !result.timedOut &&
+    typeof result.exitCode === "number" &&
+    result.exitCode !== 0
+  ) {
     executionResult.errorMessage = `Hermes exited with code ${result.exitCode}`;
   }
 

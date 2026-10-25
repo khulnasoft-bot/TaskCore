@@ -32,15 +32,20 @@ function requireEnv(env: NodeJS.ProcessEnv, key: string): string {
 
 function requireUid(env: NodeJS.ProcessEnv, key: string): number {
   const raw = requireEnv(env, key);
-  if (!/^[0-9]+$/.test(raw)) throw new Error(`${key} must be a non-negative integer`);
+  if (!/^[0-9]+$/.test(raw))
+    throw new Error(`${key} must be a non-negative integer`);
   return Number(raw);
 }
 
 export function loadHostConfig(env: NodeJS.ProcessEnv): BrokerHostConfig {
   const config: BrokerHostConfig = {
-    socketPath: env.BROKER_SOCKET_PATH ?? "/run/taskcore-tailscale-broker/broker.sock",
-    registryPath: env.BROKER_REGISTRY_PATH ?? "/var/lib/taskcore-tailscale-broker/registry.json",
-    auditPath: env.BROKER_AUDIT_PATH ?? "/var/log/taskcore-tailscale-broker/audit.log",
+    socketPath:
+      env.BROKER_SOCKET_PATH ?? "/run/taskcore-tailscale-broker/broker.sock",
+    registryPath:
+      env.BROKER_REGISTRY_PATH ??
+      "/var/lib/taskcore-tailscale-broker/registry.json",
+    auditPath:
+      env.BROKER_AUDIT_PATH ?? "/var/log/taskcore-tailscale-broker/audit.log",
     tailscaleBinPath: env.BROKER_TAILSCALE_BIN ?? "/usr/bin/tailscale",
     nodeIdentity: requireEnv(env, "BROKER_NODE_IDENTITY"),
     serviceUid: requireUid(env, "BROKER_SERVICE_UID"),

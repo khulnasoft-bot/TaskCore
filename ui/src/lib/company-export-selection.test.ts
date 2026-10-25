@@ -53,11 +53,15 @@ const ISSUES: ExportSelectionIssue[] = [
   },
 ];
 
-function selection(overrides: Partial<ExportCategorySelection> = {}): ExportCategorySelection {
+function selection(
+  overrides: Partial<ExportCategorySelection> = {},
+): ExportCategorySelection {
   return { ...buildDefaultExportCategorySelection(), ...overrides };
 }
 
-function checkedWith(overrides: Partial<ExportCategorySelection> = {}): string[] {
+function checkedWith(
+  overrides: Partial<ExportCategorySelection> = {},
+): string[] {
   return Array.from(
     buildExportCheckedFiles({
       filePaths: FILE_PATHS,
@@ -127,7 +131,11 @@ describe("buildExportCheckedFiles", () => {
   });
 
   it("forces attachments off when both tasks and routines are off", () => {
-    const checked = checkedWith({ tasks: false, routines: false, attachments: true });
+    const checked = checkedWith({
+      tasks: false,
+      routines: false,
+      attachments: true,
+    });
     expect(checked.some((p) => p.startsWith("blobs/"))).toBe(false);
     expect(checked.some((p) => p.startsWith("tasks/"))).toBe(false);
   });
@@ -146,10 +154,22 @@ describe("buildExportCheckedFiles", () => {
 
   it("keeps a blob referenced by both a one-off task and a routine while either is on", () => {
     const issues: ExportSelectionIssue[] = [
-      { path: "tasks/one-off/TASK.md", recurring: false, attachments: [attachment("shared")] },
-      { path: "tasks/weekly-report/TASK.md", recurring: true, attachments: [attachment("shared")] },
+      {
+        path: "tasks/one-off/TASK.md",
+        recurring: false,
+        attachments: [attachment("shared")],
+      },
+      {
+        path: "tasks/weekly-report/TASK.md",
+        recurring: true,
+        attachments: [attachment("shared")],
+      },
     ];
-    const filePaths = ["tasks/one-off/TASK.md", "tasks/weekly-report/TASK.md", "blobs/shared"];
+    const filePaths = [
+      "tasks/one-off/TASK.md",
+      "tasks/weekly-report/TASK.md",
+      "blobs/shared",
+    ];
 
     for (const overrides of [{ tasks: false }, { routines: false }] as const) {
       const checked = buildExportCheckedFiles({
@@ -175,10 +195,18 @@ describe("buildExportCheckedFiles", () => {
     ];
 
     expect(
-      buildExportCheckedFiles({ filePaths, issues, categories: selection() }).has("blobs/orphan"),
+      buildExportCheckedFiles({
+        filePaths,
+        issues,
+        categories: selection(),
+      }).has("blobs/orphan"),
     ).toBe(true);
     expect(
-      buildExportCheckedFiles({ filePaths, issues, categories: selection({ attachments: false }) }).has("blobs/orphan"),
+      buildExportCheckedFiles({
+        filePaths,
+        issues,
+        categories: selection({ attachments: false }),
+      }).has("blobs/orphan"),
     ).toBe(false);
     expect(
       buildExportCheckedFiles({
@@ -208,7 +236,9 @@ describe("embedded asset blob ownership", () => {
     { sha256: "embed-root", ownedBy: ["always"] },
   ];
 
-  function checkedEmbedded(overrides: Partial<ExportCategorySelection> = {}): Set<string> {
+  function checkedEmbedded(
+    overrides: Partial<ExportCategorySelection> = {},
+  ): Set<string> {
     return buildExportCheckedFiles({
       filePaths: embeddedFilePaths,
       issues: embeddedIssues,
@@ -265,7 +295,11 @@ describe("embedded asset blob ownership", () => {
   it("lets a shared blob qualify through its attachment owner when its embedded owners are off", () => {
     const issues: ExportSelectionIssue[] = [
       { path: "tasks/one-off/TASK.md", recurring: false, attachments: [] },
-      { path: "tasks/weekly-report/TASK.md", recurring: true, attachments: [attachment("shared-sha")] },
+      {
+        path: "tasks/weekly-report/TASK.md",
+        recurring: true,
+        attachments: [attachment("shared-sha")],
+      },
     ];
     const checked = buildExportCheckedFiles({
       filePaths: ["tasks/weekly-report/TASK.md", "blobs/shared-sha"],
@@ -288,9 +322,17 @@ describe("embedded asset blob ownership", () => {
 describe("isAttachmentsCategoryEnabled", () => {
   it("is enabled while tasks or routines remain selected", () => {
     expect(isAttachmentsCategoryEnabled(selection())).toBe(true);
-    expect(isAttachmentsCategoryEnabled(selection({ tasks: false }))).toBe(true);
-    expect(isAttachmentsCategoryEnabled(selection({ routines: false }))).toBe(true);
-    expect(isAttachmentsCategoryEnabled(selection({ tasks: false, routines: false }))).toBe(false);
+    expect(isAttachmentsCategoryEnabled(selection({ tasks: false }))).toBe(
+      true,
+    );
+    expect(isAttachmentsCategoryEnabled(selection({ routines: false }))).toBe(
+      true,
+    );
+    expect(
+      isAttachmentsCategoryEnabled(
+        selection({ tasks: false, routines: false }),
+      ),
+    ).toBe(false);
   });
 });
 

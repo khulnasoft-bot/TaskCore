@@ -1,6 +1,21 @@
 export * from "./slack-app-manifest.js";
-export { composioAppSetupSchema, composioAppsRefreshSchema, composioAppsSyncSchema, composioAppAccountSchema, type ComposioAppSetupInput, type ComposioAppSetupResult, type ComposioAppAccountInput, type ComposioAppAccount, type ComposioAppSnapshot, type ComposioAppSyncState, type ComposioAppsResponse } from "./composio-app-setup.js";
-export { agentAdapterTypeSchema, optionalAgentAdapterTypeSchema } from "./adapter-type.js";
+export {
+  composioAppSetupSchema,
+  composioAppsRefreshSchema,
+  composioAppsSyncSchema,
+  composioAppAccountSchema,
+  type ComposioAppSetupInput,
+  type ComposioAppSetupResult,
+  type ComposioAppAccountInput,
+  type ComposioAppAccount,
+  type ComposioAppSnapshot,
+  type ComposioAppSyncState,
+  type ComposioAppsResponse,
+} from "./composio-app-setup.js";
+export {
+  agentAdapterTypeSchema,
+  optionalAgentAdapterTypeSchema,
+} from "./adapter-type.js";
 export {
   RUNNER_GOAL_MAX_OBJECTIVE_CHARS,
   runnerGoalAvailabilitySchema,
@@ -353,7 +368,11 @@ export {
   SELF_SERVE_MCP_RESEARCH,
 } from "./self-serve-mcp-research.js";
 export * from "./validators/status-card.js";
-export { appDefinitionSchema, appDefinitionsSchema, connectionMethodDefSchema } from "./validators/app-definition.js";
+export {
+  appDefinitionSchema,
+  appDefinitionsSchema,
+  connectionMethodDefSchema,
+} from "./validators/app-definition.js";
 export * from "./types/chat-channels.js";
 export * from "./types/chat-github.js";
 export * from "./validators/chat-github.js";
@@ -1806,7 +1825,11 @@ export {
   SMOKE_RUN_TRIGGERS,
 } from "./types/smoke-lab.js";
 
-export type { ServerGitInfo, ServerGitLocalChanges, ServerInfoSnapshot } from "./types/server-info.js";
+export type {
+  ServerGitInfo,
+  ServerGitLocalChanges,
+  ServerInfoSnapshot,
+} from "./types/server-info.js";
 
 export {
   getClosedIsolatedExecutionWorkspaceMessage,
@@ -2538,8 +2561,16 @@ export {
 } from "./validators/index.js";
 
 export { API_PREFIX, API } from "./api.js";
-export { normalizeAgentUrlKey, deriveAgentUrlKey, isUuidLike } from "./agent-url-key.js";
-export { deriveProjectUrlKey, normalizeProjectUrlKey, hasNonAsciiContent } from "./project-url-key.js";
+export {
+  normalizeAgentUrlKey,
+  deriveAgentUrlKey,
+  isUuidLike,
+} from "./agent-url-key.js";
+export {
+  deriveProjectUrlKey,
+  normalizeProjectUrlKey,
+  hasNonAsciiContent,
+} from "./project-url-key.js";
 export {
   AGENT_MENTION_SCHEME,
   PROJECT_MENTION_SCHEME,
@@ -2802,11 +2833,21 @@ export {
   isTaskcoreDevRunnerCommand,
   rewriteUrlHostToLoopback,
 } from "./runtime-exposure/loopback-bind.js";
-export { ACCOUNT_HANDLE_MAX_LENGTH, toAccountHandle } from "./account-handle.js";
+export {
+  ACCOUNT_HANDLE_MAX_LENGTH,
+  toAccountHandle,
+} from "./account-handle.js";
 export type { ExecutionContinuationEnvelope } from "./types/execution-continuation.js";
-export type { ExecutionProjection, ExecutionReconciliation, ExecutionBlocker } from "./types/execution-projection.js";
+export type {
+  ExecutionProjection,
+  ExecutionReconciliation,
+  ExecutionBlocker,
+} from "./types/execution-projection.js";
 
-export { EXECUTION_RECONCILIATION_CAUSES, requiresExecutionReconciliation } from "./types/execution-projection.js";
+export {
+  EXECUTION_RECONCILIATION_CAUSES,
+  requiresExecutionReconciliation,
+} from "./types/execution-projection.js";
 
 export * from "./agent-appearance.js";
 export * from "./ai-connections.js";
@@ -2814,27 +2855,59 @@ export * from "./ai-connection-router.js";
 export * from "./ai-connection-usage.js";
 export * from "./types/email.js";
 export * from "./validators/email.js";
-export { configureRailwaySshSchema, type ConfigureRailwaySsh, type RailwaySshSetup } from "./railway-connection.js";
+export {
+  configureRailwaySshSchema,
+  type ConfigureRailwaySsh,
+  type RailwaySshSetup,
+} from "./railway-connection.js";
 export * from "./announcements.js";
 
-export { REMOTE_MCP_CONNECTOR_METHODS, isRemoteMcpConnectorId, isRemoteMcpConnectorMethod, type RemoteMcpConnectorId } from "./remote-mcp-connectors.js";
+export {
+  REMOTE_MCP_CONNECTOR_METHODS,
+  isRemoteMcpConnectorId,
+  isRemoteMcpConnectorMethod,
+  type RemoteMcpConnectorId,
+} from "./remote-mcp-connectors.js";
 
-export { isRetiredComposioConnection, RETIRED_COMPOSIO_MESSAGE } from "./retired-composio.js";
+export {
+  isRetiredComposioConnection,
+  RETIRED_COMPOSIO_MESSAGE,
+} from "./retired-composio.js";
 
 export * from "./slack-tools.js";
 
-export { MEMORY_CONNECTOR_IDS, isMemoryConnectorId, type MemoryConnectorId } from "./memory-connectors.js";
+export {
+  MEMORY_CONNECTOR_IDS,
+  isMemoryConnectorId,
+  type MemoryConnectorId,
+} from "./memory-connectors.js";
 export * from "./connection-routing.js";
 export * from "./connection-search.js";
 
-export { WORKSPACE_RESTORE_FAILURE_CODES, hasWorkspaceRestoreFailure, safeWorkspaceRestorePath, isNativeWorkspaceExportRepairCause } from "./workspace-restore.js";
+export {
+  WORKSPACE_RESTORE_FAILURE_CODES,
+  hasWorkspaceRestoreFailure,
+  safeWorkspaceRestorePath,
+  isNativeWorkspaceExportRepairCause,
+} from "./workspace-restore.js";
 
-
-export type { AgentInstructionErrorCode, AgentInstructionErrorDetails, AgentInstructionSource, AgentInstructionRevision, AgentInstructionSnapshot, AgentInstructionCommitReceipt, AgentInstructionHistory, AgentInstructionDiff } from "./types/agent.js";
+export type {
+  AgentInstructionErrorCode,
+  AgentInstructionErrorDetails,
+  AgentInstructionSource,
+  AgentInstructionRevision,
+  AgentInstructionSnapshot,
+  AgentInstructionCommitReceipt,
+  AgentInstructionHistory,
+  AgentInstructionDiff,
+} from "./types/agent.js";
 export { restoreAgentInstructionSchema } from "./validators/agent.js";
 
 export type { AgentInstructionCandidate } from "./types/agent.js";
-export { resolveAgentInstructionCandidateSchema, type ResolveAgentInstructionCandidate } from "./validators/agent.js";
+export {
+  resolveAgentInstructionCandidateSchema,
+  type ResolveAgentInstructionCandidate,
+} from "./validators/agent.js";
 
 export { isHeartbeatRunVisibleInMine } from "./heartbeat-inbox.js";
 export * from "./browser-use.js";
@@ -2846,18 +2919,39 @@ export * from "./github-skill-repository.js";
 export * from "./public-mcp.js";
 export * from "./mcp-setup.js";
 
-
 export * from "./money.js";
 export * from "./accounting.js";
 export * from "./ai-provider-routing.js";
-export { aiConnectionRouterSlug, aiConnectionRouterAppDefinition, aiConnectionRouterPluginKey } from "./ai-connection-router.js";
-export { isAppAggregator, aggregatorManagementUrl, aggregatorAppsSyncSchema, aggregatorAppsRefreshSchema, arcadeDiscoverySetupSchema, type AggregatorAppSnapshot, type AggregatorAppsResponse, type ArcadeDiscoverySetupInput } from "./aggregator-apps.js";
+export {
+  aiConnectionRouterSlug,
+  aiConnectionRouterAppDefinition,
+  aiConnectionRouterPluginKey,
+} from "./ai-connection-router.js";
+export {
+  isAppAggregator,
+  aggregatorManagementUrl,
+  aggregatorAppsSyncSchema,
+  aggregatorAppsRefreshSchema,
+  arcadeDiscoverySetupSchema,
+  type AggregatorAppSnapshot,
+  type AggregatorAppsResponse,
+  type ArcadeDiscoverySetupInput,
+} from "./aggregator-apps.js";
 
 export * from "./connection-instructions.js";
 export * from "./customer-success.js";
 export * from "./decision-models.js";
-export { updatePrimaryAgentSchema, type UpdatePrimaryAgent, type PrimaryAgentPreference } from "./primary-agent.js";
+export {
+  updatePrimaryAgentSchema,
+  type UpdatePrimaryAgent,
+  type PrimaryAgentPreference,
+} from "./primary-agent.js";
 
 export * from "./agent-avatar-upload.js";
 
-export type { DotBinding, DotInvitation, DotConnection, DotPairing } from "./dot-invitations.js";
+export type {
+  DotBinding,
+  DotInvitation,
+  DotConnection,
+  DotPairing,
+} from "./dot-invitations.js";

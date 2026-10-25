@@ -1,10 +1,7 @@
 import { createHash } from "node:crypto";
 
 export type ManagedResourceStockStatus =
-  | "missing"
-  | "stock_current"
-  | "stock_update_available"
-  | "operator_modified";
+  "missing" | "stock_current" | "stock_update_available" | "operator_modified";
 
 export function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;

@@ -18,7 +18,8 @@ export const RESPONSIBLE_USER_DENIAL_CODES = [
   "RESPONSIBLE_USER_UNAVAILABLE",
 ] as const;
 
-export type ResponsibleUserDenialCode = (typeof RESPONSIBLE_USER_DENIAL_CODES)[number];
+export type ResponsibleUserDenialCode =
+  (typeof RESPONSIBLE_USER_DENIAL_CODES)[number];
 
 export type ResponsibleUserDenialTone = "unauthorized" | "unavailable";
 
@@ -37,7 +38,8 @@ export function isResponsibleUserDenialCode(
   code: string | null | undefined,
 ): code is ResponsibleUserDenialCode {
   return (
-    code === "RESPONSIBLE_USER_UNAUTHORIZED" || code === "RESPONSIBLE_USER_UNAVAILABLE"
+    code === "RESPONSIBLE_USER_UNAUTHORIZED" ||
+    code === "RESPONSIBLE_USER_UNAVAILABLE"
   );
 }
 
@@ -45,7 +47,9 @@ export function isResponsibleUserDenialCode(
  * Render a stable label for the responsible user. Falls back to a generic
  * noun when the display name is unknown, so copy never shows a raw id.
  */
-export function responsibleUserLabel(userName: string | null | undefined): string {
+export function responsibleUserLabel(
+  userName: string | null | undefined,
+): string {
   const trimmed = userName?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : "the responsible user";
 }

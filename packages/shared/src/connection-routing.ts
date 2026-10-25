@@ -10,7 +10,10 @@ import {
 import composioCatalog from "./composio-search-catalog.json" with { type: "json" };
 import arcadeCatalog from "./arcade-app-catalog.json" with { type: "json" };
 import { aggregatorAppIdentity } from "./aggregator-app-catalog.js";
-import { prepareConnectionSearch, scoreConnectionSearch } from "./connection-search.js";
+import {
+  prepareConnectionSearch,
+  scoreConnectionSearch,
+} from "./connection-search.js";
 
 export const AGGREGATOR_PRIORITY = [
   "composio",
@@ -198,18 +201,29 @@ export interface AggregatorServiceDefinition {
 
 // Keep the other providers' reviewed support claims, and cover the complete
 // public Composio catalog instead of maintaining a tiny app-name allowlist.
-export const AGGREGATOR_SUPPORT_INDEX: AggregatorServiceDefinition[] = REVIEWED_AGGREGATOR_SUPPORT.map(entry => ({ ...entry }));
-for (const [toolkit, name] of composioCatalog.toolkits as Array<[string, string]>) {
+export const AGGREGATOR_SUPPORT_INDEX: AggregatorServiceDefinition[] =
+  REVIEWED_AGGREGATOR_SUPPORT.map((entry) => ({ ...entry }));
+for (const [toolkit, name] of composioCatalog.toolkits as Array<
+  [string, string]
+>) {
   const slug = toolkit.replaceAll("_", "-").replace(/^-+/, "");
   const evidenceUrl = `https://docs.composio.dev/toolkits/${toolkit}`;
-  const existing = AGGREGATOR_SUPPORT_INDEX.find(entry => entry.slug === slug
-    || (toolkit.endsWith("_mcp") && entry.slug === slug.slice(0, -4)));
+  const existing = AGGREGATOR_SUPPORT_INDEX.find(
+    (entry) =>
+      entry.slug === slug ||
+      (toolkit.endsWith("_mcp") && entry.slug === slug.slice(0, -4)),
+  );
   if (existing) {
     existing.aliases = [...new Set([...existing.aliases, toolkit, name])];
-    existing.providers = { ...existing.providers, composio: composioCatalog.verifiedAt };
+    existing.providers = {
+      ...existing.providers,
+      composio: composioCatalog.verifiedAt,
+    };
     existing.evidenceUrls ??= { composio: evidenceUrl };
   } else {
-    AGGREGATOR_SUPPORT_INDEX.push({ slug, name,
+    AGGREGATOR_SUPPORT_INDEX.push({
+      slug,
+      name,
       aliases: [toolkit, name.replace(/ MCP$/i, "")],
       providers: { composio: composioCatalog.verifiedAt },
       evidenceUrls: { composio: evidenceUrl },
@@ -218,24 +232,52 @@ for (const [toolkit, name] of composioCatalog.toolkits as Array<[string, string]
 }
 
 for (const app of arcadeCatalog.apps) {
-  const existing = AGGREGATOR_SUPPORT_INDEX.find((entry) =>
-    entry.slug === app.slug || aggregatorAppIdentity(entry.name) === aggregatorAppIdentity(app.name));
+  const existing = AGGREGATOR_SUPPORT_INDEX.find(
+    (entry) =>
+      entry.slug === app.slug ||
+      aggregatorAppIdentity(entry.name) === aggregatorAppIdentity(app.name),
+  );
   if (existing) {
-    existing.aliases = [...new Set([...existing.aliases, app.slug, ...app.aliases])];
-    existing.providers = { ...existing.providers, arcade: arcadeCatalog.verifiedAt };
+    existing.aliases = [
+      ...new Set([...existing.aliases, app.slug, ...app.aliases]),
+    ];
+    existing.providers = {
+      ...existing.providers,
+      arcade: arcadeCatalog.verifiedAt,
+    };
     existing.evidenceUrls = { ...existing.evidenceUrls, arcade: app.docsUrl };
   } else {
-    AGGREGATOR_SUPPORT_INDEX.push({ slug: app.slug, name: app.name, aliases: app.aliases,
-      providers: { arcade: arcadeCatalog.verifiedAt }, evidenceUrls: { arcade: app.docsUrl } });
+    AGGREGATOR_SUPPORT_INDEX.push({
+      slug: app.slug,
+      name: app.name,
+      aliases: app.aliases,
+      providers: { arcade: arcadeCatalog.verifiedAt },
+      evidenceUrls: { arcade: app.docsUrl },
+    });
   }
 }
 
-export function searchAggregatorServices(query: string | ReturnType<typeof prepareConnectionSearch>) {
-  const prepared = typeof query === "string" ? prepareConnectionSearch(query) : query;
-  return AGGREGATOR_SUPPORT_INDEX.map(service => ({ service,
-    ...scoreConnectionSearch(prepared, [service.slug, service.name, ...service.aliases]),
-  })).filter(match => match.nameScore > 0 && !isRemoteMcpConnectorId(match.service.slug))
-    .sort((a, b) => b.score - a.score || a.service.slug.localeCompare(b.service.slug));
+export function searchAggregatorServices(
+  query: string | ReturnType<typeof prepareConnectionSearch>,
+) {
+  const prepared =
+    typeof query === "string" ? prepareConnectionSearch(query) : query;
+  return AGGREGATOR_SUPPORT_INDEX.map((service) => ({
+    service,
+    ...scoreConnectionSearch(prepared, [
+      service.slug,
+      service.name,
+      ...service.aliases,
+    ]),
+  }))
+    .filter(
+      (match) =>
+        match.nameScore > 0 && !isRemoteMcpConnectorId(match.service.slug),
+    )
+    .sort(
+      (a, b) =>
+        b.score - a.score || a.service.slug.localeCompare(b.service.slug),
+    );
 }
 export const AGGREGATOR_CATALOG_SOURCES: Partial<
   Record<RemoteMcpConnectorId, string>
@@ -252,7 +294,10 @@ export function normalizeConnectionQuery(value: string): string {
     .trim();
 }
 
-export function findAggregatorService(query: string, rankedMatches?: ReturnType<typeof searchAggregatorServices>) {
+export function findAggregatorService(
+  query: string,
+  rankedMatches?: ReturnType<typeof searchAggregatorServices>,
+) {
   const normalized = normalizeConnectionQuery(query);
   const exact = AGGREGATOR_SUPPORT_INDEX.find((entry) =>
     [entry.slug, entry.name, ...entry.aliases].some(
@@ -263,12 +308,26 @@ export function findAggregatorService(query: string, rankedMatches?: ReturnType<
   // Agents often include the desired capability ("HubSpot recent contacts").
   // Whole phrases avoid substring guesses; multiple named services need clarification.
   const matches = (rankedMatches ?? searchAggregatorServices(query))
-    .filter(match => match.nameScore >= 500).map(match => match.service);
+    .filter((match) => match.nameScore >= 500)
+    .map((match) => match.service);
   // "Atlassian Jira" identifies Jira, not both Jira and Atlassian's MCP.
-  const phrases = (entry: AggregatorServiceDefinition) => [entry.slug, entry.name, ...entry.aliases]
-    .map(normalizeConnectionQuery).filter(name => ` ${normalized} `.includes(` ${name} `));
-  const specific = matches.filter(entry => !matches.some(other => other !== entry
-    && phrases(entry).every(name => phrases(other).some(longer => longer !== name && ` ${longer} `.includes(` ${name} `)))));
+  const phrases = (entry: AggregatorServiceDefinition) =>
+    [entry.slug, entry.name, ...entry.aliases]
+      .map(normalizeConnectionQuery)
+      .filter((name) => ` ${normalized} `.includes(` ${name} `));
+  const specific = matches.filter(
+    (entry) =>
+      !matches.some(
+        (other) =>
+          other !== entry &&
+          phrases(entry).every((name) =>
+            phrases(other).some(
+              (longer) =>
+                longer !== name && ` ${longer} `.includes(` ${name} `),
+            ),
+          ),
+      ),
+  );
   return specific.length === 1 ? specific[0] : undefined;
 }
 
@@ -276,7 +335,9 @@ export function findAggregatorService(query: string, rankedMatches?: ReturnType<
 export function explicitAggregatorQuery(query: string) {
   // A trailing exclusion is not a second proposed provider. Keep this grammar
   // narrow; alternatives and contradictory choices still require confirmation.
-  const exclusion = query.match(/\s*,?\s+not\s+(composio|arcade|executor|zapier)[.!]?\s*$/i);
+  const exclusion = query.match(
+    /\s*,?\s+not\s+(composio|arcade|executor|zapier)[.!]?\s*$/i,
+  );
   if (exclusion) query = query.slice(0, exclusion.index).trim();
   const matches = [
     ...query.matchAll(
@@ -340,16 +401,24 @@ export function aggregatorProviderQuestion(
 }
 
 /** Native question form, preserving the exact saved-answer authorization contract. */
-export function aggregatorProviderQuestionSet(question: AskUserQuestionsQuestion): TaskcoreQuestionSetPayload {
+export function aggregatorProviderQuestionSet(
+  question: AskUserQuestionsQuestion,
+): TaskcoreQuestionSetPayload {
   return {
     schema: "taskcore.question_set.v1",
-    questions: [{
-      id: question.id,
-      prompt: question.prompt,
-      required: true,
-      answerMode: "single_select",
-      options: question.options.map(({ id, label, description }) => ({ id, label, ...(description != null ? { description } : {}) })),
-    }],
+    questions: [
+      {
+        id: question.id,
+        prompt: question.prompt,
+        required: true,
+        answerMode: "single_select",
+        options: question.options.map(({ id, label, description }) => ({
+          id,
+          label,
+          ...(description != null ? { description } : {}),
+        })),
+      },
+    ],
   };
 }
 

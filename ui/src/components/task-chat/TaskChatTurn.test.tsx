@@ -172,7 +172,11 @@ describe("TaskChatTurn", () => {
     );
 
   it("keeps historical activity expandable without a failure or completion status", () => {
-    renderTurn({ ...SETTLED, historical: true, summary: { ...SETTLED.summary, failed: true } });
+    renderTurn({
+      ...SETTLED,
+      historical: true,
+      summary: { ...SETTLED.summary, failed: true },
+    });
     expect(summaryBtn()?.textContent).toContain("Activity");
     expect(container.textContent).not.toContain("Stopped");
     expect(container.textContent).not.toContain("Worked");
@@ -182,9 +186,19 @@ describe("TaskChatTurn", () => {
   });
 
   it("omits historical status while preserving native agent identity and response", () => {
-    renderTurn({ ...SETTLED, historical: true, standaloneHeader: true, agentName: "Assistant",
+    renderTurn({
+      ...SETTLED,
+      historical: true,
+      standaloneHeader: true,
+      agentName: "Assistant",
       summary: { ...SETTLED.summary, failed: true },
-      finalResponse: { id: "response", kind: "message", author: "agent", text: "Saved response" } });
+      finalResponse: {
+        id: "response",
+        kind: "message",
+        author: "agent",
+        text: "Saved response",
+      },
+    });
     expect(container.textContent).toContain("Assistant");
     expect(container.textContent).toContain("Saved response");
     expect(container.textContent).toContain("c1");
@@ -515,8 +529,13 @@ describe("TaskChatTurn", () => {
     // expandable fold — so expanding the tool history can't drag it down.
     expect(fold()?.contains(lead!)).toBe(false);
     expect(summaryBtn()).not.toBeNull();
-    expect(summaryBtn()!.compareDocumentPosition(lead!) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    expect(lead?.parentElement?.parentElement?.className).toContain("justify-between");
+    expect(
+      summaryBtn()!.compareDocumentPosition(lead!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+    expect(lead?.parentElement?.parentElement?.className).toContain(
+      "justify-between",
+    );
     // Expanding still works and the leading slot stays put outside the fold.
     flushSync(() => summaryBtn()!.click());
     expect(fold()?.getAttribute("data-folded")).toBe("false");

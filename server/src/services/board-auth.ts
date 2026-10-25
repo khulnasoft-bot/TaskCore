@@ -16,7 +16,8 @@ export const CLI_AUTH_CHALLENGE_TTL_MS = 10 * 60 * 1000;
 const BOARD_API_KEY_TOUCH_DEBOUNCE_MS = 60_000;
 const BOARD_API_KEY_TOUCH_CACHE_MAX = 1_000;
 
-export type CliAuthChallengeStatus = "pending" | "approved" | "cancelled" | "expired";
+export type CliAuthChallengeStatus =
+  "pending" | "approved" | "cancelled" | "expired";
 
 export function hashBearerToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -25,7 +26,10 @@ export function hashBearerToken(token: string) {
 export function tokenHashesMatch(left: string, right: string) {
   const leftBytes = Buffer.from(left, "utf8");
   const rightBytes = Buffer.from(right, "utf8");
-  return leftBytes.length === rightBytes.length && timingSafeEqual(leftBytes, rightBytes);
+  return (
+    leftBytes.length === rightBytes.length &&
+    timingSafeEqual(leftBytes, rightBytes)
+  );
 }
 
 export function createBoardApiToken() {
@@ -44,7 +48,9 @@ export function cliAuthChallengeExpiresAt(nowMs: number = Date.now()) {
   return new Date(nowMs + CLI_AUTH_CHALLENGE_TTL_MS);
 }
 
-function challengeStatusForRow(row: typeof cliAuthChallenges.$inferSelect): CliAuthChallengeStatus {
+function challengeStatusForRow(
+  row: typeof cliAuthChallenges.$inferSelect,
+): CliAuthChallengeStatus {
   if (row.cancelledAt) return "cancelled";
   if (row.expiresAt.getTime() <= Date.now()) return "expired";
   if (row.approvedAt && row.boardApiKeyId) return "approved";
@@ -52,11 +58,18 @@ function challengeStatusForRow(row: typeof cliAuthChallenges.$inferSelect): CliA
 }
 
 export function boardAuthService(db: Db) {
-  const touchedBoardApiKeys = new Map<string, { completedAt: number | null; inFlight: Promise<void> | null }>();
+  const touchedBoardApiKeys = new Map<
+    string,
+    { completedAt: number | null; inFlight: Promise<void> | null }
+  >();
 
   function pruneTouchedBoardApiKeys(nowMs: number) {
     for (const [id, entry] of touchedBoardApiKeys) {
-      if (!entry.inFlight && entry.completedAt !== null && entry.completedAt <= nowMs - BOARD_API_KEY_TOUCH_DEBOUNCE_MS) {
+      if (
+        !entry.inFlight &&
+        entry.completedAt !== null &&
+        entry.completedAt <= nowMs - BOARD_API_KEY_TOUCH_DEBOUNCE_MS
+      ) {
         touchedBoardApiKeys.delete(id);
       }
     }
@@ -95,7 +108,12 @@ export function boardAuthService(db: Db) {
       db
         .select({ id: instanceUserRoles.id })
         .from(instanceUserRoles)
-        .where(and(eq(instanceUserRoles.userId, userId), eq(instanceUserRoles.role, "instance_admin")))
+        .where(
+          and(
+            eq(instanceUserRoles.userId, userId),
+            eq(instanceUserRoles.role, "instance_admin"),
+          ),
+        )
         .then((rows) => rows[0] ?? null),
     ]);
 
@@ -159,7 +177,12 @@ export function boardAuthService(db: Db) {
           isNull(boardApiKeys.revokedAt),
         ),
       )
-      .then((rows) => rows.find((row) => !row.expiresAt || row.expiresAt.getTime() > now.getTime()) ?? null);
+      .then(
+        (rows) =>
+          rows.find(
+            (row) => !row.expiresAt || row.expiresAt.getTime() > now.getTime(),
+          ) ?? null,
+      );
   }
 
   async function touchBoardApiKey(id: string) {
@@ -167,8 +190,12 @@ export function boardAuthService(db: Db) {
     pruneTouchedBoardApiKeys(nowMs);
     const cached = touchedBoardApiKeys.get(id);
     if (cached?.inFlight) return cached.inFlight;
-    if (cached?.completedAt !== null && cached?.completedAt !== undefined
-      && cached.completedAt > nowMs - BOARD_API_KEY_TOUCH_DEBOUNCE_MS) return;
+    if (
+      cached?.completedAt !== null &&
+      cached?.completedAt !== undefined &&
+      cached.completedAt > nowMs - BOARD_API_KEY_TOUCH_DEBOUNCE_MS
+    )
+      return;
 
     const inFlight = db
       .update(boardApiKeys)
@@ -176,11 +203,15 @@ export function boardAuthService(db: Db) {
       .where(eq(boardApiKeys.id, id))
       .then(() => {
         touchedBoardApiKeys.delete(id);
-        touchedBoardApiKeys.set(id, { completedAt: Date.now(), inFlight: null });
+        touchedBoardApiKeys.set(id, {
+          completedAt: Date.now(),
+          inFlight: null,
+        });
         pruneTouchedBoardApiKeys(Date.now());
       })
       .catch((error) => {
-        if (touchedBoardApiKeys.get(id)?.inFlight === inFlight) touchedBoardApiKeys.delete(id);
+        if (touchedBoardApiKeys.get(id)?.inFlight === inFlight)
+          touchedBoardApiKeys.delete(id);
         throw error;
       });
     touchedBoardApiKeys.set(id, { completedAt: null, inFlight });
@@ -209,7 +240,10 @@ export function boardAuthService(db: Db) {
         userId: input.userId,
         name: input.name.trim(),
         keyHash: hashBearerToken(token),
-        expiresAt: input.expiresAt === undefined ? boardApiKeyExpiresAt() : input.expiresAt,
+        expiresAt:
+          input.expiresAt === undefined
+            ? boardApiKeyExpiresAt()
+            : input.expiresAt,
       })
       .returning()
       .then((rows) => rows[0]);
@@ -235,9 +269,7 @@ export function boardAuthService(db: Db) {
         isNull(boardApiKeys.expiresAt),
         gt(boardApiKeys.expiresAt, new Date()),
       );
-      conditions.push(
-        isNull(boardApiKeys.revokedAt),
-      );
+      conditions.push(isNull(boardApiKeys.revokedAt));
       if (activeExpirationCondition) conditions.push(activeExpirationCondition);
     }
     return db
@@ -318,7 +350,8 @@ export function boardAuthService(db: Db) {
   async function getCliAuthChallengeBySecret(id: string, token: string) {
     const challenge = await getCliAuthChallenge(id);
     if (!challenge) return null;
-    if (!tokenHashesMatch(challenge.secretHash, hashBearerToken(token))) return null;
+    if (!tokenHashesMatch(challenge.secretHash, hashBearerToken(token)))
+      return null;
     return challenge;
   }
 
@@ -336,7 +369,11 @@ export function boardAuthService(db: Db) {
         : Promise.resolve(null),
       challenge.approvedByUserId
         ? db
-            .select({ id: authUsers.id, name: authUsers.name, email: authUsers.email })
+            .select({
+              id: authUsers.id,
+              name: authUsers.name,
+              email: authUsers.email,
+            })
             .from(authUsers)
             .where(eq(authUsers.id, challenge.approvedByUserId))
             .then((rows) => rows[0] ?? null)
@@ -348,7 +385,8 @@ export function boardAuthService(db: Db) {
       status: challengeStatusForRow(challenge),
       command: challenge.command,
       clientName: challenge.clientName ?? null,
-      requestedAccess: challenge.requestedAccess as "board" | "instance_admin_required",
+      requestedAccess: challenge.requestedAccess as
+        "board" | "instance_admin_required",
       requestedCompanyId: challenge.requestedCompanyId ?? null,
       requestedCompanyName: company?.name ?? null,
       approvedAt: challenge.approvedAt?.toISOString() ?? null,
@@ -364,7 +402,11 @@ export function boardAuthService(db: Db) {
     };
   }
 
-  async function approveCliAuthChallenge(id: string, token: string, userId: string) {
+  async function approveCliAuthChallenge(
+    id: string,
+    token: string,
+    userId: string,
+  ) {
     const access = await resolveBoardAccess(userId);
     return db.transaction(async (tx) => {
       await tx.execute(
@@ -376,7 +418,10 @@ export function boardAuthService(db: Db) {
         .from(cliAuthChallenges)
         .where(eq(cliAuthChallenges.id, id))
         .then((rows) => rows[0] ?? null);
-      if (!challenge || !tokenHashesMatch(challenge.secretHash, hashBearerToken(token))) {
+      if (
+        !challenge ||
+        !tokenHashesMatch(challenge.secretHash, hashBearerToken(token))
+      ) {
         throw notFound("CLI auth challenge not found");
       }
 
@@ -384,7 +429,10 @@ export function boardAuthService(db: Db) {
       if (status === "expired") return { status, challenge };
       if (status === "cancelled") return { status, challenge };
 
-      if (challenge.requestedAccess === "instance_admin_required" && !access.isInstanceAdmin) {
+      if (
+        challenge.requestedAccess === "instance_admin_required" &&
+        !access.isInstanceAdmin
+      ) {
         throw forbidden("Instance admin required");
       }
 
@@ -442,7 +490,10 @@ export function boardAuthService(db: Db) {
     return { status: "cancelled" as const, challenge: updated };
   }
 
-  async function assertCurrentBoardKey(keyId: string | undefined, userId: string | undefined) {
+  async function assertCurrentBoardKey(
+    keyId: string | undefined,
+    userId: string | undefined,
+  ) {
     if (!keyId || !userId) throw conflict("Board API key context is required");
     const key = await db
       .select()

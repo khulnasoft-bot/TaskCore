@@ -3,7 +3,12 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Issue } from "@taskcore/shared";
-import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { issuesApi } from "@/api/issues";
 import { queryKeys } from "@/lib/queryKeys";
@@ -101,7 +106,9 @@ describe("getIssueDetailQueryOptions", () => {
       },
     });
     const partialIssue = makeIssue({ description: null });
-    const fullIssue = makeIssue({ description: "GitHub Security Advisory body" });
+    const fullIssue = makeIssue({
+      description: "GitHub Security Advisory body",
+    });
 
     queryClient.setQueryData(queryKeys.issues.detail("issue-1"), partialIssue);
     queryClient.setQueryData(queryKeys.issues.detail("PAP-1442"), partialIssue);
@@ -112,7 +119,10 @@ describe("getIssueDetailQueryOptions", () => {
         <QueryClientProvider client={queryClient}>
           <IssueDetailQueryHarness
             issueRef="PAP-1442"
-            placeholderIssue={{ id: partialIssue.id, identifier: partialIssue.identifier }}
+            placeholderIssue={{
+              id: partialIssue.id,
+              identifier: partialIssue.identifier,
+            }}
           />
         </QueryClientProvider>,
       );

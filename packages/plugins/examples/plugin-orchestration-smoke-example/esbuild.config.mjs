@@ -12,6 +12,14 @@ if (watch) {
   await Promise.all([workerCtx.watch(), manifestCtx.watch(), uiCtx.watch()]);
   console.log("esbuild watch mode enabled for worker, manifest, and ui");
 } else {
-  await Promise.all([workerCtx.rebuild(), manifestCtx.rebuild(), uiCtx.rebuild()]);
-  await Promise.all([workerCtx.dispose(), manifestCtx.dispose(), uiCtx.dispose()]);
+  await Promise.all([
+    workerCtx.rebuild(),
+    manifestCtx.rebuild(),
+    uiCtx.rebuild(),
+  ]);
+  await Promise.all([
+    workerCtx.dispose(),
+    manifestCtx.dispose(),
+    uiCtx.dispose(),
+  ]);
 }

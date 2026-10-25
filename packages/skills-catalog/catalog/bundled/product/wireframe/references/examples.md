@@ -71,6 +71,7 @@ Four complete wireframes you can copy and modify. Each one is a valid standalone
 ```
 
 **Annotations:**
+
 1. Status bar placeholder
 2. Brand mark
 3. Page title + subtitle
@@ -188,6 +189,7 @@ Four complete wireframes you can copy and modify. Each one is a valid standalone
 ```
 
 **Annotations:**
+
 1. Sidebar nav with active "Dashboard"
 2. Top bar with global search and account menu
 3. Page header with title, subtitle, and primary CTA
@@ -289,6 +291,7 @@ Four complete wireframes you can copy and modify. Each one is a valid standalone
 ```
 
 **Annotations:**
+
 1. Top bar with section name
 2. Settings sub-nav (Personal / Workspace groups)
 3. Form: avatar with upload, display name, email + help text, role dropdown, save / cancel actions
@@ -351,6 +354,7 @@ Four complete wireframes you can copy and modify. Each one is a valid standalone
 ```
 
 **Annotations:**
+
 1. Backdrop dims the underlying page
 2. Confirmation modal: title, body copy, type-to-confirm field, Cancel + destructive Confirm
 3. Reviewer note (red dashed): the destructive button must remain disabled until the typed input matches

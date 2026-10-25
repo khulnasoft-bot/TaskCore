@@ -1,4 +1,13 @@
-import { chmod, lstat, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -42,7 +51,9 @@ describe("grok device-login credential promotion", () => {
   });
 
   async function makeInstanceRoot(): Promise<string> {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "taskcore-grok-promotion-"));
+    const dir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-grok-promotion-"),
+    );
     cleanupDirs.push(dir);
     return dir;
   }
@@ -81,12 +92,18 @@ describe("grok device-login credential promotion", () => {
   }
 
   const ready = (): CredentialReadinessResult => ({ ready: true });
-  const notReady = (): CredentialReadinessResult => ({ ready: false, reason: "auth_unusable" });
+  const notReady = (): CredentialReadinessResult => ({
+    ready: false,
+    reason: "auth_unusable",
+  });
   const soleOwner = () => true;
   const notSoleOwner = () => false;
   const noopLog = (_line: string): void => {};
 
-  function companyHomeAuthPath(env: NodeJS.ProcessEnv, companyId: string): string {
+  function companyHomeAuthPath(
+    env: NodeJS.ProcessEnv,
+    companyId: string,
+  ): string {
     return path.join(resolveManagedGrokHomeDir(env, companyId), "auth.json");
   }
 
@@ -105,11 +122,15 @@ describe("grok device-login credential promotion", () => {
     });
 
     it("rejects invalid JSON", () => {
-      expect(() => assertUsableGrokAuthShape(Buffer.from("{not json"))).toThrow(/invalid JSON/);
+      expect(() => assertUsableGrokAuthShape(Buffer.from("{not json"))).toThrow(
+        /invalid JSON/,
+      );
     });
 
     it("rejects an object with no top-level key", () => {
-      expect(() => assertUsableGrokAuthShape(Buffer.from("{}"))).toThrow(/single/);
+      expect(() => assertUsableGrokAuthShape(Buffer.from("{}"))).toThrow(
+        /single/,
+      );
     });
 
     it("rejects an object with more than one top-level key", () => {
@@ -123,12 +144,16 @@ describe("grok device-login credential promotion", () => {
     });
 
     it("rejects a key that does not match the <issuer>::<uuid> shape", () => {
-      const bytes = Buffer.from(JSON.stringify({ some_fixed_key: { key: "k", refresh_token: "r" } }));
+      const bytes = Buffer.from(
+        JSON.stringify({ some_fixed_key: { key: "k", refresh_token: "r" } }),
+      );
       expect(() => assertUsableGrokAuthShape(bytes)).toThrow(/single/);
     });
 
     it("rejects a value with no usable key or refresh_token", () => {
-      const bytes = Buffer.from(JSON.stringify({ [`${ISSUER}::${UUID_A}`]: { key: "k" } }));
+      const bytes = Buffer.from(
+        JSON.stringify({ [`${ISSUER}::${UUID_A}`]: { key: "k" } }),
+      );
       expect(() => assertUsableGrokAuthShape(bytes)).toThrow(/usable/);
     });
 
@@ -150,14 +175,18 @@ describe("grok device-login credential promotion", () => {
     });
 
     it("reports not ready for a Codex-shaped payload", async () => {
-      const codexShaped = Buffer.from(JSON.stringify({ OPENAI_API_KEY: "sk-test" }));
+      const codexShaped = Buffer.from(
+        JSON.stringify({ OPENAI_API_KEY: "sk-test" }),
+      );
       const result = await checkStagedGrokCredentialReadiness(codexShaped);
       expect(result.ready).toBe(false);
       expect(result.reason).toBe("no_usable_auth");
     });
 
     it("reports ready for a usable Grok payload", async () => {
-      const result = await checkStagedGrokCredentialReadiness(grokAuth({ uuid: UUID_A }));
+      const result = await checkStagedGrokCredentialReadiness(
+        grokAuth({ uuid: UUID_A }),
+      );
       expect(result.ready).toBe(true);
     });
   });
@@ -358,7 +387,11 @@ describe("grok device-login credential promotion", () => {
     const home = await makeInstanceRoot();
     const env = envFor(home);
     await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "first", expiresAt: "2026-01-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "first",
+        expiresAt: "2026-01-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -367,7 +400,11 @@ describe("grok device-login credential promotion", () => {
       log: noopLog,
     });
     const outcome = await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "second", expiresAt: "2026-06-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "second",
+        expiresAt: "2026-06-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -379,7 +416,9 @@ describe("grok device-login credential promotion", () => {
 
     const authPath = companyHomeAuthPath(env, COMPANY_A);
     const written = JSON.parse(await readFile(authPath, "utf8"));
-    expect(written[`${ISSUER}::${UUID_A}`].refresh_token).toBe(`${TOKEN_SENTINEL}-second`);
+    expect(written[`${ISSUER}::${UUID_A}`].refresh_token).toBe(
+      `${TOKEN_SENTINEL}-second`,
+    );
   });
 
   // ---------------------------------------------------------------------
@@ -392,7 +431,11 @@ describe("grok device-login credential promotion", () => {
     const home = await makeInstanceRoot();
     const env = envFor(home);
     await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "fresher", expiresAt: "2026-06-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "fresher",
+        expiresAt: "2026-06-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -402,7 +445,11 @@ describe("grok device-login credential promotion", () => {
     });
 
     const outcome = await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "staler", expiresAt: "2026-01-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "staler",
+        expiresAt: "2026-01-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -414,14 +461,20 @@ describe("grok device-login credential promotion", () => {
 
     const authPath = companyHomeAuthPath(env, COMPANY_A);
     const written = JSON.parse(await readFile(authPath, "utf8"));
-    expect(written[`${ISSUER}::${UUID_A}`].refresh_token).toBe(`${TOKEN_SENTINEL}-fresher`);
+    expect(written[`${ISSUER}::${UUID_A}`].refresh_token).toBe(
+      `${TOKEN_SENTINEL}-fresher`,
+    );
   });
 
   it("keeps the home when the login expiry ties the existing same-identity credential", async () => {
     const home = await makeInstanceRoot();
     const env = envFor(home);
     await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "first", expiresAt: "2026-01-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "first",
+        expiresAt: "2026-01-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -431,7 +484,11 @@ describe("grok device-login credential promotion", () => {
     });
 
     const outcome = await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "second", expiresAt: "2026-01-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "second",
+        expiresAt: "2026-01-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -443,14 +500,20 @@ describe("grok device-login credential promotion", () => {
 
     const authPath = companyHomeAuthPath(env, COMPANY_A);
     const written = JSON.parse(await readFile(authPath, "utf8"));
-    expect(written[`${ISSUER}::${UUID_A}`].refresh_token).toBe(`${TOKEN_SENTINEL}-first`);
+    expect(written[`${ISSUER}::${UUID_A}`].refresh_token).toBe(
+      `${TOKEN_SENTINEL}-first`,
+    );
   });
 
   it("leaves no staged temporary file in the company home after a kept (not-fresher) outcome", async () => {
     const home = await makeInstanceRoot();
     const env = envFor(home);
     await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "fresher", expiresAt: "2026-06-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "fresher",
+        expiresAt: "2026-06-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -460,7 +523,11 @@ describe("grok device-login credential promotion", () => {
     });
 
     const outcome = await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "staler", expiresAt: "2026-01-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "staler",
+        expiresAt: "2026-01-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -484,7 +551,11 @@ describe("grok device-login credential promotion", () => {
     };
 
     await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "fresher", expiresAt: "2026-06-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "fresher",
+        expiresAt: "2026-06-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -494,7 +565,11 @@ describe("grok device-login credential promotion", () => {
     });
 
     const outcome = await promoteGrokDeviceLoginCredential({
-      authBytes: grokAuth({ uuid: UUID_A, marker: "staler", expiresAt: "2026-01-01T00:00:00Z" }),
+      authBytes: grokAuth({
+        uuid: UUID_A,
+        marker: "staler",
+        expiresAt: "2026-01-01T00:00:00Z",
+      }),
       companyId: COMPANY_A,
       userInitiated: true,
       checkReadiness: ready,
@@ -545,7 +620,9 @@ describe("grok device-login credential promotion", () => {
     const companyHome = resolveManagedGrokHomeDir(env, COMPANY_A);
     await mkdir(companyHome, { recursive: true, mode: 0o700 });
     const authPath = path.join(companyHome, "auth.json");
-    const unusableBytes = Buffer.from(JSON.stringify({ some_fixed_key: { key: "k" } }));
+    const unusableBytes = Buffer.from(
+      JSON.stringify({ some_fixed_key: { key: "k" } }),
+    );
     await writeFile(authPath, unusableBytes, { mode: 0o600 });
 
     const outcome = await promoteGrokDeviceLoginCredential({
@@ -637,7 +714,9 @@ describe("grok device-login credential promotion", () => {
         log: noopLog,
       }),
     ).rejects.toThrow(/path separator/);
-    await expect(lstat(resolveManagedGrokHomeDir(env, COMPANY_B))).rejects.toThrow();
+    await expect(
+      lstat(resolveManagedGrokHomeDir(env, COMPANY_B)),
+    ).rejects.toThrow();
   });
 
   it("rejects a companyId that is a parent-directory segment", async () => {

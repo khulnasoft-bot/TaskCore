@@ -1,9 +1,14 @@
-import type { WorkspaceCommandDefinition, WorkspaceRuntimeService } from "./types/workspace-runtime.js";
+import type {
+  WorkspaceCommandDefinition,
+  WorkspaceRuntimeService,
+} from "./types/workspace-runtime.js";
 import { forceLoopbackBindInCommand } from "./runtime-exposure/loopback-bind.js";
 
-type WorkspaceRuntimeServiceMatchCandidate =
-  & Pick<WorkspaceRuntimeService, "configIndex" | "serviceName" | "command" | "cwd">
-  & Pick<Partial<WorkspaceRuntimeService>, "exposure" | "port">;
+type WorkspaceRuntimeServiceMatchCandidate = Pick<
+  WorkspaceRuntimeService,
+  "configIndex" | "serviceName" | "command" | "cwd"
+> &
+  Pick<Partial<WorkspaceRuntimeService>, "exposure" | "port">;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -18,10 +23,10 @@ function readNonEmptyString(value: unknown): string | null {
 function readConfiguredPort(value: unknown): number | null {
   if (isRecord(value) && value.type === "auto") return null;
   const candidate = isRecord(value) ? value.value : value;
-  return typeof candidate === "number"
-    && Number.isInteger(candidate)
-    && candidate > 0
-    && candidate <= 65_535
+  return typeof candidate === "number" &&
+    Number.isInteger(candidate) &&
+    candidate > 0 &&
+    candidate <= 65_535
     ? candidate
     : null;
 }
@@ -45,7 +50,9 @@ function deriveWorkspaceCommandId(input: {
   const explicitId = slugify(input.explicitId);
   if (explicitId) return explicitId;
   const nameSlug = slugify(input.name);
-  return nameSlug ? `${input.kind}:${nameSlug}` : `${input.kind}:${input.index + 1}`;
+  return nameSlug
+    ? `${input.kind}:${nameSlug}`
+    : `${input.kind}:${input.index + 1}`;
 }
 
 function buildWorkspaceCommandDefinition(input: {
@@ -61,17 +68,17 @@ function buildWorkspaceCommandDefinition(input: {
       kind: input.kind,
       explicitId: readNonEmptyString(input.entry.id),
       name:
-        readNonEmptyString(input.entry.name)
-        ?? readNonEmptyString(input.entry.label)
-        ?? readNonEmptyString(input.entry.title)
-        ?? input.fallbackName,
+        readNonEmptyString(input.entry.name) ??
+        readNonEmptyString(input.entry.label) ??
+        readNonEmptyString(input.entry.title) ??
+        input.fallbackName,
       index: input.sourceIndex,
     }),
     name:
-      readNonEmptyString(input.entry.name)
-      ?? readNonEmptyString(input.entry.label)
-      ?? readNonEmptyString(input.entry.title)
-      ?? input.fallbackName,
+      readNonEmptyString(input.entry.name) ??
+      readNonEmptyString(input.entry.label) ??
+      readNonEmptyString(input.entry.title) ??
+      input.fallbackName,
     kind: input.kind,
     command: readNonEmptyString(input.entry.command),
     cwd: readNonEmptyString(input.entry.cwd),
@@ -113,7 +120,9 @@ function readCommandEntries(
   key: "commands" | "services" | "jobs",
 ) {
   const raw = workspaceRuntime?.[key];
-  return Array.isArray(raw) ? raw.filter((entry): entry is Record<string, unknown> => isRecord(entry)) : [];
+  return Array.isArray(raw)
+    ? raw.filter((entry): entry is Record<string, unknown> => isRecord(entry))
+    : [];
 }
 
 export function listWorkspaceCommandDefinitions(
@@ -127,39 +136,58 @@ export function listWorkspaceCommandDefinitions(
 
   const finalize = (command: WorkspaceCommandDefinition) => ({
     ...command,
-    id: uniqueWorkspaceCommandId(seenIds, command.id, command.source.key, command.source.index),
+    id: uniqueWorkspaceCommandId(
+      seenIds,
+      command.id,
+      command.source.key,
+      command.source.index,
+    ),
   });
 
   if (commandEntries.length > 0) {
     return commandEntries.map((entry, index) =>
-      finalize(buildWorkspaceCommandDefinition({
-        entry,
-        kind: entry.kind === "job" ? "job" : "service",
-        sourceKey: "commands",
-        sourceIndex: index,
-        serviceIndex: entry.kind === "job" ? null : nextServiceIndex++,
-        fallbackName: entry.kind === "job" ? `Job ${index + 1}` : `Service ${index + 1}`,
-      })));
+      finalize(
+        buildWorkspaceCommandDefinition({
+          entry,
+          kind: entry.kind === "job" ? "job" : "service",
+          sourceKey: "commands",
+          sourceIndex: index,
+          serviceIndex: entry.kind === "job" ? null : nextServiceIndex++,
+          fallbackName:
+            entry.kind === "job" ? `Job ${index + 1}` : `Service ${index + 1}`,
+        }),
+      ),
+    );
   }
 
-  const serviceDefinitions = readCommandEntries(workspaceRuntime, "services").map((entry, index) =>
-    finalize(buildWorkspaceCommandDefinition({
-      entry,
-      kind: "service",
-      sourceKey: "services",
-      sourceIndex: index,
-      serviceIndex: nextServiceIndex++,
-      fallbackName: `Service ${index + 1}`,
-    })));
-  const jobDefinitions = readCommandEntries(workspaceRuntime, "jobs").map((entry, index) =>
-    finalize(buildWorkspaceCommandDefinition({
-      entry,
-      kind: "job",
-      sourceKey: "jobs",
-      sourceIndex: index,
-      serviceIndex: null,
-      fallbackName: `Job ${index + 1}`,
-    })));
+  const serviceDefinitions = readCommandEntries(
+    workspaceRuntime,
+    "services",
+  ).map((entry, index) =>
+    finalize(
+      buildWorkspaceCommandDefinition({
+        entry,
+        kind: "service",
+        sourceKey: "services",
+        sourceIndex: index,
+        serviceIndex: nextServiceIndex++,
+        fallbackName: `Service ${index + 1}`,
+      }),
+    ),
+  );
+  const jobDefinitions = readCommandEntries(workspaceRuntime, "jobs").map(
+    (entry, index) =>
+      finalize(
+        buildWorkspaceCommandDefinition({
+          entry,
+          kind: "job",
+          sourceKey: "jobs",
+          sourceIndex: index,
+          serviceIndex: null,
+          fallbackName: `Job ${index + 1}`,
+        }),
+      ),
+  );
 
   return [...serviceDefinitions, ...jobDefinitions];
 }
@@ -167,7 +195,9 @@ export function listWorkspaceCommandDefinitions(
 export function listWorkspaceServiceCommandDefinitions(
   workspaceRuntime: Record<string, unknown> | null | undefined,
 ) {
-  return listWorkspaceCommandDefinitions(workspaceRuntime).filter((command) => command.kind === "service");
+  return listWorkspaceCommandDefinitions(workspaceRuntime).filter(
+    (command) => command.kind === "service",
+  );
 }
 
 export function findWorkspaceCommandDefinition(
@@ -176,45 +206,65 @@ export function findWorkspaceCommandDefinition(
 ) {
   const normalizedId = readNonEmptyString(workspaceCommandId);
   if (!normalizedId) return null;
-  return listWorkspaceCommandDefinitions(workspaceRuntime).find((command) => command.id === normalizedId) ?? null;
+  return (
+    listWorkspaceCommandDefinitions(workspaceRuntime).find(
+      (command) => command.id === normalizedId,
+    ) ?? null
+  );
 }
 
 export function scoreWorkspaceRuntimeServiceMatch(
-  command: Pick<WorkspaceCommandDefinition, "serviceIndex" | "name" | "command" | "cwd" | "port">,
+  command: Pick<
+    WorkspaceCommandDefinition,
+    "serviceIndex" | "name" | "command" | "cwd" | "port"
+  >,
   runtimeService: WorkspaceRuntimeServiceMatchCandidate,
 ) {
   const exposedCommandMatches = Boolean(
-    command.command
-    && runtimeService.command
-    && runtimeService.exposure?.provider === "tailscale_https"
-    && runtimeService.command === forceLoopbackBindInCommand(command.command),
+    command.command &&
+    runtimeService.command &&
+    runtimeService.exposure?.provider === "tailscale_https" &&
+    runtimeService.command === forceLoopbackBindInCommand(command.command),
   );
   if (
-    command.command
-    && runtimeService.command
-    && runtimeService.command !== command.command
-    && !exposedCommandMatches
+    command.command &&
+    runtimeService.command &&
+    runtimeService.command !== command.command &&
+    !exposedCommandMatches
   ) {
     return -1;
   }
 
-  if (command.port !== null && runtimeService.port != null && runtimeService.port !== command.port) {
+  if (
+    command.port !== null &&
+    runtimeService.port != null &&
+    runtimeService.port !== command.port
+  ) {
     return -1;
   }
 
-  if (command.serviceIndex !== null && runtimeService.configIndex !== null && runtimeService.configIndex !== undefined) {
+  if (
+    command.serviceIndex !== null &&
+    runtimeService.configIndex !== null &&
+    runtimeService.configIndex !== undefined
+  ) {
     if (runtimeService.configIndex !== command.serviceIndex) return -1;
-    return 100 + (command.port !== null && runtimeService.port === command.port ? 8 : 0);
+    return (
+      100 +
+      (command.port !== null && runtimeService.port === command.port ? 8 : 0)
+    );
   }
 
   let score = 0;
   if (command.port !== null && runtimeService.port === command.port) score += 8;
   if (runtimeService.serviceName === command.name) score += 4;
-  if ((runtimeService.command ?? null) === (command.command ?? null)) score += 4;
+  if ((runtimeService.command ?? null) === (command.command ?? null))
+    score += 4;
   if (
-    command.cwd
-    && runtimeService.cwd
-    && (runtimeService.cwd === command.cwd || runtimeService.cwd.endsWith(`/${command.cwd}`))
+    command.cwd &&
+    runtimeService.cwd &&
+    (runtimeService.cwd === command.cwd ||
+      runtimeService.cwd.endsWith(`/${command.cwd}`))
   ) {
     score += 2;
   }
@@ -224,7 +274,10 @@ export function scoreWorkspaceRuntimeServiceMatch(
 export function matchWorkspaceRuntimeServiceToCommand<
   T extends WorkspaceRuntimeServiceMatchCandidate,
 >(
-  command: Pick<WorkspaceCommandDefinition, "serviceIndex" | "name" | "command" | "cwd" | "port">,
+  command: Pick<
+    WorkspaceCommandDefinition,
+    "serviceIndex" | "name" | "command" | "cwd" | "port"
+  >,
   runtimeServices: T[] | null | undefined,
 ) {
   let bestMatch: T | null = null;

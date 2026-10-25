@@ -13,9 +13,24 @@ import {
 } from "@taskcore/shared";
 import { trackRoutineCreated } from "@taskcore/shared/telemetry";
 import { validate, validateIssueMutationBody } from "../middleware/validate.js";
-import { accessService, documentAnnotationService, logActivity, routineService } from "../services/index.js";
-import { assertCompanyAccess, getAccessibleResource, getActorInfo, hasCompanyAccess } from "./authz.js";
-import { badRequest, forbidden, unauthorized, unsupportedMediaType } from "../errors.js";
+import {
+  accessService,
+  documentAnnotationService,
+  logActivity,
+  routineService,
+} from "../services/index.js";
+import {
+  assertCompanyAccess,
+  getAccessibleResource,
+  getActorInfo,
+  hasCompanyAccess,
+} from "./authz.js";
+import {
+  badRequest,
+  forbidden,
+  unauthorized,
+  unsupportedMediaType,
+} from "../errors.js";
 import { getTelemetryClient } from "../telemetry.js";
 import type { PluginWorkerManager } from "../services/plugin-worker-manager.js";
 
@@ -49,17 +64,21 @@ export function routineRoutes(
     };
   }
 
-  async function remapRoutineDescriptionAnnotations(req: Request, routineId: string) {
+  async function remapRoutineDescriptionAnnotations(
+    req: Request,
+    routineId: string,
+  ) {
     const doc = await svc.getDescriptionDocument(routineId);
     if (!doc) return;
-    const remapped = await documentAnnotationsSvc.remapOpenThreadsForRoutineDocument({
-      routineId,
-      key: routineDocumentKey,
-      documentId: doc.id,
-      nextRevisionId: doc.latestRevisionId,
-      nextRevisionNumber: doc.latestRevisionNumber,
-      nextBody: doc.body,
-    });
+    const remapped =
+      await documentAnnotationsSvc.remapOpenThreadsForRoutineDocument({
+        routineId,
+        key: routineDocumentKey,
+        documentId: doc.id,
+        nextRevisionId: doc.latestRevisionId,
+        nextRevisionNumber: doc.latestRevisionNumber,
+        nextBody: doc.body,
+      });
     const actor = getActorInfo(req);
     for (const remap of remapped) {
       await logActivity(db, {
@@ -89,14 +108,23 @@ export function routineRoutes(
   async function assertBoardCanAssignTasks(req: Request, companyId: string) {
     assertCompanyAccess(req, companyId);
     if (req.actor.type !== "board") return;
-    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return;
-    const allowed = await access.canUser(companyId, req.actor.userId, "tasks:assign");
+    if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+      return;
+    const allowed = await access.canUser(
+      companyId,
+      req.actor.userId,
+      "tasks:assign",
+    );
     if (!allowed) {
       throw forbidden("Missing permission: tasks:assign");
     }
   }
 
-  function assertCanManageCompanyRoutine(req: Request, companyId: string, assigneeAgentId?: string | null) {
+  function assertCanManageCompanyRoutine(
+    req: Request,
+    companyId: string,
+    assigneeAgentId?: string | null,
+  ) {
     assertCompanyAccess(req, companyId);
     if (req.actor.type === "board") return;
     if (req.actor.type !== "agent" || !req.actor.agentId) throw unauthorized();
@@ -105,7 +133,10 @@ export function routineRoutes(
     }
   }
 
-  async function assertCanManageExistingRoutine(req: Request, routineId: string) {
+  async function assertCanManageExistingRoutine(
+    req: Request,
+    routineId: string,
+  ) {
     const routine = await svc.get(routineId);
     if (!routine || !hasCompanyAccess(req, routine.companyId)) return null;
     assertCompanyAccess(req, routine.companyId);
@@ -117,14 +148,17 @@ export function routineRoutes(
     return routine;
   }
 
-  async function logRoutineRevisionCreated(req: Request, input: {
-    companyId: string;
-    routineId: string;
-    revisionId: string | null;
-    revisionNumber: number;
-    changeSummary?: string | null;
-    triggerCount?: number | null;
-  }) {
+  async function logRoutineRevisionCreated(
+    req: Request,
+    input: {
+      companyId: string;
+      routineId: string;
+      revisionId: string | null;
+      revisionNumber: number;
+      changeSummary?: string | null;
+      triggerCount?: number | null;
+    },
+  ) {
     if (!input.revisionId) return;
     const actor = getActorInfo(req);
     await logActivity(db, {
@@ -149,56 +183,73 @@ export function routineRoutes(
   router.get("/companies/:companyId/routines", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-    const projectId = typeof req.query.projectId === "string" ? req.query.projectId : undefined;
+    const projectId =
+      typeof req.query.projectId === "string" ? req.query.projectId : undefined;
     const result = await svc.list(companyId, { projectId });
     res.json(result);
   });
 
-  router.post("/companies/:companyId/routines", validate(createRoutineSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    await assertBoardCanAssignTasks(req, companyId);
-    assertCanManageCompanyRoutine(req, companyId, req.body.assigneeAgentId);
-    const created = await svc.create(companyId, req.body, {
-      agentId: req.actor.type === "agent" ? req.actor.agentId : null,
-      userId: req.actor.type === "board" ? req.actor.userId ?? "board" : null,
-      runId: req.actor.runId ?? null,
-    });
-    const actor = getActorInfo(req);
-    await logActivity(db, {
-      companyId,
-      actorType: actor.actorType,
-      actorId: actor.actorId,
-      agentId: actor.agentId,
-      runId: actor.runId,
-      agentApiKeyId: actor.agentApiKeyId,
-      action: "routine.created",
-      entityType: "routine",
-      entityId: created.id,
-      details: { title: created.title, assigneeAgentId: created.assigneeAgentId },
-    });
-    const telemetryClient = getTelemetryClient();
-    if (telemetryClient) {
-      trackRoutineCreated(telemetryClient);
-    }
-    await logRoutineRevisionCreated(req, {
-      companyId,
-      routineId: created.id,
-      revisionId: created.latestRevisionId,
-      revisionNumber: created.latestRevisionNumber,
-      changeSummary: "Created routine",
-      triggerCount: 0,
-    });
-    res.status(201).json(created);
-  });
+  router.post(
+    "/companies/:companyId/routines",
+    validate(createRoutineSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      await assertBoardCanAssignTasks(req, companyId);
+      assertCanManageCompanyRoutine(req, companyId, req.body.assigneeAgentId);
+      const created = await svc.create(companyId, req.body, {
+        agentId: req.actor.type === "agent" ? req.actor.agentId : null,
+        userId:
+          req.actor.type === "board" ? (req.actor.userId ?? "board") : null,
+        runId: req.actor.runId ?? null,
+      });
+      const actor = getActorInfo(req);
+      await logActivity(db, {
+        companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        agentApiKeyId: actor.agentApiKeyId,
+        action: "routine.created",
+        entityType: "routine",
+        entityId: created.id,
+        details: {
+          title: created.title,
+          assigneeAgentId: created.assigneeAgentId,
+        },
+      });
+      const telemetryClient = getTelemetryClient();
+      if (telemetryClient) {
+        trackRoutineCreated(telemetryClient);
+      }
+      await logRoutineRevisionCreated(req, {
+        companyId,
+        routineId: created.id,
+        revisionId: created.latestRevisionId,
+        revisionNumber: created.latestRevisionNumber,
+        changeSummary: "Created routine",
+        triggerCount: 0,
+      });
+      res.status(201).json(created);
+    },
+  );
 
   router.get("/routines/:id", async (req, res) => {
-    const detail = await getAccessibleResource(req, res, svc.getDetail(req.params.id as string), "Routine not found");
+    const detail = await getAccessibleResource(
+      req,
+      res,
+      svc.getDetail(req.params.id as string),
+      "Routine not found",
+    );
     if (!detail) return;
     res.json(detail);
   });
 
   router.get("/routines/:id/revisions", async (req, res) => {
-    const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
+    const routine = await assertCanManageExistingRoutine(
+      req,
+      req.params.id as string,
+    );
     if (!routine) {
       res.status(404).json({ error: "Routine not found" });
       return;
@@ -208,42 +259,61 @@ export function routineRoutes(
   });
 
   router.get("/routines/:id/description/annotations", async (req, res) => {
-    const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
+    const routine = await assertCanManageExistingRoutine(
+      req,
+      req.params.id as string,
+    );
     if (!routine) {
       res.status(404).json({ error: "Routine not found" });
       return;
     }
-    const status = req.query.status === "resolved" || req.query.status === "all" ? req.query.status : "open";
-    const threads = await documentAnnotationsSvc.listThreadsForRoutineDocument(routine.id, routineDocumentKey, {
-      status,
-      includeComments: parseBooleanQuery(req.query.includeComments),
-    });
+    const status =
+      req.query.status === "resolved" || req.query.status === "all"
+        ? req.query.status
+        : "open";
+    const threads = await documentAnnotationsSvc.listThreadsForRoutineDocument(
+      routine.id,
+      routineDocumentKey,
+      {
+        status,
+        includeComments: parseBooleanQuery(req.query.includeComments),
+      },
+    );
     res.json(threads);
   });
 
-  router.get("/routines/:id/description/annotations/:threadId", async (req, res) => {
-    const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
-    if (!routine) {
-      res.status(404).json({ error: "Routine not found" });
-      return;
-    }
-    const thread = await documentAnnotationsSvc.getThreadForRoutineDocument(
-      routine.id,
-      routineDocumentKey,
-      req.params.threadId as string,
-    );
-    if (!thread) {
-      res.status(404).json({ error: "Annotation thread not found" });
-      return;
-    }
-    res.json(thread);
-  });
+  router.get(
+    "/routines/:id/description/annotations/:threadId",
+    async (req, res) => {
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        req.params.id as string,
+      );
+      if (!routine) {
+        res.status(404).json({ error: "Routine not found" });
+        return;
+      }
+      const thread = await documentAnnotationsSvc.getThreadForRoutineDocument(
+        routine.id,
+        routineDocumentKey,
+        req.params.threadId as string,
+      );
+      if (!thread) {
+        res.status(404).json({ error: "Annotation thread not found" });
+        return;
+      }
+      res.json(thread);
+    },
+  );
 
   router.post(
     "/routines/:id/description/annotations",
     validate(createDocumentAnnotationThreadSchema),
     async (req, res) => {
-      const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        req.params.id as string,
+      );
       if (!routine) {
         res.status(404).json({ error: "Routine not found" });
         return;
@@ -284,7 +354,10 @@ export function routineRoutes(
     "/routines/:id/description/annotations/:threadId/comments",
     validate(createDocumentAnnotationCommentSchema),
     async (req, res) => {
-      const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        req.params.id as string,
+      );
       if (!routine) {
         res.status(404).json({ error: "Routine not found" });
         return;
@@ -323,7 +396,10 @@ export function routineRoutes(
     "/routines/:id/description/annotations/:threadId",
     validate(updateDocumentAnnotationThreadSchema),
     async (req, res) => {
-      const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        req.params.id as string,
+      );
       if (!routine) {
         res.status(404).json({ error: "Routine not found" });
         return;
@@ -343,9 +419,10 @@ export function routineRoutes(
         agentId: actor.agentId,
         runId: actor.runId,
         agentApiKeyId: actor.agentApiKeyId,
-        action: thread.status === "resolved"
-          ? "routine.document_annotation_thread_resolved"
-          : "routine.document_annotation_thread_reopened",
+        action:
+          thread.status === "resolved"
+            ? "routine.document_annotation_thread_resolved"
+            : "routine.document_annotation_thread_reopened",
         entityType: "routine",
         entityId: routine.id,
         details: {
@@ -360,185 +437,238 @@ export function routineRoutes(
     },
   );
 
-  router.patch("/routines/:id", validate(updateRoutineSchema), async (req, res) => {
-    const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
-    if (!routine) {
-      res.status(404).json({ error: "Routine not found" });
-      return;
-    }
-    const assigneeWillChange =
-      req.body.assigneeAgentId !== undefined &&
-      req.body.assigneeAgentId !== routine.assigneeAgentId;
-    if (assigneeWillChange) {
-      await assertBoardCanAssignTasks(req, routine.companyId);
-    }
-    const statusWillActivate =
-      req.body.status !== undefined &&
-      req.body.status === "active" &&
-      routine.status !== "active";
-    if (statusWillActivate) {
-      await assertBoardCanAssignTasks(req, routine.companyId);
-    }
-    if (
-      req.actor.type === "agent" &&
-      req.body.assigneeAgentId !== undefined &&
-      req.body.assigneeAgentId !== req.actor.agentId
-    ) {
-      throw forbidden("Agents can only assign routines to themselves");
-    }
-    const updated = await svc.update(routine.id, req.body, {
-      agentId: req.actor.type === "agent" ? req.actor.agentId : null,
-      userId: req.actor.type === "board" ? req.actor.userId ?? "board" : null,
-      runId: req.actor.runId ?? null,
-    });
-    const actor = getActorInfo(req);
-    await logActivity(db, {
-      companyId: routine.companyId,
-      actorType: actor.actorType,
-      actorId: actor.actorId,
-      agentId: actor.agentId,
-      runId: actor.runId,
-      agentApiKeyId: actor.agentApiKeyId,
-      action: "routine.updated",
-      entityType: "routine",
-      entityId: routine.id,
-      details: { title: updated?.title ?? routine.title },
-    });
-    if (updated && updated.latestRevisionId !== routine.latestRevisionId) {
-      await remapRoutineDescriptionAnnotations(req, routine.id);
-      await logRoutineRevisionCreated(req, {
-        companyId: routine.companyId,
-        routineId: routine.id,
-        revisionId: updated.latestRevisionId,
-        revisionNumber: updated.latestRevisionNumber,
-        changeSummary: "Updated routine",
-        triggerCount: null,
+  router.patch(
+    "/routines/:id",
+    validate(updateRoutineSchema),
+    async (req, res) => {
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        req.params.id as string,
+      );
+      if (!routine) {
+        res.status(404).json({ error: "Routine not found" });
+        return;
+      }
+      const assigneeWillChange =
+        req.body.assigneeAgentId !== undefined &&
+        req.body.assigneeAgentId !== routine.assigneeAgentId;
+      if (assigneeWillChange) {
+        await assertBoardCanAssignTasks(req, routine.companyId);
+      }
+      const statusWillActivate =
+        req.body.status !== undefined &&
+        req.body.status === "active" &&
+        routine.status !== "active";
+      if (statusWillActivate) {
+        await assertBoardCanAssignTasks(req, routine.companyId);
+      }
+      if (
+        req.actor.type === "agent" &&
+        req.body.assigneeAgentId !== undefined &&
+        req.body.assigneeAgentId !== req.actor.agentId
+      ) {
+        throw forbidden("Agents can only assign routines to themselves");
+      }
+      const updated = await svc.update(routine.id, req.body, {
+        agentId: req.actor.type === "agent" ? req.actor.agentId : null,
+        userId:
+          req.actor.type === "board" ? (req.actor.userId ?? "board") : null,
+        runId: req.actor.runId ?? null,
       });
-    }
-    res.json(updated);
-  });
+      const actor = getActorInfo(req);
+      await logActivity(db, {
+        companyId: routine.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        agentApiKeyId: actor.agentApiKeyId,
+        action: "routine.updated",
+        entityType: "routine",
+        entityId: routine.id,
+        details: { title: updated?.title ?? routine.title },
+      });
+      if (updated && updated.latestRevisionId !== routine.latestRevisionId) {
+        await remapRoutineDescriptionAnnotations(req, routine.id);
+        await logRoutineRevisionCreated(req, {
+          companyId: routine.companyId,
+          routineId: routine.id,
+          revisionId: updated.latestRevisionId,
+          revisionNumber: updated.latestRevisionNumber,
+          changeSummary: "Updated routine",
+          triggerCount: null,
+        });
+      }
+      res.json(updated);
+    },
+  );
 
-  router.post("/routines/:id/revisions/:revisionId/restore", async (req, res) => {
-    const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
-    if (!routine) {
-      res.status(404).json({ error: "Routine not found" });
-      return;
-    }
-    await assertBoardCanAssignTasks(req, routine.companyId);
-    const result = await svc.restoreRevision(routine.id, req.params.revisionId as string, {
-      agentId: req.actor.type === "agent" ? req.actor.agentId : null,
-      userId: req.actor.type === "board" ? req.actor.userId ?? "board" : null,
-      runId: req.actor.runId ?? null,
-    });
-    const actor = getActorInfo(req);
-    await logActivity(db, {
-      companyId: routine.companyId,
-      actorType: actor.actorType,
-      actorId: actor.actorId,
-      agentId: actor.agentId,
-      runId: actor.runId,
-      agentApiKeyId: actor.agentApiKeyId,
-      action: "routine.revision_restored",
-      entityType: "routine",
-      entityId: routine.id,
-      details: {
-        revisionId: result.revision.id,
-        revisionNumber: result.revision.revisionNumber,
-        restoredFromRevisionId: result.restoredFromRevisionId,
-        restoredFromRevisionNumber: result.restoredFromRevisionNumber,
-        triggerCount: result.revision.snapshot.triggers.length,
-      },
-    });
-    await remapRoutineDescriptionAnnotations(req, routine.id);
-    res.json(result);
-  });
+  router.post(
+    "/routines/:id/revisions/:revisionId/restore",
+    async (req, res) => {
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        req.params.id as string,
+      );
+      if (!routine) {
+        res.status(404).json({ error: "Routine not found" });
+        return;
+      }
+      await assertBoardCanAssignTasks(req, routine.companyId);
+      const result = await svc.restoreRevision(
+        routine.id,
+        req.params.revisionId as string,
+        {
+          agentId: req.actor.type === "agent" ? req.actor.agentId : null,
+          userId:
+            req.actor.type === "board" ? (req.actor.userId ?? "board") : null,
+          runId: req.actor.runId ?? null,
+        },
+      );
+      const actor = getActorInfo(req);
+      await logActivity(db, {
+        companyId: routine.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        agentApiKeyId: actor.agentApiKeyId,
+        action: "routine.revision_restored",
+        entityType: "routine",
+        entityId: routine.id,
+        details: {
+          revisionId: result.revision.id,
+          revisionNumber: result.revision.revisionNumber,
+          restoredFromRevisionId: result.restoredFromRevisionId,
+          restoredFromRevisionNumber: result.restoredFromRevisionNumber,
+          triggerCount: result.revision.snapshot.triggers.length,
+        },
+      });
+      await remapRoutineDescriptionAnnotations(req, routine.id);
+      res.json(result);
+    },
+  );
 
   router.get("/routines/:id/runs", async (req, res) => {
-    const routine = await getAccessibleResource(req, res, svc.get(req.params.id as string), "Routine not found");
+    const routine = await getAccessibleResource(
+      req,
+      res,
+      svc.get(req.params.id as string),
+      "Routine not found",
+    );
     if (!routine) return;
     const limit = Number(req.query.limit ?? 50);
-    const result = await svc.listRuns(routine.id, Number.isFinite(limit) ? limit : 50);
+    const result = await svc.listRuns(
+      routine.id,
+      Number.isFinite(limit) ? limit : 50,
+    );
     res.json(result);
   });
 
-  router.post("/routines/:id/triggers", validate(createRoutineTriggerSchema), async (req, res) => {
-    const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
-    if (!routine) {
-      res.status(404).json({ error: "Routine not found" });
-      return;
-    }
-    await assertBoardCanAssignTasks(req, routine.companyId);
-    const created = await svc.createTrigger(routine.id, req.body, {
-      agentId: req.actor.type === "agent" ? req.actor.agentId : null,
-      userId: req.actor.type === "board" ? req.actor.userId ?? "board" : null,
-      runId: req.actor.runId ?? null,
-    });
-    const actor = getActorInfo(req);
-    await logActivity(db, {
-      companyId: routine.companyId,
-      actorType: actor.actorType,
-      actorId: actor.actorId,
-      agentId: actor.agentId,
-      runId: actor.runId,
-      agentApiKeyId: actor.agentApiKeyId,
-      action: "routine.trigger_created",
-      entityType: "routine_trigger",
-      entityId: created.trigger.id,
-      details: { routineId: routine.id, kind: created.trigger.kind },
-    });
-    await logRoutineRevisionCreated(req, {
-      companyId: routine.companyId,
-      routineId: routine.id,
-      revisionId: created.revision.id,
-      revisionNumber: created.revision.revisionNumber,
-      changeSummary: created.revision.changeSummary,
-      triggerCount: created.revision.snapshot.triggers.length,
-    });
-    res.status(201).json(created);
-  });
-
-  router.patch("/routine-triggers/:id", validate(updateRoutineTriggerSchema), async (req, res) => {
-    const trigger = await svc.getTrigger(req.params.id as string);
-    if (!trigger) {
-      res.status(404).json({ error: "Routine trigger not found" });
-      return;
-    }
-    const routine = await assertCanManageExistingRoutine(req, trigger.routineId);
-    if (!routine) {
-      res.status(404).json({ error: "Routine trigger not found" });
-      return;
-    }
-    await assertBoardCanAssignTasks(req, routine.companyId);
-    const updated = await svc.updateTrigger(trigger.id, req.body, {
-      agentId: req.actor.type === "agent" ? req.actor.agentId : null,
-      userId: req.actor.type === "board" ? req.actor.userId ?? "board" : null,
-      runId: req.actor.runId ?? null,
-    });
-    const actor = getActorInfo(req);
-    await logActivity(db, {
-      companyId: routine.companyId,
-      actorType: actor.actorType,
-      actorId: actor.actorId,
-      agentId: actor.agentId,
-      runId: actor.runId,
-      agentApiKeyId: actor.agentApiKeyId,
-      action: req.body.archived === true ? "routine.trigger_removed" : req.body.archived === false ? "routine.trigger_restored" : req.body.setupPending === false ? "routine.trigger_setup_finished" : "routine.trigger_updated",
-      entityType: "routine",
-      entityId: routine.id,
-      details: { triggerId: trigger.id, kind: updated?.trigger.kind ?? trigger.kind },
-    });
-    if (updated) {
+  router.post(
+    "/routines/:id/triggers",
+    validate(createRoutineTriggerSchema),
+    async (req, res) => {
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        req.params.id as string,
+      );
+      if (!routine) {
+        res.status(404).json({ error: "Routine not found" });
+        return;
+      }
+      await assertBoardCanAssignTasks(req, routine.companyId);
+      const created = await svc.createTrigger(routine.id, req.body, {
+        agentId: req.actor.type === "agent" ? req.actor.agentId : null,
+        userId:
+          req.actor.type === "board" ? (req.actor.userId ?? "board") : null,
+        runId: req.actor.runId ?? null,
+      });
+      const actor = getActorInfo(req);
+      await logActivity(db, {
+        companyId: routine.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        agentApiKeyId: actor.agentApiKeyId,
+        action: "routine.trigger_created",
+        entityType: "routine_trigger",
+        entityId: created.trigger.id,
+        details: { routineId: routine.id, kind: created.trigger.kind },
+      });
       await logRoutineRevisionCreated(req, {
         companyId: routine.companyId,
         routineId: routine.id,
-        revisionId: updated.revision.id,
-        revisionNumber: updated.revision.revisionNumber,
-        changeSummary: updated.revision.changeSummary,
-        triggerCount: updated.revision.snapshot.triggers.length,
+        revisionId: created.revision.id,
+        revisionNumber: created.revision.revisionNumber,
+        changeSummary: created.revision.changeSummary,
+        triggerCount: created.revision.snapshot.triggers.length,
       });
-    }
-    res.json(updated?.trigger ?? null);
-  });
+      res.status(201).json(created);
+    },
+  );
+
+  router.patch(
+    "/routine-triggers/:id",
+    validate(updateRoutineTriggerSchema),
+    async (req, res) => {
+      const trigger = await svc.getTrigger(req.params.id as string);
+      if (!trigger) {
+        res.status(404).json({ error: "Routine trigger not found" });
+        return;
+      }
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        trigger.routineId,
+      );
+      if (!routine) {
+        res.status(404).json({ error: "Routine trigger not found" });
+        return;
+      }
+      await assertBoardCanAssignTasks(req, routine.companyId);
+      const updated = await svc.updateTrigger(trigger.id, req.body, {
+        agentId: req.actor.type === "agent" ? req.actor.agentId : null,
+        userId:
+          req.actor.type === "board" ? (req.actor.userId ?? "board") : null,
+        runId: req.actor.runId ?? null,
+      });
+      const actor = getActorInfo(req);
+      await logActivity(db, {
+        companyId: routine.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        agentApiKeyId: actor.agentApiKeyId,
+        action:
+          req.body.archived === true
+            ? "routine.trigger_removed"
+            : req.body.archived === false
+              ? "routine.trigger_restored"
+              : req.body.setupPending === false
+                ? "routine.trigger_setup_finished"
+                : "routine.trigger_updated",
+        entityType: "routine",
+        entityId: routine.id,
+        details: {
+          triggerId: trigger.id,
+          kind: updated?.trigger.kind ?? trigger.kind,
+        },
+      });
+      if (updated) {
+        await logRoutineRevisionCreated(req, {
+          companyId: routine.companyId,
+          routineId: routine.id,
+          revisionId: updated.revision.id,
+          revisionNumber: updated.revision.revisionNumber,
+          changeSummary: updated.revision.changeSummary,
+          triggerCount: updated.revision.snapshot.triggers.length,
+        });
+      }
+      res.json(updated?.trigger ?? null);
+    },
+  );
 
   router.delete("/routine-triggers/:id", async (req, res) => {
     const trigger = await svc.getTrigger(req.params.id as string);
@@ -546,14 +676,17 @@ export function routineRoutes(
       res.status(404).json({ error: "Routine trigger not found" });
       return;
     }
-    const routine = await assertCanManageExistingRoutine(req, trigger.routineId);
+    const routine = await assertCanManageExistingRoutine(
+      req,
+      trigger.routineId,
+    );
     if (!routine) {
       res.status(404).json({ error: "Routine trigger not found" });
       return;
     }
     const deleted = await svc.deleteTrigger(trigger.id, {
       agentId: req.actor.type === "agent" ? req.actor.agentId : null,
-      userId: req.actor.type === "board" ? req.actor.userId ?? "board" : null,
+      userId: req.actor.type === "board" ? (req.actor.userId ?? "board") : null,
       runId: req.actor.runId ?? null,
     });
     const actor = getActorInfo(req);
@@ -591,14 +724,18 @@ export function routineRoutes(
         res.status(404).json({ error: "Routine trigger not found" });
         return;
       }
-      const routine = await assertCanManageExistingRoutine(req, trigger.routineId);
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        trigger.routineId,
+      );
       if (!routine) {
         res.status(404).json({ error: "Routine trigger not found" });
         return;
       }
       const rotated = await svc.rotateTriggerSecret(trigger.id, {
         agentId: req.actor.type === "agent" ? req.actor.agentId : null,
-        userId: req.actor.type === "board" ? req.actor.userId ?? "board" : null,
+        userId:
+          req.actor.type === "board" ? (req.actor.userId ?? "board") : null,
         runId: req.actor.runId ?? null,
       });
       const actor = getActorInfo(req);
@@ -626,36 +763,49 @@ export function routineRoutes(
     },
   );
 
-  router.post("/routines/:id/run", validateIssueMutationBody(runRoutineSchema), async (req, res) => {
-    const routine = await assertCanManageExistingRoutine(req, req.params.id as string);
-    if (!routine) {
-      res.status(404).json({ error: "Routine not found" });
-      return;
-    }
-    await assertBoardCanAssignTasks(req, routine.companyId);
-    const run = await svc.runRoutine(routine.id, req.body, {
-      agentId: req.actor.type === "agent" ? req.actor.agentId : null,
-      userId: req.actor.type === "board" ? req.actor.userId ?? null : null,
-    });
-    const actor = getActorInfo(req);
-    await logActivity(db, {
-      companyId: routine.companyId,
-      actorType: actor.actorType,
-      actorId: actor.actorId,
-      agentId: actor.agentId,
-      runId: actor.runId,
-      agentApiKeyId: actor.agentApiKeyId,
-      action: "routine.run_triggered",
-      entityType: "routine_run",
-      entityId: run.id,
-      details: { routineId: routine.id, source: run.source, status: run.status },
-    });
-    res.status(202).json(run);
-  });
+  router.post(
+    "/routines/:id/run",
+    validateIssueMutationBody(runRoutineSchema),
+    async (req, res) => {
+      const routine = await assertCanManageExistingRoutine(
+        req,
+        req.params.id as string,
+      );
+      if (!routine) {
+        res.status(404).json({ error: "Routine not found" });
+        return;
+      }
+      await assertBoardCanAssignTasks(req, routine.companyId);
+      const run = await svc.runRoutine(routine.id, req.body, {
+        agentId: req.actor.type === "agent" ? req.actor.agentId : null,
+        userId: req.actor.type === "board" ? (req.actor.userId ?? null) : null,
+      });
+      const actor = getActorInfo(req);
+      await logActivity(db, {
+        companyId: routine.companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        runId: actor.runId,
+        agentApiKeyId: actor.agentApiKeyId,
+        action: "routine.run_triggered",
+        entityType: "routine_run",
+        entityId: run.id,
+        details: {
+          routineId: routine.id,
+          source: run.source,
+          status: run.status,
+        },
+      });
+      res.status(202).json(run);
+    },
+  );
 
   router.post("/routine-triggers/public/:publicId/fire", async (req, res) => {
     if (!req.is("application/json")) {
-      throw unsupportedMediaType("Send the webhook payload with Content-Type: application/json");
+      throw unsupportedMediaType(
+        "Send the webhook payload with Content-Type: application/json",
+      );
     }
     if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
       throw badRequest("Webhook payload must be a JSON object");
@@ -666,9 +816,13 @@ export function routineRoutes(
       hubSignatureHeader: req.header("x-hub-signature-256"),
       firefliesSignatureHeader: req.header("x-hub-signature"),
       timestampHeader: req.header("x-taskcore-timestamp"),
-      idempotencyKey: req.header("idempotency-key") ?? req.header("x-github-delivery"),
+      idempotencyKey:
+        req.header("idempotency-key") ?? req.header("x-github-delivery"),
       rawBody: (req as { rawBody?: Buffer }).rawBody ?? null,
-      payload: typeof req.body === "object" && req.body !== null ? req.body as Record<string, unknown> : null,
+      payload:
+        typeof req.body === "object" && req.body !== null
+          ? (req.body as Record<string, unknown>)
+          : null,
     });
     res.status(202).json(result);
   });

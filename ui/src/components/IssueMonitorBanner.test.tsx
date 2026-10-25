@@ -18,7 +18,11 @@ import type { DerivedMonitorState } from "@/lib/issue-monitor";
 
 const NOW = new Date("2026-07-17T20:00:00.000Z");
 
-function derived(overrides: Partial<DerivedMonitorState> & { state: DerivedMonitorState["state"] }): DerivedMonitorState {
+function derived(
+  overrides: Partial<DerivedMonitorState> & {
+    state: DerivedMonitorState["state"];
+  },
+): DerivedMonitorState {
   return {
     source: "monitor",
     nextCheckAt: null,
@@ -29,21 +33,33 @@ function derived(overrides: Partial<DerivedMonitorState> & { state: DerivedMonit
 }
 
 describe("buildMonitorSurfaceCopy", () => {
-  it.each(["retrying", "due-now", "overdue"] as const)("keeps workspace contention neutral when %s", (state) => {
-    const copy = buildMonitorSurfaceCopy(derived({
-      state, source: "scheduled-retry", nextCheckAt: NOW.toISOString(), attemptCount: 4,
-    }), NOW, "workspace_busy");
-    expect(copy!.bannerTitle).toBe("Waiting for workspace");
-    expect(copy!.stripTitle).toBe("Waiting for workspace");
-    expect(copy!.tone).toBe("info");
-    expect(copy!.workspaceWait).toBe(true);
-    expect(copy!.bannerMeta.join(" ")).not.toMatch(/Attempt|overdue|retry/i);
-  });
+  it.each(["retrying", "due-now", "overdue"] as const)(
+    "keeps workspace contention neutral when %s",
+    (state) => {
+      const copy = buildMonitorSurfaceCopy(
+        derived({
+          state,
+          source: "scheduled-retry",
+          nextCheckAt: NOW.toISOString(),
+          attemptCount: 4,
+        }),
+        NOW,
+        "workspace_busy",
+      );
+      expect(copy!.bannerTitle).toBe("Waiting for workspace");
+      expect(copy!.stripTitle).toBe("Waiting for workspace");
+      expect(copy!.tone).toBe("info");
+      expect(copy!.workspaceWait).toBe(true);
+      expect(copy!.bannerMeta.join(" ")).not.toMatch(/Attempt|overdue|retry/i);
+    },
+  );
   it("leads with two-unit relative time while scheduled", () => {
     const copy = buildMonitorSurfaceCopy(
       derived({
         state: "scheduled",
-        nextCheckAt: new Date(NOW.getTime() + (2 * 60 + 12) * 60_000).toISOString(),
+        nextCheckAt: new Date(
+          NOW.getTime() + (2 * 60 + 12) * 60_000,
+        ).toISOString(),
         attemptCount: 1,
         serviceName: "vercel-deploy",
       }),
@@ -57,8 +73,12 @@ describe("buildMonitorSurfaceCopy", () => {
     expect(copy!.bannerMeta).toContain("Attempt 1");
     expect(copy!.bannerMeta).toContain("Watching: vercel-deploy");
     // Absolute time carries the "(your time)" hint on the banner only.
-    expect(copy!.bannerMeta.some((piece) => piece.includes("(your time)"))).toBe(true);
-    expect(copy!.stripMeta.some((piece) => piece.includes("(your time)"))).toBe(false);
+    expect(
+      copy!.bannerMeta.some((piece) => piece.includes("(your time)")),
+    ).toBe(true);
+    expect(copy!.stripMeta.some((piece) => piece.includes("(your time)"))).toBe(
+      false,
+    );
   });
 
   it("keeps the retrying attempt count visible", () => {
@@ -91,7 +111,11 @@ describe("buildMonitorSurfaceCopy", () => {
 
   it("switches copy for due-now and overdue states", () => {
     const dueNow = buildMonitorSurfaceCopy(
-      derived({ state: "due-now", nextCheckAt: NOW.toISOString(), attemptCount: 1 }),
+      derived({
+        state: "due-now",
+        nextCheckAt: NOW.toISOString(),
+        attemptCount: 1,
+      }),
       NOW,
     );
     expect(dueNow!.bannerTitle).toBe("Waiting on monitor — due now");
@@ -114,10 +138,20 @@ describe("buildMonitorSurfaceCopy", () => {
   });
 
   it("hides both surfaces when cleared, none, or without a next check", () => {
-    expect(buildMonitorSurfaceCopy(derived({ state: "cleared", attemptCount: 2 }), NOW)).toBeNull();
+    expect(
+      buildMonitorSurfaceCopy(
+        derived({ state: "cleared", attemptCount: 2 }),
+        NOW,
+      ),
+    ).toBeNull();
     expect(buildMonitorSurfaceCopy(derived({ state: "none" }), NOW)).toBeNull();
     // A "scheduled" state with no timestamp cannot render an ETA — hide.
-    expect(buildMonitorSurfaceCopy(derived({ state: "scheduled", nextCheckAt: null }), NOW)).toBeNull();
+    expect(
+      buildMonitorSurfaceCopy(
+        derived({ state: "scheduled", nextCheckAt: null }),
+        NOW,
+      ),
+    ).toBeNull();
   });
 });
 
@@ -139,38 +173,68 @@ describe("IssueMonitorBanner / IssueMonitorComposerStrip rendering", () => {
   function issueWithMonitor(nextCheckAt: string | null): Issue {
     return {
       executionState: nextCheckAt
-        ? { monitor: { status: "scheduled", nextCheckAt, attemptCount: 1, serviceName: "vercel-deploy" } }
+        ? {
+            monitor: {
+              status: "scheduled",
+              nextCheckAt,
+              attemptCount: 1,
+              serviceName: "vercel-deploy",
+            },
+          }
         : null,
       scheduledRetry: null,
     } as unknown as Issue;
   }
 
   it("shows the saved PR and a status check above the composer during a GitHub review wait", () => {
-    const issue = issueWithMonitor(new Date(NOW.getTime() + 6 * 60 * 60_000).toISOString());
+    const issue = issueWithMonitor(
+      new Date(NOW.getTime() + 6 * 60 * 60_000).toISOString(),
+    );
     issue.executionState!.monitor!.serviceName = "github";
     const product = {
-      id: "pr-1", type: "pull_request", title: "Update runtime probe", url: null,
+      id: "pr-1",
+      type: "pull_request",
+      title: "Update runtime probe",
+      url: null,
       metadata: { url: "https://github.com/example/private-repo/pull/42" },
-      status: "ready_for_review", reviewState: "needs_board_review", updatedAt: NOW,
+      status: "ready_for_review",
+      reviewState: "needs_board_review",
+      updatedAt: NOW,
     } as unknown as IssueWorkProduct;
     const onCheckNow = vi.fn();
     const root = createRoot(container);
-    const render = (products: IssueWorkProduct[], error?: string) => flushSync(() => root.render(
-      <IssueMonitorComposerStrip issue={issue} workProducts={products} onCheckNow={onCheckNow} checkError={error} />,
-    ));
+    const render = (products: IssueWorkProduct[], error?: string) =>
+      flushSync(() =>
+        root.render(
+          <IssueMonitorComposerStrip
+            issue={issue}
+            workProducts={products}
+            onCheckNow={onCheckNow}
+            checkError={error}
+          />,
+        ),
+      );
     render([product]);
     expect(container.textContent).toContain("Pull request review requested");
     expect(container.textContent).toContain("Next check in 6h");
     expect(container.textContent).not.toContain("Resumes in");
-    expect(container.querySelector("a")?.href).toBe("https://github.com/example/private-repo/pull/42");
-    expect(container.querySelector("a")?.textContent).toBe("example/private-repo#42");
+    expect(container.querySelector("a")?.href).toBe(
+      "https://github.com/example/private-repo/pull/42",
+    );
+    expect(container.querySelector("a")?.textContent).toBe(
+      "example/private-repo#42",
+    );
     const button = container.querySelector("button")!;
     expect(button.textContent).toBe("Check status");
     flushSync(() => button.click());
     expect(onCheckNow).toHaveBeenCalledTimes(1);
     render([product], "GitHub status check could not start");
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("could not start");
-    render([{ ...product, metadata: { ...product.metadata, state: "merged" } }]);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      "could not start",
+    );
+    render([
+      { ...product, metadata: { ...product.metadata, state: "merged" } },
+    ]);
     expect(container.textContent).not.toContain("review requested");
     expect(container.querySelector("a")).toBeNull();
     flushSync(() => root.unmount());
@@ -178,12 +242,26 @@ describe("IssueMonitorBanner / IssueMonitorComposerStrip rendering", () => {
 
   it("explains automatic workspace waiting without promising that a reply bypasses the lock", () => {
     const issue = {
-      status: "todo", scheduledRetry: { status: "scheduled_retry", scheduledRetryReason: "workspace_busy", scheduledRetryAt: NOW.toISOString() },
+      status: "todo",
+      scheduledRetry: {
+        status: "scheduled_retry",
+        scheduledRetryReason: "workspace_busy",
+        scheduledRetryAt: NOW.toISOString(),
+      },
     } as Issue;
     const root = createRoot(container);
-    flushSync(() => root.render(<><IssueMonitorBanner issue={issue} onCheckNow={vi.fn()} /><IssueMonitorComposerStrip issue={issue} onCheckNow={vi.fn()} /></>));
+    flushSync(() =>
+      root.render(
+        <>
+          <IssueMonitorBanner issue={issue} onCheckNow={vi.fn()} />
+          <IssueMonitorComposerStrip issue={issue} onCheckNow={vi.fn()} />
+        </>,
+      ),
+    );
     expect(container.textContent).toContain("Waiting for workspace");
-    expect(container.textContent).toContain("You can keep sending instructions while the agent waits.");
+    expect(container.textContent).toContain(
+      "You can keep sending instructions while the agent waits.",
+    );
     expect(container.textContent).not.toContain("wakes the agent now");
     expect(container.querySelector("button")).toBeNull();
     flushSync(() => root.unmount());
@@ -191,13 +269,28 @@ describe("IssueMonitorBanner / IssueMonitorComposerStrip rendering", () => {
 
   it("explains pool exhaustion and retained account affinity on both waiting surfaces", () => {
     const issue = {
-      status: "in_progress", scheduledRetry: { status: "scheduled_retry", scheduledRetryReason: "ai_connection_pool_wait", scheduledRetryAt: new Date(NOW.getTime() + 60_000).toISOString(), scheduledRetryAttempt: 1 },
+      status: "in_progress",
+      scheduledRetry: {
+        status: "scheduled_retry",
+        scheduledRetryReason: "ai_connection_pool_wait",
+        scheduledRetryAt: new Date(NOW.getTime() + 60_000).toISOString(),
+        scheduledRetryAttempt: 1,
+      },
     } as Issue;
     const root = createRoot(container);
-    flushSync(() => root.render(<><IssueMonitorBanner issue={issue} onCheckNow={vi.fn()} /><IssueMonitorComposerStrip issue={issue} onCheckNow={vi.fn()} /></>));
+    flushSync(() =>
+      root.render(
+        <>
+          <IssueMonitorBanner issue={issue} onCheckNow={vi.fn()} />
+          <IssueMonitorComposerStrip issue={issue} onCheckNow={vi.fn()} />
+        </>,
+      ),
+    );
     expect(container.textContent).toContain("Pool exhausted");
     expect(container.textContent).toContain("Usage recheck in 1m");
-    expect(container.textContent).toContain("Tasks with a selected account keep it while waiting.");
+    expect(container.textContent).toContain(
+      "Tasks with a selected account keep it while waiting.",
+    );
     expect(container.textContent).toContain("Work resumes when usage permits.");
     expect(container.textContent).not.toContain("Attempt 1");
     expect(container.querySelector("button")).not.toBeNull();
@@ -206,25 +299,37 @@ describe("IssueMonitorBanner / IssueMonitorComposerStrip rendering", () => {
 
   it("renders the banner with a working Check now button while waiting", () => {
     const onCheckNow = vi.fn();
-    expect(hasVisibleMonitorSurface(issueWithMonitor(new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString()))).toBe(true);
+    expect(
+      hasVisibleMonitorSurface(
+        issueWithMonitor(
+          new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString(),
+        ),
+      ),
+    ).toBe(true);
     const root = createRoot(container);
     flushSync(() => {
       root.render(
         <IssueMonitorBanner
-          issue={issueWithMonitor(new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString())}
+          issue={issueWithMonitor(
+            new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString(),
+          )}
           onCheckNow={onCheckNow}
         />,
       );
     });
 
-    expect(container.textContent).toContain("Waiting on monitor — resumes in 2h");
+    expect(container.textContent).toContain(
+      "Waiting on monitor — resumes in 2h",
+    );
     expect(container.textContent).toContain("Watching: vercel-deploy");
 
     const button = Array.from(container.querySelectorAll("button")).find((b) =>
       b.textContent?.includes("Check now"),
     );
     expect(button).toBeTruthy();
-    flushSync(() => button?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    flushSync(() =>
+      button?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
     expect(onCheckNow).toHaveBeenCalledTimes(1);
 
     flushSync(() => root.unmount());
@@ -236,8 +341,14 @@ describe("IssueMonitorBanner / IssueMonitorComposerStrip rendering", () => {
     flushSync(() => {
       root.render(
         <>
-          <IssueMonitorBanner issue={issueWithMonitor(null)} onCheckNow={vi.fn()} />
-          <IssueMonitorComposerStrip issue={issueWithMonitor(null)} onCheckNow={vi.fn()} />
+          <IssueMonitorBanner
+            issue={issueWithMonitor(null)}
+            onCheckNow={vi.fn()}
+          />
+          <IssueMonitorComposerStrip
+            issue={issueWithMonitor(null)}
+            onCheckNow={vi.fn()}
+          />
         </>,
       );
     });
@@ -250,15 +361,21 @@ describe("IssueMonitorBanner / IssueMonitorComposerStrip rendering", () => {
     flushSync(() => {
       root.render(
         <IssueMonitorComposerStrip
-          issue={issueWithMonitor(new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString())}
+          issue={issueWithMonitor(
+            new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString(),
+          )}
           onCheckNow={vi.fn()}
         />,
       );
     });
 
-    expect(container.querySelector("[data-testid='issue-monitor-composer-strip']")).toBeTruthy();
+    expect(
+      container.querySelector("[data-testid='issue-monitor-composer-strip']"),
+    ).toBeTruthy();
     expect(container.textContent).toContain("Resumes in 2h");
-    expect(container.textContent).toContain("Sending a reply wakes the agent now");
+    expect(container.textContent).toContain(
+      "Sending a reply wakes the agent now",
+    );
 
     flushSync(() => root.unmount());
   });
@@ -273,18 +390,24 @@ describe("IssueMonitorBanner / IssueMonitorComposerStrip rendering", () => {
         scheduledRetryAttempt: 1,
       },
     } as Issue;
-    const render = (next: Issue) => flushSync(() => root.render(
-      <>
-        <IssueMonitorBanner issue={next} onCheckNow={vi.fn()} />
-        <IssueMonitorComposerStrip issue={next} onCheckNow={vi.fn()} />
-      </>,
-    ));
+    const render = (next: Issue) =>
+      flushSync(() =>
+        root.render(
+          <>
+            <IssueMonitorBanner issue={next} onCheckNow={vi.fn()} />
+            <IssueMonitorComposerStrip issue={next} onCheckNow={vi.fn()} />
+          </>,
+        ),
+      );
 
     render(issue);
     expect(container.textContent).toContain("Overdue by 2m");
 
     for (const status of ["queued", "running"] as const) {
-      const promoted = { ...issue, scheduledRetry: { ...issue.scheduledRetry!, status } };
+      const promoted = {
+        ...issue,
+        scheduledRetry: { ...issue.scheduledRetry!, status },
+      };
       render(promoted);
       expect(hasVisibleMonitorSurface(promoted)).toBe(false);
       expect(container.textContent).toBe("");
@@ -292,7 +415,13 @@ describe("IssueMonitorBanner / IssueMonitorComposerStrip rendering", () => {
       expect(vi.getTimerCount()).toBe(0);
     }
 
-    render({ ...issue, scheduledRetry: { ...issue.scheduledRetry!, scheduledRetryAt: new Date(NOW.getTime() + 5 * 60_000).toISOString() } });
+    render({
+      ...issue,
+      scheduledRetry: {
+        ...issue.scheduledRetry!,
+        scheduledRetryAt: new Date(NOW.getTime() + 5 * 60_000).toISOString(),
+      },
+    });
     expect(container.textContent).toContain("Resumes in 5m");
 
     render({ ...issue, status: "done" });

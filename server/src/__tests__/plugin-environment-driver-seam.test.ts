@@ -10,7 +10,10 @@ import {
 } from "../../../packages/plugins/sdk/src/protocol.js";
 import { definePlugin } from "../../../packages/plugins/sdk/src/define-plugin.js";
 import { startWorkerRpcHost } from "../../../packages/plugins/sdk/src/worker-rpc-host.js";
-import { pluginManifestV1Schema, type TaskcorePluginManifestV1 } from "@taskcore/shared";
+import {
+  pluginManifestV1Schema,
+  type TaskcorePluginManifestV1,
+} from "@taskcore/shared";
 import { pluginCapabilityValidator } from "../services/plugin-capability-validator.js";
 
 const baseManifest: TaskcorePluginManifestV1 = {
@@ -71,24 +74,30 @@ describe("plugin environment driver seam", () => {
 
   it("enforces environment driver capability requirements", () => {
     const validator = pluginCapabilityValidator();
-    expect(validator.getRequiredCapabilities("environment.acquireLease")).toEqual([
-      "environment.drivers.register",
-    ]);
-    expect(validator.getRequiredCapabilities("environment.captureTemplate")).toEqual([
-      "environment.drivers.register",
-    ]);
-    expect(validator.checkOperation(baseManifest, "environment.execute").allowed).toBe(true);
+    expect(
+      validator.getRequiredCapabilities("environment.acquireLease"),
+    ).toEqual(["environment.drivers.register"]);
+    expect(
+      validator.getRequiredCapabilities("environment.captureTemplate"),
+    ).toEqual(["environment.drivers.register"]);
+    expect(
+      validator.checkOperation(baseManifest, "environment.execute").allowed,
+    ).toBe(true);
 
     const withoutCapability = {
       ...baseManifest,
       capabilities: ["http.outbound"],
     } satisfies TaskcorePluginManifestV1;
 
-    expect(validator.checkOperation(withoutCapability, "environment.execute")).toMatchObject({
+    expect(
+      validator.checkOperation(withoutCapability, "environment.execute"),
+    ).toMatchObject({
       allowed: false,
       missing: ["environment.drivers.register"],
     });
-    expect(validator.validateManifestCapabilities(withoutCapability)).toMatchObject({
+    expect(
+      validator.validateManifestCapabilities(withoutCapability),
+    ).toMatchObject({
       allowed: false,
       missing: ["environment.drivers.register"],
     });
@@ -131,26 +140,46 @@ describe("plugin environment driver seam", () => {
       }
     });
 
-    stdin.write(serializeMessage(createRequest("initialize", {
-      manifest: baseManifest,
-      config: {},
-      instanceInfo: { instanceId: "instance-1", hostVersion: "1.0.0" },
-      apiVersion: 1,
-    }, 1)));
+    stdin.write(
+      serializeMessage(
+        createRequest(
+          "initialize",
+          {
+            manifest: baseManifest,
+            config: {},
+            instanceInfo: { instanceId: "instance-1", hostVersion: "1.0.0" },
+            apiVersion: 1,
+          },
+          1,
+        ),
+      ),
+    );
     await waitForResponses(responses, 1);
 
     const initializeResponse = responses[0];
     expect(isJsonRpcSuccessResponse(initializeResponse)).toBe(true);
     if (!isJsonRpcSuccessResponse(initializeResponse)) return;
-    expect(initializeResponse.result.supportedMethods).toContain("environmentProbe");
-    expect(initializeResponse.result.supportedMethods).toContain("environmentStartInteractiveSetup");
+    expect(initializeResponse.result.supportedMethods).toContain(
+      "environmentProbe",
+    );
+    expect(initializeResponse.result.supportedMethods).toContain(
+      "environmentStartInteractiveSetup",
+    );
 
-    stdin.write(serializeMessage(createRequest("environmentProbe", {
-      driverKey: "fake-plugin",
-      companyId: "company-1",
-      environmentId: "environment-1",
-      config: { template: "base" },
-    }, 2)));
+    stdin.write(
+      serializeMessage(
+        createRequest(
+          "environmentProbe",
+          {
+            driverKey: "fake-plugin",
+            companyId: "company-1",
+            environmentId: "environment-1",
+            config: { template: "base" },
+          },
+          2,
+        ),
+      ),
+    );
     await waitForResponses(responses, 2);
 
     const probeResponse = responses[1];
@@ -162,13 +191,21 @@ describe("plugin environment driver seam", () => {
       metadata: { environmentId: "environment-1" },
     });
 
-    stdin.write(serializeMessage(createRequest("environmentStartInteractiveSetup", {
-      driverKey: "fake-plugin",
-      companyId: "company-1",
-      environmentId: "environment-1",
-      sessionId: "session-1",
-      config: { template: "base" },
-    }, 3)));
+    stdin.write(
+      serializeMessage(
+        createRequest(
+          "environmentStartInteractiveSetup",
+          {
+            driverKey: "fake-plugin",
+            companyId: "company-1",
+            environmentId: "environment-1",
+            sessionId: "session-1",
+            config: { template: "base" },
+          },
+          3,
+        ),
+      ),
+    );
     await waitForResponses(responses, 3);
 
     const setupResponse = responses[2];
@@ -184,20 +221,30 @@ describe("plugin environment driver seam", () => {
       },
     });
 
-    stdin.write(serializeMessage(createRequest("environmentExecute", {
-      driverKey: "fake-plugin",
-      companyId: "company-1",
-      environmentId: "environment-1",
-      config: { template: "base" },
-      lease: { providerLeaseId: "lease-1" },
-      command: "echo",
-    }, 4)));
+    stdin.write(
+      serializeMessage(
+        createRequest(
+          "environmentExecute",
+          {
+            driverKey: "fake-plugin",
+            companyId: "company-1",
+            environmentId: "environment-1",
+            config: { template: "base" },
+            lease: { providerLeaseId: "lease-1" },
+            command: "echo",
+          },
+          4,
+        ),
+      ),
+    );
     await waitForResponses(responses, 4);
 
     const executeResponse = responses[3];
     expect(isJsonRpcErrorResponse(executeResponse)).toBe(true);
     if (!isJsonRpcErrorResponse(executeResponse)) return;
-    expect(executeResponse.error.code).toBe(PLUGIN_RPC_ERROR_CODES.METHOD_NOT_IMPLEMENTED);
+    expect(executeResponse.error.code).toBe(
+      PLUGIN_RPC_ERROR_CODES.METHOD_NOT_IMPLEMENTED,
+    );
     expect(executeResponse.error.message).toContain("environmentExecute");
 
     host.stop();
@@ -227,20 +274,27 @@ const objectReferenceManifest: TaskcorePluginManifestV1 = {
 
 describe("plugin external object provider seam", () => {
   it("validates provider manifest declarations and capabilities", () => {
-    expect(pluginManifestV1Schema.safeParse(objectReferenceManifest).success).toBe(true);
+    expect(
+      pluginManifestV1Schema.safeParse(objectReferenceManifest).success,
+    ).toBe(true);
 
     const missingCapability = pluginManifestV1Schema.safeParse({
       ...objectReferenceManifest,
       capabilities: ["external.objects.detect"],
     });
     expect(missingCapability.success).toBe(false);
-    expect(JSON.stringify(missingCapability.error?.issues)).toContain("external.objects.read");
+    expect(JSON.stringify(missingCapability.error?.issues)).toContain(
+      "external.objects.read",
+    );
 
     const duplicateProvider = pluginManifestV1Schema.safeParse({
       ...objectReferenceManifest,
       objectReferences: [
         objectReferenceManifest.objectReferences![0],
-        { ...objectReferenceManifest.objectReferences![0], displayName: "Duplicate" },
+        {
+          ...objectReferenceManifest.objectReferences![0],
+          displayName: "Duplicate",
+        },
       ],
     });
     expect(duplicateProvider.success).toBe(false);
@@ -251,24 +305,31 @@ describe("plugin external object provider seam", () => {
 
   it("enforces provider capability requirements", () => {
     const validator = pluginCapabilityValidator();
-    expect(validator.getRequiredCapabilities("external.objects.detect")).toEqual([
-      "external.objects.detect",
-    ]);
+    expect(
+      validator.getRequiredCapabilities("external.objects.detect"),
+    ).toEqual(["external.objects.detect"]);
     expect(validator.getRequiredCapabilities("external.objects.read")).toEqual([
       "external.objects.read",
     ]);
-    expect(validator.checkOperation(objectReferenceManifest, "external.objects.read").allowed).toBe(true);
+    expect(
+      validator.checkOperation(objectReferenceManifest, "external.objects.read")
+        .allowed,
+    ).toBe(true);
 
     const withoutCapability = {
       ...objectReferenceManifest,
       capabilities: ["external.objects.detect"],
     } satisfies TaskcorePluginManifestV1;
 
-    expect(validator.checkOperation(withoutCapability, "external.objects.read")).toMatchObject({
+    expect(
+      validator.checkOperation(withoutCapability, "external.objects.read"),
+    ).toMatchObject({
       allowed: false,
       missing: ["external.objects.read"],
     });
-    expect(validator.validateManifestCapabilities(withoutCapability)).toMatchObject({
+    expect(
+      validator.validateManifestCapabilities(withoutCapability),
+    ).toMatchObject({
       allowed: false,
       missing: ["external.objects.read"],
     });
@@ -316,38 +377,64 @@ describe("plugin external object provider seam", () => {
       }
     });
 
-    stdin.write(serializeMessage(createRequest("initialize", {
-      manifest: objectReferenceManifest,
-      config: {},
-      instanceInfo: { instanceId: "instance-1", hostVersion: "1.0.0" },
-      apiVersion: 1,
-    }, 1)));
+    stdin.write(
+      serializeMessage(
+        createRequest(
+          "initialize",
+          {
+            manifest: objectReferenceManifest,
+            config: {},
+            instanceInfo: { instanceId: "instance-1", hostVersion: "1.0.0" },
+            apiVersion: 1,
+          },
+          1,
+        ),
+      ),
+    );
     await waitForResponses(responses, 1);
 
     const initializeResponse = responses[0];
     expect(isJsonRpcSuccessResponse(initializeResponse)).toBe(true);
     if (!isJsonRpcSuccessResponse(initializeResponse)) return;
-    expect(initializeResponse.result.supportedMethods).toContain("detectExternalObjects");
-    expect(initializeResponse.result.supportedMethods).toContain("resolveExternalObject");
+    expect(initializeResponse.result.supportedMethods).toContain(
+      "detectExternalObjects",
+    );
+    expect(initializeResponse.result.supportedMethods).toContain(
+      "resolveExternalObject",
+    );
 
-    stdin.write(serializeMessage(createRequest("detectExternalObjects", {
-      companyId: "company-1",
-      urls: [{
-        sanitizedCanonicalUrl: "https://mock.example/tickets/123",
-        sanitizedDisplayUrl: "https://mock.example/tickets/123",
-        canonicalIdentityHash: "hash-123",
-        canonicalIdentity: { scheme: "https", host: "mock.example", path: "/tickets/123" },
-        redactedMatchedText: "https://mock.example/tickets/123",
-      }],
-      sourceContext: {
-        companyId: "company-1",
-        sourceIssueId: "issue-1",
-        sourceKind: "description",
-        sourceRecordId: null,
-        documentKey: null,
-        propertyKey: null,
-      },
-    }, 2)));
+    stdin.write(
+      serializeMessage(
+        createRequest(
+          "detectExternalObjects",
+          {
+            companyId: "company-1",
+            urls: [
+              {
+                sanitizedCanonicalUrl: "https://mock.example/tickets/123",
+                sanitizedDisplayUrl: "https://mock.example/tickets/123",
+                canonicalIdentityHash: "hash-123",
+                canonicalIdentity: {
+                  scheme: "https",
+                  host: "mock.example",
+                  path: "/tickets/123",
+                },
+                redactedMatchedText: "https://mock.example/tickets/123",
+              },
+            ],
+            sourceContext: {
+              companyId: "company-1",
+              sourceIssueId: "issue-1",
+              sourceKind: "description",
+              sourceRecordId: null,
+              documentKey: null,
+              propertyKey: null,
+            },
+          },
+          2,
+        ),
+      ),
+    );
     await waitForResponses(responses, 2);
 
     const detectResponse = responses[1];
@@ -359,31 +446,39 @@ describe("plugin external object provider seam", () => {
       externalId: "MOCK-123",
     });
 
-    stdin.write(serializeMessage(createRequest("resolveExternalObject", {
-      companyId: "company-1",
-      providerKey: "mocktracker",
-      objectType: "ticket",
-      externalId: "MOCK-123",
-      object: {
-        id: "object-1",
-        companyId: "company-1",
-        providerKey: "mocktracker",
-        objectType: "ticket",
-        externalId: "MOCK-123",
-        sanitizedCanonicalUrl: "https://mock.example/tickets/123",
-        canonicalIdentityHash: "hash-123",
-        displayTitle: "Mock ticket",
-        statusKey: null,
-        statusLabel: null,
-        statusCategory: "unknown",
-        statusTone: "neutral",
-        liveness: "unknown",
-        isTerminal: false,
-        data: {},
-        remoteVersion: null,
-        etag: null,
-      },
-    }, 3)));
+    stdin.write(
+      serializeMessage(
+        createRequest(
+          "resolveExternalObject",
+          {
+            companyId: "company-1",
+            providerKey: "mocktracker",
+            objectType: "ticket",
+            externalId: "MOCK-123",
+            object: {
+              id: "object-1",
+              companyId: "company-1",
+              providerKey: "mocktracker",
+              objectType: "ticket",
+              externalId: "MOCK-123",
+              sanitizedCanonicalUrl: "https://mock.example/tickets/123",
+              canonicalIdentityHash: "hash-123",
+              displayTitle: "Mock ticket",
+              statusKey: null,
+              statusLabel: null,
+              statusCategory: "unknown",
+              statusTone: "neutral",
+              liveness: "unknown",
+              isTerminal: false,
+              data: {},
+              remoteVersion: null,
+              etag: null,
+            },
+          },
+          3,
+        ),
+      ),
+    );
     await waitForResponses(responses, 3);
 
     const resolveResponse = responses[2];
@@ -401,7 +496,10 @@ describe("plugin external object provider seam", () => {
   });
 });
 
-async function waitForResponses(responses: unknown[], count: number): Promise<void> {
+async function waitForResponses(
+  responses: unknown[],
+  count: number,
+): Promise<void> {
   const deadline = Date.now() + 1_000;
   while (responses.length < count && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 5));

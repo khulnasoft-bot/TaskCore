@@ -66,8 +66,17 @@ describe("LockedIssueChip", () => {
 
 describe("isLockedIssueStub", () => {
   it("recognizes only objects with locked === true", () => {
-    expect(isLockedIssueStub({ id: "x", identifier: "PAP-1", locked: true })).toBe(true);
-    expect(isLockedIssueStub({ id: "x", identifier: "PAP-1", title: "t", status: "todo" })).toBe(false);
+    expect(
+      isLockedIssueStub({ id: "x", identifier: "PAP-1", locked: true }),
+    ).toBe(true);
+    expect(
+      isLockedIssueStub({
+        id: "x",
+        identifier: "PAP-1",
+        title: "t",
+        status: "todo",
+      }),
+    ).toBe(false);
     expect(isLockedIssueStub({ locked: false })).toBe(false);
     expect(isLockedIssueStub(null)).toBe(false);
     expect(isLockedIssueStub(undefined)).toBe(false);

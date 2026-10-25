@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { readContextIntegrityRunLog } from "./context-integrity-flow.js";
 
-function apiFor(response: { status: () => number; ok: () => boolean; json?: () => Promise<unknown> }) {
+function apiFor(response: {
+  status: () => number;
+  ok: () => boolean;
+  json?: () => Promise<unknown>;
+}) {
   return { request: { get: vi.fn().mockResolvedValue(response) } } as any;
 }
 
@@ -23,17 +27,22 @@ describe("context-integrity run log evidence", () => {
 
   it("records a missing log as an explicit optional diagnostic", async () => {
     const api = apiFor({ status: () => 404, ok: () => false });
-    await expect(readContextIntegrityRunLog(api, "run-before-log")).resolves.toEqual({
+    await expect(
+      readContextIntegrityRunLog(api, "run-before-log"),
+    ).resolves.toEqual({
       status: "unavailable",
       reason: "not_found",
       statusCode: 404,
     });
   });
 
-  it.each([401, 403, 500])("does not hide an HTTP %s log failure", async (status) => {
-    const api = apiFor({ status: () => status, ok: () => false });
-    await expect(readContextIntegrityRunLog(api, "run-broken")).rejects.toThrow(
-      `Run run-broken log returned ${status}`,
-    );
-  });
+  it.each([401, 403, 500])(
+    "does not hide an HTTP %s log failure",
+    async (status) => {
+      const api = apiFor({ status: () => status, ok: () => false });
+      await expect(
+        readContextIntegrityRunLog(api, "run-broken"),
+      ).rejects.toThrow(`Run run-broken log returned ${status}`);
+    },
+  );
 });

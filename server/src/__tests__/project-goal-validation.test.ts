@@ -15,7 +15,9 @@ import { HttpError } from "../errors.js";
 import { projectService } from "../services/projects.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -30,11 +32,15 @@ if (!embeddedPostgresSupport.supported) {
 // proves existence, not ownership.
 describeEmbeddedPostgres("project goal validation", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let prefixCounter = 0;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-project-goal-validation-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-project-goal-validation-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -77,7 +83,10 @@ describeEmbeddedPostgres("project goal validation", () => {
     const goalId = await seedGoal(companyId, "Ship it");
     const projects = projectService(db);
 
-    const created = await projects.create(companyId, { name: "Rocket", goalIds: [goalId] });
+    const created = await projects.create(companyId, {
+      name: "Rocket",
+      goalIds: [goalId],
+    });
     expect(created.goalIds).toEqual([goalId]);
   });
 
@@ -88,7 +97,10 @@ describeEmbeddedPostgres("project goal validation", () => {
 
     const failure = await projects
       .create(companyId, { name: "Rocket", goalIds: [ghost] })
-      .then(() => null, (error: unknown) => error);
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
     expectUnprocessable(failure, ghost);
 
     const rows = await db.select({ id: projectsTable.id }).from(projectsTable);
@@ -102,7 +114,10 @@ describeEmbeddedPostgres("project goal validation", () => {
 
     const failure = await projects
       .create(companyId, { name: "Rocket", goalId: ghost })
-      .then(() => null, (error: unknown) => error);
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
     expectUnprocessable(failure, ghost);
   });
 
@@ -114,7 +129,10 @@ describeEmbeddedPostgres("project goal validation", () => {
 
     const failure = await projects
       .create(companyId, { name: "Rocket", goalIds: [foreignGoalId] })
-      .then(() => null, (error: unknown) => error);
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
     expectUnprocessable(failure, foreignGoalId);
   });
 
@@ -149,11 +167,17 @@ describeEmbeddedPostgres("project goal validation", () => {
     const foreignGoalId = await seedGoal(otherCompanyId, "Foreign goal");
     const projects = projectService(db);
 
-    const created = await projects.create(companyId, { name: "Rocket", goalIds: [goodGoalId] });
+    const created = await projects.create(companyId, {
+      name: "Rocket",
+      goalIds: [goodGoalId],
+    });
 
     const failure = await projects
       .update(created.id, { goalIds: [foreignGoalId] })
-      .then(() => null, (error: unknown) => error);
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
     expectUnprocessable(failure, foreignGoalId);
 
     const fetched = await projects.getById(created.id);

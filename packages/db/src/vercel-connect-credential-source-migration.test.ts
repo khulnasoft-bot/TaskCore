@@ -3,14 +3,22 @@ import fs from "node:fs";
 import postgres from "postgres";
 import { afterEach, describe, expect, it } from "vitest";
 import { applyPendingMigrations } from "./client.js";
-import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./test-embedded-postgres.js";
+import {
+  getEmbeddedPostgresTestSupport,
+  startEmbeddedPostgresTestDatabase,
+} from "./test-embedded-postgres.js";
 
 const MIGRATION_FILE = "0233_living_dreaming_celestial.sql";
-const migrationSql = fs.readFileSync(new URL(`./migrations/${MIGRATION_FILE}`, import.meta.url), "utf8");
+const migrationSql = fs.readFileSync(
+  new URL(`./migrations/${MIGRATION_FILE}`, import.meta.url),
+  "utf8",
+);
 const migrationHash = createHash("sha256").update(migrationSql).digest("hex");
 const cleanups: Array<() => Promise<void>> = [];
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 afterEach(async () => {
   while (cleanups.length > 0) await cleanups.pop()?.();
@@ -18,9 +26,14 @@ afterEach(async () => {
 
 describeEmbeddedPostgres("Vercel Connect credential-source migration", () => {
   it("defaults legacy rows to the vault and rejects mixed credential custody", async () => {
-    const database = await startEmbeddedPostgresTestDatabase("taskcore-vercel-connect-migration-");
+    const database = await startEmbeddedPostgresTestDatabase(
+      "taskcore-vercel-connect-migration-",
+    );
     cleanups.push(database.cleanup);
-    const sql = postgres(database.connectionString, { max: 1, onnotice: () => {} });
+    const sql = postgres(database.connectionString, {
+      max: 1,
+      onnotice: () => {},
+    });
     cleanups.push(async () => sql.end());
 
     await sql`DELETE FROM "drizzle"."__drizzle_migrations" WHERE "hash" = ${migrationHash}`;
@@ -40,10 +53,15 @@ describeEmbeddedPostgres("Vercel Connect credential-source migration", () => {
 
     await applyPendingMigrations(database.connectionString);
 
-    const [legacy] = await sql<{ credential_source: string; external_credential: unknown }[]>`
+    const [legacy] = await sql<
+      { credential_source: string; external_credential: unknown }[]
+    >`
       SELECT "credential_source", "external_credential" FROM "tool_connections" WHERE "id" = ${connectionId}
     `;
-    expect(legacy).toEqual({ credential_source: "taskcore_vault", external_credential: null });
+    expect(legacy).toEqual({
+      credential_source: "taskcore_vault",
+      external_credential: null,
+    });
 
     await expect(sql`
       UPDATE "tool_connections" SET "credential_source" = 'vercel_connect' WHERE "id" = ${connectionId}

@@ -25,7 +25,13 @@ function adapter(
 describe("semantic conformance kit", () => {
   it("accepts normalized mock/real observations independent of object key order", async () => {
     const report = await runSemanticConformanceKit({
-      vectors: [{ id: "finish", operationId: "finish_task", input: { summary: "done" } }],
+      vectors: [
+        {
+          id: "finish",
+          operationId: "finish_task",
+          input: { summary: "done" },
+        },
+      ],
       adapters: [
         adapter("mock", allowed),
         adapter("real", {
@@ -39,7 +45,10 @@ describe("semantic conformance kit", () => {
     expect(report.schema).toBe("taskcore.semantic-conformance-report.v1");
     expect(report.rows).toHaveLength(1);
     expect(report.rows[0]?.adapterIds).toEqual(["mock", "real"]);
-    expect(report.rows[0]?.observations).toEqual({ mock: allowed, real: allowed });
+    expect(report.rows[0]?.observations).toEqual({
+      mock: allowed,
+      real: allowed,
+    });
   });
 
   it("names the production binding and exact normalized path when it diverges", async () => {
@@ -47,36 +56,65 @@ describe("semantic conformance kit", () => {
       vectors: [{ id: "finish", operationId: "finish_task", input: {} }],
       adapters: [
         adapter("mock", allowed, "mock"),
-        adapter("real", { ...allowed, authorization: { outcome: "denied", code: "forbidden" } }, "production_binding"),
+        adapter(
+          "real",
+          {
+            ...allowed,
+            authorization: { outcome: "denied", code: "forbidden" },
+          },
+          "production_binding",
+        ),
       ],
     });
     await expect(failure).rejects.toMatchObject({
       suspectedSource: "production_binding",
-      diffs: [{ path: "$.authorization.code" }, { path: "$.authorization.outcome" }],
+      diffs: [
+        { path: "$.authorization.code" },
+        { path: "$.authorization.outcome" },
+      ],
     });
-    await expect(failure).rejects.toBeInstanceOf(SemanticConformanceMismatchError);
+    await expect(failure).rejects.toBeInstanceOf(
+      SemanticConformanceMismatchError,
+    );
   });
 
   it("names the contract when adapters agree on the wrong semantics", async () => {
     const failure = runSemanticConformanceKit({
-      vectors: [{
-        id: "finish",
-        operationId: "finish_task",
-        input: {},
-        expected: { ...allowed, state: { task: { status: "in_review" } } },
-      }],
-      adapters: [adapter("mock", allowed, "mock"), adapter("real", allowed, "production_binding")],
+      vectors: [
+        {
+          id: "finish",
+          operationId: "finish_task",
+          input: {},
+          expected: { ...allowed, state: { task: { status: "in_review" } } },
+        },
+      ],
+      adapters: [
+        adapter("mock", allowed, "mock"),
+        adapter("real", allowed, "production_binding"),
+      ],
     });
     await expect(failure).rejects.toMatchObject({
       suspectedSource: "contract",
-      diffs: [{ path: "$.state.task.status", expected: "in_review", actual: "done" }],
+      diffs: [
+        { path: "$.state.task.status", expected: "in_review", actual: "done" },
+      ],
     });
   });
 
   it("names the mock when the production binding matches the contract", async () => {
-    const denied = { ...allowed, authorization: { outcome: "denied" as const, code: "stale_mock" } };
+    const denied = {
+      ...allowed,
+      authorization: { outcome: "denied" as const, code: "stale_mock" },
+    };
     const failure = runSemanticConformanceKit({
-      vectors: [{ id: "finish", operationId: "finish_task", input: {}, expected: allowed }],
+      vectors: [
+        {
+          id: "finish",
+          operationId: "finish_task",
+          input: {},
+          expected: allowed,
+        },
+      ],
       adapters: [
         adapter("mock", denied, "mock"),
         adapter("real", allowed, "production_binding"),
@@ -85,6 +123,9 @@ describe("semantic conformance kit", () => {
     await expect(failure).rejects.toMatchObject({
       suspectedSource: "mock",
     });
-    await expect(failure).rejects.toHaveProperty("diffs.1.path", "$.authorization.outcome");
+    await expect(failure).rejects.toHaveProperty(
+      "diffs.1.path",
+      "$.authorization.outcome",
+    );
   });
 });

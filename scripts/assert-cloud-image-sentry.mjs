@@ -34,7 +34,13 @@ const serverDir = dirname(fileURLToPath(import.meta.url));
 // links resolve. Follow the link the same way Node's own module loader
 // does, so a broken or missing link fails this probe before it fails a
 // live container.
-const tsxLoaderPath = join(serverDir, "node_modules", "tsx", "dist", "loader.mjs");
+const tsxLoaderPath = join(
+  serverDir,
+  "node_modules",
+  "tsx",
+  "dist",
+  "loader.mjs",
+);
 try {
   realpathSync(tsxLoaderPath);
 } catch (error) {

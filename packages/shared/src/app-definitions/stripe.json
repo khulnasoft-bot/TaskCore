@@ -3,16 +3,12 @@
   "slug": "stripe",
   "name": "Stripe",
   "description": "Connect Stripe's provider-hosted MCP server.",
-  "categories": [
-    "commerce"
-  ],
+  "categories": ["commerce"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/stripe.svg"
   },
-  "urlPatterns": [
-    "https://mcp.stripe.com/*"
-  ],
+  "urlPatterns": ["https://mcp.stripe.com/*"],
   "docsUrl": "https://docs.stripe.com/mcp",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,15 +16,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.stripe.com",
-        "scopesHint": [
-          "mcp"
-        ]
+        "scopesHint": ["mcp"]
       },
       "guidanceMd": "Connect Stripe in the browser. A Stripe account; the server is public preview and payment actions require explicit approval.",
       "riskTier": "S4",
@@ -45,9 +37,7 @@
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.stripe.com"

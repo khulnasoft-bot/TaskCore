@@ -18,11 +18,7 @@
   "productionLock": "sha256:9eea60187c6c808efb4d936a234a8d8000beac45253091abd4c5348132bd1408",
   "launch": {
     "entrypoint": "verified bundled node + index.js",
-    "arguments": [
-      "--disable-project-configs",
-      "--disable-auto-update",
-      "acp"
-    ],
+    "arguments": ["--disable-project-configs", "--disable-auto-update", "acp"],
     "credentials": "none; private home/config/data/cache; memory credential store",
     "verification": "generic profile installation registry, whole closure digest verification, retained immutable native snapshot, closed module bootstrap",
     "modelAdmission": "offline-installation-probe is a factory identity sentinel only; no ACP model selection or prompt; model remains unverified"

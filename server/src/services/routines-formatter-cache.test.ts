@@ -45,7 +45,11 @@ describe("nextCronTickInTimeZone formatter caching", () => {
     expect(constructions).toBeLessThanOrEqual(1);
 
     constructions = 0;
-    nextCronTickInTimeZone("0 12 1 * *", "Pacific/Kiritimati", new Date("2026-06-01T12:01:00Z"));
+    nextCronTickInTimeZone(
+      "0 12 1 * *",
+      "Pacific/Kiritimati",
+      new Date("2026-06-01T12:01:00Z"),
+    );
     expect(constructions).toBe(0);
   });
 });

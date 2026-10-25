@@ -17,21 +17,26 @@ export async function createCloudWarmStandby(
 ): Promise<CloudWarmStandby> {
   const stackId = env.TASKCORE_CLOUD_STACK_ID?.trim();
   if (
-    env.TASKCORE_CLOUD_WARM_STANDBY !== "1"
-    || !isCloudManagedInstance(env)
-    || !stackId
-    || !env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS?.trim()
-    || getCloudRuntimeIdentity()
-  ) return () => false;
+    env.TASKCORE_CLOUD_WARM_STANDBY !== "1" ||
+    !isCloudManagedInstance(env) ||
+    !stackId ||
+    !env.TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS?.trim() ||
+    getCloudRuntimeIdentity()
+  )
+    return () => false;
 
   // Protect existing tenants if an operator accidentally sets the marker.
   // Fail startup on a read error; never infer emptiness from an unavailable DB.
-  const existing = await db.select({ id: companies.id }).from(companies).limit(1);
+  const existing = await db
+    .select({ id: companies.id })
+    .from(companies)
+    .limit(1);
   if (existing.length > 0) return () => false;
 
   let standby = true;
   return () => {
-    if (standby && getCloudRuntimeIdentity()?.stackId === stackId) standby = false;
+    if (standby && getCloudRuntimeIdentity()?.stackId === stackId)
+      standby = false;
     return standby;
   };
 }

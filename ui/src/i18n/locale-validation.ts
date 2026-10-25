@@ -11,7 +11,10 @@ function formatPath(path: string[]) {
 }
 
 function interpolationPlaceholders(value: string) {
-  return Array.from(value.matchAll(/{{\s*([A-Za-z0-9_.-]+)\s*}}/g), (match) => match[1]).sort();
+  return Array.from(
+    value.matchAll(/{{\s*([A-Za-z0-9_.-]+)\s*}}/g),
+    (match) => match[1],
+  ).sort();
 }
 
 function hasRawHtml(value: string) {
@@ -23,14 +26,25 @@ function hasEventHandlerAttribute(value: string) {
 }
 
 function urlsIn(value: string) {
-  return Array.from(value.matchAll(/\bhttps?:\/\/[^\s<>"')]+/gi), (match) => match[0]).sort();
+  return Array.from(
+    value.matchAll(/\bhttps?:\/\/[^\s<>"')]+/gi),
+    (match) => match[0],
+  ).sort();
 }
 
 function hasBlockedData(value: string, englishValue: string) {
   const checks: Array<[boolean, boolean, string]> = [
     [/<script\b/i.test(value), /<script\b/i.test(englishValue), "<script"],
-    [hasEventHandlerAttribute(value), hasEventHandlerAttribute(englishValue), "event-handler attribute"],
-    [/\bjavascript\s*:/i.test(value), /\bjavascript\s*:/i.test(englishValue), "javascript:"],
+    [
+      hasEventHandlerAttribute(value),
+      hasEventHandlerAttribute(englishValue),
+      "event-handler attribute",
+    ],
+    [
+      /\bjavascript\s*:/i.test(value),
+      /\bjavascript\s*:/i.test(englishValue),
+      "javascript:",
+    ],
     [/\bdata\s*:/i.test(value), /\bdata\s*:/i.test(englishValue), "data:"],
     [hasRawHtml(value), hasRawHtml(englishValue), "raw HTML tag"],
   ];
@@ -46,10 +60,17 @@ function hasBlockedData(value: string, englishValue: string) {
   return blocked;
 }
 
-function validateString(path: string[], candidateValue: string, englishValue: string, errors: string[]) {
+function validateString(
+  path: string[],
+  candidateValue: string,
+  englishValue: string,
+  errors: string[],
+) {
   const candidatePlaceholders = interpolationPlaceholders(candidateValue);
   const englishPlaceholders = interpolationPlaceholders(englishValue);
-  if (candidatePlaceholders.join("\u0000") !== englishPlaceholders.join("\u0000")) {
+  if (
+    candidatePlaceholders.join("\u0000") !== englishPlaceholders.join("\u0000")
+  ) {
     errors.push(
       `${formatPath(path)} interpolation placeholders must match English exactly: expected ${JSON.stringify(
         englishPlaceholders,
@@ -61,14 +82,24 @@ function validateString(path: string[], candidateValue: string, englishValue: st
     errors.push(`${formatPath(path)} contains disallowed ${blockedPayload}`);
   }
 
-  const relativeLimit = Math.max(englishValue.length * 4 + 64, englishValue.length + 128);
+  const relativeLimit = Math.max(
+    englishValue.length * 4 + 64,
+    englishValue.length + 128,
+  );
   const lengthLimit = Math.min(MAX_STRING_LENGTH, relativeLimit);
   if (candidateValue.length > lengthLimit) {
-    errors.push(`${formatPath(path)} is too long: ${candidateValue.length} characters exceeds ${lengthLimit}`);
+    errors.push(
+      `${formatPath(path)} is too long: ${candidateValue.length} characters exceeds ${lengthLimit}`,
+    );
   }
 }
 
-function validateNode(path: string[], candidate: unknown, englishReference: unknown, errors: string[]) {
+function validateNode(
+  path: string[],
+  candidate: unknown,
+  englishReference: unknown,
+  errors: string[],
+) {
   if (typeof englishReference === "string") {
     if (typeof candidate !== "string") {
       errors.push(`${formatPath(path)} must be a string`);
@@ -102,18 +133,29 @@ function validateNode(path: string[], candidate: unknown, englishReference: unkn
 
   for (const key of englishKeys) {
     if (key in candidate) {
-      validateNode([...path, key], candidate[key], englishReference[key], errors);
+      validateNode(
+        [...path, key],
+        candidate[key],
+        englishReference[key],
+        errors,
+      );
     }
   }
 }
 
-export function validateLocaleMessages(candidate: unknown, englishReference: unknown = en) {
+export function validateLocaleMessages(
+  candidate: unknown,
+  englishReference: unknown = en,
+) {
   const errors: string[] = [];
   validateNode([], candidate, englishReference, errors);
   return errors;
 }
 
-export function assertValidLocaleMessages(candidate: unknown, englishReference: unknown = en) {
+export function assertValidLocaleMessages(
+  candidate: unknown,
+  englishReference: unknown = en,
+) {
   const errors = validateLocaleMessages(candidate, englishReference);
   if (errors.length > 0) {
     throw new Error(`Invalid locale messages:\n${errors.join("\n")}`);

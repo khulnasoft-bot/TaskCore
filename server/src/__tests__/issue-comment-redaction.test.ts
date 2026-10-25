@@ -470,9 +470,7 @@ describeEmbeddedPostgres("deleted issue comment redaction", () => {
     expect(lowTrustWakePayload?.comments).toEqual([
       expect.objectContaining({
         id: quarantinedComment!.id,
-        attachments: [
-          expect.objectContaining({ filename: "quarantined.txt" }),
-        ],
+        attachments: [expect.objectContaining({ filename: "quarantined.txt" })],
       }),
     ]);
   });

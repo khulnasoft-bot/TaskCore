@@ -2,7 +2,15 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import request from "supertest";
 import { and, eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   activityLog,
   agents,
@@ -28,7 +36,9 @@ vi.hoisted(() => {
 });
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 type Db = ReturnType<typeof createDb>;
 
@@ -49,15 +59,27 @@ async function createApp(db: Db, companyId: string, userId: string) {
     };
     next();
   });
-  app.use("/api", accessRoutes(db, {
-    deploymentMode: "authenticated",
-    deploymentExposure: "private",
-    bindHost: "127.0.0.1",
-    allowedHostnames: [],
-  }));
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    res.status(err.status ?? 500).json({ error: err.message ?? "Internal server error" });
-  });
+  app.use(
+    "/api",
+    accessRoutes(db, {
+      deploymentMode: "authenticated",
+      deploymentExposure: "private",
+      bindHost: "127.0.0.1",
+      allowedHostnames: [],
+    }),
+  );
+  app.use(
+    (
+      err: any,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
+      res
+        .status(err.status ?? 500)
+        .json({ error: err.message ?? "Internal server error" });
+    },
+  );
   return app;
 }
 
@@ -84,181 +106,238 @@ async function createCompanyWithOwner(db: Db) {
   return { company, owner };
 }
 
-describeEmbeddedPostgres("access routes permissions upgrade compatibility", () => {
-  let db!: Db;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+describeEmbeddedPostgres(
+  "access routes permissions upgrade compatibility",
+  () => {
+    let db!: Db;
+    let tempDb: Awaited<
+      ReturnType<typeof startEmbeddedPostgresTestDatabase>
+    > | null = null;
 
-  // Load the large router graph during setup so a cold CI transform does not
-  // consume the first permission assertion's timeout budget.
-  beforeAll(async () => {
-    await import("../routes/access.js");
-  }, 30_000);
+    // Load the large router graph during setup so a cold CI transform does not
+    // consume the first permission assertion's timeout budget.
+    beforeAll(async () => {
+      await import("../routes/access.js");
+    }, 30_000);
 
-  beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-access-routes-permissions-upgrade-");
-    db = createDb(tempDb.connectionString);
-  }, 20_000);
+    beforeAll(async () => {
+      tempDb = await startEmbeddedPostgresTestDatabase(
+        "taskcore-access-routes-permissions-upgrade-",
+      );
+      db = createDb(tempDb.connectionString);
+    }, 20_000);
 
-  afterEach(async () => {
-    await db.delete(activityLog);
-    await db.delete(connectionGrantDelegations);
-    await db.delete(connectionGrants);
-    await db.delete(toolConnections);
-    await db.delete(toolApplications);
-    await db.delete(principalPermissionGrants);
-    await db.delete(companyMemberships);
-    await db.delete(agents);
-    await db.delete(companies);
-  });
+    afterEach(async () => {
+      await db.delete(activityLog);
+      await db.delete(connectionGrantDelegations);
+      await db.delete(connectionGrants);
+      await db.delete(toolConnections);
+      await db.delete(toolApplications);
+      await db.delete(principalPermissionGrants);
+      await db.delete(companyMemberships);
+      await db.delete(agents);
+      await db.delete(companies);
+    });
 
-  afterAll(async () => {
-    await tempDb?.cleanup();
-  });
+    afterAll(async () => {
+      await tempDb?.cleanup();
+    });
 
-  it("rejects owner self-lockout through the member route after the permissions upgrade", async () => {
-    const { company, owner } = await createCompanyWithOwner(db);
+    it("rejects owner self-lockout through the member route after the permissions upgrade", async () => {
+      const { company, owner } = await createCompanyWithOwner(db);
 
-    const res = await request(await createApp(db, company.id, owner.principalId))
-      .patch(`/api/companies/${company.id}/members/${owner.id}`)
-      .send({ membershipRole: "admin" });
+      const res = await request(
+        await createApp(db, company.id, owner.principalId),
+      )
+        .patch(`/api/companies/${company.id}/members/${owner.id}`)
+        .send({ membershipRole: "admin" });
 
-    expect(res.status, JSON.stringify(res.body)).toBe(403);
-    expect(res.body.error).toContain("You cannot remove yourself");
+      expect(res.status, JSON.stringify(res.body)).toBe(403);
+      expect(res.body.error).toContain("You cannot remove yourself");
 
-    const unchanged = await db
-      .select()
-      .from(companyMemberships)
-      .where(eq(companyMemberships.id, owner.id))
-      .then((rows) => rows[0]!);
-    expect(unchanged.membershipRole).toBe("owner");
-  }, 10_000);
+      const unchanged = await db
+        .select()
+        .from(companyMemberships)
+        .where(eq(companyMemberships.id, owner.id))
+        .then((rows) => rows[0]!);
+      expect(unchanged.membershipRole).toBe("owner");
+    }, 10_000);
 
-  it("keeps custom grants when the role-only member route changes a member role", async () => {
-    const { company, owner } = await createCompanyWithOwner(db);
-    const member = await db
-      .insert(companyMemberships)
-      .values({
+    it("keeps custom grants when the role-only member route changes a member role", async () => {
+      const { company, owner } = await createCompanyWithOwner(db);
+      const member = await db
+        .insert(companyMemberships)
+        .values({
+          companyId: company.id,
+          principalType: "user",
+          principalId: `admin-${randomUUID()}`,
+          status: "active",
+          membershipRole: "admin",
+        })
+        .returning()
+        .then((rows) => rows[0]!);
+      const customScope = { projectIds: ["project-1"] };
+      await db.insert(principalPermissionGrants).values({
         companyId: company.id,
         principalType: "user",
-        principalId: `admin-${randomUUID()}`,
-        status: "active",
-        membershipRole: "admin",
-      })
-      .returning()
-      .then((rows) => rows[0]!);
-    const customScope = { projectIds: ["project-1"] };
-    await db.insert(principalPermissionGrants).values({
-      companyId: company.id,
-      principalType: "user",
-      principalId: member.principalId,
-      permissionKey: "tasks:assign_scope",
-      scope: customScope,
-      grantedByUserId: owner.principalId,
+        principalId: member.principalId,
+        permissionKey: "tasks:assign_scope",
+        scope: customScope,
+        grantedByUserId: owner.principalId,
+      });
+
+      const res = await request(
+        await createApp(db, company.id, owner.principalId),
+      )
+        .patch(`/api/companies/${company.id}/members/${member.id}`)
+        .send({ membershipRole: "operator" });
+
+      expect(res.status, JSON.stringify(res.body)).toBe(200);
+      expect(res.body.membershipRole).toBe("operator");
+
+      const grants = await db
+        .select()
+        .from(principalPermissionGrants)
+        .where(
+          and(
+            eq(principalPermissionGrants.companyId, company.id),
+            eq(principalPermissionGrants.principalType, "user"),
+            eq(principalPermissionGrants.principalId, member.principalId),
+          ),
+        );
+      expect(grants).toHaveLength(1);
+      expect(grants[0]).toMatchObject({
+        permissionKey: "tasks:assign_scope",
+        scope: customScope,
+        grantedByUserId: owner.principalId,
+      });
     });
 
-    const res = await request(await createApp(db, company.id, owner.principalId))
-      .patch(`/api/companies/${company.id}/members/${member.id}`)
-      .send({ membershipRole: "operator" });
+    it("sweeps personal connection access when the member route suspends a user", async () => {
+      const { company, owner } = await createCompanyWithOwner(db);
+      const member = await db
+        .insert(companyMemberships)
+        .values({
+          companyId: company.id,
+          principalType: "user",
+          principalId: `member-${randomUUID()}`,
+          status: "active",
+          membershipRole: "member",
+        })
+        .returning()
+        .then((rows) => rows[0]!);
+      const agent = await db
+        .insert(agents)
+        .values({
+          companyId: company.id,
+          name: "Delegated route agent",
+          role: "worker",
+          adapterType: "process",
+          adapterConfig: {},
+        })
+        .returning()
+        .then((rows) => rows[0]!);
+      const application = await db
+        .insert(toolApplications)
+        .values({
+          companyId: company.id,
+          applicationKey: `route-app-${randomUUID()}`,
+          name: "Route personal app",
+          type: "mcp",
+          status: "active",
+        })
+        .returning()
+        .then((rows) => rows[0]!);
+      const connection = await db
+        .insert(toolConnections)
+        .values({
+          companyId: company.id,
+          applicationId: application.id,
+          name: "Route personal connection",
+          uid: `route-connection-${randomUUID()}`,
+          connectionKind: "managed",
+          ownership: "customer",
+          transport: "mcp_remote",
+          authKind: "oauth",
+          credentialPolicy: "per_user",
+          status: "active",
+          enabled: true,
+        })
+        .returning()
+        .then((rows) => rows[0]!);
+      const grant = await db
+        .insert(connectionGrants)
+        .values({
+          companyId: company.id,
+          connectionId: connection.id,
+          kind: "user",
+          subjectUserId: member.principalId,
+          status: "active",
+        })
+        .returning()
+        .then((rows) => rows[0]!);
+      await db.insert(connectionGrantDelegations).values({
+        companyId: company.id,
+        grantId: grant.id,
+        agentId: agent.id,
+        createdByUserId: member.principalId,
+      });
 
-    expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.membershipRole).toBe("operator");
+      const res = await request(
+        await createApp(db, company.id, owner.principalId),
+      )
+        .patch(`/api/companies/${company.id}/members/${member.id}`)
+        .send({ status: "suspended" });
 
-    const grants = await db
-      .select()
-      .from(principalPermissionGrants)
-      .where(
-        and(
-          eq(principalPermissionGrants.companyId, company.id),
-          eq(principalPermissionGrants.principalType, "user"),
-          eq(principalPermissionGrants.principalId, member.principalId),
-        ),
+      expect(res.status, JSON.stringify(res.body)).toBe(200);
+      expect(res.body.status).toBe("suspended");
+      expect(await db.select().from(connectionGrantDelegations)).toHaveLength(
+        0,
       );
-    expect(grants).toHaveLength(1);
-    expect(grants[0]).toMatchObject({
-      permissionKey: "tasks:assign_scope",
-      scope: customScope,
-      grantedByUserId: owner.principalId,
+      expect(
+        await db
+          .select()
+          .from(connectionGrants)
+          .where(eq(connectionGrants.id, grant.id)),
+      ).toEqual([expect.objectContaining({ status: "revoked" })]);
+
+      await request(await createApp(db, company.id, owner.principalId))
+        .patch(
+          `/api/companies/${company.id}/members/${member.id}/role-and-grants`,
+        )
+        .send({ status: "active", grants: [] })
+        .expect(200);
+      await db
+        .update(connectionGrants)
+        .set({ status: "active" })
+        .where(eq(connectionGrants.id, grant.id));
+      await db.insert(connectionGrantDelegations).values({
+        companyId: company.id,
+        grantId: grant.id,
+        agentId: agent.id,
+        createdByUserId: member.principalId,
+      });
+
+      const permissionsRoute = await request(
+        await createApp(db, company.id, owner.principalId),
+      )
+        .patch(
+          `/api/companies/${company.id}/members/${member.id}/role-and-grants`,
+        )
+        .send({ status: "suspended", grants: [] });
+      expect(
+        permissionsRoute.status,
+        JSON.stringify(permissionsRoute.body),
+      ).toBe(200);
+      expect(await db.select().from(connectionGrantDelegations)).toHaveLength(
+        0,
+      );
+      expect(
+        await db
+          .select()
+          .from(connectionGrants)
+          .where(eq(connectionGrants.id, grant.id)),
+      ).toEqual([expect.objectContaining({ status: "revoked" })]);
     });
-  });
-
-  it("sweeps personal connection access when the member route suspends a user", async () => {
-    const { company, owner } = await createCompanyWithOwner(db);
-    const member = await db.insert(companyMemberships).values({
-      companyId: company.id,
-      principalType: "user",
-      principalId: `member-${randomUUID()}`,
-      status: "active",
-      membershipRole: "member",
-    }).returning().then((rows) => rows[0]!);
-    const agent = await db.insert(agents).values({
-      companyId: company.id,
-      name: "Delegated route agent",
-      role: "worker",
-      adapterType: "process",
-      adapterConfig: {},
-    }).returning().then((rows) => rows[0]!);
-    const application = await db.insert(toolApplications).values({
-      companyId: company.id,
-      applicationKey: `route-app-${randomUUID()}`,
-      name: "Route personal app",
-      type: "mcp",
-      status: "active",
-    }).returning().then((rows) => rows[0]!);
-    const connection = await db.insert(toolConnections).values({
-      companyId: company.id,
-      applicationId: application.id,
-      name: "Route personal connection",
-      uid: `route-connection-${randomUUID()}`,
-      connectionKind: "managed",
-      ownership: "customer",
-      transport: "mcp_remote",
-      authKind: "oauth",
-      credentialPolicy: "per_user",
-      status: "active",
-      enabled: true,
-    }).returning().then((rows) => rows[0]!);
-    const grant = await db.insert(connectionGrants).values({
-      companyId: company.id,
-      connectionId: connection.id,
-      kind: "user",
-      subjectUserId: member.principalId,
-      status: "active",
-    }).returning().then((rows) => rows[0]!);
-    await db.insert(connectionGrantDelegations).values({
-      companyId: company.id,
-      grantId: grant.id,
-      agentId: agent.id,
-      createdByUserId: member.principalId,
-    });
-
-    const res = await request(await createApp(db, company.id, owner.principalId))
-      .patch(`/api/companies/${company.id}/members/${member.id}`)
-      .send({ status: "suspended" });
-
-    expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.status).toBe("suspended");
-    expect(await db.select().from(connectionGrantDelegations)).toHaveLength(0);
-    expect(await db.select().from(connectionGrants).where(eq(connectionGrants.id, grant.id)))
-      .toEqual([expect.objectContaining({ status: "revoked" })]);
-
-    await request(await createApp(db, company.id, owner.principalId))
-      .patch(`/api/companies/${company.id}/members/${member.id}/role-and-grants`)
-      .send({ status: "active", grants: [] })
-      .expect(200);
-    await db.update(connectionGrants).set({ status: "active" }).where(eq(connectionGrants.id, grant.id));
-    await db.insert(connectionGrantDelegations).values({
-      companyId: company.id,
-      grantId: grant.id,
-      agentId: agent.id,
-      createdByUserId: member.principalId,
-    });
-
-    const permissionsRoute = await request(await createApp(db, company.id, owner.principalId))
-      .patch(`/api/companies/${company.id}/members/${member.id}/role-and-grants`)
-      .send({ status: "suspended", grants: [] });
-    expect(permissionsRoute.status, JSON.stringify(permissionsRoute.body)).toBe(200);
-    expect(await db.select().from(connectionGrantDelegations)).toHaveLength(0);
-    expect(await db.select().from(connectionGrants).where(eq(connectionGrants.id, grant.id)))
-      .toEqual([expect.objectContaining({ status: "revoked" })]);
-  });
-});
+  },
+);

@@ -14,7 +14,9 @@ export const DRAFT_DEBOUNCE_MS = 800;
 // Chat drafts and uncertain submissions belong to this browser tab. Sharing a
 // submission fence across tabs prevents intentional concurrent conversation turns.
 function draftStorage(draftKey: string): Storage {
-  return draftKey.startsWith("taskcore:agent-chat-draft:") ? sessionStorage : localStorage;
+  return draftKey.startsWith("taskcore:agent-chat-draft:")
+    ? sessionStorage
+    : localStorage;
 }
 
 export function loadDraft(draftKey: string): string {
@@ -35,15 +37,30 @@ export function loadDraftIfAvailable(draftKey: string): string | null {
 export function loadDraftRecoveryKey(draftKey: string): string | null {
   const key = `taskcore:agent-chat-draft:recovered:${draftKey}`;
   try {
-    return sessionStorage.getItem(`${key}:recovery:v1`) === draftKey ? key : null;
-  } catch { return null; }
+    return sessionStorage.getItem(`${key}:recovery:v1`) === draftKey
+      ? key
+      : null;
+  } catch {
+    return null;
+  }
 }
 
-export function preserveDraftInTab(draftKey: string, body: string, attachments: unknown): { key: string; persisted: boolean } {
+export function preserveDraftInTab(
+  draftKey: string,
+  body: string,
+  attachments: unknown,
+): { key: string; persisted: boolean } {
   const key = `taskcore:agent-chat-draft:recovered:${draftKey}`;
   try {
     sessionStorage.setItem(key, body);
-    sessionStorage.setItem(`${key}:attachments:v1`, JSON.stringify({ version: 1, draftKey: key, attachments: draftAttachments(attachments) }));
+    sessionStorage.setItem(
+      `${key}:attachments:v1`,
+      JSON.stringify({
+        version: 1,
+        draftKey: key,
+        attachments: draftAttachments(attachments),
+      }),
+    );
     sessionStorage.setItem(`${key}:recovery:v1`, draftKey);
     return { key, persisted: true };
   } catch {
@@ -55,7 +72,11 @@ function syncDraftRecoveryMarker(draftKey: string) {
   const prefix = "taskcore:agent-chat-draft:recovered:";
   if (!draftKey.startsWith(prefix)) return;
   const marker = `${draftKey}:recovery:v1`;
-  if (loadDraft(draftKey).trim() || loadDraftAttachments(draftKey).length || loadDraftSubmission(draftKey)) {
+  if (
+    loadDraft(draftKey).trim() ||
+    loadDraftAttachments(draftKey).length ||
+    loadDraftSubmission(draftKey)
+  ) {
     sessionStorage.setItem(marker, draftKey.slice(prefix.length));
   } else {
     sessionStorage.removeItem(marker);
@@ -112,15 +133,37 @@ export function loadDraftSubmission(
     const record = JSON.parse(raw);
     return record?.version === 1 &&
       record.draftKey === draftKey &&
-      Object.keys(record).every((key) => ["version", "draftKey", "attemptId", "reviewed", "nextDraftOffset", "submittedAttachmentIds"].includes(key)) &&
+      Object.keys(record).every((key) =>
+        [
+          "version",
+          "draftKey",
+          "attemptId",
+          "reviewed",
+          "nextDraftOffset",
+          "submittedAttachmentIds",
+        ].includes(key),
+      ) &&
       typeof record.attemptId === "string" &&
       /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(record.attemptId) &&
       typeof record.reviewed === "boolean" &&
-      (record.nextDraftOffset === undefined || (Number.isSafeInteger(record.nextDraftOffset) && record.nextDraftOffset >= 0)) &&
-      (record.submittedAttachmentIds === undefined || (Array.isArray(record.submittedAttachmentIds) && record.submittedAttachmentIds.length <= 256 && record.submittedAttachmentIds.every((id: unknown) => typeof id === "string" && id.length <= 128)))
-      ? { attemptId: record.attemptId, reviewed: record.reviewed,
-          ...(record.nextDraftOffset !== undefined ? { nextDraftOffset: record.nextDraftOffset } : {}),
-          ...(record.submittedAttachmentIds !== undefined ? { submittedAttachmentIds: record.submittedAttachmentIds } : {}),
+      (record.nextDraftOffset === undefined ||
+        (Number.isSafeInteger(record.nextDraftOffset) &&
+          record.nextDraftOffset >= 0)) &&
+      (record.submittedAttachmentIds === undefined ||
+        (Array.isArray(record.submittedAttachmentIds) &&
+          record.submittedAttachmentIds.length <= 256 &&
+          record.submittedAttachmentIds.every(
+            (id: unknown) => typeof id === "string" && id.length <= 128,
+          )))
+      ? {
+          attemptId: record.attemptId,
+          reviewed: record.reviewed,
+          ...(record.nextDraftOffset !== undefined
+            ? { nextDraftOffset: record.nextDraftOffset }
+            : {}),
+          ...(record.submittedAttachmentIds !== undefined
+            ? { submittedAttachmentIds: record.submittedAttachmentIds }
+            : {}),
         }
       : null;
   } catch {
@@ -158,13 +201,24 @@ export function clearDraftSubmission(draftKey: string, attemptId: string) {
 }
 
 /** A late response can settle only its own retained intent, never a newer draft. */
-export function settleDraftSubmission(draftKey: string, attemptId: string, nextDraft?: string): boolean {
+export function settleDraftSubmission(
+  draftKey: string,
+  attemptId: string,
+  nextDraft?: string,
+): boolean {
   const submission = loadDraftSubmission(draftKey);
   if (submission?.attemptId !== attemptId) return false;
-  nextDraft ??= submission.nextDraftOffset === undefined
-    ? "" : loadDraft(draftKey).slice(submission.nextDraftOffset);
-  const nextAttachments = submission.submittedAttachmentIds === undefined ? []
-    : loadDraftAttachments(draftKey).filter(item => !submission.submittedAttachmentIds!.includes(item.attachmentId));
+  nextDraft ??=
+    submission.nextDraftOffset === undefined
+      ? ""
+      : loadDraft(draftKey).slice(submission.nextDraftOffset);
+  const nextAttachments =
+    submission.submittedAttachmentIds === undefined
+      ? []
+      : loadDraftAttachments(draftKey).filter(
+          (item) =>
+            !submission.submittedAttachmentIds!.includes(item.attachmentId),
+        );
   clearDraft(draftKey, attemptId);
   if (nextDraft) saveDraft(draftKey, nextDraft);
   if (nextAttachments.length) saveDraftAttachments(draftKey, nextAttachments);
@@ -242,7 +296,11 @@ export function loadDraftAttachments(
   }
 }
 
-export function saveDraftAttachments(draftKey: string, attachments: unknown, attemptId?: string) {
+export function saveDraftAttachments(
+  draftKey: string,
+  attachments: unknown,
+  attemptId?: string,
+) {
   try {
     // Only the owning pending request may persist newly uploaded receipts.
     // Generic effects and stale composer cleanups must not rewrite its snapshot.

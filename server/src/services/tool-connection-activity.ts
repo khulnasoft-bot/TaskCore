@@ -1,4 +1,15 @@
-import { and, desc, eq, gte, ilike, inArray, lt, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  lt,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import {
   activityLog,
@@ -35,7 +46,8 @@ export function connectionLifecycleType(
     case "tool_connection.archived":
       return "disconnected";
     case "tool_connection.updated": {
-      const lifecycle = typeof details?.lifecycle === "string" ? details.lifecycle : null;
+      const lifecycle =
+        typeof details?.lifecycle === "string" ? details.lifecycle : null;
       if (lifecycle === "paused") return "app_paused";
       if (lifecycle === "resumed") return "app_resumed";
       if (lifecycle === "allowlist_changed") return "allowlist_changed";
@@ -91,27 +103,38 @@ export async function listConnectionLifecycleEvents(
 
   if (input.connectionIds) {
     activityConditions.push(inArray(activityLog.entityId, input.connectionIds));
-    quarantineConditions.push(inArray(toolAccessAuditEvents.connectionId, input.connectionIds));
+    quarantineConditions.push(
+      inArray(toolAccessAuditEvents.connectionId, input.connectionIds),
+    );
   }
   if (input.agentId) {
     activityConditions.push(eq(activityLog.agentId, input.agentId));
   }
   if (input.since) {
     activityConditions.push(gte(activityLog.createdAt, input.since));
-    quarantineConditions.push(gte(toolAccessAuditEvents.createdAt, input.since));
+    quarantineConditions.push(
+      gte(toolAccessAuditEvents.createdAt, input.since),
+    );
   }
   if (input.cursor) {
-    activityConditions.push(or(
-      lt(activityLog.createdAt, input.cursor.createdAt),
-      and(eq(activityLog.createdAt, input.cursor.createdAt), lt(activityLog.id, input.cursor.id)),
-    )!);
-    quarantineConditions.push(or(
-      lt(toolAccessAuditEvents.createdAt, input.cursor.createdAt),
-      and(
-        eq(toolAccessAuditEvents.createdAt, input.cursor.createdAt),
-        lt(toolAccessAuditEvents.id, input.cursor.id),
-      ),
-    )!);
+    activityConditions.push(
+      or(
+        lt(activityLog.createdAt, input.cursor.createdAt),
+        and(
+          eq(activityLog.createdAt, input.cursor.createdAt),
+          lt(activityLog.id, input.cursor.id),
+        ),
+      )!,
+    );
+    quarantineConditions.push(
+      or(
+        lt(toolAccessAuditEvents.createdAt, input.cursor.createdAt),
+        and(
+          eq(toolAccessAuditEvents.createdAt, input.cursor.createdAt),
+          lt(toolAccessAuditEvents.id, input.cursor.id),
+        ),
+      )!,
+    );
   }
   if (input.search) {
     const like = `%${input.search.replace(/[%_\\]/g, (ch) => `\\${ch}`)}%`;
@@ -127,8 +150,12 @@ export async function listConnectionLifecycleEvents(
       activitySearch.push(inArray(activityLog.agentId, input.matchedAgentIds));
     }
     if (input.matchedConnectionIds?.length) {
-      activitySearch.push(inArray(activityLog.entityId, input.matchedConnectionIds));
-      quarantineSearch.push(inArray(toolAccessAuditEvents.connectionId, input.matchedConnectionIds));
+      activitySearch.push(
+        inArray(activityLog.entityId, input.matchedConnectionIds),
+      );
+      quarantineSearch.push(
+        inArray(toolAccessAuditEvents.connectionId, input.matchedConnectionIds),
+      );
     }
     activityConditions.push(or(...activitySearch)!);
     quarantineConditions.push(or(...quarantineSearch)!);
@@ -144,11 +171,14 @@ export async function listConnectionLifecycleEvents(
     input.agentId
       ? []
       : db
-        .select()
-        .from(toolAccessAuditEvents)
-        .where(and(...quarantineConditions))
-        .orderBy(desc(toolAccessAuditEvents.createdAt), desc(toolAccessAuditEvents.id))
-        .limit(safeLimit),
+          .select()
+          .from(toolAccessAuditEvents)
+          .where(and(...quarantineConditions))
+          .orderBy(
+            desc(toolAccessAuditEvents.createdAt),
+            desc(toolAccessAuditEvents.id),
+          )
+          .limit(safeLimit),
   ]);
 
   type Pending = Omit<ToolConnectionLifecycleEvent, "actorDisplayName">;
@@ -169,7 +199,9 @@ export async function listConnectionLifecycleEvents(
   }
   for (const row of quarantineRows) {
     if (!row.connectionId) continue;
-    const count = Number((row.details as Record<string, unknown> | null)?.quarantinedCount ?? 0);
+    const count = Number(
+      (row.details as Record<string, unknown> | null)?.quarantinedCount ?? 0,
+    );
     pending.push({
       id: row.id,
       connectionId: row.connectionId,
@@ -193,25 +225,38 @@ export async function listConnectionLifecycleEvents(
   for (const item of limited) {
     if (item.agentId) agentIds.add(item.agentId);
     if (item.actorType === "agent" && item.actorId) agentIds.add(item.actorId);
-    if (item.actorType === "user" && item.actorId && item.actorId !== "board") userIds.add(item.actorId);
+    if (item.actorType === "user" && item.actorId && item.actorId !== "board")
+      userIds.add(item.actorId);
   }
   const [agentRows, userRows] = await Promise.all([
     agentIds.size
       ? db
-        .select({ id: agents.id, name: agents.name })
-        .from(agents)
-        .where(and(eq(agents.companyId, input.companyId), inArray(agents.id, [...agentIds])))
+          .select({ id: agents.id, name: agents.name })
+          .from(agents)
+          .where(
+            and(
+              eq(agents.companyId, input.companyId),
+              inArray(agents.id, [...agentIds]),
+            ),
+          )
       : [],
     userIds.size
       ? db
-        .select({ id: authUsers.id, name: authUsers.name, email: authUsers.email })
-        .from(authUsers)
-        .where(inArray(authUsers.id, [...userIds]))
+          .select({
+            id: authUsers.id,
+            name: authUsers.name,
+            email: authUsers.email,
+          })
+          .from(authUsers)
+          .where(inArray(authUsers.id, [...userIds]))
       : [],
   ]);
   const agentNames = new Map(agentRows.map((agent) => [agent.id, agent.name]));
   const userNames = new Map(
-    userRows.map((user) => [user.id, user.name?.trim() || user.email?.trim() || user.id]),
+    userRows.map((user) => [
+      user.id,
+      user.name?.trim() || user.email?.trim() || user.id,
+    ]),
   );
 
   return limited.map((item) => {
@@ -220,9 +265,10 @@ export async function listConnectionLifecycleEvents(
     else if (item.actorType === "agent" && item.actorId) {
       actorDisplayName = agentNames.get(item.actorId) ?? null;
     } else if (item.actorType === "user" && item.actorId) {
-      actorDisplayName = item.actorId === "board"
-        ? "The board"
-        : userNames.get(item.actorId) ?? userFallbackName(item.actorId);
+      actorDisplayName =
+        item.actorId === "board"
+          ? "The board"
+          : (userNames.get(item.actorId) ?? userFallbackName(item.actorId));
     }
     return { ...item, actorDisplayName };
   });

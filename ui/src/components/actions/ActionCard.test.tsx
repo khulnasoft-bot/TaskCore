@@ -4,7 +4,12 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ActionCard, ActionCardMobile, BindingsTable, shortSha } from "./ActionCard";
+import {
+  ActionCard,
+  ActionCardMobile,
+  BindingsTable,
+  shortSha,
+} from "./ActionCard";
 
 // EnforcementBanner pulls in a react-query hook; the stale variant only needs
 // its presentational copy, so stub it to keep the test free of a QueryClient.
@@ -42,8 +47,10 @@ const baseBinding = {
   application: "Slack",
   manifestVersion: "2.4.1",
   connection: "https://slack.com/api",
-  catalogSha256: "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-  payloadSha256: "sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
+  catalogSha256:
+    "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+  payloadSha256:
+    "sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
 };
 
 const baseProps = {
@@ -58,7 +65,9 @@ const baseProps = {
 };
 
 function approveButton(c: HTMLElement): HTMLButtonElement {
-  const btn = Array.from(c.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Approve");
+  const btn = Array.from(c.querySelectorAll("button")).find(
+    (b) => b.textContent?.trim() === "Approve",
+  );
   if (!btn) throw new Error("Approve button not found");
   return btn as HTMLButtonElement;
 }
@@ -81,7 +90,9 @@ describe("ActionCard", () => {
     const c = render(<ActionCard {...baseProps} onApprove={onApprove} />);
     const btn = approveButton(c);
     expect(btn.disabled).toBe(false);
-    flushSync(() => btn.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    flushSync(() =>
+      btn.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
     expect(onApprove).toHaveBeenCalledOnce();
   });
 
@@ -92,7 +103,8 @@ describe("ActionCard", () => {
         variant="stale"
         binding={{
           ...baseBinding,
-          catalogSha256: "sha256:7d793037a0760186574b0282f2f435e7deadbeefcafef00dba5eba5eba5eba5e",
+          catalogSha256:
+            "sha256:7d793037a0760186574b0282f2f435e7deadbeefcafef00dba5eba5eba5eba5e",
           previousCatalogSha256: baseBinding.catalogSha256,
         }}
       />,
@@ -110,8 +122,12 @@ describe("ActionCard", () => {
     expect(labels.length).toBeGreaterThan(0);
     expect((labels[0] as HTMLElement).style.width).toBe("70px");
 
-    const buttonText = Array.from(c.querySelectorAll("button")).map((b) => b.textContent?.trim());
-    const order = buttonText.filter((t) => t === "Approve" || t === "Deny" || t?.startsWith("Edit"));
+    const buttonText = Array.from(c.querySelectorAll("button")).map((b) =>
+      b.textContent?.trim(),
+    );
+    const order = buttonText.filter(
+      (t) => t === "Approve" || t === "Deny" || t?.startsWith("Edit"),
+    );
     expect(order[0]).toBe("Approve");
     expect(order[1]).toBe("Deny");
     expect(order[2]).toContain("Edit");
@@ -121,7 +137,9 @@ describe("ActionCard", () => {
 describe("BindingsTable", () => {
   it("renders mono rows with the default 132px label column", () => {
     const c = render(
-      <BindingsTable rows={[{ label: "Catalog", value: "sha256:abc", mono: true }]} />,
+      <BindingsTable
+        rows={[{ label: "Catalog", value: "sha256:abc", mono: true }]}
+      />,
     );
     const dt = c.querySelector("dt") as HTMLElement;
     expect(dt.style.width).toBe("132px");
@@ -131,9 +149,11 @@ describe("BindingsTable", () => {
 
 describe("shortSha", () => {
   it("truncates a long sha to the review form", () => {
-    expect(shortSha("sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08")).toBe(
-      "sha256:9f86d08188…f00a08",
-    );
+    expect(
+      shortSha(
+        "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      ),
+    ).toBe("sha256:9f86d08188…f00a08");
   });
   it("leaves a short sha intact", () => {
     expect(shortSha("sha256:abcd")).toBe("sha256:abcd");

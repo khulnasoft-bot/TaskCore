@@ -18,7 +18,11 @@ interface TaskArtifactArrivalOptions {
 
 /** Register the same durable objects as the Artifacts tab, including history. */
 export function useTaskArtifactArrival({
-  issueId, attachments, workProducts, documents, onArrival,
+  issueId,
+  attachments,
+  workProducts,
+  documents,
+  onArrival,
 }: TaskArtifactArrivalOptions) {
   const observed = useRef<{
     issueId: string | undefined;
@@ -32,15 +36,21 @@ export function useTaskArtifactArrival({
     if (!issueId) return;
 
     const sources = {
-      attachments: attachments?.filter(isAgentAttachment).map((file) => `attachment:${file.id}`),
+      attachments: attachments
+        ?.filter(isAgentAttachment)
+        .map((file) => `attachment:${file.id}`),
       workProducts: workProducts?.map((product) => {
         const attachment = getAttachmentArtifactWorkProductMetadata(product);
         // Uploading a file and then registering it is one arrival, even when
         // the two queries settle separately.
-        return attachment ? `attachment:${attachment.attachmentId}` : `work-product:${product.id}`;
+        return attachment
+          ? `attachment:${attachment.attachmentId}`
+          : `work-product:${product.id}`;
       }),
       documents: documents
-        ?.filter((doc) => doc.key !== "plan" && !isArtifactReviewDocumentKey(doc.key))
+        ?.filter(
+          (doc) => doc.key !== "plan" && !isArtifactReviewDocumentKey(doc.key),
+        )
         .map((doc) => `document:${doc.id}`),
     };
     const state = observed.current;

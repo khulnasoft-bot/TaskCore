@@ -22,7 +22,8 @@ export function canBoardManageRuntime(
   boardAccess: CurrentBoardAccess | undefined,
 ) {
   if (!companyId || !boardAccess) return false;
-  if (boardAccess.source === "local_implicit" || boardAccess.isInstanceAdmin) return true;
+  if (boardAccess.source === "local_implicit" || boardAccess.isInstanceAdmin)
+    return true;
   if (!boardAccess.memberships || boardAccess.memberships.length === 0) {
     return boardAccess.companyIds.includes(companyId);
   }
@@ -31,7 +32,9 @@ export function canBoardManageRuntime(
     (item) => item.companyId === companyId && item.status === "active",
   );
   if (!membership) return false;
-  return membership.membershipRole !== "viewer" && membership.membershipRole !== null;
+  return (
+    membership.membershipRole !== "viewer" && membership.membershipRole !== null
+  );
 }
 
 /**
@@ -55,7 +58,10 @@ export function readRecoveryReconcileWorkspaceId(
   const persisted = workspaceValidation.persistedExecutionWorkspaceId;
   if (typeof persisted === "string" && persisted.length > 0) return persisted;
   const executionWorkspaceId = workspaceValidation.executionWorkspaceId;
-  if (typeof executionWorkspaceId === "string" && executionWorkspaceId.length > 0) {
+  if (
+    typeof executionWorkspaceId === "string" &&
+    executionWorkspaceId.length > 0
+  ) {
     return executionWorkspaceId;
   }
   return null;

@@ -16,8 +16,11 @@ const SESSION_CWD_SYSTEM_ROOTS = new Set([
   "/private/tmp",
 ]);
 
-export function isUnsafeSessionWorkspaceCwd(cwd: string | null | undefined): boolean {
-  const value = typeof cwd === "string" && cwd.trim().length > 0 ? cwd.trim() : null;
+export function isUnsafeSessionWorkspaceCwd(
+  cwd: string | null | undefined,
+): boolean {
+  const value =
+    typeof cwd === "string" && cwd.trim().length > 0 ? cwd.trim() : null;
   if (!value) return false;
   const normalized = path.normalize(value.replace(/\/+$/, "") || "/");
   return SESSION_CWD_SYSTEM_ROOTS.has(normalized);

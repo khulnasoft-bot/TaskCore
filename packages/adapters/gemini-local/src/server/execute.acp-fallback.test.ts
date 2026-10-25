@@ -12,9 +12,13 @@ const {
   runAdapterExecutionTargetProcess,
 } = vi.hoisted(() => ({
   ensureAdapterExecutionTargetCommandResolvable: vi.fn(async () => undefined),
-  ensureAdapterExecutionTargetRuntimeCommandInstalled: vi.fn(async () => undefined),
+  ensureAdapterExecutionTargetRuntimeCommandInstalled: vi.fn(
+    async () => undefined,
+  ),
   executeGeminiAcp: vi.fn(async () => {
-    throw new Error('Transform failed with 1 error: execute.ts:818:0: ERROR: Unexpected "<<"');
+    throw new Error(
+      'Transform failed with 1 error: execute.ts:818:0: ERROR: Unexpected "<<"',
+    );
   }),
   readTaskcoreRuntimeSkillEntries: vi.fn(async () => []),
   resolveAdapterExecutionTargetCommandForLogs: vi.fn(async () => "gemini"),
@@ -39,18 +43,20 @@ const {
 
 vi.mock("./acp.js", () => ({
   createGeminiAcpExecutor: () => executeGeminiAcp,
-  resolveGeminiExecutionEngineForRun: async (ctx: { config: Record<string, unknown> }) =>
+  resolveGeminiExecutionEngineForRun: async (ctx: {
+    config: Record<string, unknown>;
+  }) =>
     ctx.config.engine === "cli"
       ? { engine: "cli", explicit: true }
       : ctx.config.engine === "acp"
-      ? { engine: "acp", explicit: true }
-      : { engine: "acp", explicit: false },
+        ? { engine: "acp", explicit: true }
+        : { engine: "acp", explicit: false },
 }));
 
 vi.mock("@taskcore/adapter-utils/execution-target", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/execution-target")>(
-    "@taskcore/adapter-utils/execution-target",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/execution-target")
+  >("@taskcore/adapter-utils/execution-target");
   return {
     ...actual,
     ensureAdapterExecutionTargetCommandResolvable,
@@ -61,9 +67,9 @@ vi.mock("@taskcore/adapter-utils/execution-target", async () => {
 });
 
 vi.mock("@taskcore/adapter-utils/server-utils", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/server-utils")>(
-    "@taskcore/adapter-utils/server-utils",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/server-utils")
+  >("@taskcore/adapter-utils/server-utils");
   return {
     ...actual,
     readTaskcoreRuntimeSkillEntries,
@@ -119,31 +125,48 @@ describe("gemini_local ACP startup fallback", () => {
   });
 
   it.each(["fresh", "resumed", "missing"] as const)(
-    "supplies initial communication guidance at the CLI attempt boundary (%s)", async (state) => {
+    "supplies initial communication guidance at the CLI attempt boundary (%s)",
+    async (state) => {
       const cwd = await mkdtemp(path.join(tmpdir(), "gemini-communication-"));
       const prompts: string[] = [];
       try {
         if (state === "missing") {
           runAdapterExecutionTargetProcess.mockResolvedValueOnce({
-            exitCode: 1, signal: null, timedOut: false, stdout: "",
-            stderr: "Unknown session 'previous'", pid: 123, startedAt: new Date().toISOString(),
+            exitCode: 1,
+            signal: null,
+            timedOut: false,
+            stdout: "",
+            stderr: "Unknown session 'previous'",
+            pid: 123,
+            startedAt: new Date().toISOString(),
           });
         }
         const ctx = buildContext({ engine: "cli", cwd });
         await execute({
           ...ctx,
-          runtime: { ...ctx.runtime, sessionId: state === "fresh" ? null : "previous" },
-          context: { taskcoreTaskCommunicationGuidance: "Frozen Slack preferences." },
-          onMeta: async (meta) => { prompts.push(meta.prompt ?? ""); },
+          runtime: {
+            ...ctx.runtime,
+            sessionId: state === "fresh" ? null : "previous",
+          },
+          context: {
+            taskcoreTaskCommunicationGuidance: "Frozen Slack preferences.",
+          },
+          onMeta: async (meta) => {
+            prompts.push(meta.prompt ?? "");
+          },
         });
         if (state === "fresh") {
           expect(prompts).toHaveLength(1);
-          expect(prompts[0]?.match(/Frozen Slack preferences\./g)).toHaveLength(1);
+          expect(prompts[0]?.match(/Frozen Slack preferences\./g)).toHaveLength(
+            1,
+          );
         } else {
           expect(prompts[0]).not.toContain("Frozen Slack preferences.");
           expect(prompts).toHaveLength(state === "missing" ? 2 : 1);
           if (state === "missing") {
-            expect(prompts[1]?.match(/Frozen Slack preferences\./g)).toHaveLength(1);
+            expect(
+              prompts[1]?.match(/Frozen Slack preferences\./g),
+            ).toHaveLength(1);
           }
         }
       } finally {
@@ -158,20 +181,35 @@ describe("gemini_local ACP startup fallback", () => {
     try {
       runAdapterExecutionTargetProcess
         .mockResolvedValueOnce({
-          exitCode: 1, signal: null, timedOut: false, stdout: "",
-          stderr: "Unknown session 'previous'", pid: 123, startedAt: new Date().toISOString(),
+          exitCode: 1,
+          signal: null,
+          timedOut: false,
+          stdout: "",
+          stderr: "Unknown session 'previous'",
+          pid: 123,
+          startedAt: new Date().toISOString(),
         })
         .mockResolvedValueOnce({
-          exitCode: 0, signal: null, timedOut: false,
-          stdout: JSON.stringify({ type: "message", role: "assistant", content: "done" }),
-          stderr: "", pid: 123, startedAt: new Date().toISOString(),
+          exitCode: 0,
+          signal: null,
+          timedOut: false,
+          stdout: JSON.stringify({
+            type: "message",
+            role: "assistant",
+            content: "done",
+          }),
+          stderr: "",
+          pid: 123,
+          startedAt: new Date().toISOString(),
         });
       const ctx = buildContext({ engine: "cli", cwd });
       await execute({
         ...ctx,
         runtime: { ...ctx.runtime, sessionId: "previous" },
         context: createPromptContextFixture(),
-        onMeta: async (meta) => { prompts.push(meta.prompt ?? ""); },
+        onMeta: async (meta) => {
+          prompts.push(meta.prompt ?? "");
+        },
       });
       expect(prompts).toHaveLength(2);
       expect(prompts[0]).toContain("## Compact assignment");

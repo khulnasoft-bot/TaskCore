@@ -17,16 +17,26 @@ vi.mock("./environment-variables-editor/SecretPicker", () => ({
     onCreateNew?: (query: string) => void;
   }) => {
     mockSecretPickerRender(props);
-    return <>
-      <button type="button" data-testid="pick-secret" onClick={() => props.onSelect("s1")}>
-        pick
-      </button>
-      {props.onCreateNew ? (
-        <button type="button" data-testid="create-secret" onClick={() => props.onCreateNew?.("new_secret")}>
-          create
+    return (
+      <>
+        <button
+          type="button"
+          data-testid="pick-secret"
+          onClick={() => props.onSelect("s1")}
+        >
+          pick
         </button>
-      ) : null}
-    </>;
+        {props.onCreateNew ? (
+          <button
+            type="button"
+            data-testid="create-secret"
+            onClick={() => props.onCreateNew?.("new_secret")}
+          >
+            create
+          </button>
+        ) : null}
+      </>
+    );
   },
 }));
 
@@ -77,16 +87,25 @@ describe("AgentSecretAccessEditor model", () => {
   };
 
   it("parses env secret refs, ignoring plain values", () => {
-    expect(parseEnvSecretRefs(config)).toEqual([{ name: "GH_TOKEN", secretId: "s1", version: 2 }]);
+    expect(parseEnvSecretRefs(config)).toEqual([
+      { name: "GH_TOKEN", secretId: "s1", version: 2 },
+    ]);
   });
 
   it("parses only well-formed top-level access.* secret refs", () => {
-    expect(parseAccessGrants(config)).toEqual([{ name: "STRIPE", secretId: "s1", version: "latest" }]);
+    expect(parseAccessGrants(config)).toEqual([
+      { name: "STRIPE", secretId: "s1", version: "latest" },
+    ]);
   });
 
   it("summarizes bindings per secret with both delivery modes", () => {
-    const summary = summarizeAgentBindings(parseEnvSecretRefs(config), parseAccessGrants(config));
-    expect(summary).toEqual([{ secretId: "s1", envKeys: ["GH_TOKEN"], apiAliases: ["STRIPE"] }]);
+    const summary = summarizeAgentBindings(
+      parseEnvSecretRefs(config),
+      parseAccessGrants(config),
+    );
+    expect(summary).toEqual([
+      { secretId: "s1", envKeys: ["GH_TOKEN"], apiAliases: ["STRIPE"] },
+    ]);
   });
 
   it("drops incomplete, invalid-alias, and unselected rows from the emitted access map", () => {
@@ -97,7 +116,9 @@ describe("AgentSecretAccessEditor model", () => {
         { id: "3", alias: "1BAD", secretId: "s1", version: "latest" }, // invalid alias
         { id: "4", alias: "NOSECRET", secretId: "", version: "latest" }, // no secret
       ]),
-    ).toEqual({ OK: { type: "secret_ref", secretId: "s1", version: "latest" } });
+    ).toEqual({
+      OK: { type: "secret_ref", secretId: "s1", version: "latest" },
+    });
   });
 });
 
@@ -153,26 +174,37 @@ describe("AgentSecretAccessEditor component", () => {
     );
 
     // "Add API access" appends an editable row.
-    const addButton = [...container.querySelectorAll("button")].find(
-      (button) => button.textContent?.includes("Add API access"),
+    const addButton = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Add API access"),
     )!;
     flushSync(() => addButton.click());
 
     // Type an alias.
-    const aliasInput = container.querySelector<HTMLInputElement>('input[aria-label="Access alias"]')!;
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+    const aliasInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Access alias"]',
+    )!;
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )!.set!;
     setter.call(aliasInput, "STRIPE");
-    flushSync(() => aliasInput.dispatchEvent(new Event("input", { bubbles: true })));
+    flushSync(() =>
+      aliasInput.dispatchEvent(new Event("input", { bubbles: true })),
+    );
 
     // Bind a secret via the stubbed picker.
-    const pick = container.querySelector<HTMLButtonElement>('[data-testid="pick-secret"]')!;
+    const pick = container.querySelector<HTMLButtonElement>(
+      '[data-testid="pick-secret"]',
+    )!;
     expect(mockSecretPickerRender).toHaveBeenLastCalledWith(
       expect.objectContaining({ secretId: "", secrets }),
     );
     flushSync(() => pick.click());
 
     const last = emitted.at(-1)!;
-    expect(last).toEqual({ STRIPE: { type: "secret_ref", secretId: "s1", version: "latest" } });
+    expect(last).toEqual({
+      STRIPE: { type: "secret_ref", secretId: "s1", version: "latest" },
+    });
   });
 
   it("keeps the create form open when focus returns to the shared picker anchor", async () => {
@@ -187,17 +219,23 @@ describe("AgentSecretAccessEditor component", () => {
         />,
       );
 
-      const createButton = container.querySelector<HTMLButtonElement>('[data-testid="create-secret"]')!;
+      const createButton = container.querySelector<HTMLButtonElement>(
+        '[data-testid="create-secret"]',
+      )!;
       flushSync(() => createButton.click());
       flushSync(() => vi.runAllTimers());
       expect(document.body.textContent).toContain("Create secret");
 
-      const pickerButton = container.querySelector<HTMLButtonElement>('[data-testid="pick-secret"]')!;
+      const pickerButton = container.querySelector<HTMLButtonElement>(
+        '[data-testid="pick-secret"]',
+      )!;
       pickerButton.focus();
       flushSync(() => {});
 
       expect(document.body.textContent).toContain("Create secret");
-      expect(document.querySelector('input[aria-label="Secret name"]')).toBeTruthy();
+      expect(
+        document.querySelector('input[aria-label="Secret name"]'),
+      ).toBeTruthy();
     } finally {
       vi.useRealTimers();
     }

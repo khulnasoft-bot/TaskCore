@@ -19,7 +19,11 @@ vi.mock("@/api/instanceSettings", () => ({
 }));
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: ComponentProps<"a"> & { to: string }) => <a href={to} {...props}>{children}</a>,
+  Link: ({ children, to, ...props }: ComponentProps<"a"> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock("./IssuesQuicklook", () => ({
@@ -35,10 +39,18 @@ vi.mock("./IssuesQuicklook", () => ({
  * are synchronous and the path guard fails closed until the policy resolves, so
  * the cache is primed by default. Pass `null` to leave the policy unresolved.
  */
-function withQueryClient(node: ReactNode, experimentalSettings: Record<string, unknown> | null = {}) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function withQueryClient(
+  node: ReactNode,
+  experimentalSettings: Record<string, unknown> | null = {},
+) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   if (experimentalSettings) {
-    queryClient.setQueryData(queryKeys.instance.experimentalSettings, experimentalSettings);
+    queryClient.setQueryData(
+      queryKeys.instance.experimentalSettings,
+      experimentalSettings,
+    );
   }
   return <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>;
 }
@@ -83,7 +95,8 @@ function createIssue(overrides: Partial<Issue> = {}): Issue {
     billingCode: overrides.billingCode ?? null,
     assigneeAdapterOverrides: overrides.assigneeAdapterOverrides ?? null,
     executionWorkspaceId: overrides.executionWorkspaceId ?? null,
-    executionWorkspacePreference: overrides.executionWorkspacePreference ?? null,
+    executionWorkspacePreference:
+      overrides.executionWorkspacePreference ?? null,
     executionWorkspaceSettings: overrides.executionWorkspaceSettings ?? null,
     startedAt: overrides.startedAt ?? null,
     completedAt: overrides.completedAt ?? null,
@@ -94,7 +107,9 @@ function createIssue(overrides: Partial<Issue> = {}): Issue {
   } as Issue;
 }
 
-function createSummary(overrides: Partial<ProjectWorkspaceSummary> = {}): ProjectWorkspaceSummary {
+function createSummary(
+  overrides: Partial<ProjectWorkspaceSummary> = {},
+): ProjectWorkspaceSummary {
   const issues = overrides.issues ?? [
     createIssue({ id: "issue-1", identifier: "PAP-1364" }),
     createIssue({ id: "issue-2", identifier: "PAP-1367" }),
@@ -106,7 +121,8 @@ function createSummary(overrides: Partial<ProjectWorkspaceSummary> = {}): Projec
     key: overrides.key ?? "execution:workspace-1",
     kind: overrides.kind ?? "execution_workspace",
     workspaceId: overrides.workspaceId ?? "workspace-1",
-    workspaceName: overrides.workspaceName ?? "PAP-989-multi-user-implementation",
+    workspaceName:
+      overrides.workspaceName ?? "PAP-989-multi-user-implementation",
     cwd: overrides.cwd ?? "/worktrees/PAP-989-multi-user-implementation",
     branchName: overrides.branchName ?? "PAP-989-multi-user-implementation",
     lastUpdatedAt: overrides.lastUpdatedAt ?? new Date("2026-04-12T00:00:00Z"),
@@ -152,17 +168,19 @@ describe("ProjectWorkspaceSummaryCard", () => {
     // fails closed so a managed instance never flashes the execution-host path.
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <ProjectWorkspaceSummaryCard
-          projectRef="taskcore-app"
-          summary={createSummary()}
-          runtimeActionKey={null}
-          runtimeActionPending={false}
-          onRuntimeAction={() => {}}
-          onCloseWorkspace={() => {}}
-        />,
-        null,
-      ));
+      root.render(
+        withQueryClient(
+          <ProjectWorkspaceSummaryCard
+            projectRef="taskcore-app"
+            summary={createSummary()}
+            runtimeActionKey={null}
+            runtimeActionPending={false}
+            onRuntimeAction={() => {}}
+            onCloseWorkspace={() => {}}
+          />,
+          null,
+        ),
+      );
     });
 
     expect(container.textContent).not.toContain("Path");
@@ -179,8 +197,12 @@ describe("ProjectWorkspaceSummaryCard", () => {
     // fetched with no data, so a guard keyed on "fetched" would show the
     // execution-host path on exactly the managed instance whose settings
     // endpoint is unreachable.
-    mockInstanceSettingsApi.getExperimental.mockRejectedValue(new Error("settings unavailable"));
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    mockInstanceSettingsApi.getExperimental.mockRejectedValue(
+      new Error("settings unavailable"),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     const root = createRoot(container);
 
     await act(async () => {
@@ -202,12 +224,19 @@ describe("ProjectWorkspaceSummaryCard", () => {
     // assertion below covers the resolved-error case and not merely the
     // in-flight one the loading test already covers.
     for (let attempt = 0; attempt < 50; attempt += 1) {
-      if (queryClient.getQueryState(queryKeys.instance.experimentalSettings)?.status === "error") break;
+      if (
+        queryClient.getQueryState(queryKeys.instance.experimentalSettings)
+          ?.status === "error"
+      )
+        break;
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
     }
-    expect(queryClient.getQueryState(queryKeys.instance.experimentalSettings)?.status).toBe("error");
+    expect(
+      queryClient.getQueryState(queryKeys.instance.experimentalSettings)
+        ?.status,
+    ).toBe("error");
 
     expect(container.textContent).not.toContain("Path");
     expect(container.textContent).toContain("Branch");
@@ -220,17 +249,19 @@ describe("ProjectWorkspaceSummaryCard", () => {
   it("drops the path row when the instance runs agents only in the platform-managed environment", () => {
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <ProjectWorkspaceSummaryCard
-          projectRef="taskcore-app"
-          summary={createSummary()}
-          runtimeActionKey={null}
-          runtimeActionPending={false}
-          onRuntimeAction={() => {}}
-          onCloseWorkspace={() => {}}
-        />,
-        { enableManagedSandboxOnly: true },
-      ));
+      root.render(
+        withQueryClient(
+          <ProjectWorkspaceSummaryCard
+            projectRef="taskcore-app"
+            summary={createSummary()}
+            runtimeActionKey={null}
+            runtimeActionPending={false}
+            onRuntimeAction={() => {}}
+            onCloseWorkspace={() => {}}
+          />,
+          { enableManagedSandboxOnly: true },
+        ),
+      );
     });
 
     expect(container.textContent).not.toContain("Path");
@@ -247,16 +278,18 @@ describe("ProjectWorkspaceSummaryCard", () => {
   it("renders a stacked mobile-friendly summary with metadata labels and compact issue pills", () => {
     const root = createRoot(container);
     act(() => {
-      root.render(withQueryClient(
-        <ProjectWorkspaceSummaryCard
-          projectRef="taskcore-app"
-          summary={createSummary()}
-          runtimeActionKey={null}
-          runtimeActionPending={false}
-          onRuntimeAction={() => {}}
-          onCloseWorkspace={() => {}}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <ProjectWorkspaceSummaryCard
+            projectRef="taskcore-app"
+            summary={createSummary()}
+            runtimeActionKey={null}
+            runtimeActionPending={false}
+            onRuntimeAction={() => {}}
+            onCloseWorkspace={() => {}}
+          />,
+        ),
+      );
     });
 
     expect(container.textContent).toContain("Execution workspace");
@@ -268,7 +301,9 @@ describe("ProjectWorkspaceSummaryCard", () => {
     expect(container.textContent).toContain("Close workspace");
     expect(container.textContent).toContain("+1 more");
 
-    const actions = container.querySelector('[data-testid="workspace-summary-actions"]');
+    const actions = container.querySelector(
+      '[data-testid="workspace-summary-actions"]',
+    );
     expect(actions?.className).toContain("flex-col");
     const card = container.firstElementChild;
     expect(card?.className).toContain("rounded-lg");
@@ -285,26 +320,30 @@ describe("ProjectWorkspaceSummaryCard", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(withQueryClient(
-        <ProjectWorkspaceSummaryCard
-          projectRef="taskcore-app"
-          summary={createSummary({
-            key: "project:workspace-2",
-            kind: "project_workspace",
-            executionWorkspaceId: null,
-            executionWorkspaceStatus: null,
-            hasRuntimeConfig: false,
-            issues: [createIssue({ id: "issue-6", identifier: "PAP-1400" })],
-          })}
-          runtimeActionKey={null}
-          runtimeActionPending={false}
-          onRuntimeAction={runtimeSpy}
-          onCloseWorkspace={closeSpy}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <ProjectWorkspaceSummaryCard
+            projectRef="taskcore-app"
+            summary={createSummary({
+              key: "project:workspace-2",
+              kind: "project_workspace",
+              executionWorkspaceId: null,
+              executionWorkspaceStatus: null,
+              hasRuntimeConfig: false,
+              issues: [createIssue({ id: "issue-6", identifier: "PAP-1400" })],
+            })}
+            runtimeActionKey={null}
+            runtimeActionPending={false}
+            onRuntimeAction={runtimeSpy}
+            onCloseWorkspace={closeSpy}
+          />,
+        ),
+      );
     });
 
-    const titleLink = container.querySelector("a[href='/projects/taskcore-app/workspaces/workspace-1']");
+    const titleLink = container.querySelector(
+      "a[href='/projects/taskcore-app/workspaces/workspace-1']",
+    );
     expect(titleLink).not.toBeNull();
     expect(container.textContent).not.toContain("Close workspace");
     expect(container.textContent).not.toContain("Start services");
@@ -318,18 +357,21 @@ describe("ProjectWorkspaceSummaryCard", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(withQueryClient(
-        <ProjectWorkspaceSummaryCard
-          projectRef="taskcore-app"
-          summary={createSummary({
-            executionWorkspaceStatus: "cleanup_failed" as ExecutionWorkspace["status"],
-          })}
-          runtimeActionKey={null}
-          runtimeActionPending={false}
-          onRuntimeAction={() => {}}
-          onCloseWorkspace={() => {}}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <ProjectWorkspaceSummaryCard
+            projectRef="taskcore-app"
+            summary={createSummary({
+              executionWorkspaceStatus:
+                "cleanup_failed" as ExecutionWorkspace["status"],
+            })}
+            runtimeActionKey={null}
+            runtimeActionPending={false}
+            onRuntimeAction={() => {}}
+            onCloseWorkspace={() => {}}
+          />,
+        ),
+      );
     });
 
     expect(container.textContent).toContain("Retry close");
@@ -347,23 +389,32 @@ describe("ProjectWorkspaceSummaryCard", () => {
     });
 
     await act(async () => {
-      root.render(withQueryClient(
-        <ProjectWorkspaceSummaryCard
-          projectRef="taskcore-app"
-          summary={summary}
-          runtimeActionKey={null}
-          runtimeActionPending={false}
-          onRuntimeAction={() => {}}
-          onCloseWorkspace={() => {}}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <ProjectWorkspaceSummaryCard
+            projectRef="taskcore-app"
+            summary={summary}
+            runtimeActionKey={null}
+            runtimeActionPending={false}
+            onRuntimeAction={() => {}}
+            onCloseWorkspace={() => {}}
+          />,
+        ),
+      );
     });
 
-    const branchTextButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent === summary.branchName);
-    const pathTextButton = container.querySelector(`button[title="${summary.cwd}"]`);
-    const branchIconButton = container.querySelector('button[aria-label="Copy branch"]');
-    const pathIconButton = container.querySelector('button[aria-label="Copy path"]');
+    const branchTextButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((button) => button.textContent === summary.branchName);
+    const pathTextButton = container.querySelector(
+      `button[title="${summary.cwd}"]`,
+    );
+    const branchIconButton = container.querySelector(
+      'button[aria-label="Copy branch"]',
+    );
+    const pathIconButton = container.querySelector(
+      'button[aria-label="Copy path"]',
+    );
 
     expect(branchTextButton).not.toBeNull();
     expect(pathTextButton).not.toBeNull();
@@ -375,17 +426,23 @@ describe("ProjectWorkspaceSummaryCard", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(writeClipboard).toHaveBeenLastCalledWith(summary.branchName);
-    expect(branchTextButton?.nextElementSibling?.className).toContain("opacity-100");
+    expect(branchTextButton?.nextElementSibling?.className).toContain(
+      "opacity-100",
+    );
 
     await act(async () => {
       pathTextButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(writeClipboard).toHaveBeenLastCalledWith(summary.cwd);
-    expect(pathTextButton?.nextElementSibling?.className).toContain("opacity-100");
+    expect(pathTextButton?.nextElementSibling?.className).toContain(
+      "opacity-100",
+    );
 
     await act(async () => {
-      branchIconButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      branchIconButton!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
       pathIconButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
@@ -400,23 +457,27 @@ describe("ProjectWorkspaceSummaryCard", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(withQueryClient(
-        <ProjectWorkspaceSummaryCard
-          projectRef="taskcore-app"
-          summary={createSummary({
-            primaryServiceUrl: "http://127.0.0.1:62475",
-            primaryServiceUrlRunning: true,
-            runningServiceCount: 1,
-          })}
-          runtimeActionKey={null}
-          runtimeActionPending={false}
-          onRuntimeAction={() => {}}
-          onCloseWorkspace={() => {}}
-        />,
-      ));
+      root.render(
+        withQueryClient(
+          <ProjectWorkspaceSummaryCard
+            projectRef="taskcore-app"
+            summary={createSummary({
+              primaryServiceUrl: "http://127.0.0.1:62475",
+              primaryServiceUrlRunning: true,
+              runningServiceCount: 1,
+            })}
+            runtimeActionKey={null}
+            runtimeActionPending={false}
+            onRuntimeAction={() => {}}
+            onCloseWorkspace={() => {}}
+          />,
+        ),
+      );
     });
 
-    const serviceLink = container.querySelector("a[href='http://127.0.0.1:62475']");
+    const serviceLink = container.querySelector(
+      "a[href='http://127.0.0.1:62475']",
+    );
     expect(serviceLink?.className).toContain("text-emerald");
 
     act(() => {

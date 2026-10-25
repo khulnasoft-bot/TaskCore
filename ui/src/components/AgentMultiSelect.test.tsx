@@ -24,9 +24,18 @@ async function flush() {
 
 function setInputValue(input: HTMLInputElement, value: string) {
   act(() => {
-    const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )?.set;
     valueSetter?.call(input, value);
-    input.dispatchEvent(new InputEvent("input", { bubbles: true, data: value, inputType: "insertText" }));
+    input.dispatchEvent(
+      new InputEvent("input", {
+        bubbles: true,
+        data: value,
+        inputType: "insertText",
+      }),
+    );
   });
 }
 
@@ -61,7 +70,11 @@ describe("AgentMultiSelect", () => {
     root = createRoot(container);
     act(() => {
       root?.render(
-        <AgentMultiSelect agents={agents} selectedAgentIds={new Set()} onChange={onChange} />,
+        <AgentMultiSelect
+          agents={agents}
+          selectedAgentIds={new Set()}
+          onChange={onChange}
+        />,
       );
     });
 
@@ -69,11 +82,15 @@ describe("AgentMultiSelect", () => {
     expect(document.body.textContent).not.toContain("Agent 0");
 
     act(() => {
-      container.querySelector("button")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container
+        .querySelector("button")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    const filter = document.body.querySelector<HTMLInputElement>('input[placeholder="Filter agents"]');
+    const filter = document.body.querySelector<HTMLInputElement>(
+      'input[placeholder="Filter agents"]',
+    );
     expect(filter).not.toBeNull();
     setInputValue(filter!, "search target");
     await flush();
@@ -101,15 +118,21 @@ describe("AgentMultiSelect", () => {
 
     root = createRoot(container);
     act(() => {
-      root?.render(<AgentSelect agents={agents} value="" onChange={onChange} />);
+      root?.render(
+        <AgentSelect agents={agents} value="" onChange={onChange} />,
+      );
     });
 
     act(() => {
-      container.querySelector("button")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container
+        .querySelector("button")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    const filter = document.body.querySelector<HTMLInputElement>('input[placeholder="Filter agents"]');
+    const filter = document.body.querySelector<HTMLInputElement>(
+      'input[placeholder="Filter agents"]',
+    );
     expect(filter).not.toBeNull();
     setInputValue(filter!, "research");
     await flush();
@@ -125,19 +148,40 @@ describe("AgentMultiSelect", () => {
     await flush();
 
     expect(onChange).toHaveBeenCalledWith("agent-2");
-    expect(document.body.querySelector('input[placeholder="Filter agents"]')).toBeNull();
+    expect(
+      document.body.querySelector('input[placeholder="Filter agents"]'),
+    ).toBeNull();
   });
 
   it("uses the same agent avatar in the selected value and every option", async () => {
-    const agents = [{ id: "agent-1", name: "Ralph" }, { id: "agent-2", name: "Support" }];
+    const agents = [
+      { id: "agent-1", name: "Ralph" },
+      { id: "agent-2", name: "Support" },
+    ];
     root = createRoot(container);
-    act(() => root?.render(<AgentSelect agents={agents} value="agent-1" onChange={vi.fn()} />));
-    const selected = container.querySelector('[data-slot="agent-avatar"] img')?.getAttribute("src");
+    act(() =>
+      root?.render(
+        <AgentSelect agents={agents} value="agent-1" onChange={vi.fn()} />,
+      ),
+    );
+    const selected = container
+      .querySelector('[data-slot="agent-avatar"] img')
+      ?.getAttribute("src");
     expect(selected).toBeTruthy();
     act(() => container.querySelector("button")?.click());
     await flush();
-    expect(document.querySelector('[aria-label="Select Ralph"] [data-slot="agent-avatar"] img')?.getAttribute("src")).toBe(selected);
-    expect(document.querySelector('[aria-label="Select Support"] [data-slot="agent-avatar"] img')).not.toBeNull();
+    expect(
+      document
+        .querySelector(
+          '[aria-label="Select Ralph"] [data-slot="agent-avatar"] img',
+        )
+        ?.getAttribute("src"),
+    ).toBe(selected);
+    expect(
+      document.querySelector(
+        '[aria-label="Select Support"] [data-slot="agent-avatar"] img',
+      ),
+    ).not.toBeNull();
   });
 
   it("previews selected agents and stages changes until save", async () => {
@@ -152,7 +196,9 @@ describe("AgentMultiSelect", () => {
       root?.render(
         <AgentMultiSelect
           agents={agents}
-          selectedAgentIds={new Set(["agent-0", "agent-1", "agent-2", "agent-3", "agent-4"])}
+          selectedAgentIds={
+            new Set(["agent-0", "agent-1", "agent-2", "agent-3", "agent-4"])
+          }
           onSave={onSave}
           triggerLabel="Add to agent"
         />,
@@ -165,7 +211,9 @@ describe("AgentMultiSelect", () => {
     expect(container.textContent).not.toContain("Agent 4");
 
     act(() => {
-      container.querySelector("button")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container
+        .querySelector("button")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
     act(() => {
@@ -176,12 +224,16 @@ describe("AgentMultiSelect", () => {
     await flush();
 
     expect(onSave).not.toHaveBeenCalled();
-    const save = Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent === "Save");
+    const save = Array.from(document.body.querySelectorAll("button")).find(
+      (button) => button.textContent === "Save",
+    );
     act(() => {
       save?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    expect(onSave).toHaveBeenCalledWith(new Set(agents.map((agent) => agent.id)));
+    expect(onSave).toHaveBeenCalledWith(
+      new Set(agents.map((agent) => agent.id)),
+    );
   });
 });

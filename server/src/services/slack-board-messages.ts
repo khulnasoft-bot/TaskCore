@@ -97,9 +97,15 @@ export async function mirrorSlackBoardComment(
     .trim()
     .slice(0, 160);
   for (const { conversation, endpoint } of bindings) {
-    const principal = await slackBoardAuthor(db, endpoint, comment.authorUserId);
+    const principal = await slackBoardAuthor(
+      db,
+      endpoint,
+      comment.authorUserId,
+    );
     if (!principal) {
-      throw forbidden("Link your Slack account to this connection before sending a message to its Slack thread");
+      throw forbidden(
+        "Link your Slack account to this connection before sending a message to its Slack thread",
+      );
     }
     const [receipt] = await db
       .insert(chatActions)

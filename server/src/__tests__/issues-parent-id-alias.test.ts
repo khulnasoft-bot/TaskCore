@@ -25,12 +25,38 @@ describeEmbeddedPostgres("issue list parentIssueId query alias", () => {
     const blockedChildId = randomUUID();
 
     await ctx.db.insert(issues).values([
-      { id: parentId, companyId, title: "Parent", status: "todo", priority: "medium" },
-      { id: otherParentId, companyId, title: "Other parent", status: "todo", priority: "medium" },
+      {
+        id: parentId,
+        companyId,
+        title: "Parent",
+        status: "todo",
+        priority: "medium",
+      },
+      {
+        id: otherParentId,
+        companyId,
+        title: "Other parent",
+        status: "todo",
+        priority: "medium",
+      },
     ]);
     await ctx.db.insert(issues).values([
-      { id: childId, companyId, title: "Child", status: "todo", priority: "medium", parentId },
-      { id: blockedChildId, companyId, title: "Blocked child", status: "blocked", priority: "medium", parentId },
+      {
+        id: childId,
+        companyId,
+        title: "Child",
+        status: "todo",
+        priority: "medium",
+        parentId,
+      },
+      {
+        id: blockedChildId,
+        companyId,
+        title: "Blocked child",
+        status: "blocked",
+        priority: "medium",
+        parentId,
+      },
       {
         id: randomUUID(),
         companyId,
@@ -80,12 +106,16 @@ describeEmbeddedPostgres("issue list parentIssueId query alias", () => {
 
   it("filters children by ?parentId=", async () => {
     const seeded = await seed();
-    expect(await listIds(seeded, { parentId: seeded.parentId })).toEqual(childrenOfParent(seeded));
+    expect(await listIds(seeded, { parentId: seeded.parentId })).toEqual(
+      childrenOfParent(seeded),
+    );
   });
 
   it("filters children by ?parentIssueId=", async () => {
     const seeded = await seed();
-    expect(await listIds(seeded, { parentIssueId: seeded.parentId })).toEqual(childrenOfParent(seeded));
+    expect(await listIds(seeded, { parentIssueId: seeded.parentId })).toEqual(
+      childrenOfParent(seeded),
+    );
   });
 
   it("prefers ?parentId= when both spellings are present", async () => {
@@ -104,13 +134,19 @@ describeEmbeddedPostgres("issue list parentIssueId query alias", () => {
 
   it("filters the blocked count by ?parentIssueId=", async () => {
     const seeded = await seed();
-    expect(await blockedCount(seeded, { parentIssueId: seeded.parentId })).toEqual({ count: 1 });
+    expect(
+      await blockedCount(seeded, { parentIssueId: seeded.parentId }),
+    ).toEqual({ count: 1 });
   });
 
   it("returns the same blocked count for both spellings", async () => {
     const seeded = await seed();
-    const byShortForm = await blockedCount(seeded, { parentId: seeded.parentId });
-    const byAlias = await blockedCount(seeded, { parentIssueId: seeded.parentId });
+    const byShortForm = await blockedCount(seeded, {
+      parentId: seeded.parentId,
+    });
+    const byAlias = await blockedCount(seeded, {
+      parentIssueId: seeded.parentId,
+    });
     expect(byAlias).toEqual(byShortForm);
   });
 });

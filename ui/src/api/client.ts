@@ -1,4 +1,7 @@
-import { getPageVisibility, getVisibilityHeaderValue } from "@/lib/page-visibility";
+import {
+  getPageVisibility,
+  getVisibilityHeaderValue,
+} from "@/lib/page-visibility";
 import { tenantSessionRecovery } from "@/lib/tenant-session-recovery";
 import { readApiJson } from "./response";
 
@@ -43,7 +46,10 @@ function applyObservabilityHeaders(headers: Headers) {
   }
 }
 
-export async function requestResponse(path: string, init?: RequestInit): Promise<Response> {
+export async function requestResponse(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
   const headers = new Headers(init?.headers ?? undefined);
   const body = init?.body;
   if (!(body instanceof FormData) && !headers.has("Content-Type")) {
@@ -58,10 +64,14 @@ export async function requestResponse(path: string, init?: RequestInit): Promise
   });
   if (!res.ok) {
     const errorBody = await readApiJson(res);
-    const recovery = tenantSessionRecovery.recoverIfNeeded(res.status, errorBody);
+    const recovery = tenantSessionRecovery.recoverIfNeeded(
+      res.status,
+      errorBody,
+    );
     if (recovery) return recovery;
     throw new ApiError(
-      (errorBody as { error?: string } | null)?.error ?? `Request failed: ${res.status}`,
+      (errorBody as { error?: string } | null)?.error ??
+        `Request failed: ${res.status}`,
       res.status,
       errorBody,
     );
@@ -175,7 +185,8 @@ function isRequestOptions(value: unknown): value is RequestOptions {
 }
 
 export const api = {
-  get: <T>(path: string, options?: RequestOptions) => coalescedGet<T>(path, options),
+  get: <T>(path: string, options?: RequestOptions) =>
+    coalescedGet<T>(path, options),
   post: <T>(path: string, body: unknown, options?: RequestOptions) =>
     request<T>(path, {
       method: "POST",
@@ -193,22 +204,50 @@ export const api = {
       ...(options?.headers ? { headers: options.headers } : {}),
     }),
   put: <T>(path: string, body: unknown, options?: RequestOptions) =>
-    request<T>(path, { method: "PUT", body: JSON.stringify(body), signal: options?.signal }),
+    request<T>(path, {
+      method: "PUT",
+      body: JSON.stringify(body),
+      signal: options?.signal,
+    }),
   /** Raw binary upload (e.g. one chunked import-transfer part); the body travels as-is. */
   putRaw: <T>(path: string, body: Blob, options?: RequestOptions) =>
     request<T>(path, {
       method: "PUT",
       body,
       signal: options?.signal,
-      headers: { "Content-Type": "application/octet-stream", ...(options?.headers ?? {}) },
+      headers: {
+        "Content-Type": "application/octet-stream",
+        ...(options?.headers ?? {}),
+      },
     }),
   patch: <T>(path: string, body: unknown, options?: RequestOptions) =>
-    request<T>(path, { method: "PATCH", body: JSON.stringify(body), signal: options?.signal }),
-  delete: <T>(path: string, bodyOrOptions?: unknown, options?: RequestOptions) => {
-    const requestOptions = isRequestOptions(bodyOrOptions) ? bodyOrOptions : options;
-    const body = bodyOrOptions === undefined || isRequestOptions(bodyOrOptions) ? undefined : JSON.stringify(bodyOrOptions);
-    return request<T>(path, { method: "DELETE", ...(body === undefined ? {} : { body }), signal: requestOptions?.signal });
+    request<T>(path, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      signal: options?.signal,
+    }),
+  delete: <T>(
+    path: string,
+    bodyOrOptions?: unknown,
+    options?: RequestOptions,
+  ) => {
+    const requestOptions = isRequestOptions(bodyOrOptions)
+      ? bodyOrOptions
+      : options;
+    const body =
+      bodyOrOptions === undefined || isRequestOptions(bodyOrOptions)
+        ? undefined
+        : JSON.stringify(bodyOrOptions);
+    return request<T>(path, {
+      method: "DELETE",
+      ...(body === undefined ? {} : { body }),
+      signal: requestOptions?.signal,
+    });
   },
   deleteWithBody: <T>(path: string, body: unknown, options?: RequestOptions) =>
-    request<T>(path, { method: "DELETE", body: JSON.stringify(body), signal: options?.signal }),
+    request<T>(path, {
+      method: "DELETE",
+      body: JSON.stringify(body),
+      signal: options?.signal,
+    }),
 };

@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { workspaceDiffQuerySchema, workspaceDiffResponseSchema } from "../src/contracts.js";
+import {
+  workspaceDiffQuerySchema,
+  workspaceDiffResponseSchema,
+} from "../src/contracts.js";
 import { diffResponse } from "./fixtures.js";
 
 describe("workspace diff plugin contracts", () => {
   it("normalizes query options from plugin data parameters", () => {
-    expect(workspaceDiffQuerySchema.parse({
-      view: "head",
-      baseRef: " main ",
-      includeUntracked: "false",
-      path: ["src/app.ts, README.md", "packages/shared/src/index.ts"],
-    })).toEqual({
+    expect(
+      workspaceDiffQuerySchema.parse({
+        view: "head",
+        baseRef: " main ",
+        includeUntracked: "false",
+        path: ["src/app.ts, README.md", "packages/shared/src/index.ts"],
+      }),
+    ).toEqual({
       view: "head",
       baseRef: "main",
       includeUntracked: false,

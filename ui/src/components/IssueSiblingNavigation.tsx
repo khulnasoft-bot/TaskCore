@@ -1,7 +1,10 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Issue } from "@taskcore/shared";
 import type { IssueSiblingNavigation as IssueSiblingNavigationState } from "@/lib/issue-detail-subissues";
-import { createIssueDetailPath, withIssueDetailHeaderSeed } from "@/lib/issueDetailBreadcrumb";
+import {
+  createIssueDetailPath,
+  withIssueDetailHeaderSeed,
+} from "@/lib/issueDetailBreadcrumb";
 import { cn } from "@/lib/utils";
 import { Link } from "@/lib/router";
 import { StatusIcon } from "./StatusIcon";
@@ -11,7 +14,10 @@ type IssueSiblingNavigationProps = {
   linkState?: unknown;
 };
 
-export function IssueSiblingNavigation({ navigation, linkState }: IssueSiblingNavigationProps) {
+export function IssueSiblingNavigation({
+  navigation,
+  linkState,
+}: IssueSiblingNavigationProps) {
   if (!navigation) return null;
 
   return (
@@ -20,7 +26,11 @@ export function IssueSiblingNavigation({ navigation, linkState }: IssueSiblingNa
       className="mt-4 flex flex-col gap-3 sm:mt-6 sm:grid sm:grid-cols-2"
     >
       {navigation.previous ? (
-        <SiblingLink direction="previous" issue={navigation.previous} linkState={linkState} />
+        <SiblingLink
+          direction="previous"
+          issue={navigation.previous}
+          linkState={linkState}
+        />
       ) : null}
       {navigation.next ? (
         <SiblingLink
@@ -47,7 +57,8 @@ function SiblingLink({
 }) {
   const issuePathId = issue.identifier ?? issue.id;
   const label = direction === "previous" ? "Previous" : "Next";
-  const ariaDirection = direction === "previous" ? "Previous sub-task" : "Next sub-task";
+  const ariaDirection =
+    direction === "previous" ? "Previous sub-task" : "Next sub-task";
   const identifier = issue.identifier ?? issue.id.slice(0, 8);
   const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
 
@@ -67,24 +78,34 @@ function SiblingLink({
       )}
     >
       <div className="min-w-0 space-y-1.5">
-        <div className={cn(
-          "flex items-center gap-1.5 text-xs text-muted-foreground transition-colors group-hover:text-foreground",
-          direction === "next" && "sm:justify-end",
-        )}>
-          {direction === "previous" ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
+        <div
+          className={cn(
+            "flex items-center gap-1.5 text-xs text-muted-foreground transition-colors group-hover:text-foreground",
+            direction === "next" && "sm:justify-end",
+          )}
+        >
+          {direction === "previous" ? (
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+          ) : null}
           <span>{label}</span>
-          {direction === "next" ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
+          {direction === "next" ? (
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+          ) : null}
         </div>
-        <div className={cn(
-          "flex min-w-0 items-center gap-1.5 text-xs font-mono text-muted-foreground transition-colors group-hover:text-foreground",
-          direction === "next" && "sm:justify-end",
-        )}>
-          <StatusIcon status={issue.status} externalConversationState={issue.externalConversationState} blockerAttention={issue.blockerAttention} />
+        <div
+          className={cn(
+            "flex min-w-0 items-center gap-1.5 text-xs font-mono text-muted-foreground transition-colors group-hover:text-foreground",
+            direction === "next" && "sm:justify-end",
+          )}
+        >
+          <StatusIcon
+            status={issue.status}
+            externalConversationState={issue.externalConversationState}
+            blockerAttention={issue.blockerAttention}
+          />
           <span className="shrink-0">{identifier}</span>
         </div>
-        <div className="truncate text-sm text-foreground">
-          {issue.title}
-        </div>
+        <div className="truncate text-sm text-foreground">{issue.title}</div>
       </div>
     </Link>
   );

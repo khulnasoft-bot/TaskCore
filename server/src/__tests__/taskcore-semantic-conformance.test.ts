@@ -28,11 +28,15 @@ const embeddedSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbedded = embeddedSupport.supported ? describe : describe.skip;
 
 if (!embeddedSupport.supported) {
-  console.warn(`Skipping semantic production conformance: ${embeddedSupport.reason ?? "unsupported host"}`);
+  console.warn(
+    `Skipping semantic production conformance: ${embeddedSupport.reason ?? "unsupported host"}`,
+  );
 }
 
 describeEmbedded("Taskcore semantic mock/production conformance", () => {
-  let temporary: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let temporary: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let mock: CapabilityMockSemanticConformanceAdapter | null = null;
 
   const base = CAPABILITY_SEMANTIC_CONFORMANCE_IDS;
@@ -43,24 +47,38 @@ describeEmbedded("Taskcore semantic mock/production conformance", () => {
     foreignTaskId: base.foreignTaskId,
     blockerTaskId: base.blockerTaskId,
     worlds: {
-      default: { taskId: base.defaultTaskId, runId: base.defaultRunId, capabilities: [] },
+      default: {
+        taskId: base.defaultTaskId,
+        runId: base.defaultRunId,
+        capabilities: [],
+      },
       "cross-company": {
         taskId: base.crossCompanyTaskId,
         runId: base.crossCompanyRunId,
         capabilities: ["dependencies:write"],
       },
-      interaction: { taskId: base.interactionTaskId, runId: base.interactionRunId, capabilities: [] },
+      interaction: {
+        taskId: base.interactionTaskId,
+        runId: base.interactionRunId,
+        capabilities: [],
+      },
       "terminal-blocked": {
         taskId: base.blockedTerminalTaskId,
         runId: base.blockedTerminalRunId,
         capabilities: [],
       },
-      terminal: { taskId: base.terminalTaskId, runId: base.terminalRunId, capabilities: [] },
+      terminal: {
+        taskId: base.terminalTaskId,
+        runId: base.terminalRunId,
+        capabilities: [],
+      },
     },
   };
 
   beforeAll(async () => {
-    temporary = await startEmbeddedPostgresTestDatabase("taskcore-semantic-conformance-");
+    temporary = await startEmbeddedPostgresTestDatabase(
+      "taskcore-semantic-conformance-",
+    );
     const db = createDb(temporary.connectionString);
     await seedTaskcoreSemanticConformance(db, ids);
     mock = await CapabilityMockSemanticConformanceAdapter.create();
@@ -72,29 +90,51 @@ describeEmbedded("Taskcore semantic mock/production conformance", () => {
   });
 
   it("matches authorization, state, audit, retry, document, continuation, and terminal semantics", async () => {
-    if (!temporary || !mock) throw new Error("semantic_conformance_fixture_not_started");
-    const production = await TaskcoreProductionSemanticConformanceAdapter.create(
-      createDb(temporary.connectionString),
-      ids,
-    );
+    if (!temporary || !mock)
+      throw new Error("semantic_conformance_fixture_not_started");
+    const production =
+      await TaskcoreProductionSemanticConformanceAdapter.create(
+        createDb(temporary.connectionString),
+        ids,
+      );
 
     const report = await runSemanticConformanceKit({
       vectors: CAPABILITY_HIGH_RISK_SEMANTIC_VECTORS,
       adapters: [mock, production],
     });
 
-    expect(report.rows).toHaveLength(CAPABILITY_HIGH_RISK_SEMANTIC_VECTORS.length);
-    expect(report.rows.every((row) => row.adapterIds.join(",") === "capability-mock,taskcore-production-services"))
-      .toBe(true);
-    expect(report.rows.find((row) => row.vectorId === "progress-duplicate-retry")?.observation.audit)
-      .toEqual([]);
-    expect(report.rows.find((row) => row.vectorId === "document-stale-revision")?.observation.authorization)
-      .toEqual({ outcome: "denied", code: "document_revision_conflict" });
-    expect(report.rows.find((row) => row.vectorId === "continuation-request")?.observation.state)
-      .toMatchObject({ interactions: [{ continuationPolicy: "wake_assignee" }] });
-    expect(report.rows.find((row) => row.vectorId === "terminal-finish")?.observation.state)
-      .toMatchObject({ task: { status: "done" } });
-    expect(report.rows.every((row) => row.observation.receipt?.operationReceiptPresent === true))
-      .toBe(true);
+    expect(report.rows).toHaveLength(
+      CAPABILITY_HIGH_RISK_SEMANTIC_VECTORS.length,
+    );
+    expect(
+      report.rows.every(
+        (row) =>
+          row.adapterIds.join(",") ===
+          "capability-mock,taskcore-production-services",
+      ),
+    ).toBe(true);
+    expect(
+      report.rows.find((row) => row.vectorId === "progress-duplicate-retry")
+        ?.observation.audit,
+    ).toEqual([]);
+    expect(
+      report.rows.find((row) => row.vectorId === "document-stale-revision")
+        ?.observation.authorization,
+    ).toEqual({ outcome: "denied", code: "document_revision_conflict" });
+    expect(
+      report.rows.find((row) => row.vectorId === "continuation-request")
+        ?.observation.state,
+    ).toMatchObject({
+      interactions: [{ continuationPolicy: "wake_assignee" }],
+    });
+    expect(
+      report.rows.find((row) => row.vectorId === "terminal-finish")?.observation
+        .state,
+    ).toMatchObject({ task: { status: "done" } });
+    expect(
+      report.rows.every(
+        (row) => row.observation.receipt?.operationReceiptPresent === true,
+      ),
+    ).toBe(true);
   }, 30_000);
 });

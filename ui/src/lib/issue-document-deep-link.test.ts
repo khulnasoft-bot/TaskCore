@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { resolveIssueDocumentDeepLink, sameIssueDocumentHash } from "./issue-document-deep-link";
+import {
+  resolveIssueDocumentDeepLink,
+  sameIssueDocumentHash,
+} from "./issue-document-deep-link";
 
 describe("resolveIssueDocumentDeepLink", () => {
   it("preserves continuation-summary routing", () => {
-    expect(resolveIssueDocumentDeepLink("#document-continuation-summary")).toEqual({
+    expect(
+      resolveIssueDocumentDeepLink("#document-continuation-summary"),
+    ).toEqual({
       kind: "continuation-summary",
     });
   });
@@ -18,7 +23,9 @@ describe("resolveIssueDocumentDeepLink", () => {
   });
 
   it("routes ordinary and annotated documents to a dedicated document tab", () => {
-    expect(resolveIssueDocumentDeepLink("#document-qa%20evidence&thread=thread-1")).toEqual({
+    expect(
+      resolveIssueDocumentDeepLink("#document-qa%20evidence&thread=thread-1"),
+    ).toEqual({
       kind: "properties-pane",
       tab: "document",
       documentKey: "qa evidence",
@@ -27,7 +34,9 @@ describe("resolveIssueDocumentDeepLink", () => {
   });
 
   it("requests the maximized pane for viewer=full deep links", () => {
-    expect(resolveIssueDocumentDeepLink("#document-direction-package&viewer=full")).toEqual({
+    expect(
+      resolveIssueDocumentDeepLink("#document-direction-package&viewer=full"),
+    ).toEqual({
       kind: "properties-pane",
       tab: "document",
       documentKey: "direction-package",
@@ -51,10 +60,24 @@ describe("resolveIssueDocumentDeepLink", () => {
 describe("sameIssueDocumentHash", () => {
   const current = new URL("https://taskcore.example/PAP/issues/PAP-1");
   const references = ["PAP-1", "issue-uuid"];
-  it.each(["#document-plan", "/PAP/issues/PAP-1#document-plan", "/PAP/issues/issue-uuid#document-plan", "/issues/issue-uuid#document-plan"])("opens a current-task document in place: %s", (href) => {
-    expect(sameIssueDocumentHash(href, current, references)).toBe("#document-plan");
+  it.each([
+    "#document-plan",
+    "/PAP/issues/PAP-1#document-plan",
+    "/PAP/issues/issue-uuid#document-plan",
+    "/issues/issue-uuid#document-plan",
+  ])("opens a current-task document in place: %s", (href) => {
+    expect(sameIssueDocumentHash(href, current, references)).toBe(
+      "#document-plan",
+    );
   });
-  it.each(["https://other.example/PAP/issues/PAP-1#document-plan", "/OTHER/issues/issue-uuid#document-plan", "/PAP/issues/PAP-2#document-plan", "/PAP/issues/PAP-1?file=other#document-plan", "/PAP/issues/PAP-1#comment-1", "/PAP/issues/%E0%A4%A#document-plan"])("leaves other navigation alone: %s", (href) => {
+  it.each([
+    "https://other.example/PAP/issues/PAP-1#document-plan",
+    "/OTHER/issues/issue-uuid#document-plan",
+    "/PAP/issues/PAP-2#document-plan",
+    "/PAP/issues/PAP-1?file=other#document-plan",
+    "/PAP/issues/PAP-1#comment-1",
+    "/PAP/issues/%E0%A4%A#document-plan",
+  ])("leaves other navigation alone: %s", (href) => {
     expect(sameIssueDocumentHash(href, current, references)).toBeNull();
   });
 });

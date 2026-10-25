@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { validatePrpEvent, type PrpEvent } from "./replay-contract.js";
 
-function workspaceEvent(eventType: "workspace.change.updated" | "workspace.diff.recorded"): PrpEvent {
+function workspaceEvent(
+  eventType: "workspace.change.updated" | "workspace.diff.recorded",
+): PrpEvent {
   return {
     schema: "taskcore.prp.event.v1",
     sourceEventId: `workspace:${eventType}`,
@@ -21,15 +23,17 @@ function workspaceEvent(eventType: "workspace.change.updated" | "workspace.diff.
       revision: 1,
       source: "runner_verified",
       complete: eventType === "workspace.diff.recorded",
-      files: [{
-        path: "src/index.ts",
-        operation: "modify",
-        previousPath: null,
-        additions: 1,
-        deletions: 1,
-        binary: false,
-        diff: "--- a/src/index.ts\n+++ b/src/index.ts\n-old\n+new\n",
-      }],
+      files: [
+        {
+          path: "src/index.ts",
+          operation: "modify",
+          previousPath: null,
+          additions: 1,
+          deletions: 1,
+          binary: false,
+          diff: "--- a/src/index.ts\n+++ b/src/index.ts\n-old\n+new\n",
+        },
+      ],
       totals: { files: 1, additions: 1, deletions: 1 },
       patchArtifactRef: null,
     },
@@ -38,8 +42,12 @@ function workspaceEvent(eventType: "workspace.change.updated" | "workspace.diff.
 
 describe("PRP workspace change events", () => {
   it("accepts provisional and complete canonical workspace changes", () => {
-    expect(validatePrpEvent(workspaceEvent("workspace.change.updated")).ok).toBe(true);
-    expect(validatePrpEvent(workspaceEvent("workspace.diff.recorded")).ok).toBe(true);
+    expect(
+      validatePrpEvent(workspaceEvent("workspace.change.updated")).ok,
+    ).toBe(true);
+    expect(validatePrpEvent(workspaceEvent("workspace.diff.recorded")).ok).toBe(
+      true,
+    );
   });
 
   it("rejects traversal paths and incomplete recorded diffs", () => {
@@ -75,7 +83,8 @@ describe("PRP workspace change events", () => {
         line: null,
         preview: "# Guide\n",
         previewTruncated: false,
-        contentDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        contentDigest:
+          "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       },
     };
     expect(validatePrpEvent(event).ok).toBe(true);

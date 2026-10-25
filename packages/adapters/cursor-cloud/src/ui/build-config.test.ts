@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { CreateConfigValues } from "@taskcore/adapter-utils";
 import { buildCursorCloudConfig } from "./build-config.js";
 
-function makeValues(overrides: Partial<CreateConfigValues> = {}): CreateConfigValues {
+function makeValues(
+  overrides: Partial<CreateConfigValues> = {},
+): CreateConfigValues {
   return {
     adapterType: "cursor_cloud",
     cwd: "",
@@ -68,16 +70,28 @@ describe("buildCursorCloudConfig", () => {
   it("merges structured env bindings over legacy envVars text", () => {
     const config = buildCursorCloudConfig(
       makeValues({
-        envVars: ["CURSOR_API_KEY=legacy-key", "PLAIN=value", "INVALID KEY=nope"].join("\n"),
+        envVars: [
+          "CURSOR_API_KEY=legacy-key",
+          "PLAIN=value",
+          "INVALID KEY=nope",
+        ].join("\n"),
         envBindings: {
-          CURSOR_API_KEY: { type: "secret_ref", secretId: "secret-1", version: "latest" },
+          CURSOR_API_KEY: {
+            type: "secret_ref",
+            secretId: "secret-1",
+            version: "latest",
+          },
           STRUCTURED_ONLY: "from-binding",
         },
       }),
     );
 
     expect(config.env).toEqual({
-      CURSOR_API_KEY: { type: "secret_ref", secretId: "secret-1", version: "latest" },
+      CURSOR_API_KEY: {
+        type: "secret_ref",
+        secretId: "secret-1",
+        version: "latest",
+      },
       PLAIN: { type: "plain", value: "value" },
       STRUCTURED_ONLY: { type: "plain", value: "from-binding" },
     });

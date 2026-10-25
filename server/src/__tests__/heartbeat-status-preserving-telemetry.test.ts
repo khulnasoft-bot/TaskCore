@@ -24,7 +24,8 @@ vi.mock("../telemetry.js", () => ({
 
 const mockCaptureRunFailure = vi.hoisted(() => vi.fn());
 vi.mock("../sentry.js", async () => {
-  const actual = await vi.importActual<typeof import("../sentry.js")>("../sentry.js");
+  const actual =
+    await vi.importActual<typeof import("../sentry.js")>("../sentry.js");
   return {
     ...actual,
     captureRunFailure: mockCaptureRunFailure,
@@ -56,8 +57,9 @@ describeEmbeddedPostgres(
   "heartbeat status-preserving run writes do not re-emit agent.task_run",
   () => {
     let db!: ReturnType<typeof createDb>;
-    let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null =
-      null;
+    let tempDb: Awaited<
+      ReturnType<typeof startEmbeddedPostgresTestDatabase>
+    > | null = null;
 
     beforeAll(async () => {
       tempDb = await startEmbeddedPostgresTestDatabase(
@@ -125,7 +127,10 @@ describeEmbeddedPostgres(
       await heartbeat.reapOrphanedRuns();
 
       const run = await db
-        .select({ status: heartbeatRuns.status, errorCode: heartbeatRuns.errorCode })
+        .select({
+          status: heartbeatRuns.status,
+          errorCode: heartbeatRuns.errorCode,
+        })
         .from(heartbeatRuns)
         .where(eq(heartbeatRuns.id, runId))
         .then((rows) => rows[0]);

@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { eq } from "drizzle-orm";
 import {
   costEvents,
@@ -33,7 +41,9 @@ vi.doMock("../adapters/index.js", () => ({
 const { heartbeatService } = await import("../services/heartbeat.ts");
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -43,10 +53,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("heartbeat-runtime-state-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "heartbeat-runtime-state-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -90,11 +104,16 @@ describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
     });
 
     const heartbeat = heartbeatService(db);
-    const results = await Promise.all(Array.from({ length: 12 }, () => heartbeat.getRuntimeState(agentId)));
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => heartbeat.getRuntimeState(agentId)),
+    );
 
     expect(results.every((row) => row?.agentId === agentId)).toBe(true);
 
-    const rows = await db.select().from(agentRuntimeState).where(eq(agentRuntimeState.agentId, agentId));
+    const rows = await db
+      .select()
+      .from(agentRuntimeState)
+      .where(eq(agentRuntimeState.agentId, agentId));
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       agentId,
@@ -130,14 +149,17 @@ describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
       permissions: {},
     });
 
-    const [insertedRun] = await db.insert(heartbeatRuns).values({
-      id: runId,
-      companyId,
-      agentId,
-      invocationSource: "assignment",
-      status: "running",
-      contextSnapshot: { issueId },
-    }).returning();
+    const [insertedRun] = await db
+      .insert(heartbeatRuns)
+      .values({
+        id: runId,
+        companyId,
+        agentId,
+        invocationSource: "assignment",
+        status: "running",
+        contextSnapshot: { issueId },
+      })
+      .returning();
     const run = insertedRun!;
 
     const liveEvents: unknown[] = [];
@@ -146,13 +168,17 @@ describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
     });
     try {
       const heartbeat = heartbeatService(db);
-      const status = await heartbeat.recordRuntimeProgress(run, {
-        phase: "config_sync",
-        message: "Syncing workspace to environment",
-        currentToolName: "bash",
-        lastAssistantSnippet: "Inspecting the repository",
-        lastEventAt: "2026-06-24T00:00:05.000Z",
-      }, issueId);
+      const status = await heartbeat.recordRuntimeProgress(
+        run,
+        {
+          phase: "config_sync",
+          message: "Syncing workspace to environment",
+          currentToolName: "bash",
+          lastAssistantSnippet: "Inspecting the repository",
+          lastEventAt: "2026-06-24T00:00:05.000Z",
+        },
+        issueId,
+      );
 
       expect(status).toMatchObject({
         companyId,
@@ -165,32 +191,36 @@ describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
         lastAssistantSnippet: "Inspecting the repository",
         lastEventAt: new Date("2026-06-24T00:00:05.000Z"),
       });
-      expect(heartbeat.decorateActiveRunStatus({
-        id: runId,
-        companyId,
-        agentId,
-        issueId,
-        status: "running",
-      })).toMatchObject({
+      expect(
+        heartbeat.decorateActiveRunStatus({
+          id: runId,
+          companyId,
+          agentId,
+          issueId,
+          status: "running",
+        }),
+      ).toMatchObject({
         currentStatusMessage: "Syncing workspace to environment",
         currentToolName: "bash",
         lastAssistantSnippet: "Inspecting the repository",
         lastEventAt: new Date("2026-06-24T00:00:05.000Z"),
       });
-      expect(liveEvents).toContainEqual(expect.objectContaining({
-        companyId,
-        type: "heartbeat.run.progress",
-        payload: expect.objectContaining({
-          runId,
-          agentId,
-          issueId,
-          phase: "config_sync",
-          message: "Syncing workspace to environment",
-          currentToolName: "bash",
-          lastAssistantSnippet: "Inspecting the repository",
-          lastEventAt: "2026-06-24T00:00:05.000Z",
+      expect(liveEvents).toContainEqual(
+        expect.objectContaining({
+          companyId,
+          type: "heartbeat.run.progress",
+          payload: expect.objectContaining({
+            runId,
+            agentId,
+            issueId,
+            phase: "config_sync",
+            message: "Syncing workspace to environment",
+            currentToolName: "bash",
+            lastAssistantSnippet: "Inspecting the repository",
+            lastEventAt: "2026-06-24T00:00:05.000Z",
+          }),
         }),
-      }));
+      );
 
       const persistedEvents = await db.select().from(heartbeatRunEvents);
       expect(persistedEvents).toHaveLength(0);
@@ -228,14 +258,17 @@ describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
       permissions: {},
     });
 
-    const [insertedRun] = await db.insert(heartbeatRuns).values({
-      id: runId,
-      companyId,
-      agentId,
-      invocationSource: "assignment",
-      status: "running",
-      contextSnapshot: { issueId },
-    }).returning();
+    const [insertedRun] = await db
+      .insert(heartbeatRuns)
+      .values({
+        id: runId,
+        companyId,
+        agentId,
+        invocationSource: "assignment",
+        status: "running",
+        contextSnapshot: { issueId },
+      })
+      .returning();
     const staleRunningRun = insertedRun!;
 
     const liveEvents: unknown[] = [];
@@ -244,10 +277,14 @@ describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
     });
     try {
       const heartbeat = heartbeatService(db);
-      await heartbeat.recordRuntimeProgress(staleRunningRun, {
-        phase: "config_sync",
-        message: "Syncing workspace to environment",
-      }, issueId);
+      await heartbeat.recordRuntimeProgress(
+        staleRunningRun,
+        {
+          phase: "config_sync",
+          message: "Syncing workspace to environment",
+        },
+        issueId,
+      );
 
       expect(getHeartbeatRunRuntimeStatus(runId)).toMatchObject({
         runId,
@@ -264,16 +301,22 @@ describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
         })
         .where(eq(heartbeatRuns.id, runId));
 
-      const lateStatus = await heartbeat.recordRuntimeProgress(staleRunningRun, {
-        phase: "finalize",
-        message: "Finalizing workspace",
-      }, issueId);
+      const lateStatus = await heartbeat.recordRuntimeProgress(
+        staleRunningRun,
+        {
+          phase: "finalize",
+          message: "Finalizing workspace",
+        },
+        issueId,
+      );
 
       expect(lateStatus).toBeNull();
       expect(getHeartbeatRunRuntimeStatus(runId)).toBeNull();
-      expect(liveEvents).not.toContainEqual(expect.objectContaining({
-        type: "heartbeat.run.progress",
-      }));
+      expect(liveEvents).not.toContainEqual(
+        expect.objectContaining({
+          type: "heartbeat.run.progress",
+        }),
+      );
       expect(await db.select().from(heartbeatRunEvents)).toHaveLength(0);
     } finally {
       unsubscribe();

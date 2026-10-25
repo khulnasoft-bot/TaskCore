@@ -7,18 +7,44 @@ import { buildEvalSliceReport, renderEvalSliceMarkdown } from "./eval-slice.js";
 function bundle(): EvalBundle {
   return {
     schema: "taskcore.runner.eval-bundle.v1",
-    provider: { runtime: "runnerd", transport: "codex-app-server", protocolVersion: "prp.v1" },
+    provider: {
+      runtime: "runnerd",
+      transport: "codex-app-server",
+      protocolVersion: "prp.v1",
+    },
     model: { id: "gpt-5-codex" },
-    launchContext: { workingDirectoryClass: "ephemeral-fixture", scenarioId: "slice", turnTimeoutMs: 60_000 },
-    promptPolicy: { id: "exact-single-call", callTemplate: "Call {op}.", restraintTemplate: "No tools." },
+    launchContext: {
+      workingDirectoryClass: "ephemeral-fixture",
+      scenarioId: "slice",
+      turnTimeoutMs: 60_000,
+    },
+    promptPolicy: {
+      id: "exact-single-call",
+      callTemplate: "Call {op}.",
+      restraintTemplate: "No tools.",
+    },
     grants: ["discovery:tasks:read"],
-    runner: { package: "@taskcore/taskcore-runner", binary: "taskcore-runnerd", version: "0.0.0" },
-    controlPlaneAdapter: { kind: "mock", contract: "taskcore.capability.control-plane.v1" },
+    runner: {
+      package: "@taskcore/taskcore-runner",
+      binary: "taskcore-runnerd",
+      version: "0.0.0",
+    },
+    controlPlaneAdapter: {
+      kind: "mock",
+      contract: "taskcore.capability.control-plane.v1",
+    },
     faultInjection: [],
   };
 }
 
-const trace = { runId: "r", sessionId: "s", turnId: "t", itemId: "i", receiptIds: ["rc"], terminalPresent: true };
+const trace = {
+  runId: "r",
+  sessionId: "s",
+  turnId: "t",
+  itemId: "i",
+  receiptIds: ["rc"],
+  terminalPresent: true,
+};
 
 function green(caseId: string): EvalObservation {
   return {
@@ -46,7 +72,8 @@ describe("buildEvalSliceReport", () => {
     expect(report.aggregate.gateFailures).toBe(1);
     expect(report.aggregate.dimensionMeans.semantic_outcome).toBe(1);
     // Every scorecard carries the report bundle id.
-    for (const entry of report.cases) expect(entry.scorecard.bundleId).toBe(report.bundle.id);
+    for (const entry of report.cases)
+      expect(entry.scorecard.bundleId).toBe(report.bundle.id);
   });
 
   it("is deterministic", () => {
@@ -62,7 +89,8 @@ describe("buildEvalSliceReport", () => {
 
   it("does not persist free-form bundle declarations", () => {
     const candidate = bundle();
-    candidate.promptPolicy.callTemplate = "Unique instructions that stay in memory.";
+    candidate.promptPolicy.callTemplate =
+      "Unique instructions that stay in memory.";
     const report = buildEvalSliceReport(candidate, [green("a")]);
     const serialized = JSON.stringify(report);
 
@@ -74,13 +102,17 @@ describe("buildEvalSliceReport", () => {
 
   it("scans the final serialized report before returning it", () => {
     const observation = green("Bearer abcdef0123456789abcdef");
-    expect(() => buildEvalSliceReport(bundle(), [observation])).toThrow(/bearer-token/);
+    expect(() => buildEvalSliceReport(bundle(), [observation])).toThrow(
+      /bearer-token/,
+    );
   });
 });
 
 describe("renderEvalSliceMarkdown", () => {
   it("renders an inspectable table with no secrets", () => {
-    const md = renderEvalSliceMarkdown(buildEvalSliceReport(bundle(), [green("a"), gateFail("b")]));
+    const md = renderEvalSliceMarkdown(
+      buildEvalSliceReport(bundle(), [green("a"), gateFail("b")]),
+    );
     expect(md).toContain("Runner eval slice");
     expect(md).toContain("| a |");
     expect(md).toContain("| b |");

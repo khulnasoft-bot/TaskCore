@@ -1,7 +1,16 @@
 import { useCallback, useMemo } from "react";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { decisionEffectTargetIssueIds, type Agent, type AttentionSubject } from "@taskcore/shared";
+import {
+  decisionEffectTargetIssueIds,
+  type Agent,
+  type AttentionSubject,
+} from "@taskcore/shared";
 import { decisionsApi, type DecisionOutcome } from "../api/decisions";
 import { issuesApi } from "../api/issues";
 import { queryKeys } from "../lib/queryKeys";
@@ -29,8 +38,13 @@ function combineIssueData(results: Array<{ data?: IssueDetail }>) {
   return results.map((result) => result.data);
 }
 
-export function signedCancelTreePreviewIds(targetIssueId: string, snapshot: { descendantIds?: string[] } | undefined) {
-  return snapshot?.descendantIds ? [targetIssueId, ...snapshot.descendantIds] : null;
+export function signedCancelTreePreviewIds(
+  targetIssueId: string,
+  snapshot: { descendantIds?: string[] } | undefined,
+) {
+  return snapshot?.descendantIds
+    ? [targetIssueId, ...snapshot.descendantIds]
+    : null;
 }
 
 /**
@@ -40,12 +54,22 @@ export function signedCancelTreePreviewIds(targetIssueId: string, snapshot: { de
  * dismiss mutations, and invalidates the attention feed + target-issue keys on
  * success — same conventions as {@link AttentionInteractionResolver}.
  */
-export function DecisionResolver({ companyId, decisionId, originIssue, agentMap, initialDecision, onResolved }: DecisionResolverProps) {
+export function DecisionResolver({
+  companyId,
+  decisionId,
+  originIssue,
+  agentMap,
+  initialDecision,
+  onResolved,
+}: DecisionResolverProps) {
   const queryClient = useQueryClient();
   const { selectedCompany } = useCompany();
   const prefix = selectedCompany?.issuePrefix ?? "";
   const issueHref = useCallback(
-    (idOrIdentifier: string) => (prefix ? `/${prefix}/issues/${idOrIdentifier}` : `/issues/${idOrIdentifier}`),
+    (idOrIdentifier: string) =>
+      prefix
+        ? `/${prefix}/issues/${idOrIdentifier}`
+        : `/issues/${idOrIdentifier}`,
     [prefix],
   );
 
@@ -65,7 +89,9 @@ export function DecisionResolver({ companyId, decisionId, originIssue, agentMap,
     enabled: !!companyId && decision?.status === "open",
   });
   const targetChanged = useMemo(
-    () => openList.data?.find((entry) => entry.id === decisionId)?.targetChanged ?? null,
+    () =>
+      openList.data?.find((entry) => entry.id === decisionId)?.targetChanged ??
+      null,
     [openList.data, decisionId],
   );
 
@@ -74,7 +100,8 @@ export function DecisionResolver({ companyId, decisionId, originIssue, agentMap,
     if (!decision) return [] as string[];
     const ids = new Set<string>(Object.keys(decision.targetSnapshots ?? {}));
     for (const snapshot of Object.values(decision.targetSnapshots ?? {})) {
-      for (const descendantId of snapshot.descendantIds ?? []) ids.add(descendantId);
+      for (const descendantId of snapshot.descendantIds ?? [])
+        ids.add(descendantId);
     }
     for (const option of decision.options) {
       for (const effect of option.effects) {
@@ -106,7 +133,9 @@ export function DecisionResolver({ companyId, decisionId, originIssue, agentMap,
         id: originIssue.id,
         identifier: originIssue.identifier,
         title: originIssue.title,
-        href: originIssue.href ?? issueHref(originIssue.identifier ?? originIssue.id),
+        href:
+          originIssue.href ??
+          issueHref(originIssue.identifier ?? originIssue.id),
         status: originIssue.status,
       });
     }
@@ -125,29 +154,45 @@ export function DecisionResolver({ companyId, decisionId, originIssue, agentMap,
     return (id: string) => map.get(id) ?? null;
   }, [originIssue, referencedIds, issueData, issueHref]);
 
-  const cancelTreePreview = useCallback((targetIssueId: string): DecisionIssueRef[] | null => {
-    const snapshot = decision?.targetSnapshots?.[targetIssueId];
-    const signedIds = signedCancelTreePreviewIds(targetIssueId, snapshot);
-    if (!signedIds) return null;
-    const refs = signedIds.map(resolveIssue);
-    return refs.every((ref): ref is DecisionIssueRef => ref !== null) ? refs : null;
-  }, [decision?.targetSnapshots, resolveIssue]);
+  const cancelTreePreview = useCallback(
+    (targetIssueId: string): DecisionIssueRef[] | null => {
+      const snapshot = decision?.targetSnapshots?.[targetIssueId];
+      const signedIds = signedCancelTreePreviewIds(targetIssueId, snapshot);
+      if (!signedIds) return null;
+      const refs = signedIds.map(resolveIssue);
+      return refs.every((ref): ref is DecisionIssueRef => ref !== null)
+        ? refs
+        : null;
+    },
+    [decision?.targetSnapshots, resolveIssue],
+  );
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.decisions.detail(decisionId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.decisions.list(companyId, "open") });
-    queryClient.invalidateQueries({ queryKey: queryKeys.decisions.list(companyId, "decided") });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.decisions.detail(decisionId),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.decisions.list(companyId, "open"),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.decisions.list(companyId, "decided"),
+    });
     queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
     for (const id of Object.keys(decision?.targetSnapshots ?? {})) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.decisions.forTargetIssue(companyId, id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.decisions.forTargetIssue(companyId, id),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(id) });
     }
     onResolved?.();
   };
 
   const decideMutation = useMutation({
-    mutationFn: (input: { optionId: string; inputValues: Record<string, string>; idempotencyKey?: string | null }) =>
-      decisionsApi.decide(decisionId, input),
+    mutationFn: (input: {
+      optionId: string;
+      inputValues: Record<string, string>;
+      idempotencyKey?: string | null;
+    }) => decisionsApi.decide(decisionId, input),
     retry: 2,
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.decisions.detail(decisionId), data);
@@ -156,7 +201,8 @@ export function DecisionResolver({ companyId, decisionId, originIssue, agentMap,
   });
 
   const dismissMutation = useMutation({
-    mutationFn: (reason: string | undefined) => decisionsApi.dismiss(decisionId, reason),
+    mutationFn: (reason: string | undefined) =>
+      decisionsApi.dismiss(decisionId, reason),
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.decisions.detail(decisionId), data);
       invalidate();
@@ -174,7 +220,8 @@ export function DecisionResolver({ companyId, decisionId, originIssue, agentMap,
   if (detail.error || !decision) {
     return (
       <p className="py-3 text-xs text-muted-foreground">
-        This decision is no longer available — it may have been resolved elsewhere.
+        This decision is no longer available — it may have been resolved
+        elsewhere.
       </p>
     );
   }
@@ -199,14 +246,22 @@ export function DecisionResolver({ companyId, decisionId, originIssue, agentMap,
               id: originIssue.id,
               identifier: originIssue.identifier,
               title: originIssue.title,
-              href: originIssue.href ?? issueHref(originIssue.identifier ?? originIssue.id),
+              href:
+                originIssue.href ??
+                issueHref(originIssue.identifier ?? originIssue.id),
               status: originIssue.status,
             }
           : null
       }
       busy={busy}
       errorMessage={errorMessage}
-      onDecide={(optionId, inputValues) => decideMutation.mutate({ optionId, inputValues, idempotencyKey: crypto.randomUUID() })}
+      onDecide={(optionId, inputValues) =>
+        decideMutation.mutate({
+          optionId,
+          inputValues,
+          idempotencyKey: crypto.randomUUID(),
+        })
+      }
       onDismiss={(reason) => dismissMutation.mutate(reason)}
     />
   );

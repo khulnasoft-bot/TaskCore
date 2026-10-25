@@ -1,5 +1,14 @@
-import { aiConnectionCatalogSlug, aiConnectionMetadataSchema, type AppDefinition, type ToolApplication, type ToolConnection } from "@taskcore/shared";
-import { aiConnectionRouterSlug, aiConnectionRouterPluginKey } from "@taskcore/shared";
+import {
+  aiConnectionCatalogSlug,
+  aiConnectionMetadataSchema,
+  type AppDefinition,
+  type ToolApplication,
+  type ToolConnection,
+} from "@taskcore/shared";
+import {
+  aiConnectionRouterSlug,
+  aiConnectionRouterPluginKey,
+} from "@taskcore/shared";
 
 export type AppGalleryDisplayEntry = AppDefinition & {
   key?: string;
@@ -8,27 +17,39 @@ export type AppGalleryDisplayEntry = AppDefinition & {
   branding?: AppDefinition["branding"];
 };
 
-export function appDefinitionSlug(entry: AppGalleryDisplayEntry | null | undefined): string {
+export function appDefinitionSlug(
+  entry: AppGalleryDisplayEntry | null | undefined,
+): string {
   return entry?.slug ?? entry?.key ?? "";
 }
 
-export function appDefinitionName(entry: AppGalleryDisplayEntry | null | undefined): string {
+export function appDefinitionName(
+  entry: AppGalleryDisplayEntry | null | undefined,
+): string {
   return entry?.name ?? appDefinitionSlug(entry) ?? "App";
 }
 
-export function appDefinitionDescription(entry: AppGalleryDisplayEntry | null | undefined): string {
+export function appDefinitionDescription(
+  entry: AppGalleryDisplayEntry | null | undefined,
+): string {
   return entry?.description ?? entry?.tagline ?? "";
 }
 
-export function appDefinitionLogoUrl(entry: AppGalleryDisplayEntry | null | undefined): string | undefined {
+export function appDefinitionLogoUrl(
+  entry: AppGalleryDisplayEntry | null | undefined,
+): string | undefined {
   return entry?.branding?.logoUrl ?? entry?.logoUrl;
 }
 
-export function appDefinitionDarkLogoUrl(entry: AppGalleryDisplayEntry | null | undefined): string | undefined {
+export function appDefinitionDarkLogoUrl(
+  entry: AppGalleryDisplayEntry | null | undefined,
+): string | undefined {
   return entry?.branding?.darkLogoUrl;
 }
 
-export function appApplicationSourceSlug(application: ToolApplication | null | undefined): string | null {
+export function appApplicationSourceSlug(
+  application: ToolApplication | null | undefined,
+): string | null {
   if (!application) return null;
   const metadata = application.metadata;
   const source = metadata?.sourceTemplateKey ?? metadata?.galleryKey;
@@ -48,14 +69,24 @@ export function appApplicationSourceSlug(application: ToolApplication | null | u
   return key;
 }
 
-export function appConnectionSourceSlug(connection: ToolConnection | null | undefined): string | null {
+export function appConnectionSourceSlug(
+  connection: ToolConnection | null | undefined,
+): string | null {
   if (!connection) return null;
   if (connection.connectionPurpose === "ai") {
-    const metadata = aiConnectionMetadataSchema.safeParse(connection.config?.ai);
-    if (metadata.success) return aiConnectionCatalogSlug(metadata.data.provider, metadata.data.routing);
+    const metadata = aiConnectionMetadataSchema.safeParse(
+      connection.config?.ai,
+    );
+    if (metadata.success)
+      return aiConnectionCatalogSlug(
+        metadata.data.provider,
+        metadata.data.routing,
+      );
   }
   const router = aiConnectionRouterPluginKey(connection);
   if (router) return aiConnectionRouterSlug(router);
-  const source = connection.config?.sourceTemplateKey ?? connection.transportConfig?.sourceTemplateKey;
+  const source =
+    connection.config?.sourceTemplateKey ??
+    connection.transportConfig?.sourceTemplateKey;
   return typeof source === "string" && source.trim() ? source.trim() : null;
 }

@@ -1,5 +1,13 @@
 import { createHash } from "node:crypto";
-import { afterAll, afterEach, beforeEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { and, eq } from "drizzle-orm";
 import {
   activityLog,
@@ -16,10 +24,15 @@ import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
-import { cloudActorHeaderSourceFromHeaders, resolveCloudTenantActor } from "../middleware/auth.js";
+import {
+  cloudActorHeaderSourceFromHeaders,
+  resolveCloudTenantActor,
+} from "../middleware/auth.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -29,7 +42,11 @@ if (!embeddedPostgresSupport.supported) {
 
 const SERVER_TOKEN = "test-server-token";
 
-function tenantHeaders(input: { stackId: string; userId: string; companyName?: string }) {
+function tenantHeaders(input: {
+  stackId: string;
+  userId: string;
+  companyName?: string;
+}) {
   const headers: Record<string, string> = {
     "x-taskcore-cloud-tenant-token": SERVER_TOKEN,
     "x-taskcore-cloud-user-id": input.userId,
@@ -37,7 +54,8 @@ function tenantHeaders(input: { stackId: string; userId: string; companyName?: s
     "x-taskcore-cloud-stack-id": input.stackId,
     "x-taskcore-cloud-stack-role": "owner",
   };
-  if (input.companyName) headers["x-taskcore-cloud-taskcore-company-name"] = input.companyName;
+  if (input.companyName)
+    headers["x-taskcore-cloud-taskcore-company-name"] = input.companyName;
   return cloudActorHeaderSourceFromHeaders(headers);
 }
 
@@ -56,10 +74,14 @@ function legacyProvisionedDescription(stackId: string) {
 
 describeEmbeddedPostgres("cloud tenant company provisioning", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-tenant-provisioning-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-tenant-provisioning-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -114,7 +136,11 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
     it("derives the issue prefix from the company name and writes no placeholder description", async () => {
       const actor = await resolveCloudTenantActor(
         db,
-        tenantHeaders({ stackId: "stack-claim-1", userId: "user-claim-1", companyName: "Acme Robotics" }),
+        tenantHeaders({
+          stackId: "stack-claim-1",
+          userId: "user-claim-1",
+          companyName: "Acme Robotics",
+        }),
       );
 
       const companyId = actor!.companyIds![0]!;
@@ -128,7 +154,10 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
     it("derives the prefix from the humanized stack slug when no company name header is sent", async () => {
       const actor = await resolveCloudTenantActor(
         db,
-        tenantHeaders({ stackId: "taskcore-stack-borealis", userId: "user-claim-2" }),
+        tenantHeaders({
+          stackId: "taskcore-stack-borealis",
+          userId: "user-claim-2",
+        }),
       );
 
       const companyId = actor!.companyIds![0]!;
@@ -140,11 +169,17 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
     });
 
     it("suffixes the derived prefix when another company already holds it", async () => {
-      await db.insert(companies).values({ name: "Acme Holdings", issuePrefix: "ACM" });
+      await db
+        .insert(companies)
+        .values({ name: "Acme Holdings", issuePrefix: "ACM" });
 
       const actor = await resolveCloudTenantActor(
         db,
-        tenantHeaders({ stackId: "stack-claim-3", userId: "user-claim-3", companyName: "Acme Robotics" }),
+        tenantHeaders({
+          stackId: "stack-claim-3",
+          userId: "user-claim-3",
+          companyName: "Acme Robotics",
+        }),
       );
 
       const companyId = actor!.companyIds![0]!;
@@ -176,19 +211,31 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
         }),
       );
       const companyId = actor!.companyIds![0]!;
-      const issuePrefix = input.issuePrefix ?? legacyProvisionedPrefix(input.stackId);
+      const issuePrefix =
+        input.issuePrefix ?? legacyProvisionedPrefix(input.stackId);
       await db
         .update(companies)
         .set({
           issuePrefix,
-          description: input.description === undefined
-            ? legacyProvisionedDescription(input.stackId)
-            : input.description,
+          description:
+            input.description === undefined
+              ? legacyProvisionedDescription(input.stackId)
+              : input.description,
         })
         .where(eq(companies.id, companyId));
       await db.insert(issues).values([
-        { companyId, title: "First", issueNumber: 1, identifier: `${issuePrefix}-1` },
-        { companyId, title: "Second", issueNumber: 20, identifier: `${issuePrefix}-20` },
+        {
+          companyId,
+          title: "First",
+          issueNumber: 1,
+          identifier: `${issuePrefix}-1`,
+        },
+        {
+          companyId,
+          title: "Second",
+          issueNumber: 20,
+          identifier: `${issuePrefix}-20`,
+        },
       ]);
       await db.insert(cases).values({
         companyId,
@@ -210,7 +257,11 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
 
       await resolveCloudTenantActor(
         db,
-        tenantHeaders({ stackId, userId: "user-repair-1", companyName: "Acme Robotics" }),
+        tenantHeaders({
+          stackId,
+          userId: "user-repair-1",
+          companyName: "Acme Robotics",
+        }),
       );
 
       await expect(readCompany(companyId)).resolves.toEqual({
@@ -226,10 +277,12 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
       const logged = await db
         .select({ details: activityLog.details })
         .from(activityLog)
-        .where(and(
-          eq(activityLog.companyId, companyId),
-          eq(activityLog.action, "company.updated"),
-        ));
+        .where(
+          and(
+            eq(activityLog.companyId, companyId),
+            eq(activityLog.action, "company.updated"),
+          ),
+        );
       expect(logged).toHaveLength(1);
       expect(logged[0]).toMatchObject({
         details: {
@@ -254,13 +307,21 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
 
       await resolveCloudTenantActor(
         db,
-        tenantHeaders({ stackId, userId: "user-repair-2a", companyName: "Acme Robotics" }),
+        tenantHeaders({
+          stackId,
+          userId: "user-repair-2a",
+          companyName: "Acme Robotics",
+        }),
       );
       const afterFirstPass = await readCompany(companyId);
 
       await resolveCloudTenantActor(
         db,
-        tenantHeaders({ stackId, userId: "user-repair-2b", companyName: "Acme Robotics" }),
+        tenantHeaders({
+          stackId,
+          userId: "user-repair-2b",
+          companyName: "Acme Robotics",
+        }),
       );
 
       await expect(readCompany(companyId)).resolves.toEqual(afterFirstPass);
@@ -272,10 +333,12 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
       const logged = await db
         .select({ id: activityLog.id })
         .from(activityLog)
-        .where(and(
-          eq(activityLog.companyId, companyId),
-          eq(activityLog.action, "company.updated"),
-        ));
+        .where(
+          and(
+            eq(activityLog.companyId, companyId),
+            eq(activityLog.action, "company.updated"),
+          ),
+        );
       expect(logged).toHaveLength(1);
     });
 
@@ -291,7 +354,11 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
 
       await resolveCloudTenantActor(
         db,
-        tenantHeaders({ stackId, userId: "user-repair-3", companyName: "Acme Robotics" }),
+        tenantHeaders({
+          stackId,
+          userId: "user-repair-3",
+          companyName: "Acme Robotics",
+        }),
       );
 
       await expect(readCompany(companyId)).resolves.toEqual({
@@ -322,7 +389,11 @@ describeEmbeddedPostgres("cloud tenant company provisioning", () => {
 
       await resolveCloudTenantActor(
         db,
-        tenantHeaders({ stackId, userId: "user-repair-4", companyName: "Acme Robotics" }),
+        tenantHeaders({
+          stackId,
+          userId: "user-repair-4",
+          companyName: "Acme Robotics",
+        }),
       );
 
       await expect(readCompany(companyId)).resolves.toEqual({

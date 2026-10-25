@@ -32,14 +32,19 @@ function agentName(agentId: string, resolvers: HandoffChipResolvers): string {
   return resolvers.agentMap?.get(agentId)?.name ?? agentId.slice(0, 8);
 }
 
-function agentIcon(agentId: string, resolvers: HandoffChipResolvers): string | null {
+function agentIcon(
+  agentId: string,
+  resolvers: HandoffChipResolvers,
+): string | null {
   return resolvers.agentMap?.get(agentId)?.icon ?? null;
 }
 
 function userLabel(userId: string, resolvers: HandoffChipResolvers): string {
   const label = resolvers.resolveUserLabel?.(userId) ?? null;
   const base = label ?? "Board";
-  return resolvers.currentUserId && resolvers.currentUserId === userId ? `${base} (you)` : base;
+  return resolvers.currentUserId && resolvers.currentUserId === userId
+    ? `${base} (you)`
+    : base;
 }
 
 const CHIP_CLASS =
@@ -58,19 +63,37 @@ export function AssigneeChip({
 }) {
   if (assignee.agentId) {
     return (
-      <span className={cn(CHIP_CLASS, className)} data-testid="handoff-assignee-chip" data-kind="agent">
+      <span
+        className={cn(CHIP_CLASS, className)}
+        data-testid="handoff-assignee-chip"
+        data-kind="agent"
+      >
         <span className="sr-only">Agent </span>
-        <AgentAvatar agent={{ ...resolvers.agentMap?.get(assignee.agentId), id: assignee.agentId }} size={16} />
-        <span className="max-w-(--sz-12rem) truncate">{agentName(assignee.agentId, resolvers)}</span>
+        <AgentAvatar
+          agent={{
+            ...resolvers.agentMap?.get(assignee.agentId),
+            id: assignee.agentId,
+          }}
+          size={16}
+        />
+        <span className="max-w-(--sz-12rem) truncate">
+          {agentName(assignee.agentId, resolvers)}
+        </span>
       </span>
     );
   }
   if (assignee.userId) {
     return (
-      <span className={cn(CHIP_CLASS, className)} data-testid="handoff-assignee-chip" data-kind="user">
+      <span
+        className={cn(CHIP_CLASS, className)}
+        data-testid="handoff-assignee-chip"
+        data-kind="user"
+      >
         <span className="sr-only">User </span>
         <User className="h-3 w-3 shrink-0 text-muted-foreground" />
-        <span className="max-w-(--sz-12rem) truncate">{userLabel(assignee.userId, resolvers)}</span>
+        <span className="max-w-(--sz-12rem) truncate">
+          {userLabel(assignee.userId, resolvers)}
+        </span>
       </span>
     );
   }
@@ -107,8 +130,16 @@ export function HandoffWakeRow({
       data-testid="handoff-wake-row"
       data-kind={info.kind}
     >
-      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Wake</span>
-      <span className={cn(info.kind === "agent_wake" ? "text-foreground" : "text-muted-foreground")}>
+      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        Wake
+      </span>
+      <span
+        className={cn(
+          info.kind === "agent_wake"
+            ? "text-foreground"
+            : "text-muted-foreground",
+        )}
+      >
         {info.wakeText}
       </span>
     </div>
@@ -148,7 +179,11 @@ function PreviewChip({
 }) {
   return (
     <AssigneeChip
-      assignee={chip.kind === "agent" ? { agentId: chip.id, userId: null } : { agentId: null, userId: chip.id }}
+      assignee={
+        chip.kind === "agent"
+          ? { agentId: chip.id, userId: null }
+          : { agentId: null, userId: chip.id }
+      }
       resolvers={resolvers}
     />
   );
@@ -167,7 +202,9 @@ export function ComposerHandoffPreviewRow({
     <div
       className={cn(
         "flex flex-wrap items-center justify-end gap-1.5 text-xs",
-        preview.tone === "warn" ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground",
+        preview.tone === "warn"
+          ? "text-amber-700 dark:text-amber-300"
+          : "text-muted-foreground",
       )}
       data-testid="composer-handoff-preview"
       data-kind={preview.kind}
@@ -175,7 +212,9 @@ export function ComposerHandoffPreviewRow({
       aria-live="polite"
     >
       <span>{preview.text}</span>
-      {preview.chip ? <PreviewChip chip={preview.chip} resolvers={resolvers} /> : null}
+      {preview.chip ? (
+        <PreviewChip chip={preview.chip} resolvers={resolvers} />
+      ) : null}
       {preview.suffix ? <span>{preview.suffix}</span> : null}
     </div>
   );
@@ -203,8 +242,9 @@ export function ComposerMentionCoach({
     >
       <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1">
-        Did you mean <span className="font-medium">@{candidate.matchedText}</span>? Plain text won't
-        notify or assign an agent.
+        Did you mean{" "}
+        <span className="font-medium">@{candidate.matchedText}</span>? Plain
+        text won't notify or assign an agent.
       </span>
       <button
         type="button"
@@ -315,16 +355,23 @@ export function PauseAffectsSummaryView({
   return (
     <div
       data-testid="pause-affects-summary"
-      className={cn("space-y-2 rounded-md border border-border bg-muted/30 p-3", className)}
+      className={cn(
+        "space-y-2 rounded-md border border-border bg-muted/30 p-3",
+        className,
+      )}
     >
       <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
         <PauseCircle className="h-3.5 w-3.5" aria-hidden />
         What this affects
       </div>
       {summary.nothingLive ? (
-        <p role="status" className="text-xs text-muted-foreground" data-testid="pause-nothing-live">
-          Nothing live to pause — no agent run is in flight or queued. This records a hold so new work
-          won't start until you resume.
+        <p
+          role="status"
+          className="text-xs text-muted-foreground"
+          data-testid="pause-nothing-live"
+        >
+          Nothing live to pause — no agent run is in flight or queued. This
+          records a hold so new work won't start until you resume.
         </p>
       ) : null}
       {visibleBuckets.length > 0 ? (
@@ -335,8 +382,12 @@ export function PauseAffectsSummaryView({
               data-bucket={bucket.key}
               className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs"
             >
-              <span className="font-medium text-foreground">{bucket.label}:</span>
-              <span className="tabular-nums text-foreground">{bucket.count}</span>
+              <span className="font-medium text-foreground">
+                {bucket.label}:
+              </span>
+              <span className="tabular-nums text-foreground">
+                {bucket.count}
+              </span>
               <span className="text-muted-foreground">— {bucket.detail}</span>
             </li>
           ))}

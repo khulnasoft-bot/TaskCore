@@ -113,17 +113,24 @@ const TERMINAL_ISSUE_STATUSES = new Set(["done"]);
  * issue actually landed. This directly measures the product goal — "managers
  * doing the work becomes rare".
  */
-export function classifyRecoveryHandoff(facts: RecoveryActionFacts): HandoffClass {
+export function classifyRecoveryHandoff(
+  facts: RecoveryActionFacts,
+): HandoffClass {
   if (ACTIVE_STATUSES.has(facts.status)) return "active";
   if (!facts.ownerAgentId) return "board_owned";
   // Original agent recovered its own issue — the ideal per-cause routing, not a takeover.
   if (facts.ownerAgentId === facts.returnOwnerAgentId) return "self_recovery";
   // Genuine takeover: recovery owner differs from the original assignee.
   const landedElsewhere =
-    facts.finalAssigneeAgentId != null && facts.finalAssigneeAgentId !== facts.ownerAgentId;
+    facts.finalAssigneeAgentId != null &&
+    facts.finalAssigneeAgentId !== facts.ownerAgentId;
   if (landedElsewhere) return "handed_back";
   const ownerKept = facts.finalAssigneeAgentId === facts.ownerAgentId;
-  if (ownerKept && facts.finalIssueStatus && TERMINAL_ISSUE_STATUSES.has(facts.finalIssueStatus)) {
+  if (
+    ownerKept &&
+    facts.finalIssueStatus &&
+    TERMINAL_ISSUE_STATUSES.has(facts.finalIssueStatus)
+  ) {
     return "owner_completed";
   }
   return "other";
@@ -137,14 +144,17 @@ export function evaluateRecoveryRateAlert(
   weekly: WeeklyRecoveryRate[],
   thresholdPercent: number = DEFAULT_RECOVERY_RATE_THRESHOLD_PERCENT,
 ): RecoveryRateAlert {
-  const breachedWeeks = weekly.filter((week) => week.ratePercent > thresholdPercent);
+  const breachedWeeks = weekly.filter(
+    (week) => week.ratePercent > thresholdPercent,
+  );
   const latestWeek = weekly.length > 0 ? weekly[weekly.length - 1]! : null;
   return {
     thresholdPercent,
     breached: breachedWeeks.length > 0,
     breachedWeeks,
     latestWeek,
-    latestWeekBreached: latestWeek != null && latestWeek.ratePercent > thresholdPercent,
+    latestWeekBreached:
+      latestWeek != null && latestWeek.ratePercent > thresholdPercent,
   };
 }
 
@@ -153,7 +163,11 @@ function round2(value: number): number {
 }
 
 function utcWeekStart(now: Date, weeksAgo: number): Date {
-  const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const utcMidnight = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
   const dayOfWeek = new Date(utcMidnight).getUTCDay(); // 0 = Sunday
   const mondayOffset = (dayOfWeek + 6) % 7; // days since Monday
   const thisMonday = utcMidnight - mondayOffset * 24 * 60 * 60 * 1000;
@@ -170,7 +184,8 @@ export function recoveryObservabilityService(db: Db) {
       MAX_WINDOW_WEEKS,
       Math.max(1, Math.floor(opts?.weeks ?? DEFAULT_WINDOW_WEEKS)),
     );
-    const thresholdPercent = opts?.thresholdPercent ?? DEFAULT_RECOVERY_RATE_THRESHOLD_PERCENT;
+    const thresholdPercent =
+      opts?.thresholdPercent ?? DEFAULT_RECOVERY_RATE_THRESHOLD_PERCENT;
     const since = utcWeekStart(now, weeks - 1);
     const sinceIso = since.toISOString();
 
@@ -194,24 +209,34 @@ export function recoveryObservabilityService(db: Db) {
       WHERE ${issueRecoveryActions.companyId} = ${companyId}
         AND ${issueRecoveryActions.createdAt} >= ${sinceIso}::timestamptz
       GROUP BY week_start
-    `)) as unknown as Iterable<{ week_start: string; actions: number | string }>;
+    `)) as unknown as Iterable<{
+      week_start: string;
+      actions: number | string;
+    }>;
 
     const runsByWeek = new Map<string, number>();
-    for (const row of runRows) runsByWeek.set(String(row.week_start), Number(row.runs));
+    for (const row of runRows)
+      runsByWeek.set(String(row.week_start), Number(row.runs));
     const actionsByWeek = new Map<string, number>();
-    for (const row of actionRows) actionsByWeek.set(String(row.week_start), Number(row.actions));
+    for (const row of actionRows)
+      actionsByWeek.set(String(row.week_start), Number(row.actions));
 
-    const weekly: WeeklyRecoveryRate[] = Array.from({ length: weeks }, (_, index) => {
-      const weekStart = utcWeekStart(now, weeks - 1 - index).toISOString().slice(0, 10);
-      const runs = runsByWeek.get(weekStart) ?? 0;
-      const recoveryActions = actionsByWeek.get(weekStart) ?? 0;
-      return {
-        weekStart,
-        runs,
-        recoveryActions,
-        ratePercent: runs > 0 ? round2((recoveryActions / runs) * 100) : 0,
-      };
-    });
+    const weekly: WeeklyRecoveryRate[] = Array.from(
+      { length: weeks },
+      (_, index) => {
+        const weekStart = utcWeekStart(now, weeks - 1 - index)
+          .toISOString()
+          .slice(0, 10);
+        const runs = runsByWeek.get(weekStart) ?? 0;
+        const recoveryActions = actionsByWeek.get(weekStart) ?? 0;
+        return {
+          weekStart,
+          runs,
+          recoveryActions,
+          ratePercent: runs > 0 ? round2((recoveryActions / runs) * 100) : 0,
+        };
+      },
+    );
 
     const alert = evaluateRecoveryRateAlert(weekly, thresholdPercent);
 
@@ -320,12 +345,14 @@ export function recoveryObservabilityService(db: Db) {
       // Routing verification counters (resolved actions).
       if (row.status === "escalated") routing.escalated += 1;
       if (row.outcome === "false_positive") routing.falsePositive += 1;
-      if (row.status === "cancelled" && row.outcome !== "false_positive") routing.cancelled += 1;
+      if (row.status === "cancelled" && row.outcome !== "false_positive")
+        routing.cancelled += 1;
 
       switch (klass) {
         case "self_recovery":
           handoff.selfRecovery += 1;
-          if (row.status === "resolved") routing.retriedByOriginalSucceeded += 1;
+          if (row.status === "resolved")
+            routing.retriedByOriginalSucceeded += 1;
           break;
         case "handed_back":
           handoff.handedBack += 1;
@@ -351,10 +378,14 @@ export function recoveryObservabilityService(db: Db) {
     const decided = handoff.handedBack + handoff.ownerCompleted;
     if (decided > 0) {
       handoff.handedBackRatio = round2((handoff.handedBack / decided) * 100);
-      handoff.ownerCompletedRatio = round2((handoff.ownerCompleted / decided) * 100);
+      handoff.ownerCompletedRatio = round2(
+        (handoff.ownerCompleted / decided) * 100,
+      );
     }
 
-    const perCauseRouting = Array.from(routingByCause.values()).sort((a, b) => b.total - a.total);
+    const perCauseRouting = Array.from(routingByCause.values()).sort(
+      (a, b) => b.total - a.total,
+    );
 
     return {
       companyId,

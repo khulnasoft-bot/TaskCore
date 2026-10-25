@@ -64,15 +64,24 @@ describe("IssueColumnPicker presentation options", () => {
       />,
     );
 
-    const columnsButton = container?.querySelector<HTMLButtonElement>('button[title="Columns"]');
+    const columnsButton = container?.querySelector<HTMLButtonElement>(
+      'button[title="Columns"]',
+    );
     expect(columnsButton).not.toBeNull();
-    act(() => columnsButton?.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })));
+    act(() =>
+      columnsButton?.dispatchEvent(
+        new MouseEvent("pointerdown", { bubbles: true }),
+      ),
+    );
 
-    const option = Array.from(document.body.querySelectorAll<HTMLElement>('[role="menuitemcheckbox"]'))
-      .find((item) => item.textContent?.includes("Date group separators"));
+    const option = Array.from(
+      document.body.querySelectorAll<HTMLElement>('[role="menuitemcheckbox"]'),
+    ).find((item) => item.textContent?.includes("Date group separators"));
     expect(option?.getAttribute("aria-checked")).toBe("true");
 
-    act(() => option?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    act(() =>
+      option?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
     expect(onToggleDateGroupSeparators).toHaveBeenCalledWith(false);
   });
 });
@@ -80,13 +89,19 @@ describe("IssueColumnPicker presentation options", () => {
 describe("InboxIssueMetaLeading live state", () => {
   it("describes the canonical identifier at the trailing edge", () => {
     expect(issueColumnDescription("id", "task")).toContain("trailing edge");
-    expect(issueColumnDescription("id", "legacy")).not.toContain("trailing edge");
+    expect(issueColumnDescription("id", "legacy")).not.toContain(
+      "trailing edge",
+    );
   });
 
   it("shows the own Live chip for a running issue and never the subtree chip", () => {
     const text = renderLeading(
       <InboxIssueMetaLeading
-        issue={makeIssue({ id: "child", identifier: "PAP-2", status: "in_progress" })}
+        issue={makeIssue({
+          id: "child",
+          identifier: "PAP-2",
+          status: "in_progress",
+        })}
         isLive
         subtreeLiveCount={3}
       />,
@@ -111,7 +126,11 @@ describe("InboxIssueMetaLeading live state", () => {
   it("can suppress the subtree chip when the status glyph already carries descendant liveness", () => {
     const text = renderLeading(
       <InboxIssueMetaLeading
-        issue={makeIssue({ id: "parent", identifier: "PAP-1", status: "blocked" })}
+        issue={makeIssue({
+          id: "parent",
+          identifier: "PAP-1",
+          status: "blocked",
+        })}
         isLive={false}
         subtreeLiveCount={2}
         showSubtreeLiveChip={false}
@@ -155,7 +174,9 @@ describe("InboxIssueTrailingColumns attribution", () => {
     );
 
     expect(text).toContain("CodexCoder");
-    expect(container?.querySelector('[data-slot="agent-avatar"]')).not.toBeNull();
+    expect(
+      container?.querySelector('[data-slot="agent-avatar"]'),
+    ).not.toBeNull();
   });
 
   it("renders a kicked off by column for user creators", () => {

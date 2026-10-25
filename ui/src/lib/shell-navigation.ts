@@ -1,20 +1,21 @@
 export type ContextualSidebarSurface =
-  | "settings"
-  | "apps"
-  | "agent"
-  | "routine"
-  | "skills"
-  | `plugin:${string}`;
+  "settings" | "apps" | "agent" | "routine" | "skills" | `plugin:${string}`;
 
 export interface ShellRouteClassification {
   companySegments: string[];
   isTaskDetail: boolean;
-  builtInContextualSurface: Exclude<ContextualSidebarSurface, `plugin:${string}`> | null;
+  builtInContextualSurface: Exclude<
+    ContextualSidebarSurface,
+    `plugin:${string}`
+  > | null;
 }
 
 const CONTEXTUAL_ORIGIN_KEY_PREFIX = "taskcore.contextualSidebar.origin";
 
-export function getCompanyPathSegments(pathname: string, companyPrefix: string | undefined): string[] {
+export function getCompanyPathSegments(
+  pathname: string,
+  companyPrefix: string | undefined,
+): string[] {
   if (!companyPrefix) return [];
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length < 2) return [];
@@ -28,20 +29,26 @@ export function classifyShellRoute(
 ): ShellRouteClassification {
   const companySegments = getCompanyPathSegments(pathname, companyPrefix);
   const root = companySegments[0]?.toLowerCase();
-  const isCompanySettings = root === "company" && ["settings", "export", "import"].includes(
-    companySegments[1]?.toLowerCase() ?? "",
-  );
+  const isCompanySettings =
+    root === "company" &&
+    ["settings", "export", "import"].includes(
+      companySegments[1]?.toLowerCase() ?? "",
+    );
   const agentSegment = companySegments[1]?.toLowerCase();
-  const isAgentDetail = root === "agents"
-    && Boolean(agentSegment)
-    && agentSegment !== "new"
-    && !["all", "active", "paused", "error", "builtin"].includes(agentSegment ?? "");
+  const isAgentDetail =
+    root === "agents" &&
+    Boolean(agentSegment) &&
+    agentSegment !== "new" &&
+    !["all", "active", "paused", "error", "builtin"].includes(
+      agentSegment ?? "",
+    );
   const isRoutineDetail = root === "routines" && companySegments.length >= 2;
   const isSkillsSurface = root === "skills";
 
   return {
     companySegments,
-    isTaskDetail: (root === "issues" || root === "chats") && companySegments.length >= 2,
+    isTaskDetail:
+      (root === "issues" || root === "chats") && companySegments.length >= 2,
     builtInContextualSurface: isCompanySettings
       ? "settings"
       : root === "apps" || root === "tools"
@@ -52,11 +59,14 @@ export function classifyShellRoute(
             ? "routine"
             : isSkillsSurface
               ? "skills"
-        : null,
+              : null,
   };
 }
 
-function contextualOriginStorageKey(surface: ContextualSidebarSurface, companyPrefix: string) {
+function contextualOriginStorageKey(
+  surface: ContextualSidebarSurface,
+  companyPrefix: string,
+) {
   return `${CONTEXTUAL_ORIGIN_KEY_PREFIX}:${companyPrefix.toUpperCase()}:${surface}`;
 }
 
@@ -74,7 +84,11 @@ export function rememberContextualSidebarOrigin({
   companyPrefix: string;
   previousPathname: string;
 }) {
-  if (typeof window === "undefined" || !isCompanyPath(previousPathname, companyPrefix)) return;
+  if (
+    typeof window === "undefined" ||
+    !isCompanyPath(previousPathname, companyPrefix)
+  )
+    return;
 
   try {
     window.sessionStorage.setItem(
@@ -98,7 +112,9 @@ export function readContextualSidebarOrigin({
   if (typeof window === "undefined" || !companyPrefix) return fallbackTo;
 
   try {
-    const stored = window.sessionStorage.getItem(contextualOriginStorageKey(surface, companyPrefix));
+    const stored = window.sessionStorage.getItem(
+      contextualOriginStorageKey(surface, companyPrefix),
+    );
     return stored && isCompanyPath(stored, companyPrefix) ? stored : fallbackTo;
   } catch {
     return fallbackTo;

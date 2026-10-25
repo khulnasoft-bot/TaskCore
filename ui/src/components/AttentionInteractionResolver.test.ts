@@ -12,7 +12,10 @@ describe("replaceResolvedInteraction", () => {
       id: pendingSecretProposalInteraction.id,
     };
 
-    const next = replaceResolvedInteraction([pendingSecretProposalInteraction], resolved);
+    const next = replaceResolvedInteraction(
+      [pendingSecretProposalInteraction],
+      resolved,
+    );
 
     expect(next).toHaveLength(1);
     expect(next[0]?.status).toBe("accepted");
@@ -26,8 +29,8 @@ describe("replaceResolvedInteraction", () => {
   });
 
   it("retains the stitched receipt when the interaction cache was empty", () => {
-    expect(replaceResolvedInteraction(undefined, failedSecretProposalInteraction)).toEqual([
-      failedSecretProposalInteraction,
-    ]);
+    expect(
+      replaceResolvedInteraction(undefined, failedSecretProposalInteraction),
+    ).toEqual([failedSecretProposalInteraction]);
   });
 });

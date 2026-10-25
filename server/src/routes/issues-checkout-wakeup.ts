@@ -5,7 +5,9 @@ type CheckoutWakeInput = {
   checkoutRunId: string | null;
 };
 
-export function shouldWakeAssigneeOnCheckout(input: CheckoutWakeInput): boolean {
+export function shouldWakeAssigneeOnCheckout(
+  input: CheckoutWakeInput,
+): boolean {
   if (input.actorType !== "agent") return true;
   if (!input.actorAgentId) return true;
   if (input.actorAgentId !== input.checkoutAgentId) return true;

@@ -1,4 +1,12 @@
-import { pgTable, uuid, text, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  jsonb,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { companies } from "./companies.js";
 
 // Durable ledger for chunked company transfers (export publishes and import
@@ -13,7 +21,9 @@ export const companyTransferRuns = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     // Null while an import targeting a new company has not created it yet;
     // set as soon as the destination company exists.
-    companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+    companyId: uuid("company_id").references(() => companies.id, {
+      onDelete: "set null",
+    }),
     direction: text("direction").notNull(), // "export" | "import"
     status: text("status").notNull().default("pending"), // pending | running | applying | completed | failed | cancelled
     // The actor the run belongs to (board session / API key identity); run
@@ -35,15 +45,21 @@ export const companyTransferRuns = pgTable(
     error: text("error"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     companyIdx: index("company_transfer_runs_company_idx").on(table.companyId),
-    idempotencyDirectionIdx: index("company_transfer_runs_idempotency_direction_idx").on(
-      table.idempotencyKey,
-      table.direction,
+    idempotencyDirectionIdx: index(
+      "company_transfer_runs_idempotency_direction_idx",
+    ).on(table.idempotencyKey, table.direction),
+    actorStatusIdx: index("company_transfer_runs_actor_status_idx").on(
+      table.actorKey,
+      table.status,
     ),
-    actorStatusIdx: index("company_transfer_runs_actor_status_idx").on(table.actorKey, table.status),
   }),
 );

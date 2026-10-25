@@ -13,11 +13,16 @@ describe("withRecoveryContext", () => {
   });
 
   it("removes legacy model hints from all recovery work", () => {
-    expect(withRecoveryContext({
-      issueId: "issue-1",
-      modelProfile: "cheap",
-      taskcoreModelProfile: { requested: "cheap" },
-    }, "normal_model")).toEqual({
+    expect(
+      withRecoveryContext(
+        {
+          issueId: "issue-1",
+          modelProfile: "cheap",
+          taskcoreModelProfile: { requested: "cheap" },
+        },
+        "normal_model",
+      ),
+    ).toEqual({
       issueId: "issue-1",
     });
   });

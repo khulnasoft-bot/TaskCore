@@ -26,8 +26,5 @@ export function redactCodexDiagnostic(message: string): string {
       /(api[_-]?key|token|secret|password)\s*[=:]\s*[^\s,;]+/gi,
       "$1=[REDACTED]",
     )
-    .replace(
-      /((?:[A-Z][A-Z0-9]*_)+API_KEY)=[^\s]+/g,
-      "$1=[REDACTED]",
-    );
+    .replace(/((?:[A-Z][A-Z0-9]*_)+API_KEY)=[^\s]+/g, "$1=[REDACTED]");
 }

@@ -5,27 +5,46 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExecutionProjection } from "@taskcore/shared";
 import type { TranscriptEntry } from "../../adapters";
-import { TaskChatLiveRunPill, toolCountSummaryFromEntries } from "./TaskChatLiveRunPill";
+import {
+  TaskChatLiveRunPill,
+  toolCountSummaryFromEntries,
+} from "./TaskChatLiveRunPill";
 
-function toolCall(overrides: Partial<Extract<TranscriptEntry, { kind: "tool_call" }>>): TranscriptEntry {
-  return { kind: "tool_call", ts: "2026-08-08T00:00:00.000Z", name: "read_file", input: {}, ...overrides };
+function toolCall(
+  overrides: Partial<Extract<TranscriptEntry, { kind: "tool_call" }>>,
+): TranscriptEntry {
+  return {
+    kind: "tool_call",
+    ts: "2026-08-08T00:00:00.000Z",
+    name: "read_file",
+    input: {},
+    ...overrides,
+  };
 }
 
 describe("toolCountSummaryFromEntries", () => {
   it("returns null when there are no tool calls", () => {
     expect(toolCountSummaryFromEntries([])).toBeNull();
     expect(
-      toolCountSummaryFromEntries([{ kind: "assistant", ts: "t", text: "hi" } as TranscriptEntry]),
+      toolCountSummaryFromEntries([
+        { kind: "assistant", ts: "t", text: "hi" } as TranscriptEntry,
+      ]),
     ).toBeNull();
   });
 
   it("counts commands and other tools separately with pluralization", () => {
     const entries: TranscriptEntry[] = [
       toolCall({ name: "bash", input: { command: "ls" }, toolUseId: "c1" }),
-      toolCall({ name: "command_execution", input: { command: "pwd" }, toolUseId: "c2" }),
+      toolCall({
+        name: "command_execution",
+        input: { command: "pwd" },
+        toolUseId: "c2",
+      }),
       toolCall({ name: "read_file", input: { path: "a.ts" }, toolUseId: "t1" }),
     ];
-    expect(toolCountSummaryFromEntries(entries)).toBe("ran 2 commands, called 1 tool");
+    expect(toolCountSummaryFromEntries(entries)).toBe(
+      "ran 2 commands, called 1 tool",
+    );
   });
 
   it("dedupes re-emitted tool_calls that share a toolUseId", () => {
@@ -65,7 +84,9 @@ describe("TaskChatLiveRunPill", () => {
         />,
       );
     });
-    const pill = container.querySelector('[data-testid="task-chat-live-run-pill"]');
+    const pill = container.querySelector(
+      '[data-testid="task-chat-live-run-pill"]',
+    );
     expect(pill).not.toBeNull();
     const shimmer = container.querySelector(".shimmer-text");
     expect(shimmer?.textContent).toBe("Working");
@@ -80,13 +101,22 @@ describe("TaskChatLiveRunPill", () => {
       vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));
       const startedAtMs = Date.now() - 6_000;
       const execution = { phase } as ExecutionProjection;
-      const render = (status: string) => act(() => root.render(
-        <TaskChatLiveRunPill status={status} execution={execution}
-          startedAtMs={startedAtMs} finishedAtMs={startedAtMs + 8_000}
-          toolSummary="called 2 tools" />,
-      ));
+      const render = (status: string) =>
+        act(() =>
+          root.render(
+            <TaskChatLiveRunPill
+              status={status}
+              execution={execution}
+              startedAtMs={startedAtMs}
+              finishedAtMs={startedAtMs + 8_000}
+              toolSummary="called 2 tools"
+            />,
+          ),
+        );
       render("running");
-      expect(container.querySelector(".shimmer-text")?.textContent).toBe("Working");
+      expect(container.querySelector(".shimmer-text")?.textContent).toBe(
+        "Working",
+      );
       expect(container.querySelector(".animate-spin")).not.toBeNull();
       expect(container.textContent).toContain("for 6 seconds");
       expect(container.textContent).toContain("called 2 tools");
@@ -113,11 +143,12 @@ describe("TaskChatLiveRunPill", () => {
         />,
       );
     });
-    const pill = container.querySelector('[data-testid="task-chat-live-run-pill"]');
+    const pill = container.querySelector(
+      '[data-testid="task-chat-live-run-pill"]',
+    );
     expect(container.querySelector(".shimmer-text")).toBeNull();
     expect(pill?.textContent).toContain("Worked");
     expect(pill?.textContent).toContain("for 42 seconds");
     expect(pill?.textContent).toContain("ran 1 command");
   });
-
 });

@@ -18,7 +18,11 @@ function deferred() {
 
 test("runs every item and preserves result order", async () => {
   const items = [1, 2, 3, 4, 5];
-  const results = await runWithConcurrency(items, 2, async (value) => value * 10);
+  const results = await runWithConcurrency(
+    items,
+    2,
+    async (value) => value * 10,
+  );
   assert.deepEqual(results, [10, 20, 30, 40, 50]);
 });
 
@@ -71,7 +75,10 @@ test("aggregates failures and still runs remaining items", async () => {
   );
 
   // A single failure must not abort the rest of the queue.
-  assert.deepEqual(processed.sort((a, b) => a - b), [0, 1, 2, 3]);
+  assert.deepEqual(
+    processed.sort((a, b) => a - b),
+    [0, 1, 2, 3],
+  );
 });
 
 test("reports failures sorted by original index", async () => {

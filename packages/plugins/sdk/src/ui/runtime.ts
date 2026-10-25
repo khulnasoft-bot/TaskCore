@@ -1,6 +1,9 @@
 type PluginBridgeRegistry = {
   react?: {
-    createElement?: (type: unknown, props?: Record<string, unknown> | null) => unknown;
+    createElement?: (
+      type: unknown,
+      props?: Record<string, unknown> | null,
+    ) => unknown;
   } | null;
   sdkUi?: Record<string, unknown> | null;
 };
@@ -16,7 +19,7 @@ function getBridgeRegistry(): PluginBridgeRegistry | undefined {
 function missingBridgeValueError(name: string): Error {
   return new Error(
     `Taskcore plugin UI runtime is not initialized for "${name}". ` +
-      'Ensure the host loaded the plugin bridge before rendering this UI module.',
+      "Ensure the host loaded the plugin bridge before rendering this UI module.",
   );
 }
 

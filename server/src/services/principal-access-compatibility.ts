@@ -1,8 +1,15 @@
 import { and, eq, notInArray } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { agents, companyMemberships, principalPermissionGrants } from "@taskcore/db";
+import {
+  agents,
+  companyMemberships,
+  principalPermissionGrants,
+} from "@taskcore/db";
 import type { PermissionKey, PrincipalType } from "@taskcore/shared";
-import { grantsForHumanRole, normalizeHumanRole } from "./company-member-roles.js";
+import {
+  grantsForHumanRole,
+  normalizeHumanRole,
+} from "./company-member-roles.js";
 
 type GrantInput = {
   permissionKey: PermissionKey;
@@ -85,30 +92,31 @@ export async function backfillPrincipalAccessCompatibility(
     .from(agents)
     .where(notInArray(agents.status, ["pending_approval", "terminated"]));
 
-  const agentMembershipsInserted = nonTerminalAgents.length > 0
-    ? await db
-      .insert(companyMemberships)
-      .values(
-        nonTerminalAgents.map((agent) => ({
-          companyId: agent.companyId,
-          principalType: "agent",
-          principalId: agent.principalId,
-          status: "active",
-          membershipRole: "member",
-          createdAt: now,
-          updatedAt: now,
-        })),
-      )
-      .onConflictDoNothing({
-        target: [
-          companyMemberships.companyId,
-          companyMemberships.principalType,
-          companyMemberships.principalId,
-        ],
-      })
-      .returning({ id: companyMemberships.id })
-      .then((rows) => rows.length)
-    : 0;
+  const agentMembershipsInserted =
+    nonTerminalAgents.length > 0
+      ? await db
+          .insert(companyMemberships)
+          .values(
+            nonTerminalAgents.map((agent) => ({
+              companyId: agent.companyId,
+              principalType: "agent",
+              principalId: agent.principalId,
+              status: "active",
+              membershipRole: "member",
+              createdAt: now,
+              updatedAt: now,
+            })),
+          )
+          .onConflictDoNothing({
+            target: [
+              companyMemberships.companyId,
+              companyMemberships.principalType,
+              companyMemberships.principalId,
+            ],
+          })
+          .returning({ id: companyMemberships.id })
+          .then((rows) => rows.length)
+      : 0;
 
   const activeHumanMemberships = await db
     .select({

@@ -1,12 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 import type { NativeSession } from "../../vendor/taskcore-runner/index.js";
-import { bindManagedNativeCredentialTurn, completeManagedNativeCredentialTurn } from "./managed-native-credentials.js";
+import {
+  bindManagedNativeCredentialTurn,
+  completeManagedNativeCredentialTurn,
+} from "./managed-native-credentials.js";
 
 function fixture() {
   const close = vi.fn(async () => {});
   const detach = vi.fn(async () => {});
-  const session = { close, detachControllerForRestart: detach } as unknown as NativeSession;
-  const first = { copyBack: vi.fn(async () => {}), remove: vi.fn(async () => {}) };
+  const session = {
+    close,
+    detachControllerForRestart: detach,
+  } as unknown as NativeSession;
+  const first = {
+    copyBack: vi.fn(async () => {}),
+    remove: vi.fn(async () => {}),
+  };
   bindManagedNativeCredentialTurn(session, first);
   return { session, close, detach, first };
 }
@@ -19,7 +28,10 @@ describe("managed native credential turns", () => {
     expect(first.remove).not.toHaveBeenCalled();
     expect(close).not.toHaveBeenCalled();
 
-    const next = { copyBack: vi.fn(async () => {}), remove: vi.fn(async () => {}) };
+    const next = {
+      copyBack: vi.fn(async () => {}),
+      remove: vi.fn(async () => {}),
+    };
     bindManagedNativeCredentialTurn(session, next);
     await completeManagedNativeCredentialTurn(session);
     await session.close({ reason: "idle timeout" });
@@ -40,16 +52,32 @@ describe("managed native credential turns", () => {
 
   it("keeps the current invocation exclusive until copy-back settles", async () => {
     const { session } = fixture();
-    expect(() => bindManagedNativeCredentialTurn(session, { copyBack: vi.fn(), remove: vi.fn() }))
-      .toThrow("managed_native_credential_turn_still_owned");
+    expect(() =>
+      bindManagedNativeCredentialTurn(session, {
+        copyBack: vi.fn(),
+        remove: vi.fn(),
+      }),
+    ).toThrow("managed_native_credential_turn_still_owned");
     await completeManagedNativeCredentialTurn(session);
     let finish!: () => void;
-    const next = { copyBack: vi.fn(() => new Promise<void>(resolve => { finish = resolve; })), remove: vi.fn(async () => {}) };
+    const next = {
+      copyBack: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          }),
+      ),
+      remove: vi.fn(async () => {}),
+    };
     bindManagedNativeCredentialTurn(session, next);
     const one = completeManagedNativeCredentialTurn(session);
     const two = completeManagedNativeCredentialTurn(session);
-    expect(() => bindManagedNativeCredentialTurn(session, { copyBack: vi.fn(), remove: vi.fn() }))
-      .toThrow("managed_native_credential_turn_still_owned");
+    expect(() =>
+      bindManagedNativeCredentialTurn(session, {
+        copyBack: vi.fn(),
+        remove: vi.fn(),
+      }),
+    ).toThrow("managed_native_credential_turn_still_owned");
     finish();
     await Promise.all([one, two]);
     expect(next.copyBack).toHaveBeenCalledOnce();
@@ -63,20 +91,37 @@ describe("managed native credential turns", () => {
     expect(first.copyBack).not.toHaveBeenCalled();
     expect(first.remove).not.toHaveBeenCalled();
     expect(close).not.toHaveBeenCalled();
-    expect(() => bindManagedNativeCredentialTurn(session, { copyBack: vi.fn(), remove: vi.fn() }))
-      .toThrow("managed_native_credential_session_retired");
+    expect(() =>
+      bindManagedNativeCredentialTurn(session, {
+        copyBack: vi.fn(),
+        remove: vi.fn(),
+      }),
+    ).toThrow("managed_native_credential_session_retired");
   });
 
   it("does not delete a successor's credentials when an old close finishes late", async () => {
     let finish!: () => void;
-    const session = { close: () => new Promise<void>(resolve => { finish = resolve; }), detachControllerForRestart: async () => {} } as unknown as NativeSession;
-    const first = { copyBack: vi.fn(async () => {}), remove: vi.fn(async () => {}) };
+    const session = {
+      close: () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+      detachControllerForRestart: async () => {},
+    } as unknown as NativeSession;
+    const first = {
+      copyBack: vi.fn(async () => {}),
+      remove: vi.fn(async () => {}),
+    };
     bindManagedNativeCredentialTurn(session, first);
     const closing = session.close({ reason: "old owner" });
     await session.detachControllerForRestart!();
-    const next = { copyBack: vi.fn(async () => {}), remove: vi.fn(async () => {}) };
-    expect(() => bindManagedNativeCredentialTurn(session, next))
-      .toThrow("managed_native_credential_session_retired");
+    const next = {
+      copyBack: vi.fn(async () => {}),
+      remove: vi.fn(async () => {}),
+    };
+    expect(() => bindManagedNativeCredentialTurn(session, next)).toThrow(
+      "managed_native_credential_session_retired",
+    );
     const successorClose = vi.fn(async () => {});
     const successor = { close: successorClose } as unknown as NativeSession;
     bindManagedNativeCredentialTurn(successor, next);
@@ -91,12 +136,24 @@ describe("managed native credential turns", () => {
 
   it("never rebinds a handle whose close is in progress", async () => {
     let finish!: () => void;
-    const session = { close: () => new Promise<void>(resolve => { finish = resolve; }) } as unknown as NativeSession;
-    bindManagedNativeCredentialTurn(session, { copyBack: vi.fn(async () => {}), remove: vi.fn(async () => {}) });
+    const session = {
+      close: () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    } as unknown as NativeSession;
+    bindManagedNativeCredentialTurn(session, {
+      copyBack: vi.fn(async () => {}),
+      remove: vi.fn(async () => {}),
+    });
     await completeManagedNativeCredentialTurn(session);
     const closing = session.close({ reason: "idle timeout" });
-    expect(() => bindManagedNativeCredentialTurn(session, { copyBack: vi.fn(), remove: vi.fn() }))
-      .toThrow("managed_native_credential_session_retired");
+    expect(() =>
+      bindManagedNativeCredentialTurn(session, {
+        copyBack: vi.fn(),
+        remove: vi.fn(),
+      }),
+    ).toThrow("managed_native_credential_session_retired");
     finish();
     await closing;
   });
@@ -104,8 +161,15 @@ describe("managed native credential turns", () => {
   it("removes stopped-provider credentials even when refresh copy-back fails", async () => {
     const session = { close: async () => {} } as unknown as NativeSession;
     const remove = vi.fn(async () => {});
-    bindManagedNativeCredentialTurn(session, { copyBack: async () => { throw new Error("copy-back failed"); }, remove });
-    await expect(session.close({ reason: "completed" })).rejects.toThrow("copy-back failed");
+    bindManagedNativeCredentialTurn(session, {
+      copyBack: async () => {
+        throw new Error("copy-back failed");
+      },
+      remove,
+    });
+    await expect(session.close({ reason: "completed" })).rejects.toThrow(
+      "copy-back failed",
+    );
     expect(remove).toHaveBeenCalledOnce();
   });
 });

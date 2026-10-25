@@ -61,7 +61,10 @@ function validateGrokAuthenticationMode(mode) {
   return mode;
 }
 
-export function credentialForConfig(config, grokAuthenticationMode = "api_key") {
+export function credentialForConfig(
+  config,
+  grokAuthenticationMode = "api_key",
+) {
   if (config.provider === "opencode") return "OPENROUTER_API_KEY";
   if (config.provider === "claude_managed") return "ANTHROPIC_API_KEY";
   if (config.provider === "aws_agentcore") return "AWS_AGENTCORE_OIDC";
@@ -72,7 +75,8 @@ export function credentialForConfig(config, grokAuthenticationMode = "api_key") 
     if (config.acpxAgent === "pi") return "OPENROUTER_API_KEY";
     if (config.acpxAgent === "claude") return "ANTHROPIC_API_KEY";
     if (config.acpxAgent === "grok") {
-      return validateGrokAuthenticationMode(grokAuthenticationMode) === "subscription"
+      return validateGrokAuthenticationMode(grokAuthenticationMode) ===
+        "subscription"
         ? "TASKCORE_ACPX_GROK_AUTH_JSON_SECRET"
         : "XAI_API_KEY";
     }
@@ -201,7 +205,10 @@ export async function buildProtocolEvalCatalog({
     }
   }
   if (rosters.length === 0) throw new Error("No live rosters were selected");
-  if (grokAuthenticationMode === "subscription" && !rosters.some((roster) => roster.authenticationMode === "subscription")) {
+  if (
+    grokAuthenticationMode === "subscription" &&
+    !rosters.some((roster) => roster.authenticationMode === "subscription")
+  ) {
     throw new Error("Subscription selection requires an explicit Grok roster");
   }
 
@@ -215,7 +222,9 @@ export async function buildProtocolEvalCatalog({
       provider: roster.provider,
       driver: roster.driver,
       credentialName: roster.credentialName,
-      ...(roster.authenticationMode ? { authenticationMode: roster.authenticationMode } : {}),
+      ...(roster.authenticationMode
+        ? { authenticationMode: roster.authenticationMode }
+        : {}),
     })),
   );
   const shards = [[], []];
@@ -229,7 +238,11 @@ export async function buildProtocolEvalCatalog({
     schema: "taskcore.runner-protocol-eval.catalog/v1",
     campaignId,
     source,
-    selection: { kind: requested === null ? "maintained_full" : "subset", rosters: rosterSelection, grokAuthenticationMode },
+    selection: {
+      kind: requested === null ? "maintained_full" : "subset",
+      rosters: rosterSelection,
+      grokAuthenticationMode,
+    },
     rosters,
     cells,
     matrices: shards.map((include) => ({ include })),
@@ -419,9 +432,14 @@ export async function aggregateProtocolEvalCampaign({
     ) {
       throw new Error(`Downloaded cell metadata drifted for ${cellId}`);
     }
-    if (expected.authenticationMode !== undefined &&
-        (status.authenticationMode !== expected.authenticationMode || status.authenticationEvidenceFailure !== undefined)) {
-      throw new Error(`Invalid Grok authentication evidence for ${cellId}; retained cell metadata and attempts require inspection`);
+    if (
+      expected.authenticationMode !== undefined &&
+      (status.authenticationMode !== expected.authenticationMode ||
+        status.authenticationEvidenceFailure !== undefined)
+    ) {
+      throw new Error(
+        `Invalid Grok authentication evidence for ${cellId}; retained cell metadata and attempts require inspection`,
+      );
     }
     const attemptRoot = resolve(dirname(statusPath), "runs");
     const attemptIds = [];
@@ -480,7 +498,9 @@ export async function aggregateProtocolEvalCampaign({
         ];
     const finalAttemptId = attemptIds.at(-1);
     for (const attemptId of attemptIds) {
-      const attempt = await loadObject(join(runsOut, attemptId, "artifact.json"));
+      const attempt = await loadObject(
+        join(runsOut, attemptId, "artifact.json"),
+      );
       attemptUsages.push(attempt.usage);
     }
     const [score, artifact] = await Promise.all([
@@ -497,7 +517,9 @@ export async function aggregateProtocolEvalCampaign({
       model: cell.model,
       provider: cell.provider,
       driver: cell.driver,
-      ...(cell.authenticationMode ? { authenticationMode: cell.authenticationMode } : {}),
+      ...(cell.authenticationMode
+        ? { authenticationMode: cell.authenticationMode }
+        : {}),
       attemptIds,
       finalAttemptId,
       disposition: score.disposition,
@@ -538,7 +560,9 @@ export async function aggregateProtocolEvalCampaign({
       model: roster.model,
       provider: roster.provider,
       driver: roster.driver,
-      ...(roster.authenticationMode ? { authenticationMode: roster.authenticationMode } : {}),
+      ...(roster.authenticationMode
+        ? { authenticationMode: roster.authenticationMode }
+        : {}),
       selected: roster.cases.length,
       passed: results.filter(
         (result) => result.rosterId === roster.rosterId && result.passed,
@@ -725,7 +749,11 @@ async function main() {
       rosterSelection: argument(args, "--rosters", "all"),
       campaignId: argument(args, "--campaign-id", `local-${Date.now()}`),
       maxParallel: Number(argument(args, "--max-parallel", "100")),
-      grokAuthenticationMode: argument(args, "--grok-authentication", "api_key"),
+      grokAuthenticationMode: argument(
+        args,
+        "--grok-authentication",
+        "api_key",
+      ),
       source: {
         taskcoreSha: process.env.TASKCORE_PROTOCOL_EVAL_SOURCE_SHA ?? null,
         evalsSha: process.env.TASKCORE_PROTOCOL_EVALS_SHA ?? null,

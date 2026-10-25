@@ -30,17 +30,17 @@ export const label = "OpenCode";
 // OpenCode starts publishing a stable checksum/signature, switch to fetching
 // a versioned tarball + verifying the digest before exec.
 export const SANDBOX_INSTALL_COMMAND =
-  'curl -fsSL https://opencode.ai/install | bash && ' +
+  "curl -fsSL https://opencode.ai/install | bash && " +
   'if [ -x "$HOME/.opencode/bin/opencode" ]; then ' +
   'if [ "$(id -u)" -eq 0 ]; then ' +
   'ln -sf "$HOME/.opencode/bin/opencode" /usr/local/bin/opencode; ' +
-  'elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then ' +
+  "elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then " +
   'sudo ln -sf "$HOME/.opencode/bin/opencode" /usr/local/bin/opencode; ' +
-  'else ' +
+  "else " +
   'mkdir -p "$HOME/.local/bin" && ' +
   'ln -sf "$HOME/.opencode/bin/opencode" "$HOME/.local/bin/opencode"; ' +
-  'fi; ' +
-  'fi';
+  "fi; " +
+  "fi";
 
 export const DEFAULT_OPENCODE_LOCAL_MODEL = "openai/gpt-5.2-codex";
 
@@ -48,7 +48,9 @@ export function isValidOpenCodeModelId(value: unknown): value is string {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
   const slashIndex = trimmed.indexOf("/");
-  return Boolean(trimmed) && slashIndex > 0 && slashIndex !== trimmed.length - 1;
+  return (
+    Boolean(trimmed) && slashIndex > 0 && slashIndex !== trimmed.length - 1
+  );
 }
 
 export const models: Array<{ id: string; label: string }> = [

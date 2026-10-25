@@ -7,7 +7,10 @@
     "schemaVersion": { "const": 2 },
     "inventoryRole": { "enum": ["normative", "legacy_alias_index"] },
     "generatedFrom": { "type": ["string", "array"] },
-    "normativeSources": { "type": "array", "items": { "enum": ["capabilities", "evaluations"] } },
+    "normativeSources": {
+      "type": "array",
+      "items": { "enum": ["capabilities", "evaluations"] }
+    },
     "rows": { "type": "array" }
   },
   "oneOf": [
@@ -23,7 +26,10 @@
       "required": ["normativeSources"],
       "properties": {
         "inventoryRole": { "const": "legacy_alias_index" },
-        "rows": { "type": "array", "items": { "$ref": "#/$defs/legacyAliasRow" } }
+        "rows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/legacyAliasRow" }
+        }
       }
     }
   ],
@@ -42,15 +48,33 @@
         { "$ref": "#/$defs/traceabilityRow" },
         {
           "type": "object",
-          "required": ["primaryDisposition", "requiredGrants", "assertionClasses", "evidenceIds"],
+          "required": [
+            "primaryDisposition",
+            "requiredGrants",
+            "assertionClasses",
+            "evidenceIds"
+          ],
           "properties": {
             "primaryDisposition": {
-              "enum": ["control_plane_owned", "always_agent_tool", "optional_agent_tool"]
+              "enum": [
+                "control_plane_owned",
+                "always_agent_tool",
+                "optional_agent_tool"
+              ]
             },
-            "requiredGrants": { "type": "array", "items": { "type": "string" } },
-            "assertionClasses": { "type": "array", "items": { "type": "string" } },
+            "requiredGrants": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "assertionClasses": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
             "evidenceIds": { "type": "array", "items": { "type": "string" } },
-            "legacyMcpAliases": { "type": "array", "items": { "type": "string", "pattern": "^mcp:" } }
+            "legacyMcpAliases": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^mcp:" }
+            }
           }
         }
       ]

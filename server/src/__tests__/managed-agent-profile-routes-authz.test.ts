@@ -10,11 +10,16 @@ import { remoteAgentProfileRoutes } from "../routes/remote-agent-profiles.js";
 const COMPANY_ID = "10000000-0000-4000-8000-000000000001";
 const OTHER_COMPANY_ID = "10000000-0000-4000-8000-000000000002";
 
-const unusedDb = new Proxy({}, {
-  get() {
-    throw new Error("authorization failure unexpectedly accessed the database");
+const unusedDb = new Proxy(
+  {},
+  {
+    get() {
+      throw new Error(
+        "authorization failure unexpectedly accessed the database",
+      );
+    },
   },
-}) as unknown as Db;
+) as unknown as Db;
 
 function createApp(actor: Express.Request["actor"]) {
   const app = express();
@@ -38,7 +43,9 @@ function boardActor(role: "operator" | "viewer"): Express.Request["actor"] {
     userEmail: null,
     isInstanceAdmin: false,
     companyIds: [COMPANY_ID],
-    memberships: [{ companyId: COMPANY_ID, membershipRole: role, status: "active" }],
+    memberships: [
+      { companyId: COMPANY_ID, membershipRole: role, status: "active" },
+    ],
   };
 }
 
@@ -112,12 +119,16 @@ describe("managed provider profile route authorization", () => {
         configuration: {
           region: "us-east-1",
           accountId: "123456789012",
-          harnessArn: "arn:aws:bedrock-agentcore:us-east-1:123456789012:harness/example",
+          harnessArn:
+            "arn:aws:bedrock-agentcore:us-east-1:123456789012:harness/example",
           harnessVersion: "1",
-          endpointArn: "arn:aws:bedrock-agentcore:us-east-1:123456789012:endpoint/example",
+          endpointArn:
+            "arn:aws:bedrock-agentcore:us-east-1:123456789012:endpoint/example",
           endpointQualifier: "taskcore",
-          agentRuntimeArn: "arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/example",
-          memoryArn: "arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/example",
+          agentRuntimeArn:
+            "arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/example",
+          memoryArn:
+            "arn:aws:bedrock-agentcore:us-east-1:123456789012:memory/example",
           memoryId: "memory-example",
           invocationRoleArn: "arn:aws:iam::123456789012:role/taskcore-runner",
           contextBucket: "taskcore-runner-context",

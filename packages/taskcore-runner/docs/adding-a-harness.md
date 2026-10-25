@@ -33,11 +33,11 @@ explicit provisioning permits verified execution. See
 
 ## Current permission catalog
 
-| Provider | Agent configuration key | Supported values | Default |
-|---|---|---|---|
-| Codex | `codexPermissionMode` | `never`, `on-request`, `untrusted` | `never` |
-| OpenCode | `opencodePermissionMode` | `allow`, `ask`, `deny` | `allow` |
-| ACPX (Claude, Codex, Grok) | `acpxPermissionMode` | `approve-all`, `approve-taskcore`, `approve-reads`, `deny-all` | `approve-all` |
+| Provider                   | Agent configuration key  | Supported values                                               | Default       |
+| -------------------------- | ------------------------ | -------------------------------------------------------------- | ------------- |
+| Codex                      | `codexPermissionMode`    | `never`, `on-request`, `untrusted`                             | `never`       |
+| OpenCode                   | `opencodePermissionMode` | `allow`, `ask`, `deny`                                         | `allow`       |
+| ACPX (Claude, Codex, Grok) | `acpxPermissionMode`     | `approve-all`, `approve-taskcore`, `approve-reads`, `deny-all` | `approve-all` |
 
 The browser-safe source of truth for labels, defaults, and configuration
 validation is `TASKCORE_RUNNER_PERMISSION_CAPABILITIES` in

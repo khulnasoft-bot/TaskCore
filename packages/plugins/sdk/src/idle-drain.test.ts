@@ -3,7 +3,10 @@ import { createPluginIdleDrain } from "./idle-drain.js";
 
 describe("plugin idle admission", () => {
   afterEach(() => vi.useRealTimers());
-  const hold = () => ({ ownerId: "idle-owner", expiresAt: Date.now() + 10_000 });
+  const hold = () => ({
+    ownerId: "idle-owner",
+    expiresAt: Date.now() + 10_000,
+  });
 
   it("keeps accepted work counted until actual settlement", async () => {
     const gate = createPluginIdleDrain();
@@ -11,7 +14,8 @@ describe("plugin idle admission", () => {
     const inspect = vi.fn(async () => "none" as const);
     expect(await gate.prepare(hold(), inspect)).toBe("present");
     expect(inspect).not.toHaveBeenCalled();
-    done(); done();
+    done();
+    done();
     expect(await gate.prepare(hold(), inspect)).toBe("none");
     expect(() => gate.begin()).toThrow("held");
     gate.close();
@@ -20,9 +24,18 @@ describe("plugin idle admission", () => {
   it("rejects legacy hooks, invalid deadlines, busy replies and hook errors", async () => {
     const gate = createPluginIdleDrain();
     expect(await gate.prepare(hold())).toBe("present");
-    expect(await gate.prepare({ ...hold(), expiresAt: Infinity }, async () => "none")).toBe("unknown");
+    expect(
+      await gate.prepare(
+        { ...hold(), expiresAt: Infinity },
+        async () => "none",
+      ),
+    ).toBe("unknown");
     expect(await gate.prepare(hold(), async () => "present")).toBe("present");
-    expect(await gate.prepare(hold(), async () => { throw new Error("private detail"); })).toBe("unknown");
+    expect(
+      await gate.prepare(hold(), async () => {
+        throw new Error("private detail");
+      }),
+    ).toBe("unknown");
     gate.begin()();
   });
 
@@ -31,10 +44,20 @@ describe("plugin idle admission", () => {
     const gate = createPluginIdleDrain();
     const lease = hold();
     let signal!: AbortSignal;
-    expect(await gate.prepare(lease, async (value) => { signal = value; return "none"; })).toBe("none");
+    expect(
+      await gate.prepare(lease, async (value) => {
+        signal = value;
+        return "none";
+      }),
+    ).toBe("none");
     gate.release("stale-owner");
     expect(signal.aborted).toBe(false);
-    expect(await gate.prepare({ ...lease, ownerId: "other-owner" }, async () => "none")).toBe("unknown");
+    expect(
+      await gate.prepare(
+        { ...lease, ownerId: "other-owner" },
+        async () => "none",
+      ),
+    ).toBe("unknown");
     await vi.advanceTimersByTimeAsync(10_000);
     expect(signal.aborted).toBe(true);
     gate.begin()();
@@ -44,7 +67,13 @@ describe("plugin idle admission", () => {
     vi.useFakeTimers();
     const gate = createPluginIdleDrain();
     let resolve!: (state: "none") => void;
-    const pending = gate.prepare(hold(), () => new Promise((done) => { resolve = done; }));
+    const pending = gate.prepare(
+      hold(),
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
     expect(() => gate.begin()).toThrow("held");
     await vi.advanceTimersByTimeAsync(10_000);
     expect(await gate.prepare(hold(), async () => "none")).toBe("present");

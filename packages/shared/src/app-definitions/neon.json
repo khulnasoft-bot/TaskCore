@@ -3,16 +3,12 @@
   "slug": "neon",
   "name": "Neon",
   "description": "Manage Postgres projects and branches, run SQL, and inspect schemas in Neon.",
-  "categories": [
-    "data"
-  ],
+  "categories": ["data"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/neon.png"
   },
-  "urlPatterns": [
-    "https://mcp.neon.tech/*"
-  ],
+  "urlPatterns": ["https://mcp.neon.tech/*"],
   "docsUrl": "https://neon.com/docs/ai/neon-mcp-server",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,16 +16,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.neon.tech/mcp",
-        "scopesHint": [
-          "read",
-          "write"
-        ]
+        "scopesHint": ["read", "write"]
       },
       "guidanceMd": "Connect Neon in the browser. Open Advanced to pin one project or enable read-only mode. Write tools start enabled and remain governed by Taskcore's action policies.",
       "riskTier": "S4",
@@ -73,17 +64,13 @@
           "advanced": true
         }
       ],
-      "requiredResourceFilters": [
-        "project"
-      ]
+      "requiredResourceFilters": ["project"]
     },
     {
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.neon.tech/mcp"
@@ -147,9 +134,7 @@
           "advanced": true
         }
       ],
-      "requiredResourceFilters": [
-        "project"
-      ]
+      "requiredResourceFilters": ["project"]
     }
   ]
 }

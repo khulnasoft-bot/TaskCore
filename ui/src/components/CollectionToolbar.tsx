@@ -41,7 +41,10 @@ export function CollectionToolbar({
     >
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
         {context ? (
-          <div data-slot="collection-toolbar-context" className="min-w-0 shrink-0">
+          <div
+            data-slot="collection-toolbar-context"
+            className="min-w-0 shrink-0"
+          >
             {context}
           </div>
         ) : null}
@@ -50,15 +53,21 @@ export function CollectionToolbar({
             {search}
           </div>
         ) : null}
-        {(controls || actions) ? (
+        {controls || actions ? (
           <div className="flex min-w-0 flex-wrap items-center gap-1 sm:ml-auto sm:flex-nowrap">
             {controls ? (
-              <div data-slot="collection-toolbar-controls" className="flex min-w-0 flex-wrap items-center gap-1">
+              <div
+                data-slot="collection-toolbar-controls"
+                className="flex min-w-0 flex-wrap items-center gap-1"
+              >
                 {controls}
               </div>
             ) : null}
             {actions ? (
-              <div data-slot="collection-toolbar-actions" className="flex shrink-0 items-center gap-1">
+              <div
+                data-slot="collection-toolbar-actions"
+                className="flex shrink-0 items-center gap-1"
+              >
                 {actions}
               </div>
             ) : null}

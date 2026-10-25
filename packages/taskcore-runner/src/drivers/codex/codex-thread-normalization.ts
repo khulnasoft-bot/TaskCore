@@ -39,28 +39,30 @@ export function parseCodexThreadGoal(value: unknown): HarnessThreadGoal | null {
   ) {
     return null;
   }
-  const tokenBudget = goal.tokenBudget === null || goal.tokenBudget === undefined
-    ? null
-    : nonNegativeInteger(goal.tokenBudget);
-  const tokensUsed = goal.tokensUsed === undefined
-    ? 0
-    : nonNegativeInteger(goal.tokensUsed);
-  const timeUsedSeconds = goal.timeUsedSeconds === undefined
-    ? 0
-    : nonNegativeInteger(goal.timeUsedSeconds);
-  const createdAt = goal.createdAt === undefined
-    ? 0
-    : nonNegativeInteger(goal.createdAt);
-  const updatedAt = goal.updatedAt === undefined
-    ? 0
-    : nonNegativeInteger(goal.updatedAt);
+  const tokenBudget =
+    goal.tokenBudget === null || goal.tokenBudget === undefined
+      ? null
+      : nonNegativeInteger(goal.tokenBudget);
+  const tokensUsed =
+    goal.tokensUsed === undefined ? 0 : nonNegativeInteger(goal.tokensUsed);
+  const timeUsedSeconds =
+    goal.timeUsedSeconds === undefined
+      ? 0
+      : nonNegativeInteger(goal.timeUsedSeconds);
+  const createdAt =
+    goal.createdAt === undefined ? 0 : nonNegativeInteger(goal.createdAt);
+  const updatedAt =
+    goal.updatedAt === undefined ? 0 : nonNegativeInteger(goal.updatedAt);
   if (
-    (goal.tokenBudget !== null && goal.tokenBudget !== undefined && tokenBudget === null) ||
+    (goal.tokenBudget !== null &&
+      goal.tokenBudget !== undefined &&
+      tokenBudget === null) ||
     tokensUsed === null ||
     timeUsedSeconds === null ||
     createdAt === null ||
     updatedAt === null
-  ) return null;
+  )
+    return null;
   return {
     threadId,
     objective,
@@ -163,7 +165,10 @@ export function isBoundCodexNotification(
   if (claimedRunId.length > 0 && claimedRunId !== binding.runId) return false;
 
   const allowedThreads = new Set(binding.threadIds);
-  const directThreadId = text(params.threadId, text(record(params.turn).threadId));
+  const directThreadId = text(
+    params.threadId,
+    text(record(params.turn).threadId),
+  );
   if (directThreadId.length > 0) return allowedThreads.has(directThreadId);
 
   const thread = record(params.thread);
@@ -191,7 +196,8 @@ export function codexWorkspaceRelativePath(value: unknown): string | null {
     path.startsWith("//") ||
     /^[A-Za-z]:/u.test(path) ||
     path.split("/").some((part) => part === ".." || part.length === 0)
-  ) return null;
+  )
+    return null;
   return path;
 }
 
@@ -209,7 +215,10 @@ export function safeCodexRequestResponse(
   if (method === "item/permissions/requestApproval") {
     return { permissions: {}, scope: "turn" };
   }
-  if (method === "mcpServer/elicitation/request" || isAcpxCanonicalInputMethod(method)) {
+  if (
+    method === "mcpServer/elicitation/request" ||
+    isAcpxCanonicalInputMethod(method)
+  ) {
     return { action, content: null, _meta: null };
   }
   if (

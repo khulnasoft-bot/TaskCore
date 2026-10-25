@@ -23,7 +23,10 @@ const ALL = "__all";
 const RUN_LIMIT = 200;
 
 function runSummary(run: HeartbeatRun) {
-  const result = run.resultJson as { summary?: unknown; result?: unknown } | null;
+  const result = run.resultJson as {
+    summary?: unknown;
+    result?: unknown;
+  } | null;
   const value = result?.summary ?? result?.result ?? run.error;
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -31,7 +34,13 @@ function runSummary(run: HeartbeatRun) {
 function runDuration(run: HeartbeatRun) {
   const start = run.startedAt ? new Date(run.startedAt).getTime() : null;
   const end = run.finishedAt ? new Date(run.finishedAt).getTime() : null;
-  if (start == null || end == null || !Number.isFinite(start) || !Number.isFinite(end)) return null;
+  if (
+    start == null ||
+    end == null ||
+    !Number.isFinite(start) ||
+    !Number.isFinite(end)
+  )
+    return null;
   const seconds = Math.max(0, Math.round((end - start) / 1000));
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
@@ -69,7 +78,9 @@ function RoutineScopedRuns({
     return (
       <div className="flex flex-col items-center gap-3 border-y border-border py-14 text-center">
         <p className="text-sm text-muted-foreground">{error.message}</p>
-        <Button variant="outline" size="sm" onClick={onRetry}>Try again</Button>
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          Try again
+        </Button>
       </div>
     );
   }
@@ -86,13 +97,18 @@ function RoutineScopedRuns({
           Executions created by this routine, newest first.
         </p>
       </div>
-      <ul className="divide-y divide-border border-y border-border" aria-label="Routine runs">
+      <ul
+        className="divide-y divide-border border-y border-border"
+        aria-label="Routine runs"
+      >
         {runs.map((run) => {
           const content = (
             <>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-foreground">{routineRunTitle(run)}</span>
+                  <span className="font-medium text-foreground">
+                    {routineRunTitle(run)}
+                  </span>
                   <StatusBadge status={run.status} />
                 </div>
                 <p className="mt-1 truncate text-sm text-muted-foreground">
@@ -107,11 +123,15 @@ function RoutineScopedRuns({
               </div>
             </>
           );
-          const rowClassName = "flex flex-col gap-2 px-1 py-3 text-inherit no-underline transition-colors hover:bg-muted/50 sm:flex-row sm:items-start sm:justify-between sm:px-3";
+          const rowClassName =
+            "flex flex-col gap-2 px-1 py-3 text-inherit no-underline transition-colors hover:bg-muted/50 sm:flex-row sm:items-start sm:justify-between sm:px-3";
           return (
             <li key={run.id}>
               {run.linkedIssue ? (
-                <Link to={`/issues/${run.linkedIssue.identifier ?? run.linkedIssue.id}`} className={rowClassName}>
+                <Link
+                  to={`/issues/${run.linkedIssue.identifier ?? run.linkedIssue.id}`}
+                  className={rowClassName}
+                >
                   {content}
                 </Link>
               ) : (
@@ -121,12 +141,20 @@ function RoutineScopedRuns({
           );
         })}
       </ul>
-      <p className="text-xs text-muted-foreground">Showing the {RUN_LIMIT} most recent routine runs.</p>
+      <p className="text-xs text-muted-foreground">
+        Showing the {RUN_LIMIT} most recent routine runs.
+      </p>
     </div>
   );
 }
 
-export function AuditRuns({ companyId, routineId }: { companyId: string; routineId?: string }) {
+export function AuditRuns({
+  companyId,
+  routineId,
+}: {
+  companyId: string;
+  routineId?: string;
+}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const agentId = searchParams.get("agentId") ?? ALL;
   const status = searchParams.get("runStatus") ?? ALL;
@@ -138,9 +166,14 @@ export function AuditRuns({ companyId, routineId }: { companyId: string; routine
   const runs = useQuery({
     queryKey: queryKeys.audit.runs(companyId, agentId === ALL ? null : agentId),
     queryFn: () =>
-      heartbeatsApi.list(companyId, agentId === ALL ? undefined : agentId, RUN_LIMIT, {
-        summary: true,
-      }),
+      heartbeatsApi.list(
+        companyId,
+        agentId === ALL ? undefined : agentId,
+        RUN_LIMIT,
+        {
+          summary: true,
+        },
+      ),
     refetchInterval: 15_000,
     enabled: !routineId,
   });
@@ -155,11 +188,15 @@ export function AuditRuns({ companyId, routineId }: { companyId: string; routine
     [agents.data],
   );
   const statuses = useMemo(
-    () => Array.from(new Set((runs.data ?? []).map((run) => run.status))).sort(),
+    () =>
+      Array.from(new Set((runs.data ?? []).map((run) => run.status))).sort(),
     [runs.data],
   );
   const visibleRuns = useMemo(
-    () => (runs.data ?? []).filter((run) => status === ALL || run.status === status),
+    () =>
+      (runs.data ?? []).filter(
+        (run) => status === ALL || run.status === status,
+      ),
     [runs.data, status],
   );
 
@@ -203,15 +240,18 @@ export function AuditRuns({ companyId, routineId }: { companyId: string; routine
       <div>
         <h2 className="text-lg font-semibold text-foreground">Runs</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Recent agent executions across the organization. Open a run to inspect its transcript,
-          output, and task context.
+          Recent agent executions across the organization. Open a run to inspect
+          its transcript, output, and task context.
         </p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 border-y border-border py-3">
         <label className="grid gap-1 text-(length:--text-micro) font-medium text-muted-foreground">
           <span>Agent</span>
-          <Select value={agentId} onValueChange={(value) => updateFilter("agentId", value)}>
+          <Select
+            value={agentId}
+            onValueChange={(value) => updateFilter("agentId", value)}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="All agents" />
             </SelectTrigger>
@@ -227,7 +267,10 @@ export function AuditRuns({ companyId, routineId }: { companyId: string; routine
         </label>
         <label className="grid gap-1 text-(length:--text-micro) font-medium text-muted-foreground">
           <span>Status</span>
-          <Select value={status} onValueChange={(value) => updateFilter("runStatus", value)}>
+          <Select
+            value={status}
+            onValueChange={(value) => updateFilter("runStatus", value)}
+          >
             <SelectTrigger className="w-40">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
@@ -255,7 +298,9 @@ export function AuditRuns({ companyId, routineId }: { companyId: string; routine
       ) : runs.error ? (
         <div className="flex flex-col items-center gap-3 border-y border-border py-14 text-center">
           <p className="text-sm text-muted-foreground">
-            {runs.error instanceof Error ? runs.error.message : "Failed to load runs."}
+            {runs.error instanceof Error
+              ? runs.error.message
+              : "Failed to load runs."}
           </p>
           <Button variant="outline" size="sm" onClick={() => runs.refetch()}>
             Try again
@@ -264,10 +309,17 @@ export function AuditRuns({ companyId, routineId }: { companyId: string; routine
       ) : visibleRuns.length === 0 ? (
         <EmptyState
           icon={agentId !== ALL || status !== ALL ? CircleDotDashed : Activity}
-          message={agentId !== ALL || status !== ALL ? "No runs match these filters." : "No runs yet."}
+          message={
+            agentId !== ALL || status !== ALL
+              ? "No runs match these filters."
+              : "No runs yet."
+          }
         />
       ) : (
-        <ul className="divide-y divide-border border-y border-border" aria-label="Recent runs">
+        <ul
+          className="divide-y divide-border border-y border-border"
+          aria-label="Recent runs"
+        >
           {visibleRuns.map((run) => {
             const agent = agentById.get(run.agentId);
             const summary = runSummary(run);
@@ -293,7 +345,9 @@ export function AuditRuns({ companyId, routineId }: { companyId: string; routine
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground sm:justify-end">
-                    <span className="capitalize">{readableSource(run.invocationSource)}</span>
+                    <span className="capitalize">
+                      {readableSource(run.invocationSource)}
+                    </span>
                     {duration ? <span>{duration}</span> : null}
                     <time dateTime={new Date(run.createdAt).toISOString()}>
                       {relativeTime(run.createdAt)}
@@ -306,7 +360,9 @@ export function AuditRuns({ companyId, routineId }: { companyId: string; routine
         </ul>
       )}
 
-      <p className="text-xs text-muted-foreground">Showing the {RUN_LIMIT} most recent runs.</p>
+      <p className="text-xs text-muted-foreground">
+        Showing the {RUN_LIMIT} most recent runs.
+      </p>
     </div>
   );
 }

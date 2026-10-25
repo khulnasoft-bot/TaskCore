@@ -4,7 +4,13 @@ import {
   createHash,
   createHmac,
 } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -180,10 +186,15 @@ describe("Codex protocol integrity propagation", () => {
   it("blocks goal operations after an integrity fault without blocking cleanup", async () => {
     const transport = new FakeCodexTransport();
     const session = await makeDriver([transport]).openSession({
-      runId: "run-goal-integrity", normalizedSessionId: "session-goal-integrity", workingDirectory: WORKSPACE,
+      runId: "run-goal-integrity",
+      normalizedSessionId: "session-goal-integrity",
+      workingDirectory: WORKSPACE,
     });
-    if (!(session instanceof CodexSessionState)) throw new Error("Expected Codex state");
-    const fault = new NativeSessionProtocolIntegrityError("semantic_input_digest_mismatch");
+    if (!(session instanceof CodexSessionState))
+      throw new Error("Expected Codex state");
+    const fault = new NativeSessionProtocolIntegrityError(
+      "semantic_input_digest_mismatch",
+    );
     session.failProtocolIntegrity(fault);
     const before = transport.calls.length;
     for (const action of ["get", "clear", "resume"] as const) {
@@ -196,17 +207,26 @@ describe("Codex protocol integrity propagation", () => {
   it("preserves a fault that arrives while a goal read is in flight", async () => {
     const transport = new FakeCodexTransport();
     const session = await makeDriver([transport]).openSession({
-      runId: "run-goal-race", normalizedSessionId: "session-goal-race", workingDirectory: WORKSPACE,
+      runId: "run-goal-race",
+      normalizedSessionId: "session-goal-race",
+      workingDirectory: WORKSPACE,
     });
-    if (!(session instanceof CodexSessionState)) throw new Error("Expected Codex state");
+    if (!(session instanceof CodexSessionState))
+      throw new Error("Expected Codex state");
     let release!: (value: Record<string, unknown>) => void;
-    const held = new Promise<Record<string, unknown>>((resolve) => { release = resolve; });
+    const held = new Promise<Record<string, unknown>>((resolve) => {
+      release = resolve;
+    });
     const request = transport.request.bind(transport);
-    const spy = vi.spyOn(transport, "request").mockImplementation((method, params) =>
-      method === "thread/goal/get" ? held : request(method, params),
-    );
+    const spy = vi
+      .spyOn(transport, "request")
+      .mockImplementation((method, params) =>
+        method === "thread/goal/get" ? held : request(method, params),
+      );
     const pending = session.goal!({ action: "get" });
-    const fault = new NativeSessionProtocolIntegrityError("semantic_input_digest_mismatch");
+    const fault = new NativeSessionProtocolIntegrityError(
+      "semantic_input_digest_mismatch",
+    );
     session.failProtocolIntegrity(fault);
     release({ goal: null });
     await expect(pending).rejects.toBe(fault);
@@ -431,7 +451,9 @@ describe("Codex protocol integrity propagation", () => {
       // Only the process launcher is synthetic; hash a small fixture instead
       // of cold-reading the host Node executable during the protocol deadline.
       const runnerBinary = join(directory, "synthetic-runner");
-      writeFileSync(runnerBinary, "synthetic runner artifact\n", { mode: 0o600 });
+      writeFileSync(runnerBinary, "synthetic runner artifact\n", {
+        mode: 0o600,
+      });
       const identity: DurableRecoveryIdentity = {
         runnerInstanceId: `composed-runner-${scenario}`,
         environmentLeaseId: `composed-lease-${scenario}`,
@@ -608,7 +630,9 @@ describe("Codex protocol integrity propagation", () => {
             },
           });
           await vi.waitFor(() =>
-            expect(core.getCommand(command.commandId)?.status).toBe("completed"),
+            expect(core.getCommand(command.commandId)?.status).toBe(
+              "completed",
+            ),
           );
         };
         const event = (
@@ -860,7 +884,9 @@ describe("Codex protocol integrity propagation", () => {
                 status: "completed",
               }),
             );
-            await commandResult("runner.drain", { retainedEventsDrained: true });
+            await commandResult("runner.drain", {
+              retainedEventsDrained: true,
+            });
             await commandResult("runner.suspend");
             kill();
             expect(await execution).toMatchObject({
@@ -1104,11 +1130,27 @@ describe("Codex protocol integrity propagation", () => {
 
   it("preserves a protocol failure received before turn start as a typed terminal", async () => {
     const transport = new FakeCodexTransport();
-    const session = await makeDriver([transport]).openSession({ runId: "prestart", normalizedSessionId: "prestart-session", workingDirectory: WORKSPACE });
-    transport.queue.push({ method: "turn/completed", params: { threadId: "unrelated", turn: { id: "wrong", status: "completed" } } });
+    const session = await makeDriver([transport]).openSession({
+      runId: "prestart",
+      normalizedSessionId: "prestart-session",
+      workingDirectory: WORKSPACE,
+    });
+    transport.queue.push({
+      method: "turn/completed",
+      params: {
+        threadId: "unrelated",
+        turn: { id: "wrong", status: "completed" },
+      },
+    });
     const events: PrpEvent[] = [];
     for await (const event of session.events()) events.push(event);
-    await expect(session.startTurn({ message: { role: "user", text: "Work" } })).rejects.toMatchObject({ code: "native_provider_terminal_failed", providerCode: "thread_binding_mismatch", recoverable: false });
+    await expect(
+      session.startTurn({ message: { role: "user", text: "Work" } }),
+    ).rejects.toMatchObject({
+      code: "native_provider_terminal_failed",
+      providerCode: "thread_binding_mismatch",
+      recoverable: false,
+    });
     await session.close({ reason: "test complete" });
   });
   it("does not promote a message-and-field lookalike transport error", async () => {

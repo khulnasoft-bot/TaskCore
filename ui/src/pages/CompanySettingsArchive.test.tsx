@@ -131,7 +131,10 @@ describe("CompanySettings archive departure", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    mockCompaniesApi.archive.mockResolvedValue({ id: ARCHIVING_COMPANY.id, status: "archived" });
+    mockCompaniesApi.archive.mockResolvedValue({
+      id: ARCHIVING_COMPANY.id,
+      status: "archived",
+    });
     vi.spyOn(window, "confirm").mockReturnValue(true);
     observedPath = "";
   });
@@ -182,7 +185,9 @@ describe("CompanySettings archive departure", () => {
     clickArchive();
 
     await waitForAssertion(() => {
-      expect(mockCompaniesApi.archive).toHaveBeenCalledWith(ARCHIVING_COMPANY.id);
+      expect(mockCompaniesApi.archive).toHaveBeenCalledWith(
+        ARCHIVING_COMPANY.id,
+      );
       expect(mockSetSelectedCompanyId).toHaveBeenCalledWith(SIBLING_COMPANY.id);
       expect(observedPath).toBe("/PAP/dashboard");
       expect(mockPushToast).toHaveBeenCalledWith(

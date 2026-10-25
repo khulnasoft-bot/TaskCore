@@ -5,7 +5,15 @@ import { Writable } from "node:stream";
 import express from "express";
 import pino from "pino";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   activityLog,
   agents,
@@ -53,7 +61,9 @@ import { HTTP_LOG_REDACT_PATHS } from "../middleware/http-log-redaction.js";
 import { startOAuthRefreshFixture } from "../../../scripts/mcp-fixtures/servers/oauth-refresh-fixture.mjs";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 /**
  * PAP-17087 — a connection to an unknown remote MCP server must get the same
@@ -76,8 +86,16 @@ const MCP_URL = `${MCP_ORIGIN}/mcp`;
 const ISSUER = `${MCP_ORIGIN}/tenant/acme`;
 
 const FIXTURE_TOOLS = [
-  { name: "list_insights", description: "List insights", annotations: { readOnlyHint: true } },
-  { name: "create_insight", description: "Create an insight", annotations: { readOnlyHint: false } },
+  {
+    name: "list_insights",
+    description: "List insights",
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: "create_insight",
+    description: "Create an insight",
+    annotations: { readOnlyHint: false },
+  },
 ];
 
 type FixtureOptions = {
@@ -127,7 +145,8 @@ function jsonResponse(payload: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     headers: {
-      get: (name: string) => (name.toLowerCase() === "content-type" ? "application/json" : null),
+      get: (name: string) =>
+        name.toLowerCase() === "content-type" ? "application/json" : null,
     },
     text: async () => body,
     json: async () => payload,
@@ -153,9 +172,13 @@ function headerRecord(init: RequestInit | undefined): Record<string, string> {
   const raw = init?.headers;
   if (!raw) return {};
   if (raw instanceof Headers) return Object.fromEntries(raw.entries());
-  if (Array.isArray(raw)) return Object.fromEntries(raw as Array<[string, string]>);
+  if (Array.isArray(raw))
+    return Object.fromEntries(raw as Array<[string, string]>);
   return Object.fromEntries(
-    Object.entries(raw as Record<string, string>).map(([key, value]) => [key.toLowerCase(), value]),
+    Object.entries(raw as Record<string, string>).map(([key, value]) => [
+      key.toLowerCase(),
+      value,
+    ]),
   );
 }
 
@@ -167,107 +190,145 @@ function headerRecord(init: RequestInit | undefined): Record<string, string> {
 function installMcpOAuthFixture(options: FixtureOptions = {}) {
   const auth = options.auth ?? "public";
   const requests: FixtureRequest[] = [];
-  const issuedCodes = new Map<string, { codeChallenge: string; resource: string | null }>();
+  const issuedCodes = new Map<
+    string,
+    { codeChallenge: string; resource: string | null }
+  >();
   let accessToken: string | null = null;
   const tools = options.tools ?? FIXTURE_TOOLS;
   const resourceMetadataUrl = `${MCP_ORIGIN}/.well-known/oauth-protected-resource/mcp`;
 
   const authorizationServerMetadata = () => ({
     issuer: ISSUER,
-    authorization_endpoint: options.authorizationEndpoint ?? `${ISSUER}/authorize`,
+    authorization_endpoint:
+      options.authorizationEndpoint ?? `${ISSUER}/authorize`,
     token_endpoint: options.tokenEndpoint ?? `${ISSUER}/token`,
-    ...(options.dcr === false ? {} : { registration_endpoint: `${ISSUER}/register` }),
+    ...(options.dcr === false
+      ? {}
+      : { registration_endpoint: `${ISSUER}/register` }),
     ...(options.cimd ? { client_id_metadata_document_supported: true } : {}),
     code_challenge_methods_supported: ["S256"],
-    token_endpoint_auth_methods_supported: options.tokenEndpointAuthMethods ?? ["none"],
+    token_endpoint_auth_methods_supported: options.tokenEndpointAuthMethods ?? [
+      "none",
+    ],
     scopes_supported: ["mcp:read", "mcp:write"],
   });
 
-  const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
-    const href = String(url);
-    const method = (init?.method ?? "GET").toUpperCase();
-    const headers = headerRecord(init);
-    const bodyText = typeof init?.body === "string" ? init.body : init?.body?.toString?.() ?? null;
-    const parsedBody = bodyText
-      ? headers["content-type"]?.includes("json")
-        ? (JSON.parse(bodyText) as Record<string, unknown>)
-        : new URLSearchParams(bodyText)
-      : null;
-    requests.push({ method, url: href, headers, body: parsedBody });
+  const fetchMock = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(async (url, init) => {
+      const href = String(url);
+      const method = (init?.method ?? "GET").toUpperCase();
+      const headers = headerRecord(init);
+      const bodyText =
+        typeof init?.body === "string"
+          ? init.body
+          : (init?.body?.toString?.() ?? null);
+      const parsedBody = bodyText
+        ? headers["content-type"]?.includes("json")
+          ? (JSON.parse(bodyText) as Record<string, unknown>)
+          : new URLSearchParams(bodyText)
+        : null;
+      requests.push({ method, url: href, headers, body: parsedBody });
 
-    if (href === MCP_URL && method === "POST") {
-      if (auth === "oauth" && headers.authorization !== `Bearer ${accessToken}`) {
-        return unauthorizedMcpResponse(resourceMetadataUrl);
+      if (href === MCP_URL && method === "POST") {
+        if (
+          auth === "oauth" &&
+          headers.authorization !== `Bearer ${accessToken}`
+        ) {
+          return unauthorizedMcpResponse(resourceMetadataUrl);
+        }
+        if (auth === "header" && options.requiredHeader) {
+          const supplied = headers[options.requiredHeader.name.toLowerCase()];
+          if (supplied !== options.requiredHeader.value)
+            return unauthorizedMcpResponse(resourceMetadataUrl);
+        }
+        const rpc = parsedBody as Record<string, unknown>;
+        if (rpc.method === "tools/call") {
+          return jsonResponse({
+            jsonrpc: "2.0",
+            id: rpc.id,
+            result: {
+              content: [{ type: "text", text: "Fixture meeting data" }],
+              structuredContent: { meeting_id: "meeting-1" },
+            },
+          });
+        }
+        return jsonResponse({
+          jsonrpc: "2.0",
+          id: "taskcore-catalog-refresh",
+          result: { tools },
+        });
       }
-      if (auth === "header" && options.requiredHeader) {
-        const supplied = headers[options.requiredHeader.name.toLowerCase()];
-        if (supplied !== options.requiredHeader.value) return unauthorizedMcpResponse(resourceMetadataUrl);
+
+      if (href === resourceMetadataUrl) {
+        return jsonResponse({
+          resource: MCP_URL,
+          authorization_servers: [ISSUER],
+        });
       }
-      const rpc = parsedBody as Record<string, unknown>;
-      if (rpc.method === "tools/call") {
-        return jsonResponse({ jsonrpc: "2.0", id: rpc.id, result: {
-          content: [{ type: "text", text: "Fixture meeting data" }],
-          structuredContent: { meeting_id: "meeting-1" },
-        } });
+
+      // RFC 8414 inserts the well-known segment before the issuer path; OIDC
+      // Discovery appends it. The fixture serves whichever style the test asked
+      // for so both discovery orders are covered.
+      const rfc8414Url = `${MCP_ORIGIN}/.well-known/oauth-authorization-server/tenant/acme`;
+      const oidcSuffixUrl = `${ISSUER}/.well-known/oauth-authorization-server`;
+      const servedMetadataUrl =
+        options.wellKnownStyle === "oidc-suffix" ? oidcSuffixUrl : rfc8414Url;
+      if (href === servedMetadataUrl)
+        return jsonResponse(authorizationServerMetadata());
+
+      if (href === `${ISSUER}/register` && method === "POST") {
+        if (options.registrationFailure) {
+          return jsonResponse(
+            options.registrationFailure.body,
+            options.registrationFailure.status,
+          );
+        }
+        if (options.dcr === false)
+          return jsonResponse({ error: "not_supported" }, 404);
+        const requested = parsedBody as Record<string, unknown>;
+        return jsonResponse({
+          client_id: "fixture-dcr-client",
+          // A conforming server echoes back what it registered, and Taskcore
+          // requires its own callback even when the provider adds a routing URI.
+          redirect_uris: [
+            ...(requested.redirect_uris as string[]),
+            ...(options.registrationExtraRedirectUris ?? []),
+          ],
+          grant_types: requested.grant_types,
+          response_types: requested.response_types,
+          token_endpoint_auth_method: requested.token_endpoint_auth_method,
+          application_type: requested.application_type,
+        });
       }
-      return jsonResponse({ jsonrpc: "2.0", id: "taskcore-catalog-refresh", result: { tools } });
-    }
 
-    if (href === resourceMetadataUrl) {
-      return jsonResponse({ resource: MCP_URL, authorization_servers: [ISSUER] });
-    }
-
-    // RFC 8414 inserts the well-known segment before the issuer path; OIDC
-    // Discovery appends it. The fixture serves whichever style the test asked
-    // for so both discovery orders are covered.
-    const rfc8414Url = `${MCP_ORIGIN}/.well-known/oauth-authorization-server/tenant/acme`;
-    const oidcSuffixUrl = `${ISSUER}/.well-known/oauth-authorization-server`;
-    const servedMetadataUrl = options.wellKnownStyle === "oidc-suffix" ? oidcSuffixUrl : rfc8414Url;
-    if (href === servedMetadataUrl) return jsonResponse(authorizationServerMetadata());
-
-    if (href === `${ISSUER}/register` && method === "POST") {
-      if (options.registrationFailure) {
-        return jsonResponse(options.registrationFailure.body, options.registrationFailure.status);
+      if (href === `${ISSUER}/token` && method === "POST") {
+        if (options.tokenFailure)
+          return jsonResponse(
+            options.tokenFailure.body,
+            options.tokenFailure.status,
+          );
+        const body = parsedBody as URLSearchParams;
+        const grantType = body.get("grant_type");
+        if (grantType === "authorization_code") {
+          const issued = issuedCodes.get(body.get("code") ?? "");
+          if (!issued) return jsonResponse({ error: "invalid_grant" }, 400);
+        }
+        accessToken = `fixture-access-${randomUUID()}`;
+        return jsonResponse({
+          access_token: accessToken,
+          refresh_token: "fixture-refresh",
+          expires_in: 3600,
+          token_type: "Bearer",
+          scope: "mcp:read",
+        });
       }
-      if (options.dcr === false) return jsonResponse({ error: "not_supported" }, 404);
-      const requested = parsedBody as Record<string, unknown>;
-      return jsonResponse({
-        client_id: "fixture-dcr-client",
-        // A conforming server echoes back what it registered, and Taskcore
-        // requires its own callback even when the provider adds a routing URI.
-        redirect_uris: [
-          ...(requested.redirect_uris as string[]),
-          ...(options.registrationExtraRedirectUris ?? []),
-        ],
-        grant_types: requested.grant_types,
-        response_types: requested.response_types,
-        token_endpoint_auth_method: requested.token_endpoint_auth_method,
-        application_type: requested.application_type,
-      });
-    }
 
-    if (href === `${ISSUER}/token` && method === "POST") {
-      if (options.tokenFailure) return jsonResponse(options.tokenFailure.body, options.tokenFailure.status);
-      const body = parsedBody as URLSearchParams;
-      const grantType = body.get("grant_type");
-      if (grantType === "authorization_code") {
-        const issued = issuedCodes.get(body.get("code") ?? "");
-        if (!issued) return jsonResponse({ error: "invalid_grant" }, 400);
-      }
-      accessToken = `fixture-access-${randomUUID()}`;
-      return jsonResponse({
-        access_token: accessToken,
-        refresh_token: "fixture-refresh",
-        expires_in: 3600,
-        token_type: "Bearer",
-        scope: "mcp:read",
-      });
-    }
-
-    // 404 rather than throw: discovery legitimately probes several well-known
-    // paths, and a real server answers the ones it does not serve with a 404.
-    return jsonResponse({ error: "not_found" }, 404);
-  });
+      // 404 rather than throw: discovery legitimately probes several well-known
+      // paths, and a real server answers the ones it does not serve with a 404.
+      return jsonResponse({ error: "not_found" }, 404);
+    });
 
   return {
     fetchMock,
@@ -312,8 +373,12 @@ function createRouteApp(
   deployment?: {
     deploymentMode: "authenticated" | "local_trusted";
     deploymentExposure: "public" | "private";
-    remoteHttpEndpointLookup?: NonNullable<Parameters<typeof toolAccessService>[1]>["remoteHttpEndpointLookup"];
-    remoteHttpRequest?: NonNullable<Parameters<typeof toolAccessService>[1]>["remoteHttpRequest"];
+    remoteHttpEndpointLookup?: NonNullable<
+      Parameters<typeof toolAccessService>[1]
+    >["remoteHttpEndpointLookup"];
+    remoteHttpRequest?: NonNullable<
+      Parameters<typeof toolAccessService>[1]
+    >["remoteHttpRequest"];
   },
   requestLogger?: express.RequestHandler,
 ) {
@@ -338,7 +403,9 @@ function createRouteApp(
 
 describeEmbeddedPostgres("generic remote MCP connections", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("taskcore-generic-mcp-");
@@ -397,175 +464,400 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     return false;
   }
 
-  it.each(["mcp-oauth", "mcp-api-key"])("connects Fireflies through %s with vaulted credentials and its stable meeting tools", async (methodKey) => {
-    // Keep the real catalog method and governance identity; redirect only its
-    // transport URL to the deterministic protocol fixture.
-    const method = APP_DEFINITIONS.find((app) => app.slug === "fireflies")!.methods.find((entry) => entry.key === methodKey)!;
-    const originalUrl = method.defaults!.serverUrl;
-    method.defaults!.serverUrl = MCP_URL;
-    try {
-      const names = ["fireflies_get_transcripts", "fireflies_get_transcript", "fireflies_get_summary"];
-      const availableTools = [...names.map((name) => ({ name, annotations: { readOnlyHint: true } })), { name: "fireflies_share_meeting" }, { name: "fireflies_move_meeting" }];
-      const fixture = installMcpOAuthFixture({
-        auth: methodKey === "mcp-oauth" ? "oauth" : "header",
-        requiredHeader: { name: "Authorization", value: "Bearer fixture-fireflies-key" },
-        tools: availableTools,
-      });
-      const company = await createCompany(db);
-      const service = toolAccessService(db);
-      const connected = await service.connectGalleryApp(company.id, {
-        galleryKey: "fireflies", connectionMethodKey: methodKey,
-        ...(methodKey === "mcp-api-key" ? { credentialValues: { "credentials.authorization": "fixture-fireflies-key" } } : {}),
-      });
-      if (methodKey === "mcp-oauth") {
-        const actor = { actorType: "user" as const, actorId: "board-user" };
-        const start = await service.startOAuth(company.id, connected.connectionId, { redirectUri: REDIRECT_URI, actor });
-        expect(start.registrationSource).toBe("dcr");
-        const url = new URL(start.authorizationUrl);
-        expect(url.searchParams.get("code_challenge_method")).toBe("S256");
-        const completed = await service.completeOAuthCallback({ state: url.searchParams.get("state")!, code: fixture.issueAuthorizationCode(start.authorizationUrl), iss: ISSUER, redirectUri: REDIRECT_URI, actor });
-        expect(completed.actions.readOnly.map((action) => action.toolName)).toEqual(names);
-      } else {
-        expect(connected.actions.readOnly.map((action) => action.toolName)).toEqual(names);
-        expect(connected.actions.canMakeChanges.map((action) => action.toolName)).toEqual(["fireflies_share_meeting", "fireflies_move_meeting"]);
-        expect(fixture.requestsTo("/mcp").at(-1)?.headers.authorization).toBe("Bearer fixture-fireflies-key");
-      }
-      const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, connected.connectionId));
-      expect(connection!.config).toMatchObject({ sourceTemplateKey: "fireflies", connectionMethodKey: methodKey });
-      expect(connection!.credentialSecretRefs.length).toBeGreaterThan(0);
-      expect(JSON.stringify({ connected, connection })).not.toContain("fixture-fireflies-key");
-      expect(JSON.stringify(connection!.config)).not.toContain("fixture-access-");
-      const refreshed = await service.refreshCatalog(connected.connectionId, { actorType: "user", actorId: "board-user" });
-      const [agent] = await db.insert(agents).values({ companyId: company.id, name: "Meeting reviewer", role: "engineer", status: "active", adapterType: "process", adapterConfig: {}, runtimeConfig: {} }).returning();
-      await service.finishGalleryAppConnection(company.id, connected.connectionId, {
-        enabledCatalogEntryIds: refreshed.catalog.filter((entry) => entry.toolName !== "fireflies_move_meeting").map((entry) => entry.id),
-        askFirstCatalogEntryIds: refreshed.catalog.filter((entry) => entry.toolName === "fireflies_share_meeting").map((entry) => entry.id),
-        access: { agentIds: [agent!.id] },
-      }, { actorType: "user", actorId: "board-user" });
-      const gateway = createToolGatewayService(db, { toolActionSigningSecret: "fireflies-test-only-signing-secret" });
-      for (const toolName of names) {
-        await expect(gateway.executeTestCall({ companyId: company.id, connectionId: connected.connectionId, agentId: agent!.id, userId: "board-user", toolName, parameters: {} }))
-          .resolves.toMatchObject({ decision: "allowed", result: { data: { structuredContent: { meeting_id: "meeting-1" } } } });
-      }
-      const policy = toolAccessPolicyService(db);
-      const entry = refreshed.catalog.find((item) => item.toolName === "fireflies_share_meeting")!;
-      // Re-authentication must retain both Off and Ask first selections.
-      // Newly discovered tools still receive the normal connection defaults.
-      availableTools.push({ name: "fixture_new_read", annotations: { readOnlyHint: true } });
-      if (methodKey === "mcp-oauth") {
-        const actor = { actorType: "user" as const, actorId: "board-user" };
-        const start = await service.startOAuth(company.id, connected.connectionId, { redirectUri: REDIRECT_URI, actor });
-        await service.completeOAuthCallback({ state: new URL(start.authorizationUrl).searchParams.get("state")!, code: fixture.issueAuthorizationCode(start.authorizationUrl), iss: ISSUER, redirectUri: REDIRECT_URI, actor });
-      } else {
-        const reconnected = await service.reconnectGalleryApp(connected.connectionId, company.id, {
-          credentialValues: { "credentials.authorization": "fixture-fireflies-key" },
+  it.each(["mcp-oauth", "mcp-api-key"])(
+    "connects Fireflies through %s with vaulted credentials and its stable meeting tools",
+    async (methodKey) => {
+      // Keep the real catalog method and governance identity; redirect only its
+      // transport URL to the deterministic protocol fixture.
+      const method = APP_DEFINITIONS.find(
+        (app) => app.slug === "fireflies",
+      )!.methods.find((entry) => entry.key === methodKey)!;
+      const originalUrl = method.defaults!.serverUrl;
+      method.defaults!.serverUrl = MCP_URL;
+      try {
+        const names = [
+          "fireflies_get_transcripts",
+          "fireflies_get_transcript",
+          "fireflies_get_summary",
+        ];
+        const availableTools = [
+          ...names.map((name) => ({
+            name,
+            annotations: { readOnlyHint: true },
+          })),
+          { name: "fireflies_share_meeting" },
+          { name: "fireflies_move_meeting" },
+        ];
+        const fixture = installMcpOAuthFixture({
+          auth: methodKey === "mcp-oauth" ? "oauth" : "header",
+          requiredHeader: {
+            name: "Authorization",
+            value: "Bearer fixture-fireflies-key",
+          },
+          tools: availableTools,
         });
-        expect(reconnected.connection.id).toBe(connected.connectionId);
+        const company = await createCompany(db);
+        const service = toolAccessService(db);
+        const connected = await service.connectGalleryApp(company.id, {
+          galleryKey: "fireflies",
+          connectionMethodKey: methodKey,
+          ...(methodKey === "mcp-api-key"
+            ? {
+                credentialValues: {
+                  "credentials.authorization": "fixture-fireflies-key",
+                },
+              }
+            : {}),
+        });
+        if (methodKey === "mcp-oauth") {
+          const actor = { actorType: "user" as const, actorId: "board-user" };
+          const start = await service.startOAuth(
+            company.id,
+            connected.connectionId,
+            { redirectUri: REDIRECT_URI, actor },
+          );
+          expect(start.registrationSource).toBe("dcr");
+          const url = new URL(start.authorizationUrl);
+          expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+          const completed = await service.completeOAuthCallback({
+            state: url.searchParams.get("state")!,
+            code: fixture.issueAuthorizationCode(start.authorizationUrl),
+            iss: ISSUER,
+            redirectUri: REDIRECT_URI,
+            actor,
+          });
+          expect(
+            completed.actions.readOnly.map((action) => action.toolName),
+          ).toEqual(names);
+        } else {
+          expect(
+            connected.actions.readOnly.map((action) => action.toolName),
+          ).toEqual(names);
+          expect(
+            connected.actions.canMakeChanges.map((action) => action.toolName),
+          ).toEqual(["fireflies_share_meeting", "fireflies_move_meeting"]);
+          expect(fixture.requestsTo("/mcp").at(-1)?.headers.authorization).toBe(
+            "Bearer fixture-fireflies-key",
+          );
+        }
+        const [connection] = await db
+          .select()
+          .from(toolConnections)
+          .where(eq(toolConnections.id, connected.connectionId));
+        expect(connection!.config).toMatchObject({
+          sourceTemplateKey: "fireflies",
+          connectionMethodKey: methodKey,
+        });
+        expect(connection!.credentialSecretRefs.length).toBeGreaterThan(0);
+        expect(JSON.stringify({ connected, connection })).not.toContain(
+          "fixture-fireflies-key",
+        );
+        expect(JSON.stringify(connection!.config)).not.toContain(
+          "fixture-access-",
+        );
+        const refreshed = await service.refreshCatalog(connected.connectionId, {
+          actorType: "user",
+          actorId: "board-user",
+        });
+        const [agent] = await db
+          .insert(agents)
+          .values({
+            companyId: company.id,
+            name: "Meeting reviewer",
+            role: "engineer",
+            status: "active",
+            adapterType: "process",
+            adapterConfig: {},
+            runtimeConfig: {},
+          })
+          .returning();
+        await service.finishGalleryAppConnection(
+          company.id,
+          connected.connectionId,
+          {
+            enabledCatalogEntryIds: refreshed.catalog
+              .filter((entry) => entry.toolName !== "fireflies_move_meeting")
+              .map((entry) => entry.id),
+            askFirstCatalogEntryIds: refreshed.catalog
+              .filter((entry) => entry.toolName === "fireflies_share_meeting")
+              .map((entry) => entry.id),
+            access: { agentIds: [agent!.id] },
+          },
+          { actorType: "user", actorId: "board-user" },
+        );
+        const gateway = createToolGatewayService(db, {
+          toolActionSigningSecret: "fireflies-test-only-signing-secret",
+        });
+        for (const toolName of names) {
+          await expect(
+            gateway.executeTestCall({
+              companyId: company.id,
+              connectionId: connected.connectionId,
+              agentId: agent!.id,
+              userId: "board-user",
+              toolName,
+              parameters: {},
+            }),
+          ).resolves.toMatchObject({
+            decision: "allowed",
+            result: {
+              data: { structuredContent: { meeting_id: "meeting-1" } },
+            },
+          });
+        }
+        const policy = toolAccessPolicyService(db);
+        const entry = refreshed.catalog.find(
+          (item) => item.toolName === "fireflies_share_meeting",
+        )!;
+        // Re-authentication must retain both Off and Ask first selections.
+        // Newly discovered tools still receive the normal connection defaults.
+        availableTools.push({
+          name: "fixture_new_read",
+          annotations: { readOnlyHint: true },
+        });
+        if (methodKey === "mcp-oauth") {
+          const actor = { actorType: "user" as const, actorId: "board-user" };
+          const start = await service.startOAuth(
+            company.id,
+            connected.connectionId,
+            { redirectUri: REDIRECT_URI, actor },
+          );
+          await service.completeOAuthCallback({
+            state: new URL(start.authorizationUrl).searchParams.get("state")!,
+            code: fixture.issueAuthorizationCode(start.authorizationUrl),
+            iss: ISSUER,
+            redirectUri: REDIRECT_URI,
+            actor,
+          });
+        } else {
+          const reconnected = await service.reconnectGalleryApp(
+            connected.connectionId,
+            company.id,
+            {
+              credentialValues: {
+                "credentials.authorization": "fixture-fireflies-key",
+              },
+            },
+          );
+          expect(reconnected.connection.id).toBe(connected.connectionId);
+        }
+        await service.refreshCatalog(connected.connectionId, {
+          actorType: "user",
+          actorId: "board-user",
+        });
+        await expect(
+          gateway.executeTestCall({
+            companyId: company.id,
+            connectionId: connected.connectionId,
+            agentId: agent!.id,
+            userId: "board-user",
+            toolName: "fixture_new_read",
+            parameters: {},
+          }),
+        ).resolves.toMatchObject({ decision: "allowed" });
+        await expect(
+          policy.decide({
+            companyId: company.id,
+            actor: {
+              actorType: "agent",
+              actorId: agent!.id,
+              agentId: agent!.id,
+            },
+            request: {
+              connectionId: connected.connectionId,
+              catalogEntryId: entry.id,
+              toolName: entry.toolName,
+            },
+          }),
+        ).resolves.toMatchObject({
+          allowed: false,
+          decision: "require_approval",
+        });
+        const offEntry = refreshed.catalog.find(
+          (item) => item.toolName === "fireflies_move_meeting",
+        )!;
+        await expect(
+          policy.decide({
+            companyId: company.id,
+            actor: {
+              actorType: "agent",
+              actorId: agent!.id,
+              agentId: agent!.id,
+            },
+            request: {
+              connectionId: connected.connectionId,
+              catalogEntryId: offEntry.id,
+              toolName: offEntry.toolName,
+            },
+          }),
+        ).resolves.toMatchObject({ allowed: false, decision: "deny" });
+        await expect(
+          gateway.executeTestCall({
+            companyId: randomUUID(),
+            connectionId: connected.connectionId,
+            agentId: agent!.id,
+            userId: "board-user",
+            toolName: names[0]!,
+            parameters: {},
+          }),
+        ).rejects.toThrow();
+        await service.archiveConnection(connected.connectionId, company.id);
+        await expect(
+          gateway.executeTestCall({
+            companyId: company.id,
+            connectionId: connected.connectionId,
+            agentId: agent!.id,
+            userId: "board-user",
+            toolName: names[0]!,
+            parameters: {},
+          }),
+        ).rejects.toThrow();
+        expect(
+          (
+            await db
+              .select()
+              .from(toolConnections)
+              .where(eq(toolConnections.id, connected.connectionId))
+          )[0]?.status,
+        ).toBe("archived");
+      } finally {
+        method.defaults!.serverUrl = originalUrl;
       }
-      await service.refreshCatalog(connected.connectionId, { actorType: "user", actorId: "board-user" });
-      await expect(gateway.executeTestCall({ companyId: company.id, connectionId: connected.connectionId, agentId: agent!.id, userId: "board-user", toolName: "fixture_new_read", parameters: {} }))
-        .resolves.toMatchObject({ decision: "allowed" });
-      await expect(policy.decide({ companyId: company.id, actor: { actorType: "agent", actorId: agent!.id, agentId: agent!.id }, request: { connectionId: connected.connectionId, catalogEntryId: entry.id, toolName: entry.toolName } }))
-        .resolves.toMatchObject({ allowed: false, decision: "require_approval" });
-      const offEntry = refreshed.catalog.find((item) => item.toolName === "fireflies_move_meeting")!;
-      await expect(policy.decide({ companyId: company.id, actor: { actorType: "agent", actorId: agent!.id, agentId: agent!.id }, request: { connectionId: connected.connectionId, catalogEntryId: offEntry.id, toolName: offEntry.toolName } }))
-        .resolves.toMatchObject({ allowed: false, decision: "deny" });
-      await expect(gateway.executeTestCall({ companyId: randomUUID(), connectionId: connected.connectionId, agentId: agent!.id, userId: "board-user", toolName: names[0]!, parameters: {} })).rejects.toThrow();
-      await service.archiveConnection(connected.connectionId, company.id);
-      await expect(gateway.executeTestCall({ companyId: company.id, connectionId: connected.connectionId, agentId: agent!.id, userId: "board-user", toolName: names[0]!, parameters: {} })).rejects.toThrow();
-      expect((await db.select().from(toolConnections).where(eq(toolConnections.id, connected.connectionId)))[0]?.status).toBe("archived");
-    } finally {
-      method.defaults!.serverUrl = originalUrl;
-    }
-  });
+    },
+  );
 
   it("discovers every tool for a public unknown endpoint without activating the draft", async () => {
     installMcpOAuthFixture({ auth: "public" });
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    const result = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture MCP" });
+    const result = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture MCP",
+    });
 
     expect(result.auth ?? null).toBeNull();
-    expect(result.actions.readOnly.map((action) => action.toolName)).toEqual(["list_insights"]);
-    expect(result.actions.canMakeChanges.map((action) => action.toolName)).toEqual(["create_insight"]);
+    expect(result.actions.readOnly.map((action) => action.toolName)).toEqual([
+      "list_insights",
+    ]);
+    expect(
+      result.actions.canMakeChanges.map((action) => action.toolName),
+    ).toEqual(["create_insight"]);
     expect(result.suggestedDefaults).toMatchObject({ askFirstRiskLevels: [] });
 
-    const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, result.connectionId));
-    expect(connection).toMatchObject({ transport: "mcp_remote", authKind: "none", status: "draft" });
-    expect(connection!.config).toMatchObject({ quarantineNewEntries: false, unverifiedServer: true });
+    const [connection] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, result.connectionId));
+    expect(connection).toMatchObject({
+      transport: "mcp_remote",
+      authKind: "none",
+      status: "draft",
+    });
+    expect(connection!.config).toMatchObject({
+      quarantineNewEntries: false,
+      unverifiedServer: true,
+    });
     // No curated definition was consulted: nothing recorded a template key, so
     // this connection cannot be depending on gallery metadata for anything.
     expect(connection!.config).not.toHaveProperty("sourceTemplateKey");
     expect(connection!.config).not.toHaveProperty("connectionMethodKey");
-    await expect(service.listConnectionGrants(result.connectionId, company.id)).resolves.toMatchObject({
-      grants: [expect.objectContaining({ kind: "organization", isDefault: true, credentialSecretRefs: [] })],
+    await expect(
+      service.listConnectionGrants(result.connectionId, company.id),
+    ).resolves.toMatchObject({
+      grants: [
+        expect.objectContaining({
+          kind: "organization",
+          isDefault: true,
+          credentialSecretRefs: [],
+        }),
+      ],
     });
-    const profiles = await db.select().from(toolProfiles).where(eq(
-      toolProfiles.profileKey,
-      `app:${result.connectionId}`,
-    ));
+    const profiles = await db
+      .select()
+      .from(toolProfiles)
+      .where(eq(toolProfiles.profileKey, `app:${result.connectionId}`));
     expect(profiles).toEqual([]);
   });
 
-  it.each(["organization", "user"] as const)("vaults a credential-bearing MCP URL for %s and never returns or logs its token", async (grantKind) => {
-    const secretUrl = `${MCP_URL}?token=zapier-secret&region=us`;
-    const publicUrl = `${MCP_URL}?region=us`;
-    const requests: string[] = [];
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
-      requests.push(String(url));
-      if (String(url) === secretUrl && (init?.method ?? "GET").toUpperCase() === "POST") {
-        return jsonResponse({
-          jsonrpc: "2.0",
-          id: "taskcore-catalog-refresh",
-          result: { tools: FIXTURE_TOOLS },
-        });
-      }
-      return jsonResponse({ error: "not_found" }, 404);
-    });
-    const company = await createCompany(db);
-    const app = createRouteApp(db, {
-      deploymentMode: "local_trusted",
-      deploymentExposure: "private",
-    });
+  it.each(["organization", "user"] as const)(
+    "vaults a credential-bearing MCP URL for %s and never returns or logs its token",
+    async (grantKind) => {
+      const secretUrl = `${MCP_URL}?token=zapier-secret&region=us`;
+      const publicUrl = `${MCP_URL}?region=us`;
+      const requests: string[] = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+        requests.push(String(url));
+        if (
+          String(url) === secretUrl &&
+          (init?.method ?? "GET").toUpperCase() === "POST"
+        ) {
+          return jsonResponse({
+            jsonrpc: "2.0",
+            id: "taskcore-catalog-refresh",
+            result: { tools: FIXTURE_TOOLS },
+          });
+        }
+        return jsonResponse({ error: "not_found" }, 404);
+      });
+      const company = await createCompany(db);
+      const app = createRouteApp(db, {
+        deploymentMode: "local_trusted",
+        deploymentExposure: "private",
+      });
 
-    const response = await request(app)
-      .post(`/api/companies/${company.id}/tools/apps/connect`)
-      .send({ link: secretUrl, name: "Token URL fixture", grantKind })
-      .expect(201);
+      const response = await request(app)
+        .post(`/api/companies/${company.id}/tools/apps/connect`)
+        .send({ link: secretUrl, name: "Token URL fixture", grantKind })
+        .expect(201);
 
-    expect(requests).toContain(secretUrl);
-    expect(JSON.stringify(response.body)).not.toContain("zapier-secret");
-    expect(response.body.connection.config.url).toBe(publicUrl);
-    expect(response.body.connection.transportConfig.url).toBe(publicUrl);
-    expect(response.body.connection.credentialRefs).toEqual([
-      expect.objectContaining({ placement: "url", name: "remote.url", key: "url" }),
-    ]);
+      expect(requests).toContain(secretUrl);
+      expect(JSON.stringify(response.body)).not.toContain("zapier-secret");
+      expect(response.body.connection.config.url).toBe(publicUrl);
+      expect(response.body.connection.transportConfig.url).toBe(publicUrl);
+      expect(response.body.connection.credentialRefs).toEqual([
+        expect.objectContaining({
+          placement: "url",
+          name: "remote.url",
+          key: "url",
+        }),
+      ]);
 
-    const [connection] = await db.select().from(toolConnections).where(eq(
-      toolConnections.id,
-      response.body.connectionId,
-    ));
-    expect(connection!.config.url).toBe(publicUrl);
-    const expectedRefs = [expect.objectContaining({ configPath: "remote.url", label: "MCP server URL" })];
-    expect(connection!.credentialSecretRefs).toEqual(grantKind === "user" ? [] : expectedRefs);
-    const grants = await db.select().from(connectionGrants).where(eq(
-      connectionGrants.connectionId,
-      response.body.connectionId,
-    ));
-    expect(grants).toEqual([
-      expect.objectContaining({
-        kind: grantKind,
-        credentialSecretRefs: expectedRefs,
-        ...(grantKind === "user" ? { subjectUserId: "board-user" } : {}),
-      }),
-    ]);
-    expect(await db.select().from(companySecrets)).toHaveLength(1);
-    expect(JSON.stringify(await db.select().from(activityLog))).not.toContain("zapier-secret");
-  });
+      const [connection] = await db
+        .select()
+        .from(toolConnections)
+        .where(eq(toolConnections.id, response.body.connectionId));
+      expect(connection!.config.url).toBe(publicUrl);
+      const expectedRefs = [
+        expect.objectContaining({
+          configPath: "remote.url",
+          label: "MCP server URL",
+        }),
+      ];
+      expect(connection!.credentialSecretRefs).toEqual(
+        grantKind === "user" ? [] : expectedRefs,
+      );
+      const grants = await db
+        .select()
+        .from(connectionGrants)
+        .where(eq(connectionGrants.connectionId, response.body.connectionId));
+      expect(grants).toEqual([
+        expect.objectContaining({
+          kind: grantKind,
+          credentialSecretRefs: expectedRefs,
+          ...(grantKind === "user" ? { subjectUserId: "board-user" } : {}),
+        }),
+      ]);
+      expect(await db.select().from(companySecrets)).toHaveLength(1);
+      expect(JSON.stringify(await db.select().from(activityLog))).not.toContain(
+        "zapier-secret",
+      );
+    },
+  );
 
   it("keeps a generated Zapier URL attached to the curated Zapier identity", async () => {
-    const secretUrl = "https://mcp.zapier.com/api/v1/connect?token=zapier-secret";
+    const secretUrl =
+      "https://mcp.zapier.com/api/v1/connect?token=zapier-secret";
     const publicUrl = "https://mcp.zapier.com/api/v1/connect";
     const company = await createCompany(db);
     const app = createRouteApp(db, {
@@ -573,13 +865,20 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       deploymentExposure: "private",
       remoteHttpEndpointLookup: async () => [{ address: "8.8.8.8", family: 4 }],
       remoteHttpRequest: async (url, init) => {
-        if (url === secretUrl && (init.method ?? "GET").toUpperCase() === "POST") {
+        if (
+          url === secretUrl &&
+          (init.method ?? "GET").toUpperCase() === "POST"
+        ) {
           const body = JSON.parse(String(init.body));
-          if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
+          if (body.method === "notifications/initialized")
+            return new Response(null, { status: 202 });
           return jsonResponse({
             jsonrpc: "2.0",
             id: body.id,
-            result: body.method === "initialize" ? { protocolVersion: "2025-06-18" } : { tools: FIXTURE_TOOLS },
+            result:
+              body.method === "initialize"
+                ? { protocolVersion: "2025-06-18" }
+                : { tools: FIXTURE_TOOLS },
           });
         }
         return jsonResponse({ error: "not_found" }, 404);
@@ -604,10 +903,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
     expect(JSON.stringify(response.body)).not.toContain("zapier-secret");
 
-    const [application] = await db.select().from(toolApplications).where(eq(
-      toolApplications.id,
-      response.body.application.id,
-    ));
+    const [application] = await db
+      .select()
+      .from(toolApplications)
+      .where(eq(toolApplications.id, response.body.application.id));
     expect(application).toMatchObject({
       applicationKey: expect.stringMatching(/^app-gallery:zapier:/),
       metadata: expect.objectContaining({
@@ -633,7 +932,9 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       })
       .expect(400);
 
-    expect(response.body.error).toContain("does not accept a provider-generated connection URL");
+    expect(response.body.error).toContain(
+      "does not accept a provider-generated connection URL",
+    );
     await expect(db.select().from(toolApplications)).resolves.toHaveLength(0);
   });
 
@@ -646,7 +947,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
     const response = await request(app)
       .post(`/api/companies/${company.id}/tools/apps/connect`)
-      .send({ link: "https://qa-nonexistent.invalid/mcp", name: "Missing DNS fixture" });
+      .send({
+        link: "https://qa-nonexistent.invalid/mcp",
+        name: "Missing DNS fixture",
+      });
 
     // Public-mode preflight returns 400; local-mode platform fetch reports the
     // same failure from the health check as 502. The machine code is the stable
@@ -683,13 +987,16 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     expect(response.body.application.name).toBe("Taken fixture name (2)");
     expect(response.body.connection.name).toBe("Taken fixture name (2)");
     await expect(
-      db.select({ name: toolApplications.name })
+      db
+        .select({ name: toolApplications.name })
         .from(toolApplications)
         .where(eq(toolApplications.companyId, company.id)),
-    ).resolves.toEqual(expect.arrayContaining([
-      { name: "Taken fixture name" },
-      { name: "Taken fixture name (2)" },
-    ]));
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        { name: "Taken fixture name" },
+        { name: "Taken fixture name (2)" },
+      ]),
+    );
   });
 
   it("emits deployment guidance without exposing server env-var names", async () => {
@@ -717,7 +1024,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
   it("stores a bearer key as a secret and never reads it back", async () => {
     installMcpOAuthFixture({
       auth: "header",
-      requiredHeader: { name: "Authorization", value: "Bearer fixture-key-123" },
+      requiredHeader: {
+        name: "Authorization",
+        value: "Bearer fixture-key-123",
+      },
     });
     const company = await createCompany(db);
     const service = toolAccessService(db);
@@ -730,16 +1040,20 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
 
     expect(result.catalog).toHaveLength(2);
-    const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, result.connectionId));
+    const [connection] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, result.connectionId));
     expect(connection!.authKind).toBe("api_key");
     expect(JSON.stringify(connection!.config)).not.toContain("fixture-key-123");
-    expect(JSON.stringify(connection!.credentialRefs)).not.toContain("fixture-key-123");
+    expect(JSON.stringify(connection!.credentialRefs)).not.toContain(
+      "fixture-key-123",
+    );
     expect(JSON.stringify(result.connection)).not.toContain("fixture-key-123");
-    expect(connection!.credentialSecretRefs.map((ref) => ref.configPath)).toEqual(["credentials.authorization"]);
+    expect(
+      connection!.credentialSecretRefs.map((ref) => ref.configPath),
+    ).toEqual(["credentials.authorization"]);
   });
-
-
-
 
   it("stores custom header values as secrets and shows only header names", async () => {
     installMcpOAuthFixture({
@@ -757,7 +1071,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
 
     expect(result.catalog).toHaveLength(2);
-    const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, result.connectionId));
+    const [connection] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, result.connectionId));
     const serialized = JSON.stringify({
       config: connection!.config,
       credentialRefs: connection!.credentialRefs,
@@ -773,17 +1090,21 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    await expect(service.connectGalleryApp(company.id, {
-      link: MCP_URL,
-      name: "Fixture unsafe header",
-      credentialValues: { "headers.Host": "evil.example" },
-    })).rejects.toMatchObject({ status: 400 });
+    await expect(
+      service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture unsafe header",
+        credentialValues: { "headers.Host": "evil.example" },
+      }),
+    ).rejects.toMatchObject({ status: 400 });
 
-    await expect(service.connectGalleryApp(company.id, {
-      link: MCP_URL,
-      name: "Fixture split header",
-      credentialValues: { "headers.X-Api-Key": "abc\r\nX-Injected: 1" },
-    })).rejects.toMatchObject({ status: 400 });
+    await expect(
+      service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture split header",
+        credentialValues: { "headers.X-Api-Key": "abc\r\nX-Injected: 1" },
+      }),
+    ).rejects.toMatchObject({ status: 400 });
 
     // Nothing partial survived either rejection.
     await expect(db.select().from(toolConnections)).resolves.toHaveLength(0);
@@ -795,10 +1116,17 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture OAuth" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture OAuth",
+    });
     // Discovery succeeded, so the wizard gets a real sign-in branch rather than
     // an error, and it already knows which server it is about to trust.
-    expect(connected.auth).toMatchObject({ kind: "oauth", issuer: ISSUER, resource: MCP_URL });
+    expect(connected.auth).toMatchObject({
+      kind: "oauth",
+      issuer: ISSUER,
+      resource: MCP_URL,
+    });
 
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
@@ -816,17 +1144,31 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
 
     const authorizationUrl = new URL(start.authorizationUrl);
-    expect(authorizationUrl.origin + authorizationUrl.pathname).toBe(`${ISSUER}/authorize`);
-    expect(authorizationUrl.searchParams.get("client_id")).toBe("fixture-dcr-client");
-    expect(authorizationUrl.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(authorizationUrl.origin + authorizationUrl.pathname).toBe(
+      `${ISSUER}/authorize`,
+    );
+    expect(authorizationUrl.searchParams.get("client_id")).toBe(
+      "fixture-dcr-client",
+    );
+    expect(authorizationUrl.searchParams.get("code_challenge_method")).toBe(
+      "S256",
+    );
     expect(authorizationUrl.searchParams.get("code_challenge")).toBeTruthy();
     // RFC 8707: the MCP server is named so the token can be audience-restricted.
     expect(authorizationUrl.searchParams.get("resource")).toBe(MCP_URL);
 
-    const [afterStart] = await db.select().from(toolConnections).where(eq(toolConnections.id, connected.connectionId));
+    const [afterStart] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connected.connectionId));
     expect(afterStart!.authKind).toBe("oauth");
     expect(afterStart!.config).toMatchObject({
-      oauth: { issuer: ISSUER, expectedIssuer: ISSUER, resource: MCP_URL, clientRegistrationSource: "dcr" },
+      oauth: {
+        issuer: ISSUER,
+        expectedIssuer: ISSUER,
+        resource: MCP_URL,
+        clientRegistrationSource: "dcr",
+      },
     });
 
     const code = fixture.issueAuthorizationCode(start.authorizationUrl);
@@ -839,19 +1181,35 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
 
     // Same catalog/review pipeline a curated connection gets.
-    expect(completed.actions.readOnly.map((action) => action.toolName)).toEqual(["list_insights"]);
-    expect(completed.actions.canMakeChanges.map((action) => action.toolName)).toEqual(["create_insight"]);
+    expect(completed.actions.readOnly.map((action) => action.toolName)).toEqual(
+      ["list_insights"],
+    );
+    expect(
+      completed.actions.canMakeChanges.map((action) => action.toolName),
+    ).toEqual(["create_insight"]);
 
     const tokenRequest = fixture.requestsTo("/token").at(-1)!;
-    expect((tokenRequest.body as URLSearchParams).get("resource")).toBe(MCP_URL);
-    expect((tokenRequest.body as URLSearchParams).get("code_verifier")).toBeTruthy();
+    expect((tokenRequest.body as URLSearchParams).get("resource")).toBe(
+      MCP_URL,
+    );
+    expect(
+      (tokenRequest.body as URLSearchParams).get("code_verifier"),
+    ).toBeTruthy();
 
-    const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, connected.connectionId));
-    expect(connection).toMatchObject({ status: "active", enabled: true, authKind: "oauth" });
+    const [connection] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connected.connectionId));
+    expect(connection).toMatchObject({
+      status: "active",
+      enabled: true,
+      authKind: "oauth",
+    });
     // The access token lives in a secret, never in the config JSON.
     expect(JSON.stringify(connection!.config)).not.toContain("fixture-access-");
-    expect(connection!.credentialSecretRefs.map((ref) => ref.configPath).sort())
-      .toEqual(["oauth.access_token", "oauth.refresh_token"]);
+    expect(
+      connection!.credentialSecretRefs.map((ref) => ref.configPath).sort(),
+    ).toEqual(["oauth.access_token", "oauth.refresh_token"]);
   });
 
   async function approveFixtureAuthorization(authorizationUrl: string) {
@@ -861,197 +1219,431 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     expect(await consent.text()).toContain("Connect the test MCP server");
     const body = new URLSearchParams(url.search);
     body.set("decision", "allow");
-    const response = await fetch(url, { method: "POST", body, redirect: "manual" });
+    const response = await fetch(url, {
+      method: "POST",
+      body,
+      redirect: "manual",
+    });
     expect(response.status).toBe(302);
     return new URL(response.headers.get("location")!);
   }
 
   async function expireFixtureCredentials(connectionId: string) {
     const expiredAt = new Date(Date.now() - 1000).toISOString();
-    const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
-    const config = { ...connection!.config, oauth: { ...connection!.config.oauth as object, expiresAt: expiredAt } };
-    await db.update(toolConnections).set({ config, transportConfig: config }).where(eq(toolConnections.id, connectionId));
-    const grants = await db.select().from(connectionGrants).where(eq(connectionGrants.connectionId, connectionId));
+    const [connection] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
+    const config = {
+      ...connection!.config,
+      oauth: { ...(connection!.config.oauth as object), expiresAt: expiredAt },
+    };
+    await db
+      .update(toolConnections)
+      .set({ config, transportConfig: config })
+      .where(eq(toolConnections.id, connectionId));
+    const grants = await db
+      .select()
+      .from(connectionGrants)
+      .where(eq(connectionGrants.connectionId, connectionId));
     for (const grant of grants) {
-      await db.update(connectionGrants).set({
-        providerTenant: { ...grant.providerTenant, oauth: { ...grant.providerTenant?.oauth as object, accessTokenExpiresAt: expiredAt } },
-      }).where(eq(connectionGrants.id, grant.id));
+      await db
+        .update(connectionGrants)
+        .set({
+          providerTenant: {
+            ...grant.providerTenant,
+            oauth: {
+              ...(grant.providerTenant?.oauth as object),
+              accessTokenExpiresAt: expiredAt,
+            },
+          },
+        })
+        .where(eq(connectionGrants.id, grant.id));
     }
   }
 
-  it.each(["organization", "user"] as const)("keeps a real %s MCP connection usable across offline-access token expiry and rotation", async (grantKind) => {
-    const fixture = await startOAuthRefreshFixture();
-    try {
-      const company = await createCompany(db);
-      const app = createRouteApp(db, { deploymentMode: "local_trusted", deploymentExposure: "private" });
-      const redirectUri = "http://127.0.0.1:3100/api/tools/oauth/callback";
-      vi.stubEnv("TASKCORE_PUBLIC_URL", "http://127.0.0.1:3100");
-      const actor = { actorType: "user" as const, actorId: "board-user" };
-      const connected = await request(app).post(`/api/companies/${company.id}/tools/apps/connect`)
-        .send({ link: fixture.mcpUrl, name: "Offline access MCP", grantKind }).expect(201);
-      const connectionId = connected.body.connectionId;
-      const start = await request(app).post(`/api/tools/oauth/${connectionId}/start`)
-        .send(grantKind === "user" ? { asCurrentUser: true } : {}).expect(200);
-      const callback = await approveFixtureAuthorization(start.body.authorizationUrl);
-      await toolAccessService(db).completeOAuthCallback({
-        state: callback.searchParams.get("state")!, code: callback.searchParams.get("code")!,
-        iss: callback.searchParams.get("iss")!, redirectUri, actor,
-      });
-      const service = toolAccessService(db);
-      const [agent] = await db.insert(agents).values({ companyId: company.id, name: "Offline access reader", role: "engineer", status: "active", adapterType: "process", adapterConfig: {}, runtimeConfig: {} }).returning();
-      const catalog = await service.refreshCatalog(connectionId, actor);
-      await service.finishGalleryAppConnection(company.id, connectionId, {
-        enabledCatalogEntryIds: catalog.catalog.map((entry) => entry.id), askFirstCatalogEntryIds: [], access: { agentIds: [agent!.id] },
-      }, actor);
-      const call = () => createToolGatewayService(db).executeTestCall({
-        companyId: company.id, connectionId, agentId: agent!.id, userId: "board-user", toolName: "read_status", parameters: {},
-      });
-      const successfulCall = { decision: "allowed", result: { data: { content: [{ type: "text", text: "Authenticated MCP call succeeded" }] } } };
-      await expect(call()).resolves.toMatchObject(successfulCall);
-      // The provider actually rejects its old access token. Expire Taskcore's
-      // cached timestamp too, without waiting an hour or mocking global time.
-      for (let rotation = 0; rotation < 2; rotation += 1) {
-        fixture.advanceTime(3_601_000);
-        await expireFixtureCredentials(connectionId);
-        await expect(service.refreshCatalog(connectionId, actor)).resolves.toMatchObject({ catalog: [expect.objectContaining({ toolName: "read_status" })] });
+  it.each(["organization", "user"] as const)(
+    "keeps a real %s MCP connection usable across offline-access token expiry and rotation",
+    async (grantKind) => {
+      const fixture = await startOAuthRefreshFixture();
+      try {
+        const company = await createCompany(db);
+        const app = createRouteApp(db, {
+          deploymentMode: "local_trusted",
+          deploymentExposure: "private",
+        });
+        const redirectUri = "http://127.0.0.1:3100/api/tools/oauth/callback";
+        vi.stubEnv("TASKCORE_PUBLIC_URL", "http://127.0.0.1:3100");
+        const actor = { actorType: "user" as const, actorId: "board-user" };
+        const connected = await request(app)
+          .post(`/api/companies/${company.id}/tools/apps/connect`)
+          .send({ link: fixture.mcpUrl, name: "Offline access MCP", grantKind })
+          .expect(201);
+        const connectionId = connected.body.connectionId;
+        const start = await request(app)
+          .post(`/api/tools/oauth/${connectionId}/start`)
+          .send(grantKind === "user" ? { asCurrentUser: true } : {})
+          .expect(200);
+        const callback = await approveFixtureAuthorization(
+          start.body.authorizationUrl,
+        );
+        await toolAccessService(db).completeOAuthCallback({
+          state: callback.searchParams.get("state")!,
+          code: callback.searchParams.get("code")!,
+          iss: callback.searchParams.get("iss")!,
+          redirectUri,
+          actor,
+        });
+        const service = toolAccessService(db);
+        const [agent] = await db
+          .insert(agents)
+          .values({
+            companyId: company.id,
+            name: "Offline access reader",
+            role: "engineer",
+            status: "active",
+            adapterType: "process",
+            adapterConfig: {},
+            runtimeConfig: {},
+          })
+          .returning();
+        const catalog = await service.refreshCatalog(connectionId, actor);
+        await service.finishGalleryAppConnection(
+          company.id,
+          connectionId,
+          {
+            enabledCatalogEntryIds: catalog.catalog.map((entry) => entry.id),
+            askFirstCatalogEntryIds: [],
+            access: { agentIds: [agent!.id] },
+          },
+          actor,
+        );
+        const call = () =>
+          createToolGatewayService(db).executeTestCall({
+            companyId: company.id,
+            connectionId,
+            agentId: agent!.id,
+            userId: "board-user",
+            toolName: "read_status",
+            parameters: {},
+          });
+        const successfulCall = {
+          decision: "allowed",
+          result: {
+            data: {
+              content: [
+                { type: "text", text: "Authenticated MCP call succeeded" },
+              ],
+            },
+          },
+        };
         await expect(call()).resolves.toMatchObject(successfulCall);
+        // The provider actually rejects its old access token. Expire Taskcore's
+        // cached timestamp too, without waiting an hour or mocking global time.
+        for (let rotation = 0; rotation < 2; rotation += 1) {
+          fixture.advanceTime(3_601_000);
+          await expireFixtureCredentials(connectionId);
+          await expect(
+            service.refreshCatalog(connectionId, actor),
+          ).resolves.toMatchObject({
+            catalog: [expect.objectContaining({ toolName: "read_status" })],
+          });
+          await expect(call()).resolves.toMatchObject(successfulCall);
+        }
+        expect(
+          fixture.events.filter((event) => event.kind === "registration"),
+        ).toHaveLength(1);
+        expect(
+          fixture.events.filter((event) => event.kind === "authorization"),
+        ).toEqual([
+          {
+            kind: "authorization",
+            scopes: ["mcp:read", "offline_access"],
+            prompt: "consent",
+            offline: true,
+          },
+        ]);
+        expect(
+          fixture.events
+            .filter((event) => event.kind === "token")
+            .map((event) => event.grantType),
+        ).toEqual(["authorization_code", "refresh_token", "refresh_token"]);
+        const state = await service.getConnection(connectionId, company.id);
+        expect(JSON.stringify(state)).not.toMatch(/fixture-(access|refresh)-/);
+      } finally {
+        await fixture.close();
       }
-      expect(fixture.events.filter((event) => event.kind === "registration")).toHaveLength(1);
-      expect(fixture.events.filter((event) => event.kind === "authorization")).toEqual([
-        { kind: "authorization", scopes: ["mcp:read", "offline_access"], prompt: "consent", offline: true },
-      ]);
-      expect(fixture.events.filter((event) => event.kind === "token").map((event) => event.grantType))
-        .toEqual(["authorization_code", "refresh_token", "refresh_token"]);
-      const state = await service.getConnection(connectionId, company.id);
-      expect(JSON.stringify(state)).not.toMatch(/fixture-(access|refresh)-/);
-    } finally { await fixture.close(); }
-  });
+    },
+  );
 
   it.each([
-    { challengeScope: false, resourceScopes: ["mcp:read"], requestedScopes: undefined },
-    { challengeScope: false, resourceScopes: [], requestedScopes: ["mcp:read"] },
-  ])("adds only offline access to generic discovery scopes ($resourceScopes)", async (options) => {
-    const fixture = await startOAuthRefreshFixture(options);
-    try {
-      const company = await createCompany(db);
-      const service = toolAccessService(db);
-      const connected = await service.connectGalleryApp(company.id, { link: fixture.mcpUrl });
-      // Explicit scope overrides must still get refresh capability, and must
-      // remain the saved scope set used by reconnect and callback persistence.
-      const actor = { actorType: "user" as const, actorId: "board-user" };
-      const input = { redirectUri: "http://127.0.0.1:3100/api/tools/oauth/callback", actor, scopes: options.requestedScopes };
-      const start = await service.startOAuth(company.id, connected.connectionId, input);
-      expect(new URL(start.authorizationUrl).searchParams.get("scope")).toBe("mcp:read offline_access");
-      const saved = await service.getConnection(connected.connectionId, company.id);
-      expect(saved.config.oauth).toMatchObject({ scopes: ["mcp:read", "offline_access"] });
-      const callback = await approveFixtureAuthorization(start.authorizationUrl);
-      const completed = await service.completeOAuthCallback({
-        state: callback.searchParams.get("state")!, code: callback.searchParams.get("code")!,
-        iss: callback.searchParams.get("iss")!, redirectUri: input.redirectUri, actor,
-      });
-      expect(completed.connection.config.oauth).toMatchObject({ scopes: ["mcp:read", "offline_access"] });
-      const grants = await db.select().from(connectionGrants).where(eq(connectionGrants.connectionId, connected.connectionId));
-      expect(grants).toHaveLength(1);
-      expect(grants[0].providerTenant?.oauth).toMatchObject({
-        requestedScopes: ["mcp:read", "offline_access"],
-        scopes: ["mcp:read", "offline_access"],
-        scopeSource: "provider",
-        unrequestedScopes: [],
-      });
-      const reconnect = await service.startOAuth(company.id, connected.connectionId, { redirectUri: input.redirectUri, actor });
-      expect(new URL(reconnect.authorizationUrl).searchParams.get("scope")).toBe("mcp:read offline_access");
-    } finally { await fixture.close(); }
-  });
+    {
+      challengeScope: false,
+      resourceScopes: ["mcp:read"],
+      requestedScopes: undefined,
+    },
+    {
+      challengeScope: false,
+      resourceScopes: [],
+      requestedScopes: ["mcp:read"],
+    },
+  ])(
+    "adds only offline access to generic discovery scopes ($resourceScopes)",
+    async (options) => {
+      const fixture = await startOAuthRefreshFixture(options);
+      try {
+        const company = await createCompany(db);
+        const service = toolAccessService(db);
+        const connected = await service.connectGalleryApp(company.id, {
+          link: fixture.mcpUrl,
+        });
+        // Explicit scope overrides must still get refresh capability, and must
+        // remain the saved scope set used by reconnect and callback persistence.
+        const actor = { actorType: "user" as const, actorId: "board-user" };
+        const input = {
+          redirectUri: "http://127.0.0.1:3100/api/tools/oauth/callback",
+          actor,
+          scopes: options.requestedScopes,
+        };
+        const start = await service.startOAuth(
+          company.id,
+          connected.connectionId,
+          input,
+        );
+        expect(new URL(start.authorizationUrl).searchParams.get("scope")).toBe(
+          "mcp:read offline_access",
+        );
+        const saved = await service.getConnection(
+          connected.connectionId,
+          company.id,
+        );
+        expect(saved.config.oauth).toMatchObject({
+          scopes: ["mcp:read", "offline_access"],
+        });
+        const callback = await approveFixtureAuthorization(
+          start.authorizationUrl,
+        );
+        const completed = await service.completeOAuthCallback({
+          state: callback.searchParams.get("state")!,
+          code: callback.searchParams.get("code")!,
+          iss: callback.searchParams.get("iss")!,
+          redirectUri: input.redirectUri,
+          actor,
+        });
+        expect(completed.connection.config.oauth).toMatchObject({
+          scopes: ["mcp:read", "offline_access"],
+        });
+        const grants = await db
+          .select()
+          .from(connectionGrants)
+          .where(eq(connectionGrants.connectionId, connected.connectionId));
+        expect(grants).toHaveLength(1);
+        expect(grants[0].providerTenant?.oauth).toMatchObject({
+          requestedScopes: ["mcp:read", "offline_access"],
+          scopes: ["mcp:read", "offline_access"],
+          scopeSource: "provider",
+          unrequestedScopes: [],
+        });
+        const reconnect = await service.startOAuth(
+          company.id,
+          connected.connectionId,
+          { redirectUri: input.redirectUri, actor },
+        );
+        expect(
+          new URL(reconnect.authorizationUrl).searchParams.get("scope"),
+        ).toBe("mcp:read offline_access");
+      } finally {
+        await fixture.close();
+      }
+    },
+  );
 
   it.each([
     { supportsOfflineAccess: false },
     { grantTypes: ["authorization_code"] },
-  ])("does not request offline access when the authorization server does not support refresh ($supportsOfflineAccess, $grantTypes)", async (options) => {
-    const fixture = await startOAuthRefreshFixture(options);
-    try {
-      const company = await createCompany(db);
-      const service = toolAccessService(db);
-      const connected = await service.connectGalleryApp(company.id, { link: fixture.mcpUrl });
-      const start = await service.startOAuth(company.id, connected.connectionId, {
-        redirectUri: "http://127.0.0.1:3100/api/tools/oauth/callback", actor: { actorType: "user", actorId: "board-user" },
-      });
-      const url = new URL(start.authorizationUrl);
-      expect(url.searchParams.get("scope")).toBe("mcp:read");
-      expect(url.searchParams.has("prompt")).toBe(false);
-      const callback = await approveFixtureAuthorization(start.authorizationUrl);
-      expect(callback.searchParams.has("code")).toBe(true);
-      expect(fixture.events.find((event) => event.kind === "authorization").offline).toBe(false);
-      const completed = await service.completeOAuthCallback({
-        state: callback.searchParams.get("state")!, code: callback.searchParams.get("code")!,
-        iss: callback.searchParams.get("iss")!, redirectUri: "http://127.0.0.1:3100/api/tools/oauth/callback",
-        actor: { actorType: "user", actorId: "board-user" },
-      });
-      expect(completed.connection.status).toBe("active");
-      expect(completed.connection.credentialSecretRefs.some((ref) => ref.configPath === "oauth.access_token")).toBe(true);
-      expect(completed.connection.credentialSecretRefs.some((ref) => ref.configPath === "oauth.refresh_token")).toBe(false);
-    } finally { await fixture.close(); }
-  });
+  ])(
+    "does not request offline access when the authorization server does not support refresh ($supportsOfflineAccess, $grantTypes)",
+    async (options) => {
+      const fixture = await startOAuthRefreshFixture(options);
+      try {
+        const company = await createCompany(db);
+        const service = toolAccessService(db);
+        const connected = await service.connectGalleryApp(company.id, {
+          link: fixture.mcpUrl,
+        });
+        const start = await service.startOAuth(
+          company.id,
+          connected.connectionId,
+          {
+            redirectUri: "http://127.0.0.1:3100/api/tools/oauth/callback",
+            actor: { actorType: "user", actorId: "board-user" },
+          },
+        );
+        const url = new URL(start.authorizationUrl);
+        expect(url.searchParams.get("scope")).toBe("mcp:read");
+        expect(url.searchParams.has("prompt")).toBe(false);
+        const callback = await approveFixtureAuthorization(
+          start.authorizationUrl,
+        );
+        expect(callback.searchParams.has("code")).toBe(true);
+        expect(
+          fixture.events.find((event) => event.kind === "authorization")
+            .offline,
+        ).toBe(false);
+        const completed = await service.completeOAuthCallback({
+          state: callback.searchParams.get("state")!,
+          code: callback.searchParams.get("code")!,
+          iss: callback.searchParams.get("iss")!,
+          redirectUri: "http://127.0.0.1:3100/api/tools/oauth/callback",
+          actor: { actorType: "user", actorId: "board-user" },
+        });
+        expect(completed.connection.status).toBe("active");
+        expect(
+          completed.connection.credentialSecretRefs.some(
+            (ref) => ref.configPath === "oauth.access_token",
+          ),
+        ).toBe(true);
+        expect(
+          completed.connection.credentialSecretRefs.some(
+            (ref) => ref.configPath === "oauth.refresh_token",
+          ),
+        ).toBe(false);
+      } finally {
+        await fixture.close();
+      }
+    },
+  );
 
   it.each([
-    { name: "different authorization endpoint", authorizationUrl: `${ISSUER}/other-authorize`, tokenUrl: `${ISSUER}/token`, issuer: ISSUER, offline: false },
-    { name: "different token endpoint", authorizationUrl: `${ISSUER}/authorize`, tokenUrl: `${ISSUER}/other-token`, issuer: ISSUER, offline: false },
-    { name: "different issuer", authorizationUrl: `${ISSUER}/authorize`, tokenUrl: `${ISSUER}/token`, issuer: `${MCP_ORIGIN}/tenant/other`, offline: false },
-    { name: "matching endpoints and issuer", authorizationUrl: `${ISSUER}/authorize`, tokenUrl: `${ISSUER}/token`, issuer: ISSUER, offline: true },
-  ])("binds offline support to the selected OAuth server: $name", async (candidate) => {
-    const fixture = installMcpOAuthFixture({ auth: "oauth" });
-    const originalFetch = fixture.fetchMock.getMockImplementation()!;
-    fixture.fetchMock.mockImplementation(async (url, init) => {
-      const href = String(url);
-      if (href === `${MCP_ORIGIN}/.well-known/oauth-protected-resource/mcp`) {
-        return jsonResponse({
-          resource: MCP_URL, issuer: ISSUER, authorization_servers: [candidate.issuer],
-          authorization_endpoint: `${ISSUER}/authorize`, token_endpoint: `${ISSUER}/token`,
-          registration_endpoint: `${ISSUER}/register`, scopes_supported: ["mcp:read"],
-          code_challenge_methods_supported: ["S256"], token_endpoint_auth_methods_supported: ["none"],
-        });
-      }
-      const issuerPath = new URL(candidate.issuer).pathname;
-      if (href === `${MCP_ORIGIN}/.well-known/oauth-authorization-server${issuerPath}`) {
-        return jsonResponse({
-          issuer: candidate.issuer, authorization_endpoint: candidate.authorizationUrl,
-          token_endpoint: candidate.tokenUrl, scopes_supported: ["mcp:read", "offline_access"],
-          grant_types_supported: ["authorization_code", "refresh_token"],
-        });
-      }
-      return originalFetch(url, init);
-    });
-    const company = await createCompany(db);
-    const service = toolAccessService(db);
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL });
-    const start = await service.startOAuth(company.id, connected.connectionId, {
-      redirectUri: REDIRECT_URI, actor: { actorType: "user", actorId: "board-user" },
-    });
-    const url = new URL(start.authorizationUrl);
-    expect(url.origin + url.pathname).toBe(`${ISSUER}/authorize`);
-    expect(url.searchParams.get("scope")).toBe(candidate.offline ? "mcp:read offline_access" : "mcp:read");
-    expect(url.searchParams.get("prompt")).toBe(candidate.offline ? "consent" : null);
-  });
+    {
+      name: "different authorization endpoint",
+      authorizationUrl: `${ISSUER}/other-authorize`,
+      tokenUrl: `${ISSUER}/token`,
+      issuer: ISSUER,
+      offline: false,
+    },
+    {
+      name: "different token endpoint",
+      authorizationUrl: `${ISSUER}/authorize`,
+      tokenUrl: `${ISSUER}/other-token`,
+      issuer: ISSUER,
+      offline: false,
+    },
+    {
+      name: "different issuer",
+      authorizationUrl: `${ISSUER}/authorize`,
+      tokenUrl: `${ISSUER}/token`,
+      issuer: `${MCP_ORIGIN}/tenant/other`,
+      offline: false,
+    },
+    {
+      name: "matching endpoints and issuer",
+      authorizationUrl: `${ISSUER}/authorize`,
+      tokenUrl: `${ISSUER}/token`,
+      issuer: ISSUER,
+      offline: true,
+    },
+  ])(
+    "binds offline support to the selected OAuth server: $name",
+    async (candidate) => {
+      const fixture = installMcpOAuthFixture({ auth: "oauth" });
+      const originalFetch = fixture.fetchMock.getMockImplementation()!;
+      fixture.fetchMock.mockImplementation(async (url, init) => {
+        const href = String(url);
+        if (href === `${MCP_ORIGIN}/.well-known/oauth-protected-resource/mcp`) {
+          return jsonResponse({
+            resource: MCP_URL,
+            issuer: ISSUER,
+            authorization_servers: [candidate.issuer],
+            authorization_endpoint: `${ISSUER}/authorize`,
+            token_endpoint: `${ISSUER}/token`,
+            registration_endpoint: `${ISSUER}/register`,
+            scopes_supported: ["mcp:read"],
+            code_challenge_methods_supported: ["S256"],
+            token_endpoint_auth_methods_supported: ["none"],
+          });
+        }
+        const issuerPath = new URL(candidate.issuer).pathname;
+        if (
+          href ===
+          `${MCP_ORIGIN}/.well-known/oauth-authorization-server${issuerPath}`
+        ) {
+          return jsonResponse({
+            issuer: candidate.issuer,
+            authorization_endpoint: candidate.authorizationUrl,
+            token_endpoint: candidate.tokenUrl,
+            scopes_supported: ["mcp:read", "offline_access"],
+            grant_types_supported: ["authorization_code", "refresh_token"],
+          });
+        }
+        return originalFetch(url, init);
+      });
+      const company = await createCompany(db);
+      const service = toolAccessService(db);
+      const connected = await service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+      });
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        {
+          redirectUri: REDIRECT_URI,
+          actor: { actorType: "user", actorId: "board-user" },
+        },
+      );
+      const url = new URL(start.authorizationUrl);
+      expect(url.origin + url.pathname).toBe(`${ISSUER}/authorize`);
+      expect(url.searchParams.get("scope")).toBe(
+        candidate.offline ? "mcp:read offline_access" : "mcp:read",
+      );
+      expect(url.searchParams.get("prompt")).toBe(
+        candidate.offline ? "consent" : null,
+      );
+    },
+  );
 
   it("discovers offline refresh support when reconnecting a legacy connection with cached endpoints", async () => {
     const fixture = await startOAuthRefreshFixture();
     try {
       const company = await createCompany(db);
       const service = toolAccessService(db);
-      const connected = await service.connectGalleryApp(company.id, { link: fixture.mcpUrl });
-      const input = { redirectUri: "http://127.0.0.1:3100/api/tools/oauth/callback", actor: { actorType: "user" as const, actorId: "board-user" } };
+      const connected = await service.connectGalleryApp(company.id, {
+        link: fixture.mcpUrl,
+      });
+      const input = {
+        redirectUri: "http://127.0.0.1:3100/api/tools/oauth/callback",
+        actor: { actorType: "user" as const, actorId: "board-user" },
+      };
       await service.startOAuth(company.id, connected.connectionId, input);
-      const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, connected.connectionId));
-      const oauth = { ...connection!.config.oauth as Record<string, unknown>, scopes: ["mcp:read"] };
+      const [connection] = await db
+        .select()
+        .from(toolConnections)
+        .where(eq(toolConnections.id, connected.connectionId));
+      const oauth = {
+        ...(connection!.config.oauth as Record<string, unknown>),
+        scopes: ["mcp:read"],
+      };
       delete oauth.offlineAccessSupported;
       delete oauth.grantTypesSupported;
       const config = { ...connection!.config, oauth };
-      await db.update(toolConnections).set({ config, transportConfig: config }).where(eq(toolConnections.id, connected.connectionId));
-      const reconnect = await service.startOAuth(company.id, connected.connectionId, input);
+      await db
+        .update(toolConnections)
+        .set({ config, transportConfig: config })
+        .where(eq(toolConnections.id, connected.connectionId));
+      const reconnect = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        input,
+      );
       const url = new URL(reconnect.authorizationUrl);
       expect(url.searchParams.get("scope")).toBe("mcp:read offline_access");
       expect(url.searchParams.get("prompt")).toBe("consent");
-      expect(fixture.events.filter((event) => event.kind === "registration")).toHaveLength(1);
-    } finally { await fixture.close(); }
+      expect(
+        fixture.events.filter((event) => event.kind === "registration"),
+      ).toHaveLength(1);
+    } finally {
+      await fixture.close();
+    }
   });
 
   it("discovers OAuth for a personal URL connection before its user grant exists", async () => {
@@ -1077,7 +1669,9 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       resource: MCP_URL,
       startUrl: expect.any(String),
     });
-    expect(fixture.requestsTo("/mcp")[0]!.headers.authorization).toBeUndefined();
+    expect(
+      fixture.requestsTo("/mcp")[0]!.headers.authorization,
+    ).toBeUndefined();
     await expect(
       db
         .select()
@@ -1090,7 +1684,11 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     await request(app)
       .get("/api/tools/oauth/callback")
       .set("Accept", "text/html")
-      .query({ state: authorizationUrl.searchParams.get("state")!, code, iss: ISSUER })
+      .query({
+        state: authorizationUrl.searchParams.get("state")!,
+        code,
+        iss: ISSUER,
+      })
       .expect(303);
 
     const grants = await db
@@ -1110,25 +1708,55 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const fixture = installMcpOAuthFixture({ auth: "oauth" });
     const company = await createCompany(db);
     const service = toolAccessService(db);
-    const input = { link: MCP_URL, name: "Archived personal URL", grantKind: "user" as const };
-    const first = await service.connectGalleryApp(company.id, input, { actorType: "user", actorId: "board-user" });
-    await db.update(toolConnections).set({ status: "archived" }).where(eq(toolConnections.id, first.connectionId));
-    await db.update(toolApplications).set({ status: "archived" }).where(eq(toolApplications.id, first.application.id));
+    const input = {
+      link: MCP_URL,
+      name: "Archived personal URL",
+      grantKind: "user" as const,
+    };
+    const first = await service.connectGalleryApp(company.id, input, {
+      actorType: "user",
+      actorId: "board-user",
+    });
+    await db
+      .update(toolConnections)
+      .set({ status: "archived" })
+      .where(eq(toolConnections.id, first.connectionId));
+    await db
+      .update(toolApplications)
+      .set({ status: "archived" })
+      .where(eq(toolApplications.id, first.application.id));
     await db.insert(companyMemberships).values({
-      companyId: company.id, principalType: "user", principalId: "other-user", status: "active", membershipRole: "admin",
+      companyId: company.id,
+      principalType: "user",
+      principalId: "other-user",
+      status: "active",
+      membershipRole: "admin",
     });
     fixture.fetchMock.mockClear();
 
-    await expect(service.connectGalleryApp(company.id, input, {
-      actorType: "user", actorId: "other-user",
-    })).rejects.toMatchObject({ status: 403, message: "Only the existing personal identity can reconnect this connection" });
+    await expect(
+      service.connectGalleryApp(company.id, input, {
+        actorType: "user",
+        actorId: "other-user",
+      }),
+    ).rejects.toMatchObject({
+      status: 403,
+      message:
+        "Only the existing personal identity can reconnect this connection",
+    });
 
     expect(fixture.fetchMock).not.toHaveBeenCalled();
     await expect(db.select().from(connectionGrants)).resolves.toHaveLength(0);
-    await expect(service.getConnection(first.connectionId)).resolves.toMatchObject({
-      status: "archived", createdByUserId: "board-user",
+    await expect(
+      service.getConnection(first.connectionId),
+    ).resolves.toMatchObject({
+      status: "archived",
+      createdByUserId: "board-user",
     });
-    const resumed = await service.connectGalleryApp(company.id, input, { actorType: "user", actorId: "board-user" });
+    const resumed = await service.connectGalleryApp(company.id, input, {
+      actorType: "user",
+      actorId: "board-user",
+    });
     expect(resumed.connectionId).toBe(first.connectionId);
     expect(resumed.auth).toMatchObject({ kind: "oauth" });
   });
@@ -1138,41 +1766,94 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
     const actor = { actorType: "user" as const, actorId: "board-user" };
-    const first = await service.connectGalleryApp(company.id, {
-      link: MCP_URL, name: "Concurrent personal URL", grantKind: "user",
-    }, actor);
-    await service.connectGalleryApp(company.id, {
-      link: MCP_URL, grantKind: "user", resumeConnectionId: first.connectionId,
-    }, actor);
+    const first = await service.connectGalleryApp(
+      company.id,
+      {
+        link: MCP_URL,
+        name: "Concurrent personal URL",
+        grantKind: "user",
+      },
+      actor,
+    );
+    await service.connectGalleryApp(
+      company.id,
+      {
+        link: MCP_URL,
+        grantKind: "user",
+        resumeConnectionId: first.connectionId,
+      },
+      actor,
+    );
     // Model an interrupted draft with catalog/defaults but no personal grant.
     // This isolates the grant race from first-time catalog/profile insertion.
-    await db.delete(connectionGrants).where(eq(connectionGrants.connectionId, first.connectionId));
-    await db.delete(toolAccessAuditEvents).where(eq(toolAccessAuditEvents.connectionId, first.connectionId));
+    await db
+      .delete(connectionGrants)
+      .where(eq(connectionGrants.connectionId, first.connectionId));
+    await db
+      .delete(toolAccessAuditEvents)
+      .where(eq(toolAccessAuditEvents.connectionId, first.connectionId));
     fixture.fetchMock.mockRestore();
     let probes = 0;
     let release!: () => void;
-    const bothProbed = new Promise<void>((resolve) => { release = resolve; });
+    const bothProbed = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
       probes += 1;
       if (probes === 2) release();
       await bothProbed;
-      return jsonResponse({ jsonrpc: "2.0", id: "taskcore-catalog-refresh", result: { tools: FIXTURE_TOOLS } });
+      return jsonResponse({
+        jsonrpc: "2.0",
+        id: "taskcore-catalog-refresh",
+        result: { tools: FIXTURE_TOOLS },
+      });
     });
 
-    const results = await Promise.allSettled([0, 1].map(() => service.connectGalleryApp(company.id, {
-      link: MCP_URL, grantKind: "user", resumeConnectionId: first.connectionId,
-    }, actor)));
+    const results = await Promise.allSettled(
+      [0, 1].map(() =>
+        service.connectGalleryApp(
+          company.id,
+          {
+            link: MCP_URL,
+            grantKind: "user",
+            resumeConnectionId: first.connectionId,
+          },
+          actor,
+        ),
+      ),
+    );
 
     for (const result of results) {
       if (result.status === "rejected") throw result.reason;
     }
-    expect(results.map((result) => result.status)).toEqual(["fulfilled", "fulfilled"]);
-    await expect(db.select().from(connectionGrants).where(eq(connectionGrants.connectionId, first.connectionId)))
-      .resolves.toEqual([expect.objectContaining({ kind: "user", subjectUserId: actor.actorId, status: "active", credentialSecretRefs: [] })]);
-    await expect(db.select().from(toolAccessAuditEvents).where(and(
-      eq(toolAccessAuditEvents.connectionId, first.connectionId),
-      eq(toolAccessAuditEvents.action, "connection_grant.created"),
-    ))).resolves.toHaveLength(1);
+    expect(results.map((result) => result.status)).toEqual([
+      "fulfilled",
+      "fulfilled",
+    ]);
+    await expect(
+      db
+        .select()
+        .from(connectionGrants)
+        .where(eq(connectionGrants.connectionId, first.connectionId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        kind: "user",
+        subjectUserId: actor.actorId,
+        status: "active",
+        credentialSecretRefs: [],
+      }),
+    ]);
+    await expect(
+      db
+        .select()
+        .from(toolAccessAuditEvents)
+        .where(
+          and(
+            eq(toolAccessAuditEvents.connectionId, first.connectionId),
+            eq(toolAccessAuditEvents.action, "connection_grant.created"),
+          ),
+        ),
+    ).resolves.toHaveLength(1);
   });
 
   it("keeps a successful personal setup when the grant-creating retry later fails", async () => {
@@ -1180,20 +1861,42 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
     const actor = { actorType: "user" as const, actorId: "board-user" };
-    const first = await service.connectGalleryApp(company.id, {
-      link: MCP_URL, name: "Personal retry rollback", grantKind: "user",
-    }, actor);
-    const retryInput = { link: MCP_URL, grantKind: "user" as const, resumeConnectionId: first.connectionId };
+    const first = await service.connectGalleryApp(
+      company.id,
+      {
+        link: MCP_URL,
+        name: "Personal retry rollback",
+        grantKind: "user",
+      },
+      actor,
+    );
+    const retryInput = {
+      link: MCP_URL,
+      grantKind: "user" as const,
+      resumeConnectionId: first.connectionId,
+    };
     await service.connectGalleryApp(company.id, retryInput, actor);
-    await db.delete(connectionGrants).where(eq(connectionGrants.connectionId, first.connectionId));
-    await db.update(toolConnections).set({ status: "archived" }).where(eq(toolConnections.id, first.connectionId));
-    await db.update(toolApplications).set({ status: "archived", archivedAt: new Date() }).where(eq(toolApplications.id, first.application.id));
+    await db
+      .delete(connectionGrants)
+      .where(eq(connectionGrants.connectionId, first.connectionId));
+    await db
+      .update(toolConnections)
+      .set({ status: "archived" })
+      .where(eq(toolConnections.id, first.connectionId));
+    await db
+      .update(toolApplications)
+      .set({ status: "archived", archivedAt: new Date() })
+      .where(eq(toolApplications.id, first.application.id));
     fixture.fetchMock.mockRestore();
     let calls = 0;
     let catalogStarted!: () => void;
-    const catalogPending = new Promise<void>((resolve) => { catalogStarted = resolve; });
+    const catalogPending = new Promise<void>((resolve) => {
+      catalogStarted = resolve;
+    });
     let failCatalog!: () => void;
-    const releaseCatalog = new Promise<void>((resolve) => { failCatalog = resolve; });
+    const releaseCatalog = new Promise<void>((resolve) => {
+      failCatalog = resolve;
+    });
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
       calls += 1;
       if (calls === 2) {
@@ -1202,25 +1905,67 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
         await releaseCatalog;
         throw new Error("first retry catalog unavailable");
       }
-      return jsonResponse({ jsonrpc: "2.0", id: "taskcore-catalog-refresh", result: { tools: FIXTURE_TOOLS } });
+      return jsonResponse({
+        jsonrpc: "2.0",
+        id: "taskcore-catalog-refresh",
+        result: { tools: FIXTURE_TOOLS },
+      });
     });
-    const failure = service.connectGalleryApp(company.id, {
-      link: MCP_URL, name: "Personal retry rollback", grantKind: "user",
-    }, actor).then(() => null, (error: unknown) => error);
-    await Promise.race([catalogPending, failure.then((error) => { throw error ?? new Error("Retry finished before the catalog probe"); })]);
+    const failure = service
+      .connectGalleryApp(
+        company.id,
+        {
+          link: MCP_URL,
+          name: "Personal retry rollback",
+          grantKind: "user",
+        },
+        actor,
+      )
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
+    await Promise.race([
+      catalogPending,
+      failure.then((error) => {
+        throw error ?? new Error("Retry finished before the catalog probe");
+      }),
+    ]);
     try {
-      const successfulRetry = await service.connectGalleryApp(company.id, retryInput, actor);
+      const successfulRetry = await service.connectGalleryApp(
+        company.id,
+        retryInput,
+        actor,
+      );
       expect(successfulRetry.connectionId).toBe(first.connectionId);
     } finally {
       failCatalog();
     }
     expect(await failure).toMatchObject({ status: 502 });
-    await expect(db.select().from(connectionGrants).where(eq(connectionGrants.connectionId, first.connectionId)))
-      .resolves.toEqual([expect.objectContaining({ kind: "user", subjectUserId: actor.actorId, status: "active", credentialSecretRefs: [] })]);
-    await expect(service.getConnection(first.connectionId)).resolves.toMatchObject({ status: "draft", credentialPolicy: "per_user" });
-    const [application] = await db.select().from(toolApplications).where(eq(toolApplications.id, first.application.id));
+    await expect(
+      db
+        .select()
+        .from(connectionGrants)
+        .where(eq(connectionGrants.connectionId, first.connectionId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        kind: "user",
+        subjectUserId: actor.actorId,
+        status: "active",
+        credentialSecretRefs: [],
+      }),
+    ]);
+    await expect(
+      service.getConnection(first.connectionId),
+    ).resolves.toMatchObject({ status: "draft", credentialPolicy: "per_user" });
+    const [application] = await db
+      .select()
+      .from(toolApplications)
+      .where(eq(toolApplications.id, first.application.id));
     expect(application.status).toBe("draft");
-    await expect(service.checkHealth(first.connectionId, actor)).resolves.toMatchObject({ connection: { healthStatus: "ok" } });
+    await expect(
+      service.checkHealth(first.connectionId, actor),
+    ).resolves.toMatchObject({ connection: { healthStatus: "ok" } });
   });
 
   it("rolls back partial catalog and profile writes without removing the established public identity", async () => {
@@ -1228,17 +1973,40 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
     const actor = { actorType: "user" as const, actorId: "board-user" };
-    const input = { link: MCP_URL, name: "Personal atomic catalog", grantKind: "user" as const };
+    const input = {
+      link: MCP_URL,
+      name: "Personal atomic catalog",
+      grantKind: "user" as const,
+    };
     const first = await service.connectGalleryApp(company.id, input, actor);
-    const catalogBefore = await db.select().from(toolCatalogEntries).where(eq(toolCatalogEntries.connectionId, first.connectionId));
-    await db.delete(connectionGrants).where(eq(connectionGrants.connectionId, first.connectionId));
-    await db.update(toolConnections).set({ status: "archived" }).where(eq(toolConnections.id, first.connectionId));
-    await db.update(toolApplications).set({ status: "archived", archivedAt: new Date() }).where(eq(toolApplications.id, first.application.id));
+    const catalogBefore = await db
+      .select()
+      .from(toolCatalogEntries)
+      .where(eq(toolCatalogEntries.connectionId, first.connectionId));
+    await db
+      .delete(connectionGrants)
+      .where(eq(connectionGrants.connectionId, first.connectionId));
+    await db
+      .update(toolConnections)
+      .set({ status: "archived" })
+      .where(eq(toolConnections.id, first.connectionId));
+    await db
+      .update(toolApplications)
+      .set({ status: "archived", archivedAt: new Date() })
+      .where(eq(toolApplications.id, first.application.id));
     fixture.fetchMock.mockRestore();
-    vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse({
-      jsonrpc: "2.0", id: "taskcore-catalog-refresh",
-      result: { tools: [...FIXTURE_TOOLS, { name: "new_tool", description: "Partial catalog addition" }] },
-    }));
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      jsonResponse({
+        jsonrpc: "2.0",
+        id: "taskcore-catalog-refresh",
+        result: {
+          tools: [
+            ...FIXTURE_TOOLS,
+            { name: "new_tool", description: "Partial catalog addition" },
+          ],
+        },
+      }),
+    );
     await db.execute(sql`
       CREATE FUNCTION test_personal_profile_failure() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN RAISE EXCEPTION 'personal profile fixture failure'; END $$
@@ -1248,22 +2016,69 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       FOR EACH ROW EXECUTE FUNCTION test_personal_profile_failure()
     `);
     try {
-      await expect(service.connectGalleryApp(company.id, input, actor)).rejects.toThrow();
-      await expect(db.select().from(toolCatalogEntries).where(eq(toolCatalogEntries.connectionId, first.connectionId)))
-        .resolves.toEqual(catalogBefore);
-      await expect(db.select().from(toolProfiles).where(eq(toolProfiles.companyId, company.id))).resolves.toHaveLength(0);
-      await expect(db.select().from(toolProfileBindings).where(eq(toolProfileBindings.companyId, company.id))).resolves.toHaveLength(0);
-      await expect(db.select().from(connectionGrants).where(eq(connectionGrants.connectionId, first.connectionId)))
-        .resolves.toEqual([expect.objectContaining({ kind: "user", status: "active", credentialSecretRefs: [] })]);
-      await expect(service.getConnection(first.connectionId)).resolves.toMatchObject({ status: "draft", credentialPolicy: "per_user" });
+      await expect(
+        service.connectGalleryApp(company.id, input, actor),
+      ).rejects.toThrow();
+      await expect(
+        db
+          .select()
+          .from(toolCatalogEntries)
+          .where(eq(toolCatalogEntries.connectionId, first.connectionId)),
+      ).resolves.toEqual(catalogBefore);
+      await expect(
+        db
+          .select()
+          .from(toolProfiles)
+          .where(eq(toolProfiles.companyId, company.id)),
+      ).resolves.toHaveLength(0);
+      await expect(
+        db
+          .select()
+          .from(toolProfileBindings)
+          .where(eq(toolProfileBindings.companyId, company.id)),
+      ).resolves.toHaveLength(0);
+      await expect(
+        db
+          .select()
+          .from(connectionGrants)
+          .where(eq(connectionGrants.connectionId, first.connectionId)),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          kind: "user",
+          status: "active",
+          credentialSecretRefs: [],
+        }),
+      ]);
+      await expect(
+        service.getConnection(first.connectionId),
+      ).resolves.toMatchObject({
+        status: "draft",
+        credentialPolicy: "per_user",
+      });
     } finally {
-      await db.execute(sql`DROP TRIGGER test_personal_profile_failure ON tool_profile_entries`);
+      await db.execute(
+        sql`DROP TRIGGER test_personal_profile_failure ON tool_profile_entries`,
+      );
       await db.execute(sql`DROP FUNCTION test_personal_profile_failure()`);
     }
-    const retry = await service.connectGalleryApp(company.id, { ...input, resumeConnectionId: first.connectionId }, actor);
+    const retry = await service.connectGalleryApp(
+      company.id,
+      { ...input, resumeConnectionId: first.connectionId },
+      actor,
+    );
     expect(retry.catalog).toHaveLength(3);
-    await expect(db.select().from(toolProfiles).where(eq(toolProfiles.companyId, company.id))).resolves.toHaveLength(1);
-    await expect(db.select().from(toolProfileBindings).where(eq(toolProfileBindings.companyId, company.id))).resolves.toHaveLength(1);
+    await expect(
+      db
+        .select()
+        .from(toolProfiles)
+        .where(eq(toolProfiles.companyId, company.id)),
+    ).resolves.toHaveLength(1);
+    await expect(
+      db
+        .select()
+        .from(toolProfileBindings)
+        .where(eq(toolProfileBindings.companyId, company.id)),
+    ).resolves.toHaveLength(1);
   });
 
   it("creates an empty user grant after a personal public URL probe succeeds", async () => {
@@ -1275,12 +2090,19 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
       receivedMethods.push(body.method);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { tools: FIXTURE_TOOLS } }));
+      res.end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: body.id,
+          result: { tools: FIXTURE_TOOLS },
+        }),
+      );
     });
     mcpServer.listen(0, "127.0.0.1");
     await once(mcpServer, "listening");
     const address = mcpServer.address();
-    if (!address || typeof address === "string") throw new Error("Missing MCP fixture port");
+    if (!address || typeof address === "string")
+      throw new Error("Missing MCP fixture port");
     try {
       const company = await createCompany(db);
       const app = createRouteApp(db, {
@@ -1304,10 +2126,11 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
         status: "draft",
         credentialPolicy: "per_user",
       });
-      expect(connected.catalog.map((entry: { toolName: string }) => entry.toolName).sort()).toEqual([
-        "create_insight",
-        "list_insights",
-      ]);
+      expect(
+        connected.catalog
+          .map((entry: { toolName: string }) => entry.toolName)
+          .sort(),
+      ).toEqual(["create_insight", "list_insights"]);
       await expect(
         db
           .select()
@@ -1323,7 +2146,7 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       ]);
     } finally {
       await new Promise<void>((resolve, reject) => {
-        mcpServer.close((error) => error ? reject(error) : resolve());
+        mcpServer.close((error) => (error ? reject(error) : resolve()));
         mcpServer.closeAllConnections();
       });
     }
@@ -1332,7 +2155,9 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
   it("completes organization OAuth with a single database connection", async () => {
     const fixture = installMcpOAuthFixture({ auth: "oauth" });
     const company = await createCompany(db);
-    const callbackDb = createDb(tempDb!.connectionString, { maxConnections: 1 });
+    const callbackDb = createDb(tempDb!.connectionString, {
+      maxConnections: 1,
+    });
     const service = toolAccessService(callbackDb);
     let deadline: ReturnType<typeof setTimeout> | null = null;
 
@@ -1342,10 +2167,14 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
         link: MCP_URL,
         name: "Fixture single-pool OAuth",
       });
-      const start = await service.startOAuth(company.id, connected.connectionId, {
-        redirectUri: REDIRECT_URI,
-        actor: { actorType: "user", actorId: "board-user" },
-      });
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        {
+          redirectUri: REDIRECT_URI,
+          actor: { actorType: "user", actorId: "board-user" },
+        },
+      );
       const authorizationUrl = new URL(start.authorizationUrl);
       const code = fixture.issueAuthorizationCode(start.authorizationUrl);
 
@@ -1359,13 +2188,23 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
         }),
         new Promise<never>((_resolve, reject) => {
           deadline = setTimeout(() => {
-            void callbackDb.$client.end({ timeout: 0 })
-              .finally(() => reject(new Error("OAuth callback self-deadlocked with maxConnections=1")));
+            void callbackDb.$client
+              .end({ timeout: 0 })
+              .finally(() =>
+                reject(
+                  new Error(
+                    "OAuth callback self-deadlocked with maxConnections=1",
+                  ),
+                ),
+              );
           }, 5_000);
         }),
       ]);
 
-      expect(completed.connection).toMatchObject({ status: "active", enabled: true });
+      expect(completed.connection).toMatchObject({
+        status: "active",
+        enabled: true,
+      });
     } finally {
       if (deadline) clearTimeout(deadline);
       await callbackDb.$client.end({ timeout: 0 }).catch(() => undefined);
@@ -1393,15 +2232,19 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
     const authorizationUrl = new URL(start.authorizationUrl);
     const code = fixture.issueAuthorizationCode(start.authorizationUrl);
-    await expect(service.completeOAuthCallback({
-      state: authorizationUrl.searchParams.get("state")!,
-      code,
-      iss: ISSUER,
-      redirectUri: REDIRECT_URI,
-      actor,
-    })).rejects.toMatchObject({
+    await expect(
+      service.completeOAuthCallback({
+        state: authorizationUrl.searchParams.get("state")!,
+        code,
+        iss: ISSUER,
+        redirectUri: REDIRECT_URI,
+        actor,
+      }),
+    ).rejects.toMatchObject({
       status: 403,
-      message: expect.stringContaining("membership no longer permits connection changes"),
+      message: expect.stringContaining(
+        "membership no longer permits connection changes",
+      ),
     });
 
     const [connection] = await db
@@ -1409,14 +2252,24 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       .from(toolConnections)
       .where(eq(toolConnections.id, connected.connectionId));
     expect(connection).toMatchObject({ status: "draft" });
-    expect(connection!.credentialSecretRefs.some((ref) => ref.configPath === "oauth.access_token")).toBe(false);
-    expect(connection!.credentialSecretRefs.some((ref) => ref.configPath === "oauth.refresh_token")).toBe(false);
+    expect(
+      connection!.credentialSecretRefs.some(
+        (ref) => ref.configPath === "oauth.access_token",
+      ),
+    ).toBe(false);
+    expect(
+      connection!.credentialSecretRefs.some(
+        (ref) => ref.configPath === "oauth.refresh_token",
+      ),
+    ).toBe(false);
   });
 
   it("serializes organization OAuth completion behind membership revocation", async () => {
     const fixture = installMcpOAuthFixture({ auth: "oauth" });
     const company = await createCompany(db);
-    const callbackDb = createDb(tempDb!.connectionString, { maxConnections: 1 });
+    const callbackDb = createDb(tempDb!.connectionString, {
+      maxConnections: 1,
+    });
     const removalDb = createDb(tempDb!.connectionString, { maxConnections: 1 });
     const service = toolAccessService(callbackDb);
     const actor = { actorType: "user" as const, actorId: "board-user" };
@@ -1439,43 +2292,67 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
     const authorizationUrl = new URL(start.authorizationUrl);
     const code = fixture.issueAuthorizationCode(start.authorizationUrl);
-    const beforeSecrets = await db.select().from(companySecrets).where(eq(companySecrets.companyId, company.id));
+    const beforeSecrets = await db
+      .select()
+      .from(companySecrets)
+      .where(eq(companySecrets.companyId, company.id));
     const beforeVersions = await db.select().from(companySecretVersions);
-    const beforeBindings = await db.select().from(companySecretBindings).where(eq(companySecretBindings.companyId, company.id));
-    const beforeGrants = await db.select().from(connectionGrants).where(and(
-      eq(connectionGrants.companyId, company.id),
-      eq(connectionGrants.connectionId, connected.connectionId),
-    ));
+    const beforeBindings = await db
+      .select()
+      .from(companySecretBindings)
+      .where(eq(companySecretBindings.companyId, company.id));
+    const beforeGrants = await db
+      .select()
+      .from(connectionGrants)
+      .where(
+        and(
+          eq(connectionGrants.companyId, company.id),
+          eq(connectionGrants.connectionId, connected.connectionId),
+        ),
+      );
 
     const removal = removalDb.transaction(async (tx) => {
-      await tx.select({ id: companyMemberships.id }).from(companyMemberships).where(and(
-        eq(companyMemberships.companyId, company.id),
-        eq(companyMemberships.principalType, "user"),
-        eq(companyMemberships.principalId, "board-user"),
-      )).for("update");
+      await tx
+        .select({ id: companyMemberships.id })
+        .from(companyMemberships)
+        .where(
+          and(
+            eq(companyMemberships.companyId, company.id),
+            eq(companyMemberships.principalType, "user"),
+            eq(companyMemberships.principalId, "board-user"),
+          ),
+        )
+        .for("update");
       membershipLocked();
       await removalMayCommit;
-      await tx.update(companyMemberships).set({
-        membershipRole: "viewer",
-        updatedAt: new Date(),
-      }).where(and(
-        eq(companyMemberships.companyId, company.id),
-        eq(companyMemberships.principalType, "user"),
-        eq(companyMemberships.principalId, "board-user"),
-      ));
+      await tx
+        .update(companyMemberships)
+        .set({
+          membershipRole: "viewer",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(companyMemberships.companyId, company.id),
+            eq(companyMemberships.principalType, "user"),
+            eq(companyMemberships.principalId, "board-user"),
+          ),
+        );
     });
 
     await membershipIsLocked;
-    const completion = service.completeOAuthCallback({
-      state: authorizationUrl.searchParams.get("state")!,
-      code,
-      iss: ISSUER,
-      redirectUri: REDIRECT_URI,
-      actor,
-    }).then(
-      (value) => ({ value, error: null }),
-      (error: unknown) => ({ value: null, error }),
-    );
+    const completion = service
+      .completeOAuthCallback({
+        state: authorizationUrl.searchParams.get("state")!,
+        code,
+        iss: ISSUER,
+        redirectUri: REDIRECT_URI,
+        actor,
+      })
+      .then(
+        (value) => ({ value, error: null }),
+        (error: unknown) => ({ value: null, error }),
+      );
 
     try {
       expect(await waitForBlockedMembershipUpdate()).toBe(true);
@@ -1485,24 +2362,41 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       expect(outcome.value).toBeNull();
       expect(outcome.error).toMatchObject({
         status: 403,
-        message: expect.stringContaining("membership no longer permits connection changes"),
+        message: expect.stringContaining(
+          "membership no longer permits connection changes",
+        ),
       });
 
-      const [connection] = await db.select().from(toolConnections).where(eq(
-        toolConnections.id,
-        connected.connectionId,
-      ));
+      const [connection] = await db
+        .select()
+        .from(toolConnections)
+        .where(eq(toolConnections.id, connected.connectionId));
       expect(connection).toMatchObject({ status: "draft" });
       expect(connection!.credentialSecretRefs).toEqual([]);
-      await expect(db.select().from(companySecrets).where(eq(companySecrets.companyId, company.id)))
-        .resolves.toHaveLength(beforeSecrets.length);
-      await expect(db.select().from(companySecretVersions)).resolves.toHaveLength(beforeVersions.length);
-      await expect(db.select().from(companySecretBindings).where(eq(companySecretBindings.companyId, company.id)))
-        .resolves.toHaveLength(beforeBindings.length);
-      const afterGrants = await db.select().from(connectionGrants).where(and(
-        eq(connectionGrants.companyId, company.id),
-        eq(connectionGrants.connectionId, connected.connectionId),
-      ));
+      await expect(
+        db
+          .select()
+          .from(companySecrets)
+          .where(eq(companySecrets.companyId, company.id)),
+      ).resolves.toHaveLength(beforeSecrets.length);
+      await expect(
+        db.select().from(companySecretVersions),
+      ).resolves.toHaveLength(beforeVersions.length);
+      await expect(
+        db
+          .select()
+          .from(companySecretBindings)
+          .where(eq(companySecretBindings.companyId, company.id)),
+      ).resolves.toHaveLength(beforeBindings.length);
+      const afterGrants = await db
+        .select()
+        .from(connectionGrants)
+        .where(
+          and(
+            eq(connectionGrants.companyId, company.id),
+            eq(connectionGrants.connectionId, connected.connectionId),
+          ),
+        );
       expect(afterGrants).toEqual(beforeGrants);
     } finally {
       releaseRemoval();
@@ -1517,7 +2411,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture suffix" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture suffix",
+    });
     expect(connected.auth).toMatchObject({ kind: "oauth", issuer: ISSUER });
   });
 
@@ -1525,10 +2422,15 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const fixture = installMcpOAuthFixture({ auth: "oauth", cimd: true });
     const company = await createCompany(db);
     const service = toolAccessService(db, {
-      oauthClientMetadataLookup: async () => [{ address: "93.184.216.34", family: 4 }],
+      oauthClientMetadataLookup: async () => [
+        { address: "93.184.216.34", family: 4 },
+      ],
     });
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture CIMD" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture CIMD",
+    });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
       actor: { actorType: "user", actorId: "board-user" },
@@ -1536,7 +2438,9 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
     expect(start.registrationSource).toBe("cimd");
     // The client_id *is* the document URL, so nothing was registered.
-    expect(new URL(start.authorizationUrl).searchParams.get("client_id")).toBe(CLIENT_METADATA_DOCUMENT_URL);
+    expect(new URL(start.authorizationUrl).searchParams.get("client_id")).toBe(
+      CLIENT_METADATA_DOCUMENT_URL,
+    );
     expect(fixture.requestsTo("/register")).toHaveLength(0);
   });
 
@@ -1549,14 +2453,24 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     let metadataAddress = "93.184.216.34";
     const service = toolAccessService(db, {
-      oauthClientMetadataLookup: async () => [{ address: metadataAddress, family: 4 }],
+      oauthClientMetadataLookup: async () => [
+        { address: metadataAddress, family: 4 },
+      ],
     });
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture private CIMD" });
-    const firstStart = await service.startOAuth(company.id, connected.connectionId, {
-      redirectUri: "https://taskcore.tailnet.test:42001/api/tools/oauth/callback",
-      actor: { actorType: "user", actorId: "board-user" },
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture private CIMD",
     });
+    const firstStart = await service.startOAuth(
+      company.id,
+      connected.connectionId,
+      {
+        redirectUri:
+          "https://taskcore.tailnet.test:42001/api/tools/oauth/callback",
+        actor: { actorType: "user", actorId: "board-user" },
+      },
+    );
     expect(firstStart.registrationSource).toBe("cimd");
 
     // A private DNS answer models a Tailscale/MagicDNS callback. The first start
@@ -1564,12 +2478,15 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     // CIMD client id must not keep presenting it forever.
     metadataAddress = "100.100.100.100";
     const retry = await service.startOAuth(company.id, connected.connectionId, {
-      redirectUri: "https://taskcore.tailnet.test:42001/api/tools/oauth/callback",
+      redirectUri:
+        "https://taskcore.tailnet.test:42001/api/tools/oauth/callback",
       actor: { actorType: "user", actorId: "board-user" },
     });
 
     expect(retry.registrationSource).toBe("dcr");
-    expect(new URL(retry.authorizationUrl).searchParams.get("client_id")).toBe("fixture-dcr-client");
+    expect(new URL(retry.authorizationUrl).searchParams.get("client_id")).toBe(
+      "fixture-dcr-client",
+    );
     expect(fixture.requestsTo("/register")).toHaveLength(1);
   });
 
@@ -1578,7 +2495,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture local CIMD" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture local CIMD",
+    });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       // A loopback callback cannot serve a client_id an authorization server can
       // fetch, so CIMD is unavailable and DCR has to carry the flow.
@@ -1596,14 +2516,19 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture preconfigured" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture preconfigured",
+    });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
       actor: { actorType: "user", actorId: "board-user" },
     });
 
     expect(start.registrationSource).toBe("preconfigured");
-    expect(new URL(start.authorizationUrl).searchParams.get("client_id")).toBe("preconfigured-client");
+    expect(new URL(start.authorizationUrl).searchParams.get("client_id")).toBe(
+      "preconfigured-client",
+    );
     expect(fixture.requestsTo("/register")).toHaveLength(0);
   });
 
@@ -1620,7 +2545,11 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
     // The draft connection is real; only the client is missing. Losing the draft
     // here would make the operator start over just to paste a client id.
-    expect(response.body.auth).toMatchObject({ kind: "oauth", startUrl: null, manualClientRequired: true });
+    expect(response.body.auth).toMatchObject({
+      kind: "oauth",
+      startUrl: null,
+      manualClientRequired: true,
+    });
     await expect(db.select().from(toolConnections)).resolves.toHaveLength(1);
   });
 
@@ -1633,7 +2562,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       link: MCP_URL,
       name: "Fixture manual client",
       authMode: "oauth",
-      oauthClient: { clientId: "operator-client", clientSecret: "operator-secret" },
+      oauthClient: {
+        clientId: "operator-client",
+        clientSecret: "operator-secret",
+      },
     });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
@@ -1641,14 +2573,27 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
 
     expect(start.registrationSource).toBe("manual");
-    expect(new URL(start.authorizationUrl).searchParams.get("client_id")).toBe("operator-client");
+    expect(new URL(start.authorizationUrl).searchParams.get("client_id")).toBe(
+      "operator-client",
+    );
     expect(fixture.requestsTo("/register")).toHaveLength(0);
 
-    const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, connected.connectionId));
+    const [connection] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connected.connectionId));
     // The client secret is a secret ref, and specifically *not* a credential ref:
     // it goes to the token endpoint, never onto an MCP request as a header.
-    expect(connection!.credentialSecretRefs.some((ref) => ref.configPath === "oauth.client_secret")).toBe(true);
-    expect(connection!.credentialRefs.some((ref) => ref.name === "oauth.client_secret")).toBe(false);
+    expect(
+      connection!.credentialSecretRefs.some(
+        (ref) => ref.configPath === "oauth.client_secret",
+      ),
+    ).toBe(true);
+    expect(
+      connection!.credentialRefs.some(
+        (ref) => ref.name === "oauth.client_secret",
+      ),
+    ).toBe(false);
     expect(JSON.stringify(connection!.config)).not.toContain("operator-secret");
 
     const code = fixture.issueAuthorizationCode(start.authorizationUrl);
@@ -1659,7 +2604,9 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       actor: { actorType: "user", actorId: "board-user" },
     });
     const tokenRequest = fixture.requestsTo("/token").at(-1)!;
-    expect((tokenRequest.body as URLSearchParams).get("client_secret")).toBe("operator-secret");
+    expect((tokenRequest.body as URLSearchParams).get("client_secret")).toBe(
+      "operator-secret",
+    );
   });
 
   it("uses a preregistered client secret stored on a personal user grant", async () => {
@@ -1671,14 +2618,23 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       .where(eq(companyMemberships.companyId, company.id));
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(company.id, {
-      link: MCP_URL,
-      name: "Fixture personal manual client",
-      authMode: "oauth",
-      grantKind: "user",
-      oauthClient: { clientId: "operator-client", clientSecret: "operator-secret" },
-    }, { actorType: "user", actorId: "board-user" });
-    const [storedConnection] = await db.select().from(toolConnections)
+    const connected = await service.connectGalleryApp(
+      company.id,
+      {
+        link: MCP_URL,
+        name: "Fixture personal manual client",
+        authMode: "oauth",
+        grantKind: "user",
+        oauthClient: {
+          clientId: "operator-client",
+          clientSecret: "operator-secret",
+        },
+      },
+      { actorType: "user", actorId: "board-user" },
+    );
+    const [storedConnection] = await db
+      .select()
+      .from(toolConnections)
       .where(eq(toolConnections.id, connected.connectionId));
     expect(storedConnection!.credentialPolicy).toBe("per_user");
     expect(storedConnection!.credentialSecretRefs).toEqual([]);
@@ -1696,7 +2652,9 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
 
     const tokenRequest = fixture.requestsTo("/token").at(-1)!;
-    expect((tokenRequest.body as URLSearchParams).get("client_secret")).toBe("operator-secret");
+    expect((tokenRequest.body as URLSearchParams).get("client_secret")).toBe(
+      "operator-secret",
+    );
   });
 
   it("uses Basic authentication for a manual client when discovery advertises it", async () => {
@@ -1711,7 +2669,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       link: MCP_URL,
       name: "Fixture manual Basic client",
       authMode: "oauth",
-      oauthClient: { clientId: "operator-client", clientSecret: "operator-secret" },
+      oauthClient: {
+        clientId: "operator-client",
+        clientSecret: "operator-secret",
+      },
     });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
@@ -1728,7 +2689,9 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
     const tokenRequest = fixture.requestsTo("/token").at(-1)!;
     expect(tokenRequest.headers.authorization).toMatch(/^Basic /);
-    expect((tokenRequest.body as URLSearchParams).get("client_secret")).toBeNull();
+    expect(
+      (tokenRequest.body as URLSearchParams).get("client_secret"),
+    ).toBeNull();
   });
 
   it("refuses a callback whose iss names a different authorization server", async () => {
@@ -1736,7 +2699,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture iss" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture iss",
+    });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
       actor: { actorType: "user", actorId: "board-user" },
@@ -1744,13 +2710,18 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const state = new URL(start.authorizationUrl).searchParams.get("state")!;
     const code = fixture.issueAuthorizationCode(start.authorizationUrl);
 
-    await expect(service.completeOAuthCallback({
-      state,
-      code,
-      iss: "https://attacker.fixture.test",
-      redirectUri: REDIRECT_URI,
-      actor: { actorType: "user", actorId: "board-user" },
-    })).rejects.toMatchObject({ status: 400, details: { code: "oauth_issuer_mismatch" } });
+    await expect(
+      service.completeOAuthCallback({
+        state,
+        code,
+        iss: "https://attacker.fixture.test",
+        redirectUri: REDIRECT_URI,
+        actor: { actorType: "user", actorId: "board-user" },
+      }),
+    ).rejects.toMatchObject({
+      status: 400,
+      details: { code: "oauth_issuer_mismatch" },
+    });
 
     // The code was never exchanged.
     expect(fixture.requestsTo("/token")).toHaveLength(0);
@@ -1764,8 +2735,7 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
    * response, a thrown message, a log line, an audit row or an activity detail.
    */
   const PROVIDER_CANARY = "canary-sk-live-9f3a2b7c";
-  const HOSTILE_ERROR_DESCRIPTION =
-    `\u001b[31mFATAL\u001b[0m **Taskcore needs your recovery key**: ${PROVIDER_CANARY} <script>alert(1)</script>`;
+  const HOSTILE_ERROR_DESCRIPTION = `\u001b[31mFATAL\u001b[0m **Taskcore needs your recovery key**: ${PROVIDER_CANARY} <script>alert(1)</script>`;
   const HOSTILE_ERROR_BODY = {
     error_description: HOSTILE_ERROR_DESCRIPTION,
     error_uri: `https://attacker.fixture.test/why?leak=${PROVIDER_CANARY}`,
@@ -1774,7 +2744,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
   };
 
   /** Everything the operator or an operator's log could possibly read. */
-  async function providerLeakSurfaces(consoleSpy: { calls: unknown[] }, thrown: unknown) {
+  async function providerLeakSurfaces(
+    consoleSpy: { calls: unknown[] },
+    thrown: unknown,
+  ) {
     const auditRows = await db.select().from(toolAccessAuditEvents);
     const activityRows = await db.select().from(activityLog);
     const connections = await db.select().from(toolConnections);
@@ -1793,8 +2766,17 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
   /** Capture anything the service writes to a console-backed logger. */
   function captureConsole() {
     const calls: unknown[] = [];
-    const record = (...args: unknown[]) => { calls.push(args.map((arg) => String(arg))); };
-    for (const method of ["log", "info", "warn", "error", "debug", "trace"] as const) {
+    const record = (...args: unknown[]) => {
+      calls.push(args.map((arg) => String(arg)));
+    };
+    for (const method of [
+      "log",
+      "info",
+      "warn",
+      "error",
+      "debug",
+      "trace",
+    ] as const) {
       vi.spyOn(console, method).mockImplementation(record);
     }
     return { calls };
@@ -1803,11 +2785,17 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
   it("redacts a hostile provider error from the token exchange", async () => {
     const fixture = installMcpOAuthFixture({
       auth: "oauth",
-      tokenFailure: { status: 400, body: { error: "invalid_grant", ...HOSTILE_ERROR_BODY } },
+      tokenFailure: {
+        status: 400,
+        body: { error: "invalid_grant", ...HOSTILE_ERROR_BODY },
+      },
     });
     const company = await createCompany(db);
     const service = toolAccessService(db);
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture hostile token" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture hostile token",
+    });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
       actor: { actorType: "user", actorId: "board-user" },
@@ -1815,19 +2803,29 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const code = fixture.issueAuthorizationCode(start.authorizationUrl);
 
     const consoleSpy = captureConsole();
-    const thrown = await service.completeOAuthCallback({
-      state: new URL(start.authorizationUrl).searchParams.get("state")!,
-      code,
-      iss: ISSUER,
-      redirectUri: REDIRECT_URI,
-      actor: { actorType: "user", actorId: "board-user" },
-    }).then(() => null, (error: unknown) => error);
+    const thrown = await service
+      .completeOAuthCallback({
+        state: new URL(start.authorizationUrl).searchParams.get("state")!,
+        code,
+        iss: ISSUER,
+        redirectUri: REDIRECT_URI,
+        actor: { actorType: "user", actorId: "board-user" },
+      })
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
 
     // Taskcore's own copy for `invalid_grant`, not a syllable of the provider's.
     expect(thrown).toMatchObject({
       status: 502,
-      message: "The authorization server rejected the authorization code or refresh token.",
-      details: { code: "oauth_token_exchange_failed", providerError: "invalid_grant", status: 400 },
+      message:
+        "The authorization server rejected the authorization code or refresh token.",
+      details: {
+        code: "oauth_token_exchange_failed",
+        providerError: "invalid_grant",
+        status: 400,
+      },
     });
 
     const surfaces = await providerLeakSurfaces(consoleSpy, thrown);
@@ -1842,11 +2840,17 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const hostileCode = `not_a_real_code_${"x".repeat(200)}`;
     const fixture = installMcpOAuthFixture({
       auth: "oauth",
-      tokenFailure: { status: 503, body: { error: hostileCode, ...HOSTILE_ERROR_BODY } },
+      tokenFailure: {
+        status: 503,
+        body: { error: hostileCode, ...HOSTILE_ERROR_BODY },
+      },
     });
     const company = await createCompany(db);
     const service = toolAccessService(db);
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture unknown code" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture unknown code",
+    });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
       actor: { actorType: "user", actorId: "board-user" },
@@ -1854,20 +2858,29 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const code = fixture.issueAuthorizationCode(start.authorizationUrl);
 
     const consoleSpy = captureConsole();
-    const thrown = await service.completeOAuthCallback({
-      state: new URL(start.authorizationUrl).searchParams.get("state")!,
-      code,
-      iss: ISSUER,
-      redirectUri: REDIRECT_URI,
-      actor: { actorType: "user", actorId: "board-user" },
-    }).then(() => null, (error: unknown) => error);
+    const thrown = await service
+      .completeOAuthCallback({
+        state: new URL(start.authorizationUrl).searchParams.get("state")!,
+        code,
+        iss: ISSUER,
+        redirectUri: REDIRECT_URI,
+        actor: { actorType: "user", actorId: "board-user" },
+      })
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
 
     // Off the allowlist, so the label collapses and the message falls back to
     // Taskcore's generic copy rather than naming the provider's code.
     expect(thrown).toMatchObject({
       status: 502,
       message: "OAuth token exchange failed",
-      details: { code: "oauth_token_exchange_failed", providerError: "unrecognized", status: 503 },
+      details: {
+        code: "oauth_token_exchange_failed",
+        providerError: "unrecognized",
+        status: 503,
+      },
     });
 
     const surfaces = await providerLeakSurfaces(consoleSpy, thrown);
@@ -1878,17 +2891,28 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
   it("redacts a hostile provider error from dynamic client registration", async () => {
     installMcpOAuthFixture({
       auth: "oauth",
-      registrationFailure: { status: 400, body: { error: "invalid_redirect_uri", ...HOSTILE_ERROR_BODY } },
+      registrationFailure: {
+        status: 400,
+        body: { error: "invalid_redirect_uri", ...HOSTILE_ERROR_BODY },
+      },
     });
     const company = await createCompany(db);
     const service = toolAccessService(db);
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture hostile dcr" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture hostile dcr",
+    });
 
     const consoleSpy = captureConsole();
-    const thrown = await service.startOAuth(company.id, connected.connectionId, {
-      redirectUri: REDIRECT_URI,
-      actor: { actorType: "user", actorId: "board-user" },
-    }).then(() => null, (error: unknown) => error);
+    const thrown = await service
+      .startOAuth(company.id, connected.connectionId, {
+        redirectUri: REDIRECT_URI,
+        actor: { actorType: "user", actorId: "board-user" },
+      })
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
 
     expect(thrown).toMatchObject({
       status: 502,
@@ -1917,9 +2941,14 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
         callback();
       },
     });
-    const requestLogger = createHttpLogger(pino({ redact: [...HTTP_LOG_REDACT_PATHS] }, logStream));
+    const requestLogger = createHttpLogger(
+      pino({ redact: [...HTTP_LOG_REDACT_PATHS] }, logStream),
+    );
     const app = createRouteApp(db, undefined, requestLogger);
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture hostile denial" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture hostile denial",
+    });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
       actor: { actorType: "user", actorId: "board-user" },
@@ -1927,21 +2956,22 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const state = new URL(start.authorizationUrl).searchParams.get("state")!;
 
     const consoleSpy = captureConsole();
-    const res = await request(app)
-      .get("/api/tools/oauth/callback")
-      .query({
-        state,
-        code: "oauth-authorization-code-canary-4d7e1f",
-        error: "access_denied",
-        error_description: HOSTILE_ERROR_DESCRIPTION,
-        error_uri: HOSTILE_ERROR_BODY.error_uri,
-      });
+    const res = await request(app).get("/api/tools/oauth/callback").query({
+      state,
+      code: "oauth-authorization-code-canary-4d7e1f",
+      error: "access_denied",
+      error_description: HOSTILE_ERROR_DESCRIPTION,
+      error_uri: HOSTILE_ERROR_BODY.error_uri,
+    });
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({
       error: "The authorization server denied the request.",
       code: "oauth_authorization_denied",
-      details: { code: "oauth_authorization_denied", providerError: "access_denied" },
+      details: {
+        code: "oauth_authorization_denied",
+        providerError: "access_denied",
+      },
     });
     expect(JSON.stringify(res.body)).not.toContain(PROVIDER_CANARY);
     expect(JSON.stringify(res.body)).not.toContain("\\u001b");
@@ -1962,12 +2992,17 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       reqQuery?: unknown;
     };
     expect(logRecord.msg).toBe("GET /api/tools/oauth/callback 400");
-    expect(logRecord.req).toMatchObject({ method: "GET", url: "/api/tools/oauth/callback" });
+    expect(logRecord.req).toMatchObject({
+      method: "GET",
+      url: "/api/tools/oauth/callback",
+    });
     expect(logRecord.req.query).toBeUndefined();
     expect(logRecord.reqQuery).toBeUndefined();
 
     // A denial is terminal for the attempt, so the state cannot be replayed.
-    await expect(db.select().from(toolOauthStates).where(eq(toolOauthStates.state, state))).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(toolOauthStates).where(eq(toolOauthStates.state, state)),
+    ).resolves.toHaveLength(0);
   });
 
   it("returns browser denials to Permissions without reflecting provider-authored details", async () => {
@@ -1998,9 +3033,13 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
     expect(res.status).toBe(303);
     const location = new URL(res.headers.location, PUBLIC_BASE_URL);
-    expect(location.pathname).toBe(`/${company.issuePrefix}/apps/${connected.connectionId}/permissions`);
+    expect(location.pathname).toBe(
+      `/${company.issuePrefix}/apps/${connected.connectionId}/permissions`,
+    );
     expect(location.searchParams.get("oauth")).toBe("denied");
-    expect(location.searchParams.get("code")).toBe("oauth_authorization_denied");
+    expect(location.searchParams.get("code")).toBe(
+      "oauth_authorization_denied",
+    );
     expect(res.headers.location).not.toContain(PROVIDER_CANARY);
     expect(res.headers.location).not.toContain("error_description");
     expect(res.headers.location).not.toContain("error_uri");
@@ -2010,16 +3049,21 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     installMcpOAuthFixture({ auth: "oauth" });
     const company = await createCompany(db);
     const service = toolAccessService(db);
-    await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture unsolicited denial" });
+    await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture unsolicited denial",
+    });
 
     // An unsolicited callback carries no state Taskcore issued, so it is
     // rejected on that ground and never reaches the provider-error branch.
-    await expect(service.completeOAuthCallback({
-      state: "state-taskcore-never-issued",
-      error: "access_denied",
-      redirectUri: REDIRECT_URI,
-      actor: { actorType: "user", actorId: "board-user" },
-    })).rejects.toMatchObject({
+    await expect(
+      service.completeOAuthCallback({
+        state: "state-taskcore-never-issued",
+        error: "access_denied",
+        redirectUri: REDIRECT_URI,
+        actor: { actorType: "user", actorId: "board-user" },
+      }),
+    ).rejects.toMatchObject({
       status: 400,
       message: "OAuth state was not found or has already been used",
     });
@@ -2038,24 +3082,57 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       const company = await createCompany(db);
       const service = toolAccessService(db);
       const actor = { actorType: "user" as const, actorId: "board-user" };
-      const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture denied" });
-      const start = await service.startOAuth(company.id, connected.connectionId, { redirectUri: REDIRECT_URI, actor });
+      const connected = await service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture denied",
+      });
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        { redirectUri: REDIRECT_URI, actor },
+      );
       const state = new URL(start.authorizationUrl).searchParams.get("state")!;
       // Held before the denial on purpose: this is the whole attack. A code that
       // shows up after "no" must not be exchangeable.
       const code = fixture.issueAuthorizationCode(start.authorizationUrl);
 
-      await expect(service.completeOAuthCallback({ state, error: "access_denied", redirectUri: REDIRECT_URI, actor }))
-        .rejects.toMatchObject({ status: 400, details: { code: "oauth_authorization_denied" } });
+      await expect(
+        service.completeOAuthCallback({
+          state,
+          error: "access_denied",
+          redirectUri: REDIRECT_URI,
+          actor,
+        }),
+      ).rejects.toMatchObject({
+        status: 400,
+        details: { code: "oauth_authorization_denied" },
+      });
 
-      await expect(service.completeOAuthCallback({ state, code, iss: ISSUER, redirectUri: REDIRECT_URI, actor }))
-        .rejects.toMatchObject({ status: 400, message: "OAuth state was not found or has already been used" });
+      await expect(
+        service.completeOAuthCallback({
+          state,
+          code,
+          iss: ISSUER,
+          redirectUri: REDIRECT_URI,
+          actor,
+        }),
+      ).rejects.toMatchObject({
+        status: 400,
+        message: "OAuth state was not found or has already been used",
+      });
 
       expect(fixture.requestsTo("/token")).toHaveLength(0);
-      const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, connected.connectionId));
+      const [connection] = await db
+        .select()
+        .from(toolConnections)
+        .where(eq(toolConnections.id, connected.connectionId));
       // Still a draft: nothing about the refused attempt made it a live connection.
       expect(connection).toMatchObject({ status: "draft" });
-      expect(connection!.credentialSecretRefs.some((ref) => ref.configPath === "oauth.access_token")).toBe(false);
+      expect(
+        connection!.credentialSecretRefs.some(
+          (ref) => ref.configPath === "oauth.access_token",
+        ),
+      ).toBe(false);
     });
 
     it("treats a cancel the same as a denial even when the provider names it its own way", async () => {
@@ -2063,25 +3140,49 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       const company = await createCompany(db);
       const service = toolAccessService(db);
       const actor = { actorType: "user" as const, actorId: "board-user" };
-      const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture cancelled" });
-      const start = await service.startOAuth(company.id, connected.connectionId, { redirectUri: REDIRECT_URI, actor });
+      const connected = await service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture cancelled",
+      });
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        { redirectUri: REDIRECT_URI, actor },
+      );
       const state = new URL(start.authorizationUrl).searchParams.get("state")!;
       const code = fixture.issueAuthorizationCode(start.authorizationUrl);
 
       // Real providers invent their own cancel codes. Whether or not Taskcore
       // recognizes the label, the request is over.
-      const thrown = await service.completeOAuthCallback({
-        state,
-        error: "user_cancelled_authorize",
-        redirectUri: REDIRECT_URI,
-        actor,
-      }).then(() => null, (error: unknown) => error);
-      expect(thrown).toMatchObject({ status: 400, details: { code: "oauth_authorization_denied" } });
-      expect((thrown as Error).message).not.toContain("user_cancelled_authorize");
+      const thrown = await service
+        .completeOAuthCallback({
+          state,
+          error: "user_cancelled_authorize",
+          redirectUri: REDIRECT_URI,
+          actor,
+        })
+        .then(
+          () => null,
+          (error: unknown) => error,
+        );
+      expect(thrown).toMatchObject({
+        status: 400,
+        details: { code: "oauth_authorization_denied" },
+      });
+      expect((thrown as Error).message).not.toContain(
+        "user_cancelled_authorize",
+      );
 
       await expect(db.select().from(toolOauthStates)).resolves.toHaveLength(0);
-      await expect(service.completeOAuthCallback({ state, code, iss: ISSUER, redirectUri: REDIRECT_URI, actor }))
-        .rejects.toMatchObject({ status: 400 });
+      await expect(
+        service.completeOAuthCallback({
+          state,
+          code,
+          iss: ISSUER,
+          redirectUri: REDIRECT_URI,
+          actor,
+        }),
+      ).rejects.toMatchObject({ status: 400 });
       expect(fixture.requestsTo("/token")).toHaveLength(0);
     });
 
@@ -2089,82 +3190,133 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       const fixture = installMcpOAuthFixture({ auth: "oauth" });
       const company = await createCompany(db);
       const service = toolAccessService(db);
-      const owner = { actorType: "user" as const, actorId: "board-user", sessionId: "owner-session" };
-      const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture victim" });
-      const start = await service.startOAuth(company.id, connected.connectionId, {
-        redirectUri: REDIRECT_URI,
-        actor: owner,
+      const owner = {
+        actorType: "user" as const,
+        actorId: "board-user",
+        sessionId: "owner-session",
+      };
+      const connected = await service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture victim",
       });
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        {
+          redirectUri: REDIRECT_URI,
+          actor: owner,
+        },
+      );
       const state = new URL(start.authorizationUrl).searchParams.get("state")!;
 
       // Same user, different browser session.
-      await expect(service.completeOAuthCallback({
-        state,
-        error: "access_denied",
-        redirectUri: REDIRECT_URI,
-        actor: { ...owner, sessionId: "other-session" },
-      })).rejects.toMatchObject({ status: 403 });
+      await expect(
+        service.completeOAuthCallback({
+          state,
+          error: "access_denied",
+          redirectUri: REDIRECT_URI,
+          actor: { ...owner, sessionId: "other-session" },
+        }),
+      ).rejects.toMatchObject({ status: 403 });
 
       // A different user — which is also how a different company arrives, since a
       // state is bound to the actor id that started it and the callback route
       // authorizes against the state row's own company.
-      await expect(service.completeOAuthCallback({
-        state,
-        error: "access_denied",
-        redirectUri: REDIRECT_URI,
-        actor: { ...owner, actorId: "someone-else" },
-      })).rejects.toMatchObject({ status: 403 });
+      await expect(
+        service.completeOAuthCallback({
+          state,
+          error: "access_denied",
+          redirectUri: REDIRECT_URI,
+          actor: { ...owner, actorId: "someone-else" },
+        }),
+      ).rejects.toMatchObject({ status: 403 });
 
       // Neither refusal cost the owner anything: the request is still live and
       // still completable.
-      await expect(db.select().from(toolOauthStates).where(eq(toolOauthStates.state, state))).resolves.toHaveLength(1);
+      await expect(
+        db
+          .select()
+          .from(toolOauthStates)
+          .where(eq(toolOauthStates.state, state)),
+      ).resolves.toHaveLength(1);
       const code = fixture.issueAuthorizationCode(start.authorizationUrl);
-      await expect(service.completeOAuthCallback({ state, code, iss: ISSUER, redirectUri: REDIRECT_URI, actor: owner }))
-        .resolves.toMatchObject({ connectionId: connected.connectionId });
+      await expect(
+        service.completeOAuthCallback({
+          state,
+          code,
+          iss: ISSUER,
+          redirectUri: REDIRECT_URI,
+          actor: owner,
+        }),
+      ).resolves.toMatchObject({ connectionId: connected.connectionId });
     });
 
     it("resolves the board's pending authorization prompt as rejected", async () => {
       installMcpOAuthFixture({ auth: "oauth" });
       const company = await createCompany(db);
       const service = toolAccessService(db);
-      const [agent] = await db.insert(agents).values({
-        companyId: company.id,
-        name: `Connector ${randomUUID()}`,
-        role: "engineer",
-        status: "idle",
-        adapterType: "process",
-        adapterConfig: {},
-        runtimeConfig: {},
-      }).returning();
-      const [issue] = await db.insert(issues).values({
-        companyId: company.id,
-        title: "Connect the analytics app",
-      }).returning();
-      const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture prompt" });
+      const [agent] = await db
+        .insert(agents)
+        .values({
+          companyId: company.id,
+          name: `Connector ${randomUUID()}`,
+          role: "engineer",
+          status: "idle",
+          adapterType: "process",
+          adapterConfig: {},
+          runtimeConfig: {},
+        })
+        .returning();
+      const [issue] = await db
+        .insert(issues)
+        .values({
+          companyId: company.id,
+          title: "Connect the analytics app",
+        })
+        .returning();
+      const connected = await service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture prompt",
+      });
 
       // The agent-driven shape: the agent asks, the board user answers in the
       // provider's window, so the prompt's fate is decided by the callback.
-      const start = await service.startOAuth(company.id, connected.connectionId, {
-        redirectUri: REDIRECT_URI,
-        actor: { actorType: "agent", actorId: agent!.id },
-        subjectUserId: "board-user",
-        issueId: issue!.id,
-      });
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        {
+          redirectUri: REDIRECT_URI,
+          actor: { actorType: "agent", actorId: agent!.id },
+          subjectUserId: "board-user",
+          issueId: issue!.id,
+        },
+      );
       const [pending] = await db.select().from(issueThreadInteractions);
-      expect(pending).toMatchObject({ kind: "request_confirmation", status: "pending" });
+      expect(pending).toMatchObject({
+        kind: "request_confirmation",
+        status: "pending",
+      });
 
-      await expect(service.completeOAuthCallback({
-        state: new URL(start.authorizationUrl).searchParams.get("state")!,
-        error: "access_denied",
-        redirectUri: REDIRECT_URI,
-        actor: { actorType: "user", actorId: "board-user" },
-      })).rejects.toMatchObject({ status: 400, details: { code: "oauth_authorization_denied" } });
+      await expect(
+        service.completeOAuthCallback({
+          state: new URL(start.authorizationUrl).searchParams.get("state")!,
+          error: "access_denied",
+          redirectUri: REDIRECT_URI,
+          actor: { actorType: "user", actorId: "board-user" },
+        }),
+      ).rejects.toMatchObject({
+        status: 400,
+        details: { code: "oauth_authorization_denied" },
+      });
 
       const [resolved] = await db
         .select()
         .from(issueThreadInteractions)
         .where(eq(issueThreadInteractions.id, pending!.id));
-      expect(resolved).toMatchObject({ status: "rejected", resolvedByUserId: "board-user" });
+      expect(resolved).toMatchObject({
+        status: "rejected",
+        resolvedByUserId: "board-user",
+      });
       expect(resolved!.result).toMatchObject({ outcome: "rejected" });
       expect(resolved!.resolvedAt).not.toBeNull();
       // The prompt's reason is Taskcore's own copy, never the provider's.
@@ -2177,8 +3329,15 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       const company = await createCompany(db);
       const service = toolAccessService(db);
       const actor = { actorType: "user" as const, actorId: "board-user" };
-      const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture replay" });
-      const start = await service.startOAuth(company.id, connected.connectionId, { redirectUri: REDIRECT_URI, actor });
+      const connected = await service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture replay",
+      });
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        { redirectUri: REDIRECT_URI, actor },
+      );
       const state = new URL(start.authorizationUrl).searchParams.get("state")!;
       const code = fixture.issueAuthorizationCode(start.authorizationUrl);
 
@@ -2195,17 +3354,33 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
         // would just hand the first callback an uncontested head start.
         await otherDb.select().from(companies).limit(1);
         settled = await Promise.allSettled([
-          service.completeOAuthCallback({ state, code, iss: ISSUER, redirectUri: REDIRECT_URI, actor }),
-          otherService.completeOAuthCallback({ state, code, iss: ISSUER, redirectUri: REDIRECT_URI, actor }),
+          service.completeOAuthCallback({
+            state,
+            code,
+            iss: ISSUER,
+            redirectUri: REDIRECT_URI,
+            actor,
+          }),
+          otherService.completeOAuthCallback({
+            state,
+            code,
+            iss: ISSUER,
+            redirectUri: REDIRECT_URI,
+            actor,
+          }),
         ]);
       } finally {
         await otherDb.$client.end({ timeout: 5 });
       }
 
-      expect(settled.filter((entry) => entry.status === "fulfilled")).toHaveLength(1);
+      expect(
+        settled.filter((entry) => entry.status === "fulfilled"),
+      ).toHaveLength(1);
       // The loser never reached the token endpoint at all.
       expect(fixture.requestsTo("/token")).toHaveLength(1);
-      const rejection = settled.find((entry) => entry.status === "rejected") as PromiseRejectedResult;
+      const rejection = settled.find(
+        (entry) => entry.status === "rejected",
+      ) as PromiseRejectedResult;
       expect(rejection.reason).toMatchObject({
         status: 400,
         message: "OAuth state was not found or has already been used",
@@ -2218,20 +3393,25 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture iss slash" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture iss slash",
+    });
     const start = await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
       actor: { actorType: "user", actorId: "board-user" },
     });
     const code = fixture.issueAuthorizationCode(start.authorizationUrl);
 
-    await expect(service.completeOAuthCallback({
-      state: new URL(start.authorizationUrl).searchParams.get("state")!,
-      code,
-      iss: `${ISSUER}/`,
-      redirectUri: REDIRECT_URI,
-      actor: { actorType: "user", actorId: "board-user" },
-    })).resolves.toMatchObject({ connectionId: connected.connectionId });
+    await expect(
+      service.completeOAuthCallback({
+        state: new URL(start.authorizationUrl).searchParams.get("state")!,
+        code,
+        iss: `${ISSUER}/`,
+        redirectUri: REDIRECT_URI,
+        actor: { actorType: "user", actorId: "board-user" },
+      }),
+    ).resolves.toMatchObject({ connectionId: connected.connectionId });
   });
 
   it("re-registers rather than reusing a client bound to a different callback", async () => {
@@ -2239,7 +3419,10 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture rebind" });
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture rebind",
+    });
     await service.startOAuth(company.id, connected.connectionId, {
       redirectUri: REDIRECT_URI,
       actor: { actorType: "user", actorId: "board-user" },
@@ -2279,10 +3462,14 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
     // The callback moved. Taskcore cannot re-register in the operator's console,
     // so it must stop and say so rather than silently minting a new client.
-    await expect(service.startOAuth(company.id, connected.connectionId, {
-      redirectUri: "https://other.fixture.test/api/tools/oauth/callback",
-      actor: { actorType: "user", actorId: "board-user" },
-    })).rejects.toMatchObject({ details: { code: "oauth_manual_client_rebinding_required" } });
+    await expect(
+      service.startOAuth(company.id, connected.connectionId, {
+        redirectUri: "https://other.fixture.test/api/tools/oauth/callback",
+        actor: { actorType: "user", actorId: "board-user" },
+      }),
+    ).rejects.toMatchObject({
+      details: { code: "oauth_manual_client_rebinding_required" },
+    });
   });
 
   /**
@@ -2297,50 +3484,83 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       ["data:", "data:text/html,<script>alert(document.domain)</script>"],
       ["file:", "file:///etc/passwd"],
       ["plaintext http", "http://evil.fixture.test/authorize"],
-      ["credentials disguising the origin", "https://mcp.fixture.test@evil.fixture.test/authorize"],
+      [
+        "credentials disguising the origin",
+        "https://mcp.fixture.test@evil.fixture.test/authorize",
+      ],
       ["a fragment", "https://auth.fixture.test/authorize#@evil.fixture.test"],
       ["a malformed url", "not-a-url"],
-    ])("refuses to connect when the server advertises %s", async (_label, authorizationEndpoint) => {
-      installMcpOAuthFixture({ auth: "oauth", authorizationEndpoint });
-      const company = await createCompany(db);
-      const service = toolAccessService(db);
+    ])(
+      "refuses to connect when the server advertises %s",
+      async (_label, authorizationEndpoint) => {
+        installMcpOAuthFixture({ auth: "oauth", authorizationEndpoint });
+        const company = await createCompany(db);
+        const service = toolAccessService(db);
 
-      await expect(service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture hostile authorize" }))
-        .rejects.toMatchObject({ status: 422, details: { code: "oauth_authorization_endpoint_rejected" } });
+        await expect(
+          service.connectGalleryApp(company.id, {
+            link: MCP_URL,
+            name: "Fixture hostile authorize",
+          }),
+        ).rejects.toMatchObject({
+          status: 422,
+          details: { code: "oauth_authorization_endpoint_rejected" },
+        });
 
-      // Nothing about the refused endpoint is persisted, so a later reconnect
-      // cannot pick it back up out of the connection config.
-      const [connection] = await db.select().from(toolConnections);
-      expect(JSON.stringify(connection?.config ?? {})).not.toContain(authorizationEndpoint);
-      await expect(db.select().from(toolOauthStates)).resolves.toHaveLength(0);
-    });
+        // Nothing about the refused endpoint is persisted, so a later reconnect
+        // cannot pick it back up out of the connection config.
+        const [connection] = await db.select().from(toolConnections);
+        expect(JSON.stringify(connection?.config ?? {})).not.toContain(
+          authorizationEndpoint,
+        );
+        await expect(db.select().from(toolOauthStates)).resolves.toHaveLength(
+          0,
+        );
+      },
+    );
 
     it("never navigates to a stored authorization endpoint that is unsafe", async () => {
       installMcpOAuthFixture({ auth: "oauth" });
       const company = await createCompany(db);
       const service = toolAccessService(db);
 
-      const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture poisoned config" });
+      const connected = await service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture poisoned config",
+      });
       // A row written before the gate existed (or by any other writer) is not
       // trusted just because it is in Taskcore's own database.
       const poisonStoredAuthorizationUrl = async () => {
-        const [row] = await db.select().from(toolConnections).where(eq(toolConnections.id, connected.connectionId));
+        const [row] = await db
+          .select()
+          .from(toolConnections)
+          .where(eq(toolConnections.id, connected.connectionId));
         const poisoned = {
           ...row!.config,
-          oauth: { ...(row!.config.oauth as Record<string, unknown>), authorizationUrl: "javascript:alert(1)" },
+          oauth: {
+            ...(row!.config.oauth as Record<string, unknown>),
+            authorizationUrl: "javascript:alert(1)",
+          },
         };
-        await db.update(toolConnections)
+        await db
+          .update(toolConnections)
           .set({ config: poisoned, transportConfig: poisoned })
           .where(eq(toolConnections.id, connected.connectionId));
       };
       await poisonStoredAuthorizationUrl();
 
       // The stored value is discarded and re-discovered rather than opened.
-      const start = await service.startOAuth(company.id, connected.connectionId, {
-        redirectUri: REDIRECT_URI,
-        actor: { actorType: "user", actorId: "board-user" },
-      });
-      expect(start.authorizationUrl.startsWith(`${ISSUER}/authorize?`)).toBe(true);
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        {
+          redirectUri: REDIRECT_URI,
+          actor: { actorType: "user", actorId: "board-user" },
+        },
+      );
+      expect(start.authorizationUrl.startsWith(`${ISSUER}/authorize?`)).toBe(
+        true,
+      );
 
       // And when re-discovery cannot supply a safe endpoint, sign-in fails
       // closed with the reason instead of falling back to the stored value.
@@ -2348,34 +3568,61 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       await poisonStoredAuthorizationUrl();
       vi.restoreAllMocks();
       vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({}, 404));
-      await expect(service.startOAuth(company.id, connected.connectionId, {
-        redirectUri: REDIRECT_URI,
-        actor: { actorType: "user", actorId: "board-user" },
-      })).rejects.toMatchObject({ status: 422, details: { code: "oauth_authorization_endpoint_rejected" } });
+      await expect(
+        service.startOAuth(company.id, connected.connectionId, {
+          redirectUri: REDIRECT_URI,
+          actor: { actorType: "user", actorId: "board-user" },
+        }),
+      ).rejects.toMatchObject({
+        status: 422,
+        details: { code: "oauth_authorization_endpoint_rejected" },
+      });
       await expect(db.select().from(toolOauthStates)).resolves.toHaveLength(0);
     });
 
     it("refuses an unsafe token endpoint even when the authorization endpoint is fine", async () => {
-      installMcpOAuthFixture({ auth: "oauth", tokenEndpoint: "http://evil.fixture.test/token" });
+      installMcpOAuthFixture({
+        auth: "oauth",
+        tokenEndpoint: "http://evil.fixture.test/token",
+      });
       const company = await createCompany(db);
       const service = toolAccessService(db);
 
-      await expect(service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture hostile token" }))
-        .rejects.toMatchObject({ status: 422, details: { code: "oauth_token_endpoint_rejected" } });
+      await expect(
+        service.connectGalleryApp(company.id, {
+          link: MCP_URL,
+          name: "Fixture hostile token",
+        }),
+      ).rejects.toMatchObject({
+        status: 422,
+        details: { code: "oauth_token_endpoint_rejected" },
+      });
     });
 
     it("allows loopback http only outside an authenticated public deployment", async () => {
-      installMcpOAuthFixture({ auth: "oauth", authorizationEndpoint: "http://127.0.0.1:8930/authorize" });
+      installMcpOAuthFixture({
+        auth: "oauth",
+        authorizationEndpoint: "http://127.0.0.1:8930/authorize",
+      });
       const company = await createCompany(db);
       // Default deployment = local development, where a loopback authorization
       // server is how someone tests their own MCP server.
       const service = toolAccessService(db);
-      const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture loopback authorize" });
-      const start = await service.startOAuth(company.id, connected.connectionId, {
-        redirectUri: REDIRECT_URI,
-        actor: { actorType: "user", actorId: "board-user" },
+      const connected = await service.connectGalleryApp(company.id, {
+        link: MCP_URL,
+        name: "Fixture loopback authorize",
       });
-      expect(new URL(start.authorizationUrl).origin).toBe("http://127.0.0.1:8930");
+      const start = await service.startOAuth(
+        company.id,
+        connected.connectionId,
+        {
+          redirectUri: REDIRECT_URI,
+          actor: { actorType: "user", actorId: "board-user" },
+        },
+      );
+      expect(new URL(start.authorizationUrl).origin).toBe(
+        "http://127.0.0.1:8930",
+      );
 
       // Same connection, same discovered endpoint, authenticated public
       // deployment: the local-development exception no longer applies.
@@ -2384,10 +3631,15 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
         deploymentMode: "authenticated",
         deploymentExposure: "public",
       });
-      await expect(publicService.startOAuth(company.id, connected.connectionId, {
-        redirectUri: REDIRECT_URI,
-        actor: { actorType: "user", actorId: "board-user" },
-      })).rejects.toMatchObject({ status: 422, details: { code: "oauth_authorization_endpoint_rejected" } });
+      await expect(
+        publicService.startOAuth(company.id, connected.connectionId, {
+          redirectUri: REDIRECT_URI,
+          actor: { actorType: "user", actorId: "board-user" },
+        }),
+      ).rejects.toMatchObject({
+        status: 422,
+        details: { code: "oauth_authorization_endpoint_rejected" },
+      });
     });
   });
 
@@ -2399,10 +3651,14 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
       deploymentExposure: "public",
     });
 
-    await expect(service.connectGalleryApp(company.id, {
-      link: "http://127.0.0.1:8848/mcp",
-      name: "Fixture loopback",
-    })).rejects.toMatchObject({ details: { code: "remote_http_private_endpoint" } });
+    await expect(
+      service.connectGalleryApp(company.id, {
+        link: "http://127.0.0.1:8848/mcp",
+        name: "Fixture loopback",
+      }),
+    ).rejects.toMatchObject({
+      details: { code: "remote_http_private_endpoint" },
+    });
     await expect(db.select().from(toolConnections)).resolves.toHaveLength(0);
   });
 
@@ -2412,13 +3668,20 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const other = await createCompany(db);
     const service = toolAccessService(db);
 
-    const connected = await service.connectGalleryApp(owner.id, { link: MCP_URL, name: "Fixture scoped" });
+    const connected = await service.connectGalleryApp(owner.id, {
+      link: MCP_URL,
+      name: "Fixture scoped",
+    });
 
-    await expect(service.getConnection(connected.connectionId, other.id)).rejects.toMatchObject({ status: 404 });
-    await expect(service.startOAuth(other.id, connected.connectionId, {
-      redirectUri: REDIRECT_URI,
-      actor: { actorType: "user", actorId: "board-user" },
-    })).rejects.toMatchObject({ status: 404 });
+    await expect(
+      service.getConnection(connected.connectionId, other.id),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      service.startOAuth(other.id, connected.connectionId, {
+        redirectUri: REDIRECT_URI,
+        actor: { actorType: "user", actorId: "board-user" },
+      }),
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   it("gives a generic connection the same review, access, install, gateway and revoke path", async () => {
@@ -2426,59 +3689,93 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     const company = await createCompany(db);
     const service = toolAccessService(db);
     const policy = toolAccessPolicyService(db);
-    const [agent, outsideAgent] = await db.insert(agents).values([
-      {
-        companyId: company.id,
-        name: `Generic MCP agent ${randomUUID()}`,
-        role: "engineer",
-        status: "active",
-        adapterType: "process",
-        adapterConfig: {},
-        runtimeConfig: {},
-      },
-      {
-        companyId: company.id,
-        name: `Outside MCP agent ${randomUUID()}`,
-        role: "engineer",
-        status: "active",
-        adapterType: "process",
-        adapterConfig: {},
-        runtimeConfig: {},
-      },
-    ]).returning();
+    const [agent, outsideAgent] = await db
+      .insert(agents)
+      .values([
+        {
+          companyId: company.id,
+          name: `Generic MCP agent ${randomUUID()}`,
+          role: "engineer",
+          status: "active",
+          adapterType: "process",
+          adapterConfig: {},
+          runtimeConfig: {},
+        },
+        {
+          companyId: company.id,
+          name: `Outside MCP agent ${randomUUID()}`,
+          role: "engineer",
+          status: "active",
+          adapterType: "process",
+          adapterConfig: {},
+          runtimeConfig: {},
+        },
+      ])
+      .returning();
 
-    const connected = await service.connectGalleryApp(company.id, { link: MCP_URL, name: "Fixture governance" });
-    const readEntry = connected.catalog.find((entry) => entry.toolName === "list_insights")!;
-    const writeEntry = connected.catalog.find((entry) => entry.toolName === "create_insight")!;
+    const connected = await service.connectGalleryApp(company.id, {
+      link: MCP_URL,
+      name: "Fixture governance",
+    });
+    const readEntry = connected.catalog.find(
+      (entry) => entry.toolName === "list_insights",
+    )!;
+    const writeEntry = connected.catalog.find(
+      (entry) => entry.toolName === "create_insight",
+    )!;
 
     // Action selection: enable the read, leave the state-changing action off.
-    const finished = await service.finishGalleryAppConnection(company.id, connected.connectionId, {
-      enabledCatalogEntryIds: [readEntry.id],
-      askFirstCatalogEntryIds: [],
-      access: { agentIds: [agent!.id] },
-    }, { actorType: "user", actorId: "board-user" });
+    const finished = await service.finishGalleryAppConnection(
+      company.id,
+      connected.connectionId,
+      {
+        enabledCatalogEntryIds: [readEntry.id],
+        askFirstCatalogEntryIds: [],
+        access: { agentIds: [agent!.id] },
+      },
+      { actorType: "user", actorId: "board-user" },
+    );
 
-    expect(finished.connection).toMatchObject({ status: "active", enabled: true });
-    expect(finished.profile).toMatchObject({ profileKey: `app:${connected.connectionId}`, defaultAction: "deny" });
+    expect(finished.connection).toMatchObject({
+      status: "active",
+      enabled: true,
+    });
+    expect(finished.profile).toMatchObject({
+      profileKey: `app:${connected.connectionId}`,
+      defaultAction: "deny",
+    });
     expect(finished.profileBindings).toEqual([
       expect.objectContaining({ targetType: "agent", targetId: agent!.id }),
     ]);
 
-    const decisionInput = (catalogEntryId: string, toolName: string, agentId = agent!.id) => ({
+    const decisionInput = (
+      catalogEntryId: string,
+      toolName: string,
+      agentId = agent!.id,
+    ) => ({
       companyId: company.id,
       actor: { actorType: "agent" as const, actorId: agentId, agentId },
-      request: { connectionId: connected.connectionId, catalogEntryId, toolName },
+      request: {
+        connectionId: connected.connectionId,
+        catalogEntryId,
+        toolName,
+      },
     });
 
     // Action selection is what the app profile encodes: the enabled read is
     // allowed for the chosen agent, and the state-changing action the operator
     // left off is denied by the profile's `deny` default.
-    await expect(policy.decide(decisionInput(readEntry.id, "list_insights")))
-      .resolves.toMatchObject({ allowed: true, reasonCode: "allow_profile" });
-    await expect(policy.decide(decisionInput(writeEntry.id, "create_insight")))
-      .resolves.toMatchObject({ allowed: false, reasonCode: "deny_default" });
-    await expect(policy.decide(decisionInput(readEntry.id, "list_insights", outsideAgent!.id)))
-      .resolves.toMatchObject({ allowed: false, reasonCode: "deny_default" });
+    await expect(
+      policy.decide(decisionInput(readEntry.id, "list_insights")),
+    ).resolves.toMatchObject({ allowed: true, reasonCode: "allow_profile" });
+    await expect(
+      policy.decide(decisionInput(writeEntry.id, "create_insight")),
+    ).resolves.toMatchObject({ allowed: false, reasonCode: "deny_default" });
+    await expect(
+      policy.decide(
+        decisionInput(readEntry.id, "list_insights", outsideAgent!.id),
+      ),
+    ).resolves.toMatchObject({ allowed: false, reasonCode: "deny_default" });
 
     // Simulate a profile written by the legacy install path. Saving installs
     // must self-heal this over-broad entry as well as avoiding it for new apps.
@@ -2492,32 +3789,50 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     });
 
     // Installation targets the chosen agent, same as a curated connection.
-    await service.putConnectionInstalls(connected.connectionId, {
-      installs: [{ targetType: "agent", targetId: agent!.id, enabled: true }],
-    }, { actorType: "user", actorId: "board-user" });
-    const installs = await db.select().from(toolConnectionInstalls)
+    await service.putConnectionInstalls(
+      connected.connectionId,
+      {
+        installs: [{ targetType: "agent", targetId: agent!.id, enabled: true }],
+      },
+      { actorType: "user", actorId: "board-user" },
+    );
+    const installs = await db
+      .select()
+      .from(toolConnectionInstalls)
       .where(eq(toolConnectionInstalls.connectionId, connected.connectionId));
-    expect(installs).toEqual([expect.objectContaining({ targetType: "agent", targetId: agent!.id })]);
-    const installedProfileEntries = await db.select().from(toolProfileEntries)
+    expect(installs).toEqual([
+      expect.objectContaining({ targetType: "agent", targetId: agent!.id }),
+    ]);
+    const installedProfileEntries = await db
+      .select()
+      .from(toolProfileEntries)
       .where(eq(toolProfileEntries.profileId, finished.profile.id));
-    expect(installedProfileEntries).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        selectorType: "connection",
-        connectionId: connected.connectionId,
-        effect: "include",
-      }),
-    ]));
-    await expect(policy.decide(decisionInput(readEntry.id, "list_insights")))
-      .resolves.toMatchObject({ allowed: true, reasonCode: "allow_profile" });
-    await expect(policy.decide(decisionInput(writeEntry.id, "create_insight")))
-      .resolves.toMatchObject({ allowed: false, reasonCode: "deny_default" });
+    expect(installedProfileEntries).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          selectorType: "connection",
+          connectionId: connected.connectionId,
+          effect: "include",
+        }),
+      ]),
+    );
+    await expect(
+      policy.decide(decisionInput(readEntry.id, "list_insights")),
+    ).resolves.toMatchObject({ allowed: true, reasonCode: "allow_profile" });
+    await expect(
+      policy.decide(decisionInput(writeEntry.id, "create_insight")),
+    ).resolves.toMatchObject({ allowed: false, reasonCode: "deny_default" });
 
     // Revoke: archiving the connection removes access but keeps the trail.
     await service.archiveConnection(connected.connectionId, company.id);
-    const afterRevoke = await policy.decide(decisionInput(readEntry.id, "list_insights"));
+    const afterRevoke = await policy.decide(
+      decisionInput(readEntry.id, "list_insights"),
+    );
     expect(afterRevoke.allowed).toBe(false);
 
-    const auditEvents = await db.select().from(toolAccessAuditEvents)
+    const auditEvents = await db
+      .select()
+      .from(toolAccessAuditEvents)
       .where(eq(toolAccessAuditEvents.companyId, company.id));
     expect(auditEvents.length).toBeGreaterThan(0);
   });
@@ -2541,11 +3856,14 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
     expect(preview.drafts).toHaveLength(1);
     expect(preview.drafts[0]).toMatchObject({ transport: "mcp_remote" });
-    expect(preview.drafts[0]!.config).toMatchObject({ url: "https://mcp.example.com/mcp" });
+    expect(preview.drafts[0]!.config).toMatchObject({
+      url: "https://mcp.example.com/mcp",
+    });
     // The placeholder header name comes through as a field to ask the operator
     // for, which is exactly what the prompt promises will happen.
-    expect(preview.drafts[0]!.credentialFields.map((field) => field.configPath))
-      .toContain("headers.Authorization");
+    expect(
+      preview.drafts[0]!.credentialFields.map((field) => field.configPath),
+    ).toContain("headers.Authorization");
   });
 
   it("serves a client metadata document with no company or secret data", async () => {
@@ -2553,7 +3871,9 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     vi.stubEnv("TASKCORE_PUBLIC_URL", PUBLIC_BASE_URL);
     const app = createRouteApp(db);
 
-    const response = await request(app).get("/api/tools/oauth/client-metadata").expect(200);
+    const response = await request(app)
+      .get("/api/tools/oauth/client-metadata")
+      .expect(200);
 
     expect(response.body).toMatchObject({
       client_id: CLIENT_METADATA_DOCUMENT_URL,
@@ -2566,10 +3886,15 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
   it("uses the configured auth origin for self-hosted OAuth callbacks", async () => {
     vi.stubEnv("TASKCORE_PUBLIC_URL", "https://public.taskcore.example");
-    vi.stubEnv("TASKCORE_AUTH_PUBLIC_BASE_URL", "https://auth.taskcore.example");
+    vi.stubEnv(
+      "TASKCORE_AUTH_PUBLIC_BASE_URL",
+      "https://auth.taskcore.example",
+    );
     const app = createRouteApp(db);
 
-    const response = await request(app).get("/api/tools/oauth/client-metadata").expect(200);
+    const response = await request(app)
+      .get("/api/tools/oauth/client-metadata")
+      .expect(200);
 
     expect(response.body.redirect_uris).toEqual([
       "https://auth.taskcore.example/api/tools/oauth/callback",
@@ -2581,10 +3906,15 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
     vi.stubEnv("TASKCORE_AUTH_PUBLIC_BASE_URL", "");
     vi.stubEnv("BETTER_AUTH_URL", "");
     vi.stubEnv("BETTER_AUTH_BASE_URL", "");
-    vi.stubEnv("TASKCORE_MANAGED_RUNTIME_PUBLIC_URL", "https://worktree.tail29c1aa.ts.net");
+    vi.stubEnv(
+      "TASKCORE_MANAGED_RUNTIME_PUBLIC_URL",
+      "https://worktree.tail29c1aa.ts.net",
+    );
     const app = createRouteApp(db);
 
-    const response = await request(app).get("/api/tools/oauth/client-metadata").expect(200);
+    const response = await request(app)
+      .get("/api/tools/oauth/client-metadata")
+      .expect(200);
 
     expect(response.body.redirect_uris).toEqual([
       "https://worktree.tail29c1aa.ts.net/api/tools/oauth/callback",
@@ -2593,10 +3923,15 @@ describeEmbeddedPostgres("generic remote MCP connections", () => {
 
   it("keeps an explicit callback origin ahead of managed runtime inference", async () => {
     vi.stubEnv("TASKCORE_PUBLIC_URL", PUBLIC_BASE_URL);
-    vi.stubEnv("TASKCORE_MANAGED_RUNTIME_PUBLIC_URL", "https://inferred.tail29c1aa.ts.net");
+    vi.stubEnv(
+      "TASKCORE_MANAGED_RUNTIME_PUBLIC_URL",
+      "https://inferred.tail29c1aa.ts.net",
+    );
     const app = createRouteApp(db);
 
-    const response = await request(app).get("/api/tools/oauth/client-metadata").expect(200);
+    const response = await request(app)
+      .get("/api/tools/oauth/client-metadata")
+      .expect(200);
 
     expect(response.body.redirect_uris).toEqual([REDIRECT_URI]);
   });

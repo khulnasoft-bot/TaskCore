@@ -271,7 +271,9 @@ describe("resolveManagedSandboxEnvironmentId", () => {
         metadata: { managedByTaskcore: true },
       }),
     ];
-    expect(resolveManagedSandboxEnvironmentId(environments)).toBe("sandbox-active");
+    expect(resolveManagedSandboxEnvironmentId(environments)).toBe(
+      "sandbox-active",
+    );
   });
 });
 
@@ -290,7 +292,11 @@ describe("resolveLocalDefaultEnvironmentId", () => {
 
   it("ignores a local environment that is not the instance default", () => {
     const environments = [
-      makeEnvironment({ id: "local-1", driver: "local", metadata: { defaultForInstance: false } }),
+      makeEnvironment({
+        id: "local-1",
+        driver: "local",
+        metadata: { defaultForInstance: false },
+      }),
       makeEnvironment({ id: "local-2", driver: "local", metadata: null }),
     ];
     expect(resolveLocalDefaultEnvironmentId(environments)).toBeNull();

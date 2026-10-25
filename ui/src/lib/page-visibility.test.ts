@@ -44,7 +44,10 @@ describe("getPageVisibility", () => {
 
   it("reconciles the snapshot before a hidden tab's first subscription", () => {
     setVisibility("hidden");
-    expect(getPageVisibilitySnapshot()).toEqual({ visible: false, focused: false });
+    expect(getPageVisibilitySnapshot()).toEqual({
+      visible: false,
+      focused: false,
+    });
 
     setVisibility("visible");
     expect(getPageVisibilitySnapshot().visible).toBe(true);
@@ -53,9 +56,15 @@ describe("getPageVisibility", () => {
 
 describe("getVisibilityHeaderValue", () => {
   it("maps states to non-authoritative header hints", () => {
-    expect(getVisibilityHeaderValue({ visible: false, focused: false })).toBe("hidden");
-    expect(getVisibilityHeaderValue({ visible: true, focused: false })).toBe("visible");
-    expect(getVisibilityHeaderValue({ visible: true, focused: true })).toBe("focused");
+    expect(getVisibilityHeaderValue({ visible: false, focused: false })).toBe(
+      "hidden",
+    );
+    expect(getVisibilityHeaderValue({ visible: true, focused: false })).toBe(
+      "visible",
+    );
+    expect(getVisibilityHeaderValue({ visible: true, focused: true })).toBe(
+      "focused",
+    );
   });
 });
 

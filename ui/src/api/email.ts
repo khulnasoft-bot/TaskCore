@@ -12,10 +12,20 @@ import type {
   EmailAddressCheckResult,
 } from "@taskcore/shared";
 export const emailApi = {
-  credentials: (companyId: string) => api.get<EmailCredentialOption[]>(`/companies/${companyId}/email/connections`),
-  checkAddress: (companyId: string, connectionId: string, input: EmailAddressCheckInput, signal?: AbortSignal) =>
+  credentials: (companyId: string) =>
+    api.get<EmailCredentialOption[]>(
+      `/companies/${companyId}/email/connections`,
+    ),
+  checkAddress: (
+    companyId: string,
+    connectionId: string,
+    input: EmailAddressCheckInput,
+    signal?: AbortSignal,
+  ) =>
     api.post<EmailAddressCheckResult>(
-      `/companies/${companyId}/email/connections/${connectionId}/check-address`, input, { signal },
+      `/companies/${companyId}/email/connections/${connectionId}/check-address`,
+      input,
+      { signal },
     ),
   connect: (companyId: string, input: EmailConnectionInput) =>
     api.post<ToolConnection>(

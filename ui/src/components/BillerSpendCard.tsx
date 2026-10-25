@@ -1,8 +1,19 @@
 import { useMemo } from "react";
 import type { CostByBiller, CostByProviderModel } from "@taskcore/shared";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { QuotaBar } from "./QuotaBar";
-import { billingTypeDisplayName, formatCents, formatTokens, providerDisplayName } from "@/lib/utils";
+import {
+  billingTypeDisplayName,
+  formatCents,
+  formatTokens,
+  providerDisplayName,
+} from "@/lib/utils";
 
 interface BillerSpendCardProps {
   row: CostByBiller;
@@ -23,7 +34,15 @@ export function BillerSpendCard({
   providerRows,
 }: BillerSpendCardProps) {
   const providerBreakdown = useMemo(() => {
-    const map = new Map<string, { provider: string; costCents: number; inputTokens: number; outputTokens: number }>();
+    const map = new Map<
+      string,
+      {
+        provider: string;
+        costCents: number;
+        inputTokens: number;
+        outputTokens: number;
+      }
+    >();
     for (const entry of providerRows) {
       const current = map.get(entry.provider) ?? {
         provider: entry.provider,
@@ -42,7 +61,10 @@ export function BillerSpendCard({
   const billingTypeBreakdown = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of providerRows) {
-      map.set(entry.billingType, (map.get(entry.billingType) ?? 0) + entry.costCents);
+      map.set(
+        entry.billingType,
+        (map.get(entry.billingType) ?? 0) + entry.costCents,
+      );
     }
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [providerRows]);
@@ -62,9 +84,15 @@ export function BillerSpendCard({
               {providerDisplayName(row.biller)}
             </CardTitle>
             <CardDescription className="text-xs mt-0.5">
-              <span className="font-mono">{formatTokens(row.inputTokens + row.cachedInputTokens)}</span> in
+              <span className="font-mono">
+                {formatTokens(row.inputTokens + row.cachedInputTokens)}
+              </span>{" "}
+              in
               {" · "}
-              <span className="font-mono">{formatTokens(row.outputTokens)}</span> out
+              <span className="font-mono">
+                {formatTokens(row.outputTokens)}
+              </span>{" "}
+              out
               {" · "}
               {row.providerCount} provider{row.providerCount === 1 ? "" : "s"}
               {" · "}
@@ -88,7 +116,9 @@ export function BillerSpendCard({
         )}
 
         <div className="text-xs text-muted-foreground">
-          {row.apiRunCount > 0 ? `${row.apiRunCount} metered run${row.apiRunCount === 1 ? "" : "s"}` : "0 metered runs"}
+          {row.apiRunCount > 0
+            ? `${row.apiRunCount} metered run${row.apiRunCount === 1 ? "" : "s"}`
+            : "0 metered runs"}
           {" · "}
           {row.subscriptionRunCount > 0
             ? `${row.subscriptionRunCount} subscription run${row.subscriptionRunCount === 1 ? "" : "s"}`
@@ -106,9 +136,16 @@ export function BillerSpendCard({
               </p>
               <div className="space-y-1.5">
                 {billingTypeBreakdown.map(([billingType, costCents]) => (
-                  <div key={billingType} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-muted-foreground">{billingTypeDisplayName(billingType as any)}</span>
-                    <span className="font-medium tabular-nums">{formatCents(costCents)}</span>
+                  <div
+                    key={billingType}
+                    className="flex items-center justify-between gap-2 text-xs"
+                  >
+                    <span className="text-muted-foreground">
+                      {billingTypeDisplayName(billingType as any)}
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {formatCents(costCents)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -125,12 +162,20 @@ export function BillerSpendCard({
               </p>
               <div className="space-y-1.5">
                 {providerBreakdown.map((entry) => (
-                  <div key={entry.provider} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-muted-foreground">{providerDisplayName(entry.provider)}</span>
+                  <div
+                    key={entry.provider}
+                    className="flex items-center justify-between gap-2 text-xs"
+                  >
+                    <span className="text-muted-foreground">
+                      {providerDisplayName(entry.provider)}
+                    </span>
                     <div className="text-right tabular-nums">
-                      <div className="font-medium">{formatCents(entry.costCents)}</div>
+                      <div className="font-medium">
+                        {formatCents(entry.costCents)}
+                      </div>
                       <div className="text-muted-foreground">
-                        {formatTokens(entry.inputTokens + entry.outputTokens)} tok
+                        {formatTokens(entry.inputTokens + entry.outputTokens)}{" "}
+                        tok
                       </div>
                     </div>
                   </div>

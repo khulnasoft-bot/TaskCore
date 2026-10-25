@@ -47,11 +47,17 @@ function asStringList(value: unknown): string[] {
   });
 }
 
-function readCarryOverPolicy(record: Record<string, unknown>, inheritFields: string[]): BreakdownCarryOverPolicy {
+function readCarryOverPolicy(
+  record: Record<string, unknown>,
+  inheritFields: string[],
+): BreakdownCarryOverPolicy {
   const raw = record.carryOverPolicy;
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
     const policy = raw as Record<string, unknown>;
-    const mode = policy.mode === "all_except" || policy.mode === "only" ? policy.mode : "all_except";
+    const mode =
+      policy.mode === "all_except" || policy.mode === "only"
+        ? policy.mode
+        : "all_except";
     return {
       version: 1,
       mode,
@@ -69,13 +75,18 @@ function readCarryOverPolicy(record: Record<string, unknown>, inheritFields: str
 
 export function isCarryOverIdentityFieldKey(key: string) {
   const normalized = key.replace(/[^A-Za-z0-9]/g, "").toLowerCase();
-  return normalized === "name" ||
+  return (
+    normalized === "name" ||
     normalized === "title" ||
     normalized === "casename" ||
-    normalized === "casetitle";
+    normalized === "casetitle"
+  );
 }
 
-export function isCarryOverFieldEnabled(policy: BreakdownCarryOverPolicy | null | undefined, key: string) {
+export function isCarryOverFieldEnabled(
+  policy: BreakdownCarryOverPolicy | null | undefined,
+  key: string,
+) {
   if (!policy) return false;
   if (isCarryOverIdentityFieldKey(key)) return false;
   if (policy.mode === "only") return policy.includeFields.includes(key);
@@ -95,7 +106,12 @@ export function readStageBreakdown(
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const record = raw as Record<string, unknown>;
   const inheritFields = Array.isArray(record.inheritFields)
-    ? record.inheritFields.filter((field): field is string => typeof field === "string" && field.trim().length > 0).map((field) => field.trim())
+    ? record.inheritFields
+        .filter(
+          (field): field is string =>
+            typeof field === "string" && field.trim().length > 0,
+        )
+        .map((field) => field.trim())
     : [];
   const carryOverPolicy = readCarryOverPolicy(record, inheritFields);
   return {
@@ -110,7 +126,9 @@ export function readStageBreakdown(
   };
 }
 
-export function hasStageBreakdown(stage: PipelineStage | null | undefined): boolean {
+export function hasStageBreakdown(
+  stage: PipelineStage | null | undefined,
+): boolean {
   return readStageBreakdown(stage) !== null;
 }
 
@@ -146,7 +164,11 @@ export function breakdownSummarySentence(
   config: StageBreakdownConfig,
   names: BreakdownCopyNames,
 ): string | null {
-  if (!config.targetPipelineId || !config.targetStageKey || !names.targetPipelineName) {
+  if (
+    !config.targetPipelineId ||
+    !config.targetStageKey ||
+    !names.targetPipelineName
+  ) {
     return null;
   }
   const noun = config.pieceNoun;
@@ -180,14 +202,22 @@ export function breakdownMechanicsBullets(
     `Links every ${noun} to this case so progress rolls up here.`,
   ];
   if (names.inheritedFieldLabels.length > 0) {
-    bullets.push(`Carries over ${joinWithAnd(names.inheritedFieldLabels)} from this case onto each ${noun}.`);
+    bullets.push(
+      `Carries over ${joinWithAnd(names.inheritedFieldLabels)} from this case onto each ${noun}.`,
+    );
   }
   if (names.advanceToName) {
-    bullets.push(`Moves this case to ${names.advanceToName} as soon as the pieces are created.`);
+    bullets.push(
+      `Moves this case to ${names.advanceToName} as soon as the pieces are created.`,
+    );
   }
   if (config.waitForPieces && names.whenFinishedName) {
-    bullets.push(`Waits until every ${noun} is finished, then moves this case to ${names.whenFinishedName}.`);
-    bullets.push(`If the agent returns an empty list, this case skips ahead to ${names.whenFinishedName}.`);
+    bullets.push(
+      `Waits until every ${noun} is finished, then moves this case to ${names.whenFinishedName}.`,
+    );
+    bullets.push(
+      `If the agent returns an empty list, this case skips ahead to ${names.whenFinishedName}.`,
+    );
   }
   return bullets;
 }

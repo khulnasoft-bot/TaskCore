@@ -7,7 +7,12 @@ import type {
   ToolConnection,
   ToolConnectionCredentialPolicy,
 } from "@taskcore/shared";
-import { connectionCredentialConfigPath, credentialConfigPath, getAvailableConnectionMethod, humanizeConnectionDisplayName } from "@taskcore/shared";
+import {
+  connectionCredentialConfigPath,
+  credentialConfigPath,
+  getAvailableConnectionMethod,
+  humanizeConnectionDisplayName,
+} from "@taskcore/shared";
 import { toolsApi } from "@/api/tools";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +25,10 @@ import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { useToast } from "@/context/ToastContext";
 import { redactUrlSecrets } from "@/lib/redact-url-secrets";
 import { navigateTopLevel } from "@/lib/browserNavigation";
-import { prepareOAuthNavigation, savePendingCloudHandoff } from "@/lib/oauthHandoff";
+import {
+  prepareOAuthNavigation,
+  savePendingCloudHandoff,
+} from "@/lib/oauthHandoff";
 import { cn } from "@/lib/utils";
 import { Link } from "@/lib/router";
 import type { AppDetailSectionProps } from "./types";
@@ -86,13 +94,18 @@ export function AdvancedPanel({
   );
 }
 
-function connectionMethodUnavailable(connection: ToolConnection, galleryEntry: AppDefinition | null): boolean {
+function connectionMethodUnavailable(
+  connection: ToolConnection,
+  galleryEntry: AppDefinition | null,
+): boolean {
   const methodKey = connection.config?.connectionMethodKey;
-  return typeof methodKey === "string"
-    && methodKey.length > 0
-    && !!galleryEntry
-    && Array.isArray(galleryEntry.methods)
-    && !getAvailableConnectionMethod(galleryEntry, methodKey);
+  return (
+    typeof methodKey === "string" &&
+    methodKey.length > 0 &&
+    !!galleryEntry &&
+    Array.isArray(galleryEntry.methods) &&
+    !getAvailableConnectionMethod(galleryEntry, methodKey)
+  );
 }
 
 function KeySection({
@@ -117,7 +130,9 @@ function KeySection({
           <div>
             <h2 className="text-sm font-medium text-foreground">Reconnect</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {canReplace ? "Replace the stored credential." : unavailableMessage}
+              {canReplace
+                ? "Replace the stored credential."
+                : unavailableMessage}
             </p>
           </div>
         </div>
@@ -164,9 +179,10 @@ export function ReconnectCard({
     // Reconnect is not a new identity choice. Personal-only connections must
     // put the replacement token back on the signed-in user's existing grant;
     // shared and legacy fallback connections keep using the organization slot.
-    mutationFn: () => connection.credentialPolicy === "per_user"
-      ? toolsApi.startOAuth(connection.id, { asCurrentUser: true })
-      : toolsApi.startOAuth(connection.id),
+    mutationFn: () =>
+      connection.credentialPolicy === "per_user"
+        ? toolsApi.startOAuth(connection.id, { asCurrentUser: true })
+        : toolsApi.startOAuth(connection.id),
     onSuccess: async (start) => {
       try {
         const target = await prepareOAuthNavigation(start);
@@ -199,47 +215,68 @@ export function ReconnectCard({
       });
       onReconnected();
     },
-    onError: (error) => pushToast({
-      title: "Credential still needs attention",
-      body: error instanceof Error ? error.message : "Review the connector in Vercel Connect and try again.",
-      tone: "error",
-    }),
+    onError: (error) =>
+      pushToast({
+        title: "Credential still needs attention",
+        body:
+          error instanceof Error
+            ? error.message
+            : "Review the connector in Vercel Connect and try again.",
+        tone: "error",
+      }),
   });
   const oauth = connection.authKind === "oauth";
   const managedByVercel = connection.credentialSource === "vercel_connect";
-  const methodUnavailable = connectionMethodUnavailable(connection, galleryEntry);
+  const methodUnavailable = connectionMethodUnavailable(
+    connection,
+    galleryEntry,
+  );
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3">
       <div className="min-w-0">
         <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-          {methodUnavailable ? "Connection no longer supported" : oauth ? "Reconnect required" : "This app needs reconnecting"}
+          {methodUnavailable
+            ? "Connection no longer supported"
+            : oauth
+              ? "Reconnect required"
+              : "This app needs reconnecting"}
         </h2>
         <p className="mt-0.5 text-sm text-amber-800 dark:text-amber-200">
           {methodUnavailable
             ? "Add a supported connection from Connectors, then remove this connection."
-            : connection.healthMessage?.trim() || (oauth
-            ? "Authorization expired or was revoked. Sign in again to restore access."
-            : "The key stopped working. Paste a new one to get it back online.")}
+            : connection.healthMessage?.trim() ||
+              (oauth
+                ? "Authorization expired or was revoked. Sign in again to restore access."
+                : "The key stopped working. Paste a new one to get it back online.")}
         </p>
       </div>
       <div className="shrink-0">
         {!canReconnect ? (
           <p className="text-sm text-amber-800 dark:text-amber-200">
-            {reconnectUnavailableMessage ?? "You don't have permission to reconnect this identity."}
+            {reconnectUnavailableMessage ??
+              "You don't have permission to reconnect this identity."}
           </p>
         ) : methodUnavailable ? (
           <Button size="sm" variant="outline" asChild>
-            <Link to={`/apps/connect?source=${encodeURIComponent(galleryEntry!.slug)}`}>
+            <Link
+              to={`/apps/connect?source=${encodeURIComponent(galleryEntry!.slug)}`}
+            >
               Add supported connection
             </Link>
           </Button>
         ) : onReconnect ? (
-          <Button size="sm" variant="outline" onClick={onReconnect}>Reconnect</Button>
+          <Button size="sm" variant="outline" onClick={onReconnect}>
+            Reconnect
+          </Button>
         ) : managedByVercel && !oauth ? (
           <div className="flex items-center gap-2">
             <Button type="button" size="sm" variant="outline" asChild>
-              <a href="https://vercel.com/connect" target="_blank" rel="noreferrer">
+              <a
+                href="https://vercel.com/connect"
+                target="_blank"
+                rel="noreferrer"
+              >
                 Manage in Vercel <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" />
               </a>
             </Button>
@@ -249,7 +286,9 @@ export function ReconnectCard({
               disabled={verifyVercel.isPending}
               onClick={() => verifyVercel.mutate()}
             >
-              {verifyVercel.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              {verifyVercel.isPending && (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              )}
               Check again
             </Button>
           </div>
@@ -260,11 +299,17 @@ export function ReconnectCard({
             disabled={reconnectOAuth.isPending}
             onClick={() => reconnectOAuth.mutate()}
           >
-            {reconnectOAuth.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+            {reconnectOAuth.isPending && (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            )}
             {reconnectOAuth.isPending ? "Opening sign-in…" : "Reconnect"}
           </Button>
         ) : (
-          <ReconnectForm connection={connection} galleryEntry={galleryEntry} onReconnected={onReconnected} />
+          <ReconnectForm
+            connection={connection}
+            galleryEntry={galleryEntry}
+            onReconnected={onReconnected}
+          />
         )}
       </div>
     </div>
@@ -283,25 +328,37 @@ function ReconnectForm({
   onReconnected: () => void;
 }) {
   const { pushToast } = useToast();
-  const methodKey = typeof connection.config?.connectionMethodKey === "string"
-    ? connection.config.connectionMethodKey
-    : null;
-  const method = galleryEntry && Array.isArray(galleryEntry.methods)
-    ? getAvailableConnectionMethod(galleryEntry, methodKey)
-    : null;
+  const methodKey =
+    typeof connection.config?.connectionMethodKey === "string"
+      ? connection.config.connectionMethodKey
+      : null;
+  const method =
+    galleryEntry && Array.isArray(galleryEntry.methods)
+      ? getAvailableConnectionMethod(galleryEntry, methodKey)
+      : null;
   const galleryFields = (method?.credentialFields ?? []).map((field) => ({
     ...field,
     configPath: credentialConfigPath(field, method),
     helpUrl: method?.consoleLinks?.keys ?? method?.consoleLinks?.docs ?? "",
   }));
-  const fields = galleryFields.length > 0 ? galleryFields : (connection.credentialRefs ?? [])
-    .filter((ref) => ref.placement === "header" || ref.placement === "url")
-    .map((ref) => ({
-      configPath: connectionCredentialConfigPath(ref),
-      label: ref.placement === "url" ? "MCP server URL" : ref.prefix === "Bearer " ? "App key" : ref.key ?? ref.name,
-      helpUrl: "",
-      required: true,
-    }));
+  const fields =
+    galleryFields.length > 0
+      ? galleryFields
+      : (connection.credentialRefs ?? [])
+          .filter(
+            (ref) => ref.placement === "header" || ref.placement === "url",
+          )
+          .map((ref) => ({
+            configPath: connectionCredentialConfigPath(ref),
+            label:
+              ref.placement === "url"
+                ? "MCP server URL"
+                : ref.prefix === "Bearer "
+                  ? "App key"
+                  : (ref.key ?? ref.name),
+            helpUrl: "",
+            required: true,
+          }));
   const [values, setValues] = useState<Record<string, string>>({});
   const [single, setSingle] = useState("");
   const usesFields = fields.length > 0;
@@ -315,7 +372,9 @@ function ReconnectForm({
     },
     onSuccess: (result) => {
       const healthy =
-        result.connection.healthStatus === "ok" || result.connection.healthStatus === "healthy" || result.connection.healthStatus === "unknown";
+        result.connection.healthStatus === "ok" ||
+        result.connection.healthStatus === "healthy" ||
+        result.connection.healthStatus === "unknown";
       if (healthy) {
         pushToast({
           title: "Reconnected",
@@ -326,7 +385,9 @@ function ReconnectForm({
       } else {
         pushToast({
           title: "Still not working",
-          body: result.connection.healthMessage?.trim() || "That key didn't check out. Try another.",
+          body:
+            result.connection.healthMessage?.trim() ||
+            "That key didn't check out. Try another.",
           tone: "error",
         });
       }
@@ -334,13 +395,20 @@ function ReconnectForm({
     onError: (error) =>
       pushToast({
         title: "That key didn't work",
-        body: error instanceof Error ? error.message : "Check the key and try again.",
+        body:
+          error instanceof Error
+            ? error.message
+            : "Check the key and try again.",
         tone: "error",
       }),
   });
 
   const filled = usesFields
-    ? fields.every((f) => f.required === false || (values[f.configPath]?.trim().length ?? 0) > 0)
+    ? fields.every(
+        (f) =>
+          f.required === false ||
+          (values[f.configPath]?.trim().length ?? 0) > 0,
+      )
     : single.trim().length > 0;
 
   if (connection.credentialSource === "vercel_connect") {
@@ -356,13 +424,17 @@ function ReconnectForm({
       {usesFields ? (
         fields.map((field) => (
           <div key={field.configPath}>
-            <label className="text-xs font-medium text-foreground">{field.label}</label>
+            <label className="text-xs font-medium text-foreground">
+              {field.label}
+            </label>
             <Input
               type="password"
               aria-label={field.label}
               autoComplete="off"
               value={values[field.configPath] ?? ""}
-              onChange={(e) => setValues({ ...values, [field.configPath]: e.target.value })}
+              onChange={(e) =>
+                setValues({ ...values, [field.configPath]: e.target.value })
+              }
               placeholder="****************"
               className="mt-1 h-10 font-mono"
             />
@@ -390,12 +462,23 @@ function ReconnectForm({
         />
       )}
       <div className="flex items-center gap-2">
-        <Button size="sm" disabled={!filled || reconnect.isPending} onClick={() => reconnect.mutate()}>
-          {reconnect.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+        <Button
+          size="sm"
+          disabled={!filled || reconnect.isPending}
+          onClick={() => reconnect.mutate()}
+        >
+          {reconnect.isPending && (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          )}
           {reconnect.isPending ? "Checking..." : "Check & reconnect"}
         </Button>
         {onCancel && (
-          <Button size="sm" variant="ghost" onClick={onCancel} disabled={reconnect.isPending}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onCancel}
+            disabled={reconnect.isPending}
+          >
             Cancel
           </Button>
         )}
@@ -410,19 +493,31 @@ function TechnicalDetails({ connection }: { connection: ToolConnection }) {
     <Collapsible open={open} onOpenChange={setOpen} asChild>
       <section>
         <CollapsibleTrigger asChild>
-          <button type="button" className="flex w-full items-center gap-3 py-1 text-left">
-            <span className="min-w-0 flex-1 text-sm font-medium text-foreground">Connection details</span>
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 py-1 text-left"
+          >
+            <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
+              Connection details
+            </span>
             <ChevronRight
-              className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")}
+              className={cn(
+                "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                open && "rotate-90",
+              )}
             />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <dl className="mt-4 grid gap-2 pb-2 text-xs sm:grid-cols-(--gtc-59)">
             <dt className="text-muted-foreground">Address</dt>
-            <dd className="break-all font-mono text-foreground">{connectionAddress(connection)}</dd>
+            <dd className="break-all font-mono text-foreground">
+              {connectionAddress(connection)}
+            </dd>
             <dt className="text-muted-foreground">Type</dt>
-            <dd className="text-foreground">{connectionTransportLabel(connection.transport)}</dd>
+            <dd className="text-foreground">
+              {connectionTransportLabel(connection.transport)}
+            </dd>
           </dl>
         </CollapsibleContent>
       </section>
@@ -469,11 +564,15 @@ export function DangerZone({
 }) {
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [revokeTarget, setRevokeTarget] = useState<ConnectionGrant | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<ConnectionGrant | null>(
+    null,
+  );
   const paused = connection
     ? connection.enabled === false || connection.status === "disabled"
     : false;
-  const methodUnavailable = connection ? connectionMethodUnavailable(connection, galleryEntry) : false;
+  const methodUnavailable = connection
+    ? connectionMethodUnavailable(connection, galleryEntry)
+    : false;
 
   return (
     <Collapsible
@@ -490,9 +589,14 @@ export function DangerZone({
             type="button"
             className="flex w-full items-center gap-3 py-1 text-left"
           >
-            <span className="min-w-0 flex-1 text-sm font-medium text-destructive">Danger zone</span>
+            <span className="min-w-0 flex-1 text-sm font-medium text-destructive">
+              Danger zone
+            </span>
             <ChevronRight
-              className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")}
+              className={cn(
+                "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                open && "rotate-90",
+              )}
             />
           </button>
         </CollapsibleTrigger>
@@ -501,7 +605,9 @@ export function DangerZone({
           <div className="mt-3 divide-y divide-border border-t border-border">
             {connection && onToggleConnection ? (
               <div className="flex items-center justify-between gap-4 py-4">
-                <h2 className="text-sm font-medium text-foreground">Pause connection</h2>
+                <h2 className="text-sm font-medium text-foreground">
+                  Pause connection
+                </h2>
                 <ToggleSwitch
                   aria-label="Pause connection"
                   checked={paused}
@@ -512,7 +618,9 @@ export function DangerZone({
               </div>
             ) : null}
 
-            {connection && !methodUnavailable && connection.authKind !== "oauth" ? (
+            {connection &&
+            !methodUnavailable &&
+            connection.authKind !== "oauth" ? (
               <div className="py-4">
                 <KeySection
                   connection={connection}
@@ -524,10 +632,14 @@ export function DangerZone({
               </div>
             ) : null}
 
-            {connection?.authKind === "oauth" && !methodUnavailable && (onReconnectIdentity || !canReplaceCredential) ? (
+            {connection?.authKind === "oauth" &&
+            !methodUnavailable &&
+            (onReconnectIdentity || !canReplaceCredential) ? (
               <div className="flex flex-wrap items-center justify-between gap-3 py-4">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Reconnect</p>
+                  <p className="text-sm font-medium text-foreground">
+                    Reconnect
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {canReplaceCredential
                       ? `Sign in to ${identityProviderName} again.`
@@ -541,52 +653,74 @@ export function DangerZone({
                     disabled={identityActionPending}
                     onClick={onReconnectIdentity}
                   >
-                    {identityActionPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                    {identityActionPending ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : null}
                     Reconnect
                   </Button>
                 ) : null}
               </div>
             ) : null}
 
-            {identityGrant?.capabilities?.canRevoke
-              && identityGrant.status !== "revoked"
-              && onRevokeIdentity ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 py-4">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Revoke identity</p>
-                    <p className="text-xs text-muted-foreground">
-                      Disconnect the identity currently used by this app.
-                    </p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setRevokeTarget(identityGrant)}
-                  >
-                    Revoke
-                  </Button>
+            {identityGrant?.capabilities?.canRevoke &&
+            identityGrant.status !== "revoked" &&
+            onRevokeIdentity ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 py-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Revoke identity
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Disconnect the identity currently used by this app.
+                  </p>
                 </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setRevokeTarget(identityGrant)}
+                >
+                  Revoke
+                </Button>
+              </div>
             ) : null}
 
             <div className="flex flex-wrap items-center justify-between gap-3 py-4">
               <div>
-                <p className="text-sm font-medium text-foreground">Remove this app</p>
+                <p className="text-sm font-medium text-foreground">
+                  Remove this app
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {`Deletes credentials for ${appName} and removes agent access. Reconnecting requires a new sign-in or key.`}
                 </p>
               </div>
               {confirming ? (
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setConfirming(false)} disabled={removing}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirming(false)}
+                    disabled={removing}
+                  >
                     Cancel
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={onRemove} disabled={removing}>
-                    {removing && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={onRemove}
+                    disabled={removing}
+                  >
+                    {removing && (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    )}
                     Yes, remove it
                   </Button>
                 </div>
               ) : (
-                <Button variant="destructive" size="sm" onClick={() => setConfirming(true)}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setConfirming(true)}
+                >
                   Remove app
                 </Button>
               )}
@@ -600,7 +734,10 @@ export function DangerZone({
             providerName={identityProviderName}
             pending={identityActionPending}
             credentialPolicy={credentialPolicy}
-            isOwnIdentity={revokeTarget.kind === "user" && revokeTarget.subjectUserId === identityCurrentUserId}
+            isOwnIdentity={
+              revokeTarget.kind === "user" &&
+              revokeTarget.subjectUserId === identityCurrentUserId
+            }
             onCancel={() => setRevokeTarget(null)}
             onConfirm={() => {
               onRevokeIdentity?.(revokeTarget);
@@ -616,12 +753,15 @@ export function DangerZone({
 export function connectionAddress(connection: ToolConnection): string {
   const config = connection.config ?? connection.transportConfig ?? {};
   const value = config.url ?? config.endpoint ?? config.remoteUrl;
-  if (typeof value === "string" && value.trim().length > 0) return redactUrlSecrets(value);
+  if (typeof value === "string" && value.trim().length > 0)
+    return redactUrlSecrets(value);
   if (connection.transport === "local_stdio") return "Local command";
   return "Not set";
 }
 
-export function connectionTransportLabel(transport: ToolConnection["transport"]): string {
+export function connectionTransportLabel(
+  transport: ToolConnection["transport"],
+): string {
   if (transport === "mcp_remote") return "Remote HTTP";
   if (transport === "local_stdio") return "Local command";
   return "Unknown";

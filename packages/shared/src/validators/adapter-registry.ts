@@ -14,4 +14,6 @@ export const adapterRegistryEntrySchema = z
 
 export const adapterRegistrySchema = z.array(adapterRegistryEntrySchema);
 
-export type AdapterRegistryEntryParsed = z.infer<typeof adapterRegistryEntrySchema>;
+export type AdapterRegistryEntryParsed = z.infer<
+  typeof adapterRegistryEntrySchema
+>;

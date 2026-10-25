@@ -27,16 +27,12 @@ export const WORKSPACE_READINESS_STATES = [
   "failed",
 ] as const;
 
-export type WorkspaceReadinessState = (typeof WORKSPACE_READINESS_STATES)[number];
+export type WorkspaceReadinessState =
+  (typeof WORKSPACE_READINESS_STATES)[number];
 
 /** Terminal state of the versioned seed manifest, or `unknown` for a legacy marker. */
 export type WorkspaceSeedReadinessState =
-  | "pending"
-  | "running"
-  | "verified"
-  | "failed"
-  | "unknown"
-  | "absent";
+  "pending" | "running" | "verified" | "failed" | "unknown" | "absent";
 
 export interface WorkspaceReadiness {
   state: WorkspaceReadinessState;

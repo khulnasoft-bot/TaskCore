@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ACCOUNT_HANDLE_MAX_LENGTH, toAccountHandle } from "./account-handle.js";
+import {
+  ACCOUNT_HANDLE_MAX_LENGTH,
+  toAccountHandle,
+} from "./account-handle.js";
 import { createUserSecretDefinitionSchema } from "./validators/secret.js";
 
 describe("toAccountHandle", () => {
@@ -7,7 +10,7 @@ describe("toAccountHandle", () => {
     expect(toAccountHandle("acct-42")).toBe("acct-42");
   });
 
-  it("returns null for a value that holds a space, such as \"a b\"", () => {
+  it('returns null for a value that holds a space, such as "a b"', () => {
     expect(toAccountHandle("a b")).toBeNull();
   });
 
@@ -28,11 +31,11 @@ describe("toAccountHandle", () => {
     expect(toAccountHandle("")).toBeNull();
   });
 
-  it("returns null for a value that holds a plus sign, such as \"a+b\"", () => {
+  it('returns null for a value that holds a plus sign, such as "a+b"', () => {
     expect(toAccountHandle("a+b")).toBeNull();
   });
 
-  it("returns null for a value that holds a colon, such as \"a:b\"", () => {
+  it('returns null for a value that holds a colon, such as "a:b"', () => {
     expect(toAccountHandle("a:b")).toBeNull();
   });
 
@@ -43,16 +46,16 @@ describe("toAccountHandle", () => {
     expect(toAccountHandle(atLimit)).toBe(atLimit);
   });
 
-  it("returns null for \".\" and for \"..\"", () => {
+  it('returns null for "." and for ".."', () => {
     expect(toAccountHandle(".")).toBeNull();
     expect(toAccountHandle("..")).toBeNull();
   });
 
-  it("returns null for a value that starts with a hyphen, such as \"-rf\"", () => {
+  it('returns null for a value that starts with a hyphen, such as "-rf"', () => {
     expect(toAccountHandle("-rf")).toBeNull();
   });
 
-  it("returns null for a value that holds a shell metacharacter, such as \"$(id)\"", () => {
+  it('returns null for a value that holds a shell metacharacter, such as "$(id)"', () => {
     expect(toAccountHandle("$(id)")).toBeNull();
   });
 
@@ -63,11 +66,18 @@ describe("toAccountHandle", () => {
   });
 
   it("every accepted handle also passes the secret key schema", () => {
-    const candidates = ["acct-42", "acct_42", "ACCT.42", "a".repeat(ACCOUNT_HANDLE_MAX_LENGTH)];
+    const candidates = [
+      "acct-42",
+      "acct_42",
+      "ACCT.42",
+      "a".repeat(ACCOUNT_HANDLE_MAX_LENGTH),
+    ];
     for (const candidate of candidates) {
       const handle = toAccountHandle(candidate);
       expect(handle).not.toBeNull();
-      expect(createUserSecretDefinitionSchema.shape.key.safeParse(handle).success).toBe(true);
+      expect(
+        createUserSecretDefinitionSchema.shape.key.safeParse(handle).success,
+      ).toBe(true);
     }
   });
 });

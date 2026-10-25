@@ -86,7 +86,9 @@ console.log(JSON.stringify({ type: "result", session_id: "11111111-1111-4111-811
   await fs.chmod(commandPath, 0o755);
 }
 
-async function writeHelpWithoutEffortClaudeCommand(commandPath: string): Promise<void> {
+async function writeHelpWithoutEffortClaudeCommand(
+  commandPath: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
 const path = require("node:path");
@@ -124,7 +126,9 @@ console.log(JSON.stringify({ type: "result", session_id: "33333333-3333-4333-833
   await fs.chmod(commandPath, 0o755);
 }
 
-async function writeHelpWithEffortClaudeCommand(commandPath: string): Promise<void> {
+async function writeHelpWithEffortClaudeCommand(
+  commandPath: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
 const path = require("node:path");
@@ -183,7 +187,9 @@ afterEach(() => {
   resetClaudeCliCapabilitiesCacheForTests();
 });
 
-async function writePoisonedMessageIdClaudeCommand(commandPath: string): Promise<void> {
+async function writePoisonedMessageIdClaudeCommand(
+  commandPath: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
 
@@ -219,7 +225,9 @@ console.log(JSON.stringify({ type: "result", session_id: "bbbbbbbb-bbbb-4bbb-8bb
   await fs.chmod(commandPath, 0o755);
 }
 
-async function writeAlwaysPoisonedMessageIdClaudeCommand(commandPath: string): Promise<void> {
+async function writeAlwaysPoisonedMessageIdClaudeCommand(
+  commandPath: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
 
@@ -249,7 +257,9 @@ process.exit(1);
   await fs.chmod(commandPath, 0o755);
 }
 
-async function writeRetryThenSucceedClaudeCommand(commandPath: string): Promise<void> {
+async function writeRetryThenSucceedClaudeCommand(
+  commandPath: string,
+): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
 
@@ -307,7 +317,10 @@ async function setupExecuteEnv(
   process.env.HOME = root;
   process.env.PATH = `${binDir}${path.delimiter}${process.env.PATH ?? ""}`;
   return {
-    workspace, commandPath, capturePath, statePath,
+    workspace,
+    commandPath,
+    capturePath,
+    statePath,
     restore: () => {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -339,11 +352,15 @@ function createLocalSandboxRunner() {
           cwd: input.cwd ?? process.cwd(),
           env: input.env ?? {},
           stdin: input.stdin,
-          timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
+          timeoutSec: Math.max(
+            1,
+            Math.ceil((input.timeoutMs ?? 30_000) / 1000),
+          ),
           graceSec: 5,
           onLog: input.onLog ?? (async () => {}),
           onSpawn: input.onSpawn
-            ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+            ? async (meta) =>
+                input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
             : undefined,
         },
       );
@@ -353,10 +370,18 @@ function createLocalSandboxRunner() {
 
 describe("claude execute", () => {
   it("passes real assignment markdown and ordered current events once through the CLI", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-context-owner-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root);
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-context-owner-"),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root);
     const markdown = buildTaskcoreTaskMarkdown({
-      issue: { id: "issue-1", identifier: "PAP-901", title: "Repeat phrase Repeat phrase", description: "Repeat phrase Repeat phrase" },
+      issue: {
+        id: "issue-1",
+        identifier: "PAP-901",
+        title: "Repeat phrase Repeat phrase",
+        description: "Repeat phrase Repeat phrase",
+      },
       wakeComments: [
         { id: "comment-a", body: "Same event body." },
         { id: "comment-b", body: "Same event body." },
@@ -364,7 +389,12 @@ describe("claude execute", () => {
       includeWakeComments: false,
     });
     const historicalMarkdown = buildTaskcoreTaskMarkdown({
-      issue: { id: "issue-1", identifier: "PAP-901", title: "Repeat phrase Repeat phrase", description: "Repeat phrase Repeat phrase" },
+      issue: {
+        id: "issue-1",
+        identifier: "PAP-901",
+        title: "Repeat phrase Repeat phrase",
+        description: "Repeat phrase Repeat phrase",
+      },
       wakeComments: [
         { id: "comment-a", body: "Same event body." },
         { id: "comment-b", body: "Same event body." },
@@ -373,12 +403,26 @@ describe("claude execute", () => {
     try {
       await execute({
         runId: "run-context-owner",
-        agent: { id: "agent-1", companyId: "company-1", name: "Claude", adapterType: "claude_local", adapterConfig: {} },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "company-1",
+          name: "Claude",
+          adapterType: "claude_local",
+          adapterConfig: {},
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
-          engine: "cli", command: commandPath, cwd: workspace,
+          engine: "cli",
+          command: commandPath,
+          cwd: workspace,
           env: { TASKCORE_TEST_CAPTURE_PATH: capturePath },
-          promptTemplate: "Custom template keeps {{taskcoreTaskMarkdown}} and {{taskcoreWakePrompt}}.",
+          promptTemplate:
+            "Custom template keeps {{taskcoreTaskMarkdown}} and {{taskcoreWakePrompt}}.",
         },
         context: {
           issueId: "issue-1",
@@ -386,23 +430,61 @@ describe("claude execute", () => {
           taskcoreTaskMarkdownAssignment: markdown,
           taskcoreWake: {
             reason: "issue_commented",
-            issue: { id: "issue-1", identifier: "PAP-901", title: "Repeat phrase Repeat phrase", description: "Repeat phrase Repeat phrase", status: "in_progress" },
+            issue: {
+              id: "issue-1",
+              identifier: "PAP-901",
+              title: "Repeat phrase Repeat phrase",
+              description: "Repeat phrase Repeat phrase",
+              status: "in_progress",
+            },
             comments: [
-              { id: "comment-a", issueId: "issue-1", body: "Same event body.", bodyTruncated: false, createdAt: "2026-09-21T00:00:00.000Z" },
-              { id: "comment-b", issueId: "issue-1", body: "Same event body.", bodyTruncated: false, createdAt: "2026-09-21T00:01:00.000Z" },
+              {
+                id: "comment-a",
+                issueId: "issue-1",
+                body: "Same event body.",
+                bodyTruncated: false,
+                createdAt: "2026-09-21T00:00:00.000Z",
+              },
+              {
+                id: "comment-b",
+                issueId: "issue-1",
+                body: "Same event body.",
+                bodyTruncated: false,
+                createdAt: "2026-09-21T00:01:00.000Z",
+              },
             ],
-            commentWindow: { requestedCount: 2, includedCount: 2, missingCount: 0 },
+            commentWindow: {
+              requestedCount: 2,
+              includedCount: 2,
+              missingCount: 0,
+            },
             fallbackFetchNeeded: false,
           },
-          taskcoreTurnContext: { version: 1, assignment: { owner: "task_markdown" }, events: { owner: "wake_prompt", comments: [{ id: "comment-a", revision: "a" }, { id: "comment-b", revision: "b" }] } },
+          taskcoreTurnContext: {
+            version: 1,
+            assignment: { owner: "task_markdown" },
+            events: {
+              owner: "wake_prompt",
+              comments: [
+                { id: "comment-a", revision: "a" },
+                { id: "comment-b", revision: "b" },
+              ],
+            },
+          },
         },
         onLog: async () => {},
       });
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.prompt).toContain("Custom template keeps");
-      expect(capture.prompt.indexOf("comment-a")).toBeLessThan(capture.prompt.indexOf("comment-b"));
+      expect(capture.prompt.indexOf("comment-a")).toBeLessThan(
+        capture.prompt.indexOf("comment-b"),
+      );
       expect(capture.prompt.split("Same event body.")).toHaveLength(3);
-      expect(capture.prompt.split("Repeat phrase Repeat phrase")).toHaveLength(4);
+      expect(capture.prompt.split("Repeat phrase Repeat phrase")).toHaveLength(
+        4,
+      );
     } finally {
       restore();
       await fs.rm(root, { recursive: true, force: true });
@@ -415,18 +497,36 @@ describe("claude execute", () => {
     ["  ", "claude-opus-5"],
     ["claude-sonnet-4-5", "claude-sonnet-4-5"],
   ])("passes the resolved model to the CLI for %j", async (model, expected) => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-default-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root);
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-default-"),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root);
     try {
       const result = await execute({
         runId: "run-default",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: {} },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: {},
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
-          engine: "cli", model, command: commandPath, cwd: workspace,
+          engine: "cli",
+          model,
+          command: commandPath,
+          cwd: workspace,
           env: { TASKCORE_TEST_CAPTURE_PATH: capturePath },
         },
-        context: {}, onLog: async () => {},
+        context: {},
+        onLog: async () => {},
       });
       expect(result.exitCode).toBe(0);
       const { argv } = JSON.parse(await fs.readFile(capturePath, "utf8"));
@@ -438,14 +538,32 @@ describe("claude execute", () => {
   });
 
   it("uses a strict per-agent MCP config only when managed servers are present", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-mcp-config-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root);
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-mcp-config-"),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root);
     try {
-      const run = async (runId: string, agentId: string, servers: AdapterRuntimeMcpServer[]) => {
+      const run = async (
+        runId: string,
+        agentId: string,
+        servers: AdapterRuntimeMcpServer[],
+      ) => {
         await execute({
           runId,
-          agent: { id: agentId, companyId: "co-1", name: agentId, adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-          runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+          agent: {
+            id: agentId,
+            companyId: "co-1",
+            name: agentId,
+            adapterType: "claude_local",
+            adapterConfig: { engine: "cli" },
+          },
+          runtime: {
+            sessionId: null,
+            sessionParams: null,
+            sessionDisplayId: null,
+            taskKey: null,
+          },
           config: {
             engine: "cli",
             command: commandPath,
@@ -461,15 +579,19 @@ describe("claude execute", () => {
         return JSON.parse(await fs.readFile(capturePath, "utf8"));
       };
 
-      const alpha = await run("run-alpha", "agent-alpha", [{
-        name: "alpha",
-        url: "https://taskcore.example/api/tool-gateway/gateways/alpha/mcp",
-        token: "alpha-token",
-        connectionId: "connection-alpha",
-      }]);
+      const alpha = await run("run-alpha", "agent-alpha", [
+        {
+          name: "alpha",
+          url: "https://taskcore.example/api/tool-gateway/gateways/alpha/mcp",
+          token: "alpha-token",
+          connectionId: "connection-alpha",
+        },
+      ]);
       const zero = await run("run-zero", "agent-zero", []);
 
-      expect(alpha.argv).toEqual(expect.arrayContaining(["--strict-mcp-config", "--mcp-config"]));
+      expect(alpha.argv).toEqual(
+        expect.arrayContaining(["--strict-mcp-config", "--mcp-config"]),
+      );
       expect(JSON.parse(alpha.mcpConfigContents)).toEqual({
         mcpServers: {
           alpha: {
@@ -498,15 +620,29 @@ describe("claude execute", () => {
    * re-injecting them wastes tokens and may be rejected by the CLI.
    */
   it("passes --append-system-prompt-file on a fresh session when instructionsFile is set", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-fresh-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root);
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-fresh-"),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root);
     const instructionsFile = path.join(root, "instructions.md");
     await fs.writeFile(instructionsFile, "# Agent instructions", "utf-8");
     try {
       await execute({
         runId: "run-fresh",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -532,15 +668,29 @@ describe("claude execute", () => {
   });
 
   it("omits --append-system-prompt-file on a resumed session even when instructionsFile is set", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-resume-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root);
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-resume-"),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root);
     const instructionsFile = path.join(root, "instructions.md");
     await fs.writeFile(instructionsFile, "# Agent instructions", "utf-8");
     try {
       await execute({
         runId: "run-resume",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: "11111111-1111-4111-8111-111111111111", sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: "11111111-1111-4111-8111-111111111111",
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -570,7 +720,9 @@ describe("claude execute", () => {
    * was actually passed — i.e. on fresh sessions, not resumed ones.
    */
   it("commandNotes reports injection on a fresh session with instructionsFile", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-notes-fresh-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-notes-fresh-"),
+    );
     const { workspace, commandPath, restore } = await setupExecuteEnv(root);
     const instructionsFile = path.join(root, "instructions.md");
     await fs.writeFile(instructionsFile, "# Agent instructions", "utf-8");
@@ -578,8 +730,19 @@ describe("claude execute", () => {
     try {
       await execute({
         runId: "run-notes-fresh",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -591,9 +754,13 @@ describe("claude execute", () => {
         context: {},
         authToken: "tok",
         onLog: async () => {},
-        onMeta: async (meta) => { capturedNotes = (meta.commandNotes as string[]) ?? []; },
+        onMeta: async (meta) => {
+          capturedNotes = (meta.commandNotes as string[]) ?? [];
+        },
       });
-      expect(capturedNotes.some((n) => n.includes("--append-system-prompt-file"))).toBe(true);
+      expect(
+        capturedNotes.some((n) => n.includes("--append-system-prompt-file")),
+      ).toBe(true);
     } finally {
       restore();
       await fs.rm(root, { recursive: true, force: true });
@@ -601,7 +768,9 @@ describe("claude execute", () => {
   });
 
   it("commandNotes is empty on a resumed session even when instructionsFile is set", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-notes-resume-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-notes-resume-"),
+    );
     const { workspace, commandPath, restore } = await setupExecuteEnv(root);
     const instructionsFile = path.join(root, "instructions.md");
     await fs.writeFile(instructionsFile, "# Agent instructions", "utf-8");
@@ -609,8 +778,19 @@ describe("claude execute", () => {
     try {
       await execute({
         runId: "run-notes-resume",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: "11111111-1111-4111-8111-111111111111", sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: "11111111-1111-4111-8111-111111111111",
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -622,7 +802,9 @@ describe("claude execute", () => {
         context: {},
         authToken: "tok",
         onLog: async () => {},
-        onMeta: async (meta) => { capturedNotes = (meta.commandNotes as string[]) ?? []; },
+        onMeta: async (meta) => {
+          capturedNotes = (meta.commandNotes as string[]) ?? [];
+        },
       });
       expect(capturedNotes).toHaveLength(0);
     } finally {
@@ -632,21 +814,38 @@ describe("claude execute", () => {
   });
 
   it("rebuilds the combined instructions file when an unknown resumed session falls back to fresh", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-resume-fallback-"));
-    const { workspace, commandPath, capturePath, statePath, restore } = await setupExecuteEnv(root, {
-      commandWriter: writeRetryThenSucceedClaudeCommand,
-    });
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-resume-fallback-"),
+    );
+    const { workspace, commandPath, capturePath, statePath, restore } =
+      await setupExecuteEnv(root, {
+        commandWriter: writeRetryThenSucceedClaudeCommand,
+      });
     const instructionsFile = path.join(root, "instructions.md");
     await fs.writeFile(instructionsFile, "# Agent instructions", "utf-8");
-    const metaEvents: Array<{ commandArgs: string[]; commandNotes: string[] }> = [];
-    const getFreshSessionHandoff = vi.fn(async () => "FRESH_HANDOFF: original goal and prior decisions");
+    const metaEvents: Array<{ commandArgs: string[]; commandNotes: string[] }> =
+      [];
+    const getFreshSessionHandoff = vi.fn(
+      async () => "FRESH_HANDOFF: original goal and prior decisions",
+    );
     const prompts: string[] = [];
     try {
       const result = await execute({
         runId: "run-resume-fallback",
         getFreshSessionHandoff,
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: "11111111-1111-4111-8111-111111111111", sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: "11111111-1111-4111-8111-111111111111",
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -669,7 +868,9 @@ describe("claude execute", () => {
           });
         },
       });
-      const captured = JSON.parse(await fs.readFile(capturePath, "utf-8")) as Array<{
+      const captured = JSON.parse(
+        await fs.readFile(capturePath, "utf-8"),
+      ) as Array<{
         argv: string[];
         appendedSystemPromptFilePath: string | null;
         appendedSystemPromptFileContents: string | null;
@@ -677,24 +878,39 @@ describe("claude execute", () => {
       expect(captured).toHaveLength(2);
       expect(getFreshSessionHandoff).toHaveBeenCalledOnce();
       expect(prompts[0]).not.toContain("FRESH_HANDOFF");
-      expect(prompts[1]).toContain("FRESH_HANDOFF: original goal and prior decisions");
+      expect(prompts[1]).toContain(
+        "FRESH_HANDOFF: original goal and prior decisions",
+      );
       expect(captured[0]?.argv).toContain("--resume");
       expect(captured[0]?.argv).not.toContain("--append-system-prompt-file");
       expect(captured[1]?.argv).not.toContain("--resume");
       expect(captured[1]?.argv).toContain("--append-system-prompt-file");
-      expect(captured[1]?.appendedSystemPromptFilePath).toContain("agent-instructions.md");
-      expect(captured[1]?.appendedSystemPromptFilePath).not.toBe(instructionsFile);
-      expect(captured[1]?.appendedSystemPromptFileContents).toContain("# Agent instructions");
-      expect(captured[1]?.appendedSystemPromptFileContents).not.toContain(instructionsFile);
-      for (const prompt of prompts) expect(prompt).toContain(
-        `Agent instructions for this run were loaded from ${instructionsFile}. ` +
-        `Resolve any relative file references from ${path.dirname(instructionsFile)}/. ` +
-        `This base directory is authoritative for sibling instruction files such as ` +
-        `./HEARTBEAT.md, ./SOUL.md, and ./TOOLS.md; do not resolve those from the parent agent directory.`,
+      expect(captured[1]?.appendedSystemPromptFilePath).toContain(
+        "agent-instructions.md",
       );
+      expect(captured[1]?.appendedSystemPromptFilePath).not.toBe(
+        instructionsFile,
+      );
+      expect(captured[1]?.appendedSystemPromptFileContents).toContain(
+        "# Agent instructions",
+      );
+      expect(captured[1]?.appendedSystemPromptFileContents).not.toContain(
+        instructionsFile,
+      );
+      for (const prompt of prompts)
+        expect(prompt).toContain(
+          `Agent instructions for this run were loaded from ${instructionsFile}. ` +
+            `Resolve any relative file references from ${path.dirname(instructionsFile)}/. ` +
+            `This base directory is authoritative for sibling instruction files such as ` +
+            `./HEARTBEAT.md, ./SOUL.md, and ./TOOLS.md; do not resolve those from the parent agent directory.`,
+        );
       expect(metaEvents).toHaveLength(2);
       expect(metaEvents[0]?.commandNotes).toHaveLength(0);
-      expect(metaEvents[1]?.commandNotes.some((note) => note.includes("--append-system-prompt-file"))).toBe(true);
+      expect(
+        metaEvents[1]?.commandNotes.some((note) =>
+          note.includes("--append-system-prompt-file"),
+        ),
+      ).toBe(true);
       expect(result.sessionId).toBe("22222222-2222-4222-8222-222222222222");
       expect(result.clearSession).toBe(false);
     } finally {
@@ -704,7 +920,9 @@ describe("claude execute", () => {
   });
 
   it("normalizes max-turn exhaustion into scheduler stop metadata", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-max-turns-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-max-turns-"),
+    );
     const resultEvent = {
       type: "result",
       subtype: "error_max_turns",
@@ -714,14 +932,26 @@ describe("claude execute", () => {
       usage: { input_tokens: 1, cache_read_input_tokens: 0, output_tokens: 1 },
     };
     const { workspace, commandPath, restore } = await setupExecuteEnv(root, {
-      commandWriter: (commandPath) => writeFailingClaudeCommand(commandPath, { resultEvent }),
+      commandWriter: (commandPath) =>
+        writeFailingClaudeCommand(commandPath, { resultEvent }),
     });
 
     try {
       const result = await execute({
         runId: "run-max-turns",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -736,7 +966,9 @@ describe("claude execute", () => {
       expect(result.exitCode).toBe(1);
       expect(result.errorCode).toBe("max_turns_exhausted");
       expect(result.errorFamily).toBeNull();
-      expect(result.resultJson).toMatchObject({ stopReason: "max_turns_exhausted" });
+      expect(result.resultJson).toMatchObject({
+        stopReason: "max_turns_exhausted",
+      });
       expect(result.clearSession).toBe(true);
     } finally {
       restore();
@@ -745,7 +977,9 @@ describe("claude execute", () => {
   });
 
   it("does not normalize unstructured max-turn text into scheduler stop metadata", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-max-turn-text-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-max-turn-text-"),
+    );
     const resultEvent = {
       type: "result",
       subtype: "error",
@@ -754,14 +988,26 @@ describe("claude execute", () => {
       result: "Tool output said: Maximum turns reached.",
     };
     const { workspace, commandPath, restore } = await setupExecuteEnv(root, {
-      commandWriter: (commandPath) => writeFailingClaudeCommand(commandPath, { resultEvent }),
+      commandWriter: (commandPath) =>
+        writeFailingClaudeCommand(commandPath, { resultEvent }),
     });
 
     try {
       const result = await execute({
         runId: "run-max-turns-text",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -784,7 +1030,9 @@ describe("claude execute", () => {
   });
 
   it("does not normalize fallback stdout/stderr max-turn text into scheduler stop metadata", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-max-turn-fallback-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-max-turn-fallback-"),
+    );
     const { workspace, commandPath, restore } = await setupExecuteEnv(root, {
       commandWriter: (commandPath) =>
         writeTextFailingClaudeCommand(commandPath, {
@@ -796,8 +1044,19 @@ describe("claude execute", () => {
     try {
       const result = await execute({
         runId: "run-max-turns-fallback-text",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -820,7 +1079,9 @@ describe("claude execute", () => {
   });
 
   it("logs HOME, CLAUDE_CONFIG_DIR, and the resolved executable path in invocation metadata", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-meta-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-execute-meta-"),
+    );
     const workspace = path.join(root, "workspace");
     const binDir = path.join(root, "bin");
     const commandPath = path.join(binDir, "claude");
@@ -876,7 +1137,11 @@ describe("claude execute", () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.errorMessage).toBeNull();
-      expect(result.usage).toEqual({ inputTokens: 1, cachedInputTokens: 0, outputTokens: 1 });
+      expect(result.usage).toEqual({
+        inputTokens: 1,
+        cachedInputTokens: 0,
+        outputTokens: 1,
+      });
       expect(result.usageBasis).toBe("per_run");
       expect(result.costUsd).toBeNull();
       expect(loggedCommand).toBe(commandPath);
@@ -888,14 +1153,17 @@ describe("claude execute", () => {
       else process.env.HOME = previousHome;
       if (previousPath === undefined) delete process.env.PATH;
       else process.env.PATH = previousPath;
-      if (previousClaudeConfigDir === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+      if (previousClaudeConfigDir === undefined)
+        delete process.env.CLAUDE_CONFIG_DIR;
       else process.env.CLAUDE_CONFIG_DIR = previousClaudeConfigDir;
       await fs.rm(root, { recursive: true, force: true });
     }
   });
 
   it("injects bridge env into sandbox-managed remote runs", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-sandbox-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-execute-sandbox-"),
+    );
     const localWorkspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "sandbox-$HOME");
     const binDir = path.join(root, "bin");
@@ -909,7 +1177,11 @@ describe("claude execute", () => {
     await fs.mkdir(remoteWorkspace, { recursive: true });
     await fs.mkdir(binDir, { recursive: true });
     await fs.mkdir(claudeRoot, { recursive: true });
-    await fs.writeFile(path.join(claudeRoot, "settings.json"), JSON.stringify({ theme: "test" }), "utf8");
+    await fs.writeFile(
+      path.join(claudeRoot, "settings.json"),
+      JSON.stringify({ theme: "test" }),
+      "utf8",
+    );
     await writeFakeClaudeCommand(commandPath);
 
     process.env.HOME = root;
@@ -966,10 +1238,14 @@ describe("claude execute", () => {
           remoteCwd: remoteWorkspace,
         },
       });
-      const capture = JSON.parse(await fs.readFile(capturePath1, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath1, "utf8"),
+      ) as CapturePayload;
       expect(capture.argv).toContain("--dangerously-skip-permissions");
       expect(capture.argv).not.toContain("--allowedTools");
-      expect(capture.claudeConfigDir).toBe(path.join(remoteWorkspace, ".taskcore-runtime", "claude", "config"));
+      expect(capture.claudeConfigDir).toBe(
+        path.join(remoteWorkspace, ".taskcore-runtime", "claude", "config"),
+      );
       expect(capture.claudeConfigEntries).toContain("settings.json");
       expect(capture.taskcoreApiUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
       expect(capture.taskcoreApiKey).not.toBe("run-jwt-token");
@@ -984,10 +1260,13 @@ describe("claude execute", () => {
   }, 10_000);
 
   it("omits --effort for sandbox-managed runs when the installed Claude CLI does not advertise it", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-sandbox-effort-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root, {
-      commandWriter: writeHelpWithoutEffortClaudeCommand,
-    });
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-execute-sandbox-effort-"),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root, {
+        commandWriter: writeHelpWithoutEffortClaudeCommand,
+      });
     const remoteWorkspace = path.join(root, "sandbox-workspace");
     await fs.mkdir(remoteWorkspace, { recursive: true });
 
@@ -1033,7 +1312,9 @@ describe("claude execute", () => {
       });
 
       expect(result.exitCode).toBe(0);
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.argv).not.toContain("--effort");
     } finally {
       restore();
@@ -1042,10 +1323,16 @@ describe("claude execute", () => {
   }, 10_000);
 
   it("passes through --effort and reuses the sandbox capability probe across sandbox leases when the installed Claude CLI advertises it", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-sandbox-effort-supported-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root, {
-      commandWriter: writeHelpWithEffortClaudeCommand,
-    });
+    const root = await fs.mkdtemp(
+      path.join(
+        os.tmpdir(),
+        "taskcore-claude-execute-sandbox-effort-supported-",
+      ),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root, {
+        commandWriter: writeHelpWithEffortClaudeCommand,
+      });
     const helpCountPath = path.join(root, "help-count.txt");
     const remoteWorkspace = path.join(root, "sandbox-workspace");
     await fs.mkdir(remoteWorkspace, { recursive: true });
@@ -1106,7 +1393,9 @@ describe("claude execute", () => {
 
       expect(first.exitCode).toBe(0);
       expect(second.exitCode).toBe(0);
-      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      const capture = JSON.parse(
+        await fs.readFile(capturePath, "utf8"),
+      ) as CapturePayload;
       expect(capture.argv).toContain("--effort");
       expect(capture.argv).toContain("low");
       expect(await fs.readFile(helpCountPath, "utf8")).toBe("1");
@@ -1159,221 +1448,273 @@ describe("claude execute", () => {
   });
 
   it("allows remote session resumes when saved cwd is the host workspace", () => {
-    expect(claudeSessionCwdMatchesExecutionTarget({
-      runtimeSessionCwd: "/host/workspace",
-      effectiveExecutionCwd: "/remote/workspace",
-      executionTargetIsRemote: true,
-    })).toBe(true);
-    expect(claudeSessionCwdMatchesExecutionTarget({
-      runtimeSessionCwd: "/host/workspace",
-      effectiveExecutionCwd: "/remote/workspace",
-      executionTargetIsRemote: false,
-    })).toBe(false);
+    expect(
+      claudeSessionCwdMatchesExecutionTarget({
+        runtimeSessionCwd: "/host/workspace",
+        effectiveExecutionCwd: "/remote/workspace",
+        executionTargetIsRemote: true,
+      }),
+    ).toBe(true);
+    expect(
+      claudeSessionCwdMatchesExecutionTarget({
+        runtimeSessionCwd: "/host/workspace",
+        effectiveExecutionCwd: "/remote/workspace",
+        executionTargetIsRemote: false,
+      }),
+    ).toBe(false);
   });
 
-  it.each(["unchanged", "added", "removed"])("resumes a stable Claude prompt bundle with %s MCP tools", async (change) => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-bundle-"));
-    const workspace = path.join(root, "workspace");
-    const commandPath = path.join(root, "claude");
-    const capturePath1 = path.join(root, "capture-1.json");
-    const capturePath2 = path.join(root, "capture-2.json");
-    const instructionsPath = path.join(root, "AGENTS.md");
-    const taskcoreHome = path.join(root, "taskcore-home");
-    await fs.mkdir(workspace, { recursive: true });
-    await fs.writeFile(instructionsPath, "You are managed instructions.\n", "utf8");
-    await writeFakeClaudeCommand(commandPath);
+  it.each(["unchanged", "added", "removed"])(
+    "resumes a stable Claude prompt bundle with %s MCP tools",
+    async (change) => {
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "taskcore-claude-execute-bundle-"),
+      );
+      const workspace = path.join(root, "workspace");
+      const commandPath = path.join(root, "claude");
+      const capturePath1 = path.join(root, "capture-1.json");
+      const capturePath2 = path.join(root, "capture-2.json");
+      const instructionsPath = path.join(root, "AGENTS.md");
+      const taskcoreHome = path.join(root, "taskcore-home");
+      await fs.mkdir(workspace, { recursive: true });
+      await fs.writeFile(
+        instructionsPath,
+        "You are managed instructions.\n",
+        "utf8",
+      );
+      await writeFakeClaudeCommand(commandPath);
 
-    const previousHome = process.env.HOME;
-    const previousTaskcoreHome = process.env.TASKCORE_HOME;
-    const previousTaskcoreInstanceId = process.env.TASKCORE_INSTANCE_ID;
-    process.env.HOME = root;
-    process.env.TASKCORE_HOME = taskcoreHome;
-    delete process.env.TASKCORE_INSTANCE_ID;
+      const previousHome = process.env.HOME;
+      const previousTaskcoreHome = process.env.TASKCORE_HOME;
+      const previousTaskcoreInstanceId = process.env.TASKCORE_INSTANCE_ID;
+      process.env.HOME = root;
+      process.env.TASKCORE_HOME = taskcoreHome;
+      delete process.env.TASKCORE_INSTANCE_ID;
 
-    try {
-      const first = await execute({
-        runId: "run-1",
-        agent: {
-          id: "agent-1",
-          companyId: "company-1",
-          name: "Claude Coder",
-          adapterType: "claude_local",
-          adapterConfig: { engine: "cli" },
-        },
-        runtime: {
-          sessionId: null,
-          sessionParams: null,
-          sessionDisplayId: null,
-          taskKey: null,
-        },
-        config: {
-          engine: "cli",
-          command: commandPath,
-          cwd: workspace,
-          instructionsFilePath: instructionsPath,
-          env: {
-            TASKCORE_TEST_CAPTURE_PATH: capturePath1,
+      try {
+        const first = await execute({
+          runId: "run-1",
+          agent: {
+            id: "agent-1",
+            companyId: "company-1",
+            name: "Claude Coder",
+            adapterType: "claude_local",
+            adapterConfig: { engine: "cli" },
           },
-          promptTemplate: "Follow the taskcore heartbeat.",
-          taskcoreSkillSync: {
-            desiredSkills: ["taskcore"],
+          runtime: {
+            sessionId: null,
+            sessionParams: null,
+            sessionDisplayId: null,
+            taskKey: null,
           },
-        },
-        context: {},
-        runtimeMcp: {
-          getServers: () => [{
-            name: "Taskcore projects",
-            url: "http://localhost:3100/api/mcp/project-tools",
-            connectionId: "taskcore-project-tools",
-            token: "run-jwt-token",
-          }],
-        },
-        authToken: "run-jwt-token",
-        onLog: async () => {},
-      });
-
-      expect(first.exitCode).toBe(0);
-      expect(first.errorMessage).toBeNull();
-      expect(first.sessionParams).toMatchObject({
-        sessionId: "11111111-1111-4111-8111-111111111111",
-        cwd: workspace,
-      });
-      expect(typeof first.sessionParams?.promptBundleKey).toBe("string");
-
-      const getFreshSessionHandoff = vi.fn(async () => "FRESH_HANDOFF_ONLY");
-      const second = await execute({
-        getFreshSessionHandoff,
-        runId: "run-2",
-        agent: {
-          id: "agent-1",
-          companyId: "company-1",
-          name: "Claude Coder",
-          adapterType: "claude_local",
-          adapterConfig: { engine: "cli" },
-        },
-        runtime: {
-          sessionId: null,
-          sessionParams: sessionCodec.deserialize(sessionCodec.serialize(first.sessionParams ?? null)),
-          sessionDisplayId: null,
-          taskKey: null,
-        },
-        config: {
-          engine: "cli",
-          command: commandPath,
-          cwd: workspace,
-          instructionsFilePath: instructionsPath,
-          env: {
-            TASKCORE_TEST_CAPTURE_PATH: capturePath2,
-          },
-          promptTemplate: "Follow the taskcore heartbeat.",
-          taskcoreSkillSync: {
-            desiredSkills: ["taskcore"],
-          },
-        },
-        context: {
-          issueId: "issue-1",
-          taskId: "issue-1",
-          wakeReason: "issue_commented",
-          wakeCommentId: "comment-2",
-          refreshTools: change !== "unchanged",
-          taskcoreWake: {
-            reason: "issue_commented",
-            issue: {
-              id: "issue-1",
-              identifier: "PAP-874",
-              title: "chat-speed issues",
-              status: "in_progress",
-              priority: "medium",
+          config: {
+            engine: "cli",
+            command: commandPath,
+            cwd: workspace,
+            instructionsFilePath: instructionsPath,
+            env: {
+              TASKCORE_TEST_CAPTURE_PATH: capturePath1,
             },
-            commentIds: ["comment-2"],
-            latestCommentId: "comment-2",
-            comments: [
+            promptTemplate: "Follow the taskcore heartbeat.",
+            taskcoreSkillSync: {
+              desiredSkills: ["taskcore"],
+            },
+          },
+          context: {},
+          runtimeMcp: {
+            getServers: () => [
               {
-                id: "comment-2",
-                issueId: "issue-1",
-                body: "Second comment",
-                bodyTruncated: false,
-                createdAt: "2026-03-28T14:35:10.000Z",
-                author: { type: "user", id: "user-1" },
+                name: "Taskcore projects",
+                url: "http://localhost:3100/api/mcp/project-tools",
+                connectionId: "taskcore-project-tools",
+                token: "run-jwt-token",
               },
             ],
-            commentWindow: {
-              requestedCount: 1,
-              includedCount: 1,
-              missingCount: 0,
-            },
-            truncated: false,
-            fallbackFetchNeeded: false,
           },
-        },
-        runtimeMcp: {
-          getServers: () => change === "removed" ? [] : [{
-            name: "Taskcore projects",
-            url: "http://localhost:3100/api/mcp/project-tools",
-            connectionId: "taskcore-project-tools",
-            token: "next-run-jwt-token",
-          }, ...(change === "added" ? [{ name: "GitHub", url: "https://example.test/github/mcp", connectionId: "github", token: "fresh-github-token" }] : [])],
-        },
-        authToken: "run-jwt-token",
-        onLog: async () => {},
-      });
+          authToken: "run-jwt-token",
+          onLog: async () => {},
+        });
 
-      expect(second.exitCode).toBe(0);
-      expect(second.errorMessage).toBeNull();
+        expect(first.exitCode).toBe(0);
+        expect(first.errorMessage).toBeNull();
+        expect(first.sessionParams).toMatchObject({
+          sessionId: "11111111-1111-4111-8111-111111111111",
+          cwd: workspace,
+        });
+        expect(typeof first.sessionParams?.promptBundleKey).toBe("string");
 
-      const capture1 = JSON.parse(await fs.readFile(capturePath1, "utf8")) as CapturePayload;
-      const capture2 = JSON.parse(await fs.readFile(capturePath2, "utf8")) as CapturePayload;
-      const expectedRoot = path.join(
-        taskcoreHome,
-        "instances",
-        "default",
-        "companies",
-        "company-1",
-        "claude-prompt-cache",
-      );
+        const getFreshSessionHandoff = vi.fn(async () => "FRESH_HANDOFF_ONLY");
+        const second = await execute({
+          getFreshSessionHandoff,
+          runId: "run-2",
+          agent: {
+            id: "agent-1",
+            companyId: "company-1",
+            name: "Claude Coder",
+            adapterType: "claude_local",
+            adapterConfig: { engine: "cli" },
+          },
+          runtime: {
+            sessionId: null,
+            sessionParams: sessionCodec.deserialize(
+              sessionCodec.serialize(first.sessionParams ?? null),
+            ),
+            sessionDisplayId: null,
+            taskKey: null,
+          },
+          config: {
+            engine: "cli",
+            command: commandPath,
+            cwd: workspace,
+            instructionsFilePath: instructionsPath,
+            env: {
+              TASKCORE_TEST_CAPTURE_PATH: capturePath2,
+            },
+            promptTemplate: "Follow the taskcore heartbeat.",
+            taskcoreSkillSync: {
+              desiredSkills: ["taskcore"],
+            },
+          },
+          context: {
+            issueId: "issue-1",
+            taskId: "issue-1",
+            wakeReason: "issue_commented",
+            wakeCommentId: "comment-2",
+            refreshTools: change !== "unchanged",
+            taskcoreWake: {
+              reason: "issue_commented",
+              issue: {
+                id: "issue-1",
+                identifier: "PAP-874",
+                title: "chat-speed issues",
+                status: "in_progress",
+                priority: "medium",
+              },
+              commentIds: ["comment-2"],
+              latestCommentId: "comment-2",
+              comments: [
+                {
+                  id: "comment-2",
+                  issueId: "issue-1",
+                  body: "Second comment",
+                  bodyTruncated: false,
+                  createdAt: "2026-03-28T14:35:10.000Z",
+                  author: { type: "user", id: "user-1" },
+                },
+              ],
+              commentWindow: {
+                requestedCount: 1,
+                includedCount: 1,
+                missingCount: 0,
+              },
+              truncated: false,
+              fallbackFetchNeeded: false,
+            },
+          },
+          runtimeMcp: {
+            getServers: () =>
+              change === "removed"
+                ? []
+                : [
+                    {
+                      name: "Taskcore projects",
+                      url: "http://localhost:3100/api/mcp/project-tools",
+                      connectionId: "taskcore-project-tools",
+                      token: "next-run-jwt-token",
+                    },
+                    ...(change === "added"
+                      ? [
+                          {
+                            name: "GitHub",
+                            url: "https://example.test/github/mcp",
+                            connectionId: "github",
+                            token: "fresh-github-token",
+                          },
+                        ]
+                      : []),
+                  ],
+          },
+          authToken: "run-jwt-token",
+          onLog: async () => {},
+        });
 
-      expect(capture1.addDir).toBeTruthy();
-      expect(capture1.addDir).toBe(capture2.addDir);
-      expect(capture1.instructionsFilePath).toBeTruthy();
-      expect(capture2.instructionsFilePath ?? null).toBeNull();
-      expect(capture1.addDir?.startsWith(expectedRoot)).toBe(true);
-      expect(capture1.instructionsFilePath?.startsWith(expectedRoot)).toBe(true);
-      expect(capture1.instructionsContents).toContain("You are managed instructions.");
-      expect(capture1.instructionsContents).not.toContain(instructionsPath);
-      expect(capture1.prompt).toContain(`Agent instructions for this run were loaded from ${instructionsPath}.`);
-      expect(capture2.prompt).toContain(`Agent instructions for this run were loaded from ${instructionsPath}.`);
-      expect(capture1.skillEntries).toContain("taskcore");
-      expect(capture2.argv).toContain("--resume");
-      expect(getFreshSessionHandoff).not.toHaveBeenCalled();
-      expect(capture2.argv).toContain("11111111-1111-4111-8111-111111111111");
-      if (change === "removed") expect(capture2.mcpConfigContents).toBeNull();
-      else {
-        expect(capture2.mcpConfigContents).toContain("next-run-jwt-token");
-        expect(capture2.mcpConfigContents).not.toContain('"run-jwt-token"');
-        if (change === "added") expect(capture2.mcpConfigContents).toContain("fresh-github-token");
+        expect(second.exitCode).toBe(0);
+        expect(second.errorMessage).toBeNull();
+
+        const capture1 = JSON.parse(
+          await fs.readFile(capturePath1, "utf8"),
+        ) as CapturePayload;
+        const capture2 = JSON.parse(
+          await fs.readFile(capturePath2, "utf8"),
+        ) as CapturePayload;
+        const expectedRoot = path.join(
+          taskcoreHome,
+          "instances",
+          "default",
+          "companies",
+          "company-1",
+          "claude-prompt-cache",
+        );
+
+        expect(capture1.addDir).toBeTruthy();
+        expect(capture1.addDir).toBe(capture2.addDir);
+        expect(capture1.instructionsFilePath).toBeTruthy();
+        expect(capture2.instructionsFilePath ?? null).toBeNull();
+        expect(capture1.addDir?.startsWith(expectedRoot)).toBe(true);
+        expect(capture1.instructionsFilePath?.startsWith(expectedRoot)).toBe(
+          true,
+        );
+        expect(capture1.instructionsContents).toContain(
+          "You are managed instructions.",
+        );
+        expect(capture1.instructionsContents).not.toContain(instructionsPath);
+        expect(capture1.prompt).toContain(
+          `Agent instructions for this run were loaded from ${instructionsPath}.`,
+        );
+        expect(capture2.prompt).toContain(
+          `Agent instructions for this run were loaded from ${instructionsPath}.`,
+        );
+        expect(capture1.skillEntries).toContain("taskcore");
+        expect(capture2.argv).toContain("--resume");
+        expect(getFreshSessionHandoff).not.toHaveBeenCalled();
+        expect(capture2.argv).toContain("11111111-1111-4111-8111-111111111111");
+        if (change === "removed") expect(capture2.mcpConfigContents).toBeNull();
+        else {
+          expect(capture2.mcpConfigContents).toContain("next-run-jwt-token");
+          expect(capture2.mcpConfigContents).not.toContain('"run-jwt-token"');
+          if (change === "added")
+            expect(capture2.mcpConfigContents).toContain("fresh-github-token");
+        }
+        expect(capture2.prompt).toContain("## TaskCore Resume Delta");
+        expect(capture2.prompt).not.toContain("Follow the taskcore heartbeat.");
+      } finally {
+        if (previousHome === undefined) delete process.env.HOME;
+        else process.env.HOME = previousHome;
+        if (previousTaskcoreHome === undefined)
+          delete process.env.TASKCORE_HOME;
+        else process.env.TASKCORE_HOME = previousTaskcoreHome;
+        if (previousTaskcoreInstanceId === undefined)
+          delete process.env.TASKCORE_INSTANCE_ID;
+        else process.env.TASKCORE_INSTANCE_ID = previousTaskcoreInstanceId;
+        await fs.rm(root, { recursive: true, force: true });
       }
-      expect(capture2.prompt).toContain("## TaskCore Resume Delta");
-      expect(capture2.prompt).not.toContain("Follow the taskcore heartbeat.");
-    } finally {
-      if (previousHome === undefined) delete process.env.HOME;
-      else process.env.HOME = previousHome;
-      if (previousTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
-      else process.env.TASKCORE_HOME = previousTaskcoreHome;
-      if (previousTaskcoreInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
-      else process.env.TASKCORE_INSTANCE_ID = previousTaskcoreInstanceId;
-      await fs.rm(root, { recursive: true, force: true });
-    }
-  });
+    },
+  );
 
   it("resumes across per-run instruction copies and refreshes their location", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-working-copy-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-working-copy-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "claude");
     const capturePath = path.join(root, "capture.json");
     const skillDir = path.join(root, "skill");
     await fs.mkdir(workspace, { recursive: true });
     await fs.mkdir(skillDir);
-    await fs.writeFile(path.join(skillDir, "SKILL.md"), "First skill version.\n");
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      "First skill version.\n",
+    );
     await writeFakeClaudeCommand(commandPath);
     vi.stubEnv("TASKCORE_HOME", path.join(root, "taskcore-home"));
     vi.stubEnv("TASKCORE_INSTANCE_ID", "default");
@@ -1382,55 +1723,113 @@ describe("claude execute", () => {
       let sessionParams: Record<string, unknown> | null = null;
       let previousBundleKey: unknown;
       let previousInstructionsPath = "";
-      for (const [index, change] of ["initial", "location", "instructions", "skill"].entries()) {
+      for (const [index, change] of [
+        "initial",
+        "location",
+        "instructions",
+        "skill",
+      ].entries()) {
         const runId = `run-${index}`;
-        const instructionsPath = path.join(root, "companies", "company-1", "agents", "agent-1",
-          "file-sync", "runs", runId, "live", "AGENTS.md");
+        const instructionsPath = path.join(
+          root,
+          "companies",
+          "company-1",
+          "agents",
+          "agent-1",
+          "file-sync",
+          "runs",
+          runId,
+          "live",
+          "AGENTS.md",
+        );
         await fs.mkdir(path.dirname(instructionsPath), { recursive: true });
-        await fs.writeFile(instructionsPath, index < 2 ? "First instructions.\n" : "Changed instructions.\n");
+        await fs.writeFile(
+          instructionsPath,
+          index < 2 ? "First instructions.\n" : "Changed instructions.\n",
+        );
         if (change === "skill") {
-          await fs.writeFile(path.join(skillDir, "SKILL.md"), "Changed skill version.\n");
+          await fs.writeFile(
+            path.join(skillDir, "SKILL.md"),
+            "Changed skill version.\n",
+          );
         }
         const logs: string[] = [];
         const result = await execute({
           runId,
-          agent: { id: "agent-1", companyId: "company-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-          runtime: { sessionId: null, sessionParams, sessionDisplayId: null, taskKey: "issue-1" },
+          agent: {
+            id: "agent-1",
+            companyId: "company-1",
+            name: "Test",
+            adapterType: "claude_local",
+            adapterConfig: { engine: "cli" },
+          },
+          runtime: {
+            sessionId: null,
+            sessionParams,
+            sessionDisplayId: null,
+            taskKey: "issue-1",
+          },
           config: {
             engine: "cli",
             command: commandPath,
             cwd: workspace,
             instructionsFilePath: instructionsPath,
-            taskcoreRuntimeSkills: [{ key: "test-skill", runtimeName: "test-skill", source: skillDir }],
+            taskcoreRuntimeSkills: [
+              {
+                key: "test-skill",
+                runtimeName: "test-skill",
+                source: skillDir,
+              },
+            ],
             taskcoreSkillSync: { desiredSkills: ["test-skill"] },
-            env: { TASKCORE_TEST_CAPTURE_PATH: capturePath, CLAUDE_CONFIG_DIR: path.join(root, "claude-config") },
+            env: {
+              TASKCORE_TEST_CAPTURE_PATH: capturePath,
+              CLAUDE_CONFIG_DIR: path.join(root, "claude-config"),
+            },
           },
           context: { issueId: "issue-1" },
-          onLog: async (_stream, chunk) => { logs.push(chunk); },
+          onLog: async (_stream, chunk) => {
+            logs.push(chunk);
+          },
         });
         expect(result.exitCode).toBe(0);
-        const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+        const capture = JSON.parse(
+          await fs.readFile(capturePath, "utf8"),
+        ) as CapturePayload;
         if (change === "location") {
           expect(capture.argv).toContain("--resume");
-          expect(capture.argv).toContain("11111111-1111-4111-8111-111111111111");
+          expect(capture.argv).toContain(
+            "11111111-1111-4111-8111-111111111111",
+          );
           expect(capture.instructionsFilePath).toBeNull();
           expect(result.sessionParams?.promptBundleKey).toBe(previousBundleKey);
         } else {
           expect(capture.argv).not.toContain("--resume");
-          expect(capture.instructionsContents).toContain(index < 2 ? "First instructions." : "Changed instructions.");
-          expect(result.sessionParams?.promptBundleKey).not.toBe(previousBundleKey);
+          expect(capture.instructionsContents).toContain(
+            index < 2 ? "First instructions." : "Changed instructions.",
+          );
+          expect(result.sessionParams?.promptBundleKey).not.toBe(
+            previousBundleKey,
+          );
           if (index > 0) {
-            expect(capture.instructionsContents).not.toContain(instructionsPath);
+            expect(capture.instructionsContents).not.toContain(
+              instructionsPath,
+            );
             expect(logs.join("")).toContain("was saved for prompt bundle");
             expect(logs.join("")).not.toContain("was saved for cwd");
           }
         }
         if (index > 0) {
           expect(capture.prompt).toContain(instructionsPath);
-          expect(capture.prompt).toContain(`Resolve any relative file references from ${path.dirname(instructionsPath)}/.`);
+          expect(capture.prompt).toContain(
+            `Resolve any relative file references from ${path.dirname(instructionsPath)}/.`,
+          );
         }
-        if (previousInstructionsPath) expect(capture.prompt).not.toContain(previousInstructionsPath);
-        sessionParams = sessionCodec.deserialize(sessionCodec.serialize(result.sessionParams ?? null));
+        if (previousInstructionsPath)
+          expect(capture.prompt).not.toContain(previousInstructionsPath);
+        sessionParams = sessionCodec.deserialize(
+          sessionCodec.serialize(result.sessionParams ?? null),
+        );
         previousBundleKey = result.sessionParams?.promptBundleKey;
         previousInstructionsPath = instructionsPath;
       }
@@ -1441,7 +1840,9 @@ describe("claude execute", () => {
   });
 
   it("starts a fresh Claude session when the stable prompt bundle changes", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-reset-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-execute-reset-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "claude");
     const capturePath1 = path.join(root, "capture-before.json");
@@ -1491,7 +1892,11 @@ describe("claude execute", () => {
         onLog: async () => {},
       });
 
-      await fs.writeFile(instructionsPath, "Version two instructions.\n", "utf8");
+      await fs.writeFile(
+        instructionsPath,
+        "Version two instructions.\n",
+        "utf8",
+      );
 
       const second = await execute({
         runId: "run-after",
@@ -1529,8 +1934,12 @@ describe("claude execute", () => {
       expect(second.exitCode).toBe(0);
       expect(second.errorMessage).toBeNull();
 
-      const before = JSON.parse(await fs.readFile(capturePath1, "utf8")) as CapturePayload;
-      const after = JSON.parse(await fs.readFile(capturePath2, "utf8")) as CapturePayload;
+      const before = JSON.parse(
+        await fs.readFile(capturePath1, "utf8"),
+      ) as CapturePayload;
+      const after = JSON.parse(
+        await fs.readFile(capturePath2, "utf8"),
+      ) as CapturePayload;
 
       expect(before.instructionsFilePath).not.toBe(after.instructionsFilePath);
       expect(after.argv).not.toContain("--resume");
@@ -1541,14 +1950,17 @@ describe("claude execute", () => {
       else process.env.HOME = previousHome;
       if (previousTaskcoreHome === undefined) delete process.env.TASKCORE_HOME;
       else process.env.TASKCORE_HOME = previousTaskcoreHome;
-      if (previousTaskcoreInstanceId === undefined) delete process.env.TASKCORE_INSTANCE_ID;
+      if (previousTaskcoreInstanceId === undefined)
+        delete process.env.TASKCORE_INSTANCE_ID;
       else process.env.TASKCORE_INSTANCE_ID = previousTaskcoreInstanceId;
       await fs.rm(root, { recursive: true, force: true });
     }
   }, 15_000);
 
   it("classifies Claude 'out of extra usage' failures as provider quota errors", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-transient-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-execute-transient-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "claude");
     await fs.mkdir(workspace, { recursive: true });
@@ -1559,7 +1971,9 @@ describe("claude execute", () => {
         session_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
         is_error: true,
         result: "You're out of extra usage · resets 4pm (America/Chicago)",
-        errors: [{ type: "rate_limit_error", message: "You're out of extra usage" }],
+        errors: [
+          { type: "rate_limit_error", message: "You're out of extra usage" },
+        ],
       },
     });
 
@@ -1601,11 +2015,13 @@ describe("claude execute", () => {
       const expectedRetryNotBefore = "2026-04-22T21:00:00.000Z";
       expect(result.retryNotBefore).toBe(expectedRetryNotBefore);
       expect(result.resultJson?.retryNotBefore).toBe(expectedRetryNotBefore);
-      expect(result.resultJson?.providerQuotaRetryNotBefore).toBe(expectedRetryNotBefore);
-      expect(result.errorMessage ?? "").toContain("extra usage");
-      expect(new Date(String(result.resultJson?.transientRetryNotBefore)).getTime()).toBe(
-        new Date("2026-04-22T21:00:00.000Z").getTime(),
+      expect(result.resultJson?.providerQuotaRetryNotBefore).toBe(
+        expectedRetryNotBefore,
       );
+      expect(result.errorMessage ?? "").toContain("extra usage");
+      expect(
+        new Date(String(result.resultJson?.transientRetryNotBefore)).getTime(),
+      ).toBe(new Date("2026-04-22T21:00:00.000Z").getTime());
     } finally {
       vi.useRealTimers();
       if (previousHome === undefined) delete process.env.HOME;
@@ -1615,7 +2031,9 @@ describe("claude execute", () => {
   });
 
   it("treats subtype=success results as successful even when the process exits nonzero", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-success-subtype-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-execute-success-subtype-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "claude");
     await fs.mkdir(workspace, { recursive: true });
@@ -1627,7 +2045,11 @@ describe("claude execute", () => {
         session_id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
         is_error: false,
         result: "Implemented the requested change.",
-        usage: { input_tokens: 1, cache_read_input_tokens: 0, output_tokens: 1 },
+        usage: {
+          input_tokens: 1,
+          cache_read_input_tokens: 0,
+          output_tokens: 1,
+        },
       },
     });
 
@@ -1673,7 +2095,9 @@ describe("claude execute", () => {
   });
 
   it("classifies rate-limit / overloaded failures without reset metadata as transient", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-rate-limit-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-execute-rate-limit-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "claude");
     await fs.mkdir(workspace, { recursive: true });
@@ -1684,7 +2108,12 @@ describe("claude execute", () => {
         session_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
         is_error: true,
         result: "Overloaded",
-        errors: [{ type: "overloaded_error", message: "Overloaded_error: API is overloaded." }],
+        errors: [
+          {
+            type: "overloaded_error",
+            message: "Overloaded_error: API is overloaded.",
+          },
+        ],
       },
     });
 
@@ -1732,7 +2161,9 @@ describe("claude execute", () => {
   });
 
   it("does not reclassify deterministic Claude failures (auth, max turns) as transient", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-execute-max-turns-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-execute-max-turns-"),
+    );
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "claude");
     await fs.mkdir(workspace, { recursive: true });
@@ -1786,16 +2217,30 @@ describe("claude execute", () => {
   });
 
   it("auto-rotates session on previous_message_id 400 (synthetic-msg poisoning) and succeeds on retry", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-poisoned-msgid-"));
-    const { workspace, commandPath, capturePath, statePath, restore } = await setupExecuteEnv(root, {
-      commandWriter: writePoisonedMessageIdClaudeCommand,
-    });
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-poisoned-msgid-"),
+    );
+    const { workspace, commandPath, capturePath, statePath, restore } =
+      await setupExecuteEnv(root, {
+        commandWriter: writePoisonedMessageIdClaudeCommand,
+      });
     const logs: string[] = [];
     try {
       const result = await execute({
         runId: "run-poisoned-msgid",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -1808,10 +2253,14 @@ describe("claude execute", () => {
         },
         context: {},
         authToken: "tok",
-        onLog: async (_stream, chunk) => { logs.push(chunk); },
+        onLog: async (_stream, chunk) => {
+          logs.push(chunk);
+        },
       });
 
-      const captured: Array<{ argv: string[] }> = JSON.parse(await fs.readFile(capturePath, "utf-8"));
+      const captured: Array<{ argv: string[] }> = JSON.parse(
+        await fs.readFile(capturePath, "utf-8"),
+      );
       // First attempt resumes, second attempt starts fresh
       expect(captured).toHaveLength(2);
       expect(captured[0]?.argv).toContain("--resume");
@@ -1834,15 +2283,29 @@ describe("claude execute", () => {
    * /v1/messages returns 400 again, permanently stranding the issue.
    */
   it("drops sessionId and forces clearSession when a fresh run reports a poisoned previous_message_id", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-poisoned-fresh-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root, {
-      commandWriter: writeAlwaysPoisonedMessageIdClaudeCommand,
-    });
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-poisoned-fresh-"),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root, {
+        commandWriter: writeAlwaysPoisonedMessageIdClaudeCommand,
+      });
     try {
       const result = await execute({
         runId: "run-poisoned-fresh",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
-        runtime: { sessionId: null, sessionParams: null, sessionDisplayId: null, taskKey: null },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
         config: {
           engine: "cli",
           command: commandPath,
@@ -1878,14 +2341,23 @@ describe("claude execute", () => {
    * was persisted and every subsequent continuation hit the same 400 again.
    */
   it("forces clearSession when the recovery retry also reports a poisoned previous_message_id", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-claude-exec-poisoned-retry-"));
-    const { workspace, commandPath, capturePath, restore } = await setupExecuteEnv(root, {
-      commandWriter: writeAlwaysPoisonedMessageIdClaudeCommand,
-    });
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-claude-exec-poisoned-retry-"),
+    );
+    const { workspace, commandPath, capturePath, restore } =
+      await setupExecuteEnv(root, {
+        commandWriter: writeAlwaysPoisonedMessageIdClaudeCommand,
+      });
     try {
       const result = await execute({
         runId: "run-poisoned-retry",
-        agent: { id: "agent-1", companyId: "co-1", name: "Test", adapterType: "claude_local", adapterConfig: { engine: "cli" } },
+        agent: {
+          id: "agent-1",
+          companyId: "co-1",
+          name: "Test",
+          adapterType: "claude_local",
+          adapterConfig: { engine: "cli" },
+        },
         runtime: {
           sessionId: "aaaaaaaa-0000-4000-8000-000000000004",
           sessionParams: null,
@@ -1904,7 +2376,9 @@ describe("claude execute", () => {
         onLog: async () => {},
       });
 
-      const captured: Array<{ argv: string[] }> = JSON.parse(await fs.readFile(capturePath, "utf-8"));
+      const captured: Array<{ argv: string[] }> = JSON.parse(
+        await fs.readFile(capturePath, "utf-8"),
+      );
       // Resume attempt + fresh recovery attempt, both poisoned.
       expect(captured).toHaveLength(2);
       expect(captured[0]?.argv).toContain("--resume");

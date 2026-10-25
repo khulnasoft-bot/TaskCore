@@ -3,18 +3,34 @@
 export const railwayResourceMetadata = {
   resource: "https://mcp.railway.com",
   authorization_servers: ["https://backboard.railway.com"],
-  scopes_supported: ["openid", "profile", "email", "offline_access", "workspace:member"],
+  scopes_supported: [
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+    "workspace:member",
+  ],
   bearer_methods_supported: ["header"],
 };
 export const railwayAuthorizationMetadata = {
   issuer: "https://backboard.railway.com",
-  authorization_endpoint: "https://backboard.railway.com/oauth/auth?resource=https%3A%2F%2Fbackboard.railway.com",
+  authorization_endpoint:
+    "https://backboard.railway.com/oauth/auth?resource=https%3A%2F%2Fbackboard.railway.com",
   token_endpoint: "https://backboard.railway.com/oauth/token",
   registration_endpoint: "https://backboard.railway.com/oauth/register",
   scopes_supported: railwayResourceMetadata.scopes_supported,
   response_types_supported: ["code"],
-  grant_types_supported: ["authorization_code", "refresh_token", "urn:ietf:params:oauth:grant-type:device_code"],
-  token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post", "none", "private_key_jwt"],
+  grant_types_supported: [
+    "authorization_code",
+    "refresh_token",
+    "urn:ietf:params:oauth:grant-type:device_code",
+  ],
+  token_endpoint_auth_methods_supported: [
+    "client_secret_basic",
+    "client_secret_post",
+    "none",
+    "private_key_jwt",
+  ],
   code_challenge_methods_supported: ["S256"],
 };
 export const target = {
@@ -28,8 +44,19 @@ export const targetData = {
   project: { id: target.projectId },
   environment: { id: target.environmentId, projectId: target.projectId },
   service: { id: target.serviceId, projectId: target.projectId },
-  serviceInstance: { environmentId: target.environmentId, serviceId: target.serviceId, source: { repo: "example/app" } },
+  serviceInstance: {
+    environmentId: target.environmentId,
+    serviceId: target.serviceId,
+    source: { repo: "example/app" },
+  },
 };
 export const deploymentData = {
-  deployment: { ...target, id: target.deploymentId, status: "SUCCESS", canRedeploy: true, canRollback: true, instances: [{ id: instanceId }] },
+  deployment: {
+    ...target,
+    id: target.deploymentId,
+    status: "SUCCESS",
+    canRedeploy: true,
+    canRollback: true,
+    instances: [{ id: instanceId }],
+  },
 };

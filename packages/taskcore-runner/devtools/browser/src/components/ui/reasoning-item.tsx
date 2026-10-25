@@ -27,7 +27,9 @@ export function ReasoningItem({
         <span className="ui-disclosure-preview">{summary}</span>
       </summary>
       <pre className="ui-payload">{text}</pre>
-      {interrupted ? <p className="ui-message-divider">Interrupted while reasoning.</p> : null}
+      {interrupted ? (
+        <p className="ui-message-divider">Interrupted while reasoning.</p>
+      ) : null}
     </details>
   );
 }

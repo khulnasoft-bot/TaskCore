@@ -1,5 +1,12 @@
-import type { AskUserQuestionsAnswer, AskUserQuestionsPayload, TaskcoreQuestionSetPayload } from "@taskcore/shared";
-import { parseTaskcoreQuestionResponse, type TaskcoreQuestionResponse } from "../vendor/taskcore-runner/index.js";
+import type {
+  AskUserQuestionsAnswer,
+  AskUserQuestionsPayload,
+  TaskcoreQuestionSetPayload,
+} from "@taskcore/shared";
+import {
+  parseTaskcoreQuestionResponse,
+  type TaskcoreQuestionResponse,
+} from "../vendor/taskcore-runner/index.js";
 import { validateQuestionPatterns } from "./question-pattern-validation.js";
 
 function prepareQuestionInteractionAnswers(
@@ -7,7 +14,9 @@ function prepareQuestionInteractionAnswers(
   answers: readonly AskUserQuestionsAnswer[],
   storageQuestions: AskUserQuestionsPayload["questions"],
 ) {
-  const answerByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer]));
+  const answerByQuestionId = new Map(
+    answers.map((answer) => [answer.questionId, answer]),
+  );
   const response: TaskcoreQuestionResponse = {
     schema: "taskcore.question_response.v1",
     answers: {},
@@ -22,10 +31,14 @@ function prepareQuestionInteractionAnswers(
           : {}),
       };
     } else {
-      const customOptionId = storageQuestions.find((entry) => entry.id === question.id)
-        ?.options.find((option) => option.freeText)?.id ?? null;
+      const customOptionId =
+        storageQuestions
+          .find((entry) => entry.id === question.id)
+          ?.options.find((option) => option.freeText)?.id ?? null;
       response.answers[question.id] = {
-        selectedOptionIds: answer.optionIds.filter((optionId) => optionId !== customOptionId),
+        selectedOptionIds: answer.optionIds.filter(
+          (optionId) => optionId !== customOptionId,
+        ),
         ...(answer.otherText !== undefined && answer.otherText !== null
           ? { customText: answer.otherText }
           : {}),
@@ -37,9 +50,15 @@ function prepareQuestionInteractionAnswers(
   const answerableQuestionSet = {
     ...questionSet,
     questions: questionSet.questions.map((question) => {
-      const storage = storageQuestions.find((entry) => entry.id === question.id);
-      if (question.answerMode !== "text" && !question.customAnswer
-        && (storage?.allowOther === true || storage?.options.some((option) => option.freeText))) {
+      const storage = storageQuestions.find(
+        (entry) => entry.id === question.id,
+      );
+      if (
+        question.answerMode !== "text" &&
+        !question.customAnswer &&
+        (storage?.allowOther === true ||
+          storage?.options.some((option) => option.freeText))
+      ) {
         return { ...question, customAnswer: { enabled: true as const } };
       }
       return question;
@@ -59,8 +78,11 @@ function prepareQuestionInteractionAnswers(
   const checks = answerableQuestionSet.questions.flatMap((question) => {
     const pattern = question.textValidation?.pattern;
     const answer = parsed.answers[question.id];
-    const text = question.answerMode === "text" ? answer?.text : answer?.customText;
-    return pattern !== undefined && text !== undefined ? [{ questionId: question.id, pattern, text }] : [];
+    const text =
+      question.answerMode === "text" ? answer?.text : answer?.customText;
+    return pattern !== undefined && text !== undefined
+      ? [{ questionId: question.id, pattern, text }]
+      : [];
   });
   return { parsed, checks };
 }
@@ -71,7 +93,11 @@ export async function parseQuestionInteractionAnswers(
   answers: readonly AskUserQuestionsAnswer[],
   storageQuestions: AskUserQuestionsPayload["questions"],
 ): Promise<TaskcoreQuestionResponse> {
-  const { parsed, checks } = prepareQuestionInteractionAnswers(questionSet, answers, storageQuestions);
+  const { parsed, checks } = prepareQuestionInteractionAnswers(
+    questionSet,
+    answers,
+    storageQuestions,
+  );
   await validateQuestionPatterns(checks);
   return parsed;
 }
@@ -82,5 +108,9 @@ export function parseSavedQuestionInteractionAnswers(
   answers: readonly AskUserQuestionsAnswer[],
   storageQuestions: AskUserQuestionsPayload["questions"],
 ): TaskcoreQuestionResponse {
-  return prepareQuestionInteractionAnswers(questionSet, answers, storageQuestions).parsed;
+  return prepareQuestionInteractionAnswers(
+    questionSet,
+    answers,
+    storageQuestions,
+  ).parsed;
 }

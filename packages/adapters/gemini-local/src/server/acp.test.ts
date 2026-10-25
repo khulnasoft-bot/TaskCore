@@ -2,7 +2,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AdapterExecutionContext, AdapterInvocationMeta } from "@taskcore/adapter-utils";
+import type {
+  AdapterExecutionContext,
+  AdapterInvocationMeta,
+} from "@taskcore/adapter-utils";
 import { runChildProcess } from "@taskcore/adapter-utils/server-utils";
 
 // Every test in this file needs a real teardown, so the mock below delegates
@@ -10,16 +13,19 @@ import { runChildProcess } from "@taskcore/adapter-utils/server-utils";
 // the call arguments; it does not change this behavior.
 const mockCreateWorkspaceRestoreTeardown = vi.hoisted(() => vi.fn());
 
-vi.mock("@taskcore/adapter-utils/workspace-restore-teardown", async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  mockCreateWorkspaceRestoreTeardown.mockImplementation(
-    actual.createWorkspaceRestoreTeardown as (...args: unknown[]) => unknown,
-  );
-  return {
-    ...actual,
-    createWorkspaceRestoreTeardown: mockCreateWorkspaceRestoreTeardown,
-  };
-});
+vi.mock(
+  "@taskcore/adapter-utils/workspace-restore-teardown",
+  async (importOriginal) => {
+    const actual = await importOriginal<Record<string, unknown>>();
+    mockCreateWorkspaceRestoreTeardown.mockImplementation(
+      actual.createWorkspaceRestoreTeardown as (...args: unknown[]) => unknown,
+    );
+    return {
+      ...actual,
+      createWorkspaceRestoreTeardown: mockCreateWorkspaceRestoreTeardown,
+    };
+  },
+);
 
 import {
   buildGeminiAcpConfig,
@@ -47,20 +53,33 @@ function createLocalSandboxRunner() {
     }) => {
       counter += 1;
       const command = input.command === "bash" ? "/bin/bash" : input.command;
-      return await runChildProcess(`gemini-acp-sandbox-run-${counter}`, command, input.args ?? [], {
-        cwd: input.cwd ?? process.cwd(),
-        env: input.env ?? {},
-        stdin: input.stdin,
-        timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
-        graceSec: 5,
-        onLog: input.onLog ?? (async () => {}),
-      });
+      return await runChildProcess(
+        `gemini-acp-sandbox-run-${counter}`,
+        command,
+        input.args ?? [],
+        {
+          cwd: input.cwd ?? process.cwd(),
+          env: input.env ?? {},
+          stdin: input.stdin,
+          timeoutSec: Math.max(
+            1,
+            Math.ceil((input.timeoutMs ?? 30_000) / 1000),
+          ),
+          graceSec: 5,
+          onLog: input.onLog ?? (async () => {}),
+        },
+      );
     },
   };
 }
 
 type FakeRuntimeOptions = Record<string, unknown>;
-type FakeRuntimeEvent = { type: string; text?: string; stream?: string; tag?: string };
+type FakeRuntimeEvent = {
+  type: string;
+  text?: string;
+  stream?: string;
+  tag?: string;
+};
 type FakeRuntimeHandle = {
   sessionKey: string;
   backend: string;
@@ -70,7 +89,10 @@ type FakeRuntimeHandle = {
   backendSessionId: string;
   agentSessionId: string;
 };
-type FakeRuntimeTurnResult = { status: "completed" | "failed" | "cancelled"; stopReason?: string };
+type FakeRuntimeTurnResult = {
+  status: "completed" | "failed" | "cancelled";
+  stopReason?: string;
+};
 type FakeRuntimeTurn = {
   requestId: string;
   events: AsyncIterable<FakeRuntimeEvent>;
@@ -101,7 +123,11 @@ afterEach(async () => {
   else process.env.HOME = originalHome;
   if (originalGeminiApiKey === undefined) delete process.env.GEMINI_API_KEY;
   else process.env.GEMINI_API_KEY = originalGeminiApiKey;
-  await Promise.all(tempRoots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true })));
+  await Promise.all(
+    tempRoots
+      .splice(0)
+      .map((root) => fs.rm(root, { recursive: true, force: true })),
+  );
 });
 
 class FakeRuntime {
@@ -112,17 +138,38 @@ class FakeRuntime {
     cwd?: string;
     resumeSessionId?: string;
   }> = [];
-  startInputs: Array<{ handle: FakeRuntimeHandle; text: string; requestId: string; timeoutMs?: number }> = [];
-  closeInputs: Array<{ handle: FakeRuntimeHandle; reason: string; discardPersistentState?: boolean }> = [];
-  setConfigInputs: Array<{ handle: FakeRuntimeHandle; key: string; value: string }> = [];
+  startInputs: Array<{
+    handle: FakeRuntimeHandle;
+    text: string;
+    requestId: string;
+    timeoutMs?: number;
+  }> = [];
+  closeInputs: Array<{
+    handle: FakeRuntimeHandle;
+    reason: string;
+    discardPersistentState?: boolean;
+  }> = [];
+  setConfigInputs: Array<{
+    handle: FakeRuntimeHandle;
+    key: string;
+    value: string;
+  }> = [];
   ensureCount = 0;
 
   constructor(
     readonly options: FakeRuntimeOptions,
     readonly events: FakeRuntimeEvent[] = [
-      { type: "text_delta", text: "hello", stream: "output", tag: "agent_message_chunk" },
+      {
+        type: "text_delta",
+        text: "hello",
+        stream: "output",
+        tag: "agent_message_chunk",
+      },
     ],
-    readonly terminal: FakeRuntimeTurnResult = { status: "completed", stopReason: "end_turn" },
+    readonly terminal: FakeRuntimeTurnResult = {
+      status: "completed",
+      stopReason: "end_turn",
+    },
   ) {}
 
   async ensureSession(input: {
@@ -179,7 +226,11 @@ class FakeRuntime {
     return Promise.resolve({});
   }
 
-  async setConfigOption(input: { handle: FakeRuntimeHandle; key: string; value: string }) {
+  async setConfigOption(input: {
+    handle: FakeRuntimeHandle;
+    key: string;
+    value: string;
+  }) {
     this.setConfigInputs.push(input);
   }
 
@@ -187,7 +238,11 @@ class FakeRuntime {
 
   async cancel() {}
 
-  async close(input: { handle: FakeRuntimeHandle; reason: string; discardPersistentState?: boolean }) {
+  async close(input: {
+    handle: FakeRuntimeHandle;
+    reason: string;
+    discardPersistentState?: boolean;
+  }) {
     this.closeInputs.push(input);
   }
 }
@@ -198,7 +253,10 @@ async function makeTempRoot(prefix: string) {
   return root;
 }
 
-function buildContext(root: string, overrides: Partial<AdapterExecutionContext> = {}): AdapterExecutionContext {
+function buildContext(
+  root: string,
+  overrides: Partial<AdapterExecutionContext> = {},
+): AdapterExecutionContext {
   return {
     runId: "run-1",
     agent: {
@@ -237,13 +295,15 @@ function buildContext(root: string, overrides: Partial<AdapterExecutionContext> 
 
 describe("gemini_local ACP lane", () => {
   it("maps Gemini config to the ACPX Gemini target", () => {
-    expect(buildGeminiAcpConfig({
-      engine: "acp",
-      cwd: "/repo",
-      model: "gemini-2.5-pro",
-      command: "/opt/gemini",
-      warmHandleIdleMs: 25,
-    })).toMatchObject({
+    expect(
+      buildGeminiAcpConfig({
+        engine: "acp",
+        cwd: "/repo",
+        model: "gemini-2.5-pro",
+        command: "/opt/gemini",
+        warmHandleIdleMs: 25,
+      }),
+    ).toMatchObject({
       agent: "gemini",
       cwd: "/repo",
       model: "gemini-2.5-pro",
@@ -254,8 +314,15 @@ describe("gemini_local ACP lane", () => {
       warmHandleIdleMs: 25,
     });
 
-    expect(buildGeminiAcpConfig({ engine: "acp", model: "auto" })).not.toHaveProperty("model");
-    expect(buildGeminiAcpConfig({ engine: "acp", agentCommand: "custom-gemini-acp" })).toMatchObject({
+    expect(
+      buildGeminiAcpConfig({ engine: "acp", model: "auto" }),
+    ).not.toHaveProperty("model");
+    expect(
+      buildGeminiAcpConfig({
+        engine: "acp",
+        agentCommand: "custom-gemini-acp",
+      }),
+    ).toMatchObject({
       agentCommand: "custom-gemini-acp",
     });
   });
@@ -274,7 +341,10 @@ describe("gemini_local ACP lane", () => {
     await fs.writeFile(commandPath, "#!/usr/bin/env sh\n", "utf8");
     setNodeVersion("v24.11.0");
 
-    expect(resolveGeminiExecutionEngine({})).toEqual({ engine: "acp", explicit: false });
+    expect(resolveGeminiExecutionEngine({})).toEqual({
+      engine: "acp",
+      explicit: false,
+    });
     await expect(
       resolveGeminiExecutionEngineForRun({
         config: { command: commandPath },
@@ -308,7 +378,11 @@ describe("gemini_local ACP lane", () => {
         config: { engine: "acp", command: "/missing/gemini" },
         executionTarget: null,
       }),
-    ).resolves.toMatchObject({ engine: "acp", explicit: true, unavailableReason: expect.stringContaining("Node") });
+    ).resolves.toMatchObject({
+      engine: "acp",
+      explicit: true,
+      unavailableReason: expect.stringContaining("Node"),
+    });
   });
 
   it("reports unavailable ACP for non-sandbox remote auto runs", async () => {
@@ -354,7 +428,9 @@ describe("gemini_local ACP lane", () => {
     ).resolves.toMatchObject({
       engine: "acp",
       explicit: false,
-      unavailableReason: expect.stringContaining("bidirectional remote process"),
+      unavailableReason: expect.stringContaining(
+        "bidirectional remote process",
+      ),
     });
   });
 
@@ -400,14 +476,16 @@ describe("gemini_local ACP lane", () => {
       },
     });
 
-    const result = await execute(buildContext(root, {
-      onMeta: async (meta) => {
-        metas.push(meta);
-      },
-      onLog: async (stream, text) => {
-        logs.push({ stream, text });
-      },
-    }));
+    const result = await execute(
+      buildContext(root, {
+        onMeta: async (meta) => {
+          metas.push(meta);
+        },
+        onLog: async (stream, text) => {
+          logs.push({ stream, text });
+        },
+      }),
+    );
 
     expect(runtime.ensureInputs[0]).toMatchObject({
       agent: "gemini",
@@ -431,7 +509,9 @@ describe("gemini_local ACP lane", () => {
       adapterType: "gemini_local",
       command: "fake-gemini --acp",
     });
-    expect(logs.some((entry) => entry.text.includes("\"type\":\"acpx.session\""))).toBe(true);
+    expect(
+      logs.some((entry) => entry.text.includes('"type":"acpx.session"')),
+    ).toBe(true);
   });
 
   it("creates the ACP session on the in-sandbox workspace cwd for runner-backed remote runs", async () => {
@@ -465,7 +545,11 @@ describe("gemini_local ACP lane", () => {
         context: {
           issueId: "issue-1",
           taskcoreTaskMarkdown: "Task context",
-          taskcoreWorkspace: { cwd: localCwd, source: "project_workspace", workspaceId: "workspace-1" },
+          taskcoreWorkspace: {
+            cwd: localCwd,
+            source: "project_workspace",
+            workspaceId: "workspace-1",
+          },
         },
         executionTarget: {
           kind: "remote",
@@ -479,7 +563,9 @@ describe("gemini_local ACP lane", () => {
     );
 
     expect(result.exitCode).toBe(0);
-    await expect(fs.readFile(path.join(remoteCwd, "hello.txt"), "utf8")).resolves.toBe("hi");
+    await expect(
+      fs.readFile(path.join(remoteCwd, "hello.txt"), "utf8"),
+    ).resolves.toBe("hi");
     expect(runtime.ensureInputs[0]?.cwd).toBe(remoteCwd);
     expect(runtime.ensureInputs[0]?.cwd).not.toBe(localCwd);
   });
@@ -494,7 +580,11 @@ describe("gemini_local ACP lane", () => {
     // A selected skill so the shipped skills asset has content to seed.
     const skillSource = path.join(root, "skills", "review");
     await fs.mkdir(skillSource, { recursive: true });
-    await fs.writeFile(path.join(skillSource, "SKILL.md"), "---\n---\nUse the review skill.\n", "utf8");
+    await fs.writeFile(
+      path.join(skillSource, "SKILL.md"),
+      "---\n---\nUse the review skill.\n",
+      "utf8",
+    );
     // The credential is delivered through the adapter-config env — the run env the
     // seam forwards into the sandbox — so pre-selecting api-key auth is backed by a
     // credential that is actually available in-sandbox. A stray host-only key must
@@ -523,12 +613,22 @@ describe("gemini_local ACP lane", () => {
           // skills off the real ~/.gemini, and deliver the key via config env.
           env: { HOME: hostHome, GEMINI_API_KEY: SECRET_KEY },
           promptTemplate: "Do the assigned work.",
-          taskcoreRuntimeSkills: [{ key: "company/review", runtimeName: "review", source: skillSource }],
+          taskcoreRuntimeSkills: [
+            {
+              key: "company/review",
+              runtimeName: "review",
+              source: skillSource,
+            },
+          ],
           taskcoreSkillSync: { desiredSkills: ["company/review"] },
         },
         context: {
           issueId: "issue-1",
-          taskcoreWorkspace: { cwd: localCwd, source: "project_workspace", workspaceId: "workspace-1" },
+          taskcoreWorkspace: {
+            cwd: localCwd,
+            source: "project_workspace",
+            workspaceId: "workspace-1",
+          },
         },
         executionTarget: {
           kind: "remote",
@@ -552,10 +652,16 @@ describe("gemini_local ACP lane", () => {
     expect(remappedHome).toContain(".taskcore-runtime");
     // Seeded: skills copied into $HOME/.gemini/skills (local runner = host FS).
     await expect(
-      fs.readFile(path.join(remappedHome, ".gemini", "skills", "review", "SKILL.md"), "utf8"),
+      fs.readFile(
+        path.join(remappedHome, ".gemini", "skills", "review", "SKILL.md"),
+        "utf8",
+      ),
     ).resolves.toContain("review skill");
     // settings.json pre-selects api-key auth but carries no key bytes.
-    const settingsRaw = await fs.readFile(path.join(remappedHome, ".gemini", "settings.json"), "utf8");
+    const settingsRaw = await fs.readFile(
+      path.join(remappedHome, ".gemini", "settings.json"),
+      "utf8",
+    );
     expect(settingsRaw).toContain("gemini-api-key");
     expect(settingsRaw).not.toContain(SECRET_KEY);
     // The selector is backed by a credential the sandbox actually receives: the key
@@ -565,7 +671,9 @@ describe("gemini_local ACP lane", () => {
     expect(meta[0]?.env?.GEMINI_API_KEY).toBeDefined();
     expect(meta[0]?.env?.GEMINI_API_KEY).not.toBe(SECRET_KEY);
     // C4 — no XDG_* variable introduced for credential discovery.
-    expect(Object.keys(meta[0]?.env ?? {}).filter((key) => key.startsWith("XDG_"))).toEqual([]);
+    expect(
+      Object.keys(meta[0]?.env ?? {}).filter((key) => key.startsWith("XDG_")),
+    ).toEqual([]);
   });
 
   it("test_gemini_acp_seam_registers_workspace_sync_back", async () => {
@@ -587,7 +695,11 @@ describe("gemini_local ACP lane", () => {
       return {
         ...turn,
         result: (async () => {
-          await fs.writeFile(path.join(remoteWorkspaceCwd, "from-sandbox.txt"), "synced", "utf8");
+          await fs.writeFile(
+            path.join(remoteWorkspaceCwd, "from-sandbox.txt"),
+            "synced",
+            "utf8",
+          );
           return await turn.result;
         })(),
       };
@@ -611,7 +723,11 @@ describe("gemini_local ACP lane", () => {
         },
         context: {
           issueId: "issue-1",
-          taskcoreWorkspace: { cwd: localCwd, source: "project_workspace", workspaceId: "workspace-1" },
+          taskcoreWorkspace: {
+            cwd: localCwd,
+            source: "project_workspace",
+            workspaceId: "workspace-1",
+          },
         },
         executionTarget: {
           kind: "remote",
@@ -627,7 +743,9 @@ describe("gemini_local ACP lane", () => {
     expect(result.exitCode).toBe(0);
     // The teardown fired `restoreWorkspace`, so the sandbox-authored file is now
     // in the host worktree.
-    await expect(fs.readFile(path.join(localCwd, "from-sandbox.txt"), "utf8")).resolves.toBe("synced");
+    await expect(
+      fs.readFile(path.join(localCwd, "from-sandbox.txt"), "utf8"),
+    ).resolves.toBe("synced");
   });
 
   it("passes the Gemini-specific teardown messages to the shared workspace-restore-teardown factory", async () => {
@@ -658,7 +776,11 @@ describe("gemini_local ACP lane", () => {
         },
         context: {
           issueId: "issue-1",
-          taskcoreWorkspace: { cwd: localCwd, source: "project_workspace", workspaceId: "workspace-1" },
+          taskcoreWorkspace: {
+            cwd: localCwd,
+            source: "project_workspace",
+            workspaceId: "workspace-1",
+          },
         },
         executionTarget: {
           kind: "remote",
@@ -674,8 +796,10 @@ describe("gemini_local ACP lane", () => {
     expect(result.exitCode).toBe(0);
     expect(mockCreateWorkspaceRestoreTeardown).toHaveBeenCalledWith(
       expect.objectContaining({
-        startMessage: "[taskcore] Restoring workspace changes from the sandbox.\n",
-        failurePrefix: "[taskcore] Gemini ACP teardown workspace restore failed",
+        startMessage:
+          "[taskcore] Restoring workspace changes from the sandbox.\n",
+        failurePrefix:
+          "[taskcore] Gemini ACP teardown workspace restore failed",
       }),
     );
   });
@@ -717,7 +841,11 @@ describe("gemini_local ACP lane", () => {
         },
         context: {
           issueId: "issue-1",
-          taskcoreWorkspace: { cwd: localCwd, source: "project_workspace", workspaceId: "workspace-1" },
+          taskcoreWorkspace: {
+            cwd: localCwd,
+            source: "project_workspace",
+            workspaceId: "workspace-1",
+          },
         },
         executionTarget: {
           kind: "remote",
@@ -762,7 +890,9 @@ describe("gemini_local ACP lane", () => {
     ).resolves.toMatchObject({
       engine: "acp",
       explicit: false,
-      unavailableReason: expect.stringContaining("bidirectional remote process"),
+      unavailableReason: expect.stringContaining(
+        "bidirectional remote process",
+      ),
     });
   });
 

@@ -19,9 +19,19 @@ export async function fetchIssueExternalObjectSummariesInBatches(
   issueIds: readonly string[],
 ) {
   const summaries: Record<string, ExternalObjectSummary> = {};
-  for (let index = 0; index < issueIds.length; index += EXTERNAL_OBJECT_SUMMARY_BATCH_SIZE) {
-    const batch = issueIds.slice(index, index + EXTERNAL_OBJECT_SUMMARY_BATCH_SIZE);
-    const response = await externalObjectsApi.getIssueSummaries(companyId, batch);
+  for (
+    let index = 0;
+    index < issueIds.length;
+    index += EXTERNAL_OBJECT_SUMMARY_BATCH_SIZE
+  ) {
+    const batch = issueIds.slice(
+      index,
+      index + EXTERNAL_OBJECT_SUMMARY_BATCH_SIZE,
+    );
+    const response = await externalObjectsApi.getIssueSummaries(
+      companyId,
+      batch,
+    );
     Object.assign(summaries, response.summaries);
   }
   return { summaries };
@@ -40,9 +50,13 @@ function formatMentionSourceLabel(mention: ExternalObjectMention): string {
     case "comment":
       return "Comment";
     case "document":
-      return mention.documentKey ? `Document: ${mention.documentKey}` : "Document";
+      return mention.documentKey
+        ? `Document: ${mention.documentKey}`
+        : "Document";
     case "property":
-      return mention.propertyKey ? `Property: ${mention.propertyKey}` : "Property";
+      return mention.propertyKey
+        ? `Property: ${mention.propertyKey}`
+        : "Property";
     case "plugin":
       return "Plugin";
     default:
@@ -85,7 +99,9 @@ function useExternalObjectsFeature() {
  * lookup map (used by inline decoration). Single source of truth so every
  * surface reads from the same query result.
  */
-export function useIssueExternalObjects(issueId: string | null | undefined): IssueExternalObjectsResult {
+export function useIssueExternalObjects(
+  issueId: string | null | undefined,
+): IssueExternalObjectsResult {
   const externalObjectsFeature = useExternalObjectsFeature();
   const enabled = externalObjectsFeature.isEnabled && Boolean(issueId);
   const query = useQuery({
@@ -98,12 +114,15 @@ export function useIssueExternalObjects(issueId: string | null | undefined): Iss
   const groups = useMemo<IssueExternalObjectGroup[]>(() => {
     const data = query.data ?? [];
     return data
-      .filter((entry): entry is ExternalObjectMentionGroup => Boolean(entry.object))
+      .filter((entry): entry is ExternalObjectMentionGroup =>
+        Boolean(entry.object),
+      )
       .map((entry) => {
         const object = entry.object!;
-        const sourceLabels = entry.sourceLabels && entry.sourceLabels.length > 0
-          ? entry.sourceLabels
-          : Array.from(new Set(entry.mentions.map(formatMentionSourceLabel)));
+        const sourceLabels =
+          entry.sourceLabels && entry.sourceLabels.length > 0
+            ? entry.sourceLabels
+            : Array.from(new Set(entry.mentions.map(formatMentionSourceLabel)));
         return {
           group: entry,
           mentionCount: entry.mentionCount ?? entry.mentions.length,
@@ -130,7 +149,9 @@ export function useIssueExternalObjects(issueId: string | null | undefined): Iss
       const object = group.object;
       if (!object) continue;
       // Index by the object's canonical URL.
-      const canonical = normalizeExternalObjectHref(object.sanitizedCanonicalUrl ?? null);
+      const canonical = normalizeExternalObjectHref(
+        object.sanitizedCanonicalUrl ?? null,
+      );
       if (canonical) {
         result[canonical] = {
           providerKey: object.providerKey,
@@ -182,7 +203,9 @@ export function useIssueExternalObjects(issueId: string | null | undefined): Iss
   };
 }
 
-export function useIssueExternalObjectSummary(issueId: string | null | undefined): {
+export function useIssueExternalObjectSummary(
+  issueId: string | null | undefined,
+): {
   summary: ExternalObjectSummary | null;
   isLoading: boolean;
 } {
@@ -213,10 +236,20 @@ export function useIssueExternalObjectSummaries(
     () => [...new Set(issueIds.filter((issueId) => issueId.length > 0))].sort(),
     [issueIds],
   );
-  const enabled = externalObjectsFeature.isEnabled && Boolean(companyId) && normalizedIssueIds.length > 0;
+  const enabled =
+    externalObjectsFeature.isEnabled &&
+    Boolean(companyId) &&
+    normalizedIssueIds.length > 0;
   const query = useQuery({
-    queryKey: queryKeys.externalObjects.issueSummaries(companyId ?? "__none__", normalizedIssueIds),
-    queryFn: () => fetchIssueExternalObjectSummariesInBatches(companyId!, normalizedIssueIds),
+    queryKey: queryKeys.externalObjects.issueSummaries(
+      companyId ?? "__none__",
+      normalizedIssueIds,
+    ),
+    queryFn: () =>
+      fetchIssueExternalObjectSummariesInBatches(
+        companyId!,
+        normalizedIssueIds,
+      ),
     enabled,
     staleTime: 60_000,
   });
@@ -231,7 +264,9 @@ export function useIssueExternalObjectSummaries(
   };
 }
 
-export function useProjectExternalObjectSummary(projectId: string | null | undefined): {
+export function useProjectExternalObjectSummary(
+  projectId: string | null | undefined,
+): {
   summary: ExternalObjectSummary | null;
   isLoading: boolean;
 } {

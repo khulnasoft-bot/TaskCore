@@ -81,14 +81,21 @@ export async function rebindContinuationContract(
         ),
       )
       .limit(1);
-    const ownsFencedRecovery = recoveryClaim
-      && recoveryClaim.kind !== "reattach_existing_runner"
-      && recoveryClaim.runId === binding.runId
-      && coordinator?.leaseOwner === recoveryClaim.leaseOwner
-      && coordinator.controllerGeneration === recoveryClaim.controllerGeneration
-      && coordinator.phase === "observed"
-      && ["resuming_session", "bootstrap_incomplete"].includes(coordinator.recoveryState ?? "");
-    if ((coordinator?.leaseOwner && !ownsFencedRecovery) || coordinator?.resultId || result)
+    const ownsFencedRecovery =
+      recoveryClaim &&
+      recoveryClaim.kind !== "reattach_existing_runner" &&
+      recoveryClaim.runId === binding.runId &&
+      coordinator?.leaseOwner === recoveryClaim.leaseOwner &&
+      coordinator.controllerGeneration === recoveryClaim.controllerGeneration &&
+      coordinator.phase === "observed" &&
+      ["resuming_session", "bootstrap_incomplete"].includes(
+        coordinator.recoveryState ?? "",
+      );
+    if (
+      (coordinator?.leaseOwner && !ownsFencedRecovery) ||
+      coordinator?.resultId ||
+      result
+    )
       throw new Error("continuation_contract_requires_fenced_uncompleted_run");
     if (
       run.completionContractId !== expected.completionContract.id ||

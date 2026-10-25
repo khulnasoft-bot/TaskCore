@@ -20,8 +20,12 @@ describe("issueReviewPolicyBadge", () => {
   });
 
   it("spells the rule out in the tooltip so the badge is recoverable", () => {
-    expect(issueReviewPolicyBadge("not_creator")?.description).toContain("asked for the review");
-    expect(issueReviewPolicyBadge("human_only")?.description).toContain("Agents cannot");
+    expect(issueReviewPolicyBadge("not_creator")?.description).toContain(
+      "asked for the review",
+    );
+    expect(issueReviewPolicyBadge("human_only")?.description).toContain(
+      "Agents cannot",
+    );
   });
 
   it("shows nothing for a policy this build does not know", () => {
@@ -48,7 +52,9 @@ describe("formatReviewPolicyValue", () => {
 
 describe("readIssueReviewPolicyMetadata", () => {
   it("reads the policy off an attention subject's metadata bag", () => {
-    expect(readIssueReviewPolicyMetadata({ reviewPolicy: "human_only" })).toBe("human_only");
+    expect(readIssueReviewPolicyMetadata({ reviewPolicy: "human_only" })).toBe(
+      "human_only",
+    );
   });
 
   it("returns null when the subject carries no policy", () => {
@@ -58,7 +64,9 @@ describe("readIssueReviewPolicyMetadata", () => {
   });
 
   it("rejects a value outside the enum instead of trusting the wire", () => {
-    expect(readIssueReviewPolicyMetadata({ reviewPolicy: "board_only" })).toBeNull();
+    expect(
+      readIssueReviewPolicyMetadata({ reviewPolicy: "board_only" }),
+    ).toBeNull();
     expect(readIssueReviewPolicyMetadata({ reviewPolicy: 3 })).toBeNull();
   });
 });

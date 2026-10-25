@@ -21,7 +21,9 @@ import { errorHandler } from "../middleware/index.js";
 import { issueRoutes } from "../routes/issues.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -54,13 +56,19 @@ function boardActor(company: CompanyRow): Express.Request["actor"] {
     type: "board",
     userId: "board-user",
     companyIds: [company.id],
-    memberships: [{ companyId: company.id, membershipRole: "operator", status: "active" }],
+    memberships: [
+      { companyId: company.id, membershipRole: "operator", status: "active" },
+    ],
     isInstanceAdmin: true,
     source: "local_implicit",
   };
 }
 
-function agentActor(company: CompanyRow, agent: AgentRow, runId: string): Express.Request["actor"] {
+function agentActor(
+  company: CompanyRow,
+  agent: AgentRow,
+  runId: string,
+): Express.Request["actor"] {
   return {
     type: "agent",
     agentId: agent.id,
@@ -72,33 +80,46 @@ function agentActor(company: CompanyRow, agent: AgentRow, runId: string): Expres
 
 async function seedCompany(db: Db, label = "Diagnostics") {
   const nonce = randomUUID().slice(0, 8);
-  const [company] = await db.insert(companies).values({
-    name: `${label} ${nonce}`,
-    issuePrefix: `DG${nonce.slice(0, 4).toUpperCase()}`,
-    defaultResponsibleUserId: "board-user",
-  }).returning();
+  const [company] = await db
+    .insert(companies)
+    .values({
+      name: `${label} ${nonce}`,
+      issuePrefix: `DG${nonce.slice(0, 4).toUpperCase()}`,
+      defaultResponsibleUserId: "board-user",
+    })
+    .returning();
   return company!;
 }
 
-async function seedAgent(db: Db, companyId: string, permissions: Record<string, unknown> = {}) {
-  const [agent] = await db.insert(agents).values({
-    companyId,
-    name: `Agent ${randomUUID().slice(0, 6)}`,
-    role: "engineer",
-    adapterType: "process",
-    adapterConfig: {},
-    runtimeConfig: {},
-    permissions,
-  }).returning();
+async function seedAgent(
+  db: Db,
+  companyId: string,
+  permissions: Record<string, unknown> = {},
+) {
+  const [agent] = await db
+    .insert(agents)
+    .values({
+      companyId,
+      name: `Agent ${randomUUID().slice(0, 6)}`,
+      role: "engineer",
+      adapterType: "process",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions,
+    })
+    .returning();
   return agent!;
 }
 
 async function seedProject(db: Db, companyId: string, name: string) {
-  const [project] = await db.insert(projects).values({
-    companyId,
-    name,
-    status: "in_progress",
-  }).returning();
+  const [project] = await db
+    .insert(projects)
+    .values({
+      companyId,
+      name,
+      status: "in_progress",
+    })
+    .returning();
   return project!;
 }
 
@@ -113,20 +134,28 @@ async function seedIssue(
     parentId?: string | null;
   },
 ) {
-  const [issue] = await db.insert(issues).values({
-    companyId: input.companyId,
-    projectId: input.projectId ?? null,
-    parentId: input.parentId ?? null,
-    title: input.title,
-    status: input.status ?? "todo",
-    priority: "medium",
-    assigneeAgentId: input.assigneeAgentId ?? null,
-    responsibleUserId: "board-user",
-  }).returning();
+  const [issue] = await db
+    .insert(issues)
+    .values({
+      companyId: input.companyId,
+      projectId: input.projectId ?? null,
+      parentId: input.parentId ?? null,
+      title: input.title,
+      status: input.status ?? "todo",
+      priority: "medium",
+      assigneeAgentId: input.assigneeAgentId ?? null,
+      responsibleUserId: "board-user",
+    })
+    .returning();
   return issue!;
 }
 
-async function blockIssue(db: Db, companyId: string, blockerIssueId: string, blockedIssueId: string) {
+async function blockIssue(
+  db: Db,
+  companyId: string,
+  blockerIssueId: string,
+  blockedIssueId: string,
+) {
   await db.insert(issueRelations).values({
     companyId,
     issueId: blockerIssueId,
@@ -135,13 +164,16 @@ async function blockIssue(db: Db, companyId: string, blockerIssueId: string, blo
   });
 }
 
-async function attachLowTrustRun(db: Db, fixture: {
-  company: CompanyRow;
-  agent: AgentRow;
-  allowedProject: ProjectRow;
-  root: IssueRow;
-  visibleBlocker: IssueRow;
-}) {
+async function attachLowTrustRun(
+  db: Db,
+  fixture: {
+    company: CompanyRow;
+    agent: AgentRow;
+    allowedProject: ProjectRow;
+    root: IssueRow;
+    visibleBlocker: IssueRow;
+  },
+) {
   const executionPolicy = {
     authorizationPolicy: {
       trustBoundary: {
@@ -154,41 +186,54 @@ async function attachLowTrustRun(db: Db, fixture: {
       },
     },
   };
-  await db.update(agents).set({
-    permissions: {
-      trustPreset: LOW_TRUST_REVIEW_PRESET,
-      authorizationPolicy: executionPolicy.authorizationPolicy,
-    },
-  }).where(eq(agents.id, fixture.agent.id));
+  await db
+    .update(agents)
+    .set({
+      permissions: {
+        trustPreset: LOW_TRUST_REVIEW_PRESET,
+        authorizationPolicy: executionPolicy.authorizationPolicy,
+      },
+    })
+    .where(eq(agents.id, fixture.agent.id));
   fixture.agent.permissions = {
     trustPreset: LOW_TRUST_REVIEW_PRESET,
     authorizationPolicy: executionPolicy.authorizationPolicy,
   };
 
-  const [run] = await db.insert(heartbeatRuns).values({
-    companyId: fixture.company.id,
-    agentId: fixture.agent.id,
-    status: "running",
-    contextSnapshot: {
-      issueId: fixture.root.id,
+  const [run] = await db
+    .insert(heartbeatRuns)
+    .values({
+      companyId: fixture.company.id,
+      agentId: fixture.agent.id,
+      status: "running",
+      contextSnapshot: {
+        issueId: fixture.root.id,
+        executionPolicy,
+      },
+    })
+    .returning();
+  await db
+    .update(issues)
+    .set({
+      assigneeAgentId: fixture.agent.id,
+      checkoutRunId: run!.id,
+      executionRunId: run!.id,
       executionPolicy,
-    },
-  }).returning();
-  await db.update(issues).set({
-    assigneeAgentId: fixture.agent.id,
-    checkoutRunId: run!.id,
-    executionRunId: run!.id,
-    executionPolicy,
-  }).where(eq(issues.id, fixture.root.id));
+    })
+    .where(eq(issues.id, fixture.root.id));
   return run!;
 }
 
 describeEmbeddedPostgres("issue blocker diagnostics route", () => {
   let db!: Db;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-blocker-diagnostics-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-blocker-diagnostics-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -224,8 +269,9 @@ describeEmbeddedPostgres("issue blocker diagnostics route", () => {
     });
     await blockIssue(db, company.id, blocker.id, root.id);
 
-    const res = await request(createApp(db, boardActor(company)))
-      .get(`/api/issues/${root.id}/diagnostics/blockers`);
+    const res = await request(createApp(db, boardActor(company))).get(
+      `/api/issues/${root.id}/diagnostics/blockers`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body).toMatchObject({
@@ -258,8 +304,9 @@ describeEmbeddedPostgres("issue blocker diagnostics route", () => {
       status: "todo",
     });
 
-    const res = await request(createApp(db, boardActor(company)))
-      .get(`/api/issues/${issue.id}/diagnostics/blockers`);
+    const res = await request(createApp(db, boardActor(company))).get(
+      `/api/issues/${issue.id}/diagnostics/blockers`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.diagnosis).toBeNull();
@@ -298,10 +345,17 @@ describeEmbeddedPostgres("issue blocker diagnostics route", () => {
     });
     await blockIssue(db, company.id, visibleBlocker.id, root.id);
     await blockIssue(db, company.id, hiddenBlocker.id, root.id);
-    const run = await attachLowTrustRun(db, { company, agent, allowedProject, root, visibleBlocker });
+    const run = await attachLowTrustRun(db, {
+      company,
+      agent,
+      allowedProject,
+      root,
+      visibleBlocker,
+    });
 
-    const res = await request(createApp(db, agentActor(company, agent, run.id)))
-      .get(`/api/issues/${root.id}/diagnostics/blockers`);
+    const res = await request(
+      createApp(db, agentActor(company, agent, run.id)),
+    ).get(`/api/issues/${root.id}/diagnostics/blockers`);
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.blockers).toHaveLength(1);
@@ -334,15 +388,19 @@ describeEmbeddedPostgres("issue blocker diagnostics route", () => {
       title: "Company A issue",
       status: "blocked",
     });
-    const [runB] = await db.insert(heartbeatRuns).values({
-      companyId: companyB.id,
-      agentId: agentB.id,
-      status: "running",
-      contextSnapshot: { issueId: issueA.id },
-    }).returning();
+    const [runB] = await db
+      .insert(heartbeatRuns)
+      .values({
+        companyId: companyB.id,
+        agentId: agentB.id,
+        status: "running",
+        contextSnapshot: { issueId: issueA.id },
+      })
+      .returning();
 
-    const res = await request(createApp(db, agentActor(companyB, agentB, runB!.id)))
-      .get(`/api/issues/${issueA.id}/diagnostics/blockers`);
+    const res = await request(
+      createApp(db, agentActor(companyB, agentB, runB!.id)),
+    ).get(`/api/issues/${issueA.id}/diagnostics/blockers`);
 
     // Uniform 404 so cross-tenant ids are indistinguishable from missing ones.
     expect(res.status, JSON.stringify(res.body)).toBe(404);
@@ -369,16 +427,22 @@ describeEmbeddedPostgres("issue blocker diagnostics route", () => {
         responsibleUserId: "board-user",
       });
     }
-    const insertedBlockers = await db.insert(issues).values(blockerRows).returning();
-    await db.insert(issueRelations).values(insertedBlockers.map((blocker) => ({
-      companyId: company.id,
-      issueId: blocker.id,
-      relatedIssueId: root.id,
-      type: "blocks" as const,
-    })));
+    const insertedBlockers = await db
+      .insert(issues)
+      .values(blockerRows)
+      .returning();
+    await db.insert(issueRelations).values(
+      insertedBlockers.map((blocker) => ({
+        companyId: company.id,
+        issueId: blocker.id,
+        relatedIssueId: root.id,
+        type: "blocks" as const,
+      })),
+    );
 
-    const res = await request(createApp(db, boardActor(company)))
-      .get(`/api/issues/${root.id}/diagnostics/blockers`);
+    const res = await request(createApp(db, boardActor(company))).get(
+      `/api/issues/${root.id}/diagnostics/blockers`,
+    );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.blockers).toHaveLength(100);

@@ -8,7 +8,8 @@ import { handleBridgeRequest } from "./routes.js";
 import { resolveSandbox } from "./sandboxes.js";
 
 vi.mock("./sandboxes.js", async () => {
-  const actual = await vi.importActual<typeof import("./sandboxes.js")>("./sandboxes.js");
+  const actual =
+    await vi.importActual<typeof import("./sandboxes.js")>("./sandboxes.js");
   return {
     ...actual,
     resolveSandbox: vi.fn(),
@@ -32,7 +33,9 @@ describe("bridge routes", () => {
   });
 
   it("writes lease sentinels through the named-session exec target", async () => {
-    const sessionExec = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" });
+    const sessionExec = vi
+      .fn()
+      .mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" });
     const sandbox = {
       getSession: vi.fn().mockResolvedValue({ exec: sessionExec }),
       createSession: vi.fn(),
@@ -72,11 +75,15 @@ describe("bridge routes", () => {
     }
     expect(sessionExec.mock.calls[0]?.[0]).toContain("mkdir");
     expect(sessionExec.mock.calls[0]?.[0]).toContain("/workspace/taskcore");
-    expect(sessionExec.mock.calls[1]?.[0]).toContain("/workspace/taskcore/.taskcore-lease.json");
+    expect(sessionExec.mock.calls[1]?.[0]).toContain(
+      "/workspace/taskcore/.taskcore-lease.json",
+    );
   });
 
   it("checks lease sentinels through the named-session exec target on resume", async () => {
-    const sessionExec = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" });
+    const sessionExec = vi
+      .fn()
+      .mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" });
     const sandbox = {
       getSession: vi.fn().mockResolvedValue({ exec: sessionExec }),
       createSession: vi.fn(),
@@ -109,10 +116,12 @@ describe("bridge routes", () => {
   });
 
   it("streams exec stdout and completion metadata when requested", async () => {
-    const sessionExec = vi.fn().mockImplementation(async (_command, options) => {
-      await options?.onOutput?.("stdout", "hello\n");
-      return { exitCode: 0, stdout: "hello\n", stderr: "" };
-    });
+    const sessionExec = vi
+      .fn()
+      .mockImplementation(async (_command, options) => {
+        await options?.onOutput?.("stdout", "hello\n");
+        return { exitCode: 0, stdout: "hello\n", stderr: "" };
+      });
     const sandbox = {
       getSession: vi.fn().mockResolvedValue({ exec: sessionExec }),
       createSession: vi.fn(),

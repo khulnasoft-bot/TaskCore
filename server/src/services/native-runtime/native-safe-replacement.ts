@@ -58,10 +58,11 @@ export async function reconcileSafeNativeReplacements(
       and(
         eq(heartbeatRuns.status, "failed"),
         eq(nativeRunFinalizations.phase, "terminal_failure"),
-        inArray(
-          nativeRunFinalizations.failureCode,
-          ["native_provider_terminal_failed", "native_session_cleanup_quarantined", "provider_transport_failed"],
-        ),
+        inArray(nativeRunFinalizations.failureCode, [
+          "native_provider_terminal_failed",
+          "native_session_cleanup_quarantined",
+          "provider_transport_failed",
+        ]),
         isNull(nativeRunFinalizations.resultId),
         sql`coalesce(${nativeRunFinalizations.failureDetail}->>'successorRunId', '') = ''`,
         sql`coalesce(${nativeRunFinalizations.failureDetail}->>'replacementDenied', '') = ''`,
@@ -91,11 +92,17 @@ export async function reconcileSafeNativeReplacements(
         );
       // Teardown is still in progress. The next sweep rechecks its durable outcome.
       if (leases.some((lease) => lease.releasedAt === null)) continue;
-      const stoppedSession = coordinator.failureCode !== "native_provider_terminal_failed"
-        ? await options.verifyStoppedSession?.(run) ?? null : null;
+      const stoppedSession =
+        coordinator.failureCode !== "native_provider_terminal_failed"
+          ? ((await options.verifyStoppedSession?.(run)) ?? null)
+          : null;
       // A transport label alone is not evidence. Keep inspecting these candidates
       // as process cleanup and the final transcript become durable.
-      if (coordinator.failureCode !== "native_provider_terminal_failed" && !stoppedSession) continue;
+      if (
+        coordinator.failureCode !== "native_provider_terminal_failed" &&
+        !stoppedSession
+      )
+        continue;
       const invocations = await db
         .select()
         .from(toolInvocations)
@@ -156,9 +163,14 @@ export async function reconcileSafeNativeReplacements(
           return [event.eventType];
         if (event.eventType === "tool.execution.started") {
           const name = typeof p.name === "string" ? p.name : "unknown tool";
-          const completedTaskControlCallIds = stoppedSession?.evidence.completedTaskControlCallIds;
-          if (name === "taskcore_finish" && Array.isArray(completedTaskControlCallIds) &&
-              completedTaskControlCallIds.includes(p.executionId)) return [];
+          const completedTaskControlCallIds =
+            stoppedSession?.evidence.completedTaskControlCallIds;
+          if (
+            name === "taskcore_finish" &&
+            Array.isArray(completedTaskControlCallIds) &&
+            completedTaskControlCallIds.includes(p.executionId)
+          )
+            return [];
           const receiptedRead = invocations.some(
             (row) =>
               (row.id === p.executionId ||
@@ -205,12 +217,13 @@ export async function reconcileSafeNativeReplacements(
         // A facade transport failure can conceal an authoritative protocol
         // rejection. A stopped process and read receipts do not resolve that.
         failureMeaningKnown:
-          Boolean(stoppedSession) || (typeof coordinator.failureDetail?.originalFailureCode === "string" &&
-          ![
-            "notification_transport_failed",
-            "provider_turn_failed",
-            "native_provider_terminal_failed",
-          ].includes(coordinator.failureDetail.originalFailureCode)),
+          Boolean(stoppedSession) ||
+          (typeof coordinator.failureDetail?.originalFailureCode === "string" &&
+            ![
+              "notification_transport_failed",
+              "provider_turn_failed",
+              "native_provider_terminal_failed",
+            ].includes(coordinator.failureDetail.originalFailureCode)),
         predecessorFenced:
           coordinator.leaseOwner === null && run.status === "failed",
         providerStopped:
@@ -224,8 +237,9 @@ export async function reconcileSafeNativeReplacements(
           )),
         historyComplete,
         effectInventoryComplete:
-          Boolean(stoppedSession) || (record(run.runnerProfileJson).recoveryEventInventoryVersion === 1 &&
-          record(execution.provider).kind === "codex"),
+          Boolean(stoppedSession) ||
+          (record(run.runnerProfileJson).recoveryEventInventoryVersion === 1 &&
+            record(execution.provider).kind === "codex"),
         attempts: coordinator.attempt,
         invocations,
         apiReceipts: record(record(run.resultJson).apiToolReceipts),
@@ -319,7 +333,9 @@ export async function reconcileSafeNativeReplacements(
         if (
           !task ||
           task.assigneeAgentId !== run.agentId ||
-          !["todo", "in_progress", "in_review", "blocked"].includes(task.status) ||
+          !["todo", "in_progress", "in_review", "blocked"].includes(
+            task.status,
+          ) ||
           (task.executionRunId !== null && task.executionRunId !== run.id) ||
           (task.checkoutRunId !== null && task.checkoutRunId !== run.id) ||
           !current ||
@@ -331,38 +347,71 @@ export async function reconcileSafeNativeReplacements(
         )
           return false;
         if (task.status === "blocked") {
-          const failureHolds = await tx.select().from(issueRecoveryActions).where(and(
-            eq(issueRecoveryActions.companyId, run.companyId),
-            eq(issueRecoveryActions.sourceIssueId, task.id),
-            eq(issueRecoveryActions.kind, "active_run_watchdog"),
-            eq(issueRecoveryActions.cause, current.failureCode!),
-            sql`${issueRecoveryActions.evidence}->>'runId' = ${run.id}`,
-          )).for("update");
-          const ownsBlock = failureHolds.some(hold => {
+          const failureHolds = await tx
+            .select()
+            .from(issueRecoveryActions)
+            .where(
+              and(
+                eq(issueRecoveryActions.companyId, run.companyId),
+                eq(issueRecoveryActions.sourceIssueId, task.id),
+                eq(issueRecoveryActions.kind, "active_run_watchdog"),
+                eq(issueRecoveryActions.cause, current.failureCode!),
+                sql`${issueRecoveryActions.evidence}->>'runId' = ${run.id}`,
+              ),
+            )
+            .for("update");
+          const ownsBlock = failureHolds.some((hold) => {
             const receipt = record(hold.evidence.nativeFailureBlock);
-            return receipt.runId === run.id && receipt.statusVersion === task.statusVersion;
+            return (
+              receipt.runId === run.id &&
+              receipt.statusVersion === task.statusVersion
+            );
           });
           if (!ownsBlock) return false;
         }
         if (stoppedSession) {
-          const [currentRun] = await tx.select().from(heartbeatRuns).where(and(
-            eq(heartbeatRuns.id, run.id), eq(heartbeatRuns.companyId, run.companyId),
-          )).for("update");
-          if (!currentRun || currentRun.status !== "failed" || currentRun.runnerInstanceId !== run.runnerInstanceId ||
-              currentRun.nativeSessionId !== run.nativeSessionId || currentRun.processPid || currentRun.processGroupId) return false;
+          const [currentRun] = await tx
+            .select()
+            .from(heartbeatRuns)
+            .where(
+              and(
+                eq(heartbeatRuns.id, run.id),
+                eq(heartbeatRuns.companyId, run.companyId),
+              ),
+            )
+            .for("update");
+          if (
+            !currentRun ||
+            currentRun.status !== "failed" ||
+            currentRun.runnerInstanceId !== run.runnerInstanceId ||
+            currentRun.nativeSessionId !== run.nativeSessionId ||
+            currentRun.processPid ||
+            currentRun.processGroupId
+          )
+            return false;
         }
         if (task.status === "blocked") {
           // Restore only this failure's unchanged projection. The normal issue
           // service still enforces dependency readiness and assignee eligibility.
-          await issueService(tx as unknown as Db).update(task.id, { status: "in_progress" }, tx);
+          await issueService(tx as unknown as Db).update(
+            task.id,
+            { status: "in_progress" },
+            tx,
+          );
         }
         if (stoppedSession) {
           // If the last ownership proof changes, roll back the status restoration.
-          if (!stoppedSession.retire()) throw new Error("native_replacement_stopped_session_changed");
+          if (!stoppedSession.retire())
+            throw new Error("native_replacement_stopped_session_changed");
           await appendHeartbeatRunEvent(tx as unknown as Db, {
-            companyId: run.companyId, runId: run.id, agentId: run.agentId,
-            eventType: "native.stopped_text_turn_verified", stream: "system", level: "info",
-            message: "The previous runner and provider stopped. The interrupted turn had no external actions; any completion bookkeeping has a verified receipt.",
+            companyId: run.companyId,
+            runId: run.id,
+            agentId: run.agentId,
+            eventType: "native.stopped_text_turn_verified",
+            stream: "system",
+            level: "info",
+            message:
+              "The previous runner and provider stopped. The interrupted turn had no external actions; any completion bookkeeping has a verified receipt.",
             payload: stoppedSession.evidence,
           });
         }
@@ -372,11 +421,23 @@ export async function reconcileSafeNativeReplacements(
         // History comes from the failed source run. Consumed wake fields must
         // not grant this automatic retry fresh comment/resume authority.
         for (const key of [
-          "explicitUserContinuation", "wakeCommentId", "wakeCommentIds", "commentId",
-          "commentIds", "latestCommentId", "resumeIntent", "followUpRequested",
-          "taskcoreWake", "taskcoreWakeComment", "taskcoreTaskMarkdown", "taskcoreTaskMarkdownCompact",
-          "taskcoreTaskMarkdownAssignment", "taskcoreTaskMarkdownAssignmentCompact", "taskcoreTurnContext",
-        ]) delete predecessorContext[key];
+          "explicitUserContinuation",
+          "wakeCommentId",
+          "wakeCommentIds",
+          "commentId",
+          "commentIds",
+          "latestCommentId",
+          "resumeIntent",
+          "followUpRequested",
+          "taskcoreWake",
+          "taskcoreWakeComment",
+          "taskcoreTaskMarkdown",
+          "taskcoreTaskMarkdownCompact",
+          "taskcoreTaskMarkdownAssignment",
+          "taskcoreTaskMarkdownAssignmentCompact",
+          "taskcoreTurnContext",
+        ])
+          delete predecessorContext[key];
         const context = {
           ...predecessorContext,
           issueId: task.id,
@@ -427,7 +488,9 @@ export async function reconcileSafeNativeReplacements(
           .set({
             failureDetail: {
               ...current.failureDetail,
-              ...(stoppedSession ? { stoppedTextTurn: stoppedSession.evidence } : {}),
+              ...(stoppedSession
+                ? { stoppedTextTurn: stoppedSession.evidence }
+                : {}),
               successorRunId,
               nextAction:
                 "Continue in the linked fresh provider session after the retry delay.",
@@ -452,25 +515,50 @@ export async function reconcileSafeNativeReplacements(
         // A previous sweep can have resolved the UI bookkeeping while retaining
         // an effective no-replay hold. Retire only this exact failure's hold in
         // the same transaction as its verified successor; unrelated holds remain.
-        const holds = await tx.select().from(issueRecoveryActions).where(and(
-          eq(issueRecoveryActions.companyId, run.companyId),
-          eq(issueRecoveryActions.sourceIssueId, task.id),
-          eq(issueRecoveryActions.kind, "active_run_watchdog"),
-          eq(issueRecoveryActions.cause, current.failureCode!),
-          sql`${issueRecoveryActions.evidence}->>'runId' = ${run.id}`,
-        )).for("update");
+        const holds = await tx
+          .select()
+          .from(issueRecoveryActions)
+          .where(
+            and(
+              eq(issueRecoveryActions.companyId, run.companyId),
+              eq(issueRecoveryActions.sourceIssueId, task.id),
+              eq(issueRecoveryActions.kind, "active_run_watchdog"),
+              eq(issueRecoveryActions.cause, current.failureCode!),
+              sql`${issueRecoveryActions.evidence}->>'runId' = ${run.id}`,
+            ),
+          )
+          .for("update");
         for (const hold of holds) {
-          await tx.update(issueRecoveryActions).set({
-            status: "resolved", outcome: "handed_back", resolvedAt: now, updatedAt: now,
-            wakePolicy: null, monitorPolicy: null,
-            nextAction: `Safe continuation is scheduled in run ${successorRunId}.`,
-            resolutionNote: "Verified process termination and action receipts allow a fresh session to continue.",
-            evidence: { ...hold.evidence, verifiedReplacement: { successorRunId, recordedAt: now.toISOString() },
-              ...(hold.evidence.automaticRecovery ? { automaticRecovery: {
-                ...record(hold.evidence.automaticRecovery), replay: "verified_safe_replacement", successorRunId,
-              } } : {}),
-            },
-          }).where(eq(issueRecoveryActions.id, hold.id));
+          await tx
+            .update(issueRecoveryActions)
+            .set({
+              status: "resolved",
+              outcome: "handed_back",
+              resolvedAt: now,
+              updatedAt: now,
+              wakePolicy: null,
+              monitorPolicy: null,
+              nextAction: `Safe continuation is scheduled in run ${successorRunId}.`,
+              resolutionNote:
+                "Verified process termination and action receipts allow a fresh session to continue.",
+              evidence: {
+                ...hold.evidence,
+                verifiedReplacement: {
+                  successorRunId,
+                  recordedAt: now.toISOString(),
+                },
+                ...(hold.evidence.automaticRecovery
+                  ? {
+                      automaticRecovery: {
+                        ...record(hold.evidence.automaticRecovery),
+                        replay: "verified_safe_replacement",
+                        successorRunId,
+                      },
+                    }
+                  : {}),
+              },
+            })
+            .where(eq(issueRecoveryActions.id, hold.id));
         }
         await tx
           .update(heartbeatRuns)

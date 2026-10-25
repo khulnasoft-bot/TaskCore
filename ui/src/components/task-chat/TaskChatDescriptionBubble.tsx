@@ -4,7 +4,10 @@ import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FoldCurtain } from "@/components/FoldCurtain";
 import { InlineEditor } from "@/components/InlineEditor";
-import { MarkdownBody, type MarkdownExternalReferenceMap } from "@/components/MarkdownBody";
+import {
+  MarkdownBody,
+  type MarkdownExternalReferenceMap,
+} from "@/components/MarkdownBody";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { MentionOption } from "@/components/MarkdownEditor";
 import { formatTaskChatTimestamp } from "./task-chat-adapter";
@@ -58,7 +61,9 @@ function initialsForName(name: string) {
  * an empty description renders a muted ghost row that opens the editor — never
  * an empty bubble.
  */
-export function TaskChatDescriptionBubble({ brief }: TaskChatDescriptionBubbleProps) {
+export function TaskChatDescriptionBubble({
+  brief,
+}: TaskChatDescriptionBubbleProps) {
   const [editing, setEditing] = useState(false);
   const isHuman = brief.author === "human";
   const hasDescription = brief.description.trim().length > 0;
@@ -117,7 +122,9 @@ export function TaskChatDescriptionBubble({ brief }: TaskChatDescriptionBubblePr
       {!isHuman && brief.authorName ? (
         <span className="flex items-center gap-2 px-1">
           <AgentAvatar agent={brief.agent} name={brief.authorName} size={24} />
-          <span className="text-sm font-semibold text-foreground">{brief.authorName}</span>
+          <span className="text-sm font-semibold text-foreground">
+            {brief.authorName}
+          </span>
         </span>
       ) : null}
       <div
@@ -138,7 +145,11 @@ export function TaskChatDescriptionBubble({ brief }: TaskChatDescriptionBubblePr
             collapsedHeight={FOLD_COLLAPSED_HEIGHT_PX}
             // The curtain's fade is a mask (background-agnostic); only the
             // toggle's muted colors need a lift on the solid blue bubble.
-            toggleClassName={isHuman ? "text-white/80 hover:text-white hover:bg-white/10" : undefined}
+            toggleClassName={
+              isHuman
+                ? "text-white/80 hover:text-white hover:bg-white/10"
+                : undefined
+            }
           >
             <MarkdownBody
               // On the solid --liveness-blue human bubble, keep prose body text
@@ -165,7 +176,9 @@ export function TaskChatDescriptionBubble({ brief }: TaskChatDescriptionBubblePr
         ) : null}
       </div>
       {timestamp ? (
-        <span className="px-1 text-(length:--text-micro) text-muted-foreground">{timestamp}</span>
+        <span className="px-1 text-(length:--text-micro) text-muted-foreground">
+          {timestamp}
+        </span>
       ) : null}
     </div>
   );

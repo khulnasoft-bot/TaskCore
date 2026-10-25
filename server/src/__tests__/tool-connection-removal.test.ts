@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
 import express from "express";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   activityLog,
   agents,
@@ -47,7 +55,9 @@ import { localEncryptedProvider } from "../secrets/local-encrypted-provider.js";
 import { errorHandler } from "../middleware/index.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 /**
  * PAP-17119 — "Remove app" is a credential revocation boundary, not a status
@@ -67,8 +77,16 @@ const MCP_ORIGIN = "https://203.0.113.10";
 const MCP_URL = `${MCP_ORIGIN}/mcp`;
 
 const FIXTURE_TOOLS = [
-  { name: "list_things", description: "List things", annotations: { readOnlyHint: true } },
-  { name: "delete_thing", description: "Delete a thing", annotations: { readOnlyHint: false, destructiveHint: true } },
+  {
+    name: "list_things",
+    description: "List things",
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: "delete_thing",
+    description: "Delete a thing",
+    annotations: { readOnlyHint: false, destructiveHint: true },
+  },
 ];
 
 function jsonResponse(payload: unknown, status = 200): Response {
@@ -77,7 +95,8 @@ function jsonResponse(payload: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     headers: {
-      get: (name: string) => (name.toLowerCase() === "content-type" ? "application/json" : null),
+      get: (name: string) =>
+        name.toLowerCase() === "content-type" ? "application/json" : null,
     },
     text: async () => body,
     json: async () => payload,
@@ -88,9 +107,13 @@ function headerRecord(init: RequestInit | undefined): Record<string, string> {
   const raw = init?.headers;
   if (!raw) return {};
   if (raw instanceof Headers) return Object.fromEntries(raw.entries());
-  if (Array.isArray(raw)) return Object.fromEntries(raw as Array<[string, string]>);
+  if (Array.isArray(raw))
+    return Object.fromEntries(raw as Array<[string, string]>);
   return Object.fromEntries(
-    Object.entries(raw as Record<string, string>).map(([key, value]) => [key.toLowerCase(), value]),
+    Object.entries(raw as Record<string, string>).map(([key, value]) => [
+      key.toLowerCase(),
+      value,
+    ]),
   );
 }
 
@@ -108,7 +131,11 @@ function installMcpFixture(requiredHeader: { name: string; value: string }) {
       if (headers[requiredHeader.name.toLowerCase()] !== requiredHeader.value) {
         return jsonResponse({ error: "unauthorized" }, 401);
       }
-      return jsonResponse({ jsonrpc: "2.0", id: "taskcore-catalog-refresh", result: { tools: FIXTURE_TOOLS } });
+      return jsonResponse({
+        jsonrpc: "2.0",
+        id: "taskcore-catalog-refresh",
+        result: { tools: FIXTURE_TOOLS },
+      });
     }
     return jsonResponse({ error: "not_found" }, 404);
   });
@@ -162,7 +189,9 @@ function createRouteApp(db: ReturnType<typeof createDb>) {
 
 describeEmbeddedPostgres("tool connection removal", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   const HEADER = { name: "X-Api-Key", value: "fixture-secret-value" };
 
@@ -216,16 +245,32 @@ describeEmbeddedPostgres("tool connection removal", () => {
       name: `Removal fixture ${randomUUID().slice(0, 8)}`,
       credentialValues: { [`headers.${HEADER.name}`]: HEADER.value },
     });
-    const readEntry = connected.catalog.find((entry) => entry.toolName === "list_things")!;
-    const finished = await service.finishGalleryAppConnection(companyId, connected.connectionId, {
-      enabledCatalogEntryIds: [readEntry.id],
-      askFirstCatalogEntryIds: [],
-      access: { agentIds: [agentId] },
-    }, { actorType: "user", actorId: "board-user" });
-    await service.putConnectionInstalls(connected.connectionId, {
-      installs: [{ targetType: "agent", targetId: agentId, enabled: true }],
-    }, { actorType: "user", actorId: "board-user" });
-    return { service, connectionId: connected.connectionId, readEntry, profile: finished.profile };
+    const readEntry = connected.catalog.find(
+      (entry) => entry.toolName === "list_things",
+    )!;
+    const finished = await service.finishGalleryAppConnection(
+      companyId,
+      connected.connectionId,
+      {
+        enabledCatalogEntryIds: [readEntry.id],
+        askFirstCatalogEntryIds: [],
+        access: { agentIds: [agentId] },
+      },
+      { actorType: "user", actorId: "board-user" },
+    );
+    await service.putConnectionInstalls(
+      connected.connectionId,
+      {
+        installs: [{ targetType: "agent", targetId: agentId, enabled: true }],
+      },
+      { actorType: "user", actorId: "board-user" },
+    );
+    return {
+      service,
+      connectionId: connected.connectionId,
+      readEntry,
+      profile: finished.profile,
+    };
   }
 
   it("revokes the custom-header credential and every access path it granted", async () => {
@@ -233,38 +278,60 @@ describeEmbeddedPostgres("tool connection removal", () => {
     const company = await createCompany(db);
     const agent = await createAgent(db, company.id);
     const policy = toolAccessPolicyService(db);
-    const { service, connectionId, readEntry, profile } = await connectHeaderApp(company.id, agent.id);
+    const { service, connectionId, readEntry, profile } =
+      await connectHeaderApp(company.id, agent.id);
 
-    const [before] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [before] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     // One pasted header value is one secret, referenced twice: once as a header
     // credential ref and once as a secret ref.
-    const secretIds = [...new Set([
-      ...before!.credentialRefs.map((ref) => ref.secretId),
-      ...before!.credentialSecretRefs.map((ref) => ref.secretId),
-    ])];
+    const secretIds = [
+      ...new Set([
+        ...before!.credentialRefs.map((ref) => ref.secretId),
+        ...before!.credentialSecretRefs.map((ref) => ref.secretId),
+      ]),
+    ];
     expect(secretIds).toHaveLength(1);
     expect(before!.credentialRefs).toHaveLength(1);
     expect(before!.credentialSecretRefs).toHaveLength(1);
     // The credential really does resolve before removal, so the assertions after
     // it are measuring a change rather than a permanent failure.
-    await expect(secretService(db).resolveSecretValue(company.id, secretIds[0]!, "latest", {
-      consumerType: "tool_connection",
-      consumerId: connectionId,
-      configPath: `headers.${HEADER.name}`,
-      actorType: "system",
-    })).resolves.toBe(HEADER.value);
-    await expect(policy.decide({
-      companyId: company.id,
-      actor: { actorType: "agent", actorId: agent.id, agentId: agent.id },
-      request: { connectionId, catalogEntryId: readEntry.id, toolName: "list_things" },
-    })).resolves.toMatchObject({ allowed: true });
+    await expect(
+      secretService(db).resolveSecretValue(
+        company.id,
+        secretIds[0]!,
+        "latest",
+        {
+          consumerType: "tool_connection",
+          consumerId: connectionId,
+          configPath: `headers.${HEADER.name}`,
+          actorType: "system",
+        },
+      ),
+    ).resolves.toBe(HEADER.value);
+    await expect(
+      policy.decide({
+        companyId: company.id,
+        actor: { actorType: "agent", actorId: agent.id, agentId: agent.id },
+        request: {
+          connectionId,
+          catalogEntryId: readEntry.id,
+          toolName: "list_things",
+        },
+      }),
+    ).resolves.toMatchObject({ allowed: true });
 
     const removed = await service.archiveConnection(connectionId, company.id, {
       actorType: "user",
       actorId: "board-user",
     });
 
-    expect(removed.connection).toMatchObject({ status: "archived", enabled: false });
+    expect(removed.connection).toMatchObject({
+      status: "archived",
+      enabled: false,
+    });
     expect(removed.removal).toMatchObject({
       secretsRevoked: secretIds.length,
       secretsRetainedShared: 0,
@@ -274,54 +341,112 @@ describeEmbeddedPostgres("tool connection removal", () => {
     });
     expect(removed.removal.credentialRefsCleared).toBeGreaterThan(0);
     expect(removed.removal.secretBindingsRemoved).toBeGreaterThan(0);
-    expect(removed.removal.catalogEntriesMarkedRemoved).toBe(FIXTURE_TOOLS.length);
+    expect(removed.removal.catalogEntriesMarkedRemoved).toBe(
+      FIXTURE_TOOLS.length,
+    );
 
     // No secret row, no version row, nothing resolvable.
     for (const secretId of secretIds) {
-      expect(await db.select().from(companySecrets).where(eq(companySecrets.id, secretId))).toEqual([]);
-      expect(await db.select().from(companySecretVersions).where(eq(companySecretVersions.secretId, secretId))).toEqual([]);
-      await expect(secretService(db).resolveSecretValue(company.id, secretId, "latest", {
-        consumerType: "tool_connection",
-        consumerId: connectionId,
-        configPath: `headers.${HEADER.name}`,
-        actorType: "system",
-      })).rejects.toMatchObject({ status: 404 });
+      expect(
+        await db
+          .select()
+          .from(companySecrets)
+          .where(eq(companySecrets.id, secretId)),
+      ).toEqual([]);
+      expect(
+        await db
+          .select()
+          .from(companySecretVersions)
+          .where(eq(companySecretVersions.secretId, secretId)),
+      ).toEqual([]);
+      await expect(
+        secretService(db).resolveSecretValue(company.id, secretId, "latest", {
+          consumerType: "tool_connection",
+          consumerId: connectionId,
+          configPath: `headers.${HEADER.name}`,
+          actorType: "system",
+        }),
+      ).rejects.toMatchObject({ status: 404 });
     }
-    expect(await db.select().from(companySecretBindings).where(and(
-      eq(companySecretBindings.targetType, "tool_connection"),
-      eq(companySecretBindings.targetId, connectionId),
-    ))).toEqual([]);
+    expect(
+      await db
+        .select()
+        .from(companySecretBindings)
+        .where(
+          and(
+            eq(companySecretBindings.targetType, "tool_connection"),
+            eq(companySecretBindings.targetId, connectionId),
+          ),
+        ),
+    ).toEqual([]);
 
     // No ref left on the connection to point at a credential.
-    const [after] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [after] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     expect(after!.credentialRefs).toEqual([]);
     expect(after!.credentialSecretRefs).toEqual([]);
 
     // No install, no app-managed profile, no profile entries or bindings.
-    expect(await db.select().from(toolConnectionInstalls).where(eq(toolConnectionInstalls.connectionId, connectionId))).toEqual([]);
-    expect(await db.select().from(toolProfiles).where(eq(toolProfiles.profileKey, `app:${connectionId}`))).toEqual([]);
-    expect(await db.select().from(toolProfileEntries).where(eq(toolProfileEntries.profileId, profile.id))).toEqual([]);
-    expect(await db.select().from(toolProfileBindings).where(eq(toolProfileBindings.profileId, profile.id))).toEqual([]);
+    expect(
+      await db
+        .select()
+        .from(toolConnectionInstalls)
+        .where(eq(toolConnectionInstalls.connectionId, connectionId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select()
+        .from(toolProfiles)
+        .where(eq(toolProfiles.profileKey, `app:${connectionId}`)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select()
+        .from(toolProfileEntries)
+        .where(eq(toolProfileEntries.profileId, profile.id)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select()
+        .from(toolProfileBindings)
+        .where(eq(toolProfileBindings.profileId, profile.id)),
+    ).toEqual([]);
 
     // Catalog history survives, marked non-executable.
-    const catalog = await db.select().from(toolCatalogEntries).where(eq(toolCatalogEntries.connectionId, connectionId));
+    const catalog = await db
+      .select()
+      .from(toolCatalogEntries)
+      .where(eq(toolCatalogEntries.connectionId, connectionId));
     expect(catalog.length).toBe(FIXTURE_TOOLS.length);
     expect(catalog.every((entry) => entry.status === "removed")).toBe(true);
 
     // And the agent is denied.
-    await expect(policy.decide({
-      companyId: company.id,
-      actor: { actorType: "agent", actorId: agent.id, agentId: agent.id },
-      request: { connectionId, catalogEntryId: readEntry.id, toolName: "list_things" },
-    })).resolves.toMatchObject({ allowed: false });
-    expect(await service.listConnectionInstalls(connectionId, company.id)).toEqual([]);
+    await expect(
+      policy.decide({
+        companyId: company.id,
+        actor: { actorType: "agent", actorId: agent.id, agentId: agent.id },
+        request: {
+          connectionId,
+          catalogEntryId: readEntry.id,
+          toolName: "list_things",
+        },
+      }),
+    ).resolves.toMatchObject({ allowed: false });
+    expect(
+      await service.listConnectionInstalls(connectionId, company.id),
+    ).toEqual([]);
   });
 
   it("revokes OAuth secrets, grant credentials and outstanding authorization state", async () => {
     installMcpFixture(HEADER);
     const company = await createCompany(db);
     const agent = await createAgent(db, company.id);
-    const { service, connectionId } = await connectHeaderApp(company.id, agent.id);
+    const { service, connectionId } = await connectHeaderApp(
+      company.id,
+      agent.id,
+    );
     const secrets = secretService(db);
 
     // Stand in for a completed sign-in: access and refresh tokens as dedicated
@@ -344,25 +469,51 @@ describeEmbeddedPostgres("tool connection removal", () => {
       provider: "local_encrypted",
       value: "grant-access-token",
     });
-    const [existing] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
-    const headerSecretIds = existing!.credentialSecretRefs.map((ref) => ref.secretId);
+    const [existing] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
+    const headerSecretIds = existing!.credentialSecretRefs.map(
+      (ref) => ref.secretId,
+    );
     await service.updateConnection(connectionId, {
       credentialSecretRefs: [
         ...existing!.credentialSecretRefs,
-        { secretId: accessSecret.id, versionSelector: "latest", configPath: "oauth.access_token", required: true, label: "OAuth access token" },
-        { secretId: refreshSecret.id, versionSelector: "latest", configPath: "oauth.refresh_token", required: false, label: "OAuth refresh token" },
+        {
+          secretId: accessSecret.id,
+          versionSelector: "latest",
+          configPath: "oauth.access_token",
+          required: true,
+          label: "OAuth access token",
+        },
+        {
+          secretId: refreshSecret.id,
+          versionSelector: "latest",
+          configPath: "oauth.refresh_token",
+          required: false,
+          label: "OAuth refresh token",
+        },
       ],
     });
-    const [grant] = await db.insert(connectionGrants).values({
-      companyId: company.id,
-      connectionId,
-      kind: "user",
-      subjectUserId: "user-1",
-      credentialSecretRefs: [
-        { secretId: grantSecret.id, versionSelector: "latest", configPath: "oauth.access_token", required: true, label: "OAuth access token" },
-      ],
-      status: "active",
-    }).returning();
+    const [grant] = await db
+      .insert(connectionGrants)
+      .values({
+        companyId: company.id,
+        connectionId,
+        kind: "user",
+        subjectUserId: "user-1",
+        credentialSecretRefs: [
+          {
+            secretId: grantSecret.id,
+            versionSelector: "latest",
+            configPath: "oauth.access_token",
+            required: true,
+            label: "OAuth access token",
+          },
+        ],
+        status: "active",
+      })
+      .returning();
     await db.insert(toolOauthStates).values({
       state: `state-${randomUUID()}`,
       companyId: company.id,
@@ -390,45 +541,106 @@ describeEmbeddedPostgres("tool connection removal", () => {
       oauthStatesDiscarded: 1,
       tokenIssuanceHashesCleared: 1,
     });
-    for (const secretId of [accessSecret.id, refreshSecret.id, grantSecret.id, ...headerSecretIds]) {
-      expect(await db.select().from(companySecrets).where(eq(companySecrets.id, secretId))).toEqual([]);
+    for (const secretId of [
+      accessSecret.id,
+      refreshSecret.id,
+      grantSecret.id,
+      ...headerSecretIds,
+    ]) {
+      expect(
+        await db
+          .select()
+          .from(companySecrets)
+          .where(eq(companySecrets.id, secretId)),
+      ).toEqual([]);
     }
-    const [grantAfter] = await db.select().from(connectionGrants).where(eq(connectionGrants.id, grant!.id));
+    const [grantAfter] = await db
+      .select()
+      .from(connectionGrants)
+      .where(eq(connectionGrants.id, grant!.id));
     expect(grantAfter).toMatchObject({ status: "revoked", isDefault: false });
     expect(grantAfter!.revokedAt).not.toBeNull();
     expect(grantAfter!.credentialSecretRefs).toEqual([]);
-    expect(await db.select().from(toolOauthStates).where(eq(toolOauthStates.connectionId, connectionId))).toEqual([]);
-    const [issuance] = await db.select().from(connectionTokenIssuances).where(eq(connectionTokenIssuances.connectionId, connectionId));
+    expect(
+      await db
+        .select()
+        .from(toolOauthStates)
+        .where(eq(toolOauthStates.connectionId, connectionId)),
+    ).toEqual([]);
+    const [issuance] = await db
+      .select()
+      .from(connectionTokenIssuances)
+      .where(eq(connectionTokenIssuances.connectionId, connectionId));
     expect(issuance!.tokenHash).toBeNull();
     // The ledger row itself is history and stays.
     expect(issuance!.path).toBe("oauth_access");
   });
 
-  it.each(["managed-profile", "routine-trigger"])("retains a credential referenced directly by a %s", async (consumer) => {
-    installMcpFixture(HEADER);
-    const company = await createCompany(db);
-    const agent = await createAgent(db, company.id);
-    const { service, connectionId } = await connectHeaderApp(company.id, agent.id);
-    const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
-    const secretId = connection!.credentialRefs[0]!.secretId;
-    if (consumer === "managed-profile") {
-      await db.insert(managedAgentProfiles).values({ companyId: company.id, profileKey: "shared", displayName: "Shared",
-        anthropicAgentId: "fixture", agentVersion: "1", environmentId: "fixture", apiKeySecretId: secretId });
-    } else {
-      const [routine] = await db.insert(routines).values({ companyId: company.id, title: "Shared" }).returning();
-      await db.insert(routineTriggers).values({ companyId: company.id, routineId: routine!.id, kind: "webhook", secretId });
-    }
-    const removed = await service.archiveConnection(connectionId, company.id);
-    expect(removed.removal.secretsRetainedShared).toBe(1);
-    expect((await db.select().from(companySecrets).where(eq(companySecrets.id, secretId)))[0]!.status).toBe("active");
-    await expect(secretService(db).resolveSecretValue(company.id, secretId, "latest")).resolves.toBe(HEADER.value);
-  });
+  it.each(["managed-profile", "routine-trigger"])(
+    "retains a credential referenced directly by a %s",
+    async (consumer) => {
+      installMcpFixture(HEADER);
+      const company = await createCompany(db);
+      const agent = await createAgent(db, company.id);
+      const { service, connectionId } = await connectHeaderApp(
+        company.id,
+        agent.id,
+      );
+      const [connection] = await db
+        .select()
+        .from(toolConnections)
+        .where(eq(toolConnections.id, connectionId));
+      const secretId = connection!.credentialRefs[0]!.secretId;
+      if (consumer === "managed-profile") {
+        await db
+          .insert(managedAgentProfiles)
+          .values({
+            companyId: company.id,
+            profileKey: "shared",
+            displayName: "Shared",
+            anthropicAgentId: "fixture",
+            agentVersion: "1",
+            environmentId: "fixture",
+            apiKeySecretId: secretId,
+          });
+      } else {
+        const [routine] = await db
+          .insert(routines)
+          .values({ companyId: company.id, title: "Shared" })
+          .returning();
+        await db
+          .insert(routineTriggers)
+          .values({
+            companyId: company.id,
+            routineId: routine!.id,
+            kind: "webhook",
+            secretId,
+          });
+      }
+      const removed = await service.archiveConnection(connectionId, company.id);
+      expect(removed.removal.secretsRetainedShared).toBe(1);
+      expect(
+        (
+          await db
+            .select()
+            .from(companySecrets)
+            .where(eq(companySecrets.id, secretId))
+        )[0]!.status,
+      ).toBe("active");
+      await expect(
+        secretService(db).resolveSecretValue(company.id, secretId, "latest"),
+      ).resolves.toBe(HEADER.value);
+    },
+  );
 
   it("leaves another consumer's credential in place", async () => {
     installMcpFixture(HEADER);
     const company = await createCompany(db);
     const agent = await createAgent(db, company.id);
-    const { service, connectionId } = await connectHeaderApp(company.id, agent.id);
+    const { service, connectionId } = await connectHeaderApp(
+      company.id,
+      agent.id,
+    );
     const secrets = secretService(db);
 
     // Two secrets removal must not destroy: one the operator manages by hand
@@ -446,30 +658,54 @@ describeEmbeddedPostgres("tool connection removal", () => {
       provider: "local_encrypted",
       value: "shared-app-value",
     });
-    const [existing] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [existing] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     await service.updateConnection(connectionId, {
       credentialSecretRefs: [
         ...existing!.credentialSecretRefs,
-        { secretId: operatorSecret.id, versionSelector: "latest", configPath: "credentials.operator", required: false, label: "Operator key" },
-        { secretId: alsoUsedSecret.id, versionSelector: "latest", configPath: "credentials.shared", required: false, label: "Shared key" },
+        {
+          secretId: operatorSecret.id,
+          versionSelector: "latest",
+          configPath: "credentials.operator",
+          required: false,
+          label: "Operator key",
+        },
+        {
+          secretId: alsoUsedSecret.id,
+          versionSelector: "latest",
+          configPath: "credentials.shared",
+          required: false,
+          label: "Shared key",
+        },
       ],
     });
 
     // A second connection referencing the same secret is the other consumer.
-    const [otherApplication] = await db.insert(toolApplications).values({
-      companyId: company.id,
-      applicationKey: `other:${randomUUID()}`,
-      name: `Other app ${randomUUID().slice(0, 8)}`,
-      type: "mcp_http",
-      status: "active",
-    }).returning();
+    const [otherApplication] = await db
+      .insert(toolApplications)
+      .values({
+        companyId: company.id,
+        applicationKey: `other:${randomUUID()}`,
+        name: `Other app ${randomUUID().slice(0, 8)}`,
+        type: "mcp_http",
+        status: "active",
+      })
+      .returning();
     const otherConnection = await service.createConnection(company.id, {
       applicationId: otherApplication!.id,
       name: `Other connection ${randomUUID().slice(0, 8)}`,
       transport: "mcp_remote",
       config: { url: MCP_URL },
       credentialSecretRefs: [
-        { secretId: alsoUsedSecret.id, versionSelector: "latest", configPath: "credentials.shared", required: false, label: "Shared key" },
+        {
+          secretId: alsoUsedSecret.id,
+          versionSelector: "latest",
+          configPath: "credentials.shared",
+          required: false,
+          label: "Shared key",
+        },
       ],
     });
 
@@ -477,28 +713,57 @@ describeEmbeddedPostgres("tool connection removal", () => {
 
     expect(removed.removal.secretsRetainedShared).toBe(2);
     for (const secretId of [operatorSecret.id, alsoUsedSecret.id]) {
-      const [row] = await db.select().from(companySecrets).where(eq(companySecrets.id, secretId));
+      const [row] = await db
+        .select()
+        .from(companySecrets)
+        .where(eq(companySecrets.id, secretId));
       expect(row).toBeTruthy();
       expect(row!.status).not.toBe("deleted");
     }
     // The other consumer can still resolve its credential.
-    await expect(secretService(db).resolveSecretValue(company.id, alsoUsedSecret.id, "latest", {
-      consumerType: "tool_connection",
-      consumerId: otherConnection.id,
-      configPath: "credentials.shared",
-      actorType: "system",
-    })).resolves.toBe("shared-app-value");
+    await expect(
+      secretService(db).resolveSecretValue(
+        company.id,
+        alsoUsedSecret.id,
+        "latest",
+        {
+          consumerType: "tool_connection",
+          consumerId: otherConnection.id,
+          configPath: "credentials.shared",
+          actorType: "system",
+        },
+      ),
+    ).resolves.toBe("shared-app-value");
     // Its binding survives; the removed connection's does not.
-    expect(await db.select().from(companySecretBindings).where(and(
-      eq(companySecretBindings.targetType, "tool_connection"),
-      eq(companySecretBindings.targetId, connectionId),
-    ))).toEqual([]);
-    expect((await db.select().from(companySecretBindings).where(and(
-      eq(companySecretBindings.targetType, "tool_connection"),
-      eq(companySecretBindings.targetId, otherConnection.id),
-    ))).length).toBeGreaterThan(0);
+    expect(
+      await db
+        .select()
+        .from(companySecretBindings)
+        .where(
+          and(
+            eq(companySecretBindings.targetType, "tool_connection"),
+            eq(companySecretBindings.targetId, connectionId),
+          ),
+        ),
+    ).toEqual([]);
+    expect(
+      (
+        await db
+          .select()
+          .from(companySecretBindings)
+          .where(
+            and(
+              eq(companySecretBindings.targetType, "tool_connection"),
+              eq(companySecretBindings.targetId, otherConnection.id),
+            ),
+          )
+      ).length,
+    ).toBeGreaterThan(0);
     // And the removed connection no longer points at either of them.
-    const [after] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [after] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     expect(after!.credentialSecretRefs).toEqual([]);
   });
 
@@ -506,41 +771,77 @@ describeEmbeddedPostgres("tool connection removal", () => {
     installMcpFixture(HEADER);
     const company = await createCompany(db);
     const agent = await createAgent(db, company.id);
-    const { service, connectionId, readEntry } = await connectHeaderApp(company.id, agent.id);
+    const { service, connectionId, readEntry } = await connectHeaderApp(
+      company.id,
+      agent.id,
+    );
     const policy = toolAccessPolicyService(db);
 
-    const [before] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [before] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     const secretIds = before!.credentialSecretRefs.map((ref) => ref.secretId);
     expect(secretIds.length).toBeGreaterThan(0);
 
     // Break provider deletion for the first attempt only. The registry hands out
     // this very object, so patching the method is enough.
     let failures = 0;
-    const spy = vi.spyOn(localEncryptedProvider, "deleteOrArchive").mockImplementation(async () => {
-      failures += 1;
-      throw new Error("provider unavailable");
-    });
+    const spy = vi
+      .spyOn(localEncryptedProvider, "deleteOrArchive")
+      .mockImplementation(async () => {
+        failures += 1;
+        throw new Error("provider unavailable");
+      });
 
-    await expect(service.archiveConnection(connectionId, company.id)).rejects.toThrow("provider unavailable");
+    await expect(
+      service.archiveConnection(connectionId, company.id),
+    ).rejects.toThrow("provider unavailable");
     expect(failures).toBe(1);
 
     // Failed closed: the app is already undispatchable and the credential is
     // already unresolvable, even though the provider copy survives.
-    const [midway] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [midway] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     expect(midway).toMatchObject({ status: "archived", enabled: false });
-    expect(await db.select().from(toolConnectionInstalls).where(eq(toolConnectionInstalls.connectionId, connectionId))).toEqual([]);
-    expect(await db.select().from(toolProfiles).where(eq(toolProfiles.profileKey, `app:${connectionId}`))).toEqual([]);
-    await expect(policy.decide({
-      companyId: company.id,
-      actor: { actorType: "agent", actorId: agent.id, agentId: agent.id },
-      request: { connectionId, catalogEntryId: readEntry.id, toolName: "list_things" },
-    })).resolves.toMatchObject({ allowed: false });
-    await expect(secretService(db).resolveSecretValue(company.id, secretIds[0]!, "latest", {
-      consumerType: "tool_connection",
-      consumerId: connectionId,
-      configPath: `headers.${HEADER.name}`,
-      actorType: "system",
-    })).rejects.toMatchObject({ status: 404 });
+    expect(
+      await db
+        .select()
+        .from(toolConnectionInstalls)
+        .where(eq(toolConnectionInstalls.connectionId, connectionId)),
+    ).toEqual([]);
+    expect(
+      await db
+        .select()
+        .from(toolProfiles)
+        .where(eq(toolProfiles.profileKey, `app:${connectionId}`)),
+    ).toEqual([]);
+    await expect(
+      policy.decide({
+        companyId: company.id,
+        actor: { actorType: "agent", actorId: agent.id, agentId: agent.id },
+        request: {
+          connectionId,
+          catalogEntryId: readEntry.id,
+          toolName: "list_things",
+        },
+      }),
+    ).resolves.toMatchObject({ allowed: false });
+    await expect(
+      secretService(db).resolveSecretValue(
+        company.id,
+        secretIds[0]!,
+        "latest",
+        {
+          consumerType: "tool_connection",
+          consumerId: connectionId,
+          configPath: `headers.${HEADER.name}`,
+          actorType: "system",
+        },
+      ),
+    ).rejects.toMatchObject({ status: 404 });
     // The ref survives the failure on purpose: it is the only pointer a retry
     // has to the secret it still has to revoke.
     expect(midway!.credentialSecretRefs.length).toBeGreaterThan(0);
@@ -551,9 +852,17 @@ describeEmbeddedPostgres("tool connection removal", () => {
     expect(removed.removal.secretsRevoked).toBe(secretIds.length);
     expect(removed.removal.secretsRetainedShared).toBe(0);
     for (const secretId of secretIds) {
-      expect(await db.select().from(companySecrets).where(eq(companySecrets.id, secretId))).toEqual([]);
+      expect(
+        await db
+          .select()
+          .from(companySecrets)
+          .where(eq(companySecrets.id, secretId)),
+      ).toEqual([]);
     }
-    const [after] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [after] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     expect(after!.credentialSecretRefs).toEqual([]);
 
     // A third removal is a no-op that still succeeds.
@@ -571,21 +880,30 @@ describeEmbeddedPostgres("tool connection removal", () => {
     installMcpFixture(HEADER);
     const company = await createCompany(db);
     const agent = await createAgent(db, company.id);
-    const { service, connectionId, profile } = await connectHeaderApp(company.id, agent.id);
+    const { service, connectionId, profile } = await connectHeaderApp(
+      company.id,
+      agent.id,
+    );
 
-    const [gateway] = await db.insert(toolMcpGateways).values({
-      companyId: company.id,
-      name: `Gateway ${randomUUID().slice(0, 8)}`,
-      slug: `gw-${randomUUID().slice(0, 8)}`,
-      profileId: profile.id,
-      status: "active",
-    }).returning();
-    const [token] = await db.insert(toolMcpGatewayTokens).values({
-      companyId: company.id,
-      gatewayId: gateway!.id,
-      name: "client",
-      tokenHash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
-    }).returning();
+    const [gateway] = await db
+      .insert(toolMcpGateways)
+      .values({
+        companyId: company.id,
+        name: `Gateway ${randomUUID().slice(0, 8)}`,
+        slug: `gw-${randomUUID().slice(0, 8)}`,
+        profileId: profile.id,
+        status: "active",
+      })
+      .returning();
+    const [token] = await db
+      .insert(toolMcpGatewayTokens)
+      .values({
+        companyId: company.id,
+        gatewayId: gateway!.id,
+        name: "client",
+        tokenHash: randomUUID().replace(/-/g, "").padEnd(64, "0"),
+      })
+      .returning();
 
     const removed = await service.archiveConnection(connectionId, company.id);
 
@@ -593,12 +911,26 @@ describeEmbeddedPostgres("tool connection removal", () => {
       appProfile: "archived",
       gatewayTokensRevoked: 1,
     });
-    const [profileAfter] = await db.select().from(toolProfiles).where(eq(toolProfiles.id, profile.id));
+    const [profileAfter] = await db
+      .select()
+      .from(toolProfiles)
+      .where(eq(toolProfiles.id, profile.id));
     // The row survives only because the gateway foreign key forbids deleting it;
     // a non-active profile with no entries is what the policy engine ignores.
-    expect(profileAfter).toMatchObject({ status: "archived", defaultAction: "deny" });
-    expect(await db.select().from(toolProfileEntries).where(eq(toolProfileEntries.profileId, profile.id))).toEqual([]);
-    const [tokenAfter] = await db.select().from(toolMcpGatewayTokens).where(eq(toolMcpGatewayTokens.id, token!.id));
+    expect(profileAfter).toMatchObject({
+      status: "archived",
+      defaultAction: "deny",
+    });
+    expect(
+      await db
+        .select()
+        .from(toolProfileEntries)
+        .where(eq(toolProfileEntries.profileId, profile.id)),
+    ).toEqual([]);
+    const [tokenAfter] = await db
+      .select()
+      .from(toolMcpGatewayTokens)
+      .where(eq(toolMcpGatewayTokens.id, token!.id));
     expect(tokenAfter!.revokedAt).not.toBeNull();
   });
 
@@ -606,28 +938,42 @@ describeEmbeddedPostgres("tool connection removal", () => {
     installMcpFixture(HEADER);
     const company = await createCompany(db);
     const agent = await createAgent(db, company.id);
-    const { service, connectionId } = await connectHeaderApp(company.id, agent.id);
-    const [connection] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const { service, connectionId } = await connectHeaderApp(
+      company.id,
+      agent.id,
+    );
+    const [connection] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
 
-    const [slot] = await db.insert(toolRuntimeSlots).values({
-      companyId: company.id,
-      applicationId: connection!.applicationId,
-      connectionId,
-      slotKey: `mcp:${company.id}:${connectionId}`,
-      ownerScopeType: "connection",
-      ownerScopeId: connectionId,
-      runtimeKind: "local_stdio",
-      status: "running",
-      provider: "taskcore",
-      healthStatus: "ok",
-    }).returning();
+    const [slot] = await db
+      .insert(toolRuntimeSlots)
+      .values({
+        companyId: company.id,
+        applicationId: connection!.applicationId,
+        connectionId,
+        slotKey: `mcp:${company.id}:${connectionId}`,
+        ownerScopeType: "connection",
+        ownerScopeId: connectionId,
+        runtimeKind: "local_stdio",
+        status: "running",
+        provider: "taskcore",
+        healthStatus: "ok",
+      })
+      .returning();
 
     const removed = await service.archiveConnection(connectionId, company.id);
 
     expect(removed.removal.runtimeSlotsStopped).toBe(1);
-    const [slotAfter] = await db.select().from(toolRuntimeSlots).where(eq(toolRuntimeSlots.id, slot!.id));
+    const [slotAfter] = await db
+      .select()
+      .from(toolRuntimeSlots)
+      .where(eq(toolRuntimeSlots.id, slot!.id));
     expect(slotAfter!.status).toBe("stopped");
-    expect(slotAfter!.metadata).toMatchObject({ stoppedReason: "connection_removed" });
+    expect(slotAfter!.metadata).toMatchObject({
+      stoppedReason: "connection_removed",
+    });
 
     // A second removal has nothing left to stop.
     const again = await service.archiveConnection(connectionId, company.id);
@@ -638,16 +984,33 @@ describeEmbeddedPostgres("tool connection removal", () => {
     installMcpFixture(HEADER);
     const company = await createCompany(db);
     const agent = await createAgent(db, company.id);
-    const { service, connectionId } = await connectHeaderApp(company.id, agent.id);
+    const { service, connectionId } = await connectHeaderApp(
+      company.id,
+      agent.id,
+    );
     const app = createRouteApp(db);
-    const [beforeRemoval] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
-    const originalSecretIds = beforeRemoval!.credentialSecretRefs.map((ref) => ref.secretId);
+    const [beforeRemoval] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
+    const originalSecretIds = beforeRemoval!.credentialSecretRefs.map(
+      (ref) => ref.secretId,
+    );
     expect(originalSecretIds.length).toBeGreaterThan(0);
 
-    const response = await request(app).delete(`/api/tool-connections/${connectionId}`).expect(200);
+    const response = await request(app)
+      .delete(`/api/tool-connections/${connectionId}`)
+      .expect(200);
 
-    expect(response.body).toMatchObject({ id: connectionId, status: "archived", enabled: false });
-    expect(response.body.removal).toMatchObject({ appProfile: "deleted", secretsRetainedShared: 0 });
+    expect(response.body).toMatchObject({
+      id: connectionId,
+      status: "archived",
+      enabled: false,
+    });
+    expect(response.body.removal).toMatchObject({
+      appProfile: "deleted",
+      secretsRetainedShared: 0,
+    });
     expect(response.body.removal.secretsRevoked).toBeGreaterThan(0);
     // Nothing in the response body echoes the pasted value or a secret name.
     expect(JSON.stringify(response.body)).not.toContain(HEADER.value);
@@ -655,14 +1018,21 @@ describeEmbeddedPostgres("tool connection removal", () => {
     const [receipt] = await db
       .select()
       .from(activityLog)
-      .where(and(eq(activityLog.companyId, company.id), eq(activityLog.action, "tool_connection.archived")));
+      .where(
+        and(
+          eq(activityLog.companyId, company.id),
+          eq(activityLog.action, "tool_connection.archived"),
+        ),
+      );
     expect(receipt!.details).toMatchObject({
       transport: "mcp_remote",
       appProfile: "deleted",
       secretsRetainedShared: 0,
       applicationArchived: true,
     });
-    expect(Number((receipt!.details as Record<string, unknown>).secretsRevoked)).toBeGreaterThan(0);
+    expect(
+      Number((receipt!.details as Record<string, unknown>).secretsRevoked),
+    ).toBeGreaterThan(0);
     const receiptText = JSON.stringify(receipt!.details);
     expect(receiptText).not.toContain(HEADER.value);
     expect(receiptText).not.toContain("tool_app.");
@@ -670,14 +1040,22 @@ describeEmbeddedPostgres("tool connection removal", () => {
     // Reconnect cannot lean on a retained credential: the archived connection
     // refuses both reconnect and sign-in, and a fresh connect has to be given
     // new credential values.
-    await expect(service.reconnectGalleryApp(connectionId, company.id, { credentialValues: {} }))
-      .rejects.toMatchObject({ status: 409 });
-    await expect(service.startOAuth(company.id, connectionId, {
-      redirectUri: "https://taskcore.fixture.test/api/tools/oauth/callback",
-      actor: { actorType: "user", actorId: "board-user" },
-    })).rejects.toMatchObject({ status: 409 });
+    await expect(
+      service.reconnectGalleryApp(connectionId, company.id, {
+        credentialValues: {},
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      service.startOAuth(company.id, connectionId, {
+        redirectUri: "https://taskcore.fixture.test/api/tools/oauth/callback",
+        actor: { actorType: "user", actorId: "board-user" },
+      }),
+    ).rejects.toMatchObject({ status: 409 });
 
-    const [archived] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [archived] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     const reconnected = await service.connectGalleryApp(company.id, {
       applicationId: archived!.applicationId,
       link: MCP_URL,
@@ -686,14 +1064,26 @@ describeEmbeddedPostgres("tool connection removal", () => {
     });
     // Same connection identity, brand new credential.
     expect(reconnected.connectionId).toBe(connectionId);
-    const [after] = await db.select().from(toolConnections).where(eq(toolConnections.id, connectionId));
+    const [after] = await db
+      .select()
+      .from(toolConnections)
+      .where(eq(toolConnections.id, connectionId));
     expect(after!.credentialSecretRefs.length).toBeGreaterThan(0);
-    const reconnectedSecretIds = after!.credentialSecretRefs.map((ref) => ref.secretId);
+    const reconnectedSecretIds = after!.credentialSecretRefs.map(
+      (ref) => ref.secretId,
+    );
     // Not one of the revoked secrets came back.
-    for (const secretId of originalSecretIds) expect(reconnectedSecretIds).not.toContain(secretId);
+    for (const secretId of originalSecretIds)
+      expect(reconnectedSecretIds).not.toContain(secretId);
     // A fresh connect recreates the deny-by-default profile, but does not restore installs.
-    await expect(db.select().from(toolProfiles).where(eq(toolProfiles.profileKey, `app:${connectionId}`)))
-      .resolves.toHaveLength(1);
-    expect(await service.listConnectionInstalls(connectionId, company.id)).toEqual([]);
+    await expect(
+      db
+        .select()
+        .from(toolProfiles)
+        .where(eq(toolProfiles.profileKey, `app:${connectionId}`)),
+    ).resolves.toHaveLength(1);
+    expect(
+      await service.listConnectionInstalls(connectionId, company.id),
+    ).toEqual([]);
   });
 });

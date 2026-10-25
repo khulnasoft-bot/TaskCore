@@ -36,14 +36,17 @@ describe("managed runtime start terminality", () => {
       throw fetchError;
     }) as typeof fetch;
 
-    await expect(waitForRuntimeServiceReadiness({
-      service: hangingService,
-      url: "http://127.0.0.1:42000/",
-      readinessUrl: null,
-      fetchImpl: refusingFetch,
-      now: () => now,
-    })).rejects.toMatchObject({
-      message: "Readiness check failed for http://127.0.0.1:42000/: fetch failed: connect ECONNREFUSED 127.0.0.1:42000 (1 probes over 1000ms)",
+    await expect(
+      waitForRuntimeServiceReadiness({
+        service: hangingService,
+        url: "http://127.0.0.1:42000/",
+        readinessUrl: null,
+        fetchImpl: refusingFetch,
+        now: () => now,
+      }),
+    ).rejects.toMatchObject({
+      message:
+        "Readiness check failed for http://127.0.0.1:42000/: fetch failed: connect ECONNREFUSED 127.0.0.1:42000 (1 probes over 1000ms)",
       cause: fetchError,
     });
   });
@@ -52,7 +55,10 @@ describe("managed runtime start terminality", () => {
     let probes = 0;
     const abortedProbes: string[] = [];
     /** Accepts the request and only ever settles when the caller aborts, like a foreign listener. */
-    const neverAnsweringFetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+    const neverAnsweringFetch = (async (
+      _url: string | URL | Request,
+      init?: RequestInit,
+    ) => {
       probes += 1;
       return await new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => {
@@ -72,13 +78,17 @@ describe("managed runtime start terminality", () => {
         readinessUrl: null,
         fetchImpl: neverAnsweringFetch,
       }),
-    ).rejects.toThrow(/Readiness check failed for http:\/\/127\.0\.0\.1:45439\//);
+    ).rejects.toThrow(
+      /Readiness check failed for http:\/\/127\.0\.0\.1:45439\//,
+    );
     const elapsedMs = Date.now() - startedAt;
 
     expect(probes).toBeGreaterThan(0);
     expect(abortedProbes.length).toBeGreaterThan(0);
     // Terminal well inside the 1s readiness budget plus one probe budget.
-    expect(elapsedMs).toBeLessThan(1_000 + RUNTIME_SERVICE_READINESS_PROBE_TIMEOUT_MS);
+    expect(elapsedMs).toBeLessThan(
+      1_000 + RUNTIME_SERVICE_READINESS_PROBE_TIMEOUT_MS,
+    );
   });
 
   it("negative control: an unbounded probe loop never terminalizes the same start", async () => {
@@ -94,7 +104,9 @@ describe("managed runtime start terminality", () => {
     };
 
     const settled = await Promise.race([
-      legacyWait().then(() => "settled").catch(() => "settled"),
+      legacyWait()
+        .then(() => "settled")
+        .catch(() => "settled"),
       delay(1_500).then(() => "still-hanging"),
     ]);
     expect(settled).toBe("still-hanging");
@@ -109,7 +121,9 @@ describe("managed runtime start terminality", () => {
 
     await expect(
       waitForRuntimeServiceReadiness({
-        service: { readiness: { type: "http", timeoutSec: 1, intervalMs: 200 } },
+        service: {
+          readiness: { type: "http", timeoutSec: 1, intervalMs: 200 },
+        },
         url: "http://127.0.0.1:45439/",
         readinessUrl: null,
         fetchImpl: refusingFetch,
@@ -125,7 +139,8 @@ describe("managed runtime start terminality", () => {
     // first probe socket has closed, which is exactly the reallocation collision in the report.
     const candidates = [49871, 49871, 49871, 49872];
     let index = 0;
-    const probe = async () => candidates[Math.min(index++, candidates.length - 1)]!;
+    const probe = async () =>
+      candidates[Math.min(index++, candidates.length - 1)]!;
     const portOwnerLookup = async () => null;
 
     const [first, second] = await Promise.all([
@@ -140,13 +155,20 @@ describe("managed runtime start terminality", () => {
   it("skips a candidate port that a live process already owns", async () => {
     const candidates = [49881, 49882];
     let index = 0;
-    const probe = async () => candidates[Math.min(index++, candidates.length - 1)]!;
-    const portOwnerLookup = async (port: number) => (port === 49881 ? 4242 : null);
+    const probe = async () =>
+      candidates[Math.min(index++, candidates.length - 1)]!;
+    const portOwnerLookup = async (port: number) =>
+      port === 49881 ? 4242 : null;
 
-    await expect(allocateRuntimeServicePort({ probe, portOwnerLookup })).resolves.toBe(49882);
+    await expect(
+      allocateRuntimeServicePort({ probe, portOwnerLookup }),
+    ).resolves.toBe(49882);
     // The rejected candidate must not stay reserved, or later starts would leak allocations.
     await expect(
-      allocateRuntimeServicePort({ probe: async () => 49881, portOwnerLookup: async () => null }),
+      allocateRuntimeServicePort({
+        probe: async () => 49881,
+        portOwnerLookup: async () => null,
+      }),
     ).resolves.toBe(49881);
   });
 
@@ -158,10 +180,13 @@ describe("managed runtime start terminality", () => {
     // the in-range candidate and takes the next out-of-range one.
     const candidates = [42500, 49883];
     let index = 0;
-    const probe = async () => candidates[Math.min(index++, candidates.length - 1)]!;
+    const probe = async () =>
+      candidates[Math.min(index++, candidates.length - 1)]!;
     const portOwnerLookup = async () => null;
 
-    await expect(allocateRuntimeServicePort({ probe, portOwnerLookup })).resolves.toBe(49883);
+    await expect(
+      allocateRuntimeServicePort({ probe, portOwnerLookup }),
+    ).resolves.toBe(49883);
     // The allocator skipped 42500 before it reserved a candidate, so the in-range
     // port stays free. A later start can still claim it through the exposure path.
     expect(claimRuntimeServiceBindPort(42500, null)).toBe(true);
@@ -193,7 +218,10 @@ describe("managed runtime start terminality", () => {
 
   it("fails terminally rather than looping when no free port can be found", async () => {
     await expect(
-      allocateRuntimeServicePort({ probe: async () => 49891, portOwnerLookup: async () => 99 }),
+      allocateRuntimeServicePort({
+        probe: async () => 49891,
+        portOwnerLookup: async () => 99,
+      }),
     ).rejects.toThrow(/Could not allocate a free loopback port/);
   });
 });

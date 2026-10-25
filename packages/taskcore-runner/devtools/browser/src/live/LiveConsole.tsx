@@ -12,7 +12,12 @@ import { Tabs } from "../components/ui/tabs";
 import { ToolItem, type ToolStatus } from "../components/ui/tool-item";
 import { Inspector } from "./Inspector";
 import { RequestCard } from "./RequestCard";
-import { ConnectionBlock, GoalBlock, LineageTree, ManifestList } from "./SessionPanel";
+import {
+  ConnectionBlock,
+  GoalBlock,
+  LineageTree,
+  ManifestList,
+} from "./SessionPanel";
 import { useLiveConsole } from "./use-live-console";
 import type { TranscriptEntry } from "./transcript-model";
 
@@ -55,7 +60,9 @@ function useCompactLayout(): boolean {
   return compact;
 }
 
-function toolStatus(entry: Extract<TranscriptEntry, { kind: "item" }>): ToolStatus {
+function toolStatus(
+  entry: Extract<TranscriptEntry, { kind: "item" }>,
+): ToolStatus {
   if (entry.interrupted) return "interrupted";
   if (entry.item.status === "failed") return "failed";
   if (entry.item.status === "running") return "running";
@@ -68,13 +75,17 @@ export function LiveConsole() {
   const [inspectorOpen, setInspectorOpen] = React.useState(false);
   const [segment, setSegment] = React.useState("chat");
   const [resetOpen, setResetOpen] = React.useState(false);
-  const [highlightItemId, setHighlightItemId] = React.useState<string | null>(null);
+  const [highlightItemId, setHighlightItemId] = React.useState<string | null>(
+    null,
+  );
   const [outcomes, setOutcomes] = React.useState<Record<string, string>>({});
   const oldestPendingRef = React.useRef<HTMLLIElement>(null);
   const compact = useCompactLayout();
 
   React.useEffect(() => {
-    const stored = window.localStorage.getItem("taskcore-runner.live-console.inspector");
+    const stored = window.localStorage.getItem(
+      "taskcore-runner.live-console.inspector",
+    );
     if (stored === "open") setInspectorOpen(true);
   }, []);
 
@@ -86,7 +97,9 @@ export function LiveConsole() {
   }, [inspectorOpen]);
 
   const manifestId = console_.state?.manifest ?? console_.selectedManifestId;
-  const activeManifest = console_.manifests.find((entry) => entry.id === manifestId);
+  const activeManifest = console_.manifests.find(
+    (entry) => entry.id === manifestId,
+  );
   const pendingRequests = console_.transcript.filter(
     (entry) => entry.kind === "request" && entry.status === "pending",
   );
@@ -96,11 +109,18 @@ export function LiveConsole() {
   React.useEffect(() => {
     const snapshot = console_.snapshot;
     if (snapshot === null || console_.state === null) return;
-    if (!["completed", "failed", "interrupted", "cancelled"].includes(snapshot.turnState)) return;
+    if (
+      !["completed", "failed", "interrupted", "cancelled"].includes(
+        snapshot.turnState,
+      )
+    )
+      return;
     setOutcomes((current) => ({
       ...current,
       [console_.state!.manifest ?? "unknown"]:
-        snapshot.turnState === "completed" ? "passed observations" : snapshot.turnState,
+        snapshot.turnState === "completed"
+          ? "passed observations"
+          : snapshot.turnState,
     }));
   }, [console_.snapshot, console_.state]);
 
@@ -114,22 +134,29 @@ export function LiveConsole() {
 
   function runManifest(id: string) {
     const manifest = console_.manifests.find((entry) => entry.id === id);
-    void console_.start({ manifestId: id, message: manifest?.prompt ?? "Run the demo." });
+    void console_.start({
+      manifestId: id,
+      message: manifest?.prompt ?? "Run the demo.",
+    });
   }
 
-  const composerReason = viewingChild && !childSteeringSupported
-    ? "Direct steering of child threads is not supported by this app-server."
-    : null;
+  const composerReason =
+    viewingChild && !childSteeringSupported
+      ? "Direct steering of child threads is not supported by this app-server."
+      : null;
 
   const transcriptBody = (
-    <Conversation itemCount={console_.transcript.length} label="Session transcript">
+    <Conversation
+      itemCount={console_.transcript.length}
+      label="Session transcript"
+    >
       {console_.transcript.length === 0 ? (
         <div className="ui-empty-transcript" data-testid="empty-transcript">
           <p className="eyebrow">No session yet</p>
           <h3>Pick a demo chat or start a blank session</h3>
           <p>
-            The browser never holds a provider credential. Only the demo server starts a driver
-            and owns the working directory.
+            The browser never holds a provider credential. Only the demo server
+            starts a driver and owns the working directory.
           </p>
         </div>
       ) : null}
@@ -146,8 +173,14 @@ export function LiveConsole() {
           }
           if (entry.kind === "turn") {
             return (
-              <li key={entry.key} className="ui-turn-marker" data-testid={`turn-${entry.state}`}>
-                <Badge tone={TURN_TONE[entry.state]}>{TURN_LABEL[entry.state]}</Badge>
+              <li
+                key={entry.key}
+                className="ui-turn-marker"
+                data-testid={`turn-${entry.state}`}
+              >
+                <Badge tone={TURN_TONE[entry.state]}>
+                  {TURN_LABEL[entry.state]}
+                </Badge>
                 <span>{entry.detail}</span>
               </li>
             );
@@ -163,21 +196,29 @@ export function LiveConsole() {
           }
           if (entry.kind === "request") {
             const isOldestPending =
-              entry.status === "pending" && pendingRequests[0]?.key === entry.key;
+              entry.status === "pending" &&
+              pendingRequests[0]?.key === entry.key;
             return (
               <RequestCard
                 key={entry.key}
                 entry={entry}
                 {...(isOldestPending ? { focusRef: oldestPendingRef } : {})}
                 onResolve={(resolution) =>
-                  void console_.resolve(entry.requestId, entry.turnId ?? "", resolution)
+                  void console_.resolve(
+                    entry.requestId,
+                    entry.turnId ?? "",
+                    resolution,
+                  )
                 }
               />
             );
           }
           if (entry.role === "reasoning") {
             return (
-              <li key={entry.key} data-highlighted={entry.item.itemId === highlightItemId}>
+              <li
+                key={entry.key}
+                data-highlighted={entry.item.itemId === highlightItemId}
+              >
                 <ReasoningItem
                   text={entry.item.text}
                   streaming={entry.streaming}
@@ -188,7 +229,10 @@ export function LiveConsole() {
           }
           if (entry.role === "tool") {
             return (
-              <li key={entry.key} data-highlighted={entry.item.itemId === highlightItemId}>
+              <li
+                key={entry.key}
+                data-highlighted={entry.item.itemId === highlightItemId}
+              >
                 <ToolItem
                   name={entry.toolName ?? entry.item.kind}
                   status={toolStatus(entry)}
@@ -200,23 +244,36 @@ export function LiveConsole() {
             );
           }
           return (
-            <li key={entry.key} data-highlighted={entry.item.itemId === highlightItemId}>
+            <li
+              key={entry.key}
+              data-highlighted={entry.item.itemId === highlightItemId}
+            >
               <Message
                 role={entry.role}
                 streaming={entry.streaming}
                 interrupted={entry.interrupted}
                 failed={entry.item.status === "failed"}
               >
-                <MessageText text={entry.item.text} streaming={entry.streaming} />
+                <MessageText
+                  text={entry.item.text}
+                  streaming={entry.streaming}
+                />
                 {entry.failure === null ? null : (
-                  <pre className="ui-payload ui-payload--danger">{entry.failure}</pre>
+                  <pre className="ui-payload ui-payload--danger">
+                    {entry.failure}
+                  </pre>
                 )}
               </Message>
             </li>
           );
         })}
         {console_.steeringChips.map((chip) => (
-          <li key={chip.id} className="ui-steering-chip" data-status={chip.status} data-testid="steering-chip">
+          <li
+            key={chip.id}
+            className="ui-steering-chip"
+            data-status={chip.status}
+            data-testid="steering-chip"
+          >
             <Badge
               tone={
                 chip.status === "acknowledged"
@@ -252,7 +309,8 @@ export function LiveConsole() {
 
   const composerBlock = (
     <div className="ui-composer-region">
-      {console_.connection === "disconnected" || console_.connection === "reconnecting" ? (
+      {console_.connection === "disconnected" ||
+      console_.connection === "reconnecting" ? (
         <Banner tone="warning" data-testid="reconnect-banner">
           <BannerText>
             {console_.connection === "reconnecting"
@@ -260,7 +318,11 @@ export function LiveConsole() {
               : "Connection lost — the session is still on the server."}
           </BannerText>
           <BannerActions>
-            <Button type="button" data-testid="retry-now" onClick={console_.retryNow}>
+            <Button
+              type="button"
+              data-testid="retry-now"
+              onClick={console_.retryNow}
+            >
               Retry now
             </Button>
           </BannerActions>
@@ -268,7 +330,9 @@ export function LiveConsole() {
       ) : null}
       {pendingRequests.length > 0 ? (
         <Banner tone="accent" assertive data-testid="pending-request-banner">
-          <BannerText>{pendingRequests.length} request waiting — Review</BannerText>
+          <BannerText>
+            {pendingRequests.length} request waiting — Review
+          </BannerText>
           <BannerActions>
             <Button
               type="button"
@@ -310,7 +374,10 @@ export function LiveConsole() {
         onRetry={console_.retryNow}
         onScrollToOldestRequest={() => oldestPendingRef.current?.focus()}
       />
-      <GoalBlock state={console_.state} onGoal={(operation, body) => void console_.goal(operation, body)} />
+      <GoalBlock
+        state={console_.state}
+        onGoal={(operation, body) => void console_.goal(operation, body)}
+      />
       <LineageTree
         lineage={console_.state?.lineage ?? []}
         selectedThreadId={console_.selectedThreadId}
@@ -318,11 +385,18 @@ export function LiveConsole() {
       />
       <section className="ui-panel">
         <h2 className="ui-panel-title">Demo state</h2>
-        <Button type="button" className="ui-button--quiet" onClick={() => setResetOpen(true)}>
+        <Button
+          type="button"
+          className="ui-button--quiet"
+          onClick={() => setResetOpen(true)}
+        >
           Reset demo state
         </Button>
         {activeManifest === undefined ? null : (
-          <ol className="ui-observation-list" data-testid="observation-checklist">
+          <ol
+            className="ui-observation-list"
+            data-testid="observation-checklist"
+          >
             {activeManifest.expectedObservations.map((observation) => (
               <li key={observation}>
                 <label>
@@ -381,14 +455,22 @@ export function LiveConsole() {
             data-testid="toggle-replay"
             aria-pressed={console_.replay.active}
             disabled={console_.events.length === 0}
-            onClick={() => (console_.replay.active ? console_.replay.exit() : console_.replay.enter())}
+            onClick={() =>
+              console_.replay.active
+                ? console_.replay.exit()
+                : console_.replay.enter()
+            }
           >
             {console_.replay.active ? "Exit replay" : "Replay"}
           </Button>
         </div>
       </div>
 
-      <p className="ui-visually-hidden" aria-live="polite" data-testid="live-announcement">
+      <p
+        className="ui-visually-hidden"
+        aria-live="polite"
+        data-testid="live-announcement"
+      >
         {console_.announcement}
       </p>
       {console_.error === null ? null : (
@@ -402,10 +484,18 @@ export function LiveConsole() {
           <Button type="button" onClick={console_.replay.togglePlay}>
             {console_.replay.playing ? "Pause" : "Play"}
           </Button>
-          <Button type="button" className="ui-button--quiet" onClick={() => console_.replay.step(-1)}>
+          <Button
+            type="button"
+            className="ui-button--quiet"
+            onClick={() => console_.replay.step(-1)}
+          >
             Step back
           </Button>
-          <Button type="button" className="ui-button--quiet" onClick={() => console_.replay.step(1)}>
+          <Button
+            type="button"
+            className="ui-button--quiet"
+            onClick={() => console_.replay.step(1)}
+          >
             Step forward
           </Button>
           <label htmlFor="replay-position">Position</label>
@@ -416,7 +506,9 @@ export function LiveConsole() {
             max={console_.replay.length}
             value={console_.replay.position}
             data-testid="replay-position"
-            onChange={(event) => console_.replay.setPosition(Number(event.target.value))}
+            onChange={(event) =>
+              console_.replay.setPosition(Number(event.target.value))
+            }
           />
           <span>
             {console_.replay.position} / {console_.replay.length}
@@ -450,7 +542,10 @@ export function LiveConsole() {
             {composerBlock}
           </main>
           {inspectorOpen ? (
-            <aside className="live-console-inspector" aria-label="Protocol inspector">
+            <aside
+              className="live-console-inspector"
+              aria-label="Protocol inspector"
+            >
               {inspectorPanel}
             </aside>
           ) : null}
@@ -464,7 +559,11 @@ export function LiveConsole() {
         description="Discards the current live session transcript. Recorded evidence files are not touched."
         footer={
           <>
-            <Button type="button" className="ui-button--quiet" onClick={() => setResetOpen(false)}>
+            <Button
+              type="button"
+              className="ui-button--quiet"
+              onClick={() => setResetOpen(false)}
+            >
               Keep the session
             </Button>
             <Button

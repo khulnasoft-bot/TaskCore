@@ -35,17 +35,22 @@ async function createApp() {
       userId: "instance-admin-1",
       source: "local_implicit",
       companyIds: ["company-1"],
-      memberships: [{ companyId: "company-1", membershipRole: "owner", status: "active" }],
+      memberships: [
+        { companyId: "company-1", membershipRole: "owner", status: "active" },
+      ],
       isInstanceAdmin: true,
     } as Express.Request["actor"];
     next();
   });
-  app.use("/api", accessRoutes(stubDb, {
-    deploymentMode: "authenticated",
-    deploymentExposure: "private",
-    bindHost: "127.0.0.1",
-    allowedHostnames: [],
-  }));
+  app.use(
+    "/api",
+    accessRoutes(stubDb, {
+      deploymentMode: "authenticated",
+      deploymentExposure: "private",
+      bindHost: "127.0.0.1",
+      allowedHostnames: [],
+    }),
+  );
   app.use(errorHandler);
   return app;
 }
@@ -64,14 +69,26 @@ describe("operator-hidden access admin floor", () => {
   });
 
   const attempts: Array<[string, () => request.Test]> = [
-    ["promote", () => request(app).post("/api/admin/users/user-1/promote-instance-admin")],
-    ["demote", () => request(app).post("/api/admin/users/user-1/demote-instance-admin")],
+    [
+      "promote",
+      () => request(app).post("/api/admin/users/user-1/promote-instance-admin"),
+    ],
+    [
+      "demote",
+      () => request(app).post("/api/admin/users/user-1/demote-instance-admin"),
+    ],
     [
       "company access write",
-      () => request(app).put("/api/admin/users/user-1/company-access").send({ companyIds: [] }),
+      () =>
+        request(app)
+          .put("/api/admin/users/user-1/company-access")
+          .send({ companyIds: [] }),
     ],
     ["user listing", () => request(app).get("/api/admin/users")],
-    ["company access read", () => request(app).get("/api/admin/users/user-1/company-access")],
+    [
+      "company access read",
+      () => request(app).get("/api/admin/users/user-1/company-access"),
+    ],
   ];
 
   it.each(attempts)(
@@ -82,7 +99,9 @@ describe("operator-hidden access admin floor", () => {
       const res = await buildRequest();
 
       expect(res.status, JSON.stringify(res.body)).toBe(403);
-      expect(res.body.details).toMatchObject({ code: "settings_operator_managed" });
+      expect(res.body.details).toMatchObject({
+        code: "settings_operator_managed",
+      });
     },
   );
 

@@ -47,8 +47,12 @@ function createDbStub(...selectResponses: unknown[][]) {
 
 function loadAppModules() {
   return Promise.all([
-    vi.importActual<typeof import("../routes/access.js")>("../routes/access.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/access.js")>(
+      "../routes/access.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
 }
 
@@ -83,7 +87,11 @@ describe("GET /invites/:token", () => {
     vi.doUnmock("../middleware/index.js");
     registerModuleMocks();
     mockStorage.headObject.mockReset();
-    mockStorage.headObject.mockResolvedValue({ exists: true, contentLength: 3, contentType: "image/png" });
+    mockStorage.headObject.mockResolvedValue({
+      exists: true,
+      contentLength: 3,
+      contentType: "image/png",
+    });
     // Transform the route's large dependency graph under the setup budget,
     // rather than spending the first request test's timeout on module loading.
     await loadAppModules();

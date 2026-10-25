@@ -79,8 +79,14 @@ export interface ApplyManagedEnvironmentsOptions {
   workerManager?: Pick<PluginWorkerManager, "isRunning"> & {
     getWorker(pluginId: string):
       | {
-          on(event: "ready", listener: (payload: { pluginId: string }) => void): void;
-          off(event: "ready", listener: (payload: { pluginId: string }) => void): void;
+          on(
+            event: "ready",
+            listener: (payload: { pluginId: string }) => void,
+          ): void;
+          off(
+            event: "ready",
+            listener: (payload: { pluginId: string }) => void,
+          ): void;
         }
       | undefined;
   };
@@ -94,12 +100,17 @@ export interface ApplyManagedEnvironmentsOptions {
     | "findManagedSandboxEnvironment"
   >;
   /** Test seam: overrides the instance-settings service built from `db`. */
-  instanceSettings?: Pick<ReturnType<typeof instanceSettingsService>, "get" | "update">;
+  instanceSettings?: Pick<
+    ReturnType<typeof instanceSettingsService>,
+    "get" | "update"
+  >;
   /** Test seam: overrides the sandbox-provider plugin driver lookup. */
   resolveSandboxProviderDriver?: (input: {
     db: Db;
     driverKey: string;
-  }) => Promise<{ plugin: { id: string; pluginKey: string; status: string } } | null>;
+  }) => Promise<{
+    plugin: { id: string; pluginKey: string; status: string };
+  } | null>;
 }
 
 export interface ManagedEnvironmentReconciliationOutcome {
@@ -140,7 +151,8 @@ export async function applyManagedEnvironments(
 
   const settings = opts.instanceSettings ?? instanceSettingsService(db);
   const environments = opts.environments ?? environmentService(db);
-  const managedSandboxOnlyDeclared = managedConfig.features.enableManagedSandboxOnly === true;
+  const managedSandboxOnlyDeclared =
+    managedConfig.features.enableManagedSandboxOnly === true;
 
   // Mode-off default cleanup runs BEFORE any ensure, and regardless of
   // whether the document still declares environments or the provider is
@@ -152,17 +164,23 @@ export async function applyManagedEnvironments(
   // (no marker) are untouched.
   if (!managedSandboxOnlyDeclared) {
     try {
-      const managedRow = await environments.findManagedSandboxEnvironment(undefined, {
-        includeArchived: true,
-      });
+      const managedRow = await environments.findManagedSandboxEnvironment(
+        undefined,
+        {
+          includeArchived: true,
+        },
+      );
       if (
         managedRow &&
         managedRow.metadata?.managedDefaultStamped === true &&
         ((await settings.get()).defaultEnvironmentId ?? null) === managedRow.id
       ) {
         await settings.update({ defaultEnvironmentId: null });
-        const { managedDefaultStamped: _cleared, ...remainingMetadata } = managedRow.metadata ?? {};
-        await environments.update(managedRow.id, { metadata: remainingMetadata });
+        const { managedDefaultStamped: _cleared, ...remainingMetadata } =
+          managedRow.metadata ?? {};
+        await environments.update(managedRow.id, {
+          metadata: remainingMetadata,
+        });
         logger.info(
           { environmentId: managedRow.id },
           "instance default environment reverted from the managed sandbox environment (managed-sandbox-only is not declared)",
@@ -197,7 +215,9 @@ export async function applyManagedEnvironments(
   // that fails every lease until the plugin recovers.
   await opts.pluginsReady;
 
-  const resolveDriver = opts.resolveSandboxProviderDriver ?? resolvePluginSandboxProviderDriverByKey;
+  const resolveDriver =
+    opts.resolveSandboxProviderDriver ??
+    resolvePluginSandboxProviderDriverByKey;
 
   /**
    * Point the instance default at the managed sandbox row when no
@@ -242,11 +262,17 @@ export async function applyManagedEnvironments(
       // Marker first: a crash between the two writes must never leave a
       // stamped default that the revert path cannot attribute.
       await environments.update(managedEnvironment.id, {
-        metadata: { ...(managedEnvironment.metadata ?? {}), managedDefaultStamped: true },
+        metadata: {
+          ...(managedEnvironment.metadata ?? {}),
+          managedDefaultStamped: true,
+        },
       });
       await settings.update({ defaultEnvironmentId: managedEnvironment.id });
       logger.info(
-        { environmentId: managedEnvironment.id, previousDefaultEnvironmentId: current },
+        {
+          environmentId: managedEnvironment.id,
+          previousDefaultEnvironmentId: current,
+        },
         "instance default environment set to the managed sandbox environment",
       );
     } catch (err) {
@@ -325,7 +351,8 @@ export async function applyManagedEnvironments(
       // can fail after install leaves the record `ready`, in which case no
       // worker is running and the driver cannot serve leases.
       const workerRunning =
-        resolved != null && (opts.workerManager?.isRunning(resolved.plugin.id) ?? false);
+        resolved != null &&
+        (opts.workerManager?.isRunning(resolved.plugin.id) ?? false);
       if (!resolved || resolved.plugin.status !== "ready" || !workerRunning) {
         failed += 1;
         // A row provisioned by an earlier boot must not stay active either —
@@ -359,14 +386,16 @@ export async function applyManagedEnvironments(
         }
         continue;
       }
-      const reconciliation = await environments.ensureManagedSandboxEnvironment({
-        name: spec.name,
-        description: spec.description,
-        provider: spec.provider,
-        config: { ...spec.config },
-        stockVersion: managedConfig.catalogVersion,
-        platformFullyManaged: true,
-      });
+      const reconciliation = await environments.ensureManagedSandboxEnvironment(
+        {
+          name: spec.name,
+          description: spec.description,
+          provider: spec.provider,
+          config: { ...spec.config },
+          stockVersion: managedConfig.catalogVersion,
+          platformFullyManaged: true,
+        },
+      );
       if (reconciliation.action === "skipped") skipped += 1;
       else {
         ensured += 1;

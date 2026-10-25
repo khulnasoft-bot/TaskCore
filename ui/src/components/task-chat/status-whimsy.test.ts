@@ -16,12 +16,21 @@ describe("whimsy word pools", () => {
 
   it("keeps the pools unique and analog-office dominant (round-2 curation)", () => {
     expect(new Set(WHIMSY_WORDS).size).toBe(WHIMSY_WORDS.length);
-    expect(WHIMSY_WORDS.length).toBe(ANALOG_OFFICE_WORDS.length + CLAUDE_CODE_WORDS.length);
-    expect(ANALOG_OFFICE_WORDS.length).toBeGreaterThan(CLAUDE_CODE_WORDS.length);
+    expect(WHIMSY_WORDS.length).toBe(
+      ANALOG_OFFICE_WORDS.length + CLAUDE_CODE_WORDS.length,
+    );
+    expect(ANALOG_OFFICE_WORDS.length).toBeGreaterThan(
+      CLAUDE_CODE_WORDS.length,
+    );
   });
 
   it("holds only the four board-kept Claude-Code words", () => {
-    expect([...CLAUDE_CODE_WORDS]).toEqual(["Brewing", "Tinkering", "Distilling", "Deliberating"]);
+    expect([...CLAUDE_CODE_WORDS]).toEqual([
+      "Brewing",
+      "Tinkering",
+      "Distilling",
+      "Deliberating",
+    ]);
   });
 
   it("applies the round-2 analog-office edits", () => {
@@ -45,7 +54,8 @@ describe("whimsy word pools", () => {
   });
 
   it("keeps every word a gerund so it reads sensibly after-the-fact", () => {
-    for (const word of WHIMSY_WORDS) expect(word).toMatch(/^[A-Z][a-z]+(?:-[a-z]+)*ing$/);
+    for (const word of WHIMSY_WORDS)
+      expect(word).toMatch(/^[A-Z][a-z]+(?:-[a-z]+)*ing$/);
   });
 });
 
@@ -57,7 +67,15 @@ describe("isGenericStatusLabel", () => {
   });
 
   it("keeps informative copy untouched", () => {
-    for (const label of ["Queued", "Thinking", "Responding", "Running a command", "Searching", "", undefined]) {
+    for (const label of [
+      "Queued",
+      "Thinking",
+      "Responding",
+      "Running a command",
+      "Searching",
+      "",
+      undefined,
+    ]) {
       expect(isGenericStatusLabel(label)).toBe(false);
     }
   });
@@ -66,7 +84,9 @@ describe("isGenericStatusLabel", () => {
 describe("whimsyWord", () => {
   it("picks deterministically from the seed", () => {
     expect(whimsyWord("run-1:status")).toBe(whimsyWord("run-1:status"));
-    expect(whimsyWord("run-1:status", 0)).toBe(whimsyWord("run-1:status", WHIMSY_ROTATE_MS - 1));
+    expect(whimsyWord("run-1:status", 0)).toBe(
+      whimsyWord("run-1:status", WHIMSY_ROTATE_MS - 1),
+    );
   });
 
   it("rotates to the next word every rotation interval", () => {
@@ -83,9 +103,9 @@ describe("whimsyWord", () => {
       seen.add(whimsyWord("run-1:status", tick * WHIMSY_ROTATE_MS));
     }
     expect(seen.size).toBe(WHIMSY_WORDS.length);
-    expect(whimsyWord("run-1:status", WHIMSY_WORDS.length * WHIMSY_ROTATE_MS)).toBe(
-      whimsyWord("run-1:status", 0),
-    );
+    expect(
+      whimsyWord("run-1:status", WHIMSY_WORDS.length * WHIMSY_ROTATE_MS),
+    ).toBe(whimsyWord("run-1:status", 0));
   });
 
   it("spreads different seeds across the pool", () => {

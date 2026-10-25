@@ -18,7 +18,12 @@ const {
     signal: null,
     timedOut: false,
     stdout: [
-      JSON.stringify({ type: "system", subtype: "init", session_id: "gemini-session-1", model: "gemini-2.5-pro" }),
+      JSON.stringify({
+        type: "system",
+        subtype: "init",
+        session_id: "gemini-session-1",
+        model: "gemini-2.5-pro",
+      }),
       JSON.stringify({ type: "message", role: "assistant", content: "hello" }),
       JSON.stringify({
         type: "result",
@@ -32,7 +37,9 @@ const {
     startedAt: new Date().toISOString(),
   })),
   ensureCommandResolvable: vi.fn(async () => undefined),
-  resolveCommandForLogs: vi.fn(async () => "ssh://fixture@127.0.0.1:2222/remote/workspace :: gemini"),
+  resolveCommandForLogs: vi.fn(
+    async () => "ssh://fixture@127.0.0.1:2222/remote/workspace :: gemini",
+  ),
   prepareWorkspaceForSshExecution: vi.fn(async () => ({ gitBacked: false })),
   restoreWorkspaceFromSshExecution: vi.fn(async () => undefined),
   runSshCommand: vi.fn(async () => ({
@@ -52,9 +59,9 @@ const {
 }));
 
 vi.mock("@taskcore/adapter-utils/server-utils", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/server-utils")>(
-    "@taskcore/adapter-utils/server-utils",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/server-utils")
+  >("@taskcore/adapter-utils/server-utils");
   return {
     ...actual,
     ensureCommandResolvable,
@@ -64,9 +71,9 @@ vi.mock("@taskcore/adapter-utils/server-utils", async () => {
 });
 
 vi.mock("@taskcore/adapter-utils/ssh", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/ssh")>(
-    "@taskcore/adapter-utils/ssh",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/ssh")
+  >("@taskcore/adapter-utils/ssh");
   return {
     ...actual,
     prepareWorkspaceForSshExecution,
@@ -77,9 +84,9 @@ vi.mock("@taskcore/adapter-utils/ssh", async () => {
 });
 
 vi.mock("@taskcore/adapter-utils/execution-target", async () => {
-  const actual = await vi.importActual<typeof import("@taskcore/adapter-utils/execution-target")>(
-    "@taskcore/adapter-utils/execution-target",
-  );
+  const actual = await vi.importActual<
+    typeof import("@taskcore/adapter-utils/execution-target")
+  >("@taskcore/adapter-utils/execution-target");
   return {
     ...actual,
     startAdapterExecutionTargetTaskcoreBridge,
@@ -101,11 +108,14 @@ describe("gemini remote execution", () => {
   });
 
   it("prepares the workspace, syncs Gemini skills, and restores workspace changes for remote SSH execution", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-remote-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-remote-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
     const alternateWorkspaceDir = path.join(rootDir, "workspace-other");
-    const managedRemoteWorkspace = "/remote/workspace/.taskcore-runtime/runs/run-1/workspace";
+    const managedRemoteWorkspace =
+      "/remote/workspace/.taskcore-runtime/runs/run-1/workspace";
     await mkdir(workspaceDir, { recursive: true });
     await mkdir(alternateWorkspaceDir, { recursive: true });
 
@@ -180,10 +190,12 @@ describe("gemini remote execution", () => {
     });
     expect(prepareWorkspaceForSshExecution).toHaveBeenCalledTimes(1);
     expect(syncDirectoryToSsh).toHaveBeenCalledTimes(1);
-    expect(syncDirectoryToSsh).toHaveBeenCalledWith(expect.objectContaining({
-      remoteDir: `${managedRemoteWorkspace}/.taskcore-runtime/gemini/skills`,
-      followSymlinks: true,
-    }));
+    expect(syncDirectoryToSsh).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remoteDir: `${managedRemoteWorkspace}/.taskcore-runtime/gemini/skills`,
+        followSymlinks: true,
+      }),
+    );
     expect(runSshCommand).toHaveBeenCalledWith(
       expect.anything(),
       expect.stringContaining(".gemini/skills"),
@@ -203,7 +215,15 @@ describe("gemini remote execution", () => {
       expect.anything(),
     );
     const call = runChildProcess.mock.calls[0] as unknown as
-      | [string, string, string[], { env: Record<string, string>; remoteExecution?: { remoteCwd: string } | null }]
+      | [
+          string,
+          string,
+          string[],
+          {
+            env: Record<string, string>;
+            remoteExecution?: { remoteCwd: string } | null;
+          },
+        ]
       | undefined;
     expect(call?.[3].env.TASKCORE_WORKSPACE_CWD).toBe(managedRemoteWorkspace);
     expect(JSON.parse(call?.[3].env.TASKCORE_WORKSPACES_JSON ?? "[]")).toEqual([
@@ -232,13 +252,20 @@ describe("gemini remote execution", () => {
   });
 
   it("pre-selects gemini-api-key auth in the managed HOME for sandbox execution", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-sandbox-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-sandbox-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
     await mkdir(workspaceDir, { recursive: true });
 
     const geminiOutput = [
-      JSON.stringify({ type: "system", subtype: "init", session_id: "gemini-session-2", model: "gemini-2.5-pro" }),
+      JSON.stringify({
+        type: "system",
+        subtype: "init",
+        session_id: "gemini-session-2",
+        model: "gemini-2.5-pro",
+      }),
       JSON.stringify({ type: "message", role: "assistant", content: "hello" }),
       JSON.stringify({
         type: "result",
@@ -249,18 +276,24 @@ describe("gemini remote execution", () => {
     ].join("\n");
     // A valid empty tar lets the real workspace restore finish after auth setup.
     const emptyArchive = Buffer.alloc(1024);
-    const runnerExecute = vi.fn(async (input: { command: string; args?: string[] }) => ({
-      exitCode: 0,
-      signal: null,
-      timedOut: false,
-      stdout: input.command === "gemini" ? geminiOutput
-        : input.args?.some((arg) => arg.startsWith("wc -c < ")) ? String(emptyArchive.length)
-        : input.args?.some((arg) => arg.startsWith("dd if=")) ? emptyArchive.toString("base64")
-        : "",
-      stderr: "",
-      pid: 321,
-      startedAt: new Date().toISOString(),
-    }));
+    const runnerExecute = vi.fn(
+      async (input: { command: string; args?: string[] }) => ({
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout:
+          input.command === "gemini"
+            ? geminiOutput
+            : input.args?.some((arg) => arg.startsWith("wc -c < "))
+              ? String(emptyArchive.length)
+              : input.args?.some((arg) => arg.startsWith("dd if="))
+                ? emptyArchive.toString("base64")
+                : "",
+        stderr: "",
+        pid: 321,
+        startedAt: new Date().toISOString(),
+      }),
+    );
 
     await execute({
       runId: "run-sandbox-1",
@@ -303,7 +336,9 @@ describe("gemini remote execution", () => {
     const runnerScripts = runnerExecute.mock.calls.map(
       (call) => `${call[0].command} ${(call[0].args ?? []).join(" ")}`,
     );
-    const settingsWrite = runnerScripts.find((script) => script.includes(".gemini/settings.json"));
+    const settingsWrite = runnerScripts.find((script) =>
+      script.includes(".gemini/settings.json"),
+    );
     expect(settingsWrite).toBeDefined();
     expect(settingsWrite).toContain("gemini-api-key");
     // The managed HOME lives under the per-run runtime root, never a real home.
@@ -311,10 +346,13 @@ describe("gemini remote execution", () => {
   });
 
   it("resumes saved Gemini sessions for remote SSH execution only when the identity matches", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-remote-resume-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-remote-resume-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
-    const managedRemoteWorkspace = "/remote/workspace/.taskcore-runtime/runs/run-ssh-resume/workspace";
+    const managedRemoteWorkspace =
+      "/remote/workspace/.taskcore-runtime/runs/run-ssh-resume/workspace";
     await mkdir(workspaceDir, { recursive: true });
 
     await execute({
@@ -367,57 +405,62 @@ describe("gemini remote execution", () => {
       onLog: async () => {},
     });
 
-    const call = runChildProcess.mock.calls[0] as unknown as [string, string, string[]] | undefined;
+    const call = runChildProcess.mock.calls[0] as unknown as
+      [string, string, string[]] | undefined;
     expect(call?.[2]).toContain("--resume");
     expect(call?.[2]).toContain("session-123");
   });
 
   it("restores the remote workspace if skills sync fails after workspace prep", async () => {
-    const rootDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-gemini-remote-sync-fail-"));
+    const rootDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-gemini-remote-sync-fail-"),
+    );
     cleanupDirs.push(rootDir);
     const workspaceDir = path.join(rootDir, "workspace");
     await mkdir(workspaceDir, { recursive: true });
     syncDirectoryToSsh.mockRejectedValueOnce(new Error("sync failed"));
 
-    await expect(execute({
-      runId: "run-sync-fail",
-      agent: {
-        id: "agent-1",
-        companyId: "company-1",
-        name: "Gemini Builder",
-        adapterType: "gemini_local",
-        adapterConfig: {},
-      },
-      runtime: {
-        sessionId: null,
-        sessionParams: null,
-        sessionDisplayId: null,
-        taskKey: null,
-      },
-      config: {
-        engine: "cli",
-        command: "gemini",
-      },
-      context: {
-        taskcoreWorkspace: {
-          cwd: workspaceDir,
-          source: "project_primary",
+    await expect(
+      execute({
+        runId: "run-sync-fail",
+        agent: {
+          id: "agent-1",
+          companyId: "company-1",
+          name: "Gemini Builder",
+          adapterType: "gemini_local",
+          adapterConfig: {},
         },
-      },
-      executionTransport: {
-        remoteExecution: {
-          host: "127.0.0.1",
-          port: 2222,
-          username: "fixture",
-          remoteWorkspacePath: "/remote/workspace",
-          remoteCwd: "/remote/workspace",
-          privateKey: "PRIVATE KEY",
-          knownHosts: "[127.0.0.1]:2222 ssh-ed25519 AAAA",
-          strictHostKeyChecking: true,
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
         },
-      },
-      onLog: async () => {},
-    })).rejects.toThrow("sync failed");
+        config: {
+          engine: "cli",
+          command: "gemini",
+        },
+        context: {
+          taskcoreWorkspace: {
+            cwd: workspaceDir,
+            source: "project_primary",
+          },
+        },
+        executionTransport: {
+          remoteExecution: {
+            host: "127.0.0.1",
+            port: 2222,
+            username: "fixture",
+            remoteWorkspacePath: "/remote/workspace",
+            remoteCwd: "/remote/workspace",
+            privateKey: "PRIVATE KEY",
+            knownHosts: "[127.0.0.1]:2222 ssh-ed25519 AAAA",
+            strictHostKeyChecking: true,
+          },
+        },
+        onLog: async () => {},
+      }),
+    ).rejects.toThrow("sync failed");
 
     expect(prepareWorkspaceForSshExecution).toHaveBeenCalledTimes(1);
     expect(restoreWorkspaceFromSshExecution).toHaveBeenCalledTimes(1);

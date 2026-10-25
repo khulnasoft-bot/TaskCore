@@ -24,11 +24,14 @@ describe("Cloud warm standby", () => {
     { ...env, TASKCORE_CLOUD_TENANT_SERVER_TOKEN: undefined },
     { ...env, TASKCORE_CLOUD_STACK_ID: undefined },
     { ...env, TASKCORE_CLOUD_RUNTIME_IDENTITY_JWKS: undefined },
-  ])("leaves ordinary or incomplete configurations active without querying", async (config) => {
-    const { db, select } = database();
-    expect((await createCloudWarmStandby(db, config))()).toBe(false);
-    expect(select).not.toHaveBeenCalled();
-  });
+  ])(
+    "leaves ordinary or incomplete configurations active without querying",
+    async (config) => {
+      const { db, select } = database();
+      expect((await createCloudWarmStandby(db, config))()).toBe(false);
+      expect(select).not.toHaveBeenCalled();
+    },
+  );
 
   it("protects existing company data even when the marker is set", async () => {
     const { db } = database([{ id: "company-test" }]);
@@ -38,19 +41,28 @@ describe("Cloud warm standby", () => {
   it("never mistakes a failed empty-database check for standby", async () => {
     const { db, limit } = database();
     limit.mockRejectedValue(new Error("database unavailable"));
-    await expect(createCloudWarmStandby(db, env)).rejects.toThrow("database unavailable");
+    await expect(createCloudWarmStandby(db, env)).rejects.toThrow(
+      "database unavailable",
+    );
   });
 
   it("checks emptiness once and exits standby monotonically on the matching committed claim", async () => {
-    const getter = vi.spyOn(identity, "getCloudRuntimeIdentity").mockReturnValue(null);
+    const getter = vi
+      .spyOn(identity, "getCloudRuntimeIdentity")
+      .mockReturnValue(null);
     const { db, select } = database();
     const isStandby = await createCloudWarmStandby(db, env);
     for (let i = 0; i < 100; i++) expect(isStandby()).toBe(true);
     expect(select).toHaveBeenCalledOnce();
-    const claimed = { stackId: "stack-other" } as identity.CloudRuntimeIdentitySnapshot;
+    const claimed = {
+      stackId: "stack-other",
+    } as identity.CloudRuntimeIdentitySnapshot;
     getter.mockReturnValue(claimed);
     expect(isStandby()).toBe(true);
-    getter.mockReturnValue({ ...claimed, stackId: env.TASKCORE_CLOUD_STACK_ID });
+    getter.mockReturnValue({
+      ...claimed,
+      stackId: env.TASKCORE_CLOUD_STACK_ID,
+    });
     expect(isStandby()).toBe(false);
     getter.mockReturnValue(null);
     expect(isStandby()).toBe(false);
@@ -58,7 +70,9 @@ describe("Cloud warm standby", () => {
   });
 
   it("starts active after a persisted identity is restored, even with no companies", async () => {
-    vi.spyOn(identity, "getCloudRuntimeIdentity").mockReturnValue({ stackId: env.TASKCORE_CLOUD_STACK_ID } as identity.CloudRuntimeIdentitySnapshot);
+    vi.spyOn(identity, "getCloudRuntimeIdentity").mockReturnValue({
+      stackId: env.TASKCORE_CLOUD_STACK_ID,
+    } as identity.CloudRuntimeIdentitySnapshot);
     const { db, select } = database();
     expect((await createCloudWarmStandby(db, env))()).toBe(false);
     expect(select).not.toHaveBeenCalled();

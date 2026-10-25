@@ -16,7 +16,9 @@ import {
 import { documentService } from "../services/documents.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -27,10 +29,14 @@ if (!embeddedPostgresSupport.supported) {
 describeEmbeddedPostgres("documentService system issue documents", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof documentService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-documents-service-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-documents-service-",
+    );
     db = createDb(tempDb.connectionString);
     svc = documentService(db);
   }, 20_000);
@@ -92,7 +98,10 @@ describeEmbeddedPostgres("documentService system issue documents", () => {
     const defaultDocuments = await svc.listIssueDocuments(issueId);
     expect(defaultDocuments.map((doc) => doc.key)).toEqual(["plan"]);
 
-    const payload = await svc.getIssueDocumentPayload({ id: issueId, description: null });
+    const payload = await svc.getIssueDocumentPayload({
+      id: issueId,
+      description: null,
+    });
     expect(payload.planDocument?.key).toBe("plan");
     expect(payload.documentSummaries.map((doc) => doc.key)).toEqual(["plan"]);
   });
@@ -100,17 +109,24 @@ describeEmbeddedPostgres("documentService system issue documents", () => {
   it("keeps system documents available for includeSystem and direct fetch callers", async () => {
     const { issueId } = await createIssueWithDocuments();
 
-    const debugDocuments = await svc.listIssueDocuments(issueId, { includeSystem: true });
+    const debugDocuments = await svc.listIssueDocuments(issueId, {
+      includeSystem: true,
+    });
     expect(debugDocuments.map((doc) => doc.key)).toEqual([
       ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
       "plan",
     ]);
 
-    const directHandoff = await svc.getIssueDocumentByKey(issueId, ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY);
-    expect(directHandoff).toEqual(expect.objectContaining({
-      key: ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
-      body: "# Handoff",
-    }));
+    const directHandoff = await svc.getIssueDocumentByKey(
+      issueId,
+      ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
+    );
+    expect(directHandoff).toEqual(
+      expect.objectContaining({
+        key: ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
+        body: "# Handoff",
+      }),
+    );
   });
 
   it("explains the revision guard and rejects missing or stale update revisions without changing the document", async () => {
@@ -126,7 +142,9 @@ describeEmbeddedPostgres("documentService system issue documents", () => {
 
     await expect(svc.upsertIssueDocument(update)).rejects.toMatchObject({
       status: 409,
-      message: expect.stringContaining("set baseRevisionId to that latestRevisionId"),
+      message: expect.stringContaining(
+        "set baseRevisionId to that latestRevisionId",
+      ),
       details: { currentRevisionId: current.latestRevisionId },
     });
     expect(await svc.getIssueDocumentByKey(issueId, "plan")).toMatchObject({
@@ -134,14 +152,24 @@ describeEmbeddedPostgres("documentService system issue documents", () => {
       latestRevisionId: current.latestRevisionId,
     });
 
-    const saved = await svc.upsertIssueDocument({ ...update, baseRevisionId: current.latestRevisionId });
-    expect(saved.document.body).toBe(update.body);
-    expect(saved.document.latestRevisionNumber).toBe(current.latestRevisionNumber + 1);
-    await expect(svc.upsertIssueDocument({
+    const saved = await svc.upsertIssueDocument({
       ...update,
-      body: "# Stale replacement",
       baseRevisionId: current.latestRevisionId,
-    })).rejects.toMatchObject({ status: 409, message: "Document was updated by someone else" });
+    });
+    expect(saved.document.body).toBe(update.body);
+    expect(saved.document.latestRevisionNumber).toBe(
+      current.latestRevisionNumber + 1,
+    );
+    await expect(
+      svc.upsertIssueDocument({
+        ...update,
+        body: "# Stale replacement",
+        baseRevisionId: current.latestRevisionId,
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "Document was updated by someone else",
+    });
     expect(await svc.getIssueDocumentByKey(issueId, "plan")).toMatchObject({
       body: saved.document.body,
       latestRevisionId: saved.document.latestRevisionId,
@@ -161,15 +189,17 @@ describeEmbeddedPostgres("documentService system issue documents", () => {
     expect(locked.document.lockedAt).toBeInstanceOf(Date);
     expect(locked.document.lockedByUserId).toBe("board-user");
 
-    await expect(svc.upsertIssueDocument({
-      issueId,
-      key: "plan",
-      title: "Plan",
-      format: "markdown",
-      body: "# Updated plan",
-      baseRevisionId: locked.document.latestRevisionId,
-      createdByUserId: "board-user",
-    })).rejects.toMatchObject({
+    await expect(
+      svc.upsertIssueDocument({
+        issueId,
+        key: "plan",
+        title: "Plan",
+        format: "markdown",
+        body: "# Updated plan",
+        baseRevisionId: locked.document.latestRevisionId,
+        createdByUserId: "board-user",
+      }),
+    ).rejects.toMatchObject({
       status: 409,
       message: "Document is locked",
     });
@@ -213,19 +243,26 @@ describeEmbeddedPostgres("documentService system issue documents", () => {
     expect(fallback.created).toBe(true);
     expect(fallback.document.key).toBe("plan-2");
     expect(fallback.document.body).toBe("# Agent replacement plan");
-    expect("redirectedFromLockedDocument" in fallback ? fallback.redirectedFromLockedDocument : null)
-      .toEqual({ id: locked.document.id, key: "plan" });
+    expect(
+      "redirectedFromLockedDocument" in fallback
+        ? fallback.redirectedFromLockedDocument
+        : null,
+    ).toEqual({ id: locked.document.id, key: "plan" });
 
     const originalPlan = await svc.getIssueDocumentByKey(issueId, "plan");
-    expect(originalPlan).toEqual(expect.objectContaining({
-      body: "# Plan",
-      lockedAt: expect.any(Date),
-    }));
+    expect(originalPlan).toEqual(
+      expect.objectContaining({
+        body: "# Plan",
+        lockedAt: expect.any(Date),
+      }),
+    );
 
     const newPlan = await svc.getIssueDocumentByKey(issueId, "plan-2");
-    expect(newPlan).toEqual(expect.objectContaining({
-      body: "# Agent replacement plan",
-      lockedAt: null,
-    }));
+    expect(newPlan).toEqual(
+      expect.objectContaining({
+        body: "# Agent replacement plan",
+        lockedAt: null,
+      }),
+    );
   });
 });

@@ -45,7 +45,9 @@ function createReader(rowsByTable: TableRows) {
   } as unknown as Db;
 }
 
-function activityInput(overrides: Partial<LogActivityInput> = {}): LogActivityInput {
+function activityInput(
+  overrides: Partial<LogActivityInput> = {},
+): LogActivityInput {
   return {
     companyId,
     actorType: "agent",
@@ -66,116 +68,184 @@ describe("resolveResponsibleUserIdForActivity", () => {
       },
     } as unknown as Db;
 
-    await expect(resolveResponsibleUserIdForActivity(db, activityInput({
-      actorType: "user",
-      actorId: "user-1",
-      entityType: "company",
-      entityId: companyId,
-    }))).resolves.toBe("user-1");
+    await expect(
+      resolveResponsibleUserIdForActivity(
+        db,
+        activityInput({
+          actorType: "user",
+          actorId: "user-1",
+          entityType: "company",
+          entityId: companyId,
+        }),
+      ),
+    ).resolves.toBe("user-1");
   });
 
   it("prefers the heartbeat run responsible user", async () => {
-    const db = createReader(new Map([
-      [heartbeatRuns, [{ responsibleUserId: "run-user" }]],
-      [issues, [{ responsibleUserId: "issue-user", createdByUserId: null }]],
-      [agentApiKeys, [{ responsibleUserId: "key-user" }]],
-      [companies, [{ defaultResponsibleUserId: "default-user" }]],
-    ]));
+    const db = createReader(
+      new Map([
+        [heartbeatRuns, [{ responsibleUserId: "run-user" }]],
+        [issues, [{ responsibleUserId: "issue-user", createdByUserId: null }]],
+        [agentApiKeys, [{ responsibleUserId: "key-user" }]],
+        [companies, [{ defaultResponsibleUserId: "default-user" }]],
+      ]),
+    );
 
-    await expect(resolveResponsibleUserIdForActivity(db, activityInput({
-      runId,
-      agentApiKeyId,
-    }))).resolves.toBe("run-user");
+    await expect(
+      resolveResponsibleUserIdForActivity(
+        db,
+        activityInput({
+          runId,
+          agentApiKeyId,
+        }),
+      ),
+    ).resolves.toBe("run-user");
   });
 
   it("falls back to issue attribution when the run is unavailable", async () => {
-    const db = createReader(new Map([
-      [heartbeatRuns, []],
-      [issues, [{ responsibleUserId: "issue-user", createdByUserId: "creator-user" }]],
-      [agentApiKeys, [{ responsibleUserId: "key-user" }]],
-      [companies, [{ defaultResponsibleUserId: "default-user" }]],
-    ]));
+    const db = createReader(
+      new Map([
+        [heartbeatRuns, []],
+        [
+          issues,
+          [
+            {
+              responsibleUserId: "issue-user",
+              createdByUserId: "creator-user",
+            },
+          ],
+        ],
+        [agentApiKeys, [{ responsibleUserId: "key-user" }]],
+        [companies, [{ defaultResponsibleUserId: "default-user" }]],
+      ]),
+    );
 
-    await expect(resolveResponsibleUserIdForActivity(db, activityInput({
-      runId: missingRunId,
-      agentApiKeyId,
-    }))).resolves.toBe("issue-user");
+    await expect(
+      resolveResponsibleUserIdForActivity(
+        db,
+        activityInput({
+          runId: missingRunId,
+          agentApiKeyId,
+        }),
+      ),
+    ).resolves.toBe("issue-user");
   });
 
   it("uses explicit issue context for non-issue activity", async () => {
-    const db = createReader(new Map([
-      [issues, [{ responsibleUserId: "issue-user", createdByUserId: null }]],
-      [companies, [{ defaultResponsibleUserId: "default-user" }]],
-    ]));
+    const db = createReader(
+      new Map([
+        [issues, [{ responsibleUserId: "issue-user", createdByUserId: null }]],
+        [companies, [{ defaultResponsibleUserId: "default-user" }]],
+      ]),
+    );
 
-    await expect(resolveResponsibleUserIdForActivity(db, activityInput({
-      entityType: "heartbeat_run",
-      entityId: runId,
-      issueId,
-    }))).resolves.toBe("issue-user");
+    await expect(
+      resolveResponsibleUserIdForActivity(
+        db,
+        activityInput({
+          entityType: "heartbeat_run",
+          entityId: runId,
+          issueId,
+        }),
+      ),
+    ).resolves.toBe("issue-user");
   });
 
   it("uses the active agent API key responsible user for no-run actions", async () => {
-    const db = createReader(new Map([
-      [agentApiKeys, [{ responsibleUserId: "key-user" }]],
-      [companies, [{ defaultResponsibleUserId: "default-user" }]],
-    ]));
+    const db = createReader(
+      new Map([
+        [agentApiKeys, [{ responsibleUserId: "key-user" }]],
+        [companies, [{ defaultResponsibleUserId: "default-user" }]],
+      ]),
+    );
 
-    await expect(resolveResponsibleUserIdForActivity(db, activityInput({
-      entityType: "agent",
-      entityId: agentId,
-      agentApiKeyId,
-    }))).resolves.toBe("key-user");
+    await expect(
+      resolveResponsibleUserIdForActivity(
+        db,
+        activityInput({
+          entityType: "agent",
+          entityId: agentId,
+          agentApiKeyId,
+        }),
+      ),
+    ).resolves.toBe("key-user");
   });
 
   it("falls back to the company default responsible user", async () => {
-    const db = createReader(new Map([
-      [agentApiKeys, []],
-      [companies, [{ defaultResponsibleUserId: "default-user" }]],
-    ]));
+    const db = createReader(
+      new Map([
+        [agentApiKeys, []],
+        [companies, [{ defaultResponsibleUserId: "default-user" }]],
+      ]),
+    );
 
-    await expect(resolveResponsibleUserIdForActivity(db, activityInput({
-      entityType: "company",
-      entityId: companyId,
-      agentApiKeyId: missingAgentApiKeyId,
-    }))).resolves.toBe("default-user");
+    await expect(
+      resolveResponsibleUserIdForActivity(
+        db,
+        activityInput({
+          entityType: "company",
+          entityId: companyId,
+          agentApiKeyId: missingAgentApiKeyId,
+        }),
+      ),
+    ).resolves.toBe("default-user");
   });
 
   it("uses issue creator attribution when responsibleUserId is absent", async () => {
-    const db = createReader(new Map([
-      [issues, [{ responsibleUserId: null, createdByUserId: "creator-user" }]],
-      [companies, [{ defaultResponsibleUserId: "default-user" }]],
-    ]));
+    const db = createReader(
+      new Map([
+        [
+          issues,
+          [{ responsibleUserId: null, createdByUserId: "creator-user" }],
+        ],
+        [companies, [{ defaultResponsibleUserId: "default-user" }]],
+      ]),
+    );
 
-    await expect(resolveResponsibleUserIdForActivity(db, activityInput())).resolves.toBe("creator-user");
+    await expect(
+      resolveResponsibleUserIdForActivity(db, activityInput()),
+    ).resolves.toBe("creator-user");
   });
 
   it("ignores malformed UUID-backed identifiers", async () => {
-    const db = createReader(new Map([
-      [heartbeatRuns, [{ responsibleUserId: "run-user" }]],
-      [issues, [{ responsibleUserId: "issue-user", createdByUserId: null }]],
-      [agentApiKeys, [{ responsibleUserId: "key-user" }]],
-      [companies, [{ defaultResponsibleUserId: "default-user" }]],
-    ]));
+    const db = createReader(
+      new Map([
+        [heartbeatRuns, [{ responsibleUserId: "run-user" }]],
+        [issues, [{ responsibleUserId: "issue-user", createdByUserId: null }]],
+        [agentApiKeys, [{ responsibleUserId: "key-user" }]],
+        [companies, [{ defaultResponsibleUserId: "default-user" }]],
+      ]),
+    );
 
-    await expect(resolveResponsibleUserIdForActivity(db, activityInput({
-      runId: "not-a-run-uuid",
-      entityId: "not-an-issue-uuid",
-      agentApiKeyId: "not-a-key-uuid",
-      details: { issueId },
-    }))).resolves.toBe("default-user");
+    await expect(
+      resolveResponsibleUserIdForActivity(
+        db,
+        activityInput({
+          runId: "not-a-run-uuid",
+          entityId: "not-an-issue-uuid",
+          agentApiKeyId: "not-a-key-uuid",
+          details: { issueId },
+        }),
+      ),
+    ).resolves.toBe("default-user");
   });
 });
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("logActivity responsible-user stamping", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-activity-responsible-user-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-activity-responsible-user-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -216,14 +286,18 @@ describeEmbeddedPostgres("logActivity responsible-user stamping", () => {
     });
 
     const postCommitPublications: ActivityPublication[] = [];
-    await logActivity(db, activityInput({
-      companyId,
-      actorId: agentId,
-      agentId,
-      entityType: "agent",
-      entityId: agentId,
-      agentApiKeyId,
-    }), postCommitPublications);
+    await logActivity(
+      db,
+      activityInput({
+        companyId,
+        actorId: agentId,
+        agentId,
+        entityType: "agent",
+        entityId: agentId,
+        agentApiKeyId,
+      }),
+      postCommitPublications,
+    );
 
     expect(postCommitPublications).toHaveLength(1);
     expect(postCommitPublications[0]).toMatchObject({

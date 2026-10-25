@@ -21,10 +21,11 @@ interface IssueOutputSectionProps {
 
 function isMediaOutput(item: IssueOutputItem) {
   const meta = item.metadata;
-  return Boolean(meta && (
-    isImageContentType(meta.contentType) ||
-    isVideoLikeOutput(meta.contentType, meta.originalFilename)
-  ));
+  return Boolean(
+    meta &&
+    (isImageContentType(meta.contentType) ||
+      isVideoLikeOutput(meta.contentType, meta.originalFilename)),
+  );
 }
 
 function OutputMediaPreview({
@@ -64,8 +65,12 @@ function OutputMediaPreview({
         />
       )}
       <div className="absolute inset-x-0 bottom-0 bg-black/65 px-2 py-1.5 text-left">
-        <p className="truncate text-xs font-medium text-white" title={filename}>{filename}</p>
-        <p className="truncate text-(length:--text-nano) text-white/65">{metaBits.join(" · ")}</p>
+        <p className="truncate text-xs font-medium text-white" title={filename}>
+          {filename}
+        </p>
+        <p className="truncate text-(length:--text-nano) text-white/65">
+          {metaBits.join(" · ")}
+        </p>
       </div>
     </>
   );
@@ -110,19 +115,27 @@ function OutputMediaPreview({
  * omitted entirely when the issue has produced no outputs — we never show a
  * permanent empty card.
  */
-export function IssueOutputSection({ workProducts, resolveCreatorName, onMediaClick }: IssueOutputSectionProps) {
+export function IssueOutputSection({
+  workProducts,
+  resolveCreatorName,
+  onMediaClick,
+}: IssueOutputSectionProps) {
   const { primary, rest, count } = getIssueOutputs(workProducts);
 
   if (!primary) return null;
 
-  const creatorFor = (item: IssueOutputItem) => resolveCreatorName?.(item) ?? null;
+  const creatorFor = (item: IssueOutputItem) =>
+    resolveCreatorName?.(item) ?? null;
   const mediaRest = rest.filter(isMediaOutput);
   const fileRest = rest.filter((item) => !isMediaOutput(item));
 
   return (
     <section className="space-y-3" aria-label="Task outputs">
       <div className="flex items-center gap-2">
-        <Play className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+        <Play
+          className="h-3.5 w-3.5 text-muted-foreground"
+          aria-hidden="true"
+        />
         <h3 className="text-sm font-medium text-muted-foreground">Output</h3>
         <span className="text-xs text-muted-foreground">{count}</span>
       </div>
@@ -130,16 +143,26 @@ export function IssueOutputSection({ workProducts, resolveCreatorName, onMediaCl
       {/* Stable anchor target so company Artifacts cards can deep-link to a
           specific work product inside its issue context (PAP-10359). */}
       <div id={`work-product-${primary.id}`} className="scroll-mt-20">
-        <OutputPrimaryCard item={primary} creatorName={creatorFor(primary)} onMediaClick={onMediaClick} />
+        <OutputPrimaryCard
+          item={primary}
+          creatorName={creatorFor(primary)}
+          onMediaClick={onMediaClick}
+        />
       </div>
 
       {rest.length > 0 ? (
         <div className="space-y-2">
-          <p className="text-(length:--text-micro) font-medium uppercase tracking-wide text-muted-foreground">Also produced</p>
+          <p className="text-(length:--text-micro) font-medium uppercase tracking-wide text-muted-foreground">
+            Also produced
+          </p>
           {mediaRest.length > 0 ? (
             <div className="grid grid-cols-4 gap-2">
               {mediaRest.map((item) => (
-                <div key={item.id} id={`work-product-${item.id}`} className="scroll-mt-20">
+                <div
+                  key={item.id}
+                  id={`work-product-${item.id}`}
+                  className="scroll-mt-20"
+                >
                   <OutputMediaPreview
                     item={item}
                     creatorName={creatorFor(item)}
@@ -150,7 +173,11 @@ export function IssueOutputSection({ workProducts, resolveCreatorName, onMediaCl
             </div>
           ) : null}
           {fileRest.map((item) => (
-            <div key={item.id} id={`work-product-${item.id}`} className="scroll-mt-20">
+            <div
+              key={item.id}
+              id={`work-product-${item.id}`}
+              className="scroll-mt-20"
+            >
               <OutputRow item={item} creatorName={creatorFor(item)} />
             </div>
           ))}

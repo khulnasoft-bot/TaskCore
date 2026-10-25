@@ -224,11 +224,25 @@ export class PhotonCloudClient {
       lines: [],
     };
     if (data.type === "shared") {
-      if (typeof data.token !== "string" || !data.token || data.token.length > 16_384 ||
-          typeof data.expiresIn !== "number" || !Number.isFinite(data.expiresIn) || data.expiresIn < 30)
-        throw new PhotonError("invalid_response", "Photon returned invalid shared project credentials");
+      if (
+        typeof data.token !== "string" ||
+        !data.token ||
+        data.token.length > 16_384 ||
+        typeof data.expiresIn !== "number" ||
+        !Number.isFinite(data.expiresIn) ||
+        data.expiresIn < 30
+      )
+        throw new PhotonError(
+          "invalid_response",
+          "Photon returned invalid shared project credentials",
+        );
       inspection.eligible = true;
-      return { inspection, sharedToken: data.token, tokens: new Map(), expiresIn: Math.min(data.expiresIn, 86_400) };
+      return {
+        inspection,
+        sharedToken: data.token,
+        tokens: new Map(),
+        expiresIn: Math.min(data.expiresIn, 86_400),
+      };
     }
     if (
       data.type !== "dedicated" ||
@@ -295,11 +309,20 @@ export class PhotonLineAuthentication {
   ) {
     photonProjectIdSchema.parse(identity.projectId);
     photonLineIdSchema.parse(identity.lineId);
-    if (identity.allocation === "shared" && (identity.lineId !== photonSharedScope(identity.projectId) || identity.phoneNumber !== photonSharedIdentity(identity.projectId)))
-      throw new PhotonError("credentials", "Photon shared identity must match its project");
+    if (
+      identity.allocation === "shared" &&
+      (identity.lineId !== photonSharedScope(identity.projectId) ||
+        identity.phoneNumber !== photonSharedIdentity(identity.projectId))
+    )
+      throw new PhotonError(
+        "credentials",
+        "Photon shared identity must match its project",
+      );
   }
   get address(): string {
-    return this.identity.allocation === "shared" ? "imessage.spectrum.photon.codes:443" : `${this.identity.lineId}.imsg.photon.codes:443`;
+    return this.identity.allocation === "shared"
+      ? "imessage.spectrum.photon.codes:443"
+      : `${this.identity.lineId}.imsg.photon.codes:443`;
   }
   retire(): void {
     this.retired = true;
@@ -321,12 +344,24 @@ export class PhotonLineAuthentication {
       this.identity.projectId,
       this.secret,
     );
-    if (allocation.inspection.allocation !== (this.identity.allocation ?? "dedicated"))
-      throw new PhotonError("line_unavailable", "Photon project allocation changed; create a new channel for the new identity");
+    if (
+      allocation.inspection.allocation !==
+      (this.identity.allocation ?? "dedicated")
+    )
+      throw new PhotonError(
+        "line_unavailable",
+        "Photon project allocation changed; create a new channel for the new identity",
+      );
     if (this.identity.allocation === "shared") {
       if (!allocation.sharedToken || this.retired)
-        throw new PhotonError("credentials", "Photon shared credentials are unavailable");
-      this.current = { token: allocation.sharedToken, renewAt: this.now() + allocation.expiresIn * 800 };
+        throw new PhotonError(
+          "credentials",
+          "Photon shared credentials are unavailable",
+        );
+      this.current = {
+        token: allocation.sharedToken,
+        renewAt: this.now() + allocation.expiresIn * 800,
+      };
       return allocation.sharedToken;
     }
     const line = allocation.inspection.lines.find(

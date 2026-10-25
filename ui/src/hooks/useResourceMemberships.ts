@@ -36,8 +36,16 @@ function emptyMemberships(): ResourceMemberships {
 
 function starKeys(resourceType: JoinableResourceType) {
   return resourceType === "project"
-    ? { ids: "starredProjectIds", at: "projectStarredAt", state: "projectMemberships" }
-    : { ids: "starredAgentIds", at: "agentStarredAt", state: "agentMemberships" };
+    ? {
+        ids: "starredProjectIds",
+        at: "projectStarredAt",
+        state: "projectMemberships",
+      }
+    : {
+        ids: "starredAgentIds",
+        at: "agentStarredAt",
+        state: "agentMemberships",
+      };
 }
 
 /**
@@ -61,7 +69,7 @@ function applyMembershipChange(
   const previousState: ResourceMembershipState =
     currentStateMap[resourceId] === "left" ? "left" : "joined";
   const nextState: ResourceMembershipState =
-    change.starred === true ? "joined" : change.state ?? previousState;
+    change.starred === true ? "joined" : (change.state ?? previousState);
 
   // Resolve next starred set.
   const currentStarredIds = base[keys.ids as "starredProjectIds"] ?? [];
@@ -103,9 +111,10 @@ export function resourceMembershipState(
   resourceType: JoinableResourceType,
   resourceId: string,
 ): ResourceMembershipState {
-  const state = resourceType === "project"
-    ? memberships?.projectMemberships[resourceId]
-    : memberships?.agentMemberships[resourceId];
+  const state =
+    resourceType === "project"
+      ? memberships?.projectMemberships[resourceId]
+      : memberships?.agentMemberships[resourceId];
   return state === "left" ? "left" : "joined";
 }
 
@@ -115,11 +124,12 @@ export function isStarred(
   resourceType: ResourceMembershipResourceType,
   resourceId: string,
 ): boolean {
-  const ids = resourceType === "project"
-    ? memberships?.starredProjectIds
-    : resourceType === "agent"
-      ? memberships?.starredAgentIds
-      : memberships?.starredDocumentIds;
+  const ids =
+    resourceType === "project"
+      ? memberships?.starredProjectIds
+      : resourceType === "agent"
+        ? memberships?.starredAgentIds
+        : memberships?.starredDocumentIds;
   return Array.isArray(ids) && ids.includes(resourceId);
 }
 
@@ -128,11 +138,12 @@ export function starredResourceIds(
   memberships: ResourceMemberships | undefined,
   resourceType: ResourceMembershipResourceType,
 ): string[] {
-  const ids = resourceType === "project"
-    ? memberships?.starredProjectIds
-    : resourceType === "agent"
-      ? memberships?.starredAgentIds
-      : memberships?.starredDocumentIds;
+  const ids =
+    resourceType === "project"
+      ? memberships?.starredProjectIds
+      : resourceType === "agent"
+        ? memberships?.starredAgentIds
+        : memberships?.starredDocumentIds;
   return Array.isArray(ids) ? ids : [];
 }
 
@@ -144,7 +155,9 @@ export function useResourceMemberships(companyId: string | null | undefined) {
   });
 }
 
-export function useResourceMembershipMutation(companyId: string | null | undefined) {
+export function useResourceMembershipMutation(
+  companyId: string | null | undefined,
+) {
   const queryClient = useQueryClient();
   const { pushToast } = useToastActions();
   const queryKey = queryKeys.resourceMemberships.mine(companyId ?? "__none__");
@@ -154,18 +167,31 @@ export function useResourceMembershipMutation(companyId: string | null | undefin
       if (!companyId) throw new Error("Select an organization first.");
       const body = { state: variables.state, starred: variables.starred };
       return variables.resourceType === "project"
-        ? resourceMembershipsApi.updateProject(companyId, variables.resourceId, body)
-        : resourceMembershipsApi.updateAgent(companyId, variables.resourceId, body);
+        ? resourceMembershipsApi.updateProject(
+            companyId,
+            variables.resourceId,
+            body,
+          )
+        : resourceMembershipsApi.updateAgent(
+            companyId,
+            variables.resourceId,
+            body,
+          );
     },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<ResourceMemberships>(queryKey);
       queryClient.setQueryData<ResourceMemberships>(
         queryKey,
-        applyMembershipChange(previous, variables.resourceType, variables.resourceId, {
-          state: variables.state,
-          starred: variables.starred,
-        }),
+        applyMembershipChange(
+          previous,
+          variables.resourceType,
+          variables.resourceId,
+          {
+            state: variables.state,
+            starred: variables.starred,
+          },
+        ),
       );
       return { previous };
     },
@@ -173,9 +199,14 @@ export function useResourceMembershipMutation(companyId: string | null | undefin
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      const verb = variables.starred !== undefined
-        ? variables.starred ? "star" : "unstar"
-        : variables.state === "left" ? "leave" : "join";
+      const verb =
+        variables.starred !== undefined
+          ? variables.starred
+            ? "star"
+            : "unstar"
+          : variables.state === "left"
+            ? "leave"
+            : "join";
       pushToast({
         title: `Couldn't ${verb} ${variables.resourceName}.`,
         body: error instanceof Error ? error.message : "Try again.",
@@ -186,10 +217,16 @@ export function useResourceMembershipMutation(companyId: string | null | undefin
       queryClient.setQueryData<ResourceMemberships>(
         queryKey,
         // Loose null-check: a missing or null starredAt both mean "not starred".
-        (current) => applyMembershipChange(current, variables.resourceType, result.resourceId, {
-          state: result.state,
-          starred: result.starredAt != null,
-        }),
+        (current) =>
+          applyMembershipChange(
+            current,
+            variables.resourceType,
+            result.resourceId,
+            {
+              state: result.state,
+              starred: result.starredAt != null,
+            },
+          ),
       );
     },
     onSettled: () => {

@@ -47,7 +47,9 @@ export function Composer({
   const inputId = React.useId();
   const hintId = React.useId();
   const reasonId = React.useId();
-  const locked = disabledReason !== null || ["submitting", "interrupting", "disconnected", "terminal"].includes(state);
+  const locked =
+    disabledReason !== null ||
+    ["submitting", "interrupting", "disconnected", "terminal"].includes(state);
   const canStop = state === "active-turn" || state === "submitting";
 
   React.useEffect(() => {
@@ -58,7 +60,9 @@ export function Composer({
 
   return (
     <div data-slot="composer" data-state={state} className="pcr-composer">
-      <label className="pcr-visually-hidden" htmlFor={inputId}>{label}</label>
+      <label className="pcr-visually-hidden" htmlFor={inputId}>
+        {label}
+      </label>
       <textarea
         ref={textareaRef}
         id={inputId}
@@ -67,8 +71,14 @@ export function Composer({
         rows={2}
         value={value}
         disabled={locked}
-        aria-describedby={disabledReason === null ? hintId : `${hintId} ${reasonId}`}
-        placeholder={state === "active-turn" ? "Steer the running turn…" : "Send a message…"}
+        aria-describedby={
+          disabledReason === null ? hintId : `${hintId} ${reasonId}`
+        }
+        placeholder={
+          state === "active-turn"
+            ? "Steer the running turn…"
+            : "Send a message…"
+        }
         onChange={(event) => onValueChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey) {
@@ -82,11 +92,33 @@ export function Composer({
       />
       <div className="pcr-composer-actions">
         <div className="pcr-composer-leading">{leadingActions}</div>
-        <p id={hintId} className="pcr-composer-hint">{HINT[state]}</p>
-        {disabledReason === null ? null : <p id={reasonId} className="pcr-composer-reason">{disabledReason}</p>}
+        <p id={hintId} className="pcr-composer-hint">
+          {HINT[state]}
+        </p>
+        {disabledReason === null ? null : (
+          <p id={reasonId} className="pcr-composer-reason">
+            {disabledReason}
+          </p>
+        )}
         <div className="pcr-composer-buttons">
-          <Button ref={stopRef} type="button" variant="danger" data-testid="composer-stop" disabled={!canStop} onClick={onStop}>Stop</Button>
-          <Button type="button" data-testid="composer-send" disabled={locked || value.trim().length === 0} onClick={onSubmit}>{PRIMARY_LABEL[state]}</Button>
+          <Button
+            ref={stopRef}
+            type="button"
+            variant="danger"
+            data-testid="composer-stop"
+            disabled={!canStop}
+            onClick={onStop}
+          >
+            Stop
+          </Button>
+          <Button
+            type="button"
+            data-testid="composer-send"
+            disabled={locked || value.trim().length === 0}
+            onClick={onSubmit}
+          >
+            {PRIMARY_LABEL[state]}
+          </Button>
           {trailingActions}
         </div>
       </div>

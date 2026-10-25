@@ -1,4 +1,9 @@
-import type { CompanySecret, EnvBinding, SecretVersionSelector, UserSecretDefinition } from "@taskcore/shared";
+import type {
+  CompanySecret,
+  EnvBinding,
+  SecretVersionSelector,
+  UserSecretDefinition,
+} from "@taskcore/shared";
 
 export type RowSource = "text" | "secret" | "user_secret";
 
@@ -36,7 +41,9 @@ export function emptyRow(source: RowSource = "text"): EnvRow {
   };
 }
 
-function isSecretRef(binding: unknown): binding is { type: "secret_ref"; secretId?: unknown; version?: unknown } {
+function isSecretRef(
+  binding: unknown,
+): binding is { type: "secret_ref"; secretId?: unknown; version?: unknown } {
   return (
     typeof binding === "object" &&
     binding !== null &&
@@ -45,7 +52,9 @@ function isSecretRef(binding: unknown): binding is { type: "secret_ref"; secretI
   );
 }
 
-function isPlainObj(binding: unknown): binding is { type: "plain"; value?: unknown } {
+function isPlainObj(
+  binding: unknown,
+): binding is { type: "plain"; value?: unknown } {
   return (
     typeof binding === "object" &&
     binding !== null &&
@@ -56,7 +65,12 @@ function isPlainObj(binding: unknown): binding is { type: "plain"; value?: unkno
 
 function isUserSecretRef(
   binding: unknown,
-): binding is { type: "user_secret_ref"; key?: unknown; version?: unknown; required?: unknown } {
+): binding is {
+  type: "user_secret_ref";
+  key?: unknown;
+  version?: unknown;
+  required?: unknown;
+} {
   return (
     typeof binding === "object" &&
     binding !== null &&
@@ -66,14 +80,17 @@ function isUserSecretRef(
 }
 
 /** Build editor rows from the controlled value. No implicit trailing ghost row. */
-export function rowsFromValue(value: Record<string, EnvBinding> | null | undefined): EnvRow[] {
+export function rowsFromValue(
+  value: Record<string, EnvBinding> | null | undefined,
+): EnvRow[] {
   if (!value || typeof value !== "object") return [];
   return Object.entries(value).map(([name, binding]) => {
     if (typeof binding === "string") {
       return { ...emptyRow(), name, textValue: binding };
     }
     if (isSecretRef(binding)) {
-      const version: SecretVersionSelector = typeof binding.version === "number" ? binding.version : "latest";
+      const version: SecretVersionSelector =
+        typeof binding.version === "number" ? binding.version : "latest";
       return {
         ...emptyRow(),
         name,
@@ -83,7 +100,8 @@ export function rowsFromValue(value: Record<string, EnvBinding> | null | undefin
       };
     }
     if (isUserSecretRef(binding)) {
-      const version: SecretVersionSelector = typeof binding.version === "number" ? binding.version : "latest";
+      const version: SecretVersionSelector =
+        typeof binding.version === "number" ? binding.version : "latest";
       return {
         ...emptyRow(),
         name,
@@ -110,14 +128,20 @@ export function rowsFromValue(value: Record<string, EnvBinding> | null | undefin
  * secret rows without a chosen secret are incomplete and dropped; an empty
  * result emits `undefined`. Duplicate names are last-writer-wins (unchanged).
  */
-export function valueFromRows(rows: EnvRow[]): Record<string, EnvBinding> | undefined {
+export function valueFromRows(
+  rows: EnvRow[],
+): Record<string, EnvBinding> | undefined {
   const record: Record<string, EnvBinding> = {};
   for (const row of rows) {
     const name = row.name.trim();
     if (!name) continue;
     if (row.source === "secret") {
       if (!row.secretId) continue; // incomplete ref — not emitted
-      record[name] = { type: "secret_ref", secretId: row.secretId, version: row.version };
+      record[name] = {
+        type: "secret_ref",
+        secretId: row.secretId,
+        version: row.version,
+      };
     } else if (row.source === "user_secret") {
       const key = row.userSecretKey.trim();
       if (!key) continue;
@@ -160,7 +184,6 @@ export function buildFixedClaudeOAuthBinding(): Record<string, EnvBinding> {
   );
 }
 
-
 export const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export type NameIssueLevel = "error" | "warn";
@@ -181,14 +204,21 @@ export function validateName(
   const trimmed = name.trim();
   if (!trimmed) return null;
   if (!ENV_NAME_RE.test(trimmed)) {
-    return { level: "error", message: "Invalid name — use letters, digits and _" };
+    return {
+      level: "error",
+      message: "Invalid name — use letters, digits and _",
+    };
   }
   if (duplicateNames.has(trimmed)) {
     return { level: "error", message: "Duplicate name" };
   }
   for (const prefix of reservedPrefixes) {
     if (prefix && trimmed.startsWith(prefix)) {
-      return { level: "warn", message: "Reserved prefix — provided automatically and may be overridden" };
+      return {
+        level: "warn",
+        message:
+          "Reserved prefix — provided automatically and may be overridden",
+      };
     }
   }
   return null;
@@ -222,11 +252,18 @@ export type SourceSwitchPlan =
   /** Secret → Text: clear the ref; offer undo when a secret was bound. */
   | { kind: "to-text"; undoFrom: EnvRow | null };
 
-export function planSourceSwitch(row: EnvRow, next: RowSource): SourceSwitchPlan {
+export function planSourceSwitch(
+  row: EnvRow,
+  next: RowSource,
+): SourceSwitchPlan {
   if (next === row.source) return { kind: "noop" };
   if (next === "secret") {
     if (row.textValue.trim()) {
-      return { kind: "open-store", name: secretNameFromKey(row.name) || "secret", value: row.textValue };
+      return {
+        kind: "open-store",
+        name: secretNameFromKey(row.name) || "secret",
+        value: row.textValue,
+      };
     }
     return { kind: "to-secret" };
   }
@@ -241,14 +278,18 @@ export interface SecretHealth {
 }
 
 /** Per-row secret-binding health (plan §6.8). Null when healthy or not a bound ref. */
-export function computeRowHealth(row: EnvRow, secrets: readonly CompanySecret[]): SecretHealth | null {
+export function computeRowHealth(
+  row: EnvRow,
+  secrets: readonly CompanySecret[],
+): SecretHealth | null {
   if (row.source !== "secret" || !row.secretId) return null;
   const secret = secrets.find((candidate) => candidate.id === row.secretId);
   if (!secret) {
     return {
       level: "error",
       kind: "missing",
-      message: "This secret no longer exists — runs will fail until you rebind.",
+      message:
+        "This secret no longer exists — runs will fail until you rebind.",
     };
   }
   if (secret.status !== "active") {
@@ -266,20 +307,29 @@ export function computeUserSecretRowHealth(
   row: EnvRow,
   definitions: readonly UserSecretDefinition[] | undefined,
 ): SecretHealth | null {
-  if (row.source !== "user_secret" || !row.userSecretKey || !definitions?.length) return null;
-  const definition = definitions.find((candidate) => candidate.key === row.userSecretKey);
+  if (
+    row.source !== "user_secret" ||
+    !row.userSecretKey ||
+    !definitions?.length
+  )
+    return null;
+  const definition = definitions.find(
+    (candidate) => candidate.key === row.userSecretKey,
+  );
   if (!definition) {
     return {
       level: "error",
       kind: "missing",
-      message: "This user secret definition no longer exists — runs will fail until you rebind.",
+      message:
+        "This user secret definition no longer exists — runs will fail until you rebind.",
     };
   }
   if (definition.status !== "active") {
     return {
       level: "warn",
       kind: "disabled",
-      message: "Runs will fail until this user secret definition is re-enabled or rebound.",
+      message:
+        "Runs will fail until this user secret definition is re-enabled or rebound.",
     };
   }
   return null;

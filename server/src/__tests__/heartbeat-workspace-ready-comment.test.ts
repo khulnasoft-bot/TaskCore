@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RealizedExecutionWorkspace, RuntimeServiceRef } from "../services/workspace-runtime.js";
+import type {
+  RealizedExecutionWorkspace,
+  RuntimeServiceRef,
+} from "../services/workspace-runtime.js";
 import { postWorkspaceReadyComment } from "../services/heartbeat.js";
 
 describe("heartbeat workspace-ready comment", () => {
@@ -51,14 +54,24 @@ describe("heartbeat workspace-ready comment", () => {
         },
         metadata: {
           version: 1,
-          sections: [{
-            title: "Workspace",
-            rows: [
-              { type: "key_value", label: "Strategy", value: "git_worktree" },
-              { type: "key_value", label: "Branch", value: "PAP-16051-workspace-ready-notice" },
-              { type: "key_value", label: "CWD", value: "/repo/.taskcore/worktrees/PAP-16051" },
-            ],
-          }],
+          sections: [
+            {
+              title: "Workspace",
+              rows: [
+                { type: "key_value", label: "Strategy", value: "git_worktree" },
+                {
+                  type: "key_value",
+                  label: "Branch",
+                  value: "PAP-16051-workspace-ready-notice",
+                },
+                {
+                  type: "key_value",
+                  label: "CWD",
+                  value: "/repo/.taskcore/worktrees/PAP-16051",
+                },
+              ],
+            },
+          ],
         },
       },
     );

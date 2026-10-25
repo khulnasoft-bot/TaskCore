@@ -15,7 +15,10 @@ vi.mock("@/lib/router", () => ({
     disableIssueQuicklook: _disableIssueQuicklook,
     issuePrefetch,
     ...props
-  }: React.ComponentProps<"a"> & { disableIssueQuicklook?: boolean; issuePrefetch?: Issue | null }) => (
+  }: React.ComponentProps<"a"> & {
+    disableIssueQuicklook?: boolean;
+    issuePrefetch?: Issue | null;
+  }) => (
     <a
       className={className}
       data-disable-issue-quicklook={_disableIssueQuicklook ? "true" : undefined}
@@ -108,9 +111,9 @@ describe("IssueRow", () => {
     // mixed-case SVG attribute name, so `svg[viewBox="0 0 24 24"]` matches
     // nothing. Select the glyph SVGs by attribute presence, then compare the
     // viewBox value with getAttribute to keep the exact-value assertion.
-    const glyphs = Array.from(container.querySelectorAll("svg[viewBox]")).filter(
-      (svg) => svg.getAttribute("viewBox") === "0 0 24 24",
-    );
+    const glyphs = Array.from(
+      container.querySelectorAll("svg[viewBox]"),
+    ).filter((svg) => svg.getAttribute("viewBox") === "0 0 24 24");
     expect(glyphs.length).toBeGreaterThan(0);
     glyphs.forEach((glyph) => {
       expect(glyph.getAttribute("width")).toBe("16");
@@ -144,7 +147,7 @@ describe("IssueRow", () => {
     const identifier = row?.querySelector('[data-slot="task-row-identifier"]');
     const timestamp = row?.querySelector('[data-slot="task-row-timestamp"]');
     const actions = row?.querySelector('[data-slot="task-row-actions"]');
-    const link = row?.querySelector('[data-inbox-issue-link]');
+    const link = row?.querySelector("[data-inbox-issue-link]");
 
     expect(leading?.querySelector("svg")).not.toBeNull();
     expect(title?.textContent).toContain("Canonical task");
@@ -154,11 +157,21 @@ describe("IssueRow", () => {
     expect(actions?.textContent).toBe("More");
     expect(identifier?.className).toContain("w-20");
     expect(timestamp?.className).toContain("w-24");
-    if (!link || !metadata || !identifier || !timestamp || !actions) throw new Error("Expected canonical task row slots");
+    if (!link || !metadata || !identifier || !timestamp || !actions)
+      throw new Error("Expected canonical task row slots");
     expect(link.contains(actions)).toBe(false);
-    expect(metadata.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(actions.compareDocumentPosition(identifier) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(identifier.compareDocumentPosition(timestamp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      metadata.compareDocumentPosition(actions) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      actions.compareDocumentPosition(identifier) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      identifier.compareDocumentPosition(timestamp) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(timestamp.nextElementSibling).toBeNull();
 
     act(() => root.unmount());
@@ -177,7 +190,9 @@ describe("IssueRow", () => {
       );
     });
 
-    const archiveButton = container.querySelector<HTMLButtonElement>('button[aria-label="Archive"]');
+    const archiveButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Archive"]',
+    );
     expect(archiveButton?.className).toContain("h-5");
     expect(archiveButton?.className).toContain("py-0");
     expect(archiveButton?.className).not.toContain("py-1");
@@ -189,10 +204,14 @@ describe("IssueRow", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(<IssueRow issue={createIssue()} onArchive={() => undefined} />);
+      root.render(
+        <IssueRow issue={createIssue()} onArchive={() => undefined} />,
+      );
     });
 
-    const archiveButton = container.querySelector<HTMLButtonElement>('button[aria-label="Archive"]');
+    const archiveButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Archive"]',
+    );
     expect(archiveButton?.className).toContain("py-1");
     expect(archiveButton?.className).not.toContain("h-5");
 
@@ -215,8 +234,12 @@ describe("IssueRow", () => {
 
     const row = container.querySelector('[data-slot="task-row"]');
     const title = row?.querySelector('[data-slot="task-row-title"]');
-    const unreadSlot = row?.querySelector('[data-testid="issue-row-unread-slot"]');
-    const markReadButton = unreadSlot?.querySelector<HTMLButtonElement>('button[aria-label="Mark as read"]');
+    const unreadSlot = row?.querySelector(
+      '[data-testid="issue-row-unread-slot"]',
+    );
+    const markReadButton = unreadSlot?.querySelector<HTMLButtonElement>(
+      'button[aria-label="Mark as read"]',
+    );
     expect(row?.getAttribute("data-unread")).toBe("true");
     expect(title?.className).toContain("font-semibold");
     expect(unreadSlot).not.toBeNull();
@@ -235,22 +258,38 @@ describe("IssueRow", () => {
     act(() => {
       root.render(
         <>
-          <IssueRow issue={createIssue({ id: "read" })} presentation="task" unreadState="hidden" />
+          <IssueRow
+            issue={createIssue({ id: "read" })}
+            presentation="task"
+            unreadState="hidden"
+          />
           <IssueRow issue={createIssue({ id: "plain" })} presentation="task" />
-          <IssueRow issue={createIssue({ id: "unread" })} presentation="task" unreadState="visible" />
+          <IssueRow
+            issue={createIssue({ id: "unread" })}
+            presentation="task"
+            unreadState="visible"
+          />
         </>,
       );
     });
 
-    const rows = Array.from(container.querySelectorAll('[data-slot="task-row"]'));
-    const unreadSlot = rows[0]?.querySelector('[data-testid="issue-row-unread-slot"]');
+    const rows = Array.from(
+      container.querySelectorAll('[data-slot="task-row"]'),
+    );
+    const unreadSlot = rows[0]?.querySelector(
+      '[data-testid="issue-row-unread-slot"]',
+    );
     expect(rows).toHaveLength(3);
     expect(rows[0]?.className).toBe(rows[2]?.className);
     expect(rows[1]?.className).toContain("pl-2 sm:pl-4");
     expect(unreadSlot).not.toBeNull();
     expect(unreadSlot?.className).toContain("absolute");
-    expect(unreadSlot?.querySelector('button[aria-label="Mark as read"]')).toBeNull();
-    expect(rows[1]?.querySelector('[data-testid="issue-row-unread-slot"]')).toBeNull();
+    expect(
+      unreadSlot?.querySelector('button[aria-label="Mark as read"]'),
+    ).toBeNull();
+    expect(
+      rows[1]?.querySelector('[data-testid="issue-row-unread-slot"]'),
+    ).toBeNull();
 
     act(() => root.unmount());
   });
@@ -269,9 +308,15 @@ describe("IssueRow", () => {
       );
     });
 
-    expect(container.querySelectorAll('[data-slot="task-row-tree-guide"]')).toHaveLength(2);
-    expect(container.querySelector('[data-slot="task-row-leading"]')?.textContent).toContain("Expand");
-    for (const connector of container.querySelectorAll('[data-slot="task-row-tree-connector"]')) {
+    expect(
+      container.querySelectorAll('[data-slot="task-row-tree-guide"]'),
+    ).toHaveLength(2);
+    expect(
+      container.querySelector('[data-slot="task-row-leading"]')?.textContent,
+    ).toContain("Expand");
+    for (const connector of container.querySelectorAll(
+      '[data-slot="task-row-tree-connector"]',
+    )) {
       expect(connector.className).toContain("left-7");
     }
     act(() => root.unmount());
@@ -284,12 +329,16 @@ describe("IssueRow", () => {
       root.render(
         <IssueRow
           issue={createIssue()}
-          desktopMetaLeading={<StatusIcon status="todo" onChange={() => undefined} />}
+          desktopMetaLeading={
+            <StatusIcon status="todo" onChange={() => undefined} />
+          }
         />,
       );
     });
 
-    const link = container.querySelector<HTMLAnchorElement>("[data-inbox-issue-link]");
+    const link = container.querySelector<HTMLAnchorElement>(
+      "[data-inbox-issue-link]",
+    );
     const statusButton = container.querySelector<HTMLButtonElement>(
       'button[aria-label="Change status (current: Todo)"]',
     );
@@ -315,7 +364,9 @@ describe("IssueRow", () => {
     // The hover wash lives on the ROOT row band (not the overlay link) so the
     // tint paints behind the content. Selected rows suppress the accent hover.
     const row = container.firstElementChild as HTMLElement | null;
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
     expect(row).not.toBeNull();
     expect(row?.className).toContain("hover:bg-transparent");
     expect(row?.className).not.toContain("hover:bg-accent/50");
@@ -332,15 +383,21 @@ describe("IssueRow", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(<IssueRow issue={createIssue()} selected unreadState="visible" />);
+      root.render(
+        <IssueRow issue={createIssue()} selected unreadState="visible" />,
+      );
     });
 
-    const markReadButton = container.querySelector('button[aria-label="Mark as read"]');
+    const markReadButton = container.querySelector(
+      'button[aria-label="Mark as read"]',
+    );
     const unreadDot = markReadButton?.querySelector("span");
     // Selected rows neutralize the status glyph to muted via `!`-important
     // utilities, which override the glyph's inline colour var. The glyph is an
     // <svg> (SVGAnimatedString className), so match on the class attribute.
-    const statusGlyph = container.querySelector('svg[class*="text-muted-foreground"]');
+    const statusGlyph = container.querySelector(
+      'svg[class*="text-muted-foreground"]',
+    );
 
     expect(markReadButton).not.toBeNull();
     expect(markReadButton?.className).toContain("hover:bg-muted/80");
@@ -349,8 +406,12 @@ describe("IssueRow", () => {
     expect(unreadDot?.className).toContain("bg-muted-foreground/70");
     expect(unreadDot?.className).not.toContain("bg-blue-600");
     expect(statusGlyph).not.toBeNull();
-    expect(statusGlyph?.getAttribute("class")).toContain("!text-muted-foreground");
-    expect(statusGlyph?.getAttribute("class")).toContain("!border-muted-foreground");
+    expect(statusGlyph?.getAttribute("class")).toContain(
+      "!text-muted-foreground",
+    );
+    expect(statusGlyph?.getAttribute("class")).toContain(
+      "!border-muted-foreground",
+    );
 
     act(() => {
       root.unmount();
@@ -366,7 +427,9 @@ describe("IssueRow", () => {
 
     // The desktop dot slot is reserved even when read (empty), so unread rows
     // add no column and line up with read rows.
-    const slot = container.querySelector('[data-testid="issue-row-unread-slot"]');
+    const slot = container.querySelector(
+      '[data-testid="issue-row-unread-slot"]',
+    );
     expect(slot).not.toBeNull();
     expect(slot?.className).toContain("w-4");
     expect(slot?.className).toContain("sm:inline-flex");
@@ -388,14 +451,20 @@ describe("IssueRow", () => {
 
     // Desktop: the dot lives in the reserved leading slot (far left, ahead of
     // any leading control such as a parent's collapse caret).
-    const slot = container.querySelector('[data-testid="issue-row-unread-slot"]');
+    const slot = container.querySelector(
+      '[data-testid="issue-row-unread-slot"]',
+    );
     expect(slot).not.toBeNull();
-    expect(slot?.querySelector('button[aria-label="Mark as read"]')).not.toBeNull();
+    expect(
+      slot?.querySelector('button[aria-label="Mark as read"]'),
+    ).not.toBeNull();
 
     // Mobile: all inbox rows reserve a gutter and the dot stays fully inside
     // it, so the control cannot be clipped or indent the status/title.
     const mobileDot = container
-      .querySelector('button[aria-label="Mark as read"].sm\\:hidden, span.sm\\:hidden button[aria-label="Mark as read"]')
+      .querySelector(
+        'button[aria-label="Mark as read"].sm\\:hidden, span.sm\\:hidden button[aria-label="Mark as read"]',
+      )
       ?.closest("span.sm\\:hidden");
     expect(mobileDot).not.toBeNull();
     expect(mobileDot?.className).toContain("absolute");
@@ -420,9 +489,13 @@ describe("IssueRow", () => {
       root.render(<IssueRow issue={issue} issueLinkState={state} />);
     });
 
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
     expect(link).not.toBeNull();
-    expect(link?.getAttribute("to") ?? link?.getAttribute("href")).toBe("/issues/PAP-1");
+    expect(link?.getAttribute("to") ?? link?.getAttribute("href")).toBe(
+      "/issues/PAP-1",
+    );
 
     act(() => {
       root.unmount();
@@ -436,7 +509,9 @@ describe("IssueRow", () => {
       root.render(<IssueRow issue={createIssue()} />);
     });
 
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
     expect(link).not.toBeNull();
     expect(link?.getAttribute("data-disable-issue-quicklook")).toBe("true");
 
@@ -452,7 +527,9 @@ describe("IssueRow", () => {
       root.render(<IssueRow issue={createIssue()} />);
     });
 
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
     expect(link?.getAttribute("data-issue-prefetch-id")).toBe("issue-1");
 
     act(() => {
@@ -496,8 +573,9 @@ describe("IssueRow", () => {
       );
     });
 
-    const metaRow = Array.from(container.querySelectorAll("span.flex.items-center.gap-2"))
-      .find((element) => element.textContent?.includes("PAP-42"));
+    const metaRow = Array.from(
+      container.querySelectorAll("span.flex.items-center.gap-2"),
+    ).find((element) => element.textContent?.includes("PAP-42"));
 
     expect(metaRow).not.toBeUndefined();
     expect(metaRow?.textContent?.replace(/\s+/g, "")).toContain("2.1.PAP-42");
@@ -524,7 +602,9 @@ describe("IssueRow", () => {
     // but the current-step wash moved to the ROOT row band alongside the hover
     // wash so it paints behind the content.
     const row = container.firstElementChild as HTMLElement | null;
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
 
     expect(link).not.toBeNull();
     expect(link?.getAttribute("aria-current")).toBe("step");
@@ -544,7 +624,9 @@ describe("IssueRow", () => {
       root.render(<IssueRow issue={createIssue({ workMode: "planning" })} />);
     });
 
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
     expect(link).not.toBeNull();
     expect(link?.textContent).not.toContain("Planning");
 
@@ -588,7 +670,9 @@ describe("IssueRow", () => {
       root.render(<IssueRow issue={issue} />);
     });
 
-    const badges = container.querySelectorAll('[data-testid="issue-row-parked-blocker"]');
+    const badges = container.querySelectorAll(
+      '[data-testid="issue-row-parked-blocker"]',
+    );
     expect(badges.length).toBeGreaterThan(0);
     expect(badges[0]?.textContent).toContain("Blocked by parked work");
 
@@ -617,7 +701,9 @@ describe("IssueRow", () => {
       root.render(<IssueRow issue={issue} />);
     });
 
-    expect(container.querySelector('[data-testid="issue-row-parked-blocker"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="issue-row-parked-blocker"]'),
+    ).toBeNull();
 
     act(() => {
       root.unmount();
@@ -634,7 +720,9 @@ describe("IssueRow", () => {
     // Dividers are opt-in: without `showDivider` no row-separating border
     // renders on either the root band or the overlay link.
     const row = container.firstElementChild as HTMLElement | null;
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
     expect(row).not.toBeNull();
     expect(row?.className).not.toContain("border-b");
     expect(link?.className ?? "").not.toContain("border-b");
@@ -654,7 +742,9 @@ describe("IssueRow", () => {
     // The divider lives on the ROOT row band with `last:border-b-0` so the real
     // last row drops its border — it is not on the overlay link.
     const row = container.firstElementChild as HTMLElement | null;
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
     expect(row?.className).toContain("border-b");
     expect(row?.className).toContain("last:border-b-0");
     expect(link?.className ?? "").not.toContain("border-b");
@@ -668,7 +758,9 @@ describe("IssueRow", () => {
     const root = createRoot(container);
 
     act(() => {
-      root.render(<IssueRow issue={createIssue()} presentation="task" showDivider />);
+      root.render(
+        <IssueRow issue={createIssue()} presentation="task" showDivider />,
+      );
     });
 
     const row = container.querySelector('[data-slot="task-row"]');
@@ -685,7 +777,9 @@ describe("IssueRow", () => {
     });
 
     const row = container.firstElementChild as HTMLElement | null;
-    const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
+    const link = container.querySelector(
+      "[data-inbox-issue-link]",
+    ) as HTMLAnchorElement | null;
     // Hover wash paints behind the content on the root band...
     expect(row?.className).toContain("hover:bg-accent/50");
     expect(link?.className ?? "").not.toContain("hover:bg-accent/50");
@@ -714,7 +808,10 @@ describe("IssueRow", () => {
       return new Date(NOW.getTime() + offsetMs).toISOString();
     }
 
-    function recoveryIssue(retryAt: string, scheduledRetry: Issue["scheduledRetry"] = null): Issue {
+    function recoveryIssue(
+      retryAt: string,
+      scheduledRetry: Issue["scheduledRetry"] = null,
+    ): Issue {
       return createIssue({
         status: "in_progress",
         scheduledRetry,
@@ -774,9 +871,18 @@ describe("IssueRow", () => {
     it("shows native export activity from the action even without a scheduled retry", () => {
       const issue = recoveryIssue(at(-5 * 60_000));
       Object.assign(issue.activeRecoveryAction!, {
-        kind: "active_run_watchdog", cause: "native_finalization_invalid",
-        wakePolicy: { kind: "resume_native_run", runId: "native-run", notBefore: at(-5 * 60_000) },
-        nativeRunActivity: { runId: "native-run", status: "running", workspaceOperationId: "export-operation" },
+        kind: "active_run_watchdog",
+        cause: "native_finalization_invalid",
+        wakePolicy: {
+          kind: "resume_native_run",
+          runId: "native-run",
+          notBefore: at(-5 * 60_000),
+        },
+        nativeRunActivity: {
+          runId: "native-run",
+          status: "running",
+          workspaceOperationId: "export-operation",
+        },
       });
       const chip = renderChip(issue);
       expect(chip?.getAttribute("data-recovery-state")).toBe("in_progress");
@@ -813,14 +919,24 @@ describe("IssueRow", () => {
           );
         });
 
-        const titleCluster = container.querySelector('[data-slot="task-row-title-cluster"]');
-        const title = titleCluster?.querySelector('[data-slot="task-row-title"]');
-        const chip = titleCluster?.querySelector('[data-testid="issue-row-recovery-indicator"]');
+        const titleCluster = container.querySelector(
+          '[data-slot="task-row-title-cluster"]',
+        );
+        const title = titleCluster?.querySelector(
+          '[data-slot="task-row-title"]',
+        );
+        const chip = titleCluster?.querySelector(
+          '[data-testid="issue-row-recovery-indicator"]',
+        );
         expect(titleCluster).not.toBeNull();
         expect(title).not.toBeNull();
         expect(chip).not.toBeNull();
-        if (!title || !chip) throw new Error("Expected the title and recovery chip");
-        expect(title.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        if (!title || !chip)
+          throw new Error("Expected the title and recovery chip");
+        expect(
+          title.compareDocumentPosition(chip) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
 
         act(() => {
           root.unmount();

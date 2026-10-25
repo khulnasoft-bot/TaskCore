@@ -10,7 +10,9 @@ import { ThemeProvider } from "../context/ThemeContext";
 import { TooltipProvider } from "./ui/tooltip";
 import { AttentionInteractionResolver } from "./AttentionInteractionResolver";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 vi.mock("@/lib/router", () => ({
   Link: ({ children }: { children: ReactNode }) => <span>{children}</span>,
@@ -29,33 +31,50 @@ it("refreshes a preparing approval automatically, then stops polling without acc
   vi.useFakeTimers();
   const interaction = pendingRequestConfirmationInteraction;
   vi.mocked(issuesApi.listInteractions)
-    .mockResolvedValueOnce([{ ...interaction, acceptanceBlocker: "workspace_sync_pending" }])
+    .mockResolvedValueOnce([
+      { ...interaction, acceptanceBlocker: "workspace_sync_pending" },
+    ])
     .mockResolvedValue([interaction]);
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   try {
-    await act(async () => root.render(
-      <QueryClientProvider client={client}>
-        <TooltipProvider><ThemeProvider>
-          <AttentionInteractionResolver
-            companyId={interaction.companyId}
-            issueId={interaction.issueId}
-            interactionId={interaction.id}
-          />
-        </ThemeProvider></TooltipProvider>
-      </QueryClientProvider>,
-    ));
-    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    const approve = () => container.querySelector<HTMLButtonElement>('[data-testid="confirmation-actions"] button')!;
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={client}>
+          <TooltipProvider>
+            <ThemeProvider>
+              <AttentionInteractionResolver
+                companyId={interaction.companyId}
+                issueId={interaction.issueId}
+                interactionId={interaction.id}
+              />
+            </ThemeProvider>
+          </TooltipProvider>
+        </QueryClientProvider>,
+      ),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    const approve = () =>
+      container.querySelector<HTMLButtonElement>(
+        '[data-testid="confirmation-actions"] button',
+      )!;
     expect(approve().disabled).toBe(true);
     expect(container.textContent).toContain("Preparing approval…");
-    await act(async () => { await vi.advanceTimersByTimeAsync(2_001); });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_001);
+    });
     expect(issuesApi.listInteractions).toHaveBeenCalledTimes(2);
     expect(approve().disabled).toBe(false);
     expect(container.textContent).not.toContain("Preparing approval…");
-    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
     expect(issuesApi.listInteractions).toHaveBeenCalledTimes(2);
     expect(issuesApi.acceptInteraction).not.toHaveBeenCalled();
   } finally {

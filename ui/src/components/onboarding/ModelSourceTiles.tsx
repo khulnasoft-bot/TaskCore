@@ -95,7 +95,9 @@ function ModelSourceTile({
         // had stopped — a cut rather than a release. Across the tile's travel
         // it reads as the choice being let go.
         "transition-(--tp-border-color-background-color) ease-(--motion-ease-standard)",
-        settling ? "duration-(--motion-duration-slow)" : "duration-(--motion-duration-fast)",
+        settling
+          ? "duration-(--motion-duration-slow)"
+          : "duration-(--motion-duration-fast)",
         // Focus is a ring, never a border. The stroke has exactly one job here
         // and lending it to focus as well would mean tabbing across the row
         // looked like picking every tile in turn.
@@ -127,7 +129,11 @@ function ModelSourceTile({
       <span className="text-(length:--text-compact) font-medium text-foreground">
         {source.label}
       </span>
-      {mode ? <CredentialTag mode={mode} /> : <span aria-hidden className="h-4" />}
+      {mode ? (
+        <CredentialTag mode={mode} />
+      ) : (
+        <span aria-hidden className="h-4" />
+      )}
     </button>
   );
 }
@@ -182,7 +188,9 @@ export function ModelSourceTiles({
     tiles.current.get(target.id)?.focus();
   };
 
-  const shown = collapsed ? sources.filter((source) => source.id === selectedId) : sources;
+  const shown = collapsed
+    ? sources.filter((source) => source.id === selectedId)
+    : sources;
 
   return (
     <div
@@ -224,7 +232,11 @@ export function ModelSourceTiles({
           >
             <ModelSourceTile
               source={source}
-              mode={source.credentialMode === undefined ? mode : source.credentialMode}
+              mode={
+                source.credentialMode === undefined
+                  ? mode
+                  : source.credentialMode
+              }
               selected={source.id === selectedId}
               onSelect={() => onSelect(source.id)}
               settling={settling}

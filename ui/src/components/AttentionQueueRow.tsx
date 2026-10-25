@@ -11,14 +11,21 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import type { Agent, AttentionDetailImage, AttentionItem } from "@taskcore/shared";
+import type {
+  Agent,
+  AttentionDetailImage,
+  AttentionItem,
+} from "@taskcore/shared";
 import { Link } from "@/lib/router";
 import { accessApi } from "../api/access";
 import { approvalsApi } from "../api/approvals";
 import { issuesApi } from "../api/issues";
 import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
-import { describeAttentionResolverAudience, type InteractionAudienceDescription } from "../lib/interaction-audience";
+import {
+  describeAttentionResolverAudience,
+  type InteractionAudienceDescription,
+} from "../lib/interaction-audience";
 import { interactionResolutionErrorMessage } from "../lib/interaction-resolution-error";
 import {
   attentionDetailImages,
@@ -59,7 +66,8 @@ const DAY_MS = 24 * HOUR_MS;
 // (h-9 / text-sm), shrinking back to the dense pill (h-6 / text-xs) once the
 // row's own container is wide enough (`@xl` ≈ 576px). Container-query driven so
 // the row also reflows correctly inside narrow side panels, not just on phones.
-const ACTION_BTN = "h-9 gap-1.5 px-3 text-sm @xl:h-6 @xl:gap-1 @xl:px-2 @xl:text-xs";
+const ACTION_BTN =
+  "h-9 gap-1.5 px-3 text-sm @xl:h-6 @xl:gap-1 @xl:px-2 @xl:text-xs";
 
 /** Tomorrow at 9am local time. */
 function tomorrowMorningIso(): string {
@@ -70,12 +78,22 @@ function tomorrowMorningIso(): string {
 }
 
 /** Snooze presets, resolved to a future ISO timestamp at click time. */
-const SNOOZE_PRESETS: ReadonlyArray<{ label: string; resolve: () => string }> = [
-  { label: "1 hour", resolve: () => new Date(Date.now() + HOUR_MS).toISOString() },
-  { label: "4 hours", resolve: () => new Date(Date.now() + 4 * HOUR_MS).toISOString() },
-  { label: "Tomorrow morning", resolve: tomorrowMorningIso },
-  { label: "Next week", resolve: () => new Date(Date.now() + 7 * DAY_MS).toISOString() },
-];
+const SNOOZE_PRESETS: ReadonlyArray<{ label: string; resolve: () => string }> =
+  [
+    {
+      label: "1 hour",
+      resolve: () => new Date(Date.now() + HOUR_MS).toISOString(),
+    },
+    {
+      label: "4 hours",
+      resolve: () => new Date(Date.now() + 4 * HOUR_MS).toISOString(),
+    },
+    { label: "Tomorrow morning", resolve: tomorrowMorningIso },
+    {
+      label: "Next week",
+      resolve: () => new Date(Date.now() + 7 * DAY_MS).toISOString(),
+    },
+  ];
 
 interface AttentionQueueRowProps {
   item: AttentionItem;
@@ -131,7 +149,8 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
   const isHidden = variant === "hidden";
   const inline = !isHidden && isInlineResolvable(item);
   const href = item.subject.href;
-  const snoozedUntil = item.dismissal?.kind === "snooze" ? item.dismissal.snoozedUntil : null;
+  const snoozedUntil =
+    item.dismissal?.kind === "snooze" ? item.dismissal.snoozedUntil : null;
   const detailLine = attentionDetailLine(item) ?? item.whyNow;
   const images = attentionDetailImages(item);
   const hasImages = images.length > 0;
@@ -183,7 +202,11 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
       aria-expanded={expanded}
       onClick={activate}
     >
-      {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      {expanded ? (
+        <ChevronUp className="h-4 w-4" />
+      ) : (
+        <ChevronDown className="h-4 w-4" />
+      )}
       {expanded ? "See less" : "See more"}
     </button>
   ) : null;
@@ -199,7 +222,10 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
     const showCompact = compactActions.length > 0 && (compact || !expanded);
     if (!toggle && !showCompact && !showOpen && !showRestore) return null;
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2" data-attention-actions="true">
+      <div
+        className="flex flex-wrap items-center justify-between gap-2"
+        data-attention-actions="true"
+      >
         {toggle ?? <span />}
 
         <div className="flex flex-wrap items-center gap-2 @xl:justify-end">
@@ -222,7 +248,13 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
           )}
 
           {showRestore && (
-            <Button type="button" variant="outline" size="xs" className={ACTION_BTN} onClick={() => onRestore(item)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              className={ACTION_BTN}
+              onClick={() => onRestore(item)}
+            >
               <RotateCcw className="h-3 w-3" />
               Restore
             </Button>
@@ -277,19 +309,28 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
               <span
                 className="inline-flex items-center gap-1 text-(length:--text-nano) text-muted-foreground"
                 data-attention-decide-by={item.decideBy}
-                title={decideByProvenance(item) ? `Set by ${decideByProvenance(item)}` : undefined}
+                title={
+                  decideByProvenance(item)
+                    ? `Set by ${decideByProvenance(item)}`
+                    : undefined
+                }
               >
                 <CalendarClock className="h-3 w-3" />
                 {decideByLabel(item.decideBy)}
                 {decideByProvenance(item) && (
-                  <span className="text-muted-foreground/80">· set by {decideByProvenance(item)}</span>
+                  <span className="text-muted-foreground/80">
+                    · set by {decideByProvenance(item)}
+                  </span>
                 )}
               </span>
             </>
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1" data-attention-menu="true">
+        <div
+          className="flex shrink-0 items-center gap-1"
+          data-attention-menu="true"
+        >
           {isHidden && snoozedUntil ? (
             <span
               className="text-(length:--text-nano) text-muted-foreground"
@@ -298,7 +339,9 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
               Reappears {reappearLabel(snoozedUntil)}
             </span>
           ) : (
-            <span className="text-(length:--text-nano) text-muted-foreground">{relativeTime(item.activityAt)}</span>
+            <span className="text-(length:--text-nano) text-muted-foreground">
+              {relativeTime(item.activityAt)}
+            </span>
           )}
           {!isHidden && (
             <DropdownMenu>
@@ -313,7 +356,9 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {onSnooze && <SnoozeSubmenu onSnooze={(iso) => onSnooze(item, iso)} />}
+                {onSnooze && (
+                  <SnoozeSubmenu onSnooze={(iso) => onSnooze(item, iso)} />
+                )}
                 <DropdownMenuItem onClick={() => onDismiss(item)}>
                   <X className="h-4 w-4" />
                   Dismiss
@@ -337,7 +382,8 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
       <div
         className={cn(
           "min-w-0 rounded-md",
-          expandable && "cursor-pointer focus-visible:ring-ring focus-visible:ring-(length:--rad-3) focus-visible:outline-none",
+          expandable &&
+            "cursor-pointer focus-visible:ring-ring focus-visible:ring-(length:--rad-3) focus-visible:outline-none",
         )}
         {...(expandable
           ? {
@@ -350,10 +396,15 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
             }
           : {})}
       >
-        <span className="line-clamp-2 text-sm font-medium text-foreground" title={item.subject.title ?? undefined}>
+        <span
+          className="line-clamp-2 text-sm font-medium text-foreground"
+          title={item.subject.title ?? undefined}
+        >
           {item.subject.title ?? meta.label}
         </span>
-        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{detailLine}</p>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+          {detailLine}
+        </p>
       </div>
 
       {/* Collapsed-only content. It has no counterpart to morph into — the
@@ -369,7 +420,12 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
               {/* The audience reads *before* the verbs it qualifies: a compact
                   Accept sitting alone asks for a decision without saying whose
                   it is (PAP-17287). */}
-              {audience && <InteractionAudienceLine audience={audience} variant="compact" />}
+              {audience && (
+                <InteractionAudienceLine
+                  audience={audience}
+                  variant="compact"
+                />
+              )}
               {inline && renderFooter({ compact: true })}
             </div>
           </CollapsibleContent>
@@ -382,11 +438,23 @@ export const AttentionQueueRow = memo(function AttentionQueueRow({
           collapsed row does not pay a flex gap for an empty wrapper — and once
           the exit finishes Radix unmounts the panel, so a collapsed row is not
           left with a live resolver behind it. */}
-      <Collapsible open={expanded} onOpenChange={() => onToggleExpand(item)} className="contents">
+      <Collapsible
+        open={expanded}
+        onOpenChange={() => onToggleExpand(item)}
+        className="contents"
+      >
         <CollapsibleContent data-decision-disclosure className="-mt-4">
           <div className="flex flex-col gap-4 pt-4">
-            {hasImages && <ExpandedImages images={images} issueHref={issueHref} />}
-            {triageEnabled && <DecisionTriageStrip item={item} companyId={companyId} agents={agents} />}
+            {hasImages && (
+              <ExpandedImages images={images} issueHref={issueHref} />
+            )}
+            {triageEnabled && (
+              <DecisionTriageStrip
+                item={item}
+                companyId={companyId}
+                agents={agents}
+              />
+            )}
             {inline && (
               <InlineResolver
                 item={item}
@@ -424,19 +492,31 @@ function EyebrowSeparator() {
   );
 }
 
-type CompactDecisionAction = "accept" | "approve" | "reject" | "request_revision";
+type CompactDecisionAction =
+  "accept" | "approve" | "reject" | "request_revision";
 
-function compactDecisionAction(item: AttentionItem, verbId: string): CompactDecisionAction | null {
-  if (item.sourceKind === "approval" && (verbId === "approve" || verbId === "reject" || verbId === "request_revision")) {
-    return verbId;
-  }
-  if (item.sourceKind === "join_request" && (verbId === "approve" || verbId === "reject")) {
+function compactDecisionAction(
+  item: AttentionItem,
+  verbId: string,
+): CompactDecisionAction | null {
+  if (
+    item.sourceKind === "approval" &&
+    (verbId === "approve" ||
+      verbId === "reject" ||
+      verbId === "request_revision")
+  ) {
     return verbId;
   }
   if (
-    item.sourceKind === "issue_thread_interaction"
-    && item.subject.metadata?.kind === "request_confirmation"
-    && (verbId === "accept" || verbId === "reject")
+    item.sourceKind === "join_request" &&
+    (verbId === "approve" || verbId === "reject")
+  ) {
+    return verbId;
+  }
+  if (
+    item.sourceKind === "issue_thread_interaction" &&
+    item.subject.metadata?.kind === "request_confirmation" &&
+    (verbId === "accept" || verbId === "reject")
   ) {
     return verbId;
   }
@@ -467,9 +547,21 @@ function collectCompactActions(item: AttentionItem): CompactAction[] {
     .slice(0, 3)
     .flatMap((verb) => {
       const action = compactDecisionAction(item, verb.id);
-      return action ? [{ action, label: verb.label, id: verb.id, description: verb.description ?? "" }] : [];
+      return action
+        ? [
+            {
+              action,
+              label: verb.label,
+              id: verb.id,
+              description: verb.description ?? "",
+            },
+          ]
+        : [];
     })
-    .sort((a, b) => VERB_ORDER[decisionVerbVariant(a)] - VERB_ORDER[decisionVerbVariant(b)]);
+    .sort(
+      (a, b) =>
+        VERB_ORDER[decisionVerbVariant(a)] - VERB_ORDER[decisionVerbVariant(b)],
+    );
 }
 
 function CompactDecisionActions({
@@ -502,18 +594,26 @@ function CompactDecisionActions({
       }
       if (item.sourceKind === "issue_thread_interaction") {
         const issueId = item.subject.metadata?.issueId;
-        if (typeof issueId !== "string") throw new Error("Missing issue reference for this decision.");
-        if (action === "accept") return issuesApi.acceptInteraction(issueId, item.subject.id);
+        if (typeof issueId !== "string")
+          throw new Error("Missing issue reference for this decision.");
+        if (action === "accept")
+          return issuesApi.acceptInteraction(issueId, item.subject.id);
         return issuesApi.rejectInteraction(issueId, item.subject.id);
       }
       throw new Error("This decision must be completed from its detail view.");
     },
     onSuccess: (_result, action) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.attention(companyId),
+      });
       if (item.sourceKind === "approval") {
-        queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(companyId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.approvals.list(companyId),
+        });
       } else {
-        queryClient.invalidateQueries({ queryKey: queryKeys.access.joinRequests(companyId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.access.joinRequests(companyId),
+        });
       }
       pushToast({
         title: compactDecisionSuccessLabel(item.sourceKind, action),
@@ -534,7 +634,10 @@ function CompactDecisionActions({
   if (actions.length === 0) return null;
 
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 @xl:w-auto @xl:justify-end @xl:gap-1" aria-label="Decision actions">
+    <div
+      className="flex w-full flex-wrap items-center gap-2 @xl:w-auto @xl:justify-end @xl:gap-1"
+      aria-label="Decision actions"
+    >
       {actions.map(({ action, id, label, description }) => (
         <Button
           key={id}
@@ -545,14 +648,19 @@ function CompactDecisionActions({
           disabled={decision.isPending}
           onClick={(event) => {
             event.stopPropagation();
-            if (item.sourceKind === "issue_thread_interaction" && action === "reject") {
+            if (
+              item.sourceKind === "issue_thread_interaction" &&
+              action === "reject"
+            ) {
               onOpen();
               return;
             }
             decision.mutate(action);
           }}
         >
-          {decision.isPending && decision.variables === action && <Loader2 className="h-3 w-3 animate-spin" />}
+          {decision.isPending && decision.variables === action && (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          )}
           {label}
         </Button>
       ))}
@@ -566,15 +674,24 @@ function decisionLabel(action: CompactDecisionAction): string {
   return "rejected";
 }
 
-function compactDecisionSuccessLabel(sourceKind: AttentionItem["sourceKind"], action: CompactDecisionAction): string {
+function compactDecisionSuccessLabel(
+  sourceKind: AttentionItem["sourceKind"],
+  action: CompactDecisionAction,
+): string {
   if (sourceKind === "approval") return `Approval ${decisionLabel(action)}`;
-  if (sourceKind === "join_request") return `Join request ${decisionLabel(action)}`;
-  return action === "accept" ? "Confirmation accepted" : "Confirmation declined";
+  if (sourceKind === "join_request")
+    return `Join request ${decisionLabel(action)}`;
+  return action === "accept"
+    ? "Confirmation accepted"
+    : "Confirmation declined";
 }
 
-function decisionVerbVariant(verb: AttentionItem["decisionVerbs"][number]): "default" | "outline" | "destructive" {
+function decisionVerbVariant(
+  verb: AttentionItem["decisionVerbs"][number],
+): "default" | "outline" | "destructive" {
   const text = `${verb.label} ${verb.description ?? ""}`.toLowerCase();
-  if (/\b(reject|decline|deny|delete|remove)\b/.test(text)) return "destructive";
+  if (/\b(reject|decline|deny|delete|remove)\b/.test(text))
+    return "destructive";
   if (/\b(accept|approve|confirm|apply)\b/.test(text)) return "default";
   return "outline";
 }
@@ -611,11 +728,20 @@ function ThumbnailStack({ images }: { images: AttentionDetailImage[] }) {
  * first three screenshots at a readable size; if more exist, an "n more" tile
  * links through to the issue where the full set lives.
  */
-function ExpandedImages({ images, issueHref }: { images: AttentionDetailImage[]; issueHref: string | null }) {
+function ExpandedImages({
+  images,
+  issueHref,
+}: {
+  images: AttentionDetailImage[];
+  issueHref: string | null;
+}) {
   const visible = images.slice(0, 3);
   const extra = images.length - visible.length;
   return (
-    <div className="flex flex-wrap items-stretch gap-2" data-attention-expanded-images="true">
+    <div
+      className="flex flex-wrap items-stretch gap-2"
+      data-attention-expanded-images="true"
+    >
       {visible.map((img, index) => {
         const src = attentionImageUrl(img.assetId);
         const key = `${img.assetId}-${index}`;
@@ -648,31 +774,36 @@ function ExpandedImages({ images, issueHref }: { images: AttentionDetailImage[];
           </span>
         );
       })}
-      {extra > 0 && (issueHref ? (
-        <Link
-          to={issueHref}
-          // Same gallery, same pointer trap — see the thumbnail note above.
-          disableIssueQuicklook
-          onClick={(e) => e.stopPropagation()}
-          className="flex h-32 w-24 flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/40 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-ring focus-visible:ring-(length:--rad-3) focus-visible:outline-none"
-        >
-          <span className="text-base font-semibold">{extra} more</span>
-          <span className="mt-0.5 inline-flex items-center gap-1 text-(length:--text-nano)">
-            View issue
-            <ExternalLink className="h-3 w-3" />
+      {extra > 0 &&
+        (issueHref ? (
+          <Link
+            to={issueHref}
+            // Same gallery, same pointer trap — see the thumbnail note above.
+            disableIssueQuicklook
+            onClick={(e) => e.stopPropagation()}
+            className="flex h-32 w-24 flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/40 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-ring focus-visible:ring-(length:--rad-3) focus-visible:outline-none"
+          >
+            <span className="text-base font-semibold">{extra} more</span>
+            <span className="mt-0.5 inline-flex items-center gap-1 text-(length:--text-nano)">
+              View issue
+              <ExternalLink className="h-3 w-3" />
+            </span>
+          </Link>
+        ) : (
+          <span className="flex h-32 w-24 items-center justify-center rounded-md border border-dashed border-border bg-muted/40 text-sm font-semibold text-muted-foreground">
+            {extra} more
           </span>
-        </Link>
-      ) : (
-        <span className="flex h-32 w-24 items-center justify-center rounded-md border border-dashed border-border bg-muted/40 text-sm font-semibold text-muted-foreground">
-          {extra} more
-        </span>
-      ))}
+        ))}
     </div>
   );
 }
 
 /** Snooze submenu: presets + a custom date-time (plan §6). */
-function SnoozeSubmenu({ onSnooze }: { onSnooze: (snoozedUntil: string) => void }) {
+function SnoozeSubmenu({
+  onSnooze,
+}: {
+  onSnooze: (snoozedUntil: string) => void;
+}) {
   const [customValue, setCustomValue] = useState("");
   const applyCustom = () => {
     if (!customValue) return;
@@ -688,7 +819,10 @@ function SnoozeSubmenu({ onSnooze }: { onSnooze: (snoozedUntil: string) => void 
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         {SNOOZE_PRESETS.map((preset) => (
-          <DropdownMenuItem key={preset.label} onClick={() => onSnooze(preset.resolve())}>
+          <DropdownMenuItem
+            key={preset.label}
+            onClick={() => onSnooze(preset.resolve())}
+          >
             {preset.label}
           </DropdownMenuItem>
         ))}
@@ -709,7 +843,12 @@ function SnoozeSubmenu({ onSnooze }: { onSnooze: (snoozedUntil: string) => void 
             onChange={(e) => setCustomValue(e.target.value)}
             className="w-full rounded-sm border border-border bg-background px-2 py-1 text-xs"
           />
-          <Button type="button" size="xs" disabled={!customValue} onClick={applyCustom}>
+          <Button
+            type="button"
+            size="xs"
+            disabled={!customValue}
+            onClick={applyCustom}
+          >
             Snooze until…
           </Button>
         </div>
@@ -775,9 +914,15 @@ function InlineResolver({
   }
 
   if (item.sourceKind === "issue_thread_interaction") {
-    const issueId = (item.subject.metadata?.issueId as string | undefined) ?? item.relatedIssue?.id;
+    const issueId =
+      (item.subject.metadata?.issueId as string | undefined) ??
+      item.relatedIssue?.id;
     if (!issueId) {
-      return <p className="text-xs text-muted-foreground">Missing issue reference for this decision.</p>;
+      return (
+        <p className="text-xs text-muted-foreground">
+          Missing issue reference for this decision.
+        </p>
+      );
     }
     return (
       <>
@@ -795,11 +940,15 @@ function InlineResolver({
   }
 
   if (item.sourceKind === "approval") {
-    return <ApprovalResolver item={item} companyId={companyId} toggle={toggle} />;
+    return (
+      <ApprovalResolver item={item} companyId={companyId} toggle={toggle} />
+    );
   }
 
   if (item.sourceKind === "join_request") {
-    return <JoinRequestResolver item={item} companyId={companyId} toggle={toggle} />;
+    return (
+      <JoinRequestResolver item={item} companyId={companyId} toggle={toggle} />
+    );
   }
 
   if (item.sourceKind === "review") {
@@ -819,32 +968,54 @@ function InlineResolver({
 }
 
 /** Footer shared by the resolvers that own their verbs: toggle left, verbs right. */
-function ResolverFooter({ toggle, children }: { toggle: ReactNode; children: ReactNode }) {
+function ResolverFooter({
+  toggle,
+  children,
+}: {
+  toggle: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2" data-attention-actions="true">
+    <div
+      className="flex flex-wrap items-center justify-between gap-2"
+      data-attention-actions="true"
+    >
       {toggle ?? <span />}
       <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );
 }
 
-function ApprovalResolver({ item, companyId, toggle }: { item: AttentionItem; companyId: string; toggle: ReactNode }) {
+function ApprovalResolver({
+  item,
+  companyId,
+  toggle,
+}: {
+  item: AttentionItem;
+  companyId: string;
+  toggle: ReactNode;
+}) {
   const queryClient = useQueryClient();
   const [note, setNote] = useState("");
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(companyId) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.approvals.list(companyId),
+    });
   };
   const approve = useMutation({
-    mutationFn: () => approvalsApi.approve(item.subject.id, note.trim() || undefined),
+    mutationFn: () =>
+      approvalsApi.approve(item.subject.id, note.trim() || undefined),
     onSuccess: invalidate,
   });
   const reject = useMutation({
-    mutationFn: () => approvalsApi.reject(item.subject.id, note.trim() || undefined),
+    mutationFn: () =>
+      approvalsApi.reject(item.subject.id, note.trim() || undefined),
     onSuccess: invalidate,
   });
   const revise = useMutation({
-    mutationFn: () => approvalsApi.requestRevision(item.subject.id, note.trim() || undefined),
+    mutationFn: () =>
+      approvalsApi.requestRevision(item.subject.id, note.trim() || undefined),
     onSuccess: invalidate,
   });
   const pending = approve.isPending || reject.isPending || revise.isPending;
@@ -860,16 +1031,28 @@ function ApprovalResolver({ item, companyId, toggle }: { item: AttentionItem; co
         className="min-h-16 text-sm"
       />
       <ResolverFooter toggle={toggle}>
-        <Button size="sm" variant="outline" onClick={() => revise.mutate()} disabled={pending}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => revise.mutate()}
+          disabled={pending}
+        >
           {revise.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Request revision
         </Button>
-        <Button size="sm" variant="destructive" onClick={() => reject.mutate()} disabled={pending}>
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={() => reject.mutate()}
+          disabled={pending}
+        >
           {reject.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Reject
         </Button>
         <Button size="sm" onClick={() => approve.mutate()} disabled={pending}>
-          {approve.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {approve.isPending && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          )}
           Approve
         </Button>
       </ResolverFooter>
@@ -877,11 +1060,21 @@ function ApprovalResolver({ item, companyId, toggle }: { item: AttentionItem; co
   );
 }
 
-function JoinRequestResolver({ item, companyId, toggle }: { item: AttentionItem; companyId: string; toggle: ReactNode }) {
+function JoinRequestResolver({
+  item,
+  companyId,
+  toggle,
+}: {
+  item: AttentionItem;
+  companyId: string;
+  toggle: ReactNode;
+}) {
   const queryClient = useQueryClient();
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.attention(companyId) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.access.joinRequests(companyId) });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.access.joinRequests(companyId),
+    });
   };
   const approve = useMutation({
     mutationFn: () => accessApi.approveJoinRequest(companyId, item.subject.id),
@@ -895,7 +1088,12 @@ function JoinRequestResolver({ item, companyId, toggle }: { item: AttentionItem;
 
   return (
     <ResolverFooter toggle={toggle}>
-      <Button size="sm" variant="destructive" onClick={() => reject.mutate()} disabled={pending}>
+      <Button
+        size="sm"
+        variant="destructive"
+        onClick={() => reject.mutate()}
+        disabled={pending}
+      >
         {reject.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
         Reject
       </Button>

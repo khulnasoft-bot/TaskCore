@@ -38,7 +38,9 @@ export function findNumberedMilestoneNames(value) {
   }));
 }
 
-export async function listTrackedPackageFiles(packageRoot = defaultPackageRoot) {
+export async function listTrackedPackageFiles(
+  packageRoot = defaultPackageRoot,
+) {
   const { stdout } = await execFileAsync("git", ["ls-files", "-z", "--", "."], {
     cwd: packageRoot,
     encoding: "utf8",
@@ -51,7 +53,7 @@ export async function checkNumberedMilestones({
   packageRoot = defaultPackageRoot,
   trackedFiles,
 } = {}) {
-  const files = trackedFiles ?? await listTrackedPackageFiles(packageRoot);
+  const files = trackedFiles ?? (await listTrackedPackageFiles(packageRoot));
   const violations = [];
 
   for (const relativePath of files) {
@@ -64,7 +66,10 @@ export async function checkNumberedMilestones({
       });
     }
 
-    if (!textExtensions.has(extname(relativePath)) || selfExcludedFiles.has(relativePath)) {
+    if (
+      !textExtensions.has(extname(relativePath)) ||
+      selfExcludedFiles.has(relativePath)
+    ) {
       continue;
     }
 

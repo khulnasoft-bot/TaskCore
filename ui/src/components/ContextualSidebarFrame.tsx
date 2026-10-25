@@ -32,11 +32,13 @@ export function ContextualSidebarFrame({
   const { isMobile, setSidebarOpen } = useSidebar();
 
   function goBack() {
-    navigate(readContextualSidebarOrigin({
-      surface,
-      companyPrefix: selectedCompany?.issuePrefix,
-      fallbackTo,
-    }));
+    navigate(
+      readContextualSidebarOrigin({
+        surface,
+        companyPrefix: selectedCompany?.issuePrefix,
+        fallbackTo,
+      }),
+    );
     if (isMobile) setSidebarOpen(false);
   }
 
@@ -44,7 +46,10 @@ export function ContextualSidebarFrame({
     <SidebarNavExpandedProvider>
       <aside
         data-contextual-sidebar={surface}
-        className={cn("flex h-full min-h-0 w-full flex-col bg-muted", className)}
+        className={cn(
+          "flex h-full min-h-0 w-full flex-col bg-muted",
+          className,
+        )}
       >
         {showHeader ? (
           <div className="flex shrink-0 flex-col gap-1 px-3 py-3">
@@ -54,12 +59,24 @@ export function ContextualSidebarFrame({
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={`Back from ${title}`}
             >
-              <ChevronLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span className="truncate">{selectedCompany?.name ?? "Organization"}</span>
+              <ChevronLeft
+                className="h-3.5 w-3.5 shrink-0"
+                aria-hidden="true"
+              />
+              <span className="truncate">
+                {selectedCompany?.name ?? "Organization"}
+              </span>
             </button>
             <div className="flex min-w-0 items-center gap-2 px-2 py-1">
-              {Icon ? <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" /> : null}
-              <span className="min-w-0 flex-1 truncate text-sm font-bold text-foreground">{title}</span>
+              {Icon ? (
+                <Icon
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              ) : null}
+              <span className="min-w-0 flex-1 truncate text-sm font-bold text-foreground">
+                {title}
+              </span>
             </div>
           </div>
         ) : null}

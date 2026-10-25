@@ -12,13 +12,16 @@ export function buildLineDiff(oldText: string, newText: string): DiffRow[] {
   const newLines = newText.split("\n");
   const oldCount = oldLines.length;
   const newCount = newLines.length;
-  const dp = Array.from({ length: oldCount + 1 }, () => Array<number>(newCount + 1).fill(0));
+  const dp = Array.from({ length: oldCount + 1 }, () =>
+    Array<number>(newCount + 1).fill(0),
+  );
 
   for (let i = oldCount - 1; i >= 0; i -= 1) {
     for (let j = newCount - 1; j >= 0; j -= 1) {
-      dp[i][j] = oldLines[i] === newLines[j]
-        ? dp[i + 1][j + 1] + 1
-        : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      dp[i][j] =
+        oldLines[i] === newLines[j]
+          ? dp[i + 1][j + 1] + 1
+          : Math.max(dp[i + 1][j], dp[i][j + 1]);
     }
   }
 

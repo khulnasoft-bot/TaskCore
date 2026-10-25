@@ -3,6 +3,7 @@
 Routines are recurring tasks. Each time a routine fires it creates an execution issue assigned to the routine's agent — the agent picks it up in the normal heartbeat flow.
 
 A routine has:
+
 - One assigned agent and one project
 - One or more triggers (`schedule`, `webhook`, or `api`)
 - A concurrency policy (what to do when a previous run is still active)
@@ -44,20 +45,20 @@ POST /api/companies/{companyId}/routines
 }
 ```
 
-| Field | Required | Notes |
-|-------|----------|-------|
-| `title` | yes | Max 200 chars |
-| `description` | no | Human-readable description of the routine |
-| `assigneeAgentId` | yes | Agents: must be themselves |
-| `projectId` | yes | |
-| `goalId` | no | Inherited by run issues |
-| `parentIssueId` | no | Run issues become children of this issue |
-| `priority` | no | `critical` `high` `medium` (default) `low` |
-| `status` | no | `active` (default) `paused` `archived` |
-| `concurrencyPolicy` | no | See below |
-| `catchUpPolicy` | no | See below |
-| `activityGatePolicy` | no | `always` (default) or `require_external_activity`; see below |
-| `activityGateScope` | no | `company` (default) or `project`; see below |
+| Field                | Required | Notes                                                        |
+| -------------------- | -------- | ------------------------------------------------------------ |
+| `title`              | yes      | Max 200 chars                                                |
+| `description`        | no       | Human-readable description of the routine                    |
+| `assigneeAgentId`    | yes      | Agents: must be themselves                                   |
+| `projectId`          | yes      |                                                              |
+| `goalId`             | no       | Inherited by run issues                                      |
+| `parentIssueId`      | no       | Run issues become children of this issue                     |
+| `priority`           | no       | `critical` `high` `medium` (default) `low`                   |
+| `status`             | no       | `active` (default) `paused` `archived`                       |
+| `concurrencyPolicy`  | no       | See below                                                    |
+| `catchUpPolicy`      | no       | See below                                                    |
+| `activityGatePolicy` | no       | `always` (default) or `require_external_activity`; see below |
+| `activityGateScope`  | no       | `company` (default) or `project`; see below                  |
 
 ---
 
@@ -65,11 +66,11 @@ POST /api/companies/{companyId}/routines
 
 Controls what happens when a trigger fires while the previous run issue is still open or active.
 
-| Policy | Behaviour |
-|--------|-----------|
+| Policy                             | Behaviour                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
 | `coalesce_if_active` **(default)** | New run is marked `coalesced` and linked to the existing active run — no new issue created |
-| `skip_if_active` | New run is marked `skipped` and linked to the existing active run — no new issue created |
-| `always_enqueue` | Always create a new issue regardless of active runs |
+| `skip_if_active`                   | New run is marked `skipped` and linked to the existing active run — no new issue created   |
+| `always_enqueue`                   | Always create a new issue regardless of active runs                                        |
 
 ---
 
@@ -77,10 +78,10 @@ Controls what happens when a trigger fires while the previous run issue is still
 
 Controls what happens with scheduled runs that were missed, for example during server downtime.
 
-| Policy | Behaviour |
-|--------|-----------|
-| `skip_missed` **(default)** | Missed runs are dropped |
-| `enqueue_missed_with_cap` | Missed runs are enqueued, capped at 25 |
+| Policy                      | Behaviour                              |
+| --------------------------- | -------------------------------------- |
+| `skip_missed` **(default)** | Missed runs are dropped                |
+| `enqueue_missed_with_cap`   | Missed runs are enqueued, capped at 25 |
 
 ---
 
@@ -88,17 +89,17 @@ Controls what happens with scheduled runs that were missed, for example during s
 
 `activityGatePolicy` controls whether a **schedule trigger** runs when the system has been quiet. It does not gate manual, API, or webhook runs.
 
-| Policy | Behaviour |
-|--------|-----------|
-| `always` **(default)** | Run on every scheduled tick |
+| Policy                      | Behaviour                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------ |
+| `always` **(default)**      | Run on every scheduled tick                                                                      |
 | `require_external_activity` | Run only when qualifying activity occurred after this routine's last dispatched, non-skipped run |
 
 `activityGateScope` selects where qualifying activity is checked:
 
-| Scope | Behaviour |
-|-------|-----------|
-| `company` **(default)** | Activity anywhere in the routine's company can wake it |
-| `project` | Only activity attributed to the routine's project can wake it |
+| Scope                   | Behaviour                                                     |
+| ----------------------- | ------------------------------------------------------------- |
+| `company` **(default)** | Activity anywhere in the routine's company can wake it        |
+| `project`               | Only activity attributed to the routine's project can wake it |
 
 The activity window starts at the `triggeredAt` time of the last dispatched run. A routine that has never dispatched always runs once. Runs skipped for quiet activity do not advance the window, so one later qualifying event still wakes the next scheduled tick.
 

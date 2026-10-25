@@ -80,8 +80,8 @@ function reconcileKeys(
   const freshKeySet = new Set(freshKeys);
   const entries = pinned.flatMap((entry): InboxPinnedKey[] => {
     if (freshKeySet.has(entry.key)) {
-      return entry.missingSince === null
-        || nowMs - entry.missingSince < INBOX_ARCHIVE_CONFIRMATION_GRACE_MS
+      return entry.missingSince === null ||
+        nowMs - entry.missingSince < INBOX_ARCHIVE_CONFIRMATION_GRACE_MS
         ? [{ key: entry.key, missingSince: null }]
         : [];
     }
@@ -101,7 +101,11 @@ function reconcileKeys(
 
   freshKeys.forEach((key, freshIndex) => {
     if (retainedPinnedKeys.has(key)) return;
-    const insertionIndex = insertionIndexForVisiblePosition(entries, visibleKeys, freshIndex);
+    const insertionIndex = insertionIndexForVisiblePosition(
+      entries,
+      visibleKeys,
+      freshIndex,
+    );
     entries.splice(insertionIndex, 0, { key, missingSince: null });
     visibleKeys.add(key);
   });
@@ -129,7 +133,9 @@ function reconcileChildren(
 
   for (const parentIssueId of parentIssueIds) {
     const freshChildren = fresh.get(parentIssueId) ?? [];
-    const freshChildById = new Map(freshChildren.map((child) => [child.id, child]));
+    const freshChildById = new Map(
+      freshChildren.map((child) => [child.id, child]),
+    );
     const reconciled = reconcileKeys(
       pinned.get(parentIssueId) ?? [],
       freshChildren.map((child) => child.id),
@@ -170,7 +176,11 @@ function reconcileSection(
     fresh.displayItems.map(inboxOrderRowKey),
     nowMs,
   );
-  const children = reconcileChildren(pinned.childrenByIssueId, fresh.childrenByIssueId, nowMs);
+  const children = reconcileChildren(
+    pinned.childrenByIssueId,
+    fresh.childrenByIssueId,
+    nowMs,
+  );
 
   return {
     pin: {
@@ -202,14 +212,21 @@ export function reconcileInboxOrderPin(
   freshSections: readonly InboxGroupedSection[],
   nowMs: number,
 ): InboxOrderPinReconcileResult {
-  const freshSectionByKey = new Map(freshSections.map((section) => [section.key, section]));
+  const freshSectionByKey = new Map(
+    freshSections.map((section) => [section.key, section]),
+  );
   const sections = reconcileKeys(
     pinned.sections,
     freshSections.map((section) => section.key),
     nowMs,
   );
-  const pinnedSectionByKey = new Map(pinned.sections.map((section) => [section.key, section]));
-  const reconciledByKey = new Map<string, ReturnType<typeof reconcileSection>>();
+  const pinnedSectionByKey = new Map(
+    pinned.sections.map((section) => [section.key, section]),
+  );
+  const reconciledByKey = new Map<
+    string,
+    ReturnType<typeof reconcileSection>
+  >();
 
   for (const freshSection of freshSections) {
     reconciledByKey.set(
@@ -224,12 +241,17 @@ export function reconcileInboxOrderPin(
     );
   }
 
-  const nextPinnedSections = sections.entries.flatMap((entry): InboxPinnedSectionOrder[] => {
-    const reconciled = reconciledByKey.get(entry.key);
-    if (reconciled) return [{ ...reconciled.pin, missingSince: entry.missingSince }];
-    const previous = pinnedSectionByKey.get(entry.key);
-    return previous ? [{ ...previous, missingSince: entry.missingSince }] : [];
-  });
+  const nextPinnedSections = sections.entries.flatMap(
+    (entry): InboxPinnedSectionOrder[] => {
+      const reconciled = reconciledByKey.get(entry.key);
+      if (reconciled)
+        return [{ ...reconciled.pin, missingSince: entry.missingSince }];
+      const previous = pinnedSectionByKey.get(entry.key);
+      return previous
+        ? [{ ...previous, missingSince: entry.missingSince }]
+        : [];
+    },
+  );
 
   return {
     sections: sections.visibleKeys.flatMap((key) => {

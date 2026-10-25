@@ -227,7 +227,9 @@ export function inspectNpmPackage(packageName) {
 
 export async function promptOtp(rl, purpose) {
   for (;;) {
-    const answer = (await rl.question(`Enter the npm one-time password to ${purpose}: `)).trim();
+    const answer = (
+      await rl.question(`Enter the npm one-time password to ${purpose}: `)
+    ).trim();
     if (answer) return answer;
     process.stdout.write("A one-time password is required.\n");
   }
@@ -266,7 +268,10 @@ export async function waitForPackageVisible(
 
 async function publishPlaceholder(packageName, stageDir, rl) {
   for (let attempt = 1; attempt <= OTP_ATTEMPTS; attempt += 1) {
-    const otp = await promptOtp(rl, `publish ${packageName}@${PLACEHOLDER_VERSION}`);
+    const otp = await promptOtp(
+      rl,
+      `publish ${packageName}@${PLACEHOLDER_VERSION}`,
+    );
     // Hand the code to npm through its environment (npm_config_otp), not argv,
     // so it never appears in a process listing.
     const result = runNpm(["publish", "--access", "public"], {
@@ -277,10 +282,14 @@ async function publishPlaceholder(packageName, stageDir, rl) {
 
     const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`.trim();
     if (/\bEOTP\b|one-time password/i.test(output) && attempt < OTP_ATTEMPTS) {
-      process.stdout.write("The code was rejected or expired. Try a fresh one.\n");
+      process.stdout.write(
+        "The code was rejected or expired. Try a fresh one.\n",
+      );
       continue;
     }
-    throw new Error(`npm publish failed with status ${result.status ?? "unknown"}`);
+    throw new Error(
+      `npm publish failed with status ${result.status ?? "unknown"}`,
+    );
   }
   throw new Error("npm publish failed: too many rejected one-time passwords");
 }
@@ -296,7 +305,9 @@ async function deprecatePlaceholder(packageName, deprecationNote, rl) {
 
     const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`.trim();
     if (/\bEOTP\b|one-time password/i.test(output)) {
-      process.stdout.write("The code was rejected or expired. Try a fresh one.\n");
+      process.stdout.write(
+        "The code was rejected or expired. Try a fresh one.\n",
+      );
       continue;
     }
     if (/\bE404\b|404 Not Found/i.test(output)) {
@@ -347,11 +358,19 @@ async function stageAndPublish(packageName, { publish }) {
       writeFileSync(join(stageDir, fileName), files[fileName]);
     }
 
-    process.stdout.write(`Staged placeholder for ${packageName} in ${stageDir}\n`);
-    process.stdout.write(`Previewing publish payload (npm publish --dry-run)...\n`);
-    const dryRun = runNpm(["publish", "--dry-run", "--access", "public"], { cwd: stageDir });
+    process.stdout.write(
+      `Staged placeholder for ${packageName} in ${stageDir}\n`,
+    );
+    process.stdout.write(
+      `Previewing publish payload (npm publish --dry-run)...\n`,
+    );
+    const dryRun = runNpm(["publish", "--dry-run", "--access", "public"], {
+      cwd: stageDir,
+    });
     if (dryRun.status !== 0) {
-      throw new Error(`npm publish --dry-run failed with status ${dryRun.status ?? "unknown"}`);
+      throw new Error(
+        `npm publish --dry-run failed with status ${dryRun.status ?? "unknown"}`,
+      );
     }
 
     if (!publish) {
@@ -366,10 +385,15 @@ async function stageAndPublish(packageName, { publish }) {
       return;
     }
 
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
     try {
       await publishPlaceholder(packageName, stageDir, rl);
-      process.stdout.write(`Placeholder ${packageName}@${PLACEHOLDER_VERSION} published.\n`);
+      process.stdout.write(
+        `Placeholder ${packageName}@${PLACEHOLDER_VERSION} published.\n`,
+      );
 
       process.stdout.write(
         "Waiting for the registry to show the package before deprecating (a first publish can take a few minutes)...\n",
@@ -378,13 +402,21 @@ async function stageAndPublish(packageName, { publish }) {
 
       let deprecated = false;
       if (visible) {
-        deprecated = await deprecatePlaceholder(packageName, files.deprecationNote, rl);
+        deprecated = await deprecatePlaceholder(
+          packageName,
+          files.deprecationNote,
+          rl,
+        );
       } else {
-        process.stdout.write("Timed out waiting for the registry to show the package.\n");
+        process.stdout.write(
+          "Timed out waiting for the registry to show the package.\n",
+        );
       }
 
       if (deprecated) {
-        process.stdout.write(`Deprecated ${packageName}@${PLACEHOLDER_VERSION}.\n`);
+        process.stdout.write(
+          `Deprecated ${packageName}@${PLACEHOLDER_VERSION}.\n`,
+        );
       } else {
         printManualDeprecateFallback(packageName, files.deprecationNote);
       }
@@ -426,7 +458,9 @@ async function main(argv) {
     );
   }
 
-  process.stdout.write(`${packageName} is not on npm yet; continuing with placeholder bootstrap.\n`);
+  process.stdout.write(
+    `${packageName} is not on npm yet; continuing with placeholder bootstrap.\n`,
+  );
 
   if (publish) {
     process.stdout.write("Checking npm auth with npm whoami...\n");
@@ -436,13 +470,17 @@ async function main(argv) {
   await stageAndPublish(packageName, { publish });
 }
 
-const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isDirectRun =
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isDirectRun) {
   try {
     await main(process.argv.slice(2));
   } catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`,
+    );
     process.exit(1);
   }
 }

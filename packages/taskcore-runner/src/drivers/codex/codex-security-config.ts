@@ -3,9 +3,7 @@ import { resolve, isAbsolute, join, dirname, delimiter } from "node:path";
 import { existsSync, realpathSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 
-import {
-  githubCredentialEnvironmentKeys,
-} from "../../github-credential-environment.js";
+import { githubCredentialEnvironmentKeys } from "../../github-credential-environment.js";
 
 /** DNS and CA files can point outside the minimal /etc filesystem (systemd). */
 export function codexNetworkReadOnlyRoots(source: NodeJS.ProcessEnv): string[] {
@@ -13,34 +11,72 @@ export function codexNetworkReadOnlyRoots(source: NodeJS.ProcessEnv): string[] {
   const roots = new Set<string>();
   if (source.TASKCORE_RUNNER_NETWORK_ROOTS !== undefined) {
     try {
-      const projected: unknown = JSON.parse(source.TASKCORE_RUNNER_NETWORK_ROOTS);
-      if (Array.isArray(projected)) for (const root of projected) {
-        if (typeof root === "string" && isAbsolute(root) && resolve(root) !== "/") roots.add(resolve(root));
-      }
-    } catch { /* A malformed controller projection must not expand access. */ }
+      const projected: unknown = JSON.parse(
+        source.TASKCORE_RUNNER_NETWORK_ROOTS,
+      );
+      if (Array.isArray(projected))
+        for (const root of projected) {
+          if (
+            typeof root === "string" &&
+            isAbsolute(root) &&
+            resolve(root) !== "/"
+          )
+            roots.add(resolve(root));
+        }
+    } catch {
+      /* A malformed controller projection must not expand access. */
+    }
   } else {
-    for (const file of ["/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf", "/etc/ssl/certs", "/etc/ssl/cert.pem"]) {
-      try { roots.add(realpathSync(file)); } catch { /* Platform-specific optional resource. */ }
+    for (const file of [
+      "/etc/resolv.conf",
+      "/etc/hosts",
+      "/etc/nsswitch.conf",
+      "/etc/ssl/certs",
+      "/etc/ssl/cert.pem",
+    ]) {
+      try {
+        roots.add(realpathSync(file));
+      } catch {
+        /* Platform-specific optional resource. */
+      }
     }
   }
   return [...roots];
 }
 
 /** Resolve executable resources only, without exposing their enclosing home. */
-export function codexExecutableReadOnlyRoots(source: NodeJS.ProcessEnv, command = "codex"): string[] {
+export function codexExecutableReadOnlyRoots(
+  source: NodeJS.ProcessEnv,
+  command = "codex",
+): string[] {
   const roots = new Set<string>();
   const add = (path: string) => {
     try {
-      if (!isAbsolute(path) || resolve(path) === "/" || !existsSync(path)) return;
+      if (!isAbsolute(path) || resolve(path) === "/" || !existsSync(path))
+        return;
       roots.add(resolve(path));
       roots.add(realpathSync(path));
-    } catch { /* Missing resources remain a normal executable-resolution error. */ }
+    } catch {
+      /* Missing resources remain a normal executable-resolution error. */
+    }
   };
   add(process.execPath);
-  const candidates = isAbsolute(command) ? [command]
-    : (source.PATH ?? "").split(delimiter).filter(isAbsolute).map(root => resolve(root, command));
-  const executable = candidates.find(path => {
-    try { const stat = statSync(path); return stat.isFile() && (process.platform === "win32" || (stat.mode & 0o111) !== 0); } catch { return false; }
+  const candidates = isAbsolute(command)
+    ? [command]
+    : (source.PATH ?? "")
+        .split(delimiter)
+        .filter(isAbsolute)
+        .map((root) => resolve(root, command));
+  const executable = candidates.find((path) => {
+    try {
+      const stat = statSync(path);
+      return (
+        stat.isFile() &&
+        (process.platform === "win32" || (stat.mode & 0o111) !== 0)
+      );
+    } catch {
+      return false;
+    }
   });
   if (!executable) return [...roots];
   add(executable);
@@ -48,14 +84,21 @@ export function codexExecutableReadOnlyRoots(source: NodeJS.ProcessEnv, command 
     const canonical = realpathSync(executable);
     const manifestPath = resolve(dirname(canonical), "../package.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    const bin = typeof manifest.bin === "string" ? manifest.bin : manifest.bin?.codex;
-    if (manifest.name !== "@openai/codex" || typeof bin !== "string"
-      || realpathSync(resolve(dirname(manifestPath), bin)) !== canonical) return [...roots];
+    const bin =
+      typeof manifest.bin === "string" ? manifest.bin : manifest.bin?.codex;
+    if (
+      manifest.name !== "@openai/codex" ||
+      typeof bin !== "string" ||
+      realpathSync(resolve(dirname(manifestPath), bin)) !== canonical
+    )
+      return [...roots];
     // The npm entrypoint launches the platform package's native executable,
     // which Codex invokes again inside bwrap when starting each shell command.
     const platformPackage = `@openai/codex-${process.platform}-${process.arch}`;
     if (manifest.optionalDependencies?.[platformPackage]) {
-      const platformManifest = createRequire(manifestPath).resolve(`${platformPackage}/package.json`);
+      const platformManifest = createRequire(manifestPath).resolve(
+        `${platformPackage}/package.json`,
+      );
       const packageRoot = realpathSync(dirname(platformManifest));
       const vendor = realpathSync(resolve(packageRoot, "vendor"));
       if (vendor.startsWith(`${packageRoot}/`)) add(vendor);
@@ -64,7 +107,9 @@ export function codexExecutableReadOnlyRoots(source: NodeJS.ProcessEnv, command 
       const vendor = realpathSync(resolve(packageRoot, "vendor"));
       if (vendor.startsWith(`${packageRoot}/`)) add(vendor);
     }
-  } catch { /* Standalone executable installations need no npm resources. */ }
+  } catch {
+    /* Standalone executable installations need no npm resources. */
+  }
   return [...roots];
 }
 
@@ -75,25 +120,55 @@ export const CODEX_PLANNING_PERMISSION_PROFILE =
 export const CODEX_EXTERNAL_SANDBOX_PERMISSION_PROFILE =
   "taskcore-runner-external-sandbox";
 
-export function codexNetworkAccess(source: NodeJS.ProcessEnv = process.env): boolean {
+export function codexNetworkAccess(
+  source: NodeJS.ProcessEnv = process.env,
+): boolean {
   return source.TASKCORE_RUNNER_NETWORK_ACCESS === "enabled";
 }
 
-function gitFilesystemRoots(source: NodeJS.ProcessEnv): { read: string[]; write: string[] } {
+function gitFilesystemRoots(source: NodeJS.ProcessEnv): {
+  read: string[];
+  write: string[];
+} {
   const read: string[] = [];
   const write: string[] = [];
   try {
-    const roots: unknown = JSON.parse(source.TASKCORE_GIT_METADATA_ROOTS ?? "[]");
-    if (Array.isArray(roots)) for (const root of roots) {
-      if (typeof root === "string" && isAbsolute(root) && resolve(root) !== "/") write.push(resolve(root));
-    }
-  } catch { /* Older controllers do not project Git metadata roots. */ }
-  if (source.TASKCORE_GITHUB_AUTH_MODE === "host" && source.TASKCORE_GITHUB_HOST_HOME) {
-    for (const relative of [".gitconfig", ".git-credentials", ".config/git", ".config/gh", ".ssh"]) {
+    const roots: unknown = JSON.parse(
+      source.TASKCORE_GIT_METADATA_ROOTS ?? "[]",
+    );
+    if (Array.isArray(roots))
+      for (const root of roots) {
+        if (
+          typeof root === "string" &&
+          isAbsolute(root) &&
+          resolve(root) !== "/"
+        )
+          write.push(resolve(root));
+      }
+  } catch {
+    /* Older controllers do not project Git metadata roots. */
+  }
+  if (
+    source.TASKCORE_GITHUB_AUTH_MODE === "host" &&
+    source.TASKCORE_GITHUB_HOST_HOME
+  ) {
+    for (const relative of [
+      ".gitconfig",
+      ".git-credentials",
+      ".config/git",
+      ".config/gh",
+      ".ssh",
+    ]) {
       read.push(join(source.TASKCORE_GITHUB_HOST_HOME, relative));
     }
-    for (const root of [source.GH_CONFIG_DIR, source.GIT_CONFIG_GLOBAL, source.GIT_CONFIG_SYSTEM, source.SSH_AUTH_SOCK]) {
-      if (root && isAbsolute(root) && resolve(root) !== "/") read.push(resolve(root));
+    for (const root of [
+      source.GH_CONFIG_DIR,
+      source.GIT_CONFIG_GLOBAL,
+      source.GIT_CONFIG_SYSTEM,
+      source.SSH_AUTH_SOCK,
+    ]) {
+      if (root && isAbsolute(root) && resolve(root) !== "/")
+        read.push(resolve(root));
     }
   }
   return { read: [...new Set(read)], write: [...new Set(write)] };
@@ -129,7 +204,10 @@ export function codexCommandEnvironment(
     const value = source[key];
     if (value !== undefined) environment[key] = value;
   }
-  if (source.TASKCORE_GITHUB_AUTH_MODE === "host" && source.TASKCORE_GITHUB_HOST_HOME) {
+  if (
+    source.TASKCORE_GITHUB_AUTH_MODE === "host" &&
+    source.TASKCORE_GITHUB_HOST_HOME
+  ) {
     environment.HOME = source.TASKCORE_GITHUB_HOST_HOME;
   } else if (source.TASKCORE_GITHUB_LAUNCHER_DIR) {
     environment.HOME = source.TASKCORE_GITHUB_LAUNCHER_DIR;
@@ -176,23 +254,37 @@ export function createIsolatedCodexAppServerArgs(
   const explicitSource = source;
   source ??= process.env;
   const gitRoots = gitFilesystemRoots(source);
-  readOnlyRoots = [...new Set([...readOnlyRoots, ...codexNetworkReadOnlyRoots(source)])];
+  readOnlyRoots = [
+    ...new Set([...readOnlyRoots, ...codexNetworkReadOnlyRoots(source)]),
+  ];
   const networkAccess = codexNetworkAccess(source);
   const externalRunnerSandbox = usesExternalRunnerSandbox(source);
   const inheritedGitHubKeys = [
     ...githubCredentialEnvironmentKeys(source),
     ...configuredEnvironmentKeys(explicitSource),
-    ...["TASKCORE_AGENT_KEY_ID", "TASKCORE_AGENT_PUBLIC_KEY", "TASKCORE_AGENT_PRIVATE_KEY"].filter(key => source[key] !== undefined),
+    ...[
+      "TASKCORE_AGENT_KEY_ID",
+      "TASKCORE_AGENT_PUBLIC_KEY",
+      "TASKCORE_AGENT_PRIVATE_KEY",
+    ].filter((key) => source[key] !== undefined),
   ];
   const hasProjectedEnvironment = inheritedGitHubKeys.length > 0;
   // Codex filters the configured `set` values through include_only as well.
   // Retain the explicit command PATH/HOME/locale settings, not ambient secrets.
   const commandEnvironment = codexCommandEnvironment(source);
   // Selected task values are inherited, never serialized into configuration argv.
-  for (const key of configuredEnvironmentKeys(explicitSource)) delete commandEnvironment[key];
-  if (instructionWorkingCopyRoot && source.AGENT_HOME === instructionWorkingCopyRoot) commandEnvironment.AGENT_HOME = instructionWorkingCopyRoot;
-  const shellEnvironmentKeys = [...new Set([...inheritedGitHubKeys, ...Object.keys(commandEnvironment)])].sort();
-  if (source.TASKCORE_GITHUB_LAUNCHER_DIR) readOnlyRoots = [...readOnlyRoots, source.TASKCORE_GITHUB_LAUNCHER_DIR];
+  for (const key of configuredEnvironmentKeys(explicitSource))
+    delete commandEnvironment[key];
+  if (
+    instructionWorkingCopyRoot &&
+    source.AGENT_HOME === instructionWorkingCopyRoot
+  )
+    commandEnvironment.AGENT_HOME = instructionWorkingCopyRoot;
+  const shellEnvironmentKeys = [
+    ...new Set([...inheritedGitHubKeys, ...Object.keys(commandEnvironment)]),
+  ].sort();
+  if (source.TASKCORE_GITHUB_LAUNCHER_DIR)
+    readOnlyRoots = [...readOnlyRoots, source.TASKCORE_GITHUB_LAUNCHER_DIR];
   const deniedHostRoots = [
     ...new Set(
       [source.HOME, source.CODEX_HOME]
@@ -211,9 +303,12 @@ export function createIsolatedCodexAppServerArgs(
     ...readOnlyRoots.map((path) => `${tomlString(resolve(path))}="read"`),
     ...gitRoots.read.map((path) => `${tomlString(path)}="read"`),
     ...gitRoots.write.map((path) => `${tomlString(path)}="write"`),
-    ...(instructionWorkingCopyRoot ? [`${tomlString(resolve(instructionWorkingCopyRoot))}="write"`] : []),
+    ...(instructionWorkingCopyRoot
+      ? [`${tomlString(resolve(instructionWorkingCopyRoot))}="write"`]
+      : []),
     ...(source.TASKCORE_GITHUB_BROKER_TOKEN && source.GH_CONFIG_DIR
-      ? [`${tomlString(resolve(source.GH_CONFIG_DIR))}="write"`] : []),
+      ? [`${tomlString(resolve(source.GH_CONFIG_DIR))}="write"`]
+      : []),
     `":workspace_roots"={"."="write"}`,
   ].join(",");
   const planningFilesystemRules = [
@@ -222,10 +317,15 @@ export function createIsolatedCodexAppServerArgs(
     `":tmpdir"="none"`,
     ...deniedHostRoots.map((path) => `${tomlString(path)}="none"`),
     ...readOnlyRoots.map((path) => `${tomlString(resolve(path))}="read"`),
-    ...[...gitRoots.read, ...gitRoots.write].map((path) => `${tomlString(path)}="read"`),
-    ...(instructionWorkingCopyRoot ? [`${tomlString(resolve(instructionWorkingCopyRoot))}="read"`] : []),
+    ...[...gitRoots.read, ...gitRoots.write].map(
+      (path) => `${tomlString(path)}="read"`,
+    ),
+    ...(instructionWorkingCopyRoot
+      ? [`${tomlString(resolve(instructionWorkingCopyRoot))}="read"`]
+      : []),
     ...(source.TASKCORE_GITHUB_BROKER_TOKEN && source.GH_CONFIG_DIR
-      ? [`${tomlString(resolve(source.GH_CONFIG_DIR))}="write"`] : []),
+      ? [`${tomlString(resolve(source.GH_CONFIG_DIR))}="write"`]
+      : []),
     `":workspace_roots"={"."="read"}`,
   ].join(",");
   const commandEnv = Object.entries(commandEnvironment)
@@ -285,8 +385,8 @@ export function createSecuredCodexThreadParams(
     mode === "default" && usesExternalRunnerSandbox(source)
       ? CODEX_EXTERNAL_SANDBOX_PERMISSION_PROFILE
       : mode === "plan"
-      ? CODEX_PLANNING_PERMISSION_PROFILE
-      : CODEX_SKILLLESS_PERMISSION_PROFILE;
+        ? CODEX_PLANNING_PERMISSION_PROFILE
+        : CODEX_SKILLLESS_PERMISSION_PROFILE;
   return {
     cwd: workingDirectory,
     config: collaborationThreadConfig(

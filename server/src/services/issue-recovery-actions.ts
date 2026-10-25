@@ -1,6 +1,19 @@
-import { and, desc, eq, inArray, isNull, isNotNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  isNotNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { heartbeatRuns, issueRecoveryActions, workspaceOperations } from "@taskcore/db";
+import {
+  heartbeatRuns,
+  issueRecoveryActions,
+  workspaceOperations,
+} from "@taskcore/db";
 import { isUuidLike } from "@taskcore/shared";
 import type {
   IssueRecoveryAction,
@@ -12,7 +25,10 @@ import type {
 
 import { isNativeWorkspaceFinalizationOperationActive } from "./workspace-operations.js";
 
-const ACTIVE_RECOVERY_ACTION_STATUSES = ["active", "escalated"] as const satisfies readonly IssueRecoveryActionStatus[];
+const ACTIVE_RECOVERY_ACTION_STATUSES = [
+  "active",
+  "escalated",
+] as const satisfies readonly IssueRecoveryActionStatus[];
 const MAX_UPSERT_RETRIES = 3;
 
 type IssueRecoveryActionRow = typeof issueRecoveryActions.$inferSelect;
@@ -27,9 +43,9 @@ function isRecoveryBudgetExhausted(evidence: Record<string, unknown>) {
   const budget = evidence.recoveryBudget;
   return Boolean(
     budget &&
-      typeof budget === "object" &&
-      !Array.isArray(budget) &&
-      (budget as Record<string, unknown>).state === "exhausted",
+    typeof budget === "object" &&
+    !Array.isArray(budget) &&
+    (budget as Record<string, unknown>).state === "exhausted",
   );
 }
 
@@ -110,18 +126,21 @@ function toReadModel(row: IssueRecoveryActionRow): IssueRecoveryAction {
 }
 
 function isUniqueRecoveryActionConflict(error: unknown) {
-  const maybe = error as { code?: string; constraint?: string; message?: string } | null;
+  const maybe = error as {
+    code?: string;
+    constraint?: string;
+    message?: string;
+  } | null;
   return Boolean(
     maybe &&
-      maybe.code === "23505" &&
-      (
-        maybe.constraint === "issue_recovery_actions_active_source_uq" ||
-        maybe.constraint === "issue_recovery_actions_active_fingerprint_uq" ||
-        typeof maybe.message === "string" && (
-          maybe.message.includes("issue_recovery_actions_active_source_uq") ||
-          maybe.message.includes("issue_recovery_actions_active_fingerprint_uq")
-        )
-      ),
+    maybe.code === "23505" &&
+    (maybe.constraint === "issue_recovery_actions_active_source_uq" ||
+      maybe.constraint === "issue_recovery_actions_active_fingerprint_uq" ||
+      (typeof maybe.message === "string" &&
+        (maybe.message.includes("issue_recovery_actions_active_source_uq") ||
+          maybe.message.includes(
+            "issue_recovery_actions_active_fingerprint_uq",
+          )))),
   );
 }
 
@@ -160,55 +179,91 @@ export function issueRecoveryActionService(db: Db) {
     actions: IssueRecoveryAction[],
     dbOrTx: DbOrTransaction,
   ) {
-    const nativeActions = actions.filter((action) => action.wakePolicy?.kind === "resume_native_run");
+    const nativeActions = actions.filter(
+      (action) => action.wakePolicy?.kind === "resume_native_run",
+    );
     for (const action of nativeActions) action.nativeRunActivity = null;
-    const runIds = [...new Set(nativeActions.flatMap((action) => {
-      const runId = action.wakePolicy?.runId;
-      return typeof runId === "string" && isUuidLike(runId) ? [runId] : [];
-    }))];
-    if (runIds.length === 0) return;
-    const activity = await dbOrTx.select({
-      runId: heartbeatRuns.id,
-      issueId: heartbeatRuns.nativeIssueId,
-      status: heartbeatRuns.status,
-      finishedAt: heartbeatRuns.finishedAt,
-      workspaceOperationId: workspaceOperations.id,
-    }).from(heartbeatRuns).leftJoin(workspaceOperations, and(
-      eq(workspaceOperations.companyId, heartbeatRuns.companyId),
-      eq(workspaceOperations.heartbeatRunId, heartbeatRuns.id),
-      eq(workspaceOperations.issueId, heartbeatRuns.nativeIssueId),
-      eq(workspaceOperations.phase, "workspace_finalize"),
-      eq(workspaceOperations.status, "running"),
-      isNull(workspaceOperations.finishedAt),
-      sql`${workspaceOperations.metadata}->>'owningService' = 'native_workspace_finalizer'`,
-    )).where(and(
-      eq(heartbeatRuns.companyId, companyId),
-      eq(heartbeatRuns.runtimeMode, "native"),
-      inArray(heartbeatRuns.id, runIds),
-      or(
-        and(inArray(heartbeatRuns.status, ["queued", "running"]), isNull(heartbeatRuns.finishedAt)),
-        isNotNull(workspaceOperations.id),
+    const runIds = [
+      ...new Set(
+        nativeActions.flatMap((action) => {
+          const runId = action.wakePolicy?.runId;
+          return typeof runId === "string" && isUuidLike(runId) ? [runId] : [];
+        }),
       ),
-    )).orderBy(desc(workspaceOperations.startedAt));
+    ];
+    if (runIds.length === 0) return;
+    const activity = await dbOrTx
+      .select({
+        runId: heartbeatRuns.id,
+        issueId: heartbeatRuns.nativeIssueId,
+        status: heartbeatRuns.status,
+        finishedAt: heartbeatRuns.finishedAt,
+        workspaceOperationId: workspaceOperations.id,
+      })
+      .from(heartbeatRuns)
+      .leftJoin(
+        workspaceOperations,
+        and(
+          eq(workspaceOperations.companyId, heartbeatRuns.companyId),
+          eq(workspaceOperations.heartbeatRunId, heartbeatRuns.id),
+          eq(workspaceOperations.issueId, heartbeatRuns.nativeIssueId),
+          eq(workspaceOperations.phase, "workspace_finalize"),
+          eq(workspaceOperations.status, "running"),
+          isNull(workspaceOperations.finishedAt),
+          sql`${workspaceOperations.metadata}->>'owningService' = 'native_workspace_finalizer'`,
+        ),
+      )
+      .where(
+        and(
+          eq(heartbeatRuns.companyId, companyId),
+          eq(heartbeatRuns.runtimeMode, "native"),
+          inArray(heartbeatRuns.id, runIds),
+          or(
+            and(
+              inArray(heartbeatRuns.status, ["queued", "running"]),
+              isNull(heartbeatRuns.finishedAt),
+            ),
+            isNotNull(workspaceOperations.id),
+          ),
+        ),
+      )
+      .orderBy(desc(workspaceOperations.startedAt));
     const activityByRun = new Map<string, (typeof activity)[number]>();
     for (const row of activity) {
-      const liveOperation = row.workspaceOperationId && row.issueId
-        && isNativeWorkspaceFinalizationOperationActive({
-          operationId: row.workspaceOperationId, companyId, runId: row.runId, issueId: row.issueId,
+      const liveOperation =
+        row.workspaceOperationId &&
+        row.issueId &&
+        isNativeWorkspaceFinalizationOperationActive({
+          operationId: row.workspaceOperationId,
+          companyId,
+          runId: row.runId,
+          issueId: row.issueId,
         });
-      const liveHeartbeat = ["queued", "running"].includes(row.status) && row.finishedAt === null;
+      const liveHeartbeat =
+        ["queued", "running"].includes(row.status) && row.finishedAt === null;
       if (!liveHeartbeat && !liveOperation) continue;
-      const projected = { ...row, workspaceOperationId: liveOperation ? row.workspaceOperationId : null };
-      if (!activityByRun.has(row.runId) || (!activityByRun.get(row.runId)?.workspaceOperationId && liveOperation)) {
+      const projected = {
+        ...row,
+        workspaceOperationId: liveOperation ? row.workspaceOperationId : null,
+      };
+      if (
+        !activityByRun.has(row.runId) ||
+        (!activityByRun.get(row.runId)?.workspaceOperationId && liveOperation)
+      ) {
         activityByRun.set(row.runId, projected);
       }
     }
     for (const action of nativeActions) {
-      const row = activityByRun.get(String(action.wakePolicy?.runId).toLowerCase());
+      const row = activityByRun.get(
+        String(action.wakePolicy?.runId).toLowerCase(),
+      );
       if (!row || row.issueId !== action.sourceIssueId) continue;
       action.nativeRunActivity = {
         runId: row.runId,
-        status: row.workspaceOperationId || row.status === "running" ? "running" : "queued",
+        status:
+          row.workspaceOperationId || row.status === "running"
+            ? "running"
+            : "queued",
         workspaceOperationId: row.workspaceOperationId,
       };
     }
@@ -226,7 +281,9 @@ export function issueRecoveryActionService(db: Db) {
         and(
           eq(issueRecoveryActions.companyId, companyId),
           eq(issueRecoveryActions.sourceIssueId, sourceIssueId),
-          inArray(issueRecoveryActions.status, [...ACTIVE_RECOVERY_ACTION_STATUSES]),
+          inArray(issueRecoveryActions.status, [
+            ...ACTIVE_RECOVERY_ACTION_STATUSES,
+          ]),
         ),
       )
       .orderBy(desc(issueRecoveryActions.updatedAt))
@@ -238,22 +295,31 @@ export function issueRecoveryActionService(db: Db) {
     return action;
   }
 
-  async function listActiveForIssues(companyId: string, sourceIssueIds: string[]) {
-    if (sourceIssueIds.length === 0) return new Map<string, IssueRecoveryAction>();
+  async function listActiveForIssues(
+    companyId: string,
+    sourceIssueIds: string[],
+  ) {
+    if (sourceIssueIds.length === 0)
+      return new Map<string, IssueRecoveryAction>();
     const rows = await db
       .select()
       .from(issueRecoveryActions)
       .where(
         and(
           eq(issueRecoveryActions.companyId, companyId),
-          inArray(issueRecoveryActions.sourceIssueId, [...new Set(sourceIssueIds)]),
-          inArray(issueRecoveryActions.status, [...ACTIVE_RECOVERY_ACTION_STATUSES]),
+          inArray(issueRecoveryActions.sourceIssueId, [
+            ...new Set(sourceIssueIds),
+          ]),
+          inArray(issueRecoveryActions.status, [
+            ...ACTIVE_RECOVERY_ACTION_STATUSES,
+          ]),
         ),
       )
       .orderBy(desc(issueRecoveryActions.updatedAt));
     const result = new Map<string, IssueRecoveryAction>();
     for (const row of rows) {
-      if (!result.has(row.sourceIssueId)) result.set(row.sourceIssueId, toReadModel(row));
+      if (!result.has(row.sourceIssueId))
+        result.set(row.sourceIssueId, toReadModel(row));
     }
     await projectNativeRunActivity(companyId, [...result.values()], db);
     return result;
@@ -323,14 +389,17 @@ export function issueRecoveryActionService(db: Db) {
           .set({
             status: "cancelled",
             outcome: "cancelled",
-            resolutionNote: "A new failure with a different identity superseded this recovery action.",
+            resolutionNote:
+              "A new failure with a different identity superseded this recovery action.",
             resolvedAt: now,
             updatedAt: now,
           })
           .where(
             and(
               eq(issueRecoveryActions.id, priorActionId),
-              inArray(issueRecoveryActions.status, [...ACTIVE_RECOVERY_ACTION_STATUSES]),
+              inArray(issueRecoveryActions.status, [
+                ...ACTIVE_RECOVERY_ACTION_STATUSES,
+              ]),
             ),
           )
           .returning();
@@ -355,18 +424,29 @@ export function issueRecoveryActionService(db: Db) {
     input: UpsertIssueRecoveryActionInput,
     retryCount = 0,
   ): Promise<IssueRecoveryAction> {
-    const existing = await getActiveForIssue(input.companyId, input.sourceIssueId);
+    const existing = await getActiveForIssue(
+      input.companyId,
+      input.sourceIssueId,
+    );
     const now = new Date();
-    const ownerType = input.ownerType ?? (input.ownerAgentId ? "agent" : "board");
+    const ownerType =
+      input.ownerType ?? (input.ownerAgentId ? "agent" : "board");
     if (existing) {
       // A distinct failure identity must not overwrite the active action of a
       // prior identity. Resolve the prior action and insert a new one, so the
       // operator gets a new notice for the new failure.
       if (
         input.supersedeOnIdentityChange &&
-        (existing.cause !== input.cause || existing.fingerprint !== input.fingerprint)
+        (existing.cause !== input.cause ||
+          existing.fingerprint !== input.fingerprint)
       ) {
-        return supersedePriorAndInsert(input, existing.id, ownerType, now, retryCount);
+        return supersedePriorAndInsert(
+          input,
+          existing.id,
+          ownerType,
+          now,
+          retryCount,
+        );
       }
       // `maxAttempts` is an execution budget, not display metadata. Once the
       // same recovery identity consumes it, retain one inspectable board-owned
@@ -377,8 +457,7 @@ export function issueRecoveryActionService(db: Db) {
       if (isRecoveryBudgetExhausted(existing.evidence ?? {})) {
         return existing;
       }
-      const nextAttemptCount =
-        input.attemptCount ?? existing.attemptCount + 1;
+      const nextAttemptCount = input.attemptCount ?? existing.attemptCount + 1;
       const effectiveMaxAttempts = input.preserveExistingOwner
         ? existing.maxAttempts
         : input.maxAttempts === undefined
@@ -450,37 +529,43 @@ export function issueRecoveryActionService(db: Db) {
         .set({
           recoveryIssueId: input.preserveExistingOwner
             ? existing.recoveryIssueId
-            : input.recoveryIssueId ?? null,
+            : (input.recoveryIssueId ?? null),
           kind: input.preserveExistingOwner ? existing.kind : input.kind,
           status: input.preserveExistingOwner ? existing.status : "active",
-          ownerType: input.preserveExistingOwner ? existing.ownerType : ownerType,
+          ownerType: input.preserveExistingOwner
+            ? existing.ownerType
+            : ownerType,
           ownerAgentId: input.preserveExistingOwner
             ? existing.ownerAgentId
-            : input.ownerAgentId ?? null,
+            : (input.ownerAgentId ?? null),
           ownerUserId: input.preserveExistingOwner
             ? existing.ownerUserId
-            : input.ownerUserId ?? null,
+            : (input.ownerUserId ?? null),
           previousOwnerAgentId: input.preserveExistingOwner
             ? existing.previousOwnerAgentId
-            : input.previousOwnerAgentId ?? existing.previousOwnerAgentId,
+            : (input.previousOwnerAgentId ?? existing.previousOwnerAgentId),
           returnOwnerAgentId: input.preserveExistingOwner
             ? existing.returnOwnerAgentId
-            : input.returnOwnerAgentId ?? existing.returnOwnerAgentId,
+            : (input.returnOwnerAgentId ?? existing.returnOwnerAgentId),
           cause: input.preserveExistingOwner ? existing.cause : input.cause,
-          fingerprint: input.preserveExistingOwner ? existing.fingerprint : input.fingerprint,
+          fingerprint: input.preserveExistingOwner
+            ? existing.fingerprint
+            : input.fingerprint,
           evidence: input.preserveExistingOwner
             ? {
-              ...(existing.evidence ?? {}),
-              ...(input.evidence ?? {}),
-            }
-            : input.evidence ?? existing.evidence,
-          nextAction: input.preserveExistingOwner ? existing.nextAction : input.nextAction,
+                ...(existing.evidence ?? {}),
+                ...(input.evidence ?? {}),
+              }
+            : (input.evidence ?? existing.evidence),
+          nextAction: input.preserveExistingOwner
+            ? existing.nextAction
+            : input.nextAction,
           wakePolicy: input.preserveExistingOwner
             ? existing.wakePolicy
-            : input.wakePolicy ?? null,
+            : (input.wakePolicy ?? null),
           monitorPolicy: input.preserveExistingOwner
             ? existing.monitorPolicy
-            : input.monitorPolicy ?? null,
+            : (input.monitorPolicy ?? null),
           attemptCount: nextAttemptCount,
           maxAttempts: input.preserveExistingOwner
             ? existing.maxAttempts
@@ -489,19 +574,23 @@ export function issueRecoveryActionService(db: Db) {
               : input.maxAttempts,
           timeoutAt: input.preserveExistingOwner
             ? asDatabaseDate(existing.timeoutAt)
-            : input.timeoutAt ?? null,
+            : (input.timeoutAt ?? null),
           lastAttemptAt: input.preserveExistingOwner
             ? asDatabaseDate(existing.lastAttemptAt)
-            : input.lastAttemptAt ?? now,
+            : (input.lastAttemptAt ?? now),
           outcome: input.preserveExistingOwner ? existing.outcome : null,
-          resolutionNote: input.preserveExistingOwner ? existing.resolutionNote : null,
+          resolutionNote: input.preserveExistingOwner
+            ? existing.resolutionNote
+            : null,
           resolvedAt: null,
           updatedAt: now,
         })
         .where(
           and(
             eq(issueRecoveryActions.id, existing.id),
-            inArray(issueRecoveryActions.status, [...ACTIVE_RECOVERY_ACTION_STATUSES]),
+            inArray(issueRecoveryActions.status, [
+              ...ACTIVE_RECOVERY_ACTION_STATUSES,
+            ]),
           ),
         )
         .returning();
@@ -537,7 +626,9 @@ export function issueRecoveryActionService(db: Db) {
     const predicates = [
       eq(issueRecoveryActions.companyId, input.companyId),
       eq(issueRecoveryActions.sourceIssueId, input.sourceIssueId),
-      inArray(issueRecoveryActions.status, [...ACTIVE_RECOVERY_ACTION_STATUSES]),
+      inArray(issueRecoveryActions.status, [
+        ...ACTIVE_RECOVERY_ACTION_STATUSES,
+      ]),
     ];
     if (input.actionId) {
       predicates.push(eq(issueRecoveryActions.id, input.actionId));

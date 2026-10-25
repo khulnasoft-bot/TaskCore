@@ -127,7 +127,12 @@ export async function runDescriptorBoundAuthRead(
       environment: deps.environment,
       lease: deps.lease,
       command: "node",
-      args: ["-e", DEVICE_LOGIN_AUTH_READ_SCRIPT, deps.sessionHome, String(MAX_AUTH_JSON_BYTES)],
+      args: [
+        "-e",
+        DEVICE_LOGIN_AUTH_READ_SCRIPT,
+        deps.sessionHome,
+        String(MAX_AUTH_JSON_BYTES),
+      ],
       timeoutMs: deps.timeoutMs,
       // The read is one fixed, non-session operation. It must not open or reuse
       // the login session.

@@ -62,9 +62,11 @@ const VALUE_PREVIEW_BUDGET = 72;
  */
 export function formatIssueChangeValue(
   value: unknown,
-  options: { resolveAgentLabel?: (id: string) => string | null | undefined;
+  options: {
+    resolveAgentLabel?: (id: string) => string | null | undefined;
     resolveUserLabel?: (id: string) => string | null | undefined;
-    field?: string } = {},
+    field?: string;
+  } = {},
 ): string {
   // `reviewPolicy` is nullable-by-default: a cleared column means "anyone can
   // approve", not "no value" (PAP-16506), so it resolves before the null branch.
@@ -75,7 +77,9 @@ export function formatIssueChangeValue(
 
   if (Array.isArray(value)) {
     if (value.length === 0) return "none";
-    const strings = value.filter((entry): entry is string => typeof entry === "string");
+    const strings = value.filter(
+      (entry): entry is string => typeof entry === "string",
+    );
     if (strings.length !== value.length) return `${value.length} items`;
     return strings.length <= 3
       ? strings.map((id) => shortenId(id)).join(", ")
@@ -96,7 +100,9 @@ export function formatIssueChangeValue(
     if (resolved) return resolved;
     if (isIsoTimestamp(trimmed)) return new Date(trimmed).toLocaleString();
     if (looksLikeId(trimmed)) return shortenId(trimmed);
-    const humanized = trimmed.includes(" ") ? trimmed : trimmed.replace(/_/g, " ");
+    const humanized = trimmed.includes(" ")
+      ? trimmed
+      : trimmed.replace(/_/g, " ");
     return truncate(humanized);
   }
 
@@ -112,11 +118,16 @@ function truncate(value: string): string {
 }
 
 function isIsoTimestamp(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value) && !Number.isNaN(Date.parse(value));
+  return (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  );
 }
 
 function looksLikeId(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }
 
 function shortenId(value: string): string {
@@ -133,7 +144,13 @@ export interface IssueChangeReceiptRow {
 }
 
 function isChangeEntry(value: unknown): value is IssueChangeReceiptEntry {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value) && "from" in (value as object) && "to" in (value as object);
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "from" in (value as object) &&
+    "to" in (value as object)
+  );
 }
 
 /**
@@ -146,10 +163,13 @@ export function readIssueChangeReceipt(
   options: Parameters<typeof formatIssueChangeValue>[1] = {},
 ): IssueChangeReceiptRow[] {
   const changes = details?.changes;
-  if (!changes || typeof changes !== "object" || Array.isArray(changes)) return [];
+  if (!changes || typeof changes !== "object" || Array.isArray(changes))
+    return [];
 
   const rows: IssueChangeReceiptRow[] = [];
-  for (const [field, entry] of Object.entries(changes as Record<string, unknown>)) {
+  for (const [field, entry] of Object.entries(
+    changes as Record<string, unknown>,
+  )) {
     if (!isChangeEntry(entry)) continue;
     rows.push({
       field,
@@ -183,7 +203,9 @@ const AUTHORIZATION_REASON_LABELS: Record<string, string> = {
  * reasons degrade to their humanized code rather than disappearing — an
  * unexplained write is worse than an ugly one.
  */
-export function issueAuthorizationReasonLabel(reason: string | null | undefined): string | null {
+export function issueAuthorizationReasonLabel(
+  reason: string | null | undefined,
+): string | null {
   const trimmed = reason?.trim();
   if (!trimmed) return null;
   return AUTHORIZATION_REASON_LABELS[trimmed] ?? trimmed.replace(/_/g, " ");

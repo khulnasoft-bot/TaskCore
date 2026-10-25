@@ -541,9 +541,18 @@ export async function recordFailedSkillPreparation(input: {
 }): Promise<void> {
   try {
     const trace = createNativeRunTrace(input);
-    const preparation = trace.start("task.prepare", { parentName: "task.run", startedAtMs: input.startedAtMs });
+    const preparation = trace.start("task.prepare", {
+      parentName: "task.run",
+      startedAtMs: input.startedAtMs,
+    });
     const endedAtMs = Date.now();
-    await trace.record({ name: "skills.prepare", parentName: "task.prepare", startedAtMs: input.startedAtMs, endedAtMs, outcome: "failed" });
+    await trace.record({
+      name: "skills.prepare",
+      parentName: "task.prepare",
+      startedAtMs: input.startedAtMs,
+      endedAtMs,
+      outcome: "failed",
+    });
     await trace.end(preparation, { endedAtMs, outcome: "failed" });
     await trace.finish("failed");
   } catch {

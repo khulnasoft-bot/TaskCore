@@ -19,7 +19,9 @@ describe("installed runner selection", () => {
     const binary = join(root, "taskcore-runnerd");
     try {
       await writeFile(binary, "test executable", { mode: 0o700 });
-      const select = vi.spyOn(runner, "defaultCapabilityRunnerdBinary").mockReturnValue(binary);
+      const select = vi
+        .spyOn(runner, "defaultCapabilityRunnerdBinary")
+        .mockReturnValue(binary);
       expect(resolveTaskcoreRunnerBinary("")).toBe(binary);
       expect(select).toHaveBeenCalledOnce();
       expect(resolveTaskcoreRunnerBinary(join(root, "missing"))).toBe(binary);
@@ -33,12 +35,16 @@ describe("installed runner selection", () => {
     const binary = join(root, "configured-runnerd");
     try {
       await writeFile(binary, "test executable", { mode: 0o700 });
-      const select = vi.spyOn(runner, "defaultCapabilityRunnerdBinary").mockImplementation(() => {
-        throw new Error("must not inspect package when override is usable");
-      });
+      const select = vi
+        .spyOn(runner, "defaultCapabilityRunnerdBinary")
+        .mockImplementation(() => {
+          throw new Error("must not inspect package when override is usable");
+        });
       expect(resolveTaskcoreRunnerBinary(binary)).toBe(binary);
       expect(select).not.toHaveBeenCalled();
-      expect(() => resolveTaskcoreRunnerBinary("relative-runnerd")).toThrow("absolute path");
+      expect(() => resolveTaskcoreRunnerBinary("relative-runnerd")).toThrow(
+        "absolute path",
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -81,18 +87,20 @@ const tool: TaskcoreSemanticToolDefinition = {
 
 describe("buildNativeRunnerPreparePayload", () => {
   it("binds the coordinator tool projection to run.prepare", () => {
-    expect(buildNativeRunnerPreparePayload({
-      cwd: "/workspace",
-      model: "test-model",
-      resumeProviderSessionId: "thread-1",
-      completionContract: { revision: "1", criterionIds: ["objective"] },
-      semanticTools: [tool],
-      providerLaunch: {
-        command: "/bin/fake-codex",
-        args: ["app-server"],
-        providerVersion: "fake-1",
-      },
-    })).toMatchObject({
+    expect(
+      buildNativeRunnerPreparePayload({
+        cwd: "/workspace",
+        model: "test-model",
+        resumeProviderSessionId: "thread-1",
+        completionContract: { revision: "1", criterionIds: ["objective"] },
+        semanticTools: [tool],
+        providerLaunch: {
+          command: "/bin/fake-codex",
+          args: ["app-server"],
+          providerVersion: "fake-1",
+        },
+      }),
+    ).toMatchObject({
       provider: {
         kind: "codex",
         provider: "codex",

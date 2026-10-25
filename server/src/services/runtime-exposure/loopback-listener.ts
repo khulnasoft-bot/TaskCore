@@ -61,7 +61,9 @@ function isWildcardHex(addrHex: string): boolean {
  */
 export function formatProcAddressHex(addrHex: string): string {
   if (addrHex.length === 8) {
-    const octets = [6, 4, 2, 0].map((offset) => parseInt(addrHex.slice(offset, offset + 2), 16));
+    const octets = [6, 4, 2, 0].map((offset) =>
+      parseInt(addrHex.slice(offset, offset + 2), 16),
+    );
     return octets.join(".");
   }
   if (addrHex.length === 32) {
@@ -73,7 +75,8 @@ export function formatProcAddressHex(addrHex: string): string {
       }
     }
     if (bytes.every((byte) => byte === 0)) return "::";
-    if (bytes.slice(0, 15).every((byte) => byte === 0) && bytes[15] === 1) return "::1";
+    if (bytes.slice(0, 15).every((byte) => byte === 0) && bytes[15] === 1)
+      return "::1";
     const groups: string[] = [];
     for (let index = 0; index < 16; index += 2) {
       groups.push(((bytes[index] << 8) | bytes[index + 1]).toString(16));
@@ -106,12 +109,22 @@ export function listenerBindFactsForPort(
   const addresses: string[] = [];
   let present = false;
   let loopbackOnly = true;
-  const scan = (rows: ProcListenerRow[], isLoopback: (hex: string) => boolean) => {
+  const scan = (
+    rows: ProcListenerRow[],
+    isLoopback: (hex: string) => boolean,
+  ) => {
     for (const row of rows) {
-      if (row.localPortHex.toUpperCase() !== wantHex || row.state !== TCP_STATE_LISTEN) continue;
+      if (
+        row.localPortHex.toUpperCase() !== wantHex ||
+        row.state !== TCP_STATE_LISTEN
+      )
+        continue;
       present = true;
       addresses.push(formatProcAddressHex(row.localAddressHex));
-      if (isWildcardHex(row.localAddressHex) || !isLoopback(row.localAddressHex)) {
+      if (
+        isWildcardHex(row.localAddressHex) ||
+        !isLoopback(row.localAddressHex)
+      ) {
         loopbackOnly = false;
       }
     }
@@ -122,7 +135,9 @@ export function listenerBindFactsForPort(
 }
 
 /** Read live bind facts for one port. Unreadable `/proc` yields "unknown". */
-export async function readListenerBindFacts(port: number): Promise<ListenerBindFacts | null> {
+export async function readListenerBindFacts(
+  port: number,
+): Promise<ListenerBindFacts | null> {
   let tcp: ProcListenerRow[];
   try {
     tcp = parseProcNetListeners(await readFile("/proc/net/tcp", "utf8"));
@@ -148,7 +163,9 @@ export async function readListenerBindFacts(port: number): Promise<ListenerBindF
  * violation here: readiness already gates on the bind, and guessing would turn a
  * benign race into a misleading error.
  */
-export async function diagnoseRuntimeListenerBinds(ports: number[]): Promise<string | null> {
+export async function diagnoseRuntimeListenerBinds(
+  ports: number[],
+): Promise<string | null> {
   const violations: string[] = [];
   for (const port of ports) {
     const facts = await readListenerBindFacts(port);
@@ -157,9 +174,9 @@ export async function diagnoseRuntimeListenerBinds(ports: number[]): Promise<str
   }
   if (violations.length === 0) return null;
   return (
-    `${violations.join("; ")} instead of loopback only. The broker will not expose a listener `
-    + "reachable off-loopback. This means the workspace checkout's dev server ignored the managed "
-    + "loopback bind — a checkout that predates managed HTTPS exposure overwrites TASKCORE_BIND "
-    + "from its own --bind argv, so the start command must pass --bind loopback."
+    `${violations.join("; ")} instead of loopback only. The broker will not expose a listener ` +
+    "reachable off-loopback. This means the workspace checkout's dev server ignored the managed " +
+    "loopback bind — a checkout that predates managed HTTPS exposure overwrites TASKCORE_BIND " +
+    "from its own --bind argv, so the start command must pass --bind loopback."
   );
 }

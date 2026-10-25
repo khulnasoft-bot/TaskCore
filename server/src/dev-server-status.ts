@@ -120,12 +120,7 @@ function withDevRestartRequestLock<T>(filePath: string, action: () => T): T {
         if (attempt === DEV_RESTART_REQUEST_LOCK_RETRY_COUNT) {
           throw new Error("dev_server_restart_request_lock_busy");
         }
-        Atomics.wait(
-          lockWaitBuffer,
-          0,
-          0,
-          DEV_RESTART_REQUEST_LOCK_RETRY_MS,
-        );
+        Atomics.wait(lockWaitBuffer, 0, 0, DEV_RESTART_REQUEST_LOCK_RETRY_MS);
         continue;
       }
     } finally {
@@ -228,7 +223,8 @@ export function removeDevServerRestartRequest(
   try {
     withDevRestartRequestLock(filePath, () => {
       const current = readDevServerRestartRequestAtPath(filePath);
-      if (expected?.requestId && current?.requestId !== expected.requestId) return;
+      if (expected?.requestId && current?.requestId !== expected.requestId)
+        return;
       rmSync(filePath, { force: true });
     });
     return true;

@@ -13,13 +13,21 @@ export function isIncompleteFirstTaskResult(
   result: RunnerE2EResult,
   errors: readonly string[] = [],
 ) {
-  if (isBlockedConnectionResult(result)) return result.cleanup === "passed" && result.failureClass !== "secret_leak" && errors.length === 0;
+  if (isBlockedConnectionResult(result))
+    return (
+      result.cleanup === "passed" &&
+      result.failureClass !== "secret_leak" &&
+      errors.length === 0
+    );
   const checks = result.firstTask?.checks ?? [];
-  return result.status === "failed" &&
+  return (
+    result.status === "failed" &&
     result.failureClass === "candidate_failure" &&
-    result.cleanup === "passed" && errors.length === 0 &&
+    result.cleanup === "passed" &&
+    errors.length === 0 &&
     checks.some((c) => c.notReached) &&
-    checks.every((c) => c.passed || c.notReached);
+    checks.every((c) => c.passed || c.notReached)
+  );
 }
 
 export function renderCaseOutcome(
@@ -32,7 +40,10 @@ export function renderCaseOutcome(
     (result.matcherResults ?? []).map((m) => ({
       id: m.matcher.kind === "json_path" ? m.matcher.path : m.matcher.kind,
       passed: m.passed,
-      notReached: isBlockedConnectionResult(result) && !m.passed ? "Blocked before this checkpoint" : undefined as string | undefined,
+      notReached:
+        isBlockedConnectionResult(result) && !m.passed
+          ? "Blocked before this checkpoint"
+          : (undefined as string | undefined),
       detail: m.detail,
     }));
   const failures = checks.filter((c) => !c.passed && !c.notReached);

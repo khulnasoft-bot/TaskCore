@@ -24,15 +24,19 @@ export async function assertEnvironmentSelectionForCompany(
   if (environment.status === "archived") {
     throw unprocessable("Environment is archived.");
   }
-  if (options?.allowedDrivers && !options.allowedDrivers.includes(environment.driver)) {
+  if (
+    options?.allowedDrivers &&
+    !options.allowedDrivers.includes(environment.driver)
+  ) {
     throw unprocessable(
       `Environment driver "${environment.driver}" is not allowed here. Allowed drivers: ${options.allowedDrivers.join(", ")}`,
     );
   }
   if (environment.driver === "sandbox") {
-    const config = environment.config && typeof environment.config === "object"
-      ? environment.config as Record<string, unknown>
-      : {};
+    const config =
+      environment.config && typeof environment.config === "object"
+        ? (environment.config as Record<string, unknown>)
+        : {};
     const provider = typeof config.provider === "string" ? config.provider : "";
     if (provider === "fake") {
       throw unprocessable(
@@ -40,9 +44,9 @@ export async function assertEnvironmentSelectionForCompany(
       );
     }
     if (
-      options?.allowedSandboxProviders
-      && options.allowedSandboxProviders.length > 0
-      && !options.allowedSandboxProviders.includes(provider)
+      options?.allowedSandboxProviders &&
+      options.allowedSandboxProviders.length > 0 &&
+      !options.allowedSandboxProviders.includes(provider)
     ) {
       throw unprocessable(
         `Environment sandbox provider "${provider || "unknown"}" is not allowed here. Allowed providers: ${options.allowedSandboxProviders.join(", ")}`,

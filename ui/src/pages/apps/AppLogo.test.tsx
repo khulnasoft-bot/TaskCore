@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetAppBrandManifestCacheForTests } from "@/lib/app-brand-assets";
 import { AppLogo } from "./AppLogo";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("AppLogo", () => {
   let container: HTMLDivElement;
@@ -17,10 +19,13 @@ describe("AppLogo", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     resetAppBrandManifestCacheForTests();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ schemaVersion: 1, providers: [] }),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ schemaVersion: 1, providers: [] }),
+      }),
+    );
   });
 
   afterEach(() => {

@@ -5,8 +5,11 @@ afterEach(() => vi.unstubAllGlobals());
 
 it("keeps directory requests separate from navigation and previous accounts", async () => {
   let resolveOldDirectory!: (response: Response) => void;
-  const oldDirectory = new Promise<Response>((resolve) => { resolveOldDirectory = resolve; });
-  const fetchMock = vi.fn()
+  const oldDirectory = new Promise<Response>((resolve) => {
+    resolveOldDirectory = resolve;
+  });
+  const fetchMock = vi
+    .fn()
     .mockReturnValueOnce(oldDirectory)
     .mockResolvedValueOnce(Response.json([{ id: "member-company" }]))
     .mockResolvedValueOnce(Response.json([{ id: "directory-company" }]));
@@ -17,9 +20,13 @@ it("keeps directory requests separate from navigation and previous accounts", as
   const currentDirectory = companiesApi.directory();
   try {
     await expect(navigation).resolves.toEqual([{ id: "member-company" }]);
-    await expect(currentDirectory).resolves.toEqual([{ id: "directory-company" }]);
+    await expect(currentDirectory).resolves.toEqual([
+      { id: "directory-company" },
+    ]);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      "/api/companies", "/api/companies?scope=accessible", "/api/companies",
+      "/api/companies",
+      "/api/companies?scope=accessible",
+      "/api/companies",
     ]);
   } finally {
     resolveOldDirectory(Response.json([]));
@@ -29,9 +36,12 @@ it("keeps directory requests separate from navigation and previous accounts", as
 
 it("requests navigable companies and detaches the same request when accounts change", async () => {
   let resolveOldRequest!: (response: Response) => void;
-  const oldRequest = new Promise<Response>((resolve) => { resolveOldRequest = resolve; });
+  const oldRequest = new Promise<Response>((resolve) => {
+    resolveOldRequest = resolve;
+  });
   const currentCompanies = [{ id: "current-company" }];
-  const fetchMock = vi.fn()
+  const fetchMock = vi
+    .fn()
     .mockReturnValueOnce(oldRequest)
     .mockResolvedValueOnce(Response.json(currentCompanies));
   vi.stubGlobal("fetch", fetchMock);

@@ -39,7 +39,10 @@ export type AgentCapsuleGlow = "green" | "blue";
 /** Number of brand agent-gradient token pairs defined in index.css. */
 export const AGENT_GRADIENT_COUNT = 10;
 
-const SIZE_PRESETS: Record<AgentCapsuleSizePreset, { width: number; height: number }> = {
+const SIZE_PRESETS: Record<
+  AgentCapsuleSizePreset,
+  { width: number; height: number }
+> = {
   sm: { width: 24, height: 60 },
   md: { width: 34, height: 84 },
   lg: { width: 46, height: 116 },
@@ -51,8 +54,10 @@ const STATE_ARIA: Record<AgentCapsuleState, string> = {
   online: "agent online",
 };
 
-export interface AgentCapsuleProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "color"> {
+export interface AgentCapsuleProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "color"
+> {
   /** Lifecycle state of the agent the capsule represents. */
   state: AgentCapsuleState;
   /** Brand agent-gradient index (1–{@link AGENT_GRADIENT_COUNT}). Wraps if out of range. */
@@ -82,7 +87,11 @@ const STROKE_DRAW_EASE = [0.16, 1, 0.3, 1] as const;
 /** Normalize a (possibly out-of-range) gradient index to 1…AGENT_GRADIENT_COUNT. */
 function normalizeGradient(gradient: number): number {
   const n = Math.trunc(gradient);
-  return ((((n - 1) % AGENT_GRADIENT_COUNT) + AGENT_GRADIENT_COUNT) % AGENT_GRADIENT_COUNT) + 1;
+  return (
+    ((((n - 1) % AGENT_GRADIENT_COUNT) + AGENT_GRADIENT_COUNT) %
+      AGENT_GRADIENT_COUNT) +
+    1
+  );
 }
 
 export function AgentCapsule({
@@ -111,7 +120,8 @@ export function AgentCapsule({
       data-glow={glow}
       className={cn(
         "agent-cap relative isolate mx-auto overflow-hidden rounded-full bg-transparent",
-        state === "online" && (glow === "blue" ? "agent-cap-online-blue" : "agent-cap-online"),
+        state === "online" &&
+          (glow === "blue" ? "agent-cap-online-blue" : "agent-cap-online"),
         className,
       )}
       style={{ width: dims.width, height: dims.height, ...style }}

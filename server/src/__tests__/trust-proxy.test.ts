@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import express from "express";
-import { applyTrustProxy, parseTrustProxyEnv } from "../middleware/trust-proxy.js";
+import {
+  applyTrustProxy,
+  parseTrustProxyEnv,
+} from "../middleware/trust-proxy.js";
 
 function appWithEnv(raw: string | undefined): express.Express {
   const app = express();

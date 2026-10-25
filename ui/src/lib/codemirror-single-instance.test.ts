@@ -22,8 +22,12 @@ const repoRoot = path.resolve(__dirname, "../../..");
 const uiRoot = path.resolve(__dirname, "../..");
 const uiRequire = createRequire(path.join(uiRoot, "package.json"));
 const editorRequire = createRequire(uiRequire.resolve("@mdxeditor/editor"));
-const languagesRequire = createRequire(editorRequire.resolve("@codemirror/language-data"));
-const languageRequire = createRequire(languagesRequire.resolve("@codemirror/language"));
+const languagesRequire = createRequire(
+  editorRequire.resolve("@codemirror/language-data"),
+);
+const languageRequire = createRequire(
+  languagesRequire.resolve("@codemirror/language"),
+);
 const workspaceManifest = readFileSync(
   path.join(repoRoot, "pnpm-workspace.yaml"),
   "utf8",
@@ -140,23 +144,39 @@ describe("codemirror single-instance invariant", () => {
   // another parser property as style tags and throws "tags is not iterable".
   // Using Node resolution also keeps a test bundler from hiding the split.
   it.each([
-    ["@codemirror/lang-python", "python", "def greet(name):\n    return name + '!'\n"],
-    ["@codemirror/lang-javascript", "javascript", "function greet(name) { return name + '!'; }"],
+    [
+      "@codemirror/lang-python",
+      "python",
+      "def greet(name):\n    return name + '!'\n",
+    ],
+    [
+      "@codemirror/lang-javascript",
+      "javascript",
+      "function greet(name) { return name + '!'; }",
+    ],
     ["@codemirror/lang-html", "html", '<div class="greeting">Hello</div>'],
     ["@codemirror/lang-sql", "sql", "SELECT name FROM greetings WHERE id = 1;"],
-  ])("highlights code with %s through the editor's installed dependencies", (pkg, factory, code) => {
-    const language = languagesRequire(pkg)[factory]().language;
-    const { highlightTree, classHighlighter } = languageRequire("@lezer/highlight");
-    const spans: Array<{ from: number; to: number; css: string }> = [];
-    highlightTree(language.parser.parse(code), classHighlighter, (from: number, to: number, css: string) => {
-      spans.push({ from, to, css });
-    });
-    expect(spans.length).toBeGreaterThan(0);
-    for (const span of spans) {
-      expect(span.from).toBeGreaterThanOrEqual(0);
-      expect(span.to).toBeGreaterThan(span.from);
-      expect(span.to).toBeLessThanOrEqual(code.length);
-      expect(span.css).toMatch(/\S/);
-    }
-  });
+  ])(
+    "highlights code with %s through the editor's installed dependencies",
+    (pkg, factory, code) => {
+      const language = languagesRequire(pkg)[factory]().language;
+      const { highlightTree, classHighlighter } =
+        languageRequire("@lezer/highlight");
+      const spans: Array<{ from: number; to: number; css: string }> = [];
+      highlightTree(
+        language.parser.parse(code),
+        classHighlighter,
+        (from: number, to: number, css: string) => {
+          spans.push({ from, to, css });
+        },
+      );
+      expect(spans.length).toBeGreaterThan(0);
+      for (const span of spans) {
+        expect(span.from).toBeGreaterThanOrEqual(0);
+        expect(span.to).toBeGreaterThan(span.from);
+        expect(span.to).toBeLessThanOrEqual(code.length);
+        expect(span.css).toMatch(/\S/);
+      }
+    },
+  );
 });

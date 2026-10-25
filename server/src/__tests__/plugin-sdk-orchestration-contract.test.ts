@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { Issue, TaskcorePluginManifestV1 } from "@taskcore/shared";
 import { createTestHarness } from "../../../packages/plugins/sdk/src/testing.js";
 
-function manifest(capabilities: TaskcorePluginManifestV1["capabilities"]): TaskcorePluginManifestV1 {
+function manifest(
+  capabilities: TaskcorePluginManifestV1["capabilities"],
+): TaskcorePluginManifestV1 {
   return {
     id: "taskcore.test-orchestration",
     apiVersion: 1,
@@ -17,7 +19,9 @@ function manifest(capabilities: TaskcorePluginManifestV1["capabilities"]): Taskc
   };
 }
 
-function issue(input: Partial<Issue> & Pick<Issue, "id" | "companyId" | "title">): Issue {
+function issue(
+  input: Partial<Issue> & Pick<Issue, "id" | "companyId" | "title">,
+): Issue {
   const now = new Date();
   return {
     id: input.id,
@@ -61,7 +65,12 @@ describe("plugin SDK orchestration contract", () => {
     const companyId = randomUUID();
     const blockerIssueId = randomUUID();
     const harness = createTestHarness({
-      manifest: manifest(["issues.create", "issue.relations.read", "issue.relations.write", "issue.subtree.read"]),
+      manifest: manifest([
+        "issues.create",
+        "issue.relations.read",
+        "issue.relations.write",
+        "issue.subtree.read",
+      ]),
     });
     harness.seed({
       issues: [issue({ id: blockerIssueId, companyId, title: "Blocker" })],
@@ -82,7 +91,9 @@ describe("plugin SDK orchestration contract", () => {
     expect(created.billingCode).toBe("mission:alpha");
     expect(created.assigneeUserId).toBe("board-user");
 
-    await expect(harness.ctx.issues.relations.get(created.id, companyId)).resolves.toEqual({
+    await expect(
+      harness.ctx.issues.relations.get(created.id, companyId),
+    ).resolves.toEqual({
       blockedBy: [
         expect.objectContaining({
           id: blockerIssueId,
@@ -92,18 +103,32 @@ describe("plugin SDK orchestration contract", () => {
       blocks: [],
     });
 
-    await expect(harness.ctx.issues.relations.removeBlockers(created.id, [blockerIssueId], companyId)).resolves.toEqual({
+    await expect(
+      harness.ctx.issues.relations.removeBlockers(
+        created.id,
+        [blockerIssueId],
+        companyId,
+      ),
+    ).resolves.toEqual({
       blockedBy: [],
       blocks: [],
     });
 
-    await expect(harness.ctx.issues.relations.addBlockers(created.id, [blockerIssueId], companyId)).resolves.toEqual({
+    await expect(
+      harness.ctx.issues.relations.addBlockers(
+        created.id,
+        [blockerIssueId],
+        companyId,
+      ),
+    ).resolves.toEqual({
       blockedBy: [expect.objectContaining({ id: blockerIssueId })],
       blocks: [],
     });
 
     await expect(
-      harness.ctx.issues.getSubtree(created.id, companyId, { includeRelations: true }),
+      harness.ctx.issues.getSubtree(created.id, companyId, {
+        includeRelations: true,
+      }),
     ).resolves.toMatchObject({
       rootIssueId: created.id,
       issueIds: [created.id],
@@ -127,7 +152,9 @@ describe("plugin SDK orchestration contract", () => {
       originKind: "plugin:taskcore.test-orchestration:feature",
     });
 
-    expect(created.originKind).toBe("plugin:taskcore.test-orchestration:feature");
+    expect(created.originKind).toBe(
+      "plugin:taskcore.test-orchestration:feature",
+    );
     await expect(
       harness.ctx.issues.list({
         companyId,
@@ -140,14 +167,18 @@ describe("plugin SDK orchestration contract", () => {
         title: "Spoofed issue",
         originKind: "plugin:other.plugin:feature",
       }),
-    ).rejects.toThrow("Plugin may only use originKind values under plugin:taskcore.test-orchestration");
+    ).rejects.toThrow(
+      "Plugin may only use originKind values under plugin:taskcore.test-orchestration",
+    );
     await expect(
       harness.ctx.issues.update(
         created.id,
         { originKind: "plugin:other.plugin:feature" },
         companyId,
       ),
-    ).rejects.toThrow("Plugin may only use originKind values under plugin:taskcore.test-orchestration");
+    ).rejects.toThrow(
+      "Plugin may only use originKind values under plugin:taskcore.test-orchestration",
+    );
   });
 
   it("supports generic plugin operation issue visibility in the test harness", async () => {
@@ -163,7 +194,9 @@ describe("plugin SDK orchestration contract", () => {
       originId: "operation-1",
     });
 
-    expect(created.originKind).toBe("plugin:taskcore.test-orchestration:operation");
+    expect(created.originKind).toBe(
+      "plugin:taskcore.test-orchestration:operation",
+    );
     expect(created.originId).toBe("operation-1");
   });
 
@@ -228,7 +261,12 @@ describe("plugin SDK orchestration contract", () => {
     });
     harness.seed({
       issues: [
-        issue({ id: blockerIssueId, companyId, title: "Unresolved blocker", status: "todo" }),
+        issue({
+          id: blockerIssueId,
+          companyId,
+          title: "Unresolved blocker",
+          status: "todo",
+        }),
         issue({
           id: blockedIssueId,
           companyId,

@@ -1,5 +1,12 @@
 import { sql } from "drizzle-orm";
-import { check, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  check,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { agents } from "./agents.js";
 import { issues } from "./issues.js";
 
@@ -7,13 +14,19 @@ export const issueAccessGrants = pgTable(
   "issue_access_grants",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    issueId: uuid("issue_id").notNull().references(() => issues.id, { onDelete: "cascade" }),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
     subjectType: text("subject_type").notNull(),
     subjectId: text("subject_id").notNull(),
     source: text("source").notNull(),
     grantedByUserId: text("granted_by_user_id"),
-    grantedByAgentId: uuid("granted_by_agent_id").references(() => agents.id, { onDelete: "set null" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    grantedByAgentId: uuid("granted_by_agent_id").references(() => agents.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
   (table) => ({
@@ -31,6 +44,9 @@ export const issueAccessGrants = pgTable(
       table.revokedAt,
       table.issueId,
     ),
-    issueIdx: index("issue_access_grants_issue_idx").on(table.issueId, table.createdAt),
+    issueIdx: index("issue_access_grants_issue_idx").on(
+      table.issueId,
+      table.createdAt,
+    ),
   }),
 );

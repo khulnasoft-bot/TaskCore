@@ -1,4 +1,13 @@
-import { link, mkdir, mkdtemp, realpath, rm, symlink, unlink, writeFile } from "node:fs/promises";
+import {
+  link,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  symlink,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -42,22 +51,28 @@ describe("workspace file references", () => {
       "[external](https://example.com/file.md) [outside](/etc/passwd) [safe](docs/safe.md)",
       "turn-1",
     );
-    expect(references.map((reference) => reference.path)).toEqual(["docs/safe.md"]);
+    expect(references.map((reference) => reference.path)).toEqual([
+      "docs/safe.md",
+    ]);
   });
 
   it("does not verify a symlink that resolves outside the workspace", async () => {
     const root = await mkdtemp(join(tmpdir(), "taskcore-file-reference-root-"));
-    const outside = await mkdtemp(join(tmpdir(), "taskcore-file-reference-outside-"));
+    const outside = await mkdtemp(
+      join(tmpdir(), "taskcore-file-reference-outside-"),
+    );
     try {
       const protectedPath = join(outside, "protected.md");
       await writeFile(protectedPath, "must not be disclosed");
       await symlink(protectedPath, join(root, "linked.md"));
 
-      await expect(discoverTaskcoreWorkspaceFileReferences(
-        root,
-        "[linked](linked.md)",
-        "turn-1",
-      )).resolves.toEqual([]);
+      await expect(
+        discoverTaskcoreWorkspaceFileReferences(
+          root,
+          "[linked](linked.md)",
+          "turn-1",
+        ),
+      ).resolves.toEqual([]);
     } finally {
       await Promise.all([
         rm(root, { recursive: true, force: true }),
@@ -67,7 +82,9 @@ describe("workspace file references", () => {
   });
 
   it("anchors parsing and verification to a canonical workspace root", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "taskcore-file-reference-parent-"));
+    const parent = await mkdtemp(
+      join(tmpdir(), "taskcore-file-reference-parent-"),
+    );
     const root = join(parent, "workspace");
     const alias = join(parent, "workspace-alias");
     try {
@@ -76,11 +93,13 @@ describe("workspace file references", () => {
       await symlink(root, alias);
       const canonicalRoot = await realpath(root);
 
-      await expect(discoverTaskcoreWorkspaceFileReferences(
-        alias,
-        `[guide](${join(canonicalRoot, "guide.md")})`,
-        "turn-1",
-      )).resolves.toEqual([
+      await expect(
+        discoverTaskcoreWorkspaceFileReferences(
+          alias,
+          `[guide](${join(canonicalRoot, "guide.md")})`,
+          "turn-1",
+        ),
+      ).resolves.toEqual([
         expect.objectContaining({
           path: "guide.md",
           source: "runner_verified",
@@ -93,17 +112,21 @@ describe("workspace file references", () => {
 
   it("does not expose bytes through an in-workspace hard link", async () => {
     const root = await mkdtemp(join(tmpdir(), "taskcore-file-reference-root-"));
-    const outside = await mkdtemp(join(tmpdir(), "taskcore-file-reference-outside-"));
+    const outside = await mkdtemp(
+      join(tmpdir(), "taskcore-file-reference-outside-"),
+    );
     try {
       const protectedPath = join(outside, "protected.md");
       await writeFile(protectedPath, "must not be disclosed");
       await link(protectedPath, join(root, "linked.md"));
 
-      await expect(discoverTaskcoreWorkspaceFileReferences(
-        root,
-        "[linked](linked.md)",
-        "turn-1",
-      )).resolves.toEqual([
+      await expect(
+        discoverTaskcoreWorkspaceFileReferences(
+          root,
+          "[linked](linked.md)",
+          "turn-1",
+        ),
+      ).resolves.toEqual([
         expect.objectContaining({
           path: "linked.md",
           preview: null,
@@ -120,18 +143,22 @@ describe("workspace file references", () => {
 
   it("does not expose bytes after an outside hard link is removed", async () => {
     const root = await mkdtemp(join(tmpdir(), "taskcore-file-reference-root-"));
-    const outside = await mkdtemp(join(tmpdir(), "taskcore-file-reference-outside-"));
+    const outside = await mkdtemp(
+      join(tmpdir(), "taskcore-file-reference-outside-"),
+    );
     try {
       const protectedPath = join(outside, "protected.md");
       await writeFile(protectedPath, "must not be disclosed");
       await link(protectedPath, join(root, "linked.md"));
       await unlink(protectedPath);
 
-      await expect(discoverTaskcoreWorkspaceFileReferences(
-        root,
-        "[linked](linked.md)",
-        "turn-1",
-      )).resolves.toEqual([
+      await expect(
+        discoverTaskcoreWorkspaceFileReferences(
+          root,
+          "[linked](linked.md)",
+          "turn-1",
+        ),
+      ).resolves.toEqual([
         expect.objectContaining({
           path: "linked.md",
           preview: null,

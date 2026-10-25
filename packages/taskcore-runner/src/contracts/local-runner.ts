@@ -38,7 +38,10 @@ export interface LocalRunnerRunMetadata {
   capabilities: PrpCapabilities;
 }
 
-export interface LocalRunnerRunTrace extends Omit<LocalRunnerRunMetadata, "schema"> {
+export interface LocalRunnerRunTrace extends Omit<
+  LocalRunnerRunMetadata,
+  "schema"
+> {
   schema: "taskcore.runner.local-runner.trace.v1";
   commands: PrpCommand[];
   commandReceipts: LocalRunnerCommandReceipt[];

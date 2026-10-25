@@ -1,19 +1,35 @@
 #!/usr/bin/env -S node --import tsx
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.ts";
+import {
+  createCapturedOutputBuffer,
+  parseJsonResponseWithLimit,
+} from "./dev-runner-output.ts";
 import {
   taskcoreRunnerBinaryNeedsBuild,
   resolveNativeRunnerRequirement,
 } from "./dev-runner-native-binary.mjs";
 import { applyDevRunnerOptions } from "./dev-runner-options.ts";
-import { collectWatchedSnapshot as collectDevServerWatchedSnapshot, diffSnapshots } from "./dev-runner-snapshot.mjs";
+import {
+  collectWatchedSnapshot as collectDevServerWatchedSnapshot,
+  diffSnapshots,
+} from "./dev-runner-snapshot.mjs";
 import { createDevServiceIdentity, repoRoot } from "./dev-service-profile.ts";
-import { bootstrapDevRunnerWorktreeEnv, isWorktreeSeedPending } from "../server/src/dev-runner-worktree.ts";
+import {
+  bootstrapDevRunnerWorktreeEnv,
+  isWorktreeSeedPending,
+} from "../server/src/dev-runner-worktree.ts";
 import {
   readDevServerRestartRequest,
   removeDevServerRestartRequest,
@@ -34,15 +50,24 @@ const mode = process.argv[2] === "watch" ? "watch" : "dev";
 let cliArgs: string[];
 let dataDir: string | null;
 try {
-  const appliedOptions = applyDevRunnerOptions(process.argv.slice(3), process.env, repoRoot);
+  const appliedOptions = applyDevRunnerOptions(
+    process.argv.slice(3),
+    process.env,
+    repoRoot,
+  );
   cliArgs = appliedOptions.forwardedArgs;
   dataDir = appliedOptions.dataDir;
 } catch (error) {
-  console.error(`[taskcore] ${error instanceof Error ? error.message : String(error)}`);
+  console.error(
+    `[taskcore] ${error instanceof Error ? error.message : String(error)}`,
+  );
   process.exit(1);
 }
 
-const worktreeEnvBootstrap = bootstrapDevRunnerWorktreeEnv(repoRoot, process.env);
+const worktreeEnvBootstrap = bootstrapDevRunnerWorktreeEnv(
+  repoRoot,
+  process.env,
+);
 if (worktreeEnvBootstrap.missingEnv) {
   console.error(
     `[taskcore] linked git worktree at ${repoRoot} is missing ${path.relative(repoRoot, worktreeEnvBootstrap.envPath)}. Run \`taskcore worktree init\` in this worktree before \`pnpm dev\`.`,
@@ -60,8 +85,16 @@ const scanIntervalMs = 1500;
 const autoRestartPollIntervalMs = 2500;
 const gracefulShutdownTimeoutMs = 10_000;
 const changedPathSampleLimit = 5;
-const devServerStatusFilePath = path.join(repoRoot, ".taskcore", "dev-server-status.json");
-const devServerRestartRequestFilePath = path.join(repoRoot, ".taskcore", "dev-server-restart-request.json");
+const devServerStatusFilePath = path.join(
+  repoRoot,
+  ".taskcore",
+  "dev-server-status.json",
+);
+const devServerRestartRequestFilePath = path.join(
+  repoRoot,
+  ".taskcore",
+  "dev-server-restart-request.json",
+);
 const devServerStatusToken = mode === "dev" ? randomUUID() : null;
 const devServerStatusTokenHeader = "x-taskcore-dev-server-status-token";
 
@@ -109,7 +142,8 @@ const tailscaleAuthFlagNames = new Set([
 let tailscaleAuth = false;
 let bindMode: BindMode | null = null;
 let bindHost: string | null = null;
-const managedRuntimeExposure = process.env.TASKCORE_MANAGED_RUNTIME_EXPOSURE === "tailscale_https";
+const managedRuntimeExposure =
+  process.env.TASKCORE_MANAGED_RUNTIME_EXPOSURE === "tailscale_https";
 const forwardedArgs: string[] = [];
 
 for (let index = 0; index < cliArgs.length; index += 1) {
@@ -120,8 +154,14 @@ for (let index = 0; index < cliArgs.length; index += 1) {
   }
   if (arg === "--bind") {
     const value = cliArgs[index + 1];
-    if (!value || value.startsWith("--") || !BIND_MODES.includes(value as BindMode)) {
-      console.error(`[taskcore] invalid --bind value. Use one of: ${BIND_MODES.join(", ")}`);
+    if (
+      !value ||
+      value.startsWith("--") ||
+      !BIND_MODES.includes(value as BindMode)
+    ) {
+      console.error(
+        `[taskcore] invalid --bind value. Use one of: ${BIND_MODES.join(", ")}`,
+      );
       process.exit(1);
     }
     bindMode = value as BindMode;
@@ -147,7 +187,11 @@ if (process.env.npm_config_tailscale_auth === "true") {
 if (process.env.npm_config_authenticated_private === "true") {
   tailscaleAuth = true;
 }
-if (!bindMode && process.env.npm_config_bind && BIND_MODES.includes(process.env.npm_config_bind as BindMode)) {
+if (
+  !bindMode &&
+  process.env.npm_config_bind &&
+  BIND_MODES.includes(process.env.npm_config_bind as BindMode)
+) {
   bindMode = process.env.npm_config_bind as BindMode;
 }
 if (!bindHost && process.env.npm_config_bind_host) {
@@ -166,10 +210,13 @@ if (bindMode === "custom" && !bindHost) {
 // unbundled module waterfall stalls behind the Tailscale HTTPS proxy and the
 // first page load in a fresh browser profile stays blank forever (PAP-18043).
 const explicitUiDevMiddleware = process.env.TASKCORE_UI_DEV_MIDDLEWARE;
-const serveBuiltUiForManagedRuntime = managedRuntimeExposure && explicitUiDevMiddleware === undefined;
+const serveBuiltUiForManagedRuntime =
+  managedRuntimeExposure && explicitUiDevMiddleware === undefined;
 const env: NodeJS.ProcessEnv = {
   ...process.env,
-  TASKCORE_UI_DEV_MIDDLEWARE: explicitUiDevMiddleware ?? (serveBuiltUiForManagedRuntime ? "false" : "true"),
+  TASKCORE_UI_DEV_MIDDLEWARE:
+    explicitUiDevMiddleware ??
+    (serveBuiltUiForManagedRuntime ? "false" : "true"),
 };
 
 if (mode === "dev") {
@@ -187,7 +234,9 @@ if (mode === "watch") {
 if (tailscaleAuth || bindMode) {
   const effectiveBind = bindMode ?? "lan";
   if (tailscaleAuth) {
-    console.log("[taskcore] note: --tailscale-auth/--authenticated-private are legacy aliases for --bind lan");
+    console.log(
+      "[taskcore] note: --tailscale-auth/--authenticated-private are legacy aliases for --bind lan",
+    );
   }
   env.TASKCORE_BIND = effectiveBind;
   if (bindHost) {
@@ -203,7 +252,9 @@ if (tailscaleAuth || bindMode) {
   } else {
     env.TASKCORE_DEPLOYMENT_MODE = "authenticated";
     env.TASKCORE_DEPLOYMENT_EXPOSURE = "private";
-    env.TASKCORE_AUTH_BASE_URL_MODE = managedRuntimeExposure ? "explicit" : "auto";
+    env.TASKCORE_AUTH_BASE_URL_MODE = managedRuntimeExposure
+      ? "explicit"
+      : "auto";
     console.log(
       `[taskcore] dev mode: authenticated/private (bind=${effectiveBind}${bindHost ? `:${bindHost}` : ""})`,
     );
@@ -217,11 +268,16 @@ if (tailscaleAuth || bindMode) {
   console.log("[taskcore] dev mode: local_trusted (default)");
 }
 
-const serverPort = Number.parseInt(env.PORT ?? process.env.PORT ?? "3100", 10) || 3100;
+const serverPort =
+  Number.parseInt(env.PORT ?? process.env.PORT ?? "3100", 10) || 3100;
 const devService = createDevServiceIdentity({
   mode,
-  forwardedArgs: dataDir ? [...forwardedArgs, `--data-dir=${dataDir}`] : forwardedArgs,
-  networkProfile: tailscaleAuth ? `legacy:${bindMode ?? "lan"}` : (bindMode ?? "default"),
+  forwardedArgs: dataDir
+    ? [...forwardedArgs, `--data-dir=${dataDir}`]
+    : forwardedArgs,
+  networkProfile: tailscaleAuth
+    ? `legacy:${bindMode ?? "lan"}`
+    : (bindMode ?? "default"),
   port: serverPort,
 });
 
@@ -249,7 +305,10 @@ let restartInFlight = false;
 let shuttingDown = false;
 let childExitWasExpected = false;
 let child: ReturnType<typeof spawn> | null = null;
-let childExitPromise: Promise<{ code: number; signal: NodeJS.Signals | null }> | null = null;
+let childExitPromise: Promise<{
+  code: number;
+  signal: NodeJS.Signals | null;
+}> | null = null;
 let scanTimer: ReturnType<typeof setInterval> | null = null;
 let autoRestartTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -317,14 +376,18 @@ function writeDevServerStatus() {
   const changedPaths = [...dirtyPaths].sort();
   writeFileSync(
     devServerStatusFilePath,
-    `${JSON.stringify({
-      dirty: changedPaths.length > 0 || pendingMigrations.length > 0,
-      lastChangedAt,
-      changedPathCount: changedPaths.length,
-      changedPathsSample: changedPaths.slice(0, changedPathSampleLimit),
-      pendingMigrations,
-      lastRestartAt,
-    }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        dirty: changedPaths.length > 0 || pendingMigrations.length > 0,
+        lastChangedAt,
+        changedPathCount: changedPaths.length,
+        changedPathsSample: changedPaths.slice(0, changedPathSampleLimit),
+        pendingMigrations,
+        lastRestartAt,
+      },
+      null,
+      2,
+    )}\n`,
     "utf8",
   );
 }
@@ -336,7 +399,8 @@ function clearDevServerStatus() {
 }
 
 function getDevServerRestartRequest() {
-  if (mode !== "dev" || !existsSync(devServerRestartRequestFilePath)) return null;
+  if (mode !== "dev" || !existsSync(devServerRestartRequestFilePath))
+    return null;
   return readDevServerRestartRequest(env);
 }
 
@@ -368,12 +432,20 @@ async function updateDevServiceRecord(extra?: Record<string, unknown>) {
   });
 }
 
-async function runPnpm(args: string[], options: {
-  stdio?: "inherit" | ["ignore", "pipe", "pipe"];
-  env?: NodeJS.ProcessEnv;
-  cwd?: string;
-} = {}) {
-  return await new Promise<{ code: number; signal: NodeJS.Signals | null; stdout: string; stderr: string }>((resolve, reject) => {
+async function runPnpm(
+  args: string[],
+  options: {
+    stdio?: "inherit" | ["ignore", "pipe", "pipe"];
+    env?: NodeJS.ProcessEnv;
+    cwd?: string;
+  } = {},
+) {
+  return await new Promise<{
+    code: number;
+    signal: NodeJS.Signals | null;
+    stdout: string;
+    stderr: string;
+  }>((resolve, reject) => {
     const spawned = spawn(pnpmBin, args, {
       stdio: options.stdio ?? ["ignore", "pipe", "pipe"],
       env: options.env ?? process.env,
@@ -411,7 +483,15 @@ async function runPnpm(args: string[], options: {
 
 async function getMigrationStatusPayload() {
   const status = await runPnpm(
-    ["--silent", "--filter", "@taskcore/db", "exec", "tsx", "src/migration-status.ts", "--json"],
+    [
+      "--silent",
+      "--filter",
+      "@taskcore/db",
+      "exec",
+      "tsx",
+      "src/migration-status.ts",
+      "--json",
+    ],
     { env },
   );
   if (status.code !== 0) {
@@ -432,7 +512,10 @@ async function getMigrationStatusPayload() {
     .filter((line) => line.startsWith("{"));
   for (let index = jsonLines.length - 1; index >= 0; index -= 1) {
     try {
-      return JSON.parse(jsonLines[index]) as { status?: string; pendingMigrations?: string[] };
+      return JSON.parse(jsonLines[index]) as {
+        status?: string;
+        pendingMigrations?: string[];
+      };
     } catch {
       // keep scanning earlier JSON-looking lines
     }
@@ -448,16 +531,26 @@ async function getMigrationStatusPayload() {
 async function refreshPendingMigrations() {
   const payload = await getMigrationStatusPayload();
   pendingMigrations =
-    payload.status === "needsMigrations" && Array.isArray(payload.pendingMigrations)
-      ? payload.pendingMigrations.filter((entry) => typeof entry === "string" && entry.trim().length > 0)
+    payload.status === "needsMigrations" &&
+    Array.isArray(payload.pendingMigrations)
+      ? payload.pendingMigrations.filter(
+          (entry) => typeof entry === "string" && entry.trim().length > 0,
+        )
       : [];
   writeDevServerStatus();
   return payload;
 }
 
-async function maybePreflightMigrations(options: { interactive?: boolean; autoApply?: boolean; exitOnDecline?: boolean } = {}) {
+async function maybePreflightMigrations(
+  options: {
+    interactive?: boolean;
+    autoApply?: boolean;
+    exitOnDecline?: boolean;
+  } = {},
+) {
   const interactive = options.interactive ?? mode === "watch";
-  const autoApply = options.autoApply ?? env.TASKCORE_MIGRATION_AUTO_APPLY === "true";
+  const autoApply =
+    options.autoApply ?? env.TASKCORE_MIGRATION_AUTO_APPLY === "true";
   const exitOnDecline = options.exitOnDecline ?? mode === "watch";
 
   const payload = await refreshPendingMigrations();
@@ -515,10 +608,9 @@ async function maybePreflightMigrations(options: { interactive?: boolean; autoAp
 
 async function buildPluginSdk() {
   console.log("[taskcore] building plugin sdk...");
-  const result = await runPnpm(
-    ["--filter", "@taskcore/plugin-sdk", "build"],
-    { stdio: "inherit" },
-  );
+  const result = await runPnpm(["--filter", "@taskcore/plugin-sdk", "build"], {
+    stdio: "inherit",
+  });
   if (result.signal) {
     exitForSignal(result.signal);
     return;
@@ -604,7 +696,8 @@ function newestMtimeMs(target: string): number {
   if (!stat.isDirectory()) return stat.mtimeMs;
   let newest = stat.mtimeMs;
   for (const entry of readdirSync(target)) {
-    if (entry === "node_modules" || entry === ".git" || entry === "dist") continue;
+    if (entry === "node_modules" || entry === ".git" || entry === "dist")
+      continue;
     const childNewest = newestMtimeMs(path.join(target, entry));
     if (childNewest > newest) newest = childNewest;
   }
@@ -627,11 +720,12 @@ function uiBundleIsFresh(): boolean {
 }
 
 async function buildUiBundleForManagedRuntime(): Promise<boolean> {
-  console.log("[taskcore] managed runtime: building the UI bundle for static serving...");
-  const result = await runPnpm(
-    ["--filter", "@taskcore/ui", "build"],
-    { stdio: "inherit" },
+  console.log(
+    "[taskcore] managed runtime: building the UI bundle for static serving...",
   );
+  const result = await runPnpm(["--filter", "@taskcore/ui", "build"], {
+    stdio: "inherit",
+  });
   if (result.signal) {
     exitForSignal(result.signal);
     return false;
@@ -675,7 +769,9 @@ async function scanForBackendChanges() {
 
 async function getDevHealthPayload() {
   const response = await fetch(`http://127.0.0.1:${serverPort}/api/health`, {
-    headers: devServerStatusToken ? { [devServerStatusTokenHeader]: devServerStatusToken } : undefined,
+    headers: devServerStatusToken
+      ? { [devServerStatusTokenHeader]: devServerStatusToken }
+      : undefined,
   });
   if (!response.ok) {
     throw new Error(`Health request failed (${response.status})`);
@@ -751,10 +847,21 @@ async function startServerChild() {
 async function maybeAutoRestartChild() {
   if (mode !== "dev" || restartInFlight || !child) return;
   const manualRestartRequest = getDevServerRestartRequest();
-  if (!manualRestartRequest && dirtyPaths.size === 0 && pendingMigrations.length === 0) return;
+  if (
+    !manualRestartRequest &&
+    dirtyPaths.size === 0 &&
+    pendingMigrations.length === 0
+  )
+    return;
 
   restartInFlight = true;
-  let health: { devServer?: { enabled?: boolean; autoRestartEnabled?: boolean; activeRunCount?: number } } | null = null;
+  let health: {
+    devServer?: {
+      enabled?: boolean;
+      autoRestartEnabled?: boolean;
+      activeRunCount?: number;
+    };
+  } | null = null;
   try {
     health = await getDevHealthPayload();
   } catch {
@@ -804,11 +911,11 @@ async function maybeAutoRestartChild() {
     await stopChildForRestart();
     const restartRequestConsumed = manualRestartRequest
       ? removeDevServerRestartRequest(
-        manualRestartRequest.requestId
-          ? { requestId: manualRestartRequest.requestId }
-          : undefined,
-        env,
-      )
+          manualRestartRequest.requestId
+            ? { requestId: manualRestartRequest.requestId }
+            : undefined,
+          env,
+        )
       : true;
     await startServerChild();
     if (manualRestartRequest && !restartRequestConsumed) {
@@ -887,7 +994,9 @@ process.on("SIGTERM", () => {
 let uiBundleBuild: Promise<boolean> | null = null;
 if (serveBuiltUiForManagedRuntime) {
   if (uiBundleIsFresh()) {
-    console.log("[taskcore] managed runtime: reusing the up-to-date UI bundle in ui/dist");
+    console.log(
+      "[taskcore] managed runtime: reusing the up-to-date UI bundle in ui/dist",
+    );
   } else {
     uiBundleBuild = buildUiBundleForManagedRuntime();
   }

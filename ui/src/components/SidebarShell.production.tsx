@@ -114,8 +114,16 @@ export function SidebarShell({
 
   // Unified width function (plan §5): one code path for every pinned state.
   const expandedWidth = open ? width : 0;
-  const reservedWidth = !open ? 0 : collapsed ? SIDEBAR_RAIL_WIDTH : expandedWidth;
-  const panelWidth = !open ? 0 : collapsed && !peeking ? SIDEBAR_RAIL_WIDTH : expandedWidth;
+  const reservedWidth = !open
+    ? 0
+    : collapsed
+      ? SIDEBAR_RAIL_WIDTH
+      : expandedWidth;
+  const panelWidth = !open
+    ? 0
+    : collapsed && !peeking
+      ? SIDEBAR_RAIL_WIDTH
+      : expandedWidth;
   const isOverlay = panelWidth > reservedWidth;
 
   // The drag handle can only resize the expanded width, so it is disabled while
@@ -147,7 +155,10 @@ export function SidebarShell({
 
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
-      dragState.current = { startX: event.clientX, startWidth: widthRef.current };
+      dragState.current = {
+        startX: event.clientX,
+        startWidth: widthRef.current,
+      };
       setIsResizing(true);
     },
     [canResize],
@@ -157,7 +168,8 @@ export function SidebarShell({
     (event: PointerEvent<HTMLDivElement>) => {
       if (!dragState.current) return;
 
-      const nextWidth = dragState.current.startWidth + event.clientX - dragState.current.startX;
+      const nextWidth =
+        dragState.current.startWidth + event.clientX - dragState.current.startX;
       const clamped = clampSidebarWidth(nextWidth);
       widthRef.current = clamped;
       setWidth(clamped);
@@ -195,7 +207,10 @@ export function SidebarShell({
   );
 
   return (
-    <div className={cn("relative h-full shrink-0", className)} style={reservedStyle}>
+    <div
+      className={cn("relative h-full shrink-0", className)}
+      style={reservedStyle}
+    >
       <div
         className={cn(
           "absolute inset-y-0 left-0 flex flex-col overflow-hidden",

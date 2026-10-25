@@ -133,7 +133,8 @@ export async function selectRerunArtifacts(input: SelectRerunArtifactsInput) {
     const attempts = attemptsByExecution.get(candidate.name) ?? new Map();
     const previous = attempts.get(attempt);
     if (previous) {
-      const hasStarted = (job: WorkflowJob) => job.status === "in_progress" || job.status === "completed";
+      const hasStarted = (job: WorkflowJob) =>
+        job.status === "in_progress" || job.status === "completed";
       // GitHub can retain a queued placeholder with a different job ID even
       // after its replacement starts. It has no execution evidence. Keep a
       // lone queued latest attempt, however, so an older pass cannot mask it.

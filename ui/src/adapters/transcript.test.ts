@@ -12,7 +12,9 @@ describe("buildTranscript", () => {
   ];
 
   it("defaults username censoring to off when options are omitted", () => {
-    const entries = buildTranscript(chunks, (line, entryTs) => [{ kind: "stdout", ts: entryTs, text: line }]);
+    const entries = buildTranscript(chunks, (line, entryTs) => [
+      { kind: "stdout", ts: entryTs, text: line },
+    ]);
 
     expect(entries).toEqual([
       { kind: "stdout", ts, text: "opened /Users/dotta/project" },
@@ -21,9 +23,13 @@ describe("buildTranscript", () => {
   });
 
   it("still redacts usernames when explicitly enabled", () => {
-    const entries = buildTranscript(chunks, (line, entryTs) => [{ kind: "stdout", ts: entryTs, text: line }], {
-      censorUsernameInLogs: true,
-    });
+    const entries = buildTranscript(
+      chunks,
+      (line, entryTs) => [{ kind: "stdout", ts: entryTs, text: line }],
+      {
+        censorUsernameInLogs: true,
+      },
+    );
 
     expect(entries).toEqual([
       { kind: "stdout", ts, text: "opened /Users/d****/project" },
@@ -35,7 +41,9 @@ describe("buildTranscript", () => {
     const statefulAdapter: UIAdapterModule = {
       type: "stateful_test",
       label: "Stateful Test",
-      parseStdoutLine: (line, entryTs) => [{ kind: "stdout", ts: entryTs, text: line }],
+      parseStdoutLine: (line, entryTs) => [
+        { kind: "stdout", ts: entryTs, text: line },
+      ],
       createStdoutParser: () => {
         let pending: string | null = null;
         return {
@@ -75,9 +83,7 @@ describe("buildTranscript", () => {
 
   it("converts parser failures into transcript error entries and keeps going", () => {
     const entries = buildTranscript(
-      [
-        { ts, stream: "stdout", chunk: "ok\nexplode\nlater\n" },
-      ],
+      [{ ts, stream: "stdout", chunk: "ok\nexplode\nlater\n" }],
       (line, entryTs) => {
         if (line === "explode") {
           throw new Error("boom");
@@ -108,7 +114,9 @@ describe("buildTranscript", () => {
     const statefulAdapter: UIAdapterModule = {
       type: "stateful_test",
       label: "Stateful Test",
-      parseStdoutLine: (line, entryTs) => [{ kind: "stdout", ts: entryTs, text: line }],
+      parseStdoutLine: (line, entryTs) => [
+        { kind: "stdout", ts: entryTs, text: line },
+      ],
       createStdoutParser: () => {
         let pending: string | null = null;
         return {
@@ -188,9 +196,21 @@ describe("buildTranscript", () => {
   it("coalesces grok_local streaming text fragments into one assistant entry", () => {
     const entries = buildTranscript(
       [
-        { ts, stream: "stdout", chunk: `${JSON.stringify({ type: "text", data: "Hello " })}\n` },
-        { ts, stream: "stdout", chunk: `${JSON.stringify({ type: "text", data: "world" })}\n` },
-        { ts, stream: "stdout", chunk: `${JSON.stringify({ type: "end", stopReason: "EndTurn", sessionId: "sess-1" })}\n` },
+        {
+          ts,
+          stream: "stdout",
+          chunk: `${JSON.stringify({ type: "text", data: "Hello " })}\n`,
+        },
+        {
+          ts,
+          stream: "stdout",
+          chunk: `${JSON.stringify({ type: "text", data: "world" })}\n`,
+        },
+        {
+          ts,
+          stream: "stdout",
+          chunk: `${JSON.stringify({ type: "end", stopReason: "EndTurn", sessionId: "sess-1" })}\n`,
+        },
       ],
       grokLocalUIAdapter,
     );
@@ -204,9 +224,21 @@ describe("buildTranscript", () => {
   it("coalesces kimi_local ACP text deltas into one assistant entry", () => {
     const entries = buildTranscript(
       [
-        { ts, stream: "stdout", chunk: `${JSON.stringify({ type: "acpx.text_delta", channel: "output", text: "Hello " })}\n` },
-        { ts, stream: "stdout", chunk: `${JSON.stringify({ type: "acpx.text_delta", channel: "output", text: "world" })}\n` },
-        { ts, stream: "stdout", chunk: `${JSON.stringify({ type: "acpx.result", summary: "done", stopReason: "end_turn" })}\n` },
+        {
+          ts,
+          stream: "stdout",
+          chunk: `${JSON.stringify({ type: "acpx.text_delta", channel: "output", text: "Hello " })}\n`,
+        },
+        {
+          ts,
+          stream: "stdout",
+          chunk: `${JSON.stringify({ type: "acpx.text_delta", channel: "output", text: "world" })}\n`,
+        },
+        {
+          ts,
+          stream: "stdout",
+          chunk: `${JSON.stringify({ type: "acpx.result", summary: "done", stopReason: "end_turn" })}\n`,
+        },
       ],
       kimiLocalUIAdapter,
     );

@@ -1,11 +1,18 @@
-type BrowserLocationLike = Pick<Location, "host" | "hostname" | "port" | "protocol">;
+type BrowserLocationLike = Pick<
+  Location,
+  "host" | "hostname" | "port" | "protocol"
+>;
 
 function isWildcardHost(hostname: string): boolean {
   const normalized = hostname.trim().toLowerCase();
-  return normalized === "0.0.0.0" || normalized === "::" || normalized === "[::]";
+  return (
+    normalized === "0.0.0.0" || normalized === "::" || normalized === "[::]"
+  );
 }
 
-export function browserReachableHost(location: BrowserLocationLike = window.location): string {
+export function browserReachableHost(
+  location: BrowserLocationLike = window.location,
+): string {
   if (!isWildcardHost(location.hostname)) return location.host;
   return location.port ? `localhost:${location.port}` : "localhost";
 }

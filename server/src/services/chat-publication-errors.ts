@@ -193,16 +193,27 @@ export function classifyChatPublicationError(
     .map((candidate) => candidate.toLowerCase());
   const reason = text(error);
   if (names.includes("PhotonError")) {
-    if (codes.includes("delivery_unknown")) return { kind: "delivery_unknown", reason };
-    if (codes.includes("credentials") || codes.includes("line_unavailable") || codes.includes("history_gap")) {
+    if (codes.includes("delivery_unknown"))
+      return { kind: "delivery_unknown", reason };
+    if (
+      codes.includes("credentials") ||
+      codes.includes("line_unavailable") ||
+      codes.includes("history_gap")
+    ) {
       return { kind: "endpoint_attention", reason };
     }
-    if (codes.includes("quota") || codes.includes("network") || codes.includes("attachment_not_ready")) {
+    if (
+      codes.includes("quota") ||
+      codes.includes("network") ||
+      codes.includes("attachment_not_ready")
+    ) {
       return {
         kind: "retry",
-        retryAfterMs: values
-          .map((value) => finitePositive(value.retryAfterMs))
-          .find((value) => value !== null) ?? Math.min(60_000, 1000 * 2 ** Math.min(attempt, 6)),
+        retryAfterMs:
+          values
+            .map((value) => finitePositive(value.retryAfterMs))
+            .find((value) => value !== null) ??
+          Math.min(60_000, 1000 * 2 ** Math.min(attempt, 6)),
         providerRateLimit: codes.includes("quota"),
         reason,
       };

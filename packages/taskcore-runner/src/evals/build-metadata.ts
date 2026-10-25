@@ -17,10 +17,11 @@ export const TASKCORE_RUNNER_EVAL_INTEGRATION_SCHEMA =
 export const TASKCORE_RUNNERD_BUILD_METADATA_SCHEMA =
   "taskcore-runner/runnerd-build-metadata/v1" as const;
 
-export const TASKCORE_RUNNER_SEMANTIC_CATALOG_SHA256 =
-  `sha256:${createHash("sha256")
-    .update(canonicalCapabilitySemanticCatalog())
-    .digest("hex")}` as const;
+export const TASKCORE_RUNNER_SEMANTIC_CATALOG_SHA256 = `sha256:${createHash(
+  "sha256",
+)
+  .update(canonicalCapabilitySemanticCatalog())
+  .digest("hex")}` as const;
 
 /**
  * App-owned release metadata that Evals pins beside every native attempt.
@@ -40,7 +41,8 @@ export const TASKCORE_RUNNER_BUILD_METADATA = Object.freeze({
     prp: PRP_PROTOCOL_VERSION,
     semanticCatalog: TASKCORE_RUNNER_COMPATIBILITY.components.catalog,
     harnessDriver: TASKCORE_RUNNER_COMPATIBILITY.components.harnessDriver,
-    controlPlaneAdapter: TASKCORE_RUNNER_COMPATIBILITY.components.controlPlaneAdapter,
+    controlPlaneAdapter:
+      TASKCORE_RUNNER_COMPATIBILITY.components.controlPlaneAdapter,
     testkit: TASKCORE_RUNNER_COMPATIBILITY.components.testkit,
   }),
   prp: Object.freeze({

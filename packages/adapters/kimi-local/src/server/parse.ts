@@ -1,4 +1,8 @@
-import { asString, parseJson, parseObject } from "@taskcore/adapter-utils/server-utils";
+import {
+  asString,
+  parseJson,
+  parseObject,
+} from "@taskcore/adapter-utils/server-utils";
 
 export interface ParsedKimiToolCall {
   id: string | null;
@@ -130,7 +134,9 @@ export function parseKimiJsonl(stdout: string): ParsedKimiJsonl {
     // tolerate {"role":"error"} / {"type":"error"} lines if they ever appear.
     const type = asString(event.type, "").trim().toLowerCase();
     if (role === "error" || type === "error") {
-      const text = errorText(event.error ?? event.message ?? event.content ?? event.detail).trim();
+      const text = errorText(
+        event.error ?? event.message ?? event.content ?? event.detail,
+      ).trim();
       if (text) errorMessage = text;
     }
   }
@@ -171,7 +177,11 @@ export function extractKimiRuntimeEvents(line: string): KimiRuntimeEvent[] {
   const events: KimiRuntimeEvent[] = [];
   const content = asString(event.content, "").trim();
   if (content) {
-    events.push({ eventType: "assistant", message: content, payload: { content } });
+    events.push({
+      eventType: "assistant",
+      message: content,
+      payload: { content },
+    });
   }
   const calls = Array.isArray(event.tool_calls) ? event.tool_calls : [];
   for (const callRaw of calls) {
@@ -193,13 +203,19 @@ function normalizedHaystack(stdout: string, stderr: string): string {
     .join("\n");
 }
 
-export function isKimiSessionUnrecoverableError(stdout: string, stderr: string): boolean {
+export function isKimiSessionUnrecoverableError(
+  stdout: string,
+  stderr: string,
+): boolean {
   return /unknown\s+session|session(?:\s+.*)?\s+not\s+found|resume\s+.*\s+not\s+found|cannot\s+resume|failed\s+to\s+resume|invalid\s+session/i.test(
     normalizedHaystack(stdout, stderr),
   );
 }
 
-export function isKimiTransientNetworkError(stdout: string, stderr: string): boolean {
+export function isKimiTransientNetworkError(
+  stdout: string,
+  stderr: string,
+): boolean {
   return /ENOTFOUND|EAI_AGAIN|ECONNRESET|ECONNREFUSED|ETIMEDOUT|fetch\s+failed|socket\s+hang\s+up/i.test(
     normalizedHaystack(stdout, stderr),
   );

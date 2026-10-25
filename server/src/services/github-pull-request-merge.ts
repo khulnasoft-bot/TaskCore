@@ -48,8 +48,10 @@ export function setBoundedPullRequestCacheEntry<T>(
   cache.set(key, value);
 }
 
-const GITHUB_PULL_REQUEST_URL_PATTERN = /https:\/\/(?:www\.)?github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/pull\/([1-9][0-9]*)/gi;
-const GITHUB_PULL_REQUEST_SHORTHAND_PATTERN = /(^|[^A-Za-z0-9_.-])([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)#([1-9][0-9]*)\b/g;
+const GITHUB_PULL_REQUEST_URL_PATTERN =
+  /https:\/\/(?:www\.)?github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/pull\/([1-9][0-9]*)/gi;
+const GITHUB_PULL_REQUEST_SHORTHAND_PATTERN =
+  /(^|[^A-Za-z0-9_.-])([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)#([1-9][0-9]*)\b/g;
 
 function addPullRequestReference(
   references: Map<string, GitHubPullRequestReference>,
@@ -82,13 +84,17 @@ export function extractGitHubPullRequestReferences(values: readonly unknown[]) {
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
-export function createPullRequestMergeDetailsResolver(db: Db): PullRequestMergeDetailsResolver {
-  const resolver = createGitHubExternalObjectProvider(db).resolvers
-    .find((candidate) => candidate.objectType === "pull_request") ?? null;
+export function createPullRequestMergeDetailsResolver(
+  db: Db,
+): PullRequestMergeDetailsResolver {
+  const resolver =
+    createGitHubExternalObjectProvider(db).resolvers.find(
+      (candidate) => candidate.objectType === "pull_request",
+    ) ?? null;
 
   return async (companyId, reference) => {
     if (!resolver) return { state: "unknown", headRef: null, headSha: null };
@@ -102,15 +108,22 @@ export function createPullRequestMergeDetailsResolver(db: Db): PullRequestMergeD
     if (!result.ok) return { state: "unknown", headRef: null, headSha: null };
     const data = readRecord(result.snapshot.data);
     const statusKey = result.snapshot.statusKey;
-    const workProductState = statusKey === "open" || statusKey === "draft" || statusKey === "merged" || statusKey === "closed"
-      ? statusKey
-      : undefined;
+    const workProductState =
+      statusKey === "open" ||
+      statusKey === "draft" ||
+      statusKey === "merged" ||
+      statusKey === "closed"
+        ? statusKey
+        : undefined;
     return {
-      state: statusKey === "merged" || data?.merged === true
-        ? "merged"
-        : statusKey === "open" || statusKey === "draft" || statusKey === "closed"
-          ? "open"
-          : "unknown",
+      state:
+        statusKey === "merged" || data?.merged === true
+          ? "merged"
+          : statusKey === "open" ||
+              statusKey === "draft" ||
+              statusKey === "closed"
+            ? "open"
+            : "unknown",
       headRef: typeof data?.headRef === "string" ? data.headRef : null,
       headSha: typeof data?.headSha === "string" ? data.headSha : null,
       ...(workProductState ? { workProductState } : {}),
@@ -118,12 +131,16 @@ export function createPullRequestMergeDetailsResolver(db: Db): PullRequestMergeD
       baseRef: typeof data?.baseRef === "string" ? data.baseRef : null,
       additions: typeof data?.additions === "number" ? data.additions : null,
       deletions: typeof data?.deletions === "number" ? data.deletions : null,
-      changedFiles: typeof data?.changedFiles === "number" ? data.changedFiles : null,
+      changedFiles:
+        typeof data?.changedFiles === "number" ? data.changedFiles : null,
     };
   };
 }
 
-export function createPullRequestMergeStateResolver(db: Db): PullRequestMergeStateResolver {
+export function createPullRequestMergeStateResolver(
+  db: Db,
+): PullRequestMergeStateResolver {
   const resolveDetails = createPullRequestMergeDetailsResolver(db);
-  return async (companyId, reference) => (await resolveDetails(companyId, reference)).state;
+  return async (companyId, reference) =>
+    (await resolveDetails(companyId, reference)).state;
 }

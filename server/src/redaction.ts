@@ -1,9 +1,15 @@
 import { redactCommandText } from "@taskcore/adapter-utils";
-import { isPublicExecutorToolSelector, looksLikeCredentialJwt } from "@taskcore/adapter-utils/command-redaction";
+import {
+  isPublicExecutorToolSelector,
+  looksLikeCredentialJwt,
+} from "@taskcore/adapter-utils/command-redaction";
 
 const SECRET_FIELD_NAME_PATTERN = String.raw`[A-Za-z0-9_-]*(?:api[-_]?key|access[-_]?token|auth(?:_?token)?|token|authorization(?:[-_]?code)?|bearer|secrets?|passwd|passwords?|credentials?|jwt|private[-_]?key|cookie|connectionstring|browser[-_]?code|login[-_]?url)(?:[-_]?(?:value|header|prod(?:uction)?|dev(?:elopment)?|test|staging|primary|secondary))*`;
 
-const SECRET_PAYLOAD_KEY_RE = new RegExp(`^(?:${SECRET_FIELD_NAME_PATTERN})(?:_plain|_ref)?$`, "i");
+const SECRET_PAYLOAD_KEY_RE = new RegExp(
+  `^(?:${SECRET_FIELD_NAME_PATTERN})(?:_plain|_ref)?$`,
+  "i",
+);
 // Authorization reasons are policy decision codes, not credentials. They must
 // remain visible in audit receipts even though the field name contains
 // "authorization". JWT-shaped values are still caught by the value guard below.
@@ -711,7 +717,12 @@ function redactStandaloneBearerCredentials(input: string): string {
     const candidate = input.slice(credentialStart, end);
     // Preserve known authentication terms after bearer, unless explicitly quoted.
     // Named Authorization fields are already handled independently above.
-    if (/^(?:tokens?|authentication|authorization|credentials?|schemes?|flows?)[.,;:!?]?$/i.test(candidate)) continue;
+    if (
+      /^(?:tokens?|authentication|authorization|credentials?|schemes?|flows?)[.,;:!?]?$/i.test(
+        candidate,
+      )
+    )
+      continue;
     if (credentialStart < copiedThrough) continue;
     parts.push(input.slice(copiedThrough, credentialStart), replacement);
     copiedThrough = end;
@@ -975,7 +986,8 @@ export function redactAgentAdapterConfig(
   adapterConfig: Record<string, unknown>,
 ): Record<string, unknown> {
   if (!isPlainObject(adapterConfig)) return adapterConfig;
-  if (!isPlainObject(adapterConfig.env)) return redactEventPayload(adapterConfig) ?? {};
+  if (!isPlainObject(adapterConfig.env))
+    return redactEventPayload(adapterConfig) ?? {};
 
   // Redact `env` here and sanitize the remaining keys separately, so bindings
   // are never processed twice. `redactAgentEnvBinding` is authoritative for
@@ -983,7 +995,10 @@ export function redactAgentAdapterConfig(
   // cannot alter entries this function has already redacted.
   const { env, ...rest } = adapterConfig;
   const redactedEnv = Object.fromEntries(
-    Object.entries(env).map(([key, value]) => [key, redactAgentEnvBinding(value)]),
+    Object.entries(env).map(([key, value]) => [
+      key,
+      redactAgentEnvBinding(value),
+    ]),
   );
 
   return { ...(redactEventPayload(rest) ?? {}), env: redactedEnv };

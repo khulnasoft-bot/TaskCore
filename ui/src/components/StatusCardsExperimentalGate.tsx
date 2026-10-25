@@ -4,7 +4,11 @@ import { Navigate } from "@/lib/router";
 import { instanceSettingsApi } from "@/api/instanceSettings";
 import { queryKeys } from "@/lib/queryKeys";
 
-export function StatusCardsExperimentalGate({ children }: { children: ReactNode }) {
+export function StatusCardsExperimentalGate({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const { data: experimentalSettings, isFetched } = useQuery({
     queryKey: queryKeys.instance.experimentalSettings,
     queryFn: () => instanceSettingsApi.getExperimental(),

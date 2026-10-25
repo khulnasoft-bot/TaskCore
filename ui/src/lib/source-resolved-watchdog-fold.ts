@@ -71,7 +71,9 @@ function parseCleanup(value: unknown): SourceResolvedFoldCleanup {
   };
 }
 
-export function parseSourceResolvedWatchdogFold(value: unknown): SourceResolvedWatchdogFold | null {
+export function parseSourceResolvedWatchdogFold(
+  value: unknown,
+): SourceResolvedWatchdogFold | null {
   const record = asRecord(value);
   if (!record) return null;
   const sourceIssueId = asString(record.sourceIssueId);
@@ -97,7 +99,8 @@ export function parseSourceResolvedWatchdogFold(value: unknown): SourceResolvedW
 }
 
 export function readSourceResolvedWatchdogFold(
-  resultJson: HeartbeatRun["resultJson"] | Record<string, unknown> | null | undefined,
+  resultJson:
+    HeartbeatRun["resultJson"] | Record<string, unknown> | null | undefined,
 ): SourceResolvedWatchdogFold | null {
   const record = asRecord(resultJson);
   if (!record) return null;
@@ -117,11 +120,14 @@ export function formatCleanupOutcome(outcome: string): string {
   return CLEANUP_OUTCOME_LABELS[outcome] ?? outcome.replace(/_/g, " ");
 }
 
-export function formatSilenceAgeMs(ms: number | null | undefined): string | null {
+export function formatSilenceAgeMs(
+  ms: number | null | undefined,
+): string | null {
   if (!ms || ms <= 0) return null;
   const totalMinutes = Math.floor(ms / 60_000);
   if (totalMinutes < 1) return "under 1 minute";
-  if (totalMinutes < 60) return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+  if (totalMinutes < 60)
+    return `${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   if (minutes === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;

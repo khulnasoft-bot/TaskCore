@@ -154,15 +154,17 @@ describe("Codex app-server Codex driver", () => {
       revision: 1,
       source: "harness_reported",
       complete: false,
-      files: [{
-        path: "src/index.ts",
-        operation: "modify",
-        previousPath: null,
-        additions: 1,
-        deletions: 0,
-        binary: false,
-        diff: "+first\n",
-      }],
+      files: [
+        {
+          path: "src/index.ts",
+          operation: "modify",
+          previousPath: null,
+          additions: 1,
+          deletions: 0,
+          binary: false,
+          diff: "+first\n",
+        },
+      ],
       totals: { files: 1, additions: 1, deletions: 0 },
       patchArtifactRef: null,
     };
@@ -231,13 +233,15 @@ describe("Codex app-server Codex driver", () => {
         (event) => (event.payload as Record<string, unknown>).revision,
       ),
     ).toEqual([1, 2]);
+    expect((updates[1]?.payload as Record<string, unknown>).files).toHaveLength(
+      3,
+    );
     expect(
-      (updates[1]?.payload as Record<string, unknown>).files,
-    ).toHaveLength(3);
-    expect(events.filter((event) => event.eventType === "workspace.diff.recorded"))
-      .toHaveLength(1);
+      events.filter((event) => event.eventType === "workspace.diff.recorded"),
+    ).toHaveLength(1);
     expect(
-      events.find((event) => event.eventType === "workspace.diff.recorded")?.payload,
+      events.find((event) => event.eventType === "workspace.diff.recorded")
+        ?.payload,
     ).toMatchObject({
       revision: 2,
       source: "runner_verified",
@@ -245,9 +249,12 @@ describe("Codex app-server Codex driver", () => {
       totals: { files: 3, additions: null, deletions: null },
     });
     expect(
-      transport.traceInterpretations.filter((entry) =>
-        entry.providerMethod === "taskcore/workspaceChange/updated"
-      ).map((entry) => entry.disposition),
+      transport.traceInterpretations
+        .filter(
+          (entry) =>
+            entry.providerMethod === "taskcore/workspaceChange/updated",
+        )
+        .map((entry) => entry.disposition),
     ).toEqual(["mapped", "mapped"]);
   });
 
@@ -285,36 +292,72 @@ describe("Codex app-server Codex driver", () => {
     });
 
     const events = await collectUntilTerminal(session.events());
-    expect(events.find((event) => event.eventType === "workspace.change.updated")?.payload)
-      .toMatchObject({ revision: 1, complete: false, totals: { files: 0 } });
-    expect(events.filter((event) => event.eventType === "workspace.diff.recorded"))
-      .toHaveLength(1);
-    expect(events.find((event) => event.eventType === "workspace.diff.recorded")?.payload)
-      .toMatchObject({ revision: 1, source: "runner_verified", complete: true, totals: { files: 0 } });
-    expect(events.some((event) => event.eventType === "turn.interrupted")).toBe(true);
+    expect(
+      events.find((event) => event.eventType === "workspace.change.updated")
+        ?.payload,
+    ).toMatchObject({ revision: 1, complete: false, totals: { files: 0 } });
+    expect(
+      events.filter((event) => event.eventType === "workspace.diff.recorded"),
+    ).toHaveLength(1);
+    expect(
+      events.find((event) => event.eventType === "workspace.diff.recorded")
+        ?.payload,
+    ).toMatchObject({
+      revision: 1,
+      source: "runner_verified",
+      complete: true,
+      totals: { files: 0 },
+    });
+    expect(events.some((event) => event.eventType === "turn.interrupted")).toBe(
+      true,
+    );
   });
 
-  it.each(["output", "cache"])("does not certify partial provider usage using retained %s counters", async omitted => {
-    const transport = new FakeCodexTransport();
-    const session = await makeDriver([transport]).openSession({
-      runId: "run-partial-usage", normalizedSessionId: "normalized-partial-usage", workingDirectory: WORKSPACE,
-    });
-    const turn = await session.startTurn({ message: { role: "user", text: "Work." } });
-    transport.push("turn/started", { threadId: "thread-1", turn: { id: turn.turnId, status: "inProgress" } });
-    const first = { inputTokens: 10, outputTokens: 4, ...(omitted === "cache" ? { cachedInputTokens: 2 } : {}) };
-    const second = { inputTokens: 20, ...(omitted === "cache" ? { outputTokens: 8 } : {}) };
-    for (const total of [first, second]) {
-      transport.push("thread/tokenUsage/updated", { threadId: "thread-1", turnId: turn.turnId, tokenUsage: { total } });
-    }
-    transport.push("turn/completed", { threadId: "thread-1", turn: { id: turn.turnId, status: "completed", items: [] } });
-    const events = await collectUntilTerminal(session.events());
-    const usage = events.filter(event => event.payload.kind === "usage");
-    expect(usage.map(event => event.payload.usage)).toMatchObject([
-      { runDelta: first, runDeltaComplete: true },
-      { runDelta: { ...first, ...second }, runDeltaComplete: false },
-    ]);
-    expect(await session.usage()).toMatchObject({ runDeltaComplete: false });
-  });
+  it.each(["output", "cache"])(
+    "does not certify partial provider usage using retained %s counters",
+    async (omitted) => {
+      const transport = new FakeCodexTransport();
+      const session = await makeDriver([transport]).openSession({
+        runId: "run-partial-usage",
+        normalizedSessionId: "normalized-partial-usage",
+        workingDirectory: WORKSPACE,
+      });
+      const turn = await session.startTurn({
+        message: { role: "user", text: "Work." },
+      });
+      transport.push("turn/started", {
+        threadId: "thread-1",
+        turn: { id: turn.turnId, status: "inProgress" },
+      });
+      const first = {
+        inputTokens: 10,
+        outputTokens: 4,
+        ...(omitted === "cache" ? { cachedInputTokens: 2 } : {}),
+      };
+      const second = {
+        inputTokens: 20,
+        ...(omitted === "cache" ? { outputTokens: 8 } : {}),
+      };
+      for (const total of [first, second]) {
+        transport.push("thread/tokenUsage/updated", {
+          threadId: "thread-1",
+          turnId: turn.turnId,
+          tokenUsage: { total },
+        });
+      }
+      transport.push("turn/completed", {
+        threadId: "thread-1",
+        turn: { id: turn.turnId, status: "completed", items: [] },
+      });
+      const events = await collectUntilTerminal(session.events());
+      const usage = events.filter((event) => event.payload.kind === "usage");
+      expect(usage.map((event) => event.payload.usage)).toMatchObject([
+        { runDelta: first, runDeltaComplete: true },
+        { runDelta: { ...first, ...second }, runDeltaComplete: false },
+      ]);
+      expect(await session.usage()).toMatchObject({ runDeltaComplete: false });
+    },
+  );
 
   it("accepts a thread usage snapshot replayed before a resumed turn starts", async () => {
     const transport = new FakeCodexTransport();
@@ -537,9 +580,9 @@ describe("Codex app-server Codex driver", () => {
     expect(eventTypes.indexOf("turn.accepted")).toBeLessThan(
       eventTypes.indexOf("turn.failed"),
     );
-    expect(
-      events.some((event) => event.eventType === "session.failed"),
-    ).toBe(false);
+    expect(events.some((event) => event.eventType === "session.failed")).toBe(
+      false,
+    );
   });
 
   it("does not release a terminal event for a turn when turn/start itself rejects", async () => {
@@ -554,7 +597,10 @@ describe("Codex app-server Codex driver", () => {
       workingDirectory: WORKSPACE,
     });
     const startTurnPromise = session.startTurn({
-      message: { role: "user", text: "Race the terminal event against a rejection." },
+      message: {
+        role: "user",
+        text: "Race the terminal event against a rejection.",
+      },
     });
     // The provider notifies turn/started and turn/completed ahead of its own
     // turn/start response, then that response rejects. No turn was ever
@@ -573,7 +619,9 @@ describe("Codex app-server Codex driver", () => {
       },
     });
     await new Promise((resolve) => setImmediate(resolve));
-    rejectTurnStart(new CodexRpcError("turn/start rejected by provider", -32000));
+    rejectTurnStart(
+      new CodexRpcError("turn/start rejected by provider", -32000),
+    );
 
     await expect(startTurnPromise).rejects.toThrow(
       "turn/start rejected by provider",
@@ -586,5 +634,4 @@ describe("Codex app-server Codex driver", () => {
     expect(eventTypes).not.toContain("turn.failed");
     expect(eventTypes).toContain("session.failed");
   });
-
 });

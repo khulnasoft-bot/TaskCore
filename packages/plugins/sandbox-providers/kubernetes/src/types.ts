@@ -9,21 +9,35 @@ export const kubernetesProviderConfigSchema = z
     inCluster: z.boolean().default(false),
     kubeconfig: z.string().optional(),
 
-    namespacePrefix: z.string().regex(/^[a-z0-9-]{1,32}$/).default("taskcore-"),
-    companySlug: z.string().regex(/^[a-z0-9-]{1,32}$/).optional(),
+    namespacePrefix: z
+      .string()
+      .regex(/^[a-z0-9-]{1,32}$/)
+      .default("taskcore-"),
+    companySlug: z
+      .string()
+      .regex(/^[a-z0-9-]{1,32}$/)
+      .optional(),
 
     imageRegistry: z.string().url().optional(),
     imageAllowList: z.array(z.string()).default([]),
     imagePullSecrets: z.array(z.string()).default([]),
 
     egressAllowFqdns: z.array(z.string()).default([]),
-    egressAllowCidrs: z.array(z.string().regex(cidrRegex, "Invalid CIDR")).default([]),
+    egressAllowCidrs: z
+      .array(z.string().regex(cidrRegex, "Invalid CIDR"))
+      .default([]),
     egressMode: z.enum(["cilium", "standard"]).default("standard"),
 
     defaultResources: z
       .object({
-        requests: z.object({ cpu: z.string(), memory: z.string() }).partial().optional(),
-        limits: z.object({ cpu: z.string(), memory: z.string() }).partial().optional(),
+        requests: z
+          .object({ cpu: z.string(), memory: z.string() })
+          .partial()
+          .optional(),
+        limits: z
+          .object({ cpu: z.string(), memory: z.string() })
+          .partial()
+          .optional(),
       })
       .optional(),
 
@@ -67,17 +81,17 @@ export const kubernetesProviderConfigSchema = z
      */
     backend: z.enum(["sandbox-cr", "job"]).default("sandbox-cr"),
   })
-  .refine(
-    (cfg) => cfg.inCluster || cfg.kubeconfig,
-    {
-      message:
-        "kubernetes provider requires one of `inCluster` or `kubeconfig`",
-    },
-  );
+  .refine((cfg) => cfg.inCluster || cfg.kubeconfig, {
+    message: "kubernetes provider requires one of `inCluster` or `kubeconfig`",
+  });
 
-export type KubernetesProviderConfig = z.infer<typeof kubernetesProviderConfigSchema>;
+export type KubernetesProviderConfig = z.infer<
+  typeof kubernetesProviderConfigSchema
+>;
 
-export function parseKubernetesProviderConfig(input: unknown): KubernetesProviderConfig {
+export function parseKubernetesProviderConfig(
+  input: unknown,
+): KubernetesProviderConfig {
   return kubernetesProviderConfigSchema.parse(input);
 }
 

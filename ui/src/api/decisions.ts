@@ -11,8 +11,10 @@ import { api } from "./client";
  */
 
 export type DecisionStatus = "open" | "decided" | "expired" | "cancelled";
-export type DecisionExecutionStatus = "running" | "succeeded" | "partial" | "failed";
-export type DecisionEffectExecutionStatus = "claimed" | "executed" | "failed" | "skipped";
+export type DecisionExecutionStatus =
+  "running" | "succeeded" | "partial" | "failed";
+export type DecisionEffectExecutionStatus =
+  "claimed" | "executed" | "failed" | "skipped";
 
 export interface DecisionTargetSnapshot {
   status: string;
@@ -104,11 +106,16 @@ function listQuery(filter: DecisionListFilter): string {
 
 export const decisionsApi = {
   list: (companyId: string, filter: DecisionListFilter = {}) =>
-    api.get<DecisionListItem[]>(`/companies/${companyId}/decisions${listQuery(filter)}`),
+    api.get<DecisionListItem[]>(
+      `/companies/${companyId}/decisions${listQuery(filter)}`,
+    ),
   get: (id: string) => api.get<DecisionOutcome>(`/decisions/${id}`),
   decide: (id: string, input: DecideInput) =>
     api.post<DecisionOutcome>(`/decisions/${id}/decide`, input),
   dismiss: (id: string, reason?: string | null) =>
-    api.post<DecisionOutcome>(`/decisions/${id}/dismiss`, reason ? { reason } : {}),
+    api.post<DecisionOutcome>(
+      `/decisions/${id}/dismiss`,
+      reason ? { reason } : {},
+    ),
   cancel: (id: string) => api.post<Decision>(`/decisions/${id}/cancel`, {}),
 };

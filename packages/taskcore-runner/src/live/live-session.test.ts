@@ -26,16 +26,31 @@ import { defaultCapabilityRunnerdBinary } from "./runnerd-codex-transport.js";
 import { captureTurnRejection } from "../../test/capture-turn-rejection.js";
 import * as workspaceDiff from "./workspace-diff.js";
 
-it.each(["pi", "copilot"] as const)("requires separately bound evaluation opt-in for %s", async (acpxAgent) => {
-  const service = new CapabilityLiveSessionService();
-  await expect(service.create({ provider: "acpx", acpxAgent, requestedModel: "explicit-model" }))
-    .rejects.toThrow("explicit evaluation opt-in");
-  const mismatched = new CapabilityLiveSessionService({ transportOptions: {
-    acpxCandidateProfile: acpxAgent === "pi" ? "cursor" : "pi",
-  } });
-  await expect(mismatched.create({ provider: "acpx", acpxAgent, requestedModel: "explicit-model" }))
-    .rejects.toThrow("explicit evaluation opt-in");
-});
+it.each(["pi", "copilot"] as const)(
+  "requires separately bound evaluation opt-in for %s",
+  async (acpxAgent) => {
+    const service = new CapabilityLiveSessionService();
+    await expect(
+      service.create({
+        provider: "acpx",
+        acpxAgent,
+        requestedModel: "explicit-model",
+      }),
+    ).rejects.toThrow("explicit evaluation opt-in");
+    const mismatched = new CapabilityLiveSessionService({
+      transportOptions: {
+        acpxCandidateProfile: acpxAgent === "pi" ? "cursor" : "pi",
+      },
+    });
+    await expect(
+      mismatched.create({
+        provider: "acpx",
+        acpxAgent,
+        requestedModel: "explicit-model",
+      }),
+    ).rejects.toThrow("explicit evaluation opt-in");
+  },
+);
 
 class AsyncNotifications implements AsyncIterable<CodexRpcNotification> {
   #values: CodexRpcNotification[] = [];
@@ -50,7 +65,8 @@ class AsyncNotifications implements AsyncIterable<CodexRpcNotification> {
 
   close(): void {
     this.#closed = true;
-    for (const waiter of this.#waiters.splice(0)) waiter({ value: undefined, done: true });
+    for (const waiter of this.#waiters.splice(0))
+      waiter({ value: undefined, done: true });
   }
 
   [Symbol.asyncIterator](): AsyncIterator<CodexRpcNotification> {
@@ -86,7 +102,10 @@ interface FakeProviderState {
 
 class FakeCapabilityCodexTransport implements CodexAppServerTransport {
   readonly notificationsQueue = new AsyncNotifications();
-  readonly requests: Array<{ method: string; params: Record<string, unknown> }> = [];
+  readonly requests: Array<{
+    method: string;
+    params: Record<string, unknown>;
+  }> = [];
   #handler: CodexServerRequestHandler = async () => ({});
   #closed = false;
   #activeTurnId: string | null = null;
@@ -98,9 +117,13 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
     state.transports.push(this);
   }
 
-  async request(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async request(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     this.requests.push({ method, params: structuredClone(params) });
-    if (method === "initialize") return { user: { sessionId: this.state.providerSessionId } };
+    if (method === "initialize")
+      return { user: { sessionId: this.state.providerSessionId } };
     if (method === "thread/start") {
       expect(Array.isArray(params.dynamicTools)).toBe(true);
       expect(params.completionContract).toEqual({
@@ -110,7 +133,10 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
       return {
         model: "gpt-eval-test",
         modelProvider: "openai",
-        thread: { id: this.state.threadId, sessionId: this.state.providerSessionId },
+        thread: {
+          id: this.state.threadId,
+          sessionId: this.state.providerSessionId,
+        },
       };
     }
     if (method === "thread/read") {
@@ -119,14 +145,18 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
           id: this.state.threadId,
           sessionId: this.state.providerSessionId,
           turns: [...this.state.turns].map(([id, status]) => ({ id, status })),
-          ...(this.state.omitReadUsage ? {} : { tokenUsage: {
-            total: {
-              inputTokens: this.state.nextTurn * 100,
-              cachedInputTokens: this.state.nextTurn * 20,
-              outputTokens: this.state.nextTurn * 10,
-              reasoningOutputTokens: this.state.nextTurn * 2,
-            },
-          } }),
+          ...(this.state.omitReadUsage
+            ? {}
+            : {
+                tokenUsage: {
+                  total: {
+                    inputTokens: this.state.nextTurn * 100,
+                    cachedInputTokens: this.state.nextTurn * 20,
+                    outputTokens: this.state.nextTurn * 10,
+                    reasoningOutputTokens: this.state.nextTurn * 2,
+                  },
+                },
+              }),
         },
       };
     }
@@ -134,14 +164,19 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
       return {
         model: "gpt-eval-test",
         modelProvider: "openai",
-        thread: { id: this.state.threadId, sessionId: this.state.providerSessionId },
+        thread: {
+          id: this.state.threadId,
+          sessionId: this.state.providerSessionId,
+        },
       };
     }
     if (method === "turn/start") {
       const turnId = `turn-${++this.state.nextTurn}`;
       this.#activeTurnId = turnId;
       this.state.turns.set(turnId, "inProgress");
-      const input = Array.isArray(params.input) ? params.input[0] as Record<string, unknown> : {};
+      const input = Array.isArray(params.input)
+        ? (params.input[0] as Record<string, unknown>)
+        : {};
       const message = String(input.text ?? "");
       await this.state.onTurnStart?.();
       void this.#runTurn(turnId, message);
@@ -149,13 +184,18 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
     }
     if (method === "turn/interrupt") {
       if (this.state.interruptDelayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, this.state.interruptDelayMs));
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.state.interruptDelayMs),
+        );
       }
       const turnId = String(params.turnId);
       this.state.turns.set(turnId, "interrupted");
       this.notificationsQueue.push({
         method: "turn/completed",
-        params: { threadId: this.state.threadId, turn: { id: turnId, status: "interrupted" } },
+        params: {
+          threadId: this.state.threadId,
+          turn: { id: turnId, status: "interrupted" },
+        },
       });
       this.#activeTurnId = null;
       return {};
@@ -173,11 +213,17 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
     this.#handler = handler;
   }
 
-  async attachRun(input: { runId: string; turnId: string; itemId: string }): Promise<void> {
+  async attachRun(input: {
+    runId: string;
+    turnId: string;
+    itemId: string;
+  }): Promise<void> {
     this.state.attachments.push(structuredClone(input));
   }
 
-  invokeServerRequest(request: CodexRpcServerRequest): Promise<Record<string, unknown>> {
+  invokeServerRequest(
+    request: CodexRpcServerRequest,
+  ): Promise<Record<string, unknown>> {
     return this.#handler(request);
   }
 
@@ -203,7 +249,10 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
     await Promise.resolve();
     this.notificationsQueue.push({
       method: "turn/started",
-      params: { threadId: this.state.threadId, turn: { id: turnId, status: "inProgress" } },
+      params: {
+        threadId: this.state.threadId,
+        turn: { id: turnId, status: "inProgress" },
+      },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     let assistantText: string;
@@ -225,7 +274,9 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
           },
         },
       });
-      this.state.lastToolResult = String((result.contentItems as Array<Record<string, unknown>>)[0]?.text);
+      this.state.lastToolResult = String(
+        (result.contentItems as Array<Record<string, unknown>>)[0]?.text,
+      );
       if (this.state.holdAfterTool) await new Promise<never>(() => undefined);
       assistantText = `The typed result changed my response: ${this.state.lastToolResult}`;
     } else if (message.includes("semantic-interaction-result")) {
@@ -244,13 +295,33 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
             interactionKind: "questions",
             title: "Choose the mock path",
             prompt: "Which path should the mock agent take?",
-            payload: { version: 1, questionSet: { schema: "taskcore.question_set.v1", questions: [{ id: "path", prompt: "Which path?", required: true, answerMode: "single_select", options: [{ id: "safe", label: "Safe path" }, { id: "fast", label: "Fast path" }] }] } },
+            payload: {
+              version: 1,
+              questionSet: {
+                schema: "taskcore.question_set.v1",
+                questions: [
+                  {
+                    id: "path",
+                    prompt: "Which path?",
+                    required: true,
+                    answerMode: "single_select",
+                    options: [
+                      { id: "safe", label: "Safe path" },
+                      { id: "fast", label: "Fast path" },
+                    ],
+                  },
+                ],
+              },
+            },
             continuationPolicy: "wake_assignee",
           },
         },
       });
-      this.state.lastToolResult = String((result.contentItems as Array<Record<string, unknown>>)[0]?.text);
-      assistantText = "I created a durable question and will use its typed result when resumed.";
+      this.state.lastToolResult = String(
+        (result.contentItems as Array<Record<string, unknown>>)[0]?.text,
+      );
+      assistantText =
+        "I created a durable question and will use its typed result when resumed.";
     } else if (message.includes("reference file")) {
       assistantText = "Open [guide.md](guide.md) for the complete notes.";
     } else if (message.includes("long")) {
@@ -263,7 +334,11 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
       params: {
         threadId: this.state.threadId,
         turnId,
-        item: { id: `message-${turnId}`, type: "agentMessage", text: this.state.assistantReply ?? assistantText },
+        item: {
+          id: `message-${turnId}`,
+          type: "agentMessage",
+          text: this.state.assistantReply ?? assistantText,
+        },
       },
     });
     this.state.turns.set(turnId, "completed");
@@ -293,7 +368,10 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
       });
       this.notificationsQueue.push({
         method: "turn/completed",
-        params: { threadId: this.state.threadId, turn: { id: turnId, status: "completed" } },
+        params: {
+          threadId: this.state.threadId,
+          turn: { id: turnId, status: "completed" },
+        },
       });
     }
     this.#activeTurnId = null;
@@ -304,7 +382,9 @@ class FakeCapabilityCodexTransport implements CodexAppServerTransport {
   }
 }
 
-function fakeTransportFactory(state: FakeProviderState): CapabilityLiveTransportFactory {
+function fakeTransportFactory(
+  state: FakeProviderState,
+): CapabilityLiveTransportFactory {
   return (options) => {
     const evidence = {
       runnerPid: 4100 + state.transports.length,
@@ -321,7 +401,13 @@ function fakeTransportFactory(state: FakeProviderState): CapabilityLiveTransport
       options.onEvidence?.(evidence);
     });
     options.onEvidence?.(evidence);
-    return { transport, evidence: () => ({ ...evidence, runnerExited: transport.processInfo().exited }) };
+    return {
+      transport,
+      evidence: () => ({
+        ...evidence,
+        runnerExited: transport.processInfo().exited,
+      }),
+    };
   };
 }
 
@@ -620,21 +706,26 @@ describe("Capability live runnerd and Codex session", () => {
     });
 
     store.failNextSave();
-    await expect(session.recordUsage({
-      receiptId: "usage-before-recovery",
-      inputTokens: 10,
-      outputTokens: 2,
-    })).rejects.toThrow("transient live-session store failure");
-    await expect(session.recordUsage({
-      receiptId: "usage-after-recovery",
-      inputTokens: 20,
-      outputTokens: 4,
-    })).resolves.toBe("committed");
+    await expect(
+      session.recordUsage({
+        receiptId: "usage-before-recovery",
+        inputTokens: 10,
+        outputTokens: 2,
+      }),
+    ).rejects.toThrow("transient live-session store failure");
+    await expect(
+      session.recordUsage({
+        receiptId: "usage-after-recovery",
+        inputTokens: 20,
+        outputTokens: 4,
+      }),
+    ).resolves.toBe("committed");
 
-    expect((await store.load(session.id))?.usageLedger.map((receipt) => receipt.receiptId)).toEqual([
-      "usage-before-recovery",
-      "usage-after-recovery",
-    ]);
+    expect(
+      (await store.load(session.id))?.usageLedger.map(
+        (receipt) => receipt.receiptId,
+      ),
+    ).toEqual(["usage-before-recovery", "usage-after-recovery"]);
     await service.shutdown(session.id);
   });
 
@@ -680,9 +771,9 @@ describe("Capability live runnerd and Codex session", () => {
     // notification and the pump's best-effort failed-state save. The repaired
     // queue must admit a final shutdown retry once storage recovers.
     store.rejectTerminalSaves();
-    await expect(session.sendMessage("finish after consecutive store failures")).rejects.toThrow(
-      "transient terminal-notification store failure",
-    );
+    await expect(
+      session.sendMessage("finish after consecutive store failures"),
+    ).rejects.toThrow("transient terminal-notification store failure");
     await vi.waitFor(async () => {
       expect(session.snapshot().status).toBe("failed");
       expect(store.terminalSaveFailureCount()).toBeGreaterThanOrEqual(2);
@@ -716,9 +807,9 @@ describe("Capability live runnerd and Codex session", () => {
     });
 
     store.rejectTerminalSaves();
-    await expect(session.sendMessage("fail before shutdown cleanup")).rejects.toThrow(
-      "transient terminal-notification store failure",
-    );
+    await expect(
+      session.sendMessage("fail before shutdown cleanup"),
+    ).rejects.toThrow("transient terminal-notification store failure");
     await vi.waitFor(() => expect(session.snapshot().status).toBe("failed"));
     const cleanupFailure = new Error("provider cleanup failed");
     state.closeError = cleanupFailure;
@@ -738,14 +829,21 @@ describe("Capability live runnerd and Codex session", () => {
 
   it("turns an assistant local-file link into a verified dynamic-chat file card record", async () => {
     const root = await mkdtemp(join(tmpdir(), "taskcore-live-file-reference-"));
-    await writeFile(join(root, "guide.md"), "# Dynamic guide\n\nVerified by the runner.\n");
+    await writeFile(
+      join(root, "guide.md"),
+      "# Dynamic guide\n\nVerified by the runner.\n",
+    );
     const state = providerState();
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
     const session = await service.create({ workingDirectory: root });
 
     const result = await session.sendMessage("reference file");
     expect(result.snapshot.workspaceFileReferences).toHaveLength(1);
-    expect(result.snapshot.workspaceFileReferences?.[0]?.reference).toMatchObject({
+    expect(
+      result.snapshot.workspaceFileReferences?.[0]?.reference,
+    ).toMatchObject({
       schema: "taskcore.workspace.file_reference.v1",
       source: "runner_verified",
       path: "guide.md",
@@ -762,16 +860,22 @@ describe("Capability live runnerd and Codex session", () => {
     state.onTurnStart = async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
       await writeFile(join(root, "existing.txt"), "after\n");
-      await writeFile(join(root, "created.ts"), "export const created = true;\n");
+      await writeFile(
+        join(root, "created.ts"),
+        "export const created = true;\n",
+      );
     };
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
     const session = await service.create({ workingDirectory: root });
 
     // Test the file-change evidence, not whether a loaded CI worker scans the
     // fixture within the production admission deadline. Keep both snapshots
     // real; make only the already-captured baseline immediately available.
     const baseline = await workspaceDiff.captureTaskcoreWorkspace(root);
-    const capture = vi.spyOn(workspaceDiff, "captureTaskcoreWorkspace")
+    const capture = vi
+      .spyOn(workspaceDiff, "captureTaskcoreWorkspace")
       .mockResolvedValueOnce(baseline);
     try {
       const result = await session.sendMessage("edit the workspace");
@@ -785,8 +889,11 @@ describe("Capability live runnerd and Codex session", () => {
           totals: { files: 2 },
         },
       });
-      expect(result.snapshot.workspaceDiffs?.[0]?.diff.files.map((file) => file.path))
-        .toEqual(["created.ts", "existing.txt"]);
+      expect(
+        result.snapshot.workspaceDiffs?.[0]?.diff.files.map(
+          (file) => file.path,
+        ),
+      ).toEqual(["created.ts", "existing.txt"]);
     } finally {
       capture.mockRestore();
       await service.shutdown(session.id);
@@ -795,32 +902,51 @@ describe("Capability live runnerd and Codex session", () => {
 
   it("suspends after every per-turn response and restores the same provider session", async () => {
     const state = providerState();
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ lifecyclePolicy: { mode: "per_turn", idleTimeoutMs: null } });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      lifecyclePolicy: { mode: "per_turn", idleTimeoutMs: null },
+    });
 
     await session.sendMessage("first response");
-    expect(session.snapshot()).toMatchObject({ status: "suspended", providerThreadId: state.threadId });
+    expect(session.snapshot()).toMatchObject({
+      status: "suspended",
+      providerThreadId: state.threadId,
+    });
     expect(state.transports[0]?.processInfo().exited).toBe(true);
 
     await session.sendMessage("restored response");
     expect(state.transports).toHaveLength(2);
-    expect(session.snapshot()).toMatchObject({ status: "suspended", providerThreadId: state.threadId });
+    expect(session.snapshot()).toMatchObject({
+      status: "suspended",
+      providerThreadId: state.threadId,
+    });
     await service.shutdown(session.id);
   });
 
   it("keeps a warm runner through active work and suspends it only after idle expiry", async () => {
     const state = providerState();
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ lifecyclePolicy: { mode: "warm", idleTimeoutMs: 25 } });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      lifecyclePolicy: { mode: "warm", idleTimeoutMs: 25 },
+    });
 
     await session.sendMessage("warm response");
     expect(session.snapshot().status).toBe("warm_idle");
     expect(state.transports[0]?.processInfo().exited).toBe(false);
-    await vi.waitFor(() => expect(session.snapshot().status).toBe("suspended"), { timeout: 500 });
+    await vi.waitFor(
+      () => expect(session.snapshot().status).toBe("suspended"),
+      { timeout: 500 },
+    );
     expect(state.transports[0]?.processInfo().exited).toBe(true);
 
     const active = session.sendMessage("start a long turn");
-    await vi.waitFor(() => expect(session.snapshot().activeTurnId).not.toBeNull());
+    await vi.waitFor(() =>
+      expect(session.snapshot().activeTurnId).not.toBeNull(),
+    );
     expect(session.snapshot().status).toBe("running");
     await session.interrupt("test cleanup");
     await expect(active).resolves.toMatchObject({ status: "interrupted" });
@@ -829,8 +955,12 @@ describe("Capability live runnerd and Codex session", () => {
 
   it("interrupts pending admission without starting provider work", async () => {
     const state = providerState();
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ lifecyclePolicy: { mode: "warm", idleTimeoutMs: 60_000 } });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      lifecyclePolicy: { mode: "warm", idleTimeoutMs: 60_000 },
+    });
 
     const turn = session.sendMessage("do not admit this turn");
     expect(session.snapshot().transcript).toEqual([
@@ -844,34 +974,52 @@ describe("Capability live runnerd and Codex session", () => {
     expect(result.snapshot.terminalTurns).toEqual([
       expect.objectContaining({ turnId: result.turnId, status: "interrupted" }),
     ]);
-    expect(state.transports[0]?.requests.filter((request) => request.method === "turn/start"))
-      .toEqual([]);
+    expect(
+      state.transports[0]?.requests.filter(
+        (request) => request.method === "turn/start",
+      ),
+    ).toEqual([]);
     await service.shutdown(session.id);
   });
 
   it("fails visibly instead of blocking teardown on an unabortable provider start", async () => {
     const state = providerState();
     state.onTurnStart = () => new Promise<void>(() => undefined);
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ lifecyclePolicy: { mode: "warm", idleTimeoutMs: 60_000 } });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      lifecyclePolicy: { mode: "warm", idleTimeoutMs: 60_000 },
+    });
     const events: CapabilityLiveTurnEvent[] = [];
     session.subscribe((event) => events.push(event));
 
-    const abandonedTurn = session.sendMessage("start a provider request that never returns");
+    const abandonedTurn = session.sendMessage(
+      "start a provider request that never returns",
+    );
     void abandonedTurn.catch(() => undefined);
     await vi.waitFor(() => {
-      expect(state.transports[0]?.requests.some((request) => request.method === "turn/start"))
-        .toBe(true);
+      expect(
+        state.transports[0]?.requests.some(
+          (request) => request.method === "turn/start",
+        ),
+      ).toBe(true);
     });
 
-    await expect(session.suspend("bounded admission teardown")).resolves.toBeUndefined();
+    await expect(
+      session.suspend("bounded admission teardown"),
+    ).resolves.toBeUndefined();
     expect(session.snapshot().status).toBe("failed");
-    expect(events).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        kind: "error",
-        message: expect.stringContaining("did not stop after transport close"),
-      }),
-    ]));
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "error",
+          message: expect.stringContaining(
+            "did not stop after transport close",
+          ),
+        }),
+      ]),
+    );
     expect(state.transports[0]?.processInfo().exited).toBe(true);
   });
 
@@ -911,68 +1059,143 @@ describe("Capability live runnerd and Codex session", () => {
       authority.push(options);
       return fakeTransportFactory(state)(options);
     };
-    const firstService = new CapabilityLiveSessionService({ store, transportFactory: factory });
+    const firstService = new CapabilityLiveSessionService({
+      store,
+      transportFactory: factory,
+    });
     const first = await firstService.create();
-    const opened = state.transports[0]!.requests.find((request) => request.method === "thread/start")!;
-    const names = (opened.params.dynamicTools as Array<{ name: string }>).map((tool) => tool.name);
+    const opened = state.transports[0]!.requests.find(
+      (request) => request.method === "thread/start",
+    )!;
+    const names = (opened.params.dynamicTools as Array<{ name: string }>).map(
+      (tool) => tool.name,
+    );
     expect(names.filter((name) => name === "taskcore_finish")).toHaveLength(1);
     expect(names.filter((name) => name === "taskcore_block")).toHaveLength(1);
     expect(names).not.toContain("create_task");
     expect(opened.params).not.toHaveProperty("baseInstructions");
-    expect(opened.params.developerInstructions).toContain('"revision":"taskcore-capability-live-v1"');
-    expect(opened.params.developerInstructions).toContain('"criterionIds":["objective"]');
+    expect(opened.params.developerInstructions).toContain(
+      '"revision":"taskcore-capability-live-v1"',
+    );
+    expect(opened.params.developerInstructions).toContain(
+      '"criterionIds":["objective"]',
+    );
     await first.suspend();
-    const restoredService = new CapabilityLiveSessionService({ store, transportFactory: factory });
+    const restoredService = new CapabilityLiveSessionService({
+      store,
+      transportFactory: factory,
+    });
     const restored = await restoredService.restore(first.id);
     // The facade appends native completion schemas to this admitted semantic list.
     expect(authority[1]?.resumeDynamicTools?.map((tool) => tool.name)).toEqual(
-      names.filter((name) => name !== "taskcore_finish" && name !== "taskcore_block"),
+      names.filter(
+        (name) => name !== "taskcore_finish" && name !== "taskcore_block",
+      ),
     );
-    const resumed = state.transports[1]!.requests.find((request) => request.method === "thread/resume")!;
+    const resumed = state.transports[1]!.requests.find(
+      (request) => request.method === "thread/resume",
+    )!;
     expect(resumed.params).not.toHaveProperty("baseInstructions");
-    expect(resumed.params.developerInstructions).toBe(opened.params.developerInstructions);
+    expect(resumed.params.developerInstructions).toBe(
+      opened.params.developerInstructions,
+    );
     await restoredService.shutdown(restored.id);
     await firstService.shutdown(first.id);
   });
 
   it("accepts only revision-bound advisory completion while mock mutations keep their own authority", async () => {
     const state = providerState();
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
     const session = await service.create();
     const before = session.mockState();
     const result = {
-      schema: "taskcore.run_result.v1", reportedWorkDisposition: "done", summary: "Orientation complete",
-      completionClaim: { contractRevision: "taskcore-capability-live-v1", objectiveSatisfied: true,
-        criteria: [{ criterionId: "objective", status: "satisfied", evidenceRefs: [] }], remainingWork: [] },
-      evidence: [], verification: [],
+      schema: "taskcore.run_result.v1",
+      reportedWorkDisposition: "done",
+      summary: "Orientation complete",
+      completionClaim: {
+        contractRevision: "taskcore-capability-live-v1",
+        objectiveSatisfied: true,
+        criteria: [
+          { criterionId: "objective", status: "satisfied", evidenceRefs: [] },
+        ],
+        remainingWork: [],
+      },
+      evidence: [],
+      verification: [],
     };
     const outcomes: Record<string, unknown>[] = [];
     state.onTurnStart = async () => {
       const transport = state.transports.at(-1)!;
       const turnId = [...state.turns.keys()].at(-1)!;
-      const call = (tool: string, arguments_: unknown, overrideTurn = turnId) => transport.invokeServerRequest({
-        id: `call-${outcomes.length}`, method: "item/tool/call",
-        params: { threadId: state.threadId, turnId: overrideTurn, callId: `call-${outcomes.length}`, tool, arguments: arguments_ },
-      });
-      outcomes.push(await call("taskcore_finish", { ...result, completionClaim: { ...result.completionClaim, contractRevision: "stale" } }));
+      const call = (tool: string, arguments_: unknown, overrideTurn = turnId) =>
+        transport.invokeServerRequest({
+          id: `call-${outcomes.length}`,
+          method: "item/tool/call",
+          params: {
+            threadId: state.threadId,
+            turnId: overrideTurn,
+            callId: `call-${outcomes.length}`,
+            tool,
+            arguments: arguments_,
+          },
+        });
+      outcomes.push(
+        await call("taskcore_finish", {
+          ...result,
+          completionClaim: {
+            ...result.completionClaim,
+            contractRevision: "stale",
+          },
+        }),
+      );
       outcomes.push(await call("taskcore_finish", result, "wrong-turn"));
       outcomes.push(await call("taskcore_block", result));
       outcomes.push(await call("taskcore_finish", result));
-      outcomes.push(await call("taskcore_finish", { ...result, summary: "Conflicting report" }));
-      outcomes.push(await call("create_task", { title: "Unauthorized task", idempotencyKey: "unauthorized-task" }));
+      outcomes.push(
+        await call("taskcore_finish", {
+          ...result,
+          summary: "Conflicting report",
+        }),
+      );
+      outcomes.push(
+        await call("create_task", {
+          title: "Unauthorized task",
+          idempotencyKey: "unauthorized-task",
+        }),
+      );
       expect(session.snapshot().terminalTurns).toHaveLength(0);
     };
     await session.sendMessage("Orient to the assigned task.");
-    expect(outcomes.map((outcome) => outcome.success)).toEqual([false, false, false, true, false, false]);
+    expect(outcomes.map((outcome) => outcome.success)).toEqual([
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+    ]);
     expect(session.snapshot().semanticResult).toMatchObject(result);
-    const completionEvidence = session.snapshot().evidence.filter((entry) => entry.data.operationId === "taskcore_finish");
-    expect(completionEvidence.map((entry) => entry.kind)).toEqual(["tool_call", "tool_result"]);
-    expect(completionEvidence[1]?.data.beforeRevision).toBe(completionEvidence[1]?.data.afterRevision);
+    const completionEvidence = session
+      .snapshot()
+      .evidence.filter((entry) => entry.data.operationId === "taskcore_finish");
+    expect(completionEvidence.map((entry) => entry.kind)).toEqual([
+      "tool_call",
+      "tool_result",
+    ]);
+    expect(completionEvidence[1]?.data.beforeRevision).toBe(
+      completionEvidence[1]?.data.afterRevision,
+    );
     expect(session.mockState().tasks).toEqual(before.tasks);
     expect(session.snapshot().terminalTurns).toHaveLength(1);
-    expect(session.snapshot().authorizationRecords).toContainEqual(expect.objectContaining({ operationId: "create_task", allowed: false }));
+    expect(session.snapshot().authorizationRecords).toContainEqual(
+      expect.objectContaining({ operationId: "create_task", allowed: false }),
+    );
     state.onTurnStart = undefined;
-    await session.sendMessage("Read the task again without reporting completion.");
+    await session.sendMessage(
+      "Read the task again without reporting completion.",
+    );
     expect(session.snapshot().semanticResult).toBeNull();
     await service.shutdown(session.id);
   });
@@ -995,8 +1218,13 @@ describe("Capability live runnerd and Codex session", () => {
     ).toContain(
       "Native instructions\n\nRead-only instruction sibling root: /runtime/instructions",
     );
-    expect(state.transports[0]?.requests.find((request) => request.method === "thread/start")?.params.developerInstructions)
-      .toContain('Native completion report contract: {"revision":"taskcore-capability-live-v1","criterionIds":["objective"]}');
+    expect(
+      state.transports[0]?.requests.find(
+        (request) => request.method === "thread/start",
+      )?.params.developerInstructions,
+    ).toContain(
+      'Native completion report contract: {"revision":"taskcore-capability-live-v1","criterionIds":["objective"]}',
+    );
     await service.shutdown(session.id);
   });
 
@@ -1042,13 +1270,23 @@ describe("Capability live runnerd and Codex session", () => {
   it("opens lazy sessions with core and discovery gateways instead of optional schemas", async () => {
     const state = providerState();
     const claim = "discovery:agents:read";
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({
-      runId: "run-live-lazy", sessionId: "session-live-lazy", toolExposure: "lazy",
-      capabilities: [claim], explicitClaims: [claim], scenario: { id: "lazy", claims: [claim] },
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
     });
-    const start = state.transports[0]!.requests.find((entry) => entry.method === "thread/start")!;
-    const names = (start.params.dynamicTools as Array<{ name: string }>).map((tool) => tool.name);
+    const session = await service.create({
+      runId: "run-live-lazy",
+      sessionId: "session-live-lazy",
+      toolExposure: "lazy",
+      capabilities: [claim],
+      explicitClaims: [claim],
+      scenario: { id: "lazy", claims: [claim] },
+    });
+    const start = state.transports[0]!.requests.find(
+      (entry) => entry.method === "thread/start",
+    )!;
+    const names = (start.params.dynamicTools as Array<{ name: string }>).map(
+      (tool) => tool.name,
+    );
     expect(names).toContain("get_task_context");
     expect(names).toContain("discover_capabilities");
     expect(names).toContain("invoke_discovered_capability");
@@ -1128,35 +1366,54 @@ describe("Capability live runnerd and Codex session", () => {
   it("returns typed mock results to the same multi-turn Codex thread without Taskcore network calls", async () => {
     const state = providerState();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
     const session = await service.create({
       runId: "run-live-tool-loop",
       sessionId: "session-live-tool-loop",
       requestedModel: "gpt-5.4-mini-2026-03-17",
     });
 
-    const first = await session.sendMessage("Please report progress on this mock issue.");
-    const second = await session.sendMessage("What did the prior tool result say?");
+    const first = await session.sendMessage(
+      "Please report progress on this mock issue.",
+    );
+    const second = await session.sendMessage(
+      "What did the prior tool result say?",
+    );
 
     expect(first.assistantText).toContain("stateRevision");
     expect(second.assistantText).toContain("stateRevision");
-    expect(first.snapshot.providerThreadId).toBe(second.snapshot.providerThreadId);
+    expect(first.snapshot.providerThreadId).toBe(
+      second.snapshot.providerThreadId,
+    );
     expect(state.attachments).toHaveLength(1);
     expect(second.snapshot.providerRunBinding).toEqual(state.attachments[0]);
     expect(second.snapshot.usageLedger.slice(-2)).toMatchObject([
       { providerRequests: 1, inputTokens: 100, outputTokens: 10 },
       { providerRequests: 1, inputTokens: 100, outputTokens: 10 },
     ]);
-    expect(first.snapshot.providerModel).toEqual({ id: "gpt-eval-test", provider: "openai" });
-    expect(first.snapshot.config.requestedModel).toBe("gpt-5.4-mini-2026-03-17");
+    expect(first.snapshot.providerModel).toEqual({
+      id: "gpt-eval-test",
+      provider: "openai",
+    });
+    expect(first.snapshot.config.requestedModel).toBe(
+      "gpt-5.4-mini-2026-03-17",
+    );
     expect(
-      state.transports[0]?.requests.find((entry) => entry.method === "thread/start")?.params.model,
+      state.transports[0]?.requests.find(
+        (entry) => entry.method === "thread/start",
+      )?.params.model,
     ).toBe("gpt-5.4-mini-2026-03-17");
     expect(session.mockState().comments.at(-1)?.body).toBe(
       "Progress persisted through the live Codex tool loop.",
     );
-    expect(first.snapshot.evidence.some((entry) => entry.kind === "tool_call")).toBe(true);
-    expect(first.snapshot.evidence.some((entry) => entry.kind === "tool_result")).toBe(true);
+    expect(
+      first.snapshot.evidence.some((entry) => entry.kind === "tool_call"),
+    ).toBe(true);
+    expect(
+      first.snapshot.evidence.some((entry) => entry.kind === "tool_result"),
+    ).toBe(true);
     expect(first.snapshot.networkEvidence).toEqual({
       realTaskcoreRequests: 0,
       childTaskcoreEnvironmentKeys: [],
@@ -1166,53 +1423,77 @@ describe("Capability live runnerd and Codex session", () => {
     await service.shutdown(session.id);
   });
 
-  it.each(["pi", "cursor", "copilot"] as const)("retains a completed %s result with explicit unavailable usage and no fabricated receipt", async (acpxAgent) => {
-    const state = providerState();
-    state.omitReadUsage = true;
-    state.assistantReply = "Upgrade your plan to continue";
-    state.onUsage = (queue, turnId) => queue.push({
-      method: "turn/completed",
-      params: { threadId: state.threadId, turn: { id: turnId, status: "completed" } },
-    });
-    const store = new InMemoryCapabilityLiveSessionStore();
-    const service = new CapabilityLiveSessionService({
-      store,
-      transportFactory: fakeTransportFactory(state),
-      transportOptions: { acpxCandidateProfile: acpxAgent },
-    });
-    const session = await service.create({
-      provider: "acpx", acpxAgent,
-      requestedModel: "explicit-test-model",
-    });
-    const result = await session.sendMessage("Orient to this task.");
-    expect(result.status).toBe("completed");
-    expect(result.assistantText).toBe(state.assistantReply);
-    expect(result.snapshot.usageLedger).toEqual([]);
-    expect(result.snapshot.usageUnavailable).toEqual([{
-      turnId: result.turnId,
-      attemptId: result.snapshot.currentAttemptId,
-      agent: acpxAgent,
-      reason: "provider_did_not_report_usage",
-      tokenUsage: null,
-      costNanodollars: null,
-      observedAt: expect.any(String),
-    }]);
-    expect(result.snapshot.authorizationRecords.filter((entry) => entry.phase !== "exposure")).toEqual([]);
-    await service.shutdown(session.id);
-    expect((await store.load(session.id))?.usageUnavailable).toEqual(result.snapshot.usageUnavailable);
-    expect((await store.load(session.id))?.process?.runnerExited).toBe(true);
-  });
+  it.each(["pi", "cursor", "copilot"] as const)(
+    "retains a completed %s result with explicit unavailable usage and no fabricated receipt",
+    async (acpxAgent) => {
+      const state = providerState();
+      state.omitReadUsage = true;
+      state.assistantReply = "Upgrade your plan to continue";
+      state.onUsage = (queue, turnId) =>
+        queue.push({
+          method: "turn/completed",
+          params: {
+            threadId: state.threadId,
+            turn: { id: turnId, status: "completed" },
+          },
+        });
+      const store = new InMemoryCapabilityLiveSessionStore();
+      const service = new CapabilityLiveSessionService({
+        store,
+        transportFactory: fakeTransportFactory(state),
+        transportOptions: { acpxCandidateProfile: acpxAgent },
+      });
+      const session = await service.create({
+        provider: "acpx",
+        acpxAgent,
+        requestedModel: "explicit-test-model",
+      });
+      const result = await session.sendMessage("Orient to this task.");
+      expect(result.status).toBe("completed");
+      expect(result.assistantText).toBe(state.assistantReply);
+      expect(result.snapshot.usageLedger).toEqual([]);
+      expect(result.snapshot.usageUnavailable).toEqual([
+        {
+          turnId: result.turnId,
+          attemptId: result.snapshot.currentAttemptId,
+          agent: acpxAgent,
+          reason: "provider_did_not_report_usage",
+          tokenUsage: null,
+          costNanodollars: null,
+          observedAt: expect.any(String),
+        },
+      ]);
+      expect(
+        result.snapshot.authorizationRecords.filter(
+          (entry) => entry.phase !== "exposure",
+        ),
+      ).toEqual([]);
+      await service.shutdown(session.id);
+      expect((await store.load(session.id))?.usageUnavailable).toEqual(
+        result.snapshot.usageUnavailable,
+      );
+      expect((await store.load(session.id))?.process?.runnerExited).toBe(true);
+    },
+  );
 
   it("still rejects missing usage for a qualified provider", async () => {
     const state = providerState();
     state.omitReadUsage = true;
-    state.onUsage = (queue, turnId) => queue.push({
-      method: "turn/completed",
-      params: { threadId: state.threadId, turn: { id: turnId, status: "completed" } },
+    state.onUsage = (queue, turnId) =>
+      queue.push({
+        method: "turn/completed",
+        params: {
+          threadId: state.threadId,
+          turn: { id: turnId, status: "completed" },
+        },
+      });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
     });
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
     const session = await service.create();
-    await expect(session.sendMessage("Orient to this task.")).rejects.toThrow("capability_live_usage_missing");
+    await expect(session.sendMessage("Orient to this task.")).rejects.toThrow(
+      "capability_live_usage_missing",
+    );
     expect(session.snapshot().usageLedger).toEqual([]);
     expect(session.snapshot().usageUnavailable).toBeUndefined();
     await service.shutdown(session.id);
@@ -1220,7 +1501,9 @@ describe("Capability live runnerd and Codex session", () => {
 
   it("streams normalized usage before terminal with cumulative fallback and explicit run deltas", async () => {
     const state = providerState();
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
     const session = await service.create({
       runId: "run-live-usage-stream",
       sessionId: "session-live-usage-stream",
@@ -1270,7 +1553,8 @@ describe("Capability live runnerd and Codex session", () => {
     for (const usageEvent of usageEvents) {
       const usageIndex = events.indexOf(usageEvent);
       const terminalIndex = events.findIndex(
-        (event) => event.kind === "terminal" && event.turnId === usageEvent.turnId,
+        (event) =>
+          event.kind === "terminal" && event.turnId === usageEvent.turnId,
       );
       expect(terminalIndex).toBeGreaterThan(usageIndex);
     }
@@ -1298,11 +1582,19 @@ describe("Capability live runnerd and Codex session", () => {
       });
       queue.push({
         method: "turn/completed",
-        params: { threadId: state.threadId, turn: { id: turnId, status: "completed" } },
+        params: {
+          threadId: state.threadId,
+          turn: { id: turnId, status: "completed" },
+        },
       });
     };
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ runId: "run-overlap-usage", sessionId: "session-overlap-usage" });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      runId: "run-overlap-usage",
+      sessionId: "session-overlap-usage",
+    });
 
     const result = await session.sendMessage("report overlapping usage");
 
@@ -1330,11 +1622,19 @@ describe("Capability live runnerd and Codex session", () => {
       }
       queue.push({
         method: "turn/completed",
-        params: { threadId: state.threadId, turn: { id: turnId, status: "completed" } },
+        params: {
+          threadId: state.threadId,
+          turn: { id: turnId, status: "completed" },
+        },
       });
     };
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ runId: "run-read-fallback", sessionId: "session-read-fallback" });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      runId: "run-read-fallback",
+      sessionId: "session-read-fallback",
+    });
 
     await session.sendMessage("report initial usage");
     const second = await session.sendMessage("omit usage notification");
@@ -1359,20 +1659,30 @@ describe("Capability live runnerd and Codex session", () => {
       });
       queue.push({
         method: "turn/completed",
-        params: { threadId: state.threadId, turn: { id: turnId, status: "completed" } },
+        params: {
+          threadId: state.threadId,
+          turn: { id: turnId, status: "completed" },
+        },
       });
     };
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ runId: "run-cost-only", sessionId: "session-cost-only" });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      runId: "run-cost-only",
+      sessionId: "session-cost-only",
+    });
 
     const result = await session.sendMessage("report cost-only usage");
 
-    expect(result.snapshot.usageLedger).toMatchObject([{
-      providerRequests: 1,
-      inputTokens: 100,
-      outputTokens: 10,
-      costNanodollars: 250_000_000,
-    }]);
+    expect(result.snapshot.usageLedger).toMatchObject([
+      {
+        providerRequests: 1,
+        inputTokens: 100,
+        outputTokens: 10,
+        costNanodollars: 250_000_000,
+      },
+    ]);
     await service.shutdown(session.id);
   });
 
@@ -1389,19 +1699,31 @@ describe("Capability live runnerd and Codex session", () => {
       });
       queue.push({
         method: "turn/completed",
-        params: { threadId: state.threadId, turn: { id: turnId, status: "completed" } },
-      });
-      setTimeout(() => queue.push({
-        method: "rawResponse/completed",
         params: {
           threadId: state.threadId,
-          turnId,
-          usage: { inputTokens: 60, outputTokens: 6 },
+          turn: { id: turnId, status: "completed" },
         },
-      }), 25);
+      });
+      setTimeout(
+        () =>
+          queue.push({
+            method: "rawResponse/completed",
+            params: {
+              threadId: state.threadId,
+              turnId,
+              usage: { inputTokens: 60, outputTokens: 6 },
+            },
+          }),
+        25,
+      );
     };
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ runId: "run-late-usage", sessionId: "session-late-usage" });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      runId: "run-late-usage",
+      sessionId: "session-late-usage",
+    });
 
     const result = await session.sendMessage("report late usage");
 
@@ -1442,11 +1764,19 @@ describe("Capability live runnerd and Codex session", () => {
       });
       queue.push({
         method: "turn/completed",
-        params: { threadId: state.threadId, turn: { id: turnId, status: "completed" } },
+        params: {
+          threadId: state.threadId,
+          turn: { id: turnId, status: "completed" },
+        },
       });
     };
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
-    const session = await service.create({ runId: "run-mixed-usage", sessionId: "session-mixed-usage" });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
+    const session = await service.create({
+      runId: "run-mixed-usage",
+      sessionId: "session-mixed-usage",
+    });
 
     await session.sendMessage("report first mixed usage");
     const second = await session.sendMessage("report second mixed usage");
@@ -1533,8 +1863,12 @@ describe("Capability live runnerd and Codex session", () => {
     });
     expect(continuation.assistantText).toContain("semantic-interaction-result");
     expect(resumed.pendingInteractions()).toHaveLength(0);
-    expect(resumed.mockState().interactions[0]?.result).toEqual({ path: "safe" });
-    expect(state.transports[1]?.requests.map((entry) => entry.method)).toContain("thread/resume");
+    expect(resumed.mockState().interactions[0]?.result).toEqual({
+      path: "safe",
+    });
+    expect(
+      state.transports[1]?.requests.map((entry) => entry.method),
+    ).toContain("thread/resume");
     await resumedService.shutdown(resumed.id);
     await firstService.shutdown(first.id);
   });
@@ -1553,7 +1887,9 @@ describe("Capability live runnerd and Codex session", () => {
       requestedModel: "openrouter/deepseek/deepseek-v4-flash-0731",
     });
     const longTurn = session.sendMessage("Start a long turn.");
-    await vi.waitFor(() => expect(session.snapshot().activeTurnId).not.toBeNull());
+    await vi.waitFor(() =>
+      expect(session.snapshot().activeTurnId).not.toBeNull(),
+    );
     await session.interrupt("bounded test interrupt");
     await expect(longTurn).resolves.toMatchObject({ status: "interrupted" });
     await session.sendMessage("Please report progress before reset.");
@@ -1587,7 +1923,10 @@ describe("Capability live runnerd and Codex session", () => {
       actorId: "actor-1",
       taskId: "task-1",
     };
-    const firstStore = new DurableCapabilityLiveSessionStore({ directory, binding });
+    const firstStore = new DurableCapabilityLiveSessionStore({
+      directory,
+      binding,
+    });
     const firstService = new CapabilityLiveSessionService({
       store: firstStore,
       transportFactory: fakeTransportFactory(state),
@@ -1598,25 +1937,31 @@ describe("Capability live runnerd and Codex session", () => {
       turnTimeoutMs: 500,
     });
     state.holdAfterTool = true;
-    const killedTurn = captureTurnRejection(first.sendMessage("Apply idempotent progress once."));
+    const killedTurn = captureTurnRejection(
+      first.sendMessage("Apply idempotent progress once."),
+    );
     await vi.waitFor(async () => {
       expect((await firstStore.load(binding.sessionId))?.mockState).toContain(
         "Progress persisted through the live Codex tool loop.",
       );
     });
-    await expect(first.recordUsage({
-      receiptId: "provider-response-1",
-      providerResponseId: "response-1",
-      turnId: "turn-1",
-      providerCalls: 1,
-      inputTokens: 100,
-      outputTokens: 20,
-      cachedInputTokens: 40,
-      reasoningTokens: 5,
-      costNanodollars: 1_500,
-    })).resolves.toBe("committed");
+    await expect(
+      first.recordUsage({
+        receiptId: "provider-response-1",
+        providerResponseId: "response-1",
+        turnId: "turn-1",
+        providerCalls: 1,
+        inputTokens: 100,
+        outputTokens: 20,
+        cachedInputTokens: 40,
+        reasoningTokens: 5,
+        costNanodollars: 1_500,
+      }),
+    ).resolves.toBe("committed");
     await state.transports[0]?.close();
-    await expect(killedTurn).resolves.toMatchObject({ message: expect.stringContaining("timed out") });
+    await expect(killedTurn).resolves.toMatchObject({
+      message: expect.stringContaining("timed out"),
+    });
 
     // A new service models worker termination: it owns no in-memory session.
     const resumedService = new CapabilityLiveSessionService({
@@ -1630,8 +1975,16 @@ describe("Capability live runnerd and Codex session", () => {
     });
     expect(resumed.snapshot().providerThreadId).toBe(state.threadId);
     expect(resumed.snapshot().attempts).toMatchObject([
-      { attemptId: "attempt-killed", status: "terminated", failureCode: "worker_terminated" },
-      { attemptId: "attempt-resumed", resumeOf: "attempt-killed", status: "running" },
+      {
+        attemptId: "attempt-killed",
+        status: "terminated",
+        failureCode: "worker_terminated",
+      },
+      {
+        attemptId: "attempt-resumed",
+        resumeOf: "attempt-killed",
+        status: "running",
+      },
     ]);
 
     await expect(resumed.reconcileActiveTurn()).resolves.toMatchObject({
@@ -1640,20 +1993,24 @@ describe("Capability live runnerd and Codex session", () => {
     });
     state.holdAfterTool = false;
 
-    const duplicate = await resumed.sendMessage("Apply idempotent progress once.");
+    const duplicate = await resumed.sendMessage(
+      "Apply idempotent progress once.",
+    );
     expect(duplicate.assistantText).toContain('"disposition":"duplicate"');
     expect(resumed.mockState().comments).toHaveLength(1);
-    await expect(resumed.recordUsage({
-      receiptId: "provider-response-1",
-      providerResponseId: "response-1",
-      turnId: "turn-1",
-      providerCalls: 1,
-      inputTokens: 100,
-      outputTokens: 20,
-      cachedInputTokens: 40,
-      reasoningTokens: 5,
-      costNanodollars: 1_500,
-    })).resolves.toBe("duplicate");
+    await expect(
+      resumed.recordUsage({
+        receiptId: "provider-response-1",
+        providerResponseId: "response-1",
+        turnId: "turn-1",
+        providerCalls: 1,
+        inputTokens: 100,
+        outputTokens: 20,
+        cachedInputTokens: 40,
+        reasoningTokens: 5,
+        costNanodollars: 1_500,
+      }),
+    ).resolves.toBe("duplicate");
     await resumed.recordUsage({
       receiptId: "provider-response-2",
       providerResponseId: "response-2",
@@ -1695,12 +2052,18 @@ describe("Capability live runnerd and Codex session", () => {
       turnTimeoutMs: 20,
     });
     state.holdAfterTool = true;
-    const killedTurn = captureTurnRejection(first.sendMessage("Apply idempotent progress once."));
+    const killedTurn = captureTurnRejection(
+      first.sendMessage("Apply idempotent progress once."),
+    );
     await vi.waitFor(async () => {
-      expect((await store.load(first.id))?.mockState).toContain("progress-governed-once");
+      expect((await store.load(first.id))?.mockState).toContain(
+        "progress-governed-once",
+      );
     });
     await state.transports[0]!.close();
-    await expect(killedTurn).resolves.toMatchObject({ message: expect.stringContaining("timed out") });
+    await expect(killedTurn).resolves.toMatchObject({
+      message: expect.stringContaining("timed out"),
+    });
 
     const resumedService = new CapabilityLiveSessionService({
       store,
@@ -1776,12 +2139,18 @@ describe("Capability live runnerd and Codex session", () => {
       turnTimeoutMs: 50,
     });
     state.holdAfterTool = true;
-    const killedTurn = captureTurnRejection(first.sendMessage("Apply idempotent progress once."));
+    const killedTurn = captureTurnRejection(
+      first.sendMessage("Apply idempotent progress once."),
+    );
     await vi.waitFor(async () => {
-      expect((await store.load(first.id))?.mockState).toContain("progress-governed-once");
+      expect((await store.load(first.id))?.mockState).toContain(
+        "progress-governed-once",
+      );
     });
     await state.transports[0]!.close();
-    await expect(killedTurn).resolves.toMatchObject({ message: expect.stringContaining("timed out") });
+    await expect(killedTurn).resolves.toMatchObject({
+      message: expect.stringContaining("timed out"),
+    });
     state.turns.set("turn-1", "interrupted");
 
     const resumedService = new CapabilityLiveSessionService({
@@ -1820,9 +2189,9 @@ describe("Capability live runnerd and Codex session", () => {
       },
     });
     expect(replay.success).toBe(true);
-    expect(String((replay.contentItems as Array<Record<string, unknown>>)[0]?.text)).toContain(
-      '\"disposition\":\"duplicate\"',
-    );
+    expect(
+      String((replay.contentItems as Array<Record<string, unknown>>)[0]?.text),
+    ).toContain('\"disposition\":\"duplicate\"');
     expect(resumed.mockState().comments).toHaveLength(1);
     expect(resumed.mockState().idempotency).toHaveLength(1);
     const replayedSnapshot = resumed.snapshot();
@@ -1834,21 +2203,50 @@ describe("Capability live runnerd and Codex session", () => {
         reconciledByAttemptId: "attempt-terminal-resumed",
       }),
     ]);
-    expect(replayedSnapshot.evidence.filter((entry) => entry.kind === "tool_result")).toHaveLength(2);
-    const receipts = replayedSnapshot.evidence.filter((entry) => entry.kind === "tool_result");
-    expect(receipts.map((entry) => (entry.data.result as Record<string, unknown>).ok)).toEqual([true, true]);
-    expect(receipts.map((entry) => (
-      ((entry.data.result as Record<string, unknown>).result as Record<string, unknown>).disposition
-    ))).toEqual(["applied", "duplicate"]);
-    expect(receipts.every((entry) => (
-      Number(entry.data.beforeRevision) <= Number(entry.data.afterRevision)
-    ))).toBe(true);
-    expect(receipts.every((entry) => (
-      Number((entry.data.result as Record<string, unknown>).stateRevision)
-        === Number(entry.data.afterRevision)
-    ))).toBe(true);
-    expect(receipts.at(-1)?.data.afterRevision).toBe(resumed.mockState().revision);
-    expect(state.transports[1]!.requests.some((request) => request.method === "turn/start")).toBe(false);
+    expect(
+      replayedSnapshot.evidence.filter((entry) => entry.kind === "tool_result"),
+    ).toHaveLength(2);
+    const receipts = replayedSnapshot.evidence.filter(
+      (entry) => entry.kind === "tool_result",
+    );
+    expect(
+      receipts.map(
+        (entry) => (entry.data.result as Record<string, unknown>).ok,
+      ),
+    ).toEqual([true, true]);
+    expect(
+      receipts.map(
+        (entry) =>
+          (
+            (entry.data.result as Record<string, unknown>).result as Record<
+              string,
+              unknown
+            >
+          ).disposition,
+      ),
+    ).toEqual(["applied", "duplicate"]);
+    expect(
+      receipts.every(
+        (entry) =>
+          Number(entry.data.beforeRevision) <= Number(entry.data.afterRevision),
+      ),
+    ).toBe(true);
+    expect(
+      receipts.every(
+        (entry) =>
+          Number(
+            (entry.data.result as Record<string, unknown>).stateRevision,
+          ) === Number(entry.data.afterRevision),
+      ),
+    ).toBe(true);
+    expect(receipts.at(-1)?.data.afterRevision).toBe(
+      resumed.mockState().revision,
+    );
+    expect(
+      state.transports[1]!.requests.some(
+        (request) => request.method === "turn/start",
+      ),
+    ).toBe(false);
 
     const rejected = await state.transports[1]!.invokeServerRequest({
       id: "request-turn-1:new-key",
@@ -1867,7 +2265,11 @@ describe("Capability live runnerd and Codex session", () => {
     expect(rejected.success).toBe(false);
     expect(resumed.mockState().comments).toHaveLength(1);
     expect(resumed.mockState().idempotency).toHaveLength(1);
-    expect(resumed.snapshot().evidence.filter((entry) => entry.kind === "tool_result")).toHaveLength(2);
+    expect(
+      resumed
+        .snapshot()
+        .evidence.filter((entry) => entry.kind === "tool_result"),
+    ).toHaveLength(2);
     await resumed.completeAttempt("succeeded");
     expect((await store.load(resumed.id))?.attempts).toMatchObject([
       { attemptId: "attempt-terminal-killed", status: "terminated" },
@@ -1877,7 +2279,9 @@ describe("Capability live runnerd and Codex session", () => {
   });
 
   it("fails closed for missing, corrupt, mismatched, and provider-drifted checkpoints", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "capability-live-fail-closed-"));
+    const directory = await mkdtemp(
+      join(tmpdir(), "capability-live-fail-closed-"),
+    );
     const binding = {
       sessionId: "session-fail-closed",
       runId: "run-fail-closed",
@@ -1889,11 +2293,13 @@ describe("Capability live runnerd and Codex session", () => {
       store: new DurableCapabilityLiveSessionStore({ directory, binding }),
       transportFactory: fakeTransportFactory(providerState()),
     });
-    await expect(missingService.resume({
-      sessionId: binding.sessionId,
-      attemptId: "attempt-missing-resume",
-      resumeOf: "attempt-missing",
-    })).rejects.toThrow("capability_live_resume_checkpoint_missing");
+    await expect(
+      missingService.resume({
+        sessionId: binding.sessionId,
+        attemptId: "attempt-missing-resume",
+        resumeOf: "attempt-missing",
+      }),
+    ).rejects.toThrow("capability_live_resume_checkpoint_missing");
 
     const state = providerState();
     const store = new DurableCapabilityLiveSessionStore({ directory, binding });
@@ -1915,39 +2321,58 @@ describe("Capability live runnerd and Codex session", () => {
       store,
       transportFactory: fakeTransportFactory(state),
     });
-    await expect(driftedService.resume({
-      sessionId: binding.sessionId,
-      attemptId: "attempt-drifted",
-      resumeOf: "attempt-original",
-    })).rejects.toThrow("capability_live_provider_session_drift");
-    expect((await store.load(binding.sessionId))?.attempts?.at(-1)).toMatchObject({
+    await expect(
+      driftedService.resume({
+        sessionId: binding.sessionId,
+        attemptId: "attempt-drifted",
+        resumeOf: "attempt-original",
+      }),
+    ).rejects.toThrow("capability_live_provider_session_drift");
+    expect(
+      (await store.load(binding.sessionId))?.attempts?.at(-1),
+    ).toMatchObject({
       attemptId: "attempt-drifted",
       status: "failed",
       failureCode: "provider_recovery_failed",
     });
 
-    const checkpointFile = join(directory, `${createHash("sha256").update(binding.sessionId).digest("hex")}.json`);
+    const checkpointFile = join(
+      directory,
+      `${createHash("sha256").update(binding.sessionId).digest("hex")}.json`,
+    );
     const checkpoint = await readFile(checkpointFile, "utf8");
-    await writeFile(checkpointFile, checkpoint.replace('"snapshotSha256":"', '"snapshotSha256":"corrupt-'));
-    await expect(store.load(binding.sessionId)).rejects.toThrow("capability_live_checkpoint_corrupt");
+    await writeFile(
+      checkpointFile,
+      checkpoint.replace('"snapshotSha256":"', '"snapshotSha256":"corrupt-'),
+    );
+    await expect(store.load(binding.sessionId)).rejects.toThrow(
+      "capability_live_checkpoint_corrupt",
+    );
   });
 
   it("still asserts a turn-timeout rejection after a delay longer than the turn timeout", async () => {
     const state = providerState();
-    const service = new CapabilityLiveSessionService({ transportFactory: fakeTransportFactory(state) });
+    const service = new CapabilityLiveSessionService({
+      transportFactory: fakeTransportFactory(state),
+    });
     const session = await service.create({ turnTimeoutMs: 50 });
     state.holdAfterTool = true;
-    const heldTurn = captureTurnRejection(session.sendMessage("Apply idempotent progress once."));
+    const heldTurn = captureTurnRejection(
+      session.sendMessage("Apply idempotent progress once."),
+    );
     // This delay outlasts turnTimeoutMs, so the rejection settles before this
     // test attaches its own assertion. Vitest fails a file on an unhandled
     // rejection, so this test would fail the file on its own without a
     // handler already attached at the moment the turn promise was created.
     await new Promise((resolve) => setTimeout(resolve, 300));
-    await expect(heldTurn).resolves.toMatchObject({ message: expect.stringContaining("timed out") });
+    await expect(heldTurn).resolves.toMatchObject({
+      message: expect.stringContaining("timed out"),
+    });
   });
 
   it.skipIf(
-    process.platform === "win32" || !existsSync(defaultCapabilityRunnerdBinary()),
+    process.platform === "win32" ||
+      !existsSync(defaultCapabilityRunnerdBinary()),
   )(
     "terminates real runnerd after a durable receipt and resumes its exact provider thread",
     async ({ signal }) => {
@@ -1968,7 +2393,10 @@ describe("Capability live runnerd and Codex session", () => {
         actorId: "actor-1",
         taskId: "task-1",
       };
-      const store = new DurableCapabilityLiveSessionStore({ directory, binding });
+      const store = new DurableCapabilityLiveSessionStore({
+        directory,
+        binding,
+      });
       const transportOptions = {
         codexCommand: process.execPath,
         codexArgs: [fixture, providerStatePath],

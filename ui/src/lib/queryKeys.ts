@@ -1,14 +1,35 @@
 export const queryKeys = {
   skillSources: {
-    preview: (companyId: string, repositoryUrl: string, connectionId: string | null, commitSha: string | null, skillPath: string, filePath: string) => ['skill-sources', companyId, 'preview', repositoryUrl, connectionId, commitSha, skillPath, filePath] as const,
+    preview: (
+      companyId: string,
+      repositoryUrl: string,
+      connectionId: string | null,
+      commitSha: string | null,
+      skillPath: string,
+      filePath: string,
+    ) =>
+      [
+        "skill-sources",
+        companyId,
+        "preview",
+        repositoryUrl,
+        connectionId,
+        commitSha,
+        skillPath,
+        filePath,
+      ] as const,
     all: (companyId: string) => ["skill-sources", companyId] as const,
-    repositories: (companyId: string) => ["skill-source-repositories", companyId] as const,
+    repositories: (companyId: string) =>
+      ["skill-source-repositories", companyId] as const,
   },
   agentChats: {
     list: (companyId: string | null, userId?: string | null) =>
       ["agent-chats", companyId, userId] as const,
-    detail: (companyId: string | null, userId: string | null, agentId: string | undefined) =>
-      ["agent-chat", companyId, userId, agentId] as const,
+    detail: (
+      companyId: string | null,
+      userId: string | null,
+      agentId: string | undefined,
+    ) => ["agent-chat", companyId, userId, agentId] as const,
   },
   companies: {
     /**
@@ -40,15 +61,22 @@ export const queryKeys = {
   },
   chatEndpoints: {
     list: (companyId: string) => ["chat-endpoints", companyId] as const,
-    detail: (endpointId: string) => ["chat-endpoints", "detail", endpointId] as const,
-    resources: (endpointId: string) => ["chat-endpoints", endpointId, "resources"] as const,
-    principals: (endpointId: string) => ["chat-endpoints", endpointId, "principals"] as const,
-    conversations: (endpointId: string) => ["chat-endpoints", endpointId, "conversations"] as const,
-    activity: (endpointId: string) => ["chat-endpoints", endpointId, "activity"] as const,
+    detail: (endpointId: string) =>
+      ["chat-endpoints", "detail", endpointId] as const,
+    resources: (endpointId: string) =>
+      ["chat-endpoints", endpointId, "resources"] as const,
+    principals: (endpointId: string) =>
+      ["chat-endpoints", endpointId, "principals"] as const,
+    conversations: (endpointId: string) =>
+      ["chat-endpoints", endpointId, "conversations"] as const,
+    activity: (endpointId: string) =>
+      ["chat-endpoints", endpointId, "activity"] as const,
   },
   tools: {
-    aggregatorApps: (connectionId: string, userId: string | null) => ["tools", "aggregator-apps", connectionId, userId] as const,
-    composioApps: (connectionId: string) => ["tools", "composio-apps", connectionId] as const,
+    aggregatorApps: (connectionId: string, userId: string | null) =>
+      ["tools", "aggregator-apps", connectionId, userId] as const,
+    composioApps: (connectionId: string) =>
+      ["tools", "composio-apps", connectionId] as const,
     applications: (companyId: string) =>
       ["tools", companyId, "applications"] as const,
     connections: (companyId: string) =>
@@ -59,7 +87,8 @@ export const queryKeys = {
       ["tools", "connection", connectionId, "installs"] as const,
     connectionGrants: (connectionId: string) =>
       ["tools", "connection", connectionId, "grants"] as const,
-    catalog: (connectionId: string) => ["tools", "connection", connectionId, "catalog"] as const,
+    catalog: (connectionId: string) =>
+      ["tools", "connection", connectionId, "catalog"] as const,
     connectionActivity: (connectionId: string) =>
       ["tools", "connection", connectionId, "activity"] as const,
     testAgents: (connectionId: string) =>
@@ -102,7 +131,14 @@ export const queryKeys = {
       ["tools", companyId, "audit", limit] as const,
     activity: (
       companyId: string,
-      filters: { gateway?: string; app?: string; agent?: string; outcome?: string; window?: string; search?: string },
+      filters: {
+        gateway?: string;
+        app?: string;
+        agent?: string;
+        outcome?: string;
+        window?: string;
+        search?: string;
+      },
     ) =>
       [
         "tools",
@@ -248,8 +284,18 @@ export const queryKeys = {
       ] as const,
     detectModel: (companyId: string, adapterType: string) =>
       ["agents", companyId, "detect-model", adapterType] as const,
-    authSignal: (companyId: string, adapterType: string, environmentId?: string | null) =>
-      ["agents", companyId, "auth-signal", adapterType, environmentId ?? null] as const,
+    authSignal: (
+      companyId: string,
+      adapterType: string,
+      environmentId?: string | null,
+    ) =>
+      [
+        "agents",
+        companyId,
+        "auth-signal",
+        adapterType,
+        environmentId ?? null,
+      ] as const,
     activeLoginSession: (companyId: string, adapterType: string) =>
       ["agents", companyId, "active-login-session", adapterType] as const,
   },
@@ -374,10 +420,14 @@ export const queryKeys = {
       options.excludeRoot
         ? (["issues", "cost-summary", issueId, "exclude-root"] as const)
         : (["issues", "cost-summary", issueId] as const),
-    privacyConstraints: (issueId: string) => ["issues", "privacy-constraints", issueId] as const,
-    accessGrants: (issueId: string) => ["issues", "access-grants", issueId] as const,
-    attachments: (issueId: string) => ["issues", "attachments", issueId] as const,
-    attachmentPreview: (attachmentId: string) => ["issues", "attachment-preview", attachmentId] as const,
+    privacyConstraints: (issueId: string) =>
+      ["issues", "privacy-constraints", issueId] as const,
+    accessGrants: (issueId: string) =>
+      ["issues", "access-grants", issueId] as const,
+    attachments: (issueId: string) =>
+      ["issues", "attachments", issueId] as const,
+    attachmentPreview: (attachmentId: string) =>
+      ["issues", "attachment-preview", attachmentId] as const,
     documents: (issueId: string) => ["issues", "documents", issueId] as const,
     document: (issueId: string, key: string) =>
       ["issues", "document", issueId, key] as const,
@@ -624,7 +674,8 @@ export const queryKeys = {
       ["sidebar-preferences", "project-order", companyId, userId] as const,
   },
   primaryAgent: {
-    mine: (companyId: string, userId: string) => ["primary-agent", companyId, userId] as const,
+    mine: (companyId: string, userId: string) =>
+      ["primary-agent", companyId, userId] as const,
   },
   resourceMemberships: {
     mine: (companyId: string) =>

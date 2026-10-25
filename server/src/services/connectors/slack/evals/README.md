@@ -14,19 +14,19 @@ or Product E2E workflows. Running the regressions does not run those prompts,
 invoke a model, or contact Slack. Each linked regression covers part of the
 contract; its pass does not establish the probe's complete outcome.
 
-| Feature | Guidance to preserve | Acceptance probe |
-| --- | --- | --- |
-| Choice questions and forms | Use saved Taskcore questions; Slack controls answer and resume the same task. | `choice-question`, `question-form` |
-| Files | Current-chat artifact handoff; explicit uploads elsewhere use an existing attachment. Verify delivery. | `file-reply` |
-| Mentions and replies | A bare mention starts a real conversation; unmentioned thread replies continue it. | `thread-followup` |
-| Search and history | Use authorized sources and real permalinks; disclose bounded coverage. | `search-coverage` |
-| Private research | Honor source/destination restrictions, including files. | `private-source` |
-| Posts, reactions, pins, bookmarks | Ordinary replies are delivered automatically; explicit actions use assigned tools. | `explicit-post-and-reaction` |
-| Uncertain writes | Keep the operation identity and inspect delivery; never resend with a new key. | `uncertain-write` |
-| Destructive changes and invitations | Honor the saved action policy and approval decision. | `approval-decline` |
-| Canvases and lists | Use advertised capabilities; explain plan/scope limitations without inventing success. | `canvas-list-availability` |
-| Task links | Use the server-provided public URL. | `task-link` |
-| People joining | Give the saved bot command, personal confirmation flow, and company-access approval. Channel invitations do not grant Taskcore access. | `invite-person` |
+| Feature                             | Guidance to preserve                                                                                                                   | Acceptance probe                   |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Choice questions and forms          | Use saved Taskcore questions; Slack controls answer and resume the same task.                                                          | `choice-question`, `question-form` |
+| Files                               | Current-chat artifact handoff; explicit uploads elsewhere use an existing attachment. Verify delivery.                                 | `file-reply`                       |
+| Mentions and replies                | A bare mention starts a real conversation; unmentioned thread replies continue it.                                                     | `thread-followup`                  |
+| Search and history                  | Use authorized sources and real permalinks; disclose bounded coverage.                                                                 | `search-coverage`                  |
+| Private research                    | Honor source/destination restrictions, including files.                                                                                | `private-source`                   |
+| Posts, reactions, pins, bookmarks   | Ordinary replies are delivered automatically; explicit actions use assigned tools.                                                     | `explicit-post-and-reaction`       |
+| Uncertain writes                    | Keep the operation identity and inspect delivery; never resend with a new key.                                                         | `uncertain-write`                  |
+| Destructive changes and invitations | Honor the saved action policy and approval decision.                                                                                   | `approval-decline`                 |
+| Canvases and lists                  | Use advertised capabilities; explain plan/scope limitations without inventing success.                                                 | `canvas-list-availability`         |
+| Task links                          | Use the server-provided public URL.                                                                                                    | `task-link`                        |
+| People joining                      | Give the saved bot command, personal confirmation flow, and company-access approval. Channel invitations do not grant Taskcore access. | `invite-person`                    |
 
 Pins, bookmarks, channel topics, invitations, list edits, and channel creation
 have tool descriptions and transport fixtures but no dedicated model probe here

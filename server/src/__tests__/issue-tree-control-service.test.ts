@@ -22,7 +22,9 @@ import { issueTreeControlService } from "../services/issue-tree-control.js";
 import { issueService } from "../services/issues.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -32,10 +34,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("issueTreeControlService", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-tree-control-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-tree-control-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -142,9 +148,18 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       },
     ]);
     const svc = issueTreeControlService(db);
-    const preview = await svc.preview(companyId, rootIssueId, { mode: "pause" });
+    const preview = await svc.preview(companyId, rootIssueId, {
+      mode: "pause",
+    });
 
-    expect(preview.issues.map((issue) => [issue.id, issue.depth, issue.skipped, issue.skipReason])).toEqual([
+    expect(
+      preview.issues.map((issue) => [
+        issue.id,
+        issue.depth,
+        issue.skipped,
+        issue.skipReason,
+      ]),
+    ).toEqual([
       [rootIssueId, 0, false, null],
       [runningChildId, 1, false, null],
       [doneChildId, 1, true, "terminal_status"],
@@ -158,11 +173,23 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       queuedRuns: 0,
       affectedAgents: 1,
     });
-    expect(preview.countsByStatus).toMatchObject({ todo: 1, in_progress: 1, done: 1, cancelled: 1 });
+    expect(preview.countsByStatus).toMatchObject({
+      todo: 1,
+      in_progress: 1,
+      done: 1,
+      cancelled: 1,
+    });
     expect(preview.activeRuns).toEqual([
-      expect.objectContaining({ id: runId, issueId: runningChildId, agentId, status: "running" }),
+      expect.objectContaining({
+        id: runId,
+        issueId: runningChildId,
+        agentId,
+        status: "running",
+      }),
     ]);
-    expect(preview.warnings.map((warning) => warning.code)).toContain("running_runs_present");
+    expect(preview.warnings.map((warning) => warning.code)).toContain(
+      "running_runs_present",
+    );
 
     const [runningChildAfterPreview] = await db
       .select()
@@ -170,7 +197,9 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       .where(eq(issues.id, runningChildId));
     expect(runningChildAfterPreview.status).toBe("in_progress");
 
-    await expect(svc.preview(otherCompanyId, rootIssueId, { mode: "pause" })).rejects.toMatchObject({
+    await expect(
+      svc.preview(otherCompanyId, rootIssueId, { mode: "pause" }),
+    ).rejects.toMatchObject({
       status: 404,
     });
   });
@@ -197,7 +226,9 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
     });
 
     const svc = issueTreeControlService(db);
-    const preview = await svc.preview(companyId, rootIssueId, { mode: "pause" });
+    const preview = await svc.preview(companyId, rootIssueId, {
+      mode: "pause",
+    });
 
     expect(preview.issues).toEqual([
       expect.objectContaining({
@@ -220,8 +251,12 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
     });
     expect(preview.activeRuns).toEqual([]);
     expect(preview.affectedAgents).toEqual([]);
-    expect(preview.warnings.map((warning) => warning.code)).not.toContain("running_runs_present");
-    expect(preview.warnings.map((warning) => warning.code)).not.toContain("queued_runs_present");
+    expect(preview.warnings.map((warning) => warning.code)).not.toContain(
+      "running_runs_present",
+    );
+    expect(preview.warnings.map((warning) => warning.code)).not.toContain(
+      "queued_runs_present",
+    );
   });
 
   it("creates and releases normalized hold snapshots", async () => {
@@ -257,10 +292,19 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       skipped: false,
     });
 
-    const released = await svc.releaseHold(companyId, rootIssueId, created.hold.id, {
-      reason: "operator resumed",
-      actor: { actorType: "user", actorId: "board-user", userId: "board-user" },
-    });
+    const released = await svc.releaseHold(
+      companyId,
+      rootIssueId,
+      created.hold.id,
+      {
+        reason: "operator resumed",
+        actor: {
+          actorType: "user",
+          actorId: "board-user",
+          userId: "board-user",
+        },
+      },
+    );
 
     expect(released.status).toBe("released");
     expect(released.releaseReason).toBe("operator resumed");
@@ -317,14 +361,17 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
         createdAt: new Date("2026-04-21T10:03:00.000Z"),
       },
     ]);
-    const [pendingInteraction] = await db.insert(issueThreadInteractions).values({
-      companyId,
-      issueId: runningChildId,
-      kind: "request_confirmation",
-      status: "pending",
-      continuationPolicy: "none",
-      payload: { version: 1, prompt: "Continue?" },
-    }).returning();
+    const [pendingInteraction] = await db
+      .insert(issueThreadInteractions)
+      .values({
+        companyId,
+        issueId: runningChildId,
+        kind: "request_confirmation",
+        status: "pending",
+        continuationPolicy: "none",
+        payload: { version: 1, prompt: "Continue?" },
+      })
+      .returning();
 
     const svc = issueTreeControlService(db);
     const cancel = await svc.createHold(companyId, rootIssueId, {
@@ -332,21 +379,35 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       reason: "bad plan",
       actor: { actorType: "user", actorId: "board-user", userId: "board-user" },
     });
-    expect(cancel.preview.issues.map((issue) => [issue.id, issue.skipped, issue.skipReason])).toEqual([
+    expect(
+      cancel.preview.issues.map((issue) => [
+        issue.id,
+        issue.skipped,
+        issue.skipReason,
+      ]),
+    ).toEqual([
       [rootIssueId, true, "terminal_status"],
       [runningChildId, false, null],
       [todoChildId, false, null],
       [doneChildId, true, "terminal_status"],
     ]);
 
-    const cancelled = await svc.cancelIssueStatusesForHold(companyId, rootIssueId, cancel.hold.id);
-    expect(cancelled.updatedIssueIds.sort()).toEqual([runningChildId, todoChildId].sort());
+    const cancelled = await svc.cancelIssueStatusesForHold(
+      companyId,
+      rootIssueId,
+      cancel.hold.id,
+    );
+    expect(cancelled.updatedIssueIds.sort()).toEqual(
+      [runningChildId, todoChildId].sort(),
+    );
 
     const afterCancel = await db
       .select({ id: issues.id, status: issues.status })
       .from(issues)
       .where(inArray(issues.id, [runningChildId, todoChildId, doneChildId]));
-    expect(Object.fromEntries(afterCancel.map((issue) => [issue.id, issue.status]))).toMatchObject({
+    expect(
+      Object.fromEntries(afterCancel.map((issue) => [issue.id, issue.status])),
+    ).toMatchObject({
       [runningChildId]: "cancelled",
       [todoChildId]: "cancelled",
       [doneChildId]: "done",
@@ -362,41 +423,73 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       .set({ status: "blocked", cancelledAt: null, updatedAt: new Date() })
       .where(eq(issues.id, todoChildId));
 
-    const restorePreview = await svc.preview(companyId, rootIssueId, { mode: "restore" });
-    expect(restorePreview.issues.map((issue) => [issue.id, issue.skipped, issue.skipReason])).toEqual([
+    const restorePreview = await svc.preview(companyId, rootIssueId, {
+      mode: "restore",
+    });
+    expect(
+      restorePreview.issues.map((issue) => [
+        issue.id,
+        issue.skipped,
+        issue.skipReason,
+      ]),
+    ).toEqual([
       [rootIssueId, true, "not_cancelled"],
       [runningChildId, false, null],
       [todoChildId, true, "changed_after_cancel"],
       [doneChildId, true, "not_cancelled"],
     ]);
-    expect(restorePreview.warnings.map((warning) => warning.code)).toContain("restore_conflicts_present");
+    expect(restorePreview.warnings.map((warning) => warning.code)).toContain(
+      "restore_conflicts_present",
+    );
 
     const restore = await svc.createHold(companyId, rootIssueId, {
       mode: "restore",
       reason: "resume useful work",
       actor: { actorType: "user", actorId: "board-user", userId: "board-user" },
     });
-    const restored = await svc.restoreIssueStatusesForHold(companyId, rootIssueId, restore.hold.id, {
-      reason: "resume useful work",
-      actor: { actorType: "user", actorId: "board-user", userId: "board-user" },
-    });
+    const restored = await svc.restoreIssueStatusesForHold(
+      companyId,
+      rootIssueId,
+      restore.hold.id,
+      {
+        reason: "resume useful work",
+        actor: {
+          actorType: "user",
+          actorId: "board-user",
+          userId: "board-user",
+        },
+      },
+    );
     expect(restored.updatedIssueIds).toEqual([runningChildId]);
 
     const afterRestore = await db
-      .select({ id: issues.id, status: issues.status, checkoutRunId: issues.checkoutRunId, executionRunId: issues.executionRunId })
+      .select({
+        id: issues.id,
+        status: issues.status,
+        checkoutRunId: issues.checkoutRunId,
+        executionRunId: issues.executionRunId,
+      })
       .from(issues)
       .where(inArray(issues.id, [runningChildId, todoChildId, doneChildId]));
-    expect(Object.fromEntries(afterRestore.map((issue) => [issue.id, issue.status]))).toMatchObject({
+    expect(
+      Object.fromEntries(afterRestore.map((issue) => [issue.id, issue.status])),
+    ).toMatchObject({
       [runningChildId]: "todo",
       [todoChildId]: "blocked",
       [doneChildId]: "done",
     });
 
     const holds = await db
-      .select({ id: issueTreeHolds.id, mode: issueTreeHolds.mode, status: issueTreeHolds.status })
+      .select({
+        id: issueTreeHolds.id,
+        mode: issueTreeHolds.mode,
+        status: issueTreeHolds.status,
+      })
       .from(issueTreeHolds)
       .where(inArray(issueTreeHolds.id, [cancel.hold.id, restore.hold.id]));
-    expect(Object.fromEntries(holds.map((hold) => [hold.mode, hold.status]))).toMatchObject({
+    expect(
+      Object.fromEntries(holds.map((hold) => [hold.mode, hold.status])),
+    ).toMatchObject({
       cancel: "released",
       restore: "released",
     });
@@ -482,7 +575,10 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
         source: "on_demand",
         triggerDetail: "manual",
         reason: "issue_commented",
-        payload: { issueId: deepDescendantIssueId, commentId: deepDescendantCommentId },
+        payload: {
+          issueId: deepDescendantIssueId,
+          commentId: deepDescendantCommentId,
+        },
         status: "queued",
         requestedByActorType: "agent",
         requestedByActorId: agentId,
@@ -495,7 +591,10 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
         source: "automation",
         triggerDetail: "system",
         reason: "issue_commented",
-        payload: { issueId: deepDescendantIssueId, commentId: deepDescendantCommentId },
+        payload: {
+          issueId: deepDescendantIssueId,
+          commentId: deepDescendantCommentId,
+        },
         status: "queued",
         requestedByActorType: "user",
         requestedByActorId: "board-user",
@@ -558,7 +657,10 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       reason: "operator requested pause",
       actor: { actorType: "user", actorId: "board-user", userId: "board-user" },
     });
-    const deepDescendantGate = await treeSvc.getActivePauseHoldGate(companyId, deepDescendantIssueId);
+    const deepDescendantGate = await treeSvc.getActivePauseHoldGate(
+      companyId,
+      deepDescendantIssueId,
+    );
     expect(deepDescendantGate).toMatchObject({
       holdId: expect.any(String),
       rootIssueId,
@@ -587,30 +689,46 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       }),
     });
 
-    const checkedOutChild = await issueSvc.checkout(deepDescendantIssueId, agentId, ["todo"], deepDescendantRunId);
+    const checkedOutChild = await issueSvc.checkout(
+      deepDescendantIssueId,
+      agentId,
+      ["todo"],
+      deepDescendantRunId,
+    );
     expect(checkedOutChild.status).toBe("in_progress");
     expect(checkedOutChild.checkoutRunId).toBe(deepDescendantRunId);
 
-    const checkedOutRoot = await issueSvc.checkout(rootIssueId, agentId, ["todo"], rootRunId);
+    const checkedOutRoot = await issueSvc.checkout(
+      rootIssueId,
+      agentId,
+      ["todo"],
+      rootRunId,
+    );
     expect(checkedOutRoot.status).toBe("in_progress");
     expect(checkedOutRoot.checkoutRunId).toBe(rootRunId);
 
-    await db.update(issues).set({
-      status: "todo",
-      checkoutRunId: null,
-      executionRunId: null,
-      executionAgentNameKey: null,
-      executionLockedAt: null,
-      updatedAt: new Date(),
-    }).where(eq(issues.id, rootIssueId));
-    await db.update(issueTreeHolds).set({
-      status: "released",
-      releasedAt: new Date(),
-      releasedByActorType: "user",
-      releasedByUserId: "board-user",
-      releaseReason: "switch to full pause",
-      updatedAt: new Date(),
-    }).where(eq(issueTreeHolds.rootIssueId, rootIssueId));
+    await db
+      .update(issues)
+      .set({
+        status: "todo",
+        checkoutRunId: null,
+        executionRunId: null,
+        executionAgentNameKey: null,
+        executionLockedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(issues.id, rootIssueId));
+    await db
+      .update(issueTreeHolds)
+      .set({
+        status: "released",
+        releasedAt: new Date(),
+        releasedByActorType: "user",
+        releasedByUserId: "board-user",
+        releaseReason: "switch to full pause",
+        updatedAt: new Date(),
+      })
+      .where(eq(issueTreeHolds.rootIssueId, rootIssueId));
     await treeSvc.createHold(companyId, rootIssueId, {
       mode: "pause",
       reason: "full pause",
@@ -618,7 +736,12 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       actor: { actorType: "user", actorId: "board-user", userId: "board-user" },
     });
 
-    const checkedOutLegacyFullPauseRoot = await issueSvc.checkout(rootIssueId, agentId, ["todo"], rootRunId);
+    const checkedOutLegacyFullPauseRoot = await issueSvc.checkout(
+      rootIssueId,
+      agentId,
+      ["todo"],
+      rootRunId,
+    );
     expect(checkedOutLegacyFullPauseRoot.status).toBe("in_progress");
     expect(checkedOutLegacyFullPauseRoot.checkoutRunId).toBe(rootRunId);
   });
@@ -666,11 +789,19 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
       reason: "pause child only",
       actor: { actorType: "user", actorId: "board-user", userId: "board-user" },
     });
-    const nonSubtreePause = await treeSvc.createHold(companyId, nonSubtreeIssueId, {
-      mode: "pause",
-      reason: "pause unrelated issue",
-      actor: { actorType: "user", actorId: "board-user", userId: "board-user" },
-    });
+    const nonSubtreePause = await treeSvc.createHold(
+      companyId,
+      nonSubtreeIssueId,
+      {
+        mode: "pause",
+        reason: "pause unrelated issue",
+        actor: {
+          actorType: "user",
+          actorId: "board-user",
+          userId: "board-user",
+        },
+      },
+    );
 
     const resumed = await treeSvc.createHold(companyId, rootIssueId, {
       mode: "resume",
@@ -683,7 +814,11 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
     expect(resumed.resumedPauseHoldIds).toEqual([subtreePause.hold.id]);
 
     const rows = await db
-      .select({ id: issueTreeHolds.id, status: issueTreeHolds.status, releaseMetadata: issueTreeHolds.releaseMetadata })
+      .select({
+        id: issueTreeHolds.id,
+        status: issueTreeHolds.status,
+        releaseMetadata: issueTreeHolds.releaseMetadata,
+      })
       .from(issueTreeHolds)
       .where(eq(issueTreeHolds.companyId, companyId));
     const byId = new Map(rows.map((row) => [row.id, row] as const));
@@ -691,15 +826,19 @@ describeEmbeddedPostgres("issueTreeControlService", () => {
     expect(byId.get(nonSubtreePause.hold.id)?.status).toBe("active");
     expect(byId.get(resumed.hold.id)?.status).toBe("released");
 
-    const releaseMetadata = byId.get(subtreePause.hold.id)?.releaseMetadata as
-      | Record<string, unknown>
-      | null;
+    const releaseMetadata = byId.get(subtreePause.hold.id)
+      ?.releaseMetadata as Record<string, unknown> | null;
     expect(releaseMetadata).toMatchObject({
       resumedByResumeHoldId: resumed.hold.id,
       resumeHoldMode: "tree_resume",
       resumedPauseHoldId: subtreePause.hold.id,
     });
-    expect((byId.get(resumed.hold.id)?.releaseMetadata as Record<string, unknown> | null)).toMatchObject({
+    expect(
+      byId.get(resumed.hold.id)?.releaseMetadata as Record<
+        string,
+        unknown
+      > | null,
+    ).toMatchObject({
       resumedPauseHoldIds: [subtreePause.hold.id],
       resumeMode: "subtree",
     });

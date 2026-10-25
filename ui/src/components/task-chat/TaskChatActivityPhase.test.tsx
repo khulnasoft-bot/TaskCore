@@ -13,34 +13,99 @@ describe("TaskChatActivityPhase", () => {
     document.body.appendChild(container);
     const root = createRoot(container);
     const memory = new Map<string, boolean>();
-    const render = (host: string, status: TaskChatToolItem["status"]) => flushSync(() => root.render(
-      <TaskChatExpansionState.Provider value={memory}>
-        <TaskChatActivityPhase
-          key={host}
-          autoOpen={false}
-          item={{ id: "phase-1", kind: "activity_phase", active: status === "in_progress", summary: "Checked source", items: [
-            { id: "tool-1", kind: "tool", name: "Read", status, detail: "Source contents stay visible" },
-          ] }}
-          renderChild={(child) => <TaskChatToolCard item={child as TaskChatToolItem} />}
-        />
-      </TaskChatExpansionState.Provider>,
-    ));
+    const render = (host: string, status: TaskChatToolItem["status"]) =>
+      flushSync(() =>
+        root.render(
+          <TaskChatExpansionState.Provider value={memory}>
+            <TaskChatActivityPhase
+              key={host}
+              autoOpen={false}
+              item={{
+                id: "phase-1",
+                kind: "activity_phase",
+                active: status === "in_progress",
+                summary: "Checked source",
+                items: [
+                  {
+                    id: "tool-1",
+                    kind: "tool",
+                    name: "Read",
+                    status,
+                    detail: "Source contents stay visible",
+                  },
+                ],
+              }}
+              renderChild={(child) => (
+                <TaskChatToolCard item={child as TaskChatToolItem} />
+              )}
+            />
+          </TaskChatExpansionState.Provider>,
+        ),
+      );
     render("live", "in_progress");
-    flushSync(() => container.querySelector<HTMLButtonElement>('[data-testid="task-chat-phase-summary"]')!.click());
-    flushSync(() => container.querySelector<HTMLButtonElement>('[data-testid="task-chat-tool-card"] button')!.click());
+    flushSync(() =>
+      container
+        .querySelector<HTMLButtonElement>(
+          '[data-testid="task-chat-phase-summary"]',
+        )!
+        .click(),
+    );
+    flushSync(() =>
+      container
+        .querySelector<HTMLButtonElement>(
+          '[data-testid="task-chat-tool-card"] button',
+        )!
+        .click(),
+    );
     render("history", "completed");
-    expect(container.querySelector('[data-testid="task-chat-phase-summary"]')?.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('[data-testid="task-chat-tool-card"] button')?.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      container
+        .querySelector('[data-testid="task-chat-phase-summary"]')
+        ?.getAttribute("aria-expanded"),
+    ).toBe("true");
+    expect(
+      container
+        .querySelector('[data-testid="task-chat-tool-card"] button')
+        ?.getAttribute("aria-expanded"),
+    ).toBe("true");
     expect(container.textContent).toContain("Source contents stay visible");
-    flushSync(() => container.querySelector<HTMLButtonElement>('[data-testid="task-chat-phase-summary"]')!.click());
-    flushSync(() => root.render(
-      <TaskChatExpansionState.Provider value={memory}>
-        <TaskChatActivityPhase key="reconciled" defaultOpen item={{ id: "phase-1", kind: "activity_phase", active: false, summary: "Checked source", items: [
-          { id: "tool-1", kind: "tool", name: "Read", status: "completed" },
-        ] }} renderChild={() => null} />
-      </TaskChatExpansionState.Provider>,
-    ));
-    expect(container.querySelector('[data-testid="task-chat-phase-summary"]')?.getAttribute("aria-expanded")).toBe("false");
+    flushSync(() =>
+      container
+        .querySelector<HTMLButtonElement>(
+          '[data-testid="task-chat-phase-summary"]',
+        )!
+        .click(),
+    );
+    flushSync(() =>
+      root.render(
+        <TaskChatExpansionState.Provider value={memory}>
+          <TaskChatActivityPhase
+            key="reconciled"
+            defaultOpen
+            item={{
+              id: "phase-1",
+              kind: "activity_phase",
+              active: false,
+              summary: "Checked source",
+              items: [
+                {
+                  id: "tool-1",
+                  kind: "tool",
+                  name: "Read",
+                  status: "completed",
+                },
+              ],
+            }}
+            renderChild={() => null}
+          />
+        </TaskChatExpansionState.Provider>,
+      ),
+    );
+    expect(
+      container
+        .querySelector('[data-testid="task-chat-phase-summary"]')
+        ?.getAttribute("aria-expanded"),
+    ).toBe("false");
     flushSync(() => root.unmount());
   });
 

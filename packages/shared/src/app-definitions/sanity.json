@@ -3,17 +3,13 @@
   "slug": "sanity",
   "name": "Sanity",
   "description": "Connect Sanity's provider-hosted MCP server.",
-  "categories": [
-    "content"
-  ],
+  "categories": ["content"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/sanity.svg",
     "darkLogoUrl": "/brands/apps/sanity-dark.svg"
   },
-  "urlPatterns": [
-    "https://mcp.sanity.io/*"
-  ],
+  "urlPatterns": ["https://mcp.sanity.io/*"],
   "docsUrl": "https://www.sanity.io/docs/ai/mcp-server",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -21,15 +17,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.sanity.io",
-        "scopesHint": [
-          "global"
-        ]
+        "scopesHint": ["global"]
       },
       "guidanceMd": "Connect Sanity in the browser. A Sanity account with access to the relevant projects and datasets.",
       "riskTier": "S3",
@@ -45,9 +37,7 @@
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.sanity.io"

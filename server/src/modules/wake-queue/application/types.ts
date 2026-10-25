@@ -72,12 +72,15 @@ export type IssueReopenedEffect = {
 };
 
 /** Explicit post-commit work a caller applies only after the release transaction commits. */
-export type PostCommitEffect = RunQueuedEffect | IssueReopenedEffect | {
-  kind: "conversation_retry_requested";
-  companyId: string;
-  runId: string;
-  reviewParticipant: boolean;
-};
+export type PostCommitEffect =
+  | RunQueuedEffect
+  | IssueReopenedEffect
+  | {
+      kind: "conversation_retry_requested";
+      companyId: string;
+      runId: string;
+      reviewParticipant: boolean;
+    };
 
 export type ReleaseOutcome =
   | { kind: "released" }
@@ -96,7 +99,8 @@ export type ReleaseOutcome =
       previousStatus: "todo" | "in_progress" | "in_review";
     };
 
-export type WakeQueueApplicationErrorCode = "responsible_user_unresolved" | "deferred_wake_not_advanced";
+export type WakeQueueApplicationErrorCode =
+  "responsible_user_unresolved" | "deferred_wake_not_advanced";
 
 export class WakeQueueApplicationError extends Error {
   constructor(

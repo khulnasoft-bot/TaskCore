@@ -12,14 +12,24 @@ function act(callback: () => void) {
 }
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
-  useCaseHref: () => (...segments: string[]) =>
-    `/PAP/${["cases", ...segments].filter(Boolean).join("/")}`,
+  useCaseHref:
+    () =>
+    (...segments: string[]) =>
+      `/PAP/${["cases", ...segments].filter(Boolean).join("/")}`,
 }));
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function child(overrides: Partial<CaseSummary>): CaseSummary {
   return {
@@ -66,8 +76,19 @@ describe("CaseChildrenTree", () => {
 
   it("renders each child with identifier, type and status chips linking to detail without keys", () => {
     const root = render([
-      child({ identifier: "PAP-C8", key: "launch/post", caseType: "blog_post", status: "in_review", title: "Post" }),
-      child({ identifier: "PAP-C9", caseType: "image", status: "done", title: "Hero image" }),
+      child({
+        identifier: "PAP-C8",
+        key: "launch/post",
+        caseType: "blog_post",
+        status: "in_review",
+        title: "Post",
+      }),
+      child({
+        identifier: "PAP-C9",
+        caseType: "image",
+        status: "done",
+        title: "Hero image",
+      }),
     ]);
     const text = container.textContent ?? "";
     expect(text).toContain("PAP-C8");
@@ -76,25 +97,37 @@ describe("CaseChildrenTree", () => {
     // StatusBadge renders the status with underscores as spaces.
     expect(text).toContain("in review");
     expect(text).toContain("Hero image");
-    expect(container.querySelector('a[href="/PAP/cases/PAP-C8"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/PAP/cases/PAP-C9"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/PAP/cases/PAP-C8"]')?.className).not.toContain("border");
+    expect(
+      container.querySelector('a[href="/PAP/cases/PAP-C8"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('a[href="/PAP/cases/PAP-C9"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('a[href="/PAP/cases/PAP-C8"]')?.className,
+    ).not.toContain("border");
     act(() => root.unmount());
   });
 
   it("caps long child lists until show more is clicked", () => {
     const root = createRoot(container);
     const children = Array.from({ length: 7 }, (_, index) =>
-      child({ id: `child-${index + 1}`, identifier: `PAP-C${index + 1}`, title: `Child ${index + 1}` })
+      child({
+        id: `child-${index + 1}`,
+        identifier: `PAP-C${index + 1}`,
+        title: `Child ${index + 1}`,
+      }),
     );
-    act(() => root.render(<CaseChildrenTree children={children} maxVisible={5} />));
+    act(() =>
+      root.render(<CaseChildrenTree children={children} maxVisible={5} />),
+    );
 
     expect(container.textContent).toContain("Child 5");
     expect(container.textContent).not.toContain("Child 6");
     expect(container.textContent).toContain("Show 2 more");
 
-    const showMore = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Show 2 more")
+    const showMore = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Show 2 more"),
     );
     expect(showMore).toBeTruthy();
     act(() => {

@@ -38,52 +38,184 @@ const project = (
 
 describe("execution truth projection", () => {
   it("keeps cleanup quarantine visible without a coordinator or recovery row", () => {
-    const stopped = run({ id: "stopped", status: "failed", errorCode: "native_session_cleanup_quarantined" });
-    expect(projectExecution(stopped, undefined, [], undefined, now)).toMatchObject({
-      phase: "recovery_needed", cause: "native_session_cleanup_quarantined", recoveryOwner: "board",
+    const stopped = run({
+      id: "stopped",
+      status: "failed",
+      errorCode: "native_session_cleanup_quarantined",
+    });
+    expect(
+      projectExecution(stopped, undefined, [], undefined, now),
+    ).toMatchObject({
+      phase: "recovery_needed",
+      cause: "native_session_cleanup_quarantined",
+      recoveryOwner: "board",
       permittedActions: ["inspect_run", "inspect_recovery"],
     });
-    expect(projectExecution(stopped, coordinator({ phase: "retryable_failure" }), [], undefined, now).phase).toBe("recovery_needed");
-    expect(projectExecution({ ...stopped, finishedAt: now }, coordinator({
-      phase: "terminal_failure", failureCode: "native_provider_terminal_failed",
-    }), [], undefined, now)).toMatchObject({ phase: "recovery_needed", recoveryOwner: "board" });
-    expect(projectExecution({ ...stopped, errorCode: "provider_frame_too_large" }, undefined, [], undefined, now).phase).toBe("failed");
-    expect(projectExecution(stopped, undefined, [], { status: "resolved", cause: "native_session_cleanup_quarantined", nextAction: "Verify prior execution",
-      evidence: { executionReconciliation: { providerStopped: true }, continuationRunId: "successor" } }, now))
-      .toMatchObject({ phase: "completed", successorRunId: "successor", cause: null });
+    expect(
+      projectExecution(
+        stopped,
+        coordinator({ phase: "retryable_failure" }),
+        [],
+        undefined,
+        now,
+      ).phase,
+    ).toBe("recovery_needed");
+    expect(
+      projectExecution(
+        { ...stopped, finishedAt: now },
+        coordinator({
+          phase: "terminal_failure",
+          failureCode: "native_provider_terminal_failed",
+        }),
+        [],
+        undefined,
+        now,
+      ),
+    ).toMatchObject({ phase: "recovery_needed", recoveryOwner: "board" });
+    expect(
+      projectExecution(
+        { ...stopped, errorCode: "provider_frame_too_large" },
+        undefined,
+        [],
+        undefined,
+        now,
+      ).phase,
+    ).toBe("failed");
+    expect(
+      projectExecution(
+        stopped,
+        undefined,
+        [],
+        {
+          status: "resolved",
+          cause: "native_session_cleanup_quarantined",
+          nextAction: "Verify prior execution",
+          evidence: {
+            executionReconciliation: { providerStopped: true },
+            continuationRunId: "successor",
+          },
+        },
+        now,
+      ),
+    ).toMatchObject({
+      phase: "completed",
+      successorRunId: "successor",
+      cause: null,
+    });
   });
   it("shows subscription contention as a resource wait without failed provider attempts", () => {
-    expect(projectExecution(run({ runtimeMode: "legacy", status: "scheduled_retry", scheduledRetryReason: "ai_connection_busy",
-      scheduledRetryAttempt: 12, contextSnapshot: { failureRetriesBeforeAiConnectionWait: 0 } }), undefined, [], undefined, now))
-      .toMatchObject({ label: "Waiting for AI subscription", phase: "retry_scheduled", attempt: 1, recoveryOwner: null });
+    expect(
+      projectExecution(
+        run({
+          runtimeMode: "legacy",
+          status: "scheduled_retry",
+          scheduledRetryReason: "ai_connection_busy",
+          scheduledRetryAttempt: 12,
+          contextSnapshot: { failureRetriesBeforeAiConnectionWait: 0 },
+        }),
+        undefined,
+        [],
+        undefined,
+        now,
+      ),
+    ).toMatchObject({
+      label: "Waiting for AI subscription",
+      phase: "retry_scheduled",
+      attempt: 1,
+      recoveryOwner: null,
+    });
   });
   it("shows a workspace wait without presenting its deferral count as failed attempts", () => {
-    expect(projectExecution(run({ runtimeMode: "legacy", status: "scheduled_retry", scheduledRetryReason: "workspace_busy",
-      scheduledRetryAttempt: 12, contextSnapshot: { failureRetriesBeforeWorkspaceWait: 1 } }), undefined, [], undefined, now))
-      .toMatchObject({ label: "Waiting for workspace", phase: "retry_scheduled", attempt: 2, recoveryOwner: null });
+    expect(
+      projectExecution(
+        run({
+          runtimeMode: "legacy",
+          status: "scheduled_retry",
+          scheduledRetryReason: "workspace_busy",
+          scheduledRetryAttempt: 12,
+          contextSnapshot: { failureRetriesBeforeWorkspaceWait: 1 },
+        }),
+        undefined,
+        [],
+        undefined,
+        now,
+      ),
+    ).toMatchObject({
+      label: "Waiting for workspace",
+      phase: "retry_scheduled",
+      attempt: 2,
+      recoveryOwner: null,
+    });
   });
   it.each([
-    { status: "resolved", previousRunId: "old", nextRunId: "next", continued: true },
-    { status: "active", previousRunId: "old", nextRunId: "next", continued: false },
-    { status: "resolved", previousRunId: "other", nextRunId: "next", continued: false },
-    { status: "resolved", previousRunId: "old", nextRunId: "old", continued: false },
-    { status: "resolved", previousRunId: "old", nextRunId: null, continued: false },
-  ])("projects the recorded explicit successor without hiding unresolved recovery: $status/$previousRunId/$nextRunId", ({ status, previousRunId, nextRunId, continued }) => {
-    const source = run({ id: "old", status: "failed", errorCode: "adapter_failed" });
-    expect(projectExecution(source, coordinator({ phase: "terminal_failure" }), [], {
-      status,
-      cause: "native_continuation_requires_reconciliation",
-      nextAction: "Inspect the stopped execution.",
-      evidence: {
-        automaticRecovery: { policy: "preserve_without_replay_v1" },
-        explicitUserContinuation: { previousRunId, runId: nextRunId },
-      },
-    }, now)).toMatchObject(continued ? {
-      phase: "completed", label: "Continued in another run", successorRunId: "next",
-      cause: "native_continuation_requires_reconciliation", nextAction: null,
-    } : { phase: "recovery_needed", successorRunId: null });
-    expect(source.status).toBe("failed");
-  });
+    {
+      status: "resolved",
+      previousRunId: "old",
+      nextRunId: "next",
+      continued: true,
+    },
+    {
+      status: "active",
+      previousRunId: "old",
+      nextRunId: "next",
+      continued: false,
+    },
+    {
+      status: "resolved",
+      previousRunId: "other",
+      nextRunId: "next",
+      continued: false,
+    },
+    {
+      status: "resolved",
+      previousRunId: "old",
+      nextRunId: "old",
+      continued: false,
+    },
+    {
+      status: "resolved",
+      previousRunId: "old",
+      nextRunId: null,
+      continued: false,
+    },
+  ])(
+    "projects the recorded explicit successor without hiding unresolved recovery: $status/$previousRunId/$nextRunId",
+    ({ status, previousRunId, nextRunId, continued }) => {
+      const source = run({
+        id: "old",
+        status: "failed",
+        errorCode: "adapter_failed",
+      });
+      expect(
+        projectExecution(
+          source,
+          coordinator({ phase: "terminal_failure" }),
+          [],
+          {
+            status,
+            cause: "native_continuation_requires_reconciliation",
+            nextAction: "Inspect the stopped execution.",
+            evidence: {
+              automaticRecovery: { policy: "preserve_without_replay_v1" },
+              explicitUserContinuation: { previousRunId, runId: nextRunId },
+            },
+          },
+          now,
+        ),
+      ).toMatchObject(
+        continued
+          ? {
+              phase: "completed",
+              label: "Continued in another run",
+              successorRunId: "next",
+              cause: "native_continuation_requires_reconciliation",
+              nextAction: null,
+            }
+          : { phase: "recovery_needed", successorRunId: null },
+      );
+      expect(source.status).toBe("failed");
+    },
+  );
 
   it("shows a reconciled continuation as queued until its durable delivery is recorded", () => {
     const action = {
@@ -169,7 +301,19 @@ describe("execution truth projection", () => {
     ).toBe("reconnecting");
   });
   it("includes the original legacy attempt in the displayed incident budget", () => {
-    expect(projectExecution(run({ runtimeMode: "legacy", status: "scheduled_retry", scheduledRetryAttempt: 1 }), undefined, [], undefined, now)).toMatchObject({ attempt: 2, maxAttempts: 3 });
+    expect(
+      projectExecution(
+        run({
+          runtimeMode: "legacy",
+          status: "scheduled_retry",
+          scheduledRetryAttempt: 1,
+        }),
+        undefined,
+        [],
+        undefined,
+        now,
+      ),
+    ).toMatchObject({ attempt: 2, maxAttempts: 3 });
   });
   it("shows pending interaction only after productive work has stopped", () => {
     expect(

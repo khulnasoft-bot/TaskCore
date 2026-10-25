@@ -5,9 +5,13 @@ import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 import * as schema from "./schema/index.js";
 
-const MIGRATIONS_FOLDER = fileURLToPath(new URL("./migrations", import.meta.url));
+const MIGRATIONS_FOLDER = fileURLToPath(
+  new URL("./migrations", import.meta.url),
+);
 const DRIZZLE_MIGRATIONS_TABLE = "__drizzle_migrations";
-const MIGRATIONS_JOURNAL_JSON = fileURLToPath(new URL("./migrations/meta/_journal.json", import.meta.url));
+const MIGRATIONS_JOURNAL_JSON = fileURLToPath(
+  new URL("./migrations/meta/_journal.json", import.meta.url),
+);
 
 function createUtilitySql(url: string) {
   return postgres(url, { max: 1, onnotice: () => {} });
@@ -35,7 +39,11 @@ function hostPortKeyOrNull(url: string): string | null {
   try {
     return hostPortKey(url);
   } catch (error) {
-    if (error instanceof TypeError && (error as NodeJS.ErrnoException).code === "ERR_INVALID_URL") return null;
+    if (
+      error instanceof TypeError &&
+      (error as NodeJS.ErrnoException).code === "ERR_INVALID_URL"
+    )
+      return null;
     throw error;
   }
 }
@@ -44,15 +52,19 @@ function hostPortKeyOrNull(url: string): string | null {
 // fixture can end them before it stops the Postgres cluster they point at. A
 // `WeakRef` plus `FinalizationRegistry` means a long-lived process (a real
 // server) retains nothing extra: an unreferenced client is pruned on its own.
-const clientsByHostPort = new Map<string, Set<WeakRef<RegisteredPostgresClient>>>();
-const clientFinalizer = new FinalizationRegistry<{ hostPortKey: string; ref: WeakRef<RegisteredPostgresClient> }>(
-  ({ hostPortKey, ref }) => {
-    const refs = clientsByHostPort.get(hostPortKey);
-    if (!refs) return;
-    refs.delete(ref);
-    if (refs.size === 0) clientsByHostPort.delete(hostPortKey);
-  },
-);
+const clientsByHostPort = new Map<
+  string,
+  Set<WeakRef<RegisteredPostgresClient>>
+>();
+const clientFinalizer = new FinalizationRegistry<{
+  hostPortKey: string;
+  ref: WeakRef<RegisteredPostgresClient>;
+}>(({ hostPortKey, ref }) => {
+  const refs = clientsByHostPort.get(hostPortKey);
+  if (!refs) return;
+  refs.delete(ref);
+  if (refs.size === 0) clientsByHostPort.delete(hostPortKey);
+});
 
 function registerClient(key: string, client: RegisteredPostgresClient): void {
   const ref = new WeakRef(client);
@@ -85,7 +97,9 @@ export async function closeRegisteredClients(url: string): Promise<void> {
     if (client) clients.push(client);
   }
 
-  await Promise.all(clients.map((client) => client.end({ timeout: 1 }).catch(() => {})));
+  await Promise.all(
+    clients.map((client) => client.end({ timeout: 1 }).catch(() => {})),
+  );
 }
 
 function isSafeIdentifier(value: string): boolean {
@@ -93,8 +107,9 @@ function isSafeIdentifier(value: string): boolean {
 }
 
 function quoteIdentifier(value: string): string {
-  if (!isSafeIdentifier(value)) throw new Error(`Unsafe SQL identifier: ${value}`);
-  return `"${value.replaceAll("\"", "\"\"")}"`;
+  if (!isSafeIdentifier(value))
+    throw new Error(`Unsafe SQL identifier: ${value}`);
+  return `"${value.replaceAll('"', '""')}"`;
 }
 
 function quoteLiteral(value: string): string {
@@ -123,7 +138,10 @@ export type MigrationState =
       appliedMigrations: string[];
       pendingMigrations: string[];
       journalEntryCount: number;
-      reason: "no-migration-journal-empty-db" | "no-migration-journal-non-empty-db" | "pending-migrations";
+      reason:
+        | "no-migration-journal-empty-db"
+        | "no-migration-journal-non-empty-db"
+        | "pending-migrations";
     };
 
 export interface DatabaseClientOptions {
@@ -175,7 +193,10 @@ function envBoolean(env: NodeJS.ProcessEnv, name: string): boolean | undefined {
   throw new Error(`${name} must be "true" or "false", got: ${env[name]}`);
 }
 
-function envPositiveInteger(env: NodeJS.ProcessEnv, name: string): number | undefined {
+function envPositiveInteger(
+  env: NodeJS.ProcessEnv,
+  name: string,
+): number | undefined {
   const value = env[name]?.trim();
   if (value === undefined || value === "") return undefined;
   if (!/^[1-9]\d*$/.test(value)) {
@@ -184,16 +205,24 @@ function envPositiveInteger(env: NodeJS.ProcessEnv, name: string): number | unde
   return Number.parseInt(value, 10);
 }
 
-function envNonNegativeInteger(env: NodeJS.ProcessEnv, name: string): number | undefined {
+function envNonNegativeInteger(
+  env: NodeJS.ProcessEnv,
+  name: string,
+): number | undefined {
   const value = env[name]?.trim();
   if (value === undefined || value === "") return undefined;
   if (!/^(?:0|[1-9]\d*)$/.test(value)) {
-    throw new Error(`${name} must be a non-negative integer, got: ${env[name]}`);
+    throw new Error(
+      `${name} must be a non-negative integer, got: ${env[name]}`,
+    );
   }
   return Number.parseInt(value, 10);
 }
 
-function envNonEmptyString(env: NodeJS.ProcessEnv, name: string): string | undefined {
+function envNonEmptyString(
+  env: NodeJS.ProcessEnv,
+  name: string,
+): string | undefined {
   const value = env[name]?.trim();
   if (value === undefined || value === "") return undefined;
   return value;
@@ -207,19 +236,33 @@ function envNonEmptyString(env: NodeJS.ProcessEnv, name: string): string | undef
  * Taskcore's own defaults on top, and the driver defaults apply to the rest
  * — self-hosted setups need none of these.
  */
-export function databaseClientOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): DatabaseClientOptions {
+export function databaseClientOptionsFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): DatabaseClientOptions {
   const options: DatabaseClientOptions = {};
   const prepare = envBoolean(env, "DATABASE_PREPARED_STATEMENTS");
   if (prepare !== undefined) options.prepare = prepare;
   const maxConnections = envPositiveInteger(env, "DATABASE_POOL_MAX");
   if (maxConnections !== undefined) options.maxConnections = maxConnections;
   // `0` is allowed here: it disables idle reaping (the driver default).
-  const idleTimeoutSeconds = envNonNegativeInteger(env, "DATABASE_IDLE_TIMEOUT_SECONDS");
-  if (idleTimeoutSeconds !== undefined) options.idleTimeoutSeconds = idleTimeoutSeconds;
-  const connectTimeoutSeconds = envPositiveInteger(env, "DATABASE_CONNECT_TIMEOUT_SECONDS");
-  if (connectTimeoutSeconds !== undefined) options.connectTimeoutSeconds = connectTimeoutSeconds;
-  const maxLifetimeSeconds = envPositiveInteger(env, "DATABASE_MAX_LIFETIME_SECONDS");
-  if (maxLifetimeSeconds !== undefined) options.maxLifetimeSeconds = maxLifetimeSeconds;
+  const idleTimeoutSeconds = envNonNegativeInteger(
+    env,
+    "DATABASE_IDLE_TIMEOUT_SECONDS",
+  );
+  if (idleTimeoutSeconds !== undefined)
+    options.idleTimeoutSeconds = idleTimeoutSeconds;
+  const connectTimeoutSeconds = envPositiveInteger(
+    env,
+    "DATABASE_CONNECT_TIMEOUT_SECONDS",
+  );
+  if (connectTimeoutSeconds !== undefined)
+    options.connectTimeoutSeconds = connectTimeoutSeconds;
+  const maxLifetimeSeconds = envPositiveInteger(
+    env,
+    "DATABASE_MAX_LIFETIME_SECONDS",
+  );
+  if (maxLifetimeSeconds !== undefined)
+    options.maxLifetimeSeconds = maxLifetimeSeconds;
   const applicationName = envNonEmptyString(env, "DATABASE_APPLICATION_NAME");
   if (applicationName !== undefined) options.applicationName = applicationName;
   return options;
@@ -232,21 +275,31 @@ export function databaseClientOptionsFromEnv(env: NodeJS.ProcessEnv = process.en
  * else stays at the driver default. An explicit value (including
  * `idleTimeoutSeconds: 0`) always wins over the default.
  */
-export function resolveDatabaseClientOptions(options: DatabaseClientOptions): DatabaseClientOptions {
+export function resolveDatabaseClientOptions(
+  options: DatabaseClientOptions,
+): DatabaseClientOptions {
   return {
     ...options,
-    idleTimeoutSeconds: options.idleTimeoutSeconds ?? DEFAULT_DATABASE_IDLE_TIMEOUT_SECONDS,
-    applicationName: options.applicationName ?? DEFAULT_DATABASE_APPLICATION_NAME,
+    idleTimeoutSeconds:
+      options.idleTimeoutSeconds ?? DEFAULT_DATABASE_IDLE_TIMEOUT_SECONDS,
+    applicationName:
+      options.applicationName ?? DEFAULT_DATABASE_APPLICATION_NAME,
   };
 }
 
-export function postgresJsOptions(options: DatabaseClientOptions): Record<string, unknown> {
+export function postgresJsOptions(
+  options: DatabaseClientOptions,
+): Record<string, unknown> {
   const driverOptions: Record<string, unknown> = {};
   if (options.prepare !== undefined) driverOptions.prepare = options.prepare;
-  if (options.maxConnections !== undefined) driverOptions.max = options.maxConnections;
-  if (options.idleTimeoutSeconds !== undefined) driverOptions.idle_timeout = options.idleTimeoutSeconds;
-  if (options.connectTimeoutSeconds !== undefined) driverOptions.connect_timeout = options.connectTimeoutSeconds;
-  if (options.maxLifetimeSeconds !== undefined) driverOptions.max_lifetime = options.maxLifetimeSeconds;
+  if (options.maxConnections !== undefined)
+    driverOptions.max = options.maxConnections;
+  if (options.idleTimeoutSeconds !== undefined)
+    driverOptions.idle_timeout = options.idleTimeoutSeconds;
+  if (options.connectTimeoutSeconds !== undefined)
+    driverOptions.connect_timeout = options.connectTimeoutSeconds;
+  if (options.maxLifetimeSeconds !== undefined)
+    driverOptions.max_lifetime = options.maxLifetimeSeconds;
   if (options.applicationName !== undefined) {
     driverOptions.connection = { application_name: options.applicationName };
   }
@@ -258,16 +311,24 @@ export function postgresJsOptions(options: DatabaseClientOptions): Record<string
 // originating Db lifetime; callers receive neither URLs nor credentials.
 const dedicatedDbFactories = new WeakMap<object, () => Db>();
 
-export async function withDedicatedDbConnection<T>(db: Db, action: (dedicated: Db) => Promise<T>): Promise<T> {
+export async function withDedicatedDbConnection<T>(
+  db: Db,
+  action: (dedicated: Db) => Promise<T>,
+): Promise<T> {
   const factory = dedicatedDbFactories.get(db);
   if (!factory) throw new Error("dedicated_connection_requires_create_db");
   const dedicated = factory();
-  try { return await action(dedicated); }
-  finally { await dedicated.$client.end({ timeout: 1 }); }
+  try {
+    return await action(dedicated);
+  } finally {
+    await dedicated.$client.end({ timeout: 1 });
+  }
 }
 
 export function createDb(url: string, options?: DatabaseClientOptions) {
-  const resolved = resolveDatabaseClientOptions(options ?? databaseClientOptionsFromEnv());
+  const resolved = resolveDatabaseClientOptions(
+    options ?? databaseClientOptionsFromEnv(),
+  );
   const sql = postgres(url, postgresJsOptions(resolved));
   const key = hostPortKeyOrNull(url);
   if (key) registerClient(key, sql);
@@ -276,13 +337,19 @@ export function createDb(url: string, options?: DatabaseClientOptions) {
   // message cannot establish that replay is safe. Leave retries to callers
   // that know the complete operation is idempotent.
   const db = drizzlePg(sql, { schema });
-  dedicatedDbFactories.set(db, () => createDb(url, {
-    ...resolved, maxConnections: 1, applicationName: "taskcore-workspace-finalization-lock",
-  }));
+  dedicatedDbFactories.set(db, () =>
+    createDb(url, {
+      ...resolved,
+      maxConnections: 1,
+      applicationName: "taskcore-workspace-finalization-lock",
+    }),
+  );
   return db;
 }
 
-export async function getPostgresDataDirectory(url: string): Promise<string | null> {
+export async function getPostgresDataDirectory(
+  url: string,
+): Promise<string | null> {
   const sql = createUtilitySql(url);
   try {
     const rows = await sql<{ data_directory: string | null }[]>`
@@ -323,9 +390,16 @@ async function listJournalMigrationEntries(): Promise<JournalMigrationEntry[]> {
     return parsed.entries
       .map((entry, entryIndex) => {
         if (typeof entry?.tag !== "string") return null;
-        if (typeof entry?.when !== "number" || !Number.isFinite(entry.when)) return null;
-        const order = Number.isInteger(entry.idx) ? Number(entry.idx) : entryIndex;
-        return { fileName: `${entry.tag}.sql`, folderMillis: entry.when, order };
+        if (typeof entry?.when !== "number" || !Number.isFinite(entry.when))
+          return null;
+        const order = Number.isInteger(entry.idx)
+          ? Number(entry.idx)
+          : entryIndex;
+        return {
+          fileName: `${entry.tag}.sql`,
+          folderMillis: entry.when,
+          order,
+        };
       })
       .filter((entry): entry is JournalMigrationEntry => entry !== null);
   } catch {
@@ -338,17 +412,27 @@ async function listJournalMigrationFiles(): Promise<string[]> {
   return entries.map((entry) => entry.fileName);
 }
 
-async function readMigrationFileContent(migrationFile: string): Promise<string> {
-  return readFile(new URL(`./migrations/${migrationFile}`, import.meta.url), "utf8");
+async function readMigrationFileContent(
+  migrationFile: string,
+): Promise<string> {
+  return readFile(
+    new URL(`./migrations/${migrationFile}`, import.meta.url),
+    "utf8",
+  );
 }
 
-async function orderMigrationsByJournal(migrationFiles: string[]): Promise<string[]> {
+async function orderMigrationsByJournal(
+  migrationFiles: string[],
+): Promise<string[]> {
   const journalEntries = await listJournalMigrationEntries();
-  const orderByFileName = new Map(journalEntries.map((entry) => [entry.fileName, entry.order]));
+  const orderByFileName = new Map(
+    journalEntries.map((entry) => [entry.fileName, entry.order]),
+  );
   return [...migrationFiles].sort((left, right) => {
     const leftOrder = orderByFileName.get(left);
     const rightOrder = orderByFileName.get(right);
-    if (leftOrder === undefined && rightOrder === undefined) return left.localeCompare(right);
+    if (leftOrder === undefined && rightOrder === undefined)
+      return left.localeCompare(right);
     if (leftOrder === undefined) return 1;
     if (rightOrder === undefined) return -1;
     if (leftOrder === rightOrder) return left.localeCompare(right);
@@ -358,7 +442,10 @@ async function orderMigrationsByJournal(migrationFiles: string[]): Promise<strin
 
 type SqlExecutor = Pick<ReturnType<typeof postgres>, "unsafe">;
 
-async function runInTransaction(sql: SqlExecutor, action: () => Promise<void>): Promise<void> {
+async function runInTransaction(
+  sql: SqlExecutor,
+  action: () => Promise<void>,
+): Promise<void> {
   await sql.unsafe("BEGIN");
   try {
     await action();
@@ -402,10 +489,14 @@ async function ensureMigrationJournalTable(
     await sql.unsafe(
       `CREATE TABLE IF NOT EXISTS ${drizzleSchema}.${migrationTable} (id SERIAL PRIMARY KEY, hash text NOT NULL, created_at bigint)`,
     );
-    migrationTableSchema = (await discoverMigrationTableSchema(sql)) ?? "drizzle";
+    migrationTableSchema =
+      (await discoverMigrationTableSchema(sql)) ?? "drizzle";
   }
 
-  const columnNames = await getMigrationTableColumnNames(sql, migrationTableSchema);
+  const columnNames = await getMigrationTableColumnNames(
+    sql,
+    migrationTableSchema,
+  );
   return { migrationTableSchema, columnNames };
 }
 
@@ -418,7 +509,8 @@ async function migrationHistoryEntryExists(
 ): Promise<boolean> {
   const predicates: string[] = [];
   if (columnNames.has("hash")) predicates.push(`hash = ${quoteLiteral(hash)}`);
-  if (columnNames.has("name")) predicates.push(`name = ${quoteLiteral(migrationFile)}`);
+  if (columnNames.has("name"))
+    predicates.push(`name = ${quoteLiteral(migrationFile)}`);
   if (predicates.length === 0) return false;
 
   const rows = await sql.unsafe<{ one: number }[]>(
@@ -448,9 +540,10 @@ async function recordMigrationHistoryEntry(
   }
   if (columnNames.has("created_at")) {
     const latestCreatedAt = await latestMigrationCreatedAt(sql, qualifiedTable);
-    const createdAt = latestCreatedAt === null
-      ? normalizeFolderMillis(folderMillis)
-      : Math.max(latestCreatedAt + 1, normalizeFolderMillis(folderMillis));
+    const createdAt =
+      latestCreatedAt === null
+        ? normalizeFolderMillis(folderMillis)
+        : Math.max(latestCreatedAt + 1, normalizeFolderMillis(folderMillis));
     insertColumns.push(quoteIdentifier("created_at"));
     insertValues.push(quoteLiteral(String(createdAt)));
   }
@@ -476,10 +569,14 @@ async function applyPendingMigrationsManually(
 ): Promise<void> {
   if (pendingMigrations.length === 0) return;
 
-  const orderedPendingMigrations = await orderMigrationsByJournal(pendingMigrations);
+  const orderedPendingMigrations =
+    await orderMigrationsByJournal(pendingMigrations);
   const journalEntries = await listJournalMigrationEntries();
   const folderMillisByFileName = new Map(
-    journalEntries.map((entry) => [entry.fileName, normalizeFolderMillis(entry.folderMillis)]),
+    journalEntries.map((entry) => [
+      entry.fileName,
+      normalizeFolderMillis(entry.folderMillis),
+    ]),
   );
 
   const pool = createUtilitySql(url);
@@ -489,12 +586,15 @@ async function applyPendingMigrationsManually(
       // A session lock survives each batch COMMIT. Reserve the connection so
       // pool rotation cannot release it while another migrator is waiting.
       await sql`SELECT pg_advisory_lock(hashtextextended('taskcore:migrations', 0))`;
-      const { migrationTableSchema, columnNames } = await ensureMigrationJournalTable(sql);
+      const { migrationTableSchema, columnNames } =
+        await ensureMigrationJournalTable(sql);
       const qualifiedTable = `${quoteIdentifier(migrationTableSchema)}.${quoteIdentifier(DRIZZLE_MIGRATIONS_TABLE)}`;
 
       for (const migrationFile of orderedPendingMigrations) {
         const migrationContent = await readMigrationFileContent(migrationFile);
-        const hash = createHash("sha256").update(migrationContent).digest("hex");
+        const hash = createHash("sha256")
+          .update(migrationContent)
+          .digest("hex");
         const existingEntry = await migrationHistoryEntryExists(
           sql,
           qualifiedTable,
@@ -509,8 +609,12 @@ async function applyPendingMigrationsManually(
             if (MIGRATIONS_WITH_BATCH_COMMITS.has(migrationFile)) {
               // A cancelled concurrent build leaves an invalid index. IF NOT
               // EXISTS alone would skip it on retry and journal an incomplete index.
-              const index = statement.replace(/^\s*--.*$/gm, "").trim()
-                .match(/^CREATE (?:UNIQUE )?INDEX CONCURRENTLY IF NOT EXISTS "([A-Za-z_][A-Za-z0-9_]*)"/i);
+              const index = statement
+                .replace(/^\s*--.*$/gm, "")
+                .trim()
+                .match(
+                  /^CREATE (?:UNIQUE )?INDEX CONCURRENTLY IF NOT EXISTS "([A-Za-z_][A-Za-z0-9_]*)"/i,
+                );
               if (index) {
                 const invalid = await sql<{ invalid: boolean }[]>`
                   SELECT NOT i.indisvalid AS invalid FROM pg_index i
@@ -518,7 +622,9 @@ async function applyPendingMigrationsManually(
                   JOIN pg_namespace n ON n.oid = c.relnamespace
                   WHERE n.nspname = 'public' AND c.relname = ${index[1]}`;
                 if (invalid[0]?.invalid) {
-                  await sql.unsafe(`DROP INDEX CONCURRENTLY ${quoteIdentifier("public")}.${quoteIdentifier(index[1])}`);
+                  await sql.unsafe(
+                    `DROP INDEX CONCURRENTLY ${quoteIdentifier("public")}.${quoteIdentifier(index[1])}`,
+                  );
                 }
               }
             }
@@ -560,7 +666,9 @@ async function applyPendingMigrationsManually(
   }
 }
 
-async function mapHashesToMigrationFiles(migrationFiles: string[]): Promise<Map<string, string>> {
+async function mapHashesToMigrationFiles(
+  migrationFiles: string[],
+): Promise<Map<string, string>> {
   const mapped = new Map<string, string>();
 
   await Promise.all(
@@ -635,9 +743,11 @@ async function columnHasDataType(
       AND column_name = ${columnName}
   `;
   const expected = dataType.toLowerCase();
-  return rows.some((row) => (
-    row.dataType.toLowerCase() === expected || row.udtName.toLowerCase() === expected
-  ));
+  return rows.some(
+    (row) =>
+      row.dataType.toLowerCase() === expected ||
+      row.udtName.toLowerCase() === expected,
+  );
 }
 
 async function indexExists(
@@ -747,7 +857,9 @@ async function migrationStatementAlreadyApplied(
     .replace(/\s+/g, " ")
     .trim();
 
-  const createTableMatch = normalized.match(/^CREATE TABLE(?: IF NOT EXISTS)? "([^"]+)"/i);
+  const createTableMatch = normalized.match(
+    /^CREATE TABLE(?: IF NOT EXISTS)? "([^"]+)"/i,
+  );
   if (createTableMatch) {
     return tableExists(sql, createTableMatch[1]);
   }
@@ -771,12 +883,16 @@ async function migrationStatementAlreadyApplied(
     );
   }
 
-  const createIndexMatch = normalized.match(/^CREATE (?:UNIQUE )?INDEX(?: IF NOT EXISTS)? "([^"]+)"/i);
+  const createIndexMatch = normalized.match(
+    /^CREATE (?:UNIQUE )?INDEX(?: IF NOT EXISTS)? "([^"]+)"/i,
+  );
   if (createIndexMatch) {
     return indexExists(sql, createIndexMatch[1]);
   }
 
-  const addConstraintMatch = normalized.match(/^ALTER TABLE "([^"]+)" ADD CONSTRAINT "([^"]+)"/i);
+  const addConstraintMatch = normalized.match(
+    /^ALTER TABLE "([^"]+)" ADD CONSTRAINT "([^"]+)"/i,
+  );
   if (addConstraintMatch) {
     return constraintExists(sql, addConstraintMatch[2]);
   }
@@ -799,14 +915,14 @@ async function migrationStatementAlreadyApplied(
   // instead of replaying them when a restored database is missing only the
   // migration-history row.
   if (
-    normalized.startsWith("WITH ranked AS (")
-    && normalized.includes('UPDATE "heartbeat_run_events" AS event')
+    normalized.startsWith("WITH ranked AS (") &&
+    normalized.includes('UPDATE "heartbeat_run_events" AS event')
   ) {
     return heartbeatEventSequencesAreUnique(sql);
   }
   if (
-    normalized.startsWith('UPDATE "heartbeat_runs" AS run')
-    && normalized.includes('SET "next_event_seq" = COALESCE')
+    normalized.startsWith('UPDATE "heartbeat_runs" AS run') &&
+    normalized.includes('SET "next_event_seq" = COALESCE')
   ) {
     return heartbeatNextEventSequencesAreCurrent(sql);
   }
@@ -837,16 +953,26 @@ async function loadAppliedMigrations(
 ): Promise<string[]> {
   const quotedSchema = quoteIdentifier(migrationTableSchema);
   const qualifiedTable = `${quotedSchema}.${quoteIdentifier(DRIZZLE_MIGRATIONS_TABLE)}`;
-  const columnNames = await getMigrationTableColumnNames(sql, migrationTableSchema);
+  const columnNames = await getMigrationTableColumnNames(
+    sql,
+    migrationTableSchema,
+  );
 
   if (columnNames.has("name")) {
-    const rows = await sql.unsafe<{ name: string }[]>(`SELECT name FROM ${qualifiedTable} ORDER BY id`);
-    return rows.map((row) => row.name).filter((name): name is string => Boolean(name));
+    const rows = await sql.unsafe<{ name: string }[]>(
+      `SELECT name FROM ${qualifiedTable} ORDER BY id`,
+    );
+    return rows
+      .map((row) => row.name)
+      .filter((name): name is string => Boolean(name));
   }
 
   if (columnNames.has("hash")) {
-    const rows = await sql.unsafe<{ hash: string }[]>(`SELECT hash FROM ${qualifiedTable} ORDER BY id`);
-    const hashesToMigrationFiles = await mapHashesToMigrationFiles(availableMigrations);
+    const rows = await sql.unsafe<{ hash: string }[]>(
+      `SELECT hash FROM ${qualifiedTable} ORDER BY id`,
+    );
+    const hashesToMigrationFiles =
+      await mapHashesToMigrationFiles(availableMigrations);
     const appliedFromHashes = rows
       .map((row) => hashesToMigrationFiles.get(row.hash))
       .filter((name): name is string => Boolean(name));
@@ -863,7 +989,9 @@ async function loadAppliedMigrations(
     if (columnNames.has("created_at")) {
       const journalEntries = await listJournalMigrationEntries();
       if (journalEntries.length > 0) {
-        const lastDbRows = await sql.unsafe<{ created_at: string | number | null }[]>(
+        const lastDbRows = await sql.unsafe<
+          { created_at: string | number | null }[]
+        >(
           `SELECT created_at FROM ${qualifiedTable} ORDER BY created_at DESC LIMIT 1`,
         );
         const lastCreatedAt = Number(lastDbRows[0]?.created_at ?? -1);
@@ -878,7 +1006,9 @@ async function loadAppliedMigrations(
     }
   }
 
-  const rows = await sql.unsafe<{ id: number }[]>(`SELECT id FROM ${qualifiedTable} ORDER BY id`);
+  const rows = await sql.unsafe<{ id: number }[]>(
+    `SELECT id FROM ${qualifiedTable} ORDER BY id`,
+  );
   const journalMigrationFiles = await listJournalMigrationFiles();
   const appliedFromIds = rows
     .map((row) => journalMigrationFiles[row.id - 1])
@@ -897,7 +1027,10 @@ export async function reconcilePendingMigrationHistory(
   url: string,
 ): Promise<MigrationHistoryReconcileResult> {
   const state = await inspectMigrations(url);
-  if (state.status !== "needsMigrations" || state.reason !== "pending-migrations") {
+  if (
+    state.status !== "needsMigrations" ||
+    state.reason !== "pending-migrations"
+  ) {
     return { repairedMigrations: [], remainingMigrations: [] };
   }
 
@@ -906,18 +1039,29 @@ export async function reconcilePendingMigrationHistory(
 
   try {
     const journalEntries = await listJournalMigrationEntries();
-    const folderMillisByFile = new Map(journalEntries.map((entry) => [entry.fileName, entry.folderMillis]));
+    const folderMillisByFile = new Map(
+      journalEntries.map((entry) => [entry.fileName, entry.folderMillis]),
+    );
     const migrationTableSchema = await discoverMigrationTableSchema(sql);
     if (!migrationTableSchema) {
-      return { repairedMigrations, remainingMigrations: state.pendingMigrations };
+      return {
+        repairedMigrations,
+        remainingMigrations: state.pendingMigrations,
+      };
     }
 
-    const columnNames = await getMigrationTableColumnNames(sql, migrationTableSchema);
+    const columnNames = await getMigrationTableColumnNames(
+      sql,
+      migrationTableSchema,
+    );
     const qualifiedTable = `${quoteIdentifier(migrationTableSchema)}.${quoteIdentifier(DRIZZLE_MIGRATIONS_TABLE)}`;
 
     for (const migrationFile of state.pendingMigrations) {
       const migrationContent = await readMigrationFileContent(migrationFile);
-      const alreadyApplied = await migrationContentAlreadyApplied(sql, migrationContent);
+      const alreadyApplied = await migrationContentAlreadyApplied(
+        sql,
+        migrationContent,
+      );
       if (!alreadyApplied) break;
 
       const hash = createHash("sha256").update(migrationContent).digest("hex");
@@ -934,15 +1078,27 @@ export async function reconcilePendingMigrationHistory(
         : [];
       if (existingByHash.length > 0 || existingByName.length > 0) {
         if (columnNames.has("created_at")) {
-          const existingHashCreatedAt = Number(existingByHash[0]?.created_at ?? -1);
-          if (existingByHash.length > 0 && Number.isFinite(existingHashCreatedAt) && existingHashCreatedAt < folderMillis) {
+          const existingHashCreatedAt = Number(
+            existingByHash[0]?.created_at ?? -1,
+          );
+          if (
+            existingByHash.length > 0 &&
+            Number.isFinite(existingHashCreatedAt) &&
+            existingHashCreatedAt < folderMillis
+          ) {
             await sql.unsafe(
               `UPDATE ${qualifiedTable} SET created_at = ${quoteLiteral(String(folderMillis))} WHERE hash = ${quoteLiteral(hash)} AND created_at < ${quoteLiteral(String(folderMillis))}`,
             );
           }
 
-          const existingNameCreatedAt = Number(existingByName[0]?.created_at ?? -1);
-          if (existingByName.length > 0 && Number.isFinite(existingNameCreatedAt) && existingNameCreatedAt < folderMillis) {
+          const existingNameCreatedAt = Number(
+            existingByName[0]?.created_at ?? -1,
+          );
+          if (
+            existingByName.length > 0 &&
+            Number.isFinite(existingNameCreatedAt) &&
+            existingNameCreatedAt < folderMillis
+          ) {
             await sql.unsafe(
               `UPDATE ${qualifiedTable} SET created_at = ${quoteLiteral(String(folderMillis))} WHERE name = ${quoteLiteral(migrationFile)} AND created_at < ${quoteLiteral(String(folderMillis))}`,
             );
@@ -988,7 +1144,9 @@ export async function reconcilePendingMigrationHistory(
   };
 }
 
-async function discoverMigrationTableSchema(sql: ReturnType<typeof postgres>): Promise<string | null> {
+async function discoverMigrationTableSchema(
+  sql: ReturnType<typeof postgres>,
+): Promise<string | null> {
   const rows = await sql<{ schemaName: string }[]>`
     SELECT n.nspname AS "schemaName"
     FROM pg_class c
@@ -1050,8 +1208,14 @@ export async function inspectMigrations(url: string): Promise<MigrationState> {
       `SELECT count(*)::int AS count FROM ${qualifiedMigrationTable}`,
     );
     const journalEntryCount = journalCountRows[0]?.count ?? 0;
-    const appliedMigrations = await loadAppliedMigrations(sql, migrationTableSchema, availableMigrations);
-    const pendingMigrations = availableMigrations.filter((name) => !appliedMigrations.includes(name));
+    const appliedMigrations = await loadAppliedMigrations(
+      sql,
+      migrationTableSchema,
+      availableMigrations,
+    );
+    const pendingMigrations = availableMigrations.filter(
+      (name) => !appliedMigrations.includes(name),
+    );
     if (pendingMigrations.length === 0) {
       return {
         status: "upToDate",
@@ -1106,8 +1270,13 @@ export async function applyPendingMigrations(url: string): Promise<void> {
     if (state.status === "upToDate") return;
   }
 
-  if (state.status !== "needsMigrations" || state.reason !== "pending-migrations") {
-    throw new Error("Migrations are still pending after migration-history reconciliation; run inspectMigrations for details.");
+  if (
+    state.status !== "needsMigrations" ||
+    state.reason !== "pending-migrations"
+  ) {
+    throw new Error(
+      "Migrations are still pending after migration-history reconciliation; run inspectMigrations for details.",
+    );
   }
 
   await applyPendingMigrationsManually(url, state.pendingMigrations);
@@ -1123,9 +1292,15 @@ export async function applyPendingMigrations(url: string): Promise<void> {
 export type MigrationBootstrapResult =
   | { migrated: true; reason: "migrated-empty-db"; tableCount: 0 }
   | { migrated: false; reason: "already-migrated"; tableCount: number }
-  | { migrated: false; reason: "not-empty-no-migration-journal"; tableCount: number };
+  | {
+      migrated: false;
+      reason: "not-empty-no-migration-journal";
+      tableCount: number;
+    };
 
-export async function migratePostgresIfEmpty(url: string): Promise<MigrationBootstrapResult> {
+export async function migratePostgresIfEmpty(
+  url: string,
+): Promise<MigrationBootstrapResult> {
   const sql = createUtilitySql(url);
 
   try {
@@ -1145,7 +1320,11 @@ export async function migratePostgresIfEmpty(url: string): Promise<MigrationBoot
     }
 
     if (tableCount > 0) {
-      return { migrated: false, reason: "not-empty-no-migration-journal", tableCount };
+      return {
+        migrated: false,
+        reason: "not-empty-no-migration-journal",
+        tableCount,
+      };
     }
 
     await applyPendingMigrationsManually(url, await listMigrationFiles());
@@ -1171,7 +1350,9 @@ export async function ensurePostgresDatabase(
     `;
     if (existing.length > 0) return "exists";
 
-    await sql.unsafe(`create database "${databaseName}" encoding 'UTF8' lc_collate 'C' lc_ctype 'C' template template0`);
+    await sql.unsafe(
+      `create database "${databaseName}" encoding 'UTF8' lc_collate 'C' lc_ctype 'C' template template0`,
+    );
     return "created";
   } finally {
     await sql.end();
@@ -1192,7 +1373,9 @@ export async function resetPostgresDatabase(
         and pid <> pg_backend_pid()
     `;
     await sql.unsafe(`drop database if exists ${quotedDatabaseName}`);
-    await sql.unsafe(`create database ${quotedDatabaseName} encoding 'UTF8' lc_collate 'C' lc_ctype 'C' template template0`);
+    await sql.unsafe(
+      `create database ${quotedDatabaseName} encoding 'UTF8' lc_collate 'C' lc_ctype 'C' template template0`,
+    );
     return "reset";
   } finally {
     await sql.end();

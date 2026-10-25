@@ -54,48 +54,71 @@ describe("TaskcoreCloudOAuthHandoffPage", () => {
   it("keeps a tenant loading state visible until the provider URL is ready", async () => {
     savePendingCloudHandoff(SESSION);
     let complete: ((response: Response) => void) | undefined;
-    vi.spyOn(globalThis, "fetch").mockImplementation(() => new Promise((resolve) => {
-      complete = resolve;
-    }));
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
 
     await act(async () => root.render(<TaskcoreCloudOAuthHandoffPage />));
     expect(container.textContent).toContain("Preparing secure sign-in");
     expect(navigateTopLevel).not.toHaveBeenCalled();
 
     await act(async () => {
-      complete?.(Response.json({ authorizationUrl: "https://provider.example.test/authorize" }));
+      complete?.(
+        Response.json({
+          authorizationUrl: "https://provider.example.test/authorize",
+        }),
+      );
     });
     await flushReact();
 
-    expect(navigateTopLevel).toHaveBeenCalledWith("https://provider.example.test/authorize");
+    expect(navigateTopLevel).toHaveBeenCalledWith(
+      "https://provider.example.test/authorize",
+    );
     expect(window.sessionStorage.length).toBe(0);
   });
 
   it("keeps terminal handoff failures in Taskcore instead of opening confirmation", async () => {
     savePendingCloudHandoff(SESSION);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({
-      error: "SESSION_NOT_AVAILABLE",
-    }, { status: 404 }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(
+        {
+          error: "SESSION_NOT_AVAILABLE",
+        },
+        { status: 404 },
+      ),
+    );
 
     await act(async () => root.render(<TaskcoreCloudOAuthHandoffPage />));
     await flushReact();
 
     expect(container.textContent).toContain("Sign-in couldn’t continue");
-    expect(container.textContent).toContain("This sign-in expired. Start the connection again.");
+    expect(container.textContent).toContain(
+      "This sign-in expired. Start the connection again.",
+    );
     expect(navigateTopLevel).not.toHaveBeenCalled();
   });
 
   it("does not loop when recent-login recovery remains stale", async () => {
     savePendingCloudHandoff(SESSION);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({
-      error: "RECENT_LOGIN_REQUIRED",
-      reauthenticationUrl: `${window.location.origin}/cloud/connections/reauth?session=${SESSION}`,
-    }, { status: 401 }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(
+        {
+          error: "RECENT_LOGIN_REQUIRED",
+          reauthenticationUrl: `${window.location.origin}/cloud/connections/reauth?session=${SESSION}`,
+        },
+        { status: 401 },
+      ),
+    );
 
     await act(async () => root.render(<TaskcoreCloudOAuthHandoffPage />));
     await flushReact();
 
-    expect(container.textContent).toContain("Taskcore couldn’t refresh this sign-in. Try again to continue.");
+    expect(container.textContent).toContain(
+      "Taskcore couldn’t refresh this sign-in. Try again to continue.",
+    );
     expect(navigateTopLevel).not.toHaveBeenCalled();
   });
 });

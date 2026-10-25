@@ -12,7 +12,10 @@ import { ActionsSection } from "./PermissionsPanel";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 vi.mock("@/context/CompanyContext", () => ({
-  useCompany: () => ({ selectedCompanyId: "company-1", selectedCompany: { id: "company-1", issuePrefix: "PAP" } }),
+  useCompany: () => ({
+    selectedCompanyId: "company-1",
+    selectedCompany: { id: "company-1", issuePrefix: "PAP" },
+  }),
 }));
 
 let container: HTMLDivElement | null = null;
@@ -23,12 +26,22 @@ afterEach(() => {
 });
 
 const entry = (id: string, riskLevel: string) =>
-  ({ id, toolName: id, title: id, riskLevel, status: "active" }) as unknown as ToolCatalogEntry;
+  ({
+    id,
+    toolName: id,
+    title: id,
+    riskLevel,
+    status: "active",
+  }) as unknown as ToolCatalogEntry;
 
 describe("Permissions group control", () => {
   it("sets every action in the group in one change", () => {
     const onSetPermission = vi.fn();
-    const writes = [entry("send", "write"), entry("delete", "destructive"), entry("label", "write")];
+    const writes = [
+      entry("send", "write"),
+      entry("delete", "destructive"),
+      entry("label", "write"),
+    ];
     container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -56,7 +69,9 @@ describe("Permissions group control", () => {
       ),
     );
 
-    const select = container.querySelector<HTMLSelectElement>('select[aria-label="Set every action in Write (3)"]');
+    const select = container.querySelector<HTMLSelectElement>(
+      'select[aria-label="Set every action in Write (3)"]',
+    );
     expect(select).toBeTruthy();
     expect(select!.value).toBe("");
     flushSync(() => {

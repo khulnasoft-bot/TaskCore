@@ -5,7 +5,9 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatComposer, type ChatComposerProps } from "./ChatComposer";
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** Stateful harness so the controlled textarea reflects typed input. */
 function Harness(props: Partial<ChatComposerProps> & { initial?: string }) {
@@ -46,13 +48,19 @@ describe("ChatComposer", () => {
   });
 
   function input() {
-    return container.querySelector<HTMLTextAreaElement>('[data-testid="chat-composer-input"]')!;
+    return container.querySelector<HTMLTextAreaElement>(
+      '[data-testid="chat-composer-input"]',
+    )!;
   }
   function sendButton() {
-    return container.querySelector<HTMLButtonElement>('button[aria-label="Send message"]')!;
+    return container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Send message"]',
+    )!;
   }
   function attachButton() {
-    return container.querySelector<HTMLButtonElement>('button[aria-label="Attach files"]');
+    return container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Attach files"]',
+    );
   }
 
   it("renders a bare textarea + send and no attach button without a handler", () => {
@@ -107,14 +115,24 @@ describe("ChatComposer", () => {
     const onSubmit = vi.fn();
     const root = createRoot(container);
     act(() => {
-      root.render(<Harness onSubmit={onSubmit} initial="hi" submitKey="enter" />);
+      root.render(
+        <Harness onSubmit={onSubmit} initial="hi" submitKey="enter" />,
+      );
     });
     act(() => {
-      input().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, shiftKey: true }));
+      input().dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          shiftKey: true,
+        }),
+      );
     });
     expect(onSubmit).not.toHaveBeenCalled();
     act(() => {
-      input().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      input().dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
     });
     expect(onSubmit).toHaveBeenCalledTimes(1);
     act(() => root.unmount());
@@ -124,14 +142,24 @@ describe("ChatComposer", () => {
     const onSubmit = vi.fn();
     const root = createRoot(container);
     act(() => {
-      root.render(<Harness onSubmit={onSubmit} initial="hi" submitKey="mod-enter" />);
+      root.render(
+        <Harness onSubmit={onSubmit} initial="hi" submitKey="mod-enter" />,
+      );
     });
     act(() => {
-      input().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      input().dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
     });
     expect(onSubmit).not.toHaveBeenCalled();
     act(() => {
-      input().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, metaKey: true }));
+      input().dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          metaKey: true,
+        }),
+      );
     });
     expect(onSubmit).toHaveBeenCalledTimes(1);
     act(() => root.unmount());
@@ -223,7 +251,9 @@ describe("ChatComposer", () => {
     expect(box.getAttribute("data-surface")).toBe("translucent");
     // Glass recipe — mirrors the task-comments composer shell.
     expect(box.className).toContain("bg-background/95");
-    expect(box.className).toContain("supports-[backdrop-filter]:bg-background/85");
+    expect(box.className).toContain(
+      "supports-[backdrop-filter]:bg-background/85",
+    );
     expect(box.className).toContain("backdrop-blur");
     expect(box.className).toContain("shadow-(--shadow-extract-4)");
     expect(box.className).toContain("dark:shadow-(--shadow-extract-5)");
@@ -239,7 +269,9 @@ describe("ChatComposer", () => {
     act(() => {
       root.render(<Harness surface="translucent" onAttachFiles={() => {}} />);
     });
-    const box = container.querySelector<HTMLDivElement>('[data-testid="chat-composer"]')!;
+    const box = container.querySelector<HTMLDivElement>(
+      '[data-testid="chat-composer"]',
+    )!;
     act(() => {
       const dataTransfer = { types: ["Files"], dropEffect: "none" };
       const evt = new Event("dragenter", { bubbles: true }) as DragEvent & {
@@ -248,7 +280,9 @@ describe("ChatComposer", () => {
       Object.defineProperty(evt, "dataTransfer", { value: dataTransfer });
       box.dispatchEvent(evt);
     });
-    expect(container.querySelector('[data-testid="chat-composer-drop-overlay"]')).toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="chat-composer-drop-overlay"]'),
+    ).toBeTruthy();
     act(() => root.unmount());
   });
 });

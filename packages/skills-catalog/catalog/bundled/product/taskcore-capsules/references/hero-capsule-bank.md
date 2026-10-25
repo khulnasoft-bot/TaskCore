@@ -13,39 +13,39 @@ The hero capsule bank is the one approved decorative exception to the rule that 
 
 ## Coordinate System
 
-| Property | Value |
-| --- | --- |
-| ViewBox | `0 0 1200 675` |
-| Background | `#141413` |
-| Square crop | `viewBox="250 -19 700 700"` |
-| Columns | 8 |
-| Capsules per column | 12 |
-| Total capsules | 96 |
+| Property            | Value                       |
+| ------------------- | --------------------------- |
+| ViewBox             | `0 0 1200 675`              |
+| Background          | `#141413`                   |
+| Square crop         | `viewBox="250 -19 700 700"` |
+| Columns             | 8                           |
+| Capsules per column | 12                          |
+| Total capsules      | 96                          |
 
 ## Capsule Shape
 
-| Property | Value |
-| --- | --- |
-| Width | 70 |
-| Height | 170 |
-| Radius | 35 |
-| Rect anchor | `x=-35`, `y=-85` |
+| Property    | Value                                    |
+| ----------- | ---------------------------------------- |
+| Width       | 70                                       |
+| Height      | 170                                      |
+| Radius      | 35                                       |
+| Rect anchor | `x=-35`, `y=-85`                         |
 | Positioning | translate each rect to center `(cx, cy)` |
 
 The capsule body is rigid. Never deform the capsule shape for wave motion.
 
 ## Layout
 
-| Column | `tx` | `ty0` |
-| --- | --- | --- |
-| 0 | 355 | 154.464 |
-| 1 | 425 | 161.240 |
-| 2 | 495 | 101.067 |
-| 3 | 565 | 111.908 |
-| 4 | 635 | 137.808 |
-| 5 | 705 | 181.764 |
-| 6 | 775 | 150.630 |
-| 7 | 845 | 123.362 |
+| Column | `tx` | `ty0`   |
+| ------ | ---- | ------- |
+| 0      | 355  | 154.464 |
+| 1      | 425  | 161.240 |
+| 2      | 495  | 101.067 |
+| 3      | 565  | 111.908 |
+| 4      | 635  | 137.808 |
+| 5      | 705  | 181.764 |
+| 6      | 775  | 150.630 |
+| 7      | 845  | 123.362 |
 
 Formula:
 
@@ -61,20 +61,20 @@ Drawing order is column order 0..7, and within each column slot order 0..11. Hig
 
 Each gradient is a two-stop linear gradient with a rotation angle in degrees.
 
-| id | angle | top | bottom |
-| --- | --- | --- | --- |
-| g0 | 90.000 | `#3c23fb` | `#fb8b24` |
-| g1 | 90.000 | `#6721fa` | `#f85f1c` |
-| g2 | 90.000 | `#921ff8` | `#f53215` |
-| g3 | 90.000 | `#bd1df7` | `#f10e18` |
-| g4 | 90.000 | `#e81bf5` | `#e4103e` |
-| g5 | 90.000 | `#f419d3` | `#d7135f` |
-| g6 | 90.000 | `#f217a4` | `#ca147b` |
-| g7 | 90.000 | `#f11575` | `#be1692` |
-| g8 | 90.000 | `#ef1346` | `#b217a4` |
-| g9 | 90.000 | `#ec1217` | `#9919a6` |
-| g10 | 90.000 | `#e83913` | `#79199a` |
-| g11 | 90.000 | `#e36414` | `#5c1a8f` |
+| id  | angle   | top       | bottom    |
+| --- | ------- | --------- | --------- |
+| g0  | 90.000  | `#3c23fb` | `#fb8b24` |
+| g1  | 90.000  | `#6721fa` | `#f85f1c` |
+| g2  | 90.000  | `#921ff8` | `#f53215` |
+| g3  | 90.000  | `#bd1df7` | `#f10e18` |
+| g4  | 90.000  | `#e81bf5` | `#e4103e` |
+| g5  | 90.000  | `#f419d3` | `#d7135f` |
+| g6  | 90.000  | `#f217a4` | `#ca147b` |
+| g7  | 90.000  | `#f11575` | `#be1692` |
+| g8  | 90.000  | `#ef1346` | `#b217a4` |
+| g9  | 90.000  | `#ec1217` | `#9919a6` |
+| g10 | 90.000  | `#e83913` | `#79199a` |
+| g11 | 90.000  | `#e36414` | `#5c1a8f` |
 | g12 | 118.000 | `#9a031e` | `#ced51c` |
 | g13 | 118.727 | `#9a0547` | `#d2bd1c` |
 | g14 | 119.455 | `#9a0770` | `#ce9f1c` |
@@ -98,9 +98,9 @@ Each gradient is a two-stop linear gradient with a rotation angle in degrees.
 | g32 | 206.364 | `#0e2a66` | `#f79d20` |
 | g33 | 216.182 | `#0e3c61` | `#f99422` |
 | g34 | 226.000 | `#0f4c5c` | `#fb8b24` |
-| g35 | 93.273 | `#dc8f15` | `#671a92` |
-| g36 | 96.545 | `#d5b716` | `#721a95` |
-| g37 | 99.818 | `#c1ce17` | `#7d1a98` |
+| g35 | 93.273  | `#dc8f15` | `#671a92` |
+| g36 | 96.545  | `#d5b716` | `#721a95` |
+| g37 | 99.818  | `#c1ce17` | `#7d1a98` |
 | g38 | 103.091 | `#93c718` | `#891b9b` |
 | g39 | 106.364 | `#68c018` | `#951b9e` |
 | g40 | 109.636 | `#41b919` | `#a11ba1` |
@@ -124,30 +124,30 @@ SVG template:
 
 Each sequence lists slots 0..11.
 
-| Column | Sequence |
-| --- | --- |
-| 0 | `g0 g1 g2 g3 g4 g5 g6 g7 g8 g9 g10 g11` |
-| 1 | `g12 g13 g14 g15 g16 g17 g18 g19 g20 g21 g22 g23` |
-| 2 | `g11 g10 g9 g8 g7 g6 g5 g4 g3 g2 g1 g0` |
-| 3 | `g23 g22 g21 g20 g19 g18 g17 g16 g15 g14 g13 g12` |
-| 4 | `g12 g24 g25 g26 g27 g28 g29 g30 g31 g32 g33 g34` |
-| 5 | `g0 g1 g2 g3 g4 g5 g6 g7 g8 g9 g10 g11` |
-| 6 | `g11 g35 g36 g37 g38 g39 g40 g41 g42 g43 g44 g23` |
-| 7 | `g0 g1 g2 g3 g4 g5 g6 g7 g8 g9 g10 g11` |
+| Column | Sequence                                          |
+| ------ | ------------------------------------------------- |
+| 0      | `g0 g1 g2 g3 g4 g5 g6 g7 g8 g9 g10 g11`           |
+| 1      | `g12 g13 g14 g15 g16 g17 g18 g19 g20 g21 g22 g23` |
+| 2      | `g11 g10 g9 g8 g7 g6 g5 g4 g3 g2 g1 g0`           |
+| 3      | `g23 g22 g21 g20 g19 g18 g17 g16 g15 g14 g13 g12` |
+| 4      | `g12 g24 g25 g26 g27 g28 g29 g30 g31 g32 g33 g34` |
+| 5      | `g0 g1 g2 g3 g4 g5 g6 g7 g8 g9 g10 g11`           |
+| 6      | `g11 g35 g36 g37 g38 g39 g40 g41 g42 g43 g44 g23` |
+| 7      | `g0 g1 g2 g3 g4 g5 g6 g7 g8 g9 g10 g11`           |
 
 ## Grain Overlay
 
 Grain is part of the motif. Do not omit it for canonical hero-bank renders unless the output medium cannot support it.
 
-| Property | Value |
-| --- | --- |
-| SVG primitive | `feTurbulence type="fractalNoise"` |
-| Base frequency | `2.95` |
-| Octaves | 5 |
-| Seed | 9 |
-| Opacity | 0.86 |
-| Blend mode | `overlay` |
-| Mask | union of capsule shapes only |
+| Property       | Value                              |
+| -------------- | ---------------------------------- |
+| SVG primitive  | `feTurbulence type="fractalNoise"` |
+| Base frequency | `2.95`                             |
+| Octaves        | 5                                  |
+| Seed           | 9                                  |
+| Opacity        | 0.86                               |
+| Blend mode     | `overlay`                          |
+| Mask           | union of capsule shapes only       |
 
 Overlay formula per channel:
 
@@ -163,12 +163,12 @@ Background pixels stay clean `#141413`; grain is masked inside capsules.
 
 For motion, translate each capsule rigidly on y. Do not scale, bend, or morph the capsule.
 
-| Property | Value |
-| --- | --- |
-| Wave amplitude | 9 |
-| Per-capsule phase step | `PI / 3` |
+| Property                | Value          |
+| ----------------------- | -------------- |
+| Wave amplitude          | 9              |
+| Per-capsule phase step  | `PI / 3`       |
 | Per-column phase factor | `2 * PI / 280` |
-| Loop period | 4 seconds |
+| Loop period             | 4 seconds      |
 
 Formula:
 

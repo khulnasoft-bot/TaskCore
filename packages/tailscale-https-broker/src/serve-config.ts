@@ -45,7 +45,9 @@ function portFromWebKey(key: string): number {
   }
   const portText = key.slice(idx + 1);
   if (!/^[0-9]+$/.test(portText)) {
-    throw new ServeParseError(`non-numeric port in Web key: ${JSON.stringify(key)}`);
+    throw new ServeParseError(
+      `non-numeric port in Web key: ${JSON.stringify(key)}`,
+    );
   }
   return assertCanonicalPort(Number(portText));
 }
@@ -70,9 +72,11 @@ export function parseServeStatus(json: unknown): ParsedServe {
         throw new ServeParseError(`non-numeric TCP port: ${portKey}`);
       }
       const port = assertCanonicalPort(Number(portKey));
-      if (!isObject(value)) throw new ServeParseError(`TCP[${portKey}] must be an object`);
+      if (!isObject(value))
+        throw new ServeParseError(`TCP[${portKey}] must be an object`);
       if (value.HTTPS === true) httpsPorts.add(port);
-      if (!entries.has(port)) entries.set(port, { port, https: value.HTTPS === true, handlers: [] });
+      if (!entries.has(port))
+        entries.set(port, { port, https: value.HTTPS === true, handlers: [] });
       else entries.get(port)!.https = value.HTTPS === true;
     }
   }
@@ -82,18 +86,26 @@ export function parseServeStatus(json: unknown): ParsedServe {
     if (!isObject(web)) throw new ServeParseError("Web must be an object");
     for (const [hostKey, value] of Object.entries(web)) {
       const port = portFromWebKey(hostKey);
-      if (!isObject(value)) throw new ServeParseError(`Web[${hostKey}] must be an object`);
+      if (!isObject(value))
+        throw new ServeParseError(`Web[${hostKey}] must be an object`);
       const handlersRaw = value.Handlers;
       const handlers: ServeHandler[] = [];
       if (handlersRaw !== undefined && handlersRaw !== null) {
-        if (!isObject(handlersRaw)) throw new ServeParseError(`Handlers for ${hostKey} must be an object`);
+        if (!isObject(handlersRaw))
+          throw new ServeParseError(
+            `Handlers for ${hostKey} must be an object`,
+          );
         for (const [path, handler] of Object.entries(handlersRaw)) {
-          if (!isObject(handler)) throw new ServeParseError(`handler ${path} must be an object`);
+          if (!isObject(handler))
+            throw new ServeParseError(`handler ${path} must be an object`);
           const proxy = handler.Proxy;
           if (proxy !== undefined && typeof proxy !== "string") {
             throw new ServeParseError(`handler ${path} Proxy must be a string`);
           }
-          handlers.push({ path, proxy: typeof proxy === "string" ? proxy : null });
+          handlers.push({
+            path,
+            proxy: typeof proxy === "string" ? proxy : null,
+          });
         }
       }
       const existing = entries.get(port);
@@ -119,7 +131,10 @@ export function entryDigest(entry: ServeEntry | undefined): string {
 }
 
 /** True when the given entry is exactly a same-number HTTPS->loopback listener. */
-export function isSameNumberLoopbackEntry(entry: ServeEntry | undefined, port: number): boolean {
+export function isSameNumberLoopbackEntry(
+  entry: ServeEntry | undefined,
+  port: number,
+): boolean {
   if (!entry || entry.port !== port || !entry.https) return false;
   if (entry.handlers.length !== 1) return false;
   const [handler] = entry.handlers;
@@ -166,16 +181,29 @@ export function changedProtectedPorts(
   protectedPorts: readonly number[],
 ): number[] {
   return [...new Set(protectedPorts)]
-    .filter((port) => entryDigest(before.entries.get(port)) !== entryDigest(after.entries.get(port)))
+    .filter(
+      (port) =>
+        entryDigest(before.entries.get(port)) !==
+        entryDigest(after.entries.get(port)),
+    )
     .sort((a, b) => a - b);
 }
 
 /** Ports whose entry digest differs between two snapshots. */
-export function changedPorts(before: ParsedServe, after: ParsedServe): number[] {
-  const ports = new Set<number>([...before.entries.keys(), ...after.entries.keys()]);
+export function changedPorts(
+  before: ParsedServe,
+  after: ParsedServe,
+): number[] {
+  const ports = new Set<number>([
+    ...before.entries.keys(),
+    ...after.entries.keys(),
+  ]);
   const changed: number[] = [];
   for (const port of ports) {
-    if (entryDigest(before.entries.get(port)) !== entryDigest(after.entries.get(port))) {
+    if (
+      entryDigest(before.entries.get(port)) !==
+      entryDigest(after.entries.get(port))
+    ) {
       changed.push(port);
     }
   }

@@ -5,7 +5,11 @@
 // caller a `LockedQueuedCommentState` plus a `QueuedCommentQueueTransaction`
 // bound to that same transaction for every further read and write.
 
-import type { IssueComment, IssueQueuedCommentEntry, IssueQueuedCommentQueue } from "@taskcore/shared";
+import type {
+  IssueComment,
+  IssueQueuedCommentEntry,
+  IssueQueuedCommentQueue,
+} from "@taskcore/shared";
 
 export type QueuedCommentActor = {
   actorType: "agent" | "user";
@@ -95,7 +99,10 @@ export interface QueuedCommentQueueTransaction {
     body: string;
     updatedAt: Date;
   }): Promise<boolean>;
-  touchIssueUpdatedAt(input: { issueId: string; updatedAt: Date }): Promise<void>;
+  touchIssueUpdatedAt(input: {
+    issueId: string;
+    updatedAt: Date;
+  }): Promise<void>;
   /** Compare-and-set on `id`; the wake's current status is not re-checked here because the row is already locked for the duration of this transaction. */
   updateWakeQueuedCommentIds(input: {
     wakeId: string;
@@ -116,7 +123,11 @@ export interface QueuedCommentQueueTransaction {
     issueId: string;
     commentId: string;
   }): Promise<IssueComment | null>;
-  cancelWake(input: { wakeId: string; reason: string; now: Date }): Promise<void>;
+  cancelWake(input: {
+    wakeId: string;
+    reason: string;
+    now: Date;
+  }): Promise<void>;
   /**
    * Guarded on the run's current `queued` status. Returns `null` when a
    * concurrent writer already moved the run off `queued`; returns just the
@@ -156,7 +167,9 @@ export interface QueuedCommentQueueTransaction {
    * for the caller to publish once the transaction has committed; this
    * write never publishes the live event itself.
    */
-  logActivity(input: QueuedCommentActivityLogInput): Promise<QueuedCommentActivityPublication>;
+  logActivity(
+    input: QueuedCommentActivityLogInput,
+  ): Promise<QueuedCommentActivityPublication>;
 }
 
 export interface QueuedCommentIssueLockWriter {
@@ -176,6 +189,9 @@ export interface QueuedCommentIssueLockWriter {
       actor: QueuedCommentActor;
       queueId: string;
     },
-    fn: (locked: LockedQueuedCommentState, transaction: QueuedCommentQueueTransaction) => Promise<T>,
+    fn: (
+      locked: LockedQueuedCommentState,
+      transaction: QueuedCommentQueueTransaction,
+    ) => Promise<T>,
   ): Promise<T>;
 }

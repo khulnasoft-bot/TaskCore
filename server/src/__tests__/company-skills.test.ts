@@ -13,7 +13,11 @@ import {
 const cleanupDirs = new Set<string>();
 
 afterEach(async () => {
-  await Promise.all(Array.from(cleanupDirs, (dir) => fs.rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    Array.from(cleanupDirs, (dir) =>
+      fs.rm(dir, { recursive: true, force: true }),
+    ),
+  );
   cleanupDirs.clear();
 });
 
@@ -25,7 +29,11 @@ async function makeTempDir(prefix: string) {
 
 async function writeSkillDir(skillDir: string, name: string) {
   await fs.mkdir(skillDir, { recursive: true });
-  await fs.writeFile(path.join(skillDir, "SKILL.md"), `---\nname: ${name}\n---\n\n# ${name}\n`, "utf8");
+  await fs.writeFile(
+    path.join(skillDir, "SKILL.md"),
+    `---\nname: ${name}\n---\n\n# ${name}\n`,
+    "utf8",
+  );
 }
 
 describe("company skill import source parsing", () => {
@@ -41,11 +49,15 @@ describe("company skill import source parsing", () => {
   });
 
   it("parses owner/repo/skill shorthand as skills.sh-managed", () => {
-    const parsed = parseSkillImportSourceInput("vercel-labs/skills/find-skills");
+    const parsed = parseSkillImportSourceInput(
+      "vercel-labs/skills/find-skills",
+    );
 
     expect(parsed.resolvedSource).toBe("https://github.com/vercel-labs/skills");
     expect(parsed.requestedSkillSlug).toBe("find-skills");
-    expect(parsed.originalSkillsShUrl).toBe("https://skills.sh/vercel-labs/skills/find-skills");
+    expect(parsed.originalSkillsShUrl).toBe(
+      "https://skills.sh/vercel-labs/skills/find-skills",
+    );
   });
 
   it("resolves skills.sh URL with org/repo/skill to GitHub repo and preserves original URL", () => {
@@ -53,9 +65,13 @@ describe("company skill import source parsing", () => {
       "https://skills.sh/google-labs-code/stitch-skills/design-md",
     );
 
-    expect(parsed.resolvedSource).toBe("https://github.com/google-labs-code/stitch-skills");
+    expect(parsed.resolvedSource).toBe(
+      "https://github.com/google-labs-code/stitch-skills",
+    );
     expect(parsed.requestedSkillSlug).toBe("design-md");
-    expect(parsed.originalSkillsShUrl).toBe("https://skills.sh/google-labs-code/stitch-skills/design-md");
+    expect(parsed.originalSkillsShUrl).toBe(
+      "https://skills.sh/google-labs-code/stitch-skills/design-md",
+    );
   });
 
   it("resolves skills.sh URL with org/repo (no skill) to GitHub repo and preserves original URL", () => {
@@ -65,7 +81,9 @@ describe("company skill import source parsing", () => {
 
     expect(parsed.resolvedSource).toBe("https://github.com/vercel-labs/skills");
     expect(parsed.requestedSkillSlug).toBeNull();
-    expect(parsed.originalSkillsShUrl).toBe("https://skills.sh/vercel-labs/skills");
+    expect(parsed.originalSkillsShUrl).toBe(
+      "https://skills.sh/vercel-labs/skills",
+    );
   });
 
   it("parses skills.sh commands whose requested skill differs from the folder name", () => {
@@ -73,7 +91,9 @@ describe("company skill import source parsing", () => {
       "npx skills add https://github.com/remotion-dev/skills --skill remotion-best-practices",
     );
 
-    expect(parsed.resolvedSource).toBe("https://github.com/remotion-dev/skills");
+    expect(parsed.resolvedSource).toBe(
+      "https://github.com/remotion-dev/skills",
+    );
     expect(parsed.requestedSkillSlug).toBe("remotion-best-practices");
     expect(parsed.originalSkillsShUrl).toBeNull();
   });
@@ -86,7 +106,8 @@ describe("company skill import source parsing", () => {
   });
 
   it("rejects secret-bearing remote URLs without echoing the secret", () => {
-    const source = "https://github.com/acme/private-skill?token=secret#token=secret";
+    const source =
+      "https://github.com/acme/private-skill?token=secret#token=secret";
 
     expect(() => parseSkillImportSourceInput(source)).toThrow(
       "Remote skill source URLs cannot include credentials, query parameters, or fragments.",
@@ -119,17 +140,30 @@ describe("company skill import source parsing", () => {
 describe("project workspace skill discovery", () => {
   it("normalizes GitHub skill directories for blob imports and legacy metadata", () => {
     expect(normalizeGitHubSkillDirectory("retro/.", "retro")).toBe("retro");
-    expect(normalizeGitHubSkillDirectory("retro/SKILL.md", "retro")).toBe("retro");
+    expect(normalizeGitHubSkillDirectory("retro/SKILL.md", "retro")).toBe(
+      "retro",
+    );
     expect(normalizeGitHubSkillDirectory("SKILL.md", "root-skill")).toBe("");
-    expect(normalizeGitHubSkillDirectory("", "fallback-skill")).toBe("fallback-skill");
+    expect(normalizeGitHubSkillDirectory("", "fallback-skill")).toBe(
+      "fallback-skill",
+    );
   });
 
   it("finds bounded skill roots under supported workspace paths", async () => {
     const workspace = await makeTempDir("taskcore-skill-workspace-");
     await writeSkillDir(workspace, "Workspace Root");
-    await writeSkillDir(path.join(workspace, "skills", "find-skills"), "Find Skills");
-    await writeSkillDir(path.join(workspace, ".agents", "skills", "release"), "Release");
-    await writeSkillDir(path.join(workspace, "skills", ".system", "taskcore"), "Taskcore");
+    await writeSkillDir(
+      path.join(workspace, "skills", "find-skills"),
+      "Find Skills",
+    );
+    await writeSkillDir(
+      path.join(workspace, ".agents", "skills", "release"),
+      "Release",
+    );
+    await writeSkillDir(
+      path.join(workspace, "skills", ".system", "taskcore"),
+      "Taskcore",
+    );
     await fs.writeFile(path.join(workspace, "README.md"), "# ignore\n", "utf8");
 
     const discovered = await discoverProjectWorkspaceSkillDirectories({
@@ -141,7 +175,12 @@ describe("project workspace skill discovery", () => {
     });
 
     expect(discovered).toEqual([
-      { skillDir: path.resolve(workspace), directoryRoot: ".", relativePath: ".", inventoryMode: "project_root" },
+      {
+        skillDir: path.resolve(workspace),
+        directoryRoot: ".",
+        relativePath: ".",
+        inventoryMode: "project_root",
+      },
       {
         skillDir: path.resolve(workspace, ".agents", "skills", "release"),
         directoryRoot: ".agents/skills",
@@ -170,42 +209,73 @@ describe("project workspace skill discovery", () => {
     await fs.mkdir(path.join(workspace, "scripts"), { recursive: true });
     await fs.mkdir(path.join(workspace, "assets"), { recursive: true });
     await fs.mkdir(path.join(workspace, "src"), { recursive: true });
-    await fs.writeFile(path.join(workspace, "references", "checklist.md"), "# Checklist\n", "utf8");
-    await fs.writeFile(path.join(workspace, "scripts", "run.sh"), "echo ok\n", "utf8");
-    await fs.writeFile(path.join(workspace, "assets", "logo.svg"), "<svg />\n", "utf8");
+    await fs.writeFile(
+      path.join(workspace, "references", "checklist.md"),
+      "# Checklist\n",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(workspace, "scripts", "run.sh"),
+      "echo ok\n",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(workspace, "assets", "logo.svg"),
+      "<svg />\n",
+      "utf8",
+    );
     await fs.writeFile(path.join(workspace, "README.md"), "# Repo\n", "utf8");
-    await fs.writeFile(path.join(workspace, "src", "index.ts"), "export {};\n", "utf8");
+    await fs.writeFile(
+      path.join(workspace, "src", "index.ts"),
+      "export {};\n",
+      "utf8",
+    );
 
     const imported = await readLocalSkillImportFromDirectory(
       "33333333-3333-4333-8333-333333333333",
       workspace,
-      { inventoryMode: "project_root", metadata: { sourceKind: "project_scan" } },
+      {
+        inventoryMode: "project_root",
+        metadata: { sourceKind: "project_scan" },
+      },
     );
 
-    expect(new Set(imported.fileInventory.map((entry) => entry.path))).toEqual(new Set([
-      "assets/logo.svg",
-      "references/checklist.md",
-      "scripts/run.sh",
-      "SKILL.md",
-    ]));
-    expect(imported.fileInventory.map((entry) => entry.kind)).toContain("script");
+    expect(new Set(imported.fileInventory.map((entry) => entry.path))).toEqual(
+      new Set([
+        "assets/logo.svg",
+        "references/checklist.md",
+        "scripts/run.sh",
+        "SKILL.md",
+      ]),
+    );
+    expect(imported.fileInventory.map((entry) => entry.kind)).toContain(
+      "script",
+    );
     expect(imported.metadata?.sourceKind).toBe("project_scan");
   });
 
   it("rejects symlinks reachable from a project-scanned skill", async () => {
     const workspace = await makeTempDir("taskcore-linked-skill-file-");
     const skillDir = path.join(workspace, ".codex", "skills", "linked-file");
-    const outsideFile = path.join(await makeTempDir("taskcore-linked-skill-outside-"), "outside.md");
+    const outsideFile = path.join(
+      await makeTempDir("taskcore-linked-skill-outside-"),
+      "outside.md",
+    );
     await writeSkillDir(skillDir, "Linked File");
     await fs.mkdir(path.join(skillDir, "references"), { recursive: true });
     await fs.writeFile(outsideFile, "outside workspace\n", "utf8");
-    await fs.symlink(outsideFile, path.join(skillDir, "references", "outside.md"));
+    await fs.symlink(
+      outsideFile,
+      path.join(skillDir, "references", "outside.md"),
+    );
 
-    await expect(readLocalSkillImportFromDirectory(
-      "33333333-3333-4333-8333-333333333333",
-      skillDir,
-      { inventoryMode: "full", workspaceRoot: workspace },
-    )).rejects.toThrow(/symbolic link/);
+    await expect(
+      readLocalSkillImportFromDirectory(
+        "33333333-3333-4333-8333-333333333333",
+        skillDir,
+        { inventoryMode: "full", workspaceRoot: workspace },
+      ),
+    ).rejects.toThrow(/symbolic link/);
   });
 
   it("parses inline object array items in skill frontmatter metadata", async () => {
@@ -336,7 +406,9 @@ describe("project workspace skill discovery", () => {
       clipNote: "Keep this line.\nAnd this one.\n",
       stripNote: "Strip this line.\nAnd this one.",
     });
-    expect(strip.description).toBe("Strip this folded description without a trailing newline.");
+    expect(strip.description).toBe(
+      "Strip this folded description without a trailing newline.",
+    );
   });
 
   it("parses YAML block-scalar chomping variants from SKILL.md frontmatter", async () => {
@@ -368,27 +440,36 @@ describe("project workspace skill discovery", () => {
   });
   it("includes explicitly selected skills from non-standard folders", async () => {
     const workspace = await makeTempDir("taskcore-skill-workspace-");
-    await writeSkillDir(path.join(workspace, "content", "specialists", "editorial"), "Editorial");
+    await writeSkillDir(
+      path.join(workspace, "content", "specialists", "editorial"),
+      "Editorial",
+    );
 
-    const discovered = await discoverProjectWorkspaceSkillDirectories({
-      projectId: "11111111-1111-1111-1111-111111111111",
-      projectName: "Repo",
-      workspaceId: "22222222-2222-2222-2222-222222222222",
-      workspaceName: "Main",
-      workspaceCwd: workspace,
-    }, ["content/specialists/editorial"]);
+    const discovered = await discoverProjectWorkspaceSkillDirectories(
+      {
+        projectId: "11111111-1111-1111-1111-111111111111",
+        projectName: "Repo",
+        workspaceId: "22222222-2222-2222-2222-222222222222",
+        workspaceName: "Main",
+        workspaceCwd: workspace,
+      },
+      ["content/specialists/editorial"],
+    );
 
     expect(discovered).toEqual([
       {
-        skillDir: path.resolve(workspace, "content", "specialists", "editorial"),
+        skillDir: path.resolve(
+          workspace,
+          "content",
+          "specialists",
+          "editorial",
+        ),
         directoryRoot: "content/specialists",
         relativePath: "content/specialists/editorial",
         inventoryMode: "full",
       },
     ]);
   });
-
-
 });
 
 describe("missing local skill reconciliation", () => {

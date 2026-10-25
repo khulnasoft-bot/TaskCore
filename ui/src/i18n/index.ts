@@ -1,5 +1,8 @@
 import i18n, { type InitOptions, type TOptions } from "i18next";
-import { initReactI18next, useTranslation as useReactI18nextTranslation } from "react-i18next";
+import {
+  initReactI18next,
+  useTranslation as useReactI18nextTranslation,
+} from "react-i18next";
 
 import { DEFAULT_LOCALE, i18nextResources, supportedLocales } from "./locales";
 
@@ -14,9 +17,12 @@ const i18nextOptions: InitOptions = {
   initAsync: false,
 };
 
-void i18n.use(initReactI18next).init(i18nextOptions).catch((error: unknown) => {
-  console.error("Failed to initialize i18next", error);
-});
+void i18n
+  .use(initReactI18next)
+  .init(i18nextOptions)
+  .catch((error: unknown) => {
+    console.error("Failed to initialize i18next", error);
+  });
 
 export function t(key: string, options: TOptions = {}) {
   return i18n.t(key, options);

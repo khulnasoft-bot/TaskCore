@@ -11,7 +11,9 @@ import {
   ensurePathInEnv,
 } from "../utils.js";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -74,7 +76,8 @@ export async function testEnvironment(
       checks.push({
         code: "process_command_unresolvable",
         level: "error",
-        message: err instanceof Error ? err.message : "Command is not executable",
+        message:
+          err instanceof Error ? err.message : "Command is not executable",
         detail: command,
       });
     }

@@ -1,4 +1,10 @@
-import { createContext, useContext, useCallback, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from "react";
 import { useLocation, useNavigate, type NavigateOptions } from "@/lib/router";
 import type { WorkspaceFileSelector } from "@taskcore/shared";
 import type { ParsedWorkspaceFileRef } from "@/lib/workspace-file-parser";
@@ -34,7 +40,10 @@ export interface FileViewerContextValue {
   browseWorkspaceId: string | null;
   folderPath: string | null;
   open(
-    ref: Pick<ParsedWorkspaceFileRef, "path" | "line" | "column" | "projectId" | "workspaceId"> & {
+    ref: Pick<
+      ParsedWorkspaceFileRef,
+      "path" | "line" | "column" | "projectId" | "workspaceId"
+    > & {
       workspace?: WorkspaceFileSelector;
     },
     opts?: {
@@ -68,11 +77,16 @@ export function getCurrentFileViewerSearch(fallbackSearch: string): string {
   return window.location.search;
 }
 
-export function shouldNavigateFileViewerSearch(nextSearch: string, fallbackSearch: string): boolean {
+export function shouldNavigateFileViewerSearch(
+  nextSearch: string,
+  fallbackSearch: string,
+): boolean {
   return nextSearch !== getCurrentFileViewerSearch(fallbackSearch);
 }
 
-export function readFileViewerStateFromSearch(search: string): FileViewerUrlState | null {
+export function readFileViewerStateFromSearch(
+  search: string,
+): FileViewerUrlState | null {
   const params = new URLSearchParams(search);
   const path = params.get("file");
   if (!path) return null;
@@ -84,9 +98,10 @@ export function readFileViewerStateFromSearch(search: string): FileViewerUrlStat
   const hasExplicitTarget = Boolean(projectIdRaw && workspaceIdRaw);
   const line = lineRaw ? Number.parseInt(lineRaw, 10) : NaN;
   const column = columnRaw ? Number.parseInt(columnRaw, 10) : NaN;
-  const workspace = (workspaceRaw === "execution" || workspaceRaw === "project")
-    ? workspaceRaw
-    : "auto";
+  const workspace =
+    workspaceRaw === "execution" || workspaceRaw === "project"
+      ? workspaceRaw
+      : "auto";
   return {
     path,
     line: Number.isFinite(line) && line > 0 ? line : null,
@@ -97,7 +112,10 @@ export function readFileViewerStateFromSearch(search: string): FileViewerUrlStat
   };
 }
 
-export function writeFileViewerStateToSearch(current: string, next: FileViewerUrlState | null): string {
+export function writeFileViewerStateToSearch(
+  current: string,
+  next: FileViewerUrlState | null,
+): string {
   const params = new URLSearchParams(current);
   // A direct file open/close is never a browse origin — clear browse params too.
   params.delete("browse");
@@ -116,7 +134,8 @@ export function writeFileViewerStateToSearch(current: string, next: FileViewerUr
     else params.delete("line");
     if (next.column !== null) params.set("column", String(next.column));
     else params.delete("column");
-    if (next.workspace && next.workspace !== "auto") params.set("workspace", next.workspace);
+    if (next.workspace && next.workspace !== "auto")
+      params.set("workspace", next.workspace);
     else params.delete("workspace");
     if (next.projectId) params.set("projectId", next.projectId);
     else params.delete("projectId");
@@ -134,7 +153,9 @@ export interface FileViewerBrowseState {
   workspaceId: string | null;
 }
 
-export function readBrowseStateFromSearch(search: string): FileViewerBrowseState | null {
+export function readBrowseStateFromSearch(
+  search: string,
+): FileViewerBrowseState | null {
   const params = new URLSearchParams(search);
   if (params.get("browse") !== "1") return null;
   const q = params.get("q");
@@ -173,7 +194,10 @@ export function writeFolderViewerStateToSearch(
   return str ? `?${str}` : "";
 }
 
-export function writeBrowseStateToSearch(current: string, next: Partial<FileViewerBrowseState>): string {
+export function writeBrowseStateToSearch(
+  current: string,
+  next: Partial<FileViewerBrowseState>,
+): string {
   const params = new URLSearchParams(current);
   params.set("browse", "1");
   if ("q" in next) {
@@ -204,23 +228,44 @@ interface FileViewerProviderProps {
   enabled?: boolean;
 }
 
-export function FileViewerProvider({ issueId, children, enabled = true }: FileViewerProviderProps) {
+export function FileViewerProvider({
+  issueId,
+  children,
+  enabled = true,
+}: FileViewerProviderProps) {
   if (!enabled) return <>{children}</>;
-  return <EnabledFileViewerProvider issueId={issueId}>{children}</EnabledFileViewerProvider>;
+  return (
+    <EnabledFileViewerProvider issueId={issueId}>
+      {children}
+    </EnabledFileViewerProvider>
+  );
 }
 
-function EnabledFileViewerProvider({ issueId, children }: Omit<FileViewerProviderProps, "enabled">) {
+function EnabledFileViewerProvider({
+  issueId,
+  children,
+}: Omit<FileViewerProviderProps, "enabled">) {
   const location = useLocation();
   const navigate = useNavigate();
-  const state = useMemo(() => readFileViewerStateFromSearch(location.search), [location.search]);
-  const browseState = useMemo(() => readBrowseStateFromSearch(location.search), [location.search]);
+  const state = useMemo(
+    () => readFileViewerStateFromSearch(location.search),
+    [location.search],
+  );
+  const browseState = useMemo(
+    () => readBrowseStateFromSearch(location.search),
+    [location.search],
+  );
   const availability = useWorkspaceFileAvailability(issueId);
 
   const navigateSearch = useCallback(
     (nextSearch: string, opts?: Partial<NavigateOptions>) => {
       if (!shouldNavigateFileViewerSearch(nextSearch, location.search)) return;
       navigate(
-        { pathname: location.pathname, hash: location.hash, search: nextSearch },
+        {
+          pathname: location.pathname,
+          hash: location.hash,
+          search: nextSearch,
+        },
         { ...FILE_VIEWER_NAVIGATE_OPTIONS, ...opts, state: location.state },
       );
     },
@@ -243,10 +288,16 @@ function EnabledFileViewerProvider({ issueId, children }: Omit<FileViewerProvide
         const previousParams = new URLSearchParams(location.search);
         const prevQ = previousParams.get("q");
         const prevFolder = previousParams.get("folder");
-        const nextQ = Object.prototype.hasOwnProperty.call(opts.browseState ?? {}, "q")
+        const nextQ = Object.prototype.hasOwnProperty.call(
+          opts.browseState ?? {},
+          "q",
+        )
           ? opts.browseState?.q
           : prevQ;
-        const nextFolder = Object.prototype.hasOwnProperty.call(opts.browseState ?? {}, "folderPath")
+        const nextFolder = Object.prototype.hasOwnProperty.call(
+          opts.browseState ?? {},
+          "folderPath",
+        )
           ? opts.browseState?.folderPath
           : prevFolder;
         if (nextQ) params.set("q", nextQ);
@@ -268,16 +319,21 @@ function EnabledFileViewerProvider({ issueId, children }: Omit<FileViewerProvide
       params.delete("column");
       params.delete("folder");
       params.set("browse", "1");
-      if (typeof opts?.q === "string" && opts.q.length > 0) params.set("q", opts.q);
+      if (typeof opts?.q === "string" && opts.q.length > 0)
+        params.set("q", opts.q);
       else params.delete("q");
       navigateSearch(params.toString() ? `?${params.toString()}` : "");
     },
     [location.search, navigateSearch],
   );
 
-  const updateBrowseState = useCallback<FileViewerContextValue["updateBrowseState"]>(
+  const updateBrowseState = useCallback<
+    FileViewerContextValue["updateBrowseState"]
+  >(
     (opts) => {
-      navigateSearch(writeBrowseStateToSearch(location.search, opts), { replace: true });
+      navigateSearch(writeBrowseStateToSearch(location.search, opts), {
+        replace: true,
+      });
     },
     [location.search, navigateSearch],
   );
@@ -306,7 +362,9 @@ function EnabledFileViewerProvider({ issueId, children }: Omit<FileViewerProvide
 
   const close = useCallback(() => {
     const currentSearch = getCurrentFileViewerSearch(location.search);
-    const params = new URLSearchParams(writeFileViewerStateToSearch(currentSearch, null).replace(/^\?/, ""));
+    const params = new URLSearchParams(
+      writeFileViewerStateToSearch(currentSearch, null).replace(/^\?/, ""),
+    );
     params.delete("browse");
     params.delete("q");
     params.delete("folder");
@@ -330,10 +388,25 @@ function EnabledFileViewerProvider({ issueId, children }: Omit<FileViewerProvide
       backToFiles,
       close,
     }),
-    [issueId, availability, state, browseState, open, openBrowse, updateBrowseState, openFolder, backToFiles, close],
+    [
+      issueId,
+      availability,
+      state,
+      browseState,
+      open,
+      openBrowse,
+      updateBrowseState,
+      openFolder,
+      backToFiles,
+      close,
+    ],
   );
 
-  return <FileViewerContext.Provider value={value}>{children}</FileViewerContext.Provider>;
+  return (
+    <FileViewerContext.Provider value={value}>
+      {children}
+    </FileViewerContext.Provider>
+  );
 }
 
 export function useFileViewer(): FileViewerContextValue | null {
@@ -343,7 +416,9 @@ export function useFileViewer(): FileViewerContextValue | null {
 export function useRequiredFileViewer(): FileViewerContextValue {
   const ctx = useContext(FileViewerContext);
   if (!ctx) {
-    throw new Error("useRequiredFileViewer must be used within a FileViewerProvider");
+    throw new Error(
+      "useRequiredFileViewer must be used within a FileViewerProvider",
+    );
   }
   return ctx;
 }

@@ -10,17 +10,17 @@ const HUMAN_COMPANY_MEMBERSHIP_ROLES: HumanCompanyMembershipRole[] = [
 
 export function normalizeHumanRole(
   value: unknown,
-  fallback: HumanCompanyMembershipRole = "operator"
+  fallback: HumanCompanyMembershipRole = "operator",
 ): HumanCompanyMembershipRole {
   if (value === "member") return "operator";
-  return HUMAN_COMPANY_MEMBERSHIP_ROLES.includes(value as HumanCompanyMembershipRole)
+  return HUMAN_COMPANY_MEMBERSHIP_ROLES.includes(
+    value as HumanCompanyMembershipRole,
+  )
     ? (value as HumanCompanyMembershipRole)
     : fallback;
 }
 
-export function grantsForHumanRole(
-  role: HumanCompanyMembershipRole
-): Array<{
+export function grantsForHumanRole(role: HumanCompanyMembershipRole): Array<{
   permissionKey: (typeof PERMISSION_KEYS)[number];
   scope: Record<string, unknown> | null;
 }> {
@@ -77,12 +77,16 @@ export function grantsForHumanRole(
 }
 
 export function resolveHumanInviteRole(
-  defaultsPayload: Record<string, unknown> | null | undefined
+  defaultsPayload: Record<string, unknown> | null | undefined,
 ): HumanCompanyMembershipRole {
-  if (!defaultsPayload || typeof defaultsPayload !== "object") return "operator";
+  if (!defaultsPayload || typeof defaultsPayload !== "object")
+    return "operator";
   const scoped = defaultsPayload.human;
   if (!scoped || typeof scoped !== "object" || Array.isArray(scoped)) {
     return "operator";
   }
-  return normalizeHumanRole((scoped as Record<string, unknown>).role, "operator");
+  return normalizeHumanRole(
+    (scoped as Record<string, unknown>).role,
+    "operator",
+  );
 }

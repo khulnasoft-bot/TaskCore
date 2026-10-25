@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { isCodexUnknownSessionError, parseCodexJsonl } from "@taskcore/adapter-codex-local/server";
+import {
+  isCodexUnknownSessionError,
+  parseCodexJsonl,
+} from "@taskcore/adapter-codex-local/server";
 import { parseCodexStdoutLine } from "@taskcore/adapter-codex-local/ui";
 import { printCodexStreamEvent } from "@taskcore/adapter-codex-local/cli";
 
@@ -7,9 +10,18 @@ describe("codex_local parser", () => {
   it("extracts session, summary, usage, and terminal error message", () => {
     const stdout = [
       JSON.stringify({ type: "thread.started", thread_id: "thread-123" }),
-      JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: "hello" } }),
-      JSON.stringify({ type: "turn.completed", usage: { input_tokens: 10, cached_input_tokens: 2, output_tokens: 4 } }),
-      JSON.stringify({ type: "turn.failed", error: { message: "model access denied" } }),
+      JSON.stringify({
+        type: "item.completed",
+        item: { type: "agent_message", text: "hello" },
+      }),
+      JSON.stringify({
+        type: "turn.completed",
+        usage: { input_tokens: 10, cached_input_tokens: 2, output_tokens: 4 },
+      }),
+      JSON.stringify({
+        type: "turn.failed",
+        error: { message: "model access denied" },
+      }),
     ].join("\n");
 
     const parsed = parseCodexJsonl(stdout);
@@ -37,15 +49,19 @@ describe("codex_local ui stdout parser", () => {
   it("parses turn and reasoning lifecycle events", () => {
     const ts = "2026-02-20T00:00:00.000Z";
 
-    expect(parseCodexStdoutLine(JSON.stringify({ type: "turn.started" }), ts)).toEqual([
-      { kind: "system", ts, text: "turn started" },
-    ]);
+    expect(
+      parseCodexStdoutLine(JSON.stringify({ type: "turn.started" }), ts),
+    ).toEqual([{ kind: "system", ts, text: "turn started" }]);
 
     expect(
       parseCodexStdoutLine(
         JSON.stringify({
           type: "item.completed",
-          item: { id: "item_1", type: "reasoning", text: "**Preparing to use taskcore skill**" },
+          item: {
+            id: "item_1",
+            type: "reasoning",
+            text: "**Preparing to use taskcore skill**",
+          },
         }),
         ts,
       ),
@@ -61,7 +77,12 @@ describe("codex_local ui stdout parser", () => {
       parseCodexStdoutLine(
         JSON.stringify({
           type: "item.started",
-          item: { id: "item_2", type: "command_execution", command: "/bin/zsh -lc ls", status: "in_progress" },
+          item: {
+            id: "item_2",
+            type: "command_execution",
+            command: "/bin/zsh -lc ls",
+            status: "in_progress",
+          },
         }),
         ts,
       ),
@@ -95,7 +116,8 @@ describe("codex_local ui stdout parser", () => {
         kind: "tool_result",
         ts,
         toolUseId: "item_2",
-        content: "command: /bin/zsh -lc ls\nstatus: completed\nexit_code: 0\n\nagents",
+        content:
+          "command: /bin/zsh -lc ls\nstatus: completed\nexit_code: 0\n\nagents",
         isError: false,
       },
     ]);
@@ -107,7 +129,12 @@ describe("codex_local ui stdout parser", () => {
           item: {
             id: "item_52",
             type: "file_change",
-            changes: [{ path: "/Users/taskcoreuser/project/ui/src/pages/AgentDetail.tsx", kind: "update" }],
+            changes: [
+              {
+                path: "/Users/taskcoreuser/project/ui/src/pages/AgentDetail.tsx",
+                kind: "update",
+              },
+            ],
             status: "completed",
           },
         }),
@@ -132,7 +159,8 @@ describe("codex_local ui stdout parser", () => {
           item: {
             id: "item_0",
             type: "error",
-            message: "This session was recorded with model `gpt-5.2-pro` but is resuming with `gpt-5.2-codex`.",
+            message:
+              "This session was recorded with model `gpt-5.2-pro` but is resuming with `gpt-5.2-codex`.",
           },
         }),
         ts,
@@ -184,7 +212,12 @@ describe("codex_local cli formatter", () => {
       printCodexStreamEvent(
         JSON.stringify({
           type: "item.started",
-          item: { id: "item_2", type: "command_execution", command: "/bin/zsh -lc ls", status: "in_progress" },
+          item: {
+            id: "item_2",
+            type: "command_execution",
+            command: "/bin/zsh -lc ls",
+            status: "in_progress",
+          },
         }),
         false,
       );
@@ -208,7 +241,12 @@ describe("codex_local cli formatter", () => {
           item: {
             id: "item_52",
             type: "file_change",
-            changes: [{ path: "/home/user/project/ui/src/pages/AgentDetail.tsx", kind: "update" }],
+            changes: [
+              {
+                path: "/home/user/project/ui/src/pages/AgentDetail.tsx",
+                kind: "update",
+              },
+            ],
             status: "completed",
           },
         }),
@@ -234,17 +272,19 @@ describe("codex_local cli formatter", () => {
         .map((call) => call.map((v) => String(v)).join(" "))
         .map(stripAnsi);
 
-      expect(lines).toEqual(expect.arrayContaining([
-        "turn started",
-        "tool_call: command_execution",
-        "/bin/zsh -lc ls",
-        "tool_result: command_execution command=\"/bin/zsh -lc ls\" status=completed exit_code=0",
-        "agents",
-        "file_change: update /home/user/project/ui/src/pages/AgentDetail.tsx",
-        "turn failed: model access denied",
-        "tokens: in=10 out=4 cached=2",
-        "error: resume model mismatch",
-      ]));
+      expect(lines).toEqual(
+        expect.arrayContaining([
+          "turn started",
+          "tool_call: command_execution",
+          "/bin/zsh -lc ls",
+          'tool_result: command_execution command="/bin/zsh -lc ls" status=completed exit_code=0',
+          "agents",
+          "file_change: update /home/user/project/ui/src/pages/AgentDetail.tsx",
+          "turn failed: model access denied",
+          "tokens: in=10 out=4 cached=2",
+          "error: resume model mismatch",
+        ]),
+      );
     } finally {
       spy.mockRestore();
     }

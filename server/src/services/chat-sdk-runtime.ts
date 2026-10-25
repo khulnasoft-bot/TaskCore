@@ -2,7 +2,12 @@ import { PhotonChatAdapter, parsePhotonThreadId } from "./photon/adapter.js";
 import { PhotonLineAuthentication } from "./photon/cloud.js";
 import { PhotonState } from "./photon/state.js";
 import { PhotonReceiver } from "./photon/receiver.js";
-import { photonAttachmentLocator, photonAttachmentLocatorSchema, downloadPhotonAttachment, type PhotonAttachmentLocator } from "./photon/attachments.js";
+import {
+  photonAttachmentLocator,
+  photonAttachmentLocatorSchema,
+  downloadPhotonAttachment,
+  type PhotonAttachmentLocator,
+} from "./photon/attachments.js";
 import type { LiveEvent as PhotonEvent } from "@photon-ai/advanced-imessage";
 import {
   createGitHubAdapter,
@@ -136,8 +141,14 @@ const DISCORD_GATEWAY_HEALTHY_SESSION_MS = 60_000;
 
 /** Public Taskcore provider ids. The Teams SDK name remains an internal detail. */
 export type ChatSdkProvider =
-  "slack" | "github" | "discord" | "microsoft-teams" | "telegram" | "imessage-photon";
-type ChatSdkAdapterKey = "slack" | "github" | "discord" | "teams" | "telegram" | "imessage-photon";
+  | "slack"
+  | "github"
+  | "discord"
+  | "microsoft-teams"
+  | "telegram"
+  | "imessage-photon";
+type ChatSdkAdapterKey =
+  "slack" | "github" | "discord" | "teams" | "telegram" | "imessage-photon";
 
 interface ProviderConfigBase {
   /** Agent-derived native bot display/mention name. */
@@ -209,7 +220,13 @@ export interface ResolvedTelegramChatConfig extends ProviderConfigBase {
 export interface ResolvedPhotonChatConfig extends ProviderConfigBase {
   provider: "imessage-photon";
   intakeAfter: number;
-  credentials: { allocation?: "dedicated" | "shared"; projectId: string; projectSecret: string; lineId: string; phoneNumber: string };
+  credentials: {
+    allocation?: "dedicated" | "shared";
+    projectId: string;
+    projectSecret: string;
+    lineId: string;
+    phoneNumber: string;
+  };
 }
 export type ResolvedChatSdkProviderConfig =
   | ResolvedPhotonChatConfig
@@ -418,8 +435,7 @@ export interface ChatSdkCallbackEvent<T> {
 
 /** Private command completion only; task publications use the ordinary FIFO. */
 export type DiscordNativeCommandResponse =
-  | { kind: "accepted"; content: string }
-  | { kind: "denied" };
+  { kind: "accepted"; content: string } | { kind: "denied" };
 
 export interface DiscordRootMentionAdmissionEvent {
   channelId: string;
@@ -1356,7 +1372,8 @@ function createProviderAdapter(
 ): Adapter {
   const resolvedLogger = adapterLogger(logger);
   switch (config.provider) {
-    case "imessage-photon": throw new Error("Photon adapter requires scoped persistence");
+    case "imessage-photon":
+      throw new Error("Photon adapter requires scoped persistence");
     case "slack": {
       const adapterConfig: SlackAdapterConfig = {
         ...config.credentials,
@@ -2066,8 +2083,10 @@ export class ChatSdkEndpointRuntime {
       options.providerConfig.provider === "slack"
         ? options.providerConfig.credentials.botToken
         : null;
-    this.telegramEphemeralBotToken = options.providerConfig.provider === "telegram"
-      ? options.providerConfig.credentials.botToken : null;
+    this.telegramEphemeralBotToken =
+      options.providerConfig.provider === "telegram"
+        ? options.providerConfig.credentials.botToken
+        : null;
     this.sdkAdapterKey = adapterKey(this.provider);
     this.teamsFileConsentEnabled =
       this.provider === "microsoft-teams" &&
@@ -2097,19 +2116,28 @@ export class ChatSdkEndpointRuntime {
       1,
       Math.min(options.webhookIngressTimeoutMs ?? 2_500, 10_000),
     );
-    this.adapter = options.providerConfig.provider === "imessage-photon"
-      ? new PhotonChatAdapter(options.providerConfig.userName,
-          new PhotonLineAuthentication(options.providerConfig.credentials, options.providerConfig.credentials.projectSecret),
-          new PhotonState({ companyId: options.companyId, endpointId: options.endpointId }, options.persistence))
-      : createProviderAdapter(
-      options.providerConfig,
-      options.logger,
-      options.callbacks,
-      options.endpointId,
-      (fatal) => {
-        this.discordGatewayFatal = fatal;
-      },
-    );
+    this.adapter =
+      options.providerConfig.provider === "imessage-photon"
+        ? new PhotonChatAdapter(
+            options.providerConfig.userName,
+            new PhotonLineAuthentication(
+              options.providerConfig.credentials,
+              options.providerConfig.credentials.projectSecret,
+            ),
+            new PhotonState(
+              { companyId: options.companyId, endpointId: options.endpointId },
+              options.persistence,
+            ),
+          )
+        : createProviderAdapter(
+            options.providerConfig,
+            options.logger,
+            options.callbacks,
+            options.endpointId,
+            (fatal) => {
+              this.discordGatewayFatal = fatal;
+            },
+          );
     if (this.provider === "telegram") {
       const adapter = this.adapter as unknown as {
         botUserId?: string;
@@ -2221,7 +2249,8 @@ export class ChatSdkEndpointRuntime {
           ? "discord_gateway"
           : undefined,
       () => this.discordCommandDispatch.getStore(),
-      (raw) => isRecord(raw) ? this.telegramCallbackProofs.get(raw) : undefined,
+      (raw) =>
+        isRecord(raw) ? this.telegramCallbackProofs.get(raw) : undefined,
     );
     if (
       options.providerConfig.provider === "discord" &&
@@ -2281,16 +2310,41 @@ export class ChatSdkEndpointRuntime {
   async initialize(): Promise<void> {
     await this.initializeChat();
     this.assertNotRetired();
-    if (this.adapter instanceof PhotonChatAdapter && this.discordGatewayEnabled && !this.photonReceiver) {
+    if (
+      this.adapter instanceof PhotonChatAdapter &&
+      this.discordGatewayEnabled &&
+      !this.photonReceiver
+    ) {
       const options = this.runtimeOptions;
       const config = options.providerConfig as ResolvedPhotonChatConfig;
-      if (!options.callbacks.onPhotonCheckpoint || !options.callbacks.onPhotonAssertOwned || !options.callbacks.onPhotonEvent || !options.callbacks.onPhotonFailure) throw new Error("Photon receiver requires durable admission callbacks");
-      this.adapter.typingGuard = async (activeThreadId) => { this.assertNotRetired(); await options.callbacks.onPhotonAssertOwned!(activeThreadId); };
-      this.photonReceiver = new PhotonReceiver({ client: this.adapter.client, state: this.adapter.state,
-        lineId: config.credentials.lineId, intakeAfter: config.intakeAfter, allocation: config.credentials.allocation,
-        catchUp: (sequence) => (this.adapter as PhotonChatAdapter).recoveryStream(sequence),
-        assertOwned: async () => { this.assertNotRetired(); await (this.adapter as PhotonChatAdapter).authentication.token(); await options.callbacks.onPhotonAssertOwned!(); },
-        commitCheckpoint: options.callbacks.onPhotonCheckpoint, admit: options.callbacks.onPhotonEvent, failure: options.callbacks.onPhotonFailure });
+      if (
+        !options.callbacks.onPhotonCheckpoint ||
+        !options.callbacks.onPhotonAssertOwned ||
+        !options.callbacks.onPhotonEvent ||
+        !options.callbacks.onPhotonFailure
+      )
+        throw new Error("Photon receiver requires durable admission callbacks");
+      this.adapter.typingGuard = async (activeThreadId) => {
+        this.assertNotRetired();
+        await options.callbacks.onPhotonAssertOwned!(activeThreadId);
+      };
+      this.photonReceiver = new PhotonReceiver({
+        client: this.adapter.client,
+        state: this.adapter.state,
+        lineId: config.credentials.lineId,
+        intakeAfter: config.intakeAfter,
+        allocation: config.credentials.allocation,
+        catchUp: (sequence) =>
+          (this.adapter as PhotonChatAdapter).recoveryStream(sequence),
+        assertOwned: async () => {
+          this.assertNotRetired();
+          await (this.adapter as PhotonChatAdapter).authentication.token();
+          await options.callbacks.onPhotonAssertOwned!();
+        },
+        commitCheckpoint: options.callbacks.onPhotonCheckpoint,
+        admit: options.callbacks.onPhotonEvent,
+        failure: options.callbacks.onPhotonFailure,
+      });
       this.photonReceiver.start();
     }
     if (this.provider === "discord" && this.discordGatewayEnabled) {
@@ -2737,17 +2791,34 @@ export class ChatSdkEndpointRuntime {
     attachment: Attachment,
     source?: ChatSdkAttachmentSource,
   ): ChatSdkAttachmentRecoveryDescriptor | null {
-    if (this.provider === "telegram" && hasTelegramMediaProvenance(attachment)) {
+    if (
+      this.provider === "telegram" &&
+      hasTelegramMediaProvenance(attachment)
+    ) {
       const scope = this.telegramMediaScope(source);
       const locator = scope && telegramMediaLocator(attachment, scope);
       const metadata = durableAttachmentMetadata(attachment);
-      return locator && metadata ? { version: 1, provider: "telegram", attachment: metadata, locator } : null;
+      return locator && metadata
+        ? { version: 1, provider: "telegram", attachment: metadata, locator }
+        : null;
     }
     if (this.adapter instanceof PhotonChatAdapter && source?.message) {
       const thread = this.adapter.decodeThreadId(source.threadId);
-      const locator = photonAttachmentLocator(attachment, thread.lineId, thread.chatGuid, source.message);
+      const locator = photonAttachmentLocator(
+        attachment,
+        thread.lineId,
+        thread.chatGuid,
+        source.message,
+      );
       const metadata = durableAttachmentMetadata(attachment);
-      return locator && metadata ? { version: 1, provider: "imessage-photon", attachment: metadata, locator } : null;
+      return locator && metadata
+        ? {
+            version: 1,
+            provider: "imessage-photon",
+            attachment: metadata,
+            locator,
+          }
+        : null;
     }
     const retained = this.teamsInlineImageDescriptors.get(attachment);
     if (retained) {
@@ -2774,11 +2845,25 @@ export class ChatSdkEndpointRuntime {
     return createAttachmentRecoveryDescriptor(this.provider, attachment);
   }
 
-  private telegramMediaScope(source?: ChatSdkAttachmentSource): TelegramMediaScope | null {
-    if (!source || source.runtimeGeneration === undefined || !source.credentialFingerprint || !source.principalExternalId) return null;
-    return { companyId: this.companyId, endpointId: this.endpointId, runtimeGeneration: source.runtimeGeneration,
-      credentialFingerprint: source.credentialFingerprint, threadId: source.threadId, messageId: source.messageId,
-      principalExternalId: source.principalExternalId };
+  private telegramMediaScope(
+    source?: ChatSdkAttachmentSource,
+  ): TelegramMediaScope | null {
+    if (
+      !source ||
+      source.runtimeGeneration === undefined ||
+      !source.credentialFingerprint ||
+      !source.principalExternalId
+    )
+      return null;
+    return {
+      companyId: this.companyId,
+      endpointId: this.endpointId,
+      runtimeGeneration: source.runtimeGeneration,
+      credentialFingerprint: source.credentialFingerprint,
+      threadId: source.threadId,
+      messageId: source.messageId,
+      principalExternalId: source.principalExternalId,
+    };
   }
 
   private teamsInlineImageScope(
@@ -2918,13 +3003,41 @@ export class ChatSdkEndpointRuntime {
     descriptor: unknown,
     source?: ChatSdkAttachmentSource,
   ): Attachment | null {
-    if (this.adapter instanceof PhotonChatAdapter && isRecord(descriptor) && descriptor.version === 1 && descriptor.provider === this.provider && source) {
-      const parsed = photonAttachmentLocatorSchema.safeParse(descriptor.locator);
+    if (
+      this.adapter instanceof PhotonChatAdapter &&
+      isRecord(descriptor) &&
+      descriptor.version === 1 &&
+      descriptor.provider === this.provider &&
+      source
+    ) {
+      const parsed = photonAttachmentLocatorSchema.safeParse(
+        descriptor.locator,
+      );
       const thread = this.adapter.decodeThreadId(source.threadId);
-      const metadata = isRecord(descriptor.attachment) ? durableAttachmentMetadata(descriptor.attachment as unknown as Attachment) : null;
-      if (!parsed.success || !metadata || parsed.data.lineId !== thread.lineId || parsed.data.chatGuid !== thread.chatGuid || parsed.data.messageGuid !== source.messageId) return null;
+      const metadata = isRecord(descriptor.attachment)
+        ? durableAttachmentMetadata(
+            descriptor.attachment as unknown as Attachment,
+          )
+        : null;
+      if (
+        !parsed.success ||
+        !metadata ||
+        parsed.data.lineId !== thread.lineId ||
+        parsed.data.chatGuid !== thread.chatGuid ||
+        parsed.data.messageGuid !== source.messageId
+      )
+        return null;
       const adapter = this.adapter;
-      return { ...metadata, fetchData: () => downloadPhotonAttachment(adapter.client, thread.lineId, parsed.data, adapter.authentication.identity.allocation) };
+      return {
+        ...metadata,
+        fetchData: () =>
+          downloadPhotonAttachment(
+            adapter.client,
+            thread.lineId,
+            parsed.data,
+            adapter.authentication.identity.allocation,
+          ),
+      };
     }
     if (
       this.provider === "microsoft-teams" &&
@@ -3029,7 +3142,10 @@ export class ChatSdkEndpointRuntime {
         }
       };
 
-      const attachment: Attachment = { ...metadata, fetchData: () => fetchData() };
+      const attachment: Attachment = {
+        ...metadata,
+        fetchData: () => fetchData(),
+      };
       this.teamsInlineImageDescriptors.set(attachment, normalized);
       this.teamsInlineImageFetchers.set(attachment, fetchData);
       return attachment;

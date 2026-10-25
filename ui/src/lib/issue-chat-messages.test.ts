@@ -209,16 +209,22 @@ function createRequestConfirmation(
 
 describe("buildAssistantPartsFromTranscript", () => {
   it("keeps canonical provider activity structured for the task-thread widget", () => {
-    const result = buildAssistantPartsFromTranscript([{
-      kind: "provider_activity",
-      ts: "2026-08-21T12:00:00.000Z",
-      family: "plan",
-      eventType: "plan.updated",
-      status: "completed",
-      title: "Plan",
-      summary: "Plan synchronized",
-      payload: { steps: [{ stepId: "s1", body: "Validate schemas", status: "completed" }] },
-    }]);
+    const result = buildAssistantPartsFromTranscript([
+      {
+        kind: "provider_activity",
+        ts: "2026-08-21T12:00:00.000Z",
+        family: "plan",
+        eventType: "plan.updated",
+        status: "completed",
+        title: "Plan",
+        summary: "Plan synchronized",
+        payload: {
+          steps: [
+            { stepId: "s1", body: "Validate schemas", status: "completed" },
+          ],
+        },
+      },
+    ]);
     expect(result.parts).toHaveLength(1);
     expect(result.parts[0]).toMatchObject({
       type: "tool-call",
@@ -288,14 +294,43 @@ describe("buildAssistantPartsFromTranscript", () => {
 
   it("accumulates streamed tool output before the completed result", () => {
     const result = buildAssistantPartsFromTranscript([
-      { kind: "tool_call", ts: "2026-04-06T12:00:00.000Z", name: "shell", toolUseId: "tool-1", input: {} },
-      { kind: "tool_result", ts: "2026-04-06T12:00:01.000Z", toolUseId: "tool-1", content: "first\n", delta: true },
-      { kind: "tool_result", ts: "2026-04-06T12:00:02.000Z", toolUseId: "tool-1", content: "second\n", delta: true },
-      { kind: "tool_result", ts: "2026-04-06T12:00:03.000Z", toolUseId: "tool-1", content: "", isError: false },
+      {
+        kind: "tool_call",
+        ts: "2026-04-06T12:00:00.000Z",
+        name: "shell",
+        toolUseId: "tool-1",
+        input: {},
+      },
+      {
+        kind: "tool_result",
+        ts: "2026-04-06T12:00:01.000Z",
+        toolUseId: "tool-1",
+        content: "first\n",
+        delta: true,
+      },
+      {
+        kind: "tool_result",
+        ts: "2026-04-06T12:00:02.000Z",
+        toolUseId: "tool-1",
+        content: "second\n",
+        delta: true,
+      },
+      {
+        kind: "tool_result",
+        ts: "2026-04-06T12:00:03.000Z",
+        toolUseId: "tool-1",
+        content: "",
+        isError: false,
+      },
     ]);
 
     expect(result.parts).toMatchObject([
-      { type: "tool-call", toolCallId: "tool-1", result: "first\nsecond\n", isError: false },
+      {
+        type: "tool-call",
+        toolCallId: "tool-1",
+        result: "first\nsecond\n",
+        isError: false,
+      },
     ]);
   });
 
@@ -1794,17 +1829,55 @@ describe("stabilizeThreadMessages", () => {
   });
 });
 
-
 describe("AI recovery presentation", () => {
-  it.each(["pending", "accepted", "rejected", "expired"] as const)("replaces diagnostic notices with the same-run %s connection card", (status) => {
-    const interaction: ConnectionIntentInteraction = { ...pendingConnectionIntentInteraction, status, sourceRunId: "failed-run", payload: { ...pendingConnectionIntentInteraction.payload, purpose: "ai" } };
-    const notice = createComment({ authorType: "system", presentation: { kind: "system_notice", title: "AI connection needs attention", tone: "danger", detailsDefaultOpen: false }, metadata: { version: 1, sourceRunId: "failed-run", sections: [] } });
-    expect(isRedundantAiRecoveryNotice(notice, [interaction])).toBe(true);
-    expect(isRedundantAiRecoveryNotice(notice, [{ ...interaction, sourceRunId: "other-run" }])).toBe(false);
-    expect(isRedundantAiRecoveryNotice(notice, [])).toBe(false);
-    expect(isRedundantAiRecoveryNotice(notice, [{ ...interaction, payload: { ...interaction.payload, purpose: undefined } }])).toBe(false);
-    const messages = buildIssueChatMessages({ comments: [notice], interactions: [interaction], timelineEvents: [], linkedRuns: [], liveRuns: [] });
-    expect(messages).toHaveLength(1);
-    expect(messages[0]?.metadata.custom).toMatchObject({ kind: "interaction" });
-  });
+  it.each(["pending", "accepted", "rejected", "expired"] as const)(
+    "replaces diagnostic notices with the same-run %s connection card",
+    (status) => {
+      const interaction: ConnectionIntentInteraction = {
+        ...pendingConnectionIntentInteraction,
+        status,
+        sourceRunId: "failed-run",
+        payload: {
+          ...pendingConnectionIntentInteraction.payload,
+          purpose: "ai",
+        },
+      };
+      const notice = createComment({
+        authorType: "system",
+        presentation: {
+          kind: "system_notice",
+          title: "AI connection needs attention",
+          tone: "danger",
+          detailsDefaultOpen: false,
+        },
+        metadata: { version: 1, sourceRunId: "failed-run", sections: [] },
+      });
+      expect(isRedundantAiRecoveryNotice(notice, [interaction])).toBe(true);
+      expect(
+        isRedundantAiRecoveryNotice(notice, [
+          { ...interaction, sourceRunId: "other-run" },
+        ]),
+      ).toBe(false);
+      expect(isRedundantAiRecoveryNotice(notice, [])).toBe(false);
+      expect(
+        isRedundantAiRecoveryNotice(notice, [
+          {
+            ...interaction,
+            payload: { ...interaction.payload, purpose: undefined },
+          },
+        ]),
+      ).toBe(false);
+      const messages = buildIssueChatMessages({
+        comments: [notice],
+        interactions: [interaction],
+        timelineEvents: [],
+        linkedRuns: [],
+        liveRuns: [],
+      });
+      expect(messages).toHaveLength(1);
+      expect(messages[0]?.metadata.custom).toMatchObject({
+        kind: "interaction",
+      });
+    },
+  );
 });

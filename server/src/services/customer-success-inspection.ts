@@ -36,9 +36,19 @@ export const inspectionReaders: Record<InspectionResource, Reader> = {
   memberships: { table: schema.companyMemberships },
   permissions: { table: schema.principalPermissionGrants },
   agents: { table: schema.agents },
-  agentIdentities: { table: schema.agentIdentityKeys, id: "agentId", omit: ["privateKeyMaterial"] },
-  agentInstructions: { table: schema.agentInstructionRevisions, parent: "agentId" },
-  agentConfigRevisions: { table: schema.agentConfigRevisions, parent: "agentId" },
+  agentIdentities: {
+    table: schema.agentIdentityKeys,
+    id: "agentId",
+    omit: ["privateKeyMaterial"],
+  },
+  agentInstructions: {
+    table: schema.agentInstructionRevisions,
+    parent: "agentId",
+  },
+  agentConfigRevisions: {
+    table: schema.agentConfigRevisions,
+    parent: "agentId",
+  },
   tasks: { table: schema.issues },
   comments: { table: schema.issueComments, parent: "issueId" },
   documents: { table: schema.documents },
@@ -61,11 +71,18 @@ export const inspectionReaders: Record<InspectionResource, Reader> = {
   projectWorkspaces: { table: schema.projectWorkspaces, parent: "projectId" },
   projectMemberships: { table: schema.projectMemberships, parent: "projectId" },
   skills: { table: schema.companySkills, omit: ["publicShareToken"] },
-  skillVersions: { table: schema.companySkillVersions, parent: "companySkillId" },
+  skillVersions: {
+    table: schema.companySkillVersions,
+    parent: "companySkillId",
+  },
   skillSources: { table: schema.companySkillSources, omit: ["leaseToken"] },
   runs: { table: schema.heartbeatRuns, omit: ["logRef"] },
   runEvents: { table: schema.heartbeatRunEvents, parent: "runId" },
-  traceMetadata: { table: schema.providerTraceRecords, parent: "runId", omit: ["traceRef"] },
+  traceMetadata: {
+    table: schema.providerTraceRecords,
+    parent: "runId",
+    omit: ["traceRef"],
+  },
   activity: { table: schema.activityLog },
   costs: { table: schema.costEvents },
   workProducts: { table: schema.issueWorkProducts, parent: "issueId" },
@@ -75,14 +92,23 @@ export const inspectionReaders: Record<InspectionResource, Reader> = {
     table: schema.toolConnections,
     omit: ["externalCredential", "credentialRefs", "credentialSecretRefs"],
   },
-  connectionInstalls: { table: schema.toolConnectionInstalls, parent: "connectionId" },
+  connectionInstalls: {
+    table: schema.toolConnectionInstalls,
+    parent: "connectionId",
+  },
   connectionGrants: {
     table: schema.connectionGrants,
     parent: "connectionId",
     omit: ["credentialSecretRefs", "externalCredential"],
   },
-  connectionGrantMembers: { table: schema.connectionGrantMembers, parent: "grantId" },
-  connectionCatalog: { table: schema.toolCatalogEntries, parent: "connectionId" },
+  connectionGrantMembers: {
+    table: schema.connectionGrantMembers,
+    parent: "grantId",
+  },
+  connectionCatalog: {
+    table: schema.toolCatalogEntries,
+    parent: "connectionId",
+  },
   toolProfiles: { table: schema.toolProfiles },
   toolProfileEntries: { table: schema.toolProfileEntries, parent: "profileId" },
   agentMemberships: { table: schema.agentMemberships, parent: "agentId" },
@@ -93,13 +119,27 @@ export const inspectionReaders: Record<InspectionResource, Reader> = {
   taskLabels: { table: schema.issueLabels, parent: "issueId" },
   taskRelations: { table: schema.issueRelations },
   taskApprovals: { table: schema.issueApprovals, parent: "issueId" },
-  documentMemberships: { table: schema.documentMemberships, parent: "documentId" },
-  documentThreads: { table: schema.documentAnnotationThreads, parent: "documentId" },
-  documentComments: { table: schema.documentAnnotationComments, parent: "threadId" },
+  documentMemberships: {
+    table: schema.documentMemberships,
+    parent: "documentId",
+  },
+  documentThreads: {
+    table: schema.documentAnnotationThreads,
+    parent: "documentId",
+  },
+  documentComments: {
+    table: schema.documentAnnotationComments,
+    parent: "threadId",
+  },
   threads: { table: schema.chatConversations, parent: "endpointId" },
 };
 
-async function ownRow(tx: Db, table: AnyPgTable, companyId: string, id: string) {
+async function ownRow(
+  tx: Db,
+  table: AnyPgTable,
+  companyId: string,
+  id: string,
+) {
   const columns = getTableColumns(table) as Record<string, AnyPgColumn>;
   const [row] = await tx
     .select()
@@ -148,7 +188,10 @@ export async function readCustomerSuccessResource(
       }
       if (q.operation === "list" || q.operation === "get") {
         const reader = inspectionReaders[q.resource!];
-        const all = getTableColumns(reader.table) as Record<string, AnyPgColumn>;
+        const all = getTableColumns(reader.table) as Record<
+          string,
+          AnyPgColumn
+        >;
         const columns = Object.fromEntries(
           Object.entries(all).filter(([key]) => !reader.omit?.includes(key)),
         );
@@ -168,7 +211,8 @@ export async function readCustomerSuccessResource(
             );
           const { inArray } = await import("drizzle-orm");
           if (!memberships.length) {
-            if (q.operation === "get") throw notFound("Inspection resource not found");
+            if (q.operation === "get")
+              throw notFound("Inspection resource not found");
             return { items: [], nextOffset: null };
           }
           predicates.push(
@@ -178,12 +222,14 @@ export async function readCustomerSuccessResource(
             ),
           );
         } else {
-          if (!all.companyId) throw unprocessable("Reader has no company boundary");
+          if (!all.companyId)
+            throw unprocessable("Reader has no company boundary");
           predicates.push(eq(all.companyId, q.companyId!));
         }
         if (q.operation === "get" && !all[reader.id ?? "id"])
           throw unprocessable("This resource supports listing only");
-        if (q.operation === "get") predicates.push(eq(all[reader.id ?? "id"], q.resourceId!));
+        if (q.operation === "get")
+          predicates.push(eq(all[reader.id ?? "id"], q.resourceId!));
         if (q.parentId) {
           if (!reader.parent || !all[reader.parent])
             throw unprocessable("This reader does not accept parentId");
@@ -201,8 +247,12 @@ export async function readCustomerSuccessResource(
         if (q.resource === "agents")
           rows = rows.map((r) => ({
             ...r,
-            adapterConfig: redactAgentAdapterConfig(r.adapterConfig as Record<string, unknown>),
-            runtimeConfig: redactEventPayload(r.runtimeConfig as Record<string, unknown>),
+            adapterConfig: redactAgentAdapterConfig(
+              r.adapterConfig as Record<string, unknown>,
+            ),
+            runtimeConfig: redactEventPayload(
+              r.runtimeConfig as Record<string, unknown>,
+            ),
           }));
         if (q.resource === "agentConfigRevisions")
           rows = rows.map((r) => ({
@@ -211,11 +261,15 @@ export async function readCustomerSuccessResource(
             afterConfig: redactRevisionSnapshot(r.afterConfig),
           }));
         if (q.resource === "projects" || q.resource === "routines")
-          rows = rows.map((r) => ({ ...r, env: redactAgentAdapterConfig({ env: r.env }).env }));
+          rows = rows.map((r) => ({
+            ...r,
+            env: redactAgentAdapterConfig({ env: r.env }).env,
+          }));
         if (q.resource === "routineRevisions")
           rows = rows.map((r) => {
             const snapshot = r.snapshot as Record<string, unknown> | null;
-            const routine = snapshot?.routine as Record<string, unknown> | undefined;
+            const routine = snapshot?.routine as
+              Record<string, unknown> | undefined;
             return routine
               ? {
                   ...r,
@@ -250,7 +304,9 @@ export async function readCustomerSuccessResource(
         if (q.resource === "runEvents") {
           const redactions = createRunSecretRedactionRegistry(tx);
           rows = await Promise.all(
-            rows.map((r) => redactions.redactForRun(q.companyId!, String(r.runId), r)),
+            rows.map((r) =>
+              redactions.redactForRun(q.companyId!, String(r.runId), r),
+            ),
           );
         }
         if (q.operation === "get") {
@@ -263,7 +319,12 @@ export async function readCustomerSuccessResource(
         };
       }
       if (q.operation === "instructions.file") {
-        const agent = await ownRow(tx, schema.agents, q.companyId!, q.resourceId!);
+        const agent = await ownRow(
+          tx,
+          schema.agents,
+          q.companyId!,
+          q.resourceId!,
+        );
         const state = deriveBundleState(
           agent as unknown as Parameters<typeof deriveBundleState>[0],
         );
@@ -276,7 +337,12 @@ export async function readCustomerSuccessResource(
           : unavailable("instructions_file_missing");
       }
       if (q.operation === "skills.file") {
-        const skill = await ownRow(tx, schema.companySkills, q.companyId!, q.resourceId!);
+        const skill = await ownRow(
+          tx,
+          schema.companySkills,
+          q.companyId!,
+          q.resourceId!,
+        );
         const relative = q.path ?? "SKILL.md";
         assertWorkspaceFilePathAllowed(relative);
         const versionId = q.versionId ?? skill.currentVersionId;
@@ -289,7 +355,8 @@ export async function readCustomerSuccessResource(
             q.companyId!,
             String(versionId),
           );
-          if (version.companySkillId !== skill.id) throw notFound("Skill version not found");
+          if (version.companySkillId !== skill.id)
+            throw notFound("Skill version not found");
           const files = version.fileInventory as Array<{
             path: string;
             content?: string;
@@ -297,7 +364,10 @@ export async function readCustomerSuccessResource(
           }>;
           const file = files.find((f) => f.path === relative);
           if (file?.content !== undefined) {
-            const bytes = Buffer.from(file.content, file.encoding === "base64" ? "base64" : "utf8");
+            const bytes = Buffer.from(
+              file.content,
+              file.encoding === "base64" ? "base64" : "utf8",
+            );
             if (bytes.length > MAX_INSPECTION_BYTES)
               throw unprocessable("Skill snapshot exceeds inspection limit");
             return binary(bytes, bytes.length);
@@ -311,8 +381,14 @@ export async function readCustomerSuccessResource(
         return unavailable("skill_file_not_snapshotted");
       }
       if (q.operation === "runs.log") {
-        const run = await ownRow(tx, schema.heartbeatRuns, q.companyId!, q.resourceId!);
-        if (!run.logRef || run.logStore !== "local_file") return unavailable("run_log_unavailable");
+        const run = await ownRow(
+          tx,
+          schema.heartbeatRuns,
+          q.companyId!,
+          q.resourceId!,
+        );
+        if (!run.logRef || run.logStore !== "local_file")
+          return unavailable("run_log_unavailable");
         const result = await getRunLogStore().read(
           { store: "local_file", logRef: String(run.logRef) },
           {
@@ -328,24 +404,48 @@ export async function readCustomerSuccessResource(
       }
       if (q.operation.startsWith("files.")) {
         try {
-          const issue = await ownRow(tx, schema.issues, q.companyId!, q.resourceId!);
+          const issue = await ownRow(
+            tx,
+            schema.issues,
+            q.companyId!,
+            q.resourceId!,
+          );
           const files = workspaceFileResourceService(tx);
-          const input = { path: q.path ?? "", ...q.context, limit: q.limit, offset: q.offset };
-          const opts = {
-            issue: issue as unknown as NonNullable<Parameters<typeof files.list>[2]>["issue"],
+          const input = {
+            path: q.path ?? "",
+            ...q.context,
+            limit: q.limit,
+            offset: q.offset,
           };
-          if (q.operation === "files.list") return await files.list(q.resourceId!, input, opts);
+          const opts = {
+            issue: issue as unknown as NonNullable<
+              Parameters<typeof files.list>[2]
+            >["issue"],
+          };
+          if (q.operation === "files.list")
+            return await files.list(q.resourceId!, input, opts);
           if (q.operation === "files.read")
             return await files.readContent(q.resourceId!, input, opts);
-          const resolved = await files.prepareDownload(q.resourceId!, input, opts);
-          const file = await fs.open(resolved.realPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+          const resolved = await files.prepareDownload(
+            q.resourceId!,
+            input,
+            opts,
+          );
+          const file = await fs.open(
+            resolved.realPath,
+            constants.O_RDONLY | constants.O_NOFOLLOW,
+          );
           try {
             const stat = await file.stat();
             if (!stat.isFile()) throw unprocessable("Regular file required");
             if (stat.size === 0 && !q.range) return binary(Buffer.alloc(0), 0);
             const start = q.range?.start ?? 0;
             const end = q.range?.end ?? stat.size - 1;
-            if (start >= stat.size || end >= stat.size || end - start + 1 > MAX_INSPECTION_BYTES)
+            if (
+              start >= stat.size ||
+              end >= stat.size ||
+              end - start + 1 > MAX_INSPECTION_BYTES
+            )
               throw unprocessable("Request a bounded byte range");
             const bytes = Buffer.alloc(end - start + 1);
             const result = await file.read(bytes, 0, bytes.length, start);
@@ -356,7 +456,8 @@ export async function readCustomerSuccessResource(
               after.ino !== stat.ino
             )
               return unavailable("file_changed_during_read");
-            if (result.bytesRead !== bytes.length) return unavailable("file_changed_during_read");
+            if (result.bytesRead !== bytes.length)
+              return unavailable("file_changed_during_read");
             return binary(bytes, stat.size, start);
           } finally {
             await file.close();
@@ -366,19 +467,37 @@ export async function readCustomerSuccessResource(
             error instanceof HttpError
               ? (error.details as { code?: string } | undefined)?.code
               : undefined;
-          if (code && ["remote_workspace", "no_workspace", "no_local_workspace"].includes(code))
+          if (
+            code &&
+            ["remote_workspace", "no_workspace", "no_local_workspace"].includes(
+              code,
+            )
+          )
             return unavailable(code);
           throw error;
         }
       }
       if (q.operation === "assets.content") {
-        const asset = await ownRow(tx, schema.assets, q.companyId!, q.resourceId!);
+        const asset = await ownRow(
+          tx,
+          schema.assets,
+          q.companyId!,
+          q.resourceId!,
+        );
         const range = q.range;
-        if (range && (range.start >= Number(asset.byteSize) || range.end >= Number(asset.byteSize)))
+        if (
+          range &&
+          (range.start >= Number(asset.byteSize) ||
+            range.end >= Number(asset.byteSize))
+        )
           throw unprocessable("Asset byte range is outside the resource");
         if (!range && Number(asset.byteSize) > MAX_INSPECTION_BYTES)
           throw unprocessable("Request a bounded byte range");
-        const object = await storage.getObject(q.companyId!, String(asset.objectKey), { range });
+        const object = await storage.getObject(
+          q.companyId!,
+          String(asset.objectKey),
+          { range },
+        );
         const chunks: Buffer[] = [];
         let length = 0;
         try {
@@ -406,10 +525,13 @@ export async function readCustomerSuccessResource(
 }
 
 function redactRevisionSnapshot(snapshot: unknown): Record<string, unknown> {
-  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return {};
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot))
+    return {};
   const record = snapshot as Record<string, unknown>;
   const object = (value: unknown) =>
-    value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
   return {
     ...record,
     adapterConfig: redactAgentAdapterConfig(object(record.adapterConfig)),

@@ -3,7 +3,10 @@ import type { IssueDocument } from "@taskcore/shared";
 import { ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY } from "@taskcore/shared";
 import { AgentSetupPrompt } from "@/components/AgentSetupPrompt";
 import { cn, relativeTime } from "../lib/utils";
-import { MarkdownBody, type MarkdownExternalReferenceMap } from "./MarkdownBody";
+import {
+  MarkdownBody,
+  type MarkdownExternalReferenceMap,
+} from "./MarkdownBody";
 import { ChevronDown, ChevronRight, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -49,22 +52,35 @@ export function IssueContinuationHandoff({
           type="button"
           className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
           onClick={() => setExpanded((current) => !current)}
-          aria-label={expanded ? "Collapse continuation handoff" : "Expand continuation handoff"}
+          aria-label={
+            expanded
+              ? "Collapse continuation handoff"
+              : "Expand continuation handoff"
+          }
           aria-expanded={expanded}
         >
-          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
         </button>
         <History className="h-4 w-4 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-foreground">{title}</span>
-            <Badge variant="outline" className="border-border font-mono text-(length:--text-nano) uppercase text-muted-foreground">
+            <Badge
+              variant="outline"
+              className="border-border font-mono text-(length:--text-nano) uppercase text-muted-foreground"
+            >
               handoff
             </Badge>
           </div>
           <div className="text-(length:--text-micro) text-muted-foreground">
             Updated {relativeTime(document.updatedAt)}
-            {document.latestRevisionNumber > 0 ? ` - revision ${document.latestRevisionNumber}` : ""}
+            {document.latestRevisionNumber > 0
+              ? ` - revision ${document.latestRevisionNumber}`
+              : ""}
           </div>
         </div>
         <AgentSetupPrompt

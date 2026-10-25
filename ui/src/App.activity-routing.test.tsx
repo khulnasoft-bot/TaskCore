@@ -30,7 +30,11 @@ vi.hoisted(() => {
   };
   if (!sheetProto.__papActivityRoutingPatched) {
     const original = sheetProto.insertRule;
-    sheetProto.insertRule = function patched(this: CSSStyleSheet, rule: string, index?: number) {
+    sheetProto.insertRule = function patched(
+      this: CSSStyleSheet,
+      rule: string,
+      index?: number,
+    ) {
       try {
         return original.call(this, rule, index);
       } catch {
@@ -82,7 +86,9 @@ vi.mock("./pages/audit/CompanyActivity", () => ({
 vi.mock("./pages/audit/AuditHub", () => ({
   AuditHub: ({ section }: { section: string }) => {
     const location = useLocation();
-    return <div>{`AUDIT_${section.toUpperCase()}@${location.pathname}${location.search}`}</div>;
+    return (
+      <div>{`AUDIT_${section.toUpperCase()}@${location.pathname}${location.search}`}</div>
+    );
   },
 }));
 
@@ -96,7 +102,9 @@ vi.mock("./pages/Issues", () => ({
 vi.mock("./pages/audit/CompanyActivity.production", () => ({
   CompanyActivity: () => {
     const location = useLocation();
-    return <div>{`PRODUCTION_ACTIVITY@${location.pathname}${location.search}`}</div>;
+    return (
+      <div>{`PRODUCTION_ACTIVITY@${location.pathname}${location.search}`}</div>
+    );
   },
 }));
 
@@ -108,7 +116,9 @@ vi.mock("./pages/Costs", () => ({
 }));
 
 vi.mock("./pages/NotFound", () => ({
-  NotFoundPage: ({ scope }: { scope: string }) => <div>{`NOT_FOUND:${scope}`}</div>,
+  NotFoundPage: ({ scope }: { scope: string }) => (
+    <div>{`NOT_FOUND:${scope}`}</div>
+  ),
 }));
 
 vi.mock("./pages/PluginPage", () => ({
@@ -189,7 +199,9 @@ describe("App Activity routing (PAP-16302)", () => {
   it("serves the merged Activity page at /:company/activity", async () => {
     const root = renderAppAt(container, "/PAP/activity");
     await waitForRoute(container, "ACTIVITY_PAGE@/PAP/activity");
-    expect(container.textContent).not.toContain("No organization matches prefix");
+    expect(container.textContent).not.toContain(
+      "No organization matches prefix",
+    );
     flushSync(() => root.unmount());
   });
 
@@ -213,7 +225,10 @@ describe("App Activity routing (PAP-16302)", () => {
 
   it("serves each canonical Audit section under Activity", async () => {
     const root = renderAppAt(container, "/PAP/activity/runs?agentId=agent-1");
-    await waitForRoute(container, "AUDIT_RUNS@/PAP/activity/runs?agentId=agent-1");
+    await waitForRoute(
+      container,
+      "AUDIT_RUNS@/PAP/activity/runs?agentId=agent-1",
+    );
     flushSync(() => root.unmount());
   });
 
@@ -224,7 +239,10 @@ describe("App Activity routing (PAP-16302)", () => {
   });
 
   it("redirects legacy Audit sections to their canonical destination", async () => {
-    const root = renderAppAt(container, "/PAP/audit/budgets?projectId=project-1");
+    const root = renderAppAt(
+      container,
+      "/PAP/audit/budgets?projectId=project-1",
+    );
     await waitForRoute(
       container,
       "AUDIT_BUDGETS@/PAP/activity/budgets?projectId=project-1",
@@ -240,7 +258,10 @@ describe("App Activity routing (PAP-16302)", () => {
     // selected company. Importing <Navigate> from `react-router-dom` instead —
     // the import most files use — would send this deep link to the *viewer's*
     // company, so pin the behaviour here.
-    companyState = { companies: [PAP_COMPANY, ACME_COMPANY], selected: PAP_COMPANY };
+    companyState = {
+      companies: [PAP_COMPANY, ACME_COMPANY],
+      selected: PAP_COMPANY,
+    };
     const root = renderAppAt(container, "/ACME/audit");
     await waitForRoute(container, "ACTIVITY_PAGE@/ACME/activity?mode=agents");
     expect(container.textContent).not.toContain("ACTIVITY_PAGE@/PAP/activity");
@@ -250,7 +271,9 @@ describe("App Activity routing (PAP-16302)", () => {
   it("redirects the bare /audit deep link through to the prefixed Activity page", async () => {
     const root = renderAppAt(container, "/audit");
     await waitForRoute(container, "ACTIVITY_PAGE@/PAP/activity?mode=agents");
-    expect(container.textContent).not.toContain("No organization matches prefix");
+    expect(container.textContent).not.toContain(
+      "No organization matches prefix",
+    );
     flushSync(() => root.unmount());
   });
 
@@ -263,7 +286,10 @@ describe("App Activity routing (PAP-16302)", () => {
 
   it("redirects a bare legacy section through to the prefixed Audit hub", async () => {
     const root = renderAppAt(container, "/runs?runStatus=succeeded");
-    await waitForRoute(container, "AUDIT_RUNS@/PAP/activity/runs?runStatus=succeeded");
+    await waitForRoute(
+      container,
+      "AUDIT_RUNS@/PAP/activity/runs?runStatus=succeeded",
+    );
     flushSync(() => root.unmount());
   });
 

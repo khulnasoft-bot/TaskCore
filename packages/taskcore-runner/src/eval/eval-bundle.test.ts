@@ -12,13 +12,32 @@ import {
 function bundle(overrides: Partial<EvalBundle> = {}): EvalBundle {
   return {
     schema: "taskcore.runner.eval-bundle.v1",
-    provider: { runtime: "runnerd", transport: "codex-app-server", protocolVersion: "prp.v1" },
+    provider: {
+      runtime: "runnerd",
+      transport: "codex-app-server",
+      protocolVersion: "prp.v1",
+    },
     model: { id: "gpt-5-codex", reasoningEffort: "medium" },
-    launchContext: { workingDirectoryClass: "ephemeral-fixture", scenarioId: "capability-eval-st-1", turnTimeoutMs: 60_000 },
-    promptPolicy: { id: "exact-single-call", callTemplate: "Call {op} exactly once.", restraintTemplate: "Do not call any tools." },
+    launchContext: {
+      workingDirectoryClass: "ephemeral-fixture",
+      scenarioId: "capability-eval-st-1",
+      turnTimeoutMs: 60_000,
+    },
+    promptPolicy: {
+      id: "exact-single-call",
+      callTemplate: "Call {op} exactly once.",
+      restraintTemplate: "Do not call any tools.",
+    },
     grants: ["discovery:tasks:read"],
-    runner: { package: "@taskcore/taskcore-runner", binary: "taskcore-runnerd", version: "0.0.0" },
-    controlPlaneAdapter: { kind: "mock", contract: "taskcore.capability.control-plane.v1" },
+    runner: {
+      package: "@taskcore/taskcore-runner",
+      binary: "taskcore-runnerd",
+      version: "0.0.0",
+    },
+    controlPlaneAdapter: {
+      kind: "mock",
+      contract: "taskcore.capability.control-plane.v1",
+    },
     faultInjection: [],
     ...overrides,
   };
@@ -30,13 +49,32 @@ describe("bundleId", () => {
     const b: EvalBundle = {
       // Same content, different key insertion order.
       faultInjection: [],
-      controlPlaneAdapter: { contract: "taskcore.capability.control-plane.v1", kind: "mock" },
-      runner: { version: "0.0.0", binary: "taskcore-runnerd", package: "@taskcore/taskcore-runner" },
+      controlPlaneAdapter: {
+        contract: "taskcore.capability.control-plane.v1",
+        kind: "mock",
+      },
+      runner: {
+        version: "0.0.0",
+        binary: "taskcore-runnerd",
+        package: "@taskcore/taskcore-runner",
+      },
       grants: ["discovery:tasks:read"],
-      promptPolicy: { restraintTemplate: "Do not call any tools.", callTemplate: "Call {op} exactly once.", id: "exact-single-call" },
+      promptPolicy: {
+        restraintTemplate: "Do not call any tools.",
+        callTemplate: "Call {op} exactly once.",
+        id: "exact-single-call",
+      },
       model: { reasoningEffort: "medium", id: "gpt-5-codex" },
-      launchContext: { turnTimeoutMs: 60_000, scenarioId: "capability-eval-st-1", workingDirectoryClass: "ephemeral-fixture" },
-      provider: { protocolVersion: "prp.v1", transport: "codex-app-server", runtime: "runnerd" },
+      launchContext: {
+        turnTimeoutMs: 60_000,
+        scenarioId: "capability-eval-st-1",
+        workingDirectoryClass: "ephemeral-fixture",
+      },
+      provider: {
+        protocolVersion: "prp.v1",
+        transport: "codex-app-server",
+        runtime: "runnerd",
+      },
       schema: "taskcore.runner.eval-bundle.v1",
     };
     expect(bundleId(a)).toBe(bundleId(b));
@@ -44,10 +82,20 @@ describe("bundleId", () => {
   });
 
   it("changes when any declared input changes", () => {
-    expect(bundleId(bundle())).not.toBe(bundleId(bundle({ model: { id: "gpt-5" } })));
-    expect(bundleId(bundle())).not.toBe(bundleId(bundle({ grants: ["discovery:agents:read"] })));
     expect(bundleId(bundle())).not.toBe(
-      bundleId(bundle({ faultInjection: [{ id: "f1", class: "authorization", description: "deny grant" }] })),
+      bundleId(bundle({ model: { id: "gpt-5" } })),
+    );
+    expect(bundleId(bundle())).not.toBe(
+      bundleId(bundle({ grants: ["discovery:agents:read"] })),
+    );
+    expect(bundleId(bundle())).not.toBe(
+      bundleId(
+        bundle({
+          faultInjection: [
+            { id: "f1", class: "authorization", description: "deny grant" },
+          ],
+        }),
+      ),
     );
   });
 });
@@ -57,7 +105,15 @@ describe("assertBundleSecretFree", () => {
     expect(() => assertBundleSecretFree(bundle())).not.toThrow();
     expect(() =>
       assertBundleSecretFree(
-        bundle({ faultInjection: [{ id: "f1", class: "provider_capability", description: "drop steering support" }] }),
+        bundle({
+          faultInjection: [
+            {
+              id: "f1",
+              class: "provider_capability",
+              description: "drop steering support",
+            },
+          ],
+        }),
       ),
     ).not.toThrow();
   });
@@ -106,9 +162,14 @@ describe("assertBundleSecretFree", () => {
         turnTimeoutMs: 1000,
       },
     });
-    expect(() => assertBundleSecretFree(withToken)).toThrow(EvalBundleSecretError);
+    expect(() => assertBundleSecretFree(withToken)).toThrow(
+      EvalBundleSecretError,
+    );
 
-    const withForbiddenKey = { ...bundle(), apiKey: "value" } as unknown as EvalBundle;
+    const withForbiddenKey = {
+      ...bundle(),
+      apiKey: "value",
+    } as unknown as EvalBundle;
     expect(() => assertBundleSecretFree(withForbiddenKey)).toThrow(
       /forbidden credential field/,
     );
@@ -129,7 +190,11 @@ describe("describeBundle", () => {
 
   it("counts faults without persisting their free-form declaration", () => {
     const described = describeBundle(
-      bundle({ faultInjection: [{ id: "f1", class: "conflict", description: "stale write" }] }),
+      bundle({
+        faultInjection: [
+          { id: "f1", class: "conflict", description: "stale write" },
+        ],
+      }),
     );
     expect(described.summary).toContain("1 faults");
     expect(described.summary).not.toContain("stale write");
@@ -144,16 +209,22 @@ describe("bundleEvidenceDeclaration", () => {
         callTemplate: "Unique free-form call instructions.",
         restraintTemplate: "Unique free-form restraint instructions.",
       },
-      faultInjection: [{ id: "fault-a", class: "retry", description: "Unique fault detail." }],
+      faultInjection: [
+        { id: "fault-a", class: "retry", description: "Unique fault detail." },
+      ],
     });
     const declaration = bundleEvidenceDeclaration(candidate);
     const serialized = JSON.stringify(declaration);
 
     expect(declaration.contentSha256).toMatch(/^sha256:[0-9a-f]{64}$/);
-    expect(declaration.promptPolicy.callTemplateSha256).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(declaration.promptPolicy.callTemplateSha256).toMatch(
+      /^sha256:[0-9a-f]{64}$/,
+    );
     expect(declaration.faultInjection).toMatchObject({ count: 1 });
     expect(serialized).not.toContain("Unique free-form call instructions.");
-    expect(serialized).not.toContain("Unique free-form restraint instructions.");
+    expect(serialized).not.toContain(
+      "Unique free-form restraint instructions.",
+    );
     expect(serialized).not.toContain("Unique fault detail.");
   });
 });

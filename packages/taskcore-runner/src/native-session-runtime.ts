@@ -143,15 +143,20 @@ export function completeTerminatedRemoteNativeSessionCleanup(binding: {
   remoteCleanupScope: string;
 }): boolean {
   if (!binding.remoteCleanupScope) return false;
-  const matches = [...quarantinedSessionCleanups].filter(({ session, domain }) => {
-    const identity = session.identity();
-    // Domains are created internally from company, backend kind/name, and the
-    // optional remote resource. Local domains have no fourth element.
-    const [, , , remoteCleanupScope] = JSON.parse(domain) as string[];
-    return identity.companyId === binding.companyId && identity.runId === binding.runId &&
-      remoteCleanupScope === binding.remoteCleanupScope;
-  });
-  if (matches.some(entry => entry.attempt || entry.recovery)) return false;
+  const matches = [...quarantinedSessionCleanups].filter(
+    ({ session, domain }) => {
+      const identity = session.identity();
+      // Domains are created internally from company, backend kind/name, and the
+      // optional remote resource. Local domains have no fourth element.
+      const [, , , remoteCleanupScope] = JSON.parse(domain) as string[];
+      return (
+        identity.companyId === binding.companyId &&
+        identity.runId === binding.runId &&
+        remoteCleanupScope === binding.remoteCleanupScope
+      );
+    },
+  );
+  if (matches.some((entry) => entry.attempt || entry.recovery)) return false;
   for (const entry of matches) {
     if (entry.timer) clearTimeout(entry.timer);
     entry.timer = null;
@@ -169,13 +174,27 @@ export function completeTerminatedLocalNativeSessionCleanup(binding: {
   runId: string;
   runnerInstanceId: string;
 }): boolean {
-  const matches = [...quarantinedSessionCleanups].filter(({ session, domain }) => {
-    const identity = session.identity();
-    const parts = JSON.parse(domain) as string[];
-    return parts.length === 3 && identity.companyId === binding.companyId && identity.runId === binding.runId;
-  });
-  if (matches.some(entry => entry.attempt || entry.recovery ||
-      sessionOriginRunnerInstances.get(entry.session) !== binding.runnerInstanceId)) return false;
+  const matches = [...quarantinedSessionCleanups].filter(
+    ({ session, domain }) => {
+      const identity = session.identity();
+      const parts = JSON.parse(domain) as string[];
+      return (
+        parts.length === 3 &&
+        identity.companyId === binding.companyId &&
+        identity.runId === binding.runId
+      );
+    },
+  );
+  if (
+    matches.some(
+      (entry) =>
+        entry.attempt ||
+        entry.recovery ||
+        sessionOriginRunnerInstances.get(entry.session) !==
+          binding.runnerInstanceId,
+    )
+  )
+    return false;
   for (const entry of matches) {
     if (entry.timer) clearTimeout(entry.timer);
     quarantinedSessionCleanups.delete(entry);
@@ -874,8 +893,14 @@ async function consumeTurn(
     requestId: string;
   },
   initialGoal?: HarnessThreadGoal | null,
-  resumeInterruptedTurn?: (event: PrpEvent, signal: AbortSignal) => Promise<boolean>,
-  checkpointGovernedWait?: (wait: NonNullable<PersistedNativeSession["governedWait"]>, signal: AbortSignal) => Promise<void>,
+  resumeInterruptedTurn?: (
+    event: PrpEvent,
+    signal: AbortSignal,
+  ) => Promise<boolean>,
+  checkpointGovernedWait?: (
+    wait: NonNullable<PersistedNativeSession["governedWait"]>,
+    signal: AbortSignal,
+  ) => Promise<void>,
   initialGovernedWait?: PersistedNativeSession["governedWait"],
 ) {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -942,9 +967,15 @@ async function consumeTurn(
       // the disposition before provider interruption, retaining usage and terminal
       // evidence even when the interaction is answered during the restart.
       session.revokeTurnPublication?.();
-      await checkpointGovernedWait?.({ sourceEvent: event, result }, appendAbort.signal);
+      await checkpointGovernedWait?.(
+        { sourceEvent: event, result },
+        appendAbort.signal,
+      );
       appendAbort.signal.throwIfAborted();
-      const cancellation = session.cancel({ reason, signal: appendAbort.signal });
+      const cancellation = session.cancel({
+        reason,
+        signal: appendAbort.signal,
+      });
       governedCancellationCommitted = true;
       const cleanup = cancellation.cleanup;
       governedCleanupOperations.add(cleanup);
@@ -958,7 +989,12 @@ async function consumeTurn(
       const drainAbort = new AbortController();
       const stopDrain = () => drainAbort.abort(appendAbort.signal.reason);
       appendAbort.signal.addEventListener("abort", stopDrain, { once: true });
-      const drainMs = Math.min(GOVERNED_ACCOUNTING_DRAIN_MS, timeoutMs > 0 ? Math.max(1, Math.floor(timeoutMs / 4)) : GOVERNED_ACCOUNTING_DRAIN_MS);
+      const drainMs = Math.min(
+        GOVERNED_ACCOUNTING_DRAIN_MS,
+        timeoutMs > 0
+          ? Math.max(1, Math.floor(timeoutMs / 4))
+          : GOVERNED_ACCOUNTING_DRAIN_MS,
+      );
       let drainTimer: ReturnType<typeof setTimeout> | undefined;
       const drained = (async () => {
         while (!drainAbort.signal.aborted) {
@@ -966,21 +1002,42 @@ async function consumeTurn(
           if (next.done || drainAbort.signal.aborted) return;
           const trailing = next.value;
           const terminal = isTurnTerminal(trailing);
-          const usage = trailing.eventType === "item.completed" && trailing.payload.kind === "usage";
+          const usage =
+            trailing.eventType === "item.completed" &&
+            trailing.payload.kind === "usage";
           // These already-numbered cancellation facts carry no new work
           // authority. Retain them so later receipts have contiguous replay.
-          const cancellation = trailing.eventType === "runtime_request.cancelled"
-            || trailing.eventType === "runtime_request.expired"
-            || (trailing.eventType === "item.completed" && trailing.payload.kind === "interrupt_acknowledgement")
-            || (trailing.eventType === "run.terminal" && ["failed", "cancelled"].includes(String(trailing.payload.runTerminalState)));
-          if (trailing.turnId === event.turnId && (usage || terminal || cancellation)) {
-            const receipt = await controlPlane.appendEvent(trailing, { signal: drainAbort.signal });
+          const cancellation =
+            trailing.eventType === "runtime_request.cancelled" ||
+            trailing.eventType === "runtime_request.expired" ||
+            (trailing.eventType === "item.completed" &&
+              trailing.payload.kind === "interrupt_acknowledgement") ||
+            (trailing.eventType === "run.terminal" &&
+              ["failed", "cancelled"].includes(
+                String(trailing.payload.runTerminalState),
+              ));
+          if (
+            trailing.turnId === event.turnId &&
+            (usage || terminal || cancellation)
+          ) {
+            const receipt = await controlPlane.appendEvent(trailing, {
+              signal: drainAbort.signal,
+            });
             if (drainAbort.signal.aborted) return;
             eventCount += receipt.disposition === "committed" ? 1 : 0;
-            highestContiguousSourceSeq = Math.max(highestContiguousSourceSeq, receipt.highestContiguousSourceSeq);
+            highestContiguousSourceSeq = Math.max(
+              highestContiguousSourceSeq,
+              receipt.highestContiguousSourceSeq,
+            );
             if (terminal) {
-              if (trailing.eventType === "turn.failed" || trailing.payload.providerTerminalObserved === false) {
-                throw new NativeProviderTerminalFailure("governed_wait_provider_terminal_unproven", false);
+              if (
+                trailing.eventType === "turn.failed" ||
+                trailing.payload.providerTerminalObserved === false
+              ) {
+                throw new NativeProviderTerminalFailure(
+                  "governed_wait_provider_terminal_unproven",
+                  false,
+                );
               }
               governedProviderTerminalObserved = true;
               return;
@@ -989,15 +1046,17 @@ async function consumeTurn(
         }
       })();
       await Promise.race([
-        drained.catch(error => {
+        drained.catch((error) => {
           quarantineSession("governed_accounting_drain_failed");
           if (error instanceof NativeProviderTerminalFailure) throw error;
         }),
-        new Promise<void>(resolve => { drainTimer = setTimeout(() => {
-          drainAbort.abort(new Error("governed accounting drain timed out"));
-          quarantineSession("governed_accounting_drain_timed_out");
-          resolve();
-        }, drainMs); }),
+        new Promise<void>((resolve) => {
+          drainTimer = setTimeout(() => {
+            drainAbort.abort(new Error("governed accounting drain timed out"));
+            quarantineSession("governed_accounting_drain_timed_out");
+            resolve();
+          }, drainMs);
+        }),
       ]).finally(() => {
         clearTimeout(drainTimer);
         appendAbort.signal.removeEventListener("abort", stopDrain);
@@ -1007,7 +1066,10 @@ async function consumeTurn(
       // stopped. Leave the journaled wait recoverable, without a successful
       // result or an accounting-completion boundary, if shutdown is unproven.
       if (!governedProviderTerminalObserved) {
-        throw new NativeProviderTerminalFailure("governed_wait_provider_terminal_unproven", false);
+        throw new NativeProviderTerminalFailure(
+          "governed_wait_provider_terminal_unproven",
+          false,
+        );
       }
       return {
         event,
@@ -1017,8 +1079,11 @@ async function consumeTurn(
       };
     };
     if (initialGovernedWait) {
-      return settleDurableResult(initialGovernedWait.sourceEvent, initialGovernedWait.result,
-        "Taskcore resumed settlement of this durable governed interaction.");
+      return settleDurableResult(
+        initialGovernedWait.sourceEvent,
+        initialGovernedWait.result,
+        "Taskcore resumed settlement of this durable governed interaction.",
+      );
     }
     while (true) {
       const next = await eventIterator.next().catch((error) => {
@@ -1056,12 +1121,16 @@ async function consumeTurn(
         receipt.highestContiguousSourceSeq,
       );
       const eventGoal = goalFromEvent(event);
-      const goalChanged = eventGoal !== undefined &&
-        goalLifecycleFingerprint(eventGoal) !== goalLifecycleFingerprint(previousGoal);
+      const goalChanged =
+        eventGoal !== undefined &&
+        goalLifecycleFingerprint(eventGoal) !==
+          goalLifecycleFingerprint(previousGoal);
       if (eventGoal !== undefined) previousGoal = eventGoal;
       if (
-        eventGoal !== undefined && eventGoal !== null &&
-        (sessionGoalObserved || goalStatus(eventGoal) === "active" ||
+        eventGoal !== undefined &&
+        eventGoal !== null &&
+        (sessionGoalObserved ||
+          goalStatus(eventGoal) === "active" ||
           (event.eventType === "session.goal.updated" && goalChanged))
       ) {
         // An inactive resume snapshot describes the previous goal, not the
@@ -1084,10 +1153,14 @@ async function consumeTurn(
         if (validation.ok) semanticResultProposal = validation.result;
       }
       if (event.eventType === "session.failed") {
-        const failure = payload.error && typeof payload.error === "object"
-          ? payload.error as Record<string, unknown> : payload;
+        const failure =
+          payload.error && typeof payload.error === "object"
+            ? (payload.error as Record<string, unknown>)
+            : payload;
         providerFailure = new NativeProviderTerminalFailure(
-          typeof failure.code === "string" ? failure.code : "provider_session_failed",
+          typeof failure.code === "string"
+            ? failure.code
+            : "provider_session_failed",
           failure.recoverable === true || payload.recoverable === true,
           typeof failure.message === "string" ? failure.message : undefined,
         );
@@ -1184,7 +1257,11 @@ async function consumeTurn(
         });
         if (governedResult !== null) resultSource = "governed_wait";
       }
-      if (governedResult !== null && !isTurnTerminal(event) && !sessionGoalObserved) {
+      if (
+        governedResult !== null &&
+        !isTurnTerminal(event) &&
+        !sessionGoalObserved
+      ) {
         if (resultSource === "semantic_result") {
           // A completion tool reports task disposition, not provider termination.
           // Persist the final answer and authoritative terminal before finalizing.
@@ -1212,7 +1289,9 @@ async function consumeTurn(
             highestContiguousSourceSeq,
             governedResult:
               governedResult ??
-              (goalStatus(eventGoal) === "complete" ? semanticResultProposal : null) ??
+              (goalStatus(eventGoal) === "complete"
+                ? semanticResultProposal
+                : null) ??
               sessionGoalResult(
                 input,
                 eventGoal,
@@ -1231,7 +1310,9 @@ async function consumeTurn(
               highestContiguousSourceSeq,
               governedResult:
                 governedResult ??
-                (goalStatus(latestSessionGoal) === "complete" ? semanticResultProposal : null) ??
+                (goalStatus(latestSessionGoal) === "complete"
+                  ? semanticResultProposal
+                  : null) ??
                 sessionGoalResult(
                   input,
                   latestSessionGoal,
@@ -1252,8 +1333,13 @@ async function consumeTurn(
       }
       if (isTurnTerminal(event)) {
         if (providerFailure) throw providerFailure;
-        if (semanticResultProposal === null && governedResult === null &&
-            inputTimers.size === 0 && await resumeInterruptedTurn?.(event, appendAbort.signal)) continue;
+        if (
+          semanticResultProposal === null &&
+          governedResult === null &&
+          inputTimers.size === 0 &&
+          (await resumeInterruptedTurn?.(event, appendAbort.signal))
+        )
+          continue;
         return {
           event,
           eventCount,
@@ -1280,7 +1366,10 @@ async function consumeTurn(
           if (remaining <= 0) {
             reject(new Error(`native session timed out after ${timeoutMs}ms`));
           } else {
-            timer = setTimeout(checkDeadline, Math.min(remaining, 2_147_483_647));
+            timer = setTimeout(
+              checkDeadline,
+              Math.min(remaining, 2_147_483_647),
+            );
           }
         };
         checkDeadline();
@@ -1406,12 +1495,18 @@ function goalLifecycleFingerprint(goal: HarnessThreadGoal | null): string {
   // Provider checkpoints can use seconds while normalized events use ISO
   // timestamps (parsed as milliseconds). Usage/timing updates alone must not
   // turn a completed or paused goal into ownership of an ordinary chat run.
-  const createdAt = goal.createdAt < 10_000_000_000
-    ? goal.createdAt * 1_000 : goal.createdAt;
-  return canonicalJson({ objective: goal.objective, status: goal.status, createdAt });
+  const createdAt =
+    goal.createdAt < 10_000_000_000 ? goal.createdAt * 1_000 : goal.createdAt;
+  return canonicalJson({
+    objective: goal.objective,
+    status: goal.status,
+    createdAt,
+  });
 }
 
-function goalStatus(goal: HarnessThreadGoal | null):
+function goalStatus(
+  goal: HarnessThreadGoal | null,
+):
   | "active"
   | "paused"
   | "blocked"
@@ -1433,18 +1528,31 @@ function goalFromEvent(event: PrpEvent): HarnessThreadGoal | null | undefined {
     event.eventType !== "session.goal.snapshot" &&
     event.eventType !== "session.goal.updated" &&
     event.eventType !== "session.goal.cleared"
-  ) return undefined;
+  )
+    return undefined;
   if (event.eventType === "session.goal.cleared") return null;
   const value = event.payload.goal;
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
-  if (typeof record.objective !== "string" || typeof record.status !== "string") return null;
-  const providerStatus = record.status === "usage_limited"
-    ? "usageLimited"
-    : record.status === "budget_limited"
-      ? "budgetLimited"
-      : record.status;
-  if (!["active", "paused", "blocked", "limited", "usageLimited", "budgetLimited", "complete"].includes(providerStatus)) {
+  if (typeof record.objective !== "string" || typeof record.status !== "string")
+    return null;
+  const providerStatus =
+    record.status === "usage_limited"
+      ? "usageLimited"
+      : record.status === "budget_limited"
+        ? "budgetLimited"
+        : record.status;
+  if (
+    ![
+      "active",
+      "paused",
+      "blocked",
+      "limited",
+      "usageLimited",
+      "budgetLimited",
+      "complete",
+    ].includes(providerStatus)
+  ) {
     return null;
   }
   const epoch = (value: unknown): number => {
@@ -1456,9 +1564,11 @@ function goalFromEvent(event: PrpEvent): HarnessThreadGoal | null | undefined {
     threadId: "normalized",
     objective: record.objective,
     status: providerStatus as HarnessThreadGoal["status"],
-    tokenBudget: typeof record.tokenBudget === "number" ? record.tokenBudget : null,
+    tokenBudget:
+      typeof record.tokenBudget === "number" ? record.tokenBudget : null,
     tokensUsed: typeof record.tokensUsed === "number" ? record.tokensUsed : 0,
-    timeUsedSeconds: typeof record.elapsedSeconds === "number" ? record.elapsedSeconds : 0,
+    timeUsedSeconds:
+      typeof record.elapsedSeconds === "number" ? record.elapsedSeconds : 0,
     createdAt: epoch(record.createdAt),
     updatedAt: epoch(record.updatedAt),
   };
@@ -1473,10 +1583,14 @@ export async function applyNativeSessionGoalControl(
     return session.goal({ action: "clear", requestId: control.requestId });
   }
   if (control.action === "pause" || control.action === "resume") {
-    return session.goal({ action: control.action, requestId: control.requestId });
+    return session.goal({
+      action: control.action,
+      requestId: control.requestId,
+    });
   }
   const objective = control.objective?.trim();
-  if (!objective) throw new Error(`native_session_goal_${control.action}_objective_required`);
+  if (!objective)
+    throw new Error(`native_session_goal_${control.action}_objective_required`);
   if (control.action === "replace") {
     await session.goal({ action: "clear", requestId: control.requestId });
   }
@@ -1503,20 +1617,23 @@ function sessionGoalResult(
   reason: string,
 ): PrpStructuredRunResult {
   const status = goalStatus(goal);
-  const objective = goal?.objective ?? input.completionContract.contract.objective;
-  const disposition = status === "complete"
-    ? "done"
-    : status === "blocked"
-      ? "blocked"
-      : "yielded";
+  const objective =
+    goal?.objective ?? input.completionContract.contract.objective;
+  const disposition =
+    status === "complete"
+      ? "done"
+      : status === "blocked"
+        ? "blocked"
+        : "yielded";
   const result: PrpStructuredRunResult = {
     schema: "taskcore.run_result.v1",
     reportedWorkDisposition: disposition,
-    summary: status === "complete"
-      ? `Session goal completed: ${objective}`
-      : status === "blocked"
-        ? `Session goal blocked: ${objective}`
-        : `Session goal yielded (${status ?? "cleared"}): ${objective}`,
+    summary:
+      status === "complete"
+        ? `Session goal completed: ${objective}`
+        : status === "blocked"
+          ? `Session goal blocked: ${objective}`
+          : `Session goal yielded (${status ?? "cleared"}): ${objective}`,
     completionClaim: {
       contractRevision: input.completionContract.contract.revision,
       objectiveSatisfied: status === "complete",
@@ -1526,13 +1643,15 @@ function sessionGoalResult(
         evidenceRefs: status === "complete" ? ["session-goal:complete"] : [],
         explanation: `Provider session goal status: ${status ?? "cleared"}.`,
       })),
-      remainingWork: status === "complete"
-        ? []
-        : [{ description: reason, blocksCompletion: true }],
+      remainingWork:
+        status === "complete"
+          ? []
+          : [{ description: reason, blocksCompletion: true }],
     },
-    evidence: status === "complete"
-      ? [{ kind: "session_goal_status", ref: "session-goal:complete" }]
-      : [],
+    evidence:
+      status === "complete"
+        ? [{ kind: "session_goal_status", ref: "session-goal:complete" }]
+        : [],
     verification: [],
     attentionRequests: [],
     artifacts: [],
@@ -1693,8 +1812,12 @@ function isZeroWorkAcpxUsage(payload: Record<string, unknown>): boolean {
   const usage = objectRecord(payload.usage);
   if (
     usage === null ||
-    (Object.hasOwn(usage, "runDeltaComplete") && usage.runDeltaComplete !== true) ||
-    Object.keys(usage).some((key) => key !== "total" && key !== "runDelta" && key !== "runDeltaComplete")
+    (Object.hasOwn(usage, "runDeltaComplete") &&
+      usage.runDeltaComplete !== true) ||
+    Object.keys(usage).some(
+      (key) =>
+        key !== "total" && key !== "runDelta" && key !== "runDeltaComplete",
+    )
   ) {
     return false;
   }
@@ -1899,8 +2022,13 @@ export async function executeNativeSession(
   if ("runtimeContext" in input) {
     const capabilities = descriptor.runtimeContextCapabilities;
     const unsupported = (["instructions", "skills", "mcp"] as const).filter(
-      (key) => capabilities?.[key] !== "native" && (input.provider.kind !== "openai_dot"
-        || key === "instructions" || (key === "skills" ? input.runtimeContext.skills.length > 0 : input.runtimeContext.mcp.bindingId !== null)),
+      (key) =>
+        capabilities?.[key] !== "native" &&
+        (input.provider.kind !== "openai_dot" ||
+          key === "instructions" ||
+          (key === "skills"
+            ? input.runtimeContext.skills.length > 0
+            : input.runtimeContext.mcp.bindingId !== null)),
     );
     if (unsupported.length)
       throw new Error(
@@ -1949,34 +2077,60 @@ export async function executeNativeSession(
   if (governedWait) {
     const event = governedWait.sourceEvent;
     const validation = validatePrpStructuredRunResult(governedWait.result);
-    if (!event?.turnId || event.runId !== identity.runId || event.normalizedSessionId !== identity.sessionId
-      || event.sourceInstanceId !== options.runnerInstanceId || !Number.isSafeInteger(event.sourceSeq) || event.sourceSeq < 1
-      || !validation.ok || validation.result.reportedWorkDisposition !== "yielded"
-      || validation.result.completionClaim?.contractRevision !== input.completionContract.contract.revision) {
+    if (
+      !event?.turnId ||
+      event.runId !== identity.runId ||
+      event.normalizedSessionId !== identity.sessionId ||
+      event.sourceInstanceId !== options.runnerInstanceId ||
+      !Number.isSafeInteger(event.sourceSeq) ||
+      event.sourceSeq < 1 ||
+      !validation.ok ||
+      validation.result.reportedWorkDisposition !== "yielded" ||
+      validation.result.completionClaim?.contractRevision !==
+        input.completionContract.contract.revision
+    ) {
       throw new Error("native_governed_wait_checkpoint_mismatch");
     }
     await runAbortableOperationWithin({
       timeoutMs: options.timeoutMs ?? 900_000,
       timeoutMessage: "native governed-wait recovery replay timed out",
-      operation: async signal => {
+      operation: async (signal) => {
         let afterSourceSeq = event.sourceSeq - 1;
         while (true) {
-          const page = await options.controlPlane.replayEvents({ runId: identity.runId,
-            sourceInstanceId: options.runnerInstanceId, afterSourceSeq, limit: 1_000 }, { signal });
+          const page = await options.controlPlane.replayEvents(
+            {
+              runId: identity.runId,
+              sourceInstanceId: options.runnerInstanceId,
+              afterSourceSeq,
+              limit: 1_000,
+            },
+            { signal },
+          );
           signal.throwIfAborted();
           if (!page.events.length) break;
           for (const entry of page.events) {
-            if (entry.runId !== identity.runId || entry.normalizedSessionId !== identity.sessionId
-              || entry.sourceInstanceId !== event.sourceInstanceId || entry.sourceSeq !== afterSourceSeq + 1
-              || governedReplay.length >= 10_000) throw new Error("native_governed_wait_replay_mismatch");
+            if (
+              entry.runId !== identity.runId ||
+              entry.normalizedSessionId !== identity.sessionId ||
+              entry.sourceInstanceId !== event.sourceInstanceId ||
+              entry.sourceSeq !== afterSourceSeq + 1 ||
+              governedReplay.length >= 10_000
+            )
+              throw new Error("native_governed_wait_replay_mismatch");
             governedReplay.push(entry);
             afterSourceSeq = entry.sourceSeq;
           }
         }
       },
     });
-    if (canonicalJson(governedReplay[0]) !== canonicalJson(event)) throw new Error("native_governed_wait_trigger_unproven");
-    if (governedReplay.some(entry => entry.eventType === "turn.started" && entry.turnId !== event.turnId)) {
+    if (canonicalJson(governedReplay[0]) !== canonicalJson(event))
+      throw new Error("native_governed_wait_trigger_unproven");
+    if (
+      governedReplay.some(
+        (entry) =>
+          entry.eventType === "turn.started" && entry.turnId !== event.turnId,
+      )
+    ) {
       throw new Error("native_governed_wait_turn_mismatch");
     }
   }
@@ -1988,7 +2142,8 @@ export async function executeNativeSession(
     previousProviderSessionId: string | null;
   } | null = null;
   let reconciledRecoveryCheckpoint: PersistedNativeSession | null = null;
-  const checkpointedInterruption = persistedSession && nativeRestartInterruptedTurnId(persistedSession);
+  const checkpointedInterruption =
+    persistedSession && nativeRestartInterruptedTurnId(persistedSession);
   if (checkpointedInterruption && persistedSession) {
     // The turn failed because its process vanished; the conversation is still
     // usable. Keep its terminal fingerprint so replay cannot execute it twice.
@@ -2048,7 +2203,10 @@ export async function executeNativeSession(
       providerRecoveryCheckpoint.terminal?.runTerminalState === "failed" &&
       providerRecoveryCheckpoint.semanticResult === null;
     if (failedProviderSession && !replacementAllowed) {
-      throw new NativeProviderTerminalFailure("provider_checkpoint_failed_terminal", false);
+      throw new NativeProviderTerminalFailure(
+        "provider_checkpoint_failed_terminal",
+        false,
+      );
     }
     const recovery = failedProviderSession
       ? {
@@ -2246,7 +2404,9 @@ export async function executeNativeSession(
   };
   let executionSucceeded = false;
   let goalCheckpointRequiresSuspension = Boolean(
-    options.sessionGoalControl || options.resumeSessionGoalHeartbeat || persistedSession?.goal,
+    options.sessionGoalControl ||
+    options.resumeSessionGoalHeartbeat ||
+    persistedSession?.goal,
   );
   let executionFailure: { error: unknown } | null = null;
   try {
@@ -2281,32 +2441,55 @@ export async function executeNativeSession(
     };
     const recoveredSnapshot = await session.snapshot();
     const restartContinuation = () => ({
-      message: { role: "user" as const, text: JSON.stringify({
-        schema: "taskcore.native-continuation.v1",
-        events: [
-          "Taskcore restarted and restored this same conversation. The previous turn was interrupted.",
-          "Continue the current user request from the recorded progress and preserved workspace.",
-          "Reconcile any unfinished tool or command before proceeding: inspect its current state and recorded outcomes.",
-          "Do not repeat completed work or blindly rerun an action whose outcome is unknown. If an external action cannot be reconciled, report the specific blocker.",
-        ].join("\n"),
-        completion: {
-          revision: input.completionContract.contract.revision,
-          criterionIds: input.completionContract.contract.criteria.map(criterion => criterion.id),
-        },
-      }) },
+      message: {
+        role: "user" as const,
+        text: JSON.stringify({
+          schema: "taskcore.native-continuation.v1",
+          events: [
+            "Taskcore restarted and restored this same conversation. The previous turn was interrupted.",
+            "Continue the current user request from the recorded progress and preserved workspace.",
+            "Reconcile any unfinished tool or command before proceeding: inspect its current state and recorded outcomes.",
+            "Do not repeat completed work or blindly rerun an action whose outcome is unknown. If an external action cannot be reconciled, report the specific blocker.",
+          ].join("\n"),
+          completion: {
+            revision: input.completionContract.contract.revision,
+            criterionIds: input.completionContract.contract.criteria.map(
+              (criterion) => criterion.id,
+            ),
+          },
+        }),
+      },
       continuation: true as const,
-      requestedCollaborationMode: "executionMode" in input ? input.executionMode : "default" as const,
+      requestedCollaborationMode:
+        "executionMode" in input ? input.executionMode : ("default" as const),
     });
     let restartContinuationStarted = false;
-    const resumeInterruptedTurn = async (event: PrpEvent, signal: AbortSignal) => {
-      if (restartContinuationStarted || !recovered || !options.resumeInterruptedTurn ||
-          input.provider.kind !== "codex" || options.sessionGoalControl || options.resumeSessionGoalHeartbeat ||
-          recoveredSnapshot.goal || persistedSession?.semanticResult || persistedSession?.pendingRuntimeRequests?.length ||
-          event.eventType !== "turn.failed" || !isNativeRestartInterruption(event.payload.error) ||
-          event.turnId !== persistedSession?.activeTurnId) return false;
+    const resumeInterruptedTurn = async (
+      event: PrpEvent,
+      signal: AbortSignal,
+    ) => {
+      if (
+        restartContinuationStarted ||
+        !recovered ||
+        !options.resumeInterruptedTurn ||
+        input.provider.kind !== "codex" ||
+        options.sessionGoalControl ||
+        options.resumeSessionGoalHeartbeat ||
+        recoveredSnapshot.goal ||
+        persistedSession?.semanticResult ||
+        persistedSession?.pendingRuntimeRequests?.length ||
+        event.eventType !== "turn.failed" ||
+        !isNativeRestartInterruption(event.payload.error) ||
+        event.turnId !== persistedSession?.activeTurnId
+      )
+        return false;
       const snapshot = await session.snapshot();
       signal.throwIfAborted();
-      if (nativeRestartInterruptedTurnId(snapshot) !== event.turnId || snapshot.pendingRuntimeRequests?.length) return false;
+      if (
+        nativeRestartInterruptedTurnId(snapshot) !== event.turnId ||
+        snapshot.pendingRuntimeRequests?.length
+      )
+        return false;
       restartContinuationStarted = true;
       // Persist the old terminal before launching. Recovery inspects provider
       // history to adopt an accepted continuation if its checkpoint was lost.
@@ -2349,17 +2532,35 @@ export async function executeNativeSession(
       await persistCheckpoint(recoveredSnapshot);
     }
 
-    const governedTerminal = governedWait ? governedReplay.find(event =>
-      event.turnId === governedWait!.sourceEvent.turnId && isTurnTerminal(event)) : undefined;
-    if (governedTerminal?.eventType === "turn.failed" || governedTerminal?.payload.providerTerminalObserved === false) {
-      throw new NativeProviderTerminalFailure("governed_wait_provider_terminal_unproven", false);
+    const governedTerminal = governedWait
+      ? governedReplay.find(
+          (event) =>
+            event.turnId === governedWait!.sourceEvent.turnId &&
+            isTurnTerminal(event),
+        )
+      : undefined;
+    if (
+      governedTerminal?.eventType === "turn.failed" ||
+      governedTerminal?.payload.providerTerminalObserved === false
+    ) {
+      throw new NativeProviderTerminalFailure(
+        "governed_wait_provider_terminal_unproven",
+        false,
+      );
     }
-    if (governedWait && recoveredActiveTurnId && recoveredActiveTurnId !== governedWait.sourceEvent.turnId) {
+    if (
+      governedWait &&
+      recoveredActiveTurnId &&
+      recoveredActiveTurnId !== governedWait.sourceEvent.turnId
+    ) {
       throw new Error("native_governed_wait_turn_mismatch");
     }
     if (governedWait) {
       for (const event of governedReplay) {
-        if (event.turnId === governedWait.sourceEvent.turnId && (event.payload.kind === "usage" || isTurnTerminal(event))) {
+        if (
+          event.turnId === governedWait.sourceEvent.turnId &&
+          (event.payload.kind === "usage" || isTurnTerminal(event))
+        ) {
           await options.controlPlane.appendEvent(event);
         }
       }
@@ -2447,44 +2648,50 @@ export async function executeNativeSession(
       const consumptionAbort = new AbortController();
       const consuming =
         governedTerminal && governedWait
-          ? Promise.resolve({ event: governedWait.sourceEvent, governedResult: governedWait.result,
-              eventCount: 0, highestContiguousSourceSeq: governedTerminal.sourceSeq })
-          : recoveryTerminal === null
-          ? consumeTurn(
-              session,
-              options.controlPlane,
-              input,
-              options.turnTimeoutMs ?? options.timeoutMs ?? 0,
-              options.runtimeInputLiveWindowMs ??
-                DEFAULT_NATIVE_RUNTIME_INPUT_LIVE_WINDOW_MS,
-              options.keepSessionOpen
-                ? REUSABLE_SESSION_CANCELLATION_SETTLEMENT_GRACE_MS
-                : FAILED_OPERATION_SETTLEMENT_GRACE_MS,
-              closeSession,
-              quarantineSession,
-              options.resolveGovernedWait,
-              consumptionAbort.signal,
-              options.sessionGoalControl || options.resumeSessionGoalHeartbeat
-                ? {
-                    input,
-                    requestId: options.sessionGoalControl?.requestId ?? `recovery_${input.binding.runId}`,
-                  }
-                : undefined,
-              recoveredSnapshot.goal,
-              resumeInterruptedTurn,
-              async (wait, signal) => {
-                governedWait = structuredClone(wait);
-                await checkpoint(signal);
-              },
-              governedWait,
-            )
-          : Promise.resolve({
-              event: recoveryTerminal,
+          ? Promise.resolve({
+              event: governedWait.sourceEvent,
+              governedResult: governedWait.result,
               eventCount: 0,
-              highestContiguousSourceSeq:
-                replayedDisposition === null ? 0 : recoveryTerminal.sourceSeq,
-              governedResult: null,
-            });
+              highestContiguousSourceSeq: governedTerminal.sourceSeq,
+            })
+          : recoveryTerminal === null
+            ? consumeTurn(
+                session,
+                options.controlPlane,
+                input,
+                options.turnTimeoutMs ?? options.timeoutMs ?? 0,
+                options.runtimeInputLiveWindowMs ??
+                  DEFAULT_NATIVE_RUNTIME_INPUT_LIVE_WINDOW_MS,
+                options.keepSessionOpen
+                  ? REUSABLE_SESSION_CANCELLATION_SETTLEMENT_GRACE_MS
+                  : FAILED_OPERATION_SETTLEMENT_GRACE_MS,
+                closeSession,
+                quarantineSession,
+                options.resolveGovernedWait,
+                consumptionAbort.signal,
+                options.sessionGoalControl || options.resumeSessionGoalHeartbeat
+                  ? {
+                      input,
+                      requestId:
+                        options.sessionGoalControl?.requestId ??
+                        `recovery_${input.binding.runId}`,
+                    }
+                  : undefined,
+                recoveredSnapshot.goal,
+                resumeInterruptedTurn,
+                async (wait, signal) => {
+                  governedWait = structuredClone(wait);
+                  await checkpoint(signal);
+                },
+                governedWait,
+              )
+            : Promise.resolve({
+                event: recoveryTerminal,
+                eventCount: 0,
+                highestContiguousSourceSeq:
+                  replayedDisposition === null ? 0 : recoveryTerminal.sourceSeq,
+                governedResult: null,
+              });
       // Event consumption must begin before startTurn so an eager provider cannot
       // outrun us. Observe its rejection immediately, though: if startTurn or
       // checkpointing fails first, the outer finally closes the session and the
@@ -2492,31 +2699,43 @@ export async function executeNativeSession(
       // that later rejection becomes process-fatal under Node's strict policy.
       void consuming.catch(() => undefined);
       try {
-        const shouldStartFreshTurn = !governedWait && (
-          !recovered ||
-          (!recoveredActiveTurnId &&
-            !adoptedProviderTerminal &&
-            !checkpointedDispositionTerminal &&
-            !dispositionRecoveryStillOwned));
+        const shouldStartFreshTurn =
+          !governedWait &&
+          (!recovered ||
+            (!recoveredActiveTurnId &&
+              !adoptedProviderTerminal &&
+              !checkpointedDispositionTerminal &&
+              !dispositionRecoveryStillOwned));
         if (options.sessionGoalControl) {
           // Explicit controls remain authoritative after controller loss. In
           // particular, pause/clear/edit must reach a recovered session even
           // while its provider turn is still active.
-          await applyNativeSessionGoalControl(session, options.sessionGoalControl);
+          await applyNativeSessionGoalControl(
+            session,
+            options.sessionGoalControl,
+          );
           await checkpoint();
         } else if (options.resumeSessionGoalHeartbeat && shouldStartFreshTurn) {
           const requestId = `recovery_${input.binding.runId}`;
           if (recoveredSnapshot.goal?.status === "active") {
-            await applyNativeSessionGoalControl(session, { requestId, action: "resume" });
+            await applyNativeSessionGoalControl(session, {
+              requestId,
+              action: "resume",
+            });
           } else {
             // Reconcile completed/paused/cleared state without changing it.
             // An already-delivered outbox control must not be replayed as a
             // new resume just because the old heartbeat is being recovered.
-            if (!session.goal) throw new Error("native_session_goal_unavailable");
+            if (!session.goal)
+              throw new Error("native_session_goal_unavailable");
             await session.goal({ action: "get", requestId });
           }
           await checkpoint();
-        } else if (shouldStartFreshTurn && recovered && checkpointedInterruption) {
+        } else if (
+          shouldStartFreshTurn &&
+          recovered &&
+          checkpointedInterruption
+        ) {
           restartContinuationStarted = true;
           await session.startTurn(restartContinuation());
           await checkpoint();
@@ -2524,9 +2743,14 @@ export async function executeNativeSession(
           let modelEnvelope = recovered
             ? buildNativeModelEnvelope(input, { resumedSession: true })
             : buildNativeModelEnvelope(input);
-          if (!recovered && options.getFreshSessionHandoff && "task" in modelEnvelope) {
+          if (
+            !recovered &&
+            options.getFreshSessionHandoff &&
+            "task" in modelEnvelope
+          ) {
             const handoff = await options.getFreshSessionHandoff();
-            if (handoff) modelEnvelope.task.prompt = `${handoff}\n\n${modelEnvelope.task.prompt}`;
+            if (handoff)
+              modelEnvelope.task.prompt = `${handoff}\n\n${modelEnvelope.task.prompt}`;
           }
           const dispositionOnlyRecovery = Boolean(
             recovered &&
@@ -2546,8 +2770,11 @@ export async function executeNativeSession(
           if (dispositionOnlyRecovery && !effectFreeInitialAcpxTurn) {
             modelEnvelope = buildNativeModelEnvelope(input);
             // Source references cannot resolve after replacing the task prompt.
-            modelEnvelope.completionContract = structuredClone(input.completionContract.contract);
-            if ("requestedSkills" in modelEnvelope) modelEnvelope.requestedSkills = [];
+            modelEnvelope.completionContract = structuredClone(
+              input.completionContract.contract,
+            );
+            if ("requestedSkills" in modelEnvelope)
+              modelEnvelope.requestedSkills = [];
             modelEnvelope.task.prompt = [
               "Taskcore semantic-result recovery for a prior completed provider turn.",
               "The prior turn already performed the work and its user-facing final answer is recorded.",
@@ -2555,13 +2782,21 @@ export async function executeNativeSession(
               "Use the existing session context to invoke exactly one taskcore_finish or taskcore_block with the accurate current disposition, then stop without additional user-facing prose.",
             ].join("\n");
           }
-          if (!(dispositionOnlyRecovery && !effectFreeInitialAcpxTurn) && "requestedSkills" in modelEnvelope && options.backend.preparedTaskConstraints) {
-            modelEnvelope.constraints = [...options.backend.preparedTaskConstraints];
+          if (
+            !(dispositionOnlyRecovery && !effectFreeInitialAcpxTurn) &&
+            "requestedSkills" in modelEnvelope &&
+            options.backend.preparedTaskConstraints
+          ) {
+            modelEnvelope.constraints = [
+              ...options.backend.preparedTaskConstraints,
+            ];
           }
           await session.startTurn({
             message: { role: "user", text: JSON.stringify(modelEnvelope) },
-            ...(recovered && modelEnvelope.schema === "taskcore.native-continuation.v1"
-              ? { continuation: true as const } : {}),
+            ...(recovered &&
+            modelEnvelope.schema === "taskcore.native-continuation.v1"
+              ? { continuation: true as const }
+              : {}),
             requestedCollaborationMode:
               "executionMode" in input ? input.executionMode : "default",
           });
@@ -2613,7 +2848,8 @@ export async function executeNativeSession(
                         schema: "taskcore.prp.terminal.v1",
                         turnTerminalState: "completed",
                         runTerminalState: "succeeded",
-                        reportedWorkDisposition: consumed.governedResult.reportedWorkDisposition,
+                        reportedWorkDisposition:
+                          consumed.governedResult.reportedWorkDisposition,
                       },
                   turnId: terminalEvent.turnId ?? null,
                 };
@@ -2813,7 +3049,8 @@ export async function executeNativeSession(
           try {
             await session.snapshot({ signal });
           } catch (error) {
-            if (error instanceof NativeSessionProtocolIntegrityError) throw error;
+            if (error instanceof NativeSessionProtocolIntegrityError)
+              throw error;
             // Generic snapshot failures remain checkpoint enrichment failures,
             // not evidence that the already validated result is invalid.
           }
@@ -2927,7 +3164,10 @@ export async function executeNativeSession(
     throw error;
   } finally {
     const shouldClose =
-      !options.keepSessionOpen || !executionSucceeded || sessionQuarantined || goalCheckpointRequiresSuspension;
+      !options.keepSessionOpen ||
+      !executionSucceeded ||
+      sessionQuarantined ||
+      goalCheckpointRequiresSuspension;
     if (shouldClose && options.requireSessionCloseBeforeReturn) {
       if (!failedCleanupDeferred) {
         closeSession(
@@ -2955,9 +3195,12 @@ export async function executeNativeSession(
             if (executionFailure.error instanceof Error) {
               try {
                 Object.defineProperty(executionFailure.error, "cleanupError", {
-                  value: closeError, configurable: true,
+                  value: closeError,
+                  configurable: true,
                 });
-              } catch { /* Frozen errors still retain their original identity. */ }
+              } catch {
+                /* Frozen errors still retain their original identity. */
+              }
             }
             throw executionFailure.error;
           }

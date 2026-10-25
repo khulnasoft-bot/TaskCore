@@ -22,52 +22,181 @@ describe("issue thread interaction schemas", () => {
     const questionSet = taskcoreQuestionSetPayloadSchema.parse({
       schema: "taskcore.question_set.v1",
       questions: [
-        { id: "repo", prompt: "Repository URL?", required: true, answerMode: "text", textValidation: { minLength: 1 } },
-        { id: "scope", prompt: "Review scope?", required: true, answerMode: "single_select", options: [{ id: "all", label: "All changes", recommended: true }, { id: "selected", label: "Selected changes" }] },
-        { id: "hosting", prompt: "Preview hosting?", required: false, answerMode: "multi_select", options: [{ id: "taskcore_custom_answer", label: "Existing host" }, { id: "new", label: "New host" }], customAnswer: { enabled: true } },
+        {
+          id: "repo",
+          prompt: "Repository URL?",
+          required: true,
+          answerMode: "text",
+          textValidation: { minLength: 1 },
+        },
+        {
+          id: "scope",
+          prompt: "Review scope?",
+          required: true,
+          answerMode: "single_select",
+          options: [
+            { id: "all", label: "All changes", recommended: true },
+            { id: "selected", label: "Selected changes" },
+          ],
+        },
+        {
+          id: "hosting",
+          prompt: "Preview hosting?",
+          required: false,
+          answerMode: "multi_select",
+          options: [
+            { id: "taskcore_custom_answer", label: "Existing host" },
+            { id: "new", label: "New host" },
+          ],
+          customAnswer: { enabled: true },
+        },
       ],
     });
-    const parsed = createIssueThreadInteractionSchema.parse({ kind: "ask_user_questions", payload: { version: 1, questionSet } });
-    if (parsed.kind !== "ask_user_questions") throw new Error("expected questions");
+    const parsed = createIssueThreadInteractionSchema.parse({
+      kind: "ask_user_questions",
+      payload: { version: 1, questionSet },
+    });
+    if (parsed.kind !== "ask_user_questions")
+      throw new Error("expected questions");
     expect(parsed.payload.questionSet).toEqual(questionSet);
     expect(parsed.payload.questions).toMatchObject([
-      { id: "repo", required: true, selectionMode: "single", options: [{ id: "taskcore_text_answer", freeText: true }] },
-      { id: "scope", required: true, selectionMode: "single", allowOther: false, options: [{ id: "all", label: "All changes" }, { id: "selected", label: "Selected changes" }] },
-      { id: "hosting", required: false, selectionMode: "multi", allowOther: true, options: [{ id: "taskcore_custom_answer" }, { id: "new" }, { id: "taskcore_custom_answer_2", freeText: true }] },
+      {
+        id: "repo",
+        required: true,
+        selectionMode: "single",
+        options: [{ id: "taskcore_text_answer", freeText: true }],
+      },
+      {
+        id: "scope",
+        required: true,
+        selectionMode: "single",
+        allowOther: false,
+        options: [
+          { id: "all", label: "All changes" },
+          { id: "selected", label: "Selected changes" },
+        ],
+      },
+      {
+        id: "hosting",
+        required: false,
+        selectionMode: "multi",
+        allowOther: true,
+        options: [
+          { id: "taskcore_custom_answer" },
+          { id: "new" },
+          { id: "taskcore_custom_answer_2", freeText: true },
+        ],
+      },
     ]);
-    expect(askUserQuestionsPayloadSchema.parse(parsed.payload)).toEqual(parsed.payload);
+    expect(askUserQuestionsPayloadSchema.parse(parsed.payload)).toEqual(
+      parsed.payload,
+    );
   });
 
   it("rejects canonical-only forms with invalid modes or missing questions", () => {
     for (const questionSet of [
       { schema: "taskcore.question_set.v1", questions: [] },
-      { schema: "taskcore.question_set.v1", questions: [{ id: "repo", prompt: "Repository?", required: true, answerMode: "text", options: [{ id: "a", label: "A" }] }] },
-    ]) expect(createIssueThreadInteractionSchema.safeParse({ kind: "ask_user_questions", payload: { version: 1, questionSet } }).success).toBe(false);
-    expect(createIssueThreadInteractionSchema.safeParse({ kind: "ask_user_questions", payload: { version: 1 } }).success).toBe(false);
+      {
+        schema: "taskcore.question_set.v1",
+        questions: [
+          {
+            id: "repo",
+            prompt: "Repository?",
+            required: true,
+            answerMode: "text",
+            options: [{ id: "a", label: "A" }],
+          },
+        ],
+      },
+    ])
+      expect(
+        createIssueThreadInteractionSchema.safeParse({
+          kind: "ask_user_questions",
+          payload: { version: 1, questionSet },
+        }).success,
+      ).toBe(false);
+    expect(
+      createIssueThreadInteractionSchema.safeParse({
+        kind: "ask_user_questions",
+        payload: { version: 1 },
+      }).success,
+    ).toBe(false);
   });
 
   it("preserves canonical display whitespace while deriving trimmed storage fields", () => {
-    const questionSet = { schema: "taskcore.question_set.v1", questions: [
-      { id: "scope", prompt: "  Review scope? \n", required: true, answerMode: "single_select", options: [{ id: "all", label: " All changes " }, { id: "selected", label: " Selected changes " }] },
-      { id: "repo", prompt: " Repository URL? ", required: true, answerMode: "text" },
-    ] };
-    const parsed = createIssueThreadInteractionSchema.parse({ kind: "ask_user_questions", payload: { version: 1, questionSet } });
-    if (parsed.kind !== "ask_user_questions") throw new Error("expected questions");
+    const questionSet = {
+      schema: "taskcore.question_set.v1",
+      questions: [
+        {
+          id: "scope",
+          prompt: "  Review scope? \n",
+          required: true,
+          answerMode: "single_select",
+          options: [
+            { id: "all", label: " All changes " },
+            { id: "selected", label: " Selected changes " },
+          ],
+        },
+        {
+          id: "repo",
+          prompt: " Repository URL? ",
+          required: true,
+          answerMode: "text",
+        },
+      ],
+    };
+    const parsed = createIssueThreadInteractionSchema.parse({
+      kind: "ask_user_questions",
+      payload: { version: 1, questionSet },
+    });
+    if (parsed.kind !== "ask_user_questions")
+      throw new Error("expected questions");
     expect(parsed.payload.questionSet).toEqual(questionSet);
-    expect(parsed.payload.questions[0]).toMatchObject({ prompt: "Review scope?", options: [{ label: "All changes" }, { label: "Selected changes" }] });
+    expect(parsed.payload.questions[0]).toMatchObject({
+      prompt: "Review scope?",
+      options: [{ label: "All changes" }, { label: "Selected changes" }],
+    });
     expect(parsed.payload.questions[1].prompt).toBe("Repository URL?");
   });
 
   it("rejects dual choice forms that disagree about written alternatives", () => {
-    const options = [{ id: "all", label: "All" }, { id: "selected", label: "Selected" }];
+    const options = [
+      { id: "all", label: "All" },
+      { id: "selected", label: "Selected" },
+    ];
     for (const storage of [
-      { options: [...options, { id: "other", label: "Other", freeText: true }] },
+      {
+        options: [...options, { id: "other", label: "Other", freeText: true }],
+      },
       { options, allowOther: true },
     ]) {
-      const parsed = createIssueThreadInteractionSchema.safeParse({ kind: "ask_user_questions", payload: { version: 1,
-        questions: [{ id: "scope", prompt: "Scope?", required: true, selectionMode: "single", ...storage }],
-        questionSet: { schema: "taskcore.question_set.v1", questions: [{ id: "scope", prompt: "Scope?", required: true, answerMode: "single_select", options }] },
-      } });
+      const parsed = createIssueThreadInteractionSchema.safeParse({
+        kind: "ask_user_questions",
+        payload: {
+          version: 1,
+          questions: [
+            {
+              id: "scope",
+              prompt: "Scope?",
+              required: true,
+              selectionMode: "single",
+              ...storage,
+            },
+          ],
+          questionSet: {
+            schema: "taskcore.question_set.v1",
+            questions: [
+              {
+                id: "scope",
+                prompt: "Scope?",
+                required: true,
+                answerMode: "single_select",
+                options,
+              },
+            ],
+          },
+        },
+      });
       expect(parsed.success).toBe(false);
     }
   });
@@ -81,24 +210,37 @@ describe("issue thread interaction schemas", () => {
       "board_or_agents",
       "board_only",
     ]);
-    expect(normalizeIssueThreadInteractionResolverPolicy("board_or_agents")).toBe("anyone");
-    expect(normalizeIssueThreadInteractionResolverPolicy("board_only")).toBe("human_only");
-    expect(normalizeIssueThreadInteractionResolverPolicy("not_creator")).toBe("not_creator");
-    expect(legacyIssueThreadInteractionResolverPolicyAlias("anyone")).toBe("board_or_agents");
-    expect(legacyIssueThreadInteractionResolverPolicyAlias("not_creator")).toBeNull();
+    expect(
+      normalizeIssueThreadInteractionResolverPolicy("board_or_agents"),
+    ).toBe("anyone");
+    expect(normalizeIssueThreadInteractionResolverPolicy("board_only")).toBe(
+      "human_only",
+    );
+    expect(normalizeIssueThreadInteractionResolverPolicy("not_creator")).toBe(
+      "not_creator",
+    );
+    expect(legacyIssueThreadInteractionResolverPolicyAlias("anyone")).toBe(
+      "board_or_agents",
+    );
+    expect(
+      legacyIssueThreadInteractionResolverPolicyAlias("not_creator"),
+    ).toBeNull();
   });
 
-  it.each(["anyone", "not_creator", "human_only", "board_or_agents", "board_only"] as const)(
-    "accepts resolver policy input %s",
-    (resolverPolicy) => {
-      const parsed = createIssueThreadInteractionSchema.parse({
-        kind: "request_confirmation",
-        resolverPolicy,
-        payload: { version: 1, prompt: "Proceed?" },
-      });
-      expect(parsed.resolverPolicy).toBe(resolverPolicy);
-    },
-  );
+  it.each([
+    "anyone",
+    "not_creator",
+    "human_only",
+    "board_or_agents",
+    "board_only",
+  ] as const)("accepts resolver policy input %s", (resolverPolicy) => {
+    const parsed = createIssueThreadInteractionSchema.parse({
+      kind: "request_confirmation",
+      resolverPolicy,
+      payload: { version: 1, prompt: "Proceed?" },
+    });
+    expect(parsed.resolverPolicy).toBe(resolverPolicy);
+  });
 
   it("parses request_confirmation payloads with default no-wake continuation", () => {
     const parsed = createIssueThreadInteractionSchema.parse({
@@ -171,8 +313,12 @@ describe("issue thread interaction schemas", () => {
       argumentsHash: "reviewed-arguments-hash",
     });
     expect(result.toolAction).toMatchObject({ version: 1, status: "executed" });
-    expect(requestConfirmationPayloadSchema.parse({ version: 1, prompt: "Legacy confirmation?" }).toolAction)
-      .toBeUndefined();
+    expect(
+      requestConfirmationPayloadSchema.parse({
+        version: 1,
+        prompt: "Legacy confirmation?",
+      }).toolAction,
+    ).toBeUndefined();
   });
 
   it("parses superseded confirmation results with a replacement pointer", () => {
@@ -194,19 +340,23 @@ describe("issue thread interaction schemas", () => {
       version: 1,
       outcome: "resolved",
       complete: true,
-      items: [{
-        id: "api",
-        verdict: "approve",
-        resolvedByAgentId: "11111111-1111-4111-8111-111111111111",
-        resolvedByRunId: "22222222-2222-4222-8222-222222222222",
-        resolvedAt: "2026-08-14T12:00:00.000Z",
-      }],
+      items: [
+        {
+          id: "api",
+          verdict: "approve",
+          resolvedByAgentId: "11111111-1111-4111-8111-111111111111",
+          resolvedByRunId: "22222222-2222-4222-8222-222222222222",
+          resolvedAt: "2026-08-14T12:00:00.000Z",
+        },
+      ],
     };
     expect(requestItemVerdictsResultSchema.parse(result)).toMatchObject(result);
-    expect(() => requestItemVerdictsResultSchema.parse({
-      ...result,
-      items: [{ ...result.items[0], resolvedByRunId: undefined }],
-    })).toThrow("resolvedByRunId is required for an agent resolver");
+    expect(() =>
+      requestItemVerdictsResultSchema.parse({
+        ...result,
+        items: [{ ...result.items[0], resolvedByRunId: undefined }],
+      }),
+    ).toThrow("resolvedByRunId is required for an agent resolver");
   });
 
   it("accepts issue document targets for request_confirmation interactions", () => {
@@ -301,13 +451,15 @@ describe("issue thread interaction schemas", () => {
       },
     });
 
-    expect(askUserQuestionsResultSchema.parse({
-      version: 1,
-      answers: [],
-      expirationReason: "superseded_by_comment",
-      commentId: "11111111-1111-4111-8111-111111111111",
-      summaryMarkdown: null,
-    })).toMatchObject({
+    expect(
+      askUserQuestionsResultSchema.parse({
+        version: 1,
+        answers: [],
+        expirationReason: "superseded_by_comment",
+        commentId: "11111111-1111-4111-8111-111111111111",
+        summaryMarkdown: null,
+      }),
+    ).toMatchObject({
       expirationReason: "superseded_by_comment",
       commentId: "11111111-1111-4111-8111-111111111111",
     });
@@ -317,13 +469,15 @@ describe("issue thread interaction schemas", () => {
     const questionSet = {
       schema: "taskcore.question_set.v1" as const,
       title: "Runner input",
-      questions: [{
-        id: "deployment-color",
-        prompt: "Which deployment color should the runner use?",
-        required: true,
-        answerMode: "single_select" as const,
-        options: [{ id: "blue", label: "Blue" }],
-      }],
+      questions: [
+        {
+          id: "deployment-color",
+          prompt: "Which deployment color should the runner use?",
+          required: true,
+          answerMode: "single_select" as const,
+          options: [{ id: "blue", label: "Blue" }],
+        },
+      ],
     };
     const parsed = createIssueThreadInteractionSchema.parse({
       kind: "ask_user_questions",
@@ -331,13 +485,15 @@ describe("issue thread interaction schemas", () => {
       resolverPolicy: "human_only",
       payload: {
         version: 1,
-        questions: [{
-          id: "deployment-color",
-          prompt: "Which deployment color should the runner use?",
-          selectionMode: "single",
-          allowOther: false,
-          options: [{ id: "blue", label: "Blue" }],
-        }],
+        questions: [
+          {
+            id: "deployment-color",
+            prompt: "Which deployment color should the runner use?",
+            selectionMode: "single",
+            allowOther: false,
+            options: [{ id: "blue", label: "Blue" }],
+          },
+        ],
         questionSet,
       },
     });
@@ -345,25 +501,85 @@ describe("issue thread interaction schemas", () => {
     if (parsed.kind !== "ask_user_questions") return;
     expect(parsed.payload.questionSet).toEqual(questionSet);
 
-    expect(() => taskcoreQuestionSetPayloadSchema.parse({
-      ...questionSet,
-      questions: [{ ...questionSet.questions[0], answerMode: "text", options: questionSet.questions[0].options }],
-    })).toThrow("text questions cannot define options");
+    expect(() =>
+      taskcoreQuestionSetPayloadSchema.parse({
+        ...questionSet,
+        questions: [
+          {
+            ...questionSet.questions[0],
+            answerMode: "text",
+            options: questionSet.questions[0].options,
+          },
+        ],
+      }),
+    ).toThrow("text questions cannot define options");
   });
 
   it("rejects creation of a form that hides required questions, while retaining historical readability", () => {
     const payload = {
       version: 1,
       questions: [
-        { id: "club_name", prompt: "Club name?", selectionMode: "single", required: true, options: [{ id: "text", label: "Answer", freeText: true }] },
-        { id: "audience", prompt: "Audience?", selectionMode: "single", required: true, options: [{ id: "beginners", label: "Beginners" }, { id: "everyone", label: "Everyone" }] },
+        {
+          id: "club_name",
+          prompt: "Club name?",
+          selectionMode: "single",
+          required: true,
+          options: [{ id: "text", label: "Answer", freeText: true }],
+        },
+        {
+          id: "audience",
+          prompt: "Audience?",
+          selectionMode: "single",
+          required: true,
+          options: [
+            { id: "beginners", label: "Beginners" },
+            { id: "everyone", label: "Everyone" },
+          ],
+        },
       ],
-      questionSet: { schema: "taskcore.question_set.v1", questions: [{ id: "club_name", prompt: "Club name?", answerMode: "text", required: true }] },
+      questionSet: {
+        schema: "taskcore.question_set.v1",
+        questions: [
+          {
+            id: "club_name",
+            prompt: "Club name?",
+            answerMode: "text",
+            required: true,
+          },
+        ],
+      },
     };
-    expect(() => createIssueThreadInteractionSchema.parse({ kind: "ask_user_questions", payload })).toThrow("must present every questions entry");
-    expect(askUserQuestionsPayloadSchema.parse(payload).questions).toHaveLength(2);
-    const complete = { ...payload, questionSet: { ...payload.questionSet, questions: [...payload.questionSet.questions, { id: "audience", prompt: "Audience?", answerMode: "single_select", required: true, options: payload.questions[1].options }] } };
-    expect(createIssueThreadInteractionSchema.parse({ kind: "ask_user_questions", payload: complete }).payload).toMatchObject({ questionSet: { questions: expect.any(Array) } });
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        kind: "ask_user_questions",
+        payload,
+      }),
+    ).toThrow("must present every questions entry");
+    expect(askUserQuestionsPayloadSchema.parse(payload).questions).toHaveLength(
+      2,
+    );
+    const complete = {
+      ...payload,
+      questionSet: {
+        ...payload.questionSet,
+        questions: [
+          ...payload.questionSet.questions,
+          {
+            id: "audience",
+            prompt: "Audience?",
+            answerMode: "single_select",
+            required: true,
+            options: payload.questions[1].options,
+          },
+        ],
+      },
+    };
+    expect(
+      createIssueThreadInteractionSchema.parse({
+        kind: "ask_user_questions",
+        payload: complete,
+      }).payload,
+    ).toMatchObject({ questionSet: { questions: expect.any(Array) } });
   });
 
   it.each([
@@ -375,11 +591,38 @@ describe("issue thread interaction schemas", () => {
   ])("rejects conflicting canonical %s at creation", (_name, changes) => {
     const payload = {
       version: 1,
-      questions: [{ id: "color", prompt: "Color?", required: true, selectionMode: "single", options: [{ id: "blue", label: "Blue" }] }],
-      questionSet: { schema: "taskcore.question_set.v1", questions: [{ id: "color", prompt: "Color?", required: true, answerMode: "single_select", options: [{ id: "blue", label: "Blue" }], ...changes }] },
+      questions: [
+        {
+          id: "color",
+          prompt: "Color?",
+          required: true,
+          selectionMode: "single",
+          options: [{ id: "blue", label: "Blue" }],
+        },
+      ],
+      questionSet: {
+        schema: "taskcore.question_set.v1",
+        questions: [
+          {
+            id: "color",
+            prompt: "Color?",
+            required: true,
+            answerMode: "single_select",
+            options: [{ id: "blue", label: "Blue" }],
+            ...changes,
+          },
+        ],
+      },
     };
-    expect(() => createIssueThreadInteractionSchema.parse({ kind: "ask_user_questions", payload })).toThrow("must match");
-    expect(askUserQuestionsPayloadSchema.parse(payload).questions).toHaveLength(1);
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        kind: "ask_user_questions",
+        payload,
+      }),
+    ).toThrow("must match");
+    expect(askUserQuestionsPayloadSchema.parse(payload).questions).toHaveLength(
+      1,
+    );
   });
 
   it("rejects unsafe request_confirmation target hrefs", () => {
@@ -407,16 +650,20 @@ describe("issue thread interaction schemas", () => {
       "vscode://file/tmp/x",
       "ftp://example.com/file",
     ]) {
-      expect(() => createIssueThreadInteractionSchema.parse({
-        ...base,
-        payload: {
-          ...base.payload,
-          target: {
-            ...base.payload.target,
-            href,
+      expect(() =>
+        createIssueThreadInteractionSchema.parse({
+          ...base,
+          payload: {
+            ...base.payload,
+            target: {
+              ...base.payload.target,
+              href,
+            },
           },
-        },
-      })).toThrow("href must be a root-relative path, same-page fragment, or http(s) URL");
+        }),
+      ).toThrow(
+        "href must be a root-relative path, same-page fragment, or http(s) URL",
+      );
     }
   });
 
@@ -428,7 +675,11 @@ describe("issue thread interaction schemas", () => {
         prompt: "Which items should be archived?",
         options: [
           { id: "item-1", label: "Draft report" },
-          { id: "item-2", label: "Old screenshot", description: "Captured during QA." },
+          {
+            id: "item-2",
+            label: "Old screenshot",
+            description: "Captured during QA.",
+          },
         ],
         defaultSelectedOptionIds: ["item-2"],
         minSelected: 0,
@@ -469,42 +720,50 @@ describe("issue thread interaction schemas", () => {
       },
     } as const;
 
-    expect(() => createIssueThreadInteractionSchema.parse({
-      ...base,
-      payload: {
-        ...base.payload,
-        options: [
-          { id: "item-1", label: "Draft report" },
-          { id: "item-1", label: "Duplicate" },
-        ],
-      },
-    })).toThrow("Option ids must be unique within one checkbox confirmation");
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        ...base,
+        payload: {
+          ...base.payload,
+          options: [
+            { id: "item-1", label: "Draft report" },
+            { id: "item-1", label: "Duplicate" },
+          ],
+        },
+      }),
+    ).toThrow("Option ids must be unique within one checkbox confirmation");
 
-    expect(() => createIssueThreadInteractionSchema.parse({
-      ...base,
-      payload: {
-        ...base.payload,
-        defaultSelectedOptionIds: ["missing"],
-      },
-    })).toThrow("defaultSelectedOptionIds must reference existing option ids");
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        ...base,
+        payload: {
+          ...base.payload,
+          defaultSelectedOptionIds: ["missing"],
+        },
+      }),
+    ).toThrow("defaultSelectedOptionIds must reference existing option ids");
 
-    expect(() => createIssueThreadInteractionSchema.parse({
-      ...base,
-      payload: {
-        ...base.payload,
-        defaultSelectedOptionIds: ["item-1"],
-        minSelected: 2,
-      },
-    })).toThrow("defaultSelectedOptionIds must satisfy minSelected");
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        ...base,
+        payload: {
+          ...base.payload,
+          defaultSelectedOptionIds: ["item-1"],
+          minSelected: 2,
+        },
+      }),
+    ).toThrow("defaultSelectedOptionIds must satisfy minSelected");
 
-    expect(() => createIssueThreadInteractionSchema.parse({
-      ...base,
-      payload: {
-        ...base.payload,
-        minSelected: 2,
-        maxSelected: 1,
-      },
-    })).toThrow("maxSelected must be greater than or equal to minSelected");
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        ...base,
+        payload: {
+          ...base.payload,
+          minSelected: 2,
+          maxSelected: 1,
+        },
+      }),
+    ).toThrow("maxSelected must be greater than or equal to minSelected");
   });
 
   it("rejects unsafe request_checkbox_confirmation target hrefs", () => {
@@ -523,28 +782,40 @@ describe("issue thread interaction schemas", () => {
       },
     } as const;
 
-    for (const href of ["file:///tmp/x", "slack://channel?id=1", "vscode://file/tmp/x"]) {
-      expect(() => createIssueThreadInteractionSchema.parse({
-        ...base,
-        payload: {
-          ...base.payload,
-          target: {
-            ...base.payload.target,
-            href,
+    for (const href of [
+      "file:///tmp/x",
+      "slack://channel?id=1",
+      "vscode://file/tmp/x",
+    ]) {
+      expect(() =>
+        createIssueThreadInteractionSchema.parse({
+          ...base,
+          payload: {
+            ...base.payload,
+            target: {
+              ...base.payload.target,
+              href,
+            },
           },
-        },
-      })).toThrow("href must be a root-relative path, same-page fragment, or http(s) URL");
+        }),
+      ).toThrow(
+        "href must be a root-relative path, same-page fragment, or http(s) URL",
+      );
     }
   });
 
   it("accepts empty checkbox selections and rejects duplicate selected option ids", () => {
-    expect(acceptIssueThreadInteractionSchema.parse({ selectedOptionIds: [] })).toEqual({
+    expect(
+      acceptIssueThreadInteractionSchema.parse({ selectedOptionIds: [] }),
+    ).toEqual({
       selectedOptionIds: [],
     });
 
-    expect(() => acceptIssueThreadInteractionSchema.parse({
-      selectedOptionIds: ["item-1", "item-1"],
-    })).toThrow("selectedOptionIds must be unique");
+    expect(() =>
+      acceptIssueThreadInteractionSchema.parse({
+        selectedOptionIds: ["item-1", "item-1"],
+      }),
+    ).toThrow("selectedOptionIds must be unique");
   });
 
   it("parses request_item_verdicts payloads with defaults", () => {
@@ -554,7 +825,11 @@ describe("issue thread interaction schemas", () => {
         version: 1,
         prompt: "Review these generated items.",
         items: [
-          { id: "api", label: "API route", description: "Server submit endpoint" },
+          {
+            id: "api",
+            label: "API route",
+            description: "Server submit endpoint",
+          },
           { id: "docs", label: "Docs", previewMarkdown: "Document the route." },
         ],
       },
@@ -605,52 +880,62 @@ describe("issue thread interaction schemas", () => {
       },
     } as const;
 
-    expect(() => createIssueThreadInteractionSchema.parse({
-      ...base,
-      payload: {
-        ...base.payload,
-        items: [],
-      },
-    })).toThrow();
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        ...base,
+        payload: {
+          ...base.payload,
+          items: [],
+        },
+      }),
+    ).toThrow();
 
-    expect(() => createIssueThreadInteractionSchema.parse({
-      ...base,
-      payload: {
-        ...base.payload,
-        items: [
-          { id: "api", label: "API route" },
-          { id: "api", label: "Duplicate" },
-        ],
-      },
-    })).toThrow("Item ids must be unique within one item verdict request");
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        ...base,
+        payload: {
+          ...base.payload,
+          items: [
+            { id: "api", label: "API route" },
+            { id: "api", label: "Duplicate" },
+          ],
+        },
+      }),
+    ).toThrow("Item ids must be unique within one item verdict request");
 
-    expect(() => createIssueThreadInteractionSchema.parse({
-      ...base,
-      payload: {
-        ...base.payload,
-        items: Array.from({ length: 201 }, (_value, index) => ({
-          id: `item-${index}`,
-          label: `Item ${index}`,
-        })),
-      },
-    })).toThrow();
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        ...base,
+        payload: {
+          ...base.payload,
+          items: Array.from({ length: 201 }, (_value, index) => ({
+            id: `item-${index}`,
+            label: `Item ${index}`,
+          })),
+        },
+      }),
+    ).toThrow();
 
-    expect(() => createIssueThreadInteractionSchema.parse({
-      ...base,
-      payload: {
-        ...base.payload,
-        verdicts: ["approve", "reject"],
-        requireReasonOn: ["defer"],
-      },
-    })).toThrow("requireReasonOn must reference enabled verdicts");
+    expect(() =>
+      createIssueThreadInteractionSchema.parse({
+        ...base,
+        payload: {
+          ...base.payload,
+          verdicts: ["approve", "reject"],
+          requireReasonOn: ["defer"],
+        },
+      }),
+    ).toThrow("requireReasonOn must reference enabled verdicts");
   });
 
   it("rejects duplicate request_item_verdicts submit ids", () => {
-    expect(() => submitIssueThreadInteractionVerdictsSchema.parse({
-      verdicts: [
-        { id: "api", verdict: "approve" },
-        { id: "api", verdict: "reject", reason: "Needs revision" },
-      ],
-    })).toThrow("verdict item ids must be unique");
+    expect(() =>
+      submitIssueThreadInteractionVerdictsSchema.parse({
+        verdicts: [
+          { id: "api", verdict: "approve" },
+          { id: "api", verdict: "reject", reason: "Needs revision" },
+        ],
+      }),
+    ).toThrow("verdict item ids must be unique");
   });
 });

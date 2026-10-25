@@ -1,4 +1,7 @@
-import { buildAdapterEnvConfig, type CreateConfigValues } from "@taskcore/adapter-utils";
+import {
+  buildAdapterEnvConfig,
+  type CreateConfigValues,
+} from "@taskcore/adapter-utils";
 import { DEFAULT_GROK_LOCAL_MODEL } from "../index.js";
 
 function parseCommaArgs(value: string): string[] {
@@ -8,7 +11,9 @@ function parseCommaArgs(value: string): string[] {
     .filter(Boolean);
 }
 
-export function buildGrokLocalConfig(v: CreateConfigValues): Record<string, unknown> {
+export function buildGrokLocalConfig(
+  v: CreateConfigValues,
+): Record<string, unknown> {
   const ac: Record<string, unknown> = {};
   if (v.cwd) ac.cwd = v.cwd;
   if (v.instructionsFilePath) ac.instructionsFilePath = v.instructionsFilePath;

@@ -167,7 +167,9 @@ describe("authSessionSchema", () => {
         session: { id: "s1", userId: "u1" },
         user: { id: "u1", email: "a@b.com", name: "Jane", image: null },
         sentryDsn: null,
-        ...(environment === undefined ? {} : { sentryEnvironment: environment }),
+        ...(environment === undefined
+          ? {}
+          : { sentryEnvironment: environment }),
       });
       expect(result.sentryEnvironment).toBe(environment);
     },
@@ -180,6 +182,8 @@ describe("authSessionSchema", () => {
       sentryDsn: "https://public@o0.ingest.sentry.io/1",
     });
     expect(result.success).toBe(true);
-    expect(result.success && result.data.sentryDsn).toBe("https://public@o0.ingest.sentry.io/1");
+    expect(result.success && result.data.sentryDsn).toBe(
+      "https://public@o0.ingest.sentry.io/1",
+    );
   });
 });

@@ -20,9 +20,16 @@ export function Mono({ children }: { children: React.ReactNode }) {
   return <code className="pcr7-mono">{children}</code>;
 }
 
-export function DispositionBadge({ disposition }: { disposition: CapabilityPrimaryDisposition }) {
+export function DispositionBadge({
+  disposition,
+}: {
+  disposition: CapabilityPrimaryDisposition;
+}) {
   return (
-    <Badge tone={DISPOSITION_TONE[disposition]} data-testid={`disposition-${disposition}`}>
+    <Badge
+      tone={DISPOSITION_TONE[disposition]}
+      data-testid={`disposition-${disposition}`}
+    >
       {DISPOSITION_LABEL[disposition]}
     </Badge>
   );
@@ -37,8 +44,12 @@ export function ParityStatusBadge({
   testId?: string;
 }) {
   return (
-    <Badge tone={PARITY_TONE[status]} data-testid={testId ?? `parity-${status}`}>
-      <span aria-hidden="true">{PARITY_ICON[status]}</span> {PARITY_LABEL[status]}
+    <Badge
+      tone={PARITY_TONE[status]}
+      data-testid={testId ?? `parity-${status}`}
+    >
+      <span aria-hidden="true">{PARITY_ICON[status]}</span>{" "}
+      {PARITY_LABEL[status]}
     </Badge>
   );
 }
@@ -61,7 +72,9 @@ export function JsonBlock({ value, label }: { value: unknown; label: string }) {
   return (
     <>
       <p className="pcr-disclosure-label">{label}</p>
-      <pre className="pcr-payload pcr7-json">{JSON.stringify(value, null, 2)}</pre>
+      <pre className="pcr-payload pcr7-json">
+        {JSON.stringify(value, null, 2)}
+      </pre>
     </>
   );
 }
@@ -81,7 +94,13 @@ export function EmptyState({
   );
 }
 
-export function ClaimChips({ claims, testId }: { claims: readonly string[]; testId?: string }) {
+export function ClaimChips({
+  claims,
+  testId,
+}: {
+  claims: readonly string[];
+  testId?: string;
+}) {
   if (claims.length === 0) return <span className="pcr7-muted">none</span>;
   return (
     <span className="pcr7-chips" data-testid={testId}>

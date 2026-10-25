@@ -61,12 +61,16 @@ export type ExecutionAllowlistDecision =
     };
 
 /** True when the policy forces all execution onto the Kubernetes sandbox. */
-export function isExecutionForcedToKubernetes(policy: ExecutionPolicy | null | undefined): boolean {
+export function isExecutionForcedToKubernetes(
+  policy: ExecutionPolicy | null | undefined,
+): boolean {
   return policy?.executionMode === "kubernetes";
 }
 
 /** True when the policy refuses local (in-process/on-container) execution. */
-export function isLocalExecutionDenied(policy: ExecutionPolicy | null | undefined): boolean {
+export function isLocalExecutionDenied(
+  policy: ExecutionPolicy | null | undefined,
+): boolean {
   return policy?.managedSandboxOnly === true;
 }
 
@@ -77,7 +81,10 @@ export function isLocalExecutionDenied(policy: ExecutionPolicy | null | undefine
 export function isKubernetesSandboxEnvironment(
   candidate: ExecutionEnvironmentCandidate,
 ): boolean {
-  return candidate.driver === "sandbox" && candidate.provider === KUBERNETES_PROVIDER_KEY;
+  return (
+    candidate.driver === "sandbox" &&
+    candidate.provider === KUBERNETES_PROVIDER_KEY
+  );
 }
 
 /**

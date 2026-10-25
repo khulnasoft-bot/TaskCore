@@ -1,7 +1,10 @@
 import { FileTree } from "./FileTree";
 import type { FileTreeProps } from "./FileTree";
 
-export function PackageFileTree({ wrapLabels = false, ...props }: FileTreeProps) {
+export function PackageFileTree({
+  wrapLabels = false,
+  ...props
+}: FileTreeProps) {
   return <FileTree {...props} wrapLabels={wrapLabels} />;
 }
 

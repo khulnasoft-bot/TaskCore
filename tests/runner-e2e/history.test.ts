@@ -31,7 +31,10 @@ import {
 import { renderRunnerHistoryIndex } from "./history-index.js";
 import { renderPublicCampaignSummary } from "./public-summary-image.js";
 import { isPublicRunnerScreenshotRoute } from "./screenshot-policy.js";
-import { connectionCheckpoints, type ConnectionEvidence } from "./connection-evidence.js";
+import {
+  connectionCheckpoints,
+  type ConnectionEvidence,
+} from "./connection-evidence.js";
 import type { MatrixExecution, RunnerE2EResult } from "./types.js";
 
 const temporaryDirectories: string[] = [];
@@ -64,7 +67,29 @@ function result(execution: MatrixExecution, status: "passed" | "failed") {
     finishedAt: "2026-08-28T00:00:01.000Z",
     durationMs: 1_000,
     cleanup: "passed",
-    ...(execution.task.flow === "provider_connection" ? { providerConnection: { version: 1, outcome: status, phase: "finished", assisted: false, authFreshness: "signed-in", target: { mode: "attach", origin: "http://127.0.0.1:3100", commit: "a".repeat(40), deploymentMode: "local_trusted" }, entry: "agent", method: "api-key", checkpoints: Object.fromEntries(connectionCheckpoints.map(key => [key, true])), waits: [] } satisfies ConnectionEvidence } : {}),
+    ...(execution.task.flow === "provider_connection"
+      ? {
+          providerConnection: {
+            version: 1,
+            outcome: status,
+            phase: "finished",
+            assisted: false,
+            authFreshness: "signed-in",
+            target: {
+              mode: "attach",
+              origin: "http://127.0.0.1:3100",
+              commit: "a".repeat(40),
+              deploymentMode: "local_trusted",
+            },
+            entry: "agent",
+            method: "api-key",
+            checkpoints: Object.fromEntries(
+              connectionCheckpoints.map((key) => [key, true]),
+            ),
+            waits: [],
+          } satisfies ConnectionEvidence,
+        }
+      : {}),
   } satisfies RunnerE2EResult;
 }
 
@@ -73,92 +98,201 @@ describe("runner E2E campaign history", () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "runner-legacy-source-"));
     temporaryDirectories.push(root);
     const source = {
-      sha: "measured-source-sha", ref: "refs/heads/measured-source",
+      sha: "measured-source-sha",
+      ref: "refs/heads/measured-source",
       workflowRunUrl: "https://example.test/actions/runs/1",
     };
     const results = [
-      { ...result(runnerMatrix[0]!, "passed"), schema: "taskcore.runner-e2e.result/v1" },
+      {
+        ...result(runnerMatrix[0]!, "passed"),
+        schema: "taskcore.runner-e2e.result/v1",
+      },
       { ...result(runnerMatrix[1]!, "passed"), source },
     ];
-    await writeFile(path.join(root, "normalized-results.json"), JSON.stringify({
-      campaignId: "legacy-source", generatedAt: results[0]!.finishedAt,
-      expected: results.map((entry) => entry.executionId), results,
-    }));
+    await writeFile(
+      path.join(root, "normalized-results.json"),
+      JSON.stringify({
+        campaignId: "legacy-source",
+        generatedAt: results[0]!.finishedAt,
+        expected: results.map((entry) => entry.executionId),
+        results,
+      }),
+    );
     vi.stubEnv("TASKCORE_RUNNER_E2E_SOURCE_SHA", "renderer-sha");
     vi.stubEnv("GITHUB_EVENT_NAME", "push");
     await regenerateRunnerDashboard({ bundle: root });
-    const regenerated = JSON.parse(await readFile(path.join(root, "normalized-results.json"), "utf8"));
+    const regenerated = JSON.parse(
+      await readFile(path.join(root, "normalized-results.json"), "utf8"),
+    );
     expect(regenerated.source).toEqual({ ...source, eventName: null });
-    expect(regenerated.results[0].source).toEqual({ sha: null, ref: null, workflowRunUrl: null });
+    expect(regenerated.results[0].source).toEqual({
+      sha: null,
+      ref: null,
+      workflowRunUrl: null,
+    });
     expect(regenerated.passed).toBe(2);
   });
 
-  it.each(["workflow_dispatch", null, undefined])("preserves retained source during regeneration (event %s)", async (eventName) => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-retained-source-"));
-    temporaryDirectories.push(root);
-    const execution = runnerMatrix[0]!;
-    const source = {
-      sha: "measured-source-sha", ref: "refs/heads/measured-source",
-      workflowRunUrl: "https://example.test/actions/runs/1",
-    };
-    const retainedResult = { ...result(execution, "passed"), source };
-    const campaign = buildRunnerCampaign({
-      campaignId: "retained-source", generatedAt: retainedResult.finishedAt,
-      expected: [execution.id], results: [retainedResult],
-    });
-    const published = { ...campaign, source: eventName === undefined ? undefined : { ...source, eventName } };
-    await writeFile(path.join(root, "normalized-results.json"), JSON.stringify(published));
-    vi.stubEnv("TASKCORE_RUNNER_E2E_SOURCE_SHA", "renderer-sha");
-    vi.stubEnv("TASKCORE_RUNNER_E2E_SOURCE_REF", "refs/heads/renderer");
-    vi.stubEnv("GITHUB_EVENT_NAME", "push");
-    await regenerateRunnerDashboard({ bundle: root });
-    const regenerated = JSON.parse(await readFile(path.join(root, "normalized-results.json"), "utf8"));
-    expect(regenerated.source).toEqual({ ...source, eventName: eventName ?? null });
-    expect(regenerated.results).toEqual(campaign.results.map((entry) => ({ ...entry, evidenceValid: true, evidenceErrors: [] })));
-    expect(regenerated.generatedAt).toBe(campaign.generatedAt);
-  });
+  it.each(["workflow_dispatch", null, undefined])(
+    "preserves retained source during regeneration (event %s)",
+    async (eventName) => {
+      const root = await mkdtemp(
+        path.join(os.tmpdir(), "runner-retained-source-"),
+      );
+      temporaryDirectories.push(root);
+      const execution = runnerMatrix[0]!;
+      const source = {
+        sha: "measured-source-sha",
+        ref: "refs/heads/measured-source",
+        workflowRunUrl: "https://example.test/actions/runs/1",
+      };
+      const retainedResult = { ...result(execution, "passed"), source };
+      const campaign = buildRunnerCampaign({
+        campaignId: "retained-source",
+        generatedAt: retainedResult.finishedAt,
+        expected: [execution.id],
+        results: [retainedResult],
+      });
+      const published = {
+        ...campaign,
+        source: eventName === undefined ? undefined : { ...source, eventName },
+      };
+      await writeFile(
+        path.join(root, "normalized-results.json"),
+        JSON.stringify(published),
+      );
+      vi.stubEnv("TASKCORE_RUNNER_E2E_SOURCE_SHA", "renderer-sha");
+      vi.stubEnv("TASKCORE_RUNNER_E2E_SOURCE_REF", "refs/heads/renderer");
+      vi.stubEnv("GITHUB_EVENT_NAME", "push");
+      await regenerateRunnerDashboard({ bundle: root });
+      const regenerated = JSON.parse(
+        await readFile(path.join(root, "normalized-results.json"), "utf8"),
+      );
+      expect(regenerated.source).toEqual({
+        ...source,
+        eventName: eventName ?? null,
+      });
+      expect(regenerated.results).toEqual(
+        campaign.results.map((entry) => ({
+          ...entry,
+          evidenceValid: true,
+          evidenceErrors: [],
+        })),
+      );
+      expect(regenerated.generatedAt).toBe(campaign.generatedAt);
+    },
+  );
 
   it("retains incomplete journeys in campaign, suite and history without marking them green", () => {
-    const execution = runnerMatrix.find(e => e.suite.id === "first-task")!;
+    const execution = runnerMatrix.find((e) => e.suite.id === "first-task")!;
     const incomplete: RunnerE2EResult = {
-      ...result(execution, "failed"), failureClass: "candidate_failure",
+      ...result(execution, "failed"),
+      failureClass: "candidate_failure",
       firstTask: {
-        caseId: execution.task.id, nonce: "fixture", onboardingIssueId: "issue", agentId: "agent",
-        initialTaskIds: ["issue"], instructions: [], configuredModel: null, observedModels: [], checkpoints: [],
-        checks: [{ id: "acceptance-recorded", passed: false, detail: "Acceptance", evidence: [], notReached: "Recording stopped" }],
+        caseId: execution.task.id,
+        nonce: "fixture",
+        onboardingIssueId: "issue",
+        agentId: "agent",
+        initialTaskIds: ["issue"],
+        instructions: [],
+        configuredModel: null,
+        observedModels: [],
+        checkpoints: [],
+        checks: [
+          {
+            id: "acceptance-recorded",
+            passed: false,
+            detail: "Acceptance",
+            evidence: [],
+            notReached: "Recording stopped",
+          },
+        ],
       },
     };
-    const campaign = buildRunnerCampaign({ campaignId: "incomplete", generatedAt: incomplete.finishedAt, expected: [execution.id], results: [incomplete] });
+    const campaign = buildRunnerCampaign({
+      campaignId: "incomplete",
+      generatedAt: incomplete.finishedAt,
+      expected: [execution.id],
+      results: [incomplete],
+    });
     expect(campaign).toMatchObject({ passed: 0, failed: 0, incomplete: 1 });
-    expect(campaign.suites[0]).toMatchObject({ passed: 0, failed: 0, incomplete: 1 });
+    expect(campaign.suites[0]).toMatchObject({
+      passed: 0,
+      failed: 0,
+      incomplete: 1,
+    });
     const record = campaignHistoryRecord(campaign, "https://example.test");
     expect(record.executions[0].status).toBe("incomplete");
-    const history = mergeRunnerHistory(null, { ...record, complete: true, suites: record.suites.map(s => ({ ...s, complete: true })) });
+    const history = mergeRunnerHistory(null, {
+      ...record,
+      complete: true,
+      suites: record.suites.map((s) => ({ ...s, complete: true })),
+    });
     expect(history.latestGreenCampaignId).toBeNull();
     expect(history.latestGreenBySuite["first-task"]).toBeUndefined();
     expect(renderRunnerHistoryIndex(history)).toContain("1 incomplete");
-    expect(renderRunnerE2EDashboard({ title: "History", generatedAt: incomplete.finishedAt, expected: [], catalog: [], entries: [], history })).toContain('data-history-status="incomplete"');
+    expect(
+      renderRunnerE2EDashboard({
+        title: "History",
+        generatedAt: incomplete.finishedAt,
+        expected: [],
+        catalog: [],
+        entries: [],
+        history,
+      }),
+    ).toContain('data-history-status="incomplete"');
   });
 
   it("shows unknown campaign costs without plotting zero dollars", () => {
     const execution = runnerMatrix[0];
-    const campaign = buildRunnerCampaign({ campaignId: "unknown-cost", generatedAt: "2026-09-15T00:00:00Z", expected: [execution.id], results: [result(execution, "passed")] });
+    const campaign = buildRunnerCampaign({
+      campaignId: "unknown-cost",
+      generatedAt: "2026-09-15T00:00:00Z",
+      expected: [execution.id],
+      results: [result(execution, "passed")],
+    });
     campaign.billing.observedAndEstimatedCostUsd = null;
-    const record = { ...campaignHistoryRecord(campaign, "https://example.test"), complete: true };
+    const record = {
+      ...campaignHistoryRecord(campaign, "https://example.test"),
+      complete: true,
+    };
     const history = mergeRunnerHistory(null, record);
     expect(renderRunnerHistoryIndex(history)).toContain("Unknown");
-    const dashboard = renderRunnerE2EDashboard({ title: "History", generatedAt: campaign.generatedAt, expected: [], catalog: [], entries: [], history });
+    const dashboard = renderRunnerE2EDashboard({
+      title: "History",
+      generatedAt: campaign.generatedAt,
+      expected: [],
+      catalog: [],
+      entries: [],
+      history,
+    });
     expect(dashboard).toContain("Unknown measurements are not plotted");
     expect(dashboard).not.toContain("NaN");
   });
 
   it("does not turn a clean-evidence behavior failure into a pass when regenerating", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-failed-evidence-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-failed-evidence-"),
+    );
     temporaryDirectories.push(root);
     const execution = runnerMatrix[0];
-    const failedResult = { ...result(execution, "failed"), failureClass: "candidate_failure" as const, error: "Behavior check failed", evidenceValid: true, evidenceErrors: [] };
-    const campaign = buildRunnerCampaign({ campaignId: "failed", generatedAt: failedResult.finishedAt, expected: [execution.id], results: [failedResult] });
-    await writeFile(path.join(root, "normalized-results.json"), JSON.stringify({ ...campaign, results: [failedResult] }));
+    const failedResult = {
+      ...result(execution, "failed"),
+      failureClass: "candidate_failure" as const,
+      error: "Behavior check failed",
+      evidenceValid: true,
+      evidenceErrors: [],
+    };
+    const campaign = buildRunnerCampaign({
+      campaignId: "failed",
+      generatedAt: failedResult.finishedAt,
+      expected: [execution.id],
+      results: [failedResult],
+    });
+    await writeFile(
+      path.join(root, "normalized-results.json"),
+      JSON.stringify({ ...campaign, results: [failedResult] }),
+    );
     await regenerateRunnerDashboard({ bundle: root });
     const page = await readFile(path.join(root, "index.html"), "utf8");
     expect(page).toContain('class="case case-failed"');
@@ -296,18 +430,18 @@ describe("runner E2E campaign history", () => {
     expect(index).toContain("Runner E2E campaigns");
     expect(index).toContain("complete-green");
     expect(index).toContain("complete-red");
-    expect(index).toContain(`${runnerMatrix.length}/${runnerMatrix.length} passed`);
-    expect(index).toContain(`${runnerMatrix.length - 1}/${runnerMatrix.length} passed`);
+    expect(index).toContain(
+      `${runnerMatrix.length}/${runnerMatrix.length} passed`,
+    );
+    expect(index).toContain(
+      `${runnerMatrix.length - 1}/${runnerMatrix.length} passed`,
+    );
     expect(index).toContain("Open report&nbsp;→");
     expect(index).toContain(
       "campaigns/complete-red/public-images/campaign-summary.png",
     );
-    expect(index).toContain(
-      "declared screenshots, and normalized results",
-    );
-    expect(index).toContain(
-      "Declared screenshots and normalized results",
-    );
+    expect(index).toContain("declared screenshots, and normalized results");
+    expect(index).toContain("Declared screenshots and normalized results");
     expect(index).not.toContain("data-gallery-dialog");
     expect(index).not.toContain("Configuration matrix");
   });
@@ -315,30 +449,65 @@ describe("runner E2E campaign history", () => {
 
 describe("historical publication security", () => {
   it.each([
-    "snapshots/api-state.json", "server.log", "playwright.log", "result.json",
-    "renamed-diagnostic.md", "nested/provider.txt", "malformed.json",
-  ])("withholds raw diagnostic %s even after credential redaction", async (file) => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-private-evidence-"));
-    temporaryDirectories.push(root);
-    const relative = `evidence/fixture.local.case/attempt-1/${file}`;
-    const absolute = path.join(root, relative);
-    const text = file === "malformed.json" ? "{malformed PRIVATE_REASONING" : JSON.stringify({
-      apiKey: "[REDACTED]",
-      runEvents: [{ payload: { prpEvent: { payload: {
-        kind: "reasoning", text: "PRIVATE_REASONING", sessionId: "PRIVATE_SESSION",
-      } } } }],
-      runLogs: [{ log: { content: JSON.stringify({ reasoning: "PRIVATE_REASONING" }) } }],
-    });
-    await mkdir(path.dirname(absolute), { recursive: true });
-    await writeFile(absolute, text);
-    expect(isHistoricalBundlePathAllowed(relative)).toBe(false);
-    // A text file cannot be admitted by pretending it is a declared screenshot.
-    expect(isHistoricalBundlePathAllowed(relative, false, new Set([relative]))).toBe(false);
-    await expect(createBundleManifest(root, "private-diagnostics")).rejects.toThrow("non-allowlisted");
-    await prunePrivateHistoryEvidence(root);
-    await expect(readFile(absolute)).rejects.toThrow();
-    expect((await createBundleManifest(root, "private-diagnostics")).files).toEqual([]);
-  });
+    "snapshots/api-state.json",
+    "server.log",
+    "playwright.log",
+    "result.json",
+    "renamed-diagnostic.md",
+    "nested/provider.txt",
+    "malformed.json",
+  ])(
+    "withholds raw diagnostic %s even after credential redaction",
+    async (file) => {
+      const root = await mkdtemp(
+        path.join(os.tmpdir(), "runner-private-evidence-"),
+      );
+      temporaryDirectories.push(root);
+      const relative = `evidence/fixture.local.case/attempt-1/${file}`;
+      const absolute = path.join(root, relative);
+      const text =
+        file === "malformed.json"
+          ? "{malformed PRIVATE_REASONING"
+          : JSON.stringify({
+              apiKey: "[REDACTED]",
+              runEvents: [
+                {
+                  payload: {
+                    prpEvent: {
+                      payload: {
+                        kind: "reasoning",
+                        text: "PRIVATE_REASONING",
+                        sessionId: "PRIVATE_SESSION",
+                      },
+                    },
+                  },
+                },
+              ],
+              runLogs: [
+                {
+                  log: {
+                    content: JSON.stringify({ reasoning: "PRIVATE_REASONING" }),
+                  },
+                },
+              ],
+            });
+      await mkdir(path.dirname(absolute), { recursive: true });
+      await writeFile(absolute, text);
+      expect(isHistoricalBundlePathAllowed(relative)).toBe(false);
+      // A text file cannot be admitted by pretending it is a declared screenshot.
+      expect(
+        isHistoricalBundlePathAllowed(relative, false, new Set([relative])),
+      ).toBe(false);
+      await expect(
+        createBundleManifest(root, "private-diagnostics"),
+      ).rejects.toThrow("non-allowlisted");
+      await prunePrivateHistoryEvidence(root);
+      await expect(readFile(absolute)).rejects.toThrow();
+      expect(
+        (await createBundleManifest(root, "private-diagnostics")).files,
+      ).toEqual([]);
+    },
+  );
 
   it("allows public capture only on an issue task route", () => {
     const target = {
@@ -629,41 +798,67 @@ describe("historical publication security", () => {
   });
 
   it("refuses a public bundle when any declared screenshot is absent", async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), "runner-missing-screenshot-"));
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "runner-missing-screenshot-"),
+    );
     temporaryDirectories.push(root);
-    const directory = path.join(root, "evidence", "agent-chat.runner-codex.local.plan-handoff", "attempt-1");
+    const directory = path.join(
+      root,
+      "evidence",
+      "agent-chat.runner-codex.local.plan-handoff",
+      "attempt-1",
+    );
     await mkdir(directory, { recursive: true });
-    const base = "evidence/agent-chat.runner-codex.local.plan-handoff/attempt-1";
-    const declared = new Set([`${base}/final-state.png`, `${base}/chat-plan-draft.png`]);
-    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+    const base =
+      "evidence/agent-chat.runner-codex.local.plan-handoff/attempt-1";
+    const declared = new Set([
+      `${base}/final-state.png`,
+      `${base}/chat-plan-draft.png`,
+    ]);
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    );
     await writeFile(path.join(directory, "final-state.png"), png);
-    await expect(createBundleManifest(root, "campaign-1", false, declared))
-      .rejects.toThrow(`Declared public screenshots are missing from the historical bundle: ${base}/chat-plan-draft.png`);
+    await expect(
+      createBundleManifest(root, "campaign-1", false, declared),
+    ).rejects.toThrow(
+      `Declared public screenshots are missing from the historical bundle: ${base}/chat-plan-draft.png`,
+    );
     await writeFile(path.join(directory, "chat-plan-draft.png"), png);
-    const manifest = await createBundleManifest(root, "campaign-1", false, declared);
+    const manifest = await createBundleManifest(
+      root,
+      "campaign-1",
+      false,
+      declared,
+    );
     expect(new Set(manifest.files.map((file) => file.path))).toEqual(declared);
   });
 
   it("requires trusted-fixture opt-in and rejects unsafe screenshot paths", () => {
     const execution = runnerMatrix[0]!;
-    expect(() => buildRunnerCampaign({
-      campaignId: "unsafe-screenshot",
-      generatedAt: "2026-08-28T00:01:00.000Z",
-      expected: [execution.id],
-      results: [
-        {
-          ...result(execution, "passed"),
-          screenshots: [
-            {
-              id: "unsafe",
-              label: "Unsafe",
-              file: "../secret.png",
-              publication: "public-runner-fixture",
-            },
-          ],
-        },
-      ],
-    })).toThrow("Invalid retained runner result field: result.screenshots[0].file");
+    expect(() =>
+      buildRunnerCampaign({
+        campaignId: "unsafe-screenshot",
+        generatedAt: "2026-08-28T00:01:00.000Z",
+        expected: [execution.id],
+        results: [
+          {
+            ...result(execution, "passed"),
+            screenshots: [
+              {
+                id: "unsafe",
+                label: "Unsafe",
+                file: "../secret.png",
+                publication: "public-runner-fixture",
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(
+      "Invalid retained runner result field: result.screenshots[0].file",
+    );
 
     const failedCampaign = buildRunnerCampaign({
       campaignId: "failed-screenshot",
@@ -833,9 +1028,7 @@ describe("historical publication security", () => {
         "evidence/core-compatibility.profile.local.case/attempt-1/snapshots/api-state.json",
       ),
     ).toBe(false);
-    expect(isHistoricalBundlePathAllowed("taskcore-home/database")).toBe(
-      false,
-    );
+    expect(isHistoricalBundlePathAllowed("taskcore-home/database")).toBe(false);
 
     const root = await mkdtemp(path.join(os.tmpdir(), "runner-history-test-"));
     temporaryDirectories.push(root);

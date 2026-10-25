@@ -154,8 +154,13 @@
   transition: opacity var(--pcr-motion-fast) ease;
 }
 
-.pcr-button:hover { opacity: 0.88; }
-.pcr-button:disabled { cursor: not-allowed; opacity: 0.5; }
+.pcr-button:hover {
+  opacity: 0.88;
+}
+.pcr-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 .pcr-button:focus-visible,
 .pcr-root select:focus-visible,
 .pcr-textarea:focus-visible {
@@ -178,9 +183,18 @@
   white-space: nowrap;
 }
 
-.pcr-badge[data-tone="success"] { background: var(--pcr-success-surface); color: var(--pcr-success); }
-.pcr-badge[data-tone="warning"] { background: var(--pcr-warning-surface); color: var(--pcr-warning); }
-.pcr-badge[data-tone="danger"] { background: var(--pcr-danger-surface); color: var(--pcr-danger); }
+.pcr-badge[data-tone="success"] {
+  background: var(--pcr-success-surface);
+  color: var(--pcr-success);
+}
+.pcr-badge[data-tone="warning"] {
+  background: var(--pcr-warning-surface);
+  color: var(--pcr-warning);
+}
+.pcr-badge[data-tone="danger"] {
+  background: var(--pcr-danger-surface);
+  color: var(--pcr-danger);
+}
 
 .pcr-textarea {
   width: 100%;
@@ -332,7 +346,9 @@
 }
 
 .pcr-console[data-inspector="true"] .pcr-console-desktop {
-  grid-template-columns: var(--pcr-rail-width) minmax(0, 1fr) var(--pcr-inspector-width);
+  grid-template-columns: var(--pcr-rail-width) minmax(0, 1fr) var(
+      --pcr-inspector-width
+    );
 }
 
 .pcr-console-rail,
@@ -609,7 +625,11 @@
 .pcr-message[data-role="assistant"] {
   margin-right: var(--pcr-space-6);
   border-color: color-mix(in srgb, var(--pcr-accent) 38%, var(--pcr-border));
-  background: linear-gradient(135deg, var(--pcr-card), var(--pcr-accent-surface));
+  background: linear-gradient(
+    135deg,
+    var(--pcr-card),
+    var(--pcr-accent-surface)
+  );
   box-shadow: var(--pcr-shadow-sm);
 }
 
@@ -1214,7 +1234,10 @@
 
 .pcr-inspector-row {
   display: grid;
-  grid-template-columns: var(--pcr-timeline-column) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: var(--pcr-timeline-column) minmax(0, 1fr) minmax(
+      0,
+      1fr
+    );
   gap: var(--pcr-space-2);
   align-items: center;
   min-height: var(--pcr-touch-target);
@@ -1358,7 +1381,9 @@
   }
 
   .pcr-conversation-viewport {
-    max-height: calc(100dvh - var(--pcr-space-10) - var(--pcr-space-10) - var(--pcr-space-10));
+    max-height: calc(
+      100dvh - var(--pcr-space-10) - var(--pcr-space-10) - var(--pcr-space-10)
+    );
     padding: var(--pcr-space-3);
   }
 

@@ -1,8 +1,16 @@
 import { createHash } from "node:crypto";
 import { realpath } from "node:fs/promises";
-import { basename, extname, isAbsolute, relative, resolve, sep } from "node:path";
+import {
+  basename,
+  extname,
+  isAbsolute,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 
-export const TASKCORE_WORKSPACE_FILE_REFERENCE_SCHEMA = "taskcore.workspace.file_reference.v1" as const;
+export const TASKCORE_WORKSPACE_FILE_REFERENCE_SCHEMA =
+  "taskcore.workspace.file_reference.v1" as const;
 
 export interface TaskcoreWorkspaceFileReference {
   schema: typeof TASKCORE_WORKSPACE_FILE_REFERENCE_SCHEMA;
@@ -21,16 +29,42 @@ export interface TaskcoreWorkspaceFileReference {
 const MAX_REFERENCES = 32;
 const MAX_LINE_NUMBER = 1_000_000;
 
-function media(path: string): Pick<TaskcoreWorkspaceFileReference, "mediaType" | "presentation"> {
+function media(
+  path: string,
+): Pick<TaskcoreWorkspaceFileReference, "mediaType" | "presentation"> {
   const extension = extname(path).toLowerCase();
   if ([".md", ".mdx", ".txt", ".rst"].includes(extension)) {
-    return { mediaType: extension === ".md" || extension === ".mdx" ? "text/markdown" : "text/plain", presentation: "document" };
+    return {
+      mediaType:
+        extension === ".md" || extension === ".mdx"
+          ? "text/markdown"
+          : "text/plain",
+      presentation: "document",
+    };
   }
   if ([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"].includes(extension)) {
     const imageType = extension === ".jpg" ? "jpeg" : extension.slice(1);
     return { mediaType: `image/${imageType}`, presentation: "image" };
   }
-  if ([".ts", ".tsx", ".js", ".jsx", ".json", ".rs", ".py", ".go", ".java", ".css", ".html", ".yaml", ".yml", ".toml", ".sh"].includes(extension)) {
+  if (
+    [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx",
+      ".json",
+      ".rs",
+      ".py",
+      ".go",
+      ".java",
+      ".css",
+      ".html",
+      ".yaml",
+      ".yml",
+      ".toml",
+      ".sh",
+    ].includes(extension)
+  ) {
     return { mediaType: "text/plain", presentation: "code" };
   }
   return { mediaType: null, presentation: "generic" };
@@ -43,14 +77,26 @@ function safeLineNumber(value: string): number | null {
     : null;
 }
 
-function localTarget(rawTarget: string): { target: string; line: number | null } | null {
+function localTarget(
+  rawTarget: string,
+): { target: string; line: number | null } | null {
   let target = rawTarget.trim();
-  if (target.startsWith("<") && target.endsWith(">")) target = target.slice(1, -1);
-  if (/^[a-z][a-z0-9+.-]*:/i.test(target) && !target.startsWith("file:")) return null;
+  if (target.startsWith("<") && target.endsWith(">"))
+    target = target.slice(1, -1);
+  if (/^[a-z][a-z0-9+.-]*:/i.test(target) && !target.startsWith("file:"))
+    return null;
   if (target.startsWith("file://")) {
-    try { target = decodeURIComponent(new URL(target).pathname); } catch { return null; }
+    try {
+      target = decodeURIComponent(new URL(target).pathname);
+    } catch {
+      return null;
+    }
   } else {
-    try { target = decodeURIComponent(target); } catch { return null; }
+    try {
+      target = decodeURIComponent(target);
+    } catch {
+      return null;
+    }
   }
   let line: number | null = null;
   const hashLine = target.match(/#L(\d+)(?:C\d+)?$/i);
@@ -74,7 +120,8 @@ function workspaceRelativePath(root: string, target: string): string | null {
     candidate === ".." ||
     candidate.startsWith(`..${sep}`) ||
     isAbsolute(candidate)
-  ) return null;
+  )
+    return null;
   return candidate.split(sep).join("/");
 }
 
@@ -87,17 +134,25 @@ export function taskcoreWorkspaceFileReferencesFromText(
   const root = resolve(workspace);
   const references: TaskcoreWorkspaceFileReference[] = [];
   const seen = new Set<string>();
-  const links = assistantText.matchAll(/\[([^\]]+)]\((<[^>]+>|[^)\s]+)(?:\s+["'][^"']*["'])?\)/g);
+  const links = assistantText.matchAll(
+    /\[([^\]]+)]\((<[^>]+>|[^)\s]+)(?:\s+["'][^"']*["'])?\)/g,
+  );
   for (const match of links) {
     if (references.length >= MAX_REFERENCES) break;
     const parsed = localTarget(match[2] ?? "");
     if (parsed === null) continue;
-    const relativePath = workspaceRelativePath(root, resolve(root, parsed.target));
+    const relativePath = workspaceRelativePath(
+      root,
+      resolve(root, parsed.target),
+    );
     if (relativePath === null) continue;
     const key = `${relativePath}:${parsed.line ?? ""}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const identity = createHash("sha256").update(`${turnId}\0${key}`).digest("hex").slice(0, 24);
+    const identity = createHash("sha256")
+      .update(`${turnId}\0${key}`)
+      .digest("hex")
+      .slice(0, 24);
     references.push({
       schema: TASKCORE_WORKSPACE_FILE_REFERENCE_SCHEMA,
       referenceId: `${turnId}:file:${identity}`,
@@ -120,15 +175,28 @@ export async function discoverTaskcoreWorkspaceFileReferences(
   turnId: string,
 ): Promise<TaskcoreWorkspaceFileReference[]> {
   let canonicalRoot: string;
-  try { canonicalRoot = await realpath(workspace); } catch { return []; }
+  try {
+    canonicalRoot = await realpath(workspace);
+  } catch {
+    return [];
+  }
   // Resolve references from the same canonical root used for the containment
   // check. Do not consult a caller-controlled workspace symlink again after
   // canonicalizing it above.
-  const references = taskcoreWorkspaceFileReferencesFromText(canonicalRoot, assistantText, turnId, "runner_verified");
+  const references = taskcoreWorkspaceFileReferencesFromText(
+    canonicalRoot,
+    assistantText,
+    turnId,
+    "runner_verified",
+  );
   const verified: TaskcoreWorkspaceFileReference[] = [];
   for (const reference of references) {
     let canonicalPath: string;
-    try { canonicalPath = await realpath(resolve(canonicalRoot, reference.path)); } catch { continue; }
+    try {
+      canonicalPath = await realpath(resolve(canonicalRoot, reference.path));
+    } catch {
+      continue;
+    }
     if (workspaceRelativePath(canonicalRoot, canonicalPath) === null) continue;
     // POSIX exposes an inode's current links, not where its bytes originated.
     // Once an outside hard link is removed, an in-workspace link is

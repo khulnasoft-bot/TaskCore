@@ -27,17 +27,24 @@ describe("TweakPanel", () => {
 
   it("lists a control for every motion token in the catalog", () => {
     const rendered = new Set(
-      Array.from(container.querySelectorAll("[data-token]")).map((el) => el.getAttribute("data-token")),
+      Array.from(container.querySelectorAll("[data-token]")).map((el) =>
+        el.getAttribute("data-token"),
+      ),
     );
     for (const t of MOTION_TOKENS) {
-      expect(rendered.has(t.name), `panel is missing a control for ${t.name}`).toBe(true);
+      expect(
+        rendered.has(t.name),
+        `panel is missing a control for ${t.name}`,
+      ).toBe(true);
     }
     expect(rendered.size).toBe(MOTION_TOKENS.length);
   });
 
   it("writes a token change live to the CSS custom property", () => {
     const token = MOTION_TOKENS.find((t) => t.kind === "time")!;
-    const input = container.querySelector<HTMLInputElement>(`input[aria-label="${token.name}"]`);
+    const input = container.querySelector<HTMLInputElement>(
+      `input[aria-label="${token.name}"]`,
+    );
     expect(input).not.toBeNull();
 
     // Use the native value setter so React's value tracker registers the change
@@ -51,6 +58,8 @@ describe("TweakPanel", () => {
       input!.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
-    expect(document.documentElement.style.getPropertyValue(token.name)).toBe("500ms");
+    expect(document.documentElement.style.getPropertyValue(token.name)).toBe(
+      "500ms",
+    );
   });
 });

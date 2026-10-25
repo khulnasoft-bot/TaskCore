@@ -3,16 +3,12 @@
   "slug": "kernel",
   "name": "Kernel",
   "description": "Connect Kernel's provider-hosted MCP server.",
-  "categories": [
-    "developer"
-  ],
+  "categories": ["developer"],
   "featured": false,
   "branding": {
     "logoUrl": "/brands/apps/kernel.svg"
   },
-  "urlPatterns": [
-    "https://mcp.onkernel.com/*"
-  ],
+  "urlPatterns": ["https://mcp.onkernel.com/*"],
   "docsUrl": "https://www.kernel.sh/docs/reference/mcp-server/",
   "redirectConstraints": "https-or-loopback-http",
   "methods": [
@@ -20,15 +16,11 @@
       "key": "mcp-oauth",
       "transport": "mcp_remote",
       "auth": "oauth",
-      "ownershipModes": [
-        "dcr"
-      ],
+      "ownershipModes": ["dcr"],
       "whenToUse": "Use browser sign-in for the provider-hosted MCP server.",
       "defaults": {
         "serverUrl": "https://mcp.onkernel.com/mcp",
-        "scopesHint": [
-          "openid"
-        ]
+        "scopesHint": ["openid"]
       },
       "guidanceMd": "Connect Kernel in the browser. A Kernel account with either browser authorization or an API key.",
       "riskTier": "S3",
@@ -44,9 +36,7 @@
       "key": "mcp-api-key",
       "transport": "mcp_remote",
       "auth": "api_key",
-      "ownershipModes": [
-        "customer"
-      ],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a restricted customer-owned key when browser sign-in is not suitable.",
       "defaults": {
         "serverUrl": "https://mcp.onkernel.com/mcp"

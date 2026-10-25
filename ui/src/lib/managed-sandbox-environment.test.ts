@@ -7,9 +7,15 @@ import {
 
 describe("managed sandbox environment helpers", () => {
   it("identifies platform-managed rows by the provisioner marker", () => {
-    expect(isPlatformManagedEnvironment({ metadata: { managedByTaskcore: true } })).toBe(true);
-    expect(isPlatformManagedEnvironment({ metadata: { managedByTaskcore: false } })).toBe(false);
-    expect(isPlatformManagedEnvironment({ metadata: { source: "manual" } })).toBe(false);
+    expect(
+      isPlatformManagedEnvironment({ metadata: { managedByTaskcore: true } }),
+    ).toBe(true);
+    expect(
+      isPlatformManagedEnvironment({ metadata: { managedByTaskcore: false } }),
+    ).toBe(false);
+    expect(
+      isPlatformManagedEnvironment({ metadata: { source: "manual" } }),
+    ).toBe(false);
     expect(isPlatformManagedEnvironment({ metadata: null })).toBe(false);
     expect(isPlatformManagedEnvironment(null)).toBe(false);
   });
@@ -23,10 +29,18 @@ describe("managed sandbox environment helpers", () => {
       }),
     ).toBe("Taskcore Computer");
     expect(
-      environmentDisplayLabel({ name: "E2B", driver: "sandbox", metadata: null }),
+      environmentDisplayLabel({
+        name: "E2B",
+        driver: "sandbox",
+        metadata: null,
+      }),
     ).toBe("E2B · sandbox");
     expect(
-      environmentDisplayLabel({ name: "Build box", driver: "ssh", metadata: {} }),
+      environmentDisplayLabel({
+        name: "Build box",
+        driver: "ssh",
+        metadata: {},
+      }),
     ).toBe("Build box · ssh");
   });
 
@@ -36,10 +50,11 @@ describe("managed sandbox environment helpers", () => {
       { driver: "sandbox" as const },
       { driver: "ssh" as const },
     ];
-    expect(filterManagedSandboxSelectableEnvironments(environments, true)).toEqual([
-      { driver: "sandbox" },
-      { driver: "ssh" },
-    ]);
-    expect(filterManagedSandboxSelectableEnvironments(environments, false)).toEqual(environments);
+    expect(
+      filterManagedSandboxSelectableEnvironments(environments, true),
+    ).toEqual([{ driver: "sandbox" }, { driver: "ssh" }]);
+    expect(
+      filterManagedSandboxSelectableEnvironments(environments, false),
+    ).toEqual(environments);
   });
 });

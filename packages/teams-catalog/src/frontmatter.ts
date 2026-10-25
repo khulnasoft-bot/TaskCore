@@ -4,7 +4,9 @@ export interface MarkdownDoc {
   hasFrontmatter: boolean;
 }
 
-export function isPlainRecord(value: unknown): value is Record<string, unknown> {
+export function isPlainRecord(
+  value: unknown,
+): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -78,7 +80,9 @@ function parseYamlBlock(
     return { value: {}, nextIndex: index };
   }
 
-  const isArray = lines[index]!.indent === indentLevel && lines[index]!.content.startsWith("-");
+  const isArray =
+    lines[index]!.indent === indentLevel &&
+    lines[index]!.content.startsWith("-");
   if (isArray) {
     const values: unknown[] = [];
     while (index < lines.length) {
@@ -140,7 +144,7 @@ function parseYamlScalar(rawValue: string): unknown {
   if (trimmed === "{}") return {};
   if (/^-?\d+(\.\d)?\d*$/.test(trimmed)) return Number(trimmed);
   if (
-    trimmed.startsWith("\"") ||
+    trimmed.startsWith('"') ||
     trimmed.startsWith("[") ||
     trimmed.startsWith("{")
   ) {

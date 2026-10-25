@@ -76,7 +76,11 @@ export async function appendHeartbeatRunEvent(
       .for("update")
       .limit(1)
       .then((rows) => rows[0] ?? null);
-    if (!run || run.companyId !== input.companyId || run.agentId !== input.agentId) {
+    if (
+      !run ||
+      run.companyId !== input.companyId ||
+      run.agentId !== input.agentId
+    ) {
       throw new Error("heartbeat_run_event_binding_mismatch");
     }
 
@@ -87,14 +91,16 @@ export async function appendHeartbeatRunEvent(
       const existing = await tx
         .select()
         .from(heartbeatRunEvents)
-        .where(and(
-          eq(heartbeatRunEvents.companyId, input.companyId),
-          eq(heartbeatRunEvents.runId, input.runId),
-          eq(heartbeatRunEvents.agentId, input.agentId),
-          eq(heartbeatRunEvents.eventType, "lifecycle"),
-          sql`${heartbeatRunEvents.message} like 'Bounded retry exhausted%'`,
-          sql`${heartbeatRunEvents.payload} @> ${JSON.stringify(input.retryExhaustion)}::jsonb`,
-        ))
+        .where(
+          and(
+            eq(heartbeatRunEvents.companyId, input.companyId),
+            eq(heartbeatRunEvents.runId, input.runId),
+            eq(heartbeatRunEvents.agentId, input.agentId),
+            eq(heartbeatRunEvents.eventType, "lifecycle"),
+            sql`${heartbeatRunEvents.message} like 'Bounded retry exhausted%'`,
+            sql`${heartbeatRunEvents.payload} @> ${JSON.stringify(input.retryExhaustion)}::jsonb`,
+          ),
+        )
         .limit(1)
         .then((rows) => rows[0] ?? null);
       if (existing) {
@@ -113,16 +119,24 @@ export async function appendHeartbeatRunEvent(
       const existing = await tx
         .select()
         .from(heartbeatRunEvents)
-        .where(and(
-          eq(heartbeatRunEvents.runId, input.runId),
-          or(
-            eq(heartbeatRunEvents.sourceEventId, input.nativeSource.sourceEventId),
-            and(
-              eq(heartbeatRunEvents.sourceInstanceId, input.nativeSource.sourceInstanceId),
-              eq(heartbeatRunEvents.sourceSeq, input.nativeSource.sourceSeq),
+        .where(
+          and(
+            eq(heartbeatRunEvents.runId, input.runId),
+            or(
+              eq(
+                heartbeatRunEvents.sourceEventId,
+                input.nativeSource.sourceEventId,
+              ),
+              and(
+                eq(
+                  heartbeatRunEvents.sourceInstanceId,
+                  input.nativeSource.sourceInstanceId,
+                ),
+                eq(heartbeatRunEvents.sourceSeq, input.nativeSource.sourceSeq),
+              ),
             ),
           ),
-        ))
+        )
         .limit(1)
         .then((rows) => rows[0] ?? null);
       if (existing) {
@@ -145,23 +159,27 @@ export async function appendHeartbeatRunEvent(
       tx as unknown as Db,
       input.runId,
     );
-    const [row] = await tx.insert(heartbeatRunEvents).values({
-      companyId: input.companyId,
-      runId: input.runId,
-      agentId: input.agentId,
-      seq,
-      eventType: input.eventType,
-      stream: input.stream ?? null,
-      level: input.level ?? null,
-      color: input.color ?? null,
-      message: input.message ?? null,
-      payload: input.payload ?? null,
-      sourceInstanceId: input.nativeSource?.sourceInstanceId ?? null,
-      sourceEventId: input.nativeSource?.sourceEventId ?? null,
-      sourceSeq: input.nativeSource?.sourceSeq ?? null,
-      sourcePayloadSha256: sourceHash,
-      protocolSchemaVersion: input.nativeSource?.protocolSchemaVersion ?? null,
-    }).returning();
+    const [row] = await tx
+      .insert(heartbeatRunEvents)
+      .values({
+        companyId: input.companyId,
+        runId: input.runId,
+        agentId: input.agentId,
+        seq,
+        eventType: input.eventType,
+        stream: input.stream ?? null,
+        level: input.level ?? null,
+        color: input.color ?? null,
+        message: input.message ?? null,
+        payload: input.payload ?? null,
+        sourceInstanceId: input.nativeSource?.sourceInstanceId ?? null,
+        sourceEventId: input.nativeSource?.sourceEventId ?? null,
+        sourceSeq: input.nativeSource?.sourceSeq ?? null,
+        sourcePayloadSha256: sourceHash,
+        protocolSchemaVersion:
+          input.nativeSource?.protocolSchemaVersion ?? null,
+      })
+      .returning();
     if (!row) throw new Error("heartbeat_run_event_not_persisted");
     return {
       row,
@@ -177,14 +195,20 @@ export async function appendHeartbeatRunEvent(
   });
 }
 
-async function contiguousCursor(db: Db, runId: string, sourceInstanceId: string): Promise<number> {
+async function contiguousCursor(
+  db: Db,
+  runId: string,
+  sourceInstanceId: string,
+): Promise<number> {
   const rows = await db
     .select({ sourceSeq: heartbeatRunEvents.sourceSeq })
     .from(heartbeatRunEvents)
-    .where(and(
-      eq(heartbeatRunEvents.runId, runId),
-      eq(heartbeatRunEvents.sourceInstanceId, sourceInstanceId),
-    ))
+    .where(
+      and(
+        eq(heartbeatRunEvents.runId, runId),
+        eq(heartbeatRunEvents.sourceInstanceId, sourceInstanceId),
+      ),
+    )
     .orderBy(asc(heartbeatRunEvents.sourceSeq));
   let cursor = 0;
   for (const row of rows) {

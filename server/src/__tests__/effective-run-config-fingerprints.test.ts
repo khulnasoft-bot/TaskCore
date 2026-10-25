@@ -75,47 +75,75 @@ describe("effective run config fingerprints", () => {
       category: "session",
       algorithm: "sha256",
     });
-    expect(first.sessionFingerprint.fingerprint).toMatch(/^v1:sha256:[a-f0-9]{64}$/);
+    expect(first.sessionFingerprint.fingerprint).toMatch(
+      /^v1:sha256:[a-f0-9]{64}$/,
+    );
     expect(second).toEqual(first);
   });
 
   it("reports changed categories independently", () => {
     const base = createEffectiveRunConfigFingerprints({
       session: { adapterType: "codex_local", model: "gpt-5.2" },
-      workspace: { workspaceStrategy: { type: "git_worktree", branchTemplate: "{{issue.identifier}}" } },
+      workspace: {
+        workspaceStrategy: {
+          type: "git_worktree",
+          branchTemplate: "{{issue.identifier}}",
+        },
+      },
       lease: { environmentId: "environment-1", reuseLease: true },
     });
 
-    expect(diffEffectiveRunConfigFingerprints(
-      base,
-      createEffectiveRunConfigFingerprints({
-        session: { adapterType: "codex_local", model: "gpt-5.3" },
-        workspace: { workspaceStrategy: { type: "git_worktree", branchTemplate: "{{issue.identifier}}" } },
-        lease: { environmentId: "environment-1", reuseLease: true },
-      }),
-    )).toMatchObject({
+    expect(
+      diffEffectiveRunConfigFingerprints(
+        base,
+        createEffectiveRunConfigFingerprints({
+          session: { adapterType: "codex_local", model: "gpt-5.3" },
+          workspace: {
+            workspaceStrategy: {
+              type: "git_worktree",
+              branchTemplate: "{{issue.identifier}}",
+            },
+          },
+          lease: { environmentId: "environment-1", reuseLease: true },
+        }),
+      ),
+    ).toMatchObject({
       hasChanges: true,
       changedCategories: ["session"],
       changed: { session: true, workspace: false, lease: false },
     });
 
-    expect(diffEffectiveRunConfigFingerprints(
-      base,
-      createEffectiveRunConfigFingerprints({
-        session: { adapterType: "codex_local", model: "gpt-5.2" },
-        workspace: { workspaceStrategy: { type: "git_worktree", branchTemplate: "custom-{{issue.identifier}}" } },
-        lease: { environmentId: "environment-1", reuseLease: true },
-      }),
-    ).changedCategories).toEqual(["workspace"]);
+    expect(
+      diffEffectiveRunConfigFingerprints(
+        base,
+        createEffectiveRunConfigFingerprints({
+          session: { adapterType: "codex_local", model: "gpt-5.2" },
+          workspace: {
+            workspaceStrategy: {
+              type: "git_worktree",
+              branchTemplate: "custom-{{issue.identifier}}",
+            },
+          },
+          lease: { environmentId: "environment-1", reuseLease: true },
+        }),
+      ).changedCategories,
+    ).toEqual(["workspace"]);
 
-    expect(diffEffectiveRunConfigFingerprints(
-      base,
-      createEffectiveRunConfigFingerprints({
-        session: { adapterType: "codex_local", model: "gpt-5.2" },
-        workspace: { workspaceStrategy: { type: "git_worktree", branchTemplate: "{{issue.identifier}}" } },
-        lease: { environmentId: "environment-2", reuseLease: true },
-      }),
-    ).changedCategories).toEqual(["lease"]);
+    expect(
+      diffEffectiveRunConfigFingerprints(
+        base,
+        createEffectiveRunConfigFingerprints({
+          session: { adapterType: "codex_local", model: "gpt-5.2" },
+          workspace: {
+            workspaceStrategy: {
+              type: "git_worktree",
+              branchTemplate: "{{issue.identifier}}",
+            },
+          },
+          lease: { environmentId: "environment-2", reuseLease: true },
+        }),
+      ).changedCategories,
+    ).toEqual(["lease"]);
   });
 
   it("uses resolved secret version metadata without raw secret values", () => {
@@ -146,7 +174,7 @@ describe("effective run config fingerprints", () => {
     expect(canonical).toContain("secret-1");
     expect(canonical).toContain("binding-1");
     expect(canonical).toContain("provider-version-7");
-    expect(canonical).toContain("\"version\":7");
+    expect(canonical).toContain('"version":7');
     expect(canonical).not.toContain("resolved-secret-value");
     expect(canonical).not.toContain("plain env value");
     expect(canonical).not.toContain("fingerprintSha256");
@@ -173,7 +201,9 @@ describe("effective run config fingerprints", () => {
         },
       ],
     });
-    expect(rawValueChanged.sessionFingerprint.fingerprint).toBe(v7.sessionFingerprint.fingerprint);
+    expect(rawValueChanged.sessionFingerprint.fingerprint).toBe(
+      v7.sessionFingerprint.fingerprint,
+    );
 
     const versionChanged = createEffectiveRunConfigFingerprints({
       session: {
@@ -197,7 +227,9 @@ describe("effective run config fingerprints", () => {
         },
       ],
     });
-    expect(versionChanged.sessionFingerprint.fingerprint).not.toBe(v7.sessionFingerprint.fingerprint);
+    expect(versionChanged.sessionFingerprint.fingerprint).not.toBe(
+      v7.sessionFingerprint.fingerprint,
+    );
   });
 
   it("detects plain env value drift without storing raw values", () => {
@@ -220,8 +252,12 @@ describe("effective run config fingerprints", () => {
       },
     });
 
-    expect(changed.sessionFingerprint.fingerprint).not.toBe(base.sessionFingerprint.fingerprint);
-    expect(base.sessionFingerprint.canonicalJson).toContain('"valueHash":"sha256:');
+    expect(changed.sessionFingerprint.fingerprint).not.toBe(
+      base.sessionFingerprint.fingerprint,
+    );
+    expect(base.sessionFingerprint.canonicalJson).toContain(
+      '"valueHash":"sha256:',
+    );
     expect(base.sessionFingerprint.canonicalJson).not.toContain("enabled");
     expect(changed.sessionFingerprint.canonicalJson).not.toContain("disabled");
   });
@@ -278,8 +314,12 @@ describe("effective run config fingerprints", () => {
       },
     });
 
-    expect(second.sessionFingerprint.fingerprint).toBe(first.sessionFingerprint.fingerprint);
-    expect(second.leaseFingerprint.fingerprint).toBe(first.leaseFingerprint.fingerprint);
+    expect(second.sessionFingerprint.fingerprint).toBe(
+      first.sessionFingerprint.fingerprint,
+    );
+    expect(second.leaseFingerprint.fingerprint).toBe(
+      first.leaseFingerprint.fingerprint,
+    );
     const canonical = [
       first.sessionFingerprint.canonicalJson,
       first.leaseFingerprint.canonicalJson,
@@ -293,20 +333,28 @@ describe("effective run config fingerprints", () => {
     expect(canonical).not.toContain("lease-one");
     expect(canonical).not.toContain("/runtime/noise/remote-a");
 
-    expect(canonicalizeEffectiveRunConfigCategory({
-      category: "workspace",
-      value: { cwd: "/explicit/runtime/workspace", workspaceStrategy: { type: "git_worktree" } },
-    })).toEqual({
+    expect(
+      canonicalizeEffectiveRunConfigCategory({
+        category: "workspace",
+        value: {
+          cwd: "/explicit/runtime/workspace",
+          workspaceStrategy: { type: "git_worktree" },
+        },
+      }),
+    ).toEqual({
       cwd: "/explicit/runtime/workspace",
       workspaceStrategy: { type: "git_worktree" },
     });
   });
 });
 
-
 describe("configured Taskcore environment freshness", () => {
-  const fingerprint = (env: Record<string, unknown>, secretManifest?: EffectiveRunConfigSecretManifestEntry[]) =>
-    createEffectiveRunConfigFingerprints({ session: { env }, secretManifest }).sessionFingerprint;
+  const fingerprint = (
+    env: Record<string, unknown>,
+    secretManifest?: EffectiveRunConfigSecretManifestEntry[],
+  ) =>
+    createEffectiveRunConfigFingerprints({ session: { env }, secretManifest })
+      .sessionFingerprint;
 
   it("detects additions, changes, and removals without recording values", () => {
     const absent = fingerprint({});
@@ -316,15 +364,35 @@ describe("configured Taskcore environment freshness", () => {
     expect(changed.fingerprint).not.toBe(first.fingerprint);
     expect(fingerprint({}).fingerprint).toBe(absent.fingerprint);
     expect(first.canonicalJson).not.toContain("first-bucket");
-    for (const key of ["TASKCORE_RUN_ID", "TASKCORE_RUNNER_EXTERNAL_SANDBOX", "TASKCORE_NORMALIZED_SESSION_ID"]) {
-      expect(fingerprint({ [key]: "first" }).fingerprint).toBe(fingerprint({ [key]: "second" }).fingerprint);
+    for (const key of [
+      "TASKCORE_RUN_ID",
+      "TASKCORE_RUNNER_EXTERNAL_SANDBOX",
+      "TASKCORE_NORMALIZED_SESSION_ID",
+    ]) {
+      expect(fingerprint({ [key]: "first" }).fingerprint).toBe(
+        fingerprint({ [key]: "second" }).fingerprint,
+      );
     }
   });
 
   it("detects custom namespaced secret version changes", () => {
-    const env = { TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: { type: "secret_ref", secretId: "pages-key" } };
-    const manifest = (version: number) => [{ configPath: "env.TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY", envKey: "TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY", secretId: "pages-key", version }];
-    expect(fingerprint(env, manifest(1)).fingerprint).not.toBe(fingerprint(env, manifest(2)).fingerprint);
+    const env = {
+      TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY: {
+        type: "secret_ref",
+        secretId: "pages-key",
+      },
+    };
+    const manifest = (version: number) => [
+      {
+        configPath: "env.TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY",
+        envKey: "TASKCORE_PAGE_AWS_SECRET_ACCESS_KEY",
+        secretId: "pages-key",
+        version,
+      },
+    ];
+    expect(fingerprint(env, manifest(1)).fingerprint).not.toBe(
+      fingerprint(env, manifest(2)).fingerprint,
+    );
     expect(fingerprint(env, manifest(1)).canonicalJson).toContain("pages-key");
   });
 });

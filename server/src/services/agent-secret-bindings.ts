@@ -1,4 +1,8 @@
-import { envBindingSchema, type SecretProjectionClass, type SecretVersionSelector } from "@taskcore/shared";
+import {
+  envBindingSchema,
+  type SecretProjectionClass,
+  type SecretVersionSelector,
+} from "@taskcore/shared";
 
 interface AgentSecretBindingSyncService {
   syncSecretRefsForTarget?: (
@@ -37,7 +41,8 @@ interface AgentSecretBindingSyncService {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -63,7 +68,12 @@ export function collectSecretRefs(adapterConfig: unknown): Array<{
     const parsed = envBindingSchema.safeParse(rawBinding);
     if (!parsed.success) continue;
     const binding = parsed.data;
-    if (typeof binding !== "object" || binding === null || binding.type !== "secret_ref") continue;
+    if (
+      typeof binding !== "object" ||
+      binding === null ||
+      binding.type !== "secret_ref"
+    )
+      continue;
     refs.push({
       secretId: binding.secretId,
       configPath: `env.${key}`,
@@ -78,7 +88,12 @@ export function collectSecretRefs(adapterConfig: unknown): Array<{
     const parsed = envBindingSchema.safeParse(rawBinding);
     if (!parsed.success) continue;
     const binding = parsed.data;
-    if (typeof binding !== "object" || binding === null || binding.type !== "secret_ref") continue;
+    if (
+      typeof binding !== "object" ||
+      binding === null ||
+      binding.type !== "secret_ref"
+    )
+      continue;
     refs.push({
       secretId: binding.secretId,
       configPath: key,
@@ -115,7 +130,12 @@ export function collectUserSecretRefs(adapterConfig: unknown): Array<{
     const parsed = envBindingSchema.safeParse(rawBinding);
     if (!parsed.success) continue;
     const binding = parsed.data;
-    if (typeof binding !== "object" || binding === null || binding.type !== "user_secret_ref") continue;
+    if (
+      typeof binding !== "object" ||
+      binding === null ||
+      binding.type !== "user_secret_ref"
+    )
+      continue;
     refs.push({
       definitionKey: binding.key,
       configPath: `env.${key}`,
@@ -131,7 +151,12 @@ export function collectUserSecretRefs(adapterConfig: unknown): Array<{
     const parsed = envBindingSchema.safeParse(rawBinding);
     if (!parsed.success) continue;
     const binding = parsed.data;
-    if (typeof binding !== "object" || binding === null || binding.type !== "user_secret_ref") continue;
+    if (
+      typeof binding !== "object" ||
+      binding === null ||
+      binding.type !== "user_secret_ref"
+    )
+      continue;
     refs.push({
       definitionKey: binding.key,
       configPath: key,

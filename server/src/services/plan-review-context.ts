@@ -36,10 +36,15 @@ type BuildPlanReviewContextInput = {
   interactionId?: string | null;
 };
 
-type BuildDocumentReviewContextInput = Omit<BuildPlanReviewContextInput, "issueWorkMode" | "interactionId">;
+type BuildDocumentReviewContextInput = Omit<
+  BuildPlanReviewContextInput,
+  "issueWorkMode" | "interactionId"
+>;
 
 function nonEmptyString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function truncateText(value: string, maxChars: number) {
@@ -55,14 +60,20 @@ function authorFrom(row: {
   if (row.authorAgentId) return { type: "agent", id: row.authorAgentId };
   if (row.authorUserId) return { type: "user", id: row.authorUserId };
   return {
-    type: row.authorType === "agent" || row.authorType === "user" || row.authorType === "system"
-      ? row.authorType
-      : "system",
+    type:
+      row.authorType === "agent" ||
+      row.authorType === "user" ||
+      row.authorType === "system"
+        ? row.authorType
+        : "system",
     id: null,
   };
 }
 
-function readPlanTarget(value: unknown, issueId: string): PlanReviewInteractionTargetContext | null {
+function readPlanTarget(
+  value: unknown,
+  issueId: string,
+): PlanReviewInteractionTargetContext | null {
   const target = parseObject(value);
   if (target.type !== "issue_document") return null;
   if (target.key !== "plan") return null;
@@ -77,7 +88,8 @@ function readPlanTarget(value: unknown, issueId: string): PlanReviewInteractionT
     documentId: nonEmptyString(target.documentId),
     key: "plan",
     revisionId: nonEmptyString(target.revisionId),
-    revisionNumber: typeof target.revisionNumber === "number" ? target.revisionNumber : null,
+    revisionNumber:
+      typeof target.revisionNumber === "number" ? target.revisionNumber : null,
   };
 }
 
@@ -86,7 +98,8 @@ function readResult(value: unknown): PlanReviewInteractionResultContext | null {
   if (Object.keys(result).length === 0) return null;
   return {
     outcome: nonEmptyString(result.outcome),
-    reason: nonEmptyString(result.reason) ?? nonEmptyString(result.rejectionReason),
+    reason:
+      nonEmptyString(result.reason) ?? nonEmptyString(result.rejectionReason),
     commentId: nonEmptyString(result.commentId),
   };
 }
@@ -112,11 +125,13 @@ async function getPlanInteractionContext(input: {
       resolvedAt: issueThreadInteractions.resolvedAt,
     })
     .from(issueThreadInteractions)
-    .where(and(
-      eq(issueThreadInteractions.id, input.interactionId),
-      eq(issueThreadInteractions.companyId, input.companyId),
-      eq(issueThreadInteractions.issueId, input.issueId),
-    ))
+    .where(
+      and(
+        eq(issueThreadInteractions.id, input.interactionId),
+        eq(issueThreadInteractions.companyId, input.companyId),
+        eq(issueThreadInteractions.issueId, input.issueId),
+      ),
+    )
     .then((rows) => rows[0] ?? null);
 
   if (!row) return null;
@@ -139,7 +154,9 @@ async function getPlanInteractionContext(input: {
   };
 }
 
-export async function buildPlanReviewContext(input: BuildPlanReviewContextInput): Promise<PlanReviewContext | null> {
+export async function buildPlanReviewContext(
+  input: BuildPlanReviewContextInput,
+): Promise<PlanReviewContext | null> {
   const interaction = await getPlanInteractionContext({
     db: input.db,
     companyId: input.companyId,
@@ -161,25 +178,29 @@ export async function buildPlanReviewContext(input: BuildPlanReviewContextInput)
     })
     .from(issueDocuments)
     .innerJoin(documents, eq(issueDocuments.documentId, documents.id))
-    .where(and(
-      eq(issueDocuments.companyId, input.companyId),
-      eq(issueDocuments.issueId, input.issueId),
-      eq(issueDocuments.key, "plan"),
-      eq(documents.companyId, input.companyId),
-    ))
+    .where(
+      and(
+        eq(issueDocuments.companyId, input.companyId),
+        eq(issueDocuments.issueId, input.issueId),
+        eq(issueDocuments.key, "plan"),
+        eq(documents.companyId, input.companyId),
+      ),
+    )
     .then((rows) => rows[0] ?? null);
   if (!planDocument) return null;
 
   const [{ count: openThreadCount }] = await input.db
     .select({ count: sql<number>`count(*)::int` })
     .from(documentAnnotationThreads)
-    .where(and(
-      eq(documentAnnotationThreads.companyId, input.companyId),
-      eq(documentAnnotationThreads.issueId, input.issueId),
-      eq(documentAnnotationThreads.documentId, planDocument.documentId),
-      eq(documentAnnotationThreads.documentKey, "plan"),
-      eq(documentAnnotationThreads.status, "open"),
-    ));
+    .where(
+      and(
+        eq(documentAnnotationThreads.companyId, input.companyId),
+        eq(documentAnnotationThreads.issueId, input.issueId),
+        eq(documentAnnotationThreads.documentId, planDocument.documentId),
+        eq(documentAnnotationThreads.documentKey, "plan"),
+        eq(documentAnnotationThreads.status, "open"),
+      ),
+    );
 
   const threadRows = await input.db
     .select({
@@ -200,54 +221,73 @@ export async function buildPlanReviewContext(input: BuildPlanReviewContextInput)
       updatedAt: documentAnnotationThreads.updatedAt,
     })
     .from(documentAnnotationThreads)
-    .where(and(
-      eq(documentAnnotationThreads.companyId, input.companyId),
-      eq(documentAnnotationThreads.issueId, input.issueId),
-      eq(documentAnnotationThreads.documentId, planDocument.documentId),
-      eq(documentAnnotationThreads.documentKey, "plan"),
-      eq(documentAnnotationThreads.status, "open"),
-    ))
-    .orderBy(desc(documentAnnotationThreads.updatedAt), desc(documentAnnotationThreads.id))
+    .where(
+      and(
+        eq(documentAnnotationThreads.companyId, input.companyId),
+        eq(documentAnnotationThreads.issueId, input.issueId),
+        eq(documentAnnotationThreads.documentId, planDocument.documentId),
+        eq(documentAnnotationThreads.documentKey, "plan"),
+        eq(documentAnnotationThreads.status, "open"),
+      ),
+    )
+    .orderBy(
+      desc(documentAnnotationThreads.updatedAt),
+      desc(documentAnnotationThreads.id),
+    )
     .limit(PLAN_REVIEW_CONTEXT_LIMITS.maxThreads);
 
   const threadIds = threadRows.map((thread) => thread.id);
-  const commentRows = threadIds.length === 0
-    ? []
-    : await input.db
-      .select({
-        id: documentAnnotationComments.id,
-        threadId: documentAnnotationComments.threadId,
-        body: documentAnnotationComments.body,
-        authorType: documentAnnotationComments.authorType,
-        authorAgentId: documentAnnotationComments.authorAgentId,
-        authorUserId: documentAnnotationComments.authorUserId,
-        createdAt: documentAnnotationComments.createdAt,
-        updatedAt: documentAnnotationComments.updatedAt,
-      })
-      .from(documentAnnotationComments)
-      .where(and(
-        eq(documentAnnotationComments.companyId, input.companyId),
-        eq(documentAnnotationComments.issueId, input.issueId),
-        eq(documentAnnotationComments.documentId, planDocument.documentId),
-        inArray(documentAnnotationComments.threadId, threadIds),
-      ))
-      .orderBy(asc(documentAnnotationComments.createdAt), asc(documentAnnotationComments.id))
-      .limit(PLAN_REVIEW_CONTEXT_LIMITS.maxComments);
+  const commentRows =
+    threadIds.length === 0
+      ? []
+      : await input.db
+          .select({
+            id: documentAnnotationComments.id,
+            threadId: documentAnnotationComments.threadId,
+            body: documentAnnotationComments.body,
+            authorType: documentAnnotationComments.authorType,
+            authorAgentId: documentAnnotationComments.authorAgentId,
+            authorUserId: documentAnnotationComments.authorUserId,
+            createdAt: documentAnnotationComments.createdAt,
+            updatedAt: documentAnnotationComments.updatedAt,
+          })
+          .from(documentAnnotationComments)
+          .where(
+            and(
+              eq(documentAnnotationComments.companyId, input.companyId),
+              eq(documentAnnotationComments.issueId, input.issueId),
+              eq(
+                documentAnnotationComments.documentId,
+                planDocument.documentId,
+              ),
+              inArray(documentAnnotationComments.threadId, threadIds),
+            ),
+          )
+          .orderBy(
+            asc(documentAnnotationComments.createdAt),
+            asc(documentAnnotationComments.id),
+          )
+          .limit(PLAN_REVIEW_CONTEXT_LIMITS.maxComments);
 
   const [{ count: commentCount }] = await input.db
     .select({ count: sql<number>`count(*)::int` })
     .from(documentAnnotationComments)
-    .innerJoin(documentAnnotationThreads, eq(documentAnnotationComments.threadId, documentAnnotationThreads.id))
-    .where(and(
-      eq(documentAnnotationComments.companyId, input.companyId),
-      eq(documentAnnotationComments.issueId, input.issueId),
-      eq(documentAnnotationComments.documentId, planDocument.documentId),
-      eq(documentAnnotationThreads.companyId, input.companyId),
-      eq(documentAnnotationThreads.issueId, input.issueId),
-      eq(documentAnnotationThreads.documentId, planDocument.documentId),
-      eq(documentAnnotationThreads.documentKey, "plan"),
-      eq(documentAnnotationThreads.status, "open"),
-    ));
+    .innerJoin(
+      documentAnnotationThreads,
+      eq(documentAnnotationComments.threadId, documentAnnotationThreads.id),
+    )
+    .where(
+      and(
+        eq(documentAnnotationComments.companyId, input.companyId),
+        eq(documentAnnotationComments.issueId, input.issueId),
+        eq(documentAnnotationComments.documentId, planDocument.documentId),
+        eq(documentAnnotationThreads.companyId, input.companyId),
+        eq(documentAnnotationThreads.issueId, input.issueId),
+        eq(documentAnnotationThreads.documentId, planDocument.documentId),
+        eq(documentAnnotationThreads.documentKey, "plan"),
+        eq(documentAnnotationThreads.status, "open"),
+      ),
+    );
 
   const commentsByThread = new Map<string, typeof commentRows>();
   for (const comment of commentRows) {
@@ -260,19 +300,35 @@ export async function buildPlanReviewContext(input: BuildPlanReviewContextInput)
   let includedCommentCount = 0;
   let truncated = openThreadCount > threadRows.length;
   const threads = threadRows.map((thread) => {
-    const selectedText = truncateText(thread.selectedText, PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars);
-    const prefixText = truncateText(thread.prefixText, PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars);
-    const suffixText = truncateText(thread.suffixText, PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars);
-    if (selectedText.truncated || prefixText.truncated || suffixText.truncated) truncated = true;
+    const selectedText = truncateText(
+      thread.selectedText,
+      PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars,
+    );
+    const prefixText = truncateText(
+      thread.prefixText,
+      PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars,
+    );
+    const suffixText = truncateText(
+      thread.suffixText,
+      PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars,
+    );
+    if (selectedText.truncated || prefixText.truncated || suffixText.truncated)
+      truncated = true;
 
     const threadComments = commentsByThread.get(thread.id) ?? [];
     const comments = [];
     for (const comment of threadComments) {
-      if (includedCommentCount >= PLAN_REVIEW_CONTEXT_LIMITS.maxComments || remainingBodyChars <= 0) {
+      if (
+        includedCommentCount >= PLAN_REVIEW_CONTEXT_LIMITS.maxComments ||
+        remainingBodyChars <= 0
+      ) {
         truncated = true;
         break;
       }
-      const allowedChars = Math.min(PLAN_REVIEW_CONTEXT_LIMITS.maxBodyChars, remainingBodyChars);
+      const allowedChars = Math.min(
+        PLAN_REVIEW_CONTEXT_LIMITS.maxBodyChars,
+        remainingBodyChars,
+      );
       const body = truncateText(comment.body, allowedChars);
       if (body.truncated) truncated = true;
       remainingBodyChars -= body.text.length;
@@ -306,7 +362,10 @@ export async function buildPlanReviewContext(input: BuildPlanReviewContextInput)
       prefixTextTruncated: prefixText.truncated,
       suffixText: suffixText.text,
       suffixTextTruncated: suffixText.truncated,
-      author: authorFrom({ authorAgentId: thread.createdByAgentId, authorUserId: thread.createdByUserId }),
+      author: authorFrom({
+        authorAgentId: thread.createdByAgentId,
+        authorUserId: thread.createdByUserId,
+      }),
       commentCount: threadComments.length,
       comments,
       commentsTruncated,
@@ -347,7 +406,11 @@ export async function buildPlanReviewContext(input: BuildPlanReviewContextInput)
 export async function buildDocumentReviewContext(
   input: BuildDocumentReviewContextInput,
 ): Promise<DocumentReviewContext | null> {
-  if (input.includeForIssueComment !== true && input.includeForAnnotationDelta !== true) return null;
+  if (
+    input.includeForIssueComment !== true &&
+    input.includeForAnnotationDelta !== true
+  )
+    return null;
 
   const documentRows = await input.db
     .select({
@@ -360,12 +423,14 @@ export async function buildDocumentReviewContext(
     })
     .from(issueDocuments)
     .innerJoin(documents, eq(issueDocuments.documentId, documents.id))
-    .where(and(
-      eq(issueDocuments.companyId, input.companyId),
-      eq(issueDocuments.issueId, input.issueId),
-      eq(documents.companyId, input.companyId),
-      sql`${issueDocuments.key} <> 'plan'`,
-    ))
+    .where(
+      and(
+        eq(issueDocuments.companyId, input.companyId),
+        eq(issueDocuments.issueId, input.issueId),
+        eq(documents.companyId, input.companyId),
+        sql`${issueDocuments.key} <> 'plan'`,
+      ),
+    )
     .orderBy(desc(issueDocuments.updatedAt), desc(issueDocuments.id));
   if (documentRows.length === 0) return null;
 
@@ -383,82 +448,111 @@ export async function buildDocumentReviewContext(
     const [{ count: openThreadCount }] = await input.db
       .select({ count: sql<number>`count(*)::int` })
       .from(documentAnnotationThreads)
-      .where(and(
-        eq(documentAnnotationThreads.companyId, input.companyId),
-        eq(documentAnnotationThreads.issueId, input.issueId),
-        eq(documentAnnotationThreads.documentId, document.documentId),
-        eq(documentAnnotationThreads.documentKey, document.documentKey),
-        eq(documentAnnotationThreads.status, "open"),
-      ));
+      .where(
+        and(
+          eq(documentAnnotationThreads.companyId, input.companyId),
+          eq(documentAnnotationThreads.issueId, input.issueId),
+          eq(documentAnnotationThreads.documentId, document.documentId),
+          eq(documentAnnotationThreads.documentKey, document.documentKey),
+          eq(documentAnnotationThreads.status, "open"),
+        ),
+      );
     if (openThreadCount === 0) continue;
 
-    const perDocumentThreadLimit = Math.min(PLAN_REVIEW_CONTEXT_LIMITS.maxThreads, remainingThreads);
-    const threadRows = perDocumentThreadLimit === 0 ? [] : await input.db
-      .select({
-        id: documentAnnotationThreads.id,
-        documentId: documentAnnotationThreads.documentId,
-        documentKey: documentAnnotationThreads.documentKey,
-        status: documentAnnotationThreads.status,
-        revisionId: documentAnnotationThreads.currentRevisionId,
-        revisionNumber: documentAnnotationThreads.currentRevisionNumber,
-        anchorState: documentAnnotationThreads.anchorState,
-        anchorConfidence: documentAnnotationThreads.anchorConfidence,
-        selectedText: documentAnnotationThreads.selectedText,
-        prefixText: documentAnnotationThreads.prefixText,
-        suffixText: documentAnnotationThreads.suffixText,
-        createdByAgentId: documentAnnotationThreads.createdByAgentId,
-        createdByUserId: documentAnnotationThreads.createdByUserId,
-        createdAt: documentAnnotationThreads.createdAt,
-        updatedAt: documentAnnotationThreads.updatedAt,
-      })
-      .from(documentAnnotationThreads)
-      .where(and(
-        eq(documentAnnotationThreads.companyId, input.companyId),
-        eq(documentAnnotationThreads.issueId, input.issueId),
-        eq(documentAnnotationThreads.documentId, document.documentId),
-        eq(documentAnnotationThreads.documentKey, document.documentKey),
-        eq(documentAnnotationThreads.status, "open"),
-      ))
-      .orderBy(desc(documentAnnotationThreads.updatedAt), desc(documentAnnotationThreads.id))
-      .limit(perDocumentThreadLimit);
+    const perDocumentThreadLimit = Math.min(
+      PLAN_REVIEW_CONTEXT_LIMITS.maxThreads,
+      remainingThreads,
+    );
+    const threadRows =
+      perDocumentThreadLimit === 0
+        ? []
+        : await input.db
+            .select({
+              id: documentAnnotationThreads.id,
+              documentId: documentAnnotationThreads.documentId,
+              documentKey: documentAnnotationThreads.documentKey,
+              status: documentAnnotationThreads.status,
+              revisionId: documentAnnotationThreads.currentRevisionId,
+              revisionNumber: documentAnnotationThreads.currentRevisionNumber,
+              anchorState: documentAnnotationThreads.anchorState,
+              anchorConfidence: documentAnnotationThreads.anchorConfidence,
+              selectedText: documentAnnotationThreads.selectedText,
+              prefixText: documentAnnotationThreads.prefixText,
+              suffixText: documentAnnotationThreads.suffixText,
+              createdByAgentId: documentAnnotationThreads.createdByAgentId,
+              createdByUserId: documentAnnotationThreads.createdByUserId,
+              createdAt: documentAnnotationThreads.createdAt,
+              updatedAt: documentAnnotationThreads.updatedAt,
+            })
+            .from(documentAnnotationThreads)
+            .where(
+              and(
+                eq(documentAnnotationThreads.companyId, input.companyId),
+                eq(documentAnnotationThreads.issueId, input.issueId),
+                eq(documentAnnotationThreads.documentId, document.documentId),
+                eq(documentAnnotationThreads.documentKey, document.documentKey),
+                eq(documentAnnotationThreads.status, "open"),
+              ),
+            )
+            .orderBy(
+              desc(documentAnnotationThreads.updatedAt),
+              desc(documentAnnotationThreads.id),
+            )
+            .limit(perDocumentThreadLimit);
 
     const threadIds = threadRows.map((thread) => thread.id);
-    const perDocumentCommentLimit = Math.min(PLAN_REVIEW_CONTEXT_LIMITS.maxComments, remainingComments);
-    const commentRows = threadIds.length === 0 || perDocumentCommentLimit === 0 ? [] : await input.db
-      .select({
-        id: documentAnnotationComments.id,
-        threadId: documentAnnotationComments.threadId,
-        body: documentAnnotationComments.body,
-        authorType: documentAnnotationComments.authorType,
-        authorAgentId: documentAnnotationComments.authorAgentId,
-        authorUserId: documentAnnotationComments.authorUserId,
-        createdAt: documentAnnotationComments.createdAt,
-        updatedAt: documentAnnotationComments.updatedAt,
-      })
-      .from(documentAnnotationComments)
-      .where(and(
-        eq(documentAnnotationComments.companyId, input.companyId),
-        eq(documentAnnotationComments.issueId, input.issueId),
-        eq(documentAnnotationComments.documentId, document.documentId),
-        inArray(documentAnnotationComments.threadId, threadIds),
-      ))
-      .orderBy(asc(documentAnnotationComments.createdAt), asc(documentAnnotationComments.id))
-      .limit(perDocumentCommentLimit);
+    const perDocumentCommentLimit = Math.min(
+      PLAN_REVIEW_CONTEXT_LIMITS.maxComments,
+      remainingComments,
+    );
+    const commentRows =
+      threadIds.length === 0 || perDocumentCommentLimit === 0
+        ? []
+        : await input.db
+            .select({
+              id: documentAnnotationComments.id,
+              threadId: documentAnnotationComments.threadId,
+              body: documentAnnotationComments.body,
+              authorType: documentAnnotationComments.authorType,
+              authorAgentId: documentAnnotationComments.authorAgentId,
+              authorUserId: documentAnnotationComments.authorUserId,
+              createdAt: documentAnnotationComments.createdAt,
+              updatedAt: documentAnnotationComments.updatedAt,
+            })
+            .from(documentAnnotationComments)
+            .where(
+              and(
+                eq(documentAnnotationComments.companyId, input.companyId),
+                eq(documentAnnotationComments.issueId, input.issueId),
+                eq(documentAnnotationComments.documentId, document.documentId),
+                inArray(documentAnnotationComments.threadId, threadIds),
+              ),
+            )
+            .orderBy(
+              asc(documentAnnotationComments.createdAt),
+              asc(documentAnnotationComments.id),
+            )
+            .limit(perDocumentCommentLimit);
 
     const [{ count: commentCount }] = await input.db
       .select({ count: sql<number>`count(*)::int` })
       .from(documentAnnotationComments)
-      .innerJoin(documentAnnotationThreads, eq(documentAnnotationComments.threadId, documentAnnotationThreads.id))
-      .where(and(
-        eq(documentAnnotationComments.companyId, input.companyId),
-        eq(documentAnnotationComments.issueId, input.issueId),
-        eq(documentAnnotationComments.documentId, document.documentId),
-        eq(documentAnnotationThreads.companyId, input.companyId),
-        eq(documentAnnotationThreads.issueId, input.issueId),
-        eq(documentAnnotationThreads.documentId, document.documentId),
-        eq(documentAnnotationThreads.documentKey, document.documentKey),
-        eq(documentAnnotationThreads.status, "open"),
-      ));
+      .innerJoin(
+        documentAnnotationThreads,
+        eq(documentAnnotationComments.threadId, documentAnnotationThreads.id),
+      )
+      .where(
+        and(
+          eq(documentAnnotationComments.companyId, input.companyId),
+          eq(documentAnnotationComments.issueId, input.issueId),
+          eq(documentAnnotationComments.documentId, document.documentId),
+          eq(documentAnnotationThreads.companyId, input.companyId),
+          eq(documentAnnotationThreads.issueId, input.issueId),
+          eq(documentAnnotationThreads.documentId, document.documentId),
+          eq(documentAnnotationThreads.documentKey, document.documentKey),
+          eq(documentAnnotationThreads.status, "open"),
+        ),
+      );
 
     const commentsByThread = new Map<string, typeof commentRows>();
     for (const comment of commentRows) {
@@ -470,10 +564,24 @@ export async function buildDocumentReviewContext(
     let documentIncludedComments = 0;
     let documentTruncated = openThreadCount > threadRows.length;
     const threads = threadRows.map((thread) => {
-      const selectedText = truncateText(thread.selectedText, PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars);
-      const prefixText = truncateText(thread.prefixText, PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars);
-      const suffixText = truncateText(thread.suffixText, PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars);
-      if (selectedText.truncated || prefixText.truncated || suffixText.truncated) documentTruncated = true;
+      const selectedText = truncateText(
+        thread.selectedText,
+        PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars,
+      );
+      const prefixText = truncateText(
+        thread.prefixText,
+        PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars,
+      );
+      const suffixText = truncateText(
+        thread.suffixText,
+        PLAN_REVIEW_CONTEXT_LIMITS.maxAnchorTextChars,
+      );
+      if (
+        selectedText.truncated ||
+        prefixText.truncated ||
+        suffixText.truncated
+      )
+        documentTruncated = true;
       const sourceComments = commentsByThread.get(thread.id) ?? [];
       const comments = [];
       for (const comment of sourceComments) {
@@ -517,7 +625,10 @@ export async function buildDocumentReviewContext(
         prefixTextTruncated: prefixText.truncated,
         suffixText: suffixText.text,
         suffixTextTruncated: suffixText.truncated,
-        author: authorFrom({ authorAgentId: thread.createdByAgentId, authorUserId: thread.createdByUserId }),
+        author: authorFrom({
+          authorAgentId: thread.createdByAgentId,
+          authorUserId: thread.createdByUserId,
+        }),
         commentCount: sourceComments.length,
         comments,
         commentsTruncated,
@@ -545,7 +656,10 @@ export async function buildDocumentReviewContext(
         omittedThreadCount: Math.max(0, openThreadCount - threads.length),
         commentCount,
         includedCommentCount: documentIncludedComments,
-        omittedCommentCount: Math.max(0, commentCount - documentIncludedComments),
+        omittedCommentCount: Math.max(
+          0,
+          commentCount - documentIncludedComments,
+        ),
       },
       truncated: documentTruncated,
     });

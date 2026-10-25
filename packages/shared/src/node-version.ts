@@ -1,7 +1,9 @@
 export const MINIMUM_NODE_VERSION = "24.11.0";
 export const NODE_VERSION_INSTALL_GUIDE_URL =
   "https://github.com/khulnasoft/taskcore/blob/master/doc/INSTALLING.md#recommended-install";
-const NODE_VERSION_WARNING_EMITTED = Symbol.for("@taskcore/node-version-warning-emitted");
+const NODE_VERSION_WARNING_EMITTED = Symbol.for(
+  "@taskcore/node-version-warning-emitted",
+);
 
 function parseVersion(version: string): [number, number, number] | null {
   const match = /^v?(\d+)\.(\d+)\.(\d+)/.exec(version.trim());
@@ -42,7 +44,10 @@ export function warnIfUnsupportedNodeVersion(
   const warning = formatNodeVersionWarning(version);
   if (!warning) return false;
 
-  const warningState = globalThis as unknown as Record<symbol, boolean | undefined>;
+  const warningState = globalThis as unknown as Record<
+    symbol,
+    boolean | undefined
+  >;
   if (warningState[NODE_VERSION_WARNING_EMITTED]) return false;
 
   warningState[NODE_VERSION_WARNING_EMITTED] = true;

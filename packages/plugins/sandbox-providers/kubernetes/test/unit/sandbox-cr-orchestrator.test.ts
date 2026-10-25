@@ -32,7 +32,11 @@ describe("createSandboxCr", () => {
       kind: "Sandbox",
       metadata: { name: "pc-abc", namespace: "taskcore-acme" },
     };
-    const result = await createSandboxCr(clients as never, "taskcore-acme", manifest);
+    const result = await createSandboxCr(
+      clients as never,
+      "taskcore-acme",
+      manifest,
+    );
     expect(create).toHaveBeenCalledWith({
       group: SANDBOX_GROUP,
       version: SANDBOX_VERSION,
@@ -46,9 +50,9 @@ describe("createSandboxCr", () => {
   it("throws if the API response has no UID", async () => {
     const create = vi.fn().mockResolvedValue({ metadata: {} });
     const clients = { custom: { createNamespacedCustomObject: create } };
-    await expect(
-      createSandboxCr(clients as never, "ns", {}),
-    ).rejects.toThrow("Sandbox CR created without a UID");
+    await expect(createSandboxCr(clients as never, "ns", {})).rejects.toThrow(
+      "Sandbox CR created without a UID",
+    );
   });
 });
 
@@ -113,7 +117,10 @@ describe("findPodForSandbox", () => {
   it("resolves the pod by EXACT NAME when the controller names it after the sandbox (v0.4.x: pods carry only agents.x-k8s.io/sandbox-name-hash, never the full-name label)", async () => {
     const get = vi.fn().mockResolvedValue(makeCr("Ready")); // no podName in status
     const read = vi.fn().mockResolvedValue({
-      metadata: { name: "pc-abc", labels: { "agents.x-k8s.io/sandbox-name-hash": "1a2b3c" } },
+      metadata: {
+        name: "pc-abc",
+        labels: { "agents.x-k8s.io/sandbox-name-hash": "1a2b3c" },
+      },
       status: { phase: "Running" },
     });
     const list = vi.fn().mockResolvedValue({ items: [] }); // full-name label selector matches nothing on v0.4.x
@@ -133,7 +140,10 @@ describe("findPodForSandbox", () => {
     const list = vi.fn().mockResolvedValue({
       items: [
         {
-          metadata: { name: "pc-abc-001", labels: { "agents.x-k8s.io/sandbox-name": "pc-abc" } },
+          metadata: {
+            name: "pc-abc-001",
+            labels: { "agents.x-k8s.io/sandbox-name": "pc-abc" },
+          },
           status: { phase: "Running" },
         },
       ],
@@ -144,7 +154,9 @@ describe("findPodForSandbox", () => {
     };
     const podName = await findPodForSandbox(clients as never, "ns", "pc-abc");
     expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({ labelSelector: "agents.x-k8s.io/sandbox-name=pc-abc" }),
+      expect.objectContaining({
+        labelSelector: "agents.x-k8s.io/sandbox-name=pc-abc",
+      }),
     );
     expect(podName).toBe("pc-abc-001");
   });
@@ -155,14 +167,20 @@ describe("findPodForSandbox", () => {
       items: [
         {
           // Same name prefix, different sandbox label: must NOT match.
-          metadata: { name: "pc-abc-zzz", labels: { "agents.x-k8s.io/sandbox-name": "pc-abc-zzz" } },
+          metadata: {
+            name: "pc-abc-zzz",
+            labels: { "agents.x-k8s.io/sandbox-name": "pc-abc-zzz" },
+          },
           status: { phase: "Running" },
         },
       ],
     });
     const clients = {
       custom: { getNamespacedCustomObject: get },
-      core: { readNamespacedPod: vi.fn().mockRejectedValue({ code: 404 }), listNamespacedPod: list },
+      core: {
+        readNamespacedPod: vi.fn().mockRejectedValue({ code: 404 }),
+        listNamespacedPod: list,
+      },
     };
     const podName = await findPodForSandbox(clients as never, "ns", "pc-abc");
     expect(podName).toBeNull();
@@ -176,7 +194,9 @@ describe("findPodForSandbox", () => {
       custom: { getNamespacedCustomObject: get },
       core: { readNamespacedPod: read, listNamespacedPod: list },
     };
-    await expect(findPodForSandbox(clients as never, "ns", "pc-abc")).rejects.toMatchObject({
+    await expect(
+      findPodForSandbox(clients as never, "ns", "pc-abc"),
+    ).rejects.toMatchObject({
       code: 403,
     });
     expect(list).not.toHaveBeenCalled();
@@ -187,7 +207,10 @@ describe("findPodForSandbox", () => {
     const list = vi.fn().mockResolvedValue({ items: [] });
     const clients = {
       custom: { getNamespacedCustomObject: get },
-      core: { readNamespacedPod: vi.fn().mockRejectedValue({ code: 404 }), listNamespacedPod: list },
+      core: {
+        readNamespacedPod: vi.fn().mockRejectedValue({ code: 404 }),
+        listNamespacedPod: list,
+      },
     };
     const podName = await findPodForSandbox(clients as never, "ns", "pc-abc");
     expect(podName).toBeNull();
@@ -216,12 +239,10 @@ describe("waitForSandboxReady", () => {
   it("resolves immediately when Sandbox is already Ready", async () => {
     const get = vi.fn().mockResolvedValue(makeCr("Ready"));
     const clients = { custom: { getNamespacedCustomObject: get } };
-    const status = await waitForSandboxReady(
-      clients as never,
-      "ns",
-      "pc-abc",
-      { timeoutMs: 5000, pollMs: 10 },
-    );
+    const status = await waitForSandboxReady(clients as never, "ns", "pc-abc", {
+      timeoutMs: 5000,
+      pollMs: 10,
+    });
     expect(status.phase).toBe("Running"); // Ready maps to Running
     expect(get).toHaveBeenCalledTimes(1);
   });
@@ -233,12 +254,10 @@ describe("waitForSandboxReady", () => {
       .mockResolvedValueOnce(makeCr("Pending"))
       .mockResolvedValueOnce(makeCr("Ready"));
     const clients = { custom: { getNamespacedCustomObject: get } };
-    const status = await waitForSandboxReady(
-      clients as never,
-      "ns",
-      "pc-abc",
-      { timeoutMs: 5000, pollMs: 10 },
-    );
+    const status = await waitForSandboxReady(clients as never, "ns", "pc-abc", {
+      timeoutMs: 5000,
+      pollMs: 10,
+    });
     expect(status.phase).toBe("Running");
     expect(get).toHaveBeenCalledTimes(3);
   });
@@ -257,7 +276,10 @@ describe("waitForSandboxReady", () => {
   it("throws an error describing the failure when Sandbox fails", async () => {
     const get = vi.fn().mockResolvedValue({
       metadata: { uid: "u1" },
-      status: { phase: "Failed", conditions: [{ type: "Failed", reason: "OOMKilled" }] },
+      status: {
+        phase: "Failed",
+        conditions: [{ type: "Failed", reason: "OOMKilled" }],
+      },
     });
     const clients = { custom: { getNamespacedCustomObject: get } };
     await expect(

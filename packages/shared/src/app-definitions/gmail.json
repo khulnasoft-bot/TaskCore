@@ -3,17 +3,12 @@
   "slug": "gmail",
   "name": "Gmail",
   "description": "Search and read Gmail messages and create drafts without enabling mail sending.",
-  "categories": [
-    "communication",
-    "productivity"
-  ],
+  "categories": ["communication", "productivity"],
   "featured": true,
   "branding": {
     "logoUrl": "/brands/apps/gmail.svg"
   },
-  "urlPatterns": [
-    "https://gmailmcp.googleapis.com/*"
-  ],
+  "urlPatterns": ["https://gmailmcp.googleapis.com/*"],
   "docsUrl": "https://developers.google.com/workspace/gmail/api/reference/mcp",
   "setupPrerequisite": {
     "title": "Google Developer Preview access required",
@@ -40,24 +35,15 @@
         "label": "Read only",
         "description": "Search and read messages, threads, drafts, and labels."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "platform_shared"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["platform_shared"],
       "whenToUse": "Use Taskcore-managed Google OAuth for read-only Gmail access.",
       "defaults": {
         "serverUrl": "https://gmailmcp.googleapis.com/mcp/v1",
-        "scopesHint": [
-          "https://www.googleapis.com/auth/gmail.readonly"
-        ]
+        "scopesHint": ["https://www.googleapis.com/auth/gmail.readonly"]
       },
       "guidanceMd": "Connect Gmail with read-only access. Sending, deleting, moving, and relabeling mail are not enabled.",
-      "warnings": [
-        "Google Workspace MCP servers are in Developer Preview."
-      ],
+      "warnings": ["Google Workspace MCP servers are in Developer Preview."],
       "riskTier": "S3"
     },
     {
@@ -70,22 +56,15 @@
         "label": "Read only",
         "description": "Search and read messages, threads, drafts, and labels."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a customer-owned Google OAuth client for read-only Gmail access.",
       "defaults": {
         "serverUrl": "https://gmailmcp.googleapis.com/mcp/v1",
         "authorizationEndpoint": "https://accounts.google.com/o/oauth2/v2/auth",
         "tokenEndpoint": "https://oauth2.googleapis.com/token",
         "metadataUrl": "https://accounts.google.com/.well-known/openid-configuration",
-        "scopesHint": [
-          "https://www.googleapis.com/auth/gmail.readonly"
-        ],
+        "scopesHint": ["https://www.googleapis.com/auth/gmail.readonly"],
         "oauthAuthorizationParams": {
           "access_type": "offline",
           "prompt": "consent"
@@ -96,9 +75,7 @@
         "register": "https://console.cloud.google.com/auth/clients",
         "docs": "https://developers.google.com/workspace/guides/configure-mcp-servers"
       },
-      "warnings": [
-        "Google Workspace MCP servers are in Developer Preview."
-      ],
+      "warnings": ["Google Workspace MCP servers are in Developer Preview."],
       "riskTier": "S3"
     },
     {
@@ -113,13 +90,8 @@
         "label": "Read & create drafts",
         "description": "Read Gmail and create drafts for review in Gmail."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "platform_shared"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["platform_shared"],
       "whenToUse": "Use Taskcore-managed Google OAuth to read Gmail and create drafts.",
       "defaults": {
         "serverUrl": "https://gmailmcp.googleapis.com/mcp/v1",
@@ -145,13 +117,8 @@
         "label": "Read & create drafts",
         "description": "Read Gmail and create drafts for review in Gmail."
       },
-      "grantKinds": [
-        "user",
-        "organization"
-      ],
-      "ownershipModes": [
-        "customer"
-      ],
+      "grantKinds": ["user", "organization"],
+      "ownershipModes": ["customer"],
       "whenToUse": "Use a customer-owned Google OAuth client to read Gmail and create drafts.",
       "defaults": {
         "serverUrl": "https://gmailmcp.googleapis.com/mcp/v1",

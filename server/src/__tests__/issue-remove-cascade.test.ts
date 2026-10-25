@@ -25,7 +25,9 @@ import { HttpError } from "../errors.js";
 import { issueService } from "../services/issues.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 // These tests protect DELETE /api/issues/:id. A foreign key to issues.id
 // without a delete policy raised SQLSTATE 23503 and the route returned a bare
@@ -35,10 +37,14 @@ const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : 
 describeEmbeddedPostgres("issueService.remove referential integrity", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof issueService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-remove-cascade-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-remove-cascade-",
+    );
     db = createDb(tempDb.connectionString);
     svc = issueService(db);
   }, 20_000);
@@ -168,14 +174,39 @@ describeEmbeddedPostgres("issueService.remove referential integrity", () => {
     expect(removed).not.toBeNull();
     expect(removed?.id).toBe(issueId);
 
-    expect(await db.select().from(issues).where(eq(issues.id, issueId))).toHaveLength(0);
-    expect(await db.select().from(issueComments).where(eq(issueComments.issueId, issueId))).toHaveLength(0);
     expect(
-      await db.select().from(issueThreadInteractions).where(eq(issueThreadInteractions.issueId, issueId)),
+      await db.select().from(issues).where(eq(issues.id, issueId)),
     ).toHaveLength(0);
-    expect(await db.select().from(issueReadStates).where(eq(issueReadStates.issueId, issueId))).toHaveLength(0);
-    expect(await db.select().from(issueInboxArchives).where(eq(issueInboxArchives.issueId, issueId))).toHaveLength(0);
-    expect(await db.select().from(feedbackVotes).where(eq(feedbackVotes.issueId, issueId))).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(issueComments)
+        .where(eq(issueComments.issueId, issueId)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(issueThreadInteractions)
+        .where(eq(issueThreadInteractions.issueId, issueId)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(issueReadStates)
+        .where(eq(issueReadStates.issueId, issueId)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(issueInboxArchives)
+        .where(eq(issueInboxArchives.issueId, issueId)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(feedbackVotes)
+        .where(eq(feedbackVotes.issueId, issueId)),
+    ).toHaveLength(0);
   });
 
   it("deletes an issue and keeps ledger rows with issueId set to null", async () => {
@@ -209,14 +240,22 @@ describeEmbeddedPostgres("issueService.remove referential integrity", () => {
     const removed = await svc.remove(issueId);
     expect(removed?.id).toBe(issueId);
 
-    expect(await db.select().from(issues).where(eq(issues.id, issueId))).toHaveLength(0);
+    expect(
+      await db.select().from(issues).where(eq(issues.id, issueId)),
+    ).toHaveLength(0);
 
     // The ledger rows must survive the delete with a detached issueId.
-    const costRows = await db.select().from(costEvents).where(eq(costEvents.id, costEventId));
+    const costRows = await db
+      .select()
+      .from(costEvents)
+      .where(eq(costEvents.id, costEventId));
     expect(costRows).toHaveLength(1);
     expect(costRows[0]?.issueId).toBeNull();
 
-    const financeRows = await db.select().from(financeEvents).where(eq(financeEvents.id, financeEventId));
+    const financeRows = await db
+      .select()
+      .from(financeEvents)
+      .where(eq(financeEvents.id, financeEventId));
     expect(financeRows).toHaveLength(1);
     expect(financeRows[0]?.issueId).toBeNull();
   });
@@ -243,6 +282,8 @@ describeEmbeddedPostgres("issueService.remove referential integrity", () => {
     await expect(svc.remove(issueId)).rejects.toMatchObject({ status: 409 });
 
     // The delete failed, so the issue row must still exist.
-    expect(await db.select().from(issues).where(eq(issues.id, issueId))).toHaveLength(1);
+    expect(
+      await db.select().from(issues).where(eq(issues.id, issueId)),
+    ).toHaveLength(1);
   });
 });

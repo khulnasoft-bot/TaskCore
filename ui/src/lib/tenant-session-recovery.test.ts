@@ -27,7 +27,9 @@ describe("isTenantSessionRecoveryError", () => {
 
 describe("isArchivedStackRecoveryError", () => {
   it("recognizes a 423 archived status-page body", () => {
-    expect(isArchivedStackRecoveryError(423, { statusPage: { code: "archived" } })).toBe(true);
+    expect(
+      isArchivedStackRecoveryError(423, { statusPage: { code: "archived" } }),
+    ).toBe(true);
   });
 
   it.each([
@@ -47,8 +49,12 @@ describe("tenant-session recovery coordinator", () => {
     const reload = vi.fn();
     const recovery = createTenantSessionRecoveryCoordinator(reload);
 
-    const first = recovery.recoverIfNeeded(401, { error: "tenant_session_required" });
-    const second = recovery.recoverIfNeeded(401, { error: "tenant_session_invalid" });
+    const first = recovery.recoverIfNeeded(401, {
+      error: "tenant_session_required",
+    });
+    const second = recovery.recoverIfNeeded(401, {
+      error: "tenant_session_invalid",
+    });
 
     expect(first).not.toBeNull();
     expect(second).toBe(first);
@@ -56,8 +62,12 @@ describe("tenant-session recovery coordinator", () => {
 
     let settled = false;
     void first?.then(
-      () => { settled = true; },
-      () => { settled = true; },
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
     );
     await Promise.resolve();
     expect(settled).toBe(false);
@@ -67,7 +77,9 @@ describe("tenant-session recovery coordinator", () => {
     const reload = vi.fn();
     const recovery = createTenantSessionRecoveryCoordinator(reload);
 
-    const recovered = recovery.recoverIfNeeded(423, { statusPage: { code: "archived" } });
+    const recovered = recovery.recoverIfNeeded(423, {
+      statusPage: { code: "archived" },
+    });
 
     expect(recovered).not.toBeNull();
     expect(reload).toHaveBeenCalledTimes(1);
@@ -78,7 +90,9 @@ describe("tenant-session recovery coordinator", () => {
     const recovery = createTenantSessionRecoveryCoordinator(reload);
 
     expect(recovery.recoverIfNeeded(401, { error: "unauthorized" })).toBeNull();
-    expect(recovery.recoverIfNeeded(423, { statusPage: { code: "suspended" } })).toBeNull();
+    expect(
+      recovery.recoverIfNeeded(423, { statusPage: { code: "suspended" } }),
+    ).toBeNull();
     expect(reload).not.toHaveBeenCalled();
   });
 });

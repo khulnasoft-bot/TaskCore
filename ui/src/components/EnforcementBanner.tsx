@@ -40,12 +40,17 @@ const enforcementBanner = cva(
   },
 );
 
-const DENY_ACTIONS = new Set(["tool_gateway.call_denied", "tool_gateway.call_failed"]);
+const DENY_ACTIONS = new Set([
+  "tool_gateway.call_denied",
+  "tool_gateway.call_failed",
+]);
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
 export type EnforcementTone = "info" | "warning" | "error";
 
-export interface EnforcementBannerProps extends VariantProps<typeof enforcementBanner> {
+export interface EnforcementBannerProps extends VariantProps<
+  typeof enforcementBanner
+> {
   companyId?: string;
   className?: string;
   /** Override the computed variant (used by the design guide). */
@@ -89,7 +94,10 @@ function PresentationalBanner({
         ? "text-amber-600 dark:text-amber-400"
         : "text-destructive";
   return (
-    <div className={cn(enforcementBanner({ variant: tone }), className)} role="status">
+    <div
+      className={cn(enforcementBanner({ variant: tone }), className)}
+      role="status"
+    >
       <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", iconTone)} />
       <div className="min-w-0 flex-1 space-y-0.5">
         {title ? <p className="font-medium">{title}</p> : null}
@@ -101,7 +109,17 @@ function PresentationalBanner({
 }
 
 export function EnforcementBanner(props: EnforcementBannerProps) {
-  const { companyId, className, forceVariant, recentDenialCount, tone, title, body, icon, action } = props;
+  const {
+    companyId,
+    className,
+    forceVariant,
+    recentDenialCount,
+    tone,
+    title,
+    body,
+    icon,
+    action,
+  } = props;
 
   // Presentational mode short-circuits the data hook below.
   const isPresentational = tone !== undefined;
@@ -142,7 +160,10 @@ export function EnforcementBanner(props: EnforcementBannerProps) {
     forceVariant ?? (computedCount > 0 ? "denied-detected" : "default");
 
   return (
-    <div className={cn(enforcementBanner({ variant }), className)} role="status">
+    <div
+      className={cn(enforcementBanner({ variant }), className)}
+      role="status"
+    >
       {variant === "denied-detected" ? (
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
       ) : (
@@ -151,14 +172,17 @@ export function EnforcementBanner(props: EnforcementBannerProps) {
       <div className="min-w-0 flex-1">
         {variant === "denied-detected" ? (
           <p>
-            <span className="font-medium">{computedCount}</span> governed tool call
-            {computedCount === 1 ? " was" : "s were"} denied or failed in the last hour. Access is enforced
-            server-side by the tool gateway — open the affected connector to review what was blocked and why.
+            <span className="font-medium">{computedCount}</span> governed tool
+            call
+            {computedCount === 1 ? " was" : "s were"} denied or failed in the
+            last hour. Access is enforced server-side by the tool gateway — open
+            the affected connector to review what was blocked and why.
           </p>
         ) : (
           <p>
-            Tool access is enforced server-side by the tool gateway. These screens configure and observe that
-            enforcement — they do not replace it. Agents see and call only the tools their profiles and policies
+            Tool access is enforced server-side by the tool gateway. These
+            screens configure and observe that enforcement — they do not replace
+            it. Agents see and call only the tools their profiles and policies
             allow; everything else is denied by default.
           </p>
         )}

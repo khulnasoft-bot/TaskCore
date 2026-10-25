@@ -13,13 +13,20 @@
  */
 import * as fs from "fs";
 import * as path from "path";
-import { renderOrgChartPng, type OrgNode, type OrgChartOverlay } from "../server/src/routes/org-chart-svg.js";
+import {
+  renderOrgChartPng,
+  type OrgNode,
+  type OrgChartOverlay,
+} from "../server/src/routes/org-chart-svg.js";
 import { generateReadme } from "../server/src/services/company-export-readme.js";
 import type { CompanyPortabilityManifest } from "@taskcore/shared";
 
 // ── YAML frontmatter parser (minimal, no deps) ──────────────────
 
-function parseFrontmatter(content: string): { data: Record<string, unknown>; body: string } {
+function parseFrontmatter(content: string): {
+  data: Record<string, unknown>;
+  body: string;
+} {
   const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   if (!match) return { data: {}, body: content };
   const yamlStr = match[1];
@@ -65,7 +72,10 @@ function parseFrontmatter(content: string): { data: Record<string, unknown>; bod
       }
 
       // Remove surrounding quotes
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.slice(1, -1);
       }
 
@@ -149,7 +159,9 @@ function parseCompanyPackage(companyDir: string): CompanyPackage | null {
   const agents: CompanyPortabilityManifest["agents"] = [];
   if (fs.existsSync(agentsDir)) {
     for (const agentSlug of fs.readdirSync(agentsDir)) {
-      const agentMdName = fs.existsSync(path.join(agentsDir, agentSlug, "AGENT.md"))
+      const agentMdName = fs.existsSync(
+        path.join(agentsDir, agentSlug, "AGENT.md"),
+      )
         ? "AGENT.md"
         : fs.existsSync(path.join(agentsDir, agentSlug, "AGENTS.md"))
           ? "AGENTS.md"
@@ -203,7 +215,8 @@ function parseCompanyPackage(companyDir: string): CompanyPackage | null {
       // Extract source info from metadata
       let sourceType = "local";
       let sourceLocator: string | null = null;
-      const metadata = skillData.metadata as Record<string, unknown> | undefined;
+      const metadata = skillData.metadata as
+        Record<string, unknown> | undefined;
       if (metadata) {
         // metadata.sources is parsed as a nested structure, but our simple parser
         // doesn't handle it well. Check for github repo in the raw SKILL.md instead.
@@ -229,7 +242,9 @@ function parseCompanyPackage(companyDir: string): CompanyPackage | null {
         trustLevel: null,
         compatibility: null,
         metadata: null,
-        fileInventory: [{ path: `skills/${skillSlug}/SKILL.md`, kind: "skill" }],
+        fileInventory: [
+          { path: `skills/${skillSlug}/SKILL.md`, kind: "skill" },
+        ],
       });
     }
   }
@@ -270,7 +285,9 @@ function buildOrgTree(agents: CompanyPortabilityManifest["agents"]): OrgNode[] {
       reports: build(m.slug),
     }));
   };
-  const roots = agents.filter((a) => !a.reportsToSlug || !bySlug.has(a.reportsToSlug));
+  const roots = agents.filter(
+    (a) => !a.reportsToSlug || !bySlug.has(a.reportsToSlug),
+  );
   const tree = build(null);
   for (const root of roots) {
     if (root.reportsToSlug && !bySlug.has(root.reportsToSlug)) {
@@ -291,7 +308,9 @@ function buildOrgTree(agents: CompanyPortabilityManifest["agents"]): OrgNode[] {
 async function main() {
   const companiesDir = process.argv[2];
   if (!companiesDir) {
-    console.error("Usage: npx tsx scripts/generate-company-assets.ts <companies-dir>");
+    console.error(
+      "Usage: npx tsx scripts/generate-company-assets.ts <companies-dir>",
+    );
     process.exit(1);
   }
 
@@ -316,7 +335,9 @@ async function main() {
     // Generate org chart PNG
     if (pkg.agents.length > 0) {
       const orgTree = buildOrgTree(pkg.agents);
-      console.log(`   Org tree roots: ${orgTree.map((n) => n.name).join(", ")}`);
+      console.log(
+        `   Org tree roots: ${orgTree.map((n) => n.name).join(", ")}`,
+      );
 
       const overlay: OrgChartOverlay = {
         companyName: pkg.name,
@@ -327,7 +348,9 @@ async function main() {
       fs.mkdirSync(imagesDir, { recursive: true });
       const pngPath = path.join(imagesDir, "org-chart.png");
       fs.writeFileSync(pngPath, pngBuffer);
-      console.log(`   ✓ ${path.relative(resolvedDir, pngPath)} (${(pngBuffer.length / 1024).toFixed(1)}kb)`);
+      console.log(
+        `   ✓ ${path.relative(resolvedDir, pngPath)} (${(pngBuffer.length / 1024).toFixed(1)}kb)`,
+      );
     }
 
     // Generate README
@@ -335,7 +358,13 @@ async function main() {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       source: null,
-      includes: { company: true, agents: true, projects: false, issues: false, skills: true },
+      includes: {
+        company: true,
+        agents: true,
+        projects: false,
+        issues: false,
+        skills: true,
+      },
       company: null,
       agents: pkg.agents,
       skills: pkg.skills,

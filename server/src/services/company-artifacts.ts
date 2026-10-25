@@ -1,5 +1,16 @@
 import { buffer } from "node:stream/consumers";
-import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  notInArray,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Db } from "@taskcore/db";
 import {
@@ -57,7 +68,9 @@ function encodeCursor(cursor: ArtifactCursor) {
 function decodeCursor(cursor: string | undefined): ArtifactCursor | null {
   if (!cursor) return null;
   try {
-    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as Partial<ArtifactCursor>;
+    const parsed = JSON.parse(
+      Buffer.from(cursor, "base64url").toString("utf8"),
+    ) as Partial<ArtifactCursor>;
     if (typeof parsed.id !== "string" || typeof parsed.updatedAt !== "string") {
       throw new Error("Invalid cursor");
     }
@@ -71,12 +84,19 @@ function decodeCursor(cursor: string | undefined): ArtifactCursor | null {
   }
 }
 
-function cursorCondition(updatedAt: SQL<Date>, artifactId: SQL<string>, cursor: ArtifactCursor | null) {
+function cursorCondition(
+  updatedAt: SQL<Date>,
+  artifactId: SQL<string>,
+  cursor: ArtifactCursor | null,
+) {
   if (!cursor) return undefined;
   return sql`(${updatedAt} < ${cursor.updatedAt}::timestamptz OR (${updatedAt} = ${cursor.updatedAt}::timestamptz AND ${artifactId} < ${cursor.id}))`;
 }
 
-function isAfterCursor(item: { updatedAt: string; id: string }, cursor: ArtifactCursor | null) {
+function isAfterCursor(
+  item: { updatedAt: string; id: string },
+  cursor: ArtifactCursor | null,
+) {
   if (!cursor) return true;
   const dateDiff = Date.parse(item.updatedAt) - Date.parse(cursor.updatedAt);
   return dateDiff < 0 || (dateDiff === 0 && item.id < cursor.id);
@@ -102,7 +122,10 @@ function normalizePreviewText(input: string | null | undefined) {
     : stripped;
 }
 
-function classifyMediaKind(contentType: string | null | undefined, fallback: CompanyArtifactMediaKind = "file") {
+function classifyMediaKind(
+  contentType: string | null | undefined,
+  fallback: CompanyArtifactMediaKind = "file",
+) {
   const normalized = (contentType ?? "").toLowerCase();
   if (!normalized) return fallback;
   if (normalized.startsWith("image/")) return "image";
@@ -120,7 +143,10 @@ function classifyMediaKind(contentType: string | null | undefined, fallback: Com
   return "file";
 }
 
-function contentTypeKindCondition(contentTypeExpression: SQL<string>, kind: CompanyArtifactsQuery["kind"]) {
+function contentTypeKindCondition(
+  contentTypeExpression: SQL<string>,
+  kind: CompanyArtifactsQuery["kind"],
+) {
   if (!kind || kind === "all") return undefined;
   if (kind === "image") return sql`${contentTypeExpression} ILIKE 'image/%'`;
   if (kind === "video") return sql`${contentTypeExpression} ILIKE 'video/%'`;
@@ -133,7 +159,11 @@ function contentTypeKindCondition(contentTypeExpression: SQL<string>, kind: Comp
   return undefined;
 }
 
-function buildIssueHref(companyPrefix: string, identifier: string, anchor: string) {
+function buildIssueHref(
+  companyPrefix: string,
+  identifier: string,
+  anchor: string,
+) {
   return `/${encodeURIComponent(companyPrefix)}/issues/${encodeURIComponent(identifier)}#${anchor}`;
 }
 
@@ -164,7 +194,10 @@ async function readTextAttachmentPreview(
   if (!storage || input.byteSize <= 0) return null;
   try {
     const object = await storage.getObject(input.companyId, input.objectKey, {
-      range: { start: 0, end: Math.min(input.byteSize, TEXT_PREVIEW_BYTES) - 1 },
+      range: {
+        start: 0,
+        end: Math.min(input.byteSize, TEXT_PREVIEW_BYTES) - 1,
+      },
     });
     const body = await buffer(object.stream);
     return normalizePreviewText(body.toString("utf8"));
@@ -173,10 +206,14 @@ async function readTextAttachmentPreview(
   }
 }
 
-function sortArtifacts(artifacts: CompanyArtifact[], sortDates = new Map<string, string>()) {
+function sortArtifacts(
+  artifacts: CompanyArtifact[],
+  sortDates = new Map<string, string>(),
+) {
   return artifacts.sort((a, b) => {
-    const dateDiff = Date.parse(sortDates.get(b.id) ?? b.updatedAt)
-      - Date.parse(sortDates.get(a.id) ?? a.updatedAt);
+    const dateDiff =
+      Date.parse(sortDates.get(b.id) ?? b.updatedAt) -
+      Date.parse(sortDates.get(a.id) ?? a.updatedAt);
     if (dateDiff !== 0) return dateDiff;
     return b.id.localeCompare(a.id);
   });
@@ -189,13 +226,22 @@ function pageByCursor<T extends { id: string; updatedAt: string }>(
 ) {
   const filtered = items.filter((item) => isAfterCursor(item, cursor));
   const page = filtered.slice(0, limit);
-  const nextCursor = filtered.length > limit
-    ? encodeCursor({ id: page[page.length - 1]?.id ?? "", updatedAt: page[page.length - 1]?.updatedAt ?? new Date(0).toISOString() })
-    : null;
+  const nextCursor =
+    filtered.length > limit
+      ? encodeCursor({
+          id: page[page.length - 1]?.id ?? "",
+          updatedAt:
+            page[page.length - 1]?.updatedAt ?? new Date(0).toISOString(),
+        })
+      : null;
   return { page, nextCursor };
 }
 
-async function loadIssueGroupingRows(db: Db, companyId: string, seedIssueIds: Iterable<string>) {
+async function loadIssueGroupingRows(
+  db: Db,
+  companyId: string,
+  seedIssueIds: Iterable<string>,
+) {
   const rowsById = new Map<string, IssueGroupingRow>();
   let pending = [...new Set(seedIssueIds)];
 
@@ -232,7 +278,10 @@ function getIssueSummary(issue: IssueGroupingRow) {
   };
 }
 
-function resolveRootIssueId(issueId: string, issueRows: Map<string, IssueGroupingRow>) {
+function resolveRootIssueId(
+  issueId: string,
+  issueRows: Map<string, IssueGroupingRow>,
+) {
   let current = issueRows.get(issueId);
   if (!current) return issueId;
   const seen = new Set<string>();
@@ -245,7 +294,11 @@ function resolveRootIssueId(issueId: string, issueRows: Map<string, IssueGroupin
   return current.id;
 }
 
-function resolveGroupIssueId(groupBy: ArtifactGroupBy, issueId: string, issueRows: Map<string, IssueGroupingRow>) {
+function resolveGroupIssueId(
+  groupBy: ArtifactGroupBy,
+  issueId: string,
+  issueRows: Map<string, IssueGroupingRow>,
+) {
   return groupBy === "task" ? issueId : resolveRootIssueId(issueId, issueRows);
 }
 
@@ -265,7 +318,12 @@ function emptyGroup(input: {
     mediaKinds: [],
     previewArtifacts: [],
     updatedAt: input.issue.updatedAt.toISOString(),
-    href: buildArtifactsGroupHref(input.companyPrefix, input.query, input.groupBy, input.issue.id),
+    href: buildArtifactsGroupHref(
+      input.companyPrefix,
+      input.query,
+      input.groupBy,
+      input.issue.id,
+    ),
   };
 }
 
@@ -279,7 +337,11 @@ function buildArtifactGroups(input: {
   const groups = new Map<string, CompanyArtifactGroup>();
 
   for (const artifact of input.artifacts) {
-    const groupIssueId = resolveGroupIssueId(input.groupBy, artifact.issue.id, input.issueRows);
+    const groupIssueId = resolveGroupIssueId(
+      input.groupBy,
+      artifact.issue.id,
+      input.issueRows,
+    );
     const groupIssue = input.issueRows.get(groupIssueId) ?? {
       id: artifact.issue.id,
       parentId: null,
@@ -289,12 +351,14 @@ function buildArtifactGroups(input: {
     };
     const groupId = `${input.groupBy}:${groupIssueId}`;
     const existing = groups.get(groupId);
-    const group = existing ?? emptyGroup({
-      companyPrefix: input.companyPrefix,
-      query: input.query,
-      groupBy: input.groupBy,
-      issue: groupIssue,
-    });
+    const group =
+      existing ??
+      emptyGroup({
+        companyPrefix: input.companyPrefix,
+        query: input.query,
+        groupBy: input.groupBy,
+        issue: groupIssue,
+      });
     if (!existing) groups.set(groupId, group);
 
     group.count += 1;
@@ -337,8 +401,13 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
         return { artifacts: [], nextCursor: null };
       }
 
-      const fetchLimit = Math.min(query.limit + 1, COMPANY_ARTIFACTS_MAX_LIMIT + 1);
-      const sourceFetchLimit = groupBy ? GROUPED_ARTIFACT_FETCH_LIMIT : fetchLimit;
+      const fetchLimit = Math.min(
+        query.limit + 1,
+        COMPANY_ARTIFACTS_MAX_LIMIT + 1,
+      );
+      const sourceFetchLimit = groupBy
+        ? GROUPED_ARTIFACT_FETCH_LIMIT
+        : fetchLimit;
       const q = query.q ? `%${escapeLikePattern(query.q)}%` : null;
       const issueConditions: SQL[] = [
         isNull(issues.hiddenAt),
@@ -359,23 +428,33 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
           ...issueConditions,
           ...(query.starred
             ? [
-              eq(documentMemberships.companyId, companyId),
-              eq(documentMemberships.userId, options.userId!),
-              isNotNull(documentMemberships.starredAt),
-            ]
+                eq(documentMemberships.companyId, companyId),
+                eq(documentMemberships.userId, options.userId!),
+                isNotNull(documentMemberships.starredAt),
+              ]
             : [
-              or(isNotNull(documents.createdByAgentId), isNotNull(documents.updatedByAgentId))!,
-              notInArray(issueDocuments.key, [...SYSTEM_ISSUE_DOCUMENT_KEYS]),
-            ]),
+                or(
+                  isNotNull(documents.createdByAgentId),
+                  isNotNull(documents.updatedByAgentId),
+                )!,
+                notInArray(issueDocuments.key, [...SYSTEM_ISSUE_DOCUMENT_KEYS]),
+              ]),
         ];
         const documentSortDate = query.starred
           ? sql<Date>`${documentMemberships.starredAt}`
           : sql<Date>`${documents.updatedAt}`;
-        const documentCursor = groupBy ? undefined : cursorCondition(documentSortDate, documentArtifactId, cursor);
+        const documentCursor = groupBy
+          ? undefined
+          : cursorCondition(documentSortDate, documentArtifactId, cursor);
         if (documentCursor) documentConditions.push(documentCursor);
-        if (groupBy === "task" && query.groupIssueId) documentConditions.push(eq(issues.id, query.groupIssueId));
-        if (query.projectId) documentConditions.push(eq(issues.projectId, query.projectId));
-        if (query.agentId) documentConditions.push(sql`coalesce(${createdAgent.id}, ${updatedAgent.id}) = ${query.agentId}`);
+        if (groupBy === "task" && query.groupIssueId)
+          documentConditions.push(eq(issues.id, query.groupIssueId));
+        if (query.projectId)
+          documentConditions.push(eq(issues.projectId, query.projectId));
+        if (query.agentId)
+          documentConditions.push(
+            sql`coalesce(${createdAgent.id}, ${updatedAgent.id}) = ${query.agentId}`,
+          );
         if (q) {
           documentConditions.push(sql`(
             coalesce(${documents.title}, '') ILIKE ${q} ESCAPE '\\'
@@ -397,8 +476,12 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
             key: issueDocuments.key,
             title: documents.title,
             latestBody: documents.latestBody,
-            createdByAgentId: sql<string | null>`coalesce(${createdAgent.id}, ${updatedAgent.id})`,
-            createdByAgentName: sql<string | null>`coalesce(${createdAgent.name}, ${updatedAgent.name})`,
+            createdByAgentId: sql<
+              string | null
+            >`coalesce(${createdAgent.id}, ${updatedAgent.id})`,
+            createdByAgentName: sql<
+              string | null
+            >`coalesce(${createdAgent.name}, ${updatedAgent.name})`,
             updatedAt: documents.updatedAt,
             starredAt: documentMemberships.starredAt,
           })
@@ -452,7 +535,10 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
 
         for (const row of documentRows) {
           const identifier = row.issueIdentifier ?? row.issueId;
-          artifactSortDates.set(row.artifactId, (row.starredAt ?? row.updatedAt).toISOString());
+          artifactSortDates.set(
+            row.artifactId,
+            (row.starredAt ?? row.updatedAt).toISOString(),
+          );
           artifacts.push({
             id: row.artifactId,
             source: "document",
@@ -464,12 +550,20 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
             openPath: null,
             downloadPath: null,
             issue: { id: row.issueId, identifier, title: row.issueTitle },
-            project: row.projectId && row.projectName ? { id: row.projectId, name: row.projectName } : null,
-            createdByAgent: row.createdByAgentId && row.createdByAgentName
-              ? { id: row.createdByAgentId, name: row.createdByAgentName }
-              : null,
+            project:
+              row.projectId && row.projectName
+                ? { id: row.projectId, name: row.projectName }
+                : null,
+            createdByAgent:
+              row.createdByAgentId && row.createdByAgentName
+                ? { id: row.createdByAgentId, name: row.createdByAgentName }
+                : null,
             updatedAt: row.updatedAt.toISOString(),
-            href: buildIssueHref(company.issuePrefix, identifier, `document-${row.key}`),
+            href: buildIssueHref(
+              company.issuePrefix,
+              identifier,
+              `document-${row.key}`,
+            ),
           });
         }
       }
@@ -487,8 +581,15 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
         const workProductConditions: SQL[] = [...workProductBaseConditions];
         const workProductCursor = groupBy
           ? undefined
-          : cursorCondition(sql<Date>`${issueWorkProducts.updatedAt}`, workProductArtifactId, cursor);
-        const workProductKind = contentTypeKindCondition(workProductContentType, query.kind);
+          : cursorCondition(
+              sql<Date>`${issueWorkProducts.updatedAt}`,
+              workProductArtifactId,
+              cursor,
+            );
+        const workProductKind = contentTypeKindCondition(
+          workProductContentType,
+          query.kind,
+        );
         if (workProductCursor) workProductConditions.push(workProductCursor);
         if (groupBy === "task" && query.groupIssueId) {
           const selectedIssueCondition = eq(issues.id, query.groupIssueId);
@@ -506,7 +607,8 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
         }
         // Agent filter applies to the listed rows only; the attachment dedupe
         // below stays company-wide so a work product's file never re-lists.
-        if (query.agentId) workProductConditions.push(eq(workProductAgent.id, query.agentId));
+        if (query.agentId)
+          workProductConditions.push(eq(workProductAgent.id, query.agentId));
         if (q) {
           const searchCondition = sql`(
             ${issueWorkProducts.title} ILIKE ${q} ESCAPE '\\'
@@ -564,12 +666,18 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
             ),
           )
           .where(and(...workProductConditions))
-          .orderBy(desc(issueWorkProducts.updatedAt), desc(workProductArtifactId));
-        const workProductRows = await workProductRowsQuery.limit(sourceFetchLimit);
+          .orderBy(
+            desc(issueWorkProducts.updatedAt),
+            desc(workProductArtifactId),
+          );
+        const workProductRows =
+          await workProductRowsQuery.limit(sourceFetchLimit);
 
         const workProductAttachmentRows = await db
           .select({
-            attachmentId: sql<string | null>`${issueWorkProducts.metadata}->>'attachmentId'`,
+            attachmentId: sql<
+              string | null
+            >`${issueWorkProducts.metadata}->>'attachmentId'`,
           })
           .from(issueWorkProducts)
           .innerJoin(
@@ -579,7 +687,12 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
               eq(issues.companyId, issueWorkProducts.companyId),
             ),
           )
-          .where(and(...workProductBaseConditions, sql`${issueWorkProducts.metadata}->>'attachmentId' IS NOT NULL`))
+          .where(
+            and(
+              ...workProductBaseConditions,
+              sql`${issueWorkProducts.metadata}->>'attachmentId' IS NOT NULL`,
+            ),
+          )
           .limit(sourceFetchLimit);
 
         for (const row of workProductAttachmentRows) {
@@ -589,7 +702,8 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
         }
 
         for (const row of workProductRows) {
-          const metadata = attachmentArtifactWorkProductMetadataSchema.safeParse(row.metadata);
+          const metadata =
+            attachmentArtifactWorkProductMetadataSchema.safeParse(row.metadata);
           const attachmentMetadata = metadata.success ? metadata.data : null;
           if (attachmentMetadata) {
             workProductAttachmentIds.add(attachmentMetadata.attachmentId);
@@ -599,20 +713,35 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
           artifacts.push({
             id: row.artifactId,
             source: "work_product",
-            mediaKind: classifyMediaKind(contentType, attachmentMetadata ? "file" : "empty"),
+            mediaKind: classifyMediaKind(
+              contentType,
+              attachmentMetadata ? "file" : "empty",
+            ),
             title: row.title,
             previewText: normalizePreviewText(row.summary),
             contentType,
             contentPath: attachmentMetadata?.contentPath ?? null,
-            openPath: attachmentMetadata?.openPath ?? (typeof row.metadata?.openPath === "string" ? row.metadata.openPath : null),
+            openPath:
+              attachmentMetadata?.openPath ??
+              (typeof row.metadata?.openPath === "string"
+                ? row.metadata.openPath
+                : null),
             downloadPath: attachmentMetadata?.downloadPath ?? null,
             issue: { id: row.issueId, identifier, title: row.issueTitle },
-            project: row.projectId && row.projectName ? { id: row.projectId, name: row.projectName } : null,
-            createdByAgent: row.createdByAgentId && row.createdByAgentName
-              ? { id: row.createdByAgentId, name: row.createdByAgentName }
-              : null,
+            project:
+              row.projectId && row.projectName
+                ? { id: row.projectId, name: row.projectName }
+                : null,
+            createdByAgent:
+              row.createdByAgentId && row.createdByAgentName
+                ? { id: row.createdByAgentId, name: row.createdByAgentName }
+                : null,
             updatedAt: row.updatedAt.toISOString(),
-            href: buildIssueHref(company.issuePrefix, identifier, `work-product-${row.workProductId}`),
+            href: buildIssueHref(
+              company.issuePrefix,
+              identifier,
+              `work-product-${row.workProductId}`,
+            ),
           });
         }
 
@@ -626,13 +755,23 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
         ];
         const attachmentCursor = groupBy
           ? undefined
-          : cursorCondition(sql<Date>`${issueAttachments.updatedAt}`, attachmentArtifactId, cursor);
-        const attachmentKind = contentTypeKindCondition(sql<string>`${assets.contentType}`, query.kind);
+          : cursorCondition(
+              sql<Date>`${issueAttachments.updatedAt}`,
+              attachmentArtifactId,
+              cursor,
+            );
+        const attachmentKind = contentTypeKindCondition(
+          sql<string>`${assets.contentType}`,
+          query.kind,
+        );
         if (attachmentCursor) attachmentConditions.push(attachmentCursor);
-        if (groupBy === "task" && query.groupIssueId) attachmentConditions.push(eq(issues.id, query.groupIssueId));
+        if (groupBy === "task" && query.groupIssueId)
+          attachmentConditions.push(eq(issues.id, query.groupIssueId));
         if (attachmentKind) attachmentConditions.push(attachmentKind);
-        if (query.projectId) attachmentConditions.push(eq(issues.projectId, query.projectId));
-        if (query.agentId) attachmentConditions.push(eq(attachmentAgent.id, query.agentId));
+        if (query.projectId)
+          attachmentConditions.push(eq(issues.projectId, query.projectId));
+        if (query.agentId)
+          attachmentConditions.push(eq(attachmentAgent.id, query.agentId));
         if (q) {
           attachmentConditions.push(sql`(
             coalesce(${assets.originalFilename}, '') ILIKE ${q} ESCAPE '\\'
@@ -689,60 +828,88 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
             ),
           )
           .where(and(...attachmentConditions))
-          .orderBy(desc(issueAttachments.updatedAt), desc(attachmentArtifactId));
-        const attachmentRows = await attachmentRowsQuery.limit(sourceFetchLimit);
+          .orderBy(
+            desc(issueAttachments.updatedAt),
+            desc(attachmentArtifactId),
+          );
+        const attachmentRows =
+          await attachmentRowsQuery.limit(sourceFetchLimit);
 
-        const attachmentArtifacts = await Promise.all(attachmentRows.map(async (row): Promise<CompanyArtifact | null> => {
-          if (workProductAttachmentIds.has(row.attachmentId)) return null;
-          const mediaKind = classifyMediaKind(row.contentType);
-          const contentPath = attachmentContentPath(row.attachmentId);
-          const identifier = row.issueIdentifier ?? row.issueId;
-          return {
-            id: row.artifactId,
-            source: "attachment",
-            mediaKind,
-            title: row.originalFilename ?? "Attachment",
-            previewText: mediaKind === "text"
-              ? await readTextAttachmentPreview(storage, {
-                companyId: row.companyId,
-                objectKey: row.objectKey,
-                byteSize: row.byteSize,
-              })
-              : null,
-            contentType: row.contentType,
-            contentPath,
-            openPath: contentPath,
-            downloadPath: `${contentPath}?download=1`,
-            issue: { id: row.issueId, identifier, title: row.issueTitle },
-            project: row.projectId && row.projectName ? { id: row.projectId, name: row.projectName } : null,
-            createdByAgent: row.createdByAgentId && row.createdByAgentName
-              ? { id: row.createdByAgentId, name: row.createdByAgentName }
-              : null,
-            updatedAt: row.updatedAt.toISOString(),
-            href: buildIssueHref(company.issuePrefix, identifier, `attachment-${row.attachmentId}`),
-          };
-        }));
+        const attachmentArtifacts = await Promise.all(
+          attachmentRows.map(async (row): Promise<CompanyArtifact | null> => {
+            if (workProductAttachmentIds.has(row.attachmentId)) return null;
+            const mediaKind = classifyMediaKind(row.contentType);
+            const contentPath = attachmentContentPath(row.attachmentId);
+            const identifier = row.issueIdentifier ?? row.issueId;
+            return {
+              id: row.artifactId,
+              source: "attachment",
+              mediaKind,
+              title: row.originalFilename ?? "Attachment",
+              previewText:
+                mediaKind === "text"
+                  ? await readTextAttachmentPreview(storage, {
+                      companyId: row.companyId,
+                      objectKey: row.objectKey,
+                      byteSize: row.byteSize,
+                    })
+                  : null,
+              contentType: row.contentType,
+              contentPath,
+              openPath: contentPath,
+              downloadPath: `${contentPath}?download=1`,
+              issue: { id: row.issueId, identifier, title: row.issueTitle },
+              project:
+                row.projectId && row.projectName
+                  ? { id: row.projectId, name: row.projectName }
+                  : null,
+              createdByAgent:
+                row.createdByAgentId && row.createdByAgentName
+                  ? { id: row.createdByAgentId, name: row.createdByAgentName }
+                  : null,
+              updatedAt: row.updatedAt.toISOString(),
+              href: buildIssueHref(
+                company.issuePrefix,
+                identifier,
+                `attachment-${row.attachmentId}`,
+              ),
+            };
+          }),
+        );
 
-        artifacts.push(...attachmentArtifacts.filter((artifact): artifact is CompanyArtifact => artifact !== null));
+        artifacts.push(
+          ...attachmentArtifacts.filter(
+            (artifact): artifact is CompanyArtifact => artifact !== null,
+          ),
+        );
       }
 
       const sorted = sortArtifacts(artifacts, artifactSortDates);
       if (!groupBy) {
         const page = sorted.slice(0, query.limit);
         const last = page[page.length - 1];
-        const nextCursor = sorted.length > query.limit
-          ? encodeCursor({
-            id: last?.id ?? "",
-            updatedAt: last ? artifactSortDates.get(last.id) ?? last.updatedAt : new Date(0).toISOString(),
-          })
-          : null;
+        const nextCursor =
+          sorted.length > query.limit
+            ? encodeCursor({
+                id: last?.id ?? "",
+                updatedAt: last
+                  ? (artifactSortDates.get(last.id) ?? last.updatedAt)
+                  : new Date(0).toISOString(),
+              })
+            : null;
 
         return { artifacts: page, nextCursor };
       }
 
-      const issueSeedIds = new Set(artifacts.map((artifact) => artifact.issue.id));
+      const issueSeedIds = new Set(
+        artifacts.map((artifact) => artifact.issue.id),
+      );
       if (query.groupIssueId) issueSeedIds.add(query.groupIssueId);
-      const issueRows = await loadIssueGroupingRows(db, companyId, issueSeedIds);
+      const issueRows = await loadIssueGroupingRows(
+        db,
+        companyId,
+        issueSeedIds,
+      );
       const groups = buildArtifactGroups({
         artifacts: sorted,
         companyPrefix: company.issuePrefix,
@@ -757,18 +924,29 @@ export function companyArtifactsService(db: Db, storage?: StorageService) {
           return { artifacts: [], selectedGroup: null, nextCursor: null };
         }
 
-        const selectedGroupIssueId = resolveGroupIssueId(groupBy, selectedIssue.id, issueRows);
-        const selectedGroup = groups.find((group) => group.issue.id === selectedGroupIssueId)
-          ?? emptyGroup({
+        const selectedGroupIssueId = resolveGroupIssueId(
+          groupBy,
+          selectedIssue.id,
+          issueRows,
+        );
+        const selectedGroup =
+          groups.find((group) => group.issue.id === selectedGroupIssueId) ??
+          emptyGroup({
             companyPrefix: company.issuePrefix,
             query,
             groupBy,
             issue: issueRows.get(selectedGroupIssueId) ?? selectedIssue,
           });
-        const selectedArtifacts = sorted.filter((artifact) =>
-          resolveGroupIssueId(groupBy, artifact.issue.id, issueRows) === selectedGroupIssueId
+        const selectedArtifacts = sorted.filter(
+          (artifact) =>
+            resolveGroupIssueId(groupBy, artifact.issue.id, issueRows) ===
+            selectedGroupIssueId,
         );
-        const { page, nextCursor } = pageByCursor(selectedArtifacts, query.limit, cursor);
+        const { page, nextCursor } = pageByCursor(
+          selectedArtifacts,
+          query.limit,
+          cursor,
+        );
         return { artifacts: page, selectedGroup, nextCursor };
       }
 

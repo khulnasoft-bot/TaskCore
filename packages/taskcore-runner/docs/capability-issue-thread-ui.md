@@ -114,7 +114,7 @@ what the smoke scripts use for that.
   Traceability, Parity. The Tools section groups `Agent tool — always`,
   `Agent tool — granted` (with its grant), and a separated
   `Control plane (not exposed to the agent)` list, because what the model
-  *cannot* call is first-class evidence. Every strip, denial, and card deep-links
+  _cannot_ call is first-class evidence. Every strip, denial, and card deep-links
   into the matching record, and each record links back to its thread anchor.
   Live sessions additionally put a six-tab DevTools inspector above these
   sections: revision timeline, complete browser-safe company state, structural

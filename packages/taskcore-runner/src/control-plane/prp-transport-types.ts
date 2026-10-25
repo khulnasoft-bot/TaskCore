@@ -27,7 +27,10 @@ export interface DurableWarmRunTransition {
 }
 
 export interface DurableRecoveryCoreCommand {
-  schema: "taskcore.prp.command.v1" | "taskcore.prp.command.v2" | "taskcore.prp.command.v3";
+  schema:
+    | "taskcore.prp.command.v1"
+    | "taskcore.prp.command.v2"
+    | "taskcore.prp.command.v3";
   commandId: string;
   controllerSeq: number;
   type: string;

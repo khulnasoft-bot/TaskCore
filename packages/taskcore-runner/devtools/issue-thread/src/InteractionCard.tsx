@@ -69,7 +69,9 @@ export function InteractionCard({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string[]>(() =>
     card.payload.kind === "checkbox"
-      ? card.payload.options.filter((option) => option.defaultSelected).map((option) => option.id)
+      ? card.payload.options
+          .filter((option) => option.defaultSelected)
+          .map((option) => option.id)
       : card.payload.kind === "suggest_tasks"
         ? card.payload.tasks.map((task) => task.id)
         : [],
@@ -102,7 +104,9 @@ export function InteractionCard({
   }
 
   function toggle(list: string[], id: string): string[] {
-    return list.includes(id) ? list.filter((entry) => entry !== id) : [...list, id];
+    return list.includes(id)
+      ? list.filter((entry) => entry !== id)
+      : [...list, id];
   }
 
   return (
@@ -153,7 +157,9 @@ export function InteractionCard({
               ))}
             </ul>
           ) : null}
-          {card.reason !== null ? <blockquote className="pit-quote">{card.reason}</blockquote> : null}
+          {card.reason !== null ? (
+            <blockquote className="pit-quote">{card.reason}</blockquote>
+          ) : null}
           {card.supersededBy !== null ? (
             <p className="pit-card-meta">
               <a href={card.supersededBy.href}>{card.supersededBy.label}</a>
@@ -165,7 +171,10 @@ export function InteractionCard({
           {card.payload.kind === "questions"
             ? card.payload.questions.map((question, index) => (
                 <div className="pit-field" key={question.id}>
-                  <span className="pit-field-label" id={`${titleId}-${question.id}`}>
+                  <span
+                    className="pit-field-label"
+                    id={`${titleId}-${question.id}`}
+                  >
                     {question.prompt}
                   </span>
                   {question.control === "text" ? (
@@ -176,7 +185,10 @@ export function InteractionCard({
                       disabled={busy}
                       value={answers[question.id] ?? ""}
                       onChange={(event) =>
-                        setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
+                        setAnswers((current) => ({
+                          ...current,
+                          [question.id]: event.target.value,
+                        }))
                       }
                     />
                   ) : question.control === "select" ? (
@@ -186,7 +198,10 @@ export function InteractionCard({
                       disabled={busy}
                       value={answers[question.id] ?? ""}
                       onChange={(event) =>
-                        setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
+                        setAnswers((current) => ({
+                          ...current,
+                          [question.id]: event.target.value,
+                        }))
                       }
                     >
                       <option value="">Choose…</option>
@@ -197,7 +212,10 @@ export function InteractionCard({
                       ))}
                     </select>
                   ) : (
-                    <div role="radiogroup" aria-labelledby={`${titleId}-${question.id}`}>
+                    <div
+                      role="radiogroup"
+                      aria-labelledby={`${titleId}-${question.id}`}
+                    >
                       {(question.options ?? []).map((option, optionIndex) => (
                         <label className="pit-option-row" key={option}>
                           <input
@@ -209,13 +227,17 @@ export function InteractionCard({
                               index === 0 && optionIndex === 0
                                 ? (node) => {
                                     firstControl.current = node;
-                                    if (autoFocus === true && node !== null) node.focus();
+                                    if (autoFocus === true && node !== null)
+                                      node.focus();
                                   }
                                 : undefined
                             }
                             checked={answers[question.id] === option}
                             onChange={() =>
-                              setAnswers((current) => ({ ...current, [question.id]: option }))
+                              setAnswers((current) => ({
+                                ...current,
+                                [question.id]: option,
+                              }))
                             }
                           />
                           <span>{option}</span>
@@ -237,11 +259,14 @@ export function InteractionCard({
                     ref={
                       index === 0
                         ? (node) => {
-                            if (autoFocus === true && node !== null) node.focus();
+                            if (autoFocus === true && node !== null)
+                              node.focus();
                           }
                         : undefined
                     }
-                    onChange={() => setSelected((current) => toggle(current, option.id))}
+                    onChange={() =>
+                      setSelected((current) => toggle(current, option.id))
+                    }
                   />
                   <span>{option.label}</span>
                 </label>
@@ -255,7 +280,9 @@ export function InteractionCard({
                     type="checkbox"
                     disabled={busy}
                     checked={selected.includes(task.id)}
-                    onChange={() => setSelected((current) => toggle(current, task.id))}
+                    onChange={() =>
+                      setSelected((current) => toggle(current, task.id))
+                    }
                   />
                   <span>
                     <strong>{task.title}</strong>
@@ -269,7 +296,10 @@ export function InteractionCard({
           {card.payload.kind === "item_verdicts"
             ? card.payload.items.map((item) => (
                 <div className="pit-field" key={item.id}>
-                  <span className="pit-field-label" id={`${titleId}-${item.id}`}>
+                  <span
+                    className="pit-field-label"
+                    id={`${titleId}-${item.id}`}
+                  >
                     {item.title}
                   </span>
                   <div
@@ -277,23 +307,29 @@ export function InteractionCard({
                     role="radiogroup"
                     aria-labelledby={`${titleId}-${item.id}`}
                   >
-                    {(["approve", "reject", "defer"] as const).map((verdict) => (
-                      <button
-                        key={verdict}
-                        type="button"
-                        className="pit-button"
-                        role="radio"
-                        aria-checked={
-                          (item.lockedVerdict ?? verdicts[item.id] ?? "") === verdict
-                        }
-                        disabled={busy || item.lockedVerdict != null}
-                        onClick={() =>
-                          setVerdicts((current) => ({ ...current, [item.id]: verdict }))
-                        }
-                      >
-                        {verdict}
-                      </button>
-                    ))}
+                    {(["approve", "reject", "defer"] as const).map(
+                      (verdict) => (
+                        <button
+                          key={verdict}
+                          type="button"
+                          className="pit-button"
+                          role="radio"
+                          aria-checked={
+                            (item.lockedVerdict ?? verdicts[item.id] ?? "") ===
+                            verdict
+                          }
+                          disabled={busy || item.lockedVerdict != null}
+                          onClick={() =>
+                            setVerdicts((current) => ({
+                              ...current,
+                              [item.id]: verdict,
+                            }))
+                          }
+                        >
+                          {verdict}
+                        </button>
+                      ),
+                    )}
                   </div>
                   {item.requireReason === true ? (
                     <textarea
@@ -302,7 +338,10 @@ export function InteractionCard({
                       disabled={busy || item.lockedVerdict != null}
                       value={reasons[item.id] ?? ""}
                       onChange={(event) =>
-                        setReasons((current) => ({ ...current, [item.id]: event.target.value }))
+                        setReasons((current) => ({
+                          ...current,
+                          [item.id]: event.target.value,
+                        }))
                       }
                     />
                   ) : null}
@@ -310,9 +349,13 @@ export function InteractionCard({
               ))
             : null}
 
-          {card.payload.kind === "confirmation" && card.payload.requireRejectReason ? (
+          {card.payload.kind === "confirmation" &&
+          card.payload.requireRejectReason ? (
             <div className="pit-field">
-              <label className="pit-field-label" htmlFor={`${titleId}-reject-reason`}>
+              <label
+                className="pit-field-label"
+                htmlFor={`${titleId}-reject-reason`}
+              >
                 Reason (required to request changes)
               </label>
               <textarea
@@ -340,7 +383,11 @@ export function InteractionCard({
                   data-variant="primary"
                   disabled={busy}
                   ref={(node) => {
-                    if (autoFocus === true && node !== null && firstControl.current === null) {
+                    if (
+                      autoFocus === true &&
+                      node !== null &&
+                      firstControl.current === null
+                    ) {
                       firstControl.current = node;
                       node.focus();
                     }
@@ -397,7 +444,9 @@ export function InteractionCard({
                         )
                       : [];
                   if (missing.length > 0) {
-                    setError(`Answer every required question (${missing.length} remaining).`);
+                    setError(
+                      `Answer every required question (${missing.length} remaining).`,
+                    );
                     return;
                   }
                   respond({
@@ -482,14 +531,19 @@ export function InteractionCard({
                 onClick={() => {
                   if (card.payload.kind !== "item_verdicts") return;
                   const submitted = card.payload.items.filter(
-                    (item) => item.lockedVerdict == null && verdicts[item.id] !== undefined,
+                    (item) =>
+                      item.lockedVerdict == null &&
+                      verdicts[item.id] !== undefined,
                   );
                   const missingReason = submitted.filter(
                     (item) =>
-                      item.requireReason === true && (reasons[item.id] ?? "").trim().length === 0,
+                      item.requireReason === true &&
+                      (reasons[item.id] ?? "").trim().length === 0,
                   );
                   if (missingReason.length > 0) {
-                    setError(`A reason is required for ${missingReason.length} item(s).`);
+                    setError(
+                      `A reason is required for ${missingReason.length} item(s).`,
+                    );
                     return;
                   }
                   if (submitted.length === 0) {
@@ -519,7 +573,9 @@ export function InteractionCard({
       <button
         type="button"
         className="pit-link-button"
-        onClick={() => onOpenEvidence?.(card.evidenceRef.section, card.evidenceRef.recordId)}
+        onClick={() =>
+          onOpenEvidence?.(card.evidenceRef.section, card.evidenceRef.recordId)
+        }
       >
         View request evidence
       </button>

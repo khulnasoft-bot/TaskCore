@@ -34,9 +34,17 @@ import { getStorageService } from "../../storage/index.js";
 import type { StorageService } from "../../storage/types.js";
 import { readProcessStartedAt } from "../hot-restart.js";
 import { issueService } from "../issues.js";
-import { getNativeReviewAssignment, readNativeReviewAssignmentContext } from "./native-review-participant.js";
+import {
+  getNativeReviewAssignment,
+  readNativeReviewAssignmentContext,
+} from "./native-review-participant.js";
 
-export type RemoteWorkspaceFileReader = (input: Pick<NativeRunnerFileHandoffInput, "contentRef" | "byteSize" | "sha256">) => Promise<Buffer>;
+export type RemoteWorkspaceFileReader = (
+  input: Pick<
+    NativeRunnerFileHandoffInput,
+    "contentRef" | "byteSize" | "sha256"
+  >,
+) => Promise<Buffer>;
 
 export interface NativeRunnerFileHandoffBinding {
   readonly companyId: string;
@@ -320,16 +328,27 @@ async function readVerifiedWorkspaceFile(
   }
 
   if (binding.executionTargetKind === "remote") {
-    if (!binding.readRemoteWorkspaceFile) throw new Error("taskcore_runner_file_handoff_remote_unsupported");
+    if (!binding.readRemoteWorkspaceFile)
+      throw new Error("taskcore_runner_file_handoff_remote_unsupported");
     const contentRef = requiredText(input.contentRef, "content_ref", 2_000);
-    if (path.posix.isAbsolute(contentRef) || /^[a-z][a-z0-9+.-]*:/iu.test(contentRef)
-      || contentRef.includes("\\") || path.posix.normalize(contentRef) === ".."
-      || path.posix.normalize(contentRef).startsWith("../")) {
+    if (
+      path.posix.isAbsolute(contentRef) ||
+      /^[a-z][a-z0-9+.-]*:/iu.test(contentRef) ||
+      contentRef.includes("\\") ||
+      path.posix.normalize(contentRef) === ".." ||
+      path.posix.normalize(contentRef).startsWith("../")
+    ) {
       throw new Error("taskcore_runner_file_handoff_path_denied");
     }
-    const body = await binding.readRemoteWorkspaceFile({ contentRef, byteSize: input.byteSize, sha256: expectedSha256 });
-    if (body.length !== input.byteSize) throw new Error("taskcore_runner_file_handoff_size_denied");
-    if (createHash("sha256").update(body).digest("hex") !== expectedSha256) throw new Error("taskcore_runner_file_handoff_hash_mismatch");
+    const body = await binding.readRemoteWorkspaceFile({
+      contentRef,
+      byteSize: input.byteSize,
+      sha256: expectedSha256,
+    });
+    if (body.length !== input.byteSize)
+      throw new Error("taskcore_runner_file_handoff_size_denied");
+    if (createHash("sha256").update(body).digest("hex") !== expectedSha256)
+      throw new Error("taskcore_runner_file_handoff_hash_mismatch");
     return { body, contentType, filename, sha256: expectedSha256, title };
   }
 
@@ -884,9 +903,13 @@ export async function stageNativeRunnerWakeAttachments(input: {
     const processDirectoryName = await currentStagingProcessDirectoryName();
     await withStagingRegistryLock(workspaceRoot, async () => {
       // Empty wakes still scrub abandoned bytes, but need no new staging paths.
-      const stagingDirectory = selections.length > 0
-        ? await ensurePrivateStagingDirectory(workspaceRoot, processDirectoryName)
-        : null;
+      const stagingDirectory =
+        selections.length > 0
+          ? await ensurePrivateStagingDirectory(
+              workspaceRoot,
+              processDirectoryName,
+            )
+          : null;
       const activePaths =
         activeStagingPathsByWorkspace.get(workspaceRoot) ?? new Set<string>();
       const reusablePaths = await scrubNativeRunnerStagingResidue(

@@ -2,8 +2,12 @@ import { slackAppConfigurationSchema } from "@taskcore/shared";
 
 // Per-turn routing guidance, including resumed CLI sessions. This describes
 // existing capabilities; it never grants tools or overrides action policies.
-export function slackChatAgentGuidance(nativeRunner: boolean, savedCommand?: string | null): string[] {
-  const command = slackAppConfigurationSchema.shape.command.safeParse(savedCommand);
+export function slackChatAgentGuidance(
+  nativeRunner: boolean,
+  savedCommand?: string | null,
+): string[] {
+  const command =
+    slackAppConfigurationSchema.shape.command.safeParse(savedCommand);
   return [
     "",
     "Slack replies and actions:",

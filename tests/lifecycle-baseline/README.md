@@ -20,14 +20,14 @@ repository. New runs still write ignored local output under `.lifecycle-baseline
 archive retained measurements in `taskcore-evals`, with their source revisions
 and coverage, instead of committing result snapshots to the app repository.
 
-| Measurement | Archived report (private) | Published Product E2E report |
-|---|---|---|
-| September 21 — deterministic baseline | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/BASELINE-2026-09-21.md) | Deterministic tests; run locally below |
-| September 21 — initial live baseline | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/LIVE-BASELINE-2026-09-21.md) | [Campaign 35672810261](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35672810261-1/index.html) |
-| September 21 — cancellation and fixture fixes | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/LIVE-FIXES-2026-09-21.md) | [Campaign 35680906634](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35680906634-1/index.html) |
-| September 22 — continuation authority | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/LEGACY-CONTINUATION-2026-09-22.md) | [Campaign 35747200170](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35747200170-1/index.html) |
-| September 22 — explicit work mode | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/EXPLICIT-WORK-MODE-2026-09-22.md) | [Campaign 35806360797](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35806360797-1/index.html) |
-| September 22 — accounting baseline | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/CONTINUATION-ACCOUNTING-2026-09-22.md) | [Campaign 35813099816](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35813099816-1/index.html) |
+| Measurement                                         | Archived report (private)                                                                                                                                                                | Published Product E2E report                                                                                    |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| September 21 — deterministic baseline               | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/BASELINE-2026-09-21.md)                      | Deterministic tests; run locally below                                                                          |
+| September 21 — initial live baseline                | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/LIVE-BASELINE-2026-09-21.md)                 | [Campaign 35672810261](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35672810261-1/index.html) |
+| September 21 — cancellation and fixture fixes       | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/LIVE-FIXES-2026-09-21.md)                    | [Campaign 35680906634](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35680906634-1/index.html) |
+| September 22 — continuation authority               | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/LEGACY-CONTINUATION-2026-09-22.md)           | [Campaign 35747200170](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35747200170-1/index.html) |
+| September 22 — explicit work mode                   | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/EXPLICIT-WORK-MODE-2026-09-22.md)            | [Campaign 35806360797](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35806360797-1/index.html) |
+| September 22 — accounting baseline                  | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/CONTINUATION-ACCOUNTING-2026-09-22.md)       | [Campaign 35813099816](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35813099816-1/index.html) |
 | September 23 — accounting fixes and PR verification | [Report](https://github.com/khulnasoft/taskcore-evals/blob/ce3e5afcd4a1184650f586a2b5b8be5874c66c8b/experiments/2026-09-lifecycle-authority/CONTINUATION-ACCOUNTING-FIXES-2026-09-23.md) | [Campaign 35881382080](https://d1p6rlowie26tp.cloudfront.net/runner-e2e/campaigns/gha-35881382080-1/index.html) |
 
 The public reports remain available without private-repository access. Each
@@ -80,21 +80,21 @@ raw runner/provider text is not uploaded by this command.
 their actual assertions rather than duplicating test bodies or counting catalog
 entries as executed tests. The report records which matching assertions ran.
 
-| ID | Scenario | Contract |
-|---|---|---|
-| LCA-01 | Ordinary completion | Valid completion, delivered response, no extra execution |
-| LCA-02 | Productive multiple turns | Continue appropriate work without repeating completed operations |
-| LCA-03 | Human question | Durable question, matching response, one causal continuation |
-| LCA-04 | Approval/decline | Correct actor and approval; other admission gates still apply |
-| LCA-05 | Planning/revision | Work mode and exact accepted revision authorize execution |
-| LCA-06 | Dependencies | Satisfied dependency condition wakes the parent once |
-| LCA-07 | External monitor | Durable eligible wait, one-shot wake, bounded expiry/retry |
-| LCA-08 | Conversation | Deliver the reply without forcing task completion or repair loops |
-| LCA-09 | Missing disposition | Bounded explicit repair; comments/restarts do not reset attempts |
-| LCA-10 | Stop/pause/budget | Preserve distinct semantics; no unauthorized continuation |
-| LCA-11 | Terminal ordering | Completion report, provider terminal, and cleanup remain distinct |
-| LCA-12 | Replay/restart/ownership | Preserve receipts and budgets; fence stale finalizers |
-| LCA-13 | Review | Concrete reviewer/owner and authoritative review outcome |
+| ID     | Scenario                  | Contract                                                          |
+| ------ | ------------------------- | ----------------------------------------------------------------- |
+| LCA-01 | Ordinary completion       | Valid completion, delivered response, no extra execution          |
+| LCA-02 | Productive multiple turns | Continue appropriate work without repeating completed operations  |
+| LCA-03 | Human question            | Durable question, matching response, one causal continuation      |
+| LCA-04 | Approval/decline          | Correct actor and approval; other admission gates still apply     |
+| LCA-05 | Planning/revision         | Work mode and exact accepted revision authorize execution         |
+| LCA-06 | Dependencies              | Satisfied dependency condition wakes the parent once              |
+| LCA-07 | External monitor          | Durable eligible wait, one-shot wake, bounded expiry/retry        |
+| LCA-08 | Conversation              | Deliver the reply without forcing task completion or repair loops |
+| LCA-09 | Missing disposition       | Bounded explicit repair; comments/restarts do not reset attempts  |
+| LCA-10 | Stop/pause/budget         | Preserve distinct semantics; no unauthorized continuation         |
+| LCA-11 | Terminal ordering         | Completion report, provider terminal, and cleanup remain distinct |
+| LCA-12 | Replay/restart/ownership  | Preserve receipts and budgets; fence stale finalizers             |
+| LCA-13 | Review                    | Concrete reviewer/owner and authoritative review outcome          |
 
 Troublesome combinations included in the inventory and reused suites:
 

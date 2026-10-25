@@ -1,6 +1,14 @@
-import type { TaskcoreQuestion, TaskcoreQuestionResponse, TaskcoreQuestionSet, TranscriptEntry } from "@taskcore/adapter-utils";
+import type {
+  TaskcoreQuestion,
+  TaskcoreQuestionResponse,
+  TaskcoreQuestionSet,
+  TranscriptEntry,
+} from "@taskcore/adapter-utils";
 import type { UIAdapterModule } from "../types";
-import { parseCodexStdoutLine, buildTaskcoreRunnerConfig } from "@taskcore/adapter-codex-local/ui";
+import {
+  parseCodexStdoutLine,
+  buildTaskcoreRunnerConfig,
+} from "@taskcore/adapter-codex-local/ui";
 import { CodexLocalConfigFields } from "../codex-local/config-fields";
 import { isRunLogOnlyProviderEvent } from "@/components/transcript/run-log-only-events";
 
@@ -11,14 +19,25 @@ interface TaskcoreRunnerParserState {
   reasoningDeltaItemIds: Set<string>;
   resultSummaries: Set<string>;
   toolOutputItemIds: Set<string>;
-  itemChannels: Map<string, "progress" | "final" | "summary" | "detail" | "unknown">;
+  itemChannels: Map<
+    string,
+    "progress" | "final" | "summary" | "detail" | "unknown"
+  >;
   structuredFinalItemIds: Set<string>;
-  runtimeRequests: Map<string, Extract<TranscriptEntry, { kind: "runtime_request" }>>;
+  runtimeRequests: Map<
+    string,
+    Extract<TranscriptEntry, { kind: "runtime_request" }>
+  >;
 }
 
-function itemChannel(payload: JsonRecord): "progress" | "final" | "summary" | "detail" | "unknown" {
+function itemChannel(
+  payload: JsonRecord,
+): "progress" | "final" | "summary" | "detail" | "unknown" {
   const channel = text(payload.channel);
-  return channel === "progress" || channel === "final" || channel === "summary" || channel === "detail"
+  return channel === "progress" ||
+    channel === "final" ||
+    channel === "summary" ||
+    channel === "detail"
     ? channel
     : "unknown";
 }
@@ -27,7 +46,8 @@ function structuredResultSummary(value: string): string | null {
   if (!value.trimStart().startsWith("{")) return null;
   try {
     const parsed = record(JSON.parse(value));
-    return text(parsed.schema) === "taskcore.run_result.v1" && text(parsed.summary)
+    return text(parsed.schema) === "taskcore.run_result.v1" &&
+      text(parsed.summary)
       ? text(parsed.summary)
       : null;
   } catch {
@@ -37,7 +57,7 @@ function structuredResultSummary(value: string): string | null {
 
 function record(value: unknown): JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as JsonRecord
+    ? (value as JsonRecord)
     : {};
 }
 
@@ -80,11 +100,13 @@ function itemId(event: JsonRecord, item: JsonRecord): string {
 function toolFailure(item: JsonRecord): boolean {
   const status = text(item.status).toLowerCase();
   const exitCode = item.exitCode ?? item.exit_code;
-  return item.isError === true
-    || item.is_error === true
-    || item.success === false
-    || (typeof exitCode === "number" && exitCode !== 0)
-    || ["failed", "error", "errored", "cancelled"].includes(status);
+  return (
+    item.isError === true ||
+    item.is_error === true ||
+    item.success === false ||
+    (typeof exitCode === "number" && exitCode !== 0) ||
+    ["failed", "error", "errored", "cancelled"].includes(status)
+  );
 }
 
 function commandEntries(
@@ -94,25 +116,39 @@ function commandEntries(
   ts: string,
 ): TranscriptEntry[] {
   const id = itemId(event, item);
-  const commandActions = Array.isArray(item.commandActions) ? item.commandActions : [];
+  const commandActions = Array.isArray(item.commandActions)
+    ? item.commandActions
+    : [];
   const command = text(item.command, text(record(commandActions[0]).command));
   if (phase === "started") {
-    return [{ kind: "tool_call", ts, name: "command", toolUseId: id, input: { command } }];
+    return [
+      {
+        kind: "tool_call",
+        ts,
+        name: "command",
+        toolUseId: id,
+        input: { command },
+      },
+    ];
   }
   const output = text(item.aggregatedOutput, text(item.aggregated_output));
   const exitCode = item.exitCode ?? item.exit_code;
   const detail = [
     typeof exitCode === "number" ? `exit_code: ${exitCode}` : "",
     output,
-  ].filter(Boolean).join("\n");
-  return [{
-    kind: "tool_result",
-    ts,
-    toolUseId: id,
-    toolName: "command",
-    content: detail || text(item.status, "command completed"),
-    isError: toolFailure(item),
-  }];
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return [
+    {
+      kind: "tool_result",
+      ts,
+      toolUseId: id,
+      toolName: "command",
+      content: detail || text(item.status, "command completed"),
+      isError: toolFailure(item),
+    },
+  ];
 }
 
 function diffEntries(change: JsonRecord, ts: string): TranscriptEntry[] {
@@ -120,13 +156,15 @@ function diffEntries(change: JsonRecord, ts: string): TranscriptEntry[] {
   const kind = text(record(change.kind).type, text(change.kind, "update"));
   const raw = text(change.diff);
   const entries: TranscriptEntry[] = [];
-  if (path) entries.push({ kind: "diff", ts, changeType: "file_header", text: path });
+  if (path)
+    entries.push({ kind: "diff", ts, changeType: "file_header", text: path });
   for (const line of raw.split("\n")) {
     if (!line && raw.length === 0) continue;
     entries.push({
       kind: "diff",
       ts,
-      changeType: kind === "add" ? "add" : kind === "delete" ? "remove" : "context",
+      changeType:
+        kind === "add" ? "add" : kind === "delete" ? "remove" : "context",
       text: line,
     });
   }
@@ -143,13 +181,15 @@ function fileChangeEntries(
   const changes = Array.isArray(item.changes) ? item.changes.map(record) : [];
   const paths = changes.map((change) => text(change.path)).filter(Boolean);
   if (phase === "started") {
-    return [{
-      kind: "tool_call",
-      ts,
-      name: "file_change",
-      toolUseId: id,
-      input: { path: paths[0] ?? "", paths },
-    }];
+    return [
+      {
+        kind: "tool_call",
+        ts,
+        name: "file_change",
+        toolUseId: id,
+        input: { path: paths[0] ?? "", paths },
+      },
+    ];
   }
   return [
     ...changes.flatMap((change) => diffEntries(change, ts)),
@@ -173,16 +213,28 @@ function dynamicToolEntries(
   const id = itemId(event, item);
   const name = text(item.tool, text(item.name, "Taskcore tool"));
   if (phase === "started") {
-    return [{ kind: "tool_call", ts, name, toolUseId: id, input: item.arguments ?? item.input ?? {} }];
+    return [
+      {
+        kind: "tool_call",
+        ts,
+        name,
+        toolUseId: id,
+        input: item.arguments ?? item.input ?? {},
+      },
+    ];
   }
-  return [{
-    kind: "tool_result",
-    ts,
-    toolUseId: id,
-    toolName: name,
-    content: stringify(item.contentItems ?? item.result ?? item.output) || `${name} completed`,
-    isError: toolFailure(item),
-  }];
+  return [
+    {
+      kind: "tool_result",
+      ts,
+      toolUseId: id,
+      toolName: name,
+      content:
+        stringify(item.contentItems ?? item.result ?? item.output) ||
+        `${name} completed`,
+      isError: toolFailure(item),
+    },
+  ];
 }
 
 function genericToolEntries(
@@ -194,16 +246,28 @@ function genericToolEntries(
   const id = itemId(event, item);
   const name = text(item.name, text(item.tool, "Tool"));
   if (phase === "started") {
-    return [{ kind: "tool_call", ts, name, toolUseId: id, input: item.input ?? item.arguments ?? {} }];
+    return [
+      {
+        kind: "tool_call",
+        ts,
+        name,
+        toolUseId: id,
+        input: item.input ?? item.arguments ?? {},
+      },
+    ];
   }
-  return [{
-    kind: "tool_result",
-    ts,
-    toolUseId: text(item.tool_use_id, id),
-    toolName: name,
-    content: stringify(item.content ?? item.result ?? item.output ?? item.error) || `${name} completed`,
-    isError: toolFailure(item),
-  }];
+  return [
+    {
+      kind: "tool_result",
+      ts,
+      toolUseId: text(item.tool_use_id, id),
+      toolName: name,
+      content:
+        stringify(item.content ?? item.result ?? item.output ?? item.error) ||
+        `${name} completed`,
+      isError: toolFailure(item),
+    },
+  ];
 }
 
 function parseItemEvent(
@@ -218,7 +282,8 @@ function parseItemEvent(
   const id = itemId(event, item);
   const channel = itemChannel(payload);
   if (phase === "started") state.itemChannels.set(id, channel);
-  const resolvedChannel = channel === "unknown" ? state.itemChannels.get(id) ?? "unknown" : channel;
+  const resolvedChannel =
+    channel === "unknown" ? (state.itemChannels.get(id) ?? "unknown") : channel;
   if (type === "agentmessage") {
     const value = itemText(item, payload);
     if (phase === "completed") state.itemChannels.delete(id);
@@ -227,22 +292,50 @@ function parseItemEvent(
       const summary = structuredResultSummary(value);
       if (summary) {
         state.resultSummaries.add(summary);
-        return [{ kind: "assistant", ts, text: summary, channel: "final", itemId: id }];
+        return [
+          {
+            kind: "assistant",
+            ts,
+            text: summary,
+            channel: "final",
+            itemId: id,
+          },
+        ];
       }
     }
-    return [{ kind: "assistant", ts, text: value, channel: resolvedChannel === "final" ? "final" : resolvedChannel === "progress" ? "progress" : "unknown", itemId: id }];
+    return [
+      {
+        kind: "assistant",
+        ts,
+        text: value,
+        channel:
+          resolvedChannel === "final"
+            ? "final"
+            : resolvedChannel === "progress"
+              ? "progress"
+              : "unknown",
+        itemId: id,
+      },
+    ];
   }
   if (type === "reasoning") {
     const value = itemText(item, payload);
     if (phase === "completed") state.itemChannels.delete(id);
-    return [{
-      kind: "thinking",
-      ts,
-      text: value && !state.reasoningDeltaItemIds.has(id) ? value : "",
-      lifecycle: phase,
-      channel: resolvedChannel === "detail" ? "detail" : resolvedChannel === "summary" ? "summary" : "unknown",
-      itemId: id,
-    }];
+    return [
+      {
+        kind: "thinking",
+        ts,
+        text: value && !state.reasoningDeltaItemIds.has(id) ? value : "",
+        lifecycle: phase,
+        channel:
+          resolvedChannel === "detail"
+            ? "detail"
+            : resolvedChannel === "summary"
+              ? "summary"
+              : "unknown",
+        itemId: id,
+      },
+    ];
   }
   if (type === "commandexecution") {
     const entries = commandEntries(event, item, phase, ts);
@@ -253,7 +346,8 @@ function parseItemEvent(
     return entries;
   }
   if (type === "filechange") return fileChangeEntries(event, item, phase, ts);
-  if (type === "dynamictoolcall") return dynamicToolEntries(event, item, phase, ts);
+  if (type === "dynamictoolcall")
+    return dynamicToolEntries(event, item, phase, ts);
   if (type === "tooluse" || type === "toolresult" || type === "mcptoolcall") {
     return genericToolEntries(event, item, phase, ts);
   }
@@ -273,37 +367,78 @@ function parseDeltaEvent(
   const value = text(payload.text);
   const id = text(event.itemId, `${kind || "item"}-delta`);
   const explicitChannel = itemChannel(payload);
-  const channel = explicitChannel === "unknown" ? state.itemChannels.get(id) ?? "unknown" : explicitChannel;
+  const channel =
+    explicitChannel === "unknown"
+      ? (state.itemChannels.get(id) ?? "unknown")
+      : explicitChannel;
   if (!value) return [];
   if (kind === "agentmessage") {
     state.assistantDeltaItemIds.add(id);
-    if (channel === "final" && (state.structuredFinalItemIds.has(id) || value.trimStart().startsWith("{"))) {
+    if (
+      channel === "final" &&
+      (state.structuredFinalItemIds.has(id) ||
+        value.trimStart().startsWith("{"))
+    ) {
       state.structuredFinalItemIds.add(id);
       return [];
     }
-    return [{ kind: "assistant", ts, text: value, delta: true, channel: channel === "final" ? "final" : channel === "progress" ? "progress" : "unknown", itemId: id }];
+    return [
+      {
+        kind: "assistant",
+        ts,
+        text: value,
+        delta: true,
+        channel:
+          channel === "final"
+            ? "final"
+            : channel === "progress"
+              ? "progress"
+              : "unknown",
+        itemId: id,
+      },
+    ];
   }
   if (kind === "reasoning") {
     state.reasoningDeltaItemIds.add(id);
-    return [{ kind: "thinking", ts, text: value, delta: true, channel: channel === "detail" ? "detail" : channel === "summary" ? "summary" : "unknown", itemId: id }];
+    return [
+      {
+        kind: "thinking",
+        ts,
+        text: value,
+        delta: true,
+        channel:
+          channel === "detail"
+            ? "detail"
+            : channel === "summary"
+              ? "summary"
+              : "unknown",
+        itemId: id,
+      },
+    ];
   }
   if (kind === "commandexecution") {
     state.toolOutputItemIds.add(id);
-    return [{
-      kind: "tool_result",
-      ts,
-      toolUseId: id,
-      toolName: "command",
-      content: value,
-      isError: false,
-      delta: true,
-    }];
+    return [
+      {
+        kind: "tool_result",
+        ts,
+        toolUseId: id,
+        toolName: "command",
+        content: value,
+        isError: false,
+        delta: true,
+      },
+    ];
   }
   if (kind === "filechange" || kind === "diff") {
     return value.split("\n").map((line) => ({
       kind: "diff" as const,
       ts,
-      changeType: line.startsWith("+") ? "add" as const : line.startsWith("-") ? "remove" as const : "context" as const,
+      changeType: line.startsWith("+")
+        ? ("add" as const)
+        : line.startsWith("-")
+          ? ("remove" as const)
+          : ("context" as const),
       text: /^[+-]/.test(line) ? line.slice(1) : line,
     }));
   }
@@ -312,19 +447,27 @@ function parseDeltaEvent(
 }
 
 function usageEntry(payload: JsonRecord, ts: string): TranscriptEntry {
-  const usage = Object.keys(record(payload.usage)).length > 0 ? record(payload.usage) : payload;
-  const reported = Object.keys(record(usage.total)).length > 0
-    ? record(usage.total)
-    : Object.keys(record(usage.runDelta)).length > 0
-      ? record(usage.runDelta)
-      : usage;
+  const usage =
+    Object.keys(record(payload.usage)).length > 0
+      ? record(payload.usage)
+      : payload;
+  const reported =
+    Object.keys(record(usage.total)).length > 0
+      ? record(usage.total)
+      : Object.keys(record(usage.runDelta)).length > 0
+        ? record(usage.runDelta)
+        : usage;
   return {
     kind: "result",
     ts,
     text: "",
     inputTokens: number(reported.inputTokens ?? reported.input_tokens),
     outputTokens: number(reported.outputTokens ?? reported.output_tokens),
-    cachedTokens: number(reported.cachedInputTokens ?? reported.cached_input_tokens ?? reported.cacheReadTokens),
+    cachedTokens: number(
+      reported.cachedInputTokens ??
+        reported.cached_input_tokens ??
+        reported.cacheReadTokens,
+    ),
     costUsd: number(usage.costUsd ?? usage.cost_usd),
     subtype: "taskcore.usage",
     isError: false,
@@ -339,10 +482,15 @@ function nullableText(value: unknown): string | null {
 }
 
 function nullableNumber(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
 }
 
-function workspaceChangeEntry(payload: JsonRecord, ts: string): TranscriptEntry {
+function workspaceChangeEntry(
+  payload: JsonRecord,
+  ts: string,
+): TranscriptEntry {
   const totals = record(payload.totals);
   const files = (Array.isArray(payload.files) ? payload.files : [])
     .map(record)
@@ -350,14 +498,22 @@ function workspaceChangeEntry(payload: JsonRecord, ts: string): TranscriptEntry 
     .slice(0, 2000)
     .map((file) => {
       const rawOperation = text(file.operation);
-      const operation: "create" | "modify" | "delete" | "rename" | "mode_change" = rawOperation === "create" || rawOperation === "delete" || rawOperation === "rename" || rawOperation === "mode_change"
-        ? rawOperation
-        : "modify";
+      const operation:
+        "create" | "modify" | "delete" | "rename" | "mode_change" =
+        rawOperation === "create" ||
+        rawOperation === "delete" ||
+        rawOperation === "rename" ||
+        rawOperation === "mode_change"
+          ? rawOperation
+          : "modify";
       const previousPath = nullableText(file.previousPath);
       return {
         path: text(file.path),
         operation,
-        previousPath: previousPath && SAFE_WORKSPACE_PATH.test(previousPath) ? previousPath : null,
+        previousPath:
+          previousPath && SAFE_WORKSPACE_PATH.test(previousPath)
+            ? previousPath
+            : null,
         additions: nullableNumber(file.additions),
         deletions: nullableNumber(file.deletions),
         binary: file.binary === true,
@@ -369,7 +525,10 @@ function workspaceChangeEntry(payload: JsonRecord, ts: string): TranscriptEntry 
     ts,
     changeSetId: text(payload.changeSetId, "workspace-change"),
     revision: Math.max(1, number(payload.revision)),
-    source: payload.source === "runner_verified" ? "runner_verified" : "harness_reported",
+    source:
+      payload.source === "runner_verified"
+        ? "runner_verified"
+        : "harness_reported",
     complete: payload.complete === true,
     files,
     totals: {
@@ -381,18 +540,27 @@ function workspaceChangeEntry(payload: JsonRecord, ts: string): TranscriptEntry 
   };
 }
 
-function workspaceFileReferenceEntry(payload: JsonRecord, ts: string): TranscriptEntry | null {
+function workspaceFileReferenceEntry(
+  payload: JsonRecord,
+  ts: string,
+): TranscriptEntry | null {
   const path = text(payload.path);
   if (!SAFE_WORKSPACE_PATH.test(path)) return null;
   const rawPresentation = text(payload.presentation);
-  const presentation = rawPresentation === "document" || rawPresentation === "code" || rawPresentation === "image"
-    ? rawPresentation
-    : "generic";
+  const presentation =
+    rawPresentation === "document" ||
+    rawPresentation === "code" ||
+    rawPresentation === "image"
+      ? rawPresentation
+      : "generic";
   return {
     kind: "workspace_file_reference",
     ts,
     referenceId: text(payload.referenceId, `workspace-file:${path}`),
-    source: payload.source === "runner_verified" ? "runner_verified" : "harness_reported",
+    source:
+      payload.source === "runner_verified"
+        ? "runner_verified"
+        : "harness_reported",
     path,
     displayName: text(payload.displayName, path.split("/").at(-1) ?? path),
     mediaType: nullableText(payload.mediaType),
@@ -416,30 +584,46 @@ function runtimeRequestEntry(
   if (!requestId) return null;
   const previous = state.runtimeRequests.get(requestId);
   const suffix = eventType.split(".").at(-1);
-  const resolvedAction = nullableText(request.action) ?? nullableText(payload.action) ?? previous?.resolvedAction ?? null;
+  const resolvedAction =
+    nullableText(request.action) ??
+    nullableText(payload.action) ??
+    previous?.resolvedAction ??
+    null;
   const rawStatus = text(request.status, suffix);
-  const lifecycleStatus = rawStatus === "resolved" || rawStatus === "expired" || rawStatus === "cancelled"
-    ? rawStatus
-    : "pending";
-  const status = lifecycleStatus === "resolved" && (resolvedAction === "cancel" || resolvedAction === "decline")
-    ? "cancelled"
-    : lifecycleStatus;
+  const lifecycleStatus =
+    rawStatus === "resolved" ||
+    rawStatus === "expired" ||
+    rawStatus === "cancelled"
+      ? rawStatus
+      : "pending";
+  const status =
+    lifecycleStatus === "resolved" &&
+    (resolvedAction === "cancel" || resolvedAction === "decline")
+      ? "cancelled"
+      : lifecycleStatus;
   const rawKind = text(request.requestKind, previous?.requestKind ?? undefined);
-  const requestKind = rawKind === "runtime"
-    ? "runtime"
-    : rawKind === "command_approval"
-    || rawKind === "file_approval"
-    || rawKind === "permission_approval"
-    || rawKind === "user_input"
-    || rawKind === "elicitation"
-    ? rawKind
-    : null;
+  const requestKind =
+    rawKind === "runtime"
+      ? "runtime"
+      : rawKind === "command_approval" ||
+          rawKind === "file_approval" ||
+          rawKind === "permission_approval" ||
+          rawKind === "user_input" ||
+          rawKind === "elicitation"
+        ? rawKind
+        : null;
   const rawType = text(request.type, previous?.requestType);
-  const requestType = requestKind === "user_input" || requestKind === "elicitation"
-    || rawType === "input" || rawType.includes("input") || rawType.includes("elicitation")
-    ? "input"
-    : "permission";
-  const explicitChoices = (Array.isArray(request.choices) ? request.choices : [])
+  const requestType =
+    requestKind === "user_input" ||
+    requestKind === "elicitation" ||
+    rawType === "input" ||
+    rawType.includes("input") ||
+    rawType.includes("elicitation")
+      ? "input"
+      : "permission";
+  const explicitChoices = (
+    Array.isArray(request.choices) ? request.choices : []
+  )
     .map(record)
     .map((choice) => ({ key: text(choice.key), label: text(choice.label) }))
     .filter((choice) => choice.key && choice.label)
@@ -451,47 +635,67 @@ function runtimeRequestEntry(
     cancel: "Cancel",
   };
   const actions = (Array.isArray(request.actions) ? request.actions : [])
-    .filter((action): action is string => typeof action === "string" && action in actionLabels)
+    .filter(
+      (action): action is string =>
+        typeof action === "string" && action in actionLabels,
+    )
     .slice(0, 4)
     .map((key) => ({ key, label: actionLabels[key] }));
-  const defaultChoices = requestType === "permission"
-    ? [
-        { key: "accept", label: actionLabels.accept },
-        { key: "accept_for_session", label: actionLabels.accept_for_session },
-        { key: "decline", label: actionLabels.decline },
-        { key: "cancel", label: actionLabels.cancel },
-      ]
-    : [];
-  const choices = explicitChoices.length > 0
-    ? explicitChoices
-    : actions.length > 0
-      ? actions
-      : previous?.choices.length
-        ? previous.choices
-        : defaultChoices;
+  const defaultChoices =
+    requestType === "permission"
+      ? [
+          { key: "accept", label: actionLabels.accept },
+          { key: "accept_for_session", label: actionLabels.accept_for_session },
+          { key: "decline", label: actionLabels.decline },
+          { key: "cancel", label: actionLabels.cancel },
+        ]
+      : [];
+  const choices =
+    explicitChoices.length > 0
+      ? explicitChoices
+      : actions.length > 0
+        ? actions
+        : previous?.choices.length
+          ? previous.choices
+          : defaultChoices;
   const details = record(request.details);
-  const fields = (Array.isArray(details.fields) ? details.fields : previous?.fields ?? [])
+  const fields = (
+    Array.isArray(details.fields) ? details.fields : (previous?.fields ?? [])
+  )
     .map(record)
     .map((field, index) => ({
       name: text(field.name, `answer_${index + 1}`).slice(0, 160),
-      label: text(field.label, text(field.name, `Answer ${index + 1}`)).slice(0, 240),
+      label: text(field.label, text(field.name, `Answer ${index + 1}`)).slice(
+        0,
+        240,
+      ),
       placeholder: nullableText(field.placeholder)?.slice(0, 500) ?? null,
     }))
     .filter((field) => field.name && field.label)
     .slice(0, 16);
-  const questionSet = parseQuestionSet(request.input) ?? previous?.questionSet ?? null;
-  const response = parseQuestionResponse(request.response ?? payload.response)
-    ?? previous?.response
-    ?? null;
+  const questionSet =
+    parseQuestionSet(request.input) ?? previous?.questionSet ?? null;
+  const response =
+    parseQuestionResponse(request.response ?? payload.response) ??
+    previous?.response ??
+    null;
   const entry: Extract<TranscriptEntry, { kind: "runtime_request" }> = {
     kind: "runtime_request",
     ts,
     requestId,
     requestKind,
-    turnId: nullableText(request.turnId) ?? nullableText(payload.turnId) ?? nullableText(event.turnId) ?? previous?.turnId ?? null,
+    turnId:
+      nullableText(request.turnId) ??
+      nullableText(payload.turnId) ??
+      nullableText(event.turnId) ??
+      previous?.turnId ??
+      null,
     requestType,
     status,
-    prompt: text(request.prompt, previous?.prompt ?? "Runtime approval requested"),
+    prompt: text(
+      request.prompt,
+      previous?.prompt ?? "Runtime approval requested",
+    ),
     choices,
     fields,
     questionSet,
@@ -502,14 +706,21 @@ function runtimeRequestEntry(
   return entry;
 }
 
-function parseQuestionResponse(value: unknown): TaskcoreQuestionResponse | null {
+function parseQuestionResponse(
+  value: unknown,
+): TaskcoreQuestionResponse | null {
   const response = record(value);
   if (response.schema !== "taskcore.question_response.v1") return null;
   const rawAnswers = record(response.answers);
   const answers: TaskcoreQuestionResponse["answers"] = {};
-  for (const [questionId, rawAnswer] of Object.entries(rawAnswers).slice(0, 64)) {
+  for (const [questionId, rawAnswer] of Object.entries(rawAnswers).slice(
+    0,
+    64,
+  )) {
     const answer = record(rawAnswer);
-    const selectedOptionIds = (Array.isArray(answer.selectedOptionIds) ? answer.selectedOptionIds : [])
+    const selectedOptionIds = (
+      Array.isArray(answer.selectedOptionIds) ? answer.selectedOptionIds : []
+    )
       .filter((optionId): optionId is string => typeof optionId === "string")
       .slice(0, 128)
       .map((optionId) => optionId.slice(0, 160));
@@ -526,109 +737,219 @@ function parseQuestionResponse(value: unknown): TaskcoreQuestionResponse | null 
 
 function parseQuestionSet(value: unknown): TaskcoreQuestionSet | null {
   const input = record(value);
-  if (!Array.isArray(input.questions) || input.questions.length === 0) return null;
+  if (!Array.isArray(input.questions) || input.questions.length === 0)
+    return null;
   // Early v2 events passed through a broad JWT redactor that replaced the
   // dotted schema discriminator while leaving the bounded question set
   // intact. Recover those already-persisted requests on replay; reject other
   // explicit schema families so this remains a narrow migration path.
-  if (input.schema !== undefined
-    && input.schema !== "taskcore.question_set.v1"
-    && input.schema !== "***REDACTED***") return null;
-  const questions = input.questions.map(record).slice(0, 64).map((question, questionIndex): TaskcoreQuestion => {
-    const answerMode: TaskcoreQuestion["answerMode"] = question.answerMode === "single_select" || question.answerMode === "multi_select" ? question.answerMode : "text";
-    const options = (Array.isArray(question.options) ? question.options : []).map(record).slice(0, 128).map((option, optionIndex) => ({
-      id: text(option.id, `option-${optionIndex + 1}`).slice(0, 160),
-      label: text(option.label, `Option ${optionIndex + 1}`).slice(0, 1_000),
-      ...(nullableText(option.description) ? { description: text(option.description).slice(0, 4_000) } : {}),
-    }));
-    const customAnswer = record(question.customAnswer);
-    const validation = record(question.textValidation);
-    const inputType: NonNullable<TaskcoreQuestion["textValidation"]>["inputType"] =
-      validation.inputType === "number" || validation.inputType === "integer" || validation.inputType === "text"
-        ? validation.inputType
-        : undefined;
-    const parsedQuestion: TaskcoreQuestion = {
-      id: text(question.id, `question-${questionIndex + 1}`).slice(0, 160),
-      ...(nullableText(question.header) ? { header: text(question.header).slice(0, 1_000) } : {}),
-      prompt: text(question.prompt, `Question ${questionIndex + 1}`).slice(0, 4_000),
-      ...(nullableText(question.helpText) ? { helpText: text(question.helpText).slice(0, 4_000) } : {}),
-      required: question.required === true,
-      answerMode,
-      ...(answerMode !== "text" ? { options } : {}),
-      ...(customAnswer.enabled === true ? { customAnswer: {
-        enabled: true as const,
-        ...(nullableText(customAnswer.label) ? { label: text(customAnswer.label).slice(0, 1_000) } : {}),
-        ...(nullableText(customAnswer.placeholder) ? { placeholder: text(customAnswer.placeholder).slice(0, 1_000) } : {}),
-      } } : {}),
-      ...(Object.keys(validation).length > 0 ? { textValidation: {
-        ...(typeof validation.minLength === "number" ? { minLength: validation.minLength } : {}),
-        ...(typeof validation.maxLength === "number" ? { maxLength: validation.maxLength } : {}),
-        ...(typeof validation.pattern === "string" ? { pattern: validation.pattern.slice(0, 1_000) } : {}),
-        ...(inputType ? { inputType } : {}),
-        ...(typeof validation.minimum === "number" ? { minimum: validation.minimum } : {}),
-        ...(typeof validation.maximum === "number" ? { maximum: validation.maximum } : {}),
-      } } : {}),
-    };
-    return parsedQuestion;
-  });
+  if (
+    input.schema !== undefined &&
+    input.schema !== "taskcore.question_set.v1" &&
+    input.schema !== "***REDACTED***"
+  )
+    return null;
+  const questions = input.questions
+    .map(record)
+    .slice(0, 64)
+    .map((question, questionIndex): TaskcoreQuestion => {
+      const answerMode: TaskcoreQuestion["answerMode"] =
+        question.answerMode === "single_select" ||
+        question.answerMode === "multi_select"
+          ? question.answerMode
+          : "text";
+      const options = (Array.isArray(question.options) ? question.options : [])
+        .map(record)
+        .slice(0, 128)
+        .map((option, optionIndex) => ({
+          id: text(option.id, `option-${optionIndex + 1}`).slice(0, 160),
+          label: text(option.label, `Option ${optionIndex + 1}`).slice(
+            0,
+            1_000,
+          ),
+          ...(nullableText(option.description)
+            ? { description: text(option.description).slice(0, 4_000) }
+            : {}),
+        }));
+      const customAnswer = record(question.customAnswer);
+      const validation = record(question.textValidation);
+      const inputType: NonNullable<
+        TaskcoreQuestion["textValidation"]
+      >["inputType"] =
+        validation.inputType === "number" ||
+        validation.inputType === "integer" ||
+        validation.inputType === "text"
+          ? validation.inputType
+          : undefined;
+      const parsedQuestion: TaskcoreQuestion = {
+        id: text(question.id, `question-${questionIndex + 1}`).slice(0, 160),
+        ...(nullableText(question.header)
+          ? { header: text(question.header).slice(0, 1_000) }
+          : {}),
+        prompt: text(question.prompt, `Question ${questionIndex + 1}`).slice(
+          0,
+          4_000,
+        ),
+        ...(nullableText(question.helpText)
+          ? { helpText: text(question.helpText).slice(0, 4_000) }
+          : {}),
+        required: question.required === true,
+        answerMode,
+        ...(answerMode !== "text" ? { options } : {}),
+        ...(customAnswer.enabled === true
+          ? {
+              customAnswer: {
+                enabled: true as const,
+                ...(nullableText(customAnswer.label)
+                  ? { label: text(customAnswer.label).slice(0, 1_000) }
+                  : {}),
+                ...(nullableText(customAnswer.placeholder)
+                  ? {
+                      placeholder: text(customAnswer.placeholder).slice(
+                        0,
+                        1_000,
+                      ),
+                    }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(Object.keys(validation).length > 0
+          ? {
+              textValidation: {
+                ...(typeof validation.minLength === "number"
+                  ? { minLength: validation.minLength }
+                  : {}),
+                ...(typeof validation.maxLength === "number"
+                  ? { maxLength: validation.maxLength }
+                  : {}),
+                ...(typeof validation.pattern === "string"
+                  ? { pattern: validation.pattern.slice(0, 1_000) }
+                  : {}),
+                ...(inputType ? { inputType } : {}),
+                ...(typeof validation.minimum === "number"
+                  ? { minimum: validation.minimum }
+                  : {}),
+                ...(typeof validation.maximum === "number"
+                  ? { maximum: validation.maximum }
+                  : {}),
+              },
+            }
+          : {}),
+      };
+      return parsedQuestion;
+    });
   return {
     schema: "taskcore.question_set.v1",
-    ...(nullableText(input.title) ? { title: text(input.title).slice(0, 1_000) } : {}),
+    ...(nullableText(input.title)
+      ? { title: text(input.title).slice(0, 1_000) }
+      : {}),
     // Native plan decisions bind to the complete canonical question context.
     // The event boundary rejects oversized context rather than approving a slice.
-    ...(nullableText(input.description) ? { description: text(input.description) } : {}),
-    ...(nullableText(input.submitLabel) ? { submitLabel: text(input.submitLabel).slice(0, 200) } : {}),
+    ...(nullableText(input.description)
+      ? { description: text(input.description) }
+      : {}),
+    ...(nullableText(input.submitLabel)
+      ? { submitLabel: text(input.submitLabel).slice(0, 200) }
+      : {}),
     questions,
   };
 }
 
-function runResultEntry(payload: JsonRecord, ts: string): Extract<TranscriptEntry, { kind: "run_result" }> {
+function runResultEntry(
+  payload: JsonRecord,
+  ts: string,
+): Extract<TranscriptEntry, { kind: "run_result" }> {
   const completion = record(payload.completionClaim);
   const blocker = record(payload.blocker);
   const rawDisposition = text(payload.reportedWorkDisposition);
-  const disposition = rawDisposition === "blocked" || rawDisposition === "needs_review" || rawDisposition === "yielded"
-    ? rawDisposition
-    : "done";
+  const disposition =
+    rawDisposition === "blocked" ||
+    rawDisposition === "needs_review" ||
+    rawDisposition === "yielded"
+      ? rawDisposition
+      : "done";
   return {
     kind: "run_result",
     ts,
     disposition,
     summary: text(payload.summary, "Run completed"),
-    objectiveSatisfied: typeof completion.objectiveSatisfied === "boolean" ? completion.objectiveSatisfied : null,
-    verification: (Array.isArray(payload.verification) ? payload.verification : []).map(record).slice(0, 64).map((item) => ({
-      commandOrCheck: text(item.commandOrCheck, "Verification"),
-      status: item.status === "passed" || item.status === "failed" ? item.status : "not_run",
-      detail: nullableText(item.detail) ?? undefined,
-      artifactRef: nullableText(item.artifactRef) ?? undefined,
-    })),
-    remainingWork: (Array.isArray(completion.remainingWork) ? completion.remainingWork : []).map(record).slice(0, 64).map((item) => ({
-      description: text(item.description, "Remaining work"),
-      blocksCompletion: item.blocksCompletion === true,
-    })),
-    blocker: Object.keys(blocker).length > 0 ? {
-      reasonCode: text(blocker.reasonCode, "blocked"),
-      unblockAction: text(blocker.unblockAction, "Resolve the blocker to continue."),
-      scope: blocker.scope === "task_wide" ? "task_wide" : "current_track",
-    } : null,
-    artifacts: (Array.isArray(payload.artifacts) ? payload.artifacts : []).map(record).slice(0, 64).map((item) => ({
-      kind: text(item.kind, "artifact"),
-      ref: text(item.ref),
-      title: nullableText(item.title) ?? undefined,
-    })).filter((item) => item.ref.length > 0),
+    objectiveSatisfied:
+      typeof completion.objectiveSatisfied === "boolean"
+        ? completion.objectiveSatisfied
+        : null,
+    verification: (Array.isArray(payload.verification)
+      ? payload.verification
+      : []
+    )
+      .map(record)
+      .slice(0, 64)
+      .map((item) => ({
+        commandOrCheck: text(item.commandOrCheck, "Verification"),
+        status:
+          item.status === "passed" || item.status === "failed"
+            ? item.status
+            : "not_run",
+        detail: nullableText(item.detail) ?? undefined,
+        artifactRef: nullableText(item.artifactRef) ?? undefined,
+      })),
+    remainingWork: (Array.isArray(completion.remainingWork)
+      ? completion.remainingWork
+      : []
+    )
+      .map(record)
+      .slice(0, 64)
+      .map((item) => ({
+        description: text(item.description, "Remaining work"),
+        blocksCompletion: item.blocksCompletion === true,
+      })),
+    blocker:
+      Object.keys(blocker).length > 0
+        ? {
+            reasonCode: text(blocker.reasonCode, "blocked"),
+            unblockAction: text(
+              blocker.unblockAction,
+              "Resolve the blocker to continue.",
+            ),
+            scope:
+              blocker.scope === "task_wide" ? "task_wide" : "current_track",
+          }
+        : null,
+    artifacts: (Array.isArray(payload.artifacts) ? payload.artifacts : [])
+      .map(record)
+      .slice(0, 64)
+      .map((item) => ({
+        kind: text(item.kind, "artifact"),
+        ref: text(item.ref),
+        title: nullableText(item.title) ?? undefined,
+      }))
+      .filter((item) => item.ref.length > 0),
   };
 }
 
-function runTerminalEntry(payload: JsonRecord, ts: string): Extract<TranscriptEntry, { kind: "run_terminal" }> {
+function runTerminalEntry(
+  payload: JsonRecord,
+  ts: string,
+): Extract<TranscriptEntry, { kind: "run_terminal" }> {
   const rawTurnState = text(payload.turnTerminalState);
-  const turnState = rawTurnState === "failed" || rawTurnState === "interrupted" || rawTurnState === "cancelled"
-    ? rawTurnState
-    : "completed";
+  const turnState =
+    rawTurnState === "failed" ||
+    rawTurnState === "interrupted" ||
+    rawTurnState === "cancelled"
+      ? rawTurnState
+      : "completed";
   const rawRunState = text(payload.runTerminalState);
-  const runState = rawRunState === "failed" || rawRunState === "cancelled" ? rawRunState : "succeeded";
+  const runState =
+    rawRunState === "failed" || rawRunState === "cancelled"
+      ? rawRunState
+      : "succeeded";
   const rawDisposition = text(payload.reportedWorkDisposition);
-  const disposition = rawDisposition === "blocked" || rawDisposition === "needs_review" || rawDisposition === "yielded"
-    ? rawDisposition
-    : "done";
+  const disposition =
+    rawDisposition === "blocked" ||
+    rawDisposition === "needs_review" ||
+    rawDisposition === "yielded"
+      ? rawDisposition
+      : "done";
   const stopReason = record(payload.stopReason);
   return {
     kind: "run_terminal",
@@ -636,33 +957,55 @@ function runTerminalEntry(payload: JsonRecord, ts: string): Extract<TranscriptEn
     turnState,
     runState,
     disposition,
-    stopReason: nullableText(stopReason.message) ?? nullableText(stopReason.code) ?? undefined,
+    stopReason:
+      nullableText(stopReason.message) ??
+      nullableText(stopReason.code) ??
+      undefined,
   };
 }
 
-function semanticToolEntries(eventType: string, payload: JsonRecord, ts: string): TranscriptEntry[] {
+function semanticToolEntries(
+  eventType: string,
+  payload: JsonRecord,
+  ts: string,
+): TranscriptEntry[] {
   const semantic = record(payload.semantic_tool ?? payload.semanticTool);
   const callId = text(semantic.callId, "semantic-tool");
   const operationId = text(semantic.operationId, "Taskcore operation");
   const content = record(semantic.content);
-  const references = (Array.isArray(content.references) ? content.references : []).map(record);
+  const references = (
+    Array.isArray(content.references) ? content.references : []
+  ).map(record);
   const input = {
-    reference: references.map((reference) => `${text(reference.kind)}:${text(reference.id)}`).filter((value) => value !== ":").join(", "),
+    reference: references
+      .map((reference) => `${text(reference.kind)}:${text(reference.id)}`)
+      .filter((value) => value !== ":")
+      .join(", "),
   };
   if (eventType.endsWith("input")) {
-    return [{ kind: "tool_call", ts, name: operationId, toolUseId: callId, input }];
+    return [
+      { kind: "tool_call", ts, name: operationId, toolUseId: callId, input },
+    ];
   }
   const outcome = text(semantic.outcome, "succeeded");
   const code = text(semantic.code, outcome);
   const receipt = text(semantic.operationReceiptId);
-  return [{
-    kind: "tool_result",
-    ts,
-    toolUseId: callId,
-    toolName: operationId,
-    content: [code, receipt ? `receipt: ${receipt}` : ""].filter(Boolean).join("\n"),
-    isError: outcome === "denied" || outcome === "conflict" || outcome === "unavailable" || outcome === "failed",
-  }];
+  return [
+    {
+      kind: "tool_result",
+      ts,
+      toolUseId: callId,
+      toolName: operationId,
+      content: [code, receipt ? `receipt: ${receipt}` : ""]
+        .filter(Boolean)
+        .join("\n"),
+      isError:
+        outcome === "denied" ||
+        outcome === "conflict" ||
+        outcome === "unavailable" ||
+        outcome === "failed",
+    },
+  ];
 }
 
 function parsePrpEvent(
@@ -673,78 +1016,201 @@ function parsePrpEvent(
   const eventType = text(event.eventType);
   const payload = record(event.payload);
   if (isRunLogOnlyProviderEvent(eventType, payload)) return [];
-  const family = eventType.startsWith("plan.") ? "plan"
-    : eventType.startsWith("tool.execution.") ? "tool_execution"
-      : eventType.startsWith("research.") ? "research"
-        : eventType.startsWith("delegation.") ? "delegation"
-          : eventType.startsWith("model.") ? "model_identity"
-            : eventType.startsWith("context.") ? "context"
-              : eventType.startsWith("artifact.") ? "artifact"
-                : eventType.startsWith("review.") ? "review"
-                  : eventType.startsWith("hook.") ? "hook"
-                    : eventType.startsWith("memory.") ? "memory"
-                      : eventType.startsWith("safety.") ? "safety"
-                        : eventType.startsWith("terminal.") ? "terminal"
-                          : eventType.startsWith("wait.") ? "wait"
-                            : eventType.startsWith("provider.notice.") ? "provider_notice" : null;
+  const family = eventType.startsWith("plan.")
+    ? "plan"
+    : eventType.startsWith("tool.execution.")
+      ? "tool_execution"
+      : eventType.startsWith("research.")
+        ? "research"
+        : eventType.startsWith("delegation.")
+          ? "delegation"
+          : eventType.startsWith("model.")
+            ? "model_identity"
+            : eventType.startsWith("context.")
+              ? "context"
+              : eventType.startsWith("artifact.")
+                ? "artifact"
+                : eventType.startsWith("review.")
+                  ? "review"
+                  : eventType.startsWith("hook.")
+                    ? "hook"
+                    : eventType.startsWith("memory.")
+                      ? "memory"
+                      : eventType.startsWith("safety.")
+                        ? "safety"
+                        : eventType.startsWith("terminal.")
+                          ? "terminal"
+                          : eventType.startsWith("wait.")
+                            ? "wait"
+                            : eventType.startsWith("provider.notice.")
+                              ? "provider_notice"
+                              : null;
   if (family !== null) {
     const rawStatus = text(payload.status);
-    const status = (family === "plan" && payload.complete === false) || rawStatus === "running" || rawStatus === "pending" || eventType.endsWith("started") || eventType.endsWith("progressed") ? "running"
-      : rawStatus === "failed" || rawStatus === "denied" ? "failed"
-        : rawStatus === "interrupted" || rawStatus === "cancelled" ? "interrupted"
-          : (family === "plan" && payload.complete === true) || eventType.endsWith("completed") || rawStatus === "completed" ? "completed" : "informational";
-    const title = ({ plan: "Plan", tool_execution: "Tool execution", research: "Research", delegation: "Delegation", model_identity: "Model", context: "Context", artifact: "Artifact", review: "Review mode", hook: "Hook", memory: "Memory citation", safety: "Safety review", terminal: "Terminal input", wait: "Intentional wait", provider_notice: "Provider notice" } as const)[family];
-    const summary = family === "model_identity"
-      ? text(payload.summary, text(payload.effectiveModel, text(payload.requestedModel, text(payload.provider, eventType))))
-      : text(payload.summary, text(payload.name, text(payload.query, eventType)));
-    return [{ kind: "provider_activity", ts, family, eventType, status, title, summary, payload }];
+    const status =
+      (family === "plan" && payload.complete === false) ||
+      rawStatus === "running" ||
+      rawStatus === "pending" ||
+      eventType.endsWith("started") ||
+      eventType.endsWith("progressed")
+        ? "running"
+        : rawStatus === "failed" || rawStatus === "denied"
+          ? "failed"
+          : rawStatus === "interrupted" || rawStatus === "cancelled"
+            ? "interrupted"
+            : (family === "plan" && payload.complete === true) ||
+                eventType.endsWith("completed") ||
+                rawStatus === "completed"
+              ? "completed"
+              : "informational";
+    const title = (
+      {
+        plan: "Plan",
+        tool_execution: "Tool execution",
+        research: "Research",
+        delegation: "Delegation",
+        model_identity: "Model",
+        context: "Context",
+        artifact: "Artifact",
+        review: "Review mode",
+        hook: "Hook",
+        memory: "Memory citation",
+        safety: "Safety review",
+        terminal: "Terminal input",
+        wait: "Intentional wait",
+        provider_notice: "Provider notice",
+      } as const
+    )[family];
+    const summary =
+      family === "model_identity"
+        ? text(
+            payload.summary,
+            text(
+              payload.effectiveModel,
+              text(payload.requestedModel, text(payload.provider, eventType)),
+            ),
+          )
+        : text(
+            payload.summary,
+            text(payload.name, text(payload.query, eventType)),
+          );
+    return [
+      {
+        kind: "provider_activity",
+        ts,
+        family,
+        eventType,
+        status,
+        title,
+        summary,
+        payload,
+      },
+    ];
   }
-  if (eventType === "workspace.change.updated" || eventType === "workspace.diff.recorded") {
+  if (
+    eventType === "workspace.change.updated" ||
+    eventType === "workspace.diff.recorded"
+  ) {
     return [workspaceChangeEntry(payload, ts)];
   }
   if (eventType === "workspace.file.referenced") {
     const entry = workspaceFileReferenceEntry(payload, ts);
-    return entry ? [entry] : [{ kind: "system", ts, text: "Runner: Ignored an unsafe workspace file reference" }];
+    return entry
+      ? [entry]
+      : [
+          {
+            kind: "system",
+            ts,
+            text: "Runner: Ignored an unsafe workspace file reference",
+          },
+        ];
   }
   if (eventType.startsWith("runtime_request.")) {
     const request = record(payload.request ?? payload);
     const input = record(request.input);
-    if (typeof input.description === "string" && input.description.length > 100_000) {
-      return [{ kind: "system", ts, text: "Runner: Cannot display this input request because its complete context exceeds 100,000 characters. No decision can be submitted from this request." }];
+    if (
+      typeof input.description === "string" &&
+      input.description.length > 100_000
+    ) {
+      return [
+        {
+          kind: "system",
+          ts,
+          text: "Runner: Cannot display this input request because its complete context exceeds 100,000 characters. No decision can be submitted from this request.",
+        },
+      ];
     }
     const entry = runtimeRequestEntry(eventType, payload, event, ts, state);
     return entry ? [entry] : [];
   }
   if (
-    eventType === "semantic_tool.input"
-    || eventType === "semantic_tool.result"
-    || eventType === "mcp_app.tool_input"
-    || eventType === "mcp_app.tool_result"
+    eventType === "semantic_tool.input" ||
+    eventType === "semantic_tool.result" ||
+    eventType === "mcp_app.tool_input" ||
+    eventType === "mcp_app.tool_result"
   ) {
     return semanticToolEntries(eventType, payload, ts);
   }
   if (eventType === "session.started" || eventType === "session.resumed") {
     const context = record(payload.context);
-    const model = text(context.model, text(record(payload.model).name, "Taskcore runner"));
-    const sessionId = text(payload.providerSessionId, text(payload.driverSessionId, text(event.normalizedSessionId)));
-    return [{ kind: "system", ts, text: `Taskcore session ${eventType === "session.resumed" ? "resumed" : "started"} · ${model}${sessionId ? ` · ${sessionId}` : ""}` }];
+    const model = text(
+      context.model,
+      text(record(payload.model).name, "Taskcore runner"),
+    );
+    const sessionId = text(
+      payload.providerSessionId,
+      text(payload.driverSessionId, text(event.normalizedSessionId)),
+    );
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `Taskcore session ${eventType === "session.resumed" ? "resumed" : "started"} · ${model}${sessionId ? ` · ${sessionId}` : ""}`,
+      },
+    ];
   }
-  if (eventType === "turn.started") return [{ kind: "system", ts, text: "Turn started" }];
-  if (eventType === "turn.completed") return [{ kind: "system", ts, text: "Turn completed" }];
-  if (eventType === "turn.failed") return [{ kind: "stderr", ts, text: text(record(payload.error).message, "Turn failed") }];
+  if (eventType === "turn.started")
+    return [{ kind: "system", ts, text: "Turn started" }];
+  if (eventType === "turn.completed")
+    return [{ kind: "system", ts, text: "Turn completed" }];
+  if (eventType === "turn.failed")
+    return [
+      {
+        kind: "stderr",
+        ts,
+        text: text(record(payload.error).message, "Turn failed"),
+      },
+    ];
   if (eventType === "item.started" || eventType === "item.completed") {
     if (payload.kind === "usage") return [usageEntry(payload, ts)];
-    return parseItemEvent(event, payload, eventType === "item.started" ? "started" : "completed", ts, state);
+    return parseItemEvent(
+      event,
+      payload,
+      eventType === "item.started" ? "started" : "completed",
+      ts,
+      state,
+    );
   }
   if (eventType === "item.failed") {
     const item = record(payload.item);
     const error = record(payload.error);
-    return [{ kind: "stderr", ts, text: text(error.message, text(item.error, "Runner item failed")) }];
+    return [
+      {
+        kind: "stderr",
+        ts,
+        text: text(error.message, text(item.error, "Runner item failed")),
+      },
+    ];
   }
-  if (eventType === "item.delta") return parseDeltaEvent(event, payload, ts, state);
+  if (eventType === "item.delta")
+    return parseDeltaEvent(event, payload, ts, state);
   if (eventType === "usage.reported") return [usageEntry(payload, ts)];
-  if (eventType === "run.result.proposed" || eventType === "run.result.accepted") {
-    const result = eventType === "run.result.accepted" ? record(payload.result) : payload;
+  if (
+    eventType === "run.result.proposed" ||
+    eventType === "run.result.accepted"
+  ) {
+    const result =
+      eventType === "run.result.accepted" ? record(payload.result) : payload;
     const summary = text(result.summary);
     if (!summary || state.resultSummaries.has(summary)) return [];
     state.resultSummaries.add(summary);
@@ -755,8 +1221,19 @@ function parsePrpEvent(
     return [runResultEntry(result, ts)];
   }
   if (eventType === "run.terminal") return [runTerminalEntry(payload, ts)];
-  if (eventType === "harness.diagnostic" || eventType === "runner.diagnostic" || eventType === "session.failed" || eventType === "mcp_app.failed") {
-    return [{ kind: "system", ts, text: `Runner: ${text(payload.message, text(payload.code, eventType))}` }];
+  if (
+    eventType === "harness.diagnostic" ||
+    eventType === "runner.diagnostic" ||
+    eventType === "session.failed" ||
+    eventType === "mcp_app.failed"
+  ) {
+    return [
+      {
+        kind: "system",
+        ts,
+        text: `Runner: ${text(payload.message, text(payload.code, eventType))}`,
+      },
+    ];
   }
   return [];
 }
@@ -773,7 +1250,11 @@ function createParserState(): TaskcoreRunnerParserState {
   };
 }
 
-function parseTaskcoreRunnerLine(line: string, ts: string, state: TaskcoreRunnerParserState): TranscriptEntry[] {
+function parseTaskcoreRunnerLine(
+  line: string,
+  ts: string,
+  state: TaskcoreRunnerParserState,
+): TranscriptEntry[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(line);
@@ -781,12 +1262,16 @@ function parseTaskcoreRunnerLine(line: string, ts: string, state: TaskcoreRunner
     return parseCodexStdoutLine(line, ts);
   }
   const envelope = record(parsed);
-  if (envelope.type !== "taskcore.prp.event") return parseCodexStdoutLine(line, ts);
+  if (envelope.type !== "taskcore.prp.event")
+    return parseCodexStdoutLine(line, ts);
   const event = record(envelope.event);
   return Object.keys(event).length > 0 ? parsePrpEvent(event, ts, state) : [];
 }
 
-export function parseTaskcoreRunnerStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseTaskcoreRunnerStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   return parseTaskcoreRunnerLine(line, ts, createParserState());
 }
 
@@ -798,7 +1283,9 @@ export const taskcoreRunnerUIAdapter: UIAdapterModule = {
     let state = createParserState();
     return {
       parseLine: (line, ts) => parseTaskcoreRunnerLine(line, ts, state),
-      reset: () => { state = createParserState(); },
+      reset: () => {
+        state = createParserState();
+      },
     };
   },
   ConfigFields: CodexLocalConfigFields,

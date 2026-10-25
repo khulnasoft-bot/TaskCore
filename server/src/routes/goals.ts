@@ -4,7 +4,11 @@ import { createGoalSchema, updateGoalSchema } from "@taskcore/shared";
 import { trackGoalCreated } from "@taskcore/shared/telemetry";
 import { validate } from "../middleware/validate.js";
 import { goalService, logActivity } from "../services/index.js";
-import { assertCompanyAccess, getAccessibleResource, getActorInfo } from "./authz.js";
+import {
+  assertCompanyAccess,
+  getAccessibleResource,
+  getActorInfo,
+} from "./authz.js";
 import { getTelemetryClient } from "../telemetry.js";
 
 export function goalRoutes(db: Db) {
@@ -20,36 +24,50 @@ export function goalRoutes(db: Db) {
 
   router.get("/goals/:id", async (req, res) => {
     const id = req.params.id as string;
-    const goal = await getAccessibleResource(req, res, svc.getById(id), "Goal not found");
+    const goal = await getAccessibleResource(
+      req,
+      res,
+      svc.getById(id),
+      "Goal not found",
+    );
     if (!goal) return;
     res.json(goal);
   });
 
-  router.post("/companies/:companyId/goals", validate(createGoalSchema), async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
-    const goal = await svc.create(companyId, req.body);
-    const actor = getActorInfo(req);
-    await logActivity(db, {
-      companyId,
-      actorType: actor.actorType,
-      actorId: actor.actorId,
-      agentId: actor.agentId,
-      action: "goal.created",
-      entityType: "goal",
-      entityId: goal.id,
-      details: { title: goal.title },
-    });
-    const telemetryClient = getTelemetryClient();
-    if (telemetryClient) {
-      trackGoalCreated(telemetryClient, { goalLevel: goal.level });
-    }
-    res.status(201).json(goal);
-  });
+  router.post(
+    "/companies/:companyId/goals",
+    validate(createGoalSchema),
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertCompanyAccess(req, companyId);
+      const goal = await svc.create(companyId, req.body);
+      const actor = getActorInfo(req);
+      await logActivity(db, {
+        companyId,
+        actorType: actor.actorType,
+        actorId: actor.actorId,
+        agentId: actor.agentId,
+        action: "goal.created",
+        entityType: "goal",
+        entityId: goal.id,
+        details: { title: goal.title },
+      });
+      const telemetryClient = getTelemetryClient();
+      if (telemetryClient) {
+        trackGoalCreated(telemetryClient, { goalLevel: goal.level });
+      }
+      res.status(201).json(goal);
+    },
+  );
 
   router.patch("/goals/:id", validate(updateGoalSchema), async (req, res) => {
     const id = req.params.id as string;
-    const existing = await getAccessibleResource(req, res, svc.getById(id), "Goal not found");
+    const existing = await getAccessibleResource(
+      req,
+      res,
+      svc.getById(id),
+      "Goal not found",
+    );
     if (!existing) return;
     const goal = await svc.update(id, req.body);
     if (!goal) {
@@ -74,7 +92,12 @@ export function goalRoutes(db: Db) {
 
   router.delete("/goals/:id", async (req, res) => {
     const id = req.params.id as string;
-    const existing = await getAccessibleResource(req, res, svc.getById(id), "Goal not found");
+    const existing = await getAccessibleResource(
+      req,
+      res,
+      svc.getById(id),
+      "Goal not found",
+    );
     if (!existing) return;
     const goal = await svc.remove(id);
     if (!goal) {

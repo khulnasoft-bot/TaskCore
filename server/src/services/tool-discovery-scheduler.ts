@@ -7,7 +7,12 @@ export class ToolDiscoveryBusyError extends Error {
 
 /** Limits whole listings, including catalog reads, across gateway service instances. */
 export function createToolDiscoveryScheduler(concurrency = 2, queueLimit = 32) {
-  if (!Number.isInteger(concurrency) || concurrency < 1 || !Number.isInteger(queueLimit) || queueLimit < 0) {
+  if (
+    !Number.isInteger(concurrency) ||
+    concurrency < 1 ||
+    !Number.isInteger(queueLimit) ||
+    queueLimit < 0
+  ) {
     throw new Error("Invalid tool discovery scheduler limits");
   }
   let active = 0;
@@ -28,13 +33,16 @@ export function createToolDiscoveryScheduler(concurrency = 2, queueLimit = 32) {
         start() {
           signal?.removeEventListener("abort", abort);
           // Do not free a slot on abort until already-started reads settle.
-          Promise.resolve().then(() => {
-            signal?.throwIfAborted();
-            return work();
-          }).then(resolve, reject).finally(() => {
-            active -= 1;
-            drain();
-          });
+          Promise.resolve()
+            .then(() => {
+              signal?.throwIfAborted();
+              return work();
+            })
+            .then(resolve, reject)
+            .finally(() => {
+              active -= 1;
+              drain();
+            });
         },
       };
       function abort() {

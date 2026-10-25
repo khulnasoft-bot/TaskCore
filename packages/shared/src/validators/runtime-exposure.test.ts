@@ -11,7 +11,9 @@ import {
 
 describe("runtimeExposureConfigSchema", () => {
   it("accepts the default fail-closed config", () => {
-    expect(() => runtimeExposureConfigSchema.parse(DEFAULT_TAILSCALE_HTTPS_EXPOSURE)).not.toThrow();
+    expect(() =>
+      runtimeExposureConfigSchema.parse(DEFAULT_TAILSCALE_HTTPS_EXPOSURE),
+    ).not.toThrow();
   });
 
   it("rejects unknown fields (no smuggled target/path/hostname suffix)", () => {
@@ -25,26 +27,40 @@ describe("runtimeExposureConfigSchema", () => {
 
   it("rejects arbitrary hostname / publicPort / provider / failure policy", () => {
     expect(() =>
-      runtimeExposureConfigSchema.parse({ ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE, hostname: "evil.example" }),
+      runtimeExposureConfigSchema.parse({
+        ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
+        hostname: "evil.example",
+      }),
     ).toThrow();
     expect(() =>
-      runtimeExposureConfigSchema.parse({ ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE, publicPort: 443 }),
+      runtimeExposureConfigSchema.parse({
+        ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
+        publicPort: 443,
+      }),
     ).toThrow();
     expect(() =>
-      runtimeExposureConfigSchema.parse({ ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE, type: "funnel" }),
+      runtimeExposureConfigSchema.parse({
+        ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
+        type: "funnel",
+      }),
     ).toThrow();
     expect(() =>
-      runtimeExposureConfigSchema.parse({ ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE, failurePolicy: "fail_open" }),
+      runtimeExposureConfigSchema.parse({
+        ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
+        failurePolicy: "fail_open",
+      }),
     ).toThrow();
   });
 
   it("parseRuntimeExposureConfig returns null when absent and throws when malformed", () => {
     expect(parseRuntimeExposureConfig(undefined)).toBeNull();
     expect(parseRuntimeExposureConfig(null)).toBeNull();
-    expect(parseRuntimeExposureConfig(DEFAULT_TAILSCALE_HTTPS_EXPOSURE)).toEqual(
-      DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
-    );
-    expect(() => parseRuntimeExposureConfig({ type: "tailscale_https" })).toThrow();
+    expect(
+      parseRuntimeExposureConfig(DEFAULT_TAILSCALE_HTTPS_EXPOSURE),
+    ).toEqual(DEFAULT_TAILSCALE_HTTPS_EXPOSURE);
+    expect(() =>
+      parseRuntimeExposureConfig({ type: "tailscale_https" }),
+    ).toThrow();
   });
 });
 
@@ -52,7 +68,11 @@ describe("readRuntimeExposureIntent", () => {
   it("treats a legacy expose block with no exposure fields as unset", () => {
     // The pre-feature Taskcore App template shape: an `expose` block that only
     // describes the backend URL. This must be defaultable, not opted out.
-    expect(readRuntimeExposureIntent({ urlTemplate: "http://taskcore-dev:{{port}}" })).toBe("unset");
+    expect(
+      readRuntimeExposureIntent({
+        urlTemplate: "http://taskcore-dev:{{port}}",
+      }),
+    ).toBe("unset");
     expect(readRuntimeExposureIntent(undefined)).toBe("unset");
     expect(readRuntimeExposureIntent(null)).toBe("unset");
     expect(readRuntimeExposureIntent({})).toBe("unset");
@@ -61,36 +81,53 @@ describe("readRuntimeExposureIntent", () => {
   });
 
   it("reads explicit opt-in", () => {
-    expect(readRuntimeExposureIntent({ type: "tailscale_https" })).toBe("enabled");
-    expect(readRuntimeExposureIntent(DEFAULT_TAILSCALE_HTTPS_EXPOSURE)).toBe("enabled");
+    expect(readRuntimeExposureIntent({ type: "tailscale_https" })).toBe(
+      "enabled",
+    );
+    expect(readRuntimeExposureIntent(DEFAULT_TAILSCALE_HTTPS_EXPOSURE)).toBe(
+      "enabled",
+    );
     expect(readRuntimeExposureIntent({ tailscaleHttps: true })).toBe("enabled");
   });
 
   it("reads deliberate opt-out", () => {
-    expect(readRuntimeExposureIntent({ tailscaleHttps: false })).toBe("disabled");
+    expect(readRuntimeExposureIntent({ tailscaleHttps: false })).toBe(
+      "disabled",
+    );
     expect(readRuntimeExposureIntent({ type: "none" })).toBe("disabled");
   });
 
   it("lets an explicit negative win over a stale positive in the same block", () => {
-    expect(readRuntimeExposureIntent({ type: "tailscale_https", tailscaleHttps: false })).toBe("disabled");
+    expect(
+      readRuntimeExposureIntent({
+        type: "tailscale_https",
+        tailscaleHttps: false,
+      }),
+    ).toBe("disabled");
   });
 });
 
 describe("resolveDeclaredRuntimeExposureConfig", () => {
   it("returns null unless the block explicitly opts in", () => {
     expect(resolveDeclaredRuntimeExposureConfig(undefined)).toBeNull();
-    expect(resolveDeclaredRuntimeExposureConfig({ urlTemplate: "http://taskcore-dev:{{port}}" })).toBeNull();
-    expect(resolveDeclaredRuntimeExposureConfig({ tailscaleHttps: false })).toBeNull();
+    expect(
+      resolveDeclaredRuntimeExposureConfig({
+        urlTemplate: "http://taskcore-dev:{{port}}",
+      }),
+    ).toBeNull();
+    expect(
+      resolveDeclaredRuntimeExposureConfig({ tailscaleHttps: false }),
+    ).toBeNull();
   });
 
   it("completes a bare declaration from the fail-closed defaults", () => {
-    expect(resolveDeclaredRuntimeExposureConfig({ type: "tailscale_https" })).toEqual(
-      DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
-    );
+    expect(
+      resolveDeclaredRuntimeExposureConfig({ type: "tailscale_https" }),
+    ).toEqual(DEFAULT_TAILSCALE_HTTPS_EXPOSURE);
     // Shorthand normalizes to the provider literal.
-    expect(resolveDeclaredRuntimeExposureConfig({ tailscaleHttps: true })).toEqual(
-      DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
-    );
+    expect(
+      resolveDeclaredRuntimeExposureConfig({ tailscaleHttps: true }),
+    ).toEqual(DEFAULT_TAILSCALE_HTTPS_EXPOSURE);
   });
 
   it("keeps the backend urlTemplate alongside an opt-in without leaking it into the config", () => {
@@ -104,19 +141,34 @@ describe("resolveDeclaredRuntimeExposureConfig", () => {
 
   it("honors an explicit sub-field override", () => {
     expect(
-      resolveDeclaredRuntimeExposureConfig({ type: "tailscale_https", includeTaskcoreViteHmr: false }),
-    ).toEqual({ ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE, includeTaskcoreViteHmr: false });
+      resolveDeclaredRuntimeExposureConfig({
+        type: "tailscale_https",
+        includeTaskcoreViteHmr: false,
+      }),
+    ).toEqual({
+      ...DEFAULT_TAILSCALE_HTTPS_EXPOSURE,
+      includeTaskcoreViteHmr: false,
+    });
   });
 
   it("still rejects smuggled fields and invalid sub-field values", () => {
     expect(() =>
-      resolveDeclaredRuntimeExposureConfig({ type: "tailscale_https", target: "http://127.0.0.1:5432" }),
+      resolveDeclaredRuntimeExposureConfig({
+        type: "tailscale_https",
+        target: "http://127.0.0.1:5432",
+      }),
     ).toThrow(/Unsupported expose field/);
     expect(() =>
-      resolveDeclaredRuntimeExposureConfig({ type: "tailscale_https", hostname: "evil.example" }),
+      resolveDeclaredRuntimeExposureConfig({
+        type: "tailscale_https",
+        hostname: "evil.example",
+      }),
     ).toThrow();
     expect(() =>
-      resolveDeclaredRuntimeExposureConfig({ type: "tailscale_https", failurePolicy: "fail_open" }),
+      resolveDeclaredRuntimeExposureConfig({
+        type: "tailscale_https",
+        failurePolicy: "fail_open",
+      }),
     ).toThrow();
   });
 });
@@ -124,10 +176,18 @@ describe("resolveDeclaredRuntimeExposureConfig", () => {
 describe("runtimeExposureListenerSchema", () => {
   it("enforces the same-number invariant", () => {
     expect(() =>
-      runtimeExposureListenerSchema.parse({ purpose: "app", publicPort: 42010, targetPort: 42010 }),
+      runtimeExposureListenerSchema.parse({
+        purpose: "app",
+        publicPort: 42010,
+        targetPort: 42010,
+      }),
     ).not.toThrow();
     expect(() =>
-      runtimeExposureListenerSchema.parse({ purpose: "app", publicPort: 42010, targetPort: 5432 }),
+      runtimeExposureListenerSchema.parse({
+        purpose: "app",
+        publicPort: 42010,
+        targetPort: 5432,
+      }),
     ).toThrow();
   });
 });

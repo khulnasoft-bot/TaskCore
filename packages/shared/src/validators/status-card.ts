@@ -13,9 +13,24 @@ function isValidTimeZone(timezone: string) {
   }
 }
 
-export const statusCardStateSchema = z.enum(["compiling", "active", "error", "paused_budget", "paused_hours"]);
-export const statusCardUpdateKindSchema = z.enum(["compile", "full", "incremental"]);
-export const statusCardUpdateTriggerSchema = z.enum(["manual", "interval", "reactive", "restore"]);
+export const statusCardStateSchema = z.enum([
+  "compiling",
+  "active",
+  "error",
+  "paused_budget",
+  "paused_hours",
+]);
+export const statusCardUpdateKindSchema = z.enum([
+  "compile",
+  "full",
+  "incremental",
+]);
+export const statusCardUpdateTriggerSchema = z.enum([
+  "manual",
+  "interval",
+  "reactive",
+  "restore",
+]);
 export const statusCardUpdateStatusSchema = z.enum(["running", "ok", "failed"]);
 
 export const statusCardRefreshTriggersSchema = z.object({
@@ -37,21 +52,34 @@ export const statusCardRefreshPolicySchema = z
       .object({
         start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
         end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-        timezone: z.string().trim().min(1).refine(isValidTimeZone, { message: "Invalid timezone identifier" }),
+        timezone: z
+          .string()
+          .trim()
+          .min(1)
+          .refine(isValidTimeZone, { message: "Invalid timezone identifier" }),
       })
       .optional(),
     dailyTokenCap: z.number().int().positive().optional(),
   })
   .superRefine((policy, ctx) => {
     if (policy.mode === "interval" && policy.intervalMinutes === undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["intervalMinutes"], message: "Required for interval mode" });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["intervalMinutes"],
+        message: "Required for interval mode",
+      });
     }
     if (policy.mode === "reactive" && policy.debounceSeconds === undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["debounceSeconds"], message: "Required for reactive mode" });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["debounceSeconds"],
+        message: "Required for reactive mode",
+      });
     }
   });
 
-export const defaultStatusCardRefreshPolicy = statusCardRefreshPolicySchema.parse({ mode: "manual" });
+export const defaultStatusCardRefreshPolicy =
+  statusCardRefreshPolicySchema.parse({ mode: "manual" });
 
 export const statusCardFingerprintSchema = z.record(
   z.string(),
@@ -153,7 +181,9 @@ export const createStatusCardSchema = z.object({
   title: z.string().trim().min(1).max(300).optional(),
   titlePinned: z.boolean().default(false),
   agentId: z.string().guid().nullable().optional(),
-  refreshPolicy: statusCardRefreshPolicySchema.default(defaultStatusCardRefreshPolicy),
+  refreshPolicy: statusCardRefreshPolicySchema.default(
+    defaultStatusCardRefreshPolicy,
+  ),
 });
 
 export const patchStatusCardSchema = z
@@ -165,7 +195,10 @@ export const patchStatusCardSchema = z
     refreshPolicy: statusCardRefreshPolicySchema.optional(),
     archived: z.boolean().optional(),
   })
-  .refine((value) => Object.keys(value).length > 0, "At least one field is required");
+  .refine(
+    (value) => Object.keys(value).length > 0,
+    "At least one field is required",
+  );
 
 export const refreshStatusCardSchema = z.object({
   full: z.boolean().default(false),
@@ -187,11 +220,17 @@ export const writeStatusCardSummarySchema = z.object({
 });
 
 export type StatusCard = z.infer<typeof statusCardSchema>;
-export type StatusCardRefreshPolicy = z.infer<typeof statusCardRefreshPolicySchema>;
+export type StatusCardRefreshPolicy = z.infer<
+  typeof statusCardRefreshPolicySchema
+>;
 export type StatusCardUpdate = z.infer<typeof statusCardUpdateSchema>;
-export type StatusCardSummaryRevision = z.infer<typeof statusCardSummaryRevisionSchema>;
+export type StatusCardSummaryRevision = z.infer<
+  typeof statusCardSummaryRevisionSchema
+>;
 export type CreateStatusCard = z.infer<typeof createStatusCardSchema>;
 export type PatchStatusCard = z.infer<typeof patchStatusCardSchema>;
 export type RefreshStatusCard = z.infer<typeof refreshStatusCardSchema>;
 export type WriteStatusCardQuery = z.infer<typeof writeStatusCardQuerySchema>;
-export type WriteStatusCardSummary = z.infer<typeof writeStatusCardSummarySchema>;
+export type WriteStatusCardSummary = z.infer<
+  typeof writeStatusCardSummarySchema
+>;

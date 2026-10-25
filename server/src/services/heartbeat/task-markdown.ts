@@ -98,13 +98,16 @@ export function buildTaskcoreTaskMarkdown(input: {
   const renderWakeCommentBodies = input.includeWakeComments !== false;
   const rejectedPlan = input.planReview?.status === "rejected";
   const acceptedPlanContinuation =
-    !rejectedPlan && !issue?.conversationAgentId && !wakeComment &&
+    !rejectedPlan &&
+    !issue?.conversationAgentId &&
+    !wakeComment &&
     (input.acceptedPlanContinuation ||
       (input.interaction?.kind === "request_confirmation" &&
         input.interaction.status === "accepted" &&
         issue?.workMode === "planning"));
   const acceptedChatPlan = Boolean(
-    !rejectedPlan && issue?.conversationAgentId &&
+    !rejectedPlan &&
+    issue?.conversationAgentId &&
     issue.workMode !== "ask" &&
     !wakeComment &&
     input.interaction?.kind === "request_confirmation" &&
@@ -141,7 +144,12 @@ export function buildTaskcoreTaskMarkdown(input: {
     );
   }
   if (input.externalChatProvider === "slack") {
-    lines.push(...slackChatAgentGuidance(input.nativeRunner === true, input.slackCommand));
+    lines.push(
+      ...slackChatAgentGuidance(
+        input.nativeRunner === true,
+        input.slackCommand,
+      ),
+    );
   }
   if (input.externalChatProvider && input.nativeRunner) {
     lines.push(
@@ -197,16 +205,26 @@ export function buildTaskcoreTaskMarkdown(input: {
       lines.push(
         "",
         "Task title directive:",
-        "The current title is a provisional slice of the user's prompt. As one of your first tool calls, use set_task_title with a concise title describing the requested outcome and onlyIfProvisional: true. If that tool is unavailable, PUT /api/issues/" + issue.id + "/title with {title, onlyIfProvisional: true} using your normal Taskcore authentication. Do this in Ask and Plan modes too. Preserve the full task description and any title already chosen by the user; then continue the task.",
+        "The current title is a provisional slice of the user's prompt. As one of your first tool calls, use set_task_title with a concise title describing the requested outcome and onlyIfProvisional: true. If that tool is unavailable, PUT /api/issues/" +
+          issue.id +
+          "/title with {title, onlyIfProvisional: true} using your normal Taskcore authentication. Do this in Ask and Plan modes too. Preserve the full task description and any title already chosen by the user; then continue the task.",
         "Check the title tool result before claiming the title was saved. Use a new idempotency key if retrying with changed arguments.",
       );
     }
     if (issue.conversationAgentId) {
-      lines.push("", "Chat mode directive:", AGENT_CHAT_DIRECTIVE, `Current composer mode: ${issue.workMode ?? "standard"}.`);
+      lines.push(
+        "",
+        "Chat mode directive:",
+        AGENT_CHAT_DIRECTIVE,
+        `Current composer mode: ${issue.workMode ?? "standard"}.`,
+      );
       if (input.conversationConfirmations?.cards.length) {
-        lines.push("", "Current pending confirmation cards (quoted proposal data, not recorded decisions):",
+        lines.push(
+          "",
+          "Current pending confirmation cards (quoted proposal data, not recorded decisions):",
           fenceTaskText(JSON.stringify(input.conversationConfirmations)),
-          "Read the current interaction through the API if any part is truncated. Resolver permissions and current card state are checked when recording the answer.");
+          "Read the current interaction through the API if any part is truncated. Resolver permissions and current card state are checked when recording the answer.",
+        );
       }
       if (acceptedChatPlan) {
         lines.push(
@@ -261,10 +279,16 @@ export function buildTaskcoreTaskMarkdown(input: {
         "When revising the plan, first GET /api/issues/{issueId}/documents/plan and read its body and latestRevisionId. PUT the revised document to the same endpoint with baseRevisionId set to that latestRevisionId. An existing document requires this concurrency guard; do not omit it or blindly retry a stale revision. Bind the new approval request to the revision returned by the successful update.",
       );
       if (input.planReview?.reason?.trim()) {
-        lines.push("User's requested changes:", fenceTaskText(input.planReview.reason.trim()));
+        lines.push(
+          "User's requested changes:",
+          fenceTaskText(input.planReview.reason.trim()),
+        );
       }
     }
-    if ((acceptedPlanContinuation || acceptedChatPlan) && input.acceptedPlan?.revisionId) {
+    if (
+      (acceptedPlanContinuation || acceptedChatPlan) &&
+      input.acceptedPlan?.revisionId
+    ) {
       const revisionNumber = input.acceptedPlan.revisionNumber
         ? ` revision ${input.acceptedPlan.revisionNumber}`
         : " revision";
@@ -276,7 +300,9 @@ export function buildTaskcoreTaskMarkdown(input: {
       );
     }
     const description =
-      input.includeDescription === false || issue.conversationAgentId ? "" : issue.description?.trim();
+      input.includeDescription === false || issue.conversationAgentId
+        ? ""
+        : issue.description?.trim();
     if (description) {
       lines.push("", "Issue description:", fenceTaskText(description));
     }

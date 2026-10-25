@@ -6,7 +6,9 @@ import { companies, instanceSettings } from "@taskcore/db";
  * settings writes use. Lets `update` run inside a caller's transaction so
  * it commits atomically with a sibling write.
  */
-type InstanceSettingsTransaction = Parameters<Parameters<Db["transaction"]>[0]>[0];
+type InstanceSettingsTransaction = Parameters<
+  Parameters<Db["transaction"]>[0]
+>[0];
 export type InstanceSettingsWriteDb = Pick<
   Db | InstanceSettingsTransaction,
   "select" | "insert" | "update"
@@ -33,12 +35,17 @@ import {
   stripOperatorGeneralEchoes,
 } from "@taskcore/shared";
 import { eq } from "drizzle-orm";
-import { getManagedInstanceConfig, type ManagedInstanceConfig } from "./managed-config.js";
+import {
+  getManagedInstanceConfig,
+  type ManagedInstanceConfig,
+} from "./managed-config.js";
 import { getOperatorSettingDefaults } from "./setting-defaults.js";
 
 const DEFAULT_SINGLETON_KEY = "default";
-const instanceGeneralSettingsStorageSchema = instanceGeneralSettingsSchema.strip();
-const instanceExperimentalSettingsStorageSchema = instanceExperimentalSettingsSchema.strip();
+const instanceGeneralSettingsStorageSchema =
+  instanceGeneralSettingsSchema.strip();
+const instanceExperimentalSettingsStorageSchema =
+  instanceExperimentalSettingsSchema.strip();
 const TRUTHY_RUNTIME_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
 
 interface InstanceSettingsServiceOptions {
@@ -69,7 +76,10 @@ export type WorktreeRunExecutionActivationState =
     };
 
 export function isTruthyRuntimeEnvValue(value: string | undefined) {
-  return typeof value === "string" && TRUTHY_RUNTIME_ENV_VALUES.has(value.trim().toLowerCase());
+  return (
+    typeof value === "string" &&
+    TRUTHY_RUNTIME_ENV_VALUES.has(value.trim().toLowerCase())
+  );
 }
 
 function getRuntimeInstanceId(env: Record<string, string | undefined>) {
@@ -127,7 +137,9 @@ export function applyExperimentalSettingsPatch(
 
   return {
     ...nextExperimental,
-    worktreeRunExecutionActivatedAt: (options.now ?? (() => new Date()))().toISOString(),
+    worktreeRunExecutionActivatedAt: (
+      options.now ?? (() => new Date())
+    )().toISOString(),
     worktreeRunExecutionActivationInstanceId: getRuntimeInstanceId(runtimeEnv),
   };
 }
@@ -166,7 +178,9 @@ export function resolveWorktreeRunExecutionActivation(
       experimental.worktreeRunExecutionActivationInstanceId,
     );
   }
-  if (experimental.worktreeRunExecutionActivationInstanceId !== currentInstanceId) {
+  if (
+    experimental.worktreeRunExecutionActivationInstanceId !== currentInstanceId
+  ) {
     return suppressWorktreeRunExecution(
       "instance_id_mismatch",
       experimental.worktreeRunExecutionActivationInstanceId,
@@ -204,10 +218,13 @@ function normalizeGeneralSettings(raw: unknown): InstanceGeneralSettings {
     return {
       censorUsernameInLogs: parsed.data.censorUsernameInLogs ?? false,
       feedbackDataSharingPreference:
-        parsed.data.feedbackDataSharingPreference ?? DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE,
+        parsed.data.feedbackDataSharingPreference ??
+        DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE,
       backupRetention: parsed.data.backupRetention ?? DEFAULT_BACKUP_RETENTION,
       // Absent => unrestricted; only carry through an explicit policy.
-      ...(parsed.data.executionMode ? { executionMode: parsed.data.executionMode } : {}),
+      ...(parsed.data.executionMode
+        ? { executionMode: parsed.data.executionMode }
+        : {}),
     };
   }
   return {
@@ -217,7 +234,9 @@ function normalizeGeneralSettings(raw: unknown): InstanceGeneralSettings {
   };
 }
 
-export function normalizeExperimentalSettings(raw: unknown): InstanceExperimentalSettings {
+export function normalizeExperimentalSettings(
+  raw: unknown,
+): InstanceExperimentalSettings {
   const parsed = instanceExperimentalSettingsStorageSchema.safeParse(raw ?? {});
   if (parsed.success) {
     return {
@@ -226,8 +245,10 @@ export function normalizeExperimentalSettings(raw: unknown): InstanceExperimenta
       enableAiConnectionRouters: parsed.data.enableAiConnectionRouters ?? false,
       enableManagedSandboxOnly: parsed.data.enableManagedSandboxOnly ?? false,
       enableIsolatedWorkspaces: parsed.data.enableIsolatedWorkspaces ?? false,
-      enableIsolatedWorkspacesByDefault: parsed.data.enableIsolatedWorkspacesByDefault ?? false,
-      enableStreamlinedLeftNavigation: parsed.data.enableStreamlinedLeftNavigation ?? true,
+      enableIsolatedWorkspacesByDefault:
+        parsed.data.enableIsolatedWorkspacesByDefault ?? false,
+      enableStreamlinedLeftNavigation:
+        parsed.data.enableStreamlinedLeftNavigation ?? true,
       enableStreamlinedUi: parsed.data.enableStreamlinedUi ?? true,
       // Apps graduated from Experimental. Ignore historical off values while
       // continuing to accept the compatibility key in stored settings.
@@ -242,9 +263,12 @@ export function normalizeExperimentalSettings(raw: unknown): InstanceExperimenta
       enableAgentChat: parsed.data.enableAgentChat ?? false,
       enableCombinedInboxTasks: parsed.data.enableCombinedInboxTasks ?? false,
       enableConferenceRoomChat: parsed.data.enableConferenceRoomChat ?? false,
-      enableClassicTaskInterface: parsed.data.enableClassicTaskInterface ?? false,
-      enableIssuePlanDecompositions: parsed.data.enableIssuePlanDecompositions ?? false,
-      enableExperimentalFileViewer: parsed.data.enableExperimentalFileViewer ?? false,
+      enableClassicTaskInterface:
+        parsed.data.enableClassicTaskInterface ?? false,
+      enableIssuePlanDecompositions:
+        parsed.data.enableIssuePlanDecompositions ?? false,
+      enableExperimentalFileViewer:
+        parsed.data.enableExperimentalFileViewer ?? false,
       enableExternalObjects: parsed.data.enableExternalObjects ?? false,
       enableSmokeLab: parsed.data.enableSmokeLab ?? false,
       enableBuiltInAgents: parsed.data.enableBuiltInAgents ?? false,
@@ -254,17 +278,26 @@ export function normalizeExperimentalSettings(raw: unknown): InstanceExperimenta
       enableDecisions: parsed.data.enableDecisions ?? false,
       enableGoalsSidebarLink: parsed.data.enableGoalsSidebarLink ?? false,
       enableServerInfoDebugView: parsed.data.enableServerInfoDebugView ?? false,
-      enableTaskcoreDeveloperMode: parsed.data.enableTaskcoreDeveloperMode ?? false,
-      enableSimplifiedEnglishInteractions: parsed.data.enableSimplifiedEnglishInteractions ?? false,
-      enableFirstTaskPlanProposal: parsed.data.enableFirstTaskPlanProposal ?? false,
-      autoRestartDevServerWhenIdle: parsed.data.autoRestartDevServerWhenIdle ?? false,
-      enableWorkspaceBranchReconcileForward: parsed.data.enableWorkspaceBranchReconcileForward ?? true,
-      enableWorkspaceDirtyQuarantineRepair: parsed.data.enableWorkspaceDirtyQuarantineRepair ?? true,
+      enableTaskcoreDeveloperMode:
+        parsed.data.enableTaskcoreDeveloperMode ?? false,
+      enableSimplifiedEnglishInteractions:
+        parsed.data.enableSimplifiedEnglishInteractions ?? false,
+      enableFirstTaskPlanProposal:
+        parsed.data.enableFirstTaskPlanProposal ?? false,
+      autoRestartDevServerWhenIdle:
+        parsed.data.autoRestartDevServerWhenIdle ?? false,
+      enableWorkspaceBranchReconcileForward:
+        parsed.data.enableWorkspaceBranchReconcileForward ?? true,
+      enableWorkspaceDirtyQuarantineRepair:
+        parsed.data.enableWorkspaceDirtyQuarantineRepair ?? true,
       enableOwnerInstanceAdmin: parsed.data.enableOwnerInstanceAdmin ?? false,
       enableSandboxDuplexBridge: parsed.data.enableSandboxDuplexBridge ?? false,
-      enableRunnerPreviewIngress: parsed.data.enableRunnerPreviewIngress ?? false,
-      enableWorktreeRunExecution: parsed.data.enableWorktreeRunExecution ?? false,
-      worktreeRunExecutionActivatedAt: parsed.data.worktreeRunExecutionActivatedAt ?? null,
+      enableRunnerPreviewIngress:
+        parsed.data.enableRunnerPreviewIngress ?? false,
+      enableWorktreeRunExecution:
+        parsed.data.enableWorktreeRunExecution ?? false,
+      worktreeRunExecutionActivatedAt:
+        parsed.data.worktreeRunExecutionActivatedAt ?? null,
       worktreeRunExecutionActivationInstanceId:
         parsed.data.worktreeRunExecutionActivationInstanceId ?? null,
     };
@@ -333,7 +366,10 @@ export type ManagedExperimentalKeyMetadata = Partial<
 export function applyManagedExperimentalOverlay(
   experimental: InstanceExperimentalSettings,
   managedConfig: ManagedInstanceConfig | null,
-): { experimental: InstanceExperimentalSettings; managedKeys: ManagedExperimentalKeyMetadata } {
+): {
+  experimental: InstanceExperimentalSettings;
+  managedKeys: ManagedExperimentalKeyMetadata;
+} {
   if (!managedConfig) return { experimental, managedKeys: {} };
   const next: InstanceExperimentalSettings = { ...experimental };
   const managedKeys: ManagedExperimentalKeyMetadata = {};
@@ -372,9 +408,14 @@ export function applyCloudCatalogDefaults(
       : {};
   const next: InstanceExperimentalSettings = { ...experimental };
   for (const [key, entry] of Object.entries(INSTANCE_FEATURE_CATALOG)) {
-    if (entry.cloudDefault !== false || entry.selfHostedDefault !== true) continue;
+    if (entry.cloudDefault !== false || entry.selfHostedDefault !== true)
+      continue;
     if (typeof stored[key] === "boolean") continue;
-    if (typeof managedConfig.features[key as ManagedExperimentalFeatureKey] === "boolean") continue;
+    if (
+      typeof managedConfig.features[key as ManagedExperimentalFeatureKey] ===
+      "boolean"
+    )
+      continue;
     (next as unknown as Record<string, unknown>)[key] = false;
   }
   return next;
@@ -411,7 +452,8 @@ export function stripCloudCatalogDefaultEchoes(
   const patchRecord = patch as Record<string, unknown>;
   const result: Record<string, unknown> = { ...next };
   for (const [key, entry] of Object.entries(INSTANCE_FEATURE_CATALOG)) {
-    if (entry.cloudDefault !== false || entry.selfHostedDefault !== true) continue;
+    if (entry.cloudDefault !== false || entry.selfHostedDefault !== true)
+      continue;
     if (typeof stored[key] === "boolean") continue;
     if (
       Object.prototype.hasOwnProperty.call(patchRecord, key) &&
@@ -425,30 +467,48 @@ export function stripCloudCatalogDefaultEchoes(
   return result as Partial<InstanceExperimentalSettings>;
 }
 
-export function instanceSettingsService(db: Db, options: InstanceSettingsServiceOptions = {}) {
+export function instanceSettingsService(
+  db: Db,
+  options: InstanceSettingsServiceOptions = {},
+) {
   // Fail closed: a malformed TASKCORE_MANAGED_CONFIG throws here (and at
   // boot in index.ts) rather than silently running without the overlay.
-  const managedConfig = getManagedInstanceConfig(options.runtimeEnv ?? process.env);
+  const managedConfig = getManagedInstanceConfig(
+    options.runtimeEnv ?? process.env,
+  );
   // Same posture for TASKCORE_SETTING_DEFAULTS: parsed once, applied per
   // read, never persisted (see applyOperatorGeneralDefaults) — including on
   // the write path, where a full-GET echo of the overlaid value is stripped
   // back to the schema default (see stripOperatorGeneralEchoes).
-  const operatorDefaults = getOperatorSettingDefaults(options.runtimeEnv ?? process.env);
+  const operatorDefaults = getOperatorSettingDefaults(
+    options.runtimeEnv ?? process.env,
+  );
 
   function toGeneralView(raw: unknown): InstanceGeneralSettings {
-    return applyOperatorGeneralDefaults(normalizeGeneralSettings(raw), operatorDefaults);
+    return applyOperatorGeneralDefaults(
+      normalizeGeneralSettings(raw),
+      operatorDefaults,
+    );
   }
 
-  function toExperimentalView(raw: unknown): InstanceExperimentalSettingsWithManaged {
+  function toExperimentalView(
+    raw: unknown,
+  ): InstanceExperimentalSettingsWithManaged {
     const { experimental, managedKeys } = applyManagedExperimentalOverlay(
-      applyCloudCatalogDefaults(normalizeExperimentalSettings(raw), raw, managedConfig),
+      applyCloudCatalogDefaults(
+        normalizeExperimentalSettings(raw),
+        raw,
+        managedConfig,
+      ),
       managedConfig,
     );
     // Self-hosted responses stay byte-identical: no managedKeys field at all.
     return managedConfig ? { ...experimental, managedKeys } : experimental;
   }
 
-  function toInstanceSettings(row: typeof instanceSettings.$inferSelect): InstanceSettings {
+  function toInstanceSettings(
+    row: typeof instanceSettings.$inferSelect,
+  ): InstanceSettings {
     return {
       id: row.id,
       defaultEnvironmentId: row.defaultEnvironmentId ?? null,
@@ -497,7 +557,8 @@ export function instanceSettingsService(db: Db, options: InstanceSettingsService
   }
 
   return {
-    get: async (): Promise<InstanceSettings> => toInstanceSettings(await getOrCreateRow()),
+    get: async (): Promise<InstanceSettings> =>
+      toInstanceSettings(await getOrCreateRow()),
 
     update: async (
       patch: PatchInstanceSettings,
@@ -513,7 +574,10 @@ export function instanceSettingsService(db: Db, options: InstanceSettingsService
       const [updated] = await runner
         .update(instanceSettings)
         .set({
-          ...(Object.prototype.hasOwnProperty.call(patch, "defaultEnvironmentId")
+          ...(Object.prototype.hasOwnProperty.call(
+            patch,
+            "defaultEnvironmentId",
+          )
             ? { defaultEnvironmentId: patch.defaultEnvironmentId ?? null }
             : {}),
           updatedAt: now,
@@ -523,19 +587,22 @@ export function instanceSettingsService(db: Db, options: InstanceSettingsService
       return toInstanceSettings(updated ?? current);
     },
 
-    getGeneral: async (
-      readOptions?: { db?: InstanceSettingsWriteDb },
-    ): Promise<InstanceGeneralSettings> => {
+    getGeneral: async (readOptions?: {
+      db?: InstanceSettingsWriteDb;
+    }): Promise<InstanceGeneralSettings> => {
       const row = await getOrCreateRow(readOptions?.db);
       return toGeneralView(row.general);
     },
 
-    getExperimental: async (): Promise<InstanceExperimentalSettingsWithManaged> => {
-      const row = await getOrCreateRow();
-      return toExperimentalView(row.experimental);
-    },
+    getExperimental:
+      async (): Promise<InstanceExperimentalSettingsWithManaged> => {
+        const row = await getOrCreateRow();
+        return toExperimentalView(row.experimental);
+      },
 
-    updateGeneral: async (patch: PatchInstanceGeneralSettings): Promise<InstanceSettings> => {
+    updateGeneral: async (
+      patch: PatchInstanceGeneralSettings,
+    ): Promise<InstanceSettings> => {
       const current = await getOrCreateRow();
       const storedGeneral = normalizeGeneralSettings(current.general);
       // A full-GET echo carries the overlaid operator value for a field the
@@ -558,7 +625,9 @@ export function instanceSettingsService(db: Db, options: InstanceSettingsService
       return toInstanceSettings(updated ?? current);
     },
 
-    updateExperimental: async (patch: PatchInstanceExperimentalSettings): Promise<InstanceSettings> => {
+    updateExperimental: async (
+      patch: PatchInstanceExperimentalSettings,
+    ): Promise<InstanceSettings> => {
       const current = await getOrCreateRow();
       // Guarded Cloud flags stay absent from the row unless chosen, so the
       // read-time catalog default keeps applying (see stripCloudCatalogDefaultEchoes).

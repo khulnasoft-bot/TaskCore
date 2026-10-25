@@ -3,21 +3,36 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { companies, companySkills, createDb, projects, projectWorkspaces } from "@taskcore/db";
-import { getEmbeddedPostgresTestSupport, startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
+import {
+  companies,
+  companySkills,
+  createDb,
+  projects,
+  projectWorkspaces,
+} from "@taskcore/db";
+import {
+  getEmbeddedPostgresTestSupport,
+  startEmbeddedPostgresTestDatabase,
+} from "./helpers/embedded-postgres.js";
 import { companySkillService } from "../services/company-skills.js";
 import { resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 describeEmbeddedPostgres("company skill local import boundary", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const cleanupDirs = new Set<string>();
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-skill-import-boundary-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-skill-import-boundary-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -26,7 +41,11 @@ describeEmbeddedPostgres("company skill local import boundary", () => {
     await db.delete(projectWorkspaces);
     await db.delete(projects);
     await db.delete(companies);
-    await Promise.all([...cleanupDirs].map((dir) => fs.rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      [...cleanupDirs].map((dir) =>
+        fs.rm(dir, { recursive: true, force: true }),
+      ),
+    );
     cleanupDirs.clear();
   });
 
@@ -37,14 +56,26 @@ describeEmbeddedPostgres("company skill local import boundary", () => {
   it("allows configured workspace imports and rejects out-of-tree and symlink escapes", async () => {
     const companyId = randomUUID();
     const projectId = randomUUID();
-    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-approved-workspace-"));
-    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-outside-skill-"));
+    const workspace = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-approved-workspace-"),
+    );
+    const outside = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-outside-skill-"),
+    );
     cleanupDirs.add(workspace);
     cleanupDirs.add(outside);
-    await fs.writeFile(path.join(outside, "SKILL.md"), "---\nname: escaped\ndescription: escaped\n---\n# Escaped\n", "utf8");
+    await fs.writeFile(
+      path.join(outside, "SKILL.md"),
+      "---\nname: escaped\ndescription: escaped\n---\n# Escaped\n",
+      "utf8",
+    );
     const allowedSkill = path.join(workspace, ".agents", "skills", "allowed");
     await fs.mkdir(allowedSkill, { recursive: true });
-    await fs.writeFile(path.join(allowedSkill, "SKILL.md"), "---\nname: allowed\ndescription: allowed\n---\n# Allowed\n", "utf8");
+    await fs.writeFile(
+      path.join(allowedSkill, "SKILL.md"),
+      "---\nname: allowed\ndescription: allowed\n---\n# Allowed\n",
+      "utf8",
+    );
     const symlink = path.join(workspace, "escaped-link");
     await fs.symlink(outside, symlink);
 
@@ -54,7 +85,9 @@ describeEmbeddedPostgres("company skill local import boundary", () => {
       issuePrefix: `B${companyId.replaceAll("-", "").slice(0, 6).toUpperCase()}`,
       requireBoardApprovalForNewAgents: false,
     });
-    await db.insert(projects).values({ id: projectId, companyId, name: "Approved project" });
+    await db
+      .insert(projects)
+      .values({ id: projectId, companyId, name: "Approved project" });
     await db.insert(projectWorkspaces).values({
       companyId,
       projectId,
@@ -64,22 +97,32 @@ describeEmbeddedPostgres("company skill local import boundary", () => {
     });
 
     const service = companySkillService(db);
-    await expect(service.importFromSource(companyId, allowedSkill)).resolves.toMatchObject({
+    await expect(
+      service.importFromSource(companyId, allowedSkill),
+    ).resolves.toMatchObject({
       imported: [expect.objectContaining({ slug: "allowed" })],
     });
-    await expect(service.importFromSource(companyId, outside)).rejects.toMatchObject({
+    await expect(
+      service.importFromSource(companyId, outside),
+    ).rejects.toMatchObject({
       status: 403,
       details: { code: "skill_workspace_boundary_denied" },
     });
-    await expect(service.importFromSource(companyId, symlink)).rejects.toMatchObject({
+    await expect(
+      service.importFromSource(companyId, symlink),
+    ).rejects.toMatchObject({
       status: 403,
       details: { code: "skill_workspace_boundary_denied" },
     });
-    await expect(service.importFromSource(companyId, "ftp://example.com/skill")).rejects.toMatchObject({
+    await expect(
+      service.importFromSource(companyId, "ftp://example.com/skill"),
+    ).rejects.toMatchObject({
       status: 422,
       details: { code: "skill_source_validation_failed" },
     });
-    await expect(service.importFromSource(companyId, "http://example.com/skill")).rejects.toMatchObject({
+    await expect(
+      service.importFromSource(companyId, "http://example.com/skill"),
+    ).rejects.toMatchObject({
       status: 422,
       details: { code: "skill_source_validation_failed" },
     });
@@ -92,7 +135,9 @@ describeEmbeddedPostgres("company skill local import boundary", () => {
     const companyId = randomUUID();
     const projectId = randomUUID();
     // Redirect the instance root at temp so the server-derived managedFolder is under our control.
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-managed-home-"));
+    const home = await fs.mkdtemp(
+      path.join(os.tmpdir(), "taskcore-managed-home-"),
+    );
     cleanupDirs.add(home);
     const previousHome = process.env.TASKCORE_HOME;
     process.env.TASKCORE_HOME = home;
@@ -105,10 +150,20 @@ describeEmbeddedPostgres("company skill local import boundary", () => {
       });
       // No projectWorkspaces row => origin "managed_checkout", primaryWorkspace null,
       // managedFolder = resolveManagedProjectWorkspaceDir({ companyId, projectId }) (server-derived).
-      await db.insert(projects).values({ id: projectId, companyId, name: "Managed project" });
+      await db
+        .insert(projects)
+        .values({ id: projectId, companyId, name: "Managed project" });
 
-      const managedFolder = resolveManagedProjectWorkspaceDir({ companyId, projectId });
-      const allowedSkill = path.join(managedFolder, ".agents", "skills", "managed-allowed");
+      const managedFolder = resolveManagedProjectWorkspaceDir({
+        companyId,
+        projectId,
+      });
+      const allowedSkill = path.join(
+        managedFolder,
+        ".agents",
+        "skills",
+        "managed-allowed",
+      );
       await fs.mkdir(allowedSkill, { recursive: true });
       await fs.writeFile(
         path.join(allowedSkill, "SKILL.md"),
@@ -128,10 +183,14 @@ describeEmbeddedPostgres("company skill local import boundary", () => {
       );
 
       const service = companySkillService(db);
-      await expect(service.importFromSource(companyId, allowedSkill)).resolves.toMatchObject({
+      await expect(
+        service.importFromSource(companyId, allowedSkill),
+      ).resolves.toMatchObject({
         imported: [expect.objectContaining({ slug: "managed-allowed" })],
       });
-      await expect(service.importFromSource(companyId, prefixAdjacent)).rejects.toMatchObject({
+      await expect(
+        service.importFromSource(companyId, prefixAdjacent),
+      ).rejects.toMatchObject({
         status: 403,
         details: { code: "skill_workspace_boundary_denied" },
       });

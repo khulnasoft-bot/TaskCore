@@ -83,8 +83,12 @@ describe("issueDetailCache", () => {
 
     expect(getCachedIssueDetail(queryClient, issue.identifier)).toEqual(issue);
     expect(getCachedIssueDetail(queryClient, issue.id)).toEqual(issue);
-    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.identifier!))).toEqual(issue);
-    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.id))).toEqual(issue);
+    expect(
+      queryClient.getQueryData(queryKeys.issues.detail(issue.identifier!)),
+    ).toEqual(issue);
+    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.id))).toEqual(
+      issue,
+    );
   });
 
   it("prefetches with the provided issue snapshot without forcing a fresh fetch", async () => {
@@ -108,7 +112,9 @@ describe("issueDetailCache", () => {
     } as Issue;
     vi.mocked(issuesApi.get).mockResolvedValue(issue);
 
-    await prefetchIssueDetail(queryClient, issue.identifier!, { issue: partialIssue });
+    await prefetchIssueDetail(queryClient, issue.identifier!, {
+      issue: partialIssue,
+    });
 
     expect(issuesApi.get).toHaveBeenCalledWith(issue.identifier);
     expect(getCachedIssueDetail(queryClient, issue.identifier)).toEqual(issue);
@@ -124,9 +130,13 @@ describe("issueDetailCache", () => {
       priority: issue.priority,
     } as Issue;
 
-    seedIssueDetailCache(queryClient, partialIssue, { issueRef: issue.identifier });
+    seedIssueDetailCache(queryClient, partialIssue, {
+      issueRef: issue.identifier,
+    });
 
-    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.identifier!))).toBeUndefined();
+    expect(
+      queryClient.getQueryData(queryKeys.issues.detail(issue.identifier!)),
+    ).toBeUndefined();
     expect(getCachedIssueDetail(queryClient, issue.identifier)).toBeUndefined();
   });
 
@@ -137,7 +147,11 @@ describe("issueDetailCache", () => {
     const result = await fetchIssueDetail(queryClient, issue.identifier!);
 
     expect(result).toEqual(issue);
-    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.identifier!))).toEqual(issue);
-    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.id))).toEqual(issue);
+    expect(
+      queryClient.getQueryData(queryKeys.issues.detail(issue.identifier!)),
+    ).toEqual(issue);
+    expect(queryClient.getQueryData(queryKeys.issues.detail(issue.id))).toEqual(
+      issue,
+    );
   });
 });

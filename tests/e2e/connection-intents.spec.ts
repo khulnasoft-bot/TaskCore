@@ -175,13 +175,24 @@ if (!completion.ok) throw new Error(await completion.text());
 `;
 }
 
-test("AgentMail request shows a durable inline key card in agent chat", async ({ page, request }, testInfo) => {
+test("AgentMail request shows a durable inline key card in agent chat", async ({
+  page,
+  request,
+}, testInfo) => {
   test.setTimeout(120_000);
-  const settings = await json(await request.get("/api/instance/settings/experimental"));
+  const settings = await json(
+    await request.get("/api/instance/settings/experimental"),
+  );
   try {
-    await json(await request.patch("/api/instance/settings/experimental", { data: {
-      enableAgentChat: true, enableChatConnectors: true, enableClassicTaskInterface: false,
-    } }));
+    await json(
+      await request.patch("/api/instance/settings/experimental", {
+        data: {
+          enableAgentChat: true,
+          enableChatConnectors: true,
+          enableClassicTaskInterface: false,
+        },
+      }),
+    );
     const seed = await newCompany(request);
     const agent = await createAgent(request, seed.companyId, "Email requester");
     // Script only the agent's choice of tool; persistence, routes, and UI are real.
@@ -201,47 +212,102 @@ if (!search.results.some(result => result.service === "agentmail") || !search.in
 const result = await post(process.env.TASKCORE_RUNTIME_TOOLS_CONNECTION_REQUEST_URL, { service: "agentmail" });
 if (result.state !== "needs_user_action") throw new Error("Expected an inline card");
 `;
-    await json(await request.patch(`/api/agents/${agent.id}`, { data: {
-      adapterConfig: { command: process.execPath, args: ["--input-type=module", "-e", script] }, replaceAdapterConfig: true,
-    } }));
+    await json(
+      await request.patch(`/api/agents/${agent.id}`, {
+        data: {
+          adapterConfig: {
+            command: process.execPath,
+            args: ["--input-type=module", "-e", script],
+          },
+          replaceAdapterConfig: true,
+        },
+      }),
+    );
     await page.goto(`/${seed.prefix}/chats/${agent.id}`);
     await send(page, "Get yourself an email address with AgentMail.");
     await waitForAgentRun(request, seed.companyId, agent.id);
-    const chat = await json<{ id: string }>(await request.get(`/api/companies/${seed.companyId}/chats/${agent.id}`));
-    const interactions = await json<Array<{ id: string; kind: string; status: string; addresseeUserId: string; payload: Json }>>(
-      await request.get(`/api/issues/${chat.id}/interactions`),
+    const chat = await json<{ id: string }>(
+      await request.get(`/api/companies/${seed.companyId}/chats/${agent.id}`),
     );
+    const interactions = await json<
+      Array<{
+        id: string;
+        kind: string;
+        status: string;
+        addresseeUserId: string;
+        payload: Json;
+      }>
+    >(await request.get(`/api/issues/${chat.id}/interactions`));
     expect(interactions).toHaveLength(1);
-    expect(interactions[0]).toMatchObject({ kind: "connection_intent", status: "pending", addresseeUserId: "local-board",
-      payload: { purpose: "channel", serviceSlug: "agentmail", requestingAgentId: agent.id } });
+    expect(interactions[0]).toMatchObject({
+      kind: "connection_intent",
+      status: "pending",
+      addresseeUserId: "local-board",
+      payload: {
+        purpose: "channel",
+        serviceSlug: "agentmail",
+        requestingAgentId: agent.id,
+      },
+    });
     await page.reload();
     const form = page.getByTestId("agentmail-inline-setup");
     await expect(form).toBeVisible();
     await expect(form.locator("input")).toHaveCount(1);
-    await expect(form.getByLabel("API key")).toHaveAttribute("type", "password");
-    await expect(form.getByRole("link", { name: "Get an AgentMail API key" })).toHaveAttribute("href", "https://console.agentmail.to/dashboard/api-keys");
-    await expect(form.locator('[role="radiogroup"], [role="combobox"], select')).toHaveCount(0);
+    await expect(form.getByLabel("API key")).toHaveAttribute(
+      "type",
+      "password",
+    );
+    await expect(
+      form.getByRole("link", { name: "Get an AgentMail API key" }),
+    ).toHaveAttribute(
+      "href",
+      "https://console.agentmail.to/dashboard/api-keys",
+    );
+    await expect(
+      form.locator('[role="radiogroup"], [role="combobox"], select'),
+    ).toHaveCount(0);
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(form.getByRole("button", { name: "Connect AgentMail" })).toBeDisabled();
+    await expect(
+      form.getByRole("button", { name: "Connect AgentMail" }),
+    ).toBeDisabled();
     const card = page.getByTestId("connection-intent-focus-target");
-    await card.screenshot({ path: testInfo.outputPath("agentmail-inline-card.png") });
+    await card.screenshot({
+      path: testInfo.outputPath("agentmail-inline-card.png"),
+    });
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(form).toBeVisible();
-    await card.screenshot({ path: testInfo.outputPath("agentmail-inline-card-mobile.png") });
+    await card.screenshot({
+      path: testInfo.outputPath("agentmail-inline-card-mobile.png"),
+    });
     await form.getByRole("button", { name: "Not now" }).click();
     await expect(form).toHaveCount(0);
-    await expect.poll(async () => {
-      const rows = await json<Array<{ status: string }>>(await request.get(`/api/issues/${chat.id}/interactions`));
-      return rows.map(row => row.status);
-    }).toEqual(["rejected"]);
-    expect(await json(await request.get(`/api/companies/${seed.companyId}/email/inboxes`))).toEqual([]);
-    const connections = await json<{ connections: unknown[] }>(await request.get(`/api/companies/${seed.companyId}/tools/connections`));
+    await expect
+      .poll(async () => {
+        const rows = await json<Array<{ status: string }>>(
+          await request.get(`/api/issues/${chat.id}/interactions`),
+        );
+        return rows.map((row) => row.status);
+      })
+      .toEqual(["rejected"]);
+    expect(
+      await json(
+        await request.get(`/api/companies/${seed.companyId}/email/inboxes`),
+      ),
+    ).toEqual([]);
+    const connections = await json<{ connections: unknown[] }>(
+      await request.get(`/api/companies/${seed.companyId}/tools/connections`),
+    );
     expect(connections.connections).toEqual([]);
   } finally {
-    await json(await request.patch("/api/instance/settings/experimental", { data: {
-      enableAgentChat: settings.enableAgentChat, enableChatConnectors: settings.enableChatConnectors,
-      enableClassicTaskInterface: settings.enableClassicTaskInterface,
-    } }));
+    await json(
+      await request.patch("/api/instance/settings/experimental", {
+        data: {
+          enableAgentChat: settings.enableAgentChat,
+          enableChatConnectors: settings.enableChatConnectors,
+          enableClassicTaskInterface: settings.enableClassicTaskInterface,
+        },
+      }),
+    );
   }
 });
 
@@ -288,15 +354,21 @@ test("store setup and task connection intent share one fake provider through con
 
     // Entry point one: connect and test the provider through the Connections store.
     await page.goto(`/${seed.prefix}/apps`);
-    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible({
-      timeout: 30_000,
-    });
+    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible(
+      {
+        timeout: 30_000,
+      },
+    );
     const customConnector = page
       .getByRole("list", { name: "Connector list" })
       .getByRole("listitem")
       .filter({ hasText: "Connect your own tool" });
-    await customConnector.getByRole("button", { name: "Connect", exact: true }).click();
-    await customConnector.getByRole("button", { name: "Connect your own MCP server" }).click();
+    await customConnector
+      .getByRole("button", { name: "Connect", exact: true })
+      .click();
+    await customConnector
+      .getByRole("button", { name: "Connect your own MCP server" })
+      .click();
     await page
       .getByPlaceholder("https://example.com/actions")
       .fill(provider.url);
@@ -335,7 +407,9 @@ test("store setup and task connection intent share one fake provider through con
     );
 
     await page.goto(`/${seed.prefix}/apps/${connectionId}/permissions`);
-    const actionRow = page.locator("[data-action-id]").filter({ hasText: "List fixture pages" });
+    const actionRow = page
+      .locator("[data-action-id]")
+      .filter({ hasText: "List fixture pages" });
     await actionRow.getByRole("button", { name: "Test", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "Test List fixture pages" }),
@@ -346,7 +420,9 @@ test("store setup and task connection intent share one fake provider through con
     });
 
     const callsBeforeContinuation = provider.captures.filter(
-      (capture) => capture.method === "tools/call" && capture.toolName === "notion:list_pages",
+      (capture) =>
+        capture.method === "tools/call" &&
+        capture.toolName === "notion:list_pages",
     ).length;
 
     // Entry point two: a scripted agent requests Notion, then the same shared
@@ -389,12 +465,20 @@ test("store setup and task connection intent share one fake provider through con
     const taskUrl = `/${seed.prefix}/issues/${issue.identifier}`;
     await page.goto(taskUrl);
     await expect(
-      page.getByText(`Grant Connection requester access to “${connection.name}”?`),
+      page.getByText(
+        `Grant Connection requester access to “${connection.name}”?`,
+      ),
     ).toBeVisible({ timeout: 30_000 });
     const permissions = page.getByRole("list", { name: "Tool permissions" });
-    await expect(permissions.getByText("notion:list_pages", { exact: true })).toBeVisible();
-    await expect(permissions.getByText("Allowed", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Grant access", exact: true }).click();
+    await expect(
+      permissions.getByText("notion:list_pages", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      permissions.getByText("Allowed", { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Grant access", exact: true })
+      .click();
 
     await expect(page.getByText("Notion access granted")).toBeVisible({
       timeout: 30_000,
@@ -423,12 +507,13 @@ test("store setup and task connection intent share one fake provider through con
       )
       .toBe("succeeded");
     await expect
-      .poll(() =>
-        provider.captures.filter(
-          (capture) =>
-            capture.method === "tools/call" &&
-            capture.toolName === "notion:list_pages",
-        ).length,
+      .poll(
+        () =>
+          provider.captures.filter(
+            (capture) =>
+              capture.method === "tools/call" &&
+              capture.toolName === "notion:list_pages",
+          ).length,
       )
       .toBe(callsBeforeContinuation + 1);
     const completedIssue = await json<{ status: string }>(
@@ -436,7 +521,9 @@ test("store setup and task connection intent share one fake provider through con
     );
     expect(completedIssue.status).toBe("done");
     const finalRuns = await json<Array<{ id: string; status: string }>>(
-      await request.get(`/api/companies/${seed.companyId}/heartbeat-runs?agentId=${scout.id}&limit=10`),
+      await request.get(
+        `/api/companies/${seed.companyId}/heartbeat-runs?agentId=${scout.id}&limit=10`,
+      ),
     );
     expect(finalRuns).toHaveLength(2);
     expect(finalRuns.every((run) => run.status === "succeeded")).toBe(true);

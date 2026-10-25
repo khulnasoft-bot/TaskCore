@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Db } from "@taskcore/db";
 import {
@@ -23,8 +33,7 @@ export const CASE_CHILDREN_TREE_MAX_NODES = 1_000;
 export const CASE_CHILDREN_TREE_MAX_DEPTH = 10;
 
 export type AttentionCaller =
-  | { type: "user"; userId: string }
-  | { type: "agent"; agentId: string };
+  { type: "user"; userId: string } | { type: "agent"; agentId: string };
 
 type CaseRow = typeof pipelineCases.$inferSelect;
 type StageRow = typeof pipelineStages.$inferSelect;
@@ -40,7 +49,11 @@ export type ActiveWork = {
   startedAt: Date | null;
 };
 
-function caseDisplay(row: { case: CaseRow; stage: StageRow; pipeline: PipelineRow }) {
+function caseDisplay(row: {
+  case: CaseRow;
+  stage: StageRow;
+  pipeline: PipelineRow;
+}) {
   return {
     id: row.case.id,
     caseKey: row.case.caseKey,
@@ -51,8 +64,17 @@ function caseDisplay(row: { case: CaseRow; stage: StageRow; pipeline: PipelineRo
     parentCaseId: row.case.parentCaseId,
     updatedAt: row.case.updatedAt,
     createdAt: row.case.createdAt,
-    pipeline: { id: row.pipeline.id, key: row.pipeline.key, name: row.pipeline.name },
-    stage: { id: row.stage.id, key: row.stage.key, name: row.stage.name, kind: row.stage.kind },
+    pipeline: {
+      id: row.pipeline.id,
+      key: row.pipeline.key,
+      name: row.pipeline.name,
+    },
+    stage: {
+      id: row.stage.id,
+      key: row.stage.key,
+      name: row.stage.name,
+      kind: row.stage.kind,
+    },
   };
 }
 
@@ -78,7 +100,11 @@ function reviewStageAwaitsCallerSql(caller: AttentionCaller) {
   )`;
 }
 
-function boundedLimit(limit: number | undefined, fallback: number, max: number) {
+function boundedLimit(
+  limit: number | undefined,
+  fallback: number,
+  max: number,
+) {
   return Math.min(max, Math.max(1, Math.floor(limit ?? fallback)));
 }
 
@@ -89,17 +115,30 @@ function payloadString(value: unknown, key: string) {
 }
 
 function stageAutomationFromConfig(stage: typeof pipelineStages.$inferSelect) {
-  const config = stage.config && typeof stage.config === "object" && !Array.isArray(stage.config)
-    ? stage.config as Record<string, unknown>
-    : {};
-  const onEnter = config.onEnter && typeof config.onEnter === "object" && !Array.isArray(config.onEnter)
-    ? config.onEnter as Record<string, unknown>
-    : null;
-  if (onEnter?.type !== "run_routine" || typeof onEnter.routineId !== "string" || !onEnter.routineId.trim()) {
+  const config =
+    stage.config &&
+    typeof stage.config === "object" &&
+    !Array.isArray(stage.config)
+      ? (stage.config as Record<string, unknown>)
+      : {};
+  const onEnter =
+    config.onEnter &&
+    typeof config.onEnter === "object" &&
+    !Array.isArray(config.onEnter)
+      ? (config.onEnter as Record<string, unknown>)
+      : null;
+  if (
+    onEnter?.type !== "run_routine" ||
+    typeof onEnter.routineId !== "string" ||
+    !onEnter.routineId.trim()
+  ) {
     return null;
   }
   return {
-    id: typeof onEnter.id === "string" && onEnter.id.trim() ? onEnter.id.trim() : `${stage.id}:on_enter`,
+    id:
+      typeof onEnter.id === "string" && onEnter.id.trim()
+        ? onEnter.id.trim()
+        : `${stage.id}:on_enter`,
     routineId: onEnter.routineId.trim(),
   };
 }
@@ -108,7 +147,11 @@ export async function listPipelineAttention(
   db: Db,
   input: { companyId: string; caller: AttentionCaller; limit?: number },
 ) {
-  const limit = boundedLimit(input.limit, PIPELINE_ATTENTION_DEFAULT_LIMIT, PIPELINE_ATTENTION_MAX_LIMIT);
+  const limit = boundedLimit(
+    input.limit,
+    PIPELINE_ATTENTION_DEFAULT_LIMIT,
+    PIPELINE_ATTENTION_MAX_LIMIT,
+  );
 
   const suggestionAgent = alias(agents, "suggestion_agent");
   const suggestionToStage = alias(pipelineStages, "suggestion_to_stage");
@@ -123,17 +166,28 @@ export async function listPipelineAttention(
     .from(pipelineCases)
     .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
     .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
-    .leftJoin(suggestionToStage, and(
-      eq(suggestionToStage.pipelineId, pipelineCases.pipelineId),
-      eq(suggestionToStage.key, sql`${pipelineCases.pendingSuggestion}->>'toStageKey'`),
-    ))
-    .leftJoin(suggestionAgent, sql`${suggestionAgent.id}::text = ${pipelineCases.pendingSuggestion}->>'suggestedByAgentId'`)
-    .where(and(
-      eq(pipelineCases.companyId, input.companyId),
-      eq(pipelines.companyId, input.companyId),
-      isNull(pipelineCases.terminalKind),
-      isNotNull(pipelineCases.pendingSuggestion),
-    ))
+    .leftJoin(
+      suggestionToStage,
+      and(
+        eq(suggestionToStage.pipelineId, pipelineCases.pipelineId),
+        eq(
+          suggestionToStage.key,
+          sql`${pipelineCases.pendingSuggestion}->>'toStageKey'`,
+        ),
+      ),
+    )
+    .leftJoin(
+      suggestionAgent,
+      sql`${suggestionAgent.id}::text = ${pipelineCases.pendingSuggestion}->>'suggestedByAgentId'`,
+    )
+    .where(
+      and(
+        eq(pipelineCases.companyId, input.companyId),
+        eq(pipelines.companyId, input.companyId),
+        isNull(pipelineCases.terminalKind),
+        isNotNull(pipelineCases.pendingSuggestion),
+      ),
+    )
     .orderBy(desc(pipelineCases.updatedAt))
     .limit(limit);
 
@@ -151,7 +205,10 @@ export async function listPipelineAttention(
         confidence: suggestion.confidence ?? null,
         createdAt: suggestion.createdAt,
         suggestedBy: row.suggestingAgent?.id
-          ? { agentId: row.suggestingAgent.id, agentName: row.suggestingAgent.name }
+          ? {
+              agentId: row.suggestingAgent.id,
+              agentName: row.suggestingAgent.name,
+            }
           : null,
       },
     };
@@ -162,37 +219,48 @@ export async function listPipelineAttention(
     .from(pipelineCases)
     .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
     .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
-    .where(and(
-      eq(pipelineCases.companyId, input.companyId),
-      eq(pipelines.companyId, input.companyId),
-      eq(pipelineStages.kind, "review"),
-      isNull(pipelineCases.terminalKind),
-      reviewStageAwaitsCallerSql(input.caller),
-    ))
+    .where(
+      and(
+        eq(pipelineCases.companyId, input.companyId),
+        eq(pipelines.companyId, input.companyId),
+        eq(pipelineStages.kind, "review"),
+        isNull(pipelineCases.terminalKind),
+        reviewStageAwaitsCallerSql(input.caller),
+      ),
+    )
     .orderBy(asc(pipelineCases.createdAt))
     .limit(limit);
 
-  const reviews = reviewRows
-    .map((row) => {
-      const config = (row.stage.config ?? {}) as Record<string, unknown>;
-      return {
-        case: caseDisplay(row),
-        review: {
-          expectedVersion: row.case.version,
-          approveToStageKey: typeof config.approveToStageKey === "string" ? config.approveToStageKey : null,
-          rejectToStageKey: typeof config.rejectToStageKey === "string" ? config.rejectToStageKey : null,
-          requestChangesToStageKey: typeof config.requestChangesToStageKey === "string" ? config.requestChangesToStageKey : null,
-          requireRejectReason: config.requireRejectReason !== false,
-          requireRequestChangesReason: config.requireRequestChangesReason !== false,
-          reviewerKind:
-            typeof config.reviewerKind === "string"
-              ? config.reviewerKind
-              : config.requireApproval === false
-                ? "any"
-                : "human",
-        },
-      };
-    });
+  const reviews = reviewRows.map((row) => {
+    const config = (row.stage.config ?? {}) as Record<string, unknown>;
+    return {
+      case: caseDisplay(row),
+      review: {
+        expectedVersion: row.case.version,
+        approveToStageKey:
+          typeof config.approveToStageKey === "string"
+            ? config.approveToStageKey
+            : null,
+        rejectToStageKey:
+          typeof config.rejectToStageKey === "string"
+            ? config.rejectToStageKey
+            : null,
+        requestChangesToStageKey:
+          typeof config.requestChangesToStageKey === "string"
+            ? config.requestChangesToStageKey
+            : null,
+        requireRejectReason: config.requireRejectReason !== false,
+        requireRequestChangesReason:
+          config.requireRequestChangesReason !== false,
+        reviewerKind:
+          typeof config.reviewerKind === "string"
+            ? config.reviewerKind
+            : config.requireApproval === false
+              ? "any"
+              : "human",
+      },
+    };
+  });
 
   const driftRows = await db
     .selectDistinctOn([pipelineCaseEvents.caseId], {
@@ -205,12 +273,13 @@ export async function listPipelineAttention(
     .innerJoin(pipelineCases, eq(pipelineCaseEvents.caseId, pipelineCases.id))
     .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
     .innerJoin(pipelineStages, eq(pipelineCases.stageId, pipelineStages.id))
-    .where(and(
-      eq(pipelineCaseEvents.companyId, input.companyId),
-      eq(pipelineCaseEvents.type, "upstream_drift"),
-      eq(pipelineCases.companyId, input.companyId),
-      isNull(pipelineCases.terminalKind),
-      sql`not exists (
+    .where(
+      and(
+        eq(pipelineCaseEvents.companyId, input.companyId),
+        eq(pipelineCaseEvents.type, "upstream_drift"),
+        eq(pipelineCases.companyId, input.companyId),
+        isNull(pipelineCases.terminalKind),
+        sql`not exists (
         select 1
         from pipeline_case_events ack
         where ack.company_id = ${pipelineCaseEvents.companyId}
@@ -218,53 +287,83 @@ export async function listPipelineAttention(
           and ack.type = 'drift_acknowledged'
           and ack.created_at > ${pipelineCaseEvents.createdAt}
       )`,
-    ))
+      ),
+    )
     .orderBy(asc(pipelineCaseEvents.caseId), desc(pipelineCaseEvents.createdAt))
     .limit(limit);
 
   const driftCaseIds = driftRows.map((row) => row.case.id);
-  const upstreamCaseIds = [...new Set(driftRows
-    .map((row) => (row.event.payload as Record<string, unknown>).upstreamCaseId)
-    .filter((value): value is string => typeof value === "string"))];
+  const upstreamCaseIds = [
+    ...new Set(
+      driftRows
+        .map(
+          (row) =>
+            (row.event.payload as Record<string, unknown>).upstreamCaseId,
+        )
+        .filter((value): value is string => typeof value === "string"),
+    ),
+  ];
 
-  const [activeWorkByCase, workIssuesByCase, upstreamCases] = await Promise.all([
-    loadActiveWorkForCases(db, input.companyId, driftCaseIds),
-    loadOpenWorkIssuesForCases(db, input.companyId, driftCaseIds),
-    upstreamCaseIds.length === 0
-      ? Promise.resolve([] as Array<{ case: CaseRow; pipeline: PipelineRow }>)
-      : db
-        .select({ case: pipelineCases, pipeline: pipelines })
-        .from(pipelineCases)
-        .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
-        .where(and(eq(pipelineCases.companyId, input.companyId), inArray(pipelineCases.id, upstreamCaseIds))),
-  ]);
+  const [activeWorkByCase, workIssuesByCase, upstreamCases] = await Promise.all(
+    [
+      loadActiveWorkForCases(db, input.companyId, driftCaseIds),
+      loadOpenWorkIssuesForCases(db, input.companyId, driftCaseIds),
+      upstreamCaseIds.length === 0
+        ? Promise.resolve([] as Array<{ case: CaseRow; pipeline: PipelineRow }>)
+        : db
+            .select({ case: pipelineCases, pipeline: pipelines })
+            .from(pipelineCases)
+            .innerJoin(pipelines, eq(pipelineCases.pipelineId, pipelines.id))
+            .where(
+              and(
+                eq(pipelineCases.companyId, input.companyId),
+                inArray(pipelineCases.id, upstreamCaseIds),
+              ),
+            ),
+    ],
+  );
   const upstreamById = new Map(upstreamCases.map((row) => [row.case.id, row]));
 
   const headsUp = driftRows.map((row) => {
     const payload = row.event.payload as Record<string, unknown>;
-    const upstream = typeof payload.upstreamCaseId === "string" ? upstreamById.get(payload.upstreamCaseId) : undefined;
+    const upstream =
+      typeof payload.upstreamCaseId === "string"
+        ? upstreamById.get(payload.upstreamCaseId)
+        : undefined;
     return {
       case: caseDisplay(row),
       drift: {
         eventId: row.event.id,
         createdAt: row.event.createdAt,
-        previousVersion: typeof payload.previousVersion === "number" ? payload.previousVersion : null,
+        previousVersion:
+          typeof payload.previousVersion === "number"
+            ? payload.previousVersion
+            : null,
         version: typeof payload.version === "number" ? payload.version : null,
         upstream: upstream
           ? {
-            caseId: upstream.case.id,
-            caseKey: upstream.case.caseKey,
-            title: upstream.case.title,
-            pipelineId: upstream.pipeline.id,
-            pipelineName: upstream.pipeline.name,
-          }
+              caseId: upstream.case.id,
+              caseKey: upstream.case.caseKey,
+              title: upstream.case.title,
+              pipelineId: upstream.pipeline.id,
+              pipelineName: upstream.pipeline.name,
+            }
           : {
-            caseId: typeof payload.upstreamCaseId === "string" ? payload.upstreamCaseId : null,
-            caseKey: typeof payload.upstreamCaseKey === "string" ? payload.upstreamCaseKey : null,
-            title: null,
-            pipelineId: typeof payload.upstreamPipelineId === "string" ? payload.upstreamPipelineId : null,
-            pipelineName: null,
-          },
+              caseId:
+                typeof payload.upstreamCaseId === "string"
+                  ? payload.upstreamCaseId
+                  : null,
+              caseKey:
+                typeof payload.upstreamCaseKey === "string"
+                  ? payload.upstreamCaseKey
+                  : null,
+              title: null,
+              pipelineId:
+                typeof payload.upstreamPipelineId === "string"
+                  ? payload.upstreamPipelineId
+                  : null,
+              pipelineName: null,
+            },
       },
       activeWork: activeWorkByCase.get(row.case.id) ?? null,
       workIssue: workIssuesByCase.get(row.case.id) ?? null,
@@ -275,15 +374,28 @@ export async function listPipelineAttention(
     suggestions,
     reviews,
     headsUp,
-    counts: { suggestions: suggestions.length, reviews: reviews.length, headsUp: headsUp.length },
+    counts: {
+      suggestions: suggestions.length,
+      reviews: reviews.length,
+      headsUp: headsUp.length,
+    },
   };
 }
 
 export async function listCompanyCaseEvents(
   db: Db,
-  input: { companyId: string; types?: string[]; limit?: number; offset?: number },
+  input: {
+    companyId: string;
+    types?: string[];
+    limit?: number;
+    offset?: number;
+  },
 ) {
-  const limit = boundedLimit(input.limit, COMPANY_CASE_EVENTS_DEFAULT_LIMIT, COMPANY_CASE_EVENTS_MAX_LIMIT);
+  const limit = boundedLimit(
+    input.limit,
+    COMPANY_CASE_EVENTS_DEFAULT_LIMIT,
+    COMPANY_CASE_EVENTS_MAX_LIMIT,
+  );
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
   const fromStage = alias(pipelineStages, "from_stage");
   const toStage = alias(pipelineStages, "to_stage");
@@ -299,8 +411,18 @@ export async function listCompanyCaseEvents(
         terminalKind: pipelineCases.terminalKind,
       },
       pipeline: { id: pipelines.id, key: pipelines.key, name: pipelines.name },
-      fromStage: { id: fromStage.id, key: fromStage.key, name: fromStage.name, kind: fromStage.kind },
-      toStage: { id: toStage.id, key: toStage.key, name: toStage.name, kind: toStage.kind },
+      fromStage: {
+        id: fromStage.id,
+        key: fromStage.key,
+        name: fromStage.name,
+        kind: fromStage.kind,
+      },
+      toStage: {
+        id: toStage.id,
+        key: toStage.key,
+        name: toStage.name,
+        kind: toStage.kind,
+      },
       actorAgent: { id: actorAgent.id, name: actorAgent.name },
     })
     .from(pipelineCaseEvents)
@@ -309,51 +431,93 @@ export async function listCompanyCaseEvents(
     .leftJoin(fromStage, eq(pipelineCaseEvents.fromStageId, fromStage.id))
     .leftJoin(toStage, eq(pipelineCaseEvents.toStageId, toStage.id))
     .leftJoin(actorAgent, eq(pipelineCaseEvents.actorAgentId, actorAgent.id))
-    .where(and(
-      eq(pipelineCaseEvents.companyId, input.companyId),
-      eq(pipelineCases.companyId, input.companyId),
-      input.types && input.types.length > 0 ? inArray(pipelineCaseEvents.type, input.types) : undefined,
-    ))
+    .where(
+      and(
+        eq(pipelineCaseEvents.companyId, input.companyId),
+        eq(pipelineCases.companyId, input.companyId),
+        input.types && input.types.length > 0
+          ? inArray(pipelineCaseEvents.type, input.types)
+          : undefined,
+      ),
+    )
     .orderBy(desc(pipelineCaseEvents.createdAt), desc(pipelineCaseEvents.id))
     .limit(limit + 1)
     .offset(offset);
 
   const hasMore = rows.length > limit;
   const pageRows = hasMore ? rows.slice(0, limit) : rows;
-  const automationRows = pageRows.filter((row) =>
-    row.event.type === "automation_executed" || row.event.type === "automation_failed"
+  const automationRows = pageRows.filter(
+    (row) =>
+      row.event.type === "automation_executed" ||
+      row.event.type === "automation_failed",
   );
-  const routineIds = [...new Set(automationRows
-    .map((row) => payloadString(row.event.payload, "routineId"))
-    .filter((id): id is string => Boolean(id)))];
-  const issueIds = [...new Set(automationRows
-    .map((row) => payloadString(row.event.payload, "issueId"))
-    .filter((id): id is string => Boolean(id)))];
-  const automationPipelineIds = [...new Set(automationRows.map((row) => row.pipeline.id))];
-  const [routineRows, issueRowsForEvents, pipelineStageRows] = await Promise.all([
-    routineIds.length > 0
-      ? db
-          .select({ id: routines.id, title: routines.title })
-          .from(routines)
-          .where(and(eq(routines.companyId, input.companyId), inArray(routines.id, routineIds)))
-      : Promise.resolve([]),
-    issueIds.length > 0
-      ? db
-          .select({ id: issues.id, identifier: issues.identifier, title: issues.title, status: issues.status })
-          .from(issues)
-          .where(and(eq(issues.companyId, input.companyId), inArray(issues.id, issueIds)))
-      : Promise.resolve([]),
-    automationPipelineIds.length > 0
-      ? db
-          .select()
-          .from(pipelineStages)
-          .where(inArray(pipelineStages.pipelineId, automationPipelineIds))
-      : Promise.resolve([]),
-  ]);
-  const routinesById = new Map(routineRows.map((routine) => [routine.id, routine]));
-  const issuesById = new Map(issueRowsForEvents.map((issue) => [issue.id, issue]));
-  const stagesByAutomationId = new Map<string, typeof pipelineStages.$inferSelect>();
-  const stagesByRoutineId = new Map<string, typeof pipelineStages.$inferSelect>();
+  const routineIds = [
+    ...new Set(
+      automationRows
+        .map((row) => payloadString(row.event.payload, "routineId"))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const issueIds = [
+    ...new Set(
+      automationRows
+        .map((row) => payloadString(row.event.payload, "issueId"))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const automationPipelineIds = [
+    ...new Set(automationRows.map((row) => row.pipeline.id)),
+  ];
+  const [routineRows, issueRowsForEvents, pipelineStageRows] =
+    await Promise.all([
+      routineIds.length > 0
+        ? db
+            .select({ id: routines.id, title: routines.title })
+            .from(routines)
+            .where(
+              and(
+                eq(routines.companyId, input.companyId),
+                inArray(routines.id, routineIds),
+              ),
+            )
+        : Promise.resolve([]),
+      issueIds.length > 0
+        ? db
+            .select({
+              id: issues.id,
+              identifier: issues.identifier,
+              title: issues.title,
+              status: issues.status,
+            })
+            .from(issues)
+            .where(
+              and(
+                eq(issues.companyId, input.companyId),
+                inArray(issues.id, issueIds),
+              ),
+            )
+        : Promise.resolve([]),
+      automationPipelineIds.length > 0
+        ? db
+            .select()
+            .from(pipelineStages)
+            .where(inArray(pipelineStages.pipelineId, automationPipelineIds))
+        : Promise.resolve([]),
+    ]);
+  const routinesById = new Map(
+    routineRows.map((routine) => [routine.id, routine]),
+  );
+  const issuesById = new Map(
+    issueRowsForEvents.map((issue) => [issue.id, issue]),
+  );
+  const stagesByAutomationId = new Map<
+    string,
+    typeof pipelineStages.$inferSelect
+  >();
+  const stagesByRoutineId = new Map<
+    string,
+    typeof pipelineStages.$inferSelect
+  >();
   for (const stage of pipelineStageRows) {
     const automation = stageAutomationFromConfig(stage);
     if (!automation) continue;
@@ -364,12 +528,11 @@ export async function listCompanyCaseEvents(
     const routineId = payloadString(row.event.payload, "routineId");
     const issueId = payloadString(row.event.payload, "issueId");
     const automationId = payloadString(row.event.payload, "automationId");
-    const automationStage = (
+    const automationStage =
       (automationId ? stagesByAutomationId.get(automationId) : undefined) ??
-      (routineId ? stagesByRoutineId.get(routineId) : undefined)
-    );
-    const routine = routineId ? routinesById.get(routineId) ?? null : null;
-    const issue = issueId ? issuesById.get(issueId) ?? null : null;
+      (routineId ? stagesByRoutineId.get(routineId) : undefined);
+    const routine = routineId ? (routinesById.get(routineId) ?? null) : null;
+    const issue = issueId ? (issuesById.get(issueId) ?? null) : null;
     return {
       ...row.event,
       case: row.case,
@@ -377,26 +540,52 @@ export async function listCompanyCaseEvents(
       fromStage: row.fromStage?.id ? row.fromStage : null,
       toStage: row.toStage?.id ? row.toStage : null,
       actorAgent: row.actorAgent?.id ? row.actorAgent : null,
-      automation: row.event.type === "automation_executed" || row.event.type === "automation_failed"
-        ? {
-            routine: routine ? { id: routine.id, title: routine.title } : null,
-            issue: issue ? { id: issue.id, identifier: issue.identifier, title: issue.title, status: issue.status } : null,
-            routineRunId: payloadString(row.event.payload, "routineRunId"),
-            stage: automationStage
-              ? { id: automationStage.id, key: automationStage.key, name: automationStage.name, kind: automationStage.kind }
-              : null,
-          }
-        : undefined,
+      automation:
+        row.event.type === "automation_executed" ||
+        row.event.type === "automation_failed"
+          ? {
+              routine: routine
+                ? { id: routine.id, title: routine.title }
+                : null,
+              issue: issue
+                ? {
+                    id: issue.id,
+                    identifier: issue.identifier,
+                    title: issue.title,
+                    status: issue.status,
+                  }
+                : null,
+              routineRunId: payloadString(row.event.payload, "routineRunId"),
+              stage: automationStage
+                ? {
+                    id: automationStage.id,
+                    key: automationStage.key,
+                    name: automationStage.name,
+                    kind: automationStage.kind,
+                  }
+                : null,
+            }
+          : undefined,
     };
   });
 
   return {
     items,
-    pagination: { limit, offset, nextOffset: hasMore ? offset + limit : null, hasMore },
+    pagination: {
+      limit,
+      offset,
+      nextOffset: hasMore ? offset + limit : null,
+      hasMore,
+    },
   };
 }
 
-export type CaseChildrenRollup = { total: number; done: number; dropped: number; inMotion: number };
+export type CaseChildrenRollup = {
+  total: number;
+  done: number;
+  dropped: number;
+  inMotion: number;
+};
 
 type SubtreeRow = {
   id: string;
@@ -421,10 +610,17 @@ export type CaseChildNode = {
   pipeline: { id: string; key: string; name: string };
   stage: { id: string; key: string; name: string; kind: string };
   rollup: CaseChildrenRollup;
-  childGroups: Array<{ pipeline: { id: string; key: string; name: string }; cases: CaseChildNode[] }>;
+  childGroups: Array<{
+    pipeline: { id: string; key: string; name: string };
+    cases: CaseChildNode[];
+  }>;
 };
 
-export async function getCaseChildrenTree(db: Db, companyId: string, caseId: string) {
+export async function getCaseChildrenTree(
+  db: Db,
+  companyId: string,
+  caseId: string,
+) {
   const result = await db.execute(sql`
     with recursive subtree as (
       select id, parent_case_id, pipeline_id, stage_id, case_key, title, terminal_kind, created_at, updated_at, 0 as depth
@@ -444,15 +640,29 @@ export async function getCaseChildrenTree(db: Db, companyId: string, caseId: str
   const rows = Array.from(result) as SubtreeRow[];
   if (rows.length === 0) throw notFound("Pipeline case not found");
   const truncated = rows.length > CASE_CHILDREN_TREE_MAX_NODES;
-  const bounded = truncated ? rows.slice(0, CASE_CHILDREN_TREE_MAX_NODES) : rows;
+  const bounded = truncated
+    ? rows.slice(0, CASE_CHILDREN_TREE_MAX_NODES)
+    : rows;
 
   const pipelineIds = [...new Set(bounded.map((row) => row.pipeline_id))];
   const stageIds = [...new Set(bounded.map((row) => row.stage_id))];
   const [pipelineRows, stageRows] = await Promise.all([
-    db.select({ id: pipelines.id, key: pipelines.key, name: pipelines.name })
+    db
+      .select({ id: pipelines.id, key: pipelines.key, name: pipelines.name })
       .from(pipelines)
-      .where(and(eq(pipelines.companyId, companyId), inArray(pipelines.id, pipelineIds))),
-    db.select({ id: pipelineStages.id, key: pipelineStages.key, name: pipelineStages.name, kind: pipelineStages.kind })
+      .where(
+        and(
+          eq(pipelines.companyId, companyId),
+          inArray(pipelines.id, pipelineIds),
+        ),
+      ),
+    db
+      .select({
+        id: pipelineStages.id,
+        key: pipelineStages.key,
+        name: pipelineStages.name,
+        kind: pipelineStages.kind,
+      })
       .from(pipelineStages)
       .where(inArray(pipelineStages.id, stageIds)),
   ]);
@@ -470,26 +680,57 @@ export async function getCaseChildrenTree(db: Db, companyId: string, caseId: str
   }
 
   function buildNode(row: SubtreeRow): CaseChildNode {
-    const childRows = (childRowsByParent.get(row.id) ?? [])
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const childRows = (childRowsByParent.get(row.id) ?? []).sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
     const children = childRows.map(buildNode);
-    const rollup: CaseChildrenRollup = { total: 0, done: 0, dropped: 0, inMotion: 0 };
+    const rollup: CaseChildrenRollup = {
+      total: 0,
+      done: 0,
+      dropped: 0,
+      inMotion: 0,
+    };
     for (const child of children) {
       rollup.total += 1 + child.rollup.total;
-      rollup.done += (child.terminalKind === "done" ? 1 : 0) + child.rollup.done;
-      rollup.dropped += (child.terminalKind === "cancelled" ? 1 : 0) + child.rollup.dropped;
-      rollup.inMotion += (child.terminalKind === null ? 1 : 0) + child.rollup.inMotion;
+      rollup.done +=
+        (child.terminalKind === "done" ? 1 : 0) + child.rollup.done;
+      rollup.dropped +=
+        (child.terminalKind === "cancelled" ? 1 : 0) + child.rollup.dropped;
+      rollup.inMotion +=
+        (child.terminalKind === null ? 1 : 0) + child.rollup.inMotion;
     }
-    const pipeline = pipelineById.get(row.pipeline_id) ?? { id: row.pipeline_id, key: "", name: "" };
-    const groups = new Map<string, { pipeline: { id: string; key: string; name: string }; cases: CaseChildNode[] }>();
+    const pipeline = pipelineById.get(row.pipeline_id) ?? {
+      id: row.pipeline_id,
+      key: "",
+      name: "",
+    };
+    const groups = new Map<
+      string,
+      {
+        pipeline: { id: string; key: string; name: string };
+        cases: CaseChildNode[];
+      }
+    >();
     for (const child of children) {
-      const group = groups.get(child.pipeline.id) ?? { pipeline: child.pipeline, cases: [] };
+      const group = groups.get(child.pipeline.id) ?? {
+        pipeline: child.pipeline,
+        cases: [],
+      };
       group.cases.push(child);
       groups.set(child.pipeline.id, group);
     }
     const childGroups = [...groups.values()].sort((a, b) => {
-      if (a.pipeline.id === row.pipeline_id && b.pipeline.id !== row.pipeline_id) return -1;
-      if (b.pipeline.id === row.pipeline_id && a.pipeline.id !== row.pipeline_id) return 1;
+      if (
+        a.pipeline.id === row.pipeline_id &&
+        b.pipeline.id !== row.pipeline_id
+      )
+        return -1;
+      if (
+        b.pipeline.id === row.pipeline_id &&
+        a.pipeline.id !== row.pipeline_id
+      )
+        return 1;
       return a.pipeline.name.localeCompare(b.pipeline.name);
     });
     const node: CaseChildNode = {
@@ -500,7 +741,12 @@ export async function getCaseChildrenTree(db: Db, companyId: string, caseId: str
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
       pipeline,
-      stage: stageById.get(row.stage_id) ?? { id: row.stage_id, key: "", name: "", kind: "" },
+      stage: stageById.get(row.stage_id) ?? {
+        id: row.stage_id,
+        key: "",
+        name: "",
+        kind: "",
+      },
       rollup,
       childGroups,
     };
@@ -534,11 +780,13 @@ export async function getDirectChildrenSummary(
       inMotion: sql<number>`count(*) filter (where ${pipelineCases.terminalKind} is null)::int`,
     })
     .from(pipelineCases)
-    .where(and(
-      eq(pipelineCases.companyId, companyId),
-      eq(pipelineCases.parentCaseId, caseId),
-      isNull(pipelineCases.hiddenFromBoardAt),
-    ));
+    .where(
+      and(
+        eq(pipelineCases.companyId, companyId),
+        eq(pipelineCases.parentCaseId, caseId),
+        isNull(pipelineCases.hiddenFromBoardAt),
+      ),
+    );
   return counts ?? { total: 0, done: 0, dropped: 0, inMotion: 0 };
 }
 
@@ -547,7 +795,9 @@ export async function loadActiveWorkForCases(
   companyId: string,
   caseIds: string[],
 ): Promise<Map<string, ActiveWork | null>> {
-  const map = new Map<string, ActiveWork | null>(caseIds.map((id) => [id, null]));
+  const map = new Map<string, ActiveWork | null>(
+    caseIds.map((id) => [id, null]),
+  );
   if (caseIds.length === 0) return map;
   const rows = await db
     .select({
@@ -564,14 +814,16 @@ export async function loadActiveWorkForCases(
     .from(pipelineCaseIssueLinks)
     .innerJoin(issues, eq(pipelineCaseIssueLinks.issueId, issues.id))
     .innerJoin(agents, eq(issues.assigneeAgentId, agents.id))
-    .where(and(
-      eq(pipelineCaseIssueLinks.companyId, companyId),
-      inArray(pipelineCaseIssueLinks.caseId, caseIds),
-      inArray(pipelineCaseIssueLinks.role, ["work", "automation"]),
-      eq(issues.companyId, companyId),
-      eq(issues.status, "in_progress"),
-      visibleIssueCondition(),
-    ))
+    .where(
+      and(
+        eq(pipelineCaseIssueLinks.companyId, companyId),
+        inArray(pipelineCaseIssueLinks.caseId, caseIds),
+        inArray(pipelineCaseIssueLinks.role, ["work", "automation"]),
+        eq(issues.companyId, companyId),
+        eq(issues.status, "in_progress"),
+        visibleIssueCondition(),
+      ),
+    )
     .orderBy(desc(issues.updatedAt));
   for (const row of rows) {
     if (map.get(row.caseId)) continue;
@@ -602,8 +854,12 @@ export async function loadDescendantActiveWorkCountsForCases(
   const map = new Map<string, number>(uniqueCaseIds.map((id) => [id, 0]));
   if (uniqueCaseIds.length === 0) return map;
 
-  const rootValues = sql.join(uniqueCaseIds.map((id) => sql`(${id}::uuid)`), sql`, `);
-  const rows = Array.from(await db.execute(sql`
+  const rootValues = sql.join(
+    uniqueCaseIds.map((id) => sql`(${id}::uuid)`),
+    sql`, `,
+  );
+  const rows = Array.from(
+    await db.execute(sql`
     with recursive roots(root_id) as (
       values ${rootValues}
     ),
@@ -635,7 +891,8 @@ export async function loadDescendantActiveWorkCountsForCases(
     join agents agent on agent.id = issue.assignee_agent_id
     where subtree.depth > 0
     group by subtree.root_id
-  `)) as DescendantActiveWorkCountRow[];
+  `),
+  ) as DescendantActiveWorkCountRow[];
 
   for (const row of rows) {
     map.set(row.root_id, row.count);
@@ -657,8 +914,12 @@ export async function loadPipelineDescendantActiveWorkCounts(
   const map = new Map<string, number>(uniquePipelineIds.map((id) => [id, 0]));
   if (uniquePipelineIds.length === 0) return map;
 
-  const pipelineValues = sql.join(uniquePipelineIds.map((id) => sql`(${id}::uuid)`), sql`, `);
-  const rows = Array.from(await db.execute(sql`
+  const pipelineValues = sql.join(
+    uniquePipelineIds.map((id) => sql`(${id}::uuid)`),
+    sql`, `,
+  );
+  const rows = Array.from(
+    await db.execute(sql`
     with recursive target_pipelines(pipeline_id) as (
       values ${pipelineValues}
     ),
@@ -694,7 +955,8 @@ export async function loadPipelineDescendantActiveWorkCounts(
     join agents agent on agent.id = issue.assignee_agent_id
     where subtree.depth > 0
     group by subtree.root_pipeline_id
-  `)) as PipelineDescendantActiveWorkCountRow[];
+  `),
+  ) as PipelineDescendantActiveWorkCountRow[];
 
   for (const row of rows) {
     map.set(row.pipeline_id, row.count);
@@ -702,8 +964,20 @@ export async function loadPipelineDescendantActiveWorkCounts(
   return map;
 }
 
-async function loadOpenWorkIssuesForCases(db: Db, companyId: string, caseIds: string[]) {
-  const map = new Map<string, { issueId: string; issueIdentifier: string | null; title: string; status: string }>();
+async function loadOpenWorkIssuesForCases(
+  db: Db,
+  companyId: string,
+  caseIds: string[],
+) {
+  const map = new Map<
+    string,
+    {
+      issueId: string;
+      issueIdentifier: string | null;
+      title: string;
+      status: string;
+    }
+  >();
   if (caseIds.length === 0) return map;
   const rows = await db
     .select({
@@ -715,15 +989,17 @@ async function loadOpenWorkIssuesForCases(db: Db, companyId: string, caseIds: st
     })
     .from(pipelineCaseIssueLinks)
     .innerJoin(issues, eq(pipelineCaseIssueLinks.issueId, issues.id))
-    .where(and(
-      eq(pipelineCaseIssueLinks.companyId, companyId),
-      inArray(pipelineCaseIssueLinks.caseId, caseIds),
-      eq(pipelineCaseIssueLinks.role, "work"),
-      eq(issues.companyId, companyId),
-      ne(issues.status, "done"),
-      ne(issues.status, "cancelled"),
-      visibleIssueCondition(),
-    ))
+    .where(
+      and(
+        eq(pipelineCaseIssueLinks.companyId, companyId),
+        inArray(pipelineCaseIssueLinks.caseId, caseIds),
+        eq(pipelineCaseIssueLinks.role, "work"),
+        eq(issues.companyId, companyId),
+        ne(issues.status, "done"),
+        ne(issues.status, "cancelled"),
+        visibleIssueCondition(),
+      ),
+    )
     .orderBy(desc(issues.updatedAt));
   for (const row of rows) {
     if (map.has(row.caseId)) continue;
@@ -737,7 +1013,10 @@ async function loadOpenWorkIssuesForCases(db: Db, companyId: string, caseIds: st
   return map;
 }
 
-export type PipelineConnections = { upstreamPipelineIds: string[]; downstreamPipelineIds: string[] };
+export type PipelineConnections = {
+  upstreamPipelineIds: string[];
+  downstreamPipelineIds: string[];
+};
 
 export async function loadPipelineConnections(
   db: Db,
@@ -751,11 +1030,13 @@ export async function loadPipelineConnections(
     })
     .from(pipelineCases)
     .innerJoin(parentCase, eq(pipelineCases.parentCaseId, parentCase.id))
-    .where(and(
-      eq(pipelineCases.companyId, companyId),
-      eq(parentCase.companyId, companyId),
-      ne(pipelineCases.pipelineId, parentCase.pipelineId),
-    ));
+    .where(
+      and(
+        eq(pipelineCases.companyId, companyId),
+        eq(parentCase.companyId, companyId),
+        ne(pipelineCases.pipelineId, parentCase.pipelineId),
+      ),
+    );
   const map = new Map<string, PipelineConnections>();
   const entry = (pipelineId: string) => {
     let value = map.get(pipelineId);

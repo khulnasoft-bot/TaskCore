@@ -11,4 +11,6 @@ export const upsertSidebarOrderPreferenceSchema = z.object({
   orderedIds: z.array(sidebarOrderedIdSchema),
 });
 
-export type UpsertSidebarOrderPreference = z.infer<typeof upsertSidebarOrderPreferenceSchema>;
+export type UpsertSidebarOrderPreference = z.infer<
+  typeof upsertSidebarOrderPreferenceSchema
+>;

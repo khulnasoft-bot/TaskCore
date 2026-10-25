@@ -90,17 +90,21 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
   {
     id: "chat",
     name: "Regular chat",
-    purpose: "Send normal chat messages while the protocol inspector shows the raw lifecycle.",
+    purpose:
+      "Send normal chat messages while the protocol inspector shows the raw lifecycle.",
     scenarios: ["direct-chat", "transcript", "debug"],
     objective: "Run a normal Codex conversation through the browser protocol.",
-    prompt: "Say hello and explain that this is a normal chat through the runner protocol.",
+    prompt:
+      "Say hello and explain that this is a normal chat through the runner protocol.",
     capabilities: capabilities({ structuredResult: false }),
     startDelayMs: 0,
     beats: [
       {
         kind: "assistant",
         itemId: "assistant-chat-1",
-        chunks: ["Hello. This is a normal chat carried through the runner protocol."],
+        chunks: [
+          "Hello. This is a normal chat carried through the runner protocol.",
+        ],
       },
     ],
     followUpBeats: [
@@ -120,7 +124,8 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
   {
     id: "completion",
     name: "Completion",
-    purpose: "One clean turn: reasoning, a tool call, an answer, and a terminal result.",
+    purpose:
+      "One clean turn: reasoning, a tool call, an answer, and a terminal result.",
     scenarios: ["transcript", "streaming", "terminal"],
     objective: "Summarize the Live console boundary.",
     prompt: "Summarize what the Live console demo server proves.",
@@ -130,7 +135,10 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
       {
         kind: "reasoning",
         itemId: "reasoning-1",
-        chunks: ["Reading the objective. ", "The task is a summary, so no writes are needed."],
+        chunks: [
+          "Reading the objective. ",
+          "The task is a summary, so no writes are needed.",
+        ],
       },
       {
         kind: "tool",
@@ -142,7 +150,11 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
       { kind: "assistant", itemId: "assistant-1", chunks: SHORT_ANSWER },
     ],
     followUpBeats: [
-      { kind: "assistant", itemId: "assistant-follow", chunks: ["Follow-up turns reuse the same session."] },
+      {
+        kind: "assistant",
+        itemId: "assistant-follow",
+        chunks: ["Follow-up turns reuse the same session."],
+      },
     ],
     expectedObservations: [
       "The transcript shows reasoning collapsed and the answer expanded.",
@@ -154,7 +166,8 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
   {
     id: "steering",
     name: "Same-turn steering",
-    purpose: "Steer a running turn, watch the acknowledgement, then watch a stale steer get rejected.",
+    purpose:
+      "Steer a running turn, watch the acknowledgement, then watch a stale steer get rejected.",
     scenarios: ["steering", "stale-turn"],
     objective: "Keep the answer short.",
     prompt: "Explain the steering contract, then wait for further direction.",
@@ -186,13 +199,20 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
   {
     id: "interrupt-before-start",
     name: "Interrupt before start",
-    purpose: "Press stop while the turn is still waiting for a provider turn id.",
+    purpose:
+      "Press stop while the turn is still waiting for a provider turn id.",
     scenarios: ["interrupt"],
     objective: "Cancel before the provider starts.",
     prompt: "Start a slow turn so it can be cancelled before it starts.",
     capabilities: capabilities(),
     startDelayMs: 4_000,
-    beats: [{ kind: "assistant", itemId: "assistant-1", chunks: ["The turn started after all."] }],
+    beats: [
+      {
+        kind: "assistant",
+        itemId: "assistant-1",
+        chunks: ["The turn started after all."],
+      },
+    ],
     expectedObservations: [
       "The composer sits in the submitting state while the turn waits to start.",
       "Stop resolves the pending turn to `Cancelled before start`.",
@@ -233,7 +253,8 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
   {
     id: "interrupt-during-tool",
     name: "Interrupt during a tool call",
-    purpose: "Stop while a tool call is running and keep its last known status.",
+    purpose:
+      "Stop while a tool call is running and keep its last known status.",
     scenarios: ["interrupt", "tools"],
     objective: "Stop during a tool call.",
     prompt: "Run a slow tool so it can be interrupted.",
@@ -247,7 +268,11 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
         input: "sleep 30 && echo done",
         hold: true,
       },
-      { kind: "assistant", itemId: "assistant-1", chunks: ["The tool finished."] },
+      {
+        kind: "assistant",
+        itemId: "assistant-1",
+        chunks: ["The tool finished."],
+      },
     ],
     expectedObservations: [
       "The tool item stays running until the stop is pressed.",
@@ -259,7 +284,8 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
   {
     id: "approvals",
     name: "Command and file approvals",
-    purpose: "Resolve a command approval and a file-change approval from the transcript.",
+    purpose:
+      "Resolve a command approval and a file-change approval from the transcript.",
     scenarios: ["requests", "approvals"],
     objective: "Approve the demo command and file change.",
     prompt: "Ask for approval before running the command and writing the file.",
@@ -273,7 +299,10 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
         method: "item/commandExecution/requestApproval",
         itemId: "command-1",
         prompt: "Run the deterministic demo command?",
-        details: { command: "node scripts/live-console-demo-check.mjs --dry-run", cwd: "<server-path>" },
+        details: {
+          command: "node scripts/live-console-demo-check.mjs --dry-run",
+          cwd: "<server-path>",
+        },
         actions: ["accept", "accept_for_session", "decline", "cancel"],
       },
       {
@@ -290,7 +319,11 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
         },
         actions: ["accept", "decline"],
       },
-      { kind: "assistant", itemId: "assistant-1", chunks: ["Both approvals were honoured exactly once."] },
+      {
+        kind: "assistant",
+        itemId: "assistant-1",
+        chunks: ["Both approvals were honoured exactly once."],
+      },
     ],
     expectedObservations: [
       "Each request card renders only the actions the request offers.",
@@ -305,7 +338,8 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
     purpose:
       "Answer a typed user-input request and an elicitation, then watch an unanswered request expire.",
     scenarios: ["requests", "user-input", "elicitation", "expiry"],
-    objective: "Collect the deployment target and release channel, then let a request expire.",
+    objective:
+      "Collect the deployment target and release channel, then let a request expire.",
     prompt:
       "Ask which environment and channel to use, then ask a question nobody answers.",
     capabilities: capabilities(),
@@ -342,7 +376,11 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
         actions: ["submit", "decline", "cancel"],
         expiresAfterMs: 8_000,
       },
-      { kind: "assistant", itemId: "assistant-1", chunks: ["The expired request stays in the record."] },
+      {
+        kind: "assistant",
+        itemId: "assistant-1",
+        chunks: ["The expired request stays in the record."],
+      },
     ],
     expectedObservations: [
       "The user-input card renders a text field and a submit action.",
@@ -376,7 +414,11 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
         role: "reviewer",
         statuses: ["starting", "running", "failed"],
       },
-      { kind: "assistant", itemId: "assistant-1", chunks: ["One child finished and one child failed."] },
+      {
+        kind: "assistant",
+        itemId: "assistant-1",
+        chunks: ["One child finished and one child failed."],
+      },
     ],
     expectedObservations: [
       "The lineage tree lists the root session and both child threads.",
@@ -395,7 +437,11 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
     capabilities: capabilities(),
     startDelayMs: 0,
     beats: [
-      { kind: "assistant", itemId: "assistant-1", chunks: ["Use the goal menu to change the goal state."] },
+      {
+        kind: "assistant",
+        itemId: "assistant-1",
+        chunks: ["Use the goal menu to change the goal state."],
+      },
     ],
     expectedObservations: [
       "The goal banner shows the active goal and its last transition time.",
@@ -407,7 +453,8 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
   {
     id: "goals-unsupported",
     name: "Goals unsupported",
-    purpose: "Show the exact capability diagnostic instead of hiding the control.",
+    purpose:
+      "Show the exact capability diagnostic instead of hiding the control.",
     scenarios: ["goals", "capabilities"],
     objective: "Prove unsupported capabilities are visible.",
     prompt: "Run against an app-server that does not advertise goals.",
@@ -422,7 +469,9 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
       {
         kind: "assistant",
         itemId: "assistant-1",
-        chunks: ["The goal menu stays visible and disabled with the upstream diagnostic."],
+        chunks: [
+          "The goal menu stays visible and disabled with the upstream diagnostic.",
+        ],
       },
     ],
     expectedObservations: [
@@ -447,9 +496,13 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
         itemId: "tool-1",
         name: "run_command",
         input: "node scripts/missing.mjs",
-        failure: "Command exited with status 1: cannot find module scripts/missing.mjs",
+        failure:
+          "Command exited with status 1: cannot find module scripts/missing.mjs",
       },
-      { kind: "diagnostic", message: "The demo task cannot continue after the failed command." },
+      {
+        kind: "diagnostic",
+        message: "The demo task cannot continue after the failed command.",
+      },
     ],
     expectedObservations: [
       "The failed item renders in place with the exact diagnostic string.",
@@ -460,8 +513,12 @@ export const LIVE_CONSOLE_DEMO_MANIFESTS: readonly LiveConsoleDemoManifest[] = [
   },
 ];
 
-export function findLiveConsoleDemoManifest(id: string): LiveConsoleDemoManifest {
-  const manifest = LIVE_CONSOLE_DEMO_MANIFESTS.find((candidate) => candidate.id === id);
+export function findLiveConsoleDemoManifest(
+  id: string,
+): LiveConsoleDemoManifest {
+  const manifest = LIVE_CONSOLE_DEMO_MANIFESTS.find(
+    (candidate) => candidate.id === id,
+  );
   if (manifest === undefined) {
     throw new Error(`unknown Live console demo manifest ${id}`);
   }

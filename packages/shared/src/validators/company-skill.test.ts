@@ -79,21 +79,25 @@ const companySkill = {
 
 describe("company skill catalog validators", () => {
   it("accepts catalog list and install request shapes", () => {
-    expect(catalogSkillListQuerySchema.parse({
-      kind: "bundled",
-      category: "software-development",
-      q: "review",
-    })).toEqual({
+    expect(
+      catalogSkillListQuerySchema.parse({
+        kind: "bundled",
+        category: "software-development",
+        q: "review",
+      }),
+    ).toEqual({
       kind: "bundled",
       category: "software-development",
       q: "review",
     });
 
-    expect(companySkillInstallCatalogSchema.parse({
-      catalogSkillId: catalogSkill.id,
-      slug: "team-review",
-      force: true,
-    })).toEqual({
+    expect(
+      companySkillInstallCatalogSchema.parse({
+        catalogSkillId: catalogSkill.id,
+        slug: "team-review",
+        force: true,
+      }),
+    ).toEqual({
       catalogSkillId: catalogSkill.id,
       slug: "team-review",
       force: true,
@@ -101,29 +105,37 @@ describe("company skill catalog validators", () => {
   });
 
   it("rejects invalid catalog filter and install payloads", () => {
-    expect(() => catalogSkillListQuerySchema.parse({ kind: "external" })).toThrow();
-    expect(() => companySkillInstallCatalogSchema.parse({ force: true })).toThrow();
+    expect(() =>
+      catalogSkillListQuerySchema.parse({ kind: "external" }),
+    ).toThrow();
+    expect(() =>
+      companySkillInstallCatalogSchema.parse({ force: true }),
+    ).toThrow();
   });
 
   it("accepts catalog file and install result responses", () => {
-    expect(catalogSkillFileDetailSchema.parse({
-      catalogSkillId: catalogSkill.id,
-      path: "SKILL.md",
-      kind: "skill",
-      content: "# Review\n",
-      language: "markdown",
-      markdown: true,
-    })).toMatchObject({
+    expect(
+      catalogSkillFileDetailSchema.parse({
+        catalogSkillId: catalogSkill.id,
+        path: "SKILL.md",
+        kind: "skill",
+        content: "# Review\n",
+        language: "markdown",
+        markdown: true,
+      }),
+    ).toMatchObject({
       catalogSkillId: catalogSkill.id,
       path: "SKILL.md",
     });
 
-    expect(companySkillInstallCatalogResultSchema.parse({
-      action: "created",
-      skill: companySkill,
-      catalogSkill,
-      warnings: [],
-    })).toMatchObject({
+    expect(
+      companySkillInstallCatalogResultSchema.parse({
+        action: "created",
+        skill: companySkill,
+        catalogSkill,
+        warnings: [],
+      }),
+    ).toMatchObject({
       action: "created",
       skill: {
         key: catalogSkill.key,
@@ -137,47 +149,58 @@ describe("company skill catalog validators", () => {
   });
 
   it("accepts update status, audit, update, and reset contract shapes", () => {
-    expect(companySkillUpdateStatusSchema.parse({
-      supported: true,
-      reason: null,
-      trackingRef: catalogSkill.id,
-      currentRef: "sha256:old",
-      latestRef: catalogSkill.contentHash,
-      hasUpdate: true,
-      installedHash: "sha256:installed",
-      originHash: catalogSkill.contentHash,
-      userModifiedAt: "2026-05-26T00:00:00.000Z",
-      updateHoldReason: "local_modifications",
-      auditVerdict: "warning",
-      auditCodes: ["local_modifications"],
-    })).toMatchObject({
+    expect(
+      companySkillUpdateStatusSchema.parse({
+        supported: true,
+        reason: null,
+        trackingRef: catalogSkill.id,
+        currentRef: "sha256:old",
+        latestRef: catalogSkill.contentHash,
+        hasUpdate: true,
+        installedHash: "sha256:installed",
+        originHash: catalogSkill.contentHash,
+        userModifiedAt: "2026-05-26T00:00:00.000Z",
+        updateHoldReason: "local_modifications",
+        auditVerdict: "warning",
+        auditCodes: ["local_modifications"],
+      }),
+    ).toMatchObject({
       supported: true,
       updateHoldReason: "local_modifications",
       auditVerdict: "warning",
     });
 
-    expect(companySkillAuditResultSchema.parse({
-      skillId: companySkill.id,
-      installedHash: "sha256:installed",
-      originHash: catalogSkill.contentHash,
-      verdict: "fail",
-      codes: ["remote_fetch_exec"],
-      findings: [{
-        code: "remote_fetch_exec",
-        severity: "error",
-        message: "Remote-fetch or dynamic execution pattern is not allowed.",
-        path: "SKILL.md",
-      }],
-      scannedAt: "2026-05-26T00:00:00.000Z",
-      scanVersion: "skills-audit-v1",
-    })).toMatchObject({
+    expect(
+      companySkillAuditResultSchema.parse({
+        skillId: companySkill.id,
+        installedHash: "sha256:installed",
+        originHash: catalogSkill.contentHash,
+        verdict: "fail",
+        codes: ["remote_fetch_exec"],
+        findings: [
+          {
+            code: "remote_fetch_exec",
+            severity: "error",
+            message:
+              "Remote-fetch or dynamic execution pattern is not allowed.",
+            path: "SKILL.md",
+          },
+        ],
+        scannedAt: "2026-05-26T00:00:00.000Z",
+        scanVersion: "skills-audit-v1",
+      }),
+    ).toMatchObject({
       verdict: "fail",
       codes: ["remote_fetch_exec"],
     });
 
     expect(companySkillInstallUpdateSchema.parse(undefined)).toEqual({});
-    expect(companySkillInstallUpdateSchema.parse({ force: true })).toEqual({ force: true });
+    expect(companySkillInstallUpdateSchema.parse({ force: true })).toEqual({
+      force: true,
+    });
     expect(companySkillResetSchema.parse(undefined)).toEqual({});
-    expect(companySkillResetSchema.parse({ force: true })).toEqual({ force: true });
+    expect(companySkillResetSchema.parse({ force: true })).toEqual({
+      force: true,
+    });
   });
 });

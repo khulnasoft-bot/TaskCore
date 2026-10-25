@@ -112,9 +112,9 @@ describe("buildSandboxCrManifest", () => {
   it("applies provided labels to CR metadata and pod template labels (with role=agent added)", () => {
     const cr = buildSandboxCrManifest(baseInput);
     expect(cr.metadata.labels["taskcore.io/run-id"]).toBe("r1");
-    expect(
-      cr.spec.podTemplate.metadata.labels["taskcore.io/run-id"],
-    ).toBe("r1");
+    expect(cr.spec.podTemplate.metadata.labels["taskcore.io/run-id"]).toBe(
+      "r1",
+    );
     expect(cr.spec.podTemplate.metadata.labels["taskcore.io/role"]).toBe(
       "agent",
     );

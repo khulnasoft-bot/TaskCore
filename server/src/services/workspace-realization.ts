@@ -6,7 +6,10 @@ import type {
   WorkspaceRealizationRequest,
 } from "@taskcore/shared";
 import type { RealizedExecutionWorkspace } from "./workspace-runtime.js";
-import { ENVIRONMENT_DRIVER_TRAITS, getEnvironmentDriverTraits } from "./environment-driver-traits.js";
+import {
+  ENVIRONMENT_DRIVER_TRAITS,
+  getEnvironmentDriverTraits,
+} from "./environment-driver-traits.js";
 
 function parseObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -15,7 +18,9 @@ function parseObject(value: unknown): Record<string, unknown> {
 }
 
 function readString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function readNumber(value: unknown): number | null {
@@ -28,7 +33,9 @@ function readStringArray(value: unknown): string[] {
     : [];
 }
 
-function readPathAliases(value: unknown): Array<{ path: string; target: string }> {
+function readPathAliases(
+  value: unknown,
+): Array<{ path: string; target: string }> {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry) => {
     const parsed = parseObject(entry);
@@ -60,7 +67,9 @@ function readAdditionalSources(
   });
 }
 
-export function readWorkspaceRealizationRequest(value: unknown): WorkspaceRealizationRequest | null {
+export function readWorkspaceRealizationRequest(
+  value: unknown,
+): WorkspaceRealizationRequest | null {
   const parsed = parseObject(value);
   if (parsed.version !== 1) return null;
   const source = parseObject(parsed.source);
@@ -70,7 +79,14 @@ export function readWorkspaceRealizationRequest(value: unknown): WorkspaceRealiz
   const environmentId = readString(parsed.environmentId);
   const heartbeatRunId = readString(parsed.heartbeatRunId);
   const adapterType = readString(parsed.adapterType);
-  if (!localPath || !companyId || !environmentId || !heartbeatRunId || !adapterType) return null;
+  if (
+    !localPath ||
+    !companyId ||
+    !environmentId ||
+    !heartbeatRunId ||
+    !adapterType
+  )
+    return null;
 
   return {
     version: 1,
@@ -91,19 +107,23 @@ export function readWorkspaceRealizationRequest(value: unknown): WorkspaceRealiz
       projectWorkspaceId: readString(source.projectWorkspaceId),
       repoUrl: readString(source.repoUrl),
       repoRef: readString(source.repoRef),
-      strategy: source.strategy === "git_worktree" ? "git_worktree" : "project_primary",
+      strategy:
+        source.strategy === "git_worktree" ? "git_worktree" : "project_primary",
       branchName: readString(source.branchName),
       worktreePath: readString(source.worktreePath),
     },
     additionalSources: readAdditionalSources(parsed.additionalSources),
     runtimeOverlay: {
       provisionCommand: readString(runtimeOverlay.provisionCommand),
-      runtimeProvisionCommand: readString(runtimeOverlay.runtimeProvisionCommand),
+      runtimeProvisionCommand: readString(
+        runtimeOverlay.runtimeProvisionCommand,
+      ),
       teardownCommand: readString(runtimeOverlay.teardownCommand),
       cleanupCommand: readString(runtimeOverlay.cleanupCommand),
-      workspaceRuntime: Object.keys(parseObject(runtimeOverlay.workspaceRuntime)).length > 0
-        ? parseObject(runtimeOverlay.workspaceRuntime)
-        : null,
+      workspaceRuntime:
+        Object.keys(parseObject(runtimeOverlay.workspaceRuntime)).length > 0
+          ? parseObject(runtimeOverlay.workspaceRuntime)
+          : null,
     },
   };
 }
@@ -145,16 +165,19 @@ export function buildWorkspaceRealizationRequest(input: {
     // never receives a referenced source: run preparation skips referenced-project resolution on a
     // remote target, so this array is empty there. The `sync` block below therefore realizes only
     // the anchor source; a remote-transport sync of the referenced trees is not implemented yet.
-    additionalSources: (input.workspace.additionalWorkspaces ?? []).map((additional) => ({
-      localPath: additional.cwd,
-      projectId: additional.projectId,
-      projectWorkspaceId: additional.workspaceId,
-      repoUrl: additional.repoUrl,
-      repoRef: additional.repoRef,
-    })),
+    additionalSources: (input.workspace.additionalWorkspaces ?? []).map(
+      (additional) => ({
+        localPath: additional.cwd,
+        projectId: additional.projectId,
+        projectWorkspaceId: additional.workspaceId,
+        repoUrl: additional.repoUrl,
+        repoRef: additional.repoRef,
+      }),
+    ),
     runtimeOverlay: {
       provisionCommand: input.workspaceConfig?.provisionCommand ?? null,
-      runtimeProvisionCommand: input.workspaceConfig?.runtimeProvisionCommand ?? null,
+      runtimeProvisionCommand:
+        input.workspaceConfig?.runtimeProvisionCommand ?? null,
       teardownCommand: input.workspaceConfig?.teardownCommand ?? null,
       cleanupCommand: input.workspaceConfig?.cleanupCommand ?? null,
       workspaceRuntime: input.workspaceConfig?.workspaceRuntime ?? null,
@@ -172,7 +195,9 @@ export function buildWorkspaceRealizationRecord(input: {
   const leaseMetadata = input.lease.metadata ?? {};
   const providerMetadata = input.providerMetadata ?? {};
   // An unknown or absent driver reads the "local" row, same as today's fallback.
-  const traits = getEnvironmentDriverTraits(input.environment.driver) ?? ENVIRONMENT_DRIVER_TRAITS.local;
+  const traits =
+    getEnvironmentDriverTraits(input.environment.driver) ??
+    ENVIRONMENT_DRIVER_TRAITS.local;
   const transport = traits.driver;
   const remotePath =
     readString(providerMetadata.remoteCwd) ??
@@ -182,21 +207,29 @@ export function buildWorkspaceRealizationRecord(input: {
   const host = readString(leaseMetadata.host);
   const port = readNumber(leaseMetadata.port);
   const username = readString(leaseMetadata.username);
-  const sandboxId = readString(leaseMetadata.sandboxId) ?? readString(providerMetadata.sandboxId);
+  const sandboxId =
+    readString(leaseMetadata.sandboxId) ??
+    readString(providerMetadata.sandboxId);
   const realizationMetadata = {
     ...parseObject(leaseMetadata.workspaceRealization),
     ...parseObject(providerMetadata.workspaceRealization),
     ...providerMetadata,
   };
-  const mode = realizationMetadata.mode === "in_place" || realizationMetadata.realizationMode === "in_place"
-    ? "in_place" as const
-    : "copy" as const;
+  const mode =
+    realizationMetadata.mode === "in_place" ||
+    realizationMetadata.realizationMode === "in_place"
+      ? ("in_place" as const)
+      : ("copy" as const);
   const authoritativeRoot =
     readString(realizationMetadata.authoritativeRoot) ??
     (mode === "in_place" ? remotePath : null) ??
     input.request.source.localPath;
-  const pathAliases = readPathAliases(realizationMetadata.pathAliases ?? realizationMetadata.workspaceAliases);
-  const outboundRestorePaths = readStringArray(realizationMetadata.outboundRestorePaths);
+  const pathAliases = readPathAliases(
+    realizationMetadata.pathAliases ?? realizationMetadata.workspaceAliases,
+  );
+  const outboundRestorePaths = readStringArray(
+    realizationMetadata.outboundRestorePaths,
+  );
 
   const provider =
     input.lease.provider ??
@@ -290,7 +323,9 @@ export function buildWorkspaceRealizationRecordFromDriverInput(input: {
   providerMetadata?: Record<string, unknown> | null;
 }): WorkspaceRealizationRecord {
   const request =
-    readWorkspaceRealizationRequest(input.workspace.metadata?.workspaceRealizationRequest) ??
+    readWorkspaceRealizationRequest(
+      input.workspace.metadata?.workspaceRealizationRequest,
+    ) ??
     readWorkspaceRealizationRequest(input.workspace.metadata?.request) ??
     buildWorkspaceRealizationRequest({
       adapterType: "unknown",
@@ -301,14 +336,22 @@ export function buildWorkspaceRealizationRecordFromDriverInput(input: {
       heartbeatRunId: input.lease.heartbeatRunId ?? "unknown",
       requestedMode: input.workspace.mode ?? null,
       workspace: {
-        baseCwd: input.workspace.localPath ?? input.cwd ?? input.workspace.remotePath ?? "/",
+        baseCwd:
+          input.workspace.localPath ??
+          input.cwd ??
+          input.workspace.remotePath ??
+          "/",
         source: "task_session",
         projectId: null,
         workspaceId: null,
         repoUrl: null,
         repoRef: null,
         strategy: "project_primary",
-        cwd: input.workspace.localPath ?? input.cwd ?? input.workspace.remotePath ?? "/",
+        cwd:
+          input.workspace.localPath ??
+          input.cwd ??
+          input.workspace.remotePath ??
+          "/",
         branchName: null,
         worktreePath: null,
         warnings: [],

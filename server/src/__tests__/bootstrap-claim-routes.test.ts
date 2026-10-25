@@ -71,7 +71,7 @@ function createApp(input: {
   }
   app.use(
     "/api",
-    accessRoutes(input.db as any ?? createDb(), {
+    accessRoutes((input.db as any) ?? createDb(), {
       deploymentMode: input.deploymentMode ?? "authenticated",
       deploymentExposure: input.deploymentExposure ?? "private",
       bindHost: "127.0.0.1",
@@ -99,7 +99,10 @@ describe("POST /bootstrap/claim", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ claimed: true, userId: "user-1" });
-    expect(claimFirstInstanceAdminMock).toHaveBeenCalledWith(expect.anything(), { userId: "user-1" });
+    expect(claimFirstInstanceAdminMock).toHaveBeenCalledWith(
+      expect.anything(),
+      { userId: "user-1" },
+    );
   });
 
   it("is not exposed in authenticated public mode", async () => {
@@ -124,7 +127,10 @@ describe("POST /bootstrap/claim", () => {
     [{ type: "none", source: "none" }, "anonymous caller"],
     [{ type: "agent", source: "agent_key", agentId: "agent-1" }, "agent key"],
     [{ type: "board", source: "board_key", userId: "user-1" }, "board API key"],
-    [{ type: "board", source: "local_implicit", userId: "local-board" }, "local implicit board"],
+    [
+      { type: "board", source: "local_implicit", userId: "local-board" },
+      "local implicit board",
+    ],
   ])("rejects %s before opening the first-admin transaction", async (actor) => {
     const app = createApp({ actor });
 
@@ -209,7 +215,10 @@ describe("bootstrap invite first-admin acceptance", () => {
     });
     expect(claimFirstInstanceAdminMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ userId: "user-1", onClaim: expect.any(Function) }),
+      expect.objectContaining({
+        userId: "user-1",
+        onClaim: expect.any(Function),
+      }),
     );
   });
 

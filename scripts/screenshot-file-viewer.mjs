@@ -9,18 +9,54 @@ const BASE = "http://localhost:6006/iframe.html";
 const OUT_DIR = path.resolve(process.argv[2] || "/tmp/pap-1963");
 
 const SHOTS = [
-  { id: "components-file-viewer-sheet--text-content-with-highlighted-line", label: "content-highlighted-line" },
-  { id: "components-file-viewer-sheet--text-content-long-path-truncation", label: "content-long-path" },
-  { id: "components-file-viewer-sheet--open-file-prompt", label: "open-file-prompt" },
-  { id: "components-file-viewer-sheet--loading-spinner", label: "loading-spinner" },
-  { id: "components-file-viewer-sheet--error-not-found-with-fallback", label: "error-not-found" },
-  { id: "components-file-viewer-sheet--error-no-workspace", label: "error-no-workspace" },
-  { id: "components-file-viewer-sheet--error-outside-workspace", label: "error-outside-workspace" },
-  { id: "components-file-viewer-sheet--error-denied-sensitive", label: "error-denied" },
-  { id: "components-file-viewer-sheet--remote-workspace", label: "remote-workspace" },
-  { id: "components-file-viewer-sheet--workspace-archived", label: "workspace-archived" },
-  { id: "components-file-viewer-sheet--binary-unsupported", label: "binary-unsupported" },
-  { id: "components-file-viewer-sheet--too-large-to-preview", label: "too-large" },
+  {
+    id: "components-file-viewer-sheet--text-content-with-highlighted-line",
+    label: "content-highlighted-line",
+  },
+  {
+    id: "components-file-viewer-sheet--text-content-long-path-truncation",
+    label: "content-long-path",
+  },
+  {
+    id: "components-file-viewer-sheet--open-file-prompt",
+    label: "open-file-prompt",
+  },
+  {
+    id: "components-file-viewer-sheet--loading-spinner",
+    label: "loading-spinner",
+  },
+  {
+    id: "components-file-viewer-sheet--error-not-found-with-fallback",
+    label: "error-not-found",
+  },
+  {
+    id: "components-file-viewer-sheet--error-no-workspace",
+    label: "error-no-workspace",
+  },
+  {
+    id: "components-file-viewer-sheet--error-outside-workspace",
+    label: "error-outside-workspace",
+  },
+  {
+    id: "components-file-viewer-sheet--error-denied-sensitive",
+    label: "error-denied",
+  },
+  {
+    id: "components-file-viewer-sheet--remote-workspace",
+    label: "remote-workspace",
+  },
+  {
+    id: "components-file-viewer-sheet--workspace-archived",
+    label: "workspace-archived",
+  },
+  {
+    id: "components-file-viewer-sheet--binary-unsupported",
+    label: "binary-unsupported",
+  },
+  {
+    id: "components-file-viewer-sheet--too-large-to-preview",
+    label: "too-large",
+  },
 ];
 
 const VIEWPORTS = [
@@ -43,7 +79,9 @@ async function run() {
         console.log(`[${vp.name}] → ${shot.label}`);
         await page.goto(url, { waitUntil: "domcontentloaded" });
         // Give the sheet animation + potential network stubs ~1.5s to settle.
-        await page.waitForTimeout(shot.label === "loading-spinner" ? 900 : 1600);
+        await page.waitForTimeout(
+          shot.label === "loading-spinner" ? 900 : 1600,
+        );
         const out = path.join(OUT_DIR, `${vp.name}-${shot.label}.png`);
         await page.screenshot({ path: out, fullPage: false });
       }

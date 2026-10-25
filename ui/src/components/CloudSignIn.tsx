@@ -5,8 +5,18 @@ import { beginCloudSignIn, clearCloudSignInAttempt } from "@/lib/cloud-sign-in";
 import { TaskcoreLoading } from "@/components/AnimatedTaskcoreIcon";
 import { Button } from "@/components/ui/button";
 
-export function CloudSignIn({ cloud, returnTo }: { cloud: CloudInstanceHealthStatus; returnTo: string }) {
-  const entryUrl = cloudStackEntryUrl(cloud.cloudBaseUrl, cloud.stackSlug, returnTo);
+export function CloudSignIn({
+  cloud,
+  returnTo,
+}: {
+  cloud: CloudInstanceHealthStatus;
+  returnTo: string;
+}) {
+  const entryUrl = cloudStackEntryUrl(
+    cloud.cloudBaseUrl,
+    cloud.stackSlug,
+    returnTo,
+  );
   const started = useRef(false);
   const [blocked, setBlocked] = useState(false);
 
@@ -28,7 +38,9 @@ export function CloudSignIn({ cloud, returnTo }: { cloud: CloudInstanceHealthSta
       </p>
       {entryUrl && (
         <Button asChild>
-          <a href={entryUrl} onClick={clearCloudSignInAttempt}>Continue to Taskcore Cloud</a>
+          <a href={entryUrl} onClick={clearCloudSignInAttempt}>
+            Continue to Taskcore Cloud
+          </a>
         </Button>
       )}
     </div>

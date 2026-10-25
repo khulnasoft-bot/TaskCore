@@ -11,10 +11,15 @@ import { cn } from "@/lib/utils";
 
 const COMPACT_TRIGGER_CLASS = "h-8 px-2 py-1.5 text-xs font-normal";
 
-interface ReusableExecutionWorkspaceSelectProps<TWorkspace extends ReusableExecutionWorkspaceLike> {
+interface ReusableExecutionWorkspaceSelectProps<
+  TWorkspace extends ReusableExecutionWorkspaceLike,
+> {
   value: string;
   workspaces: readonly TWorkspace[];
-  onValueChange: (workspaceId: string, option: ReusableWorkspaceOption<TWorkspace>) => void;
+  onValueChange: (
+    workspaceId: string,
+    option: ReusableWorkspaceOption<TWorkspace>,
+  ) => void;
   placeholder?: string;
   loading?: boolean;
   error?: boolean;
@@ -24,7 +29,9 @@ interface ReusableExecutionWorkspaceSelectProps<TWorkspace extends ReusableExecu
   disablePortal?: boolean;
 }
 
-export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExecutionWorkspaceLike>({
+export function ReusableExecutionWorkspaceSelect<
+  TWorkspace extends ReusableExecutionWorkspaceLike,
+>({
   value,
   workspaces,
   onValueChange,
@@ -36,7 +43,10 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
   triggerClassName,
   disablePortal,
 }: ReusableExecutionWorkspaceSelectProps<TWorkspace>) {
-  const groups = useMemo(() => buildReusableExecutionWorkspaceOptionGroups(workspaces), [workspaces]);
+  const groups = useMemo(
+    () => buildReusableExecutionWorkspaceOptionGroups(workspaces),
+    [workspaces],
+  );
 
   return (
     <SearchableSelect<string, ReusableWorkspaceOption<TWorkspace>>
@@ -45,7 +55,9 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
       onValueChange={onValueChange}
       placeholder={placeholder}
       searchPlaceholder="Search workspaces..."
-      emptyMessage={error ? "Workspaces failed to load." : "No matching workspaces."}
+      emptyMessage={
+        error ? "Workspaces failed to load." : "No matching workspaces."
+      }
       loadingMessage="Loading workspaces..."
       loading={loading}
       disabled={disabled}
@@ -56,7 +68,9 @@ export function ReusableExecutionWorkspaceSelect<TWorkspace extends ReusableExec
       disablePortal={disablePortal}
       renderOption={(option, { selected }) => (
         <span className="flex min-w-0 flex-col">
-          <span className={cn("truncate", selected && "font-medium")}>{option.label}</span>
+          <span className={cn("truncate", selected && "font-medium")}>
+            {option.label}
+          </span>
           <span className="truncate text-(length:--text-micro) text-muted-foreground">
             {option.workspace.status ? `${option.workspace.status} - ` : ""}
             {option.description}

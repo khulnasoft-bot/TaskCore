@@ -4,16 +4,26 @@ import type { Agent, Issue } from "@taskcore/shared";
 import { useQuery } from "@tanstack/react-query";
 import { accessApi } from "../api/access";
 import { formatAssigneeUserLabel } from "../lib/assignees";
-import { buildCompanyUserInlineOptions, buildCompanyUserLabelMap } from "../lib/company-members";
+import {
+  buildCompanyUserInlineOptions,
+  buildCompanyUserLabelMap,
+} from "../lib/company-members";
 import { queryKeys } from "../lib/queryKeys";
-import { sortAgentsByRecency, getRecentAssigneeIds } from "../lib/recent-assignees";
+import {
+  sortAgentsByRecency,
+  getRecentAssigneeIds,
+} from "../lib/recent-assignees";
 import {
   buildExecutionPolicy,
   stageParticipantValues,
 } from "../lib/issue-execution-policy";
 import { useExecutionPolicy } from "../hooks/useExecutionPolicy";
 import { cn } from "../lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { User, Eye, ShieldCheck } from "lucide-react";
 
 type StageType = "review" | "approval";
@@ -37,8 +47,14 @@ export function ExecutionParticipantPicker({
   const [search, setSearch] = useState("");
   const policyAvailable = useExecutionPolicy(issue.executionPolicy).success;
 
-  const reviewerValues = stageParticipantValues(issue.executionPolicy, "review");
-  const approverValues = stageParticipantValues(issue.executionPolicy, "approval");
+  const reviewerValues = stageParticipantValues(
+    issue.executionPolicy,
+    "review",
+  );
+  const approverValues = stageParticipantValues(
+    issue.executionPolicy,
+    "approval",
+  );
   const values = stageType === "review" ? reviewerValues : approverValues;
   const { data: companyMembers } = useQuery({
     queryKey: queryKeys.access.companyUserDirectory(issue.companyId),
@@ -55,7 +71,10 @@ export function ExecutionParticipantPicker({
     [companyMembers?.users],
   );
   const otherUserOptions = useMemo(
-    () => buildCompanyUserInlineOptions(companyMembers?.users, { excludeUserIds: [currentUserId, issue.createdByUserId] }),
+    () =>
+      buildCompanyUserInlineOptions(companyMembers?.users, {
+        excludeUserIds: [currentUserId, issue.createdByUserId],
+      }),
     [companyMembers?.users, currentUserId, issue.createdByUserId],
   );
 
@@ -69,8 +88,10 @@ export function ExecutionParticipantPicker({
   };
 
   const participantLabel = (value: string) => {
-    if (value.startsWith("agent:")) return agentName(value.slice("agent:".length));
-    if (value.startsWith("user:")) return userLabel(value.slice("user:".length)) ?? "User";
+    if (value.startsWith("agent:"))
+      return agentName(value.slice("agent:".length));
+    if (value.startsWith("user:"))
+      return userLabel(value.slice("user:".length)) ?? "User";
     return value;
   };
 
@@ -96,11 +117,21 @@ export function ExecutionParticipantPicker({
   const Icon = stageType === "review" ? Eye : ShieldCheck;
 
   if (!policyAvailable) {
-    return <span role="status" className="text-xs text-muted-foreground">Execution policy unavailable. Refresh to try again.</span>;
+    return (
+      <span role="status" className="text-xs text-muted-foreground">
+        Execution policy unavailable. Refresh to try again.
+      </span>
+    );
   }
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setSearch("");
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           className={cn(
@@ -165,7 +196,9 @@ export function ExecutionParticipantPicker({
           {otherUserOptions
             .filter((option) => {
               if (!search.trim()) return true;
-              return `${option.label} ${option.searchText ?? ""}`.toLowerCase().includes(search.toLowerCase());
+              return `${option.label} ${option.searchText ?? ""}`
+                .toLowerCase()
+                .includes(search.toLowerCase());
             })
             .map((option) => (
               <button
@@ -196,7 +229,11 @@ export function ExecutionParticipantPicker({
                   )}
                   onClick={() => toggle(encoded)}
                 >
-                  <AgentAvatar agent={agent} size={16} className="shrink-0 h-3 w-3 text-muted-foreground"/>
+                  <AgentAvatar
+                    agent={agent}
+                    size={16}
+                    className="shrink-0 h-3 w-3 text-muted-foreground"
+                  />
                   {agent.name}
                 </button>
               );

@@ -21,7 +21,9 @@ export interface HeartbeatRunRuntimeStatus {
 
 const runtimeStatusesByRunId = new Map<string, HeartbeatRunRuntimeStatus>();
 
-function cloneStatus(status: HeartbeatRunRuntimeStatus): HeartbeatRunRuntimeStatus {
+function cloneStatus(
+  status: HeartbeatRunRuntimeStatus,
+): HeartbeatRunRuntimeStatus {
   return {
     ...status,
     updatedAt: new Date(status.updatedAt),
@@ -36,26 +38,47 @@ function sanitizeRuntimeStatusText(value: string, maxChars: number): string {
   return `${redacted.slice(0, maxChars - 3)}...`;
 }
 
-export function sanitizeHeartbeatRunRuntimeStatusMessage(message: string): string {
-  return sanitizeRuntimeStatusText(message, MAX_HEARTBEAT_RUN_RUNTIME_STATUS_MESSAGE_CHARS);
+export function sanitizeHeartbeatRunRuntimeStatusMessage(
+  message: string,
+): string {
+  return sanitizeRuntimeStatusText(
+    message,
+    MAX_HEARTBEAT_RUN_RUNTIME_STATUS_MESSAGE_CHARS,
+  );
 }
 
 export function sanitizeHeartbeatRunRuntimeToolName(toolName: string): string {
-  return sanitizeRuntimeStatusText(toolName, MAX_HEARTBEAT_RUN_RUNTIME_TOOL_NAME_CHARS);
+  return sanitizeRuntimeStatusText(
+    toolName,
+    MAX_HEARTBEAT_RUN_RUNTIME_TOOL_NAME_CHARS,
+  );
 }
 
-export function sanitizeHeartbeatRunRuntimeAssistantSnippet(snippet: string): string {
-  return sanitizeRuntimeStatusText(snippet, MAX_HEARTBEAT_RUN_RUNTIME_ASSISTANT_SNIPPET_CHARS);
+export function sanitizeHeartbeatRunRuntimeAssistantSnippet(
+  snippet: string,
+): string {
+  return sanitizeRuntimeStatusText(
+    snippet,
+    MAX_HEARTBEAT_RUN_RUNTIME_ASSISTANT_SNIPPET_CHARS,
+  );
 }
 
-function isExpired(status: HeartbeatRunRuntimeStatus, now: Date, ttlMs: number) {
+function isExpired(
+  status: HeartbeatRunRuntimeStatus,
+  now: Date,
+  ttlMs: number,
+) {
   return now.getTime() - status.updatedAt.getTime() > ttlMs;
 }
 
 export function setHeartbeatRunRuntimeStatus(
   input: Omit<
     HeartbeatRunRuntimeStatus,
-    "message" | "updatedAt" | "currentToolName" | "lastAssistantSnippet" | "lastEventAt"
+    | "message"
+    | "updatedAt"
+    | "currentToolName"
+    | "lastAssistantSnippet"
+    | "lastEventAt"
   > & {
     message: string;
     updatedAt?: Date;
@@ -117,7 +140,10 @@ export function touchHeartbeatRunRuntimeStatus(input: {
     if (at.getTime() > existing.updatedAt.getTime()) {
       existing.updatedAt = new Date(at);
     }
-    if (!existing.lastEventAt || at.getTime() > existing.lastEventAt.getTime()) {
+    if (
+      !existing.lastEventAt ||
+      at.getTime() > existing.lastEventAt.getTime()
+    ) {
       existing.lastEventAt = new Date(at);
     }
     return cloneStatus(existing);
@@ -154,9 +180,15 @@ export function getHeartbeatRunRuntimeStatus(
     return null;
   }
 
-  if (expected?.companyId !== undefined && status.companyId !== expected.companyId) return null;
-  if (expected?.issueId !== undefined && status.issueId !== expected.issueId) return null;
-  if (expected?.agentId !== undefined && status.agentId !== expected.agentId) return null;
+  if (
+    expected?.companyId !== undefined &&
+    status.companyId !== expected.companyId
+  )
+    return null;
+  if (expected?.issueId !== undefined && status.issueId !== expected.issueId)
+    return null;
+  if (expected?.agentId !== undefined && status.agentId !== expected.agentId)
+    return null;
 
   return cloneStatus(status);
 }

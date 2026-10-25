@@ -59,12 +59,15 @@ export function CompanySettingsSidebar() {
   const { data: badges } = useQuery({
     queryKey: selectedCompanyId
       ? queryKeys.sidebarBadges(selectedCompanyId)
-      : ["sidebar-badges", "__disabled__"] as const,
+      : (["sidebar-badges", "__disabled__"] as const),
     queryFn: async () => {
       try {
         return await sidebarBadgesApi.get(selectedCompanyId!);
       } catch (error) {
-        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        if (
+          error instanceof ApiError &&
+          (error.status === 401 || error.status === 403)
+        ) {
           return null;
         }
         throw error;
@@ -81,7 +84,9 @@ export function CompanySettingsSidebar() {
     // operator hides the Plugins surface.
     enabled: showPlugins,
   });
-  const sidebarPlugins = (plugins ?? []).filter((plugin) => !isSandboxProviderOnly(plugin));
+  const sidebarPlugins = (plugins ?? []).filter(
+    (plugin) => !isSandboxProviderOnly(plugin),
+  );
 
   return (
     <aside className="w-full h-full min-h-0 border-r border-border bg-background flex flex-col">
@@ -100,7 +105,12 @@ export function CompanySettingsSidebar() {
 
       <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-auto-hide px-3 py-2">
         <div className="flex flex-col gap-0.5">
-          <SidebarNavItem to="/company/settings" label="General" icon={SlidersHorizontal} end />
+          <SidebarNavItem
+            to="/company/settings"
+            label="General"
+            icon={SlidersHorizontal}
+            end
+          />
           {showPage("instance.profile") && (
             <SidebarNavItem
               to={`${INSTANCE_SETTINGS_PATH_PREFIX}/profile`}
@@ -130,10 +140,20 @@ export function CompanySettingsSidebar() {
               />
             ))}
           {showPage("company.invites") && (
-            <SidebarNavItem to="/company/settings/invites" label="Invites" icon={MailPlus} end />
+            <SidebarNavItem
+              to="/company/settings/invites"
+              label="Invites"
+              icon={MailPlus}
+              end
+            />
           )}
           {showPage("company.secrets") && (
-            <SidebarNavItem to="/company/settings/secrets" label="Secrets" icon={KeyRound} end />
+            <SidebarNavItem
+              to="/company/settings/secrets"
+              label="Secrets"
+              icon={KeyRound}
+              end
+            />
           )}
           {showPage("instance.environments") && (
             <SidebarNavItem
@@ -160,10 +180,19 @@ export function CompanySettingsSidebar() {
             />
           )}
           {showPage("company.export") && (
-            <SidebarNavItem to="/company/export" label="Export" icon={Download} />
+            <SidebarNavItem
+              to="/company/export"
+              label="Export"
+              icon={Download}
+            />
           )}
           {!isCloud && showPage("company.import") && (
-            <SidebarNavItem to="/company/import" label="Import" icon={Upload} end />
+            <SidebarNavItem
+              to="/company/import"
+              label="Import"
+              icon={Upload}
+              end
+            />
           )}
           {showPage("instance.experimental") && (
             <SidebarNavItem

@@ -53,7 +53,8 @@ export function extractAssistantOutputText(chunks: RunLogChunk[]): string {
     const record = tryParseRecord(chunk.chunk);
     if (!record) continue;
     if (record.type !== "acpx.text_delta") continue;
-    const channel = typeof record.channel === "string" ? record.channel : "output";
+    const channel =
+      typeof record.channel === "string" ? record.channel : "output";
     if (channel === "thought" || channel === "thinking") continue;
     if (typeof record.text === "string") text += record.text;
   }
@@ -65,7 +66,9 @@ function tryParseRecord(chunk: string): Record<string, unknown> | null {
   if (!trimmed.startsWith("{")) return null;
   try {
     const parsed = JSON.parse(trimmed) as unknown;
-    return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : null;
+    return typeof parsed === "object" && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
@@ -82,13 +85,16 @@ export function parseSummaryDraftStream(text: string): SummaryDraftParse {
     const value = (match[1] ?? "").trim();
     if (value) statusLines.push(value);
   }
-  const statusLine = statusLines.length > 0 ? statusLines[statusLines.length - 1]! : null;
+  const statusLine =
+    statusLines.length > 0 ? statusLines[statusLines.length - 1]! : null;
 
   const startMatch = text.match(DRAFT_START_RE);
   let draft: string | null = null;
   let draftClosed = false;
   if (startMatch && startMatch.index !== undefined) {
-    const afterStart = text.slice(startMatch.index + startMatch[0].length).replace(/^\r?\n/, "");
+    const afterStart = text
+      .slice(startMatch.index + startMatch[0].length)
+      .replace(/^\r?\n/, "");
     const endMatch = afterStart.match(DRAFT_END_RE);
     if (endMatch && endMatch.index !== undefined) {
       draft = afterStart.slice(0, endMatch.index).replace(/\r?\n$/, "");

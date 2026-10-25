@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { kubernetesProviderConfigSchema, parseKubernetesProviderConfig } from "../../src/types.js";
+import {
+  kubernetesProviderConfigSchema,
+  parseKubernetesProviderConfig,
+} from "../../src/types.js";
 
 describe("kubernetesProviderConfigSchema", () => {
   it("accepts inCluster=true with no kubeconfig", () => {
@@ -27,13 +30,19 @@ describe("kubernetesProviderConfigSchema", () => {
 
   it("rejects invalid companySlug", () => {
     expect(() =>
-      parseKubernetesProviderConfig({ inCluster: true, companySlug: "INVALID UPPER" }),
+      parseKubernetesProviderConfig({
+        inCluster: true,
+        companySlug: "INVALID UPPER",
+      }),
     ).toThrow();
   });
 
   it("rejects egressAllowCidrs entries that are not valid CIDR", () => {
     expect(() =>
-      parseKubernetesProviderConfig({ inCluster: true, egressAllowCidrs: ["not-a-cidr"] }),
+      parseKubernetesProviderConfig({
+        inCluster: true,
+        egressAllowCidrs: ["not-a-cidr"],
+      }),
     ).toThrow(/CIDR/i);
   });
 });

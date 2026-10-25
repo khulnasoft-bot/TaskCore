@@ -8,7 +8,9 @@ export const issueTreeControlModeSchema = z.enum(ISSUE_TREE_CONTROL_MODES);
 
 export const issueTreeHoldReleasePolicySchema = z
   .object({
-    strategy: z.enum(ISSUE_TREE_HOLD_RELEASE_POLICY_STRATEGIES).default("manual"),
+    strategy: z
+      .enum(ISSUE_TREE_HOLD_RELEASE_POLICY_STRATEGIES)
+      .default("manual"),
     note: z.string().trim().min(1).max(500).optional().nullable(),
   })
   .strict();
@@ -20,7 +22,9 @@ export const previewIssueTreeControlSchema = z
   })
   .strict();
 
-export type PreviewIssueTreeControl = z.infer<typeof previewIssueTreeControlSchema>;
+export type PreviewIssueTreeControl = z.infer<
+  typeof previewIssueTreeControlSchema
+>;
 
 export const createIssueTreeHoldSchema = z
   .object({

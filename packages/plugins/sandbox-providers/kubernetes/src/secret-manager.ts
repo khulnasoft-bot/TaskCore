@@ -12,12 +12,17 @@ export interface CreatePerRunSecretInput {
   adapterEnv: Record<string, string>;
 }
 
-export async function createPerRunSecret(clients: KubeClients, input: CreatePerRunSecretInput): Promise<void> {
+export async function createPerRunSecret(
+  clients: KubeClients,
+  input: CreatePerRunSecretInput,
+): Promise<void> {
   if (!input.ownerUid) {
     throw new Error("createPerRunSecret requires a non-empty ownerUid");
   }
   if ("BOOTSTRAP_TOKEN" in input.adapterEnv) {
-    throw new Error("adapterEnv must not contain BOOTSTRAP_TOKEN (reserved key)");
+    throw new Error(
+      "adapterEnv must not contain BOOTSTRAP_TOKEN (reserved key)",
+    );
   }
   await clients.core.createNamespacedSecret({
     namespace: input.namespace,

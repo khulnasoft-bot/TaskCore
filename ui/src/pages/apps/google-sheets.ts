@@ -1,4 +1,7 @@
-export function parseGoogleSheetIds(value: string): { ids: string[]; invalidCount: number } {
+export function parseGoogleSheetIds(value: string): {
+  ids: string[];
+  invalidCount: number;
+} {
   const ids: string[] = [];
   let invalidCount = 0;
   for (const rawToken of value.split(/[\s,]+/g)) {
@@ -23,9 +26,12 @@ export function googleSheetsConfigWithAllowlist(
   currentConfig: Record<string, unknown> | null | undefined,
   allowedSpreadsheetIds: string[],
 ): Record<string, unknown> {
-  const env = currentConfig && typeof currentConfig.env === "object" && !Array.isArray(currentConfig.env)
-    ? currentConfig.env as Record<string, unknown>
-    : {};
+  const env =
+    currentConfig &&
+    typeof currentConfig.env === "object" &&
+    !Array.isArray(currentConfig.env)
+      ? (currentConfig.env as Record<string, unknown>)
+      : {};
   return {
     ...(currentConfig ?? {}),
     allowedSpreadsheetIds,

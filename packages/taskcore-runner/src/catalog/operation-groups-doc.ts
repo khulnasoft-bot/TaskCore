@@ -34,7 +34,14 @@ export interface OperationGroupsSource {
     operationIds: string[];
   }>;
   behaviorGroups: BehaviorGroupSource[];
-  rules: Record<"companyAuthorization" | "taskModes" | "redaction" | "idempotency" | "sideEffects", string[]>;
+  rules: Record<
+    | "companyAuthorization"
+    | "taskModes"
+    | "redaction"
+    | "idempotency"
+    | "sideEffects",
+    string[]
+  >;
   documentLifecycle: {
     scope: string[];
     operations: Array<{
@@ -45,11 +52,14 @@ export interface OperationGroupsSource {
       status: string;
     }>;
   };
-  legacySemanticTargetDispositions: Record<string, {
-    kind: "control_plane" | "folded" | "composite" | "known_gap";
-    targets: string[];
-    reason: string;
-  }>;
+  legacySemanticTargetDispositions: Record<
+    string,
+    {
+      kind: "control_plane" | "folded" | "composite" | "known_gap";
+      targets: string[];
+      reason: string;
+    }
+  >;
 }
 
 export interface BehaviorGroupSource {
@@ -94,7 +104,9 @@ export interface OperationGroupsInput {
   eventTypes: readonly string[];
   commandTypes: readonly string[];
   legacyAliases: readonly LegacyAliasRow[];
-  sourceContractToolMappings: Readonly<Record<string, readonly [string, string]>>;
+  sourceContractToolMappings: Readonly<
+    Record<string, readonly [string, string]>
+  >;
   rootIndexSource: string;
   catalogIndexSource: string;
 }
@@ -104,24 +116,37 @@ const EXPECTED_COMMAND_COUNT = 18;
 const EXPECTED_SCENARIO_COUNT = 106;
 const EXPECTED_BEHAVIOR_GROUP_COUNT = 16;
 
-export function validateOperationGroupsInput(input: OperationGroupsInput): void {
+export function validateOperationGroupsInput(
+  input: OperationGroupsInput,
+): void {
   const failures: string[] = [];
   const fail = (message: string): void => {
     failures.push(message);
   };
 
-  if (input.source.schemaVersion !== 1) fail(`Unsupported operation-groups source schema ${input.source.schemaVersion}.`);
+  if (input.source.schemaVersion !== 1)
+    fail(
+      `Unsupported operation-groups source schema ${input.source.schemaVersion}.`,
+    );
   if (input.eventTypes.length !== EXPECTED_EVENT_COUNT) {
-    fail(`PRP event catalog has ${input.eventTypes.length} events; expected ${EXPECTED_EVENT_COUNT}.`);
+    fail(
+      `PRP event catalog has ${input.eventTypes.length} events; expected ${EXPECTED_EVENT_COUNT}.`,
+    );
   }
   if (input.commandTypes.length !== EXPECTED_COMMAND_COUNT) {
-    fail(`PRP command catalog has ${input.commandTypes.length} commands; expected ${EXPECTED_COMMAND_COUNT}.`);
+    fail(
+      `PRP command catalog has ${input.commandTypes.length} commands; expected ${EXPECTED_COMMAND_COUNT}.`,
+    );
   }
   if (input.scenarios.length !== EXPECTED_SCENARIO_COUNT) {
-    fail(`Behavior catalog has ${input.scenarios.length} scenarios; expected ${EXPECTED_SCENARIO_COUNT}.`);
+    fail(
+      `Behavior catalog has ${input.scenarios.length} scenarios; expected ${EXPECTED_SCENARIO_COUNT}.`,
+    );
   }
   if (input.source.behaviorGroups.length !== EXPECTED_BEHAVIOR_GROUP_COUNT) {
-    fail(`Operation-groups source has ${input.source.behaviorGroups.length} behavior groups; expected ${EXPECTED_BEHAVIOR_GROUP_COUNT}.`);
+    fail(
+      `Operation-groups source has ${input.source.behaviorGroups.length} behavior groups; expected ${EXPECTED_BEHAVIOR_GROUP_COUNT}.`,
+    );
   }
 
   compareSets(
@@ -137,19 +162,35 @@ export function validateOperationGroupsInput(input: OperationGroupsInput): void 
     fail,
   );
 
-  const canonicalIds = input.canonicalOperations.map((operation) => operation.operationId);
+  const canonicalIds = input.canonicalOperations.map(
+    (operation) => operation.operationId,
+  );
   const alwaysIds = input.canonicalOperations
     .filter((operation) => operation.placement === "always_agent_tool")
     .map((operation) => operation.operationId);
   const optionalIds = input.canonicalOperations
     .filter((operation) => operation.placement === "optional_agent_tool")
     .map((operation) => operation.operationId);
-  const groupedOptionalIds = input.source.optionalGrantGroups.flatMap((group) => group.operationIds);
-  compareSets("optional grant-group operations", groupedOptionalIds, optionalIds, fail);
+  const groupedOptionalIds = input.source.optionalGrantGroups.flatMap(
+    (group) => group.operationIds,
+  );
+  compareSets(
+    "optional grant-group operations",
+    groupedOptionalIds,
+    optionalIds,
+    fail,
+  );
   reportDuplicates("optional grant-group operations", groupedOptionalIds, fail);
 
-  const behaviorOperationIds = input.source.behaviorGroups.flatMap((group) => group.operationIds);
-  compareSets("behavior coverage semantic operations", behaviorOperationIds, canonicalIds, fail);
+  const behaviorOperationIds = input.source.behaviorGroups.flatMap(
+    (group) => group.operationIds,
+  );
+  compareSets(
+    "behavior coverage semantic operations",
+    behaviorOperationIds,
+    canonicalIds,
+    fail,
+  );
   const behaviorControlPlaneIds = input.source.behaviorGroups.flatMap(
     (group) => group.controlPlaneOperationIds,
   );
@@ -160,7 +201,10 @@ export function validateOperationGroupsInput(input: OperationGroupsInput): void 
     fail,
   );
 
-  const scenariosByGroup = groupBy(input.scenarios, (scenario) => scenario.group);
+  const scenariosByGroup = groupBy(
+    input.scenarios,
+    (scenario) => scenario.group,
+  );
   compareSets(
     "behavior group ids",
     input.source.behaviorGroups.map((group) => group.id),
@@ -171,10 +215,16 @@ export function validateOperationGroupsInput(input: OperationGroupsInput): void 
     const rows = scenariosByGroup.get(group.id) ?? [];
     const legacyGroups = new Set(rows.map((row) => row.legacyGroup));
     if (legacyGroups.size !== 1 || !legacyGroups.has(group.legacyGroup)) {
-      fail(`Behavior group ${group.id} legacyGroup disagrees with scenario authority.`);
+      fail(
+        `Behavior group ${group.id} legacyGroup disagrees with scenario authority.`,
+      );
     }
   }
-  reportDuplicates("scenario ids", input.scenarios.map((scenario) => scenario.id), fail);
+  reportDuplicates(
+    "scenario ids",
+    input.scenarios.map((scenario) => scenario.id),
+    fail,
+  );
 
   compareSets(
     "generated semantic contract",
@@ -185,7 +235,12 @@ export function validateOperationGroupsInput(input: OperationGroupsInput): void 
   const liveCanonicalIds = input.canonicalOperations
     .filter((operation) => operation.surfaces.includes("live"))
     .map((operation) => operation.operationId);
-  compareSets("canonical live surface", input.liveCatalogOperationIds, liveCanonicalIds, fail);
+  compareSets(
+    "canonical live surface",
+    input.liveCatalogOperationIds,
+    liveCanonicalIds,
+    fail,
+  );
 
   const sourceContractNames = Object.keys(input.sourceContractToolMappings);
   compareSets(
@@ -195,31 +250,46 @@ export function validateOperationGroupsInput(input: OperationGroupsInput): void 
     fail,
   );
   const scenarioIds = new Set(input.scenarios.map((scenario) => scenario.id));
-  const canonicalById = new Map(input.canonicalOperations.map((operation) => [operation.operationId, operation]));
+  const canonicalById = new Map(
+    input.canonicalOperations.map((operation) => [
+      operation.operationId,
+      operation,
+    ]),
+  );
   const controlPlaneIds = new Set(input.controlPlaneOperationIds);
   const nonCanonicalSourceTargets = new Set<string>();
   for (const alias of input.legacyAliases) {
     const evalId = alias.foldedInto.replace(/^eval:/, "");
-    if (!scenarioIds.has(evalId)) fail(`Legacy alias ${alias.name} folds into missing scenario ${alias.foldedInto}.`);
+    if (!scenarioIds.has(evalId))
+      fail(
+        `Legacy alias ${alias.name} folds into missing scenario ${alias.foldedInto}.`,
+      );
     const mapping = input.sourceContractToolMappings[alias.name];
     if (mapping === undefined) continue;
     const [placement, semanticTarget] = mapping;
     const canonical = canonicalById.get(semanticTarget);
     if (canonical !== undefined) {
       if (canonical.placement !== placement) {
-        fail(`Source-contract placement for ${alias.name} is ${placement}; canonical ${semanticTarget} is ${canonical.placement}.`);
+        fail(
+          `Source-contract placement for ${alias.name} is ${placement}; canonical ${semanticTarget} is ${canonical.placement}.`,
+        );
       }
       continue;
     }
     nonCanonicalSourceTargets.add(semanticTarget);
-    const disposition = input.source.legacySemanticTargetDispositions[semanticTarget];
+    const disposition =
+      input.source.legacySemanticTargetDispositions[semanticTarget];
     if (disposition === undefined) {
-      fail(`Source-contract semantic target ${semanticTarget} has no canonical operation or reconciliation disposition.`);
+      fail(
+        `Source-contract semantic target ${semanticTarget} has no canonical operation or reconciliation disposition.`,
+      );
       continue;
     }
     for (const target of disposition.targets) {
       if (!canonicalById.has(target) && !controlPlaneIds.has(target)) {
-        fail(`Legacy target ${semanticTarget} points at unknown reconciliation target ${target}.`);
+        fail(
+          `Legacy target ${semanticTarget} points at unknown reconciliation target ${target}.`,
+        );
       }
     }
   }
@@ -236,26 +306,42 @@ export function validateOperationGroupsInput(input: OperationGroupsInput): void 
   if (!input.rootIndexSource.includes(expectedRootCatalogExport)) {
     fail("Package root does not export the canonical catalog barrel.");
   }
-  if (!/export \* from ["']\.\/reconciliation\.js["'];/.test(input.catalogIndexSource)) {
-    fail("Catalog barrel does not export the canonical reconciliation authority.");
+  if (
+    !/export \* from ["']\.\/reconciliation\.js["'];/.test(
+      input.catalogIndexSource,
+    )
+  ) {
+    fail(
+      "Catalog barrel does not export the canonical reconciliation authority.",
+    );
   }
 
   if (input.reconciliation.unionCount !== canonicalIds.length) {
-    fail("Catalog reconciliation union count disagrees with canonical operations.");
+    fail(
+      "Catalog reconciliation union count disagrees with canonical operations.",
+    );
   }
   if (input.reconciliation.alwaysCount !== alwaysIds.length) {
-    fail("Catalog reconciliation always count disagrees with canonical operations.");
+    fail(
+      "Catalog reconciliation always count disagrees with canonical operations.",
+    );
   }
   if (input.reconciliation.optionalCount !== optionalIds.length) {
-    fail("Catalog reconciliation optional count disagrees with canonical operations.");
+    fail(
+      "Catalog reconciliation optional count disagrees with canonical operations.",
+    );
   }
 
   if (failures.length > 0) {
-    throw new Error(`Operation-groups drift detected:\n- ${failures.join("\n- ")}`);
+    throw new Error(
+      `Operation-groups drift detected:\n- ${failures.join("\n- ")}`,
+    );
   }
 }
 
-export function renderOperationGroupsDocument(input: OperationGroupsInput): string {
+export function renderOperationGroupsDocument(
+  input: OperationGroupsInput,
+): string {
   validateOperationGroupsInput(input);
   const {
     source,
@@ -269,9 +355,15 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
     sourceContractToolMappings,
   } = input;
   const lines: string[] = [];
-  const always = canonicalOperations.filter((operation) => operation.placement === "always_agent_tool");
-  const optional = canonicalOperations.filter((operation) => operation.placement === "optional_agent_tool");
-  const scenarioById = new Map(scenarios.map((scenario) => [scenario.id, scenario]));
+  const always = canonicalOperations.filter(
+    (operation) => operation.placement === "always_agent_tool",
+  );
+  const optional = canonicalOperations.filter(
+    (operation) => operation.placement === "optional_agent_tool",
+  );
+  const scenarioById = new Map(
+    scenarios.map((scenario) => [scenario.id, scenario]),
+  );
 
   lines.push(
     "<!-- GENERATED FILE — DO NOT EDIT. Run `pnpm --filter @taskcore/taskcore-runner exec tsx scripts/generate-operation-groups.ts`. -->",
@@ -294,12 +386,14 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
     "| --- | --- | --- | ---: |",
   );
   for (const [family, members] of groupedFamilies(eventTypes)) {
-    lines.push(row([
-      code(family),
-      source.prpEventFamilyDescriptions[family] ?? "",
-      members.map(code).join("<br>"),
-      String(members.length),
-    ]));
+    lines.push(
+      row([
+        code(family),
+        source.prpEventFamilyDescriptions[family] ?? "",
+        members.map(code).join("<br>"),
+        String(members.length),
+      ]),
+    );
   }
   lines.push(
     "",
@@ -309,12 +403,14 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
     "| --- | --- | --- | ---: |",
   );
   for (const [family, members] of groupedFamilies(commandTypes)) {
-    lines.push(row([
-      code(family),
-      source.prpCommandFamilyDescriptions[family] ?? "",
-      members.map(code).join("<br>"),
-      String(members.length),
-    ]));
+    lines.push(
+      row([
+        code(family),
+        source.prpCommandFamilyDescriptions[family] ?? "",
+        members.map(code).join("<br>"),
+        String(members.length),
+      ]),
+    );
   }
 
   lines.push(
@@ -336,16 +432,23 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
     checkout_task: "Atomic checkout and execution-lock ownership.",
     release_task: "Run cleanup and checkout release.",
     select_work: "Scoped wake/inbox work selection.",
-    route_wake: "Attention, blocker, interaction, approval, and continuation routing.",
+    route_wake:
+      "Attention, blocker, interaction, approval, and continuation routing.",
     enforce_budget: "Budget hard stop, pause, and run-stop reason.",
     append_audit_record: "Immutable mutation evidence.",
     persist_run: "Durable run/event/checkpoint persistence.",
     replay_run: "Side-effect-free replay and reconstruction.",
     schedule_blocker_wake: "Dependency-resolution wake scheduling.",
-    reconcile_run: "Work assessment, terminal status arbitration, and recovery reconciliation.",
+    reconcile_run:
+      "Work assessment, terminal status arbitration, and recovery reconciliation.",
   };
   for (const operationId of controlPlaneOperationIds) {
-    lines.push(row([code(operationId), controlPlaneReasons[operationId] ?? "Control-plane invariant."]));
+    lines.push(
+      row([
+        code(operationId),
+        controlPlaneReasons[operationId] ?? "Control-plane invariant.",
+      ]),
+    );
   }
 
   lines.push(
@@ -361,15 +464,23 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
     "| Grant group | Operations | Required claims represented | Purpose |",
     "| --- | --- | --- | --- |",
   );
-  const operationById = new Map(canonicalOperations.map((operation) => [operation.operationId, operation]));
+  const operationById = new Map(
+    canonicalOperations.map((operation) => [operation.operationId, operation]),
+  );
   for (const group of source.optionalGrantGroups) {
-    const claims = unique(group.operationIds.flatMap((id) => operationById.get(id)?.requiredClaims ?? []));
-    lines.push(row([
-      code(group.id),
-      group.operationIds.map(code).join("<br>"),
-      claims.length === 0 ? "none" : claims.map(code).join("<br>"),
-      group.description,
-    ]));
+    const claims = unique(
+      group.operationIds.flatMap(
+        (id) => operationById.get(id)?.requiredClaims ?? [],
+      ),
+    );
+    lines.push(
+      row([
+        code(group.id),
+        group.operationIds.map(code).join("<br>"),
+        claims.length === 0 ? "none" : claims.map(code).join("<br>"),
+        group.description,
+      ]),
+    );
   }
 
   lines.push(
@@ -382,18 +493,22 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
     "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
   );
   for (const operation of canonicalOperations) {
-    lines.push(row([
-      code(operation.operationId),
-      code(operation.placement),
-      listOrNone(operation.requiredClaims),
-      `${listOrNone(operation.taskModes)}${operation.allowedRoles === undefined ? "" : `<br>roles: ${listOrNone(operation.allowedRoles)}`}`,
-      code(operation.sideEffectClass),
-      code(operation.idempotency),
-      operation.redacts ? "yes" : "no",
-      operation.mockCommandMapping === null ? "inline/no mapping" : code(mockMappingLabel(operation.mockCommandMapping)),
-      `${operation.surfaces.map(code).join(" + ")}<br>${code(operation.realBindingStatus)}`,
-      `${code(operation.realServiceBinding)}<br>${operation.prpEvidence}<br>catalog PRP status: ${code(operation.prpBindingStatus)}`,
-    ]));
+    lines.push(
+      row([
+        code(operation.operationId),
+        code(operation.placement),
+        listOrNone(operation.requiredClaims),
+        `${listOrNone(operation.taskModes)}${operation.allowedRoles === undefined ? "" : `<br>roles: ${listOrNone(operation.allowedRoles)}`}`,
+        code(operation.sideEffectClass),
+        code(operation.idempotency),
+        operation.redacts ? "yes" : "no",
+        operation.mockCommandMapping === null
+          ? "inline/no mapping"
+          : code(mockMappingLabel(operation.mockCommandMapping)),
+        `${operation.surfaces.map(code).join(" + ")}<br>${code(operation.realBindingStatus)}`,
+        `${code(operation.realServiceBinding)}<br>${operation.prpEvidence}<br>catalog PRP status: ${code(operation.prpBindingStatus)}`,
+      ]),
+    );
   }
 
   lines.push(
@@ -409,22 +524,30 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
   );
   const scenariosByGroup = groupBy(scenarios, (scenario) => scenario.group);
   for (const group of source.behaviorGroups) {
-    lines.push(row([
-      `[\`${group.id}\` — ${group.name}](#behavior-group-${group.id}-${slug(group.name)})`,
-      group.owner,
-      group.operationIds.length === 0 ? "none" : group.operationIds.map(code).join("<br>"),
-      group.controlPlaneOperationIds.length === 0 ? "none" : group.controlPlaneOperationIds.map(code).join("<br>"),
-      group.realSurface,
-      group.mockStateDomains.map(code).join("<br>"),
-      String((scenariosByGroup.get(group.id) ?? []).length),
-      group.prpEvidence,
-      group.gap,
-    ]));
+    lines.push(
+      row([
+        `[\`${group.id}\` — ${group.name}](#behavior-group-${group.id}-${slug(group.name)})`,
+        group.owner,
+        group.operationIds.length === 0
+          ? "none"
+          : group.operationIds.map(code).join("<br>"),
+        group.controlPlaneOperationIds.length === 0
+          ? "none"
+          : group.controlPlaneOperationIds.map(code).join("<br>"),
+        group.realSurface,
+        group.mockStateDomains.map(code).join("<br>"),
+        String((scenariosByGroup.get(group.id) ?? []).length),
+        group.prpEvidence,
+        group.gap,
+      ]),
+    );
   }
 
   lines.push("", "### Scenario links");
   for (const group of source.behaviorGroups) {
-    const members = [...(scenariosByGroup.get(group.id) ?? [])].sort((left, right) => left.id.localeCompare(right.id));
+    const members = [...(scenariosByGroup.get(group.id) ?? [])].sort(
+      (left, right) => left.id.localeCompare(right.id),
+    );
     lines.push(
       "",
       `#### Behavior group ${group.id}: ${group.name}`,
@@ -433,31 +556,44 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
       "",
     );
     for (const scenario of members) {
-      lines.push(`- [\`${scenario.id}\`](${scenarioUrl(source, scenario)}) — ${scenario.title}`);
+      lines.push(
+        `- [\`${scenario.id}\`](${scenarioUrl(source, scenario)}) — ${scenario.title}`,
+      );
     }
   }
 
   lines.push("", "## Authorization and execution invariants");
-  pushRuleSection(lines, "Company and actor authorization", source.rules.companyAuthorization);
+  pushRuleSection(
+    lines,
+    "Company and actor authorization",
+    source.rules.companyAuthorization,
+  );
   pushRuleSection(lines, "Task modes and exposure", source.rules.taskModes);
   pushRuleSection(lines, "Redaction", source.rules.redaction);
   pushRuleSection(lines, "Idempotency and replay", source.rules.idempotency);
-  pushRuleSection(lines, "Side effects and terminal ownership", source.rules.sideEffects);
+  pushRuleSection(
+    lines,
+    "Side effects and terminal ownership",
+    source.rules.sideEffects,
+  );
 
   lines.push("", "## Issue-document lifecycle", "");
-  for (const paragraph of source.documentLifecycle.scope) lines.push(paragraph, "");
+  for (const paragraph of source.documentLifecycle.scope)
+    lines.push(paragraph, "");
   lines.push(
     "| Action | Semantic operation | Placement | Contract | Status |",
     "| --- | --- | --- | --- | --- |",
   );
   for (const operation of source.documentLifecycle.operations) {
-    lines.push(row([
-      code(operation.action),
-      code(operation.semanticOperation),
-      code(operation.placement),
-      operation.contract,
-      operation.status,
-    ]));
+    lines.push(
+      row([
+        code(operation.action),
+        code(operation.semanticOperation),
+        code(operation.placement),
+        operation.contract,
+        operation.status,
+      ]),
+    );
   }
   lines.push(
     "",
@@ -510,20 +646,24 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
     const mapping = sourceContractToolMappings[alias.name];
     const semanticTarget = mapping?.[1] ?? "missing";
     const disposition = source.legacySemanticTargetDispositions[semanticTarget];
-    const reconciled = disposition === undefined
-      ? code(semanticTarget)
-      : `${code(disposition.kind)} → ${disposition.targets.length === 0 ? "named gap" : disposition.targets.map(code).join(", ")}<br>${disposition.reason}`;
+    const reconciled =
+      disposition === undefined
+        ? code(semanticTarget)
+        : `${code(disposition.kind)} → ${disposition.targets.length === 0 ? "named gap" : disposition.targets.map(code).join(", ")}<br>${disposition.reason}`;
     const scenarioId = alias.foldedInto.replace(/^eval:/, "");
     const scenario = scenarioById.get(scenarioId);
-    const evidence = scenario === undefined
-      ? code(alias.foldedInto)
-      : `[\`${scenario.id}\`](${scenarioUrl(source, scenario)})`;
-    lines.push(row([
-      code(alias.name),
-      `${mapping === undefined ? "missing" : code(mapping[0])} / ${code(semanticTarget)}`,
-      reconciled,
-      evidence,
-    ]));
+    const evidence =
+      scenario === undefined
+        ? code(alias.foldedInto)
+        : `[\`${scenario.id}\`](${scenarioUrl(source, scenario)})`;
+    lines.push(
+      row([
+        code(alias.name),
+        `${mapping === undefined ? "missing" : code(mapping[0])} / ${code(semanticTarget)}`,
+        reconciled,
+        evidence,
+      ]),
+    );
   }
 
   lines.push(
@@ -533,10 +673,17 @@ export function renderOperationGroupsDocument(input: OperationGroupsInput): stri
     "PRP v1 already represents runner/session/turn/item lifecycle, replay identity, capability negotiation, request/interaction routing, result negotiation, attention, work assessment, issue-status decision, and terminal causality. Provider-neutral semantic-operation receipts (including authorization/redaction/idempotency/conflict facts) and explicit budget-stop reasons are additive v1 work. Destructive administration, cross-company actions, board-only governance, document lock/unlock/delete, checkout selection, audit persistence, and final arbitration remain control-plane-local and do not become model tools or generic PRP commands.",
     "",
   );
-  return `${lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd()}\n`;
+  return `${lines
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd()}\n`;
 }
 
-function pushRuleSection(lines: string[], title: string, rules: readonly string[]): void {
+function pushRuleSection(
+  lines: string[],
+  title: string,
+  rules: readonly string[],
+): void {
   lines.push("", `### ${title}`, "");
   for (const rule of rules) lines.push(`- ${rule}`);
 }
@@ -549,21 +696,32 @@ function compareSets(
 ): void {
   const actualSet = new Set(actual);
   const expectedSet = new Set(expected);
-  const missing = [...expectedSet].filter((value) => !actualSet.has(value)).sort();
-  const extra = [...actualSet].filter((value) => !expectedSet.has(value)).sort();
+  const missing = [...expectedSet]
+    .filter((value) => !actualSet.has(value))
+    .sort();
+  const extra = [...actualSet]
+    .filter((value) => !expectedSet.has(value))
+    .sort();
   if (missing.length > 0 || extra.length > 0) {
-    fail(`${label} disagree (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"}).`);
+    fail(
+      `${label} disagree (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"}).`,
+    );
   }
 }
 
-function reportDuplicates(label: string, values: readonly string[], fail: (message: string) => void): void {
+function reportDuplicates(
+  label: string,
+  values: readonly string[],
+  fail: (message: string) => void,
+): void {
   const seen = new Set<string>();
   const duplicates = new Set<string>();
   for (const value of values) {
     if (seen.has(value)) duplicates.add(value);
     seen.add(value);
   }
-  if (duplicates.size > 0) fail(`${label} contain duplicates: ${[...duplicates].sort().join(", ")}.`);
+  if (duplicates.size > 0)
+    fail(`${label} contain duplicates: ${[...duplicates].sort().join(", ")}.`);
 }
 
 function family(value: string): string {
@@ -578,7 +736,10 @@ function groupedFamilies(values: readonly string[]): Array<[string, string[]]> {
   return [...groupBy(values, family).entries()];
 }
 
-function groupBy<T>(values: readonly T[], key: (value: T) => string): Map<string, T[]> {
+function groupBy<T>(
+  values: readonly T[],
+  key: (value: T) => string,
+): Map<string, T[]> {
   const grouped = new Map<string, T[]>();
   for (const value of values) {
     const id = key(value);
@@ -601,7 +762,9 @@ function listOrNone(values: readonly string[]): string {
   return values.length === 0 ? "none" : values.map(code).join("<br>");
 }
 
-function mockMappingLabel(mapping: NonNullable<OperationGroupsCanonicalOperation["mockCommandMapping"]>): string {
+function mockMappingLabel(
+  mapping: NonNullable<OperationGroupsCanonicalOperation["mockCommandMapping"]>,
+): string {
   if ("projection" in mapping) return `${mapping.kind}:${mapping.projection}`;
   if ("commandKind" in mapping) return `${mapping.kind}:${mapping.commandKind}`;
   if ("extension" in mapping) return `${mapping.kind}:${mapping.extension}`;
@@ -617,10 +780,16 @@ function cell(value: string): string {
 }
 
 function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
-function scenarioUrl(source: OperationGroupsSource, scenario: OperationGroupsScenario): string {
+function scenarioUrl(
+  source: OperationGroupsSource,
+  scenario: OperationGroupsScenario,
+): string {
   const relative = scenario.sourceAnchor.replace(/^taskcore-evals\//, "");
   return `${source.evalRepositoryUrl}${relative}`;
 }

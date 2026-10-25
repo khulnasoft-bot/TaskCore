@@ -26,7 +26,10 @@ export function issueApprovalService(db: Db) {
       .then((rows) => rows[0] ?? null);
   }
 
-  async function assertIssueAndApprovalSameCompany(issueId: string, approvalId: string) {
+  async function assertIssueAndApprovalSameCompany(
+    issueId: string,
+    approvalId: string,
+  ) {
     const issue = await getIssue(issueId);
     if (!issue) throw notFound("Issue not found");
 
@@ -105,7 +108,10 @@ export function issueApprovalService(db: Db) {
     },
 
     link: async (issueId: string, approvalId: string, actor?: LinkActor) => {
-      const { issue } = await assertIssueAndApprovalSameCompany(issueId, approvalId);
+      const { issue } = await assertIssueAndApprovalSameCompany(
+        issueId,
+        approvalId,
+      );
 
       await db
         .insert(issueApprovals)
@@ -121,7 +127,12 @@ export function issueApprovalService(db: Db) {
       return db
         .select()
         .from(issueApprovals)
-        .where(and(eq(issueApprovals.issueId, issueId), eq(issueApprovals.approvalId, approvalId)))
+        .where(
+          and(
+            eq(issueApprovals.issueId, issueId),
+            eq(issueApprovals.approvalId, approvalId),
+          ),
+        )
         .then((rows) => rows[0] ?? null);
     },
 
@@ -129,10 +140,19 @@ export function issueApprovalService(db: Db) {
       await assertIssueAndApprovalSameCompany(issueId, approvalId);
       await db
         .delete(issueApprovals)
-        .where(and(eq(issueApprovals.issueId, issueId), eq(issueApprovals.approvalId, approvalId)));
+        .where(
+          and(
+            eq(issueApprovals.issueId, issueId),
+            eq(issueApprovals.approvalId, approvalId),
+          ),
+        );
     },
 
-    linkManyForApproval: async (approvalId: string, issueIds: string[], actor?: LinkActor) => {
+    linkManyForApproval: async (
+      approvalId: string,
+      issueIds: string[],
+      actor?: LinkActor,
+    ) => {
       if (issueIds.length === 0) return;
 
       const approval = await getApproval(approvalId);
@@ -153,7 +173,9 @@ export function issueApprovalService(db: Db) {
 
       for (const row of rows) {
         if (row.companyId !== approval.companyId) {
-          throw unprocessable("Issue and approval must belong to the same company");
+          throw unprocessable(
+            "Issue and approval must belong to the same company",
+          );
         }
       }
 

@@ -2,7 +2,15 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import request from "supertest";
 import { and, eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   costEvents,
   activityLog,
@@ -46,7 +54,9 @@ const mockAdapterExecute = vi.hoisted(() =>
 );
 
 vi.mock("../adapters/index.ts", async () => {
-  const actual = await vi.importActual<typeof import("../adapters/index.ts")>("../adapters/index.ts");
+  const actual = await vi.importActual<typeof import("../adapters/index.ts")>(
+    "../adapters/index.ts",
+  );
   return {
     ...actual,
     getServerAdapter: vi.fn(() => ({
@@ -57,7 +67,9 @@ vi.mock("../adapters/index.ts", async () => {
 });
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -67,10 +79,14 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("issue watchdog routes", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-issue-watchdogs-routes-");
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-issue-watchdogs-routes-",
+    );
     db = createDb(tempDb.connectionString);
   }, 20_000);
 
@@ -113,7 +129,10 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
       };
       next();
     });
-    app.use("/api", issueRoutes(db, {} as any, { taskWatchdogEnqueueWakeup: null }));
+    app.use(
+      "/api",
+      issueRoutes(db, {} as any, { taskWatchdogEnqueueWakeup: null }),
+    );
     app.use(errorHandler);
     return app;
   }
@@ -151,7 +170,10 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
     return companyId;
   }
 
-  async function seedAgent(companyId: string, overrides: Partial<typeof agents.$inferInsert> = {}) {
+  async function seedAgent(
+    companyId: string,
+    overrides: Partial<typeof agents.$inferInsert> = {},
+  ) {
     const id = overrides.id ?? randomUUID();
     await db.insert(agents).values({
       id,
@@ -168,7 +190,10 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
     return id;
   }
 
-  async function seedIssue(companyId: string, overrides: Partial<typeof issues.$inferInsert> = {}) {
+  async function seedIssue(
+    companyId: string,
+    overrides: Partial<typeof issues.$inferInsert> = {},
+  ) {
     const id = overrides.id ?? randomUUID();
     await db.insert(issues).values({
       id,
@@ -205,11 +230,20 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
       watchdogIssueId: input.watchdogIssueId,
       status: "active",
     });
-    await taskWatchdogService(db).reconcileTaskWatchdogs({ companyId: input.companyId });
+    await taskWatchdogService(db).reconcileTaskWatchdogs({
+      companyId: input.companyId,
+    });
     const [watchdog] = await db
-      .select({ lastObservedFingerprint: issueWatchdogs.lastObservedFingerprint })
+      .select({
+        lastObservedFingerprint: issueWatchdogs.lastObservedFingerprint,
+      })
       .from(issueWatchdogs)
-      .where(and(eq(issueWatchdogs.companyId, input.companyId), eq(issueWatchdogs.issueId, input.watchedIssueId)));
+      .where(
+        and(
+          eq(issueWatchdogs.companyId, input.companyId),
+          eq(issueWatchdogs.issueId, input.watchedIssueId),
+        ),
+      );
     const runId = randomUUID();
     await db.insert(heartbeatRuns).values({
       id: runId,
@@ -243,14 +277,22 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
 
   it("creates, updates, reads, lists, and removes an issue watchdog with activity logs", async () => {
     const companyId = await seedCompany();
-    const issueId = await seedIssue(companyId, { identifier: "WDOG-1", issueNumber: 1 });
+    const issueId = await seedIssue(companyId, {
+      identifier: "WDOG-1",
+      issueNumber: 1,
+    });
     const firstAgentId = await seedAgent(companyId, { name: "First Watchdog" });
-    const secondAgentId = await seedAgent(companyId, { name: "Second Watchdog" });
+    const secondAgentId = await seedAgent(companyId, {
+      name: "Second Watchdog",
+    });
     const app = createApp(companyId);
 
     const created = await request(app)
       .put(`/api/issues/${issueId}/watchdog`)
-      .send({ agentId: firstAgentId, instructions: "Check screenshots and tests." });
+      .send({
+        agentId: firstAgentId,
+        instructions: "Check screenshots and tests.",
+      });
 
     expect(created.status, JSON.stringify(created.body)).toBe(200);
     expect(created.body).toMatchObject({
@@ -275,29 +317,45 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
 
     const read = await request(app).get(`/api/issues/${issueId}/watchdog`);
     expect(read.status, JSON.stringify(read.body)).toBe(200);
-    expect(read.body).toMatchObject({ id: created.body.id, watchdogAgentId: secondAgentId });
+    expect(read.body).toMatchObject({
+      id: created.body.id,
+      watchdogAgentId: secondAgentId,
+    });
 
     const detail = await request(app).get(`/api/issues/${issueId}`);
     expect(detail.status, JSON.stringify(detail.body)).toBe(200);
-    expect(detail.body.watchdog).toMatchObject({ id: created.body.id, watchdogAgentId: secondAgentId });
+    expect(detail.body.watchdog).toMatchObject({
+      id: created.body.id,
+      watchdogAgentId: secondAgentId,
+    });
 
     const list = await request(app).get(`/api/companies/${companyId}/issues`);
     expect(list.status, JSON.stringify(list.body)).toBe(200);
-    expect(list.body.find((issue: { id: string }) => issue.id === issueId)?.watchdog)
-      .toMatchObject({ id: created.body.id, watchdogAgentId: secondAgentId });
+    expect(
+      list.body.find((issue: { id: string }) => issue.id === issueId)?.watchdog,
+    ).toMatchObject({ id: created.body.id, watchdogAgentId: secondAgentId });
 
-    const removed = await request(app).delete(`/api/issues/${issueId}/watchdog`);
+    const removed = await request(app).delete(
+      `/api/issues/${issueId}/watchdog`,
+    );
     expect(removed.status, JSON.stringify(removed.body)).toBe(200);
     expect(removed.body).toEqual({ ok: true });
 
-    const afterDelete = await request(app).get(`/api/issues/${issueId}/watchdog`);
+    const afterDelete = await request(app).get(
+      `/api/issues/${issueId}/watchdog`,
+    );
     expect(afterDelete.status, JSON.stringify(afterDelete.body)).toBe(200);
     expect(afterDelete.body).toBeNull();
 
     const stored = await db
       .select()
       .from(issueWatchdogs)
-      .where(and(eq(issueWatchdogs.companyId, companyId), eq(issueWatchdogs.issueId, issueId)))
+      .where(
+        and(
+          eq(issueWatchdogs.companyId, companyId),
+          eq(issueWatchdogs.issueId, issueId),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
     expect(stored).toMatchObject({
       id: created.body.id,
@@ -310,7 +368,9 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
       .from(activityLog)
       .where(eq(activityLog.entityId, issueId));
     const actionNames = actions.map((row) => row.action);
-    expect(actionNames.filter((action) => action.startsWith("issue.watchdog_"))).toEqual([
+    expect(
+      actionNames.filter((action) => action.startsWith("issue.watchdog_")),
+    ).toEqual([
       "issue.watchdog_created",
       "issue.watchdog_updated",
       "issue.watchdog_removed",
@@ -320,7 +380,10 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
 
   it("handles concurrent first-time watchdog upserts without duplicate-key failures", async () => {
     const companyId = await seedCompany();
-    const issueId = await seedIssue(companyId, { identifier: "WDOG-RACE", issueNumber: 99 });
+    const issueId = await seedIssue(companyId, {
+      identifier: "WDOG-RACE",
+      issueNumber: 99,
+    });
     const agentId = await seedAgent(companyId, { name: "Race Watchdog" });
     const app = createApp(companyId);
 
@@ -332,14 +395,24 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
       ),
     );
 
-    expect(responses.map((res) => res.status), JSON.stringify(responses.map((res) => res.body)))
-      .toEqual(Array(12).fill(200));
+    expect(
+      responses.map((res) => res.status),
+      JSON.stringify(responses.map((res) => res.body)),
+    ).toEqual(Array(12).fill(200));
     const stored = await db
       .select()
       .from(issueWatchdogs)
-      .where(and(eq(issueWatchdogs.companyId, companyId), eq(issueWatchdogs.issueId, issueId)));
+      .where(
+        and(
+          eq(issueWatchdogs.companyId, companyId),
+          eq(issueWatchdogs.issueId, issueId),
+        ),
+      );
     expect(stored).toHaveLength(1);
-    expect(stored[0]).toMatchObject({ status: "active", watchdogAgentId: agentId });
+    expect(stored[0]).toMatchObject({
+      status: "active",
+      watchdogAgentId: agentId,
+    });
   });
 
   it("creates an issue and watchdog atomically from the create issue route", async () => {
@@ -375,7 +448,9 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
       .select({ action: activityLog.action })
       .from(activityLog)
       .where(eq(activityLog.entityId, res.body.id));
-    expect(activityRows.map((row) => row.action)).toContain("issue.watchdog_created");
+    expect(activityRows.map((row) => row.action)).toContain(
+      "issue.watchdog_created",
+    );
   });
 
   it("does not create an immediate watchdog review for a newly assigned issue", async () => {
@@ -409,28 +484,53 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
     const watchdogReviewIssues = await db
       .select()
       .from(issues)
-      .where(and(eq(issues.companyId, companyId), eq(issues.originKind, "task_watchdog")));
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.originKind, "task_watchdog"),
+        ),
+      );
     expect(watchdogReviewIssues).toHaveLength(0);
 
     const [watchdog] = await db
       .select()
       .from(issueWatchdogs)
-      .where(and(eq(issueWatchdogs.companyId, companyId), eq(issueWatchdogs.issueId, res.body.id)));
+      .where(
+        and(
+          eq(issueWatchdogs.companyId, companyId),
+          eq(issueWatchdogs.issueId, res.body.id),
+        ),
+      );
     expect(watchdog?.triggerCount).toBe(0);
 
     const taskWatchdogActivity = await db
       .select({ action: activityLog.action })
       .from(activityLog)
-      .where(and(eq(activityLog.entityId, res.body.id), eq(activityLog.action, "issue.task_watchdog_triggered")));
+      .where(
+        and(
+          eq(activityLog.entityId, res.body.id),
+          eq(activityLog.action, "issue.task_watchdog_triggered"),
+        ),
+      );
     expect(taskWatchdogActivity).toHaveLength(0);
   });
 
   it("enforces persisted watchdog scope for issue mutations and child creation", async () => {
     const companyId = await seedCompany();
-    const watchdogAgentId = await seedAgent(companyId, { name: "Scoped Watchdog" });
-    const watchedRootId = await seedIssue(companyId, { title: "Watched root", identifier: "WDOG-ROOT" });
-    const watchedChildId = await seedIssue(companyId, { title: "Watched child", parentId: watchedRootId });
-    const unrelatedRootId = await seedIssue(companyId, { title: "Unrelated root" });
+    const watchdogAgentId = await seedAgent(companyId, {
+      name: "Scoped Watchdog",
+    });
+    const watchedRootId = await seedIssue(companyId, {
+      title: "Watched root",
+      identifier: "WDOG-ROOT",
+    });
+    const watchedChildId = await seedIssue(companyId, {
+      title: "Watched child",
+      parentId: watchedRootId,
+    });
+    const unrelatedRootId = await seedIssue(companyId, {
+      title: "Unrelated root",
+    });
     const watchdogIssueId = await seedIssue(companyId, {
       title: "Reusable watchdog issue",
       parentId: watchedRootId,
@@ -459,12 +559,18 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
     const watchdogIssuePatch = await request(app)
       .patch(`/api/issues/${watchdogIssueId}`)
       .send({ title: "Reusable watchdog issue completed" });
-    expect(watchdogIssuePatch.status, JSON.stringify(watchdogIssuePatch.body)).toBe(200);
+    expect(
+      watchdogIssuePatch.status,
+      JSON.stringify(watchdogIssuePatch.body),
+    ).toBe(200);
 
     const deniedWatchdogDescendantPatch = await request(app)
       .patch(`/api/issues/${watchdogIssueChildId}`)
       .send({ title: "Denied watchdog descendant mutation" });
-    expect(deniedWatchdogDescendantPatch.status, JSON.stringify(deniedWatchdogDescendantPatch.body)).toBe(403);
+    expect(
+      deniedWatchdogDescendantPatch.status,
+      JSON.stringify(deniedWatchdogDescendantPatch.body),
+    ).toBe(403);
     expect(deniedWatchdogDescendantPatch.body.error).toBe(
       "Task-watchdog runs can only mutate the watched issue subtree.",
     );
@@ -473,44 +579,81 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
       .patch(`/api/issues/${unrelatedRootId}`)
       .send({ title: "Out-of-scope mutation" });
     expect(deniedPatch.status, JSON.stringify(deniedPatch.body)).toBe(403);
-    expect(deniedPatch.body.error).toBe("Task-watchdog runs can only mutate the watched issue subtree.");
+    expect(deniedPatch.body.error).toBe(
+      "Task-watchdog runs can only mutate the watched issue subtree.",
+    );
 
     const deniedChild = await request(app)
       .post(`/api/issues/${unrelatedRootId}/children`)
       .send({ title: "Denied unrelated child" });
     expect(deniedChild.status, JSON.stringify(deniedChild.body)).toBe(403);
-    expect(deniedChild.body.error).toBe("Task-watchdog runs can only mutate the watched issue subtree.");
+    expect(deniedChild.body.error).toBe(
+      "Task-watchdog runs can only mutate the watched issue subtree.",
+    );
 
     const deniedWatchdogIssueChild = await request(app)
       .post(`/api/issues/${watchdogIssueId}/children`)
       .send({ title: "Denied watchdog issue child" });
-    expect(deniedWatchdogIssueChild.status, JSON.stringify(deniedWatchdogIssueChild.body)).toBe(403);
+    expect(
+      deniedWatchdogIssueChild.status,
+      JSON.stringify(deniedWatchdogIssueChild.body),
+    ).toBe(403);
     const deniedVisibleProbeIssues = await db
       .select({ id: issues.id })
       .from(issues)
-      .where(and(eq(issues.companyId, companyId), eq(issues.title, "Denied watchdog issue child")));
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.title, "Denied watchdog issue child"),
+        ),
+      );
     expect(deniedVisibleProbeIssues).toHaveLength(0);
 
     const deniedParentCreate = await request(app)
       .post(`/api/companies/${companyId}/issues`)
       .send({ title: "Denied parent create", parentId: unrelatedRootId });
-    expect(deniedParentCreate.status, JSON.stringify(deniedParentCreate.body)).toBe(403);
-    expect(deniedParentCreate.body.error).toBe("Task-watchdog runs can only mutate the watched issue subtree.");
+    expect(
+      deniedParentCreate.status,
+      JSON.stringify(deniedParentCreate.body),
+    ).toBe(403);
+    expect(deniedParentCreate.body.error).toBe(
+      "Task-watchdog runs can only mutate the watched issue subtree.",
+    );
 
     const deniedNestedWatchdog = await request(app)
       .put(`/api/issues/${watchedChildId}/watchdog`)
-      .send({ agentId: watchdogAgentId, instructions: "Create a nested watchdog" });
-    expect(deniedNestedWatchdog.status, JSON.stringify(deniedNestedWatchdog.body)).toBe(403);
-    expect(deniedNestedWatchdog.body.error).toBe("Task-watchdog runs cannot change watchdog configuration.");
+      .send({
+        agentId: watchdogAgentId,
+        instructions: "Create a nested watchdog",
+      });
+    expect(
+      deniedNestedWatchdog.status,
+      JSON.stringify(deniedNestedWatchdog.body),
+    ).toBe(403);
+    expect(deniedNestedWatchdog.body.error).toBe(
+      "Task-watchdog runs cannot change watchdog configuration.",
+    );
 
-    const deniedWatchdogRemoval = await request(app).delete(`/api/issues/${watchedRootId}/watchdog`);
-    expect(deniedWatchdogRemoval.status, JSON.stringify(deniedWatchdogRemoval.body)).toBe(403);
-    expect(deniedWatchdogRemoval.body.error).toBe("Task-watchdog runs cannot change watchdog configuration.");
+    const deniedWatchdogRemoval = await request(app).delete(
+      `/api/issues/${watchedRootId}/watchdog`,
+    );
+    expect(
+      deniedWatchdogRemoval.status,
+      JSON.stringify(deniedWatchdogRemoval.body),
+    ).toBe(403);
+    expect(deniedWatchdogRemoval.body.error).toBe(
+      "Task-watchdog runs cannot change watchdog configuration.",
+    );
 
     const nestedWatchdogs = await db
       .select({ id: issueWatchdogs.id })
       .from(issueWatchdogs)
-      .where(and(eq(issueWatchdogs.companyId, companyId), eq(issueWatchdogs.issueId, watchedChildId)));
+      .where(
+        and(
+          eq(issueWatchdogs.companyId, companyId),
+          eq(issueWatchdogs.issueId, watchedChildId),
+        ),
+      );
     expect(nestedWatchdogs).toHaveLength(0);
 
     const allowedChild = await request(app)
@@ -522,7 +665,9 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
 
   it("routes watchdog-discovered product bugs outside the watched source tree with evidence links", async () => {
     const companyId = await seedCompany();
-    const watchdogAgentId = await seedAgent(companyId, { name: "Product Bug Watchdog" });
+    const watchdogAgentId = await seedAgent(companyId, {
+      name: "Product Bug Watchdog",
+    });
     const watchedRootId = await seedIssue(companyId, {
       title: "Watched root",
       identifier: "PAP-100",
@@ -565,7 +710,8 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
         parentId: watchedChildId,
         watchdogDiscovery: {
           kind: "product_bug",
-          evidenceMarkdown: "The watchdog would otherwise create this under the watched child.",
+          evidenceMarkdown:
+            "The watchdog would otherwise create this under the watched child.",
         },
       });
 
@@ -578,20 +724,36 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
       originRunId: runId,
     });
     expect(res.body.description).toContain("## Watchdog Discovery");
-    expect(res.body.description).toContain("Watched source issue: [PAP-100](/PAP/issues/PAP-100)");
-    expect(res.body.description).toContain("Watchdog issue: [PAP-102](/PAP/issues/PAP-102)");
-    expect(res.body.referencedIssueIdentifiers).toEqual(expect.arrayContaining(["PAP-100", "PAP-102"]));
+    expect(res.body.description).toContain(
+      "Watched source issue: [PAP-100](/PAP/issues/PAP-100)",
+    );
+    expect(res.body.description).toContain(
+      "Watchdog issue: [PAP-102](/PAP/issues/PAP-102)",
+    );
+    expect(res.body.referencedIssueIdentifiers).toEqual(
+      expect.arrayContaining(["PAP-100", "PAP-102"]),
+    );
 
     const watchedSourceChildren = await db
       .select({ id: issues.id, title: issues.title })
       .from(issues)
-      .where(and(eq(issues.companyId, companyId), eq(issues.parentId, watchedChildId)));
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.parentId, watchedChildId),
+        ),
+      );
     expect(watchedSourceChildren).toHaveLength(0);
 
     const [createdActivity] = await db
       .select({ details: activityLog.details })
       .from(activityLog)
-      .where(and(eq(activityLog.companyId, companyId), eq(activityLog.entityId, res.body.id)));
+      .where(
+        and(
+          eq(activityLog.companyId, companyId),
+          eq(activityLog.entityId, res.body.id),
+        ),
+      );
     expect(createdActivity?.details).toMatchObject({
       watchdogDiscovery: {
         kind: "product_bug",
@@ -603,10 +765,16 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
 
   it("rejects watchdog interaction-resolution attempts outside the persisted watched subtree", async () => {
     const companyId = await seedCompany();
-    const watchdogAgentId = await seedAgent(companyId, { name: "Interaction Watchdog" });
+    const watchdogAgentId = await seedAgent(companyId, {
+      name: "Interaction Watchdog",
+    });
     const watchedRootId = await seedIssue(companyId, { title: "Watched root" });
-    const unrelatedRootId = await seedIssue(companyId, { title: "Unrelated root" });
-    const watchdogIssueId = await seedIssue(companyId, { title: "Reusable watchdog issue" });
+    const unrelatedRootId = await seedIssue(companyId, {
+      title: "Unrelated root",
+    });
+    const watchdogIssueId = await seedIssue(companyId, {
+      title: "Reusable watchdog issue",
+    });
     const runId = await seedWatchdogRun({
       companyId,
       watchdogAgentId,
@@ -622,11 +790,15 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
     });
 
     const res = await request(app)
-      .post(`/api/issues/${unrelatedRootId}/interactions/${randomUUID()}/accept`)
+      .post(
+        `/api/issues/${unrelatedRootId}/interactions/${randomUUID()}/accept`,
+      )
       .send({});
 
     expect(res.status, JSON.stringify(res.body)).toBe(403);
-    expect(res.body.error).toBe("Task-watchdog runs can only mutate the watched issue subtree.");
+    expect(res.body.error).toBe(
+      "Task-watchdog runs can only mutate the watched issue subtree.",
+    );
   });
 
   it("rejects cross-company watched issues and watchdog agents", async () => {
@@ -663,7 +835,9 @@ describeEmbeddedPostgres("issue watchdog routes", () => {
         .send({ agentId });
 
       expect(res.status, JSON.stringify(res.body)).toBe(409);
-      expect(res.body.error).toBe("Cannot assign watchdog to an agent that is not invokable");
+      expect(res.body.error).toBe(
+        "Cannot assign watchdog to an agent that is not invokable",
+      );
     },
   );
 });

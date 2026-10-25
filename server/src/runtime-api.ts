@@ -6,7 +6,11 @@ function normalizeHost(value: string | null | undefined): string {
 
 function isLoopbackHost(host: string): boolean {
   const normalized = normalizeHost(host).toLowerCase();
-  return normalized === "127.0.0.1" || normalized === "localhost" || normalized === "::1";
+  return (
+    normalized === "127.0.0.1" ||
+    normalized === "localhost" ||
+    normalized === "::1"
+  );
 }
 
 function isWildcardHost(host: string): boolean {
@@ -23,9 +27,10 @@ function isLinkLocalHost(host: string): boolean {
 }
 
 function formatOrigin(protocol: string, host: string, port: number): string {
-  const normalizedHost = host.includes(":") && !host.startsWith("[") && !host.endsWith("]")
-    ? `[${host}]`
-    : host;
+  const normalizedHost =
+    host.includes(":") && !host.startsWith("[") && !host.endsWith("]")
+      ? `[${host}]`
+      : host;
   return `${protocol}//${normalizedHost}:${port}`;
 }
 
@@ -80,9 +85,11 @@ export function choosePrimaryRuntimeApiUrl(input: {
   return formatOrigin("http:", "localhost", input.port);
 }
 
-export function collectReachableInterfaceHosts(input: {
-  networkInterfacesMap?: NodeJS.Dict<os.NetworkInterfaceInfo[]>;
-} = {}): string[] {
+export function collectReachableInterfaceHosts(
+  input: {
+    networkInterfacesMap?: NodeJS.Dict<os.NetworkInterfaceInfo[]>;
+  } = {},
+): string[] {
   const interfaces = input.networkInterfacesMap ?? os.networkInterfaces();
   const rankedHosts: Array<{ host: string; rank: number; index: number }> = [];
   const seen = new Set<string>();
@@ -92,7 +99,13 @@ export function collectReachableInterfaceHosts(input: {
     for (const entry of entries ?? []) {
       if (entry.internal) continue;
       const host = normalizeHost(entry.address);
-      if (!host || isLoopbackHost(host) || isWildcardHost(host) || isLinkLocalHost(host)) continue;
+      if (
+        !host ||
+        isLoopbackHost(host) ||
+        isWildcardHost(host) ||
+        isLinkLocalHost(host)
+      )
+        continue;
       if (seen.has(host)) continue;
       seen.add(host);
       rankedHosts.push({
@@ -140,17 +153,27 @@ export function buildRuntimeApiCandidateUrls(input: {
 
   const bindHost = normalizeHost(input.bindHost);
   if (bindHost && !isWildcardHost(bindHost)) {
-    pushCandidate(candidates, seen, formatOrigin(protocol, bindHost, input.port));
+    pushCandidate(
+      candidates,
+      seen,
+      formatOrigin(protocol, bindHost, input.port),
+    );
   }
 
   if (explicitOrigin) {
     const hostname = new URL(explicitOrigin).hostname;
     if (isLoopbackHost(hostname)) {
-      pushCandidate(candidates, seen, formatOrigin(protocol, "host.docker.internal", input.port));
+      pushCandidate(
+        candidates,
+        seen,
+        formatOrigin(protocol, "host.docker.internal", input.port),
+      );
     }
   }
 
-  for (const host of collectReachableInterfaceHosts({ networkInterfacesMap: input.networkInterfacesMap })) {
+  for (const host of collectReachableInterfaceHosts({
+    networkInterfacesMap: input.networkInterfacesMap,
+  })) {
     pushCandidate(candidates, seen, formatOrigin(protocol, host, input.port));
   }
 

@@ -35,16 +35,24 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function readString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function readTaskWatchdogContext(contextSnapshot: unknown) {
   const context = isPlainRecord(contextSnapshot) ? contextSnapshot : null;
-  const taskWatchdog = isPlainRecord(context?.taskWatchdog) ? context.taskWatchdog : null;
+  const taskWatchdog = isPlainRecord(context?.taskWatchdog)
+    ? context.taskWatchdog
+    : null;
   if (!taskWatchdog && context?.taskWatchdog !== true) return null;
   return {
-    watchedIssueId: readString(taskWatchdog?.watchedIssueId) ?? readString(context?.watchedIssueId),
-    stopFingerprint: readString(taskWatchdog?.stopFingerprint) ?? readString(context?.stopFingerprint),
+    watchedIssueId:
+      readString(taskWatchdog?.watchedIssueId) ??
+      readString(context?.watchedIssueId),
+    stopFingerprint:
+      readString(taskWatchdog?.stopFingerprint) ??
+      readString(context?.stopFingerprint),
   };
 }
 
@@ -72,7 +80,10 @@ export async function resolveTaskWatchdogMutationScope(
   if (!run) return { kind: "none" };
   const taskWatchdog = readTaskWatchdogContext(run.contextSnapshot);
   if (!taskWatchdog) return { kind: "none" };
-  if (run.agentId !== agentId || (actorCompanyId && run.companyId !== actorCompanyId)) {
+  if (
+    run.agentId !== agentId ||
+    (actorCompanyId && run.companyId !== actorCompanyId)
+  ) {
     return {
       kind: "invalid",
       detail: "Task-watchdog run context does not belong to this agent.",
@@ -82,7 +93,8 @@ export async function resolveTaskWatchdogMutationScope(
   if (!taskWatchdog.watchedIssueId) {
     return {
       kind: "invalid",
-      detail: "Task-watchdog run context is missing a persisted watched issue id.",
+      detail:
+        "Task-watchdog run context is missing a persisted watched issue id.",
     };
   }
 
@@ -96,18 +108,21 @@ export async function resolveTaskWatchdogMutationScope(
       status: issueWatchdogs.status,
     })
     .from(issueWatchdogs)
-    .where(and(
-      eq(issueWatchdogs.companyId, run.companyId),
-      eq(issueWatchdogs.issueId, taskWatchdog.watchedIssueId),
-      eq(issueWatchdogs.watchdogAgentId, agentId),
-      eq(issueWatchdogs.status, "active"),
-    ))
+    .where(
+      and(
+        eq(issueWatchdogs.companyId, run.companyId),
+        eq(issueWatchdogs.issueId, taskWatchdog.watchedIssueId),
+        eq(issueWatchdogs.watchdogAgentId, agentId),
+        eq(issueWatchdogs.status, "active"),
+      ),
+    )
     .then((rows) => rows[0] ?? null);
 
   if (!watchdog) {
     return {
       kind: "invalid",
-      detail: "Task-watchdog run context is not backed by an active persisted watchdog.",
+      detail:
+        "Task-watchdog run context is not backed by an active persisted watchdog.",
     };
   }
 
@@ -130,12 +145,26 @@ export async function issueIsInTaskWatchdogSubtree(
   let currentId: string | null = issueId;
   const seen = new Set<string>();
 
-  for (let depth = 0; currentId && depth < MAX_WATCHDOG_SCOPE_ANCESTRY_DEPTH; depth += 1) {
+  for (
+    let depth = 0;
+    currentId && depth < MAX_WATCHDOG_SCOPE_ANCESTRY_DEPTH;
+    depth += 1
+  ) {
     if (seen.has(currentId)) return false;
     seen.add(currentId);
 
-    const parent: { id: string; companyId: string; parentId: string | null; originKind: string | null } | null = await db
-      .select({ id: issues.id, companyId: issues.companyId, parentId: issues.parentId, originKind: issues.originKind })
+    const parent: {
+      id: string;
+      companyId: string;
+      parentId: string | null;
+      originKind: string | null;
+    } | null = await db
+      .select({
+        id: issues.id,
+        companyId: issues.companyId,
+        parentId: issues.parentId,
+        originKind: issues.originKind,
+      })
       .from(issues)
       .where(and(eq(issues.id, currentId), eq(issues.companyId, companyId)))
       .then((rows) => rows[0] ?? null);
@@ -161,10 +190,21 @@ export async function taskWatchdogScopeAllowsIssueMutation(
       detail: "Task-watchdog mutation target is outside the watchdog company.",
     };
   }
-  if (opts.allowWatchdogIssue !== false && scope.watchdogIssueId && issue.id === scope.watchdogIssueId) {
+  if (
+    opts.allowWatchdogIssue !== false &&
+    scope.watchdogIssueId &&
+    issue.id === scope.watchdogIssueId
+  ) {
     return scope;
   }
-  if (await issueIsInTaskWatchdogSubtree(db, scope.companyId, issue.id, scope.watchedIssueId)) {
+  if (
+    await issueIsInTaskWatchdogSubtree(
+      db,
+      scope.companyId,
+      issue.id,
+      scope.watchedIssueId,
+    )
+  ) {
     return scope;
   }
   return {

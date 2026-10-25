@@ -23,7 +23,12 @@ async function act(callback: () => void | Promise<void>) {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function makeRect(left: number, top: number, width: number, height: number): DOMRect {
+function makeRect(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+): DOMRect {
   return {
     x: left,
     y: top,
@@ -37,7 +42,10 @@ function makeRect(left: number, top: number, width: number, height: number): DOM
   } as DOMRect;
 }
 
-function makeRange(rects: DOMRect[], commonAncestorContainer: Node = document.createTextNode("")): Range {
+function makeRange(
+  rects: DOMRect[],
+  commonAncestorContainer: Node = document.createTextNode(""),
+): Range {
   return {
     commonAncestorContainer,
     getClientRects: () => rects,
@@ -52,8 +60,12 @@ describe("DocumentAnnotationLayer", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    mockRangesForNormalizedSpan.mockReturnValue([makeRange([makeRect(8, 12, 80, 18)])]);
-    rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(makeRect(0, 0, 400, 300));
+    mockRangesForNormalizedSpan.mockReturnValue([
+      makeRange([makeRect(8, 12, 80, 18)]),
+    ]);
+    rectSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue(makeRect(0, 0, 400, 300));
   });
 
   afterEach(async () => {
@@ -77,10 +89,30 @@ describe("DocumentAnnotationLayer", () => {
           containerRef={{ current: body }}
           markdown="Annotated body text."
           threads={[
-            { id: "active", selectedText: "Annotated", status: "open", anchorState: "active" },
-            { id: "focused", selectedText: "body", status: "open", anchorState: "active" },
-            { id: "stale", selectedText: "text", status: "open", anchorState: "stale" },
-            { id: "resolved", selectedText: "body text", status: "resolved", anchorState: "active" },
+            {
+              id: "active",
+              selectedText: "Annotated",
+              status: "open",
+              anchorState: "active",
+            },
+            {
+              id: "focused",
+              selectedText: "body",
+              status: "open",
+              anchorState: "active",
+            },
+            {
+              id: "stale",
+              selectedText: "text",
+              status: "open",
+              anchorState: "stale",
+            },
+            {
+              id: "resolved",
+              selectedText: "body text",
+              status: "resolved",
+              anchorState: "active",
+            },
           ]}
           focusedThreadId="focused"
           onThreadFocus={vi.fn()}
@@ -93,20 +125,40 @@ describe("DocumentAnnotationLayer", () => {
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
     });
 
-    const highlights = Array.from(container.querySelectorAll(".taskcore-doc-annotation-highlight"));
+    const highlights = Array.from(
+      container.querySelectorAll(".taskcore-doc-annotation-highlight"),
+    );
     expect(highlights).toHaveLength(4);
 
     for (const highlight of highlights) {
-      expect(highlight.className).toBe("taskcore-doc-annotation-highlight absolute");
+      expect(highlight.className).toBe(
+        "taskcore-doc-annotation-highlight absolute",
+      );
       expect(highlight.className).not.toContain("outline");
       expect(highlight.className).not.toContain("shadow");
     }
-    expect(highlights.find((highlight) => highlight.getAttribute("data-thread-id") === "focused")
-      ?.getAttribute("data-focused")).toBe("true");
-    expect(highlights.find((highlight) => highlight.getAttribute("data-thread-id") === "stale")
-      ?.getAttribute("data-anchor-state")).toBe("stale");
-    expect(highlights.find((highlight) => highlight.getAttribute("data-thread-id") === "resolved")
-      ?.getAttribute("data-status")).toBe("resolved");
+    expect(
+      highlights
+        .find(
+          (highlight) => highlight.getAttribute("data-thread-id") === "focused",
+        )
+        ?.getAttribute("data-focused"),
+    ).toBe("true");
+    expect(
+      highlights
+        .find(
+          (highlight) => highlight.getAttribute("data-thread-id") === "stale",
+        )
+        ?.getAttribute("data-anchor-state"),
+    ).toBe("stale");
+    expect(
+      highlights
+        .find(
+          (highlight) =>
+            highlight.getAttribute("data-thread-id") === "resolved",
+        )
+        ?.getAttribute("data-status"),
+    ).toBe("resolved");
   });
 
   it("does not render highlights for text clipped by folded document content", async () => {
@@ -116,7 +168,9 @@ describe("DocumentAnnotationLayer", () => {
     const hiddenText = document.createTextNode("Hidden folded text");
     clippedContent.appendChild(hiddenText);
     body.appendChild(clippedContent);
-    mockRangesForNormalizedSpan.mockReturnValue([makeRange([makeRect(8, 60, 80, 18)], hiddenText)]);
+    mockRangesForNormalizedSpan.mockReturnValue([
+      makeRange([makeRect(8, 60, 80, 18)], hiddenText),
+    ]);
     rectSpy.mockImplementation(function (this: HTMLElement) {
       if (this === clippedContent) return makeRect(0, 0, 400, 40);
       return makeRect(0, 0, 400, 120);
@@ -129,7 +183,12 @@ describe("DocumentAnnotationLayer", () => {
           containerRef={{ current: body }}
           markdown="Hidden folded text"
           threads={[
-            { id: "hidden", selectedText: "Hidden folded text", status: "open", anchorState: "active" },
+            {
+              id: "hidden",
+              selectedText: "Hidden folded text",
+              status: "open",
+              anchorState: "active",
+            },
           ]}
           focusedThreadId={null}
           onThreadFocus={vi.fn()}
@@ -141,8 +200,12 @@ describe("DocumentAnnotationLayer", () => {
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
     });
 
-    expect(container.querySelector(".taskcore-doc-annotation-highlight")).toBeNull();
-    expect(container.querySelector(".taskcore-doc-annotation-hit-target")).toBeNull();
+    expect(
+      container.querySelector(".taskcore-doc-annotation-highlight"),
+    ).toBeNull();
+    expect(
+      container.querySelector(".taskcore-doc-annotation-hit-target"),
+    ).toBeNull();
   });
 
   it("does not capture annotation comments from editable selections", async () => {
@@ -188,7 +251,11 @@ describe("DocumentAnnotationLayer", () => {
       expect(mockGetContainerTextOffset).not.toHaveBeenCalled();
       expect(mockBuildAnchorFromContainerSelection).not.toHaveBeenCalled();
       expect(onPendingAnchorChange).toHaveBeenCalledWith(null);
-      expect(container.querySelector('[data-testid="document-annotation-selection-toolbar"]')).toBeNull();
+      expect(
+        container.querySelector(
+          '[data-testid="document-annotation-selection-toolbar"]',
+        ),
+      ).toBeNull();
     } finally {
       getSelectionSpy.mockRestore();
     }
@@ -237,7 +304,11 @@ describe("DocumentAnnotationLayer", () => {
       expect(mockGetContainerTextOffset).not.toHaveBeenCalled();
       expect(mockBuildAnchorFromContainerSelection).not.toHaveBeenCalled();
       expect(onPendingAnchorChange).toHaveBeenCalledWith(null);
-      expect(container.querySelector('[data-testid="document-annotation-selection-toolbar"]')).toBeNull();
+      expect(
+        container.querySelector(
+          '[data-testid="document-annotation-selection-toolbar"]',
+        ),
+      ).toBeNull();
     } finally {
       getSelectionSpy.mockRestore();
     }
@@ -274,7 +345,12 @@ describe("DocumentAnnotationLayer", () => {
           containerRef={{ current: body }}
           markdown="Annotated body text."
           threads={[
-            { id: "active", selectedText: "Annotated", status: "open", anchorState: "active" },
+            {
+              id: "active",
+              selectedText: "Annotated",
+              status: "open",
+              anchorState: "active",
+            },
           ]}
           focusedThreadId={null}
           onThreadFocus={vi.fn()}
@@ -286,15 +362,23 @@ describe("DocumentAnnotationLayer", () => {
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
     });
 
-    expect(container.querySelector(".taskcore-doc-annotation-highlight")).not.toBeNull();
-    expect(container.querySelector(".taskcore-doc-annotation-hit-target")).not.toBeNull();
-    const openHighlightCall = setHighlight.mock.calls.find(([name]) => name === "taskcore-doc-annotation-open");
+    expect(
+      container.querySelector(".taskcore-doc-annotation-highlight"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(".taskcore-doc-annotation-hit-target"),
+    ).not.toBeNull();
+    const openHighlightCall = setHighlight.mock.calls.find(
+      ([name]) => name === "taskcore-doc-annotation-open",
+    );
     expect(openHighlightCall).toBeTruthy();
     expect((openHighlightCall?.[1] as MockHighlight).ranges).toHaveLength(1);
 
     await act(async () => root?.unmount());
     root = null;
-    expect(deleteHighlight).toHaveBeenCalledWith("taskcore-doc-annotation-open");
+    expect(deleteHighlight).toHaveBeenCalledWith(
+      "taskcore-doc-annotation-open",
+    );
 
     (globalThis as { CSS?: unknown }).CSS = originalCss;
     (globalThis as { Highlight?: unknown }).Highlight = originalHighlight;

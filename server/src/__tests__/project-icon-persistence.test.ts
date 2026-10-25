@@ -7,7 +7,9 @@ import {
 import { projectService } from "../services/projects.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -20,7 +22,9 @@ if (!embeddedPostgresSupport.supported) {
 // column persists + round-trips through the projects service.
 describeEmbeddedPostgres("project icon persistence", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let companyId!: string;
   let prefixCounter = 0;
 
@@ -51,7 +55,10 @@ describeEmbeddedPostgres("project icon persistence", () => {
     companyId = await seedCompany();
     const projects = projectService(db);
 
-    const created = await projects.create(companyId, { name: "Rocket", icon: "rocket" });
+    const created = await projects.create(companyId, {
+      name: "Rocket",
+      icon: "rocket",
+    });
     expect(created.icon).toBe("rocket");
 
     const fetched = await projects.getById(created.id);
@@ -86,7 +93,10 @@ describeEmbeddedPostgres("project icon persistence", () => {
     companyId = await seedCompany();
     const projects = projectService(db);
 
-    const created = await projects.create(companyId, { name: "Blue", color: "#3b82f6" });
+    const created = await projects.create(companyId, {
+      name: "Blue",
+      color: "#3b82f6",
+    });
     expect(created.color).toBe("#3b82f6");
 
     const fetched = await projects.getById(created.id);

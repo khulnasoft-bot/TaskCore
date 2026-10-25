@@ -11,7 +11,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { MODEL_PREFIX_PROVIDER_HINTS, VALID_PROVIDERS } from "../shared/constants.js";
+import {
+  MODEL_PREFIX_PROVIDER_HINTS,
+  VALID_PROVIDERS,
+} from "../shared/constants.js";
 
 export interface DetectedModel {
   /** Model name from config (e.g. "gpt-5.4", "anthropic/claude-sonnet-4") */
@@ -72,7 +75,12 @@ export function parseModelFromConfig(content: string): DetectedModel | null {
     }
 
     // We left the model section if indent drops back to the section level or below
-    if (inModelSection && indent <= modelSectionIndent && trimmed && !trimmed.startsWith("#")) {
+    if (
+      inModelSection &&
+      indent <= modelSectionIndent &&
+      trimmed &&
+      !trimmed.startsWith("#")
+    ) {
       inModelSection = false;
     }
 
@@ -80,7 +88,11 @@ export function parseModelFromConfig(content: string): DetectedModel | null {
       const match = trimmed.match(/^\s*(\w+)\s*:\s*(.+)$/);
       if (match) {
         const key = match[1];
-        const val = match[2].trim().replace(/#.*$/, "").trim().replace(/^['"]|['"]$/g, "");
+        const val = match[2]
+          .trim()
+          .replace(/#.*$/, "")
+          .trim()
+          .replace(/^['"]|['"]$/g, "");
         if (key === "default") model = val;
         if (key === "provider") provider = val;
         if (key === "base_url") baseUrl = val;
@@ -161,7 +173,10 @@ export function resolveProvider(options: {
   } = options;
 
   // 1. Explicit provider from adapterConfig — user override, always wins
-  if (explicitProvider && (VALID_PROVIDERS as readonly string[]).includes(explicitProvider)) {
+  if (
+    explicitProvider &&
+    (VALID_PROVIDERS as readonly string[]).includes(explicitProvider)
+  ) {
     return { provider: explicitProvider, resolvedFrom: "adapterConfig" };
   }
 
@@ -182,12 +197,17 @@ export function resolveProvider(options: {
     return { provider: detectedProvider, resolvedFrom: "hermesConfig" };
   }
 
-  const hasRuntimeSignals = !!detectedBaseUrl || !!detectedHasApiKey || !!detectedApiMode;
+  const hasRuntimeSignals =
+    !!detectedBaseUrl || !!detectedHasApiKey || !!detectedApiMode;
 
   // 3a. Matching Hermes config with an unsupported provider (for example "custom")
   //     should not fall through to model-name inference, because that can route to
   //     the wrong provider entirely. Defer back to Hermes's own runtime resolution.
-  if (configMatchesRequestedModel && !!detectedProvider && !supportedProviders.includes(detectedProvider)) {
+  if (
+    configMatchesRequestedModel &&
+    !!detectedProvider &&
+    !supportedProviders.includes(detectedProvider)
+  ) {
     return {
       provider: "auto",
       resolvedFrom: `hermesConfigUnsupported:${detectedProvider}`,

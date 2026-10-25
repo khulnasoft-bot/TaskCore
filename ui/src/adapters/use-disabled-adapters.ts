@@ -16,7 +16,9 @@ import { queryKeys } from "@/lib/queryKeys";
  * Returns a reactive Set of disabled types for use as useMemo dependencies.
  * Call this at the top of any component that renders adapter menus.
  */
-export function useDisabledAdaptersSync(options: { enabled?: boolean } = {}): Set<string> {
+export function useDisabledAdaptersSync(
+  options: { enabled?: boolean } = {},
+): Set<string> {
   const enabled = options.enabled ?? true;
   const { data: adapters } = useQuery({
     queryKey: queryKeys.adapters.all,
@@ -75,7 +77,9 @@ export function useDisabledAdaptersSync(options: { enabled?: boolean } = {}): Se
  * Reads the same query key as {@link useDisabledAdaptersSync}, so it shares
  * that cache entry rather than adding a request.
  */
-export function useAdapterRegistryLoaded(options: { enabled?: boolean } = {}): boolean {
+export function useAdapterRegistryLoaded(
+  options: { enabled?: boolean } = {},
+): boolean {
   const enabled = options.enabled ?? true;
   const { data: adapters } = useQuery({
     queryKey: queryKeys.adapters.all,

@@ -96,7 +96,9 @@ export function humanizeConnectionDisplayName(
  * underneath as a small trust/clarity hint. Returns null when there's nothing
  * worth surfacing.
  */
-export function connectionDisplaySecondaryHint(input: ConnectionLike): string | null {
+export function connectionDisplaySecondaryHint(
+  input: ConnectionLike,
+): string | null {
   const raw = rawNameOf(input);
   if (raw && looksLikeNetworkAddress(raw)) return `hosted at ${raw}`;
   return null;

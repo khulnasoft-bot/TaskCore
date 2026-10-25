@@ -65,7 +65,12 @@ export interface TaskcoreNativeExecutionV1 {
   events: PrpEvent[];
   semanticTools: {
     definitions: Array<Record<string, unknown>>;
-    calls: Array<{ callId: string; operationId: string; eventId: string; [key: string]: unknown }>;
+    calls: Array<{
+      callId: string;
+      operationId: string;
+      eventId: string;
+      [key: string]: unknown;
+    }>;
     results: Array<{
       callId: string;
       operationId: string;
@@ -90,7 +95,11 @@ export interface TaskcoreNativeExecutionV1 {
     totalTokens: number;
     requestCount: number;
     durationMs: number;
-    cost: { currency: string; amountMicros: number; [key: string]: unknown } | null;
+    cost: {
+      currency: string;
+      amountMicros: number;
+      [key: string]: unknown;
+    } | null;
     [key: string]: unknown;
   };
   transcript: NativeExecutionContentRef & {
@@ -158,7 +167,8 @@ function boolean(value: unknown, path: string): boolean {
 
 function digest(value: unknown, path: string): string {
   const parsed = text(value, path);
-  if (!SHA256_PATTERN.test(parsed)) fail(path, "must use sha256:<64 lowercase hex>");
+  if (!SHA256_PATTERN.test(parsed))
+    fail(path, "must use sha256:<64 lowercase hex>");
   return parsed;
 }
 
@@ -210,7 +220,11 @@ export function parseTaskcoreNativeExecution(
       `unsupported schema ${String(bundle.schema)}; expected ${TASKCORE_RUNNER_NATIVE_EXECUTION_SCHEMA}`,
     );
   }
-  if (bundle.provenance !== "seeded" && bundle.provenance !== "replay" && bundle.provenance !== "live") {
+  if (
+    bundle.provenance !== "seeded" &&
+    bundle.provenance !== "replay" &&
+    bundle.provenance !== "live"
+  ) {
     fail("bundle.provenance", "must be seeded, replay, or live");
   }
 
@@ -227,7 +241,10 @@ export function parseTaskcoreNativeExecution(
     ...structuredClone(input),
     caseSha256: digest(input.caseSha256, "bundle.input.caseSha256"),
     configSha256: digest(input.configSha256, "bundle.input.configSha256"),
-    deterministicSeed: text(input.deterministicSeed, "bundle.input.deterministicSeed"),
+    deterministicSeed: text(
+      input.deterministicSeed,
+      "bundle.input.deterministicSeed",
+    ),
   };
 
   const runner = record(bundle.runner, "bundle.runner");
@@ -251,7 +268,11 @@ export function parseTaskcoreNativeExecution(
       "bundle.runner.nativeExecutionVersion",
       1,
     ),
-    catalogVersion: integer(runner.catalogVersion, "bundle.runner.catalogVersion", 1),
+    catalogVersion: integer(
+      runner.catalogVersion,
+      "bundle.runner.catalogVersion",
+      1,
+    ),
     catalogSha256: digest(runner.catalogSha256, "bundle.runner.catalogSha256"),
     driverContractVersion: integer(
       runner.driverContractVersion,
@@ -276,26 +297,38 @@ export function parseTaskcoreNativeExecution(
       fail(`bundle.events[${index}].runId`, "must match bundle.identity.runId");
     }
     if (sourceEventIds.has(validation.event.sourceEventId)) {
-      fail(`bundle.events[${index}].sourceEventId`, "must be unique within the bundle");
+      fail(
+        `bundle.events[${index}].sourceEventId`,
+        "must be unique within the bundle",
+      );
     }
     sourceEventIds.add(validation.event.sourceEventId);
-    const previousSourceSeq = sourceCursors.get(validation.event.sourceInstanceId) ?? 0;
+    const previousSourceSeq =
+      sourceCursors.get(validation.event.sourceInstanceId) ?? 0;
     if (validation.event.sourceSeq <= previousSourceSeq) {
       fail(
         `bundle.events[${index}].sourceSeq`,
         `must be ordered after ${previousSourceSeq} for source ${validation.event.sourceInstanceId}`,
       );
     }
-    sourceCursors.set(validation.event.sourceInstanceId, validation.event.sourceSeq);
+    sourceCursors.set(
+      validation.event.sourceInstanceId,
+      validation.event.sourceSeq,
+    );
     return structuredClone(validation.event);
   });
   if (events.length === 0) fail("bundle.events", "must contain native events");
 
-  const terminal = record(bundle.terminal, "bundle.terminal") as unknown as PrpTerminalState;
+  const terminal = record(
+    bundle.terminal,
+    "bundle.terminal",
+  ) as unknown as PrpTerminalState;
   if (terminal.schema !== "taskcore.prp.terminal.v1") {
     fail("bundle.terminal.schema", "must be taskcore.prp.terminal.v1");
   }
-  const terminalEvents = events.filter((event) => event.eventType === "run.terminal");
+  const terminalEvents = events.filter(
+    (event) => event.eventType === "run.terminal",
+  );
   if (terminalEvents.length !== 1) {
     fail("bundle.events", "must contain exactly one run.terminal event");
   }
@@ -304,25 +337,49 @@ export function parseTaskcoreNativeExecution(
   }
 
   const semanticTools = record(bundle.semanticTools, "bundle.semanticTools");
-  const definitions = array(semanticTools.definitions, "bundle.semanticTools.definitions")
-    .map((entry, index) => semanticEntry(entry, `bundle.semanticTools.definitions[${index}]`, ["operationId"]));
-  const calls = array(semanticTools.calls, "bundle.semanticTools.calls").map((entry, index) => {
-    const parsed = semanticEntry(entry, `bundle.semanticTools.calls[${index}]`, [
+  const definitions = array(
+    semanticTools.definitions,
+    "bundle.semanticTools.definitions",
+  ).map((entry, index) =>
+    semanticEntry(entry, `bundle.semanticTools.definitions[${index}]`, [
+      "operationId",
+    ]),
+  );
+  const calls = array(semanticTools.calls, "bundle.semanticTools.calls").map(
+    (entry, index) => {
+      const parsed = semanticEntry(
+        entry,
+        `bundle.semanticTools.calls[${index}]`,
+        ["callId", "operationId", "eventId"],
+      );
+      return parsed as TaskcoreNativeExecutionV1["semanticTools"]["calls"][number];
+    },
+  );
+  const results = array(
+    semanticTools.results,
+    "bundle.semanticTools.results",
+  ).map((entry, index) => {
+    const path = `bundle.semanticTools.results[${index}]`;
+    const parsed = semanticEntry(entry, path, [
       "callId",
       "operationId",
       "eventId",
+      "outcome",
     ]);
-    return parsed as TaskcoreNativeExecutionV1["semanticTools"]["calls"][number];
-  });
-  const results = array(semanticTools.results, "bundle.semanticTools.results").map((entry, index) => {
-    const path = `bundle.semanticTools.results[${index}]`;
-    const parsed = semanticEntry(entry, path, ["callId", "operationId", "eventId", "outcome"]);
-    if (!TOOL_OUTCOMES.has(parsed.outcome as string)) fail(`${path}.outcome`, "is unsupported");
+    if (!TOOL_OUTCOMES.has(parsed.outcome as string))
+      fail(`${path}.outcome`, "is unsupported");
     return parsed as TaskcoreNativeExecutionV1["semanticTools"]["results"][number];
   });
-  const denials = array(semanticTools.denials, "bundle.semanticTools.denials").map((entry, index) => {
+  const denials = array(
+    semanticTools.denials,
+    "bundle.semanticTools.denials",
+  ).map((entry, index) => {
     const path = `bundle.semanticTools.denials[${index}]`;
-    const parsed = semanticEntry(entry, path, ["callId", "code", "authorizationBoundary"]);
+    const parsed = semanticEntry(entry, path, [
+      "callId",
+      "code",
+      "authorizationBoundary",
+    ]);
     parsed.retryable = boolean(parsed.retryable, `${path}.retryable`);
     return parsed as TaskcoreNativeExecutionV1["semanticTools"]["denials"][number];
   });
@@ -330,26 +387,43 @@ export function parseTaskcoreNativeExecution(
   if (callById.size !== calls.length) {
     fail("bundle.semanticTools.calls", "callId values must be unique");
   }
-  const resultByCallId = new Map(results.map((result) => [result.callId, result]));
+  const resultByCallId = new Map(
+    results.map((result) => [result.callId, result]),
+  );
   if (resultByCallId.size !== results.length) {
     fail("bundle.semanticTools.results", "callId values must be unique");
   }
-  const eventById = new Map(events.map((event) => [event.sourceEventId, event]));
+  const eventById = new Map(
+    events.map((event) => [event.sourceEventId, event]),
+  );
   const referencedCallEventIds = new Set<string>();
   for (const call of calls) {
     const event = eventById.get(call.eventId);
     if (event?.eventType !== "mcp_app.tool_input") {
-      fail("bundle.semanticTools.calls", `call ${call.callId} does not reference a tool-input event`);
+      fail(
+        "bundle.semanticTools.calls",
+        `call ${call.callId} does not reference a tool-input event`,
+      );
     }
-    const envelope = semanticToolEnvelope(event, "input", `event ${call.eventId}`);
-    if (envelope.callId !== call.callId || envelope.operationId !== call.operationId) {
+    const envelope = semanticToolEnvelope(
+      event,
+      "input",
+      `event ${call.eventId}`,
+    );
+    if (
+      envelope.callId !== call.callId ||
+      envelope.operationId !== call.operationId
+    ) {
       fail(
         "bundle.semanticTools.calls",
         `call ${call.callId} does not match semantic envelope ${String(envelope.callId)}/${String(envelope.operationId)}`,
       );
     }
     if (referencedCallEventIds.has(call.eventId)) {
-      fail("bundle.semanticTools.calls", `event ${call.eventId} is referenced more than once`);
+      fail(
+        "bundle.semanticTools.calls",
+        `event ${call.eventId} is referenced more than once`,
+      );
     }
     referencedCallEventIds.add(call.eventId);
   }
@@ -364,13 +438,20 @@ export function parseTaskcoreNativeExecution(
     }
     const event = eventById.get(result.eventId);
     if (event?.eventType !== "mcp_app.tool_result") {
-      fail("bundle.semanticTools.results", `result ${result.callId} does not reference a tool-result event`);
+      fail(
+        "bundle.semanticTools.results",
+        `result ${result.callId} does not reference a tool-result event`,
+      );
     }
-    const envelope = semanticToolEnvelope(event, "result", `event ${result.eventId}`);
+    const envelope = semanticToolEnvelope(
+      event,
+      "result",
+      `event ${result.eventId}`,
+    );
     if (
-      envelope.callId !== result.callId
-      || envelope.operationId !== result.operationId
-      || envelope.outcome !== result.outcome
+      envelope.callId !== result.callId ||
+      envelope.operationId !== result.operationId ||
+      envelope.outcome !== result.outcome
     ) {
       fail(
         "bundle.semanticTools.results",
@@ -378,17 +459,26 @@ export function parseTaskcoreNativeExecution(
       );
     }
     if (referencedResultEventIds.has(result.eventId)) {
-      fail("bundle.semanticTools.results", `event ${result.eventId} is referenced more than once`);
+      fail(
+        "bundle.semanticTools.results",
+        `event ${result.eventId} is referenced more than once`,
+      );
     }
     referencedResultEventIds.add(result.eventId);
-    if (result.outcome === "denied" && !denials.some((denial) => denial.callId === result.callId)) {
-      fail("bundle.semanticTools.denials", `denied result ${result.callId} needs a denial receipt`);
+    if (
+      result.outcome === "denied" &&
+      !denials.some((denial) => denial.callId === result.callId)
+    ) {
+      fail(
+        "bundle.semanticTools.denials",
+        `denied result ${result.callId} needs a denial receipt`,
+      );
     }
   }
   const permitsUnresolvedCalls =
-    terminal.turnTerminalState === "interrupted"
-    || terminal.turnTerminalState === "cancelled"
-    || terminal.runTerminalState === "cancelled";
+    terminal.turnTerminalState === "interrupted" ||
+    terminal.turnTerminalState === "cancelled" ||
+    terminal.runTerminalState === "cancelled";
   if (!permitsUnresolvedCalls) {
     for (const call of calls) {
       if (!resultByCallId.has(call.callId)) {
@@ -400,22 +490,40 @@ export function parseTaskcoreNativeExecution(
     }
   }
   for (const event of events) {
-    if (event.eventType === "mcp_app.tool_input" && !referencedCallEventIds.has(event.sourceEventId)) {
-      fail("bundle.semanticTools.calls", `tool-input event ${event.sourceEventId} is not indexed`);
+    if (
+      event.eventType === "mcp_app.tool_input" &&
+      !referencedCallEventIds.has(event.sourceEventId)
+    ) {
+      fail(
+        "bundle.semanticTools.calls",
+        `tool-input event ${event.sourceEventId} is not indexed`,
+      );
     }
-    if (event.eventType === "mcp_app.tool_result" && !referencedResultEventIds.has(event.sourceEventId)) {
-      fail("bundle.semanticTools.results", `tool-result event ${event.sourceEventId} is not indexed`);
+    if (
+      event.eventType === "mcp_app.tool_result" &&
+      !referencedResultEventIds.has(event.sourceEventId)
+    ) {
+      fail(
+        "bundle.semanticTools.results",
+        `tool-result event ${event.sourceEventId} is not indexed`,
+      );
     }
   }
   const denialCallIds = new Set<string>();
   for (const denial of denials) {
     if (denialCallIds.has(denial.callId)) {
-      fail("bundle.semanticTools.denials", `call ${denial.callId} has duplicate denial receipts`);
+      fail(
+        "bundle.semanticTools.denials",
+        `call ${denial.callId} has duplicate denial receipts`,
+      );
     }
     denialCallIds.add(denial.callId);
     const result = resultByCallId.get(denial.callId);
     if (result?.outcome !== "denied") {
-      fail("bundle.semanticTools.denials", `denial ${denial.callId} has no denied result`);
+      fail(
+        "bundle.semanticTools.denials",
+        `denial ${denial.callId} has no denied result`,
+      );
     }
     const resultEvent = eventById.get(result.eventId)!;
     const envelope = semanticToolEnvelope(
@@ -424,9 +532,9 @@ export function parseTaskcoreNativeExecution(
       `event ${result.eventId}`,
     );
     if (
-      envelope.code !== denial.code
-      || envelope.authorizationBoundary !== denial.authorizationBoundary
-      || envelope.retryable !== denial.retryable
+      envelope.code !== denial.code ||
+      envelope.authorizationBoundary !== denial.authorizationBoundary ||
+      envelope.retryable !== denial.retryable
     ) {
       fail(
         "bundle.semanticTools.denials",
@@ -442,7 +550,8 @@ export function parseTaskcoreNativeExecution(
   if (totalTokens !== inputTokens + outputTokens) {
     fail("bundle.usage.totalTokens", "must equal inputTokens + outputTokens");
   }
-  const costRecord = usage.cost === null ? null : record(usage.cost, "bundle.usage.cost");
+  const costRecord =
+    usage.cost === null ? null : record(usage.cost, "bundle.usage.cost");
   const parsedUsage = {
     ...structuredClone(usage),
     inputTokens,
@@ -450,46 +559,70 @@ export function parseTaskcoreNativeExecution(
     totalTokens,
     requestCount: integer(usage.requestCount, "bundle.usage.requestCount"),
     durationMs: integer(usage.durationMs, "bundle.usage.durationMs"),
-    cost: costRecord === null
-      ? null
-      : {
-          ...structuredClone(costRecord),
-          currency: text(costRecord.currency, "bundle.usage.cost.currency"),
-          amountMicros: integer(costRecord.amountMicros, "bundle.usage.cost.amountMicros"),
-        },
+    cost:
+      costRecord === null
+        ? null
+        : {
+            ...structuredClone(costRecord),
+            currency: text(costRecord.currency, "bundle.usage.cost.currency"),
+            amountMicros: integer(
+              costRecord.amountMicros,
+              "bundle.usage.cost.amountMicros",
+            ),
+          },
   };
 
   const transcriptRecord = record(bundle.transcript, "bundle.transcript");
   const transcript = {
     ...contentRef(transcriptRecord, "bundle.transcript"),
     complete: boolean(transcriptRecord.complete, "bundle.transcript.complete"),
-    eventCount: integer(transcriptRecord.eventCount, "bundle.transcript.eventCount"),
-    omissionReason: transcriptRecord.omissionReason === null
-      ? null
-      : text(transcriptRecord.omissionReason, "bundle.transcript.omissionReason"),
+    eventCount: integer(
+      transcriptRecord.eventCount,
+      "bundle.transcript.eventCount",
+    ),
+    omissionReason:
+      transcriptRecord.omissionReason === null
+        ? null
+        : text(
+            transcriptRecord.omissionReason,
+            "bundle.transcript.omissionReason",
+          ),
   };
   if (transcript.complete && transcript.eventCount !== events.length) {
-    fail("bundle.transcript.eventCount", "must equal events.length for a complete transcript");
+    fail(
+      "bundle.transcript.eventCount",
+      "must equal events.length for a complete transcript",
+    );
   }
   if (!transcript.complete && transcript.omissionReason === null) {
-    fail("bundle.transcript.omissionReason", "is required when the transcript is incomplete");
+    fail(
+      "bundle.transcript.omissionReason",
+      "is required when the transcript is incomplete",
+    );
   }
 
-  const observations = structuredClone(record(bundle.observations, "bundle.observations"));
+  const observations = structuredClone(
+    record(bundle.observations, "bundle.observations"),
+  );
   const artifactRoot = contentRef(bundle.artifactRoot, "bundle.artifactRoot");
-  const artifacts = array(bundle.artifacts, "bundle.artifacts")
-    .map((entry, index) => contentRef(entry, `bundle.artifacts[${index}]`));
-  const failure = bundle.failure === null
-    ? null
-    : (() => {
-        const parsed = record(bundle.failure, "bundle.failure");
-        return {
-          ...structuredClone(parsed),
-          classification: text(parsed.classification, "bundle.failure.classification"),
-          code: text(parsed.code, "bundle.failure.code"),
-          message: text(parsed.message, "bundle.failure.message"),
-        };
-      })();
+  const artifacts = array(bundle.artifacts, "bundle.artifacts").map(
+    (entry, index) => contentRef(entry, `bundle.artifacts[${index}]`),
+  );
+  const failure =
+    bundle.failure === null
+      ? null
+      : (() => {
+          const parsed = record(bundle.failure, "bundle.failure");
+          return {
+            ...structuredClone(parsed),
+            classification: text(
+              parsed.classification,
+              "bundle.failure.classification",
+            ),
+            code: text(parsed.code, "bundle.failure.code"),
+            message: text(parsed.message, "bundle.failure.message"),
+          };
+        })();
 
   return {
     ...structuredClone(bundle),
@@ -499,7 +632,13 @@ export function parseTaskcoreNativeExecution(
     input: parsedInput,
     runner: parsedRunner,
     events,
-    semanticTools: { ...structuredClone(semanticTools), definitions, calls, results, denials },
+    semanticTools: {
+      ...structuredClone(semanticTools),
+      definitions,
+      calls,
+      results,
+      denials,
+    },
     terminal: structuredClone(terminal),
     observations,
     usage: parsedUsage,
@@ -516,18 +655,24 @@ function semanticToolEnvelope(
   path: string,
 ): Record<string, unknown> {
   const payload = record(event.payload, `${path}.payload`);
-  const envelope = record(payload.semantic_tool, `${path}.payload.semantic_tool`);
+  const envelope = record(
+    payload.semantic_tool,
+    `${path}.payload.semantic_tool`,
+  );
   if (
-    envelope.schema !== "taskcore.prp.semantic_tool.v1"
-    || envelope.schemaVersion !== 1
-    || envelope.phase !== phase
+    envelope.schema !== "taskcore.prp.semantic_tool.v1" ||
+    envelope.schemaVersion !== 1 ||
+    envelope.phase !== phase
   ) {
     fail(
       `${path}.payload.semantic_tool`,
       `must be a taskcore.prp.semantic_tool.v1 ${phase} envelope`,
     );
   }
-  const correlation = record(envelope.correlation, `${path}.payload.semantic_tool.correlation`);
+  const correlation = record(
+    envelope.correlation,
+    `${path}.payload.semantic_tool.correlation`,
+  );
   for (const [field, eventValue] of [
     ["runId", event.runId],
     ["normalizedSessionId", event.normalizedSessionId],

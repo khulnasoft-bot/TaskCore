@@ -47,7 +47,7 @@ export class NativeRuntimeRequestResolutionAuthorizationError extends Error {
 
 function record(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
@@ -61,22 +61,26 @@ function canonicalPendingRequest(input: {
   const eventPayload = record(event?.payload);
   const request = record(eventPayload?.request);
   if (
-    !event
-    || event.schema !== "taskcore.prp.event.v1"
-    || event.eventType !== "runtime_request.created"
-    || event.sourceKind !== "runner"
-    || event.runId !== input.runId
-    || !request
-    || request.status !== "pending"
-  ) return null;
+    !event ||
+    event.schema !== "taskcore.prp.event.v1" ||
+    event.eventType !== "runtime_request.created" ||
+    event.sourceKind !== "runner" ||
+    event.runId !== input.runId ||
+    !request ||
+    request.status !== "pending"
+  )
+    return null;
 
-  const requestId = typeof request.requestId === "string" ? request.requestId : "";
-  const requestKind = typeof request.requestKind === "string" ? request.requestKind : "";
-  const turnId = typeof request.turnId === "string"
-    ? request.turnId
-    : typeof event.turnId === "string"
-      ? event.turnId
-      : "";
+  const requestId =
+    typeof request.requestId === "string" ? request.requestId : "";
+  const requestKind =
+    typeof request.requestKind === "string" ? request.requestKind : "";
+  const turnId =
+    typeof request.turnId === "string"
+      ? request.turnId
+      : typeof event.turnId === "string"
+        ? event.turnId
+        : "";
   const supportedKinds: readonly NativeRuntimeRequestKind[] = [
     "command_approval",
     "file_approval",
@@ -86,10 +90,10 @@ function canonicalPendingRequest(input: {
     "runtime",
   ];
   if (
-    requestId !== input.requestId
-    || !REQUEST_ID_PATTERN.test(requestId)
-    || !supportedKinds.includes(requestKind as NativeRuntimeRequestKind)
-    || !REQUEST_ID_PATTERN.test(turnId)
+    requestId !== input.requestId ||
+    !REQUEST_ID_PATTERN.test(requestId) ||
+    !supportedKinds.includes(requestKind as NativeRuntimeRequestKind) ||
+    !REQUEST_ID_PATTERN.test(turnId)
   ) {
     return null;
   }
@@ -126,15 +130,17 @@ export async function readPendingNativeRuntimeRequest(
       payload: heartbeatRunEvents.payload,
     })
     .from(heartbeatRunEvents)
-    .where(and(
-      eq(heartbeatRunEvents.companyId, input.companyId),
-      eq(heartbeatRunEvents.runId, input.runId),
-      inArray(heartbeatRunEvents.eventType, [...RUNTIME_REQUEST_EVENTS]),
-      sql`coalesce(
+    .where(
+      and(
+        eq(heartbeatRunEvents.companyId, input.companyId),
+        eq(heartbeatRunEvents.runId, input.runId),
+        inArray(heartbeatRunEvents.eventType, [...RUNTIME_REQUEST_EVENTS]),
+        sql`coalesce(
         ${heartbeatRunEvents.payload} #>> '{prpEvent,payload,request,requestId}',
         ${heartbeatRunEvents.payload} #>> '{prpEvent,payload,requestId}'
       ) = ${input.requestId}`,
-    ))
+      ),
+    )
     .orderBy(desc(heartbeatRunEvents.seq))
     .limit(1);
   if (!latest || latest.eventType !== "runtime_request.created") return null;

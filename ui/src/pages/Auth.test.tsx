@@ -94,7 +94,10 @@ describe("AuthPage", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     getSessionMock.mockResolvedValue(null);
-    healthMock.mockResolvedValue({ status: "ok", deploymentMode: "authenticated" });
+    healthMock.mockResolvedValue({
+      status: "ok",
+      deploymentMode: "authenticated",
+    });
     beginCloudSignInMock.mockReturnValue(true);
     signInEmailMock.mockResolvedValue(undefined);
     signUpEmailMock.mockResolvedValue(undefined);
@@ -124,17 +127,33 @@ describe("AuthPage", () => {
     return { root, queryClient };
   }
 
-  it.each(["https://my.taskcore.app", "https://my-staging.taskcore.app"])("recovers Cloud auth through %s without rendering an instance form", async (origin) => {
-    healthMock.mockResolvedValue({ cloud: { managed: true, managedBy: "taskcore-cloud", cloudBaseUrl: origin, stackSlug: "team" } });
-    const { root } = await mount("/auth?next=%2FTEST%2Fissues%2FTEST-1%3Ftab%3Dactivity%23comment");
-    await vi.waitFor(() => expect(beginCloudSignInMock).toHaveBeenCalledTimes(1));
-    const target = new URL(beginCloudSignInMock.mock.calls[0][0]);
-    expect(target.origin).toBe(origin);
-    expect(target.pathname).toBe("/v1/stacks/team/entry-redirect");
-    expect(target.searchParams.get("returnTo")).toBe("/TEST/issues/TEST-1?tab=activity#comment");
-    expect(container.querySelector("form")).toBeNull();
-    await act(() => root.unmount());
-  });
+  it.each(["https://my.taskcore.app", "https://my-staging.taskcore.app"])(
+    "recovers Cloud auth through %s without rendering an instance form",
+    async (origin) => {
+      healthMock.mockResolvedValue({
+        cloud: {
+          managed: true,
+          managedBy: "taskcore-cloud",
+          cloudBaseUrl: origin,
+          stackSlug: "team",
+        },
+      });
+      const { root } = await mount(
+        "/auth?next=%2FTEST%2Fissues%2FTEST-1%3Ftab%3Dactivity%23comment",
+      );
+      await vi.waitFor(() =>
+        expect(beginCloudSignInMock).toHaveBeenCalledTimes(1),
+      );
+      const target = new URL(beginCloudSignInMock.mock.calls[0][0]);
+      expect(target.origin).toBe(origin);
+      expect(target.pathname).toBe("/v1/stacks/team/entry-redirect");
+      expect(target.searchParams.get("returnTo")).toBe(
+        "/TEST/issues/TEST-1?tab=activity#comment",
+      );
+      expect(container.querySelector("form")).toBeNull();
+      await act(() => root.unmount());
+    },
+  );
 
   it("never flashes a form while deployment metadata is loading", async () => {
     healthMock.mockReturnValue(new Promise(() => {}));
@@ -147,24 +166,44 @@ describe("AuthPage", () => {
   it("fails closed when deployment metadata cannot be loaded", async () => {
     healthMock.mockRejectedValue(new Error("offline"));
     const { root } = await mount();
-    await vi.waitFor(() => expect(container.textContent).toContain("Unable to check sign-in"));
+    await vi.waitFor(() =>
+      expect(container.textContent).toContain("Unable to check sign-in"),
+    );
     expect(container.querySelector("form")).toBeNull();
     await act(() => root.unmount());
   });
 
   it("offers a manual Cloud retry after the automatic recovery limit", async () => {
-    healthMock.mockResolvedValue({ cloud: { managed: true, managedBy: "taskcore-cloud", cloudBaseUrl: "https://my.taskcore.app", stackSlug: "team" } });
+    healthMock.mockResolvedValue({
+      cloud: {
+        managed: true,
+        managedBy: "taskcore-cloud",
+        cloudBaseUrl: "https://my.taskcore.app",
+        stackSlug: "team",
+      },
+    });
     beginCloudSignInMock.mockReturnValue(false);
     const { root } = await mount();
-    await vi.waitFor(() => expect(container.textContent).toContain("Continue to Taskcore Cloud"));
+    await vi.waitFor(() =>
+      expect(container.textContent).toContain("Continue to Taskcore Cloud"),
+    );
     expect(container.querySelector("form")).toBeNull();
     await act(() => root.unmount());
   });
 
   it("keeps incomplete Cloud configuration out of the instance form", async () => {
-    healthMock.mockResolvedValue({ cloud: { managed: true, managedBy: "taskcore-cloud", cloudBaseUrl: null, stackSlug: null } });
+    healthMock.mockResolvedValue({
+      cloud: {
+        managed: true,
+        managedBy: "taskcore-cloud",
+        cloudBaseUrl: null,
+        stackSlug: null,
+      },
+    });
     const { root } = await mount();
-    await vi.waitFor(() => expect(container.textContent).toContain("Cloud sign-in is unavailable"));
+    await vi.waitFor(() =>
+      expect(container.textContent).toContain("Cloud sign-in is unavailable"),
+    );
     expect(container.querySelector("form")).toBeNull();
     expect(beginCloudSignInMock).not.toHaveBeenCalled();
     await act(() => root.unmount());
@@ -173,8 +212,12 @@ describe("AuthPage", () => {
   it("exposes password-manager metadata and a11y attributes on the sign-in form", async () => {
     const { root } = await mount();
 
-    const emailInput = container.querySelector('input[name="email"]') as HTMLInputElement;
-    const passwordInput = container.querySelector('input[name="password"]') as HTMLInputElement;
+    const emailInput = container.querySelector(
+      'input[name="email"]',
+    ) as HTMLInputElement;
+    const passwordInput = container.querySelector(
+      'input[name="password"]',
+    ) as HTMLInputElement;
 
     expect(emailInput).not.toBeNull();
     expect(passwordInput).not.toBeNull();
@@ -216,8 +259,12 @@ describe("AuthPage", () => {
     });
     await flushReact();
 
-    const nameInput = container.querySelector('input[name="name"]') as HTMLInputElement;
-    const passwordInput = container.querySelector('input[name="password"]') as HTMLInputElement;
+    const nameInput = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+    const passwordInput = container.querySelector(
+      'input[name="password"]',
+    ) as HTMLInputElement;
     expect(nameInput).not.toBeNull();
     expect(nameInput.getAttribute("autocomplete")).toBe("name");
     expect(nameInput.required).toBe(true);
@@ -235,8 +282,12 @@ describe("AuthPage", () => {
       HTMLInputElement.prototype,
       "value",
     )?.set;
-    const emailInput = container.querySelector('input[name="email"]') as HTMLInputElement;
-    const passwordInput = container.querySelector('input[name="password"]') as HTMLInputElement;
+    const emailInput = container.querySelector(
+      'input[name="email"]',
+    ) as HTMLInputElement;
+    const passwordInput = container.querySelector(
+      'input[name="password"]',
+    ) as HTMLInputElement;
 
     await act(async () => {
       inputValueSetter!.call(emailInput, "jane@example.com");
@@ -245,11 +296,15 @@ describe("AuthPage", () => {
       passwordInput.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
-    signInEmailMock.mockRejectedValueOnce(new Error("Invalid email or password"));
+    signInEmailMock.mockRejectedValueOnce(
+      new Error("Invalid email or password"),
+    );
 
     const form = container.querySelector("form") as HTMLFormElement;
     await act(async () => {
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
     });
     await flushReact();
     await flushReact();
@@ -282,8 +337,12 @@ describe("AuthPage", () => {
       HTMLInputElement.prototype,
       "value",
     )?.set;
-    const emailInput = container.querySelector('input[name="email"]') as HTMLInputElement;
-    const passwordInput = container.querySelector('input[name="password"]') as HTMLInputElement;
+    const emailInput = container.querySelector(
+      'input[name="email"]',
+    ) as HTMLInputElement;
+    const passwordInput = container.querySelector(
+      'input[name="password"]',
+    ) as HTMLInputElement;
 
     await act(async () => {
       inputValueSetter!.call(emailInput, "jane@example.com");
@@ -294,7 +353,9 @@ describe("AuthPage", () => {
 
     const form = container.querySelector("form") as HTMLFormElement;
     await act(async () => {
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
     });
     await flushReact();
     await flushReact();

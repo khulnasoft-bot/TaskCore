@@ -9,7 +9,9 @@ const contentTypeByExtension: Record<string, string> = {
   ".webp": "image/webp",
 };
 
-export function getPortableFileText(entry: CompanyPortabilityFileEntry | null | undefined) {
+export function getPortableFileText(
+  entry: CompanyPortabilityFileEntry | null | undefined,
+) {
   return typeof entry === "string" ? entry : null;
 }
 
@@ -17,10 +19,13 @@ export function getPortableFileContentType(
   filePath: string,
   entry: CompanyPortabilityFileEntry | null | undefined,
 ) {
-  if (entry && typeof entry === "object" && entry.contentType) return entry.contentType;
+  if (entry && typeof entry === "object" && entry.contentType)
+    return entry.contentType;
   const extensionIndex = filePath.toLowerCase().lastIndexOf(".");
   if (extensionIndex === -1) return null;
-  return contentTypeByExtension[filePath.toLowerCase().slice(extensionIndex)] ?? null;
+  return (
+    contentTypeByExtension[filePath.toLowerCase().slice(extensionIndex)] ?? null
+  );
 }
 
 export function getPortableFileDataUrl(
@@ -28,7 +33,8 @@ export function getPortableFileDataUrl(
   entry: CompanyPortabilityFileEntry | null | undefined,
 ) {
   if (!entry || typeof entry === "string") return null;
-  const contentType = getPortableFileContentType(filePath, entry) ?? "application/octet-stream";
+  const contentType =
+    getPortableFileContentType(filePath, entry) ?? "application/octet-stream";
   return `data:${contentType};base64,${entry.data}`;
 }
 

@@ -4,35 +4,46 @@ const ensureDirectoryMock = vi.hoisted(() => vi.fn(async () => {}));
 const ensureCommandMock = vi.hoisted(() => vi.fn(async () => {}));
 const runProcessMock = vi.hoisted(() => vi.fn());
 const prepareRuntimeMock = vi.hoisted(() => vi.fn());
-const stageGrokHomeMock = vi.hoisted(() => vi.fn(async () => "/tmp/staged-grok-home"));
+const stageGrokHomeMock = vi.hoisted(() =>
+  vi.fn(async () => "/tmp/staged-grok-home"),
+);
 
 vi.mock("@taskcore/adapter-utils/execution-target", () => ({
   describeAdapterExecutionTarget: () => "local",
   ensureAdapterExecutionTargetCommandResolvable: ensureCommandMock,
   ensureAdapterExecutionTargetDirectory: ensureDirectoryMock,
   prepareAdapterExecutionTargetRuntime: prepareRuntimeMock,
-  resolveAdapterExecutionTargetCwd: (_target: unknown, configuredCwd: string, fallbackCwd: string) =>
-    configuredCwd || fallbackCwd,
+  resolveAdapterExecutionTargetCwd: (
+    _target: unknown,
+    configuredCwd: string,
+    fallbackCwd: string,
+  ) => configuredCwd || fallbackCwd,
   runAdapterExecutionTargetProcess: runProcessMock,
 }));
 
 vi.mock("./grok-home.js", () => ({ stageGrokHomeForSync: stageGrokHomeMock }));
-vi.mock("./grok-auth-copyback.js", () => ({ copyBackGrokAuth: vi.fn(async () => {}) }));
+vi.mock("./grok-auth-copyback.js", () => ({
+  copyBackGrokAuth: vi.fn(async () => {}),
+}));
 
 import { existsSync } from "node:fs";
 import { parseGrokModelsOutput, testEnvironment } from "./test.js";
 
 describe("parseGrokModelsOutput", () => {
   it("extracts auth state and models from `grok models` output", () => {
-    expect(parseGrokModelsOutput([
-      "You are logged in with grok.com.",
-      "",
-      "Default model: grok-build",
-      "",
-      "Available models:",
-      "  * grok-build (default)",
-      "  * grok-code",
-    ].join("\n"))).toEqual({
+    expect(
+      parseGrokModelsOutput(
+        [
+          "You are logged in with grok.com.",
+          "",
+          "Default model: grok-build",
+          "",
+          "Available models:",
+          "  * grok-build (default)",
+          "  * grok-code",
+        ].join("\n"),
+      ),
+    ).toEqual({
       authenticated: true,
       defaultModel: "grok-build",
       models: ["grok-build", "grok-code"],
@@ -71,7 +82,12 @@ describe("grok_local testEnvironment", () => {
         timedOut: false,
         stdout: [
           JSON.stringify({ type: "text", data: "hello" }),
-          JSON.stringify({ type: "end", stopReason: "EndTurn", sessionId: "sess-1", requestId: "req-1" }),
+          JSON.stringify({
+            type: "end",
+            stopReason: "EndTurn",
+            sessionId: "sess-1",
+            requestId: "req-1",
+          }),
         ].join("\n"),
         stderr: "",
       });
@@ -139,7 +155,12 @@ describe("grok_local testEnvironment", () => {
         timedOut: false,
         stdout: [
           JSON.stringify({ type: "text", data: "hello" }),
-          JSON.stringify({ type: "end", stopReason: "EndTurn", sessionId: "s", requestId: "r" }),
+          JSON.stringify({
+            type: "end",
+            stopReason: "EndTurn",
+            sessionId: "s",
+            requestId: "r",
+          }),
         ].join("\n"),
         stderr: "",
       });
@@ -178,7 +199,12 @@ describe("grok_local testEnvironment", () => {
         timedOut: false,
         stdout: [
           JSON.stringify({ type: "text", data: "hello" }),
-          JSON.stringify({ type: "end", stopReason: "EndTurn", sessionId: "s", requestId: "r" }),
+          JSON.stringify({
+            type: "end",
+            stopReason: "EndTurn",
+            sessionId: "s",
+            requestId: "r",
+          }),
         ].join("\n"),
         stderr: "",
       });
@@ -186,10 +212,16 @@ describe("grok_local testEnvironment", () => {
     const result = await testEnvironment({
       companyId: "company-1",
       adapterType: "grok_local",
-      config: { command: "grok", cwd: "/tmp/project", model: "grok-nonexistent" },
+      config: {
+        command: "grok",
+        cwd: "/tmp/project",
+        model: "grok-nonexistent",
+      },
     });
 
-    expect(result.checks.map((check: { code: string }) => check.code)).toContain("grok_model_not_found");
+    expect(
+      result.checks.map((check: { code: string }) => check.code),
+    ).toContain("grok_model_not_found");
   });
 
   it("downgrades auth failures to warnings", async () => {
@@ -253,9 +285,11 @@ describe("grok_local testEnvironment", () => {
       executionTarget: { kind: "remote", transport: "sandbox" } as never,
     });
 
-    expect(result.checks.some((check: { code: string }) => check.code === "adapter_auth_missing")).toBe(
-      true,
-    );
+    expect(
+      result.checks.some(
+        (check: { code: string }) => check.code === "adapter_auth_missing",
+      ),
+    ).toBe(true);
   });
 
   it("stages the managed account through a host temp workspace, never the remote cwd", async () => {
@@ -264,19 +298,49 @@ describe("grok_local testEnvironment", () => {
     // directory that does not exist (git-ignore-scan-failed in production).
     let workspaceLocalDirAtCall: string | undefined;
     let workspaceExistedAtCall: boolean | undefined;
-    prepareRuntimeMock.mockImplementationOnce(async (input: { workspaceLocalDir: string }) => {
-      workspaceLocalDirAtCall = input.workspaceLocalDir;
-      workspaceExistedAtCall = existsSync(input.workspaceLocalDir);
-      return { assetDirs: { home: "/sandbox/assets/home" }, restoreWorkspace: async () => {} };
-    });
+    prepareRuntimeMock.mockImplementationOnce(
+      async (input: { workspaceLocalDir: string }) => {
+        workspaceLocalDirAtCall = input.workspaceLocalDir;
+        workspaceExistedAtCall = existsSync(input.workspaceLocalDir);
+        return {
+          assetDirs: { home: "/sandbox/assets/home" },
+          restoreWorkspace: async () => {},
+        };
+      },
+    );
     runProcessMock
-      .mockResolvedValueOnce({ exitCode: 0, signal: null, timedOut: false, stdout: "You are logged in with grok.com.\n\nDefault model: grok-4\n\nAvailable models:\n  * grok-4", stderr: "" })
-      .mockResolvedValueOnce({ exitCode: 0, signal: null, timedOut: false, stdout: [JSON.stringify({ type: "text", data: "hello" }), JSON.stringify({ type: "end", stopReason: "EndTurn", sessionId: "s", requestId: "r" })].join("\n"), stderr: "" });
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout:
+          "You are logged in with grok.com.\n\nDefault model: grok-4\n\nAvailable models:\n  * grok-4",
+        stderr: "",
+      })
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: [
+          JSON.stringify({ type: "text", data: "hello" }),
+          JSON.stringify({
+            type: "end",
+            stopReason: "EndTurn",
+            sessionId: "s",
+            requestId: "r",
+          }),
+        ].join("\n"),
+        stderr: "",
+      });
 
     const result = await testEnvironment({
       companyId: "company-1",
       adapterType: "grok_local",
-      config: { command: "grok", cwd: "/sandbox/workspace", managedAiConnection: { provider: "xai" } },
+      config: {
+        command: "grok",
+        cwd: "/sandbox/workspace",
+        managedAiConnection: { provider: "xai" },
+      },
       executionTarget: { kind: "remote", transport: "sandbox" } as never,
     });
 
@@ -287,7 +351,9 @@ describe("grok_local testEnvironment", () => {
     expect(workspaceLocalDirAtCall).not.toBe("/sandbox/workspace");
     expect(workspaceExistedAtCall).toBe(true);
     // The staged home dir the runtime uploaded is what the probe must use.
-    expect(runProcessMock.mock.calls[0]?.[4]).toMatchObject({ env: expect.objectContaining({ GROK_HOME: "/sandbox/assets/home" }) });
+    expect(runProcessMock.mock.calls[0]?.[4]).toMatchObject({
+      env: expect.objectContaining({ GROK_HOME: "/sandbox/assets/home" }),
+    });
     expect(result.status).toBe("pass");
   });
 
@@ -299,12 +365,18 @@ describe("grok_local testEnvironment", () => {
     const result = await testEnvironment({
       companyId: "company-1",
       adapterType: "grok_local",
-      config: { command: "grok", cwd: "/sandbox/workspace", managedAiConnection: { provider: "xai" } },
+      config: {
+        command: "grok",
+        cwd: "/sandbox/workspace",
+        managedAiConnection: { provider: "xai" },
+      },
       executionTarget: { kind: "remote", transport: "sandbox" } as never,
     });
 
     expect(result.status).toBe("fail");
-    const unprepared = result.checks.find((check: { code: string }) => check.code === "grok_environment_unprepared");
+    const unprepared = result.checks.find(
+      (check: { code: string }) => check.code === "grok_environment_unprepared",
+    );
     expect(unprepared).toMatchObject({ level: "error" });
     // A failed staging means there is no environment worth probing.
     expect(runProcessMock).not.toHaveBeenCalled();
@@ -335,8 +407,10 @@ describe("grok_local testEnvironment", () => {
       config: { command: "grok", cwd: "/tmp/project" },
     });
 
-    expect(result.checks.some((check: { code: string }) => check.code === "adapter_auth_missing")).toBe(
-      false,
-    );
+    expect(
+      result.checks.some(
+        (check: { code: string }) => check.code === "adapter_auth_missing",
+      ),
+    ).toBe(false);
   });
 });

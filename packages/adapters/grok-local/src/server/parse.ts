@@ -1,5 +1,13 @@
-import { asNumber, asString, parseJson, parseObject } from "@taskcore/adapter-utils/server-utils";
-import { applyTurnBoundary, createTurnBoundaryState } from "../shared/turn-boundary.js";
+import {
+  asNumber,
+  asString,
+  parseJson,
+  parseObject,
+} from "@taskcore/adapter-utils/server-utils";
+import {
+  applyTurnBoundary,
+  createTurnBoundaryState,
+} from "../shared/turn-boundary.js";
 
 export interface ParsedGrokJsonl {
   sessionId: string | null;
@@ -70,7 +78,10 @@ export function parseGrokJsonl(stdout: string): ParsedGrokJsonl {
       const usage = parseObject(event.usage);
       inputTokens = asNumber(usage.input_tokens, inputTokens);
       outputTokens = asNumber(usage.output_tokens, outputTokens);
-      cachedInputTokens = asNumber(usage.cache_read_input_tokens, cachedInputTokens);
+      cachedInputTokens = asNumber(
+        usage.cache_read_input_tokens,
+        cachedInputTokens,
+      );
       const totalCostUsd = event.total_cost_usd;
       if (typeof totalCostUsd === "number" && Number.isFinite(totalCostUsd)) {
         costUsd = totalCostUsd;
@@ -79,7 +90,9 @@ export function parseGrokJsonl(stdout: string): ParsedGrokJsonl {
     }
 
     if (type === "error") {
-      const text = errorText(event.error ?? event.message ?? event.detail ?? event.data).trim();
+      const text = errorText(
+        event.error ?? event.message ?? event.detail ?? event.data,
+      ).trim();
       if (text) errorMessage = text;
     }
   }
@@ -98,12 +111,17 @@ export function parseGrokJsonl(stdout: string): ParsedGrokJsonl {
   };
 }
 
-export function isGrokUnknownSessionError(stdout: string, stderr: string): boolean {
+export function isGrokUnknownSessionError(
+  stdout: string,
+  stderr: string,
+): boolean {
   const haystack = `${stdout}\n${stderr}`
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .join("\n");
 
-  return /unknown\s+session|session(?:\s+.*)?\s+not\s+found|resume\s+.*\s+not\s+found|invalid\s+session/i.test(haystack);
+  return /unknown\s+session|session(?:\s+.*)?\s+not\s+found|resume\s+.*\s+not\s+found|invalid\s+session/i.test(
+    haystack,
+  );
 }

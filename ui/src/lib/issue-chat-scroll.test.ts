@@ -26,7 +26,9 @@ describe("issue-chat-scroll", () => {
   it("restores page scroll when the composer shifts in the viewport", () => {
     const composer = document.createElement("div");
     document.body.appendChild(composer);
-    const scrollByMock = vi.spyOn(window, "scrollBy").mockImplementation(() => {});
+    const scrollByMock = vi
+      .spyOn(window, "scrollBy")
+      .mockImplementation(() => {});
 
     mockTop(composer, 420);
     const snapshot = captureComposerViewportSnapshot(composer);
@@ -34,7 +36,11 @@ describe("issue-chat-scroll", () => {
     mockTop(composer, 560);
     restoreComposerViewportSnapshot(snapshot, composer);
 
-    expect(scrollByMock).toHaveBeenCalledWith({ top: 140, left: 0, behavior: "auto" });
+    expect(scrollByMock).toHaveBeenCalledWith({
+      top: 140,
+      left: 0,
+      behavior: "auto",
+    });
 
     scrollByMock.mockRestore();
     composer.remove();
@@ -47,7 +53,9 @@ describe("issue-chat-scroll", () => {
     const composer = document.createElement("div");
     document.body.appendChild(composer);
     document.body.style.overflow = "hidden";
-    const scrollByMock = vi.spyOn(window, "scrollBy").mockImplementation(() => {});
+    const scrollByMock = vi
+      .spyOn(window, "scrollBy")
+      .mockImplementation(() => {});
 
     mockTop(composer, 420);
     const snapshot = captureComposerViewportSnapshot(composer);
@@ -89,7 +97,9 @@ describe("issue-chat-scroll", () => {
 
     const composer = document.createElement("div");
     document.body.appendChild(composer);
-    const scrollByMock = vi.spyOn(window, "scrollBy").mockImplementation(() => {});
+    const scrollByMock = vi
+      .spyOn(window, "scrollBy")
+      .mockImplementation(() => {});
 
     mockTop(composer, 300);
     const snapshot = captureComposerViewportSnapshot(composer);

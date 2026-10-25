@@ -64,9 +64,15 @@ const mockAccessService = vi.hoisted(() => ({
 }));
 
 const mockSecretService = vi.hoisted(() => ({
-  normalizeAdapterConfigForPersistence: vi.fn(async (_companyId: string, config: Record<string, unknown>) => config),
-  resolveAdapterConfigForRuntime: vi.fn(async (_companyId: string, config: Record<string, unknown>) => ({ config })),
-  collectMissingRuntimeBindings: vi.fn(async () => [] as Array<Record<string, unknown>>),
+  normalizeAdapterConfigForPersistence: vi.fn(
+    async (_companyId: string, config: Record<string, unknown>) => config,
+  ),
+  resolveAdapterConfigForRuntime: vi.fn(
+    async (_companyId: string, config: Record<string, unknown>) => ({ config }),
+  ),
+  collectMissingRuntimeBindings: vi.fn(
+    async () => [] as Array<Record<string, unknown>>,
+  ),
   resolveEnvBindings: vi.fn(async () => ({
     env: {} as Record<string, string>,
     secretKeys: new Set<string>(),
@@ -75,22 +81,33 @@ const mockSecretService = vi.hoisted(() => ({
   // The account-home secret lookup and creation. Absent by default, so a
   // successful promotion creates it; a test overrides either to drive the
   // idempotent-repeat-login and secret-creation-failure paths.
-  getByName: vi.fn(async (_companyId: string, _name: string) => null as Record<string, unknown> | null),
-  create: vi.fn(async (_companyId: string, _input: Record<string, unknown>) => ({ id: "secret-1" })),
+  getByName: vi.fn(
+    async (_companyId: string, _name: string) =>
+      null as Record<string, unknown> | null,
+  ),
+  create: vi.fn(
+    async (_companyId: string, _input: Record<string, unknown>) => ({
+      id: "secret-1",
+    }),
+  ),
   // The company-wide secret listing the cleanup-safety scan reads. Empty by
   // default, so a cleanup that finds no other claimant removes the
   // directory; a test overrides it with a differently named secret to prove
   // the scan finds a claimant a name-only check would miss.
   list: vi.fn(
-    async (_companyId: string) => [] as Array<{ id: string; name: string; provider: string }>,
+    async (_companyId: string) =>
+      [] as Array<{ id: string; name: string; provider: string }>,
   ),
   // The pre-existing-secret value check. Defaults to a value that never
   // matches an account home, so a test that leaves this unset and still
   // reaches an existing-secret branch fails loud instead of passing by
   // accident; a test overrides it to the account home under test.
   resolveSecretValueForDeviceLoginCheck: vi.fn(
-    async (_companyId: string, _secretId: string, _context: { configPath: string }) =>
-      "/unset-mock-value" as string,
+    async (
+      _companyId: string,
+      _secretId: string,
+      _context: { configPath: string },
+    ) => "/unset-mock-value" as string,
   ),
 }));
 
@@ -177,12 +194,13 @@ vi.mock("../services/environment-runtime.js", () => ({
 }));
 
 vi.mock("../services/plugin-environment-driver.js", async () => {
-  const actual = await vi.importActual<typeof import("../services/plugin-environment-driver.js")>(
-    "../services/plugin-environment-driver.js",
-  );
+  const actual = await vi.importActual<
+    typeof import("../services/plugin-environment-driver.js")
+  >("../services/plugin-environment-driver.js");
   return {
     ...actual,
-    resolvePluginSandboxProviderDriverByKey: mockResolvePluginSandboxProviderDriverByKey,
+    resolvePluginSandboxProviderDriverByKey:
+      mockResolvePluginSandboxProviderDriverByKey,
   };
 });
 
@@ -203,7 +221,10 @@ vi.mock("../middleware/logger.js", () => ({
 // observable. This lets the route test prove that a resolved but rejected
 // Decision H outcome becomes a failed terminal rather than authenticated.
 vi.mock("@taskcore/adapter-codex-local/server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@taskcore/adapter-codex-local/server")>();
+  const actual =
+    await importOriginal<
+      typeof import("@taskcore/adapter-codex-local/server")
+    >();
   return {
     ...actual,
     promoteDeviceLoginCredential: mockDeviceLoginPromotion,
@@ -213,7 +234,10 @@ vi.mock("@taskcore/adapter-codex-local/server", async (importOriginal) => {
 // Keep the real login-session service and the real conflict error. Replace only
 // the store factory and the production runtime factory with the harness fakes.
 vi.mock("../services/device-login-service.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../services/device-login-service.js")>();
+  const actual =
+    await importOriginal<
+      typeof import("../services/device-login-service.js")
+    >();
   return {
     ...actual,
     createDbAdapterAuthSessionStore: () => harness.store,
@@ -224,18 +248,29 @@ vi.mock("../services/device-login-service.js", async (importOriginal) => {
 // An in-memory session store. It mimics the active company-adapter slot: the
 // partial unique index allows one active session per company and adapter, so a
 // second active start throws the conflict error.
-function createMemoryStore(): AdapterAuthSessionStore & { rows: Map<string, AdapterAuthSessionRow> } {
+function createMemoryStore(): AdapterAuthSessionStore & {
+  rows: Map<string, AdapterAuthSessionRow>;
+} {
   const rows = new Map<string, AdapterAuthSessionRow>();
   const activeSlots = new Set<string>();
   // The active slot is scoped to the company, the owner, and the adapter.
-  const slotKey = (companyId: string, startedByUserId: string, adapterType: string) =>
-    `${companyId}|${startedByUserId}|${adapterType}`;
+  const slotKey = (
+    companyId: string,
+    startedByUserId: string,
+    adapterType: string,
+  ) => `${companyId}|${startedByUserId}|${adapterType}`;
   const isActive = (status: AdapterAuthSessionRow["status"]) =>
-    status === "starting" || status === "waiting_for_user" || status === "promoting";
+    status === "starting" ||
+    status === "waiting_for_user" ||
+    status === "promoting";
   return {
     rows,
     async insert(input) {
-      const key = slotKey(input.companyId, input.startedByUserId, input.adapterType);
+      const key = slotKey(
+        input.companyId,
+        input.startedByUserId,
+        input.adapterType,
+      );
       if (activeSlots.has(key)) {
         throw new AdapterAuthSessionConflictError();
       }
@@ -264,23 +299,31 @@ function createMemoryStore(): AdapterAuthSessionStore & { rows: Map<string, Adap
       const row = rows.get(input.sessionId);
       if (!row) return;
       row.status = input.status;
-      if (input.failureReason !== undefined) row.failureReason = input.failureReason;
+      if (input.failureReason !== undefined)
+        row.failureReason = input.failureReason;
       if (input.finishedAt !== undefined) row.finishedAt = input.finishedAt;
-      if (input.promotionExpiresAt !== undefined) row.promotionExpiresAt = input.promotionExpiresAt;
+      if (input.promotionExpiresAt !== undefined)
+        row.promotionExpiresAt = input.promotionExpiresAt;
       if (input.resultClaim !== undefined) row.resultClaim = input.resultClaim;
       if (!isActive(input.status))
-        activeSlots.delete(slotKey(row.companyId, row.startedByUserId, row.adapterType));
+        activeSlots.delete(
+          slotKey(row.companyId, row.startedByUserId, row.adapterType),
+        );
     },
     async compareAndSetStatus(input) {
       const row = rows.get(input.sessionId);
       if (!row || !input.expectedStatuses.includes(row.status)) return false;
       row.status = input.status;
-      if (input.failureReason !== undefined) row.failureReason = input.failureReason;
+      if (input.failureReason !== undefined)
+        row.failureReason = input.failureReason;
       if (input.finishedAt !== undefined) row.finishedAt = input.finishedAt;
-      if (input.promotionExpiresAt !== undefined) row.promotionExpiresAt = input.promotionExpiresAt;
+      if (input.promotionExpiresAt !== undefined)
+        row.promotionExpiresAt = input.promotionExpiresAt;
       if (input.resultClaim !== undefined) row.resultClaim = input.resultClaim;
       if (!isActive(input.status))
-        activeSlots.delete(slotKey(row.companyId, row.startedByUserId, row.adapterType));
+        activeSlots.delete(
+          slotKey(row.companyId, row.startedByUserId, row.adapterType),
+        );
       return true;
     },
     async get(sessionId) {
@@ -291,7 +334,10 @@ function createMemoryStore(): AdapterAuthSessionStore & { rows: Map<string, Adap
       // Scope the read to the company and the public session id, so a
       // foreign-company lookup reads nothing and the internal id never matches.
       for (const row of rows.values()) {
-        if (row.publicSessionId === publicSessionId && row.companyId === companyId) {
+        if (
+          row.publicSessionId === publicSessionId &&
+          row.companyId === companyId
+        ) {
           return { ...row };
         }
       }
@@ -310,7 +356,12 @@ function createMemoryStore(): AdapterAuthSessionStore & { rows: Map<string, Adap
       }
       return null;
     },
-    async withCompanyAdapterPromotionLock(_companyId, _startedByUserId, _adapterType, fn) {
+    async withCompanyAdapterPromotionLock(
+      _companyId,
+      _startedByUserId,
+      _adapterType,
+      fn,
+    ) {
       // The route test runs on a single event loop, so it needs no real lock. The
       // pass-through keeps the promotion contract satisfied.
       return fn();
@@ -321,7 +372,9 @@ function createMemoryStore(): AdapterAuthSessionStore & { rows: Map<string, Adap
 // A fake runtime. It streams the prompt, then waits on the harness gate, so the
 // login run stays active while the test reads and cancels it. The gate resolves
 // in `afterEach`, so no run and no timer survives the test.
-function createFakeRuntime(promptOutput: string = PROMPT_OUTPUT): LoginSessionRuntime {
+function createFakeRuntime(
+  promptOutput: string = PROMPT_OUTPUT,
+): LoginSessionRuntime {
   return {
     async acquireLoginLease(input) {
       harness.acquisitions.push(input);
@@ -351,7 +404,10 @@ function createFakeRuntime(promptOutput: string = PROMPT_OUTPUT): LoginSessionRu
 
 let currentActor: Record<string, unknown>;
 
-function boardActor(userId: string, companyIds: string[] = [COMPANY_1, COMPANY_2]): Record<string, unknown> {
+function boardActor(
+  userId: string,
+  companyIds: string[] = [COMPANY_1, COMPANY_2],
+): Record<string, unknown> {
   return {
     type: "board",
     userId,
@@ -363,8 +419,12 @@ function boardActor(userId: string, companyIds: string[] = [COMPANY_1, COMPANY_2
 
 async function createApp() {
   const [{ agentRoutes }, { errorHandler }] = await Promise.all([
-    vi.importActual<typeof import("../routes/agents.js")>("../routes/agents.js"),
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
+    vi.importActual<typeof import("../routes/agents.js")>(
+      "../routes/agents.js",
+    ),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -421,7 +481,10 @@ describe("adapter device-login routes", () => {
     mockResolvePluginSandboxProviderDriverByKey.mockImplementation(
       async ({ driverKey }: { driverKey: string }) =>
         driverKey === "daytona"
-          ? { plugin: { id: "plugin-daytona" }, driver: { supportsLoginPty: true } }
+          ? {
+              plugin: { id: "plugin-daytona" },
+              driver: { supportsLoginPty: true },
+            }
           : null,
     );
   });
@@ -508,7 +571,8 @@ describe("adapter device-login routes", () => {
     // before any lease. The test overrides an existing adapter type so the strict
     // request schema accepts it.
     const app = await createApp();
-    const { registerServerAdapter, unregisterServerAdapter } = await import("../adapters/index.js");
+    const { registerServerAdapter, unregisterServerAdapter } =
+      await import("../adapters/index.js");
     registerServerAdapter({
       type: "gemini_local",
       execute: async () => {
@@ -544,7 +608,8 @@ describe("adapter device-login routes", () => {
     // guard path. The test overrides the mapped `claude_local` type with a
     // displayed-code capability so the guard admits it.
     const app = await createApp();
-    const { registerServerAdapter, unregisterServerAdapter } = await import("../adapters/index.js");
+    const { registerServerAdapter, unregisterServerAdapter } =
+      await import("../adapters/index.js");
     registerServerAdapter({
       type: "claude_local",
       execute: async () => {
@@ -566,9 +631,14 @@ describe("adapter device-login routes", () => {
         .send({ environmentId: SANDBOX_ENV_1 });
 
       expect(res.status, JSON.stringify(res.body)).toBe(201);
-      expect(res.body).toMatchObject({ environmentId: SANDBOX_ENV_1, status: "starting" });
+      expect(res.body).toMatchObject({
+        environmentId: SANDBOX_ENV_1,
+        status: "starting",
+      });
       expect(harness.acquisitions).toHaveLength(1);
-      expect(harness.acquisitions[0]).toMatchObject({ adapterType: "claude_local" });
+      expect(harness.acquisitions[0]).toMatchObject({
+        adapterType: "claude_local",
+      });
     } finally {
       unregisterServerAdapter("claude_local");
     }
@@ -582,7 +652,10 @@ describe("adapter device-login routes", () => {
     mockResolvePluginSandboxProviderDriverByKey.mockImplementation(
       async ({ driverKey }: { driverKey: string }) =>
         driverKey === "daytona"
-          ? { plugin: { id: "plugin-daytona" }, driver: { supportsLoginPty: false } }
+          ? {
+              plugin: { id: "plugin-daytona" },
+              driver: { supportsLoginPty: false },
+            }
           : null,
     );
     const app = await createApp();
@@ -592,7 +665,9 @@ describe("adapter device-login routes", () => {
       .send({ environmentId: SANDBOX_ENV_1 });
 
     expect(res.status, JSON.stringify(res.body)).toBe(422);
-    expect(res.body).toMatchObject({ code: "codex_device_login_provider_unsupported" });
+    expect(res.body).toMatchObject({
+      code: "codex_device_login_provider_unsupported",
+    });
     // The gate ran before any session row or lease, so the runtime acquired none.
     expect(harness.acquisitions).toHaveLength(0);
   });
@@ -676,23 +751,35 @@ describe("adapter device-login routes", () => {
     // repeats the live prompt on every read, so it carries the same private
     // no-store policy as the `.../login-sessions/active` route (see the tests
     // below).
-    const first = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+    const first = await request(app).get(
+      `${loginPath(COMPANY_1)}/${sessionId}`,
+    );
     expect(first.status, JSON.stringify(first.body)).toBe(200);
-    expect(first.body.prompt).toEqual({ url: DEVICE_LOGIN_URL, code: PROMPT_CODE });
+    expect(first.body.prompt).toEqual({
+      url: DEVICE_LOGIN_URL,
+      code: PROMPT_CODE,
+    });
     expect(first.headers["cache-control"]).toBe("no-store, private");
 
     // A second authorized owner read still carries the prompt while the
     // session is active. The status stays available too, so the owner still
     // tracks the session across a page reload.
-    const second = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+    const second = await request(app).get(
+      `${loginPath(COMPANY_1)}/${sessionId}`,
+    );
     expect(second.status, JSON.stringify(second.body)).toBe(200);
-    expect(second.body.prompt).toEqual({ url: DEVICE_LOGIN_URL, code: PROMPT_CODE });
+    expect(second.body.prompt).toEqual({
+      url: DEVICE_LOGIN_URL,
+      code: PROMPT_CODE,
+    });
     expect(second.body.status).toBe(first.body.status);
 
     // Once the login reaches a terminal state, the prompt is gone.
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const afterTerminal = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const afterTerminal = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(["authenticated", "failed"]).toContain(afterTerminal.body.status);
       expect(afterTerminal.body.prompt).toBeNull();
     });
@@ -711,16 +798,27 @@ describe("adapter device-login routes", () => {
     expect(start.status, JSON.stringify(start.body)).toBe(201);
     const sessionId = start.body.sessionId as string;
 
-    const first = await request(app).get(`${loginPath(COMPANY_1, "grok_local")}/${sessionId}`);
+    const first = await request(app).get(
+      `${loginPath(COMPANY_1, "grok_local")}/${sessionId}`,
+    );
     expect(first.status, JSON.stringify(first.body)).toBe(200);
-    expect(first.body.prompt).toEqual({ url: GROK_DEVICE_LOGIN_URL, code: GROK_CODE });
+    expect(first.body.prompt).toEqual({
+      url: GROK_DEVICE_LOGIN_URL,
+      code: GROK_CODE,
+    });
 
     // The row belongs to `grok_local`, not `codex_local`. Reading it through the
     // `codex_local` path finds no row for the owner.
-    const wrongAdapterRead = await request(app).get(`${loginPath(COMPANY_1, "codex_local")}/${sessionId}`);
-    expect(wrongAdapterRead.status, JSON.stringify(wrongAdapterRead.body)).toBe(404);
+    const wrongAdapterRead = await request(app).get(
+      `${loginPath(COMPANY_1, "codex_local")}/${sessionId}`,
+    );
+    expect(wrongAdapterRead.status, JSON.stringify(wrongAdapterRead.body)).toBe(
+      404,
+    );
 
-    const cancel = await request(app).post(`${loginPath(COMPANY_1, "grok_local")}/${sessionId}/cancel`);
+    const cancel = await request(app).post(
+      `${loginPath(COMPANY_1, "grok_local")}/${sessionId}/cancel`,
+    );
     expect(cancel.status, JSON.stringify(cancel.body)).toBe(200);
     // The cancel resolves the public terminal status at once. Internally the row
     // holds `cleanup_pending`, which encodes the cancelled terminal until the
@@ -744,12 +842,16 @@ describe("adapter device-login routes", () => {
     // A different board user in the same company is not the owner.
     currentActor = boardActor(OWNER_B);
 
-    const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+    const status = await request(app).get(
+      `${loginPath(COMPANY_1)}/${sessionId}`,
+    );
     expect(status.status, JSON.stringify(status.body)).toBe(404);
     expect(status.body.prompt).toBeUndefined();
     expect(status.body.environmentId).toBeUndefined();
 
-    const cancel = await request(app).post(`${loginPath(COMPANY_1)}/${sessionId}/cancel`);
+    const cancel = await request(app).post(
+      `${loginPath(COMPANY_1)}/${sessionId}/cancel`,
+    );
     expect(cancel.status, JSON.stringify(cancel.body)).toBe(404);
   });
 
@@ -763,7 +865,9 @@ describe("adapter device-login routes", () => {
     const sessionId = start.body.sessionId as string;
 
     // The same owner reads the session under a different company scope.
-    const status = await request(app).get(`${loginPath(COMPANY_2)}/${sessionId}`);
+    const status = await request(app).get(
+      `${loginPath(COMPANY_2)}/${sessionId}`,
+    );
     expect(status.status, JSON.stringify(status.body)).toBe(404);
     expect(status.body.prompt).toBeUndefined();
   });
@@ -779,7 +883,10 @@ describe("adapter device-login routes", () => {
     const active = await request(app).get(`${loginPath(COMPANY_1)}/active`);
     expect(active.status, JSON.stringify(active.body)).toBe(200);
     expect(active.body.sessionId).toBe(start.body.sessionId);
-    expect(active.body.prompt).toEqual({ url: DEVICE_LOGIN_URL, code: PROMPT_CODE });
+    expect(active.body.prompt).toEqual({
+      url: DEVICE_LOGIN_URL,
+      code: PROMPT_CODE,
+    });
     expect(active.headers["cache-control"]).toBe("no-store, private");
   });
 
@@ -804,12 +911,16 @@ describe("adapter device-login routes", () => {
     currentActor = boardActor(OWNER_A);
 
     // The same owner under a different company holds no active session there.
-    const otherCompany = await request(app).get(`${loginPath(COMPANY_2)}/active`);
+    const otherCompany = await request(app).get(
+      `${loginPath(COMPANY_2)}/active`,
+    );
     expect(otherCompany.status, JSON.stringify(otherCompany.body)).toBe(404);
     expect(otherCompany.body).toEqual(none.body);
 
     // The owner's active session belongs to `codex_local`, not `grok_local`.
-    const otherAdapter = await request(app).get(`${loginPath(COMPANY_1, "grok_local")}/active`);
+    const otherAdapter = await request(app).get(
+      `${loginPath(COMPANY_1, "grok_local")}/active`,
+    );
     expect(otherAdapter.status, JSON.stringify(otherAdapter.body)).toBe(404);
     expect(otherAdapter.body).toEqual(none.body);
   });
@@ -823,7 +934,9 @@ describe("adapter device-login routes", () => {
     expect(start.status, JSON.stringify(start.body)).toBe(201);
     const sessionId = start.body.sessionId as string;
 
-    const cancel = await request(app).post(`${loginPath(COMPANY_1)}/${sessionId}/cancel`);
+    const cancel = await request(app).post(
+      `${loginPath(COMPANY_1)}/${sessionId}/cancel`,
+    );
     expect(cancel.status, JSON.stringify(cancel.body)).toBe(200);
     expect(cancel.body.sessionId).toBe(sessionId);
     // The cancel resolves the public terminal status at once.
@@ -872,12 +985,16 @@ describe("adapter device-login routes", () => {
     harness.releaseGate();
     await vi.waitFor(async () => {
       currentActor = boardActor(OWNER_A);
-      const firstStatus = await request(app).get(`${loginPath(COMPANY_1)}/${first.body.sessionId}`);
+      const firstStatus = await request(app).get(
+        `${loginPath(COMPANY_1)}/${first.body.sessionId}`,
+      );
       expect(firstStatus.body.status).toBe("authenticated");
     });
     await vi.waitFor(async () => {
       currentActor = boardActor(OWNER_B);
-      const secondStatus = await request(app).get(`${loginPath(COMPANY_1)}/${second.body.sessionId}`);
+      const secondStatus = await request(app).get(
+        `${loginPath(COMPANY_1)}/${second.body.sessionId}`,
+      );
       expect(secondStatus.body.status).toBe("authenticated");
     });
   });
@@ -908,7 +1025,9 @@ describe("adapter device-login routes", () => {
     // a later test's own mocked promotion result.
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${first.body.sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${first.body.sessionId}`,
+      );
       expect(status.body.status).toBe("authenticated");
     });
   });
@@ -919,27 +1038,45 @@ describe("adapter device-login routes", () => {
     // binding the agent's CODEX_HOME only when the identities differ, which
     // is the one case where the login cannot take effect through the shared
     // company home.
-    const instanceRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-login-binding-"));
+    const instanceRoot = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-login-binding-"),
+    );
     try {
       vi.stubEnv("TASKCORE_HOME", instanceRoot);
       vi.stubEnv("TASKCORE_INSTANCE_ID", "default");
-      const companyHome = path.join(instanceRoot, "instances", "default", "companies", COMPANY_1, "codex-home");
+      const companyHome = path.join(
+        instanceRoot,
+        "instances",
+        "default",
+        "companies",
+        COMPANY_1,
+        "codex-home",
+      );
       await mkdir(companyHome, { recursive: true });
       await writeFile(
         path.join(companyHome, "auth.json"),
         JSON.stringify({
-          tokens: { id_token: "t", access_token: "t", refresh_token: "t", account_id: "acct-other" },
+          tokens: {
+            id_token: "t",
+            access_token: "t",
+            refresh_token: "t",
+            account_id: "acct-other",
+          },
         }),
       );
       mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(
         "/tmp/taskcore-codex-account-home/acct-default",
       );
       const app = await createApp();
-      const started = await request(app).post(loginPath(COMPANY_1)).send({ environmentId: SANDBOX_ENV_1 });
+      const started = await request(app)
+        .post(loginPath(COMPANY_1))
+        .send({ environmentId: SANDBOX_ENV_1 });
       expect(started.status, JSON.stringify(started.body)).toBe(201);
       harness.releaseGate();
       await vi.waitFor(async () => {
-        const status = await request(app).get(`${loginPath(COMPANY_1)}/${started.body.sessionId}`);
+        const status = await request(app).get(
+          `${loginPath(COMPANY_1)}/${started.body.sessionId}`,
+        );
         expect(status.body.status).toBe("authenticated");
         expect(status.body.codexAccountBinding).toEqual({
           secretId: "secret-1",
@@ -969,27 +1106,45 @@ describe("adapter device-login routes", () => {
     // Same-account logins take effect through the company-home refresh; the
     // claim still rides along with `companyIdentityDiffers: false`, and the
     // client deliberately binds nothing.
-    const instanceRoot = await mkdtemp(path.join(os.tmpdir(), "taskcore-login-binding-same-"));
+    const instanceRoot = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-login-binding-same-"),
+    );
     try {
       vi.stubEnv("TASKCORE_HOME", instanceRoot);
       vi.stubEnv("TASKCORE_INSTANCE_ID", "default");
-      const companyHome = path.join(instanceRoot, "instances", "default", "companies", COMPANY_1, "codex-home");
+      const companyHome = path.join(
+        instanceRoot,
+        "instances",
+        "default",
+        "companies",
+        COMPANY_1,
+        "codex-home",
+      );
       await mkdir(companyHome, { recursive: true });
       await writeFile(
         path.join(companyHome, "auth.json"),
         JSON.stringify({
-          tokens: { id_token: "t", access_token: "t", refresh_token: "t", account_id: "acct-default" },
+          tokens: {
+            id_token: "t",
+            access_token: "t",
+            refresh_token: "t",
+            account_id: "acct-default",
+          },
         }),
       );
       mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(
         "/tmp/taskcore-codex-account-home/acct-default",
       );
       const app = await createApp();
-      const started = await request(app).post(loginPath(COMPANY_1)).send({ environmentId: SANDBOX_ENV_1 });
+      const started = await request(app)
+        .post(loginPath(COMPANY_1))
+        .send({ environmentId: SANDBOX_ENV_1 });
       expect(started.status, JSON.stringify(started.body)).toBe(201);
       harness.releaseGate();
       await vi.waitFor(async () => {
-        const status = await request(app).get(`${loginPath(COMPANY_1)}/${started.body.sessionId}`);
+        const status = await request(app).get(
+          `${loginPath(COMPANY_1)}/${started.body.sessionId}`,
+        );
         expect(status.body.status).toBe("authenticated");
         expect(status.body.codexAccountBinding).toEqual({
           secretId: "secret-1",
@@ -1020,15 +1175,16 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
 
-    const row = await (harness.store as ReturnType<typeof createMemoryStore>).getByPublicId(
-      sessionId,
-      COMPANY_1,
-    );
+    const row = await (
+      harness.store as ReturnType<typeof createMemoryStore>
+    ).getByPublicId(sessionId, COMPANY_1);
     expect(row?.status).toBe("failed");
     expect(mockDeviceLoginPromotion).toHaveBeenCalledTimes(1);
   });
@@ -1054,11 +1210,16 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("authenticated");
     });
 
-    expect(mockSecretService.getByName).toHaveBeenCalledWith(COMPANY_1, "CODEX_HOME_acct-second");
+    expect(mockSecretService.getByName).toHaveBeenCalledWith(
+      COMPANY_1,
+      "CODEX_HOME_acct-second",
+    );
     expect(mockSecretService.create).toHaveBeenCalledWith(
       COMPANY_1,
       expect.objectContaining({
@@ -1075,7 +1236,9 @@ describe("adapter device-login routes", () => {
     // login is idempotent.
     const accountHomeDir = "/tmp/taskcore-codex-account-home/acct-default";
     mockSecretService.getByName.mockResolvedValue({ id: "existing-secret" });
-    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(accountHomeDir);
+    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(
+      accountHomeDir,
+    );
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "kept",
       accountId: "acct-default",
@@ -1091,15 +1254,21 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("authenticated");
     });
 
     expect(mockSecretService.create).not.toHaveBeenCalled();
-    expect(mockSecretService.resolveSecretValueForDeviceLoginCheck).toHaveBeenCalledWith(
+    expect(
+      mockSecretService.resolveSecretValueForDeviceLoginCheck,
+    ).toHaveBeenCalledWith(
       COMPANY_1,
       "existing-secret",
-      expect.objectContaining({ configPath: "secrets.CODEX_HOME_acct-default" }),
+      expect.objectContaining({
+        configPath: "secrets.CODEX_HOME_acct-default",
+      }),
     );
   });
 
@@ -1114,7 +1283,9 @@ describe("adapter device-login routes", () => {
     // once that lock frees.
     const accountHomeDir = "/tmp/taskcore-codex-account-home/acct-default";
     mockSecretService.getByName.mockResolvedValue({ id: "existing-secret" });
-    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(accountHomeDir);
+    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(
+      accountHomeDir,
+    );
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "kept",
       accountId: "acct-default",
@@ -1125,7 +1296,11 @@ describe("adapter device-login routes", () => {
     const heldLockGate = new Promise<void>((resolve) => {
       releaseHeldLock = resolve;
     });
-    const lockHolder = withAccountHomeSecretMutationLock(undefined, COMPANY_1, () => heldLockGate);
+    const lockHolder = withAccountHomeSecretMutationLock(
+      undefined,
+      COMPANY_1,
+      () => heldLockGate,
+    );
     // Give the held lock a chance to actually acquire before the login
     // starts racing for the same lock.
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -1140,15 +1315,21 @@ describe("adapter device-login routes", () => {
 
     // The login's check must stay blocked behind the held lock.
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(mockSecretService.resolveSecretValueForDeviceLoginCheck).not.toHaveBeenCalled();
+    expect(
+      mockSecretService.resolveSecretValueForDeviceLoginCheck,
+    ).not.toHaveBeenCalled();
 
     releaseHeldLock();
     await lockHolder;
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("authenticated");
     });
-    expect(mockSecretService.resolveSecretValueForDeviceLoginCheck).toHaveBeenCalled();
+    expect(
+      mockSecretService.resolveSecretValueForDeviceLoginCheck,
+    ).toHaveBeenCalled();
   });
 
   it("reconfirms the account-home secret a second time immediately before the terminal authenticated commit", async () => {
@@ -1160,7 +1341,9 @@ describe("adapter device-login routes", () => {
     // only the first.
     const accountHomeDir = "/tmp/taskcore-codex-account-home/acct-default";
     mockSecretService.getByName.mockResolvedValue({ id: "existing-secret" });
-    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(accountHomeDir);
+    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(
+      accountHomeDir,
+    );
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "kept",
       accountId: "acct-default",
@@ -1176,11 +1359,15 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("authenticated");
     });
 
-    expect(mockSecretService.resolveSecretValueForDeviceLoginCheck).toHaveBeenCalledTimes(2);
+    expect(
+      mockSecretService.resolveSecretValueForDeviceLoginCheck,
+    ).toHaveBeenCalledTimes(2);
   });
 
   it("fails closed when the account-home secret is rotated after validation but before the login service commits its terminal state", async () => {
@@ -1213,12 +1400,16 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
 
-    expect(mockSecretService.resolveSecretValueForDeviceLoginCheck).toHaveBeenCalledTimes(2);
+    expect(
+      mockSecretService.resolveSecretValueForDeviceLoginCheck,
+    ).toHaveBeenCalledTimes(2);
   });
 
   it("fails closed when a pre-existing secret names a different account home", async () => {
@@ -1243,7 +1434,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1255,7 +1448,9 @@ describe("adapter device-login routes", () => {
     // This login created the account home, so a secret-creation failure must
     // fail the login and remove the directory it just created, so the
     // operation stays atomic.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1274,7 +1469,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1287,7 +1484,9 @@ describe("adapter device-login routes", () => {
     // secret but kept the directory, or an earlier login already wrote it).
     // A secret-creation failure must still fail the login, but it must never
     // remove a directory this login did not create.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1306,7 +1505,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1321,7 +1522,9 @@ describe("adapter device-login routes", () => {
     // so the loser must confirm the winning secret's value, report a
     // successful login, and must never remove the account home the winner
     // just wrote.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1342,7 +1545,9 @@ describe("adapter device-login routes", () => {
     mockSecretService.getByName
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: "winning-secret" });
-    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(accountHomeDir);
+    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValue(
+      accountHomeDir,
+    );
     const app = await createApp();
 
     const start = await request(app)
@@ -1353,7 +1558,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("authenticated");
     });
 
@@ -1365,7 +1572,9 @@ describe("adapter device-login routes", () => {
     // secret could belong to unrelated stale state, not the winner of a
     // genuine same-account race. The login must not report success without
     // checking the winning secret's value.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1394,7 +1603,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1410,7 +1621,9 @@ describe("adapter device-login routes", () => {
     // the company secret before this call's own, unrelated secret-creation
     // attempt fails. The directory now belongs to that other login's secret,
     // so the cleanup scan must find it by value and keep the directory.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1425,9 +1638,15 @@ describe("adapter device-login routes", () => {
     // value. The concurrent login's secret carries this call's own generated
     // name, so this proves the scan still catches a same-name claimant.
     mockSecretService.list.mockResolvedValueOnce([
-      { id: "concurrent-secret", name: "CODEX_HOME_acct-concurrent-claim", provider: "local_encrypted" },
+      {
+        id: "concurrent-secret",
+        name: "CODEX_HOME_acct-concurrent-claim",
+        provider: "local_encrypted",
+      },
     ]);
-    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValueOnce(accountHomeDir);
+    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValueOnce(
+      accountHomeDir,
+    );
     const app = await createApp();
 
     const start = await request(app)
@@ -1438,7 +1657,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1451,7 +1672,9 @@ describe("adapter device-login routes", () => {
     // no relation to the generated `CODEX_HOME_<handle>` name. A cleanup that
     // checks only the generated name would miss this secret and delete a
     // directory it still needs; the scan must catch it by value instead.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1465,12 +1688,26 @@ describe("adapter device-login routes", () => {
       // An unrelated secret that resolves to a different value. The scan
       // must not stop at the first entry and must not treat every secret as
       // a match.
-      { id: "unrelated-secret", name: "SOME_OTHER_SECRET", provider: "local_encrypted" },
-      { id: "hand-named-secret", name: "MY_CODEX_HOME", provider: "local_encrypted" },
+      {
+        id: "unrelated-secret",
+        name: "SOME_OTHER_SECRET",
+        provider: "local_encrypted",
+      },
+      {
+        id: "hand-named-secret",
+        name: "MY_CODEX_HOME",
+        provider: "local_encrypted",
+      },
     ]);
     mockSecretService.resolveSecretValueForDeviceLoginCheck.mockImplementation(
-      async (_companyId: string, secretId: string, _context: { configPath: string }) =>
-        secretId === "hand-named-secret" ? accountHomeDir : "/some/unrelated/path",
+      async (
+        _companyId: string,
+        secretId: string,
+        _context: { configPath: string },
+      ) =>
+        secretId === "hand-named-secret"
+          ? accountHomeDir
+          : "/some/unrelated/path",
     );
     const app = await createApp();
 
@@ -1482,7 +1719,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1495,7 +1734,9 @@ describe("adapter device-login routes", () => {
     // hand-named secret bound to this account home through AWS Secrets
     // Manager is just as real a claimant as a `local_encrypted` one. The
     // scan must resolve it too, not skip it for its provider.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1506,9 +1747,15 @@ describe("adapter device-login routes", () => {
     mockSecretService.create.mockRejectedValueOnce(new Error("db unavailable"));
     mockSecretService.getByName.mockResolvedValueOnce(null);
     mockSecretService.list.mockResolvedValueOnce([
-      { id: "aws-secret", name: "MY_CODEX_HOME", provider: "aws_secrets_manager" },
+      {
+        id: "aws-secret",
+        name: "MY_CODEX_HOME",
+        provider: "aws_secrets_manager",
+      },
     ]);
-    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValueOnce(accountHomeDir);
+    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValueOnce(
+      accountHomeDir,
+    );
     const app = await createApp();
 
     const start = await request(app)
@@ -1519,12 +1766,16 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
 
-    expect(mockSecretService.resolveSecretValueForDeviceLoginCheck).toHaveBeenCalledWith(
+    expect(
+      mockSecretService.resolveSecretValueForDeviceLoginCheck,
+    ).toHaveBeenCalledWith(
       COMPANY_1,
       "aws-secret",
       expect.objectContaining({ configPath: "secrets.MY_CODEX_HOME" }),
@@ -1536,7 +1787,9 @@ describe("adapter device-login routes", () => {
     // No secret, under any name, resolves to this directory, so the cleanup
     // must still remove it — the broader scan must not make cleanup any less
     // eager than the old name-only check when nothing claims the directory.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1547,9 +1800,15 @@ describe("adapter device-login routes", () => {
     mockSecretService.create.mockRejectedValueOnce(new Error("db unavailable"));
     mockSecretService.getByName.mockResolvedValueOnce(null);
     mockSecretService.list.mockResolvedValueOnce([
-      { id: "unrelated-secret", name: "SOME_OTHER_SECRET", provider: "local_encrypted" },
+      {
+        id: "unrelated-secret",
+        name: "SOME_OTHER_SECRET",
+        provider: "local_encrypted",
+      },
     ]);
-    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValueOnce("/some/unrelated/path");
+    mockSecretService.resolveSecretValueForDeviceLoginCheck.mockResolvedValueOnce(
+      "/some/unrelated/path",
+    );
     const app = await createApp();
 
     const start = await request(app)
@@ -1560,7 +1819,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1574,7 +1835,9 @@ describe("adapter device-login routes", () => {
     // have matched. The cleanup must keep the directory rather than treat an
     // unresolved secret as a non-match, even when every secret that DID
     // resolve named a different directory.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1585,12 +1848,25 @@ describe("adapter device-login routes", () => {
     mockSecretService.create.mockRejectedValueOnce(new Error("db unavailable"));
     mockSecretService.getByName.mockResolvedValueOnce(null);
     mockSecretService.list.mockResolvedValueOnce([
-      { id: "unrelated-secret", name: "SOME_OTHER_SECRET", provider: "local_encrypted" },
-      { id: "unresolvable-secret", name: "MAYBE_CODEX_HOME", provider: "local_encrypted" },
+      {
+        id: "unrelated-secret",
+        name: "SOME_OTHER_SECRET",
+        provider: "local_encrypted",
+      },
+      {
+        id: "unresolvable-secret",
+        name: "MAYBE_CODEX_HOME",
+        provider: "local_encrypted",
+      },
     ]);
     mockSecretService.resolveSecretValueForDeviceLoginCheck.mockImplementation(
-      async (_companyId: string, secretId: string, _context: { configPath: string }) => {
-        if (secretId === "unresolvable-secret") throw new Error("decryption key unavailable");
+      async (
+        _companyId: string,
+        secretId: string,
+        _context: { configPath: string },
+      ) => {
+        if (secretId === "unresolvable-secret")
+          throw new Error("decryption key unavailable");
         return "/some/unrelated/path";
       },
     );
@@ -1604,7 +1880,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1617,7 +1895,9 @@ describe("adapter device-login routes", () => {
     // secret can appear after that first list call, while the scan is still
     // resolving an earlier secret. The scan must re-list and check that new
     // secret too, instead of trusting its first, now-stale list.
-    const accountHomeDir = await mkdtemp(path.join(os.tmpdir(), "taskcore-codex-account-home-test-"));
+    const accountHomeDir = await mkdtemp(
+      path.join(os.tmpdir(), "taskcore-codex-account-home-test-"),
+    );
     accountHomeTestDirs.push(accountHomeDir);
     mockDeviceLoginPromotion.mockResolvedValueOnce({
       outcome: "promoted",
@@ -1631,13 +1911,31 @@ describe("adapter device-login routes", () => {
     // re-lists, a second, differently named secret now names this account
     // home; the scan must catch it on that later pass.
     mockSecretService.list
-      .mockResolvedValueOnce([{ id: "unrelated-secret", name: "SOME_OTHER_SECRET", provider: "local_encrypted" }])
       .mockResolvedValueOnce([
-        { id: "unrelated-secret", name: "SOME_OTHER_SECRET", provider: "local_encrypted" },
-        { id: "late-secret", name: "LATE_CODEX_HOME", provider: "local_encrypted" },
+        {
+          id: "unrelated-secret",
+          name: "SOME_OTHER_SECRET",
+          provider: "local_encrypted",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "unrelated-secret",
+          name: "SOME_OTHER_SECRET",
+          provider: "local_encrypted",
+        },
+        {
+          id: "late-secret",
+          name: "LATE_CODEX_HOME",
+          provider: "local_encrypted",
+        },
       ]);
     mockSecretService.resolveSecretValueForDeviceLoginCheck.mockImplementation(
-      async (_companyId: string, secretId: string, _context: { configPath: string }) =>
+      async (
+        _companyId: string,
+        secretId: string,
+        _context: { configPath: string },
+      ) =>
         secretId === "late-secret" ? accountHomeDir : "/some/unrelated/path",
     );
     const app = await createApp();
@@ -1650,7 +1948,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1677,7 +1977,9 @@ describe("adapter device-login routes", () => {
 
     harness.releaseGate();
     await vi.waitFor(async () => {
-      const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+      const status = await request(app).get(
+        `${loginPath(COMPANY_1)}/${sessionId}`,
+      );
       expect(status.body.status).toBe("failed");
       expect(status.body.failure?.reason).toBe("promotion_failed");
     });
@@ -1695,12 +1997,16 @@ describe("adapter device-login routes", () => {
     const sessionId = start.body.sessionId as string;
 
     // Read the owner status, so the prompt passes through the owner read path.
-    const status = await request(app).get(`${loginPath(COMPANY_1)}/${sessionId}`);
+    const status = await request(app).get(
+      `${loginPath(COMPANY_1)}/${sessionId}`,
+    );
     expect(status.status).toBe(200);
 
     // Serialize every logged argument and assert none carries a secret.
     const loggedText = (["info", "warn", "error", "debug"] as const)
-      .flatMap((level) => (mockLogger[level] as ReturnType<typeof vi.fn>).mock.calls)
+      .flatMap(
+        (level) => (mockLogger[level] as ReturnType<typeof vi.fn>).mock.calls,
+      )
       .map((args) => JSON.stringify(args))
       .join("\n");
     expect(loggedText).not.toContain("auth.openai.com");

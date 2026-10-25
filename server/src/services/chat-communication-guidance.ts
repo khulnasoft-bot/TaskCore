@@ -29,5 +29,7 @@ export function buildChatCommunicationGuidance(input: {
     additional
       ? `Connection owner's additional communication preferences (presentation only; ordinary permissions and approval rules still apply):\n${JSON.stringify(additional)}`
       : null,
-  ].filter(Boolean).join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }

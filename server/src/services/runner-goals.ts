@@ -24,12 +24,16 @@ import { publishLiveEvent } from "./live-events.js";
 const ACTIVE_RUN_STATUSES = ["queued", "scheduled_retry", "running"] as const;
 const OPEN_ACTION_STATUSES = ["pending", "delivering", "delivered"] as const;
 
-type AgentBinding = Pick<typeof agents.$inferSelect, "id" | "companyId" | "adapterType" | "adapterConfig">;
+type AgentBinding = Pick<
+  typeof agents.$inferSelect,
+  "id" | "companyId" | "adapterType" | "adapterConfig"
+>;
 type TaskSession = typeof agentTaskSessions.$inferSelect;
 
 export class RunnerGoalConflictError extends Error {
   constructor(
-    readonly code: "stale_revision" | "replacement_required" | "idempotency_key_conflict",
+    readonly code:
+      "stale_revision" | "replacement_required" | "idempotency_key_conflict",
     readonly projection: RunnerGoalProjection,
   ) {
     super(code);
@@ -37,25 +41,34 @@ export class RunnerGoalConflictError extends Error {
 }
 
 export class RunnerGoalActionError extends Error {
-  constructor(readonly code: string, message: string) {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
     super(message);
   }
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
 function capabilityForAgent(agent: AgentBinding): RunnerGoalCapability {
   const config = asRecord(agent.adapterConfig) ?? {};
   const engine = typeof config.engine === "string" ? config.engine : null;
-  const sessionMode = typeof config.mode === "string" ? config.mode : "persistent";
+  const sessionMode =
+    typeof config.mode === "string" ? config.mode : "persistent";
   if (agent.adapterType === "taskcore_runner") {
-    const provider = typeof config.provider === "string" ? config.provider : "codex";
-    const acpxAgent = typeof config.acpxAgent === "string" ? config.acpxAgent : "pi";
-    if (provider === "codex" || (provider === "acpx" && acpxAgent === "codex")) {
+    const provider =
+      typeof config.provider === "string" ? config.provider : "codex";
+    const acpxAgent =
+      typeof config.acpxAgent === "string" ? config.acpxAgent : "pi";
+    if (
+      provider === "codex" ||
+      (provider === "acpx" && acpxAgent === "codex")
+    ) {
       return {
         availability: "available",
         verified: false,
@@ -66,9 +79,10 @@ function capabilityForAgent(agent: AgentBinding): RunnerGoalCapability {
         tokenBudgetControl: provider === "codex",
         usageReporting: true,
         reasonCode: "support_pending_handshake",
-        reason: provider === "codex"
-          ? "Support will be verified when the Codex session starts."
-          : "Support will be verified when the persistent Codex ACP session starts.",
+        reason:
+          provider === "codex"
+            ? "Support will be verified when the Codex session starts."
+            : "Support will be verified when the persistent Codex ACP session starts.",
       };
     }
     if (provider === "acpx" && acpxAgent === "claude") {
@@ -82,14 +96,16 @@ function capabilityForAgent(agent: AgentBinding): RunnerGoalCapability {
         tokenBudgetControl: false,
         usageReporting: false,
         reasonCode: "support_pending_handshake",
-        reason: "Support will be verified when the persistent Claude ACP session starts.",
+        reason:
+          "Support will be verified when the persistent Claude ACP session starts.",
       };
     }
-    const reason = provider === "opencode"
-      ? "Unsupported by OpenCode."
-      : provider === "acpx"
-        ? "This ACP agent does not advertise a structured session goal extension."
-        : "This Taskcore runner provider does not expose a durable session goal lifecycle.";
+    const reason =
+      provider === "opencode"
+        ? "Unsupported by OpenCode."
+        : provider === "acpx"
+          ? "This ACP agent does not advertise a structured session goal extension."
+          : "This Taskcore runner provider does not expose a durable session goal lifecycle.";
     return {
       availability: "unsupported",
       verified: true,
@@ -99,25 +115,32 @@ function capabilityForAgent(agent: AgentBinding): RunnerGoalCapability {
       maxObjectiveChars: 4_000,
       tokenBudgetControl: false,
       usageReporting: false,
-      reasonCode: provider === "opencode"
-        ? "opencode_structured_goals_unavailable"
-        : "persistent_session_goal_extension_required",
+      reasonCode:
+        provider === "opencode"
+          ? "opencode_structured_goals_unavailable"
+          : "persistent_session_goal_extension_required",
       reason,
     };
   }
-  const directAcp = (agent.adapterType === "codex_local" || agent.adapterType === "claude_local")
-    && engine !== "cli" && sessionMode !== "oneshot";
-  const reason = agent.adapterType === "opencode_local"
-    ? "Unsupported by OpenCode."
-    : directAcp
-      ? "This direct ACP adapter has no live session goal controller. Use Taskcore Runner with a supported provider."
-    : (agent.adapterType === "claude_local" || agent.adapterType === "codex_local") && sessionMode === "oneshot"
-      ? "Session goals require a persistent ACP session."
-    : agent.adapterType === "claude_local"
-      ? "Requires persistent Claude ACP."
-      : agent.adapterType === "codex_local"
-        ? "Requires persistent Codex ACP."
-        : "This runner does not expose a durable session goal lifecycle.";
+  const directAcp =
+    (agent.adapterType === "codex_local" ||
+      agent.adapterType === "claude_local") &&
+    engine !== "cli" &&
+    sessionMode !== "oneshot";
+  const reason =
+    agent.adapterType === "opencode_local"
+      ? "Unsupported by OpenCode."
+      : directAcp
+        ? "This direct ACP adapter has no live session goal controller. Use Taskcore Runner with a supported provider."
+        : (agent.adapterType === "claude_local" ||
+              agent.adapterType === "codex_local") &&
+            sessionMode === "oneshot"
+          ? "Session goals require a persistent ACP session."
+          : agent.adapterType === "claude_local"
+            ? "Requires persistent Claude ACP."
+            : agent.adapterType === "codex_local"
+              ? "Requires persistent Codex ACP."
+              : "This runner does not expose a durable session goal lifecycle.";
   return {
     availability: "unsupported",
     verified: true,
@@ -127,14 +150,20 @@ function capabilityForAgent(agent: AgentBinding): RunnerGoalCapability {
     maxObjectiveChars: 4_000,
     tokenBudgetControl: false,
     usageReporting: false,
-    reasonCode: agent.adapterType === "opencode_local"
-      ? "opencode_structured_goals_unavailable"
-      : directAcp ? "direct_adapter_goal_controller_unavailable" : "persistent_session_goal_extension_required",
+    reasonCode:
+      agent.adapterType === "opencode_local"
+        ? "opencode_structured_goals_unavailable"
+        : directAcp
+          ? "direct_adapter_goal_controller_unavailable"
+          : "persistent_session_goal_extension_required",
     reason,
   };
 }
 
-function storedCapability(session: TaskSession | null, fallback: RunnerGoalCapability): RunnerGoalCapability {
+function storedCapability(
+  session: TaskSession | null,
+  fallback: RunnerGoalCapability,
+): RunnerGoalCapability {
   // A saved provider capability cannot grant a controller to an execution path
   // that no longer owns it (for example after changing the selected adapter).
   if (fallback.availability === "unsupported") return fallback;
@@ -142,10 +171,16 @@ function storedCapability(session: TaskSession | null, fallback: RunnerGoalCapab
   if (!stored) return fallback;
   const availability = stored.availability;
   const actions = Array.isArray(stored.actions)
-    ? stored.actions.filter((action): action is "set" | "pause" | "resume" | "clear" =>
-      ["set", "pause", "resume", "clear"].includes(String(action)))
+    ? stored.actions.filter(
+        (action): action is "set" | "pause" | "resume" | "clear" =>
+          ["set", "pause", "resume", "clear"].includes(String(action)),
+      )
     : [];
-  if (!["available", "unsupported", "policy_disabled"].includes(String(availability))) {
+  if (
+    !["available", "unsupported", "policy_disabled"].includes(
+      String(availability),
+    )
+  ) {
     return fallback;
   }
   return {
@@ -154,41 +189,67 @@ function storedCapability(session: TaskSession | null, fallback: RunnerGoalCapab
     actions,
     autonomousUpdates: stored.autonomousUpdates === true,
     persistentAcrossResume: stored.persistentAcrossResume === true,
-    maxObjectiveChars: typeof stored.maxObjectiveChars === "number" ? stored.maxObjectiveChars : 4_000,
+    maxObjectiveChars:
+      typeof stored.maxObjectiveChars === "number"
+        ? stored.maxObjectiveChars
+        : 4_000,
     tokenBudgetControl: stored.tokenBudgetControl === true,
     usageReporting: stored.usageReporting === true,
-    reasonCode: typeof stored.reasonCode === "string" ? stored.reasonCode : null,
+    reasonCode:
+      typeof stored.reasonCode === "string" ? stored.reasonCode : null,
     reason: typeof stored.reason === "string" ? stored.reason : null,
   };
 }
 
 function storedGoal(session: TaskSession | null): RunnerGoalSnapshot | null {
   const goal = asRecord(session?.goalJson);
-  if (!goal || typeof goal.objective !== "string" || typeof goal.status !== "string") return null;
+  if (
+    !goal ||
+    typeof goal.objective !== "string" ||
+    typeof goal.status !== "string"
+  )
+    return null;
   return {
     objective: goal.objective,
     status: goal.status as RunnerGoalSnapshot["status"],
     tokenBudget: typeof goal.tokenBudget === "number" ? goal.tokenBudget : null,
     tokensUsed: typeof goal.tokensUsed === "number" ? goal.tokensUsed : 0,
-    elapsedSeconds: typeof goal.elapsedSeconds === "number" ? goal.elapsedSeconds : 0,
+    elapsedSeconds:
+      typeof goal.elapsedSeconds === "number" ? goal.elapsedSeconds : 0,
     iterations: typeof goal.iterations === "number" ? goal.iterations : 0,
     lastReason: typeof goal.lastReason === "string" ? goal.lastReason : null,
-    createdAt: typeof goal.createdAt === "string" && goal.createdAt ? goal.createdAt : null,
-    updatedAt: typeof goal.updatedAt === "string" && goal.updatedAt ? goal.updatedAt : null,
-    completedAt: typeof goal.completedAt === "string" && goal.completedAt ? goal.completedAt : null,
+    createdAt:
+      typeof goal.createdAt === "string" && goal.createdAt
+        ? goal.createdAt
+        : null,
+    updatedAt:
+      typeof goal.updatedAt === "string" && goal.updatedAt
+        ? goal.updatedAt
+        : null,
+    completedAt:
+      typeof goal.completedAt === "string" && goal.completedAt
+        ? goal.completedAt
+        : null,
     workingNow: goal.workingNow === true,
   };
 }
 
 function pendingAction(action: string | null): RunnerGoalPendingAction | null {
   switch (action) {
-    case "create": return "starting";
-    case "edit": return "editing";
-    case "replace": return "replacing";
-    case "pause": return "pausing";
-    case "resume": return "resuming";
-    case "clear": return "clearing";
-    default: return null;
+    case "create":
+      return "starting";
+    case "edit":
+      return "editing";
+    case "replace":
+      return "replacing";
+    case "pause":
+      return "pausing";
+    case "resume":
+      return "resuming";
+    case "clear":
+      return "clearing";
+    default:
+      return null;
   }
 }
 
@@ -198,37 +259,57 @@ function isSameGoalActionRequest(
 ): boolean {
   const stored = asRecord(storedPayload);
   if (!stored) return false;
-  const storedTokenBudget = typeof stored.tokenBudget === "number" || stored.tokenBudget === null
-    ? stored.tokenBudget
-    : undefined;
-  return stored.requestId === request.requestId
-    && stored.agentId === request.agentId
-    && stored.expectedRevision === request.expectedRevision
-    && stored.action === request.action
-    && stored.objective === request.objective
-    && storedTokenBudget === request.tokenBudget
-    && (stored.confirmReplace === true) === (request.confirmReplace === true);
+  const storedTokenBudget =
+    typeof stored.tokenBudget === "number" || stored.tokenBudget === null
+      ? stored.tokenBudget
+      : undefined;
+  return (
+    stored.requestId === request.requestId &&
+    stored.agentId === request.agentId &&
+    stored.expectedRevision === request.expectedRevision &&
+    stored.action === request.action &&
+    stored.objective === request.objective &&
+    storedTokenBudget === request.tokenBudget &&
+    (stored.confirmReplace === true) === (request.confirmReplace === true)
+  );
 }
 
 function commandSequence(request: RunnerGoalActionRequest) {
   if (request.action === "clear") {
-    return [{ type: "session.goal.clear", payload: { requestId: request.requestId } }];
+    return [
+      { type: "session.goal.clear", payload: { requestId: request.requestId } },
+    ];
   }
   if (request.action === "pause") {
-    return [{ type: "session.goal.set", payload: { requestId: request.requestId, status: "paused" } }];
+    return [
+      {
+        type: "session.goal.set",
+        payload: { requestId: request.requestId, status: "paused" },
+      },
+    ];
   }
   if (request.action === "resume") {
-    return [{ type: "session.goal.set", payload: { requestId: request.requestId, status: "active" } }];
+    return [
+      {
+        type: "session.goal.set",
+        payload: { requestId: request.requestId, status: "active" },
+      },
+    ];
   }
   const setPayload = {
     requestId: request.requestId,
     objective: request.objective,
     ...(request.action === "edit" ? {} : { status: "active" }),
-    ...(request.tokenBudget !== undefined ? { tokenBudget: request.tokenBudget } : {}),
+    ...(request.tokenBudget !== undefined
+      ? { tokenBudget: request.tokenBudget }
+      : {}),
   };
   return request.action === "replace"
     ? [
-        { type: "session.goal.clear", payload: { requestId: request.requestId } },
+        {
+          type: "session.goal.clear",
+          payload: { requestId: request.requestId },
+        },
         { type: "session.goal.set", payload: setPayload },
       ]
     : [{ type: "session.goal.set", payload: setPayload }];
@@ -248,12 +329,22 @@ export function runnerGoalService(
     }) => Promise<void>;
   } = {},
 ) {
-  const queueLiveCommand = options.queueLiveCommand ?? queueLiveRunnerPrpCommand;
-  const dispatchLiveControl = options.dispatchLiveControl ?? dispatchLiveRunnerGoalControl;
+  const queueLiveCommand =
+    options.queueLiveCommand ?? queueLiveRunnerPrpCommand;
+  const dispatchLiveControl =
+    options.dispatchLiveControl ?? dispatchLiveRunnerGoalControl;
 
-  async function readBinding(companyId: string, issueId: string, requestedAgentId?: string | null) {
+  async function readBinding(
+    companyId: string,
+    issueId: string,
+    requestedAgentId?: string | null,
+  ) {
     const [issue] = await db
-      .select({ id: issues.id, companyId: issues.companyId, assigneeAgentId: issues.assigneeAgentId })
+      .select({
+        id: issues.id,
+        companyId: issues.companyId,
+        assigneeAgentId: issues.assigneeAgentId,
+      })
       .from(issues)
       .where(and(eq(issues.id, issueId), eq(issues.companyId, companyId)))
       .limit(1);
@@ -273,7 +364,11 @@ export function runnerGoalService(
     return { issue, agent: agent ?? null };
   }
 
-  async function projection(companyId: string, issueId: string, requestedAgentId?: string | null): Promise<RunnerGoalProjection | null> {
+  async function projection(
+    companyId: string,
+    issueId: string,
+    requestedAgentId?: string | null,
+  ): Promise<RunnerGoalProjection | null> {
     const binding = await readBinding(companyId, issueId, requestedAgentId);
     if (!binding) return null;
     if (!binding.agent) {
@@ -303,36 +398,57 @@ export function runnerGoalService(
       };
     }
     const [session, activeRun] = await Promise.all([
-      db.select().from(agentTaskSessions).where(and(
-        eq(agentTaskSessions.companyId, companyId),
-        eq(agentTaskSessions.agentId, binding.agent.id),
-        eq(agentTaskSessions.adapterType, binding.agent.adapterType),
-        eq(agentTaskSessions.taskKey, issueId),
-      )).orderBy(desc(agentTaskSessions.updatedAt)).limit(1).then((rows) => rows[0] ?? null),
-      db.select({ id: heartbeatRuns.id }).from(heartbeatRuns).where(and(
-        eq(heartbeatRuns.companyId, companyId),
-        eq(heartbeatRuns.agentId, binding.agent.id),
-        eq(heartbeatRuns.nativeIssueId, issueId),
-        inArray(heartbeatRuns.status, [...ACTIVE_RUN_STATUSES]),
-      )).orderBy(desc(heartbeatRuns.createdAt)).limit(1).then((rows) => rows[0] ?? null),
+      db
+        .select()
+        .from(agentTaskSessions)
+        .where(
+          and(
+            eq(agentTaskSessions.companyId, companyId),
+            eq(agentTaskSessions.agentId, binding.agent.id),
+            eq(agentTaskSessions.adapterType, binding.agent.adapterType),
+            eq(agentTaskSessions.taskKey, issueId),
+          ),
+        )
+        .orderBy(desc(agentTaskSessions.updatedAt))
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+      db
+        .select({ id: heartbeatRuns.id })
+        .from(heartbeatRuns)
+        .where(
+          and(
+            eq(heartbeatRuns.companyId, companyId),
+            eq(heartbeatRuns.agentId, binding.agent.id),
+            eq(heartbeatRuns.nativeIssueId, issueId),
+            inArray(heartbeatRuns.status, [...ACTIVE_RUN_STATUSES]),
+          ),
+        )
+        .orderBy(desc(heartbeatRuns.createdAt))
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
     ]);
     const pending = session
-      ? await db.select({ action: agentSessionGoalActions.action })
+      ? await db
+          .select({ action: agentSessionGoalActions.action })
           .from(agentSessionGoalActions)
-          .where(and(
-            eq(agentSessionGoalActions.sessionId, session.id),
-            inArray(agentSessionGoalActions.status, [...OPEN_ACTION_STATUSES]),
-          ))
+          .where(
+            and(
+              eq(agentSessionGoalActions.sessionId, session.id),
+              inArray(agentSessionGoalActions.status, [
+                ...OPEN_ACTION_STATUSES,
+              ]),
+            ),
+          )
           .orderBy(desc(agentSessionGoalActions.createdAt))
           .limit(1)
           .then((rows) => rows[0] ?? null)
       : null;
     const goal = storedGoal(session);
-    const projectedPendingAction = pendingAction(pending?.action ?? null) ?? (
-      goal?.status === "active" && !goal.workingNow && activeRun
+    const projectedPendingAction =
+      pendingAction(pending?.action ?? null) ??
+      (goal?.status === "active" && !goal.workingNow && activeRun
         ? "continuing"
-        : null
-    );
+        : null);
     return {
       issueId,
       agentId: binding.agent.id,
@@ -354,14 +470,24 @@ export function runnerGoalService(
     request: RunnerGoalActionRequest,
   ): Promise<RunnerGoalActionAccepted> {
     const binding = await readBinding(companyId, issueId, request.agentId);
-    if (!binding) throw new RunnerGoalActionError("issue_not_found", "Issue not found.");
-    if (!binding.agent) throw new RunnerGoalActionError("agent_not_found", "Agent not found.");
+    if (!binding)
+      throw new RunnerGoalActionError("issue_not_found", "Issue not found.");
+    if (!binding.agent)
+      throw new RunnerGoalActionError("agent_not_found", "Agent not found.");
     if (binding.issue.assigneeAgentId !== request.agentId) {
-      throw new RunnerGoalActionError("agent_not_assigned", "The selected agent is not assigned to this issue.");
+      throw new RunnerGoalActionError(
+        "agent_not_assigned",
+        "The selected agent is not assigned to this issue.",
+      );
     }
     const fallbackCapability = capabilityForAgent(binding.agent);
-    const initialProjection = await projection(companyId, issueId, request.agentId);
-    if (!initialProjection) throw new RunnerGoalActionError("issue_not_found", "Issue not found.");
+    const initialProjection = await projection(
+      companyId,
+      issueId,
+      request.agentId,
+    );
+    if (!initialProjection)
+      throw new RunnerGoalActionError("issue_not_found", "Issue not found.");
     if (initialProjection.capability.availability !== "available") {
       throw new RunnerGoalActionError(
         initialProjection.capability.reasonCode ?? "session_goals_unsupported",
@@ -370,19 +496,33 @@ export function runnerGoalService(
     }
 
     const accepted = await db.transaction(async (tx) => {
-      await tx.insert(agentTaskSessions).values({
-        companyId,
-        agentId: request.agentId,
-        adapterType: binding.agent!.adapterType,
-        taskKey: issueId,
-      }).onConflictDoNothing();
-      const [session] = await tx.select().from(agentTaskSessions).where(and(
-        eq(agentTaskSessions.companyId, companyId),
-        eq(agentTaskSessions.agentId, request.agentId),
-        eq(agentTaskSessions.adapterType, binding.agent!.adapterType),
-        eq(agentTaskSessions.taskKey, issueId),
-      )).limit(1).for("update");
-      if (!session) throw new RunnerGoalActionError("session_unavailable", "Agent task session is unavailable.");
+      await tx
+        .insert(agentTaskSessions)
+        .values({
+          companyId,
+          agentId: request.agentId,
+          adapterType: binding.agent!.adapterType,
+          taskKey: issueId,
+        })
+        .onConflictDoNothing();
+      const [session] = await tx
+        .select()
+        .from(agentTaskSessions)
+        .where(
+          and(
+            eq(agentTaskSessions.companyId, companyId),
+            eq(agentTaskSessions.agentId, request.agentId),
+            eq(agentTaskSessions.adapterType, binding.agent!.adapterType),
+            eq(agentTaskSessions.taskKey, issueId),
+          ),
+        )
+        .limit(1)
+        .for("update");
+      if (!session)
+        throw new RunnerGoalActionError(
+          "session_unavailable",
+          "Agent task session is unavailable.",
+        );
 
       const currentGoal = storedGoal(session);
       const currentProjection: RunnerGoalProjection = {
@@ -395,13 +535,22 @@ export function runnerGoalService(
         observedAt: session.goalObservedAt?.toISOString() ?? null,
       };
 
-      const [existingAction] = await tx.select().from(agentSessionGoalActions).where(and(
-        eq(agentSessionGoalActions.sessionId, session.id),
-        eq(agentSessionGoalActions.requestId, request.requestId),
-      )).limit(1);
+      const [existingAction] = await tx
+        .select()
+        .from(agentSessionGoalActions)
+        .where(
+          and(
+            eq(agentSessionGoalActions.sessionId, session.id),
+            eq(agentSessionGoalActions.requestId, request.requestId),
+          ),
+        )
+        .limit(1);
       if (existingAction) {
         if (!isSameGoalActionRequest(existingAction.payloadJson, request)) {
-          throw new RunnerGoalConflictError("idempotency_key_conflict", currentProjection);
+          throw new RunnerGoalConflictError(
+            "idempotency_key_conflict",
+            currentProjection,
+          );
         }
         return {
           repeated: true,
@@ -414,17 +563,22 @@ export function runnerGoalService(
         throw new RunnerGoalConflictError("stale_revision", currentProjection);
       }
       const capability = storedCapability(session, fallbackCapability);
-      const requiredCapabilityAction = request.action === "pause"
-        ? "pause"
-        : request.action === "resume"
-          ? "resume"
-          : request.action === "clear"
-            ? "clear"
-            : "set";
-      if (capability.availability !== "available" || !capability.actions.includes(requiredCapabilityAction)) {
+      const requiredCapabilityAction =
+        request.action === "pause"
+          ? "pause"
+          : request.action === "resume"
+            ? "resume"
+            : request.action === "clear"
+              ? "clear"
+              : "set";
+      if (
+        capability.availability !== "available" ||
+        !capability.actions.includes(requiredCapabilityAction)
+      ) {
         throw new RunnerGoalActionError(
           capability.reasonCode ?? "goal_action_unsupported",
-          capability.reason ?? `${request.action} is unsupported by this agent session.`,
+          capability.reason ??
+            `${request.action} is unsupported by this agent session.`,
         );
       }
       if (request.tokenBudget != null && !capability.tokenBudgetControl) {
@@ -433,37 +587,59 @@ export function runnerGoalService(
           "This agent session does not support goal token budgets.",
         );
       }
-      if (request.action === "create" && currentGoal && currentGoal.status !== "complete") {
-        throw new RunnerGoalConflictError("replacement_required", currentProjection);
+      if (
+        request.action === "create" &&
+        currentGoal &&
+        currentGoal.status !== "complete"
+      ) {
+        throw new RunnerGoalConflictError(
+          "replacement_required",
+          currentProjection,
+        );
       }
-      if (["edit", "replace", "pause", "resume", "clear"].includes(request.action) && !currentGoal) {
-        throw new RunnerGoalActionError("goal_not_found", "There is no current session goal.");
+      if (
+        ["edit", "replace", "pause", "resume", "clear"].includes(
+          request.action,
+        ) &&
+        !currentGoal
+      ) {
+        throw new RunnerGoalActionError(
+          "goal_not_found",
+          "There is no current session goal.",
+        );
       }
 
       const nextRevision = session.goalRevision + 1;
-      const desiredState = request.action === "pause"
-        ? "paused"
-        : request.action === "clear"
-          ? null
-          : "active";
-      await tx.update(agentTaskSessions).set({
-        goalDesiredState: desiredState,
-        goalRevision: nextRevision,
-        updatedAt: new Date(),
-      }).where(eq(agentTaskSessions.id, session.id));
+      const desiredState =
+        request.action === "pause"
+          ? "paused"
+          : request.action === "clear"
+            ? null
+            : "active";
+      await tx
+        .update(agentTaskSessions)
+        .set({
+          goalDesiredState: desiredState,
+          goalRevision: nextRevision,
+          updatedAt: new Date(),
+        })
+        .where(eq(agentTaskSessions.id, session.id));
       const pendingProjection: RunnerGoalProjection = {
         ...currentProjection,
         pendingAction: pendingAction(request.action),
         revision: nextRevision,
       };
-      const [action] = await tx.insert(agentSessionGoalActions).values({
-        companyId,
-        sessionId: session.id,
-        requestId: request.requestId,
-        action: request.action,
-        payloadJson: request,
-        resultJson: { projection: pendingProjection },
-      }).returning();
+      const [action] = await tx
+        .insert(agentSessionGoalActions)
+        .values({
+          companyId,
+          sessionId: session.id,
+          requestId: request.requestId,
+          action: request.action,
+          payloadJson: request,
+          resultJson: { projection: pendingProjection },
+        })
+        .returning();
       return {
         repeated: false,
         session: { ...session, goalRevision: nextRevision },
@@ -472,7 +648,8 @@ export function runnerGoalService(
       };
     });
 
-    const originalProjection = accepted.result?.projection as RunnerGoalProjection | undefined;
+    const originalProjection = accepted.result?.projection as
+      RunnerGoalProjection | undefined;
     if (accepted.repeated) {
       const repeatedStatus = OPEN_ACTION_STATUSES.includes(
         accepted.status as (typeof OPEN_ACTION_STATUSES)[number],
@@ -484,7 +661,9 @@ export function runnerGoalService(
       return {
         requestId: request.requestId,
         status: repeatedStatus,
-        projection: originalProjection ?? (await projection(companyId, issueId, request.agentId))!,
+        projection:
+          originalProjection ??
+          (await projection(companyId, issueId, request.agentId))!,
       };
     }
 
@@ -499,24 +678,29 @@ export function runnerGoalService(
       // resumes the provider session through the goal_control heartbeat.
       const hasActiveRun = typeof originalProjection?.activeRunId === "string";
       const adapterControl = hasActiveRun
-        ? dispatchLiveControl({
-            companyId,
-            issueId,
-            agentId: request.agentId,
-          }, request)
+        ? dispatchLiveControl(
+            {
+              companyId,
+              issueId,
+              agentId: request.agentId,
+            },
+            request,
+          )
         : null;
       if (adapterControl) {
         live = true;
         liveCompletions.push(adapterControl.completion);
       } else if (hasActiveRun) {
-        const queuedCommands = commands.map((command, index) => queueLiveCommand({
-          companyId,
-          issueId,
-          agentId: request.agentId,
-          type: command.type,
-          payload: command.payload,
-          commandId: `goal_${request.requestId}_${index + 1}`,
-        }));
+        const queuedCommands = commands.map((command, index) =>
+          queueLiveCommand({
+            companyId,
+            issueId,
+            agentId: request.agentId,
+            type: command.type,
+            payload: command.payload,
+            commandId: `goal_${request.requestId}_${index + 1}`,
+          }),
+        );
         live = queuedCommands.every((queued) => queued !== null);
         for (const queued of queuedCommands) {
           if (queued) liveCompletions.push(queued.completion);
@@ -531,67 +715,100 @@ export function runnerGoalService(
           control: request,
         });
       }
-      await db.update(agentSessionGoalActions).set({
-        status: live ? "delivered" : "pending",
-        deliveredAt: live ? new Date() : null,
-        updatedAt: new Date(),
-      }).where(and(
-        eq(agentSessionGoalActions.sessionId, accepted.session.id),
-        eq(agentSessionGoalActions.requestId, request.requestId),
-        inArray(agentSessionGoalActions.status, ["pending", "delivering"]),
-      ));
+      await db
+        .update(agentSessionGoalActions)
+        .set({
+          status: live ? "delivered" : "pending",
+          deliveredAt: live ? new Date() : null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(agentSessionGoalActions.sessionId, accepted.session.id),
+            eq(agentSessionGoalActions.requestId, request.requestId),
+            inArray(agentSessionGoalActions.status, ["pending", "delivering"]),
+          ),
+        );
       if (live) {
-        void Promise.all(liveCompletions).catch((error) =>
-          failRunnerGoalAction(
-            db,
-            {
-              companyId,
-              issueId,
-              agentId: request.agentId,
-              adapterType: binding.agent!.adapterType,
-            },
-            request.requestId,
-            error instanceof Error ? error.message : "live_goal_control_failed",
+        void Promise.all(liveCompletions)
+          .catch((error) =>
+            failRunnerGoalAction(
+              db,
+              {
+                companyId,
+                issueId,
+                agentId: request.agentId,
+                adapterType: binding.agent!.adapterType,
+              },
+              request.requestId,
+              error instanceof Error
+                ? error.message
+                : "live_goal_control_failed",
+            ),
           )
-        ).catch(() => undefined);
+          .catch(() => undefined);
       }
     } catch (error) {
-      await db.update(agentSessionGoalActions).set({
-        status: "failed",
-        error: error instanceof Error ? error.name : "goal_control_dispatch_failed",
-        completedAt: new Date(),
-        updatedAt: new Date(),
-      }).where(and(
-        eq(agentSessionGoalActions.sessionId, accepted.session.id),
-        eq(agentSessionGoalActions.requestId, request.requestId),
-      ));
+      await db
+        .update(agentSessionGoalActions)
+        .set({
+          status: "failed",
+          error:
+            error instanceof Error
+              ? error.name
+              : "goal_control_dispatch_failed",
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(agentSessionGoalActions.sessionId, accepted.session.id),
+            eq(agentSessionGoalActions.requestId, request.requestId),
+          ),
+        );
       throw error;
     }
     const current = await projection(companyId, issueId, request.agentId);
-    if (!current) throw new RunnerGoalActionError("issue_not_found", "Issue not found.");
+    if (!current)
+      throw new RunnerGoalActionError("issue_not_found", "Issue not found.");
     publishLiveEvent({
       companyId,
       type: "agent.session.goal.changed",
       payload: current as unknown as Record<string, unknown>,
     });
-    return { requestId: request.requestId, status: "accepted", projection: current };
+    return {
+      requestId: request.requestId,
+      status: "accepted",
+      projection: current,
+    };
   }
 
   return { projection, act };
 }
 
-function normalizedPrpGoal(value: unknown, workingNow: boolean): RunnerGoalSnapshot | null {
+function normalizedPrpGoal(
+  value: unknown,
+  workingNow: boolean,
+): RunnerGoalSnapshot | null {
   const goal = asRecord(value);
-  if (!goal || typeof goal.objective !== "string" || typeof goal.status !== "string") return null;
-  if (![
-    "active",
-    "paused",
-    "blocked",
-    "limited",
-    "usage_limited",
-    "budget_limited",
-    "complete",
-  ].includes(goal.status)) return null;
+  if (
+    !goal ||
+    typeof goal.objective !== "string" ||
+    typeof goal.status !== "string"
+  )
+    return null;
+  if (
+    ![
+      "active",
+      "paused",
+      "blocked",
+      "limited",
+      "usage_limited",
+      "budget_limited",
+      "complete",
+    ].includes(goal.status)
+  )
+    return null;
   const objective = goal.objective.trim();
   if (!objective || objective.length > 4_000) return null;
   return {
@@ -599,12 +816,22 @@ function normalizedPrpGoal(value: unknown, workingNow: boolean): RunnerGoalSnaps
     status: goal.status as RunnerGoalSnapshot["status"],
     tokenBudget: typeof goal.tokenBudget === "number" ? goal.tokenBudget : null,
     tokensUsed: typeof goal.tokensUsed === "number" ? goal.tokensUsed : 0,
-    elapsedSeconds: typeof goal.elapsedSeconds === "number" ? goal.elapsedSeconds : 0,
+    elapsedSeconds:
+      typeof goal.elapsedSeconds === "number" ? goal.elapsedSeconds : 0,
     iterations: typeof goal.iterations === "number" ? goal.iterations : 0,
     lastReason: typeof goal.lastReason === "string" ? goal.lastReason : null,
-    createdAt: typeof goal.createdAt === "string" && goal.createdAt ? goal.createdAt : null,
-    updatedAt: typeof goal.updatedAt === "string" && goal.updatedAt ? goal.updatedAt : null,
-    completedAt: typeof goal.completedAt === "string" && goal.completedAt ? goal.completedAt : null,
+    createdAt:
+      typeof goal.createdAt === "string" && goal.createdAt
+        ? goal.createdAt
+        : null,
+    updatedAt:
+      typeof goal.updatedAt === "string" && goal.updatedAt
+        ? goal.updatedAt
+        : null,
+    completedAt:
+      typeof goal.completedAt === "string" && goal.completedAt
+        ? goal.completedAt
+        : null,
     workingNow,
   };
 }
@@ -615,16 +842,23 @@ export async function isRunnerGoalActionCompleted(
   binding: { companyId: string; agentId: string; issueId: string },
   requestId: string,
 ): Promise<boolean> {
-  const [action] = await db.select({ id: agentSessionGoalActions.id })
+  const [action] = await db
+    .select({ id: agentSessionGoalActions.id })
     .from(agentSessionGoalActions)
-    .innerJoin(agentTaskSessions, eq(agentTaskSessions.id, agentSessionGoalActions.sessionId))
-    .where(and(
-      eq(agentTaskSessions.companyId, binding.companyId),
-      eq(agentTaskSessions.agentId, binding.agentId),
-      eq(agentTaskSessions.taskKey, binding.issueId),
-      eq(agentSessionGoalActions.requestId, requestId),
-      eq(agentSessionGoalActions.status, "completed"),
-    )).limit(1);
+    .innerJoin(
+      agentTaskSessions,
+      eq(agentTaskSessions.id, agentSessionGoalActions.sessionId),
+    )
+    .where(
+      and(
+        eq(agentTaskSessions.companyId, binding.companyId),
+        eq(agentTaskSessions.agentId, binding.agentId),
+        eq(agentTaskSessions.taskKey, binding.issueId),
+        eq(agentSessionGoalActions.requestId, requestId),
+        eq(agentSessionGoalActions.status, "completed"),
+      ),
+    )
+    .limit(1);
   return action !== undefined;
 }
 
@@ -645,36 +879,68 @@ export async function applyRunnerGoalPrpEvent(
     payload: unknown;
   },
 ): Promise<RunnerGoalProjection | null> {
-  if (![
-    "session.capabilities.updated",
-    "session.goal.snapshot",
-    "session.goal.updated",
-    "session.goal.cleared",
-    "turn.started",
-    "turn.completed",
-    "turn.failed",
-    "turn.interrupted",
-    "turn.cancelled",
-  ].includes(event.eventType)) return null;
+  if (
+    ![
+      "session.capabilities.updated",
+      "session.goal.snapshot",
+      "session.goal.updated",
+      "session.goal.cleared",
+      "turn.started",
+      "turn.completed",
+      "turn.failed",
+      "turn.interrupted",
+      "turn.cancelled",
+    ].includes(event.eventType)
+  )
+    return null;
   const payload = asRecord(event.payload) ?? {};
   const changed = await db.transaction(async (tx) => {
-    const [issue] = await tx.select().from(issues).where(and(eq(issues.id, binding.issueId), eq(issues.companyId, binding.companyId))).for("update");
+    const [issue] = await tx
+      .select()
+      .from(issues)
+      .where(
+        and(
+          eq(issues.id, binding.issueId),
+          eq(issues.companyId, binding.companyId),
+        ),
+      )
+      .for("update");
     if (issue?.conversationAgentId) {
-      const [run] = event.sourceRunId ? await tx.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, event.sourceRunId)) : [];
-      if (run?.status === "cancelled" || run?.contextSnapshot?.conversationSessionGeneration !== issue.conversationSessionGeneration) return null;
+      const [run] = event.sourceRunId
+        ? await tx
+            .select()
+            .from(heartbeatRuns)
+            .where(eq(heartbeatRuns.id, event.sourceRunId))
+        : [];
+      if (
+        run?.status === "cancelled" ||
+        run?.contextSnapshot?.conversationSessionGeneration !==
+          issue.conversationSessionGeneration
+      )
+        return null;
     }
-    await tx.insert(agentTaskSessions).values({
-      companyId: binding.companyId,
-      agentId: binding.agentId,
-      adapterType: binding.adapterType,
-      taskKey: binding.issueId,
-    }).onConflictDoNothing();
-    const [session] = await tx.select().from(agentTaskSessions).where(and(
-      eq(agentTaskSessions.companyId, binding.companyId),
-      eq(agentTaskSessions.agentId, binding.agentId),
-      eq(agentTaskSessions.adapterType, binding.adapterType),
-      eq(agentTaskSessions.taskKey, binding.issueId),
-    )).limit(1).for("update");
+    await tx
+      .insert(agentTaskSessions)
+      .values({
+        companyId: binding.companyId,
+        agentId: binding.agentId,
+        adapterType: binding.adapterType,
+        taskKey: binding.issueId,
+      })
+      .onConflictDoNothing();
+    const [session] = await tx
+      .select()
+      .from(agentTaskSessions)
+      .where(
+        and(
+          eq(agentTaskSessions.companyId, binding.companyId),
+          eq(agentTaskSessions.agentId, binding.agentId),
+          eq(agentTaskSessions.adapterType, binding.adapterType),
+          eq(agentTaskSessions.taskKey, binding.issueId),
+        ),
+      )
+      .limit(1)
+      .for("update");
     // runnerInstanceId is deliberately stable while a durable provider
     // session is resumed, but each PRP run owns a fresh source sequence. Use
     // the run as the sequence epoch so seq=1 in a successor heartbeat is not
@@ -693,56 +959,78 @@ export async function applyRunnerGoalPrpEvent(
       const priorRunId = session.goalSourceId.split(":").at(-1);
       const nextRunId = event.sourceRunId;
       const isUuid = (value: string | undefined): value is string =>
-        Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value));
+        Boolean(
+          value &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            value,
+          ),
+        );
       if (!sourceId || !isUuid(priorRunId) || !isUuid(nextRunId)) return false;
-      const owners = await tx.select({
-        id: heartbeatRuns.id,
-        status: heartbeatRuns.status,
-        nativeSessionId: heartbeatRuns.nativeSessionId,
-        runnerInstanceId: heartbeatRuns.runnerInstanceId,
-      }).from(heartbeatRuns).where(and(
-        inArray(heartbeatRuns.id, [priorRunId, nextRunId]),
-        eq(heartbeatRuns.companyId, binding.companyId),
-        eq(heartbeatRuns.agentId, binding.agentId),
-        eq(heartbeatRuns.nativeIssueId, binding.issueId),
-      ));
+      const owners = await tx
+        .select({
+          id: heartbeatRuns.id,
+          status: heartbeatRuns.status,
+          nativeSessionId: heartbeatRuns.nativeSessionId,
+          runnerInstanceId: heartbeatRuns.runnerInstanceId,
+        })
+        .from(heartbeatRuns)
+        .where(
+          and(
+            inArray(heartbeatRuns.id, [priorRunId, nextRunId]),
+            eq(heartbeatRuns.companyId, binding.companyId),
+            eq(heartbeatRuns.agentId, binding.agentId),
+            eq(heartbeatRuns.nativeIssueId, binding.issueId),
+          ),
+        );
       const prior = owners.find((run) => run.id === priorRunId);
       const next = owners.find((run) => run.id === nextRunId);
       if (
-        !prior || !next || next.status !== "running" ||
+        !prior ||
+        !next ||
+        next.status !== "running" ||
         next.runnerInstanceId !== event.sourceInstanceId ||
-        !next.nativeSessionId || next.nativeSessionId !== prior.nativeSessionId ||
-        (prior.id !== next.id && !["succeeded", "failed", "cancelled", "timed_out"].includes(prior.status))
-      ) return false;
+        !next.nativeSessionId ||
+        next.nativeSessionId !== prior.nativeSessionId ||
+        (prior.id !== next.id &&
+          !["succeeded", "failed", "cancelled", "timed_out"].includes(
+            prior.status,
+          ))
+      )
+        return false;
     }
     if (
       !session ||
-      (sameSource && session.goalSourceCursor !== null && event.sourceSeq <= session.goalSourceCursor)
+      (sameSource &&
+        session.goalSourceCursor !== null &&
+        event.sourceSeq <= session.goalSourceCursor)
     ) {
       return false;
     }
 
     const capability = asRecord(payload.sessionGoals);
-    const providerError = typeof payload.error === "string" && payload.error.length > 0;
+    const providerError =
+      typeof payload.error === "string" && payload.error.length > 0;
     const turnLifecycleEvent = event.eventType.startsWith("turn.");
-    const workingNow = event.eventType === "turn.started"
-      ? true
-      : turnLifecycleEvent
-        ? false
-        : payload.workingNow === true;
+    const workingNow =
+      event.eventType === "turn.started"
+        ? true
+        : turnLifecycleEvent
+          ? false
+          : payload.workingNow === true;
     let goal = providerError
       ? storedGoal(session)
       : turnLifecycleEvent
-      ? storedGoal(session)
-      : event.eventType === "session.goal.cleared"
-        ? null
-        : normalizedPrpGoal(payload.goal, workingNow);
+        ? storedGoal(session)
+        : event.eventType === "session.goal.cleared"
+          ? null
+          : normalizedPrpGoal(payload.goal, workingNow);
     if (turnLifecycleEvent && goal) goal = { ...goal, workingNow };
     if (event.eventType === "session.goal.snapshot" && !goal) {
       const persistedGoal = storedGoal(session);
       const alreadyBlockedForMissingProviderGoal =
         persistedGoal?.status === "blocked" &&
-        persistedGoal.lastReason === "provider_session_goal_missing_after_resume";
+        persistedGoal.lastReason ===
+          "provider_session_goal_missing_after_resume";
       if (persistedGoal?.status === "complete") {
         // Completed goals remain visible until an explicit clear or
         // replacement. An empty resume snapshot is not a clear event.
@@ -762,24 +1050,34 @@ export async function applyRunnerGoalPrpEvent(
     let completedPendingActionId: string | null = null;
     if (
       !providerError &&
-      (event.eventType === "session.goal.updated" || event.eventType === "session.goal.cleared")
+      (event.eventType === "session.goal.updated" ||
+        event.eventType === "session.goal.cleared")
     ) {
-      const requestId = typeof payload.requestId === "string" ? payload.requestId : null;
+      const requestId =
+        typeof payload.requestId === "string" ? payload.requestId : null;
       const [pending] = requestId
-        ? await tx.select({
-            id: agentSessionGoalActions.id,
-            action: agentSessionGoalActions.action,
-          }).from(agentSessionGoalActions).where(and(
-            eq(agentSessionGoalActions.sessionId, session.id),
-            inArray(agentSessionGoalActions.status, [...OPEN_ACTION_STATUSES]),
-            eq(agentSessionGoalActions.requestId, requestId),
-          )).limit(1)
+        ? await tx
+            .select({
+              id: agentSessionGoalActions.id,
+              action: agentSessionGoalActions.action,
+            })
+            .from(agentSessionGoalActions)
+            .where(
+              and(
+                eq(agentSessionGoalActions.sessionId, session.id),
+                inArray(agentSessionGoalActions.status, [
+                  ...OPEN_ACTION_STATUSES,
+                ]),
+                eq(agentSessionGoalActions.requestId, requestId),
+              ),
+            )
+            .limit(1)
         : [];
-      const matches = pending && (
-        event.eventType === "session.goal.updated"
+      const matches =
+        pending &&
+        (event.eventType === "session.goal.updated"
           ? pending.action !== "clear"
-          : pending.action === "clear"
-      );
+          : pending.action === "clear");
       if (pending && matches) completedPendingActionId = pending.id;
     }
     const writesGoal =
@@ -787,7 +1085,8 @@ export async function applyRunnerGoalPrpEvent(
       (turnLifecycleEvent && goal);
     const nextDesiredState = !writesGoal
       ? session.goalDesiredState
-      : event.eventType === "session.goal.cleared" || goal?.status === "complete"
+      : event.eventType === "session.goal.cleared" ||
+          goal?.status === "complete"
         ? null
         : goal?.status === "active"
           ? "active"
@@ -795,7 +1094,8 @@ export async function applyRunnerGoalPrpEvent(
             ? "paused"
             : session.goalDesiredState;
     const projectionChanged =
-      (capability !== null && !isDeepStrictEqual(asRecord(session.goalCapabilityJson), capability)) ||
+      (capability !== null &&
+        !isDeepStrictEqual(asRecord(session.goalCapabilityJson), capability)) ||
       (Boolean(writesGoal) && !isDeepStrictEqual(storedGoal(session), goal)) ||
       nextDesiredState !== session.goalDesiredState ||
       completedPendingActionId !== null;
@@ -807,7 +1107,10 @@ export async function applyRunnerGoalPrpEvent(
       updatedAt: observedAt,
     };
     if (!projectionChanged) {
-      await tx.update(agentTaskSessions).set(update).where(eq(agentTaskSessions.id, session.id));
+      await tx
+        .update(agentTaskSessions)
+        .set(update)
+        .where(eq(agentTaskSessions.id, session.id));
       return false;
     }
     update.goalRevision = session.goalRevision + 1;
@@ -821,14 +1124,20 @@ export async function applyRunnerGoalPrpEvent(
       // by the automatic active-goal recovery sweep until a user resumes.
       update.goalDesiredState = nextDesiredState;
     }
-    await tx.update(agentTaskSessions).set(update).where(eq(agentTaskSessions.id, session.id));
+    await tx
+      .update(agentTaskSessions)
+      .set(update)
+      .where(eq(agentTaskSessions.id, session.id));
 
     if (completedPendingActionId) {
-      await tx.update(agentSessionGoalActions).set({
-        status: "completed",
-        completedAt: observedAt,
-        updatedAt: observedAt,
-      }).where(eq(agentSessionGoalActions.id, completedPendingActionId));
+      await tx
+        .update(agentSessionGoalActions)
+        .set({
+          status: "completed",
+          completedAt: observedAt,
+          updatedAt: observedAt,
+        })
+        .where(eq(agentSessionGoalActions.id, completedPendingActionId));
     }
     return true;
   });
@@ -849,37 +1158,58 @@ export async function applyRunnerGoalPrpEvent(
 
 export async function failRunnerGoalAction(
   db: Db,
-  binding: { companyId: string; issueId: string; agentId: string; adapterType: string },
+  binding: {
+    companyId: string;
+    issueId: string;
+    agentId: string;
+    adapterType: string;
+  },
   requestId: string,
   errorCode: string,
 ): Promise<RunnerGoalProjection | null> {
   const changed = await db.transaction(async (tx) => {
-    const [session] = await tx.select().from(agentTaskSessions).where(and(
-      eq(agentTaskSessions.companyId, binding.companyId),
-      eq(agentTaskSessions.agentId, binding.agentId),
-      eq(agentTaskSessions.adapterType, binding.adapterType),
-      eq(agentTaskSessions.taskKey, binding.issueId),
-    )).limit(1).for("update");
+    const [session] = await tx
+      .select()
+      .from(agentTaskSessions)
+      .where(
+        and(
+          eq(agentTaskSessions.companyId, binding.companyId),
+          eq(agentTaskSessions.agentId, binding.agentId),
+          eq(agentTaskSessions.adapterType, binding.adapterType),
+          eq(agentTaskSessions.taskKey, binding.issueId),
+        ),
+      )
+      .limit(1)
+      .for("update");
     if (!session) return false;
     const now = new Date();
-    const failed = await tx.update(agentSessionGoalActions).set({
-      status: "failed",
-      error: errorCode.slice(0, 240),
-      completedAt: now,
-      updatedAt: now,
-    }).where(and(
-      eq(agentSessionGoalActions.sessionId, session.id),
-      eq(agentSessionGoalActions.requestId, requestId),
-      inArray(agentSessionGoalActions.status, [...OPEN_ACTION_STATUSES]),
-    )).returning({ id: agentSessionGoalActions.id });
+    const failed = await tx
+      .update(agentSessionGoalActions)
+      .set({
+        status: "failed",
+        error: errorCode.slice(0, 240),
+        completedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(agentSessionGoalActions.sessionId, session.id),
+          eq(agentSessionGoalActions.requestId, requestId),
+          inArray(agentSessionGoalActions.status, [...OPEN_ACTION_STATUSES]),
+        ),
+      )
+      .returning({ id: agentSessionGoalActions.id });
     if (failed.length === 0) return false;
     // Pending-action transitions are part of the same revisioned projection as
     // provider snapshots. Clients must not discard a failed start as a replay.
-    await tx.update(agentTaskSessions).set({
-      goalRevision: session.goalRevision + 1,
-      goalObservedAt: now,
-      updatedAt: now,
-    }).where(eq(agentTaskSessions.id, session.id));
+    await tx
+      .update(agentTaskSessions)
+      .set({
+        goalRevision: session.goalRevision + 1,
+        goalObservedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(agentTaskSessions.id, session.id));
     return true;
   });
   if (!changed) return null;
@@ -900,33 +1230,48 @@ export async function failRunnerGoalAction(
 
 export async function blockRunnerGoalRecovery(
   db: Db,
-  binding: { companyId: string; issueId: string; agentId: string; adapterType: string },
+  binding: {
+    companyId: string;
+    issueId: string;
+    agentId: string;
+    adapterType: string;
+  },
   reason = "provider_session_goal_recovery_failed",
 ): Promise<RunnerGoalProjection | null> {
   const changed = await db.transaction(async (tx) => {
-    const [session] = await tx.select().from(agentTaskSessions).where(and(
-      eq(agentTaskSessions.companyId, binding.companyId),
-      eq(agentTaskSessions.agentId, binding.agentId),
-      eq(agentTaskSessions.adapterType, binding.adapterType),
-      eq(agentTaskSessions.taskKey, binding.issueId),
-    )).limit(1).for("update");
+    const [session] = await tx
+      .select()
+      .from(agentTaskSessions)
+      .where(
+        and(
+          eq(agentTaskSessions.companyId, binding.companyId),
+          eq(agentTaskSessions.agentId, binding.agentId),
+          eq(agentTaskSessions.adapterType, binding.adapterType),
+          eq(agentTaskSessions.taskKey, binding.issueId),
+        ),
+      )
+      .limit(1)
+      .for("update");
     const goal = storedGoal(session ?? null);
     if (!session || !goal || goal.status !== "active") return false;
     const now = new Date();
-    await tx.update(agentTaskSessions).set({
-      goalJson: {
-        ...goal,
-        status: "blocked",
-        workingNow: false,
-        lastReason: reason,
-        updatedAt: now.toISOString(),
-      },
-      goalStatus: "blocked",
-      goalDesiredState: "paused",
-      goalRevision: session.goalRevision + 1,
-      goalObservedAt: now,
-      updatedAt: now,
-    }).where(eq(agentTaskSessions.id, session.id));
+    await tx
+      .update(agentTaskSessions)
+      .set({
+        goalJson: {
+          ...goal,
+          status: "blocked",
+          workingNow: false,
+          lastReason: reason,
+          updatedAt: now.toISOString(),
+        },
+        goalStatus: "blocked",
+        goalDesiredState: "paused",
+        goalRevision: session.goalRevision + 1,
+        goalObservedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(agentTaskSessions.id, session.id));
     return true;
   });
   if (!changed) return null;
@@ -956,13 +1301,17 @@ export async function settleLiveRunnerGoalBeforeInterrupt(
   binding: { companyId: string; issueId: string; agentId: string },
 ): Promise<"paused" | "cleared" | "none"> {
   const goals = runnerGoalService(db);
-  const current = await goals.projection(binding.companyId, binding.issueId, binding.agentId);
+  const current = await goals.projection(
+    binding.companyId,
+    binding.issueId,
+    binding.agentId,
+  );
   if (!current?.goal || current.goal.status === "complete") return "none";
   if (current.goal.status === "paused") return "paused";
   const action = current.capability.actions.includes("pause")
-    ? "pause" as const
+    ? ("pause" as const)
     : current.capability.actions.includes("clear")
-      ? "clear" as const
+      ? ("clear" as const)
       : null;
   if (!action) {
     throw new RunnerGoalActionError(
@@ -972,18 +1321,21 @@ export async function settleLiveRunnerGoalBeforeInterrupt(
   }
 
   const requestId = `interrupt_${randomUUID()}`;
-  const adapterControl = dispatchLiveRunnerGoalControl(binding, { requestId, action });
+  const adapterControl = dispatchLiveRunnerGoalControl(binding, {
+    requestId,
+    action,
+  });
   const nativeControl = adapterControl
     ? null
     : queueLiveRunnerPrpCommand({
         ...binding,
         type: action === "pause" ? "session.goal.set" : "session.goal.clear",
-        payload: action === "pause"
-          ? { requestId, status: "paused" }
-          : { requestId },
+        payload:
+          action === "pause" ? { requestId, status: "paused" } : { requestId },
         commandId: `goal_${requestId}`,
       });
-  const completion = adapterControl?.completion ?? nativeControl?.completion ?? null;
+  const completion =
+    adapterControl?.completion ?? nativeControl?.completion ?? null;
   if (!completion) {
     throw new RunnerGoalActionError(
       "runner_goal_live_controller_unavailable",
@@ -994,8 +1346,13 @@ export async function settleLiveRunnerGoalBeforeInterrupt(
 
   const deadline = Date.now() + 5_000;
   while (Date.now() < deadline) {
-    const observed = await goals.projection(binding.companyId, binding.issueId, binding.agentId);
-    if (action === "pause" && observed?.goal?.status === "paused") return "paused";
+    const observed = await goals.projection(
+      binding.companyId,
+      binding.issueId,
+      binding.agentId,
+    );
+    if (action === "pause" && observed?.goal?.status === "paused")
+      return "paused";
     if (action === "clear" && observed?.goal === null) return "cleared";
     await new Promise<void>((resolve) => setTimeout(resolve, 25));
   }

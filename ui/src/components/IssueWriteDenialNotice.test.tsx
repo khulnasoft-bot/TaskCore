@@ -64,7 +64,12 @@ describe("issueWriteDenialForActivity", () => {
   it("maps the cap-rejected activity event onto the cap denial", () => {
     const result = issueWriteDenialForActivity(
       "issue.cross_issue_influence_cap_rejected",
-      { identifier: "TASK-482", cap: 20, count: 21, enforceAt: "2026-08-11T00:00:00.000Z" },
+      {
+        identifier: "TASK-482",
+        cap: 20,
+        count: 21,
+        enforceAt: "2026-08-11T00:00:00.000Z",
+      },
       { actorLabel: "Fable" },
     );
 
@@ -78,25 +83,40 @@ describe("issueWriteDenialForActivity", () => {
   });
 
   it("maps a rejected attribution spoof", () => {
-    expect(issueWriteDenialForActivity("issue.attribution_spoof_rejected", { identifier: "TASK-1" })?.code)
-      .toBe("issue_write_attribution_spoof_rejected");
+    expect(
+      issueWriteDenialForActivity("issue.attribution_spoof_rejected", {
+        identifier: "TASK-1",
+      })?.code,
+    ).toBe("issue_write_attribution_spoof_rejected");
   });
 
   it("ignores activity actions that are not denials", () => {
     expect(issueWriteDenialForActivity("issue.updated", {})).toBeNull();
     expect(issueWriteDenialForActivity("issue.comment_added", {})).toBeNull();
     // An observed (allowed) cross-issue write is not a denial.
-    expect(issueWriteDenialForActivity("issue.cross_issue_influence_observed", {})).toBeNull();
+    expect(
+      issueWriteDenialForActivity("issue.cross_issue_influence_observed", {}),
+    ).toBeNull();
   });
 
   it("tolerates missing or malformed details", () => {
-    const result = issueWriteDenialForActivity("issue.attribution_spoof_rejected", null);
-    expect(result?.context).toMatchObject({ issueIdentifier: null, cap: null, count: null });
-
-    const bad = issueWriteDenialForActivity("issue.cross_issue_influence_cap_rejected", {
-      identifier: 42,
-      cap: "twenty",
+    const result = issueWriteDenialForActivity(
+      "issue.attribution_spoof_rejected",
+      null,
+    );
+    expect(result?.context).toMatchObject({
+      issueIdentifier: null,
+      cap: null,
+      count: null,
     });
+
+    const bad = issueWriteDenialForActivity(
+      "issue.cross_issue_influence_cap_rejected",
+      {
+        identifier: 42,
+        cap: "twenty",
+      },
+    );
     expect(bad?.context.issueIdentifier).toBeNull();
     expect(bad?.context.cap).toBeNull();
   });

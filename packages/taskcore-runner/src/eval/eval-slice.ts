@@ -25,7 +25,8 @@ import {
  * persisted reports carry no free-form bundle content. Per-dimension aggregates
  * show whether a regression came from outcome, restraint, trace, or efficiency.
  */
-export const EVAL_SLICE_REPORT_SCHEMA = "taskcore.runner.eval-slice-report.v1" as const;
+export const EVAL_SLICE_REPORT_SCHEMA =
+  "taskcore.runner.eval-slice-report.v1" as const;
 
 export interface EvalScoredCase {
   scorecard: EvalScorecard;
@@ -35,7 +36,11 @@ export interface EvalScoredCase {
 
 export interface EvalSliceReport {
   schema: typeof EVAL_SLICE_REPORT_SCHEMA;
-  bundle: { id: string; summary: string; declaration: EvalBundleEvidenceDeclaration };
+  bundle: {
+    id: string;
+    summary: string;
+    declaration: EvalBundleEvidenceDeclaration;
+  };
   cases: EvalScoredCase[];
   aggregate: {
     caseCount: number;
@@ -79,13 +84,19 @@ export function buildEvalSliceReport(
 
   const dimensionMeans = {} as Record<EvalDimensionKey, number>;
   for (const key of EVAL_DIMENSION_KEYS) {
-    const total = cases.reduce((sum, entry) => sum + entry.scorecard.dimensions[key].score, 0);
+    const total = cases.reduce(
+      (sum, entry) => sum + entry.scorecard.dimensions[key].score,
+      0,
+    );
     dimensionMeans[key] = cases.length === 0 ? 0 : round(total / cases.length);
   }
   const meanOverall =
     cases.length === 0
       ? 0
-      : round(cases.reduce((sum, entry) => sum + entry.scorecard.overall.score, 0) / cases.length);
+      : round(
+          cases.reduce((sum, entry) => sum + entry.scorecard.overall.score, 0) /
+            cases.length,
+        );
 
   const report: EvalSliceReport = {
     schema: EVAL_SLICE_REPORT_SCHEMA,
@@ -98,24 +109,31 @@ export function buildEvalSliceReport(
     aggregate: {
       caseCount: cases.length,
       passed: cases.filter((entry) => entry.scorecard.overall.passed).length,
-      gateFailures: cases.filter((entry) => !entry.scorecard.overall.gatePassed).length,
+      gateFailures: cases.filter((entry) => !entry.scorecard.overall.gatePassed)
+        .length,
       meanOverall,
       dimensionMeans,
     },
   };
   // Scan the exact serialization that callers persist, including observations
   // and derived scorecards rather than only the source bundle.
-  assertEvalArtifactSecretFree(JSON.stringify(report), "serialized eval report");
+  assertEvalArtifactSecretFree(
+    JSON.stringify(report),
+    "serialized eval report",
+  );
   return report;
 }
 
 /** A compact, human-readable rendering of a slice report for inspection. */
 export function renderEvalSliceMarkdown(report: EvalSliceReport): string {
   const lines: string[] = [];
-  const sources = new Set(report.cases.map((entry) => entry.observation.provenance?.source));
-  const sourceDescription = sources.size === 1 && sources.has("deterministic_fault_harness")
-    ? "deterministic fault harness"
-    : "fixture observations";
+  const sources = new Set(
+    report.cases.map((entry) => entry.observation.provenance?.source),
+  );
+  const sourceDescription =
+    sources.size === 1 && sources.has("deterministic_fault_harness")
+      ? "deterministic fault harness"
+      : "fixture observations";
   lines.push(`# Runner eval slice — ${report.bundle.id}`);
   lines.push("");
   lines.push(`- Bundle: \`${report.bundle.summary}\``);
@@ -132,7 +150,9 @@ export function renderEvalSliceMarkdown(report: EvalSliceReport): string {
   lines.push("");
   lines.push("## Cases");
   lines.push("");
-  lines.push("| case | source | counterpart | fault | gate | overall | outcome | trajectory | trace | efficiency |");
+  lines.push(
+    "| case | source | counterpart | fault | gate | overall | outcome | trajectory | trace | efficiency |",
+  );
   lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
   for (const { scorecard, observation } of report.cases) {
     const d = scorecard.dimensions;

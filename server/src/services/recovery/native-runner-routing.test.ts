@@ -12,6 +12,8 @@ describe("native runner recovery routing", () => {
   });
 
   it("does not change ordinary stranded-issue manager routing", () => {
-    expect(shouldRouteRecoveryToOriginalAgent("stranded_assigned_issue")).toBe(false);
+    expect(shouldRouteRecoveryToOriginalAgent("stranded_assigned_issue")).toBe(
+      false,
+    );
   });
 });

@@ -5,7 +5,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const baseUrl = (process.env.TASKCORE_PERF_BASE_URL || "http://localhost:3100").replace(/\/$/, "");
+const baseUrl = (
+  process.env.TASKCORE_PERF_BASE_URL || "http://localhost:3100"
+).replace(/\/$/, "");
 const companyPrefix = process.env.TASKCORE_PERF_COMPANY_PREFIX;
 const url = companyPrefix
   ? `${baseUrl}/${companyPrefix}/tests/perf/long-thread`
@@ -36,7 +38,10 @@ const boardToken = process.env.TASKCORE_PERF_BEARER_TOKEN || loadBoardToken();
 if (boardToken) {
   await page.route(`${origin}/**`, async (route) => {
     await route.continue({
-      headers: { ...route.request().headers(), Authorization: `Bearer ${boardToken}` },
+      headers: {
+        ...route.request().headers(),
+        Authorization: `Bearer ${boardToken}`,
+      },
     });
   });
 }
@@ -44,35 +49,70 @@ if (boardToken) {
 try {
   const startedAt = Date.now();
   await page.goto(url, { waitUntil: "networkidle" });
-  await page.waitForSelector('[data-testid="issue-chat-long-thread-perf"]', { timeout: 30_000 });
-  await page.waitForFunction(() => {
-    const target = Number(document.querySelector('[data-testid="perf-fixture-row-target"]')?.textContent ?? "450");
-    const renderedRows = document.querySelectorAll('[data-testid="issue-chat-message-row"]').length;
-    const virtualizer = document.querySelector('[data-testid="issue-chat-thread-virtualizer"]');
-    if (!virtualizer) return renderedRows >= target;
-    const virtualCount = Number(virtualizer.getAttribute("data-virtual-count") ?? "0");
-    return virtualCount >= target && renderedRows > 0 && renderedRows < target;
-  }, null, { timeout: 60_000 });
+  await page.waitForSelector('[data-testid="issue-chat-long-thread-perf"]', {
+    timeout: 30_000,
+  });
+  await page.waitForFunction(
+    () => {
+      const target = Number(
+        document.querySelector('[data-testid="perf-fixture-row-target"]')
+          ?.textContent ?? "450",
+      );
+      const renderedRows = document.querySelectorAll(
+        '[data-testid="issue-chat-message-row"]',
+      ).length;
+      const virtualizer = document.querySelector(
+        '[data-testid="issue-chat-thread-virtualizer"]',
+      );
+      if (!virtualizer) return renderedRows >= target;
+      const virtualCount = Number(
+        virtualizer.getAttribute("data-virtual-count") ?? "0",
+      );
+      return (
+        virtualCount >= target && renderedRows > 0 && renderedRows < target
+      );
+    },
+    null,
+    { timeout: 60_000 },
+  );
   const rowReadyMs = Date.now() - startedAt;
 
   const metrics = await page.evaluate(async () => {
-    const text = (testId) => document.querySelector(`[data-testid="${testId}"]`)?.textContent?.trim() ?? "";
+    const text = (testId) =>
+      document
+        .querySelector(`[data-testid="${testId}"]`)
+        ?.textContent?.trim() ?? "";
     const numericMs = (testId) => {
       const value = text(testId).replace(/\s*ms$/, "");
       const parsed = Number(value);
       return Number.isFinite(parsed) ? parsed : null;
     };
 
-    const rowCount = document.querySelectorAll('[data-testid="issue-chat-message-row"]').length;
-    const virtualizer = document.querySelector('[data-testid="issue-chat-thread-virtualizer"]');
-    const virtualCount = Number(virtualizer?.getAttribute("data-virtual-count") ?? "0");
-    const assistantRowCount = document.querySelectorAll('[data-testid="issue-chat-message-row"][data-message-role="assistant"]').length;
-    const systemRowCount = document.querySelectorAll('[data-testid="issue-chat-message-row"][data-message-role="system"]').length;
-    const userRowCount = document.querySelectorAll('[data-testid="issue-chat-message-row"][data-message-role="user"]').length;
+    const rowCount = document.querySelectorAll(
+      '[data-testid="issue-chat-message-row"]',
+    ).length;
+    const virtualizer = document.querySelector(
+      '[data-testid="issue-chat-thread-virtualizer"]',
+    );
+    const virtualCount = Number(
+      virtualizer?.getAttribute("data-virtual-count") ?? "0",
+    );
+    const assistantRowCount = document.querySelectorAll(
+      '[data-testid="issue-chat-message-row"][data-message-role="assistant"]',
+    ).length;
+    const systemRowCount = document.querySelectorAll(
+      '[data-testid="issue-chat-message-row"][data-message-role="system"]',
+    ).length;
+    const userRowCount = document.querySelectorAll(
+      '[data-testid="issue-chat-message-row"][data-message-role="user"]',
+    ).length;
     const markdownRows = Number(text("perf-fixture-markdown-rows"));
     const commitCount = Number(text("perf-commit-count"));
     const scrollStartY = window.scrollY;
-    const scrollTarget = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    const scrollTarget = Math.max(
+      0,
+      document.documentElement.scrollHeight - window.innerHeight,
+    );
     const scrollStartedAt = performance.now();
     window.scrollTo({ top: scrollTarget, behavior: "instant" });
     await new Promise((resolve) => requestAnimationFrame(() => resolve()));
@@ -102,7 +142,13 @@ try {
   });
 
   const elapsedMs = Date.now() - startedAt;
-  console.log(JSON.stringify({ ...metrics, renderReadyMs: rowReadyMs, elapsedMs }, null, 2));
+  console.log(
+    JSON.stringify(
+      { ...metrics, renderReadyMs: rowReadyMs, elapsedMs },
+      null,
+      2,
+    ),
+  );
 } finally {
   await browser.close();
 }

@@ -2,7 +2,9 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const migrationsDir = fileURLToPath(new URL("./migrations", import.meta.url));
-const journalPath = fileURLToPath(new URL("./migrations/meta/_journal.json", import.meta.url));
+const journalPath = fileURLToPath(
+  new URL("./migrations/meta/_journal.json", import.meta.url),
+);
 
 type JournalFile = {
   entries?: Array<{
@@ -22,11 +24,15 @@ function ensureNoDuplicates(values: string[], label: string) {
   for (const value of values) {
     const number = migrationNumber(value);
     if (!number) {
-      throw new Error(`${label} entry does not start with a 4-digit migration number: ${value}`);
+      throw new Error(
+        `${label} entry does not start with a 4-digit migration number: ${value}`,
+      );
     }
     const existing = seen.get(number);
     if (existing) {
-      throw new Error(`Duplicate migration number ${number} in ${label}: ${existing}, ${value}`);
+      throw new Error(
+        `Duplicate migration number ${number} in ${label}: ${existing}, ${value}`,
+      );
     }
     seen.set(number, value);
   }
@@ -43,7 +49,10 @@ function ensureStrictlyOrdered(values: string[], label: string) {
   }
 }
 
-function ensureJournalMatchesFiles(migrationFiles: string[], journalTags: string[]) {
+function ensureJournalMatchesFiles(
+  migrationFiles: string[],
+  journalTags: string[],
+) {
   const journalFiles = journalTags.map((tag) => `${tag}.sql`);
 
   if (journalFiles.length !== migrationFiles.length) {
@@ -73,13 +82,12 @@ async function main() {
 
   const rawJournal = await readFile(journalPath, "utf8");
   const journal = JSON.parse(rawJournal) as JournalFile;
-  const journalTags = (journal.entries ?? [])
-    .map((entry, index) => {
-      if (typeof entry.tag !== "string" || entry.tag.length === 0) {
-        throw new Error(`Migration journal entry ${index} is missing a tag`);
-      }
-      return entry.tag;
-    });
+  const journalTags = (journal.entries ?? []).map((entry, index) => {
+    if (typeof entry.tag !== "string" || entry.tag.length === 0) {
+      throw new Error(`Migration journal entry ${index} is missing a tag`);
+    }
+    return entry.tag;
+  });
 
   ensureNoDuplicates(journalTags, "migration journal");
   ensureStrictlyOrdered(journalTags, "migration journal");

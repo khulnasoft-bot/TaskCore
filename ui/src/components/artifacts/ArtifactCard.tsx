@@ -14,9 +14,20 @@ interface ArtifactCardProps {
  * aspect ratio is what keeps image / video / text / placeholder cards from
  * shifting layout as previews load (or fail to load).
  */
-function PreviewFrame({ children, className }: { children: React.ReactNode; className?: string }) {
+function PreviewFrame({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cn("relative aspect-video w-full overflow-hidden bg-accent/20", className)}>
+    <div
+      className={cn(
+        "relative aspect-video w-full overflow-hidden bg-accent/20",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -27,13 +38,21 @@ function PlaceholderPreview({ label }: { label?: string }) {
     <PreviewFrame className="flex items-center justify-center">
       <div className="flex flex-col items-center gap-1.5 text-muted-foreground/50">
         <TaskcoreIcon className="h-7 w-7" aria-hidden="true" />
-        {label ? <span className="text-(length:--text-micro) font-medium uppercase tracking-wide">{label}</span> : null}
+        {label ? (
+          <span className="text-(length:--text-micro) font-medium uppercase tracking-wide">
+            {label}
+          </span>
+        ) : null}
       </div>
     </PreviewFrame>
   );
 }
 
-type PreviewArtifact = Pick<CompanyArtifact, "mediaKind" | "contentPath" | "title"> & Partial<Pick<CompanyArtifact, "source" | "previewText">>;
+type PreviewArtifact = Pick<
+  CompanyArtifact,
+  "mediaKind" | "contentPath" | "title"
+> &
+  Partial<Pick<CompanyArtifact, "source" | "previewText">>;
 
 function ImagePreview({ artifact }: { artifact: PreviewArtifact }) {
   const [errored, setErrored] = useState(false);
@@ -69,7 +88,10 @@ function VideoPreview({ artifact }: { artifact: PreviewArtifact }) {
     return (
       <PreviewFrame className="flex items-center justify-center bg-black/80">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15">
-          <Play className="h-5 w-5 translate-x-0.5 text-white" aria-hidden="true" />
+          <Play
+            className="h-5 w-5 translate-x-0.5 text-white"
+            aria-hidden="true"
+          />
         </div>
       </PreviewFrame>
     );
@@ -92,7 +114,10 @@ function VideoPreview({ artifact }: { artifact: PreviewArtifact }) {
     if (thumbnailSeekRequested.current) return;
     thumbnailSeekRequested.current = true;
     const video = event.currentTarget;
-    const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+    const duration =
+      Number.isFinite(video.duration) && video.duration > 0
+        ? video.duration
+        : 0;
     const seekTarget = duration > 0 ? Math.min(1, duration / 4) : 0.05;
     try {
       if (Math.abs(video.currentTime - seekTarget) > 0.001) {
@@ -119,7 +144,10 @@ function VideoPreview({ artifact }: { artifact: PreviewArtifact }) {
         muted
         playsInline
         data-frame-ready={frameReady ? "true" : "false"}
-        className={cn("h-full w-full object-contain transition-opacity", frameReady ? "opacity-100" : "opacity-0")}
+        className={cn(
+          "h-full w-full object-contain transition-opacity",
+          frameReady ? "opacity-100" : "opacity-0",
+        )}
         onLoadedMetadata={loadThumbnailFrame}
         onLoadedData={handleLoadedData}
         onSeeked={markFrameReady}
@@ -127,7 +155,10 @@ function VideoPreview({ artifact }: { artifact: PreviewArtifact }) {
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/55">
-          <Play className="h-5 w-5 translate-x-0.5 text-white" aria-hidden="true" />
+          <Play
+            className="h-5 w-5 translate-x-0.5 text-white"
+            aria-hidden="true"
+          />
         </div>
       </div>
     </PreviewFrame>
@@ -137,7 +168,11 @@ function VideoPreview({ artifact }: { artifact: PreviewArtifact }) {
 function TextPreview({ artifact }: { artifact: PreviewArtifact }) {
   const preview = artifact.previewText?.trim();
   if (!preview) {
-    return <PlaceholderPreview label={artifact.source === "document" ? "Document" : "Text"} />;
+    return (
+      <PlaceholderPreview
+        label={artifact.source === "document" ? "Document" : "Text"}
+      />
+    );
   }
   return (
     <PreviewFrame className="bg-card">
@@ -182,7 +217,9 @@ function SecondaryAction({
   return (
     <a
       href={href}
-      {...(download ? { download: "" } : { target: "_blank", rel: "noreferrer" })}
+      {...(download
+        ? { download: "" }
+        : { target: "_blank", rel: "noreferrer" })}
       title={title}
       aria-label={title}
       onClick={(event) => event.stopPropagation()}
@@ -215,12 +252,19 @@ export function ArtifactCard({ artifact }: ArtifactCardProps) {
           </h3>
           <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
             {artifact.openPath ? (
-              <SecondaryAction href={artifact.openPath} title="Open file in new tab">
+              <SecondaryAction
+                href={artifact.openPath}
+                title="Open file in new tab"
+              >
                 <ExternalLink className="h-3.5 w-3.5" />
               </SecondaryAction>
             ) : null}
             {artifact.downloadPath ? (
-              <SecondaryAction href={artifact.downloadPath} download title="Download file">
+              <SecondaryAction
+                href={artifact.downloadPath}
+                download
+                title="Download file"
+              >
                 <Download className="h-3.5 w-3.5" />
               </SecondaryAction>
             ) : null}

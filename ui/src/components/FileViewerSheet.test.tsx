@@ -3,7 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { WorkspaceFileContent } from "@taskcore/shared";
 import type { FileViewerUrlState } from "@/context/FileViewerContext";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { describeDenial, FileContentViewer, FileViewerMetadataRow } from "./FileViewerSheet";
+import {
+  describeDenial,
+  FileContentViewer,
+  FileViewerMetadataRow,
+} from "./FileViewerSheet";
 
 describe("describeDenial", () => {
   it("returns the curated body for too_large regardless of fallback", () => {
@@ -42,13 +46,18 @@ describe("describeDenial", () => {
   });
 
   it("prefers a human-readable server message for unknown codes", () => {
-    const { body } = describeDenial("unknown_code", "Server refused the request.");
+    const { body } = describeDenial(
+      "unknown_code",
+      "Server refused the request.",
+    );
     expect(body).toBe("Server refused the request.");
   });
 });
 
 describe("FileContentViewer", () => {
-  function content(overrides: Partial<WorkspaceFileContent> = {}): WorkspaceFileContent {
+  function content(
+    overrides: Partial<WorkspaceFileContent> = {},
+  ): WorkspaceFileContent {
     return {
       resource: {
         kind: "file",
@@ -72,7 +81,9 @@ describe("FileContentViewer", () => {
   }
 
   it("wraps text content instead of forcing horizontal preformatted scrolling", () => {
-    const markup = renderToStaticMarkup(<FileContentViewer content={content()} highlightedLine={null} />);
+    const markup = renderToStaticMarkup(
+      <FileContentViewer content={content()} highlightedLine={null} />,
+    );
     expect(markup).toContain("whitespace-pre-wrap");
     expect(markup).toContain("break-words");
   });
@@ -145,7 +156,9 @@ describe("FileContentViewer", () => {
   });
 
   it("does not show the Markdown toggle for non-Markdown text files", () => {
-    const markup = renderToStaticMarkup(<FileContentViewer content={content()} highlightedLine={null} />);
+    const markup = renderToStaticMarkup(
+      <FileContentViewer content={content()} highlightedLine={null} />,
+    );
 
     expect(markup).not.toContain("Markdown preview mode");
     expect(markup).toContain("notes.txt source");
@@ -163,52 +176,122 @@ describe("FileViewerMetadataRow", () => {
   };
 
   it("reserves metadata row height while file details load", () => {
-    const markup = renderToStaticMarkup(<FileViewerMetadataRow state={state} />);
+    const markup = renderToStaticMarkup(
+      <FileViewerMetadataRow state={state} />,
+    );
     expect(markup).toContain("min-h-(--sz-18px)");
     expect(markup).toContain("Loading file details");
   });
 });
 
-
 describe("workspace CSV content", () => {
   const csv: WorkspaceFileContent = {
-    resource: { kind: "file", provider: "git_worktree", title: "export.csv", displayPath: "export.csv", workspaceLabel: "Workspace", workspaceKind: "execution_workspace", workspaceId: "ws", contentType: "text/csv", byteSize: 20, previewKind: "text", capabilities: { preview: true, download: true, listChildren: false } },
+    resource: {
+      kind: "file",
+      provider: "git_worktree",
+      title: "export.csv",
+      displayPath: "export.csv",
+      workspaceLabel: "Workspace",
+      workspaceKind: "execution_workspace",
+      workspaceId: "ws",
+      contentType: "text/csv",
+      byteSize: 20,
+      previewKind: "text",
+      capabilities: { preview: true, download: true, listChildren: false },
+    },
     content: { encoding: "utf8", data: 'Name,Amount\n"Lee, Sam",12' },
   };
   it("defaults to a table and supports toolbar-controlled raw mode", () => {
-    const rendered = renderToStaticMarkup(<FileContentViewer content={csv} highlightedLine={null} previewMode="rendered" />);
+    const rendered = renderToStaticMarkup(
+      <FileContentViewer
+        content={csv}
+        highlightedLine={null}
+        previewMode="rendered"
+      />,
+    );
     expect(rendered).toContain("<table");
     expect(rendered).toContain("Lee, Sam");
     expect(rendered).not.toContain("CSV preview mode");
-    const raw = renderToStaticMarkup(<FileContentViewer content={csv} highlightedLine={null} previewMode="raw" />);
+    const raw = renderToStaticMarkup(
+      <FileContentViewer
+        content={csv}
+        highlightedLine={null}
+        previewMode="raw"
+      />,
+    );
     expect(raw).toContain("export.csv source");
     expect(raw).not.toContain("<table");
   });
 });
 
-
 describe("CSV preview limits", () => {
-  it.each([[500, 2], [501, 2], [1, 100], [1, 101]])(
+  it.each([
+    [500, 2],
+    [501, 2],
+    [1, 100],
+    [1, 101],
+  ])(
     "bounds a file with %i rows and %i columns and preserves raw source",
     (rowCount, columnCount) => {
-      const header = Array.from({ length: columnCount }, (_, i) => `Header${i}`).join(",");
-      const row = Array.from({ length: columnCount }, (_, i) => `Value${i}`).join(",");
-      const source = [header, ...Array.from({ length: rowCount }, () => row)].join("\n");
+      const header = Array.from(
+        { length: columnCount },
+        (_, i) => `Header${i}`,
+      ).join(",");
+      const row = Array.from(
+        { length: columnCount },
+        (_, i) => `Value${i}`,
+      ).join(",");
+      const source = [
+        header,
+        ...Array.from({ length: rowCount }, () => row),
+      ].join("\n");
       const content: WorkspaceFileContent = {
-        resource: { kind: "file", provider: "git_worktree", title: "limits.csv", displayPath: "limits.csv", workspaceLabel: "Workspace", workspaceKind: "execution_workspace", workspaceId: "ws", contentType: "text/csv", byteSize: source.length, previewKind: "text", capabilities: { preview: true, download: true, listChildren: false } },
+        resource: {
+          kind: "file",
+          provider: "git_worktree",
+          title: "limits.csv",
+          displayPath: "limits.csv",
+          workspaceLabel: "Workspace",
+          workspaceKind: "execution_workspace",
+          workspaceId: "ws",
+          contentType: "text/csv",
+          byteSize: source.length,
+          previewKind: "text",
+          capabilities: { preview: true, download: true, listChildren: false },
+        },
         content: { encoding: "utf8", data: source },
       };
-      const rendered = renderToStaticMarkup(<FileContentViewer content={content} highlightedLine={null} previewMode="rendered" />);
-      expect((rendered.match(/<td /g) ?? []).length).toBe(Math.min(rowCount, 500) * Math.min(columnCount, 100));
-      expect((rendered.match(/scope="col"/g) ?? []).length).toBe(Math.min(columnCount, 100) + 1);
-      expect(rendered).toContain(`${rowCount} ${rowCount === 1 ? "row" : "rows"}`);
+      const rendered = renderToStaticMarkup(
+        <FileContentViewer
+          content={content}
+          highlightedLine={null}
+          previewMode="rendered"
+        />,
+      );
+      expect((rendered.match(/<td /g) ?? []).length).toBe(
+        Math.min(rowCount, 500) * Math.min(columnCount, 100),
+      );
+      expect((rendered.match(/scope="col"/g) ?? []).length).toBe(
+        Math.min(columnCount, 100) + 1,
+      );
+      expect(rendered).toContain(
+        `${rowCount} ${rowCount === 1 ? "row" : "rows"}`,
+      );
       expect(rendered).toContain(`${columnCount} columns`);
       if (rowCount > 500 || columnCount > 100) {
-        expect(rendered).toContain(`Showing the first ${Math.min(rowCount, 500)} rows and ${Math.min(columnCount, 100)} columns.`);
+        expect(rendered).toContain(
+          `Showing the first ${Math.min(rowCount, 500)} rows and ${Math.min(columnCount, 100)} columns.`,
+        );
       } else {
         expect(rendered).not.toContain("Showing the first");
       }
-      const raw = renderToStaticMarkup(<FileContentViewer content={content} highlightedLine={null} previewMode="raw" />);
+      const raw = renderToStaticMarkup(
+        <FileContentViewer
+          content={content}
+          highlightedLine={null}
+          previewMode="raw"
+        />,
+      );
       expect(raw).not.toContain("<table");
       expect((raw.match(/Value0/g) ?? []).length).toBe(rowCount);
       expect(raw).toContain(row);

@@ -14,7 +14,11 @@ import {
   teamsCatalogService,
 } from "../services/teams-catalog.js";
 import { forbidden } from "../errors.js";
-import { assertAuthenticated, assertCompanyAccess, getActorInfo } from "./authz.js";
+import {
+  assertAuthenticated,
+  assertCompanyAccess,
+  getActorInfo,
+} from "./authz.js";
 
 export function teamsCatalogRoutes(db: Db) {
   const router = Router();
@@ -22,9 +26,14 @@ export function teamsCatalogRoutes(db: Db) {
   const access = accessService(db);
   const svc = teamsCatalogService(db);
 
-  function canCreateAgents(agent: { permissions: Record<string, unknown> | null | undefined }) {
-    if (!agent.permissions || typeof agent.permissions !== "object") return false;
-    return Boolean((agent.permissions as Record<string, unknown>).canCreateAgents);
+  function canCreateAgents(agent: {
+    permissions: Record<string, unknown> | null | undefined;
+  }) {
+    if (!agent.permissions || typeof agent.permissions !== "object")
+      return false;
+    return Boolean(
+      (agent.permissions as Record<string, unknown>).canCreateAgents,
+    );
   }
 
   function firstQueryString(value: unknown): string | undefined {
@@ -37,8 +46,13 @@ export function teamsCatalogRoutes(db: Db) {
     assertCompanyAccess(req, companyId);
 
     if (req.actor.type === "board") {
-      if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin) return;
-      const allowed = await access.canUser(companyId, req.actor.userId, "agents:create");
+      if (req.actor.source === "local_implicit" || req.actor.isInstanceAdmin)
+        return;
+      const allowed = await access.canUser(
+        companyId,
+        req.actor.userId,
+        "agents:create",
+      );
       if (!allowed) {
         throw forbidden("Missing permission: agents:create");
       }
@@ -54,7 +68,12 @@ export function teamsCatalogRoutes(db: Db) {
       throw forbidden("Agent key cannot access another company");
     }
 
-    const allowedByGrant = await access.hasPermission(companyId, "agent", actorAgent.id, "agents:create");
+    const allowedByGrant = await access.hasPermission(
+      companyId,
+      "agent",
+      actorAgent.id,
+      "agents:create",
+    );
     if (allowedByGrant || canCreateAgents(actorAgent)) {
       return;
     }
@@ -74,29 +93,35 @@ export function teamsCatalogRoutes(db: Db) {
 
   router.get("/teams/catalog/:catalogId/files", async (req, res) => {
     assertAuthenticated(req);
-    const catalogRef = firstQueryString(req.query.ref) ?? (req.params.catalogId as string);
+    const catalogRef =
+      firstQueryString(req.query.ref) ?? (req.params.catalogId as string);
     const relativePath = firstQueryString(req.query.path) ?? "TEAM.md";
     res.json(await readCatalogTeamFile(catalogRef, relativePath));
   });
 
   router.get("/teams/catalog/:catalogId", async (req, res) => {
     assertAuthenticated(req);
-    const catalogRef = firstQueryString(req.query.ref) ?? (req.params.catalogId as string);
+    const catalogRef =
+      firstQueryString(req.query.ref) ?? (req.params.catalogId as string);
     res.json(await getCatalogTeamOrThrow(catalogRef));
   });
 
-  router.get("/companies/:companyId/teams/catalog/installed", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
-    res.json(await svc.listInstalledCatalogTeams(companyId));
-  });
+  router.get(
+    "/companies/:companyId/teams/catalog/installed",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      assertCompanyAccess(req, companyId);
+      res.json(await svc.listInstalledCatalogTeams(companyId));
+    },
+  );
 
   router.post(
     "/companies/:companyId/teams/catalog/:catalogId/preview",
     validate(catalogTeamPreviewSchema),
     async (req, res) => {
       const companyId = req.params.companyId as string;
-      const catalogRef = firstQueryString(req.query.ref) ?? (req.params.catalogId as string);
+      const catalogRef =
+        firstQueryString(req.query.ref) ?? (req.params.catalogId as string);
       assertCompanyAccess(req, companyId);
       const result = await svc.previewCatalogTeamImport(companyId, catalogRef, {
         ...req.body,
@@ -111,7 +136,8 @@ export function teamsCatalogRoutes(db: Db) {
     validate(catalogTeamInstallSchema),
     async (req, res) => {
       const companyId = req.params.companyId as string;
-      const catalogRef = firstQueryString(req.query.ref) ?? (req.params.catalogId as string);
+      const catalogRef =
+        firstQueryString(req.query.ref) ?? (req.params.catalogId as string);
       await assertCanInstallCatalogTeam(req, companyId);
       const result = await svc.installCatalogTeam(companyId, catalogRef, {
         ...req.body,

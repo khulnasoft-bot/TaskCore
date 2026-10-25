@@ -8,7 +8,8 @@ import {
   type CapabilityLiveSessionStore,
 } from "./live-session.js";
 
-const DURABLE_STORE_SCHEMA = "taskcore.capability.live-session-checkpoint.v1" as const;
+const DURABLE_STORE_SCHEMA =
+  "taskcore.capability.live-session-checkpoint.v1" as const;
 
 export interface CapabilityLiveSessionStoreBinding {
   sessionId: string;
@@ -35,18 +36,21 @@ function sha256(value: string): string {
 }
 
 function requireIdentifier(value: string, name: string): void {
-  if (value.trim().length === 0) throw new Error(`capability_live_store_${name}_required`);
+  if (value.trim().length === 0)
+    throw new Error(`capability_live_store_${name}_required`);
 }
 
 function sameBinding(
   left: CapabilityLiveSessionStoreBinding,
   right: CapabilityLiveSessionStoreBinding,
 ): boolean {
-  return left.sessionId === right.sessionId
-    && left.runId === right.runId
-    && left.companyId === right.companyId
-    && left.actorId === right.actorId
-    && left.taskId === right.taskId;
+  return (
+    left.sessionId === right.sessionId &&
+    left.runId === right.runId &&
+    left.companyId === right.companyId &&
+    left.actorId === right.actorId &&
+    left.taskId === right.taskId
+  );
 }
 
 /**
@@ -65,7 +69,8 @@ export class DurableCapabilityLiveSessionStore implements CapabilityLiveSessionS
   constructor(options: DurableCapabilityLiveSessionStoreOptions) {
     this.#directory = resolve(options.directory);
     this.#binding = structuredClone(options.binding);
-    for (const [name, value] of Object.entries(this.#binding)) requireIdentifier(value, name);
+    for (const [name, value] of Object.entries(this.#binding))
+      requireIdentifier(value, name);
     const key = sha256(this.#binding.sessionId);
     this.#checkpointPath = join(this.#directory, `${key}.json`);
   }
@@ -86,7 +91,9 @@ export class DurableCapabilityLiveSessionStore implements CapabilityLiveSessionS
       throw new Error("capability_live_checkpoint_corrupt: invalid JSON");
     }
     if (envelope.schema !== DURABLE_STORE_SCHEMA) {
-      throw new Error("capability_live_checkpoint_corrupt: unsupported envelope schema");
+      throw new Error(
+        "capability_live_checkpoint_corrupt: unsupported envelope schema",
+      );
     }
     if (!sameBinding(envelope.binding, this.#binding)) {
       throw new Error("capability_live_checkpoint_binding_mismatch");

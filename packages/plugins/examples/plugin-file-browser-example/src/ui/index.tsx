@@ -5,8 +5,20 @@ import type {
   PluginCommentAnnotationProps,
   PluginCommentContextMenuItemProps,
 } from "@taskcore/plugin-sdk/ui";
-import { FileTree, usePluginAction, usePluginData } from "@taskcore/plugin-sdk/ui";
-import { useCallback, useMemo, useState, useEffect, useRef, type MouseEvent, type RefObject } from "react";
+import {
+  FileTree,
+  usePluginAction,
+  usePluginData,
+} from "@taskcore/plugin-sdk/ui";
+import {
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  type MouseEvent,
+  type RefObject,
+} from "react";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
@@ -32,39 +44,42 @@ const editorBaseTheme = {
   },
 };
 
-const editorDarkTheme = EditorView.theme({
-  ...editorBaseTheme,
-  "&": {
-    ...editorBaseTheme["&"],
-    backgroundColor: "oklch(0.23 0.02 255)",
-    color: "oklch(0.93 0.01 255)",
+const editorDarkTheme = EditorView.theme(
+  {
+    ...editorBaseTheme,
+    "&": {
+      ...editorBaseTheme["&"],
+      backgroundColor: "oklch(0.23 0.02 255)",
+      color: "oklch(0.93 0.01 255)",
+    },
+    ".cm-gutters": {
+      backgroundColor: "oklch(0.25 0.015 255)",
+      color: "oklch(0.74 0.015 255)",
+      borderRight: "1px solid oklch(0.34 0.01 255)",
+    },
+    ".cm-activeLine, .cm-activeLineGutter": {
+      backgroundColor: "oklch(0.30 0.012 255 / 0.55)",
+    },
+    ".cm-selectionBackground, .cm-content ::selection": {
+      backgroundColor: "oklch(0.42 0.02 255 / 0.45)",
+    },
+    "&.cm-focused .cm-selectionBackground": {
+      backgroundColor: "oklch(0.47 0.025 255 / 0.5)",
+    },
+    ".cm-cursor, .cm-dropCursor": {
+      borderLeftColor: "oklch(0.93 0.01 255)",
+    },
+    ".cm-matchingBracket": {
+      backgroundColor: "oklch(0.37 0.015 255 / 0.5)",
+      color: "oklch(0.95 0.01 255)",
+      outline: "none",
+    },
+    ".cm-nonmatchingBracket": {
+      color: "oklch(0.70 0.08 24)",
+    },
   },
-  ".cm-gutters": {
-    backgroundColor: "oklch(0.25 0.015 255)",
-    color: "oklch(0.74 0.015 255)",
-    borderRight: "1px solid oklch(0.34 0.01 255)",
-  },
-  ".cm-activeLine, .cm-activeLineGutter": {
-    backgroundColor: "oklch(0.30 0.012 255 / 0.55)",
-  },
-  ".cm-selectionBackground, .cm-content ::selection": {
-    backgroundColor: "oklch(0.42 0.02 255 / 0.45)",
-  },
-  "&.cm-focused .cm-selectionBackground": {
-    backgroundColor: "oklch(0.47 0.025 255 / 0.5)",
-  },
-  ".cm-cursor, .cm-dropCursor": {
-    borderLeftColor: "oklch(0.93 0.01 255)",
-  },
-  ".cm-matchingBracket": {
-    backgroundColor: "oklch(0.37 0.015 255 / 0.5)",
-    color: "oklch(0.95 0.01 255)",
-    outline: "none",
-  },
-  ".cm-nonmatchingBracket": {
-    color: "oklch(0.70 0.08 24)",
-  },
-}, { dark: true });
+  { dark: true },
+);
 
 const editorLightTheme = EditorView.theme({
   ...editorBaseTheme,
@@ -107,10 +122,19 @@ const editorLightTheme = EditorView.theme({
 const editorDarkHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword, color: "oklch(0.78 0.025 265)" },
   { tag: [tags.name, tags.variableName], color: "oklch(0.88 0.01 255)" },
-  { tag: [tags.string, tags.special(tags.string)], color: "oklch(0.80 0.02 170)" },
+  {
+    tag: [tags.string, tags.special(tags.string)],
+    color: "oklch(0.80 0.02 170)",
+  },
   { tag: [tags.number, tags.bool, tags.null], color: "oklch(0.79 0.02 95)" },
-  { tag: [tags.comment, tags.lineComment, tags.blockComment], color: "oklch(0.64 0.01 255)" },
-  { tag: [tags.function(tags.variableName), tags.labelName], color: "oklch(0.84 0.018 220)" },
+  {
+    tag: [tags.comment, tags.lineComment, tags.blockComment],
+    color: "oklch(0.64 0.01 255)",
+  },
+  {
+    tag: [tags.function(tags.variableName), tags.labelName],
+    color: "oklch(0.84 0.018 220)",
+  },
   { tag: [tags.typeName, tags.className], color: "oklch(0.82 0.02 245)" },
   { tag: [tags.operator, tags.punctuation], color: "oklch(0.77 0.01 255)" },
   { tag: [tags.invalid, tags.deleted], color: "oklch(0.70 0.08 24)" },
@@ -119,16 +143,31 @@ const editorDarkHighlightStyle = HighlightStyle.define([
 const editorLightHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword, color: "oklch(0.45 0.07 270)" },
   { tag: [tags.name, tags.variableName], color: "oklch(0.28 0.01 255)" },
-  { tag: [tags.string, tags.special(tags.string)], color: "oklch(0.45 0.06 165)" },
+  {
+    tag: [tags.string, tags.special(tags.string)],
+    color: "oklch(0.45 0.06 165)",
+  },
   { tag: [tags.number, tags.bool, tags.null], color: "oklch(0.48 0.08 90)" },
-  { tag: [tags.comment, tags.lineComment, tags.blockComment], color: "oklch(0.53 0.01 255)" },
-  { tag: [tags.function(tags.variableName), tags.labelName], color: "oklch(0.42 0.07 220)" },
+  {
+    tag: [tags.comment, tags.lineComment, tags.blockComment],
+    color: "oklch(0.53 0.01 255)",
+  },
+  {
+    tag: [tags.function(tags.variableName), tags.labelName],
+    color: "oklch(0.42 0.07 220)",
+  },
   { tag: [tags.typeName, tags.className], color: "oklch(0.40 0.06 245)" },
   { tag: [tags.operator, tags.punctuation], color: "oklch(0.36 0.01 255)" },
   { tag: [tags.invalid, tags.deleted], color: "oklch(0.55 0.16 24)" },
 ]);
 
-type Workspace = { id: string; projectId: string; name: string; path: string; isPrimary: boolean };
+type Workspace = {
+  id: string;
+  projectId: string;
+  name: string;
+  path: string;
+  isPrimary: boolean;
+};
 type FileEntry = { name: string; path: string; isDirectory: boolean };
 
 function entryToFileTreeNode(entry: FileEntry): FileTreeNode {
@@ -144,13 +183,24 @@ function entriesToFileTreeNodes(entries: FileEntry[]): FileTreeNode[] {
   return entries.map(entryToFileTreeNode);
 }
 
-function setChildrenAtPath(nodes: FileTreeNode[], path: string, children: FileTreeNode[]): FileTreeNode[] {
+function setChildrenAtPath(
+  nodes: FileTreeNode[],
+  path: string,
+  children: FileTreeNode[],
+): FileTreeNode[] {
   return nodes.map((node) => {
     if (node.path === path) {
       return { ...node, children };
     }
-    if (node.kind === "dir" && node.children.length > 0 && (path === node.path || path.startsWith(`${node.path}/`))) {
-      return { ...node, children: setChildrenAtPath(node.children, path, children) };
+    if (
+      node.kind === "dir" &&
+      node.children.length > 0 &&
+      (path === node.path || path.startsWith(`${node.path}/`))
+    ) {
+      return {
+        ...node,
+        children: setChildrenAtPath(node.children, path, children),
+      };
     }
     return node;
   });
@@ -158,7 +208,8 @@ function setChildrenAtPath(nodes: FileTreeNode[], path: string, children: FileTr
 
 const PathLikePattern = /[\\/]/;
 const WindowsDrivePathPattern = /^[A-Za-z]:[\\/]/;
-const UuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isLikelyPath(pathValue: string): boolean {
   const trimmed = pathValue.trim();
@@ -172,7 +223,9 @@ function workspaceLabel(workspace: Workspace): string {
   const hasNameLabel = nameLabel.length > 0 && !UuidPattern.test(nameLabel);
   const baseLabel = hasPathLabel ? pathLabel : hasNameLabel ? nameLabel : "";
   if (!baseLabel) {
-    return workspace.isPrimary ? "(no workspace path) (primary)" : "(no workspace path)";
+    return workspace.isPrimary
+      ? "(no workspace path) (primary)"
+      : "(no workspace path)";
   }
 
   return workspace.isPrimary ? `${baseLabel} (primary)` : baseLabel;
@@ -196,8 +249,10 @@ function useIsMobile(breakpointPx = 768): boolean {
 }
 
 function useIsDarkMode(): boolean {
-  const [isDarkMode, setIsDarkMode] = useState(() =>
-    typeof document !== "undefined" && document.documentElement.classList.contains("dark"),
+  const [isDarkMode, setIsDarkMode] = useState(
+    () =>
+      typeof document !== "undefined" &&
+      document.documentElement.classList.contains("dark"),
   );
 
   useEffect(() => {
@@ -229,7 +284,10 @@ function useAvailableHeight(
       const element = ref.current;
       if (!element) return;
       const rect = element.getBoundingClientRect();
-      const nextHeight = Math.max(minHeight, Math.floor(window.innerHeight - rect.top - bottomPadding));
+      const nextHeight = Math.max(
+        minHeight,
+        Math.floor(window.innerHeight - rect.top - bottomPadding),
+      );
       setHeight(nextHeight);
     };
 
@@ -237,9 +295,10 @@ function useAvailableHeight(
     window.addEventListener("resize", update);
     window.addEventListener("orientationchange", update);
 
-    const observer = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(() => update())
-      : null;
+    const observer =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => update())
+        : null;
     if (observer && ref.current) observer.observe(ref.current);
 
     return () => {
@@ -256,7 +315,10 @@ function useAvailableHeight(
  * Project sidebar item: link "Files" that opens the project detail with the Files plugin tab.
  */
 export function FilesLink({ context }: PluginProjectSidebarItemProps) {
-  const { data: config, loading: configLoading } = usePluginData<PluginConfig>("plugin-config", {});
+  const { data: config, loading: configLoading } = usePluginData<PluginConfig>(
+    "plugin-config",
+    {},
+  );
   const showFilesInSidebar = config?.showFilesInSidebar ?? false;
 
   if (configLoading || !showFilesInSidebar) {
@@ -264,31 +326,37 @@ export function FilesLink({ context }: PluginProjectSidebarItemProps) {
   }
 
   const projectId = context.entityId;
-  const projectRef = (context as PluginProjectSidebarItemProps["context"] & { projectRef?: string | null })
-    .projectRef
-    ?? projectId;
+  const projectRef =
+    (
+      context as PluginProjectSidebarItemProps["context"] & {
+        projectRef?: string | null;
+      }
+    ).projectRef ?? projectId;
   const prefix = context.companyPrefix ? `/${context.companyPrefix}` : "";
   const tabValue = `plugin:${PLUGIN_KEY}:${FILES_TAB_SLOT_ID}`;
   const href = `${prefix}/projects/${projectRef}?tab=${encodeURIComponent(tabValue)}`;
-  const isActive = typeof window !== "undefined" && (() => {
-    const pathname = window.location.pathname.replace(/\/+$/, "");
-    const segments = pathname.split("/").filter(Boolean);
-    const projectsIndex = segments.indexOf("projects");
-    const activeProjectRef = projectsIndex >= 0 ? segments[projectsIndex + 1] ?? null : null;
-    const activeTab = new URLSearchParams(window.location.search).get("tab");
-    if (activeTab !== tabValue) return false;
-    if (!activeProjectRef) return false;
-    return activeProjectRef === projectId || activeProjectRef === projectRef;
-  })();
+  const isActive =
+    typeof window !== "undefined" &&
+    (() => {
+      const pathname = window.location.pathname.replace(/\/+$/, "");
+      const segments = pathname.split("/").filter(Boolean);
+      const projectsIndex = segments.indexOf("projects");
+      const activeProjectRef =
+        projectsIndex >= 0 ? (segments[projectsIndex + 1] ?? null) : null;
+      const activeTab = new URLSearchParams(window.location.search).get("tab");
+      if (activeTab !== tabValue) return false;
+      if (!activeProjectRef) return false;
+      return activeProjectRef === projectId || activeProjectRef === projectRef;
+    })();
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
-      event.defaultPrevented
-      || event.button !== 0
-      || event.metaKey
-      || event.ctrlKey
-      || event.altKey
-      || event.shiftKey
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      event.shiftKey
     ) {
       return;
     }
@@ -332,7 +400,9 @@ export function FilesTab({ context }: PluginDetailTabProps) {
     companyId,
   });
   const workspaces = workspacesData ?? [];
-  const workspaceSelectKey = workspaces.map((w) => `${w.id}:${workspaceLabel(w)}`).join("|");
+  const workspaceSelectKey = workspaces
+    .map((w) => `${w.id}:${workspaceLabel(w)}`)
+    .join("|");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const resolvedWorkspaceId = workspaceId ?? workspaces[0]?.id ?? null;
   const selectedWorkspace = useMemo(
@@ -341,25 +411,33 @@ export function FilesTab({ context }: PluginDetailTabProps) {
   );
 
   const fileListParams = useMemo(
-    () => (selectedWorkspace ? { projectId, companyId, workspaceId: selectedWorkspace.id } : {}),
+    () =>
+      selectedWorkspace
+        ? { projectId, companyId, workspaceId: selectedWorkspace.id }
+        : {},
     [companyId, projectId, selectedWorkspace],
   );
-  const { data: fileListData, loading: fileListLoading, error: fileListError } = usePluginData<{ entries: FileEntry[] }>(
-    "fileList",
-    fileListParams,
-  );
+  const {
+    data: fileListData,
+    loading: fileListLoading,
+    error: fileListError,
+  } = usePluginData<{ entries: FileEntry[] }>("fileList", fileListParams);
 
   // Lazy-load directory children through an imperative action so the shared
   // FileTree can reuse `expandedPaths` for state without spawning a hook per
   // expanded directory.
   const loadFileList = usePluginAction("loadFileList");
   const [nodes, setNodes] = useState<FileTreeNode[]>([]);
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => new Set());
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [loadedDirs, setLoadedDirs] = useState<Set<string>>(() => new Set());
   const [loadingDirs, setLoadingDirs] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    setNodes(fileListData?.entries ? entriesToFileTreeNodes(fileListData.entries) : []);
+    setNodes(
+      fileListData?.entries ? entriesToFileTreeNodes(fileListData.entries) : [],
+    );
     setExpandedPaths(new Set());
     setLoadedDirs(new Set());
     setLoadingDirs(new Set());
@@ -383,7 +461,8 @@ export function FilesTab({ context }: PluginDetailTabProps) {
         directoryPath: dirPath,
       })
         .then((response) => {
-          const entries = (response as { entries?: FileEntry[] })?.entries ?? [];
+          const entries =
+            (response as { entries?: FileEntry[] })?.entries ?? [];
           const children = entriesToFileTreeNodes(entries);
           setNodes((current) => setChildrenAtPath(current, dirPath, children));
           setLoadedDirs((current) => new Set(current).add(dirPath));
@@ -396,7 +475,14 @@ export function FilesTab({ context }: PluginDetailTabProps) {
           });
         });
     },
-    [companyId, loadFileList, loadedDirs, loadingDirs, projectId, selectedWorkspace],
+    [
+      companyId,
+      loadFileList,
+      loadedDirs,
+      loadingDirs,
+      projectId,
+      selectedWorkspace,
+    ],
   );
 
   // Track the `?file=` query parameter across navigations (popstate).
@@ -409,7 +495,8 @@ export function FilesTab({ context }: PluginDetailTabProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onNav = () => {
-      const next = new URLSearchParams(window.location.search).get("file") || null;
+      const next =
+        new URLSearchParams(window.location.search).get("file") || null;
       setUrlFilePath(next);
     };
     window.addEventListener("popstate", onNav);
@@ -435,15 +522,21 @@ export function FilesTab({ context }: PluginDetailTabProps) {
   const fileContentParams = useMemo(
     () =>
       selectedPath && selectedWorkspace
-        ? { projectId, companyId, workspaceId: selectedWorkspace.id, filePath: selectedPath }
+        ? {
+            projectId,
+            companyId,
+            workspaceId: selectedWorkspace.id,
+            filePath: selectedPath,
+          }
         : null,
     [companyId, projectId, selectedWorkspace, selectedPath],
   );
-  const fileContentResult = usePluginData<{ content: string | null; error?: string }>(
-    "fileContent",
-    fileContentParams ?? {},
-  );
-  const { data: fileContentData, refresh: refreshFileContent } = fileContentResult;
+  const fileContentResult = usePluginData<{
+    content: string | null;
+    error?: string;
+  }>("fileContent", fileContentParams ?? {});
+  const { data: fileContentData, refresh: refreshFileContent } =
+    fileContentResult;
   const writeFile = usePluginAction("writeFile");
   const editorRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -471,7 +564,9 @@ export function FilesTab({ context }: PluginDetailTabProps) {
         basicSetup,
         javascript(),
         isDarkMode ? editorDarkTheme : editorLightTheme,
-        syntaxHighlighting(isDarkMode ? editorDarkHighlightStyle : editorLightHighlightStyle),
+        syntaxHighlighting(
+          isDarkMode ? editorDarkHighlightStyle : editorLightHighlightStyle,
+        ),
         EditorView.updateListener.of((update) => {
           if (!update.docChanged) return;
           const nextValue = update.state.doc.toString();
@@ -491,7 +586,10 @@ export function FilesTab({ context }: PluginDetailTabProps) {
 
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        event.key.toLowerCase() !== "s"
+      ) {
         return;
       }
       if (!selectedWorkspace || !selectedPath || !isDirty || isSaving) {
@@ -535,7 +633,9 @@ export function FilesTab({ context }: PluginDetailTabProps) {
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-border bg-card p-4">
-        <label className="text-sm font-medium text-muted-foreground">Workspace</label>
+        <label className="text-sm font-medium text-muted-foreground">
+          Workspace
+        </label>
         <select
           key={workspaceSelectKey}
           className="mt-2 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -545,7 +645,12 @@ export function FilesTab({ context }: PluginDetailTabProps) {
           {workspaces.map((w) => {
             const label = workspaceLabel(w);
             return (
-              <option key={`${w.id}:${label}`} value={w.id} label={label} title={label}>
+              <option
+                key={`${w.id}:${label}`}
+                value={w.id}
+                label={label}
+                title={label}
+              >
                 {label}
               </option>
             );
@@ -566,7 +671,9 @@ export function FilesTab({ context }: PluginDetailTabProps) {
       >
         <div
           className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card"
-          style={{ display: isMobile && mobileView === "editor" ? "none" : "flex" }}
+          style={{
+            display: isMobile && mobileView === "editor" ? "none" : "flex",
+          }}
         >
           <div className="border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
             File Tree
@@ -583,7 +690,9 @@ export function FilesTab({ context }: PluginDetailTabProps) {
                   setMobileView("editor");
                 }}
                 loading={fileListLoading}
-                error={fileListError ? { message: fileListError.message } : null}
+                error={
+                  fileListError ? { message: fileListError.message } : null
+                }
                 empty={{
                   title: "No files",
                   description: "No files found in this workspace.",
@@ -591,13 +700,17 @@ export function FilesTab({ context }: PluginDetailTabProps) {
                 ariaLabel="Workspace files"
               />
             ) : (
-              <p className="px-2 py-3 text-sm text-muted-foreground">Select a workspace to browse files.</p>
+              <p className="px-2 py-3 text-sm text-muted-foreground">
+                Select a workspace to browse files.
+              </p>
             )}
           </div>
         </div>
         <div
           className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card"
-          style={{ display: isMobile && mobileView === "browser" ? "none" : "flex" }}
+          style={{
+            display: isMobile && mobileView === "browser" ? "none" : "flex",
+          }}
         >
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-2">
             <div className="min-w-0">
@@ -609,14 +722,20 @@ export function FilesTab({ context }: PluginDetailTabProps) {
               >
                 Back to files
               </button>
-              <div className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Editor</div>
-              <div className="truncate text-sm text-foreground">{selectedPath ?? "No file selected"}</div>
+              <div className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                Editor
+              </div>
+              <div className="truncate text-sm text-foreground">
+                {selectedPath ?? "No file selected"}
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 className="rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!selectedWorkspace || !selectedPath || !isDirty || isSaving}
+                disabled={
+                  !selectedWorkspace || !selectedPath || !isDirty || isSaving
+                }
                 onClick={() => void handleSave()}
               >
                 {isSaving ? "Saving..." : "Save"}
@@ -634,10 +753,17 @@ export function FilesTab({ context }: PluginDetailTabProps) {
               )}
             </div>
           ) : null}
-          {selectedPath && fileContentData?.error && fileContentData.error !== "Missing file context" ? (
-            <div className="border-b border-border px-4 py-2 text-xs text-destructive">{fileContentData.error}</div>
+          {selectedPath &&
+          fileContentData?.error &&
+          fileContentData.error !== "Missing file context" ? (
+            <div className="border-b border-border px-4 py-2 text-xs text-destructive">
+              {fileContentData.error}
+            </div>
           ) : null}
-          <div ref={editorRef} className="min-h-0 flex-1 overflow-auto overscroll-contain" />
+          <div
+            ref={editorRef}
+            className="min-h-0 flex-1 overflow-auto overscroll-contain"
+          />
         </div>
       </div>
     </div>
@@ -661,20 +787,27 @@ type PluginConfig = {
  * Respects the `commentAnnotationMode` instance config — hidden when mode
  * is `"contextMenu"` or `"none"`.
  */
-function buildFileBrowserHref(prefix: string, projectId: string | null, filePath: string): string {
+function buildFileBrowserHref(
+  prefix: string,
+  projectId: string | null,
+  filePath: string,
+): string {
   if (!projectId) return "#";
   const tabValue = `plugin:${PLUGIN_KEY}:${FILES_TAB_SLOT_ID}`;
   return `${prefix}/projects/${projectId}?tab=${encodeURIComponent(tabValue)}&file=${encodeURIComponent(filePath)}`;
 }
 
-function navigateToFileBrowser(href: string, event: MouseEvent<HTMLAnchorElement>) {
+function navigateToFileBrowser(
+  href: string,
+  event: MouseEvent<HTMLAnchorElement>,
+) {
   if (
-    event.defaultPrevented
-    || event.button !== 0
-    || event.metaKey
-    || event.ctrlKey
-    || event.altKey
-    || event.shiftKey
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.shiftKey
   ) {
     return;
   }
@@ -701,7 +834,9 @@ export function CommentFileLinks({ context }: PluginCommentAnnotationProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Files:</span>
+      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        Files:
+      </span>
       {data.links.map((link) => {
         const href = buildFileBrowserHref(prefix, projectId, link);
         return (
@@ -732,7 +867,9 @@ export function CommentFileLinks({ context }: PluginCommentAnnotationProps) {
  * Respects the `commentAnnotationMode` instance config — hidden when mode
  * is `"annotation"` or `"none"`.
  */
-export function CommentOpenFiles({ context }: PluginCommentContextMenuItemProps) {
+export function CommentOpenFiles({
+  context,
+}: PluginCommentContextMenuItemProps) {
   const { data: config } = usePluginData<PluginConfig>("plugin-config", {});
   const mode = config?.commentAnnotationMode ?? "both";
 

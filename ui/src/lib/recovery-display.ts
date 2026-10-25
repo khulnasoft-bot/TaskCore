@@ -1,4 +1,7 @@
-import type { IssueRecoveryAction, IssueRecoveryActionKind } from "@taskcore/shared";
+import type {
+  IssueRecoveryAction,
+  IssueRecoveryActionKind,
+} from "@taskcore/shared";
 import { Eye, OctagonAlert, RefreshCw, TriangleAlert } from "lucide-react";
 import {
   readRecoveryRetryLineage,
@@ -7,13 +10,12 @@ import {
 } from "./recovery-lineage";
 
 export type RecoveryDisplayState =
-  | "needed"
-  | "in_progress"
-  | "observe_only"
-  | "escalated"
-  | "resolved";
+  "needed" | "in_progress" | "observe_only" | "escalated" | "resolved";
 
-export type ActiveRecoveryDisplayState = Exclude<RecoveryDisplayState, "resolved">;
+export type ActiveRecoveryDisplayState = Exclude<
+  RecoveryDisplayState,
+  "resolved"
+>;
 
 export const RECOVERY_CHIP_DEFAULT_TONE: Record<
   ActiveRecoveryDisplayState,
@@ -26,8 +28,7 @@ export const RECOVERY_CHIP_DEFAULT_TONE: Record<
     label: "Recovery needed",
   },
   in_progress: {
-    className:
-      "border-sky-500/60 bg-sky-500/15 text-sky-700 dark:text-sky-300",
+    className: "border-sky-500/60 bg-sky-500/15 text-sky-700 dark:text-sky-300",
     icon: RefreshCw,
     label: "Recovery in progress",
   },
@@ -77,14 +78,17 @@ export function deriveRecoveryDisplayState(
   // fix yet, so the calm tone is reserved for a lane with an attempt genuinely still coming.
   // Once that attempt comes due unanswered, or the budget runs out, the warning is the honest
   // state — nothing is going to move this task without someone stepping in.
-  const lineage = readRecoveryRetryLineage({
-    wakePolicy: action.wakePolicy ?? null,
-    evidence: action.evidence,
-    attemptCount: action.attemptCount,
-    maxAttempts: action.maxAttempts,
-    timeoutAt: action.timeoutAt,
-    nativeRunActivity: action.nativeRunActivity,
-  }, context);
+  const lineage = readRecoveryRetryLineage(
+    {
+      wakePolicy: action.wakePolicy ?? null,
+      evidence: action.evidence,
+      attemptCount: action.attemptCount,
+      maxAttempts: action.maxAttempts,
+      timeoutAt: action.timeoutAt,
+      nativeRunActivity: action.nativeRunActivity,
+    },
+    context,
+  );
   // An explicit board retry may retain its old owner/budget while the exact
   // native run is already making progress. Actual activity wins over that
   // historical repair state, but a merely scheduled board retry does not.
@@ -99,7 +103,8 @@ export function deriveRecoveryDisplayState(
     if (action.cause?.startsWith("native_")) return "needed";
     return "observe_only";
   }
-  if (lineage && lineage.lane !== "board" && lineage.hasDurablePath) return "in_progress";
+  if (lineage && lineage.lane !== "board" && lineage.hasDurablePath)
+    return "in_progress";
   if (action.outcome === "delegated") return "in_progress";
   return "needed";
 }

@@ -23,7 +23,9 @@ function readConfig(configPath: string): PartialConfig | null {
   if (!existsSync(configPath)) return null;
   try {
     const parsed = JSON.parse(readFileSync(configPath, "utf8"));
-    return typeof parsed === "object" && parsed ? (parsed as PartialConfig) : null;
+    return typeof parsed === "object" && parsed
+      ? (parsed as PartialConfig)
+      : null;
   } catch {
     return null;
   }
@@ -43,7 +45,10 @@ function resolveConnectionString(config: PartialConfig | null): string {
   const envUrl = process.env.DATABASE_URL?.trim();
   if (envUrl) return envUrl;
 
-  if (config?.database?.mode === "postgres" && typeof config.database.connectionString === "string") {
+  if (
+    config?.database?.mode === "postgres" &&
+    typeof config.database.connectionString === "string"
+  ) {
     const trimmed = config.database.connectionString.trim();
     if (trimmed) return trimmed;
   }

@@ -32,7 +32,9 @@ export function LiveRunWidget({ issueId, companyId }: LiveRunWidgetProps) {
 
   // Live-run polling slows/stops for hidden tabs so a restored window doesn't
   // hammer the live-run endpoints (PAP-12556).
-  const liveRunRefetchInterval = useVisibilityRefetchInterval({ visibleMs: 3000 });
+  const liveRunRefetchInterval = useVisibilityRefetchInterval({
+    visibleMs: 3000,
+  });
 
   const { data: liveRuns } = useQuery({
     queryKey: queryKeys.issues.liveRuns(issueId),
@@ -71,18 +73,26 @@ export function LiveRunWidget({ issueId, companyId }: LiveRunWidgetProps) {
       });
     }
     return [...deduped.values()].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }, [activeRun, issueId, liveRuns]);
 
-  const { transcriptByRun, hasOutputForRun } = useLiveRunTranscripts({ runs, companyId });
+  const { transcriptByRun, hasOutputForRun } = useLiveRunTranscripts({
+    runs,
+    companyId,
+  });
 
   const handleCancelRun = async (runId: string) => {
     setCancellingRunIds((prev) => new Set(prev).add(runId));
     try {
       await heartbeatsApi.cancel(runId);
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.liveRuns(issueId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.issues.activeRun(issueId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.liveRuns(issueId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.issues.activeRun(issueId),
+      });
     } finally {
       setCancellingRunIds((prev) => {
         const next = new Set(prev);
@@ -113,8 +123,18 @@ export function LiveRunWidget({ issueId, companyId }: LiveRunWidgetProps) {
             <section key={run.id} className="px-4 py-4">
               <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <Link to={`/agents/${run.agentId}`} className="inline-flex hover:underline">
-                    <AgentIdentity agent={{ id: run.agentId, name: run.agentName, appearance: run.agentAppearance }} size="sm" />
+                  <Link
+                    to={`/agents/${run.agentId}`}
+                    className="inline-flex hover:underline"
+                  >
+                    <AgentIdentity
+                      agent={{
+                        id: run.agentId,
+                        name: run.agentName,
+                        appearance: run.agentAppearance,
+                      }}
+                      size="sm"
+                    />
                   </Link>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <Link
@@ -124,7 +144,9 @@ export function LiveRunWidget({ issueId, companyId }: LiveRunWidgetProps) {
                       {run.id.slice(0, 8)}
                     </Link>
                     <StatusBadge status={run.status} />
-                    <span>{formatDateTime(run.startedAt ?? run.createdAt)}</span>
+                    <span>
+                      {formatDateTime(run.startedAt ?? run.createdAt)}
+                    </span>
                   </div>
                 </div>
 

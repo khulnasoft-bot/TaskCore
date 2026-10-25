@@ -22,17 +22,26 @@ const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 // ---------------------------------------------------------------------------
 
 function asString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function resolveHermesHome(config: Record<string, unknown>): string {
   const env =
-    typeof config.env === "object" && config.env !== null && !Array.isArray(config.env)
+    typeof config.env === "object" &&
+    config.env !== null &&
+    !Array.isArray(config.env)
       ? (config.env as Record<string, unknown>)
       : {};
   const configuredHome = asString(env.HOME);
   const hermesHome = asString(env.HERMES_HOME);
-  return hermesHome ? path.resolve(hermesHome) : path.join(configuredHome ? path.resolve(configuredHome) : os.homedir(), ".hermes");
+  return hermesHome
+    ? path.resolve(hermesHome)
+    : path.join(
+        configuredHome ? path.resolve(configuredHome) : os.homedir(),
+        ".hermes",
+      );
 }
 
 interface SkillFrontmatter {
@@ -53,7 +62,11 @@ function parseSkillFrontmatter(content: string): SkillFrontmatter {
     const key = line.slice(0, idx).trim();
     let val: unknown = line.slice(idx + 1).trim();
     // Strip quotes
-    if (typeof val === "string" && ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))) {
+    if (
+      typeof val === "string" &&
+      ((val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'")))
+    ) {
       val = val.slice(1, -1);
     }
     frontmatter[key] = val;
@@ -75,17 +88,23 @@ async function scanHermesSkills(
       // Check if the category directory itself has a SKILL.md (top-level skill)
       const topLevelSkillMd = path.join(catPath, "SKILL.md");
       if (await fs.stat(topLevelSkillMd).catch(() => null)) {
-        entries.push(await buildSkillEntry(cat.name, topLevelSkillMd, cat.name));
+        entries.push(
+          await buildSkillEntry(cat.name, topLevelSkillMd, cat.name),
+        );
       }
 
       // Scan for sub-skills
-      const items = await fs.readdir(catPath, { withFileTypes: true }).catch(() => []);
+      const items = await fs
+        .readdir(catPath, { withFileTypes: true })
+        .catch(() => []);
       for (const item of items) {
         if (!item.isDirectory()) continue;
         const skillMd = path.join(catPath, item.name, "SKILL.md");
         if (await fs.stat(skillMd).catch(() => null)) {
           const key = item.name;
-          entries.push(await buildSkillEntry(key, skillMd, `${cat.name}/${item.name}`));
+          entries.push(
+            await buildSkillEntry(key, skillMd, `${cat.name}/${item.name}`),
+          );
         }
       }
     }
@@ -130,13 +149,21 @@ async function buildSkillEntry(
 // Public API
 // ---------------------------------------------------------------------------
 
-async function buildHermesSkillSnapshot(config: Record<string, unknown>): Promise<AdapterSkillSnapshot> {
+async function buildHermesSkillSnapshot(
+  config: Record<string, unknown>,
+): Promise<AdapterSkillSnapshot> {
   const home = resolveHermesHome(config);
   const hermesSkillsHome = path.join(home, "skills");
 
   // 1. Scan Taskcore-managed skills (bundled with the adapter)
-  const taskcoreEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
-  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(config, taskcoreEntries);
+  const taskcoreEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
+  const desiredSkills = resolveLegacyTaskcoreDesiredSkillNames(
+    config,
+    taskcoreEntries,
+  );
   const desiredSet = new Set(desiredSkills);
   const availableByKey = new Map(taskcoreEntries.map((e) => [e.key, e]));
 
@@ -177,7 +204,8 @@ async function buildHermesSkillSnapshot(config: Record<string, unknown>): Promis
 
   // Check for desired skills that don't exist
   for (const desiredSkill of desiredSkills) {
-    if (availableByKey.has(desiredSkill) || hermesKeys.has(desiredSkill)) continue;
+    if (availableByKey.has(desiredSkill) || hermesKeys.has(desiredSkill))
+      continue;
     warnings.push(
       `Desired skill "${desiredSkill}" is not available in Taskcore or Hermes skills.`,
     );
@@ -192,8 +220,7 @@ async function buildHermesSkillSnapshot(config: Record<string, unknown>): Promis
       readOnly: false,
       sourcePath: null,
       targetPath: null,
-      detail:
-        "Cannot find this skill in Taskcore or ~/.hermes/skills/.",
+      detail: "Cannot find this skill in Taskcore or ~/.hermes/skills/.",
     });
   }
 
@@ -217,21 +244,29 @@ export async function reconcileHermesTaskcoreSkills(
   config: Record<string, unknown>,
   requestedDesiredSkills?: string[],
 ): Promise<string[]> {
-  const availableEntries = await readTaskcoreRuntimeSkillEntries(config, __moduleDir);
+  const availableEntries = await readTaskcoreRuntimeSkillEntries(
+    config,
+    __moduleDir,
+  );
   const desiredSkills = requestedDesiredSkills
-    ? Array.from(new Set([
-        ...resolveLegacyTaskcoreDesiredSkillNames({}, availableEntries),
-        ...requestedDesiredSkills,
-      ]))
+    ? Array.from(
+        new Set([
+          ...resolveLegacyTaskcoreDesiredSkillNames({}, availableEntries),
+          ...requestedDesiredSkills,
+        ]),
+      )
     : resolveLegacyTaskcoreDesiredSkillNames(config, availableEntries);
   const desiredSet = new Set(desiredSkills);
   const skillsHome = path.join(resolveHermesHome(config), "skills");
   await fs.mkdir(skillsHome, { recursive: true });
   const installed = await readInstalledSkillTargets(skillsHome);
-  const availableByRuntimeName = new Map(availableEntries.map((entry) => [entry.runtimeName, entry]));
+  const availableByRuntimeName = new Map(
+    availableEntries.map((entry) => [entry.runtimeName, entry]),
+  );
 
   for (const entry of availableEntries) {
-    if (!desiredSet.has(entry.key) || isTaskcoreSkillSourceMissing(entry)) continue;
+    if (!desiredSet.has(entry.key) || isTaskcoreSkillSourceMissing(entry))
+      continue;
     const target = path.join(skillsHome, entry.runtimeName);
     await ensureTaskcoreSkillSymlink(entry.source, target);
     const linkedSource = await fs.readlink(target).catch(() => null);

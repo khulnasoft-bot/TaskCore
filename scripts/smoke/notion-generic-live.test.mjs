@@ -30,7 +30,8 @@ const COMPLETE_ENV = {
 
 test("preflight reports binding names without exposing supplied values", () => {
   assert.throws(
-    () => preflightNotionGenericLive({ TASKCORE_DEV_LOGIN_PASSWORD: "present" }),
+    () =>
+      preflightNotionGenericLive({ TASKCORE_DEV_LOGIN_PASSWORD: "present" }),
     (error) => {
       assert.ok(error instanceof NotionGenericLivePreflightError);
       assert.equal(error.code, "missing_environment");
@@ -56,8 +57,14 @@ test("preflight requires explicit credential-free HTTPS target and control-plane
     "https://taskcore.example.test/?code=secret",
   ]) {
     assert.throws(
-      () => preflightNotionGenericLive({ ...COMPLETE_ENV, TASKCORE_E2E_BASE_URL: baseUrl }),
-      (error) => error instanceof NotionGenericLivePreflightError && error.code === "unsafe_base_url",
+      () =>
+        preflightNotionGenericLive({
+          ...COMPLETE_ENV,
+          TASKCORE_E2E_BASE_URL: baseUrl,
+        }),
+      (error) =>
+        error instanceof NotionGenericLivePreflightError &&
+        error.code === "unsafe_base_url",
     );
   }
   const split = preflightNotionGenericLive({
@@ -80,7 +87,9 @@ test("health and binding metadata pass before browser loading, without fetching 
       }
       return {
         ok: true,
-        json: async () => ({ secrets: [{ key: "generic-flow-test-account", delivery: "api" }] }),
+        json: async () => ({
+          secrets: [{ key: "generic-flow-test-account", delivery: "api" }],
+        }),
       };
     },
     loadBrowser: async () => {
@@ -88,10 +97,19 @@ test("health and binding metadata pass before browser loading, without fetching 
       return { chromium: {} };
     },
   });
-  assert.equal(prepared.config.callbackUrl, "https://taskcore.example.test/api/tools/oauth/callback");
+  assert.equal(
+    prepared.config.callbackUrl,
+    "https://taskcore.example.test/api/tools/oauth/callback",
+  );
   assert.equal(browserLoaded, true);
-  assert.deepEqual(requests.map((entry) => entry.method), ["GET", "GET"]);
-  assert.equal(requests.some((entry) => entry.url.includes("/value")), false);
+  assert.deepEqual(
+    requests.map((entry) => entry.method),
+    ["GET", "GET"],
+  );
+  assert.equal(
+    requests.some((entry) => entry.url.includes("/value")),
+    false,
+  );
 });
 
 test("an unavailable secret binding fails before browser or credential entry", async () => {
@@ -99,14 +117,17 @@ test("an unavailable secret binding fails before browser or credential entry", a
   await assert.rejects(
     prepareNotionGenericLiveSmoke({
       environment: COMPLETE_ENV,
-      fetchImpl: async (url) => String(url).endsWith("/api/health")
-        ? { ok: true, json: async () => ({ status: "ok" }) }
-        : { ok: true, json: async () => ({ secrets: [] }) },
+      fetchImpl: async (url) =>
+        String(url).endsWith("/api/health")
+          ? { ok: true, json: async () => ({ status: "ok" }) }
+          : { ok: true, json: async () => ({ secrets: [] }) },
       loadBrowser: async () => {
         browserLoaded = true;
       },
     }),
-    (error) => error instanceof NotionGenericLivePreflightError && error.code === "secret_binding_unavailable",
+    (error) =>
+      error instanceof NotionGenericLivePreflightError &&
+      error.code === "secret_binding_unavailable",
   );
   assert.equal(browserLoaded, false);
 });
@@ -125,19 +146,40 @@ test("selects only fresh authenticated Notion verification mail and extracts one
   assert.equal(isFreshNotionVerificationMessage(message, { notBefore }), true);
   assert.equal(notionVerificationAuthenticationPassed(message), true);
   assert.equal(extractNotionVerificationCode(message), "123456");
-  assert.equal(isFreshNotionVerificationMessage({
-    ...message,
-    timestamp: new Date("2026-08-18T11:59:59.000Z"),
-  }, { notBefore }), false);
-  assert.equal(isFreshNotionVerificationMessage({
-    ...message,
-    from: "Notion <login@example.test>",
-  }, { notBefore }), false);
-  assert.equal(notionVerificationAuthenticationPassed({
-    ...message,
-    headers: { "authentication-results": "dkim=fail; spf=pass" },
-  }), false);
-  assert.equal(extractNotionVerificationCode({ ...message, extractedText: "Codes 123456 and 654321" }), null);
+  assert.equal(
+    isFreshNotionVerificationMessage(
+      {
+        ...message,
+        timestamp: new Date("2026-08-18T11:59:59.000Z"),
+      },
+      { notBefore },
+    ),
+    false,
+  );
+  assert.equal(
+    isFreshNotionVerificationMessage(
+      {
+        ...message,
+        from: "Notion <login@example.test>",
+      },
+      { notBefore },
+    ),
+    false,
+  );
+  assert.equal(
+    notionVerificationAuthenticationPassed({
+      ...message,
+      headers: { "authentication-results": "dkim=fail; spf=pass" },
+    }),
+    false,
+  );
+  assert.equal(
+    extractNotionVerificationCode({
+      ...message,
+      extractedText: "Codes 123456 and 654321",
+    }),
+    null,
+  );
 });
 
 test("authorization proof requires automatic registration, PKCE, callback, resource, and safe endpoints", () => {
@@ -146,7 +188,9 @@ test("authorization proof requires automatic registration, PKCE, callback, resou
   for (const source of ["manual", "preconfigured", null]) {
     assert.throws(
       () => assertAutomaticRegistrationSource(source),
-      (error) => error instanceof NotionGenericLivePreflightError && error.code === "unexpected_registration_source",
+      (error) =>
+        error instanceof NotionGenericLivePreflightError &&
+        error.code === "unexpected_registration_source",
     );
   }
 
@@ -155,63 +199,94 @@ test("authorization proof requires automatic registration, PKCE, callback, resou
   const resource = "https://mcp.notion.com/mcp";
   const url = new URL("https://mcp.notion.com/authorize");
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("client_id", `${baseUrl}/api/tools/oauth/client-metadata`);
+  url.searchParams.set(
+    "client_id",
+    `${baseUrl}/api/tools/oauth/client-metadata`,
+  );
   url.searchParams.set("redirect_uri", callbackUrl);
   url.searchParams.set("state", "not-recorded");
   url.searchParams.set("code_challenge", "not-recorded");
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("resource", resource);
 
-  assert.deepEqual(inspectAuthorizationUrl(url.toString(), {
-    callbackUrl,
-    resource,
-    registrationSource: "cimd",
-    baseUrl,
-  }), {
-    endpoint: { origin: "https://mcp.notion.com", path: "/authorize" },
-    parameters: { clientId: true, state: true, pkceS256: true, callbackUri: true, resource: true },
-  });
-  assert.deepEqual(safeEndpointSummary("https://mcp.notion.com/token", "token"), {
-    origin: "https://mcp.notion.com",
-    path: "/token",
-  });
+  assert.deepEqual(
+    inspectAuthorizationUrl(url.toString(), {
+      callbackUrl,
+      resource,
+      registrationSource: "cimd",
+      baseUrl,
+    }),
+    {
+      endpoint: { origin: "https://mcp.notion.com", path: "/authorize" },
+      parameters: {
+        clientId: true,
+        state: true,
+        pkceS256: true,
+        callbackUri: true,
+        resource: true,
+      },
+    },
+  );
+  assert.deepEqual(
+    safeEndpointSummary("https://mcp.notion.com/token", "token"),
+    {
+      origin: "https://mcp.notion.com",
+      path: "/token",
+    },
+  );
   assert.throws(
     () => safeEndpointSummary("http://mcp.notion.com/token", "token"),
-    (error) => error instanceof NotionGenericLivePreflightError && error.code === "unsafe_token_endpoint",
+    (error) =>
+      error instanceof NotionGenericLivePreflightError &&
+      error.code === "unsafe_token_endpoint",
   );
 });
 
 test("authorization proof rejects a provider login page after OAuth parameters were consumed", () => {
   assert.throws(
-    () => inspectAuthorizationUrl("https://id.notion.test/login", {
-      callbackUrl: "https://taskcore.example/api/tools/oauth/callback",
-      resource: "https://mcp.notion.com/mcp",
-      registrationSource: "dcr",
-      baseUrl: "https://taskcore.example",
-    }),
-    (error) => error instanceof NotionGenericLivePreflightError
-      && error.code === "authorization_parameter_missing",
+    () =>
+      inspectAuthorizationUrl("https://id.notion.test/login", {
+        callbackUrl: "https://taskcore.example/api/tools/oauth/callback",
+        resource: "https://mcp.notion.com/mcp",
+        registrationSource: "dcr",
+        baseUrl: "https://taskcore.example",
+      }),
+    (error) =>
+      error instanceof NotionGenericLivePreflightError &&
+      error.code === "authorization_parameter_missing",
   );
 });
 
 test("reconstructs the inline OAuth start from durable connection state and provider navigation", () => {
-  assert.deepEqual(persistedOAuthStartResult({
-    id: "connection-123",
-    config: {
-      oauth: {
-        clientRegistrationSource: "cimd",
-        issuer: "https://mcp.notion.com",
-        resource: "https://mcp.notion.com/mcp",
+  assert.deepEqual(
+    persistedOAuthStartResult(
+      {
+        id: "connection-123",
+        config: {
+          oauth: {
+            clientRegistrationSource: "cimd",
+            issuer: "https://mcp.notion.com",
+            resource: "https://mcp.notion.com/mcp",
+          },
+        },
       },
+      " https://mcp.notion.com/authorize?state=not-recorded ",
+    ),
+    {
+      connectionId: "connection-123",
+      authorizationUrl: "https://mcp.notion.com/authorize?state=not-recorded",
+      registrationSource: "cimd",
+      issuer: "https://mcp.notion.com",
+      resource: "https://mcp.notion.com/mcp",
     },
-  }, " https://mcp.notion.com/authorize?state=not-recorded "), {
-    connectionId: "connection-123",
-    authorizationUrl: "https://mcp.notion.com/authorize?state=not-recorded",
-    registrationSource: "cimd",
-    issuer: "https://mcp.notion.com",
-    resource: "https://mcp.notion.com/mcp",
-  });
-  assert.equal(persistedOAuthStartResult({ id: "connection-123", config: {} }, "https://example.test"), null);
+  );
+  assert.equal(
+    persistedOAuthStartResult(
+      { id: "connection-123", config: {} },
+      "https://example.test",
+    ),
+    null,
+  );
 });
 
 test("accepts zero-count cleanup before setup but requires full revocation after install", () => {
@@ -236,28 +311,38 @@ test("accepts zero-count cleanup before setup but requires full revocation after
     runtimeSlotsStopped: 0,
     appProfile: "absent",
   });
-  assert.equal(connectionRemovalFacts(partial, { requireInstalled: true }), null);
-  assert.ok(connectionRemovalFacts({
-    ...partial,
-    installsRemoved: 1,
-    appProfileBindingsRemoved: 1,
-    secretsRevoked: 1,
-    appProfile: "deleted",
-  }, { requireInstalled: true }));
+  assert.equal(
+    connectionRemovalFacts(partial, { requireInstalled: true }),
+    null,
+  );
+  assert.ok(
+    connectionRemovalFacts(
+      {
+        ...partial,
+        installsRemoved: 1,
+        appProfileBindingsRemoved: 1,
+        secretsRevoked: 1,
+        appProfile: "deleted",
+      },
+      { requireInstalled: true },
+    ),
+  );
 });
 
 test("workspace proof extraction and fresh-run comments retain only sanitized identity", () => {
   const identity = extractNotionIdentity({
     result: {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          id: "bot-123",
-          type: "bot",
-          bot: { workspace_id: "workspace-123", workspace_name: "Taskcore" },
-          token: "discard-me",
-        }),
-      }],
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            id: "bot-123",
+            type: "bot",
+            bot: { workspace_id: "workspace-123", workspace_name: "Taskcore" },
+            token: "discard-me",
+          }),
+        },
+      ],
     },
   });
   assert.deepEqual(identity, {
@@ -270,17 +355,38 @@ test("workspace proof extraction and fresh-run comments retain only sanitized id
       '{"workspaceId":"workspace-123","workspaceName":"Taskcore","invocationId":"inv-123"}',
       identity,
     ),
-    { workspaceId: "workspace-123", workspaceName: "Taskcore", invocationId: "inv-123" },
+    {
+      workspaceId: "workspace-123",
+      workspaceName: "Taskcore",
+      invocationId: "inv-123",
+    },
   );
   assert.deepEqual(
-    parseRuntimeAbsenceProof('{"connectionId":"conn-123","toolPresent":false}', "conn-123"),
+    parseRuntimeAbsenceProof(
+      '{"connectionId":"conn-123","toolPresent":false}',
+      "conn-123",
+    ),
     { connectionId: "conn-123", toolPresent: false },
   );
 });
 
 test("sanitized evidence rejects credential fields, sessions, and OAuth query values", () => {
-  assert.doesNotThrow(() => assertSanitizedEvidence({ workspaceId: "workspace-123", invocationId: "inv-123" }));
-  assert.throws(() => assertSanitizedEvidence({ accessToken: "secret" }), /unsafe_evidence_key/);
-  assert.throws(() => assertSanitizedEvidence({ sessionId: "secret" }), /unsafe_evidence_key/);
-  assert.throws(() => assertSanitizedEvidence({ note: "callback?code=secret" }), /unsafe_evidence_text/);
+  assert.doesNotThrow(() =>
+    assertSanitizedEvidence({
+      workspaceId: "workspace-123",
+      invocationId: "inv-123",
+    }),
+  );
+  assert.throws(
+    () => assertSanitizedEvidence({ accessToken: "secret" }),
+    /unsafe_evidence_key/,
+  );
+  assert.throws(
+    () => assertSanitizedEvidence({ sessionId: "secret" }),
+    /unsafe_evidence_key/,
+  );
+  assert.throws(
+    () => assertSanitizedEvidence({ note: "callback?code=secret" }),
+    /unsafe_evidence_text/,
+  );
 });

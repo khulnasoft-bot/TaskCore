@@ -44,19 +44,31 @@ import { resolveExecutionRunAdapterConfig } from "../services/heartbeat.ts";
 const support = await getEmbeddedPostgresTestSupport();
 const describeEmbedded = support.supported ? describe : describe.skip;
 if (!support.supported) {
-  console.warn(`Skipping QA e2e on this host: ${support.reason ?? "embedded pg unsupported"}`);
+  console.warn(
+    `Skipping QA e2e on this host: ${support.reason ?? "embedded pg unsupported"}`,
+  );
 }
 
 describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
-  const secretsTmpDir = path.join(os.tmpdir(), `taskcore-qa-routine-secrets-${randomUUID()}`);
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
+  const secretsTmpDir = path.join(
+    os.tmpdir(),
+    `taskcore-qa-routine-secrets-${randomUUID()}`,
+  );
   const previousKeyFile = process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
 
   beforeAll(async () => {
     mkdirSync(secretsTmpDir, { recursive: true });
-    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(secretsTmpDir, "master.key");
-    tempDb = await startEmbeddedPostgresTestDatabase("taskcore-qa-routine-secrets-");
+    process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = path.join(
+      secretsTmpDir,
+      "master.key",
+    );
+    tempDb = await startEmbeddedPostgresTestDatabase(
+      "taskcore-qa-routine-secrets-",
+    );
     db = createDb(tempDb.connectionString);
   }, 30_000);
 
@@ -77,7 +89,8 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
 
   afterAll(async () => {
     await tempDb?.cleanup();
-    if (previousKeyFile === undefined) delete process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
+    if (previousKeyFile === undefined)
+      delete process.env.TASKCORE_SECRETS_MASTER_KEY_FILE;
     else process.env.TASKCORE_SECRETS_MASTER_KEY_FILE = previousKeyFile;
     rmSync(secretsTmpDir, { recursive: true, force: true });
   });
@@ -116,7 +129,9 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
   it("resolves routine env for an executing agent that has no direct binding, with routine winning precedence and zero value in access events", async () => {
     const { companyId, executorAgentId } = await seed();
     const secrets = secretService(db);
-    const routines = routineService(db, { heartbeat: { wakeup: async () => null } });
+    const routines = routineService(db, {
+      heartbeat: { wakeup: async () => null },
+    });
 
     const secret = await secrets.create(companyId, {
       name: `routine-api-${randomUUID()}`,
@@ -139,7 +154,11 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
         catchUpPolicy: "skip_missed",
         env: {
           SHARED: { type: "plain", value: "routine-overrides" },
-          ROUTINE_API_KEY: { type: "secret_ref", secretId: secret.id, version: "latest" },
+          ROUTINE_API_KEY: {
+            type: "secret_ref",
+            secretId: secret.id,
+            version: "latest",
+          },
         },
       },
       {},
@@ -151,7 +170,11 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
       .from(companySecretBindings)
       .where(eq(companySecretBindings.targetId, routine.id));
     expect(bindings).toMatchObject([
-      { targetType: "routine", secretId: secret.id, configPath: "env.ROUTINE_API_KEY" },
+      {
+        targetType: "routine",
+        secretId: secret.id,
+        configPath: "env.ROUTINE_API_KEY",
+      },
     ]);
 
     // Drive the real heartbeat resolution path with the routine env.
@@ -166,7 +189,9 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
       heartbeatRunId: null,
       projectId: null,
       routineId: routine.id,
-      executionRunConfig: { env: { SHARED: AGENT_VALUE, AGENT_ONLY: AGENT_VALUE } },
+      executionRunConfig: {
+        env: { SHARED: AGENT_VALUE, AGENT_ONLY: AGENT_VALUE },
+      },
       projectEnv: { SHARED: { type: "plain", value: PROJECT_VALUE } },
       routineEnv: routine.env,
       secretsSvc: secrets,
@@ -178,7 +203,9 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
       ROUTINE_API_KEY: ROUTINE_VALUE,
     });
     expect(result.secretKeys.has("ROUTINE_API_KEY")).toBe(true);
-    expect(result.secretManifest.some((m) => m.envKey === "ROUTINE_API_KEY")).toBe(true);
+    expect(
+      result.secretManifest.some((m) => m.envKey === "ROUTINE_API_KEY"),
+    ).toBe(true);
     // Manifest must not echo the resolved value.
     expect(JSON.stringify(result.secretManifest)).not.toContain(ROUTINE_VALUE);
 
@@ -203,7 +230,9 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
     const { companyId } = await seed();
     const { companyId: otherCompanyId } = await seed();
     const secrets = secretService(db);
-    const routines = routineService(db, { heartbeat: { wakeup: async () => null } });
+    const routines = routineService(db, {
+      heartbeat: { wakeup: async () => null },
+    });
 
     const foreignSecret = await secrets.create(otherCompanyId, {
       name: `foreign-${randomUUID()}`,
@@ -226,7 +255,11 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
           concurrencyPolicy: "coalesce_if_active",
           catchUpPolicy: "skip_missed",
           env: {
-            BAD: { type: "secret_ref", secretId: foreignSecret.id, version: "latest" },
+            BAD: {
+              type: "secret_ref",
+              secretId: foreignSecret.id,
+              version: "latest",
+            },
           },
         },
         {},
@@ -237,7 +270,9 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
   it("surfaces a clear, value-free error when a routine secret is missing/deleted at resolution time", async () => {
     const { companyId, executorAgentId } = await seed();
     const secrets = secretService(db);
-    const routines = routineService(db, { heartbeat: { wakeup: async () => null } });
+    const routines = routineService(db, {
+      heartbeat: { wakeup: async () => null },
+    });
 
     const secret = await secrets.create(companyId, {
       name: `to-be-deleted-${randomUUID()}`,
@@ -259,7 +294,11 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
         concurrencyPolicy: "coalesce_if_active",
         catchUpPolicy: "skip_missed",
         env: {
-          DOOMED: { type: "secret_ref", secretId: secret.id, version: "latest" },
+          DOOMED: {
+            type: "secret_ref",
+            secretId: secret.id,
+            version: "latest",
+          },
         },
       },
       {},
@@ -294,7 +333,9 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
   it("restoring an older revision re-syncs company_secret_bindings to the snapshot env", async () => {
     const { companyId, executorAgentId } = await seed();
     const secrets = secretService(db);
-    const routines = routineService(db, { heartbeat: { wakeup: async () => null } });
+    const routines = routineService(db, {
+      heartbeat: { wakeup: async () => null },
+    });
 
     const secretA = await secrets.create(companyId, {
       name: `a-${randomUUID()}`,
@@ -321,7 +362,11 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
         concurrencyPolicy: "coalesce_if_active",
         catchUpPolicy: "skip_missed",
         env: {
-          ALPHA: { type: "secret_ref", secretId: secretA.id, version: "latest" },
+          ALPHA: {
+            type: "secret_ref",
+            secretId: secretA.id,
+            version: "latest",
+          },
         },
       },
       {},
@@ -332,7 +377,11 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
       routine.id,
       {
         env: {
-          ALPHA: { type: "secret_ref", secretId: secretA.id, version: "latest" },
+          ALPHA: {
+            type: "secret_ref",
+            secretId: secretA.id,
+            version: "latest",
+          },
           BETA: { type: "secret_ref", secretId: secretB.id, version: "latest" },
         },
       },
@@ -343,7 +392,10 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
       .select()
       .from(companySecretBindings)
       .where(eq(companySecretBindings.targetId, routine.id));
-    expect(bindings.map((b) => b.configPath).sort()).toEqual(["env.ALPHA", "env.BETA"]);
+    expect(bindings.map((b) => b.configPath).sort()).toEqual([
+      "env.ALPHA",
+      "env.BETA",
+    ]);
 
     await routines.restoreRevision(routine.id, rev1Id, {});
 
@@ -358,7 +410,9 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
   it("legacy run with null routine_revision_id falls back to the routine's current env (still resolves)", async () => {
     const { companyId, executorAgentId } = await seed();
     const secrets = secretService(db);
-    const routines = routineService(db, { heartbeat: { wakeup: async () => null } });
+    const routines = routineService(db, {
+      heartbeat: { wakeup: async () => null },
+    });
 
     const secret = await secrets.create(companyId, {
       name: `legacy-${randomUUID()}`,
@@ -380,7 +434,11 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
         concurrencyPolicy: "coalesce_if_active",
         catchUpPolicy: "skip_missed",
         env: {
-          LEGACY: { type: "secret_ref", secretId: secret.id, version: "latest" },
+          LEGACY: {
+            type: "secret_ref",
+            secretId: secret.id,
+            version: "latest",
+          },
         },
       },
       {},
@@ -420,7 +478,9 @@ describeEmbedded("PAP-9522 QA: routine secrets end-to-end", () => {
   it("routines created with null env (no Secrets tab interaction) still resolve normally with empty env", async () => {
     const { companyId, executorAgentId } = await seed();
     const secrets = secretService(db);
-    const routines = routineService(db, { heartbeat: { wakeup: async () => null } });
+    const routines = routineService(db, {
+      heartbeat: { wakeup: async () => null },
+    });
 
     const routine = await routines.create(
       companyId,

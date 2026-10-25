@@ -1,4 +1,7 @@
-import type { IssueWriteDenialCode, IssueWriteDenialContext } from "@taskcore/shared";
+import type {
+  IssueWriteDenialCode,
+  IssueWriteDenialContext,
+} from "@taskcore/shared";
 
 /**
  * Map the activity events the server writes when it refuses an issue write onto
@@ -9,14 +12,18 @@ import type { IssueWriteDenialCode, IssueWriteDenialContext } from "@taskcore/sh
  * in the API error body.
  */
 const DENIAL_ACTIVITY_CODES: Record<string, IssueWriteDenialCode> = {
-  "issue.cross_issue_influence_cap_rejected": "cross_issue_influence_cap_exceeded",
+  "issue.cross_issue_influence_cap_rejected":
+    "cross_issue_influence_cap_exceeded",
   "issue.attribution_spoof_rejected": "issue_write_attribution_spoof_rejected",
 };
 
 export function issueWriteDenialForActivity(
   action: string,
   details: Record<string, unknown> | null | undefined,
-  labels: Pick<IssueWriteDenialContext, "actorLabel" | "assigneeLabel" | "responsibleUserName"> = {},
+  labels: Pick<
+    IssueWriteDenialContext,
+    "actorLabel" | "assigneeLabel" | "responsibleUserName"
+  > = {},
 ): { code: IssueWriteDenialCode; context: IssueWriteDenialContext } | null {
   const code = DENIAL_ACTIVITY_CODES[action];
   if (!code) return null;
@@ -24,10 +31,12 @@ export function issueWriteDenialForActivity(
     code,
     context: {
       ...labels,
-      issueIdentifier: typeof details?.identifier === "string" ? details.identifier : null,
+      issueIdentifier:
+        typeof details?.identifier === "string" ? details.identifier : null,
       cap: typeof details?.cap === "number" ? details.cap : null,
       count: typeof details?.count === "number" ? details.count : null,
-      enforceAt: typeof details?.enforceAt === "string" ? details.enforceAt : null,
+      enforceAt:
+        typeof details?.enforceAt === "string" ? details.enforceAt : null,
     },
   };
 }

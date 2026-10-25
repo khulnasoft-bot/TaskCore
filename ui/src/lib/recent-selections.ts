@@ -6,7 +6,9 @@ export function readRecentSelectionIds(storageKey: string): string[] {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === "string")
+      : [];
   } catch {
     return [];
   }
@@ -14,9 +16,12 @@ export function readRecentSelectionIds(storageKey: string): string[] {
 
 export function trackRecentSelectionId(storageKey: string, id: string): void {
   if (!id) return;
-  const recent = readRecentSelectionIds(storageKey).filter((candidate) => candidate !== id);
+  const recent = readRecentSelectionIds(storageKey).filter(
+    (candidate) => candidate !== id,
+  );
   recent.unshift(id);
-  if (recent.length > MAX_STORED_RECENT_SELECTIONS) recent.length = MAX_STORED_RECENT_SELECTIONS;
+  if (recent.length > MAX_STORED_RECENT_SELECTIONS)
+    recent.length = MAX_STORED_RECENT_SELECTIONS;
   localStorage.setItem(storageKey, JSON.stringify(recent));
 }
 

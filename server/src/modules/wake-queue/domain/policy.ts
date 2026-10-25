@@ -29,9 +29,7 @@ export type WakeAdmissionFacts = {
 };
 
 export type WakeAdmissionDecision =
-  | { kind: "proceed" }
-  | { kind: "coalesce" }
-  | { kind: "defer" };
+  { kind: "proceed" } | { kind: "coalesce" } | { kind: "defer" };
 
 /**
  * Decides what a new wake does when an active execution run already holds
@@ -41,7 +39,9 @@ export type WakeAdmissionDecision =
  * this function returns `defer`, so that read never runs on the coalesce
  * path.
  */
-export function decideWakeAdmission(facts: WakeAdmissionFacts): WakeAdmissionDecision {
+export function decideWakeAdmission(
+  facts: WakeAdmissionFacts,
+): WakeAdmissionDecision {
   if (
     facts.allowRunCoalescing !== false &&
     facts.sameDurableActor !== false &&
@@ -97,14 +97,17 @@ export function decidePreDrain(facts: PreDrainFacts): PreDrainDecision {
   }
 
   if (
-    (facts.isWorkspaceValidationFailedRun || facts.isConfigurationIncompleteFailedRun) &&
+    (facts.isWorkspaceValidationFailedRun ||
+      facts.isConfigurationIncompleteFailedRun) &&
     (facts.issueStatus === "todo" || facts.issueStatus === "in_progress") &&
     !facts.hasAssigneeUser &&
     facts.assigneeAgentMatchesRunAgent
   ) {
     return {
       kind: "blocked",
-      noticeKind: facts.isConfigurationIncompleteFailedRun ? "configuration_incomplete" : "workspace_validation",
+      noticeKind: facts.isConfigurationIncompleteFailedRun
+        ? "configuration_incomplete"
+        : "workspace_validation",
     };
   }
 
@@ -170,7 +173,10 @@ export function decideQueuedCommentAction(
     facts.liveNonSelfCommentIdsLength === 0 &&
     !facts.preservesIndependentContinuation
   ) {
-    return { kind: "cancel_empty", selfAuthored: facts.containedSelfAuthoredComment };
+    return {
+      kind: "cancel_empty",
+      selfAuthored: facts.containedSelfAuthoredComment,
+    };
   }
 
   if (facts.hasQueuedCommentIds && facts.liveCommentIdsDiffer) {
@@ -181,7 +187,9 @@ export function decideQueuedCommentAction(
 }
 
 /** Decides the outcome for a deferred wake whose queued-comment action resolved to "proceed" (or finished its rewrite): fail, cancel, or promote. */
-export function decideWakeOutcome(facts: DeferredWakeOutcomeFacts): DeferredWakeOutcomeDecision {
+export function decideWakeOutcome(
+  facts: DeferredWakeOutcomeFacts,
+): DeferredWakeOutcomeDecision {
   const { agent, pauseHold } = facts;
 
   if (!agent.agentFound || !agent.invokable) {
@@ -259,7 +267,9 @@ export type ImmediateRecoveryContextLabels = {
  * assignment; every other status this decision reaches is a stalled
  * continuation.
  */
-export function deriveImmediateRecoveryContextLabels(issueStatus: string): ImmediateRecoveryContextLabels {
+export function deriveImmediateRecoveryContextLabels(
+  issueStatus: string,
+): ImmediateRecoveryContextLabels {
   return issueStatus === "todo"
     ? {
         retryReason: "assignment_recovery",
@@ -308,16 +318,25 @@ export type QueuedCommentWakeLookupDecision =
  * turn (needs a second read to confirm, `check_queue_run`), already being
  * dispatched, or no longer a pending queue at all.
  */
-export function decideQueuedCommentWakeLookup(facts: QueuedCommentWakeLookupFacts): QueuedCommentWakeLookupDecision {
-  if (!facts.wakePresent || !facts.wakeIssueIdMatches || !facts.hasQueuedCommentIds) {
+export function decideQueuedCommentWakeLookup(
+  facts: QueuedCommentWakeLookupFacts,
+): QueuedCommentWakeLookupDecision {
+  if (
+    !facts.wakePresent ||
+    !facts.wakeIssueIdMatches ||
+    !facts.hasQueuedCommentIds
+  ) {
     return { kind: "not_pending" };
   }
-  if (facts.wakeStatus === "deferred_issue_execution") return { kind: "deferred" };
-  if (facts.wakeStatus === "queued" && facts.wakeHasRunId) return { kind: "check_queue_run" };
+  if (facts.wakeStatus === "deferred_issue_execution")
+    return { kind: "deferred" };
+  if (facts.wakeStatus === "queued" && facts.wakeHasRunId)
+    return { kind: "check_queue_run" };
   if (
     facts.wakeStatus === "claimed" ||
     facts.wakeStatus === "running" ||
-    (facts.wakeHasRunId && (facts.wakeStatus === "succeeded" || facts.wakeStatus === "failed"))
+    (facts.wakeHasRunId &&
+      (facts.wakeStatus === "succeeded" || facts.wakeStatus === "failed"))
   ) {
     return { kind: "already_dispatching" };
   }
@@ -329,10 +348,13 @@ export type QueuedCommentReorderFacts = {
   orderedIds: string[];
 };
 
-export type QueuedCommentReorderDecision = { kind: "ok" } | { kind: "mismatch" };
+export type QueuedCommentReorderDecision =
+  { kind: "ok" } | { kind: "mismatch" };
 
 /** Decides whether a submitted order is a permutation of the queue's current comment ids: no duplicates, no drops, no additions. */
-export function decideQueuedCommentReorder(facts: QueuedCommentReorderFacts): QueuedCommentReorderDecision {
+export function decideQueuedCommentReorder(
+  facts: QueuedCommentReorderFacts,
+): QueuedCommentReorderDecision {
   const orderedSet = new Set(facts.orderedIds);
   if (
     orderedSet.size !== facts.orderedIds.length ||
@@ -358,9 +380,13 @@ export type QueuedCommentActorOwnershipFacts = {
  * the agent that wrote it, because an agent actor can discard its own queued
  * message through the general comment-delete route.
  */
-export function decideQueuedCommentActorOwnsEntry(facts: QueuedCommentActorOwnershipFacts): boolean {
+export function decideQueuedCommentActorOwnsEntry(
+  facts: QueuedCommentActorOwnershipFacts,
+): boolean {
   if (facts.actorType === "agent") {
-    return facts.actorAgentId !== null && facts.authorAgentId === facts.actorAgentId;
+    return (
+      facts.actorAgentId !== null && facts.authorAgentId === facts.actorAgentId
+    );
   }
   return facts.authorUserId === facts.actorId;
 }
@@ -373,7 +399,9 @@ export function decideQueuedCommentActorOwnsEntry(facts: QueuedCommentActorOwner
  * decision, review-participant first, matching the original evaluation
  * order.
  */
-export function decideReleaseRecovery(facts: ReleaseRecoveryFacts): ReleaseRecoveryDecision {
+export function decideReleaseRecovery(
+  facts: ReleaseRecoveryFacts,
+): ReleaseRecoveryDecision {
   const { reviewParticipant, immediate, shared } = facts;
 
   if (reviewParticipant.applies) {
@@ -401,11 +429,16 @@ export function decideReleaseRecovery(facts: ReleaseRecoveryFacts): ReleaseRecov
   if (immediate.isDispositionRepairRetry) return { kind: "released" };
   if (!immediate.applies) return { kind: "released" };
   if (facts.suppressImmediateRecovery) return { kind: "released" };
-  if (shared.hasExistingExecutionPath || shared.hasPersistedMonitor || immediate.hasExplicitBlockerPath) {
+  if (
+    shared.hasExistingExecutionPath ||
+    shared.hasPersistedMonitor ||
+    immediate.hasExplicitBlockerPath
+  ) {
     return { kind: "released" };
   }
   if (shared.suppressedByPauseHold) return { kind: "released" };
-  if (shared.isStrandedRecoveryOrigin) return { kind: "blocked_recovery_in_place" };
+  if (shared.isStrandedRecoveryOrigin)
+    return { kind: "blocked_recovery_in_place" };
 
   const shouldBlockImmediately =
     immediate.sourceRequiresExplicitRecovery === true ||
@@ -415,11 +448,12 @@ export function decideReleaseRecovery(facts: ReleaseRecoveryFacts): ReleaseRecov
     immediate.isConfigurationIncompleteFailedRun ||
     immediate.automaticRecoveryAlreadyFailed;
   if (shouldBlockImmediately) {
-    const notice: ReleaseRecoveryBlockedNoticeKind = immediate.isWorkspaceValidationFailedRun
-      ? "workspace_validation"
-      : immediate.isConfigurationIncompleteFailedRun
-        ? "configuration_incomplete"
-        : "immediate_execution_path";
+    const notice: ReleaseRecoveryBlockedNoticeKind =
+      immediate.isWorkspaceValidationFailedRun
+        ? "workspace_validation"
+        : immediate.isConfigurationIncompleteFailedRun
+          ? "configuration_incomplete"
+          : "immediate_execution_path";
     return { kind: "blocked", notice };
   }
 

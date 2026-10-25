@@ -36,7 +36,10 @@
       "kind": "event",
       "event_type": "item.completed",
       "item_id": "item_local_runner_file",
-      "payload": { "kind": "file_change", "text": "Wrote local-runner-output.json" }
+      "payload": {
+        "kind": "file_change",
+        "text": "Wrote local-runner-output.json"
+      }
     },
     {
       "kind": "result",
@@ -62,7 +65,11 @@
         ],
         "attentionRequests": [],
         "artifacts": [
-          { "kind": "fixture", "ref": "local-runner-output.json", "title": "Live trace" }
+          {
+            "kind": "fixture",
+            "ref": "local-runner-output.json",
+            "title": "Live trace"
+          }
         ]
       }
     },

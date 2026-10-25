@@ -74,9 +74,15 @@ vi.mock("../api/companies", () => ({ companiesApi: mockCompaniesApi }));
 vi.mock("../api/agents", () => ({ agentsApi: mockAgentsApi }));
 vi.mock("../api/approvals", () => ({ approvalsApi: { create: vi.fn() } }));
 vi.mock("../api/issues", () => ({ issuesApi: { create: vi.fn() } }));
-vi.mock("../api/projects", () => ({ projectsApi: { list: vi.fn(), create: vi.fn() } }));
-vi.mock("../api/environments", () => ({ environmentsApi: mockEnvironmentsApi }));
-vi.mock("../api/instanceSettings", () => ({ instanceSettingsApi: mockInstanceSettingsApi }));
+vi.mock("../api/projects", () => ({
+  projectsApi: { list: vi.fn(), create: vi.fn() },
+}));
+vi.mock("../api/environments", () => ({
+  environmentsApi: mockEnvironmentsApi,
+}));
+vi.mock("../api/instanceSettings", () => ({
+  instanceSettingsApi: mockInstanceSettingsApi,
+}));
 
 vi.mock("@/lib/router", () => ({
   useLocation: () => ({ pathname: routerState.pathname }),
@@ -109,9 +115,14 @@ function currentStep(): "agent" | "closed" | "other" {
 }
 
 /** Type into a controlled React input without a full user-event dependency. */
-function setControlledValue(el: HTMLTextAreaElement | HTMLInputElement, value: string) {
+function setControlledValue(
+  el: HTMLTextAreaElement | HTMLInputElement,
+  value: string,
+) {
   const prototype =
-    el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
   Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(el, value);
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
@@ -170,7 +181,9 @@ describe("OnboardingWizard — which step it lands on", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     // The wizard restores its step from localStorage, so a step left behind by
     // an earlier case would decide the next one.
     localStorage.clear();
@@ -184,8 +197,13 @@ describe("OnboardingWizard — which step it lands on", () => {
     // The hire step lists the company's agents first so it can adopt one that
     // already carries the typed name instead of hiring a duplicate.
     mockAgentsApi.list.mockResolvedValue([]);
-    mockAgentsApi.hire.mockResolvedValue({ agent: { id: "agent-1" }, approval: null });
-    mockAgentsApi.instructionsBundle.mockResolvedValue({ entryFile: "AGENTS.md" });
+    mockAgentsApi.hire.mockResolvedValue({
+      agent: { id: "agent-1" },
+      approval: null,
+    });
+    mockAgentsApi.instructionsBundle.mockResolvedValue({
+      entryFile: "AGENTS.md",
+    });
     mockAgentsApi.saveInstructionsFile.mockResolvedValue({});
     mockAgentsApi.testEnvironment.mockResolvedValue({
       adapterType: "claude_local",
@@ -200,7 +218,9 @@ describe("OnboardingWizard — which step it lands on", () => {
       new ApiError("Not found", 404, null),
     );
     mockEnvironmentsApi.list.mockResolvedValue([]);
-    mockInstanceSettingsApi.get.mockResolvedValue({ defaultEnvironmentId: null });
+    mockInstanceSettingsApi.get.mockResolvedValue({
+      defaultEnvironmentId: null,
+    });
     mockInstanceSettingsApi.getExperimental.mockResolvedValue({
       enableManagedSandboxOnly: false,
     });
@@ -314,7 +334,9 @@ describe("OnboardingWizard — which step it lands on", () => {
     expect(currentStep()).toBe("agent");
 
     await act(async () => {
-      queryClient.setQueryData(queryKeys.goals.list("company-1"), [COMPANY_GOAL]);
+      queryClient.setQueryData(queryKeys.goals.list("company-1"), [
+        COMPANY_GOAL,
+      ]);
     });
     await settle();
 
@@ -366,7 +388,10 @@ describe("OnboardingWizard — which step it lands on", () => {
     // route-owned and was never withdrawn. Visiting its own onboarding path and
     // then `/onboarding` left the wizard showing "create an organization" while
     // still holding it — and the next confirmation wrote into the old company.
-    mockCompaniesApi.create.mockResolvedValue({ id: "company-1", issuePrefix: "PC1" });
+    mockCompaniesApi.create.mockResolvedValue({
+      id: "company-1",
+      issuePrefix: "PC1",
+    });
     mockGoalsApi.create.mockResolvedValue({ id: "goal-company-1" });
     routerState.pathname = "/onboarding";
     await render();
@@ -394,7 +419,9 @@ describe("OnboardingWizard — which step it lands on", () => {
     await settle();
 
     // Back at the organization-name step with nothing carried over.
-    const nameAfter = document.body.querySelector("input") as HTMLInputElement | null;
+    const nameAfter = document.body.querySelector(
+      "input",
+    ) as HTMLInputElement | null;
     expect(nameAfter?.value).toBe("");
   });
 
@@ -404,7 +431,10 @@ describe("OnboardingWizard — which step it lands on", () => {
     // company while the request was open has taken over the wizard, and
     // adopting the new company would fight it — and would leave the customer
     // on a company they never navigated to.
-    let resolveCreate: (company: { id: string; issuePrefix: string }) => void = () => {};
+    let resolveCreate: (company: {
+      id: string;
+      issuePrefix: string;
+    }) => void = () => {};
     mockCompaniesApi.create.mockReturnValue(
       new Promise<{ id: string; issuePrefix: string }>((resolve) => {
         resolveCreate = resolve;
@@ -431,7 +461,9 @@ describe("OnboardingWizard — which step it lands on", () => {
     await rerender();
     await settle();
     expect(mockCompaniesApi.create).toHaveBeenCalledWith({ name: "Initech" });
-    await act(async () => resolveCreate({ id: "company-created", issuePrefix: "INI" }));
+    await act(async () =>
+      resolveCreate({ id: "company-created", issuePrefix: "INI" }),
+    );
     await settle();
 
     // Adopting the created company would select it globally and take the
@@ -455,7 +487,10 @@ describe("OnboardingWizard — which step it lands on", () => {
     // different-company takeover: both signals name the same company, so
     // dropping the continuation leaves the customer on the name step even
     // though the organization now exists.
-    let resolveCreate: (company: { id: string; issuePrefix: string }) => void = () => {};
+    let resolveCreate: (company: {
+      id: string;
+      issuePrefix: string;
+    }) => void = () => {};
     mockCompaniesApi.create.mockReturnValue(
       new Promise<{ id: string; issuePrefix: string }>((resolve) => {
         resolveCreate = resolve;
@@ -482,11 +517,15 @@ describe("OnboardingWizard — which step it lands on", () => {
     await rerender();
     await settle();
 
-    await act(async () => resolveCreate({ id: "company-created", issuePrefix: "INI" }));
+    await act(async () =>
+      resolveCreate({ id: "company-created", issuePrefix: "INI" }),
+    );
     await settle();
 
     expect(currentStep()).toBe("agent");
-    expect(companyState.setSelectedCompanyId).toHaveBeenCalledWith("company-created");
+    expect(companyState.setSelectedCompanyId).toHaveBeenCalledWith(
+      "company-created",
+    );
     expect(mockCompaniesApi.create).toHaveBeenCalledTimes(1);
   });
 
@@ -543,7 +582,9 @@ describe("OnboardingWizard — which step it lands on", () => {
      * putting something in the one field it has.
      */
     async function nameAgent(name = "Ada") {
-      const field = document.getElementById("onboarding-agent-name") as HTMLInputElement;
+      const field = document.getElementById(
+        "onboarding-agent-name",
+      ) as HTMLInputElement;
       expect(field, "the agent step should render its name field").toBeTruthy();
       setControlledValue(field, name);
       // Settle twice so the connect step's queries resolve before the press.
@@ -583,7 +624,10 @@ describe("OnboardingWizard — which step it lands on", () => {
      */
     async function pickModelSource() {
       const tiles = [...document.body.querySelectorAll("button[aria-checked]")];
-      expect(tiles.length, "the connect step should offer a source").toBeGreaterThan(0);
+      expect(
+        tiles.length,
+        "the connect step should offer a source",
+      ).toBeGreaterThan(0);
       await press(tiles[0]!);
     }
 
@@ -619,10 +663,11 @@ describe("OnboardingWizard — which step it lands on", () => {
       // screen. Entering here means there is nowhere behind to return to, so
       // every one of them is inert — asserted over the whole set rather than
       // one segment, since a single enabled one is the whole defect.
-      const segments = [...document.body.querySelectorAll("button")].filter((b) =>
-        ["Create your first agent", "Connect a model", "Review"].includes(
-          b.getAttribute("aria-label") ?? "",
-        ),
+      const segments = [...document.body.querySelectorAll("button")].filter(
+        (b) =>
+          ["Create your first agent", "Connect a model", "Review"].includes(
+            b.getAttribute("aria-label") ?? "",
+          ),
       ) as HTMLButtonElement[];
       expect(segments).toHaveLength(3);
       expect(segments.every((segment) => segment.disabled)).toBe(true);

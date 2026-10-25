@@ -20,22 +20,32 @@ vi.mock("@/api/agents", () => ({
 
 vi.mock("@/api/heartbeats", () => ({
   heartbeatsApi: {
-    list: (companyId: string, agentId?: string, limit?: number, options?: unknown) =>
-      listRunsMock(companyId, agentId, limit, options),
+    list: (
+      companyId: string,
+      agentId?: string,
+      limit?: number,
+      options?: unknown,
+    ) => listRunsMock(companyId, agentId, limit, options),
   },
 }));
 
 vi.mock("@/api/routines", () => ({
   routinesApi: {
-    listRuns: (routineId: string, limit?: number) => listRoutineRunsMock(routineId, limit),
+    listRuns: (routineId: string, limit?: number) =>
+      listRoutineRunsMock(routineId, limit),
   },
 }));
 
 vi.mock("@/lib/router", () => ({
   Link: ({ to, children, ...props }: { to: string; children: ReactNode }) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
-  useSearchParams: () => [new URLSearchParams(currentSearch), setSearchParamsMock],
+  useSearchParams: () => [
+    new URLSearchParams(currentSearch),
+    setSearchParamsMock,
+  ],
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,7 +67,9 @@ function run(overrides: Partial<HeartbeatRun> = {}): HeartbeatRun {
   } as HeartbeatRun;
 }
 
-function routineRun(overrides: Partial<RoutineRunSummary> = {}): RoutineRunSummary {
+function routineRun(
+  overrides: Partial<RoutineRunSummary> = {},
+): RoutineRunSummary {
   return {
     id: "routine-run-1",
     companyId: "company-1",
@@ -75,7 +87,11 @@ function routineRun(overrides: Partial<RoutineRunSummary> = {}): RoutineRunSumma
     completedAt: new Date("2026-08-31T18:01:05.000Z"),
     createdAt: new Date("2026-08-31T18:00:00.000Z"),
     updatedAt: new Date("2026-08-31T18:01:05.000Z"),
-    linkedIssue: { id: "issue-1", identifier: "TES-42", title: "Publish forecast" },
+    linkedIssue: {
+      id: "issue-1",
+      identifier: "TES-42",
+      title: "Publish forecast",
+    },
     trigger: { id: "trigger-1", kind: "schedule", label: "Daily forecast" },
     ...overrides,
   } as RoutineRunSummary;
@@ -107,7 +123,9 @@ describe("AuditRuns", () => {
   });
 
   async function render(routineId?: string) {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     root = createRoot(container);
     flushSync(() => {
       root.render(
@@ -122,7 +140,9 @@ describe("AuditRuns", () => {
   it("renders a filterable flat run list with existing run-detail links", async () => {
     await render();
 
-    expect(listRunsMock).toHaveBeenCalledWith("company-1", undefined, 200, { summary: true });
+    expect(listRunsMock).toHaveBeenCalledWith("company-1", undefined, 200, {
+      summary: true,
+    });
     expect(container.textContent).toContain("Agent");
     expect(container.textContent).toContain("Status");
     expect(container.textContent).toContain("Reviewed the release checklist");
@@ -130,14 +150,18 @@ describe("AuditRuns", () => {
     const list = container.querySelector('ul[aria-label="Recent runs"]');
     expect(list).toBeTruthy();
     expect(list?.closest('[data-slot="card"]')).toBeFalsy();
-    expect(container.querySelector('a[href="/agents/agent-1/runs/run-12345678"]')).toBeTruthy();
+    expect(
+      container.querySelector('a[href="/agents/agent-1/runs/run-12345678"]'),
+    ).toBeTruthy();
   });
 
   it("uses the agent deep-link filter for both the query key and request", async () => {
     currentSearch = "agentId=agent-1&runStatus=succeeded";
     await render();
 
-    expect(listRunsMock).toHaveBeenCalledWith("company-1", "agent-1", 200, { summary: true });
+    expect(listRunsMock).toHaveBeenCalledWith("company-1", "agent-1", 200, {
+      summary: true,
+    });
     expect(container.textContent).toContain("Clear filters");
   });
 

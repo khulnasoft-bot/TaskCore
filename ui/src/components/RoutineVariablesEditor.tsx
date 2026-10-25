@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
-import { isValidRoutineDateString, syncRoutineVariablesWithTemplate, type RoutineVariable } from "@taskcore/shared";
+import {
+  isValidRoutineDateString,
+  syncRoutineVariablesWithTemplate,
+  type RoutineVariable,
+} from "@taskcore/shared";
 import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +29,14 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-const variableTypes: RoutineVariable["type"][] = ["text", "textarea", "number", "boolean", "select", "date"];
+const variableTypes: RoutineVariable["type"][] = [
+  "text",
+  "textarea",
+  "number",
+  "boolean",
+  "select",
+  "date",
+];
 
 function serializeVariables(value: RoutineVariable[]) {
   return JSON.stringify(value);
@@ -39,13 +54,20 @@ function updateVariableList(
   name: string,
   mutate: (variable: RoutineVariable) => RoutineVariable,
 ) {
-  return variables.map((variable) => (variable.name === name ? mutate(variable) : variable));
+  return variables.map((variable) =>
+    variable.name === name ? mutate(variable) : variable,
+  );
 }
 
-function defaultValueForType(type: RoutineVariable["type"], current: RoutineVariable["defaultValue"]) {
+function defaultValueForType(
+  type: RoutineVariable["type"],
+  current: RoutineVariable["defaultValue"],
+) {
   if (type === "boolean") return null;
   if (type === "date") {
-    return typeof current === "string" && isValidRoutineDateString(current) ? current : null;
+    return typeof current === "string" && isValidRoutineDateString(current)
+      ? current
+      : null;
   }
   return current;
 }
@@ -80,15 +102,24 @@ export function RoutineVariablesEditor({
   }
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="overflow-hidden rounded-lg border border-border/70">
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className="overflow-hidden rounded-lg border border-border/70"
+    >
       <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-left">
         <div>
           <p className="text-sm font-medium">Variables</p>
           <p className="text-xs text-muted-foreground">
-            Detected from `{"{{name}}"}` placeholders in the title and instructions.
+            Detected from `{"{{name}}"}` placeholders in the title and
+            instructions.
           </p>
         </div>
-        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        {open ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
       </CollapsibleTrigger>
       <CollapsibleContent className="divide-y divide-border/70 border-t border-border/70">
         {syncedVariables.map((variable) => (
@@ -107,10 +138,18 @@ export function RoutineVariablesEditor({
                 <Label className="text-xs">Label</Label>
                 <Input
                   value={variable.label ?? ""}
-                  onChange={(event) => onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                    ...current,
-                    label: event.target.value || null,
-                  })))}
+                  onChange={(event) =>
+                    onChange(
+                      updateVariableList(
+                        syncedVariables,
+                        variable.name,
+                        (current) => ({
+                          ...current,
+                          label: event.target.value || null,
+                        }),
+                      ),
+                    )
+                  }
                   placeholder={variable.name.replaceAll("_", " ")}
                 />
               </div>
@@ -119,19 +158,32 @@ export function RoutineVariablesEditor({
                 <Label className="text-xs">Type</Label>
                 <Select
                   value={variable.type}
-                  onValueChange={(type) => onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                    ...current,
-                    type: type as RoutineVariable["type"],
-                    defaultValue: defaultValueForType(type as RoutineVariable["type"], current.defaultValue),
-                    options: type === "select" ? current.options : [],
-                  })))}
+                  onValueChange={(type) =>
+                    onChange(
+                      updateVariableList(
+                        syncedVariables,
+                        variable.name,
+                        (current) => ({
+                          ...current,
+                          type: type as RoutineVariable["type"],
+                          defaultValue: defaultValueForType(
+                            type as RoutineVariable["type"],
+                            current.defaultValue,
+                          ),
+                          options: type === "select" ? current.options : [],
+                        }),
+                      ),
+                    )
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {variableTypes.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -144,10 +196,18 @@ export function RoutineVariablesEditor({
                     <input
                       type="checkbox"
                       checked={variable.required}
-                      onChange={(event) => onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                        ...current,
-                        required: event.target.checked,
-                      })))}
+                      onChange={(event) =>
+                        onChange(
+                          updateVariableList(
+                            syncedVariables,
+                            variable.name,
+                            (current) => ({
+                              ...current,
+                              required: event.target.checked,
+                            }),
+                          ),
+                        )
+                      }
                     />
                     Required
                   </label>
@@ -156,19 +216,46 @@ export function RoutineVariablesEditor({
                 {variable.type === "textarea" ? (
                   <Textarea
                     rows={3}
-                    value={variable.defaultValue == null ? "" : String(variable.defaultValue)}
-                    onChange={(event) => onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                      ...current,
-                      defaultValue: event.target.value || null,
-                    })))}
+                    value={
+                      variable.defaultValue == null
+                        ? ""
+                        : String(variable.defaultValue)
+                    }
+                    onChange={(event) =>
+                      onChange(
+                        updateVariableList(
+                          syncedVariables,
+                          variable.name,
+                          (current) => ({
+                            ...current,
+                            defaultValue: event.target.value || null,
+                          }),
+                        ),
+                      )
+                    }
                   />
                 ) : variable.type === "boolean" ? (
                   <Select
-                    value={variable.defaultValue === true ? "true" : variable.defaultValue === false ? "false" : "__unset__"}
-                    onValueChange={(next) => onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                      ...current,
-                      defaultValue: next === "__unset__" ? null : next === "true",
-                    })))}
+                    value={
+                      variable.defaultValue === true
+                        ? "true"
+                        : variable.defaultValue === false
+                          ? "false"
+                          : "__unset__"
+                    }
+                    onValueChange={(next) =>
+                      onChange(
+                        updateVariableList(
+                          syncedVariables,
+                          variable.name,
+                          (current) => ({
+                            ...current,
+                            defaultValue:
+                              next === "__unset__" ? null : next === "true",
+                          }),
+                        ),
+                      )
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -186,15 +273,24 @@ export function RoutineVariablesEditor({
                       <Input
                         value={variable.options.join(", ")}
                         onChange={(event) => {
-                          const options = parseSelectOptions(event.target.value);
-                          onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                            ...current,
-                            options,
-                            defaultValue:
-                              typeof current.defaultValue === "string" && options.includes(current.defaultValue)
-                                ? current.defaultValue
-                                : null,
-                          })));
+                          const options = parseSelectOptions(
+                            event.target.value,
+                          );
+                          onChange(
+                            updateVariableList(
+                              syncedVariables,
+                              variable.name,
+                              (current) => ({
+                                ...current,
+                                options,
+                                defaultValue:
+                                  typeof current.defaultValue === "string" &&
+                                  options.includes(current.defaultValue)
+                                    ? current.defaultValue
+                                    : null,
+                              }),
+                            ),
+                          );
                         }}
                         placeholder="high, medium, low"
                       />
@@ -202,11 +298,24 @@ export function RoutineVariablesEditor({
                     <div className="space-y-1.5">
                       <Label className="text-xs">Default option</Label>
                       <Select
-                        value={typeof variable.defaultValue === "string" ? variable.defaultValue : "__unset__"}
-                        onValueChange={(next) => onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                          ...current,
-                          defaultValue: next === "__unset__" ? null : next,
-                        })))}
+                        value={
+                          typeof variable.defaultValue === "string"
+                            ? variable.defaultValue
+                            : "__unset__"
+                        }
+                        onValueChange={(next) =>
+                          onChange(
+                            updateVariableList(
+                              syncedVariables,
+                              variable.name,
+                              (current) => ({
+                                ...current,
+                                defaultValue:
+                                  next === "__unset__" ? null : next,
+                              }),
+                            ),
+                          )
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="No default" />
@@ -214,7 +323,9 @@ export function RoutineVariablesEditor({
                         <SelectContent>
                           <SelectItem value="__unset__">No default</SelectItem>
                           {variable.options.map((option) => (
-                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -223,21 +334,47 @@ export function RoutineVariablesEditor({
                 ) : variable.type === "date" ? (
                   <Input
                     type="date"
-                    value={typeof variable.defaultValue === "string" ? variable.defaultValue : ""}
-                    onChange={(event) => onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                      ...current,
-                      defaultValue: event.target.value || null,
-                    })))}
+                    value={
+                      typeof variable.defaultValue === "string"
+                        ? variable.defaultValue
+                        : ""
+                    }
+                    onChange={(event) =>
+                      onChange(
+                        updateVariableList(
+                          syncedVariables,
+                          variable.name,
+                          (current) => ({
+                            ...current,
+                            defaultValue: event.target.value || null,
+                          }),
+                        ),
+                      )
+                    }
                   />
                 ) : (
                   <Input
                     type={variable.type === "number" ? "number" : "text"}
-                    value={variable.defaultValue == null ? "" : String(variable.defaultValue)}
-                    onChange={(event) => onChange(updateVariableList(syncedVariables, variable.name, (current) => ({
-                      ...current,
-                      defaultValue: event.target.value || null,
-                    })))}
-                    placeholder={variable.type === "number" ? "42" : "Default value"}
+                    value={
+                      variable.defaultValue == null
+                        ? ""
+                        : String(variable.defaultValue)
+                    }
+                    onChange={(event) =>
+                      onChange(
+                        updateVariableList(
+                          syncedVariables,
+                          variable.name,
+                          (current) => ({
+                            ...current,
+                            defaultValue: event.target.value || null,
+                          }),
+                        ),
+                      )
+                    }
+                    placeholder={
+                      variable.type === "number" ? "42" : "Default value"
+                    }
                   />
                 )}
               </div>
@@ -259,12 +396,14 @@ const BUILTIN_VARIABLE_DOCS: BuiltinVariableDoc[] = [
   {
     name: "date",
     example: "2026-04-28",
-    description: "Current date in YYYY-MM-DD format (UTC) at the time the routine runs.",
+    description:
+      "Current date in YYYY-MM-DD format (UTC) at the time the routine runs.",
   },
   {
     name: "timestamp",
     example: "April 28, 2026 at 12:17 PM UTC",
-    description: "Human-readable date and time (UTC) at the time the routine runs.",
+    description:
+      "Human-readable date and time (UTC) at the time the routine runs.",
   },
 ];
 
@@ -275,7 +414,8 @@ export function RoutineVariablesHint() {
     <>
       <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
         <span>
-          Use `{"{{variable_name}}"}` placeholders in the title or instructions to prompt for inputs when the routine runs.
+          Use `{"{{variable_name}}"}` placeholders in the title or instructions
+          to prompt for inputs when the routine runs.
         </span>
         <button
           type="button"
@@ -292,7 +432,8 @@ export function RoutineVariablesHint() {
           <DialogHeader>
             <DialogTitle>Routine variables</DialogTitle>
             <DialogDescription>
-              How to prompt for inputs and which variables Taskcore fills in automatically.
+              How to prompt for inputs and which variables Taskcore fills in
+              automatically.
             </DialogDescription>
           </DialogHeader>
 
@@ -306,15 +447,28 @@ export function RoutineVariablesHint() {
                 <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
                   {"{{variable_name}}"}
                 </code>{" "}
-                anywhere in the title or instructions. Taskcore detects each placeholder, lists it
-                under <span className="font-medium text-foreground">Variables</span>, and prompts
-                for a value before each run.
+                anywhere in the title or instructions. Taskcore detects each
+                placeholder, lists it under{" "}
+                <span className="font-medium text-foreground">Variables</span>,
+                and prompts for a value before each run.
               </p>
               <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-                <li>Names must start with a letter and may use letters, numbers, and underscores.</li>
-                <li>Pick a type (text, textarea, number, boolean, select, date), default value, and whether it is required.</li>
-                <li>Variable names ending in capital Date, such as startDate, are created as date variables by default.</li>
-                <li>The same name reused across the title and instructions is treated as one variable.</li>
+                <li>
+                  Names must start with a letter and may use letters, numbers,
+                  and underscores.
+                </li>
+                <li>
+                  Pick a type (text, textarea, number, boolean, select, date),
+                  default value, and whether it is required.
+                </li>
+                <li>
+                  Variable names ending in capital Date, such as startDate, are
+                  created as date variables by default.
+                </li>
+                <li>
+                  The same name reused across the title and instructions is
+                  treated as one variable.
+                </li>
               </ul>
             </section>
 
@@ -323,8 +477,8 @@ export function RoutineVariablesHint() {
                 Built-in variables
               </h3>
               <p className="text-muted-foreground">
-                These are filled in automatically — no setup needed and they will not appear in the
-                Variables list.
+                These are filled in automatically — no setup needed and they
+                will not appear in the Variables list.
               </p>
               <div className="overflow-hidden rounded-lg border border-border/70">
                 <table className="w-full text-left text-xs">
@@ -339,10 +493,17 @@ export function RoutineVariablesHint() {
                     {BUILTIN_VARIABLE_DOCS.map((entry) => (
                       <tr key={entry.name} className="align-top">
                         <td className="px-3 py-2">
-                          <Badge variant="outline" className="font-mono text-xs">{`{{${entry.name}}}`}</Badge>
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs"
+                          >{`{{${entry.name}}}`}</Badge>
                         </td>
-                        <td className="px-3 py-2 font-mono text-muted-foreground">{entry.example}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{entry.description}</td>
+                        <td className="px-3 py-2 font-mono text-muted-foreground">
+                          {entry.example}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {entry.description}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

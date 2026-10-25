@@ -23,10 +23,18 @@ describe("databaseClientOptionsFromEnv", () => {
   });
 
   it("parses prepared-statement toggles", () => {
-    expect(databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "false" })).toEqual({ prepare: false });
-    expect(databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "0" })).toEqual({ prepare: false });
-    expect(databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "true" })).toEqual({ prepare: true });
-    expect(databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "TRUE" })).toEqual({ prepare: true });
+    expect(
+      databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "false" }),
+    ).toEqual({ prepare: false });
+    expect(
+      databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "0" }),
+    ).toEqual({ prepare: false });
+    expect(
+      databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "true" }),
+    ).toEqual({ prepare: true });
+    expect(
+      databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "TRUE" }),
+    ).toEqual({ prepare: true });
   });
 
   it("parses pool and timeout settings", () => {
@@ -48,30 +56,36 @@ describe("databaseClientOptionsFromEnv", () => {
   });
 
   it("accepts DATABASE_IDLE_TIMEOUT_SECONDS=0 as an explicit opt-out of idle reaping", () => {
-    expect(databaseClientOptionsFromEnv({ DATABASE_IDLE_TIMEOUT_SECONDS: "0" })).toEqual({ idleTimeoutSeconds: 0 });
+    expect(
+      databaseClientOptionsFromEnv({ DATABASE_IDLE_TIMEOUT_SECONDS: "0" }),
+    ).toEqual({ idleTimeoutSeconds: 0 });
   });
 
   it("rejects malformed values instead of silently ignoring them", () => {
-    expect(() => databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "maybe" })).toThrow(
-      /DATABASE_PREPARED_STATEMENTS/,
-    );
-    expect(() => databaseClientOptionsFromEnv({ DATABASE_POOL_MAX: "0" })).toThrow(/DATABASE_POOL_MAX/);
-    expect(() => databaseClientOptionsFromEnv({ DATABASE_POOL_MAX: "-3" })).toThrow(/DATABASE_POOL_MAX/);
-    expect(() => databaseClientOptionsFromEnv({ DATABASE_CONNECT_TIMEOUT_SECONDS: "1.5" })).toThrow(
-      /DATABASE_CONNECT_TIMEOUT_SECONDS/,
-    );
-    expect(() => databaseClientOptionsFromEnv({ DATABASE_IDLE_TIMEOUT_SECONDS: "-1" })).toThrow(
-      /DATABASE_IDLE_TIMEOUT_SECONDS/,
-    );
-    expect(() => databaseClientOptionsFromEnv({ DATABASE_IDLE_TIMEOUT_SECONDS: "abc" })).toThrow(
-      /DATABASE_IDLE_TIMEOUT_SECONDS/,
-    );
-    expect(() => databaseClientOptionsFromEnv({ DATABASE_MAX_LIFETIME_SECONDS: "0" })).toThrow(
-      /DATABASE_MAX_LIFETIME_SECONDS/,
-    );
-    expect(() => databaseClientOptionsFromEnv({ DATABASE_MAX_LIFETIME_SECONDS: "NaN" })).toThrow(
-      /DATABASE_MAX_LIFETIME_SECONDS/,
-    );
+    expect(() =>
+      databaseClientOptionsFromEnv({ DATABASE_PREPARED_STATEMENTS: "maybe" }),
+    ).toThrow(/DATABASE_PREPARED_STATEMENTS/);
+    expect(() =>
+      databaseClientOptionsFromEnv({ DATABASE_POOL_MAX: "0" }),
+    ).toThrow(/DATABASE_POOL_MAX/);
+    expect(() =>
+      databaseClientOptionsFromEnv({ DATABASE_POOL_MAX: "-3" }),
+    ).toThrow(/DATABASE_POOL_MAX/);
+    expect(() =>
+      databaseClientOptionsFromEnv({ DATABASE_CONNECT_TIMEOUT_SECONDS: "1.5" }),
+    ).toThrow(/DATABASE_CONNECT_TIMEOUT_SECONDS/);
+    expect(() =>
+      databaseClientOptionsFromEnv({ DATABASE_IDLE_TIMEOUT_SECONDS: "-1" }),
+    ).toThrow(/DATABASE_IDLE_TIMEOUT_SECONDS/);
+    expect(() =>
+      databaseClientOptionsFromEnv({ DATABASE_IDLE_TIMEOUT_SECONDS: "abc" }),
+    ).toThrow(/DATABASE_IDLE_TIMEOUT_SECONDS/);
+    expect(() =>
+      databaseClientOptionsFromEnv({ DATABASE_MAX_LIFETIME_SECONDS: "0" }),
+    ).toThrow(/DATABASE_MAX_LIFETIME_SECONDS/);
+    expect(() =>
+      databaseClientOptionsFromEnv({ DATABASE_MAX_LIFETIME_SECONDS: "NaN" }),
+    ).toThrow(/DATABASE_MAX_LIFETIME_SECONDS/);
   });
 
   it("maps to postgres.js option names", () => {
@@ -101,7 +115,11 @@ describe("resolveDatabaseClientOptions", () => {
       idleTimeoutSeconds: DEFAULT_DATABASE_IDLE_TIMEOUT_SECONDS,
       applicationName: DEFAULT_DATABASE_APPLICATION_NAME,
     });
-    expect(postgresJsOptions(resolveDatabaseClientOptions(databaseClientOptionsFromEnv({})))).toEqual({
+    expect(
+      postgresJsOptions(
+        resolveDatabaseClientOptions(databaseClientOptionsFromEnv({})),
+      ),
+    ).toEqual({
       idle_timeout: DEFAULT_DATABASE_IDLE_TIMEOUT_SECONDS,
       connection: { application_name: DEFAULT_DATABASE_APPLICATION_NAME },
     });
@@ -114,8 +132,16 @@ describe("resolveDatabaseClientOptions", () => {
         idleTimeoutSeconds: 0,
         applicationName: "taskcore-cli",
       }),
-    ).toEqual({ maxConnections: 3, idleTimeoutSeconds: 0, applicationName: "taskcore-cli" });
-    expect(postgresJsOptions(resolveDatabaseClientOptions({ idleTimeoutSeconds: 0 }))).toMatchObject({
+    ).toEqual({
+      maxConnections: 3,
+      idleTimeoutSeconds: 0,
+      applicationName: "taskcore-cli",
+    });
+    expect(
+      postgresJsOptions(
+        resolveDatabaseClientOptions({ idleTimeoutSeconds: 0 }),
+      ),
+    ).toMatchObject({
       idle_timeout: 0,
     });
   });

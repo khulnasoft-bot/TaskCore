@@ -3,7 +3,11 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { copyTextToClipboard } from "@/lib/clipboard";
-import { SlackSetupPrompt, buildSlackSetupPrompt, slackSetupPrompt } from "./SlackSetupPrompt";
+import {
+  SlackSetupPrompt,
+  buildSlackSetupPrompt,
+  slackSetupPrompt,
+} from "./SlackSetupPrompt";
 
 vi.mock("@/lib/clipboard", () => ({ copyTextToClipboard: vi.fn() }));
 
@@ -30,17 +34,27 @@ describe("Slack setup prompt", () => {
   }
 
   async function copyPrompt(dialog: Element) {
-    await act(async () => dialog.querySelector<HTMLButtonElement>(".agent-setup-copy")!.click());
+    await act(async () =>
+      dialog.querySelector<HTMLButtonElement>(".agent-setup-copy")!.click(),
+    );
   }
 
   it("copies on the opening click and confirms success in both buttons", async () => {
     vi.mocked(copyTextToClipboard).mockResolvedValue(undefined);
     const dialog = await openPrompt();
     expect(copyTextToClipboard).toHaveBeenCalledTimes(1);
-    expect(copyTextToClipboard).toHaveBeenCalledWith(buildSlackSetupPrompt(window.location.origin));
-    expect(vi.mocked(copyTextToClipboard).mock.calls[0][0]).toContain(`Taskcore instance URL: ${window.location.origin}`);
-    expect(dialog.querySelector(".agent-setup-copy")?.textContent).toBe("Copied to clipboard");
-    expect(container.querySelector('[role="status"]')?.textContent).toContain("Ready to paste into your agent.");
+    expect(copyTextToClipboard).toHaveBeenCalledWith(
+      buildSlackSetupPrompt(window.location.origin),
+    );
+    expect(vi.mocked(copyTextToClipboard).mock.calls[0][0]).toContain(
+      `Taskcore instance URL: ${window.location.origin}`,
+    );
+    expect(dialog.querySelector(".agent-setup-copy")?.textContent).toBe(
+      "Copied to clipboard",
+    );
+    expect(container.querySelector('[role="status"]')?.textContent).toContain(
+      "Ready to paste into your agent.",
+    );
     expect(container.querySelector("button")?.dataset.copied).toBe("true");
     expect(dialog.querySelector("textarea")).toBeNull();
   });
@@ -61,7 +75,9 @@ describe("Slack setup prompt", () => {
     fallback.focus();
     expect(fallback.selectionStart).toBe(0);
     expect(fallback.selectionEnd).toBe(fallback.value.length);
-    expect(dialog.querySelector('[role="alert"]')?.textContent).toContain("Could not copy");
+    expect(dialog.querySelector('[role="alert"]')?.textContent).toContain(
+      "Could not copy",
+    );
     vi.mocked(copyTextToClipboard).mockResolvedValueOnce(undefined);
     await copyPrompt(dialog);
     expect(dialog.querySelector('[role="alert"]')).toBeNull();
@@ -69,34 +85,61 @@ describe("Slack setup prompt", () => {
   });
 
   it("uses the preview's configured instance instead of its Storybook host", async () => {
-    await act(async () => root.render(<SlackSetupPrompt instanceUrl="https://my-company.taskcore.app" />));
+    await act(async () =>
+      root.render(
+        <SlackSetupPrompt instanceUrl="https://my-company.taskcore.app" />,
+      ),
+    );
     vi.mocked(copyTextToClipboard).mockResolvedValue(undefined);
     const dialog = await openPrompt();
     expect(copyTextToClipboard).toHaveBeenCalledTimes(1);
-    expect(copyTextToClipboard).toHaveBeenCalledWith(buildSlackSetupPrompt("https://my-company.taskcore.app"));
+    expect(copyTextToClipboard).toHaveBeenCalledWith(
+      buildSlackSetupPrompt("https://my-company.taskcore.app"),
+    );
   });
 
   it("ignores stale copy results when the prompt changes", async () => {
     let finishCopy!: () => void;
-    vi.mocked(copyTextToClipboard).mockImplementationOnce(() => new Promise<void>((resolve) => { finishCopy = resolve; }));
+    vi.mocked(copyTextToClipboard).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCopy = resolve;
+        }),
+    );
     const dialog = await openPrompt();
     await copyPrompt(dialog);
     await copyPrompt(dialog);
     expect(copyTextToClipboard).toHaveBeenCalledTimes(1);
-    expect(dialog.querySelector(".agent-setup-copy")?.textContent).toBe("Copying…");
-    await act(async () => root.render(<SlackSetupPrompt instanceUrl="https://another.taskcore.app" />));
+    expect(dialog.querySelector(".agent-setup-copy")?.textContent).toBe(
+      "Copying…",
+    );
+    await act(async () =>
+      root.render(
+        <SlackSetupPrompt instanceUrl="https://another.taskcore.app" />,
+      ),
+    );
     await act(async () => finishCopy());
-    expect(dialog.querySelector(".agent-setup-copy")?.textContent).toBe("Copy prompt");
-    expect(dialog.querySelector("pre")?.textContent).toContain("https://another.taskcore.app");
+    expect(dialog.querySelector(".agent-setup-copy")?.textContent).toBe(
+      "Copy prompt",
+    );
+    expect(dialog.querySelector("pre")?.textContent).toContain(
+      "https://another.taskcore.app",
+    );
   });
 
   it("copies again on every opening", async () => {
     vi.mocked(copyTextToClipboard).mockResolvedValue(undefined);
     const dialog = await openPrompt();
-    await act(async () => dialog.querySelector<HTMLButtonElement>('[aria-label="Close agent setup"]')!.click());
+    await act(async () =>
+      dialog
+        .querySelector<HTMLButtonElement>('[aria-label="Close agent setup"]')!
+        .click(),
+    );
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     await act(async () => container.querySelector("button")!.click());
-    expect(document.querySelector(".agent-setup-copy")?.textContent).toBe("Copied to clipboard");
+    expect(document.querySelector(".agent-setup-copy")?.textContent).toBe(
+      "Copied to clipboard",
+    );
     expect(copyTextToClipboard).toHaveBeenCalledTimes(2);
   });
 
@@ -106,19 +149,32 @@ describe("Slack setup prompt", () => {
     await act(async () => container.querySelector("button")!.click());
     expect(document.querySelector('[role="dialog"]')).toBe(dialog);
     expect(copyTextToClipboard).toHaveBeenCalledTimes(2);
-    await act(async () => dialog.querySelector<HTMLButtonElement>('[aria-label="Close agent setup"]')!.click());
+    await act(async () =>
+      dialog
+        .querySelector<HTMLButtonElement>('[aria-label="Close agent setup"]')!
+        .click(),
+    );
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     expect(copyTextToClipboard).toHaveBeenCalledTimes(2);
   });
 
   it("includes only the instance origin, without URL credentials or callback state", () => {
-    const prompt = buildSlackSetupPrompt("https://user:private-password@my-company.taskcore.app/GIT/apps/chat/connect?code=private-code#private-state");
-    expect(prompt).toContain("Taskcore instance URL: https://my-company.taskcore.app\n");
+    const prompt = buildSlackSetupPrompt(
+      "https://user:private-password@my-company.taskcore.app/GIT/apps/chat/connect?code=private-code#private-state",
+    );
+    expect(prompt).toContain(
+      "Taskcore instance URL: https://my-company.taskcore.app\n",
+    );
     expect(prompt).not.toMatch(/private-password|private-code|private-state/);
     expect(prompt).toContain(slackSetupPrompt);
   });
 
-  it.each(["", "not a URL", "javascript:alert(1)"])("asks for the URL when preview configuration is unavailable: %s", (url) => {
-    expect(buildSlackSetupPrompt(url)).toMatch(/^Taskcore instance URL is unavailable\./);
-  });
+  it.each(["", "not a URL", "javascript:alert(1)"])(
+    "asks for the URL when preview configuration is unavailable: %s",
+    (url) => {
+      expect(buildSlackSetupPrompt(url)).toMatch(
+        /^Taskcore instance URL is unavailable\./,
+      );
+    },
+  );
 });

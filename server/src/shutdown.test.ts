@@ -195,7 +195,9 @@ describe("finalizeServerShutdown", () => {
       log: stubLogger(),
     });
 
-    await vi.waitFor(() => expect(drainPendingRunFailureReports).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(drainPendingRunFailureReports).toHaveBeenCalledOnce(),
+    );
     expect(closeDatabase).not.toHaveBeenCalled();
     expect(shutdownSentry).not.toHaveBeenCalled();
 
@@ -258,20 +260,33 @@ describe("finalizeServerShutdown", () => {
 });
 
 describe("closeHttpListenerForShutdown", () => {
-  function fakeServer(input: { listening: boolean; closeDelayMs?: number | null }) {
+  function fakeServer(input: {
+    listening: boolean;
+    closeDelayMs?: number | null;
+  }) {
     const closeIdleConnections = vi.fn();
     const closeAllConnections = vi.fn();
     const close = vi.fn((callback?: (err?: Error) => void) => {
       if (input.closeDelayMs === null) return;
       setTimeout(() => callback?.(), input.closeDelayMs ?? 0);
     });
-    return { listening: input.listening, close, closeIdleConnections, closeAllConnections };
+    return {
+      listening: input.listening,
+      close,
+      closeIdleConnections,
+      closeAllConnections,
+    };
   }
 
   it("stops accepting, closes idle keep-alive sockets, and resolves once the listener closed", async () => {
     const server = fakeServer({ listening: true, closeDelayMs: 0 });
     await expect(
-      closeHttpListenerForShutdown({ server, signal: "SIGTERM", timeoutMs: 1_000, log: stubLogger() }),
+      closeHttpListenerForShutdown({
+        server,
+        signal: "SIGTERM",
+        timeoutMs: 1_000,
+        log: stubLogger(),
+      }),
     ).resolves.toBe("closed");
     expect(server.close).toHaveBeenCalledOnce();
     expect(server.closeIdleConnections).toHaveBeenCalledOnce();
@@ -283,7 +298,12 @@ describe("closeHttpListenerForShutdown", () => {
     try {
       const server = fakeServer({ listening: true, closeDelayMs: null });
       const log = stubLogger();
-      const pending = closeHttpListenerForShutdown({ server, signal: "SIGINT", timeoutMs: 250, log });
+      const pending = closeHttpListenerForShutdown({
+        server,
+        signal: "SIGINT",
+        timeoutMs: 250,
+        log,
+      });
       await vi.advanceTimersByTimeAsync(250);
       await expect(pending).resolves.toBe("timed_out");
       expect(server.closeAllConnections).toHaveBeenCalledOnce();
@@ -299,7 +319,11 @@ describe("closeHttpListenerForShutdown", () => {
   it("does nothing when the listener was never bound", async () => {
     const server = fakeServer({ listening: false });
     await expect(
-      closeHttpListenerForShutdown({ server, signal: "SIGTERM", log: stubLogger() }),
+      closeHttpListenerForShutdown({
+        server,
+        signal: "SIGTERM",
+        log: stubLogger(),
+      }),
     ).resolves.toBe("not_listening");
     expect(server.close).not.toHaveBeenCalled();
   });
@@ -365,14 +389,11 @@ describe("loadWithoutCoordinatedShutdownSignalHooks", () => {
     const embeddedPostgresExitHook = vi.fn(() => {
       databaseAvailable = false;
     });
-    await loadWithoutCoordinatedShutdownSignalHooks(
-      async () => {
-        signalTarget.on("SIGINT", embeddedPostgresExitHook);
-        signalTarget.on("SIGTERM", embeddedPostgresExitHook);
-        return { default: class EmbeddedPostgres {} };
-      },
-      signalTarget,
-    );
+    await loadWithoutCoordinatedShutdownSignalHooks(async () => {
+      signalTarget.on("SIGINT", embeddedPostgresExitHook);
+      signalTarget.on("SIGTERM", embeddedPostgresExitHook);
+      return { default: class EmbeddedPostgres {} };
+    }, signalTarget);
 
     let shutdown: Promise<unknown> | null = null;
     let snapshotCaptured = false;
@@ -417,7 +438,9 @@ describe("coordinateHeartbeatSchedulerShutdown", () => {
       waitForHeartbeatSchedulerIdle,
     });
 
-    await vi.waitFor(() => expect(waitForHeartbeatSchedulerIdle).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(waitForHeartbeatSchedulerIdle).toHaveBeenCalledOnce(),
+    );
     expect(snapshotCaptured).toBe(false);
     releaseScheduler();
 
@@ -474,7 +497,9 @@ describe("coordinateHeartbeatSchedulerShutdown", () => {
       settled = true;
     });
 
-    await vi.waitFor(() => expect(waitForHeartbeatSchedulerIdle).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(waitForHeartbeatSchedulerIdle).toHaveBeenCalledOnce(),
+    );
     expect(settled).toBe(false);
 
     releaseScheduler();

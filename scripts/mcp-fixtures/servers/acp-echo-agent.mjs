@@ -33,9 +33,12 @@ async function handleRequest(request) {
   if (request.method === "session/new") return { sessionId: randomUUID() };
   if (request.method === "session/prompt") {
     const typedFailure = process.env.TASKCORE_ACPX_TYPED_FAILURE_FILE
-      ? JSON.parse(await readFile(process.env.TASKCORE_ACPX_TYPED_FAILURE_FILE, "utf8"))
+      ? JSON.parse(
+          await readFile(process.env.TASKCORE_ACPX_TYPED_FAILURE_FILE, "utf8"),
+        )
       : {};
-    const typedFailureCanary = typedFailure.title ?? process.env.TASKCORE_ACPX_TYPED_FAILURE_CANARY;
+    const typedFailureCanary =
+      typedFailure.title ?? process.env.TASKCORE_ACPX_TYPED_FAILURE_CANARY;
     if (typedFailureCanary) {
       if (!supportsTypedSessionFailure) {
         throw new Error(
@@ -45,12 +48,13 @@ async function handleRequest(request) {
       const sessionFailure = {
         id: `${request.params.sessionId}:error`,
         revision: 1,
-        category: typedFailure.category ?? process.env.TASKCORE_ACPX_TYPED_FAILURE_CATEGORY ?? "request",
+        category:
+          typedFailure.category ??
+          process.env.TASKCORE_ACPX_TYPED_FAILURE_CATEGORY ??
+          "request",
         severity: "error",
         title: typedFailureCanary,
-        ...(typedFailure.details
-          ? { details: typedFailure.details }
-          : {}),
+        ...(typedFailure.details ? { details: typedFailure.details } : {}),
         actions: [],
       };
       writeMessage({

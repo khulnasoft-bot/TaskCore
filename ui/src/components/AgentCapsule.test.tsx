@@ -5,7 +5,9 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AgentCapsule } from "./AgentCapsule";
 
-(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("AgentCapsule", () => {
   let container: HTMLDivElement;
@@ -36,7 +38,9 @@ describe("AgentCapsule", () => {
     expect(dash.className).toContain("agent-cap-slot");
     expect(dash.className).toContain("opacity-100");
     // Solid stroke layer is present but faded out.
-    expect((cap.querySelector(".agent-cap-stroke") as HTMLElement).className).toContain("opacity-0");
+    expect(
+      (cap.querySelector(".agent-cap-stroke") as HTMLElement).className,
+    ).toContain("opacity-0");
     expect(cap.querySelector(".agent-cap-liquid")).toBeNull();
     expect(cap.getAttribute("aria-label")).toBe("empty agent slot");
   });
@@ -67,7 +71,9 @@ describe("AgentCapsule", () => {
   });
 
   it("uses the blue online glow when glow='blue'", () => {
-    const cap = render(<AgentCapsule state="online" gradient={5} glow="blue" />);
+    const cap = render(
+      <AgentCapsule state="online" gradient={5} glow="blue" />,
+    );
     expect(cap.className).toContain("agent-cap-online-blue");
     expect(cap.dataset.glow).toBe("blue");
     expect(cap.querySelector(".agent-cap-liquid")).not.toBeNull();
@@ -80,15 +86,23 @@ describe("AgentCapsule", () => {
   });
 
   it("accepts an explicit pixel size", () => {
-    const cap = render(<AgentCapsule state="slot" size={{ width: 28, height: 96 }} />);
+    const cap = render(
+      <AgentCapsule state="slot" size={{ width: 28, height: 96 }} />,
+    );
     expect(cap.style.width).toBe("28px");
     expect(cap.style.height).toBe("96px");
   });
 
   it("wraps out-of-range gradient indices into 1..10", () => {
-    expect(render(<AgentCapsule state="online" gradient={11} />).dataset.gradient).toBe("1");
-    expect(render(<AgentCapsule state="online" gradient={0} />).dataset.gradient).toBe("10");
-    expect(render(<AgentCapsule state="online" gradient={-1} />).dataset.gradient).toBe("9");
+    expect(
+      render(<AgentCapsule state="online" gradient={11} />).dataset.gradient,
+    ).toBe("1");
+    expect(
+      render(<AgentCapsule state="online" gradient={0} />).dataset.gradient,
+    ).toBe("10");
+    expect(
+      render(<AgentCapsule state="online" gradient={-1} />).dataset.gradient,
+    ).toBe("9");
   });
 
   it("traces the outline instead of cross-fading it when strokeDraw is set", () => {

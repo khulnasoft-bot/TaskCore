@@ -36,8 +36,13 @@ export function TaskViewsMenu({
           className="h-8 gap-1.5"
           aria-label={`Change view — currently ${active.label}`}
         >
-          <span className="max-w-(--sz-160px) truncate font-medium">{active.label}</span>
-          <ChevronDown aria-hidden="true" className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="max-w-(--sz-160px) truncate font-medium">
+            {active.label}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className="h-3.5 w-3.5 text-muted-foreground"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-(--sz-260px)">
@@ -63,11 +68,23 @@ export function TaskViewsMenu({
                 >
                   <Check
                     aria-hidden="true"
-                    className={cn("mt-0.5 size-3.5 shrink-0", selected ? "opacity-100" : "opacity-0")}
+                    className={cn(
+                      "mt-0.5 size-3.5 shrink-0",
+                      selected ? "opacity-100" : "opacity-0",
+                    )}
                   />
                   <span className="min-w-0">
-                    <span className={cn("block truncate", selected && "font-medium")}>{view.label}</span>
-                    <span className="block text-(length:--text-nano) text-muted-foreground">{view.hint}</span>
+                    <span
+                      className={cn(
+                        "block truncate",
+                        selected && "font-medium",
+                      )}
+                    >
+                      {view.label}
+                    </span>
+                    <span className="block text-(length:--text-nano) text-muted-foreground">
+                      {view.hint}
+                    </span>
                   </span>
                 </DropdownMenuItem>
               );

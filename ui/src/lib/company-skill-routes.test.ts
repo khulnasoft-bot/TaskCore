@@ -12,14 +12,34 @@ function skill(id: string, slug: string, key = slug): CompanySkillRouteSubject {
   return { id, slug, key };
 }
 
-const deepResearch = skill("11111111-1111-4111-8111-111111111111", "deep-research", "taskcore/deep-research");
-const scopedDeepResearch = skill("22222222-2222-4222-8222-222222222222", "deep-research", "community/deep-research");
-const browser = skill("33333333-3333-4333-8333-333333333333", "browser", "taskcore/browser");
+const deepResearch = skill(
+  "11111111-1111-4111-8111-111111111111",
+  "deep-research",
+  "taskcore/deep-research",
+);
+const scopedDeepResearch = skill(
+  "22222222-2222-4222-8222-222222222222",
+  "deep-research",
+  "community/deep-research",
+);
+const browser = skill(
+  "33333333-3333-4333-8333-333333333333",
+  "browser",
+  "taskcore/browser",
+);
 
 describe("company skill routes", () => {
   it("builds unique slug detail and file routes", () => {
-    expect(canonicalSkillRouteToken(browser, [deepResearch, scopedDeepResearch, browser])).toBe("browser");
-    expect(skillRoute(browser, [deepResearch, scopedDeepResearch, browser])).toBe("/skills/browser");
+    expect(
+      canonicalSkillRouteToken(browser, [
+        deepResearch,
+        scopedDeepResearch,
+        browser,
+      ]),
+    ).toBe("browser");
+    expect(
+      skillRoute(browser, [deepResearch, scopedDeepResearch, browser]),
+    ).toBe("/skills/browser");
     expect(skillRoute(browser, [browser], "references/setup guide.md")).toBe(
       "/skills/browser/files/references/setup%20guide.md",
     );
@@ -28,16 +48,28 @@ describe("company skill routes", () => {
   it("uses a unique key to disambiguate colliding slugs", () => {
     const skills = [deepResearch, scopedDeepResearch, browser];
 
-    expect(canonicalSkillRouteToken(deepResearch, skills)).toBe("taskcore/deep-research");
-    expect(canonicalSkillRouteToken(scopedDeepResearch, skills)).toBe("community/deep-research");
-    expect(skillRoute(deepResearch, skills)).toBe("/skills/taskcore/deep-research");
+    expect(canonicalSkillRouteToken(deepResearch, skills)).toBe(
+      "taskcore/deep-research",
+    );
+    expect(canonicalSkillRouteToken(scopedDeepResearch, skills)).toBe(
+      "community/deep-research",
+    );
+    expect(skillRoute(deepResearch, skills)).toBe(
+      "/skills/taskcore/deep-research",
+    );
   });
 
   it("falls back to a slug plus short id when the key is not route-safe", () => {
-    const unsafe = skill("44444444-4444-4444-8444-444444444444", "deep-research", "taskcore/files/deep-research");
+    const unsafe = skill(
+      "44444444-4444-4444-8444-444444444444",
+      "deep-research",
+      "taskcore/files/deep-research",
+    );
     const skills = [deepResearch, unsafe];
 
-    expect(canonicalSkillRouteToken(unsafe, skills)).toBe("deep-research-44444444");
+    expect(canonicalSkillRouteToken(unsafe, skills)).toBe(
+      "deep-research-44444444",
+    );
     expect(skillRoute(unsafe, skills)).toBe("/skills/deep-research-44444444");
   });
 
@@ -51,7 +83,10 @@ describe("company skill routes", () => {
 
   it("resolves canonical key URLs for colliding slugs", () => {
     const skills = [deepResearch, scopedDeepResearch];
-    const resolution = resolveSkillRouteToken("community/deep-research", skills);
+    const resolution = resolveSkillRouteToken(
+      "community/deep-research",
+      skills,
+    );
 
     expect(resolution.skill?.id).toBe(scopedDeepResearch.id);
     expect(resolution.shouldRedirect).toBe(false);
@@ -59,14 +94,21 @@ describe("company skill routes", () => {
   });
 
   it("leaves ambiguous bare slug URLs unresolved", () => {
-    const resolution = resolveSkillRouteToken("deep-research", [deepResearch, scopedDeepResearch]);
+    const resolution = resolveSkillRouteToken("deep-research", [
+      deepResearch,
+      scopedDeepResearch,
+    ]);
 
     expect(resolution.skill).toBeNull();
     expect(resolution.ambiguous).toBe(true);
   });
 
   it("parses token paths and encoded file paths", () => {
-    expect(parseSkillRoute("taskcore/deep-research/files/references/setup%20guide.md")).toEqual({
+    expect(
+      parseSkillRoute(
+        "taskcore/deep-research/files/references/setup%20guide.md",
+      ),
+    ).toEqual({
       skillToken: "taskcore/deep-research",
       filePath: "references/setup guide.md",
       hasExplicitFilePath: true,
@@ -76,7 +118,11 @@ describe("company skill routes", () => {
       filePath: "SKILL.md",
       hasExplicitFilePath: true,
     });
-    expect(parseSkillRoute(undefined)).toEqual({ skillToken: null, filePath: "SKILL.md", hasExplicitFilePath: false });
+    expect(parseSkillRoute(undefined)).toEqual({
+      skillToken: null,
+      filePath: "SKILL.md",
+      hasExplicitFilePath: false,
+    });
   });
 
   it("builds Studio create targets for blank and forked skills", () => {

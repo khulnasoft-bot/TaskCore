@@ -1,7 +1,13 @@
 import { isDeepStrictEqual } from "node:util";
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { assets, documentRevisions, documents, issueAttachments, issueDocuments } from "@taskcore/db";
+import {
+  assets,
+  documentRevisions,
+  documents,
+  issueAttachments,
+  issueDocuments,
+} from "@taskcore/db";
 import {
   MARKDOWN_REVIEW_DOCUMENT_MAX_BYTES,
   artifactReviewDocumentKey,
@@ -20,11 +26,23 @@ import {
 } from "../errors.js";
 import type { StorageService } from "../storage/types.js";
 import { documentAnnotationService } from "./document-annotations.js";
-import { documentService, issueDocumentSelect, mapIssueDocumentRow } from "./documents.js";
+import {
+  documentService,
+  issueDocumentSelect,
+  mapIssueDocumentRow,
+} from "./documents.js";
 
 export type EnsureArtifactReviewWorkProduct = Pick<
   IssueWorkProduct,
-  "id" | "companyId" | "issueId" | "type" | "provider" | "metadata" | "title" | "createdByRunId" | "sourceTrust"
+  | "id"
+  | "companyId"
+  | "issueId"
+  | "type"
+  | "provider"
+  | "metadata"
+  | "title"
+  | "createdByRunId"
+  | "sourceTrust"
 >;
 
 export interface EnsureArtifactReviewDocumentInput {
@@ -33,7 +51,9 @@ export interface EnsureArtifactReviewDocumentInput {
 }
 
 type RemappedAnnotations = Awaited<
-  ReturnType<ReturnType<typeof documentAnnotationService>["remapOpenThreadsForDocument"]>
+  ReturnType<
+    ReturnType<typeof documentAnnotationService>["remapOpenThreadsForDocument"]
+  >
 >;
 
 export interface EnsureArtifactReviewDocumentResult {
@@ -59,23 +79,27 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
       .select(issueDocumentSelect)
       .from(issueDocuments)
       .innerJoin(documents, eq(issueDocuments.documentId, documents.id))
-      .where(and(eq(issueDocuments.issueId, issueId), eq(issueDocuments.key, key)))
+      .where(
+        and(eq(issueDocuments.issueId, issueId), eq(issueDocuments.key, key)),
+      )
       .then((rows) => (rows[0] ? mapIssueDocumentRow(rows[0], true) : null));
     if (!document) return null;
     const latestRevision = document.latestRevisionId
       ? await db
-        .select({
-          createdByAgentId: documentRevisions.createdByAgentId,
-          createdByUserId: documentRevisions.createdByUserId,
-          createdByRunId: documentRevisions.createdByRunId,
-        })
-        .from(documentRevisions)
-        .where(and(
-          eq(documentRevisions.id, document.latestRevisionId),
-          eq(documentRevisions.documentId, document.id),
-          eq(documentRevisions.companyId, document.companyId),
-        ))
-        .then((rows) => rows[0] ?? null)
+          .select({
+            createdByAgentId: documentRevisions.createdByAgentId,
+            createdByUserId: documentRevisions.createdByUserId,
+            createdByRunId: documentRevisions.createdByRunId,
+          })
+          .from(documentRevisions)
+          .where(
+            and(
+              eq(documentRevisions.id, document.latestRevisionId),
+              eq(documentRevisions.documentId, document.id),
+              eq(documentRevisions.companyId, document.companyId),
+            ),
+          )
+          .then((rows) => rows[0] ?? null)
       : null;
     return { document, latestRevision };
   };
@@ -103,11 +127,18 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
     // Unknown and cross-scope attachment ids are deliberately
     // indistinguishable: canonical metadata must reference an attachment on
     // the same issue and company.
-    if (!attachment || attachment.companyId !== issue.companyId || attachment.issueId !== issue.id) {
-      throw unprocessable("Work product attachment must reference an attachment on the same issue", {
-        code: "invalid_attachment_artifact_metadata",
-        attachmentId: metadata.attachmentId,
-      });
+    if (
+      !attachment ||
+      attachment.companyId !== issue.companyId ||
+      attachment.issueId !== issue.id
+    ) {
+      throw unprocessable(
+        "Work product attachment must reference an attachment on the same issue",
+        {
+          code: "invalid_attachment_artifact_metadata",
+          attachmentId: metadata.attachmentId,
+        },
+      );
     }
     if (!isMarkdownAttachmentContent(attachment)) {
       throw unsupportedMediaType("Work product attachment is not Markdown", {
@@ -116,14 +147,20 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
       });
     }
     if (attachment.byteSize > MARKDOWN_REVIEW_DOCUMENT_MAX_BYTES) {
-      throw payloadTooLarge("Markdown attachment exceeds the review document size limit", {
-        code: "review_document_too_large",
-        byteSize: attachment.byteSize,
-        maxBytes: MARKDOWN_REVIEW_DOCUMENT_MAX_BYTES,
-      });
+      throw payloadTooLarge(
+        "Markdown attachment exceeds the review document size limit",
+        {
+          code: "review_document_too_large",
+          byteSize: attachment.byteSize,
+          maxBytes: MARKDOWN_REVIEW_DOCUMENT_MAX_BYTES,
+        },
+      );
     }
 
-    const object = await storage.getObject(attachment.companyId, attachment.objectKey);
+    const object = await storage.getObject(
+      attachment.companyId,
+      attachment.objectKey,
+    );
     const chunks: Buffer[] = [];
     let total = 0;
     for await (const chunk of object.stream) {
@@ -133,17 +170,22 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
       // metadata/object size mismatch can never exceed the limit.
       if (total > MARKDOWN_REVIEW_DOCUMENT_MAX_BYTES) {
         object.stream.destroy();
-        throw payloadTooLarge("Markdown attachment exceeds the review document size limit", {
-          code: "review_document_too_large",
-          maxBytes: MARKDOWN_REVIEW_DOCUMENT_MAX_BYTES,
-        });
+        throw payloadTooLarge(
+          "Markdown attachment exceeds the review document size limit",
+          {
+            code: "review_document_too_large",
+            maxBytes: MARKDOWN_REVIEW_DOCUMENT_MAX_BYTES,
+          },
+        );
       }
       chunks.push(buffer);
     }
 
     let body: string;
     try {
-      body = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks));
+      body = new TextDecoder("utf-8", { fatal: true }).decode(
+        Buffer.concat(chunks),
+      );
     } catch {
       throw unprocessable("Markdown attachment is not valid UTF-8", {
         code: "invalid_review_document_encoding",
@@ -158,15 +200,21 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
       input: EnsureArtifactReviewDocumentInput,
     ): Promise<EnsureArtifactReviewDocumentResult> => {
       const { issue, workProduct } = input;
-      if (workProduct.issueId !== issue.id || workProduct.companyId !== issue.companyId) {
+      if (
+        workProduct.issueId !== issue.id ||
+        workProduct.companyId !== issue.companyId
+      ) {
         throw notFound("Work product not found");
       }
       const metadata = getAttachmentArtifactWorkProductMetadata(workProduct);
       if (!metadata) {
-        throw unprocessable("Work product is not an attachment-backed Taskcore artifact", {
-          code: "not_attachment_backed_artifact",
-          workProductId: workProduct.id,
-        });
+        throw unprocessable(
+          "Work product is not an attachment-backed Taskcore artifact",
+          {
+            code: "not_attachment_backed_artifact",
+            workProductId: workProduct.id,
+          },
+        );
       }
       if (!isMarkdownAttachmentContent(metadata)) {
         throw unsupportedMediaType("Work product attachment is not Markdown", {
@@ -175,7 +223,10 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
         });
       }
 
-      const { attachment, body } = await readMarkdownAttachmentBody(issue, metadata);
+      const { attachment, body } = await readMarkdownAttachmentBody(
+        issue,
+        metadata,
+      );
       const key = artifactReviewDocumentKey(workProduct.id);
       // The review document represents agent-authored attachment content, so
       // attribution promotes the attachment/work-product provenance instead of
@@ -191,16 +242,25 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
         const existingState = await getExistingByKey(issue.id, key);
         const existing = existingState?.document ?? null;
         const latestRevision = existingState?.latestRevision ?? null;
-        const reviewStateMatches = existing &&
+        const reviewStateMatches =
+          existing &&
           existing.body === body &&
           existing.title === (workProduct.title ?? null) &&
           existing.format === "markdown" &&
           latestRevision?.createdByAgentId === attribution.createdByAgentId &&
           latestRevision.createdByUserId === attribution.createdByUserId &&
           latestRevision.createdByRunId === attribution.createdByRunId &&
-          isDeepStrictEqual(existing.sourceTrust ?? null, attribution.sourceTrust);
+          isDeepStrictEqual(
+            existing.sourceTrust ?? null,
+            attribution.sourceTrust,
+          );
         if (reviewStateMatches) {
-          return { document: existing, created: false, revisionChanged: false, remappedAnnotations: [] };
+          return {
+            document: existing,
+            created: false,
+            revisionChanged: false,
+            remappedAnnotations: [],
+          };
         }
         try {
           const result = await documentsSvc.upsertIssueDocument({
@@ -219,13 +279,13 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
           const remappedAnnotations = result.created
             ? []
             : await annotationsSvc.remapOpenThreadsForDocument({
-              issueId: issue.id,
-              key: result.document.key,
-              documentId: result.document.id,
-              nextRevisionId: result.document.latestRevisionId,
-              nextRevisionNumber: result.document.latestRevisionNumber,
-              nextBody: result.document.body,
-            });
+                issueId: issue.id,
+                key: result.document.key,
+                documentId: result.document.id,
+                nextRevisionId: result.document.latestRevisionId,
+                nextRevisionNumber: result.document.latestRevisionNumber,
+                nextBody: result.document.body,
+              });
           return {
             document: result.document,
             created: result.created,
@@ -235,11 +295,18 @@ export function artifactReviewDocumentService(db: Db, storage: StorageService) {
         } catch (error) {
           // A concurrent materialization or document write raced this one.
           // Re-read once so identical content converges on the winner.
-          if (error instanceof HttpError && error.status === 409 && attempt === 0) continue;
+          if (
+            error instanceof HttpError &&
+            error.status === 409 &&
+            attempt === 0
+          )
+            continue;
           throw error;
         }
       }
-      throw conflict("Concurrent review-document updates did not converge", { key });
+      throw conflict("Concurrent review-document updates did not converge", {
+        key,
+      });
     },
   };
 }

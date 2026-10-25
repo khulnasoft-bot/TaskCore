@@ -12,8 +12,7 @@ import {
 import { MAX_ATTACHMENT_BYTES } from "../../attachment-types.js";
 
 export type PhotonRecoveryEvent =
-  | CatchUpEvent
-  | { type: "photon.ignored"; sequence: number };
+  CatchUpEvent | { type: "photon.ignored"; sequence: number };
 export const PHOTON_CATCHUP_PATH =
   "/photon.imessage.v1.EventService/CatchUpEvents";
 

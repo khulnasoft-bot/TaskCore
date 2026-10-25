@@ -1,10 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import {
-  chatActions,
-  chatDiscordCommandOwners,
-  type Db,
-} from "@taskcore/db";
+import { chatActions, chatDiscordCommandOwners, type Db } from "@taskcore/db";
 import {
   createDiscordCommandRegistration,
   parseDiscordCommandRegistration,

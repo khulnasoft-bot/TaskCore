@@ -8,5 +8,8 @@ export function useMemoryConnectorsEnabled() {
     queryKey: queryKeys.instance.experimentalSettings,
     queryFn: () => instanceSettingsApi.getExperimental(),
   });
-  return { enabled: !query.isError && query.data?.enableMemoryConnectors === true, loaded: query.isFetched };
+  return {
+    enabled: !query.isError && query.data?.enableMemoryConnectors === true,
+    loaded: query.isFetched,
+  };
 }

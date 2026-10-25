@@ -56,10 +56,20 @@ describe("protocol-failure cleanup", () => {
         assert.equal(cleanupAttempts, 1);
         process.stdout.write("HOST_ALIVE_CLEANUP_OUTCOME_PRESERVED");
       `;
-      expect(execFileSync(process.execPath, [
-        "--unhandled-rejections=strict", "--import", resolveTsxLoader,
-        "--input-type=module", "--eval", source,
-      ], { encoding: "utf8", timeout: 10_000 })).toBe("HOST_ALIVE_CLEANUP_OUTCOME_PRESERVED");
+      expect(
+        execFileSync(
+          process.execPath,
+          [
+            "--unhandled-rejections=strict",
+            "--import",
+            resolveTsxLoader,
+            "--input-type=module",
+            "--eval",
+            source,
+          ],
+          { encoding: "utf8", timeout: 10_000 },
+        ),
+      ).toBe("HOST_ALIVE_CLEANUP_OUTCOME_PRESERVED");
     },
   );
 });

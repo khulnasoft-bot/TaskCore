@@ -214,11 +214,7 @@ export function TaskBrowserPanel({
                     Reconnect the view or open this task in another browser. The
                     remote browser is still running.
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={reconnect}
-                  >
+                  <Button variant="outline" size="sm" onClick={reconnect}>
                     Reconnect view
                   </Button>
                 </>
@@ -259,11 +255,13 @@ export function TaskBrowserPanel({
                         : null)}
             </p>
           </div>
-          {browser?.status === "closed" && !accessError && onOpenActiveBrowser && (
-            <Button variant="outline" size="sm" onClick={onOpenActiveBrowser}>
-              Open active browser
-            </Button>
-          )}
+          {browser?.status === "closed" &&
+            !accessError &&
+            onOpenActiveBrowser && (
+              <Button variant="outline" size="sm" onClick={onOpenActiveBrowser}>
+                Open active browser
+              </Button>
+            )}
         </div>
       )}
       {viewable && url && message && (

@@ -50,7 +50,10 @@ import {
 import { WorkspaceFileBrowser } from "@/components/WorkspaceFileBrowser";
 import { WorkspaceFileMarkdownBody } from "@/components/WorkspaceFileMarkdownBody";
 import { HtmlArtifactPreview } from "@/components/HtmlArtifactPreview";
-import { FilePreviewModeToggle, type FilePreviewMode } from "@/components/FilePreviewModeToggle";
+import {
+  FilePreviewModeToggle,
+  type FilePreviewMode,
+} from "@/components/FilePreviewModeToggle";
 import { isHtmlPreview } from "@/lib/html-preview";
 import type {
   ResolvedWorkspaceResource,
@@ -71,7 +74,10 @@ interface FileViewerErrorShape {
 
 function normalizeError(error: unknown): FileViewerErrorShape {
   if (error instanceof ApiError) {
-    const body = (error.body ?? null) as { error?: string; code?: string } | null;
+    const body = (error.body ?? null) as {
+      error?: string;
+      code?: string;
+    } | null;
     const code = typeof body?.code === "string" ? body.code : "";
     return {
       status: error.status,
@@ -86,7 +92,8 @@ function normalizeError(error: unknown): FileViewerErrorShape {
 }
 
 function formatBytes(size: number | null | undefined): string | null {
-  if (typeof size !== "number" || !Number.isFinite(size) || size < 0) return null;
+  if (typeof size !== "number" || !Number.isFinite(size) || size < 0)
+    return null;
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
@@ -121,9 +128,16 @@ function isMarkdownResource(resource: ResolvedWorkspaceResource): boolean {
   return /\.(md|markdown|mdown|mkdn|mkd)$/.test(path);
 }
 
-export function describeDenial(code: string, fallback: string): { title: string; body: string; icon: ReactNode } {
+export function describeDenial(
+  code: string,
+  fallback: string,
+): { title: string; body: string; icon: ReactNode } {
   const lower = code.toLowerCase();
-  if (lower.includes("policy") || lower.includes("denied") || lower.includes("sensitive")) {
+  if (
+    lower.includes("policy") ||
+    lower.includes("denied") ||
+    lower.includes("sensitive")
+  ) {
     return {
       icon: <Lock aria-hidden="true" className="h-6 w-6 text-amber-500" />,
       title: "Viewer blocked for this file",
@@ -139,28 +153,39 @@ export function describeDenial(code: string, fallback: string): { title: string;
   }
   if (lower.includes("archive") || lower.includes("cleaned")) {
     return {
-      icon: <FolderOpen aria-hidden="true" className="h-6 w-6 text-muted-foreground" />,
+      icon: (
+        <FolderOpen
+          aria-hidden="true"
+          className="h-6 w-6 text-muted-foreground"
+        />
+      ),
       title: "Workspace is no longer available",
       body: "The isolated worktree for this issue has been cleaned up, so files cannot be previewed.",
     };
   }
   if (lower.includes("remote")) {
     return {
-      icon: <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />,
+      icon: (
+        <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />
+      ),
       title: "Remote workspace preview not supported",
       body: "This workspace is hosted remotely and is not available for inline preview yet.",
     };
   }
   if (lower.includes("too_large") || lower.includes("size")) {
     return {
-      icon: <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />,
+      icon: (
+        <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />
+      ),
       title: "File is too large to preview",
       body: "This file exceeds the supported preview size.",
     };
   }
   if (lower.includes("binary") || lower.includes("unsupported")) {
     return {
-      icon: <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />,
+      icon: (
+        <AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />
+      ),
       title: "Preview not supported for this file type",
       body: "This file does not have a text, image, or video preview available.",
     };
@@ -211,16 +236,22 @@ export function FileViewerMetadataRow({
     <div className="flex min-h-(--sz-18px) flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
       {resolvedResource ? (
         <>
-          {resolvedResource.previewKind ? <span className="capitalize">{resolvedResource.previewKind}</span> : null}
+          {resolvedResource.previewKind ? (
+            <span className="capitalize">{resolvedResource.previewKind}</span>
+          ) : null}
           {formatBytes(resolvedResource.byteSize) ? (
             <>
-              <span aria-hidden="true" className="opacity-50">·</span>
+              <span aria-hidden="true" className="opacity-50">
+                ·
+              </span>
               <span>{formatBytes(resolvedResource.byteSize)}</span>
             </>
           ) : null}
           {state?.line ? (
             <>
-              <span aria-hidden="true" className="opacity-50">·</span>
+              <span aria-hidden="true" className="opacity-50">
+                ·
+              </span>
               <span>
                 Line {state.line}
                 {state.column ? `, Col ${state.column}` : ""}
@@ -229,7 +260,10 @@ export function FileViewerMetadataRow({
           ) : null}
         </>
       ) : state ? (
-        <span className="h-3 w-28 rounded bg-muted animate-pulse" aria-label="Loading file details" />
+        <span
+          className="h-3 w-28 rounded bg-muted animate-pulse"
+          aria-label="Loading file details"
+        />
       ) : null}
     </div>
   );
@@ -245,13 +279,32 @@ interface FileContentViewerProps {
 
 type MarkdownPreviewMode = "raw" | "rendered";
 
-export function FileContentViewer({ content, highlightedLine, onLoaded, previewMode, htmlMode = "rendered" }: FileContentViewerProps) {
+export function FileContentViewer({
+  content,
+  highlightedLine,
+  onLoaded,
+  previewMode,
+  htmlMode = "rendered",
+}: FileContentViewerProps) {
   const { resource } = content;
-  const isMarkdown = resource.previewKind === "text" && content.content.encoding === "utf8" && isMarkdownResource(resource);
-  const isCsv = resource.previewKind === "text" && content.content.encoding === "utf8" && isCsvFile(resource.displayPath || resource.title, resource.contentType ?? "");
-  const [localMode, setMarkdownMode] = useState<MarkdownPreviewMode>("rendered");
+  const isMarkdown =
+    resource.previewKind === "text" &&
+    content.content.encoding === "utf8" &&
+    isMarkdownResource(resource);
+  const isCsv =
+    resource.previewKind === "text" &&
+    content.content.encoding === "utf8" &&
+    isCsvFile(
+      resource.displayPath || resource.title,
+      resource.contentType ?? "",
+    );
+  const [localMode, setMarkdownMode] =
+    useState<MarkdownPreviewMode>("rendered");
   const markdownMode = isMarkdown || isCsv ? (previewMode ?? localMode) : "raw";
-  const isHtml = resource.previewKind === "text" && content.content.encoding === "utf8" && isHtmlPreview(resource.contentType, resource.displayPath || resource.title);
+  const isHtml =
+    resource.previewKind === "text" &&
+    content.content.encoding === "utf8" &&
+    isHtmlPreview(resource.contentType, resource.displayPath || resource.title);
   const previewLabel = isCsv ? "CSV" : "Markdown";
   const lines = useMemo(() => {
     if (resource.previewKind === "text") {
@@ -265,27 +318,44 @@ export function FileContentViewer({ content, highlightedLine, onLoaded, previewM
 
   useEffect(() => {
     setMarkdownMode(isMarkdown || isCsv ? "rendered" : "raw");
-  }, [isMarkdown, isCsv, resource.displayPath, resource.title, resource.contentType]);
+  }, [
+    isMarkdown,
+    isCsv,
+    resource.displayPath,
+    resource.title,
+    resource.contentType,
+  ]);
 
   useEffect(() => {
     if (!lines) return;
-    onLoaded?.(`File loaded, ${lines.length} ${lines.length === 1 ? "line" : "lines"}.`);
+    onLoaded?.(
+      `File loaded, ${lines.length} ${lines.length === 1 ? "line" : "lines"}.`,
+    );
   }, [lines, onLoaded]);
 
   useEffect(() => {
     if (markdownMode !== "raw") return;
     if (!highlightedLine || !highlightedLineRef.current) return;
-    highlightedLineRef.current.scrollIntoView({ block: "center", behavior: "auto" });
+    highlightedLineRef.current.scrollIntoView({
+      block: "center",
+      behavior: "auto",
+    });
   }, [highlightedLine, markdownMode, htmlMode, previewMode]);
 
   if (resource.previewKind === "image") {
-    const dataUrl = content.content.encoding === "base64"
-      ? `data:${resource.contentType ?? "application/octet-stream"};base64,${content.content.data}`
-      : null;
+    const dataUrl =
+      content.content.encoding === "base64"
+        ? `data:${resource.contentType ?? "application/octet-stream"};base64,${content.content.data}`
+        : null;
     if (!dataUrl) {
       return (
         <FileViewerStateView
-          icon={<AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />}
+          icon={
+            <AlertTriangle
+              aria-hidden="true"
+              className="h-6 w-6 text-amber-500"
+            />
+          }
           title="Image preview unavailable"
         />
       );
@@ -302,13 +372,19 @@ export function FileContentViewer({ content, highlightedLine, onLoaded, previewM
   }
 
   if (resource.previewKind === "video") {
-    const dataUrl = content.content.encoding === "base64"
-      ? `data:${resource.contentType ?? "application/octet-stream"};base64,${content.content.data}`
-      : null;
+    const dataUrl =
+      content.content.encoding === "base64"
+        ? `data:${resource.contentType ?? "application/octet-stream"};base64,${content.content.data}`
+        : null;
     if (!dataUrl) {
       return (
         <FileViewerStateView
-          icon={<AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />}
+          icon={
+            <AlertTriangle
+              aria-hidden="true"
+              className="h-6 w-6 text-amber-500"
+            />
+          }
           title="Video preview unavailable"
         />
       );
@@ -330,9 +406,18 @@ export function FileContentViewer({ content, highlightedLine, onLoaded, previewM
   if (resource.previewKind === "unsupported" || !lines) {
     return (
       <FileViewerStateView
-        icon={<AlertTriangle aria-hidden="true" className="h-6 w-6 text-amber-500" />}
+        icon={
+          <AlertTriangle
+            aria-hidden="true"
+            className="h-6 w-6 text-amber-500"
+          />
+        }
         title="Preview not supported for this file type"
-        body={resource.contentType ? `Content type: ${resource.contentType}` : undefined}
+        body={
+          resource.contentType
+            ? `Content type: ${resource.contentType}`
+            : undefined
+        }
       />
     );
   }
@@ -376,7 +461,9 @@ export function FileContentViewer({ content, highlightedLine, onLoaded, previewM
               >
                 {lineNumber}
               </span>
-              <code className="min-w-0 whitespace-pre-wrap break-words pr-4">{lineText.length === 0 ? "​" : lineText}</code>
+              <code className="min-w-0 whitespace-pre-wrap break-words pr-4">
+                {lineText.length === 0 ? "​" : lineText}
+              </code>
             </div>
           );
         })}
@@ -385,7 +472,11 @@ export function FileContentViewer({ content, highlightedLine, onLoaded, previewM
   );
 
   if (isHtml) {
-    return (previewMode ?? htmlMode) === "raw" ? rawSourceView : <HtmlArtifactPreview html={content.content.data} title={resource.title} />;
+    return (previewMode ?? htmlMode) === "raw" ? (
+      rawSourceView
+    ) : (
+      <HtmlArtifactPreview html={content.content.data} title={resource.title} />
+    );
   }
 
   if (!isMarkdown && !isCsv) {
@@ -394,48 +485,53 @@ export function FileContentViewer({ content, highlightedLine, onLoaded, previewM
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      {previewMode === undefined && <div className="absolute right-3 top-3 z-20">
-        <div
-          role="group"
-          aria-label={`${previewLabel} preview mode`}
-          className="inline-flex rounded-md border border-border bg-background/95 p-0.5 shadow-sm backdrop-blur"
-        >
-          <Button
-            type="button"
-            variant={markdownMode === "rendered" ? "secondary" : "ghost"}
-            size="icon-sm"
-            aria-label={`Show rendered ${previewLabel}`}
-            title={`Rendered ${previewLabel}`}
-            aria-pressed={markdownMode === "rendered"}
-            onClick={() => setMarkdownMode("rendered")}
-            className={cn(
-              "h-7 w-7 rounded-sm",
-              markdownMode !== "rendered" && "text-muted-foreground hover:text-foreground",
-            )}
+      {previewMode === undefined && (
+        <div className="absolute right-3 top-3 z-20">
+          <div
+            role="group"
+            aria-label={`${previewLabel} preview mode`}
+            className="inline-flex rounded-md border border-border bg-background/95 p-0.5 shadow-sm backdrop-blur"
           >
-            <Eye aria-hidden="true" className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant={markdownMode === "raw" ? "secondary" : "ghost"}
-            size="icon-sm"
-            aria-label={`Show raw ${previewLabel}`}
-            title={`Raw ${previewLabel}`}
-            aria-pressed={markdownMode === "raw"}
-            onClick={() => setMarkdownMode("raw")}
-            className={cn(
-              "h-7 w-7 rounded-sm",
-              markdownMode !== "raw" && "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <FileCode2 aria-hidden="true" className="h-3.5 w-3.5" />
-          </Button>
+            <Button
+              type="button"
+              variant={markdownMode === "rendered" ? "secondary" : "ghost"}
+              size="icon-sm"
+              aria-label={`Show rendered ${previewLabel}`}
+              title={`Rendered ${previewLabel}`}
+              aria-pressed={markdownMode === "rendered"}
+              onClick={() => setMarkdownMode("rendered")}
+              className={cn(
+                "h-7 w-7 rounded-sm",
+                markdownMode !== "rendered" &&
+                  "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Eye aria-hidden="true" className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant={markdownMode === "raw" ? "secondary" : "ghost"}
+              size="icon-sm"
+              aria-label={`Show raw ${previewLabel}`}
+              title={`Raw ${previewLabel}`}
+              aria-pressed={markdownMode === "raw"}
+              onClick={() => setMarkdownMode("raw")}
+              className={cn(
+                "h-7 w-7 rounded-sm",
+                markdownMode !== "raw" &&
+                  "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <FileCode2 aria-hidden="true" className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
-      </div>
-      }
+      )}
       {markdownMode === "raw" ? (
         rawSourceView
-      ) : isCsv ? <CsvPreview text={content.content.data} title={resource.title} /> : (
+      ) : isCsv ? (
+        <CsvPreview text={content.content.data} title={resource.title} />
+      ) : (
         <div
           role="region"
           aria-label={`${resource.title} rendered Markdown`}
@@ -460,7 +556,11 @@ function LoadingView({ elapsedMs }: { elapsedMs: number }) {
       <div className="flex-1 space-y-2 p-6" aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading file preview</span>
         {Array.from({ length: 10 }).map((_, index) => (
-          <div key={index} className="h-3 rounded bg-muted animate-pulse" style={{ width: `${90 - index * 6}%` }} />
+          <div
+            key={index}
+            className="h-3 rounded bg-muted animate-pulse"
+            style={{ width: `${90 - index * 6}%` }}
+          />
         ))}
       </div>
     );
@@ -506,13 +606,22 @@ export function FileViewerSheet({
   // True when the current file was reached from the browse list (drill-down).
   const cameFromBrowse = state !== null && viewer.browse;
   const computedOpen =
-    typeof openProp === "boolean" ? openProp : state !== null || showPromptWhenEmpty || viewer.browse;
+    typeof openProp === "boolean"
+      ? openProp
+      : state !== null || showPromptWhenEmpty || viewer.browse;
 
   const [elapsedMs, setElapsedMs] = useState(0);
   const [htmlMode, setHtmlMode] = useState<FilePreviewMode>("rendered");
-  useEffect(() => setHtmlMode("rendered"), [state?.path, state?.workspace, state?.workspaceId, state?.projectId]);
-  const [copiedField, setCopiedField] = useState<"content" | "link" | null>(null);
-  const [copyingField, setCopyingField] = useState<"content" | "link" | null>(null);
+  useEffect(
+    () => setHtmlMode("rendered"),
+    [state?.path, state?.workspace, state?.workspaceId, state?.projectId],
+  );
+  const [copiedField, setCopiedField] = useState<"content" | "link" | null>(
+    null,
+  );
+  const [copyingField, setCopyingField] = useState<"content" | "link" | null>(
+    null,
+  );
   const [copyFeedback, setCopyFeedback] = useState("");
   const [announcement, setAnnouncement] = useState<string>("");
   const [fileTreeWidth, setFileTreeWidth] = useState(288);
@@ -529,11 +638,13 @@ export function FileViewerSheet({
     staleTime: 30_000,
   });
 
-  const resolvedResource: ResolvedWorkspaceResource | undefined = resolveQuery.data;
+  const resolvedResource: ResolvedWorkspaceResource | undefined =
+    resolveQuery.data;
   const canPreview = resolvedResource?.capabilities.preview ?? false;
-  const downloadUrl = state && resolvedResource?.capabilities.download
-    ? fileResourcesApi.downloadUrl(issueId, state)
-    : null;
+  const downloadUrl =
+    state && resolvedResource?.capabilities.download
+      ? fileResourcesApi.downloadUrl(issueId, state)
+      : null;
 
   const contentQuery = useQuery({
     queryKey: state
@@ -567,7 +678,13 @@ export function FileViewerSheet({
     }, 75);
     return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.path, state?.workspace, state?.projectId, state?.workspaceId, isLoadingPreview]);
+  }, [
+    state?.path,
+    state?.workspace,
+    state?.projectId,
+    state?.workspaceId,
+    isLoadingPreview,
+  ]);
 
   useEffect(() => {
     if (resolveQuery.isError) {
@@ -583,10 +700,14 @@ export function FileViewerSheet({
     }
   }, [contentQuery.isError, contentQuery.error]);
 
-  useEffect(() => () => {
-    if (copyFeedbackTimerRef.current) window.clearTimeout(copyFeedbackTimerRef.current);
-    resizeCleanupRef.current?.();
-  }, []);
+  useEffect(
+    () => () => {
+      if (copyFeedbackTimerRef.current)
+        window.clearTimeout(copyFeedbackTimerRef.current);
+      resizeCleanupRef.current?.();
+    },
+    [],
+  );
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -643,29 +764,36 @@ export function FileViewerSheet({
     [viewer],
   );
 
-  const showCopyFeedback = useCallback((field: "content" | "link" | null, message: string) => {
-    setCopiedField(field);
-    setCopyFeedback(message);
-    setAnnouncement(message);
-    if (copyFeedbackTimerRef.current) window.clearTimeout(copyFeedbackTimerRef.current);
-    copyFeedbackTimerRef.current = window.setTimeout(() => {
-      setCopiedField((current) => (current === field ? null : current));
-      setCopyFeedback("");
-      copyFeedbackTimerRef.current = null;
-    }, 1800);
-  }, []);
+  const showCopyFeedback = useCallback(
+    (field: "content" | "link" | null, message: string) => {
+      setCopiedField(field);
+      setCopyFeedback(message);
+      setAnnouncement(message);
+      if (copyFeedbackTimerRef.current)
+        window.clearTimeout(copyFeedbackTimerRef.current);
+      copyFeedbackTimerRef.current = window.setTimeout(() => {
+        setCopiedField((current) => (current === field ? null : current));
+        setCopyFeedback("");
+        copyFeedbackTimerRef.current = null;
+      }, 1800);
+    },
+    [],
+  );
 
-  const copyToClipboard = useCallback(async (value: string, field: "content" | "link", message: string) => {
-    try {
-      setCopyingField(field);
-      await copyTextToClipboard(value);
-      showCopyFeedback(field, message);
-    } catch {
-      showCopyFeedback(null, "Copy failed");
-    } finally {
-      setCopyingField((current) => (current === field ? null : current));
-    }
-  }, [showCopyFeedback]);
+  const copyToClipboard = useCallback(
+    async (value: string, field: "content" | "link", message: string) => {
+      try {
+        setCopyingField(field);
+        await copyTextToClipboard(value);
+        showCopyFeedback(field, message);
+      } catch {
+        showCopyFeedback(null, "Copy failed");
+      } finally {
+        setCopyingField((current) => (current === field ? null : current));
+      }
+    },
+    [showCopyFeedback],
+  );
 
   const handleCopyContent = useCallback(() => {
     if (!state) return;
@@ -679,7 +807,10 @@ export function FileViewerSheet({
         showCopyFeedback(null, "File contents unavailable");
         return;
       }
-      const message = content.content.encoding === "base64" ? "Copied file data" : "Copied contents";
+      const message =
+        content.content.encoding === "base64"
+          ? "Copied file data"
+          : "Copied contents";
       await copyToClipboard(content.content.data, "content", message);
     })();
   }, [canPreview, contentQuery, copyToClipboard, showCopyFeedback, state]);
@@ -694,36 +825,48 @@ export function FileViewerSheet({
     if (canPreview) void contentQuery.refetch();
   }, [canPreview, contentQuery, resolveQuery]);
 
-  const handleResizeStart = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    resizeCleanupRef.current?.();
-    const startX = event.clientX;
-    const startWidth = fileTreeWidth;
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      const nextWidth = Math.min(
-        MAX_FILE_TREE_WIDTH,
-        Math.max(MIN_FILE_TREE_WIDTH, startWidth + moveEvent.clientX - startX),
-      );
-      setFileTreeWidth(nextWidth);
-    };
-    const cleanup = () => {
-      document.removeEventListener("pointermove", handlePointerMove);
-      document.removeEventListener("pointerup", cleanup);
-      resizeCleanupRef.current = null;
-    };
-    resizeCleanupRef.current = cleanup;
-    document.addEventListener("pointermove", handlePointerMove);
-    document.addEventListener("pointerup", cleanup, { once: true });
-  }, [fileTreeWidth]);
+  const handleResizeStart = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      resizeCleanupRef.current?.();
+      const startX = event.clientX;
+      const startWidth = fileTreeWidth;
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const nextWidth = Math.min(
+          MAX_FILE_TREE_WIDTH,
+          Math.max(
+            MIN_FILE_TREE_WIDTH,
+            startWidth + moveEvent.clientX - startX,
+          ),
+        );
+        setFileTreeWidth(nextWidth);
+      };
+      const cleanup = () => {
+        document.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("pointerup", cleanup);
+        resizeCleanupRef.current = null;
+      };
+      resizeCleanupRef.current = cleanup;
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", cleanup, { once: true });
+    },
+    [fileTreeWidth],
+  );
 
-  const handleResizeKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    event.preventDefault();
-    setFileTreeWidth((current) => {
-      const delta = event.key === "ArrowLeft" ? -24 : 24;
-      return Math.min(MAX_FILE_TREE_WIDTH, Math.max(MIN_FILE_TREE_WIDTH, current + delta));
-    });
-  }, []);
+  const handleResizeKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      setFileTreeWidth((current) => {
+        const delta = event.key === "ArrowLeft" ? -24 : 24;
+        return Math.min(
+          MAX_FILE_TREE_WIDTH,
+          Math.max(MIN_FILE_TREE_WIDTH, current + delta),
+        );
+      });
+    },
+    [],
+  );
 
   const title = state ? basename(state.path) : "Browse workspace";
   const description = state
@@ -749,12 +892,21 @@ export function FileViewerSheet({
         <DialogHeader className="border-b border-border gap-1 p-3">
           <div className="grid min-w-0 grid-cols-(--gtc-6) items-start gap-2">
             {browseMode ? (
-              <FolderSearch aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <FolderSearch
+                aria-hidden="true"
+                className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
+              />
             ) : (
-              <FileCode2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <FileCode2
+                aria-hidden="true"
+                className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
+              />
             )}
             <div className="min-w-0 flex-1">
-              <DialogTitle id={FILE_VIEWER_LABELLED_BY_ID} className="truncate text-sm leading-5">
+              <DialogTitle
+                id={FILE_VIEWER_LABELLED_BY_ID}
+                className="truncate text-sm leading-5"
+              >
                 {title}
               </DialogTitle>
               <DialogDescription
@@ -769,7 +921,11 @@ export function FileViewerSheet({
               </DialogDescription>
             </div>
             <div className="flex shrink-0 items-center gap-1 self-start">
-              <span className="hidden min-w-28 text-right text-xs text-muted-foreground sm:inline" role="status" aria-live="polite">
+              <span
+                className="hidden min-w-28 text-right text-xs text-muted-foreground sm:inline"
+                role="status"
+                aria-live="polite"
+              >
                 {copyFeedback}
               </span>
               {cameFromBrowse ? (
@@ -785,10 +941,19 @@ export function FileViewerSheet({
                   Back to files
                 </Button>
               ) : null}
-              {contentQuery.data?.resource.previewKind === "text" && contentQuery.data.content.encoding === "utf8"
-                && isHtmlPreview(contentQuery.data.resource.contentType, contentQuery.data.resource.displayPath || contentQuery.data.resource.title) ? (
-                  <FilePreviewModeToggle mode={htmlMode} onChange={setHtmlMode} label="HTML view" />
-                ) : null}
+              {contentQuery.data?.resource.previewKind === "text" &&
+              contentQuery.data.content.encoding === "utf8" &&
+              isHtmlPreview(
+                contentQuery.data.resource.contentType,
+                contentQuery.data.resource.displayPath ||
+                  contentQuery.data.resource.title,
+              ) ? (
+                <FilePreviewModeToggle
+                  mode={htmlMode}
+                  onChange={setHtmlMode}
+                  label="HTML view"
+                />
+              ) : null}
               {state ? (
                 downloadUrl ? (
                   <Button
@@ -814,8 +979,16 @@ export function FileViewerSheet({
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleCopyContent}
-                  aria-label={copiedField === "content" ? "Copied file contents" : "Copy file contents"}
-                  title={copiedField === "content" ? "Copied contents" : "Copy file contents"}
+                  aria-label={
+                    copiedField === "content"
+                      ? "Copied file contents"
+                      : "Copy file contents"
+                  }
+                  title={
+                    copiedField === "content"
+                      ? "Copied contents"
+                      : "Copy file contents"
+                  }
                   className="h-7 w-7"
                 >
                   {copyingField === "content" ? (
@@ -833,7 +1006,11 @@ export function FileViewerSheet({
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleCopyLink}
-                  aria-label={copiedField === "link" ? "Copied file view link" : "Copy link to this file view"}
+                  aria-label={
+                    copiedField === "link"
+                      ? "Copied file view link"
+                      : "Copy link to this file view"
+                  }
                   title={copiedField === "link" ? "Copied link" : "Copy link"}
                   className="h-7 w-7"
                 >
@@ -859,7 +1036,10 @@ export function FileViewerSheet({
               </Button>
             </div>
           </div>
-          <FileViewerMetadataRow resolvedResource={resolvedResource} state={state} />
+          <FileViewerMetadataRow
+            resolvedResource={resolvedResource}
+            state={state}
+          />
         </DialogHeader>
         <div className="relative flex min-h-0 flex-1 flex-col">
           <div aria-live="polite" className="sr-only">
@@ -876,11 +1056,21 @@ export function FileViewerSheet({
                   issueId={issueId}
                   companyId={companyId}
                   onOpen={handleBrowseOpen}
-                  onBrowseStateChange={cameFromBrowse ? handleBrowseStateChange : undefined}
+                  onBrowseStateChange={
+                    cameFromBrowse ? handleBrowseStateChange : undefined
+                  }
                   initialQuery={cameFromBrowse ? viewer.query : null}
-                  initialFolderPath={cameFromBrowse ? viewer.folderPath : undefined}
-                  initialProjectId={state.projectId ?? (cameFromBrowse ? viewer.browseProjectId : null)}
-                  initialWorkspaceId={state.workspaceId ?? (cameFromBrowse ? viewer.browseWorkspaceId : null)}
+                  initialFolderPath={
+                    cameFromBrowse ? viewer.folderPath : undefined
+                  }
+                  initialProjectId={
+                    state.projectId ??
+                    (cameFromBrowse ? viewer.browseProjectId : null)
+                  }
+                  initialWorkspaceId={
+                    state.workspaceId ??
+                    (cameFromBrowse ? viewer.browseWorkspaceId : null)
+                  }
                   autoFocusSearch={false}
                   compact
                   selectedPath={state.path}
@@ -913,7 +1103,9 @@ export function FileViewerSheet({
                   onRetry={handleRetry}
                   onSetAnnouncement={setAnnouncement}
                   onFallbackToProject={
-                    state.workspace !== "project" && !state.projectId && !state.workspaceId
+                    state.workspace !== "project" &&
+                    !state.projectId &&
+                    !state.workspaceId
                       ? () =>
                           viewer.open({
                             path: state.path,
@@ -982,13 +1174,23 @@ export function FileViewerBody({
     if (normalized.status === 404) {
       return (
         <FileViewerStateView
-          icon={<FileSearch aria-hidden="true" className="h-6 w-6 text-muted-foreground" />}
+          icon={
+            <FileSearch
+              aria-hidden="true"
+              className="h-6 w-6 text-muted-foreground"
+            />
+          }
           title="File not found"
           body="That file was not found in the active workspace."
           actions={
             <>
               {onFallbackToProject ? (
-                <Button type="button" variant="secondary" size="sm" onClick={onFallbackToProject}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={onFallbackToProject}
+                >
                   Try project workspace
                 </Button>
               ) : null}
@@ -1003,7 +1205,12 @@ export function FileViewerBody({
     if (normalized.status === 422) {
       return (
         <FileViewerStateView
-          icon={<FolderOpen aria-hidden="true" className="h-6 w-6 text-muted-foreground" />}
+          icon={
+            <FolderOpen
+              aria-hidden="true"
+              className="h-6 w-6 text-muted-foreground"
+            />
+          }
           title="No workspace available"
           body="This issue does not have a workspace that supports preview yet."
         />
@@ -1030,7 +1237,9 @@ export function FileViewerBody({
   if (resource.kind === "remote_resource") {
     return (
       <FileViewerStateView
-        icon={<Cloud aria-hidden="true" className="h-6 w-6 text-muted-foreground" />}
+        icon={
+          <Cloud aria-hidden="true" className="h-6 w-6 text-muted-foreground" />
+        }
         title="Remote workspace preview coming soon"
         body="This workspace is hosted remotely; inline previews are not supported yet."
       />
@@ -1039,7 +1248,13 @@ export function FileViewerBody({
 
   if (!canPreview) {
     const denial = describeDenial(resource.denialReason ?? "", "");
-    return <FileViewerStateView icon={denial.icon} title={denial.title} body={denial.body} />;
+    return (
+      <FileViewerStateView
+        icon={denial.icon}
+        title={denial.title}
+        body={denial.body}
+      />
+    );
   }
 
   if (contentQuery.isFetching && !contentQuery.data) {

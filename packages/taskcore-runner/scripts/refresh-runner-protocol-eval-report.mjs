@@ -63,8 +63,16 @@ export async function refreshProtocolEvalReport({
     ...campaign,
     ...(selection ? { selection } : {}),
     // Recover retry-inclusive cost from retained evidence, not just winning cells.
-    costs: sumAttemptCosts(await Promise.all((await readdir(runsRoot)).map(async (id) =>
-      JSON.parse(await readFile(join(runsRoot, id, "artifact.json"), "utf8")).usage))),
+    costs: sumAttemptCosts(
+      await Promise.all(
+        (await readdir(runsRoot)).map(
+          async (id) =>
+            JSON.parse(
+              await readFile(join(runsRoot, id, "artifact.json"), "utf8"),
+            ).usage,
+        ),
+      ),
+    ),
     campaignId: `${campaign.campaignId}-report-${revision}`,
     // A presentation refresh is not a new model measurement.
     generatedAt: campaign.generatedAt,

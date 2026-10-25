@@ -2,7 +2,12 @@ import type { ExecutionWorkspace } from "@taskcore/shared";
 import { afterEach, expect, it, vi } from "vitest";
 import { createWorkspaceGitInspectionCache } from "../services/workspace-git-inspection-cache.js";
 
-const workspace = { id: "workspace", companyId: "company", cwd: "/repo", baseRef: "master" } as ExecutionWorkspace;
+const workspace = {
+  id: "workspace",
+  companyId: "company",
+  cwd: "/repo",
+  baseRef: "master",
+} as ExecutionWorkspace;
 afterEach(() => vi.useRealTimers());
 
 it("coalesces concurrent display reads and expires after five seconds", async () => {
@@ -33,7 +38,9 @@ it("does not share results across companies, paths, base refs or workspace revis
 });
 
 it("retries failed inspections and bounds retained entries", async () => {
-  const inspect = vi.fn(async () => null).mockRejectedValueOnce(new Error("failed"));
+  const inspect = vi
+    .fn(async () => null)
+    .mockRejectedValueOnce(new Error("failed"));
   const read = createWorkspaceGitInspectionCache(inspect);
   await expect(read(workspace)).rejects.toThrow("failed");
   await read(workspace);

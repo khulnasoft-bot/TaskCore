@@ -1,6 +1,14 @@
-import type { AdapterSessionManagement, ServerAdapterModule } from "@taskcore/adapter-utils";
+import type {
+  AdapterSessionManagement,
+  ServerAdapterModule,
+} from "@taskcore/adapter-utils";
 import { ADAPTER_LABEL, ADAPTER_TYPE } from "./shared/constants.js";
-import { execute, getConfigSchema, sessionCodec, testEnvironment } from "./server/index.js";
+import {
+  execute,
+  getConfigSchema,
+  sessionCodec,
+  testEnvironment,
+} from "./server/index.js";
 
 export const type = ADAPTER_TYPE;
 export const label = ADAPTER_LABEL;

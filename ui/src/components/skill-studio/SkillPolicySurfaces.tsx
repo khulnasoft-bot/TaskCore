@@ -13,7 +13,10 @@ import { useCallback, useState } from "react";
 
 import { InlineBanner } from "@/components/InlineBanner";
 import { Button } from "@/components/ui/button";
-import { classifySkillDenial, type SkillDenial } from "@/lib/skill-policy-denial";
+import {
+  classifySkillDenial,
+  type SkillDenial,
+} from "@/lib/skill-policy-denial";
 
 // ---------------------------------------------------------------------------
 // Denial banner state hook

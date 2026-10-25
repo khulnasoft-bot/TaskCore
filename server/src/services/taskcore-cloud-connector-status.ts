@@ -16,9 +16,14 @@ export async function reconcileTaskcoreCloudConnectorEnrollmentStatus(
   const config = taskcoreCloudConnectorConfigFromEnv(env);
   if (!config) return { ...local, configured: false, status: "not_configured" };
   try {
-    const status = await createTaskcoreCloudConnector({ config, request }).getInstanceStatus();
-    if (status === "active") return { ...local, configured: true, status: "active" };
-    if (status === "suspended") return { ...local, configured: false, status: "suspended" };
+    const status = await createTaskcoreCloudConnector({
+      config,
+      request,
+    }).getInstanceStatus();
+    if (status === "active")
+      return { ...local, configured: true, status: "active" };
+    if (status === "suspended")
+      return { ...local, configured: false, status: "suspended" };
     return { ...local, configured: false, status: "not_configured" };
   } catch {
     return { ...local, configured: false, status: "unverified" };

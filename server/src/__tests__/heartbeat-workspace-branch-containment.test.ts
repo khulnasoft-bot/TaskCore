@@ -1,12 +1,27 @@
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { pathToFileURL } from "node:url";
 import { and, eq, inArray } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   costEvents,
   activityLog,
@@ -39,7 +54,10 @@ import {
   startEmbeddedPostgresTestDatabase,
 } from "./helpers/embedded-postgres.js";
 import { drainHeartbeatRunsToQuiescence } from "./helpers/drain-heartbeat-runs.js";
-import { buildEffectiveRunWorkspaceConfigMetadata, heartbeatService } from "../services/heartbeat.ts";
+import {
+  buildEffectiveRunWorkspaceConfigMetadata,
+  heartbeatService,
+} from "../services/heartbeat.ts";
 import { resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 import { noticeMetadataReferencesRecoveryAction } from "../services/recovery/index.ts";
 import { instanceSettingsService } from "../services/instance-settings.ts";
@@ -52,10 +70,16 @@ import {
 const execFileAsync = promisify(execFile);
 
 function stableStringifyForTest(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map((entry) => stableStringifyForTest(entry)).join(",")}]`;
+  if (Array.isArray(value))
+    return `[${value.map((entry) => stableStringifyForTest(entry)).join(",")}]`;
   if (value && typeof value === "object") {
     const rec = value as Record<string, unknown>;
-    return `{${Object.keys(rec).sort().map((key) => `${JSON.stringify(key)}:${stableStringifyForTest(rec[key])}`).join(",")}}`;
+    return `{${Object.keys(rec)
+      .sort()
+      .map(
+        (key) => `${JSON.stringify(key)}:${stableStringifyForTest(rec[key])}`,
+      )
+      .join(",")}}`;
   }
   return JSON.stringify(value);
 }
@@ -71,18 +95,20 @@ function fingerprintWorkspaceBranchIncoherenceForTest(input: {
   actualHeadSha: string | null;
 }) {
   const digest = createHash("sha256")
-    .update(stableStringifyForTest({
-      version: 1,
-      reason: "git_worktree_branch_incoherence",
-      sourceIssueId: input.sourceIssueId,
-      executionWorkspaceId: input.executionWorkspaceId,
-      worktreePath: path.resolve(input.worktreePath),
-      expectedBranch: input.expectedBranch,
-      actualBranch: input.actualBranch,
-      cleanliness: input.cleanliness,
-      expectedHeadSha: input.expectedHeadSha,
-      actualHeadSha: input.actualHeadSha,
-    }))
+    .update(
+      stableStringifyForTest({
+        version: 1,
+        reason: "git_worktree_branch_incoherence",
+        sourceIssueId: input.sourceIssueId,
+        executionWorkspaceId: input.executionWorkspaceId,
+        worktreePath: path.resolve(input.worktreePath),
+        expectedBranch: input.expectedBranch,
+        actualBranch: input.actualBranch,
+        cleanliness: input.cleanliness,
+        expectedHeadSha: input.expectedHeadSha,
+        actualHeadSha: input.actualHeadSha,
+      }),
+    )
     .digest("hex");
   return `workspace_incoherence:v1:sha256:${digest}`;
 }
@@ -113,8 +139,12 @@ vi.mock("../adapters/index.js", () => ({
 }));
 
 const externalTestDatabaseUrl = process.env.TASKCORE_TEST_DATABASE_URL?.trim();
-const embeddedPostgresSupport = externalTestDatabaseUrl ? { supported: true } : await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const embeddedPostgresSupport = externalTestDatabaseUrl
+  ? { supported: true }
+  : await getEmbeddedPostgresTestSupport();
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -124,7 +154,8 @@ if (!embeddedPostgresSupport.supported) {
 
 type Db = ReturnType<typeof createDb>;
 type Heartbeat = ReturnType<typeof heartbeatService>;
-type BranchContainmentCallSite = "fresh_realize" | "persisted_restore" | "finalize";
+type BranchContainmentCallSite =
+  "fresh_realize" | "persisted_restore" | "finalize";
 
 async function runGit(cwd: string, args: string[]) {
   await execFileAsync("git", args, { cwd });
@@ -137,11 +168,17 @@ async function readGit(cwd: string, args: string[]) {
 async function createGitRepo() {
   // realpath: on macOS os.tmpdir() is a symlink (/tmp -> /private/tmp) and the
   // runtime persists resolved worktree paths, so unresolved fixtures never match.
-  const repoRoot = await realpath(await mkdtemp(path.join(os.tmpdir(), "taskcore-branch-containment-repo-")));
+  const repoRoot = await realpath(
+    await mkdtemp(path.join(os.tmpdir(), "taskcore-branch-containment-repo-")),
+  );
   await runGit(repoRoot, ["init"]);
   await runGit(repoRoot, ["config", "user.email", "taskcore-test@example.com"]);
   await runGit(repoRoot, ["config", "user.name", "Taskcore Test"]);
-  await writeFile(path.join(repoRoot, "README.md"), "branch containment\n", "utf8");
+  await writeFile(
+    path.join(repoRoot, "README.md"),
+    "branch containment\n",
+    "utf8",
+  );
   await runGit(repoRoot, ["add", "README.md"]);
   await runGit(repoRoot, ["commit", "-m", "initial"]);
   return repoRoot;
@@ -156,19 +193,38 @@ async function createForwardBranchMismatch(input: {
 }) {
   await mkdir(path.dirname(input.worktreePath), { recursive: true });
   await runGit(input.repoRoot, ["branch", input.expectedBranch]);
-  await runGit(input.repoRoot, ["worktree", "add", "-b", input.actualBranch, input.worktreePath, input.expectedBranch]);
+  await runGit(input.repoRoot, [
+    "worktree",
+    "add",
+    "-b",
+    input.actualBranch,
+    input.worktreePath,
+    input.expectedBranch,
+  ]);
   if (input.divergeRecordedBranch) {
     await runGit(input.repoRoot, ["checkout", input.expectedBranch]);
-    await writeFile(path.join(input.repoRoot, "recorded-branch.txt"), "recorded branch work\n", "utf8");
+    await writeFile(
+      path.join(input.repoRoot, "recorded-branch.txt"),
+      "recorded branch work\n",
+      "utf8",
+    );
     await runGit(input.repoRoot, ["add", "recorded-branch.txt"]);
     await runGit(input.repoRoot, ["commit", "-m", "Add recorded branch work"]);
   }
-  await writeFile(path.join(input.worktreePath, "actual-branch.txt"), "actual branch work\n", "utf8");
+  await writeFile(
+    path.join(input.worktreePath, "actual-branch.txt"),
+    "actual branch work\n",
+    "utf8",
+  );
   await runGit(input.worktreePath, ["add", "actual-branch.txt"]);
   await runGit(input.worktreePath, ["commit", "-m", "Add actual branch work"]);
 }
 
-async function waitForRunToFinish(heartbeat: Heartbeat, runId: string, timeoutMs = 10_000) {
+async function waitForRunToFinish(
+  heartbeat: Heartbeat,
+  runId: string,
+  timeoutMs = 10_000,
+) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const run = await heartbeat.getRun(runId);
@@ -227,9 +283,14 @@ async function waitForContainmentSideEffects(input: {
     const otherWorkspaceSibling = issueById.get(input.otherWorkspaceSiblingId);
     const recoveryActionId = actionRows.length === 1 ? actionRows[0]?.id : null;
     const hasRecoveryActionComment = recoveryActionId
-      ? comments.some((comment) =>
-          comment.issueId === input.sourceIssueId &&
-          noticeMetadataReferencesRecoveryAction(comment.metadata, recoveryActionId))
+      ? comments.some(
+          (comment) =>
+            comment.issueId === input.sourceIssueId &&
+            noticeMetadataReferencesRecoveryAction(
+              comment.metadata,
+              recoveryActionId,
+            ),
+        )
       : false;
     if (
       source?.status === "blocked" &&
@@ -248,11 +309,17 @@ async function waitForContainmentSideEffects(input: {
     }
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
-  return latest ?? {
-    issueRows: await readContainmentIssueRows(input.db, issueIds),
-    actionRows: await readContainmentActionRows(input.db, input.companyId, issueIds),
-    comments: await readContainmentComments(input.db, issueIds),
-  };
+  return (
+    latest ?? {
+      issueRows: await readContainmentIssueRows(input.db, issueIds),
+      actionRows: await readContainmentActionRows(
+        input.db,
+        input.companyId,
+        issueIds,
+      ),
+      comments: await readContainmentComments(input.db, issueIds),
+    }
+  );
 }
 
 function readContainmentIssueRows(db: Db, issueIds: string[]) {
@@ -269,14 +336,20 @@ function readContainmentIssueRows(db: Db, issueIds: string[]) {
     .where(inArray(issues.id, issueIds));
 }
 
-function readContainmentActionRows(db: Db, companyId: string, issueIds: string[]) {
+function readContainmentActionRows(
+  db: Db,
+  companyId: string,
+  issueIds: string[],
+) {
   return db
     .select()
     .from(issueRecoveryActions)
-    .where(and(
-      eq(issueRecoveryActions.companyId, companyId),
-      inArray(issueRecoveryActions.sourceIssueId, issueIds),
-    ));
+    .where(
+      and(
+        eq(issueRecoveryActions.companyId, companyId),
+        inArray(issueRecoveryActions.sourceIssueId, issueIds),
+      ),
+    );
 }
 
 function readContainmentComments(db: Db, issueIds: string[]) {
@@ -287,18 +360,26 @@ function readContainmentComments(db: Db, issueIds: string[]) {
 }
 
 function readAdapterWorkspace(input: unknown) {
-  const context = (input as { context?: Record<string, unknown> }).context ?? {};
-  const workspace = context.taskcoreWorkspace as Record<string, unknown> | undefined;
+  const context =
+    (input as { context?: Record<string, unknown> }).context ?? {};
+  const workspace = context.taskcoreWorkspace as
+    Record<string, unknown> | undefined;
   const cwd = typeof workspace?.cwd === "string" ? workspace.cwd : null;
-  const branchName = typeof workspace?.branchName === "string" ? workspace.branchName : null;
+  const branchName =
+    typeof workspace?.branchName === "string" ? workspace.branchName : null;
   const executionWorkspaceId =
-    typeof context.executionWorkspaceId === "string" ? context.executionWorkspaceId : null;
+    typeof context.executionWorkspaceId === "string"
+      ? context.executionWorkspaceId
+      : null;
   if (!cwd || !branchName || !executionWorkspaceId) {
     throw new Error("Adapter input is missing execution workspace context");
   }
-  const wake = context.taskcoreWake as { executionWorkspace?: { branchName?: string } } | undefined;
+  const wake = context.taskcoreWake as
+    { executionWorkspace?: { branchName?: string } } | undefined;
   if (wake?.executionWorkspace?.branchName !== branchName) {
-    throw new Error("Adapter wake payload is missing the execution workspace branch pin");
+    throw new Error(
+      "Adapter wake payload is missing the execution workspace branch pin",
+    );
   }
   return { cwd, branchName, executionWorkspaceId };
 }
@@ -326,12 +407,18 @@ async function seedBranchContainmentRun(
   const otherSiblingIdentifier = `${issuePrefix}-3`;
   const expectedBranch = `${sourceIdentifier}-recorded`;
   const actualBranch = `${sourceIdentifier}-actual`;
-  const worktreePath = path.join(repoRoot, ".taskcore", "worktrees", expectedBranch);
+  const worktreePath = path.join(
+    repoRoot,
+    ".taskcore",
+    "worktrees",
+    expectedBranch,
+  );
   const now = new Date("2026-07-07T00:00:00.000Z");
 
   await instanceSettingsService(db).updateExperimental({
     enableIsolatedWorkspaces: true,
-    enableWorkspaceBranchReconcileForward: opts.enableWorkspaceBranchReconcileForward === true,
+    enableWorkspaceBranchReconcileForward:
+      opts.enableWorkspaceBranchReconcileForward === true,
   });
   await db.insert(companies).values({
     id: companyId,
@@ -394,7 +481,8 @@ async function seedBranchContainmentRun(
       worktreePath,
       expectedBranch,
       actualBranch,
-      divergeRecordedBranch: opts.enableWorkspaceBranchReconcileForward !== true,
+      divergeRecordedBranch:
+        opts.enableWorkspaceBranchReconcileForward !== true,
     });
   }
 
@@ -439,7 +527,12 @@ async function seedBranchContainmentRun(
       baseRef: "HEAD",
       branchName: "other-workspace",
       providerType: "git_worktree",
-      providerRef: path.join(repoRoot, ".taskcore", "worktrees", "other-workspace"),
+      providerRef: path.join(
+        repoRoot,
+        ".taskcore",
+        "worktrees",
+        "other-workspace",
+      ),
       lastUsedAt: now,
       openedAt: now,
       createdAt: now,
@@ -496,8 +589,14 @@ async function seedBranchContainmentRun(
       responsibleUserId: "responsible-user",
       issueNumber: 1,
       identifier: sourceIdentifier,
-      executionWorkspaceId: callSite === "fresh_realize" ? sourceExecutionWorkspaceId : callSite === "persisted_restore" ? sourceExecutionWorkspaceId : null,
-      executionWorkspacePreference: callSite === "persisted_restore" ? "reuse_existing" : null,
+      executionWorkspaceId:
+        callSite === "fresh_realize"
+          ? sourceExecutionWorkspaceId
+          : callSite === "persisted_restore"
+            ? sourceExecutionWorkspaceId
+            : null,
+      executionWorkspacePreference:
+        callSite === "persisted_restore" ? "reuse_existing" : null,
       executionWorkspaceSettings: {
         mode: "isolated_workspace",
       },
@@ -522,8 +621,10 @@ async function seedBranchContainmentRun(
       responsibleUserId: "responsible-user",
       issueNumber: 2,
       identifier: sameSiblingIdentifier,
-      executionWorkspaceId: callSite === "finalize" ? null : sourceExecutionWorkspaceId,
-      executionWorkspacePreference: callSite === "finalize" ? null : "reuse_existing",
+      executionWorkspaceId:
+        callSite === "finalize" ? null : sourceExecutionWorkspaceId,
+      executionWorkspacePreference:
+        callSite === "finalize" ? null : "reuse_existing",
       executionWorkspaceSettings: {
         mode: "isolated_workspace",
       },
@@ -584,7 +685,7 @@ async function seedBranchContainmentRun(
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
@@ -600,13 +701,19 @@ async function expectContainedWorkspaceBranchFailure(input: {
   expectedBranch: string;
   actualBranch: string;
 }) {
-  const finishedRun = await waitForRunToFinish(input.heartbeat, input.runId, 10_000);
+  const finishedRun = await waitForRunToFinish(
+    input.heartbeat,
+    input.runId,
+    10_000,
+  );
   expect(finishedRun).toMatchObject({
     status: "failed",
     errorCode: "workspace_validation_failed",
   });
 
-  const workspaceValidation = asRecord(asRecord(finishedRun?.resultJson).workspaceValidation);
+  const workspaceValidation = asRecord(
+    asRecord(finishedRun?.resultJson).workspaceValidation,
+  );
   const provenance = asRecord(workspaceValidation.provenance);
   expect(workspaceValidation).toMatchObject({
     reason: "git_worktree_branch_incoherence",
@@ -622,9 +729,13 @@ async function expectContainedWorkspaceBranchFailure(input: {
     }),
   });
   if (input.sourceExecutionWorkspaceId !== undefined) {
-    expect(workspaceValidation.executionWorkspaceId).toBe(input.sourceExecutionWorkspaceId);
+    expect(workspaceValidation.executionWorkspaceId).toBe(
+      input.sourceExecutionWorkspaceId,
+    );
   }
-  expect(workspaceValidation.fingerprint).toEqual(expect.stringMatching(/^workspace_incoherence:v1:sha256:[a-f0-9]{64}$/));
+  expect(workspaceValidation.fingerprint).toEqual(
+    expect.stringMatching(/^workspace_incoherence:v1:sha256:[a-f0-9]{64}$/),
+  );
   expect(provenance).toMatchObject({
     expectedBranchRef: `refs/heads/${input.expectedBranch}`,
     actualBranchRef: `refs/heads/${input.actualBranch}`,
@@ -633,25 +744,34 @@ async function expectContainedWorkspaceBranchFailure(input: {
     sameHead: false,
     ancestryVerdict: "diverged",
   });
-  expect(provenance.expectedHeadSha).toEqual(expect.stringMatching(/^[a-f0-9]{40}$/));
-  expect(provenance.actualHeadSha).toEqual(expect.stringMatching(/^[a-f0-9]{40}$/));
+  expect(provenance.expectedHeadSha).toEqual(
+    expect.stringMatching(/^[a-f0-9]{40}$/),
+  );
+  expect(provenance.actualHeadSha).toEqual(
+    expect.stringMatching(/^[a-f0-9]{40}$/),
+  );
   expect(provenance.expectedHeadSha).not.toBe(provenance.actualHeadSha);
-  expect(provenance.plainLanguageReason).toEqual(expect.stringContaining("cannot prove a forward-only reconciliation"));
+  expect(provenance.plainLanguageReason).toEqual(
+    expect.stringContaining("cannot prove a forward-only reconciliation"),
+  );
 
-  const { issueRows, actionRows, comments } = await waitForContainmentSideEffects({
-    db: input.db,
-    companyId: input.companyId,
-    sourceIssueId: input.sourceIssueId,
-    sameWorkspaceSiblingId: input.sameWorkspaceSiblingId,
-    otherWorkspaceSiblingId: input.otherWorkspaceSiblingId,
-  });
+  const { issueRows, actionRows, comments } =
+    await waitForContainmentSideEffects({
+      db: input.db,
+      companyId: input.companyId,
+      sourceIssueId: input.sourceIssueId,
+      sameWorkspaceSiblingId: input.sameWorkspaceSiblingId,
+      otherWorkspaceSiblingId: input.otherWorkspaceSiblingId,
+    });
   const issueById = new Map(issueRows.map((issue) => [issue.id, issue]));
   expect(issueById.get(input.sourceIssueId)).toMatchObject({
     status: "blocked",
     executionRunId: null,
     checkoutRunId: null,
   });
-  const sourceAssigneeAgentId = issueById.get(input.sourceIssueId)?.assigneeAgentId;
+  const sourceAssigneeAgentId = issueById.get(
+    input.sourceIssueId,
+  )?.assigneeAgentId;
   expect(sourceAssigneeAgentId).toEqual(expect.any(String));
   expect(issueById.get(input.sameWorkspaceSiblingId)).toMatchObject({
     status: "in_progress",
@@ -676,7 +796,9 @@ async function expectContainedWorkspaceBranchFailure(input: {
     ownerUserId: null,
     previousOwnerAgentId: sourceAssigneeAgentId,
     returnOwnerAgentId: sourceAssigneeAgentId,
-    fingerprint: expect.stringContaining(String(workspaceValidation.fingerprint)),
+    fingerprint: expect.stringContaining(
+      String(workspaceValidation.fingerprint),
+    ),
     attemptCount: 1,
     evidence: expect.objectContaining({
       sourceIssueId: input.sourceIssueId,
@@ -705,12 +827,23 @@ async function expectContainedWorkspaceBranchFailure(input: {
     }),
   });
 
-  expect(comments.filter((comment) =>
-    comment.issueId === input.sourceIssueId &&
-    noticeMetadataReferencesRecoveryAction(comment.metadata, action.id),
-  )).toHaveLength(1);
-  expect(comments.filter((comment) => comment.issueId === input.sameWorkspaceSiblingId)).toHaveLength(0);
-  expect(comments.filter((comment) => comment.issueId === input.otherWorkspaceSiblingId)).toHaveLength(0);
+  expect(
+    comments.filter(
+      (comment) =>
+        comment.issueId === input.sourceIssueId &&
+        noticeMetadataReferencesRecoveryAction(comment.metadata, action.id),
+    ),
+  ).toHaveLength(1);
+  expect(
+    comments.filter(
+      (comment) => comment.issueId === input.sameWorkspaceSiblingId,
+    ),
+  ).toHaveLength(0);
+  expect(
+    comments.filter(
+      (comment) => comment.issueId === input.otherWorkspaceSiblingId,
+    ),
+  ).toHaveLength(0);
 }
 
 async function expectForwardBranchReconciled(input: {
@@ -729,15 +862,29 @@ async function expectForwardBranchReconciled(input: {
   expectsExistingRecordUpdate: boolean;
   expectedResolvedRecoveryActionFingerprint?: string | null;
 }) {
-  const finishedRun = await waitForRunToFinish(input.heartbeat, input.runId, 10_000);
+  const finishedRun = await waitForRunToFinish(
+    input.heartbeat,
+    input.runId,
+    10_000,
+  );
   expect(finishedRun).toMatchObject({
     status: "succeeded",
     errorCode: null,
   });
 
-  expect(input.expectedWorktreeStateAfterReconcile.head).toEqual(expect.stringMatching(/^[a-f0-9]{40}$/));
-  await expect(readGit(input.worktreePath, ["rev-parse", "HEAD"])).resolves.toBe(input.expectedWorktreeStateAfterReconcile.head);
-  await expect(readGit(input.worktreePath, ["status", "--porcelain", "--untracked-files=all"])).resolves.toBe(input.expectedWorktreeStateAfterReconcile.status);
+  expect(input.expectedWorktreeStateAfterReconcile.head).toEqual(
+    expect.stringMatching(/^[a-f0-9]{40}$/),
+  );
+  await expect(
+    readGit(input.worktreePath, ["rev-parse", "HEAD"]),
+  ).resolves.toBe(input.expectedWorktreeStateAfterReconcile.head);
+  await expect(
+    readGit(input.worktreePath, [
+      "status",
+      "--porcelain",
+      "--untracked-files=all",
+    ]),
+  ).resolves.toBe(input.expectedWorktreeStateAfterReconcile.status);
 
   const [sourceIssue] = await input.db
     .select({
@@ -759,7 +906,9 @@ async function expectForwardBranchReconciled(input: {
     })
     .from(executionWorkspaces)
     .where(eq(executionWorkspaces.id, activeWorkspaceId));
-  const expectedDurableBranch = input.expectsExistingRecordUpdate ? input.actualBranch : input.expectedBranch;
+  const expectedDurableBranch = input.expectsExistingRecordUpdate
+    ? input.actualBranch
+    : input.expectedBranch;
   expect(activeWorkspace).toMatchObject({
     name: expectedDurableBranch,
     branchName: expectedDurableBranch,
@@ -776,7 +925,9 @@ async function expectForwardBranchReconciled(input: {
         status: "resolved",
         outcome: "restored",
         fingerprint: input.expectedResolvedRecoveryActionFingerprint,
-        resolutionNote: expect.stringContaining("Execution workspace branch record reconciled"),
+        resolutionNote: expect.stringContaining(
+          "Execution workspace branch record reconciled",
+        ),
         resolvedAt: expect.any(Date),
       }),
     ]);
@@ -797,7 +948,9 @@ async function expectForwardBranchReconciled(input: {
             branchIncoherenceReconcileForward: true,
             expectedBranchName: input.expectedBranch,
             actualBranchName: input.actualBranch,
-            fingerprint: expect.stringMatching(/^workspace_incoherence:v1:sha256:/),
+            fingerprint: expect.stringMatching(
+              /^workspace_incoherence:v1:sha256:/,
+            ),
           }),
         }),
       ]),
@@ -824,21 +977,32 @@ async function expectForwardBranchReconciled(input: {
       expect(sourceWorkspace?.branchName).toBe(input.expectedBranch);
     }
 
-    const comments = await readContainmentComments(input.db, [input.sourceIssueId]);
-    const resolvedRecoveryActionId = recoveryRows.length === 1 ? recoveryRows[0]?.id : null;
+    const comments = await readContainmentComments(input.db, [
+      input.sourceIssueId,
+    ]);
+    const resolvedRecoveryActionId =
+      recoveryRows.length === 1 ? recoveryRows[0]?.id : null;
     expect(comments).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           authorType: "system",
-          body: expect.stringContaining("Execution workspace branch reconciled."),
+          body: expect.stringContaining(
+            "Execution workspace branch reconciled.",
+          ),
         }),
       ]),
     );
     if (resolvedRecoveryActionId) {
-      expect(comments.some((comment) =>
-        comment.authorType === "system" &&
-        noticeMetadataReferencesRecoveryAction(comment.metadata, resolvedRecoveryActionId),
-      )).toBe(true);
+      expect(
+        comments.some(
+          (comment) =>
+            comment.authorType === "system" &&
+            noticeMetadataReferencesRecoveryAction(
+              comment.metadata,
+              resolvedRecoveryActionId,
+            ),
+        ),
+      ).toBe(true);
     }
 
     const activities = await input.db
@@ -871,13 +1035,17 @@ async function expectForwardBranchReconciled(input: {
 
 describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
   let db!: Db;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
     if (externalTestDatabaseUrl) db = createDb(externalTestDatabaseUrl);
     else {
-      tempDb = await startEmbeddedPostgresTestDatabase("taskcore-branch-containment-");
+      tempDb = await startEmbeddedPostgresTestDatabase(
+        "taskcore-branch-containment-",
+      );
       db = createDb(tempDb.connectionString);
     }
   }, 20_000);
@@ -902,7 +1070,8 @@ describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
     }));
     while (tempRoots.length > 0) {
       const root = tempRoots.pop();
-      if (root) await rm(root, { recursive: true, force: true }).catch(() => undefined);
+      if (root)
+        await rm(root, { recursive: true, force: true }).catch(() => undefined);
     }
     await db.delete(issueRecoveryActions);
     await db.delete(issueRelations);
@@ -932,24 +1101,48 @@ describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
   });
 
   afterAll(async () => {
-    if (externalTestDatabaseUrl) await closeRegisteredClients(externalTestDatabaseUrl);
+    if (externalTestDatabaseUrl)
+      await closeRegisteredClients(externalTestDatabaseUrl);
     await db.$client.end();
     await tempDb?.cleanup();
   }, 60_000);
 
-  async function seedRetainedSourceRun(kind: "deleted" | "explicit_conflict" | "foreign_project" | "foreign_company" | "unproven") {
-    const home = await realpath(await mkdtemp(path.join(os.tmpdir(), "taskcore-retained-source-home-")));
+  async function seedRetainedSourceRun(
+    kind:
+      | "deleted"
+      | "explicit_conflict"
+      | "foreign_project"
+      | "foreign_company"
+      | "unproven",
+  ) {
+    const home = await realpath(
+      await mkdtemp(path.join(os.tmpdir(), "taskcore-retained-source-home-")),
+    );
     tempRoots.push(home);
     vi.stubEnv("TASKCORE_HOME", home);
     const original = await createGitRepo();
     const replacement = await createGitRepo();
     tempRoots.push(original, replacement);
-    const companyId = randomUUID(), projectId = randomUUID(), oldWorkspaceId = randomUUID(), newWorkspaceId = randomUUID();
-    const agentId = randomUUID(), issueId = randomUUID(), executionWorkspaceId = randomUUID(), runId = randomUUID(), wakeupId = randomUUID();
+    const companyId = randomUUID(),
+      projectId = randomUUID(),
+      oldWorkspaceId = randomUUID(),
+      newWorkspaceId = randomUUID();
+    const agentId = randomUUID(),
+      issueId = randomUUID(),
+      executionWorkspaceId = randomUUID(),
+      runId = randomUUID(),
+      wakeupId = randomUUID();
     const issuePrefix = `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
     const repoUrl = pathToFileURL(original).href;
     const replacementUrl = pathToFileURL(replacement).href;
-    const owner = kind === "unproven" ? original : resolveManagedProjectWorkspaceDir({ companyId, projectId, repoName: path.basename(original) });
+    const owner =
+      kind === "unproven"
+        ? original
+        : resolveManagedProjectWorkspaceDir({
+            companyId,
+            projectId,
+            repoName: path.basename(original),
+          });
     if (owner !== original) {
       await mkdir(path.dirname(owner), { recursive: true });
       await runGit(original, ["clone", repoUrl, owner]);
@@ -957,53 +1150,226 @@ describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
     const branch = "retained-task";
     const worktree = path.join(owner, ".taskcore", "worktrees", branch);
     await runGit(owner, ["worktree", "add", "-b", branch, worktree]);
-    await writeFile(path.join(worktree, "retained.txt"), "unexported original task edits\n");
-    await writeFile(path.join(replacement, "replacement.txt"), "replacement source must stay untouched\n");
+    await writeFile(
+      path.join(worktree, "retained.txt"),
+      "unexported original task edits\n",
+    );
+    await writeFile(
+      path.join(replacement, "replacement.txt"),
+      "replacement source must stay untouched\n",
+    );
     const snapshot = { provisionCommand: null, runtimeProvisionCommand: null };
     const fingerprint = buildEffectiveRunWorkspaceConfigMetadata({
-      mode: "isolated_workspace", projectId, projectWorkspaceId: oldWorkspaceId, strategyType: "git_worktree",
-      workspaceStrategy: { type: "git_worktree", baseRef: "HEAD" }, repoUrl, repoRef: "HEAD", configSnapshot: snapshot,
-      environment: null, realization: null,
+      mode: "isolated_workspace",
+      projectId,
+      projectWorkspaceId: oldWorkspaceId,
+      strategyType: "git_worktree",
+      workspaceStrategy: { type: "git_worktree", baseRef: "HEAD" },
+      repoUrl,
+      repoRef: "HEAD",
+      configSnapshot: snapshot,
+      environment: null,
+      realization: null,
     });
     const metadata = {
-      createdByRuntime: false, config: snapshot,
-      configFingerprint: { version: fingerprint.version, workspaceHash: fingerprint.fingerprint, categories: fingerprint.categories,
-        categoryFingerprints: fingerprint.categoryFingerprints, lastEvaluatedAt: fingerprint.evaluatedAt },
+      createdByRuntime: false,
+      config: snapshot,
+      configFingerprint: {
+        version: fingerprint.version,
+        workspaceHash: fingerprint.fingerprint,
+        categories: fingerprint.categories,
+        categoryFingerprints: fingerprint.categoryFingerprints,
+        lastEvaluatedAt: fingerprint.evaluatedAt,
+      },
     };
-    await instanceSettingsService(db).updateExperimental({ enableIsolatedWorkspaces: true });
-    await db.insert(companies).values({ id: companyId, name: "Retained source", issuePrefix, status: "active", defaultResponsibleUserId: "responsible-user" });
-    await db.insert(projects).values({ id: projectId, companyId, name: "Repository replacement", status: "active",
-      executionWorkspacePolicy: { enabled: true, defaultMode: "isolated_workspace", workspaceStrategy: { type: "git_worktree", baseRef: "HEAD" } } });
+    await instanceSettingsService(db).updateExperimental({
+      enableIsolatedWorkspaces: true,
+    });
+    await db
+      .insert(companies)
+      .values({
+        id: companyId,
+        name: "Retained source",
+        issuePrefix,
+        status: "active",
+        defaultResponsibleUserId: "responsible-user",
+      });
+    await db
+      .insert(projects)
+      .values({
+        id: projectId,
+        companyId,
+        name: "Repository replacement",
+        status: "active",
+        executionWorkspacePolicy: {
+          enabled: true,
+          defaultMode: "isolated_workspace",
+          workspaceStrategy: { type: "git_worktree", baseRef: "HEAD" },
+        },
+      });
     await db.insert(projectWorkspaces).values([
-      { id: oldWorkspaceId, companyId, projectId, name: "Original", cwd: owner, repoUrl: kind === "unproven" ? null : repoUrl, isPrimary: true },
-      { id: newWorkspaceId, companyId, projectId, name: "Replacement", cwd: replacement, repoUrl: replacementUrl, isPrimary: false },
+      {
+        id: oldWorkspaceId,
+        companyId,
+        projectId,
+        name: "Original",
+        cwd: owner,
+        repoUrl: kind === "unproven" ? null : repoUrl,
+        isPrimary: true,
+      },
+      {
+        id: newWorkspaceId,
+        companyId,
+        projectId,
+        name: "Replacement",
+        cwd: replacement,
+        repoUrl: replacementUrl,
+        isPrimary: false,
+      },
     ]);
-    await db.insert(agents).values({ id: agentId, companyId, name: "Source tester", role: "engineer", status: "idle", adapterType: "codex_local",
-      adapterConfig: {}, runtimeConfig: { heartbeat: { wakeOnDemand: true, maxConcurrentRuns: 1 } }, permissions: {} });
-    await db.insert(executionWorkspaces).values({ id: executionWorkspaceId, companyId, projectId, projectWorkspaceId: oldWorkspaceId,
-      mode: "isolated_workspace", strategyType: "git_worktree", name: branch, status: "active", cwd: worktree, providerRef: worktree,
-      providerType: "git_worktree", branchName: branch, repoUrl: kind === "unproven" ? null : repoUrl, baseRef: "HEAD", metadata });
-    await db.insert(agentWakeupRequests).values({ id: wakeupId, companyId, agentId, source: "assignment", triggerDetail: "system",
-      reason: "issue_assigned", payload: { issueId }, status: "queued", runId });
-    await db.insert(heartbeatRuns).values({ id: runId, companyId, agentId, invocationSource: "assignment", triggerDetail: "system", status: "queued",
-      wakeupRequestId: wakeupId, responsibleUserId: "responsible-user", contextSnapshot: { issueId, taskId: issueId, wakeReason: "issue_assigned" } });
-    await db.insert(issues).values({ id: issueId, companyId, projectId, projectWorkspaceId: oldWorkspaceId, title: "Continue retained work",
-      status: "in_progress", workMode: "standard", assigneeAgentId: agentId, responsibleUserId: "responsible-user", issueNumber: 1,
-      identifier: `${issuePrefix}-1`, executionWorkspaceId, executionWorkspacePreference: "reuse_existing", executionWorkspaceSettings: { mode: "isolated_workspace" },
-      checkoutRunId: runId, executionRunId: runId, executionAgentNameKey: "source-tester", executionLockedAt: new Date() });
-    await db.update(executionWorkspaces).set({ sourceIssueId: issueId }).where(eq(executionWorkspaces.id, executionWorkspaceId));
+    await db
+      .insert(agents)
+      .values({
+        id: agentId,
+        companyId,
+        name: "Source tester",
+        role: "engineer",
+        status: "idle",
+        adapterType: "codex_local",
+        adapterConfig: {},
+        runtimeConfig: {
+          heartbeat: { wakeOnDemand: true, maxConcurrentRuns: 1 },
+        },
+        permissions: {},
+      });
+    await db
+      .insert(executionWorkspaces)
+      .values({
+        id: executionWorkspaceId,
+        companyId,
+        projectId,
+        projectWorkspaceId: oldWorkspaceId,
+        mode: "isolated_workspace",
+        strategyType: "git_worktree",
+        name: branch,
+        status: "active",
+        cwd: worktree,
+        providerRef: worktree,
+        providerType: "git_worktree",
+        branchName: branch,
+        repoUrl: kind === "unproven" ? null : repoUrl,
+        baseRef: "HEAD",
+        metadata,
+      });
+    await db
+      .insert(agentWakeupRequests)
+      .values({
+        id: wakeupId,
+        companyId,
+        agentId,
+        source: "assignment",
+        triggerDetail: "system",
+        reason: "issue_assigned",
+        payload: { issueId },
+        status: "queued",
+        runId,
+      });
+    await db
+      .insert(heartbeatRuns)
+      .values({
+        id: runId,
+        companyId,
+        agentId,
+        invocationSource: "assignment",
+        triggerDetail: "system",
+        status: "queued",
+        wakeupRequestId: wakeupId,
+        responsibleUserId: "responsible-user",
+        contextSnapshot: {
+          issueId,
+          taskId: issueId,
+          wakeReason: "issue_assigned",
+        },
+      });
+    await db
+      .insert(issues)
+      .values({
+        id: issueId,
+        companyId,
+        projectId,
+        projectWorkspaceId: oldWorkspaceId,
+        title: "Continue retained work",
+        status: "in_progress",
+        workMode: "standard",
+        assigneeAgentId: agentId,
+        responsibleUserId: "responsible-user",
+        issueNumber: 1,
+        identifier: `${issuePrefix}-1`,
+        executionWorkspaceId,
+        executionWorkspacePreference: "reuse_existing",
+        executionWorkspaceSettings: { mode: "isolated_workspace" },
+        checkoutRunId: runId,
+        executionRunId: runId,
+        executionAgentNameKey: "source-tester",
+        executionLockedAt: new Date(),
+      });
+    await db
+      .update(executionWorkspaces)
+      .set({ sourceIssueId: issueId })
+      .where(eq(executionWorkspaces.id, executionWorkspaceId));
     // Exercise the real FK deletion semantics, rather than manufacturing nulls.
-    await db.delete(projectWorkspaces).where(eq(projectWorkspaces.id, oldWorkspaceId));
-    await db.update(projectWorkspaces).set({ isPrimary: true }).where(eq(projectWorkspaces.id, newWorkspaceId));
-    if (kind === "explicit_conflict") await db.update(issues).set({ projectWorkspaceId: newWorkspaceId }).where(eq(issues.id, issueId));
+    await db
+      .delete(projectWorkspaces)
+      .where(eq(projectWorkspaces.id, oldWorkspaceId));
+    await db
+      .update(projectWorkspaces)
+      .set({ isPrimary: true })
+      .where(eq(projectWorkspaces.id, newWorkspaceId));
+    if (kind === "explicit_conflict")
+      await db
+        .update(issues)
+        .set({ projectWorkspaceId: newWorkspaceId })
+        .where(eq(issues.id, issueId));
     if (kind === "foreign_project" || kind === "foreign_company") {
-      const foreignCompanyId = kind === "foreign_company" ? randomUUID() : companyId;
-      if (foreignCompanyId !== companyId) await db.insert(companies).values({ id: foreignCompanyId, name: "Other company", issuePrefix: `F${foreignCompanyId.slice(0, 7)}` });
+      const foreignCompanyId =
+        kind === "foreign_company" ? randomUUID() : companyId;
+      if (foreignCompanyId !== companyId)
+        await db
+          .insert(companies)
+          .values({
+            id: foreignCompanyId,
+            name: "Other company",
+            issuePrefix: `F${foreignCompanyId.slice(0, 7)}`,
+          });
       const foreignProjectId = randomUUID();
-      await db.insert(projects).values({ id: foreignProjectId, companyId: foreignCompanyId, name: "Other project", status: "active" });
-      await db.update(executionWorkspaces).set({ companyId: foreignCompanyId, projectId: foreignProjectId }).where(eq(executionWorkspaces.id, executionWorkspaceId));
+      await db
+        .insert(projects)
+        .values({
+          id: foreignProjectId,
+          companyId: foreignCompanyId,
+          name: "Other project",
+          status: "active",
+        });
+      await db
+        .update(executionWorkspaces)
+        .set({ companyId: foreignCompanyId, projectId: foreignProjectId })
+        .where(eq(executionWorkspaces.id, executionWorkspaceId));
     }
-    return { companyId, projectId, newWorkspaceId, issueId, agentId, runId, executionWorkspaceId, worktree, branch, owner, replacement, repoUrl, metadata };
+    return {
+      companyId,
+      projectId,
+      newWorkspaceId,
+      issueId,
+      agentId,
+      runId,
+      executionWorkspaceId,
+      worktree,
+      branch,
+      owner,
+      replacement,
+      repoUrl,
+      metadata,
+    };
   }
 
   it("preserves a retained task source after its project repository is replaced and the original FK is deleted", async () => {
@@ -1014,47 +1380,142 @@ describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
     await heartbeat.waitForRunExecutionDrain(seeded.runId);
     expect(run).toMatchObject({ status: "succeeded" });
     expect(adapterExecute).toHaveBeenCalledTimes(1);
-    expect(readAdapterWorkspace(adapterExecute.mock.calls[0]?.[0])).toEqual({ cwd: seeded.worktree, branchName: seeded.branch, executionWorkspaceId: seeded.executionWorkspaceId });
-    expect(adapterExecute.mock.calls[0]?.[0]).toMatchObject({ context: { taskcoreWorkspace: {
-      projectId: seeded.projectId, workspaceId: null, repoUrl: seeded.repoUrl, repoRef: "HEAD", source: "task_session",
-    } } });
-    const [workspace] = await db.select().from(executionWorkspaces).where(eq(executionWorkspaces.id, seeded.executionWorkspaceId));
-    const [issue] = await db.select().from(issues).where(eq(issues.id, seeded.issueId));
-    expect(workspace).toMatchObject({ companyId: seeded.companyId, projectId: seeded.projectId, projectWorkspaceId: null,
-      cwd: seeded.worktree, providerRef: seeded.worktree, branchName: seeded.branch, repoUrl: seeded.repoUrl, metadata: seeded.metadata });
-    expect(issue).toMatchObject({ projectWorkspaceId: null, executionWorkspaceId: seeded.executionWorkspaceId, executionWorkspacePreference: "reuse_existing" });
-    expect(await db.select().from(executionWorkspaces).where(eq(executionWorkspaces.companyId, seeded.companyId))).toHaveLength(1);
-    expect(run?.resultJson).toMatchObject({ configFreshness: { workspace: { action: "replace", reuseRequested: true, workspaceReused: true, configSnapshotRefreshed: false,
-      changedCategories: expect.arrayContaining(["projectWorkspace", "repo"]) } } });
-    expect(await readFile(path.join(seeded.worktree, "retained.txt"), "utf8")).toBe("unexported original task edits\n");
-    expect(await readFile(path.join(seeded.replacement, "replacement.txt"), "utf8")).toBe("replacement source must stay untouched\n");
-    expect(await readGit(seeded.worktree, ["branch", "--show-current"])).toBe(seeded.branch);
-    expect(await readGit(seeded.owner, ["worktree", "list", "--porcelain"])).toContain(`worktree ${seeded.worktree}`);
+    expect(readAdapterWorkspace(adapterExecute.mock.calls[0]?.[0])).toEqual({
+      cwd: seeded.worktree,
+      branchName: seeded.branch,
+      executionWorkspaceId: seeded.executionWorkspaceId,
+    });
+    expect(adapterExecute.mock.calls[0]?.[0]).toMatchObject({
+      context: {
+        taskcoreWorkspace: {
+          projectId: seeded.projectId,
+          workspaceId: null,
+          repoUrl: seeded.repoUrl,
+          repoRef: "HEAD",
+          source: "task_session",
+        },
+      },
+    });
+    const [workspace] = await db
+      .select()
+      .from(executionWorkspaces)
+      .where(eq(executionWorkspaces.id, seeded.executionWorkspaceId));
+    const [issue] = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, seeded.issueId));
+    expect(workspace).toMatchObject({
+      companyId: seeded.companyId,
+      projectId: seeded.projectId,
+      projectWorkspaceId: null,
+      cwd: seeded.worktree,
+      providerRef: seeded.worktree,
+      branchName: seeded.branch,
+      repoUrl: seeded.repoUrl,
+      metadata: seeded.metadata,
+    });
+    expect(issue).toMatchObject({
+      projectWorkspaceId: null,
+      executionWorkspaceId: seeded.executionWorkspaceId,
+      executionWorkspacePreference: "reuse_existing",
+    });
+    expect(
+      await db
+        .select()
+        .from(executionWorkspaces)
+        .where(eq(executionWorkspaces.companyId, seeded.companyId)),
+    ).toHaveLength(1);
+    expect(run?.resultJson).toMatchObject({
+      configFreshness: {
+        workspace: {
+          action: "replace",
+          reuseRequested: true,
+          workspaceReused: true,
+          configSnapshotRefreshed: false,
+          changedCategories: expect.arrayContaining([
+            "projectWorkspace",
+            "repo",
+          ]),
+        },
+      },
+    });
+    expect(
+      await readFile(path.join(seeded.worktree, "retained.txt"), "utf8"),
+    ).toBe("unexported original task edits\n");
+    expect(
+      await readFile(path.join(seeded.replacement, "replacement.txt"), "utf8"),
+    ).toBe("replacement source must stay untouched\n");
+    expect(await readGit(seeded.worktree, ["branch", "--show-current"])).toBe(
+      seeded.branch,
+    );
+    expect(
+      await readGit(seeded.owner, ["worktree", "list", "--porcelain"]),
+    ).toContain(`worktree ${seeded.worktree}`);
   });
 
-  it.each(["explicit_conflict", "foreign_project", "foreign_company", "unproven"] as const)(
-    "does not dispatch or rebind a retained source with %s authority", async (kind) => {
+  it.each([
+    "explicit_conflict",
+    "foreign_project",
+    "foreign_company",
+    "unproven",
+  ] as const)(
+    "does not dispatch or rebind a retained source with %s authority",
+    async (kind) => {
       const seeded = await seedRetainedSourceRun(kind);
       const heartbeat = heartbeatService(db);
       await heartbeat.resumeQueuedRuns();
       const run = await waitForRunToFinish(heartbeat, seeded.runId);
       await heartbeat.waitForRunExecutionDrain(seeded.runId);
-      expect(run).toMatchObject({ status: "failed", errorCode: "workspace_validation_failed" });
-      expect(run?.resultJson).toMatchObject({ workspaceValidation: { reason: "persisted_workspace_source_conflict",
-        reasonCode: kind === "explicit_conflict" ? "explicit_project_workspace_conflict"
-          : kind === "unproven" ? "source_registration_unproven" : "source_scope_mismatch" } });
+      expect(run).toMatchObject({
+        status: "failed",
+        errorCode: "workspace_validation_failed",
+      });
+      expect(run?.resultJson).toMatchObject({
+        workspaceValidation: {
+          reason: "persisted_workspace_source_conflict",
+          reasonCode:
+            kind === "explicit_conflict"
+              ? "explicit_project_workspace_conflict"
+              : kind === "unproven"
+                ? "source_registration_unproven"
+                : "source_scope_mismatch",
+        },
+      });
       expect(adapterExecute).not.toHaveBeenCalled();
-      const [workspace] = await db.select().from(executionWorkspaces).where(eq(executionWorkspaces.id, seeded.executionWorkspaceId));
-      expect(workspace).toMatchObject({ projectWorkspaceId: null, cwd: seeded.worktree, providerRef: seeded.worktree, branchName: seeded.branch, metadata: seeded.metadata });
-      const [issue] = await db.select().from(issues).where(eq(issues.id, seeded.issueId));
-      expect(issue).toMatchObject({ executionWorkspaceId: seeded.executionWorkspaceId,
-        projectWorkspaceId: kind === "explicit_conflict" ? seeded.newWorkspaceId : null });
+      const [workspace] = await db
+        .select()
+        .from(executionWorkspaces)
+        .where(eq(executionWorkspaces.id, seeded.executionWorkspaceId));
+      expect(workspace).toMatchObject({
+        projectWorkspaceId: null,
+        cwd: seeded.worktree,
+        providerRef: seeded.worktree,
+        branchName: seeded.branch,
+        metadata: seeded.metadata,
+      });
+      const [issue] = await db
+        .select()
+        .from(issues)
+        .where(eq(issues.id, seeded.issueId));
+      expect(issue).toMatchObject({
+        executionWorkspaceId: seeded.executionWorkspaceId,
+        projectWorkspaceId:
+          kind === "explicit_conflict" ? seeded.newWorkspaceId : null,
+      });
       // Intentionally malformed cross-company/project FKs also prevent the
       // existing issue-update service from changing status. The source gate
       // still must fail before dispatch and may never silently repair that FK.
-      if (kind === "explicit_conflict" || kind === "unproven") expect(issue.status).toBe("blocked");
-      expect(await readFile(path.join(seeded.worktree, "retained.txt"), "utf8")).toBe("unexported original task edits\n");
-      expect(await readFile(path.join(seeded.replacement, "replacement.txt"), "utf8")).toBe("replacement source must stay untouched\n");
+      if (kind === "explicit_conflict" || kind === "unproven")
+        expect(issue.status).toBe("blocked");
+      expect(
+        await readFile(path.join(seeded.worktree, "retained.txt"), "utf8"),
+      ).toBe("unexported original task edits\n");
+      expect(
+        await readFile(
+          path.join(seeded.replacement, "replacement.txt"),
+          "utf8",
+        ),
+      ).toBe("replacement source must stay untouched\n");
     },
   );
 
@@ -1065,7 +1526,9 @@ describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
     const issuePrefix = `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
     const issueIdentifier = `${issuePrefix}-1`;
 
-    await instanceSettingsService(db).updateExperimental({ enableIsolatedWorkspaces: true });
+    await instanceSettingsService(db).updateExperimental({
+      enableIsolatedWorkspaces: true,
+    });
     await db.insert(companies).values({
       id: companyId,
       name: "Acme",
@@ -1118,7 +1581,9 @@ describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
     expect(run).toBeNull();
     expect(adapterExecute).not.toHaveBeenCalled();
 
-    const runRows = await db.select({ id: heartbeatRuns.id }).from(heartbeatRuns);
+    const runRows = await db
+      .select({ id: heartbeatRuns.id })
+      .from(heartbeatRuns);
     expect(runRows).toEqual([]);
 
     const blockedIssue = await db
@@ -1162,7 +1627,9 @@ describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
       .from(issueComments)
       .where(eq(issueComments.issueId, issueId))
       .then((rows) => rows[0] ?? null);
-    expect(comment?.body).toContain(WORKSPACE_WORKTREE_REQUIRES_PROJECT_MESSAGE);
+    expect(comment?.body).toContain(
+      WORKSPACE_WORKTREE_REQUIRES_PROJECT_MESSAGE,
+    );
 
     const activity = await db
       .select({
@@ -1185,169 +1652,229 @@ describeEmbeddedPostgres("heartbeat workspace branch containment", () => {
 
   it.each([
     ["workspace-runtime fresh worktree reuse", "fresh_realize" as const, null],
-    ["workspace-runtime persisted restore", "persisted_restore" as const, "source-workspace"],
-  ])("contains mid-change branch divergence at %s", async (_name, callSite, expectedWorkspaceId) => {
-    const repoRoot = await createGitRepo();
-    tempRoots.push(repoRoot);
-    const seeded = await seedBranchContainmentRun(db, repoRoot, callSite);
+    [
+      "workspace-runtime persisted restore",
+      "persisted_restore" as const,
+      "source-workspace",
+    ],
+  ])(
+    "contains mid-change branch divergence at %s",
+    async (_name, callSite, expectedWorkspaceId) => {
+      const repoRoot = await createGitRepo();
+      tempRoots.push(repoRoot);
+      const seeded = await seedBranchContainmentRun(db, repoRoot, callSite);
 
-    if (callSite === "finalize") {
+      if (callSite === "finalize") {
+        adapterExecute.mockImplementationOnce(async (adapterInput) => {
+          const workspace = readAdapterWorkspace(adapterInput);
+          const actualBranch = `${workspace.branchName.replace(/-recorded$/, "")}-actual`;
+          await db
+            .update(issues)
+            .set({
+              executionWorkspaceId: workspace.executionWorkspaceId,
+              executionWorkspacePreference: "reuse_existing",
+              executionWorkspaceSettings: { mode: "isolated_workspace" },
+              updatedAt: new Date(),
+            })
+            .where(eq(issues.id, seeded.sameWorkspaceSiblingId));
+          await runGit(workspace.cwd, ["checkout", "-b", actualBranch]);
+          await writeFile(
+            path.join(workspace.cwd, "actual-branch.txt"),
+            "actual branch work\n",
+            "utf8",
+          );
+          await runGit(workspace.cwd, ["add", "actual-branch.txt"]);
+          await runGit(workspace.cwd, [
+            "commit",
+            "-m",
+            "Add actual branch work",
+          ]);
+          return {
+            exitCode: 0,
+            signal: null,
+            timedOut: false,
+            summary:
+              "Adapter completed after switching to an unrecorded branch.",
+            provider: "test",
+            model: "test-model",
+          };
+        });
+      }
+
+      const heartbeat = heartbeatService(db);
+      await heartbeat.resumeQueuedRuns();
+
+      await expectContainedWorkspaceBranchFailure({
+        db,
+        heartbeat,
+        runId: seeded.runId,
+        companyId: seeded.companyId,
+        sourceIssueId: seeded.sourceIssueId,
+        sameWorkspaceSiblingId: seeded.sameWorkspaceSiblingId,
+        otherWorkspaceSiblingId: seeded.otherWorkspaceSiblingId,
+        sourceExecutionWorkspaceId:
+          expectedWorkspaceId === "source-workspace"
+            ? seeded.sourceExecutionWorkspaceId
+            : expectedWorkspaceId === "runtime-workspace"
+              ? undefined
+              : null,
+        expectedBranch: seeded.expectedBranch,
+        actualBranch: seeded.actualBranch,
+      });
+      expect(adapterExecute).toHaveBeenCalledTimes(
+        callSite === "finalize" ? 1 : 0,
+      );
+    },
+    30_000,
+  );
+
+  it.each([
+    ["workspace-runtime fresh worktree reuse", "fresh_realize" as const, false],
+    [
+      "workspace-runtime persisted restore",
+      "persisted_restore" as const,
+      false,
+    ],
+    ["heartbeat finalization", "finalize" as const, false],
+  ])(
+    "auto-reconciles forward branch divergence at %s when the flag is enabled",
+    async (_name, callSite, expectsExistingRecordUpdate) => {
+      const repoRoot = await createGitRepo();
+      tempRoots.push(repoRoot);
+      const seeded = await seedBranchContainmentRun(db, repoRoot, callSite, {
+        enableWorkspaceBranchReconcileForward: true,
+      });
+
+      const expectedWorktreeStateAfterReconcile = {
+        head:
+          callSite === "finalize"
+            ? ""
+            : await readGit(seeded.worktreePath, ["rev-parse", "HEAD"]),
+        status:
+          callSite === "finalize"
+            ? ""
+            : await readGit(seeded.worktreePath, [
+                "status",
+                "--porcelain",
+                "--untracked-files=all",
+              ]),
+      };
+      let expectedResolvedRecoveryActionFingerprint: string | null = null;
+      if (callSite === "fresh_realize" && expectsExistingRecordUpdate) {
+        const expectedHeadSha = await readGit(seeded.worktreePath, [
+          "rev-parse",
+          seeded.expectedBranch,
+        ]);
+        const actualHeadSha = await readGit(seeded.worktreePath, [
+          "rev-parse",
+          seeded.actualBranch,
+        ]);
+        expectedResolvedRecoveryActionFingerprint =
+          fingerprintWorkspaceBranchIncoherenceForTest({
+            sourceIssueId: seeded.sourceIssueId,
+            executionWorkspaceId: null,
+            worktreePath: seeded.worktreePath,
+            expectedBranch: seeded.expectedBranch,
+            actualBranch: seeded.actualBranch,
+            cleanliness: "clean",
+            expectedHeadSha,
+            actualHeadSha,
+          });
+        const now = new Date("2026-07-07T00:00:01.000Z");
+        await db.insert(issueRecoveryActions).values({
+          id: randomUUID(),
+          companyId: seeded.companyId,
+          sourceIssueId: seeded.sourceIssueId,
+          kind: "workspace_validation",
+          status: "active",
+          ownerType: "agent",
+          ownerAgentId: seeded.agentId,
+          cause: "workspace_validation_failed",
+          fingerprint: expectedResolvedRecoveryActionFingerprint,
+          evidence: {},
+          nextAction:
+            "Retry after fresh worktree branch adoption can be audited.",
+          attemptCount: 1,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
       adapterExecute.mockImplementationOnce(async (adapterInput) => {
-        const workspace = readAdapterWorkspace(adapterInput);
-        const actualBranch = `${workspace.branchName.replace(/-recorded$/, "")}-actual`;
+        if (callSite === "finalize") {
+          const workspace = readAdapterWorkspace(adapterInput);
+          const actualBranch = `${workspace.branchName.replace(/-recorded$/, "")}-actual`;
+          await db
+            .update(issues)
+            .set({
+              executionWorkspaceId: workspace.executionWorkspaceId,
+              executionWorkspacePreference: "reuse_existing",
+              executionWorkspaceSettings: { mode: "isolated_workspace" },
+              updatedAt: new Date(),
+            })
+            .where(eq(issues.id, seeded.sameWorkspaceSiblingId));
+          await runGit(workspace.cwd, ["checkout", "-b", actualBranch]);
+          await writeFile(
+            path.join(workspace.cwd, "actual-branch.txt"),
+            "actual branch work\n",
+            "utf8",
+          );
+          await runGit(workspace.cwd, ["add", "actual-branch.txt"]);
+          await runGit(workspace.cwd, [
+            "commit",
+            "-m",
+            "Add actual branch work",
+          ]);
+          expectedWorktreeStateAfterReconcile.head = await readGit(
+            workspace.cwd,
+            ["rev-parse", "HEAD"],
+          );
+          expectedWorktreeStateAfterReconcile.status = await readGit(
+            workspace.cwd,
+            ["status", "--porcelain", "--untracked-files=all"],
+          );
+        }
         await db
           .update(issues)
           .set({
-            executionWorkspaceId: workspace.executionWorkspaceId,
-            executionWorkspacePreference: "reuse_existing",
-            executionWorkspaceSettings: { mode: "isolated_workspace" },
+            status: "done",
+            completedAt: new Date(),
+            checkoutRunId: null,
+            executionRunId: null,
             updatedAt: new Date(),
           })
-          .where(eq(issues.id, seeded.sameWorkspaceSiblingId));
-        await runGit(workspace.cwd, ["checkout", "-b", actualBranch]);
-        await writeFile(path.join(workspace.cwd, "actual-branch.txt"), "actual branch work\n", "utf8");
-        await runGit(workspace.cwd, ["add", "actual-branch.txt"]);
-        await runGit(workspace.cwd, ["commit", "-m", "Add actual branch work"]);
+          .where(eq(issues.id, seeded.sourceIssueId));
         return {
           exitCode: 0,
           signal: null,
           timedOut: false,
-          summary: "Adapter completed after switching to an unrecorded branch.",
+          summary:
+            callSite === "finalize"
+              ? "Adapter completed after switching to an unrecorded branch."
+              : "Adapter completed after branch reconciliation.",
           provider: "test",
           model: "test-model",
         };
       });
-    }
 
-    const heartbeat = heartbeatService(db);
-    await heartbeat.resumeQueuedRuns();
+      const heartbeat = heartbeatService(db);
+      await heartbeat.resumeQueuedRuns();
 
-    await expectContainedWorkspaceBranchFailure({
-      db,
-      heartbeat,
-      runId: seeded.runId,
-      companyId: seeded.companyId,
-      sourceIssueId: seeded.sourceIssueId,
-      sameWorkspaceSiblingId: seeded.sameWorkspaceSiblingId,
-      otherWorkspaceSiblingId: seeded.otherWorkspaceSiblingId,
-      sourceExecutionWorkspaceId:
-        expectedWorkspaceId === "source-workspace"
-          ? seeded.sourceExecutionWorkspaceId
-          : expectedWorkspaceId === "runtime-workspace"
-            ? undefined
-            : null,
-      expectedBranch: seeded.expectedBranch,
-      actualBranch: seeded.actualBranch,
-    });
-    expect(adapterExecute).toHaveBeenCalledTimes(callSite === "finalize" ? 1 : 0);
-  }, 30_000);
-
-  it.each([
-    ["workspace-runtime fresh worktree reuse", "fresh_realize" as const, false],
-    ["workspace-runtime persisted restore", "persisted_restore" as const, false],
-    ["heartbeat finalization", "finalize" as const, false],
-  ])("auto-reconciles forward branch divergence at %s when the flag is enabled", async (_name, callSite, expectsExistingRecordUpdate) => {
-    const repoRoot = await createGitRepo();
-    tempRoots.push(repoRoot);
-    const seeded = await seedBranchContainmentRun(db, repoRoot, callSite, {
-      enableWorkspaceBranchReconcileForward: true,
-    });
-
-    const expectedWorktreeStateAfterReconcile = {
-      head: callSite === "finalize" ? "" : await readGit(seeded.worktreePath, ["rev-parse", "HEAD"]),
-      status: callSite === "finalize" ? "" : await readGit(seeded.worktreePath, ["status", "--porcelain", "--untracked-files=all"]),
-    };
-    let expectedResolvedRecoveryActionFingerprint: string | null = null;
-    if (callSite === "fresh_realize" && expectsExistingRecordUpdate) {
-      const expectedHeadSha = await readGit(seeded.worktreePath, ["rev-parse", seeded.expectedBranch]);
-      const actualHeadSha = await readGit(seeded.worktreePath, ["rev-parse", seeded.actualBranch]);
-      expectedResolvedRecoveryActionFingerprint = fingerprintWorkspaceBranchIncoherenceForTest({
+      await expectForwardBranchReconciled({
+        db,
+        heartbeat,
+        runId: seeded.runId,
         sourceIssueId: seeded.sourceIssueId,
-        executionWorkspaceId: null,
-        worktreePath: seeded.worktreePath,
+        sourceExecutionWorkspaceId: seeded.sourceExecutionWorkspaceId,
         expectedBranch: seeded.expectedBranch,
         actualBranch: seeded.actualBranch,
-        cleanliness: "clean",
-        expectedHeadSha,
-        actualHeadSha,
+        expectedWorktreeStateAfterReconcile,
+        worktreePath: seeded.worktreePath,
+        expectsExistingRecordUpdate,
+        expectedResolvedRecoveryActionFingerprint,
       });
-      const now = new Date("2026-07-07T00:00:01.000Z");
-      await db.insert(issueRecoveryActions).values({
-        id: randomUUID(),
-        companyId: seeded.companyId,
-        sourceIssueId: seeded.sourceIssueId,
-        kind: "workspace_validation",
-        status: "active",
-        ownerType: "agent",
-        ownerAgentId: seeded.agentId,
-        cause: "workspace_validation_failed",
-        fingerprint: expectedResolvedRecoveryActionFingerprint,
-        evidence: {},
-        nextAction: "Retry after fresh worktree branch adoption can be audited.",
-        attemptCount: 1,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
-    adapterExecute.mockImplementationOnce(async (adapterInput) => {
-      if (callSite === "finalize") {
-        const workspace = readAdapterWorkspace(adapterInput);
-        const actualBranch = `${workspace.branchName.replace(/-recorded$/, "")}-actual`;
-        await db
-          .update(issues)
-          .set({
-            executionWorkspaceId: workspace.executionWorkspaceId,
-            executionWorkspacePreference: "reuse_existing",
-            executionWorkspaceSettings: { mode: "isolated_workspace" },
-            updatedAt: new Date(),
-          })
-          .where(eq(issues.id, seeded.sameWorkspaceSiblingId));
-        await runGit(workspace.cwd, ["checkout", "-b", actualBranch]);
-        await writeFile(path.join(workspace.cwd, "actual-branch.txt"), "actual branch work\n", "utf8");
-        await runGit(workspace.cwd, ["add", "actual-branch.txt"]);
-        await runGit(workspace.cwd, ["commit", "-m", "Add actual branch work"]);
-        expectedWorktreeStateAfterReconcile.head = await readGit(workspace.cwd, ["rev-parse", "HEAD"]);
-        expectedWorktreeStateAfterReconcile.status = await readGit(workspace.cwd, ["status", "--porcelain", "--untracked-files=all"]);
-      }
-      await db
-        .update(issues)
-        .set({
-          status: "done",
-          completedAt: new Date(),
-          checkoutRunId: null,
-          executionRunId: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(issues.id, seeded.sourceIssueId));
-      return {
-        exitCode: 0,
-        signal: null,
-        timedOut: false,
-        summary: callSite === "finalize"
-          ? "Adapter completed after switching to an unrecorded branch."
-          : "Adapter completed after branch reconciliation.",
-        provider: "test",
-        model: "test-model",
-      };
-    });
-
-    const heartbeat = heartbeatService(db);
-    await heartbeat.resumeQueuedRuns();
-
-    await expectForwardBranchReconciled({
-      db,
-      heartbeat,
-      runId: seeded.runId,
-      sourceIssueId: seeded.sourceIssueId,
-      sourceExecutionWorkspaceId: seeded.sourceExecutionWorkspaceId,
-      expectedBranch: seeded.expectedBranch,
-      actualBranch: seeded.actualBranch,
-      expectedWorktreeStateAfterReconcile,
-      worktreePath: seeded.worktreePath,
-      expectsExistingRecordUpdate,
-      expectedResolvedRecoveryActionFingerprint,
-    });
-    expect(adapterExecute).toHaveBeenCalledTimes(1);
-  }, 30_000);
+      expect(adapterExecute).toHaveBeenCalledTimes(1);
+    },
+    30_000,
+  );
 });

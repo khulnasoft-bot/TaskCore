@@ -12,7 +12,8 @@ type PreparedOpenCodeRuntimeConfig = {
 function resolveXdgConfigHome(env: Record<string, string>): string {
   return (
     (typeof env.XDG_CONFIG_HOME === "string" && env.XDG_CONFIG_HOME.trim()) ||
-    (typeof process.env.XDG_CONFIG_HOME === "string" && process.env.XDG_CONFIG_HOME.trim()) ||
+    (typeof process.env.XDG_CONFIG_HOME === "string" &&
+      process.env.XDG_CONFIG_HOME.trim()) ||
     path.join(os.homedir(), ".config")
   );
 }
@@ -27,15 +28,23 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 // resolution happens inside the (possibly sandboxed) run process, whose env
 // plumbing is not guaranteed to carry the key to OpenCode's spawned server -- so
 // we resolve it here. Unresolvable placeholders are left intact for OpenCode to try.
-function expandEnvPlaceholders<T>(value: T, resolve: (name: string) => string | undefined): T {
+function expandEnvPlaceholders<T>(
+  value: T,
+  resolve: (name: string) => string | undefined,
+): T {
   if (typeof value === "string") {
-    return value.replace(/\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, name: string) => {
-      const resolved = resolve(name);
-      return resolved !== undefined && resolved.length > 0 ? resolved : match;
-    }) as unknown as T;
+    return value.replace(
+      /\{env:([A-Za-z_][A-Za-z0-9_]*)\}/g,
+      (match, name: string) => {
+        const resolved = resolve(name);
+        return resolved !== undefined && resolved.length > 0 ? resolved : match;
+      },
+    ) as unknown as T;
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => expandEnvPlaceholders(entry, resolve)) as unknown as T;
+    return value.map((entry) =>
+      expandEnvPlaceholders(entry, resolve),
+    ) as unknown as T;
   }
   if (isPlainObject(value)) {
     const out: Record<string, unknown> = {};
@@ -59,7 +68,9 @@ function parseProviderConfig(
   } catch {
     // Surface the misconfiguration instead of silently dropping the provider
     // block; an unparseable value would otherwise be undiagnosable.
-    notes.push("TASKCORE_OPENCODE_PROVIDERS contains invalid JSON; custom providers ignored.");
+    notes.push(
+      "TASKCORE_OPENCODE_PROVIDERS contains invalid JSON; custom providers ignored.",
+    );
     return null;
   }
   if (!isPlainObject(parsed)) {
@@ -73,7 +84,8 @@ function parseProviderConfig(
   const providers: Record<string, unknown> = {};
   const skipped: string[] = [];
   for (const [key, value] of Object.entries(parsed)) {
-    if (isPlainObject(value)) providers[key] = expandEnvPlaceholders(value, resolveEnv);
+    if (isPlainObject(value))
+      providers[key] = expandEnvPlaceholders(value, resolveEnv);
     else skipped.push(key);
   }
   if (skipped.length > 0) {
@@ -84,7 +96,9 @@ function parseProviderConfig(
   return Object.keys(providers).length > 0 ? providers : null;
 }
 
-function parseConfiguredModelRef(raw: unknown): { provider: string; model: string } | null {
+function parseConfiguredModelRef(
+  raw: unknown,
+): { provider: string; model: string } | null {
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   const slash = trimmed.indexOf("/");
@@ -92,7 +106,9 @@ function parseConfiguredModelRef(raw: unknown): { provider: string; model: strin
   return { provider: trimmed.slice(0, slash), model: trimmed.slice(slash + 1) };
 }
 
-async function readJsonObject(filepath: string): Promise<Record<string, unknown>> {
+async function readJsonObject(
+  filepath: string,
+): Promise<Record<string, unknown>> {
   try {
     const raw = await fs.readFile(filepath, "utf8");
     const parsed = JSON.parse(raw);
@@ -107,7 +123,10 @@ export async function prepareOpenCodeRuntimeConfig(input: {
   config: Record<string, unknown>;
   targetIsRemote?: boolean;
 }): Promise<PreparedOpenCodeRuntimeConfig> {
-  const skipPermissions = asBoolean(input.config.dangerouslySkipPermissions, true);
+  const skipPermissions = asBoolean(
+    input.config.dangerouslySkipPermissions,
+    true,
+  );
   if (!skipPermissions) {
     return {
       env: input.env,
@@ -129,8 +148,13 @@ export async function prepareOpenCodeRuntimeConfig(input: {
     };
   }
 
-  const sourceConfigDir = path.join(resolveXdgConfigHome(input.env), "opencode");
-  const runtimeConfigHome = await fs.mkdtemp(path.join(os.tmpdir(), "taskcore-opencode-config-"));
+  const sourceConfigDir = path.join(
+    resolveXdgConfigHome(input.env),
+    "opencode",
+  );
+  const runtimeConfigHome = await fs.mkdtemp(
+    path.join(os.tmpdir(), "taskcore-opencode-config-"),
+  );
   const runtimeConfigDir = path.join(runtimeConfigHome, "opencode");
   const runtimeConfigPath = path.join(runtimeConfigDir, "opencode.json");
 
@@ -160,13 +184,17 @@ export async function prepareOpenCodeRuntimeConfig(input: {
   // gateway model (e.g. an EU LLM gateway exposing OpenAI-compatible /v1) requires a
   // custom provider with an explicit models map. We accept it as config (not
   // hard-coded) so the gateway URL, key env, and model list stay declarative.
-  const resolveEnv = (name: string): string | undefined => input.env[name] ?? process.env[name];
+  const resolveEnv = (name: string): string | undefined =>
+    input.env[name] ?? process.env[name];
   const gatewayProviders = parseProviderConfig(
-    input.env.TASKCORE_OPENCODE_PROVIDERS ?? process.env.TASKCORE_OPENCODE_PROVIDERS,
+    input.env.TASKCORE_OPENCODE_PROVIDERS ??
+      process.env.TASKCORE_OPENCODE_PROVIDERS,
     resolveEnv,
     notes,
   );
-  const existingProvider = isPlainObject(existingConfig.provider) ? existingConfig.provider : {};
+  const existingProvider = isPlainObject(existingConfig.provider)
+    ? existingConfig.provider
+    : {};
   let nextProvider = gatewayProviders
     ? { ...existingProvider, ...gatewayProviders }
     : existingProvider;
@@ -187,7 +215,12 @@ export async function prepareOpenCodeRuntimeConfig(input: {
   const configuredModel = parseConfiguredModelRef(input.config.model);
   if (configuredModel) {
     const providerEntry = isPlainObject(nextProvider[configuredModel.provider])
-      ? { ...(nextProvider[configuredModel.provider] as Record<string, unknown>) }
+      ? {
+          ...(nextProvider[configuredModel.provider] as Record<
+            string,
+            unknown
+          >),
+        }
       : {};
     const providerModels = isPlainObject(providerEntry.models)
       ? { ...(providerEntry.models as Record<string, unknown>) }
@@ -195,7 +228,10 @@ export async function prepareOpenCodeRuntimeConfig(input: {
     if (!isPlainObject(providerModels[configuredModel.model])) {
       providerModels[configuredModel.model] = {};
       providerEntry.models = providerModels;
-      nextProvider = { ...nextProvider, [configuredModel.provider]: providerEntry };
+      nextProvider = {
+        ...nextProvider,
+        [configuredModel.provider]: providerEntry,
+      };
       notes.push(
         `Registered configured model ${configuredModel.provider}/${configuredModel.model} in the runtime OpenCode config.`,
       );
@@ -216,12 +252,19 @@ export async function prepareOpenCodeRuntimeConfig(input: {
   // for the anthropic provider); when that provider is repointed at a gateway that
   // does not serve that exact model, the title-gen call fails and aborts the run.
   // Setting small_model to a gateway-served model keeps every call on supported models.
-  const smallModel = (input.env.TASKCORE_OPENCODE_SMALL_MODEL ?? process.env.TASKCORE_OPENCODE_SMALL_MODEL)?.trim();
+  const smallModel = (
+    input.env.TASKCORE_OPENCODE_SMALL_MODEL ??
+    process.env.TASKCORE_OPENCODE_SMALL_MODEL
+  )?.trim();
   if (smallModel) {
     nextConfig.small_model = smallModel;
     notes.push(`Pinned OpenCode small_model to ${smallModel}.`);
   }
-  await fs.writeFile(runtimeConfigPath, `${JSON.stringify(nextConfig, null, 2)}\n`, "utf8");
+  await fs.writeFile(
+    runtimeConfigPath,
+    `${JSON.stringify(nextConfig, null, 2)}\n`,
+    "utf8",
+  );
 
   return {
     env: {
@@ -244,8 +287,15 @@ export function prepareManagedOpenCodeRemoteHomes(input: {
   configDir?: string;
 }): void {
   if (!input.config.managedAiConnection) return;
-  if (!input.runtimeRootDir) throw new Error("Managed OpenCode authentication requires an isolated remote runtime directory.");
-  const home = path.posix.join(input.runtimeRootDir, "managed-auth", input.runId);
+  if (!input.runtimeRootDir)
+    throw new Error(
+      "Managed OpenCode authentication requires an isolated remote runtime directory.",
+    );
+  const home = path.posix.join(
+    input.runtimeRootDir,
+    "managed-auth",
+    input.runId,
+  );
   Object.assign(input.env, {
     HOME: home,
     XDG_CONFIG_HOME: input.configDir ?? path.posix.join(home, "config"),

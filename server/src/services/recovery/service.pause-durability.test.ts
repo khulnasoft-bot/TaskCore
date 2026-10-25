@@ -2,11 +2,22 @@ import { describe, expect, it } from "vitest";
 import { classifyContinuationFailure } from "./service.js";
 
 const run = (errorCode: string | null) =>
-  ({ errorCode } as unknown as Parameters<typeof classifyContinuationFailure>[0]);
+  ({ errorCode }) as unknown as Parameters<
+    typeof classifyContinuationFailure
+  >[0];
 
 describe("pause durability: continuation retry classification", () => {
-  it.each(["workspace_git_scan_timeout", "workspace_git_scan_saturated", "workspace_git_scan_failed", "workspace_git_scan_output_limit", "workspace_git_scan_cancelled"])("does not grant %s another recovery budget", (code) => {
-    expect(classifyContinuationFailure(run(code))).toMatchObject({ kind: "non_retryable", maxAttempts: 0 });
+  it.each([
+    "workspace_git_scan_timeout",
+    "workspace_git_scan_saturated",
+    "workspace_git_scan_failed",
+    "workspace_git_scan_output_limit",
+    "workspace_git_scan_cancelled",
+  ])("does not grant %s another recovery budget", (code) => {
+    expect(classifyContinuationFailure(run(code))).toMatchObject({
+      kind: "non_retryable",
+      maxAttempts: 0,
+    });
   });
   it("agent_paused is retryable so work resumes (Option A: Resume Continues Work)", () => {
     // Pause still emits errorCode agent_paused for observability, but it is NOT
@@ -20,7 +31,9 @@ describe("pause durability: continuation retry classification", () => {
   });
 
   it("agent_not_invokable (execution-start abort) is non-retryable", () => {
-    expect(classifyContinuationFailure(run("agent_not_invokable")).kind).toBe("non_retryable");
+    expect(classifyContinuationFailure(run("agent_not_invokable")).kind).toBe(
+      "non_retryable",
+    );
   });
 
   it("timed_out (timeout) still retries as transient infra", () => {
@@ -42,6 +55,8 @@ describe("pause durability: continuation retry classification", () => {
 
   it("genuine failure with no/unknown code retries via default branch", () => {
     expect(classifyContinuationFailure(run(null)).kind).toBe("default");
-    expect(classifyContinuationFailure(run("some_adapter_error")).kind).toBe("default");
+    expect(classifyContinuationFailure(run("some_adapter_error")).kind).toBe(
+      "default",
+    );
   });
 });

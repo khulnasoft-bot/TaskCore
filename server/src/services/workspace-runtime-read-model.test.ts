@@ -53,7 +53,9 @@ describe("selectConfiguredRuntimeServiceRows", () => {
       }),
     );
 
-    expect(selectConfiguredRuntimeServiceRows(historicalRows, null)).toEqual([]);
+    expect(selectConfiguredRuntimeServiceRows(historicalRows, null)).toEqual(
+      [],
+    );
   });
 
   it("selects the newest current row for each configured service and annotates its config index", () => {
@@ -103,10 +105,9 @@ describe("selectConfiguredRuntimeServiceRows", () => {
       },
     });
 
-    const selected = selectConfiguredRuntimeServiceRows(
-      [exposedWeb],
-      { services: [{ name: "taskcore-dev", command: "pnpm dev --bind lan" }] },
-    );
+    const selected = selectConfiguredRuntimeServiceRows([exposedWeb], {
+      services: [{ name: "taskcore-dev", command: "pnpm dev --bind lan" }],
+    });
 
     expect(selected).toEqual([
       expect.objectContaining({ id: exposedWeb.id, configIndex: 0 }),

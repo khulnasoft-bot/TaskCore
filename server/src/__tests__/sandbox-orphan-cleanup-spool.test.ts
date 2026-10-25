@@ -7,7 +7,9 @@ import {
   type DeferredOrphanCleanupRecord,
 } from "../services/sandbox-orphan-cleanup-spool.ts";
 
-function buildRecord(overrides: Partial<DeferredOrphanCleanupRecord> = {}): DeferredOrphanCleanupRecord {
+function buildRecord(
+  overrides: Partial<DeferredOrphanCleanupRecord> = {},
+): DeferredOrphanCleanupRecord {
   return {
     companyId: "company-1",
     environmentId: "environment-1",
@@ -51,7 +53,9 @@ describe("createSandboxOrphanCleanupSpool", () => {
     await spool.append(record);
     await spool.remove(record);
     expect(await spool.load()).toEqual([]);
-    expect((await readdir(dir)).filter((name) => name.endsWith(".json"))).toHaveLength(0);
+    expect(
+      (await readdir(dir)).filter((name) => name.endsWith(".json")),
+    ).toHaveLength(0);
   });
 
   it("keeps one file when the same orphan is appended twice", async () => {
@@ -80,7 +84,11 @@ describe("createSandboxOrphanCleanupSpool", () => {
     // A torn or hand-edited file cannot authorize a teardown, so the load skips it
     // and keeps the valid record.
     await writeFile(path.join(dir, "broken.json"), "{ not json", "utf8");
-    await writeFile(path.join(dir, "wrong-shape.json"), JSON.stringify({ companyId: 1 }), "utf8");
+    await writeFile(
+      path.join(dir, "wrong-shape.json"),
+      JSON.stringify({ companyId: 1 }),
+      "utf8",
+    );
     const loaded = await spool.load();
     expect(loaded).toHaveLength(1);
     expect(loaded[0]?.providerLeaseId).toBe("sandbox://fake/lease-1");

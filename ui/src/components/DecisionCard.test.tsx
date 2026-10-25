@@ -13,7 +13,9 @@ import { TooltipProvider } from "./ui/tooltip";
 let container: HTMLDivElement | null = null;
 let root: Root | null = null;
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 async function act(callback: () => void | Promise<void>) {
   if (typeof reactAct === "function") {
@@ -29,20 +31,61 @@ async function act(callback: () => void | Promise<void>) {
 }
 
 vi.mock("@/lib/router", () => ({
-  Link: ({ to, children, className }: { to: string; children: ReactNode; className?: string }) => (
-    <a href={to} className={className}>{children}</a>
+  Link: ({
+    to,
+    children,
+    className,
+  }: {
+    to: string;
+    children: ReactNode;
+    className?: string;
+  }) => (
+    <a href={to} className={className}>
+      {children}
+    </a>
   ),
   useCaseHref: () => () => "#",
 }));
 
 const ISSUES: Record<string, DecisionIssueRef> = {
-  "issue-origin": { id: "issue-origin", identifier: "PAP-123", title: "Gardener sweep", href: "/PAP/issues/PAP-123", status: "in_progress" },
-  "issue-target": { id: "issue-target", identifier: "PAP-456", title: "Stale epic", href: "/PAP/issues/PAP-456", status: "backlog" },
-  "issue-parent": { id: "issue-parent", identifier: "PAP-789", title: "Parent task", href: "/PAP/issues/PAP-789", status: "todo" },
-  "issue-blocker": { id: "issue-blocker", identifier: "PAP-790", title: "Blocking task", href: "/PAP/issues/PAP-790", status: "todo" },
-  "issue-new": { id: "issue-new", identifier: "PAP-999", title: "Follow-up", href: "/PAP/issues/PAP-999", status: "todo" },
+  "issue-origin": {
+    id: "issue-origin",
+    identifier: "PAP-123",
+    title: "Gardener sweep",
+    href: "/PAP/issues/PAP-123",
+    status: "in_progress",
+  },
+  "issue-target": {
+    id: "issue-target",
+    identifier: "PAP-456",
+    title: "Stale epic",
+    href: "/PAP/issues/PAP-456",
+    status: "backlog",
+  },
+  "issue-parent": {
+    id: "issue-parent",
+    identifier: "PAP-789",
+    title: "Parent task",
+    href: "/PAP/issues/PAP-789",
+    status: "todo",
+  },
+  "issue-blocker": {
+    id: "issue-blocker",
+    identifier: "PAP-790",
+    title: "Blocking task",
+    href: "/PAP/issues/PAP-790",
+    status: "todo",
+  },
+  "issue-new": {
+    id: "issue-new",
+    identifier: "PAP-999",
+    title: "Follow-up",
+    href: "/PAP/issues/PAP-999",
+    status: "todo",
+  },
 };
-const resolveIssue = (id: string): DecisionIssueRef | null => ISSUES[id] ?? null;
+const resolveIssue = (id: string): DecisionIssueRef | null =>
+  ISSUES[id] ?? null;
 
 function mkDecision(overrides: Partial<Decision> = {}): Decision {
   return {
@@ -56,7 +99,18 @@ function mkDecision(overrides: Partial<Decision> = {}): Decision {
     title: "Stale epic PAP-456",
     body: "No activity for three weeks.",
     options: [
-      { id: "comment", label: "Comment and snooze", effects: [{ type: "comment_on_issue", targetIssueId: "issue-target", staleness: "lenient", bodyMarkdown: "nudge" }] },
+      {
+        id: "comment",
+        label: "Comment and snooze",
+        effects: [
+          {
+            type: "comment_on_issue",
+            targetIssueId: "issue-target",
+            staleness: "lenient",
+            bodyMarkdown: "nudge",
+          },
+        ],
+      },
     ],
     inputs: null,
     status: "open",
@@ -67,7 +121,15 @@ function mkDecision(overrides: Partial<Decision> = {}): Decision {
     decidedAt: null,
     expiresAt: "2026-07-29T12:00:00Z",
     idempotencyKey: null,
-    targetSnapshots: { "issue-target": { status: "backlog", assigneeAgentId: null, assigneeUserId: null, updatedAt: "2026-07-01T09:00:00Z", childCount: 2 } },
+    targetSnapshots: {
+      "issue-target": {
+        status: "backlog",
+        assigneeAgentId: null,
+        assigneeUserId: null,
+        updatedAt: "2026-07-01T09:00:00Z",
+        childCount: 2,
+      },
+    },
     continuationPolicy: "none",
     metadata: {},
     createdAt: "2026-07-22T09:00:00Z",
@@ -76,7 +138,9 @@ function mkDecision(overrides: Partial<Decision> = {}): Decision {
   };
 }
 
-function exec(overrides: Partial<DecisionEffectExecution>): DecisionEffectExecution {
+function exec(
+  overrides: Partial<DecisionEffectExecution>,
+): DecisionEffectExecution {
   return {
     id: `exec-${overrides.effectIndex ?? 0}`,
     decisionId: "decision-1",
@@ -93,7 +157,9 @@ function exec(overrides: Partial<DecisionEffectExecution>): DecisionEffectExecut
 }
 
 function render(props: Partial<ComponentProps<typeof DecisionCard>>) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -102,7 +168,13 @@ function render(props: Partial<ComponentProps<typeof DecisionCard>>) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <TooltipProvider>
-            <DecisionCard decision={mkDecision()} resolveIssue={resolveIssue} originAgentName="Gardener" originIssue={ISSUES["issue-origin"]} {...props} />
+            <DecisionCard
+              decision={mkDecision()}
+              resolveIssue={resolveIssue}
+              originAgentName="Gardener"
+              originIssue={ISSUES["issue-origin"]}
+              {...props}
+            />
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>,
@@ -112,7 +184,9 @@ function render(props: Partial<ComponentProps<typeof DecisionCard>>) {
 }
 
 function clickButtonWithText(el: HTMLElement, text: string) {
-  const button = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes(text));
+  const button = [...el.querySelectorAll("button")].find((b) =>
+    b.textContent?.includes(text),
+  );
   if (!button) throw new Error(`No button with text "${text}"`);
   act(() => {
     button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -134,7 +208,11 @@ describe("DecisionCard", () => {
     expect(el.textContent).toContain("Gardener");
     expect(el.textContent).toContain("PAP-123");
     expect(el.textContent).toContain("Comment on PAP-456");
-    expect([...el.querySelectorAll("button")].some((b) => b.textContent?.includes("Dismiss"))).toBe(true);
+    expect(
+      [...el.querySelectorAll("button")].some((b) =>
+        b.textContent?.includes("Dismiss"),
+      ),
+    ).toBe(true);
   });
 
   it("links the target issue the decision applies to, not just the origin", () => {
@@ -143,7 +221,9 @@ describe("DecisionCard", () => {
     const provenance = el.querySelector("p");
     expect(provenance?.textContent).toContain("PAP-456");
     expect(
-      [...(provenance?.querySelectorAll("a") ?? [])].some((a) => a.getAttribute("href") === "/PAP/issues/PAP-456"),
+      [...(provenance?.querySelectorAll("a") ?? [])].some(
+        (a) => a.getAttribute("href") === "/PAP/issues/PAP-456",
+      ),
     ).toBe(true);
   });
 
@@ -151,7 +231,18 @@ describe("DecisionCard", () => {
     const el = render({
       decision: mkDecision({
         options: [
-          { id: "comment", label: "Comment", effects: [{ type: "comment_on_issue", targetIssueId: "issue-origin", staleness: "lenient", bodyMarkdown: "nudge" }] },
+          {
+            id: "comment",
+            label: "Comment",
+            effects: [
+              {
+                type: "comment_on_issue",
+                targetIssueId: "issue-origin",
+                staleness: "lenient",
+                bodyMarkdown: "nudge",
+              },
+            ],
+          },
         ],
       }),
     });
@@ -161,28 +252,36 @@ describe("DecisionCard", () => {
   it("links secondary target issues referenced by an effect", () => {
     const el = render({
       decision: mkDecision({
-        options: [{
-          id: "create",
-          label: "Create follow-up",
-          effects: [{
-            type: "create_issue",
-            targetIssueId: "issue-target",
-            staleness: "strict",
-            draft: {
-              title: "Follow-up",
-              parentId: "issue-parent",
-              blockedByIssueIds: ["issue-blocker"],
-            },
-          }],
-        }],
+        options: [
+          {
+            id: "create",
+            label: "Create follow-up",
+            effects: [
+              {
+                type: "create_issue",
+                targetIssueId: "issue-target",
+                staleness: "strict",
+                draft: {
+                  title: "Follow-up",
+                  parentId: "issue-parent",
+                  blockedByIssueIds: ["issue-blocker"],
+                },
+              },
+            ],
+          },
+        ],
       }),
     });
-    const targetHrefs = [...(el.querySelector("p")?.querySelectorAll("a") ?? [])].map((a) => a.getAttribute("href"));
-    expect(targetHrefs).toEqual(expect.arrayContaining([
-      "/PAP/issues/PAP-456",
-      "/PAP/issues/PAP-789",
-      "/PAP/issues/PAP-790",
-    ]));
+    const targetHrefs = [
+      ...(el.querySelector("p")?.querySelectorAll("a") ?? []),
+    ].map((a) => a.getAttribute("href"));
+    expect(targetHrefs).toEqual(
+      expect.arrayContaining([
+        "/PAP/issues/PAP-456",
+        "/PAP/issues/PAP-789",
+        "/PAP/issues/PAP-790",
+      ]),
+    );
   });
 
   it("fires onDecide with the chosen option id", () => {
@@ -204,14 +303,38 @@ describe("DecisionCard", () => {
       targetChanged: { "issue-target": true },
       decision: mkDecision({
         options: [
-          { id: "strict", label: "Cancel it", effects: [{ type: "update_issue_status", targetIssueId: "issue-target", staleness: "strict", status: "cancelled" }] },
-          { id: "lenient", label: "Just comment", effects: [{ type: "comment_on_issue", targetIssueId: "issue-target", staleness: "lenient", bodyMarkdown: "hi" }] },
+          {
+            id: "strict",
+            label: "Cancel it",
+            effects: [
+              {
+                type: "update_issue_status",
+                targetIssueId: "issue-target",
+                staleness: "strict",
+                status: "cancelled",
+              },
+            ],
+          },
+          {
+            id: "lenient",
+            label: "Just comment",
+            effects: [
+              {
+                type: "comment_on_issue",
+                targetIssueId: "issue-target",
+                staleness: "lenient",
+                bodyMarkdown: "hi",
+              },
+            ],
+          },
         ],
       }),
     });
     expect(el.textContent).toContain("changed since this was proposed");
     expect(el.textContent).toContain("Blocked · stale");
-    const strict = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("Cancel it"));
+    const strict = [...el.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Cancel it"),
+    );
     expect(strict?.disabled).toBe(true);
   });
 
@@ -220,24 +343,40 @@ describe("DecisionCard", () => {
       targetChanged: { "issue-target": false, "issue-parent": true },
       decision: mkDecision({
         targetSnapshots: {
-          "issue-target": { status: "backlog", assigneeAgentId: null, assigneeUserId: null, updatedAt: "2026-07-01T09:00:00Z", childCount: 2 },
-          "issue-parent": { status: "todo", assigneeAgentId: null, assigneeUserId: null, updatedAt: "2026-07-01T09:00:00Z", childCount: 0 },
+          "issue-target": {
+            status: "backlog",
+            assigneeAgentId: null,
+            assigneeUserId: null,
+            updatedAt: "2026-07-01T09:00:00Z",
+            childCount: 2,
+          },
+          "issue-parent": {
+            status: "todo",
+            assigneeAgentId: null,
+            assigneeUserId: null,
+            updatedAt: "2026-07-01T09:00:00Z",
+            childCount: 0,
+          },
         },
         options: [
           {
             id: "strict-create",
             label: "Create the follow-up",
-            effects: [{
-              type: "create_issue",
-              targetIssueId: "issue-target",
-              staleness: "strict",
-              draft: { title: "Follow-up", parentId: "issue-parent" },
-            }],
+            effects: [
+              {
+                type: "create_issue",
+                targetIssueId: "issue-target",
+                staleness: "strict",
+                draft: { title: "Follow-up", parentId: "issue-parent" },
+              },
+            ],
           },
         ],
       }),
     });
-    const strict = [...el.querySelectorAll("button")].find((button) => button.textContent?.includes("Create the follow-up"));
+    const strict = [...el.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Create the follow-up"),
+    );
     expect(strict?.disabled).toBe(true);
     expect(strict?.textContent).toContain("Blocked · stale");
   });
@@ -249,7 +388,19 @@ describe("DecisionCard", () => {
       cancelTreePreview: () => [ISSUES["issue-target"]!],
       decision: mkDecision({
         options: [
-          { id: "cancel", label: "Cancel the tree", style: "destructive", effects: [{ type: "cancel_issue_tree", targetIssueId: "issue-target", staleness: "strict", reasonComment: "stale" }] },
+          {
+            id: "cancel",
+            label: "Cancel the tree",
+            style: "destructive",
+            effects: [
+              {
+                type: "cancel_issue_tree",
+                targetIssueId: "issue-target",
+                staleness: "strict",
+                reasonComment: "stale",
+              },
+            ],
+          },
         ],
       }),
     });
@@ -258,32 +409,65 @@ describe("DecisionCard", () => {
     clickButtonWithText(el, "Cancel the tree");
     expect(onDecide).not.toHaveBeenCalled();
     expect(el.textContent).toContain("to confirm");
-    const confirm = [...el.querySelectorAll("button")].find((b) => b.textContent?.match(/Cancel \d+ issue/));
+    const confirm = [...el.querySelectorAll("button")].find((b) =>
+      b.textContent?.match(/Cancel \d+ issue/),
+    );
     expect(confirm?.disabled).toBe(true);
   });
 
   it("renders decided result rows with entity links", () => {
     const el = render({
-      decision: mkDecision({ status: "decided", executionStatus: "succeeded", chosenOptionId: "create" }),
+      decision: mkDecision({
+        status: "decided",
+        executionStatus: "succeeded",
+        chosenOptionId: "create",
+      }),
       executions: [
-        exec({ effectIndex: 0, effectType: "create_issue", status: "executed", result: { issueId: "issue-new" } }),
-        exec({ effectIndex: 1, effectType: "update_issue_status", status: "executed", result: { issueId: "issue-target", status: "done" } }),
+        exec({
+          effectIndex: 0,
+          effectType: "create_issue",
+          status: "executed",
+          result: { issueId: "issue-new" },
+        }),
+        exec({
+          effectIndex: 1,
+          effectType: "update_issue_status",
+          status: "executed",
+          result: { issueId: "issue-target", status: "done" },
+        }),
       ],
     });
     expect(el.textContent).toContain("Decided");
     expect(el.textContent).toContain("Created PAP-999");
     expect(el.textContent).toContain("Set PAP-456 to done");
-    expect([...el.querySelectorAll("a")].some((a) => a.getAttribute("href") === "/PAP/issues/PAP-999")).toBe(true);
+    expect(
+      [...el.querySelectorAll("a")].some(
+        (a) => a.getAttribute("href") === "/PAP/issues/PAP-999",
+      ),
+    ).toBe(true);
     // No option buttons on a terminal decision.
     expect([...el.querySelectorAll("button")].length).toBe(0);
   });
 
   it("surfaces failure cause and the fail-closed / re-propose guidance on partial", () => {
     const el = render({
-      decision: mkDecision({ status: "decided", executionStatus: "partial", chosenOptionId: "create" }),
+      decision: mkDecision({
+        status: "decided",
+        executionStatus: "partial",
+        chosenOptionId: "create",
+      }),
       executions: [
-        exec({ effectIndex: 0, effectType: "comment_on_issue", status: "executed" }),
-        exec({ effectIndex: 1, effectType: "update_issue_status", status: "failed", error: "deny_decision_intersection" }),
+        exec({
+          effectIndex: 0,
+          effectType: "comment_on_issue",
+          status: "executed",
+        }),
+        exec({
+          effectIndex: 1,
+          effectType: "update_issue_status",
+          status: "failed",
+          error: "deny_decision_intersection",
+        }),
       ],
     });
     expect(el.textContent).toContain("Partial");
@@ -294,28 +478,55 @@ describe("DecisionCard", () => {
 
   it("marks skipped effects as target-changed on a failed decision", () => {
     const el = render({
-      decision: mkDecision({ status: "decided", executionStatus: "failed", chosenOptionId: "cancel" }),
-      executions: [exec({ effectIndex: 0, effectType: "cancel_issue_tree", status: "skipped", error: "target_changed" })],
+      decision: mkDecision({
+        status: "decided",
+        executionStatus: "failed",
+        chosenOptionId: "cancel",
+      }),
+      executions: [
+        exec({
+          effectIndex: 0,
+          effectType: "cancel_issue_tree",
+          status: "skipped",
+          error: "target_changed",
+        }),
+      ],
     });
     expect(el.textContent).toContain("Failed");
     expect(el.textContent).toContain("target changed since proposal");
   });
 
   it("renders expired and dismissed terminal states", () => {
-    const expired = render({ decision: mkDecision({ status: "expired", metadata: { expiredReason: "ttl" } }) });
+    const expired = render({
+      decision: mkDecision({
+        status: "expired",
+        metadata: { expiredReason: "ttl" },
+      }),
+    });
     expect(expired.textContent).toContain("Expired");
     expect(expired.textContent).toContain("window closed");
     act(() => root?.unmount());
     container?.remove();
 
-    const dismissed = render({ decision: mkDecision({ status: "decided", executionStatus: "succeeded", chosenOptionId: "dismissed", metadata: { dismissed: true } }), executions: [] });
+    const dismissed = render({
+      decision: mkDecision({
+        status: "decided",
+        executionStatus: "succeeded",
+        chosenOptionId: "dismissed",
+        metadata: { dismissed: true },
+      }),
+      executions: [],
+    });
     expect(dismissed.textContent).toContain("Dismissed");
     expect(dismissed.textContent).toContain("no effects were run");
   });
 
   it("explains when a decision expires because its targets completed", () => {
     const expired = render({
-      decision: mkDecision({ status: "expired", metadata: { expiredReason: "target_completed" } }),
+      decision: mkDecision({
+        status: "expired",
+        metadata: { expiredReason: "target_completed" },
+      }),
     });
     expect(expired.textContent).toContain("target issues were completed");
     expect(expired.textContent).not.toContain("expiry deadline");

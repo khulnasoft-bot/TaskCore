@@ -2,7 +2,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createGoogleSheetsMcpConfig, readConfigFromEnv, readHttpConfigFromEnv } from "./config.js";
+import {
+  createGoogleSheetsMcpConfig,
+  readConfigFromEnv,
+  readHttpConfigFromEnv,
+} from "./config.js";
 
 const serviceAccount = {
   client_email: "service@example.test",
@@ -48,7 +52,7 @@ describe("Google Sheets MCP config", () => {
       createGoogleSheetsMcpConfig({
         serviceAccountJson: JSON.stringify(serviceAccount),
         allowedSpreadsheetIds: "",
-      })
+      }),
     ).toThrow("At least one allowed spreadsheet ID is required.");
   });
 
@@ -95,8 +99,10 @@ describe("Google Sheets MCP config", () => {
           GOOGLE_SHEETS_MCP_HOST: "0.0.0.0",
         } as NodeJS.ProcessEnv,
         [],
-      )
-    ).toThrow("GOOGLE_SHEETS_MCP_TOKEN is required when GOOGLE_SHEETS_MCP_HOST is not loopback.");
+      ),
+    ).toThrow(
+      "GOOGLE_SHEETS_MCP_TOKEN is required when GOOGLE_SHEETS_MCP_HOST is not loopback.",
+    );
   });
 
   it("allows loopback HTTP binds without a token", () => {

@@ -1,5 +1,8 @@
 import type { AdapterConfigSchema } from "@taskcore/adapter-utils";
-import { DEFAULT_EVENT_RECONNECT_MS, DEFAULT_TIMEOUT_SEC } from "../shared/constants.js";
+import {
+  DEFAULT_EVENT_RECONNECT_MS,
+  DEFAULT_TIMEOUT_SEC,
+} from "../shared/constants.js";
 import { INSECURE_REMOTE_HTTP_ESCAPE_HATCH } from "./transport-security.js";
 
 export function getConfigSchema(): AdapterConfigSchema {

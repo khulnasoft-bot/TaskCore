@@ -71,12 +71,16 @@ export function webhookAgentInstructions(
         ]
       : [
           `Secret key: ${webhookSecret}`,
-          ...(signingMode === "bearer" ? [] : [
-            `If the app asks for a signing secret, paste the secret key above. Taskcore accepts HMAC-SHA256 over the exact request body in ${signingMode === "fireflies_hmac" ? "X-Hub-Signature" : "X-Hub-Signature or X-Hub-Signature-256"}, formatted sha256=<hex digest>.`,
-          ]),
-          ...(signingMode === "fireflies_hmac" ? [] : [
-            `For apps with custom headers, use Authorization: Bearer ${webhookSecret}`,
-          ]),
+          ...(signingMode === "bearer"
+            ? []
+            : [
+                `If the app asks for a signing secret, paste the secret key above. Taskcore accepts HMAC-SHA256 over the exact request body in ${signingMode === "fireflies_hmac" ? "X-Hub-Signature" : "X-Hub-Signature or X-Hub-Signature-256"}, formatted sha256=<hex digest>.`,
+              ]),
+          ...(signingMode === "fireflies_hmac"
+            ? []
+            : [
+                `For apps with custom headers, use Authorization: Bearer ${webhookSecret}`,
+              ]),
           "Subscribe only to the events that should start this routine. Public services need a publicly reachable HTTPS URL.",
           "In the sending app, add a webhook using this URL, POST method, JSON body, and headers, then save it.",
           "Send a unique Idempotency-Key header for each event and reuse it on retries, so retrying a setup test after activation cannot start the routine.",
@@ -454,16 +458,29 @@ export function RoutineTriggerWizard({
             {!github && draft.signingMode !== "bearer" && (
               <p className="text-sm text-muted-foreground">
                 Paste this key into your app’s signing secret field.
-                {draft.signingMode !== "fireflies_hmac" && <>
-                  {" "}If your app uses custom headers instead, set Authorization to Bearer followed
-                  by a space and this key.
-                </>}
+                {draft.signingMode !== "fireflies_hmac" && (
+                  <>
+                    {" "}
+                    If your app uses custom headers instead, set Authorization
+                    to Bearer followed by a space and this key.
+                  </>
+                )}
               </p>
             )}
             {webhookSecret ? (
               <CopyField
-                label={github ? "Secret" : draft.signingMode === "bearer" ? "Authorization header value" : "Secret key"}
-                value={!github && draft.signingMode === "bearer" ? `Bearer ${webhookSecret}` : webhookSecret}
+                label={
+                  github
+                    ? "Secret"
+                    : draft.signingMode === "bearer"
+                      ? "Authorization header value"
+                      : "Secret key"
+                }
+                value={
+                  !github && draft.signingMode === "bearer"
+                    ? `Bearer ${webhookSecret}`
+                    : webhookSecret
+                }
               />
             ) : (
               <div className="space-y-2">

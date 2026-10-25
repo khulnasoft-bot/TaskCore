@@ -34,8 +34,8 @@ test("a tutorial's </invoke> wrapper is caught", () => {
 test("assorted generator envelope tags are all caught", () => {
   for (const tag of [
     "<content>",
-    "<invoke name=\"Bash\">",
-    "<parameter name=\"x\">",
+    '<invoke name="Bash">',
+    '<parameter name="x">',
     "<function_calls>",
     "</function_results>",
     "<invoke>",

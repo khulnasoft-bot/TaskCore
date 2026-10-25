@@ -2,7 +2,10 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { Issue, IssueComment } from "@taskcore/shared";
 import { issuesApi } from "@/api/issues";
 import { queryKeys } from "@/lib/queryKeys";
-import { getNextIssueCommentPageParam, ISSUE_COMMENT_PAGE_SIZE } from "@/lib/optimistic-issue-comments";
+import {
+  getNextIssueCommentPageParam,
+  ISSUE_COMMENT_PAGE_SIZE,
+} from "@/lib/optimistic-issue-comments";
 
 const ISSUE_DETAIL_QUERY_PREFIX = ["issues", "detail"] as const;
 export const ISSUE_DETAIL_STALE_TIME_MS = 60_000;
@@ -29,36 +32,47 @@ function collectIssueRefs(
   return Array.from(refs);
 }
 
-function matchesIssueRef(issue: Pick<Issue, "id" | "identifier">, refs: Iterable<string>) {
+function matchesIssueRef(
+  issue: Pick<Issue, "id" | "identifier">,
+  refs: Iterable<string>,
+) {
   const refSet = refs instanceof Set ? refs : new Set(refs);
-  return refSet.has(issue.id) || (!!issue.identifier && refSet.has(issue.identifier));
+  return (
+    refSet.has(issue.id) || (!!issue.identifier && refSet.has(issue.identifier))
+  );
 }
 
 function isCompleteIssueSnapshot(value: unknown): value is Issue {
   if (typeof value !== "object" || value === null) return false;
   const issue = value as Partial<Issue>;
   return (
-    isNonEmptyString(issue.id)
-    && isNonEmptyString(issue.companyId)
-    && typeof issue.title === "string"
-    && typeof issue.status === "string"
-    && typeof issue.workMode === "string"
-    && typeof issue.priority === "string"
-    && (issue.projectId === null || typeof issue.projectId === "string")
-    && (issue.parentId === null || typeof issue.parentId === "string")
-    && (issue.identifier === null || typeof issue.identifier === "string")
-    && (issue.description === null || typeof issue.description === "string")
-    && (issue.assigneeAgentId === null || typeof issue.assigneeAgentId === "string")
-    && (issue.assigneeUserId === null || typeof issue.assigneeUserId === "string")
-    && (issue.executionRunId === null || typeof issue.executionRunId === "string")
-    && (issue.issueNumber === null || typeof issue.issueNumber === "number")
-    && typeof issue.requestDepth === "number"
-    && issue.createdAt != null
-    && issue.updatedAt != null
+    isNonEmptyString(issue.id) &&
+    isNonEmptyString(issue.companyId) &&
+    typeof issue.title === "string" &&
+    typeof issue.status === "string" &&
+    typeof issue.workMode === "string" &&
+    typeof issue.priority === "string" &&
+    (issue.projectId === null || typeof issue.projectId === "string") &&
+    (issue.parentId === null || typeof issue.parentId === "string") &&
+    (issue.identifier === null || typeof issue.identifier === "string") &&
+    (issue.description === null || typeof issue.description === "string") &&
+    (issue.assigneeAgentId === null ||
+      typeof issue.assigneeAgentId === "string") &&
+    (issue.assigneeUserId === null ||
+      typeof issue.assigneeUserId === "string") &&
+    (issue.executionRunId === null ||
+      typeof issue.executionRunId === "string") &&
+    (issue.issueNumber === null || typeof issue.issueNumber === "number") &&
+    typeof issue.requestDepth === "number" &&
+    issue.createdAt != null &&
+    issue.updatedAt != null
   );
 }
 
-function mergeIssueSnapshots(existing: Issue | undefined, incoming: Issue): Issue {
+function mergeIssueSnapshots(
+  existing: Issue | undefined,
+  incoming: Issue,
+): Issue {
   if (!existing) return incoming;
   return {
     ...existing,
@@ -66,7 +80,9 @@ function mergeIssueSnapshots(existing: Issue | undefined, incoming: Issue): Issu
   };
 }
 
-export function getIssueDetailCacheRefs(issue: Pick<Issue, "id" | "identifier">): string[] {
+export function getIssueDetailCacheRefs(
+  issue: Pick<Issue, "id" | "identifier">,
+): string[] {
   return collectIssueRefs(null, issue);
 }
 
@@ -78,15 +94,21 @@ export function getCachedIssueDetail(
   const refs = collectIssueRefs(issueRef, issue);
 
   for (const ref of refs) {
-    const cached = queryClient.getQueryData<Issue>(queryKeys.issues.detail(ref));
+    const cached = queryClient.getQueryData<Issue>(
+      queryKeys.issues.detail(ref),
+    );
     if (isCompleteIssueSnapshot(cached)) return cached;
   }
 
-  const cachedEntries = queryClient.getQueriesData<Issue>({ queryKey: ISSUE_DETAIL_QUERY_PREFIX });
+  const cachedEntries = queryClient.getQueriesData<Issue>({
+    queryKey: ISSUE_DETAIL_QUERY_PREFIX,
+  });
   return cachedEntries
     .map(([, cachedIssue]) => cachedIssue)
-    .find((cachedIssue): cachedIssue is Issue =>
-      isCompleteIssueSnapshot(cachedIssue) && matchesIssueRef(cachedIssue, refs)
+    .find(
+      (cachedIssue): cachedIssue is Issue =>
+        isCompleteIssueSnapshot(cachedIssue) &&
+        matchesIssueRef(cachedIssue, refs),
     );
 }
 
@@ -100,12 +122,14 @@ export function seedIssueDetailCache(
   if (!isCompleteIssueSnapshot(issue)) return issue;
 
   const refs = collectIssueRefs(options?.issueRef, issue);
-  const merged = mergeIssueSnapshots(getCachedIssueDetail(queryClient, options?.issueRef, issue), issue);
+  const merged = mergeIssueSnapshots(
+    getCachedIssueDetail(queryClient, options?.issueRef, issue),
+    issue,
+  );
 
   for (const ref of refs) {
-    queryClient.setQueryData<Issue>(
-      queryKeys.issues.detail(ref),
-      (existing) => mergeIssueSnapshots(existing, merged),
+    queryClient.setQueryData<Issue>(queryKeys.issues.detail(ref), (existing) =>
+      mergeIssueSnapshots(existing, merged),
     );
   }
 
@@ -117,7 +141,9 @@ export async function fetchIssueDetail(
   issueRef: string,
   options?: { signal?: AbortSignal },
 ): Promise<Issue> {
-  const issue = options ? await issuesApi.get(issueRef, options) : await issuesApi.get(issueRef);
+  const issue = options
+    ? await issuesApi.get(issueRef, options)
+    : await issuesApi.get(issueRef);
   return seedIssueDetailCache(queryClient, issue, { issueRef });
 }
 
@@ -130,8 +156,13 @@ export function getIssueDetailQueryOptions(
 ) {
   return {
     queryKey: queryKeys.issues.detail(issueRef),
-    queryFn: ({ signal }: { signal?: AbortSignal }) => fetchIssueDetail(queryClient, issueRef, { signal }),
-    placeholderData: getCachedIssueDetail(queryClient, issueRef, options?.placeholderIssue ?? undefined),
+    queryFn: ({ signal }: { signal?: AbortSignal }) =>
+      fetchIssueDetail(queryClient, issueRef, { signal }),
+    placeholderData: getCachedIssueDetail(
+      queryClient,
+      issueRef,
+      options?.placeholderIssue ?? undefined,
+    ),
   };
 }
 
@@ -159,7 +190,10 @@ export function prefetchIssueDetail(
  * cache instead of waiting on a fetch. Keyed by issue ref and always background
  * revalidated by the mounted query, so it never surfaces stale cross-issue data.
  */
-export function prefetchIssueComments(queryClient: QueryClient, issueRef: string) {
+export function prefetchIssueComments(
+  queryClient: QueryClient,
+  issueRef: string,
+) {
   return queryClient.prefetchInfiniteQuery({
     queryKey: queryKeys.issues.comments(issueRef),
     queryFn: ({ pageParam }: { pageParam: string | null }) =>

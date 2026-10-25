@@ -46,18 +46,22 @@ import {
   dispatchNativeSessionResumptions,
 } from "../services/native-runtime/native-finalization-reconciler.js";
 
-const legacyAdapterExecute = vi.hoisted(() => vi.fn(async () => ({
-  exitCode: 0,
-  signal: null,
-  timedOut: false,
-  summary: "Fresh flag-off run completed through legacy.",
-  resultJson: { summary: "fresh legacy after persisted native recovery" },
-  provider: "test",
-  model: "legacy-test",
-})));
+const legacyAdapterExecute = vi.hoisted(() =>
+  vi.fn(async () => ({
+    exitCode: 0,
+    signal: null,
+    timedOut: false,
+    summary: "Fresh flag-off run completed through legacy.",
+    resultJson: { summary: "fresh legacy after persisted native recovery" },
+    provider: "test",
+    model: "legacy-test",
+  })),
+);
 
 vi.mock("../adapters/index.js", async () => {
-  const actual = await vi.importActual<typeof import("../adapters/index.js")>("../adapters/index.js");
+  const actual = await vi.importActual<typeof import("../adapters/index.js")>(
+    "../adapters/index.js",
+  );
   return {
     ...actual,
     getServerAdapter: vi.fn(() => ({
@@ -70,7 +74,8 @@ vi.mock("../adapters/index.js", async () => {
 
 const mockCaptureRunFailure = vi.hoisted(() => vi.fn());
 vi.mock("../sentry.js", async () => {
-  const actual = await vi.importActual<typeof import("../sentry.js")>("../sentry.js");
+  const actual =
+    await vi.importActual<typeof import("../sentry.js")>("../sentry.js");
   return { ...actual, captureRunFailure: mockCaptureRunFailure };
 });
 
@@ -78,7 +83,9 @@ import { heartbeatService } from "../services/heartbeat.js";
 import { instanceSettingsService } from "../services/instance-settings.js";
 
 describe("P6-25 pre-result native session recovery", () => {
-  let temporary: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let temporary: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let db: ReturnType<typeof createDb>;
   const companyId = "79000000-0000-4000-8000-000000000001";
   const agentId = "79000000-0000-4000-8000-000000000002";
@@ -93,7 +100,10 @@ describe("P6-25 pre-result native session recovery", () => {
   const observedLivePidRunId = "79000000-0000-4000-8000-000000000011";
   const persistedProfile = {
     mode: "native",
-    nativeExecutionInput: { schema: "taskcore.native-execution-input.v1", binding: { runId } },
+    nativeExecutionInput: {
+      schema: "taskcore.native-execution-input.v1",
+      binding: { runId },
+    },
     sessionCheckpoint: {
       backendKind: "codex_app_server",
       sessionId: "persisted-session",
@@ -104,9 +114,13 @@ describe("P6-25 pre-result native session recovery", () => {
   };
 
   beforeAll(async () => {
-    temporary = await startEmbeddedPostgresTestDatabase("taskcore-native-resume-");
+    temporary = await startEmbeddedPostgresTestDatabase(
+      "taskcore-native-resume-",
+    );
     db = createDb(temporary.connectionString);
-    await db.insert(companies).values({ id: companyId, name: "Native resume", issuePrefix: "NRR" });
+    await db
+      .insert(companies)
+      .values({ id: companyId, name: "Native resume", issuePrefix: "NRR" });
     await db.insert(agents).values({
       id: agentId,
       companyId,
@@ -228,11 +242,43 @@ describe("P6-25 pre-result native session recovery", () => {
       })),
     ]);
     await db.insert(nativeRunFinalizations).values([
-      { runId, companyId, issueId, phase: "retryable_failure", attempt: 1, nextAttemptAt: new Date(0) },
-      { runId: cancelledRunId, companyId, issueId, phase: "retryable_failure", attempt: 1, nextAttemptAt: new Date(0) },
-      { runId: exhaustedRunId, companyId, issueId, phase: "terminal_failure", attempt: 3 },
-      { runId: missingCheckpointRunId, companyId, issueId, phase: "retryable_failure", attempt: 1 },
-      { runId: initialRunId, companyId, issueId, phase: "observed", attempt: 0 },
+      {
+        runId,
+        companyId,
+        issueId,
+        phase: "retryable_failure",
+        attempt: 1,
+        nextAttemptAt: new Date(0),
+      },
+      {
+        runId: cancelledRunId,
+        companyId,
+        issueId,
+        phase: "retryable_failure",
+        attempt: 1,
+        nextAttemptAt: new Date(0),
+      },
+      {
+        runId: exhaustedRunId,
+        companyId,
+        issueId,
+        phase: "terminal_failure",
+        attempt: 3,
+      },
+      {
+        runId: missingCheckpointRunId,
+        companyId,
+        issueId,
+        phase: "retryable_failure",
+        attempt: 1,
+      },
+      {
+        runId: initialRunId,
+        companyId,
+        issueId,
+        phase: "observed",
+        attempt: 0,
+      },
       {
         runId: bootstrapRetryRunId,
         companyId,
@@ -242,7 +288,8 @@ describe("P6-25 pre-result native session recovery", () => {
         nextAttemptAt: new Date(0),
         failureCode: "native_session_interrupted",
         failureDetail: {
-          message: "provider_initialize_timeout: provider=opencode stage=health",
+          message:
+            "provider_initialize_timeout: provider=opencode stage=health",
           originalFailureCode: "provider_initialize_timeout",
           recoveryMode: "bootstrap_retry",
           providerSessionEstablished: false,
@@ -348,59 +395,106 @@ describe("P6-25 pre-result native session recovery", () => {
 
   it("wins one database lease for the original result-less run without consulting the flag", async () => {
     const results = await Promise.all([
-      claimNativeSessionResumptions({ db, runnerInstanceId: "reaper-a", runIds: [runId] }),
-      claimNativeSessionResumptions({ db, runnerInstanceId: "reaper-b", runIds: [runId] }),
+      claimNativeSessionResumptions({
+        db,
+        runnerInstanceId: "reaper-a",
+        runIds: [runId],
+      }),
+      claimNativeSessionResumptions({
+        db,
+        runnerInstanceId: "reaper-b",
+        runIds: [runId],
+      }),
     ]);
     expect(results.flat()).toHaveLength(1);
     expect(results.flat()[0]).toMatchObject({ runId });
-    await expect(db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId))).resolves.toEqual([
-      expect.objectContaining({ id: runId, status: "running", runtimeMode: "native" }),
+    await expect(
+      db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: runId,
+        status: "running",
+        runtimeMode: "native",
+      }),
     ]);
-    await expect(db.select().from(nativeRunFinalizations).where(eq(nativeRunFinalizations.runId, runId))).resolves.toEqual([
-      expect.objectContaining({ runId, phase: "observed", resultId: null, attempt: 1 }),
+    await expect(
+      db
+        .select()
+        .from(nativeRunFinalizations)
+        .where(eq(nativeRunFinalizations.runId, runId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        runId,
+        phase: "observed",
+        resultId: null,
+        attempt: 1,
+      }),
     ]);
   });
 
   it("dispatches the persisted run id and lease to the live same-run resume consumer", async () => {
-    await db.update(nativeRunFinalizations).set({
-      phase: "retryable_failure",
-      leaseOwner: null,
-      leaseExpiresAt: null,
-      nextAttemptAt: new Date(0),
-    }).where(eq(nativeRunFinalizations.runId, runId));
+    await db
+      .update(nativeRunFinalizations)
+      .set({
+        phase: "retryable_failure",
+        leaseOwner: null,
+        leaseExpiresAt: null,
+        nextAttemptAt: new Date(0),
+      })
+      .where(eq(nativeRunFinalizations.runId, runId));
     const dispatched: Array<{ runId: string; leaseOwner: string }> = [];
-    await expect(dispatchNativeSessionResumptions({
-      db,
-      runnerInstanceId: "heartbeat-reaper",
-      runIds: [runId],
-      dispatch: (claim) => dispatched.push(claim),
-    })).resolves.toHaveLength(1);
-    expect(dispatched).toEqual([{ runId, leaseOwner: expect.stringContaining("heartbeat-reaper:resume:") }]);
+    await expect(
+      dispatchNativeSessionResumptions({
+        db,
+        runnerInstanceId: "heartbeat-reaper",
+        runIds: [runId],
+        dispatch: (claim) => dispatched.push(claim),
+      }),
+    ).resolves.toHaveLength(1);
+    expect(dispatched).toEqual([
+      {
+        runId,
+        leaseOwner: expect.stringContaining("heartbeat-reaper:resume:"),
+      },
+    ]);
     await expect(db.select().from(heartbeatRuns)).resolves.toHaveLength(8);
-    await expect(db.select().from(nativeRunFinalizations)).resolves.toHaveLength(8);
+    await expect(
+      db.select().from(nativeRunFinalizations),
+    ).resolves.toHaveLength(8);
   });
 
   it("uses provider-neutral checkpoint-free bootstrap retry only when durable evidence proves no session existed", async () => {
-    await expect(claimNativeSessionResumptions({
-      db,
-      runnerInstanceId: "reaper",
-      runIds: [bootstrapRetryRunId],
-    })).resolves.toEqual([
-      { runId: bootstrapRetryRunId, leaseOwner: expect.stringContaining("reaper:resume:") },
+    await expect(
+      claimNativeSessionResumptions({
+        db,
+        runnerInstanceId: "reaper",
+        runIds: [bootstrapRetryRunId],
+      }),
+    ).resolves.toEqual([
+      {
+        runId: bootstrapRetryRunId,
+        leaseOwner: expect.stringContaining("reaper:resume:"),
+      },
     ]);
   });
 
   it("never claims an expired observed coordinator without explicit retryable failure", async () => {
     const dispatched: Array<{ runId: string; leaseOwner: string }> = [];
-    await expect(dispatchNativeSessionResumptions({
-      db,
-      runnerInstanceId: "replacement-reaper",
-      runIds: [observedExpiredRunId],
-      dispatch: (claim) => dispatched.push(claim),
-    })).resolves.toEqual([]);
+    await expect(
+      dispatchNativeSessionResumptions({
+        db,
+        runnerInstanceId: "replacement-reaper",
+        runIds: [observedExpiredRunId],
+        dispatch: (claim) => dispatched.push(claim),
+      }),
+    ).resolves.toEqual([]);
     expect(dispatched).toEqual([]);
-    await expect(db.select().from(nativeRunFinalizations)
-      .where(eq(nativeRunFinalizations.runId, observedExpiredRunId))).resolves.toEqual([
+    await expect(
+      db
+        .select()
+        .from(nativeRunFinalizations)
+        .where(eq(nativeRunFinalizations.runId, observedExpiredRunId)),
+    ).resolves.toEqual([
       expect.objectContaining({
         phase: "observed",
         attempt: 2,
@@ -418,10 +512,13 @@ describe("P6-25 pre-result native session recovery", () => {
     );
     await once(unrelatedProcess, "spawn");
     try {
-      await db.update(heartbeatRuns).set({
-        processPid: unrelatedProcess.pid!,
-        processStartedAt: new Date("2026-08-09T04:00:00.000Z"),
-      }).where(eq(heartbeatRuns.id, observedLivePidRunId));
+      await db
+        .update(heartbeatRuns)
+        .set({
+          processPid: unrelatedProcess.pid!,
+          processStartedAt: new Date("2026-08-09T04:00:00.000Z"),
+        })
+        .where(eq(heartbeatRuns.id, observedLivePidRunId));
       const backendFactory = vi.fn((): NativeSessionBackend => ({
         async descriptor() {
           return {
@@ -438,10 +535,14 @@ describe("P6-25 pre-result native session recovery", () => {
           };
         },
         async openSession() {
-          throw new Error("observed ownership must not open a provider session");
+          throw new Error(
+            "observed ownership must not open a provider session",
+          );
         },
         async recoverSession() {
-          throw new Error("observed ownership must not recover a provider session");
+          throw new Error(
+            "observed ownership must not recover a provider session",
+          );
         },
       }));
       const heartbeat = heartbeatService(db, {
@@ -456,30 +557,39 @@ describe("P6-25 pre-result native session recovery", () => {
 
       expect(backendFactory).not.toHaveBeenCalled();
       expect(() => process.kill(unrelatedProcess.pid!, 0)).not.toThrow();
-      await expect(db.select().from(heartbeatRuns).where(eq(
-        heartbeatRuns.id,
-        observedExpiredRunId,
-      ))).resolves.toEqual([
+      await expect(
+        db
+          .select()
+          .from(heartbeatRuns)
+          .where(eq(heartbeatRuns.id, observedExpiredRunId)),
+      ).resolves.toEqual([
         expect.objectContaining({
           status: "running",
           errorCode: "native_execution_ownership_unverified",
         }),
       ]);
-      await expect(db.select().from(heartbeatRuns).where(eq(
-        heartbeatRuns.id,
-        observedLivePidRunId,
-      ))).resolves.toEqual([
+      await expect(
+        db
+          .select()
+          .from(heartbeatRuns)
+          .where(eq(heartbeatRuns.id, observedLivePidRunId)),
+      ).resolves.toEqual([
         expect.objectContaining({
           status: "running",
           processPid: unrelatedProcess.pid,
           errorCode: "native_execution_ownership_unverified",
         }),
       ]);
-      for (const observedRunId of [observedExpiredRunId, observedLivePidRunId]) {
-        await expect(db.select().from(nativeRunFinalizations).where(eq(
-          nativeRunFinalizations.runId,
-          observedRunId,
-        ))).resolves.toEqual([
+      for (const observedRunId of [
+        observedExpiredRunId,
+        observedLivePidRunId,
+      ]) {
+        await expect(
+          db
+            .select()
+            .from(nativeRunFinalizations)
+            .where(eq(nativeRunFinalizations.runId, observedRunId)),
+        ).resolves.toEqual([
           expect.objectContaining({
             phase: "observed",
             attempt: 2,
@@ -487,14 +597,18 @@ describe("P6-25 pre-result native session recovery", () => {
             leaseExpiresAt: new Date(0),
           }),
         ]);
-        await expect(db.select().from(nativeRunResults).where(eq(
-          nativeRunResults.runId,
-          observedRunId,
-        ))).resolves.toHaveLength(0);
-        await expect(db.select().from(workAssessments).where(eq(
-          workAssessments.runId,
-          observedRunId,
-        ))).resolves.toHaveLength(0);
+        await expect(
+          db
+            .select()
+            .from(nativeRunResults)
+            .where(eq(nativeRunResults.runId, observedRunId)),
+        ).resolves.toHaveLength(0);
+        await expect(
+          db
+            .select()
+            .from(workAssessments)
+            .where(eq(workAssessments.runId, observedRunId)),
+        ).resolves.toHaveLength(0);
       }
     } finally {
       if (
@@ -509,30 +623,56 @@ describe("P6-25 pre-result native session recovery", () => {
   });
 
   it("does not resume cancelled or exhausted runs and fails closed without a checkpoint", async () => {
-    await expect(claimNativeSessionResumptions({
-      db,
-      runnerInstanceId: "reaper",
-      runIds: [cancelledRunId, exhaustedRunId, missingCheckpointRunId],
-    })).resolves.toEqual([]);
-    await expect(db.select().from(nativeRunFinalizations)
-      .where(eq(nativeRunFinalizations.runId, missingCheckpointRunId))).resolves.toEqual([
-      expect.objectContaining({ phase: "terminal_failure", failureCode: "native_session_interrupted" }),
+    await expect(
+      claimNativeSessionResumptions({
+        db,
+        runnerInstanceId: "reaper",
+        runIds: [cancelledRunId, exhaustedRunId, missingCheckpointRunId],
+      }),
+    ).resolves.toEqual([]);
+    await expect(
+      db
+        .select()
+        .from(nativeRunFinalizations)
+        .where(eq(nativeRunFinalizations.runId, missingCheckpointRunId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        phase: "terminal_failure",
+        failureCode: "native_session_interrupted",
+      }),
     ]);
-    await expect(db.select().from(issueRecoveryActions)
-      .where(eq(issueRecoveryActions.sourceIssueId, issueId))).resolves.toEqual([
-      expect.objectContaining({ cause: "native_session_interrupted", wakePolicy: null }),
+    await expect(
+      db
+        .select()
+        .from(issueRecoveryActions)
+        .where(eq(issueRecoveryActions.sourceIssueId, issueId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        cause: "native_session_interrupted",
+        wakePolicy: null,
+      }),
     ]);
   });
 
   it("does not mistake the pre-first-attempt observed coordinator for an orphan", async () => {
-    await expect(claimNativeSessionResumptions({
-      db,
-      runnerInstanceId: "reaper",
-      runIds: [initialRunId],
-    })).resolves.toEqual([]);
-    await expect(db.select().from(nativeRunFinalizations)
-      .where(eq(nativeRunFinalizations.runId, initialRunId))).resolves.toEqual([
-      expect.objectContaining({ phase: "observed", attempt: 0, failureCode: null }),
+    await expect(
+      claimNativeSessionResumptions({
+        db,
+        runnerInstanceId: "reaper",
+        runIds: [initialRunId],
+      }),
+    ).resolves.toEqual([]);
+    await expect(
+      db
+        .select()
+        .from(nativeRunFinalizations)
+        .where(eq(nativeRunFinalizations.runId, initialRunId)),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        phase: "observed",
+        attempt: 0,
+        failureCode: null,
+      }),
     ]);
   });
 
@@ -563,13 +703,23 @@ describe("P6-25 pre-result native session recovery", () => {
     });
     const captureCallsBefore = mockCaptureRunFailure.mock.calls.length;
 
-    await claimNativeSessionResumptions({ db, runnerInstanceId: "reaper", runIds: [freshRunId] });
+    await claimNativeSessionResumptions({
+      db,
+      runnerInstanceId: "reaper",
+      runIds: [freshRunId],
+    });
     // The reconciler reports asynchronously; an unrelated database round trip
     // does not guarantee that callback has completed.
     await waitForPendingRunFailureReports();
-    expect(mockCaptureRunFailure.mock.calls.slice(captureCallsBefore)).toHaveLength(1);
-    const newCaptures = mockCaptureRunFailure.mock.calls.slice(captureCallsBefore);
-    expect(newCaptures[0]?.[0]).toMatchObject({ runId: freshRunId, runStatus: "failed" });
+    expect(
+      mockCaptureRunFailure.mock.calls.slice(captureCallsBefore),
+    ).toHaveLength(1);
+    const newCaptures =
+      mockCaptureRunFailure.mock.calls.slice(captureCallsBefore);
+    expect(newCaptures[0]?.[0]).toMatchObject({
+      runId: freshRunId,
+      runStatus: "failed",
+    });
   });
 
   it("sends no Sentry event when a sweep finds a run that is already failed", async () => {
@@ -599,10 +749,16 @@ describe("P6-25 pre-result native session recovery", () => {
     });
     const captureCallsBefore = mockCaptureRunFailure.mock.calls.length;
 
-    await claimNativeSessionResumptions({ db, runnerInstanceId: "reaper", runIds: [freshRunId] });
+    await claimNativeSessionResumptions({
+      db,
+      runnerInstanceId: "reaper",
+      runIds: [freshRunId],
+    });
     await waitForPendingRunFailureReports();
 
-    expect(mockCaptureRunFailure.mock.calls.slice(captureCallsBefore)).toHaveLength(0);
+    expect(
+      mockCaptureRunFailure.mock.calls.slice(captureCallsBefore),
+    ).toHaveLength(0);
   });
 });
 
@@ -795,14 +951,12 @@ describe.each(["unchanged", "newer_active", "stale_idle"] as const)(
         status: "active",
         defaultResponsibleUserId: "responsible-user",
       });
-      await db
-        .insert(projects)
-        .values({
-          id: projectId,
-          companyId,
-          name: "Recovery project",
-          status: "active",
-        });
+      await db.insert(projects).values({
+        id: projectId,
+        companyId,
+        name: "Recovery project",
+        status: "active",
+      });
       await db.insert(projectWorkspaces).values({
         id: projectWorkspaceId,
         companyId,
@@ -1394,7 +1548,10 @@ describe.each(["unchanged", "newer_active", "stale_idle"] as const)(
       });
       const directExecute = legacyAdapterExecute.getMockImplementation()!;
       legacyAdapterExecute.mockImplementationOnce(async () => {
-        await db.update(issues).set({ status: "done" }).where(eq(issues.id, freshIssueId));
+        await db
+          .update(issues)
+          .set({ status: "done" })
+          .where(eq(issues.id, freshIssueId));
         return directExecute();
       });
       const fresh = await heartbeat.wakeup(agentId, {

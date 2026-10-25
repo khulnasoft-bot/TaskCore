@@ -51,7 +51,16 @@ describe("execInPod stdout cap", () => {
       stdout.write(Buffer.alloc(64, 0x41));
     };
     await expect(
-      execInPod(KC, "ns", "pod", "agent", ["/bin/sh", "-c", ":"], undefined, 5_000, 16),
+      execInPod(
+        KC,
+        "ns",
+        "pod",
+        "agent",
+        ["/bin/sh", "-c", ":"],
+        undefined,
+        5_000,
+        16,
+      ),
     ).rejects.toThrow(/cap|exceeded/i);
   });
 
@@ -105,7 +114,17 @@ describe("execInPod stderr cap", () => {
     };
     await expect(
       // maxStdoutBytes generous, maxStderrBytes = 16 -> stderr must trip.
-      execInPod(KC, "ns", "pod", "agent", ["/bin/sh", "-c", ":"], undefined, 5_000, 1024, 16),
+      execInPod(
+        KC,
+        "ns",
+        "pod",
+        "agent",
+        ["/bin/sh", "-c", ":"],
+        undefined,
+        5_000,
+        1024,
+        16,
+      ),
     ).rejects.toThrow(/stderr.*cap|cap.*stderr|exceeded/i);
   });
 
@@ -169,10 +188,17 @@ describe("execInPodStreaming", () => {
         cb();
       },
     });
-    const result = await execInPodStreaming(KC, "ns", "pod", "agent", ["/bin/sh", "-c", ":"], {
-      stdout: sink,
-      timeoutMs: 5_000,
-    });
+    const result = await execInPodStreaming(
+      KC,
+      "ns",
+      "pod",
+      "agent",
+      ["/bin/sh", "-c", ":"],
+      {
+        stdout: sink,
+        timeoutMs: 5_000,
+      },
+    );
     expect(result).toEqual({ exitCode: 0, stderr: "warn" });
     expect(Buffer.concat(chunks).toString("utf-8")).toBe("chunk-one;chunk-two");
   });
@@ -193,10 +219,17 @@ describe("execInPodStreaming", () => {
       });
     };
     const source = Readable.from([Buffer.from("payload-bytes")]);
-    const result = await execInPodStreaming(KC, "ns", "pod", "agent", ["/bin/sh", "-c", ":"], {
-      stdin: source,
-      timeoutMs: 5_000,
-    });
+    const result = await execInPodStreaming(
+      KC,
+      "ns",
+      "pod",
+      "agent",
+      ["/bin/sh", "-c", ":"],
+      {
+        stdin: source,
+        timeoutMs: 5_000,
+      },
+    );
     expect(result.exitCode).toBe(0);
     expect(received.toString("utf-8")).toBe("payload-bytes");
   });
@@ -205,7 +238,11 @@ describe("execInPodStreaming", () => {
     scriptedExec = (_stdout, stderr) => {
       stderr.write(Buffer.alloc(64, 0x45));
     };
-    const sink = new Writable({ write(_c, _e, cb) { cb(); } });
+    const sink = new Writable({
+      write(_c, _e, cb) {
+        cb();
+      },
+    });
     await expect(
       execInPodStreaming(KC, "ns", "pod", "agent", ["/bin/sh", "-c", ":"], {
         stdout: sink,

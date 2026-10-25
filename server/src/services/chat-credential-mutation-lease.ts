@@ -24,8 +24,13 @@ export interface CredentialMutationLeaseCompletion<T> {
 }
 
 /** Shared by chat setup and generic connection removal so late OAuth cannot restore a removed bot. */
-export function chatCredentialMutationLease(db: Db, options: Pick<ChatChannelServiceOptions,
-  "renewCredentialMutationLease" | "credentialMutationLeaseRenewalIntervalMs"> = {}) {
+export function chatCredentialMutationLease(
+  db: Db,
+  options: Pick<
+    ChatChannelServiceOptions,
+    "renewCredentialMutationLease" | "credentialMutationLeaseRenewalIntervalMs"
+  > = {},
+) {
   async function acquireCredentialMutationLease(endpoint: EndpointRow) {
     const token = randomUUID();
     const leaseKey = "credentials";
@@ -138,7 +143,10 @@ export function chatCredentialMutationLease(db: Db, options: Pick<ChatChannelSer
         renewal = assertOwned()
           .catch((error) => {
             logger.warn(
-              { endpointId: endpoint.id, error: "Credential lease operation failed" },
+              {
+                endpointId: endpoint.id,
+                error: "Credential lease operation failed",
+              },
               "lost chat credential mutation lease ownership",
             );
           })
@@ -188,7 +196,10 @@ export function chatCredentialMutationLease(db: Db, options: Pick<ChatChannelSer
         )
         .catch((error) => {
           logger.warn(
-            { endpointId: endpoint.id, error: "Credential lease operation failed" },
+            {
+              endpointId: endpoint.id,
+              error: "Credential lease operation failed",
+            },
             "could not release chat credential mutation lease",
           );
         });

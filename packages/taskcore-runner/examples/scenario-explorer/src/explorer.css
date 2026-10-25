@@ -20,7 +20,9 @@ body {
 
 .pcr7-columns {
   display: grid;
-  grid-template-columns: var(--pcr-rail-width) minmax(0, 1fr) var(--pcr-inspector-width);
+  grid-template-columns: var(--pcr-rail-width) minmax(0, 1fr) var(
+      --pcr-inspector-width
+    );
   gap: var(--pcr-space-4);
   align-items: start;
 }
@@ -572,7 +574,6 @@ body {
   position: static;
 }
 
-
 /* Scenario chat — chat surface (7I interaction map §1-§5) ------------------ *
  *
  * The activity rail is wider than the 7F inspector because it carries the
@@ -581,7 +582,9 @@ body {
  */
 
 .pcr7-shell[data-surface="chat"] .pcr7-columns {
-  grid-template-columns: var(--pcr-rail-width) minmax(0, 1fr) var(--pcr-activity-width);
+  grid-template-columns: var(--pcr-rail-width) minmax(0, 1fr) var(
+      --pcr-activity-width
+    );
 }
 
 .pcr7-surface-nav {
@@ -723,7 +726,8 @@ body {
   margin-right: var(--pcr-space-2);
   background: var(--pcr-accent);
   vertical-align: middle;
-  animation: pcr7-caret var(--pcr-motion-medium) steps(2, start) infinite alternate;
+  animation: pcr7-caret var(--pcr-motion-medium) steps(2, start) infinite
+    alternate;
 }
 
 @keyframes pcr7-caret {

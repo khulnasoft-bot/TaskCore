@@ -2,9 +2,12 @@ import type { InboxDismissal } from "@taskcore/shared";
 import { api } from "./client";
 
 export const inboxDismissalsApi = {
-  list: (companyId: string) => api.get<InboxDismissal[]>(`/companies/${companyId}/inbox-dismissals`),
+  list: (companyId: string) =>
+    api.get<InboxDismissal[]>(`/companies/${companyId}/inbox-dismissals`),
   dismiss: (companyId: string, itemKey: string) =>
-    api.post<InboxDismissal>(`/companies/${companyId}/inbox-dismissals`, { itemKey }),
+    api.post<InboxDismissal>(`/companies/${companyId}/inbox-dismissals`, {
+      itemKey,
+    }),
   snooze: (companyId: string, itemKey: string, snoozedUntil: string) =>
     api.post<InboxDismissal>(`/companies/${companyId}/inbox-dismissals`, {
       itemKey,
@@ -12,5 +15,7 @@ export const inboxDismissalsApi = {
       snoozedUntil,
     }),
   restore: (companyId: string, itemKey: string) =>
-    api.delete<void>(`/companies/${companyId}/inbox-dismissals/${encodeURIComponent(itemKey)}`),
+    api.delete<void>(
+      `/companies/${companyId}/inbox-dismissals/${encodeURIComponent(itemKey)}`,
+    ),
 };

@@ -1,5 +1,8 @@
 import { Copy } from "lucide-react";
-import type { ToolMcpGatewayWithTokens, ToolProfileWithDetails } from "@taskcore/shared";
+import type {
+  ToolMcpGatewayWithTokens,
+  ToolProfileWithDetails,
+} from "@taskcore/shared";
 import { Link } from "@/lib/router";
 import { Button } from "@/components/ui/button";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
@@ -56,7 +59,11 @@ export function OverviewPanel({
       await copyTextToClipboard(value);
       pushToast({ title: "Copied", body: label, tone: "success" });
     } catch {
-      pushToast({ title: "Copy failed", body: "Clipboard access is unavailable.", tone: "error" });
+      pushToast({
+        title: "Copy failed",
+        body: "Clipboard access is unavailable.",
+        tone: "error",
+      });
     }
   }
 
@@ -64,11 +71,20 @@ export function OverviewPanel({
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-border p-4">
-          <div className="text-xs font-medium text-muted-foreground">{on ? "On" : "Off"}</div>
-          <div className="mt-2">
-            <ToggleSwitch checked={on} disabled={toggleDisabled} onCheckedChange={onToggle} aria-label="Toggle gateway" />
+          <div className="text-xs font-medium text-muted-foreground">
+            {on ? "On" : "Off"}
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">Toggle the whole gateway off here.</p>
+          <div className="mt-2">
+            <ToggleSwitch
+              checked={on}
+              disabled={toggleDisabled}
+              onCheckedChange={onToggle}
+              aria-label="Toggle gateway"
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Toggle the whole gateway off here.
+          </p>
         </div>
         <StatCard label="Apps">
           {apps.length} {apps.length === 1 ? "app" : "apps"}
@@ -78,28 +94,37 @@ export function OverviewPanel({
           {active} active{expiring > 0 ? ` · ${expiring} expiring` : ""}
         </StatCard>
         <StatCard label="Health">
-          {needsAttention.length === 0 ? "All green" : `${needsAttention.length} needs attention`}
+          {needsAttention.length === 0
+            ? "All green"
+            : `${needsAttention.length} needs attention`}
         </StatCard>
       </div>
 
       <section className="rounded-lg border border-border p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Who can use it</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Who can use it
+            </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Anyone holding an active token below, restricted by the rules in the bound profile.
+              Anyone holding an active token below, restricted by the rules in
+              the bound profile.
             </p>
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Chip>Scope · {formatScope(gateway, projectNames, agentNames)}</Chip>
           <Chip>Profile · {profile?.name ?? "Unavailable"}</Chip>
-          <Chip>{active} active {active === 1 ? "token" : "tokens"}</Chip>
+          <Chip>
+            {active} active {active === 1 ? "token" : "tokens"}
+          </Chip>
         </div>
       </section>
 
       <section className="rounded-lg border border-border p-4">
-        <h3 className="text-sm font-semibold text-foreground">Apps in this gateway</h3>
+        <h3 className="text-sm font-semibold text-foreground">
+          Apps in this gateway
+        </h3>
         {apps.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">
             This gateway’s profile doesn’t include any apps yet.
@@ -115,8 +140,14 @@ export function OverviewPanel({
 
       <section className="rounded-lg border border-border bg-muted/30 p-4">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">How clients connect</h3>
-          <Button variant="outline" size="sm" onClick={() => void copy(snippet, "Client config")}>
+          <h3 className="text-sm font-semibold text-foreground">
+            How clients connect
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void copy(snippet, "Client config")}
+          >
             <Copy className="mr-1 h-3.5 w-3.5" />
             Copy
           </Button>
@@ -129,11 +160,19 @@ export function OverviewPanel({
   );
 }
 
-function StatCard({ label, children }: { label: string; children: React.ReactNode }) {
+function StatCard({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className="mt-2 text-sm font-semibold text-foreground">{children}</div>
+      <div className="mt-2 text-sm font-semibold text-foreground">
+        {children}
+      </div>
     </div>
   );
 }
@@ -158,7 +197,9 @@ function AppRow({ app }: { app: GatewayAppRow }) {
         </Link>
         <div className="text-xs text-muted-foreground">
           {app.toolCount} {app.toolCount === 1 ? "tool" : "tools"}
-          {app.needsAttention && app.attentionReason ? ` · ${app.attentionReason}` : ""}
+          {app.needsAttention && app.attentionReason
+            ? ` · ${app.attentionReason}`
+            : ""}
         </div>
       </div>
       <span

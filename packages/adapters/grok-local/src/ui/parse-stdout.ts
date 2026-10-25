@@ -1,5 +1,9 @@
 import type { TranscriptEntry } from "@taskcore/adapter-utils";
-import { applyTurnBoundary, createTurnBoundaryState, type TurnBoundaryState } from "../shared/turn-boundary.js";
+import {
+  applyTurnBoundary,
+  createTurnBoundaryState,
+  type TurnBoundaryState,
+} from "../shared/turn-boundary.js";
 
 function safeJsonParse(text: string): unknown {
   try {
@@ -10,7 +14,8 @@ function safeJsonParse(text: string): unknown {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return null;
   return value as Record<string, unknown>;
 }
 
@@ -22,7 +27,9 @@ function extractErrorText(value: unknown): string {
   if (typeof value === "string") return value;
   const record = asRecord(value);
   if (!record) return "";
-  return asString(record.message) || asString(record.detail) || asString(record.code);
+  return (
+    asString(record.message) || asString(record.detail) || asString(record.code)
+  );
 }
 
 function parseLineInternal(
@@ -40,7 +47,14 @@ function parseLineInternal(
   if (type === "thought") {
     const text = asString(parsed.data);
     if (!text) return [];
-    return [{ kind: "thinking", ts, text: applyTurnBoundary(thoughtBoundary, text), delta: true }];
+    return [
+      {
+        kind: "thinking",
+        ts,
+        text: applyTurnBoundary(thoughtBoundary, text),
+        delta: true,
+      },
+    ];
   }
 
   if (type === "text") {
@@ -50,8 +64,13 @@ function parseLineInternal(
   }
 
   if (type === "error") {
-    const text = asString(parsed.data) || asString(parsed.message) || extractErrorText(parsed.error);
-    return text ? [{ kind: "stderr", ts, text }] : [{ kind: "stderr", ts, text: "Grok error" }];
+    const text =
+      asString(parsed.data) ||
+      asString(parsed.message) ||
+      extractErrorText(parsed.error);
+    return text
+      ? [{ kind: "stderr", ts, text }]
+      : [{ kind: "stderr", ts, text: "Grok error" }];
   }
 
   if (type === "end") {
@@ -82,6 +101,9 @@ export function createGrokStdoutParser() {
 // Stateless fallback for callers that haven't migrated to the stateful factory.
 // Without state, consecutive thought chunks at reasoning-turn boundaries can
 // still appear merged; prefer createGrokStdoutParser for live transcripts.
-export function parseGrokStdoutLine(line: string, ts: string): TranscriptEntry[] {
+export function parseGrokStdoutLine(
+  line: string,
+  ts: string,
+): TranscriptEntry[] {
   return parseLineInternal(line, ts, createTurnBoundaryState());
 }

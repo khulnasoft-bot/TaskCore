@@ -87,23 +87,49 @@ export const NATIVE_RESTART_INTERRUPTION_CODE = "provider_turn_lost_on_restore";
 export function isNativeRestartInterruption(error: unknown): boolean {
   if (!error || typeof error !== "object" || Array.isArray(error)) return false;
   const failure = error as Record<string, unknown>;
-  return failure.code === NATIVE_RESTART_INTERRUPTION_CODE && failure.recoverable === true;
+  return (
+    failure.code === NATIVE_RESTART_INTERRUPTION_CODE &&
+    failure.recoverable === true
+  );
 }
 
 /** The terminal fingerprint survives a crash between interruption and continuation. */
-export function nativeRestartInterruptedTurnId(snapshot: Pick<PersistedNativeSession,
-  "driverKind" | "activeTurnId" | "semanticResult" | "terminalTurns" | "dispositionOnlyRecoveryConsumed" | "pendingRuntimeRequests" | "goal"
->): string | null {
-  if (snapshot.driverKind !== "codex_app_server" || snapshot.activeTurnId != null ||
-      snapshot.semanticResult != null || snapshot.dispositionOnlyRecoveryConsumed ||
-      snapshot.goal != null || snapshot.pendingRuntimeRequests?.length) return null;
-  const terminal = Array.isArray(snapshot.terminalTurns) ? snapshot.terminalTurns.at(-1) : null;
-  if (!terminal || typeof terminal.fingerprint !== "string" || !terminal.turnId) return null;
+export function nativeRestartInterruptedTurnId(
+  snapshot: Pick<
+    PersistedNativeSession,
+    | "driverKind"
+    | "activeTurnId"
+    | "semanticResult"
+    | "terminalTurns"
+    | "dispositionOnlyRecoveryConsumed"
+    | "pendingRuntimeRequests"
+    | "goal"
+  >,
+): string | null {
+  if (
+    snapshot.driverKind !== "codex_app_server" ||
+    snapshot.activeTurnId != null ||
+    snapshot.semanticResult != null ||
+    snapshot.dispositionOnlyRecoveryConsumed ||
+    snapshot.goal != null ||
+    snapshot.pendingRuntimeRequests?.length
+  )
+    return null;
+  const terminal = Array.isArray(snapshot.terminalTurns)
+    ? snapshot.terminalTurns.at(-1)
+    : null;
+  if (!terminal || typeof terminal.fingerprint !== "string" || !terminal.turnId)
+    return null;
   try {
     const fingerprint = JSON.parse(terminal.fingerprint);
-    return fingerprint?.terminalState === "failed" && fingerprint.result === null &&
-      isNativeRestartInterruption(fingerprint.error) ? terminal.turnId : null;
-  } catch { return null; }
+    return fingerprint?.terminalState === "failed" &&
+      fingerprint.result === null &&
+      isNativeRestartInterruption(fingerprint.error)
+      ? terminal.turnId
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -132,9 +158,15 @@ export class SemanticToolOutcomeUnknownError extends Error {
   }
 }
 
-export function isSemanticToolOutcomeUnknownError(error: unknown): error is SemanticToolOutcomeUnknownError {
+export function isSemanticToolOutcomeUnknownError(
+  error: unknown,
+): error is SemanticToolOutcomeUnknownError {
   // Match across the server's vendored and source-mode runtime boundaries.
-  return error instanceof Error && "code" in error && error.code === "semantic_tool_outcome_unknown";
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    error.code === "semantic_tool_outcome_unknown"
+  );
 }
 
 /** The exact close owner has torn down its controller without proving suspension. */
@@ -156,8 +188,7 @@ export class NativeSessionProtocolIntegrityError extends Error {
 
   constructor(
     readonly reason:
-      | "semantic_input_digest_mismatch"
-      | "source_event_replay_conflict",
+      "semantic_input_digest_mismatch" | "source_event_replay_conflict",
   ) {
     super(
       reason === "semantic_input_digest_mismatch"
@@ -270,7 +301,11 @@ export interface NativeSessionBackend {
 /** A provider failed terminal is not a missing completion proposal. */
 export class NativeProviderTerminalFailure extends Error {
   readonly code = "native_provider_terminal_failed";
-  constructor(readonly providerCode: string, readonly recoverable: boolean, message = "Provider session ended with a failed terminal") {
+  constructor(
+    readonly providerCode: string,
+    readonly recoverable: boolean,
+    message = "Provider session ended with a failed terminal",
+  ) {
     super(message);
     this.name = "NativeProviderTerminalFailure";
   }

@@ -147,8 +147,7 @@ export interface CapabilitySemanticAuthorizationDecision {
   readonly effectiveClaims: readonly string[];
 }
 
-export interface CapabilitySemanticAuthorizationRecord
-  extends CapabilitySemanticAuthorizationDecision {
+export interface CapabilitySemanticAuthorizationRecord extends CapabilitySemanticAuthorizationDecision {
   readonly schema: "taskcore.semantic-authorization-record.v1";
   readonly id: string;
   readonly runId: string;
@@ -205,8 +204,7 @@ export interface CapabilitySemanticToolDenial {
 }
 
 export type CapabilitySemanticToolResult =
-  | CapabilitySemanticToolSuccess
-  | CapabilitySemanticToolDenial;
+  CapabilitySemanticToolSuccess | CapabilitySemanticToolDenial;
 
 export interface TaskcoreSemanticRunContext {
   readonly runId: string;

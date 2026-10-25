@@ -6,11 +6,28 @@ function utf8ByteLength(value: string) {
   return new TextEncoder().encode(value).length;
 }
 
-export const workspaceFileWorkspaceKindSchema = z.enum(["execution_workspace", "project_workspace"]);
-export const workspaceFileSelectorSchema = z.enum(["auto", "execution", "project"]).default("auto");
-export const workspaceFileListModeSchema = z.enum(["all", "recent", "changed"]).default("all");
-export const workspaceFilePreviewKindSchema = z.enum(["text", "image", "video", "pdf", "unsupported"]);
-export const workspaceFileResourceKindSchema = z.enum(["file", "directory", "remote_resource"]);
+export const workspaceFileWorkspaceKindSchema = z.enum([
+  "execution_workspace",
+  "project_workspace",
+]);
+export const workspaceFileSelectorSchema = z
+  .enum(["auto", "execution", "project"])
+  .default("auto");
+export const workspaceFileListModeSchema = z
+  .enum(["all", "recent", "changed"])
+  .default("all");
+export const workspaceFilePreviewKindSchema = z.enum([
+  "text",
+  "image",
+  "video",
+  "pdf",
+  "unsupported",
+]);
+export const workspaceFileResourceKindSchema = z.enum([
+  "file",
+  "directory",
+  "remote_resource",
+]);
 
 export const workspaceFileRefSchema = z.object({
   kind: z.literal("workspace_file"),
@@ -25,58 +42,66 @@ export const workspaceFileRefSchema = z.object({
   displayPath: z.string().min(1),
 });
 
-export const workspaceFileResourceQuerySchema = z.object({
-  projectId: z.string().guid().optional(),
-  workspaceId: z.string().guid().optional(),
-  path: z
-    .string()
-    .min(1)
-    .refine((value) => !/[\x00-\x1f\x7f]/.test(value), {
-      message: "Workspace file path contains an invalid character",
-      params: { code: "invalid_path" },
-    }),
-  workspace: workspaceFileSelectorSchema.optional(),
-}).refine((value) => Boolean(value.projectId) === Boolean(value.workspaceId), {
-  message: "Workspace file target requires both projectId and workspaceId",
-  path: ["workspaceId"],
-  params: { code: "invalid_target" },
-});
+export const workspaceFileResourceQuerySchema = z
+  .object({
+    projectId: z.string().guid().optional(),
+    workspaceId: z.string().guid().optional(),
+    path: z
+      .string()
+      .min(1)
+      .refine((value) => !/[\x00-\x1f\x7f]/.test(value), {
+        message: "Workspace file path contains an invalid character",
+        params: { code: "invalid_path" },
+      }),
+    workspace: workspaceFileSelectorSchema.optional(),
+  })
+  .refine((value) => Boolean(value.projectId) === Boolean(value.workspaceId), {
+    message: "Workspace file target requires both projectId and workspaceId",
+    path: ["workspaceId"],
+    params: { code: "invalid_target" },
+  });
 
 export const workspaceFileAvailabilityRequestSchema = z.object({
   queries: z.array(workspaceFileResourceQuerySchema).max(100),
 });
 
-export const workspaceFileListQuerySchema = z.object({
-  projectId: z.string().guid().optional(),
-  workspaceId: z.string().guid().optional(),
-  workspace: workspaceFileSelectorSchema.optional(),
-  path: z
-    .string()
-    .min(1)
-    .refine((value) => !/[\x00-\x1f\x7f]/.test(value), {
-      message: "Workspace folder path contains an invalid character",
-      params: { code: "invalid_path" },
-    })
-    .optional(),
-  mode: workspaceFileListModeSchema.optional(),
-  q: z
-    .string()
-    .refine((value) => !/[\x00-\x1f\x7f]/.test(value), {
-      message: "Workspace file search contains an invalid character",
-      params: { code: "invalid_query" },
-    })
-    .refine((value) => utf8ByteLength(value.trim()) <= workspaceFileListSearchMaxBytes, {
-      message: "Workspace file search is too long",
-      params: { code: "invalid_query" },
-    })
-    .optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
-  offset: z.coerce.number().int().min(0).max(10_000).default(0),
-}).refine((value) => Boolean(value.projectId) === Boolean(value.workspaceId), {
-  message: "Workspace file target requires both projectId and workspaceId",
-  path: ["workspaceId"],
-  params: { code: "invalid_target" },
-});
+export const workspaceFileListQuerySchema = z
+  .object({
+    projectId: z.string().guid().optional(),
+    workspaceId: z.string().guid().optional(),
+    workspace: workspaceFileSelectorSchema.optional(),
+    path: z
+      .string()
+      .min(1)
+      .refine((value) => !/[\x00-\x1f\x7f]/.test(value), {
+        message: "Workspace folder path contains an invalid character",
+        params: { code: "invalid_path" },
+      })
+      .optional(),
+    mode: workspaceFileListModeSchema.optional(),
+    q: z
+      .string()
+      .refine((value) => !/[\x00-\x1f\x7f]/.test(value), {
+        message: "Workspace file search contains an invalid character",
+        params: { code: "invalid_query" },
+      })
+      .refine(
+        (value) =>
+          utf8ByteLength(value.trim()) <= workspaceFileListSearchMaxBytes,
+        {
+          message: "Workspace file search is too long",
+          params: { code: "invalid_query" },
+        },
+      )
+      .optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(25),
+    offset: z.coerce.number().int().min(0).max(10_000).default(0),
+  })
+  .refine((value) => Boolean(value.projectId) === Boolean(value.workspaceId), {
+    message: "Workspace file target requires both projectId and workspaceId",
+    path: ["workspaceId"],
+    params: { code: "invalid_target" },
+  });
 
 export const resolvedWorkspaceResourceSchema = z.object({
   kind: workspaceFileResourceKindSchema,
@@ -126,6 +151,12 @@ export const workspaceFileContentSchema = z.object({
   }),
 });
 
-export type WorkspaceFileResourceQuery = z.infer<typeof workspaceFileResourceQuerySchema>;
-export type WorkspaceFileListQuery = z.infer<typeof workspaceFileListQuerySchema>;
-export type WorkspaceFileAvailabilityRequestInput = z.infer<typeof workspaceFileAvailabilityRequestSchema>;
+export type WorkspaceFileResourceQuery = z.infer<
+  typeof workspaceFileResourceQuerySchema
+>;
+export type WorkspaceFileListQuery = z.infer<
+  typeof workspaceFileListQuerySchema
+>;
+export type WorkspaceFileAvailabilityRequestInput = z.infer<
+  typeof workspaceFileAvailabilityRequestSchema
+>;

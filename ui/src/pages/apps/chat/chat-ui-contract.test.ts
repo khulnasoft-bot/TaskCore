@@ -56,7 +56,9 @@ describe("chat connector UI contract", () => {
     expect(detail).not.toContain('"overview"');
     expect(detail).toContain("row.externalUrl");
     expect(detail).toContain("row.externalLabel");
-    expect(detail).toContain("row.issueTitle ?? row.issueIdentifier ?? \"View task\"");
+    expect(detail).toContain(
+      'row.issueTitle ?? row.issueIdentifier ?? "View task"',
+    );
     expect(detail.toLowerCase()).not.toContain("detach");
   });
 
@@ -83,8 +85,12 @@ describe("chat connector UI contract", () => {
     const setup = source("./ChatEndpointSetup.tsx");
     expect(detail).toContain("Allow direct messages");
     expect(detail).toContain("Allow group chats");
-    expect(detail).toContain("People without linked accounts can start isolated tasks");
-    expect(detail).toContain("Requests are refused when isolation is unavailable");
+    expect(detail).toContain(
+      "People without linked accounts can start isolated tasks",
+    );
+    expect(detail).toContain(
+      "Requests are refused when isolation is unavailable",
+    );
     expect(setup).toContain("Link the account you’re testing");
     expect(setup).toContain("Taskcore does not replay the refused request");
     expect(setup).toContain("Review identity access");
@@ -256,17 +262,35 @@ describe("chat connector UI contract", () => {
       agentName: "Maya",
       webhookUrl: "https://taskcore.example/api/chat-webhooks/test/slack",
     });
-    expect(manifest.settings.event_subscriptions.bot_events).toEqual(expect.arrayContaining([
-      "member_joined_channel", "member_left_channel", "channel_left", "group_left",
-      "group_archive", "group_unarchive", "group_rename", "app_uninstalled",
-      "agent_session_stopped", "reaction_added", "reaction_removed",
-    ]));
-    expect(manifest.oauth_config.scopes.bot).toEqual(expect.arrayContaining(["reactions:write", "reactions:read", "assistant:write"]));
+    expect(manifest.settings.event_subscriptions.bot_events).toEqual(
+      expect.arrayContaining([
+        "member_joined_channel",
+        "member_left_channel",
+        "channel_left",
+        "group_left",
+        "group_archive",
+        "group_unarchive",
+        "group_rename",
+        "app_uninstalled",
+        "agent_session_stopped",
+        "reaction_added",
+        "reaction_removed",
+      ]),
+    );
+    expect(manifest.oauth_config.scopes.bot).toEqual(
+      expect.arrayContaining([
+        "reactions:write",
+        "reactions:read",
+        "assistant:write",
+      ]),
+    );
     expect(manifest.features).toHaveProperty("agent_view");
     expect(manifest.features).not.toHaveProperty("assistant_view");
     expect(manifest.features.bot_user).not.toHaveProperty("always_online");
     expect(manifest.features.app_home).toEqual({
-      home_tab_enabled: false, messages_tab_enabled: true, messages_tab_read_only_enabled: false,
+      home_tab_enabled: false,
+      messages_tab_enabled: true,
+      messages_tab_read_only_enabled: false,
     });
     expect(setup).not.toContain("No credentials");
     expect(setup).not.toContain("managed Microsoft app");

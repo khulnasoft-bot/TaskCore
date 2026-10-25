@@ -18,7 +18,8 @@ export function ConnectionBanner({
   React.useEffect(() => {
     if (blocking) ref.current?.focus();
   }, [blocking]);
-  if (connection !== "disconnected" && connection !== "reconnecting") return null;
+  if (connection !== "disconnected" && connection !== "reconnecting")
+    return null;
   return (
     <Banner
       ref={ref}
@@ -33,7 +34,11 @@ export function ConnectionBanner({
           ? `Connection lost — reconnecting (attempt ${reconnectAttempt})…`
           : "Connection lost — the session is still on the server."}
       </BannerText>
-      <BannerActions><Button type="button" onClick={onRetry}>Retry now</Button></BannerActions>
+      <BannerActions>
+        <Button type="button" onClick={onRetry}>
+          Retry now
+        </Button>
+      </BannerActions>
     </Banner>
   );
 }

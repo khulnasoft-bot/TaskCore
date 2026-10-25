@@ -4,7 +4,7 @@ import { isRunLogOnlyProviderEvent } from "./run-log-only-events";
 
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
@@ -13,10 +13,14 @@ function text(value: unknown): string | null {
 }
 
 function finiteNumber(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : 0;
 }
 
-function normalizedItem(payload: Record<string, unknown>): Record<string, unknown> {
+function normalizedItem(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   return record(payload.item) ?? payload;
 }
 
@@ -50,7 +54,8 @@ function assistantChannel(
 ): "progress" | "final" | "unknown" {
   const item = normalizedItem(payload);
   const value = text(payload.channel) ?? text(item.channel);
-  if (value === "progress" || value === "final" || value === "unknown") return value;
+  if (value === "progress" || value === "final" || value === "unknown")
+    return value;
   return fallback;
 }
 
@@ -60,7 +65,8 @@ function reasoningChannel(
 ): "summary" | "detail" | "unknown" {
   const item = normalizedItem(payload);
   const value = text(payload.channel) ?? text(item.channel);
-  if (value === "summary" || value === "detail" || value === "unknown") return value;
+  if (value === "summary" || value === "detail" || value === "unknown")
+    return value;
   return fallback;
 }
 
@@ -82,9 +88,11 @@ function resolveItemIdentity(
 }
 
 function isItemIdentityEvent(eventType: string): boolean {
-  return eventType === "item.started"
-    || eventType === "item.delta"
-    || eventType === "item.completed";
+  return (
+    eventType === "item.started" ||
+    eventType === "item.delta" ||
+    eventType === "item.completed"
+  );
 }
 
 const TOOL_EXECUTION_SCHEMA = "taskcore.tool.execution.v1";
@@ -96,29 +104,28 @@ function canonicalQuestionSet(
 ): Extract<TranscriptEntry, { kind: "runtime_request" }>["questionSet"] {
   const candidate = record(value);
   if (
-    !candidate
-    || candidate.schema !== "taskcore.question_set.v1"
-    || !Array.isArray(candidate.questions)
-    || candidate.questions.length === 0
-  ) return null;
+    !candidate ||
+    candidate.schema !== "taskcore.question_set.v1" ||
+    !Array.isArray(candidate.questions) ||
+    candidate.questions.length === 0
+  )
+    return null;
   const valid = candidate.questions.every((rawQuestion) => {
     const question = record(rawQuestion);
     return Boolean(
-      question
-      && text(question.id)
-      && text(question.prompt)
-      && typeof question.required === "boolean"
-      && (
-        question.answerMode === "single_select"
-        || question.answerMode === "multi_select"
-        || question.answerMode === "text"
-      ),
+      question &&
+      text(question.id) &&
+      text(question.prompt) &&
+      typeof question.required === "boolean" &&
+      (question.answerMode === "single_select" ||
+        question.answerMode === "multi_select" ||
+        question.answerMode === "text"),
     );
   });
   return valid
-    ? structuredClone(candidate) as unknown as NonNullable<
+    ? (structuredClone(candidate) as unknown as NonNullable<
         Extract<TranscriptEntry, { kind: "runtime_request" }>["questionSet"]
-      >
+      >)
     : null;
 }
 
@@ -126,12 +133,12 @@ function canonicalQuestionResponse(
   value: unknown,
 ): Extract<TranscriptEntry, { kind: "runtime_request" }>["response"] {
   const candidate = record(value);
-  return candidate
-    && candidate.schema === "taskcore.question_response.v1"
-    && record(candidate.answers)
-    ? structuredClone(candidate) as unknown as NonNullable<
+  return candidate &&
+    candidate.schema === "taskcore.question_response.v1" &&
+    record(candidate.answers)
+    ? (structuredClone(candidate) as unknown as NonNullable<
         Extract<TranscriptEntry, { kind: "runtime_request" }>["response"]
-      >
+      >)
     : null;
 }
 
@@ -153,39 +160,47 @@ function runtimeRequestEntry(input: {
   // The lifecycle event is authoritative. ACP delivery receipts carry
   // status:"delivered" in their payload, which must not reopen a resolved
   // request as pending just because it is not a UI lifecycle status.
-  const rawStatus = suffix === "resolved" || suffix === "expired" || suffix === "cancelled"
-    ? suffix
-    : text(request.status) ?? suffix;
-  const resolvedAction = text(request.action)
-    ?? text(input.payload.action)
-    ?? input.previous?.resolvedAction
-    ?? null;
-  const lifecycleStatus = rawStatus === "resolved"
-    || rawStatus === "expired"
-    || rawStatus === "cancelled"
-    ? rawStatus
-    : "pending";
-  const status = lifecycleStatus === "resolved"
-    && (resolvedAction === "cancel" || resolvedAction === "decline")
-    ? "cancelled"
-    : lifecycleStatus;
-  const rawKind = text(request.requestKind) ?? input.previous?.requestKind ?? null;
-  const requestKind = rawKind === "runtime"
-    || rawKind === "command_approval"
-    || rawKind === "file_approval"
-    || rawKind === "permission_approval"
-    || rawKind === "user_input"
-    || rawKind === "elicitation"
-    ? rawKind
-    : null;
-  const rawType = text(request.type) ?? input.previous?.requestType ?? "permission";
-  const requestType = requestKind === "user_input"
-    || requestKind === "elicitation"
-    || rawType === "input"
-    || rawType.includes("input")
-    || rawType.includes("elicitation")
-    ? "input"
-    : "permission";
+  const rawStatus =
+    suffix === "resolved" || suffix === "expired" || suffix === "cancelled"
+      ? suffix
+      : (text(request.status) ?? suffix);
+  const resolvedAction =
+    text(request.action) ??
+    text(input.payload.action) ??
+    input.previous?.resolvedAction ??
+    null;
+  const lifecycleStatus =
+    rawStatus === "resolved" ||
+    rawStatus === "expired" ||
+    rawStatus === "cancelled"
+      ? rawStatus
+      : "pending";
+  const status =
+    lifecycleStatus === "resolved" &&
+    (resolvedAction === "cancel" || resolvedAction === "decline")
+      ? "cancelled"
+      : lifecycleStatus;
+  const rawKind =
+    text(request.requestKind) ?? input.previous?.requestKind ?? null;
+  const requestKind =
+    rawKind === "runtime" ||
+    rawKind === "command_approval" ||
+    rawKind === "file_approval" ||
+    rawKind === "permission_approval" ||
+    rawKind === "user_input" ||
+    rawKind === "elicitation"
+      ? rawKind
+      : null;
+  const rawType =
+    text(request.type) ?? input.previous?.requestType ?? "permission";
+  const requestType =
+    requestKind === "user_input" ||
+    requestKind === "elicitation" ||
+    rawType === "input" ||
+    rawType.includes("input") ||
+    rawType.includes("elicitation")
+      ? "input"
+      : "permission";
   const choices = (Array.isArray(request.choices) ? request.choices : [])
     .map(record)
     .flatMap((choice) => {
@@ -199,9 +214,16 @@ function runtimeRequestEntry(input: {
     .map(record)
     .flatMap((field, index) => {
       const name = text(field?.name) ?? `answer_${index + 1}`;
-      const label = text(field?.label) ?? text(field?.name) ?? `Answer ${index + 1}`;
+      const label =
+        text(field?.label) ?? text(field?.name) ?? `Answer ${index + 1}`;
       return name && label
-        ? [{ name: name.slice(0, 160), label: label.slice(0, 240), placeholder: text(field?.placeholder)?.slice(0, 500) ?? null }]
+        ? [
+            {
+              name: name.slice(0, 160),
+              label: label.slice(0, 240),
+              placeholder: text(field?.placeholder)?.slice(0, 500) ?? null,
+            },
+          ]
         : [];
     })
     .slice(0, 16);
@@ -210,25 +232,29 @@ function runtimeRequestEntry(input: {
     ts: input.ts,
     requestId,
     requestKind,
-    turnId: text(request.turnId)
-      ?? text(input.payload.turnId)
-      ?? text(input.envelope.turnId)
-      ?? input.previous?.turnId
-      ?? null,
+    turnId:
+      text(request.turnId) ??
+      text(input.payload.turnId) ??
+      text(input.envelope.turnId) ??
+      input.previous?.turnId ??
+      null,
     requestType,
     status,
-    prompt: text(request.prompt)
-      ?? input.previous?.prompt
-      ?? "Runtime approval requested",
-    choices: choices.length > 0 ? choices : input.previous?.choices ?? [],
-    fields: fields.length > 0 ? fields : input.previous?.fields ?? [],
-    questionSet: canonicalQuestionSet(request.input)
-      ?? input.previous?.questionSet
-      ?? null,
+    prompt:
+      text(request.prompt) ??
+      input.previous?.prompt ??
+      "Runtime approval requested",
+    choices: choices.length > 0 ? choices : (input.previous?.choices ?? []),
+    fields: fields.length > 0 ? fields : (input.previous?.fields ?? []),
+    questionSet:
+      canonicalQuestionSet(request.input) ??
+      input.previous?.questionSet ??
+      null,
     resolvedAction,
-    response: canonicalQuestionResponse(request.response ?? input.payload.response)
-      ?? input.previous?.response
-      ?? null,
+    response:
+      canonicalQuestionResponse(request.response ?? input.payload.response) ??
+      input.previous?.response ??
+      null,
   };
 }
 
@@ -239,47 +265,78 @@ function runResultEntry(
   const completion = record(payload.completionClaim) ?? {};
   const blocker = record(payload.blocker);
   const rawDisposition = text(payload.reportedWorkDisposition);
-  const disposition = rawDisposition === "blocked"
-    || rawDisposition === "needs_review"
-    || rawDisposition === "yielded"
-    ? rawDisposition
-    : "done";
+  const disposition =
+    rawDisposition === "blocked" ||
+    rawDisposition === "needs_review" ||
+    rawDisposition === "yielded"
+      ? rawDisposition
+      : "done";
   return {
     kind: "run_result",
     ts,
     disposition,
     summary: text(payload.summary) ?? "Run completed",
-    objectiveSatisfied: typeof completion.objectiveSatisfied === "boolean"
-      ? completion.objectiveSatisfied
+    objectiveSatisfied:
+      typeof completion.objectiveSatisfied === "boolean"
+        ? completion.objectiveSatisfied
+        : null,
+    verification: (Array.isArray(payload.verification)
+      ? payload.verification
+      : []
+    )
+      .map(record)
+      .flatMap((item) =>
+        item
+          ? [
+              {
+                commandOrCheck: text(item.commandOrCheck) ?? "Verification",
+                status: verificationStatus(item.status),
+                ...(text(item.detail) ? { detail: text(item.detail)! } : {}),
+                ...(text(item.artifactRef)
+                  ? { artifactRef: text(item.artifactRef)! }
+                  : {}),
+              },
+            ]
+          : [],
+      )
+      .slice(0, 64),
+    remainingWork: (Array.isArray(completion.remainingWork)
+      ? completion.remainingWork
+      : []
+    )
+      .map(record)
+      .flatMap((item) =>
+        item && text(item.description)
+          ? [
+              {
+                description: text(item.description)!,
+                blocksCompletion: item.blocksCompletion === true,
+              },
+            ]
+          : [],
+      )
+      .slice(0, 64),
+    blocker: blocker
+      ? {
+          reasonCode: text(blocker.reasonCode) ?? "blocked",
+          unblockAction:
+            text(blocker.unblockAction) ?? "Resolve the blocker to continue.",
+          scope: blocker.scope === "task_wide" ? "task_wide" : "current_track",
+        }
       : null,
-    verification: (Array.isArray(payload.verification) ? payload.verification : [])
-      .map(record)
-      .flatMap((item) => item ? [{
-        commandOrCheck: text(item.commandOrCheck) ?? "Verification",
-        status: verificationStatus(item.status),
-        ...(text(item.detail) ? { detail: text(item.detail)! } : {}),
-        ...(text(item.artifactRef) ? { artifactRef: text(item.artifactRef)! } : {}),
-      }] : [])
-      .slice(0, 64),
-    remainingWork: (Array.isArray(completion.remainingWork) ? completion.remainingWork : [])
-      .map(record)
-      .flatMap((item) => item && text(item.description) ? [{
-        description: text(item.description)!,
-        blocksCompletion: item.blocksCompletion === true,
-      }] : [])
-      .slice(0, 64),
-    blocker: blocker ? {
-      reasonCode: text(blocker.reasonCode) ?? "blocked",
-      unblockAction: text(blocker.unblockAction) ?? "Resolve the blocker to continue.",
-      scope: blocker.scope === "task_wide" ? "task_wide" : "current_track",
-    } : null,
     artifacts: (Array.isArray(payload.artifacts) ? payload.artifacts : [])
       .map(record)
-      .flatMap((item) => item && text(item.ref) ? [{
-        kind: text(item.kind) ?? "artifact",
-        ref: text(item.ref)!,
-        ...(text(item.title) ? { title: text(item.title)! } : {}),
-      }] : [])
+      .flatMap((item) =>
+        item && text(item.ref)
+          ? [
+              {
+                kind: text(item.kind) ?? "artifact",
+                ref: text(item.ref)!,
+                ...(text(item.title) ? { title: text(item.title)! } : {}),
+              },
+            ]
+          : [],
+      )
       .slice(0, 64),
   };
 }
@@ -293,20 +350,32 @@ function runTerminalEntry(
   const rawRunState = text(payload.runTerminalState);
   const rawDisposition = text(payload.reportedWorkDisposition);
   if (
-    !rawTurnState
-    || !["completed", "failed", "interrupted", "cancelled"].includes(rawTurnState)
-    || !rawRunState
-    || !["succeeded", "failed", "cancelled"].includes(rawRunState)
-    || !rawDisposition
-    || !["done", "blocked", "needs_review", "yielded"].includes(rawDisposition)
-  ) return null;
+    !rawTurnState ||
+    !["completed", "failed", "interrupted", "cancelled"].includes(
+      rawTurnState,
+    ) ||
+    !rawRunState ||
+    !["succeeded", "failed", "cancelled"].includes(rawRunState) ||
+    !rawDisposition ||
+    !["done", "blocked", "needs_review", "yielded"].includes(rawDisposition)
+  )
+    return null;
   const stopReason = record(payload.stopReason);
   return {
     kind: "run_terminal",
     ts,
-    turnState: rawTurnState as Extract<TranscriptEntry, { kind: "run_terminal" }>["turnState"],
-    runState: rawRunState as Extract<TranscriptEntry, { kind: "run_terminal" }>["runState"],
-    disposition: rawDisposition as Extract<TranscriptEntry, { kind: "run_terminal" }>["disposition"],
+    turnState: rawTurnState as Extract<
+      TranscriptEntry,
+      { kind: "run_terminal" }
+    >["turnState"],
+    runState: rawRunState as Extract<
+      TranscriptEntry,
+      { kind: "run_terminal" }
+    >["runState"],
+    disposition: rawDisposition as Extract<
+      TranscriptEntry,
+      { kind: "run_terminal" }
+    >["disposition"],
     ...(text(stopReason?.message) || text(stopReason?.code)
       ? { stopReason: text(stopReason?.message) ?? text(stopReason?.code)! }
       : {}),
@@ -469,30 +538,44 @@ const TERMINAL_PROVIDER_ACTIVITY_STATUSES = new Set([
 function providerActivityPresentation(
   event: HeartbeatRunEvent,
   payload: Record<string, unknown>,
-): { id: string; name: string; summary: string; terminal: boolean; failed: boolean } | null {
-  if (!Object.prototype.hasOwnProperty.call(PROVIDER_ACTIVITY_PRESENTATIONS, event.eventType)) {
+): {
+  id: string;
+  name: string;
+  summary: string;
+  terminal: boolean;
+  failed: boolean;
+} | null {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      PROVIDER_ACTIVITY_PRESENTATIONS,
+      event.eventType,
+    )
+  ) {
     return null;
   }
-  const presentation = PROVIDER_ACTIVITY_PRESENTATIONS[
-    event.eventType as ProviderActivityEventType
-  ];
+  const presentation =
+    PROVIDER_ACTIVITY_PRESENTATIONS[
+      event.eventType as ProviderActivityEventType
+    ];
   if (!presentation || payload.schema !== presentation.schema) return null;
   const identity = text(payload[presentation.idKey]);
   if (!identity) return null;
-  const summary = presentation.summaryKeys
-    .map((key) => text(payload[key]))
-    .find((value): value is string => value !== null)
-    ?? event.eventType;
+  const summary =
+    presentation.summaryKeys
+      .map((key) => text(payload[key]))
+      .find((value): value is string => value !== null) ?? event.eventType;
   const status = text(payload.status);
-  const failed = status === "failed" || status === "denied" || payload.severity === "error";
+  const failed =
+    status === "failed" || status === "denied" || payload.severity === "error";
   const terminal = failed
     ? true
     : NONTERMINAL_PROVIDER_ACTIVITY_STATUSES.has(status ?? "")
       ? false
-      : TERMINAL_PROVIDER_ACTIVITY_STATUSES.has(status ?? "")
-      || event.eventType.endsWith(".completed")
-      || event.eventType.endsWith(".failed")
-      || (!event.eventType.endsWith(".started") && !event.eventType.endsWith(".progressed"));
+      : TERMINAL_PROVIDER_ACTIVITY_STATUSES.has(status ?? "") ||
+        event.eventType.endsWith(".completed") ||
+        event.eventType.endsWith(".failed") ||
+        (!event.eventType.endsWith(".started") &&
+          !event.eventType.endsWith(".progressed"));
   return {
     id: `${event.eventType.split(".")[0]}:${identity}`,
     name: presentation.name,
@@ -502,11 +585,19 @@ function providerActivityPresentation(
   };
 }
 
-function timestamp(event: HeartbeatRunEvent, envelope: Record<string, unknown>): string {
+function timestamp(
+  event: HeartbeatRunEvent,
+  envelope: Record<string, unknown>,
+): string {
   const emittedAt = text(envelope.emittedAt);
   if (emittedAt) return emittedAt;
-  const createdAt = event.createdAt instanceof Date ? event.createdAt.toISOString() : String(event.createdAt);
-  return Number.isNaN(Date.parse(createdAt)) ? new Date(0).toISOString() : createdAt;
+  const createdAt =
+    event.createdAt instanceof Date
+      ? event.createdAt.toISOString()
+      : String(event.createdAt);
+  return Number.isNaN(Date.parse(createdAt))
+    ? new Date(0).toISOString()
+    : createdAt;
 }
 
 interface NativeToolItemDetails {
@@ -516,9 +607,7 @@ interface NativeToolItemDetails {
   isError: boolean;
 }
 
-function nativeToolItemDetails(
-  payload: Record<string, unknown>,
-): {
+function nativeToolItemDetails(payload: Record<string, unknown>): {
   id: string | null;
   kind: "tooluse" | "toolresult";
   details: NativeToolItemDetails;
@@ -526,9 +615,10 @@ function nativeToolItemDetails(
   const item = normalizedItem(payload);
   const kind = (text(item.type) ?? "").replaceAll("_", "").toLowerCase();
   if (kind !== "tooluse" && kind !== "toolresult") return null;
-  const id = kind === "toolresult"
-    ? text(item.tool_use_id) ?? text(item.id)
-    : text(item.id);
+  const id =
+    kind === "toolresult"
+      ? (text(item.tool_use_id) ?? text(item.id))
+      : text(item.id);
   return {
     id,
     kind,
@@ -564,14 +654,18 @@ function toolPresentation(
   if (transport === "process") {
     return {
       name: "Bash",
-      input: reportedName ? { command: reportedName } : { operation: operation ?? "execute" },
+      input: reportedName
+        ? { command: reportedName }
+        : { operation: operation ?? "execute" },
     };
   }
   return {
     name: reportedName ?? operation ?? "Tool",
     input: item?.input ?? {
       ...(operation ? { operation } : {}),
-      ...(text(payload.namespace) ? { namespace: text(payload.namespace) } : {}),
+      ...(text(payload.namespace)
+        ? { namespace: text(payload.namespace) }
+        : {}),
       ...(text(payload.target) ? { target: text(payload.target) } : {}),
     },
   };
@@ -582,7 +676,9 @@ function toolPresentation(
  * model already consumed by the task thread. Provider-native envelopes never
  * reach this boundary and unknown event kinds remain safely invisible.
  */
-export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]): TranscriptEntry[] {
+export function nativeRunEventsToTranscript(
+  events: readonly HeartbeatRunEvent[],
+): TranscriptEntry[] {
   const entries: TranscriptEntry[] = [];
   const startedToolIds = new Set<string>();
   const completedToolIds = new Set<string>();
@@ -612,23 +708,43 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
       if (seenSourceEventIds.has(sourceEventId)) return false;
       seenSourceEventIds.add(sourceEventId);
       return true;
-    }).flatMap((event) => {
+    })
+    .flatMap((event) => {
       const envelope = record(event.payload?.prpEvent);
       const payload = record(envelope?.payload);
-      if (!envelope || envelope.eventType !== event.eventType
-        || !/^(item|turn|session)\.(completed|failed|cancelled|interrupted|closed)$/.test(event.eventType)
-        || !Array.isArray(payload?.outputTails)) return [event];
+      if (
+        !envelope ||
+        envelope.eventType !== event.eventType ||
+        !/^(item|turn|session)\.(completed|failed|cancelled|interrupted|closed)$/.test(
+          event.eventType,
+        ) ||
+        !Array.isArray(payload?.outputTails)
+      )
+        return [event];
       // Redaction can hold a possible key prefix until the item/turn ends.
       // Project its settled tail as display-only deltas before the terminal.
-      const tails = payload.outputTails.flatMap((value, index): HeartbeatRunEvent[] => {
-        const tail = record(value);
-        const tailPayload = record(tail?.payload);
-        if (!tailPayload || typeof tailPayload.text !== "string") return [];
-        return [{ ...event, eventType: "item.delta", payload: { prpEvent: {
-          ...envelope, eventType: "item.delta", itemId: tail?.itemId,
-          sourceEventId: `${envelope.sourceEventId}:output-tail:${index}`, payload: tailPayload,
-        } } }];
-      });
+      const tails = payload.outputTails.flatMap(
+        (value, index): HeartbeatRunEvent[] => {
+          const tail = record(value);
+          const tailPayload = record(tail?.payload);
+          if (!tailPayload || typeof tailPayload.text !== "string") return [];
+          return [
+            {
+              ...event,
+              eventType: "item.delta",
+              payload: {
+                prpEvent: {
+                  ...envelope,
+                  eventType: "item.delta",
+                  itemId: tail?.itemId,
+                  sourceEventId: `${envelope.sourceEventId}:output-tail:${index}`,
+                  payload: tailPayload,
+                },
+              },
+            },
+          ];
+        },
+      );
       return [...tails, event];
     });
   const hasAcceptedResult = orderedEvents.some(
@@ -665,12 +781,13 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
     if (!isItemIdentityEvent(event.eventType)) continue;
     const envelope = record(event.payload?.prpEvent);
     if (
-      !envelope
-      || envelope.schema !== "taskcore.prp.event.v1"
-      || envelope.schemaVersion !== 1
-      || envelope.runId !== event.runId
-      || envelope.eventType !== event.eventType
-    ) continue;
+      !envelope ||
+      envelope.schema !== "taskcore.prp.event.v1" ||
+      envelope.schemaVersion !== 1 ||
+      envelope.runId !== event.runId ||
+      envelope.eventType !== event.eventType
+    )
+      continue;
     const payload = record(envelope?.payload);
     if (!payload) continue;
     const itemId = normalizedItemId(envelope, payload);
@@ -713,11 +830,16 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
   for (const event of orderedEvents) {
     const envelope = record(event.payload?.prpEvent);
     if (
-      !envelope
-      || envelope.schema !== "taskcore.prp.event.v1"
-      || envelope.schemaVersion !== 1
-    ) continue;
-    if (envelope.runId !== event.runId || envelope.eventType !== event.eventType) continue;
+      !envelope ||
+      envelope.schema !== "taskcore.prp.event.v1" ||
+      envelope.schemaVersion !== 1
+    )
+      continue;
+    if (
+      envelope.runId !== event.runId ||
+      envelope.eventType !== event.eventType
+    )
+      continue;
     const payload = record(envelope.payload);
     if (!payload) continue;
     const ts = timestamp(event, envelope);
@@ -740,7 +862,14 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
       if (completedAgentMessageIds.has(itemId)) continue;
       const channel = itemIdentity.assistantChannel;
       if (channel !== "progress") hasFinalAssistantMessage = true;
-      entries.push({ kind: "assistant", ts, text: value, delta: true, channel, itemId });
+      entries.push({
+        kind: "assistant",
+        ts,
+        text: value,
+        delta: true,
+        channel,
+        itemId,
+      });
       continue;
     }
 
@@ -749,7 +878,13 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
       if (!value) continue;
       const channel = itemIdentity.assistantChannel;
       if (channel !== "progress") hasFinalAssistantMessage = true;
-      entries.push({ kind: "assistant", ts, text: value, channel, ...(itemId ? { itemId } : {}) });
+      entries.push({
+        kind: "assistant",
+        ts,
+        text: value,
+        channel,
+        ...(itemId ? { itemId } : {}),
+      });
       continue;
     }
 
@@ -794,8 +929,8 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
     if (nativeToolEvent) {
       const toolId = nativeToolEvent.id ?? itemId;
       if (!toolId) continue;
-      const nativeToolItem = nativeToolItemsById.get(toolId)
-        ?? nativeToolEvent.details;
+      const nativeToolItem =
+        nativeToolItemsById.get(toolId) ?? nativeToolEvent.details;
       const presentation = toolPresentation({}, nativeToolItem);
       if (!startedToolIds.has(toolId)) {
         startedToolIds.add(toolId);
@@ -808,10 +943,10 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
         });
       }
       if (
-        event.eventType === "item.completed"
-        && (nativeToolEvent.kind === "toolresult"
-          || nativeToolEvent.details.result !== undefined)
-        && !completedToolIds.has(toolId)
+        event.eventType === "item.completed" &&
+        (nativeToolEvent.kind === "toolresult" ||
+          nativeToolEvent.details.result !== undefined) &&
+        !completedToolIds.has(toolId)
       ) {
         completedToolIds.add(toolId);
         entries.push({
@@ -828,7 +963,10 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
 
     // Notices are provider diagnostics, not tool calls. Preserve their message
     // and category for the shared notice row instead of serializing an input blob.
-    if (event.eventType === "provider.notice.recorded" && payload.schema === "taskcore.provider.notice.v1") {
+    if (
+      event.eventType === "provider.notice.recorded" &&
+      payload.schema === "taskcore.provider.notice.v1"
+    ) {
       if (isRunLogOnlyProviderEvent(event.eventType, payload)) continue;
       entries.push({
         kind: "provider_activity",
@@ -837,7 +975,10 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
         eventType: event.eventType,
         status: payload.severity === "error" ? "failed" : "informational",
         title: "Provider notice",
-        summary: text(payload.summary)?.trim() || text(payload.message)?.trim() || "Provider notice",
+        summary:
+          text(payload.summary)?.trim() ||
+          text(payload.message)?.trim() ||
+          "Provider notice",
         payload,
       });
       continue;
@@ -852,7 +993,10 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
           ts,
           name: providerActivity.name,
           toolUseId: providerActivity.id,
-          input: { eventType: event.eventType, summary: providerActivity.summary },
+          input: {
+            eventType: event.eventType,
+            summary: providerActivity.summary,
+          },
         });
       }
       if (providerActivity.terminal) {
@@ -868,7 +1012,10 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
       continue;
     }
 
-    if (event.eventType === "tool.execution.started" || event.eventType === "tool.execution.completed") {
+    if (
+      event.eventType === "tool.execution.started" ||
+      event.eventType === "tool.execution.completed"
+    ) {
       if (payload.schema !== TOOL_EXECUTION_SCHEMA) continue;
       const executionId = text(payload.executionId);
       if (!executionId) continue;
@@ -884,19 +1031,23 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
           toolUseId: executionId,
         });
       }
-      if (event.eventType === "tool.execution.completed" && !completedToolIds.has(executionId)) {
+      if (
+        event.eventType === "tool.execution.completed" &&
+        !completedToolIds.has(executionId)
+      ) {
         completedToolIds.add(executionId);
         const output = text(payload.output);
-        const content = output ?? (nativeToolItem
-          ? serializedNativeToolResult(nativeToolItem)
-          : "");
+        const content =
+          output ??
+          (nativeToolItem ? serializedNativeToolResult(nativeToolItem) : "");
         entries.push({
           kind: "tool_result",
           ts,
           toolUseId: executionId,
           toolName: presentation.name,
           content,
-          isError: payload.status === "failed" || nativeToolItem?.isError === true,
+          isError:
+            payload.status === "failed" || nativeToolItem?.isError === true,
         });
       }
       continue;
@@ -943,8 +1094,9 @@ export function nativeRunEventsToTranscript(events: readonly HeartbeatRunEvent[]
     }
 
     if (event.eventType.startsWith("runtime_request.")) {
-      const requestId = text((record(payload.request) ?? payload).requestId)
-        ?? text(payload.requestId);
+      const requestId =
+        text((record(payload.request) ?? payload).requestId) ??
+        text(payload.requestId);
       const entry = runtimeRequestEntry({
         eventType: event.eventType,
         envelope,

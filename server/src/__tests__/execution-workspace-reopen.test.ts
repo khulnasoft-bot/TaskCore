@@ -5,7 +5,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   activityLog,
   companies,
@@ -32,7 +40,9 @@ import {
 import { resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported
+  ? describe
+  : describe.skip;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -42,7 +52,9 @@ if (!embeddedPostgresSupport.supported) {
 
 describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
   let db!: ReturnType<typeof createDb>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let tempDb: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   const tempDirs: string[] = [];
 
   beforeAll(async () => {
@@ -57,7 +69,11 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
     await db.delete(projectWorkspaces);
     await db.delete(projects);
     await db.delete(companies);
-    await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+    await Promise.all(
+      tempDirs
+        .splice(0)
+        .map((dir) => rm(dir, { recursive: true, force: true })),
+    );
   });
 
   afterAll(async () => {
@@ -125,7 +141,8 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
       cleanupReason: closed ? "issue_terminal" : null,
       cleanupEligibleAt: closed ? new Date() : null,
       metadata: {
-        [EXECUTION_WORKSPACE_LIFECYCLE_GENERATION_METADATA_KEY]: input.generation ?? 1,
+        [EXECUTION_WORKSPACE_LIFECYCLE_GENERATION_METADATA_KEY]:
+          input.generation ?? 1,
       },
     });
     return workspaceId;
@@ -251,10 +268,22 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
   }
 
   it("reopens the archived row in place, keeps the issue link, and raises the generation", async () => {
-    const { companyId, projectId, projectWorkspaceId } = await seedCompanyProject();
+    const { companyId, projectId, projectWorkspaceId } =
+      await seedCompanyProject();
     const cwd = await makeExistingDir();
-    const workspaceId = await seedClosedWorkspace({ companyId, projectId, projectWorkspaceId, cwd, generation: 3 });
-    const issueId = await seedIssue({ companyId, projectId, workspaceId, issueNumber: 4100 });
+    const workspaceId = await seedClosedWorkspace({
+      companyId,
+      projectId,
+      projectWorkspaceId,
+      cwd,
+      generation: 3,
+    });
+    const issueId = await seedIssue({
+      companyId,
+      projectId,
+      workspaceId,
+      issueNumber: 4100,
+    });
 
     const svc = executionWorkspaceService(db);
     const result = await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
@@ -272,22 +301,50 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
     expect(row?.closedAt).toBeNull();
     expect(row?.cleanupReason).toBeNull();
     expect(row?.cleanupEligibleAt).toBeNull();
-    expect(readExecutionWorkspaceLifecycleGeneration(row?.metadata as Record<string, unknown> | null)).toBe(4);
+    expect(
+      readExecutionWorkspaceLifecycleGeneration(
+        row?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(4);
     // The reopen flags the row so the terminal reaper does not archive and
     // destroy the rebuilt worktree before the caller consumes it.
-    expect(metadataHasReopenPendingConsumption(row?.metadata as Record<string, unknown> | null)).toBe(true);
+    expect(
+      metadataHasReopenPendingConsumption(
+        row?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(true);
 
     // The reopen never changes the issue-to-workspace link.
-    const issueRow = await db.select().from(issues).where(eq(issues.id, issueId)).then((rows) => rows[0] ?? null);
+    const issueRow = await db
+      .select()
+      .from(issues)
+      .where(eq(issues.id, issueId))
+      .then((rows) => rows[0] ?? null);
     expect(issueRow?.executionWorkspaceId).toBe(workspaceId);
   });
 
   it("keeps access for every issue that shares the reopened row", async () => {
-    const { companyId, projectId, projectWorkspaceId } = await seedCompanyProject();
+    const { companyId, projectId, projectWorkspaceId } =
+      await seedCompanyProject();
     const cwd = await makeExistingDir();
-    const workspaceId = await seedClosedWorkspace({ companyId, projectId, projectWorkspaceId, cwd });
-    const firstIssueId = await seedIssue({ companyId, projectId, workspaceId, issueNumber: 4101 });
-    const secondIssueId = await seedIssue({ companyId, projectId, workspaceId, issueNumber: 4102 });
+    const workspaceId = await seedClosedWorkspace({
+      companyId,
+      projectId,
+      projectWorkspaceId,
+      cwd,
+    });
+    const firstIssueId = await seedIssue({
+      companyId,
+      projectId,
+      workspaceId,
+      issueNumber: 4101,
+    });
+    const secondIssueId = await seedIssue({
+      companyId,
+      projectId,
+      workspaceId,
+      issueNumber: 4102,
+    });
 
     const svc = executionWorkspaceService(db);
     const result = await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
@@ -307,9 +364,13 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
   });
 
   it("fails closed and keeps the row closed when the rebuild fails", async () => {
-    const { companyId, projectId, projectWorkspaceId } = await seedCompanyProject();
+    const { companyId, projectId, projectWorkspaceId } =
+      await seedCompanyProject();
     // A directory that does not exist. The project_primary rebuild returns null.
-    const missingDir = join(tmpdir(), `taskcore-reopen-missing-${randomUUID()}`);
+    const missingDir = join(
+      tmpdir(),
+      `taskcore-reopen-missing-${randomUUID()}`,
+    );
     const workspaceId = await seedClosedWorkspace({
       companyId,
       projectId,
@@ -317,7 +378,12 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
       cwd: missingDir,
       generation: 2,
     });
-    const issueId = await seedIssue({ companyId, projectId, workspaceId, issueNumber: 4103 });
+    const issueId = await seedIssue({
+      companyId,
+      projectId,
+      workspaceId,
+      issueNumber: 4103,
+    });
 
     const svc = executionWorkspaceService(db);
     const result = await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
@@ -336,7 +402,11 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
     expect(row?.status).toBe("archived");
     expect(row?.cleanupReason).toBe(EXECUTION_WORKSPACE_REOPEN_FAILED_REASON);
     expect(row?.cleanupEligibleAt).toBeNull();
-    expect(readExecutionWorkspaceLifecycleGeneration(row?.metadata as Record<string, unknown> | null)).toBe(3);
+    expect(
+      readExecutionWorkspaceLifecycleGeneration(
+        row?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(3);
   });
 
   it("resolves the managed base checkout for a git_worktree row when the project workspace cwd is null", async () => {
@@ -345,11 +415,16 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
     tempDirs.push(tempHome);
     process.env.TASKCORE_HOME = tempHome;
     try {
-      const { companyId, projectId, projectWorkspaceId } = await seedManagedCheckoutProject();
+      const { companyId, projectId, projectWorkspaceId } =
+        await seedManagedCheckoutProject();
       const repoUrl = "https://example.test/acme/widget.git";
       const branchName = "reopen-feature";
       // Build the live managed checkout that the rebuild must spawn git in.
-      const managedDir = resolveManagedProjectWorkspaceDir({ companyId, projectId, repoName: "widget" });
+      const managedDir = resolveManagedProjectWorkspaceDir({
+        companyId,
+        projectId,
+        repoName: "widget",
+      });
       initManagedGitRepo(managedDir, branchName);
 
       // The archived worktree path. The reaper already removed it from disk.
@@ -362,7 +437,12 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
         repoUrl,
         branchName,
       });
-      const issueId = await seedIssue({ companyId, projectId, workspaceId, issueNumber: 4305 });
+      const issueId = await seedIssue({
+        companyId,
+        projectId,
+        workspaceId,
+        issueNumber: 4305,
+      });
 
       const svc = executionWorkspaceService(db);
       const result = await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
@@ -404,7 +484,11 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
     const result = await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
       workspaceId,
       // The issue belongs to a different company than the workspace.
-      issue: { id: randomUUID(), companyId: second.companyId, projectId: second.projectId },
+      issue: {
+        id: randomUUID(),
+        companyId: second.companyId,
+        projectId: second.projectId,
+      },
       actor: { agentId: null, actorType: "user" },
     });
 
@@ -417,7 +501,8 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
   });
 
   it("reports success without a rebuild when the workspace is already active", async () => {
-    const { companyId, projectId, projectWorkspaceId } = await seedCompanyProject();
+    const { companyId, projectId, projectWorkspaceId } =
+      await seedCompanyProject();
     const cwd = await makeExistingDir();
     const workspaceId = await seedClosedWorkspace({
       companyId,
@@ -427,7 +512,12 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
       status: "active",
       generation: 5,
     });
-    const issueId = await seedIssue({ companyId, projectId, workspaceId, issueNumber: 4104 });
+    const issueId = await seedIssue({
+      companyId,
+      projectId,
+      workspaceId,
+      issueNumber: 4104,
+    });
 
     const svc = executionWorkspaceService(db);
     const result = await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
@@ -442,13 +532,24 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
 
     const row = await readWorkspace(workspaceId);
     // No reopen ran, so the generation is unchanged.
-    expect(readExecutionWorkspaceLifecycleGeneration(row?.metadata as Record<string, unknown> | null)).toBe(5);
+    expect(
+      readExecutionWorkspaceLifecycleGeneration(
+        row?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(5);
   });
 
   it("runs the destroy under the fence when the generation matches, and skips it after a reopen", async () => {
-    const { companyId, projectId, projectWorkspaceId } = await seedCompanyProject();
+    const { companyId, projectId, projectWorkspaceId } =
+      await seedCompanyProject();
     const cwd = await makeExistingDir();
-    const workspaceId = await seedClosedWorkspace({ companyId, projectId, projectWorkspaceId, cwd, generation: 7 });
+    const workspaceId = await seedClosedWorkspace({
+      companyId,
+      projectId,
+      projectWorkspaceId,
+      cwd,
+      generation: 7,
+    });
 
     const svc = executionWorkspaceService(db);
 
@@ -470,7 +571,9 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
         closedAt: null,
         cleanupReason: null,
         cleanupEligibleAt: null,
-        metadata: { [EXECUTION_WORKSPACE_LIFECYCLE_GENERATION_METADATA_KEY]: 8 },
+        metadata: {
+          [EXECUTION_WORKSPACE_LIFECYCLE_GENERATION_METADATA_KEY]: 8,
+        },
       })
       .where(eq(executionWorkspaces.id, workspaceId));
 
@@ -486,27 +589,46 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
   });
 
   it("clears the reopen-pending flag after an unconsumed reopen and stays idempotent", async () => {
-    const { companyId, projectId, projectWorkspaceId } = await seedCompanyProject();
+    const { companyId, projectId, projectWorkspaceId } =
+      await seedCompanyProject();
     const cwd = await makeExistingDir();
-    const workspaceId = await seedClosedWorkspace({ companyId, projectId, projectWorkspaceId, cwd });
-    const issueId = await seedIssue({ companyId, projectId, workspaceId, issueNumber: 4109 });
+    const workspaceId = await seedClosedWorkspace({
+      companyId,
+      projectId,
+      projectWorkspaceId,
+      cwd,
+    });
+    const issueId = await seedIssue({
+      companyId,
+      projectId,
+      workspaceId,
+      issueNumber: 4109,
+    });
 
     const svc = executionWorkspaceService(db);
     // The reopen publishes the row as active and sets the reopen-pending flag.
-    const reopenResult = await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
-      workspaceId,
-      issue: { id: issueId, companyId, projectId },
-      actor: { agentId: null, actorType: "user" },
-    });
+    const reopenResult =
+      await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
+        workspaceId,
+        issue: { id: issueId, companyId, projectId },
+        actor: { agentId: null, actorType: "user" },
+      });
     expect(reopenResult.ok).toBe(true);
     if (!reopenResult.ok) throw new Error("reopen failed");
     const reopenGeneration = reopenResult.generation;
     const reopenedRow = await readWorkspace(workspaceId);
-    expect(metadataHasReopenPendingConsumption(reopenedRow?.metadata as Record<string, unknown> | null)).toBe(true);
+    expect(
+      metadataHasReopenPendingConsumption(
+        reopenedRow?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(true);
     // The reopen stamps the time it set the flag, so the reaper can age a
     // stranded flag out of the way after the grace period.
-    expect(readMetadataReopenPendingConsumptionSince(reopenedRow?.metadata as Record<string, unknown> | null))
-      .toBeInstanceOf(Date);
+    expect(
+      readMetadataReopenPendingConsumptionSince(
+        reopenedRow?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBeInstanceOf(Date);
 
     // The caller never consumed the reopen, so clear the flag at its generation.
     const cleared = await svc.clearReopenPendingConsumptionForUnconsumedReopen({
@@ -519,10 +641,17 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
 
     const clearedRow = await readWorkspace(workspaceId);
     // The flag is gone, so the terminal reaper can archive and reclaim the row.
-    expect(metadataHasReopenPendingConsumption(clearedRow?.metadata as Record<string, unknown> | null)).toBe(false);
+    expect(
+      metadataHasReopenPendingConsumption(
+        clearedRow?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(false);
     // The clear removes the timestamp too, so no orphan key survives.
-    expect((clearedRow?.metadata as Record<string, unknown> | null)?.[EXECUTION_WORKSPACE_REOPEN_PENDING_SINCE_METADATA_KEY])
-      .toBeUndefined();
+    expect(
+      (clearedRow?.metadata as Record<string, unknown> | null)?.[
+        EXECUTION_WORKSPACE_REOPEN_PENDING_SINCE_METADATA_KEY
+      ],
+    ).toBeUndefined();
     // The row stays active, so a retried resume can still reuse the rebuilt worktree.
     expect(clearedRow?.status).toBe("active");
 
@@ -530,7 +659,11 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
       .select()
       .from(activityLog)
       .where(eq(activityLog.entityId, workspaceId));
-    expect(events.some((event) => event.action === "execution_workspace.reopen_unconsumed")).toBe(true);
+    expect(
+      events.some(
+        (event) => event.action === "execution_workspace.reopen_unconsumed",
+      ),
+    ).toBe(true);
 
     // A second call finds no flag and does nothing.
     const second = await svc.clearReopenPendingConsumptionForUnconsumedReopen({
@@ -544,21 +677,37 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
       .select()
       .from(activityLog)
       .where(eq(activityLog.entityId, workspaceId));
-    expect(eventsAfter.filter((event) => event.action === "execution_workspace.reopen_unconsumed").length).toBe(1);
+    expect(
+      eventsAfter.filter(
+        (event) => event.action === "execution_workspace.reopen_unconsumed",
+      ).length,
+    ).toBe(1);
   });
 
   it("does not clear a newer reopen's fence when a stale request presents an old generation", async () => {
-    const { companyId, projectId, projectWorkspaceId } = await seedCompanyProject();
+    const { companyId, projectId, projectWorkspaceId } =
+      await seedCompanyProject();
     const cwd = await makeExistingDir();
-    const workspaceId = await seedClosedWorkspace({ companyId, projectId, projectWorkspaceId, cwd });
-    const issueId = await seedIssue({ companyId, projectId, workspaceId, issueNumber: 4115 });
+    const workspaceId = await seedClosedWorkspace({
+      companyId,
+      projectId,
+      projectWorkspaceId,
+      cwd,
+    });
+    const issueId = await seedIssue({
+      companyId,
+      projectId,
+      workspaceId,
+      issueNumber: 4115,
+    });
 
     const svc = executionWorkspaceService(db);
-    const reopenResult = await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
-      workspaceId,
-      issue: { id: issueId, companyId, projectId },
-      actor: { agentId: null, actorType: "user" },
-    });
+    const reopenResult =
+      await svc.reopenClosedIsolatedExecutionWorkspaceForIssue({
+        workspaceId,
+        issue: { id: issueId, companyId, projectId },
+        actor: { agentId: null, actorType: "user" },
+      });
     expect(reopenResult.ok).toBe(true);
     if (!reopenResult.ok) throw new Error("reopen failed");
     const staleGeneration = reopenResult.generation;
@@ -570,36 +719,51 @@ describeEmbeddedPostgres("reopen archived isolated execution workspace", () => {
       .update(executionWorkspaces)
       .set({
         metadata: {
-          [EXECUTION_WORKSPACE_LIFECYCLE_GENERATION_METADATA_KEY]: newerGeneration,
+          [EXECUTION_WORKSPACE_LIFECYCLE_GENERATION_METADATA_KEY]:
+            newerGeneration,
           [EXECUTION_WORKSPACE_REOPEN_PENDING_METADATA_KEY]: true,
-          [EXECUTION_WORKSPACE_REOPEN_PENDING_SINCE_METADATA_KEY]: new Date().toISOString(),
+          [EXECUTION_WORKSPACE_REOPEN_PENDING_SINCE_METADATA_KEY]:
+            new Date().toISOString(),
         },
       })
       .where(eq(executionWorkspaces.id, workspaceId));
 
     // The stale request's response-end clear presents the old generation. It must
     // not clear the newer reopen's live fence.
-    const staleClear = await svc.clearReopenPendingConsumptionForUnconsumedReopen({
-      workspaceId,
-      issue: { id: issueId, companyId },
-      actor: { agentId: null, actorType: "user" },
-      expectedGeneration: staleGeneration,
-    });
+    const staleClear =
+      await svc.clearReopenPendingConsumptionForUnconsumedReopen({
+        workspaceId,
+        issue: { id: issueId, companyId },
+        actor: { agentId: null, actorType: "user" },
+        expectedGeneration: staleGeneration,
+      });
     expect(staleClear.cleared).toBe(false);
     const afterStale = await readWorkspace(workspaceId);
-    expect(metadataHasReopenPendingConsumption(afterStale?.metadata as Record<string, unknown> | null)).toBe(true);
-    expect(readExecutionWorkspaceLifecycleGeneration(afterStale?.metadata as Record<string, unknown> | null))
-      .toBe(newerGeneration);
+    expect(
+      metadataHasReopenPendingConsumption(
+        afterStale?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(true);
+    expect(
+      readExecutionWorkspaceLifecycleGeneration(
+        afterStale?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(newerGeneration);
 
     // The newer owner clears its own fence at the matching generation.
-    const ownerClear = await svc.clearReopenPendingConsumptionForUnconsumedReopen({
-      workspaceId,
-      issue: { id: issueId, companyId },
-      actor: { agentId: null, actorType: "user" },
-      expectedGeneration: newerGeneration,
-    });
+    const ownerClear =
+      await svc.clearReopenPendingConsumptionForUnconsumedReopen({
+        workspaceId,
+        issue: { id: issueId, companyId },
+        actor: { agentId: null, actorType: "user" },
+        expectedGeneration: newerGeneration,
+      });
     expect(ownerClear.cleared).toBe(true);
     const afterOwner = await readWorkspace(workspaceId);
-    expect(metadataHasReopenPendingConsumption(afterOwner?.metadata as Record<string, unknown> | null)).toBe(false);
+    expect(
+      metadataHasReopenPendingConsumption(
+        afterOwner?.metadata as Record<string, unknown> | null,
+      ),
+    ).toBe(false);
   });
 });

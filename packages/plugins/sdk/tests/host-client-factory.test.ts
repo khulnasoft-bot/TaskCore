@@ -55,17 +55,23 @@ describe("createHostClientHandlers invocation company scope", () => {
       handlers["config.get"]({ companyId: "company-a" }, context),
     ).resolves.toEqual({ apiKeyRef: "ref" });
     await expect(
-      handlers["secrets.resolve"]({
-        companyId: "company-a",
-        secretRef: { type: "secret_ref", secretId: "secret-a" },
-      }, context),
+      handlers["secrets.resolve"](
+        {
+          companyId: "company-a",
+          secretRef: { type: "secret_ref", secretId: "secret-a" },
+        },
+        context,
+      ),
     ).resolves.toBe("resolved");
 
     expect(configGet).toHaveBeenCalledWith({ companyId: "company-a" }, context);
-    expect(secretsResolve).toHaveBeenCalledWith({
-      companyId: "company-a",
-      secretRef: { type: "secret_ref", secretId: "secret-a" },
-    }, context);
+    expect(secretsResolve).toHaveBeenCalledWith(
+      {
+        companyId: "company-a",
+        secretRef: { type: "secret_ref", secretId: "secret-a" },
+      },
+      context,
+    );
   });
 
   it("rejects company-scoped host calls outside the current invocation company", async () => {
@@ -156,20 +162,35 @@ describe("createHostClientHandlers invocation company scope", () => {
     [
       "access.members.update",
       "access.members.write",
-      { companyId: "company-a", memberId: "member-a", patch: { status: "active" } },
+      {
+        companyId: "company-a",
+        memberId: "member-a",
+        patch: { status: "active" },
+      },
       (services: HostServices) => vi.mocked(services.access.updateMember),
     ],
     [
       "authorization.grants.set",
       "authorization.grants.write",
-      { companyId: "company-a", principalType: "agent", principalId: "agent-a", grants: [] },
+      {
+        companyId: "company-a",
+        principalType: "agent",
+        principalId: "agent-a",
+        grants: [],
+      },
       (services: HostServices) => vi.mocked(services.authorization.setGrants),
     ],
     [
       "authorization.policies.update",
       "authorization.policies.write",
-      { companyId: "company-a", resourceType: "agent", resourceId: "agent-a", policy: null },
-      (services: HostServices) => vi.mocked(services.authorization.updatePolicy),
+      {
+        companyId: "company-a",
+        resourceType: "agent",
+        resourceId: "agent-a",
+        policy: null,
+      },
+      (services: HostServices) =>
+        vi.mocked(services.authorization.updatePolicy),
     ],
     [
       "authorization.audit.search",
@@ -198,13 +219,17 @@ describe("createHostClientHandlers invocation company scope", () => {
       });
 
       await expect(
-        (handlers as Record<string, (input: unknown) => Promise<unknown>>)[method](params),
+        (handlers as Record<string, (input: unknown) => Promise<unknown>>)[
+          method
+        ](params),
       ).rejects.toMatchObject({
         name: "CapabilityDeniedError",
         message: expect.stringContaining(capability),
       });
       await expect(
-        (handlers as Record<string, (input: unknown) => Promise<unknown>>)[method](params),
+        (handlers as Record<string, (input: unknown) => Promise<unknown>>)[
+          method
+        ](params),
       ).rejects.toBeInstanceOf(CapabilityDeniedError);
       expect(getDelegate(services)).not.toHaveBeenCalled();
     },
@@ -245,12 +270,15 @@ describe("createHostClientHandlers invocation company scope", () => {
     const context = { invocationScope: { companyId: "company-a" } };
 
     await expect(
-      handlers["issues.createComment"]({
-        issueId: "issue-a",
-        body: "hello",
-        companyId: "company-a",
-        actorUserId: "user-a",
-      }, context),
+      handlers["issues.createComment"](
+        {
+          issueId: "issue-a",
+          body: "hello",
+          companyId: "company-a",
+          actorUserId: "user-a",
+        },
+        context,
+      ),
     ).rejects.toBeInstanceOf(CapabilityDeniedError);
     expect(createComment).not.toHaveBeenCalled();
   });
@@ -262,18 +290,24 @@ describe("createHostClientHandlers invocation company scope", () => {
     } as unknown as HostServices;
     const handlers = createHostClientHandlers({
       pluginId: "taskcore.test",
-      capabilities: ["issue.comments.create", "issue.comments.create_human_attributed"],
+      capabilities: [
+        "issue.comments.create",
+        "issue.comments.create_human_attributed",
+      ],
       services,
     });
     const context = { invocationScope: { companyId: "company-a" } };
 
     await expect(
-      handlers["issues.createComment"]({
-        issueId: "issue-a",
-        body: "hello",
-        companyId: "company-a",
-        actorUserId: "user-a",
-      }, context),
+      handlers["issues.createComment"](
+        {
+          issueId: "issue-a",
+          body: "hello",
+          companyId: "company-a",
+          actorUserId: "user-a",
+        },
+        context,
+      ),
     ).resolves.toEqual({ id: "comment-1" });
     expect(createComment).toHaveBeenCalledWith({
       issueId: "issue-a",
@@ -296,12 +330,15 @@ describe("createHostClientHandlers invocation company scope", () => {
     const context = { invocationScope: { companyId: "company-a" } };
 
     await expect(
-      handlers["issues.createComment"]({
-        issueId: "issue-a",
-        body: "hello",
-        companyId: "company-a",
-        authorAgentId: "agent-a",
-      }, context),
+      handlers["issues.createComment"](
+        {
+          issueId: "issue-a",
+          body: "hello",
+          companyId: "company-a",
+          authorAgentId: "agent-a",
+        },
+        context,
+      ),
     ).resolves.toEqual({ id: "comment-2" });
     expect(createComment).toHaveBeenCalled();
   });
@@ -311,8 +348,13 @@ describe("createHostClientHandlers capability gating for LOOA-641 methods", () =
   const context = { invocationScope: { companyId: "company-a" } };
 
   it("denies issues.respondInteraction without issue.interactions.respond", async () => {
-    const respondInteraction = vi.fn(async () => ({ interaction: { id: "i" }, applied: true }));
-    const services = { issues: { respondInteraction } } as unknown as HostServices;
+    const respondInteraction = vi.fn(async () => ({
+      interaction: { id: "i" },
+      applied: true,
+    }));
+    const services = {
+      issues: { respondInteraction },
+    } as unknown as HostServices;
     const handlers = createHostClientHandlers({
       pluginId: "taskcore.test",
       // A read grant must not confer the ability to respond.
@@ -320,31 +362,53 @@ describe("createHostClientHandlers capability gating for LOOA-641 methods", () =
       services,
     });
     await expect(
-      handlers["issues.respondInteraction"]({
-        issueId: "issue-a", interactionId: "int-a", companyId: "company-a", action: "accept", actorUserId: "user-a",
-      }, context),
+      handlers["issues.respondInteraction"](
+        {
+          issueId: "issue-a",
+          interactionId: "int-a",
+          companyId: "company-a",
+          action: "accept",
+          actorUserId: "user-a",
+        },
+        context,
+      ),
     ).rejects.toBeInstanceOf(CapabilityDeniedError);
     expect(respondInteraction).not.toHaveBeenCalled();
   });
 
   it("allows issues.respondInteraction with issue.interactions.respond", async () => {
-    const respondInteraction = vi.fn(async () => ({ interaction: { id: "i" }, applied: true }));
-    const services = { issues: { respondInteraction } } as unknown as HostServices;
+    const respondInteraction = vi.fn(async () => ({
+      interaction: { id: "i" },
+      applied: true,
+    }));
+    const services = {
+      issues: { respondInteraction },
+    } as unknown as HostServices;
     const handlers = createHostClientHandlers({
       pluginId: "taskcore.test",
       capabilities: ["issue.interactions.respond"],
       services,
     });
     await expect(
-      handlers["issues.respondInteraction"]({
-        issueId: "issue-a", interactionId: "int-a", companyId: "company-a", action: "accept", actorUserId: "user-a",
-      }, context),
+      handlers["issues.respondInteraction"](
+        {
+          issueId: "issue-a",
+          interactionId: "int-a",
+          companyId: "company-a",
+          action: "accept",
+          actorUserId: "user-a",
+        },
+        context,
+      ),
     ).resolves.toEqual({ interaction: { id: "i" }, applied: true });
     expect(respondInteraction).toHaveBeenCalledOnce();
   });
 
   it("denies approvals.decide without approvals.respond", async () => {
-    const decide = vi.fn(async () => ({ approval: { id: "a" }, applied: true }));
+    const decide = vi.fn(async () => ({
+      approval: { id: "a" },
+      applied: true,
+    }));
     const services = { approvals: { decide } } as unknown as HostServices;
     const handlers = createHostClientHandlers({
       pluginId: "taskcore.test",
@@ -353,15 +417,24 @@ describe("createHostClientHandlers capability gating for LOOA-641 methods", () =
       services,
     });
     await expect(
-      handlers["approvals.decide"]({
-        approvalId: "a", companyId: "company-a", action: "approve", actorUserId: "user-a",
-      }, context),
+      handlers["approvals.decide"](
+        {
+          approvalId: "a",
+          companyId: "company-a",
+          action: "approve",
+          actorUserId: "user-a",
+        },
+        context,
+      ),
     ).rejects.toBeInstanceOf(CapabilityDeniedError);
     expect(decide).not.toHaveBeenCalled();
   });
 
   it("allows approvals.decide with approvals.respond", async () => {
-    const decide = vi.fn(async () => ({ approval: { id: "a" }, applied: true }));
+    const decide = vi.fn(async () => ({
+      approval: { id: "a" },
+      applied: true,
+    }));
     const services = { approvals: { decide } } as unknown as HostServices;
     const handlers = createHostClientHandlers({
       pluginId: "taskcore.test",
@@ -369,9 +442,15 @@ describe("createHostClientHandlers capability gating for LOOA-641 methods", () =
       services,
     });
     await expect(
-      handlers["approvals.decide"]({
-        approvalId: "a", companyId: "company-a", action: "approve", actorUserId: "user-a",
-      }, context),
+      handlers["approvals.decide"](
+        {
+          approvalId: "a",
+          companyId: "company-a",
+          action: "approve",
+          actorUserId: "user-a",
+        },
+        context,
+      ),
     ).resolves.toEqual({ approval: { id: "a" }, applied: true });
     expect(decide).toHaveBeenCalledOnce();
   });
@@ -390,13 +469,19 @@ describe("createHostClientHandlers capability gating for LOOA-641 methods", () =
       services,
     });
     await expect(
-      handlers["issues.listInteractions"]({ issueId: "i", companyId: "company-a" }, context),
+      handlers["issues.listInteractions"](
+        { issueId: "i", companyId: "company-a" },
+        context,
+      ),
     ).rejects.toBeInstanceOf(CapabilityDeniedError);
     await expect(
       handlers["approvals.list"]({ companyId: "company-a" }, context),
     ).rejects.toBeInstanceOf(CapabilityDeniedError);
     await expect(
-      handlers["issues.getAttachmentContent"]({ attachmentId: "at", companyId: "company-a" }, context),
+      handlers["issues.getAttachmentContent"](
+        { attachmentId: "at", companyId: "company-a" },
+        context,
+      ),
     ).rejects.toBeInstanceOf(CapabilityDeniedError);
     expect(listInteractions).not.toHaveBeenCalled();
     expect(list).not.toHaveBeenCalled();

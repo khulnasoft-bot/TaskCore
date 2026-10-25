@@ -64,6 +64,8 @@ export async function insertRowsInChunks(
   );
 
   for (let start = 0; start < normalized.length; start += chunkSize) {
-    await executor.insert(table).values(normalized.slice(start, start + chunkSize));
+    await executor
+      .insert(table)
+      .values(normalized.slice(start, start + chunkSize));
   }
 }

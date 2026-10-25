@@ -1,4 +1,5 @@
-export const INSECURE_REMOTE_HTTP_ESCAPE_HATCH = "dangerouslyAllowInsecureRemoteHttp";
+export const INSECURE_REMOTE_HTTP_ESCAPE_HATCH =
+  "dangerouslyAllowInsecureRemoteHttp";
 
 export function parseBooleanLike(value: unknown): boolean | null {
   if (typeof value === "boolean") return value;
@@ -24,7 +25,9 @@ export function isRemotePlainHttp(url: URL): boolean {
   return url.protocol === "http:" && !isLoopbackHostname(url.hostname);
 }
 
-export function allowsInsecureRemoteHttp(config: Record<string, unknown>): boolean {
+export function allowsInsecureRemoteHttp(
+  config: Record<string, unknown>,
+): boolean {
   return parseBooleanLike(config[INSECURE_REMOTE_HTTP_ESCAPE_HATCH]) === true;
 }
 

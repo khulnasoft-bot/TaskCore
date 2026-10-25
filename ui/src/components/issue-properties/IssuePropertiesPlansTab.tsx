@@ -5,7 +5,10 @@ import { issuesApi } from "@/api/issues";
 import { queryKeys } from "@/lib/queryKeys";
 import { IssuePlanDecompositionsSection } from "@/components/IssuePlanDecompositionsSection";
 import { MarkdownBody } from "@/components/MarkdownBody";
-import { DocumentAnnotationsCountChip, IssueDocumentAnnotations } from "@/components/IssueDocumentAnnotations";
+import {
+  DocumentAnnotationsCountChip,
+  IssueDocumentAnnotations,
+} from "@/components/IssueDocumentAnnotations";
 import { useIssuePlanDocument } from "@/hooks/useIssuePlanDocument";
 import { useLocation } from "@/lib/router";
 
@@ -16,13 +19,15 @@ interface IssuePropertiesPlansTabProps {
   inline?: boolean;
 }
 
-function hasPendingPlanConfirmation(interactions: IssueThreadInteraction[] | undefined): boolean {
+function hasPendingPlanConfirmation(
+  interactions: IssueThreadInteraction[] | undefined,
+): boolean {
   return (interactions ?? []).some(
     (interaction) =>
-      interaction.kind === "request_confirmation"
-      && interaction.status === "pending"
-      && interaction.payload.target?.type === "issue_document"
-      && interaction.payload.target.key === "plan",
+      interaction.kind === "request_confirmation" &&
+      interaction.status === "pending" &&
+      interaction.payload.target?.type === "issue_document" &&
+      interaction.payload.target.key === "plan",
   );
 }
 
@@ -35,8 +40,11 @@ function hasPendingPlanConfirmation(interactions: IssueThreadInteraction[] | und
  * PlanEntry/todo streaming is a flagged protocol dependency (demonstrated in
  * the /dev/task-chat-lab harness).
  */
-export function IssuePropertiesPlansTab({ issue }: IssuePropertiesPlansTabProps) {
-  const { data: planDocument, isLoading: planDocumentLoading } = useIssuePlanDocument(issue.id);
+export function IssuePropertiesPlansTab({
+  issue,
+}: IssuePropertiesPlansTabProps) {
+  const { data: planDocument, isLoading: planDocumentLoading } =
+    useIssuePlanDocument(issue.id);
   const location = useLocation();
   const [annotationPanelOpen, setAnnotationPanelOpen] = useState(false);
   const { data } = useQuery({
@@ -57,10 +65,14 @@ export function IssuePropertiesPlansTab({ issue }: IssuePropertiesPlansTabProps)
           "Loading plan…"
         ) : issue.workMode === "planning" ? (
           <div className="space-y-2">
-            <p>This task is in plan mode but no plan document has been written yet.</p>
+            <p>
+              This task is in plan mode but no plan document has been written
+              yet.
+            </p>
             {pendingPlanConfirmation ? (
               <p className="text-amber-foreground">
-                A plan confirmation is pending, but the plan document it should confirm is missing.
+                A plan confirmation is pending, but the plan document it should
+                confirm is missing.
               </p>
             ) : null}
           </div>
@@ -80,7 +92,9 @@ export function IssuePropertiesPlansTab({ issue }: IssuePropertiesPlansTabProps)
       {planDocument ? (
         <section data-testid="issue-plan-document" className="space-y-2">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            {`Revision ${planDocument.latestRevisionNumber ?? 1} · updated ${new Date(planDocument.updatedAt).toLocaleString([], {
+            {`Revision ${planDocument.latestRevisionNumber ?? 1} · updated ${new Date(
+              planDocument.updatedAt,
+            ).toLocaleString([], {
               month: "short",
               day: "numeric",
               hour: "numeric",
@@ -114,7 +128,10 @@ export function IssuePropertiesPlansTab({ issue }: IssuePropertiesPlansTabProps)
         </section>
       ) : null}
       {hasPlans ? (
-        <IssuePlanDecompositionsSection issueId={issue.id} issueIdentifier={issue.identifier} />
+        <IssuePlanDecompositionsSection
+          issueId={issue.id}
+          issueIdentifier={issue.identifier}
+        />
       ) : null}
     </div>
   );

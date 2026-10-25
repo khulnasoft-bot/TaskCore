@@ -1,6 +1,9 @@
 import type { Issue, IssueBlockerAttention } from "@taskcore/shared";
 
-type InboxLiveDescendantIssue = Pick<Issue, "status" | "blockerAttention" | "liveDescendantCount">;
+type InboxLiveDescendantIssue = Pick<
+  Issue,
+  "status" | "blockerAttention" | "liveDescendantCount"
+>;
 
 interface InboxLiveDescendantOptions {
   isLive: boolean;
@@ -15,7 +18,9 @@ function normalizeLiveDescendantCount(value: unknown): number {
 function asBlockerAttention(value: unknown): IssueBlockerAttention | null {
   if (!value || typeof value !== "object") return null;
   const attention = value as Partial<IssueBlockerAttention>;
-  return typeof attention.state === "string" ? attention as IssueBlockerAttention : null;
+  return typeof attention.state === "string"
+    ? (attention as IssueBlockerAttention)
+    : null;
 }
 
 export function resolveIssueLiveDescendantCount(
@@ -34,12 +39,18 @@ export function resolveInboxIssueBlockerAttention(
 ): IssueBlockerAttention | null {
   const blockerAttention = asBlockerAttention(issue.blockerAttention);
   if (issue.status !== "blocked" || options.isLive) return blockerAttention;
-  if (blockerAttention?.state === "needs_attention" || blockerAttention?.state === "stalled") {
+  if (
+    blockerAttention?.state === "needs_attention" ||
+    blockerAttention?.state === "stalled"
+  ) {
     return blockerAttention;
   }
   if (blockerAttention?.state === "covered") return blockerAttention;
 
-  const liveDescendantCount = resolveIssueLiveDescendantCount(issue, options.loadedSubtreeLiveCount);
+  const liveDescendantCount = resolveIssueLiveDescendantCount(
+    issue,
+    options.loadedSubtreeLiveCount,
+  );
   if (liveDescendantCount <= 0) return blockerAttention;
 
   return {
@@ -50,6 +61,7 @@ export function resolveInboxIssueBlockerAttention(
     stalledBlockerCount: blockerAttention?.stalledBlockerCount ?? 0,
     attentionBlockerCount: blockerAttention?.attentionBlockerCount ?? 0,
     sampleBlockerIdentifier: blockerAttention?.sampleBlockerIdentifier ?? null,
-    sampleStalledBlockerIdentifier: blockerAttention?.sampleStalledBlockerIdentifier ?? null,
+    sampleStalledBlockerIdentifier:
+      blockerAttention?.sampleStalledBlockerIdentifier ?? null,
   };
 }

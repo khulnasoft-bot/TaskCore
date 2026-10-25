@@ -32,9 +32,13 @@ function parseToolCompletionLine(line) {
   const verbAndDetail = durationMatch
     ? cleaned.slice(0, cleaned.lastIndexOf(durationMatch[0])).trim()
     : cleaned;
-  const detailWithoutEmoji = verbAndDetail.replace(/^\p{Emoji_Presentation}\s*/u, "");
+  const detailWithoutEmoji = verbAndDetail.replace(
+    /^\p{Emoji_Presentation}\s*/u,
+    "",
+  );
 
-  const hasError = /\[(?:exit \d+|error|full)\]/.test(detailWithoutEmoji) ||
+  const hasError =
+    /\[(?:exit \d+|error|full)\]/.test(detailWithoutEmoji) ||
     /\[error\]\s*$/.test(cleaned);
 
   const parts = detailWithoutEmoji.match(/^(\S+)\s+(.*)/);
@@ -45,7 +49,7 @@ function parseToolCompletionLine(line) {
   const verb = parts[1];
   const detail = parts[2].trim();
   const nameMap = {
-    "$": "shell",
+    $: "shell",
     exec: "shell",
     terminal: "shell",
     search: "search",
@@ -135,7 +139,9 @@ function parseStdoutLine(line, ts) {
     return [{ kind: "stderr", ts, text: trimmed }];
   }
 
-  if (/^\p{Emoji_Presentation}\s*(Completed|Running|Error)?\s*$/u.test(trimmed)) {
+  if (
+    /^\p{Emoji_Presentation}\s*(Completed|Running|Error)?\s*$/u.test(trimmed)
+  ) {
     return [];
   }
 
@@ -173,7 +179,10 @@ function parseStdoutLine(line, ts) {
       ];
     }
 
-    const escapedPrefix = TOOL_OUTPUT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escapedPrefix = TOOL_OUTPUT_PREFIX.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
+    );
     const stripped = trimmed
       .replace(/^\[done\]\s*/, "")
       .replace(new RegExp(`^${escapedPrefix}\\s*`), "")
@@ -182,7 +191,9 @@ function parseStdoutLine(line, ts) {
   }
 
   if (isThinkingLine(trimmed)) {
-    return [{ kind: "thinking", ts, text: trimmed.replace(/^\u{1f4ad}\s*/u, "") }];
+    return [
+      { kind: "thinking", ts, text: trimmed.replace(/^\u{1f4ad}\s*/u, "") },
+    ];
   }
 
   if (

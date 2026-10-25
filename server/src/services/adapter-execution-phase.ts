@@ -8,8 +8,13 @@ export const MAX_EXECUTION_PHASE_ELAPSED_MS = 86_400_000;
 const MAX_ACTIVE_PHASES = 16;
 
 /** Owned by one executor, never looked up by agent, task, or provider identity. */
-export function createAdapterExecutionPhaseTracker(now = () => performance.now()) {
-  const scopes = new Map<symbol, { phase: AdapterExecutionPhase; startedAt: number }>();
+export function createAdapterExecutionPhaseTracker(
+  now = () => performance.now(),
+) {
+  const scopes = new Map<
+    symbol,
+    { phase: AdapterExecutionPhase; startedAt: number }
+  >();
   let finished = false;
   let overflow = false;
   return {
@@ -23,18 +28,34 @@ export function createAdapterExecutionPhaseTracker(now = () => performance.now()
       }
       const token = Symbol();
       let startedAt: number;
-      try { startedAt = now(); } catch { return; }
+      try {
+        startedAt = now();
+      } catch {
+        return;
+      }
       scopes.set(token, { phase, startedAt });
-      return () => { scopes.delete(token); };
+      return () => {
+        scopes.delete(token);
+      };
     },
     snapshot() {
       if (finished || overflow) return null;
       const current = [...scopes.values()].at(-1);
       if (!current) return null;
       let elapsed: number;
-      try { elapsed = now() - current.startedAt; } catch { return null; }
+      try {
+        elapsed = now() - current.startedAt;
+      } catch {
+        return null;
+      }
       if (!Number.isFinite(elapsed) || elapsed < 0) return null;
-      return { phase: current.phase, phaseElapsedMs: Math.min(Math.floor(elapsed), MAX_EXECUTION_PHASE_ELAPSED_MS) };
+      return {
+        phase: current.phase,
+        phaseElapsedMs: Math.min(
+          Math.floor(elapsed),
+          MAX_EXECUTION_PHASE_ELAPSED_MS,
+        ),
+      };
     },
     finish() {
       finished = true;

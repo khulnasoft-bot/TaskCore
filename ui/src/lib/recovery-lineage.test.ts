@@ -13,7 +13,9 @@ function at(offsetMs: number) {
   return new Date(NOW.getTime() + offsetMs).toISOString();
 }
 
-function sourceLaneAction(overrides: Partial<RecoveryLineageInput> = {}): RecoveryLineageInput {
+function sourceLaneAction(
+  overrides: Partial<RecoveryLineageInput> = {},
+): RecoveryLineageInput {
   return {
     wakePolicy: {
       type: "bounded_owner_disposition_repair",
@@ -33,7 +35,9 @@ function sourceLaneAction(overrides: Partial<RecoveryLineageInput> = {}): Recove
   };
 }
 
-function recoveryLaneAction(overrides: Partial<RecoveryLineageInput> = {}): RecoveryLineageInput {
+function recoveryLaneAction(
+  overrides: Partial<RecoveryLineageInput> = {},
+): RecoveryLineageInput {
   return {
     wakePolicy: {
       type: "bounded_recovery_owner",
@@ -67,8 +71,12 @@ afterEach(() => {
 describe("readRecoveryRetryLineage", () => {
   it("returns null when the action carries no bounded lineage", () => {
     expect(readRecoveryRetryLineage({ wakePolicy: null })).toBeNull();
-    expect(readRecoveryRetryLineage({ wakePolicy: { type: "wake_owner" } })).toBeNull();
-    expect(readRecoveryRetryLineage({ wakePolicy: { type: "monitor" } })).toBeNull();
+    expect(
+      readRecoveryRetryLineage({ wakePolicy: { type: "wake_owner" } }),
+    ).toBeNull();
+    expect(
+      readRecoveryRetryLineage({ wakePolicy: { type: "monitor" } }),
+    ).toBeNull();
   });
 
   it("reads the source-owner lane with its stored attempt and due time", () => {
@@ -335,24 +343,31 @@ describe("durable-path liveness", () => {
 
   it("honours an injected now", () => {
     const action = sourceLaneAction();
-    expect(readRecoveryRetryLineage(action, { now: NOW.getTime() })!.retryExpired).toBe(false);
     expect(
-      readRecoveryRetryLineage(action, { now: NOW.getTime() + 60 * 60_000 })!.retryExpired,
+      readRecoveryRetryLineage(action, { now: NOW.getTime() })!.retryExpired,
+    ).toBe(false);
+    expect(
+      readRecoveryRetryLineage(action, { now: NOW.getTime() + 60 * 60_000 })!
+        .retryExpired,
     ).toBe(true);
   });
 });
 
 describe("recovery lineage formatting", () => {
   it("formats the attempt budget", () => {
-    expect(formatRecoveryAttemptLabel(readRecoveryRetryLineage(sourceLaneAction())!)).toBe(
-      "Attempt 2 of 5",
-    );
+    expect(
+      formatRecoveryAttemptLabel(readRecoveryRetryLineage(sourceLaneAction())!),
+    ).toBe("Attempt 2 of 5");
   });
 
   it("clamps a spent attempt count to the budget", () => {
     const lineage = readRecoveryRetryLineage(
       sourceLaneAction({
-        wakePolicy: { type: "bounded_owner_disposition_repair", attempt: 6, maxAttempts: 5 },
+        wakePolicy: {
+          type: "bounded_owner_disposition_repair",
+          attempt: 6,
+          maxAttempts: 5,
+        },
       }),
     )!;
     expect(formatRecoveryAttemptLabel(lineage)).toBe("Attempt 5 of 5");
@@ -361,7 +376,9 @@ describe("recovery lineage formatting", () => {
   it("formats the next due time relative to now", () => {
     const lineage = readRecoveryRetryLineage(sourceLaneAction())!;
     expect(formatRecoveryRetryOffset(lineage)).toBe("in 3m");
-    expect(formatRecoveryLineageSummary(lineage)).toBe("Attempt 2 of 5 · next try in 3m");
+    expect(formatRecoveryLineageSummary(lineage)).toBe(
+      "Attempt 2 of 5 · next try in 3m",
+    );
   });
 
   it("reports a missed retry instead of an upcoming one (PAP-17561 regression)", () => {
@@ -396,7 +413,9 @@ describe("recovery lineage formatting", () => {
       }),
       { scheduledRetry: { runId: "run-2", status: "running" } },
     )!;
-    expect(formatRecoveryLineageSummary(lineage)).toBe("Attempt 2 of 5 · attempt running now");
+    expect(formatRecoveryLineageSummary(lineage)).toBe(
+      "Attempt 2 of 5 · attempt running now",
+    );
   });
 
   it("says retries are used up when a lane is exhausted", () => {
@@ -410,6 +429,8 @@ describe("recovery lineage formatting", () => {
       },
     })!;
     expect(formatRecoveryRetryOffset(lineage)).toBeNull();
-    expect(formatRecoveryLineageSummary(lineage)).toBe("Attempt 3 of 3 · retries used up");
+    expect(formatRecoveryLineageSummary(lineage)).toBe(
+      "Attempt 3 of 3 · retries used up",
+    );
   });
 });

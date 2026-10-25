@@ -27,7 +27,11 @@ export const LIVE_TRANSCRIPT_RENDER_LIMIT = 1_500;
  * exceeds `max`. Returns `prev` unchanged when there is nothing to add, so React
  * state setters can bail out of a re-render, and never mutates its inputs.
  */
-export function appendCapped<T>(prev: T[], additions: readonly T[], max: number): T[] {
+export function appendCapped<T>(
+  prev: T[],
+  additions: readonly T[],
+  max: number,
+): T[] {
   if (additions.length === 0) return prev;
   const next = [...prev, ...additions];
   return next.length > max ? next.slice(next.length - max) : next;

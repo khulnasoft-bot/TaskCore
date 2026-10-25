@@ -7,14 +7,22 @@ describe("parseCursorCloudStdoutLine", () => {
   it("parses init and status events", () => {
     expect(
       parseCursorCloudStdoutLine(
-        JSON.stringify({ type: "cursor_cloud.init", sessionId: "agent-123", model: "gpt-5.4" }),
+        JSON.stringify({
+          type: "cursor_cloud.init",
+          sessionId: "agent-123",
+          model: "gpt-5.4",
+        }),
         ts,
       ),
     ).toEqual([{ kind: "init", ts, sessionId: "agent-123", model: "gpt-5.4" }]);
 
     expect(
       parseCursorCloudStdoutLine(
-        JSON.stringify({ type: "cursor_cloud.status", status: "running", message: "Reattached" }),
+        JSON.stringify({
+          type: "cursor_cloud.status",
+          status: "running",
+          message: "Reattached",
+        }),
         ts,
       ),
     ).toEqual([{ kind: "system", ts, text: "running: Reattached" }]);
@@ -28,14 +36,25 @@ describe("parseCursorCloudStdoutLine", () => {
         message: {
           content: [
             { type: "text", text: "Working on it." },
-            { type: "tool_use", id: "tool-1", name: "read_file", input: { path: "README.md" } },
+            {
+              type: "tool_use",
+              id: "tool-1",
+              name: "read_file",
+              input: { path: "README.md" },
+            },
           ],
         },
       },
     });
     expect(parseCursorCloudStdoutLine(assistantLine, ts)).toEqual([
       { kind: "assistant", ts, text: "Working on it." },
-      { kind: "tool_call", ts, name: "read_file", toolUseId: "tool-1", input: { path: "README.md" } },
+      {
+        kind: "tool_call",
+        ts,
+        name: "read_file",
+        toolUseId: "tool-1",
+        input: { path: "README.md" },
+      },
     ]);
 
     const toolStartLine = JSON.stringify({
@@ -49,7 +68,13 @@ describe("parseCursorCloudStdoutLine", () => {
       },
     });
     expect(parseCursorCloudStdoutLine(toolStartLine, ts)).toEqual([
-      { kind: "tool_call", ts, name: "bash", toolUseId: "call-1", input: { command: "pwd" } },
+      {
+        kind: "tool_call",
+        ts,
+        name: "bash",
+        toolUseId: "call-1",
+        input: { command: "pwd" },
+      },
     ]);
 
     const toolEndLine = JSON.stringify({
@@ -120,7 +145,12 @@ describe("parseCursorCloudStdoutLine", () => {
   it("parses result events and preserves unknown lines as stdout", () => {
     expect(
       parseCursorCloudStdoutLine(
-        JSON.stringify({ type: "cursor_cloud.result", status: "finished", result: "Done", model: "gpt-5.4" }),
+        JSON.stringify({
+          type: "cursor_cloud.result",
+          status: "finished",
+          result: "Done",
+          model: "gpt-5.4",
+        }),
         ts,
       ),
     ).toEqual([
@@ -138,6 +168,8 @@ describe("parseCursorCloudStdoutLine", () => {
       },
     ]);
 
-    expect(parseCursorCloudStdoutLine("plain text", ts)).toEqual([{ kind: "stdout", ts, text: "plain text" }]);
+    expect(parseCursorCloudStdoutLine("plain text", ts)).toEqual([
+      { kind: "stdout", ts, text: "plain text" },
+    ]);
   });
 });

@@ -93,8 +93,14 @@ export function Composer({
         rows={2}
         value={value}
         disabled={locked}
-        aria-describedby={disabledReason === null ? hintId : `${hintId} ${reasonId}`}
-        placeholder={state === "active-turn" ? "Steer the running turn…" : "Send a message…"}
+        aria-describedby={
+          disabledReason === null ? hintId : `${hintId} ${reasonId}`
+        }
+        placeholder={
+          state === "active-turn"
+            ? "Steer the running turn…"
+            : "Send a message…"
+        }
         onChange={(event) => onValueChange(event.target.value)}
         onKeyDown={onKeyDown}
       />
@@ -103,7 +109,11 @@ export function Composer({
           {HINT[state]}
         </p>
         {disabledReason === null ? null : (
-          <p id={reasonId} className="ui-composer-reason" data-testid="composer-reason">
+          <p
+            id={reasonId}
+            className="ui-composer-reason"
+            data-testid="composer-reason"
+          >
             {disabledReason}
           </p>
         )}

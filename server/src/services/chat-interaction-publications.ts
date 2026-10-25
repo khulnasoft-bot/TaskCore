@@ -268,7 +268,7 @@ export async function enqueueIssueInteractionChatPublications(
       and(
         eq(chatEndpoints.companyId, chatConversations.companyId),
         eq(chatEndpoints.id, chatConversations.endpointId),
-          eq(chatEndpoints.publicationMode, "automatic"),
+        eq(chatEndpoints.publicationMode, "automatic"),
       ),
     )
     .where(
@@ -422,12 +422,33 @@ export async function enqueueIssueInteractionChatPublications(
       .onConflictDoNothing()
       .returning();
     const publication = rows[0];
-    if (publication && endpoint.provider === "imessage-photon" && nativePhotonInteraction(interaction)) {
+    if (
+      publication &&
+      endpoint.provider === "imessage-photon" &&
+      nativePhotonInteraction(interaction)
+    ) {
       const reference = randomBytes(9).toString("base64url");
-      await db.insert(chatActions).values({ companyId: interaction.companyId, endpointId: endpoint.id, conversationId: conversation.id,
-        kind: "photon_interaction", providerActionId: `photon:${reference}`,
-        payload: { version: 1, reference, interactionId: interaction.id, publicationId: publication.id, sessionGeneration: conversation.sessionGeneration,
-          expiresAt: new Date(publication.createdAt.getTime() + CHAT_QUESTION_ACTION_TOKEN_TTL_MS).toISOString() }, status: "issued" });
+      await db
+        .insert(chatActions)
+        .values({
+          companyId: interaction.companyId,
+          endpointId: endpoint.id,
+          conversationId: conversation.id,
+          kind: "photon_interaction",
+          providerActionId: `photon:${reference}`,
+          payload: {
+            version: 1,
+            reference,
+            interactionId: interaction.id,
+            publicationId: publication.id,
+            sessionGeneration: conversation.sessionGeneration,
+            expiresAt: new Date(
+              publication.createdAt.getTime() +
+                CHAT_QUESTION_ACTION_TOKEN_TTL_MS,
+            ).toISOString(),
+          },
+          status: "issued",
+        });
     } else if (publication && formDraft) {
       await db.insert(chatActions).values(
         chatQuestionFormActionRecords(formDraft, {

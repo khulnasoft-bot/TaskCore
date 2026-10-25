@@ -50,7 +50,9 @@ describe("recovery classifier boundary", () => {
           executionState: null,
         },
       ],
-      relations: [{ companyId, blockerIssueId: blockerId, blockedIssueId: issueId }],
+      relations: [
+        { companyId, blockerIssueId: blockerId, blockedIssueId: issueId },
+      ],
       agents: [
         {
           id: agentId,
@@ -71,7 +73,9 @@ describe("recovery classifier boundary", () => {
       ],
     };
 
-    expect(classifyIssueGraphLiveness(input)).toEqual(classifyIssueGraphLivenessCompat(input));
+    expect(classifyIssueGraphLiveness(input)).toEqual(
+      classifyIssueGraphLivenessCompat(input),
+    );
   });
 
   it("treats a scheduled monitor as an explicit review action path", () => {
@@ -198,7 +202,9 @@ describe("recovery classifier boundary", () => {
       idempotentWakeExists: false,
     };
 
-    expect(decideRunLivenessContinuation(input)).toEqual(decideRunLivenessContinuationCompat(input));
+    expect(decideRunLivenessContinuation(input)).toEqual(
+      decideRunLivenessContinuationCompat(input),
+    );
   });
 
   it("keeps recovery origin and idempotency keys stable", () => {
@@ -207,9 +213,15 @@ describe("recovery classifier boundary", () => {
       strandedIssueRecovery: "stranded_issue_recovery",
       staleActiveRunEvaluation: "stale_active_run_evaluation",
     });
-    expect(RECOVERY_REASON_KINDS.runLivenessContinuation).toBe("run_liveness_continuation");
-    expect(RECOVERY_KEY_PREFIXES.issueGraphLivenessIncident).toBe("harness_liveness");
-    expect(RECOVERY_KEY_PREFIXES.issueGraphLivenessLeaf).toBe("harness_liveness_leaf");
+    expect(RECOVERY_REASON_KINDS.runLivenessContinuation).toBe(
+      "run_liveness_continuation",
+    );
+    expect(RECOVERY_KEY_PREFIXES.issueGraphLivenessIncident).toBe(
+      "harness_liveness",
+    );
+    expect(RECOVERY_KEY_PREFIXES.issueGraphLivenessLeaf).toBe(
+      "harness_liveness_leaf",
+    );
 
     const incidentKey = buildIssueGraphLivenessIncidentKey({
       companyId,
@@ -226,22 +238,32 @@ describe("recovery classifier boundary", () => {
       state: "blocked_by_unassigned_issue",
       leafIssueId: blockerId,
     });
-    expect(buildIssueGraphLivenessLeafKey({
-      companyId,
-      state: "blocked_by_unassigned_issue",
-      leafIssueId: blockerId,
-    })).toBe("harness_liveness_leaf:company-1:blocked_by_unassigned_issue:blocker-1");
-    expect(buildRunLivenessContinuationIdempotencyKey({
-      issueId,
-      sourceRunId: runId,
-      livenessState: "plan_only",
-      nextAttempt: 1,
-    })).toBe("run_liveness_continuation:issue-1:run-1:plan_only:1");
+    expect(
+      buildIssueGraphLivenessLeafKey({
+        companyId,
+        state: "blocked_by_unassigned_issue",
+        leafIssueId: blockerId,
+      }),
+    ).toBe(
+      "harness_liveness_leaf:company-1:blocked_by_unassigned_issue:blocker-1",
+    );
+    expect(
+      buildRunLivenessContinuationIdempotencyKey({
+        issueId,
+        sourceRunId: runId,
+        livenessState: "plan_only",
+        nextAttempt: 1,
+      }),
+    ).toBe("run_liveness_continuation:issue-1:run-1:plan_only:1");
   });
 
   it("classifies stranded recovery origins as recovery-owned work", () => {
-    expect(isStrandedIssueRecoveryOriginKind("stranded_issue_recovery")).toBe(true);
-    expect(isStrandedIssueRecoveryOriginKind("harness_liveness_escalation")).toBe(false);
+    expect(isStrandedIssueRecoveryOriginKind("stranded_issue_recovery")).toBe(
+      true,
+    );
+    expect(
+      isStrandedIssueRecoveryOriginKind("harness_liveness_escalation"),
+    ).toBe(false);
     expect(isStrandedIssueRecoveryOriginKind("manual")).toBe(false);
     expect(isStrandedIssueRecoveryOriginKind(null)).toBe(false);
   });

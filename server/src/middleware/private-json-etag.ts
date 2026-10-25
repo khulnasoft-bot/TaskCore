@@ -5,7 +5,9 @@ function matchesEtag(header: string | undefined, etag: string) {
   if (!header) return false;
   return header.split(",").some((candidate) => {
     const normalized = candidate.trim();
-    return normalized === "*" || normalized === etag || normalized === `W/${etag}`;
+    return (
+      normalized === "*" || normalized === etag || normalized === `W/${etag}`
+    );
   });
 }
 
@@ -20,11 +22,12 @@ export function privateJsonEtag(): RequestHandler {
     res.send = ((body: unknown) => {
       const contentType = res.getHeader("Content-Type");
       if (
-        res.statusCode < 200
-        || res.statusCode >= 300
-        || typeof contentType !== "string"
-        || !contentType.includes("application/json")
-      ) return originalSend(body);
+        res.statusCode < 200 ||
+        res.statusCode >= 300 ||
+        typeof contentType !== "string" ||
+        !contentType.includes("application/json")
+      )
+        return originalSend(body);
       const serialized = typeof body === "string" ? body : JSON.stringify(body);
       const etag = `"${createHash("sha256").update(serialized).digest("base64url")}"`;
       res.setHeader("Cache-Control", "private, must-revalidate");

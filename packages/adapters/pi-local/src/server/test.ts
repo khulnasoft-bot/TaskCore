@@ -8,9 +8,7 @@ import {
   parseObject,
   ensurePathInEnv,
 } from "@taskcore/adapter-utils/server-utils";
-import {
-  asStringArray,
-} from "@taskcore/adapter-utils/server-utils";
+import { asStringArray } from "@taskcore/adapter-utils/server-utils";
 import {
   ensureAdapterExecutionTargetCommandResolvable,
   maybeRunSandboxInstallCommand,
@@ -23,7 +21,9 @@ import { discoverPiModelsCached } from "./models.js";
 import { parsePiJsonl } from "./parse.js";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
 
-function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
+function summarizeStatus(
+  checks: AdapterEnvironmentCheck[],
+): AdapterEnvironmentTestResult["status"] {
   if (checks.some((check) => check.level === "error")) return "fail";
   if (checks.some((check) => check.level === "warn")) return "warn";
   return "pass";
@@ -38,8 +38,15 @@ function firstNonEmptyLine(text: string): string {
   );
 }
 
-function summarizeProbeDetail(stdout: string, stderr: string, parsedError: string | null): string | null {
-  const raw = parsedError?.trim() || firstNonEmptyLine(stderr) || firstNonEmptyLine(stdout);
+function summarizeProbeDetail(
+  stdout: string,
+  stderr: string,
+  parsedError: string | null,
+): string | null {
+  const raw =
+    parsedError?.trim() ||
+    firstNonEmptyLine(stderr) ||
+    firstNonEmptyLine(stdout);
   if (!raw) return null;
   const clean = raw.replace(/\s+/g, " ").trim();
   const max = 240;
@@ -47,7 +54,8 @@ function summarizeProbeDetail(stdout: string, stderr: string, parsedError: strin
 }
 
 function normalizeEnv(input: unknown): Record<string, string> {
-  if (typeof input !== "object" || input === null || Array.isArray(input)) return {};
+  if (typeof input !== "object" || input === null || Array.isArray(input))
+    return {};
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
     if (typeof value === "string") env[key] = value;
@@ -59,12 +67,15 @@ const PI_AUTH_REQUIRED_RE =
   /(?:auth(?:entication)?\s+required|api\s*key|invalid\s*api\s*key|not\s+logged\s+in|free\s+usage\s+exceeded)/i;
 const PI_STALE_PACKAGE_RE = /pi-driver|npm:\s*pi-driver/i;
 
-function buildPiModelDiscoveryFailureCheck(message: string): AdapterEnvironmentCheck {
+function buildPiModelDiscoveryFailureCheck(
+  message: string,
+): AdapterEnvironmentCheck {
   if (PI_STALE_PACKAGE_RE.test(message)) {
     return {
       code: "pi_package_install_failed",
       level: "warn",
-      message: "Pi startup failed while installing configured package `npm:pi-driver`.",
+      message:
+        "Pi startup failed while installing configured package `npm:pi-driver`.",
       detail: message,
       hint: "Remove `npm:pi-driver` from ~/.pi/agent/settings.json or set adapter env HOME to a clean Pi profile, then retry `pi --list-models`.",
     };
@@ -86,9 +97,13 @@ export async function testEnvironment(
   const command = asString(config.command, "pi");
   const target = ctx.executionTarget ?? null;
   const targetIsRemote = target?.kind === "remote";
-  const cwd = resolveAdapterExecutionTargetCwd(target, asString(config.cwd, ""), process.cwd());
+  const cwd = resolveAdapterExecutionTargetCwd(
+    target,
+    asString(config.cwd, ""),
+    process.cwd(),
+  );
   const targetLabel = targetIsRemote
-    ? ctx.environmentName ?? describeAdapterExecutionTarget(target)
+    ? (ctx.environmentName ?? describeAdapterExecutionTarget(target))
     : null;
   const runId = `pi-envtest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -132,7 +147,8 @@ export async function testEnvironment(
     checks.push({
       code: "pi_command_skipped",
       level: "warn",
-      message: "Skipped command check because working directory validation failed.",
+      message:
+        "Skipped command check because working directory validation failed.",
       detail: command,
     });
   } else {
@@ -141,12 +157,17 @@ export async function testEnvironment(
       target,
       adapterKey: "pi",
       installCommand: SANDBOX_INSTALL_COMMAND,
-    detectCommand: command,
+      detectCommand: command,
       env,
     });
     if (installCheck) checks.push(installCheck);
     try {
-      await ensureAdapterExecutionTargetCommandResolvable(command, target, cwd, runtimeEnv);
+      await ensureAdapterExecutionTargetCommandResolvable(
+        command,
+        target,
+        cwd,
+        runtimeEnv,
+      );
       checks.push({
         code: "pi_command_resolvable",
         level: "info",
@@ -156,21 +177,29 @@ export async function testEnvironment(
       checks.push({
         code: "pi_command_unresolvable",
         level: "error",
-        message: err instanceof Error ? err.message : "Command is not executable",
+        message:
+          err instanceof Error ? err.message : "Command is not executable",
         detail: command,
       });
     }
   }
 
-  const canRunProbe =
-    checks.every((check) => check.code !== "pi_cwd_invalid" && check.code !== "pi_command_unresolvable");
+  const canRunProbe = checks.every(
+    (check) =>
+      check.code !== "pi_cwd_invalid" &&
+      check.code !== "pi_command_unresolvable",
+  );
 
   // Pi model discovery shells out to `pi --list-models` locally; when probing a
   // remote target we skip discovery and let the remote hello probe surface
   // model/auth issues directly.
   if (!targetIsRemote && canRunProbe) {
     try {
-      const discovered = await discoverPiModelsCached({ command, cwd, env: runtimeEnv });
+      const discovered = await discoverPiModelsCached({
+        command,
+        cwd,
+        env: runtimeEnv,
+      });
       if (discovered.length > 0) {
         checks.push({
           code: "pi_models_discovered",
@@ -211,8 +240,14 @@ export async function testEnvironment(
   } else if (canRunProbe) {
     // Verify model is in the list
     try {
-      const discovered = await discoverPiModelsCached({ command, cwd, env: runtimeEnv });
-      const modelExists = discovered.some((m: { id: string }) => m.id === configuredModel);
+      const discovered = await discoverPiModelsCached({
+        command,
+        cwd,
+        env: runtimeEnv,
+      });
+      const modelExists = discovered.some(
+        (m: { id: string }) => m.id === configuredModel,
+      );
       if (modelExists) {
         checks.push({
           code: "pi_model_configured",
@@ -239,8 +274,8 @@ export async function testEnvironment(
 
   if (canRunProbe && configuredModel) {
     // Parse model for probe
-    const provider = configuredModel.includes("/") 
-      ? configuredModel.slice(0, configuredModel.indexOf("/")) 
+    const provider = configuredModel.includes("/")
+      ? configuredModel.slice(0, configuredModel.indexOf("/"))
       : "";
     const modelId = configuredModel.includes("/")
       ? configuredModel.slice(configuredModel.indexOf("/") + 1)
@@ -275,8 +310,13 @@ export async function testEnvironment(
       );
 
       const parsed = parsePiJsonl(probe.stdout);
-      const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errors[0] ?? null);
-      const authEvidence = `${parsed.errors.join("\n")}\n${probe.stdout}\n${probe.stderr}`.trim();
+      const detail = summarizeProbeDetail(
+        probe.stdout,
+        probe.stderr,
+        parsed.errors[0] ?? null,
+      );
+      const authEvidence =
+        `${parsed.errors.join("\n")}\n${probe.stdout}\n${probe.stderr}`.trim();
 
       if (probe.timedOut) {
         checks.push({
@@ -286,15 +326,21 @@ export async function testEnvironment(
           hint: "Retry the probe. If this persists, run Pi manually in this working directory.",
         });
       } else if ((probe.exitCode ?? 1) === 0 && parsed.errors.length === 0) {
-        const summary = (parsed.finalMessage || parsed.messages.join(" ")).trim();
+        const summary = (
+          parsed.finalMessage || parsed.messages.join(" ")
+        ).trim();
         const hasHello = /\bhello\b/i.test(summary);
         checks.push({
-          code: hasHello ? "pi_hello_probe_passed" : "pi_hello_probe_unexpected_output",
+          code: hasHello
+            ? "pi_hello_probe_passed"
+            : "pi_hello_probe_unexpected_output",
           level: hasHello ? "info" : "warn",
           message: hasHello
             ? "Pi hello probe succeeded."
             : "Pi probe ran but did not return `hello` as expected.",
-          ...(summary ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) } : {}),
+          ...(summary
+            ? { detail: summary.replace(/\s+/g, " ").trim().slice(0, 240) }
+            : {}),
           ...(hasHello
             ? {}
             : {

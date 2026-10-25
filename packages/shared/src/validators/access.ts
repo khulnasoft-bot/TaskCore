@@ -35,7 +35,10 @@ export const acceptInviteSchema = z.object({
   // OpenClaw join compatibility fields accepted at top level.
   responsesWebhookUrl: z.string().max(4000).optional().nullable(),
   responsesWebhookMethod: z.string().max(32).optional().nullable(),
-  responsesWebhookHeaders: z.record(z.string(), z.unknown()).optional().nullable(),
+  responsesWebhookHeaders: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .nullable(),
   taskcoreApiUrl: z.string().max(4000).optional().nullable(),
   webhookAuthHeader: z.string().max(4000).optional().nullable(),
 });
@@ -55,20 +58,26 @@ export const listCompanyInvitesQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional().default(0),
 });
 
-export type ListCompanyInvitesQuery = z.infer<typeof listCompanyInvitesQuerySchema>;
+export type ListCompanyInvitesQuery = z.infer<
+  typeof listCompanyInvitesQuerySchema
+>;
 
 export const claimJoinRequestApiKeySchema = z.object({
   claimSecret: z.string().min(16).max(256),
 });
 
-export type ClaimJoinRequestApiKey = z.infer<typeof claimJoinRequestApiKeySchema>;
+export type ClaimJoinRequestApiKey = z.infer<
+  typeof claimJoinRequestApiKeySchema
+>;
 
 export const boardCliAuthAccessLevelSchema = z.enum([
   "board",
   "instance_admin_required",
 ]);
 
-export type BoardCliAuthAccessLevel = z.infer<typeof boardCliAuthAccessLevelSchema>;
+export type BoardCliAuthAccessLevel = z.infer<
+  typeof boardCliAuthAccessLevelSchema
+>;
 
 export const createCliAuthChallengeSchema = z.object({
   command: z.string().min(1).max(240),
@@ -77,13 +86,17 @@ export const createCliAuthChallengeSchema = z.object({
   requestedCompanyId: z.string().guid().optional().nullable(),
 });
 
-export type CreateCliAuthChallenge = z.infer<typeof createCliAuthChallengeSchema>;
+export type CreateCliAuthChallenge = z.infer<
+  typeof createCliAuthChallengeSchema
+>;
 
 export const resolveCliAuthChallengeSchema = z.object({
   token: z.string().min(16).max(256),
 });
 
-export type ResolveCliAuthChallenge = z.infer<typeof resolveCliAuthChallengeSchema>;
+export type ResolveCliAuthChallenge = z.infer<
+  typeof resolveCliAuthChallengeSchema
+>;
 
 export const createBoardApiKeySchema = z.object({
   name: z.string().trim().min(1).max(120).default("taskcore cli"),
@@ -102,46 +115,71 @@ export const updateMemberPermissionsSchema = z.object({
   ),
 });
 
-export type UpdateMemberPermissions = z.infer<typeof updateMemberPermissionsSchema>;
+export type UpdateMemberPermissions = z.infer<
+  typeof updateMemberPermissionsSchema
+>;
 
 const editableMembershipStatuses = ["pending", "active", "suspended"] as const;
 
-export const updateCompanyMemberSchema = z.object({
-  membershipRole: z.enum(HUMAN_COMPANY_MEMBERSHIP_ROLES).optional().nullable(),
-  status: z.enum(editableMembershipStatuses).optional(),
-}).refine((value) => value.membershipRole !== undefined || value.status !== undefined, {
-  message: "membershipRole or status is required",
-});
+export const updateCompanyMemberSchema = z
+  .object({
+    membershipRole: z
+      .enum(HUMAN_COMPANY_MEMBERSHIP_ROLES)
+      .optional()
+      .nullable(),
+    status: z.enum(editableMembershipStatuses).optional(),
+  })
+  .refine(
+    (value) => value.membershipRole !== undefined || value.status !== undefined,
+    {
+      message: "membershipRole or status is required",
+    },
+  );
 
 export type UpdateCompanyMember = z.infer<typeof updateCompanyMemberSchema>;
 
-export const updateCompanyMemberWithPermissionsSchema = z.object({
-  membershipRole: z.enum(HUMAN_COMPANY_MEMBERSHIP_ROLES).optional().nullable(),
-  status: z.enum(editableMembershipStatuses).optional(),
-  grants: updateMemberPermissionsSchema.shape.grants.default([]),
-}).refine((value) => value.membershipRole !== undefined || value.status !== undefined, {
-  message: "membershipRole or status is required",
-});
+export const updateCompanyMemberWithPermissionsSchema = z
+  .object({
+    membershipRole: z
+      .enum(HUMAN_COMPANY_MEMBERSHIP_ROLES)
+      .optional()
+      .nullable(),
+    status: z.enum(editableMembershipStatuses).optional(),
+    grants: updateMemberPermissionsSchema.shape.grants.default([]),
+  })
+  .refine(
+    (value) => value.membershipRole !== undefined || value.status !== undefined,
+    {
+      message: "membershipRole or status is required",
+    },
+  );
 
-export type UpdateCompanyMemberWithPermissions = z.infer<typeof updateCompanyMemberWithPermissionsSchema>;
+export type UpdateCompanyMemberWithPermissions = z.infer<
+  typeof updateCompanyMemberWithPermissionsSchema
+>;
 
-export const archiveCompanyMemberSchema = z.object({
-  reassignment: z
-    .object({
-      assigneeAgentId: z.string().guid().optional().nullable(),
-      assigneeUserId: z.string().guid().optional().nullable(),
-    })
-    .optional()
-    .nullable(),
-}).superRefine((value, ctx) => {
-  if (value.reassignment?.assigneeAgentId && value.reassignment.assigneeUserId) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Choose either an agent or user reassignment target",
-      path: ["reassignment"],
-    });
-  }
-});
+export const archiveCompanyMemberSchema = z
+  .object({
+    reassignment: z
+      .object({
+        assigneeAgentId: z.string().guid().optional().nullable(),
+        assigneeUserId: z.string().guid().optional().nullable(),
+      })
+      .optional()
+      .nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.reassignment?.assigneeAgentId &&
+      value.reassignment.assigneeUserId
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Choose either an agent or user reassignment target",
+        path: ["reassignment"],
+      });
+    }
+  });
 
 export type ArchiveCompanyMember = z.infer<typeof archiveCompanyMemberSchema>;
 
@@ -149,7 +187,9 @@ export const updateUserCompanyAccessSchema = z.object({
   companyIds: z.array(z.string().guid()).default([]),
 });
 
-export type UpdateUserCompanyAccess = z.infer<typeof updateUserCompanyAccessSchema>;
+export type UpdateUserCompanyAccess = z.infer<
+  typeof updateUserCompanyAccessSchema
+>;
 
 export const searchAdminUsersQuerySchema = z.object({
   query: z.string().trim().max(120).optional().default(""),
@@ -157,7 +197,8 @@ export const searchAdminUsersQuerySchema = z.object({
 
 export type SearchAdminUsersQuery = z.infer<typeof searchAdminUsersQuerySchema>;
 
-const profileImageAssetPathPattern = /^\/api\/assets\/[^/?#]+\/content(?:\?[^#]*)?(?:#.*)?$/;
+const profileImageAssetPathPattern =
+  /^\/api\/assets\/[^/?#]+\/content(?:\?[^#]*)?(?:#.*)?$/;
 
 function isValidProfileImage(value: string): boolean {
   if (profileImageAssetPathPattern.test(value)) return true;
@@ -216,7 +257,9 @@ export const updateCurrentUserProfileSchema = z.object({
   image: z
     .union([profileImageSchema, z.literal(""), z.null()])
     .optional()
-    .transform((value) => value === "" ? null : value),
+    .transform((value) => (value === "" ? null : value)),
 });
 
-export type UpdateCurrentUserProfile = z.infer<typeof updateCurrentUserProfileSchema>;
+export type UpdateCurrentUserProfile = z.infer<
+  typeof updateCurrentUserProfileSchema
+>;

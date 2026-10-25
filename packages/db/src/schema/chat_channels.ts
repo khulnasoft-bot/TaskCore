@@ -44,8 +44,14 @@ export const chatEndpoints = pgTable(
     connectionId: uuid("connection_id").notNull(),
     provider: text("provider").$type<ChatProvider>().notNull(),
     publicId: text("public_id").notNull(),
-    publicationMode: text("publication_mode").$type<"automatic" | "explicit">().notNull().default("automatic"),
-    externalExecutionPolicy: text("external_execution_policy").$type<"restricted" | "agent">().notNull().default("restricted"),
+    publicationMode: text("publication_mode")
+      .$type<"automatic" | "explicit">()
+      .notNull()
+      .default("automatic"),
+    externalExecutionPolicy: text("external_execution_policy")
+      .$type<"restricted" | "agent">()
+      .notNull()
+      .default("restricted"),
     assignedAgentId: uuid("assigned_agent_id")
       .notNull()
       .references(() => agents.id, { onDelete: "restrict" }),
@@ -64,7 +70,9 @@ export const chatEndpoints = pgTable(
     botUsername: text("bot_username"),
     botDisplayName: text("bot_display_name"),
     botAvatarUrl: text("bot_avatar_url"),
-    communicationInstructions: text("communication_instructions").notNull().default(""),
+    communicationInstructions: text("communication_instructions")
+      .notNull()
+      .default(""),
     allowDirectMessages: boolean("allow_direct_messages")
       .notNull()
       .default(true),
@@ -112,9 +120,18 @@ export const chatEndpoints = pgTable(
       .defaultNow(),
   },
   (table) => [
-    check("chat_endpoints_publication_mode_check", sql`${table.publicationMode} in ('automatic', 'explicit')`),
-    check("chat_endpoints_execution_policy_check", sql`${table.externalExecutionPolicy} in ('restricted', 'agent')`),
-    check("chat_endpoints_email_policy_check", sql`${table.provider} <> 'agentmail' or (${table.publicationMode} = 'explicit' and ${table.externalExecutionPolicy} = 'agent')`),
+    check(
+      "chat_endpoints_publication_mode_check",
+      sql`${table.publicationMode} in ('automatic', 'explicit')`,
+    ),
+    check(
+      "chat_endpoints_execution_policy_check",
+      sql`${table.externalExecutionPolicy} in ('restricted', 'agent')`,
+    ),
+    check(
+      "chat_endpoints_email_policy_check",
+      sql`${table.provider} <> 'agentmail' or (${table.publicationMode} = 'explicit' and ${table.externalExecutionPolicy} = 'agent')`,
+    ),
     check(
       "chat_endpoints_provider_check",
       sql`${table.provider} in ('slack', 'github', 'discord', 'microsoft-teams', 'telegram', 'agentmail', 'imessage-photon')`,
@@ -140,7 +157,9 @@ export const chatEndpoints = pgTable(
     uniqueIndex("chat_endpoints_public_id_uq").on(table.publicId),
     uniqueIndex("chat_endpoints_agentmail_inbox_uq")
       .on(table.botExternalId)
-      .where(sql`${table.provider} = 'agentmail' and ${table.status} != 'archived' and ${table.botExternalId} is not null`),
+      .where(
+        sql`${table.provider} = 'agentmail' and ${table.status} != 'archived' and ${table.botExternalId} is not null`,
+      ),
     uniqueIndex("chat_endpoints_connection_uq").on(table.connectionId),
     // A native provider identity can back only one live Taskcore endpoint.
     // Historical archived/revoked endpoints retain attribution without
@@ -158,7 +177,9 @@ export const chatEndpoints = pgTable(
     // two Taskcore agents after both application-level prechecks passed.
     uniqueIndex("chat_endpoints_photon_number_uq")
       .on(table.botExternalId)
-      .where(sql`${table.provider} = 'imessage-photon' and ${table.status} <> 'archived' and ${table.botExternalId} is not null`),
+      .where(
+        sql`${table.provider} = 'imessage-photon' and ${table.status} <> 'archived' and ${table.botExternalId} is not null`,
+      ),
     uniqueIndex("chat_endpoints_live_discord_bot_external_uq")
       .on(table.provider, table.botExternalId)
       .where(

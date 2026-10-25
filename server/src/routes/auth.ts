@@ -44,20 +44,22 @@ export function authRoutes(db: Db) {
     }
 
     const user = await loadCurrentUserProfile(db, req.actor.userId);
-    res.json(authSessionSchema.parse({
-      session: {
-        id: `taskcore:${req.actor.source ?? "none"}:${req.actor.userId}`,
-        userId: req.actor.userId,
-      },
-      user,
-      // The browser reads this value to open its own Sentry gate — see
-      // `ui/src/lib/sentry.ts`. `req.actor.type` already gates this whole
-      // handler, so no second authorization check runs here. This field
-      // carries the front-end DSN only; it never carries the backend DSN.
-      sentryDsn: resolveSentryDsns().frontend,
-      // Match the server SDK's runtime environment, including in reused images.
-      sentryEnvironment: process.env.SENTRY_ENVIRONMENT || null,
-    }));
+    res.json(
+      authSessionSchema.parse({
+        session: {
+          id: `taskcore:${req.actor.source ?? "none"}:${req.actor.userId}`,
+          userId: req.actor.userId,
+        },
+        user,
+        // The browser reads this value to open its own Sentry gate — see
+        // `ui/src/lib/sentry.ts`. `req.actor.type` already gates this whole
+        // handler, so no second authorization check runs here. This field
+        // carries the front-end DSN only; it never carries the backend DSN.
+        sentryDsn: resolveSentryDsns().frontend,
+        // Match the server SDK's runtime environment, including in reused images.
+        sentryEnvironment: process.env.SENTRY_ENVIRONMENT || null,
+      }),
+    );
   });
 
   router.get("/profile", async (req, res) => {
@@ -68,41 +70,47 @@ export function authRoutes(db: Db) {
     res.json(await loadCurrentUserProfile(db, req.actor.userId));
   });
 
-  router.patch("/profile", validate(updateCurrentUserProfileSchema), async (req, res) => {
-    if (req.actor.type !== "board" || !req.actor.userId) {
-      throw unauthorized("Board authentication required");
-    }
+  router.patch(
+    "/profile",
+    validate(updateCurrentUserProfileSchema),
+    async (req, res) => {
+      if (req.actor.type !== "board" || !req.actor.userId) {
+        throw unauthorized("Board authentication required");
+      }
 
-    const patch = updateCurrentUserProfileSchema.parse(req.body);
-    const now = new Date();
+      const patch = updateCurrentUserProfileSchema.parse(req.body);
+      const now = new Date();
 
-    const updated = await db
-      .update(authUsers)
-      .set({
-        name: patch.name,
-        ...(patch.image !== undefined ? { image: patch.image } : {}),
-        updatedAt: now,
-      })
-      .where(eq(authUsers.id, req.actor.userId))
-      .returning({
-        id: authUsers.id,
-        email: authUsers.email,
-        name: authUsers.name,
-        image: authUsers.image,
-      })
-      .then((rows) => rows[0] ?? null);
+      const updated = await db
+        .update(authUsers)
+        .set({
+          name: patch.name,
+          ...(patch.image !== undefined ? { image: patch.image } : {}),
+          updatedAt: now,
+        })
+        .where(eq(authUsers.id, req.actor.userId))
+        .returning({
+          id: authUsers.id,
+          email: authUsers.email,
+          name: authUsers.name,
+          image: authUsers.image,
+        })
+        .then((rows) => rows[0] ?? null);
 
-    if (!updated) {
-      throw unauthorized("Signed-in user not found");
-    }
+      if (!updated) {
+        throw unauthorized("Signed-in user not found");
+      }
 
-    res.json(currentUserProfileSchema.parse({
-      id: updated.id,
-      email: updated.email ?? null,
-      name: updated.name ?? null,
-      image: updated.image ?? null,
-    }));
-  });
+      res.json(
+        currentUserProfileSchema.parse({
+          id: updated.id,
+          email: updated.email ?? null,
+          name: updated.name ?? null,
+          image: updated.image ?? null,
+        }),
+      );
+    },
+  );
 
   return router;
 }

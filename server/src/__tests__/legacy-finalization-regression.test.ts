@@ -19,15 +19,17 @@ import {
 import { startEmbeddedPostgresTestDatabase } from "./helpers/embedded-postgres.js";
 import { drainHeartbeatRunsToQuiescence } from "./helpers/drain-heartbeat-runs.js";
 
-const adapterExecute = vi.hoisted(() => vi.fn(async () => ({
-  exitCode: 0,
-  signal: null,
-  timedOut: false,
-  summary: "Legacy adapter completed through the flag-off heartbeat.",
-  resultJson: { summary: "Legacy bytes", nested: { count: 1, ok: true } },
-  provider: "test",
-  model: "legacy-test",
-})));
+const adapterExecute = vi.hoisted(() =>
+  vi.fn(async () => ({
+    exitCode: 0,
+    signal: null,
+    timedOut: false,
+    summary: "Legacy adapter completed through the flag-off heartbeat.",
+    resultJson: { summary: "Legacy bytes", nested: { count: 1, ok: true } },
+    provider: "test",
+    model: "legacy-test",
+  })),
+);
 
 vi.mock("../adapters/index.js", () => ({
   getServerAdapter: () => ({
@@ -48,7 +50,9 @@ import { instanceSettingsService } from "../services/instance-settings.js";
 import { reconcileNativeFinalizations } from "../services/native-runtime/native-finalization-reconciler.js";
 
 describe("P6-32 legacy finalization regression", () => {
-  let temporary: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let temporary: Awaited<
+    ReturnType<typeof startEmbeddedPostgresTestDatabase>
+  > | null = null;
   let db: ReturnType<typeof createDb>;
   const companyId = randomUUID();
   const agentId = randomUUID();
@@ -57,9 +61,13 @@ describe("P6-32 legacy finalization regression", () => {
   const issueId = randomUUID();
 
   beforeAll(async () => {
-    temporary = await startEmbeddedPostgresTestDatabase("taskcore-native-legacy-");
+    temporary = await startEmbeddedPostgresTestDatabase(
+      "taskcore-native-legacy-",
+    );
     db = createDb(temporary.connectionString);
-    await instanceSettingsService(db).updateExperimental({ enableNativeRunner: false });
+    await instanceSettingsService(db).updateExperimental({
+      enableNativeRunner: false,
+    });
     await db.insert(companies).values({
       id: companyId,
       name: "Legacy snapshot",
@@ -67,7 +75,14 @@ describe("P6-32 legacy finalization regression", () => {
       status: "active",
       defaultResponsibleUserId: "responsible-user",
     });
-    await db.insert(projects).values({ id: projectId, companyId, name: "Legacy project", status: "active" });
+    await db
+      .insert(projects)
+      .values({
+        id: projectId,
+        companyId,
+        name: "Legacy project",
+        status: "active",
+      });
     await db.insert(projectWorkspaces).values({
       id: projectWorkspaceId,
       companyId,
@@ -82,7 +97,9 @@ describe("P6-32 legacy finalization regression", () => {
       name: "Legacy agent",
       adapterType: "codex_local",
       status: "idle",
-      runtimeConfig: { heartbeat: { wakeOnDemand: true, maxConcurrentRuns: 1 } },
+      runtimeConfig: {
+        heartbeat: { wakeOnDemand: true, maxConcurrentRuns: 1 },
+      },
     });
     await db.insert(issues).values({
       id: issueId,
@@ -106,7 +123,10 @@ describe("P6-32 legacy finalization regression", () => {
   it("executes a flag-off heartbeat through the legacy adapter with byte-stable reads and zero native rows", async () => {
     const execute = adapterExecute.getMockImplementation()!;
     adapterExecute.mockImplementationOnce(async () => {
-      await db.update(issues).set({ status: "done" }).where(eq(issues.id, issueId));
+      await db
+        .update(issues)
+        .set({ status: "done" })
+        .where(eq(issues.id, issueId));
       return execute();
     });
     const heartbeat = heartbeatService(db);
@@ -130,14 +150,42 @@ describe("P6-32 legacy finalization regression", () => {
       runtimeModeReason: "direct_adapter",
       resultJson: { summary: "Legacy bytes", nested: { count: 1, ok: true } },
     });
-    await expect(reconcileNativeFinalizations(db, [runId])).resolves.toEqual([]);
-    expect(JSON.stringify(await heartbeat.getRun(runId))).toBe(JSON.stringify(publicBefore));
+    await expect(reconcileNativeFinalizations(db, [runId])).resolves.toEqual(
+      [],
+    );
+    expect(JSON.stringify(await heartbeat.getRun(runId))).toBe(
+      JSON.stringify(publicBefore),
+    );
 
-    await expect(db.select().from(completionContracts).where(eq(completionContracts.companyId, companyId))).resolves.toHaveLength(0);
-    await expect(db.select().from(nativeRunResults).where(eq(nativeRunResults.runId, runId))).resolves.toHaveLength(0);
-    await expect(db.select().from(nativeRunFinalizations).where(eq(nativeRunFinalizations.runId, runId))).resolves.toHaveLength(0);
-    await expect(db.select().from(workAssessments).where(eq(workAssessments.runId, runId))).resolves.toHaveLength(0);
-    await expect(db.select().from(statusDecisions).where(eq(statusDecisions.companyId, companyId))).resolves.toHaveLength(0);
-    await expect(db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId))).resolves.toHaveLength(1);
+    await expect(
+      db
+        .select()
+        .from(completionContracts)
+        .where(eq(completionContracts.companyId, companyId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db
+        .select()
+        .from(nativeRunResults)
+        .where(eq(nativeRunResults.runId, runId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db
+        .select()
+        .from(nativeRunFinalizations)
+        .where(eq(nativeRunFinalizations.runId, runId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(workAssessments).where(eq(workAssessments.runId, runId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db
+        .select()
+        .from(statusDecisions)
+        .where(eq(statusDecisions.companyId, companyId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, runId)),
+    ).resolves.toHaveLength(1);
   }, 30_000);
 });

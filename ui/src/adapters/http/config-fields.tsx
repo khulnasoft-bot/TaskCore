@@ -18,7 +18,8 @@ export function HttpConfigFields({
   eff,
   mark,
 }: AdapterConfigFieldsProps) {
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <Field label="Webhook URL" hint={help.webhookUrl}>
       <DraftInput
         value={
@@ -35,6 +36,6 @@ export function HttpConfigFields({
         className={inputClass}
         placeholder="https://..."
       />
-    </Field>
-  ));
+    </Field>,
+  );
 }

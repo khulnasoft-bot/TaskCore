@@ -112,7 +112,9 @@ export function pluginStateStore(db: Db) {
       const rows = await db
         .select()
         .from(pluginState)
-        .where(scopeConditions(pluginId, scopeKind, scopeId, namespace, stateKey));
+        .where(
+          scopeConditions(pluginId, scopeKind, scopeId, namespace, stateKey),
+        );
 
       return rows[0]?.valueJson ?? null;
     },
@@ -185,7 +187,9 @@ export function pluginStateStore(db: Db) {
     ): Promise<void> => {
       await db
         .delete(pluginState)
-        .where(scopeConditions(pluginId, scopeKind, scopeId, namespace, stateKey));
+        .where(
+          scopeConditions(pluginId, scopeKind, scopeId, namespace, stateKey),
+        );
     },
 
     /**
@@ -199,7 +203,10 @@ export function pluginStateStore(db: Db) {
      * @param pluginId - UUID of the owning plugin
      * @param filter - Optional scope filters (scopeKind, scopeId, namespace)
      */
-    list: async (pluginId: string, filter: ListPluginState = {}): Promise<typeof pluginState.$inferSelect[]> => {
+    list: async (
+      pluginId: string,
+      filter: ListPluginState = {},
+    ): Promise<(typeof pluginState.$inferSelect)[]> => {
       const conditions = [eq(pluginState.pluginId, pluginId)];
 
       if (filter.scopeKind !== undefined) {
@@ -227,9 +234,7 @@ export function pluginStateStore(db: Db) {
      * @param pluginId - UUID of the owning plugin
      */
     deleteAll: async (pluginId: string): Promise<void> => {
-      await db
-        .delete(pluginState)
-        .where(eq(pluginState.pluginId, pluginId));
+      await db.delete(pluginState).where(eq(pluginState.pluginId, pluginId));
     },
   };
 }

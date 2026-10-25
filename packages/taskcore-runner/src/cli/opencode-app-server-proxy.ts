@@ -18,7 +18,10 @@ import {
   shouldAnnounceOpenCodeProxyTurn,
   shouldForwardOpenCodeProxyItem,
 } from "./opencode-proxy-events.js";
-import { enqueueOpenCodeProxyInput, openCodeProxyCompletionFeedback } from "./opencode-proxy-input.js";
+import {
+  enqueueOpenCodeProxyInput,
+  openCodeProxyCompletionFeedback,
+} from "./opencode-proxy-input.js";
 import {
   assertOpenCodeProxyCollaborationMode,
   openCodeProxyCollaborationModes,
@@ -41,7 +44,11 @@ type RpcMessage = {
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
 const pending = new Map<
   string,
-  { resolve(value: unknown): void; reject(error: Error): void; retainEnvelope: boolean }
+  {
+    resolve(value: unknown): void;
+    reject(error: Error): void;
+    retainEnvelope: boolean;
+  }
 >();
 let controllerInputClosed = false;
 let nextServerRequestId = 1;
@@ -59,8 +66,13 @@ function send(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value)}\n`);
 }
 
-function requestController(method: string, params: unknown, retainEnvelope = false): Promise<unknown> {
-  if (controllerInputClosed) return Promise.reject(new Error("OpenCode controller input is closed"));
+function requestController(
+  method: string,
+  params: unknown,
+  retainEnvelope = false,
+): Promise<unknown> {
+  if (controllerInputClosed)
+    return Promise.reject(new Error("OpenCode controller input is closed"));
   const id = `opencode-${nextServerRequestId++}`;
   send({ id, method, params });
   return new Promise((resolveValue, reject) =>
@@ -80,8 +92,7 @@ function text(value: unknown, fallback = ""): string {
 
 function runtimeDirectory(): string {
   const configured = process.env.TASKCORE_OPENCODE_RUNTIME_DIR?.trim();
-  if (!configured)
-    throw new Error("TASKCORE_OPENCODE_RUNTIME_DIR is required");
+  if (!configured) throw new Error("TASKCORE_OPENCODE_RUNTIME_DIR is required");
   return resolve(configured);
 }
 
@@ -129,7 +140,9 @@ async function open(
     ),
     runtimeContext,
     dynamicTools,
-    completionFeedback: openCodeProxyCompletionFeedback((method, params) => requestController(method, params, true)),
+    completionFeedback: openCodeProxyCompletionFeedback((method, params) =>
+      requestController(method, params, true),
+    ),
     dynamicToolHandler: async (call) =>
       requestController("item/tool/call", {
         threadId: session?.ids().driverSessionId ?? "opening",
@@ -193,8 +206,12 @@ function announceTurnStarted(opened: HarnessSession, turnId: string): void {
 async function pumpEvents(opened: HarnessSession): Promise<void> {
   for await (const event of opened.events()) {
     const payload = record(event.payload);
-    const toolActivity = openCodeProxyToolNotification({ eventType: event.eventType,
-      threadId: opened.ids().driverSessionId, turnId: event.turnId, payload });
+    const toolActivity = openCodeProxyToolNotification({
+      eventType: event.eventType,
+      threadId: opened.ids().driverSessionId,
+      turnId: event.turnId,
+      payload,
+    });
     if (toolActivity) {
       send(toolActivity);
     } else if (event.eventType === "turn.started") {
@@ -476,7 +493,9 @@ function shutdown(exitCode = 0): Promise<void> {
 input.on("close", () => {
   controllerInputClosed = true;
   for (const waiter of pending.values())
-    waiter.reject(new Error("OpenCode controller input closed before its response"));
+    waiter.reject(
+      new Error("OpenCode controller input closed before its response"),
+    );
   pending.clear();
   // Preserve command order and the bootstrap drain. A queued command cannot
   // create a new unanswered controller request after EOF.

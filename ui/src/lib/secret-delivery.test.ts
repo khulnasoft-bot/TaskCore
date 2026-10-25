@@ -37,7 +37,9 @@ describe("aliasFromConfigPath", () => {
   });
 
   it("returns the raw path when no known prefix applies", () => {
-    expect(aliasFromConfigPath("headers.authorization")).toBe("headers.authorization");
+    expect(aliasFromConfigPath("headers.authorization")).toBe(
+      "headers.authorization",
+    );
     expect(aliasFromConfigPath(null)).toBe("");
   });
 });

@@ -57,12 +57,15 @@ export function resourceMembershipRoutes(db: Db) {
   const router = Router();
   const svc = resourceMembershipService(db);
 
-  router.get("/companies/:companyId/resource-memberships/me", async (req, res) => {
-    const companyId = req.params.companyId as string;
-    const userId = requireBoardUserId(req, res);
-    if (!userId) return;
-    res.json(await svc.listForUser(companyId, userId, req.actor));
-  });
+  router.get(
+    "/companies/:companyId/resource-memberships/me",
+    async (req, res) => {
+      const companyId = req.params.companyId as string;
+      const userId = requireBoardUserId(req, res);
+      if (!userId) return;
+      res.json(await svc.listForUser(companyId, userId, req.actor));
+    },
+  );
 
   router.put(
     "/companies/:companyId/resource-memberships/me/projects/:projectId",
@@ -92,7 +95,12 @@ export function resourceMembershipRoutes(db: Db) {
           policySource: result.policySource,
         });
       }
-      const { changed: _changed, changeKind: _changeKind, policySource: _policySource, ...response } = result;
+      const {
+        changed: _changed,
+        changeKind: _changeKind,
+        policySource: _policySource,
+        ...response
+      } = result;
       res.json(response);
     },
   );
@@ -125,7 +133,12 @@ export function resourceMembershipRoutes(db: Db) {
           policySource: result.policySource,
         });
       }
-      const { changed: _changed, changeKind: _changeKind, policySource: _policySource, ...response } = result;
+      const {
+        changed: _changed,
+        changeKind: _changeKind,
+        policySource: _policySource,
+        ...response
+      } = result;
       res.json(response);
     },
   );
@@ -157,7 +170,12 @@ export function resourceMembershipRoutes(db: Db) {
           policySource: result.policySource,
         });
       }
-      const { changed: _changed, changeKind: _changeKind, policySource: _policySource, ...response } = result;
+      const {
+        changed: _changed,
+        changeKind: _changeKind,
+        policySource: _policySource,
+        ...response
+      } = result;
       res.json(response);
     },
   );

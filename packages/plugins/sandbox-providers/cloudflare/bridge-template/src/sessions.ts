@@ -13,9 +13,17 @@ export interface ResolvedSession {
       stdin?: string | null;
       timeout?: number;
       stream?: boolean;
-      onOutput?: (stream: "stdout" | "stderr", data: string) => void | Promise<void>;
+      onOutput?: (
+        stream: "stdout" | "stderr",
+        data: string,
+      ) => void | Promise<void>;
     },
-  ): Promise<{ success?: boolean; stdout?: string; stderr?: string; exitCode?: number | null }>;
+  ): Promise<{
+    success?: boolean;
+    stdout?: string;
+    stderr?: string;
+    exitCode?: number | null;
+  }>;
 }
 
 export async function getNamedSession(
@@ -80,5 +88,7 @@ export async function cleanupTimedOutExecution(
     await sandbox.destroy().catch(() => undefined);
     return;
   }
-  await sandbox.deleteSession(options.sessionId?.trim() || DEFAULT_SESSION_ID).catch(() => undefined);
+  await sandbox
+    .deleteSession(options.sessionId?.trim() || DEFAULT_SESSION_ID)
+    .catch(() => undefined);
 }

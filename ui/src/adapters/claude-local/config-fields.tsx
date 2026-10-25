@@ -29,7 +29,8 @@ export function ClaudeLocalConfigFields({
   models,
   hideInstructionsFile,
 }: AdapterConfigFieldsProps) {
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       {!hideInstructionsFile && (
         <Field label="Agent instructions file" hint={instructionsFileHint}>
@@ -37,7 +38,7 @@ export function ClaudeLocalConfigFields({
             <DraftInput
               value={
                 isCreate
-                  ? values!.instructionsFilePath ?? ""
+                  ? (values!.instructionsFilePath ?? "")
                   : eff(
                       "adapterConfig",
                       "instructionsFilePath",
@@ -47,7 +48,11 @@ export function ClaudeLocalConfigFields({
               onCommit={(v) =>
                 isCreate
                   ? set!({ instructionsFilePath: v })
-                  : mark("adapterConfig", "instructionsFilePath", v || undefined)
+                  : mark(
+                      "adapterConfig",
+                      "instructionsFilePath",
+                      v || undefined,
+                    )
               }
               immediate
               className={inputClass}
@@ -68,8 +73,8 @@ export function ClaudeLocalConfigFields({
         adapterType={adapterType}
         models={models}
       />
-    </>
-  ));
+    </>,
+  );
 }
 
 export function ClaudeLocalAdvancedFields({
@@ -83,12 +88,14 @@ export function ClaudeLocalAdvancedFields({
   managedSandboxOnly,
 }: AdapterConfigFieldsProps) {
   const rawEngine = isCreate
-    ? values!.claudeEngine ?? "auto"
+    ? (values!.claudeEngine ?? "auto")
     : eff("adapterConfig", "engine", String(config.engine ?? "auto"));
-  const engine = rawEngine === "acp" || rawEngine === "cli" ? rawEngine : "auto";
+  const engine =
+    rawEngine === "acp" || rawEngine === "cli" ? rawEngine : "auto";
   const acpSelected = engine === "acp";
 
-  return configFieldsForSection(section, (
+  return configFieldsForSection(
+    section,
     <>
       {/*
         The execution engine picks which binary runs on the execution host, and
@@ -96,34 +103,53 @@ export function ClaudeLocalAdvancedFields({
         environment owns both, so the managed-sandbox-only policy hides them,
         the same way `runnerManaged` hides them for the Taskcore Runner.
       */}
-      {!managedSandboxOnly && <Field label="Execution engine" hint="Default uses ACP. If ACP is unavailable, the run fails with a setup error. Choose CLI explicitly to use it.">
-        <select
-          className={inputClass}
-          value={engine}
-          onChange={(e) => {
-            const value = e.target.value === "acp" ? "acp" : e.target.value === "cli" ? "cli" : "auto";
-            isCreate
-              ? set!({ claudeEngine: value })
-              : mark("adapterConfig", "engine", value === "auto" ? undefined : value);
-          }}
+      {!managedSandboxOnly && (
+        <Field
+          label="Execution engine"
+          hint="Default uses ACP. If ACP is unavailable, the run fails with a setup error. Choose CLI explicitly to use it."
         >
-          <option value="auto">Default (ACP)</option>
-          <option value="cli">Claude CLI</option>
-          <option value="acp">ACP</option>
-        </select>
-      </Field>}
+          <select
+            className={inputClass}
+            value={engine}
+            onChange={(e) => {
+              const value =
+                e.target.value === "acp"
+                  ? "acp"
+                  : e.target.value === "cli"
+                    ? "cli"
+                    : "auto";
+              isCreate
+                ? set!({ claudeEngine: value })
+                : mark(
+                    "adapterConfig",
+                    "engine",
+                    value === "auto" ? undefined : value,
+                  );
+            }}
+          >
+            <option value="auto">Default (ACP)</option>
+            <option value="cli">Claude CLI</option>
+            <option value="acp">ACP</option>
+          </select>
+        </Field>
+      )}
       {acpSelected && (
         <>
           {!managedSandboxOnly && (
-            <Field configSection="advanced"
+            <Field
+              configSection="advanced"
               label="ACP server command"
               hint="Optional override for the Claude ACP server command. Defaults to the package-local claude-agent-acp binary."
             >
               <DraftInput
                 value={
                   isCreate
-                    ? values!.claudeAcpAgentCommand ?? ""
-                    : eff("adapterConfig", "agentCommand", String(config.agentCommand ?? ""))
+                    ? (values!.claudeAcpAgentCommand ?? "")
+                    : eff(
+                        "adapterConfig",
+                        "agentCommand",
+                        String(config.agentCommand ?? ""),
+                      )
                 }
                 onCommit={(v) =>
                   isCreate
@@ -136,16 +162,25 @@ export function ClaudeLocalAdvancedFields({
               />
             </Field>
           )}
-          <Field configSection="runPolicy" label="ACP session mode" hint="Persistent keeps ACP session state between runs. One-shot starts fresh each run.">
+          <Field
+            configSection="runPolicy"
+            label="ACP session mode"
+            hint="Persistent keeps ACP session state between runs. One-shot starts fresh each run."
+          >
             <select
               className={inputClass}
               value={
                 isCreate
-                  ? values!.claudeAcpMode ?? "persistent"
-                  : eff("adapterConfig", "mode", String(config.mode ?? "persistent"))
+                  ? (values!.claudeAcpMode ?? "persistent")
+                  : eff(
+                      "adapterConfig",
+                      "mode",
+                      String(config.mode ?? "persistent"),
+                    )
               }
               onChange={(e) => {
-                const value = e.target.value === "oneshot" ? "oneshot" : "persistent";
+                const value =
+                  e.target.value === "oneshot" ? "oneshot" : "persistent";
                 isCreate
                   ? set!({ claudeAcpMode: value })
                   : mark("adapterConfig", "mode", value);
@@ -163,8 +198,12 @@ export function ClaudeLocalAdvancedFields({
               className={inputClass}
               value={
                 isCreate
-                  ? values!.claudeAcpNonInteractivePermissions ?? "deny"
-                  : eff("adapterConfig", "nonInteractivePermissions", String(config.nonInteractivePermissions ?? "deny"))
+                  ? (values!.claudeAcpNonInteractivePermissions ?? "deny")
+                  : eff(
+                      "adapterConfig",
+                      "nonInteractivePermissions",
+                      String(config.nonInteractivePermissions ?? "deny"),
+                    )
               }
               onChange={(e) => {
                 const value = e.target.value === "fail" ? "fail" : "deny";
@@ -186,8 +225,12 @@ export function ClaudeLocalAdvancedFields({
                 <DraftInput
                   value={
                     isCreate
-                      ? values!.claudeAcpStateDir ?? ""
-                      : eff("adapterConfig", "stateDir", String(config.stateDir ?? ""))
+                      ? (values!.claudeAcpStateDir ?? "")
+                      : eff(
+                          "adapterConfig",
+                          "stateDir",
+                          String(config.stateDir ?? ""),
+                        )
                   }
                   onCommit={(v) =>
                     isCreate
@@ -202,7 +245,8 @@ export function ClaudeLocalAdvancedFields({
               </div>
             </Field>
           )}
-          <Field configSection="runPolicy"
+          <Field
+            configSection="runPolicy"
             label="ACP warm process idle ms"
             hint="Defaults to 0, which closes the ACP process after each run while retaining persistent session state."
           >
@@ -211,7 +255,9 @@ export function ClaudeLocalAdvancedFields({
                 type="number"
                 className={inputClass}
                 value={values!.claudeAcpWarmHandleIdleMs ?? 0}
-                onChange={(e) => set!({ claudeAcpWarmHandleIdleMs: Number(e.target.value) })}
+                onChange={(e) =>
+                  set!({ claudeAcpWarmHandleIdleMs: Number(e.target.value) })
+                }
               />
             ) : (
               <DraftNumberInput
@@ -220,7 +266,9 @@ export function ClaudeLocalAdvancedFields({
                   "warmHandleIdleMs",
                   Number(config.warmHandleIdleMs ?? 0),
                 )}
-                onCommit={(v) => mark("adapterConfig", "warmHandleIdleMs", v || 0)}
+                onCommit={(v) =>
+                  mark("adapterConfig", "warmHandleIdleMs", v || 0)
+                }
                 immediate
                 className={inputClass}
               />
@@ -237,9 +285,7 @@ export function ClaudeLocalAdvancedFields({
             : eff("adapterConfig", "chrome", config.chrome === true)
         }
         onChange={(v) =>
-          isCreate
-            ? set!({ chrome: v })
-            : mark("adapterConfig", "chrome", v)
+          isCreate ? set!({ chrome: v }) : mark("adapterConfig", "chrome", v)
         }
       />
       <ToggleField
@@ -281,6 +327,6 @@ export function ClaudeLocalAdvancedFields({
           />
         )}
       </Field>
-    </>
-  ));
+    </>,
+  );
 }

@@ -1,24 +1,49 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "@taskcore/db";
-import { agentWakeupRequests, agents, heartbeatRuns, issues } from "@taskcore/db";
+import {
+  agentWakeupRequests,
+  agents,
+  heartbeatRuns,
+  issues,
+} from "@taskcore/db";
 import type { RunLivenessState } from "@taskcore/shared";
 import { withRecoveryContext } from "./status-only-context.js";
 import { RECOVERY_REASON_KINDS } from "./origins.js";
 
-export const RUN_LIVENESS_CONTINUATION_REASON = RECOVERY_REASON_KINDS.runLivenessContinuation;
+export const RUN_LIVENESS_CONTINUATION_REASON =
+  RECOVERY_REASON_KINDS.runLivenessContinuation;
 export const DEFAULT_MAX_LIVENESS_CONTINUATION_ATTEMPTS = 2;
 
-const ACTIONABLE_LIVENESS_STATES = new Set<RunLivenessState>(["plan_only", "empty_response"]);
+const ACTIONABLE_LIVENESS_STATES = new Set<RunLivenessState>([
+  "plan_only",
+  "empty_response",
+]);
 const CONTINUATION_ACTIVE_ISSUE_STATUSES = new Set(["todo", "in_progress"]);
 // A prior adapter error should not permanently suppress bounded liveness
 // continuations; the max-attempt/idempotency guards prevent unbounded retries.
-const CONTINUATION_AGENT_STATUSES = new Set(["active", "idle", "running", "error"]);
-const IDEMPOTENT_WAKE_STATUSES = ["queued", "deferred_issue_execution", "completed"];
+const CONTINUATION_AGENT_STATUSES = new Set([
+  "active",
+  "idle",
+  "running",
+  "error",
+]);
+const IDEMPOTENT_WAKE_STATUSES = [
+  "queued",
+  "deferred_issue_execution",
+  "completed",
+];
 
 type HeartbeatRunRow = typeof heartbeatRuns.$inferSelect;
 type IssueRow = Pick<
   typeof issues.$inferSelect,
-  "id" | "companyId" | "identifier" | "title" | "status" | "assigneeAgentId" | "executionState" | "projectId"
+  | "id"
+  | "companyId"
+  | "identifier"
+  | "title"
+  | "status"
+  | "assigneeAgentId"
+  | "executionState"
+  | "projectId"
 >;
 type AgentRow = Pick<typeof agents.$inferSelect, "id" | "companyId" | "status">;
 
@@ -42,7 +67,10 @@ export type RunContinuationDecision =
     };
 
 export function readContinuationAttempt(value: unknown): number {
-  const numeric = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+  const numeric =
+    typeof value === "number"
+      ? value
+      : Number.parseInt(String(value ?? ""), 10);
   return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : 0;
 }
 
@@ -103,10 +131,14 @@ export function decideRunLivenessContinuation(input: {
     budgetBlocked,
     idempotentWakeExists,
   } = input;
-  const maxAttempts = input.maxAttempts ?? DEFAULT_MAX_LIVENESS_CONTINUATION_ATTEMPTS;
+  const maxAttempts =
+    input.maxAttempts ?? DEFAULT_MAX_LIVENESS_CONTINUATION_ATTEMPTS;
 
   if (!livenessState || !ACTIONABLE_LIVENESS_STATES.has(livenessState)) {
-    return { kind: "skip", reason: "liveness state is not actionable for continuation" };
+    return {
+      kind: "skip",
+      reason: "liveness state is not actionable for continuation",
+    };
   }
   if (!issue) return { kind: "skip", reason: "issue not found" };
   if (!agent) return { kind: "skip", reason: "agent not found" };
@@ -114,16 +146,28 @@ export function decideRunLivenessContinuation(input: {
     return { kind: "skip", reason: "company scope mismatch" };
   }
   if (issue.assigneeAgentId !== run.agentId) {
-    return { kind: "skip", reason: "issue is no longer assigned to the source run agent" };
+    return {
+      kind: "skip",
+      reason: "issue is no longer assigned to the source run agent",
+    };
   }
   if (!CONTINUATION_ACTIVE_ISSUE_STATUSES.has(issue.status)) {
-    return { kind: "skip", reason: `issue status ${issue.status} is not continuable` };
+    return {
+      kind: "skip",
+      reason: `issue status ${issue.status} is not continuable`,
+    };
   }
   if (issue.executionState) {
-    return { kind: "skip", reason: "issue is blocked by execution policy state" };
+    return {
+      kind: "skip",
+      reason: "issue is blocked by execution policy state",
+    };
   }
   if (!CONTINUATION_AGENT_STATUSES.has(agent.status)) {
-    return { kind: "skip", reason: `agent status ${agent.status} is not invokable` };
+    return {
+      kind: "skip",
+      reason: `agent status ${agent.status} is not invokable`,
+    };
   }
   if (budgetBlocked) {
     return { kind: "skip", reason: "budget hard stop blocks continuation" };
@@ -153,37 +197,47 @@ export function decideRunLivenessContinuation(input: {
     nextAttempt,
   });
   if (idempotentWakeExists) {
-    return { kind: "skip", reason: "continuation wake already exists for this source run and attempt" };
+    return {
+      kind: "skip",
+      reason:
+        "continuation wake already exists for this source run and attempt",
+    };
   }
 
-  const payload = withRecoveryContext({
-    issueId: issue.id,
-    sourceRunId: run.id,
-    livenessState,
-    livenessReason,
-    continuationAttempt: nextAttempt,
-    maxContinuationAttempts: maxAttempts,
-    instruction:
-      nextAction ??
-      "The previous run ended without concrete progress. Take the first concrete action now or mark the issue blocked with a specific unblock request.",
-  }, "normal_model");
+  const payload = withRecoveryContext(
+    {
+      issueId: issue.id,
+      sourceRunId: run.id,
+      livenessState,
+      livenessReason,
+      continuationAttempt: nextAttempt,
+      maxContinuationAttempts: maxAttempts,
+      instruction:
+        nextAction ??
+        "The previous run ended without concrete progress. Take the first concrete action now or mark the issue blocked with a specific unblock request.",
+    },
+    "normal_model",
+  );
 
   return {
     kind: "enqueue",
     nextAttempt,
     idempotencyKey,
     payload,
-    contextSnapshot: withRecoveryContext({
-      issueId: issue.id,
-      taskId: issue.id,
-      taskKey: issue.id,
-      wakeReason: RUN_LIVENESS_CONTINUATION_REASON,
-      livenessContinuationAttempt: nextAttempt,
-      livenessContinuationMaxAttempts: maxAttempts,
-      livenessContinuationSourceRunId: run.id,
-      livenessContinuationState: livenessState,
-      livenessContinuationReason: livenessReason,
-      livenessContinuationInstruction: payload.instruction,
-    }, "normal_model"),
+    contextSnapshot: withRecoveryContext(
+      {
+        issueId: issue.id,
+        taskId: issue.id,
+        taskKey: issue.id,
+        wakeReason: RUN_LIVENESS_CONTINUATION_REASON,
+        livenessContinuationAttempt: nextAttempt,
+        livenessContinuationMaxAttempts: maxAttempts,
+        livenessContinuationSourceRunId: run.id,
+        livenessContinuationState: livenessState,
+        livenessContinuationReason: livenessReason,
+        livenessContinuationInstruction: payload.instruction,
+      },
+      "normal_model",
+    ),
   };
 }

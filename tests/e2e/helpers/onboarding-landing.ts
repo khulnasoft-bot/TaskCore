@@ -68,7 +68,9 @@ export async function expectLandsOnFirstTaskWithoutDashboardBounce(
   // that accompanies the launch navigate, so any bounce lands within ~1s. If
   // the URL is still the issue after this window it has genuinely settled.
   await page.waitForTimeout(1_500);
-  expect(page.url(), "onboarding bounced away from the first task").toBe(settledUrl);
+  expect(page.url(), "onboarding bounced away from the first task").toBe(
+    settledUrl,
+  );
   await expect(page).toHaveURL(ISSUE_URL);
 
   const navLog = await readNavLog(page);

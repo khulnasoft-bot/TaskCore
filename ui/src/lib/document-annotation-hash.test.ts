@@ -31,7 +31,9 @@ describe("parseDocumentAnnotationHash", () => {
   });
 
   it("parses the viewer=full request", () => {
-    expect(parseDocumentAnnotationHash("#document-direction-package&viewer=full")).toEqual({
+    expect(
+      parseDocumentAnnotationHash("#document-direction-package&viewer=full"),
+    ).toEqual({
       documentKey: "direction-package",
       threadId: null,
       commentId: null,
@@ -49,7 +51,9 @@ describe("parseDocumentAnnotationHash", () => {
   });
 
   it("decodes URI-encoded keys", () => {
-    expect(parseDocumentAnnotationHash("#document-my%20notes&thread=abc")).toEqual({
+    expect(
+      parseDocumentAnnotationHash("#document-my%20notes&thread=abc"),
+    ).toEqual({
       documentKey: "my notes",
       threadId: "abc",
       commentId: null,
@@ -64,20 +68,32 @@ describe("parseDocumentAnnotationHash", () => {
 
 describe("buildDocumentAnnotationHash", () => {
   it("builds a hash without thread or comment", () => {
-    expect(buildDocumentAnnotationHash({ documentKey: "plan", threadId: null, commentId: null })).toBe(
-      "#document-plan",
-    );
+    expect(
+      buildDocumentAnnotationHash({
+        documentKey: "plan",
+        threadId: null,
+        commentId: null,
+      }),
+    ).toBe("#document-plan");
   });
 
   it("includes thread target", () => {
     expect(
-      buildDocumentAnnotationHash({ documentKey: "plan", threadId: "t1", commentId: null }),
+      buildDocumentAnnotationHash({
+        documentKey: "plan",
+        threadId: "t1",
+        commentId: null,
+      }),
     ).toBe("#document-plan&thread=t1");
   });
 
   it("includes both targets", () => {
     expect(
-      buildDocumentAnnotationHash({ documentKey: "plan", threadId: "t1", commentId: "c2" }),
+      buildDocumentAnnotationHash({
+        documentKey: "plan",
+        threadId: "t1",
+        commentId: "c2",
+      }),
     ).toBe("#document-plan&thread=t1&comment=c2");
   });
 
@@ -99,6 +115,8 @@ describe("buildDocumentAnnotationHash", () => {
       commentId: "c-xyz",
       viewer: "full" as const,
     };
-    expect(parseDocumentAnnotationHash(buildDocumentAnnotationHash(target))).toEqual(target);
+    expect(
+      parseDocumentAnnotationHash(buildDocumentAnnotationHash(target)),
+    ).toEqual(target);
   });
 });

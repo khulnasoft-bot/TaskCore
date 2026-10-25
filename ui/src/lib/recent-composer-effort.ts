@@ -1,7 +1,9 @@
 const STORAGE_KEY = "taskcore:composer-effort";
 
 /** Undefined means no preference; null is the user's explicit Default choice. */
-export function getLastComposerEffort(companyId: string): string | null | undefined {
+export function getLastComposerEffort(
+  companyId: string,
+): string | null | undefined {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEY}:${companyId}`);
     if (raw === null) return undefined;
@@ -12,7 +14,10 @@ export function getLastComposerEffort(companyId: string): string | null | undefi
   }
 }
 
-export function rememberComposerEffort(companyId: string, effort: string | null): void {
+export function rememberComposerEffort(
+  companyId: string,
+  effort: string | null,
+): void {
   try {
     localStorage.setItem(`${STORAGE_KEY}:${companyId}`, JSON.stringify(effort));
   } catch {

@@ -1,5 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { Db } from "@taskcore/db";
 import { adapterAuthSessions } from "@taskcore/db";
 import type {
@@ -162,7 +172,10 @@ export interface CredentialPromotionContext {
  * the service writes nothing and still deletes the sandbox.
  */
 export interface CredentialPromotion {
-  promote(authBytes: Buffer, context: CredentialPromotionContext): void | Promise<void>;
+  promote(
+    authBytes: Buffer,
+    context: CredentialPromotionContext,
+  ): void | Promise<void>;
   /**
    * Wraps the service's terminal "authenticated" commit, immediately before
    * the service runs it. A promotion that already bound and validated a
@@ -205,7 +218,9 @@ export interface LoginSessionActivityEvent {
   phase: LoginSessionActivityPhase;
 }
 
-export type LoginSessionActivityRecorder = (event: LoginSessionActivityEvent) => void;
+export type LoginSessionActivityRecorder = (
+  event: LoginSessionActivityEvent,
+) => void;
 
 export interface StartDeviceLoginInput {
   aiConnection?: import("@taskcore/shared").AiConnectionLoginIntent;
@@ -326,8 +341,7 @@ export interface SetAdapterAuthSessionStatusInput {
  * the current status is one of `expectedStatuses`. The method reports whether it
  * changed a row, so the caller can detect a lost race.
  */
-export interface CompareAndSetAdapterAuthSessionStatusInput
-  extends SetAdapterAuthSessionStatusInput {
+export interface CompareAndSetAdapterAuthSessionStatusInput extends SetAdapterAuthSessionStatusInput {
   /** The write succeeds only when the current status is one of these. */
   expectedStatuses: readonly AdapterAuthSessionInternalStatus[];
 }
@@ -343,7 +357,9 @@ export interface AdapterAuthSessionStore {
   }): Promise<void>;
   setStatus(input: SetAdapterAuthSessionStatusInput): Promise<void>;
   /** A conditional status write. It returns true only when it changed one row. */
-  compareAndSetStatus(input: CompareAndSetAdapterAuthSessionStatusInput): Promise<boolean>;
+  compareAndSetStatus(
+    input: CompareAndSetAdapterAuthSessionStatusInput,
+  ): Promise<boolean>;
   get(sessionId: string): Promise<AdapterAuthSessionRow | null>;
   /**
    * Read a session by its public session id, scoped to the company. The
@@ -413,20 +429,23 @@ export async function withAdapterLoginPromotionLock<T>(
   adapterType: AgentAdapterType,
   fn: () => Promise<T>,
 ): Promise<T> {
-  const key = adapterLoginPromotionLockKey(companyId, startedByUserId, adapterType);
+  const key = adapterLoginPromotionLockKey(
+    companyId,
+    startedByUserId,
+    adapterType,
+  );
   return db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`);
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`,
+    );
     return fn();
   });
 }
 
 /** The three active statuses. A row in one of these states holds the company
  *  credential slot, so it is non-terminal and can time out. */
-export const ADAPTER_AUTH_ACTIVE_STATUSES: readonly AdapterAuthSessionInternalStatus[] = [
-  "starting",
-  "waiting_for_user",
-  "promoting",
-];
+export const ADAPTER_AUTH_ACTIVE_STATUSES: readonly AdapterAuthSessionInternalStatus[] =
+  ["starting", "waiting_for_user", "promoting"];
 
 /**
  * The promotion claim window. The service sets `promotion_expires_at` to this
@@ -453,7 +472,9 @@ export interface AdapterAuthReaperStore {
   listLeaseReferences(): Promise<string[]>;
   setStatus(input: SetAdapterAuthSessionStatusInput): Promise<void>;
   /** A conditional status write. It returns true only when it changed one row. */
-  compareAndSetStatus(input: CompareAndSetAdapterAuthSessionStatusInput): Promise<boolean>;
+  compareAndSetStatus(
+    input: CompareAndSetAdapterAuthSessionStatusInput,
+  ): Promise<boolean>;
   get(sessionId: string): Promise<AdapterAuthSessionRow | null>;
   /** Run `fn` while the process holds the promotion critical-section lock for the
    *  company, owner, and adapter slot. The reaper reclaims a stale `promoting`
@@ -486,7 +507,9 @@ function isUniqueViolation(error: unknown): boolean {
   return false;
 }
 
-function toRow(row: typeof adapterAuthSessions.$inferSelect): AdapterAuthSessionRow {
+function toRow(
+  row: typeof adapterAuthSessions.$inferSelect,
+): AdapterAuthSessionRow {
   return {
     id: row.id,
     ...(row.aiConnection ? { aiConnection: row.aiConnection } : {}),
@@ -514,12 +537,16 @@ function buildStatusPatch(input: SetAdapterAuthSessionStatusInput) {
   return {
     status: input.status,
     updatedAt: input.at,
-    ...(input.failureReason !== undefined ? { failureReason: input.failureReason } : {}),
+    ...(input.failureReason !== undefined
+      ? { failureReason: input.failureReason }
+      : {}),
     ...(input.finishedAt !== undefined ? { finishedAt: input.finishedAt } : {}),
     ...(input.promotionExpiresAt !== undefined
       ? { promotionExpiresAt: input.promotionExpiresAt }
       : {}),
-    ...(input.resultClaim !== undefined ? { resultClaim: input.resultClaim } : {}),
+    ...(input.resultClaim !== undefined
+      ? { resultClaim: input.resultClaim }
+      : {}),
   };
 }
 
@@ -609,7 +636,10 @@ export function createDbAdapterAuthSessionStore(
             eq(adapterAuthSessions.companyId, companyId),
             adapterType
               ? eq(adapterAuthSessions.adapterType, adapterType)
-              : inArray(adapterAuthSessions.adapterType, DISPLAYED_CODE_ADAPTER_TYPES),
+              : inArray(
+                  adapterAuthSessions.adapterType,
+                  DISPLAYED_CODE_ADAPTER_TYPES,
+                ),
           ),
         )
         .limit(1);
@@ -627,7 +657,9 @@ export function createDbAdapterAuthSessionStore(
             eq(adapterAuthSessions.companyId, companyId),
             eq(adapterAuthSessions.startedByUserId, startedByUserId),
             eq(adapterAuthSessions.adapterType, adapterType),
-            inArray(adapterAuthSessions.status, [...ADAPTER_AUTH_ACTIVE_STATUSES]),
+            inArray(adapterAuthSessions.status, [
+              ...ADAPTER_AUTH_ACTIVE_STATUSES,
+            ]),
           ),
         )
         .limit(1);
@@ -648,8 +680,13 @@ export function createDbAdapterAuthSessionStore(
           and(
             // The shared table also holds the setup-token rows, so every reaper
             // scan filters by the closed set of displayed-code adapter types.
-            inArray(adapterAuthSessions.adapterType, DISPLAYED_CODE_ADAPTER_TYPES),
-            inArray(adapterAuthSessions.status, [...ADAPTER_AUTH_ACTIVE_STATUSES]),
+            inArray(
+              adapterAuthSessions.adapterType,
+              DISPLAYED_CODE_ADAPTER_TYPES,
+            ),
+            inArray(adapterAuthSessions.status, [
+              ...ADAPTER_AUTH_ACTIVE_STATUSES,
+            ]),
             isNotNull(adapterAuthSessions.expiresAt),
             lte(adapterAuthSessions.expiresAt, nowAt),
             or(
@@ -667,7 +704,10 @@ export function createDbAdapterAuthSessionStore(
         .from(adapterAuthSessions)
         .where(
           and(
-            inArray(adapterAuthSessions.adapterType, DISPLAYED_CODE_ADAPTER_TYPES),
+            inArray(
+              adapterAuthSessions.adapterType,
+              DISPLAYED_CODE_ADAPTER_TYPES,
+            ),
             eq(adapterAuthSessions.status, "cleanup_pending"),
           ),
         );
@@ -679,7 +719,10 @@ export function createDbAdapterAuthSessionStore(
         .from(adapterAuthSessions)
         .where(
           and(
-            inArray(adapterAuthSessions.adapterType, DISPLAYED_CODE_ADAPTER_TYPES),
+            inArray(
+              adapterAuthSessions.adapterType,
+              DISPLAYED_CODE_ADAPTER_TYPES,
+            ),
             isNotNull(adapterAuthSessions.providerLeaseId),
           ),
         );
@@ -687,8 +730,19 @@ export function createDbAdapterAuthSessionStore(
         .map((row) => row.providerLeaseId)
         .filter((value): value is string => value != null);
     },
-    async withCompanyAdapterPromotionLock(companyId, startedByUserId, adapterType, fn) {
-      return withAdapterLoginPromotionLock(db, companyId, startedByUserId, adapterType, fn);
+    async withCompanyAdapterPromotionLock(
+      companyId,
+      startedByUserId,
+      adapterType,
+      fn,
+    ) {
+      return withAdapterLoginPromotionLock(
+        db,
+        companyId,
+        startedByUserId,
+        adapterType,
+        fn,
+      );
     },
   };
 }
@@ -783,7 +837,10 @@ export function terminalCleanupWrite(
 ): TerminalCleanupWrite {
   return confirmed
     ? { status: terminal, failureReason: reason }
-    : { status: "cleanup_pending", failureReason: encodePendingTerminal(terminal, reason) };
+    : {
+        status: "cleanup_pending",
+        failureReason: encodePendingTerminal(terminal, reason),
+      };
 }
 
 // ---------------------------------------------------------------------------
@@ -818,7 +875,9 @@ export interface DisplayedCodeLoginProfile {
  *  runs a login, so this value never runs in production. */
 const UNCONFIGURED_PROMOTION: CredentialPromotion = {
   promote() {
-    throw new Error("device login: no credential promotion is configured for this adapter.");
+    throw new Error(
+      "device login: no credential promotion is configured for this adapter.",
+    );
   },
 };
 
@@ -873,7 +932,9 @@ export interface DeviceLoginServiceDeps {
    * runs the Codex promotion, and a `codex_local` login never runs the Grok
    * one.
    */
-  promotionByAdapterType: Partial<Record<AgentAdapterType, CredentialPromotion>>;
+  promotionByAdapterType: Partial<
+    Record<AgentAdapterType, CredentialPromotion>
+  >;
   recordActivity?: LoginSessionActivityRecorder;
   now?: () => Date;
 }
@@ -894,8 +955,12 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
    * gate today; the fallback stays in place for a future adapter type with no
    * profile entry.
    */
-  function resolveProfile(adapterType: AgentAdapterType): DisplayedCodeLoginProfile {
-    const staticProfile = DISPLAYED_CODE_PROFILES[adapterType] ?? DISPLAYED_CODE_PROFILES.codex_local!;
+  function resolveProfile(
+    adapterType: AgentAdapterType,
+  ): DisplayedCodeLoginProfile {
+    const staticProfile =
+      DISPLAYED_CODE_PROFILES[adapterType] ??
+      DISPLAYED_CODE_PROFILES.codex_local!;
     const promotion =
       promotionByAdapterType[adapterType] ??
       promotionByAdapterType.codex_local ??
@@ -917,7 +982,8 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
     // caller cannot address the row by the internal id.
     const publicSessionId = randomUUID();
     const startedAt = now();
-    const ttlSeconds = input.ttlSeconds ?? resolveProfile(input.adapterType).timeoutMs / 1000;
+    const ttlSeconds =
+      input.ttlSeconds ?? resolveProfile(input.adapterType).timeoutMs / 1000;
     const expiresAt = new Date(startedAt.getTime() + ttlSeconds * 1000);
     const base = {
       sessionId,
@@ -1043,9 +1109,21 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
     ): Promise<boolean> {
       const run = statusTail.then(
         () =>
-          store.compareAndSetStatus({ sessionId, expectedStatuses, status, at: now(), ...patch }),
+          store.compareAndSetStatus({
+            sessionId,
+            expectedStatuses,
+            status,
+            at: now(),
+            ...patch,
+          }),
         () =>
-          store.compareAndSetStatus({ sessionId, expectedStatuses, status, at: now(), ...patch }),
+          store.compareAndSetStatus({
+            sessionId,
+            expectedStatuses,
+            status,
+            at: now(),
+            ...patch,
+          }),
       );
       statusTail = run.then(
         () => {},
@@ -1067,7 +1145,9 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
         // this is a no-op today.
         parsePrompt: (output) => {
           const prompt = profile.parsePrompt(output);
-          return prompt && prompt.code !== undefined ? { url: prompt.url, code: prompt.code } : null;
+          return prompt && prompt.code !== undefined
+            ? { url: prompt.url, code: prompt.code }
+            : null;
         },
         signal: input.signal,
         authPath: lease.authPath,
@@ -1077,11 +1157,13 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
           // when the write wins. A lost write means the reaper already reclaimed
           // the expired row, so the service never resurrects a reaped session and
           // never surfaces a prompt for a slot it no longer owns.
-          void conditionalTransition(["starting"], "waiting_for_user").then((won) => {
-            if (!won) return;
-            promptsBySession.set(sessionId, prompt);
-            activity("prompt_surfaced");
-          });
+          void conditionalTransition(["starting"], "waiting_for_user").then(
+            (won) => {
+              if (!won) return;
+              promptsBySession.set(sessionId, prompt);
+              activity("prompt_surfaced");
+            },
+          );
         },
         onCredential: (bytes) => {
           authBytes = bytes;
@@ -1102,10 +1184,16 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
       // finishes without a race. A lost claim means the reaper already reclaimed
       // an expired row; the service then promotes nothing and authenticates
       // nothing.
-      const claimDeadline = new Date(now().getTime() + ADAPTER_AUTH_PROMOTION_CLAIM_MS);
-      const claimed = await conditionalTransition(["starting", "waiting_for_user"], "promoting", {
-        promotionExpiresAt: claimDeadline,
-      });
+      const claimDeadline = new Date(
+        now().getTime() + ADAPTER_AUTH_PROMOTION_CLAIM_MS,
+      );
+      const claimed = await conditionalTransition(
+        ["starting", "waiting_for_user"],
+        "promoting",
+        {
+          promotionExpiresAt: claimDeadline,
+        },
+      );
       if (!claimed) {
         return await abandonAfterLostClaim({ sessionId, lease, activity });
       }
@@ -1162,7 +1250,10 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
       };
       try {
         return profile.promotion.runTerminalCommit
-          ? await profile.promotion.runTerminalCommit(commitAuthenticated, promotionContext)
+          ? await profile.promotion.runTerminalCommit(
+              commitAuthenticated,
+              promotionContext,
+            )
           : await commitAuthenticated();
       } catch {
         // The wrapped final check rejected the value `promote` bound earlier
@@ -1248,8 +1339,15 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
     /** The non-secret claim to record atomically with a terminal success. */
     resultClaim?: Record<string, unknown> | null;
   }): Promise<DeviceLoginOutcome> {
-    const { sessionId, lease, terminal, reason, expectedStatuses, conditionalTransition, activity } =
-      ctx;
+    const {
+      sessionId,
+      lease,
+      terminal,
+      reason,
+      expectedStatuses,
+      conditionalTransition,
+      activity,
+    } = ctx;
 
     // Delete the in-memory prompt on every terminal transition this function
     // handles: an authenticated success, a failure, a timeout, and a
@@ -1271,12 +1369,18 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
     // records the terminal public status and releases the active claim. The write
     // is conditional and clears the promotion claim, so a lost race leaves the
     // reaper terminal in place.
-    const committed = await conditionalTransition(expectedStatuses, write.status, {
-      finishedAt,
-      failureReason: write.failureReason,
-      promotionExpiresAt: null,
-      ...(ctx.resultClaim !== undefined ? { resultClaim: ctx.resultClaim } : {}),
-    });
+    const committed = await conditionalTransition(
+      expectedStatuses,
+      write.status,
+      {
+        finishedAt,
+        failureReason: write.failureReason,
+        promotionExpiresAt: null,
+        ...(ctx.resultClaim !== undefined
+          ? { resultClaim: ctx.resultClaim }
+          : {}),
+      },
+    );
     if (!committed) {
       // The reaper already terminated the row. Leave its terminal in place. The
       // sandbox delete above is idempotent, so no sandbox survives.
@@ -1288,7 +1392,11 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
         sandboxDeleteObserved: observation.observed,
       };
     }
-    activity(observation.confirmed ? (terminal as LoginSessionActivityPhase) : "cleanup_pending");
+    activity(
+      observation.confirmed
+        ? (terminal as LoginSessionActivityPhase)
+        : "cleanup_pending",
+    );
     return {
       sessionId,
       status: terminal,
@@ -1310,10 +1418,12 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
     const status = resolvePublicStatus(row);
     // The prompt map keys on the internal id, so read it by `row.id`, not the
     // public id. Only the owner principal ever reads the prompt.
-    const prompt = isOwner ? promptsBySession.get(row.id) ?? null : null;
+    const prompt = isOwner ? (promptsBySession.get(row.id) ?? null) : null;
     return {
       sessionId: row.publicSessionId,
-      ...(isOwner && row.aiConnection ? { aiConnection: row.aiConnection } : {}),
+      ...(isOwner && row.aiConnection
+        ? { aiConnection: row.aiConnection }
+        : {}),
       environmentId: row.environmentId,
       status,
       expiresAt: row.expiresAt?.toISOString() ?? null,
@@ -1343,7 +1453,11 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
     adapterType: AgentAdapterType,
     requestingUserId: string,
   ): Promise<AdapterAuthSessionOwnerResponse | null> {
-    const row = await store.getActiveByOwner(companyId, requestingUserId, adapterType);
+    const row = await store.getActiveByOwner(
+      companyId,
+      requestingUserId,
+      adapterType,
+    );
     if (!row) return null;
     return buildOwnerResponse(row, requestingUserId);
   }
@@ -1387,14 +1501,21 @@ export function createDeviceLoginService(deps: DeviceLoginServiceDeps) {
     return readOwnerSession(publicSessionId, companyId, requestingUserId);
   }
 
-  return { start, readOwnerSession, readActiveOwnerSession, cancelOwnerSession };
+  return {
+    start,
+    readOwnerSession,
+    readActiveOwnerSession,
+    cancelOwnerSession,
+  };
 }
 
 export type DeviceLoginService = ReturnType<typeof createDeviceLoginService>;
 
 /** Resolve the public status of a row. A `cleanup_pending` row resolves the
  *  retained terminal status; every other status maps through the shared helper. */
-function resolvePublicStatus(row: AdapterAuthSessionRow): AdapterAuthSessionStatus {
+function resolvePublicStatus(
+  row: AdapterAuthSessionRow,
+): AdapterAuthSessionStatus {
   if (row.status === "cleanup_pending") {
     return decodePendingTerminal(row.failureReason).terminal;
   }
@@ -1461,7 +1582,14 @@ export function buildSandboxLoginDriver(deps: {
   sessionHome: string;
   timeoutMs: number;
 }): SandboxLoginDriver {
-  const { openPtySession, environmentRuntime, environment, lease, sessionHome, timeoutMs } = deps;
+  const {
+    openPtySession,
+    environmentRuntime,
+    environment,
+    lease,
+    sessionHome,
+    timeoutMs,
+  } = deps;
   const transport = createLoginPtyTransport(openPtySession);
   return {
     async start(command, onData) {
@@ -1531,7 +1659,9 @@ export interface WorkerBoundLoginPtyOpenerDeps {
 }
 
 function readLeaseMetaString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 /**
@@ -1560,9 +1690,12 @@ export function createWorkerBoundLoginPtyOpener(
         : {};
     const pluginId = readLeaseMetaString(metadata.pluginId);
     const driverKey =
-      readLeaseMetaString(metadata.provider) ?? readLeaseMetaString(metadata.driver);
+      readLeaseMetaString(metadata.provider) ??
+      readLeaseMetaString(metadata.driver);
     if (!binding.providerLeaseId || !pluginId || !driverKey) {
-      log("[taskcore] Device login: the lease carries no sandbox worker binding.");
+      log(
+        "[taskcore] Device login: the lease carries no sandbox worker binding.",
+      );
       throw new Error(CODEX_LOGIN_PTY_BIND_FAILED);
     }
     // Resolve the closed command key from the trusted adapter type. An unmapped
@@ -1571,7 +1704,9 @@ export function createWorkerBoundLoginPtyOpener(
     try {
       loginCommandKey = resolveLoginCommandKey(binding.adapterType);
     } catch {
-      log("[taskcore] Device login: the adapter type has no login command key.");
+      log(
+        "[taskcore] Device login: the adapter type has no login command key.",
+      );
       throw new Error(CODEX_LOGIN_PTY_BIND_FAILED);
     }
     // Validate the server-controlled session home shape before the worker RPC.
@@ -1614,7 +1749,8 @@ export interface ProductionLoginSessionRuntimeDeps {
 
 /** The fixed, non-secret error the fail-closed opener throws when no live
  *  pseudo-terminal opener is bound. */
-const LOGIN_PTY_OPENER_UNBOUND = "device login failed: the sandbox pseudo-terminal transport is not bound.";
+const LOGIN_PTY_OPENER_UNBOUND =
+  "device login failed: the sandbox pseudo-terminal transport is not bound.";
 
 /**
  * Build the production login-session runtime. It acquires a fresh lease with
@@ -1689,7 +1825,9 @@ export function createProductionLoginSessionRuntime(
         async deleteSandbox() {
           const runtimeDriver = deps.environmentRuntime.getDriver(driverKey);
           if (!runtimeDriver) {
-            throw new Error(`Environment driver "${driverKey}" is not registered.`);
+            throw new Error(
+              `Environment driver "${driverKey}" is not registered.`,
+            );
           }
           const released = await runtimeDriver.releaseRunLease({
             environment: record.environment,

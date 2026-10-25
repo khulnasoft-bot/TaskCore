@@ -86,7 +86,11 @@ export function useBrowserViewport({
       !disposed &&
       document.visibilityState !== "hidden" &&
       frame.getClientRects().length > 0 &&
-      (!frame.checkVisibility || frame.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }));
+      (!frame.checkVisibility ||
+        frame.checkVisibility({
+          checkOpacity: true,
+          checkVisibilityCSS: true,
+        }));
     const measure = () => {
       const rect = frame.getBoundingClientRect();
       const chrome =

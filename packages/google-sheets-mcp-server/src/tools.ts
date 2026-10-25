@@ -1,4 +1,7 @@
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { GoogleSheetsClient } from "./google-client.js";
 
@@ -21,11 +24,18 @@ export interface GoogleSheetsToolOptions {
 type ToolRisk = "read" | "write" | "destructive";
 
 const spreadsheetIdSchema = z.string().trim().min(1);
-const rangeSchema = z.string().trim().min(1).max(500).refine(
-  (range) => !/[\r\n]/.test(range),
-  "Range must be a single-line A1 notation range.",
+const rangeSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(500)
+  .refine(
+    (range) => !/[\r\n]/.test(range),
+    "Range must be a single-line A1 notation range.",
+  );
+const valuesSchema = z.array(
+  z.array(z.union([z.string(), z.number(), z.boolean(), z.null()])),
 );
-const valuesSchema = z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()])));
 const valueInputOptionSchema = z.enum(["RAW", "USER_ENTERED"]).default("RAW");
 
 const spreadsheetToolSchema = z.object({
@@ -69,22 +79,36 @@ function annotationsFor(title: string, risk: ToolRisk): ToolAnnotations {
     return { title, readOnlyHint: true, openWorldHint: false };
   }
   if (risk === "write") {
-    return { title, readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+    return {
+      title,
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
+    };
   }
-  return { title, readOnlyHint: false, destructiveHint: true, openWorldHint: false };
+  return {
+    title,
+    readOnlyHint: false,
+    destructiveHint: true,
+    openWorldHint: false,
+  };
 }
 
 function formatTextResponse(value: unknown): ToolResult {
   return {
-    content: [{
-      type: "text",
-      text: typeof value === "string" ? value : JSON.stringify(value, null, 2),
-    }],
+    content: [
+      {
+        type: "text",
+        text:
+          typeof value === "string" ? value : JSON.stringify(value, null, 2),
+      },
+    ],
   };
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof z.ZodError) return error.issues.map((entry) => entry.message).join("; ");
+  if (error instanceof z.ZodError)
+    return error.issues.map((entry) => entry.message).join("; ");
   if (error instanceof Error) return error.message;
   return String(error);
 }
@@ -94,16 +118,24 @@ function redact(value: string, secretRedactions: string[]): string {
   for (const secret of secretRedactions) {
     if (secret.length >= 8) output = output.split(secret).join("[REDACTED]");
   }
-  return output.replace(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/g, "[REDACTED_PRIVATE_KEY]");
+  return output.replace(
+    /-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/g,
+    "[REDACTED_PRIVATE_KEY]",
+  );
 }
 
-function formatErrorResponse(error: unknown, secretRedactions: string[]): ToolResult {
+function formatErrorResponse(
+  error: unknown,
+  secretRedactions: string[],
+): ToolResult {
   return {
     isError: true,
-    content: [{
-      type: "text",
-      text: redact(errorMessage(error), secretRedactions),
-    }],
+    content: [
+      {
+        type: "text",
+        text: redact(errorMessage(error), secretRedactions),
+      },
+    ],
   };
 }
 
@@ -131,14 +163,25 @@ function makeTool<TSchema extends z.ZodRawShape>(
   };
 }
 
-function assertAllowed(allowedSpreadsheetIds: Set<string>, spreadsheetId: string) {
+function assertAllowed(
+  allowedSpreadsheetIds: Set<string>,
+  spreadsheetId: string,
+) {
   if (!allowedSpreadsheetIds.has(spreadsheetId)) {
-    throw new Error(`Spreadsheet ${spreadsheetId} is not in the configured allowlist.`);
+    throw new Error(
+      `Spreadsheet ${spreadsheetId} is not in the configured allowlist.`,
+    );
   }
 }
 
-export function createToolDefinitions(options: GoogleSheetsToolOptions): GoogleSheetsToolDefinition[] {
-  const allowedSpreadsheetIds = Array.from(new Set(options.allowedSpreadsheetIds.map((id) => id.trim()).filter(Boolean)));
+export function createToolDefinitions(
+  options: GoogleSheetsToolOptions,
+): GoogleSheetsToolDefinition[] {
+  const allowedSpreadsheetIds = Array.from(
+    new Set(
+      options.allowedSpreadsheetIds.map((id) => id.trim()).filter(Boolean),
+    ),
+  );
   const allowedSpreadsheetIdSet = new Set(allowedSpreadsheetIds);
   if (allowedSpreadsheetIds.length === 0) {
     throw new Error("At least one allowed spreadsheet ID is required.");

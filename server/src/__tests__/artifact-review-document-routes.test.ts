@@ -68,12 +68,18 @@ function registerRouteMocks() {
     }),
     companySkillService: () => ({}),
     companyService: () => mockCompanyService,
-    documentAnnotationService: () => ({ remapOpenThreadsForDocument: async () => [] }),
+    documentAnnotationService: () => ({
+      remapOpenThreadsForDocument: async () => [],
+    }),
     documentService: () => ({}),
     executionWorkspaceService: () => ({}),
     feedbackService: () => ({
       listIssueVotesForUser: vi.fn(async () => []),
-      saveIssueVote: vi.fn(async () => ({ vote: null, consentEnabledNow: false, sharingEnabled: false })),
+      saveIssueVote: vi.fn(async () => ({
+        vote: null,
+        consentEnabledNow: false,
+        sharingEnabled: false,
+      })),
     }),
     goalService: () => ({}),
     heartbeatService: () => ({
@@ -138,8 +144,12 @@ function createStorageService(): StorageService {
 
 async function createApp(options?: { companyIds?: string[] }) {
   const [{ errorHandler }, { issueRoutes }] = await Promise.all([
-    vi.importActual<typeof import("../middleware/index.js")>("../middleware/index.js"),
-    vi.importActual<typeof import("../routes/issues.js")>("../routes/issues.js"),
+    vi.importActual<typeof import("../middleware/index.js")>(
+      "../middleware/index.js",
+    ),
+    vi.importActual<typeof import("../routes/issues.js")>(
+      "../routes/issues.js",
+    ),
   ]);
   const app = express();
   app.use(express.json());
@@ -296,7 +306,8 @@ describe("work product review-document route", () => {
   });
 
   it("passes typed materialization errors through to the response", async () => {
-    const { HttpError } = await vi.importActual<typeof import("../errors.js")>("../errors.js");
+    const { HttpError } =
+      await vi.importActual<typeof import("../errors.js")>("../errors.js");
     mockEnsureForWorkProduct.mockRejectedValue(
       new HttpError(415, "Work product attachment is not Markdown"),
     );
@@ -314,7 +325,10 @@ describe("work product review-document route", () => {
     const renamed = makeWorkProduct({ title: "Renamed verification report" });
     mockWorkProductService.update.mockResolvedValue(renamed);
     mockEnsureForWorkProduct.mockResolvedValue({
-      document: makeDocument({ title: "Renamed verification report", latestRevisionNumber: 2 }),
+      document: makeDocument({
+        title: "Renamed verification report",
+        latestRevisionNumber: 2,
+      }),
       created: false,
       revisionChanged: true,
       remappedAnnotations: [],

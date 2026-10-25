@@ -10,7 +10,9 @@ vi.mock("./client", () => ({
 
 import { artifactsApi, type CompanyArtifact } from "./artifacts";
 
-function sampleArtifact(overrides: Partial<CompanyArtifact> = {}): CompanyArtifact {
+function sampleArtifact(
+  overrides: Partial<CompanyArtifact> = {},
+): CompanyArtifact {
   return {
     id: "wp-1",
     source: "work_product",
@@ -88,7 +90,11 @@ describe("artifactsApi.list", () => {
       updatedAt: "2026-06-01T00:00:00.000Z",
       href: "/PAP/artifacts?groupBy=task&groupIssueId=issue-1",
     };
-    mockApi.get.mockResolvedValue({ artifacts: [], groups: [group], nextCursor: "next" });
+    mockApi.get.mockResolvedValue({
+      artifacts: [],
+      groups: [group],
+      nextCursor: "next",
+    });
     const result = await artifactsApi.list("company-1", { groupBy: "task" });
     expect(result.groups).toEqual([group]);
     expect(result.nextCursor).toBe("next");
@@ -96,7 +102,10 @@ describe("artifactsApi.list", () => {
 
   it("returns the envelope shape from the backend", async () => {
     const artifact = sampleArtifact();
-    mockApi.get.mockResolvedValue({ artifacts: [artifact], nextCursor: "next" });
+    mockApi.get.mockResolvedValue({
+      artifacts: [artifact],
+      nextCursor: "next",
+    });
     const result = await artifactsApi.list("company-1");
     expect(result).toEqual({ artifacts: [artifact], nextCursor: "next" });
   });

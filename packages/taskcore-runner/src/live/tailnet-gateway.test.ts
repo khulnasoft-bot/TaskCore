@@ -57,7 +57,11 @@ describe("Capability tailnet gateway admission", () => {
   it("still requires the preview capability", () => {
     expect(
       capabilityTailnetAdmissionFailure({
-        headers: { host: expectedHost, origin: expectedOrigin, "content-type": "application/json" },
+        headers: {
+          host: expectedHost,
+          origin: expectedOrigin,
+          "content-type": "application/json",
+        },
         method: "POST",
         pathname: "/api/capability/ui/message",
         expectedHost,

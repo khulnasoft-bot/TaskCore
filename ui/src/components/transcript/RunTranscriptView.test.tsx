@@ -3,14 +3,42 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { parseAcpxStdoutLine } from "@taskcore/adapter-utils/acpx-engine/ui";
-import { buildTranscript, type RunLogChunk, type TranscriptEntry } from "../../adapters";
+import {
+  buildTranscript,
+  type RunLogChunk,
+  type TranscriptEntry,
+} from "../../adapters";
 import type { ToolRunDecision } from "@taskcore/shared";
 import { ThemeProvider } from "../../context/ThemeContext";
-import { RunTranscriptView, keyTranscriptBlocks, normalizeTranscript } from "./RunTranscriptView";
+import {
+  RunTranscriptView,
+  keyTranscriptBlocks,
+  normalizeTranscript,
+} from "./RunTranscriptView";
 
 describe("RunTranscriptView", () => {
   it("renders provider activity semantically without dumping the payload", () => {
-    const html = renderToStaticMarkup(<RunTranscriptView entries={[{ kind: "provider_activity", ts: "2026-08-21T12:00:00.000Z", family: "plan", eventType: "plan.updated", status: "completed", title: "Plan", summary: "Plan completed", payload: { steps: [{ stepId: "s1", body: "Validate schemas", status: "completed" }], hiddenSecret: "must-not-render" } }]} />);
+    const html = renderToStaticMarkup(
+      <RunTranscriptView
+        entries={[
+          {
+            kind: "provider_activity",
+            ts: "2026-08-21T12:00:00.000Z",
+            family: "plan",
+            eventType: "plan.updated",
+            status: "completed",
+            title: "Plan",
+            summary: "Plan completed",
+            payload: {
+              steps: [
+                { stepId: "s1", body: "Validate schemas", status: "completed" },
+              ],
+              hiddenSecret: "must-not-render",
+            },
+          },
+        ]}
+      />,
+    );
     expect(html).toContain("Plan");
     expect(html).toContain("Plan completed");
     expect(html).not.toContain("must-not-render");
@@ -70,12 +98,34 @@ describe("RunTranscriptView", () => {
   it("renders a streamed acpx tool call as a single card once completed", () => {
     const ts = "2026-03-12T00:00:00.000Z";
     const jsonLines = [
-      { type: "acpx.tool_call", name: "read", toolCallId: "tool-1", status: "pending", text: "read README.md" },
-      { type: "acpx.tool_call", name: "read", toolCallId: "tool-1", status: "in_progress", text: "read README.md" },
-      { type: "acpx.tool_call", name: "read", toolCallId: "tool-1", status: "completed", text: "ok" },
+      {
+        type: "acpx.tool_call",
+        name: "read",
+        toolCallId: "tool-1",
+        status: "pending",
+        text: "read README.md",
+      },
+      {
+        type: "acpx.tool_call",
+        name: "read",
+        toolCallId: "tool-1",
+        status: "in_progress",
+        text: "read README.md",
+      },
+      {
+        type: "acpx.tool_call",
+        name: "read",
+        toolCallId: "tool-1",
+        status: "completed",
+        text: "ok",
+      },
     ];
     const chunks: RunLogChunk[] = [
-      { ts, stream: "stdout", chunk: jsonLines.map((line) => JSON.stringify(line)).join("\n") + "\n" },
+      {
+        ts,
+        stream: "stdout",
+        chunk: jsonLines.map((line) => JSON.stringify(line)).join("\n") + "\n",
+      },
     ];
 
     const entries = buildTranscript(chunks, parseAcpxStdoutLine);
@@ -91,12 +141,35 @@ describe("RunTranscriptView", () => {
   it("renders streamed acpx tool calls with input payloads as readable status cards", () => {
     const ts = "2026-03-12T00:00:00.000Z";
     const jsonLines = [
-      { type: "acpx.tool_call", name: "read", toolCallId: "tool-2", status: "running", input: { file: "README.md" } },
-      { type: "acpx.tool_call", name: "read", toolCallId: "tool-2", status: "in_progress", text: "opening file", input: { line: 1 } },
-      { type: "acpx.tool_call", name: "read", toolCallId: "tool-2", status: "completed", text: "ok" },
+      {
+        type: "acpx.tool_call",
+        name: "read",
+        toolCallId: "tool-2",
+        status: "running",
+        input: { file: "README.md" },
+      },
+      {
+        type: "acpx.tool_call",
+        name: "read",
+        toolCallId: "tool-2",
+        status: "in_progress",
+        text: "opening file",
+        input: { line: 1 },
+      },
+      {
+        type: "acpx.tool_call",
+        name: "read",
+        toolCallId: "tool-2",
+        status: "completed",
+        text: "ok",
+      },
     ];
     const chunks: RunLogChunk[] = [
-      { ts, stream: "stdout", chunk: jsonLines.map((line) => JSON.stringify(line)).join("\n") + "\n" },
+      {
+        ts,
+        stream: "stdout",
+        chunk: jsonLines.map((line) => JSON.stringify(line)).join("\n") + "\n",
+      },
     ];
 
     const entries = buildTranscript(chunks, parseAcpxStdoutLine);
@@ -165,7 +238,7 @@ describe("RunTranscriptView", () => {
       {
         kind: "stderr",
         ts: "2026-03-12T00:00:00.000Z",
-        text: "[taskcore] Skipping saved session resume for task \"PAP-485\" because wake reason is issue_assigned.",
+        text: '[taskcore] Skipping saved session resume for task "PAP-485" because wake reason is issue_assigned.',
       },
       {
         kind: "assistant",
@@ -231,7 +304,7 @@ describe("RunTranscriptView", () => {
         catalogEntryId: null,
         toolName: "send_email",
         argumentsHash: "hash-1",
-        argumentsSummary: { summary: "{\"to\":\"redacted\"}" },
+        argumentsSummary: { summary: '{"to":"redacted"}' },
         policyDecision: "require_approval",
         matchedPolicyIds: [],
         approvalState: "pending",
@@ -257,7 +330,7 @@ describe("RunTranscriptView", () => {
         approvalId: null,
         status: "pending",
         canonicalArgumentsHash: "hash-1",
-        canonicalArgumentsSummary: { summary: "{\"to\":\"redacted\"}" },
+        canonicalArgumentsSummary: { summary: '{"to":"redacted"}' },
         signedArguments: null,
         previewMarkdown: "Tool: `send_email`",
         requestedByAgentId: "agent-1",
@@ -311,11 +384,14 @@ describe("RunTranscriptView", () => {
   });
 
   it("windows large raw transcripts instead of rendering every entry at once", () => {
-    const entries: TranscriptEntry[] = Array.from({ length: 500 }, (_, index) => ({
-      kind: "stdout",
-      ts: `2026-03-12T00:${String(index % 60).padStart(2, "0")}:00.000Z`,
-      text: `line-${index}`,
-    }));
+    const entries: TranscriptEntry[] = Array.from(
+      { length: 500 },
+      (_, index) => ({
+        kind: "stdout",
+        ts: `2026-03-12T00:${String(index % 60).padStart(2, "0")}:00.000Z`,
+        text: `line-${index}`,
+      }),
+    );
 
     const html = renderToStaticMarkup(
       <ThemeProvider>
@@ -334,12 +410,27 @@ describe("RunTranscriptView", () => {
     // block's `ts`. The React key must stay anchored to the block's opening
     // timestamp so the tail does not unmount/remount (restarting its fade).
     const firstDelta: TranscriptEntry[] = [
-      { kind: "assistant", ts: "2026-03-12T00:00:00.000Z", text: "Hel", delta: true },
+      {
+        kind: "assistant",
+        ts: "2026-03-12T00:00:00.000Z",
+        text: "Hel",
+        delta: true,
+      },
     ];
     const withMoreDeltas: TranscriptEntry[] = [
       ...firstDelta,
-      { kind: "assistant", ts: "2026-03-12T00:00:00.400Z", text: "lo the", delta: true },
-      { kind: "assistant", ts: "2026-03-12T00:00:00.900Z", text: "re", delta: true },
+      {
+        kind: "assistant",
+        ts: "2026-03-12T00:00:00.400Z",
+        text: "lo the",
+        delta: true,
+      },
+      {
+        kind: "assistant",
+        ts: "2026-03-12T00:00:00.900Z",
+        text: "re",
+        delta: true,
+      },
     ];
 
     const keyOf = (entries: TranscriptEntry[]) => {
@@ -356,16 +447,35 @@ describe("RunTranscriptView", () => {
 
   it("assigns unique keys and does not remount earlier blocks when a new tail arrives", () => {
     const base: TranscriptEntry[] = [
-      { kind: "assistant", ts: "2026-03-12T00:00:00.000Z", text: "first message", delta: true },
-      { kind: "thinking", ts: "2026-03-12T00:00:01.000Z", text: "pondering", delta: true },
+      {
+        kind: "assistant",
+        ts: "2026-03-12T00:00:00.000Z",
+        text: "first message",
+        delta: true,
+      },
+      {
+        kind: "thinking",
+        ts: "2026-03-12T00:00:01.000Z",
+        text: "pondering",
+        delta: true,
+      },
     ];
     const withNewTail: TranscriptEntry[] = [
       ...base,
-      { kind: "assistant", ts: "2026-03-12T00:00:02.000Z", text: "second message", delta: true },
+      {
+        kind: "assistant",
+        ts: "2026-03-12T00:00:02.000Z",
+        text: "second message",
+        delta: true,
+      },
     ];
 
-    const baseKeys = keyTranscriptBlocks(normalizeTranscript(base, true)).map((b) => b.key);
-    const nextKeys = keyTranscriptBlocks(normalizeTranscript(withNewTail, true)).map((b) => b.key);
+    const baseKeys = keyTranscriptBlocks(normalizeTranscript(base, true)).map(
+      (b) => b.key,
+    );
+    const nextKeys = keyTranscriptBlocks(
+      normalizeTranscript(withNewTail, true),
+    ).map((b) => b.key);
 
     // Keys are unique within a render.
     expect(new Set(nextKeys).size).toBe(nextKeys.length);

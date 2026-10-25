@@ -4,11 +4,13 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
-export const PROPOSED_TELEMETRY_SCHEMA_VERSION = "proposed-telemetry-extractor.v2";
+export const PROPOSED_TELEMETRY_SCHEMA_VERSION =
+  "proposed-telemetry-extractor.v2";
 
 const DEFAULT_EVENTS_FILE = "packages/shared/src/telemetry/events.ts";
 const EVENT_NAME_PATTERN = /^[a-z0-9][a-z0-9._:-]{1,63}$/;
-const ISSUE_PATTERN = /^(PAP-\d+|https:\/\/github\.com\/taskcore\/taskcore\/issues\/\d+)$/;
+const ISSUE_PATTERN =
+  /^(PAP-\d+|https:\/\/github\.com\/taskcore\/taskcore\/issues\/\d+)$/;
 
 export function assertRepoRelativePath(value) {
   if (typeof value !== "string" || value.length === 0) {
@@ -18,17 +20,23 @@ export function assertRepoRelativePath(value) {
     throw new Error(`provenance.file must be repo-relative: ${value}`);
   }
   if (/^[A-Za-z]:/.test(value)) {
-    throw new Error(`provenance.file must not use a drive-letter path: ${value}`);
+    throw new Error(
+      `provenance.file must not use a drive-letter path: ${value}`,
+    );
   }
   if (value.includes("\\")) {
     throw new Error(`provenance.file must use forward slashes: ${value}`);
   }
   const parts = value.split("/");
   if (parts.some((part) => part === "" || part === "." || part === "..")) {
-    throw new Error(`provenance.file contains an unsafe path segment: ${value}`);
+    throw new Error(
+      `provenance.file contains an unsafe path segment: ${value}`,
+    );
   }
   if (!/^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/.test(value)) {
-    throw new Error(`provenance.file contains unsupported characters: ${value}`);
+    throw new Error(
+      `provenance.file contains unsupported characters: ${value}`,
+    );
   }
   return value;
 }
@@ -36,8 +44,14 @@ export function assertRepoRelativePath(value) {
 export function toRepoRelativePath(repoRoot, filePath) {
   const absoluteRoot = resolve(repoRoot);
   const absoluteFile = resolve(filePath);
-  const repoRelative = relative(absoluteRoot, absoluteFile).split(sep).join("/");
-  if (repoRelative === "" || repoRelative === ".." || repoRelative.startsWith("../")) {
+  const repoRelative = relative(absoluteRoot, absoluteFile)
+    .split(sep)
+    .join("/");
+  if (
+    repoRelative === "" ||
+    repoRelative === ".." ||
+    repoRelative.startsWith("../")
+  ) {
     throw new Error(`events file must be inside repo root: ${filePath}`);
   }
   return assertRepoRelativePath(repoRelative);
@@ -47,7 +61,9 @@ export function parseProposedTelemetryDirective(commentText) {
   const normalized = normalizeComment(commentText);
   if (!normalized.includes("@ts-expect-error")) return null;
 
-  const marker = normalized.match(/@ts-expect-error\b(?:\s*--\s*)?(?:proposed-telemetry\(([^)]+)\):\s*(.*))?/s);
+  const marker = normalized.match(
+    /@ts-expect-error\b(?:\s*--\s*)?(?:proposed-telemetry\(([^)]+)\):\s*(.*))?/s,
+  );
   if (!marker) return null;
 
   const issue = marker[1]?.trim() || null;
@@ -69,17 +85,32 @@ export function parseProposedTelemetryDirective(commentText) {
 
 export function extractProposedEvents(options = {}) {
   const repoRoot = resolve(options.repoRoot ?? process.cwd());
-  const eventsFile = resolve(repoRoot, options.eventsFile ?? DEFAULT_EVENTS_FILE);
+  const eventsFile = resolve(
+    repoRoot,
+    options.eventsFile ?? DEFAULT_EVENTS_FILE,
+  );
   const provenanceFile = toRepoRelativePath(repoRoot, eventsFile);
   const sourceText = readFileSync(eventsFile, "utf8");
-  const sourceFile = ts.createSourceFile(eventsFile, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const sourceFile = ts.createSourceFile(
+    eventsFile,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
   const proposals = new Map();
 
   function recordProposal(wrapper, wrapperName, eventNameNode, directive) {
     const name = eventNameNode.text;
     assertEventName(name, "event name");
-    const position = sourceFile.getLineAndCharacterOfPosition(eventNameNode.getStart(sourceFile));
-    const dimensions = extractWrapperDimensions(wrapper, sourceFile, wrapperName);
+    const position = sourceFile.getLineAndCharacterOfPosition(
+      eventNameNode.getStart(sourceFile),
+    );
+    const dimensions = extractWrapperDimensions(
+      wrapper,
+      sourceFile,
+      wrapperName,
+    );
 
     let proposal = proposals.get(name);
     if (!proposal) {
@@ -110,7 +141,10 @@ export function extractProposedEvents(options = {}) {
     });
   }
 
-  function visitWrapper(wrapper, wrapperName = wrapper.name?.text ?? "<anonymous>") {
+  function visitWrapper(
+    wrapper,
+    wrapperName = wrapper.name?.text ?? "<anonymous>",
+  ) {
     if (!wrapper.body) return;
 
     function visit(node) {
@@ -118,7 +152,8 @@ export function extractProposedEvents(options = {}) {
         const eventNameNode = node.arguments[0];
         if (eventNameNode && ts.isStringLiteral(eventNameNode)) {
           const directive = findDirectiveForNode(sourceText, eventNameNode);
-          if (directive) recordProposal(wrapper, wrapperName, eventNameNode, directive);
+          if (directive)
+            recordProposal(wrapper, wrapperName, eventNameNode, directive);
         }
       }
       ts.forEachChild(node, visit);
@@ -139,7 +174,12 @@ export function extractProposedEvents(options = {}) {
   function visitVariableWrapper(node) {
     if (!ts.isIdentifier(node.name)) return;
     const initializer = node.initializer;
-    if (!initializer || (!ts.isArrowFunction(initializer) && !ts.isFunctionExpression(initializer))) return;
+    if (
+      !initializer ||
+      (!ts.isArrowFunction(initializer) &&
+        !ts.isFunctionExpression(initializer))
+    )
+      return;
     visitWrapper(initializer, node.name.text);
   }
 
@@ -157,7 +197,11 @@ export function extractProposedEvents(options = {}) {
 function buildSource(options) {
   const source = {
     repo: options.repo ?? "khulnasoft/taskcore",
-    ref: options.ref ?? process.env.GITHUB_SHA ?? process.env.TASKCORE_WORKSPACE_REPO_REF ?? "unknown",
+    ref:
+      options.ref ??
+      process.env.GITHUB_SHA ??
+      process.env.TASKCORE_WORKSPACE_REPO_REF ??
+      "unknown",
   };
   const baseRef = options.baseRef ?? process.env.GITHUB_BASE_REF;
   if (baseRef) source.baseRef = baseRef;
@@ -174,9 +218,12 @@ function isIdentifierTrackCall(node) {
 }
 
 function findDirectiveForNode(sourceText, node) {
-  const ranges = ts.getLeadingCommentRanges(sourceText, node.getFullStart()) ?? [];
+  const ranges =
+    ts.getLeadingCommentRanges(sourceText, node.getFullStart()) ?? [];
   for (const range of ranges) {
-    const directive = parseProposedTelemetryDirective(sourceText.slice(range.pos, range.end));
+    const directive = parseProposedTelemetryDirective(
+      sourceText.slice(range.pos, range.end),
+    );
     if (directive) return directive;
   }
   return null;
@@ -193,9 +240,14 @@ function normalizeComment(commentText) {
     .trim();
 }
 
-function extractWrapperDimensions(wrapper, sourceFile, wrapperName = wrapper.name?.text ?? "<anonymous>") {
+function extractWrapperDimensions(
+  wrapper,
+  sourceFile,
+  wrapperName = wrapper.name?.text ?? "<anonymous>",
+) {
   const dimsParam = wrapper.parameters.find(
-    (parameter) => ts.isIdentifier(parameter.name) && parameter.name.text === "dims",
+    (parameter) =>
+      ts.isIdentifier(parameter.name) && parameter.name.text === "dims",
   );
   if (!dimsParam) return [];
   if (!dimsParam.type) {
@@ -203,7 +255,9 @@ function extractWrapperDimensions(wrapper, sourceFile, wrapperName = wrapper.nam
   }
   const typeNode = unwrapTypeNode(dimsParam.type);
   if (!ts.isTypeLiteralNode(typeNode)) {
-    throw new Error(`wrapper ${wrapperName} dims parameter must be a type literal`);
+    throw new Error(
+      `wrapper ${wrapperName} dims parameter must be a type literal`,
+    );
   }
 
   return typeNode.members.map((member) => extractDimension(member, sourceFile));
@@ -211,7 +265,9 @@ function extractWrapperDimensions(wrapper, sourceFile, wrapperName = wrapper.nam
 
 function extractDimension(member, sourceFile) {
   if (!ts.isPropertySignature(member) || !member.type) {
-    throw new Error("dims parameter type may contain only typed property signatures");
+    throw new Error(
+      "dims parameter type may contain only typed property signatures",
+    );
   }
   const name = propertyNameText(member.name);
   assertEventName(name, "dimension name");
@@ -222,10 +278,16 @@ function extractDimension(member, sourceFile) {
 }
 
 function propertyNameText(name) {
-  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
+  if (
+    ts.isIdentifier(name) ||
+    ts.isStringLiteral(name) ||
+    ts.isNumericLiteral(name)
+  ) {
     return name.text;
   }
-  throw new Error("dimension names must be literal identifiers or string literals");
+  throw new Error(
+    "dimension names must be literal identifiers or string literals",
+  );
 }
 
 function classifyTypeNode(typeNode, sourceFile) {
@@ -237,14 +299,29 @@ function classifyTypeNode(typeNode, sourceFile) {
 
   if (ts.isLiteralTypeNode(node)) {
     const literal = node.literal;
-    if (ts.isStringLiteral(literal) || literal.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) return "string";
+    if (
+      ts.isStringLiteral(literal) ||
+      literal.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral
+    )
+      return "string";
     if (ts.isNumericLiteral(literal)) return "number";
-    if (literal.kind === ts.SyntaxKind.TrueKeyword || literal.kind === ts.SyntaxKind.FalseKeyword) return "boolean";
+    if (
+      literal.kind === ts.SyntaxKind.TrueKeyword ||
+      literal.kind === ts.SyntaxKind.FalseKeyword
+    )
+      return "boolean";
   }
 
-  if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName) && node.typeName.text === "RawDimension") {
+  if (
+    ts.isTypeReferenceNode(node) &&
+    ts.isIdentifier(node.typeName) &&
+    node.typeName.text === "RawDimension"
+  ) {
     const inner = node.typeArguments?.[0];
-    if (!inner) throw new Error(`RawDimension is missing a type argument at ${node.getText(sourceFile)}`);
+    if (!inner)
+      throw new Error(
+        `RawDimension is missing a type argument at ${node.getText(sourceFile)}`,
+      );
     return classifyTypeNode(inner, sourceFile);
   }
 
@@ -254,11 +331,17 @@ function classifyTypeNode(typeNode, sourceFile) {
       const unwrapped = unwrapTypeNode(member);
       if (unwrapped.kind === ts.SyntaxKind.UndefinedKeyword) continue;
       if (unwrapped.kind === ts.SyntaxKind.NullKeyword) continue;
-      if (ts.isLiteralTypeNode(unwrapped) && unwrapped.literal.kind === ts.SyntaxKind.NullKeyword) continue;
+      if (
+        ts.isLiteralTypeNode(unwrapped) &&
+        unwrapped.literal.kind === ts.SyntaxKind.NullKeyword
+      )
+        continue;
       primitiveTypes.add(classifyTypeNode(unwrapped, sourceFile));
     }
     if (primitiveTypes.size !== 1) {
-      throw new Error(`dimension union must resolve to one primitive type: ${node.getText(sourceFile)}`);
+      throw new Error(
+        `dimension union must resolve to one primitive type: ${node.getText(sourceFile)}`,
+      );
     }
     return [...primitiveTypes][0];
   }
@@ -289,7 +372,9 @@ function mergeRationaleField(target, incoming, key, eventName) {
   const value = incoming[key];
   if (!value) return;
   if (target[key] && target[key] !== value) {
-    throw new Error(`conflicting rationale ${key} for proposed event ${eventName}`);
+    throw new Error(
+      `conflicting rationale ${key} for proposed event ${eventName}`,
+    );
   }
   target[key] = value;
 }
@@ -301,11 +386,16 @@ function formatProposal(proposal) {
       line: item.line,
       column: item.column,
     }))
-    .sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.column - b.column);
+    .sort(
+      (a, b) =>
+        a.file.localeCompare(b.file) || a.line - b.line || a.column - b.column,
+    );
 
   return {
     name: proposal.name,
-    dimensions: [...proposal.dimensions.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    dimensions: [...proposal.dimensions.values()].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    ),
     rationale: {
       issue: proposal.rationale.issue,
       text: proposal.rationale.text,
@@ -340,7 +430,9 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  process.stdout.write(`Usage: node scripts/extract-proposed-events.mjs [options]\n\nOptions:\n  --repo-root <path>    Repository root. Defaults to cwd.\n  --events-file <path>  events.ts path, absolute or repo-relative.\n  --repo <slug>         Source repository slug. Defaults to taskcore/taskcore.\n  --ref <ref>           Source ref/SHA for the extractor envelope.\n  --base-ref <ref>      Optional base ref for diff-oriented inventory jobs.\n`);
+  process.stdout.write(
+    `Usage: node scripts/extract-proposed-events.mjs [options]\n\nOptions:\n  --repo-root <path>    Repository root. Defaults to cwd.\n  --events-file <path>  events.ts path, absolute or repo-relative.\n  --repo <slug>         Source repository slug. Defaults to taskcore/taskcore.\n  --ref <ref>           Source ref/SHA for the extractor envelope.\n  --base-ref <ref>      Optional base ref for diff-oriented inventory jobs.\n`,
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -350,9 +442,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       printHelp();
       process.exit(0);
     }
-    process.stdout.write(`${JSON.stringify(extractProposedEvents(options), null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify(extractProposedEvents(options), null, 2)}\n`,
+    );
   } catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`,
+    );
     process.exit(1);
   }
 }

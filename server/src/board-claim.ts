@@ -32,7 +32,10 @@ function createChallenge(now = new Date()): ClaimChallenge {
   };
 }
 
-function getChallengeStatus(token: string, code: string | undefined): ChallengeStatus {
+function getChallengeStatus(
+  token: string,
+  code: string | undefined,
+): ChallengeStatus {
   if (!activeChallenge) return "invalid";
   if (activeChallenge.token !== token) return "invalid";
   if (activeChallenge.code !== (code ?? "")) return "invalid";
@@ -55,25 +58,40 @@ export async function initializeBoardClaimChallenge(
     .from(instanceUserRoles)
     .where(eq(instanceUserRoles.role, "instance_admin"));
 
-  const onlyLocalBoardAdmin = admins.length === 1 && admins[0]?.userId === LOCAL_BOARD_USER_ID;
+  const onlyLocalBoardAdmin =
+    admins.length === 1 && admins[0]?.userId === LOCAL_BOARD_USER_ID;
   if (!onlyLocalBoardAdmin) {
     activeChallenge = null;
     return;
   }
 
-  if (!activeChallenge || activeChallenge.expiresAt.getTime() <= Date.now() || activeChallenge.claimedAt) {
+  if (
+    !activeChallenge ||
+    activeChallenge.expiresAt.getTime() <= Date.now() ||
+    activeChallenge.claimedAt
+  ) {
     activeChallenge = createChallenge();
   }
 }
 
-export function getBoardClaimWarningUrl(host: string, port: number): string | null {
+export function getBoardClaimWarningUrl(
+  host: string,
+  port: number,
+): string | null {
   if (!activeChallenge) return null;
-  if (activeChallenge.claimedAt || activeChallenge.expiresAt.getTime() <= Date.now()) return null;
+  if (
+    activeChallenge.claimedAt ||
+    activeChallenge.expiresAt.getTime() <= Date.now()
+  )
+    return null;
   const visibleHost = host === "0.0.0.0" ? "localhost" : host;
   return `http://${visibleHost}:${port}/board-claim/${activeChallenge.token}?code=${activeChallenge.code}`;
 }
 
-export function inspectBoardClaimChallenge(token: string, code: string | undefined) {
+export function inspectBoardClaimChallenge(
+  token: string,
+  code: string | undefined,
+) {
   const status = getChallengeStatus(token, code);
   return {
     status,
@@ -95,7 +113,12 @@ export async function claimBoardOwnership(
     const existingTargetAdmin = await tx
       .select({ id: instanceUserRoles.id })
       .from(instanceUserRoles)
-      .where(and(eq(instanceUserRoles.userId, opts.userId), eq(instanceUserRoles.role, "instance_admin")))
+      .where(
+        and(
+          eq(instanceUserRoles.userId, opts.userId),
+          eq(instanceUserRoles.role, "instance_admin"),
+        ),
+      )
       .then((rows) => rows[0] ?? null);
     if (!existingTargetAdmin) {
       await tx.insert(instanceUserRoles).values({
@@ -106,13 +129,21 @@ export async function claimBoardOwnership(
 
     await tx
       .delete(instanceUserRoles)
-      .where(and(eq(instanceUserRoles.userId, LOCAL_BOARD_USER_ID), eq(instanceUserRoles.role, "instance_admin")));
+      .where(
+        and(
+          eq(instanceUserRoles.userId, LOCAL_BOARD_USER_ID),
+          eq(instanceUserRoles.role, "instance_admin"),
+        ),
+      );
 
     const allCompanies = await tx.select({ id: companies.id }).from(companies);
     for (const company of allCompanies) {
       claimedCompanyIds.push(company.id);
       const existing = await tx
-        .select({ id: companyMemberships.id, status: companyMemberships.status })
+        .select({
+          id: companyMemberships.id,
+          status: companyMemberships.status,
+        })
         .from(companyMemberships)
         .where(
           and(
@@ -137,7 +168,11 @@ export async function claimBoardOwnership(
       if (existing.status !== "active") {
         await tx
           .update(companyMemberships)
-          .set({ status: "active", membershipRole: "owner", updatedAt: new Date() })
+          .set({
+            status: "active",
+            membershipRole: "owner",
+            updatedAt: new Date(),
+          })
           .where(eq(companyMemberships.id, existing.id));
       }
     }

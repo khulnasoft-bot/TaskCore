@@ -12,7 +12,9 @@ export interface AgentSkillSearchFields {
   categories?: string[] | null;
 }
 
-export function buildAgentSkillHaystack(fields: AgentSkillSearchFields): string {
+export function buildAgentSkillHaystack(
+  fields: AgentSkillSearchFields,
+): string {
   return [
     fields.name,
     fields.slug ?? "",

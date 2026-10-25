@@ -22,10 +22,16 @@ afterEach(() => {
 describe("external Taskcore task links", () => {
   it("resolves a newly claimed Cloud origin at use time ahead of pool configuration", () => {
     vi.stubEnv("TASKCORE_AUTH_PUBLIC_BASE_URL", "https://pool.example");
-    expect(publicChatTaskUrl("issue-1")).toBe("https://pool.example/issues/issue-1");
+    expect(publicChatTaskUrl("issue-1")).toBe(
+      "https://pool.example/issues/issue-1",
+    );
     vi.mocked(runtimeCanonicalOrigin).mockReturnValue("https://vanity.example");
-    expect(publicChatTaskUrl("issue-1")).toBe("https://vanity.example/issues/issue-1");
-    expect(publicChatInteractionTaskUrl("issue-1")).toBe("https://vanity.example/issues/issue-1");
+    expect(publicChatTaskUrl("issue-1")).toBe(
+      "https://vanity.example/issues/issue-1",
+    );
+    expect(publicChatInteractionTaskUrl("issue-1")).toBe(
+      "https://vanity.example/issues/issue-1",
+    );
   });
 
   it("uses only the safe board origin and canonical issue path", () => {

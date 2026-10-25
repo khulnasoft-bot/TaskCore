@@ -1,6 +1,10 @@
 import { UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "../lib/utils";
 
 /**
@@ -21,7 +25,10 @@ import { cn } from "../lib/utils";
  * Tooltip copy for the chip. Exported so the wording is unit-testable without
  * driving Radix's portal open.
  */
-export function commentAttributionTooltip(agentName: string, userName: string): string {
+export function commentAttributionTooltip(
+  agentName: string,
+  userName: string,
+): string {
   return (
     `${agentName} posted this on behalf of ${userName}. ${agentName} is not assigned to ` +
     `this task — its authority to write here comes from ${userName}, and never exceeds it.`

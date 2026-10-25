@@ -33,7 +33,11 @@ vi.mock("../api/issues", () => ({ issuesApi: mockIssuesApi }));
 vi.mock("../context/CompanyContext", () => ({
   useCompany: () => ({
     selectedCompanyId: "company-1",
-    selectedCompany: { id: "company-1", name: "Acme Robotics", issuePrefix: "PAP" },
+    selectedCompany: {
+      id: "company-1",
+      name: "Acme Robotics",
+      issuePrefix: "PAP",
+    },
   }),
 }));
 
@@ -50,7 +54,9 @@ vi.mock("../components/ActivityFeed", () => ({
   ActivityFeed: () => <div data-testid="activity-feed" />,
 }));
 vi.mock("../components/MarkdownBody", () => ({
-  MarkdownBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  MarkdownBody: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 vi.mock("../components/ChatComposer", () => ({
   ChatComposer: forwardRef((_props, ref) => {
@@ -92,7 +98,11 @@ const CEO_AGENT = {
   status: "active",
   icon: null,
 };
-const BOARD_ISSUE = { id: "issue-board", title: "Board Operations", status: "in_progress" };
+const BOARD_ISSUE = {
+  id: "issue-board",
+  title: "Board Operations",
+  status: "in_progress",
+};
 const USER_COMMENT = {
   id: "comment-user-1",
   body: "Hi Alex!",

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { IssueWorkProduct } from "@taskcore/shared";
 import { reconcileRuntimeServiceWorkProducts } from "../services/work-products.js";
 
-function workProduct(overrides: Partial<IssueWorkProduct> = {}): IssueWorkProduct {
+function workProduct(
+  overrides: Partial<IssueWorkProduct> = {},
+): IssueWorkProduct {
   return {
     id: "wp-1",
     companyId: "company-1",
@@ -33,7 +35,14 @@ describe("reconcileRuntimeServiceWorkProducts", () => {
   it("adopts the live runtime URL after a port change", () => {
     const [reconciled] = reconcileRuntimeServiceWorkProducts(
       [workProduct()],
-      [{ id: "runtime-1", url: "https://workspace.example.ts.net:42055/", status: "running", healthStatus: "healthy" }],
+      [
+        {
+          id: "runtime-1",
+          url: "https://workspace.example.ts.net:42055/",
+          status: "running",
+          healthStatus: "healthy",
+        },
+      ],
     );
     expect(reconciled!.url).toBe("https://workspace.example.ts.net:42055/");
     expect(reconciled!.healthStatus).toBe("healthy");
@@ -42,30 +51,54 @@ describe("reconcileRuntimeServiceWorkProducts", () => {
   it("closes a stopped runtime but keeps a running unhealthy runtime active", () => {
     const [stopped] = reconcileRuntimeServiceWorkProducts(
       [workProduct()],
-      [{ id: "runtime-1", url: "https://workspace.example.ts.net:42013/", status: "stopped", healthStatus: "healthy" }],
+      [
+        {
+          id: "runtime-1",
+          url: "https://workspace.example.ts.net:42013/",
+          status: "stopped",
+          healthStatus: "healthy",
+        },
+      ],
     );
     expect(stopped!.status).toBe("closed");
     expect(stopped!.healthStatus).toBe("unhealthy");
 
     const [unhealthy] = reconcileRuntimeServiceWorkProducts(
       [workProduct()],
-      [{ id: "runtime-1", url: "https://workspace.example.ts.net:42013/", status: "running", healthStatus: "unhealthy" }],
+      [
+        {
+          id: "runtime-1",
+          url: "https://workspace.example.ts.net:42013/",
+          status: "running",
+          healthStatus: "unhealthy",
+        },
+      ],
     );
     expect(unhealthy!.status).toBe("open");
     expect(unhealthy!.healthStatus).toBe("unhealthy");
   });
 
   it("keeps the recorded URL when the runtime row is gone and closes the work product", () => {
-    const [reconciled] = reconcileRuntimeServiceWorkProducts([workProduct()], []);
+    const [reconciled] = reconcileRuntimeServiceWorkProducts(
+      [workProduct()],
+      [],
+    );
     expect(reconciled!.url).toBe("https://workspace.example.ts.net:42013/");
     expect(reconciled!.status).toBe("closed");
     expect(reconciled!.healthStatus).toBe("unhealthy");
   });
 
   it("leaves non-runtime work products and unlinked rows untouched", () => {
-    const pullRequest = workProduct({ id: "wp-pr", type: "pull_request", runtimeServiceId: null });
+    const pullRequest = workProduct({
+      id: "wp-pr",
+      type: "pull_request",
+      runtimeServiceId: null,
+    });
     const unlinked = workProduct({ id: "wp-unlinked", runtimeServiceId: null });
-    const reconciled = reconcileRuntimeServiceWorkProducts([pullRequest, unlinked], []);
+    const reconciled = reconcileRuntimeServiceWorkProducts(
+      [pullRequest, unlinked],
+      [],
+    );
     expect(reconciled[0]).toBe(pullRequest);
     expect(reconciled[1]).toBe(unlinked);
   });
@@ -74,7 +107,14 @@ describe("reconcileRuntimeServiceWorkProducts", () => {
     const product = workProduct();
     const reconciled = reconcileRuntimeServiceWorkProducts(
       [product],
-      [{ id: "runtime-1", url: product.url, status: "running", healthStatus: "healthy" }],
+      [
+        {
+          id: "runtime-1",
+          url: product.url,
+          status: "running",
+          healthStatus: "healthy",
+        },
+      ],
     );
     expect(reconciled[0]).toBe(product);
   });

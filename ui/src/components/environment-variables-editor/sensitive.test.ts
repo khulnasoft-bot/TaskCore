@@ -24,9 +24,15 @@ describe("isSensitiveEnv", () => {
 
   it("flags known credential value shapes even with benign names", () => {
     expect(isSensitiveEnv("CONFIG", "sk-abcdefghijklmnopqrst")).toBe(true);
-    expect(isSensitiveEnv("CONFIG", "ghp_0123456789abcdef0123456789abcdef")).toBe(true);
-    expect(isSensitiveEnv("CONFIG", "xoxb-123456789012-abcdefghijkl")).toBe(true);
-    expect(isSensitiveEnv("CONFIG", "-----BEGIN RSA PRIVATE KEY-----")).toBe(true);
+    expect(
+      isSensitiveEnv("CONFIG", "ghp_0123456789abcdef0123456789abcdef"),
+    ).toBe(true);
+    expect(isSensitiveEnv("CONFIG", "xoxb-123456789012-abcdefghijkl")).toBe(
+      true,
+    );
+    expect(isSensitiveEnv("CONFIG", "-----BEGIN RSA PRIVATE KEY-----")).toBe(
+      true,
+    );
   });
 
   it("flags long high-entropy tokens", () => {
@@ -34,7 +40,11 @@ describe("isSensitiveEnv", () => {
   });
 
   it("does not flag long lowercase-only prose/paths", () => {
-    expect(isSensitiveEnv("PATH", "/usr/local/bin/some/long/path/here")).toBe(false);
-    expect(isSensitiveEnv("GREETING", "hello there this is a message")).toBe(false);
+    expect(isSensitiveEnv("PATH", "/usr/local/bin/some/long/path/here")).toBe(
+      false,
+    );
+    expect(isSensitiveEnv("GREETING", "hello there this is a message")).toBe(
+      false,
+    );
   });
 });

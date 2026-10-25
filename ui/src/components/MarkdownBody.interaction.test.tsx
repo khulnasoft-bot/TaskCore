@@ -13,7 +13,9 @@ vi.mock("@/lib/router", () => ({
     to,
     ...props
   }: { children: React.ReactNode; to: string } & React.ComponentProps<"a">) => (
-    <a href={to} {...props}>{children}</a>
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -72,9 +74,13 @@ function click(element: Element | null) {
 
 describe("MarkdownBody code block interactions", () => {
   it("toggles line wrapping for indented preformatted markdown blocks", () => {
-    const node = renderMarkdown("Plan:\n\n    source fetch/sync -> signal inbox");
+    const node = renderMarkdown(
+      "Plan:\n\n    source fetch/sync -> signal inbox",
+    );
     const pre = node.querySelector("pre");
-    const wrapButton = node.querySelector<HTMLButtonElement>(".taskcore-markdown-codeblock-wrap");
+    const wrapButton = node.querySelector<HTMLButtonElement>(
+      ".taskcore-markdown-codeblock-wrap",
+    );
 
     expect(pre?.style.whiteSpace).toBe("");
     expect(wrapButton?.getAttribute("aria-label")).toBe("Wrap lines");

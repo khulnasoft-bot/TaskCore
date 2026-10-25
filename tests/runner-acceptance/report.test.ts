@@ -63,11 +63,13 @@ describe("Runner acceptance report", () => {
     const incomplete = passingResult(cell);
     const report = buildRunnerAcceptanceReport({
       cells: [cell],
-      results: [{
-        ...incomplete,
-        error: "redacted diagnostic",
-        assertions: incomplete.assertions.slice(1),
-      }],
+      results: [
+        {
+          ...incomplete,
+          error: "redacted diagnostic",
+          assertions: incomplete.assertions.slice(1),
+        },
+      ],
     });
     expect(report.failed).toBe(1);
     expect(report.results[0]?.validationErrors).toContain(
@@ -94,7 +96,10 @@ describe("Runner acceptance report", () => {
 
   it("fails closed when assertions are missing or are not an array", () => {
     const cell = cells[0]!;
-    const withoutAssertions = { ...passingResult(cell) } as Record<string, unknown>;
+    const withoutAssertions = { ...passingResult(cell) } as Record<
+      string,
+      unknown
+    >;
     delete withoutAssertions.assertions;
     const missing = buildRunnerAcceptanceReport({
       cells: [cell],
@@ -111,10 +116,12 @@ describe("Runner acceptance report", () => {
         valid: false,
         assertions: [],
       });
-      expect(report.results[0]?.validationErrors).toEqual(expect.arrayContaining([
-        "assertions must be an array",
-        `missing assertion ${cell.assertions[0]}`,
-      ]));
+      expect(report.results[0]?.validationErrors).toEqual(
+        expect.arrayContaining([
+          "assertions must be an array",
+          `missing assertion ${cell.assertions[0]}`,
+        ]),
+      );
     }
   });
 
@@ -122,22 +129,24 @@ describe("Runner acceptance report", () => {
     const cell = cells[0]!;
     const report = buildRunnerAcceptanceReport({
       cells: [cell],
-      results: [{
-        schema: 1,
-        cellId: cell.id,
-        attempt: "1",
-        status: true,
-        failureClass: 42,
-        error: { message: "failed" },
-        startedAt: 1,
-        finishedAt: null,
-        durationMs: "1000",
-        redaction: false,
-        assertions: [
-          null,
-          { id: cell.assertions[0], passed: "yes", detail: 42 },
-        ],
-      }],
+      results: [
+        {
+          schema: 1,
+          cellId: cell.id,
+          attempt: "1",
+          status: true,
+          failureClass: 42,
+          error: { message: "failed" },
+          startedAt: 1,
+          finishedAt: null,
+          durationMs: "1000",
+          redaction: false,
+          assertions: [
+            null,
+            { id: cell.assertions[0], passed: "yes", detail: 42 },
+          ],
+        },
+      ],
     });
 
     expect(report).toMatchObject({ selected: 1, passed: 0, failed: 1 });
@@ -150,19 +159,21 @@ describe("Runner acceptance report", () => {
       redaction: "failed",
       valid: false,
     });
-    expect(report.results[0]?.validationErrors).toEqual(expect.arrayContaining([
-      "unsupported result schema",
-      "attempt must be a positive safe integer",
-      "duration must be a non-negative finite number",
-      "timestamps must be valid ISO-compatible values",
-      "status must be passed or failed",
-      "failureClass is unsupported",
-      "error must be a string when present",
-      "redaction did not pass",
-      "assertion 0 must be an object",
-      `assertion ${cell.assertions[0]} passed must be a boolean`,
-      `assertion ${cell.assertions[0]} detail must be a string when present`,
-    ]));
+    expect(report.results[0]?.validationErrors).toEqual(
+      expect.arrayContaining([
+        "unsupported result schema",
+        "attempt must be a positive safe integer",
+        "duration must be a non-negative finite number",
+        "timestamps must be valid ISO-compatible values",
+        "status must be passed or failed",
+        "failureClass is unsupported",
+        "error must be a string when present",
+        "redaction did not pass",
+        "assertion 0 must be an object",
+        `assertion ${cell.assertions[0]} passed must be a boolean`,
+        `assertion ${cell.assertions[0]} detail must be a string when present`,
+      ]),
+    );
   });
 
   it("renders deterministic Markdown and JUnit summaries", () => {
@@ -181,9 +192,11 @@ describe("Runner acceptance report", () => {
   });
 
   it("rejects results for cells outside the declared catalog", () => {
-    expect(() => buildRunnerAcceptanceReport({
-      cells,
-      results: [{ ...passingResult(cells[0]!), cellId: "unknown.cell" }],
-    })).toThrow("unknown acceptance cells");
+    expect(() =>
+      buildRunnerAcceptanceReport({
+        cells,
+        results: [{ ...passingResult(cells[0]!), cellId: "unknown.cell" }],
+      }),
+    ).toThrow("unknown acceptance cells");
   });
 });

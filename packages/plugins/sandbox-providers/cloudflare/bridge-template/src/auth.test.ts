@@ -13,18 +13,24 @@ describe("bridge auth", () => {
     const request = new Request("https://bridge.example.test", {
       headers: { Authorization: "Bearer wrong-token" },
     });
-    await expect(isAuthorizedRequest(request, "expected-token")).resolves.toBe(false);
+    await expect(isAuthorizedRequest(request, "expected-token")).resolves.toBe(
+      false,
+    );
   });
 
   it("accepts matching tokens", async () => {
     const request = new Request("https://bridge.example.test", {
       headers: { Authorization: "Bearer expected-token" },
     });
-    await expect(isAuthorizedRequest(request, "expected-token")).resolves.toBe(true);
+    await expect(isAuthorizedRequest(request, "expected-token")).resolves.toBe(
+      true,
+    );
   });
 
   it("rejects requests without an Authorization header", async () => {
     const request = new Request("https://bridge.example.test");
-    await expect(isAuthorizedRequest(request, "expected-token")).resolves.toBe(false);
+    await expect(isAuthorizedRequest(request, "expected-token")).resolves.toBe(
+      false,
+    );
   });
 });

@@ -18,7 +18,12 @@ function atMinute(offset: number) {
   return new Date(baseTime + offset * 60_000);
 }
 
-function createAgent(id: string, name: string, icon: string, urlKey: string): Agent {
+function createAgent(
+  id: string,
+  name: string,
+  icon: string,
+  urlKey: string,
+): Agent {
   const now = new Date("2026-04-28T14:00:00.000Z");
   return {
     id,
@@ -46,8 +51,18 @@ function createAgent(id: string, name: string, icon: string, urlKey: string): Ag
   };
 }
 
-const primaryAgent = createAgent("agent-perf-codex", "CodexCoder", "code", "codexcoder");
-const reviewerAgent = createAgent("agent-perf-reviewer", "ReviewBot", "sparkles", "reviewbot");
+const primaryAgent = createAgent(
+  "agent-perf-codex",
+  "CodexCoder",
+  "code",
+  "codexcoder",
+);
+const reviewerAgent = createAgent(
+  "agent-perf-reviewer",
+  "ReviewBot",
+  "sparkles",
+  "reviewbot",
+);
 
 export const issueChatLongThreadAgentMap = new Map<string, Agent>([
   [primaryAgent.id, primaryAgent],
@@ -87,7 +102,9 @@ function createComment(index: number): IssueChatComment {
   const isMarkdown = index < LONG_THREAD_MARKDOWN_COMMENT_COUNT;
   const isAssistant = isMarkdown || index % 4 === 1 || index % 4 === 2;
   const authorAgentId = isAssistant
-    ? (index % 7 === 0 ? reviewerAgent.id : primaryAgent.id)
+    ? index % 7 === 0
+      ? reviewerAgent.id
+      : primaryAgent.id
     : null;
 
   return {
@@ -127,15 +144,20 @@ export const issueChatLongThreadEvents: IssueTimelineEvent[] = Array.from(
     createdAt: atMinute(index * 36 + 18),
     actorType: index % 3 === 0 ? "user" : "agent",
     actorId: index % 3 === 0 ? "user-board" : primaryAgent.id,
-    statusChange: index % 2 === 0
-      ? { from: index === 0 ? "todo" : "in_progress", to: "in_progress" }
-      : undefined,
-    assigneeChange: index % 2 === 1
-      ? {
-          from: { agentId: null, userId: null },
-          to: { agentId: index % 4 === 1 ? primaryAgent.id : reviewerAgent.id, userId: null },
-        }
-      : undefined,
+    statusChange:
+      index % 2 === 0
+        ? { from: index === 0 ? "todo" : "in_progress", to: "in_progress" }
+        : undefined,
+    assigneeChange:
+      index % 2 === 1
+        ? {
+            from: { agentId: null, userId: null },
+            to: {
+              agentId: index % 4 === 1 ? primaryAgent.id : reviewerAgent.id,
+              userId: null,
+            },
+          }
+        : undefined,
   }),
 );
 
@@ -143,7 +165,8 @@ export const issueChatLongThreadLinkedRuns: IssueChatLinkedRun[] = Array.from(
   { length: LONG_THREAD_LINKED_RUN_COUNT },
   (_, index) => ({
     runId: `long-thread-run-${index + 1}`,
-    status: index % 3 === 0 ? "failed" : index % 3 === 1 ? "timed_out" : "succeeded",
+    status:
+      index % 3 === 0 ? "failed" : index % 3 === 1 ? "timed_out" : "succeeded",
     agentId: index % 2 === 0 ? primaryAgent.id : reviewerAgent.id,
     agentName: index % 2 === 0 ? primaryAgent.name : reviewerAgent.name,
     adapterType: "codex_local",
@@ -156,7 +179,10 @@ export const issueChatLongThreadLinkedRuns: IssueChatLinkedRun[] = Array.from(
 
 export const issueChatLongThreadLiveRuns: LiveRunForIssue[] = [];
 
-export const issueChatLongThreadTranscriptsByRunId = new Map<string, readonly IssueChatTranscriptEntry[]>(
+export const issueChatLongThreadTranscriptsByRunId = new Map<
+  string,
+  readonly IssueChatTranscriptEntry[]
+>(
   issueChatLongThreadLinkedRuns.map((run, index) => [
     run.runId,
     [
@@ -176,7 +202,8 @@ export const issueChatLongThreadTranscriptsByRunId = new Map<string, readonly Is
         kind: "tool_result",
         ts: atMinute(index * 72 + 15).toISOString(),
         toolUseId: `long-thread-tool-${index + 1}`,
-        content: "Confirmed the direct-render fixture keeps the full message subtree mounted.",
+        content:
+          "Confirmed the direct-render fixture keeps the full message subtree mounted.",
         isError: run.status !== "succeeded",
       },
       {

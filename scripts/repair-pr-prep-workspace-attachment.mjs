@@ -18,14 +18,16 @@
 
 const args = process.argv.slice(2);
 const apply = args.includes("--apply");
-const pairs = args.filter((arg) => !arg.startsWith("--")).map((arg) => {
-  const separator = arg.indexOf("=");
-  if (separator <= 0 || separator === arg.length - 1) {
-    console.error(`Expected ISSUE=BRANCH, got "${arg}"`);
-    process.exit(1);
-  }
-  return { issue: arg.slice(0, separator), branch: arg.slice(separator + 1) };
-});
+const pairs = args
+  .filter((arg) => !arg.startsWith("--"))
+  .map((arg) => {
+    const separator = arg.indexOf("=");
+    if (separator <= 0 || separator === arg.length - 1) {
+      console.error(`Expected ISSUE=BRANCH, got "${arg}"`);
+      process.exit(1);
+    }
+    return { issue: arg.slice(0, separator), branch: arg.slice(separator + 1) };
+  });
 if (pairs.length === 0) {
   console.error("No ISSUE=BRANCH pairs given. Nothing to repair.");
   process.exit(1);
@@ -41,7 +43,9 @@ const apiBase = apiUrl.replace(/\/$/, "").replace(/\/api$/, "");
 const headers = {
   Authorization: `Bearer ${apiKey}`,
   "Content-Type": "application/json",
-  ...(process.env.TASKCORE_RUN_ID ? { "X-Taskcore-Run-Id": process.env.TASKCORE_RUN_ID } : {}),
+  ...(process.env.TASKCORE_RUN_ID
+    ? { "X-Taskcore-Run-Id": process.env.TASKCORE_RUN_ID }
+    : {}),
 };
 
 let failed = false;
@@ -62,7 +66,9 @@ for (const { issue, branch } of pairs) {
       `workspace=${existing.executionWorkspaceId ?? "null"} settings=${JSON.stringify(existing.executionWorkspaceSettings)}`,
   );
   if (!apply) {
-    console.log(`${issue}: would PATCH executionWorkspaceSettings=${JSON.stringify(settings)}`);
+    console.log(
+      `${issue}: would PATCH executionWorkspaceSettings=${JSON.stringify(settings)}`,
+    );
     continue;
   }
   const response = await fetch(`${apiBase}/api/issues/${issue}`, {
@@ -78,10 +84,14 @@ for (const { issue, branch } of pairs) {
   });
   const body = await response.text();
   if (!response.ok) {
-    console.error(`${issue}: PATCH failed (${response.status}): ${body.slice(0, 500)}`);
+    console.error(
+      `${issue}: PATCH failed (${response.status}): ${body.slice(0, 500)}`,
+    );
     failed = true;
     continue;
   }
-  console.log(`${issue}: PATCHED — executionWorkspaceSettings now pins existingBranch=${branch}`);
+  console.log(
+    `${issue}: PATCHED — executionWorkspaceSettings now pins existingBranch=${branch}`,
+  );
 }
 process.exit(failed ? 1 : 0);

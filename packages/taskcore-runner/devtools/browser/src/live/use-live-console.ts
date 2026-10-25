@@ -39,14 +39,18 @@ export function createLiveEventCursor(
   };
 }
 
-export function acceptLiveEvent(cursor: LiveEventCursor, event: PrpEvent): boolean {
+export function acceptLiveEvent(
+  cursor: LiveEventCursor,
+  event: PrpEvent,
+): boolean {
   if (cursor.seenSourceEventIds.has(event.sourceEventId)) return false;
   cursor.seenSourceEventIds.add(event.sourceEventId);
   cursor.cursor += 1;
   return true;
 }
 
-export type SteeringChipStatus = "pending" | "acknowledged" | "rejected" | "failed";
+export type SteeringChipStatus =
+  "pending" | "acknowledged" | "rejected" | "failed";
 
 export interface SteeringChip {
   id: string;
@@ -112,7 +116,10 @@ export interface LiveConsole {
     turnId: string,
     resolution: Record<string, unknown>,
   ) => Promise<void>;
-  goal: (operation: GoalOperation, body?: Record<string, unknown>) => Promise<void>;
+  goal: (
+    operation: GoalOperation,
+    body?: Record<string, unknown>,
+  ) => Promise<void>;
   dropConnection: () => void;
   retryNow: () => void;
   reset: () => Promise<void>;
@@ -156,43 +163,44 @@ export function useLiveConsole(): LiveConsole {
       closeStream();
       setConnection(attempt === 0 ? "connecting" : "reconnecting");
       setReconnectAttempt(attempt);
-      streamRef.current = client.openEventStream(sessionId, eventCursorRef.current.cursor, {
-        onOpen: () => {
-          setConnection("connected");
-          setReconnectAttempt(0);
-          setAnnouncement("Connected");
+      streamRef.current = client.openEventStream(
+        sessionId,
+        eventCursorRef.current.cursor,
+        {
+          onOpen: () => {
+            setConnection("connected");
+            setReconnectAttempt(0);
+            setAnnouncement("Connected");
+          },
+          onEvent: (event) => {
+            if (!acceptLiveEvent(eventCursorRef.current, event)) return;
+            setEvents((current) => [...current, event]);
+          },
+          onError: () => {
+            closeStream();
+            if (attempt >= MAX_RECONNECT_ATTEMPTS) {
+              setConnection("disconnected");
+              setAnnouncement("Disconnected");
+              return;
+            }
+            setConnection("reconnecting");
+            setReconnectAttempt(attempt + 1);
+            setAnnouncement(`Reconnecting, attempt ${attempt + 1}`);
+            retryTimerRef.current = setTimeout(
+              () => subscribe(sessionId, attempt + 1),
+              RECONNECT_DELAY_MS,
+            );
+          },
         },
-        onEvent: (event) => {
-          if (!acceptLiveEvent(eventCursorRef.current, event)) return;
-          setEvents((current) => [...current, event]);
-        },
-        onError: () => {
-          closeStream();
-          if (attempt >= MAX_RECONNECT_ATTEMPTS) {
-            setConnection("disconnected");
-            setAnnouncement("Disconnected");
-            return;
-          }
-          setConnection("reconnecting");
-          setReconnectAttempt(attempt + 1);
-          setAnnouncement(`Reconnecting, attempt ${attempt + 1}`);
-          retryTimerRef.current = setTimeout(
-            () => subscribe(sessionId, attempt + 1),
-            RECONNECT_DELAY_MS,
-          );
-        },
-      });
+      );
     },
     [closeStream],
   );
 
-  const adopt = useCallback(
-    (next: LiveSessionState) => {
-      setState(next);
-      setError(null);
-    },
-    [],
-  );
+  const adopt = useCallback((next: LiveSessionState) => {
+    setState(next);
+    setError(null);
+  }, []);
 
   const attach = useCallback(
     async (sessionId: string, resume: boolean) => {
@@ -204,7 +212,10 @@ export function useLiveConsole(): LiveConsole {
       window.sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
       adopt(next);
       setEvents(history.events);
-      eventCursorRef.current = createLiveEventCursor(history.events, history.cursor);
+      eventCursorRef.current = createLiveEventCursor(
+        history.events,
+        history.cursor,
+      );
       if (resume) setAnnouncement("Replayed the durable transcript");
       subscribe(sessionId, 0);
     },
@@ -218,7 +229,8 @@ export function useLiveConsole(): LiveConsole {
       .then((list) => {
         if (cancelled) return;
         setManifests(list);
-        if (list[0] !== undefined) setSelectedManifestId((current) => current || list[0]!.id);
+        if (list[0] !== undefined)
+          setSelectedManifestId((current) => current || list[0]!.id);
       })
       .catch((cause) => {
         if (!cancelled) setError(errorMessage(cause));
@@ -252,7 +264,10 @@ export function useLiveConsole(): LiveConsole {
     return () => clearTimeout(timer);
   }, [events.length]);
 
-  const liveSnapshot = useMemo(() => reduceEvents(state, events), [state, events]);
+  const liveSnapshot = useMemo(
+    () => reduceEvents(state, events),
+    [state, events],
+  );
   const visibleEvents = useMemo(
     () => (replayActive ? events.slice(0, replayPosition) : events),
     [events, replayActive, replayPosition],
@@ -266,7 +281,8 @@ export function useLiveConsole(): LiveConsole {
     if (state === null || liveSnapshot === null) return null;
     if (state.cursor !== events.length) return null;
     return (
-      JSON.stringify(liveSnapshot.timeline) === JSON.stringify(state.snapshot.timeline) &&
+      JSON.stringify(liveSnapshot.timeline) ===
+        JSON.stringify(state.snapshot.timeline) &&
       liveSnapshot.integrity === state.snapshot.integrity
     );
   }, [state, liveSnapshot, events.length]);
@@ -282,7 +298,10 @@ export function useLiveConsole(): LiveConsole {
       setReplayPlaying(false);
       return undefined;
     }
-    const timer = setTimeout(() => setReplayPosition((current) => current + 1), 140);
+    const timer = setTimeout(
+      () => setReplayPosition((current) => current + 1),
+      140,
+    );
     return () => clearTimeout(timer);
   }, [replayPlaying, replayPosition, events.length]);
 
@@ -293,7 +312,8 @@ export function useLiveConsole(): LiveConsole {
       const acknowledged = events.filter(
         (event) =>
           event.eventType === "item.completed" &&
-          (event.payload as { kind?: string }).kind === "steering_acknowledgement",
+          (event.payload as { kind?: string }).kind ===
+            "steering_acknowledgement",
       );
       let index = 0;
       return chips.map((chip) => {
@@ -309,7 +329,8 @@ export function useLiveConsole(): LiveConsole {
 
   // The reducer is authoritative for the active turn. Falling back to the
   // last public-state read would keep a finished turn alive in the composer.
-  const activeTurnId = snapshot === null ? (state?.activeTurnId ?? null) : snapshot.activeTurnId;
+  const activeTurnId =
+    snapshot === null ? (state?.activeTurnId ?? null) : snapshot.activeTurnId;
 
   // A submitted turn that has not been accepted yet is a protocol fact, not a
   // local flag: it is what makes interrupt-before-start reachable.
@@ -352,7 +373,9 @@ export function useLiveConsole(): LiveConsole {
         setReplayPosition(0);
         setSelectedThreadId(null);
         setSubmitting(true);
-        const manifest = manifests.find((entry) => entry.id === input.manifestId);
+        const manifest = manifests.find(
+          (entry) => entry.id === input.manifestId,
+        );
         try {
           const created = await client.createSession({
             manifest: input.manifestId,
@@ -426,7 +449,9 @@ export function useLiveConsole(): LiveConsole {
               : chip,
           ),
         );
-        setAnnouncement(stale ? "Steering rejected: turn already ended" : "Steering failed");
+        setAnnouncement(
+          stale ? "Steering rejected: turn already ended" : "Steering failed",
+        );
         await refreshState().catch(() => undefined);
       }
     },
@@ -449,11 +474,17 @@ export function useLiveConsole(): LiveConsole {
   }, [activeTurnId, adopt]);
 
   const resolve = useCallback(
-    async (requestId: string, turnId: string, resolution: Record<string, unknown>) => {
+    async (
+      requestId: string,
+      turnId: string,
+      resolution: Record<string, unknown>,
+    ) => {
       const sessionId = sessionIdRef.current;
       if (sessionId === null) return;
       await guard(async () => {
-        adopt(await client.resolveRequest(sessionId, requestId, turnId, resolution));
+        adopt(
+          await client.resolveRequest(sessionId, requestId, turnId, resolution),
+        );
         setAnnouncement("Request resolved");
       });
     },
@@ -486,7 +517,10 @@ export function useLiveConsole(): LiveConsole {
       adopt(resumed);
       const history = await client.readEvents(sessionId, 0);
       setEvents(history.events);
-      eventCursorRef.current = createLiveEventCursor(history.events, history.cursor);
+      eventCursorRef.current = createLiveEventCursor(
+        history.events,
+        history.cursor,
+      );
       subscribe(sessionId, 0);
       setAnnouncement("Resumed the same session");
     });

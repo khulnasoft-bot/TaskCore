@@ -12,7 +12,9 @@ export function UnprefixedExecutionWorkspaceRedirect() {
   const { workspaceId } = useParams<{ workspaceId?: string }>();
   const { companies, loading: companiesLoading } = useCompany();
   const workspaceQuery = useQuery({
-    queryKey: queryKeys.executionWorkspaces.detail(workspaceId ?? "__missing__"),
+    queryKey: queryKeys.executionWorkspaces.detail(
+      workspaceId ?? "__missing__",
+    ),
     queryFn: () => executionWorkspacesApi.get(workspaceId!),
     enabled: Boolean(workspaceId),
     retry: false,
@@ -43,7 +45,9 @@ export function ExecutionWorkspaceCompanyGate() {
   }>();
   const { companies, loading: companiesLoading } = useCompany();
   const workspaceQuery = useQuery({
-    queryKey: queryKeys.executionWorkspaces.detail(workspaceId ?? "__missing__"),
+    queryKey: queryKeys.executionWorkspaces.detail(
+      workspaceId ?? "__missing__",
+    ),
     queryFn: () => executionWorkspacesApi.get(workspaceId!),
     enabled: Boolean(workspaceId),
     retry: false,
@@ -54,7 +58,8 @@ export function ExecutionWorkspaceCompanyGate() {
   if (workspaceQuery.isError) return <NotFoundPage scope="global" />;
 
   const routeCompany = companies.find(
-    (company) => company.issuePrefix.toUpperCase() === companyPrefix.toUpperCase(),
+    (company) =>
+      company.issuePrefix.toUpperCase() === companyPrefix.toUpperCase(),
   );
   if (!routeCompany || routeCompany.id !== workspaceQuery.data.companyId) {
     return <NotFoundPage scope="global" />;

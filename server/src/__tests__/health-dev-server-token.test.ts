@@ -1,4 +1,10 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import express from "express";
@@ -12,7 +18,9 @@ import { resolveHotRestartIntentPath } from "../services/hot-restart.js";
 const tempDirs: string[] = [];
 
 function createDevServerStatusFile(payload: unknown) {
-  const dir = mkdtempSync(path.join(os.tmpdir(), "taskcore-health-dev-server-"));
+  const dir = mkdtempSync(
+    path.join(os.tmpdir(), "taskcore-health-dev-server-"),
+  );
   tempDirs.push(dir);
   const filePath = path.join(dir, "dev-server-status.json");
   writeFileSync(filePath, `${JSON.stringify(payload)}\n`, "utf8");
@@ -205,10 +213,14 @@ describe("POST /health/dev-server/restart", () => {
       changedPathsSample: ["server/src/routes/health.ts"],
       pendingMigrations: [],
     });
-    const home = mkdtempSync(path.join(os.tmpdir(), "taskcore-health-restart-home-"));
+    const home = mkdtempSync(
+      path.join(os.tmpdir(), "taskcore-health-restart-home-"),
+    );
     tempDirs.push(home);
     process.env.TASKCORE_HOME = home;
-    vi.spyOn(devServerStatus, "writeDevServerRestartRequest").mockReturnValue(false);
+    vi.spyOn(devServerStatus, "writeDevServerRestartRequest").mockReturnValue(
+      false,
+    );
 
     try {
       const app = express();

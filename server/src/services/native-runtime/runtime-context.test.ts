@@ -1,4 +1,14 @@
-import { mkdtemp, mkdir, readFile, readdir, chmod, lstat, rm, stat, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  chmod,
+  lstat,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Db } from "@taskcore/db";
@@ -21,11 +31,15 @@ vi.mock("../chat-github-tools.js", () => ({
 
 vi.mock("../agent-instructions.js", () => ({
   agentInstructionsService: () => ({ exportFiles: serviceMocks.exportFiles }),
-  agentInstructionsBundleMode: (agent: { adapterConfig?: { instructionsBundleMode?: string } }) => agent.adapterConfig?.instructionsBundleMode ?? null,
+  agentInstructionsBundleMode: (agent: {
+    adapterConfig?: { instructionsBundleMode?: string };
+  }) => agent.adapterConfig?.instructionsBundleMode ?? null,
 }));
 
 vi.mock("../agent-instruction-revisions.js", () => ({
-  agentInstructionRevisionService: () => ({ readCommittedForRuntime: serviceMocks.readCommittedForRuntime }),
+  agentInstructionRevisionService: () => ({
+    readCommittedForRuntime: serviceMocks.readCommittedForRuntime,
+  }),
 }));
 
 vi.mock("../tool-access.js", () => ({
@@ -35,7 +49,10 @@ vi.mock("../tool-access.js", () => ({
 }));
 
 import { createHash } from "node:crypto";
-import { buildNativeRuntimeContext, resolveNativeRuntimeMcpSnapshot } from "./runtime-context.js";
+import {
+  buildNativeRuntimeContext,
+  resolveNativeRuntimeMcpSnapshot,
+} from "./runtime-context.js";
 
 const temporaryRoots: string[] = [];
 let previousTaskcoreHome: string | undefined;
@@ -71,13 +88,15 @@ beforeEach(async () => {
     bindings: [],
     allowedTools: [{ id: "tool-1", connectionId: "connection-1" }],
     allowedToolNames: ["issues.read"],
-    installedConnections: [{
-      id: "connection-1",
-      transport: "mcp_remote",
-      enabled: true,
-      status: "active",
-      healthStatus: "healthy",
-    }],
+    installedConnections: [
+      {
+        id: "connection-1",
+        transport: "mcp_remote",
+        enabled: true,
+        status: "active",
+        healthStatus: "healthy",
+      },
+    ],
   });
 });
 
@@ -100,32 +119,75 @@ describe("buildNativeRuntimeContext", () => {
   it("uses committed instructions when the disk projection is stale", async () => {
     serviceMocks.exportFiles.mockResolvedValue({
       entryFile: "AGENTS.md",
-      files: { "AGENTS.md": "Old disk projection\n", "reference.md": "Sibling reference\n" },
+      files: {
+        "AGENTS.md": "Old disk projection\n",
+        "reference.md": "Sibling reference\n",
+      },
     });
     serviceMocks.readCommittedForRuntime.mockResolvedValue({
-      revision: { entryFile: "AGENTS.md" }, content: "Saved canonical instructions\n",
+      revision: { entryFile: "AGENTS.md" },
+      content: "Saved canonical instructions\n",
     });
     const context = await buildNativeRuntimeContext({
       db: {} as Db,
-      agent: { id: "agent-1", companyId: "company-1", name: "Reviewer", adapterType: "taskcore_runner", adapterConfig: { instructionsBundleMode: "managed" } },
-      runId: "run-1", runtimeConfig: {}, runtimeSkillEntries: [],
+      agent: {
+        id: "agent-1",
+        companyId: "company-1",
+        name: "Reviewer",
+        adapterType: "taskcore_runner",
+        adapterConfig: { instructionsBundleMode: "managed" },
+      },
+      runId: "run-1",
+      runtimeConfig: {},
+      runtimeSkillEntries: [],
     });
-    expect(await readFile(path.join(context.instructions.bundle.rootPath, context.instructions.entryPath), "utf8"))
-      .toBe("Saved canonical instructions\n");
-    expect(await readFile(path.join(context.instructions.bundle.rootPath, "reference.md"), "utf8"))
-      .toBe("Sibling reference\n");
-    expect(serviceMocks.readCommittedForRuntime).toHaveBeenCalledWith({ companyId: "company-1", agentId: "agent-1" });
+    expect(
+      await readFile(
+        path.join(
+          context.instructions.bundle.rootPath,
+          context.instructions.entryPath,
+        ),
+        "utf8",
+      ),
+    ).toBe("Saved canonical instructions\n");
+    expect(
+      await readFile(
+        path.join(context.instructions.bundle.rootPath, "reference.md"),
+        "utf8",
+      ),
+    ).toBe("Sibling reference\n");
+    expect(serviceMocks.readCommittedForRuntime).toHaveBeenCalledWith({
+      companyId: "company-1",
+      agentId: "agent-1",
+    });
   });
 
   it("does not substitute canonical managed instructions into an external bundle", async () => {
-    serviceMocks.exportFiles.mockResolvedValue({ entryFile: "AGENTS.md", files: { "AGENTS.md": "External instructions\n" } });
+    serviceMocks.exportFiles.mockResolvedValue({
+      entryFile: "AGENTS.md",
+      files: { "AGENTS.md": "External instructions\n" },
+    });
     const context = await buildNativeRuntimeContext({
       db: {} as Db,
-      agent: { id: "agent-1", companyId: "company-1", name: "Reviewer", adapterConfig: { instructionsBundleMode: "external" } },
-      runId: "run-1", runtimeConfig: {}, runtimeSkillEntries: [],
+      agent: {
+        id: "agent-1",
+        companyId: "company-1",
+        name: "Reviewer",
+        adapterConfig: { instructionsBundleMode: "external" },
+      },
+      runId: "run-1",
+      runtimeConfig: {},
+      runtimeSkillEntries: [],
     });
-    expect(await readFile(path.join(context.instructions.bundle.rootPath, context.instructions.entryPath), "utf8"))
-      .toBe("External instructions\n");
+    expect(
+      await readFile(
+        path.join(
+          context.instructions.bundle.rootPath,
+          context.instructions.entryPath,
+        ),
+        "utf8",
+      ),
+    ).toBe("External instructions\n");
     expect(serviceMocks.readCommittedForRuntime).not.toHaveBeenCalled();
   });
 
@@ -136,19 +198,44 @@ describe("buildNativeRuntimeContext", () => {
     });
     const workingRoot = path.join(temporaryRoots.at(-1)!, "private-run-copy");
     await mkdir(path.join(workingRoot, "instructions"), { recursive: true });
-    await writeFile(path.join(workingRoot, "instructions/CHARter.md"), "Original instructions.\n");
+    await writeFile(
+      path.join(workingRoot, "instructions/CHARter.md"),
+      "Original instructions.\n",
+    );
     const context = await buildNativeRuntimeContext({
       db: {} as Db,
-      agent: { id: "agent-1", companyId: "company-1", name: "Reviewer", adapterType: "taskcore_runner", adapterConfig: {} },
+      agent: {
+        id: "agent-1",
+        companyId: "company-1",
+        name: "Reviewer",
+        adapterType: "taskcore_runner",
+        adapterConfig: {},
+      },
       runId: "run-1",
       runtimeConfig: {},
       runtimeSkillEntries: [],
-      instructionWorkingCopy: { rootPath: workingRoot, entryPath: "instructions/CHARter.md" },
+      instructionWorkingCopy: {
+        rootPath: workingRoot,
+        entryPath: "instructions/CHARter.md",
+      },
     });
-    expect(context.instructions.workingCopy).toEqual({ rootPath: workingRoot, entryPath: "instructions/CHARter.md" });
-    await writeFile(path.join(workingRoot, "instructions/CHARter.md"), "Persist this next time.\n");
-    expect(await readFile(path.join(context.instructions.bundle.rootPath, context.instructions.entryPath), "utf8"))
-      .toBe("Original instructions.\n");
+    expect(context.instructions.workingCopy).toEqual({
+      rootPath: workingRoot,
+      entryPath: "instructions/CHARter.md",
+    });
+    await writeFile(
+      path.join(workingRoot, "instructions/CHARter.md"),
+      "Persist this next time.\n",
+    );
+    expect(
+      await readFile(
+        path.join(
+          context.instructions.bundle.rootPath,
+          context.instructions.entryPath,
+        ),
+        "utf8",
+      ),
+    ).toBe("Original instructions.\n");
   });
 
   it.each(["disabled", "degraded"] as const)(
@@ -165,13 +252,16 @@ describe("buildNativeRuntimeContext", () => {
         bindings: [],
         allowedTools: [{ id: "tool-1", connectionId: "connection-1" }],
         allowedToolNames: ["issues.read"],
-        installedConnections: [{
-          id: "connection-1",
-          transport: "mcp_remote",
-          enabled: unavailableState !== "disabled",
-          status: unavailableState === "disabled" ? "disabled" : "active",
-          healthStatus: unavailableState === "degraded" ? "degraded" : "healthy",
-        }],
+        installedConnections: [
+          {
+            id: "connection-1",
+            transport: "mcp_remote",
+            enabled: unavailableState !== "disabled",
+            status: unavailableState === "disabled" ? "disabled" : "active",
+            healthStatus:
+              unavailableState === "degraded" ? "degraded" : "healthy",
+          },
+        ],
       });
 
       const context = await buildNativeRuntimeContext({
@@ -196,7 +286,9 @@ describe("buildNativeRuntimeContext", () => {
   it("keeps healthy native MCP connections when another assigned connection is unavailable", async () => {
     serviceMocks.exportFiles.mockResolvedValue({
       entryFile: "AGENTS.md",
-      files: { "AGENTS.md": "Continue work with the apps that are available.\n" },
+      files: {
+        "AGENTS.md": "Continue work with the apps that are available.\n",
+      },
     });
     serviceMocks.getEffectiveProfilesForAgent.mockResolvedValue({
       agentId: "agent-1",
@@ -255,18 +347,36 @@ describe("buildNativeRuntimeContext", () => {
         "references/policy.md": "Company policy sibling.\n",
       },
     });
-    const sourceRoot = await mkdtemp(path.join(tmpdir(), "taskcore-native-skill-"));
+    const sourceRoot = await mkdtemp(
+      path.join(tmpdir(), "taskcore-native-skill-"),
+    );
     temporaryRoots.push(sourceRoot);
     const selectedRoot = path.join(sourceRoot, "reviewer");
     const unselectedRoot = path.join(sourceRoot, "unused");
     await mkdir(path.join(selectedRoot, "references"), { recursive: true });
     await mkdir(unselectedRoot, { recursive: true });
-    await writeFile(path.join(selectedRoot, "SKILL.md"), "# Reviewer\nUse the checklist.\n");
-    await writeFile(path.join(selectedRoot, "references", "checklist.md"), "- Verify tests\n");
+    await writeFile(
+      path.join(selectedRoot, "SKILL.md"),
+      "# Reviewer\nUse the checklist.\n",
+    );
+    await writeFile(
+      path.join(selectedRoot, "references", "checklist.md"),
+      "- Verify tests\n",
+    );
     await writeFile(path.join(unselectedRoot, "SKILL.md"), "# Not selected\n");
     const entries: TaskcoreSkillEntry[] = [
-      { key: "company-1/reviewer", runtimeName: "reviewer", source: selectedRoot, versionId: "version-1" },
-      { key: "company-1/unused", runtimeName: "unused", source: unselectedRoot, versionId: "version-2" },
+      {
+        key: "company-1/reviewer",
+        runtimeName: "reviewer",
+        source: selectedRoot,
+        versionId: "version-1",
+      },
+      {
+        key: "company-1/unused",
+        runtimeName: "unused",
+        source: unselectedRoot,
+        versionId: "version-2",
+      },
     ];
     const input = {
       db: {} as Db,
@@ -278,21 +388,43 @@ describe("buildNativeRuntimeContext", () => {
         adapterConfig: {},
       },
       runId: "run-1",
-      runtimeConfig: { taskcoreSkillSync: { desiredSkills: ["company-1/reviewer"] } },
+      runtimeConfig: {
+        taskcoreSkillSync: { desiredSkills: ["company-1/reviewer"] },
+      },
       runtimeSkillEntries: entries,
     };
 
     const context = await buildNativeRuntimeContext(input);
     const repeated = await buildNativeRuntimeContext(input);
 
-    expect(serviceMocks.exportFiles).toHaveBeenCalledWith(input.agent, { rejectSymlinks: true });
-    expect(serviceMocks.getEffectiveProfilesForAgent).toHaveBeenCalledWith("company-1", "agent-1");
+    expect(serviceMocks.exportFiles).toHaveBeenCalledWith(input.agent, {
+      rejectSymlinks: true,
+    });
+    expect(serviceMocks.getEffectiveProfilesForAgent).toHaveBeenCalledWith(
+      "company-1",
+      "agent-1",
+    );
     expect(context.instructions.entryPath).toBe("AGENTS.md");
-    expect(await readFile(path.join(context.instructions.bundle.rootPath, "AGENTS.md"), "utf8"))
-      .toBe("Follow the agent instructions.\n");
-    expect(await readFile(path.join(context.instructions.bundle.rootPath, "references", "policy.md"), "utf8"))
-      .toBe("Company policy sibling.\n");
-    const unselected = await buildNativeRuntimeContext({ ...input, runtimeConfig: {} });
+    expect(
+      await readFile(
+        path.join(context.instructions.bundle.rootPath, "AGENTS.md"),
+        "utf8",
+      ),
+    ).toBe("Follow the agent instructions.\n");
+    expect(
+      await readFile(
+        path.join(
+          context.instructions.bundle.rootPath,
+          "references",
+          "policy.md",
+        ),
+        "utf8",
+      ),
+    ).toBe("Company policy sibling.\n");
+    const unselected = await buildNativeRuntimeContext({
+      ...input,
+      runtimeConfig: {},
+    });
     expect(unselected.skills).toEqual([]);
     expect(context.skills).toHaveLength(1);
     expect(context.skills[0]).toMatchObject({
@@ -300,25 +432,51 @@ describe("buildNativeRuntimeContext", () => {
       runtimeName: "reviewer",
       versionId: "version-1",
     });
-    expect(await readFile(path.join(context.skills[0]!.bundle.rootPath, "SKILL.md"), "utf8"))
-      .toContain("Use the checklist");
-    expect(await readFile(path.join(context.skills[0]!.bundle.rootPath, "references", "checklist.md"), "utf8"))
-      .toBe("- Verify tests\n");
-    expect((await stat(context.instructions.bundle.rootPath)).mode & 0o222).toBe(0);
-    expect((await stat(path.join(context.instructions.bundle.rootPath, "AGENTS.md"))).mode & 0o222).toBe(0);
-    expect((await stat(context.skills[0]!.bundle.rootPath)).mode & 0o222).toBe(0);
+    expect(
+      await readFile(
+        path.join(context.skills[0]!.bundle.rootPath, "SKILL.md"),
+        "utf8",
+      ),
+    ).toContain("Use the checklist");
+    expect(
+      await readFile(
+        path.join(
+          context.skills[0]!.bundle.rootPath,
+          "references",
+          "checklist.md",
+        ),
+        "utf8",
+      ),
+    ).toBe("- Verify tests\n");
+    expect(
+      (await stat(context.instructions.bundle.rootPath)).mode & 0o222,
+    ).toBe(0);
+    expect(
+      (await stat(path.join(context.instructions.bundle.rootPath, "AGENTS.md")))
+        .mode & 0o222,
+    ).toBe(0);
+    expect((await stat(context.skills[0]!.bundle.rootPath)).mode & 0o222).toBe(
+      0,
+    );
     expect(context.mcp).toMatchObject({
       bindingId: "native-mcp:run-1",
       assignmentSetId: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
       digest: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     expect(repeated.aggregateDigest).toBe(context.aggregateDigest);
-    expect(repeated.instructions.bundle.rootPath).toBe(context.instructions.bundle.rootPath);
-    expect(repeated.skills[0]!.bundle.rootPath).toBe(context.skills[0]!.bundle.rootPath);
+    expect(repeated.instructions.bundle.rootPath).toBe(
+      context.instructions.bundle.rootPath,
+    );
+    expect(repeated.skills[0]!.bundle.rootPath).toBe(
+      context.skills[0]!.bundle.rootPath,
+    );
   });
 
   it("fails closed for a missing assigned skill and omits a stale legacy operational skill", async () => {
-    serviceMocks.exportFiles.mockResolvedValue({ entryFile: "AGENTS.md", files: { "AGENTS.md": "Test\n" } });
+    serviceMocks.exportFiles.mockResolvedValue({
+      entryFile: "AGENTS.md",
+      files: { "AGENTS.md": "Test\n" },
+    });
     const base = {
       db: {} as Db,
       agent: {
@@ -330,25 +488,36 @@ describe("buildNativeRuntimeContext", () => {
       },
       runId: "run-1",
     };
-    await expect(buildNativeRuntimeContext({
-      ...base,
-      runtimeConfig: { taskcoreSkillSync: { desiredSkills: ["company-1/missing"] } },
-      runtimeSkillEntries: [{
-        key: "company-1/missing",
-        runtimeName: "missing",
-        source: "/does/not/exist",
-        sourceStatus: "missing",
-        missingDetail: "assigned skill checkout is unavailable",
-      }],
-    })).rejects.toThrow("assigned skill checkout is unavailable");
-    const supportedRoot = await mkdtemp(path.join(tmpdir(), "taskcore-native-supported-skill-"));
+    await expect(
+      buildNativeRuntimeContext({
+        ...base,
+        runtimeConfig: {
+          taskcoreSkillSync: { desiredSkills: ["company-1/missing"] },
+        },
+        runtimeSkillEntries: [
+          {
+            key: "company-1/missing",
+            runtimeName: "missing",
+            source: "/does/not/exist",
+            sourceStatus: "missing",
+            missingDetail: "assigned skill checkout is unavailable",
+          },
+        ],
+      }),
+    ).rejects.toThrow("assigned skill checkout is unavailable");
+    const supportedRoot = await mkdtemp(
+      path.join(tmpdir(), "taskcore-native-supported-skill-"),
+    );
     temporaryRoots.push(supportedRoot);
     await writeFile(path.join(supportedRoot, "SKILL.md"), "# Supported\n");
     const context = await buildNativeRuntimeContext({
       ...base,
       runtimeConfig: {
         taskcoreSkillSync: {
-          desiredSkills: [TASKCORE_OPERATIONAL_SKILL_KEY, "company-1/supported"],
+          desiredSkills: [
+            TASKCORE_OPERATIONAL_SKILL_KEY,
+            "company-1/supported",
+          ],
         },
       },
       runtimeSkillEntries: [
@@ -364,28 +533,54 @@ describe("buildNativeRuntimeContext", () => {
         },
       ],
     });
-    expect(context.skills.map((skill) => skill.key)).toEqual(["company-1/supported"]);
+    expect(context.skills.map((skill) => skill.key)).toEqual([
+      "company-1/supported",
+    ]);
   });
 });
 
-
 it("pins both permitted GitHub tool catalogs even when another user’s health probe reports missing credentials", async () => {
   const connections = ["github-A", "github-B"].map((id) => ({
-    id, status: "active", enabled: true, healthStatus: "missing_secret", transport: "mcp_remote",
-    config: { sourceTemplateKey: "github" }, transportConfig: {},
+    id,
+    status: "active",
+    enabled: true,
+    healthStatus: "missing_secret",
+    transport: "mcp_remote",
+    config: { sourceTemplateKey: "github" },
+    transportConfig: {},
   }));
   serviceMocks.getEffectiveProfilesForAgent.mockResolvedValue({
-    entries: connections.map((connection) => ({ effect: "include", connectionId: connection.id })),
+    entries: connections.map((connection) => ({
+      effect: "include",
+      connectionId: connection.id,
+    })),
     installedConnections: connections,
-    allowedTools: connections.map((connection) => ({ id: `${connection.id}-get_me`, connectionId: connection.id })),
+    allowedTools: connections.map((connection) => ({
+      id: `${connection.id}-get_me`,
+      connectionId: connection.id,
+    })),
   });
-  const limit = vi.fn(async () => [{ responsibleUserId: "A", activeIdentityContextId: "context-A" }]);
-  const db = { select: () => ({ from: () => ({ where: () => ({ limit }) }) }) } as unknown as Db;
-  const snapshot = await resolveNativeRuntimeMcpSnapshot({ db, agent: { id: "agent-1", companyId: "company-1" }, runId: "run-1" });
-  const expected = createHash("sha256").update(JSON.stringify({
-    version: 1, agentId: "agent-1", connections: ["github-A", "github-B"],
-    tools: ["github-A-get_me", "github-B-get_me"],
-  })).digest("hex");
+  const limit = vi.fn(async () => [
+    { responsibleUserId: "A", activeIdentityContextId: "context-A" },
+  ]);
+  const db = {
+    select: () => ({ from: () => ({ where: () => ({ limit }) }) }),
+  } as unknown as Db;
+  const snapshot = await resolveNativeRuntimeMcpSnapshot({
+    db,
+    agent: { id: "agent-1", companyId: "company-1" },
+    runId: "run-1",
+  });
+  const expected = createHash("sha256")
+    .update(
+      JSON.stringify({
+        version: 1,
+        agentId: "agent-1",
+        connections: ["github-A", "github-B"],
+        tools: ["github-A-get_me", "github-B-get_me"],
+      }),
+    )
+    .digest("hex");
   expect(snapshot.digest).toBe(expected);
   expect(snapshot.bindingId).toBe("native-mcp:run-1");
   expect(limit).toHaveBeenCalledOnce();
@@ -394,15 +589,35 @@ it("pins both permitted GitHub tool catalogs even when another user’s health p
 it("pins channel tools only when the current task run is bound to that bot", async () => {
   serviceMocks.getEffectiveProfilesForAgent.mockResolvedValue({
     entries: [{ effect: "include", connectionId: "bot-connection" }],
-    installedConnections: [{
-      id: "bot-connection", status: "active", enabled: true, healthStatus: "healthy",
-      transport: "chat_sdk", config: { sourceTemplateKey: "github-chat" }, transportConfig: {},
-    }],
+    installedConnections: [
+      {
+        id: "bot-connection",
+        status: "active",
+        enabled: true,
+        healthStatus: "healthy",
+        transport: "chat_sdk",
+        config: { sourceTemplateKey: "github-chat" },
+        transportConfig: {},
+      },
+    ],
     allowedTools: [{ id: "bot-read-pr", connectionId: "bot-connection" }],
   });
-  const input = { db: {} as Db, agent: { id: "agent-1", companyId: "company-1" }, runId: "run-1" };
+  const input = {
+    db: {} as Db,
+    agent: { id: "agent-1", companyId: "company-1" },
+    runId: "run-1",
+  };
   expect((await resolveNativeRuntimeMcpSnapshot(input)).bindingId).toBeNull();
-  serviceMocks.githubBotConnectionIdsForRun.mockResolvedValue(new Set(["bot-connection"]));
-  expect((await resolveNativeRuntimeMcpSnapshot(input)).bindingId).toBe("native-mcp:run-1");
-  expect(serviceMocks.githubBotConnectionIdsForRun).toHaveBeenLastCalledWith(input.db, "company-1", "agent-1", "run-1");
+  serviceMocks.githubBotConnectionIdsForRun.mockResolvedValue(
+    new Set(["bot-connection"]),
+  );
+  expect((await resolveNativeRuntimeMcpSnapshot(input)).bindingId).toBe(
+    "native-mcp:run-1",
+  );
+  expect(serviceMocks.githubBotConnectionIdsForRun).toHaveBeenLastCalledWith(
+    input.db,
+    "company-1",
+    "agent-1",
+    "run-1",
+  );
 });

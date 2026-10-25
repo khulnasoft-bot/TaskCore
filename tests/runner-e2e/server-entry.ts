@@ -2,25 +2,49 @@
 // service code has no test flag, delay, altered prompt, or private test API.
 import { ServerResponse } from "node:http";
 import { TaskcoreRunnerToolAuthority } from "../../server/src/services/native-runtime/taskcore-runner-tool-authority.js";
-import { canonicalDocumentIssueId, contextCommentGateSelected, holdCommittedDocumentResponse, isArmed } from "./context-comment-gate.js";
+import {
+  canonicalDocumentIssueId,
+  contextCommentGateSelected,
+  holdCommittedDocumentResponse,
+  isArmed,
+} from "./context-comment-gate.js";
 import { holdInteractionResponse } from "./interaction-response-gate.js";
 
-const ids: string[] = JSON.parse(process.env.TASKCORE_RUNNER_E2E_EXECUTION_IDS ?? "[]");
+const ids: string[] = JSON.parse(
+  process.env.TASKCORE_RUNNER_E2E_EXECUTION_IDS ?? "[]",
+);
 const contextCommentGate = contextCommentGateSelected(ids);
-const completionBusyGate = ids.some(id => id.startsWith("completion-updates.") && id.endsWith(".handoff-completion-busy"));
+const completionBusyGate = ids.some(
+  (id) =>
+    id.startsWith("completion-updates.") &&
+    id.endsWith(".handoff-completion-busy"),
+);
 if (ids.some((id) => id.endsWith(".accept-while-running"))) {
   const held = new Set<string>();
   const hold = async (value: any) => {
     const interaction = value?.interaction ?? value;
-    if (!interaction?.sourceRunId || interaction.status !== "pending" ||
-        !["request_confirmation", "request_checkbox_confirmation"].includes(interaction.kind) || held.has(interaction.id)) return;
+    if (
+      !interaction?.sourceRunId ||
+      interaction.status !== "pending" ||
+      !["request_confirmation", "request_checkbox_confirmation"].includes(
+        interaction.kind,
+      ) ||
+      held.has(interaction.id)
+    )
+      return;
     held.add(interaction.id);
     await holdInteractionResponse({
       deadlineAt: Date.now() + 90_000,
       loadStatus: async () => {
-        const response = await fetch(`http://127.0.0.1:${process.env.TASKCORE_RUNNER_E2E_PORT}/api/issues/${interaction.issueId}/interactions`);
-        if (!response.ok) throw new Error(`Approval barrier read failed: ${response.status}`);
-        const rows = await response.json() as Array<{ id: string; status: string }>;
+        const response = await fetch(
+          `http://127.0.0.1:${process.env.TASKCORE_RUNNER_E2E_PORT}/api/issues/${interaction.issueId}/interactions`,
+        );
+        if (!response.ok)
+          throw new Error(`Approval barrier read failed: ${response.status}`);
+        const rows = (await response.json()) as Array<{
+          id: string;
+          status: string;
+        }>;
         const row = rows.find((candidate) => candidate.id === interaction.id);
         if (!row) throw new Error("Approval barrier lost its committed card");
         return row.status;
@@ -34,15 +58,35 @@ if (ids.some((id) => id.endsWith(".accept-while-running"))) {
     return result;
   };
   const end = ServerResponse.prototype.end;
-  ServerResponse.prototype.end = function (this: ServerResponse, ...args: any[]) {
+  ServerResponse.prototype.end = function (
+    this: ServerResponse,
+    ...args: any[]
+  ) {
     const body = args[0];
     let interaction: any;
-    if (this.req.method === "POST" && /\/interactions(?:\?|$)/.test(this.req.url ?? "") &&
-        this.statusCode >= 200 && this.statusCode < 300 && (typeof body === "string" || Buffer.isBuffer(body))) {
-      try { interaction = JSON.parse(body.toString()); } catch { /* non-JSON response */ }
+    if (
+      this.req.method === "POST" &&
+      /\/interactions(?:\?|$)/.test(this.req.url ?? "") &&
+      this.statusCode >= 200 &&
+      this.statusCode < 300 &&
+      (typeof body === "string" || Buffer.isBuffer(body))
+    ) {
+      try {
+        interaction = JSON.parse(body.toString());
+      } catch {
+        /* non-JSON response */
+      }
     }
-    if (interaction?.sourceRunId && ["request_confirmation", "request_checkbox_confirmation"].includes(interaction.kind)) {
-      void hold(interaction).then(() => Reflect.apply(end, this, args), (error) => this.destroy(error));
+    if (
+      interaction?.sourceRunId &&
+      ["request_confirmation", "request_checkbox_confirmation"].includes(
+        interaction.kind,
+      )
+    ) {
+      void hold(interaction).then(
+        () => Reflect.apply(end, this, args),
+        (error) => this.destroy(error),
+      );
       return this;
     }
     return Reflect.apply(end, this, args);
@@ -51,9 +95,16 @@ if (ids.some((id) => id.endsWith(".accept-while-running"))) {
 if (contextCommentGate || completionBusyGate) {
   const heldIssues = new Set<string>();
   const holdFirstDocument = async (issueId: string) => {
-    if (heldIssues.has(issueId) || (!contextCommentGate && !await isArmed(issueId))) return;
+    if (
+      heldIssues.has(issueId) ||
+      (!contextCommentGate && !(await isArmed(issueId)))
+    )
+      return;
     heldIssues.add(issueId);
-    await holdCommittedDocumentResponse(issueId, Date.now() + (completionBusyGate ? 300_000 : 90_000));
+    await holdCommittedDocumentResponse(
+      issueId,
+      Date.now() + (completionBusyGate ? 300_000 : 90_000),
+    );
   };
   const execute = TaskcoreRunnerToolAuthority.prototype.execute;
   TaskcoreRunnerToolAuthority.prototype.execute = async function (...args) {
@@ -65,12 +116,16 @@ if (contextCommentGate || completionBusyGate) {
     return result;
   };
   const end = ServerResponse.prototype.end;
-  ServerResponse.prototype.end = function (this: ServerResponse, ...args: any[]) {
+  ServerResponse.prototype.end = function (
+    this: ServerResponse,
+    ...args: any[]
+  ) {
     const body = args[0];
     const request = this.req as typeof this.req & { originalUrl?: string };
-    const issueId = this.req.method === "PUT"
-      ? canonicalDocumentIssueId(request.url, body, request.originalUrl)
-      : undefined;
+    const issueId =
+      this.req.method === "PUT"
+        ? canonicalDocumentIssueId(request.url, body, request.originalUrl)
+        : undefined;
     if (issueId && this.statusCode >= 200 && this.statusCode < 300) {
       void holdFirstDocument(decodeURIComponent(issueId)).then(
         () => Reflect.apply(end, this, args),

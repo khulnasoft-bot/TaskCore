@@ -9,14 +9,17 @@ describe("startPerfMeasureReaper", () => {
     vi.useFakeTimers();
     clearMeasures = vi.fn();
     original = performance.clearMeasures;
-    performance.clearMeasures = clearMeasures as unknown as typeof performance.clearMeasures;
-    delete (globalThis as { __taskcoreKeepPerfMeasures?: boolean }).__taskcoreKeepPerfMeasures;
+    performance.clearMeasures =
+      clearMeasures as unknown as typeof performance.clearMeasures;
+    delete (globalThis as { __taskcoreKeepPerfMeasures?: boolean })
+      .__taskcoreKeepPerfMeasures;
   });
 
   afterEach(() => {
     performance.clearMeasures = original;
     vi.useRealTimers();
-    delete (globalThis as { __taskcoreKeepPerfMeasures?: boolean }).__taskcoreKeepPerfMeasures;
+    delete (globalThis as { __taskcoreKeepPerfMeasures?: boolean })
+      .__taskcoreKeepPerfMeasures;
   });
 
   it("clears measures on each interval", () => {
@@ -40,17 +43,22 @@ describe("startPerfMeasureReaper", () => {
 
   it("skips clearing while the opt-out flag is set (e.g. profiling)", () => {
     const stop = startPerfMeasureReaper(10_000);
-    (globalThis as { __taskcoreKeepPerfMeasures?: boolean }).__taskcoreKeepPerfMeasures = true;
+    (
+      globalThis as { __taskcoreKeepPerfMeasures?: boolean }
+    ).__taskcoreKeepPerfMeasures = true;
     vi.advanceTimersByTime(30_000);
     expect(clearMeasures).not.toHaveBeenCalled();
-    (globalThis as { __taskcoreKeepPerfMeasures?: boolean }).__taskcoreKeepPerfMeasures = false;
+    (
+      globalThis as { __taskcoreKeepPerfMeasures?: boolean }
+    ).__taskcoreKeepPerfMeasures = false;
     vi.advanceTimersByTime(10_000);
     expect(clearMeasures).toHaveBeenCalledTimes(1);
     stop();
   });
 
   it("is a no-op when performance.clearMeasures is unavailable", () => {
-    performance.clearMeasures = undefined as unknown as typeof performance.clearMeasures;
+    performance.clearMeasures =
+      undefined as unknown as typeof performance.clearMeasures;
     const stop = startPerfMeasureReaper(10_000);
     vi.advanceTimersByTime(30_000);
     // nothing to assert other than: it did not throw and returns a callable stop

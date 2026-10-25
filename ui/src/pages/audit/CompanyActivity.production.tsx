@@ -18,7 +18,8 @@ export function CompanyActivity() {
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const [searchParams, setSearchParams] = useSearchParams();
-  const mode: AuditFeedMode = searchParams.get("mode") === "agents" ? "agents" : "all";
+  const mode: AuditFeedMode =
+    searchParams.get("mode") === "agents" ? "agents" : "all";
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Activity" }]);
@@ -42,8 +43,16 @@ export function CompanyActivity() {
   );
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={History} message="Select a company to view activity." />;
+    return (
+      <EmptyState icon={History} message="Select a company to view activity." />
+    );
   }
 
-  return <AuditFeed companyId={selectedCompanyId} mode={mode} onModeChange={handleModeChange} />;
+  return (
+    <AuditFeed
+      companyId={selectedCompanyId}
+      mode={mode}
+      onModeChange={handleModeChange}
+    />
+  );
 }

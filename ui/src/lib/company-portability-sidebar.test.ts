@@ -80,22 +80,30 @@ describe("company portability sidebar order", () => {
     const launch = makeProject("project-1", "Launch");
     const launchTwo = makeProject("project-2", "Launch");
 
-    expect(Array.from(buildPortableAgentSlugMap([alphaOne, alphaTwo, beta]).entries())).toEqual([
+    expect(
+      Array.from(
+        buildPortableAgentSlugMap([alphaOne, alphaTwo, beta]).entries(),
+      ),
+    ).toEqual([
       ["agent-1", "alpha"],
       ["agent-2", "alpha-2"],
       ["agent-3", "beta"],
     ]);
-    expect(Array.from(buildPortableProjectSlugMap([launch, launchTwo]).entries())).toEqual([
+    expect(
+      Array.from(buildPortableProjectSlugMap([launch, launchTwo]).entries()),
+    ).toEqual([
       ["project-1", "launch"],
       ["project-2", "launch-2"],
     ]);
 
-    expect(buildPortableSidebarOrder({
-      agents: [alphaOne, alphaTwo, beta],
-      orderedAgents: [beta, alphaTwo, alphaOne],
-      projects: [launch, launchTwo],
-      orderedProjects: [launchTwo, launch],
-    })).toEqual({
+    expect(
+      buildPortableSidebarOrder({
+        agents: [alphaOne, alphaTwo, beta],
+        orderedAgents: [beta, alphaTwo, alphaOne],
+        projects: [launch, launchTwo],
+        orderedProjects: [launchTwo, launch],
+      }),
+    ).toEqual({
       agents: ["beta", "alpha-2", "alpha"],
       projects: ["launch-2", "launch"],
     });

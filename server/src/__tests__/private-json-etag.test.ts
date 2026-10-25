@@ -14,12 +14,16 @@ describe("privateJsonEtag", () => {
     expect(first.headers["cache-control"]).toBe("private, must-revalidate");
     expect(first.headers.etag).toBeTruthy();
 
-    const unchanged = await request(app).get("/issue").set("If-None-Match", first.headers.etag);
+    const unchanged = await request(app)
+      .get("/issue")
+      .set("If-None-Match", first.headers.etag);
     expect(unchanged.status).toBe(304);
     expect(unchanged.text).toBe("");
 
     revision = 2;
-    const changed = await request(app).get("/issue").set("If-None-Match", first.headers.etag);
+    const changed = await request(app)
+      .get("/issue")
+      .set("If-None-Match", first.headers.etag);
     expect(changed.status).toBe(200);
     expect(changed.headers.etag).not.toBe(first.headers.etag);
   });

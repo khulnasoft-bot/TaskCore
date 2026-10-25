@@ -122,12 +122,15 @@ export class CapabilityExecutionRecorder {
     }
     this.auditCursor = state.audit.length;
     for (const decision of state.decisions.slice(this.decisionCursor)) {
-      if (decision.outcome === "allowed" || decision.outcome === "duplicate") continue;
+      if (decision.outcome === "allowed" || decision.outcome === "duplicate")
+        continue;
       this.timeline.push(this.stamp(controlPlaneDecisionEntry(decision)));
     }
     this.decisionCursor = state.decisions.length;
     for (const wake of state.wakes.slice(this.wakeCursor)) {
-      this.timeline.push(this.stamp(controlPlaneWakeEntry(wake, state.revision)));
+      this.timeline.push(
+        this.stamp(controlPlaneWakeEntry(wake, state.revision)),
+      );
     }
     this.wakeCursor = state.wakes.length;
   }
@@ -198,7 +201,9 @@ export class CapabilityExecutionRecorder {
     this.drainControlPlane();
   }
 
-  private async runToolStep(step: Extract<CapabilityPlanStep, { kind: "tool_call" }>): Promise<void> {
+  private async runToolStep(
+    step: Extract<CapabilityPlanStep, { kind: "tool_call" }>,
+  ): Promise<void> {
     const descriptor = capabilitySemanticTool(step.operationId);
     const resolvedInput = this.resolveRefs(step.input);
     // The catalog, not the plan, decides which operations need an idempotency
@@ -206,8 +211,12 @@ export class CapabilityExecutionRecorder {
     const suffix =
       step.idempotencySuffix ??
       (descriptor?.idempotency === "required" ? step.operationId : undefined);
-    const idempotencyKey = suffix === undefined ? undefined : `capability:${this.entry.id}:${suffix}`;
-    const redactions = descriptor === undefined ? [] : redactionChips(descriptor);
+    const idempotencyKey =
+      suffix === undefined
+        ? undefined
+        : `capability:${this.entry.id}:${suffix}`;
+    const redactions =
+      descriptor === undefined ? [] : redactionChips(descriptor);
 
     const callSequence = this.sequence + 1;
     this.timeline.push(
@@ -219,7 +228,8 @@ export class CapabilityExecutionRecorder {
         disposition: descriptor?.disposition ?? "control_plane_owned",
         summary: step.summary,
         input: redactValue(resolvedInput, descriptor, "input"),
-        requiredClaims: descriptor === undefined ? [] : [...descriptor.requiredClaims],
+        requiredClaims:
+          descriptor === undefined ? [] : [...descriptor.requiredClaims],
         idempotency: descriptor?.idempotency ?? "none",
         idempotencyKey: idempotencyKey ?? null,
         redactions,
@@ -234,8 +244,11 @@ export class CapabilityExecutionRecorder {
       idempotencyKey,
     });
 
-    const call = this.timeline.find((candidate) => candidate.sequence === callSequence);
-    if (call?.kind === "semantic_call") call.authorizationSequence = result.authorization.sequence;
+    const call = this.timeline.find(
+      (candidate) => candidate.sequence === callSequence,
+    );
+    if (call?.kind === "semantic_call")
+      call.authorizationSequence = result.authorization.sequence;
 
     if (result.ok) {
       this.operationResultIds.push(result.operationResultId);
@@ -257,7 +270,9 @@ export class CapabilityExecutionRecorder {
           failure: null,
           redactions,
           authorizationSequence: result.authorization.sequence,
-          protocolEventRefs: (result.commandResult?.scheduledWakeIds ?? []).map((id) => `wake:${id}`),
+          protocolEventRefs: (result.commandResult?.scheduledWakeIds ?? []).map(
+            (id) => `wake:${id}`,
+          ),
         }),
       );
       return;
@@ -275,7 +290,10 @@ export class CapabilityExecutionRecorder {
             ? `\`${step.operationId}\` is not exposed to this run.`
             : `\`${step.operationId}\` was denied — ${result.authorization.reason}.`,
         value: null,
-        failure: { code: result.error.code, reason: result.authorization.reason },
+        failure: {
+          code: result.error.code,
+          reason: result.authorization.reason,
+        },
         redactions,
         authorizationSequence: result.authorization.sequence,
         protocolEventRefs: [],
@@ -346,14 +364,18 @@ export class CapabilityExecutionRecorder {
 
   private activeTaskId(): string {
     const state = this.adapter.snapshot();
-    const run = state.runs.find((candidate) => candidate.id === state.activeRunId);
+    const run = state.runs.find(
+      (candidate) => candidate.id === state.activeRunId,
+    );
     return run?.taskId ?? "";
   }
 
-  private stamp(
-    entry: CapabilityUnstampedEntry,
-  ): CapabilityTimelineEntry {
-    return { ...entry, sequence: ++this.sequence, turn: this.turn } as CapabilityTimelineEntry;
+  private stamp(entry: CapabilityUnstampedEntry): CapabilityTimelineEntry {
+    return {
+      ...entry,
+      sequence: ++this.sequence,
+      turn: this.turn,
+    } as CapabilityTimelineEntry;
   }
 }
 
@@ -366,10 +388,16 @@ export function resolvePlanRefs(
   createdInteractionIds: readonly string[] = [],
 ): CapabilityJsonValue {
   const recurse = (child: CapabilityJsonValue): CapabilityJsonValue =>
-    resolvePlanRefs(child, createdTaskIds, operationResultIds, createdInteractionIds);
+    resolvePlanRefs(
+      child,
+      createdTaskIds,
+      operationResultIds,
+      createdInteractionIds,
+    );
   if (typeof value === "string") {
     const createdTask = CREATED_TASK_REF_PATTERN.exec(value);
-    if (createdTask !== null) return createdTaskIds[Number(createdTask[1]) - 1] ?? value;
+    if (createdTask !== null)
+      return createdTaskIds[Number(createdTask[1]) - 1] ?? value;
     const operationResult = OPERATION_RESULT_REF_PATTERN.exec(value);
     if (operationResult !== null) {
       return operationResultIds[Number(operationResult[1]) - 1] ?? value;
@@ -382,7 +410,9 @@ export function resolvePlanRefs(
   }
   if (Array.isArray(value)) return value.map(recurse);
   if (typeof value === "object" && value !== null) {
-    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, recurse(child)]));
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, recurse(child)]),
+    );
   }
   return value;
 }
@@ -417,12 +447,18 @@ function applyRedactionPath(
 ): CapabilityJsonValue {
   const [head, ...rest] = path;
   if (head === undefined) return replacement;
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return value;
   if (!(head in value)) return value;
-  return { ...value, [head]: applyRedactionPath(value[head]!, rest, replacement) };
+  return {
+    ...value,
+    [head]: applyRedactionPath(value[head]!, rest, replacement),
+  };
 }
 
-export function redactionChips(descriptor: CapabilitySemanticToolDescriptor): CapabilityRedactionChip[] {
+export function redactionChips(
+  descriptor: CapabilitySemanticToolDescriptor,
+): CapabilityRedactionChip[] {
   return descriptor.redaction.map((rule) => ({
     path: rule.path,
     replacement: rule.replacement,
@@ -430,9 +466,13 @@ export function redactionChips(descriptor: CapabilitySemanticToolDescriptor): Ca
   }));
 }
 
-function resultSummary(operationId: string, result: CapabilityToolInvocationResult): string {
+function resultSummary(
+  operationId: string,
+  result: CapabilityToolInvocationResult,
+): string {
   if (!result.ok) return `\`${operationId}\` produced no result.`;
-  if (result.commandResult === null) return `\`${operationId}\` returned a read projection.`;
+  if (result.commandResult === null)
+    return `\`${operationId}\` returned a read projection.`;
   const refs = result.commandResult.entityRefs.length;
   return `\`${operationId}\` ${result.commandResult.disposition} at revision ${result.commandResult.stateRevision}${
     refs === 0 ? "" : ` · ${refs} ${refs === 1 ? "entity" : "entities"}`
@@ -442,7 +482,10 @@ function resultSummary(operationId: string, result: CapabilityToolInvocationResu
 export function buildExposure(
   records: readonly CapabilityAuthorizationRecord[],
   grants: readonly string[],
-  controlPlaneCapabilities: ReadonlyArray<{ operationId: string; reason: string }>,
+  controlPlaneCapabilities: ReadonlyArray<{
+    operationId: string;
+    reason: string;
+  }>,
 ): CapabilityExposure {
   const always: CapabilityExposureEntry[] = [];
   const optional: CapabilityExposureEntry[] = [];
@@ -456,7 +499,9 @@ export function buildExposure(
       requiredClaims: [...descriptor.requiredClaims],
       unlockedBy:
         descriptor.disposition === "optional_agent_tool"
-          ? (descriptor.requiredClaims.find((claim) => grants.includes(claim)) ?? null)
+          ? (descriptor.requiredClaims.find((claim) =>
+              grants.includes(claim),
+            ) ?? null)
           : null,
       reason: record.reason,
     };
@@ -465,7 +510,9 @@ export function buildExposure(
     else optional.push(entry);
   }
   const controlPlane = controlPlaneCapabilities.filter((capability) =>
-    (CAPABILITY_CONTROL_PLANE_OWNED_OPERATION_IDS as readonly string[]).includes(capability.operationId),
+    (
+      CAPABILITY_CONTROL_PLANE_OWNED_OPERATION_IDS as readonly string[]
+    ).includes(capability.operationId),
   );
   return {
     schema: "taskcore.capability.exposure.v1",
@@ -485,7 +532,9 @@ function controlPlaneEntry(
     kind: "control_plane_action",
     channel: "control_plane",
     action: audit.action,
-    summary: CONTROL_PLANE_COPY[audit.action] ?? `Control plane recorded \`${audit.action}\`.`,
+    summary:
+      CONTROL_PLANE_COPY[audit.action] ??
+      `Control plane recorded \`${audit.action}\`.`,
     detail: audit.details,
     auditRef: audit.id,
     decisionRef: null,
@@ -523,7 +572,12 @@ function controlPlaneWakeEntry(
     channel: "control_plane",
     action: "wake.scheduled",
     summary: `Control plane scheduled a \`${wake.reason}\` wake for task ${wake.taskId} — no agent tool exists for this.`,
-    detail: { id: wake.id, reason: wake.reason, dueAt: wake.dueAt, status: wake.status },
+    detail: {
+      id: wake.id,
+      reason: wake.reason,
+      dueAt: wake.dueAt,
+      status: wake.status,
+    },
     auditRef: null,
     decisionRef: null,
     stateRevision,
@@ -533,8 +587,10 @@ function controlPlaneWakeEntry(
 const CONTROL_PLANE_COPY: Record<string, string> = {
   "run.opened":
     "Control plane checked out the task and opened the run — no agent tool exists for this.",
-  "run.event_appended": "Control plane appended a protocol event to the durable run log.",
-  "run.session_checkpointed": "Control plane checkpointed the session for replay.",
+  "run.event_appended":
+    "Control plane appended a protocol event to the durable run log.",
+  "run.session_checkpointed":
+    "Control plane checkpointed the session for replay.",
   "run.completed": "Control plane reconciled the terminal run result.",
   "budget.hard_stop": "Control plane stopped the run on a hard budget limit.",
 };
@@ -551,14 +607,20 @@ export const CAPABILITY_RECONCILIATION_ACTIONS: readonly RegExp[] = [
 ];
 
 export function capabilityIsReconciliationAction(action: string): boolean {
-  return CAPABILITY_RECONCILIATION_ACTIONS.some((pattern) => pattern.test(action));
+  return CAPABILITY_RECONCILIATION_ACTIONS.some((pattern) =>
+    pattern.test(action),
+  );
 }
 
-export function snapshotOf(adapter: CapabilityMockControlPlaneAdapter): CapabilityFixtureState {
+export function snapshotOf(
+  adapter: CapabilityMockControlPlaneAdapter,
+): CapabilityFixtureState {
   return JSON.parse(adapter.serialize()) as CapabilityFixtureState;
 }
 
-export function fixtureInstant(adapter: CapabilityMockControlPlaneAdapter): string {
+export function fixtureInstant(
+  adapter: CapabilityMockControlPlaneAdapter,
+): string {
   const clock = adapter.snapshot().clock;
   return new Date(clock.epochMs + clock.tick * 1_000).toISOString();
 }

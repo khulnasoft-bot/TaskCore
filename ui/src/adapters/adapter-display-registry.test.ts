@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { getAdapterDisplay, getAdapterLabel, getAdapterLabels } from "./adapter-display-registry";
+import {
+  getAdapterDisplay,
+  getAdapterLabel,
+  getAdapterLabels,
+} from "./adapter-display-registry";
 
 describe("adapter display registry", () => {
   it("uses user-facing labels without the legacy local qualifier for built-in adapters", () => {

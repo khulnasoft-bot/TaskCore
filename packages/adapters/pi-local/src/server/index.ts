@@ -1,12 +1,15 @@
 import type { AdapterSessionCodec } from "@taskcore/adapter-utils";
 
 function readNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 export const sessionCodec: AdapterSessionCodec = {
   deserialize(raw: unknown) {
-    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw))
+      return null;
     const record = raw as Record<string, unknown>;
     const sessionId =
       readNonEmptyString(record.sessionId) ??

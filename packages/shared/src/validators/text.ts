@@ -7,4 +7,6 @@ export function normalizeEscapedLineBreaks(value: string): string {
     .replace(/\\r/g, "\n");
 }
 
-export const multilineTextSchema = z.string().transform(normalizeEscapedLineBreaks);
+export const multilineTextSchema = z
+  .string()
+  .transform(normalizeEscapedLineBreaks);

@@ -39,7 +39,11 @@ import { executeNativeSession } from "../native-session-runtime.js";
 import { redactCapabilityEvidenceData } from "./evidence-redaction.js";
 import { NativeSessionCloseUnrecoverableError } from "../contracts/native-session-backend.js";
 import { parseTaskcoreQuestionSet } from "../contracts/question-set.js";
-import { ACPX_CREDENTIAL_BINDING_ENV, createAcpxCredentialBinding, createAcpxSidecarHostEnvironment } from "../drivers/acpx/environment.js";
+import {
+  ACPX_CREDENTIAL_BINDING_ENV,
+  createAcpxCredentialBinding,
+  createAcpxSidecarHostEnvironment,
+} from "../drivers/acpx/environment.js";
 import { DurablePrpControlPlane } from "../control-plane/durable-prp-control-plane.js";
 import * as durableControlPlane from "../control-plane/durable-prp-control-plane.js";
 
@@ -106,16 +110,27 @@ const defaultCapabilityRunnerdBinary = () =>
 
 it("attributes opened candidate sessions to the harness biller instead of the model vendor", () => {
   const provider = runnerdLaunchProfileInternals.openedThreadModelProvider;
-  for (const model of ["gpt-5.6-luna[context=272k,reasoning=medium,fast=false]", "claude-sonnet-5"]) {
+  for (const model of [
+    "gpt-5.6-luna[context=272k,reasoning=medium,fast=false]",
+    "claude-sonnet-5",
+  ]) {
     expect(provider("acpx", "cursor", model)).toBe("cursor");
     expect(provider("acpx", "copilot", model)).toBe("github");
   }
-  expect(provider("acpx", "pi", "openrouter/deepseek/deepseek-v4-flash-0731")).toBe("openrouter");
+  expect(
+    provider("acpx", "pi", "openrouter/deepseek/deepseek-v4-flash-0731"),
+  ).toBe("openrouter");
   expect(provider("acpx", "claude", "claude-sonnet-5")).toBe("anthropic");
   expect(provider("acpx", "codex", "gpt-5.6-sol")).toBe("openai");
-  expect(provider("opencode", "codex", "openrouter/openai/gpt-6-astra")).toBe("openrouter");
-  expect(provider("claude_managed", "codex", "claude-sonnet-5")).toBe("anthropic");
-  expect(provider("aws_agentcore", "codex", "global.anthropic.claude-sonnet-4-6")).toBe("aws");
+  expect(provider("opencode", "codex", "openrouter/openai/gpt-6-astra")).toBe(
+    "openrouter",
+  );
+  expect(provider("claude_managed", "codex", "claude-sonnet-5")).toBe(
+    "anthropic",
+  );
+  expect(
+    provider("aws_agentcore", "codex", "global.anthropic.claude-sonnet-4-6"),
+  ).toBe("aws");
 });
 
 async function expectTurnStarted(
@@ -371,9 +386,13 @@ it.each([99, 100])(
 );
 
 it("publishes spawned runner ownership before waiting for provider startup", async () => {
-  const stateDirectory = await mkdtemp(join(tmpdir(), "runner-spawn-ownership-"));
+  const stateDirectory = await mkdtemp(
+    join(tmpdir(), "runner-spawn-ownership-"),
+  );
   let releaseOwnership!: () => void;
-  const persisted = new Promise<void>((resolve) => { releaseOwnership = resolve; });
+  const persisted = new Promise<void>((resolve) => {
+    releaseOwnership = resolve;
+  });
   const onSpawn = vi.fn(async () => persisted);
   const activate = vi.fn();
   const bundle = createCapabilityRunnerdCodexTransport({
@@ -387,10 +406,17 @@ it("publishes spawned runner ownership before waiting for provider startup", asy
       return { activate, release: () => undefined };
     },
   });
-  const opening = bundle.transport.request("thread/start", { cwd: tmpdir(), dynamicTools: codexSemanticToolSpecs() });
+  const opening = bundle.transport.request("thread/start", {
+    cwd: tmpdir(),
+    dynamicTools: codexSemanticToolSpecs(),
+  });
   try {
     await vi.waitFor(() => expect(onSpawn).toHaveBeenCalledOnce());
-    expect(onSpawn).toHaveBeenCalledWith({ pid: expect.any(Number), processGroupId: expect.any(Number), startedAt: expect.any(String) });
+    expect(onSpawn).toHaveBeenCalledWith({
+      pid: expect.any(Number),
+      processGroupId: expect.any(Number),
+      startedAt: expect.any(String),
+    });
     expect(bundle.transport.processInfo?.().pid).toBeGreaterThan(0);
     expect(activate).not.toHaveBeenCalled();
     releaseOwnership();
@@ -742,10 +768,16 @@ it("refuses a reusable close checkpoint when the local provider snapshot is unre
   }
 }, 15_000);
 
-it.each(["after_budget", "within_budget", "interrupted_within_budget", "persistence_failure"] as const)(
+it.each([
+  "after_budget",
+  "within_budget",
+  "interrupted_within_budget",
+  "persistence_failure",
+] as const)(
   "fences reusable suspension against late semantic completion (%s)",
   async (mode) => {
-    const settles = mode === "within_budget" || mode === "interrupted_within_budget";
+    const settles =
+      mode === "within_budget" || mode === "interrupted_within_budget";
     const stateDirectory = await mkdtemp(
       join(tmpdir(), "runnerd-late-semantic-close-"),
     );
@@ -766,12 +798,17 @@ it.each(["after_budget", "within_budget", "interrupted_within_budget", "persiste
       // The default 96/48-frame stress burst spends seconds on unrelated
       // durable text fsyncs before handler entry, consuming this barrier test's
       // wall-clock budget under the full suite. Stress cases retain defaults.
-      codexArgs: mode === "interrupted_within_budget"
-        ? fakeCodexArgs(stateDirectory, "--emit-tool-call")
-        : fakeCodexArgs(
-        stateDirectory, "--split-event-burst",
-        "--split-event-prefix-count", "2", "--split-event-suffix-count", "2",
-      ),
+      codexArgs:
+        mode === "interrupted_within_budget"
+          ? fakeCodexArgs(stateDirectory, "--emit-tool-call")
+          : fakeCodexArgs(
+              stateDirectory,
+              "--split-event-burst",
+              "--split-event-prefix-count",
+              "2",
+              "--split-event-suffix-count",
+              "2",
+            ),
       stateDirectory,
       closeGraceMs: 5_000,
       controlPlaneRegistration: async (authority) => {
@@ -825,7 +862,9 @@ it.each(["after_budget", "within_budget", "interrupted_within_budget", "persiste
         });
       }
       if (mode === "interrupted_within_budget") {
-        await bundle.transport.request("turn/interrupt", { reason: "test-stop-during-server-write" });
+        await bundle.transport.request("turn/interrupt", {
+          reason: "test-stop-during-server-write",
+        });
         expect(core.semanticToolResultsSettled()).toBe(false);
       }
       const closing = bundle.transport.close().then(
@@ -876,9 +915,7 @@ it.each(["after_budget", "within_budget", "interrupted_within_budget", "persiste
           expect(late[0].payload.correlation.runId).toBe(
             control.identity.runId,
           );
-          expect(late[0].status).toBe(
-            settles ? "completed" : "pending",
-          );
+          expect(late[0].status).toBe(settles ? "completed" : "pending");
           if (settles) {
             const results = control.committedEvents.filter(
               (event: { eventType: string }) =>
@@ -897,10 +934,17 @@ it.each(["after_budget", "within_budget", "interrupted_within_budget", "persiste
         expect(closeFailure).toBeInstanceOf(
           NativeSessionCloseUnrecoverableError,
         );
-        expect(closeFailure).toHaveProperty("settlement.semanticTools.pending", expect.arrayContaining([
-          expect.objectContaining({ callId: expect.any(String), operationId: expect.any(String),
-            sourceEventId: expect.any(String), inputDigest: expect.stringMatching(/^[a-f0-9]{64}$/) }),
-        ]));
+        expect(closeFailure).toHaveProperty(
+          "settlement.semanticTools.pending",
+          expect.arrayContaining([
+            expect.objectContaining({
+              callId: expect.any(String),
+              operationId: expect.any(String),
+              sourceEventId: expect.any(String),
+              inputDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+            }),
+          ]),
+        );
         expect(checkpoint).toHaveBeenCalledWith("unsettled");
         expect(checkpoint).not.toHaveBeenCalledWith("settled");
       }
@@ -1169,26 +1213,52 @@ it("quiesces the control route before checkpoint and containment regardless of p
 
 it("does not release a session before asynchronous process containment settles", async () => {
   let finishKill!: () => void;
-  const killed = new Promise<void>((resolve) => { finishKill = resolve; });
+  const killed = new Promise<void>((resolve) => {
+    finishKill = resolve;
+  });
   const steps: string[] = [];
-  const released = runnerdRecoveryInternals.releaseRunnerProcessOwnership({
-    runnerSettled: false,
-    release: () => { steps.push("route-closed"); },
-    checkpoint: () => { steps.push("checkpoint"); },
-    forceKill: async () => { steps.push("kill-dispatched"); await killed; steps.push("process-exited"); },
-  }).then(() => { steps.push("session-reusable"); });
-  await new Promise<void>(resolve => setImmediate(resolve));
+  const released = runnerdRecoveryInternals
+    .releaseRunnerProcessOwnership({
+      runnerSettled: false,
+      release: () => {
+        steps.push("route-closed");
+      },
+      checkpoint: () => {
+        steps.push("checkpoint");
+      },
+      forceKill: async () => {
+        steps.push("kill-dispatched");
+        await killed;
+        steps.push("process-exited");
+      },
+    })
+    .then(() => {
+      steps.push("session-reusable");
+    });
+  await new Promise<void>((resolve) => setImmediate(resolve));
   expect(steps).toEqual(["route-closed", "checkpoint", "kill-dispatched"]);
   finishKill();
   await released;
-  expect(steps).toEqual(["route-closed", "checkpoint", "kill-dispatched", "process-exited", "session-reusable"]);
+  expect(steps).toEqual([
+    "route-closed",
+    "checkpoint",
+    "kill-dispatched",
+    "process-exited",
+    "session-reusable",
+  ]);
 });
 
 it("refuses session reuse when asynchronous process containment fails", async () => {
-  await expect(runnerdRecoveryInternals.releaseRunnerProcessOwnership({
-    runnerSettled: true, release: null, checkpoint: null,
-    forceKill: async () => { throw new Error("remote process still alive"); },
-  })).rejects.toThrow("remote process still alive");
+  await expect(
+    runnerdRecoveryInternals.releaseRunnerProcessOwnership({
+      runnerSettled: true,
+      release: null,
+      checkpoint: null,
+      forceKill: async () => {
+        throw new Error("remote process still alive");
+      },
+    }),
+  ).rejects.toThrow("remote process still alive");
 });
 
 it("waits for the exact durable suspension command behind prior close work", async () => {
@@ -1341,29 +1411,41 @@ it("includes ACPX terminal tools in the authenticated bridge catalog", () => {
   });
 });
 
-it.each(["codex", "opencode", "claude_managed", "aws_agentcore", "acpx"] as const)("preserves answer and internal wait descriptions in the serialized native %s tool catalog", (provider) => {
-  const catalog = JSON.parse(
-    JSON.stringify(authorizedToolSetForProvider(provider, codexSemanticToolSpecs())),
-  );
-  const finish = catalog.operations.find(
-    (operation: { operationId: string }) =>
-      operation.operationId === "taskcore_finish",
-  );
-  const block = catalog.operations.find(
-    (operation: { operationId: string }) => operation.operationId === "taskcore_block",
-  );
-  expect(finish.description).toBe(PRP_COMPLETION_TOOL_DESCRIPTION);
-  expect(block.description).toBe(PRP_BLOCK_TOOL_DESCRIPTION);
-  expect(finish.inputSchema.properties.summary.description).toContain(
-    "complete user-facing answer",
-  );
-  expect(finish.inputSchema.properties.summary.description).toContain(
-    "genuine actionable failure, limitation, or required user action",
-  );
-  expect(
-    finish.inputSchema.properties.continuation.properties.summary.description,
-  ).toContain("not in the top-level user-facing summary");
-});
+it.each([
+  "codex",
+  "opencode",
+  "claude_managed",
+  "aws_agentcore",
+  "acpx",
+] as const)(
+  "preserves answer and internal wait descriptions in the serialized native %s tool catalog",
+  (provider) => {
+    const catalog = JSON.parse(
+      JSON.stringify(
+        authorizedToolSetForProvider(provider, codexSemanticToolSpecs()),
+      ),
+    );
+    const finish = catalog.operations.find(
+      (operation: { operationId: string }) =>
+        operation.operationId === "taskcore_finish",
+    );
+    const block = catalog.operations.find(
+      (operation: { operationId: string }) =>
+        operation.operationId === "taskcore_block",
+    );
+    expect(finish.description).toBe(PRP_COMPLETION_TOOL_DESCRIPTION);
+    expect(block.description).toBe(PRP_BLOCK_TOOL_DESCRIPTION);
+    expect(finish.inputSchema.properties.summary.description).toContain(
+      "complete user-facing answer",
+    );
+    expect(finish.inputSchema.properties.summary.description).toContain(
+      "genuine actionable failure, limitation, or required user action",
+    );
+    expect(
+      finish.inputSchema.properties.continuation.properties.summary.description,
+    ).toContain("not in the top-level user-facing summary");
+  },
+);
 
 it("defaults runnerd ACPX permissions to authorized Taskcore actions", () => {
   expect(resolveRunnerdAcpxPermissionMode(undefined)).toBe("approve-all");
@@ -1454,9 +1536,11 @@ it("derives the ACPX package authority only from the verified dist/cli layout", 
 });
 
 it("uses the public server npm package as the authority for vendored sidecars", () => {
-  expect(runnerdLaunchProfileInternals.acpxProviderPackageAuthority(
-    "/clean/node_modules/@taskcore/server/dist/vendor/taskcore-runner/cli/acpx-runtime-sidecar.cjs",
-  )).toEqual({
+  expect(
+    runnerdLaunchProfileInternals.acpxProviderPackageAuthority(
+      "/clean/node_modules/@taskcore/server/dist/vendor/taskcore-runner/cli/acpx-runtime-sidecar.cjs",
+    ),
+  ).toEqual({
     root: "/clean/node_modules/@taskcore/server",
     manifest: "/clean/node_modules/@taskcore/server/package.json",
   });
@@ -1474,12 +1558,7 @@ it("keeps a self-rooted pnpm deployment inside its dependency authority", async 
   try {
     expect(
       runnerdLaunchProfileInternals.acpxProviderPackageAuthority(
-        join(
-          deployedPackageRoot,
-          "dist",
-          "cli",
-          "acpx-runtime-sidecar.cjs",
-        ),
+        join(deployedPackageRoot, "dist", "cli", "acpx-runtime-sidecar.cjs"),
         deployedPackageRoot,
       ),
     ).toEqual({
@@ -1505,12 +1584,7 @@ it("keeps a scoped npm-installed package inside its portable dependency root", a
   try {
     expect(
       runnerdLaunchProfileInternals.acpxProviderPackageAuthority(
-        join(
-          deployedPackageRoot,
-          "dist",
-          "cli",
-          "acpx-runtime-sidecar.cjs",
-        ),
+        join(deployedPackageRoot, "dist", "cli", "acpx-runtime-sidecar.cjs"),
         deployedPackageRoot,
       ),
     ).toEqual({
@@ -1763,10 +1837,31 @@ it("uses file-backed AWS workload identity without forwarding access keys or Tas
 });
 
 it.each([
-  { agent: "cursor" as const, allowed: ["CURSOR_API_KEY", "CURSOR_AUTH_TOKEN"],
-    denied: ["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"] },
-  { agent: "copilot" as const, allowed: ["COPILOT_GITHUB_TOKEN"],
-    denied: ["CURSOR_API_KEY", "CURSOR_AUTH_TOKEN", "GH_TOKEN", "GITHUB_TOKEN", "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"] },
+  {
+    agent: "cursor" as const,
+    allowed: ["CURSOR_API_KEY", "CURSOR_AUTH_TOKEN"],
+    denied: [
+      "COPILOT_GITHUB_TOKEN",
+      "GH_TOKEN",
+      "GITHUB_TOKEN",
+      "OPENROUTER_API_KEY",
+      "ANTHROPIC_API_KEY",
+      "OPENAI_API_KEY",
+    ],
+  },
+  {
+    agent: "copilot" as const,
+    allowed: ["COPILOT_GITHUB_TOKEN"],
+    denied: [
+      "CURSOR_API_KEY",
+      "CURSOR_AUTH_TOKEN",
+      "GH_TOKEN",
+      "GITHUB_TOKEN",
+      "OPENROUTER_API_KEY",
+      "ANTHROPIC_API_KEY",
+      "OPENAI_API_KEY",
+    ],
+  },
   {
     agent: "pi" as const,
     allowed: ["OPENROUTER_API_KEY"],
@@ -1802,8 +1897,11 @@ it.each([
   "passes only $agent ACPX credentials and the durable runtime binding",
   ({ agent, allowed, denied }) => {
     const credentialEnvironment: Record<string, string> = {
-      CURSOR_API_KEY: "cursor-key-canary", CURSOR_AUTH_TOKEN: "cursor-token-canary",
-      COPILOT_GITHUB_TOKEN: "copilot-canary", GH_TOKEN: "ambient-gh-canary", GITHUB_TOKEN: "ambient-github-canary",
+      CURSOR_API_KEY: "cursor-key-canary",
+      CURSOR_AUTH_TOKEN: "cursor-token-canary",
+      COPILOT_GITHUB_TOKEN: "copilot-canary",
+      GH_TOKEN: "ambient-gh-canary",
+      GITHUB_TOKEN: "ambient-github-canary",
       OPENROUTER_API_KEY: "openrouter-canary",
       ANTHROPIC_API_KEY: "anthropic-canary",
       CLAUDE_CODE_OAUTH_TOKEN: "claude-oauth-canary",
@@ -1860,10 +1958,18 @@ it.each([
     for (const key of denied) expect(environment[key]).toBeUndefined();
     if (["cursor", "copilot", "pi"].includes(agent)) {
       expect(JSON.parse(environment[ACPX_CREDENTIAL_BINDING_ENV]!)).toEqual({
-        schema: "taskcore.acpx_credential_binding.v1", agent, sessionId: "session-1", names: allowed,
+        schema: "taskcore.acpx_credential_binding.v1",
+        agent,
+        sessionId: "session-1",
+        names: allowed,
       });
-      const sidecar = createAcpxSidecarHostEnvironment(environment, agent, "session-1");
-      for (const key of allowed) expect(sidecar[key]).toBe(credentialEnvironment[key]);
+      const sidecar = createAcpxSidecarHostEnvironment(
+        environment,
+        agent,
+        "session-1",
+      );
+      for (const key of allowed)
+        expect(sidecar[key]).toBe(credentialEnvironment[key]);
     } else expect(environment[ACPX_CREDENTIAL_BINDING_ENV]).toBeUndefined();
     expect(environment.TASKCORE_API_KEY).toBeUndefined();
     expect(environment.DATABASE_URL).toBeUndefined();
@@ -1871,21 +1977,49 @@ it.each([
 );
 
 it("does not bind ambient candidate credentials from an inherited or caller-supplied marker", () => {
-  const forged = createAcpxCredentialBinding({ CURSOR_API_KEY: "ambient-secret" }, "cursor", "session-1")!;
+  const forged = createAcpxCredentialBinding(
+    { CURSOR_API_KEY: "ambient-secret" },
+    "cursor",
+    "session-1",
+  )!;
   vi.stubEnv("CURSOR_API_KEY", "ambient-secret");
   vi.stubEnv(ACPX_CREDENTIAL_BINDING_ENV, forged);
   try {
-    for (const explicitEnvironment of [undefined, { [ACPX_CREDENTIAL_BINDING_ENV]: forged }]) {
+    for (const explicitEnvironment of [
+      undefined,
+      { [ACPX_CREDENTIAL_BINDING_ENV]: forged },
+    ]) {
       const environment = createCapabilityRunnerdProviderEnvironment({
-        provider: "acpx", options: { provider: "acpx", acpxAgent: "cursor", environment: explicitEnvironment },
-        identity: { runnerInstanceId: "runner-1", environmentLeaseId: "lease-1", runId: "run-1", normalizedSessionId: "session-1", turnId: "turn-1", itemId: "item-1" },
-        codexHome: "/isolated/home", runtimeContextPath: "/isolated/context.json", hasRuntimeContext: false,
+        provider: "acpx",
+        options: {
+          provider: "acpx",
+          acpxAgent: "cursor",
+          environment: explicitEnvironment,
+        },
+        identity: {
+          runnerInstanceId: "runner-1",
+          environmentLeaseId: "lease-1",
+          runId: "run-1",
+          normalizedSessionId: "session-1",
+          turnId: "turn-1",
+          itemId: "item-1",
+        },
+        codexHome: "/isolated/home",
+        runtimeContextPath: "/isolated/context.json",
+        hasRuntimeContext: false,
       });
       expect(environment.CURSOR_API_KEY).toBeUndefined();
-      expect(JSON.parse(environment[ACPX_CREDENTIAL_BINDING_ENV]!)).toMatchObject({ names: [] });
-      expect(createAcpxSidecarHostEnvironment(environment, "cursor", "session-1").CURSOR_API_KEY).toBeUndefined();
+      expect(
+        JSON.parse(environment[ACPX_CREDENTIAL_BINDING_ENV]!),
+      ).toMatchObject({ names: [] });
+      expect(
+        createAcpxSidecarHostEnvironment(environment, "cursor", "session-1")
+          .CURSOR_API_KEY,
+      ).toBeUndefined();
     }
-  } finally { vi.unstubAllEnvs(); }
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
 
 it.each(["opencode", "acpx"] as const)(
@@ -2016,38 +2150,91 @@ it("binds a durable semantic result to the active provider turn", () => {
   });
 });
 
-it.each(["summary", "detail"])("preserves canonical reasoning %s deltas without publishing assistant text", (channel) => {
-  // Exact shape emitted by the Rust ACPX projector, with synthetic private text.
-  const payload = { provider: "acpx", itemId: "reason-1", kind: "reasoning", channel,
-    providerMethod: "runtime.event", text: "PRIVATE_REASONING_SENTINEL" };
-  const method = runnerdCanonicalNotificationMethod("item.delta", payload);
-  expect(method).toBe(channel === "detail" ? "item/reasoning/textDelta" : "item/reasoning/summaryTextDelta");
-  const params = rehydrateRunnerdDeltaNotification(payload, "provider-thread", "provider-turn");
-  expect(params).toMatchObject({ threadId: "provider-thread", turnId: "provider-turn", itemId: "reason-1" });
-  const evidence = redactCapabilityEvidenceData("provider_event", { method, params });
-  expect(evidence).toEqual({ event: "reasoning_delta" });
-  expect(JSON.stringify(evidence)).not.toContain("PRIVATE_REASONING_SENTINEL");
-});
+it.each(["summary", "detail"])(
+  "preserves canonical reasoning %s deltas without publishing assistant text",
+  (channel) => {
+    // Exact shape emitted by the Rust ACPX projector, with synthetic private text.
+    const payload = {
+      provider: "acpx",
+      itemId: "reason-1",
+      kind: "reasoning",
+      channel,
+      providerMethod: "runtime.event",
+      text: "PRIVATE_REASONING_SENTINEL",
+    };
+    const method = runnerdCanonicalNotificationMethod("item.delta", payload);
+    expect(method).toBe(
+      channel === "detail"
+        ? "item/reasoning/textDelta"
+        : "item/reasoning/summaryTextDelta",
+    );
+    const params = rehydrateRunnerdDeltaNotification(
+      payload,
+      "provider-thread",
+      "provider-turn",
+    );
+    expect(params).toMatchObject({
+      threadId: "provider-thread",
+      turnId: "provider-turn",
+      itemId: "reason-1",
+    });
+    const evidence = redactCapabilityEvidenceData("provider_event", {
+      method,
+      params,
+    });
+    expect(evidence).toEqual({ event: "reasoning_delta" });
+    expect(JSON.stringify(evidence)).not.toContain(
+      "PRIVATE_REASONING_SENTINEL",
+    );
+  },
+);
 
 it("classifies each coalesced canonical delta without mixing reasoning into assistant output", () => {
-  const notifications = expandRunnerdCanonicalNotifications("item/agentMessage/delta", {
-    coalescedCount: 3,
-    events: [
-      { kind: "reasoning", channel: "summary", text: "PRIVATE_REASONING_SENTINEL" },
-      { kind: "agentMessage", channel: "progress", text: "Visible progress" },
-      { kind: "reasoning", channel: "detail", text: "PRIVATE_DETAIL_SENTINEL" },
-    ],
-  }, "item.delta");
+  const notifications = expandRunnerdCanonicalNotifications(
+    "item/agentMessage/delta",
+    {
+      coalescedCount: 3,
+      events: [
+        {
+          kind: "reasoning",
+          channel: "summary",
+          text: "PRIVATE_REASONING_SENTINEL",
+        },
+        { kind: "agentMessage", channel: "progress", text: "Visible progress" },
+        {
+          kind: "reasoning",
+          channel: "detail",
+          text: "PRIVATE_DETAIL_SENTINEL",
+        },
+      ],
+    },
+    "item.delta",
+  );
   expect(notifications.map((entry) => entry.method)).toEqual([
-    "item/reasoning/summaryTextDelta", "item/agentMessage/delta", "item/reasoning/textDelta",
+    "item/reasoning/summaryTextDelta",
+    "item/agentMessage/delta",
+    "item/reasoning/textDelta",
   ]);
-  expect(notifications.filter((entry) => entry.method === "item/agentMessage/delta").map((entry) => entry.params.text))
-    .toEqual(["Visible progress"]);
+  expect(
+    notifications
+      .filter((entry) => entry.method === "item/agentMessage/delta")
+      .map((entry) => entry.params.text),
+  ).toEqual(["Visible progress"]);
 });
 
 it("restores provider identity and streamed text from a canonical delta", () => {
-  expect(rehydrateRunnerdDeltaNotification({ text: "Reading Gmail", itemId: "message-1", turnId: "controller-turn" }, "root-thread", "provider-turn"))
-    .toMatchObject({ threadId: "root-thread", turnId: "provider-turn", delta: "Reading Gmail", itemId: "message-1" });
+  expect(
+    rehydrateRunnerdDeltaNotification(
+      { text: "Reading Gmail", itemId: "message-1", turnId: "controller-turn" },
+      "root-thread",
+      "provider-turn",
+    ),
+  ).toMatchObject({
+    threadId: "root-thread",
+    turnId: "provider-turn",
+    delta: "Reading Gmail",
+    itemId: "message-1",
+  });
 });
 
 it("rehydrates a canonical agent item for the strict Codex facade", () => {
@@ -2300,26 +2487,54 @@ it("routes canonical session goals back through the Codex notification facade", 
 });
 
 it("keeps canonical ACPX reasoning out of assistant deltas", () => {
-  expect(runnerdCanonicalNotificationMethod("item.delta", {
-    kind: "reasoning", channel: "summary", text: "Private reasoning",
-  })).toBe("item/reasoning/summaryTextDelta");
-  expect(runnerdCanonicalNotificationMethod("item.delta", {
-    kind: "reasoning", channel: "detail", text: "Private reasoning",
-  })).toBe("item/reasoning/textDelta");
-  expect(runnerdCanonicalNotificationMethod("item.delta", {
-    kind: "agentMessage", text: "Visible answer",
-  })).toBe("item/agentMessage/delta");
+  expect(
+    runnerdCanonicalNotificationMethod("item.delta", {
+      kind: "reasoning",
+      channel: "summary",
+      text: "Private reasoning",
+    }),
+  ).toBe("item/reasoning/summaryTextDelta");
+  expect(
+    runnerdCanonicalNotificationMethod("item.delta", {
+      kind: "reasoning",
+      channel: "detail",
+      text: "Private reasoning",
+    }),
+  ).toBe("item/reasoning/textDelta");
+  expect(
+    runnerdCanonicalNotificationMethod("item.delta", {
+      kind: "agentMessage",
+      text: "Visible answer",
+    }),
+  ).toBe("item/agentMessage/delta");
 });
 
 it("preserves reasoning kinds and order inside coalesced canonical deltas", () => {
   const events = [
-    { kind: "reasoning", channel: "summary", text: "Private reasoning", itemId: "thought-1" },
+    {
+      kind: "reasoning",
+      channel: "summary",
+      text: "Private reasoning",
+      itemId: "thought-1",
+    },
     { kind: "agentMessage", text: "Visible answer", itemId: "answer-1" },
-    { kind: "reasoning", channel: "detail", text: "Private detail", itemId: "thought-2" },
+    {
+      kind: "reasoning",
+      channel: "detail",
+      text: "Private detail",
+      itemId: "thought-2",
+    },
   ];
-  expect(expandRunnerdCanonicalNotifications("item/agentMessage/delta", {
-    coalescedCount: events.length, events,
-  }, "item.delta")).toEqual([
+  expect(
+    expandRunnerdCanonicalNotifications(
+      "item/agentMessage/delta",
+      {
+        coalescedCount: events.length,
+        events,
+      },
+      "item.delta",
+    ),
+  ).toEqual([
     { method: "item/reasoning/summaryTextDelta", params: events[0] },
     { method: "item/agentMessage/delta", params: events[1] },
     { method: "item/reasoning/textDelta", params: events[2] },
@@ -2532,29 +2747,53 @@ it("keeps a quiet active Codex turn in the same process across connection lease 
   const callsPath = join(stateDirectory, "calls.log");
   const cores: DurablePrpControlPlane[] = [];
   const OriginalCore = durableControlPlane.DurablePrpControlPlane;
-  const coreSpy = vi.spyOn(durableControlPlane, "DurablePrpControlPlane")
-    .mockImplementation(function(options: ConstructorParameters<typeof OriginalCore>[0]) {
-      const core = new OriginalCore({ ...options, connectionLeaseTtlMs: 60_000 });
+  const coreSpy = vi
+    .spyOn(durableControlPlane, "DurablePrpControlPlane")
+    .mockImplementation(function (
+      options: ConstructorParameters<typeof OriginalCore>[0],
+    ) {
+      const core = new OriginalCore({
+        ...options,
+        connectionLeaseTtlMs: 60_000,
+      });
       cores.push(core);
       return core;
     } as unknown as typeof OriginalCore);
   const bundle = createCapabilityRunnerdCodexTransport({
-    runnerBinary: defaultCapabilityRunnerdBinary(), codexCommand: fakeCodex,
-    codexArgs: fakeCodexArgs(stateDirectory, "--hold-turn", "--record-process-start", "--call-log", callsPath),
-    stateDirectory, runnerReconnectGraceMs: 5_000,
+    runnerBinary: defaultCapabilityRunnerdBinary(),
+    codexCommand: fakeCodex,
+    codexArgs: fakeCodexArgs(
+      stateDirectory,
+      "--hold-turn",
+      "--record-process-start",
+      "--call-log",
+      callsPath,
+    ),
+    stateDirectory,
+    runnerReconnectGraceMs: 5_000,
   });
   try {
-    const opened = await bundle.transport.request("thread/start", { cwd: tmpdir(), dynamicTools: [] });
-    await bundle.transport.request("turn/start", { input: [{ type: "text", text: "Keep working quietly." }] });
+    const opened = await bundle.transport.request("thread/start", {
+      cwd: tmpdir(),
+      dynamicTools: [],
+    });
+    await bundle.transport.request("turn/start", {
+      input: [{ type: "text", text: "Keep working quietly." }],
+    });
     const runnerPid = bundle.evidence().runnerPid;
     const codexPid = bundle.evidence().codexPid;
     expect(runnerPid).toBeGreaterThan(0);
     expect(codexPid).toBeGreaterThan(0);
     const core = cores[0]!;
-    const original = structuredClone(Object.values(core.store.state.leases)[0]!);
-    await vi.waitFor(() => {
-      expect(Date.now()).toBeGreaterThan(original.expiresAtUnixMs + 1_000);
-    }, { timeout: 75_000, interval: 1_000 });
+    const original = structuredClone(
+      Object.values(core.store.state.leases)[0]!,
+    );
+    await vi.waitFor(
+      () => {
+        expect(Date.now()).toBeGreaterThan(original.expiresAtUnixMs + 1_000);
+      },
+      { timeout: 75_000, interval: 1_000 },
+    );
     const current = Object.values(core.store.state.leases)[0]!;
     expect(current.expiresAtUnixMs).toBeGreaterThan(original.expiresAtUnixMs);
     expect(current.leaseId).toBe(original.leaseId);
@@ -2564,12 +2803,14 @@ it("keeps a quiet active Codex turn in the same process across connection lease 
     process.kill(runnerPid!, 0);
     process.kill(codexPid!, 0);
     const calls = (await readFile(callsPath, "utf8")).trim().split(/\r?\n/);
-    expect(calls.filter(call => call === "process-start")).toHaveLength(1);
-    expect(calls.filter(call => call === "thread/start")).toHaveLength(1);
-    expect(calls.filter(call => call === "turn/start")).toHaveLength(1);
+    expect(calls.filter((call) => call === "process-start")).toHaveLength(1);
+    expect(calls.filter((call) => call === "thread/start")).toHaveLength(1);
+    expect(calls.filter((call) => call === "turn/start")).toHaveLength(1);
     expect(calls).not.toContain("turn/interrupt");
     expect(calls).not.toContain("thread/resume");
-    const state = JSON.parse(await readFile(join(stateDirectory, "fake-codex-state.json"), "utf8"));
+    const state = JSON.parse(
+      await readFile(join(stateDirectory, "fake-codex-state.json"), "utf8"),
+    );
     expect(state.threadId).toBe(opened.thread.id);
     expect(state.activeTurnId).toBe("provider-turn-1");
   } finally {
@@ -2647,7 +2888,9 @@ it("runs the lab provider boundary through authenticated durable PRP", async () 
 }, 30_000);
 
 it("controls a Codex session goal end to end through durable PRP v2", async () => {
-  const stateDirectory = await mkdtemp(join(tmpdir(), "runnerd-goal-provider-"));
+  const stateDirectory = await mkdtemp(
+    join(tmpdir(), "runnerd-goal-provider-"),
+  );
   const bundle = createCapabilityRunnerdCodexTransport({
     runnerBinary: defaultCapabilityRunnerdBinary(),
     codexCommand: fakeCodex,
@@ -2762,82 +3005,104 @@ it("controls a Codex session goal end to end through durable PRP v2", async () =
   });
 }, 30_000);
 
-it.each([false, true])("binds goal turns through the full Codex harness (autonomous continuation: %s)", async (autocontinue) => {
-  const stateDirectory = await mkdtemp(join(tmpdir(), "runnerd-goal-harness-"));
-  const bundle = createCapabilityRunnerdCodexTransport({
-    runnerBinary: defaultCapabilityRunnerdBinary(),
-    codexCommand: fakeCodex,
-    codexArgs: fakeCodexArgs(stateDirectory, "--goal-autostart", ...(autocontinue ? ["--goal-autocontinue"] : [])),
-    stateDirectory,
-  });
-  const driver = new CodexAppServerDriver({
-    taskEnvelope: {
-      schema: "taskcore.skillless_task.v1",
-      objective: "Finish the durable goal harness test.",
-      completionContract: {
-        revision: "goal-harness-v1",
-        criteria: [{ id: "goal", requirement: "The goal turn starts." }],
-      },
-      constraints: [],
-      expectedResultSchema: "taskcore.run_result.v1",
-    },
-    approvalPolicy: "never",
-    includeCollaborationModeInstructions: false,
-    environment: {
-      PATH: process.env.PATH ?? "/usr/bin:/bin",
-      HOME: "/isolated/home",
-      CODEX_HOME: "/isolated/codex-home",
-      LANG: "C.UTF-8",
-    },
-    transportFactory: () => bundle.transport,
-    requireProviderSessionIdentity: true,
-  });
-  let session: Awaited<ReturnType<typeof driver.openSession>> | null = null;
-  try {
-    session = await driver.openSession({
-      runId: "run-goal-harness-autostart",
-      normalizedSessionId: "normalized-goal-harness-autostart",
-      workingDirectory: tmpdir(),
+it.each([false, true])(
+  "binds goal turns through the full Codex harness (autonomous continuation: %s)",
+  async (autocontinue) => {
+    const stateDirectory = await mkdtemp(
+      join(tmpdir(), "runnerd-goal-harness-"),
+    );
+    const bundle = createCapabilityRunnerdCodexTransport({
+      runnerBinary: defaultCapabilityRunnerdBinary(),
+      codexCommand: fakeCodex,
+      codexArgs: fakeCodexArgs(
+        stateDirectory,
+        "--goal-autostart",
+        ...(autocontinue ? ["--goal-autocontinue"] : []),
+      ),
+      stateDirectory,
     });
-    const observed: Array<{ eventType: string }> = [];
-    const turnStarted = Promise.race([
-      (async () => {
-        for await (const event of session!.events()) {
-          observed.push(event);
-          if (event.eventType === "turn.started" && event.turnId === (autocontinue ? "provider-goal-turn-2" : "provider-goal-turn-1")) return event;
-          if (event.eventType === "session.failed") {
-            throw new Error(`goal autostart failed: ${JSON.stringify(event.payload)}`);
-          }
-        }
-        throw new Error("goal autostart event stream closed");
-      })(),
-      new Promise<never>((_resolve, reject) => {
-        setTimeout(() => reject(new Error("goal autostart timed out")), 5_000);
-      }),
-    ]);
-    await expect(
-      session.goal?.({
-        action: "set",
+    const driver = new CodexAppServerDriver({
+      taskEnvelope: {
+        schema: "taskcore.skillless_task.v1",
         objective: "Finish the durable goal harness test.",
-        status: "active",
-        requestId: "goal-harness-autostart",
-      }),
-    ).resolves.toMatchObject({ status: "active" });
-    await expect(turnStarted).resolves.toMatchObject({
-      eventType: "turn.started",
-      turnId: autocontinue ? "provider-goal-turn-2" : "provider-goal-turn-1",
+        completionContract: {
+          revision: "goal-harness-v1",
+          criteria: [{ id: "goal", requirement: "The goal turn starts." }],
+        },
+        constraints: [],
+        expectedResultSchema: "taskcore.run_result.v1",
+      },
+      approvalPolicy: "never",
+      includeCollaborationModeInstructions: false,
+      environment: {
+        PATH: process.env.PATH ?? "/usr/bin:/bin",
+        HOME: "/isolated/home",
+        CODEX_HOME: "/isolated/codex-home",
+        LANG: "C.UTF-8",
+      },
+      transportFactory: () => bundle.transport,
+      requireProviderSessionIdentity: true,
     });
-    expect(observed.some((event) => event.eventType === "session.failed")).toBe(false);
-  } finally {
-    await session?.close();
-    await bundle.transport.close();
-    await rm(stateDirectory, { recursive: true, force: true });
-  }
-  expect(bundle.evidence()).toMatchObject({
-    runnerExited: true,
-    runnerExitCode: 0,
-  });
-}, 30_000);
+    let session: Awaited<ReturnType<typeof driver.openSession>> | null = null;
+    try {
+      session = await driver.openSession({
+        runId: "run-goal-harness-autostart",
+        normalizedSessionId: "normalized-goal-harness-autostart",
+        workingDirectory: tmpdir(),
+      });
+      const observed: Array<{ eventType: string }> = [];
+      const turnStarted = Promise.race([
+        (async () => {
+          for await (const event of session!.events()) {
+            observed.push(event);
+            if (
+              event.eventType === "turn.started" &&
+              event.turnId ===
+                (autocontinue ? "provider-goal-turn-2" : "provider-goal-turn-1")
+            )
+              return event;
+            if (event.eventType === "session.failed") {
+              throw new Error(
+                `goal autostart failed: ${JSON.stringify(event.payload)}`,
+              );
+            }
+          }
+          throw new Error("goal autostart event stream closed");
+        })(),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(
+            () => reject(new Error("goal autostart timed out")),
+            5_000,
+          );
+        }),
+      ]);
+      await expect(
+        session.goal?.({
+          action: "set",
+          objective: "Finish the durable goal harness test.",
+          status: "active",
+          requestId: "goal-harness-autostart",
+        }),
+      ).resolves.toMatchObject({ status: "active" });
+      await expect(turnStarted).resolves.toMatchObject({
+        eventType: "turn.started",
+        turnId: autocontinue ? "provider-goal-turn-2" : "provider-goal-turn-1",
+      });
+      expect(
+        observed.some((event) => event.eventType === "session.failed"),
+      ).toBe(false);
+    } finally {
+      await session?.close();
+      await bundle.transport.close();
+      await rm(stateDirectory, { recursive: true, force: true });
+    }
+    expect(bundle.evidence()).toMatchObject({
+      runnerExited: true,
+      runnerExitCode: 0,
+    });
+  },
+  30_000,
+);
 
 it("continues rehydrating events after the committed-event window slides", async () => {
   const stateDirectory = await mkdtemp(
@@ -3849,73 +4114,84 @@ it.each([
     terminal: "turn.completed",
     disposition: "done",
   },
-])("retains a $label runner's result before closing its provider turn", async ({
-  label, args, terminal, disposition,
-}) => {
-  const stateDirectory = await mkdtemp(join(tmpdir(), "runnerd-stop-result-"));
-  const bundle = createCapabilityRunnerdCodexTransport({
-    runnerBinary: defaultCapabilityRunnerdBinary(),
-    codexCommand: fakeCodex,
-    codexArgs: fakeCodexArgs(stateDirectory, ...args),
-    stateDirectory,
-  });
-  const driver = new CodexAppServerDriver({
-    taskEnvelope: createCodexTaskEnvelope({
-      objective: "Stop and retain unfinished work.",
-    }),
-    environment: {
-      PATH: process.env.PATH,
-      HOME: join(tmpdir(), "runnerd-stop-host-home"),
-      TASKCORE_WORKSPACE_CWD: stateDirectory,
-    },
-    approvalPolicy: "never",
-    transportFactory: () => bundle.transport,
-  });
-  const session = await driver.openSession({
-    runId: "run-stop-result",
-    normalizedSessionId: "session-stop-result",
-    workingDirectory: stateDirectory,
-  });
-  try {
-    const turn = await session.startTurn({
-      message: { role: "user", text: "Keep working until interrupted." },
+])(
+  "retains a $label runner's result before closing its provider turn",
+  async ({ label, args, terminal, disposition }) => {
+    const stateDirectory = await mkdtemp(
+      join(tmpdir(), "runnerd-stop-result-"),
+    );
+    const bundle = createCapabilityRunnerdCodexTransport({
+      runnerBinary: defaultCapabilityRunnerdBinary(),
+      codexCommand: fakeCodex,
+      codexArgs: fakeCodexArgs(stateDirectory, ...args),
+      stateDirectory,
     });
-    if (label === "interrupted") {
-      await session.interrupt({
-        turnId: turn.turnId,
-        reason: "Stopped by the user",
+    const driver = new CodexAppServerDriver({
+      taskEnvelope: createCodexTaskEnvelope({
+        objective: "Stop and retain unfinished work.",
+      }),
+      environment: {
+        PATH: process.env.PATH,
+        HOME: join(tmpdir(), "runnerd-stop-host-home"),
+        TASKCORE_WORKSPACE_CWD: stateDirectory,
+      },
+      approvalPolicy: "never",
+      transportFactory: () => bundle.transport,
+    });
+    const session = await driver.openSession({
+      runId: "run-stop-result",
+      normalizedSessionId: "session-stop-result",
+      workingDirectory: stateDirectory,
+    });
+    try {
+      const turn = await session.startTurn({
+        message: { role: "user", text: "Keep working until interrupted." },
+      });
+      if (label === "interrupted") {
+        await session.interrupt({
+          turnId: turn.turnId,
+          reason: "Stopped by the user",
+        });
+      }
+      const events: PrpEvent[] = [];
+      for await (const event of session.events()) {
+        events.push(event);
+        if (
+          event.eventType === "session.failed" ||
+          event.eventType === terminal
+        ) {
+          break;
+        }
+      }
+      // Let already committed durable suffix events reach the facade as well.
+      await bundle.transport.request("thread/read", {});
+      const snapshot = await session.snapshot();
+      expect(events.some((event) => event.eventType === "session.failed")).toBe(
+        false,
+      );
+      expect(events.map((event) => event.eventType)).toContain(
+        "run.result.proposed",
+      );
+      expect(events.at(-1)?.eventType).toBe(terminal);
+      expect(snapshot).toMatchObject({
+        activeTurnId: null,
+        semanticResult: {
+          turnId: turn.turnId,
+          result: { reportedWorkDisposition: disposition },
+        },
+      });
+    } finally {
+      await session.close().catch(() => undefined);
+      await rm(stateDirectory, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 25,
       });
     }
-    const events: PrpEvent[] = [];
-    for await (const event of session.events()) {
-      events.push(event);
-      if (event.eventType === "session.failed" || event.eventType === terminal) {
-        break;
-      }
-    }
-    // Let already committed durable suffix events reach the facade as well.
-    await bundle.transport.request("thread/read", {});
-    const snapshot = await session.snapshot();
-    expect(events.some((event) => event.eventType === "session.failed")).toBe(false);
-    expect(events.map((event) => event.eventType)).toContain("run.result.proposed");
-    expect(events.at(-1)?.eventType).toBe(terminal);
-    expect(snapshot).toMatchObject({
-      activeTurnId: null,
-      semanticResult: {
-        turnId: turn.turnId,
-        result: { reportedWorkDisposition: disposition },
-      },
-    });
-  } finally {
-    await session.close().catch(() => undefined);
-    await rm(stateDirectory, {
-      recursive: true,
-      force: true,
-      maxRetries: 5,
-      retryDelay: 25,
-    });
-  }
-}, 30_000);
+  },
+  30_000,
+);
 
 it("binds an immediately failed durable turn before exposing its terminal", async () => {
   const stateDirectory = await mkdtemp(
@@ -4082,23 +4358,39 @@ it("bridges a runnerd-native question into the server request handler and resolv
     // A terminal notification alone does not prove that the question reached
     // durable storage or that its answer and provider suffix settled.
     await bundle.transport.close();
-    const runnerState = JSON.parse(await readFile(
-      join(stateDirectory, "runner", "runner-state.json"), "utf8",
-    ));
+    const runnerState = JSON.parse(
+      await readFile(
+        join(stateDirectory, "runner", "runner-state.json"),
+        "utf8",
+      ),
+    );
     expect(runnerState.lifecycle).toBe("suspended");
-    const controlState = JSON.parse(await readFile(
-      join(stateDirectory, "control-plane", "control-plane-state.json"), "utf8",
-    )) as {
-      committedEvents: Array<{ eventType: string; envelope: { payload: { payload: { request?: { input: unknown } } } } }>;
+    const controlState = JSON.parse(
+      await readFile(
+        join(stateDirectory, "control-plane", "control-plane-state.json"),
+        "utf8",
+      ),
+    ) as {
+      committedEvents: Array<{
+        eventType: string;
+        envelope: { payload: { payload: { request?: { input: unknown } } } };
+      }>;
       commands: Array<{ type: string; status: string }>;
     };
-    const created = controlState.committedEvents.filter(event => event.eventType === "runtime_request.created");
+    const created = controlState.committedEvents.filter(
+      (event) => event.eventType === "runtime_request.created",
+    );
     expect(created).toHaveLength(1);
-    const input = parseTaskcoreQuestionSet(created[0]!.envelope.payload.payload.request!.input);
+    const input = parseTaskcoreQuestionSet(
+      created[0]!.envelope.payload.payload.request!.input,
+    );
     expect(input.questions[0]!.options![0]!.description).toBe("Deploy safely.");
     expect(input.questions[1]!.options![0]).not.toHaveProperty("description");
-    expect(controlState.commands.filter(command => command.type === "request.resolve"))
-      .toEqual([expect.objectContaining({ status: "completed" })]);
+    expect(
+      controlState.commands.filter(
+        (command) => command.type === "request.resolve",
+      ),
+    ).toEqual([expect.objectContaining({ status: "completed" })]);
   } finally {
     await bundle.transport.close();
     await rm(stateDirectory, { recursive: true, force: true });
@@ -4166,7 +4458,9 @@ it("captures exact provider frames and correlates Rust and TypeScript interpreta
   const bundle = createCapabilityRunnerdCodexTransport({
     // Qualification builds a debug daemon for this exact source. Its selected
     // binary must win over any separately staged product/runtime artifact.
-    runnerBinary: process.env.TASKCORE_STOCK_PREFLIGHT_RUNNERD ?? defaultCapabilityRunnerdBinary(),
+    runnerBinary:
+      process.env.TASKCORE_STOCK_PREFLIGHT_RUNNERD ??
+      defaultCapabilityRunnerdBinary(),
     codexCommand: fakeCodex,
     codexArgs: fakeCodexArgs(traceDirectory, "--structured-activity"),
     stateDirectory: join(traceDirectory, "state"),
@@ -4265,7 +4559,8 @@ it("captures exact provider frames and correlates Rust and TypeScript interpreta
     },
   });
   expect(
-    (decodedFrames.find((frame) => frame.method === "thread/start")?.params as Record<string, unknown>),
+    decodedFrames.find((frame) => frame.method === "thread/start")
+      ?.params as Record<string, unknown>,
   ).not.toHaveProperty("baseInstructions");
   const stages = new Set(
     [...nativeEntries, ...rehydratedEntries]
@@ -4604,20 +4899,23 @@ it.each(["held-ack", "lost-ack", "rejected-attach"] as const)(
       ) as {
         runId: string;
         ackedSourceSeq: number;
-        processedCommands: Record<string, { commandType: string; status: string }>;
+        processedCommands: Record<
+          string,
+          { commandType: string; status: string }
+        >;
         outbox: { envelope: { payload: PrpEvent } }[];
       };
     let providerPid: number | null = null;
     let primaryError: unknown;
     let cleanupProven = false;
     try {
-      const opened = await within(
+      const opened = (await within(
         "initial thread",
         bundle.transport.request("thread/start", {
           cwd: tmpdir(),
           dynamicTools: [],
         }),
-      ) as { thread: { id: string } };
+      )) as { thread: { id: string } };
       const core = cores[0]!;
       expect(cores).toHaveLength(1);
       const oldIdentity = structuredClone(core.store.state.identity);
@@ -4679,8 +4977,9 @@ it.each(["held-ack", "lost-ack", "rejected-attach"] as const)(
         const retained = await readRunner();
         expect(retained.runId).toBe(oldIdentity.runId);
         expect(
-          Object.values(retained.processedCommands).find((entry) => entry.commandType === "run.attach")
-            ?.status,
+          Object.values(retained.processedCommands).find(
+            (entry) => entry.commandType === "run.attach",
+          )?.status,
         ).toBe("completed");
         expect(
           retained.outbox.some(
@@ -5305,8 +5604,7 @@ it.each([
         return {
           runnerInstanceId: randomUUID(),
           environmentLeaseId:
-            process.env.TASKCORE_ATTACH_TRANSITION_FIXTURE_SCOPE ===
-            "transient"
+            process.env.TASKCORE_ATTACH_TRANSITION_FIXTURE_SCOPE === "transient"
               ? runId
               : randomUUID(),
           runId,
@@ -6484,9 +6782,7 @@ it.each([0, 193 * 1024 * 1024])(
       } finally {
         await stateHandle.close();
       }
-      expect((await stat(statePath)).size).toBeGreaterThan(
-        64 * 1024 * 1024,
-      );
+      expect((await stat(statePath)).size).toBeGreaterThan(64 * 1024 * 1024);
     }
     const beforeResume = JSON.parse(await readFile(statePath, "utf8")) as {
       commands: Array<{ type: string }>;
@@ -6685,7 +6981,10 @@ it("cold-restores a suspended provider session under its durable run binding", a
       ).mode & 0o222,
     ).toBe(0);
     await first.transport.request("turn/start", {
-      input: [{ type: "text", text: "$assigned first process" }, { type: "skill", name: "assigned", path: join(skillRoot, "SKILL.md") }],
+      input: [
+        { type: "text", text: "$assigned first process" },
+        { type: "skill", name: "assigned", path: join(skillRoot, "SKILL.md") },
+      ],
     });
     for await (const event of first.transport.notifications()) {
       if (event.method === "turn/completed") break;
@@ -6705,8 +7004,11 @@ it("cold-restores a suspended provider session under its durable run binding", a
   };
   const rotated = createCapabilityRunnerdCodexTransport({
     ...options,
-    environment: { ...options.environment, TASKCORE_GITHUB_BROKER_TOKEN: "test-run-B-capability" },
-    codexArgs: options.codexArgs.map((arg) => arg.replace('/run/A', '/run/B')),
+    environment: {
+      ...options.environment,
+      TASKCORE_GITHUB_BROKER_TOKEN: "test-run-B-capability",
+    },
+    codexArgs: options.codexArgs.map((arg) => arg.replace("/run/A", "/run/B")),
     resumeDynamicTools: dynamicTools,
     resumeCompletionContract: {
       revision: "contract-second",
@@ -6720,16 +7022,26 @@ it("cold-restores a suspended provider session under its durable run binding", a
   }));
   try {
     const read = await rotated.transport.request("thread/read", {});
-    const persistedProvider = JSON.parse(await readFile(join(stateDirectory, "runner", "codex-provider-state.json"), "utf8"));
-    expect(persistedProvider.config.args.join("\n")).toContain('/run/B');
-    expect(JSON.stringify(persistedProvider)).not.toContain("test-run-B-capability");
+    const persistedProvider = JSON.parse(
+      await readFile(
+        join(stateDirectory, "runner", "codex-provider-state.json"),
+        "utf8",
+      ),
+    );
+    expect(persistedProvider.config.args.join("\n")).toContain("/run/B");
+    expect(JSON.stringify(persistedProvider)).not.toContain(
+      "test-run-B-capability",
+    );
     expect(read.thread).toMatchObject({
       id: firstProviderThread.id,
       sessionId: firstProviderThread.sessionId,
       cwd: tmpdir(),
     });
     await rotated.transport.request("turn/start", {
-      input: [{ type: "text", text: "$assigned second authority epoch" }, { type: "skill", name: "assigned", path: join(skillRoot, "SKILL.md") }],
+      input: [
+        { type: "text", text: "$assigned second authority epoch" },
+        { type: "skill", name: "assigned", path: join(skillRoot, "SKILL.md") },
+      ],
     });
     for await (const event of rotated.transport.notifications()) {
       if (event.method === "taskcore/runResult") break;
@@ -6754,16 +7066,35 @@ it("cold-restores a suspended provider session under its durable run binding", a
         JSON.parse(
           Buffer.from(String(entry.rawBase64), "base64").toString("utf8"),
         ) as Record<string, unknown>,
-    )
-    ;
-  const resumeFrames = requestFrames.filter((frame) => frame.method === "thread/resume");
-  for (const frame of requestFrames.filter((f) => ["thread/start", "thread/resume"].includes(String(f.method)))) {
-    expect(frame.params).toMatchObject({ config: { "skills.include_instructions": true } });
+    );
+  const resumeFrames = requestFrames.filter(
+    (frame) => frame.method === "thread/resume",
+  );
+  for (const frame of requestFrames.filter((f) =>
+    ["thread/start", "thread/resume"].includes(String(f.method)),
+  )) {
+    expect(frame.params).toMatchObject({
+      config: { "skills.include_instructions": true },
+    });
   }
   const turnFrames = requestFrames.filter((f) => f.method === "turn/start");
   expect(turnFrames).toHaveLength(2);
   for (const frame of turnFrames) {
-    expect(frame.params).toMatchObject({ input: expect.arrayContaining([{ type: "skill", name: "assigned", path: join(stateDirectory, "codex-home", "skills", "assigned", "SKILL.md") }]) });
+    expect(frame.params).toMatchObject({
+      input: expect.arrayContaining([
+        {
+          type: "skill",
+          name: "assigned",
+          path: join(
+            stateDirectory,
+            "codex-home",
+            "skills",
+            "assigned",
+            "SKILL.md",
+          ),
+        },
+      ]),
+    });
   }
   expect(resumeFrames.length).toBeGreaterThanOrEqual(1);
   for (const frame of resumeFrames) {
@@ -7014,7 +7345,16 @@ async function verifyLiveRunnerAdoption(
   const sharedOptions = {
     runnerBinary: defaultCapabilityRunnerdBinary(),
     codexCommand: fakeCodex,
-    codexArgs: fakeCodexArgs(stateDirectory, ...(goalMidTurn ? ["--goal-autostart", "--goal-item-trigger", join(stateDirectory, "emit-goal-item")] : [])),
+    codexArgs: fakeCodexArgs(
+      stateDirectory,
+      ...(goalMidTurn
+        ? [
+            "--goal-autostart",
+            "--goal-item-trigger",
+            join(stateDirectory, "emit-goal-item"),
+          ]
+        : []),
+    ),
     stateDirectory,
     prpIdentity: identity,
     lifecyclePolicy: { mode: "warm" as const, idleTimeoutMs: 60_000 },
@@ -7044,7 +7384,10 @@ async function verifyLiveRunnerAdoption(
     expect(runnerPid).toEqual(expect.any(Number));
 
     if (goalMidTurn) {
-      await first.transport.request("thread/goal/set", { objective: "Recover a live goal", status: "active" });
+      await first.transport.request("thread/goal/set", {
+        objective: "Recover a live goal",
+        status: "active",
+      });
       for await (const event of first.transport.notifications()) {
         if (event.method === "turn/started") break;
       }
@@ -7057,9 +7400,14 @@ async function verifyLiveRunnerAdoption(
       // runnerd need not poll the provider into its PRP outbox while disconnected.
       // Wait for flushed provider output, not a platform-dependent final poll
       // racing the disconnect. Adoption must still bind that buffered item.
-      await vi.waitFor(async () => {
-        expect(await readFile(join(stateDirectory, "emit-goal-item.sent"), "utf8")).toBe("sent");
-      }, { timeout: 5_000 });
+      await vi.waitFor(
+        async () => {
+          expect(
+            await readFile(join(stateDirectory, "emit-goal-item.sent"), "utf8"),
+          ).toBe("sent");
+        },
+        { timeout: 5_000 },
+      );
     }
 
     const controlPlaneStatePath = join(
@@ -7102,12 +7450,14 @@ async function verifyLiveRunnerAdoption(
           }
         : {}),
       resumeDynamicTools: [],
-      resumeProviderSession: startWithoutCheckpoint ? undefined : {
-        driverSessionId: String(openedThread.id),
-        providerSessionId: mismatchedCheckpoint
-          ? "wrong-provider-session"
-          : String(openedThread.sessionId),
-      },
+      resumeProviderSession: startWithoutCheckpoint
+        ? undefined
+        : {
+            driverSessionId: String(openedThread.id),
+            providerSessionId: mismatchedCheckpoint
+              ? "wrong-provider-session"
+              : String(openedThread.sessionId),
+          },
       runnerProcessLauncher: duplicateLauncher,
       adoptExistingRunner: {
         pid: runnerPid!,
@@ -7168,16 +7518,27 @@ async function verifyLiveRunnerAdoption(
       expect(() => process.kill(runnerPid!, 0)).not.toThrow();
       return;
     }
-    await expect(adopted.transport.request(startWithoutCheckpoint ? "thread/start" : "thread/read", {})).resolves.toEqual(
+    await expect(
+      adopted.transport.request(
+        startWithoutCheckpoint ? "thread/start" : "thread/read",
+        {},
+      ),
+    ).resolves.toEqual(
       expect.objectContaining({
         thread: expect.objectContaining({ id: "codex-thread-1" }),
       }),
     );
     expect(adopted.evidence().runnerPid).toBe(runnerPid);
     if (startWithoutCheckpoint) {
-      const retained = JSON.parse(await readFile(controlPlaneStatePath, "utf8"));
+      const retained = JSON.parse(
+        await readFile(controlPlaneStatePath, "utf8"),
+      );
       for (const type of ["run.prepare", "session.open"]) {
-        expect(retained.commands.filter((command: { type: string }) => command.type === type)).toHaveLength(1);
+        expect(
+          retained.commands.filter(
+            (command: { type: string }) => command.type === type,
+          ),
+        ).toHaveLength(1);
       }
     }
     if (goalMidTurn) {
@@ -7188,9 +7549,17 @@ async function verifyLiveRunnerAdoption(
           }
           throw new Error("recovered goal item was lost");
         })(),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("recovered item timed out")), 5_000)),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("recovered item timed out")),
+            5_000,
+          ),
+        ),
       ]);
-      expect(observed.params).toMatchObject({ threadId: "codex-thread-1", turnId: "provider-goal-turn-1" });
+      expect(observed.params).toMatchObject({
+        threadId: "codex-thread-1",
+        turnId: "provider-goal-turn-1",
+      });
     }
     expect(duplicateLauncher).not.toHaveBeenCalled();
     expect(adopted.evidence().diagnostics).toContain(
@@ -7209,8 +7578,12 @@ async function verifyLiveRunnerAdoption(
       await adopted.transport.close("old controller finalizer");
       expect(signal).not.toHaveBeenCalled();
       expect(() => process.kill(runnerPid!, 0)).not.toThrow();
-      const retained = JSON.parse(await readFile(controlPlaneStatePath, "utf8"));
-      const commandTypes = retained.commands.map((command: { type: string }) => command.type);
+      const retained = JSON.parse(
+        await readFile(controlPlaneStatePath, "utf8"),
+      );
+      const commandTypes = retained.commands.map(
+        (command: { type: string }) => command.type,
+      );
       expect(commandTypes).not.toContain("turn.stop");
       expect(commandTypes).not.toContain("runner.suspend");
     }
@@ -7251,11 +7624,23 @@ it(
   30_000,
 );
 
-it("binds buffered mid-goal items only after the authenticated recovery snapshot", () => verifyLiveRunnerAdoption(false, false, true), 30_000);
+it(
+  "binds buffered mid-goal items only after the authenticated recovery snapshot",
+  () => verifyLiveRunnerAdoption(false, false, true),
+  30_000,
+);
 
-it("keeps an adopted runner alive when the detached controller finalizer closes", () => verifyLiveRunnerAdoption(false, false, true, true), 30_000);
+it(
+  "keeps an adopted runner alive when the detached controller finalizer closes",
+  () => verifyLiveRunnerAdoption(false, false, true, true),
+  30_000,
+);
 
-it("adopts an opening session without a checkpoint instead of bootstrapping a duplicate provider", () => verifyLiveRunnerAdoption(false, false, false, false, true), 30_000);
+it(
+  "adopts an opening session without a checkpoint instead of bootstrapping a duplicate provider",
+  () => verifyLiveRunnerAdoption(false, false, false, false, true),
+  30_000,
+);
 
 it("surfaces a runner exit while provider-ingress readiness is still pending", async () => {
   const neverReady = new Promise<void>(() => undefined);
@@ -7421,50 +7806,112 @@ it("persists an active provider as settled before bounded suspension", async () 
   }
 }, 30_000);
 
-
-it.each(["claude", "codex"] as const)("keeps the explicitly assigned gateway in the %s runner environment", (agent) => {
-  const gateway = {
-    TASKCORE_NATIVE_MCP_NAME: "taskcore-assigned",
-    TASKCORE_NATIVE_MCP_URL: "http://127.0.0.1:3100/mcp/gateway",
-    TASKCORE_NATIVE_MCP_TOKEN: "fixture-scoped-gateway-token-1234567890",
-  };
-  const environment = createCapabilityRunnerdProviderEnvironment({
-    provider: "acpx",
-    options: { provider: "acpx", acpxAgent: agent, environment: {
-      PATH: "/bin", ...gateway, TASKCORE_API_KEY: "must-not-cross", DATABASE_URL: "must-not-cross",
-    } },
-    identity: { runnerInstanceId: "runner-1", environmentLeaseId: "lease-1", runId: "run-1",
-      normalizedSessionId: "session-1", turnId: "turn-1", itemId: "item-1" },
-    codexHome: "/isolated/home", runtimeContextPath: "/isolated/context.json", hasRuntimeContext: true,
-    acpxSidecarPath: "/verified/provider-pack/dist/cli/acpx-runtime-sidecar.cjs",
-  });
-  expect(environment).toMatchObject(gateway);
-  expect(environment.TASKCORE_API_KEY).toBeUndefined();
-  expect(environment.DATABASE_URL).toBeUndefined();
-});
+it.each(["claude", "codex"] as const)(
+  "keeps the explicitly assigned gateway in the %s runner environment",
+  (agent) => {
+    const gateway = {
+      TASKCORE_NATIVE_MCP_NAME: "taskcore-assigned",
+      TASKCORE_NATIVE_MCP_URL: "http://127.0.0.1:3100/mcp/gateway",
+      TASKCORE_NATIVE_MCP_TOKEN: "fixture-scoped-gateway-token-1234567890",
+    };
+    const environment = createCapabilityRunnerdProviderEnvironment({
+      provider: "acpx",
+      options: {
+        provider: "acpx",
+        acpxAgent: agent,
+        environment: {
+          PATH: "/bin",
+          ...gateway,
+          TASKCORE_API_KEY: "must-not-cross",
+          DATABASE_URL: "must-not-cross",
+        },
+      },
+      identity: {
+        runnerInstanceId: "runner-1",
+        environmentLeaseId: "lease-1",
+        runId: "run-1",
+        normalizedSessionId: "session-1",
+        turnId: "turn-1",
+        itemId: "item-1",
+      },
+      codexHome: "/isolated/home",
+      runtimeContextPath: "/isolated/context.json",
+      hasRuntimeContext: true,
+      acpxSidecarPath:
+        "/verified/provider-pack/dist/cli/acpx-runtime-sidecar.cjs",
+    });
+    expect(environment).toMatchObject(gateway);
+    expect(environment.TASKCORE_API_KEY).toBeUndefined();
+    expect(environment.DATABASE_URL).toBeUndefined();
+  },
+);
 
 it("resolves explicit skills to the remote provider home and rejects unassigned paths", () => {
-  const context = assignedRuntimeContext("/controller/bundle", "/controller/instructions");
-  const skill = { type: "skill", name: "assigned", path: "/controller/bundle/SKILL.md" };
-  expect(resolveRunnerdCodexSkillInputs([skill], context, "/runner/codex-home")).toEqual([
-    { type: "skill", name: "assigned", path: "/runner/codex-home/skills/assigned/SKILL.md" },
+  const context = assignedRuntimeContext(
+    "/controller/bundle",
+    "/controller/instructions",
+  );
+  const skill = {
+    type: "skill",
+    name: "assigned",
+    path: "/controller/bundle/SKILL.md",
+  };
+  expect(
+    resolveRunnerdCodexSkillInputs([skill], context, "/runner/codex-home"),
+  ).toEqual([
+    {
+      type: "skill",
+      name: "assigned",
+      path: "/runner/codex-home/skills/assigned/SKILL.md",
+    },
   ]);
-  expect(resolveRunnerdCodexSkillInputs([], context, "/runner/codex-home")).toEqual([]);
-  for (const inputs of [[{ ...skill, path: "/arbitrary/SKILL.md" }], [{ ...skill, name: "other" }], [skill, skill]]) {
-    expect(() => resolveRunnerdCodexSkillInputs(inputs, context, "/runner/codex-home")).toThrow("unique assigned runtime skill");
+  expect(
+    resolveRunnerdCodexSkillInputs([], context, "/runner/codex-home"),
+  ).toEqual([]);
+  for (const inputs of [
+    [{ ...skill, path: "/arbitrary/SKILL.md" }],
+    [{ ...skill, name: "other" }],
+    [skill, skill],
+  ]) {
+    expect(() =>
+      resolveRunnerdCodexSkillInputs(inputs, context, "/runner/codex-home"),
+    ).toThrow("unique assigned runtime skill");
   }
-  expect(() => resolveRunnerdCodexSkillInputs([skill], null, "/runner/codex-home")).toThrow("assigned runtime skill");
+  expect(() =>
+    resolveRunnerdCodexSkillInputs([skill], null, "/runner/codex-home"),
+  ).toThrow("assigned runtime skill");
 });
 
-
 it("admits only exact live Pi turn controls", () => {
-  expect(parseAcpxTurnControlCapabilities(undefined, "pi")).toEqual({ steering: false, queuedFollowUp: false });
-  expect(parseAcpxTurnControlCapabilities({ steering: true, queuedFollowUp: true }, "pi")).toEqual({ steering: true, queuedFollowUp: true });
-  for (const value of [null, [], {}, { steering: 1, queuedFollowUp: false }, { steering: true, queuedFollowUp: "true" }, { steering: true, queuedFollowUp: true, arbitrary: true }]) {
-    expect(() => parseAcpxTurnControlCapabilities(value, "pi")).toThrow("malformed");
+  expect(parseAcpxTurnControlCapabilities(undefined, "pi")).toEqual({
+    steering: false,
+    queuedFollowUp: false,
+  });
+  expect(
+    parseAcpxTurnControlCapabilities(
+      { steering: true, queuedFollowUp: true },
+      "pi",
+    ),
+  ).toEqual({ steering: true, queuedFollowUp: true });
+  for (const value of [
+    null,
+    [],
+    {},
+    { steering: 1, queuedFollowUp: false },
+    { steering: true, queuedFollowUp: "true" },
+    { steering: true, queuedFollowUp: true, arbitrary: true },
+  ]) {
+    expect(() => parseAcpxTurnControlCapabilities(value, "pi")).toThrow(
+      "malformed",
+    );
   }
   for (const agent of ["cursor", "copilot", "codex", "claude", undefined]) {
-    expect(() => parseAcpxTurnControlCapabilities({ steering: true, queuedFollowUp: false }, agent)).toThrow("cannot advertise");
+    expect(() =>
+      parseAcpxTurnControlCapabilities(
+        { steering: true, queuedFollowUp: false },
+        agent,
+      ),
+    ).toThrow("cannot advertise");
   }
 });
 
@@ -7474,8 +7921,14 @@ async function withPreparedOpenCodeCleanup(input: {
   closeTransport: () => Promise<void>;
   removeRoot: () => Promise<void>;
   evidence: () => Pick<
-    ReturnType<ReturnType<typeof createCapabilityRunnerdCodexTransport>["evidence"]>,
-    "runnerPid" | "runnerExited" | "runnerExitCode" | "runnerSignal" | "diagnostics"
+    ReturnType<
+      ReturnType<typeof createCapabilityRunnerdCodexTransport>["evidence"]
+    >,
+    | "runnerPid"
+    | "runnerExited"
+    | "runnerExitCode"
+    | "runnerSignal"
+    | "diagnostics"
   >;
 }): Promise<void> {
   const failures: { stage: string; error: unknown }[] = [];
@@ -7514,31 +7967,54 @@ async function withPreparedOpenCodeCleanup(input: {
   );
 }
 
-it.each([true, false])("preserves prepared OpenCode cleanup errors (primary failure: %s)", async (failRun) => {
-  const primary = new Error("prepared input assertion failed");
-  const cleanup = new NativeSessionCloseUnrecoverableError();
-  const calls: string[] = [];
-  const evidence = {
-    runnerPid: 123,
-    runnerExited: true,
-    runnerExitCode: 1,
-    runnerSignal: null,
-    diagnostics: ["Bearer fixture-secret", "runner did not prove durable suspension before checkpoint"],
-  };
-  const failure = await withPreparedOpenCodeCleanup({
-    run: async () => { calls.push("run"); if (failRun) throw primary; },
-    closeSession: async () => { calls.push("session.close"); throw cleanup; },
-    closeTransport: async () => { calls.push("transport.close"); },
-    removeRoot: async () => { calls.push("removeRoot"); },
-    evidence: () => evidence,
-  }).catch((error: unknown) => error);
-  expect(failure).toBeInstanceOf(AggregateError);
-  expect((failure as AggregateError).errors).toEqual(failRun ? [primary, cleanup] : [cleanup]);
-  expect((failure as AggregateError).cause).toBe(failRun ? primary : cleanup);
-  expect(calls).toEqual(["run", "session.close", "transport.close", "removeRoot"]);
-  expect((failure as Error).message).toContain('"suspensionRejected":true');
-  expect((failure as Error).message).not.toContain("fixture-secret");
-});
+it.each([true, false])(
+  "preserves prepared OpenCode cleanup errors (primary failure: %s)",
+  async (failRun) => {
+    const primary = new Error("prepared input assertion failed");
+    const cleanup = new NativeSessionCloseUnrecoverableError();
+    const calls: string[] = [];
+    const evidence = {
+      runnerPid: 123,
+      runnerExited: true,
+      runnerExitCode: 1,
+      runnerSignal: null,
+      diagnostics: [
+        "Bearer fixture-secret",
+        "runner did not prove durable suspension before checkpoint",
+      ],
+    };
+    const failure = await withPreparedOpenCodeCleanup({
+      run: async () => {
+        calls.push("run");
+        if (failRun) throw primary;
+      },
+      closeSession: async () => {
+        calls.push("session.close");
+        throw cleanup;
+      },
+      closeTransport: async () => {
+        calls.push("transport.close");
+      },
+      removeRoot: async () => {
+        calls.push("removeRoot");
+      },
+      evidence: () => evidence,
+    }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(AggregateError);
+    expect((failure as AggregateError).errors).toEqual(
+      failRun ? [primary, cleanup] : [cleanup],
+    );
+    expect((failure as AggregateError).cause).toBe(failRun ? primary : cleanup);
+    expect(calls).toEqual([
+      "run",
+      "session.close",
+      "transport.close",
+      "removeRoot",
+    ]);
+    expect((failure as Error).message).toContain('"suspensionRejected":true');
+    expect((failure as Error).message).not.toContain("fixture-secret");
+  },
+);
 
 it("preserves prepared input and completion feedback through runnerd and the real OpenCode proxy boundary", async () => {
   const root = await mkdtemp(join(tmpdir(), "runnerd-prepared-opencode-"));
@@ -7546,7 +8022,8 @@ it("preserves prepared input and completion feedback through runnerd and the rea
   // fleet. Qualify an owned copy with strict permissions, never chmod the host
   // runtime or weaken the launch boundary. Keep macOS's native runtime path
   // because its signing and dylib lookup can depend on that location.
-  const providerNode = process.platform === "linux" ? join(root, "node") : process.execPath;
+  const providerNode =
+    process.platform === "linux" ? join(root, "node") : process.execPath;
   if (process.platform === "linux") {
     await cp(process.execPath, providerNode);
     await chmod(providerNode, 0o500);
@@ -7564,14 +8041,23 @@ it("preserves prepared input and completion feedback through runnerd and the rea
   // Use the production bundler without depending on (or mutating) shared dist
   // artifacts. The Vitest CI lane builds Rust but does not build TypeScript.
   const proxy = join(root, "opencode-app-server-proxy.cjs");
-  const proxyBytes = execFileSync(process.execPath, ["--input-type=module", "-e", `
+  const proxyBytes = execFileSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `
     import { bundleVerifiedProviderEntrypoints } from "./scripts/build-verified-provider-entrypoints.mjs";
     const entries = await bundleVerifiedProviderEntrypoints({ write: false });
     const proxy = entries.find(({ entrypoint }) => entrypoint.name === "opencode-app-server-proxy");
     process.stdout.write(proxy.verifiedResult.outputFiles[0].contents);
-  `], { maxBuffer: 16 * 1024 * 1024 });
+  `,
+    ],
+    { maxBuffer: 16 * 1024 * 1024 },
+  );
   await writeFile(proxy, proxyBytes, { mode: 0o755 });
-  const digest = (file: string) => `sha256:${createHash("sha256").update(readFileSync(file)).digest("hex")}`;
+  const digest = (file: string) =>
+    `sha256:${createHash("sha256").update(readFileSync(file)).digest("hex")}`;
   const runtime = join(root, "opencode");
   const bundle = createCapabilityRunnerdCodexTransport({
     provider: "opencode",
@@ -7587,11 +8073,15 @@ it("preserves prepared input and completion feedback through runnerd and the rea
     environment: { PATH: process.env.PATH, OPENROUTER_API_KEY: "fixture-key" },
   });
   const task = createCodexTaskEnvelope({
-    objective: "Preserve the prepared task.", contractRevision: "prepared-v1",
-    criteria: [{ id: "objective", requirement: "Keep this request unchanged." }],
+    objective: "Preserve the prepared task.",
+    contractRevision: "prepared-v1",
+    criteria: [
+      { id: "objective", requirement: "Keep this request unchanged." },
+    ],
   });
   let completionCalls = 0;
-  const feedback = "Include [Saved document](/PAP/issues/PAP-1#document-plan) in your final response.";
+  const feedback =
+    "Include [Saved document](/PAP/issues/PAP-1#document-plan) in your final response.";
   const driver = new CodexAppServerDriver({
     taskEnvelope: task,
     conversationMode: "prepared",
@@ -7601,7 +8091,10 @@ it("preserves prepared input and completion feedback through runnerd and the rea
     environment: { TASKCORE_WORKSPACE_CWD: root },
     completionFeedback: async () => {
       completionCalls += 1;
-      if (completionCalls === 1) throw new Error("Keep the task's required document link in the final response.");
+      if (completionCalls === 1)
+        throw new Error(
+          "Keep the task's required document link in the final response.",
+        );
       return feedback;
     },
   });
@@ -7609,11 +8102,18 @@ it("preserves prepared input and completion feedback through runnerd and the rea
   const prepared = JSON.stringify({
     schema: "taskcore.native-model-envelope.v3",
     task: { prompt: "Keep this completion-feedback request unchanged." },
-    completionContract: { revision: "prepared-v1", criteria: task.completionContract.criteria },
+    completionContract: {
+      revision: "prepared-v1",
+      criteria: task.completionContract.criteria,
+    },
   });
   await withPreparedOpenCodeCleanup({
     run: async () => {
-      session = await driver.openSession({ runId: "prepared-opencode", normalizedSessionId: "prepared-opencode", workingDirectory: root });
+      session = await driver.openSession({
+        runId: "prepared-opencode",
+        normalizedSessionId: "prepared-opencode",
+        workingDirectory: root,
+      });
       await session.startTurn({ message: { role: "user", text: prepared } });
       const events: PrpEvent[] = [];
       for await (const event of session.events()) {
@@ -7621,17 +8121,51 @@ it("preserves prepared input and completion feedback through runnerd and the rea
         if (event.eventType === "turn.completed") break;
       }
       expect(completionCalls).toBe(2);
-      expect(events.filter(event => event.eventType === "run.result.proposed")).toHaveLength(1);
-      const sessionRoots = (await readdir(runtime, { withFileTypes: true })).filter((entry) => entry.isDirectory());
+      expect(
+        events.filter((event) => event.eventType === "run.result.proposed"),
+      ).toHaveLength(1);
+      const sessionRoots = (
+        await readdir(runtime, { withFileTypes: true })
+      ).filter((entry) => entry.isDirectory());
       expect(sessionRoots).toHaveLength(1);
-      const requests = (await readFile(join(runtime, sessionRoots[0]!.name, "data/fake-prompt-requests.ndjson"), "utf8")).trim().split("\n").map((line) => JSON.parse(line));
-      expect(requests.map((request) => request.parts)).toEqual([[{ type: "text", text: prepared }]]);
-      const outcomes = JSON.parse(await readFile(join(runtime, sessionRoots[0]!.name, "data/fake-completion-feedback.json"), "utf8"));
+      const requests = (
+        await readFile(
+          join(
+            runtime,
+            sessionRoots[0]!.name,
+            "data/fake-prompt-requests.ndjson",
+          ),
+          "utf8",
+        )
+      )
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      expect(requests.map((request) => request.parts)).toEqual([
+        [{ type: "text", text: prepared }],
+      ]);
+      const outcomes = JSON.parse(
+        await readFile(
+          join(
+            runtime,
+            sessionRoots[0]!.name,
+            "data/fake-completion-feedback.json",
+          ),
+          "utf8",
+        ),
+      );
       expect(outcomes).toHaveLength(2);
-      expect(outcomes[0].result).toMatchObject({ isError: true, content: [{ text: expect.stringContaining("required document link") }] });
-      expect(outcomes[1].result).toMatchObject({ content: [{ text: expect.stringContaining(feedback) }] });
+      expect(outcomes[0].result).toMatchObject({
+        isError: true,
+        content: [{ text: expect.stringContaining("required document link") }],
+      });
+      expect(outcomes[1].result).toMatchObject({
+        content: [{ text: expect.stringContaining(feedback) }],
+      });
     },
-    closeSession: async () => { await session?.close(); },
+    closeSession: async () => {
+      await session?.close();
+    },
     closeTransport: () => bundle.transport.close(),
     removeRoot: () => rm(root, { recursive: true, force: true }),
     evidence: () => bundle.evidence(),

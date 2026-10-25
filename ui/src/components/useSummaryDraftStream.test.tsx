@@ -9,11 +9,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __liveUpdatesTestUtils } from "@/context/LiveUpdatesProvider";
 import { useSummaryDraftStream } from "./useSummaryDraftStream";
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { LiveEventSubscriptionContext, dispatchLiveEventToSubscribers } = __liveUpdatesTestUtils;
+const { LiveEventSubscriptionContext, dispatchLiveEventToSubscribers } =
+  __liveUpdatesTestUtils;
 
-const mockHeartbeatsApi = vi.hoisted(() => ({ log: vi.fn(), activeRunForIssue: vi.fn() }));
+const mockHeartbeatsApi = vi.hoisted(() => ({
+  log: vi.fn(),
+  activeRunForIssue: vi.fn(),
+}));
 vi.mock("@/api/heartbeats", () => ({ heartbeatsApi: mockHeartbeatsApi }));
 
 async function act(callback: () => void | Promise<void>) {
@@ -33,7 +39,12 @@ async function flushQueries() {
 }
 
 function issue(id: string): SummarySlotIssueRef {
-  return { id, identifier: `PAP-${id}`, title: "Summarize project", status: "in_progress" };
+  return {
+    id,
+    identifier: `PAP-${id}`,
+    title: "Summarize project",
+    status: "in_progress",
+  };
 }
 
 function progressEvent(issueId: string, runId: string): LiveEvent {
@@ -57,7 +68,11 @@ function logEvent(runId: string, seq: number, text: string): LiveEvent {
       seq,
       ts: `2026-07-15T00:00:0${seq}.000Z`,
       stream: "stdout",
-      chunk: JSON.stringify({ type: "acpx.text_delta", text, channel: "output" }),
+      chunk: JSON.stringify({
+        type: "acpx.text_delta",
+        text,
+        channel: "output",
+      }),
     },
   };
 }
@@ -72,7 +87,11 @@ interface Captured {
 
 const captured: { current: Captured | null } = { current: null };
 
-function Harness({ generatingIssue }: { generatingIssue: SummarySlotIssueRef | null }) {
+function Harness({
+  generatingIssue,
+}: {
+  generatingIssue: SummarySlotIssueRef | null;
+}) {
   const stream = useSummaryDraftStream("company-1", generatingIssue);
   captured.current = stream;
   return null;
@@ -84,7 +103,9 @@ function renderHarness(
 ): { root: Root; rerender: (next: SummarySlotIssueRef | null) => void } {
   const container = document.createElement("div");
   const root = createRoot(container);
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   const subscription = {
     subscribe: (fn: CompanyLiveEventHandler) => {
       subscribers.add(fn);
@@ -134,7 +155,13 @@ describe("useSummaryDraftStream", () => {
 
   beforeEach(() => {
     captured.current = null;
-    mockHeartbeatsApi.log.mockResolvedValue({ runId: "run-1", store: "s", logRef: "r", content: "", nextOffset: 0 });
+    mockHeartbeatsApi.log.mockResolvedValue({
+      runId: "run-1",
+      store: "s",
+      logRef: "r",
+      content: "",
+      nextOffset: 0,
+    });
     mockHeartbeatsApi.activeRunForIssue.mockResolvedValue(null);
   });
 
@@ -151,7 +178,11 @@ describe("useSummaryDraftStream", () => {
 
     // Learn the run id from a progress event.
     await act(async () => {
-      dispatchLiveEventToSubscribers(subscribers, "company-1", progressEvent("1", "run-1"));
+      dispatchLiveEventToSubscribers(
+        subscribers,
+        "company-1",
+        progressEvent("1", "run-1"),
+      );
     });
     await flushQueries();
     expect(captured.current?.runId).toBe("run-1");
@@ -175,12 +206,20 @@ describe("useSummaryDraftStream", () => {
     ({ root } = renderHarness(issue("1"), subscribers));
     await flushQueries();
     await act(async () => {
-      dispatchLiveEventToSubscribers(subscribers, "company-1", progressEvent("1", "run-1"));
+      dispatchLiveEventToSubscribers(
+        subscribers,
+        "company-1",
+        progressEvent("1", "run-1"),
+      );
     });
 
     const partial = "<<<SUMMARY-DRAFT>>>\n## Needs you\n- Approve";
     await act(async () => {
-      dispatchLiveEventToSubscribers(subscribers, "company-1", logEvent("run-1", 1, partial));
+      dispatchLiveEventToSubscribers(
+        subscribers,
+        "company-1",
+        logEvent("run-1", 1, partial),
+      );
     });
     await flushQueries();
 
@@ -193,11 +232,19 @@ describe("useSummaryDraftStream", () => {
     ({ root } = renderHarness(issue("1"), subscribers));
     await flushQueries();
     await act(async () => {
-      dispatchLiveEventToSubscribers(subscribers, "company-1", progressEvent("1", "run-1"));
+      dispatchLiveEventToSubscribers(
+        subscribers,
+        "company-1",
+        progressEvent("1", "run-1"),
+      );
     });
 
     await act(async () => {
-      dispatchLiveEventToSubscribers(subscribers, "company-1", logEvent("run-1", 1, "just prose, no markers here"));
+      dispatchLiveEventToSubscribers(
+        subscribers,
+        "company-1",
+        logEvent("run-1", 1, "just prose, no markers here"),
+      );
     });
     await flushQueries();
 
@@ -211,11 +258,19 @@ describe("useSummaryDraftStream", () => {
     ({ root } = renderHarness(issue("1"), subscribers));
     await flushQueries();
     await act(async () => {
-      dispatchLiveEventToSubscribers(subscribers, "company-1", progressEvent("1", "run-1"));
+      dispatchLiveEventToSubscribers(
+        subscribers,
+        "company-1",
+        progressEvent("1", "run-1"),
+      );
     });
 
     await act(async () => {
-      dispatchLiveEventToSubscribers(subscribers, "company-1", logEvent("run-999", 1, "<<<SUMMARY-DRAFT>>>\nleak"));
+      dispatchLiveEventToSubscribers(
+        subscribers,
+        "company-1",
+        logEvent("run-999", 1, "<<<SUMMARY-DRAFT>>>\nleak"),
+      );
     });
     await flushQueries();
 
@@ -228,14 +283,22 @@ describe("useSummaryDraftStream", () => {
     ({ root, rerender } = renderHarness(issue("1"), subscribers));
     await flushQueries();
     await act(async () => {
-      dispatchLiveEventToSubscribers(subscribers, "company-1", progressEvent("1", "run-1"));
+      dispatchLiveEventToSubscribers(
+        subscribers,
+        "company-1",
+        progressEvent("1", "run-1"),
+      );
     });
     await flushQueries();
     await act(async () => {
       dispatchLiveEventToSubscribers(
         subscribers,
         "company-1",
-        logEvent("run-1", 1, "<<<SUMMARY-DRAFT>>>\nold draft\n<<<END-SUMMARY-DRAFT>>>"),
+        logEvent(
+          "run-1",
+          1,
+          "<<<SUMMARY-DRAFT>>>\nold draft\n<<<END-SUMMARY-DRAFT>>>",
+        ),
       );
     });
     await flushQueries();
@@ -254,7 +317,10 @@ describe("useSummaryDraftStream", () => {
   it("rehydrates the draft from the persisted run log after a refresh", async () => {
     // Simulate a page refresh mid-generation: no live event has run id yet, so
     // the hook resolves it from the active-run endpoint and reads the log.
-    mockHeartbeatsApi.activeRunForIssue.mockResolvedValue({ id: "run-1", adapterType: "claude-local" });
+    mockHeartbeatsApi.activeRunForIssue.mockResolvedValue({
+      id: "run-1",
+      adapterType: "claude-local",
+    });
     const persistedRows =
       [
         "STATUS: writing the summary…",
@@ -268,7 +334,11 @@ describe("useSummaryDraftStream", () => {
             ts: `t${index}`,
             stream: "stdout",
             seq: index + 1,
-            chunk: JSON.stringify({ type: "acpx.text_delta", text: `${line}\n`, channel: "output" }),
+            chunk: JSON.stringify({
+              type: "acpx.text_delta",
+              text: `${line}\n`,
+              channel: "output",
+            }),
           }),
         )
         .join("\n") + "\n";
@@ -285,7 +355,9 @@ describe("useSummaryDraftStream", () => {
     await flushQueries();
 
     expect(captured.current?.runId).toBe("run-1");
-    expect(captured.current?.draft).toBe("## Needs you\nRecovered after refresh.");
+    expect(captured.current?.draft).toBe(
+      "## Needs you\nRecovered after refresh.",
+    );
     expect(captured.current?.draftClosed).toBe(true);
   });
 });
